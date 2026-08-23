@@ -27,23 +27,58 @@ function renderStudentsTable(students){
     const memberSince = (s.createdAt && typeof s.createdAt.toDate === 'function')
       ? s.createdAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
+    const isAdminUser = CURRENT_ADMIN_UIDS.has(s.uid);
     const card = document.createElement('div');
     card.className = 'record-card';
     card.innerHTML =
-      '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+      '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
         '<div class="record-stat"><span class="rs-label">Chapters</span><span class="rs-val">' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</span></div>' +
         '<div class="record-stat"><span class="rs-label">Lessons</span><span class="rs-val">' + (s.completedLessons ? s.completedLessons.length : 0) + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + memberSince + '</span></div>' +
-      '</div>';
+      '</div>' +
+      '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>';
+
+    card.querySelector('[data-toggle-admin]').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+
+      if (isAdminUser) {
+        const isSelf = s.uid === auth.currentUser.uid;
+        const isLastAdmin = CURRENT_ADMIN_UIDS.size <= 1;
+        if (isSelf && isLastAdmin) {
+          alert("You're the only admin — you can't revoke your own access, or no one would be able to manage the academy.");
+          return;
+        }
+        const warning = isSelf
+          ? "This will remove YOUR OWN admin access immediately. You'll be signed out of admin pages. Continue?"
+          : 'Revoke admin access for ' + name + '?';
+        if (!confirm(warning)) return;
+      }
+
+      btn.disabled = true;
+      const action = isAdminUser
+        ? revokeAdmin(s.uid)
+        : grantAdmin(s.uid, s.email, s.displayName, auth.currentUser.uid);
+      action
+        .then(() => loadAdminList())
+        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .catch((err) => {
+          alert('Could not update admin access: ' + (err.message || err));
+          btn.disabled = false;
+        });
+    });
+
     body.appendChild(card);
   });
 }
 
 function loadStudents(){
-  db.collection('students').get()
-    .then((snap) => {
+  Promise.all([
+    db.collection('students').get(),
+    loadAdminList()
+  ])
+    .then(([snap]) => {
       ALL_STUDENTS = [];
       snap.forEach((doc) => ALL_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
       renderStudentsTable(ALL_STUDENTS);

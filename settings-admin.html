@@ -104,9 +104,31 @@
       <button class="btn btn-ghost btn-sm" id="settings-reset-password">Send password reset email</button>
     </div>
 
-    <div class="notice">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>No admin-specific account settings exist yet</b> (notification preferences, team member management) — this page currently covers the same account basics as any signed-in user. This page itself is real-admin-gated, though: only accounts with a matching document in the <code>admins</code> Firestore collection can reach it at all, enforced by Firestore's security rules.</p>
+    <div class="panel">
+      <div class="panel-head"><h2>Notification preferences</h2></div>
+      <div class="notice" style="margin-bottom:18px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <p>These are saved to your account for real, but there's no email-sending backend yet to act on them — no server exists to actually send you an email when, say, a new student signs up. Turning these on won't do anything yet; they're here so the setting exists and is ready once that backend is built.</p>
+      </div>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:13.5px; color:var(--ink-1);">
+        <input type="checkbox" id="notify-new-student"> Notify me when a new student signs up
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:14px; font-size:13.5px; color:var(--ink-1);">
+        <input type="checkbox" id="notify-chapter-complete"> Notify me when a student completes the full curriculum
+      </label>
+      <label style="display:flex; align-items:center; gap:10px; margin-bottom:18px; font-size:13.5px; color:var(--ink-1);">
+        <input type="checkbox" id="notify-community-flag"> Notify me about new trading floor posts
+      </label>
+      <button class="btn btn-ghost btn-sm" id="notify-save-btn">Save preferences</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Team members</h2>
+        <span id="team-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Everyone with admin access right now. Grant access to more people from the <a href="students-admin.html" style="color:var(--gold);">Students</a> page.</p>
+      <div id="team-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
     </div>
   </main>
 </div>
@@ -117,6 +139,7 @@
 <script src="assets/auth.js"></script>
 <script src="assets/progress.js"></script>
 <script src="assets/admin-guard.js"></script>
+<script src="assets/admin-team.js"></script>
 <script src="assets/dash-nav.js"></script>
 <script src="assets/admin-settings.js"></script>
 </body>

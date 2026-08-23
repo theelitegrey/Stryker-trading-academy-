@@ -99,7 +99,7 @@ function renderReader(){
   video.load();
 
   const body = document.getElementById('reader-body');
-  body.innerHTML = ch.paragraphs.map(p => '<p>' + p + '</p>').join('');
+  body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');
 
   const lessonsWrap = document.getElementById('reader-lessons');
   lessonsWrap.innerHTML = '';

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — Stryker Admin</title>
+<title>Chapter Editor — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -42,11 +42,11 @@
 
     <div class="side-section">
       <div class="side-label">Manage</div>
-      <a href="students-admin.html" class="side-link active">
+      <a href="students-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Students
       </a>
-      <a href="chapters-admin.html" class="side-link">
+      <a href="chapters-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Chapters &amp; content
       </a>
@@ -87,25 +87,63 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Students</h1>
-        <p>Every registered account, pulled live from Firestore.</p>
+        <a href="chapters-admin.html" style="font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">&larr; All chapters</a>
+        <h1 id="editor-heading">Edit chapter</h1>
+        <p id="editor-subheading">Loading…</p>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost btn-sm" id="delete-chapter-btn" style="border-color:rgba(229,72,77,0.35);">Delete chapter</button>
+        <button class="btn btn-primary btn-sm" id="save-chapter-btn">Save changes</button>
       </div>
     </div>
 
-    <div class="notice">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Real admin access control is on.</b> This page is only reachable by accounts with a matching document in the <code>admins</code> Firestore collection — Firestore's security rules check that server-side, so it can't be bypassed from the browser. Progress data here is view-only, but you can grant or revoke admin access for any student using the button on their row.</p>
+    <div class="auth-error" id="editor-error"></div>
+    <div class="auth-error" id="editor-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Basics</h2></div>
+      <div class="form-row-2">
+        <div class="field"><label for="ed-num">Chapter number</label><input type="text" id="ed-num" placeholder="e.g. 01"></div>
+        <div class="field"><label for="ed-level">Level</label>
+          <select id="ed-level" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px;">
+            <option value="foundation">Foundation</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label for="ed-title">Title</label><input type="text" id="ed-title" placeholder="Chapter title"></div>
+      <div class="form-row-2">
+        <div class="field"><label for="ed-dur">Duration</label><input type="text" id="ed-dur" placeholder="e.g. 48 min"></div>
+        <div class="field"><label for="ed-video">Video URL</label><input type="text" id="ed-video" placeholder="https://…"></div>
+      </div>
     </div>
 
     <div class="panel">
-      <div class="toolbar">
-        <h2 style="font-size:16.5px;" id="students-count">Loading students…</h2>
-        <div class="search-box">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="students-search" placeholder="Search students…">
-        </div>
+      <div class="panel-head"><h2>Chapter text</h2></div>
+      <div class="rte-toolbar" id="rte-toolbar">
+        <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="h3" title="Heading">H3</button>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="p" title="Paragraph">¶</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+        <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting">Clear</button>
       </div>
-      <div id="students-table-body"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div id="ed-body" class="rte-editable" contenteditable="true"></div>
+      <p style="font-size:12px; color:var(--ink-3); margin-top:10px;">This replaces the old plain-text paragraph field — formatting (bold, italic, underline, headings, lists) is preserved exactly as shown here on the live chapter page.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Lessons</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="add-lesson-btn">+ Add lesson</button>
+      </div>
+      <div id="lesson-edit-rows"></div>
     </div>
   </main>
 </div>
@@ -116,9 +154,9 @@
 <script src="assets/auth.js"></script>
 <script src="assets/progress.js"></script>
 <script src="assets/branding.js"></script>
-<script src="assets/admin-guard.js"></script>
-<script src="assets/admin-team.js"></script>
 <script src="assets/dash-nav.js"></script>
-<script src="assets/students-admin.js"></script>
+<script src="assets/chapters-data.js"></script>
+<script src="assets/chapters-store.js"></script>
+<script src="assets/chapter-editor.js"></script>
 </body>
 </html>

@@ -6,13 +6,18 @@
 <title>Stryker Trading Academy — Learn ICT & Smart Money Trading</title>
 <meta name="description" content="Stryker Trading Academy teaches ICT concepts and Smart Money Technique (SMT) trading from first principles to advanced execution, chapter by chapter, with video lessons.">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body>
 
 <nav class="nav" id="site-nav">
   <div class="nav-inner">
     <a href="index.html" class="brand">
-      <div class="brand-mark">S</div>
+      <img class="brand-mark" src="assets/images/logo-emblem-sm.png" alt="Stryker Trading Academy">
       <div class="brand-name">STRYKER <span>TRADING ACADEMY</span></div>
     </a>
     <div class="nav-links">
@@ -295,7 +300,7 @@
     <h2>Pick your track.</h2>
     <p>Every plan includes the full 42-chapter curriculum. Higher tiers add live sessions and direct mentorship.</p>
   </div>
-  <div class="pricing-grid">
+  <div class="pricing-grid" id="pricing-grid">
     <div class="price-card reveal">
       <h3>Self-Paced</h3>
       <div class="price-amt">$0<span>/ forever</span></div>
@@ -335,7 +340,7 @@
     <div class="footer-grid">
       <div>
         <a href="index.html" class="brand" style="margin-bottom:14px;">
-          <div class="brand-mark">S</div>
+          <img class="brand-mark" src="assets/images/logo-emblem-sm.png" alt="Stryker Trading Academy">
           <div class="brand-name">STRYKER <span>TRADING ACADEMY</span></div>
         </a>
         <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
@@ -368,6 +373,13 @@
 </footer>
 
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/progress.js"></script>
+<script src="assets/branding.js"></script>
+<script src="assets/plans-public.js"></script>
 <script src="assets/main.js"></script>
 </body>
 </html>

@@ -158,11 +158,9 @@ h1,h2,h3,h4{
 }
 .brand{ display:flex; align-items:center; gap:10px; }
 .brand-mark{
-  width:34px; height:34px;
-  border-radius:8px;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold-dim));
-  display:flex; align-items:center; justify-content:center;
-  font-family:var(--font-display); font-weight:700; color:#1a1305; font-size:16px;
+  width:36px; height:36px;
+  object-fit:contain;
+  flex-shrink:0;
 }
 .brand-name{ font-family:var(--font-display); font-weight:600; font-size:17px; color:var(--ink-0); letter-spacing:-0.01em; }
 .brand-name span{ color:var(--gold); }
@@ -567,6 +565,31 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
   width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line);
   background:var(--bg-2); color:var(--ink-0); font-size:14px; font-family:inherit; resize:vertical;
 }
+
+/* Rich text editor toolbar (chapter-editor.html) */
+.rte-toolbar{
+  display:flex; flex-wrap:wrap; align-items:center; gap:4px;
+  padding:8px; border:1px solid var(--line); border-bottom:none;
+  border-radius:8px 8px 0 0; background:var(--bg-2);
+}
+.rte-btn{
+  min-width:32px; height:32px; padding:0 10px; border-radius:6px; border:1px solid transparent;
+  background:transparent; color:var(--ink-1); font-size:13px; font-family:var(--font-body);
+  display:flex; align-items:center; justify-content:center; transition:all .15s ease;
+}
+.rte-btn:hover{ background:var(--bg-3); border-color:var(--line); }
+.rte-btn.active{ background:rgba(3,201,136,0.14); border-color:var(--gold-dim); color:var(--gold-bright); }
+.rte-sep{ width:1px; height:20px; background:var(--line); margin:0 4px; }
+.rte-editable{
+  min-height:280px; padding:16px; border:1px solid var(--line); border-radius:0 0 8px 8px;
+  background:var(--bg-2); color:var(--ink-1); font-size:14.5px; line-height:1.75;
+}
+.rte-editable:focus{ outline:none; border-color:var(--gold-dim); }
+.rte-editable p{ margin:0 0 14px; }
+.rte-editable h3{ font-family:var(--font-display); color:var(--ink-0); font-size:17px; margin:18px 0 10px; }
+.rte-editable ul, .rte-editable ol{ margin:0 0 14px; padding-left:22px; }
+.rte-editable li{ margin-bottom:6px; }
+.rte-editable:empty:before{ content:attr(data-placeholder); color:var(--ink-3); }
 
 .event-item{ display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--line-soft); }
 .event-item:last-child{ border-bottom:none; }

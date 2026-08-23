@@ -5,11 +5,16 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Billing & Plans — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body>
 
 <div class="mobile-topnav">
-  <a href="dashboard-admin.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
+  <a href="dashboard-admin.html" class="brand"><img class="brand-mark" src="assets/images/logo-emblem-sm.png" alt="Stryker Trading Academy"><div class="brand-name">STRYKER</div></a>
   <div style="display:flex; gap:8px;">
     <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -23,7 +28,7 @@
 
   <aside class="sidebar">
     <a href="dashboard-admin.html" class="brand">
-      <div class="brand-mark">S</div>
+      <img class="brand-mark" src="assets/images/logo-emblem-sm.png" alt="Stryker Trading Academy">
       <div class="brand-name">STRYKER <span>ADMIN</span></div>
     </a>
 
@@ -57,6 +62,10 @@
 
     <div class="side-section">
       <div class="side-label">System</div>
+      <a href="appearance-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        Appearance
+      </a>
       <a href="settings-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
@@ -79,50 +88,43 @@
     <div class="dash-topbar">
       <div>
         <h1>Billing &amp; plans</h1>
-        <p>Reference view of the pricing shown on the marketing site.</p>
+        <p>Edit what each plan includes — chapter access, price, and features shown on the marketing site.</p>
       </div>
+      <button class="btn btn-primary" id="add-plan-btn">+ Add plan</button>
     </div>
 
     <div class="notice">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>No payment processor is connected.</b> There's no Stripe (or similar) integration yet, so there's no real subscription data, invoices, or upgrade/downgrade flow to show. The tiers below are the same static plans described on the homepage — this page is informational only until real billing infrastructure is built.</p>
+      <p><b>These edits are real and go live on the homepage pricing section immediately.</b> What's not yet built: an actual payment processor (Stripe or similar) to charge people, and access control that automatically enforces a plan's chapter limit for a given student. Right now this defines what each plan should include; enforcing and billing for it are separate, larger pieces.</p>
     </div>
 
-    <div class="pricing-grid" style="margin-bottom:0;">
-      <div class="price-card">
-        <h3>Self-Paced</h3>
-        <div class="price-amt">$0<span>/ forever</span></div>
-        <ul>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Chapters 1–7 (Foundations)</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Progress dashboard</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Community access (read-only)</li>
-        </ul>
+    <div class="auth-error" id="plans-error"></div>
+
+    <div id="plan-edit-panel" style="display:none;" class="panel">
+      <div class="panel-head"><h2 id="plan-edit-heading">Edit plan</h2></div>
+      <div class="form-row-2">
+        <div class="field"><label for="plan-name">Plan name</label><input type="text" id="plan-name" placeholder="e.g. Desk Membership"></div>
+        <div class="field"><label for="plan-price">Price</label><input type="text" id="plan-price" placeholder="e.g. 49 (numbers only, or 0 for free)"></div>
       </div>
-      <div class="price-card featured">
-        <h3>Desk Membership</h3>
-        <div class="price-amt">$49<span>/ month</span></div>
-        <ul>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>All 42 chapters, ICT + SMT</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Weekly live killzone sessions</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Full trading floor community</li>
-        </ul>
+      <div class="form-row-2">
+        <div class="field"><label for="plan-period">Billing period label</label><input type="text" id="plan-period" placeholder="e.g. month, forever, one-time"></div>
+        <div class="field"><label for="plan-chapters">Chapter access</label><input type="text" id="plan-chapters" placeholder="e.g. 7, all, 1-7"></div>
       </div>
-      <div class="price-card">
-        <h3>1:1 Mentorship</h3>
-        <div class="price-amt">$199<span>/ month</span></div>
-        <ul>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Everything in Desk Membership</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Bi-weekly 1:1 chart review</li>
-          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Personal trade journal audits</li>
-        </ul>
+      <div class="field">
+        <label><input type="checkbox" id="plan-featured"> Show as "Most chosen" (highlighted card)</label>
+      </div>
+      <div class="field"><label for="plan-features">Features (one per line)</label>
+        <textarea id="plan-features" rows="5" class="textarea-field" placeholder="All 42 chapters, ICT + SMT&#10;Weekly live killzone sessions&#10;Full trading floor community"></textarea>
+      </div>
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" id="save-plan-btn">Save plan</button>
+        <button class="btn btn-ghost btn-sm" id="cancel-plan-btn">Cancel</button>
+        <button class="btn btn-ghost btn-sm" id="delete-plan-btn" style="border-color:rgba(229,72,77,0.35); margin-left:auto;">Delete plan</button>
       </div>
     </div>
 
-    <div class="panel" style="margin-top:22px;">
-      <div class="panel-head"><h2>What real billing would need</h2></div>
-      <div class="event-item"><div class="event-body"><h4>A payment processor</h4><span>Stripe or similar, to actually take payment and manage subscriptions</span></div></div>
-      <div class="event-item"><div class="event-body"><h4>A backend</h4><span>To securely handle webhooks (payment succeeded, subscription cancelled, etc.) and keep Firestore in sync</span></div></div>
-      <div class="event-item"><div class="event-body"><h4>Real access control</h4><span>So a student's actual paid tier — not a self-reported label — determines what they can access</span></div></div>
+    <div class="pricing-grid" id="plans-grid" style="margin-bottom:0;">
+      <p style="color:var(--ink-3); font-size:13.5px;">Loading plans…</p>
     </div>
   </main>
 </div>
@@ -132,9 +134,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js"></script>
 <script src="assets/progress.js"></script>
+<script src="assets/branding.js"></script>
 <script src="assets/admin-guard.js"></script>
 <script src="assets/dash-nav.js"></script>
-<script>document.addEventListener('DOMContentLoaded', () => guardAdminPage(() => {}));</script>
+<script src="assets/plans-admin.js"></script>
 
 </body>
 </html>

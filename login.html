@@ -6,6 +6,11 @@
 <title>Log in — Stryker Trading Academy</title>
 <meta name="description" content="Log in to your Stryker Trading Academy account.">
 <link rel="stylesheet" href="assets/style.css">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body>
 
@@ -15,7 +20,7 @@
   <!-- Visual side -->
   <div class="auth-visual">
     <a href="index.html" class="brand">
-      <div class="brand-mark">S</div>
+      <img class="brand-mark" src="assets/images/logo-emblem-sm.png" alt="Stryker Trading Academy">
       <div class="brand-name">STRYKER <span>TRADING ACADEMY</span></div>
     </a>
 
@@ -106,6 +111,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" onerror="window.__strykerFirebaseLoadFailed=true"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" onerror="window.__strykerFirebaseLoadFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js" onerror="window.__strykerFirebaseLoadFailed=true"></script>
 <script>
   // If the Firebase SDK failed to load (blocked network, ad/privacy blocker,
   // offline, etc.), fail loudly and visibly instead of leaving the login
@@ -129,6 +135,8 @@
 </script>
 <script src="assets/main.js"></script>
 <script src="assets/auth.js" onerror="window.__strykerAuthJsFailed=true"></script>
+<script src="assets/progress.js"></script>
+<script src="assets/branding.js"></script>
 <script>
   if (window.__strykerAuthJsFailed) {
     document.addEventListener('DOMContentLoaded', function () {

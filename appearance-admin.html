@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — Stryker Admin</title>
+<title>Appearance — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -42,7 +42,7 @@
 
     <div class="side-section">
       <div class="side-label">Manage</div>
-      <a href="students-admin.html" class="side-link active">
+      <a href="students-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Students
       </a>
@@ -62,7 +62,7 @@
 
     <div class="side-section">
       <div class="side-label">System</div>
-      <a href="appearance-admin.html" class="side-link">
+      <a href="appearance-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         Appearance
       </a>
@@ -87,25 +87,52 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Students</h1>
-        <p>Every registered account, pulled live from Firestore.</p>
+        <h1>Appearance</h1>
+        <p>Upload a logo and favicon — changes apply site-wide immediately.</p>
       </div>
     </div>
 
-    <div class="notice">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Real admin access control is on.</b> This page is only reachable by accounts with a matching document in the <code>admins</code> Firestore collection — Firestore's security rules check that server-side, so it can't be bypassed from the browser. Progress data here is view-only, but you can grant or revoke admin access for any student using the button on their row.</p>
-    </div>
+    <div class="auth-error" id="appearance-error"></div>
+    <div class="auth-error" id="appearance-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
 
-    <div class="panel">
-      <div class="toolbar">
-        <h2 style="font-size:16.5px;" id="students-count">Loading students…</h2>
-        <div class="search-box">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="students-search" placeholder="Search students…">
+    <div class="two-col">
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h2>Logo</h2></div>
+          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Shown in the nav bar and sidebar across the whole site. A square or near-square image with a transparent background works best.</p>
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+            <img id="logo-preview" src="assets/images/logo-emblem-sm.png" alt="Current logo" style="width:64px; height:64px; object-fit:contain; background:var(--bg-3); border-radius:10px; padding:6px; border:1px solid var(--line);">
+            <div style="font-size:12.5px; color:var(--ink-3);" id="logo-current-label">Current: bundled default</div>
+          </div>
+          <input type="file" id="logo-file-input" accept="image/*" style="margin-bottom:14px; color:var(--ink-2); font-size:13px;">
+          <br>
+          <button class="btn btn-primary btn-sm" id="upload-logo-btn">Upload &amp; save logo</button>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Favicon</h2></div>
+          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Shown in the browser tab. Use a simple square image — it'll be displayed very small.</p>
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
+            <img id="favicon-preview" src="assets/images/favicon-32.png" alt="Current favicon" style="width:32px; height:32px; object-fit:contain; background:var(--bg-3); border-radius:6px; padding:4px; border:1px solid var(--line);">
+            <div style="font-size:12.5px; color:var(--ink-3);" id="favicon-current-label">Current: bundled default</div>
+          </div>
+          <input type="file" id="favicon-file-input" accept="image/*" style="margin-bottom:14px; color:var(--ink-2); font-size:13px;">
+          <br>
+          <button class="btn btn-primary btn-sm" id="upload-favicon-btn">Upload &amp; save favicon</button>
         </div>
       </div>
-      <div id="students-table-body"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+
+      <div>
+        <div class="notice">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <p><b>Requires Firebase Storage to be enabled.</b> If uploads fail with a "bucket does not exist" or permission error, Cloud Storage likely hasn't been turned on for this project yet — enable it in the Firebase console (Build → Storage → Get started), then publish the Storage security rules provided alongside this feature.</p>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Reset to defaults</h2></div>
+          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Removes any custom logo/favicon and falls back to the bundled Stryker branding.</p>
+          <button class="btn btn-ghost btn-sm" id="reset-branding-btn">Reset to bundled defaults</button>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -116,9 +143,8 @@
 <script src="assets/auth.js"></script>
 <script src="assets/progress.js"></script>
 <script src="assets/branding.js"></script>
-<script src="assets/admin-guard.js"></script>
-<script src="assets/admin-team.js"></script>
 <script src="assets/dash-nav.js"></script>
-<script src="assets/students-admin.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<script src="assets/appearance-admin.js"></script>
 </body>
 </html>

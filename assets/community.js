@@ -87,6 +87,12 @@ function linkifyTags(html){
   return container.innerHTML;
 }
 
+function initials(name){
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+
 function timeAgo(date){
   if (!date) return '';
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -182,7 +188,7 @@ function renderPostCard(post){
   el.className = 'floor-post';
   el.innerHTML =
     '<div class="floor-post-head">' +
-      '<div class="chip-avatar"></div>' +
+      '<div class="floor-avatar">' + initials(post.authorName) + '</div>' +
       '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + '</div></div>' +
       (post.authorUid === FLOOR_UID ? '<button type="button" class="icon-btn" style="margin-left:auto;" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' : '') +
@@ -190,32 +196,31 @@ function renderPostCard(post){
     '<div class="floor-post-body">' + (post.textHtml || '') + '</div>' +
     (post.imageDataUrl ? '<img class="floor-post-image" src="' + post.imageDataUrl + '" alt="">' : '') +
     '<div class="floor-actions">' +
-      '<button type="button" class="floor-action-btn' + (liked ? ' active' : '') + '" data-action="like">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>' +
-        '<span data-like-count>' + (post.likedBy || []).length + '</span>' +
+      '<button type="button" class="floor-action-btn' + (liked ? ' active' : '') + '" data-action="like" title="Like">' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>' +
+        '<span>' + (post.likedBy || []).length + '</span>' +
       '</button>' +
-      '<button type="button" class="floor-action-btn' + (upvoted ? ' active' : '') + '" data-action="upvote">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>' +
-        '<span data-upvote-count>' + (post.upvotedBy || []).length + '</span>' +
+      '<button type="button" class="floor-action-btn' + (upvoted ? ' active' : '') + '" data-action="upvote" title="Upvote">' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19V6M6 12l6-6 6 6"/></svg>' +
+        '<span>' + (post.upvotedBy || []).length + '</span>' +
       '</button>' +
-      '<button type="button" class="floor-action-btn' + (downvoted ? ' active downvote-active' : '') + '" data-action="downvote">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>' +
-        '<span data-downvote-count>' + (post.downvotedBy || []).length + '</span>' +
+      '<button type="button" class="floor-action-btn' + (downvoted ? ' active downvote-active' : '') + '" data-action="downvote" title="Downvote">' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v13M6 12l6 6 6-6"/></svg>' +
+        '<span>' + (post.downvotedBy || []).length + '</span>' +
       '</button>' +
-      '<button type="button" class="floor-action-btn' + (bookmarked ? ' active bookmark-active' : '') + '" data-action="bookmark">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="' + (bookmarked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
-        'Save' +
+      '<button type="button" class="floor-action-btn' + (bookmarked ? ' active bookmark-active' : '') + '" data-action="bookmark" title="Save">' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="' + (bookmarked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>' +
       '</button>' +
-      '<button type="button" class="floor-action-btn" data-action="toggle-replies">' +
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
-        'Reply' + (post.replyCount ? ' (' + post.replyCount + ')' : '') +
+      '<button type="button" class="floor-action-btn reply-btn" data-action="toggle-replies" title="Reply">' +
+        '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+        (post.replyCount ? '<span>' + post.replyCount + '</span>' : '') +
       '</button>' +
     '</div>' +
     '<div class="floor-replies" id="replies-' + post.id + '">' +
       '<div class="floor-reply-list"></div>' +
       '<div class="floor-reply-input-row">' +
         '<input type="text" placeholder="Write a reply…" data-reply-input>' +
-        '<button type="button" class="btn btn-primary btn-sm" data-send-reply>Send</button>' +
+        '<button type="button" class="floor-reply-send" data-send-reply>Send</button>' +
       '</div>' +
     '</div>';
 
@@ -303,10 +308,12 @@ function toggleReplies(post, cardEl){
         const rEl = document.createElement('div');
         rEl.className = 'floor-reply';
         rEl.innerHTML =
-          '<div class="floor-reply-head"><div class="chip-avatar"></div>' +
-          '<span class="floor-reply-name">' + escapeHtml(r.authorName || 'Trader') + '</span>' +
-          '<span class="floor-reply-time">' + timeAgo(rDate) + '</span></div>' +
-          '<div class="floor-reply-text">' + escapeHtml(r.text) + '</div>';
+          '<div class="floor-avatar">' + initials(r.authorName) + '</div>' +
+          '<div class="floor-reply-body">' +
+            '<div class="floor-reply-head"><span class="floor-reply-name">' + escapeHtml(r.authorName || 'Trader') + '</span>' +
+            '<span class="floor-reply-time">' + timeAgo(rDate) + '</span></div>' +
+            '<div class="floor-reply-text">' + escapeHtml(r.text) + '</div>' +
+          '</div>';
         listEl.appendChild(rEl);
       });
     })

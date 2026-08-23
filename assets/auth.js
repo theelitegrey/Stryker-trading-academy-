@@ -89,20 +89,6 @@ function routeToRoleDashboard(role){
   }, 400);
 }
 
-// Guards against routing twice if both getRedirectResult() and the
-// onAuthStateChanged fallback both fire for the same completed sign-in.
-let _redirectRoutingDone = false;
-function completeGoogleRedirectRouting(){
-  if (_redirectRoutingDone) return;
-  _redirectRoutingDone = true;
-  let role = 'student';
-  try {
-    role = sessionStorage.getItem('stryker_pending_role') || 'student';
-    sessionStorage.removeItem('stryker_pending_role');
-  } catch(e) {}
-  routeToRoleDashboard(role);
-}
-
 document.addEventListener('DOMContentLoaded', () => {
 
   if (!auth) return; // Firebase failed to init — fallback error UI already shown above.
@@ -150,19 +136,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ---- Google sign-in (login + signup) ----
-  // Uses a full-page redirect (not a popup) — popups are unreliable on mobile
-  // browsers and were the cause of the earlier "400: malformed request" error.
+  // Uses a popup rather than a full-page redirect. Redirect-based sign-in
+  // depends on sessionStorage surviving a three-way navigation between this
+  // site's domain and Firebase's authDomain (firebaseapp.com) — on this
+  // device that hit Firebase's own "missing initial state" error, a known,
+  // widely-reported limitation of mobile browsers that partition storage
+  // per top-level site. Popup avoids that specific relay entirely.
   document.querySelectorAll('[data-google-signin]').forEach(btn => {
     btn.addEventListener('click', () => {
       clearAuthError('login-error');
       clearAuthError('signup-error');
       const isAdmin = currentRoleIsAdmin(btn.closest('.auth-box'));
-      try { sessionStorage.setItem('stryker_pending_role', isAdmin ? 'admin' : 'student'); } catch(e) {}
       const provider = new firebase.auth.GoogleAuthProvider();
-      // Forces Google's account chooser every time, instead of silently
-      // reusing whichever Google account last signed in on this device.
       provider.setCustomParameters({ prompt: 'select_account' });
-      auth.signInWithRedirect(provider);
+      const errElId = document.getElementById('signup-form') ? 'signup-error' : 'login-error';
+
+      const original = btn.innerHTML;
+      btn.disabled = true;
+
+      auth.signInWithPopup(provider)
+        .then(() => routeToRoleDashboard(isAdmin ? 'admin' : 'student'))
+        .catch((err) => {
+          if (err && err.code === 'auth/popup-blocked') {
+            showAuthError(errElId, "Your browser blocked the Google sign-in popup. Please allow popups for this site, or use email/password instead — it doesn't need one.");
+          } else {
+            showAuthError(errElId, friendlyAuthError(err) + ' If this keeps happening, email/password login is the most reliable option on this device.');
+          }
+        })
+        .finally(() => { btn.disabled = false; btn.innerHTML = original; });
     });
   });
 
@@ -187,33 +188,6 @@ document.addEventListener('DOMContentLoaded', () => {
       auth.signOut().then(() => { window.location.href = 'index.html'; });
     });
   });
-
-  // ---- Completing a Google redirect sign-in ----
-  // We check two signals so this works even on mobile browsers whose storage
-  // partitioning breaks Firebase's own getRedirectResult() tracking:
-  //  1) getRedirectResult() — the normal path.
-  //  2) onAuthStateChanged() — fires once Firebase actually has a signed-in
-  //     user, which happens even when (1) silently fails to resolve. This is
-  //     what was fixing the earlier bug where Google sign-in just landed back
-  //     on the home page instead of a dashboard.
-  let hasPendingGoogleRedirect = false;
-  try { hasPendingGoogleRedirect = sessionStorage.getItem('stryker_pending_role') !== null; } catch(e) {}
-
-  if (hasPendingGoogleRedirect) {
-    auth.getRedirectResult().then((result) => {
-      if (result && result.user) completeGoogleRedirectRouting();
-    }).catch((err) => {
-      if (err && err.code) {
-        const onSignup = !!document.getElementById('signup-form');
-        showAuthError(onSignup ? 'signup-error' : 'login-error', friendlyAuthError(err));
-      }
-      try { sessionStorage.removeItem('stryker_pending_role'); } catch(e) {}
-    });
-
-    auth.onAuthStateChanged((user) => {
-      if (user) completeGoogleRedirectRouting();
-    });
-  }
 
   // ---- Reflect the real signed-in user across the dashboard UI ----
   auth.onAuthStateChanged((user) => {

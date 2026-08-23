@@ -17,7 +17,7 @@ function renderStudentsTable(students){
   if (countEl) countEl.textContent = students.length + ' student' + (students.length === 1 ? '' : 's');
 
   if (!students.length) {
-    body.innerHTML = '<tr><td colspan="5" style="color:var(--ink-3);">No students found.</td></tr>';
+    body.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">No students found.</p>';
     return;
   }
 
@@ -27,14 +27,17 @@ function renderStudentsTable(students){
     const memberSince = (s.createdAt && typeof s.createdAt.toDate === 'function')
       ? s.createdAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
-    const tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div></td>' +
-      '<td>' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</td>' +
-      '<td>' + (s.completedLessons ? s.completedLessons.length : 0) + '</td>' +
-      '<td>' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</td>' +
-      '<td>' + memberSince + '</td>';
-    body.appendChild(tr);
+    const card = document.createElement('div');
+    card.className = 'record-card';
+    card.innerHTML =
+      '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+      '<div class="record-stats">' +
+        '<div class="record-stat"><span class="rs-label">Chapters</span><span class="rs-val">' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Lessons</span><span class="rs-val">' + (s.completedLessons ? s.completedLessons.length : 0) + '</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + memberSince + '</span></div>' +
+      '</div>';
+    body.appendChild(card);
   });
 }
 
@@ -48,7 +51,7 @@ function loadStudents(){
     .catch((err) => {
       console.error('Stryker: failed to load students', err);
       document.getElementById('students-table-body').innerHTML =
-        '<tr><td colspan="5" style="color:var(--ink-3);">Could not load students: ' + (err.message || err) + '</td></tr>';
+        '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">Could not load students: ' + (err.message || err) + '</p>';
       document.getElementById('students-count').textContent = 'Error loading students';
     });
 }

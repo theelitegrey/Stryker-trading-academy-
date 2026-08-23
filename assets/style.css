@@ -546,6 +546,19 @@ thead th{ text-align:left; font-family:var(--font-mono); font-size:11px; text-tr
 tbody td{ padding:14px; border-bottom:1px solid var(--line-soft); font-size:13.5px; color:var(--ink-1); }
 tbody tr:hover{ background:var(--bg-3); }
 .cell-user{ display:flex; align-items:center; gap:10px; }
+
+/* Responsive student/record cards — used instead of a wide table so nothing
+   requires horizontal scrolling on a phone screen. */
+.record-card{
+  display:flex; flex-wrap:wrap; align-items:center; gap:16px;
+  padding:16px; border-bottom:1px solid var(--line-soft);
+}
+.record-card:last-child{ border-bottom:none; }
+.record-card .cell-user{ flex:1 1 200px; min-width:180px; }
+.record-stats{ display:flex; flex-wrap:wrap; gap:20px; flex:2 1 320px; }
+.record-stat{ min-width:80px; }
+.record-stat .rs-label{ font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.06em; color:var(--ink-3); display:block; margin-bottom:3px; }
+.record-stat .rs-val{ font-size:13.5px; color:var(--ink-0); font-weight:600; }
 .cell-avatar{ width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--teal),var(--teal-dim)); flex-shrink:0; }
 .cell-name{ color:var(--ink-0); font-weight:600; display:block; }
 .cell-sub{ color:var(--ink-3); font-size:12px; }

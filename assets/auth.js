@@ -177,15 +177,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ---- Reflect the real signed-in user in dashboard sidebar chips ----
+  // ---- Reflect the real signed-in user across the dashboard UI ----
   auth.onAuthStateChanged((user) => {
     if (!user) return;
+    const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Trader');
+    const firstName = displayName.split(' ')[0];
+
     document.querySelectorAll('.user-chip').forEach(chip => {
       const nameEl = chip.querySelector('.chip-name');
       const roleEl = chip.querySelector('.chip-role');
-      if (nameEl) nameEl.textContent = user.displayName || (user.email ? user.email.split('@')[0] : 'Signed in');
+      if (nameEl) nameEl.textContent = displayName;
       if (roleEl) roleEl.textContent = user.email || '';
     });
+
+    const welcomeName = document.getElementById('dash-first-name');
+    if (welcomeName) welcomeName.textContent = firstName;
   });
 
 });

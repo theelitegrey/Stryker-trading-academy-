@@ -592,6 +592,57 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .rte-editable li{ margin-bottom:6px; }
 .rte-editable:empty:before{ content:attr(data-placeholder); color:var(--ink-3); }
 
+/* ==========================================================================
+   TRADING FLOOR — post feed, reactions, replies, tags
+   ========================================================================== */
+.floor-post{
+  padding:18px 0; border-bottom:1px solid var(--line-soft);
+}
+.floor-post:last-child{ border-bottom:none; }
+.floor-post-head{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.floor-post-head .chip-avatar{ width:34px; height:34px; flex-shrink:0; }
+.floor-post-name{ font-size:13.5px; font-weight:600; color:var(--ink-0); }
+.floor-post-time{ font-size:11.5px; color:var(--ink-3); font-family:var(--font-mono); }
+.floor-post-body{ font-size:14px; color:var(--ink-1); line-height:1.65; margin-bottom:10px; }
+.floor-post-body p{ margin:0 0 8px; }
+.floor-post-body p:last-child{ margin-bottom:0; }
+.floor-post-image{ max-width:340px; width:100%; border-radius:10px; border:1px solid var(--line); margin-bottom:10px; display:block; }
+.floor-tag{ color:var(--teal); font-weight:600; cursor:pointer; }
+.floor-tag:hover{ text-decoration:underline; }
+
+.floor-actions{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.floor-action-btn{
+  display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:7px;
+  border:1px solid transparent; background:transparent; color:var(--ink-3); font-size:12.5px;
+  font-family:var(--font-mono); transition:all .15s ease;
+}
+.floor-action-btn:hover{ background:var(--bg-3); color:var(--ink-1); }
+.floor-action-btn.active{ color:var(--gold-bright); background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.25); }
+.floor-action-btn.active.downvote-active{ color:#f08488; background:rgba(229,72,77,0.1); border-color:rgba(229,72,77,0.25); }
+.floor-action-btn.active.bookmark-active{ color:var(--teal); background:rgba(0,173,181,0.1); border-color:rgba(0,173,181,0.25); }
+
+.floor-replies{ margin-top:14px; padding-left:16px; border-left:2px solid var(--line-soft); display:none; }
+.floor-replies.open{ display:block; }
+.floor-reply{ padding:10px 0; border-bottom:1px solid var(--line-soft); }
+.floor-reply:last-child{ border-bottom:none; }
+.floor-reply-head{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.floor-reply-head .chip-avatar{ width:24px; height:24px; }
+.floor-reply-name{ font-size:12.5px; font-weight:600; color:var(--ink-0); }
+.floor-reply-time{ font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono); }
+.floor-reply-text{ font-size:13px; color:var(--ink-1); line-height:1.5; }
+.floor-reply-input-row{ display:flex; gap:8px; margin-top:10px; }
+.floor-reply-input-row input{
+  flex:1; padding:8px 12px; border-radius:7px; border:1px solid var(--line);
+  background:var(--bg-2); color:var(--ink-0); font-size:13px;
+}
+
+.tag-active-banner{
+  display:flex; align-items:center; gap:10px; background:rgba(0,173,181,0.08);
+  border:1px solid rgba(0,173,181,0.25); border-radius:8px; padding:10px 14px; margin-bottom:16px;
+  font-size:13px; color:var(--ink-1);
+}
+.tag-active-banner button{ margin-left:auto; font-size:12px; color:var(--teal); background:none; border:none; }
+
 .event-item{ display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--line-soft); }
 .event-item:last-child{ border-bottom:none; }
 .event-date{ font-family:var(--font-mono); font-size:11px; color:var(--gold); text-align:center; width:44px; flex-shrink:0; }

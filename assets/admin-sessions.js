@@ -1,14 +1,11 @@
 // Stryker Trading Academy — Admin: Live Sessions management (dashboard-admin.html)
-// Depends on: assets/auth.js, assets/progress.js (for `db`)
+// Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
 //
-// IMPORTANT HONEST NOTE: there is no real backend role system in this app —
-// no custom claims, no server. Firestore security rules currently allow any
-// signed-in user to write to `liveSessions` (see the rules given alongside
-// this feature), because there's no way to cryptographically verify "this
-// user is an admin" without a backend. This admin dashboard page is the
-// intended place to manage sessions, but it is not access-controlled by
-// anything stronger than "you know the URL." Treat it accordingly until a
-// real admin-role backend is built.
+// Real admin access control: writes to `liveSessions` are restricted by
+// Firestore security rules to accounts with a matching document in the
+// `admins` collection (see rules). guardAdminPage() (assets/admin-guard.js)
+// also checks this client-side before this page's logic runs at all, so a
+// non-admin gets redirected rather than seeing permission-denied errors.
 
 function renderAdminSessionRow(session){
   const row = document.createElement('div');

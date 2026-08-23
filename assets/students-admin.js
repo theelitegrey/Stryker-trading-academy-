@@ -1,8 +1,8 @@
 // Stryker Trading Academy — Admin: Students (students-admin.html)
-// Depends on: assets/auth.js, assets/progress.js (for `db`)
-// Read-only. See the notice on the page itself re: the security trade-off
-// this list depends on (student profile docs are readable by any signed-in
-// account, since there's no real admin-role backend to restrict this to).
+// Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
+// Read-only. Access is gated by guardAdminPage() plus Firestore security
+// rules, which restrict reads across all student docs to accounts with a
+// matching document in the `admins` collection.
 
 let ALL_STUDENTS = [];
 

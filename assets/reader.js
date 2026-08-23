@@ -46,8 +46,10 @@ function persistProgress(){
 }
 
 function showGuestBanner(show){
-  const el = document.getElementById('reader-guest-banner');
-  if (el) el.style.display = show ? 'flex' : 'none';
+  const overlay = document.getElementById('guest-paywall-overlay');
+  const content = document.getElementById('reader-content-wrap');
+  if (overlay) overlay.style.display = show ? 'flex' : 'none';
+  if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
 function buildTOC(activeIndex){
@@ -111,7 +113,7 @@ function renderReader(){
       '<div class="lesson-check' + (completedLessonsSet.has(lid) ? ' done' : '') + '" data-lid="' + lid + '">' +
         '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' +
       '</div>' +
-      '<div><h4>' + (li+1) + '. ' + lesson.title + '</h4><p>' + lesson.desc + '</p></div>';
+      '<div><h4>' + (li+1) + '. ' + lesson.title + '</h4><div class="lesson-desc-rendered">' + (lesson.descHtml || ('<p>' + (lesson.desc || '') + '</p>')) + '</div></div>';
     block.querySelector('.lesson-check').addEventListener('click', function(){
       this.classList.toggle('done');
       if (this.classList.contains('done')) completedLessonsSet.add(lid);

@@ -34,10 +34,13 @@ function paragraphsToHtml(paragraphs){
 }
 
 function lessonRowHtml(lesson, idx){
+  const descHtml = lesson.descHtml || (lesson.desc ? '<p>' + String(lesson.desc).replace(/</g, '&lt;') + '</p>' : '');
   return (
     '<div class="lesson-edit-row" data-lesson-idx="' + idx + '">' +
       '<div class="field"><label>Lesson ' + (idx + 1) + ' title</label><input type="text" class="lesson-title-input" value="' + (lesson.title || '').replace(/"/g, '&quot;') + '"></div>' +
-      '<div class="field" style="flex:2 1 260px;"><label>Description</label><input type="text" class="lesson-desc-input" value="' + (lesson.desc || '').replace(/"/g, '&quot;') + '"></div>' +
+      '<div class="field" style="flex:2 1 260px;"><label>Description</label>' +
+        '<div class="rte-editable lesson-desc-editable" contenteditable="true" data-placeholder="What this lesson covers…" style="min-height:60px; font-size:13.5px; padding:10px 12px;">' + descHtml + '</div>' +
+      '</div>' +
       '<button type="button" class="icon-btn remove-lesson-btn" title="Remove lesson"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>' +
     '</div>'
   );
@@ -47,6 +50,19 @@ function renderLessonRows(lessons){
   const wrap = document.getElementById('lesson-edit-rows');
   wrap.innerHTML = lessons.map((l, i) => lessonRowHtml(l, i)).join('');
   wireRemoveButtons();
+  trackLessonEditableFocus();
+}
+
+// Lets the ONE shared rich-text toolbar apply formatting to whichever
+// description box the admin last clicked into — the chapter body editor and
+// every lesson description all share the same toolbar rather than each
+// needing its own.
+let LAST_FOCUSED_EDITABLE = null;
+
+function trackLessonEditableFocus(){
+  document.querySelectorAll('.lesson-desc-editable').forEach((el) => {
+    el.addEventListener('focus', () => { LAST_FOCUSED_EDITABLE = el; });
+  });
 }
 
 function wireRemoveButtons(){
@@ -81,8 +97,10 @@ function collectFormData(){
   const lessons = [];
   document.querySelectorAll('.lesson-edit-row').forEach((row) => {
     const title = row.querySelector('.lesson-title-input').value.trim();
-    const desc = row.querySelector('.lesson-desc-input').value.trim();
-    if (title || desc) lessons.push({ title, desc });
+    const descEl = row.querySelector('.lesson-desc-editable');
+    const descHtml = descEl.innerHTML.trim();
+    const descPlain = descEl.textContent.trim();
+    if (title || descPlain) lessons.push({ title, desc: descPlain, descHtml: descHtml });
   });
 
   const bodyHtml = document.getElementById('ed-body').innerHTML;
@@ -95,15 +113,19 @@ function collectFormData(){
     video: document.getElementById('ed-video').value.trim(),
     bodyHtml: bodyHtml,
     paragraphs: htmlToParagraphs(bodyHtml),
-    lessons: lessons.length ? lessons : [{ title: '', desc: '' }]
+    lessons: lessons.length ? lessons : [{ title: '', desc: '', descHtml: '' }]
   };
 }
 
 function initRichTextToolbar(){
-  const editable = document.getElementById('ed-body');
+  const bodyEditable = document.getElementById('ed-body');
+  LAST_FOCUSED_EDITABLE = bodyEditable; // default target before anything is focused
+  bodyEditable.addEventListener('focus', () => { LAST_FOCUSED_EDITABLE = bodyEditable; });
+
   document.querySelectorAll('.rte-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
-      editable.focus();
+      const target = LAST_FOCUSED_EDITABLE || bodyEditable;
+      target.focus();
       const cmd = btn.dataset.cmd;
       const value = btn.dataset.value || undefined;
       document.execCommand(cmd, false, value);

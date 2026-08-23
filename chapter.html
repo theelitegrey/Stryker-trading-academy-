@@ -14,7 +14,21 @@
 </head>
 <body>
 
-<div class="reader-shell">
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Sign in to keep reading</h2>
+    <p>Create a free account or log in to read this chapter and save your progress across devices.</p>
+    <div class="paywall-actions">
+      <a href="login.html" class="btn btn-primary">Log in</a>
+      <a href="signup.html" class="btn btn-ghost">Create free account</a>
+    </div>
+  </div>
+</div>
+
+<div class="reader-shell" id="reader-content-wrap">
   <aside class="reader-toc">
     <div class="reader-toc-head">
       <a href="courses.html">&larr; All chapters</a>
@@ -30,11 +44,6 @@
         <span id="reader-crumb-title">Chapter</span>
       </div>
       <a href="courses.html" class="btn btn-ghost btn-sm reader-toc-toggle">All chapters</a>
-    </div>
-
-    <div class="notice" id="reader-guest-banner" style="display:none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>You're not signed in.</b> Your lesson progress is only being saved on this device right now. <a href="login.html" style="color:var(--gold); font-weight:600;">Log in</a> or <a href="signup.html" style="color:var(--gold); font-weight:600;">create a free account</a> to save it to your profile and pick up where you left off on any device.</p>
     </div>
 
     <div class="reader-head">
@@ -78,6 +87,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js?v=4"></script>
 <script src="assets/progress.js?v=4"></script>
+<script src="assets/maintenance-check.js?v=4"></script>
 <script src="assets/branding.js?v=4"></script>
 <script src="assets/chapters-data.js?v=4"></script>
 <script src="assets/chapters-store.js?v=4"></script>

@@ -74,6 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('team-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load team members: ' + (err.message || err) + '</p>';
       });
+
+    // Site maintenance mode
+    db.collection('settings').doc('site').get().then((doc) => {
+      document.getElementById('maintenance-toggle').checked = !!(doc.exists && doc.data().maintenanceMode);
+    }).catch((err) => console.error('Stryker: failed to load maintenance status', err));
   });
 
   document.getElementById('settings-save-name').addEventListener('click', () => {
@@ -103,6 +108,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { merge: true })
       .then(() => showAdminSettingsMsg('settings-success', 'Preferences saved.'))
       .catch((err) => showAdminSettingsMsg('settings-error', err.message || 'Could not save preferences.'))
+      .finally(() => { btn.disabled = false; });
+  });
+
+  document.getElementById('maintenance-save-btn').addEventListener('click', () => {
+    const btn = document.getElementById('maintenance-save-btn');
+    btn.disabled = true;
+    const enabled = document.getElementById('maintenance-toggle').checked;
+    db.collection('settings').doc('site').set({
+      maintenanceMode: enabled,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true })
+      .then(() => showAdminSettingsMsg('maintenance-success', enabled ? 'Maintenance mode is ON — the live site now redirects everyone but admins.' : 'Maintenance mode is OFF — the site is live for everyone again.'))
+      .catch((err) => {
+        document.getElementById('maintenance-error').textContent = err.message || 'Could not save.';
+        document.getElementById('maintenance-error').style.display = 'block';
+      })
       .finally(() => { btn.disabled = false; });
   });
 });

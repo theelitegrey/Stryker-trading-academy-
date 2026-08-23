@@ -54,7 +54,7 @@
 }
 
 *,*::before,*::after{ box-sizing:border-box; }
-html{ scroll-behavior:smooth; }
+html{ scroll-behavior:smooth; overflow-x:hidden; }
 body{
   margin:0;
   background:var(--bg-1);
@@ -351,6 +351,7 @@ section{ padding:96px 0; }
   width:44px; height:44px; border:1px solid var(--line); border-radius:10px;
   display:flex; align-items:center; justify-content:center; flex-shrink:0;
 }
+.chapter-body{ min-width:0; } /* lets the title/preview text wrap instead of forcing this grid column — and the whole row — wider than the screen */
 .chapter-body h3{ font-size:16.5px; margin-bottom:6px; }
 .chapter-body p{ font-size:13.5px; color:var(--ink-2); margin-bottom:10px; }
 .chapter-meta{ display:flex; gap:14px; flex-wrap:wrap; }
@@ -362,13 +363,22 @@ section{ padding:96px 0; }
 .tag-foundation{ background:rgba(0,173,181,0.12); color:var(--teal); }
 .tag-intermediate{ background:rgba(3,201,136,0.12); color:var(--gold); }
 .tag-advanced{ background:rgba(229,72,77,0.12); color:#f08488; }
-.chapter-status{ display:flex; align-items:center; gap:10px; }
+.chapter-status{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
 .status-pill{
   font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:6px; border:1px solid var(--line);
-  color:var(--ink-3);
+  color:var(--ink-3); white-space:nowrap;
 }
 .status-pill.unlocked{ color:var(--bull); border-color:rgba(47,191,143,0.3); }
 .status-pill.locked{ color:var(--ink-3); }
+
+/* Below ~640px, the 3-column grid (number / text / status) no longer has
+   room to stay on one row without forcing horizontal overflow — stack it
+   into a single column instead, same pattern used by .record-card. */
+@media (max-width:640px){
+  .chapter{ grid-template-columns:1fr; }
+  .chapter-num{ margin-bottom:12px; }
+  .chapter-status{ margin-top:14px; }
+}
 
 /* progress bar */
 .progress-track{ height:6px; background:var(--line); border-radius:6px; overflow:hidden; }

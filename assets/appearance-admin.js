@@ -1,22 +1,55 @@
 // Stryker Trading Academy — Admin: Appearance (appearance-admin.html)
-// Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
-// firebase-storage-compat.js
+// Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 //
-// Uploads go to Firebase Storage under branding/logo-* and branding/favicon-*,
-// then the resulting download URL is written to Firestore's
-// settings/appearance doc. Every page loads assets/branding.js, which reads
-// that doc and swaps the bundled default logo/favicon for these if present.
+// No Firebase Storage needed (and no Blaze/paid-plan requirement) — images
+// are resized client-side on a canvas to a small max dimension, exported as
+// a compact base64 data URL, and written directly into Firestore. That data
+// URL is a normal string an <img src> or <link rel="icon" href> can use
+// as-is, so branding.js on every other page doesn't need to know the
+// difference between this and a real hosted file URL.
+//
+// Logo and favicon are kept as SEPARATE Firestore documents (settings/logo,
+// settings/favicon) rather than one combined doc, so each gets its own full
+// ~1MB Firestore document size budget instead of splitting a shared one.
+
+function resizeImageToDataUrl(file, maxDim, mimeType){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected file.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('That file could not be read as an image.'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(mimeType || 'image/png'));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function loadCurrentAppearance(){
-  return db.collection('settings').doc('appearance').get().then((doc) => {
-    if (!doc.exists) return;
-    const data = doc.data();
-    if (data.logoUrl) {
-      document.getElementById('logo-preview').src = data.logoUrl;
+  const logoP = db.collection('settings').doc('logo').get();
+  const faviconP = db.collection('settings').doc('favicon').get();
+  return Promise.all([logoP, faviconP]).then(([logoDoc, faviconDoc]) => {
+    if (logoDoc.exists && logoDoc.data().dataUrl) {
+      document.getElementById('logo-preview').src = logoDoc.data().dataUrl;
       document.getElementById('logo-current-label').textContent = 'Current: custom upload';
     }
-    if (data.faviconUrl) {
-      document.getElementById('favicon-preview').src = data.faviconUrl;
+    if (faviconDoc.exists && faviconDoc.data().dataUrl) {
+      document.getElementById('favicon-preview').src = faviconDoc.data().dataUrl;
       document.getElementById('favicon-current-label').textContent = 'Current: custom upload';
     }
   });
@@ -29,13 +62,6 @@ function showAppearanceMsg(elId, message){
   setTimeout(() => { el.style.display = 'none'; }, 5000);
 }
 
-function uploadBrandingFile(file, storagePathPrefix){
-  const ext = (file.name.split('.').pop() || 'png').toLowerCase();
-  const path = storagePathPrefix + '-' + Date.now() + '.' + ext;
-  const ref = firebase.storage().ref(path);
-  return ref.put(file).then(() => ref.getDownloadURL());
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     loadCurrentAppearance().catch((err) => {
@@ -43,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Live preview of a selected file before upload
+  // Live preview of a selected file before saving
   document.getElementById('logo-file-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) document.getElementById('logo-preview').src = URL.createObjectURL(file);
@@ -61,17 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btn = document.getElementById('upload-logo-btn');
     btn.disabled = true;
-    btn.textContent = 'Uploading…';
+    btn.textContent = 'Saving…';
 
-    uploadBrandingFile(file, 'branding/logo')
-      .then((url) => db.collection('settings').doc('appearance').set({ logoUrl: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }))
+    resizeImageToDataUrl(file, 300, 'image/png')
+      .then((dataUrl) => db.collection('settings').doc('logo').set({ dataUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
       .then(() => {
         document.getElementById('logo-current-label').textContent = 'Current: custom upload';
         showAppearanceMsg('appearance-success', 'Logo updated — it will now show across the whole site.');
       })
       .catch((err) => {
-        console.error('Stryker: logo upload failed', err);
-        errEl.textContent = 'Upload failed: ' + (err.message || err) + '. If this mentions storage/bucket-not-found or permissions, Firebase Storage likely needs to be enabled first.';
+        console.error('Stryker: logo save failed', err);
+        errEl.textContent = 'Could not save logo: ' + (err.message || err);
         errEl.style.display = 'block';
       })
       .finally(() => { btn.disabled = false; btn.textContent = 'Upload & save logo'; });
@@ -85,27 +111,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btn = document.getElementById('upload-favicon-btn');
     btn.disabled = true;
-    btn.textContent = 'Uploading…';
+    btn.textContent = 'Saving…';
 
-    uploadBrandingFile(file, 'branding/favicon')
-      .then((url) => db.collection('settings').doc('appearance').set({ faviconUrl: url, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true }))
+    resizeImageToDataUrl(file, 64, 'image/png')
+      .then((dataUrl) => db.collection('settings').doc('favicon').set({ dataUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
       .then(() => {
         document.getElementById('favicon-current-label').textContent = 'Current: custom upload';
-        showAppearanceMsg('appearance-success', 'Favicon updated — it will show in the browser tab across the site (may take a browser refresh or two to visibly update, since browsers cache favicons aggressively).');
+        showAppearanceMsg('appearance-success', 'Favicon updated. Browsers cache favicons aggressively, so it may take a refresh or two to visibly change.');
       })
       .catch((err) => {
-        console.error('Stryker: favicon upload failed', err);
-        errEl.textContent = 'Upload failed: ' + (err.message || err) + '. If this mentions storage/bucket-not-found or permissions, Firebase Storage likely needs to be enabled first.';
+        console.error('Stryker: favicon save failed', err);
+        errEl.textContent = 'Could not save favicon: ' + (err.message || err);
         errEl.style.display = 'block';
       })
       .finally(() => { btn.disabled = false; btn.textContent = 'Upload & save favicon'; });
   });
 
   document.getElementById('reset-branding-btn').addEventListener('click', () => {
-    if (!confirm('Reset to the bundled default logo and favicon? This does not delete uploaded files from storage, just stops using them.')) return;
-    db.collection('settings').doc('appearance').delete()
+    if (!confirm('Reset to the bundled default logo and favicon?')) return;
+    Promise.all([
+      db.collection('settings').doc('logo').delete(),
+      db.collection('settings').doc('favicon').delete()
+    ])
       .then(() => {
-        document.getElementById('logo-preview').src = 'assets/images/logo-emblem.png';
+        document.getElementById('logo-preview').src = 'assets/images/logo-emblem-sm.png';
         document.getElementById('favicon-preview').src = 'assets/images/favicon-32.png';
         document.getElementById('logo-current-label').textContent = 'Current: bundled default';
         document.getElementById('favicon-current-label').textContent = 'Current: bundled default';

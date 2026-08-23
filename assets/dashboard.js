@@ -115,9 +115,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (user) {
       handled = true;
+      hideSessionNotice();
       ensureStudentDoc(user)
         .then((student) => { if (student) renderDashboard(student); })
-        .catch((err) => console.error('Stryker: failed to load dashboard data', err));
+        .catch((err) => {
+          console.error('Stryker: failed to load dashboard data', err);
+          showSessionNotice(
+            "Signed in, but couldn't load your data.",
+            'This usually means Firestore isn\'t set up yet, or its security rules aren\'t published. Error: ' + (err && err.message ? err.message : String(err)),
+            false
+          );
+        });
       return;
     }
 
@@ -128,9 +136,40 @@ document.addEventListener('DOMContentLoaded', () => {
     // user (if any) is picked up by this same callback firing again.
     if (!sawNullOnce) {
       sawNullOnce = true;
+      showSessionNotice('Checking your session…', "If this doesn't resolve in a couple seconds, your browser may be blocking the storage Firebase needs to stay signed in across pages.", false);
       setTimeout(() => {
-        if (!handled) window.location.href = 'login.html';
+        if (!handled) {
+          showSessionNotice(
+            "Couldn't confirm you're signed in.",
+            'Your login worked, but this new page could not detect an active session — likely a browser storage restriction. Try logging in again below.',
+            true
+          );
+        }
       }, 1500);
     }
   });
 });
+
+// Shows an inline notice on the dashboard instead of silently redirecting,
+// so a failed session-check is visible and debuggable rather than looking
+// like a mysterious bounce back to the login page.
+function showSessionNotice(title, detail, showLoginButton){
+  let el = document.getElementById('session-notice');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'session-notice';
+    el.className = 'notice';
+    el.style.margin = '20px 0';
+    const main = document.querySelector('.dash-main');
+    if (main) main.insertBefore(el, main.firstChild);
+  }
+  el.innerHTML =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+    '<p><b>' + title + '</b><br>' + detail +
+    (showLoginButton ? '<br><a href="login.html" class="btn btn-primary btn-sm" style="margin-top:10px; display:inline-flex;">Go to login</a>' : '') +
+    '</p>';
+}
+function hideSessionNotice(){
+  const el = document.getElementById('session-notice');
+  if (el) el.remove();
+}

@@ -13,13 +13,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
-// Explicitly use durable local persistence (survives page navigation/reload),
-// rather than risk falling back to in-memory persistence on browsers with
-// restricted storage — which would wipe the session on every full page nav
-// this multi-page site does after login.
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
-  console.warn('Stryker: could not set LOCAL auth persistence', err);
-});
+// Explicitly use durable local persistence. Wrapped defensively — some
+// mobile browser configurations reject certain persistence types outright,
+// and if that call threw uncaught, it would have silently stopped every
+// script below it from ever running (including the login form handler).
+try {
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+    console.warn('Stryker: could not set LOCAL auth persistence', err);
+  });
+} catch (err) {
+  console.warn('Stryker: setPersistence threw synchronously', err);
+}
 
 function showAuthError(elId, message){
   const el = document.getElementById(elId);
@@ -61,7 +65,12 @@ function currentRoleIsAdmin(authBoxEl){
 }
 
 function routeToRoleDashboard(role){
-  window.location.href = (role === 'admin') ? 'dashboard-admin.html' : 'dashboard-user.html';
+  // Small delay before navigating away: gives Firebase's persistence layer
+  // a moment to actually finish writing the session to storage before a
+  // full page reload immediately needs to read it back on the next page.
+  setTimeout(() => {
+    window.location.href = (role === 'admin') ? 'dashboard-admin.html' : 'dashboard-user.html';
+  }, 400);
 }
 
 // Guards against routing twice if both getRedirectResult() and the

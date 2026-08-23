@@ -52,15 +52,7 @@ function renderChapterEngagement(students){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!auth) return;
-  let handled = false;
-  auth.onAuthStateChanged((user) => {
-    if (handled) return;
-    if (!user) {
-      setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
-      return;
-    }
-    handled = true;
+  guardAdminPage(() => {
     db.collection('students').get()
       .then((snap) => {
         const students = [];

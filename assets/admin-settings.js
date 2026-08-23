@@ -10,18 +10,9 @@ function showAdminSettingsMsg(elId, message){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!auth) return;
-
   let currentUser = null;
-  let handled = false;
 
-  auth.onAuthStateChanged((user) => {
-    if (handled) return;
-    if (!user) {
-      setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
-      return;
-    }
-    handled = true;
+  guardAdminPage((user) => {
     currentUser = user;
     document.getElementById('settings-name').value = user.displayName || '';
     document.getElementById('settings-email').value = user.email || '';

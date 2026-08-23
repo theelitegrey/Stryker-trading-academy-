@@ -54,17 +54,7 @@ function loadStudents(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  if (!auth) return;
-  let handled = false;
-  auth.onAuthStateChanged((user) => {
-    if (handled) return;
-    if (!user) {
-      setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
-      return;
-    }
-    handled = true;
-    loadStudents();
-  });
+  guardAdminPage(() => loadStudents());
 
   document.getElementById('students-search').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();

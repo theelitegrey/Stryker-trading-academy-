@@ -62,16 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addBtn = document.getElementById('admin-session-add-btn');
   if (!addBtn) return; // not on this page
 
-  let handled = false;
-  auth.onAuthStateChanged((user) => {
-    if (handled) return;
-    if (!user) {
-      setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
-      return;
-    }
-    handled = true;
-    loadAdminSessions();
-  });
+  guardAdminPage(() => loadAdminSessions());
 
   addBtn.addEventListener('click', () => {
     const errEl = document.getElementById('admin-session-error');

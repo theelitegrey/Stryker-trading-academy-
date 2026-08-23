@@ -594,6 +594,18 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .rte-editable h3{ font-family:var(--font-display); color:var(--ink-0); font-size:17px; margin:18px 0 10px; }
 .rte-editable ul, .rte-editable ol{ margin:0 0 14px; padding-left:22px; }
 .rte-editable li{ margin-bottom:6px; }
+.rte-editable a, .reader-body a, .lesson-desc-rendered a{ color:var(--teal); text-decoration:underline; text-underline-offset:2px; }
+.rte-editable blockquote, .reader-body blockquote, .lesson-desc-rendered blockquote{
+  margin:0 0 14px; padding:10px 16px; border-left:3px solid var(--gold-dim);
+  color:var(--ink-2); font-style:italic; background:rgba(3,201,136,0.05); border-radius:0 8px 8px 0;
+}
+.rte-editable code, .reader-body code, .lesson-desc-rendered code{
+  font-family:var(--font-mono); font-size:0.9em; background:var(--bg-3);
+  border:1px solid var(--line); border-radius:4px; padding:1px 6px; color:var(--gold-bright);
+}
+.rte-editable img, .reader-body img, .lesson-desc-rendered img{
+  max-width:100%; border-radius:10px; border:1px solid var(--line-soft); margin:6px 0 14px; display:block;
+}
 .rte-editable:empty:before{ content:attr(data-placeholder); color:var(--ink-3); }
 
 /* ==========================================================================

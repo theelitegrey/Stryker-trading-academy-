@@ -117,19 +117,92 @@ function collectFormData(){
   };
 }
 
+function resizeImageToDataUrl(file, maxDim, mimeType){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected file.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('That file could not be read as an image.'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const scale = maxDim / Math.max(width, height);
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(mimeType || 'image/jpeg', 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function wrapSelectionInCode(){
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const text = sel.toString();
+  if (text) {
+    document.execCommand('insertHTML', false, '<code>' + text.replace(/</g, '&lt;') + '</code>');
+  } else {
+    document.execCommand('insertHTML', false, '<code>code</code>');
+  }
+}
+
 function initRichTextToolbar(){
   const bodyEditable = document.getElementById('ed-body');
   LAST_FOCUSED_EDITABLE = bodyEditable; // default target before anything is focused
   bodyEditable.addEventListener('focus', () => { LAST_FOCUSED_EDITABLE = bodyEditable; });
 
-  document.querySelectorAll('.rte-btn').forEach((btn) => {
+  function focusTarget(){
+    const target = LAST_FOCUSED_EDITABLE || bodyEditable;
+    target.focus();
+    return target;
+  }
+
+  // Standard execCommand buttons (bold, italic, lists, headings, etc.)
+  document.querySelectorAll('.rte-btn[data-cmd]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      const target = LAST_FOCUSED_EDITABLE || bodyEditable;
-      target.focus();
-      const cmd = btn.dataset.cmd;
-      const value = btn.dataset.value || undefined;
-      document.execCommand(cmd, false, value);
+      focusTarget();
+      document.execCommand(btn.dataset.cmd, false, btn.dataset.value || undefined);
     });
+  });
+
+  // Link — prompts for a URL, wraps the current selection
+  document.getElementById('rte-link-btn').addEventListener('click', () => {
+    focusTarget();
+    const url = prompt('Link URL (include https://):', 'https://');
+    if (!url) return;
+    document.execCommand('createLink', false, url);
+  });
+
+  // Inline code — wraps the current selection in <code>, or inserts a
+  // placeholder if nothing is selected
+  document.getElementById('rte-code-btn').addEventListener('click', () => {
+    focusTarget();
+    wrapSelectionInCode();
+  });
+
+  // Image — resized client-side and inserted as a compact data URL, same
+  // approach used for the logo and trading floor post images (no Storage /
+  // paid plan needed).
+  document.getElementById('rte-image-btn').addEventListener('click', () => {
+    document.getElementById('rte-image-input').click();
+  });
+  document.getElementById('rte-image-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const target = focusTarget();
+    resizeImageToDataUrl(file, 700, 'image/jpeg').then((dataUrl) => {
+      target.focus();
+      document.execCommand('insertHTML', false, '<img src="' + dataUrl + '" alt="">');
+    }).catch((err) => alert('Could not insert that image: ' + (err.message || err)));
+    e.target.value = '';
   });
 }
 

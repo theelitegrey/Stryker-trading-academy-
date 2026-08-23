@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('settings-member-since').textContent =
           student.createdAt.toDate().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
       }
+      const planEl = document.getElementById('settings-plan-name');
+      if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
     }).catch((err) => console.error('Stryker: failed to load account info', err));
   });
 

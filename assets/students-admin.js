@@ -33,6 +33,7 @@ function renderStudentsTable(students){
     card.innerHTML =
       '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
+        '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + (s.plan || 'Self-Paced') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Chapters</span><span class="rs-val">' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</span></div>' +
         '<div class="record-stat"><span class="rs-label">Lessons</span><span class="rs-val">' + (s.completedLessons ? s.completedLessons.length : 0) + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +

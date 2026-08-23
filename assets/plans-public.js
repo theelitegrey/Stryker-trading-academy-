@@ -7,7 +7,8 @@
 function ctaForPlan(plan){
   if (/mentor/i.test(plan.name || '')) return { label: 'Apply for mentorship', cls: 'btn-ghost' };
   if (plan.featured) return { label: 'Join the desk', cls: 'btn-primary' };
-  return { label: 'Start free', cls: 'btn-ghost' };
+  if (!parseFloat(plan.price)) return { label: 'Start free', cls: 'btn-ghost' };
+  return { label: 'Get started', cls: 'btn-ghost' };
 }
 
 function renderPublicPlanCard(plan){
@@ -21,7 +22,7 @@ function renderPublicPlanCard(plan){
     '<h3>' + (plan.name || 'Plan') + '</h3>' +
     '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>' +
     '<ul>' + featuresHtml + '</ul>' +
-    '<a href="signup.html" class="btn ' + cta.cls + ' btn-block">' + cta.label + '</a>';
+    '<a href="checkout.html?plan=' + encodeURIComponent(plan.id) + '" class="btn ' + cta.cls + ' btn-block">' + cta.label + '</a>';
   return el;
 }
 
@@ -33,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   db.collection('plans').get().then((snap) => {
     if (snap.empty) return; // keep the static fallback cards already in the HTML
     const plans = [];
-    snap.forEach((doc) => plans.push(doc.data()));
+    snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
     grid.innerHTML = '';
     plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan)));
   }).catch((err) => {

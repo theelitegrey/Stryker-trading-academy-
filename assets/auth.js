@@ -10,19 +10,35 @@ const firebaseConfig = {
   messagingSenderId: "950576868151",
   appId: "1:950576868151:web:0f204f6debee99beda08b2"
 };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
 
-// Explicitly use durable local persistence. Wrapped defensively — some
-// mobile browser configurations reject certain persistence types outright,
-// and if that call threw uncaught, it would have silently stopped every
-// script below it from ever running (including the login form handler).
+let auth = null;
 try {
-  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
-    console.warn('Stryker: could not set LOCAL auth persistence', err);
-  });
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+
+  // Explicitly use durable local persistence. Wrapped defensively — some
+  // mobile browser configurations reject certain persistence types outright.
+  try {
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+      console.warn('Stryker: could not set LOCAL auth persistence', err);
+    });
+  } catch (err) {
+    console.warn('Stryker: setPersistence threw synchronously', err);
+  }
 } catch (err) {
-  console.warn('Stryker: setPersistence threw synchronously', err);
+  console.error('Stryker: Firebase failed to initialize', err);
+  document.addEventListener('DOMContentLoaded', () => {
+    const box = document.querySelector('.auth-box') || document.querySelector('.dash-main');
+    if (box) {
+      const el = document.createElement('div');
+      el.className = 'auth-error';
+      el.style.display = 'block';
+      el.textContent = 'Login system failed to initialize (' + (err && err.message ? err.message : 'unknown error') + '). Please refresh the page.';
+      box.insertBefore(el, box.firstChild);
+    }
+    // Prevent forms from silently falling back to a native page reload.
+    document.querySelectorAll('form').forEach((f) => f.addEventListener('submit', (e) => e.preventDefault()));
+  });
 }
 
 function showAuthError(elId, message){
@@ -88,6 +104,8 @@ function completeGoogleRedirectRouting(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+
+  if (!auth) return; // Firebase failed to init — fallback error UI already shown above.
 
   // ---- Email/password login ----
   const loginForm = document.getElementById('login-form');

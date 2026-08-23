@@ -180,6 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
   completedChaptersSet = new Set(local.completedChapters);
   renderReader();
 
+  if (!auth) {
+    // Firebase failed to init — chapter still works fully in local/guest
+    // mode (progress just saves to this device only).
+    showGuestBanner(true);
+    return;
+  }
+
   auth.onAuthStateChanged((user) => {
     if (user) {
       CURRENT_UID = user.uid;

@@ -107,6 +107,8 @@ function renderDashboard(student){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  if (!auth) return; // auth.js already shows a fallback error if init failed.
+
   let handled = false;
   let sawNullOnce = false;
 

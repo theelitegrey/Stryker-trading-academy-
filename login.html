@@ -104,9 +104,44 @@
 </div>
 
 
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js" onerror="window.__strykerFirebaseLoadFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js" onerror="window.__strykerFirebaseLoadFailed=true"></script>
+<script>
+  // If the Firebase SDK failed to load (blocked network, ad/privacy blocker,
+  // offline, etc.), fail loudly and visibly instead of leaving the login
+  // form to silently fall back to a plain native page reload with no
+  // explanation — which is exactly what an unattached form looks like.
+  if (window.__strykerFirebaseLoadFailed || typeof firebase === 'undefined') {
+    document.addEventListener('DOMContentLoaded', function () {
+      var box = document.querySelector('.auth-box');
+      if (box) {
+        var el = document.createElement('div');
+        el.className = 'auth-error';
+        el.style.display = 'block';
+        el.textContent = "Couldn't load the login system (Firebase failed to load — this is usually a blocked network request, ad/privacy blocker, or no internet connection). Please check your connection or try disabling any content blockers, then refresh.";
+        box.insertBefore(el, box.firstChild);
+      }
+      document.querySelectorAll('form').forEach(function (f) {
+        f.addEventListener('submit', function (e) { e.preventDefault(); });
+      });
+    });
+  }
+</script>
 <script src="assets/main.js"></script>
-<script src="assets/auth.js"></script>
+<script src="assets/auth.js" onerror="window.__strykerAuthJsFailed=true"></script>
+<script>
+  if (window.__strykerAuthJsFailed) {
+    document.addEventListener('DOMContentLoaded', function () {
+      var box = document.querySelector('.auth-box');
+      if (box && !document.querySelector('.auth-error[style*="block"]')) {
+        var el = document.createElement('div');
+        el.className = 'auth-error';
+        el.style.display = 'block';
+        el.textContent = "Couldn't load part of the login system (assets/auth.js failed to load). Please refresh the page.";
+        box.insertBefore(el, box.firstChild);
+      }
+    });
+  }
+</script>
 </body>
 </html>

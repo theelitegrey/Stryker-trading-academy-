@@ -80,11 +80,36 @@ function currentRoleIsAdmin(authBoxEl){
   return isAdmin;
 }
 
+// Stores the page a visitor was trying to reach before being bounced to
+// login, so we can send them back there instead of a generic dashboard once
+// they're actually signed in — e.g. checkout.html?plan=X should return to
+// that exact plan's checkout, not just "some dashboard".
+function goToLoginPreservingReturn(){
+  try {
+    sessionStorage.setItem('stryker_return_to', window.location.pathname + window.location.search);
+  } catch(e) {}
+  window.location.href = 'login.html';
+}
+
 function routeToRoleDashboard(role){
   // Small delay before navigating away: gives Firebase's persistence layer
   // a moment to actually finish writing the session to storage before a
   // full page reload immediately needs to read it back on the next page.
   setTimeout(() => {
+    let returnTo = null;
+    try {
+      returnTo = sessionStorage.getItem('stryker_return_to');
+      sessionStorage.removeItem('stryker_return_to');
+    } catch(e) {}
+
+    const isUsableReturn = returnTo &&
+      returnTo.indexOf('login.html') === -1 &&
+      returnTo.indexOf('signup.html') === -1;
+
+    if (isUsableReturn) {
+      window.location.href = returnTo;
+      return;
+    }
     window.location.href = (role === 'admin') ? 'dashboard-admin.html' : 'dashboard-user.html';
   }, 400);
 }

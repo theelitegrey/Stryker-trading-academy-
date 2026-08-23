@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!user) {
       if (!sawNullOnce) {
         sawNullOnce = true;
-        setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
+        setTimeout(() => { if (!handled) goToLoginPreservingReturn(); }, 1500);
       }
       return;
     }

@@ -70,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
   auth.onAuthStateChanged((user) => {
     if (handled) return;
     if (!user) {
-      setTimeout(() => { if (!handled) window.location.href = 'login.html'; }, 1500);
+      setTimeout(() => { if (!handled) goToLoginPreservingReturn(); }, 1500);
       return;
     }
     handled = true;

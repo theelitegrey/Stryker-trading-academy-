@@ -82,8 +82,8 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     handled = true;
-    ensureStudentDoc(user)
-      .then((student) => { if (student) renderAchievements(student); })
+    Promise.all([ensureStudentDoc(user), loadChapters()])
+      .then(([student]) => { if (student) renderAchievements(student); })
       .catch((err) => console.error('Stryker: failed to load achievements', err));
   });
 });

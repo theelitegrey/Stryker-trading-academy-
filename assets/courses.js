@@ -1,5 +1,6 @@
 // Stryker Trading Academy — curriculum listing (courses.html)
-// Depends on assets/chapters-data.js being loaded first.
+// Depends on: assets/progress.js (for `db`), assets/chapters-store.js
+// (loadChapters/CHAPTERS).
 
 function unlockLabel(index){
   if (index === 0) return '<span class="status-pill unlocked">Free</span>';
@@ -78,5 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
       renderChapters(btn.dataset.level);
     });
   });
-  renderChapters('all');
+
+  const container = document.getElementById('chapter-render-target');
+  if (container) container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">Loading curriculum…</p>';
+
+  loadChapters().then(() => renderChapters('all'));
 });

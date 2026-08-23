@@ -79,13 +79,15 @@
     <div class="dash-topbar">
       <div>
         <h1>Chapters &amp; content</h1>
-        <p>Real completion analytics across every registered student, computed live.</p>
+        <p>Edit chapter content directly, and see real completion analytics across every student.</p>
       </div>
+      <button class="btn btn-primary" id="add-chapter-btn">+ Add new chapter</button>
     </div>
 
-    <div class="notice">
+    <div class="notice" id="import-notice" style="display:none;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>This page shows real analytics, not a content editor.</b> The 42 chapters' text and video are currently bundled into the site's code rather than stored in a database, so there's no in-browser way to rewrite a lesson or swap a video yet. Doing that safely would mean migrating all chapter content into Firestore and building a proper editor — a separate, larger project. For now, chapter changes are made directly in the source files.</p>
+      <p><b>Firestore's chapters collection is empty.</b> The site is currently falling back to the bundled curriculum text so nothing breaks, but you're not editing the live data yet. Import the bundled 42 chapters into Firestore once, and from then on this page is the real source of truth.<br>
+      <button class="btn btn-primary btn-sm" id="import-btn" style="margin-top:10px;">Import bundled chapters into Firestore</button></p>
     </div>
 
     <div class="stat-grid-3">
@@ -104,8 +106,11 @@
     </div>
 
     <div class="panel">
-      <div class="panel-head"><h2>Completion rate by chapter</h2></div>
-      <div id="chapter-engagement-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div class="panel-head">
+        <h2>All chapters</h2>
+        <span id="chapter-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <div id="chapter-editor-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
     </div>
   </main>
 </div>
@@ -118,6 +123,7 @@
 <script src="assets/admin-guard.js"></script>
 <script src="assets/dash-nav.js"></script>
 <script src="assets/chapters-data.js"></script>
+<script src="assets/chapters-store.js"></script>
 <script src="assets/chapters-admin.js"></script>
 </body>
 </html>

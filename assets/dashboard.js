@@ -118,8 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
       handled = true;
       hideSessionNotice();
-      ensureStudentDoc(user)
-        .then((student) => { if (student) renderDashboard(student); })
+      Promise.all([ensureStudentDoc(user), loadChapters()])
+        .then(([student]) => { if (student) renderDashboard(student); })
         .catch((err) => {
           console.error('Stryker: failed to load dashboard data', err);
           showSessionNotice(

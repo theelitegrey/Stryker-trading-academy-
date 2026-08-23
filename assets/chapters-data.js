@@ -1,7 +1,12 @@
-// Stryker Trading Academy — shared chapter data
-// Used by courses.html (chapter list) and chapter.html (chapter reader)
+// Stryker Trading Academy — bundled chapter seed data
+// This is the ORIGINAL content, used once to seed Firestore's `chapters`
+// collection from the admin Content editor. After that one-time import,
+// the live site reads chapters from Firestore (assets/chapters-store.js),
+// not from this file — this file is now only the seed/fallback source.
+// Used by: chapters-admin.html (import button + fallback if Firestore is
+// ever empty).
 
-const CHAPTERS = [
+const CHAPTERS_SEED = [
   {
     "num": "01",
     "title": "Candles, Charts & the Language of Price",

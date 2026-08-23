@@ -175,30 +175,35 @@ function markAllComplete(){
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const local = loadLocalProgress();
-  completedLessonsSet = new Set(local.completedLessons);
-  completedChaptersSet = new Set(local.completedChapters);
-  renderReader();
+  const body = document.getElementById('reader-body');
+  if (body) body.innerHTML = '<p style="color:var(--ink-3);">Loading chapter…</p>';
 
-  if (!auth) {
-    // Firebase failed to init — chapter still works fully in local/guest
-    // mode (progress just saves to this device only).
-    showGuestBanner(true);
-    return;
-  }
+  loadChapters().then(() => {
+    const local = loadLocalProgress();
+    completedLessonsSet = new Set(local.completedLessons);
+    completedChaptersSet = new Set(local.completedChapters);
+    renderReader();
 
-  auth.onAuthStateChanged((user) => {
-    if (user) {
-      CURRENT_UID = user.uid;
-      showGuestBanner(false);
-      ensureStudentDoc(user).then((student) => {
-        completedLessonsSet = new Set((student && student.completedLessons) || []);
-        completedChaptersSet = new Set((student && student.completedChapters) || []);
-        renderReader();
-      }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
-    } else {
-      CURRENT_UID = null;
+    if (!auth) {
+      // Firebase failed to init — chapter still works fully in local/guest
+      // mode (progress just saves to this device only).
       showGuestBanner(true);
+      return;
     }
+
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        CURRENT_UID = user.uid;
+        showGuestBanner(false);
+        ensureStudentDoc(user).then((student) => {
+          completedLessonsSet = new Set((student && student.completedLessons) || []);
+          completedChaptersSet = new Set((student && student.completedChapters) || []);
+          renderReader();
+        }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
+      } else {
+        CURRENT_UID = null;
+        showGuestBanner(true);
+      }
+    });
   });
 });

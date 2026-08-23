@@ -124,6 +124,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const isAdmin = currentRoleIsAdmin(btn.closest('.auth-box'));
       try { sessionStorage.setItem('stryker_pending_role', isAdmin ? 'admin' : 'student'); } catch(e) {}
       const provider = new firebase.auth.GoogleAuthProvider();
+      // Forces Google's account chooser every time, instead of silently
+      // reusing whichever Google account last signed in on this device.
+      provider.setCustomParameters({ prompt: 'select_account' });
       auth.signInWithRedirect(provider);
     });
   });

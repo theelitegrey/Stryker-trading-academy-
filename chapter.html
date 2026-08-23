@@ -27,6 +27,11 @@
       <a href="courses.html" class="btn btn-ghost btn-sm reader-toc-toggle">All chapters</a>
     </div>
 
+    <div class="notice" id="reader-guest-banner" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><b>You're not signed in.</b> Your lesson progress is only being saved on this device right now. <a href="login.html" style="color:var(--gold); font-weight:600;">Log in</a> or <a href="signup.html" style="color:var(--gold); font-weight:600;">create a free account</a> to save it to your profile and pick up where you left off on any device.</p>
+    </div>
+
     <div class="reader-head">
       <div class="chapter-meta" id="reader-meta"></div>
       <h1 id="reader-title">Chapter title</h1>
@@ -63,6 +68,11 @@
 </div>
 
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/progress.js"></script>
 <script src="assets/chapters-data.js"></script>
 <script src="assets/reader.js"></script>
 </body>

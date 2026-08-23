@@ -1,6 +1,11 @@
 // Stryker Trading Academy — chapter reader (chapter.html)
-// Depends on assets/chapters-data.js being loaded first.
-// Progress is persisted in localStorage on this device (no backend/database yet).
+// Depends on: assets/chapters-data.js, assets/auth.js (firebase init + `auth`),
+// assets/progress.js (Firestore helpers).
+//
+// Progress is saved to Firestore under the signed-in user's account, so it
+// follows them across devices. If they're not signed in, progress is kept in
+// this browser's localStorage instead, and a banner invites them to log in
+// so it isn't lost.
 
 function getChapterIndexFromQuery(){
   const params = new URLSearchParams(window.location.search);
@@ -10,27 +15,40 @@ function getChapterIndexFromQuery(){
   return idx;
 }
 
-function loadProgress(){
+function loadLocalProgress(){
   try {
     const raw = localStorage.getItem('stryker_progress');
     if (raw) return JSON.parse(raw);
   } catch(e) {}
   return { completedLessons: [], completedChapters: [] };
 }
-function saveProgress(){
+function saveLocalProgress(lessonsSet, chaptersSet){
   try {
     localStorage.setItem('stryker_progress', JSON.stringify({
-      completedLessons: Array.from(completedLessonsSet),
-      completedChapters: Array.from(completedChaptersSet)
+      completedLessons: Array.from(lessonsSet),
+      completedChapters: Array.from(chaptersSet)
     }));
   } catch(e) {}
 }
 
-const _progress = loadProgress();
-const completedLessonsSet = new Set(_progress.completedLessons);
-const completedChaptersSet = new Set(_progress.completedChapters);
-
+let completedLessonsSet = new Set();
+let completedChaptersSet = new Set();
 let CURRENT_INDEX = 0;
+let CURRENT_UID = null; // null = guest — progress saves locally only
+
+function persistProgress(){
+  if (CURRENT_UID) {
+    saveStudentProgress(CURRENT_UID, completedLessonsSet, completedChaptersSet)
+      .catch(err => console.error('Stryker: failed to save progress to Firestore', err));
+  } else {
+    saveLocalProgress(completedLessonsSet, completedChaptersSet);
+  }
+}
+
+function showGuestBanner(show){
+  const el = document.getElementById('reader-guest-banner');
+  if (el) el.style.display = show ? 'flex' : 'none';
+}
 
 function buildTOC(activeIndex){
   const toc = document.getElementById('reader-toc-list');
@@ -98,7 +116,6 @@ function renderReader(){
       this.classList.toggle('done');
       if (this.classList.contains('done')) completedLessonsSet.add(lid);
       else completedLessonsSet.delete(lid);
-      saveProgress();
       updateChapterProgressUI(ch);
     });
     lessonsWrap.appendChild(block);
@@ -106,7 +123,6 @@ function renderReader(){
 
   updateChapterProgressUI(ch);
 
-  // prev / next — real links now, not JS-only navigation
   const prevBtn = document.getElementById('reader-prev');
   const nextBtn = document.getElementById('reader-next');
   if (CURRENT_INDEX > 0) {
@@ -147,15 +163,35 @@ function updateChapterProgressUI(ch){
     completedChaptersSet.delete(ch.num);
     if (markBtn){ markBtn.textContent = 'Mark all lessons complete'; markBtn.classList.add('btn-primary'); markBtn.classList.remove('btn-ghost'); }
   }
-  saveProgress();
-  buildTOC(CURRENT_INDEX); // keep sidebar checkmarks live
+  persistProgress();
+  buildTOC(CURRENT_INDEX);
 }
 
 function markAllComplete(){
   const ch = CHAPTERS[CURRENT_INDEX];
   ch.lessons.forEach((l, li) => completedLessonsSet.add(ch.num + '-' + li));
-  saveProgress();
+  persistProgress();
   renderReader();
 }
 
-document.addEventListener('DOMContentLoaded', renderReader);
+document.addEventListener('DOMContentLoaded', () => {
+  const local = loadLocalProgress();
+  completedLessonsSet = new Set(local.completedLessons);
+  completedChaptersSet = new Set(local.completedChapters);
+  renderReader();
+
+  auth.onAuthStateChanged((user) => {
+    if (user) {
+      CURRENT_UID = user.uid;
+      showGuestBanner(false);
+      ensureStudentDoc(user).then((student) => {
+        completedLessonsSet = new Set((student && student.completedLessons) || []);
+        completedChaptersSet = new Set((student && student.completedChapters) || []);
+        renderReader();
+      }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
+    } else {
+      CURRENT_UID = null;
+      showGuestBanner(true);
+    }
+  });
+});

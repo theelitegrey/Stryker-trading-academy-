@@ -13,6 +13,14 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 
+// Explicitly use durable local persistence (survives page navigation/reload),
+// rather than risk falling back to in-memory persistence on browsers with
+// restricted storage — which would wipe the session on every full page nav
+// this multi-page site does after login.
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+  console.warn('Stryker: could not set LOCAL auth persistence', err);
+});
+
 function showAuthError(elId, message){
   const el = document.getElementById(elId);
   if (!el) return;

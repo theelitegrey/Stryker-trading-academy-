@@ -108,17 +108,29 @@ function renderDashboard(student){
 
 document.addEventListener('DOMContentLoaded', () => {
   let handled = false;
+  let sawNullOnce = false;
+
   auth.onAuthStateChanged((user) => {
     if (handled) return;
-    if (!user) {
-      // No real per-user data to show without an account — send to login
-      // rather than ever showing placeholder/someone-else's-looking data.
-      window.location.href = 'login.html';
+
+    if (user) {
+      handled = true;
+      ensureStudentDoc(user)
+        .then((student) => { if (student) renderDashboard(student); })
+        .catch((err) => console.error('Stryker: failed to load dashboard data', err));
       return;
     }
-    handled = true;
-    ensureStudentDoc(user)
-      .then((student) => { if (student) renderDashboard(student); })
-      .catch((err) => console.error('Stryker: failed to load dashboard data', err));
+
+    // First time we see "no user" — this can be a genuine signed-out state,
+    // but it can also just be Firebase still restoring a persisted session
+    // right after the page navigated here from login.html. Give it a brief
+    // grace window before concluding they're actually logged out; a real
+    // user (if any) is picked up by this same callback firing again.
+    if (!sawNullOnce) {
+      sawNullOnce = true;
+      setTimeout(() => {
+        if (!handled) window.location.href = 'login.html';
+      }, 1500);
+    }
   });
 });

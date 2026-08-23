@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Log in — Stryker Trading Academy</title>
+<meta name="description" content="Log in to your Stryker Trading Academy account.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+
+<div class="auth-shell">
+
+  <!-- Visual side -->
+  <div class="auth-visual">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>TRADING ACADEMY</span></div>
+    </a>
+
+    <div class="auth-visual-quote">
+      <p>"Liquidity is engineered before it's taken. Learn to see the setup before the sweep."</p>
+      <span>— Chapter 14, Liquidity Engineering</span>
+    </div>
+
+    <svg viewBox="0 0 460 180" width="100%" height="auto" xmlns="http://www.w3.org/2000/svg" style="opacity:.9">
+      <g stroke="#1b2132" stroke-width="1">
+        <line x1="0" y1="45" x2="460" y2="45"/>
+        <line x1="0" y1="90" x2="460" y2="90"/>
+        <line x1="0" y1="135" x2="460" y2="135"/>
+      </g>
+      <g>
+        <rect x="20" y="90" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="38" y="70" width="9" height="45" fill="#2fbf8f"/>
+        <rect x="56" y="55" width="9" height="40" fill="#e5484d"/>
+        <rect x="74" y="40" width="9" height="55" fill="#2fbf8f"/>
+        <rect x="92" y="60" width="9" height="30" fill="#e5484d"/>
+        <rect x="110" y="80" width="9" height="35" fill="#e5484d"/>
+        <rect x="128" y="95" width="9" height="20" fill="#2fbf8f"/>
+        <rect x="146" y="70" width="9" height="45" fill="#2fbf8f"/>
+        <rect x="164" y="50" width="9" height="40" fill="#2fbf8f"/>
+        <rect x="182" y="35" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="200" y="45" width="9" height="25" fill="#e5484d"/>
+        <rect x="218" y="60" width="9" height="30" fill="#e5484d"/>
+        <rect x="236" y="75" width="9" height="20" fill="#2fbf8f"/>
+        <rect x="254" y="55" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="272" y="30" width="9" height="40" fill="#2fbf8f"/>
+        <rect x="290" y="20" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="308" y="35" width="9" height="25" fill="#e5484d"/>
+        <rect x="326" y="50" width="9" height="20" fill="#e5484d"/>
+        <rect x="344" y="30" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="362" y="15" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="380" y="25" width="9" height="25" fill="#e5484d"/>
+        <rect x="398" y="10" width="9" height="35" fill="#2fbf8f"/>
+        <rect x="416" y="5"  width="9" height="30" fill="#2fbf8f"/>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Form side -->
+  <div class="auth-side">
+    <div class="auth-box">
+
+      <div class="role-toggle" role="tablist" aria-label="Account type">
+        <button type="button" class="active">Student</button>
+        <button type="button">Admin / Instructor</button>
+      </div>
+
+      <span class="eyebrow" id="signup">Welcome back</span>
+      <h1>Log in to your desk</h1>
+      <p>Pick up your progress right where you left off in the curriculum.</p>
+
+      <div class="auth-error" id="login-error"></div>
+
+      <div class="social-row">
+        <button type="button" class="social-btn btn-block" data-google-signin>
+          <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5h-1.9V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.4 0-13.7 4.2-16.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-2.1 14.1-5.5l-6.5-5.5C29.6 34.7 27 35.6 24 35.6c-5.2 0-9.7-3.3-11.3-8l-6.6 5.1C9.7 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H24v8h11.3c-.8 2.3-2.2 4.2-4.1 5.6l6.5 5.5C41.4 36.6 44 30.9 44 24c0-1.2-.1-2.4-.4-3.5z"/></svg>
+          Continue with Google
+        </button>
+      </div>
+
+      <div class="or-divider"><span>or continue with email</span></div>
+
+      <form id="login-form">
+        <div class="field">
+          <label for="login-email">Email address</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" required>
+        </div>
+        <div class="field-row">
+          <label><input type="checkbox" checked> Keep me logged in</label>
+          <a href="#" data-forgot-password>Forgot password?</a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Log in</button>
+      </form>
+
+      <p class="auth-switch">New to Stryker? <a href="signup.html">Create a free account</a></p>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="assets/main.js"></script>
+<script src="assets/auth.js"></script>
+</body>
+</html>

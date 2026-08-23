@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard — Stryker Trading Academy</title>
+<meta name="description" content="Stryker Trading Academy admin dashboard.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+
+<div class="mobile-topnav">
+  <a href="index.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
+  <button class="icon-btn" aria-label="Menu">☰</button>
+</div>
+
+<div class="dash-shell">
+
+  <aside class="sidebar">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>ADMIN</span></div>
+    </a>
+
+    <div class="side-section">
+      <div class="side-label">Overview</div>
+      <a href="dashboard-admin.html" class="side-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Analytics
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Manage</div>
+      <a href="#" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Students
+      </a>
+      <a href="#" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Chapters &amp; content
+      </a>
+      <a href="#" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Live sessions
+      </a>
+      <a href="#" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Billing &amp; plans
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">System</div>
+      <a href="#" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <a href="index.html" class="user-chip">
+        <div class="chip-avatar" style="background:linear-gradient(135deg,var(--teal),var(--teal-dim));"></div>
+        <div>
+          <div class="chip-name">Marcus Reyes</div>
+          <div class="chip-role">Head Instructor / Admin</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div>
+        <h1>Academy overview</h1>
+        <p>Snapshot for the last 30 days across all chapters and members.</p>
+      </div>
+      <a href="#" class="btn btn-primary">+ New chapter</a>
+    </div>
+
+    <div class="notice">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><b>Chapter 27 review is pending publish.</b> 3 lessons on SMT divergence are drafted and awaiting your final approval before students can access them.</p>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+          <span class="stat-delta up">+8.2%</span>
+        </div>
+        <div class="stat-val">18,412</div>
+        <div class="stat-label">Total students</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
+          <span class="stat-delta up">+12.5%</span>
+        </div>
+        <div class="stat-val">$61,940</div>
+        <div class="stat-label">Monthly recurring revenue</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+          <span class="stat-delta down">-1.4%</span>
+        </div>
+        <div class="stat-val">64%</div>
+        <div class="stat-label">Avg. chapter completion rate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-top">
+          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+          <span class="stat-delta up">+3</span>
+        </div>
+        <div class="stat-val">312</div>
+        <div class="stat-label">Live session attendees (last)</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="panel">
+          <div class="toolbar">
+            <h2 style="font-size:16.5px;">Students</h2>
+            <div class="search-box">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" placeholder="Search students…">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Student</th><th>Plan</th><th>Progress</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Jordan Lee</span><span class="cell-sub">jordan.lee@mail.com</span></div></div></td>
+                  <td>Desk Membership</td>
+                  <td>7 / 42 chapters</td>
+                  <td><span class="status-tag active">Active</span></td>
+                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Priya Shah</span><span class="cell-sub">priya.s@mail.com</span></div></div></td>
+                  <td>1:1 Mentorship</td>
+                  <td>29 / 42 chapters</td>
+                  <td><span class="status-tag active">Active</span></td>
+                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Tomás Vidal</span><span class="cell-sub">tomas.v@mail.com</span></div></div></td>
+                  <td>Self-Paced</td>
+                  <td>3 / 42 chapters</td>
+                  <td><span class="status-tag trial">Free</span></td>
+                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Amara Chukwu</span><span class="cell-sub">amara.c@mail.com</span></div></div></td>
+                  <td>Desk Membership</td>
+                  <td>41 / 42 chapters</td>
+                  <td><span class="status-tag expired">Expired</span></td>
+                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
+                </tr>
+                <tr>
+                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Wei Zhang</span><span class="cell-sub">wei.zhang@mail.com</span></div></div></td>
+                  <td>Desk Membership</td>
+                  <td>14 / 42 chapters</td>
+                  <td><span class="status-tag active">Active</span></td>
+                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Chapter engagement</h2><a href="#">Manage chapters</a></div>
+          <div class="mini-bar-row"><span class="label">01 Foundations</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:96%"></div></div><span class="mini-bar-val">96%</span></div>
+          <div class="mini-bar-row"><span class="label">08 Market Structure</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:78%"></div></div><span class="mini-bar-val">78%</span></div>
+          <div class="mini-bar-row"><span class="label">15 Order Blocks</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:61%"></div></div><span class="mini-bar-val">61%</span></div>
+          <div class="mini-bar-row"><span class="label">27 SMT Divergence</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:34%"></div></div><span class="mini-bar-val">34%</span></div>
+          <div class="mini-bar-row"><span class="label">38 Risk &amp; Execution</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:22%"></div></div><span class="mini-bar-val">22%</span></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h2>Upload new lesson</h2></div>
+          <div class="upload-drop">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12M12 3l-4 4M12 3l4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            <p>Drag a video, chart screenshot, or PDF here, or browse files.</p>
+            <button class="btn btn-ghost btn-sm">Browse files</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Pending approvals</h2></div>
+          <div class="event-item">
+            <div class="event-date" style="width:auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gold)"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+            <div class="event-body"><h4>Chapter 27 — SMT Divergence</h4><span>3 lessons awaiting publish</span></div>
+          </div>
+          <div class="event-item">
+            <div class="event-date" style="width:auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gold)"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+            <div class="event-body"><h4>Instructor application</h4><span>1 mentor request pending review</span></div>
+          </div>
+          <div class="event-item">
+            <div class="event-date" style="width:auto;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gold)"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
+            <div class="event-body"><h4>Community report</h4><span>2 flagged posts in trading floor</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="assets/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Curriculum — Stryker Trading Academy</title>
+<meta name="description" content="The full 42-chapter ICT and SMT trading curriculum, from candle basics to institutional execution.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>TRADING ACADEMY</span></div>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#curriculum">Curriculum</a>
+      <a href="index.html#concepts">ICT / SMT</a>
+      <a href="index.html#pricing">Pricing</a>
+      <a href="courses.html">Courses</a>
+      <a href="dashboard-user.html">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login.html" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+
+
+<header style="padding:64px 0 20px; border-bottom:1px solid var(--line-soft);">
+  <div class="container">
+    <span class="eyebrow">Full Curriculum</span>
+    <h1 style="font-size:clamp(28px,4vw,42px); margin:16px 0 14px; max-width:760px;">42 chapters, from candle basics to institutional SMT execution.</h1>
+    <p style="color:var(--ink-2); max-width:600px; font-size:16px; margin-bottom:8px;">Every chapter includes a full written lesson, an embedded video walkthrough, and a lesson-by-lesson checklist. Chapters unlock in sequence — complete a chapter's lessons to advance.</p>
+  </div>
+</header>
+
+<section class="container" style="padding-top:40px;">
+  <div class="level-tabs">
+    <button class="level-tab active" data-level="all">All chapters</button>
+    <button class="level-tab" data-level="foundation">Foundation</button>
+    <button class="level-tab" data-level="intermediate">Intermediate</button>
+    <button class="level-tab" data-level="advanced">Advanced</button>
+  </div>
+
+  <div id="chapter-render-target"></div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-bottom" style="border-top:none; padding-top:0;">
+      <span>© 2026 Stryker Trading Academy. All rights reserved.</span>
+      <a href="index.html" style="color:var(--gold);">← Back to home</a>
+    </div>
+  </div>
+</footer>
+
+
+<script src="assets/main.js"></script>
+<script src="assets/chapters-data.js"></script>
+<script src="assets/courses.js"></script>
+</body>
+</html>

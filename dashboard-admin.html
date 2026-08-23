@@ -47,7 +47,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Chapters &amp; content
       </a>
-      <a href="#" class="side-link">
+      <a href="#live-sessions-admin" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         Live sessions
       </a>
@@ -219,13 +219,52 @@
         </div>
       </div>
     </div>
+
+    <div id="live-sessions-admin" class="panel">
+      <div class="panel-head"><h2>Live sessions</h2><span style="font-size:12px; color:var(--ink-3);">Shown read-only to students on their Live Sessions page</span></div>
+      <div class="auth-error" id="admin-session-error"></div>
+      <div class="two-col" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+        <div class="field" style="margin-bottom:0;">
+          <label for="admin-session-title">Title</label>
+          <input type="text" id="admin-session-title" placeholder="e.g. London Killzone Breakdown">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="admin-session-instrument">Instrument / focus</label>
+          <input type="text" id="admin-session-instrument" placeholder="e.g. XAUUSD & DXY">
+        </div>
+      </div>
+      <div class="two-col" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+        <div class="field" style="margin-bottom:0;">
+          <label for="admin-session-date">Date</label>
+          <input type="date" id="admin-session-date">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label for="admin-session-time">Time (24h)</label>
+          <input type="time" id="admin-session-time">
+        </div>
+      </div>
+      <div class="field">
+        <label for="admin-session-desc">Description (optional)</label>
+        <input type="text" id="admin-session-desc" placeholder="Short description shown under the session">
+      </div>
+      <button class="btn btn-primary btn-sm" id="admin-session-add-btn">Add live session</button>
+
+      <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--line-soft);">
+        <h3 style="font-size:14px; color:var(--ink-0); margin-bottom:14px;">All scheduled sessions</h3>
+        <div id="admin-session-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      </div>
+    </div>
   </main>
 </div>
 
 
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js"></script>
+<script src="assets/progress.js"></script>
 <script src="assets/dash-nav.js"></script>
+<script src="assets/admin-sessions.js"></script>
 </body>
 </html>

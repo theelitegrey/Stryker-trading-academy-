@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Floor — Stryker Trading Academy</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="mobile-topnav">
+  <a href="dashboard-user.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
+  <div style="display:flex; gap:8px;">
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+    <button class="icon-btn" id="dash-menu-toggle" aria-label="Menu">☰</button>
+  </div>
+</div>
+<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+
+<div class="dash-shell">
+
+  <aside class="sidebar">
+    <a href="dashboard-user.html" class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>ACADEMY</span></div>
+    </a>
+
+    <div class="side-section">
+      <div class="side-label">Learn</div>
+      <a href="dashboard-user.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </a>
+      <a href="courses.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Curriculum
+      </a>
+      <a href="live-sessions.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Live sessions
+      </a>
+      <a href="achievements.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+        Achievements
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Community</div>
+      <a href="trading-floor.html" class="side-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Trading floor
+      </a>
+      <a href="trade-journal.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+        Trade journal
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Account</div>
+      <a href="settings.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <a href="dashboard-user.html" class="user-chip">
+        <div class="chip-avatar"></div>
+        <div>
+          <div class="chip-name">Trader</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div>
+        <h1>Trading floor</h1>
+        <p>Post daily bias, questions, or setups. Visible to every signed-in student.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="auth-error" id="floor-error"></div>
+      <div class="field">
+        <label for="floor-post-text">Share something with the floor</label>
+        <textarea id="floor-post-text" rows="3" placeholder="Daily bias, a setup you're watching, a question…" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px; font-family:inherit; resize:vertical;"></textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" id="floor-post-btn">Post</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Recent posts</h2>
+        <span id="floor-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <div id="floor-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/progress.js"></script>
+<script src="assets/dash-nav.js"></script>
+<script src="assets/community.js"></script>
+</body>
+</html>

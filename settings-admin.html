@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Settings — Stryker Admin</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<div class="mobile-topnav">
+  <a href="dashboard-admin.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
+  <div style="display:flex; gap:8px;">
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+    <button class="icon-btn" id="dash-menu-toggle" aria-label="Menu">☰</button>
+  </div>
+</div>
+<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+
+<div class="dash-shell">
+
+  <aside class="sidebar">
+    <a href="dashboard-admin.html" class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>ADMIN</span></div>
+    </a>
+
+    <div class="side-section">
+      <div class="side-label">Overview</div>
+      <a href="dashboard-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Analytics
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">Manage</div>
+      <a href="students-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Students
+      </a>
+      <a href="chapters-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Chapters &amp; content
+      </a>
+      <a href="dashboard-admin.html#live-sessions-admin" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Live sessions
+      </a>
+      <a href="billing-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+        Billing &amp; plans
+      </a>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">System</div>
+      <a href="settings-admin.html" class="side-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </div>
+
+    <div class="sidebar-foot">
+      <a href="dashboard-admin.html" class="user-chip">
+        <div class="chip-avatar" style="background:linear-gradient(135deg,var(--teal),var(--teal-dim));"></div>
+        <div>
+          <div class="chip-name">Admin</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div>
+        <h1>Settings</h1>
+        <p>Your admin account details.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Profile</h2></div>
+      <div class="auth-error" id="settings-error"></div>
+      <div class="auth-error" id="settings-success" style="display:none; background:rgba(47,191,143,0.1); border-color:rgba(47,191,143,0.3); color:#7fe0c2;"></div>
+      <div class="field">
+        <label for="settings-name">Display name</label>
+        <input type="text" id="settings-name" placeholder="Your name">
+      </div>
+      <div class="field">
+        <label for="settings-email">Email address</label>
+        <input type="email" id="settings-email" disabled style="opacity:0.6;">
+      </div>
+      <button class="btn btn-primary btn-sm" id="settings-save-name">Save changes</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Security</h2></div>
+      <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Send a password reset link to your email address to change your password.</p>
+      <button class="btn btn-ghost btn-sm" id="settings-reset-password">Send password reset email</button>
+    </div>
+
+    <div class="notice">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <p><b>No admin-specific account settings exist yet</b> (permissions, notification preferences, team member management) because there's no real admin-role backend. This page currently covers the same account basics as any signed-in user.</p>
+    </div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js"></script>
+<script src="assets/progress.js"></script>
+<script src="assets/dash-nav.js"></script>
+<script src="assets/admin-settings.js"></script>
+</body>
+</html>

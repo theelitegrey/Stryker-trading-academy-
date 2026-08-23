@@ -14,56 +14,108 @@
 </head>
 <body>
 
-<nav class="nav" id="site-nav">
-  <div class="nav-inner">
-    <a href="index.html" class="brand">
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Sign in to browse the curriculum</h2>
+    <p>Create a free account or log in to see all 42 chapters and start tracking your progress.</p>
+    <div class="paywall-actions">
+      <a href="login.html" class="btn btn-primary">Log in</a>
+      <a href="signup.html" class="btn btn-ghost">Create free account</a>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-topnav">
+  <a href="dashboard-user.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a>
+  <div style="display:flex; gap:8px;">
+    <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+    <button class="icon-btn" id="dash-menu-toggle" aria-label="Menu">☰</button>
+  </div>
+</div>
+<div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
+
+<div class="dash-shell" id="courses-content-wrap">
+
+  <aside class="sidebar">
+    <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
     </a>
-    <div class="nav-links">
-      <a href="index.html#curriculum">Curriculum</a>
-      <a href="index.html#concepts">ICT / SMT</a>
-      <a href="index.html#pricing">Pricing</a>
-      <a href="courses.html">Courses</a>
-      <a href="dashboard-user.html">Dashboard</a>
+
+    <div class="side-section">
+      <div class="side-label">Learn</div>
+      <a href="dashboard-user.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Overview
+      </a>
+      <a href="courses.html" class="side-link active">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Curriculum
+      </a>
+      <a href="live-sessions.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+        Live sessions
+      </a>
+      <a href="achievements.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
+        Achievements
+      </a>
     </div>
-    <div class="nav-cta">
-      <a href="login.html" class="btn btn-ghost btn-sm">Log in</a>
-      <a href="signup.html" class="btn btn-primary btn-sm">Start learning</a>
-      <button class="nav-toggle" aria-label="Menu">☰</button>
+
+    <div class="side-section">
+      <div class="side-label">Community</div>
+      <a href="trading-floor.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        Trading floor
+      </a>
+      <a href="trade-journal.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
+        Trade journal
+      </a>
     </div>
-  </div>
-</nav>
 
-
-<header style="padding:64px 0 20px; border-bottom:1px solid var(--line-soft);">
-  <div class="container">
-    <span class="eyebrow">Full Curriculum</span>
-    <h1 style="font-size:clamp(28px,4vw,42px); margin:16px 0 14px; max-width:760px;">42 chapters, from candle basics to institutional SMT execution.</h1>
-    <p style="color:var(--ink-2); max-width:600px; font-size:16px; margin-bottom:8px;">Every chapter includes a full written lesson, an embedded video walkthrough, and a lesson-by-lesson checklist. Chapters unlock in sequence — complete a chapter's lessons to advance.</p>
-  </div>
-</header>
-
-<section class="container" style="padding-top:40px;">
-  <div class="level-tabs">
-    <button class="level-tab active" data-level="all">All chapters</button>
-    <button class="level-tab" data-level="foundation">Foundation</button>
-    <button class="level-tab" data-level="intermediate">Intermediate</button>
-    <button class="level-tab" data-level="advanced">Advanced</button>
-  </div>
-
-  <div id="chapter-render-target"></div>
-</section>
-
-<footer>
-  <div class="container">
-    <div class="footer-bottom" style="border-top:none; padding-top:0;">
-      <span>© 2026 Stryker Trading Academy. All rights reserved.</span>
-      <a href="index.html" style="color:var(--gold);">← Back to home</a>
+    <div class="side-section">
+      <div class="side-label">Account</div>
+      <a href="settings.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
     </div>
-  </div>
-</footer>
 
+    <div class="sidebar-foot">
+      <a href="dashboard-user.html" class="user-chip">
+        <div class="chip-avatar"></div>
+        <div>
+          <div class="chip-name">Trader</div>
+          <div class="chip-role">—</div>
+        </div>
+      </a>
+      <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
+    </div>
+  </aside>
+
+  <main class="dash-main">
+    <div class="dash-topbar">
+      <div>
+        <h1>Curriculum</h1>
+        <p>All 42 chapters — written lesson, video, and a checklist in each one.</p>
+      </div>
+    </div>
+
+    <div class="level-tabs">
+      <button class="level-tab active" data-level="all">All chapters</button>
+      <button class="level-tab" data-level="foundation">Foundation</button>
+      <button class="level-tab" data-level="intermediate">Intermediate</button>
+      <button class="level-tab" data-level="advanced">Advanced</button>
+    </div>
+
+    <div id="chapter-render-target"></div>
+  </main>
+</div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -72,7 +124,7 @@
 <script src="assets/progress.js?v=4"></script>
 <script src="assets/maintenance-check.js?v=4"></script>
 <script src="assets/branding.js?v=4"></script>
-<script src="assets/main.js?v=4"></script>
+<script src="assets/dash-nav.js?v=4"></script>
 <script src="assets/chapters-data.js?v=4"></script>
 <script src="assets/chapters-store.js?v=4"></script>
 <script src="assets/courses.js?v=4"></script>

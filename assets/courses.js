@@ -71,6 +71,13 @@ function renderChapters(filterLevel){
   });
 }
 
+function showGuestPaywall(show){
+  const overlay = document.getElementById('guest-paywall-overlay');
+  const content = document.getElementById('courses-content-wrap');
+  if (overlay) overlay.style.display = show ? 'flex' : 'none';
+  if (content) content.classList.toggle('paywall-dimmed', show);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.level-tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -84,4 +91,15 @@ document.addEventListener('DOMContentLoaded', () => {
   if (container) container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">Loading curriculum…</p>';
 
   loadChapters().then(() => renderChapters('all'));
+
+  if (!auth) {
+    // Firebase failed to init — still let the curriculum render, just as a
+    // guest (matches how chapter.html degrades in the same situation).
+    showGuestPaywall(true);
+    return;
+  }
+
+  auth.onAuthStateChanged((user) => {
+    showGuestPaywall(!user);
+  });
 });

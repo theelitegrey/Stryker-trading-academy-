@@ -825,7 +825,7 @@ tbody tr:hover{ background:var(--bg-3); }
 
 /* Paywall-style gate for guest visitors — dims the real content underneath
    instead of hiding it outright, with a card overlaid on top. */
-.reader-shell.paywall-dimmed{
+.reader-shell.paywall-dimmed, .dash-shell.paywall-dimmed{
   opacity:0.08; pointer-events:none; user-select:none; filter:blur(6px);
 }
 .paywall-overlay{

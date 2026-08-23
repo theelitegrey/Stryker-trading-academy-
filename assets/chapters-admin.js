@@ -42,7 +42,7 @@ function renderChapterEngagement(students){
   CHAPTERS.forEach(ch => {
     const pct = totalStudents ? Math.round((counts[ch.num] / totalStudents) * 100) : 0;
     const row = document.createElement('div');
-    row.className = 'mini-bar-row';
+    row.className = 'mini-bar-row wide-label';
     row.innerHTML =
       '<span class="label">' + ch.num + ' ' + ch.title + '</span>' +
       '<div class="mini-bar-track"><div class="mini-bar-fill" style="width:' + pct + '%"></div></div>' +

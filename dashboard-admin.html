@@ -129,57 +129,11 @@
     <div class="two-col">
       <div>
         <div class="panel">
-          <div class="toolbar">
-            <h2 style="font-size:16.5px;">Students</h2>
-            <div class="search-box">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-              <input type="text" placeholder="Search students…">
-            </div>
+          <div class="panel-head">
+            <h2 style="font-size:16.5px;">Recent students</h2>
+            <a href="students-admin.html">View all students</a>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr><th>Student</th><th>Plan</th><th>Progress</th><th>Status</th><th></th></tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Jordan Lee</span><span class="cell-sub">jordan.lee@mail.com</span></div></div></td>
-                  <td>Desk Membership</td>
-                  <td>7 / 42 chapters</td>
-                  <td><span class="status-tag active">Active</span></td>
-                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
-                </tr>
-                <tr>
-                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Priya Shah</span><span class="cell-sub">priya.s@mail.com</span></div></div></td>
-                  <td>1:1 Mentorship</td>
-                  <td>29 / 42 chapters</td>
-                  <td><span class="status-tag active">Active</span></td>
-                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
-                </tr>
-                <tr>
-                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Tomás Vidal</span><span class="cell-sub">tomas.v@mail.com</span></div></div></td>
-                  <td>Self-Paced</td>
-                  <td>3 / 42 chapters</td>
-                  <td><span class="status-tag trial">Free</span></td>
-                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
-                </tr>
-                <tr>
-                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Amara Chukwu</span><span class="cell-sub">amara.c@mail.com</span></div></div></td>
-                  <td>Desk Membership</td>
-                  <td>41 / 42 chapters</td>
-                  <td><span class="status-tag expired">Expired</span></td>
-                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
-                </tr>
-                <tr>
-                  <td><div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">Wei Zhang</span><span class="cell-sub">wei.zhang@mail.com</span></div></div></td>
-                  <td>Desk Membership</td>
-                  <td>14 / 42 chapters</td>
-                  <td><span class="status-tag active">Active</span></td>
-                  <td><div class="row-actions"><button class="icon-btn">⋯</button></div></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <div id="recent-students-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
         </div>
 
         <div class="panel">
@@ -223,7 +177,7 @@
     <div id="live-sessions-admin" class="panel">
       <div class="panel-head"><h2>Live sessions</h2><span style="font-size:12px; color:var(--ink-3);">Shown read-only to students on their Live Sessions page</span></div>
       <div class="auth-error" id="admin-session-error"></div>
-      <div class="two-col" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+      <div class="form-row-2">
         <div class="field" style="margin-bottom:0;">
           <label for="admin-session-title">Title</label>
           <input type="text" id="admin-session-title" placeholder="e.g. London Killzone Breakdown">
@@ -233,7 +187,7 @@
           <input type="text" id="admin-session-instrument" placeholder="e.g. XAUUSD & DXY">
         </div>
       </div>
-      <div class="two-col" style="grid-template-columns:1fr 1fr; margin-bottom:16px;">
+      <div class="form-row-2">
         <div class="field" style="margin-bottom:0;">
           <label for="admin-session-date">Date</label>
           <input type="date" id="admin-session-date">
@@ -266,6 +220,7 @@
 <script src="assets/progress.js"></script>
 <script src="assets/admin-guard.js"></script>
 <script src="assets/dash-nav.js"></script>
+<script src="assets/admin-overview.js"></script>
 <script src="assets/admin-sessions.js"></script>
 </body>
 </html>

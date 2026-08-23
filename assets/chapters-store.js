@@ -13,6 +13,14 @@ let _chaptersLoadPromise = null;
 function loadChapters(forceRefresh){
   if (_chaptersLoadPromise && !forceRefresh) return _chaptersLoadPromise;
 
+  if (!db) {
+    // Firestore never initialized — fall back to bundled content instead of
+    // leaving the page stuck on "Loading chapter…" forever.
+    CHAPTERS = typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : [];
+    _chaptersLoadPromise = Promise.resolve(CHAPTERS);
+    return _chaptersLoadPromise;
+  }
+
   _chaptersLoadPromise = db.collection('chapters').get()
     .then((snap) => {
       const list = [];

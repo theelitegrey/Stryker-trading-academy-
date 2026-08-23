@@ -2,7 +2,16 @@
 // Requires firebase-app-compat.js, firebase-auth-compat.js, firebase-firestore-compat.js,
 // and assets/auth.js (initializes the Firebase app + `auth`) to be loaded first.
 
-const db = firebase.firestore();
+// Guarded the same way `auth` is in auth.js: if Firebase failed to
+// initialize upstream, calling firebase.firestore() here would throw
+// synchronously and silently kill every script that loads after this one
+// (chapters-store.js, reader.js, dashboard.js, etc. all depend on `db`).
+let db = null;
+try {
+  db = firebase.firestore();
+} catch (err) {
+  console.error('Stryker: Firestore failed to initialize', err);
+}
 
 function todayStr(){
   const d = new Date();

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Models — Stryker Admin</title>
+<title>Indicator Editor — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css?v=71">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -50,11 +50,11 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Chapters &amp; content
       </a>
-      <a href="models-admin.html" class="side-link active">
+      <a href="models-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
         Trading models
       </a>
-      <a href="indicators-admin.html" class="side-link">
+      <a href="indicators-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         Trading indicators
       </a>
@@ -119,24 +119,65 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Trading models</h1>
-        <p>Create and edit named trading models/setups — the same rich editor as chapters, published separately for students to browse and study.</p>
+        <a href="indicators-admin.html" style="font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">&larr; All indicators</a>
+        <h1 id="editor-heading">Edit indicator</h1>
+        <p id="editor-subheading">Loading…</p>
       </div>
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" id="update-all-models-btn">Update all</button>
-        <button class="btn btn-primary" onclick="window.location.href='model-editor.html?new=1'">+ Add new model</button>
+        <button class="btn btn-ghost btn-sm" id="delete-indicator-btn" style="border-color:rgba(229,72,77,0.35);">Delete indicator</button>
+        <button class="btn btn-primary btn-sm" id="save-indicator-btn">Save changes</button>
       </div>
     </div>
 
-    <div class="auth-error" id="update-all-models-error"></div>
-    <div class="auth-error" id="update-all-models-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+    <div class="auth-error" id="editor-error"></div>
+    <div class="auth-error" id="editor-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
 
     <div class="panel">
-      <div class="panel-head">
-        <h2>All models</h2>
-        <span id="model-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      <div class="panel-head"><h2>Basics</h2></div>
+      <div class="field"><label for="ed-id">Indicator ID (slug)</label><input type="text" id="ed-id" placeholder="e.g. session-liquidity — used in the URL, lowercase, hyphens only"></div>
+      <div class="field"><label for="ed-name">Indicator name</label><input type="text" id="ed-name" placeholder="e.g. Session Liquidity Sweep Indicator"></div>
+      <div class="field"><label for="ed-summary">Short summary</label><input type="text" id="ed-summary" placeholder="One or two sentences — shown on the indicators list card"></div>
+      <div class="field">
+        <label for="ed-min-role">Minimum role required <span style="color:var(--ink-3); font-weight:400;">(leave blank for any signed-in student)</span></label>
+        <select id="ed-min-role" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px;">
+          <option value="">No restriction</option>
+        </select>
       </div>
-      <div id="model-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Full write-up</h2></div>
+      <div class="rte-toolbar" id="rte-toolbar">
+        <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+        <button type="button" class="rte-btn" data-cmd="strikeThrough" title="Strikethrough"><s>S</s></button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="h3" title="Heading">H3</button>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="p" title="Paragraph">¶</button>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="blockquote" title="Quote">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21c3 0 7-1 7-8V5H3v10h4c0 4-2 6-4 6M14 21c3 0 7-1 7-8V5h-7v10h4c0 4-2 6-4 6"/></svg>
+        </button>
+        <button type="button" class="rte-btn" id="rte-code-btn" title="Inline code">&lt;/&gt;</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+        <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" id="rte-link-btn" title="Insert link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.5 1.5"/><path d="M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.5-1.5"/></svg>
+        </button>
+        <button type="button" class="rte-btn" data-cmd="unlink" title="Remove link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.8 5.2a5 5 0 0 0-7-.1M5.2 18.8a5 5 0 0 0 7 .1M9 15l6-6M3 3l18 18"/></svg>
+        </button>
+        <button type="button" class="rte-btn" id="rte-image-btn" title="Insert image">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        </button>
+        <input type="file" id="rte-image-input" accept="image/*" style="display:none;">
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting">Clear</button>
+      </div>
+      <div id="ed-body" class="rte-editable" contenteditable="true"></div>
+      <p style="font-size:12px; color:var(--ink-3); margin-top:10px;">Formatting here — bold, italic, links, images, quotes, lists — is preserved exactly as shown on the live indicator page.</p>
     </div>
   </main>
 </div>
@@ -148,12 +189,11 @@
 <script src="assets/progress.js?v=71"></script>
 <script src="assets/avatars.js?v=71"></script>
 <script src="assets/referrals.js?v=71"></script>
-<script src="assets/roles.js?v=71"></script>
-<script src="assets/branding.js?v=71"></script>
 <script src="assets/admin-guard.js?v=71"></script>
+<script src="assets/branding.js?v=71"></script>
 <script src="assets/dash-nav.js?v=71"></script>
-<script src="assets/models-data.js?v=71"></script>
-<script src="assets/models-store.js?v=71"></script>
-<script src="assets/models-admin.js?v=71"></script>
+<script src="assets/roles.js?v=71"></script>
+<script src="assets/indicators-store.js?v=71"></script>
+<script src="assets/indicator-editor.js?v=71"></script>
 </body>
 </html>

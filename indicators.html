@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Settings — Stryker Trading Academy</title>
+<title>Trading Indicators — Stryker Trading Academy</title>
+<meta name="description" content="Trading indicators used across the Stryker Trading Academy curriculum.">
 <link rel="stylesheet" href="assets/style.css?v=71">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -11,7 +12,21 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
-<body>
+<body data-page-access="indicators">
+
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Sign in to browse trading indicators</h2>
+    <p>Create a free account or log in to see the full list.</p>
+    <div class="paywall-actions">
+      <a href="login.html" class="btn btn-primary">Log in</a>
+      <a href="signup.html" class="btn btn-ghost">Create free account</a>
+    </div>
+  </div>
+</div>
 
 <div class="mobile-topnav">
   <a href="dashboard-user.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a>
@@ -24,12 +39,11 @@
 </div>
 <div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
 
-<div class="dash-shell">
+<div class="dash-shell" id="indicators-content-wrap">
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
     </a>
 
     <div class="side-section">
@@ -46,7 +60,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
         Trading models
       </a>
-      <a href="indicators.html" class="side-link">
+      <a href="indicators.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         Trading indicators
       </a>
@@ -82,7 +96,7 @@
 
     <div class="side-section">
       <div class="side-label">Account</div>
-      <a href="settings.html" class="side-link active">
+      <a href="settings.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </a>
@@ -103,79 +117,12 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Settings</h1>
-        <p>Manage your profile, security, and account.</p>
+        <h1>Trading indicators</h1>
+        <p>Indicators used across the curriculum, with setup and usage notes.</p>
       </div>
     </div>
 
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Profile picture</h2></div>
-          <div class="auth-error" id="avatar-error"></div>
-          <div class="auth-error" id="avatar-success" style="display:none; background:rgba(47,191,143,0.1); border-color:rgba(47,191,143,0.3); color:#7fe0c2;"></div>
-          <div style="display:flex; align-items:center; gap:18px; flex-wrap:wrap;">
-            <div id="avatar-preview-wrap" style="width:72px; height:72px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--bg-2); display:flex; align-items:center; justify-content:center;">
-              <p style="color:var(--ink-3); font-size:11px; margin:0;">Loading…</p>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button class="btn btn-primary btn-sm" id="avatar-upload-btn">Upload photo</button>
-              <input type="file" id="avatar-file-input" accept="image/*" style="display:none;">
-              <button class="btn btn-ghost btn-sm" id="avatar-randomize-btn">Use a random avatar</button>
-            </div>
-          </div>
-          <p style="color:var(--ink-3); font-size:12.5px; margin-top:12px; margin-bottom:0;">If you signed up with Google, your Google photo is used until you upload your own. Otherwise, you get a generated avatar automatically.</p>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Profile</h2></div>
-          <div class="auth-error" id="settings-error"></div>
-          <div class="auth-error" id="settings-success" style="display:none; background:rgba(47,191,143,0.1); border-color:rgba(47,191,143,0.3); color:#7fe0c2;"></div>
-          <div class="field">
-            <label for="settings-name">Display name</label>
-            <input type="text" id="settings-name" placeholder="Your name">
-          </div>
-          <div class="field">
-            <label for="settings-email">Email address</label>
-            <input type="email" id="settings-email" disabled style="opacity:0.6;">
-          </div>
-          <button class="btn btn-primary btn-sm" id="settings-save-name">Save changes</button>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Security</h2></div>
-          <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Send a password reset link to your email address to change your password.</p>
-          <button class="btn btn-ghost btn-sm" id="settings-reset-password">Send password reset email</button>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Danger zone</h2></div>
-          <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">This clears all your chapter and lesson completion progress. Your account itself is not deleted. This cannot be undone.</p>
-          <button class="btn btn-ghost btn-sm mobile-signout-btn" id="settings-reset-progress" style="border-color:rgba(229,72,77,0.35);">Reset my learning progress</button>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Plan &amp; membership</h2></div>
-          <div class="mini-bar-row" style="margin-bottom:14px;">
-            <span class="label">Current plan</span>
-            <span class="mini-bar-val" style="width:auto; font-size:13px; color:var(--ink-0);" id="settings-plan-name">Self-Paced</span>
-          </div>
-          <a href="index.html#pricing" class="btn btn-ghost btn-sm btn-block">View plans</a>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Account</h2></div>
-          <div class="event-item">
-            <div class="event-body"><h4>Member since</h4><span id="settings-member-since">—</span></div>
-          </div>
-          <div class="event-item">
-            <div class="event-body"><h4>Account ID</h4><span id="settings-uid" style="font-family:var(--font-mono); font-size:11px; word-break:break-all;">—</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="indicators-render-target"></div>
   </main>
 </div>
 
@@ -187,10 +134,10 @@
 <script src="assets/avatars.js?v=71"></script>
 <script src="assets/referrals.js?v=71"></script>
 <script src="assets/roles.js?v=71"></script>
-<script src="assets/plan-guard.js?v=71"></script>
 <script src="assets/maintenance-check.js?v=71"></script>
 <script src="assets/branding.js?v=71"></script>
 <script src="assets/dash-nav.js?v=71"></script>
-<script src="assets/settings.js?v=71"></script>
+<script src="assets/indicators-store.js?v=71"></script>
+<script src="assets/indicators-list.js?v=71"></script>
 </body>
 </html>

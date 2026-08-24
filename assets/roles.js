@@ -160,6 +160,7 @@ function loadPageAccess(){
 const GATEABLE_PAGES = [
   { key: 'curriculum', label: 'Curriculum (chapters list)' },
   { key: 'models', label: 'Trading models' },
+  { key: 'indicators', label: 'Trading indicators' },
   { key: 'trading-floor', label: 'Trading floor (community)' },
   { key: 'trade-journal', label: 'Trade journal' },
   { key: 'live-sessions', label: 'Live sessions' },

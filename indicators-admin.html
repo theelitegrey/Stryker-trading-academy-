@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Models — Stryker Admin</title>
+<title>Trading Indicators — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css?v=71">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -50,11 +50,11 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Chapters &amp; content
       </a>
-      <a href="models-admin.html" class="side-link active">
+      <a href="models-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
         Trading models
       </a>
-      <a href="indicators-admin.html" class="side-link">
+      <a href="indicators-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
         Trading indicators
       </a>
@@ -119,24 +119,20 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Trading models</h1>
-        <p>Create and edit named trading models/setups — the same rich editor as chapters, published separately for students to browse and study.</p>
+        <h1>Trading indicators</h1>
+        <p>Create and edit indicators shown in the public library — currently launching as "Coming soon" until the first one is published.</p>
       </div>
       <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" id="update-all-models-btn">Update all</button>
-        <button class="btn btn-primary" onclick="window.location.href='model-editor.html?new=1'">+ Add new model</button>
+        <button class="btn btn-primary" onclick="window.location.href='indicator-editor.html?new=1'">+ Add new indicator</button>
       </div>
     </div>
 
-    <div class="auth-error" id="update-all-models-error"></div>
-    <div class="auth-error" id="update-all-models-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
-
     <div class="panel">
       <div class="panel-head">
-        <h2>All models</h2>
-        <span id="model-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+        <h2>All indicators</h2>
+        <span id="indicator-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
       </div>
-      <div id="model-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div id="indicator-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
     </div>
   </main>
 </div>
@@ -152,8 +148,7 @@
 <script src="assets/branding.js?v=71"></script>
 <script src="assets/admin-guard.js?v=71"></script>
 <script src="assets/dash-nav.js?v=71"></script>
-<script src="assets/models-data.js?v=71"></script>
-<script src="assets/models-store.js?v=71"></script>
-<script src="assets/models-admin.js?v=71"></script>
+<script src="assets/indicators-store.js?v=71"></script>
+<script src="assets/indicators-admin.js?v=71"></script>
 </body>
 </html>

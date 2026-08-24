@@ -77,21 +77,38 @@ function importBundledChapters(triggerBtn){
   if (okEl) okEl.style.display = 'none';
   if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = 'Updating…'; }
 
-  const writes = CHAPTERS_SEED.map((ch) => db.collection('chapters').doc(ch.num).set(ch));
-  Promise.all(writes)
-    .then(() => loadChapters(true))
-    .then(() => {
-      renderChapterList();
-      if (okEl) {
-        okEl.textContent = 'All ' + CHAPTERS_SEED.length + ' chapters updated from the latest bundled content.';
-        okEl.style.display = 'block';
-      } else {
-        alert('Import complete.');
-      }
+  // Use allSettled (not all) so one chapter failing doesn't hide the status of
+  // every other chapter — each write is independent and gets its own result,
+  // so we can tell the user exactly which chapters succeeded and which didn't.
+  const writes = CHAPTERS_SEED.map((ch) =>
+    db.collection('chapters').doc(ch.num).set(ch)
+      .then(() => ({ num: ch.num, ok: true }))
+      .catch((err) => ({ num: ch.num, ok: false, error: err && (err.message || String(err)) }))
+  );
+
+  Promise.allSettled(writes)
+    .then((results) => {
+      const outcomes = results.map((r) => r.value || { ok: false, error: 'unknown failure' });
+      const failed = outcomes.filter((o) => !o.ok);
+      const succeeded = outcomes.filter((o) => o.ok);
+      return loadChapters(true).then(() => ({ failed, succeeded }));
     })
-    .catch((err) => {
-      const msg = 'Update failed partway through: ' + (err.message || err);
-      if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { alert(msg); }
+    .then(({ failed, succeeded }) => {
+      renderChapterList();
+      if (failed.length === 0) {
+        if (okEl) {
+          okEl.textContent = 'All ' + succeeded.length + ' chapters updated from the latest bundled content.';
+          okEl.style.display = 'block';
+        } else {
+          alert('Import complete.');
+        }
+      } else {
+        const msg = failed.length + ' of ' + CHAPTERS_SEED.length + ' chapters FAILED to update: chapter(s) '
+          + failed.map((f) => f.num).join(', ') + '. First error: ' + failed[0].error
+          + '. The other ' + succeeded.length + ' chapters updated successfully.';
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { alert(msg); }
+        console.error('Stryker: chapter update failures', failed);
+      }
     })
     .finally(() => {
       if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Update all from bundled content'; }

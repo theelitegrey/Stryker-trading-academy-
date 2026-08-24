@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chapters & Content — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=15">
+<link rel="stylesheet" href="assets/style.css?v=16">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -102,8 +102,14 @@
         <h1>Chapters &amp; content</h1>
         <p>Edit chapter content directly, and see real completion analytics across every student.</p>
       </div>
-      <button class="btn btn-primary" id="add-chapter-btn" onclick="window.location.href='chapter-editor.html?new=1'">+ Add new chapter</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-ghost" id="update-all-btn">Update all from bundled content</button>
+        <button class="btn btn-primary" id="add-chapter-btn" onclick="window.location.href='chapter-editor.html?new=1'">+ Add new chapter</button>
+      </div>
     </div>
+
+    <div class="auth-error" id="update-all-error"></div>
+    <div class="auth-error" id="update-all-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
 
     <div class="notice" id="import-notice" style="display:none;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
@@ -139,13 +145,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=15"></script>
-<script src="assets/progress.js?v=15"></script>
-<script src="assets/branding.js?v=15"></script>
-<script src="assets/admin-guard.js?v=15"></script>
-<script src="assets/dash-nav.js?v=15"></script>
-<script src="assets/chapters-data.js?v=15"></script>
-<script src="assets/chapters-store.js?v=15"></script>
-<script src="assets/chapters-admin.js?v=15"></script>
+<script src="assets/auth.js?v=16"></script>
+<script src="assets/progress.js?v=16"></script>
+<script src="assets/branding.js?v=16"></script>
+<script src="assets/admin-guard.js?v=16"></script>
+<script src="assets/dash-nav.js?v=16"></script>
+<script src="assets/chapters-data.js?v=16"></script>
+<script src="assets/chapters-store.js?v=16"></script>
+<script src="assets/chapters-admin.js?v=16"></script>
 </body>
 </html>

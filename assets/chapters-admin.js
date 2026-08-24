@@ -67,15 +67,35 @@ function renderStatCards(students){
   document.getElementById('chstat-most-completed').textContent = mostCompletedChapter ? ('Ch. ' + mostCompletedChapter.num) : '—';
 }
 
-function importBundledChapters(){
+function importBundledChapters(triggerBtn){
   if (typeof CHAPTERS_SEED === 'undefined') { alert('Bundled seed data is not available.'); return; }
-  if (!confirm('Import all ' + CHAPTERS_SEED.length + ' bundled chapters into Firestore? This will overwrite any chapters already there with matching numbers.')) return;
+  if (!confirm('Update all ' + CHAPTERS_SEED.length + ' chapters with the latest bundled content? This overwrites every chapter currently in Firestore with whatever is in the seed right now — including any chapter you may have hand-edited directly in the chapter editor beyond what was last pushed to the seed.')) return;
+
+  const errEl = document.getElementById('update-all-error');
+  const okEl = document.getElementById('update-all-success');
+  if (errEl) errEl.style.display = 'none';
+  if (okEl) okEl.style.display = 'none';
+  if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = 'Updating…'; }
 
   const writes = CHAPTERS_SEED.map((ch) => db.collection('chapters').doc(ch.num).set(ch));
   Promise.all(writes)
     .then(() => loadChapters(true))
-    .then(() => { renderChapterList(); alert('Import complete.'); })
-    .catch((err) => alert('Import failed partway through: ' + (err.message || err)));
+    .then(() => {
+      renderChapterList();
+      if (okEl) {
+        okEl.textContent = 'All ' + CHAPTERS_SEED.length + ' chapters updated from the latest bundled content.';
+        okEl.style.display = 'block';
+      } else {
+        alert('Import complete.');
+      }
+    })
+    .catch((err) => {
+      const msg = 'Update failed partway through: ' + (err.message || err);
+      if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { alert(msg); }
+    })
+    .finally(() => {
+      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Update all from bundled content'; }
+    });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -93,6 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });
 
-    document.getElementById('import-btn').addEventListener('click', importBundledChapters);
+    document.getElementById('import-btn').addEventListener('click', () => importBundledChapters());
+    document.getElementById('update-all-btn').addEventListener('click', (e) => importBundledChapters(e.target));
   });
 });

@@ -81,6 +81,31 @@ function buildTOC(activeIndex){
   });
 }
 
+// Casual-download deterrents. This does NOT prevent a technically determined
+// person from capturing the video (screen recording or browser dev tools can
+// always do that for anything played in a browser — only real DRM, which
+// needs a licensed service, actually stops that). What this does stop:
+// right-click "Save video as", drag-to-save, the native download button,
+// keyboard shortcuts that trigger a save, and casually copying the raw file
+// URL out of the page.
+let VIDEO_HARDENED_ONCE = false;
+function hardenVideoAgainstDownload(video){
+  if (VIDEO_HARDENED_ONCE) return; // listeners only need attaching once, element is reused
+  VIDEO_HARDENED_ONCE = true;
+
+  video.addEventListener('contextmenu', (e) => e.preventDefault());
+  video.addEventListener('dragstart', (e) => e.preventDefault());
+  video.setAttribute('draggable', 'false');
+
+  // Block Ctrl+S / Cmd+S while a video is focused or playing on this page.
+  document.addEventListener('keydown', (e) => {
+    const savingKey = (e.key === 's' || e.key === 'S') && (e.ctrlKey || e.metaKey);
+    if (savingKey && document.getElementById('reader-video')) {
+      e.preventDefault();
+    }
+  });
+}
+
 // Chapter content is inserted via innerHTML, and browsers silently ignore
 // <script> tags that arrive that way — so a TradingView widget embedded
 // directly in bodyHtml would never actually run. Instead, the content
@@ -137,6 +162,7 @@ function renderReader(){
   const video = document.getElementById('reader-video');
   video.src = ch.video;
   video.load();
+  hardenVideoAgainstDownload(video);
 
   const body = document.getElementById('reader-body');
   body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');

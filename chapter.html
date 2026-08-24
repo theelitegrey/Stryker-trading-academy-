@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chapter — Stryker Trading Academy</title>
 <meta name="description" content="Read a chapter of the Stryker Trading Academy ICT/SMT curriculum, with video and lesson checklist.">
-<link rel="stylesheet" href="assets/style.css?v=46">
+<link rel="stylesheet" href="assets/style.css?v=47">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -52,12 +52,13 @@
     </div>
 
     <div class="video-frame">
-      <video id="reader-video" controls preload="metadata"></video>
+      <video id="reader-video" controls preload="metadata" controlsList="nodownload noremoteplayback" disablePictureInPicture disableRemotePlayback oncontextmenu="return false;"></video>
     </div>
-    <div class="video-note">
+    <div class="video-note" id="video-note">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      Sample placeholder video for demo purposes — swap the source for your own recorded lesson.
+      This video is available to watch on strykertrading.com only.
     </div>
+
 
     <div class="reader-body" id="reader-body"></div>
 
@@ -85,12 +86,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=46"></script>
-<script src="assets/progress.js?v=46"></script>
-<script src="assets/maintenance-check.js?v=46"></script>
-<script src="assets/branding.js?v=46"></script>
-<script src="assets/chapters-data.js?v=46"></script>
-<script src="assets/chapters-store.js?v=46"></script>
-<script src="assets/reader.js?v=46"></script>
+<script src="assets/auth.js?v=47"></script>
+<script src="assets/progress.js?v=47"></script>
+<script src="assets/maintenance-check.js?v=47"></script>
+<script src="assets/branding.js?v=47"></script>
+<script src="assets/chapters-data.js?v=47"></script>
+<script src="assets/chapters-store.js?v=47"></script>
+<script src="assets/reader.js?v=47"></script>
 </body>
 </html>

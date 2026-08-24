@@ -126,7 +126,17 @@
 
     <div class="notice">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Live data, provided by TradingView.</b> The ticker, charts, calendar, and news below are real and update on their own — nothing here is written or maintained by Stryker. High-impact ("red folder") events are colour-coded directly by TradingView's calendar. Killzone windows below are the commonly-referenced ICT session times — different educators sometimes draw the boundaries a few minutes differently.</p>
+      <p>Killzone windows below are the commonly-referenced ICT session times — different educators sometimes draw the boundaries a few minutes differently.</p>
+    </div>
+
+    <div class="panel redfolder-panel">
+      <div class="panel-head">
+        <h2><span class="redfolder-dot"></span> Red folder news</h2>
+      </div>
+      <div class="level-tabs" id="econ-currency-filter" style="margin-bottom:16px;"></div>
+      <div id="econ-calendar-widget">
+        <div class="tradingview-widget-container__widget"></div>
+      </div>
     </div>
 
     <div class="two-col">
@@ -217,45 +227,21 @@
       </div>
     </div>
 
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>This week's red folder news</h2></div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-events.js" async>
-            {
-            "colorTheme": "dark",
-            "isTransparent": true,
-            "width": "100%",
-            "height": "550",
-            "locale": "en",
-            "importanceFilter": "-1,0,1",
-            "countryFilter": "us,eu,gb,jp,au,ca,cn,nz,ch"
-            }
-            </script>
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Live market news</h2></div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
-            {
-            "feedMode": "all_symbols",
-            "isTransparent": true,
-            "displayMode": "regular",
-            "width": "100%",
-            "height": "550",
-            "colorTheme": "dark",
-            "locale": "en"
-            }
-            </script>
-          </div>
-        </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Live market news</h2></div>
+      <div class="tradingview-widget-container">
+        <div class="tradingview-widget-container__widget"></div>
+        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-timeline.js" async>
+        {
+        "feedMode": "all_symbols",
+        "isTransparent": true,
+        "displayMode": "regular",
+        "width": "100%",
+        "height": "550",
+        "colorTheme": "dark",
+        "locale": "en"
+        }
+        </script>
       </div>
     </div>
   </main>
@@ -271,5 +257,6 @@
 <script src="assets/branding.js?v=6"></script>
 <script src="assets/dash-nav.js?v=6"></script>
 <script src="assets/killzones.js?v=6"></script>
+<script src="assets/economic-calendar.js?v=6"></script>
 </body>
 </html>

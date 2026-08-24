@@ -323,6 +323,21 @@ section{ padding:96px 0; }
   font-size:13px; font-weight:600; color:var(--ink-0); margin-bottom:2px; font-family:var(--font-mono);
 }
 
+.redfolder-panel{
+  border:1px solid rgba(229,72,77,0.35);
+  box-shadow:0 0 0 1px rgba(229,72,77,0.08), 0 20px 50px -25px rgba(229,72,77,0.35);
+}
+.redfolder-panel .panel-head h2{ display:flex; align-items:center; gap:10px; }
+.redfolder-dot{
+  width:9px; height:9px; border-radius:50%; background:#e5484d; flex-shrink:0;
+  box-shadow:0 0 0 4px rgba(229,72,77,0.18);
+  animation:redfolder-pulse 2s ease-in-out infinite;
+}
+@keyframes redfolder-pulse{
+  0%, 100%{ box-shadow:0 0 0 4px rgba(229,72,77,0.18); }
+  50%{ box-shadow:0 0 0 7px rgba(229,72,77,0.08); }
+}
+
 .proof-section{
   padding:72px 0 80px;
   border-top:1px solid var(--line-soft);

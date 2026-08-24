@@ -105,16 +105,22 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('referral-total-points').textContent = points;
     });
 
-    db.collection('referrals').where('referrerUid', '==', user.uid).orderBy('createdAt', 'desc').get()
+    db.collection('referrals').where('referrerUid', '==', user.uid).get()
       .then((snap) => {
         const invites = [];
         snap.forEach((doc) => invites.push(doc.data()));
+        invites.sort((a, b) => {
+          const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
+          const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
+          return tb - ta;
+        });
         document.getElementById('referral-total-invites').textContent = invites.length;
         renderInviteList(invites);
       })
       .catch((err) => {
+        console.error('Stryker: failed to load invites', err);
         document.getElementById('referral-invite-list').innerHTML =
-          '<p style="color:var(--ink-3); font-size:13.5px;">Could not load your invites: ' + (err.message || err) + '</p>';
+          '<p style="color:var(--ink-3); font-size:13.5px;">Could not load your invites right now — try refreshing.</p>';
       });
 
     Promise.all([loadReferralLeaderboard(10), (typeof loadPlansForRoles === 'function' ? loadPlansForRoles() : Promise.resolve())])

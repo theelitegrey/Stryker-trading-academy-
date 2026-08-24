@@ -18,7 +18,7 @@ function renderRolesSummary(plans){
           '<span style="width:14px; height:14px; border-radius:50%; background:' + color + '; flex-shrink:0; display:inline-block;"></span>' +
           '<div>' +
             '<span class="cell-name">' + (p.name || 'Untitled plan') + '</span>' +
-            '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">rank ' + (p.rank ?? 0) + ' · $' + (p.price || '0') + '/' + (p.period || 'month') + '</div>' +
+            '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">rank ' + (p.rank ?? 0) + ' · $' + (p.price || '0') + '/' + (p.period || 'month') + ' · chapters: ' + (p.chapterAccess || 'all') + '</div>' +
           '</div>' +
         '</div>' +
         '<a href="billing-admin.html" class="btn btn-ghost btn-sm">Edit rank / color</a>' +

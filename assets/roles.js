@@ -67,6 +67,36 @@ function labelOf(idOrName){
   return plan ? plan.name : String(idOrName || '');
 }
 
+// Parses a plan's `chapterAccess` field into a numeric ceiling.
+// Accepts: "all" / "" / unset -> Infinity (unlimited).
+//          a plain number like "5" or "7" -> that number (chapters 1..N).
+//          a range like "1-7" -> the upper bound, 7 (lower bound is ignored
+//          since access always starts from chapter 1 in this curriculum).
+//          anything unparseable -> Infinity, so a typo never accidentally
+//          locks students out — it just fails open.
+function chapterLimitOf(planNameOrId){
+  const plan = findPlan(planNameOrId);
+  const raw = plan ? plan.chapterAccess : null;
+  if (!raw || typeof raw !== 'string') return Infinity;
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed || trimmed === 'all') return Infinity;
+  const rangeMatch = trimmed.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) return parseInt(rangeMatch[2], 10);
+  const singleMatch = trimmed.match(/^(\d+)$/);
+  if (singleMatch) return parseInt(singleMatch[1], 10);
+  return Infinity; // fail open on anything unexpected
+}
+
+// studentPlanNameOrId: the student's current plan (name string), or null.
+// chapterNum: the chapter's `num` field — a zero-padded string like "05" in
+// this curriculum, so it's parsed as an integer before comparing.
+function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
+  if (!studentPlanNameOrId) return true; // no plan at all -> handled separately by the sign-in gate, not this check
+  const n = parseInt(chapterNum, 10);
+  if (isNaN(n)) return true; // can't parse the chapter number, fail open
+  return n <= chapterLimitOf(studentPlanNameOrId);
+}
+
 // studentPlanNameOrId: what the student currently has (their `plan` field,
 // a name string — or null/undefined if they have none).
 // requiredIdOrName: the minRole on the content item / page (a plan id) —

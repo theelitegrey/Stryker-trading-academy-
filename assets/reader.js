@@ -62,7 +62,9 @@ function setPaywallMessage(reason, requiredRoleName){
   if (!heading || !body || !actions) return;
   if (reason === 'role') {
     heading.textContent = 'Upgrade to unlock this chapter';
-    body.textContent = 'This chapter requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
+    body.textContent = requiredRoleName
+      ? ('This chapter requires the ' + requiredRoleName + ' plan. Upgrade to keep reading.')
+      : "This chapter is beyond your current plan's chapter access. Upgrade to keep reading.";
     actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';
@@ -75,7 +77,6 @@ function setPaywallMessage(reason, requiredRoleName){
 // plan. Admins and unrestricted chapters always pass. Returns a promise
 // resolving true/false so callers can decide whether to keep rendering.
 function checkChapterRoleAccess(ch, uid){
-  if (!ch.minRole) return Promise.resolve(true);
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true); // guest banner handles the no-auth case separately
 
   return db.collection('admins').doc(uid).get().then((adminDoc) => {
@@ -83,7 +84,17 @@ function checkChapterRoleAccess(ch, uid){
     return db.collection('students').doc(uid).get().then((studentDoc) => {
       const plan = studentDoc.exists ? studentDoc.data().plan : null;
       if (typeof loadPlansForRoles !== 'function') return true;
-      return loadPlansForRoles().then(() => hasRoleAccess(plan, ch.minRole));
+      return loadPlansForRoles().then(() => {
+        // Two independent checks, both must pass:
+        // 1) this specific chapter's own minRole, if the admin set one directly on it
+        const passesMinRole = ch.minRole ? hasRoleAccess(plan, ch.minRole) : true;
+        // 2) the student's plan's bulk "chapter access" cutoff (e.g. Starter -> up to
+        //    chapter 5), which applies to every chapter regardless of its own minRole
+        const passesChapterLimit = (typeof hasChapterNumberAccess === 'function')
+          ? hasChapterNumberAccess(plan, ch.num)
+          : true;
+        return passesMinRole && passesChapterLimit;
+      });
     });
   }).catch((err) => {
     console.error('Stryker: chapter role check failed', err);
@@ -323,7 +334,10 @@ function applyChapterRoleGate(uid){
   if (!ch) return;
   checkChapterRoleAccess(ch, uid).then((allowed) => {
     if (!allowed) {
-      const requiredName = (typeof labelOf === 'function') ? labelOf(ch.minRole) : null;
+      // The specific chapter's own minRole (if set) is the most precise
+      // thing to name in the message; otherwise this was blocked by the
+      // student's plan-wide chapter cutoff, so no single role name applies.
+      const requiredName = (ch.minRole && typeof labelOf === 'function') ? labelOf(ch.minRole) : null;
       setPaywallMessage('role', requiredName);
       showGuestBanner(true);
     }

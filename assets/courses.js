@@ -2,9 +2,20 @@
 // Depends on: assets/progress.js (for `db`), assets/chapters-store.js
 // (loadChapters/CHAPTERS).
 
+let CURRENT_STUDENT_PLAN = null; // fetched once on load, used to show a lock badge on chapters beyond the student's access
+
 function unlockLabel(index){
   if (index === 0) return '<span class="status-pill unlocked">Free</span>';
   return '<span class="status-pill locked">Unlocks Ch.' + String(index).padStart(2,'0') + '</span>';
+}
+
+function roleLockBadge(ch){
+  if (typeof hasChapterNumberAccess !== 'function' && typeof hasRoleAccess !== 'function') return '';
+  const passesLimit = (typeof hasChapterNumberAccess === 'function') ? hasChapterNumberAccess(CURRENT_STUDENT_PLAN, ch.num) : true;
+  const passesMinRole = ch.minRole && typeof hasRoleAccess === 'function' ? hasRoleAccess(CURRENT_STUDENT_PLAN, ch.minRole) : true;
+  if (passesLimit && passesMinRole) return '';
+  const requiredName = ch.minRole && !passesMinRole && typeof labelOf === 'function' ? labelOf(ch.minRole) : null;
+  return '<span class="status-pill locked" title="Upgrade to unlock" style="background:rgba(245,197,66,0.12); border-color:rgba(245,197,66,0.35); color:#f5c542;">🔒 ' + (requiredName || 'Upgrade required') + '</span>';
 }
 
 function renderChapters(filterLevel){
@@ -55,7 +66,7 @@ function renderChapters(filterLevel){
           '</div></div>' +
         '</div>' +
         '<div class="chapter-status" style="display:flex; align-items:center; gap:10px;">' +
-          unlockLabel(globalIndex) +
+          unlockLabel(globalIndex) + roleLockBadge(ch) +
           '<svg class="chapter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
         '</div>';
 
@@ -101,5 +112,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   auth.onAuthStateChanged((user) => {
     showGuestPaywall(!user);
+    if (user && typeof db !== 'undefined' && db) {
+      const planLookup = db.collection('students').doc(user.uid).get()
+        .then((doc) => { CURRENT_STUDENT_PLAN = doc.exists ? (doc.data().plan || null) : null; })
+        .catch(() => {});
+      const rolesLookup = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+      Promise.all([planLookup, rolesLookup]).then(() => {
+        const activeTab = document.querySelector('.level-tab.active');
+        renderChapters(activeTab ? activeTab.dataset.level : 'all');
+      });
+    }
   });
 });

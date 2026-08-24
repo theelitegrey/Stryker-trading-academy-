@@ -277,6 +277,53 @@ section{ padding:96px 0; }
 .divider{ border-top:1px solid var(--line-soft); }
 
 /* parallax band */
+/* ==========================================================================
+   PROOF MARQUEE — auto-scrolling payout proof carousel (homepage)
+   ========================================================================== */
+.proof-section{
+  padding:72px 0 80px;
+  border-top:1px solid var(--line-soft);
+  border-bottom:1px solid var(--line-soft);
+  background:var(--bg-0);
+}
+.proof-section-head{ text-align:center; max-width:640px; margin:0 auto 40px; }
+.proof-section-head h2{ font-size:clamp(24px,3vw,32px); margin:14px 0 12px; }
+.proof-section-head p{ color:var(--ink-2); font-size:14.5px; line-height:1.6; }
+
+.proof-marquee-wrap{
+  position:relative;
+  overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  mask-image:linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.proof-marquee-track{
+  display:flex;
+  align-items:center;
+  gap:24px;
+  width:max-content;
+  animation:proof-scroll 48s linear infinite;
+}
+@keyframes proof-scroll{
+  from{ transform:translateX(0); }
+  to{ transform:translateX(-50%); }
+}
+.proof-card{
+  flex:0 0 auto;
+  width:340px;
+  border-radius:var(--radius-md);
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:var(--bg-2);
+  box-shadow:var(--shadow-card);
+}
+.proof-card img{
+  width:100%; height:auto; display:block;
+}
+@media (max-width:640px){
+  .proof-card{ width:260px; }
+  .proof-marquee-track{ gap:16px; animation-duration:34s; }
+}
+
 .parallax-band{
   position:relative;
   padding:120px 0;

@@ -727,17 +727,21 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
    TRADING FLOOR — post feed, reactions, replies, tags
    ========================================================================== */
 .floor-post{
-  padding:20px 0; border-bottom:1px solid var(--line-soft);
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md);
+  padding:18px 20px; margin-bottom:14px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.15);
+  transition:border-color .15s ease;
 }
-.floor-post:last-child{ border-bottom:none; }
+.floor-post:hover{ border-color:var(--line-strong,var(--line)); }
+.floor-post:last-child{ margin-bottom:0; }
 .floor-post-head{ display:flex; align-items:center; gap:11px; margin-bottom:12px; }
 .floor-avatar{
-  width:36px; height:36px; border-radius:50%; flex-shrink:0;
+  width:38px; height:38px; border-radius:50%; flex-shrink:0;
   background:linear-gradient(135deg,var(--teal),var(--teal-dim));
   display:flex; align-items:center; justify-content:center;
   font-family:var(--font-display); font-weight:600; font-size:13px; color:#08201f;
 }
-.floor-post-name{ font-size:14px; font-weight:600; color:var(--ink-0); line-height:1.3; }
+.floor-post-name{ font-size:14.5px; font-weight:700; color:var(--ink-0); line-height:1.3; }
 .floor-post-time{ font-size:12px; color:var(--ink-3); }
 .floor-post-body{ font-size:15px; color:var(--ink-1); line-height:1.65; margin-bottom:12px; }
 .floor-post-body p{ margin:0 0 10px; }

@@ -162,6 +162,25 @@ function renderTagBanner(){
   el.appendChild(banner);
 }
 
+// Older posts/replies were created before authorPlan was stamped on write —
+// this cache lets renderPostCard fall back to the author's CURRENT plan for
+// those, without a per-post async lookup blocking the render.
+let AUTHOR_PLAN_CACHE = {};
+
+function prefetchMissingAuthorPlans(list){
+  const missingUids = new Set();
+  list.forEach((post) => {
+    if (!post.authorPlan && post.authorUid && !(post.authorUid in AUTHOR_PLAN_CACHE)) missingUids.add(post.authorUid);
+  });
+  if (!missingUids.size || typeof db === 'undefined' || !db) return Promise.resolve();
+
+  return Promise.all(Array.from(missingUids).map((uid) =>
+    db.collection('students').doc(uid).get()
+      .then((doc) => { AUTHOR_PLAN_CACHE[uid] = doc.exists ? (doc.data().plan || null) : null; })
+      .catch(() => { AUTHOR_PLAN_CACHE[uid] = null; })
+  ));
+}
+
 function renderFeed(){
   renderTagBanner();
   const list = sortedPosts();
@@ -169,13 +188,15 @@ function renderFeed(){
   countEl.textContent = list.length + ' post' + (list.length === 1 ? '' : 's');
 
   const feedEl = document.getElementById('floor-list');
-  feedEl.innerHTML = '';
   if (!list.length) {
     feedEl.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">' +
       (ACTIVE_TAG ? 'No posts match that tag.' : 'No posts yet — be the first to share something with the floor.') + '</p>';
     return;
   }
-  list.forEach((post) => feedEl.appendChild(renderPostCard(post)));
+  prefetchMissingAuthorPlans(list).then(() => {
+    feedEl.innerHTML = '';
+    list.forEach((post) => feedEl.appendChild(renderPostCard(post)));
+  });
 }
 
 function renderPostCard(post){
@@ -187,7 +208,7 @@ function renderPostCard(post){
 
   const el = document.createElement('div');
   el.className = 'floor-post';
-  const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan, { size: 'small' }) : '';
+  const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || AUTHOR_PLAN_CACHE[post.authorUid], { size: 'small' }) : '';
   el.innerHTML =
     '<div class="floor-post-head">' +
       '<div class="floor-avatar">' + initials(post.authorName) + '</div>' +
@@ -302,14 +323,18 @@ function toggleReplies(post, cardEl){
   listEl.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">Loading…</p>';
   db.collection('communityPosts').doc(post.id).collection('replies').orderBy('createdAt', 'asc').get()
     .then((snap) => {
+      const replies = [];
+      snap.forEach((doc) => replies.push(doc.data()));
+      return prefetchMissingAuthorPlans(replies).then(() => replies);
+    })
+    .then((replies) => {
       listEl.innerHTML = '';
-      if (snap.empty) { listEl.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">No replies yet.</p>'; return; }
-      snap.forEach((doc) => {
-        const r = doc.data();
+      if (!replies.length) { listEl.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">No replies yet.</p>'; return; }
+      replies.forEach((r) => {
         const rDate = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
         const rEl = document.createElement('div');
         rEl.className = 'floor-reply';
-        const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan, { size: 'small' }) : '';
+        const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan || AUTHOR_PLAN_CACHE[r.authorUid], { size: 'small' }) : '';
         rEl.innerHTML =
           '<div class="floor-avatar">' + initials(r.authorName) + '</div>' +
           '<div class="floor-reply-body">' +

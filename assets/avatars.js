@@ -7,17 +7,18 @@
 //      a resized base64 data URL, same pattern as other image uploads on this site)
 //   2. Their Google account photo, if they signed up/in with Google
 //      (students/{uid}.photoURL, captured once at student-doc creation)
-//   3. A deterministic, free, keyless generated avatar (DiceBear) seeded by
-//      their uid — same user always gets the same auto-avatar unless they
-//      upload their own, so it isn't randomly different on every reload.
+//   3. A deterministic, free, keyless generated avatar (DiceBear, "personas"
+//      style — illustrated human faces) seeded by their uid — same user
+//      always gets the same auto-avatar unless they upload their own, so
+//      it isn't randomly different on every reload.
 //   4. If even the generated avatar image fails to load (offline, blocked),
 //      callers fall back to the colored-initials circle that was already
 //      used everywhere before this feature existed.
 
-const DICEBEAR_STYLE = 'shapes'; // abstract, colorful, professional — not cartoonish
+const DICEBEAR_STYLE = 'personas'; // illustrated half-body human avatars — clean, professional, not cartoonish. CC BY 4.0 (Personas by Draftbit), served via DiceBear's hosted API.
 
 function dicebearAvatarUrl(seed){
-  return 'https://api.dicebear.com/9.x/' + DICEBEAR_STYLE + '/svg?seed=' + encodeURIComponent(seed || 'trader') + '&backgroundType=gradientLinear';
+  return 'https://api.dicebear.com/10.x/' + DICEBEAR_STYLE + '/svg?seed=' + encodeURIComponent(seed || 'trader') + '&backgroundType=gradientLinear';
 }
 
 function randomAvatarSeed(){

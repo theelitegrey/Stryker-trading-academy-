@@ -35,7 +35,62 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const planEl = document.getElementById('settings-plan-name');
       if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
+      renderAvatarPreview(student);
     }).catch((err) => console.error('Stryker: failed to load account info', err));
+  });
+
+  function renderAvatarPreview(studentData){
+    const wrap = document.getElementById('avatar-preview-wrap');
+    if (!wrap || typeof avatarImgHtml !== 'function' || !currentUser) return;
+    wrap.innerHTML = avatarImgHtml(currentUser.uid, currentUser.displayName, studentData, 72);
+  }
+
+  document.getElementById('avatar-upload-btn').addEventListener('click', () => {
+    document.getElementById('avatar-file-input').click();
+  });
+
+  document.getElementById('avatar-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file || !currentUser) return;
+    const errEl = document.getElementById('avatar-error');
+    const okEl = document.getElementById('avatar-success');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    resizeAvatarToDataUrl(file, 240)
+      .then((dataUrl) => db.collection('students').doc(currentUser.uid).set({ customPhotoURL: dataUrl }, { merge: true }))
+      .then(() => getStudentDoc(currentUser.uid))
+      .then((student) => {
+        renderAvatarPreview(student);
+        showSettingsMsg('avatar-success', 'Profile picture updated.');
+      })
+      .catch((err) => {
+        errEl.textContent = err.message || 'Could not update your photo.';
+        errEl.style.display = 'block';
+      });
+    e.target.value = '';
+  });
+
+  document.getElementById('avatar-randomize-btn').addEventListener('click', () => {
+    if (!currentUser || typeof randomAvatarSeed !== 'function') return;
+    const errEl = document.getElementById('avatar-error');
+    const okEl = document.getElementById('avatar-success');
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    // Clears any custom upload and rolls a fresh generated-avatar seed, so
+    // repeated clicks actually produce visibly different results.
+    db.collection('students').doc(currentUser.uid).set({
+      customPhotoURL: firebase.firestore.FieldValue.delete(),
+      avatarSeed: randomAvatarSeed()
+    }, { merge: true })
+      .then(() => getStudentDoc(currentUser.uid))
+      .then((student) => {
+        renderAvatarPreview(student);
+        showSettingsMsg('avatar-success', 'New avatar generated.');
+      })
+      .catch((err) => {
+        errEl.textContent = err.message || 'Could not generate a new avatar.';
+        errEl.style.display = 'block';
+      });
   });
 
   document.getElementById('settings-save-name').addEventListener('click', () => {

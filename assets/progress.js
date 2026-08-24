@@ -35,6 +35,7 @@ function ensureStudentDoc(user){
       const data = {
         displayName: user.displayName || '',
         email: user.email || '',
+        photoURL: user.photoURL || null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         lastActiveDate: today,
         currentStreak: 1,
@@ -57,6 +58,11 @@ function ensureStudentDoc(user){
       displayName: user.displayName || data.displayName || '',
       email: user.email || data.email || ''
     };
+    // Refresh the Google photo if one is newly available and no custom
+    // upload is set — a custom upload always wins and is never overwritten.
+    if (user.photoURL && !data.customPhotoURL && user.photoURL !== data.photoURL) {
+      updates.photoURL = user.photoURL;
+    }
 
     if (data.lastActiveDate !== today) {
       const gap = daysBetween(data.lastActiveDate, today);

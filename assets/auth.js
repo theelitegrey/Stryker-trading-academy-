@@ -245,13 +245,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyChipName(''); // set the name immediately; the role tag arrives async below
 
+    function applyChipAvatar(studentData){
+      if (typeof avatarImgHtml !== 'function') return;
+      const html = avatarImgHtml(user.uid, displayName, studentData, 34);
+      document.querySelectorAll('.user-chip .chip-avatar').forEach(el => {
+        el.style.background = 'none';
+        el.innerHTML = html;
+      });
+    }
+
     if (typeof db !== 'undefined' && db && typeof roleTagHtml === 'function' && typeof loadPlansForRoles === 'function') {
       Promise.all([
         db.collection('students').doc(user.uid).get().catch(() => null),
         loadPlansForRoles()
       ]).then(([studentDoc]) => {
-        const plan = studentDoc && studentDoc.exists ? studentDoc.data().plan : null;
+        const data = studentDoc && studentDoc.exists ? studentDoc.data() : null;
+        const plan = data ? data.plan : null;
         if (plan) applyChipName(roleTagHtml(plan, { size: 'small' }));
+        applyChipAvatar(Object.assign({}, data, { photoURL: (data && data.photoURL) || user.photoURL }));
       }).catch(() => {});
     }
 

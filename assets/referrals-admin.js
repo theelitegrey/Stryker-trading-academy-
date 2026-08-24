@@ -11,11 +11,13 @@ function renderTopReferrers(list){
   wrap.innerHTML = '';
   list.forEach((entry, i) => {
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
+    const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 32) : '';
     const row = document.createElement('div');
     row.className = 'record-card';
     row.innerHTML =
       '<div style="display:flex; align-items:center; gap:12px; flex:1;">' +
         '<span style="font-family:var(--font-mono); font-size:13px; color:var(--ink-3); width:24px;">#' + (i + 1) + '</span>' +
+        avatarHtml +
         '<span class="cell-name">' + entry.name + roleTag + '</span>' +
       '</div>' +
       '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">' + entry.points + ' pts</div>';

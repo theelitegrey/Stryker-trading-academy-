@@ -162,22 +162,22 @@ function renderTagBanner(){
   el.appendChild(banner);
 }
 
-// Older posts/replies were created before authorPlan was stamped on write —
-// this cache lets renderPostCard fall back to the author's CURRENT plan for
-// those, without a per-post async lookup blocking the render.
-let AUTHOR_PLAN_CACHE = {};
+// Cache of {plan, photoURL, customPhotoURL, displayName} per author uid,
+// fetched once per unique author per feed render — used for both the role
+// tag and the avatar image, so both always reflect the author's CURRENT
+// profile rather than whatever was true the moment they posted.
+let AUTHOR_DATA_CACHE = {};
 
-function prefetchMissingAuthorPlans(list){
-  const missingUids = new Set();
-  list.forEach((post) => {
-    if (!post.authorPlan && post.authorUid && !(post.authorUid in AUTHOR_PLAN_CACHE)) missingUids.add(post.authorUid);
-  });
-  if (!missingUids.size || typeof db === 'undefined' || !db) return Promise.resolve();
+function prefetchAuthorData(list){
+  const uids = new Set();
+  list.forEach((post) => { if (post.authorUid) uids.add(post.authorUid); });
+  const toFetch = Array.from(uids).filter((uid) => !(uid in AUTHOR_DATA_CACHE));
+  if (!toFetch.length || typeof db === 'undefined' || !db) return Promise.resolve();
 
-  return Promise.all(Array.from(missingUids).map((uid) =>
+  return Promise.all(toFetch.map((uid) =>
     db.collection('students').doc(uid).get()
-      .then((doc) => { AUTHOR_PLAN_CACHE[uid] = doc.exists ? (doc.data().plan || null) : null; })
-      .catch(() => { AUTHOR_PLAN_CACHE[uid] = null; })
+      .then((doc) => { AUTHOR_DATA_CACHE[uid] = doc.exists ? doc.data() : null; })
+      .catch(() => { AUTHOR_DATA_CACHE[uid] = null; })
   ));
 }
 
@@ -193,7 +193,7 @@ function renderFeed(){
       (ACTIVE_TAG ? 'No posts match that tag.' : 'No posts yet — be the first to share something with the floor.') + '</p>';
     return;
   }
-  prefetchMissingAuthorPlans(list).then(() => {
+  prefetchAuthorData(list).then(() => {
     feedEl.innerHTML = '';
     list.forEach((post) => feedEl.appendChild(renderPostCard(post)));
   });
@@ -208,10 +208,13 @@ function renderPostCard(post){
 
   const el = document.createElement('div');
   el.className = 'floor-post';
-  const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || AUTHOR_PLAN_CACHE[post.authorUid], { size: 'small' }) : '';
+  const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || (AUTHOR_DATA_CACHE[post.authorUid] && AUTHOR_DATA_CACHE[post.authorUid].plan), { size: 'small' }) : '';
+  const avatarHtml = (typeof avatarImgHtml === 'function')
+    ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36)
+    : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
   el.innerHTML =
     '<div class="floor-post-head">' +
-      '<div class="floor-avatar">' + initials(post.authorName) + '</div>' +
+      avatarHtml +
       '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + '</div></div>' +
       (post.authorUid === FLOOR_UID ? '<button type="button" class="icon-btn" style="margin-left:auto;" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' : '') +
@@ -325,7 +328,7 @@ function toggleReplies(post, cardEl){
     .then((snap) => {
       const replies = [];
       snap.forEach((doc) => replies.push(doc.data()));
-      return prefetchMissingAuthorPlans(replies).then(() => replies);
+      return prefetchAuthorData(replies).then(() => replies);
     })
     .then((replies) => {
       listEl.innerHTML = '';
@@ -334,9 +337,12 @@ function toggleReplies(post, cardEl){
         const rDate = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
         const rEl = document.createElement('div');
         rEl.className = 'floor-reply';
-        const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan || AUTHOR_PLAN_CACHE[r.authorUid], { size: 'small' }) : '';
+        const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan || (AUTHOR_DATA_CACHE[r.authorUid] && AUTHOR_DATA_CACHE[r.authorUid].plan), { size: 'small' }) : '';
+        const replyAvatarHtml = (typeof avatarImgHtml === 'function')
+          ? avatarImgHtml(r.authorUid, r.authorName, AUTHOR_DATA_CACHE[r.authorUid], 30)
+          : ('<div class="floor-avatar">' + initials(r.authorName) + '</div>');
         rEl.innerHTML =
-          '<div class="floor-avatar">' + initials(r.authorName) + '</div>' +
+          replyAvatarHtml +
           '<div class="floor-reply-body">' +
             '<div class="floor-reply-head"><span class="floor-reply-name">' + escapeHtml(r.authorName || 'Trader') + replyRoleTag + '</span>' +
             '<span class="floor-reply-time">' + timeAgo(rDate) + '</span></div>' +
@@ -495,11 +501,13 @@ function renderFloorLeaderboardWidget(myUid){
     list.forEach((entry, i) => {
       const isMe = entry.uid === myUid;
       const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
+      const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 22) : '';
       const row = document.createElement('div');
       row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line-soft);';
       row.innerHTML =
         '<div style="display:flex; align-items:center; gap:8px; min-width:0;">' +
           '<span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3); flex-shrink:0;">#' + (i + 1) + '</span>' +
+          avatarHtml +
           '<span style="font-size:12.5px; color:var(--ink-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(entry.name) + (isMe ? ' (you)' : '') + '</span>' +
           roleTag +
         '</div>' +

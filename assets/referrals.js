@@ -184,7 +184,7 @@ function loadReferralLeaderboard(limitCount){
       const list = [];
       snap.forEach((doc) => {
         const d = doc.data();
-        if (d.referralPoints > 0) list.push({ uid: doc.id, name: d.displayName || (d.email ? d.email.split('@')[0] : 'Trader'), points: d.referralPoints || 0, plan: d.plan || null });
+        if (d.referralPoints > 0) list.push({ uid: doc.id, name: d.displayName || (d.email ? d.email.split('@')[0] : 'Trader'), points: d.referralPoints || 0, plan: d.plan || null, photoURL: d.photoURL || null, customPhotoURL: d.customPhotoURL || null, avatarSeed: d.avatarSeed || null });
       });
       return list;
     })

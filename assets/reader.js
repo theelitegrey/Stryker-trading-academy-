@@ -81,6 +81,44 @@ function buildTOC(activeIndex){
   });
 }
 
+// Chapter content is inserted via innerHTML, and browsers silently ignore
+// <script> tags that arrive that way — so a TradingView widget embedded
+// directly in bodyHtml would never actually run. Instead, the content
+// contains lightweight placeholder divs (class="tv-chart-embed", with a
+// data-symbol and data-title), and this function finds them after the real
+// HTML is in the DOM and injects a genuine, working widget into each one via
+// createElement — which browsers DO execute.
+function activateLiveCharts(container){
+  container.querySelectorAll('.tv-chart-embed').forEach((slot) => {
+    const symbol = slot.dataset.symbol;
+    if (!symbol || slot.dataset.activated) return;
+    slot.dataset.activated = '1';
+
+    const title = slot.dataset.title || symbol;
+    slot.innerHTML =
+      '<div class="tv-chart-caption">' + title + ' — live, real price action</div>' +
+      '<div class="tradingview-widget-container" style="height:420px;"><div class="tradingview-widget-container__widget" style="height:100%;"></div></div>';
+
+    const script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.text = JSON.stringify({
+      autosize: true,
+      symbol: symbol,
+      interval: '60',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      allow_symbol_change: true,
+      hide_side_toolbar: false,
+      support_host: 'https://www.tradingview.com'
+    });
+    slot.querySelector('.tradingview-widget-container__widget').appendChild(script);
+  });
+}
+
 function renderReader(){
   CURRENT_INDEX = getChapterIndexFromQuery();
   const ch = CHAPTERS[CURRENT_INDEX];
@@ -102,6 +140,7 @@ function renderReader(){
 
   const body = document.getElementById('reader-body');
   body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');
+  activateLiveCharts(body);
 
   const lessonsWrap = document.getElementById('reader-lessons');
   lessonsWrap.innerHTML = '';
@@ -121,6 +160,7 @@ function renderReader(){
       updateChapterProgressUI(ch);
     });
     lessonsWrap.appendChild(block);
+    activateLiveCharts(block);
   });
 
   updateChapterProgressUI(ch);

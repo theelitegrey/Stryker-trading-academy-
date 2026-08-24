@@ -72,7 +72,7 @@ function importBundledModels(triggerBtn){
       }
     })
     .finally(() => {
-      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Update all from bundled content'; }
+      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Update all'; }
     });
 }
 

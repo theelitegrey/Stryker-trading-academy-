@@ -2,6 +2,22 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // Beta announcement banner (index.html) — dismiss and remember, so
+  // returning visitors aren't shown it again every visit.
+  const betaBanner = document.getElementById('beta-banner');
+  const betaBannerClose = document.getElementById('beta-banner-close');
+  if (betaBanner) {
+    try {
+      if (localStorage.getItem('stryker_beta_banner_dismissed') === '1') betaBanner.style.display = 'none';
+    } catch (e) { /* storage unavailable, fail open and just show the banner */ }
+  }
+  if (betaBannerClose) {
+    betaBannerClose.addEventListener('click', () => {
+      betaBanner.style.display = 'none';
+      try { localStorage.setItem('stryker_beta_banner_dismissed', '1'); } catch (e) { /* fail silently */ }
+    });
+  }
+
   // Mobile nav toggle (marketing pages: index.html, courses.html)
   const navToggle = document.querySelector('.nav-toggle');
   const navLinks = document.querySelector('.nav-links');

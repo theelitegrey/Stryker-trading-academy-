@@ -45,9 +45,9 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<p><em>This is a draft template. Replace the bracketed placeholders with your actual business details, and have it reviewed by a lawyer before treating it as final.</em></p>' +
       '<h2>1. Acceptance of these terms</h2>' +
-      '<p>By creating an account or using Stryker Trading Academy ("we", "us", "the platform"), you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
+      '<p>Stryker Trading Academy is operated by Stryker Trading, a sole proprietorship ("we", "us", "Stryker Trading"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
       '<h2>2. Eligibility</h2>' +
-      '<p>You must be at least 18 years old to create an account. By signing up, you confirm you meet this requirement. [Confirm this age requirement is correct for your business and jurisdiction.]</p>' +
+      '<p>You must be at least 18 years old to create an account. Stryker Trading does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
       '<h2>3. Risk disclosure</h2>' +
       '<p><strong>Trading foreign exchange, indices, commodities, and other financial instruments carries a high level of risk and may not be suitable for everyone.</strong> You could lose some or all of your invested capital, and you should not trade with money you cannot afford to lose.</p>' +
       '<p>Stryker Trading Academy is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, live sessions, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
@@ -58,7 +58,7 @@ const SITE_PAGES_DEFAULTS = {
       '<p>Access to certain curriculum, trading models, live sessions, and community features may require an active plan. [Describe your actual pricing/payment process here once live — e.g. which payment processor you use, billing frequency, and how plan changes are handled.]</p>' +
       '<p>See our <a href="refund-policy.html">Refund Policy</a> for details on refund eligibility.</p>' +
       '<h2>6. Referral program</h2>' +
-      '<p>Our referral program awards points for successful invites, redeemable [describe what points are redeemable for, if anything, or state they are for leaderboard/recognition purposes only]. We reserve the right to adjust, withhold, or reverse points awarded through fraudulent activity, self-referral, or abuse of the program.</p>' +
+      '<p>Our referral program awards points for successful invites, shown on the leaderboard for recognition. Points do not currently have a cash or credit redemption value. We reserve the right to adjust, withhold, or reverse points awarded through fraudulent activity, self-referral, or abuse of the program.</p>' +
       '<h2>7. Community conduct</h2>' +
       '<p>The Trading Floor community is for genuine discussion of trading ideas and setups. We don\'t allow harassment, spam, impersonation, or posting content that violates applicable law. We may remove content or restrict access for violations of this policy.</p>' +
       '<h2>8. Intellectual property</h2>' +
@@ -66,9 +66,9 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>9. Termination</h2>' +
       '<p>We may suspend or terminate accounts that violate these terms. You may stop using the platform and close your account at any time via Settings or by contacting us.</p>' +
       '<h2>10. Limitation of liability</h2>' +
-      '<p>To the fullest extent permitted by law, Stryker Trading Academy is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content. [This clause in particular should be reviewed by a lawyer for your jurisdiction.]</p>' +
+      '<p>To the fullest extent permitted by law, Stryker Trading is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content. <em>This clause in particular should be reviewed by a lawyer — and worth knowing: as a sole proprietorship, Stryker Trading does not have the liability separation an LLC or corporation would have, which is worth discussing with a lawyer or accountant.</em></p>' +
       '<h2>11. Governing law</h2>' +
-      '<p>These terms are governed by the laws of [YOUR GOVERNING JURISDICTION — e.g. "the State of Delaware, USA" or "England and Wales"].</p>' +
+      '<p>Stryker Trading operates as a sole proprietorship and has not designated a specific governing jurisdiction for these terms. <em>Note: most businesses name a specific governing law here, since it materially affects how disputes are resolved — this is worth revisiting with a lawyer if that changes.</em></p>' +
       '<h2>12. Changes to these terms</h2>' +
       '<p>We may update these terms from time to time. Continued use of the platform after changes take effect means you accept the updated terms.</p>' +
       '<h2>13. Contact</h2>' +
@@ -128,9 +128,9 @@ const SITE_PAGES_DEFAULTS = {
   'gdpr': {
     title: 'GDPR',
     bodyHtml:
-      '<p><em>This is a draft template. Replace the bracketed placeholders with your actual business details, and have it reviewed by a lawyer before treating it as final — especially if you have users based in the EU/UK, since GDPR compliance involves more than a policy page (e.g. a documented legal basis for each type of processing, and potentially a data processing agreement with Firebase/Google).</em></p>' +
+      '<p><em>This is a draft template, reviewed for your confirmed EU/UK user base but still worth a lawyer\'s review — GDPR compliance involves more than a policy page (e.g. a documented legal basis for each type of processing, and a data processing agreement with Firebase/Google, which Google Cloud offers by default).</em></p>' +
       '<h2>Your rights</h2>' +
-      '<p>If you\'re based in the EU or UK — or regardless of location, since we apply these principles to all students — you have the right to:</p>' +
+      '<p>If you\'re based in the EU or UK, you have the right to:</p>' +
       '<ul>' +
         '<li><strong>Access</strong> the personal data we hold about you</li>' +
         '<li><strong>Correct</strong> inaccurate data</li>' +
@@ -138,33 +138,32 @@ const SITE_PAGES_DEFAULTS = {
         '<li><strong>Export</strong> your data in a portable format</li>' +
         '<li><strong>Restrict or object</strong> to certain processing</li>' +
       '</ul>' +
+      '<p>We extend these same rights to every student, regardless of location.</p>' +
       '<h2>How to exercise these rights</h2>' +
-      '<p><a href="contact.html">Contact us</a> with your request, and we\'ll respond within [confirm your response window — commonly 30 days under GDPR].</p>' +
+      '<p>Submit your request through our <a href="contact.html">contact form</a>. We aim to respond within 30 days, in line with GDPR\'s standard response window.</p>' +
       '<h2>Legal basis for processing</h2>' +
       '<p>We process your account and progress data based on our contract with you (providing the educational service you signed up for), and community/journal data based on your consent when you choose to use those features.</p>' +
       '<h2>International data transfers</h2>' +
-      '<p>Our infrastructure (Firebase/Google Cloud) may store and process data outside the EU/UK. [If you have EU/UK users, confirm what safeguards apply — Google Cloud/Firebase generally offers Standard Contractual Clauses for this.]</p>' +
+      '<p>Our infrastructure (Firebase/Google Cloud) may store and process data outside the EU/UK. Google Cloud makes Standard Contractual Clauses available for this by default as part of its infrastructure — worth confirming this is properly in place given your EU/UK user base.</p>' +
       '<h2>Contact</h2>' +
-      '<p><a href="contact.html">Contact us</a> with any GDPR-related question or request.</p>'
+      '<p>Reach us through the <a href="contact.html">contact form</a> with any GDPR-related question or request.</p>'
   },
 
   'contact': {
     title: 'Contact Us',
     bodyHtml:
-      '<p>Have a question about your account, a chapter, or anything else? Send us a message below and we\'ll get back to you.</p>' +
-      '<p style="color:var(--ink-3); font-size:13.5px;">[Add a direct support email here if you\'d like one listed alongside the form, e.g. "You can also reach us directly at support@yourdomain.com".]</p>'
+      '<p>Have a question about your account, a chapter, or anything else? Send us a message below and we\'ll get back to you.</p>'
   },
 
   'refund-policy': {
     title: 'Refund Policy',
     bodyHtml:
-      '<p><em>This is a draft template — refund policy needs your specific confirmation before it\'s accurate. Replace this with your actual policy.</em></p>' +
-      '<h2>[Confirm your refund window]</h2>' +
-      '<p>[Example wording — edit or replace: "We offer a refund within 7 days of purchase, provided you have not completed more than 2 chapters of the curriculum. To request a refund, contact us with your order details."]</p>' +
-      '<h2>How to request a refund</h2>' +
-      '<p><a href="contact.html">Contact us</a> with your account email and order details, and we\'ll process eligible requests within [confirm your processing time].</p>' +
-      '<h2>Non-refundable items</h2>' +
-      '<p>[If any part of your offering is non-refundable — e.g. live 1-on-1 sessions once completed — state that here.]</p>'
+      '<h2>All sales are final</h2>' +
+      '<p>Stryker Trading does not offer refunds on any purchase. When you complete a purchase, you\'re confirming you understand and accept this before checkout.</p>' +
+      '<h2>Discretionary exceptions</h2>' +
+      '<p>Stryker Trading administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a>, but approval is entirely at our discretion.</p>' +
+      '<h2>Why we do this</h2>' +
+      '<p>Our curriculum, trading models, and community access are digital educational content delivered immediately upon purchase, which is why we don\'t offer a standard refund window.</p>'
   }
 
 };

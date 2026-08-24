@@ -164,5 +164,6 @@ const GATEABLE_PAGES = [
   { key: 'trade-journal', label: 'Trade journal' },
   { key: 'live-sessions', label: 'Live sessions' },
   { key: 'market-news', label: 'Market news' },
-  { key: 'achievements', label: 'Achievements' }
+  { key: 'achievements', label: 'Achievements' },
+  { key: 'referrals', label: 'Invite & Earn (referrals)' }
 ];

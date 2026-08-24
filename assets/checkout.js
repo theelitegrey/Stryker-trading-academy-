@@ -166,6 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
         planId: CHECKOUT_PLAN.id
       }, { merge: true }))
       .then(() => {
+        // Non-blocking: award the referrer's conversion bonus, if this
+        // student was referred and hasn't already triggered one. A failure
+        // here should never block the checkout flow itself.
+        if (typeof processReferralConversion === 'function') {
+          processReferralConversion(CHECKOUT_UID);
+        }
+        const manualRefInput = document.getElementById('checkout-referral-input');
+        const manualRefCode = manualRefInput ? manualRefInput.value.trim() : '';
+        if (manualRefCode && typeof applyReferralCodeAtCheckout === 'function') {
+          applyReferralCodeAtCheckout(CHECKOUT_UID, manualRefCode);
+        }
+      })
+      .then(() => {
         document.getElementById('checkout-success').textContent =
           'Order complete — you now have ' + CHECKOUT_PLAN.name + '. Redirecting to your dashboard…';
         document.getElementById('checkout-success').style.display = 'block';

@@ -140,16 +140,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // ---- Email/password signup ----
   const signupForm = document.getElementById('signup-form');
   if (signupForm) {
+    // Pre-fill the invite code field from a ?ref= link, if the person arrived via one.
+    const referralField = document.getElementById('signup-referral');
+    if (referralField) {
+      const urlRef = new URLSearchParams(window.location.search).get('ref');
+      if (urlRef) referralField.value = urlRef;
+    }
+
     signupForm.addEventListener('submit', (e) => {
       e.preventDefault();
       clearAuthError('signup-error');
       const name = document.getElementById('signup-name').value.trim();
       const email = document.getElementById('signup-email').value.trim();
       const password = document.getElementById('signup-password').value;
+      const referralCode = referralField ? referralField.value.trim() : '';
       const isAdmin = currentRoleIsAdmin(signupForm.closest('.auth-box'));
       const btn = signupForm.querySelector('button[type="submit"]');
       const original = btn.textContent;
       btn.disabled = true; btn.textContent = 'Creating account…';
+      // Stash whatever code is in the field (typed or pre-filled) so the
+      // student-doc-creation step (progress.js) can pick it up regardless
+      // of which sign-up path (email or Google) actually creates the account.
+      if (referralCode) {
+        try { sessionStorage.setItem('stryker_referral_code', referralCode); } catch (err) { /* fail open */ }
+      }
       auth.createUserWithEmailAndPassword(email, password)
         .then((cred) => {
           if (name && cred.user) return cred.user.updateProfile({ displayName: name });

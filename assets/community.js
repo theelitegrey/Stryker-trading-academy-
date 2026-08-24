@@ -386,6 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rolesLookup = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
     Promise.all([planLookup, rolesLookup]).then(() => {
       loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
+      renderFloorLeaderboardWidget(user.uid);
     });
   });
 
@@ -453,3 +454,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }).finally(() => { btn.disabled = false; });
   });
 });
+
+// Small leaderboard widget in the trading floor sidebar — top 5 by invite
+// points, reusing the same referral module used on the Invite & Earn page.
+function renderFloorLeaderboardWidget(myUid){
+  const wrap = document.getElementById('floor-leaderboard-widget');
+  if (!wrap || typeof loadReferralLeaderboard !== 'function') return;
+
+  loadReferralLeaderboard(5).then((list) => {
+    if (!list.length) {
+      wrap.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">No invite points yet — be the first to invite someone.</p>';
+      return;
+    }
+    wrap.innerHTML = '';
+    list.forEach((entry, i) => {
+      const isMe = entry.uid === myUid;
+      const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line-soft);';
+      row.innerHTML =
+        '<div style="display:flex; align-items:center; gap:8px; min-width:0;">' +
+          '<span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3); flex-shrink:0;">#' + (i + 1) + '</span>' +
+          '<span style="font-size:12.5px; color:var(--ink-0); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + escapeHtml(entry.name) + (isMe ? ' (you)' : '') + '</span>' +
+          roleTag +
+        '</div>' +
+        '<span style="font-family:var(--font-mono); font-size:12px; color:#f5c542; font-weight:700; flex-shrink:0;">' + entry.points + '</span>';
+      wrap.appendChild(row);
+    });
+  }).catch((err) => {
+    console.error('Stryker: floor leaderboard widget failed to load', err);
+    wrap.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">Could not load leaderboard.</p>';
+  });
+}

@@ -1049,3 +1049,6 @@ tbody tr:hover{ background:var(--bg-3); }
 @media (max-width:960px){ .reader-toc-toggle{ display:inline-flex; } }
 
 .mark-complete-row{ display:flex; align-items:center; gap:12px; margin:28px 0; }
+
+.floor-layout-grid{ display:grid; grid-template-columns:1fr 300px; gap:20px; align-items:start; }
+@media (max-width:900px){ .floor-layout-grid{ grid-template-columns:1fr; } #floor-sidebar-col{ order:-1; } }

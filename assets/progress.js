@@ -42,7 +42,14 @@ function ensureStudentDoc(user){
         completedLessons: [],
         completedChapters: []
       };
-      return ref.set(data).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
+      return ref.set(data).then(() => {
+        // Non-blocking: resolve any pending ?ref= invite code from signup.
+        // A failure here should never prevent the student doc itself from
+        // being created, so it's intentionally not chained into the return.
+        if (typeof processPendingReferralForNewStudent === 'function') {
+          processPendingReferralForNewStudent(user.uid, data.displayName, data.email);
+        }
+      }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
     }
 
     const data = snap.data();

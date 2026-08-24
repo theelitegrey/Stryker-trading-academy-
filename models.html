@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Achievements — Stryker Trading Academy</title>
+<title>Trading Models — Stryker Trading Academy</title>
+<meta name="description" content="Named ICT/SMT trading models and setups, each with full criteria and a written walkthrough.">
 <link rel="stylesheet" href="assets/style.css?v=48">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -12,6 +13,20 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body>
+
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2>Sign in to browse trading models</h2>
+    <p>Create a free account or log in to see every model and its full write-up.</p>
+    <div class="paywall-actions">
+      <a href="login.html" class="btn btn-primary">Log in</a>
+      <a href="signup.html" class="btn btn-ghost">Create free account</a>
+    </div>
+  </div>
+</div>
 
 <div class="mobile-topnav">
   <a href="dashboard-user.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a>
@@ -24,12 +39,11 @@
 </div>
 <div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
 
-<div class="dash-shell">
+<div class="dash-shell" id="models-content-wrap">
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
     </a>
 
     <div class="side-section">
@@ -42,7 +56,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Curriculum
       </a>
-      <a href="models.html" class="side-link">
+      <a href="models.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
         Trading models
       </a>
@@ -54,7 +68,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
         Market news
       </a>
-      <a href="achievements.html" class="side-link active">
+      <a href="achievements.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
         Achievements
       </a>
@@ -95,15 +109,12 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Achievements</h1>
-        <p id="ach-subtitle">Loading your progress…</p>
+        <h1>Trading models</h1>
+        <p>Named setups and models, each with the full criteria and a written walkthrough.</p>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head"><h2>Your badges</h2></div>
-      <div class="badge-grid" id="achievements-grid"></div>
-    </div>
+    <div id="models-render-target"></div>
   </main>
 </div>
 
@@ -112,12 +123,11 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js?v=48"></script>
 <script src="assets/progress.js?v=48"></script>
-<script src="assets/plan-guard.js?v=48"></script>
 <script src="assets/maintenance-check.js?v=48"></script>
 <script src="assets/branding.js?v=48"></script>
 <script src="assets/dash-nav.js?v=48"></script>
-<script src="assets/chapters-data.js?v=48"></script>
-<script src="assets/chapters-store.js?v=48"></script>
-<script src="assets/achievements.js?v=48"></script>
+<script src="assets/models-data.js?v=48"></script>
+<script src="assets/models-store.js?v=48"></script>
+<script src="assets/models-list.js?v=48"></script>
 </body>
 </html>

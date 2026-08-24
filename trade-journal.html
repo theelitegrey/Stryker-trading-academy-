@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=64">
+<link rel="stylesheet" href="assets/style.css?v=65">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -96,70 +96,233 @@
     <div class="dash-topbar">
       <div>
         <h1>Trade journal</h1>
-        <p>Private to your account — log setups and review your own decisions over time.</p>
+        <p>Private to your account — log every trade, and see exactly what's actually working.</p>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head"><h2>New entry</h2></div>
-      <div class="auth-error" id="journal-error"></div>
-      <div class="form-row-2">
-        <div class="field" style="margin-bottom:0;">
-          <label for="journal-date">Date</label>
-          <input type="date" id="journal-date">
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label for="journal-instrument">Instrument</label>
-          <input type="text" id="journal-instrument" placeholder="e.g. XAUUSD, EURUSD">
-        </div>
-      </div>
-      <div class="form-row-2">
-        <div class="field" style="margin-bottom:0;">
-          <label for="journal-direction">Direction</label>
-          <select id="journal-direction" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px;">
-            <option value="Long">Long</option>
-            <option value="Short">Short</option>
-          </select>
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label for="journal-outcome">Outcome</label>
-          <select id="journal-outcome" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px;">
-            <option value="Win">Win</option>
-            <option value="Loss">Loss</option>
-            <option value="Breakeven">Breakeven</option>
-            <option value="Open">Still open</option>
-          </select>
-        </div>
-      </div>
-      <div class="field">
-        <label for="journal-notes">Setup notes</label>
-        <textarea id="journal-notes" rows="4" placeholder="Structure, liquidity context, entry reasoning, what you'd do differently…" style="width:100%; padding:12px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:14px; font-family:inherit; resize:vertical;"></textarea>
-      </div>
-      <button class="btn btn-primary btn-sm" id="journal-add-btn">Add entry</button>
+    <div class="level-tabs" id="journal-tabs" style="margin-bottom:24px;">
+      <button class="level-tab active" data-tab="dashboard">Dashboard</button>
+      <button class="level-tab" data-tab="add">Add trade</button>
+      <button class="level-tab" data-tab="history">History</button>
+      <button class="level-tab" data-tab="calendar">Calendar</button>
+      <button class="level-tab" data-tab="analytics">Analytics</button>
+      <button class="level-tab" data-tab="settings">Settings</button>
     </div>
 
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Your entries</h2>
-        <span id="journal-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+    <div class="auth-error" id="journal-global-error"></div>
+
+    <!-- ============== DASHBOARD ============== -->
+    <div class="journal-tab-panel" id="tab-dashboard">
+      <div class="stat-grid-3" id="journal-stats-row1">
+        <div class="stat-card"><div class="stat-val" id="jstat-total-pnl">—</div><div class="stat-label">Total P&amp;L</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-today-pnl">—</div><div class="stat-label">Today's P&amp;L</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-week-pnl">—</div><div class="stat-label">This week</div></div>
       </div>
-      <div id="journal-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div class="stat-grid-3" id="journal-stats-row2">
+        <div class="stat-card"><div class="stat-val" id="jstat-month-pnl">—</div><div class="stat-label">This month</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-winrate">—</div><div class="stat-label">Win rate</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-total-trades">—</div><div class="stat-label">Total trades</div></div>
+      </div>
+      <div class="stat-grid-3" id="journal-stats-row3">
+        <div class="stat-card"><div class="stat-val" id="jstat-wl-count">—</div><div class="stat-label">Wins vs losses</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-avg-win-loss">—</div><div class="stat-label">Avg win / avg loss</div></div>
+        <div class="stat-card"><div class="stat-val" id="jstat-profit-factor">—</div><div class="stat-label">Profit factor</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Equity curve</h2></div>
+        <div style="position:relative; height:260px;"><canvas id="journal-equity-chart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Daily P&amp;L</h2></div>
+        <div style="position:relative; height:220px;"><canvas id="journal-daily-chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ============== ADD / EDIT TRADE ============== -->
+    <div class="journal-tab-panel" id="tab-add" style="display:none;">
+      <div class="panel">
+        <div class="panel-head"><h2 id="journal-form-heading">New trade</h2></div>
+        <div class="auth-error" id="journal-form-error"></div>
+        <div class="auth-error" id="journal-form-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+
+        <div class="form-row-2">
+          <div class="field"><label for="jf-instrument">Instrument</label>
+            <select id="jf-instrument" class="journal-select"></select>
+          </div>
+          <div class="field"><label for="jf-direction">Direction</label>
+            <select id="jf-direction" class="journal-select">
+              <option value="long">Long</option>
+              <option value="short">Short</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="field"><label for="jf-date">Date</label><input type="date" id="jf-date"></div>
+          <div class="field"><label for="jf-time">Time <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label><input type="time" id="jf-time"></div>
+        </div>
+        <div class="form-row-2">
+          <div class="field"><label for="jf-entry">Entry price</label><input type="number" step="any" id="jf-entry" placeholder="0.00"></div>
+          <div class="field"><label for="jf-exit">Exit price</label><input type="number" step="any" id="jf-exit" placeholder="0.00"></div>
+        </div>
+        <div class="form-row-2">
+          <div class="field"><label for="jf-size">Position size</label><input type="number" step="any" id="jf-size" placeholder="e.g. contracts, lots, shares"></div>
+          <div class="field"><label for="jf-fees">Fees <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label><input type="number" step="any" id="jf-fees" placeholder="0.00"></div>
+        </div>
+        <div class="form-row-2">
+          <div class="field"><label for="jf-stop">Stop loss <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label><input type="number" step="any" id="jf-stop" placeholder="0.00"></div>
+          <div class="field"><label for="jf-target">Take profit <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label><input type="number" step="any" id="jf-target" placeholder="0.00"></div>
+        </div>
+        <div class="form-row-2">
+          <div class="field"><label for="jf-session">Session</label>
+            <select id="jf-session" class="journal-select"></select>
+          </div>
+          <div class="field"><label for="jf-setup">Setup</label>
+            <select id="jf-setup" class="journal-select"></select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tags</label>
+          <div id="jf-tags-wrap" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+        <div class="field">
+          <label for="jf-notes">Trade notes</label>
+          <textarea id="jf-notes" rows="4" class="textarea-field" placeholder="Structure, liquidity context, entry reasoning, what you'd do differently…"></textarea>
+        </div>
+        <div class="field">
+          <label>Screenshot <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label>
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-ghost btn-sm" id="jf-screenshot-btn">Add screenshot</button>
+            <input type="file" id="jf-screenshot-input" accept="image/*" style="display:none;">
+            <span id="jf-screenshot-status" style="font-size:12.5px; color:var(--ink-3);"></span>
+          </div>
+          <img id="jf-screenshot-preview" style="display:none; max-width:220px; border-radius:8px; border:1px solid var(--line); margin-top:10px;">
+        </div>
+
+        <div class="panel" style="background:var(--bg-3,#141820); margin-top:20px; margin-bottom:20px;">
+          <div class="panel-head"><h2 style="font-size:14px;">Live calculation</h2></div>
+          <div class="stat-grid-3" style="margin-bottom:0;">
+            <div class="stat-card"><div class="stat-val" id="jf-calc-pnl" style="font-size:19px;">—</div><div class="stat-label">P&amp;L</div></div>
+            <div class="stat-card"><div class="stat-val" id="jf-calc-risk" style="font-size:19px;">—</div><div class="stat-label">Risk amount / %</div></div>
+            <div class="stat-card"><div class="stat-val" id="jf-calc-r" style="font-size:19px;">—</div><div class="stat-label">R multiple</div></div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" id="jf-save-btn">Save trade</button>
+          <button class="btn btn-ghost btn-sm" id="jf-cancel-edit-btn" style="display:none;">Cancel edit</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============== HISTORY ============== -->
+    <div class="journal-tab-panel" id="tab-history" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Filters</h2>
+        </div>
+        <div class="form-row-2">
+          <div class="field" style="margin-bottom:0;"><label for="jh-search">Search notes</label><input type="text" id="jh-search" placeholder="Search…"></div>
+          <div class="field" style="margin-bottom:0;"><label for="jh-instrument">Instrument</label><select id="jh-instrument" class="journal-select"><option value="">All</option></select></div>
+        </div>
+        <div class="form-row-2" style="margin-top:16px;">
+          <div class="field" style="margin-bottom:0;"><label for="jh-setup">Setup</label><select id="jh-setup" class="journal-select"><option value="">All</option></select></div>
+          <div class="field" style="margin-bottom:0;"><label for="jh-direction">Direction</label>
+            <select id="jh-direction" class="journal-select">
+              <option value="">All</option>
+              <option value="long">Long</option>
+              <option value="short">Short</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Trades</h2>
+          <span id="jh-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+        </div>
+        <div id="jh-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      </div>
+    </div>
+
+    <!-- ============== CALENDAR ============== -->
+    <div class="journal-tab-panel" id="tab-calendar" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2 id="jc-month-label">—</h2>
+          <div style="display:flex; gap:8px;">
+            <button class="icon-btn" id="jc-prev-btn" aria-label="Previous month">‹</button>
+            <button class="icon-btn" id="jc-next-btn" aria-label="Next month">›</button>
+          </div>
+        </div>
+        <div id="jc-grid" class="journal-calendar-grid"></div>
+      </div>
+      <div class="panel" id="jc-day-detail-panel" style="display:none;">
+        <div class="panel-head"><h2 id="jc-day-detail-heading">—</h2></div>
+        <div id="jc-day-detail-list"></div>
+      </div>
+    </div>
+
+    <!-- ============== ANALYTICS ============== -->
+    <div class="journal-tab-panel" id="tab-analytics" style="display:none;">
+      <div class="panel"><div class="panel-head"><h2>By instrument</h2></div><div id="ja-by-instrument"></div></div>
+      <div class="panel"><div class="panel-head"><h2>By setup</h2></div><div id="ja-by-setup"></div></div>
+      <div class="panel"><div class="panel-head"><h2>By session</h2></div><div id="ja-by-session"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Long vs short</h2></div><div id="ja-by-direction"></div></div>
+      <div class="panel"><div class="panel-head"><h2>By day of week</h2></div><div id="ja-by-dow"></div></div>
+    </div>
+
+    <!-- ============== SETTINGS ============== -->
+    <div class="journal-tab-panel" id="tab-settings" style="display:none;">
+      <div class="auth-error" id="js-error"></div>
+      <div class="auth-error" id="js-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Account</h2></div>
+        <div class="form-row-2">
+          <div class="field" style="margin-bottom:0;"><label for="js-balance">Account balance <span style="color:var(--ink-3); font-weight:400;">(used for Risk % calculation)</span></label><input type="number" step="any" id="js-balance"></div>
+          <div class="field" style="margin-bottom:0;"><label for="js-risk">Default risk %</label><input type="number" step="any" id="js-risk"></div>
+        </div>
+        <div class="field" style="margin-top:16px; margin-bottom:0;"><label for="js-currency">Currency</label>
+          <select id="js-currency" class="journal-select">
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+            <option value="JPY">JPY (¥)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel"><div class="panel-head"><h2>Instruments</h2></div><div id="js-instruments-list" class="journal-tag-editor"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Setups</h2></div><div id="js-setups-list" class="journal-tag-editor"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Sessions</h2></div><div id="js-sessions-list" class="journal-tag-editor"></div></div>
+      <div class="panel"><div class="panel-head"><h2>Tags</h2></div><div id="js-tags-list" class="journal-tag-editor"></div></div>
+
+      <button class="btn btn-primary btn-sm" id="js-save-btn">Save settings</button>
     </div>
   </main>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=64"></script>
-<script src="assets/progress.js?v=64"></script>
-<script src="assets/avatars.js?v=64"></script>
-<script src="assets/referrals.js?v=64"></script>
-<script src="assets/roles.js?v=64"></script>
-<script src="assets/plan-guard.js?v=64"></script>
-<script src="assets/maintenance-check.js?v=64"></script>
-<script src="assets/branding.js?v=64"></script>
-<script src="assets/dash-nav.js?v=64"></script>
-<script src="assets/journal.js?v=64"></script>
+<script src="assets/auth.js?v=65"></script>
+<script src="assets/progress.js?v=65"></script>
+<script src="assets/avatars.js?v=65"></script>
+<script src="assets/referrals.js?v=65"></script>
+<script src="assets/roles.js?v=65"></script>
+<script src="assets/plan-guard.js?v=65"></script>
+<script src="assets/maintenance-check.js?v=65"></script>
+<script src="assets/branding.js?v=65"></script>
+<script src="assets/dash-nav.js?v=65"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="assets/journal-calc.js?v=65"></script>
+<script src="assets/journal-data.js?v=65"></script>
+<script src="assets/journal-charts.js?v=65"></script>
+<script src="assets/journal-history-calendar.js?v=65"></script>
+<script src="assets/journal-form-settings.js?v=65"></script>
+<script src="assets/journal-main.js?v=65"></script>
 </body>
 </html>

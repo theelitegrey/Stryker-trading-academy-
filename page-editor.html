@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Appearance — Stryker Admin</title>
+<title>Edit Page — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css?v=66">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -74,7 +74,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Referrals
       </a>
-      <a href="pages-admin.html" class="side-link">
+      <a href="pages-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 9h1M9 13h6M9 17h6"/></svg>
         Site pages
       </a>
@@ -90,7 +90,7 @@
 
     <div class="side-section">
       <div class="side-label">System</div>
-      <a href="appearance-admin.html" class="side-link active">
+      <a href="appearance-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
         Appearance
       </a>
@@ -115,51 +115,43 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Appearance</h1>
-        <p>Upload a logo and favicon — changes apply site-wide immediately.</p>
+        <h1 id="pe-heading">Edit page</h1>
+        <p><a href="pages-admin.html" style="color:var(--teal);">← Back to Site pages</a></p>
       </div>
     </div>
 
-    <div class="auth-error" id="appearance-error"></div>
-    <div class="auth-error" id="appearance-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+    <div class="auth-error" id="pe-error"></div>
+    <div class="auth-error" id="pe-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
 
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Logo</h2></div>
-          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Shown in the nav bar and sidebar across the whole site. A square or near-square image with a transparent background works best.</p>
-          <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
-            <img id="logo-preview" src="assets/images/logo-header.png" alt="Current logo" style="width:64px; height:64px; object-fit:contain; background:var(--bg-3); border-radius:10px; padding:6px; border:1px solid var(--line);">
-            <div style="font-size:12.5px; color:var(--ink-3);" id="logo-current-label">Current: bundled default</div>
-          </div>
-          <input type="file" id="logo-file-input" accept="image/*" style="margin-bottom:14px; color:var(--ink-2); font-size:13px;">
-          <br>
-          <button class="btn btn-primary btn-sm" id="upload-logo-btn">Upload &amp; save logo</button>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Favicon</h2></div>
-          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Shown in the browser tab. Use a simple square image — it'll be displayed very small.</p>
-          <div style="display:flex; align-items:center; gap:16px; margin-bottom:16px;">
-            <img id="favicon-preview" src="assets/images/favicon-32.png" alt="Current favicon" style="width:32px; height:32px; object-fit:contain; background:var(--bg-3); border-radius:6px; padding:4px; border:1px solid var(--line);">
-            <div style="font-size:12.5px; color:var(--ink-3);" id="favicon-current-label">Current: bundled default</div>
-          </div>
-          <input type="file" id="favicon-file-input" accept="image/*" style="margin-bottom:14px; color:var(--ink-2); font-size:13px;">
-          <br>
-          <button class="btn btn-primary btn-sm" id="upload-favicon-btn">Upload &amp; save favicon</button>
-        </div>
+    <div class="panel">
+      <div class="field">
+        <label for="pe-title">Page title <span style="color:var(--ink-3); font-weight:400;">(shown as the H1 on the public page)</span></label>
+        <input type="text" id="pe-title">
       </div>
 
-      <div>
-        <div class="notice">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          <p><b>No Storage or paid plan needed.</b> Uploaded images are automatically resized and saved directly to the database, not Cloud Storage — so this works on Firebase's free plan. There's a practical size limit though: keep source images under a few MB, and note the logo is shown quite small (resized to 300×300) and the favicon tiny (64×64), so simple, high-contrast images work best.</p>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><h2>Reset to defaults</h2></div>
-          <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Removes any custom logo/favicon and falls back to the bundled Stryker branding.</p>
-          <button class="btn btn-ghost btn-sm" id="reset-branding-btn">Reset to bundled defaults</button>
-        </div>
+      <label style="display:block; font-size:13px; color:var(--ink-1); margin-bottom:7px; font-weight:500;">Content</label>
+      <div class="rte-toolbar" id="pe-rte-toolbar">
+        <button type="button" class="rte-btn" data-cmd="bold" title="Bold"><b>B</b></button>
+        <button type="button" class="rte-btn" data-cmd="italic" title="Italic"><i>I</i></button>
+        <button type="button" class="rte-btn" data-cmd="underline" title="Underline"><u>U</u></button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="h2" title="Heading">H2</button>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="h3" title="Subheading">H3</button>
+        <button type="button" class="rte-btn" data-cmd="formatBlock" data-value="p" title="Paragraph">¶</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+        <button type="button" class="rte-btn" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" id="pe-link-btn" title="Insert link">Link</button>
+        <button type="button" class="rte-btn" data-cmd="unlink" title="Remove link">Unlink</button>
+        <span class="rte-sep"></span>
+        <button type="button" class="rte-btn" data-cmd="removeFormat" title="Clear formatting">Clear</button>
+      </div>
+      <div id="pe-body" class="rte-editable" contenteditable="true" style="min-height:400px;"></div>
+
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary btn-sm" id="pe-save-btn">Save page</button>
+        <a id="pe-preview-link" href="#" target="_blank" class="btn btn-ghost btn-sm">View live page</a>
       </div>
     </div>
   </main>
@@ -172,10 +164,12 @@
 <script src="assets/progress.js?v=66"></script>
 <script src="assets/avatars.js?v=66"></script>
 <script src="assets/referrals.js?v=66"></script>
-<script src="assets/roles.js?v=66"></script>
-<script src="assets/admin-guard.js?v=66"></script>
 <script src="assets/branding.js?v=66"></script>
+<script src="assets/admin-guard.js?v=66"></script>
 <script src="assets/dash-nav.js?v=66"></script>
-<script src="assets/appearance-admin.js?v=66"></script>
+<script src="assets/roles.js?v=66"></script>
+<script src="assets/site-pages.js?v=66"></script>
+<script src="assets/site-pages-defaults.js?v=66"></script>
+<script src="assets/page-editor.js?v=66"></script>
 </body>
 </html>

@@ -52,6 +52,13 @@ function findPlan(idOrName){
          null;
 }
 
+// Public accessor for the already-loaded plans list, for pages that need
+// to build their own UI from it (e.g. a plan-picker dropdown) without
+// reaching into the internal cache variable directly.
+function getCachedPlansForRoles(){
+  return _rolesPlansCache || [];
+}
+
 function rankOf(idOrName){
   const plan = findPlan(idOrName);
   return plan ? (plan.rank ?? 0) : 0;

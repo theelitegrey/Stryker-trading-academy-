@@ -11,6 +11,20 @@ function initials(name){
   return name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 }
 
+function planOptionsForStudent(currentPlanName){
+  const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : [];
+  let opts = '<option value=""' + (!currentPlanName ? ' selected' : '') + '>Self-Paced (no plan)</option>';
+  plans.forEach((p) => {
+    const sel = p.name === currentPlanName ? ' selected' : '';
+    opts += '<option value="' + escapeStudentText(p.name) + '"' + sel + '>' + escapeStudentText(p.name) + '</option>';
+  });
+  return opts;
+}
+
+function escapeStudentText(s){
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function renderStudentsTable(students){
   const body = document.getElementById('students-table-body');
   const countEl = document.getElementById('students-count');
@@ -34,13 +48,29 @@ function renderStudentsTable(students){
     card.innerHTML =
       '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
-        '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + (s.plan || 'Self-Paced') + '</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Plan</span>' +
+          '<select class="student-plan-select" data-uid="' + s.uid + '" style="font-family:var(--font-mono); font-size:12.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);">' +
+            planOptionsForStudent(s.plan) +
+          '</select>' +
+        '</div>' +
         '<div class="record-stat"><span class="rs-label">Chapters</span><span class="rs-val">' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</span></div>' +
         '<div class="record-stat"><span class="rs-label">Lessons</span><span class="rs-val">' + (s.completedLessons ? s.completedLessons.length : 0) + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + memberSince + '</span></div>' +
       '</div>' +
       '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>';
+
+    card.querySelector('.student-plan-select').addEventListener('change', (e) => {
+      const select = e.currentTarget;
+      const newPlan = select.value || null;
+      select.disabled = true;
+      db.collection('students').doc(s.uid).set({ plan: newPlan }, { merge: true })
+        .then(() => loadStudents())
+        .catch((err) => {
+          alert('Could not change plan: ' + (err.message || err));
+          select.disabled = false;
+        });
+    });
 
     card.querySelector('[data-toggle-admin]').addEventListener('click', (e) => {
       const btn = e.currentTarget;

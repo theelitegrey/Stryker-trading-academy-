@@ -271,6 +271,30 @@ document.addEventListener('DOMContentLoaded', () => {
       .finally(() => { btn.disabled = false; });
   });
 
+  document.getElementById('reset-from-seed-btn').addEventListener('click', () => {
+    if (!EDITING_NUM || typeof CHAPTERS_SEED === 'undefined') return;
+    const seedChapter = CHAPTERS_SEED.find(c => c.num === EDITING_NUM);
+    if (!seedChapter) {
+      alert('No bundled version of Chapter ' + EDITING_NUM + ' exists to reset from.');
+      return;
+    }
+    if (!confirm('Overwrite this chapter with the latest bundled content? This replaces everything currently saved for Chapter ' + EDITING_NUM + ' — title, body, and lessons — with whatever is in the bundled seed right now. This cannot be undone.')) return;
+
+    const btn = document.getElementById('reset-from-seed-btn');
+    btn.disabled = true;
+    btn.textContent = 'Resetting…';
+
+    db.collection('chapters').doc(EDITING_NUM).set(seedChapter)
+      .then(() => loadChapters(true))
+      .then(() => {
+        loadChapterIntoForm(seedChapter);
+        document.getElementById('editor-success').textContent = 'Reset to the latest bundled version.';
+        document.getElementById('editor-success').style.display = 'block';
+      })
+      .catch((err) => alert('Could not reset: ' + (err.message || err)))
+      .finally(() => { btn.disabled = false; btn.textContent = 'Reset from bundled content'; });
+  });
+
   document.getElementById('delete-chapter-btn').addEventListener('click', () => {
     if (!EDITING_NUM) return;
     if (!confirm('Delete Chapter ' + EDITING_NUM + '? This removes it from the live curriculum immediately. This cannot be undone.')) return;

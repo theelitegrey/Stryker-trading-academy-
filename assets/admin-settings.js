@@ -79,6 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('settings').doc('site').get().then((doc) => {
       document.getElementById('maintenance-toggle').checked = !!(doc.exists && doc.data().maintenanceMode);
     }).catch((err) => console.error('Stryker: failed to load maintenance status', err));
+
+    // Homepage "traders enrolled" stat — admin-adjustable baseline
+    db.collection('publicStats').doc('enrollment').get().then((doc) => {
+      document.getElementById('enrollcount-input').value = doc.exists ? (doc.data().count || 0) : 0;
+    }).catch((err) => console.error('Stryker: failed to load enrolled count', err));
   });
 
   document.getElementById('settings-save-name').addEventListener('click', () => {
@@ -123,6 +128,26 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch((err) => {
         document.getElementById('maintenance-error').textContent = err.message || 'Could not save.';
         document.getElementById('maintenance-error').style.display = 'block';
+      })
+      .finally(() => { btn.disabled = false; });
+  });
+
+  document.getElementById('enrollcount-save-btn').addEventListener('click', () => {
+    const btn = document.getElementById('enrollcount-save-btn');
+    const errEl = document.getElementById('enrollcount-error');
+    errEl.style.display = 'none';
+    const count = parseInt(document.getElementById('enrollcount-input').value, 10);
+    if (isNaN(count) || count < 0) {
+      errEl.textContent = 'Enter a whole number of 0 or more.';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled = true;
+    db.collection('publicStats').doc('enrollment').set({ count: count }, { merge: true })
+      .then(() => showAdminSettingsMsg('enrollcount-success', 'Saved — the homepage will show ' + count.toLocaleString() + ' from now on.'))
+      .catch((err) => {
+        errEl.textContent = err.message || 'Could not save.';
+        errEl.style.display = 'block';
       })
       .finally(() => { btn.disabled = false; });
   });

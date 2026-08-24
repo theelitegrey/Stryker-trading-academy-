@@ -50,6 +50,12 @@ function ensureStudentDoc(user){
         if (typeof processPendingReferralForNewStudent === 'function') {
           processPendingReferralForNewStudent(user.uid, data.displayName, data.email);
         }
+        // Non-blocking: bump the public "traders enrolled" counter shown on
+        // the homepage. This is a separate count-only doc, not a query
+        // against the students collection itself — see main.js for why.
+        db.collection('publicStats').doc('enrollment')
+          .set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true })
+          .catch((err) => console.error('Stryker: failed to update enrolled count', err));
       }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
     }
 

@@ -18,6 +18,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Real enrolled-student count (index.html hero stat). Reads a single
+  // count-only public doc (publicStats/enrollment) rather than querying the
+  // students collection directly — a broad count() aggregation over
+  // students would require a Firestore rule that also permits reading every
+  // student's actual data in full, which isn't an acceptable tradeoff for a
+  // homepage stat. See progress.js for where this doc gets incremented.
+  const enrolledStatEl = document.getElementById('hero-enrolled-count');
+  if (enrolledStatEl && typeof db !== 'undefined' && db) {
+    db.collection('publicStats').doc('enrollment').get()
+      .then((doc) => { if (doc.exists) enrolledStatEl.textContent = (doc.data().count || 0).toLocaleString(); })
+      .catch((err) => { console.error('Stryker: failed to load enrolled count', err); });
+  }
+
   // Mobile nav toggle (marketing pages: index.html, courses.html)
   const navToggle = document.querySelector('.nav-toggle');
   const navLinks = document.querySelector('.nav-links');

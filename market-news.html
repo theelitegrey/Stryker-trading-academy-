@@ -126,7 +126,95 @@
 
     <div class="notice">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Live data, provided by TradingView.</b> The ticker, calendar, and news below are real and update on their own — nothing here is written or maintained by Stryker. High-impact ("red folder") events are colour-coded directly by TradingView's calendar.</p>
+      <p><b>Live data, provided by TradingView.</b> The ticker, charts, calendar, and news below are real and update on their own — nothing here is written or maintained by Stryker. High-impact ("red folder") events are colour-coded directly by TradingView's calendar. Killzone windows below are the commonly-referenced ICT session times — different educators sometimes draw the boundaries a few minutes differently.</p>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="panel" style="padding:0;">
+          <div class="panel-head" style="padding:20px 20px 0;"><h2>Today's trading sessions</h2></div>
+          <div id="killzone-widget"><p style="color:var(--ink-3); font-size:13.5px; padding:20px;">Loading…</p></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel">
+          <div class="panel-head"><h2>Forex strength</h2></div>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js" async>
+            {
+            "width": "100%",
+            "height": "400",
+            "currencies": ["EUR", "USD", "JPY", "GBP", "AUD", "CAD", "CHF", "NZD"],
+            "isTransparent": true,
+            "colorTheme": "dark",
+            "locale": "en"
+            }
+            </script>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Core instruments</h2></div>
+      <div class="mini-chart-grid">
+        <div class="mini-chart-card">
+          <h4>XAUUSD — Gold</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "TVC:GOLD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+        <div class="mini-chart-card">
+          <h4>EUR/USD</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "FX_IDC:EURUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+        <div class="mini-chart-card">
+          <h4>GBP/USD</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "FX_IDC:GBPUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+        <div class="mini-chart-card">
+          <h4>NAS100 — Nasdaq</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "FOREXCOM:NSXUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+        <div class="mini-chart-card">
+          <h4>US30 — Dow Jones</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "FOREXCOM:DJI", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+        <div class="mini-chart-card">
+          <h4>BTC/USD — Bitcoin</h4>
+          <div class="tradingview-widget-container">
+            <div class="tradingview-widget-container__widget"></div>
+            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
+            { "symbol": "BITSTAMP:BTCUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
+            </script>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="two-col">
@@ -182,5 +270,6 @@
 <script src="assets/maintenance-check.js?v=6"></script>
 <script src="assets/branding.js?v=6"></script>
 <script src="assets/dash-nav.js?v=6"></script>
+<script src="assets/killzones.js?v=6"></script>
 </body>
 </html>

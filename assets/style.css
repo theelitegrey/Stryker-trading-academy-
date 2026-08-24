@@ -280,6 +280,49 @@ section{ padding:96px 0; }
 /* ==========================================================================
    PROOF MARQUEE — auto-scrolling payout proof carousel (homepage)
    ========================================================================== */
+/* ==========================================================================
+   MARKET NEWS — killzone tracker, mini-chart grid
+   ========================================================================== */
+.killzone-clock{ text-align:center; padding:20px 20px 24px; border-bottom:1px solid var(--line-soft); margin-bottom:4px; }
+.killzone-clock-time{ display:block; font-family:var(--font-mono); font-size:32px; color:var(--ink-0); letter-spacing:-0.02em; }
+.killzone-clock-label{ display:block; font-size:12px; color:var(--ink-3); margin-top:6px; }
+.killzone-rows{ padding:6px 20px 20px; }
+.killzone-row{
+  display:flex; align-items:center; gap:14px; padding:14px 4px; border-bottom:1px solid var(--line-soft);
+}
+.killzone-row:last-child{ border-bottom:none; }
+.killzone-dot{
+  width:10px; height:10px; border-radius:50%; background:var(--line); flex-shrink:0;
+}
+.killzone-row.active .killzone-dot{
+  background:var(--bull);
+  box-shadow:0 0 0 4px rgba(3,201,136,0.18);
+  animation:killzone-pulse 2s ease-in-out infinite;
+}
+@keyframes killzone-pulse{
+  0%, 100%{ box-shadow:0 0 0 4px rgba(3,201,136,0.18); }
+  50%{ box-shadow:0 0 0 7px rgba(3,201,136,0.08); }
+}
+.killzone-info{ display:flex; flex-direction:column; flex:1; }
+.killzone-name{ font-size:14px; font-weight:600; color:var(--ink-0); }
+.killzone-range{ font-size:12px; color:var(--ink-3); font-family:var(--font-mono); margin-top:2px; }
+.killzone-status{
+  font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:20px;
+  color:var(--ink-3); border:1px solid var(--line); flex-shrink:0;
+}
+.killzone-row.active .killzone-status{ color:var(--bull); border-color:rgba(3,201,136,0.3); background:rgba(3,201,136,0.08); }
+
+.mini-chart-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+@media (max-width:900px){ .mini-chart-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .mini-chart-grid{ grid-template-columns:1fr; } }
+.mini-chart-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md);
+  overflow:hidden; padding:14px 14px 4px;
+}
+.mini-chart-card h4{
+  font-size:13px; font-weight:600; color:var(--ink-0); margin-bottom:2px; font-family:var(--font-mono);
+}
+
 .proof-section{
   padding:72px 0 80px;
   border-top:1px solid var(--line-soft);

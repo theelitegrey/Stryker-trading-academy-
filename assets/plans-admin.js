@@ -14,7 +14,10 @@ function renderPlanCard(plan){
   const featuresHtml = (plan.features || []).map(f =>
     '<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
+  const color = plan.color || '#8b93a0';
+  const rankBadge = '<span style="display:inline-block; margin-bottom:8px; padding:2px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; background:' + color + '1a; border:1px solid ' + color + '55;">' + (plan.name || 'role') + ' \u00b7 rank ' + (plan.rank ?? 0) + '</span>';
   el.innerHTML =
+    rankBadge +
     '<h3>' + (plan.name || 'Untitled plan') + '</h3>' +
     '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>' +
     '<ul>' + featuresHtml + '</ul>' +
@@ -51,11 +54,23 @@ function openPlanEditor(plan){
   document.getElementById('plan-price').value = plan ? (plan.price || '') : '';
   document.getElementById('plan-period').value = plan ? (plan.period || '') : 'month';
   document.getElementById('plan-chapters').value = plan ? (plan.chapterAccess || '') : 'all';
+  document.getElementById('plan-rank').value = String(plan && plan.rank != null ? plan.rank : 0);
+  document.getElementById('plan-color').value = (plan && plan.color) || '#00adb5';
   document.getElementById('plan-featured').checked = !!(plan && plan.featured);
   document.getElementById('plan-features').value = plan ? (plan.features || []).join('\n') : '';
   document.getElementById('delete-plan-btn').style.display = plan ? 'inline-flex' : 'none';
   document.getElementById('plan-edit-panel').style.display = 'block';
   document.getElementById('plan-edit-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  updatePlanColorPreview();
+}
+
+function updatePlanColorPreview(){
+  const color = document.getElementById('plan-color').value;
+  const name = document.getElementById('plan-name').value.trim() || 'ROLE';
+  const preview = document.getElementById('plan-color-preview');
+  if (!preview) return;
+  preview.innerHTML =
+    '<span style="display:inline-block; padding:2px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; background:' + color + '1a; border:1px solid ' + color + '55;">' + name + '</span>';
 }
 
 function closePlanEditor(){
@@ -74,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('add-plan-btn').addEventListener('click', () => openPlanEditor(null));
   document.getElementById('cancel-plan-btn').addEventListener('click', closePlanEditor);
+  document.getElementById('plan-color').addEventListener('input', updatePlanColorPreview);
+  document.getElementById('plan-name').addEventListener('input', updatePlanColorPreview);
 
   document.getElementById('save-plan-btn').addEventListener('click', () => {
     const errEl = document.getElementById('plans-error');
@@ -87,6 +104,8 @@ document.addEventListener('DOMContentLoaded', () => {
       price: document.getElementById('plan-price').value.trim() || '0',
       period: document.getElementById('plan-period').value.trim() || 'month',
       chapterAccess: document.getElementById('plan-chapters').value.trim() || 'all',
+      rank: parseInt(document.getElementById('plan-rank').value, 10) || 0,
+      color: document.getElementById('plan-color').value || '#00adb5',
       featured: document.getElementById('plan-featured').checked,
       features: document.getElementById('plan-features').value.split('\n').map(f => f.trim()).filter(Boolean),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()

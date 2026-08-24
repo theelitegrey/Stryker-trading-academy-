@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Billing & Plans — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=56">
+<link rel="stylesheet" href="assets/style.css?v=57">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -66,6 +66,10 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
         Plans
       </a>
+      <a href="access-admin.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Roles &amp; access
+      </a>
       <a href="coupons-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/><path d="M9 9v.01M9 15v.01M15 9v6"/></svg>
         Coupons
@@ -126,6 +130,25 @@
         <div class="field"><label for="plan-period">Billing period label</label><input type="text" id="plan-period" placeholder="e.g. month, forever, one-time"></div>
         <div class="field"><label for="plan-chapters">Chapter access</label><input type="text" id="plan-chapters" placeholder="e.g. 7, all, 1-7"></div>
       </div>
+      <div class="form-row-2">
+        <div class="field">
+          <label for="plan-rank">Role rank <span style="color:var(--ink-3); font-weight:400;">(higher = more access)</span></label>
+          <select id="plan-rank">
+            <option value="0">0 — lowest tier</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4 — highest tier</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="plan-color">Role tag color</label>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <input type="color" id="plan-color" value="#00adb5" style="width:44px; height:36px; padding:2px; border-radius:8px; border:1px solid var(--line); background:transparent; cursor:pointer;">
+            <span id="plan-color-preview" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-2);">This is how the tag will look</span>
+          </div>
+        </div>
+      </div>
       <div class="field">
         <label><input type="checkbox" id="plan-featured"> Show as "Most chosen" (highlighted card)</label>
       </div>
@@ -148,12 +171,13 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=56"></script>
-<script src="assets/progress.js?v=56"></script>
-<script src="assets/branding.js?v=56"></script>
-<script src="assets/admin-guard.js?v=56"></script>
-<script src="assets/dash-nav.js?v=56"></script>
-<script src="assets/plans-admin.js?v=56"></script>
+<script src="assets/auth.js?v=57"></script>
+<script src="assets/progress.js?v=57"></script>
+<script src="assets/roles.js?v=57"></script>
+<script src="assets/branding.js?v=57"></script>
+<script src="assets/admin-guard.js?v=57"></script>
+<script src="assets/dash-nav.js?v=57"></script>
+<script src="assets/plans-admin.js?v=57"></script>
 
 </body>
 </html>

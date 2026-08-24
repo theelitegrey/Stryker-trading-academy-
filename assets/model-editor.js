@@ -73,6 +73,7 @@ function loadModelIntoForm(m){
   document.getElementById('ed-category').value = m.category || '';
   document.getElementById('ed-summary').value = m.summary || '';
   document.getElementById('ed-video').value = m.video || '';
+  document.getElementById('ed-min-role').value = m.minRole || '';
 
   const bodyEl = document.getElementById('ed-body');
   bodyEl.innerHTML = m.bodyHtml || '';
@@ -103,6 +104,7 @@ function collectFormData(){
     category: document.getElementById('ed-category').value.trim(),
     summary: document.getElementById('ed-summary').value.trim(),
     video: document.getElementById('ed-video').value.trim(),
+    minRole: document.getElementById('ed-min-role').value || null,
     bodyHtml: bodyHtml,
     paragraphs: htmlToParagraphs(bodyHtml),
     steps: steps.length ? steps : [{ title: '', desc: '', descHtml: '' }]
@@ -195,14 +197,22 @@ document.addEventListener('DOMContentLoaded', () => {
   initRichTextToolbar();
 
   guardAdminPage(() => {
-    loadModels().then(() => {
+    Promise.all([loadModels(), loadPlansForRoles()]).then(([, plans]) => {
+      const roleSelect = document.getElementById('ed-min-role');
+      plans.forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name + ' (rank ' + (p.rank ?? 0) + ')';
+        roleSelect.appendChild(opt);
+      });
+
       const modelId = getQueryParam('id');
       const isNew = getQueryParam('new') === '1';
       IS_NEW_MODEL = isNew;
 
       let m;
       if (isNew) {
-        m = { id: '', name: '', category: '', summary: '', video: '', bodyHtml: '', steps: [{ title: '', desc: '' }] };
+        m = { id: '', name: '', category: '', summary: '', video: '', minRole: null, bodyHtml: '', steps: [{ title: '', desc: '' }] };
       } else {
         m = MODELS.find(x => x.id === modelId);
         if (!m) {

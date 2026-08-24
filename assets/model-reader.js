@@ -13,6 +13,39 @@ function showModelGuestBanner(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+function setModelPaywallMessage(reason, requiredRoleName){
+  const heading = document.getElementById('paywall-heading');
+  const body = document.getElementById('paywall-body');
+  const actions = document.getElementById('paywall-actions');
+  if (!heading || !body || !actions) return;
+  if (reason === 'role') {
+    heading.textContent = 'Upgrade to unlock this model';
+    body.textContent = 'This model requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
+    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
+  } else {
+    heading.textContent = 'Sign in to keep reading';
+    body.textContent = "Create a free account or log in to read this model's full write-up.";
+    actions.innerHTML = '<a href="login.html" class="btn btn-primary">Log in</a><a href="signup.html" class="btn btn-ghost">Create free account</a>';
+  }
+}
+
+function checkModelRoleAccess(m, uid){
+  if (!m.minRole) return Promise.resolve(true);
+  if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true);
+
+  return db.collection('admins').doc(uid).get().then((adminDoc) => {
+    if (adminDoc.exists) return true;
+    return db.collection('students').doc(uid).get().then((studentDoc) => {
+      const plan = studentDoc.exists ? studentDoc.data().plan : null;
+      if (typeof loadPlansForRoles !== 'function') return true;
+      return loadPlansForRoles().then(() => hasRoleAccess(plan, m.minRole));
+    });
+  }).catch((err) => {
+    console.error('Stryker: model role check failed', err);
+    return true;
+  });
+}
+
 function buildModelTOC(activeId){
   const toc = document.getElementById('model-toc-list');
   if (!toc) return;
@@ -84,7 +117,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     renderModel(m);
 
-    if (!auth) { showModelGuestBanner(true); return; }
-    auth.onAuthStateChanged((user) => { showModelGuestBanner(!user); });
+    if (!auth) { setModelPaywallMessage('signin'); showModelGuestBanner(true); return; }
+    auth.onAuthStateChanged((user) => {
+      if (!user) {
+        setModelPaywallMessage('signin');
+        showModelGuestBanner(true);
+        return;
+      }
+      showModelGuestBanner(false);
+      checkModelRoleAccess(m, user.uid).then((allowed) => {
+        if (!allowed) {
+          const requiredName = (typeof labelOf === 'function') ? labelOf(m.minRole) : null;
+          setModelPaywallMessage('role', requiredName);
+          showModelGuestBanner(true);
+        }
+      });
+    });
   });
 });

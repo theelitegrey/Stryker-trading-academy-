@@ -82,6 +82,7 @@ function loadChapterIntoForm(ch){
   document.getElementById('ed-level').value = ch.level || 'foundation';
   document.getElementById('ed-dur').value = ch.dur || '';
   document.getElementById('ed-video').value = ch.video || '';
+  document.getElementById('ed-min-role').value = ch.minRole || '';
 
   const bodyEl = document.getElementById('ed-body');
   bodyEl.innerHTML = ch.bodyHtml || paragraphsToHtml(ch.paragraphs || ['']);
@@ -111,6 +112,7 @@ function collectFormData(){
     level: document.getElementById('ed-level').value,
     dur: document.getElementById('ed-dur').value.trim(),
     video: document.getElementById('ed-video').value.trim(),
+    minRole: document.getElementById('ed-min-role').value || null,
     bodyHtml: bodyHtml,
     paragraphs: htmlToParagraphs(bodyHtml),
     lessons: lessons.length ? lessons : [{ title: '', desc: '', descHtml: '' }]
@@ -210,7 +212,15 @@ document.addEventListener('DOMContentLoaded', () => {
   initRichTextToolbar();
 
   guardAdminPage(() => {
-    loadChapters().then(() => {
+    Promise.all([loadChapters(), loadPlansForRoles()]).then(([, plans]) => {
+      const roleSelect = document.getElementById('ed-min-role');
+      plans.forEach((p) => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name + ' (rank ' + (p.rank ?? 0) + ')';
+        roleSelect.appendChild(opt);
+      });
+
       const chNum = getQueryParam('ch');
       const isNew = getQueryParam('new') === '1';
       IS_NEW_CHAPTER = isNew;
@@ -219,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isNew) {
         const nums = CHAPTERS.map(c => parseInt(c.num, 10)).filter(n => !isNaN(n));
         const nextNum = String((nums.length ? Math.max(...nums) : 0) + 1).padStart(2, '0');
-        ch = { num: nextNum, title: '', level: 'foundation', dur: '', video: '', bodyHtml: '', lessons: [{ title: '', desc: '' }] };
+        ch = { num: nextNum, title: '', level: 'foundation', dur: '', video: '', minRole: null, bodyHtml: '', lessons: [{ title: '', desc: '' }] };
       } else {
         ch = CHAPTERS.find(c => c.num === chNum);
         if (!ch) {

@@ -52,6 +52,45 @@ function showGuestBanner(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+// Two distinct lock reasons share the same overlay markup: not signed in
+// at all ("signin"), or signed in but the chapter's minRole exceeds the
+// student's current plan ("role"). The wording and buttons differ.
+function setPaywallMessage(reason, requiredRoleName){
+  const heading = document.getElementById('paywall-heading');
+  const body = document.getElementById('paywall-body');
+  const actions = document.getElementById('paywall-actions');
+  if (!heading || !body || !actions) return;
+  if (reason === 'role') {
+    heading.textContent = 'Upgrade to unlock this chapter';
+    body.textContent = 'This chapter requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
+    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
+  } else {
+    heading.textContent = 'Sign in to keep reading';
+    body.textContent = 'Create a free account or log in to read this chapter and save your progress across devices.';
+    actions.innerHTML = '<a href="login.html" class="btn btn-primary">Log in</a><a href="signup.html" class="btn btn-ghost">Create free account</a>';
+  }
+}
+
+// Checks the current chapter's minRole against the signed-in student's
+// plan. Admins and unrestricted chapters always pass. Returns a promise
+// resolving true/false so callers can decide whether to keep rendering.
+function checkChapterRoleAccess(ch, uid){
+  if (!ch.minRole) return Promise.resolve(true);
+  if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true); // guest banner handles the no-auth case separately
+
+  return db.collection('admins').doc(uid).get().then((adminDoc) => {
+    if (adminDoc.exists) return true;
+    return db.collection('students').doc(uid).get().then((studentDoc) => {
+      const plan = studentDoc.exists ? studentDoc.data().plan : null;
+      if (typeof loadPlansForRoles !== 'function') return true;
+      return loadPlansForRoles().then(() => hasRoleAccess(plan, ch.minRole));
+    });
+  }).catch((err) => {
+    console.error('Stryker: chapter role check failed', err);
+    return true; // fail open rather than lock students out on a transient error
+  });
+}
+
 function buildTOC(activeIndex){
   const toc = document.getElementById('reader-toc-list');
   if (!toc) return;
@@ -255,6 +294,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!auth) {
       // Firebase failed to init — chapter still works fully in local/guest
       // mode (progress just saves to this device only).
+      setPaywallMessage('signin');
       showGuestBanner(true);
       return;
     }
@@ -267,11 +307,25 @@ document.addEventListener('DOMContentLoaded', () => {
           completedLessonsSet = new Set((student && student.completedLessons) || []);
           completedChaptersSet = new Set((student && student.completedChapters) || []);
           renderReader();
+          applyChapterRoleGate(user.uid);
         }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
       } else {
         CURRENT_UID = null;
+        setPaywallMessage('signin');
         showGuestBanner(true);
       }
     });
   });
 });
+
+function applyChapterRoleGate(uid){
+  const ch = CHAPTERS[CURRENT_INDEX];
+  if (!ch) return;
+  checkChapterRoleAccess(ch, uid).then((allowed) => {
+    if (!allowed) {
+      const requiredName = (typeof labelOf === 'function') ? labelOf(ch.minRole) : null;
+      setPaywallMessage('role', requiredName);
+      showGuestBanner(true);
+    }
+  });
+}

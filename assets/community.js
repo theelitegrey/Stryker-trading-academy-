@@ -15,6 +15,7 @@
 
 let FLOOR_UID = null;
 let FLOOR_NAME = 'Trader';
+let FLOOR_PLAN = null; // the current user's plan name, stamped onto posts/replies they create so the role tag can render without an extra lookup per post
 let ALL_POSTS = [];
 let CURRENT_SORT = 'new';
 let ACTIVE_TAG = null;
@@ -186,10 +187,11 @@ function renderPostCard(post){
 
   const el = document.createElement('div');
   el.className = 'floor-post';
+  const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan, { size: 'small' }) : '';
   el.innerHTML =
     '<div class="floor-post-head">' +
       '<div class="floor-avatar">' + initials(post.authorName) + '</div>' +
-      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + '</div>' +
+      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + '</div></div>' +
       (post.authorUid === FLOOR_UID ? '<button type="button" class="icon-btn" style="margin-left:auto;" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' : '') +
     '</div>' +
@@ -307,10 +309,11 @@ function toggleReplies(post, cardEl){
         const rDate = r.createdAt && r.createdAt.toDate ? r.createdAt.toDate() : null;
         const rEl = document.createElement('div');
         rEl.className = 'floor-reply';
+        const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan, { size: 'small' }) : '';
         rEl.innerHTML =
           '<div class="floor-avatar">' + initials(r.authorName) + '</div>' +
           '<div class="floor-reply-body">' +
-            '<div class="floor-reply-head"><span class="floor-reply-name">' + escapeHtml(r.authorName || 'Trader') + '</span>' +
+            '<div class="floor-reply-head"><span class="floor-reply-name">' + escapeHtml(r.authorName || 'Trader') + replyRoleTag + '</span>' +
             '<span class="floor-reply-time">' + timeAgo(rDate) + '</span></div>' +
             '<div class="floor-reply-text">' + escapeHtml(r.text) + '</div>' +
           '</div>';
@@ -326,7 +329,7 @@ function sendReply(post, inputEl, cardEl){
   inputEl.disabled = true;
 
   db.collection('communityPosts').doc(post.id).collection('replies').add({
-    authorUid: FLOOR_UID, authorName: FLOOR_NAME, text,
+    authorUid: FLOOR_UID, authorName: FLOOR_NAME, authorPlan: FLOOR_PLAN, text,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   })
     .then(() => db.collection('communityPosts').doc(post.id).update({ replyCount: firebase.firestore.FieldValue.increment(1) }))
@@ -377,7 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
     handled = true;
     FLOOR_UID = user.uid;
     FLOOR_NAME = user.displayName || (user.email ? user.email.split('@')[0] : 'Trader');
-    loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
+    const planLookup = (typeof db !== 'undefined' && db)
+      ? db.collection('students').doc(user.uid).get().then((doc) => { FLOOR_PLAN = doc.exists ? (doc.data().plan || null) : null; }).catch(() => {})
+      : Promise.resolve();
+    const rolesLookup = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+    Promise.all([planLookup, rolesLookup]).then(() => {
+      loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
+    });
   });
 
   document.querySelectorAll('#floor-filter-tabs .level-tab').forEach((btn) => {
@@ -427,6 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('communityPosts').add({
       authorUid: FLOOR_UID,
       authorName: FLOOR_NAME,
+      authorPlan: FLOOR_PLAN,
       textHtml: linkifyTags(rawHtml),
       imageDataUrl: PENDING_IMAGE_DATA_URL || null,
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,

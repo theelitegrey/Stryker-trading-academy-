@@ -28,10 +28,11 @@ function renderStudentsTable(students){
       ? s.createdAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
     const isAdminUser = CURRENT_ADMIN_UIDS.has(s.uid);
+    const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small' }) : '';
     const card = document.createElement('div');
     card.className = 'record-card';
     card.innerHTML =
-      '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+      '<div class="cell-user"><div class="cell-avatar"></div><div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
         '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + (s.plan || 'Self-Paced') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Chapters</span><span class="rs-val">' + (s.completedChapters ? s.completedChapters.length : 0) + ' / 42</span></div>' +
@@ -77,7 +78,8 @@ function renderStudentsTable(students){
 function loadStudents(){
   Promise.all([
     db.collection('students').get(),
-    loadAdminList()
+    loadAdminList(),
+    (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()
   ])
     .then(([snap]) => {
       ALL_STUDENTS = [];

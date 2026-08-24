@@ -220,15 +220,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const displayName = user.displayName || (user.email ? user.email.split('@')[0] : 'Trader');
     const firstName = displayName.split(' ')[0];
 
-    document.querySelectorAll('.user-chip').forEach(chip => {
-      const nameEl = chip.querySelector('.chip-name');
-      const roleEl = chip.querySelector('.chip-role');
-      if (nameEl) nameEl.textContent = displayName;
-      if (roleEl) roleEl.textContent = user.email || '';
-    });
+    function applyChipName(roleTag){
+      document.querySelectorAll('.user-chip').forEach(chip => {
+        const nameEl = chip.querySelector('.chip-name');
+        const roleEl = chip.querySelector('.chip-role');
+        if (nameEl) nameEl.innerHTML = escapeChipText(displayName) + (roleTag || '');
+        if (roleEl) roleEl.textContent = user.email || '';
+      });
+    }
+
+    applyChipName(''); // set the name immediately; the role tag arrives async below
+
+    if (typeof db !== 'undefined' && db && typeof roleTagHtml === 'function' && typeof loadPlansForRoles === 'function') {
+      Promise.all([
+        db.collection('students').doc(user.uid).get().catch(() => null),
+        loadPlansForRoles()
+      ]).then(([studentDoc]) => {
+        const plan = studentDoc && studentDoc.exists ? studentDoc.data().plan : null;
+        if (plan) applyChipName(roleTagHtml(plan, { size: 'small' }));
+      }).catch(() => {});
+    }
 
     const welcomeName = document.getElementById('dash-first-name');
     if (welcomeName) welcomeName.textContent = firstName;
   });
 
 });
+
+function escapeChipText(s){
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}

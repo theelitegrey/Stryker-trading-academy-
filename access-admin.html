@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Chapters & Content — Stryker Admin</title>
+<title>Roles &amp; Access — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css?v=57">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -46,7 +46,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Students
       </a>
-      <a href="chapters-admin.html" class="side-link active">
+      <a href="chapters-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Chapters &amp; content
       </a>
@@ -66,7 +66,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
         Plans
       </a>
-      <a href="access-admin.html" class="side-link">
+      <a href="access-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Roles &amp; access
       </a>
@@ -107,45 +107,35 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Chapters &amp; content</h1>
-        <p>Edit chapter content directly, and see real completion analytics across every student.</p>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" id="update-all-btn">Update all</button>
-        <button class="btn btn-primary" id="add-chapter-btn" onclick="window.location.href='chapter-editor.html?new=1'">+ Add new chapter</button>
+        <h1>Roles &amp; access</h1>
+        <p>Control which role (plan tier) is required to unlock each page, chapter, and trading model.</p>
       </div>
     </div>
 
-    <div class="auth-error" id="update-all-error"></div>
-    <div class="auth-error" id="update-all-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+    <div class="auth-error" id="access-error"></div>
+    <div class="auth-error" id="access-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
 
-    <div class="notice" id="import-notice" style="display:none;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Firestore's chapters collection is empty.</b> The site is currently falling back to the bundled curriculum text so nothing breaks, but you're not editing the live data yet. Import the bundled 42 chapters into Firestore once, and from then on this page is the real source of truth.<br>
-      <button class="btn btn-primary btn-sm" id="import-btn" style="margin-top:10px;">Import bundled chapters into Firestore</button></p>
-    </div>
-
-    <div class="stat-grid-3">
-      <div class="stat-card">
-        <div class="stat-val" id="chstat-total-students">—</div>
-        <div class="stat-label">Registered students</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="chstat-avg-completion">—</div>
-        <div class="stat-label">Avg. chapters completed per student</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="chstat-most-completed">—</div>
-        <div class="stat-label">Most-completed chapter</div>
-      </div>
+    <div class="notice" style="display:block;">
+      <p style="margin:0; color:var(--ink-2); font-size:13px;">Roles here are your existing <a href="billing-admin.html" style="color:var(--teal);">Plans</a> (Starter, Pro, Elite, or whatever you've named them) — set each plan's <b>rank</b> and <b>tag color</b> on the Plans page first. A page or item with no restriction set below is open to any signed-in student. Chapter-level and model-level access are set inside each chapter's / model's own editor.</p>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>All chapters</h2>
-        <span id="chapter-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+        <h2>Roles</h2>
+        <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">from your Plans, ordered by rank</span>
       </div>
-      <div id="chapter-editor-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div id="roles-summary-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Page access</h2>
+        <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">minimum role required to open each page</span>
+      </div>
+      <div id="page-access-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary btn-sm" id="save-page-access-btn">Save page access</button>
+      </div>
     </div>
   </main>
 </div>
@@ -155,12 +145,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js?v=57"></script>
 <script src="assets/progress.js?v=57"></script>
-<script src="assets/roles.js?v=57"></script>
 <script src="assets/branding.js?v=57"></script>
 <script src="assets/admin-guard.js?v=57"></script>
 <script src="assets/dash-nav.js?v=57"></script>
-<script src="assets/chapters-data.js?v=57"></script>
-<script src="assets/chapters-store.js?v=57"></script>
-<script src="assets/chapters-admin.js?v=57"></script>
+<script src="assets/roles.js?v=57"></script>
+<script src="assets/access-admin.js?v=57"></script>
 </body>
 </html>

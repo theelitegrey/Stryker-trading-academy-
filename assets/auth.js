@@ -18,11 +18,20 @@ try {
 
   // Explicitly use durable local persistence. Wrapped defensively — some
   // mobile browser configurations reject certain persistence types outright.
+  //
+  // LOCAL persistence needs IndexedDB. Private/incognito windows and browsers
+  // with site data blocked reject it, and when that happens sign-in still
+  // SUCCEEDS on this page — it just doesn't survive the navigation to the
+  // dashboard. That looks exactly like "login does nothing", so record the
+  // failure and say so on-page rather than only warning to a console that
+  // nobody on mobile can open.
   try {
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
+      window.__strykerPersistenceFailed = true;
       console.warn('Stryker: could not set LOCAL auth persistence', err);
     });
   } catch (err) {
+    window.__strykerPersistenceFailed = true;
     console.warn('Stryker: setPersistence threw synchronously', err);
   }
 } catch (err) {
@@ -88,6 +97,31 @@ function goToLoginPreservingReturn(){
   window.location.href = 'login.html';
 }
 
+// "Keep me logged in" was previously a checkbox with no id, no name and no
+// code reading it — purely decorative, while persistence was always LOCAL.
+// Now it actually chooses: LOCAL survives closing the browser, SESSION lasts
+// only for the tab. Applied immediately before sign-in, because Firebase
+// requires persistence to be set before the credential is exchanged.
+function applyChosenPersistence(){
+  if (!auth || typeof firebase === 'undefined') return Promise.resolve();
+  const box = document.getElementById('login-remember');
+  const wanted = (box && !box.checked)
+    ? firebase.auth.Auth.Persistence.SESSION
+    : firebase.auth.Auth.Persistence.LOCAL;
+  try {
+    return auth.setPersistence(wanted).catch((err) => {
+      // Don't block the login — an in-memory session still works for this
+      // page. The dashboard reports the dropped session if it doesn't stick.
+      window.__strykerPersistenceFailed = true;
+      console.warn('Stryker: could not apply chosen persistence', err);
+    });
+  } catch (err) {
+    window.__strykerPersistenceFailed = true;
+    console.warn('Stryker: setPersistence threw synchronously', err);
+    return Promise.resolve();
+  }
+}
+
 function routeAfterAuth(){
   // Small delay before navigating away: gives Firebase's persistence layer
   // a moment to actually finish writing the session to storage before a
@@ -115,6 +149,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (!auth) return; // Firebase failed to init — fallback error UI already shown above.
 
+  // If persistence was rejected, sign-in will appear to work and then silently
+  // fail to carry over to the dashboard. Warn BEFORE they try, on the page
+  // where they can still do something about it. The setPersistence promise is
+  // async, so check shortly after load rather than immediately.
+  const authBox = document.querySelector('.auth-box');
+  if (authBox) {
+    setTimeout(() => {
+      if (!window.__strykerPersistenceFailed) return;
+      if (document.getElementById('persistence-warning')) return;
+      const warn = document.createElement('div');
+      warn.id = 'persistence-warning';
+      warn.className = 'auth-error';
+      warn.style.display = 'block';
+      warn.textContent = "Your browser is blocking the storage this site needs to keep you signed in. Logging in may appear to work but then stall on the next page. If you're in a private/incognito window, try a normal window; otherwise allow site data for strykertrading.com.";
+      authBox.insertBefore(warn, authBox.firstChild);
+    }, 1200);
+  }
+
   // ---- Email/password login ----
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -126,7 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const btn = loginForm.querySelector('button[type="submit"]');
       const original = btn.textContent;
       btn.disabled = true; btn.textContent = 'Logging in…';
-      auth.signInWithEmailAndPassword(email, password)
+      applyChosenPersistence()
+        .then(() => auth.signInWithEmailAndPassword(email, password))
         .then(() => routeAfterAuth())
         .catch((err) => showAuthError('login-error', friendlyAuthError(err)))
         .finally(() => { btn.disabled = false; btn.textContent = original; });
@@ -187,7 +240,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const original = btn.innerHTML;
       btn.disabled = true;
 
-      auth.signInWithPopup(provider)
+      applyChosenPersistence()
+        .then(() => auth.signInWithPopup(provider))
         .then(() => routeAfterAuth())
         .catch((err) => {
           if (err && err.code === 'auth/popup-blocked') {

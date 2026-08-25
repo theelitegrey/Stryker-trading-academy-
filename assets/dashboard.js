@@ -156,6 +156,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // so a failed session-check is visible and debuggable rather than looking
 // like a mysterious bounce back to the login page.
 function showSessionNotice(title, detail, showLoginButton){
+  // The notice lives inside .dash-main, which is inside .dash-shell — and
+  // that shell starts with .gate-pending (visibility:hidden) behind the
+  // full-screen loading overlay. plan-guard.js deliberately never clears
+  // gate-pending when there's no signed-in user, so without this the notice
+  // renders completely invisibly and the page just shows a spinner forever.
+  // Anything that needs to be READ has to reveal the shell first.
+  const gateOverlay = document.getElementById('access-gate-overlay');
+  const shell = document.querySelector('.dash-shell');
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  if (shell) shell.classList.remove('gate-pending');
+
   let el = document.getElementById('session-notice');
   if (!el) {
     el = document.createElement('div');

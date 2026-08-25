@@ -645,7 +645,11 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
      whatever was left over. Applied site-wide, not just on the floor —
      scoping it to one page would make the sidebar visibly jump width every
      time you navigated in or out of it. */
-  .dash-shell{ grid-template-columns:25% minmax(0,1fr); }
+  /* minmax(0,25%) rather than a bare 25%: a grid track's default min-width is
+     auto, so the nav could grow past its share to fit its widest label and
+     push the whole row wider than the viewport — which is what was clipping
+     the right-hand column off the screen edge. */
+  .dash-shell{ grid-template-columns:minmax(0,25%) minmax(0,1fr); }
 }
 
 .sidebar{
@@ -1178,7 +1182,11 @@ tbody tr:hover{ background:var(--bg-3); }
      minmax(0,...) on both tracks because a grid item's default min-width is
      auto, so one wide chart image or long unbroken string would push the
      timeline past its share and squash the sidebar. */
-  .floor-layout-grid{ grid-template-columns:minmax(0,2fr) minmax(0,1fr); }
+  .floor-layout-grid{ grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:16px; }
+  /* Tighter side padding on this page only. The 34px default is the gutter
+     between the nav and the feed, and at three columns it read as wasted
+     space rather than breathing room. */
+  #floor-page-main{ padding-left:20px; padding-right:20px; }
   /* The inherited 1360px cap would stop the percentages taking effect at all
      on a wide monitor, pinning the layout well short of the viewport. */
   #floor-page-main{ max-width:none; }
@@ -1599,3 +1607,10 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
   .plan-modal{ padding:22px 16px; }
   .plan-modal-grid{ grid-template-columns:1fr; }
 }
+
+/* Desktop header utilities (bell + sign out relocated from .mobile-topnav) -- */
+.dash-topbar-actions{ display:flex; align-items:center; gap:8px; }
+@media (max-width:900px){ .dash-topbar-actions{ display:none; } }
+/* The notification panel hangs off the bell; anchored right so it opens
+   inward from the topbar rather than off the edge of the viewport. */
+.dash-topbar-actions .notif-panel{ right:0; left:auto; }

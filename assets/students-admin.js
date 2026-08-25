@@ -62,6 +62,7 @@ function renderStudentsTable(students){
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-toggle-moderator="' + s.uid + '">' + (isModeratorUser ? 'Revoke moderator' : 'Grant moderator') + '</button>' +
+        '<button class="btn btn-sm btn-ghost" data-delete-student="' + s.uid + '" style="color:var(--bear); border-color:rgba(229,72,77,0.35);">Delete user</button>' +
       '</div>';
 
     card.querySelector('.student-plan-select').addEventListener('change', (e) => {
@@ -123,8 +124,115 @@ function renderStudentsTable(students){
         });
     });
 
+    card.querySelector('[data-delete-student]').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+
+      if (s.uid === auth.currentUser.uid) {
+        alert("You can't delete your own account from here.");
+        return;
+      }
+      if (isAdminUser && CURRENT_ADMIN_UIDS.size <= 1) {
+        alert("That's the only admin account — deleting it would leave nobody able to manage the academy.");
+        return;
+      }
+      if (isAdminUser && !confirm(name + ' is an ADMIN. Deleting will remove their admin access too. Continue?')) return;
+
+      // Typed confirmation rather than a plain OK/Cancel: this is irreversible
+      // and wipes journal entries, posts and progress that cannot be restored.
+      const expected = (s.email || name || '').trim();
+      const typed = prompt(
+        'PERMANENTLY DELETE ' + name + '\n\n' +
+        'This erases their profile, progress, journal, posts, replies, invites and notifications. It cannot be undone.\n\n' +
+        'Type their email exactly to confirm:\n' + expected
+      );
+      if (typed === null) return;
+      if (typed.trim().toLowerCase() !== expected.toLowerCase()) {
+        alert("That didn't match — nothing was deleted.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Deleting…';
+      deleteStudentCompletely(s.uid, s.email, name)
+        .then((report) => {
+          alert(
+            'Deleted ' + name + '.\n\n' +
+            report.join('\n') +
+            '\n\nNote: their login itself still exists in Firebase Authentication and has to be removed there. ' +
+            'They are blocked from using the site in the meantime.'
+          );
+          return loadAdminList().then(() => loadModeratorList()).then(() => loadStudents());
+        })
+        .catch((err) => {
+          alert('Delete failed: ' + (err.message || err));
+          btn.disabled = false;
+          btn.textContent = 'Delete user';
+        });
+    });
+
     body.appendChild(card);
   });
+}
+
+// Removes every trace of a student from Firestore, then writes a tombstone
+// that locks them out.
+//
+// IMPORTANT LIMITATION: the browser SDK can only delete the account of the
+// user who is currently signed in. Removing SOMEONE ELSE's Firebase Auth
+// record requires the Admin SDK, i.e. a Cloud Function. So on its own,
+// wiping the data here would not stop the person signing back in — and
+// ensureStudentDoc() would cheerfully build them a brand-new student doc, so
+// the "deleted" user would reappear as a fresh account.
+//
+// The bannedUsers/{uid} tombstone closes that hole. It's enforced in the
+// security rules (a banned uid can't write anything), and banned-check.js
+// signs them out on sight. The auth record still needs deleting by hand in
+// the Firebase console, or via a Cloud Function later.
+function deleteStudentCompletely(uid, email, name){
+  const report = [];
+
+  // Deletes every doc a query returns, in batches. Firestore caps a batch at
+  // 500 writes.
+  function deleteQuery(query, label){
+    return query.get().then((snap) => {
+      if (snap.empty) return;
+      const docs = snap.docs;
+      const batches = [];
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = db.batch();
+        docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+        batches.push(batch.commit());
+      }
+      return Promise.all(batches).then(() => { report.push('• ' + docs.length + ' ' + label); });
+    }).catch((err) => {
+      console.error('Stryker: failed deleting ' + label, err);
+      report.push('• ' + label + ' — FAILED (' + (err.code || err.message) + ')');
+    });
+  }
+
+  // Block first. If anything later fails halfway, they're still locked out
+  // rather than left with a half-deleted but fully usable account.
+  return db.collection('bannedUsers').doc(uid).set({
+    email: email || null,
+    displayName: name || null,
+    deletedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    deletedBy: auth.currentUser ? auth.currentUser.uid : null
+  }).then(() => { report.push('• Account blocked from signing in'); })
+    .then(() => deleteQuery(db.collection('students').doc(uid).collection('journal'), 'journal entries'))
+    .then(() => deleteQuery(db.collection('students').doc(uid).collection('bookmarks'), 'bookmarks'))
+    .then(() => deleteQuery(db.collection('communityPosts').where('authorUid', '==', uid), 'trading floor posts'))
+    .then(() => deleteQuery(db.collection('notifications').where('recipientUid', '==', uid), 'notifications'))
+    .then(() => deleteQuery(db.collection('referralCodes').where('uid', '==', uid), 'invite codes'))
+    .then(() => deleteQuery(db.collection('referrals').where('referrerUid', '==', uid), 'invites they sent'))
+    .then(() => deleteQuery(db.collection('referrals').where('referredUid', '==', uid), 'invites that named them'))
+    .then(() => db.collection('admins').doc(uid).delete().catch(() => {}))
+    .then(() => db.collection('moderators').doc(uid).delete().catch(() => {}))
+    .then(() => db.collection('profiles').doc(uid).delete()
+      .then(() => { report.push('• Public profile'); })
+      .catch((err) => { report.push('• Public profile — FAILED (' + (err.code || err.message) + ')'); }))
+    .then(() => db.collection('students').doc(uid).delete()
+      .then(() => { report.push('• Student record'); }))
+    .then(() => report);
 }
 
 function loadStudents(){

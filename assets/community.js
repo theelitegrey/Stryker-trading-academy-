@@ -19,7 +19,10 @@ let FLOOR_PLAN = null; // the current user's plan name, stamped onto posts/repli
 let ALL_POSTS = [];
 let CURRENT_SORT = 'new';
 let ACTIVE_TAG = null;
+let CURRENT_CATEGORY = 'general'; // 'general' | 'propfirm' — which tab is showing
+let ACTIVE_FLAIR_FILTER = null;   // null | 'setup' | 'question'
 let PENDING_IMAGE_DATA_URL = null;
+let PENDING_FLAIR = null;         // null | 'setup' | 'question' — set from the composer's flair picker
 let BOOKMARKED_IDS = new Set();
 
 /* ---------------- helpers ---------------- */
@@ -130,6 +133,8 @@ function hotScore(post){
 
 function sortedPosts(){
   let list = ALL_POSTS.slice();
+  list = list.filter(p => (p.category || 'general') === CURRENT_CATEGORY);
+  if (ACTIVE_FLAIR_FILTER) list = list.filter(p => p.flair === ACTIVE_FLAIR_FILTER);
   if (ACTIVE_TAG) {
     const needle = ACTIVE_TAG.toLowerCase();
     list = list.filter(p => (p.textHtml || '').toLowerCase().includes(needle));
@@ -189,8 +194,11 @@ function renderFeed(){
 
   const feedEl = document.getElementById('floor-list');
   if (!list.length) {
-    feedEl.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">' +
-      (ACTIVE_TAG ? 'No posts match that tag.' : 'No posts yet — be the first to share something with the floor.') + '</p>';
+    let emptyMsg = 'No posts yet — be the first to share something with the floor.';
+    if (ACTIVE_TAG) emptyMsg = 'No posts match that tag.';
+    else if (ACTIVE_FLAIR_FILTER) emptyMsg = 'No ' + ACTIVE_FLAIR_FILTER + ' posts yet.';
+    else if (CURRENT_CATEGORY === 'propfirm') emptyMsg = 'No prop firm posts yet — be the first to share something here.';
+    feedEl.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">' + emptyMsg + '</p>';
     return;
   }
   prefetchAuthorData(list).then(() => {
@@ -209,13 +217,16 @@ function renderPostCard(post){
   const el = document.createElement('div');
   el.className = 'floor-post';
   const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || (AUTHOR_DATA_CACHE[post.authorUid] && AUTHOR_DATA_CACHE[post.authorUid].plan), { size: 'small' }) : '';
+  const flairBadge = post.flair
+    ? '<span class="floor-flair-badge ' + post.flair + '">' + (post.flair === 'setup' ? 'Setup' : 'Question') + '</span>'
+    : '';
   const avatarHtml = (typeof avatarImgHtml === 'function')
     ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36, true)
     : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
-      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + '</div>' +
+      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + flairBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + '</div></div>' +
       (post.authorUid === FLOOR_UID ? '<button type="button" class="icon-btn" style="margin-left:auto;" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' : '') +
     '</div>' +
@@ -472,12 +483,43 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  document.querySelectorAll('#floor-filter-tabs .level-tab').forEach((btn) => {
+  document.querySelectorAll('#floor-filter-tabs [data-sort]').forEach((btn) => {
     btn.addEventListener('click', () => {
-      document.querySelectorAll('#floor-filter-tabs .level-tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('#floor-filter-tabs [data-sort]').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       CURRENT_SORT = btn.dataset.sort;
       renderFeed();
+    });
+  });
+
+  // Flair filter pills toggle on/off — clicking the already-active one
+  // clears the filter, rather than requiring a separate "all" option.
+  document.querySelectorAll('#floor-filter-tabs [data-flair]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const isActive = btn.classList.contains('active');
+      document.querySelectorAll('#floor-filter-tabs [data-flair]').forEach(b => b.classList.remove('active'));
+      ACTIVE_FLAIR_FILTER = isActive ? null : btn.dataset.flair;
+      if (!isActive) btn.classList.add('active');
+      renderFeed();
+    });
+  });
+
+  document.querySelectorAll('#floor-category-tabs [data-category]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#floor-category-tabs [data-category]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      CURRENT_CATEGORY = btn.dataset.category;
+      renderFeed();
+    });
+  });
+
+  // Composer flair picker — same toggle-on/off behavior as the filter pills.
+  document.querySelectorAll('#floor-flair-picker [data-flair]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const isSelected = btn.classList.contains('selected');
+      document.querySelectorAll('#floor-flair-picker [data-flair]').forEach(b => b.classList.remove('selected'));
+      PENDING_FLAIR = isSelected ? null : btn.dataset.flair;
+      if (!isSelected) btn.classList.add('selected');
     });
   });
 
@@ -506,6 +548,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (composerOverlay) composerOverlay.style.display = 'flex';
     const editable = document.getElementById('floor-post-text');
     if (editable) editable.focus();
+    // Reset the flair picker every time the composer opens, rather than
+    // carrying over a selection from a previous post.
+    PENDING_FLAIR = null;
+    document.querySelectorAll('#floor-flair-picker [data-flair]').forEach(b => b.classList.remove('selected'));
+    const titleEl = document.getElementById('floor-composer-title');
+    if (titleEl) titleEl.textContent = CURRENT_CATEGORY === 'propfirm' ? 'New prop firm post' : 'New post';
+    if (editable) {
+      editable.setAttribute('data-placeholder', CURRENT_CATEGORY === 'propfirm'
+        ? 'A challenge you\'re running, a payout, a question about a firm\'s rules… Use @name to mention someone, #tag to label a topic.'
+        : 'Daily bias, a setup you\'re watching, a question… Use @name to mention someone, #tag to label a topic.');
+    }
   }
   function closeComposerModal(){
     if (composerOverlay) composerOverlay.style.display = 'none';
@@ -546,6 +599,8 @@ document.addEventListener('DOMContentLoaded', () => {
       authorPlan: FLOOR_PLAN,
       textHtml: linkifyTags(rawHtml),
       imageDataUrl: PENDING_IMAGE_DATA_URL || null,
+      category: CURRENT_CATEGORY,
+      flair: PENDING_FLAIR || null,
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {

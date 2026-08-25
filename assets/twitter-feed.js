@@ -11,7 +11,7 @@
 // TODO: replace with the real URL once the Cloud Function is deployed —
 // see twitter-feed-function/README.md step 5. Until this is filled in,
 // the panel shows its placeholder message and never attempts a fetch.
-const TWITTER_FEED_FUNCTION_URL = 'REPLACE_WITH_DEPLOYED_FUNCTION_URL';
+const TWITTER_FEED_FUNCTION_URL = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getTwitterFeed';
 
 function escapeTweetText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

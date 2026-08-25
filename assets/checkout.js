@@ -166,6 +166,9 @@ document.addEventListener('DOMContentLoaded', () => {
         planId: CHECKOUT_PLAN.id
       }, { merge: true }))
       .then(() => {
+        if (typeof syncPublicProfile === 'function') syncPublicProfile(CHECKOUT_UID, { plan: CHECKOUT_PLAN.name });
+      })
+      .then(() => {
         // Non-blocking: award the referrer's conversion bonus, if this
         // student was referred and hasn't already triggered one. A failure
         // here should never block the checkout flow itself.

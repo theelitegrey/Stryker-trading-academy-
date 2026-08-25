@@ -3,13 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Checkout — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css">
+<title>Profile — Stryker Trading Academy</title>
+<link rel="stylesheet" href="assets/style.css?v=86">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body>
 
 <div class="mobile-topnav">
-  <a href="dashboard-user.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
+  <a href="dashboard-user.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a>
   <div style="display:flex; gap:8px;">
     <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -23,8 +28,8 @@
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
-      <div class="brand-mark">S</div>
-      <div class="brand-name">STRYKER <span>ACADEMY</span></div>
+      <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
+      
     </a>
 
     <div class="side-section">
@@ -48,6 +53,10 @@
       <a href="live-sessions.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         Live sessions
+      </a>
+      <a href="market-news.html" class="side-link">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
+        Market news
       </a>
       <a href="achievements.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
@@ -94,55 +103,13 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Checkout</h1>
-        <p>Confirm your plan and apply a coupon to complete your order.</p>
+        <a href="trading-floor.html" style="font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">&larr; Back</a>
+        <h1>Profile</h1>
       </div>
     </div>
 
-    <div class="auth-error" id="checkout-error"></div>
-    <div class="auth-error" id="checkout-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
-
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Your plan</h2></div>
-          <div id="checkout-plan-summary"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Coupon code</h2></div>
-          <div class="notice" style="margin-bottom:18px;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            <p>There's no card payment yet — a valid coupon code is required to complete your order right now.</p>
-          </div>
-          <div class="form-row-2" style="align-items:flex-end;">
-            <div class="field" style="margin-bottom:0;"><label for="checkout-coupon-input">Coupon code</label><input type="text" id="checkout-coupon-input" placeholder="e.g. LAUNCH100" style="text-transform:uppercase;"></div>
-            <button class="btn btn-ghost btn-sm" id="checkout-apply-coupon-btn" style="height:44px;">Apply</button>
-          </div>
-          <div id="checkout-coupon-status" style="margin-top:12px; font-size:13.5px;"></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Were you invited?</h2></div>
-          <div class="field" style="margin-bottom:0;">
-            <label for="checkout-referral-input">Invite code <span style="color:var(--ink-3); font-weight:400;">(optional — credits whoever invited you)</span></label>
-            <input type="text" id="checkout-referral-input" placeholder="e.g. jordan4821">
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Order summary</h2></div>
-          <div class="mini-bar-row" style="margin-bottom:12px;"><span class="label" style="width:auto;">Plan price</span><span class="mini-bar-val" style="width:auto; color:var(--ink-0);" id="checkout-original-price">—</span></div>
-          <div class="mini-bar-row" style="margin-bottom:12px;"><span class="label" style="width:auto;">Coupon discount</span><span class="mini-bar-val" style="width:auto; color:var(--bull);" id="checkout-discount">—</span></div>
-          <div style="border-top:1px solid var(--line-soft); margin:14px 0; padding-top:14px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:600; color:var(--ink-0);">Total due today</span>
-            <span style="font-family:var(--font-mono); font-size:22px; color:var(--ink-0);" id="checkout-total">—</span>
-          </div>
-          <button class="btn btn-primary btn-block" id="checkout-complete-btn" disabled>Apply a coupon to continue</button>
-        </div>
-      </div>
+    <div id="profile-render-target">
+      <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
     </div>
   </main>
 </div>
@@ -158,9 +125,9 @@
 <script src="assets/avatars.js?v=86"></script>
 <script src="assets/referrals.js?v=86"></script>
 <script src="assets/roles.js?v=86"></script>
+<script src="assets/maintenance-check.js?v=86"></script>
 <script src="assets/branding.js?v=86"></script>
 <script src="assets/dash-nav.js?v=86"></script>
-<script src="assets/commerce.js?v=86"></script>
-<script src="assets/checkout.js?v=86"></script>
+<script src="assets/profile.js?v=86"></script>
 </body>
 </html>

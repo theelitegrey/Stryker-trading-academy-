@@ -64,6 +64,7 @@ function renderStudentsTable(students){
       const select = e.currentTarget;
       const newPlan = select.value || null;
       select.disabled = true;
+      if (typeof syncPublicProfile === 'function') syncPublicProfile(s.uid, { plan: newPlan });
       db.collection('students').doc(s.uid).set({ plan: newPlan }, { merge: true })
         .then(() => loadStudents())
         .catch((err) => {

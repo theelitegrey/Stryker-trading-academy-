@@ -43,7 +43,7 @@ function renderLeaderboard(list, myUid){
   list.forEach((entry, i) => {
     const isMe = entry.uid === myUid;
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
-    const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 32) : '';
+    const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 32, true) : '';
     const row = document.createElement('div');
     row.className = 'record-card';
     if (isMe) row.style.borderColor = 'var(--teal)';

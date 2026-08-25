@@ -56,6 +56,17 @@ function ensureStudentDoc(user){
         db.collection('publicStats').doc('enrollment')
           .set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true })
           .catch((err) => console.error('Stryker: failed to update enrolled count', err));
+        // Non-blocking: seed this student's public profile doc (see
+        // assets/profiles-sync.js for why this is a separate collection).
+        if (typeof syncPublicProfile === 'function') {
+          syncPublicProfile(user.uid, {
+            displayName: data.displayName,
+            photoURL: data.photoURL,
+            createdAt: data.createdAt,
+            currentStreak: data.currentStreak,
+            bestStreak: data.bestStreak
+          });
+        }
       }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
     }
 
@@ -78,7 +89,19 @@ function ensureStudentDoc(user){
       updates.lastActiveDate = today;
     }
 
-    return ref.set(updates, { merge: true }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
+    return ref.set(updates, { merge: true }).then(() => {
+      // Non-blocking: keep the public profile's copy of these specific
+      // fields current. Deliberately excludes `email` (never public) and
+      // doesn't touch avatarSeed/customPhotoURL/plan — those are synced by
+      // whichever file actually owns that change (settings.js, students-admin.js).
+      if (typeof syncPublicProfile === 'function') {
+        const profileUpdate = { displayName: updates.displayName };
+        if (updates.photoURL) profileUpdate.photoURL = updates.photoURL;
+        if (updates.currentStreak !== undefined) profileUpdate.currentStreak = updates.currentStreak;
+        if (updates.bestStreak !== undefined) profileUpdate.bestStreak = updates.bestStreak;
+        syncPublicProfile(user.uid, profileUpdate);
+      }
+    }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
   });
 }
 

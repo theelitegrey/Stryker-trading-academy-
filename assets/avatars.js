@@ -38,7 +38,11 @@ function resolveAvatarUrl(uid, studentData){
 // Returns a ready-to-insert <img> (or initials-div fallback) HTML string.
 // sizePx controls both dimensions; the initials fallback reuses the existing
 // .floor-avatar-style circle look so it matches whatever surface it's on.
-function avatarImgHtml(uid, name, studentData, sizePx){
+// linkToProfile: when true, wraps the avatar in a link to that user's public
+// profile page (profile.html?uid=...). Only pass this for avatars that
+// represent someone other than "you, editing your own settings" — e.g.
+// community posts, leaderboards — not for admin tooling or your own chip.
+function avatarImgHtml(uid, name, studentData, sizePx, linkToProfile){
   const size = sizePx || 36;
   const url = resolveAvatarUrl(uid, studentData);
   const escapedName = escapeAvatarText(name || 'Trader');
@@ -46,11 +50,15 @@ function avatarImgHtml(uid, name, studentData, sizePx){
   // onerror swaps a broken/blocked image for the same colored-initials
   // circle used site-wide before this feature, so a network hiccup never
   // shows a broken-image icon.
-  return (
+  const imgHtml = (
     '<img src="' + url + '" alt="' + escapedName + '" loading="lazy" ' +
     'style="width:' + size + 'px; height:' + size + 'px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg-3,#1b1f26);" ' +
     'onerror="this.outerHTML=\'<div class=&quot;floor-avatar&quot; style=&quot;width:' + size + 'px; height:' + size + 'px; font-size:' + Math.round(size * 0.36) + 'px;&quot;>' + initialsFallback + '</div>\'">'
   );
+  if (linkToProfile && uid) {
+    return '<a href="profile.html?uid=' + encodeURIComponent(uid) + '" style="display:inline-block; line-height:0;" title="View profile">' + imgHtml + '</a>';
+  }
+  return imgHtml;
 }
 
 function escapeAvatarText(s){

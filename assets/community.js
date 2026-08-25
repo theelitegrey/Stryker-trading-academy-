@@ -210,7 +210,7 @@ function renderPostCard(post){
   el.className = 'floor-post';
   const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || (AUTHOR_DATA_CACHE[post.authorUid] && AUTHOR_DATA_CACHE[post.authorUid].plan), { size: 'small' }) : '';
   const avatarHtml = (typeof avatarImgHtml === 'function')
-    ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36)
+    ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36, true)
     : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
   el.innerHTML =
     '<div class="floor-post-head">' +
@@ -339,7 +339,7 @@ function toggleReplies(post, cardEl){
         rEl.className = 'floor-reply';
         const replyRoleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(r.authorPlan || (AUTHOR_DATA_CACHE[r.authorUid] && AUTHOR_DATA_CACHE[r.authorUid].plan), { size: 'small' }) : '';
         const replyAvatarHtml = (typeof avatarImgHtml === 'function')
-          ? avatarImgHtml(r.authorUid, r.authorName, AUTHOR_DATA_CACHE[r.authorUid], 30)
+          ? avatarImgHtml(r.authorUid, r.authorName, AUTHOR_DATA_CACHE[r.authorUid], 30, true)
           : ('<div class="floor-avatar">' + initials(r.authorName) + '</div>');
         rEl.innerHTML =
           replyAvatarHtml +
@@ -501,7 +501,7 @@ function renderFloorLeaderboardWidget(myUid){
     list.forEach((entry, i) => {
       const isMe = entry.uid === myUid;
       const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
-      const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 22) : '';
+      const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 22, true) : '';
       const row = document.createElement('div');
       row.style.cssText = 'display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 0; border-bottom:1px solid var(--line-soft);';
       row.innerHTML =

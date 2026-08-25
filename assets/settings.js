@@ -57,7 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
     errEl.style.display = 'none'; okEl.style.display = 'none';
 
     resizeAvatarToDataUrl(file, 240)
-      .then((dataUrl) => db.collection('students').doc(currentUser.uid).set({ customPhotoURL: dataUrl }, { merge: true }))
+      .then((dataUrl) => {
+        if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid, { customPhotoURL: dataUrl });
+        return db.collection('students').doc(currentUser.uid).set({ customPhotoURL: dataUrl }, { merge: true });
+      })
       .then(() => getStudentDoc(currentUser.uid))
       .then((student) => {
         renderAvatarPreview(student);
@@ -78,9 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Clears any custom upload and rolls a fresh generated-avatar seed, so
     // repeated clicks actually produce visibly different results.
+    const newSeed = randomAvatarSeed();
+    if (typeof syncPublicProfile === 'function') {
+      syncPublicProfile(currentUser.uid, { customPhotoURL: firebase.firestore.FieldValue.delete(), avatarSeed: newSeed });
+    }
     db.collection('students').doc(currentUser.uid).set({
       customPhotoURL: firebase.firestore.FieldValue.delete(),
-      avatarSeed: randomAvatarSeed()
+      avatarSeed: newSeed
     }, { merge: true })
       .then(() => getStudentDoc(currentUser.uid))
       .then((student) => {
@@ -98,7 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const newName = document.getElementById('settings-name').value.trim();
     if (!newName) { showSettingsMsg('settings-error', 'Display name cannot be empty.'); return; }
     currentUser.updateProfile({ displayName: newName })
-      .then(() => db.collection('students').doc(currentUser.uid).set({ displayName: newName }, { merge: true }))
+      .then(() => {
+        if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid, { displayName: newName });
+        return db.collection('students').doc(currentUser.uid).set({ displayName: newName }, { merge: true });
+      })
       .then(() => showSettingsMsg('settings-success', 'Saved.'))
       .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not save changes.'));
   });

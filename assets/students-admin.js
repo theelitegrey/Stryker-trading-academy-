@@ -42,11 +42,12 @@ function renderStudentsTable(students){
       ? s.createdAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
     const isAdminUser = CURRENT_ADMIN_UIDS.has(s.uid);
+    const isModeratorUser = CURRENT_MODERATOR_UIDS.has(s.uid);
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small' }) : '';
     const card = document.createElement('div');
     card.className = 'record-card';
     card.innerHTML =
-      '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+      '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
         '<div class="record-stat"><span class="rs-label">Plan</span>' +
           '<select class="student-plan-select" data-uid="' + s.uid + '" style="font-family:var(--font-mono); font-size:12.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);">' +
@@ -58,7 +59,10 @@ function renderStudentsTable(students){
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + memberSince + '</span></div>' +
       '</div>' +
-      '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>';
+      '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+        '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
+        '<button class="btn btn-sm btn-ghost" data-toggle-moderator="' + s.uid + '">' + (isModeratorUser ? 'Revoke moderator' : 'Grant moderator') + '</button>' +
+      '</div>';
 
     card.querySelector('.student-plan-select').addEventListener('change', (e) => {
       const select = e.currentTarget;
@@ -102,6 +106,23 @@ function renderStudentsTable(students){
         });
     });
 
+    card.querySelector('[data-toggle-moderator]').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (isModeratorUser && !confirm('Revoke moderator access for ' + name + '?')) return;
+
+      btn.disabled = true;
+      const action = isModeratorUser
+        ? revokeModerator(s.uid)
+        : grantModerator(s.uid, s.email, s.displayName, auth.currentUser.uid);
+      action
+        .then(() => loadModeratorList())
+        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .catch((err) => {
+          alert('Could not update moderator access: ' + (err.message || err));
+          btn.disabled = false;
+        });
+    });
+
     body.appendChild(card);
   });
 }
@@ -110,6 +131,7 @@ function loadStudents(){
   Promise.all([
     db.collection('students').get(),
     loadAdminList(),
+    loadModeratorList(),
     (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()
   ])
     .then(([snap]) => {

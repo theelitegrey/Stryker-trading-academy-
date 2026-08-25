@@ -1445,3 +1445,11 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
 }
 .floor-post-menu button:hover{ background:var(--bg-2); }
 .floor-post-menu button[data-delete-post]{ color:var(--bear); }
+
+/* Moderator shield — separate from the role tag (plan), shown next to it
+   for anyone with moderator access, on any post or reply they're the
+   author of. */
+.floor-mod-shield{
+  display:inline-flex; align-items:center; margin-left:6px; vertical-align:middle;
+  color:var(--teal);
+}

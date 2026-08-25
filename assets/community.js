@@ -16,6 +16,7 @@
 let FLOOR_UID = null;
 let FLOOR_NAME = 'Trader';
 let FLOOR_PLAN = null; // the current user's plan name, stamped onto posts/replies they create so the role tag can render without an extra lookup per post
+let FLOOR_IS_MODERATOR = false; // separate from plan entirely — see assets/moderator-team.js
 let ALL_POSTS = [];
 let CURRENT_SORT = 'new';
 let ACTIVE_TAG = null;
@@ -134,6 +135,7 @@ function hotScore(post){
 
 function sortedPosts(){
   let list = ALL_POSTS.slice();
+  list = list.filter(p => !p.hidden); // moderated posts never show in the normal feed — only in the admin review queue
   list = list.filter(p => (p.category || 'general') === CURRENT_CATEGORY);
   if (ACTIVE_FLAIR_FILTER) list = list.filter(p => p.flair === ACTIVE_FLAIR_FILTER);
   if (ACTIVE_TAG) {
@@ -216,6 +218,14 @@ function renderPostCard(post){
   const el = document.createElement('div');
   el.className = 'floor-post';
   const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || (AUTHOR_DATA_CACHE[post.authorUid] && AUTHOR_DATA_CACHE[post.authorUid].plan), { size: 'small' }) : '';
+  // Separate from the role tag entirely — moderator is not a plan, it's
+  // an additional capability layered on top of whatever plan someone
+  // already has (see assets/moderator-team.js). A shield, not a pill, so
+  // it doesn't get visually confused with plan-tier badges like ELITE.
+  const isAuthorModerator = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(post.authorUid);
+  const shieldBadge = isAuthorModerator
+    ? '<span class="floor-mod-shield" title="Moderator"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></span>'
+    : '';
   // Deliberately a flat text label, not a bordered pill like the role tag —
   // this is post metadata (what kind of post), not identity metadata (who
   // posted), and shouldn't visually compete with the role tag for
@@ -229,17 +239,26 @@ function renderPostCard(post){
   const avatarHtml = (typeof avatarImgHtml === 'function')
     ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36, true)
     : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
+  const isOwnPost = post.authorUid === FLOOR_UID;
+  const canModerate = !isOwnPost && FLOOR_IS_MODERATOR;
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
-      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + '</div>' +
+      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + shieldBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +
-      (post.authorUid === FLOOR_UID
+      (isOwnPost
         ? '<div class="floor-post-menu-wrap">' +
             '<button type="button" class="icon-btn" data-post-menu-toggle title="More"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>' +
             '<div class="floor-post-menu" data-post-menu style="display:none;">' +
               '<button type="button" data-edit-post>Edit</button>' +
               '<button type="button" data-delete-post>Delete</button>' +
+            '</div>' +
+          '</div>'
+        : canModerate
+        ? '<div class="floor-post-menu-wrap">' +
+            '<button type="button" class="icon-btn" data-post-menu-toggle title="Moderator actions"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></button>' +
+            '<div class="floor-post-menu" data-post-menu style="display:none;">' +
+              '<button type="button" data-moderate-post style="color:var(--bear);">Hide &amp; send for review</button>' +
             '</div>' +
           '</div>'
         : '') +
@@ -306,6 +325,12 @@ function renderPostCard(post){
   if (editBtn) editBtn.addEventListener('click', () => {
     if (menuDropdown) menuDropdown.style.display = 'none';
     openComposerModal(post);
+  });
+
+  const moderateBtn = el.querySelector('[data-moderate-post]');
+  if (moderateBtn) moderateBtn.addEventListener('click', () => {
+    if (menuDropdown) menuDropdown.style.display = 'none';
+    moderatePost(post);
   });
 
   const sendReplyBtn = el.querySelector('[data-send-reply]');
@@ -456,6 +481,36 @@ function deletePost(postId){
   db.collection('communityPosts').doc(postId).delete().then(loadPosts).catch((err) => alert('Could not delete: ' + (err.message || err)));
 }
 
+// Moderator action — hides a post from the normal feed and flags it for
+// admin review, rather than deleting it outright. Only a moderator (never
+// the post's own author, see canModerate in renderPostCard) can reach
+// this. Notifies both the post's author (transparency — their content was
+// acted on) and every admin (so the review queue actually gets seen,
+// rather than relying on someone happening to check it).
+function moderatePost(post){
+  if (!confirm('Hide this post and send it to admins for review?')) return;
+
+  db.collection('communityPosts').doc(post.id).update({
+    hidden: true,
+    moderatedBy: FLOOR_UID,
+    moderatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(() => {
+    if (typeof createNotification === 'function') {
+      if (post.authorUid !== FLOOR_UID) {
+        createNotification(post.authorUid, 'post_moderated', 'A moderator flagged one of your posts for review.', 'trading-floor.html');
+      }
+      db.collection('admins').get().then((snap) => {
+        snap.forEach((doc) => {
+          if (doc.id !== FLOOR_UID) {
+            createNotification(doc.id, 'moderation_review', FLOOR_NAME + ' sent a post for review.', 'moderation-admin.html');
+          }
+        });
+      }).catch((err) => console.error('Stryker: failed to notify admins of moderated post', err));
+    }
+    loadPosts();
+  }).catch((err) => alert('Could not moderate post: ' + (err.message || err)));
+}
+
 function loadPosts(){
   return db.collection('communityPosts').orderBy('createdAt', 'desc').limit(100).get().then((snap) => {
     ALL_POSTS = [];
@@ -510,8 +565,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const planLookup = (typeof db !== 'undefined' && db)
       ? db.collection('students').doc(user.uid).get().then((doc) => { FLOOR_PLAN = doc.exists ? (doc.data().plan || null) : null; }).catch(() => {})
       : Promise.resolve();
+    const moderatorListLookup = (typeof loadModeratorList === 'function') ? loadModeratorList() : Promise.resolve();
     const rolesLookup = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
-    Promise.all([planLookup, rolesLookup]).then(() => {
+    Promise.all([planLookup, moderatorListLookup, rolesLookup]).then(() => {
+      // Derived from the same collection-wide load rather than a second,
+      // redundant single-doc query for the same information.
+      FLOOR_IS_MODERATOR = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(user.uid);
       loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
       renderFloorLeaderboardWidget(user.uid);
     });

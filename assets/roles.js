@@ -98,7 +98,11 @@ function chapterLimitOf(planNameOrId){
 // chapterNum: the chapter's `num` field — a zero-padded string like "05" in
 // this curriculum, so it's parsed as an integer before comparing.
 function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
-  if (!studentPlanNameOrId) return true; // no plan at all -> handled separately by the sign-in gate, not this check
+  // No plan at all means nothing purchased yet — blocks every chapter.
+  // (This used to fail open here, on the mistaken assumption something
+  // else already blocked a no-plan student; nothing did, so anyone could
+  // read the full curriculum for free without ever choosing a plan.)
+  if (!studentPlanNameOrId) return false;
   const n = parseInt(chapterNum, 10);
   if (isNaN(n)) return true; // can't parse the chapter number, fail open
   return n <= chapterLimitOf(studentPlanNameOrId);

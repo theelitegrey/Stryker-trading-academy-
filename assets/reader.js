@@ -91,23 +91,26 @@ function setPaywallMessage(reason, requiredRoleName){
 function checkChapterRoleAccess(ch, uid){
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true); // guest banner handles the no-auth case separately
 
-  return db.collection('admins').doc(uid).get().then((adminDoc) => {
+  // All three reads are independent — run them in parallel rather than
+  // chained, since chaining triples the wait on a slow connection for no
+  // benefit (nothing here depends on another read's result until they've
+  // all come back).
+  const adminCheck = db.collection('admins').doc(uid).get();
+  const studentCheck = db.collection('students').doc(uid).get();
+  const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+
+  return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
     if (adminDoc.exists) return true;
-    return db.collection('students').doc(uid).get().then((studentDoc) => {
-      const plan = studentDoc.exists ? studentDoc.data().plan : null;
-      if (typeof loadPlansForRoles !== 'function') return true;
-      return loadPlansForRoles().then(() => {
-        // Two independent checks, both must pass:
-        // 1) this specific chapter's own minRole, if the admin set one directly on it
-        const passesMinRole = ch.minRole ? hasRoleAccess(plan, ch.minRole) : true;
-        // 2) the student's plan's bulk "chapter access" cutoff (e.g. Starter -> up to
-        //    chapter 5), which applies to every chapter regardless of its own minRole
-        const passesChapterLimit = (typeof hasChapterNumberAccess === 'function')
-          ? hasChapterNumberAccess(plan, ch.num)
-          : true;
-        return passesMinRole && passesChapterLimit;
-      });
-    });
+    const plan = studentDoc.exists ? studentDoc.data().plan : null;
+    // Two independent checks, both must pass:
+    // 1) this specific chapter's own minRole, if the admin set one directly on it
+    const passesMinRole = ch.minRole ? hasRoleAccess(plan, ch.minRole) : true;
+    // 2) the student's plan's bulk "chapter access" cutoff (e.g. Starter -> up to
+    //    chapter 5), which applies to every chapter regardless of its own minRole
+    const passesChapterLimit = (typeof hasChapterNumberAccess === 'function')
+      ? hasChapterNumberAccess(plan, ch.num)
+      : true;
+    return passesMinRole && passesChapterLimit;
   }).catch((err) => {
     console.error('Stryker: chapter role check failed', err);
     return true; // fail open rather than lock students out on a transient error

@@ -66,48 +66,49 @@
     if (handled || !user) return; // the page's own guard handles "not signed in"
     handled = true;
 
-    db.collection('admins').doc(user.uid).get().then((adminDoc) => {
+    const pageKey = document.body.getAttribute('data-page-access');
+
+    // Four independent reads — run them all at once rather than in stages.
+    // The old version chained admin -> student -> (plans + pageAccess),
+    // three sequential round-trips before any decision could be made; on a
+    // slow connection that compounds into a genuinely long wait with
+    // nothing shown but the loading spinner.
+    const adminCheck = db.collection('admins').doc(user.uid).get();
+    const studentCheck = db.collection('students').doc(user.uid).get();
+    const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+    const pageAccessCheck = (typeof loadPageAccess === 'function') ? loadPageAccess() : Promise.resolve({});
+
+    Promise.all([adminCheck, studentCheck, rolesCheck, pageAccessCheck]).then(([adminDoc, studentDoc, , pageAccess]) => {
       if (adminDoc.exists) { revealPageContent(); return; } // admins never need a plan
 
-      const pageKey = document.body.getAttribute('data-page-access');
+      const plan = studentDoc.exists ? studentDoc.data().plan : null;
 
-      db.collection('students').doc(user.uid).get().then((studentDoc) => {
-        const plan = studentDoc.exists ? studentDoc.data().plan : null;
+      if (!pageKey) {
+        // Legacy behavior: any plan at all unlocks the page.
+        if (!plan) showPlanPaywall(null);
+        else revealPageContent();
+        return;
+      }
 
-        if (!pageKey) {
-          // Legacy behavior: any plan at all unlocks the page.
-          if (!plan) showPlanPaywall(null);
-          else revealPageContent();
-          return;
-        }
+      const rawConfig = pageAccess ? pageAccess[pageKey] : null;
+      const level = (typeof getPageAccessLevel === 'function')
+        ? getPageAccessLevel(plan, rawConfig)
+        : (hasRoleAccess(plan, rawConfig) ? 'full' : 'blocked');
 
-        // Rank-aware check.
-        const rolesReady = (typeof loadPlansForRoles === 'function' && typeof loadPageAccess === 'function')
-          ? Promise.all([loadPlansForRoles(), loadPageAccess()])
-          : Promise.resolve([[], {}]);
-
-        rolesReady.then(([, pageAccess]) => {
-          const rawConfig = pageAccess ? pageAccess[pageKey] : null;
-          const level = (typeof getPageAccessLevel === 'function')
-            ? getPageAccessLevel(plan, rawConfig)
-            : (hasRoleAccess(plan, rawConfig) ? 'full' : 'blocked');
-
-          if (level === 'blocked') {
-            const config = (typeof normalizePageAccessConfig === 'function') ? normalizePageAccessConfig(rawConfig) : { minRole: rawConfig, viewOnlyRole: null };
-            const requiredRole = config.viewOnlyRole || config.minRole;
-            const requiredName = (requiredRole && typeof labelOf === 'function') ? labelOf(requiredRole) : null;
-            showPlanPaywall(requiredName);
-          } else if (level === 'view') {
-            // Can see the page, but shouldn't get interactive access — the
-            // page's own CSS/JS reacts to this body class (see trading
-            // floor's composer/vote/reply/bookmark restrictions).
-            document.body.classList.add('view-only-mode');
-            revealPageContent();
-          } else {
-            revealPageContent();
-          }
-        });
-      }).catch((err) => { console.error('Stryker: plan check failed', err); revealPageContent(); });
-    }).catch((err) => { console.error('Stryker: admin check failed during plan guard', err); revealPageContent(); });
+      if (level === 'blocked') {
+        const config = (typeof normalizePageAccessConfig === 'function') ? normalizePageAccessConfig(rawConfig) : { minRole: rawConfig, viewOnlyRole: null };
+        const requiredRole = config.viewOnlyRole || config.minRole;
+        const requiredName = (requiredRole && typeof labelOf === 'function') ? labelOf(requiredRole) : null;
+        showPlanPaywall(requiredName);
+      } else if (level === 'view') {
+        // Can see the page, but shouldn't get interactive access — the
+        // page's own CSS/JS reacts to this body class (see trading
+        // floor's composer/vote/reply/bookmark restrictions).
+        document.body.classList.add('view-only-mode');
+        revealPageContent();
+      } else {
+        revealPageContent();
+      }
+    }).catch((err) => { console.error('Stryker: plan check failed', err); revealPageContent(); });
   });
 })();

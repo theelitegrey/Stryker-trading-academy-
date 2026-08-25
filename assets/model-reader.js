@@ -45,13 +45,16 @@ function checkModelRoleAccess(m, uid){
   if (!m.minRole) return Promise.resolve(true);
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true);
 
-  return db.collection('admins').doc(uid).get().then((adminDoc) => {
+  // Run independent reads in parallel — see reader.js's checkChapterRoleAccess
+  // for why this matters (chaining triples the wait for no benefit).
+  const adminCheck = db.collection('admins').doc(uid).get();
+  const studentCheck = db.collection('students').doc(uid).get();
+  const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+
+  return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
     if (adminDoc.exists) return true;
-    return db.collection('students').doc(uid).get().then((studentDoc) => {
-      const plan = studentDoc.exists ? studentDoc.data().plan : null;
-      if (typeof loadPlansForRoles !== 'function') return true;
-      return loadPlansForRoles().then(() => hasRoleAccess(plan, m.minRole));
-    });
+    const plan = studentDoc.exists ? studentDoc.data().plan : null;
+    return hasRoleAccess(plan, m.minRole);
   }).catch((err) => {
     console.error('Stryker: model role check failed', err);
     return true;

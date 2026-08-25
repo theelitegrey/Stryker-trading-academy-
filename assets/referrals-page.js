@@ -19,7 +19,10 @@ function collapseInvites(rawInvites){
       return;
     }
     existing.pointsAwarded = (existing.pointsAwarded || 0) + (inv.pointsAwarded || 0);
+    existing.signupPoints = (existing.signupPoints || 0) + (inv.signupPoints || 0);
+    existing.conversionPoints = (existing.conversionPoints || 0) + (inv.conversionPoints || 0);
     if (inv.status === 'converted') existing.status = 'converted';
+    existing.convertedPlan = existing.convertedPlan || inv.convertedPlan;
     existing.referredName = existing.referredName || inv.referredName;
     existing.referredEmail = existing.referredEmail || inv.referredEmail;
     const te = existing.createdAt && existing.createdAt.toMillis ? existing.createdAt.toMillis() : 0;
@@ -31,6 +34,12 @@ function collapseInvites(rawInvites){
 
 // Guards against names stored as the literal string "null" by an older code
 // path, which is why an invitee could render as "Null".
+function inviteEscape(s){
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function inviteDisplayName(inv){
   const candidates = [inv.referredName, inv.referredEmail];
   for (let i = 0; i < candidates.length; i++) {
@@ -58,16 +67,38 @@ function renderInviteList(invites){
     const when = inv.createdAt && typeof inv.createdAt.toDate === 'function'
       ? inv.createdAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
       : '—';
-    const statusColor = inv.status === 'converted' ? '#03c988' : '#8b93a0';
-    const statusLabel = inv.status === 'converted' ? 'Converted — upgraded to a plan' : 'Signed up';
+    // Older rows predate the split and only carry a summed pointsAwarded.
+    // Treat that whole total as signup points rather than showing zeroes,
+    // which would read as though nothing had been earned at all.
+    const hasSplit = (inv.signupPoints !== undefined) || (inv.conversionPoints !== undefined);
+    const signupPts = hasSplit ? (inv.signupPoints || 0) : (inv.pointsAwarded || 0);
+    const convPts = hasSplit ? (inv.conversionPoints || 0) : 0;
+    const totalPts = (inv.pointsAwarded || 0) || (signupPts + convPts);
+
+    const converted = inv.status === 'converted';
+    const planNote = converted
+      ? ('Upgraded' + (inv.convertedPlan ? ' to ' + inviteEscape(inv.convertedPlan) : ''))
+      : 'Signed up — not upgraded yet';
+
+    // Each earning event on its own line. A single merged figure made it
+    // impossible to tell a signup bonus from an upgrade bonus, which is
+    // exactly what hid the fact that upgrades were paying nothing.
+    const lines =
+      '<div class="invite-pts-line"><span>Signed up</span><b>+' + signupPts + '</b></div>' +
+      (converted
+        ? '<div class="invite-pts-line converted"><span>Upgrade</span><b>+' + convPts + '</b></div>'
+        : '<div class="invite-pts-line pending"><span>Upgrade</span><b>—</b></div>');
+
     const card = document.createElement('div');
-    card.className = 'record-card';
+    card.className = 'record-card invite-row';
     card.innerHTML =
-      '<div style="flex:1;"><span class="cell-name">' + inviteDisplayName(inv) + '</span>' +
-        '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">' + when + '</div></div>' +
-      '<div style="text-align:right;">' +
-        '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">+' + (inv.pointsAwarded || 0) + ' pts</div>' +
-        '<div style="font-family:var(--font-mono); font-size:11px; color:' + statusColor + '; margin-top:3px;">' + statusLabel + '</div>' +
+      '<div style="flex:1; min-width:0;">' +
+        '<span class="cell-name">' + inviteDisplayName(inv) + '</span>' +
+        '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">' + when + '</div>' +
+        '<div style="font-family:var(--font-mono); font-size:11px; color:' + (converted ? '#03c988' : '#8b93a0') + '; margin-top:4px;">' + planNote + '</div>' +
+      '</div>' +
+      '<div class="invite-pts">' + lines +
+        '<div class="invite-pts-total">' + totalPts + ' pts</div>' +
       '</div>';
     wrap.appendChild(card);
   });

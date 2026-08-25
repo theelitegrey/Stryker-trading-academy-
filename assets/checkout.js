@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // student was referred and hasn't already triggered one. A failure
         // here should never block the checkout flow itself.
         if (typeof processReferralConversion === 'function') {
-          processReferralConversion(CHECKOUT_UID);
+          processReferralConversion(CHECKOUT_UID, CHECKOUT_PLAN.name);
         }
         const manualRefInput = document.getElementById('checkout-referral-input');
         const manualRefCode = manualRefInput ? manualRefInput.value.trim() : '';

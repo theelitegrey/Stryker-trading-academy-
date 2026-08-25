@@ -198,6 +198,12 @@ function processPendingReferralIfReady(uid, studentData){
             referredName: name,
             referredEmail: studentData.email || null,
             status: 'signed_up',
+            // Split out rather than folded into one running total, so the
+            // invite list can show what was earned for joining versus what
+            // was earned for upgrading. pointsAwarded stays as the sum for
+            // anything already reading it.
+            signupPoints: points,
+            conversionPoints: 0,
             pointsAwarded: points,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
           }))
@@ -223,7 +229,26 @@ function processPendingReferralIfReady(uid, studentData){
 // one-time conversion bonus — but only once per referred student, checked
 // via a marker field on their own student doc so a second purchase (e.g.
 // an upgrade) doesn't pay out twice.
-function processReferralConversion(purchasingUid){
+// Is this plan actually an upgrade worth paying a conversion bonus for?
+//
+// Every account now DEFAULTS to the entry plan, so "has a plan" no longer
+// means "has paid for something" — without this check, simply signing up
+// would look like a conversion and pay the bonus twice for one free user.
+// An upgrade means ranking strictly above the entry tier.
+function isUpgradePlan(planName){
+  if (!planName) return false;
+  if (typeof rankOf !== 'function' || typeof defaultPlanName !== 'function') {
+    // Roles module unavailable — fall back to "anything that isn't the
+    // conventional entry plan name".
+    return String(planName).toLowerCase() !== 'starter';
+  }
+  return rankOf(planName) > rankOf(defaultPlanName());
+}
+
+// planName is optional. When supplied it is checked against the entry tier and
+// recorded on the referral row; when omitted the caller has already decided
+// this is a genuine upgrade.
+function processReferralConversion(purchasingUid, planName){
   if (typeof db === 'undefined' || !db) return Promise.resolve(null);
   return db.collection('students').doc(purchasingUid).get().then((studentDoc) => {
     if (!studentDoc.exists) return null;
@@ -231,7 +256,11 @@ function processReferralConversion(purchasingUid){
     const referrerUid = data.referredBy;
     if (!referrerUid || data.referralConversionPaid) return null; // never referred, or already paid out
 
-    return loadReferralConfig().then((config) => {
+    const plan = planName || data.plan;
+    if (!isUpgradePlan(plan)) return null; // still on the free entry tier
+
+    const rolesReady = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+    return rolesReady.then(() => loadReferralConfig()).then((config) => {
       if (!config.enabled) return null;
       const points = config.pointsPerConversion || 0;
       const name = cleanReferredName(data.displayName) || cleanReferredName(data.email);
@@ -251,6 +280,9 @@ function processReferralConversion(purchasingUid){
             // one invitee is one row, whatever stage they've reached.
             return snap.docs[0].ref.update({
               status: 'converted',
+              conversionPoints: points,
+              convertedPlan: plan || null,
+              convertedAt: firebase.firestore.FieldValue.serverTimestamp(),
               pointsAwarded: firebase.firestore.FieldValue.increment(points)
             });
           }
@@ -260,7 +292,7 @@ function processReferralConversion(purchasingUid){
         .then(() => notifyReferrer(
           referrerUid,
           'referral_conversion',
-          (name || 'Someone you invited') + ' upgraded to a paid plan — +' + points + ' pts.'
+          (name || 'Someone you invited') + ' upgraded to ' + (plan || 'a paid plan') + ' — +' + points + ' pts.'
         ))
         .then(() => {
           if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
@@ -340,6 +372,9 @@ function applyReferralCodeAtCheckout(purchasingUid, rawCode){
                 referredName: name,
                 referredEmail: data.email || null,
                 status: 'converted',
+                signupPoints: config.pointsPerSignup || 0,
+                conversionPoints: config.pointsPerConversion || 0,
+                convertedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 pointsAwarded: points,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               }))

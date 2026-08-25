@@ -72,6 +72,15 @@ function renderStudentsTable(students){
       if (typeof syncPublicProfile === 'function') syncPublicProfile(s.uid, { plan: newPlan });
       db.collection('students').doc(s.uid).set({ plan: newPlan }, { merge: true })
         .then(() => {
+          // An admin granting a plan is a conversion too. Previously only
+          // checkout.js triggered this, so any plan granted from here paid the
+          // referrer nothing — invisible, because the invite row simply stayed
+          // on "Signed up" with no error anywhere.
+          if (typeof processReferralConversion === 'function' && newPlan) {
+            processReferralConversion(s.uid, newPlan);
+          }
+        })
+        .then(() => {
           if (typeof logActivity === 'function') logActivity('student.plan_changed',
             'Changed ' + name + "'s plan to " + (newPlan || 'none'),
             { targetUid: s.uid, targetName: name, detail: 'from ' + (s.plan || 'none') + ' to ' + (newPlan || 'none') });

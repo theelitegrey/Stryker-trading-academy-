@@ -544,6 +544,16 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       CURRENT_CATEGORY = btn.dataset.category;
       renderFeed();
+      // The tweets panel only makes sense under the prop firm tab — hide
+      // it entirely under Posts, and fetch on first switch to prop firm
+      // (loadPropFirmTweets no-ops on subsequent switches, already cached).
+      const tweetsPanel = document.getElementById('floor-propfirm-tweets-panel');
+      if (CURRENT_CATEGORY === 'propfirm') {
+        if (tweetsPanel) tweetsPanel.style.display = 'block';
+        if (typeof loadPropFirmTweets === 'function') loadPropFirmTweets();
+      } else if (tweetsPanel) {
+        tweetsPanel.style.display = 'none';
+      }
     });
   });
 

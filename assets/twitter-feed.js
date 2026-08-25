@@ -1,5 +1,6 @@
-// Stryker Trading Academy — Trading Floor "Live from X" panel
-// Depends on: nothing else site-specific — just fetch(), used only on trading-floor.html.
+// Stryker Trading Academy — Twitter/X feed, used in two places on
+// trading-floor.html: the sidebar "Live from X" panel, and a paginated
+// section inside the "Prop firm feed" tab.
 //
 // Calls the getTwitterFeed Cloud Function (a separate backend piece, not
 // part of this static site's own repo — see the twitter-feed-function
@@ -8,10 +9,8 @@
 // only ever talks to OUR function, never to twitterapi.io directly, so no
 // API key is ever present in this file or in the page's source.
 
-// TODO: replace with the real URL once the Cloud Function is deployed —
-// see twitter-feed-function/README.md step 5. Until this is filled in,
-// the panel shows its placeholder message and never attempts a fetch.
 const TWITTER_FEED_FUNCTION_URL = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getTwitterFeed';
+const PROPFIRM_TWEETS_PAGE_SIZE = 10;
 
 function escapeTweetText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -58,29 +57,93 @@ function renderTweetCard(tweet){
   );
 }
 
+// Shared, cached fetch — both the sidebar panel and the Prop Firm Feed
+// section need the same data, so this ensures only one actual network
+// call happens per page load regardless of how many callers ask for it.
+// (The Cloud Function itself also caches server-side, but there's no
+// reason for this page to make two client-side requests for identical
+// data within the same load either.)
+let TWITTER_FEED_PROMISE = null;
+function fetchTwitterFeedData(){
+  if (TWITTER_FEED_PROMISE) return TWITTER_FEED_PROMISE;
+
+  if (!TWITTER_FEED_FUNCTION_URL || TWITTER_FEED_FUNCTION_URL === 'REPLACE_WITH_DEPLOYED_FUNCTION_URL') {
+    TWITTER_FEED_PROMISE = Promise.resolve({ tweets: [] });
+    return TWITTER_FEED_PROMISE;
+  }
+
+  TWITTER_FEED_PROMISE = fetch(TWITTER_FEED_FUNCTION_URL)
+    .then((res) => res.json())
+    .catch((err) => {
+      console.error('Stryker: failed to load Twitter feed', err);
+      return { tweets: [], error: true };
+    });
+  return TWITTER_FEED_PROMISE;
+}
+
 function loadTwitterFeed(){
   const target = document.getElementById('twitter-feed-target');
   if (!target) return;
 
-  if (!TWITTER_FEED_FUNCTION_URL || TWITTER_FEED_FUNCTION_URL === 'REPLACE_WITH_DEPLOYED_FUNCTION_URL') {
-    return; // Leave the static placeholder message in place — no point failing a fetch to a URL that doesn't exist yet.
-  }
-
-  fetch(TWITTER_FEED_FUNCTION_URL)
-    .then((res) => res.json())
-    .then((data) => {
-      const tweets = data.tweets || [];
-      if (!tweets.length) {
-        target.innerHTML = '<p style="font-size:13px; color:var(--ink-3); text-align:center; padding:20px 8px;">' +
-          (data.message || 'No posts to show right now.') + '</p>';
-        return;
-      }
-      target.innerHTML = tweets.map(renderTweetCard).join('');
-    })
-    .catch((err) => {
-      console.error('Stryker: failed to load Twitter feed', err);
-      target.innerHTML = '<p style="font-size:13px; color:var(--ink-3); text-align:center; padding:20px 8px;">Couldn\'t load the feed right now.</p>';
-    });
+  fetchTwitterFeedData().then((data) => {
+    const tweets = data.tweets || [];
+    if (!tweets.length) {
+      target.innerHTML = '<p style="font-size:13px; color:var(--ink-3); text-align:center; padding:20px 8px;">' +
+        (data.error ? 'Couldn\'t load the feed right now.' : (data.message || 'No posts to show right now.')) + '</p>';
+      return;
+    }
+    target.innerHTML = tweets.map(renderTweetCard).join('');
+  });
 }
 
-document.addEventListener('DOMContentLoaded', loadTwitterFeed);
+// Prop Firm Feed section — same data as the sidebar, rendered into a
+// different target with pagination (10 at a time, "Load more" for the
+// rest). Only fetches once per page load, on first switch to that tab —
+// see the category-tab handler in community.js.
+let PROPFIRM_TWEETS_CACHE = [];
+let PROPFIRM_TWEETS_SHOWN = 0;
+let PROPFIRM_TWEETS_LOADED = false;
+
+function renderPropFirmTweetsPage(){
+  const target = document.getElementById('floor-propfirm-tweets-target');
+  const loadMoreBtn = document.getElementById('floor-propfirm-load-more');
+  if (!target) return;
+
+  const visible = PROPFIRM_TWEETS_CACHE.slice(0, PROPFIRM_TWEETS_SHOWN);
+  target.innerHTML = visible.map(renderTweetCard).join('');
+
+  if (loadMoreBtn) {
+    loadMoreBtn.style.display = PROPFIRM_TWEETS_SHOWN < PROPFIRM_TWEETS_CACHE.length ? 'block' : 'none';
+  }
+}
+
+function loadPropFirmTweets(){
+  const panel = document.getElementById('floor-propfirm-tweets-panel');
+  const target = document.getElementById('floor-propfirm-tweets-target');
+  if (!panel || !target) return;
+
+  if (PROPFIRM_TWEETS_LOADED) return; // already fetched this page load — the tab toggle just re-shows the panel, no need to re-fetch
+
+  fetchTwitterFeedData().then((data) => {
+    PROPFIRM_TWEETS_LOADED = true;
+    PROPFIRM_TWEETS_CACHE = data.tweets || [];
+    if (!PROPFIRM_TWEETS_CACHE.length) {
+      panel.style.display = 'none'; // nothing to show — don't leave an empty "From X" panel sitting above the posts
+      return;
+    }
+    PROPFIRM_TWEETS_SHOWN = Math.min(PROPFIRM_TWEETS_PAGE_SIZE, PROPFIRM_TWEETS_CACHE.length);
+    renderPropFirmTweetsPage();
+  });
+}
+window.loadPropFirmTweets = loadPropFirmTweets;
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTwitterFeed();
+  const loadMoreBtn = document.getElementById('floor-propfirm-load-more');
+  if (loadMoreBtn) {
+    loadMoreBtn.addEventListener('click', () => {
+      PROPFIRM_TWEETS_SHOWN = Math.min(PROPFIRM_TWEETS_SHOWN + PROPFIRM_TWEETS_PAGE_SIZE, PROPFIRM_TWEETS_CACHE.length);
+      renderPropFirmTweetsPage();
+    });
+  }
+});

@@ -52,7 +52,7 @@ function avatarImgHtml(uid, name, studentData, sizePx, linkToProfile){
   // shows a broken-image icon.
   const imgHtml = (
     '<img src="' + url + '" alt="' + escapedName + '" loading="lazy" ' +
-    'style="width:' + size + 'px; height:' + size + 'px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg-3,#1b1f26);" ' +
+    'style="width:' + size + 'px; height:' + size + 'px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg-3,#1e1e22);" ' +
     'onerror="this.outerHTML=\'<div class=&quot;floor-avatar&quot; style=&quot;width:' + size + 'px; height:' + size + 'px; font-size:' + Math.round(size * 0.36) + 'px;&quot;>' + initialsFallback + '</div>\'">'
   );
   if (linkToProfile && uid) {

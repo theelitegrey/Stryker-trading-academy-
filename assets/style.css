@@ -7,7 +7,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root{
-  /* surfaces — trial: true-black tones (was charcoal/slate navy) */
+  /* surfaces — true-black tones (was charcoal/slate navy through v99, confirmed permanent) */
   --bg-0:#050506;          /* deepest background */
   --bg-1:#0b0b0d;          /* page background */
   --bg-2:#131316;          /* card surface */

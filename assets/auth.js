@@ -214,7 +214,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       auth.createUserWithEmailAndPassword(email, password)
         .then((cred) => {
-          if (name && cred.user) return cred.user.updateProfile({ displayName: name });
+          if (name && cred.user) return cred.user.updateProfile({ displayName: name }).then(() => cred);
+          return cred;
+        })
+        .then((cred) => {
+          // Password signups start unverified. Fire the verification email
+          // immediately — email-verify.js blocks the dashboard until they
+          // click it. Deliberately not chained into the failure path: if the
+          // send fails (quota, transient), the account still exists and the
+          // gate offers a resend button, which is far better than leaving
+          // them with a half-created account and an error.
+          if (cred && cred.user && !cred.user.emailVerified) {
+            return cred.user.sendEmailVerification()
+              .catch((err) => console.warn('Stryker: verification email failed to send', err));
+          }
         })
         .then(() => routeAfterAuth())
         .catch((err) => showAuthError('signup-error', friendlyAuthError(err)))

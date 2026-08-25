@@ -1216,3 +1216,18 @@ tbody tr:hover{ background:var(--bg-3); }
 .reader-shell.gate-pending, .dash-shell.gate-pending{
   visibility:hidden;
 }
+
+/* ==========================================================================
+   VIEW-ONLY ACCESS — a student can see a page's content but not interact
+   with it (e.g. Starter can browse the Trading Floor but not post/react).
+   Set via plan-guard.js adding .view-only-mode to <body> when
+   getPageAccessLevel() returns 'view'. Trading Floor is the only page with
+   specific restrictions wired up so far.
+   ========================================================================== */
+body.view-only-mode #floor-composer-panel{ display:none; }
+body.view-only-mode #floor-view-only-notice{ display:flex; }
+body.view-only-mode .floor-action-btn[data-action="like"],
+body.view-only-mode .floor-action-btn[data-action="upvote"],
+body.view-only-mode .floor-action-btn[data-action="downvote"],
+body.view-only-mode .floor-action-btn[data-action="bookmark"]{ display:none; }
+body.view-only-mode .floor-reply-input-row{ display:none; }

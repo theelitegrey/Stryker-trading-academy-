@@ -27,8 +27,8 @@ function renderRolesSummary(plans){
   }).join('');
 }
 
-function planOptionsHtml(plans, selectedId){
-  let opts = '<option value="">No restriction — any signed-in student</option>';
+function planOptionsHtml(plans, selectedId, noRestrictionLabel){
+  let opts = '<option value="">' + (noRestrictionLabel || 'No restriction — any signed-in student') + '</option>';
   plans.forEach((p) => {
     const sel = p.id === selectedId ? ' selected' : '';
     opts += '<option value="' + p.id + '"' + sel + '>' + (p.name || p.id) + ' (rank ' + (p.rank ?? 0) + ')</option>';
@@ -43,13 +43,24 @@ function renderPageAccessList(plans, pageAccess){
     return;
   }
   container.innerHTML = GATEABLE_PAGES.map((page) => {
-    const current = pageAccess[page.key] || '';
+    const config = normalizePageAccessConfig(pageAccess[page.key]);
     return (
-      '<div class="record-card" style="align-items:center;">' +
-        '<div style="flex:1;"><span class="cell-name">' + page.label + '</span></div>' +
-        '<select class="page-access-select" data-page-key="' + page.key + '" style="min-width:240px;">' +
-          planOptionsHtml(plans, current) +
-        '</select>' +
+      '<div class="record-card" style="flex-direction:column; align-items:stretch; gap:12px;">' +
+        '<span class="cell-name">' + page.label + '</span>' +
+        '<div class="form-row-2" style="margin-bottom:0;">' +
+          '<div class="field" style="margin-bottom:0;">' +
+            '<label style="font-size:11.5px; color:var(--ink-3); font-weight:400;">Full access requires</label>' +
+            '<select class="page-access-select" data-page-key="' + page.key + '" data-field="minRole">' +
+              planOptionsHtml(plans, config.minRole) +
+            '</select>' +
+          '</div>' +
+          '<div class="field" style="margin-bottom:0;">' +
+            '<label style="font-size:11.5px; color:var(--ink-3); font-weight:400;">View-only access requires <span style="color:var(--ink-3);">(optional)</span></label>' +
+            '<select class="page-access-select" data-page-key="' + page.key + '" data-field="viewOnlyRole">' +
+              planOptionsHtml(plans, config.viewOnlyRole, 'No view-only tier — blocked below full access') +
+            '</select>' +
+          '</div>' +
+        '</div>' +
       '</div>'
     );
   }).join('');
@@ -63,7 +74,10 @@ function saveAllPageAccess(){
 
   const data = {};
   document.querySelectorAll('.page-access-select').forEach((sel) => {
-    data[sel.dataset.pageKey] = sel.value || null;
+    const key = sel.dataset.pageKey;
+    const field = sel.dataset.field;
+    if (!data[key]) data[key] = { minRole: null, viewOnlyRole: null };
+    data[key][field] = sel.value || null;
   });
 
   const btn = document.getElementById('save-page-access-btn');

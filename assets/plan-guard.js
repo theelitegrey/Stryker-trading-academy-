@@ -87,10 +87,22 @@
           : Promise.resolve([[], {}]);
 
         rolesReady.then(([, pageAccess]) => {
-          const required = pageAccess ? pageAccess[pageKey] : null;
-          if (!hasRoleAccess(plan, required)) {
-            const requiredName = (required && typeof labelOf === 'function') ? labelOf(required) : null;
+          const rawConfig = pageAccess ? pageAccess[pageKey] : null;
+          const level = (typeof getPageAccessLevel === 'function')
+            ? getPageAccessLevel(plan, rawConfig)
+            : (hasRoleAccess(plan, rawConfig) ? 'full' : 'blocked');
+
+          if (level === 'blocked') {
+            const config = (typeof normalizePageAccessConfig === 'function') ? normalizePageAccessConfig(rawConfig) : { minRole: rawConfig, viewOnlyRole: null };
+            const requiredRole = config.viewOnlyRole || config.minRole;
+            const requiredName = (requiredRole && typeof labelOf === 'function') ? labelOf(requiredRole) : null;
             showPlanPaywall(requiredName);
+          } else if (level === 'view') {
+            // Can see the page, but shouldn't get interactive access — the
+            // page's own CSS/JS reacts to this body class (see trading
+            // floor's composer/vote/reply/bookmark restrictions).
+            document.body.classList.add('view-only-mode');
+            revealPageContent();
           } else {
             revealPageContent();
           }

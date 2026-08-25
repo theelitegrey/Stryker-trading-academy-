@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Floor — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=75">
+<link rel="stylesheet" href="assets/style.css?v=76">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -127,7 +127,11 @@
 
     <div class="floor-layout-grid" id="floor-layout-grid">
     <div id="floor-main-col">
-    <div class="panel">
+    <div class="notice" id="floor-view-only-notice" style="display:none;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
+      <p>You're viewing the Trading Floor in read-only mode — you can browse posts and replies, but posting, reacting, and replying need a higher plan. <a href="index.html#pricing" style="color:var(--gold);">See plans</a>.</p>
+    </div>
+    <div class="panel" id="floor-composer-panel">
       <div class="auth-error" id="floor-error"></div>
 
       <div class="rte-toolbar" id="floor-rte-toolbar">
@@ -181,17 +185,17 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=75"></script>
-<script src="assets/progress.js?v=75"></script>
+<script src="assets/auth.js?v=76"></script>
+<script src="assets/progress.js?v=76"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=75"></script>
-<script src="assets/avatars.js?v=75"></script>
-<script src="assets/referrals.js?v=75"></script>
-<script src="assets/roles.js?v=75"></script>
-<script src="assets/plan-guard.js?v=75"></script>
-<script src="assets/maintenance-check.js?v=75"></script>
-<script src="assets/branding.js?v=75"></script>
-<script src="assets/dash-nav.js?v=75"></script>
-<script src="assets/community.js?v=75"></script>
+<script src="assets/loading-animation.js?v=76"></script>
+<script src="assets/avatars.js?v=76"></script>
+<script src="assets/referrals.js?v=76"></script>
+<script src="assets/roles.js?v=76"></script>
+<script src="assets/plan-guard.js?v=76"></script>
+<script src="assets/maintenance-check.js?v=76"></script>
+<script src="assets/branding.js?v=76"></script>
+<script src="assets/dash-nav.js?v=76"></script>
+<script src="assets/community.js?v=76"></script>
 </body>
 </html>

@@ -114,6 +114,31 @@ function hasRoleAccess(studentPlanNameOrId, requiredIdOrName){
   return rankOf(studentPlanNameOrId) >= rankOf(requiredIdOrName);
 }
 
+// A page's settings/pageAccess[key] value used to always be a plain plan-id
+// string (or null). View-only access adds a second, lower threshold, so the
+// value is now normally an object — this reads either shape so nothing
+// already saved before this feature existed breaks.
+function normalizePageAccessConfig(raw){
+  if (raw && typeof raw === 'object') {
+    return { minRole: raw.minRole || null, viewOnlyRole: raw.viewOnlyRole || null };
+  }
+  return { minRole: raw || null, viewOnlyRole: null };
+}
+
+// Three possible outcomes for a student visiting a gated page:
+//   'blocked' — can't see the page at all (below the lowest configured bar)
+//   'view'    — can see the page's content, but shouldn't get interactive
+//               access (at or above viewOnlyRole, but below minRole)
+//   'full'    — full access (at or above minRole)
+// A page with neither threshold set is unrestricted ('full' for anyone).
+function getPageAccessLevel(studentPlanNameOrId, rawConfig){
+  const config = normalizePageAccessConfig(rawConfig);
+  if (!config.minRole && !config.viewOnlyRole) return 'full';
+  if (hasRoleAccess(studentPlanNameOrId, config.minRole)) return 'full';
+  if (config.viewOnlyRole && hasRoleAccess(studentPlanNameOrId, config.viewOnlyRole)) return 'view';
+  return 'blocked';
+}
+
 // Small colored pill, e.g. "PRO" — shown to the right of a user's name.
 // Returns '' if the role can't be resolved (e.g. legacy content with no
 // stored role), so callers can safely always append the result.

@@ -142,7 +142,11 @@ const NOTIF_ICONS = {
   like: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.6z"/></svg>',
   reply: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>',
   tv_access_granted: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-  achievement: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>'
+  achievement: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>',
+  post_moderated: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M12 8v4"/><path d="M12 16v.01"/></svg>',
+  moderation_review: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>',
+  post_restored: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>',
+  post_removed: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>'
 };
 
 function renderNotifBellUI(){
@@ -164,6 +168,10 @@ function renderNotifBellUI(){
 let NOTIF_UNSUB = null;
 let NOTIF_UID = null;
 
+function escapeNotifText(s){
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function renderNotifList(docs){
   const list = document.getElementById('notif-list');
   if (!list) return;
@@ -175,11 +183,14 @@ function renderNotifList(docs){
     const n = doc.data();
     const when = n.createdAt && n.createdAt.toDate ? timeAgoShort(n.createdAt.toDate()) : '';
     const icon = NOTIF_ICONS[n.type] || NOTIF_ICONS.achievement;
-    const href = n.link || '#';
+    const href = escapeNotifText(n.link || '#');
+    // Message is escaped rather than trusted as HTML: moderation reasons
+    // are free text typed by a moderator or admin, so an unescaped render
+    // here would be a stored XSS vector against whoever opens the panel.
     return (
       '<a href="' + href + '" class="notif-item' + (n.read ? '' : ' unread') + '">' +
         '<span class="notif-item-icon">' + icon + '</span>' +
-        '<span class="notif-item-body"><span class="notif-item-msg">' + (n.message || '') + '</span><span class="notif-item-time">' + when + '</span></span>' +
+        '<span class="notif-item-body"><span class="notif-item-msg">' + escapeNotifText(n.message) + '</span><span class="notif-item-time">' + when + '</span></span>' +
       '</a>'
     );
   }).join('');

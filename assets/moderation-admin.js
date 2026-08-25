@@ -32,9 +32,16 @@ function renderModerationQueue(posts){
 
     const card = document.createElement('div');
     card.className = 'record-card';
+    const flaggedBy = post.moderatedByName ? escapeModText(post.moderatedByName) : 'a moderator';
     card.innerHTML =
       '<div class="cell-user"><div><span class="cell-name">' + escapeModText(post.authorName || 'Trader') + '</span>' +
-      '<span class="cell-sub">Flagged ' + when + ' · category: ' + escapeModText(post.category || 'general') + '</span></div></div>' +
+      '<span class="cell-sub">Flagged ' + when + ' by ' + flaggedBy + ' · category: ' + escapeModText(post.category || 'general') + '</span></div></div>' +
+      (post.moderationReason
+        ? '<div style="background:rgba(229,72,77,0.08); border:1px solid rgba(229,72,77,0.28); border-radius:8px; padding:10px 12px; margin:10px 0;">' +
+            '<div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--bear); font-weight:700; margin-bottom:4px;">Moderator&rsquo;s reason</div>' +
+            '<div style="font-size:13px; color:var(--ink-1); line-height:1.5;">' + escapeModText(post.moderationReason) + '</div>' +
+          '</div>'
+        : '') +
       '<div style="font-size:13.5px; color:var(--ink-1); line-height:1.5; padding:10px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); margin:8px 0;">' +
         (post.textHtml || '<em style="color:var(--ink-3);">(no text)</em>') +
       '</div>' +
@@ -50,8 +57,17 @@ function renderModerationQueue(posts){
       db.collection('communityPosts').doc(post.id).update({
         hidden: false,
         moderatedBy: firebase.firestore.FieldValue.delete(),
+        moderatedByName: firebase.firestore.FieldValue.delete(),
+        moderationReason: firebase.firestore.FieldValue.delete(),
         moderatedAt: firebase.firestore.FieldValue.delete()
-      }).then(loadModerationQueue).catch((err) => {
+      }).then(() => {
+        // Close the loop for the author — they were told it was hidden,
+        // so they should be told when that's reversed too.
+        if (typeof createNotification === 'function' && post.authorUid) {
+          createNotification(post.authorUid, 'post_restored', 'Good news — an admin reviewed your post and restored it to the Trading Floor.', 'trading-floor.html');
+        }
+        return loadModerationQueue();
+      }).catch((err) => {
         alert('Could not restore: ' + (err.message || err));
         btn.disabled = false;
       });
@@ -59,10 +75,27 @@ function renderModerationQueue(posts){
 
     card.querySelector('[data-delete-permanently]').addEventListener('click', (e) => {
       const btn = e.currentTarget;
-      if (!confirm('Permanently delete this post? This cannot be undone.')) return;
+      // A reason is required here for the same reason it is when flagging:
+      // the author is told their post was removed, and that message is
+      // far more useful (and fairer) when it says why.
+      const reason = prompt('Permanently delete this post?\n\nThis cannot be undone. Write the reason — the author will see it in their notification:');
+      if (reason === null) return; // cancelled
+      const trimmed = reason.trim();
+      if (!trimmed) {
+        alert('A reason is required to permanently delete a post.');
+        return;
+      }
       btn.disabled = true;
-      db.collection('communityPosts').doc(post.id).delete()
-        .then(loadModerationQueue).catch((err) => {
+      // Notify before deleting: once the document is gone there's no
+      // retry path, and the author still deserves the explanation.
+      const notifyFirst = (typeof createNotification === 'function' && post.authorUid)
+        ? createNotification(post.authorUid, 'post_removed', 'One of your posts was removed by an admin. Reason: ' + trimmed, 'trading-floor.html')
+        : Promise.resolve();
+
+      notifyFirst
+        .then(() => db.collection('communityPosts').doc(post.id).delete())
+        .then(loadModerationQueue)
+        .catch((err) => {
           alert('Could not delete: ' + (err.message || err));
           btn.disabled = false;
         });

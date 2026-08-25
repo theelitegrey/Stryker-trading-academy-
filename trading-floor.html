@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Floor — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=110">
+<link rel="stylesheet" href="assets/style.css?v=111">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -200,6 +200,24 @@
       <span class="floor-fab-label">New post</span>
     </button>
 
+    <div class="floor-composer-modal-overlay" id="floor-moderate-modal-overlay" style="display:none;">
+      <div class="floor-composer-modal">
+        <div class="floor-composer-modal-head">
+          <h3>Send for review</h3>
+          <button type="button" class="icon-btn" id="floor-moderate-close-btn" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <p style="font-size:13px; color:var(--ink-2); line-height:1.5; margin:0 0 12px;">This hides the post and sends it to the admins. Your reason is shown to the author and to the admin reviewing it.</p>
+        <div class="auth-error" id="floor-moderate-error"></div>
+        <textarea id="floor-moderate-reason" class="input" rows="3" placeholder="Why is this being flagged? e.g. spam, off-topic, abusive language…" style="width:100%; resize:vertical;"></textarea>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button class="btn btn-primary btn-sm" id="floor-moderate-confirm-btn">Hide &amp; send for review</button>
+          <button class="btn btn-ghost btn-sm" id="floor-moderate-cancel-btn">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     <div class="floor-composer-modal-overlay" id="floor-composer-modal-overlay" style="display:none;">
       <div class="floor-composer-modal">
         <div class="floor-composer-modal-head">
@@ -249,22 +267,22 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=110"></script>
-<script src="assets/progress.js?v=110"></script>
-<script src="assets/achievements-data.js?v=110"></script>
-<script src="assets/notifications.js?v=110"></script>
-<script src="assets/profiles-sync.js?v=110"></script>
+<script src="assets/auth.js?v=111"></script>
+<script src="assets/progress.js?v=111"></script>
+<script src="assets/achievements-data.js?v=111"></script>
+<script src="assets/notifications.js?v=111"></script>
+<script src="assets/profiles-sync.js?v=111"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=110"></script>
-<script src="assets/avatars.js?v=110"></script>
-<script src="assets/referrals.js?v=110"></script>
-<script src="assets/roles.js?v=110"></script>
-<script src="assets/moderator-team.js?v=110"></script>
-<script src="assets/plan-guard.js?v=110"></script>
-<script src="assets/maintenance-check.js?v=110"></script>
-<script src="assets/branding.js?v=110"></script>
-<script src="assets/dash-nav.js?v=110"></script>
-<script src="assets/community.js?v=110"></script>
-<script src="assets/twitter-feed.js?v=110"></script>
+<script src="assets/loading-animation.js?v=111"></script>
+<script src="assets/avatars.js?v=111"></script>
+<script src="assets/referrals.js?v=111"></script>
+<script src="assets/roles.js?v=111"></script>
+<script src="assets/moderator-team.js?v=111"></script>
+<script src="assets/plan-guard.js?v=111"></script>
+<script src="assets/maintenance-check.js?v=111"></script>
+<script src="assets/branding.js?v=111"></script>
+<script src="assets/dash-nav.js?v=111"></script>
+<script src="assets/community.js?v=111"></script>
+<script src="assets/twitter-feed.js?v=111"></script>
 </body>
 </html>

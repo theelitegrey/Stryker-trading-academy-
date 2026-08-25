@@ -224,7 +224,7 @@ function renderPostCard(post){
   // it doesn't get visually confused with plan-tier badges like ELITE.
   const isAuthorModerator = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(post.authorUid);
   const shieldBadge = isAuthorModerator
-    ? '<span class="floor-mod-shield" title="Moderator"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg></span>'
+    ? '<span class="floor-mod-shield" title="Moderator"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 1.5l8.5 3.8v6.2c0 5.3-3.7 9-8.5 10.5-4.8-1.5-8.5-5.2-8.5-10.5V5.3z"/><path d="M10.6 15.4l-3-3 1.3-1.3 1.7 1.7 4.4-4.4 1.3 1.3z" fill="#04121b"/></svg></span>'
     : '';
   // Deliberately a flat text label, not a bordered pill like the role tag —
   // this is post metadata (what kind of post), not identity metadata (who
@@ -484,31 +484,67 @@ function deletePost(postId){
 // Moderator action — hides a post from the normal feed and flags it for
 // admin review, rather than deleting it outright. Only a moderator (never
 // the post's own author, see canModerate in renderPostCard) can reach
-// this. Notifies both the post's author (transparency — their content was
-// acted on) and every admin (so the review queue actually gets seen,
-// rather than relying on someone happening to check it).
+// this. A written reason is required: it's stored on the post and shown
+// to the author and to the admin who reviews it, so no one is left
+// guessing why their content disappeared.
+let PENDING_MODERATION_POST = null;
+
 function moderatePost(post){
-  if (!confirm('Hide this post and send it to admins for review?')) return;
+  PENDING_MODERATION_POST = post;
+  const overlay = document.getElementById('floor-moderate-modal-overlay');
+  const reasonEl = document.getElementById('floor-moderate-reason');
+  const errEl = document.getElementById('floor-moderate-error');
+  if (errEl) errEl.style.display = 'none';
+  if (reasonEl) reasonEl.value = '';
+  if (overlay) overlay.style.display = 'flex';
+  if (reasonEl) reasonEl.focus();
+}
+
+function closeModerateModal(){
+  const overlay = document.getElementById('floor-moderate-modal-overlay');
+  if (overlay) overlay.style.display = 'none';
+  PENDING_MODERATION_POST = null;
+}
+
+function submitModeration(){
+  const post = PENDING_MODERATION_POST;
+  if (!post) return;
+  const reasonEl = document.getElementById('floor-moderate-reason');
+  const errEl = document.getElementById('floor-moderate-error');
+  const confirmBtn = document.getElementById('floor-moderate-confirm-btn');
+  const reason = (reasonEl && reasonEl.value || '').trim();
+
+  if (!reason) {
+    if (errEl) { errEl.textContent = 'Please write a reason before sending this for review.'; errEl.style.display = 'block'; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+  if (confirmBtn) confirmBtn.disabled = true;
 
   db.collection('communityPosts').doc(post.id).update({
     hidden: true,
     moderatedBy: FLOOR_UID,
+    moderatedByName: FLOOR_NAME,
+    moderationReason: reason,
     moderatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(() => {
     if (typeof createNotification === 'function') {
       if (post.authorUid !== FLOOR_UID) {
-        createNotification(post.authorUid, 'post_moderated', 'A moderator flagged one of your posts for review.', 'trading-floor.html');
+        createNotification(post.authorUid, 'post_moderated', 'A moderator hid one of your posts for review. Reason: ' + reason, 'trading-floor.html');
       }
       db.collection('admins').get().then((snap) => {
         snap.forEach((doc) => {
           if (doc.id !== FLOOR_UID) {
-            createNotification(doc.id, 'moderation_review', FLOOR_NAME + ' sent a post for review.', 'moderation-admin.html');
+            createNotification(doc.id, 'moderation_review', FLOOR_NAME + ' sent a post for review. Reason: ' + reason, 'moderation-admin.html');
           }
         });
       }).catch((err) => console.error('Stryker: failed to notify admins of moderated post', err));
     }
+    closeModerateModal();
     loadPosts();
-  }).catch((err) => alert('Could not moderate post: ' + (err.message || err)));
+  }).catch((err) => {
+    if (errEl) { errEl.textContent = err.message || 'Could not moderate post.'; errEl.style.display = 'block'; }
+  }).finally(() => { if (confirmBtn) confirmBtn.disabled = false; });
 }
 
 function loadPosts(){
@@ -712,6 +748,23 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === composerOverlay) closeComposerModal(); // click on the dark backdrop, not the card itself
     });
   }
+  // Moderation reason modal — confirm, cancel, backdrop click, Escape.
+  const moderateConfirmBtn = document.getElementById('floor-moderate-confirm-btn');
+  if (moderateConfirmBtn) moderateConfirmBtn.addEventListener('click', submitModeration);
+  const moderateCancelBtn = document.getElementById('floor-moderate-cancel-btn');
+  if (moderateCancelBtn) moderateCancelBtn.addEventListener('click', closeModerateModal);
+  const moderateCloseBtn = document.getElementById('floor-moderate-close-btn');
+  if (moderateCloseBtn) moderateCloseBtn.addEventListener('click', closeModerateModal);
+  const moderateOverlay = document.getElementById('floor-moderate-modal-overlay');
+  if (moderateOverlay) {
+    moderateOverlay.addEventListener('click', (e) => {
+      if (e.target === moderateOverlay) closeModerateModal();
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && moderateOverlay && moderateOverlay.style.display !== 'none') closeModerateModal();
+  });
+
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && composerOverlay && composerOverlay.style.display !== 'none') closeComposerModal();
   });

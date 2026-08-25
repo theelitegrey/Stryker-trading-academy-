@@ -12,38 +12,53 @@
 //   all is enough, matching pre-existing behavior so nothing regresses.
 // - On failure, show an in-page "upgrade to unlock" overlay — the same
 //   paywall-overlay/paywall-card pattern already used on chapter/model/
-//   indicator pages — rather than redirecting away. Redirecting to
-//   index.html gave no explanation of why the student was bounced, and
-//   the destination didn't even reliably show pricing.
+//   indicator pages — rather than redirecting away.
+//
+// The .dash-shell on every gated page starts hidden (.gate-pending, set in
+// the page's own HTML) behind a full-screen loading overlay, so a student
+// without access never gets even a brief flash of the real page before the
+// paywall applies. Every code path below — allowed, denied, admin-exempt,
+// or an error — must end by calling revealPageContent(), or the page would
+// stay stuck hidden forever. The one deliberate exception is "not signed
+// in": that's left showing the loading state, since the page's own auth
+// check redirects to login shortly after anyway, and that's a better look
+// than briefly flashing dashboard content right before the redirect fires.
 //
 // Depends on: assets/auth.js (`auth`), assets/progress.js (`db`),
 // assets/roles.js (hasRoleAccess, loadPlansForRoles, loadPageAccess, labelOf).
-// The host page must include the standard paywall-overlay markup (see
-// courses.html for the reference structure) for the overlay to be visible;
-// if that markup isn't present, this still dims the page via .paywall-dimmed
-// as a fallback so access isn't silently granted.
 
 (function(){
-  if (typeof db === 'undefined' || !db) return;
-  if (typeof auth === 'undefined' || !auth) return;
+  function revealPageContent(){
+    const gateOverlay = document.getElementById('access-gate-overlay');
+    const shell = document.querySelector('.dash-shell');
+    if (gateOverlay) gateOverlay.style.display = 'none';
+    if (shell) shell.classList.remove('gate-pending');
+  }
+
+  // If Firebase itself failed to load, there's no way to check access at
+  // all — fail open rather than leave the page stuck hidden forever.
+  if (typeof db === 'undefined' || !db) { revealPageContent(); return; }
+  if (typeof auth === 'undefined' || !auth) { revealPageContent(); return; }
 
   function showPlanPaywall(requiredRoleName){
     const shell = document.querySelector('.dash-shell');
     if (shell) shell.classList.add('paywall-dimmed');
 
     const overlay = document.getElementById('guest-paywall-overlay');
-    if (!overlay) return; // dimming above still blocks interaction even without the card
-    const heading = document.getElementById('paywall-heading');
-    const body = document.getElementById('paywall-body');
-    const actions = document.getElementById('paywall-actions');
-    if (heading) heading.textContent = 'Upgrade to unlock this page';
-    if (body) {
-      body.textContent = requiredRoleName
-        ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
-        : 'This page requires an active plan. Upgrade to keep going.';
+    if (overlay) {
+      const heading = document.getElementById('paywall-heading');
+      const body = document.getElementById('paywall-body');
+      const actions = document.getElementById('paywall-actions');
+      if (heading) heading.textContent = 'Upgrade to unlock this page';
+      if (body) {
+        body.textContent = requiredRoleName
+          ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
+          : 'This page requires an active plan. Upgrade to keep going.';
+      }
+      if (actions) actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
+      overlay.style.display = 'flex';
     }
-    if (actions) actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
-    overlay.style.display = 'flex';
+    revealPageContent(); // reveal already-dimmed, with the card on top — never a sharp frame first
   }
 
   let handled = false;
@@ -52,7 +67,7 @@
     handled = true;
 
     db.collection('admins').doc(user.uid).get().then((adminDoc) => {
-      if (adminDoc.exists) return; // admins never need a plan
+      if (adminDoc.exists) { revealPageContent(); return; } // admins never need a plan
 
       const pageKey = document.body.getAttribute('data-page-access');
 
@@ -62,6 +77,7 @@
         if (!pageKey) {
           // Legacy behavior: any plan at all unlocks the page.
           if (!plan) showPlanPaywall(null);
+          else revealPageContent();
           return;
         }
 
@@ -75,9 +91,11 @@
           if (!hasRoleAccess(plan, required)) {
             const requiredName = (required && typeof labelOf === 'function') ? labelOf(required) : null;
             showPlanPaywall(requiredName);
+          } else {
+            revealPageContent();
           }
         });
-      }).catch((err) => console.error('Stryker: plan check failed', err));
-    }).catch((err) => console.error('Stryker: admin check failed during plan guard', err));
+      }).catch((err) => { console.error('Stryker: plan check failed', err); revealPageContent(); });
+    }).catch((err) => { console.error('Stryker: admin check failed during plan guard', err); revealPageContent(); });
   });
 })();

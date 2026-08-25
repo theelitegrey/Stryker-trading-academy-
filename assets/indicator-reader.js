@@ -13,6 +13,15 @@ function showIndicatorGuestBanner(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+// Only called once an access decision has actually been made — reveals the
+// reader content for the first time, already-dimmed if access was denied.
+function revealIndicatorReaderContent(){
+  const gateOverlay = document.getElementById('access-gate-overlay');
+  const content = document.getElementById('reader-content-wrap');
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  if (content) content.classList.remove('gate-pending');
+}
+
 function setIndicatorPaywallMessage(reason, requiredRoleName){
   const heading = document.getElementById('paywall-heading');
   const body = document.getElementById('paywall-body');
@@ -81,15 +90,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const ind = INDICATORS.find((x) => x.id === id) || INDICATORS[0];
     if (!ind) {
       if (body) body.innerHTML = '<p style="color:var(--ink-3);">No trading indicators found yet.</p>';
+      revealIndicatorReaderContent();
       return;
     }
     renderIndicator(ind);
 
-    if (!auth) { setIndicatorPaywallMessage('signin'); showIndicatorGuestBanner(true); return; }
+    if (!auth) { setIndicatorPaywallMessage('signin'); showIndicatorGuestBanner(true); revealIndicatorReaderContent(); return; }
     auth.onAuthStateChanged((user) => {
       if (!user) {
         setIndicatorPaywallMessage('signin');
         showIndicatorGuestBanner(true);
+        revealIndicatorReaderContent();
         return;
       }
       showIndicatorGuestBanner(false);
@@ -99,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setIndicatorPaywallMessage('role', requiredName);
           showIndicatorGuestBanner(true);
         }
+        revealIndicatorReaderContent();
       });
     });
   });

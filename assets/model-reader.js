@@ -13,6 +13,18 @@ function showModelGuestBanner(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+// Only called once an access decision has actually been made — reveals the
+// reader content for the first time. If showModelGuestBanner already applied
+// .paywall-dimmed in this same code path, content becomes visible
+// already-dimmed, so a denied visitor never sees a sharp, readable frame of
+// gated content before the paywall catches up.
+function revealModelReaderContent(){
+  const gateOverlay = document.getElementById('access-gate-overlay');
+  const content = document.getElementById('reader-content-wrap');
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  if (content) content.classList.remove('gate-pending');
+}
+
 function setModelPaywallMessage(reason, requiredRoleName){
   const heading = document.getElementById('paywall-heading');
   const body = document.getElementById('paywall-body');
@@ -113,15 +125,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const m = MODELS.find((x) => x.id === id) || MODELS[0];
     if (!m) {
       if (body) body.innerHTML = '<p style="color:var(--ink-3);">No trading models found.</p>';
+      revealModelReaderContent();
       return;
     }
     renderModel(m);
 
-    if (!auth) { setModelPaywallMessage('signin'); showModelGuestBanner(true); return; }
+    if (!auth) { setModelPaywallMessage('signin'); showModelGuestBanner(true); revealModelReaderContent(); return; }
     auth.onAuthStateChanged((user) => {
       if (!user) {
         setModelPaywallMessage('signin');
         showModelGuestBanner(true);
+        revealModelReaderContent();
         return;
       }
       showModelGuestBanner(false);
@@ -131,6 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
           setModelPaywallMessage('role', requiredName);
           showModelGuestBanner(true);
         }
+        revealModelReaderContent();
       });
     });
   });

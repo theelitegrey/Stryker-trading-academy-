@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Market News — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=74">
+<link rel="stylesheet" href="assets/style.css?v=75">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -12,6 +12,10 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body data-page-access="market-news">
+
+<div class="access-gate-overlay" id="access-gate-overlay">
+  <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
+</div>
 
 <div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
   <div class="paywall-card">
@@ -37,7 +41,7 @@
 </div>
 <div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
 
-<div class="dash-shell">
+<div class="dash-shell gate-pending">
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
@@ -265,19 +269,19 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=74"></script>
-<script src="assets/progress.js?v=74"></script>
+<script src="assets/auth.js?v=75"></script>
+<script src="assets/progress.js?v=75"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=74"></script>
-<script src="assets/avatars.js?v=74"></script>
-<script src="assets/referrals.js?v=74"></script>
-<script src="assets/roles.js?v=74"></script>
-<script src="assets/plan-guard.js?v=74"></script>
-<script src="assets/maintenance-check.js?v=74"></script>
-<script src="assets/branding.js?v=74"></script>
-<script src="assets/dash-nav.js?v=74"></script>
-<script src="assets/killzones.js?v=74"></script>
-<script src="assets/economic-calendar.js?v=74"></script>
-<script src="assets/live-news.js?v=74"></script>
+<script src="assets/loading-animation.js?v=75"></script>
+<script src="assets/avatars.js?v=75"></script>
+<script src="assets/referrals.js?v=75"></script>
+<script src="assets/roles.js?v=75"></script>
+<script src="assets/plan-guard.js?v=75"></script>
+<script src="assets/maintenance-check.js?v=75"></script>
+<script src="assets/branding.js?v=75"></script>
+<script src="assets/dash-nav.js?v=75"></script>
+<script src="assets/killzones.js?v=75"></script>
+<script src="assets/economic-calendar.js?v=75"></script>
+<script src="assets/live-news.js?v=75"></script>
 </body>
 </html>

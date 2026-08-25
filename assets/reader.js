@@ -52,6 +52,18 @@ function showGuestBanner(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+// Only called once an access decision has actually been made (allowed or
+// denied) — reveals the reader content for the first time. If showGuestBanner
+// already applied .paywall-dimmed in this same code path, the content
+// becomes visible already-dimmed, so a denied visitor never sees a sharp,
+// readable frame of gated content before the paywall catches up.
+function revealReaderContent(){
+  const gateOverlay = document.getElementById('access-gate-overlay');
+  const content = document.getElementById('reader-content-wrap');
+  if (gateOverlay) gateOverlay.style.display = 'none';
+  if (content) content.classList.remove('gate-pending');
+}
+
 // Two distinct lock reasons share the same overlay markup: not signed in
 // at all ("signin"), or signed in but the chapter's minRole exceeds the
 // student's current plan ("role"). The wording and buttons differ.
@@ -307,6 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // mode (progress just saves to this device only).
       setPaywallMessage('signin');
       showGuestBanner(true);
+      revealReaderContent();
       return;
     }
 
@@ -324,6 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
         CURRENT_UID = null;
         setPaywallMessage('signin');
         showGuestBanner(true);
+        revealReaderContent();
       }
     });
   });
@@ -331,7 +345,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function applyChapterRoleGate(uid){
   const ch = CHAPTERS[CURRENT_INDEX];
-  if (!ch) return;
+  if (!ch) { revealReaderContent(); return; }
   checkChapterRoleAccess(ch, uid).then((allowed) => {
     if (!allowed) {
       // The specific chapter's own minRole (if set) is the most precise
@@ -341,5 +355,6 @@ function applyChapterRoleGate(uid){
       setPaywallMessage('role', requiredName);
       showGuestBanner(true);
     }
+    revealReaderContent();
   });
 }

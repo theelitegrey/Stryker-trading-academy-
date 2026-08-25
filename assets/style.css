@@ -1160,8 +1160,19 @@ tbody tr:hover{ background:var(--bg-3); }
 
 .mark-complete-row{ display:flex; align-items:center; gap:12px; margin:28px 0; }
 
-.floor-layout-grid{ display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:24px; align-items:start; }
-@media (max-width:900px){ .floor-layout-grid{ grid-template-columns:1fr; } #floor-sidebar-col{ order:-1; } }
+/* Single column is the mobile/tablet default; the split is opted into at the
+   desktop breakpoint rather than overridden back out of. */
+.floor-layout-grid{ display:grid; grid-template-columns:1fr; gap:24px; align-items:start; }
+@media (min-width:901px){
+  /* 75 / 25. Fractional units rather than a fixed 280px sidebar, which made
+     the real ratio drift with window width — narrow screens gave the sidebar
+     a third of the row, wide ones barely a fifth.
+     minmax(0,...) on both tracks because a grid item's default min-width is
+     auto, so one wide chart image or long unbroken string would push the
+     timeline past its share and squash the sidebar. */
+  .floor-layout-grid{ grid-template-columns:minmax(0,3fr) minmax(0,1fr); }
+}
+@media (max-width:900px){ #floor-sidebar-col{ order:-1; } }
 #floor-page-main{ max-width:1360px; }
 @media (max-width:640px){ #floor-sidebar-col{ display:none; } }
 

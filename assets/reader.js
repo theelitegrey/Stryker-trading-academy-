@@ -85,29 +85,6 @@ function setPaywallMessage(reason, requiredRoleName){
   }
 }
 
-// TEMPORARY DIAGNOSTIC — remove once the chapter-access bug report is
-// confirmed fixed. Shows the actual values being compared, visibly on the
-// page (not just console), so a mobile screenshot is enough to diagnose
-// whether a report is a real code bug or a plan/chapter configuration
-// that doesn't restrict what was expected.
-function showChapterAccessDebug(ch, plan, passesMinRole, passesChapterLimit){
-  let box = document.getElementById('__access_debug_box');
-  if (!box) {
-    box = document.createElement('div');
-    box.id = '__access_debug_box';
-    box.style.cssText = 'position:fixed; bottom:8px; left:8px; right:8px; z-index:99999; background:#000; color:#0f0; font-family:monospace; font-size:10.5px; padding:10px; border-radius:8px; border:1px solid #0f0; max-height:40vh; overflow:auto; white-space:pre-wrap; line-height:1.5;';
-    document.body.appendChild(box);
-  }
-  const limit = (typeof chapterLimitOf === 'function') ? chapterLimitOf(plan) : 'n/a';
-  box.textContent =
-    'TEMP DEBUG — chapter access\n' +
-    'chapter num: ' + ch.num + '  minRole: ' + (ch.minRole || '(none set)') + '\n' +
-    'student plan: ' + (plan || '(none)') + '\n' +
-    'chapterLimitOf(plan): ' + limit + '\n' +
-    'passesMinRole: ' + passesMinRole + '   passesChapterLimit: ' + passesChapterLimit + '\n' +
-    'FINAL allowed: ' + (passesMinRole && passesChapterLimit);
-}
-
 // Checks the current chapter's minRole against the signed-in student's
 // plan. Admins and unrestricted chapters always pass. Returns a promise
 // resolving true/false so callers can decide whether to keep rendering.
@@ -123,7 +100,7 @@ function checkChapterRoleAccess(ch, uid){
   const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
 
   return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
-    if (adminDoc.exists) { showChapterAccessDebug(ch, 'admin-exempt', true, true); return true; }
+    if (adminDoc.exists) return true;
     const plan = studentDoc.exists ? studentDoc.data().plan : null;
     // Two independent checks, both must pass:
     // 1) this specific chapter's own minRole, if the admin set one directly on it
@@ -133,7 +110,6 @@ function checkChapterRoleAccess(ch, uid){
     const passesChapterLimit = (typeof hasChapterNumberAccess === 'function')
       ? hasChapterNumberAccess(plan, ch.num)
       : true;
-    showChapterAccessDebug(ch, plan, passesMinRole, passesChapterLimit);
     return passesMinRole && passesChapterLimit;
   }).catch((err) => {
     console.error('Stryker: chapter role check failed', err);

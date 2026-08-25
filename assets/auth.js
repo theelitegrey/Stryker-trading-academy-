@@ -147,6 +147,12 @@ function routeAfterAuth(){
 
 document.addEventListener('DOMContentLoaded', () => {
 
+  // Capture a ?ref= code the moment it appears in the URL, before anything
+  // else. Previously this only happened inside the signup submit handler, so
+  // a visitor who landed on an invite link and then clicked through to the
+  // login page (or reloaded) lost the code entirely.
+  if (typeof capturePendingReferralCode === 'function') capturePendingReferralCode();
+
   if (!auth) return; // Firebase failed to init — fallback error UI already shown above.
 
   // If persistence was rejected, sign-in will appear to work and then silently
@@ -255,6 +261,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const errElId = document.getElementById('signup-form') ? 'signup-error' : 'login-error';
+
+      // Stash the invite code before the popup, exactly as the email/password
+      // path does. Without this, anyone arriving on a ?ref= link and choosing
+      // "Continue with Google" lost their referral silently — the code was
+      // only ever read inside the email signup submit handler.
+      const gRefField = document.getElementById('signup-referral');
+      const gUrlRef = new URLSearchParams(window.location.search).get('ref');
+      const gCode = (gRefField && gRefField.value.trim()) || (gUrlRef || '').trim();
+      if (gCode) {
+        try { sessionStorage.setItem('stryker_referral_code', gCode); } catch (err) { /* fail open */ }
+      }
 
       const original = btn.innerHTML;
       btn.disabled = true;

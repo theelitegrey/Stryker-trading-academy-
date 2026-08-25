@@ -32,6 +32,7 @@ function ensureStudentDoc(user){
     const today = todayStr();
 
     if (!snap.exists) {
+      let referralPark = Promise.resolve();
       const data = {
         displayName: user.displayName || '',
         email: user.email || '',
@@ -47,9 +48,14 @@ function ensureStudentDoc(user){
         // Non-blocking: resolve any pending ?ref= invite code from signup.
         // A failure here should never prevent the student doc itself from
         // being created, so it's intentionally not chained into the return.
-        if (typeof processPendingReferralForNewStudent === 'function') {
-          processPendingReferralForNewStudent(user.uid, data.displayName, data.email);
-        }
+        // Parking the code is now awaited (see referralPark below) rather than
+        // fired and forgotten, so the deferred completion step at the end of
+        // this branch can act on it in the same page load. For a Google
+        // signup, which is verified from the very first moment, that means the
+        // referrer is credited immediately instead of one navigation later.
+        referralPark = (typeof processPendingReferralForNewStudent === 'function')
+          ? processPendingReferralForNewStudent(user.uid, data.displayName, data.email)
+          : Promise.resolve();
         // Non-blocking: bump the public "traders enrolled" counter shown on
         // the homepage. This is a separate count-only doc, not a query
         // against the students collection itself — see main.js for why.
@@ -67,7 +73,13 @@ function ensureStudentDoc(user){
             bestStreak: data.bestStreak
           });
         }
-      }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
+      }).then(() => referralPark).then(() => ref.get()).then(s => {
+        const student = Object.assign({ uid: user.uid }, s.data());
+        if (typeof processPendingReferralIfReady === 'function') {
+          processPendingReferralIfReady(user.uid, student);
+        }
+        return student;
+      });
     }
 
     const data = snap.data();
@@ -101,7 +113,16 @@ function ensureStudentDoc(user){
         if (updates.bestStreak !== undefined) profileUpdate.bestStreak = updates.bestStreak;
         syncPublicProfile(user.uid, profileUpdate);
       }
-    }).then(() => ref.get()).then(s => Object.assign({ uid: user.uid }, s.data()));
+    }).then(() => ref.get()).then(s => {
+      const student = Object.assign({ uid: user.uid }, s.data());
+      // Non-blocking: finish any referral that was parked at signup but
+      // couldn't be written until the account was email-verified. Runs on
+      // every load and bails immediately when there's nothing parked.
+      if (typeof processPendingReferralIfReady === 'function') {
+        processPendingReferralIfReady(user.uid, student);
+      }
+      return student;
+    });
   });
 }
 

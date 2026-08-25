@@ -122,46 +122,81 @@ function notifyReferrer(referrerUid, type, message){
 }
 
 // Called once, right after a brand-new student doc is created (see
-// progress.js's ensureStudentDoc). Resolves any pending ?ref= code left in
-// sessionStorage from signup, records the referral, and awards the
-// referrer's signup points. A student can never refer themselves, and this
-// only ever runs once per new account (the pending code is consumed).
+// progress.js's ensureStudentDoc).
 //
-// ORDERING MATTERS. referredBy is written FIRST, before anything else.
-// It's a write to this student's OWN doc, so it always succeeds, and it is
-// the marker every other part of the system uses to know this person was
-// referred. Previously it was written LAST, after a cross-user points
-// increment — and when that increment was rejected by the security rules the
-// whole promise chain aborted, so referredBy never got set. The referral then
-// looked invisible to checkout, which happily created a SECOND referral doc
-// for the same person. That is why one invitee showed up as two.
+// This no longer awards anything directly. It PARKS the code on the student's
+// own doc and lets processPendingReferralIfReady() finish the job later.
 //
-// Every cross-user step below also catches independently, so no single
-// permission failure can abort the ones after it.
+// Why: a brand-new account is not email-verified yet, and the security rules
+// require verification before writing to referrals/ or another student's
+// points. Doing the work here meant every single referral write was rejected,
+// so the invite never appeared on the referrer's page at all. Parking it on
+// the student's OWN doc always succeeds, and sessionStorage — where the code
+// used to live — is gone by the time they come back from their inbox, quite
+// possibly in a different tab.
+//
+// It also means only CONFIRMED humans earn anyone points, which is what the
+// verification requirement was for.
 function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
   const code = takePendingReferralCode();
   if (!code || typeof db === 'undefined' || !db) return Promise.resolve(null);
 
+  return db.collection('students').doc(newUid).set({
+    pendingReferralCode: code
+  }, { merge: true }).catch((err) => {
+    console.error('Stryker: could not park pending referral code', err);
+    return null;
+  });
+}
+
+// Runs on every page load for a signed-in user. Completes a parked referral
+// once the account is verified. Safe to call repeatedly: it clears the parked
+// code as part of the same write that records referredBy, and bails
+// immediately if there is nothing to do.
+function processPendingReferralIfReady(uid, studentData){
+  if (typeof db === 'undefined' || !db) return Promise.resolve(null);
+  if (typeof auth === 'undefined' || !auth || !auth.currentUser) return Promise.resolve(null);
+
+  const user = auth.currentUser;
+  if (!user.emailVerified) return Promise.resolve(null);   // not yet allowed to write
+  if (!studentData) return Promise.resolve(null);
+  if (studentData.referredBy) return Promise.resolve(null); // already credited
+  const code = studentData.pendingReferralCode;
+  if (!code) return Promise.resolve(null);
+
   return db.collection('referralCodes').doc(code).get()
     .then((codeDoc) => {
-      if (!codeDoc.exists) return null;
+      if (!codeDoc.exists) {
+        // Bad code — drop it so this doesn't retry on every page load forever.
+        return db.collection('students').doc(uid).set({
+          pendingReferralCode: firebase.firestore.FieldValue.delete()
+        }, { merge: true });
+      }
+
       const referrerUid = codeDoc.data().uid;
-      if (!referrerUid || referrerUid === newUid) return null; // no self-referrals
+      if (!referrerUid || referrerUid === uid) {
+        return db.collection('students').doc(uid).set({
+          pendingReferralCode: firebase.firestore.FieldValue.delete()
+        }, { merge: true });
+      }
 
       return loadReferralConfig().then((config) => {
         if (!config.enabled) return null;
         const points = config.pointsPerSignup || 0;
-        const name = cleanReferredName(newDisplayName);
+        const name = cleanReferredName(studentData.displayName) || cleanReferredName(studentData.email);
 
-        // 1. Own doc first — this is the dedup marker, it must land.
-        return db.collection('students').doc(newUid)
-          .set({ referredBy: referrerUid }, { merge: true })
+        // Clear the parked code and set referredBy in ONE write, so a failure
+        // later can't leave this eligible to run a second time and double-pay.
+        return db.collection('students').doc(uid).set({
+          referredBy: referrerUid,
+          pendingReferralCode: firebase.firestore.FieldValue.delete()
+        }, { merge: true })
           .then(() => db.collection('referrals').add({
             referrerUid: referrerUid,
             referrerCode: code,
-            referredUid: newUid,
+            referredUid: uid,
             referredName: name,
-            referredEmail: newEmail || null,
+            referredEmail: studentData.email || null,
             status: 'signed_up',
             pointsAwarded: points,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -170,7 +205,7 @@ function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
           .then(() => notifyReferrer(
             referrerUid,
             'referral_signup',
-            (name || 'Someone') + ' just signed up using your invite link — +' + points + ' pts.'
+            (name || 'Someone') + ' just joined using your invite link — +' + points + ' pts.'
           ))
           .then(() => {
             if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
@@ -178,7 +213,7 @@ function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
       });
     })
     .catch((err) => {
-      console.error('Stryker: referral processing failed (non-fatal)', err);
+      console.error('Stryker: deferred referral processing failed (non-fatal)', err);
       return null;
     });
 }

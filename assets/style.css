@@ -62,6 +62,12 @@
   --shadow-glow: 0 0 0 1px rgba(3,201,136,0.15), 0 8px 40px -10px rgba(3,201,136,0.18);
 }
 
+:root{
+  /* 14px padding top and bottom around a 30px .icon-btn, plus the 1px bottom
+     border. Declared once because the sidebar's height and sticky offset are
+     both derived from it. */
+  --topbar-h:59px;
+}
 *,*::before,*::after{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; overflow-x:hidden; }
 body{
@@ -717,8 +723,24 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .dash-topbar h1{ font-size:23px; }
 .dash-topbar p{ color:var(--ink-2); font-size:13.5px; margin-top:4px; }
 
+/* App header. Named .mobile-topnav for historical reasons — it is now shown at
+   every width. Above 900px it drops the brand and hamburger (the sidebar
+   already carries the logo, and there is no drawer to open) and keeps the
+   notification bell and sign out, which previously had no desktop home at
+   all. */
 .mobile-topnav{ display:none; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft); background:var(--bg-0); position:sticky; top:0; z-index:50; }
 @media (max-width:900px){ .mobile-topnav{ display:flex; } }
+@media (min-width:901px){
+  .mobile-topnav{ display:flex; justify-content:flex-end; }
+  .mobile-topnav > .brand{ display:none; }
+  .mobile-topnav #dash-menu-toggle{ display:none; }
+  /* The header sits ABOVE .dash-shell in the document, so the sidebar's
+     100vh would otherwise run past the bottom of the screen by exactly the
+     header's height, and its sticky top:0 would slide underneath it. Both are
+     offset by the same variable so they stay in agreement. */
+  .sidebar{ height:calc(100vh - var(--topbar-h)); top:var(--topbar-h); }
+  .dash-shell{ min-height:calc(100vh - var(--topbar-h)); }
+}
 
 .stat-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:34px; }
 @media (max-width:960px){ .stat-grid{ grid-template-columns:1fr 1fr; } }
@@ -1608,12 +1630,6 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
   .plan-modal-grid{ grid-template-columns:1fr; }
 }
 
-/* Desktop header utilities (bell + sign out relocated from .mobile-topnav) -- */
-.dash-topbar-actions{ display:flex; align-items:center; gap:8px; }
-@media (max-width:900px){ .dash-topbar-actions{ display:none; } }
-/* The notification panel hangs off the bell; anchored right so it opens
-   inward from the topbar rather than off the edge of the viewport. */
-.dash-topbar-actions .notif-panel{ right:0; left:auto; }
 
 /* Invite row: signup vs upgrade points broken out --------------------------- */
 .invite-row{ align-items:flex-start; }

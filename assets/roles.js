@@ -52,6 +52,30 @@ function findPlan(idOrName){
          null;
 }
 
+// The plan every new account starts on: the lowest-ranked one that exists,
+// resolved from the plans collection rather than hardcoded, so renaming
+// "Starter" in Plans admin doesn't quietly strand new signups on a plan name
+// that no longer matches anything.
+//
+// Students store their plan as a NAME string (see findPlan), so that's what
+// this returns. Falls back to 'Starter' only if the collection can't be read
+// at all — better to guess the conventional name than leave the field null,
+// which is what triggered an upgrade modal on signup.
+function defaultPlanName(){
+  const plans = getCachedPlansForRoles();
+  if (plans && plans.length) {
+    // loadPlansForRoles already sorted ascending by rank.
+    const lowest = plans[0];
+    if (lowest && lowest.name) return lowest.name;
+  }
+  return 'Starter';
+}
+
+function resolveDefaultPlanName(){
+  if (typeof loadPlansForRoles !== 'function') return Promise.resolve('Starter');
+  return loadPlansForRoles().then(() => defaultPlanName()).catch(() => 'Starter');
+}
+
 // Public accessor for the already-loaded plans list, for pages that need
 // to build their own UI from it (e.g. a plan-picker dropdown) without
 // reaching into the internal cache variable directly.

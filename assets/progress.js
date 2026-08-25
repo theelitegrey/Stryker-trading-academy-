@@ -28,7 +28,13 @@ function daysBetween(a, b){
 function ensureStudentDoc(user){
   if (!user) return Promise.resolve(null);
   const ref = db.collection('students').doc(user.uid);
-  return ref.get().then((snap) => {
+  // Resolved up front because both branches below need it: new accounts start
+  // on it, and existing accounts sitting on a null plan get healed onto it.
+  const defaultPlan = (typeof resolveDefaultPlanName === 'function')
+    ? resolveDefaultPlanName()
+    : Promise.resolve('Starter');
+
+  return Promise.all([ref.get(), defaultPlan]).then(([snap, planName]) => {
     const today = todayStr();
 
     if (!snap.exists) {
@@ -42,7 +48,12 @@ function ensureStudentDoc(user){
         currentStreak: 1,
         bestStreak: 1,
         completedLessons: [],
-        completedChapters: []
+        completedChapters: [],
+        // Everyone starts on the entry plan. A null plan used to mean "no
+        // access to anything", which made plan-guard throw an upgrade modal
+        // at people the moment they finished signing up — before they'd seen
+        // a single page. Gating is now opt-in per page instead.
+        plan: planName
       };
       return ref.set(data).then(() => {
         // Non-blocking: resolve any pending ?ref= invite code from signup.
@@ -70,7 +81,8 @@ function ensureStudentDoc(user){
             photoURL: data.photoURL,
             createdAt: data.createdAt,
             currentStreak: data.currentStreak,
-            bestStreak: data.bestStreak
+            bestStreak: data.bestStreak,
+            plan: data.plan
           });
         }
       }).then(() => referralPark).then(() => ref.get()).then(s => {
@@ -87,6 +99,11 @@ function ensureStudentDoc(user){
       displayName: user.displayName || data.displayName || '',
       email: user.email || data.email || ''
     };
+    // Accounts created before the entry plan became the default carry a null
+    // plan, which still reads as "blocked from everything". Heal them on next
+    // sign-in rather than requiring a manual backfill. Only ever fills an
+    // ABSENT plan — never overwrites one an admin has set.
+    if (!data.plan && planName) updates.plan = planName;
     // Refresh the Google photo if one is newly available and no custom
     // upload is set — a custom upload always wins and is never overwritten.
     if (user.photoURL && !data.customPhotoURL && user.photoURL !== data.photoURL) {
@@ -108,6 +125,7 @@ function ensureStudentDoc(user){
       // whichever file actually owns that change (settings.js, students-admin.js).
       if (typeof syncPublicProfile === 'function') {
         const profileUpdate = { displayName: updates.displayName };
+        if (updates.plan) profileUpdate.plan = updates.plan;
         if (updates.photoURL) profileUpdate.photoURL = updates.photoURL;
         if (updates.currentStreak !== undefined) profileUpdate.currentStreak = updates.currentStreak;
         if (updates.bestStreak !== undefined) profileUpdate.bestStreak = updates.bestStreak;

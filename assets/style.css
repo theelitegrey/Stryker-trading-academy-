@@ -1,7 +1,7 @@
 /* ==========================================================================
    STRYKER TRADING ACADEMY — Design System
    Palette: deep terminal navy + Stryker gold + institutional teal
-   Type: Space Grotesk (display) / Inter (body) / JetBrains Mono (data)
+   Type: Archivo (display + body) / JetBrains Mono (data)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
@@ -39,6 +39,15 @@
      comprehension on trading charts. */
   --bull:#03c988;
   --bear:#e5484d;
+
+  /* warm secondary accent — used sparingly to break up the mostly cool
+     green/teal palette on pages that read as monotone otherwise (dashboard
+     stat cards, streak/engagement indicators). Not a new arbitrary choice —
+     this was already the color used for "pending" states and streak
+     achievement badges elsewhere; naming it here just makes that
+     consistent and reusable instead of a repeated hardcoded hex. */
+  --amber:#f5c542;
+  --amber-dim:#b8901f;
 
   /* type scale */
   --font-display:'Archivo', sans-serif;
@@ -685,6 +694,7 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .stat-card{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:20px; }
 .stat-top{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
 .stat-icon{ width:34px; height:34px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(3,201,136,0.1); color:var(--gold); }
+.stat-icon.amber{ background:rgba(245,197,66,0.14); color:var(--amber); }
 .stat-delta{ font-family:var(--font-mono); font-size:11.5px; padding:3px 7px; border-radius:5px; }
 .stat-delta.up{ color:var(--bull); background:rgba(47,191,143,0.1); }
 .stat-delta.down{ color:var(--bear); background:rgba(229,72,77,0.1); }

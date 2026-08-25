@@ -23,6 +23,7 @@ let CURRENT_CATEGORY = 'general'; // 'general' | 'propfirm' — which tab is sho
 let ACTIVE_FLAIR_FILTER = null;   // null | 'setup' | 'question'
 let PENDING_IMAGE_DATA_URL = null;
 let PENDING_FLAIR = null;         // null | 'setup' | 'question' — set from the composer's flair picker
+let EDITING_POST_ID = null;       // null when composing a new post; set to a post's id while editing it
 let BOOKMARKED_IDS = new Set();
 
 /* ---------------- helpers ---------------- */
@@ -215,18 +216,30 @@ function renderPostCard(post){
   const el = document.createElement('div');
   el.className = 'floor-post';
   const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(post.authorPlan || (AUTHOR_DATA_CACHE[post.authorUid] && AUTHOR_DATA_CACHE[post.authorUid].plan), { size: 'small' }) : '';
-  const flairBadge = post.flair
-    ? '<span class="floor-flair-badge ' + post.flair + '">' + (post.flair === 'setup' ? 'Setup' : 'Question') + '</span>'
+  // Deliberately a flat text label, not a bordered pill like the role tag —
+  // this is post metadata (what kind of post), not identity metadata (who
+  // posted), and shouldn't visually compete with the role tag for
+  // attention. Sits on the timestamp row instead of the name row for the
+  // same reason — grouped with other "about this post" info, not "about
+  // this person" info.
+  const flairLabel = post.flair
+    ? '<span class="floor-flair-label ' + post.flair + '">' + (post.flair === 'setup' ? 'Setup' : 'Question') + '</span>'
     : '';
+  const editedLabel = post.editedAt ? '<span class="floor-post-edited">· edited</span>' : '';
   const avatarHtml = (typeof avatarImgHtml === 'function')
     ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36, true)
     : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
-      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + flairBadge + '</div>' +
-      '<div class="floor-post-time">' + timeAgo(createdDate) + '</div></div>' +
-      (post.authorUid === FLOOR_UID ? '<button type="button" class="icon-btn" style="margin-left:auto;" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' : '') +
+      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + '</div>' +
+      '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +
+      (post.authorUid === FLOOR_UID
+        ? '<div style="margin-left:auto; display:flex; gap:4px;">' +
+            '<button type="button" class="icon-btn" data-edit-post title="Edit post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/></svg></button>' +
+            '<button type="button" class="icon-btn" data-delete-post title="Delete post"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg></button>' +
+          '</div>'
+        : '') +
     '</div>' +
     '<div class="floor-post-body">' + (post.textHtml || '') + '</div>' +
     (post.imageDataUrl ? '<img class="floor-post-image" src="' + post.imageDataUrl + '" alt="">' : '') +
@@ -271,6 +284,9 @@ function renderPostCard(post){
 
   const deleteBtn = el.querySelector('[data-delete-post]');
   if (deleteBtn) deleteBtn.addEventListener('click', () => deletePost(post.id));
+
+  const editBtn = el.querySelector('[data-edit-post]');
+  if (editBtn) editBtn.addEventListener('click', () => openComposerModal(post));
 
   const sendReplyBtn = el.querySelector('[data-send-reply]');
   const replyInput = el.querySelector('[data-reply-input]');
@@ -541,28 +557,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Floating "New post" button → opens the composer modal. Closes on the
   // × button, clicking the dark overlay itself, or Escape.
+  // Also doubles as the edit flow: called with a post object (from an
+  // Edit button elsewhere in this file) it pre-fills everything and
+  // switches save behavior to update that post instead of creating a new
+  // one. Exposed on window since renderPostCard, which needs to call this
+  // for the Edit button, is a top-level function outside this closure.
   const composerOverlay = document.getElementById('floor-composer-modal-overlay');
-  function openComposerModal(){
+  function openComposerModal(postToEdit){
     if (composerOverlay) composerOverlay.style.display = 'flex';
     const editable = document.getElementById('floor-post-text');
-    if (editable) editable.focus();
-    // Reset the flair picker every time the composer opens, rather than
-    // carrying over a selection from a previous post.
-    PENDING_FLAIR = null;
-    document.querySelectorAll('#floor-flair-picker [data-flair]').forEach(b => b.classList.remove('selected'));
     const titleEl = document.getElementById('floor-composer-title');
-    if (titleEl) titleEl.textContent = CURRENT_CATEGORY === 'propfirm' ? 'New prop firm post' : 'New post';
+    const postBtnLabel = document.getElementById('floor-post-btn-label');
+
+    EDITING_POST_ID = postToEdit ? postToEdit.id : null;
+
+    document.querySelectorAll('#floor-flair-picker [data-flair]').forEach(b => b.classList.remove('selected'));
+
+    if (postToEdit) {
+      if (titleEl) titleEl.textContent = 'Edit post';
+      if (postBtnLabel) postBtnLabel.textContent = 'Save changes';
+      if (editable) editable.innerHTML = postToEdit.textHtml || '';
+      PENDING_FLAIR = postToEdit.flair || null;
+      if (PENDING_FLAIR) {
+        const btn = document.querySelector('#floor-flair-picker [data-flair="' + PENDING_FLAIR + '"]');
+        if (btn) btn.classList.add('selected');
+      }
+      PENDING_IMAGE_DATA_URL = postToEdit.imageDataUrl || null;
+      const previewWrap = document.getElementById('floor-image-preview-wrap');
+      const previewImg = document.getElementById('floor-image-preview');
+      if (PENDING_IMAGE_DATA_URL && previewWrap && previewImg) {
+        previewImg.src = PENDING_IMAGE_DATA_URL;
+        previewWrap.style.display = 'block';
+      }
+    } else {
+      // Fresh post — reset everything rather than carrying over state
+      // from a previous post (whether a prior edit or a prior new post).
+      PENDING_FLAIR = null;
+      PENDING_IMAGE_DATA_URL = null;
+      if (editable) editable.innerHTML = '';
+      const previewWrap = document.getElementById('floor-image-preview-wrap');
+      if (previewWrap) previewWrap.style.display = 'none';
+      const imageInput = document.getElementById('floor-image-input');
+      if (imageInput) imageInput.value = '';
+      if (titleEl) titleEl.textContent = CURRENT_CATEGORY === 'propfirm' ? 'New prop firm post' : 'New post';
+      if (postBtnLabel) postBtnLabel.textContent = 'Post';
+    }
+
     if (editable) {
       editable.setAttribute('data-placeholder', CURRENT_CATEGORY === 'propfirm'
         ? 'A challenge you\'re running, a payout, a question about a firm\'s rules… Use @name to mention someone, #tag to label a topic.'
         : 'Daily bias, a setup you\'re watching, a question… Use @name to mention someone, #tag to label a topic.');
+      editable.focus();
     }
   }
+  window.openComposerModal = openComposerModal;
   function closeComposerModal(){
     if (composerOverlay) composerOverlay.style.display = 'none';
   }
   const fabBtn = document.getElementById('floor-fab-btn');
-  if (fabBtn) fabBtn.addEventListener('click', openComposerModal);
+  if (fabBtn) fabBtn.addEventListener('click', () => openComposerModal());
   const composerCloseBtn = document.getElementById('floor-composer-close-btn');
   if (composerCloseBtn) composerCloseBtn.addEventListener('click', closeComposerModal);
   if (composerOverlay) {
@@ -591,6 +644,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('floor-post-btn');
     btn.disabled = true;
 
+    function resetComposerAfterSave(){
+      editable.innerHTML = '';
+      PENDING_IMAGE_DATA_URL = null;
+      PENDING_FLAIR = null;
+      EDITING_POST_ID = null;
+      document.getElementById('floor-image-input').value = '';
+      document.getElementById('floor-image-preview-wrap').style.display = 'none';
+      closeComposerModal();
+      loadPosts();
+    }
+
+    if (EDITING_POST_ID) {
+      // Editing an existing post — only the content fields change.
+      // authorUid, category, createdAt, and all the reaction arrays stay
+      // exactly as they were; this only ever needs to touch what the
+      // edit rule actually allows (see the Firestore rule this feature
+      // needs, given separately).
+      db.collection('communityPosts').doc(EDITING_POST_ID).update({
+        textHtml: linkifyTags(rawHtml),
+        imageDataUrl: PENDING_IMAGE_DATA_URL || null,
+        flair: PENDING_FLAIR || null,
+        editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(resetComposerAfterSave).catch((err) => {
+        errEl.textContent = err.message || 'Could not save changes.';
+        errEl.style.display = 'block';
+      }).finally(() => { btn.disabled = false; });
+      return;
+    }
+
     db.collection('communityPosts').add({
       authorUid: FLOOR_UID,
       authorName: FLOOR_NAME,
@@ -610,12 +692,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }, { merge: true }).then(() => {
         if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
       }).catch((err) => console.error('Stryker: failed to update post count', err));
-      editable.innerHTML = '';
-      PENDING_IMAGE_DATA_URL = null;
-      document.getElementById('floor-image-input').value = '';
-      document.getElementById('floor-image-preview-wrap').style.display = 'none';
-      closeComposerModal();
-      loadPosts();
+      resetComposerAfterSave();
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not post.';
       errEl.style.display = 'block';

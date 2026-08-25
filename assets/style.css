@@ -1506,3 +1506,26 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
   border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);
 }
 .log-filter-input:focus{ outline:none; border-color:var(--teal); }
+
+/* Admin sidebar accordion groups ------------------------------------------ */
+.side-group{ margin-bottom:4px; }
+.side-group-head{
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  background:none; border:none; cursor:pointer;
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.1em;
+  text-transform:uppercase; color:var(--ink-3);
+  padding:14px 12px 8px; text-align:left;
+  transition:color .15s ease;
+}
+.side-group-head:hover{ color:var(--ink-2); }
+.side-group-chev{ transition:transform .2s ease; flex-shrink:0; opacity:0.7; }
+.side-group.open .side-group-chev{ transform:rotate(180deg); }
+/* grid-template-rows 0fr -> 1fr animates a container of unknown height, which
+   max-height cannot do without hard-coding a value that clips or lags. */
+.side-group-body{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows .22s ease;
+}
+.side-group.open .side-group-body{ grid-template-rows:1fr; }
+/* The single child is what actually gets clipped while the row collapses. */
+.side-group-inner{ overflow:hidden; min-height:0; }

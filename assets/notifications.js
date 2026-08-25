@@ -75,7 +75,16 @@ function checkAndNotifyNewAchievements(uid, student, chapters, extra){
 // dependent badges aren't checked here (this doesn't load chapters data) —
 // those are covered separately by reader.js and achievements.html, which
 // already have that data loaded for other reasons.
-function checkAndNotifyNewAchievementsFor(uid){
+//
+// isSelf matters here: this function sometimes runs against the CALLER's
+// own uid (after their own post/reply/referral) and sometimes against
+// someone else's (after THEY receive a like — the liker's session is what
+// triggers the recheck for the post author). The full multi-field profile
+// sync below is only safe for the self case; a cross-user write can only
+// touch the one field the Firestore rules specifically allow for that
+// (floorLikesReceived), or it'll be rejected. Pass isSelf: false for any
+// caller acting on someone else's uid.
+function checkAndNotifyNewAchievementsFor(uid, isSelf){
   if (typeof db === 'undefined' || !db) return Promise.resolve();
   return db.collection('students').doc(uid).get().then((doc) => {
     if (!doc.exists) return;
@@ -87,6 +96,33 @@ function checkAndNotifyNewAchievementsFor(uid){
       journalCount: student.journalEntryCount || 0,
       hasWinningTrade: !!student.hasWinningTrade
     };
+    // Piggyback the public-profile sync on this same fetch, rather than
+    // adding syncPublicProfile calls at every individual counter-update
+    // site — this function already re-fetches fresh student data after
+    // every post/reply/like/referral/TV-grant, so it's the natural single
+    // place to keep these specific fields current. Journal-related fields
+    // are deliberately never synced here — they stay private, per the
+    // reasoning in achievements-data.js's file header.
+    //
+    // The self case can sync all five fields at once (writing your own
+    // profile doc, no restriction). The cross-user case (someone else's
+    // uid, after they received a like) can only touch floorLikesReceived —
+    // that's the one field the Firestore rules specifically allow a
+    // non-owner to update, matching the same narrow exception on the
+    // students/{uid} rule that the counter increment itself relies on.
+    if (typeof syncPublicProfile === 'function') {
+      if (isSelf) {
+        syncPublicProfile(uid, {
+          floorPostCount: extra.postCount,
+          floorReplyCount: extra.replyCount,
+          floorLikesReceived: extra.likesReceived,
+          referralPoints: student.referralPoints || 0,
+          tradingViewAccessGranted: !!student.tradingViewAccessGranted
+        });
+      } else {
+        syncPublicProfile(uid, { floorLikesReceived: extra.likesReceived });
+      }
+    }
     return checkAndNotifyNewAchievements(uid, student, null, extra);
   }).catch((err) => console.error('Stryker: failed to check achievements', err));
 }

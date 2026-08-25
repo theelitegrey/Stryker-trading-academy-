@@ -289,7 +289,7 @@ function toggleReaction(post, field){
     db.collection('students').doc(post.authorUid).set({
       floorLikesReceived: firebase.firestore.FieldValue.increment(delta)
     }, { merge: true }).then(() => {
-      if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid);
+      if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid, false);
     }).catch((err) => console.error('Stryker: failed to update likes-received count', err));
     // Only notify on a genuine new like (not un-liking), and never for
     // liking your own post.
@@ -389,7 +389,7 @@ function sendReply(post, inputEl, cardEl){
       db.collection('students').doc(FLOOR_UID).set({
         floorReplyCount: firebase.firestore.FieldValue.increment(1)
       }, { merge: true }).then(() => {
-        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID);
+        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
       }).catch((err) => console.error('Stryker: failed to update reply count', err));
       inputEl.value = '';
       loadPosts().then(() => {
@@ -555,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
       db.collection('students').doc(FLOOR_UID).set({
         floorPostCount: firebase.firestore.FieldValue.increment(1)
       }, { merge: true }).then(() => {
-        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID);
+        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
       }).catch((err) => console.error('Stryker: failed to update post count', err));
       editable.innerHTML = '';
       PENDING_IMAGE_DATA_URL = null;

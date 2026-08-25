@@ -120,7 +120,9 @@ function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => db.collection('students').doc(referrerUid).set({
           referralPoints: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true })).then(() => db.collection('students').doc(newUid).set({
+        }, { merge: true })).then(() => {
+          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
+        }).then(() => db.collection('students').doc(newUid).set({
           referredBy: referrerUid
         }, { merge: true }));
       });
@@ -161,6 +163,9 @@ function processReferralConversion(purchasingUid){
         .then(() => db.collection('students').doc(referrerUid).set({
           referralPoints: firebase.firestore.FieldValue.increment(points)
         }, { merge: true }))
+        .then(() => {
+          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
+        })
         .then(() => db.collection('students').doc(purchasingUid).set({
           referralConversionPaid: true
         }, { merge: true }));
@@ -228,7 +233,9 @@ function applyReferralCodeAtCheckout(purchasingUid, rawCode){
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         }).then(() => db.collection('students').doc(referrerUid).set({
           referralPoints: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true })).then(() => db.collection('students').doc(purchasingUid).set({
+        }, { merge: true })).then(() => {
+          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
+        }).then(() => db.collection('students').doc(purchasingUid).set({
           referredBy: referrerUid,
           referralConversionPaid: true
         }, { merge: true }));

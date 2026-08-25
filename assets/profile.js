@@ -10,19 +10,20 @@
 const PROFILE_RECENT_POSTS_LIMIT = 6;
 
 // IDs from the shared ACHIEVEMENTS array (achievements-data.js) that are
-// actually computable from what's synced to the public profile doc —
-// chapter/lesson COUNTS and streak, not the exact completed-chapters list,
-// so the three level-specific badges (Foundations/Structure Master/SMT
-// Certified) can't be checked here and are left off. Community, referral,
-// TradingView, and journal badges depend on stats that aren't synced to
-// the public profile at all — those stay visible only on your own
-// achievements.html page. `private: true` badges (journal) are already
-// excluded regardless, by design — see achievements-data.js's file header.
+// actually computable from what's synced to the public profile doc.
+// Excluded: the three level-specific curriculum badges (Foundations/
+// Structure Master/SMT Certified), which need the exact completed-chapters
+// list rather than just a count; and everything in achievements-data.js
+// marked `private: true` (the 5 Trade Journal badges) — trade frequency
+// and win/loss patterns stay off the public profile by design, same
+// reasoning as why journal entries themselves are private everywhere else.
 const PROFILE_VISIBLE_BADGE_IDS = [
   'first-chapter', 'chapters-5', 'chapters-10', 'halfway-there', 'chapters-30', 'curriculum-complete',
   'lessons-10', 'lessons-25', 'lessons-50', 'lessons-100',
   'streak-3', 'streak-7', 'streak-14', 'streak-30', 'streak-60', 'streak-100',
-  'bio-set', 'avatar-customized', 'plan-upgraded', 'early-adopter', 'welcome'
+  'first-post', 'posts-5', 'posts-25', 'posts-50', 'first-reply', 'replies-10', 'likes-5', 'likes-25', 'likes-100',
+  'first-referral', 'referral-points-100', 'referral-points-250', 'referral-points-500',
+  'bio-set', 'avatar-customized', 'plan-upgraded', 'tv-access', 'early-adopter', 'welcome'
 ];
 
 function getEarnedProfileBadges(profile){
@@ -34,14 +35,21 @@ function getEarnedProfileBadges(profile){
     bio: profile.bio || '',
     customPhotoURL: profile.customPhotoURL || null,
     avatarSeed: profile.avatarSeed || null,
-    plan: profile.plan || null
+    plan: profile.plan || null,
+    referralPoints: profile.referralPoints || 0,
+    tradingViewAccessGranted: !!profile.tradingViewAccessGranted
+  };
+  const extra = {
+    postCount: profile.floorPostCount || 0,
+    replyCount: profile.floorReplyCount || 0,
+    likesReceived: profile.floorLikesReceived || 0
   };
   // curriculum-complete needs ch.length specifically (the total chapter
   // count, 42) — a dummy array of the right length satisfies that check
   // without needing the actual chapter objects, which the level-specific
   // badges would need and which is exactly why those stay excluded above.
   const fakeChapters = new Array(42);
-  return ACHIEVEMENTS.filter((a) => PROFILE_VISIBLE_BADGE_IDS.includes(a.id) && a.check(s, fakeChapters));
+  return ACHIEVEMENTS.filter((a) => PROFILE_VISIBLE_BADGE_IDS.includes(a.id) && a.check(s, fakeChapters, extra));
 }
 
 function getProfileUidFromQuery(){
@@ -118,12 +126,11 @@ function renderProfile(uid, profile, isOwnProfile, postCount){
 
   const earnedBadges = getEarnedProfileBadges(profile);
   const badgesHtml = earnedBadges.length
-    ? '<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:20px;">' +
+    ? '<div style="display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin-top:22px;">' +
         earnedBadges.map((a) =>
-          '<span title="' + escapeProfileText(a.desc) + '" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px 5px 6px; border-radius:999px; background:' + a.color + '1a; border:1px solid ' + a.color + '55; font-size:12px; color:var(--ink-1);">' +
-            '<span style="display:flex; width:18px; height:18px; border-radius:50%; align-items:center; justify-content:center; color:' + a.color + ';"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' + a.icon + '</svg></span>' +
-            a.title +
-          '</span>'
+          '<div class="profile-badge-ic" title="' + escapeProfileText(a.title) + ' — ' + escapeProfileText(a.desc) + '" style="color:' + a.color + '; background:' + a.color + '2e; border-color:' + a.color + ';">' +
+            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' + a.icon + '</svg>' +
+          '</div>'
         ).join('') +
       '</div>'
     : '';

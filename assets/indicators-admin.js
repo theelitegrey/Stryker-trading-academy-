@@ -49,6 +49,7 @@ function renderTvRequestsPanel(students){
           if (typeof createNotification === 'function') {
             createNotification(uid, 'tv_access_granted', 'Your TradingView indicator access has been granted.', 'indicators.html');
           }
+          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(uid, true);
         })
         .then(loadTvRequests)
         .catch((err) => {

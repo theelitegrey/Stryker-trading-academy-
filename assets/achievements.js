@@ -66,7 +66,7 @@ function renderAchievements(student){
         ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + a.color + '" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>'
         : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
       el.innerHTML =
-        '<div class="badge-row-ic" style="color:' + iconColor + '; background:' + (unlocked ? a.color + '1a' : 'transparent') + '; border-color:' + (unlocked ? a.color + '55' : 'var(--line)') + ';">' +
+        '<div class="badge-row-ic" style="color:' + iconColor + '; background:' + (unlocked ? a.color + '2e' : 'transparent') + '; border-color:' + (unlocked ? a.color : 'var(--line)') + ';">' +
           '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + a.icon + '</svg>' +
         '</div>' +
         '<div class="badge-row-text"><span class="badge-row-title">' + a.title + '</span><span class="badge-row-desc">' + a.desc + '</span></div>' +
@@ -95,6 +95,20 @@ document.addEventListener('DOMContentLoaded', () => {
         renderAchievements(student);
         if (typeof checkAndNotifyNewAchievements === 'function') {
           checkAndNotifyNewAchievements(user.uid, student, CHAPTERS, buildAchievementExtra(student));
+        }
+        // Self-write, always safe — keeps referralPoints and
+        // tradingViewAccessGranted current on the public profile even
+        // though those specific fields can't sync from someone else's
+        // session (see notifications.js's isSelf reasoning). This page is
+        // the reliable fallback that catches them up whenever visited.
+        if (typeof syncPublicProfile === 'function') {
+          syncPublicProfile(user.uid, {
+            floorPostCount: student.floorPostCount || 0,
+            floorReplyCount: student.floorReplyCount || 0,
+            floorLikesReceived: student.floorLikesReceived || 0,
+            referralPoints: student.referralPoints || 0,
+            tradingViewAccessGranted: !!student.tradingViewAccessGranted
+          });
         }
       })
       .catch((err) => console.error('Stryker: failed to load achievements', err));

@@ -1270,3 +1270,39 @@ body.view-only-mode .floor-action-btn[data-action="upvote"],
 body.view-only-mode .floor-action-btn[data-action="downvote"],
 body.view-only-mode .floor-action-btn[data-action="bookmark"]{ display:none; }
 body.view-only-mode .floor-reply-input-row{ display:none; }
+
+/* ==========================================================================
+   NOTIFICATIONS — bell icon + badge in the mobile topnav, dropdown panel
+   ========================================================================== */
+.notif-bell-wrap{ position:relative; }
+.notif-badge{
+  display:none; align-items:center; justify-content:center;
+  position:absolute; top:-4px; right:-4px; min-width:16px; height:16px; padding:0 3px;
+  border-radius:999px; background:var(--bear); color:#fff;
+  font-size:9.5px; font-weight:700; font-family:var(--font-mono); line-height:1;
+}
+.notif-panel{
+  display:none; position:absolute; top:calc(100% + 10px); right:0; z-index:200;
+  width:320px; max-width:calc(100vw - 32px); max-height:420px; overflow-y:auto;
+  background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 16px 40px -10px rgba(0,0,0,0.5);
+}
+.notif-panel-head{ padding:14px 16px; border-bottom:1px solid var(--line-soft); font-weight:700; font-size:13.5px; color:var(--ink-0); }
+.notif-item{
+  display:flex; gap:10px; align-items:flex-start; padding:12px 16px;
+  border-bottom:1px solid var(--line-soft); text-decoration:none; color:inherit;
+  transition:background .12s ease;
+}
+.notif-item:last-child{ border-bottom:none; }
+.notif-item:hover{ background:var(--bg-3); }
+.notif-item.unread{ background:rgba(3,201,136,0.05); }
+.notif-item-icon{
+  flex-shrink:0; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:rgba(3,201,136,0.1); color:var(--gold); margin-top:1px;
+}
+.notif-item-body{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.notif-item-msg{ font-size:13px; color:var(--ink-1); line-height:1.4; }
+.notif-item-time{ font-size:11px; color:var(--ink-3); font-family:var(--font-mono); }
+@media (max-width:640px){
+  .notif-panel{ position:fixed; top:60px; right:16px; left:16px; width:auto; }
+}

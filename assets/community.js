@@ -279,7 +279,14 @@ function toggleReaction(post, field){
   const ref = db.collection('communityPosts').doc(post.id);
   const update = {};
   update[field] = has ? firebase.firestore.FieldValue.arrayRemove(FLOOR_UID) : firebase.firestore.FieldValue.arrayUnion(FLOOR_UID);
-  ref.update(update).then(loadPosts).catch((err) => alert('Could not update: ' + (err.message || err)));
+  ref.update(update).then(() => {
+    // Only notify on a genuine new like (not un-liking), only for the
+    // dedicated heart button (not up/downvotes), and never for liking your
+    // own post.
+    if (field === 'likedBy' && !has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
+      createNotification(post.authorUid, 'like', FLOOR_NAME + ' liked your post.', 'trading-floor.html');
+    }
+  }).then(loadPosts).catch((err) => alert('Could not update: ' + (err.message || err)));
 }
 
 function toggleVote(post, direction){
@@ -365,6 +372,9 @@ function sendReply(post, inputEl, cardEl){
   })
     .then(() => db.collection('communityPosts').doc(post.id).update({ replyCount: firebase.firestore.FieldValue.increment(1) }))
     .then(() => {
+      if (post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
+        createNotification(post.authorUid, 'reply', FLOOR_NAME + ' replied to your post.', 'trading-floor.html');
+      }
       inputEl.value = '';
       loadPosts().then(() => {
         const newCardWrap = document.getElementById('replies-' + post.id);

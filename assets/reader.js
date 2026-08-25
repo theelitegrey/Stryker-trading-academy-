@@ -35,10 +35,22 @@ let completedLessonsSet = new Set();
 let completedChaptersSet = new Set();
 let CURRENT_INDEX = 0;
 let CURRENT_UID = null; // null = guest — progress saves locally only
+let CURRENT_BEST_STREAK = 0;
+let CURRENT_NOTIFIED_ACHIEVEMENTS = [];
 
 function persistProgress(){
   if (CURRENT_UID) {
     saveStudentProgress(CURRENT_UID, completedLessonsSet, completedChaptersSet)
+      .then(() => {
+        if (typeof checkAndNotifyNewAchievements === 'function') {
+          checkAndNotifyNewAchievements(CURRENT_UID, {
+            completedChapters: Array.from(completedChaptersSet),
+            completedLessons: Array.from(completedLessonsSet),
+            bestStreak: CURRENT_BEST_STREAK,
+            notifiedAchievements: CURRENT_NOTIFIED_ACHIEVEMENTS
+          }, (typeof CHAPTERS !== 'undefined') ? CHAPTERS : null);
+        }
+      })
       .catch(err => console.error('Stryker: failed to save progress to Firestore', err));
   } else {
     saveLocalProgress(completedLessonsSet, completedChaptersSet);
@@ -333,6 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ensureStudentDoc(user).then((student) => {
           completedLessonsSet = new Set((student && student.completedLessons) || []);
           completedChaptersSet = new Set((student && student.completedChapters) || []);
+          CURRENT_BEST_STREAK = (student && student.bestStreak) || 0;
+          CURRENT_NOTIFIED_ACHIEVEMENTS = (student && student.notifiedAchievements) || [];
           renderReader();
           applyChapterRoleGate(user.uid);
         }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));

@@ -45,6 +45,11 @@ function renderTvRequestsPanel(students){
       const uid = btn.dataset.grantTv;
       btn.disabled = true;
       db.collection('students').doc(uid).set({ tradingViewAccessGranted: true }, { merge: true })
+        .then(() => {
+          if (typeof createNotification === 'function') {
+            createNotification(uid, 'tv_access_granted', 'Your TradingView indicator access has been granted.', 'indicators.html');
+          }
+        })
         .then(loadTvRequests)
         .catch((err) => {
           alert('Could not update: ' + (err.message || err));

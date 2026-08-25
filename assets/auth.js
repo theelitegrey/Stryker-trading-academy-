@@ -71,14 +71,11 @@ function friendlyAuthError(error){
   return map[error.code] || (error.message || 'Something went wrong. Please try again.');
 }
 
-function currentRoleIsAdmin(authBoxEl){
-  let isAdmin = false;
-  if (!authBoxEl) return false;
-  authBoxEl.querySelectorAll('.role-toggle button').forEach(b => {
-    if (b.classList.contains('active') && b.textContent.includes('Admin')) isAdmin = true;
-  });
-  return isAdmin;
-}
+// NOTE: role selection at login was removed deliberately. It was a UI toggle
+// that anyone could click, so it never proved anything — the real boundary is
+// the Firestore rules plus admin-guard.js, both of which check for an
+// /admins/{uid} document. Everyone now lands on the student dashboard, and
+// admin-link.js reveals an "Admin dashboard" entry point for genuine admins.
 
 // Stores the page a visitor was trying to reach before being bounced to
 // login, so we can send them back there instead of a generic dashboard once
@@ -91,7 +88,7 @@ function goToLoginPreservingReturn(){
   window.location.href = 'login.html';
 }
 
-function routeToRoleDashboard(role){
+function routeAfterAuth(){
   // Small delay before navigating away: gives Firebase's persistence layer
   // a moment to actually finish writing the session to storage before a
   // full page reload immediately needs to read it back on the next page.
@@ -110,7 +107,7 @@ function routeToRoleDashboard(role){
       window.location.href = returnTo;
       return;
     }
-    window.location.href = (role === 'admin') ? 'dashboard-admin.html' : 'dashboard-user.html';
+    window.location.href = 'dashboard-user.html';
   }, 400);
 }
 
@@ -126,12 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
       clearAuthError('login-error');
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
-      const isAdmin = currentRoleIsAdmin(loginForm.closest('.auth-box'));
       const btn = loginForm.querySelector('button[type="submit"]');
       const original = btn.textContent;
       btn.disabled = true; btn.textContent = 'Logging in…';
       auth.signInWithEmailAndPassword(email, password)
-        .then(() => routeToRoleDashboard(isAdmin ? 'admin' : 'student'))
+        .then(() => routeAfterAuth())
         .catch((err) => showAuthError('login-error', friendlyAuthError(err)))
         .finally(() => { btn.disabled = false; btn.textContent = original; });
     });
@@ -154,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = document.getElementById('signup-email').value.trim();
       const password = document.getElementById('signup-password').value;
       const referralCode = referralField ? referralField.value.trim() : '';
-      const isAdmin = currentRoleIsAdmin(signupForm.closest('.auth-box'));
       const btn = signupForm.querySelector('button[type="submit"]');
       const original = btn.textContent;
       btn.disabled = true; btn.textContent = 'Creating account…';
@@ -168,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then((cred) => {
           if (name && cred.user) return cred.user.updateProfile({ displayName: name });
         })
-        .then(() => routeToRoleDashboard(isAdmin ? 'admin' : 'student'))
+        .then(() => routeAfterAuth())
         .catch((err) => showAuthError('signup-error', friendlyAuthError(err)))
         .finally(() => { btn.disabled = false; btn.textContent = original; });
     });
@@ -185,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       clearAuthError('login-error');
       clearAuthError('signup-error');
-      const isAdmin = currentRoleIsAdmin(btn.closest('.auth-box'));
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
       const errElId = document.getElementById('signup-form') ? 'signup-error' : 'login-error';
@@ -194,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = true;
 
       auth.signInWithPopup(provider)
-        .then(() => routeToRoleDashboard(isAdmin ? 'admin' : 'student'))
+        .then(() => routeAfterAuth())
         .catch((err) => {
           if (err && err.code === 'auth/popup-blocked') {
             showAuthError(errElId, "Your browser blocked the Google sign-in popup. Please allow popups for this site, or use email/password instead — it doesn't need one.");

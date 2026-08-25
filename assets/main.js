@@ -75,14 +75,4 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('scroll', onScroll, { passive: true });
   }
 
-  // Student / Admin role toggle (login.html, signup.html) — purely a UI choice
-  // that decides which dashboard page you land on after signing in. It is not
-  // real access control (see note in auth.js).
-  document.querySelectorAll('.role-toggle button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-
 });

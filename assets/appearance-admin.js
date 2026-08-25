@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resizeImageToDataUrl(file, 300, 'image/png')
       .then((dataUrl) => db.collection('settings').doc('logo').set({ dataUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
+      .then(() => { if (typeof logActivity === 'function') logActivity('settings.appearance', 'Updated the site logo'); })
       .then(() => {
         document.getElementById('logo-current-label').textContent = 'Current: custom upload';
         showAppearanceMsg('appearance-success', 'Logo updated — it will now show across the whole site.');
@@ -115,6 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     resizeImageToDataUrl(file, 64, 'image/png')
       .then((dataUrl) => db.collection('settings').doc('favicon').set({ dataUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }))
+      .then(() => { if (typeof logActivity === 'function') logActivity('settings.appearance', 'Updated the site favicon'); })
       .then(() => {
         document.getElementById('favicon-current-label').textContent = 'Current: custom upload';
         showAppearanceMsg('appearance-success', 'Favicon updated. Browsers cache favicons aggressively, so it may take a refresh or two to visibly change.');
@@ -129,6 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('reset-branding-btn').addEventListener('click', () => {
     if (!confirm('Reset to the bundled default logo and favicon?')) return;
+    if (typeof logActivity === 'function') logActivity('settings.appearance', 'Reset logo and favicon to defaults');
     Promise.all([
       db.collection('settings').doc('logo').delete(),
       db.collection('settings').doc('favicon').delete()

@@ -78,6 +78,29 @@ function logActivity(action, summary, meta){
   }
 }
 
+// Use this instead of logActivity() when the very next thing that happens is
+// a page navigation.
+//
+// logActivity() is fire-and-forget by design, which is right almost
+// everywhere — but it means the write is still in flight when the browser
+// tears the page down, so it never reaches Firestore. That is exactly why
+// "Logged out" appeared in the log while "Logged in" and "Created an account"
+// never did: the sign-out path happened to await its write, the sign-in paths
+// did not, and the redirect fired 400ms later.
+//
+// Awaiting alone would be a bad trade: a slow or failed log would leave
+// someone staring at a login screen that appears to have done nothing. So the
+// wait is capped — after the timeout the navigation proceeds regardless and
+// the log entry is simply lost, which is the correct priority.
+function logActivityBeforeNavigating(action, summary, meta, maxWaitMs){
+  var write = logActivity(action, summary, meta);
+  if (!write || typeof write.then !== 'function') return Promise.resolve();
+  return Promise.race([
+    write,
+    new Promise(function (resolve) { setTimeout(resolve, maxWaitMs || 1500); })
+  ]).catch(function () { /* never block navigation on a logging failure */ });
+}
+
 // Every action key the app writes, with the label shown in the admin filter.
 // Kept here so the writers and the viewer can't drift apart.
 var ACTIVITY_ACTIONS = {

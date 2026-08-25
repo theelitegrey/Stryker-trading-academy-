@@ -169,6 +169,19 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof syncPublicProfile === 'function') syncPublicProfile(CHECKOUT_UID, { plan: CHECKOUT_PLAN.name });
       })
       .then(() => {
+        // Two entries, not one: the money and the access change are separate
+        // facts. An order can exist without a plan change (a failed grant) and
+        // an admin can grant a plan with no order behind it, so collapsing
+        // them into a single line would hide both cases.
+        if (typeof logActivity === 'function') {
+          logActivity('commerce.order_created',
+            'Bought ' + CHECKOUT_PLAN.name + ' for $' + finalAmount +
+            (APPLIED_COUPON ? ' with coupon ' + APPLIED_COUPON.code : ''),
+            { detail: 'plan ' + CHECKOUT_PLAN.id });
+          logActivity('student.plan_changed',
+            'Upgraded their own plan to ' + CHECKOUT_PLAN.name,
+            { targetUid: CHECKOUT_UID, detail: 'via checkout' });
+        }
         // Non-blocking: award the referrer's conversion bonus, if this
         // student was referred and hasn't already triggered one. A failure
         // here should never block the checkout flow itself.
@@ -185,6 +198,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('checkout-success').textContent =
           'Order complete — you now have ' + CHECKOUT_PLAN.name + '. Redirecting to your dashboard…';
         document.getElementById('checkout-success').style.display = 'block';
+        // 1.8s is comfortably longer than the log writes above need, so they
+        // are not awaited here — unlike the login path, where the redirect
+        // fires at 400ms and killed the write.
         setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 1800);
       })
       .catch((err) => {

@@ -44,6 +44,7 @@ function renderTvRequestsPanel(students){
     btn.addEventListener('click', () => {
       const uid = btn.dataset.grantTv;
       btn.disabled = true;
+      if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Granted TradingView indicator access', { targetUid: uid });
       db.collection('students').doc(uid).set({ tradingViewAccessGranted: true }, { merge: true })
         .then(() => {
           if (typeof createNotification === 'function') {

@@ -150,8 +150,15 @@
         .then(function () { return user.getIdToken(true); })
         .then(function () {
           if (auth.currentUser && auth.currentUser.emailVerified) {
-            removeGate();
-            window.location.reload();
+            // Awaited before the reload for the same reason the login path is:
+            // an in-flight write dies with the page.
+            var done = (typeof logActivityBeforeNavigating === 'function')
+              ? logActivityBeforeNavigating('auth.email_verified', 'Confirmed their email address')
+              : Promise.resolve();
+            return done.then(function () {
+              removeGate();
+              window.location.reload();
+            });
           } else {
             say('That email still looks unconfirmed. Open the link we sent to <b>' +
                 (user.email || 'your address') + '</b>, then try again.');

@@ -187,7 +187,12 @@ document.addEventListener('DOMContentLoaded', () => {
       applyChosenPersistence()
         .then(() => auth.signInWithEmailAndPassword(email, password))
         .then(() => {
-          if (typeof logActivity === 'function') logActivity('auth.login', 'Logged in');
+          // Awaited: routeAfterAuth navigates, and an in-flight write dies
+          // with the page. Capped internally so a slow log can't strand
+          // someone on a login screen that looks like it did nothing.
+          if (typeof logActivityBeforeNavigating === 'function') {
+            return logActivityBeforeNavigating('auth.login', 'Logged in').then(routeAfterAuth);
+          }
           return routeAfterAuth();
         })
         .catch((err) => showAuthError('login-error', friendlyAuthError(err)))
@@ -239,7 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         })
         .then(() => {
-          if (typeof logActivity === 'function') logActivity('auth.signup', 'Created an account');
+          if (typeof logActivityBeforeNavigating === 'function') {
+            return logActivityBeforeNavigating('auth.signup', 'Created an account').then(routeAfterAuth);
+          }
           return routeAfterAuth();
         })
         .catch((err) => showAuthError('signup-error', friendlyAuthError(err)))
@@ -278,7 +285,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
       applyChosenPersistence()
         .then(() => auth.signInWithPopup(provider))
-        .then(() => routeAfterAuth())
+        .then((cred) => {
+          // Google covers both sign-up and sign-in through one button, so the
+          // event is chosen from whether Firebase just created the account.
+          var isNew = cred && cred.additionalUserInfo && cred.additionalUserInfo.isNewUser;
+          if (typeof logActivityBeforeNavigating === 'function') {
+            return logActivityBeforeNavigating(
+              isNew ? 'auth.signup' : 'auth.login',
+              isNew ? 'Created an account with Google' : 'Logged in with Google'
+            ).then(routeAfterAuth);
+          }
+          return routeAfterAuth();
+        })
         .catch((err) => {
           if (err && err.code === 'auth/popup-blocked') {
             showAuthError(errElId, "Your browser blocked the Google sign-in popup. Please allow popups for this site, or use email/password instead — it doesn't need one.");

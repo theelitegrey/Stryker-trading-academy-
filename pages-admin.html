@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Site Pages — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=71">
+<link rel="stylesheet" href="assets/style.css?v=72">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -129,12 +129,12 @@
         <h2>Pages</h2>
         <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">public — anyone can read, only admins can edit</span>
       </div>
-      <div id="pages-admin-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div id="pages-admin-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
     </div>
 
     <div class="panel">
       <div class="panel-head"><h2>Contact form submissions</h2></div>
-      <div id="pages-admin-contact-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+      <div id="pages-admin-contact-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
     </div>
   </main>
 </div>
@@ -142,16 +142,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=71"></script>
-<script src="assets/progress.js?v=71"></script>
-<script src="assets/avatars.js?v=71"></script>
-<script src="assets/referrals.js?v=71"></script>
-<script src="assets/branding.js?v=71"></script>
-<script src="assets/admin-guard.js?v=71"></script>
-<script src="assets/dash-nav.js?v=71"></script>
-<script src="assets/roles.js?v=71"></script>
-<script src="assets/site-pages.js?v=71"></script>
-<script src="assets/site-pages-defaults.js?v=71"></script>
-<script src="assets/pages-admin.js?v=71"></script>
+<script src="assets/auth.js?v=72"></script>
+<script src="assets/progress.js?v=72"></script>
+<script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
+<script src="assets/loading-animation.js?v=72"></script>
+<script src="assets/avatars.js?v=72"></script>
+<script src="assets/referrals.js?v=72"></script>
+<script src="assets/branding.js?v=72"></script>
+<script src="assets/admin-guard.js?v=72"></script>
+<script src="assets/dash-nav.js?v=72"></script>
+<script src="assets/roles.js?v=72"></script>
+<script src="assets/site-pages.js?v=72"></script>
+<script src="assets/site-pages-defaults.js?v=72"></script>
+<script src="assets/pages-admin.js?v=72"></script>
 </body>
 </html>

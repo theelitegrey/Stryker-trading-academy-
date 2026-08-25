@@ -106,7 +106,7 @@ function renderModel(m){
 
 document.addEventListener('DOMContentLoaded', () => {
   const body = document.getElementById('model-body');
-  if (body) body.innerHTML = '<p style="color:var(--ink-3);">Loading model…</p>';
+  if (body) showLoadingAnimation(body, 'Loading model…');
 
   loadModels().then(() => {
     const id = getModelIdFromQuery();

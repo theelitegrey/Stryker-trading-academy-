@@ -323,7 +323,7 @@ function toggleReplies(post, cardEl){
   if (!willOpen) return;
 
   const listEl = wrap.querySelector('.floor-reply-list');
-  listEl.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">Loading…</p>';
+  showLoadingAnimation(listEl, 'Loading…');
   db.collection('communityPosts').doc(post.id).collection('replies').orderBy('createdAt', 'asc').get()
     .then((snap) => {
       const replies = [];

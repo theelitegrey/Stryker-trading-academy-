@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   const container = document.getElementById('chapter-render-target');
-  if (container) container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">Loading curriculum…</p>';
+  if (container) showLoadingAnimation(container, 'Loading curriculum…');
 
   loadChapters().then(() => renderChapters('all'));
 

@@ -48,7 +48,7 @@ function showGuestPaywall(show){
 
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('models-render-target');
-  if (container) container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">Loading trading models…</p>';
+  if (container) showLoadingAnimation(container, 'Loading trading models…');
 
   loadModels().then(() => renderModels());
 

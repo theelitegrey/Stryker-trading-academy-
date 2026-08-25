@@ -74,7 +74,7 @@ function renderIndicator(ind){
 
 document.addEventListener('DOMContentLoaded', () => {
   const body = document.getElementById('indicator-body');
-  if (body) body.innerHTML = '<p style="color:var(--ink-3);">Loading indicator…</p>';
+  if (body) showLoadingAnimation(body, 'Loading indicator…');
 
   loadIndicators().then(() => {
     const id = getIndicatorIdFromQuery();

@@ -294,7 +294,7 @@ function markAllComplete(){
 
 document.addEventListener('DOMContentLoaded', () => {
   const body = document.getElementById('reader-body');
-  if (body) body.innerHTML = '<p style="color:var(--ink-3);">Loading chapter…</p>';
+  if (body) showLoadingAnimation(body, 'Loading chapter…');
 
   loadChapters().then(() => {
     const local = loadLocalProgress();

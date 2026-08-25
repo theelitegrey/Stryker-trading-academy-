@@ -1190,3 +1190,14 @@ tbody tr:hover{ background:var(--bg-3); }
 .footer-legal-row{ display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; }
 .footer-legal-row a{ font-size:12.5px; color:var(--ink-3); }
 .footer-legal-row a:hover{ color:var(--gold); }
+
+/* ==========================================================================
+   LOADING ANIMATION — shared Lottie-based loading state
+   ========================================================================== */
+.loading-state{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:32px 16px; gap:10px;
+}
+.loading-lottie-wrap{ width:40px; height:40px; }
+.loading-lottie-wrap svg{ width:100%; height:100%; }
+.loading-state-text{ color:var(--ink-3); font-size:13px; margin:0; }

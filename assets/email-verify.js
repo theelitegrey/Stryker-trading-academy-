@@ -29,16 +29,82 @@
 (function () {
 
   var OVERLAY_ID = 'email-verify-overlay';
+  var BANNER_ID = 'email-verify-banner';
+
+  // Accounts that existed before verification shipped are grandfathered onto
+  // a dismissible warning rather than a wall. They signed up under different
+  // rules and many are paying — locking them out with no notice would be a
+  // support incident, not a security win. Anyone created after this instant
+  // signed up knowing verification was required, so they get the hard gate.
+  var ENFORCE_FROM_MS = 1787695951000; // 2026-08-25T22:12:31Z, the deploy that shipped this
 
   function isPasswordAccount(user) {
     if (!user || !user.providerData) return false;
     return user.providerData.some(function (p) { return p && p.providerId === 'password'; });
   }
 
+  function isGrandfathered(user) {
+    // metadata.creationTime comes from the Auth record itself, so this needs
+    // no Firestore read — which matters, because an unverified user may not
+    // be allowed to read their own student doc.
+    if (!user || !user.metadata || !user.metadata.creationTime) return false;
+    var created = Date.parse(user.metadata.creationTime);
+    if (isNaN(created)) return false;
+    return created < ENFORCE_FROM_MS;
+  }
+
   function removeGate() {
     var el = document.getElementById(OVERLAY_ID);
     if (el) el.remove();
     document.body.style.overflow = '';
+  }
+
+  // Soft path for pre-existing accounts: a bar at the top of the page with a
+  // resend button. Nothing is blocked.
+  function buildBanner(user) {
+    if (document.getElementById(BANNER_ID)) return;
+    if (sessionStorage.getItem('stryker_verify_banner_dismissed') === '1') return;
+
+    var bar = document.createElement('div');
+    bar.id = BANNER_ID;
+    bar.style.cssText =
+      'position:sticky; top:0; z-index:400; background:rgba(245,197,66,0.12); ' +
+      'border-bottom:1px solid rgba(245,197,66,0.35); color:#f5c542; ' +
+      'padding:10px 14px; font-size:13px; line-height:1.5; ' +
+      'display:flex; align-items:center; gap:12px; flex-wrap:wrap;';
+
+    bar.innerHTML =
+      '<span style="flex:1; min-width:200px;" id="ev-banner-text">' +
+      'Please confirm your email address — we\'ll soon require it to keep your account active.</span>' +
+      '<button class="btn btn-sm" id="ev-banner-send" style="background:#f5c542; color:#050506; border:none; font-weight:700;">Send link</button>' +
+      '<button class="btn btn-sm btn-ghost" id="ev-banner-close" style="color:#f5c542;">Later</button>';
+
+    document.body.insertBefore(bar, document.body.firstChild);
+
+    var text = document.getElementById('ev-banner-text');
+
+    document.getElementById('ev-banner-send').addEventListener('click', function () {
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      user.sendEmailVerification()
+        .then(function () {
+          text.textContent = 'Confirmation link sent to ' + (user.email || 'your address') + '. Check spam if it does not arrive.';
+          btn.textContent = 'Sent';
+        })
+        .catch(function (err) {
+          text.textContent = (err && err.code === 'auth/too-many-requests')
+            ? 'Too many requests just now — try again in a few minutes.'
+            : 'Could not send: ' + (err.message || err);
+          btn.disabled = false;
+          btn.textContent = 'Send link';
+        });
+    });
+
+    document.getElementById('ev-banner-close').addEventListener('click', function () {
+      try { sessionStorage.setItem('stryker_verify_banner_dismissed', '1'); } catch (e) {}
+      bar.remove();
+    });
   }
 
   function buildGate(user) {
@@ -142,11 +208,17 @@
       user.reload()
         .then(function () { return user.getIdToken(true); })
         .then(function () {
-          if (auth.currentUser && !auth.currentUser.emailVerified) buildGate(auth.currentUser);
+          var u = auth.currentUser;
+          if (!u || u.emailVerified) return;
+          if (isGrandfathered(u)) buildBanner(u);
+          else buildGate(u);
         })
         .catch(function (err) {
           console.warn('Stryker: could not refresh verification state', err);
-          buildGate(user);
+          // Fall back to the softer of the two — an unreachable check should
+          // never be what locks a legitimate student out.
+          if (isGrandfathered(user)) buildBanner(user);
+          else buildGate(user);
         });
     });
   });

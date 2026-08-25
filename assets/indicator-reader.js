@@ -39,7 +39,6 @@ function setIndicatorPaywallMessage(reason, requiredRoleName){
 }
 
 function checkIndicatorRoleAccess(ind, uid){
-  if (!ind.minRole) return Promise.resolve(true);
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true);
 
   // Run independent reads in parallel — see reader.js's checkChapterRoleAccess
@@ -47,11 +46,22 @@ function checkIndicatorRoleAccess(ind, uid){
   const adminCheck = db.collection('admins').doc(uid).get();
   const studentCheck = db.collection('students').doc(uid).get();
   const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+  const pageAccessCheck = (typeof loadPageAccess === 'function') ? loadPageAccess() : Promise.resolve({});
 
-  return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
+  return Promise.all([adminCheck, studentCheck, rolesCheck, pageAccessCheck]).then(([adminDoc, studentDoc, , pageAccess]) => {
     if (adminDoc.exists) return true;
     const plan = studentDoc.exists ? studentDoc.data().plan : null;
-    return hasRoleAccess(plan, ind.minRole);
+
+    // Section-wide restriction, set in Roles & Access for "Trading
+    // indicators" as a whole (independent of any individual indicator's
+    // own minRole below). This reader has no view-only UI, so a 'view'
+    // tier is treated as readable, same as 'full' — only 'blocked' denies.
+    const pageConfig = pageAccess ? pageAccess['indicators'] : null;
+    const pageLevel = (typeof getPageAccessLevel === 'function') ? getPageAccessLevel(plan, pageConfig) : 'full';
+    if (pageLevel === 'blocked') return false;
+
+    // This specific indicator's own minRole, if the admin set one directly on it.
+    return ind.minRole ? hasRoleAccess(plan, ind.minRole) : true;
   }).catch((err) => {
     console.error('Stryker: indicator role check failed', err);
     return true;

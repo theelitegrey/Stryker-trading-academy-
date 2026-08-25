@@ -42,7 +42,6 @@ function setModelPaywallMessage(reason, requiredRoleName){
 }
 
 function checkModelRoleAccess(m, uid){
-  if (!m.minRole) return Promise.resolve(true);
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true);
 
   // Run independent reads in parallel — see reader.js's checkChapterRoleAccess
@@ -50,11 +49,22 @@ function checkModelRoleAccess(m, uid){
   const adminCheck = db.collection('admins').doc(uid).get();
   const studentCheck = db.collection('students').doc(uid).get();
   const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+  const pageAccessCheck = (typeof loadPageAccess === 'function') ? loadPageAccess() : Promise.resolve({});
 
-  return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
+  return Promise.all([adminCheck, studentCheck, rolesCheck, pageAccessCheck]).then(([adminDoc, studentDoc, , pageAccess]) => {
     if (adminDoc.exists) return true;
     const plan = studentDoc.exists ? studentDoc.data().plan : null;
-    return hasRoleAccess(plan, m.minRole);
+
+    // Section-wide restriction, set in Roles & Access for "Trading models"
+    // as a whole (independent of any individual model's own minRole below).
+    // This reader has no view-only UI, so a 'view' tier is treated as
+    // readable, same as 'full' — only 'blocked' actually denies here.
+    const pageConfig = pageAccess ? pageAccess['models'] : null;
+    const pageLevel = (typeof getPageAccessLevel === 'function') ? getPageAccessLevel(plan, pageConfig) : 'full';
+    if (pageLevel === 'blocked') return false;
+
+    // This specific model's own minRole, if the admin set one directly on it.
+    return m.minRole ? hasRoleAccess(plan, m.minRole) : true;
   }).catch((err) => {
     console.error('Stryker: model role check failed', err);
     return true;

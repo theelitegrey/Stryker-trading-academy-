@@ -1385,17 +1385,24 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
    TRADING FLOOR — compact category tabs + filter pills, replacing the
    previous full .panel header (was taking too much vertical space).
    ========================================================================== */
-.floor-controls-bar{ margin-bottom:16px; }
-.floor-category-tabs{ display:flex; gap:4px; margin-bottom:8px; }
+.floor-page-topbar{ margin-bottom:14px; } /* was 30px via the shared .dash-topbar — too much gap above the tabs on this page specifically */
+.floor-controls-bar{
+  margin-bottom:16px; background:var(--bg-2); border:1px solid var(--line-soft);
+  border-radius:12px; padding:10px 12px;
+}
+.floor-category-tabs{ display:flex; justify-content:center; gap:4px; margin-bottom:8px; }
 .floor-cat-tab{
   -webkit-appearance:none; appearance:none;
   padding:7px 13px; border-radius:8px; border:1px solid transparent;
   font-size:13.5px; font-weight:600; color:var(--ink-3); background:transparent;
   transition:all .15s ease;
 }
-.floor-cat-tab.active{ background:var(--bg-2); border-color:var(--line); color:var(--ink-0); }
-.floor-filter-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.floor-filter-pills{ display:flex; align-items:center; gap:6px; overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none; }
+.floor-cat-tab.active{ background:var(--bg-3); border-color:var(--line); color:var(--ink-0); }
+.floor-filter-row{ display:flex; align-items:center; gap:10px; }
+.floor-filter-pills{
+  display:flex; align-items:center; gap:6px; min-width:0; flex:1;
+  overflow-x:auto; scrollbar-width:none; -ms-overflow-style:none;
+}
 .floor-filter-pills::-webkit-scrollbar{ display:none; }
 .floor-pill{
   -webkit-appearance:none; appearance:none; flex-shrink:0;

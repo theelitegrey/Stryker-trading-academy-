@@ -189,8 +189,6 @@ function prefetchAuthorData(list){
 function renderFeed(){
   renderTagBanner();
   const list = sortedPosts();
-  const countEl = document.getElementById('floor-count');
-  countEl.textContent = list.length + ' post' + (list.length === 1 ? '' : 's');
 
   const feedEl = document.getElementById('floor-list');
   if (!list.length) {

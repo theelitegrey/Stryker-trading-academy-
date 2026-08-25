@@ -224,7 +224,19 @@ function renderPostCard(post){
   // it doesn't get visually confused with plan-tier badges like ELITE.
   const isAuthorModerator = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(post.authorUid);
   const shieldBadge = isAuthorModerator
-    ? '<span class="floor-mod-shield" title="Moderator"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 1.5l8.5 3.8v6.2c0 5.3-3.7 9-8.5 10.5-4.8-1.5-8.5-5.2-8.5-10.5V5.3z"/><path d="M10.6 15.4l-3-3 1.3-1.3 1.7 1.7 4.4-4.4 1.3 1.3z" fill="#04121b"/></svg></span>'
+    ? '<span class="floor-mod-shield" title="Moderator">' +
+        '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">' +
+          // Rim first, then a slightly inset body on top of it — the sliver
+          // of rim left showing around the edge is what reads as a bevel.
+          '<path d="M12 1.4L21.2 5.3V12c0 5.7-4 9.6-9.2 11.1C6.8 21.6 2.8 17.7 2.8 12V5.3z" fill="url(#modRim)"/>' +
+          '<path d="M12 3.3L19.4 6.4V12c0 4.7-3.2 7.9-7.4 9.2C7.8 19.9 4.6 16.7 4.6 12V6.4z" fill="url(#modBody)"/>' +
+          '<path d="M12 3.3L19.4 6.4V12c0 4.7-3.2 7.9-7.4 9.2C7.8 19.9 4.6 16.7 4.6 12V6.4z" fill="url(#modTexture)"/>' +
+          '<path d="M12 3.3L19.4 6.4V12c0 4.7-3.2 7.9-7.4 9.2C7.8 19.9 4.6 16.7 4.6 12V6.4z" fill="url(#modShade)"/>' +
+          '<path d="M12 3.3L19.4 6.4V12c0 4.7-3.2 7.9-7.4 9.2C7.8 19.9 4.6 16.7 4.6 12V6.4z" fill="url(#modGloss)"/>' +
+          // Star sits slightly high in the shield, the way real insignia do
+          '<path d="M12 7.1l1.09 2.7 2.9.2-2.23 1.87.71 2.83L12 13.15l-2.47 1.55.71-2.83L8.01 10l2.9-.2z" fill="#F2FEFF" opacity="0.96"/>' +
+        '</svg>' +
+      '</span>'
     : '';
   // Deliberately a flat text label, not a bordered pill like the role tag —
   // this is post metadata (what kind of post), not identity metadata (who

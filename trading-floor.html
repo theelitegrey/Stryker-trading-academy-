@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Floor — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=111">
+<link rel="stylesheet" href="assets/style.css?v=112">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -12,6 +12,40 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
 <body data-page-access="trading-floor">
+
+<!-- Shared paint definitions for the moderator badge. Defined once here
+     rather than inline in every badge: the badge renders once per post, so
+     repeating these gradient/pattern IDs down the whole feed would mean
+     dozens of duplicate IDs in the document. Each badge references these
+     by url(#id). The zero-size absolutely-positioned wrapper is the
+     standard way to hold SVG paint servers without display:none, which
+     some browsers treat as un-referenceable. -->
+<svg xmlns="http://www.w3.org/2000/svg" style="position:absolute; width:0; height:0; overflow:hidden;" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="modRim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#B4FBFF"/>
+      <stop offset="0.45" stop-color="#2FBFC7"/>
+      <stop offset="1" stop-color="#02383D"/>
+    </linearGradient>
+    <linearGradient id="modBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6FEDF4"/>
+      <stop offset="0.42" stop-color="#00ADB5"/>
+      <stop offset="1" stop-color="#04656D"/>
+    </linearGradient>
+    <pattern id="modTexture" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="3" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.11"/>
+    </pattern>
+    <radialGradient id="modGloss" cx="0.34" cy="0.2" r="0.72">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.07"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="modShade" x1="0" y1="0.4" x2="0" y2="1">
+      <stop offset="0" stop-color="#00252A" stop-opacity="0"/>
+      <stop offset="1" stop-color="#00252A" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+</svg>
 
 <div class="access-gate-overlay" id="access-gate-overlay">
   <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
@@ -267,22 +301,22 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=111"></script>
-<script src="assets/progress.js?v=111"></script>
-<script src="assets/achievements-data.js?v=111"></script>
-<script src="assets/notifications.js?v=111"></script>
-<script src="assets/profiles-sync.js?v=111"></script>
+<script src="assets/auth.js?v=112"></script>
+<script src="assets/progress.js?v=112"></script>
+<script src="assets/achievements-data.js?v=112"></script>
+<script src="assets/notifications.js?v=112"></script>
+<script src="assets/profiles-sync.js?v=112"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=111"></script>
-<script src="assets/avatars.js?v=111"></script>
-<script src="assets/referrals.js?v=111"></script>
-<script src="assets/roles.js?v=111"></script>
-<script src="assets/moderator-team.js?v=111"></script>
-<script src="assets/plan-guard.js?v=111"></script>
-<script src="assets/maintenance-check.js?v=111"></script>
-<script src="assets/branding.js?v=111"></script>
-<script src="assets/dash-nav.js?v=111"></script>
-<script src="assets/community.js?v=111"></script>
-<script src="assets/twitter-feed.js?v=111"></script>
+<script src="assets/loading-animation.js?v=112"></script>
+<script src="assets/avatars.js?v=112"></script>
+<script src="assets/referrals.js?v=112"></script>
+<script src="assets/roles.js?v=112"></script>
+<script src="assets/moderator-team.js?v=112"></script>
+<script src="assets/plan-guard.js?v=112"></script>
+<script src="assets/maintenance-check.js?v=112"></script>
+<script src="assets/branding.js?v=112"></script>
+<script src="assets/dash-nav.js?v=112"></script>
+<script src="assets/community.js?v=112"></script>
+<script src="assets/twitter-feed.js?v=112"></script>
 </body>
 </html>

@@ -22,14 +22,18 @@ function guardAdminPage(onAuthorized){
         if (doc.exists) {
           onAuthorized(user);
         } else {
-          alert("This account doesn't have admin access.");
-          window.location.href = 'dashboard-user.html';
+          // hold:true and awaited: a toast does not block the way alert did,
+          // so without this the redirect destroys it before it can be read.
+          showToast('error', "This account doesn't have admin access.", { hold: true })
+            .then(function () { window.location.href = 'dashboard-user.html'; });
+          setTimeout(function () { window.location.href = 'dashboard-user.html'; }, 4000);
         }
       })
       .catch((err) => {
         console.error('Stryker: admin check failed', err);
-        alert("Couldn't verify admin access. Sending you to your student dashboard.");
-        window.location.href = 'dashboard-user.html';
+        showToast('error', "Couldn't verify admin access. Sending you to your student dashboard.", { hold: true })
+          .then(function () { window.location.href = 'dashboard-user.html'; });
+        setTimeout(function () { window.location.href = 'dashboard-user.html'; }, 4000);
       });
   });
 }

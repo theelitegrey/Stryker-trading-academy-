@@ -51,7 +51,7 @@ function deleteAdminSession(id){
   if (!confirm('Delete this live session?')) return;
   db.collection('liveSessions').doc(id).delete()
     .then(loadAdminSessions)
-    .catch((err) => alert('Could not delete: ' + (err.message || err)));
+    .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
 }
 
 document.addEventListener('DOMContentLoaded', () => {

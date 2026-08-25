@@ -148,6 +148,7 @@ function saveTradeFromForm(){
     .then(() => {
       okEl.textContent = JOURNAL_EDIT_ID ? 'Trade updated.' : 'Trade saved.';
       okEl.style.display = 'block';
+      if (typeof showToast === 'function') showToast('success', JOURNAL_EDIT_ID ? 'Trade updated.' : 'Trade saved.');
       resetTradeForm();
       return reloadJournalData();
     })
@@ -219,6 +220,7 @@ function saveSettingsFromDraft(){
       JOURNAL_SETTINGS = JSON.parse(JSON.stringify(JOURNAL_SETTINGS_DRAFT));
       okEl.textContent = 'Settings saved.';
       okEl.style.display = 'block';
+      if (typeof showToast === 'function') showToast('success', 'Settings saved.');
     })
     .catch((err) => {
       errEl.textContent = err.message || 'Could not save settings.';

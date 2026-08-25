@@ -65,7 +65,7 @@ function deleteJournalEntry(id){
   if (!confirm('Delete this journal entry? This cannot be undone.')) return;
   db.collection('students').doc(JOURNAL_UID).collection('journal').doc(id).delete()
     .then(loadJournalEntries)
-    .catch((err) => alert('Could not delete entry: ' + (err.message || err)));
+    .catch((err) => showToast('error', 'Could not delete entry: ' + (err.message || err)));
 }
 
 document.addEventListener('DOMContentLoaded', () => {

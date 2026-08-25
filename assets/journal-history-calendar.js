@@ -132,7 +132,7 @@ function confirmDeleteTrade(tradeId){
   if (!confirm('Delete this trade? This cannot be undone.')) return;
   deleteTrade(JOURNAL_UID, tradeId)
     .then(() => reloadJournalData())
-    .catch((err) => alert('Could not delete trade: ' + (err.message || err)));
+    .catch((err) => showToast('error', 'Could not delete trade: ' + (err.message || err)));
 }
 
 // ---- Calendar ----

@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
         contactForm.reset();
         okEl.textContent = "Message sent — we'll get back to you soon.";
         okEl.style.display = 'block';
+        if (typeof showToast === 'function') showToast('success', "Message sent — we'll get back to you soon.");
       }).catch((err) => {
         errEl.textContent = err.message || 'Could not send your message right now.';
         errEl.style.display = 'block';

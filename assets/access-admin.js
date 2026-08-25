@@ -89,6 +89,7 @@ function saveAllPageAccess(){
     .then(() => {
       okEl.textContent = 'Page access saved.';
       okEl.style.display = 'block';
+      if (typeof showToast === 'function') showToast('success', 'Page access saved.');
     })
     .catch((err) => {
       errEl.textContent = err.message || 'Could not save page access.';

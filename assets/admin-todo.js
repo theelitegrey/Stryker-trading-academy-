@@ -141,7 +141,7 @@ function renderTodo(){
         TODO_DISMISSALS[key] = { signature: signature };
         renderTodo();
       }).catch((err) => {
-        alert('Could not dismiss: ' + (err.message || err));
+        showToast('error', 'Could not dismiss: ' + (err.message || err));
         btn.disabled = false;
       });
     });
@@ -156,7 +156,7 @@ function renderTodo(){
         if (typeof logActivity === 'function') logActivity('admin.task_done', 'Completed an admin task');
         renderTodo();
       }).catch((err) => {
-        alert('Could not complete: ' + (err.message || err));
+        showToast('error', 'Could not complete: ' + (err.message || err));
         btn.disabled = false;
       });
     });
@@ -224,7 +224,7 @@ function addManualTask(){
     if (typeof logActivity === 'function') logActivity('admin.task_added', 'Added an admin task: ' + text);
     renderTodo();
   }).catch((err) => {
-    alert('Could not add the task: ' + (err.message || err));
+    showToast('error', 'Could not add the task: ' + (err.message || err));
     btn.disabled = false;
   });
 }

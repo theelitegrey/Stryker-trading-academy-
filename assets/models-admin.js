@@ -38,7 +38,7 @@ function renderModelList(){
 
 function importBundledModels(triggerBtn){
   if (typeof MODELS_SEED === 'undefined' || !MODELS_SEED.length) {
-    alert('No bundled trading models exist yet to import from.');
+    showToast('error', 'No bundled trading models exist yet to import from.');
     return;
   }
   if (!confirm('Update all ' + MODELS_SEED.length + ' bundled models into Firestore? This overwrites any matching model currently saved with whatever is in the bundled seed right now.')) return;
@@ -71,7 +71,7 @@ function importBundledModels(triggerBtn){
         if (okEl) { okEl.textContent = 'All ' + succeeded.length + ' models updated.'; okEl.style.display = 'block'; }
       } else {
         const msg = failed.length + ' of ' + MODELS_SEED.length + ' models FAILED: ' + failed.map((f) => f.id).join(', ') + '. First error: ' + failed[0].error;
-        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { alert(msg); }
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { showToast('success', msg); }
       }
     })
     .finally(() => {

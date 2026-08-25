@@ -154,6 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('coupons').doc(EDITING_COUPON_CODE).delete()
       .then(() => loadCoupons())
       .then(() => closeCouponEditor())
-      .catch((err) => alert('Could not delete: ' + (err.message || err)));
+      .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
   });
 });

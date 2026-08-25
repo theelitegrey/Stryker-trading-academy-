@@ -69,7 +69,7 @@ function wireRemoveButtons(){
   document.querySelectorAll('.remove-lesson-btn').forEach((btn) => {
     btn.onclick = () => {
       const rows = document.querySelectorAll('.lesson-edit-row');
-      if (rows.length <= 1) { alert('A chapter needs at least one lesson.'); return; }
+      if (rows.length <= 1) { showToast('success', 'A chapter needs at least one lesson.'); return; }
       btn.closest('.lesson-edit-row').remove();
     };
   });
@@ -203,7 +203,7 @@ function initRichTextToolbar(){
     resizeImageToDataUrl(file, 700, 'image/jpeg').then((dataUrl) => {
       target.focus();
       document.execCommand('insertHTML', false, '<img src="' + dataUrl + '" alt="">');
-    }).catch((err) => alert('Could not insert that image: ' + (err.message || err)));
+    }).catch((err) => showToast('error', 'Could not insert that image: ' + (err.message || err)));
     e.target.value = '';
   });
 }
@@ -270,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => {
         okEl.textContent = 'Saved.';
         okEl.style.display = 'block';
+        if (typeof showToast === 'function') showToast('success', 'Saved.');
         IS_NEW_CHAPTER = false;
         document.getElementById('ed-num').disabled = true;
         document.getElementById('editor-heading').textContent = 'Edit Chapter ' + data.num;
@@ -285,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!EDITING_NUM || typeof CHAPTERS_SEED === 'undefined') return;
     const seedChapter = CHAPTERS_SEED.find(c => c.num === EDITING_NUM);
     if (!seedChapter) {
-      alert('No bundled version of Chapter ' + EDITING_NUM + ' exists to reset from.');
+      showToast('error', 'No bundled version of Chapter ' + EDITING_NUM + ' exists to reset from.');
       return;
     }
     if (!confirm('Overwrite this chapter with the latest bundled content? This replaces everything currently saved for Chapter ' + EDITING_NUM + ' — title, body, and lessons — with whatever is in the bundled seed right now. This cannot be undone.')) return;
@@ -301,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editor-success').textContent = 'Reset to the latest bundled version.';
         document.getElementById('editor-success').style.display = 'block';
       })
-      .catch((err) => alert('Could not reset: ' + (err.message || err)))
+      .catch((err) => showToast('error', 'Could not reset: ' + (err.message || err)))
       .finally(() => { btn.disabled = false; btn.textContent = 'Reset from bundled content'; });
   });
 
@@ -311,6 +312,6 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('chapters').doc(EDITING_NUM).delete()
       .then(() => loadChapters(true))
       .then(() => { window.location.href = 'chapters-admin.html'; })
-      .catch((err) => alert('Could not delete: ' + (err.message || err)));
+      .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
   });
 });

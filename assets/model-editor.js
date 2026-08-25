@@ -60,7 +60,7 @@ function wireRemoveButtons(){
   document.querySelectorAll('.remove-step-btn').forEach((btn) => {
     btn.onclick = () => {
       const rows = document.querySelectorAll('.lesson-edit-row');
-      if (rows.length <= 1) { alert('A model needs at least one step.'); return; }
+      if (rows.length <= 1) { showToast('success', 'A model needs at least one step.'); return; }
       btn.closest('.lesson-edit-row').remove();
     };
   });
@@ -188,7 +188,7 @@ function initRichTextToolbar(){
     resizeImageToDataUrl(file, 700, 'image/jpeg').then((dataUrl) => {
       target.focus();
       document.execCommand('insertHTML', false, '<img src="' + dataUrl + '" alt="">');
-    }).catch((err) => alert('Could not insert that image: ' + (err.message || err)));
+    }).catch((err) => showToast('error', 'Could not insert that image: ' + (err.message || err)));
     e.target.value = '';
   });
 }
@@ -258,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => {
         okEl.textContent = 'Saved.';
         okEl.style.display = 'block';
+        if (typeof showToast === 'function') showToast('success', 'Saved.');
         IS_NEW_MODEL = false;
         EDITING_ID = data.id;
         document.getElementById('ed-id').disabled = true;
@@ -274,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!EDITING_ID || typeof MODELS_SEED === 'undefined') return;
     const seedModel = MODELS_SEED.find(m => m.id === EDITING_ID);
     if (!seedModel) {
-      alert('No bundled version of "' + EDITING_ID + '" exists to reset from.');
+      showToast('error', 'No bundled version of "' + EDITING_ID + '" exists to reset from.');
       return;
     }
     if (!confirm('Overwrite this model with the latest bundled content? This cannot be undone.')) return;
@@ -290,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('editor-success').textContent = 'Reset to the latest bundled version.';
         document.getElementById('editor-success').style.display = 'block';
       })
-      .catch((err) => alert('Could not reset: ' + (err.message || err)))
+      .catch((err) => showToast('error', 'Could not reset: ' + (err.message || err)))
       .finally(() => { btn.disabled = false; btn.textContent = 'Reset from bundled content'; });
   });
 
@@ -300,6 +301,6 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('models').doc(EDITING_ID).delete()
       .then(() => loadModels(true))
       .then(() => { window.location.href = 'models-admin.html'; })
-      .catch((err) => alert('Could not delete: ' + (err.message || err)));
+      .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
   });
 });

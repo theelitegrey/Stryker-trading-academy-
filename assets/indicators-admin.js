@@ -54,7 +54,7 @@ function renderTvRequestsPanel(students){
         })
         .then(loadTvRequests)
         .catch((err) => {
-          alert('Could not update: ' + (err.message || err));
+          showToast('error', 'Could not update: ' + (err.message || err));
           btn.disabled = false;
         });
     });

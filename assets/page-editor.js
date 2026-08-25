@@ -60,6 +60,7 @@ function savePageFromEditor(){
     .then(() => {
       okEl.textContent = 'Page saved.';
       okEl.style.display = 'block';
+      if (typeof showToast === 'function') showToast('success', 'Page saved.');
     })
     .catch((err) => {
       errEl.textContent = err.message || 'Could not save page.';

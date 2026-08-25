@@ -113,7 +113,7 @@ function initRichTextToolbar(){
     resizeImageToDataUrl(file, 700, 'image/jpeg').then((dataUrl) => {
       bodyEditable.focus();
       document.execCommand('insertHTML', false, '<img src="' + dataUrl + '" alt="">');
-    }).catch((err) => alert('Could not insert that image: ' + (err.message || err)));
+    }).catch((err) => showToast('error', 'Could not insert that image: ' + (err.message || err)));
     e.target.value = '';
   });
 }
@@ -177,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => {
         okEl.textContent = 'Saved.';
         okEl.style.display = 'block';
+        if (typeof showToast === 'function') showToast('success', 'Saved.');
         IS_NEW_INDICATOR = false;
         EDITING_ID = data.id;
         document.getElementById('ed-id').disabled = true;
@@ -195,6 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('indicators').doc(EDITING_ID).delete()
       .then(() => loadIndicators(true))
       .then(() => { window.location.href = 'indicators-admin.html'; })
-      .catch((err) => alert('Could not delete: ' + (err.message || err)));
+      .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
   });
 });

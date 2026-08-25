@@ -107,6 +107,7 @@ function initTvAccessPanel(uid){
       renderFromData({ tradingViewUsername: newUsername || null, tradingViewAccessGranted: false });
       okEl.textContent = newUsername ? "Saved — we'll review it soon." : 'Cleared.';
       okEl.style.display = 'block';
+      if (typeof showToast === 'function') showToast('success', newUsername ? "Saved — we'll review it soon." : 'Cleared.');
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not save.';
       errEl.style.display = 'block';

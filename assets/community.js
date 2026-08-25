@@ -378,7 +378,7 @@ function toggleReaction(post, field){
     if (!has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
       createNotification(post.authorUid, 'like', FLOOR_NAME + ' liked your post.', 'trading-floor.html');
     }
-  }).then(loadPosts).catch((err) => alert('Could not update: ' + (err.message || err)));
+  }).then(loadPosts).catch((err) => showToast('error', 'Could not update: ' + (err.message || err)));
 }
 
 function toggleVote(post, direction){
@@ -395,7 +395,7 @@ function toggleVote(post, direction){
     update[downField] = isDownvoted ? firebase.firestore.FieldValue.arrayRemove(FLOOR_UID) : firebase.firestore.FieldValue.arrayUnion(FLOOR_UID);
     if (isUpvoted) update[upField] = firebase.firestore.FieldValue.arrayRemove(FLOOR_UID);
   }
-  ref.update(update).then(loadPosts).catch((err) => alert('Could not update: ' + (err.message || err)));
+  ref.update(update).then(loadPosts).catch((err) => showToast('error', 'Could not update: ' + (err.message || err)));
 }
 
 function loadBookmarks(){
@@ -410,7 +410,7 @@ function toggleBookmark(post){
   const action = BOOKMARKED_IDS.has(post.id)
     ? ref.delete()
     : ref.set({ createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  action.then(() => loadBookmarks()).then(renderFeed).catch((err) => alert('Could not update bookmark: ' + (err.message || err)));
+  action.then(() => loadBookmarks()).then(renderFeed).catch((err) => showToast('error', 'Could not update bookmark: ' + (err.message || err)));
 }
 
 /* ---------------- replies ---------------- */
@@ -483,7 +483,7 @@ function sendReply(post, inputEl, cardEl){
         }
       });
     })
-    .catch((err) => alert('Could not send reply: ' + (err.message || err)))
+    .catch((err) => showToast('error', 'Could not send reply: ' + (err.message || err)))
     .finally(() => { inputEl.disabled = false; });
 }
 
@@ -493,7 +493,7 @@ function deletePost(postId){
   if (!confirm('Delete this post?')) return;
   db.collection('communityPosts').doc(postId).delete()
     .then(() => { if (typeof logActivity === 'function') logActivity('post.deleted', 'Deleted their own post', { detail: 'post ' + postId }); })
-    .then(loadPosts).catch((err) => alert('Could not delete: ' + (err.message || err)));
+    .then(loadPosts).catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
 }
 
 // Moderator action — hides a post from the normal feed and flags it for
@@ -690,7 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
       PENDING_IMAGE_DATA_URL = dataUrl;
       document.getElementById('floor-image-preview').src = dataUrl;
       document.getElementById('floor-image-preview-wrap').style.display = 'block';
-    }).catch((err) => alert('Could not use that image: ' + (err.message || err)));
+    }).catch((err) => showToast('error', 'Could not use that image: ' + (err.message || err)));
   });
   document.getElementById('floor-image-remove').addEventListener('click', () => {
     PENDING_IMAGE_DATA_URL = null;

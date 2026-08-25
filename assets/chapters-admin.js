@@ -68,7 +68,7 @@ function renderStatCards(students){
 }
 
 function importBundledChapters(triggerBtn){
-  if (typeof CHAPTERS_SEED === 'undefined') { alert('Bundled seed data is not available.'); return; }
+  if (typeof CHAPTERS_SEED === 'undefined') { showToast('success', 'Bundled seed data is not available.'); return; }
   if (!confirm('Update all ' + CHAPTERS_SEED.length + ' chapters with the latest bundled content? This overwrites every chapter currently in Firestore with whatever is in the seed right now — including any chapter you may have hand-edited directly in the chapter editor beyond what was last pushed to the seed.')) return;
 
   const errEl = document.getElementById('update-all-error');
@@ -104,14 +104,15 @@ function importBundledChapters(triggerBtn){
         if (okEl) {
           okEl.textContent = 'All ' + succeeded.length + ' chapters updated from the latest bundled content.';
           okEl.style.display = 'block';
+          if (typeof showToast === 'function') showToast('success', 'All ' + succeeded.length + ' chapters updated from the latest bundled content.');
         } else {
-          alert('Import complete.');
+          showToast('success', 'Import complete.');
         }
       } else {
         const msg = failed.length + ' of ' + CHAPTERS_SEED.length + ' chapters FAILED to update: chapter(s) '
           + failed.map((f) => f.num).join(', ') + '. First error: ' + failed[0].error
           + '. The other ' + succeeded.length + ' chapters updated successfully.';
-        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { alert(msg); }
+        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { showToast('success', msg); }
         console.error('Stryker: chapter update failures', failed);
       }
     })

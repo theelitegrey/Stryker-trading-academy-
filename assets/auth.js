@@ -317,8 +317,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = prompt('Enter your account email to receive a reset link:', prefill);
       if (!email) return;
       auth.sendPasswordResetEmail(email.trim())
-        .then(() => alert('Password reset email sent — check your inbox.'))
-        .catch((err) => alert(friendlyAuthError(err)));
+        .then(() => showToast('success', 'Password reset email sent — check your inbox.'))
+        .catch((err) => showToast('error', friendlyAuthError(err)));
     });
   });
 

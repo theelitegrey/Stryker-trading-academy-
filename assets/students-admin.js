@@ -87,7 +87,7 @@ function renderStudentsTable(students){
         })
         .then(() => loadStudents())
         .catch((err) => {
-          alert('Could not change plan: ' + (err.message || err));
+          showToast('error', 'Could not change plan: ' + (err.message || err));
           select.disabled = false;
         });
     });
@@ -99,7 +99,7 @@ function renderStudentsTable(students){
         const isSelf = s.uid === auth.currentUser.uid;
         const isLastAdmin = CURRENT_ADMIN_UIDS.size <= 1;
         if (isSelf && isLastAdmin) {
-          alert("You're the only admin — you can't revoke your own access, or no one would be able to manage the academy.");
+          showToast('error', "You're the only admin — you can't revoke your own access, or no one would be able to manage the academy.");
           return;
         }
         const warning = isSelf
@@ -122,7 +122,7 @@ function renderStudentsTable(students){
         .then(() => loadAdminList())
         .then(() => renderStudentsTable(ALL_STUDENTS))
         .catch((err) => {
-          alert('Could not update admin access: ' + (err.message || err));
+          showToast('error', 'Could not update admin access: ' + (err.message || err));
           btn.disabled = false;
         });
     });
@@ -145,7 +145,7 @@ function renderStudentsTable(students){
         .then(() => loadModeratorList())
         .then(() => renderStudentsTable(ALL_STUDENTS))
         .catch((err) => {
-          alert('Could not update moderator access: ' + (err.message || err));
+          showToast('error', 'Could not update moderator access: ' + (err.message || err));
           btn.disabled = false;
         });
     });
@@ -154,11 +154,11 @@ function renderStudentsTable(students){
       const btn = e.currentTarget;
 
       if (s.uid === auth.currentUser.uid) {
-        alert("You can't delete your own account from here.");
+        showToast('error', "You can't delete your own account from here.");
         return;
       }
       if (isAdminUser && CURRENT_ADMIN_UIDS.size <= 1) {
-        alert("That's the only admin account — deleting it would leave nobody able to manage the academy.");
+        showToast('success', "That's the only admin account — deleting it would leave nobody able to manage the academy.");
         return;
       }
       if (isAdminUser && !confirm(name + ' is an ADMIN. Deleting will remove their admin access too. Continue?')) return;
@@ -173,7 +173,7 @@ function renderStudentsTable(students){
       );
       if (typed === null) return;
       if (typed.trim().toLowerCase() !== expected.toLowerCase()) {
-        alert("That didn't match — nothing was deleted.");
+        showToast('success', "That didn't match — nothing was deleted.");
         return;
       }
 
@@ -187,11 +187,11 @@ function renderStudentsTable(students){
         { targetUid: s.uid, targetName: name });
       deleteStudentCompletely(s.uid, s.email, name)
         .then((report) => {
-          alert('Deleted ' + name + '.\n\n' + report.join('\n'));
+          showToast('success', 'Deleted ' + name + '.\n\n' + report.join('\n'));
           return loadAdminList().then(() => loadModeratorList()).then(() => loadStudents());
         })
         .catch((err) => {
-          alert('Delete failed: ' + (err.message || err));
+          showToast('error', 'Delete failed: ' + (err.message || err));
           btn.disabled = false;
           btn.textContent = 'Delete user';
         });
@@ -320,7 +320,7 @@ function loadStudents(){
 // indefinitely. Safe to run more than once; merge:true just refreshes
 // each field to whatever's currently on the student doc.
 function backfillAllProfiles(){
-  if (!ALL_STUDENTS.length) { alert('No students loaded yet.'); return; }
+  if (!ALL_STUDENTS.length) { showToast('error', 'No students loaded yet.'); return; }
   if (!confirm('Create/update a public profile for all ' + ALL_STUDENTS.length + ' students? Safe to run more than once.')) return;
 
   const btn = document.getElementById('backfill-profiles-btn');
@@ -353,7 +353,7 @@ function backfillAllProfiles(){
       'Backfilled ' + (writes.length - failed) + ' public profiles');
     btn.disabled = false;
     btn.textContent = 'Backfill all profiles';
-    alert('Done — ' + (writes.length - failed) + ' of ' + writes.length + ' profiles created/updated' + (failed ? ('. ' + failed + ' failed, check the console.') : '.'));
+    showToast('error', 'Done — ' + (writes.length - failed) + ' of ' + writes.length + ' profiles created/updated' + (failed ? ('. ' + failed + ' failed, check the console.') : '.'));
     if (failed) results.forEach((r) => { if (r.status === 'rejected') console.error('Stryker: profile backfill failed for one student', r.reason); });
   });
 }

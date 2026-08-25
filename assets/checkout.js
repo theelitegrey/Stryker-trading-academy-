@@ -195,9 +195,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       })
       .then(() => {
-        document.getElementById('checkout-success').textContent =
-          'Order complete — you now have ' + CHECKOUT_PLAN.name + '. Redirecting to your dashboard…';
-        document.getElementById('checkout-success').style.display = 'block';
+        // Was an inline strip pushed into the page, which shifted the layout
+        // and read as content rather than a confirmation.
+        showToast('success', 'Order complete — you now have ' + CHECKOUT_PLAN.name + '.', {
+          title: 'Payment confirmed',
+          duration: 2600
+        });
         // 1.8s is comfortably longer than the log writes above need, so they
         // are not awaited here — unlike the login path, where the redirect
         // fires at 400ms and killed the write.

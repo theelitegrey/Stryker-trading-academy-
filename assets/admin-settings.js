@@ -44,7 +44,7 @@ function renderTeamList(currentUid){
         revokeAdmin(admin.uid)
           .then(() => loadAdminList())
           .then(() => renderTeamList(currentUid))
-          .catch((err) => { alert('Could not revoke: ' + (err.message || err)); btn.disabled = false; });
+          .catch((err) => { showToast('error', 'Could not revoke: ' + (err.message || err)); btn.disabled = false; });
       });
     }
     list.appendChild(row);

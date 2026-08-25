@@ -129,6 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('plans').doc(EDITING_PLAN_ID).delete()
       .then(() => loadPlans())
       .then(() => closePlanEditor())
-      .catch((err) => alert('Could not delete: ' + (err.message || err)));
+      .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));
   });
 });

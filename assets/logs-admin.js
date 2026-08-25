@@ -164,7 +164,7 @@ function purgeLogs(days, label){
     return t < cutoff;
   });
 
-  if (!doomed.length) { alert('Nothing to delete — no entries ' + label + '.'); return; }
+  if (!doomed.length) { showToast('error', 'Nothing to delete — no entries ' + label + '.'); return; }
   if (!confirm('Delete ' + doomed.length + ' log entr' + (doomed.length === 1 ? 'y' : 'ies') + ' ' + label + '?\n\nThis cannot be undone.')) return;
 
   const btnWrap = document.getElementById('log-purge-actions');
@@ -185,12 +185,12 @@ function purgeLogs(days, label){
       }
     })
     .then(() => {
-      alert('Deleted ' + doomed.length + ' entries.');
+      showToast('success', 'Deleted ' + doomed.length + ' entries.');
       btnWrap.querySelectorAll('button').forEach((b) => { b.disabled = false; });
       loadLogs();
     })
     .catch((err) => {
-      alert('Could not purge: ' + (err.message || err));
+      showToast('error', 'Could not purge: ' + (err.message || err));
       btnWrap.querySelectorAll('button').forEach((b) => { b.disabled = false; });
     });
 }

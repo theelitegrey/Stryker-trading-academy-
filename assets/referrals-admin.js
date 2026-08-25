@@ -111,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(() => {
           okEl.textContent = 'Point values saved.';
           okEl.style.display = 'block';
+          if (typeof showToast === 'function') showToast('success', 'Point values saved.');
         })
         .catch((err) => {
           errEl.textContent = err.message || 'Could not save point values.';

@@ -71,7 +71,7 @@ function renderModerationQueue(posts){
         }
         return loadModerationQueue();
       }).catch((err) => {
-        alert('Could not restore: ' + (err.message || err));
+        showToast('error', 'Could not restore: ' + (err.message || err));
         btn.disabled = false;
       });
     });
@@ -85,7 +85,7 @@ function renderModerationQueue(posts){
       if (reason === null) return; // cancelled
       const trimmed = reason.trim();
       if (!trimmed) {
-        alert('A reason is required to permanently delete a post.');
+        showToast('error', 'A reason is required to permanently delete a post.');
         return;
       }
       btn.disabled = true;
@@ -104,7 +104,7 @@ function renderModerationQueue(posts){
         .then(() => db.collection('communityPosts').doc(post.id).delete())
         .then(loadModerationQueue)
         .catch((err) => {
-          alert('Could not delete: ' + (err.message || err));
+          showToast('error', 'Could not delete: ' + (err.message || err));
           btn.disabled = false;
         });
     });

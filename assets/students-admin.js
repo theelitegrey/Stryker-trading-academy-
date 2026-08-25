@@ -155,12 +155,7 @@ function renderStudentsTable(students){
       btn.textContent = 'Deleting…';
       deleteStudentCompletely(s.uid, s.email, name)
         .then((report) => {
-          alert(
-            'Deleted ' + name + '.\n\n' +
-            report.join('\n') +
-            '\n\nNote: their login itself still exists in Firebase Authentication and has to be removed there. ' +
-            'They are blocked from using the site in the meantime.'
-          );
+          alert('Deleted ' + name + '.\n\n' + report.join('\n'));
           return loadAdminList().then(() => loadModeratorList()).then(() => loadStudents());
         })
         .catch((err) => {
@@ -174,21 +169,50 @@ function renderStudentsTable(students){
   });
 }
 
-// Removes every trace of a student from Firestore, then writes a tombstone
-// that locks them out.
+// Full account deletion.
 //
-// IMPORTANT LIMITATION: the browser SDK can only delete the account of the
-// user who is currently signed in. Removing SOMEONE ELSE's Firebase Auth
-// record requires the Admin SDK, i.e. a Cloud Function. So on its own,
-// wiping the data here would not stop the person signing back in — and
-// ensureStudentDoc() would cheerfully build them a brand-new student doc, so
-// the "deleted" user would reappear as a fresh account.
+// PREFERRED PATH: the deleteUserAccount Cloud Function. It runs with the
+// Admin SDK, so it can delete the Firebase Auth login itself — something the
+// browser SDK fundamentally cannot do for anyone but the current user. It
+// also cascades the Firestore data server-side, unrestricted by rules.
 //
-// The bannedUsers/{uid} tombstone closes that hole. It's enforced in the
-// security rules (a banned uid can't write anything), and banned-check.js
-// signs them out on sight. The auth record still needs deleting by hand in
-// the Firebase console, or via a Cloud Function later.
+// FALLBACK PATH: if that function isn't deployed yet, wipe what the client is
+// allowed to and leave a bannedUsers tombstone so the account is at least
+// locked out. The caller is told plainly that the login still exists.
 function deleteStudentCompletely(uid, email, name){
+  const callable = (firebase.app().functions)
+    ? firebase.app().functions('us-central1').httpsCallable('deleteUserAccount')
+    : null;
+
+  if (callable) {
+    return callable({ uid: uid })
+      .then((res) => {
+        const data = res.data || {};
+        const report = (data.report || []).map((line) => '• ' + line);
+        if (data.authDeleted) report.push('• Firebase Auth login removed — nothing left to do manually');
+        return report;
+      })
+      .catch((err) => {
+        // Genuine refusals from the function are the admin's answer, not a
+        // reason to fall back to a weaker delete.
+        if (err && (err.code === 'permission-denied' || err.code === 'failed-precondition' || err.code === 'unauthenticated')) {
+          throw new Error(err.message);
+        }
+        console.warn('Stryker: deleteUserAccount unavailable, falling back to client-side wipe', err);
+        return deleteStudentClientSide(uid, email, name).then((report) => {
+          report.push('');
+          report.push('⚠ The Cloud Function is not deployed, so the Firebase Auth login could NOT be removed.');
+          report.push('Delete it in Firebase console → Authentication → Users. They are blocked meanwhile.');
+          return report;
+        });
+      });
+  }
+
+  return deleteStudentClientSide(uid, email, name);
+}
+
+// Client-only wipe. Cannot touch the Auth record — see above.
+function deleteStudentClientSide(uid, email, name){
   const report = [];
 
   // Deletes every doc a query returns, in batches. Firestore caps a batch at

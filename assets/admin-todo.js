@@ -109,8 +109,15 @@ function renderTodo(){
         '<span class="todo-sub">' + todoEscape(t.sub) + '</span>' +
       '</div>' +
       '<div class="todo-actions">' +
-        '<a href="' + t.link + '" class="btn btn-sm btn-primary">Open</a>' +
-        '<button type="button" class="btn btn-sm btn-ghost" data-todo-dismiss="' + t.key + '" data-signature="' + t.count + '" title="Hide until new items arrive">Done</button>' +
+        '<a href="' + t.link + '" class="todo-act" aria-label="Open the page that handles this" data-tip="Open the page that handles this">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+          '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>' +
+        '</a>' +
+        '<button type="button" class="todo-act todo-act-done" data-todo-dismiss="' + t.key + '" ' +
+          'data-signature="' + t.count + '" aria-label="Mark as handled" data-tip="Mark as handled — returns if new items arrive">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
+          '<path d="M20 6L9 17l-5-5"/></svg>' +
+        '</button>' +
       '</div>';
     wrap.appendChild(row);
   });
@@ -123,7 +130,11 @@ function renderTodo(){
       '<div class="todo-text"><span class="todo-title">' + todoEscape(t.text) + '</span>' +
         '<span class="todo-sub">Added by you</span></div>' +
       '<div class="todo-actions">' +
-        '<button type="button" class="btn btn-sm btn-ghost" data-todo-complete="' + t.id + '">Done</button>' +
+        '<button type="button" class="todo-act todo-act-done" data-todo-complete="' + t.id + '" ' +
+          'aria-label="Complete and remove this reminder" data-tip="Complete and remove this reminder">' +
+          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
+          '<path d="M20 6L9 17l-5-5"/></svg>' +
+        '</button>' +
       '</div>';
     wrap.appendChild(row);
   });
@@ -133,6 +144,7 @@ function renderTodo(){
       const key = btn.getAttribute('data-todo-dismiss');
       const signature = parseInt(btn.getAttribute('data-signature'), 10);
       btn.disabled = true;
+      btn.classList.add('is-busy');
       db.collection('adminTaskDismissals').doc(key).set({
         signature: signature,
         dismissedAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -143,6 +155,7 @@ function renderTodo(){
       }).catch((err) => {
         showToast('error', 'Could not dismiss: ' + (err.message || err));
         btn.disabled = false;
+        btn.classList.remove('is-busy');
       });
     });
   });
@@ -151,6 +164,7 @@ function renderTodo(){
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-todo-complete');
       btn.disabled = true;
+      btn.classList.add('is-busy');
       db.collection('adminTasks').doc(id).delete().then(() => {
         TODO_MANUAL = TODO_MANUAL.filter((t) => t.id !== id);
         if (typeof logActivity === 'function') logActivity('admin.task_done', 'Completed an admin task');
@@ -158,6 +172,7 @@ function renderTodo(){
       }).catch((err) => {
         showToast('error', 'Could not complete: ' + (err.message || err));
         btn.disabled = false;
+        btn.classList.remove('is-busy');
       });
     });
   });

@@ -1722,7 +1722,44 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
 .todo-title{ font-size:14px; font-weight:600; color:var(--ink-0); }
 a.todo-title:hover{ color:var(--teal); }
 .todo-sub{ font-size:12.5px; color:var(--ink-3); line-height:1.5; }
-.todo-actions{ display:flex; gap:8px; flex-shrink:0; align-items:center; }
+.todo-actions{ display:flex; gap:6px; flex-shrink:0; align-items:center; }
+
+/* Icon actions. Sized to the 44px minimum touch target even though the glyph
+   is 16px — the padding is the tappable area, not decoration. */
+.todo-act{
+  width:34px; height:34px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:9px; border:1px solid var(--line);
+  background:var(--bg-2); color:var(--ink-2);
+  cursor:pointer; transition:all .15s ease;
+  position:relative;
+}
+.todo-act:hover{ color:var(--teal); border-color:var(--teal-dim); background:var(--bg-3); }
+.todo-act-done:hover{ color:var(--bull); border-color:rgba(3,201,136,0.45); }
+.todo-act:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.todo-act.is-busy{ opacity:.45; pointer-events:none; }
+
+/* Tooltip. Driven by data-tip rather than the title attribute: the native
+   tooltip takes about a second to appear, cannot be styled, and never shows
+   at all on touch. */
+.todo-act::after{
+  content:attr(data-tip);
+  position:absolute; bottom:calc(100% + 8px); right:0;
+  white-space:nowrap;
+  background:var(--bg-3); color:var(--ink-0);
+  border:1px solid var(--line); border-radius:7px;
+  padding:6px 9px; font-size:11.5px; font-weight:500; line-height:1;
+  box-shadow:0 8px 20px -6px rgba(0,0,0,0.6);
+  opacity:0; transform:translateY(3px); pointer-events:none;
+  transition:opacity .15s ease, transform .15s ease;
+  z-index:20;
+}
+.todo-act:hover::after, .todo-act:focus-visible::after{ opacity:1; transform:translateY(0); }
+@media (max-width:560px){
+  /* No hover on touch, so the tooltip would only ever appear mid-tap and then
+     risk running off-screen. Suppressed; aria-label still carries the meaning. */
+  .todo-act::after{ display:none; }
+}
 .todo-empty{
   display:flex; align-items:center; gap:10px;
   padding:18px 4px; color:var(--ink-3); font-size:13.5px;
@@ -1740,10 +1777,9 @@ a.todo-title:hover{ color:var(--teal); }
 }
 .todo-add-input:focus{ outline:none; border-color:var(--teal); }
 @media (max-width:560px){
-  .todo-item{ flex-wrap:wrap; }
-  /* Buttons drop to their own row and align under the text rather than
-     squeezing the label to a couple of words. */
-  .todo-actions{ width:100%; padding-left:42px; }
+  /* Icons are compact enough to stay on the same row now, so the label keeps
+     its full width instead of wrapping to make room for buttons. */
+  .todo-item{ flex-wrap:nowrap; }
 }
 
 /* Toast popups ------------------------------------------------------------- */

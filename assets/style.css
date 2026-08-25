@@ -1705,3 +1705,43 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
   width:100%; max-width:440px;
 }
 .auth-visual-stats .stat-card{ flex:1; background:var(--bg-2); }
+
+/* Admin action queue ------------------------------------------------------- */
+.todo-item{
+  display:flex; align-items:flex-start; gap:12px;
+  padding:14px 4px; border-bottom:1px solid var(--line-soft);
+}
+.todo-item:last-of-type{ border-bottom:none; }
+.todo-icon{
+  width:30px; height:30px; flex-shrink:0; border-radius:8px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--bg-3); color:var(--ink-2);
+}
+.todo-item.urgent .todo-icon{ background:rgba(229,72,77,0.12); color:var(--bear); }
+.todo-text{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.todo-title{ font-size:14px; font-weight:600; color:var(--ink-0); }
+a.todo-title:hover{ color:var(--teal); }
+.todo-sub{ font-size:12.5px; color:var(--ink-3); line-height:1.5; }
+.todo-actions{ display:flex; gap:8px; flex-shrink:0; align-items:center; }
+.todo-empty{
+  display:flex; align-items:center; gap:10px;
+  padding:18px 4px; color:var(--ink-3); font-size:13.5px;
+}
+.todo-empty svg{ color:var(--bull); flex-shrink:0; }
+.todo-empty p{ margin:0; }
+.todo-add-row{
+  display:flex; gap:8px; margin-top:14px;
+  padding-top:14px; border-top:1px solid var(--line-soft);
+}
+.todo-add-input{
+  flex:1; min-width:0; padding:8px 12px; border-radius:8px;
+  border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);
+  font-size:13.5px;
+}
+.todo-add-input:focus{ outline:none; border-color:var(--teal); }
+@media (max-width:560px){
+  .todo-item{ flex-wrap:wrap; }
+  /* Buttons drop to their own row and align under the text rather than
+     squeezing the label to a couple of words. */
+  .todo-actions{ width:100%; padding-left:42px; }
+}

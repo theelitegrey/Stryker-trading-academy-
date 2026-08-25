@@ -138,5 +138,7 @@ var ACTIVITY_ACTIONS = {
   'settings.updated':         'Settings updated',
   'settings.access_updated':  'Page access updated',
   'settings.appearance':      'Appearance updated',
-  'log.purged':               'Log purged'
+  'log.purged':               'Log purged',
+  'admin.task_added':         'Task added',
+  'admin.task_done':          'Task completed'
 };

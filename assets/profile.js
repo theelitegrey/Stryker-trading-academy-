@@ -156,29 +156,43 @@ document.addEventListener('DOMContentLoaded', () => {
     const targetUid = getProfileUidFromQuery() || currentUser.uid;
     const isOwnProfile = targetUid === currentUser.uid;
 
-    const profileCheck = db.collection('profiles').doc(targetUid).get();
-    const postsCheck = db.collection('communityPosts').where('authorUid', '==', targetUid).limit(50).get()
-      .then((snap) => {
-        const posts = [];
-        snap.forEach((doc) => posts.push(doc.data()));
-        posts.sort((a, b) => {
-          const aTime = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
-          const bTime = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
-          return bTime - aTime; // newest first
-        });
-        return posts;
-      })
-      .catch((err) => { console.error('Stryker: failed to load posts', err); return []; });
+    // When viewing your own profile, make sure it actually exists first —
+    // this is what was missing before: visiting profile.html as your very
+    // first page after this feature shipped found nothing, since nothing
+    // on this page triggered the sync that every other page already does
+    // via ensureStudentDoc. Other people's profiles can't be self-healed
+    // this way (no permission to write someone else's), so those rely on
+    // the admin bulk-backfill tool for any pre-existing accounts.
+    const readyCheck = isOwnProfile ? ensureStudentDoc(currentUser) : Promise.resolve();
 
-    Promise.all([profileCheck, postsCheck, (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()])
-      .then(([profileDoc, posts]) => {
-        if (!profileDoc.exists) { renderProfileNotFound(); return; }
-        renderProfile(targetUid, profileDoc.data(), isOwnProfile, posts.length);
-        renderRecentPosts(posts.slice(0, PROFILE_RECENT_POSTS_LIMIT));
-      })
-      .catch((err) => {
-        console.error('Stryker: failed to load profile', err);
-        renderProfileNotFound();
-      });
+    readyCheck.then(() => {
+      const profileCheck = db.collection('profiles').doc(targetUid).get();
+      const postsCheck = db.collection('communityPosts').where('authorUid', '==', targetUid).limit(50).get()
+        .then((snap) => {
+          const posts = [];
+          snap.forEach((doc) => posts.push(doc.data()));
+          posts.sort((a, b) => {
+            const aTime = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+            const bTime = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+            return bTime - aTime; // newest first
+          });
+          return posts;
+        })
+        .catch((err) => { console.error('Stryker: failed to load posts', err); return []; });
+
+      Promise.all([profileCheck, postsCheck, (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()])
+        .then(([profileDoc, posts]) => {
+          if (!profileDoc.exists) { renderProfileNotFound(); return; }
+          renderProfile(targetUid, profileDoc.data(), isOwnProfile, posts.length);
+          renderRecentPosts(posts.slice(0, PROFILE_RECENT_POSTS_LIMIT));
+        })
+        .catch((err) => {
+          console.error('Stryker: failed to load profile', err);
+          renderProfileNotFound();
+        });
+    }).catch((err) => {
+      console.error('Stryker: failed to prepare profile', err);
+      renderProfileNotFound();
+    });
   });
 });

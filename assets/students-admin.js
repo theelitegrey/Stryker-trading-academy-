@@ -125,8 +125,51 @@ function loadStudents(){
     });
 }
 
+// One-time (or occasional) maintenance action: creates/updates a public
+// profiles/{uid} doc for every existing student from their current
+// students/{uid} data. Needed because the profile-sync hooks only fire
+// going forward, on actual account activity (signing in, changing a photo,
+// etc.) — an account that doesn't happen to trigger one of those after
+// profile pages shipped would otherwise show "Profile not found"
+// indefinitely. Safe to run more than once; merge:true just refreshes
+// each field to whatever's currently on the student doc.
+function backfillAllProfiles(){
+  if (!ALL_STUDENTS.length) { alert('No students loaded yet.'); return; }
+  if (!confirm('Create/update a public profile for all ' + ALL_STUDENTS.length + ' students? Safe to run more than once.')) return;
+
+  const btn = document.getElementById('backfill-profiles-btn');
+  btn.disabled = true;
+  btn.textContent = 'Backfilling…';
+
+  const writes = ALL_STUDENTS.map((s) =>
+    db.collection('profiles').doc(s.uid).set({
+      displayName: s.displayName || '',
+      photoURL: s.photoURL || null,
+      customPhotoURL: s.customPhotoURL || null,
+      avatarSeed: s.avatarSeed || null,
+      plan: s.plan || null,
+      bio: s.bio || null,
+      createdAt: s.createdAt || null,
+      currentStreak: s.currentStreak || 0,
+      bestStreak: s.bestStreak || 0,
+      completedChaptersCount: (s.completedChapters || []).length,
+      completedLessonsCount: (s.completedLessons || []).length
+    }, { merge: true })
+  );
+
+  Promise.allSettled(writes).then((results) => {
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    btn.disabled = false;
+    btn.textContent = 'Backfill all profiles';
+    alert('Done — ' + (writes.length - failed) + ' of ' + writes.length + ' profiles created/updated' + (failed ? ('. ' + failed + ' failed, check the console.') : '.'));
+    if (failed) results.forEach((r) => { if (r.status === 'rejected') console.error('Stryker: profile backfill failed for one student', r.reason); });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => loadStudents());
+
+  document.getElementById('backfill-profiles-btn').addEventListener('click', backfillAllProfiles);
 
   document.getElementById('students-search').addEventListener('input', (e) => {
     const q = e.target.value.trim().toLowerCase();

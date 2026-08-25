@@ -42,7 +42,7 @@
         ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
         : 'This page requires an active plan. Upgrade to keep going.';
     }
-    if (actions) actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
+    if (actions) actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
     overlay.style.display = 'flex';
   }
 

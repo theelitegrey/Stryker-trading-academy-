@@ -21,7 +21,7 @@ function setIndicatorPaywallMessage(reason, requiredRoleName){
   if (reason === 'role') {
     heading.textContent = 'Upgrade to unlock this indicator';
     body.textContent = 'This indicator requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
-    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
+    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';
     body.textContent = "Create a free account or log in to read this indicator's full write-up.";

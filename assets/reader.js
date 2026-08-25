@@ -65,7 +65,7 @@ function setPaywallMessage(reason, requiredRoleName){
     body.textContent = requiredRoleName
       ? ('This chapter requires the ' + requiredRoleName + ' plan. Upgrade to keep reading.')
       : "This chapter is beyond your current plan's chapter access. Upgrade to keep reading.";
-    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a>';
+    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';
     body.textContent = 'Create a free account or log in to read this chapter and save your progress across devices.';

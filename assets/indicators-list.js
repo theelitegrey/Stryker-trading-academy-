@@ -53,48 +53,78 @@ function showGuestPaywall(show){
 
 function initTvAccessPanel(uid){
   const statusEl = document.getElementById('tv-access-status');
+  const requestSection = document.getElementById('tv-access-request-section');
+  const grantedSection = document.getElementById('tv-access-granted-section');
   const usernameInput = document.getElementById('tv-access-username');
+  const approvedInput = document.getElementById('tv-access-approved-username');
+  const updateInput = document.getElementById('tv-access-update-username');
   const errEl = document.getElementById('tv-access-error');
   const okEl = document.getElementById('tv-access-success');
 
-  function renderStatus(granted, hasUsername){
-    if (!hasUsername) { statusEl.style.display = 'none'; return; }
-    statusEl.style.display = 'inline-block';
-    if (granted) {
+  // Renders the panel from whatever's actually stored, rather than trying
+  // to hand-patch the DOM after a save — one source of truth, called both
+  // on load and right after either save button succeeds.
+  function renderFromData(data){
+    const granted = !!data.tradingViewAccessGranted;
+    const hasUsername = !!data.tradingViewUsername;
+
+    if (!hasUsername) {
+      statusEl.style.display = 'none';
+    } else if (granted) {
+      statusEl.style.display = 'inline-block';
       statusEl.textContent = 'Access granted';
       statusEl.className = 'status-tag active';
     } else {
+      statusEl.style.display = 'inline-block';
       statusEl.textContent = 'Pending review';
       statusEl.className = 'status-tag trial';
     }
+
+    if (granted) {
+      approvedInput.value = data.tradingViewUsername;
+      updateInput.value = '';
+      grantedSection.style.display = 'block';
+      requestSection.style.display = 'none';
+    } else {
+      usernameInput.value = data.tradingViewUsername || '';
+      grantedSection.style.display = 'none';
+      requestSection.style.display = 'block';
+    }
   }
 
-  db.collection('students').doc(uid).get().then((doc) => {
-    const data = doc.exists ? doc.data() : {};
-    usernameInput.value = data.tradingViewUsername || '';
-    renderStatus(!!data.tradingViewAccessGranted, !!data.tradingViewUsername);
-  }).catch((err) => console.error('Stryker: failed to load TradingView access status', err));
-
-  document.getElementById('tv-access-save').addEventListener('click', () => {
+  function saveUsername(newUsername){
     errEl.style.display = 'none';
     okEl.style.display = 'none';
-    const newUsername = usernameInput.value.trim();
     // Changing the username re-opens the request — an admin still needs to
     // grant the new one, so this always clears any prior "granted" flag
     // rather than only doing so conditionally, to avoid an admin missing a
     // genuine username change.
-    db.collection('students').doc(uid).set({
+    return db.collection('students').doc(uid).set({
       tradingViewUsername: newUsername || null,
       tradingViewAccessGranted: false,
       tradingViewRequestedAt: newUsername ? firebase.firestore.FieldValue.serverTimestamp() : null
     }, { merge: true }).then(() => {
-      renderStatus(false, !!newUsername);
-      okEl.textContent = newUsername ? "Saved — we'll grant access soon." : 'Cleared.';
+      renderFromData({ tradingViewUsername: newUsername || null, tradingViewAccessGranted: false });
+      okEl.textContent = newUsername ? "Saved — we'll review it soon." : 'Cleared.';
       okEl.style.display = 'block';
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not save.';
       errEl.style.display = 'block';
     });
+  }
+
+  db.collection('students').doc(uid).get().then((doc) => {
+    renderFromData(doc.exists ? doc.data() : {});
+  }).catch((err) => console.error('Stryker: failed to load TradingView access status', err));
+
+  document.getElementById('tv-access-save').addEventListener('click', () => {
+    saveUsername(usernameInput.value.trim());
+  });
+
+  document.getElementById('tv-access-update-save').addEventListener('click', () => {
+    const newUsername = updateInput.value.trim();
+    if (!newUsername) { errEl.textContent = 'Enter the new username first.'; errEl.style.display = 'block'; return; }
+    saveUsername(newUsername);
   });
 }
 

@@ -448,6 +448,30 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('floor-image-preview-wrap').style.display = 'none';
   });
 
+  // Floating "New post" button → opens the composer modal. Closes on the
+  // × button, clicking the dark overlay itself, or Escape.
+  const composerOverlay = document.getElementById('floor-composer-modal-overlay');
+  function openComposerModal(){
+    if (composerOverlay) composerOverlay.style.display = 'flex';
+    const editable = document.getElementById('floor-post-text');
+    if (editable) editable.focus();
+  }
+  function closeComposerModal(){
+    if (composerOverlay) composerOverlay.style.display = 'none';
+  }
+  const fabBtn = document.getElementById('floor-fab-btn');
+  if (fabBtn) fabBtn.addEventListener('click', openComposerModal);
+  const composerCloseBtn = document.getElementById('floor-composer-close-btn');
+  if (composerCloseBtn) composerCloseBtn.addEventListener('click', closeComposerModal);
+  if (composerOverlay) {
+    composerOverlay.addEventListener('click', (e) => {
+      if (e.target === composerOverlay) closeComposerModal(); // click on the dark backdrop, not the card itself
+    });
+  }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && composerOverlay && composerOverlay.style.display !== 'none') closeComposerModal();
+  });
+
   document.getElementById('floor-post-btn').addEventListener('click', () => {
     const errEl = document.getElementById('floor-error');
     errEl.style.display = 'none';
@@ -478,6 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
       PENDING_IMAGE_DATA_URL = null;
       document.getElementById('floor-image-input').value = '';
       document.getElementById('floor-image-preview-wrap').style.display = 'none';
+      closeComposerModal();
       loadPosts();
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not post.';

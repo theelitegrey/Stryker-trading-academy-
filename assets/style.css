@@ -639,6 +639,14 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
    ========================================================================== */
 .dash-shell{ display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
 @media (max-width:900px){ .dash-shell{ grid-template-columns:1fr; } }
+@media (min-width:901px){
+  /* Nav takes a quarter of the viewport so the trading floor resolves to a
+     clean 25 / 50 / 25 across the whole page rather than 25 / 50 / 25 of
+     whatever was left over. Applied site-wide, not just on the floor —
+     scoping it to one page would make the sidebar visibly jump width every
+     time you navigated in or out of it. */
+  .dash-shell{ grid-template-columns:25% minmax(0,1fr); }
+}
 
 .sidebar{
   background:var(--bg-0); border-right:1px solid var(--line-soft);
@@ -1164,13 +1172,16 @@ tbody tr:hover{ background:var(--bg-3); }
    desktop breakpoint rather than overridden back out of. */
 .floor-layout-grid{ display:grid; grid-template-columns:1fr; gap:24px; align-items:start; }
 @media (min-width:901px){
-  /* 75 / 25. Fractional units rather than a fixed 280px sidebar, which made
-     the real ratio drift with window width — narrow screens gave the sidebar
-     a third of the row, wide ones barely a fifth.
+  /* The nav already holds 25% of the viewport, so this grid is splitting the
+     remaining 75%. 2fr / 1fr of that is 50% / 25% of the page — the target
+     ratio — which is why it is 2:1 here and not 1:1.
      minmax(0,...) on both tracks because a grid item's default min-width is
      auto, so one wide chart image or long unbroken string would push the
      timeline past its share and squash the sidebar. */
-  .floor-layout-grid{ grid-template-columns:minmax(0,3fr) minmax(0,1fr); }
+  .floor-layout-grid{ grid-template-columns:minmax(0,2fr) minmax(0,1fr); }
+  /* The inherited 1360px cap would stop the percentages taking effect at all
+     on a wide monitor, pinning the layout well short of the viewport. */
+  #floor-page-main{ max-width:none; }
 }
 @media (max-width:900px){ #floor-sidebar-col{ order:-1; } }
 #floor-page-main{ max-width:1360px; }

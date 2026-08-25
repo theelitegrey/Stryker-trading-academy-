@@ -51,6 +51,53 @@ function showGuestPaywall(show){
   if (content) content.classList.toggle('paywall-dimmed', show);
 }
 
+function initTvAccessPanel(uid){
+  const statusEl = document.getElementById('tv-access-status');
+  const usernameInput = document.getElementById('tv-access-username');
+  const errEl = document.getElementById('tv-access-error');
+  const okEl = document.getElementById('tv-access-success');
+
+  function renderStatus(granted, hasUsername){
+    if (!hasUsername) { statusEl.style.display = 'none'; return; }
+    statusEl.style.display = 'inline-block';
+    if (granted) {
+      statusEl.textContent = 'Access granted';
+      statusEl.className = 'status-tag active';
+    } else {
+      statusEl.textContent = 'Pending review';
+      statusEl.className = 'status-tag trial';
+    }
+  }
+
+  db.collection('students').doc(uid).get().then((doc) => {
+    const data = doc.exists ? doc.data() : {};
+    usernameInput.value = data.tradingViewUsername || '';
+    renderStatus(!!data.tradingViewAccessGranted, !!data.tradingViewUsername);
+  }).catch((err) => console.error('Stryker: failed to load TradingView access status', err));
+
+  document.getElementById('tv-access-save').addEventListener('click', () => {
+    errEl.style.display = 'none';
+    okEl.style.display = 'none';
+    const newUsername = usernameInput.value.trim();
+    // Changing the username re-opens the request — an admin still needs to
+    // grant the new one, so this always clears any prior "granted" flag
+    // rather than only doing so conditionally, to avoid an admin missing a
+    // genuine username change.
+    db.collection('students').doc(uid).set({
+      tradingViewUsername: newUsername || null,
+      tradingViewAccessGranted: false,
+      tradingViewRequestedAt: newUsername ? firebase.firestore.FieldValue.serverTimestamp() : null
+    }, { merge: true }).then(() => {
+      renderStatus(false, !!newUsername);
+      okEl.textContent = newUsername ? "Saved — we'll grant access soon." : 'Cleared.';
+      okEl.style.display = 'block';
+    }).catch((err) => {
+      errEl.textContent = err.message || 'Could not save.';
+      errEl.style.display = 'block';
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('indicators-render-target');
   if (container) showLoadingAnimation(container, 'Loading trading indicators…');
@@ -64,5 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   auth.onAuthStateChanged((user) => {
     showGuestPaywall(!user);
+    if (user) initTvAccessPanel(user.uid);
   });
 });

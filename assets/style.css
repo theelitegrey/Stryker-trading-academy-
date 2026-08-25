@@ -1466,3 +1466,11 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
 .side-link.admin-jump:hover{ background:rgba(0,173,181,.10); color:var(--teal); }
 .icon-btn.admin-jump-icon{ color:var(--teal); border-color:var(--teal-dim); }
 .icon-btn.admin-jump-icon:hover{ border-color:var(--teal); color:var(--teal); background:rgba(0,173,181,.10); }
+
+/* "Back to my account" on admin pages — the return trip for .admin-jump.
+   Gold rather than teal so the two directions read as distinct at a glance. */
+.side-link.student-jump{ color:var(--gold); }
+.side-link.student-jump svg{ color:var(--gold); }
+.side-link.student-jump:hover{ background:rgba(3,201,136,.10); color:var(--gold); }
+.icon-btn.student-jump-icon{ color:var(--gold); border-color:var(--gold-dim); }
+.icon-btn.student-jump-icon:hover{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,.10); }

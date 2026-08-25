@@ -85,6 +85,31 @@ def check_referenced_assets_exist():
                 fail(f'{path}: references {target}, which does not exist')
 
 
+def check_build_markers():
+    """Every page's build meta must match assets/version.json.
+
+    version-check.js compares these two to detect a browser sitting on a
+    stale cached HTML document. If they drift, either every visitor reloads
+    forever or nobody ever recovers — both worse than the bug it fixes.
+    """
+    import json
+    try:
+        declared = json.load(open('assets/version.json'))['build']
+    except Exception as exc:
+        fail(f'assets/version.json unreadable: {exc}')
+        return
+
+    for path in sorted(glob.glob('*.html')):
+        html = open(path).read()
+        found = re.findall(r'<meta name="stryker-build" content="(\d+)">', html)
+        if len(found) != 1:
+            fail(f'{path}: expected exactly one stryker-build meta, found {len(found)}')
+        elif int(found[0]) != declared:
+            fail(f'{path}: build meta {found[0]} != version.json {declared}')
+        if 'version-check.js' not in html:
+            fail(f'{path}: does not load version-check.js')
+
+
 def main():
     check_unversioned_assets()
     version = check_version_consistency()
@@ -92,6 +117,7 @@ def main():
     check_html_structure()
     check_css_braces()
     check_referenced_assets_exist()
+    check_build_markers()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

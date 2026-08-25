@@ -9,19 +9,40 @@
 
 const PROFILE_RECENT_POSTS_LIMIT = 6;
 
-// Achievement badges computable from public profile data alone (streak and
-// completion COUNTS, not the actual completed-chapters list, which stays
-// private). This is a smaller set than the full achievements.js roster —
-// the level-specific badges (Foundations/Structure Master/SMT Certified)
-// need to know exactly which chapters were done, not just how many, so
-// they're left off a public profile by design.
-const PROFILE_BADGES = [
-  { test: (p) => (p.completedChaptersCount || 0) >= 1, icon: '🎯', label: 'First chapter' },
-  { test: (p) => (p.completedChaptersCount || 0) >= 42, icon: '🎓', label: 'Curriculum complete' },
-  { test: (p) => (p.completedLessonsCount || 0) >= 25, icon: '📚', label: '25 lessons logged' },
-  { test: (p) => (p.bestStreak || 0) >= 7, icon: '🔥', label: '7-day streak' },
-  { test: (p) => (p.bestStreak || 0) >= 30, icon: '🔥', label: '30-day streak' }
+// IDs from the shared ACHIEVEMENTS array (achievements-data.js) that are
+// actually computable from what's synced to the public profile doc —
+// chapter/lesson COUNTS and streak, not the exact completed-chapters list,
+// so the three level-specific badges (Foundations/Structure Master/SMT
+// Certified) can't be checked here and are left off. Community, referral,
+// TradingView, and journal badges depend on stats that aren't synced to
+// the public profile at all — those stay visible only on your own
+// achievements.html page. `private: true` badges (journal) are already
+// excluded regardless, by design — see achievements-data.js's file header.
+const PROFILE_VISIBLE_BADGE_IDS = [
+  'first-chapter', 'chapters-5', 'chapters-10', 'halfway-there', 'chapters-30', 'curriculum-complete',
+  'lessons-10', 'lessons-25', 'lessons-50', 'lessons-100',
+  'streak-3', 'streak-7', 'streak-14', 'streak-30', 'streak-60', 'streak-100',
+  'bio-set', 'avatar-customized', 'plan-upgraded', 'early-adopter', 'welcome'
 ];
+
+function getEarnedProfileBadges(profile){
+  if (typeof ACHIEVEMENTS === 'undefined') return [];
+  const s = {
+    completedChapters: new Array(profile.completedChaptersCount || 0).fill(0), // count-only stand-in, length is all these checks use
+    completedLessons: new Array(profile.completedLessonsCount || 0).fill(0),
+    bestStreak: profile.bestStreak || 0,
+    bio: profile.bio || '',
+    customPhotoURL: profile.customPhotoURL || null,
+    avatarSeed: profile.avatarSeed || null,
+    plan: profile.plan || null
+  };
+  // curriculum-complete needs ch.length specifically (the total chapter
+  // count, 42) — a dummy array of the right length satisfies that check
+  // without needing the actual chapter objects, which the level-specific
+  // badges would need and which is exactly why those stay excluded above.
+  const fakeChapters = new Array(42);
+  return ACHIEVEMENTS.filter((a) => PROFILE_VISIBLE_BADGE_IDS.includes(a.id) && a.check(s, fakeChapters));
+}
 
 function getProfileUidFromQuery(){
   return new URLSearchParams(window.location.search).get('uid');
@@ -95,12 +116,13 @@ function renderProfile(uid, profile, isOwnProfile, postCount){
   const roleTag = (profile.plan && typeof roleTagHtml === 'function') ? roleTagHtml(profile.plan) : '';
   const joinDate = formatJoinDate(profile.createdAt);
 
-  const earnedBadges = PROFILE_BADGES.filter((b) => b.test(profile));
+  const earnedBadges = getEarnedProfileBadges(profile);
   const badgesHtml = earnedBadges.length
     ? '<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:20px;">' +
-        earnedBadges.map((b) =>
-          '<span style="display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:999px; background:rgba(3,201,136,0.08); border:1px solid var(--gold-dim); font-size:12px; color:var(--ink-1);">' +
-            '<span>' + b.icon + '</span>' + b.label +
+        earnedBadges.map((a) =>
+          '<span title="' + escapeProfileText(a.desc) + '" style="display:inline-flex; align-items:center; gap:6px; padding:5px 12px 5px 6px; border-radius:999px; background:' + a.color + '1a; border:1px solid ' + a.color + '55; font-size:12px; color:var(--ink-1);">' +
+            '<span style="display:flex; width:18px; height:18px; border-radius:50%; align-items:center; justify-content:center; color:' + a.color + ';"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' + a.icon + '</svg></span>' +
+            a.title +
           '</span>'
         ).join('') +
       '</div>'

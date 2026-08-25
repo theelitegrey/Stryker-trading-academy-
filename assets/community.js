@@ -280,10 +280,20 @@ function toggleReaction(post, field){
   const update = {};
   update[field] = has ? firebase.firestore.FieldValue.arrayRemove(FLOOR_UID) : firebase.firestore.FieldValue.arrayUnion(FLOOR_UID);
   ref.update(update).then(() => {
-    // Only notify on a genuine new like (not un-liking), only for the
-    // dedicated heart button (not up/downvotes), and never for liking your
-    // own post.
-    if (field === 'likedBy' && !has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
+    if (field !== 'likedBy') return;
+    // This writes to the POST AUTHOR's doc, not the liker's — the like-
+    // count achievement belongs to whoever received the like. Needs a
+    // narrow Firestore rule exception (see the floorLikesReceived-only
+    // update clause) since a student can otherwise only write their own doc.
+    const delta = has ? -1 : 1;
+    db.collection('students').doc(post.authorUid).set({
+      floorLikesReceived: firebase.firestore.FieldValue.increment(delta)
+    }, { merge: true }).then(() => {
+      if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid);
+    }).catch((err) => console.error('Stryker: failed to update likes-received count', err));
+    // Only notify on a genuine new like (not un-liking), and never for
+    // liking your own post.
+    if (!has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
       createNotification(post.authorUid, 'like', FLOOR_NAME + ' liked your post.', 'trading-floor.html');
     }
   }).then(loadPosts).catch((err) => alert('Could not update: ' + (err.message || err)));
@@ -375,6 +385,12 @@ function sendReply(post, inputEl, cardEl){
       if (post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
         createNotification(post.authorUid, 'reply', FLOOR_NAME + ' replied to your post.', 'trading-floor.html');
       }
+      // Self-incrementing counter, same reasoning as the post counter above.
+      db.collection('students').doc(FLOOR_UID).set({
+        floorReplyCount: firebase.firestore.FieldValue.increment(1)
+      }, { merge: true }).then(() => {
+        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID);
+      }).catch((err) => console.error('Stryker: failed to update reply count', err));
       inputEl.value = '';
       loadPosts().then(() => {
         const newCardWrap = document.getElementById('replies-' + post.id);
@@ -533,6 +549,14 @@ document.addEventListener('DOMContentLoaded', () => {
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
+      // Self-incrementing counter — this is the poster updating their own
+      // doc, no cross-user permission needed. Powers the post-count
+      // achievement badges without requiring a query every time they're checked.
+      db.collection('students').doc(FLOOR_UID).set({
+        floorPostCount: firebase.firestore.FieldValue.increment(1)
+      }, { merge: true }).then(() => {
+        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID);
+      }).catch((err) => console.error('Stryker: failed to update post count', err));
       editable.innerHTML = '';
       PENDING_IMAGE_DATA_URL = null;
       document.getElementById('floor-image-input').value = '';

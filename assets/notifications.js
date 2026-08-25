@@ -34,18 +34,27 @@ function createNotification(recipientUid, type, message, link){
 // newly-earned ones, and records them so the same badge never notifies
 // twice. `chapters` is optional — omit it in contexts where chapters data
 // isn't loaded; the four level-specific badges just won't be checked yet.
-function checkAndNotifyNewAchievements(uid, student, chapters){
+// `extra` (also optional) carries stats that live outside the base student
+// fields — postCount, replyCount, likesReceived, journalCount,
+// hasWinningTrade — supplied by whichever caller actually has them.
+function checkAndNotifyNewAchievements(uid, student, chapters, extra){
   if (typeof ACHIEVEMENTS === 'undefined') return Promise.resolve();
   const s = {
     completedChapters: student.completedChapters || [],
     completedLessons: student.completedLessons || [],
-    bestStreak: student.bestStreak || 0
+    bestStreak: student.bestStreak || 0,
+    referralPoints: student.referralPoints || 0,
+    bio: student.bio || '',
+    customPhotoURL: student.customPhotoURL || null,
+    avatarSeed: student.avatarSeed || null,
+    plan: student.plan || null,
+    tradingViewAccessGranted: !!student.tradingViewAccessGranted
   };
   const alreadyNotified = new Set(student.notifiedAchievements || []);
   const newlyEarned = ACHIEVEMENTS.filter((a) => {
     if (alreadyNotified.has(a.id)) return false;
     if (NOTIF_NEEDS_CHAPTERS.includes(a.id) && !chapters) return false;
-    return a.check(s, chapters || []);
+    return a.check(s, chapters || [], extra);
   });
 
   if (!newlyEarned.length) return Promise.resolve();
@@ -58,6 +67,28 @@ function checkAndNotifyNewAchievements(uid, student, chapters){
   return Promise.all(notifyWrites).then(() =>
     db.collection('students').doc(uid).set({ notifiedAchievements: updatedNotified }, { merge: true })
   ).catch((err) => console.error('Stryker: failed to record notified achievements', err));
+}
+
+// General-purpose entry point — fetches fresh student data and the extra
+// counters itself, so callers (a like, a reply, a post) just need a uid
+// rather than reconstructing the whole stats object every time. Chapter-
+// dependent badges aren't checked here (this doesn't load chapters data) —
+// those are covered separately by reader.js and achievements.html, which
+// already have that data loaded for other reasons.
+function checkAndNotifyNewAchievementsFor(uid){
+  if (typeof db === 'undefined' || !db) return Promise.resolve();
+  return db.collection('students').doc(uid).get().then((doc) => {
+    if (!doc.exists) return;
+    const student = doc.data();
+    const extra = {
+      postCount: student.floorPostCount || 0,
+      replyCount: student.floorReplyCount || 0,
+      likesReceived: student.floorLikesReceived || 0,
+      journalCount: student.journalEntryCount || 0,
+      hasWinningTrade: !!student.hasWinningTrade
+    };
+    return checkAndNotifyNewAchievements(uid, student, null, extra);
+  }).catch((err) => console.error('Stryker: failed to check achievements', err));
 }
 
 function timeAgoShort(date){

@@ -68,7 +68,21 @@ function saveTrade(uid, rawTrade, accountBalance, existingId){
   if (!existingId) data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
 
   const ref = existingId ? journalCollectionRef(uid).doc(existingId) : journalCollectionRef(uid).doc();
-  return ref.set(data, { merge: !!existingId }).then(() => ref.id);
+  return ref.set(data, { merge: !!existingId }).then(() => {
+    // Self-incrementing counters for the journal achievement badges — only
+    // bump the entry count on a genuinely NEW trade, not an edit to an
+    // existing one. hasWinningTrade is a one-way flag: once true, it stays
+    // true even if this specific trade is later edited to remove the win.
+    const counterUpdate = {};
+    if (!existingId) counterUpdate.journalEntryCount = firebase.firestore.FieldValue.increment(1);
+    if (derived.pnl > 0) counterUpdate.hasWinningTrade = true;
+    if (Object.keys(counterUpdate).length) {
+      db.collection('students').doc(uid).set(counterUpdate, { merge: true }).then(() => {
+        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(uid);
+      }).catch((err) => console.error('Stryker: failed to update journal counters', err));
+    }
+    return ref.id;
+  });
 }
 
 function deleteTrade(uid, tradeId){

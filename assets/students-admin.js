@@ -106,6 +106,54 @@ function renderStudentsTable(students){
   });
 }
 
+function renderTvRequestsPanel(students){
+  const panel = document.getElementById('tv-requests-panel');
+  const list = document.getElementById('tv-requests-list');
+  const countEl = document.getElementById('tv-requests-count');
+  if (!panel || !list) return;
+
+  const pending = students
+    .filter((s) => s.tradingViewUsername && !s.tradingViewAccessGranted)
+    .sort((a, b) => {
+      const aTime = (a.tradingViewRequestedAt && a.tradingViewRequestedAt.toMillis) ? a.tradingViewRequestedAt.toMillis() : 0;
+      const bTime = (b.tradingViewRequestedAt && b.tradingViewRequestedAt.toMillis) ? b.tradingViewRequestedAt.toMillis() : 0;
+      return aTime - bTime; // oldest first
+    });
+
+  if (!pending.length) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  countEl.textContent = pending.length + ' pending';
+
+  list.innerHTML = '';
+  pending.forEach((s) => {
+    const requestedLabel = (s.tradingViewRequestedAt && s.tradingViewRequestedAt.toDate)
+      ? s.tradingViewRequestedAt.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+      : '';
+    const row = document.createElement('div');
+    row.className = 'record-card';
+    row.innerHTML =
+      '<div>' +
+        '<span class="cell-name">' + escapeStudentText(s.tradingViewUsername) + '</span>' +
+        '<span class="cell-sub">' + escapeStudentText(s.displayName || s.email || s.uid) + (requestedLabel ? ' · requested ' + requestedLabel : '') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm" data-grant-tv="' + s.uid + '">Mark as granted</button>';
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-grant-tv]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const uid = btn.dataset.grantTv;
+      btn.disabled = true;
+      db.collection('students').doc(uid).set({ tradingViewAccessGranted: true }, { merge: true })
+        .then(() => loadStudents())
+        .catch((err) => {
+          alert('Could not update: ' + (err.message || err));
+          btn.disabled = false;
+        });
+    });
+  });
+}
+
 function loadStudents(){
   Promise.all([
     db.collection('students').get(),
@@ -116,6 +164,7 @@ function loadStudents(){
       ALL_STUDENTS = [];
       snap.forEach((doc) => ALL_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
       renderStudentsTable(ALL_STUDENTS);
+      renderTvRequestsPanel(ALL_STUDENTS);
     })
     .catch((err) => {
       console.error('Stryker: failed to load students', err);

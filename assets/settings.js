@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const planEl = document.getElementById('settings-plan-name');
       if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
       renderAvatarPreview(student);
+      document.getElementById('settings-tv-username').value = (student && student.tradingViewUsername) || '';
     }).catch((err) => console.error('Stryker: failed to load account info', err));
   });
 
@@ -111,6 +112,22 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(() => showSettingsMsg('settings-success', 'Saved.'))
       .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not save changes.'));
+  });
+
+  document.getElementById('settings-save-tv').addEventListener('click', () => {
+    if (!currentUser) return;
+    const newUsername = document.getElementById('settings-tv-username').value.trim();
+    // Changing the username re-opens the request — an admin still needs to
+    // grant the new one, so this always clears any prior "granted" flag
+    // rather than only doing so conditionally, to avoid an admin missing a
+    // genuine username change.
+    db.collection('students').doc(currentUser.uid).set({
+      tradingViewUsername: newUsername || null,
+      tradingViewAccessGranted: false,
+      tradingViewRequestedAt: newUsername ? firebase.firestore.FieldValue.serverTimestamp() : null
+    }, { merge: true })
+      .then(() => showSettingsMsg('settings-tv-success', newUsername ? 'Saved — we\'ll grant access soon.' : 'Cleared.'))
+      .catch((err) => showSettingsMsg('settings-tv-error', err.message || 'Could not save.'));
   });
 
   document.getElementById('settings-reset-password').addEventListener('click', () => {

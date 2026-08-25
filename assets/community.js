@@ -42,7 +42,7 @@ function resizeImageToDataUrl(file, maxDim, mimeType){
         canvas.width = width;
         canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL(mimeType || 'image/jpeg', 0.82));
+        resolve(canvas.toDataURL(mimeType || 'image/jpeg', 0.87));
       };
       img.src = reader.result;
     };
@@ -411,6 +411,31 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!auth) return;
   initRichTextToolbar('floor-rte-toolbar', 'floor-post-text');
 
+  // Lightbox — event delegation on #floor-list since posts re-render on
+  // every load, rather than re-attaching a listener to every image each time.
+  const lightboxOverlay = document.getElementById('floor-lightbox-overlay');
+  const lightboxImg = document.getElementById('floor-lightbox-img');
+  function closeLightbox(){ if (lightboxOverlay) lightboxOverlay.style.display = 'none'; }
+  const floorList = document.getElementById('floor-list');
+  if (floorList && lightboxOverlay && lightboxImg) {
+    floorList.addEventListener('click', (e) => {
+      const img = e.target.closest('.floor-post-image');
+      if (!img) return;
+      lightboxImg.src = img.src;
+      lightboxOverlay.style.display = 'flex';
+    });
+  }
+  if (lightboxOverlay) {
+    lightboxOverlay.addEventListener('click', (e) => {
+      if (e.target === lightboxOverlay) closeLightbox(); // backdrop only, not the image itself
+    });
+  }
+  const lightboxCloseBtn = document.getElementById('floor-lightbox-close');
+  if (lightboxCloseBtn) lightboxCloseBtn.addEventListener('click', closeLightbox);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && lightboxOverlay && lightboxOverlay.style.display !== 'none') closeLightbox();
+  });
+
   let handled = false;
   auth.onAuthStateChanged((user) => {
     if (handled) return;
@@ -446,7 +471,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('floor-image-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    resizeImageToDataUrl(file, 640, 'image/jpeg').then((dataUrl) => {
+    resizeImageToDataUrl(file, 1280, 'image/jpeg').then((dataUrl) => {
       PENDING_IMAGE_DATA_URL = dataUrl;
       document.getElementById('floor-image-preview').src = dataUrl;
       document.getElementById('floor-image-preview-wrap').style.display = 'block';

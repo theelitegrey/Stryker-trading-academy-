@@ -3,18 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Referrals — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=121">
-<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
+<title>Activity log — Stryker Admin</title>
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
 
 <div class="mobile-topnav">
-  <a href="dashboard-admin.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a>
+  <a href="dashboard-admin.html" class="brand"><div class="brand-mark">S</div><div class="brand-name">STRYKER</div></a>
   <div style="display:flex; gap:8px;">
     <a href="dashboard-user.html" class="icon-btn student-jump-icon" aria-label="Back to my account" title="Back to my account"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg></a>
     <button class="icon-btn mobile-signout-btn" aria-label="Sign out" data-sign-out title="Sign out">
@@ -29,8 +24,8 @@
 
   <aside class="sidebar">
     <a href="dashboard-admin.html" class="brand">
-      <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
+      <div class="brand-mark">S</div>
+      <div class="brand-name">STRYKER <span>ADMIN</span></div>
     </a>
 
 
@@ -81,11 +76,11 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         Roles &amp; access
       </a>
-      <a href="moderation-admin.html" class="side-link">
+      <a href="moderation-admin.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>
         Moderation
       </a>
-      <a href="referrals-admin.html" class="side-link active">
+      <a href="referrals-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Referrals
       </a>
@@ -105,10 +100,6 @@
 
     <div class="side-section">
       <div class="side-label">System</div>
-      <a href="appearance-admin.html" class="side-link">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-        Appearance
-      </a>
       <a href="logs-admin.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
         Activity log
@@ -134,62 +125,64 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Referrals</h1>
-        <p>Invite/referral analytics, and the point values awarded per signup and conversion.</p>
+        <h1 class="dash-title">Activity log</h1>
+        <p class="dash-sub">Every action taken on the site, by anyone.</p>
       </div>
-    </div>
-
-    <div class="auth-error" id="ref-admin-error"></div>
-    <div class="auth-error" id="ref-admin-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
-
-    <div class="stat-grid-3">
-      <div class="stat-card">
-        <div class="stat-val" id="refstat-total-invites">—</div>
-        <div class="stat-label">Total signups via invite</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="refstat-total-conversions">—</div>
-        <div class="stat-label">Converted to a paid plan</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="refstat-conversion-rate">—</div>
-        <div class="stat-label">Invite → plan conversion rate</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Point values</h2></div>
-      <div class="form-row-2">
-        <div class="field" style="margin-bottom:0;">
-          <label for="ref-points-signup">Points per signup</label>
-          <input type="number" id="ref-points-signup" min="0" step="1">
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label for="ref-points-conversion">Points per conversion (plan purchase)</label>
-          <input type="number" id="ref-points-conversion" min="0" step="1">
-        </div>
-      </div>
-      <div class="field" style="margin-top:14px;">
-        <label><input type="checkbox" id="ref-enabled-toggle"> Referral tracking enabled</label>
-      </div>
-      <button class="btn btn-primary btn-sm" id="save-ref-config-btn" style="margin-top:10px;">Save point values</button>
+      <a href="dashboard-user.html" class="btn btn-ghost btn-sm student-jump">Back to my account</a>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>Top referrers</h2>
-        <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">by total invite points</span>
+        <h2 class="panel-title">Filters</h2>
+        <button class="btn btn-ghost btn-sm" id="log-filter-reset">Clear</button>
       </div>
-      <div id="ref-top-referrers-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; padding:4px 0 12px;">
+        <label style="display:block;">
+          <span class="rs-label" style="display:block; margin-bottom:5px;">User</span>
+          <select id="log-filter-user" class="log-filter-input"><option value="">All users</option></select>
+        </label>
+        <label style="display:block;">
+          <span class="rs-label" style="display:block; margin-bottom:5px;">Action</span>
+          <select id="log-filter-action" class="log-filter-input"><option value="">All actions</option></select>
+        </label>
+        <label style="display:block;">
+          <span class="rs-label" style="display:block; margin-bottom:5px;">From</span>
+          <input type="date" id="log-filter-from" class="log-filter-input">
+        </label>
+        <label style="display:block;">
+          <span class="rs-label" style="display:block; margin-bottom:5px;">To</span>
+          <input type="date" id="log-filter-to" class="log-filter-input">
+        </label>
+      </div>
     </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>Recent referrals</h2>
-        <span id="ref-recent-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+        <h2 class="panel-title">Activity</h2>
+        <span class="panel-count" id="log-count">—</span>
       </div>
-      <div id="ref-recent-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div id="log-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div id="log-more-wrap" style="display:none; text-align:center; padding:14px 0 4px;">
+        <button class="btn btn-ghost btn-sm" id="log-more-btn">Show more</button>
+      </div>
     </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2 class="panel-title">Clear old entries</h2>
+      </div>
+      <p style="color:var(--ink-3); font-size:13px; line-height:1.6; margin:0 0 12px;">
+        The log grows with every action. Trim it periodically so this page stays fast.
+        Deletions are permanent.
+      </p>
+      <div id="log-purge-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-sm btn-ghost" data-purge-days="30">Older than 30 days</button>
+        <button class="btn btn-sm btn-ghost" data-purge-days="15">Older than 15 days</button>
+        <button class="btn btn-sm btn-ghost" data-purge-days="7">Older than 7 days</button>
+        <button class="btn btn-sm btn-ghost" data-purge-days="0" style="color:var(--bear); border-color:rgba(229,72,77,0.35);">Delete everything</button>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -198,18 +191,18 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js?v=121"></script>
 <script src="assets/progress.js?v=121"></script>
-<script src="assets/activity-log.js?v=121"></script>
 <script src="assets/banned-check.js?v=121"></script>
 <script src="assets/email-verify.js?v=121"></script>
 <script src="assets/profiles-sync.js?v=121"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
 <script src="assets/loading-animation.js?v=121"></script>
 <script src="assets/avatars.js?v=121"></script>
-<script src="assets/referrals.js?v=121"></script>
-<script src="assets/branding.js?v=121"></script>
-<script src="assets/admin-guard.js?v=121"></script>
-<script src="assets/dash-nav.js?v=121"></script>
 <script src="assets/roles.js?v=121"></script>
-<script src="assets/referrals-admin.js?v=121"></script>
+<script src="assets/admin-guard.js?v=121"></script>
+<script src="assets/branding.js?v=121"></script>
+<script src="assets/dash-nav.js?v=121"></script>
+<script src="assets/notifications.js?v=121"></script>
+<script src="assets/activity-log.js?v=121"></script>
+<script src="assets/logs-admin.js?v=121"></script>
 </body>
 </html>

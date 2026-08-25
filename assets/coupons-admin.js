@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('save-coupon-btn');
     btn.disabled = true;
 
+    if (typeof logActivity === 'function') logActivity('commerce.coupon_saved', 'Saved coupon ' + code, { detail: 'coupon ' + code });
     db.collection('coupons').doc(code).set(data, { merge: true })
       .then(() => loadCoupons())
       .then(() => closeCouponEditor())
@@ -149,6 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('delete-coupon-btn').addEventListener('click', () => {
     if (!EDITING_COUPON_CODE) return;
     if (!confirm('Delete coupon ' + EDITING_COUPON_CODE + '? Students will no longer be able to redeem it.')) return;
+    if (typeof logActivity === 'function') logActivity('commerce.coupon_deleted', 'Deleted coupon ' + EDITING_COUPON_CODE, { detail: 'coupon ' + EDITING_COUPON_CODE });
     db.collection('coupons').doc(EDITING_COUPON_CODE).delete()
       .then(() => loadCoupons())
       .then(() => closeCouponEditor())

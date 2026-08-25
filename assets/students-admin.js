@@ -71,6 +71,11 @@ function renderStudentsTable(students){
       select.disabled = true;
       if (typeof syncPublicProfile === 'function') syncPublicProfile(s.uid, { plan: newPlan });
       db.collection('students').doc(s.uid).set({ plan: newPlan }, { merge: true })
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity('student.plan_changed',
+            'Changed ' + name + "'s plan to " + (newPlan || 'none'),
+            { targetUid: s.uid, targetName: name, detail: 'from ' + (s.plan || 'none') + ' to ' + (newPlan || 'none') });
+        })
         .then(() => loadStudents())
         .catch((err) => {
           alert('Could not change plan: ' + (err.message || err));
@@ -99,6 +104,12 @@ function renderStudentsTable(students){
         ? revokeAdmin(s.uid)
         : grantAdmin(s.uid, s.email, s.displayName, auth.currentUser.uid);
       action
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity(
+            isAdminUser ? 'student.admin_revoked' : 'student.admin_granted',
+            (isAdminUser ? 'Revoked admin from ' : 'Granted admin to ') + name,
+            { targetUid: s.uid, targetName: name });
+        })
         .then(() => loadAdminList())
         .then(() => renderStudentsTable(ALL_STUDENTS))
         .catch((err) => {
@@ -116,6 +127,12 @@ function renderStudentsTable(students){
         ? revokeModerator(s.uid)
         : grantModerator(s.uid, s.email, s.displayName, auth.currentUser.uid);
       action
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity(
+            isModeratorUser ? 'student.moderator_revoked' : 'student.moderator_granted',
+            (isModeratorUser ? 'Revoked moderator from ' : 'Granted moderator to ') + name,
+            { targetUid: s.uid, targetName: name });
+        })
         .then(() => loadModeratorList())
         .then(() => renderStudentsTable(ALL_STUDENTS))
         .catch((err) => {
@@ -153,6 +170,12 @@ function renderStudentsTable(students){
 
       btn.disabled = true;
       btn.textContent = 'Deleting…';
+      // Logged BEFORE the delete runs: the actor's own admin lookup and the
+      // target's details are still readable, and a delete that fails halfway
+      // still leaves a record that it was attempted.
+      if (typeof logActivity === 'function') logActivity('student.deleted',
+        'Deleted the account ' + name + ' (' + (s.email || 'no email') + ')',
+        { targetUid: s.uid, targetName: name });
       deleteStudentCompletely(s.uid, s.email, name)
         .then((report) => {
           alert('Deleted ' + name + '.\n\n' + report.join('\n'));
@@ -317,6 +340,8 @@ function backfillAllProfiles(){
 
   Promise.allSettled(writes).then((results) => {
     const failed = results.filter((r) => r.status === 'rejected').length;
+    if (typeof logActivity === 'function') logActivity('student.profiles_backfill',
+      'Backfilled ' + (writes.length - failed) + ' public profiles');
     btn.disabled = false;
     btn.textContent = 'Backfill all profiles';
     alert('Done — ' + (writes.length - failed) + ' of ' + writes.length + ' profiles created/updated' + (failed ? ('. ' + failed + ' failed, check the console.') : '.'));

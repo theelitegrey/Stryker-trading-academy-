@@ -180,7 +180,10 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.disabled = true; btn.textContent = 'Logging in…';
       applyChosenPersistence()
         .then(() => auth.signInWithEmailAndPassword(email, password))
-        .then(() => routeAfterAuth())
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity('auth.login', 'Logged in');
+          return routeAfterAuth();
+        })
         .catch((err) => showAuthError('login-error', friendlyAuthError(err)))
         .finally(() => { btn.disabled = false; btn.textContent = original; });
     });
@@ -229,7 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
               .catch((err) => console.warn('Stryker: verification email failed to send', err));
           }
         })
-        .then(() => routeAfterAuth())
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity('auth.signup', 'Created an account');
+          return routeAfterAuth();
+        })
         .catch((err) => showAuthError('signup-error', friendlyAuthError(err)))
         .finally(() => { btn.disabled = false; btn.textContent = original; });
     });
@@ -285,7 +291,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('[data-sign-out]').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      auth.signOut().then(() => { window.location.href = 'index.html'; });
+      const bye = (typeof logActivity === 'function') ? logActivity('auth.logout', 'Logged out') : Promise.resolve();
+      bye.then(() => auth.signOut()).then(() => { window.location.href = 'index.html'; });
     });
   });
 

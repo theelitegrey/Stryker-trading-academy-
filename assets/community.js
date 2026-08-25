@@ -463,6 +463,7 @@ function sendReply(post, inputEl, cardEl){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   })
     .then(() => db.collection('communityPosts').doc(post.id).update({ replyCount: firebase.firestore.FieldValue.increment(1) }))
+    .then(() => { if (typeof logActivity === 'function') logActivity('reply.created', 'Replied to a post on the Trading Floor', { detail: 'post ' + post.id }); })
     .then(() => {
       if (post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
         createNotification(post.authorUid, 'reply', FLOOR_NAME + ' replied to your post.', 'trading-floor.html');
@@ -490,7 +491,9 @@ function sendReply(post, inputEl, cardEl){
 
 function deletePost(postId){
   if (!confirm('Delete this post?')) return;
-  db.collection('communityPosts').doc(postId).delete().then(loadPosts).catch((err) => alert('Could not delete: ' + (err.message || err)));
+  db.collection('communityPosts').doc(postId).delete()
+    .then(() => { if (typeof logActivity === 'function') logActivity('post.deleted', 'Deleted their own post', { detail: 'post ' + postId }); })
+    .then(loadPosts).catch((err) => alert('Could not delete: ' + (err.message || err)));
 }
 
 // Moderator action — hides a post from the normal feed and flags it for
@@ -533,6 +536,9 @@ function submitModeration(){
   if (errEl) errEl.style.display = 'none';
   if (confirmBtn) confirmBtn.disabled = true;
 
+  if (typeof logActivity === 'function') logActivity('post.flagged',
+    'Flagged a post by ' + (post.authorName || 'a member') + ' for review',
+    { targetUid: post.authorUid, targetName: post.authorName, detail: reason });
   db.collection('communityPosts').doc(post.id).update({
     hidden: true,
     moderatedBy: FLOOR_UID,
@@ -829,6 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
         imageDataUrl: PENDING_IMAGE_DATA_URL || null,
         flair: PENDING_FLAIR || null,
         editedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        if (typeof logActivity === 'function') logActivity('post.edited', 'Edited their post', { detail: 'post ' + EDITING_POST_ID });
       }).then(resetComposerAfterSave).catch((err) => {
         errEl.textContent = err.message || 'Could not save changes.';
         errEl.style.display = 'block';
@@ -847,6 +855,8 @@ document.addEventListener('DOMContentLoaded', () => {
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
+      if (typeof logActivity === 'function') logActivity('post.created',
+        'Posted on the Trading Floor', { detail: CURRENT_CATEGORY === 'propfirm' ? 'Prop firm feed' : 'Posts' });
       // Self-incrementing counter — this is the poster updating their own
       // doc, no cross-user permission needed. Powers the post-count
       // achievement badges without requiring a query every time they're checked.

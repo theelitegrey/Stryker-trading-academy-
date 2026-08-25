@@ -115,6 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.disabled = true;
 
     const ref = EDITING_PLAN_ID ? db.collection('plans').doc(EDITING_PLAN_ID) : db.collection('plans').doc();
+    if (typeof logActivity === 'function') logActivity('commerce.plan_saved', 'Saved plan ' + (data.name || ref.id), { detail: 'plan ' + ref.id });
     ref.set(data, { merge: true })
       .then(() => loadPlans())
       .then(() => { closePlanEditor(); })

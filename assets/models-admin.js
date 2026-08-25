@@ -55,6 +55,9 @@ function importBundledModels(triggerBtn){
       .catch((err) => ({ id: m.id, ok: false, error: err && (err.message || String(err)) }))
   );
 
+  if (typeof logActivity === 'function') logActivity('content.model_saved',
+    'Published the trading model set (' + writes.length + ' models)');
+
   Promise.allSettled(writes)
     .then((results) => {
       const outcomes = results.map((r) => r.value || { ok: false, error: 'unknown failure' });

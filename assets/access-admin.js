@@ -84,6 +84,7 @@ function saveAllPageAccess(){
   btn.disabled = true;
   btn.textContent = 'Saving…';
 
+  if (typeof logActivity === 'function') logActivity('settings.access_updated', 'Updated page access rules');
   db.collection('settings').doc('pageAccess').set(data, { merge: false })
     .then(() => {
       okEl.textContent = 'Page access saved.';

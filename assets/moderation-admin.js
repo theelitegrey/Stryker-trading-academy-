@@ -64,6 +64,9 @@ function renderModerationQueue(posts){
         // Close the loop for the author — they were told it was hidden,
         // so they should be told when that's reversed too.
         if (typeof createNotification === 'function' && post.authorUid) {
+          if (typeof logActivity === 'function') logActivity('post.restored',
+            'Restored a flagged post by ' + (post.authorName || 'a member'),
+            { targetUid: post.authorUid, targetName: post.authorName });
           createNotification(post.authorUid, 'post_restored', 'Good news — an admin reviewed your post and restored it to the Trading Floor.', 'trading-floor.html');
         }
         return loadModerationQueue();
@@ -93,6 +96,11 @@ function renderModerationQueue(posts){
         : Promise.resolve();
 
       notifyFirst
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity('post.removed',
+            'Permanently removed a post by ' + (post.authorName || 'a member'),
+            { targetUid: post.authorUid, targetName: post.authorName, detail: trimmed });
+        })
         .then(() => db.collection('communityPosts').doc(post.id).delete())
         .then(loadModerationQueue)
         .catch((err) => {

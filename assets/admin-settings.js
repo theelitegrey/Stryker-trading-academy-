@@ -120,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('maintenance-save-btn');
     btn.disabled = true;
     const enabled = document.getElementById('maintenance-toggle').checked;
+    if (typeof logActivity === 'function') logActivity('settings.updated', 'Updated site settings');
     db.collection('settings').doc('site').set({
       maintenanceMode: enabled,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()

@@ -86,6 +86,11 @@ function importBundledChapters(triggerBtn){
       .catch((err) => ({ num: ch.num, ok: false, error: err && (err.message || String(err)) }))
   );
 
+  // One line per bulk publish, not one per chapter — 42 identical entries
+  // would bury everything else in the log.
+  if (typeof logActivity === 'function') logActivity('content.chapter_saved',
+    'Published the chapter set (' + writes.length + ' chapters)');
+
   Promise.allSettled(writes)
     .then((results) => {
       const outcomes = results.map((r) => r.value || { ok: false, error: 'unknown failure' });

@@ -1474,3 +1474,12 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
 .side-link.student-jump:hover{ background:rgba(3,201,136,.10); color:var(--gold); }
 .icon-btn.student-jump-icon{ color:var(--gold); border-color:var(--gold-dim); }
 .icon-btn.student-jump-icon:hover{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,.10); }
+
+/* Activity log filters ---------------------------------------------------- */
+.log-filter-input{
+  width:100%; box-sizing:border-box;
+  font-family:var(--font-mono); font-size:12.5px;
+  padding:7px 9px; border-radius:6px;
+  border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);
+}
+.log-filter-input:focus{ outline:none; border-color:var(--teal); }

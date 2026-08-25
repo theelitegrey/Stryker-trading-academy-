@@ -54,24 +54,27 @@ function renderAchievements(student){
     heading.textContent = cat;
     section.appendChild(heading);
 
-    const catGrid = document.createElement('div');
-    catGrid.className = 'badge-grid';
+    const catList = document.createElement('div');
+    catList.className = 'badge-list';
 
     ACHIEVEMENTS.filter((a) => a.category === cat).forEach((a) => {
       const unlocked = a.check(s, CHAPTERS, extra);
       const el = document.createElement('div');
-      el.className = 'badge-item' + (unlocked ? '' : ' locked');
-      el.title = a.desc;
+      el.className = 'badge-row' + (unlocked ? '' : ' locked');
       const iconColor = unlocked ? a.color : 'var(--ink-3)';
+      const statusIcon = unlocked
+        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="' + a.color + '" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>'
+        : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-3)" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
       el.innerHTML =
-        '<div class="badge-ic" style="color:' + iconColor + '; background:' + (unlocked ? a.color + '1a' : 'var(--bg-3)') + '; border-color:' + (unlocked ? a.color + '55' : 'var(--line)') + ';">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + a.icon + '</svg>' +
+        '<div class="badge-row-ic" style="color:' + iconColor + '; background:' + (unlocked ? a.color + '1a' : 'transparent') + '; border-color:' + (unlocked ? a.color + '55' : 'var(--line)') + ';">' +
+          '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + a.icon + '</svg>' +
         '</div>' +
-        '<span>' + a.title + '</span>';
-      catGrid.appendChild(el);
+        '<div class="badge-row-text"><span class="badge-row-title">' + a.title + '</span><span class="badge-row-desc">' + a.desc + '</span></div>' +
+        '<div class="badge-row-status">' + statusIcon + '</div>';
+      catList.appendChild(el);
     });
 
-    section.appendChild(catGrid);
+    section.appendChild(catList);
     grid.appendChild(section);
   });
 }

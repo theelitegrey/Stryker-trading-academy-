@@ -111,6 +111,16 @@ function getStudentDoc(uid){
 }
 
 function saveStudentProgress(uid, completedLessonsSet, completedChaptersSet){
+  // Non-blocking: keep the public profile's chapter/lesson COUNTS current —
+  // not the actual lists, which stay private. A count is enough to compute
+  // most achievement badges (first chapter, curriculum complete, lesson
+  // milestones) without revealing exactly which chapters someone's done.
+  if (typeof syncPublicProfile === 'function') {
+    syncPublicProfile(uid, {
+      completedChaptersCount: completedChaptersSet.size,
+      completedLessonsCount: completedLessonsSet.size
+    });
+  }
   return db.collection('students').doc(uid).set({
     completedLessons: Array.from(completedLessonsSet),
     completedChapters: Array.from(completedChaptersSet)

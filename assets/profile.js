@@ -1,11 +1,27 @@
 // Stryker Trading Academy — public profile page (profile.html?uid=...)
 // Depends on: assets/progress.js (`db`, `auth`), assets/avatars.js
-// (avatarImgHtml), assets/roles.js (roleTagHtml, loadPlansForRoles).
+// (avatarImgHtml), assets/roles.js (roleTagHtml, findPlan, loadPlansForRoles).
 //
 // Reads from profiles/{uid} — a deliberately narrow, public-safe copy of a
 // student's data, not the real students/{uid} doc (which stays restricted
 // to the owner + admins). See assets/profiles-sync.js for the full reasoning
 // and the write side of this.
+
+const PROFILE_RECENT_POSTS_LIMIT = 6;
+
+// Achievement badges computable from public profile data alone (streak and
+// completion COUNTS, not the actual completed-chapters list, which stays
+// private). This is a smaller set than the full achievements.js roster —
+// the level-specific badges (Foundations/Structure Master/SMT Certified)
+// need to know exactly which chapters were done, not just how many, so
+// they're left off a public profile by design.
+const PROFILE_BADGES = [
+  { test: (p) => (p.completedChaptersCount || 0) >= 1, icon: '🎯', label: 'First chapter' },
+  { test: (p) => (p.completedChaptersCount || 0) >= 42, icon: '🎓', label: 'Curriculum complete' },
+  { test: (p) => (p.completedLessonsCount || 0) >= 25, icon: '📚', label: '25 lessons logged' },
+  { test: (p) => (p.bestStreak || 0) >= 7, icon: '🔥', label: '7-day streak' },
+  { test: (p) => (p.bestStreak || 0) >= 30, icon: '🔥', label: '30-day streak' }
+];
 
 function getProfileUidFromQuery(){
   return new URLSearchParams(window.location.search).get('uid');
@@ -14,6 +30,22 @@ function getProfileUidFromQuery(){
 function formatJoinDate(createdAt){
   if (!createdAt || typeof createdAt.toDate !== 'function') return null;
   return createdAt.toDate().toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+}
+
+function escapeProfileText(s){
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function timeAgoLabel(date){
+  const diffMs = Date.now() - date.getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return days + 'd ago';
+  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
 function renderProfileNotFound(){
@@ -26,30 +58,90 @@ function renderProfileNotFound(){
     '</div>';
 }
 
+function bannerGradientFor(plan){
+  const color = (plan && plan.color) ? plan.color : '#00adb5';
+  return 'linear-gradient(120deg, ' + color + '33, ' + color + '08 60%, transparent)';
+}
+
+function renderPostCard(post){
+  const when = post.createdAt && post.createdAt.toDate ? timeAgoLabel(post.createdAt.toDate()) : '';
+  const imgHtml = post.imageDataUrl ? '<img src="' + post.imageDataUrl + '" style="width:100%; border-radius:8px; margin-top:10px; display:block;">' : '';
+  return (
+    '<div class="record-card" style="flex-direction:column; align-items:stretch; gap:6px;">' +
+      '<span class="cell-sub">' + when + '</span>' +
+      '<div style="font-size:14px; color:var(--ink-1); line-height:1.5;">' + (post.textHtml || '') + '</div>' +
+      imgHtml +
+    '</div>'
+  );
+}
+
+function renderRecentPosts(posts){
+  const wrap = document.getElementById('profile-posts-list');
+  if (!wrap) return;
+  if (!posts.length) {
+    wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:8px 0;">No posts on the Trading Floor yet.</p>';
+    return;
+  }
+  wrap.innerHTML = posts.map(renderPostCard).join('');
+}
+
 function renderProfile(uid, profile, isOwnProfile, postCount){
   const target = document.getElementById('profile-render-target');
   if (!target) return;
 
   const name = profile.displayName || 'Trader';
   const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(uid, name, profile, 96) : '';
+  const plan = (profile.plan && typeof findPlan === 'function') ? findPlan(profile.plan) : null;
   const roleTag = (profile.plan && typeof roleTagHtml === 'function') ? roleTagHtml(profile.plan) : '';
   const joinDate = formatJoinDate(profile.createdAt);
 
-  target.innerHTML =
-    '<div class="panel" style="text-align:center; padding:48px 32px;">' +
-      '<div style="margin-bottom:18px; display:flex; justify-content:center;">' + avatarHtml + '</div>' +
-      '<h2 style="font-size:22px; margin-bottom:6px;">' + escapeProfileText(name) + roleTag + '</h2>' +
-      (joinDate ? '<p style="color:var(--ink-3); font-size:13px; margin-bottom:28px;">Member since ' + joinDate + '</p>' : '<div style="margin-bottom:28px;"></div>') +
-      '<div style="display:flex; justify-content:center; gap:40px; flex-wrap:wrap;">' +
-        '<div><b style="display:block; font-family:var(--font-mono); font-size:22px; color:var(--ink-0);">' + (profile.currentStreak || 0) + '</b><span style="font-size:11.5px; color:var(--ink-3);">Day streak</span></div>' +
-        '<div><b style="display:block; font-family:var(--font-mono); font-size:22px; color:var(--ink-0);">' + postCount + '</b><span style="font-size:11.5px; color:var(--ink-3);">Trading Floor posts</span></div>' +
-      '</div>' +
-      (isOwnProfile ? '<a href="settings.html" class="btn btn-ghost btn-sm" style="margin-top:32px;">Edit profile</a>' : '') +
-    '</div>';
-}
+  const earnedBadges = PROFILE_BADGES.filter((b) => b.test(profile));
+  const badgesHtml = earnedBadges.length
+    ? '<div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:20px;">' +
+        earnedBadges.map((b) =>
+          '<span style="display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:999px; background:rgba(3,201,136,0.08); border:1px solid var(--gold-dim); font-size:12px; color:var(--ink-1);">' +
+            '<span>' + b.icon + '</span>' + b.label +
+          '</span>'
+        ).join('') +
+      '</div>'
+    : '';
 
-function escapeProfileText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  target.innerHTML =
+    '<div class="panel" style="overflow:hidden; padding:0;">' +
+      '<div style="height:100px; background:' + bannerGradientFor(plan) + ';"></div>' +
+      '<div style="text-align:center; padding:0 32px 40px; margin-top:-52px;">' +
+        '<div style="display:flex; justify-content:center; margin-bottom:14px;"><div style="border-radius:50%; border:4px solid var(--bg-2); overflow:hidden; line-height:0;">' + avatarHtml + '</div></div>' +
+        '<h2 style="font-size:21px; margin-bottom:4px;">' + escapeProfileText(name) + roleTag + '</h2>' +
+        (profile.bio ? '<p style="font-size:13.5px; color:var(--ink-1); max-width:420px; margin:0 auto 10px;">' + escapeProfileText(profile.bio) + '</p>' : '') +
+        (joinDate ? '<p style="color:var(--ink-3); font-size:12.5px; margin-bottom:24px;">Member since ' + joinDate + '</p>' : '<div style="margin-bottom:24px;"></div>') +
+        '<div style="display:flex; justify-content:center; gap:36px; flex-wrap:wrap;">' +
+          '<div><b style="display:block; font-family:var(--font-mono); font-size:20px; color:var(--ink-0);">' + (profile.currentStreak || 0) + '</b><span style="font-size:11px; color:var(--ink-3);">Day streak</span></div>' +
+          '<div><b style="display:block; font-family:var(--font-mono); font-size:20px; color:var(--ink-0);">' + (profile.bestStreak || 0) + '</b><span style="font-size:11px; color:var(--ink-3);">Best streak</span></div>' +
+          '<div><b style="display:block; font-family:var(--font-mono); font-size:20px; color:var(--ink-0);">' + (profile.completedChaptersCount || 0) + '</b><span style="font-size:11px; color:var(--ink-3);">Chapters done</span></div>' +
+          '<div><b style="display:block; font-family:var(--font-mono); font-size:20px; color:var(--ink-0);">' + postCount + '</b><span style="font-size:11px; color:var(--ink-3);">Floor posts</span></div>' +
+        '</div>' +
+        badgesHtml +
+        '<div style="display:flex; justify-content:center; gap:10px; margin-top:28px; flex-wrap:wrap;">' +
+          (isOwnProfile ? '<a href="settings.html" class="btn btn-ghost btn-sm">Edit profile</a>' : '') +
+          '<button class="btn btn-ghost btn-sm" id="profile-copy-link-btn">Copy profile link</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="panel">' +
+      '<div class="panel-head"><h2 style="font-size:15px;">Recent Trading Floor posts</h2></div>' +
+      '<div id="profile-posts-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>' +
+    '</div>';
+
+  const copyBtn = document.getElementById('profile-copy-link-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', () => {
+      const url = window.location.origin + window.location.pathname + '?uid=' + encodeURIComponent(uid);
+      navigator.clipboard.writeText(url).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy profile link'; }, 1800);
+      }).catch(() => {});
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -65,14 +157,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const isOwnProfile = targetUid === currentUser.uid;
 
     const profileCheck = db.collection('profiles').doc(targetUid).get();
-    const postCountCheck = db.collection('communityPosts').where('authorUid', '==', targetUid).get()
-      .then((snap) => snap.size)
-      .catch((err) => { console.error('Stryker: failed to load post count', err); return 0; });
+    const postsCheck = db.collection('communityPosts').where('authorUid', '==', targetUid).limit(50).get()
+      .then((snap) => {
+        const posts = [];
+        snap.forEach((doc) => posts.push(doc.data()));
+        posts.sort((a, b) => {
+          const aTime = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
+          const bTime = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
+          return bTime - aTime; // newest first
+        });
+        return posts;
+      })
+      .catch((err) => { console.error('Stryker: failed to load posts', err); return []; });
 
-    Promise.all([profileCheck, postCountCheck, (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()])
-      .then(([profileDoc, postCount]) => {
+    Promise.all([profileCheck, postsCheck, (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()])
+      .then(([profileDoc, posts]) => {
         if (!profileDoc.exists) { renderProfileNotFound(); return; }
-        renderProfile(targetUid, profileDoc.data(), isOwnProfile, postCount);
+        renderProfile(targetUid, profileDoc.data(), isOwnProfile, posts.length);
+        renderRecentPosts(posts.slice(0, PROFILE_RECENT_POSTS_LIMIT));
       })
       .catch((err) => {
         console.error('Stryker: failed to load profile', err);

@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const planEl = document.getElementById('settings-plan-name');
       if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
       renderAvatarPreview(student);
+      document.getElementById('settings-bio').value = (student && student.bio) || '';
     }).catch((err) => console.error('Stryker: failed to load account info', err));
   });
 
@@ -103,11 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('settings-save-name').addEventListener('click', () => {
     if (!currentUser) return;
     const newName = document.getElementById('settings-name').value.trim();
+    const newBio = document.getElementById('settings-bio').value.trim();
     if (!newName) { showSettingsMsg('settings-error', 'Display name cannot be empty.'); return; }
     currentUser.updateProfile({ displayName: newName })
       .then(() => {
-        if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid, { displayName: newName });
-        return db.collection('students').doc(currentUser.uid).set({ displayName: newName }, { merge: true });
+        if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid, { displayName: newName, bio: newBio });
+        return db.collection('students').doc(currentUser.uid).set({ displayName: newName, bio: newBio }, { merge: true });
       })
       .then(() => showSettingsMsg('settings-success', 'Saved.'))
       .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not save changes.'));

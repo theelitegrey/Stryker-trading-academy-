@@ -65,8 +65,13 @@
 :root{
   /* 14px padding top and bottom around a 30px .icon-btn, plus the 1px bottom
      border. Declared once because the sidebar's height and sticky offset are
-     both derived from it. */
+     both derived from it — if they disagree the nav either overruns the
+     viewport or slides under the header. */
   --topbar-h:59px;
+}
+@media (min-width:901px){
+  /* Roomier on desktop, where the bar also carries the logo. */
+  :root{ --topbar-h:68px; }
 }
 *,*::before,*::after{ box-sizing:border-box; }
 html{ scroll-behavior:smooth; overflow-x:hidden; }
@@ -731,9 +736,28 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .mobile-topnav{ display:none; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft); background:var(--bg-0); position:sticky; top:0; z-index:50; }
 @media (max-width:900px){ .mobile-topnav{ display:flex; } }
 @media (min-width:901px){
-  .mobile-topnav{ display:flex; justify-content:flex-end; }
-  .mobile-topnav > .brand{ display:none; }
+  .mobile-topnav{
+    display:flex;
+    justify-content:space-between;
+    /* Taller than the mobile bar and lifted off the page: a slightly raised
+       surface plus a downward shadow, so content scrolls UNDER it rather than
+       appearing to sit on the same plane. */
+    height:var(--topbar-h);
+    padding:0 26px;
+    background:var(--bg-1);
+    border-bottom:1px solid var(--line);
+    box-shadow:0 2px 12px -2px rgba(0,0,0,0.55), 0 1px 0 0 rgba(255,255,255,0.03) inset;
+  }
+  /* Logo moves up here. The sidebar's copy is hidden rather than deleted so
+     the mobile layout, where the sidebar is a drawer with no header above it,
+     keeps its branding. */
+  .mobile-topnav > .brand{ display:flex; align-items:center; }
+  .sidebar > .brand{ display:none; }
+  /* The nav column starts flush with the top of the header's border now that
+     nothing sits above it. */
+  .sidebar{ padding-top:14px; }
   .mobile-topnav #dash-menu-toggle{ display:none; }
+  .mobile-topnav .brand-mark{ height:34px; }
   /* The header sits ABOVE .dash-shell in the document, so the sidebar's
      100vh would otherwise run past the bottom of the screen by exactly the
      header's height, and its sticky top:0 would slide underneath it. Both are

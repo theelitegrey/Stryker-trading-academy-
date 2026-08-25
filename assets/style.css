@@ -605,15 +605,34 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .auth-visual{
   position:relative; background:var(--bg-0);
   border-right:1px solid var(--line-soft);
-  padding:48px; display:flex; flex-direction:column; justify-content:space-between;
+  padding:48px; display:flex; flex-direction:column;
   overflow:hidden;
+  /* Was space-between across three children, which on a tall screen threw the
+     logo, the quote and the chart to opposite ends with huge dead gaps
+     between them. Now the quote and chart sit together in the optical centre
+     and the logo is pinned out of the flow. */
+  justify-content:center;
+  align-items:flex-start;
+  gap:36px;
 }
 @media (max-width:900px){ .auth-visual{ display:none; } }
-.auth-visual-quote{ position:relative; z-index:2; max-width:420px; }
+/* Out of the flex flow entirely so it can't push the grouped content off
+   centre as the viewport gets taller. */
+.auth-visual > .brand{ position:absolute; top:40px; left:48px; z-index:3; }
+.auth-visual > svg{ width:100%; max-width:440px; }
+.auth-visual-quote{ position:relative; z-index:2; max-width:440px; }
 .auth-visual-quote p{ font-family:var(--font-display); font-size:22px; color:var(--ink-0); line-height:1.4; }
 .auth-visual-quote span{ font-size:13px; color:var(--ink-3); margin-top:14px; display:block; font-family:var(--font-mono); }
 
 .auth-side{ display:flex; align-items:center; justify-content:center; padding:40px; }
+@media (min-width:901px){
+  /* Both columns cap their content at the same width and centre it, so the
+     form and the quote read as one composition rather than two panes that
+     happen to be side by side. */
+  .auth-shell{ align-items:stretch; }
+  .auth-side{ padding:48px 56px; }
+  .auth-box{ max-width:420px; }
+}
 .auth-box{ width:100%; max-width:400px; }
 .auth-box h1{ font-size:26px; margin:6px 0 8px; }
 .auth-box > p{ color:var(--ink-2); font-size:14.5px; margin-bottom:28px; }
@@ -1670,3 +1689,12 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
   font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--ink-0);
   border-top:1px solid var(--line-soft); margin-top:6px; padding-top:5px;
 }
+
+/* Signup's visual pane ends in a stat row rather than a chart. It carried its
+   layout inline, so it collapsed to content width once the pane switched to
+   align-items:flex-start. */
+.auth-visual-stats{
+  display:flex; gap:14px; position:relative; z-index:2;
+  width:100%; max-width:440px;
+}
+.auth-visual-stats .stat-card{ flex:1; background:var(--bg-2); }

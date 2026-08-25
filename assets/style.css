@@ -4,7 +4,7 @@
    Type: Space Grotesk (display) / Inter (body) / JetBrains Mono (data)
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root{
   /* surfaces — charcoal/slate (image 2) */
@@ -41,8 +41,8 @@
   --bear:#e5484d;
 
   /* type scale */
-  --font-display:'Fraunces', serif;
-  --font-body:'IBM Plex Sans', sans-serif;
+  --font-display:'Bricolage Grotesque', sans-serif;
+  --font-body:'Hanken Grotesk', sans-serif;
   --font-mono:'JetBrains Mono', monospace;
 
   --radius-sm:6px;

@@ -1529,3 +1529,51 @@ body.view-only-mode .floor-reply-input-row{ display:none; }
 .side-group.open .side-group-body{ grid-template-rows:1fr; }
 /* The single child is what actually gets clipped while the row collapses. */
 .side-group-inner{ overflow:hidden; min-height:0; }
+
+/* In-dashboard plan upgrade modal ----------------------------------------- */
+.plan-modal-overlay{
+  display:none; position:fixed; inset:0; z-index:800;
+  background:rgba(5,5,6,0.88);
+  align-items:center; justify-content:center; padding:20px;
+  overflow-y:auto; overscroll-behavior:contain;
+}
+.plan-modal-overlay.open{ display:flex; }
+.plan-modal{
+  position:relative; width:100%; max-width:760px;
+  background:var(--bg-1); border:1px solid var(--line); border-radius:16px;
+  padding:26px 22px; margin:auto;
+}
+.plan-modal-close{
+  position:absolute; top:14px; right:14px;
+  background:none; border:none; color:var(--ink-3); cursor:pointer;
+  padding:6px; line-height:0; border-radius:6px;
+}
+.plan-modal-close:hover{ color:var(--ink-0); background:var(--bg-3); }
+.plan-modal-title{ font-size:20px; margin:0 0 6px; padding-right:30px; }
+.plan-modal-sub{ color:var(--ink-3); font-size:13.5px; line-height:1.6; margin:0 0 20px; }
+.plan-modal-grid{
+  display:grid; gap:14px;
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+}
+.plan-modal-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+  padding:18px 16px; display:flex; flex-direction:column;
+}
+.plan-modal-pill{
+  align-self:flex-start; font-family:var(--font-mono); font-size:10.5px;
+  font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+  padding:3px 9px; border-radius:999px; border:1px solid; margin-bottom:12px;
+}
+.plan-modal-price{ font-size:26px; font-weight:700; color:var(--ink-0); margin-bottom:14px; }
+.plan-modal-price span{ font-size:13px; font-weight:500; color:var(--ink-3); }
+.plan-modal-features{ list-style:none; padding:0; margin:0 0 18px; flex:1; }
+.plan-modal-features li{
+  display:flex; align-items:flex-start; gap:8px;
+  font-size:13px; color:var(--ink-2); line-height:1.5; margin-bottom:8px;
+}
+.plan-modal-features svg{ color:var(--teal); flex-shrink:0; margin-top:3px; }
+.plan-modal-pick{ width:100%; }
+@media (max-width:600px){
+  .plan-modal{ padding:22px 16px; }
+  .plan-modal-grid{ grid-template-columns:1fr; }
+}

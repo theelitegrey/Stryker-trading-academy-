@@ -33,7 +33,7 @@ function setModelPaywallMessage(reason, requiredRoleName){
   if (reason === 'role') {
     heading.textContent = 'Upgrade to unlock this model';
     body.textContent = 'This model requires the ' + (requiredRoleName || 'a higher') + ' plan. Upgrade to keep reading.';
-    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
+    actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';
     body.textContent = "Create a free account or log in to read this model's full write-up.";
@@ -54,6 +54,7 @@ function checkModelRoleAccess(m, uid){
   return Promise.all([adminCheck, studentCheck, rolesCheck, pageAccessCheck]).then(([adminDoc, studentDoc, , pageAccess]) => {
     if (adminDoc.exists) return true;
     const plan = studentDoc.exists ? studentDoc.data().plan : null;
+    window.__strykerCurrentPlan = plan;  // see plan-modal.js
 
     // Section-wide restriction, set in Roles & Access for "Trading models"
     // as a whole (independent of any individual model's own minRole below).

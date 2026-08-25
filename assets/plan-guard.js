@@ -55,7 +55,7 @@
           ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
           : 'This page requires an active plan. Upgrade to keep going.';
       }
-      if (actions) actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
+      if (actions) actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="' + (requiredRoleName ? ('This page needs the ' + requiredRoleName + ' plan.') : 'This page needs a higher plan.') + '">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
       overlay.style.display = 'flex';
     }
     revealPageContent(); // reveal already-dimmed, with the card on top — never a sharp frame first
@@ -82,6 +82,9 @@
       if (adminDoc.exists) { revealPageContent(); return; } // admins never need a plan
 
       const plan = studentDoc.exists ? studentDoc.data().plan : null;
+      // Published so plan-modal.js can offer only genuine UPGRADES rather
+      // than listing the tier they already hold alongside a downgrade.
+      window.__strykerCurrentPlan = plan;
 
       if (!pageKey) {
         // Legacy behavior: any plan at all unlocks the page.

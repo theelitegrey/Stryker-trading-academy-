@@ -89,7 +89,7 @@ function setPaywallMessage(reason, requiredRoleName){
     body.textContent = requiredRoleName
       ? ('This chapter requires the ' + requiredRoleName + ' plan. Upgrade to keep reading.')
       : "This chapter is beyond your current plan's chapter access. Upgrade to keep reading.";
-    actions.innerHTML = '<a href="index.html#pricing" class="btn btn-primary">See plans</a><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
+    actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
   } else {
     heading.textContent = 'Sign in to keep reading';
     body.textContent = 'Create a free account or log in to read this chapter and save your progress across devices.';
@@ -114,6 +114,7 @@ function checkChapterRoleAccess(ch, uid){
   return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
     if (adminDoc.exists) return true;
     const plan = studentDoc.exists ? studentDoc.data().plan : null;
+    window.__strykerCurrentPlan = plan;  // see plan-modal.js
     // Two independent checks, both must pass:
     // 1) this specific chapter's own minRole, if the admin set one directly on it
     const passesMinRole = ch.minRole ? hasRoleAccess(plan, ch.minRole) : true;

@@ -643,15 +643,38 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .sidebar{
   background:var(--bg-0); border-right:1px solid var(--line-soft);
   padding:22px 18px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
+  /* The nav is now taller than a short viewport. Without its own scroll
+     container the overflow is simply unreachable. */
+  overflow-y:auto;
+  /* Stops a scroll that reaches the end of this list from continuing into the
+     page behind it (scroll chaining) — on touch that reads as "the site moved
+     instead of the menu". */
+  overscroll-behavior:contain;
 }
 @media (max-width:900px){
   .sidebar{
     display:flex;
-    position:fixed; top:0; left:0; height:100vh; width:280px; max-width:82vw;
+    position:fixed; top:0; left:0; width:280px; max-width:82vw;
     z-index:200; transform:translateX(-100%); transition:transform .25s ease;
     box-shadow:20px 0 40px -20px rgba(0,0,0,0.6);
+    /* dvh tracks the visible viewport as mobile browser chrome hides and
+       shows; 100vh is the TALLER value, so the last item sat permanently
+       under the address bar. Fallback first for older engines. */
+    height:100vh;
+    height:100dvh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
   }
   .sidebar.mobile-open{ transform:translateX(0); }
+  /* Flex children default to min-height:auto and refuse to shrink below their
+     content, which would push the footer out of the scroll area entirely. */
+  .sidebar .side-section{ flex-shrink:0; }
+  .sidebar .brand{ flex-shrink:0; }
+  .sidebar .sidebar-foot{ flex-shrink:0; }
+  /* Freezes the page behind the open drawer. Paired with a JS scroll lock so
+     iOS Safari, which ignores this on body alone, behaves too. */
+  body.sidebar-locked{ overflow:hidden; }
 }
 .sidebar-backdrop{
   display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:190;

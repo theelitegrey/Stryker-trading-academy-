@@ -3,6 +3,46 @@
 
 let REFERRAL_UID = null;
 
+// Existing accounts have duplicate rows for a single invitee — one 'signed_up'
+// row from the link and a second 'converted' row created at checkout, because
+// the signup path used to abort before writing referredBy. The write path is
+// fixed, but the bad rows are already in Firestore, so collapse them on read:
+// one invitee is one entry, points summed, furthest-along status wins.
+function collapseInvites(rawInvites){
+  const byPerson = new Map();
+  rawInvites.forEach((inv) => {
+    // Rows with no referredUid can't be matched to a person; keep them separate.
+    const key = inv.referredUid || ('anon:' + Math.random());
+    const existing = byPerson.get(key);
+    if (!existing) {
+      byPerson.set(key, Object.assign({}, inv));
+      return;
+    }
+    existing.pointsAwarded = (existing.pointsAwarded || 0) + (inv.pointsAwarded || 0);
+    if (inv.status === 'converted') existing.status = 'converted';
+    existing.referredName = existing.referredName || inv.referredName;
+    existing.referredEmail = existing.referredEmail || inv.referredEmail;
+    const te = existing.createdAt && existing.createdAt.toMillis ? existing.createdAt.toMillis() : 0;
+    const ti = inv.createdAt && inv.createdAt.toMillis ? inv.createdAt.toMillis() : 0;
+    if (ti && (!te || ti < te)) existing.createdAt = inv.createdAt; // keep the earliest join date
+  });
+  return Array.from(byPerson.values());
+}
+
+// Guards against names stored as the literal string "null" by an older code
+// path, which is why an invitee could render as "Null".
+function inviteDisplayName(inv){
+  const candidates = [inv.referredName, inv.referredEmail];
+  for (let i = 0; i < candidates.length; i++) {
+    const v = candidates[i];
+    if (v === null || v === undefined) continue;
+    const s = String(v).trim();
+    if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') continue;
+    return s;
+  }
+  return 'A new trader';
+}
+
 function renderInviteList(invites){
   const wrap = document.getElementById('referral-invite-list');
   const countEl = document.getElementById('referral-invite-count');
@@ -23,7 +63,7 @@ function renderInviteList(invites){
     const card = document.createElement('div');
     card.className = 'record-card';
     card.innerHTML =
-      '<div style="flex:1;"><span class="cell-name">' + (inv.referredName || inv.referredEmail || 'A new trader') + '</span>' +
+      '<div style="flex:1;"><span class="cell-name">' + inviteDisplayName(inv) + '</span>' +
         '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">' + when + '</div></div>' +
       '<div style="text-align:right;">' +
         '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">+' + (inv.pointsAwarded || 0) + ' pts</div>' +
@@ -33,8 +73,21 @@ function renderInviteList(invites){
   });
 }
 
-function renderLeaderboard(list, myUid){
+function renderLeaderboard(list, myUid, myPoints){
   const wrap = document.getElementById('referral-leaderboard');
+  const rankEl = document.getElementById('referral-rank');
+
+  // Rank has to be resolved BEFORE any early return. This used to sit at the
+  // bottom of the function, after a `return` taken when the list was empty —
+  // so whenever the leaderboard came back empty the rank was simply never
+  // written and stayed on its placeholder dash forever.
+  const myIndex = list.findIndex((e) => e.uid === myUid);
+  if (rankEl) {
+    if (myIndex >= 0) rankEl.textContent = '#' + (myIndex + 1);
+    else if (!myPoints) rankEl.textContent = '—';           // no points yet: genuinely unranked
+    else rankEl.textContent = '#' + (list.length + 1) + '+'; // has points, outside the fetched top N
+  }
+
   if (!list.length) {
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No one has earned invite points yet — be the first.</p>';
     return;
@@ -56,11 +109,6 @@ function renderLeaderboard(list, myUid){
       '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">' + entry.points + ' pts</div>';
     wrap.appendChild(row);
   });
-
-  // Show my rank even if I'm outside the fetched top list.
-  const myIndex = list.findIndex((e) => e.uid === myUid);
-  const rankEl = document.getElementById('referral-rank');
-  if (rankEl) rankEl.textContent = myIndex >= 0 ? ('#' + (myIndex + 1)) : (list.length ? '#' + (list.length + 1) + '+' : '—');
 }
 
 function copyReferralLink(){
@@ -102,20 +150,29 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('referral-error').style.display = 'block';
       });
 
-    db.collection('students').doc(user.uid).get().then((doc) => {
-      const points = doc.exists ? (doc.data().referralPoints || 0) : 0;
-      document.getElementById('referral-total-points').textContent = points;
+    let myPoints = 0;
+    const pointsReady = db.collection('students').doc(user.uid).get().then((doc) => {
+      myPoints = doc.exists ? (doc.data().referralPoints || 0) : 0;
+      document.getElementById('referral-total-points').textContent = myPoints;
+      return myPoints;
+    }).catch((err) => {
+      console.error('Stryker: failed to load referral points', err);
+      document.getElementById('referral-total-points').textContent = '0';
+      return 0;
     });
 
     db.collection('referrals').where('referrerUid', '==', user.uid).get()
       .then((snap) => {
-        const invites = [];
-        snap.forEach((doc) => invites.push(doc.data()));
+        const raw = [];
+        snap.forEach((doc) => raw.push(doc.data()));
+        // One invitee = one row, even if older data recorded them twice.
+        const invites = collapseInvites(raw);
         invites.sort((a, b) => {
           const ta = a.createdAt && a.createdAt.toMillis ? a.createdAt.toMillis() : 0;
           const tb = b.createdAt && b.createdAt.toMillis ? b.createdAt.toMillis() : 0;
           return tb - ta;
         });
+        // "People invited" counts PEOPLE, not referral documents.
         document.getElementById('referral-total-invites').textContent = invites.length;
         renderInviteList(invites);
       })
@@ -125,8 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load your invites right now — try refreshing.</p>';
       });
 
-    Promise.all([loadReferralLeaderboard(10), (typeof loadPlansForRoles === 'function' ? loadPlansForRoles() : Promise.resolve())])
-      .then(([list]) => renderLeaderboard(list, user.uid))
+    Promise.all([loadReferralLeaderboard(10), pointsReady, (typeof loadPlansForRoles === 'function' ? loadPlansForRoles() : Promise.resolve())])
+      .then(([list, points]) => renderLeaderboard(list, user.uid, points))
       .catch((err) => {
         document.getElementById('referral-leaderboard').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load the leaderboard: ' + (err.message || err) + '</p>';

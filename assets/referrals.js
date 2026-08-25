@@ -90,11 +90,54 @@ function loadReferralConfig(){
     .catch(() => ({ pointsPerSignup: 10, pointsPerConversion: 50, enabled: true }));
 }
 
+// Normalizes a name that may have been stored as the literal string "null"
+// or "undefined" by an earlier code path, so the UI never renders those.
+function cleanReferredName(value){
+  if (value === null || value === undefined) return null;
+  const s = String(value).trim();
+  if (!s || s.toLowerCase() === 'null' || s.toLowerCase() === 'undefined') return null;
+  return s;
+}
+
+// Mirrors the running point total onto the PUBLIC profiles doc as well as the
+// private student doc. The leaderboard has to read every competitor's total,
+// and students/{uid} is readable only by its owner and admins — so a
+// leaderboard built on students/ returns nothing for a normal student. The
+// public profiles collection is the only place a cross-student read can work.
+function awardReferralPoints(referrerUid, points){
+  if (!points) return Promise.resolve();
+  const inc = firebase.firestore.FieldValue.increment(points);
+  return Promise.all([
+    db.collection('students').doc(referrerUid).set({ referralPoints: inc }, { merge: true })
+      .catch((err) => console.error('Stryker: could not award referral points on student doc', err)),
+    db.collection('profiles').doc(referrerUid).set({ referralPoints: inc }, { merge: true })
+      .catch((err) => console.error('Stryker: could not mirror referral points to profile', err))
+  ]);
+}
+
+function notifyReferrer(referrerUid, type, message){
+  if (typeof createNotification !== 'function') return Promise.resolve();
+  return createNotification(referrerUid, type, message, 'referrals.html')
+    .catch((err) => console.error('Stryker: referral notification failed', err));
+}
+
 // Called once, right after a brand-new student doc is created (see
 // progress.js's ensureStudentDoc). Resolves any pending ?ref= code left in
 // sessionStorage from signup, records the referral, and awards the
 // referrer's signup points. A student can never refer themselves, and this
 // only ever runs once per new account (the pending code is consumed).
+//
+// ORDERING MATTERS. referredBy is written FIRST, before anything else.
+// It's a write to this student's OWN doc, so it always succeeds, and it is
+// the marker every other part of the system uses to know this person was
+// referred. Previously it was written LAST, after a cross-user points
+// increment — and when that increment was rejected by the security rules the
+// whole promise chain aborted, so referredBy never got set. The referral then
+// looked invisible to checkout, which happily created a SECOND referral doc
+// for the same person. That is why one invitee showed up as two.
+//
+// Every cross-user step below also catches independently, so no single
+// permission failure can abort the ones after it.
 function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
   const code = takePendingReferralCode();
   if (!code || typeof db === 'undefined' || !db) return Promise.resolve(null);
@@ -108,23 +151,30 @@ function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
       return loadReferralConfig().then((config) => {
         if (!config.enabled) return null;
         const points = config.pointsPerSignup || 0;
+        const name = cleanReferredName(newDisplayName);
 
-        return db.collection('referrals').add({
-          referrerUid: referrerUid,
-          referrerCode: code,
-          referredUid: newUid,
-          referredName: newDisplayName || null,
-          referredEmail: newEmail || null,
-          status: 'signed_up',
-          pointsAwarded: points,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => db.collection('students').doc(referrerUid).set({
-          referralPoints: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true })).then(() => {
-          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
-        }).then(() => db.collection('students').doc(newUid).set({
-          referredBy: referrerUid
-        }, { merge: true }));
+        // 1. Own doc first — this is the dedup marker, it must land.
+        return db.collection('students').doc(newUid)
+          .set({ referredBy: referrerUid }, { merge: true })
+          .then(() => db.collection('referrals').add({
+            referrerUid: referrerUid,
+            referrerCode: code,
+            referredUid: newUid,
+            referredName: name,
+            referredEmail: newEmail || null,
+            status: 'signed_up',
+            pointsAwarded: points,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          }))
+          .then(() => awardReferralPoints(referrerUid, points))
+          .then(() => notifyReferrer(
+            referrerUid,
+            'referral_signup',
+            (name || 'Someone') + ' just signed up using your invite link — +' + points + ' pts.'
+          ))
+          .then(() => {
+            if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
+          });
       });
     })
     .catch((err) => {
@@ -149,26 +199,37 @@ function processReferralConversion(purchasingUid){
     return loadReferralConfig().then((config) => {
       if (!config.enabled) return null;
       const points = config.pointsPerConversion || 0;
+      const name = cleanReferredName(data.displayName) || cleanReferredName(data.email);
 
-      return db.collection('referrals')
-        .where('referredUid', '==', purchasingUid)
-        .where('referrerUid', '==', referrerUid)
-        .limit(1).get()
+      // Own doc first, same reasoning as the signup path: the paid marker is
+      // what stops a second purchase paying out twice, so it must not depend
+      // on a cross-user write succeeding.
+      return db.collection('students').doc(purchasingUid)
+        .set({ referralConversionPaid: true }, { merge: true })
+        .then(() => db.collection('referrals')
+          .where('referredUid', '==', purchasingUid)
+          .where('referrerUid', '==', referrerUid)
+          .limit(1).get())
         .then((snap) => {
           if (!snap.empty) {
-            return snap.docs[0].ref.update({ status: 'converted', pointsAwarded: firebase.firestore.FieldValue.increment(points) });
+            // Upgrade the EXISTING signup row rather than adding another —
+            // one invitee is one row, whatever stage they've reached.
+            return snap.docs[0].ref.update({
+              status: 'converted',
+              pointsAwarded: firebase.firestore.FieldValue.increment(points)
+            });
           }
           return null;
         })
-        .then(() => db.collection('students').doc(referrerUid).set({
-          referralPoints: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true }))
+        .then(() => awardReferralPoints(referrerUid, points))
+        .then(() => notifyReferrer(
+          referrerUid,
+          'referral_conversion',
+          (name || 'Someone you invited') + ' upgraded to a paid plan — +' + points + ' pts.'
+        ))
         .then(() => {
           if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
-        })
-        .then(() => db.collection('students').doc(purchasingUid).set({
-          referralConversionPaid: true
-        }, { merge: true }));
+        });
     });
   }).catch((err) => {
     console.error('Stryker: referral conversion processing failed (non-fatal)', err);
@@ -176,12 +237,15 @@ function processReferralConversion(purchasingUid){
   });
 }
 
-// Leaderboard: top N students by referralPoints. Small collection scans
-// like this are fine for a leaderboard read; if the student base grows
-// large this would want a scheduled aggregate instead.
+// Leaderboard: top N by referralPoints, read from the PUBLIC profiles
+// collection. It used to query students/, which the rules restrict to the
+// owning student and admins — so a list query from a normal student was
+// rejected outright and the leaderboard silently came back empty for
+// everyone. profiles/ is readable by any signed-in user, which is exactly
+// what a leaderboard needs.
 function loadReferralLeaderboard(limitCount){
   if (typeof db === 'undefined' || !db) return Promise.resolve([]);
-  return db.collection('students')
+  return db.collection('profiles')
     .orderBy('referralPoints', 'desc')
     .limit(limitCount || 10)
     .get()
@@ -189,7 +253,7 @@ function loadReferralLeaderboard(limitCount){
       const list = [];
       snap.forEach((doc) => {
         const d = doc.data();
-        if (d.referralPoints > 0) list.push({ uid: doc.id, name: d.displayName || (d.email ? d.email.split('@')[0] : 'Trader'), points: d.referralPoints || 0, plan: d.plan || null, photoURL: d.photoURL || null, customPhotoURL: d.customPhotoURL || null, avatarSeed: d.avatarSeed || null });
+        if (d.referralPoints > 0) list.push({ uid: doc.id, name: cleanReferredName(d.displayName) || (d.email ? d.email.split('@')[0] : 'Trader'), points: d.referralPoints || 0, plan: d.plan || null, photoURL: d.photoURL || null, customPhotoURL: d.customPhotoURL || null, avatarSeed: d.avatarSeed || null });
       });
       return list;
     })
@@ -218,28 +282,43 @@ function applyReferralCodeAtCheckout(purchasingUid, rawCode){
       const referrerUid = codeDoc.data().uid;
       if (!referrerUid || referrerUid === purchasingUid) return null;
 
-      return loadReferralConfig().then((config) => {
-        if (!config.enabled) return null;
-        const points = (config.pointsPerSignup || 0) + (config.pointsPerConversion || 0);
+      // Second line of defence against duplicate rows: even if referredBy is
+      // missing for some reason, a referral doc may already exist for this
+      // person. Adding another would show one invitee as two.
+      return db.collection('referrals')
+        .where('referredUid', '==', purchasingUid)
+        .limit(1).get()
+        .then((existing) => {
+          if (!existing.empty) return null;
 
-        return db.collection('referrals').add({
-          referrerUid: referrerUid,
-          referrerCode: code,
-          referredUid: purchasingUid,
-          referredName: data.displayName || null,
-          referredEmail: data.email || null,
-          status: 'converted',
-          pointsAwarded: points,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).then(() => db.collection('students').doc(referrerUid).set({
-          referralPoints: firebase.firestore.FieldValue.increment(points)
-        }, { merge: true })).then(() => {
-          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
-        }).then(() => db.collection('students').doc(purchasingUid).set({
-          referredBy: referrerUid,
-          referralConversionPaid: true
-        }, { merge: true }));
-      });
+          return loadReferralConfig().then((config) => {
+            if (!config.enabled) return null;
+            const points = (config.pointsPerSignup || 0) + (config.pointsPerConversion || 0);
+            const name = cleanReferredName(data.displayName) || cleanReferredName(data.email);
+
+            return db.collection('students').doc(purchasingUid)
+              .set({ referredBy: referrerUid, referralConversionPaid: true }, { merge: true })
+              .then(() => db.collection('referrals').add({
+                referrerUid: referrerUid,
+                referrerCode: code,
+                referredUid: purchasingUid,
+                referredName: name,
+                referredEmail: data.email || null,
+                status: 'converted',
+                pointsAwarded: points,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              }))
+              .then(() => awardReferralPoints(referrerUid, points))
+              .then(() => notifyReferrer(
+                referrerUid,
+                'referral_conversion',
+                (name || 'Someone') + ' joined on a paid plan using your invite code — +' + points + ' pts.'
+              ))
+              .then(() => {
+                if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(referrerUid, false);
+              });
+          });
+        });
     });
   }).catch((err) => {
     console.error('Stryker: checkout-time referral code failed (non-fatal)', err);

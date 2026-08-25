@@ -175,7 +175,11 @@ function backfillAllProfiles(){
       currentStreak: s.currentStreak || 0,
       bestStreak: s.bestStreak || 0,
       completedChaptersCount: (s.completedChapters || []).length,
-      completedLessonsCount: (s.completedLessons || []).length
+      completedLessonsCount: (s.completedLessons || []).length,
+      // The invite leaderboard reads referralPoints from profiles/, since a
+      // student can't list the students collection. Mirroring it here is what
+      // makes existing point totals visible on the leaderboard at all.
+      referralPoints: s.referralPoints || 0
     }, { merge: true })
   );
 

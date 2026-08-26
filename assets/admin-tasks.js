@@ -63,6 +63,30 @@ var ADMIN_TASK_SOURCES = [
       return n + (n === 1 ? ' unread contact message' : ' unread contact messages');
     },
     sub: 'Sent through the public contact form.'
+  },
+  {
+    // Unread notifications are work too. Without this the bell could read "1"
+    // while the queue said "All clear" — the two measuring different things
+    // and quietly contradicting each other, which makes both untrustworthy.
+    // Opens the bell rather than navigating, since there is no standalone
+    // notifications page.
+    key: 'notifications',
+    link: '#notifications',
+    opensBell: true,
+    icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    tone: 'normal',
+    load: function () {
+      if (typeof auth === 'undefined' || !auth || !auth.currentUser) return Promise.resolve(0);
+      return db.collection('notifications')
+        .where('recipientUid', '==', auth.currentUser.uid)
+        .where('read', '==', false)
+        .limit(50).get()
+        .then(function (snap) { return snap.size; });
+    },
+    label: function (n) {
+      return n + (n === 1 ? ' unread notification' : ' unread notifications');
+    },
+    sub: 'Open the bell to read them.'
   }
 ];
 

@@ -69,15 +69,17 @@ function renderTodo(){
         '<span class="todo-sub">' + todoEscape(t.sub) + '</span>' +
       '</div>' +
       '<div class="todo-actions">' +
-        '<a href="' + t.link + '" class="todo-act" aria-label="Open the page that handles this" data-tip="Open the page that handles this">' +
+        '<a href="' + t.link + '" class="todo-act"' + (t.opensBell ? ' data-open-bell' : '') +
+          ' aria-label="Open the page that handles this" data-tip="Open the page that handles this">' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
           '<path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>' +
         '</a>' +
-        '<button type="button" class="todo-act todo-act-done" data-todo-dismiss="' + t.key + '" ' +
-          'data-signature="' + t.count + '" aria-label="Mark as handled" data-tip="Mark as handled — returns if new items arrive">' +
-          '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
-          '<path d="M20 6L9 17l-5-5"/></svg>' +
-        '</button>' +
+        (t.opensBell ? '' :
+          '<button type="button" class="todo-act todo-act-done" data-todo-dismiss="' + t.key + '" ' +
+            'data-signature="' + t.count + '" aria-label="Mark as handled" data-tip="Mark as handled — returns if new items arrive">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">' +
+            '<path d="M20 6L9 17l-5-5"/></svg>' +
+          '</button>') +
       '</div>';
     wrap.appendChild(row);
   });
@@ -97,6 +99,14 @@ function renderTodo(){
         '</button>' +
       '</div>';
     wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll('[data-open-bell]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const bell = document.getElementById('notif-bell-btn');
+      if (bell) bell.click();
+    });
   });
 
   wrap.querySelectorAll('[data-todo-dismiss]').forEach((btn) => {

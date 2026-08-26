@@ -28,7 +28,13 @@
     var list = document.getElementById('notif-list');
     if (!list) return;
 
-    var visible = tasks.filter(function (t) { return adminTaskIsVisible(t, dismissals); });
+    // The 'notifications' source exists so the dashboard queue can't say
+    // "All clear" while the bell shows a count. Inside the bell itself it
+    // would be circular — a row telling you about the panel you are reading —
+    // and the badge already counts unread, so including it would double.
+    var visible = tasks.filter(function (t) {
+      return t.key !== 'notifications' && adminTaskIsVisible(t, dismissals);
+    });
 
     var existing = document.getElementById('notif-task-block');
     if (existing) existing.remove();

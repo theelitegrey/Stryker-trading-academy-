@@ -412,9 +412,20 @@ const MARKET_SYMBOLS = [
   { s: 'BA', label: 'Boeing', group: 'defense' },
   { s: 'BTC-USD', label: 'Bitcoin', group: 'crypto' },
   { s: 'ETH-USD', label: 'Ethereum', group: 'crypto' },
+  { s: 'AAPL', label: 'Apple', group: 'mega' },
+  { s: 'MSFT', label: 'Microsoft', group: 'mega' },
+  { s: 'NVDA', label: 'Nvidia', group: 'mega' },
+  { s: 'AMZN', label: 'Amazon', group: 'mega' },
+  { s: 'GOOGL', label: 'Alphabet', group: 'mega' },
+  { s: 'META', label: 'Meta', group: 'mega' },
+  { s: 'TSLA', label: 'Tesla', group: 'mega' },
+  { s: 'BRK-B', label: 'Berkshire', group: 'mega' },
+  { s: 'JPM', label: 'JPMorgan', group: 'mega' },
+  { s: 'AMD', label: 'AMD', group: 'mega' },
   { s: '^VIX', label: 'VIX', group: 'signal' },
   { s: '^TNX', label: 'US 10Y', group: 'signal' },
   { s: '^FVX', label: 'US 5Y', group: 'signal' },
+  { s: 'HYG', label: 'High-yield credit', group: 'signal' },
   { s: 'XLK', label: 'Technology', group: 'sector' },
   { s: 'XLV', label: 'Health care', group: 'sector' },
   { s: 'XLF', label: 'Financials', group: 'sector' },
@@ -482,11 +493,20 @@ async function sectionMarkets() {
       laggard: sorted[sorted.length - 1].label, laggardPct: sorted[sorted.length - 1].chgPct
     };
   }
-  const tnx = by['^TNX'], fvx = by['^FVX'];
+  const tnx = by['^TNX'], fvx = by['^FVX'], hyg = by['HYG'];
   if (tnx && fvx) {
     const y10 = tnx.price > 20 ? tnx.price / 10 : tnx.price;
     const y5 = fvx.price > 20 ? fvx.price / 10 : fvx.price;
-    signals.curve = { y10: +y10.toFixed(2), y5: +y5.toFixed(2), spreadBp: +((y10 - y5) * 100).toFixed(1) };
+    signals.curve = { y10: +y10.toFixed(2), y5: +y5.toFixed(2), spreadBp: +((y10 - y5) * 100).toFixed(1),
+                      hyg: hyg ? hyg.chgPct : null };
+  }
+  const equities = items.filter((i) => i.group === 'mega' || i.group === 'defense');
+  if (equities.length >= 4) {
+    const sorted = [...equities].sort((a, b) => b.chgPct - a.chgPct);
+    signals.movers = {
+      up: sorted.slice(0, 3).map((i) => ({ s: i.s, label: i.label, chgPct: i.chgPct })),
+      down: sorted.slice(-3).reverse().map((i) => ({ s: i.s, label: i.label, chgPct: i.chgPct }))
+    };
   }
   if (vix) {
     signals.vix = {
@@ -554,43 +574,188 @@ async function sectionDefcon(wireSection) {
   }
 }
 
+// ---- Economic calendar (Forex Factory's public weekly feed) -----------------
+// nfs.faireconomy.media serves FF's calendar as plain JSON, keyless:
+// [{title, country: "USD", date: ISO-with-offset, impact: High/Medium/Low,
+//   forecast, previous}]. This week + next week gives a two-week window for
+// the date filters.
+async function sectionCalendar() {
+  const urls = [
+    'https://nfs.faireconomy.media/ff_calendar_thisweek.json',
+    'https://nfs.faireconomy.media/ff_calendar_nextweek.json'
+  ];
+  const items = [];
+  for (const u of urls) {
+    try {
+      const rows = await get(u, { timeout: 25000, tries: 2 });
+      for (const r of (Array.isArray(rows) ? rows : [])) {
+        const at = Date.parse(r.date);
+        if (isNaN(at)) continue;
+        const impact = String(r.impact || '').toLowerCase();
+        if (impact === 'holiday' || impact === 'non-economic') continue;
+        items.push({
+          title: String(r.title || '').slice(0, 90),
+          country: String(r.country || '').slice(0, 6),
+          at,
+          impact: impact === 'high' ? 'high' : (impact === 'medium' ? 'medium' : 'low'),
+          forecast: String(r.forecast || '').slice(0, 16) || null,
+          previous: String(r.previous || '').slice(0, 16) || null
+        });
+      }
+    } catch (e) { console.warn('calendar feed failed:', u.slice(-20), e.message); }
+    await sleep(300);
+  }
+  if (!items.length) throw new Error('both calendar feeds failed');
+  const seen = new Set();
+  const deduped = items.filter((c) => {
+    const k = c.title + '|' + c.country + '|' + c.at;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+  deduped.sort((a, b) => a.at - b.at);
+  return { items: deduped.slice(0, 450) };
+}
+
 // ---- Prediction markets (Polymarket) ----------------------------------------
 const GEO_RE = /\b(war|ceasefire|invasion|invade|missile|nuclear|NATO|Russia|Ukraine|Israel|Gaza|Iran|China|Taiwan|Korea|military|troops|sanctions?|Hezbollah|Houthis?|Putin|Zelensky|Netanyahu|regime|annex|treaty|border)\b/i;
+
+// Two lists: `items` are geopolitics-filtered (the Risk tab), `trending` is
+// the raw 24h-volume ranking (finance-heavy — Fed decisions, BTC ladders,
+// elections — for the Markets tab), both with the full outcome ladder.
+function polymarketRow(ev) {
+  const markets = ev.markets || [];
+  const parsed = [];
+  for (const m of markets) {
+    let prices, outcomes;
+    try { prices = JSON.parse(m.outcomePrices || '[]'); outcomes = JSON.parse(m.outcomes || '[]'); }
+    catch (e) { continue; }
+    if (!prices.length) continue;
+    let yesIdx = 0;
+    outcomes.forEach((o, i) => { if (String(o).toLowerCase() === 'yes') yesIdx = i; });
+    const prob = Number(prices[yesIdx]);
+    if (isNaN(prob)) continue;
+    parsed.push({
+      label: markets.length > 1
+        ? String(m.groupItemTitle || m.question || '').slice(0, 48)
+        : String(outcomes[yesIdx] || 'Yes').slice(0, 48),
+      prob: +prob.toFixed(3),
+      vol: Number(m.volume24hr || m.volume || 0)
+    });
+  }
+  if (!parsed.length) return null;
+  parsed.sort((a, b) => b.prob - a.prob || b.vol - a.vol);
+  const endTs = ev.endDate ? Date.parse(ev.endDate) : NaN;
+  return {
+    question: String(ev.title || '').slice(0, 120),
+    outcomes: parsed.slice(0, 4).map((p) => ({ label: p.label, prob: p.prob })),
+    more: Math.max(0, parsed.length - 4),
+    volume: Math.round(Number(ev.volume24hr || ev.volume || 0)),
+    closes: isNaN(endTs) ? null : endTs,
+    url: ev.slug ? 'https://polymarket.com/event/' + ev.slug : null
+  };
+}
 
 async function sectionPredictions() {
   const j = await get('https://gamma-api.polymarket.com/events?closed=false&order=volume24hr&ascending=false&limit=100', { timeout: 25000 });
   const events = Array.isArray(j) ? j : [];
-  const rows = [];
+  const geo = [], trending = [];
   for (const ev of events) {
-    if (rows.length >= 10) break;
-    const title = String(ev.title || '');
-    if (!GEO_RE.test(title)) continue;
-    let best = null, bestVol = -1;
-    for (const m of (ev.markets || [])) {
-      let prices, outcomes;
-      try { prices = JSON.parse(m.outcomePrices || '[]'); outcomes = JSON.parse(m.outcomes || '[]'); }
-      catch (e) { continue; }
-      if (!prices.length) continue;
-      let yesIdx = 0;
-      outcomes.forEach((o, i) => { if (String(o).toLowerCase() === 'yes') yesIdx = i; });
-      const prob = Number(prices[yesIdx]);
-      if (isNaN(prob)) continue;
-      const vol = Number(m.volume24hr || m.volume || 0);
-      if (vol > bestVol) {
-        bestVol = vol;
-        best = { prob, label: (ev.markets.length > 1 ? String(m.groupItemTitle || m.question || '').slice(0, 60) : null) };
-      }
-    }
-    if (!best) continue;
-    rows.push({
-      question: title.slice(0, 120), detail: best.label,
-      probability: +best.prob.toFixed(3),
-      volume: Math.round(Number(ev.volume24hr || ev.volume || 0)),
-      url: ev.slug ? 'https://polymarket.com/event/' + ev.slug : null
-    });
+    const row = polymarketRow(ev);
+    if (!row) continue;
+    if (trending.length < 12) trending.push(row);
+    if (geo.length < 12 && GEO_RE.test(row.question)) geo.push(row);
+    if (trending.length >= 12 && geo.length >= 12) break;
   }
-  if (!rows.length) throw new Error('no geopolitical markets matched');
-  return { items: rows };
+  if (!geo.length && !trending.length) throw new Error('no usable markets');
+  return { items: geo, trending };
+}
+
+// ---- AI OSINT briefing ------------------------------------------------------
+// A deterministic synthesis of everything this run collected, written in
+// analyst register. No LLM call — the pipeline has no API keys and the page
+// must never depend on one; the intelligence is in the aggregation, and the
+// page labels it as an automated synthesis.
+function sectionBrief(out) {
+  const ev = (out.events && out.events.items) || [];
+  const wire = (out.wire && out.wire.items) || [];
+  const mkts = (out.markets && out.markets.items) || [];
+  const sig = (out.markets && out.markets.signals) || {};
+  const preds = (out.predictions && out.predictions.items) || [];
+  const defcon = out.defcon || {};
+
+  // hotspots by weighted country score, mirroring the tension index
+  const W = { combat: 3, terror: 2.5, military: 2, unrest: 1.5, humanitarian: 1.2, diplomacy: 1, other: 1 };
+  const score = {}, count = {}, catBy = {};
+  for (const e of ev) {
+    if (!e.country) continue;
+    score[e.country] = (score[e.country] || 0) + Math.sqrt(e.count || 1) * (W[e.cat] || 1);
+    count[e.country] = (count[e.country] || 0) + 1;
+    (catBy[e.country] = catBy[e.country] || {})[e.cat] = ((catBy[e.country] || {})[e.cat] || 0) + 1;
+  }
+  const hotspots = Object.keys(score)
+    .sort((a, b) => score[b] - score[a]).slice(0, 5)
+    .map((c) => {
+      const cats = catBy[c] || {};
+      const lead = Object.keys(cats).sort((a, b) => cats[b] - cats[a])[0] || 'other';
+      const leadTxt = { combat: 'active combat reporting', terror: 'terror-attack coverage',
+        military: 'military posturing', unrest: 'civil unrest', diplomacy: 'diplomatic manoeuvring',
+        humanitarian: 'humanitarian strain', other: 'mixed signals' }[lead];
+      const top = ev.filter((e) => e.country === c)[0];
+      return { country: c, events: count[c], driver: leadTxt,
+               headline: top ? top.title.slice(0, 110) : null };
+    });
+
+  const critWire = wire.filter((w) => w.sev === 'critical' || w.sev === 'high').slice(0, 5)
+    .map((w) => ({ title: w.title.slice(0, 130), country: w.country, sev: w.sev, url: w.url }));
+
+  const summary = [];
+  summary.push('Monitoring ' + ev.length + ' geolocated conflict-relevant events across ' +
+    Object.keys(count).length + ' countries, with ' +
+    wire.filter((w) => w.sev === 'critical' || w.sev === 'high').length +
+    ' high-severity headlines on the wire in the current window.');
+  if (hotspots.length) {
+    summary.push('Coverage density is heaviest around ' +
+      hotspots.slice(0, 3).map((h) => h.country).join(', ') +
+      '; ' + hotspots[0].country + ' leads on ' + hotspots[0].driver + '.');
+  }
+  if (defcon.level) {
+    summary.push('OSINT readiness estimate holds at DEFCON ' + defcon.level +
+      (defcon.derived ? ' (derived from event volume).' : ' per open-source trackers.'));
+  }
+
+  let marketRead = null;
+  if (sig.riskTone && sig.vix) {
+    const gold = mkts.filter((m) => m.s === 'GC=F')[0];
+    const oil = mkts.filter((m) => m.s === 'CL=F')[0];
+    const dxy = mkts.filter((m) => m.s === 'DX-Y.NYB')[0];
+    const bits = [];
+    bits.push('Risk tone reads ' + sig.riskTone.label.toLowerCase() + ' (' + sig.riskTone.score +
+      '/100) with VIX at ' + sig.vix.value.toFixed(1) + ' — ' + sig.vix.label.toLowerCase() + '.');
+    if (gold) bits.push('Gold ' + (gold.chgPct >= 0 ? 'up ' : 'down ') + Math.abs(gold.chgPct) + '%' +
+      (Math.abs(gold.chgPct) > 1 ? ' — a haven bid worth watching against the headline flow.' : ', showing no stress bid.'));
+    if (oil) bits.push('Crude ' + (oil.chgPct >= 0 ? '+' : '') + oil.chgPct +
+      '% — supply-risk premium ' + (Math.abs(oil.chgPct) > 1.5 ? 'moving.' : 'contained.'));
+    if (dxy) bits.push('Dollar index ' + (dxy.chgPct >= 0 ? '+' : '') + dxy.chgPct + '%.');
+    if (sig.curve) bits.push('10Y–5Y curve at ' + (sig.curve.spreadBp > 0 ? '+' : '') + sig.curve.spreadBp + ' bp' +
+      (typeof sig.curve.hyg === 'number' ? ', high-yield credit ' + (sig.curve.hyg >= 0 ? '+' : '') + sig.curve.hyg + '%.' : '.'));
+    marketRead = bits.join(' ');
+  }
+
+  const watch = [];
+  for (const p of preds.slice(0, 4)) {
+    const lead = p.outcomes && p.outcomes[0];
+    if (lead) watch.push('Markets price "' + p.question + '" — ' + lead.label + ' at ' +
+      Math.round(lead.prob * 100) + '%.');
+  }
+  const upcoming = ((out.calendar && out.calendar.items) || [])
+    .filter((c) => c.impact === 'high' && c.at > Date.now())
+    .slice(0, 3);
+  for (const c of upcoming) {
+    watch.push('High-impact release ahead: ' + c.country + ' ' + c.title + '.');
+  }
+
+  return { summary, hotspots, critWire, marketRead, watch };
 }
 
 // ---- Assemble ---------------------------------------------------------------
@@ -616,7 +781,9 @@ async function build(name, fn) {
   out.markets = await build('markets', sectionMarkets);
   out.outbreaks = await build('outbreaks', sectionOutbreaks);
   out.predictions = await build('predictions', sectionPredictions);
+  out.calendar = await build('calendar', sectionCalendar);
   out.defcon = await build('defcon', () => sectionDefcon(out.wire));
+  out.brief = await build('brief', () => sectionBrief(out));
 
   fs.mkdirSync(path.dirname(path.resolve(outPath)), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(out));

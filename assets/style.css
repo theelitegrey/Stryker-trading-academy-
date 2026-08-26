@@ -3212,3 +3212,154 @@ a.gm-pred-row:hover .gm-pred-q{ color:var(--ink-0); }
   .gm-defcon-num{ animation:none !important; }
   .gm-sig:hover{ transform:none; }
 }
+
+/* --------------------------------------------------------------------------
+   GLOBAL MONITOR v3 — alert dot, load-more, prediction ladders, movers,
+   stock strip, calendar, financial map, AI briefing
+   -------------------------------------------------------------------------- */
+
+.gm-alert-dot{
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:#ff4444; box-shadow:0 0 10px #ff4444, 0 0 20px #ff444466;
+  vertical-align:middle; margin-left:6px; flex-shrink:0;
+  animation:gmBlink 1.4s ease-in-out infinite;
+}
+.side-link .gm-alert-dot{ width:6px; height:6px; margin-left:auto; }
+h1 .gm-alert-dot{ width:10px; height:10px; margin-left:10px; }
+
+.gm-loadmore{
+  display:block; width:calc(100% - 12px); margin:10px 6px 6px;
+  padding:9px 0; border:1px dashed var(--line); border-radius:8px;
+  background:transparent; color:var(--ink-2); cursor:pointer;
+  font-family:var(--font-mono, monospace); font-size:11px; font-weight:600;
+  letter-spacing:.08em; text-transform:uppercase;
+  transition:border-color .15s ease, color .15s ease, background .15s ease;
+}
+.gm-loadmore:hover{ border-color:var(--gold-dim); color:var(--gold); background:rgba(3,201,136,.05); }
+
+/* Prediction outcome ladders ------------------------------------------------ */
+.gm-pred-outcome{
+  display:grid; grid-template-columns:minmax(0,1fr) 90px 44px;
+  gap:10px; align-items:center; padding:3px 0;
+}
+.gm-pred-olabel{
+  font-size:12px; color:var(--ink-2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gm-pred-obar{ height:5px; border-radius:3px; background:var(--bg-3); overflow:hidden; display:block; }
+.gm-pred-obar i{ display:block; height:100%; border-radius:3px; transition:width .6s cubic-bezier(.2,.7,.3,1); }
+.gm-pred-opct{
+  font-family:var(--font-mono, monospace); font-size:11.5px; font-weight:700;
+  color:var(--ink-1); text-align:right;
+}
+.gm-pred-more{ font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3); padding:2px 0; }
+
+/* Movers -------------------------------------------------------------------- */
+.gm-movers{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.gm-mover-head{
+  font-family:var(--font-mono, monospace); font-size:10.5px; font-weight:700;
+  letter-spacing:.1em; margin-bottom:8px;
+}
+.gm-mover-row{
+  display:flex; justify-content:space-between; gap:8px;
+  padding:6px 0; border-bottom:1px solid var(--line-soft);
+  font-size:12.5px; color:var(--ink-1);
+}
+.gm-mover-row:last-child{ border-bottom:none; }
+
+/* Stock strip --------------------------------------------------------------- */
+.gm-stock-strip-wrap{ margin-bottom:14px; }
+.gm-strip-label{ color:var(--gold); }
+.gm-strip-track{ animation:gmTick 40s linear infinite; }
+.gm-ticker:hover .gm-strip-track{ animation-play-state:paused; }
+.gm-strip-item{
+  display:inline-flex; gap:6px; align-items:center;
+  padding:8px 0; margin-left:26px;
+  font-family:var(--font-mono, monospace); font-size:12px; color:var(--ink-2);
+  white-space:nowrap;
+}
+.gm-strip-item b{ color:var(--ink-0); font-weight:700; }
+
+/* Calendar ------------------------------------------------------------------ */
+.gm-cal-tools{ display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+.gm-cal-tools-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.gm-cal-select{
+  margin-left:auto; padding:6px 10px;
+  background:var(--bg-2); border:1px solid var(--line); border-radius:7px;
+  color:var(--ink-1); font-family:var(--font-mono, monospace); font-size:11.5px;
+  outline:none;
+}
+.gm-cal-list{ max-height:520px; overflow-y:auto; scrollbar-width:thin; }
+.gm-cal-day{
+  position:sticky; top:0; z-index:1;
+  font-family:var(--font-mono, monospace); font-size:10.5px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--gold);
+  background:var(--bg-1); padding:8px 0 6px; border-bottom:1px solid var(--line);
+}
+.gm-cal-row{
+  display:grid; grid-template-columns:42px 38px 10px minmax(0,1fr) auto;
+  gap:8px; align-items:center; padding:7px 0;
+  border-bottom:1px solid var(--line-soft);
+}
+.gm-cal-row.is-past{ opacity:.45; }
+.gm-cal-time{ font-family:var(--font-mono, monospace); font-size:11px; color:var(--ink-3); }
+.gm-cal-cty{
+  font-family:var(--font-mono, monospace); font-size:10px; font-weight:700;
+  color:var(--teal); border:1px solid rgba(0,173,181,.35); border-radius:4px;
+  text-align:center; padding:1px 0;
+}
+.gm-cal-dot{ width:9px; height:9px; border-radius:50%; display:block; }
+.gm-cal-title{
+  font-size:12.5px; color:var(--ink-1);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gm-cal-vals{ font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3); white-space:nowrap; }
+
+/* Financial map ------------------------------------------------------------- */
+#gm-fin-map .term-map-svg{ touch-action:auto; }
+.gm-fin-pin, .gm-fin-hub{ cursor:pointer; }
+.gm-fin-pin:hover circle:last-child{ fill-opacity:1; }
+
+/* AI briefing --------------------------------------------------------------- */
+.gm-brief-shell{
+  background:linear-gradient(180deg, rgba(3,201,136,.04), transparent 240px), var(--bg-1);
+}
+.gm-brief-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:16px;
+}
+.gm-brief-head .gm-onair{ color:var(--gold); }
+.gm-brief-head .gm-onair i{ background:var(--gold); box-shadow:0 0 10px var(--gold); }
+.gm-brief-time{ font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3); letter-spacing:.1em; }
+.gm-brief-block{ margin-bottom:18px; }
+.gm-brief-block h4{
+  font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 10px; font-weight:700;
+}
+.gm-brief-block p{ font-size:13px; color:var(--ink-1); line-height:1.65; margin:0 0 6px; }
+.gm-brief-type.is-typing::after{
+  content:'▌'; color:var(--gold); animation:gmBlink .8s step-end infinite;
+}
+.gm-brief-hotspot{
+  display:flex; gap:12px; padding:9px 0; border-bottom:1px solid var(--line-soft);
+  font-size:12.5px; color:var(--ink-2);
+}
+.gm-brief-hotspot:last-child{ border-bottom:none; }
+.gm-brief-hotspot b{ color:var(--ink-0); }
+.gm-brief-hotspot p{ font-size:11.5px; color:var(--ink-3); margin:4px 0 0; line-height:1.5; }
+.gm-brief-signal{
+  display:block; padding:7px 0; border-bottom:1px solid var(--line-soft);
+  font-size:12.5px; color:var(--ink-1); line-height:1.55; text-decoration:none;
+}
+.gm-brief-signal:last-child{ border-bottom:none; }
+a.gm-brief-signal:hover{ color:var(--ink-0); }
+.gm-brief-watch{ margin:0; padding-left:18px; }
+.gm-brief-watch li{ font-size:12.5px; color:var(--ink-1); line-height:1.7; }
+
+@media (max-width:640px){
+  .gm-cal-vals{ display:none; }
+  .gm-movers{ grid-template-columns:1fr; }
+}
+@media (prefers-reduced-motion:reduce){
+  .gm-alert-dot, .gm-strip-track{ animation:none !important; }
+}

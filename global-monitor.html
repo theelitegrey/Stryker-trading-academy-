@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="189">
+<meta name="stryker-build" content="190">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Global Monitor — Stryker Trading Academy</title>
 <meta name="description" content="Live geopolitical events, conflict newswire and market impact for Stryker Trading Academy students.">
-<link rel="stylesheet" href="assets/style.css?v=189">
-<script src="assets/toast.js?v=189" defer></script>
-<script src="assets/version-check.js?v=189" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=190">
+<script src="assets/toast.js?v=190" defer></script>
+<script src="assets/version-check.js?v=190" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -99,7 +99,7 @@
       <div class="side-label">Terminal</div>
       <a href="global-monitor.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18"/><path d="M12 3a13.5 13.5 0 0 0 0 18"/></svg>
-        Global Monitor
+        Global Monitor <span class="gm-alert-dot"></span>
       </a>
     </div>
 
@@ -150,7 +150,7 @@
   <main class="dash-main gm-main">
     <div class="dash-topbar">
       <div>
-        <h1>Global Monitor</h1>
+        <h1>Global Monitor <span class="gm-alert-dot" title="Live monitoring"></span></h1>
         <p class="dash-sub">Conflicts, geopolitics and the markets they move — live.</p>
       </div>
       <div class="gm-topbar-right">
@@ -165,10 +165,11 @@
     </div>
 
     <div class="term-tabs gm-tabs" id="gm-tabs">
+      <button type="button" class="term-tab" data-tab="markets">Markets</button>
       <button type="button" class="term-tab" data-tab="map">Map</button>
       <button type="button" class="term-tab" data-tab="wire">Wire</button>
-      <button type="button" class="term-tab" data-tab="markets">Markets</button>
       <button type="button" class="term-tab" data-tab="risk">Risk</button>
+      <button type="button" class="term-tab" data-tab="ai">AI Brief</button>
       <button type="button" class="term-tab" data-tab="streams">Streams</button>
     </div>
 
@@ -225,26 +226,74 @@
     </section>
 
     <section class="gm-panel" data-tab="markets">
+      <div class="gm-ticker gm-stock-strip-wrap" aria-label="Stock ticker">
+        <span class="gm-ticker-label gm-strip-label">STOCKS</span>
+        <div class="gm-ticker-clip" id="gm-stock-strip"><span class="gm-ticker-item">Loading quotes…</span></div>
+      </div>
+
       <div class="term-block">
         <h3>Market signals <span class="term-badge" id="gm-markets-badge">…</span></h3>
         <div class="gm-signals" id="gm-signals"></div>
       </div>
+
       <div class="gm-mkt-grid" id="gm-markets-grid"><p class="term-empty">Loading market data…</p></div>
-      <div class="gm-two">
+
+      <div class="gm-two" style="margin-top:14px;">
         <div class="term-block">
           <h3>Sector rotation</h3>
           <div id="gm-sectors"></div>
         </div>
         <div class="term-block">
-          <h3>Financial &amp; forex news by severity <span class="term-badge" id="gm-sev-badge">…</span></h3>
+          <h3>Movers</h3>
+          <div class="gm-movers" id="gm-movers"></div>
+        </div>
+      </div>
+
+      <div class="term-block" style="margin-top:14px;">
+        <h3>Financial map</h3>
+        <p class="gm-side-note">Monetary policy and market-stress stories by country. Gold rings are central banks — hover one for its next high-impact release; hover a dot for the stories behind it.</p>
+        <div class="term-map-wrap gm-map-wrap"><div id="gm-fin-map" class="term-map"></div></div>
+      </div>
+
+      <div class="gm-two" style="margin-top:14px;">
+        <div class="term-block">
+          <h3>Financial newswire <span class="term-badge" id="gm-sev-badge">…</span></h3>
+          <p class="gm-side-note">Latest first. Chips filter by severity.</p>
           <div class="term-cats" id="gm-sev-chips" style="margin-bottom:10px;"></div>
           <div id="gm-sev-list" class="term-news-feed gm-sev-feed"><p class="term-empty">Loading…</p></div>
         </div>
+        <div class="term-block">
+          <h3>Market calendar <span class="term-badge" id="gm-cal-badge">…</span></h3>
+          <p class="gm-side-note">Scheduled releases with impact colour, via the Forex Factory feed.</p>
+          <div class="gm-cal-tools">
+            <div class="term-cats" id="gm-cal-ranges"></div>
+            <div class="gm-cal-tools-row">
+              <div class="term-cats" id="gm-cal-impacts"></div>
+              <select id="gm-cal-country" class="gm-cal-select"><option value="">All countries</option></select>
+            </div>
+          </div>
+          <div id="gm-cal-list" class="gm-cal-list"><p class="term-empty">Loading…</p></div>
+        </div>
       </div>
-      <div class="term-block" style="margin-top:14px;">
-        <h3>Live quotes</h3>
-        <p class="gm-side-note">Streaming prices for war-sensitive assets, via TradingView.</p>
-        <div id="gm-tv-quotes" class="tv-host"></div>
+
+      <div class="gm-two" style="margin-top:14px;">
+        <div class="term-block">
+          <h3>Prediction markets — trending</h3>
+          <p class="gm-side-note">Ranked by 24h volume, via Polymarket.</p>
+          <input type="search" id="gm-pred-search" class="gm-search" placeholder="Search markets…" autocomplete="off" style="margin-bottom:10px;">
+          <div id="gm-predict-trend"><p class="term-empty">Loading…</p></div>
+        </div>
+        <div class="term-block">
+          <h3>Live quotes</h3>
+          <p class="gm-side-note">Streaming prices for war-sensitive assets, via TradingView.</p>
+          <div id="gm-tv-quotes" class="tv-host"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="gm-panel" data-tab="ai">
+      <div class="term-block gm-brief-shell">
+        <div id="gm-brief"><p class="term-empty">Loading briefing…</p></div>
       </div>
     </section>
 
@@ -290,36 +339,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=189"></script>
-<script src="assets/gate-timeout.js?v=189"></script>
-<script src="assets/progress.js?v=189"></script>
-<script src="assets/presence.js?v=189"></script>
-<script src="assets/messages.js?v=189"></script>
-<script src="assets/messages-badge.js?v=189"></script>
-<script src="assets/activity-log.js?v=189"></script>
-<script src="assets/banned-check.js?v=189"></script>
-<script src="assets/email-verify.js?v=189"></script>
-<script src="assets/notifications.js?v=189"></script>
+<script src="assets/auth.js?v=190"></script>
+<script src="assets/gate-timeout.js?v=190"></script>
+<script src="assets/progress.js?v=190"></script>
+<script src="assets/presence.js?v=190"></script>
+<script src="assets/messages.js?v=190"></script>
+<script src="assets/messages-badge.js?v=190"></script>
+<script src="assets/activity-log.js?v=190"></script>
+<script src="assets/banned-check.js?v=190"></script>
+<script src="assets/email-verify.js?v=190"></script>
+<script src="assets/notifications.js?v=190"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=189"></script>
-<script src="assets/push-prompt.js?v=189"></script>
-<script src="assets/admin-link.js?v=189"></script>
-<script src="assets/profiles-sync.js?v=189"></script>
+<script src="assets/push.js?v=190"></script>
+<script src="assets/push-prompt.js?v=190"></script>
+<script src="assets/admin-link.js?v=190"></script>
+<script src="assets/profiles-sync.js?v=190"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=189"></script>
-<script src="assets/avatars.js?v=189"></script>
-<script src="assets/account-menu.js?v=189"></script>
-<script src="assets/referrals.js?v=189"></script>
-<script src="assets/roles.js?v=189"></script>
-<script src="assets/plan-modal.js?v=189"></script>
-<script src="assets/plan-guard.js?v=189"></script>
-<script src="assets/maintenance-check.js?v=189"></script>
-<script src="assets/branding.js?v=189"></script>
-<script src="assets/chapters-data.js?v=189"></script>
-<script src="assets/chapters-store.js?v=189"></script>
-<script src="assets/dash-nav.js?v=189"></script>
-<script src="assets/world-map-path.js?v=189"></script>
-<script src="assets/country-shapes.js?v=189"></script>
-<script src="assets/global-monitor.js?v=189"></script>
+<script src="assets/loading-animation.js?v=190"></script>
+<script src="assets/avatars.js?v=190"></script>
+<script src="assets/account-menu.js?v=190"></script>
+<script src="assets/referrals.js?v=190"></script>
+<script src="assets/roles.js?v=190"></script>
+<script src="assets/plan-modal.js?v=190"></script>
+<script src="assets/plan-guard.js?v=190"></script>
+<script src="assets/maintenance-check.js?v=190"></script>
+<script src="assets/branding.js?v=190"></script>
+<script src="assets/chapters-data.js?v=190"></script>
+<script src="assets/chapters-store.js?v=190"></script>
+<script src="assets/dash-nav.js?v=190"></script>
+<script src="assets/world-map-path.js?v=190"></script>
+<script src="assets/country-shapes.js?v=190"></script>
+<script src="assets/global-monitor.js?v=190"></script>
 </body>
 </html>

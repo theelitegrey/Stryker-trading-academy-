@@ -535,6 +535,8 @@ function gmRenderCatFilter() {
   }).join('');
 }
 
+var GM_TABLE_LIMIT = 8;   // a handful by default; Load more expands
+
 function gmRenderEventTable() {
   var host = document.getElementById('gm-table-body');
   if (!host) return;
@@ -543,7 +545,8 @@ function gmRenderEventTable() {
     host.innerHTML = '<p class="term-empty">Nothing matches those filters.</p>';
     return;
   }
-  host.innerHTML = list.slice(0, 200).map(function (e) {
+  var shown = list.slice(0, GM_TABLE_LIMIT);
+  host.innerHTML = shown.map(function (e) {
     return '<div class="term-row" data-lon="' + e.lon + '" data-lat="' + e.lat + '">' +
       '<span class="term-row-cat" style="background:' + gmCatColour(e.cat) + '"></span>' +
       '<div class="term-row-main">' +
@@ -556,8 +559,18 @@ function gmRenderEventTable() {
       (e.url ? '<a class="term-row-link" href="' + gmEscAttr(e.url) +
         '" target="_blank" rel="noopener noreferrer" title="Open source">↗</a>' : '') +
     '</div>';
-  }).join('');
+  }).join('') +
+  (list.length > shown.length
+    ? '<button type="button" class="gm-loadmore" id="gm-table-more">Load more · ' +
+      (list.length - shown.length) + ' remaining</button>'
+    : '');
   gmAnimate(host);
+
+  var more = document.getElementById('gm-table-more');
+  if (more) more.addEventListener('click', function () {
+    GM_TABLE_LIMIT += 25;
+    gmRenderEventTable();
+  });
 
   var count = document.getElementById('gm-table-count');
   if (count) count.textContent = list.length + ' events';
@@ -785,12 +798,14 @@ function gmTickWireTimes() {
 // ============================================================================
 var GM_SEV_ACTIVE = null;
 var GM_SEV_ITEMS = [];
+var GM_SEV_LIMIT = 10;    // a handful by default; Load more expands
 var GM_HARD_RE = /\b(crash|collaps|plunge|panic|emergency|default|crisis|war|invasion|meltdown|turmoil|freefall|contagion|bank run)\b/i;
 
 function gmApplyFinance(items, sourceLabel) {
   GM_SEV_ITEMS = items;
   gmSetBadge('gm-sev-badge', sourceLabel, sourceLabel !== 'live');
   gmRenderSeverity();
+  if (typeof gmRenderFinMap === 'function') gmRenderFinMap();
 }
 
 function gmRenderSeverity() {
@@ -812,16 +827,20 @@ function gmRenderSeverity() {
     }).join('');
   }
 
-  var list = GM_SEV_ACTIVE
+  // FinancialJuice-style wire: latest first by default; the severity chips
+  // narrow, they don't reorder.
+  var list = (GM_SEV_ACTIVE
     ? GM_SEV_ITEMS.filter(function (it) { return it.sev === GM_SEV_ACTIVE; })
-    : GM_SEV_ITEMS;
+    : GM_SEV_ITEMS.slice()
+  ).sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
 
   if (!list.length) {
     host.innerHTML = '<p class="term-empty">Nothing at this severity right now.</p>';
     return;
   }
 
-  host.innerHTML = list.map(function (it) {
+  var shown = list.slice(0, GM_SEV_LIMIT);
+  host.innerHTML = shown.map(function (it) {
     var m = gmSevMeta(it.sev);
     return '<a class="news-item"' +
         (it.url ? ' href="' + gmEscAttr(it.url) + '" target="_blank" rel="noopener noreferrer"' : '') + '>' +
@@ -835,8 +854,18 @@ function gmRenderSeverity() {
         '</span>' +
       '</span>' +
     '</a>';
-  }).join('');
+  }).join('') +
+  (list.length > shown.length
+    ? '<button type="button" class="gm-loadmore" id="gm-sev-more">Load more · ' +
+      (list.length - shown.length) + ' remaining</button>'
+    : '');
   gmAnimate(host);
+
+  var more = document.getElementById('gm-sev-more');
+  if (more) more.addEventListener('click', function () {
+    GM_SEV_LIMIT += 20;
+    gmRenderSeverity();
+  });
 }
 
 // ============================================================================
@@ -948,10 +977,12 @@ function gmRenderMarkets(markets) {
     }
     if (s.curve) {
       tiles.push('<div class="gm-sig">' +
-        '<div class="gm-sig-name">Yield curve 10Y–5Y</div>' +
+        '<div class="gm-sig-name">Curve / credit</div>' +
         '<div class="gm-sig-val ' + (s.curve.spreadBp >= 0 ? 'gm-up' : 'gm-down') + '">' +
           (s.curve.spreadBp > 0 ? '+' : '') + s.curve.spreadBp + ' bp</div>' +
-        '<div class="gm-sig-sub">10Y ' + s.curve.y10 + '% · 5Y ' + s.curve.y5 + '%</div>' +
+        '<div class="gm-sig-sub">10Y ' + s.curve.y10 + '% · 5Y ' + s.curve.y5 + '%' +
+          (typeof s.curve.hyg === 'number' ? ' · HYG ' + (s.curve.hyg > 0 ? '+' : '') + s.curve.hyg + '%' : '') +
+        '</div>' +
       '</div>');
     }
     if (s.vix) {
@@ -965,6 +996,43 @@ function gmRenderMarkets(markets) {
     }
     sigHost.innerHTML = tiles.join('');
     gmAnimate(sigHost);
+  }
+
+  // movers
+  var movHost = document.getElementById('gm-movers');
+  if (movHost) {
+    if (s.movers) {
+      function moverCol(title, rows, cls) {
+        return '<div class="gm-mover-col"><div class="gm-mover-head ' + cls + '">' + title + '</div>' +
+          rows.map(function (r) {
+            return '<div class="gm-mover-row"><span>' + gmEsc(r.label) + '</span>' +
+              '<span class="gm-mkt-chg">' + gmFmtPct(r.chgPct) + '</span></div>';
+          }).join('') + '</div>';
+      }
+      movHost.innerHTML =
+        moverCol('▲ Gainers', s.movers.up || [], 'gm-up') +
+        moverCol('▼ Losers', s.movers.down || [], 'gm-down');
+      gmAnimate(movHost);
+    } else {
+      movHost.innerHTML = '';
+    }
+  }
+
+  // mega-cap ticker strip
+  var strip = document.getElementById('gm-stock-strip');
+  if (strip) {
+    var megas = (byGroup.mega || []).concat(byGroup.crypto || []);
+    if (megas.length) {
+      var cells = megas.map(function (r) {
+        return '<span class="gm-strip-item"><b>' +
+          gmEsc(r.s.replace('-USD', '')) + '</b> ' + gmFmtPrice(r.price) + ' ' + gmFmtPct(r.chgPct) + '</span>';
+      }).join('');
+      strip.innerHTML = '<div class="gm-ticker-track gm-strip-track">' + cells + cells + '</div>';
+      requestAnimationFrame(function () {
+        var t = strip.querySelector('.gm-strip-track');
+        if (t) t.style.animationDuration = Math.max(25, Math.round(t.scrollWidth / 2 / 60)) + 's';
+      });
+    }
   }
 
   // sector board
@@ -1116,30 +1184,404 @@ function gmFmtVolume(v) {
   return '$' + Math.round(v);
 }
 
+// Accepts both shapes: pipeline rows carry an `outcomes` ladder; the older
+// fallback paths carry a single `probability`.
+function gmNormalizePred(r) {
+  if (r.outcomes && r.outcomes.length) return r;
+  return {
+    question: r.question,
+    outcomes: [{ label: r.detail || 'Yes', prob: r.probability || 0 }],
+    more: 0, volume: r.volume || null, closes: null, url: r.url || null
+  };
+}
+
+function gmFmtCloses(ts) {
+  if (!ts) return '';
+  var d = ts - Date.now();
+  if (d <= 0) return 'closing';
+  var days = Math.round(d / 86400000);
+  if (days < 1) return 'closes today';
+  if (days < 14) return 'closes ' + days + 'd';
+  if (days < 60) return 'closes ' + Math.round(days / 7) + 'w';
+  var dt = new Date(ts);
+  return 'closes ' + dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function gmPredRowHtml(raw) {
+  var r = gmNormalizePred(raw);
+  var lead = r.outcomes[0] || { prob: 0 };
+  var ladder = r.outcomes.map(function (o) {
+    var pct = Math.round((o.prob || 0) * 100);
+    var hue = o.prob >= 0.5 ? '#03c988' : (o.prob >= 0.2 ? '#00adb5' : '#5c6472');
+    return '<div class="gm-pred-outcome">' +
+      '<span class="gm-pred-olabel">' + gmEsc(o.label) + '</span>' +
+      '<span class="gm-pred-obar"><i style="width:' + Math.max(2, pct) + '%; background:' + hue + '"></i></span>' +
+      '<span class="gm-pred-opct">' + (pct < 1 ? '&lt;1' : pct) + '%</span>' +
+    '</div>';
+  }).join('');
+  var inner =
+    '<div class="gm-pred-top"><span class="gm-pred-q">' + gmEsc(r.question) + '</span></div>' +
+    ladder +
+    (r.more ? '<div class="gm-pred-more">+' + r.more + ' more</div>' : '') +
+    '<div class="gm-pred-meta">' +
+      '<span>POLYMARKET' + (r.volume ? ' · ' + gmFmtVolume(r.volume) + ' 24h' : '') + '</span>' +
+      (r.closes ? '<span>' + gmEsc(gmFmtCloses(r.closes)) + '</span>' : '') +
+    '</div>';
+  return r.url
+    ? '<a class="gm-pred-row" href="' + gmEscAttr(r.url) +
+      '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
+    : '<div class="gm-pred-row">' + inner + '</div>';
+}
+
+var GM_PRED_TRENDING = [];
+var GM_PRED_SEARCH = '';
+
 function gmRenderPredictions(rows, sourceLabel) {
   var host = document.getElementById('gm-predict');
-  if (!host) return;
-  gmSetBadge('gm-predict-badge', sourceLabel, sourceLabel !== 'live');
+  if (host) {
+    gmSetBadge('gm-predict-badge', sourceLabel, sourceLabel !== 'live');
+    host.innerHTML = rows.map(gmPredRowHtml).join('');
+    gmAnimate(host);
+  }
+}
 
-  host.innerHTML = rows.map(function (r) {
-    var pct = Math.round((r.probability || 0) * 100);
-    var hue = r.probability >= 0.5 ? '#e5484d' : '#00adb5';
-    var inner =
-      '<div class="gm-pred-top">' +
-        '<span class="gm-pred-q">' + gmEsc(r.question) + '</span>' +
-        '<span class="gm-pred-pct" style="color:' + hue + '">' + pct + '%</span>' +
-      '</div>' +
-      '<div class="gm-pred-bar"><i style="width:' + pct + '%; background:' + hue + '"></i></div>' +
-      '<div class="gm-pred-meta">' +
-        (r.detail ? '<span>' + gmEsc(r.detail) + '</span>' : '<span>Yes</span>') +
-        (r.volume ? '<span>' + gmFmtVolume(r.volume) + ' · 24h</span>' : '') +
-      '</div>';
-    return r.url
-      ? '<a class="gm-pred-row" href="' + gmEscAttr(r.url) +
-        '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
-      : '<div class="gm-pred-row">' + inner + '</div>';
-  }).join('');
+function gmRenderTrendingPredictions() {
+  var host = document.getElementById('gm-predict-trend');
+  if (!host) return;
+  var q = GM_PRED_SEARCH.toLowerCase();
+  var rows = GM_PRED_TRENDING.filter(function (r) {
+    return !q || (r.question || '').toLowerCase().indexOf(q) !== -1;
+  });
+  host.innerHTML = rows.length
+    ? rows.map(gmPredRowHtml).join('')
+    : '<p class="term-empty">' + (GM_PRED_TRENDING.length ? 'No markets match that search.' : 'Prediction feed warming up…') + '</p>';
   gmAnimate(host);
+}
+
+// ============================================================================
+// ECONOMIC CALENDAR (Forex Factory feed via the pipeline)
+// ============================================================================
+var GM_CAL_ITEMS = [];
+var GM_CAL_RANGE = 'today';       // today | thisweek | nextweek | all
+var GM_CAL_IMPACT = null;         // null = all; 'high' | 'medium' | 'low'
+var GM_CAL_COUNTRY = null;        // null = all; currency code
+var GM_CAL_IMPACT_META = {
+  high: { label: 'High', colour: '#e5484d' },
+  medium: { label: 'Medium', colour: '#f5a524' },
+  low: { label: 'Low', colour: '#f5c542' }
+};
+
+function gmCalRangeBounds(range) {
+  var now = new Date();
+  var startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var day = (now.getDay() + 6) % 7;                     // 0 = Monday
+  var startWeek = startToday - day * 86400000;
+  var endWeek = startWeek + 7 * 86400000;
+  if (range === 'today') return [startToday, startToday + 86400000];
+  if (range === 'thisweek') return [startWeek, endWeek];
+  if (range === 'nextweek') return [endWeek, endWeek + 7 * 86400000];
+  return [0, Infinity];
+}
+
+function gmApplyCalendar(items, sourceLabel) {
+  GM_CAL_ITEMS = items || [];
+  gmSetBadge('gm-cal-badge', sourceLabel, sourceLabel !== 'live');
+  gmRenderCalendarFilters();
+  gmRenderCalendar();
+}
+
+function gmRenderCalendarFilters() {
+  var ranges = document.getElementById('gm-cal-ranges');
+  if (ranges) {
+    var defs = [['today', 'Today'], ['thisweek', 'This week'], ['nextweek', 'Next week'], ['all', 'All']];
+    ranges.innerHTML = defs.map(function (d) {
+      return '<button type="button" class="term-cat' + (GM_CAL_RANGE === d[0] ? ' is-on' : '') +
+        '" data-range="' + d[0] + '">' + d[1] + '</button>';
+    }).join('');
+  }
+  var imp = document.getElementById('gm-cal-impacts');
+  if (imp) {
+    imp.innerHTML = ['high', 'medium', 'low'].map(function (k) {
+      var m = GM_CAL_IMPACT_META[k];
+      var on = !GM_CAL_IMPACT || GM_CAL_IMPACT === k;
+      return '<button type="button" class="term-cat' + (on ? ' is-on' : '') + '" data-impact="' + k + '">' +
+        '<i style="background:' + m.colour + '"></i>' + m.label + '</button>';
+    }).join('');
+  }
+  var sel = document.getElementById('gm-cal-country');
+  if (sel && sel.options.length <= 1) {
+    var seen = {};
+    GM_CAL_ITEMS.forEach(function (c) { if (c.country) seen[c.country] = true; });
+    var codes = Object.keys(seen).sort();
+    sel.innerHTML = '<option value="">All countries</option>' + codes.map(function (c) {
+      return '<option value="' + gmEscAttr(c) + '">' + gmEsc(c) + '</option>';
+    }).join('');
+  }
+}
+
+function gmRenderCalendar() {
+  var host = document.getElementById('gm-cal-list');
+  if (!host) return;
+  if (!GM_CAL_ITEMS.length) {
+    host.innerHTML = '<p class="term-empty">Calendar feed warming up…</p>';
+    return;
+  }
+  var bounds = gmCalRangeBounds(GM_CAL_RANGE);
+  var list = GM_CAL_ITEMS.filter(function (c) {
+    if (c.at < bounds[0] || c.at >= bounds[1]) return false;
+    if (GM_CAL_IMPACT && c.impact !== GM_CAL_IMPACT) return false;
+    if (GM_CAL_COUNTRY && c.country !== GM_CAL_COUNTRY) return false;
+    return true;
+  });
+  if (!list.length) {
+    host.innerHTML = '<p class="term-empty">No releases match those filters' +
+      (GM_CAL_RANGE === 'today' ? ' today — try “This week”.' : '.') + '</p>';
+    return;
+  }
+
+  var out = '', lastDay = '';
+  var now = Date.now();
+  list.forEach(function (c) {
+    var d = new Date(c.at);
+    var dayKey = d.toDateString();
+    if (dayKey !== lastDay) {
+      lastDay = dayKey;
+      out += '<div class="gm-cal-day">' +
+        d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + '</div>';
+    }
+    var m = GM_CAL_IMPACT_META[c.impact] || GM_CAL_IMPACT_META.low;
+    out += '<div class="gm-cal-row' + (c.at < now ? ' is-past' : '') + '">' +
+      '<span class="gm-cal-time">' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) + '</span>' +
+      '<span class="gm-cal-cty">' + gmEsc(c.country || '—') + '</span>' +
+      '<i class="gm-cal-dot" style="background:' + m.colour + '; box-shadow:0 0 6px ' + m.colour + '66" title="' + m.label + ' impact"></i>' +
+      '<span class="gm-cal-title">' + gmEsc(c.title) + '</span>' +
+      '<span class="gm-cal-vals">' +
+        (c.forecast ? 'F ' + gmEsc(c.forecast) : '') +
+        (c.previous ? (c.forecast ? ' · ' : '') + 'P ' + gmEsc(c.previous) : '') +
+      '</span>' +
+    '</div>';
+  });
+  host.innerHTML = out;
+  gmAnimate(host);
+}
+
+// ============================================================================
+// FINANCIAL MAP — finance headlines + central-bank hubs on the same projection
+// ============================================================================
+var GM_CB_HUBS = [
+  { name: 'Federal Reserve', cur: 'USD', lon: -77.04, lat: 38.89 },
+  { name: 'European Central Bank', cur: 'EUR', lon: 8.68, lat: 50.11 },
+  { name: 'Bank of England', cur: 'GBP', lon: -0.09, lat: 51.51 },
+  { name: 'Bank of Japan', cur: 'JPY', lon: 139.77, lat: 35.68 },
+  { name: 'Swiss National Bank', cur: 'CHF', lon: 7.45, lat: 46.95 },
+  { name: 'Bank of Canada', cur: 'CAD', lon: -75.70, lat: 45.42 },
+  { name: 'Reserve Bank of Australia', cur: 'AUD', lon: 151.21, lat: -33.87 },
+  { name: 'RBNZ', cur: 'NZD', lon: 174.78, lat: -41.29 },
+  { name: 'PBoC', cur: 'CNY', lon: 116.40, lat: 39.90 }
+];
+
+function gmRenderFinMap() {
+  var host = document.getElementById('gm-fin-map');
+  if (!host || typeof WORLD_MAP_PATH === 'undefined') return;
+
+  // Aggregate the financial wire by country -> dot at country centroid.
+  var agg = {};
+  GM_SEV_ITEMS.forEach(function (it) {
+    var c = it.country || countryFromTitleClient(it.title);
+    if (!c) return;
+    if (!agg[c]) agg[c] = { country: c, count: 0, worst: 'watch', top: [] };
+    agg[c].count++;
+    var rank = { critical: 0, high: 1, watch: 2 };
+    if ((rank[it.sev] || 2) < (rank[agg[c].worst] || 2)) agg[c].worst = it.sev;
+    if (agg[c].top.length < 2) agg[c].top.push(it);
+  });
+
+  var dots = '';
+  Object.keys(agg).forEach(function (name) {
+    var c = gmCountryCentroid(name);
+    if (!c) return;
+    var a = agg[name];
+    var colour = gmSevMeta(a.worst).colour;
+    var r = 3 + Math.min(6, Math.sqrt(a.count) * 1.6);
+    dots += '<g class="gm-fin-pin" data-country="' + gmEscAttr(name) + '">' +
+      '<circle cx="' + gmLonX(c[0]).toFixed(1) + '" cy="' + gmLatY(c[1]).toFixed(1) +
+        '" r="' + (r + 5).toFixed(1) + '" fill="transparent"/>' +
+      '<circle cx="' + gmLonX(c[0]).toFixed(1) + '" cy="' + gmLatY(c[1]).toFixed(1) +
+        '" r="' + r.toFixed(1) + '" fill="' + colour + '" fill-opacity="0.7" stroke="' + colour + '" stroke-width="1"/>' +
+    '</g>';
+  });
+
+  // Central-bank hubs: gold rings, next high-impact release in the tooltip.
+  var hubs = '';
+  GM_CB_HUBS.forEach(function (h) {
+    hubs += '<g class="gm-fin-hub" data-cur="' + h.cur + '">' +
+      '<circle cx="' + gmLonX(h.lon).toFixed(1) + '" cy="' + gmLatY(h.lat).toFixed(1) +
+        '" r="10" fill="transparent"/>' +
+      '<circle cx="' + gmLonX(h.lon).toFixed(1) + '" cy="' + gmLatY(h.lat).toFixed(1) +
+        '" r="5" fill="none" stroke="#f5c542" stroke-width="1.4" opacity="0.9"/>' +
+      '<circle cx="' + gmLonX(h.lon).toFixed(1) + '" cy="' + gmLatY(h.lat).toFixed(1) +
+        '" r="1.6" fill="#f5c542"/>' +
+    '</g>';
+  });
+
+  host.innerHTML =
+    '<svg viewBox="' + WORLD_MAP_VIEWBOX + '" class="term-map-svg" ' +
+        'xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">' +
+      '<rect width="' + GM_W + '" height="' + GM_H + '" fill="#08080a"/>' +
+      gmGraticule() +
+      '<path d="' + WORLD_MAP_PATH + '" fill="#1c2126" stroke="#2e363d" stroke-width="0.7"/>' +
+      '<g>' + dots + hubs + '</g>' +
+    '</svg>';
+
+  if (host.dataset.bound !== '1') {
+    host.dataset.bound = '1';
+    host.addEventListener('pointerover', function (e) { gmFinMapTip(e, agg); });
+    host.addEventListener('pointermove', function (e) {
+      var tip = document.getElementById('gm-tip');
+      if (tip && tip.style.display === 'flex') gmPositionTip(e.clientX, e.clientY);
+    });
+    host.addEventListener('pointerout', function (e) {
+      if (e.target.closest && e.target.closest('.gm-fin-pin, .gm-fin-hub')) gmHideTip();
+    });
+    host.addEventListener('click', function (e) {
+      var pin = e.target.closest && e.target.closest('.gm-fin-pin');
+      if (!pin) return;
+      var a = (gmFinMapAgg || {})[pin.dataset.country];
+      if (a && a.top[0] && a.top[0].url) window.open(a.top[0].url, '_blank', 'noopener');
+    });
+  }
+  gmFinMapAgg = agg;
+}
+var gmFinMapAgg = null;
+
+function gmFinMapTip(e, agg) {
+  var tip = document.getElementById('gm-tip');
+  if (!tip) return;
+  var pin = e.target.closest && e.target.closest('.gm-fin-pin');
+  var hub = e.target.closest && e.target.closest('.gm-fin-hub');
+  if (pin) {
+    var a = agg[pin.dataset.country];
+    if (!a) return;
+    tip.innerHTML =
+      '<span class="term-tip-cat" style="color:' + gmSevMeta(a.worst).colour + '">' +
+        gmEsc(pin.dataset.country) + ' · ' + a.count + ' financial ' + (a.count === 1 ? 'story' : 'stories') + '</span>' +
+      a.top.map(function (t) {
+        return '<span class="term-tip-title">' + gmEsc(t.title) + '</span>';
+      }).join('') +
+      '<span class="term-tip-meta">click to open the top story</span>';
+    tip.style.display = 'flex';
+    gmPositionTip(e.clientX, e.clientY);
+  } else if (hub) {
+    var cur = hub.dataset.cur;
+    var conf = GM_CB_HUBS.filter(function (h) { return h.cur === cur; })[0];
+    var next = GM_CAL_ITEMS.filter(function (c) {
+      return c.country === cur && c.impact === 'high' && c.at > Date.now();
+    }).slice(0, 2);
+    tip.innerHTML =
+      '<span class="term-tip-cat" style="color:#f5c542">' + gmEsc(conf ? conf.name : cur) + ' · ' + gmEsc(cur) + '</span>' +
+      (next.length
+        ? next.map(function (c) {
+            var d = new Date(c.at);
+            return '<span class="term-tip-title">' + gmEsc(c.title) + '</span>' +
+              '<span class="term-tip-meta">' +
+              d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) + ' ' +
+              d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) +
+              ' · high impact</span>';
+          }).join('')
+        : '<span class="term-tip-meta">No high-impact releases scheduled in the window.</span>');
+    tip.style.display = 'flex';
+    gmPositionTip(e.clientX, e.clientY);
+  }
+}
+
+// Lightweight client-side country tagging for fallback wire items that
+// arrived without one.
+var GM_TITLE_COUNTRY = [
+  ['United States', /\b(U\.?S\.?|Fed|Federal Reserve|Wall Street|dollar|Treasur)\b/i],
+  ['United Kingdom', /\b(UK|Bank of England|sterling|FTSE|London)\b/i],
+  ['Japan', /\b(Japan|yen|BoJ|Nikkei)\b/i],
+  ['China', /\b(China|yuan|PBoC|Beijing)\b/i],
+  ['Germany', /\b(ECB|euro ?zone|euro\b|Germany|DAX)\b/i]
+];
+function countryFromTitleClient(title) {
+  for (var i = 0; i < GM_TITLE_COUNTRY.length; i++) {
+    if (GM_TITLE_COUNTRY[i][1].test(title)) return GM_TITLE_COUNTRY[i][0];
+  }
+  return null;
+}
+
+// ============================================================================
+// AI OSINT BRIEFING
+// ============================================================================
+function gmRenderBrief(brief) {
+  var host = document.getElementById('gm-brief');
+  if (!host) return;
+  if (!brief || (!brief.summary && !brief.hotspots)) {
+    host.innerHTML = '<p class="term-empty">The next pipeline run will generate the first briefing.</p>';
+    return;
+  }
+  var html = '';
+  html += '<div class="gm-brief-head">' +
+    '<span class="gm-onair"><i></i>STRYKER AI</span>' +
+    '<span class="gm-brief-time">SITREP · ' + (brief.at ? gmTimeAgo(brief.at) + ' ago' : 'live') + '</span>' +
+  '</div>';
+
+  if (brief.summary && brief.summary.length) {
+    html += '<div class="gm-brief-block"><h4>Executive summary</h4>' +
+      '<p class="gm-brief-type" id="gm-brief-typed" data-full="' +
+        gmEscAttr(brief.summary.join(' ')) + '"></p></div>';
+  }
+  if (brief.hotspots && brief.hotspots.length) {
+    html += '<div class="gm-brief-block"><h4>Hotspot assessment</h4>' +
+      brief.hotspots.map(function (h, i) {
+        return '<div class="gm-brief-hotspot">' +
+          '<span class="gm-tension-rank">' + (i + 1) + '</span>' +
+          '<div><b>' + gmEsc(h.country) + '</b> — ' + gmEsc(h.driver) +
+            ' · ' + h.events + ' tracked events' +
+            (h.headline ? '<p>' + gmEsc(h.headline) + '</p>' : '') +
+          '</div></div>';
+      }).join('') + '</div>';
+  }
+  if (brief.marketRead) {
+    html += '<div class="gm-brief-block"><h4>Market read</h4><p>' + gmEsc(brief.marketRead) + '</p></div>';
+  }
+  if (brief.critWire && brief.critWire.length) {
+    html += '<div class="gm-brief-block"><h4>Priority signals</h4>' +
+      brief.critWire.map(function (w) {
+        var m = gmSevMeta(w.sev);
+        var line = '<span class="gm-wire-sev" style="color:' + m.colour + '; border-color:' + m.colour +
+          '55; background:' + m.colour + '14">' + m.label.toUpperCase() + '</span> ' + gmEsc(w.title);
+        return w.url
+          ? '<a class="gm-brief-signal" href="' + gmEscAttr(w.url) + '" target="_blank" rel="noopener noreferrer">' + line + '</a>'
+          : '<div class="gm-brief-signal">' + line + '</div>';
+      }).join('') + '</div>';
+  }
+  if (brief.watch && brief.watch.length) {
+    html += '<div class="gm-brief-block"><h4>Watchlist</h4><ul class="gm-brief-watch">' +
+      brief.watch.map(function (w) { return '<li>' + gmEsc(w) + '</li>'; }).join('') + '</ul></div>';
+  }
+  html += '<p class="gm-fineprint">Automated OSINT synthesis of this terminal\'s live feeds — regenerated every pipeline run. Not investment advice.</p>';
+  host.innerHTML = html;
+  gmAnimate(host);
+}
+
+// Typewriter for the executive summary — run when the AI tab first opens so
+// the effect is actually seen. Instant under prefers-reduced-motion.
+var GM_BRIEF_TYPED = false;
+function gmTypeBrief() {
+  var el = document.getElementById('gm-brief-typed');
+  if (!el || GM_BRIEF_TYPED) return;
+  GM_BRIEF_TYPED = true;
+  var full = el.getAttribute('data-full') || '';
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduced) { el.textContent = full; return; }
+  el.classList.add('is-typing');
+  var i = 0;
+  var timer = setInterval(function () {
+    i += 3;
+    el.textContent = full.slice(0, i);
+    if (i >= full.length) { clearInterval(timer); el.classList.remove('is-typing'); }
+  }, 16);
 }
 
 // ============================================================================
@@ -1241,6 +1683,18 @@ function gmLoadData() {
         GM_HAVE.predictions = true;
         gmRenderPredictions(d.predictions.items, d.predictions.stale ? 'stale' : 'live');
       }
+      if (d.predictions && d.predictions.trending && d.predictions.trending.length) {
+        GM_PRED_TRENDING = d.predictions.trending;
+        gmRenderTrendingPredictions();
+      } else if (d.predictions && d.predictions.items) {
+        GM_PRED_TRENDING = d.predictions.items;
+        gmRenderTrendingPredictions();
+      }
+      if (d.calendar && d.calendar.items) {
+        gmApplyCalendar(d.calendar.items, d.calendar.stale ? 'stale' : 'live');
+      }
+      if (d.brief) gmRenderBrief(d.brief);
+      gmRenderFinMap();
 
       // Anything the pipeline could not supply still tries its fallback.
       gmLoadFallbacks();
@@ -1500,6 +1954,7 @@ function gmShowTab(tab) {
   if (tab === 'markets') gmMountTradingView();
   if (tab === 'streams') gmInitStreams();
   if (tab === 'map') { gmApplyView(); }
+  if (tab === 'ai') gmTypeBrief();
   try { localStorage.setItem('stryker_gm_tab', tab); } catch (e) {}
 }
 
@@ -1523,8 +1978,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = e.target.closest('.term-tab');
     if (btn) gmShowTab(btn.dataset.tab);
   });
-  var saved = 'map';
-  try { saved = localStorage.getItem('stryker_gm_tab') || 'map'; } catch (e) {}
+  // Markets is the home tab — this is a trading site first. Last-used tab is
+  // still remembered per visitor.
+  var saved = 'markets';
+  try { saved = localStorage.getItem('stryker_gm_tab') || 'markets'; } catch (e) {}
   gmShowTab(saved);
 
   var cats = document.getElementById('gm-cats');
@@ -1537,6 +1994,7 @@ document.addEventListener('DOMContentLoaded', function () {
       GM_ACTIVE_CATS.delete(key);
       if (!GM_ACTIVE_CATS.size) GM_ACTIVE_CATS = null;
     } else GM_ACTIVE_CATS.add(key);
+    GM_TABLE_LIMIT = 8;
     gmRenderCatFilter(); gmDrawEvents(); gmRenderEventTable();
   });
 
@@ -1559,7 +2017,34 @@ document.addEventListener('DOMContentLoaded', function () {
     var btn = e.target.closest('.term-cat');
     if (!btn) return;
     GM_SEV_ACTIVE = (GM_SEV_ACTIVE === btn.dataset.sev) ? null : btn.dataset.sev;
+    GM_SEV_LIMIT = 10;
     gmRenderSeverity();
+  });
+
+  var calRanges = document.getElementById('gm-cal-ranges');
+  if (calRanges) calRanges.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-cat');
+    if (!btn) return;
+    GM_CAL_RANGE = btn.dataset.range;
+    gmRenderCalendarFilters(); gmRenderCalendar();
+  });
+  var calImpacts = document.getElementById('gm-cal-impacts');
+  if (calImpacts) calImpacts.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-cat');
+    if (!btn) return;
+    GM_CAL_IMPACT = (GM_CAL_IMPACT === btn.dataset.impact) ? null : btn.dataset.impact;
+    gmRenderCalendarFilters(); gmRenderCalendar();
+  });
+  var calCountry = document.getElementById('gm-cal-country');
+  if (calCountry) calCountry.addEventListener('change', function () {
+    GM_CAL_COUNTRY = calCountry.value || null;
+    gmRenderCalendar();
+  });
+
+  var predSearch = document.getElementById('gm-pred-search');
+  if (predSearch) predSearch.addEventListener('input', function () {
+    GM_PRED_SEARCH = predSearch.value.trim();
+    gmRenderTrendingPredictions();
   });
 
   var table = document.getElementById('gm-table-body');

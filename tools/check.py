@@ -110,6 +110,40 @@ def check_build_markers():
             fail(f'{path}: does not load version-check.js')
 
 
+def check_assets_changed_without_bump():
+    """Warn if tracked assets were modified since the last commit that touched
+    version.json.
+
+    This has now caused two wasted debugging rounds. An edited file served
+    under an unchanged ?v= is invisible: the deploy succeeds, the build turns
+    green, and the browser keeps handing back the previous version. There is no
+    error anywhere — the only symptom is a person saying "no difference".
+
+    A warning rather than a failure: legitimately committing an asset and its
+    version bump in separate steps is normal, and blocking that would be worse
+    than the bug.
+    """
+    try:
+        last_bump = subprocess.run(
+            ['git', 'log', '-1', '--format=%H', '--', 'assets/version.json'],
+            capture_output=True, text=True).stdout.strip()
+        if not last_bump:
+            return
+        changed = subprocess.run(
+            ['git', 'diff', '--name-only', last_bump + '..HEAD', '--', 'assets/'],
+            capture_output=True, text=True).stdout.split()
+        stale = [f for f in changed if f.endswith(('.js', '.css'))
+                 and not f.endswith('version.json')]
+        if stale:
+            print('WARNING — changed since the last version bump, so browsers '
+                  'will serve the cached copy:')
+            for f in stale:
+                print('  •', f)
+            print('  Bump ?v= and assets/version.json before deploying.\n')
+    except Exception:
+        pass   # never let a diagnostic break the deploy check
+
+
 def main():
     check_unversioned_assets()
     version = check_version_consistency()
@@ -118,6 +152,7 @@ def main():
     check_css_braces()
     check_referenced_assets_exist()
     check_build_markers()
+    check_assets_changed_without_bump()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="151">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Market News — Stryker Trading Academy</title>
+<title>Messages — Stryker Trading Academy</title>
 <link rel="stylesheet" href="assets/style.css?v=151">
 <script src="assets/toast.js?v=151" defer></script>
 <script src="assets/version-check.js?v=151" defer></script>
@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
-<body data-page-access="market-news">
+<body data-page-access="trade-journal">
 
 <div class="access-gate-overlay" id="access-gate-overlay">
   <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
@@ -84,7 +84,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         Live sessions
       </a>
-      <a href="market-news.html" class="side-link active">
+      <a href="market-news.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg>
         Market news
       </a>
@@ -100,17 +100,9 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
         Trading floor
       </a>
-      <a href="messages.html" class="side-link">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>
-        Messages
-      </a>
-      <a href="trade-journal.html" class="side-link">
+      <a href="trade-journal.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
         Trade journal
-      </a>
-      <a href="referrals.html" class="side-link">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-        Invite &amp; earn
       </a>
     </div>
 
@@ -138,153 +130,50 @@
     </div>
   </aside>
 
-  <main class="dash-main">
+  <main class="dash-main" id="messages-main">
     <div class="dash-topbar">
       <div>
-        <h1>Market news</h1>
-        <p>Live market data and financial news, powered by TradingView.</p>
+        <h1 class="dash-title">Messages</h1>
+        <p class="dash-sub">Private conversations with other traders.</p>
       </div>
     </div>
 
-    <div class="panel" style="padding:0; overflow:hidden;">
-      <div class="tradingview-widget-container">
-        <div class="tradingview-widget-container__widget"></div>
-        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
-        {
-        "symbols": [
-          {"proName": "FX_IDC:EURUSD", "title": "EUR/USD"},
-          {"proName": "FX_IDC:GBPUSD", "title": "GBP/USD"},
-          {"proName": "FX_IDC:USDJPY", "title": "USD/JPY"},
-          {"proName": "TVC:DXY", "title": "US Dollar Index"},
-          {"proName": "TVC:GOLD", "title": "Gold"},
-          {"proName": "TVC:USOIL", "title": "Crude Oil"},
-          {"proName": "FOREXCOM:SPXUSD", "title": "S&P 500"},
-          {"proName": "FOREXCOM:NSXUSD", "title": "Nasdaq 100"},
-          {"proName": "FOREXCOM:DJI", "title": "Dow 30"},
-          {"proName": "BITSTAMP:BTCUSD", "title": "Bitcoin"},
-          {"proName": "BITSTAMP:ETHUSD", "title": "Ethereum"}
-        ],
-        "showSymbolLogo": true,
-        "colorTheme": "dark",
-        "isTransparent": true,
-        "displayMode": "adaptive",
-        "locale": "en"
-        }
-        </script>
-      </div>
+    <div class="msg-layout">
+      <aside class="msg-sidebar">
+        <div class="msg-sidebar-head">Conversations</div>
+        <div id="msg-thread-list">
+          <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
+        </div>
+      </aside>
+
+      <section class="msg-pane" id="msg-pane">
+        <div class="msg-pane-head">
+          <button type="button" class="msg-back" id="msg-back" aria-label="Back to conversations">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div id="msg-peer-avatar"></div>
+          <a href="#" id="msg-peer-profile" class="msg-peer-name" title="View profile"><span id="msg-peer-name">Select a conversation</span></a>
+        </div>
+
+        <div class="msg-bubbles" id="msg-bubbles">
+          <div class="msg-empty">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5z"/></svg>
+            <p>Pick a conversation</p>
+            <span>Or open a trader's profile and press Message.</span>
+          </div>
+        </div>
+
+        <div class="msg-composer">
+          <textarea id="msg-input" rows="1" placeholder="Write a message…" maxlength="2000"></textarea>
+          <button type="button" class="msg-send" id="msg-send" aria-label="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+          </button>
+        </div>
+      </section>
     </div>
 
-    <div class="notice">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p>Killzone windows below are the commonly-referenced ICT session times — different educators sometimes draw the boundaries a few minutes differently.</p>
-    </div>
-
-    <div class="panel redfolder-panel">
-      <div class="panel-head">
-        <h2><span class="redfolder-dot"></span> Red folder news</h2>
-      </div>
-      <div class="level-tabs" id="econ-currency-filter" style="margin-bottom:16px;"></div>
-      <div id="econ-calendar-widget">
-        <div class="tradingview-widget-container__widget"></div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div>
-        <div class="panel" style="padding:0;">
-          <div class="panel-head" style="padding:20px 20px 0;"><h2>Today's trading sessions</h2></div>
-          <div id="killzone-widget"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-        </div>
-      </div>
-
-      <div>
-        <div class="panel">
-          <div class="panel-head"><h2>Forex strength</h2></div>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js" async>
-            {
-            "width": "100%",
-            "height": "400",
-            "currencies": ["EUR", "USD", "JPY", "GBP", "AUD", "CAD", "CHF", "NZD"],
-            "isTransparent": true,
-            "colorTheme": "dark",
-            "locale": "en"
-            }
-            </script>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Core instruments</h2></div>
-      <div class="mini-chart-grid">
-        <div class="mini-chart-card">
-          <h4>XAUUSD — Gold</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "TVC:GOLD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-        <div class="mini-chart-card">
-          <h4>EUR/USD</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "FX_IDC:EURUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-        <div class="mini-chart-card">
-          <h4>GBP/USD</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "FX_IDC:GBPUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-        <div class="mini-chart-card">
-          <h4>NAS100 — Nasdaq</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "FOREXCOM:NSXUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-        <div class="mini-chart-card">
-          <h4>US30 — Dow Jones</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "FOREXCOM:DJI", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-        <div class="mini-chart-card">
-          <h4>BTC/USD — Bitcoin</h4>
-          <div class="tradingview-widget-container">
-            <div class="tradingview-widget-container__widget"></div>
-            <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js" async>
-            { "symbol": "BITSTAMP:BTCUSD", "width": "100%", "height": "180", "locale": "en", "dateRange": "1D", "colorTheme": "dark", "isTransparent": true, "autosize": true }
-            </script>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Live market news</h2></div>
-      <div class="level-tabs" id="news-symbol-filter" style="margin-bottom:16px;"></div>
-      <div id="news-widget">
-        <div class="tradingview-widget-container__widget"></div>
-      </div>
-    </div>
   </main>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -293,11 +182,13 @@
 <script src="assets/auth.js?v=151"></script>
 <script src="assets/gate-timeout.js?v=151"></script>
 <script src="assets/progress.js?v=151"></script>
-<script src="assets/messages.js?v=151"></script>
 <script src="assets/messages-badge.js?v=151"></script>
+<script src="assets/messages.js?v=151"></script>
+<script src="assets/messages-page.js?v=151"></script>
 <script src="assets/activity-log.js?v=151"></script>
 <script src="assets/banned-check.js?v=151"></script>
 <script src="assets/email-verify.js?v=151"></script>
+<script src="assets/achievements-data.js?v=151"></script>
 <script src="assets/notifications.js?v=151"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <script src="assets/push.js?v=151"></script>
@@ -314,8 +205,6 @@
 <script src="assets/maintenance-check.js?v=151"></script>
 <script src="assets/branding.js?v=151"></script>
 <script src="assets/dash-nav.js?v=151"></script>
-<script src="assets/killzones.js?v=151"></script>
-<script src="assets/economic-calendar.js?v=151"></script>
-<script src="assets/live-news.js?v=151"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </body>
 </html>

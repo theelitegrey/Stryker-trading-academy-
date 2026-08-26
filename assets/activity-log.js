@@ -140,5 +140,6 @@ var ACTIVITY_ACTIONS = {
   'settings.appearance':      'Appearance updated',
   'log.purged':               'Log purged',
   'admin.task_added':         'Task added',
-  'admin.task_done':          'Task completed'
+  'admin.task_done':          'Task completed',
+  'message.sent':             'Message sent'
 };

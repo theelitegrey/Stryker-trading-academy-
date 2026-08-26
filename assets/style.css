@@ -1850,3 +1850,14 @@ a.todo-title:hover{ color:var(--teal); }
 .student-row-inner{ overflow:hidden; min-height:0; }
 .student-row-inner > *{ padding-left:16px; padding-right:16px; }
 .student-row-inner > *:last-child{ padding-bottom:16px; }
+
+/* Pending admin tasks pinned inside the notification panel ------------------ */
+.notif-task-head{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.09em;
+  text-transform:uppercase; color:var(--ink-3);
+  padding:10px 14px 6px;
+}
+.notif-item.notif-task{ background:rgba(0,173,181,0.05); }
+.notif-item.notif-task:hover{ background:rgba(0,173,181,0.1); }
+.notif-item-icon.urgent{ color:var(--bear); }
+#notif-task-block{ border-bottom:1px solid var(--line); }

@@ -32,45 +32,9 @@ function todoEscape(s){
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-// Each source: a key, a query, and how to phrase the result.
-const TODO_SOURCES = [
-  {
-    key: 'moderation',
-    link: 'moderation-admin.html',
-    icon: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/>',
-    tone: 'urgent',
-    load: () => db.collection('communityPosts').where('hidden', '==', true).get()
-      .then((snap) => snap.size),
-    label: (n) => n + (n === 1 ? ' flagged post needs review' : ' flagged posts need review'),
-    sub: 'A moderator hid these pending your decision.'
-  },
-  {
-    key: 'tradingview',
-    link: 'indicators-admin.html',
-    icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
-    tone: 'normal',
-    load: () => db.collection('students').get().then((snap) => {
-      let n = 0;
-      snap.forEach((d) => {
-        const s = d.data();
-        if (s.tradingViewUsername && !s.tradingViewAccessGranted) n++;
-      });
-      return n;
-    }),
-    label: (n) => n + (n === 1 ? ' TradingView username awaiting approval' : ' TradingView usernames awaiting approval'),
-    sub: 'Students cannot load the indicators until these are granted.'
-  },
-  {
-    key: 'contact',
-    link: 'pages-admin.html',
-    icon: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>',
-    tone: 'normal',
-    load: () => db.collection('contactMessages').where('status', '==', 'new').get()
-      .then((snap) => snap.size),
-    label: (n) => n + (n === 1 ? ' unread contact message' : ' unread contact messages'),
-    sub: 'Sent through the public contact form.'
-  }
-];
+// Task sources now live in assets/admin-tasks.js, shared with the notification
+// bell. Two copies would drift: a source added here would never appear in the
+// bell, and the two would disagree about how much is outstanding.
 
 function renderTodo(){
   const wrap = document.getElementById('todo-list');
@@ -79,11 +43,7 @@ function renderTodo(){
 
   // A derived task is hidden while its dismissed signature still matches the
   // current count. More items than when it was dismissed and it returns.
-  const visibleDerived = TODO_DERIVED.filter((t) => {
-    if (!t.count) return false;
-    const d = TODO_DISMISSALS[t.key];
-    return !d || d.signature !== t.count;
-  });
+  const visibleDerived = TODO_DERIVED.filter((t) => adminTaskIsVisible(t, TODO_DISMISSALS));
 
   const total = visibleDerived.length + TODO_MANUAL.length;
   if (countEl) countEl.textContent = total ? (total + (total === 1 ? ' task' : ' tasks')) : 'All clear';
@@ -182,24 +142,12 @@ function loadTodo(){
   const wrap = document.getElementById('todo-list');
   if (!wrap) return;
 
-  // All sources in parallel; a single failing query must not blank the whole
-  // queue, so each resolves to a count of 0 rather than rejecting.
-  const derived = TODO_SOURCES.map((src) =>
-    src.load()
-      .then((count) => Object.assign({}, src, { count: count }))
-      .catch((err) => {
-        console.error('Stryker: todo source failed: ' + src.key, err);
-        return Object.assign({}, src, { count: 0 });
-      })
-  );
+  // Shared loader — same data the notification bell reads, so the panel and
+  // the bell can never disagree about what is outstanding.
+  const derived = loadAdminTaskCounts()
+    .then((tasks) => tasks.map((t) => Object.assign({}, t.src, { count: t.count })));
 
-  const dismissals = db.collection('adminTaskDismissals').get()
-    .then((snap) => {
-      const map = {};
-      snap.forEach((d) => { map[d.id] = d.data(); });
-      return map;
-    })
-    .catch(() => ({}));
+  const dismissals = loadAdminTaskDismissals();
 
   const manual = db.collection('adminTasks').orderBy('createdAt', 'desc').limit(50).get()
     .then((snap) => {
@@ -209,7 +157,7 @@ function loadTodo(){
     })
     .catch(() => []);
 
-  Promise.all([Promise.all(derived), dismissals, manual]).then(([d, dis, man]) => {
+  Promise.all([derived, dismissals, manual]).then(([d, dis, man]) => {
     TODO_DERIVED = d;
     TODO_DISMISSALS = dis;
     TODO_MANUAL = man;

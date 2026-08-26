@@ -108,6 +108,20 @@ function initTvAccessPanel(uid){
       okEl.textContent = newUsername ? "Saved — we'll review it soon." : 'Cleared.';
       okEl.style.display = 'block';
       if (typeof showToast === 'function') showToast('success', newUsername ? "Saved — we'll review it soon." : 'Cleared.');
+
+      // Tell the admins. This request previously arrived silently: nothing was
+      // written anywhere an admin would see, so a student sat on "Pending
+      // review" until someone happened to open the indicators page. Only fires
+      // on a new submission, not on clearing the field.
+      if (newUsername && typeof createNotification === 'function') {
+        const who = (auth.currentUser && (auth.currentUser.displayName || auth.currentUser.email)) || 'A student';
+        db.collection('admins').get().then((snap) => {
+          snap.forEach((doc) => {
+            createNotification(doc.id, 'tv_access_granted',
+              who + ' submitted a TradingView username for approval.', 'indicators-admin.html');
+          });
+        }).catch((err) => console.error('Stryker: could not notify admins of TradingView request', err));
+      }
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not save.';
       errEl.style.display = 'block';

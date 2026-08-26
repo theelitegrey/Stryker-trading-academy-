@@ -73,6 +73,26 @@ function tweetToHtml(text) {
   return linked;
 }
 
+
+/**
+ * Tweet creation time in ms, or null if it cannot be determined.
+ *
+ * twitterapi.io has returned several shapes across endpoints, so this tries the
+ * ones actually seen rather than assuming one. Returning null on failure
+ * matters: an unparseable timestamp must not be treated as "very old" and
+ * silently dropped, nor as "brand new" and published. The caller decides.
+ */
+function tweetTimeMs(t) {
+  const raw = t.createdAt || t.created_at || t.timestamp || t.date;
+  if (!raw) return null;
+  if (typeof raw === 'number') {
+    // Seconds or milliseconds — anything below ~1e12 is seconds.
+    return raw < 1e12 ? raw * 1000 : raw;
+  }
+  const parsed = Date.parse(raw);
+  return isNaN(parsed) ? null : parsed;
+}
+
 exports.mirrorTweets = functions
   .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [TWITTERAPI_KEY] })
   .pubsub.schedule('every 30 minutes')
@@ -155,7 +175,12 @@ async function runBot(db, doc, apiKey) {
   tweets = tweets.slice().reverse();
 
   const maxPerRun = Math.min(cfg.maxPerRun || 3, 10);
+  // Default 60 minutes against a 30-minute schedule: wide enough that a late
+  // or briefly failed run still catches everything, narrow enough that nothing
+  // stale reaches the feed.
+  const maxAgeMs = Math.max(5, cfg.maxAgeMinutes || 60) * 60 * 1000;
   let published = 0;
+  let skippedOld = 0;
 
   for (const t of tweets) {
     if (published >= maxPerRun) break;
@@ -165,6 +190,32 @@ async function runBot(db, doc, apiKey) {
     if (!cfg.includeReplies && (t.isReply || t.in_reply_to_status_id)) continue;
     if (!cfg.includeRetweets && (t.retweeted_tweet || t.is_retweet)) continue;
     if (await alreadyMirrored(db, id)) continue;
+
+    // AGE GATE — publish only what is recent, never a backlog.
+    //
+    // Without this, a first run against a busy account works through that
+    // account's entire recent history a few posts at a time, filling the
+    // Trading Floor with hours-old news. The marker collection alone cannot
+    // prevent it: a tweet with no marker is indistinguishable from a tweet
+    // posted a second ago.
+    //
+    // Anything past the cutoff is MARKED AS SEEN rather than merely skipped,
+    // so raising the cutoff later cannot suddenly release a flood of history.
+    const ts = tweetTimeMs(t);
+    if (ts !== null && (Date.now() - ts) > maxAgeMs) {
+      await db.collection('mirroredTweets').doc(String(id)).set({
+        tweetId: String(id),
+        botId: doc.id,
+        screenName: cfg.screenName,
+        skippedTooOld: true,
+        mirroredAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      skippedOld++;
+      continue;
+    }
+    // A tweet whose timestamp could not be parsed is allowed through. Dropping
+    // it would mean silently losing posts if the API ever changes its date
+    // field; publishing one stale item is the cheaper mistake.
 
     const text = t.text || t.full_text || '';
     if (!text.trim()) continue;
@@ -228,5 +279,6 @@ async function runBot(db, doc, apiKey) {
     publishedCount: admin.firestore.FieldValue.increment(published)
   }, { merge: true });
 
-  console.log(`mirrorTweets[${name}]: published ${published} of ${tweets.length}`);
+  console.log(`mirrorTweets[${name}]: published ${published} of ${tweets.length}` +
+              `, skipped ${skippedOld} as too old`);
 }

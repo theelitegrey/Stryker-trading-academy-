@@ -34,6 +34,11 @@ var BOT_TYPES = {
         def: 3, min: 1, max: 10,
         help: 'Caps a catch-up burst. A quiet account that suddenly posts '
             + 'twenty times should not flood the floor in one go.' },
+      { key: 'maxAgeMinutes', label: 'Only post tweets from the last', type: 'number',
+        def: 60, min: 5, max: 1440,
+        help: 'Minutes. Anything older is marked seen and never published, so '
+            + 'a new bot starts from now rather than replaying history. 60 '
+            + 'gives a 30-minute schedule room to recover from a missed run.' },
       { key: 'category', label: 'Post to', type: 'select',
         options: [['propfirm', 'Prop firm feed'], ['general', 'Posts']],
         def: 'propfirm' },

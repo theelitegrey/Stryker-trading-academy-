@@ -303,14 +303,21 @@ function renderPostCard(post){
   // A team post shows OFFICIAL instead of a plan tag — see style.css.
   const isTeamPost = (typeof isStrykerTeam === 'function') && isStrykerTeam(post.authorUid);
   const isBotAuthor = (typeof isBotUid === 'function') && isBotUid(post.authorUid);
+  const isAuthorStaff = (typeof isStaffUid === 'function') && isStaffUid(post.authorUid);
   const canModerate = !isOwnPost && FLOOR_IS_MODERATOR;
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
       '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') +
-        (isTeamPost ? '<span class="floor-team-tag">OFFICIAL</span>'
-          : isBotAuthor ? botBadgeHtml()
-          : roleTag) +
+        // The team account and bots are the academy speaking, so both carry the
+        // staff mark; the bot badge sits alongside it to say "automated" as
+        // well as "official". A plan tag is only shown for actual students —
+        // a brand account with an ELITE badge would read as a customer.
+        ((isTeamPost || isBotAuthor)
+          ? (typeof staffBadgeHtml === 'function'
+              ? staffBadgeHtml(isBotAuthor ? 'Stryker staff' : 'Stryker Team') : '')
+          : (isAuthorStaff && typeof staffBadgeHtml === 'function' ? staffBadgeHtml() : roleTag)) +
+        (isBotAuthor ? botBadgeHtml() : '') +
         shieldBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +
       (isOwnPost
@@ -680,6 +687,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Derived from the same collection-wide load rather than a second,
       // redundant single-doc query for the same information.
       FLOOR_IS_MODERATOR = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(user.uid);
+      if (typeof loadStaffList === 'function') loadStaffList().then(() => renderFeed());
       loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
       renderFloorLeaderboardWidget(user.uid);
     });

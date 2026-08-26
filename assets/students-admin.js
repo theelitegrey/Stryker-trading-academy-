@@ -43,6 +43,7 @@ function renderStudentsTable(students){
       : '—';
     const isAdminUser = CURRENT_ADMIN_UIDS.has(s.uid);
     const isModeratorUser = CURRENT_MODERATOR_UIDS.has(s.uid);
+    const isStaffUser = (typeof CURRENT_STAFF_UIDS !== 'undefined') && CURRENT_STAFF_UIDS.has(s.uid);
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small' }) : '';
     const card = document.createElement('div');
     // Collapsed by default. Every student's full detail was previously
@@ -71,6 +72,7 @@ function renderStudentsTable(students){
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-toggle-moderator="' + s.uid + '">' + (isModeratorUser ? 'Revoke moderator' : 'Grant moderator') + '</button>' +
+        '<button class="btn btn-sm btn-ghost" data-toggle-staff="' + s.uid + '">' + (isStaffUser ? 'Revoke staff' : 'Grant staff') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-delete-student="' + s.uid + '" style="color:var(--bear); border-color:rgba(229,72,77,0.35);">Delete user</button>' +
       '</div>' +
       '</div></div>';
@@ -139,6 +141,29 @@ function renderStudentsTable(students){
         .then(() => renderStudentsTable(ALL_STUDENTS))
         .catch((err) => {
           showToast('error', 'Could not update admin access: ' + (err.message || err));
+          btn.disabled = false;
+        });
+    });
+
+    card.querySelector('[data-toggle-staff]').addEventListener('click', (e) => {
+      const btn = e.currentTarget;
+      if (isStaffUser && !confirm('Revoke staff for ' + name + '?')) return;
+
+      btn.disabled = true;
+      const action = isStaffUser
+        ? revokeStaff(s.uid)
+        : grantStaff(s.uid, s.email, s.displayName, auth.currentUser.uid);
+      action
+        .then(() => {
+          if (typeof logActivity === 'function') logActivity(
+            isStaffUser ? 'user.staff_revoked' : 'user.staff_granted',
+            (isStaffUser ? 'Revoked staff from ' : 'Granted staff to ') + name,
+            { targetUid: s.uid, targetName: name });
+        })
+        .then(() => loadStaffList())
+        .then(() => renderStudentsTable(ALL_STUDENTS))
+        .catch((err) => {
+          showToast('error', 'Could not update staff: ' + (err.message || err));
           btn.disabled = false;
         });
     });
@@ -329,12 +354,20 @@ function loadStudents(){
     db.collection('students').get(),
     loadAdminList(),
     loadModeratorList(),
+    (typeof loadStaffList === 'function') ? loadStaffList() : Promise.resolve(),
     (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()
   ])
     .then(([snap]) => {
       ALL_STUDENTS = [];
       snap.forEach((doc) => ALL_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
-      renderStudentsTable(ALL_STUDENTS);
+      // Through applyFilters rather than straight to render, so the count
+      // label is populated on first paint and any role filter already chosen
+      // is respected after a reload.
+      if (typeof window.__strykerApplyUserFilters === 'function') {
+        window.__strykerApplyUserFilters();
+      } else {
+        renderStudentsTable(ALL_STUDENTS);
+      }
     })
     .catch((err) => {
       console.error('Stryker: failed to load students', err);
@@ -396,13 +429,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('backfill-profiles-btn').addEventListener('click', backfillAllProfiles);
 
-  document.getElementById('students-search').addEventListener('input', (e) => {
-    const q = e.target.value.trim().toLowerCase();
-    if (!q) { renderStudentsTable(ALL_STUDENTS); return; }
-    const filtered = ALL_STUDENTS.filter(s =>
-      (s.displayName || '').toLowerCase().includes(q) ||
-      (s.email || '').toLowerCase().includes(q)
-    );
-    renderStudentsTable(filtered);
-  });
+  // Search and role filter compose rather than overriding one another.
+  //
+  // Written as one applyFilters() both inputs call, not two handlers that each
+  // re-render from ALL_STUDENTS. Two independent handlers is the usual shape
+  // and it is subtly broken: typing a search would silently discard the role
+  // selection, and picking a role would clear the search box's effect, so the
+  // visible controls would disagree with the visible rows.
+  let CURRENT_ROLE_FILTER = 'all';
+
+  function roleOf(s){
+    // A user can hold several roles at once; this returns the SET they match,
+    // so filtering by "staff" finds an admin who is also staff rather than
+    // hiding them behind a single primary role.
+    const roles = [];
+    if (CURRENT_ADMIN_UIDS && CURRENT_ADMIN_UIDS.has(s.uid)) roles.push('admin');
+    if (CURRENT_MODERATOR_UIDS && CURRENT_MODERATOR_UIDS.has(s.uid)) roles.push('moderator');
+    if (typeof CURRENT_STAFF_UIDS !== 'undefined' && CURRENT_STAFF_UIDS.has(s.uid)) roles.push('staff');
+    if (typeof isBotUid === 'function' && isBotUid(s.uid)) roles.push('bot');
+    // "Student" means no elevated role — otherwise every admin would also show
+    // under students and the filter would barely narrow anything.
+    if (!roles.length) roles.push('student');
+    return roles;
+  }
+
+  function applyFilters(){
+    const q = (document.getElementById('students-search').value || '').trim().toLowerCase();
+    let list = ALL_STUDENTS;
+
+    if (CURRENT_ROLE_FILTER !== 'all') {
+      list = list.filter(s => roleOf(s).indexOf(CURRENT_ROLE_FILTER) !== -1);
+    }
+    if (q) {
+      list = list.filter(s =>
+        (s.displayName || '').toLowerCase().includes(q) ||
+        (s.email || '').toLowerCase().includes(q)
+      );
+    }
+    renderStudentsTable(list);
+
+    const count = document.getElementById('users-filter-count');
+    if (count) {
+      count.textContent = list.length === ALL_STUDENTS.length
+        ? list.length + ' users'
+        : list.length + ' of ' + ALL_STUDENTS.length;
+    }
+  }
+
+  document.getElementById('students-search').addEventListener('input', applyFilters);
+
+  const filterBar = document.getElementById('users-role-filter');
+  if (filterBar) {
+    filterBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-role]');
+      if (!btn) return;
+      filterBar.querySelectorAll('[data-role]').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      CURRENT_ROLE_FILTER = btn.getAttribute('data-role');
+      applyFilters();
+    });
+  }
+
+  // Exposed so loadStudents() can refresh counts once the role lists resolve;
+  // roleOf depends on them, and they load asynchronously.
+  window.__strykerApplyUserFilters = applyFilters;
 });

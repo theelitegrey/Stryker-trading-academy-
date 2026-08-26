@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="175">
+<meta name="stryker-build" content="176">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Students — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=175">
-<script src="assets/toast.js?v=175" defer></script>
-<script src="assets/version-check.js?v=175" defer></script>
+<title>Users — Stryker Admin</title>
+<link rel="stylesheet" href="assets/style.css?v=176">
+<script src="assets/toast.js?v=176" defer></script>
+<script src="assets/version-check.js?v=176" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -64,7 +64,7 @@
       </button>
       <div class="side-group-body">
         <div class="side-group-inner">
-        <a href="students-admin.html" class="side-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Students</a>
+        <a href="students-admin.html" class="side-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Users</a>
         <a href="access-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Roles &amp; access</a>
         <a href="moderation-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Moderation</a>
         <a href="referrals-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Referrals</a>
@@ -133,24 +133,36 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Students</h1>
-        <p>Every registered account, pulled live from Firestore.</p>
+        <h1>Users</h1>
+        <p>Every registered account and role, pulled live from Firestore.</p>
       </div>
       <button class="btn btn-ghost btn-sm" id="backfill-profiles-btn">Backfill all profiles</button>
     </div>
 
     <div class="notice">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>Real admin access control is on.</b> This page is only reachable by accounts with a matching document in the <code>admins</code> Firestore collection — Firestore's security rules check that server-side, so it can't be bypassed from the browser. Progress data here is view-only, but you can grant or revoke admin access for any student using the button on their row.</p>
+      <p><b>Real admin access control is on.</b> This page is only reachable by accounts with a matching document in the <code>admins</code> Firestore collection — Firestore's security rules check that server-side, so it can't be bypassed from the browser. Progress data here is view-only, but you can grant or revoke admin, moderator and staff roles for any user using the buttons on their row.</p>
     </div>
 
     <div class="panel">
       <div class="toolbar">
-        <h2 style="font-size:16.5px;" id="students-count">Loading students…</h2>
+        <h2 style="font-size:16.5px;" id="students-count">Loading users…</h2>
         <div class="search-box">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-          <input type="text" id="students-search" placeholder="Search students…">
+          <input type="text" id="students-search" placeholder="Search users…">
         </div>
+      </div>
+
+      <div class="users-filter-row">
+        <div class="users-role-filter" id="users-role-filter">
+          <button type="button" class="users-role-btn is-active" data-role="all">All</button>
+          <button type="button" class="users-role-btn" data-role="student">Students</button>
+          <button type="button" class="users-role-btn" data-role="staff">Staff</button>
+          <button type="button" class="users-role-btn" data-role="moderator">Moderators</button>
+          <button type="button" class="users-role-btn" data-role="admin">Admins</button>
+          <button type="button" class="users-role-btn" data-role="bot">Bots</button>
+        </div>
+        <span class="users-filter-count" id="users-filter-count"></span>
       </div>
       <div id="students-table-body"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
     </div>
@@ -161,33 +173,34 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
-<script src="assets/auth.js?v=175"></script>
-<script src="assets/progress.js?v=175"></script>
-<script src="assets/presence.js?v=175"></script>
-<script src="assets/messages.js?v=175"></script>
-<script src="assets/messages-badge.js?v=175"></script>
-<script src="assets/account-menu.js?v=175"></script>
-<script src="assets/activity-log.js?v=175"></script>
-<script src="assets/banned-check.js?v=175"></script>
-<script src="assets/email-verify.js?v=175"></script>
-<script src="assets/profiles-sync.js?v=175"></script>
+<script src="assets/auth.js?v=176"></script>
+<script src="assets/progress.js?v=176"></script>
+<script src="assets/presence.js?v=176"></script>
+<script src="assets/messages.js?v=176"></script>
+<script src="assets/messages-badge.js?v=176"></script>
+<script src="assets/account-menu.js?v=176"></script>
+<script src="assets/activity-log.js?v=176"></script>
+<script src="assets/banned-check.js?v=176"></script>
+<script src="assets/email-verify.js?v=176"></script>
+<script src="assets/profiles-sync.js?v=176"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=175"></script>
-<script src="assets/avatars.js?v=175"></script>
-<script src="assets/referrals.js?v=175"></script>
-<script src="assets/roles.js?v=175"></script>
-<script src="assets/branding.js?v=175"></script>
-<script src="assets/admin-guard.js?v=175"></script>
-<script src="assets/admin-team.js?v=175"></script>
-<script src="assets/moderator-team.js?v=175"></script>
-<script src="assets/dash-nav.js?v=175"></script>
-<script src="assets/achievements-data.js?v=175"></script>
-<script src="assets/notifications.js?v=175"></script>
+<script src="assets/loading-animation.js?v=176"></script>
+<script src="assets/avatars.js?v=176"></script>
+<script src="assets/referrals.js?v=176"></script>
+<script src="assets/roles.js?v=176"></script>
+<script src="assets/branding.js?v=176"></script>
+<script src="assets/admin-guard.js?v=176"></script>
+<script src="assets/admin-team.js?v=176"></script>
+<script src="assets/moderator-team.js?v=176"></script>
+<script src="assets/dash-nav.js?v=176"></script>
+<script src="assets/achievements-data.js?v=176"></script>
+<script src="assets/notifications.js?v=176"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=175"></script>
-<script src="assets/admin-tasks.js?v=175"></script>
-<script src="assets/admin-notify.js?v=175"></script>
-<script src="assets/admin-nav.js?v=175"></script>
-<script src="assets/students-admin.js?v=175"></script>
+<script src="assets/push.js?v=176"></script>
+<script src="assets/admin-tasks.js?v=176"></script>
+<script src="assets/admin-notify.js?v=176"></script>
+<script src="assets/admin-nav.js?v=176"></script>
+<script src="assets/staff-team.js?v=176"></script>
+<script src="assets/students-admin.js?v=176"></script>
 </body>
 </html>

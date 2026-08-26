@@ -3366,23 +3366,41 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
 
 /* Header Global Monitor icon ------------------------------------------------ */
 .gm-icon-wrap{ position:relative; flex-shrink:0; display:flex; }
+.gm-icon-wrap .icon-btn{ position:relative; }
 
-.gm-alert-dot{
-  position:absolute; top:5px; right:5px;
-  width:8px; height:8px; border-radius:50%;
-  background:#ff5c4d; display:none; pointer-events:none;
-  /* Ringed in the header background so it reads as sitting on top of the icon
-     rather than being cut out of it. */
-  box-shadow:0 0 0 2px var(--bg-0), 0 0 7px rgba(255,92,77,0.85);
+/* Centred inside the globe rather than badged on its corner: it reads as the
+   planet being live, not as a notification count attached to a button. */
+.gm-live-dot{
+  position:absolute; top:50%; left:50%;
+  width:6px; height:6px; margin:-3px 0 0 -3px;
+  border-radius:50%; background:#ff3b30;
+  pointer-events:none;
+  box-shadow:0 0 6px rgba(255,59,48,0.95), 0 0 12px rgba(255,59,48,0.5);
+  animation:gmLivePulse 2.4s ease-in-out infinite;
 }
-/* Only the critical state pulses. If every alert animated, the animation would
-   carry no information — it would just be how the icon looks. */
-.gm-alert-dot.is-critical{ animation:gmAlertPulse 2s ease-in-out infinite; }
-@keyframes gmAlertPulse{
+
+/* Two things move together: the dot itself breathes, and a ring expands out of
+   it and fades. The ring is what makes it read as emitting rather than just
+   blinking. Deliberately slow — this sits in the header of every page, and
+   anything faster becomes an irritation rather than a signal. */
+.gm-live-dot::after{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  background:#ff3b30;
+  animation:gmLiveRing 2.4s ease-out infinite;
+}
+@keyframes gmLivePulse{
   0%,100%{ opacity:1; transform:scale(1); }
-  50%    { opacity:.55; transform:scale(1.22); }
+  50%    { opacity:.7; transform:scale(.86); }
+}
+@keyframes gmLiveRing{
+  0%   { transform:scale(1); opacity:.55; }
+  70%  { transform:scale(3.6); opacity:0; }
+  100% { transform:scale(3.6); opacity:0; }
 }
 
 @media (prefers-reduced-motion:reduce){
-  .gm-alert-dot.is-critical{ animation:none; }
+  /* Still visible, just still. The dot carries the meaning; the motion is
+     only emphasis. */
+  .gm-live-dot{ animation:none; }
+  .gm-live-dot::after{ animation:none; opacity:0; }
 }

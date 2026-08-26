@@ -110,7 +110,11 @@ function openConversation(convId, otherUid, otherName, otherInfo){
   MSG_ACTIVE_CONV = convId;
   MSG_ACTIVE_OTHER = otherUid;
 
-  document.getElementById('msg-pane').classList.add('open');
+  var pane = document.getElementById('msg-pane');
+  pane.classList.add('open');
+  // The pane is a fixed overlay on mobile; without this the page behind it
+  // still scrolls under your thumb while you read.
+  if (window.matchMedia('(max-width:900px)').matches) document.body.style.overflow = 'hidden';
   document.getElementById('msg-peer-name').textContent = otherName;
   var av = document.getElementById('msg-peer-avatar');
   if (av) {
@@ -169,6 +173,7 @@ function renderTyping(on){
 
 function closeConversation(){
   document.getElementById('msg-pane').classList.remove('open');
+  document.body.style.overflow = '';
   if (MSG_UNSUB_THREAD) { MSG_UNSUB_THREAD(); MSG_UNSUB_THREAD = null; }
   if (MSG_UNSUB_CONV) { MSG_UNSUB_CONV(); MSG_UNSUB_CONV = null; }
   if (MSG_ACTIVE_CONV) clearTyping(MSG_ACTIVE_CONV, MSG_UID);

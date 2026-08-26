@@ -2686,16 +2686,44 @@ a.todo-title:hover{ color:var(--teal); }
 .term-row-link:hover{ color:var(--teal); background:var(--bg-3); }
 
 .term-shown{ font-size:12px; color:var(--ink-2); margin:0 0 10px; font-family:var(--font-mono, monospace); }
-.term-fj-block{ padding-bottom:8px; }
-/* The widget renders its own fixed-size box; the host only reserves space so
-   the panel does not jump when it arrives.
-   
-   The block's own padding is removed on this one, so the widget meets the
-   panel edge rather than floating in a lighter frame — the two backgrounds now
-   match, and a gap between them would defeat that. */
-.term-fj{ min-height:120px; overflow:hidden; border-radius:8px; }
-.term-fj-block{ padding-left:0; padding-right:0; }
-.term-fj-block h3{ padding:0 16px; }
-.term-fj iframe, .term-fj > div{ max-width:100%; }
-.term-fj-help{ margin-top:6px; }
-.term-fj-help a{ color:var(--teal); }
+.term-news-block{ padding-bottom:4px; }
+/* Newswire ------------------------------------------------------------------ */
+.term-news-block{ padding-left:0; padding-right:0; }
+.term-news-block h3{ padding:0 16px; }
+.term-news-feed{
+  max-height:520px; overflow-y:auto;
+  /* Scrollbar kept visible: an auto-hiding one on a list that updates itself
+     leaves no cue that there is more below. */
+  scrollbar-width:thin;
+}
+.news-item{
+  display:flex; gap:9px; align-items:stretch;
+  padding:9px 16px; text-decoration:none;
+  border-bottom:1px solid var(--line);
+  transition:background .12s ease;
+}
+.news-item:last-child{ border-bottom:none; }
+.news-item:hover{ background:var(--bg-2); }
+.news-bar{ width:2.5px; border-radius:2px; flex-shrink:0; opacity:.85; }
+.news-body{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.news-title{ font-size:12.5px; line-height:1.45; color:var(--ink-1); }
+.news-item:hover .news-title{ color:var(--ink-0); }
+.news-meta{
+  display:flex; gap:8px; align-items:center;
+  font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3);
+}
+.news-src{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+/* New headlines get one slow fade rather than a persistent highlight. A wire
+   that keeps items marked "new" until you interact accumulates highlights
+   until everything is highlighted and the cue means nothing. */
+@keyframes newsArrive{
+  0%   { background:rgba(3,201,136,0.16); }
+  100% { background:transparent; }
+}
+.news-item.is-new{ animation:newsArrive 6s ease-out; }
+.news-item.is-new .news-title{ color:var(--ink-0); }
+
+@media (prefers-reduced-motion:reduce){
+  .news-item.is-new{ animation:none; border-left:2px solid var(--bull); }
+}

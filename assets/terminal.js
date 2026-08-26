@@ -730,100 +730,114 @@ document.addEventListener('DOMContentLoaded', function () {
   setInterval(loadWorldEvents, 15 * 60000);   // GDELT itself updates every 15 min
 });
 
-// ---- FinancialJuice newswire ------------------------------------------------
+// ---- Newswire ---------------------------------------------------------------
 //
-// FinancialJuice ships a SCRIPT widget, not an iframe — it loads
-// feed.financialjuice.com/widgets/widgets.js and calls FJWidgets.createWidget
-// into a container div.
+// Our own headline feed, replacing the FinancialJuice widget. Same job, our
+// branding, no third-party script with full access to the page, and no
+// attribution we would be tempted to hide.
 //
-// Worth being explicit about the trade: a third-party script runs with full
-// access to this page, unlike an iframe which is sandboxed. That is the same
-// deal already accepted for the TradingView widgets on the other tabs, and it
-// is the only way this vendor ships, but it is a trust decision rather than a
-// technical detail — if either vendor is compromised, so is this page.
-//
-// Colours are overridden from their TradingView-flavoured defaults (#1e222d /
-// #b2b5be) to the site's own panel and muted-text values, so the newswire reads
-// as part of the terminal rather than a pasted-in third-party box.
+// Backed by getNewswire, which reads GDELT's article search. Free, keyless, and
+// under no licence that restricts commercial display.
 
-var FJ_SRC = 'https://feed.financialjuice.com/widgets/widgets.js';
-var FJ_LOADED = false;
-var FJ_RESIZE_TIMER = null;
+var NEWSWIRE_FN = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getNewswire';
+var NEWS_ITEMS = [];
+var NEWS_SEEN = null;        // ids present on the previous poll
+var NEWS_CATS = [];
 
-function mountFinancialJuice() {
-  var host = document.getElementById('term-fj');
+function timeAgo(ms) {
+  if (!ms) return '';
+  var d = Date.now() - ms;
+  if (d < 60000) return 'now';
+  if (d < 3600000) return Math.floor(d / 60000) + 'm';
+  if (d < 86400000) return Math.floor(d / 3600000) + 'h';
+  return Math.floor(d / 86400000) + 'd';
+}
+
+function newsCatColour(key) {
+  for (var i = 0; i < NEWS_CATS.length; i++) {
+    if (NEWS_CATS[i].key === key) return NEWS_CATS[i].colour;
+  }
+  return '#5c6472';
+}
+
+function loadNewswire() {
+  var host = document.getElementById('term-news-feed');
   if (!host) return;
 
-  if (FJ_LOADED) { createFJWidget(host); return; }
+  fetch(NEWSWIRE_FN)
+    .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(r.status)); })
+    .then(function (data) {
+      NEWS_CATS = (data && data.categories) || [];
+      var items = (data && data.items) || [];
+      if (!items.length) {
+        host.innerHTML = '<p class="term-empty">' +
+          (data && data.error ? 'Newswire unavailable right now.' : 'No headlines yet.') +
+          '</p>';
+        return;
+      }
 
-  var s = document.createElement('script');
-  s.type = 'text/javascript';
-  s.id = 'FJ-Widgets';
-  // Their own snippet appends a random query string. Kept, because their CDN
-  // evidently relies on it to bust its cache — dropping it risks a stale
-  // widgets.js that fails in ways impossible to reproduce.
-  s.src = FJ_SRC + '?r=' + Math.floor(Math.random() * 10000);
-  s.onload = function () {
-    FJ_LOADED = true;
-    createFJWidget(host);
-  };
-  s.onerror = function () {
-    host.innerHTML = '<p class="term-empty">Newswire unavailable right now.</p>';
-  };
-  document.head.appendChild(s);
-}
+      // Flag genuinely new headlines so they can be highlighted. Compared by
+      // id against the previous poll, not by position — a story that merely
+      // moved up the list is not new, and flashing it would train people to
+      // ignore the highlight.
+      //
+      // On the FIRST load nothing is marked new: everything would be, and a
+      // feed that flashes in its entirety is just noise.
+      var firstLoad = (NEWS_SEEN === null);
+      var nowSeen = {};
+      items.forEach(function (it) {
+        nowSeen[it.id] = true;
+        it.isNew = !firstLoad && !NEWS_SEEN[it.id];
+      });
+      NEWS_SEEN = nowSeen;
+      NEWS_ITEMS = items;
 
-function createFJWidget(host) {
-  if (!window.FJWidgets || !window.FJWidgets.createWidget) {
-    host.innerHTML = '<p class="term-empty">Newswire failed to load.</p>';
-    return;
-  }
-  // The widget takes a fixed pixel width, so it is measured from its container
-  // rather than guessed. Their sample uses 500px, which would overflow this
-  // column and clip on a phone.
-  var w = Math.max(240, Math.floor(host.clientWidth));
-
-  host.innerHTML = '';
-  try {
-    window.FJWidgets.createWidget({
-      container: 'term-fj',
-      mode: 'Dark',
-      width: w + 'px',
-      height: '540px',
-      // Matched to the CONTAINER, not to a guess. .term-block is --bg-1
-      // (#0b0b0d); the previous value used --bg-2 (#131316), the card surface,
-      // which left the widget sitting as a visibly lighter rectangle inside
-      // its own panel.
-      backColor: '0b0b0d',      // --bg-1, the panel this sits in
-      // --ink-1 rather than --ink-2. The muted tone is right for metadata and
-      // too dim for headlines, which are the entire point of a newswire.
-      fontColor: 'c9cdd3',      // --ink-1
-      widgetType: 'NEWS'
+      renderNewswire();
+      var badge = document.getElementById('term-news-badge');
+      if (badge) {
+        badge.textContent = data.stale ? 'stale' : 'live';
+        badge.className = 'term-badge' + (data.stale ? ' is-off' : '');
+      }
+    })
+    .catch(function () {
+      host.innerHTML = '<p class="term-empty">Newswire not connected.</p>';
+      var badge = document.getElementById('term-news-badge');
+      if (badge) { badge.textContent = 'offline'; badge.className = 'term-badge is-off'; }
     });
-  } catch (err) {
-    console.error('Stryker: FinancialJuice widget failed', err);
-    host.innerHTML = '<p class="term-empty">Newswire failed to load.</p>';
-  }
 }
 
-// Rebuild on resize, debounced. A fixed-width widget measured once is wrong the
-// moment the window changes or a phone rotates, and there is no reflow API.
-window.addEventListener('resize', function () {
-  var host = document.getElementById('term-fj');
-  if (!host || !FJ_LOADED) return;
-  clearTimeout(FJ_RESIZE_TIMER);
-  FJ_RESIZE_TIMER = setTimeout(function () {
-    if (Math.abs(host.clientWidth - (host.dataset.w || 0)) < 24) return;
-    host.dataset.w = host.clientWidth;
-    createFJWidget(host);
-  }, 400);
-}, { passive: true });
+function renderNewswire() {
+  var host = document.getElementById('term-news-feed');
+  if (!host) return;
+  host.innerHTML = NEWS_ITEMS.map(function (it) {
+    return '<a class="news-item' + (it.isNew ? ' is-new' : '') + '"' +
+        (it.url ? ' href="' + escAttr(it.url) + '" target="_blank" rel="noopener noreferrer"' : '') + '>' +
+      '<span class="news-bar" style="background:' + newsCatColour(it.cat) + '"></span>' +
+      '<span class="news-body">' +
+        '<span class="news-title">' + esc(it.title) + '</span>' +
+        '<span class="news-meta">' +
+          '<time>' + esc(timeAgo(it.at)) + '</time>' +
+          (it.source ? '<span class="news-src">' + esc(it.source) + '</span>' : '') +
+        '</span>' +
+      '</span>' +
+    '</a>';
+  }).join('');
+}
+
+// Relative timestamps go stale silently — "2m" sitting there an hour later is
+// worse than no timestamp. Re-rendered on a minute tick without refetching.
+function tickNewswireTimes() {
+  document.querySelectorAll('.news-item time').forEach(function (el, i) {
+    if (NEWS_ITEMS[i]) el.textContent = timeAgo(NEWS_ITEMS[i].at);
+  });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
-  var host = document.getElementById('term-fj');
-  if (!host) return;
-  host.dataset.w = host.clientWidth;
-  // No auth wait: the widget is third-party and needs nothing from Firestore,
-  // so gating it behind sign-in would only delay it.
-  mountFinancialJuice();
+  if (!document.getElementById('term-news-feed')) return;
+  loadNewswire();
+  // Two minutes: the function caches for five, so polling faster returns the
+  // same bytes; slower and a headline can sit unseen for too long to be called
+  // a wire.
+  setInterval(loadNewswire, 120000);
+  setInterval(tickNewswireTimes, 60000);
 });

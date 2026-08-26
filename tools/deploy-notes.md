@@ -35,3 +35,19 @@ assets/version-check.js fetches version.json uncached and compares it to the
 page's stryker-build meta, reloading once if the page is behind. If the two
 ever drift apart, either everyone reloads forever or nobody recovers — so
 tools/check.py fails the deploy when they disagree.
+
+## Cloudflare Pages notes (post-migration)
+
+- The deploy flow is unchanged: push to main, Cloudflare Pages builds it
+  (build command: none, output dir: /). The GitHub Pages build-poll step
+  above no longer proves anything once DNS points at Cloudflare — check
+  the deployment in the Cloudflare dashboard instead.
+- CRITICAL: preview deployments must stay OFF for this project. The
+  monitor-data workflow force-pushes the `data` branch every 20 minutes;
+  with previews on, each push consumes one of the 500 free builds/month
+  and the quota dies in under a week.
+- _headers gives assets a year-long cache (safe: every change bumps ?v=)
+  and forces HTML to revalidate, so the stryker-build reload loop should
+  almost never trigger there.
+- Keep the ?v=/version.json bump discipline anyway: it stays correct on
+  any host, and GitHub Pages remains the fallback if DNS ever moves back.

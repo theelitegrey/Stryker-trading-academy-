@@ -1,0 +1,27 @@
+# Cloudflare Pages headers (ignored by GitHub Pages, which serves this as a
+# plain file — harmless there).
+#
+# Caching strategy matches the site's ?v= versioning scheme:
+# - Assets are safe to cache for a year: every change bumps the ?v= query in
+#   the HTML, and a changed query string is a different cache entry.
+# - HTML must revalidate every time, or students sit on stale markup — the
+#   exact problem the stryker-build/version-check system was built to patch
+#   on GitHub Pages, solved properly here.
+
+/assets/*
+  Cache-Control: public, max-age=31536000
+  X-Content-Type-Options: nosniff
+
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/firebase-messaging-sw.js
+  Cache-Control: public, max-age=0, must-revalidate

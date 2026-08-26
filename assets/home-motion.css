@@ -110,3 +110,113 @@
   .m-ready .hero-copy h1 em { color: var(--bull); }
   .m-ready .feature-card { transition: none; }
 }
+
+/* ============================================================================
+   MOTION LAYER 2 — the visible tier
+   ============================================================================ */
+
+/* Live price on the chart card ---------------------------------------------- */
+.m-price-wrap {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-left: auto; padding-right: 12px;
+  font-family: var(--font-mono, monospace);
+}
+#m-price { font-size: 15px; font-weight: 700; transition: color .2s ease; }
+#m-change { font-size: 11.5px; }
+#m-price.up, #m-change.up { color: #03c988; }
+#m-price.down, #m-change.down { color: #e5484d; }
+/* Flash on tick — the cue traders actually read on a live board. */
+@keyframes m-tick-flash { 0% { background: rgba(255,255,255,.16); }
+                          100% { background: transparent; } }
+#m-price.m-tick { animation: m-tick-flash .45s ease-out; border-radius: 3px; }
+
+/* Rotating headline word ----------------------------------------------------- */
+.m-rotate { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
+.m-rotate.m-out { opacity: 0; transform: translateY(-12px); }
+@keyframes m-word-in { from { opacity: 0; transform: translateY(14px); }
+                       to   { opacity: 1; transform: none; } }
+.m-rotate.m-in-word { animation: m-word-in .45s cubic-bezier(.2,.8,.2,1); }
+
+/* Candle rain ---------------------------------------------------------------- */
+.m-canvas {
+  position: absolute; inset: 0; z-index: 0;
+  pointer-events: none;
+  /* Fades out toward the copy so it never competes with the headline —
+     atmosphere behind the message, not on top of it. */
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 92%);
+          mask-image: linear-gradient(to bottom, #000 0%, #000 55%, transparent 92%);
+}
+.hero { position: relative; }
+.hero-copy, .chart-card { position: relative; z-index: 2; }
+
+/* Cursor spotlight ----------------------------------------------------------- */
+.m-spot {
+  position: absolute; top: 0; left: 0;
+  width: 520px; height: 520px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,173,181,.10) 0%, transparent 68%);
+  pointer-events: none; z-index: 1; opacity: 0;
+  transition: opacity .4s ease;
+}
+
+/* Instrument ticker ---------------------------------------------------------- */
+.m-ticker {
+  overflow: hidden; white-space: nowrap;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  background: rgba(11,11,13,.6);
+  padding: 11px 0;
+  /* Faded ends so items enter and leave rather than being clipped mid-word. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+          mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+}
+.m-ticker-track {
+  display: inline-block;
+  animation: m-marquee 44s linear infinite;
+  will-change: transform;
+}
+/* -50% because the content is duplicated: the loop point lands exactly where
+   the second copy begins, so the seam is invisible. */
+@keyframes m-marquee { from { transform: translateX(0); }
+                       to   { transform: translateX(-50%); } }
+.m-ticker:hover .m-ticker-track { animation-play-state: paused; }
+.m-tick-item {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  padding: 0 26px; font-family: var(--font-mono, monospace); font-size: 12.5px;
+}
+.m-tick-item b { color: var(--ink-1); font-weight: 700; }
+.m-tick-item i { color: var(--ink-3); font-style: normal; }
+.m-tick-item u { text-decoration: none; font-size: 11.5px; }
+.m-tick-item u.up { color: #03c988; }
+.m-tick-item u.down { color: #e5484d; }
+
+/* Scroll progress ------------------------------------------------------------ */
+.m-progress {
+  position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 9998;
+  background: linear-gradient(90deg, var(--teal), var(--bull));
+  transform: scaleX(0); transform-origin: 0 50%;
+}
+
+/* Card tilt ------------------------------------------------------------------ */
+.m-tilt {
+  transition: transform .35s cubic-bezier(.2,.8,.2,1),
+              border-color .3s ease, box-shadow .3s ease;
+  transform-style: preserve-3d;
+}
+.m-tilt:hover { border-color: var(--teal-dim);
+                box-shadow: 0 24px 50px -26px rgba(0,0,0,.95); }
+
+@media (max-width: 900px) {
+  /* The canvas and spotlight cost frames on a phone and read as noise on a
+     small screen. The ticker stays — it works better narrow than wide. */
+  .m-canvas, .m-spot { display: none; }
+  .m-price-wrap { padding-right: 4px; }
+  #m-price { font-size: 13px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-canvas, .m-spot, .m-progress { display: none !important; }
+  .m-ticker-track { animation: none !important; }
+  #m-price.m-tick { animation: none !important; }
+  .m-rotate { transition: none !important; }
+  .m-tilt { transition: none !important; transform: none !important; }
+}

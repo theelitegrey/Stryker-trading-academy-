@@ -208,6 +208,25 @@ function renderFeed(){
   });
 }
 
+// Strips the trailing "View on X" link from mirrored posts.
+//
+// The bot no longer writes one, but posts published before that change still
+// carry it in their stored textHtml. Rewriting those documents would mean a
+// migration across every mirrored post; stripping at render costs one regex and
+// handles old and new posts identically.
+//
+// Deliberately narrow — it matches only a trailing anchor carrying the bot's
+// own class — so a link a student genuinely typed stays untouched. Verified
+// against both link positions and three student-post shapes; an earlier version
+// silently matched nothing because its <br> group was too strict, which is the
+// failure mode to watch for here: a regex that strips nothing looks identical
+// to no regex at all.
+function stripSourceLink(html){
+  return String(html || '').replace(
+    /(?:<br\s*\/?>\s*)*<a\b[^>]*\bclass="floor-source-link"[^>]*>[\s\S]*?<\/a>\s*$/i,
+    '');
+}
+
 function renderPostCard(post){
   const createdDate = post.createdAt && post.createdAt.toDate ? post.createdAt.toDate() : null;
   const liked = (post.likedBy || []).includes(FLOOR_UID);
@@ -282,7 +301,7 @@ function renderPostCard(post){
           '</div>'
         : '') +
     '</div>' +
-    '<div class="floor-post-body">' + (post.textHtml || '') + '</div>' +
+    '<div class="floor-post-body">' + stripSourceLink(post.textHtml || '') + '</div>' +
     (post.imageDataUrl ? '<img class="floor-post-image" src="' + post.imageDataUrl + '" alt="">' : '') +
     '<div class="floor-actions">' +
       '<button type="button" class="floor-action-btn' + (liked ? ' active' : '') + '" data-action="like" title="Like">' +

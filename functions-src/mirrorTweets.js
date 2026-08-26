@@ -49,7 +49,7 @@ async function alreadyMirrored(db, tweetId) {
 }
 
 /** Tweet text to the floor's stored HTML, safely. */
-function tweetToHtml(text, tweetUrl) {
+function tweetToHtml(text) {
   const escaped = String(text || '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
@@ -65,8 +65,12 @@ function tweetToHtml(text, tweetUrl) {
       (m, pre, handle) => `${pre}<a href="https://x.com/${handle}" target="_blank" rel="noopener noreferrer">@${handle}</a>`)
     .replace(/\n/g, '<br>');
 
-  return linked +
-    `<br><br><a href="${tweetUrl}" target="_blank" rel="noopener noreferrer" class="floor-source-link">View on X →</a>`;
+  // No "View on X" link. A mirrored post should read as content on the
+  // Trading Floor, not as a teaser that sends students off the site — the
+  // whole point of relaying a tweet is that they do not have to go and find
+  // it. sourceUrl is still stored on the document for reference and
+  // de-duplication; it simply is not rendered.
+  return linked;
 }
 
 exports.mirrorTweets = functions
@@ -194,7 +198,7 @@ async function runBot(db, doc, apiKey) {
       botId: doc.id,
       sourceTweetId: String(id),
       sourceUrl: url,
-      textHtml: tweetToHtml(text, url),
+      textHtml: tweetToHtml(text),
       imageDataUrl: null,
       category: cfg.category || 'propfirm',
       flair: null,

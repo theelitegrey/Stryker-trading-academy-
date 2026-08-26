@@ -1878,3 +1878,51 @@ a.todo-title:hover{ color:var(--teal); }
 .notif-item.notif-task:hover{ background:rgba(0,173,181,0.1); }
 .notif-item-icon.urgent{ color:var(--bear); }
 #notif-task-block{ border-bottom:1px solid var(--line); }
+
+/* Header account menu ------------------------------------------------------ */
+.account-menu-wrap{ position:relative; flex-shrink:0; }
+.account-trigger{
+  display:flex; align-items:center; justify-content:center;
+  padding:0; background:none; cursor:pointer;
+  border:1px solid var(--line); border-radius:50%;
+  width:38px; height:38px; overflow:hidden;
+  transition:border-color .15s ease;
+}
+.account-trigger:hover{ border-color:var(--teal-dim); }
+.account-trigger:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.account-trigger img,
+.account-trigger .floor-avatar{ width:100%; height:100%; border-radius:50%; }
+
+.account-panel{
+  display:none; position:absolute; top:calc(100% + 10px); right:0; z-index:210;
+  min-width:210px;
+  background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 16px 40px -10px rgba(0,0,0,0.6);
+  overflow:hidden;
+  padding:6px;
+}
+.account-menu-wrap.open .account-panel{ display:block; }
+.account-panel-head{
+  display:flex; flex-direction:column; gap:2px;
+  padding:10px 10px 12px; margin-bottom:4px;
+  border-bottom:1px solid var(--line-soft);
+}
+.account-panel-name{ font-size:13.5px; font-weight:700; color:var(--ink-0); }
+.account-panel-mail{
+  font-family:var(--font-mono); font-size:11px; color:var(--ink-3);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:190px;
+}
+.account-item{
+  width:100%; display:flex; align-items:center; gap:10px;
+  padding:9px 10px; border-radius:8px;
+  background:none; border:none; cursor:pointer; text-align:left;
+  font-size:13.5px; font-weight:500; color:var(--ink-1);
+  transition:background .12s ease, color .12s ease;
+}
+.account-item:hover{ background:var(--bg-3); color:var(--ink-0); }
+.account-item svg{ flex-shrink:0; color:var(--ink-3); }
+.account-item:hover svg{ color:var(--teal); }
+.account-item-danger{ color:var(--bear); }
+.account-item-danger svg{ color:var(--bear); }
+.account-item-danger:hover{ background:rgba(229,72,77,0.1); color:var(--bear); }
+.account-item-danger:hover svg{ color:var(--bear); }

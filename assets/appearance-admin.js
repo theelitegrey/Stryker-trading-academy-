@@ -132,6 +132,14 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('reset-branding-btn').addEventListener('click', () => {
     if (!confirm('Reset to the bundled default logo and favicon?')) return;
     if (typeof logActivity === 'function') logActivity('settings.appearance', 'Reset logo and favicon to defaults');
+    // Clear this device's cached branding immediately. Other devices drop
+    // theirs on their next load, when branding.js finds the Firestore docs
+    // gone — but without this the admin who just reset it would keep seeing
+    // the old logo and reasonably conclude the reset had failed.
+    try {
+      localStorage.removeItem('stryker_brand_logo');
+      localStorage.removeItem('stryker_brand_favicon');
+    } catch (e) {}
     Promise.all([
       db.collection('settings').doc('logo').delete(),
       db.collection('settings').doc('favicon').delete()

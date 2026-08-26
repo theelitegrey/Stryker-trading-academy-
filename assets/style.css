@@ -2433,10 +2433,13 @@ a.todo-title:hover{ color:var(--teal); }
 .floor-staff-badge{
   display:inline-flex; align-items:center; justify-content:center;
   width:15px; height:15px; margin-left:6px;
-  color:var(--gold, #f5c542); opacity:.85; flex-shrink:0;
+  opacity:.9; flex-shrink:0;
   vertical-align:middle;
   transition:opacity .15s ease;
 }
+/* No `color` rule: the badge paints itself from its own teal-to-green
+   gradient rather than inheriting currentColor, so setting one here would do
+   nothing and mislead the next person to read this. */
 .floor-staff-badge svg{ width:100%; height:100%; display:block; }
 .floor-staff-badge:hover{ opacity:1; }
 

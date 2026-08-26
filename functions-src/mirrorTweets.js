@@ -15,13 +15,23 @@
  *     includeReplies: false,
  *     includeRetweets: false }
  *
- * The API key stays in functions config (twitterapi.key), never in Firestore —
+ * The API key comes from Secret Manager, never from Firestore —
  * Firestore settings docs are world-readable by design so the site can render
  * branding, which would publish the key to anyone who opened the console.
  */
 
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { defineSecret } = require('firebase-functions/params');
+
+// The same secret getTwitterFeed uses. Never hardcode the value — defineSecret
+// pulls it from Secret Manager at runtime.
+//
+// This replaced the legacy runtime-config API, which was wrong twice over: it
+// is deprecated and stops working in March 2027, and having two functions read
+// the same credential from different stores means a rotation silently fixes one
+// and leaves the other calling the API with a dead key.
+const TWITTERAPI_KEY = defineSecret('TWITTERAPI_KEY');
 
 const TEAM_UID = 'stryker-team';
 const TEAM_NAME = 'Stryker Team';
@@ -60,7 +70,7 @@ function tweetToHtml(text, tweetUrl) {
 }
 
 exports.mirrorTweets = functions
-  .runWith({ timeoutSeconds: 300, memory: '256MB' })
+  .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [TWITTERAPI_KEY] })
   .pubsub.schedule('every 30 minutes')
   .timeZone('UTC')
   .onRun(async () => {
@@ -79,14 +89,14 @@ exports.mirrorTweets = functions
       return null;
     }
 
-    const apiKey = (functions.config().twitterapi || {}).key;
+    const apiKey = TWITTERAPI_KEY.value();
     if (!apiKey) {
-      console.error('mirrorTweets: twitterapi.key not set in functions config');
+      console.error('mirrorTweets: TWITTERAPI_KEY secret is empty');
       // Recorded on every bot, so the admin panel explains the silence rather
       // than showing bots that look healthy but never publish.
       await Promise.all(snap.docs.map((d) => d.ref.set({
         lastStatus: 'error',
-        lastError: 'Twitter API key is not configured on the server.',
+        lastError: 'TWITTERAPI_KEY secret is not set on the server.',
         lastRunAt: admin.firestore.FieldValue.serverTimestamp()
       }, { merge: true })));
       return null;

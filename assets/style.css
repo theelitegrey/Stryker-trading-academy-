@@ -2727,3 +2727,57 @@ a.todo-title:hover{ color:var(--teal); }
 @media (prefers-reduced-motion:reduce){
   .news-item.is-new{ animation:none; border-left:2px solid var(--bull); }
 }
+
+/* Terminal — Intel panels ---------------------------------------------------- */
+.intel-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:14px;
+}
+.intel-panel{
+  border:1px solid var(--line); border-radius:12px; background:var(--bg-1);
+  padding:16px; display:flex; flex-direction:column; gap:12px;
+}
+.intel-panel h3{
+  font-size:11.5px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); margin:0;
+}
+.intel-panel.is-empty{ opacity:.7; }
+.intel-keys{
+  font-family:var(--font-mono, monospace); font-size:10.5px;
+  color:var(--ink-3); word-break:break-all; margin:0;
+}
+
+.intel-gauge{ align-items:center; }
+.intel-gauge svg{ width:100%; max-width:180px; height:auto; }
+.intel-gauge-num{
+  font-family:var(--font-mono, monospace); font-size:30px; font-weight:700;
+  fill:var(--ink-0);
+}
+.intel-gauge-label{
+  font-size:12px; color:var(--ink-2); text-transform:capitalize;
+  text-align:center;
+}
+
+.intel-rows{ display:flex; flex-direction:column; }
+.intel-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+  padding:8px 0; border-bottom:1px solid var(--line);
+}
+.intel-row:last-child{ border-bottom:none; }
+.intel-row-name{
+  font-size:12.5px; color:var(--ink-2); min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.intel-row-val{
+  font-family:var(--font-mono, monospace); font-size:12.5px;
+  color:var(--ink-0); flex-shrink:0;
+}
+
+.intel-notice{
+  grid-column:1 / -1;
+  border:1px solid rgba(245,197,66,0.28); border-radius:12px;
+  background:rgba(245,197,66,0.05); padding:20px 22px;
+}
+.intel-notice h3{ font-size:14.5px; color:var(--ink-0); margin:0 0 6px; text-transform:none; letter-spacing:0; }
+.intel-notice p{ font-size:13px; color:var(--ink-2); margin:0 0 10px; line-height:1.6; }
+.intel-notice a{ font-size:13px; color:var(--gold, #f5c542); }

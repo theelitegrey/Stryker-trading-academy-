@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="184">
+<meta name="stryker-build" content="185">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Terminal — Stryker Trading Academy</title>
 <meta name="description" content="Your Stryker Trading Academy student dashboard.">
-<link rel="stylesheet" href="assets/style.css?v=184">
-<script src="assets/toast.js?v=184" defer></script>
-<script src="assets/version-check.js?v=184" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=185">
+<script src="assets/toast.js?v=185" defer></script>
+<script src="assets/version-check.js?v=185" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -152,6 +152,7 @@
 
     <div class="term-tabs" id="term-tabs">
       <button type="button" class="term-tab" data-tab="map">World</button>
+      <button type="button" class="term-tab" data-tab="intel">Intel</button>
       <button type="button" class="term-tab" data-tab="markets">Markets</button>
       <button type="button" class="term-tab" data-tab="chart">Chart</button>
       <button type="button" class="term-tab" data-tab="news">News</button>
@@ -202,6 +203,10 @@
       </div>
     </section>
 
+    <section class="term-panel" data-tab="intel">
+      <div class="intel-grid" id="intel-grid"><p class="term-empty">Loading intel…</p></div>
+    </section>
+
     <section class="term-panel" data-tab="markets"><div id="tv-quotes" class="tv-host"></div></section>
     <section class="term-panel" data-tab="chart"><div id="tv-chart" class="tv-host"></div></section>
     <section class="term-panel" data-tab="news"><div id="tv-news" class="tv-host"></div></section>
@@ -217,35 +222,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=184"></script>
-<script src="assets/gate-timeout.js?v=184"></script>
-<script src="assets/progress.js?v=184"></script>
-<script src="assets/presence.js?v=184"></script>
-<script src="assets/messages.js?v=184"></script>
-<script src="assets/messages-badge.js?v=184"></script>
-<script src="assets/activity-log.js?v=184"></script>
-<script src="assets/banned-check.js?v=184"></script>
-<script src="assets/email-verify.js?v=184"></script>
-<script src="assets/notifications.js?v=184"></script>
+<script src="assets/auth.js?v=185"></script>
+<script src="assets/gate-timeout.js?v=185"></script>
+<script src="assets/progress.js?v=185"></script>
+<script src="assets/presence.js?v=185"></script>
+<script src="assets/messages.js?v=185"></script>
+<script src="assets/messages-badge.js?v=185"></script>
+<script src="assets/activity-log.js?v=185"></script>
+<script src="assets/banned-check.js?v=185"></script>
+<script src="assets/email-verify.js?v=185"></script>
+<script src="assets/notifications.js?v=185"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=184"></script>
-<script src="assets/push-prompt.js?v=184"></script>
-<script src="assets/admin-link.js?v=184"></script>
-<script src="assets/profiles-sync.js?v=184"></script>
+<script src="assets/push.js?v=185"></script>
+<script src="assets/push-prompt.js?v=185"></script>
+<script src="assets/admin-link.js?v=185"></script>
+<script src="assets/profiles-sync.js?v=185"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=184"></script>
-<script src="assets/avatars.js?v=184"></script>
-<script src="assets/account-menu.js?v=184"></script>
-<script src="assets/referrals.js?v=184"></script>
-<script src="assets/roles.js?v=184"></script>
-<script src="assets/plan-modal.js?v=184"></script>
-<script src="assets/plan-guard.js?v=184"></script>
-<script src="assets/maintenance-check.js?v=184"></script>
-<script src="assets/branding.js?v=184"></script>
-<script src="assets/chapters-data.js?v=184"></script>
-<script src="assets/chapters-store.js?v=184"></script>
-<script src="assets/dash-nav.js?v=184"></script>
-<script src="assets/world-map-path.js?v=184"></script>
-<script src="assets/terminal.js?v=184"></script>
+<script src="assets/loading-animation.js?v=185"></script>
+<script src="assets/avatars.js?v=185"></script>
+<script src="assets/account-menu.js?v=185"></script>
+<script src="assets/referrals.js?v=185"></script>
+<script src="assets/roles.js?v=185"></script>
+<script src="assets/plan-modal.js?v=185"></script>
+<script src="assets/plan-guard.js?v=185"></script>
+<script src="assets/maintenance-check.js?v=185"></script>
+<script src="assets/branding.js?v=185"></script>
+<script src="assets/chapters-data.js?v=185"></script>
+<script src="assets/chapters-store.js?v=185"></script>
+<script src="assets/dash-nav.js?v=185"></script>
+<script src="assets/world-map-path.js?v=185"></script>
+<script src="assets/terminal.js?v=185"></script>
 </body>
 </html>

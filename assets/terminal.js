@@ -790,8 +790,14 @@ function createFJWidget(host) {
       mode: 'Dark',
       width: w + 'px',
       height: '540px',
-      backColor: '131316',      // --bg-1
-      fontColor: '8b93a0',      // --ink-3
+      // Matched to the CONTAINER, not to a guess. .term-block is --bg-1
+      // (#0b0b0d); the previous value used --bg-2 (#131316), the card surface,
+      // which left the widget sitting as a visibly lighter rectangle inside
+      // its own panel.
+      backColor: '0b0b0d',      // --bg-1, the panel this sits in
+      // --ink-1 rather than --ink-2. The muted tone is right for metadata and
+      // too dim for headlines, which are the entire point of a newswire.
+      fontColor: 'c9cdd3',      // --ink-1
       widgetType: 'NEWS'
     });
   } catch (err) {

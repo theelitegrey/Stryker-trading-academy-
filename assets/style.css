@@ -2688,8 +2688,14 @@ a.todo-title:hover{ color:var(--teal); }
 .term-shown{ font-size:12px; color:var(--ink-2); margin:0 0 10px; font-family:var(--font-mono, monospace); }
 .term-fj-block{ padding-bottom:8px; }
 /* The widget renders its own fixed-size box; the host only reserves space so
-   the panel does not jump when it arrives. */
+   the panel does not jump when it arrives.
+   
+   The block's own padding is removed on this one, so the widget meets the
+   panel edge rather than floating in a lighter frame — the two backgrounds now
+   match, and a gap between them would defeat that. */
 .term-fj{ min-height:120px; overflow:hidden; border-radius:8px; }
+.term-fj-block{ padding-left:0; padding-right:0; }
+.term-fj-block h3{ padding:0 16px; }
 .term-fj iframe, .term-fj > div{ max-width:100%; }
 .term-fj-help{ margin-top:6px; }
 .term-fj-help a{ color:var(--teal); }

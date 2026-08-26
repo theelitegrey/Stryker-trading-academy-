@@ -87,9 +87,14 @@
       window.__strykerCurrentPlan = plan;
 
       if (!pageKey) {
-        // Legacy behavior: any plan at all unlocks the page.
-        if (!plan) showPlanPaywall(null);
-        else revealPageContent();
+        // Ungated page: nothing to check. This used to paywall anyone with no
+        // plan, which made sense when a blank plan meant "hasn't bought
+        // anything". Since accounts default to the entry plan, a blank one now
+        // means the student doc hasn't been healed yet — usually because this
+        // read raced ensureStudentDoc's write — and paywalling an ungated page
+        // over a field that is simply late is a lockout, not a gate.
+        if (!plan) console.warn('Stryker: no plan resolved for this student; revealing ungated page anyway');
+        revealPageContent();
         return;
       }
 

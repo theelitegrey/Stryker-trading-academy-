@@ -122,13 +122,34 @@ function chapterLimitOf(planNameOrId){
 // chapterNum: the chapter's `num` field — a zero-padded string like "05" in
 // this curriculum, so it's parsed as an integer before comparing.
 function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
-  // No plan at all means nothing purchased yet — blocks every chapter.
-  // (This used to fail open here, on the mistaken assumption something
-  // else already blocked a no-plan student; nothing did, so anyone could
-  // read the full curriculum for free without ever choosing a plan.)
-  if (!studentPlanNameOrId) return false;
   const n = parseInt(chapterNum, 10);
   if (isNaN(n)) return true; // can't parse the chapter number, fail open
+
+  // A missing plan used to block every chapter, on the reasoning that no plan
+  // meant nothing purchased. That stopped being true when accounts started
+  // defaulting to the entry plan: a blank `plan` now means the student doc
+  // hasn't been healed yet, not that someone is reading for free. Blocking
+  // them locked legitimate students — including paying ones whose plan simply
+  // hadn't loaded — out of chapter 1 with an upgrade prompt.
+  //
+  // Fall back to the entry tier's own limit instead. Someone genuinely
+  // planless gets exactly what a new signup gets, and nobody is shut out by a
+  // field that has not caught up.
+  if (!studentPlanNameOrId) {
+    const entry = (typeof defaultPlanName === 'function') ? defaultPlanName() : null;
+    if (!entry) return true;                       // plans unreadable — fail open
+    return n <= chapterLimitOf(entry);
+  }
+
+  // An unrecognised plan name is a data problem, not a permission one — a
+  // renamed plan, or a cache that failed to load. chapterLimitOf would return
+  // Infinity anyway; being explicit stops a future edit turning a lookup miss
+  // into a lockout.
+  if (!findPlan(studentPlanNameOrId)) {
+    console.warn('Stryker: plan "' + studentPlanNameOrId + '" not found in the plans collection — allowing access');
+    return true;
+  }
+
   return n <= chapterLimitOf(studentPlanNameOrId);
 }
 

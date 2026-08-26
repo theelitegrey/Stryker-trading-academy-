@@ -100,20 +100,21 @@ function setPaywallMessage(reason, requiredRoleName){
 // Checks the current chapter's minRole against the signed-in student's
 // plan. Admins and unrestricted chapters always pass. Returns a promise
 // resolving true/false so callers can decide whether to keep rendering.
-function checkChapterRoleAccess(ch, uid){
+// `student` is the doc ensureStudentDoc already resolved. Passing it in rather
+// than re-reading matters: ensureStudentDoc heals a missing plan onto the
+// document, and a second independent read could still be in flight when that
+// write lands — seeing a blank plan and locking the reader out of a chapter
+// the student is fully entitled to. Reusing the resolved object removes the
+// race and saves a read.
+function checkChapterRoleAccess(ch, uid, student){
   if (!uid || typeof db === 'undefined' || !db) return Promise.resolve(true); // guest banner handles the no-auth case separately
 
-  // All three reads are independent — run them in parallel rather than
-  // chained, since chaining triples the wait on a slow connection for no
-  // benefit (nothing here depends on another read's result until they've
-  // all come back).
   const adminCheck = db.collection('admins').doc(uid).get();
-  const studentCheck = db.collection('students').doc(uid).get();
   const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
 
-  return Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
+  return Promise.all([adminCheck, rolesCheck]).then(([adminDoc]) => {
     if (adminDoc.exists) return true;
-    const plan = studentDoc.exists ? studentDoc.data().plan : null;
+    const plan = student ? student.plan : null;
     window.__strykerCurrentPlan = plan;  // see plan-modal.js
     // Two independent checks, both must pass:
     // 1) this specific chapter's own minRole, if the admin set one directly on it
@@ -123,6 +124,18 @@ function checkChapterRoleAccess(ch, uid){
     const passesChapterLimit = (typeof hasChapterNumberAccess === 'function')
       ? hasChapterNumberAccess(plan, ch.num)
       : true;
+
+    if (!passesMinRole || !passesChapterLimit) {
+      // Says exactly which of the two checks refused and on what values.
+      // Without this, "why is this locked" means reading three files and
+      // guessing, which is how the last one took so long to find.
+      console.warn('Stryker: chapter ' + ch.num + ' blocked —',
+        'plan:', plan,
+        '| chapter minRole:', ch.minRole || '(none)',
+        '| passes minRole:', passesMinRole,
+        '| plan chapter limit:', (typeof chapterLimitOf === 'function' ? chapterLimitOf(plan) : '?'),
+        '| passes limit:', passesChapterLimit);
+    }
     return passesMinRole && passesChapterLimit;
   }).catch((err) => {
     console.error('Stryker: chapter role check failed', err);
@@ -349,7 +362,7 @@ document.addEventListener('DOMContentLoaded', () => {
           CURRENT_BEST_STREAK = (student && student.bestStreak) || 0;
           CURRENT_NOTIFIED_ACHIEVEMENTS = (student && student.notifiedAchievements) || [];
           renderReader();
-          applyChapterRoleGate(user.uid);
+          applyChapterRoleGate(user.uid, student);
         }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
       } else {
         CURRENT_UID = null;
@@ -361,10 +374,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-function applyChapterRoleGate(uid){
+function applyChapterRoleGate(uid, student){
   const ch = CHAPTERS[CURRENT_INDEX];
   if (!ch) { revealReaderContent(); return; }
-  checkChapterRoleAccess(ch, uid).then((allowed) => {
+  checkChapterRoleAccess(ch, uid, student).then((allowed) => {
     if (!allowed) {
       // The specific chapter's own minRole (if set) is the most precise
       // thing to name in the message; otherwise this was blocked by the

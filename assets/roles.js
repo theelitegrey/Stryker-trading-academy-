@@ -239,6 +239,7 @@ const GATEABLE_PAGES = [
   { key: 'trade-journal', label: 'Trade journal' },
   { key: 'live-sessions', label: 'Live sessions' },
   { key: 'market-news', label: 'Market news' },
+  { key: 'global-monitor', label: 'Global Monitor (war & geopolitics terminal)' },
   { key: 'achievements', label: 'Achievements' },
   { key: 'referrals', label: 'Invite & Earn (referrals)' }
 ];

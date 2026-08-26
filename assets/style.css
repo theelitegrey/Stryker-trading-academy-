@@ -2811,3 +2811,129 @@ a.todo-title:hover{ color:var(--teal); }
 .intel-row-name, .intel-row-val{ position:relative; z-index:1; }
 .intel-row-name{ padding-left:6px; }
 .intel-row-val{ padding-right:6px; }
+
+/* ==========================================================================
+   GLOBAL MONITOR (global-monitor.html)
+   Conflict-focused terminal. Reuses the Terminal's term-* building blocks;
+   everything gm-* below is specific to this page.
+   ========================================================================== */
+
+/* Layout: map beside tension/newswire on desktop, stacked on mobile — same
+   shape and breakpoint as the Terminal's map tab. */
+.gm-map-panel{
+  display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px;
+  align-content:start; padding:0; margin:0 0 14px;
+}
+@media (max-width:1000px){
+  .gm-map-panel{ grid-template-columns:1fr; }
+}
+.gm-two{
+  display:grid; grid-template-columns:1fr 1fr; gap:14px;
+  padding:0; margin:0;
+}
+@media (max-width:1000px){
+  .gm-two{ grid-template-columns:1fr; }
+}
+.gm-side-note{ font-size:11.5px; color:var(--ink-3); margin:-4px 0 12px; line-height:1.5; }
+.gm-shown-note{
+  font-size:11px; color:var(--ink-3); margin:10px 0 0;
+  font-family:var(--font-mono, monospace);
+}
+
+/* Headline ticker ----------------------------------------------------------- */
+.gm-ticker{
+  display:flex; align-items:center; gap:0;
+  border:1px solid var(--line); border-radius:10px; background:var(--bg-1);
+  margin-bottom:14px; overflow:hidden;
+}
+.gm-ticker-label{
+  flex-shrink:0; padding:8px 12px;
+  font-family:var(--font-mono, monospace); font-size:10.5px; font-weight:700;
+  letter-spacing:.14em; color:var(--bear);
+  border-right:1px solid var(--line); background:var(--bg-2);
+}
+.gm-ticker-clip{ overflow:hidden; flex:1; min-width:0; }
+.gm-ticker-track{
+  display:inline-flex; align-items:center; white-space:nowrap;
+  animation:gmTick 60s linear infinite; will-change:transform;
+}
+/* Track content is rendered twice, so -50% lands exactly on the seam. */
+@keyframes gmTick{
+  from{ transform:translateX(0); }
+  to  { transform:translateX(-50%); }
+}
+.gm-ticker:hover .gm-ticker-track{ animation-play-state:paused; }
+.gm-ticker-item{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:8px 22px 8px 0; margin-left:22px;
+  font-size:12px; color:var(--ink-2); text-decoration:none;
+}
+.gm-ticker-item:hover{ color:var(--ink-0); }
+.gm-ticker-item i{ width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+@media (prefers-reduced-motion:reduce){
+  .gm-ticker-track{ animation:none; }
+  .gm-ticker-clip{ overflow-x:auto; }
+}
+
+/* Tension index ------------------------------------------------------------- */
+.gm-tension-row{
+  display:flex; gap:10px; align-items:center;
+  padding:7px 0; cursor:pointer; border-bottom:1px solid var(--line-soft);
+}
+.gm-tension-row:last-child{ border-bottom:none; }
+.gm-tension-rank{
+  flex-shrink:0; width:18px; text-align:right;
+  font-family:var(--font-mono, monospace); font-size:11px; color:var(--ink-3);
+}
+.gm-tension-main{ flex:1; min-width:0; }
+.gm-tension-top{ display:flex; align-items:center; gap:6px; margin-bottom:4px; }
+.gm-tension-name{
+  font-size:12.5px; color:var(--ink-1); font-weight:600;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.gm-tension-row:hover .gm-tension-name{ color:var(--ink-0); }
+.gm-tension-val{
+  margin-left:auto; flex-shrink:0;
+  font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3);
+}
+.gm-tension-bar{
+  height:4px; border-radius:3px; background:var(--bg-3); overflow:hidden;
+}
+.gm-tension-bar i{
+  display:block; height:100%; border-radius:3px;
+  background:linear-gradient(90deg, #f5a524, var(--bear));
+}
+.gm-trend{ font-size:9px; flex-shrink:0; }
+.gm-trend.is-up{ color:var(--bear); }    /* rising tension reads as risk, not gain */
+.gm-trend.is-down{ color:var(--bull); }
+
+/* Severity feed ------------------------------------------------------------- */
+.gm-sev-feed{ max-height:440px; }
+.gm-sev-feed .news-item{ padding-left:0; padding-right:6px; }
+.gm-sev-tag{
+  font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  font-size:9.5px;
+}
+
+/* Prediction markets -------------------------------------------------------- */
+.gm-pred-row{
+  display:block; padding:10px 0; text-decoration:none;
+  border-bottom:1px solid var(--line-soft);
+}
+.gm-pred-row:last-child{ border-bottom:none; }
+.gm-pred-top{ display:flex; gap:10px; align-items:baseline; margin-bottom:6px; }
+.gm-pred-q{ font-size:12.5px; color:var(--ink-1); line-height:1.4; }
+a.gm-pred-row:hover .gm-pred-q{ color:var(--ink-0); }
+.gm-pred-pct{
+  margin-left:auto; flex-shrink:0;
+  font-family:var(--font-mono, monospace); font-size:13px; font-weight:700;
+}
+.gm-pred-bar{
+  height:4px; border-radius:3px; background:var(--bg-3); overflow:hidden;
+  margin-bottom:5px;
+}
+.gm-pred-bar i{ display:block; height:100%; border-radius:3px; }
+.gm-pred-meta{
+  display:flex; justify-content:space-between; gap:8px;
+  font-family:var(--font-mono, monospace); font-size:10.5px; color:var(--ink-3);
+}

@@ -1826,3 +1826,27 @@ a.todo-title:hover{ color:var(--teal); }
   .toast{ transition:opacity .15s linear; transform:none; }
   .toast.in{ transform:none; }
 }
+
+/* Students admin: collapsible rows ----------------------------------------- */
+.student-row{ display:block; padding:0; }
+.student-row-head{
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:14px 16px;
+  background:none; border:none; cursor:pointer; text-align:left;
+  color:inherit; font:inherit;
+}
+.student-row-head:hover{ background:var(--bg-2); }
+.student-row-head:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; border-radius:10px; }
+.student-row-head .cell-user{ min-width:0; flex:1; }
+.student-row-chev{ color:var(--ink-3); flex-shrink:0; transition:transform .2s ease; }
+.student-row.open .student-row-chev{ transform:rotate(180deg); }
+/* 0fr -> 1fr animates a container whose height isn't known ahead of time,
+   which max-height can only fake with a guessed value that clips or lags. */
+.student-row-body{
+  display:grid; grid-template-rows:0fr;
+  transition:grid-template-rows .22s ease;
+}
+.student-row.open .student-row-body{ grid-template-rows:1fr; }
+.student-row-inner{ overflow:hidden; min-height:0; }
+.student-row-inner > *{ padding-left:16px; padding-right:16px; }
+.student-row-inner > *:last-child{ padding-bottom:16px; }

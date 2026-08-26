@@ -45,9 +45,18 @@ function renderStudentsTable(students){
     const isModeratorUser = CURRENT_MODERATOR_UIDS.has(s.uid);
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small' }) : '';
     const card = document.createElement('div');
-    card.className = 'record-card';
+    // Collapsed by default. Every student's full detail was previously
+    // expanded at once, so a list of twenty filled several screens and the
+    // name you were looking for was buried between plan pickers and buttons.
+    // No extra cost to collapse: all of this data already arrived in the one
+    // students query, so opening a row reads nothing new.
+    card.className = 'record-card student-row';
     card.innerHTML =
-      '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+      '<button type="button" class="student-row-head" aria-expanded="false">' +
+        '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + name + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + '</span><span class="cell-sub">' + (s.email || '—') + '</span></div></div>' +
+        '<svg class="student-row-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+      '</button>' +
+      '<div class="student-row-body"><div class="student-row-inner">' +
       '<div class="record-stats">' +
         '<div class="record-stat"><span class="rs-label">Plan</span>' +
           '<select class="student-plan-select" data-uid="' + s.uid + '" style="font-family:var(--font-mono); font-size:12.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);">' +
@@ -63,7 +72,14 @@ function renderStudentsTable(students){
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-toggle-moderator="' + s.uid + '">' + (isModeratorUser ? 'Revoke moderator' : 'Grant moderator') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-delete-student="' + s.uid + '" style="color:var(--bear); border-color:rgba(229,72,77,0.35);">Delete user</button>' +
-      '</div>';
+      '</div>' +
+      '</div></div>';
+
+    const head = card.querySelector('.student-row-head');
+    head.addEventListener('click', () => {
+      const open = card.classList.toggle('open');
+      head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
 
     card.querySelector('.student-plan-select').addEventListener('change', (e) => {
       const select = e.currentTarget;

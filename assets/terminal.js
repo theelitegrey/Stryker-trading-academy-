@@ -119,12 +119,15 @@ function renderMap() {
       graticule() +
       '<path d="' + WORLD_MAP_PATH + '" fill="#152329" stroke="#223a42" stroke-width="0.7"/>' +
       nightBand(nightCentreLon) +
-      sessionLayer(h) +
       econLayer() +
+      '<g id="term-map-sessions">' + sessionLayer(h) + '</g>' +
       '<g id="term-map-events"></g>' +
     '</svg>';
 
   host.innerHTML = svg;
+  applyView();          // restore zoom/pan across the minute refresh
+  bindMapInteraction();
+  drawEvents();         // pins live in their own group and survive a redraw
   renderSessionList(h);
 }
 
@@ -215,58 +218,378 @@ function renderSessionList(h) {
 }
 
 // ---- Live events from GDELT ------------------------------------------------
+//
 // Requires the getWorldEvents Cloud Function. Absent it, the map shows sessions
-// and scheduled centres only — a partial map beats an error panel, and the two
-// layers that need no network are the ones most used day to day.
-function loadWorldEvents() {
-  var host = document.getElementById('term-events-list');
-  var fn = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getWorldEvents';
+// and scheduled centres only — a partial map beats an error panel, and the
+// layers needing no network are the ones used most.
 
-  fetch(fn)
+var EVENTS = [];
+var EVENT_CATS = [];
+var ACTIVE_CATS = null;      // null means "all"; a Set once the user filters
+var EVENTS_FN = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getWorldEvents';
+
+function loadWorldEvents() {
+  fetch(EVENTS_FN)
     .then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(r.status)); })
     .then(function (data) {
-      var events = (data && data.events) || [];
-      if (!events.length) { markEventsUnavailable('No events in the last few hours.'); return; }
-      plotEvents(events);
-      if (host) {
-        host.innerHTML = events.slice(0, 12).map(function (e) {
-          return '<a class="term-event" href="' + escAttr(e.url) + '" target="_blank" rel="noopener noreferrer">' +
-            '<span class="term-event-loc">' + esc(e.country || '—') + '</span>' +
-            '<span class="term-event-title">' + esc(e.title) + '</span>' +
-          '</a>';
-        }).join('');
+      EVENTS = (data && data.events) || [];
+      EVENT_CATS = (data && data.categories) || [];
+      if (!EVENTS.length) {
+        markEventsUnavailable(data && data.error
+          ? 'Feed unavailable right now.'
+          : 'No events in the last few hours.');
+        return;
       }
+      var badge = document.getElementById('term-events-badge');
+      if (badge) {
+        badge.textContent = data.stale ? 'stale' : (data.cached ? 'cached' : 'live');
+        badge.className = 'term-badge' + (data.stale ? ' is-off' : '');
+      }
+      renderCatFilter();
+      drawEvents();
+      renderEventTable();
     })
     .catch(function () {
       markEventsUnavailable('Live event feed not connected.');
     });
 }
 
-function plotEvents(events) {
-  var g = document.getElementById('term-map-events');
-  if (!g) return;
-  g.innerHTML = events.slice(0, 60).map(function (e) {
-    if (typeof e.lat !== 'number' || typeof e.lon !== 'number') return '';
-    var x = lonToX(e.lon), y = latToY(e.lat);
-    return '<g class="term-event-pin">' +
-      '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3" fill="#ff6b4a"/>' +
-      '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="3" fill="none" ' +
-        'stroke="#ff6b4a" stroke-width="1.2" opacity="0.7">' +
-        '<animate attributeName="r" from="3" to="16" dur="2.6s" repeatCount="indefinite"/>' +
-        '<animate attributeName="opacity" from="0.7" to="0" dur="2.6s" repeatCount="indefinite"/>' +
-      '</circle>' +
-      '<title>' + esc(e.title || '') + '</title>' +
-    '</g>';
+function visibleEvents() {
+  if (!ACTIVE_CATS || !ACTIVE_CATS.size) return EVENTS;
+  return EVENTS.filter(function (e) { return ACTIVE_CATS.has(e.cat); });
+}
+
+function catColour(key) {
+  for (var i = 0; i < EVENT_CATS.length; i++) {
+    if (EVENT_CATS[i].key === key) return EVENT_CATS[i].colour;
+  }
+  return '#7c8894';
+}
+
+function catLabel(key) {
+  for (var i = 0; i < EVENT_CATS.length; i++) {
+    if (EVENT_CATS[i].key === key) return EVENT_CATS[i].label;
+  }
+  return 'Other';
+}
+
+function renderCatFilter() {
+  var host = document.getElementById('term-cats');
+  if (!host) return;
+  var counts = {};
+  EVENTS.forEach(function (e) { counts[e.cat] = (counts[e.cat] || 0) + 1; });
+
+  var all = EVENT_CATS.concat([{ key: 'other', label: 'Other', colour: '#7c8894' }]);
+  host.innerHTML = all.map(function (c) {
+    var n = counts[c.key] || 0;
+    // Categories with nothing in them are shown greyed rather than hidden.
+    // A filter list that changes length every refresh is disorienting, and
+    // "Conflict: 0" is itself information.
+    var on = !ACTIVE_CATS || ACTIVE_CATS.has(c.key);
+    return '<button type="button" class="term-cat' + (on ? ' is-on' : '') +
+      (n ? '' : ' is-empty') + '" data-cat="' + c.key + '">' +
+      '<i style="background:' + c.colour + '"></i>' +
+      c.label + '<b>' + n + '</b></button>';
   }).join('');
 }
 
-function markEventsUnavailable(msg) {
-  var host = document.getElementById('term-events-list');
-  if (host) {
-    host.innerHTML = '<p class="term-empty">' + esc(msg) + '</p>';
+// ---- Zoom / pan -------------------------------------------------------------
+//
+// Implemented by moving the SVG viewBox rather than applying a CSS transform.
+// A transform scales stroke widths and text with the map, so at 8x zoom the
+// country outlines become thick smears and the labels are unreadable. Moving
+// the viewBox changes only what is framed; everything drawn keeps its intended
+// size, which is what a map should do.
+
+var VIEW = { x: 0, y: 0, w: MAP_W, h: MAP_H };
+var MIN_ZOOM = 1, MAX_ZOOM = 14;
+
+function zoomLevel() { return MAP_W / VIEW.w; }
+
+function clampView() {
+  VIEW.w = Math.min(MAP_W / MIN_ZOOM, Math.max(MAP_W / MAX_ZOOM, VIEW.w));
+  VIEW.h = VIEW.w * (MAP_H / MAP_W);
+  VIEW.x = Math.max(0, Math.min(MAP_W - VIEW.w, VIEW.x));
+  VIEW.y = Math.max(0, Math.min(MAP_H - VIEW.h, VIEW.y));
+}
+
+function applyView() {
+  var svg = document.querySelector('.term-map-svg');
+  if (!svg) return;
+  clampView();
+  svg.setAttribute('viewBox',
+    VIEW.x.toFixed(2) + ' ' + VIEW.y.toFixed(2) + ' ' +
+    VIEW.w.toFixed(2) + ' ' + VIEW.h.toFixed(2));
+  // Markers are re-scaled inversely so a dot stays the same size on screen at
+  // every zoom. Without this, zooming in turns each pin into a blob covering
+  // half a continent.
+  scaleMarkers();
+  var lbl = document.getElementById('term-zoom-level');
+  if (lbl) lbl.textContent = zoomLevel().toFixed(1) + '×';
+}
+
+function scaleMarkers() {
+  var k = 1 / zoomLevel();
+  document.querySelectorAll('.term-pin').forEach(function (g) {
+    var cx = parseFloat(g.dataset.cx), cy = parseFloat(g.dataset.cy);
+    g.setAttribute('transform',
+      'translate(' + cx + ' ' + cy + ') scale(' + k.toFixed(4) + ') translate(' +
+      (-cx) + ' ' + (-cy) + ')');
+  });
+  var sess = document.getElementById('term-map-sessions');
+  if (sess) sess.setAttribute('style', 'font-size:' + (12 * k).toFixed(2) + 'px');
+}
+
+function zoomBy(factor, focusX, focusY) {
+  var fx = (focusX === undefined) ? VIEW.x + VIEW.w / 2 : focusX;
+  var fy = (focusY === undefined) ? VIEW.y + VIEW.h / 2 : focusY;
+  var newW = VIEW.w / factor;
+  // Keep the focus point stationary on screen — zooming toward the cursor
+  // rather than the centre is the difference between a map that feels
+  // controllable and one that feels like it is fighting you.
+  VIEW.x = fx - (fx - VIEW.x) * (newW / VIEW.w);
+  VIEW.y = fy - (fy - VIEW.y) * (newW / VIEW.w);
+  VIEW.w = newW;
+  applyView();
+}
+
+function resetView() {
+  VIEW = { x: 0, y: 0, w: MAP_W, h: MAP_H };
+  applyView();
+}
+
+function svgPointFromEvent(evt) {
+  var svg = document.querySelector('.term-map-svg');
+  if (!svg) return null;
+  var r = svg.getBoundingClientRect();
+  var px = (evt.clientX - r.left) / r.width;
+  var py = (evt.clientY - r.top) / r.height;
+  return { x: VIEW.x + px * VIEW.w, y: VIEW.y + py * VIEW.h };
+}
+
+function bindMapInteraction() {
+  var svg = document.querySelector('.term-map-svg');
+  if (!svg || svg.dataset.bound === '1') return;
+  svg.dataset.bound = '1';
+
+  svg.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    var p = svgPointFromEvent(e);
+    if (p) zoomBy(e.deltaY < 0 ? 1.25 : 1 / 1.25, p.x, p.y);
+  }, { passive: false });
+
+  var dragging = false, lastX = 0, lastY = 0, moved = 0;
+  svg.addEventListener('pointerdown', function (e) {
+    dragging = true; moved = 0;
+    lastX = e.clientX; lastY = e.clientY;
+    svg.setPointerCapture(e.pointerId);
+    svg.style.cursor = 'grabbing';
+  });
+  svg.addEventListener('pointermove', function (e) {
+    if (!dragging) return;
+    var r = svg.getBoundingClientRect();
+    var dx = (e.clientX - lastX) / r.width * VIEW.w;
+    var dy = (e.clientY - lastY) / r.height * VIEW.h;
+    moved += Math.abs(dx) + Math.abs(dy);
+    VIEW.x -= dx; VIEW.y -= dy;
+    lastX = e.clientX; lastY = e.clientY;
+    applyView();
+  });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    svg.style.cursor = 'grab';
+    try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
   }
+  svg.addEventListener('pointerup', endDrag);
+  svg.addEventListener('pointercancel', endDrag);
+  svg.style.cursor = 'grab';
+
+  // Pinch. Two pointers tracked manually rather than relying on gesture events,
+  // which Safari implements and nothing else does.
+  var pointers = {};
+  var pinchStart = null;
+  svg.addEventListener('pointerdown', function (e) { pointers[e.pointerId] = e; });
+  svg.addEventListener('pointermove', function (e) {
+    if (!(e.pointerId in pointers)) return;
+    pointers[e.pointerId] = e;
+    var ids = Object.keys(pointers);
+    if (ids.length !== 2) return;
+    dragging = false;      // a two-finger gesture is not a drag
+    var a = pointers[ids[0]], b = pointers[ids[1]];
+    var dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    if (pinchStart === null) { pinchStart = dist; return; }
+    if (Math.abs(dist - pinchStart) < 6) return;
+    var mid = { clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 };
+    var p = svgPointFromEvent(mid);
+    if (p) zoomBy(dist / pinchStart, p.x, p.y);
+    pinchStart = dist;
+  });
+  function dropPointer(e) { delete pointers[e.pointerId]; pinchStart = null; }
+  svg.addEventListener('pointerup', dropPointer);
+  svg.addEventListener('pointercancel', dropPointer);
+}
+
+// ---- Event pins -------------------------------------------------------------
+function drawEvents() {
+  var g = document.getElementById('term-map-events');
+  if (!g) return;
+
+  var list = visibleEvents();
+
+  // Thin by zoom. At world view, 400 overlapping pins is a smear that hides
+  // exactly the clustering the map exists to show; zoomed in there is room for
+  // all of them. The list is already sorted densest-first, so thinning keeps
+  // the most-reported stories.
+  var z = zoomLevel();
+  var cap = z < 1.5 ? 120 : (z < 4 ? 250 : list.length);
+  list = list.slice(0, cap);
+
+  g.innerHTML = list.map(function (e, i) {
+    var x = lonToX(e.lon), y = latToY(e.lat);
+    var colour = catColour(e.cat);
+    // Radius carries report volume, lightly. sqrt rather than linear, or a
+    // story reported 40 times draws a circle forty times the area of one
+    // reported once and swamps the map.
+    var r = 2.2 + Math.min(4.5, Math.sqrt(e.count) * 0.9);
+    return '<g class="term-pin" data-i="' + i + '" data-cx="' + x.toFixed(1) +
+             '" data-cy="' + y.toFixed(1) + '">' +
+      '<circle class="term-pin-hit" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+        '" r="' + (r + 6).toFixed(1) + '" fill="transparent"/>' +
+      '<circle class="term-pin-halo" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+        '" r="' + r.toFixed(1) + '" fill="none" stroke="' + colour + '" stroke-width="1"/>' +
+      '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) +
+        '" fill="' + colour + '" fill-opacity="0.75"/>' +
+    '</g>';
+  }).join('');
+
+  // Stored so hover can look the event up by index without re-filtering.
+  g.__events = list;
+  scaleMarkers();
+  bindPinHover(g);
+
+  var shown = document.getElementById('term-shown-count');
+  if (shown) {
+    shown.textContent = list.length + (list.length < visibleEvents().length
+      ? ' of ' + visibleEvents().length + ' — zoom in for more' : ' events');
+  }
+}
+
+function bindPinHover(g) {
+  if (g.dataset.hoverBound === '1') return;
+  g.dataset.hoverBound = '1';
+
+  g.addEventListener('pointerover', function (e) {
+    var pin = e.target.closest('.term-pin');
+    if (!pin) return;
+    var ev = (g.__events || [])[parseInt(pin.dataset.i, 10)];
+    if (ev) showTooltip(ev, e.clientX, e.clientY);
+    pin.classList.add('is-hot');
+  });
+  g.addEventListener('pointermove', function (e) {
+    if (document.getElementById('term-tip').style.display === 'flex') {
+      positionTooltip(e.clientX, e.clientY);
+    }
+  });
+  g.addEventListener('pointerout', function (e) {
+    var pin = e.target.closest('.term-pin');
+    if (pin) pin.classList.remove('is-hot');
+    hideTooltip();
+  });
+  // Tap opens the source. On touch there is no hover, so the tooltip shows on
+  // pointerover (which fires once on tap) and the link needs a deliberate
+  // second action rather than firing on the same tap.
+  g.addEventListener('click', function (e) {
+    var pin = e.target.closest('.term-pin');
+    if (!pin) return;
+    var ev = (g.__events || [])[parseInt(pin.dataset.i, 10)];
+    if (ev && ev.url) window.open(ev.url, '_blank', 'noopener');
+  });
+}
+
+function showTooltip(ev, cx, cy) {
+  var tip = document.getElementById('term-tip');
+  if (!tip) return;
+  tip.innerHTML =
+    '<span class="term-tip-cat" style="color:' + catColour(ev.cat) + '">' +
+      esc(catLabel(ev.cat)) + '</span>' +
+    '<span class="term-tip-title">' + esc(ev.title) + '</span>' +
+    '<span class="term-tip-meta">' + esc(ev.place || '—') +
+      (ev.count > 1 ? ' · ' + ev.count + ' reports' : '') + '</span>';
+  // 'flex', not 'block'. The stylesheet lays the tooltip out as a flex column
+  // with a gap; an inline display:block overrode that and ran the category
+  // label straight into the headline with no space between them.
+  tip.style.display = 'flex';
+  positionTooltip(cx, cy);
+}
+
+function positionTooltip(cx, cy) {
+  var tip = document.getElementById('term-tip');
+  if (!tip) return;
+  var w = tip.offsetWidth, h = tip.offsetHeight;
+  // Flip rather than clip at the viewport edge, or half the tooltip is unread
+  // for every event on the right-hand side of the map — which is most of Asia.
+  var x = cx + 16, y = cy + 16;
+  if (x + w > window.innerWidth - 12) x = cx - w - 16;
+  if (y + h > window.innerHeight - 12) y = cy - h - 16;
+  tip.style.left = Math.max(8, x) + 'px';
+  tip.style.top = Math.max(8, y) + 'px';
+}
+
+function hideTooltip() {
+  var tip = document.getElementById('term-tip');
+  if (tip) tip.style.display = 'none';
+}
+
+// ---- Event table ------------------------------------------------------------
+function renderEventTable() {
+  var host = document.getElementById('term-table-body');
+  if (!host) return;
+  var list = visibleEvents();
+  if (!list.length) {
+    host.innerHTML = '<p class="term-empty">Nothing matches those filters.</p>';
+    return;
+  }
+  host.innerHTML = list.slice(0, 200).map(function (e, i) {
+    return '<div class="term-row" data-lon="' + e.lon + '" data-lat="' + e.lat + '">' +
+      '<span class="term-row-cat" style="background:' + catColour(e.cat) + '"></span>' +
+      '<div class="term-row-main">' +
+        '<span class="term-row-title">' + esc(e.title) + '</span>' +
+        '<span class="term-row-meta">' + esc(e.place || '—') +
+          ' · ' + esc(catLabel(e.cat)) +
+          (e.count > 1 ? ' · ' + e.count + ' reports' : '') + '</span>' +
+      '</div>' +
+      (e.url ? '<a class="term-row-link" href="' + escAttr(e.url) +
+        '" target="_blank" rel="noopener noreferrer" title="Open source">↗</a>' : '') +
+    '</div>';
+  }).join('');
+
+  var count = document.getElementById('term-table-count');
+  if (count) count.textContent = list.length + ' events';
+}
+
+// Clicking a table row flies the map to that event — the table and the map are
+// two views of one dataset, and a table that cannot point at the map is just a
+// list sitting next to a picture.
+function flyTo(lon, lat) {
+  var targetW = MAP_W / 6;
+  VIEW.w = targetW;
+  VIEW.h = targetW * (MAP_H / MAP_W);
+  VIEW.x = lonToX(lon) - VIEW.w / 2;
+  VIEW.y = latToY(lat) - VIEW.h / 2;
+  applyView();
+  drawEvents();
+  var wrap = document.querySelector('.term-map-wrap');
+  if (wrap) wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function markEventsUnavailable(msg) {
+  var host = document.getElementById('term-table-body');
+  if (host) host.innerHTML = '<p class="term-empty">' + esc(msg) + '</p>';
   var badge = document.getElementById('term-events-badge');
   if (badge) { badge.textContent = 'offline'; badge.className = 'term-badge is-off'; }
+  var shown = document.getElementById('term-shown-count');
+  if (shown) shown.textContent = '—';
 }
 
 function esc(s) {
@@ -374,8 +697,110 @@ document.addEventListener('DOMContentLoaded', function () {
   renderMap();
   loadWorldEvents();
 
+  var cats = document.getElementById('term-cats');
+  if (cats) cats.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-cat');
+    if (!btn) return;
+    var key = btn.dataset.cat;
+    // First click on any category switches from "all" to "only this", which is
+    // what people expect from a legend. Subsequent clicks toggle.
+    if (!ACTIVE_CATS) ACTIVE_CATS = new Set([key]);
+    else if (ACTIVE_CATS.has(key)) { ACTIVE_CATS.delete(key); if (!ACTIVE_CATS.size) ACTIVE_CATS = null; }
+    else ACTIVE_CATS.add(key);
+    renderCatFilter(); drawEvents(); renderEventTable();
+  });
+
+  var table = document.getElementById('term-table-body');
+  if (table) table.addEventListener('click', function (e) {
+    if (e.target.closest('.term-row-link')) return;   // let the link do its job
+    var row = e.target.closest('.term-row');
+    if (row) flyTo(parseFloat(row.dataset.lon), parseFloat(row.dataset.lat));
+  });
+
+  var zin = document.getElementById('term-zoom-in');
+  var zout = document.getElementById('term-zoom-out');
+  var zres = document.getElementById('term-zoom-reset');
+  if (zin) zin.addEventListener('click', function () { zoomBy(1.6); drawEvents(); });
+  if (zout) zout.addEventListener('click', function () { zoomBy(1 / 1.6); drawEvents(); });
+  if (zres) zres.addEventListener('click', function () { resetView(); drawEvents(); });
+
   // The session layer is the live part; a minute is the finest granularity the
   // countdown displays, so refreshing faster would burn frames for nothing.
   setInterval(renderMap, 60000);
   setInterval(loadWorldEvents, 15 * 60000);   // GDELT itself updates every 15 min
+});
+
+// ---- FinancialJuice newswire ------------------------------------------------
+//
+// FinancialJuice generates its embed code from a form on their widgets page,
+// and the resulting iframe URL is not documented anywhere I could verify. So it
+// is CONFIGURED rather than hardcoded: paste the embed from
+// financialjuice.com/widgets/get-widget.aspx into Settings admin
+// (settings/terminal -> financialJuiceEmbed) and it appears here.
+//
+// Guessing the URL would have produced a panel that looked right in
+// development and rendered an error page in production, which is worse than a
+// panel that plainly says it needs configuring.
+//
+// Only an <iframe> is accepted. The value comes from Firestore, which admins
+// can write, and injecting arbitrary admin-supplied HTML into every student's
+// page is a stored-XSS hole even when the admin is trustworthy — one
+// compromised admin account would otherwise mean script execution for everyone.
+function mountFinancialJuice() {
+  var host = document.getElementById('term-fj');
+  if (!host || typeof db === 'undefined' || !db) return;
+
+  db.collection('settings').doc('terminal').get().then(function (doc) {
+    var embed = doc.exists ? (doc.data().financialJuiceEmbed || '') : '';
+    if (!embed) { fjPlaceholder(host); return; }
+
+    var m = embed.match(/<iframe[^>]*\ssrc=["']([^"']+)["'][^>]*>/i);
+    if (!m) { fjPlaceholder(host, 'That embed code has no iframe in it.'); return; }
+
+    var src = m[1];
+    if (!/^https:\/\/(www\.)?financialjuice\.com\//i.test(src)) {
+      // Refuse anything not from FinancialJuice. Without this the field is an
+      // open redirect into an iframe on a page students are logged into.
+      fjPlaceholder(host, 'That embed is not a financialjuice.com URL.');
+      return;
+    }
+
+    var frame = document.createElement('iframe');
+    frame.src = src;
+    frame.title = 'FinancialJuice newswire';
+    frame.loading = 'lazy';
+    frame.setAttribute('scrolling', 'no');
+    // The widget is third-party, so it runs sandboxed with only what a news
+    // feed needs. Notably no allow-same-origin, so it cannot reach into the
+    // parent page.
+    frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
+    frame.style.cssText = 'width:100%; height:420px; border:0; display:block;';
+    host.innerHTML = '';
+    host.appendChild(frame);
+  }).catch(function () { fjPlaceholder(host); });
+}
+
+function fjPlaceholder(host, why) {
+  host.innerHTML =
+    '<p class="term-empty">' + esc(why || 'Newswire not configured.') + '</p>' +
+    '<p class="term-empty term-fj-help">Add the embed code from ' +
+      '<a href="https://www.financialjuice.com/widgets/get-widget.aspx" ' +
+      'target="_blank" rel="noopener noreferrer">financialjuice.com</a> ' +
+      'in Settings admin.</p>';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  if (document.getElementById('term-fj')) {
+    // After auth, since the settings read goes through Firestore rules.
+    if (typeof auth !== 'undefined' && auth) {
+      var done = false;
+      auth.onAuthStateChanged(function (u) {
+        if (done || !u) return;
+        done = true;
+        mountFinancialJuice();
+      });
+    } else {
+      mountFinancialJuice();
+    }
+  }
 });

@@ -2591,3 +2591,98 @@ a.todo-title:hover{ color:var(--teal); }
   .tv-host{ min-height:420px; }
   .term-clock{ font-size:12.5px; padding:6px 10px; }
 }
+
+/* Terminal — interactive map ------------------------------------------------ */
+.term-map-col{ display:flex; flex-direction:column; gap:14px; min-width:0; }
+.term-map-wrap{ position:relative; }
+
+/* touch-action:none is required, not cosmetic: without it the browser claims
+   drag gestures for page scrolling and the map cannot be panned on a phone. */
+.term-map-svg{ touch-action:none; user-select:none; }
+
+.term-zoom{
+  position:absolute; top:12px; right:12px;
+  display:flex; align-items:center; gap:4px;
+  background:rgba(8,8,10,0.82); backdrop-filter:blur(6px);
+  border:1px solid var(--line); border-radius:8px; padding:4px;
+}
+.term-zoom button{
+  width:28px; height:28px; border-radius:5px; cursor:pointer;
+  border:none; background:transparent; color:var(--ink-2);
+  font-size:15px; line-height:1;
+  transition:background .15s ease, color .15s ease;
+}
+.term-zoom button:hover{ background:var(--bg-3); color:var(--ink-0); }
+#term-zoom-level{
+  font-family:var(--font-mono, monospace); font-size:11px;
+  color:var(--ink-3); padding:0 7px 0 4px; min-width:38px; text-align:right;
+}
+.term-map-hint{
+  position:absolute; left:12px; bottom:10px;
+  font-size:10.5px; color:var(--ink-3); opacity:.65;
+  pointer-events:none;
+}
+@media (max-width:640px){ .term-map-hint{ display:none; } }
+
+.term-pin{ cursor:pointer; }
+.term-pin-halo{ opacity:0; transition:opacity .15s ease; }
+.term-pin.is-hot .term-pin-halo{ opacity:.9; }
+
+/* Category filter ------------------------------------------------------------ */
+.term-cats{ display:flex; gap:6px; flex-wrap:wrap; }
+.term-cat{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:6px 11px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:var(--bg-2);
+  color:var(--ink-3); font-size:12px; font-weight:600;
+  transition:border-color .15s ease, color .15s ease, opacity .15s ease;
+}
+.term-cat i{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.term-cat b{ font-weight:600; opacity:.6; font-size:11px; }
+.term-cat.is-on{ color:var(--ink-0); border-color:var(--line-strong, #2c2c32); }
+/* Empty categories are dimmed, not hidden: a filter list that changes length
+   on every refresh is disorienting, and "Conflict: 0" is itself information. */
+.term-cat.is-empty{ opacity:.4; }
+
+/* Tooltip -------------------------------------------------------------------- */
+/* Fixed to the viewport, not the SVG. An SVG-internal tooltip is clipped by the
+   viewBox and disappears the moment you zoom. */
+.term-tip{
+  position:fixed; z-index:9999; pointer-events:none;
+  max-width:320px; padding:11px 13px;
+  background:rgba(12,12,15,0.96); backdrop-filter:blur(8px);
+  border:1px solid var(--line-strong, #2c2c32); border-radius:9px;
+  box-shadow:0 12px 34px -14px rgba(0,0,0,.9);
+  display:flex; flex-direction:column; gap:5px;
+}
+.term-tip-cat{
+  font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; font-weight:700;
+}
+.term-tip-title{ font-size:12.5px; color:var(--ink-0); line-height:1.45; }
+.term-tip-meta{ font-size:11px; color:var(--ink-3); font-family:var(--font-mono, monospace); }
+
+/* Event table ---------------------------------------------------------------- */
+.term-table-block #term-table-body{ max-height:420px; overflow-y:auto; }
+.term-table-count{ margin-left:auto; font-size:11px; color:var(--ink-3); text-transform:none; letter-spacing:0; }
+.term-row{
+  display:flex; align-items:flex-start; gap:10px;
+  padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer;
+  transition:background .12s ease;
+}
+.term-row:last-child{ border-bottom:none; }
+.term-row:hover{ background:var(--bg-2); }
+.term-row-cat{ width:3px; align-self:stretch; border-radius:2px; flex-shrink:0; }
+.term-row-main{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }
+.term-row-title{ font-size:12.5px; color:var(--ink-1); line-height:1.45; }
+.term-row-meta{ font-size:10.5px; color:var(--ink-3); font-family:var(--font-mono, monospace); }
+.term-row-link{
+  flex-shrink:0; color:var(--ink-3); text-decoration:none; font-size:14px;
+  padding:2px 5px; border-radius:4px;
+}
+.term-row-link:hover{ color:var(--teal); background:var(--bg-3); }
+
+.term-shown{ font-size:12px; color:var(--ink-2); margin:0 0 10px; font-family:var(--font-mono, monospace); }
+.term-fj-block{ padding-bottom:8px; }
+.term-fj{ min-height:120px; }
+.term-fj-help{ margin-top:6px; }
+.term-fj-help a{ color:var(--teal); }

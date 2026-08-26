@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="179">
+<meta name="stryker-build" content="181">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Terminal — Stryker Trading Academy</title>
 <meta name="description" content="Your Stryker Trading Academy student dashboard.">
-<link rel="stylesheet" href="assets/style.css?v=179">
-<script src="assets/toast.js?v=179" defer></script>
-<script src="assets/version-check.js?v=179" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=181">
+<script src="assets/toast.js?v=181" defer></script>
+<script src="assets/version-check.js?v=181" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -161,22 +161,43 @@
     </div>
 
     <section class="term-panel" data-tab="map">
-      <div class="term-map-wrap">
-        <div id="term-map" class="term-map"></div>
+      <div class="term-map-col">
+        <div class="term-map-wrap">
+          <div id="term-map" class="term-map"></div>
+          <div class="term-zoom">
+            <button type="button" id="term-zoom-in" aria-label="Zoom in">+</button>
+            <button type="button" id="term-zoom-out" aria-label="Zoom out">−</button>
+            <button type="button" id="term-zoom-reset" aria-label="Reset view">⌂</button>
+            <span id="term-zoom-level">1.0×</span>
+          </div>
+          <div class="term-map-hint">Scroll or pinch to zoom · drag to pan · hover a dot for detail</div>
+        </div>
+
+        <div class="term-cats" id="term-cats"></div>
+
+        <div class="term-block term-table-block">
+          <h3>Events <span class="term-badge" id="term-events-badge">…</span>
+            <span class="term-table-count" id="term-table-count"></span></h3>
+          <div id="term-table-body"><p class="term-empty">Loading…</p></div>
+        </div>
       </div>
+
       <div class="term-map-side">
         <div class="term-block">
           <h3>Sessions</h3>
           <div id="term-sessions"></div>
         </div>
         <div class="term-block">
-          <h3>Live events <span class="term-badge" id="term-events-badge">live</span></h3>
-          <div id="term-events-list"><p class="term-empty">Loading…</p></div>
+          <h3>On the map</h3>
+          <p class="term-shown"><span id="term-shown-count">—</span></p>
+          <div class="term-legend">
+            <span><i class="lg-session"></i>Session open</span>
+            <span><i class="lg-econ"></i>Scheduled releases</span>
+          </div>
         </div>
-        <div class="term-legend">
-          <span><i class="lg-session"></i>Session open</span>
-          <span><i class="lg-econ"></i>Scheduled releases</span>
-          <span><i class="lg-event"></i>Breaking news</span>
+        <div class="term-block term-fj-block">
+          <h3>Newswire</h3>
+          <div id="term-fj" class="term-fj"></div>
         </div>
       </div>
     </section>
@@ -188,41 +209,43 @@
     <section class="term-panel" data-tab="screener"><div id="tv-screener" class="tv-host"></div></section>
     <section class="term-panel" data-tab="heatmap"><div id="tv-heatmap" class="tv-host"></div></section>
   </main>
+
+<div id="term-tip" class="term-tip" style="display:none;"></div>
 </div>
 
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=179"></script>
-<script src="assets/gate-timeout.js?v=179"></script>
-<script src="assets/progress.js?v=179"></script>
-<script src="assets/presence.js?v=179"></script>
-<script src="assets/messages.js?v=179"></script>
-<script src="assets/messages-badge.js?v=179"></script>
-<script src="assets/activity-log.js?v=179"></script>
-<script src="assets/banned-check.js?v=179"></script>
-<script src="assets/email-verify.js?v=179"></script>
-<script src="assets/notifications.js?v=179"></script>
+<script src="assets/auth.js?v=181"></script>
+<script src="assets/gate-timeout.js?v=181"></script>
+<script src="assets/progress.js?v=181"></script>
+<script src="assets/presence.js?v=181"></script>
+<script src="assets/messages.js?v=181"></script>
+<script src="assets/messages-badge.js?v=181"></script>
+<script src="assets/activity-log.js?v=181"></script>
+<script src="assets/banned-check.js?v=181"></script>
+<script src="assets/email-verify.js?v=181"></script>
+<script src="assets/notifications.js?v=181"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=179"></script>
-<script src="assets/push-prompt.js?v=179"></script>
-<script src="assets/admin-link.js?v=179"></script>
-<script src="assets/profiles-sync.js?v=179"></script>
+<script src="assets/push.js?v=181"></script>
+<script src="assets/push-prompt.js?v=181"></script>
+<script src="assets/admin-link.js?v=181"></script>
+<script src="assets/profiles-sync.js?v=181"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=179"></script>
-<script src="assets/avatars.js?v=179"></script>
-<script src="assets/account-menu.js?v=179"></script>
-<script src="assets/referrals.js?v=179"></script>
-<script src="assets/roles.js?v=179"></script>
-<script src="assets/plan-modal.js?v=179"></script>
-<script src="assets/plan-guard.js?v=179"></script>
-<script src="assets/maintenance-check.js?v=179"></script>
-<script src="assets/branding.js?v=179"></script>
-<script src="assets/chapters-data.js?v=179"></script>
-<script src="assets/chapters-store.js?v=179"></script>
-<script src="assets/dash-nav.js?v=179"></script>
-<script src="assets/world-map-path.js?v=179"></script>
-<script src="assets/terminal.js?v=179"></script>
+<script src="assets/loading-animation.js?v=181"></script>
+<script src="assets/avatars.js?v=181"></script>
+<script src="assets/account-menu.js?v=181"></script>
+<script src="assets/referrals.js?v=181"></script>
+<script src="assets/roles.js?v=181"></script>
+<script src="assets/plan-modal.js?v=181"></script>
+<script src="assets/plan-guard.js?v=181"></script>
+<script src="assets/maintenance-check.js?v=181"></script>
+<script src="assets/branding.js?v=181"></script>
+<script src="assets/chapters-data.js?v=181"></script>
+<script src="assets/chapters-store.js?v=181"></script>
+<script src="assets/dash-nav.js?v=181"></script>
+<script src="assets/world-map-path.js?v=181"></script>
+<script src="assets/terminal.js?v=181"></script>
 </body>
 </html>

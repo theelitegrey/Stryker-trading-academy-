@@ -122,6 +122,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   auth.onAuthStateChanged(function (user) {
     if (!user || Notification.permission !== 'granted') return;
+
+    // Re-register silently on sign-in. The token is deleted at sign-out, so
+    // without this someone would have to visit Settings and opt in again after
+    // every login. Permission is already granted at this point, so nothing is
+    // prompted — enablePush() only asks when permission is still 'default'.
+    pushEnabledOnThisDevice().then(function (on) {
+      if (!on) enablePush();
+    });
+
     try {
       firebase.messaging().onMessage(function (payload) {
         var d = payload.data || {};

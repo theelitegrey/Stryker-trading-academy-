@@ -327,7 +327,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
       const bye = (typeof logActivity === 'function') ? logActivity('auth.logout', 'Logged out') : Promise.resolve();
-      bye.then(() => auth.signOut()).then(() => { window.location.href = 'index.html'; });
+      // Unregister this device's push token BEFORE signing out, while the
+      // rules still allow deleting a document that belongs to this uid.
+      // Without it the token survives logout and the next person on a shared
+      // phone keeps receiving the previous user's notifications.
+      const unpush = (typeof disablePush === 'function') ? disablePush().catch(() => {}) : Promise.resolve();
+      Promise.all([bye, unpush])
+        .then(() => auth.signOut())
+        .then(() => { window.location.href = 'index.html'; });
     });
   });
 

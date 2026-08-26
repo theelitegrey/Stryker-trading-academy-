@@ -132,8 +132,12 @@ def check_assets_changed_without_bump():
         changed = subprocess.run(
             ['git', 'diff', '--name-only', last_bump + '..HEAD', '--', 'assets/'],
             capture_output=True, text=True).stdout.split()
+        # Only files that still exist: a DELETED asset shows up in the diff
+        # but cannot be served stale, so warning about it is noise that trains
+        # people to ignore the warning.
         stale = [f for f in changed if f.endswith(('.js', '.css'))
-                 and not f.endswith('version.json')]
+                 and not f.endswith('version.json')
+                 and os.path.exists(f)]
         if stale:
             print('WARNING — changed since the last version bump, so browsers '
                   'will serve the cached copy:')

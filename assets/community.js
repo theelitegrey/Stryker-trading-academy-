@@ -252,11 +252,15 @@ function renderPostCard(post){
     ? avatarImgHtml(post.authorUid, post.authorName, AUTHOR_DATA_CACHE[post.authorUid], 36, true)
     : ('<div class="floor-avatar">' + initials(post.authorName) + '</div>');
   const isOwnPost = post.authorUid === FLOOR_UID;
+  // A team post shows OFFICIAL instead of a plan tag — see style.css.
+  const isTeamPost = (typeof isStrykerTeam === 'function') && isStrykerTeam(post.authorUid);
   const canModerate = !isOwnPost && FLOOR_IS_MODERATOR;
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
-      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') + roleTag + shieldBadge + '</div>' +
+      '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') +
+        (isTeamPost ? '<span class="floor-team-tag">OFFICIAL</span>' : roleTag) +
+        shieldBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +
       (isOwnPost
         ? '<div class="floor-post-menu-wrap">' +
@@ -844,10 +848,35 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // Posting identity. Defaults to the signed-in person; an admin may switch
+    // it to the team account. authorUid is what every downstream feature keys
+    // off — avatars, profile links, reply notifications — so setting it here is
+    // enough to make the post genuinely belong to that identity rather than
+    // being a cosmetic relabel.
+    var asTeam = (POST_AS === 'team') && FLOOR_IS_ADMIN;
+
+    // Ensure the team profile exists before the first team post references it.
+    // Doing this lazily rather than as a separate seeding step means there is
+    // no setup task to forget, and no window where posts point at a profile
+    // that renders as a blank avatar and "Trader".
+    var ensureTeam = asTeam
+      ? db.collection('profiles').doc(STRYKER_TEAM_UID)
+          .set(strykerTeamProfile(), { merge: true })
+          .catch(function (err) {
+            console.error('Stryker: could not upsert the team profile', err);
+          })
+      : Promise.resolve();
+
+    ensureTeam.then(function () {
     db.collection('communityPosts').add({
-      authorUid: FLOOR_UID,
-      authorName: FLOOR_NAME,
-      authorPlan: FLOOR_PLAN,
+      authorUid: asTeam ? STRYKER_TEAM_UID : FLOOR_UID,
+      authorName: asTeam ? STRYKER_TEAM_NAME : FLOOR_NAME,
+      authorPlan: asTeam ? null : FLOOR_PLAN,
+      isTeamPost: asTeam || null,
+      // Recorded even for team posts: the account is shared, so without this
+      // there is no way to tell which admin published something.
+      postedByUid: asTeam ? FLOOR_UID : null,
+      postedByName: asTeam ? FLOOR_NAME : null,
       textHtml: linkifyTags(rawHtml),
       imageDataUrl: PENDING_IMAGE_DATA_URL || null,
       category: CURRENT_CATEGORY,
@@ -855,21 +884,30 @@ document.addEventListener('DOMContentLoaded', () => {
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-      if (typeof logActivity === 'function') logActivity('post.created',
-        'Posted on the Trading Floor', { detail: CURRENT_CATEGORY === 'propfirm' ? 'Prop firm feed' : 'Posts' });
+      if (typeof logActivity === 'function') logActivity(
+        asTeam ? 'post.created.team' : 'post.created',
+        asTeam ? 'Posted on the Trading Floor as Stryker Team' : 'Posted on the Trading Floor',
+        { detail: CURRENT_CATEGORY === 'propfirm' ? 'Prop firm feed' : 'Posts' });
       // Self-incrementing counter — this is the poster updating their own
       // doc, no cross-user permission needed. Powers the post-count
       // achievement badges without requiring a query every time they're checked.
-      db.collection('students').doc(FLOOR_UID).set({
-        floorPostCount: firebase.firestore.FieldValue.increment(1)
-      }, { merge: true }).then(() => {
-        if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
-      }).catch((err) => console.error('Stryker: failed to update post count', err));
+      // Team posts do not count toward personal post-count achievements —
+      // an admin should not earn a "100 posts" badge by publishing
+      // announcements from the brand account.
+      if (!asTeam) {
+        db.collection('students').doc(FLOOR_UID).set({
+          floorPostCount: firebase.firestore.FieldValue.increment(1)
+        }, { merge: true }).then(() => {
+          if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
+        }).catch((err) => console.error('Stryker: failed to update post count', err));
+      }
       resetComposerAfterSave();
+      resetPostAs();
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not post.';
       errEl.style.display = 'block';
     }).finally(() => { btn.disabled = false; });
+    });   // end ensureTeam
   });
 });
 
@@ -906,3 +944,63 @@ function renderFloorLeaderboardWidget(myUid){
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">Could not load leaderboard.</p>';
   });
 }
+
+// ---- Post-as selector (admins only) ---------------------------------------
+// Depends on: assets/team-identity.js
+//
+// The control is present in the markup but hidden, and only revealed once the
+// admins/{uid} read resolves. Rendering it optimistically and hiding it later
+// would flash an option most people cannot use.
+//
+// Client-side visibility is presentation only. The rule that actually stops a
+// student posting as the team lives in Firestore, where it cannot be bypassed
+// by editing the page.
+
+var POST_AS = 'self';
+var FLOOR_IS_ADMIN = false;
+
+function initPostAsSelector() {
+  var host = document.getElementById('floor-postas');
+  if (!host || typeof auth === 'undefined' || !auth) return;
+
+  auth.onAuthStateChanged(function (user) {
+    if (!user) return;
+    db.collection('admins').doc(user.uid).get().then(function (doc) {
+      if (!doc.exists) return;
+      FLOOR_IS_ADMIN = true;
+      host.style.display = '';
+
+      var nameEl = document.getElementById('floor-postas-selfname');
+      if (nameEl) nameEl.textContent = FLOOR_NAME || 'You';
+      var av = document.getElementById('floor-postas-selfavatar');
+      if (av && typeof avatarImgHtml === 'function') {
+        av.outerHTML = avatarImgHtml(user.uid, FLOOR_NAME,
+          AUTHOR_DATA_CACHE[user.uid], 22, false)
+          .replace('class="', 'class="floor-postas-avatar ');
+      }
+
+      host.querySelectorAll('.floor-postas-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          host.querySelectorAll('.floor-postas-btn')
+              .forEach(function (b) { b.classList.remove('is-active'); });
+          btn.classList.add('is-active');
+          POST_AS = btn.getAttribute('data-as');
+        });
+      });
+    }).catch(function () { /* not an admin, or rules refused — stay hidden */ });
+  });
+}
+
+// Reset to self whenever the composer closes. A sticky team selection is how
+// an admin ends up publishing a personal reply under the brand account without
+// noticing.
+function resetPostAs() {
+  POST_AS = 'self';
+  var host = document.getElementById('floor-postas');
+  if (!host) return;
+  host.querySelectorAll('.floor-postas-btn').forEach(function (b, i) {
+    b.classList.toggle('is-active', i === 0);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initPostAsSelector);

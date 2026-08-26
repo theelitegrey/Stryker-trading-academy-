@@ -2251,3 +2251,54 @@ a.todo-title:hover{ color:var(--teal); }
   .msg-avatar-wrap.online::after{ animation:none; }
   .msg-typing-dots i{ animation:none; opacity:.85; }
 }
+
+/* Post-as selector + team account ------------------------------------------ */
+.floor-postas{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  padding:11px 13px; margin-bottom:12px;
+  border:1px solid var(--line); border-radius:10px; background:var(--bg-2);
+}
+.floor-postas-label{ font-size:12px; color:var(--ink-3); flex-shrink:0; }
+.floor-postas-opts{ display:flex; gap:7px; flex-wrap:wrap; }
+.floor-postas-btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:6px 11px; border-radius:999px; cursor:pointer;
+  border:1px solid var(--line); background:var(--bg-3);
+  color:var(--ink-2); font-size:12.5px; font-weight:600;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+.floor-postas-btn:hover{ color:var(--ink-0); }
+.floor-postas-btn.is-active{
+  border-color:var(--teal-dim); background:rgba(0,173,181,0.10); color:var(--ink-0);
+}
+.floor-postas-avatar{
+  width:22px; height:22px; border-radius:50%; object-fit:cover;
+  flex-shrink:0; background:var(--bg-1);
+}
+.floor-postas-tag{
+  font-style:normal; font-size:9.5px; letter-spacing:.08em;
+  padding:2px 6px; border-radius:4px;
+  background:rgba(0,173,181,0.16); color:var(--teal);
+}
+
+/* The OFFICIAL marker on a rendered team post. Deliberately not a plan badge:
+   reusing one would put the brand account in the same visual class as
+   students, which is the distinction this identity exists to draw. */
+.floor-team-tag{
+  display:inline-flex; align-items:center; gap:4px;
+  font-size:9.5px; font-weight:700; letter-spacing:.08em;
+  padding:2px 7px; border-radius:4px; margin-left:7px;
+  background:linear-gradient(135deg, rgba(0,173,181,0.22), rgba(3,201,136,0.18));
+  color:var(--teal); border:1px solid rgba(0,173,181,0.32);
+}
+.floor-post.is-team{ border-color:rgba(0,173,181,0.26); }
+.floor-post.is-team .floor-avatar,
+.floor-post.is-team img.floor-avatar{
+  /* Contain, not cover: the emblem is a logo with its own margins, and cover
+     would crop the dragon's tail out of a circular frame. */
+  object-fit:contain; padding:3px; background:var(--bg-2);
+}
+
+@media (max-width:560px){
+  .floor-postas{ flex-direction:column; align-items:flex-start; gap:8px; }
+}

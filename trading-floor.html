@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="168">
+<meta name="stryker-build" content="169">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Floor — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=168">
-<script src="assets/toast.js?v=168" defer></script>
-<script src="assets/version-check.js?v=168" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=169">
+<script src="assets/toast.js?v=169" defer></script>
+<script src="assets/version-check.js?v=169" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -269,6 +269,23 @@
         </div>
         <div class="auth-error" id="floor-error"></div>
 
+        <!-- Admin-only. Injected as hidden and revealed by community.js once
+             the admin check resolves, so a non-admin never sees it flash. -->
+        <div class="floor-postas" id="floor-postas" style="display:none;">
+          <span class="floor-postas-label">Post as</span>
+          <div class="floor-postas-opts">
+            <button type="button" class="floor-postas-btn is-active" data-as="self" id="floor-postas-self">
+              <span class="floor-postas-avatar" id="floor-postas-selfavatar"></span>
+              <span id="floor-postas-selfname">You</span>
+            </button>
+            <button type="button" class="floor-postas-btn" data-as="team">
+              <img class="floor-postas-avatar" src="assets/images/logo-emblem-sm.png" alt="">
+              <span>Stryker Team</span>
+              <em class="floor-postas-tag">OFFICIAL</em>
+            </button>
+          </div>
+        </div>
+
         <div class="floor-flair-picker" id="floor-flair-picker">
           <span style="font-size:12px; color:var(--ink-3); margin-right:2px;">Flair (optional):</span>
           <button type="button" class="floor-flair-btn" data-flair="setup">Setup</button>
@@ -308,34 +325,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=168"></script>
-<script src="assets/gate-timeout.js?v=168"></script>
-<script src="assets/progress.js?v=168"></script>
-<script src="assets/presence.js?v=168"></script>
-<script src="assets/messages.js?v=168"></script>
-<script src="assets/messages-badge.js?v=168"></script>
-<script src="assets/activity-log.js?v=168"></script>
-<script src="assets/banned-check.js?v=168"></script>
-<script src="assets/email-verify.js?v=168"></script>
-<script src="assets/achievements-data.js?v=168"></script>
-<script src="assets/notifications.js?v=168"></script>
+<script src="assets/auth.js?v=169"></script>
+<script src="assets/gate-timeout.js?v=169"></script>
+<script src="assets/progress.js?v=169"></script>
+<script src="assets/presence.js?v=169"></script>
+<script src="assets/messages.js?v=169"></script>
+<script src="assets/messages-badge.js?v=169"></script>
+<script src="assets/activity-log.js?v=169"></script>
+<script src="assets/banned-check.js?v=169"></script>
+<script src="assets/email-verify.js?v=169"></script>
+<script src="assets/achievements-data.js?v=169"></script>
+<script src="assets/notifications.js?v=169"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=168"></script>
-<script src="assets/admin-link.js?v=168"></script>
-<script src="assets/profiles-sync.js?v=168"></script>
+<script src="assets/push.js?v=169"></script>
+<script src="assets/admin-link.js?v=169"></script>
+<script src="assets/profiles-sync.js?v=169"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=168"></script>
-<script src="assets/avatars.js?v=168"></script>
-<script src="assets/account-menu.js?v=168"></script>
-<script src="assets/referrals.js?v=168"></script>
-<script src="assets/roles.js?v=168"></script>
-<script src="assets/plan-modal.js?v=168"></script>
-<script src="assets/moderator-team.js?v=168"></script>
-<script src="assets/plan-guard.js?v=168"></script>
-<script src="assets/maintenance-check.js?v=168"></script>
-<script src="assets/branding.js?v=168"></script>
-<script src="assets/dash-nav.js?v=168"></script>
-<script src="assets/community.js?v=168"></script>
-<script src="assets/twitter-feed.js?v=168"></script>
+<script src="assets/loading-animation.js?v=169"></script>
+<script src="assets/avatars.js?v=169"></script>
+<script src="assets/account-menu.js?v=169"></script>
+<script src="assets/referrals.js?v=169"></script>
+<script src="assets/roles.js?v=169"></script>
+<script src="assets/plan-modal.js?v=169"></script>
+<script src="assets/moderator-team.js?v=169"></script>
+<script src="assets/plan-guard.js?v=169"></script>
+<script src="assets/maintenance-check.js?v=169"></script>
+<script src="assets/branding.js?v=169"></script>
+<script src="assets/dash-nav.js?v=169"></script>
+<script src="assets/team-identity.js?v=169"></script>
+<script src="assets/community.js?v=169"></script>
+<script src="assets/twitter-feed.js?v=169"></script>
 </body>
 </html>

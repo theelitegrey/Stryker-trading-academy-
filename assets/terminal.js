@@ -842,187 +842,118 @@ document.addEventListener('DOMContentLoaded', function () {
   setInterval(tickNewswireTimes, 60000);
 });
 
-// ---- Intel tab: WorldMonitor ------------------------------------------------
+// ---- Intel tab --------------------------------------------------------------
 //
-// Panels backed by the WorldMonitor REST API through getWorldMonitor, which
-// holds the paid key server-side and allowlists the paths.
+// Backed by getIntel, which aggregates free keyless public sources: crypto fear
+// & greed, Polymarket odds, ECB reference FX, World Bank inflation, USGS
+// seismic. No account, no key, nothing to protect.
 //
-// EVERY RENDERER HERE IS DEFENSIVE ABOUT SHAPE. I could not reach their API
-// from the build environment, so the response schemas are inferred from their
-// docs rather than observed. A renderer that assumes a field name and finds it
-// missing shows an empty panel and gives no clue why; these probe the plausible
-// keys and, failing that, show what they DID receive so the mismatch is
-// diagnosable from the page instead of from a log.
+// Panels render INDEPENDENTLY. The function returns per-source status, so a
+// single dead upstream costs one panel rather than the tab — which is the usual
+// way a dashboard assembled from many free APIs stops working.
 
-var WM_FN = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getWorldMonitor';
-var WM_PANELS = ['fear-greed', 'market-composite', 'predictions', 'shipping', 'sanctions', 'macro'];
-
-// Pulls the first present key from a list of candidates, at any depth of one.
-// Their envelopes vary between {value}, {data:{value}} and bare scalars.
-function pick(obj, keys) {
-  if (obj === null || obj === undefined) return null;
-  if (typeof obj !== 'object') return obj;
-  for (var i = 0; i < keys.length; i++) {
-    if (obj[keys[i]] !== undefined && obj[keys[i]] !== null) return obj[keys[i]];
-  }
-  for (var k in obj) {
-    if (obj[k] && typeof obj[k] === 'object') {
-      var found = pick(obj[k], keys);
-      if (found !== null && found !== undefined) return found;
-    }
-  }
-  return null;
-}
-
-function firstArray(obj) {
-  if (Array.isArray(obj)) return obj;
-  if (!obj || typeof obj !== 'object') return [];
-  for (var k in obj) {
-    if (Array.isArray(obj[k])) return obj[k];
-  }
-  for (var k2 in obj) {
-    if (obj[k2] && typeof obj[k2] === 'object') {
-      var a = firstArray(obj[k2]);
-      if (a.length) return a;
-    }
-  }
-  return [];
-}
+var INTEL_FN = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/getIntel';
 
 function loadIntel() {
   var host = document.getElementById('intel-grid');
   if (!host) return;
 
-  fetch(WM_FN + '?ids=' + WM_PANELS.join(','))
+  fetch(INTEL_FN)
     .then(function (r) { return r.json(); })
-    .then(function (res) {
-      if (res.reason === 'no-key') {
-        host.innerHTML = intelNotice(
-          'Intel feed not configured',
-          'Add a WorldMonitor API key on the server to enable these panels.',
-          'https://www.worldmonitor.app/pro');
-        return;
-      }
-      if (res.reason === 'upstream') {
-        host.innerHTML = intelNotice(
-          'Intel feed rejected the request (HTTP ' + (res.status || '?') + ')',
-          res.status === 401 ? 'The API key was refused.'
-            : res.status === 402 || res.status === 429 ? 'The plan limit was reached.'
-            : 'The upstream service returned an error.');
-        if (!res.data) return;
-      }
-      renderIntel(res.data || {});
-    })
+    .then(function (res) { renderIntel(res.data || {}, res.meta || {}); })
     .catch(function () {
-      host.innerHTML = intelNotice('Intel feed unreachable',
-        'The proxy function may not be deployed yet.');
+      host.innerHTML = '<div class="intel-notice">' +
+        '<h3>Intel feed unreachable</h3>' +
+        '<p>The getIntel function may not be deployed yet.</p></div>';
     });
 }
 
-function intelNotice(title, body, link) {
-  return '<div class="intel-notice">' +
-    '<h3>' + esc(title) + '</h3><p>' + esc(body) + '</p>' +
-    (link ? '<a href="' + escAttr(link) + '" target="_blank" rel="noopener noreferrer">Get a key →</a>' : '') +
-  '</div>';
-}
-
-function renderIntel(d) {
+function renderIntel(d, meta) {
   var host = document.getElementById('intel-grid');
   host.innerHTML = [
-    gaugePanel('Fear & Greed', d['fear-greed'], ['value', 'score', 'index'],
-               ['classification', 'label', 'rating']),
-    gaugePanel('Market composite', d['market-composite'], ['score', 'value', 'composite'],
-               ['signal', 'label', 'state']),
-    listPanel('Prediction markets', d['predictions'],
-              ['question', 'title', 'name'], ['probability', 'price', 'odds']),
-    listPanel('Supply chain stress', d['shipping'],
-              ['name', 'route', 'chokepoint', 'label'], ['value', 'score', 'stress']),
-    listPanel('Recent sanctions', d['sanctions'],
-              ['title', 'name', 'entity', 'target'], ['date', 'country', 'program']),
-    listPanel('Country macro', d['macro'],
-              ['country', 'name', 'code'], ['gdp', 'inflation', 'value'])
+    gaugePanel('Crypto fear &amp; greed', d.fearGreed, meta.fearGreed),
+    listPanel('Prediction markets', d.predictions, meta.predictions,
+              function (r) { return r.question; },
+              function (r) { return Math.round(r.probability * 100) + '%'; },
+              function (r) { return r.probability; }),
+    listPanel('Dollar reference rates', d.fx, meta.fx,
+              function (r) { return r.pair; },
+              function (r) { return Number(r.rate).toFixed(4); }),
+    listPanel('Inflation, latest', d.macro, meta.macro,
+              function (r) { return r.country; },
+              function (r) { return Number(r.value).toFixed(1) + '%  ' + r.year; }),
+    listPanel('Significant quakes, 7d', d.quakes, meta.quakes,
+              function (r) { return r.place; },
+              function (r) { return 'M' + Number(r.mag).toFixed(1); })
   ].join('');
 }
 
-// A 0-100 gauge, drawn as an arc. Used for indices where the NUMBER matters
-// less than where it sits between the extremes — which is the entire point of
-// a sentiment reading.
-function gaugePanel(title, data, valueKeys, labelKeys) {
-  if (!data) return skeletonPanel(title);
-  var v = pick(data, valueKeys);
-  var label = pick(data, labelKeys);
-  var n = Number(v);
-  if (isNaN(n)) return rawPanel(title, data);
+function staleTag(m) {
+  // A stale panel is labelled rather than silently shown. Numbers that stopped
+  // updating look identical to numbers that did not move, and on a terminal
+  // that difference matters more than the value itself.
+  if (!m || !m.stale) return '';
+  return '<span class="intel-stale" title="Upstream unavailable; showing last known values">stale</span>';
+}
 
-  var pct = Math.max(0, Math.min(100, n));
-  // Red at the fearful end through amber to green: the same reading students
-  // see everywhere else, so it needs no legend.
+function gaugePanel(title, data, meta) {
+  if (!data || typeof data.value !== 'number' || isNaN(data.value)) {
+    return emptyPanel(title, meta);
+  }
+  var pct = Math.max(0, Math.min(100, data.value));
+  // Red through amber to green, matching how this index is shown everywhere
+  // else, so it needs no legend.
   var hue = Math.round((pct / 100) * 120);
-  var circumference = 2 * Math.PI * 52;
-  var dash = (pct / 100) * circumference * 0.75;
+  var circ = 2 * Math.PI * 52;
+  var dash = (pct / 100) * circ * 0.75;
 
   return '<div class="intel-panel intel-gauge">' +
-    '<h3>' + esc(title) + '</h3>' +
-    '<svg viewBox="0 0 140 110">' +
+    '<h3>' + title + staleTag(meta) + '</h3>' +
+    '<svg viewBox="0 0 140 108">' +
       '<path d="M18 92 A 52 52 0 1 1 122 92" fill="none" stroke="#1e1e22" ' +
         'stroke-width="11" stroke-linecap="round"/>' +
       '<path d="M18 92 A 52 52 0 1 1 122 92" fill="none" ' +
         'stroke="hsl(' + hue + ',62%,48%)" stroke-width="11" stroke-linecap="round" ' +
-        'stroke-dasharray="' + dash.toFixed(1) + ' ' + circumference.toFixed(1) + '"/>' +
+        'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '"/>' +
       '<text x="70" y="80" text-anchor="middle" class="intel-gauge-num">' +
-        Math.round(n) + '</text>' +
+        Math.round(data.value) + '</text>' +
     '</svg>' +
-    (label ? '<span class="intel-gauge-label">' + esc(String(label)) + '</span>' : '') +
+    (data.label ? '<span class="intel-gauge-label">' + esc(data.label) + '</span>' : '') +
   '</div>';
 }
 
-function listPanel(title, data, nameKeys, valueKeys) {
-  if (!data) return skeletonPanel(title);
-  var rows = firstArray(data);
-  if (!rows.length) return rawPanel(title, data);
-
+// `weight` optionally returns a 0-1 value drawn as a bar behind the row. A bar
+// makes a column of percentages comparable at a glance, which a column of
+// digits is not.
+function listPanel(title, rows, meta, nameFn, valFn, weightFn) {
+  if (!Array.isArray(rows) || !rows.length) return emptyPanel(title, meta);
   return '<div class="intel-panel">' +
-    '<h3>' + esc(title) + '</h3>' +
+    '<h3>' + title + staleTag(meta) + '</h3>' +
     '<div class="intel-rows">' +
-    rows.slice(0, 7).map(function (row) {
-      var name = pick(row, nameKeys);
-      var val = pick(row, valueKeys);
-      if (name === null) return '';
-      var num = Number(val);
-      // Probabilities arrive as either 0-1 or 0-100 depending on the source;
-      // both are shown as a percentage rather than one of them being wrong by
-      // two orders of magnitude.
-      var shown = !isNaN(num)
-        ? (num > 0 && num <= 1 ? (num * 100).toFixed(0) + '%' : String(Math.round(num * 100) / 100))
-        : (val === null ? '' : String(val));
-      return '<div class="intel-row">' +
-        '<span class="intel-row-name">' + esc(String(name)) + '</span>' +
-        '<span class="intel-row-val">' + esc(shown) + '</span>' +
+    rows.map(function (r) {
+      var w = weightFn ? weightFn(r) : null;
+      var bar = (typeof w === 'number' && !isNaN(w))
+        ? '<span class="intel-bar" style="width:' + Math.round(Math.max(0, Math.min(1, w)) * 100) + '%"></span>'
+        : '';
+      return '<div class="intel-row">' + bar +
+        '<span class="intel-row-name">' + esc(String(nameFn(r))) + '</span>' +
+        '<span class="intel-row-val">' + esc(String(valFn(r))) + '</span>' +
       '</div>';
     }).join('') +
     '</div>' +
   '</div>';
 }
 
-function skeletonPanel(title) {
-  return '<div class="intel-panel is-empty"><h3>' + esc(title) + '</h3>' +
-    '<p class="term-empty">No data returned.</p></div>';
-}
-
-// Shows the keys that DID come back. When a response shape differs from what
-// was expected, this turns a silent blank panel into a diagnosable one — the
-// field names are visible on the page rather than buried in a function log.
-function rawPanel(title, data) {
-  var keys = [];
-  try { keys = Object.keys(data).slice(0, 8); } catch (e) {}
-  return '<div class="intel-panel is-empty"><h3>' + esc(title) + '</h3>' +
-    '<p class="term-empty">Unrecognised response shape.</p>' +
-    (keys.length ? '<p class="intel-keys">keys: ' + esc(keys.join(', ')) + '</p>' : '') +
-  '</div>';
+function emptyPanel(title, meta) {
+  return '<div class="intel-panel is-empty">' +
+    '<h3>' + title + '</h3>' +
+    '<p class="term-empty">' +
+      ((meta && meta.error) ? 'Source unavailable.' : 'No data returned.') +
+    '</p></div>';
 }
 
 document.addEventListener('DOMContentLoaded', function () {
   if (!document.getElementById('intel-grid')) return;
   loadIntel();
-  setInterval(loadIntel, 300000);   // five minutes; server TTLs are shorter
+  setInterval(loadIntel, 300000);
 });

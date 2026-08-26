@@ -2781,3 +2781,21 @@ a.todo-title:hover{ color:var(--teal); }
 .intel-notice h3{ font-size:14.5px; color:var(--ink-0); margin:0 0 6px; text-transform:none; letter-spacing:0; }
 .intel-notice p{ font-size:13px; color:var(--ink-2); margin:0 0 10px; line-height:1.6; }
 .intel-notice a{ font-size:13px; color:var(--gold, #f5c542); }
+
+/* Intel — stale marker and weight bars --------------------------------------- */
+.intel-stale{
+  font-size:9px; letter-spacing:.06em; padding:2px 6px; border-radius:3px;
+  margin-left:8px; background:var(--bg-3); color:var(--ink-3);
+  text-transform:none; letter-spacing:0;
+}
+/* The bar sits BEHIND the row rather than beside it, so it costs no width and
+   the text stays fully readable at any value. */
+.intel-row{ position:relative; }
+.intel-bar{
+  position:absolute; left:0; top:2px; bottom:2px;
+  background:rgba(0,173,181,0.12); border-radius:3px;
+  pointer-events:none; z-index:0;
+}
+.intel-row-name, .intel-row-val{ position:relative; z-index:1; }
+.intel-row-name{ padding-left:6px; }
+.intel-row-val{ padding-right:6px; }

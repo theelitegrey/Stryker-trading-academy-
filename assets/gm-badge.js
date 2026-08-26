@@ -4,9 +4,9 @@
 // Injected into .topnav-right rather than added to 30-odd pages of markup, the
 // same approach as the messages icon and account menu.
 //
-// A red dot pulses at the centre of the globe and does not go out. It marks the
-// monitor as continuously running — a recording light, not an alert about any
-// particular event.
+// A red dot flashes at the centre of the globe and does not go out — emergency
+// beacon timing: hard bright peak, fast fall to near-dark, short hold. It marks
+// the monitor as continuously running rather than alerting to any one event.
 //
 // The previous version tried to make the dot conditional, lighting only for
 // unseen high-severity headlines. That required pulling the 212KB monitor JSON

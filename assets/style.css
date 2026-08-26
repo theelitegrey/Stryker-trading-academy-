@@ -3373,34 +3373,41 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
 .gm-live-dot{
   position:absolute; top:50%; left:50%;
   width:6px; height:6px; margin:-3px 0 0 -3px;
-  border-radius:50%; background:#ff3b30;
+  border-radius:50%; background:#ff2418;
   pointer-events:none;
-  box-shadow:0 0 6px rgba(255,59,48,0.95), 0 0 12px rgba(255,59,48,0.5);
-  animation:gmLivePulse 2.4s ease-in-out infinite;
+  animation:gmLiveFlash 0.85s ease-in-out infinite;
 }
 
-/* Two things move together: the dot itself breathes, and a ring expands out of
-   it and fades. The ring is what makes it read as emitting rather than just
-   blinking. Deliberately slow — this sits in the header of every page, and
-   anything faster becomes an irritation rather than a signal. */
-.gm-live-dot::after{
-  content:''; position:absolute; inset:0; border-radius:50%;
-  background:#ff3b30;
-  animation:gmLiveRing 2.4s ease-out infinite;
-}
-@keyframes gmLivePulse{
-  0%,100%{ opacity:1; transform:scale(1); }
-  50%    { opacity:.7; transform:scale(.86); }
-}
-@keyframes gmLiveRing{
-  0%   { transform:scale(1); opacity:.55; }
-  70%  { transform:scale(3.6); opacity:0; }
-  100% { transform:scale(3.6); opacity:0; }
+/* Emergency-beacon timing: a hard bright peak, a fast fall to near-dark, and a
+   short hold there. Not a sine wave — a symmetrical fade reads as breathing,
+   which is the opposite of urgency. The asymmetry is what makes it read as a
+   strobe rather than a pulse.
+   
+   The glow is carried by box-shadow rather than a second element, so the
+   brightness and the halo rise and fall as one thing. Two separately animated
+   layers drift out of phase and the light looks wrong without it being obvious
+   why. */
+@keyframes gmLiveFlash{
+  0%   { opacity:1;   background:#ff5a4d;
+         box-shadow:0 0 5px rgba(255,36,24,1), 0 0 11px rgba(255,36,24,.85),
+                    0 0 20px rgba(255,36,24,.45); }
+  35%  { opacity:.32; background:#8c1410;
+         box-shadow:0 0 2px rgba(255,36,24,.35), 0 0 4px rgba(255,36,24,.15),
+                    0 0 0 rgba(255,36,24,0); }
+  60%  { opacity:.28; background:#7a110d;
+         box-shadow:0 0 2px rgba(255,36,24,.3), 0 0 3px rgba(255,36,24,.1),
+                    0 0 0 rgba(255,36,24,0); }
+  100% { opacity:1;   background:#ff5a4d;
+         box-shadow:0 0 5px rgba(255,36,24,1), 0 0 11px rgba(255,36,24,.85),
+                    0 0 20px rgba(255,36,24,.45); }
 }
 
 @media (prefers-reduced-motion:reduce){
-  /* Still visible, just still. The dot carries the meaning; the motion is
-     only emphasis. */
-  .gm-live-dot{ animation:none; }
-  .gm-live-dot::after{ animation:none; opacity:0; }
+  /* Held at the bright end rather than mid-fade: the dot still reads as lit,
+     which is the whole point, and a strobe is exactly the pattern this setting
+     exists to suppress. */
+  .gm-live-dot{
+    animation:none; opacity:1; background:#ff5a4d;
+    box-shadow:0 0 5px rgba(255,36,24,1), 0 0 11px rgba(255,36,24,.7);
+  }
 }

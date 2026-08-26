@@ -732,75 +732,92 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ---- FinancialJuice newswire ------------------------------------------------
 //
-// FinancialJuice generates its embed code from a form on their widgets page,
-// and the resulting iframe URL is not documented anywhere I could verify. So it
-// is CONFIGURED rather than hardcoded: paste the embed from
-// financialjuice.com/widgets/get-widget.aspx into Settings admin
-// (settings/terminal -> financialJuiceEmbed) and it appears here.
+// FinancialJuice ships a SCRIPT widget, not an iframe — it loads
+// feed.financialjuice.com/widgets/widgets.js and calls FJWidgets.createWidget
+// into a container div.
 //
-// Guessing the URL would have produced a panel that looked right in
-// development and rendered an error page in production, which is worse than a
-// panel that plainly says it needs configuring.
+// Worth being explicit about the trade: a third-party script runs with full
+// access to this page, unlike an iframe which is sandboxed. That is the same
+// deal already accepted for the TradingView widgets on the other tabs, and it
+// is the only way this vendor ships, but it is a trust decision rather than a
+// technical detail — if either vendor is compromised, so is this page.
 //
-// Only an <iframe> is accepted. The value comes from Firestore, which admins
-// can write, and injecting arbitrary admin-supplied HTML into every student's
-// page is a stored-XSS hole even when the admin is trustworthy — one
-// compromised admin account would otherwise mean script execution for everyone.
+// Colours are overridden from their TradingView-flavoured defaults (#1e222d /
+// #b2b5be) to the site's own panel and muted-text values, so the newswire reads
+// as part of the terminal rather than a pasted-in third-party box.
+
+var FJ_SRC = 'https://feed.financialjuice.com/widgets/widgets.js';
+var FJ_LOADED = false;
+var FJ_RESIZE_TIMER = null;
+
 function mountFinancialJuice() {
   var host = document.getElementById('term-fj');
-  if (!host || typeof db === 'undefined' || !db) return;
+  if (!host) return;
 
-  db.collection('settings').doc('terminal').get().then(function (doc) {
-    var embed = doc.exists ? (doc.data().financialJuiceEmbed || '') : '';
-    if (!embed) { fjPlaceholder(host); return; }
+  if (FJ_LOADED) { createFJWidget(host); return; }
 
-    var m = embed.match(/<iframe[^>]*\ssrc=["']([^"']+)["'][^>]*>/i);
-    if (!m) { fjPlaceholder(host, 'That embed code has no iframe in it.'); return; }
-
-    var src = m[1];
-    if (!/^https:\/\/(www\.)?financialjuice\.com\//i.test(src)) {
-      // Refuse anything not from FinancialJuice. Without this the field is an
-      // open redirect into an iframe on a page students are logged into.
-      fjPlaceholder(host, 'That embed is not a financialjuice.com URL.');
-      return;
-    }
-
-    var frame = document.createElement('iframe');
-    frame.src = src;
-    frame.title = 'FinancialJuice newswire';
-    frame.loading = 'lazy';
-    frame.setAttribute('scrolling', 'no');
-    // The widget is third-party, so it runs sandboxed with only what a news
-    // feed needs. Notably no allow-same-origin, so it cannot reach into the
-    // parent page.
-    frame.setAttribute('sandbox', 'allow-scripts allow-popups allow-popups-to-escape-sandbox');
-    frame.style.cssText = 'width:100%; height:420px; border:0; display:block;';
-    host.innerHTML = '';
-    host.appendChild(frame);
-  }).catch(function () { fjPlaceholder(host); });
+  var s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.id = 'FJ-Widgets';
+  // Their own snippet appends a random query string. Kept, because their CDN
+  // evidently relies on it to bust its cache — dropping it risks a stale
+  // widgets.js that fails in ways impossible to reproduce.
+  s.src = FJ_SRC + '?r=' + Math.floor(Math.random() * 10000);
+  s.onload = function () {
+    FJ_LOADED = true;
+    createFJWidget(host);
+  };
+  s.onerror = function () {
+    host.innerHTML = '<p class="term-empty">Newswire unavailable right now.</p>';
+  };
+  document.head.appendChild(s);
 }
 
-function fjPlaceholder(host, why) {
-  host.innerHTML =
-    '<p class="term-empty">' + esc(why || 'Newswire not configured.') + '</p>' +
-    '<p class="term-empty term-fj-help">Add the embed code from ' +
-      '<a href="https://www.financialjuice.com/widgets/get-widget.aspx" ' +
-      'target="_blank" rel="noopener noreferrer">financialjuice.com</a> ' +
-      'in Settings admin.</p>';
+function createFJWidget(host) {
+  if (!window.FJWidgets || !window.FJWidgets.createWidget) {
+    host.innerHTML = '<p class="term-empty">Newswire failed to load.</p>';
+    return;
+  }
+  // The widget takes a fixed pixel width, so it is measured from its container
+  // rather than guessed. Their sample uses 500px, which would overflow this
+  // column and clip on a phone.
+  var w = Math.max(240, Math.floor(host.clientWidth));
+
+  host.innerHTML = '';
+  try {
+    window.FJWidgets.createWidget({
+      container: 'term-fj',
+      mode: 'Dark',
+      width: w + 'px',
+      height: '540px',
+      backColor: '131316',      // --bg-1
+      fontColor: '8b93a0',      // --ink-3
+      widgetType: 'NEWS'
+    });
+  } catch (err) {
+    console.error('Stryker: FinancialJuice widget failed', err);
+    host.innerHTML = '<p class="term-empty">Newswire failed to load.</p>';
+  }
 }
+
+// Rebuild on resize, debounced. A fixed-width widget measured once is wrong the
+// moment the window changes or a phone rotates, and there is no reflow API.
+window.addEventListener('resize', function () {
+  var host = document.getElementById('term-fj');
+  if (!host || !FJ_LOADED) return;
+  clearTimeout(FJ_RESIZE_TIMER);
+  FJ_RESIZE_TIMER = setTimeout(function () {
+    if (Math.abs(host.clientWidth - (host.dataset.w || 0)) < 24) return;
+    host.dataset.w = host.clientWidth;
+    createFJWidget(host);
+  }, 400);
+}, { passive: true });
 
 document.addEventListener('DOMContentLoaded', function () {
-  if (document.getElementById('term-fj')) {
-    // After auth, since the settings read goes through Firestore rules.
-    if (typeof auth !== 'undefined' && auth) {
-      var done = false;
-      auth.onAuthStateChanged(function (u) {
-        if (done || !u) return;
-        done = true;
-        mountFinancialJuice();
-      });
-    } else {
-      mountFinancialJuice();
-    }
-  }
+  var host = document.getElementById('term-fj');
+  if (!host) return;
+  host.dataset.w = host.clientWidth;
+  // No auth wait: the widget is third-party and needs nothing from Firestore,
+  // so gating it behind sign-in would only delay it.
+  mountFinancialJuice();
 });

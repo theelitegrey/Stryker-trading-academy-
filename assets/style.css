@@ -2501,7 +2501,11 @@ a.todo-title:hover{ color:var(--teal); }
 .term-panel{ padding:0; margin:0; }
 
 .term-panel[data-tab="map"]{
-  display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px;
+  /* 340px, up from 300: the FinancialJuice newswire sits in this column and
+     headlines wrap to unreadable slivers much below that. Their own sample
+     uses 500px; the widget is given the measured container width instead, so
+     the column decides rather than the vendor. */
+  display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:18px;
   /* align-content:start is load-bearing. The panel stretches taller than its
      content inside the dashboard's column layout, and a grid's default
      align-content left the map floating in the vertical middle with ~96px of
@@ -2683,6 +2687,9 @@ a.todo-title:hover{ color:var(--teal); }
 
 .term-shown{ font-size:12px; color:var(--ink-2); margin:0 0 10px; font-family:var(--font-mono, monospace); }
 .term-fj-block{ padding-bottom:8px; }
-.term-fj{ min-height:120px; }
+/* The widget renders its own fixed-size box; the host only reserves space so
+   the panel does not jump when it arrives. */
+.term-fj{ min-height:120px; overflow:hidden; border-radius:8px; }
+.term-fj iframe, .term-fj > div{ max-width:100%; }
 .term-fj-help{ margin-top:6px; }
 .term-fj-help a{ color:var(--teal); }

@@ -222,66 +222,55 @@
 }
 
 /* ============================================================================
-   MOTION LAYER 3 — trading parallax backdrop
+   MOTION GRAPHICS — live chart band
    ============================================================================ */
-.m-parallax {
-  position: fixed; inset: 0;
-  z-index: 0;
-  pointer-events: none;
+.m-live {
+  position: relative;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  background:
+    radial-gradient(ellipse 60% 100% at 50% 0%, rgba(0,173,181,0.055), transparent 70%),
+    rgba(9,9,11,0.75);
+  padding: 18px 0 0;
   overflow: hidden;
 }
-.m-px {
-  position: absolute; top: 0; left: 0;
-  will-change: transform;
+.m-live-head {
+  display: flex; align-items: center; gap: 10px;
+  max-width: 1180px; margin: 0 auto; padding: 0 24px 12px;
+  font-family: var(--font-mono, monospace);
+}
+.m-live-label { font-size: 11.5px; letter-spacing: .16em; color: var(--ink-1); font-weight: 700; }
+.m-live-sub   { font-size: 11.5px; color: var(--ink-3); }
+@media (max-width: 700px) { .m-live-sub { display: none; } }
+
+/* The recording dot. Two rings, the outer one expanding and fading, which is
+   the universal shorthand for a live feed. */
+.m-live-dot {
+  position: relative; width: 8px; height: 8px; border-radius: 50%;
+  background: #03c988; flex-shrink: 0;
+}
+.m-live-dot::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+  background: #03c988;
+  animation: m-live-ring 2s ease-out infinite;
+}
+@keyframes m-live-ring {
+  0%   { transform: scale(1);   opacity: .7; }
+  100% { transform: scale(3.4); opacity: 0; }
 }
 
-/* Depth of field. The far layer is blurred and the near layer is sharp, which
-   is what separates "three things moving" from "distance" — speed alone reads
-   as a glitch. */
-.m-px-far  { filter: blur(1.6px); }
-.m-px-mid  { filter: blur(0.6px); }
-.m-px-near { filter: none; }
+.m-live-canvas-wrap { position: relative; height: 210px; width: 100%; }
+#m-live-canvas { display: block; }
 
-/* The page's own surfaces have to sit above the backdrop.
-   
-   The nav is deliberately EXCLUDED from the position rule: it is
-   position:sticky, and blanket-setting position:relative would override that
-   and strand the header mid-page on scroll. A sticky element already creates a
-   stacking context, so it only needs a z-index.
-
-   Worth recording that the first version of this rule targeted `.site-nav`,
-   which does not exist anywhere in the markup — the class is `.nav`, the id is
-   `#site-nav`. It silently matched nothing, so the rule appeared to work while
-   doing nothing at all. A CSS selector that matches no element fails without
-   any error; only checking against the real markup catches it. */
-.hero, section, footer, .container { position: relative; z-index: 1; }
-.nav { z-index: 100; }   /* the real selector — .site-nav never existed */
-.feature-card, .price-card, .panel, .chart-card, .proof-card {
-  position: relative; z-index: 1;
-  background-color: rgba(19,19,22,0.82);
-  backdrop-filter: blur(3px);
+/* Fade the left edge so candles scroll out of view rather than being clipped
+   against a hard border, which reads as a rendering fault. */
+.m-live-canvas-wrap::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 2;
+  background: linear-gradient(to right, rgba(9,9,11,0.95), transparent 12%);
 }
 
-/* A vignette so the backdrop never competes at the edges of the reading
-   column, where the eye returns on every line. */
-/* Vignette, much lighter than the first attempt. That version used 0.55 at
-   70% and 0.85 at the edge, which combined with conservative draw opacities
-   to make the whole backdrop nearly invisible — two separate dimming passes
-   stacked on one another. This keeps the reading column calm without erasing
-   the layers. */
-.m-parallax::after {
-  content: ''; position: absolute; inset: 0;
-  background: radial-gradient(ellipse 78% 68% at 50% 45%,
-              transparent 0%, rgba(5,5,6,0.18) 62%, rgba(5,5,6,0.52) 100%);
-}
-
-@media (max-width: 900px) {
-  .m-parallax { display: none; }
-  .feature-card, .price-card, .panel, .chart-card, .proof-card {
-    backdrop-filter: none;
-  }
-}
+@media (max-width: 700px) { .m-live-canvas-wrap { height: 160px; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .m-parallax { display: none !important; }
+  .m-live { display: none !important; }
 }

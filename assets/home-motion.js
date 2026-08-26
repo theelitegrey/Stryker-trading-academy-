@@ -459,215 +459,273 @@
 })();
 
 // ============================================================================
-// MOTION LAYER 3 — trading parallax backdrop
+// MOTION GRAPHICS — a live chart that never stops running
 //
-// Three depth layers behind the whole page, each scrolling at a different
-// rate. Depth is what sells parallax: one moving layer reads as a bug, three
-// at different speeds reads as space.
+// Replaces the parallax backdrop, which was the wrong idea: a scroll-linked
+// wash behind everything is atmosphere, and atmosphere is exactly what read as
+// bland. Motion graphics are different — discrete pieces that animate on their
+// own timeline, in specific places, doing something recognisable.
 //
-//   far   0.06  price grid and axis ticks, blurred — the terminal behind
-//   mid   0.18  candlestick ranges, the market itself
-//   near  0.34  annotation glyphs (BOS, FVG, order blocks) — the analysis
+// The centrepiece is a chart being drawn IN REAL TIME. New candles form at the
+// right edge, the series scrolls left, and the analysis draws itself on top:
+// a level gets marked, price sweeps it, a break-of-structure arrow fires, an
+// order block fades in. It runs the loop the curriculum teaches, continuously.
 //
-// PERFORMANCE. Each layer is drawn to its own canvas ONCE, then only
-// translated on scroll. Redrawing chart geometry every scroll frame would burn
-// the frame budget for a background nobody is looking directly at; a transform
-// is composited on the GPU and costs essentially nothing.
+// This is the honest version of what the previous layers were reaching for. A
+// static chart with things drifting behind it says "trading site". A chart
+// that is visibly working says "this is what we teach".
 //
-// Layers are taller than the viewport by their own travel distance, so they
-// never run out of content at the bottom of a long page.
+// PERFORMANCE. One canvas, one rAF loop, capped at 30fps — chart motion does
+// not need 60, and halving the frame rate halves the cost. The loop pauses
+// entirely when the canvas is off-screen, via IntersectionObserver, so it
+// never burns battery animating something nobody can see.
 // ============================================================================
 
 (function () {
 
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  // Below 900px this is cost without benefit: the layers are barely visible on
-  // a narrow screen and the scroll handler competes with the actual content.
-  if (window.innerWidth < 900) return;
 
   function ready(fn) {
     if (document.readyState !== 'loading') fn();
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  function rng(seed) {
-    var s = seed;
-    return function () {
-      s = (s * 1103515245 + 12345) % 2147483648;
-      return s / 2147483648;
+  var GREEN = '#03c988', RED = '#e5484d', TEAL = '#00adb5', AMBER = '#f5c542';
+
+  function LiveChart(canvas) {
+    var ctx = canvas.getContext('2d');
+    var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var candles = [], step = 20, price = 0, seed = 20260826;
+    var events = [];       // annotations currently on screen
+    var frame = 0, visible = true, running = false;
+
+    function rand() {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    }
+
+    function resize() {
+      W = canvas.parentNode.offsetWidth;
+      H = canvas.parentNode.offsetHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (!candles.length) seedSeries();
+    }
+
+    function newCandle() {
+      var drift = (rand() - 0.5) * 2;
+      var o = price;
+      var c = o + drift * 9;
+      // Occasional impulse, so the series has structure worth annotating
+      // rather than being uniform noise.
+      if (rand() > 0.9) c = o + (rand() - 0.5) * 42;
+      return {
+        o: o, c: c,
+        hi: Math.min(o, c) - rand() * 8,
+        lo: Math.max(o, c) + rand() * 8,
+        born: frame
+      };
+    }
+
+    function seedSeries() {
+      candles = []; price = 0;
+      var n = Math.ceil(W / step) + 4;
+      for (var i = 0; i < n; i++) {
+        var k = newCandle();
+        candles.push(k);
+        price = k.c;
+      }
+    }
+
+    function pushEvent() {
+      // Draws from the same vocabulary the chapters use, so the graphic is
+      // teaching-adjacent rather than decorative.
+      var kinds = ['level', 'sweep', 'bos', 'ob'];
+      var kind = kinds[Math.floor(rand() * kinds.length)];
+      events.push({ kind: kind, born: frame, life: 150,
+                    idx: candles.length - 6 - Math.floor(rand() * 5) });
+    }
+
+    function y(v) {
+      // Auto-scale to whatever the visible window is doing, so an impulse
+      // never runs off the top and the chart always fills its band.
+      var vals = [];
+      for (var i = 0; i < candles.length; i++) {
+        vals.push(candles[i].hi, candles[i].lo);
+      }
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      var pad = (hi - lo) * 0.18 || 1;
+      return H - ((v - (lo - pad)) / ((hi + pad) - (lo - pad))) * H;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+      ctx.lineWidth = 1;
+      for (var g = 1; g < 4; g++) {
+        var gy = (H / 4) * g;
+        ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+      }
+
+      // candles, oldest at the left
+      for (var i = 0; i < candles.length; i++) {
+        var k = candles[i];
+        var cx = i * step + 10;
+        if (cx > W + step) break;
+        var up = k.c <= k.o;
+        // The newest candle fades in rather than popping, which is what makes
+        // the series read as forming instead of jumping.
+        var age = Math.min(1, (frame - k.born) / 8);
+        ctx.globalAlpha = 0.55 * age;
+        ctx.strokeStyle = up ? GREEN : RED;
+        ctx.fillStyle = up ? GREEN : RED;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath(); ctx.moveTo(cx, y(k.hi)); ctx.lineTo(cx, y(k.lo)); ctx.stroke();
+        var top = Math.min(y(k.o), y(k.c));
+        var hgt = Math.max(2, Math.abs(y(k.o) - y(k.c)));
+        ctx.fillRect(cx - 6, top, 12, hgt);
+      }
+      ctx.globalAlpha = 1;
+
+      // annotations
+      for (var e = events.length - 1; e >= 0; e--) {
+        var ev = events[e];
+        var t = (frame - ev.born) / ev.life;
+        if (t >= 1) { events.splice(e, 1); continue; }
+        // Fade in over the first 15%, hold, fade out over the last 25%.
+        var a = t < 0.15 ? t / 0.15 : (t > 0.75 ? (1 - t) / 0.25 : 1);
+        var k2 = candles[ev.idx];
+        if (!k2) continue;
+        var ex = ev.idx * step + 10;
+
+        ctx.globalAlpha = a;
+        if (ev.kind === 'level') {
+          ctx.strokeStyle = AMBER; ctx.lineWidth = 1.2;
+          ctx.setLineDash([6, 4]);
+          ctx.beginPath(); ctx.moveTo(ex - 40, y(k2.hi)); ctx.lineTo(W, y(k2.hi));
+          ctx.stroke(); ctx.setLineDash([]);
+          tag(ctx, 'BSL', W - 42, y(k2.hi) - 7, AMBER);
+        } else if (ev.kind === 'sweep') {
+          ctx.strokeStyle = AMBER; ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          // A ring that expands outward — the visual for a level being taken.
+          ctx.arc(ex, y(k2.hi), 6 + t * 26, 0, Math.PI * 2);
+          ctx.globalAlpha = a * (1 - t) * 0.9;
+          ctx.stroke();
+          ctx.globalAlpha = a;
+          tag(ctx, 'LIQ SWEEP', ex + 12, y(k2.hi) - 10, AMBER);
+        } else if (ev.kind === 'bos') {
+          ctx.strokeStyle = GREEN; ctx.lineWidth = 1.6;
+          var x2 = ex + 60, y2 = y(k2.hi) - 26;
+          ctx.beginPath(); ctx.moveTo(ex, y(k2.lo)); ctx.lineTo(x2, y2); ctx.stroke();
+          var ang = Math.atan2(y2 - y(k2.lo), x2 - ex);
+          ctx.beginPath();
+          ctx.moveTo(x2, y2);
+          ctx.lineTo(x2 - 8 * Math.cos(ang - 0.4), y2 - 8 * Math.sin(ang - 0.4));
+          ctx.moveTo(x2, y2);
+          ctx.lineTo(x2 - 8 * Math.cos(ang + 0.4), y2 - 8 * Math.sin(ang + 0.4));
+          ctx.stroke();
+          tag(ctx, 'BOS', x2 + 6, y2 - 2, GREEN);
+        } else {
+          ctx.fillStyle = 'rgba(0,173,181,0.10)';
+          ctx.strokeStyle = TEAL; ctx.lineWidth = 1.1;
+          ctx.setLineDash([4, 3]);
+          var by = Math.min(y(k2.o), y(k2.c));
+          ctx.fillRect(ex - 12, by, 90, Math.max(14, Math.abs(y(k2.o) - y(k2.c))));
+          ctx.strokeRect(ex - 12, by, 90, Math.max(14, Math.abs(y(k2.o) - y(k2.c))));
+          ctx.setLineDash([]);
+          tag(ctx, 'ORDER BLOCK', ex - 12, by - 7, TEAL);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // The live price line and its dot — the element the eye locks onto.
+      var last = candles[candles.length - 1];
+      if (last) {
+        var ly = y(last.c);
+        ctx.strokeStyle = 'rgba(238,238,238,0.28)';
+        ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(W, ly); ctx.stroke();
+        ctx.setLineDash([]);
+        var pulse = 3.5 + Math.sin(frame / 5) * 1.4;
+        ctx.fillStyle = GREEN;
+        ctx.beginPath(); ctx.arc(W - 14, ly, pulse, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 0.28;
+        ctx.beginPath(); ctx.arc(W - 14, ly, pulse * 2.4, 0, Math.PI * 2); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function tag(c, text, x, ty, colour) {
+      c.fillStyle = colour;
+      c.font = 'bold 9.5px monospace';
+      c.textAlign = 'left';
+      c.fillText(text, x, ty);
+    }
+
+    var acc = 0, lastT = 0;
+    function loop(t) {
+      if (!running) return;
+      requestAnimationFrame(loop);
+      if (!visible) return;
+      // 30fps cap. Chart motion does not need 60, and halving the rate halves
+      // the cost on a page that may be open for a long time.
+      acc += t - lastT; lastT = t;
+      if (acc < 33) return;
+      acc = 0;
+      frame++;
+
+      // New candle every ~14 frames; the series scrolls by dropping the oldest.
+      if (frame % 14 === 0) {
+        var k = newCandle();
+        price = k.c;
+        candles.push(k);
+        if (candles.length > Math.ceil(W / step) + 4) candles.shift();
+        for (var e = 0; e < events.length; e++) events[e].idx--;
+      }
+      if (frame % 150 === 40) pushEvent();
+      draw();
+    }
+
+    this.start = function () {
+      resize();
+      window.addEventListener('resize', resize, { passive: true });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (en) {
+          visible = en[0].isIntersecting;
+        }, { threshold: 0 }).observe(canvas);
+      }
+      running = true; lastT = performance.now();
+      requestAnimationFrame(loop);
     };
   }
 
-  var LAYERS = [
-    { cls: 'm-px-far',  speed: 0.06, draw: drawGrid,        alpha: 0.5 },
-    { cls: 'm-px-mid',  speed: 0.18, draw: drawCandles,     alpha: 0.85 },
-    { cls: 'm-px-near', speed: 0.34, draw: drawAnnotations, alpha: 1 }
-  ];
+  function mount() {
+    var hero = document.querySelector('.hero');
+    if (!hero || document.getElementById('m-live')) return;
 
-  // --- far: price grid + axis ticks ---------------------------------------
-  function drawGrid(ctx, w, h) {
-    var r = rng(1301);
-    ctx.strokeStyle = 'rgba(0,173,181,0.20)';
-    ctx.lineWidth = 1;
-    for (var y = 0; y < h; y += 78) {
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-    }
-    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
-    for (var x = 0; x < w; x += 132) {
-      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-    }
-    // Price labels down the right edge, like a chart's axis.
-    ctx.fillStyle = 'rgba(139,147,160,0.30)';
-    ctx.font = '11px monospace';
-    ctx.textAlign = 'right';
-    var p = 2380 + Math.floor(r() * 40);
-    for (var yy = 40; yy < h; yy += 78) {
-      ctx.fillText((p).toFixed(2), w - 18, yy - 6);
-      p -= 4 + Math.floor(r() * 6);
-    }
+    var band = document.createElement('div');
+    band.id = 'm-live';
+    band.className = 'm-live';
+    band.innerHTML =
+      '<div class="m-live-head">' +
+        '<span class="m-live-dot"></span>' +
+        '<span class="m-live-label">LIVE MARKET STRUCTURE</span>' +
+        '<span class="m-live-sub">the loop this curriculum teaches, running</span>' +
+      '</div>' +
+      '<div class="m-live-canvas-wrap"><canvas id="m-live-canvas"></canvas></div>';
+
+    // Directly under the hero, above the first section — the point where a
+    // visitor has read the pitch and wants evidence.
+    var after = document.getElementById('m-ticker') || hero;
+    after.parentNode.insertBefore(band, after.nextSibling);
+
+    new LiveChart(document.getElementById('m-live-canvas')).start();
   }
 
-  // --- mid: candlestick ranges ---------------------------------------------
-  function drawCandles(ctx, w, h) {
-    var r = rng(8821);
-    var step = 21, price = h * 0.5;
-    for (var x = 20; x < w + step; x += step) {
-      var move = (r() - 0.48) * 34;
-      var o = price, c = price + move;
-      var hi = Math.min(o, c) - r() * 20;
-      var lo = Math.max(o, c) + r() * 20;
-      var up = c <= o;
-      ctx.strokeStyle = up ? 'rgba(3,201,136,0.34)' : 'rgba(229,72,77,0.34)';
-      ctx.fillStyle  = up ? 'rgba(3,201,136,0.48)' : 'rgba(229,72,77,0.26)';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.moveTo(x, hi); ctx.lineTo(x, lo); ctx.stroke();
-      var top = Math.min(o, c), hgt = Math.max(3, Math.abs(c - o));
-      ctx.fillRect(x - 7, top, 14, hgt);
-      ctx.strokeRect(x - 7, top, 14, hgt);
-      price = c;
-      // Wander back toward the middle so the series stays on canvas over a
-      // long page rather than climbing off the top.
-      price += (h * 0.5 - price) * 0.035;
-    }
-  }
-
-  // --- near: analyst annotations -------------------------------------------
-  // The layer that makes this specifically a TRADING backdrop rather than a
-  // generic chart pattern: the vocabulary the curriculum actually teaches.
-  function drawAnnotations(ctx, w, h) {
-    var r = rng(5507);
-    var tags = ['BOS', 'CHoCH', 'FVG', 'OB', 'BSL', 'SSL', 'LIQ SWEEP', 'PDH'];
-    var n = Math.round(h / 190);
-
-    for (var i = 0; i < n; i++) {
-      var x = 60 + r() * (w - 260);
-      var y = 80 + (i / n) * (h - 160) + r() * 60;
-      var kind = r();
-
-      if (kind < 0.34) {
-        // Order block / FVG zone
-        var bw = 90 + r() * 130, bh = 32 + r() * 44;
-        ctx.fillStyle = 'rgba(0,173,181,0.10)';
-        ctx.strokeStyle = 'rgba(0,173,181,0.42)';
-        ctx.lineWidth = 1.2;
-        ctx.setLineDash([5, 4]);
-        ctx.fillRect(x, y, bw, bh);
-        ctx.strokeRect(x, y, bw, bh);
-        ctx.setLineDash([]);
-        label(ctx, tags[Math.floor(r() * 4) + 2], x + 6, y - 7, 'rgba(0,173,181,0.62)');
-      } else if (kind < 0.68) {
-        // Liquidity level
-        var lw = 150 + r() * 220;
-        ctx.strokeStyle = 'rgba(245,197,66,0.40)';
-        ctx.lineWidth = 1.3;
-        ctx.setLineDash([7, 5]);
-        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + lw, y); ctx.stroke();
-        ctx.setLineDash([]);
-        label(ctx, tags[Math.floor(r() * 3) + 4], x + lw + 8, y + 4,
-              'rgba(245,197,66,0.60)');
-      } else {
-        // Break-of-structure arrow
-        var ax = x, ay = y, bx = x + 70 + r() * 60, by = y - 40 - r() * 40;
-        ctx.strokeStyle = 'rgba(3,201,136,0.48)';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
-        var ang = Math.atan2(by - ay, bx - ax);
-        ctx.beginPath();
-        ctx.moveTo(bx, by);
-        ctx.lineTo(bx - 9 * Math.cos(ang - 0.42), by - 9 * Math.sin(ang - 0.42));
-        ctx.moveTo(bx, by);
-        ctx.lineTo(bx - 9 * Math.cos(ang + 0.42), by - 9 * Math.sin(ang + 0.42));
-        ctx.stroke();
-        label(ctx, 'BOS', bx + 8, by - 2, 'rgba(3,201,136,0.66)');
-      }
-    }
-  }
-
-  function label(ctx, text, x, y, colour) {
-    ctx.fillStyle = colour;
-    ctx.font = 'bold 10px monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(text, x, y);
-  }
-
-  function build() {
-    if (document.getElementById('m-parallax')) return;
-
-    var host = document.createElement('div');
-    host.id = 'm-parallax';
-    host.className = 'm-parallax';
-    document.body.insertBefore(host, document.body.firstChild);
-
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var vw = window.innerWidth;
-    var docH = document.documentElement.scrollHeight;
-    var scrollable = Math.max(1, docH - window.innerHeight);
-
-    var made = LAYERS.map(function (L) {
-      var cv = document.createElement('canvas');
-      cv.className = 'm-px ' + L.cls;
-      // Each layer only needs the viewport plus however far it travels.
-      var lh = window.innerHeight + scrollable * L.speed + 200;
-      cv.width = vw * dpr; cv.height = lh * dpr;
-      cv.style.width = vw + 'px'; cv.style.height = lh + 'px';
-      cv.style.opacity = L.alpha;
-      var ctx = cv.getContext('2d');
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      L.draw(ctx, vw, lh);
-      host.appendChild(cv);
-      return { el: cv, speed: L.speed };
-    });
-
-    var ticking = false;
-    function update() {
-      var y = window.scrollY;
-      for (var i = 0; i < made.length; i++) {
-        made[i].el.style.transform =
-          'translate3d(0,' + (-y * made[i].speed).toFixed(2) + 'px,0)';
-      }
-      ticking = false;
-    }
-    window.addEventListener('scroll', function () {
-      if (!ticking) { ticking = true; requestAnimationFrame(update); }
-    }, { passive: true });
-
-    // Debounced rebuild: canvases are sized against document height, and a
-    // resize changes both that and the viewport.
-    var rt;
-    window.addEventListener('resize', function () {
-      clearTimeout(rt);
-      rt = setTimeout(function () {
-        if (window.innerWidth < 900) { host.remove(); return; }
-        host.remove();
-        build();
-      }, 250);
-    }, { passive: true });
-
-    update();
-  }
-
-  // Built after load so document height is final — sizing against a page still
-  // laying out produces layers that run short near the footer.
-  ready(function () { setTimeout(build, 400); });
+  ready(function () { setTimeout(mount, 250); });
 
 })();

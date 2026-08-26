@@ -23,22 +23,19 @@ const CACHE_MINUTES = 5;
 const MAX_ITEMS = 60;
 
 /**
- * Market-relevant coverage, phrased as an OR of concrete terms rather than
- * GDELT's theme codes.
+ * Twelve terms, not thirty.
  *
- * The world-map function learned this the hard way: theme tagging is sparse
- * enough that an AND of narrow themes over a few hours returns almost nothing.
- * Keyword OR over the last few hours returns a genuine stream.
+ * The previous query OR'd thirty keywords into a 470-character string. GDELT
+ * limits query complexity and rejects long chains, which returned an error
+ * rather than a wide result — the panel then showed "unavailable", which reads
+ * as an outage rather than a malformed request.
+ *
+ * These twelve cover what actually moves markets; the categoriser downstream
+ * does the finer sorting.
  */
-const QUERY = '(' + [
-  '"central bank"', '"interest rate"', '"rate cut"', '"rate hike"',
-  'inflation', 'CPI', 'GDP', '"jobs report"', 'payrolls', 'unemployment',
-  '"federal reserve"', 'ECB', '"bank of england"', '"bank of japan"',
-  'treasury', 'yields', 'dollar', 'euro', 'sterling',
-  'oil', 'gold', 'crude', 'commodities',
-  'stocks', 'equities', 'nasdaq', '"s&p 500"', 'earnings',
-  'bitcoin', 'crypto', 'tariffs', 'sanctions'
-].join(' OR ') + ') sourcelang:english';
+const QUERY = '("central bank" OR inflation OR "interest rate" OR recession OR ' +
+              'stocks OR "federal reserve" OR oil OR gold OR dollar OR ' +
+              'earnings OR tariffs OR bitcoin)';
 
 const CATEGORIES = [
   { key: 'centralbank', label: 'Central banks', colour: '#f5c542',
@@ -114,7 +111,11 @@ exports.getNewswire = functions
       const r = await fetch(url, {
         headers: { 'User-Agent': 'StrykerTradingAcademy/1.0 (newswire)' }
       });
-      if (!r.ok) throw new Error('GDELT returned ' + r.status);
+      if (!r.ok) {
+        const detail = await r.text().catch(() => '');
+        console.error('getNewswire: GDELT', r.status, detail.slice(0, 300));
+        throw new Error('GDELT ' + r.status + ': ' + detail.slice(0, 120));
+      }
 
       const json = await r.json();
       const articles = (json && json.articles) || [];
@@ -154,7 +155,7 @@ exports.getNewswire = functions
         }
       } catch (e) { /* nothing cached */ }
       res.status(200).json({ items: [], categories: cats,
-                             error: 'upstream unavailable' });
+                             error: String(err.message || err).slice(0, 200) });
       return;
     }
 

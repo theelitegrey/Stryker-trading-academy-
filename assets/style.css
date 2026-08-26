@@ -753,7 +753,17 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .chip-name{ font-size:13px; color:var(--ink-0); font-weight:600; }
 .chip-role{ font-size:11.5px; color:var(--ink-3); }
 
-.dash-main{ padding:28px 34px 60px; max-width:1180px; }
+.dash-main{
+  padding:28px 34px 60px; max-width:1180px;
+  /* min-width:0 is load-bearing on mobile. As a flex/grid item it defaults to
+     min-width:auto, meaning it refuses to shrink below its content's
+     min-content width — so any wide child (the terminal's tab row, a long
+     unbroken string on the floor) pushed the whole main column past the
+     viewport. The visible symptom is a header that appears to stop halfway
+     across the screen, because the sticky bar is viewport-width while the page
+     behind it is wider. Measured at 701px inside a 390px viewport. */
+  min-width:0;
+}
 @media (max-width:640px){ .dash-main{ padding:20px; } }
 .dash-topbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; flex-wrap:wrap; gap:16px; }
 .dash-topbar h1{ font-size:23px; }
@@ -2475,7 +2485,9 @@ a.todo-title:hover{ color:var(--teal); }
 }
 
 .term-tabs{
-  display:flex; gap:6px; overflow-x:auto; margin-bottom:18px;
+  /* Scrolls itself rather than widening its parent — needs min-width:0 for the
+     same reason as .dash-main above. */
+  display:flex; gap:6px; overflow-x:auto; min-width:0; margin-bottom:18px;
   padding-bottom:4px; -webkit-overflow-scrolling:touch;
 }
 .term-tabs::-webkit-scrollbar{ height:0; }

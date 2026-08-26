@@ -235,8 +235,11 @@ function loadWorldEvents() {
       EVENTS = (data && data.events) || [];
       EVENT_CATS = (data && data.categories) || [];
       if (!EVENTS.length) {
+        // The upstream message is shown verbatim. "Unavailable" is
+        // indistinguishable from a quiet news hour, and hides whether the
+        // problem is the query, the network or genuinely no results.
         markEventsUnavailable(data && data.error
-          ? 'Feed unavailable right now.'
+          ? 'Feed error: ' + data.error
           : 'No events in the last few hours.');
         return;
       }
@@ -589,7 +592,7 @@ function markEventsUnavailable(msg) {
   var badge = document.getElementById('term-events-badge');
   if (badge) { badge.textContent = 'offline'; badge.className = 'term-badge is-off'; }
   var shown = document.getElementById('term-shown-count');
-  if (shown) shown.textContent = '—';
+  if (shown) shown.textContent = 'Sessions only';
 }
 
 function esc(s) {
@@ -771,7 +774,7 @@ function loadNewswire() {
       var items = (data && data.items) || [];
       if (!items.length) {
         host.innerHTML = '<p class="term-empty">' +
-          (data && data.error ? 'Newswire unavailable right now.' : 'No headlines yet.') +
+          esc(data && data.error ? 'Newswire error: ' + data.error : 'No headlines yet.') +
           '</p>';
         return;
       }

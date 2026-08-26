@@ -28,19 +28,19 @@ const CACHE_MINUTES = 15;    // GDELT's own refresh cadence
 const MAX_EVENTS = 400;      // the map thins these client-side by zoom
 
 /**
- * Query breadth is a deliberate trade-off.
+ * GDELT REQUIRES AT LEAST ONE SEARCH TERM.
  *
- * The first version filtered to eight market themes and produced a nearly empty
- * map: GDELT's theme tagging is sparse enough that narrow themes over a few
- * hours return a handful of points, and a world map with six dots reads as
- * broken rather than calm.
+ * The previous value was 'sourcelang:english' — a bare filter with no term to
+ * filter. GDELT rejects that, which is why the map showed "Feed unavailable"
+ * while the function itself ran fine: the request was well-formed HTTP and
+ * malformed GDELT.
  *
- * This is deliberately wide — the geocoded news firehose. Relevance is decided
- * CLIENT-side, where the student can filter by category and see how much they
- * are filtering out. Filtering here would hide the volume and make an empty
- * result indistinguishable from a broken feed.
+ * Kept broad but valid: a modest OR of the subjects worth plotting. Long OR
+ * chains are also a risk — GDELT limits query complexity — so this is nine
+ * terms rather than the thirty a wishlist would produce.
  */
-const QUERY = 'sourcelang:english';
+const QUERY = '(market OR economy OR "central bank" OR inflation OR ' +
+              'conflict OR election OR sanctions OR protest OR tariff)';
 
 // Category is derived server-side so every client agrees and the taxonomy can
 // change without a site deploy. Order matters: first match wins, so the more
@@ -105,7 +105,13 @@ exports.getWorldEvents = functions
       const r = await fetch(url, {
         headers: { 'User-Agent': 'StrykerTradingAcademy/1.0 (terminal world map)' }
       });
-      if (!r.ok) throw new Error('GDELT returned ' + r.status);
+      if (!r.ok) {
+        // Body included in the log: GDELT explains rejections in plain text,
+        // and the status alone cannot distinguish a bad query from an outage.
+        const detail = await r.text().catch(() => '');
+        console.error('getWorldEvents: GDELT', r.status, detail.slice(0, 300));
+        throw new Error('GDELT ' + r.status + ': ' + detail.slice(0, 120));
+      }
 
       const json = await r.json();
       const features = (json && json.features) || [];
@@ -156,8 +162,11 @@ exports.getWorldEvents = functions
           return;
         }
       } catch (e) { /* nothing cached either */ }
+      // The message is passed through so the panel can say what actually went
+      // wrong rather than "unavailable", which is indistinguishable from a
+      // quiet news hour.
       res.status(200).json({ events: [], categories: cats,
-                             error: 'upstream unavailable' });
+                             error: String(err.message || err).slice(0, 200) });
       return;
     }
 

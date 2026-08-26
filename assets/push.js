@@ -88,6 +88,28 @@ function enablePush(){
   });
 }
 
+// Per-device preference: does this device keep receiving after sign-out?
+//
+// Stored in localStorage rather than Firestore because it has to be readable
+// DURING sign-out, when the account is on its way out and a Firestore read may
+// already be denied. It is also genuinely a property of the device, not the
+// account — the same person may want it on their own phone and off on a
+// borrowed laptop.
+//
+// Defaults to OFF. Someone logging out on a shared or public device would
+// otherwise leave their notifications arriving in a stranger's tray with no
+// indication it was happening.
+var PUSH_KEEP_KEY = 'stryker_push_keep_signed_out';
+
+function pushKeepAfterSignOut(){
+  try { return localStorage.getItem(PUSH_KEEP_KEY) === '1'; }
+  catch (e) { return false; }
+}
+
+function setPushKeepAfterSignOut(on){
+  try { localStorage.setItem(PUSH_KEEP_KEY, on ? '1' : '0'); } catch (e) {}
+}
+
 function disablePush(){
   if (!pushSupported() || !auth || !auth.currentUser) return Promise.resolve();
   var messaging = firebase.messaging();
@@ -102,6 +124,17 @@ function disablePush(){
 
 // Is this specific device registered? Permission alone is not enough — the
 // person may have granted it on another device, or cleared site data here.
+// Called from the sign-out handler in auth.js.
+function disablePushOnSignOut(){
+  if (pushKeepAfterSignOut()) {
+    // Token deliberately left in place. It stays bound to the uid that
+    // registered it, so this device keeps receiving that account's
+    // notifications until push is turned off in Settings.
+    return Promise.resolve('kept');
+  }
+  return disablePush().then(function () { return 'removed'; });
+}
+
 function pushEnabledOnThisDevice(){
   if (!pushSupported() || !auth || !auth.currentUser) return Promise.resolve(false);
   if (Notification.permission !== 'granted') return Promise.resolve(false);
@@ -178,6 +211,11 @@ document.addEventListener('DOMContentLoaded', function () {
       say(on ? 'On for this device.' : 'Off for this device.');
       enableBtn.style.display = on ? 'none' : 'inline-flex';
       if (disableBtn) disableBtn.style.display = on ? 'inline-flex' : 'none';
+      // The keep-after-sign-out choice only means anything once push is
+      // actually on, so it stays hidden until then rather than offering a
+      // setting that does nothing.
+      var keepRow = document.getElementById('push-keep-row');
+      if (keepRow) keepRow.style.display = on ? 'flex' : 'none';
     });
   }
 
@@ -212,6 +250,19 @@ document.addEventListener('DOMContentLoaded', function () {
         disableBtn.disabled = false;
         refresh();
       });
+    });
+  }
+
+  var keepToggle = document.getElementById('push-keep-toggle');
+  if (keepToggle) {
+    keepToggle.checked = pushKeepAfterSignOut();
+    keepToggle.addEventListener('change', function () {
+      setPushKeepAfterSignOut(keepToggle.checked);
+      if (typeof showToast === 'function') {
+        showToast('success', keepToggle.checked
+          ? 'This device will keep receiving notifications after you sign out.'
+          : 'Notifications will stop on this device when you sign out.');
+      }
     });
   }
 

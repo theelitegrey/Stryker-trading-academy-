@@ -331,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // rules still allow deleting a document that belongs to this uid.
       // Without it the token survives logout and the next person on a shared
       // phone keeps receiving the previous user's notifications.
-      const unpush = (typeof disablePush === 'function') ? disablePush().catch(() => {}) : Promise.resolve();
+      const unpush = (typeof disablePushOnSignOut === 'function') ? disablePushOnSignOut().catch(() => {}) : Promise.resolve();
       Promise.all([bye, unpush])
         .then(() => auth.signOut())
         .then(() => { window.location.href = 'index.html'; });

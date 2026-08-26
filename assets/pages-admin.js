@@ -11,12 +11,27 @@ function renderPagesAdminList(pages){
       : 'Using built-in draft — not yet reviewed';
     const row = document.createElement('div');
     row.className = 'record-card';
+    if (m.id) row.id = 'contact-' + m.id;     // deep-link target
     row.innerHTML =
       '<div><span class="cell-name">' + escapePagesAdminHtml(p.label) + (isCustomized ? '' : ' <span class="status-tag" style="margin-left:6px; background:rgba(245,197,66,0.12); color:#f5c542; border-color:rgba(245,197,66,0.3);">Needs review</span>') + '</span>' +
       '<span class="cell-sub">' + updated + ' · /' + p.key + '.html</span></div>' +
       '<a href="page-editor.html?key=' + encodeURIComponent(p.key) + '" class="btn btn-primary btn-sm">Edit</a>';
     wrap.appendChild(row);
   });
+
+  // Honour a #contact-<id> deep link from a notification. The rows only exist
+  // once this render has run, so the browser's own anchor handling has already
+  // fired and found nothing — it has to be done here.
+  if (location.hash.indexOf('#contact-') === 0) {
+    const target = document.getElementById(location.hash.slice(1));
+    if (target) {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      target.classList.add('record-card-flash');
+      // Removed after the animation so the highlight does not persist and
+      // make an old message look permanently unread.
+      setTimeout(() => target.classList.remove('record-card-flash'), 2400);
+    }
+  }
 }
 
 function renderContactMessages(messages){
@@ -54,7 +69,14 @@ document.addEventListener('DOMContentLoaded', () => {
     db.collection('contactMessages').orderBy('createdAt', 'desc').limit(30).get()
       .then((snap) => {
         const messages = [];
-        snap.forEach((doc) => messages.push(doc.data()));
+        // Keep the document id: the row needs it as an anchor target so a
+        // notification can deep-link to the specific message. doc.data() alone
+        // discards it, which is why the link had nothing to aim at.
+        snap.forEach((doc) => {
+          const m = doc.data();
+          m.id = doc.id;
+          messages.push(m);
+        });
         renderContactMessages(messages);
       })
       .catch((err) => {

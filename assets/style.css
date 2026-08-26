@@ -2412,3 +2412,12 @@ a.todo-title:hover{ color:var(--teal); }
   color:var(--ink-3); font-size:18px;
 }
 .bot-avatar-controls{ display:flex; gap:7px; flex-wrap:wrap; }
+
+/* Deep-linked record highlight ---------------------------------------------- */
+/* Fades rather than switching off: an instant change is easy to miss if the
+   scroll finishes first, which is exactly when the cue is needed. */
+@keyframes recordFlash{
+  0%   { background:rgba(0,173,181,0.16); border-color:var(--teal-dim); }
+  100% { background:var(--bg-1); border-color:var(--line); }
+}
+.record-card-flash{ animation:recordFlash 2.4s ease-out; }

@@ -2465,3 +2465,129 @@ a.todo-title:hover{ color:var(--teal); }
   .users-filter-row{ flex-direction:column; align-items:flex-start; }
   .users-role-filter{ width:100%; }
 }
+
+/* Terminal ------------------------------------------------------------------ */
+.term-clock{
+  font-family:var(--font-mono, monospace); font-size:14px;
+  color:var(--teal); letter-spacing:.04em;
+  padding:8px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-2);
+}
+
+.term-tabs{
+  display:flex; gap:6px; overflow-x:auto; margin-bottom:18px;
+  padding-bottom:4px; -webkit-overflow-scrolling:touch;
+}
+.term-tabs::-webkit-scrollbar{ height:0; }
+.term-tab{
+  flex-shrink:0; padding:9px 16px; border-radius:8px; cursor:pointer;
+  border:1px solid var(--line); background:var(--bg-2);
+  color:var(--ink-2); font-size:13px; font-weight:600;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+.term-tab:hover{ color:var(--ink-0); }
+.term-tab.is-active{
+  border-color:var(--teal-dim); background:rgba(0,173,181,0.12); color:var(--ink-0);
+}
+
+/* Map beside its readouts on desktop, stacked on mobile. The map keeps its
+   aspect ratio rather than being letterboxed, since the projection is only
+   meaningful undistorted. */
+/* The panels are <section> elements, and style.css gives every section the
+   landing page's vertical padding — which showed up as ~96px of dead space
+   above the map. Reset here rather than switching the markup to <div>: section
+   is the correct element for a titled region, and the padding belongs to the
+   marketing pages, not to it. */
+.term-panel{ padding:0; margin:0; }
+
+.term-panel[data-tab="map"]{
+  display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:18px;
+  /* align-content:start is load-bearing. The panel stretches taller than its
+     content inside the dashboard's column layout, and a grid's default
+     align-content left the map floating in the vertical middle with ~96px of
+     dead space above it. */
+  align-content:start;
+}
+@media (max-width:1000px){
+  .term-panel[data-tab="map"]{ grid-template-columns:1fr; }
+}
+
+.term-map-wrap{
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  background:#08080a;
+}
+.term-map{ width:100%; }
+.term-map-svg{ width:100%; height:auto; display:block; }
+
+.term-map-side{ display:flex; flex-direction:column; gap:14px; }
+.term-block{
+  border:1px solid var(--line); border-radius:12px; background:var(--bg-1);
+  padding:14px 16px;
+}
+.term-block h3{
+  font-size:12px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); margin:0 0 12px;
+  display:flex; align-items:center; gap:8px;
+}
+.term-badge{
+  font-size:9.5px; letter-spacing:.06em; padding:2px 7px; border-radius:4px;
+  background:rgba(3,201,136,0.14); color:#03c988; text-transform:none;
+}
+.term-badge.is-off{ background:var(--bg-3); color:var(--ink-3); }
+
+.term-session{
+  display:grid; grid-template-columns:auto 1fr auto; gap:8px;
+  align-items:center; padding:8px 0;
+  border-bottom:1px solid var(--line);
+}
+.term-session:last-child{ border-bottom:none; }
+.term-session-dot{ width:8px; height:8px; border-radius:50%; }
+.term-session-name{ font-size:13px; color:var(--ink-2); font-weight:600; }
+.term-session.is-open .term-session-name{ color:var(--ink-0); }
+.term-session-state{
+  font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-3);
+}
+.term-session.is-open .term-session-state{ color:#03c988; }
+.term-session-next{
+  grid-column:2 / -1; font-size:11.5px; color:var(--ink-3);
+  font-family:var(--font-mono, monospace);
+}
+
+.term-event{
+  display:block; padding:9px 0; border-bottom:1px solid var(--line);
+  text-decoration:none;
+}
+.term-event:last-child{ border-bottom:none; }
+.term-event-loc{
+  display:block; font-size:10px; letter-spacing:.08em; text-transform:uppercase;
+  color:#ff6b4a; margin-bottom:3px;
+}
+.term-event-title{
+  display:block; font-size:12.5px; color:var(--ink-2); line-height:1.45;
+}
+.term-event:hover .term-event-title{ color:var(--ink-0); }
+.term-empty{ font-size:12.5px; color:var(--ink-3); margin:0; }
+
+.term-legend{
+  display:flex; flex-direction:column; gap:7px;
+  font-size:11.5px; color:var(--ink-3); padding:0 4px;
+}
+.term-legend span{ display:flex; align-items:center; gap:8px; }
+.term-legend i{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.lg-session{ background:#00adb5; }
+.lg-econ{ background:none; border:1.5px solid #f5c542; }
+.lg-event{ background:#ff6b4a; }
+
+/* TradingView widgets are iframes and bring their own chrome; the host just
+   provides the frame and a minimum height so the panel does not collapse
+   before the iframe loads. */
+.tv-host{
+  border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  background:var(--bg-1); min-height:480px;
+}
+
+@media (max-width:640px){
+  .tv-host{ min-height:420px; }
+  .term-clock{ font-size:12.5px; padding:6px 10px; }
+}

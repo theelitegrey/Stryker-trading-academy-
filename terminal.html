@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="179">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invite & Earn — Stryker Trading Academy</title>
+<title>Terminal — Stryker Trading Academy</title>
+<meta name="description" content="Your Stryker Trading Academy student dashboard.">
 <link rel="stylesheet" href="assets/style.css?v=179">
 <script src="assets/toast.js?v=179" defer></script>
 <script src="assets/version-check.js?v=179" defer></script>
@@ -15,7 +16,8 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
-<body data-page-access="referrals">
+<body>
+
 
 <div class="access-gate-overlay" id="access-gate-overlay">
   <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
@@ -64,7 +66,7 @@
 
     <div class="side-section">
       <div class="side-label">Learn</div>
-      <a href="dashboard-user.html" class="side-link">
+      <a href="dashboard-user.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
         Overview
       </a>
@@ -109,7 +111,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
         Trade journal
       </a>
-      <a href="referrals.html" class="side-link active">
+      <a href="referrals.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Invite &amp; earn
       </a>
@@ -128,71 +130,66 @@
     </div>
 
     <div class="sidebar-foot">
-      <a href="dashboard-user.html" class="user-chip">
+      <a href="index.html" class="user-chip">
         <div class="chip-avatar"></div>
         <div>
-          <div class="chip-name">Trader</div>
-          <div class="chip-role">—</div>
+          <div class="chip-name">—</div>
+          <div class="chip-role">Desk Membership</div>
         </div>
       </a>
       <a href="#" class="sign-out-link" data-sign-out>Sign out</a>
     </div>
   </aside>
 
-  <main class="dash-main">
+  <main class="dash-main" id="terminal-main">
     <div class="dash-topbar">
       <div>
-        <h1>Invite &amp; earn</h1>
-        <p>Share your link, earn points for every trader who joins — and see how you rank.</p>
+        <h1>Terminal</h1>
+        <p class="dash-sub">Live markets, global events and the sessions that move them.</p>
       </div>
+      <div class="term-clock"><span id="term-utc">--:-- UTC</span></div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head"><h2>Your invite link</h2></div>
-      <div class="auth-error" id="referral-error"></div>
-      <p style="color:var(--ink-3); font-size:13.5px; margin-bottom:14px;">Anyone who signs up through this link is credited to you automatically.</p>
-      <div class="form-row-2" style="align-items:flex-end;">
-        <div class="field" style="margin-bottom:0;">
-          <label for="referral-link-display">Link</label>
-          <input type="text" id="referral-link-display" readonly style="font-family:var(--font-mono); font-size:13px;">
+    <div class="term-tabs" id="term-tabs">
+      <button type="button" class="term-tab" data-tab="map">World</button>
+      <button type="button" class="term-tab" data-tab="markets">Markets</button>
+      <button type="button" class="term-tab" data-tab="chart">Chart</button>
+      <button type="button" class="term-tab" data-tab="news">News</button>
+      <button type="button" class="term-tab" data-tab="calendar">Calendar</button>
+      <button type="button" class="term-tab" data-tab="screener">Screener</button>
+      <button type="button" class="term-tab" data-tab="heatmap">Heatmap</button>
+    </div>
+
+    <section class="term-panel" data-tab="map">
+      <div class="term-map-wrap">
+        <div id="term-map" class="term-map"></div>
+      </div>
+      <div class="term-map-side">
+        <div class="term-block">
+          <h3>Sessions</h3>
+          <div id="term-sessions"></div>
         </div>
-        <button class="btn btn-primary btn-sm" id="referral-copy-btn" style="height:44px;">Copy link</button>
+        <div class="term-block">
+          <h3>Live events <span class="term-badge" id="term-events-badge">live</span></h3>
+          <div id="term-events-list"><p class="term-empty">Loading…</p></div>
+        </div>
+        <div class="term-legend">
+          <span><i class="lg-session"></i>Session open</span>
+          <span><i class="lg-econ"></i>Scheduled releases</span>
+          <span><i class="lg-event"></i>Breaking news</span>
+        </div>
       </div>
-      <p style="color:var(--ink-3); font-size:12.5px; margin-top:10px; margin-bottom:0;">Your code: <span id="referral-code-display" style="font-family:var(--font-mono); color:var(--ink-0);">—</span></p>
-    </div>
+    </section>
 
-    <div class="stat-grid-3">
-      <div class="stat-card">
-        <div class="stat-val" id="referral-total-points">—</div>
-        <div class="stat-label">Total points</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="referral-total-invites">—</div>
-        <div class="stat-label">People invited</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="referral-rank">—</div>
-        <div class="stat-label">Your rank</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Your invites</h2>
-        <span id="referral-invite-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
-      </div>
-      <div id="referral-invite-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Leaderboard</h2>
-        <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">top invite points</span>
-      </div>
-      <div id="referral-leaderboard"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
+    <section class="term-panel" data-tab="markets"><div id="tv-quotes" class="tv-host"></div></section>
+    <section class="term-panel" data-tab="chart"><div id="tv-chart" class="tv-host"></div></section>
+    <section class="term-panel" data-tab="news"><div id="tv-news" class="tv-host"></div></section>
+    <section class="term-panel" data-tab="calendar"><div id="tv-calendar" class="tv-host"></div></section>
+    <section class="term-panel" data-tab="screener"><div id="tv-screener" class="tv-host"></div></section>
+    <section class="term-panel" data-tab="heatmap"><div id="tv-heatmap" class="tv-host"></div></section>
   </main>
 </div>
+
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -209,6 +206,7 @@
 <script src="assets/notifications.js?v=179"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
 <script src="assets/push.js?v=179"></script>
+<script src="assets/push-prompt.js?v=179"></script>
 <script src="assets/admin-link.js?v=179"></script>
 <script src="assets/profiles-sync.js?v=179"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
@@ -221,7 +219,10 @@
 <script src="assets/plan-guard.js?v=179"></script>
 <script src="assets/maintenance-check.js?v=179"></script>
 <script src="assets/branding.js?v=179"></script>
+<script src="assets/chapters-data.js?v=179"></script>
+<script src="assets/chapters-store.js?v=179"></script>
 <script src="assets/dash-nav.js?v=179"></script>
-<script src="assets/referrals-page.js?v=179"></script>
+<script src="assets/world-map-path.js?v=179"></script>
+<script src="assets/terminal.js?v=179"></script>
 </body>
 </html>

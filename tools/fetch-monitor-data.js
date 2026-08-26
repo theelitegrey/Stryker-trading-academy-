@@ -7,28 +7,35 @@
  * writes one monitor-data.json, which the workflow publishes to the `data`
  * branch. The page reads it from raw.githubusercontent.com (CORS-open).
  *
- * WHY THIS EXISTS
- * GDELT rate-limits shared datacenter IPs into minute-long 429s (measured in
- * functions-src/refreshWorldData.js) and is unreachable from some student
- * networks entirely — a student in a region where GDELT is blocked saw
- * "offline" panels even though the page itself loaded. Fetching here and
- * serving a static JSON makes the data path: GitHub runner -> repo -> Pages
- * visitor, which only requires the student to reach GitHub — the same
- * requirement as loading the site at all.
+ * UPSTREAM CHOICES — measured, not guessed (see run 33017041252's logs):
+ * - GDELT's api.gdeltproject.org refuses connections from cloud IPs — every
+ *   call from a GitHub runner died at undici's 10s connect timeout, exactly
+ *   as it did from Cloud Functions and from some student networks. So the
+ *   API is not used here at all.
+ * - Map events come from GDELT's raw 15-minute EXPORT CSV on
+ *   data.gdeltproject.org instead — static file hosting built for bulk
+ *   pipelines, which is a different serving path from the blocked API. Each
+ *   run ingests the newest batch and folds it into a rolling 24h window
+ *   carried in the published JSON itself, so the map fills out across runs.
+ * - Wire and financial headlines come from major outlets' RSS feeds, with
+ *   keyword-tier severity (GDELT tone is unavailable without the API).
+ * - Markets: Yahoo Finance chart API. Outbreaks: WHO. Odds: Polymarket.
+ *   DEFCON: defconlevel.com scrape with a derived fallback.
  *
  * DESIGN RULES
- * - No npm dependencies; Node 20's fetch is enough.
+ * - No npm dependencies; Node 20's fetch + the runner's `unzip` are enough.
  * - Every section is independent: one dead upstream costs one section.
- * - On section failure, the previous run's data for that section is kept and
- *   marked stale — the page degrades to old data, never to an error wall.
- * - Sequential requests with gaps; GDELT punishes bursts.
+ * - On section failure the previous run's data is kept and marked stale —
+ *   the page degrades to old data, never to an error wall.
  *
  * Usage: node tools/fetch-monitor-data.js <previous.json|-> <out.json>
  */
 
 'use strict';
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const { execFileSync } = require('child_process');
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; StrykerMonitor/1.0; +https://strykertrading.com)' };
 
@@ -70,10 +77,10 @@ function countryAt(lon, lat) {
 // ---- Fetch helpers ----------------------------------------------------------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function get(url, { timeout = 45000, tries = 3, json = true } = {}) {
+async function get(url, { timeout = 30000, tries = 3, json = true } = {}) {
   let last;
   for (let i = 0; i < tries; i++) {
-    if (i) await sleep(5000 * i);
+    if (i) await sleep(4000 * i);
     try {
       const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeout), redirect: 'follow' });
       const text = await res.text();
@@ -82,6 +89,28 @@ async function get(url, { timeout = 45000, tries = 3, json = true } = {}) {
     } catch (e) { last = e; console.warn('  retryable:', url.slice(0, 90), '-', e.message); }
   }
   throw last;
+}
+
+async function getBuffer(url, timeout) {
+  const res = await fetch(url, { headers: UA, signal: AbortSignal.timeout(timeout || 90000), redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+// ---- Text helpers -----------------------------------------------------------
+function fingerprint(title) {
+  return String(title || '').toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
+    .split(' ').slice(0, 9).join(' ');
+}
+function stripTags(s) { return String(s || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
+function decodeEntities(s) {
+  return String(s || '')
+    .replace(/<!\[CDATA\[(.*?)\]\]>/gs, '$1')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (m, n) => String.fromCharCode(parseInt(n, 10)))
+    .trim();
 }
 
 // ---- Categorisation (mirror of assets/global-monitor.js) --------------------
@@ -98,138 +127,250 @@ function categorise(text) {
   return 'other';
 }
 
-const EVENTS_QUERY = '(war OR conflict OR military OR missile OR airstrike OR invasion OR troops OR ceasefire OR shelling OR "drone strike" OR sanctions OR coup OR insurgency OR terrorism OR protest OR mobilization)';
-const WIRE_QUERY = '(war OR ceasefire OR missile OR airstrike OR invasion OR troops OR sanctions OR nuclear OR NATO OR "drone strike" OR offensive OR militants OR coup) sourcelang:eng';
-const FIN_QUERY = '("federal reserve" OR "central bank" OR inflation OR "interest rate" OR forex OR currency OR dollar OR euro OR gold OR oil OR "stock market" OR stocks OR bonds OR recession OR tariffs OR sanctions) sourcelang:eng';
-
-const GDELT_GEO = 'https://api.gdeltproject.org/api/v2/geo/geo';
-const GDELT_DOC = 'https://api.gdeltproject.org/api/v2/doc/doc';
-
-function fingerprint(title) {
-  return String(title || '').toLowerCase()
-    .replace(/[^a-z0-9 ]+/g, '').replace(/\s+/g, ' ').trim()
-    .split(' ').slice(0, 9).join(' ');
-}
-function parseSeenDate(s) {
-  const m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
-  if (!m) return null;
-  const t = Date.parse(`${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z`);
-  return isNaN(t) ? null : t;
+// Severity tiers for RSS headlines. Without GDELT tone, keywords carry the
+// job — most severe pattern wins.
+const SEV_WIRE = [
+  ['critical', /\b(nuclear|invasion|invades?|declares? war|major offensive|mass casualties|assassinat|coup|massacre|chemical weapons|mushroom cloud)\b/i],
+  ['high', /\b(missiles?|airstrikes?|air strikes?|drone strikes?|shelling|artillery|attacks?|killed|dead|explosion|blast|sanctions|escalat|offensive|troops|hostage|strikes? on)\b/i],
+  ['elevated', /\b(military|warns?|warning|threats?|tensions?|protests?|unrest|mobiliz|ceasefire|clash|conflict|crisis|weapons|defen[cs]e)\b/i]
+];
+const SEV_FIN = [
+  ['critical', /\b(crash(es|ed)?|collapses?|panic|defaults?|meltdown|emergency|bank run|contagion|freefall)\b/i],
+  ['high', /\b(plunges?|tumbles?|selloff|sell-off|slumps?|sinks?|recession|crisis|sanctions|turmoil|slides?|routs?|fears|warns?)\b/i]
+];
+function severityOf(title, tiers, fallback) {
+  for (const [sev, re] of tiers) if (re.test(title)) return sev;
+  return fallback;
 }
 
-function parseGeo(json) {
-  return ((json && json.features) || []).map((f) => {
-    const c = (f.geometry && f.geometry.coordinates) || [];
-    const p = f.properties || {};
-    const lon = typeof c[0] === 'number' ? c[0] : null;
-    const lat = typeof c[1] === 'number' ? c[1] : null;
-    if (lon === null || lat === null) return null;
-    const raw = String(p.html || p.name || '');
-    const link = raw.match(/href=["']([^"']+)["']/i);
-    const title = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!title) return null;
-    return {
-      lon: +lon.toFixed(3), lat: +lat.toFixed(3),
-      place: String(p.name || '').trim().slice(0, 80),
-      title: title.slice(0, 220),
-      url: link ? link[1] : null,
-      count: Number(p.count) || 1,
-      cat: categorise(title + ' ' + (p.name || '')),
-      country: countryAt(lon, lat)
-    };
-  }).filter(Boolean).sort((a, b) => b.count - a.count);
+// Country chip for a headline: first country name (or alias) it mentions.
+const COUNTRY_ALIASES = [
+  ['United States', /\b(U\.?S\.?A?|United States|America|Washington|Pentagon|White House)\b/],
+  ['United Kingdom', /\b(U\.?K\.?|United Kingdom|Britain|British|London)\b/],
+  ['Russia', /\b(Russia|Moscow|Kremlin|Putin)\b/i],
+  ['Ukraine', /\b(Ukrain|Kyiv|Zelensk)\b/i],
+  ['Israel', /\b(Israel|Tel Aviv|Netanyahu|IDF)\b/],
+  ['Palestine', /\b(Gaza|Palestin|West Bank|Rafah)\b/i],
+  ['Iran', /\b(Iran|Tehran)\b/],
+  ['China', /\b(China|Beijing|Chinese)\b/],
+  ['Taiwan', /\b(Taiwan|Taipei)\b/],
+  ['North Korea', /\b(North Korea|Pyongyang)\b/i],
+  ['South Korea', /\b(South Korea|Seoul)\b/i],
+  ['Lebanon', /\b(Lebanon|Beirut|Hezbollah)\b/i],
+  ['Yemen', /\b(Yemen|Houthi)\b/i],
+  ['Syria', /\b(Syria|Damascus)\b/],
+  ['India', /\b(India|New Delhi)\b/],
+  ['Pakistan', /\b(Pakistan|Islamabad)\b/],
+  ['Germany', /\b(German|Berlin)\b/],
+  ['France', /\b(France|French|Paris)\b/],
+  ['Japan', /\b(Japan|Tokyo)\b/],
+  ['Sudan', /\b(Sudan|Khartoum)\b/],
+  ['Venezuela', /\bVenezuela|Caracas\b/i]
+];
+let COUNTRY_NAME_RES = null;
+function countryFromText(text) {
+  for (const [name, re] of COUNTRY_ALIASES) if (re.test(text)) return name;
+  if (!COUNTRY_NAME_RES) {
+    COUNTRY_NAME_RES = COUNTRY_SHAPES
+      .map((s) => [s.n, new RegExp('\\b' + s.n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')]);
+  }
+  for (const [name, re] of COUNTRY_NAME_RES) if (re.test(text)) return name;
+  return null;
 }
 
-function parseArticles(json, cap) {
-  const out = [], seen = new Set();
-  for (const a of ((json && json.articles) || [])) {
-    const title = String(a.title || '').trim();
+// ---- RSS --------------------------------------------------------------------
+function parseRss(xml, sourceLabel) {
+  const items = [];
+  const blocks = String(xml).match(/<item[\s>][\s\S]*?<\/item>/gi) || [];
+  for (const b of blocks) {
+    // decodeEntities must run FIRST: it unwraps <![CDATA[...]]>, which
+    // stripTags would otherwise swallow whole (CDATA opens with '<').
+    const title = stripTags(decodeEntities((b.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || ''));
     if (!title) continue;
-    const fp = fingerprint(title);
+    let link = decodeEntities(((b.match(/<link[^>]*>([\s\S]*?)<\/link>/i) || [])[1] || '').trim());
+    if (!link) link = (b.match(/<link[^>]*href="([^"]+)"/i) || [])[1] || null;
+    const pub = (b.match(/<(?:pubDate|dc:date)[^>]*>([\s\S]*?)<\/(?:pubDate|dc:date)>/i) || [])[1];
+    const at = pub ? Date.parse(pub.trim()) : null;
+    items.push({ title: title.slice(0, 200), url: link || null, source: sourceLabel, at: isNaN(at) ? null : at });
+  }
+  return items;
+}
+
+async function fetchFeeds(feeds) {
+  const all = [];
+  for (const [label, url] of feeds) {
+    try {
+      const xml = await get(url, { json: false, timeout: 25000, tries: 2 });
+      const items = parseRss(xml, label);
+      console.log('  feed', label, items.length, 'items');
+      all.push(...items);
+    } catch (e) { console.warn('  feed', label, 'failed:', e.message); }
+    await sleep(300);
+  }
+  return all;
+}
+
+function mergeHeadlines(raw, tiers, fallbackSev, cap) {
+  const seen = new Set();
+  const items = [];
+  raw.sort((a, b) => (b.at || 0) - (a.at || 0));
+  const cutoff = Date.now() - 36 * 3600000;
+  for (const r of raw) {
+    if (r.at && r.at < cutoff) continue;
+    const fp = fingerprint(r.title);
     if (!fp || seen.has(fp)) continue;
     seen.add(fp);
-    out.push({
-      id: fp, title: title.slice(0, 200), url: a.url || null,
-      source: String(a.domain || '').replace(/^www\./, '').slice(0, 40),
-      country: String(a.sourcecountry || '').slice(0, 40) || null,
-      at: parseSeenDate(a.seendate), cat: categorise(title)
+    items.push({
+      id: fp, title: r.title, url: r.url, source: r.source, at: r.at,
+      country: countryFromText(r.title),
+      cat: categorise(r.title),
+      sev: severityOf(r.title, tiers, fallbackSev)
     });
-    if (out.length >= (cap || 80)) break;
+    if (items.length >= cap) break;
   }
-  return out;
+  const rank = { critical: 0, high: 1, elevated: 2, active: 3, watch: 3 };
+  items.sort((a, b) => (rank[a.sev] ?? 9) - (rank[b.sev] ?? 9) || (b.at || 0) - (a.at || 0));
+  return items;
 }
 
-// ---- Sections ---------------------------------------------------------------
+const WIRE_FEEDS = [
+  ['bbc.com', 'https://feeds.bbci.co.uk/news/world/rss.xml'],
+  ['aljazeera.com', 'https://www.aljazeera.com/xml/rss/all.xml'],
+  ['theguardian.com', 'https://www.theguardian.com/world/rss'],
+  ['skynews.com', 'https://feeds.skynews.com/feeds/rss/world.xml'],
+  ['france24.com', 'https://www.france24.com/en/rss']
+];
+const FIN_FEEDS = [
+  ['cnbc.com', 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664'],
+  ['marketwatch.com', 'https://feeds.content.dowjones.io/public/rss/mw_topstories'],
+  ['finance.yahoo.com', 'https://finance.yahoo.com/news/rssindex'],
+  ['bbc.com', 'https://feeds.bbci.co.uk/news/business/rss.xml'],
+  ['theguardian.com', 'https://www.theguardian.com/uk/business/rss']
+];
+
+async function sectionWire() {
+  const raw = await fetchFeeds(WIRE_FEEDS);
+  if (!raw.length) throw new Error('every wire feed failed');
+  return { items: mergeHeadlines(raw, SEV_WIRE, 'active', 140) };
+}
+
+async function sectionFinance() {
+  const raw = await fetchFeeds(FIN_FEEDS);
+  if (!raw.length) throw new Error('every finance feed failed');
+  return { items: mergeHeadlines(raw, SEV_FIN, 'watch', 60) };
+}
+
+// ---- Map events: GDELT 15-minute export CSV ---------------------------------
+// data.gdeltproject.org is GDELT's static bulk-download host — a different
+// serving path from the connection-refusing API. Each run ingests the newest
+// 15-minute batch and folds it into a rolling 24h window that travels inside
+// the published JSON (`rolling`), so the map fills out run by run.
+
+// GDELT 2.0 event-table column indices (tab-separated, no header).
+const COL = { ROOT: 28, QUAD: 29, MENTIONS: 31, TONE: 34,
+              GEO_NAME: 52, GEO_LAT: 56, GEO_LON: 57, ADDED: 59, URL: 60 };
+// CAMEO root code -> our category. Only these roots make the map.
+const ROOT_CAT = { 13: 'military', 14: 'unrest', 15: 'military', 17: 'diplomacy',
+                   18: 'combat', 19: 'combat', 20: 'combat' };
+
+function titleFromUrl(u, place) {
+  try {
+    const seg = new URL(u).pathname.split('/').filter(Boolean)
+      .map((s) => s.replace(/\.(html?|php|aspx?)$/i, ''))
+      .filter((s) => !/^\d+$/.test(s) && s.length > 8)
+      .pop() || '';
+    const words = decodeURIComponent(seg)
+      .replace(/[-_+]+/g, ' ')
+      .replace(/\b\d{4,}\b/g, ' ')
+      .replace(/\s+/g, ' ').trim();
+    if (words.length >= 12) {
+      const t = words.charAt(0).toUpperCase() + words.slice(1);
+      return t.slice(0, 160);
+    }
+  } catch (e) {}
+  return 'Reported incident near ' + (place || 'unknown location');
+}
+
 async function sectionEvents() {
-  const url = `${GDELT_GEO}?query=${encodeURIComponent(EVENTS_QUERY)}&mode=pointdata&format=geojson&timespan=6h`;
-  const items = parseGeo(await get(url));
-  if (!items.length) throw new Error('geo returned no events');
-  return { items: items.slice(0, 400) };
+  const listing = await get('https://data.gdeltproject.org/gdeltv2/lastupdate.txt',
+    { json: false, timeout: 30000 });
+  const line = String(listing).split('\n').find((l) => l.includes('.export.CSV.zip'));
+  if (!line) throw new Error('no export in lastupdate.txt');
+  const url = line.trim().split(/\s+/).pop().replace(/^http:/, 'https:');
+
+  const zipBuf = await getBuffer(url, 90000);
+  const tmpZip = path.join(os.tmpdir(), 'gdelt-export.zip');
+  fs.writeFileSync(tmpZip, zipBuf);
+  const csv = execFileSync('unzip', ['-p', tmpZip], { maxBuffer: 512 * 1024 * 1024 }).toString('utf8');
+
+  const fresh = new Map();      // url -> event
+  for (const row of csv.split('\n')) {
+    const c = row.split('\t');
+    if (c.length < 61) continue;
+    const root = parseInt(c[COL.ROOT], 10);
+    const quad = parseInt(c[COL.QUAD], 10);
+    if (!(root in ROOT_CAT) && quad !== 4) continue;
+    const lat = parseFloat(c[COL.GEO_LAT]), lon = parseFloat(c[COL.GEO_LON]);
+    if (!isFinite(lat) || !isFinite(lon)) continue;
+    const srcUrl = (c[COL.URL] || '').trim();
+    if (!srcUrl) continue;
+    const mentions = parseInt(c[COL.MENTIONS], 10) || 1;
+    const place = (c[COL.GEO_NAME] || '').trim().slice(0, 80);
+    const prev = fresh.get(srcUrl);
+    if (prev) { prev.count += mentions; continue; }
+    fresh.set(srcUrl, {
+      lon: +lon.toFixed(2), lat: +lat.toFixed(2),
+      place, url: srcUrl, count: mentions,
+      cat: ROOT_CAT[root] || 'combat',
+      at: Date.now()
+    });
+  }
+  if (!fresh.size) throw new Error('no conflict rows in export batch');
+
+  // Titles + country attribution only for what we keep.
+  let freshList = [...fresh.values()].sort((a, b) => b.count - a.count).slice(0, 250);
+  freshList.forEach((e) => {
+    e.title = titleFromUrl(e.url, e.place);
+    e.country = countryAt(e.lon, e.lat);
+  });
+
+  // Fold into the rolling 24h window carried by the previous run.
+  const prevRolling = (PREV.events && PREV.events.rolling) || [];
+  const cutoff = Date.now() - 24 * 3600000;
+  const byUrl = new Map();
+  for (const e of prevRolling) {
+    if (!e.at || e.at < cutoff || !e.url) continue;
+    byUrl.set(e.url, e);
+  }
+  for (const e of freshList) {
+    const old = byUrl.get(e.url);
+    if (old) { old.count = Math.max(old.count, e.count); old.at = e.at; }
+    else byUrl.set(e.url, e);
+  }
+  const rolling = [...byUrl.values()]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 900);
+
+  const sixH = Date.now() - 6 * 3600000;
+  let items = rolling.filter((e) => e.at >= sixH);
+  // A fresh `data` branch (or a long pipeline outage) leaves the 6h window
+  // nearly empty; the map is the product, so fall back to the full window.
+  if (items.length < 40) items = rolling.slice();
+  items = items.sort((a, b) => b.count - a.count).slice(0, 400);
+
+  return { items, rolling, batch: url.slice(url.lastIndexOf('/') + 1) };
 }
 
-async function sectionActive24() {
-  const url = `${GDELT_GEO}?query=${encodeURIComponent(EVENTS_QUERY)}&mode=pointdata&format=geojson&timespan=24h`;
-  const pts = parseGeo(await get(url));
-  if (!pts.length) throw new Error('geo 24h returned no points');
+function sectionActive24(eventsSection) {
+  const rolling = (eventsSection && eventsSection.rolling) || [];
+  if (!rolling.length) throw new Error('no rolling events');
   const agg = {};
-  for (const p of pts) {
+  for (const p of rolling) {
     const key = p.place || 'Unknown';
     if (!agg[key]) agg[key] = { place: key, country: p.country, count: 0, cat: p.cat };
     agg[key].count += p.count;
   }
-  const items = Object.values(agg).sort((a, b) => b.count - a.count).slice(0, 15);
-  return { items };
-}
-
-// Severity from GDELT's tone filter: one query per band, most severe first,
-// membership decides the label. Sequential with gaps — GDELT punishes bursts.
-async function sectionWire() {
-  const bands = [
-    ['critical', ' tone<-9', '24h', 40],
-    ['high', ' tone<-6', '6h', 50],
-    ['elevated', ' tone<-3.5', '6h', 50],
-    ['active', '', '3h', 75]
-  ];
-  const seen = new Map();
-  let gotAny = false;
-  for (const [sev, toneQ, span, max] of bands) {
-    try {
-      const url = `${GDELT_DOC}?query=${encodeURIComponent(WIRE_QUERY + toneQ)}` +
-        `&mode=artlist&format=json&maxrecords=${max}&sort=datedesc&timespan=${span}`;
-      const arts = parseArticles(await get(url), max);
-      gotAny = gotAny || arts.length > 0;
-      for (const a of arts) if (!seen.has(a.id)) seen.set(a.id, { ...a, sev });
-    } catch (e) { console.warn('wire band', sev, 'failed:', e.message); }
-    await sleep(2500);
-  }
-  if (!gotAny) throw new Error('all wire bands failed');
-  const rank = { critical: 0, high: 1, elevated: 2, active: 3 };
-  const items = [...seen.values()]
-    .sort((a, b) => rank[a.sev] - rank[b.sev] || (b.at || 0) - (a.at || 0))
-    .slice(0, 140);
-  return { items };
-}
-
-async function sectionFinance() {
-  const bands = [['critical', ' tone<-7', 35], ['high', ' tone<-4.5', 45], ['watch', ' tone<-2.5', 50]];
-  const seen = new Map();
-  let gotAny = false;
-  for (const [sev, toneQ, max] of bands) {
-    try {
-      const url = `${GDELT_DOC}?query=${encodeURIComponent(FIN_QUERY + toneQ)}` +
-        `&mode=artlist&format=json&maxrecords=${max}&sort=datedesc&timespan=12h`;
-      const arts = parseArticles(await get(url), max);
-      gotAny = gotAny || arts.length > 0;
-      for (const a of arts) if (!seen.has(a.id)) seen.set(a.id, { ...a, sev });
-    } catch (e) { console.warn('finance band', sev, 'failed:', e.message); }
-    await sleep(2500);
-  }
-  if (!gotAny) throw new Error('all finance bands failed');
-  const rank = { critical: 0, high: 1, watch: 2 };
-  const items = [...seen.values()]
-    .sort((a, b) => rank[a.sev] - rank[b.sev] || (b.at || 0) - (a.at || 0))
-    .slice(0, 60);
-  return { items };
+  return { items: Object.values(agg).sort((a, b) => b.count - a.count).slice(0, 15) };
 }
 
 // ---- Markets (Yahoo Finance chart API — keyless) ----------------------------
@@ -244,7 +385,7 @@ const MARKET_SYMBOLS = [
   { s: 'RTY=F', label: 'Russell futures', group: 'fut' },
   { s: 'GC=F', label: 'Gold', group: 'haven' },
   { s: 'SI=F', label: 'Silver', group: 'haven' },
-  { s: 'DX=F', label: 'Dollar index', group: 'haven' },
+  { s: 'DX-Y.NYB', label: 'Dollar index', group: 'haven' },
   { s: 'USDJPY=X', label: 'USD/JPY', group: 'fx' },
   { s: 'EURUSD=X', label: 'EUR/USD', group: 'fx' },
   { s: 'GBPUSD=X', label: 'GBP/USD', group: 'fx' },
@@ -307,7 +448,6 @@ async function sectionMarkets() {
   }
   if (items.length < 8) throw new Error('too few market quotes (' + items.length + ')');
 
-  // Derived signals — computed here so the page just renders numbers.
   const by = {}; items.forEach((i) => { by[i.s] = i; });
   const spx = by['^GSPC'], vix = by['^VIX'];
   const sectors = items.filter((i) => i.group === 'sector');
@@ -332,8 +472,6 @@ async function sectionMarkets() {
   }
   const tnx = by['^TNX'], fvx = by['^FVX'];
   if (tnx && fvx) {
-    // ^TNX/^FVX are CBOE yield indices; Yahoo returns them either as the
-    // yield itself (4.66) or as yield*10 (46.6) depending on era — normalise.
     const y10 = tnx.price > 20 ? tnx.price / 10 : tnx.price;
     const y5 = fvx.price > 20 ? fvx.price / 10 : fvx.price;
     signals.curve = { y10: +y10.toFixed(2), y5: +y5.toFixed(2), spreadBp: +((y10 - y5) * 100).toFixed(1) };
@@ -350,8 +488,6 @@ async function sectionMarkets() {
 // ---- WHO disease outbreak news ----------------------------------------------
 const PATHOGEN_HIGH = /\b(ebola|marburg|mers|h5n1|h7n9|avian influenza|nipah|lassa|plague|anthrax|hemorrhagic|haemorrhagic|mpox|monkeypox|polio|diphtheria)\b/i;
 
-function stripTags(s) { return String(s || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim(); }
-
 async function sectionOutbreaks() {
   const url = 'https://www.who.int/api/news/diseaseoutbreaknews' +
     '?sf_provider=dynamicProvider372&sf_culture=en' +
@@ -367,7 +503,6 @@ async function sectionOutbreaks() {
     const summary = stripTags(r.Summary || r.summary || '');
     const dateStr = r.PublicationDateAndTime || r.PublicationDate || null;
     const at = dateStr ? Date.parse(dateStr) : null;
-    // Titles read "Disease name – Country"; the dash and its flavour vary.
     const parts = title.split(/\s[–—-]\s/);
     const country = parts.length > 1 ? parts[parts.length - 1].slice(0, 60) : null;
     const disease = parts[0].slice(0, 90);
@@ -394,9 +529,6 @@ async function sectionOutbreaks() {
 
 // ---- DEFCON (OSINT estimate) ------------------------------------------------
 async function sectionDefcon(wireSection) {
-  // defconlevel.com publishes an OSINT estimate; scraping a level number is
-  // brittle, so a derived estimate from event volume is the fallback — and
-  // both are clearly labelled as unofficial on the page.
   try {
     const html = await get('https://www.defconlevel.com/current-level.php', { json: false, timeout: 20000, tries: 2 });
     const m = String(html).match(/defcon\s*(?:level)?\s*(?:is\s*)?[^0-9]{0,10}([1-5])\b/i);
@@ -405,8 +537,6 @@ async function sectionDefcon(wireSection) {
   } catch (e) {
     console.warn('defcon scrape failed:', e.message);
     const critical = ((wireSection && wireSection.items) || []).filter((i) => i.sev === 'critical').length;
-    // Derived scale never claims better than 3 — levels 1-2 are not something
-    // to infer from news volume.
     const level = critical >= 20 ? 3 : (critical >= 8 ? 4 : 5);
     return { level, source: 'derived from global event volume (unofficial)', derived: true };
   }
@@ -467,13 +597,9 @@ async function build(name, fn) {
 
 (async () => {
   const out = { generatedAt: Date.now() };
-  // GDELT sections strictly sequential with gaps; the rest are cheap.
   out.events = await build('events', sectionEvents);
-  await sleep(3000);
-  out.active24 = await build('active24', sectionActive24);
-  await sleep(3000);
+  out.active24 = await build('active24', () => sectionActive24(out.events));
   out.wire = await build('wire', sectionWire);
-  await sleep(3000);
   out.finance = await build('finance', sectionFinance);
   out.markets = await build('markets', sectionMarkets);
   out.outbreaks = await build('outbreaks', sectionOutbreaks);
@@ -486,7 +612,5 @@ async function build(name, fn) {
   console.log('wrote', outPath, size, 'bytes');
   const staleCount = ['events', 'active24', 'wire', 'finance', 'markets', 'outbreaks', 'predictions', 'defcon']
     .filter((k) => out[k] && out[k].stale).length;
-  // All eight sections dead almost certainly means the runner itself is
-  // offline; publishing that run would replace good data ages with bad ones.
   if (staleCount >= 8) { console.error('every section failed — refusing to publish'); process.exit(1); }
 })();

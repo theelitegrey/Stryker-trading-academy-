@@ -150,7 +150,7 @@
   // Gives the page a sense of depth as you move down it, and reclaims vertical
   // space on the content that matters.
   function stickyHeader() {
-    var nav = document.querySelector('.site-nav') || document.querySelector('nav');
+    var nav = document.querySelector('.nav') || document.querySelector('nav');
     if (!nav) return;
     var ticking = false;
     function update() {
@@ -455,5 +455,219 @@
     spotlight();
     cardTilt();
   });
+
+})();
+
+// ============================================================================
+// MOTION LAYER 3 — trading parallax backdrop
+//
+// Three depth layers behind the whole page, each scrolling at a different
+// rate. Depth is what sells parallax: one moving layer reads as a bug, three
+// at different speeds reads as space.
+//
+//   far   0.06  price grid and axis ticks, blurred — the terminal behind
+//   mid   0.18  candlestick ranges, the market itself
+//   near  0.34  annotation glyphs (BOS, FVG, order blocks) — the analysis
+//
+// PERFORMANCE. Each layer is drawn to its own canvas ONCE, then only
+// translated on scroll. Redrawing chart geometry every scroll frame would burn
+// the frame budget for a background nobody is looking directly at; a transform
+// is composited on the GPU and costs essentially nothing.
+//
+// Layers are taller than the viewport by their own travel distance, so they
+// never run out of content at the bottom of a long page.
+// ============================================================================
+
+(function () {
+
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  // Below 900px this is cost without benefit: the layers are barely visible on
+  // a narrow screen and the scroll handler competes with the actual content.
+  if (window.innerWidth < 900) return;
+
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+
+  function rng(seed) {
+    var s = seed;
+    return function () {
+      s = (s * 1103515245 + 12345) % 2147483648;
+      return s / 2147483648;
+    };
+  }
+
+  var LAYERS = [
+    { cls: 'm-px-far',  speed: 0.06, draw: drawGrid,        alpha: 0.5 },
+    { cls: 'm-px-mid',  speed: 0.18, draw: drawCandles,     alpha: 0.85 },
+    { cls: 'm-px-near', speed: 0.34, draw: drawAnnotations, alpha: 1 }
+  ];
+
+  // --- far: price grid + axis ticks ---------------------------------------
+  function drawGrid(ctx, w, h) {
+    var r = rng(1301);
+    ctx.strokeStyle = 'rgba(0,173,181,0.20)';
+    ctx.lineWidth = 1;
+    for (var y = 0; y < h; y += 78) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+    for (var x = 0; x < w; x += 132) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    // Price labels down the right edge, like a chart's axis.
+    ctx.fillStyle = 'rgba(139,147,160,0.30)';
+    ctx.font = '11px monospace';
+    ctx.textAlign = 'right';
+    var p = 2380 + Math.floor(r() * 40);
+    for (var yy = 40; yy < h; yy += 78) {
+      ctx.fillText((p).toFixed(2), w - 18, yy - 6);
+      p -= 4 + Math.floor(r() * 6);
+    }
+  }
+
+  // --- mid: candlestick ranges ---------------------------------------------
+  function drawCandles(ctx, w, h) {
+    var r = rng(8821);
+    var step = 21, price = h * 0.5;
+    for (var x = 20; x < w + step; x += step) {
+      var move = (r() - 0.48) * 34;
+      var o = price, c = price + move;
+      var hi = Math.min(o, c) - r() * 20;
+      var lo = Math.max(o, c) + r() * 20;
+      var up = c <= o;
+      ctx.strokeStyle = up ? 'rgba(3,201,136,0.34)' : 'rgba(229,72,77,0.34)';
+      ctx.fillStyle  = up ? 'rgba(3,201,136,0.48)' : 'rgba(229,72,77,0.26)';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.moveTo(x, hi); ctx.lineTo(x, lo); ctx.stroke();
+      var top = Math.min(o, c), hgt = Math.max(3, Math.abs(c - o));
+      ctx.fillRect(x - 7, top, 14, hgt);
+      ctx.strokeRect(x - 7, top, 14, hgt);
+      price = c;
+      // Wander back toward the middle so the series stays on canvas over a
+      // long page rather than climbing off the top.
+      price += (h * 0.5 - price) * 0.035;
+    }
+  }
+
+  // --- near: analyst annotations -------------------------------------------
+  // The layer that makes this specifically a TRADING backdrop rather than a
+  // generic chart pattern: the vocabulary the curriculum actually teaches.
+  function drawAnnotations(ctx, w, h) {
+    var r = rng(5507);
+    var tags = ['BOS', 'CHoCH', 'FVG', 'OB', 'BSL', 'SSL', 'LIQ SWEEP', 'PDH'];
+    var n = Math.round(h / 190);
+
+    for (var i = 0; i < n; i++) {
+      var x = 60 + r() * (w - 260);
+      var y = 80 + (i / n) * (h - 160) + r() * 60;
+      var kind = r();
+
+      if (kind < 0.34) {
+        // Order block / FVG zone
+        var bw = 90 + r() * 130, bh = 32 + r() * 44;
+        ctx.fillStyle = 'rgba(0,173,181,0.10)';
+        ctx.strokeStyle = 'rgba(0,173,181,0.42)';
+        ctx.lineWidth = 1.2;
+        ctx.setLineDash([5, 4]);
+        ctx.fillRect(x, y, bw, bh);
+        ctx.strokeRect(x, y, bw, bh);
+        ctx.setLineDash([]);
+        label(ctx, tags[Math.floor(r() * 4) + 2], x + 6, y - 7, 'rgba(0,173,181,0.62)');
+      } else if (kind < 0.68) {
+        // Liquidity level
+        var lw = 150 + r() * 220;
+        ctx.strokeStyle = 'rgba(245,197,66,0.40)';
+        ctx.lineWidth = 1.3;
+        ctx.setLineDash([7, 5]);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + lw, y); ctx.stroke();
+        ctx.setLineDash([]);
+        label(ctx, tags[Math.floor(r() * 3) + 4], x + lw + 8, y + 4,
+              'rgba(245,197,66,0.60)');
+      } else {
+        // Break-of-structure arrow
+        var ax = x, ay = y, bx = x + 70 + r() * 60, by = y - 40 - r() * 40;
+        ctx.strokeStyle = 'rgba(3,201,136,0.48)';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+        var ang = Math.atan2(by - ay, bx - ax);
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx - 9 * Math.cos(ang - 0.42), by - 9 * Math.sin(ang - 0.42));
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx - 9 * Math.cos(ang + 0.42), by - 9 * Math.sin(ang + 0.42));
+        ctx.stroke();
+        label(ctx, 'BOS', bx + 8, by - 2, 'rgba(3,201,136,0.66)');
+      }
+    }
+  }
+
+  function label(ctx, text, x, y, colour) {
+    ctx.fillStyle = colour;
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(text, x, y);
+  }
+
+  function build() {
+    if (document.getElementById('m-parallax')) return;
+
+    var host = document.createElement('div');
+    host.id = 'm-parallax';
+    host.className = 'm-parallax';
+    document.body.insertBefore(host, document.body.firstChild);
+
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var vw = window.innerWidth;
+    var docH = document.documentElement.scrollHeight;
+    var scrollable = Math.max(1, docH - window.innerHeight);
+
+    var made = LAYERS.map(function (L) {
+      var cv = document.createElement('canvas');
+      cv.className = 'm-px ' + L.cls;
+      // Each layer only needs the viewport plus however far it travels.
+      var lh = window.innerHeight + scrollable * L.speed + 200;
+      cv.width = vw * dpr; cv.height = lh * dpr;
+      cv.style.width = vw + 'px'; cv.style.height = lh + 'px';
+      cv.style.opacity = L.alpha;
+      var ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      L.draw(ctx, vw, lh);
+      host.appendChild(cv);
+      return { el: cv, speed: L.speed };
+    });
+
+    var ticking = false;
+    function update() {
+      var y = window.scrollY;
+      for (var i = 0; i < made.length; i++) {
+        made[i].el.style.transform =
+          'translate3d(0,' + (-y * made[i].speed).toFixed(2) + 'px,0)';
+      }
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+
+    // Debounced rebuild: canvases are sized against document height, and a
+    // resize changes both that and the viewport.
+    var rt;
+    window.addEventListener('resize', function () {
+      clearTimeout(rt);
+      rt = setTimeout(function () {
+        if (window.innerWidth < 900) { host.remove(); return; }
+        host.remove();
+        build();
+      }, 250);
+    }, { passive: true });
+
+    update();
+  }
+
+  // Built after load so document height is final — sizing against a page still
+  // laying out produces layers that run short near the footer.
+  ready(function () { setTimeout(build, 400); });
 
 })();

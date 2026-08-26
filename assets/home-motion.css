@@ -39,11 +39,11 @@
 .m-ready .m-head.m-in { opacity: 1; transform: none; }
 
 /* Header condense ---------------------------------------------------------- */
-.site-nav, nav.site-nav {
+.nav {
   transition: padding .25s ease, background .25s ease, box-shadow .25s ease,
               backdrop-filter .25s ease;
 }
-.site-nav.m-condensed {
+.nav.m-condensed {
   padding-top: 10px; padding-bottom: 10px;
   background: rgba(5,5,6,.82);
   backdrop-filter: blur(10px);
@@ -219,4 +219,69 @@
   #m-price.m-tick { animation: none !important; }
   .m-rotate { transition: none !important; }
   .m-tilt { transition: none !important; transform: none !important; }
+}
+
+/* ============================================================================
+   MOTION LAYER 3 — trading parallax backdrop
+   ============================================================================ */
+.m-parallax {
+  position: fixed; inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.m-px {
+  position: absolute; top: 0; left: 0;
+  will-change: transform;
+}
+
+/* Depth of field. The far layer is blurred and the near layer is sharp, which
+   is what separates "three things moving" from "distance" — speed alone reads
+   as a glitch. */
+.m-px-far  { filter: blur(1.6px); }
+.m-px-mid  { filter: blur(0.6px); }
+.m-px-near { filter: none; }
+
+/* The page's own surfaces have to sit above the backdrop.
+   
+   The nav is deliberately EXCLUDED from the position rule: it is
+   position:sticky, and blanket-setting position:relative would override that
+   and strand the header mid-page on scroll. A sticky element already creates a
+   stacking context, so it only needs a z-index.
+
+   Worth recording that the first version of this rule targeted `.site-nav`,
+   which does not exist anywhere in the markup — the class is `.nav`, the id is
+   `#site-nav`. It silently matched nothing, so the rule appeared to work while
+   doing nothing at all. A CSS selector that matches no element fails without
+   any error; only checking against the real markup catches it. */
+.hero, section, footer, .container { position: relative; z-index: 1; }
+.nav { z-index: 100; }   /* the real selector — .site-nav never existed */
+.feature-card, .price-card, .panel, .chart-card, .proof-card {
+  position: relative; z-index: 1;
+  background-color: rgba(19,19,22,0.82);
+  backdrop-filter: blur(3px);
+}
+
+/* A vignette so the backdrop never competes at the edges of the reading
+   column, where the eye returns on every line. */
+/* Vignette, much lighter than the first attempt. That version used 0.55 at
+   70% and 0.85 at the edge, which combined with conservative draw opacities
+   to make the whole backdrop nearly invisible — two separate dimming passes
+   stacked on one another. This keeps the reading column calm without erasing
+   the layers. */
+.m-parallax::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 78% 68% at 50% 45%,
+              transparent 0%, rgba(5,5,6,0.18) 62%, rgba(5,5,6,0.52) 100%);
+}
+
+@media (max-width: 900px) {
+  .m-parallax { display: none; }
+  .feature-card, .price-card, .panel, .chart-card, .proof-card {
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m-parallax { display: none !important; }
 }

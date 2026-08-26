@@ -4,8 +4,10 @@
  * Firestore trigger on contactMessages/{id}. Creates a notification for every
  * admin, which onNotificationCreated then turns into a push.
  *
- * DEPLOY from the delete-user-function project, which already holds
- * onNotificationCreated:
+ * Written against firebase-functions v2, matching onNotificationCreated in this
+ * same project.
+ *
+ * DEPLOY from the delete-user-function project:
  *   firebase deploy --only functions:deleteUserAccount,
  *     functions:onNotificationCreated,functions:onContactMessageCreated
  *
@@ -27,7 +29,15 @@
  * pipeline, one place to change how notifications behave.
  */
 
-const functions = require('firebase-functions');
+// firebase-functions v2. The delete-user project is on v2 — onNotificationCreated
+// there is listed as a v2 Firestore trigger — and v2 removed the v1 builder
+// chain entirely, so the old options method does not exist on it.
+//
+// The tell was available before deploying: functions:list showed
+// onNotificationCreated as v2. A project's existing functions are the authority
+// on which API to write against, and I should have read it rather than
+// defaulting to the v1 form.
+const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const admin = require('firebase-admin');
 
 /** Trim for a notification line without cutting mid-word. */
@@ -39,10 +49,22 @@ function preview(text, max) {
   return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut) + '…';
 }
 
-exports.onContactMessageCreated = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
-  .firestore.document('contactMessages/{messageId}')
-  .onCreate(async (snap, context) => {
+exports.onContactMessageCreated = onDocumentCreated(
+  {
+    document: 'contactMessages/{messageId}',
+    region: 'us-central1',      // match the other functions in this project
+    timeoutSeconds: 60,
+    memory: '256MiB'
+  },
+  async (event) => {
+    // v2 delivers a single event object, and the snapshot can be absent if the
+    // document was removed between write and delivery — a case v1's signature
+    // could not express.
+    const snap = event.data;
+    if (!snap) {
+      console.log('onContactMessageCreated: no snapshot on the event');
+      return null;
+    }
     const msg = snap.data() || {};
     const db = admin.firestore();
 
@@ -73,11 +95,11 @@ exports.onContactMessageCreated = functions
         // against the actual markup rather than assumed — the first version of
         // this pointed at contact-admin.html, which does not exist, so every
         // notification would have been a dead link.
-        link: 'pages-admin.html#contact-' + context.params.messageId,
+        link: 'pages-admin.html#contact-' + event.params.messageId,
         read: false,
         // Lets the admin panel jump straight to the message rather than
         // making someone scan a list for it.
-        contactMessageId: context.params.messageId,
+        contactMessageId: event.params.messageId,
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       });
     });
@@ -89,4 +111,5 @@ exports.onContactMessageCreated = functions
 
     console.log(`onContactMessageCreated: notified ${adminsSnap.size} admin(s)`);
     return null;
-  });
+  }
+);

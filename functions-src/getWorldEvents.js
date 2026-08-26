@@ -23,6 +23,16 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+// Force IPv4 for outbound fetches.
+//
+// Node 18+ resolves AAAA records first, and a host with a broken or unrouted
+// IPv6 path fails with a bare "fetch failed" rather than falling back. GDELT is
+// a long-standing academic service; assuming its IPv6 is as maintained as its
+// IPv4 is optimistic. This costs nothing where IPv6 works.
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
 const CACHE_DOC = 'cache/worldEvents';
 const CACHE_MINUTES = 15;    // GDELT's own refresh cadence
 const MAX_EVENTS = 400;      // the map thins these client-side by zoom
@@ -69,6 +79,30 @@ function categorise(text) {
 // colour anyway.
 function stripRe(c) {
   return { key: c.key, label: c.label, colour: c.colour };
+}
+
+
+/**
+ * Unwrap a fetch failure into something diagnosable.
+ *
+ * Node's fetch throws a bare "fetch failed" and puts the real reason on
+ * err.cause — ENOTFOUND, ECONNREFUSED, a TLS handshake failure and an IPv6
+ * timeout all surface identically without it. Logging the message alone made
+ * four very different faults indistinguishable.
+ */
+function describeFetchError(err) {
+  const parts = [];
+  if (err && err.message) parts.push(err.message);
+  let cause = err && err.cause;
+  let depth = 0;
+  while (cause && depth < 4) {
+    if (cause.code) parts.push('code=' + cause.code);
+    if (cause.message && cause.message !== err.message) parts.push(cause.message);
+    if (cause.errno !== undefined) parts.push('errno=' + cause.errno);
+    cause = cause.cause;
+    depth++;
+  }
+  return parts.join(' | ').slice(0, 300);
 }
 
 exports.getWorldEvents = functions
@@ -150,7 +184,7 @@ exports.getWorldEvents = functions
       events.sort((a, b) => b.count - a.count);
       events = events.slice(0, MAX_EVENTS);
     } catch (err) {
-      console.error('getWorldEvents: fetch failed', err);
+      console.error('getWorldEvents:', describeFetchError(err));
       // Stale cache beats nothing: slightly old pins are far more useful than
       // an empty panel, and a brief GDELT outage should not degrade the
       // terminal.
@@ -166,7 +200,7 @@ exports.getWorldEvents = functions
       // wrong rather than "unavailable", which is indistinguishable from a
       // quiet news hour.
       res.status(200).json({ events: [], categories: cats,
-                             error: String(err.message || err).slice(0, 200) });
+                             error: describeFetchError(err) });
       return;
     }
 

@@ -18,6 +18,16 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+// Force IPv4 for outbound fetches.
+//
+// Node 18+ resolves AAAA records first, and a host with a broken or unrouted
+// IPv6 path fails with a bare "fetch failed" rather than falling back. GDELT is
+// a long-standing academic service; assuming its IPv6 is as maintained as its
+// IPv4 is optimistic. This costs nothing where IPv6 works.
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
 const CACHE_DOC = 'cache/newswire';
 const CACHE_MINUTES = 5;
 const MAX_ITEMS = 60;
@@ -76,6 +86,30 @@ function fingerprint(title) {
     .split(' ')
     .slice(0, 9)          // first nine words: enough to identify a story,
     .join(' ');           // loose enough to catch outlet-specific suffixes
+}
+
+
+/**
+ * Unwrap a fetch failure into something diagnosable.
+ *
+ * Node's fetch throws a bare "fetch failed" and puts the real reason on
+ * err.cause — ENOTFOUND, ECONNREFUSED, a TLS handshake failure and an IPv6
+ * timeout all surface identically without it. Logging the message alone made
+ * four very different faults indistinguishable.
+ */
+function describeFetchError(err) {
+  const parts = [];
+  if (err && err.message) parts.push(err.message);
+  let cause = err && err.cause;
+  let depth = 0;
+  while (cause && depth < 4) {
+    if (cause.code) parts.push('code=' + cause.code);
+    if (cause.message && cause.message !== err.message) parts.push(cause.message);
+    if (cause.errno !== undefined) parts.push('errno=' + cause.errno);
+    cause = cause.cause;
+    depth++;
+  }
+  return parts.join(' | ').slice(0, 300);
 }
 
 exports.getNewswire = functions
@@ -145,7 +179,7 @@ exports.getNewswire = functions
         if (items.length >= MAX_ITEMS) break;
       }
     } catch (err) {
-      console.error('getNewswire: fetch failed', err);
+      console.error('getNewswire:', describeFetchError(err));
       try {
         const stale = await db.doc(CACHE_DOC).get();
         if (stale.exists && Array.isArray(stale.data().items)) {
@@ -155,7 +189,7 @@ exports.getNewswire = functions
         }
       } catch (e) { /* nothing cached */ }
       res.status(200).json({ items: [], categories: cats,
-                             error: String(err.message || err).slice(0, 200) });
+                             error: describeFetchError(err) });
       return;
     }
 

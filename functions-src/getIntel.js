@@ -25,6 +25,16 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 
+// Force IPv4 for outbound fetches.
+//
+// Node 18+ resolves AAAA records first, and a host with a broken or unrouted
+// IPv6 path fails with a bare "fetch failed" rather than falling back. GDELT is
+// a long-standing academic service; assuming its IPv6 is as maintained as its
+// IPv4 is optimistic. This costs nothing where IPv6 works.
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
+
+
 const CACHE_PREFIX = 'cache/intel_';
 const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (terminal intel)' };
 
@@ -149,11 +159,35 @@ async function fetchSource(db, key) {
        .catch((e) => console.warn('getIntel: cache write failed', key, e));
     return { key, value: parsed, cached: false };
   } catch (err) {
-    console.error('getIntel:', key, err.message || err);
+    console.error('getIntel:', key, describeFetchError(err));
     // Stale beats blank. A number a few hours old, shown, is more useful than
     // an empty panel that gives no indication anything was ever there.
     return { key, value: stale, cached: true, stale: true, error: true };
   }
+}
+
+
+/**
+ * Unwrap a fetch failure into something diagnosable.
+ *
+ * Node's fetch throws a bare "fetch failed" and puts the real reason on
+ * err.cause — ENOTFOUND, ECONNREFUSED, a TLS handshake failure and an IPv6
+ * timeout all surface identically without it. Logging the message alone made
+ * four very different faults indistinguishable.
+ */
+function describeFetchError(err) {
+  const parts = [];
+  if (err && err.message) parts.push(err.message);
+  let cause = err && err.cause;
+  let depth = 0;
+  while (cause && depth < 4) {
+    if (cause.code) parts.push('code=' + cause.code);
+    if (cause.message && cause.message !== err.message) parts.push(cause.message);
+    if (cause.errno !== undefined) parts.push('errno=' + cause.errno);
+    cause = cause.cause;
+    depth++;
+  }
+  return parts.join(' | ').slice(0, 300);
 }
 
 exports.getIntel = functions

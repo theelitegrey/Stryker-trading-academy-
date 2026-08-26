@@ -12,7 +12,10 @@ function collapseInvites(rawInvites){
   const byPerson = new Map();
   rawInvites.forEach((inv) => {
     // Rows with no referredUid can't be matched to a person; keep them separate.
-    const key = inv.referredUid || ('anon:' + Math.random());
+    // Tombstoned rows (invitee deleted) have referredUid nulled out. Keying on
+    // that would merge every departed invitee into a single entry, so they are
+    // kept distinct.
+    const key = inv.referredUid || ('gone:' + Math.random());
     const existing = byPerson.get(key);
     if (!existing) {
       byPerson.set(key, Object.assign({}, inv));
@@ -23,6 +26,7 @@ function collapseInvites(rawInvites){
     existing.conversionPoints = (existing.conversionPoints || 0) + (inv.conversionPoints || 0);
     if (inv.status === 'converted') existing.status = 'converted';
     existing.convertedPlan = existing.convertedPlan || inv.convertedPlan;
+    existing.referredUserDeleted = existing.referredUserDeleted || inv.referredUserDeleted;
     existing.referredName = existing.referredName || inv.referredName;
     existing.referredEmail = existing.referredEmail || inv.referredEmail;
     const te = existing.createdAt && existing.createdAt.toMillis ? existing.createdAt.toMillis() : 0;
@@ -76,9 +80,12 @@ function renderInviteList(invites){
     const totalPts = (inv.pointsAwarded || 0) || (signupPts + convPts);
 
     const converted = inv.status === 'converted';
-    const planNote = converted
+    let planNote = converted
       ? ('Upgraded' + (inv.convertedPlan ? ' to ' + inviteEscape(inv.convertedPlan) : ''))
       : 'Signed up — not upgraded yet';
+    // The points were genuinely earned, so the row stays and says why the
+    // person is no longer listed rather than quietly vanishing.
+    if (inv.referredUserDeleted) planNote += ' · account since removed';
 
     // Each earning event on its own line. A single merged figure made it
     // impossible to tell a signup bonus from an upgrade bonus, which is

@@ -280,7 +280,24 @@ function deleteStudentClientSide(uid, email, name){
     .then(() => deleteQuery(db.collection('notifications').where('recipientUid', '==', uid), 'notifications'))
     .then(() => deleteQuery(db.collection('referralCodes').where('uid', '==', uid), 'invite codes'))
     .then(() => deleteQuery(db.collection('referrals').where('referrerUid', '==', uid), 'invites they sent'))
-    .then(() => deleteQuery(db.collection('referrals').where('referredUid', '==', uid), 'invites that named them'))
+    // NOT deleted: rows where this person was the INVITEE belong to whoever
+    // invited them. Wiping them would erase someone else's earned history and
+    // drop their invite count, while the points those invites paid stay on
+    // their profile — leaving a total that no longer matches any visible row.
+    // The row is tombstoned instead, so the credit survives the account.
+    .then(() => db.collection('referrals').where('referredUid', '==', uid).get()
+      .then((snap) => {
+        if (snap.empty) return;
+        const batch = db.batch();
+        snap.forEach((d) => batch.update(d.ref, {
+          referredUserDeleted: true,
+          referredName: (d.data().referredName || name || 'A former member'),
+          referredEmail: null,          // the account is gone; don't keep the address
+          referredUid: null             // break the link to a uid that no longer exists
+        }));
+        return batch.commit().then(() => { report.push('• ' + snap.size + ' invite record(s) kept for whoever invited them'); });
+      })
+      .catch((err) => { report.push('• invite records — FAILED (' + (err.code || err.message) + ')'); }))
     .then(() => db.collection('admins').doc(uid).delete().catch(() => {}))
     .then(() => db.collection('moderators').doc(uid).delete().catch(() => {}))
     .then(() => db.collection('profiles').doc(uid).delete()

@@ -182,17 +182,38 @@ document.addEventListener('DOMContentLoaded', () => {
             'Upgraded their own plan to ' + CHECKOUT_PLAN.name,
             { targetUid: CHECKOUT_UID, detail: 'via checkout' });
         }
-        // Non-blocking: award the referrer's conversion bonus, if this
-        // student was referred and hasn't already triggered one. A failure
-        // here should never block the checkout flow itself.
-        if (typeof processReferralConversion === 'function') {
-          processReferralConversion(CHECKOUT_UID, CHECKOUT_PLAN.name);
-        }
+        // AWAITED, unlike before. Each of these makes roughly seven sequential
+        // Firestore round trips — read the student, resolve the code, check for
+        // an existing row, load config, write the row, credit two point
+        // documents, then notify. On mobile that comfortably exceeds the 1.8s
+        // redirect below, so firing and forgetting meant the writes died with
+        // the page: the referrer got no points and no notification, silently.
+        //
+        // Capped so a slow network can't strand someone on the checkout page
+        // after their order has already gone through.
         const manualRefInput = document.getElementById('checkout-referral-input');
         const manualRefCode = manualRefInput ? manualRefInput.value.trim() : '';
-        if (manualRefCode && typeof applyReferralCodeAtCheckout === 'function') {
-          applyReferralCodeAtCheckout(CHECKOUT_UID, manualRefCode);
+
+        const referralWork = [];
+        if (typeof processReferralConversion === 'function') {
+          referralWork.push(processReferralConversion(CHECKOUT_UID, CHECKOUT_PLAN.name));
         }
+        if (manualRefCode && typeof applyReferralCodeAtCheckout === 'function') {
+          // Runs AFTER the conversion rather than alongside it. Both read and
+          // then write the same student document, so in parallel they race:
+          // each could read "not yet paid" before the other writes, and pay
+          // the referrer twice for one upgrade.
+          referralWork.push(
+            Promise.all(referralWork.slice())
+              .then(() => applyReferralCodeAtCheckout(CHECKOUT_UID, manualRefCode))
+          );
+        }
+
+        if (!referralWork.length) return null;
+        return Promise.race([
+          Promise.all(referralWork).catch(() => null),
+          new Promise((resolve) => setTimeout(resolve, 6000))
+        ]);
       })
       .then(() => {
         // Was an inline strip pushed into the page, which shifted the layout
@@ -201,8 +222,9 @@ document.addEventListener('DOMContentLoaded', () => {
           title: 'Payment confirmed',
           duration: 2600
         });
-        // 1.8s is comfortably longer than the log writes above need, so they
-        // are not awaited here — unlike the login path, where the redirect
+        // The referral work above is already settled by this point, so this
+        // delay only needs to let the confirmation be read — unlike the login
+        // path, where the redirect
         // fires at 400ms and killed the write.
         setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 1800);
       })

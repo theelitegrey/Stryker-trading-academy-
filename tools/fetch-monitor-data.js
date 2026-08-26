@@ -273,6 +273,16 @@ const COL = { ROOT: 28, QUAD: 29, MENTIONS: 31, TONE: 34,
 const ROOT_CAT = { 13: 'military', 14: 'unrest', 15: 'military', 17: 'diplomacy',
                    18: 'combat', 19: 'combat', 20: 'combat' };
 
+// CAMEO's "assault/fight" roots also catch ordinary domestic crime (a kidnap
+// trial, an assault sentencing). Those read as noise on a geopolitics map, so
+// drop crime-flavoured stories unless the headline also carries a
+// geopolitical signal.
+const CRIME_RE = /\b(kidnapp?|sexual|rape|murder|homicide|stabbing|sentenced|court (hears|told)|trial|arrested|charged|robbery|burglar|shoplift|domestic violence|manslaughter|fraud|scam|assault case|jailed|prison)\b/i;
+const GEOPOL_RE = /\b(war|military|troops|missile|airstrike|air strike|drone|shelling|artillery|invasion|offensive|rebel|militant|insurgen|terror|protest|riot|coup|sanction|ceasefire|border|regime|army|navy|soldiers?|militia|separatist|occupation)\b/i;
+function looksDomesticCrime(title) {
+  return CRIME_RE.test(title) && !GEOPOL_RE.test(title);
+}
+
 function titleFromUrl(u, place) {
   try {
     const seg = new URL(u).pathname.split('/').filter(Boolean)
@@ -328,11 +338,12 @@ async function sectionEvents() {
   if (!fresh.size) throw new Error('no conflict rows in export batch');
 
   // Titles + country attribution only for what we keep.
-  let freshList = [...fresh.values()].sort((a, b) => b.count - a.count).slice(0, 250);
+  let freshList = [...fresh.values()].sort((a, b) => b.count - a.count).slice(0, 350);
   freshList.forEach((e) => {
     e.title = titleFromUrl(e.url, e.place);
     e.country = countryAt(e.lon, e.lat);
   });
+  freshList = freshList.filter((e) => !looksDomesticCrime(e.title)).slice(0, 250);
 
   // Fold into the rolling 24h window carried by the previous run.
   const prevRolling = (PREV.events && PREV.events.rolling) || [];
@@ -340,6 +351,7 @@ async function sectionEvents() {
   const byUrl = new Map();
   for (const e of prevRolling) {
     if (!e.at || e.at < cutoff || !e.url) continue;
+    if (looksDomesticCrime(e.title || '')) continue;   // re-filter carried items too
     byUrl.set(e.url, e);
   }
   for (const e of freshList) {

@@ -182,11 +182,20 @@ function prefetchAuthorData(list){
   const toFetch = Array.from(uids).filter((uid) => !(uid in AUTHOR_DATA_CACHE));
   if (!toFetch.length || typeof db === 'undefined' || !db) return Promise.resolve();
 
-  return Promise.all(toFetch.map((uid) =>
-    db.collection('students').doc(uid).get()
+  return Promise.all(toFetch.map((uid) => {
+    // Synthetic identities — bots and the team account — have no students/
+    // document; they live in profiles/. Reading the wrong collection returned
+    // null, which silently fell back to a generated avatar, so an uploaded
+    // picture appeared to save and then never showed.
+    const isSynthetic = (typeof isBotUid === 'function' && isBotUid(uid)) ||
+                        (typeof isStrykerTeam === 'function' && isStrykerTeam(uid));
+    const ref = isSynthetic
+      ? db.collection('profiles').doc(uid)
+      : db.collection('students').doc(uid);
+    return ref.get()
       .then((doc) => { AUTHOR_DATA_CACHE[uid] = doc.exists ? doc.data() : null; })
-      .catch(() => { AUTHOR_DATA_CACHE[uid] = null; })
-  ));
+      .catch(() => { AUTHOR_DATA_CACHE[uid] = null; });
+  }));
 }
 
 function renderFeed(){
@@ -221,6 +230,26 @@ function renderFeed(){
 // silently matched nothing because its <br> group was too strict, which is the
 // failure mode to watch for here: a regex that strips nothing looks identical
 // to no regex at all.
+// A small icon badge for automated accounts, matching the moderator shield's
+// weight rather than the loud "BOT" text it replaces.
+//
+// The label still exists as a tooltip and as aria-label: the distinction
+// between a person and an automated feed is exactly the kind of thing a screen
+// reader user needs stated, not implied by a picture. Quiet visually, explicit
+// to assistive tech.
+function botBadgeHtml(){
+  return '<span class="floor-bot-badge" title="Automated feed" ' +
+         'role="img" aria-label="Automated feed">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" ' +
+      'stroke-linecap="round" stroke-linejoin="round">' +
+      '<rect x="4" y="8" width="16" height="12" rx="2.5"/>' +
+      '<path d="M12 8V4.5"/><circle cx="12" cy="3" r="1.3" fill="currentColor" stroke="none"/>' +
+      '<circle cx="9" cy="14" r="1.15" fill="currentColor" stroke="none"/>' +
+      '<circle cx="15" cy="14" r="1.15" fill="currentColor" stroke="none"/>' +
+    '</svg>' +
+  '</span>';
+}
+
 function stripSourceLink(html){
   return String(html || '').replace(
     /(?:<br\s*\/?>\s*)*<a\b[^>]*\bclass="floor-source-link"[^>]*>[\s\S]*?<\/a>\s*$/i,
@@ -280,7 +309,7 @@ function renderPostCard(post){
       avatarHtml +
       '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') +
         (isTeamPost ? '<span class="floor-team-tag">OFFICIAL</span>'
-          : isBotAuthor ? '<span class="floor-bot-tag">BOT</span>'
+          : isBotAuthor ? botBadgeHtml()
           : roleTag) +
         shieldBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +

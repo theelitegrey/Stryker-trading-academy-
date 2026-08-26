@@ -2394,13 +2394,19 @@ a.todo-title:hover{ color:var(--teal); }
 /* Distinct from the OFFICIAL badge: a relayed tweet is not an academy
    announcement, and giving them the same marker would tell students the
    opposite of the truth. */
-.floor-bot-tag{
-  display:inline-flex; align-items:center; gap:4px;
-  font-size:9.5px; font-weight:700; letter-spacing:.08em;
-  padding:2px 7px; border-radius:4px; margin-left:7px;
-  background:rgba(139,147,160,0.14); color:var(--ink-3);
-  border:1px solid rgba(139,147,160,0.22);
+/* Icon rather than a text tag. "BOT" in caps beside a name reads as a warning
+   label; the point is to be honest about what the account is without making
+   that the loudest thing in the row. Sized and weighted to sit next to the
+   moderator shield. */
+.floor-bot-badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; margin-left:6px;
+  color:var(--ink-3); opacity:.72; flex-shrink:0;
+  vertical-align:middle;
+  transition:opacity .15s ease, color .15s ease;
 }
+.floor-bot-badge svg{ width:100%; height:100%; display:block; }
+.floor-bot-badge:hover{ opacity:1; color:var(--teal); }
 
 .bot-avatar-row{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
 .bot-avatar-preview{

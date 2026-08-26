@@ -230,11 +230,16 @@ h1,h2,h3,h4{
 }
 .brand{ display:flex; align-items:center; }
 .brand-mark{
-  height:44px; width:auto;
+  /* Raised from 44px with the new logo. The previous artwork was 1.87:1 and
+     rendered ~82px wide here; this one is 1.52:1, so at the same height it is
+     only 66px — visibly lighter in the header, and too small for the dragon's
+     line-art to survive. Height is what the CSS controls, so height is what
+     had to change to keep the mark's optical weight. */
+  height:52px; width:auto;
   object-fit:contain;
   flex-shrink:0;
 }
-@media (max-width:640px){ .brand-mark{ height:36px; } }
+@media (max-width:640px){ .brand-mark{ height:42px; } }
 .brand-name{ font-family:var(--font-display); font-weight:600; font-size:17px; color:var(--ink-0); letter-spacing:-0.01em; }
 .brand-name span{ color:var(--gold); }
 
@@ -800,7 +805,7 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
      nothing sits above it. */
   .sidebar{ padding-top:14px; }
   .mobile-topnav #dash-menu-toggle{ display:none; }
-  .mobile-topnav .brand-mark{ height:34px; }
+  .mobile-topnav .brand-mark{ height:40px; }
   /* The header sits ABOVE .dash-shell in the document, so the sidebar's
      100vh would otherwise run past the bottom of the screen by exactly the
      header's height, and its sticky top:0 would slide underneath it. Both are

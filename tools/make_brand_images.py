@@ -31,9 +31,18 @@ SRC = "/mnt/user-data/uploads/14969.png"
 IMAGES = "/home/claude/deploy/assets/images"
 MASTER = os.path.join(IMAGES, "logo-master.png")
 
-WORDMARK = [
-    ("logo-header.png", 299, 160),
-    ("logo-full.png",   900, 608),
+# Heights only. The width is derived from the artwork's own aspect ratio.
+#
+# These used to be fixed boxes (299x160, 900x608) sized for the previous logo,
+# which was 1.87:1. The new one is 1.52:1, so a fixed box letterboxes it —
+# roughly 9px of transparent padding each side at header size. The CSS sets a
+# height, so that padding makes the logo render visibly smaller than its slot
+# and pushes it away from whatever sits beside it. Deriving the width means the
+# file is exactly the artwork, and the CSS height rule produces the size it
+# claims to.
+WORDMARK_HEIGHTS = [
+    ("logo-header.png", 160),
+    ("logo-full.png",   608),
 ]
 EMBLEM = [
     ("logo-emblem.png",      1124, 0.06),
@@ -111,8 +120,12 @@ def main():
     master.save(MASTER)
     print("master:", master.size)
 
-    for name, w, h in WORDMARK:
-        fit(master, w, h, pad=0.02).save(os.path.join(IMAGES, name))
+    ratio = master.width / master.height
+    for name, h in WORDMARK_HEIGHTS:
+        w = int(round(h * ratio))
+        # pad=0 — the master is already trimmed to its bounding box, so any
+        # padding here is pure dead space inside the file.
+        fit(master, w, h, pad=0.0).save(os.path.join(IMAGES, name))
         print("  wordmark", name, (w, h))
 
     em = emblem_from(master)

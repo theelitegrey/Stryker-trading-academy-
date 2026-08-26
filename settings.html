@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="145">
+<meta name="stryker-build" content="146">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Settings — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=145">
-<script src="assets/toast.js?v=145" defer></script>
-<script src="assets/version-check.js?v=145" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=146">
+<script src="assets/toast.js?v=146" defer></script>
+<script src="assets/version-check.js?v=146" defer></script>
+<link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
@@ -177,6 +178,23 @@
         </div>
 
         <div class="panel">
+          <div class="panel-head"><h2>Push notifications</h2></div>
+          <p style="font-size:13.5px; color:var(--ink-2); line-height:1.6; margin-bottom:16px;">
+            Get bell notifications on this device even when the site is closed.
+            Each device is enabled separately.
+          </p>
+          <div id="push-state" style="font-family:var(--font-mono); font-size:12.5px; color:var(--ink-3); margin-bottom:14px;">Checking…</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" id="push-enable-btn">Enable on this device</button>
+            <button class="btn btn-ghost btn-sm" id="push-disable-btn" style="display:none;">Turn off</button>
+          </div>
+          <p id="push-ios-hint" style="font-size:12.5px; color:var(--ink-3); line-height:1.6; margin-top:14px; display:none;">
+            On iPhone, add this site to your Home Screen first — Safari only allows
+            push for installed sites.
+          </p>
+        </div>
+
+        <div class="panel">
           <div class="panel-head"><h2>Security</h2></div>
           <p style="font-size:13.5px; color:var(--ink-2); margin-bottom:16px;">Send a password reset link to your email address to change your password.</p>
           <button class="btn btn-ghost btn-sm" id="settings-reset-password">Send password reset email</button>
@@ -216,25 +234,27 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=145"></script>
-<script src="assets/gate-timeout.js?v=145"></script>
-<script src="assets/progress.js?v=145"></script>
-<script src="assets/activity-log.js?v=145"></script>
-<script src="assets/banned-check.js?v=145"></script>
-<script src="assets/email-verify.js?v=145"></script>
-<script src="assets/notifications.js?v=145"></script>
-<script src="assets/admin-link.js?v=145"></script>
-<script src="assets/profiles-sync.js?v=145"></script>
+<script src="assets/auth.js?v=146"></script>
+<script src="assets/gate-timeout.js?v=146"></script>
+<script src="assets/progress.js?v=146"></script>
+<script src="assets/activity-log.js?v=146"></script>
+<script src="assets/banned-check.js?v=146"></script>
+<script src="assets/email-verify.js?v=146"></script>
+<script src="assets/notifications.js?v=146"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
+<script src="assets/push.js?v=146"></script>
+<script src="assets/admin-link.js?v=146"></script>
+<script src="assets/profiles-sync.js?v=146"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=145"></script>
-<script src="assets/avatars.js?v=145"></script>
-<script src="assets/referrals.js?v=145"></script>
-<script src="assets/roles.js?v=145"></script>
-<script src="assets/plan-modal.js?v=145"></script>
-<script src="assets/plan-guard.js?v=145"></script>
-<script src="assets/maintenance-check.js?v=145"></script>
-<script src="assets/branding.js?v=145"></script>
-<script src="assets/dash-nav.js?v=145"></script>
-<script src="assets/settings.js?v=145"></script>
+<script src="assets/loading-animation.js?v=146"></script>
+<script src="assets/avatars.js?v=146"></script>
+<script src="assets/referrals.js?v=146"></script>
+<script src="assets/roles.js?v=146"></script>
+<script src="assets/plan-modal.js?v=146"></script>
+<script src="assets/plan-guard.js?v=146"></script>
+<script src="assets/maintenance-check.js?v=146"></script>
+<script src="assets/branding.js?v=146"></script>
+<script src="assets/dash-nav.js?v=146"></script>
+<script src="assets/settings.js?v=146"></script>
 </body>
 </html>

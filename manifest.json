@@ -1,0 +1,12 @@
+{
+  "name": "Stryker Trading Academy",
+  "short_name": "Stryker",
+  "start_url": "/dashboard-user.html",
+  "display": "standalone",
+  "background_color": "#050506",
+  "theme_color": "#050506",
+  "icons": [
+    { "src": "/assets/images/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/assets/images/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

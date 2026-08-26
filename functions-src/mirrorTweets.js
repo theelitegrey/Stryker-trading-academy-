@@ -178,10 +178,18 @@ async function runBot(db, doc, apiKey) {
     });
 
     await db.collection('communityPosts').add({
-      authorUid: TEAM_UID,
-      authorName: TEAM_NAME,
+      // The bot's OWN identity, not the shared team account. Three mirrors of
+      // three different X accounts would otherwise be indistinguishable in the
+      // feed, and a student could not tell an academy announcement from a
+      // relayed tweet.
+      //
+      // Keyed on the bot's document id rather than its name, so renaming a bot
+      // updates every post it has ever made instead of splitting its history
+      // across two identities.
+      authorUid: 'bot-' + doc.id,
+      authorName: name,
       authorPlan: null,
-      isTeamPost: true,
+      isTeamPost: false,
       isBotPost: true,
       botId: doc.id,
       sourceTweetId: String(id),
@@ -196,6 +204,18 @@ async function runBot(db, doc, apiKey) {
 
     published++;
   }
+
+  // Upsert the bot's profile so its name and avatar resolve in the feed even
+  // if the admin panel has not written it — for instance a bot created before
+  // per-bot identities existed.
+  await db.collection('profiles').doc('bot-' + doc.id).set({
+    uid: 'bot-' + doc.id,
+    name: name,
+    displayName: name,
+    isBotAccount: true,
+    customPhotoURL: cfg.avatarUrl || null,
+    bio: cfg.screenName ? `Automated feed \u00b7 mirrors @${cfg.screenName}` : 'Automated feed'
+  }, { merge: true });
 
   await doc.ref.set({
     lastStatus: 'ok',

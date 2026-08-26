@@ -39,7 +39,10 @@ var BOT_TYPES = {
         def: 'propfirm' },
       { key: 'includeReplies', label: 'Include replies', type: 'bool', def: false,
         help: 'Replies usually lack context out of their thread.' },
-      { key: 'includeRetweets', label: 'Include retweets', type: 'bool', def: false }
+      { key: 'includeRetweets', label: 'Include retweets', type: 'bool', def: false },
+      { key: 'avatarUrl', label: 'Profile picture', type: 'image',
+        help: 'Shown on every post this bot makes. Square images work best. '
+            + 'Left empty, the bot gets a generated avatar from its name.' }
     ]
   }
   // Future types drop in here. Nothing below this object needs to change.
@@ -133,7 +136,21 @@ function fieldHtml(f, value) {
   var id = 'bot-f-' + f.key;
   var input;
 
-  if (f.type === 'bool') {
+  if (f.type === 'image') {
+    var preview = v
+      ? '<img src="' + esc(v) + '" alt="" class="bot-avatar-preview">'
+      : '<span class="bot-avatar-preview is-empty">—</span>';
+    input =
+      '<div class="bot-avatar-row">' +
+        preview +
+        '<div class="bot-avatar-controls">' +
+          '<input type="file" id="' + id + '-file" accept="image/*" hidden>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-pick="' + id + '">Choose image</button>' +
+          (v ? '<button type="button" class="btn btn-ghost btn-sm bot-danger" data-clear="' + id + '">Remove</button>' : '') +
+        '</div>' +
+        '<input type="hidden" id="' + id + '" value="' + esc(v || '') + '">' +
+      '</div>';
+  } else if (f.type === 'bool') {
     input = '<label class="bot-switch"><input type="checkbox" id="' + id + '"' +
             (v ? ' checked' : '') + '><span></span></label>';
   } else if (f.type === 'select') {
@@ -205,7 +222,7 @@ function readForm(type) {
     var v;
     if (f.type === 'bool') v = el.checked;
     else if (f.type === 'number') v = parseInt(el.value, 10);
-    else v = el.value.trim();
+    else v = el.value.trim();      // 'image' stores its data URL in a hidden input
 
     if (f.type === 'number' && (isNaN(v) || v < (f.min || 0))) v = f.def;
     if (f.required && !v) missing.push(f.label);
@@ -250,7 +267,18 @@ function saveBot() {
     p = db.collection('bots').add(payload);
   }
 
-  p.then(function () {
+  p.then(function (ref) {
+    // Write the bot's profile so its name and avatar resolve on every post it
+    // has made, not only future ones — posts are keyed on the bot's uid, never
+    // on its name, precisely so a rename propagates backwards.
+    var id = editingId || (ref && ref.id);
+    if (id && typeof botProfile === 'function') {
+      db.collection('profiles').doc(botUid(id))
+        .set(botProfile({ id: id, name: name, config: res.config }), { merge: true })
+        .catch(function (err) {
+          console.error('Stryker: could not write the bot profile', err);
+        });
+    }
     if (typeof logActivity === 'function') {
       logActivity(editingId ? 'bot.updated' : 'bot.created',
         (editingId ? 'Updated' : 'Created') + ' bot: ' + name);
@@ -343,4 +371,97 @@ document.addEventListener('DOMContentLoaded', function () {
       loadBots();
     });
   }
+});
+
+// ---- Avatar upload ---------------------------------------------------------
+//
+// Downscaled to 256px and re-encoded as JPEG before storing.
+//
+// This is not a nicety. Firestore caps a document at 1MB, and a phone photo is
+// several times that as base64 — the write would simply fail. Even a file that
+// squeaked under the cap would be re-downloaded in full by every student on
+// every page of the feed, to be displayed at 36 pixels. 256px covers every
+// place the avatar is shown, including retina.
+
+var BOT_AVATAR_PX = 256;
+var BOT_AVATAR_QUALITY = 0.86;
+
+function downscaleImage(file) {
+  return new Promise(function (resolve, reject) {
+    if (!/^image\//.test(file.type)) {
+      reject(new Error('That file is not an image.'));
+      return;
+    }
+    var reader = new FileReader();
+    reader.onerror = function () { reject(new Error('Could not read the file.')); };
+    reader.onload = function () {
+      var img = new Image();
+      img.onerror = function () { reject(new Error('That image could not be decoded.')); };
+      img.onload = function () {
+        // Square crop from the centre. Avatars render in a circle, so a
+        // non-square source would be cropped by CSS anyway — doing it here
+        // means what the admin previews is what students actually see.
+        var side = Math.min(img.width, img.height);
+        var sx = (img.width - side) / 2;
+        var sy = (img.height - side) / 2;
+
+        var canvas = document.createElement('canvas');
+        canvas.width = BOT_AVATAR_PX;
+        canvas.height = BOT_AVATAR_PX;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, BOT_AVATAR_PX, BOT_AVATAR_PX);
+
+        // JPEG rather than PNG: a photo as PNG is several times larger for no
+        // visible gain at this size. Transparency is irrelevant in a circle.
+        resolve(canvas.toDataURL('image/jpeg', BOT_AVATAR_QUALITY));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Delegated on the modal body, because fields are re-rendered on every open.
+document.addEventListener('DOMContentLoaded', function () {
+  var body = document.getElementById('bot-modal-body');
+  if (!body) return;
+
+  body.addEventListener('click', function (e) {
+    var pick = e.target.closest('[data-pick]');
+    if (pick) {
+      document.getElementById(pick.getAttribute('data-pick') + '-file').click();
+      return;
+    }
+    var clear = e.target.closest('[data-clear]');
+    if (clear) {
+      var id = clear.getAttribute('data-clear');
+      document.getElementById(id).value = '';
+      var row = clear.closest('.bot-avatar-row');
+      row.querySelector('.bot-avatar-preview').outerHTML =
+        '<span class="bot-avatar-preview is-empty">—</span>';
+      clear.remove();
+    }
+  });
+
+  body.addEventListener('change', function (e) {
+    if (!e.target.matches('input[type="file"]')) return;
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var hiddenId = e.target.id.replace(/-file$/, '');
+
+    downscaleImage(file).then(function (dataUrl) {
+      document.getElementById(hiddenId).value = dataUrl;
+      var row = e.target.closest('.bot-avatar-row');
+      var prev = row.querySelector('.bot-avatar-preview');
+      prev.outerHTML = '<img src="' + dataUrl + '" alt="" class="bot-avatar-preview">';
+      if (!row.querySelector('[data-clear]')) {
+        row.querySelector('.bot-avatar-controls').insertAdjacentHTML('beforeend',
+          '<button type="button" class="btn btn-ghost btn-sm bot-danger" data-clear="' +
+          hiddenId + '">Remove</button>');
+      }
+    }).catch(function (err) {
+      if (typeof showToast === 'function') showToast('error', err.message);
+    });
+    e.target.value = '';   // allow re-picking the same file
+  });
 });

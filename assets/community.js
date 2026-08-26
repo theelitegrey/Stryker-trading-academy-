@@ -254,12 +254,15 @@ function renderPostCard(post){
   const isOwnPost = post.authorUid === FLOOR_UID;
   // A team post shows OFFICIAL instead of a plan tag — see style.css.
   const isTeamPost = (typeof isStrykerTeam === 'function') && isStrykerTeam(post.authorUid);
+  const isBotAuthor = (typeof isBotUid === 'function') && isBotUid(post.authorUid);
   const canModerate = !isOwnPost && FLOOR_IS_MODERATOR;
   el.innerHTML =
     '<div class="floor-post-head">' +
       avatarHtml +
       '<div><div class="floor-post-name">' + escapeHtml(post.authorName || 'Trader') +
-        (isTeamPost ? '<span class="floor-team-tag">OFFICIAL</span>' : roleTag) +
+        (isTeamPost ? '<span class="floor-team-tag">OFFICIAL</span>'
+          : isBotAuthor ? '<span class="floor-bot-tag">BOT</span>'
+          : roleTag) +
         shieldBadge + '</div>' +
       '<div class="floor-post-time">' + timeAgo(createdDate) + editedLabel + flairLabel + '</div></div>' +
       (isOwnPost

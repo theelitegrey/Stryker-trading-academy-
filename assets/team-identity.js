@@ -47,3 +47,46 @@ function strykerTeamProfile() {
     createdAt: null
   };
 }
+
+
+// ---- Per-bot identities ----------------------------------------------------
+//
+// Each bot posts under its OWN name and avatar, not as Stryker Team.
+//
+// The first version had every bot post as the shared team account, which
+// collapsed a real distinction: three mirrors of three different X accounts
+// would have been indistinguishable in the feed, and a student could not tell
+// whether a post was an announcement from the academy or a relayed tweet.
+//
+// Same synthetic-identity approach as the team account — a uid with no Firebase
+// Auth record behind it — so a bot still cannot be logged into. The uid is
+// derived from the bot's document id, which makes it stable across renames:
+// change a bot's display name and its existing posts follow, because they were
+// never keyed on the name.
+
+function botUid(botId) {
+  return 'bot-' + botId;
+}
+
+function isBotUid(uid) {
+  return typeof uid === 'string' && uid.indexOf('bot-') === 0;
+}
+
+// The profile document a bot posts behind. Written whenever the bot is saved,
+// so a renamed bot or a changed avatar updates every post it has ever made
+// rather than only future ones.
+function botProfile(bot) {
+  return {
+    uid: botUid(bot.id),
+    name: bot.name,
+    displayName: bot.name,
+    bio: bot.config && bot.config.screenName
+      ? 'Automated feed \u00b7 mirrors @' + bot.config.screenName
+      : 'Automated feed',
+    isBotAccount: true,
+    // resolveAvatarUrl checks customPhotoURL first, so this is the field that
+    // actually drives the avatar everywhere it appears.
+    customPhotoURL: (bot.config && bot.config.avatarUrl) || null,
+    createdAt: null
+  };
+}

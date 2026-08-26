@@ -3363,3 +3363,26 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
 @media (prefers-reduced-motion:reduce){
   .gm-alert-dot, .gm-strip-track{ animation:none !important; }
 }
+
+/* Header Global Monitor icon ------------------------------------------------ */
+.gm-icon-wrap{ position:relative; flex-shrink:0; display:flex; }
+
+.gm-alert-dot{
+  position:absolute; top:5px; right:5px;
+  width:8px; height:8px; border-radius:50%;
+  background:#ff5c4d; display:none; pointer-events:none;
+  /* Ringed in the header background so it reads as sitting on top of the icon
+     rather than being cut out of it. */
+  box-shadow:0 0 0 2px var(--bg-0), 0 0 7px rgba(255,92,77,0.85);
+}
+/* Only the critical state pulses. If every alert animated, the animation would
+   carry no information — it would just be how the icon looks. */
+.gm-alert-dot.is-critical{ animation:gmAlertPulse 2s ease-in-out infinite; }
+@keyframes gmAlertPulse{
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%    { opacity:.55; transform:scale(1.22); }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .gm-alert-dot.is-critical{ animation:none; }
+}

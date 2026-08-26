@@ -761,6 +761,20 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
    all. */
 .mobile-topnav{ display:none; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--line-soft); background:var(--bg-0); position:sticky; top:0; z-index:50; }
 @media (max-width:900px){ .mobile-topnav{ display:flex; } }
+.topnav-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+.topnav-right{ display:flex; align-items:center; gap:8px; }
+
+/* Hamburger. Bigger than the other icon buttons because it is the primary
+   navigation control on mobile and the first thing a thumb reaches for, and
+   it now sits at the far left where that thumb naturally lands. */
+.menu-toggle-btn{
+  width:40px; height:40px; flex-shrink:0;
+  border-radius:9px;
+  color:var(--ink-1);
+}
+.menu-toggle-btn:hover{ color:var(--teal); border-color:var(--teal-dim); }
+.menu-toggle-btn:active{ background:var(--bg-3); }
+
 @media (min-width:901px){
   .mobile-topnav{
     display:flex;
@@ -777,7 +791,10 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
   /* Logo moves up here. The sidebar's copy is hidden rather than deleted so
      the mobile layout, where the sidebar is a drawer with no header above it,
      keeps its branding. */
-  .mobile-topnav > .brand{ display:flex; align-items:center; }
+  /* Descendant, not direct-child: the brand now sits inside .topnav-left
+     alongside the hamburger, so `>` would no longer match it and the
+     desktop header would lose its logo entirely. */
+  .mobile-topnav .brand{ display:flex; align-items:center; }
   .sidebar > .brand{ display:none; }
   /* The nav column starts flush with the top of the header's border now that
      nothing sits above it. */

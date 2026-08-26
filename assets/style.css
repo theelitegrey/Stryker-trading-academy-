@@ -2067,15 +2067,26 @@ a.todo-title:hover{ color:var(--teal); }
   }
   .msg-sidebar{ border-right:none; flex:1; min-height:0; }
 
-  /* position:fixed rather than absolute: the pane covers the viewport below
-     the header regardless of how any ancestor is sized, so it can never end up
-     shorter than the screen. */
+  /* FULL viewport, not "below the header".
+     
+     Offsetting the top by --topbar-h assumed the site header was always
+     sitting there — but the page scrolls, so once it had moved the pane was
+     pinned 59px down with the thread list showing through the gap above it.
+     
+     inset:0 has no such assumption. The pane owns the screen and carries its
+     own header with the back arrow, which is what a conversation should do on
+     a phone anyway: one screen, one job. z-index clears both the site header
+     (50) and the nav drawer (200). */
   .msg-pane{
-    position:fixed; left:0; right:0;
-    top:var(--topbar-h); bottom:0;
-    z-index:60;
+    position:fixed; inset:0;
+    z-index:300;
     transform:translateX(100%); transition:transform .22s ease;
     will-change:transform;
+  }
+  /* Its own header now sits against the top of the screen, so it takes the
+     status-bar inset the site header would otherwise have absorbed. */
+  .msg-pane .msg-pane-head{
+    padding-top:calc(12px + env(safe-area-inset-top));
   }
   .msg-pane.open{ transform:translateX(0); }
   .msg-pane-head{ padding:10px 12px; }

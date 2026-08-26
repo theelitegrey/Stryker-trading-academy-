@@ -111,10 +111,21 @@ function openConversation(convId, otherUid, otherName, otherInfo){
   MSG_ACTIVE_OTHER = otherUid;
 
   var pane = document.getElementById('msg-pane');
+  var wasOpen = pane.classList.contains('open');
   pane.classList.add('open');
-  // The pane is a fixed overlay on mobile; without this the page behind it
-  // still scrolls under your thumb while you read.
-  if (window.matchMedia('(max-width:900px)').matches) document.body.style.overflow = 'hidden';
+
+  if (window.matchMedia('(max-width:900px)').matches) {
+    // The pane is a full-screen overlay; without this the page behind it still
+    // scrolls under your thumb while you read.
+    document.body.style.overflow = 'hidden';
+    // Push a history entry so the phone's Back gesture closes the conversation
+    // instead of leaving the site entirely. Anything covering the whole screen
+    // has to answer Back, or it feels like a trap. Only on the first open —
+    // switching threads must not stack an entry per conversation.
+    if (!wasOpen) {
+      try { history.pushState({ strykerChat: true }, '', window.location.href); } catch (e) {}
+    }
+  }
   document.getElementById('msg-peer-name').textContent = otherName;
   var av = document.getElementById('msg-peer-avatar');
   if (av) {
@@ -171,9 +182,15 @@ function renderTyping(on){
   }
 }
 
-function closeConversation(){
+function closeConversation(fromHistory){
   document.getElementById('msg-pane').classList.remove('open');
   document.body.style.overflow = '';
+  // Consume the entry pushed on open — unless Back is what closed us, in which
+  // case the browser has already popped it and going back again would leave
+  // the page.
+  if (!fromHistory && history.state && history.state.strykerChat) {
+    try { history.back(); } catch (e) {}
+  }
   if (MSG_UNSUB_THREAD) { MSG_UNSUB_THREAD(); MSG_UNSUB_THREAD = null; }
   if (MSG_UNSUB_CONV) { MSG_UNSUB_CONV(); MSG_UNSUB_CONV = null; }
   if (MSG_ACTIVE_CONV) clearTyping(MSG_ACTIVE_CONV, MSG_UID);
@@ -282,7 +299,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var backBtn = document.getElementById('msg-back');
 
   if (sendBtn) sendBtn.addEventListener('click', submitMessage);
-  if (backBtn) backBtn.addEventListener('click', closeConversation);
+  if (backBtn) backBtn.addEventListener('click', function () { closeConversation(false); });
+
+  window.addEventListener('popstate', function () {
+    if (document.getElementById('msg-pane').classList.contains('open')) {
+      closeConversation(true);
+    }
+  });
   if (input) {
     input.addEventListener('input', function () {
       autoGrow(input);

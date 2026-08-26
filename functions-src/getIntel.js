@@ -123,6 +123,45 @@ const SOURCES = {
   }
 };
 
+
+/**
+ * HTTPS GET returning parsed JSON, via Node's https module rather than fetch.
+ *
+ * Node's fetch is undici, which enforces a 10-second CONNECT timeout that an
+ * AbortController cannot override. That was the fault behind the world-map
+ * feed's "fetch failed": undici abandoned the TCP handshake at ten seconds
+ * while the abort sat uselessly at ninety. These five hosts are subject to the
+ * same limit, so they use the same explicit-timeout path.
+ */
+const https = require('https');
+
+function httpsGetJson(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, { headers: UA, timeout: timeoutMs }, (res) => {
+      const status = res.statusCode;
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => {
+        body += c;
+        if (body.length > 6 * 1024 * 1024) req.destroy(new Error('response too large'));
+      });
+      res.on('end', () => {
+        if (status < 200 || status >= 300) {
+          reject(new Error('HTTP ' + status)); return;
+        }
+        try { resolve(JSON.parse(body)); }
+        catch (e) { reject(new Error('bad JSON')); }
+      });
+    });
+    req.on('timeout', () => {
+      // destroy() is required: 'timeout' alone leaves the socket open and the
+      // promise unsettled.
+      req.destroy(new Error('timeout after ' + timeoutMs + 'ms'));
+    });
+    req.on('error', reject);
+  });
+}
+
 async function fetchSource(db, key) {
   const src = SOURCES[key];
   const ref = db.doc(CACHE_PREFIX + key);
@@ -141,16 +180,11 @@ async function fetchSource(db, key) {
   }
 
   try {
-    // A timeout is essential, not defensive padding: without one a single
-    // hanging host holds the whole function until it times out at 60s, and
-    // every panel waits on the slowest.
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch(src.url, { headers: UA, signal: ctrl.signal });
-    clearTimeout(timer);
-
-    if (!r.ok) throw new Error(key + ' returned ' + r.status);
-    const parsed = src.parse(await r.json());
+    // 12s: long enough for a slow-but-working host, short enough that one dead
+    // source does not push the whole function toward its own limit. These are
+    // fetched in parallel, so the tab waits on the slowest single source.
+    const json = await httpsGetJson(src.url, 12000);
+    const parsed = src.parse(json);
     if (parsed === null || (Array.isArray(parsed) && !parsed.length)) {
       throw new Error(key + ' parsed empty');
     }

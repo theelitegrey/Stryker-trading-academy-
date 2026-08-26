@@ -56,63 +56,94 @@ function categorise(text) {
   return 'markets';
 }
 
-function describeFetchError(err) {
-  const parts = [];
-  if (err && err.message) parts.push(err.message);
-  let cause = err && err.cause, depth = 0;
-  while (cause && depth < 4) {
-    if (cause.code) parts.push('code=' + cause.code);
-    if (cause.message && cause.message !== err.message) parts.push(cause.message);
-    cause = cause.cause; depth++;
-  }
-  return parts.join(' | ').slice(0, 300);
-}
-
 /**
- * One attempt, generously timed.
+ * HTTPS GET returning parsed JSON, using Node's own https module.
  *
- * 90 seconds because GDELT's own rejection took 59. A shorter timeout would
- * abort before the service has even decided, turning a clear 429 into an
- * ambiguous abort — which is precisely how this went undiagnosed.
+ * NOT fetch. Node's fetch is undici, which enforces its own 10-SECOND CONNECT
+ * TIMEOUT that an AbortController cannot override — the observed failure was
+ * exactly this:
+ *
+ *   code=UND_ERR_CONNECT_TIMEOUT
+ *   Connect Timeout Error (attempted address: api.gdeltproject.org:443,
+ *   timeout: 10000ms)
+ *
+ * So the 90-second abort was controlling the wrong thing: undici gave up on the
+ * TCP handshake at ten seconds and the abort never came into play. GDELT is
+ * evidently slow to accept connections from this network — Cloud Shell reached
+ * it, Cloud Functions does not within undici's allowance.
+ *
+ * The https module lets the connect and idle timeouts be set explicitly, which
+ * is the only way to wait longer than undici permits without adding a
+ * dependency.
  */
-async function attempt(url) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 90000);
-  try {
-    const r = await fetch(url, { headers: UA, signal: ctrl.signal });
-    if (r.status === 429) return { retry: true, status: 429 };
-    if (!r.ok) {
-      const body = await r.text().catch(() => '');
-      return { error: 'HTTP ' + r.status + ': ' + body.slice(0, 150) };
-    }
-    return { json: await r.json() };
-  } catch (err) {
-    return { error: describeFetchError(err), retry: true };
-  } finally {
-    clearTimeout(timer);
-  }
+const https = require('https');
+
+function httpsGetJson(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers: UA,
+      // Generous, because GDELT has been measured taking 59 seconds simply to
+      // return a rejection. A short timeout here converts a clear answer into
+      // an ambiguous abort, which is what hid this fault for three rounds.
+      timeout: timeoutMs
+    }, (res) => {
+      const status = res.statusCode;
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', (c) => {
+        body += c;
+        // A runaway response would otherwise fill the function's memory before
+        // any timeout noticed.
+        if (body.length > 12 * 1024 * 1024) {
+          req.destroy(new Error('response too large'));
+        }
+      });
+      res.on('end', () => {
+        if (status === 429) { reject(Object.assign(new Error('HTTP 429'), { retry: true })); return; }
+        if (status < 200 || status >= 300) {
+          reject(new Error('HTTP ' + status + ': ' + body.slice(0, 150)));
+          return;
+        }
+        try { resolve(JSON.parse(body)); }
+        catch (e) { reject(new Error('bad JSON: ' + body.slice(0, 120))); }
+      });
+    });
+
+    req.on('timeout', () => {
+      // 'timeout' does not abort the request on its own; without destroy() the
+      // socket lingers and the promise never settles.
+      req.destroy(Object.assign(new Error('timeout after ' + timeoutMs + 'ms'),
+                                { retry: true }));
+    });
+    req.on('error', (err) => {
+      err.retry = true;
+      reject(err);
+    });
+  });
 }
 
 /**
  * Retry with exponential backoff.
  *
- * Only for 429 and network faults — a malformed query returns the same error
- * however many times it is sent, and retrying it just spends more of a quota
- * that is already exhausted.
+ * Only for 429, timeouts and network faults — a malformed query fails
+ * identically however often it is sent, and retrying spends more of a quota
+ * already exhausted.
  */
 async function fetchWithBackoff(url, label) {
-  const delays = [0, 20000, 60000];
+  const delays = [0, 15000, 45000];
   let last = null;
   for (let i = 0; i < delays.length; i++) {
     if (delays[i]) await new Promise((r) => setTimeout(r, delays[i]));
-    const res = await attempt(url);
-    if (res.json) return res.json;
-    last = res;
-    console.warn(`refreshWorldData: ${label} attempt ${i + 1} failed`,
-                 res.status || res.error);
-    if (!res.retry) break;
+    try {
+      return await httpsGetJson(url, 100000);
+    } catch (err) {
+      last = err;
+      console.warn(`refreshWorldData: ${label} attempt ${i + 1} failed:`,
+                   err.message, err.code ? '(' + err.code + ')' : '');
+      if (!err.retry) break;
+    }
   }
-  throw new Error(label + ': ' + (last && (last.error || 'HTTP ' + last.status)));
+  throw new Error(label + ': ' + (last ? last.message : 'unknown'));
 }
 
 async function refreshEvents(db) {

@@ -1,0 +1,59 @@
+# Global Monitor data pipeline.
+#
+# Fetches GDELT, Yahoo Finance, WHO outbreak news, Polymarket and a DEFCON
+# estimate on a schedule, then publishes one monitor-data.json to the `data`
+# branch (single force-pushed commit — the branch never accumulates history).
+# The Global Monitor page reads it from raw.githubusercontent.com, which sends
+# CORS headers. Pushing to `data` does NOT trigger a GitHub Pages rebuild;
+# only main does.
+#
+# Why not fetch from the browser or a Cloud Function: GDELT rate-limits shared
+# datacenter IPs into minute-long 429s (see functions-src/refreshWorldData.js)
+# and is unreachable from some student networks entirely. A runner fetch into
+# static JSON means students only need to reach GitHub — the same requirement
+# as loading the site at all.
+
+name: Global Monitor data
+
+on:
+  schedule:
+    - cron: '*/20 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: monitor-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch previous data (kept per-section when an upstream fails)
+        run: |
+          mkdir -p out
+          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json" \
+            -o out/previous.json || echo "no previous data yet"
+
+      - name: Build monitor-data.json
+        run: node tools/fetch-monitor-data.js out/previous.json out/monitor-data.json
+
+      - name: Publish to the data branch
+        run: |
+          cd out
+          rm -f previous.json
+          git init -b data
+          git config user.email "actions@github.com"
+          git config user.name "monitor-data bot"
+          git add monitor-data.json
+          git commit -m "refresh $(date -u +%FT%TZ)"
+          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data

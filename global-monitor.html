@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="188">
+<meta name="stryker-build" content="189">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Global Monitor — Stryker Trading Academy</title>
 <meta name="description" content="Live geopolitical events, conflict newswire and market impact for Stryker Trading Academy students.">
-<link rel="stylesheet" href="assets/style.css?v=188">
-<script src="assets/toast.js?v=188" defer></script>
-<script src="assets/version-check.js?v=188" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=189">
+<script src="assets/toast.js?v=189" defer></script>
+<script src="assets/version-check.js?v=189" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -97,7 +97,6 @@
 
     <div class="side-section">
       <div class="side-label">Terminal</div>
-      <a href="terminal.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 9l3 3-3 3M12 15h6"/></svg>Terminal</a>
       <a href="global-monitor.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18"/><path d="M12 3a13.5 13.5 0 0 0 0 18"/></svg>
         Global Monitor
@@ -148,13 +147,16 @@
     </div>
   </aside>
 
-  <main class="dash-main">
+  <main class="dash-main gm-main">
     <div class="dash-topbar">
       <div>
         <h1>Global Monitor</h1>
         <p class="dash-sub">Conflicts, geopolitics and the markets they move — live.</p>
       </div>
-      <div class="term-clock"><span id="gm-utc">--:-- UTC</span></div>
+      <div class="gm-topbar-right">
+        <span class="gm-live" id="gm-live-badge"><i></i><b id="gm-data-age">CONNECTING</b></span>
+        <div class="term-clock"><span id="gm-utc">--:--:-- UTC</span></div>
+      </div>
     </div>
 
     <div class="gm-ticker" aria-label="Latest headlines">
@@ -162,59 +164,122 @@
       <div class="gm-ticker-clip"><div class="gm-ticker-track" id="gm-ticker-track"><span class="gm-ticker-item">Loading headlines…</span></div></div>
     </div>
 
-    <section class="gm-map-panel">
-      <div class="term-map-col">
-        <div class="term-map-wrap">
-          <div id="gm-map" class="term-map"></div>
-          <div class="term-zoom">
-            <button type="button" id="gm-zoom-in" aria-label="Zoom in">+</button>
-            <button type="button" id="gm-zoom-out" aria-label="Zoom out">−</button>
-            <button type="button" id="gm-zoom-reset" aria-label="Reset view">⌂</button>
-            <span id="gm-zoom-level">1.0×</span>
+    <div class="term-tabs gm-tabs" id="gm-tabs">
+      <button type="button" class="term-tab" data-tab="map">Map</button>
+      <button type="button" class="term-tab" data-tab="wire">Wire</button>
+      <button type="button" class="term-tab" data-tab="markets">Markets</button>
+      <button type="button" class="term-tab" data-tab="risk">Risk</button>
+      <button type="button" class="term-tab" data-tab="streams">Streams</button>
+    </div>
+
+    <section class="gm-panel" data-tab="map">
+      <div class="gm-map-panel">
+        <div class="term-map-col">
+          <div class="term-map-wrap gm-map-wrap">
+            <div id="gm-map" class="term-map"></div>
+            <div class="term-zoom">
+              <button type="button" id="gm-zoom-in" aria-label="Zoom in">+</button>
+              <button type="button" id="gm-zoom-out" aria-label="Zoom out">−</button>
+              <button type="button" id="gm-zoom-reset" aria-label="Reset view">⌂</button>
+              <span id="gm-zoom-level">1.0×</span>
+            </div>
+            <div class="term-map-hint">Scroll or pinch to zoom · drag to pan · hover a dot for detail</div>
           </div>
-          <div class="term-map-hint">Scroll or pinch to zoom · drag to pan · hover a dot for detail</div>
+
+          <div class="term-cats" id="gm-cats"></div>
+
+          <div class="term-block term-table-block">
+            <h3>Events <span class="term-badge" id="gm-events-badge">…</span>
+              <span class="term-table-count" id="gm-table-count"></span></h3>
+            <div id="gm-table-body"><p class="term-empty">Loading…</p></div>
+          </div>
         </div>
 
-        <div class="term-cats" id="gm-cats"></div>
-
-        <div class="term-block term-table-block">
-          <h3>Events <span class="term-badge" id="gm-events-badge">…</span>
-            <span class="term-table-count" id="gm-table-count"></span></h3>
-          <div id="gm-table-body"><p class="term-empty">Loading…</p></div>
-        </div>
-      </div>
-
-      <div class="term-map-side">
-        <div class="term-block">
-          <h3>Tension index</h3>
-          <p class="gm-side-note">Countries ranked by weighted conflict coverage, last 6h. Click a row to fly there.</p>
-          <div id="gm-tension"><p class="term-empty">Loading…</p></div>
-          <p class="gm-shown-note"><span id="gm-shown-count">—</span></p>
-        </div>
-        <div class="term-block term-news-block">
-          <h3>Newswire <span class="term-badge" id="gm-wire-badge">…</span></h3>
-          <div id="gm-wire-feed" class="term-news-feed"><p class="term-empty">Loading…</p></div>
+        <div class="term-map-side">
+          <div class="term-block">
+            <h3>Most active — 24h</h3>
+            <div id="gm-active24"><p class="term-empty">Loading…</p></div>
+          </div>
+          <div class="term-block">
+            <h3>Tension index</h3>
+            <p class="gm-side-note">Countries ranked by weighted conflict coverage, last 6h. Click a row to fly there.</p>
+            <div id="gm-tension"><p class="term-empty">Loading…</p></div>
+            <p class="gm-shown-note"><span id="gm-shown-count">—</span></p>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="gm-two">
-      <div class="term-block">
-        <h3>Financial &amp; forex news by severity <span class="term-badge" id="gm-sev-badge">…</span></h3>
-        <div class="term-cats" id="gm-sev-chips" style="margin-bottom:10px;"></div>
-        <div id="gm-sev-list" class="term-news-feed gm-sev-feed"><p class="term-empty">Loading…</p></div>
+    <section class="gm-panel" data-tab="wire">
+      <div class="term-block gm-wire-block">
+        <div class="gm-wire-head">
+          <h3 style="margin:0;">The Wire <span class="term-badge" id="gm-wire-badge">…</span></h3>
+          <div class="gm-wire-stats" id="gm-wire-stats"></div>
+        </div>
+        <div class="gm-wire-tools">
+          <input type="search" id="gm-wire-search" class="gm-search" placeholder="Search headlines, countries, sources…" autocomplete="off">
+          <div class="term-cats" id="gm-wire-chips"></div>
+        </div>
+        <div id="gm-wire-feed" class="gm-wire-feed"><p class="term-empty">Loading…</p></div>
       </div>
+    </section>
+
+    <section class="gm-panel" data-tab="markets">
       <div class="term-block">
+        <h3>Market signals <span class="term-badge" id="gm-markets-badge">…</span></h3>
+        <div class="gm-signals" id="gm-signals"></div>
+      </div>
+      <div class="gm-mkt-grid" id="gm-markets-grid"><p class="term-empty">Loading market data…</p></div>
+      <div class="gm-two">
+        <div class="term-block">
+          <h3>Sector rotation</h3>
+          <div id="gm-sectors"></div>
+        </div>
+        <div class="term-block">
+          <h3>Financial &amp; forex news by severity <span class="term-badge" id="gm-sev-badge">…</span></h3>
+          <div class="term-cats" id="gm-sev-chips" style="margin-bottom:10px;"></div>
+          <div id="gm-sev-list" class="term-news-feed gm-sev-feed"><p class="term-empty">Loading…</p></div>
+        </div>
+      </div>
+      <div class="term-block" style="margin-top:14px;">
+        <h3>Live quotes</h3>
+        <p class="gm-side-note">Streaming prices for war-sensitive assets, via TradingView.</p>
+        <div id="gm-tv-quotes" class="tv-host"></div>
+      </div>
+    </section>
+
+    <section class="gm-panel" data-tab="risk">
+      <div class="gm-two">
+        <div class="term-block">
+          <h3>DEFCON status</h3>
+          <div id="gm-defcon"><p class="term-empty">Loading…</p></div>
+        </div>
+        <div class="term-block">
+          <div class="gm-wire-head">
+            <h3 style="margin:0;">Disease outbreaks</h3>
+            <div class="gm-wire-stats" id="gm-outbreak-stats"></div>
+          </div>
+          <p class="gm-side-note">WHO Disease Outbreak News, severity-ranked.</p>
+          <div id="gm-outbreaks" class="gm-wire-feed gm-outbreak-feed"><p class="term-empty">Loading…</p></div>
+        </div>
+      </div>
+      <div class="term-block" style="margin-top:14px;">
         <h3>Prediction markets <span class="term-badge" id="gm-predict-badge">…</span></h3>
         <p class="gm-side-note">Real-money odds on geopolitical outcomes, via Polymarket.</p>
-        <div id="gm-predict"><p class="term-empty">Loading…</p></div>
+        <div id="gm-predict" class="gm-pred-grid"><p class="term-empty">Loading…</p></div>
       </div>
     </section>
 
-    <section class="term-block" style="margin-top:14px;">
-      <h3>Market impact</h3>
-      <p class="gm-side-note">War-sensitive assets: safe havens, energy, defense and risk barometers.</p>
-      <div id="gm-markets" class="tv-host"></div>
+    <section class="gm-panel" data-tab="streams">
+      <div class="term-block">
+        <div class="gm-stream-head">
+          <h3 style="margin:0;">Live streams</h3>
+          <span class="gm-onair"><i></i>ON AIR · <b id="gm-stream-label">—</b></span>
+        </div>
+        <div class="term-cats" id="gm-stream-tabs" style="margin:10px 0 12px;"></div>
+        <div class="gm-stream-frame" id="gm-stream-frame"></div>
+        <p class="gm-fineprint">Streams play from each broadcaster's official YouTube live channel.</p>
+      </div>
     </section>
   </main>
 </div>
@@ -225,36 +290,36 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=188"></script>
-<script src="assets/gate-timeout.js?v=188"></script>
-<script src="assets/progress.js?v=188"></script>
-<script src="assets/presence.js?v=188"></script>
-<script src="assets/messages.js?v=188"></script>
-<script src="assets/messages-badge.js?v=188"></script>
-<script src="assets/activity-log.js?v=188"></script>
-<script src="assets/banned-check.js?v=188"></script>
-<script src="assets/email-verify.js?v=188"></script>
-<script src="assets/notifications.js?v=188"></script>
+<script src="assets/auth.js?v=189"></script>
+<script src="assets/gate-timeout.js?v=189"></script>
+<script src="assets/progress.js?v=189"></script>
+<script src="assets/presence.js?v=189"></script>
+<script src="assets/messages.js?v=189"></script>
+<script src="assets/messages-badge.js?v=189"></script>
+<script src="assets/activity-log.js?v=189"></script>
+<script src="assets/banned-check.js?v=189"></script>
+<script src="assets/email-verify.js?v=189"></script>
+<script src="assets/notifications.js?v=189"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=188"></script>
-<script src="assets/push-prompt.js?v=188"></script>
-<script src="assets/admin-link.js?v=188"></script>
-<script src="assets/profiles-sync.js?v=188"></script>
+<script src="assets/push.js?v=189"></script>
+<script src="assets/push-prompt.js?v=189"></script>
+<script src="assets/admin-link.js?v=189"></script>
+<script src="assets/profiles-sync.js?v=189"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=188"></script>
-<script src="assets/avatars.js?v=188"></script>
-<script src="assets/account-menu.js?v=188"></script>
-<script src="assets/referrals.js?v=188"></script>
-<script src="assets/roles.js?v=188"></script>
-<script src="assets/plan-modal.js?v=188"></script>
-<script src="assets/plan-guard.js?v=188"></script>
-<script src="assets/maintenance-check.js?v=188"></script>
-<script src="assets/branding.js?v=188"></script>
-<script src="assets/chapters-data.js?v=188"></script>
-<script src="assets/chapters-store.js?v=188"></script>
-<script src="assets/dash-nav.js?v=188"></script>
-<script src="assets/world-map-path.js?v=188"></script>
-<script src="assets/country-shapes.js?v=188"></script>
-<script src="assets/global-monitor.js?v=188"></script>
+<script src="assets/loading-animation.js?v=189"></script>
+<script src="assets/avatars.js?v=189"></script>
+<script src="assets/account-menu.js?v=189"></script>
+<script src="assets/referrals.js?v=189"></script>
+<script src="assets/roles.js?v=189"></script>
+<script src="assets/plan-modal.js?v=189"></script>
+<script src="assets/plan-guard.js?v=189"></script>
+<script src="assets/maintenance-check.js?v=189"></script>
+<script src="assets/branding.js?v=189"></script>
+<script src="assets/chapters-data.js?v=189"></script>
+<script src="assets/chapters-store.js?v=189"></script>
+<script src="assets/dash-nav.js?v=189"></script>
+<script src="assets/world-map-path.js?v=189"></script>
+<script src="assets/country-shapes.js?v=189"></script>
+<script src="assets/global-monitor.js?v=189"></script>
 </body>
 </html>

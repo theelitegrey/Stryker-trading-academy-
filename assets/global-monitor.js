@@ -1,44 +1,43 @@
-// Stryker Trading Academy — Global Monitor (war & geopolitics terminal)
+// Stryker Trading Academy — Global Monitor (geopolitics & markets terminal)
 // Depends on: assets/world-map-path.js (WORLD_MAP_PATH, WORLD_MAP_VIEWBOX),
 //             assets/country-shapes.js (COUNTRY_SHAPES)
 //
-// A conflict-focused sibling of the market Terminal. The map, newswire and
-// severity feed are GDELT; predictions are Polymarket; market impact is
-// TradingView's embeddable widgets.
+// DATA PATH
+// Primary: monitor-data.json, produced every ~20 minutes by the
+// .github/workflows/monitor-data.yml pipeline and published to this repo's
+// `data` branch. One fetch feeds every panel: map events, wire, financial
+// severity feed, markets, outbreaks, DEFCON, predictions. This is the only
+// path that works for every student — GDELT rate-limits datacenter IPs and is
+// unreachable from some student networks entirely, so a static JSON served
+// from GitHub (reachable iff the site itself is reachable) is the reliable
+// route.
 //
-// WHY GDELT IS CALLED FROM THE BROWSER HERE
-// The market Terminal reads a Firestore cache because GDELT rate-limits
-// Google Cloud egress IPs into 59-second 429s (see refreshWorldData.js).
-// That punishment applies to shared datacenter IPs, not to individual
-// browsers: each student's own connection carries its own quota. So the
-// primary path is a direct fetch — fresher data, war-specific queries the
-// shared cache doesn't run — and the deployed cache functions remain as the
-// fallback when a student's fetch fails, so the page degrades to slightly
-// staler, broader data rather than to an error.
+// Fallbacks, per section, when the pipeline JSON cannot be fetched:
+//   events/wire/finance -> direct GDELT from the browser -> Firebase cache fns
+//   predictions         -> direct Polymarket -> getIntel
+//   markets/outbreaks/defcon -> quiet offline note (TradingView quotes stay
+//                               live regardless; they never depend on us)
+// Upstream error text is logged to the console, never shown to students.
 
-// ---- Queries ----------------------------------------------------------------
+// ---- Data sources -----------------------------------------------------------
+var GM_DATA_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+var GDELT_GEO = 'https://api.gdeltproject.org/api/v2/geo/geo';
+var GDELT_DOC = 'https://api.gdeltproject.org/api/v2/doc/doc';
+var POLYMARKET = 'https://gamma-api.polymarket.com/events';
+var FN_BASE = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/';
+
 var GM_EVENTS_QUERY = '(war OR conflict OR military OR missile OR airstrike OR ' +
   'invasion OR troops OR ceasefire OR shelling OR "drone strike" OR sanctions OR ' +
   'coup OR insurgency OR terrorism OR protest OR mobilization)';
-
 var GM_WIRE_QUERY = '(war OR ceasefire OR missile OR airstrike OR invasion OR ' +
   'troops OR sanctions OR nuclear OR NATO OR "drone strike" OR offensive OR ' +
   'militants OR coup) sourcelang:eng';
-
 var GM_FIN_QUERY = '("federal reserve" OR "central bank" OR inflation OR ' +
   '"interest rate" OR forex OR currency OR dollar OR euro OR gold OR oil OR ' +
   '"stock market" OR stocks OR bonds OR recession OR tariffs OR sanctions) ' +
   'sourcelang:eng';
 
-var GDELT_GEO = 'https://api.gdeltproject.org/api/v2/geo/geo';
-var GDELT_DOC = 'https://api.gdeltproject.org/api/v2/doc/doc';
-var POLYMARKET = 'https://gamma-api.polymarket.com/events';
-
-// Deployed cache functions — the fallback path (see header).
-var FN_BASE = 'https://us-central1-strykertrades-e0cd8.cloudfunctions.net/';
-
 // ---- Categories -------------------------------------------------------------
-// Order matters: first match wins, so the most specific patterns come first.
 var GM_CATS = [
   { key: 'combat', label: 'Armed conflict', colour: '#e5484d',
     re: /\b(war|invasion|offensive|airstrikes?|air strikes?|attacks?|attacked|shelling|artillery|missiles?|rockets?|drone strikes?|bombing|bombardment|fighting|clashes|frontline|combat|strikes? on|killed in strike)\b/i },
@@ -47,15 +46,13 @@ var GM_CATS = [
   { key: 'military', label: 'Military moves', colour: '#f5a524',
     re: /\b(troops|military|deploy|mobiliz|drills?|exercises?|navy|warships?|fighter jets?|air defen[cs]e|weapons|arms deal|nuclear|missile test|conscription)\b/i },
   { key: 'unrest', label: 'Civil unrest', colour: '#f5c542',
-    re: /\b(protests?|riots?|demonstrat|unrest|coup|martial law|crackdown|uprising|strikes? by workers)\b/i },
+    re: /\b(protests?|riots?|demonstrat|unrest|coup|martial law|crackdown|uprising)\b/i },
   { key: 'diplomacy', label: 'Diplomacy & sanctions', colour: '#00adb5',
     re: /\b(ceasefire|truce|peace|talks|negotiat|sanctions?|embargo|treaty|summit|diplomat|resolution|accord)\b/i },
   { key: 'humanitarian', label: 'Humanitarian', colour: '#8b7dd8',
     re: /\b(refugees?|humanitarian|famine|aid convoy|evacuat|casualt|civilians? killed|displaced|hospital hit)\b/i },
   { key: 'other', label: 'Other', colour: '#7c8894', re: null }
 ];
-
-// Tension weighting: how much one report of each kind moves a country's score.
 var GM_CAT_WEIGHT = {
   combat: 3, terror: 2.5, military: 2, unrest: 1.5,
   humanitarian: 1.2, diplomacy: 1, other: 1
@@ -75,6 +72,16 @@ function gmCatLabel(key) {
   for (var i = 0; i < GM_CATS.length; i++) if (GM_CATS[i].key === key) return GM_CATS[i].label;
   return 'Other';
 }
+
+var GM_SEV_META = {
+  critical: { label: 'Critical', colour: '#e5484d' },
+  high:     { label: 'High',     colour: '#f5a524' },
+  elevated: { label: 'Elevated', colour: '#f5c542' },
+  active:   { label: 'Active',   colour: '#00adb5' },
+  watch:    { label: 'Watch',    colour: '#f5c542' },
+  moderate: { label: 'Moderate', colour: '#03c988' }
+};
+function gmSevMeta(sev) { return GM_SEV_META[sev] || { label: sev || '—', colour: '#7c8894' }; }
 
 // ---- Small helpers ----------------------------------------------------------
 function gmEsc(s) {
@@ -105,24 +112,33 @@ function gmParseSeenDate(s) {
   return isNaN(t) ? null : t;
 }
 
-// fetch with a timeout. GDELT's failure mode is hanging, not refusing —
-// twenty seconds is long enough for a slow success and short enough that the
-// fallback still feels like part of the page load.
 function gmFetchJson(url, timeoutMs) {
   var ctrl = ('AbortController' in window) ? new AbortController() : null;
   var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || 20000) : null;
   return fetch(url, ctrl ? { signal: ctrl.signal } : {})
     .then(function (r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      // GDELT sometimes labels JSON as text/html; parse the text ourselves so
-      // a mislabelled success is still a success.
       return r.text();
     })
     .then(function (t) { return JSON.parse(t); })
     .finally(function () { if (timer) clearTimeout(timer); });
 }
 
-// ---- Projection (matches world-map-path.js: equirect, 80N..56S, 1000x460) ---
+function gmSetBadge(id, text, off) {
+  var b = document.getElementById(id);
+  if (b) { b.textContent = text; b.className = 'term-badge' + (off ? ' is-off' : ''); }
+}
+
+// Adds entrance-stagger animation to a container's children (CSS handles the
+// rest; capped by nth-child so long lists don't take seconds to settle).
+function gmAnimate(el) {
+  if (!el) return;
+  el.classList.remove('gm-anim');
+  void el.offsetWidth;              // restart the CSS animation
+  el.classList.add('gm-anim');
+}
+
+// ---- Projection (equirect, 80N..56S, 1000x460 — matches world-map-path.js) --
 var GM_W = 1000, GM_H = 460, GM_LAT_MAX = 80, GM_LAT_MIN = -56;
 function gmLonX(lon) { return ((lon + 180) / 360) * GM_W; }
 function gmLatY(lat) {
@@ -130,7 +146,7 @@ function gmLatY(lat) {
   return ((GM_LAT_MAX - c) / (GM_LAT_MAX - GM_LAT_MIN)) * GM_H;
 }
 
-// ---- Country lookup ---------------------------------------------------------
+// ---- Country lookup (fallback paths only; pipeline data arrives attributed) -
 function gmPointInRing(lon, lat, ring) {
   var inside = false;
   for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -140,18 +156,15 @@ function gmPointInRing(lon, lat, ring) {
   }
   return inside;
 }
-
 function gmCountryAt(lon, lat) {
   if (typeof COUNTRY_SHAPES === 'undefined') return null;
   var c, r;
   for (c = 0; c < COUNTRY_SHAPES.length; c++) {
     var shape = COUNTRY_SHAPES[c];
     for (r = 0; r < shape.p.length; r++) {
-      if (gmPointInRing(lon, lat, shape.p[r])) return shape;
+      if (gmPointInRing(lon, lat, shape.p[r])) return shape.n;
     }
   }
-  // Coastal events land just offshore of the country they belong to; snap to
-  // the nearest outline vertex within ~1.5 degrees rather than dropping them.
   var best = null, bestD = 2.25;
   for (c = 0; c < COUNTRY_SHAPES.length; c++) {
     var s = COUNTRY_SHAPES[c];
@@ -159,32 +172,37 @@ function gmCountryAt(lon, lat) {
       var ring = s.p[r];
       for (var v = 0; v < ring.length; v++) {
         var dx = ring[v][0] - lon, dy = ring[v][1] - lat, d = dx * dx + dy * dy;
-        if (d < bestD) { bestD = d; best = s; }
+        if (d < bestD) { bestD = d; best = s.n; }
       }
     }
   }
   return best;
 }
-
-function gmCountryCentroid(shape) {
-  // centre of the largest ring's bbox — good enough to fly the map to
-  var best = null, bestArea = -1;
-  for (var i = 0; i < shape.p.length; i++) {
-    var minx = 999, maxx = -999, miny = 999, maxy = -999;
-    for (var v = 0; v < shape.p[i].length; v++) {
-      var pt = shape.p[i][v];
-      if (pt[0] < minx) minx = pt[0]; if (pt[0] > maxx) maxx = pt[0];
-      if (pt[1] < miny) miny = pt[1]; if (pt[1] > maxy) maxy = pt[1];
+function gmCountryCentroid(name) {
+  if (typeof COUNTRY_SHAPES === 'undefined') return null;
+  for (var i = 0; i < COUNTRY_SHAPES.length; i++) {
+    if (COUNTRY_SHAPES[i].n !== name) continue;
+    var best = null, bestArea = -1;
+    for (var p = 0; p < COUNTRY_SHAPES[i].p.length; p++) {
+      var ring = COUNTRY_SHAPES[i].p[p];
+      var minx = 999, maxx = -999, miny = 999, maxy = -999;
+      for (var v = 0; v < ring.length; v++) {
+        if (ring[v][0] < minx) minx = ring[v][0]; if (ring[v][0] > maxx) maxx = ring[v][0];
+        if (ring[v][1] < miny) miny = ring[v][1]; if (ring[v][1] > maxy) maxy = ring[v][1];
+      }
+      var a = (maxx - minx) * (maxy - miny);
+      if (a > bestArea) { bestArea = a; best = [(minx + maxx) / 2, (miny + maxy) / 2]; }
     }
-    var a = (maxx - minx) * (maxy - miny);
-    if (a > bestArea) { bestArea = a; best = [(minx + maxx) / 2, (miny + maxy) / 2]; }
+    return best;
   }
-  return best;
+  return null;
 }
 
-// ---- Map rendering ----------------------------------------------------------
+// ============================================================================
+// MAP
+// ============================================================================
 var GM_EVENTS = [];
-var GM_ACTIVE_CATS = null;   // null = all; a Set once the user filters
+var GM_ACTIVE_CATS = null;
 var GM_VIEW = { x: 0, y: 0, w: GM_W, h: GM_H };
 var GM_MIN_ZOOM = 1, GM_MAX_ZOOM = 14;
 
@@ -194,8 +212,6 @@ function gmRenderMap() {
   var host = document.getElementById('gm-map');
   if (!host || typeof WORLD_MAP_PATH === 'undefined') return;
 
-  // Night shading — same simplification as the Terminal map: night is the
-  // half of the globe antipodal to the subsolar longitude.
   var h = new Date().getUTCHours() + new Date().getUTCMinutes() / 60;
   var nightCentreLon = (12 - h) * 15 + 180;
   while (nightCentreLon > 180) nightCentreLon -= 360;
@@ -204,7 +220,13 @@ function gmRenderMap() {
   var svg = '' +
     '<svg viewBox="' + WORLD_MAP_VIEWBOX + '" class="term-map-svg gm-map-svg" ' +
         'xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">' +
-      '<rect width="' + GM_W + '" height="' + GM_H + '" fill="#08080a"/>' +
+      '<defs>' +
+        '<radialGradient id="gmVignette" cx="50%" cy="42%" r="75%">' +
+          '<stop offset="0%" stop-color="#0d1a14" stop-opacity="0.9"/>' +
+          '<stop offset="70%" stop-color="#08080a" stop-opacity="1"/>' +
+        '</radialGradient>' +
+      '</defs>' +
+      '<rect width="' + GM_W + '" height="' + GM_H + '" fill="url(#gmVignette)"/>' +
       gmGraticule() +
       '<path d="' + WORLD_MAP_PATH + '" fill="#1c2126" stroke="#2e363d" stroke-width="0.7"/>' +
       gmNightBand(nightCentreLon) +
@@ -336,8 +358,6 @@ function gmBindMapInteraction() {
   svg.addEventListener('pointercancel', endDrag);
   svg.style.cursor = 'grab';
 
-  // pinch zoom — two pointers tracked manually (Safari-only gesture events
-  // are not portable)
   var pointers = {}, pinchStart = null;
   svg.addEventListener('pointerdown', function (e) { pointers[e.pointerId] = e; });
   svg.addEventListener('pointermove', function (e) {
@@ -378,8 +398,6 @@ function gmDrawEvents() {
     var x = gmLonX(e.lon), y = gmLatY(e.lat);
     var colour = gmCatColour(e.cat);
     var r = 2.2 + Math.min(4.5, Math.sqrt(e.count) * 0.9);
-    // The heaviest stories pulse. Animated on the halo, not the dot, so the
-    // marker itself stays a stable click target.
     var pulse = e.count >= 8
       ? '<circle class="gm-pulse" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
         '" r="' + r.toFixed(1) + '" fill="none" stroke="' + colour + '" stroke-width="1.4">' +
@@ -481,76 +499,9 @@ function gmFlyTo(lon, lat) {
   if (wrap) wrap.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
-// ---- Event loading ----------------------------------------------------------
-function gmSetBadge(id, text, off) {
-  var b = document.getElementById(id);
-  if (b) { b.textContent = text; b.className = 'term-badge' + (off ? ' is-off' : ''); }
-}
-
-function gmLoadEvents() {
-  var url = GDELT_GEO + '?query=' + encodeURIComponent(GM_EVENTS_QUERY) +
-    '&mode=pointdata&format=geojson&timespan=6h';
-
-  gmFetchJson(url, 20000)
-    .then(function (json) {
-      var events = gmParseGeo(json);
-      if (!events.length) throw new Error('empty');
-      gmApplyEvents(events, 'live');
-    })
-    .catch(function () {
-      // Fallback: the shared Firestore cache (market Terminal's feed),
-      // narrowed to its geopolitics/politics categories.
-      gmFetchJson(FN_BASE + 'getWorldEvents', 15000)
-        .then(function (data) {
-          var all = (data && data.events) || [];
-          var events = all.filter(function (e) {
-            return e.cat === 'conflict' || e.cat === 'politics';
-          }).map(function (e) {
-            return {
-              lon: e.lon, lat: e.lat, place: e.place, title: e.title,
-              url: e.url, count: e.count || 1,
-              cat: gmCategorise(e.title + ' ' + (e.place || ''))
-            };
-          });
-          if (!events.length) {
-            gmEventsUnavailable(data && data.error ? 'Feed error: ' + data.error
-              : 'No events reported in the window.');
-            return;
-          }
-          gmApplyEvents(events, 'cached');
-        })
-        .catch(function () { gmEventsUnavailable('Event feed unreachable.'); });
-    });
-}
-
-function gmParseGeo(json) {
-  var features = (json && json.features) || [];
-  return features.map(function (f) {
-    var coords = (f.geometry && f.geometry.coordinates) || [];
-    var p = f.properties || {};
-    var lon = typeof coords[0] === 'number' ? coords[0] : null;
-    var lat = typeof coords[1] === 'number' ? coords[1] : null;
-    if (lon === null || lat === null) return null;
-    var raw = String(p.html || p.name || '');
-    var link = raw.match(/href=["']([^"']+)["']/i);
-    var title = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!title) return null;
-    return {
-      lon: lon, lat: lat,
-      place: String(p.name || '').trim().slice(0, 80),
-      title: title.slice(0, 220),
-      url: link ? link[1] : null,
-      count: Number(p.count) || 1,
-      cat: gmCategorise(title + ' ' + (p.name || ''))
-    };
-  }).filter(Boolean).sort(function (a, b) { return b.count - a.count; });
-}
-
 function gmApplyEvents(events, sourceLabel) {
-  // country attribution once per load, not per render
   events.forEach(function (e) {
-    var c = gmCountryAt(e.lon, e.lat);
-    e.country = c ? c.n : null;
+    if (e.country === undefined) e.country = gmCountryAt(e.lon, e.lat);
   });
   GM_EVENTS = events;
   gmSetBadge('gm-events-badge', sourceLabel, sourceLabel !== 'live');
@@ -560,12 +511,12 @@ function gmApplyEvents(events, sourceLabel) {
   gmRenderTension();
 }
 
-function gmEventsUnavailable(msg) {
+function gmEventsUnavailable() {
   var host = document.getElementById('gm-table-body');
-  if (host) host.innerHTML = '<p class="term-empty">' + gmEsc(msg) + '</p>';
+  if (host) host.innerHTML = '<p class="term-empty">Event feed is temporarily offline — it retries automatically every few minutes.</p>';
   gmSetBadge('gm-events-badge', 'offline', true);
   var t = document.getElementById('gm-tension');
-  if (t) t.innerHTML = '<p class="term-empty">Needs the event feed.</p>';
+  if (t) t.innerHTML = '<p class="term-empty">Waiting for the event feed…</p>';
 }
 
 function gmRenderCatFilter() {
@@ -606,16 +557,41 @@ function gmRenderEventTable() {
         '" target="_blank" rel="noopener noreferrer" title="Open source">↗</a>' : '') +
     '</div>';
   }).join('');
+  gmAnimate(host);
 
   var count = document.getElementById('gm-table-count');
   if (count) count.textContent = list.length + ' events';
 }
 
-// ---- Tension rankings -------------------------------------------------------
-// Score = Σ sqrt(reports) × category weight, per country. sqrt for the same
-// reason pin radius uses it: a story syndicated 40 times is not 40 separate
-// crises. Trend arrows compare against a snapshot saved 30min-24h ago.
+// ---- Most active locations (24h) --------------------------------------------
+function gmRenderActive24(items) {
+  var host = document.getElementById('gm-active24');
+  if (!host) return;
+  if (!items || !items.length) {
+    host.innerHTML = '<p class="term-empty">No location data yet.</p>';
+    return;
+  }
+  var max = items[0].count || 1;
+  host.innerHTML = items.slice(0, 8).map(function (r, i) {
+    var pct = Math.round((r.count / max) * 100);
+    return '<div class="gm-tension-row" data-place-lon="" data-country="' + gmEscAttr(r.country || '') + '">' +
+      '<span class="gm-tension-rank">' + (i + 1) + '</span>' +
+      '<div class="gm-tension-main">' +
+        '<div class="gm-tension-top">' +
+          '<span class="gm-tension-name">' + gmEsc(r.place) + '</span>' +
+          (r.country && r.country !== r.place
+            ? '<span class="gm-active-country">' + gmEsc(r.country) + '</span>' : '') +
+          '<span class="gm-tension-val">×' + r.count + '</span>' +
+        '</div>' +
+        '<div class="gm-tension-bar"><i style="width:' + pct + '%; background:linear-gradient(90deg,' +
+          gmCatColour(r.cat) + '88,' + gmCatColour(r.cat) + ')"></i></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  gmAnimate(host);
+}
 
+// ---- Tension index ----------------------------------------------------------
 function gmRenderTension() {
   var host = document.getElementById('gm-tension');
   if (!host) return;
@@ -637,7 +613,6 @@ function gmRenderTension() {
     return;
   }
 
-  // trend vs a stored snapshot
   var prev = null;
   try {
     var raw = localStorage.getItem('stryker_gm_tension');
@@ -676,68 +651,16 @@ function gmRenderTension() {
       '</div>' +
     '</div>';
   }).join('');
+  gmAnimate(host);
 }
 
-// ---- Newswire + ticker ------------------------------------------------------
+// ============================================================================
+// WIRE
+// ============================================================================
 var GM_WIRE = [];
 var GM_WIRE_SEEN = null;
-
-function gmLoadWire() {
-  var url = GDELT_DOC + '?query=' + encodeURIComponent(GM_WIRE_QUERY) +
-    '&mode=artlist&format=json&maxrecords=100&sort=datedesc&timespan=3h';
-
-  gmFetchJson(url, 20000)
-    .then(function (json) {
-      var items = gmParseArticles(json);
-      if (!items.length) throw new Error('empty');
-      gmApplyWire(items, 'live');
-    })
-    .catch(function () {
-      gmFetchJson(FN_BASE + 'getNewswire', 15000)
-        .then(function (data) {
-          var items = ((data && data.items) || []).map(function (it) {
-            return {
-              id: it.id, title: it.title, url: it.url, source: it.source,
-              at: it.at, cat: gmCategorise(it.title)
-            };
-          });
-          // geopolitics first, but keep the rest — a thin wire is worse than
-          // a broad one
-          items.sort(function (a, b) {
-            var ga = (a.cat !== 'other') ? 0 : 1, gb = (b.cat !== 'other') ? 0 : 1;
-            return ga - gb || (b.at || 0) - (a.at || 0);
-          });
-          if (!items.length) {
-            gmWireUnavailable(data && data.error ? 'Newswire error: ' + data.error
-              : 'No headlines in the window.');
-            return;
-          }
-          gmApplyWire(items, 'cached');
-        })
-        .catch(function () { gmWireUnavailable('Newswire unreachable.'); });
-    });
-}
-
-function gmParseArticles(json) {
-  var articles = (json && json.articles) || [];
-  var seen = new Set();
-  var items = [];
-  for (var i = 0; i < articles.length; i++) {
-    var a = articles[i];
-    var title = String(a.title || '').trim();
-    if (!title) continue;
-    var fp = gmFingerprint(title);
-    if (!fp || seen.has(fp)) continue;
-    seen.add(fp);
-    items.push({
-      id: fp, title: title.slice(0, 200), url: a.url || null,
-      source: String(a.domain || '').replace(/^www\./, '').slice(0, 40),
-      at: gmParseSeenDate(a.seendate), cat: gmCategorise(title)
-    });
-    if (items.length >= 60) break;
-  }
-  return items;
-}
+var GM_WIRE_SEV = null;      // null = all severities
+var GM_WIRE_QUERY_TEXT = '';
 
 function gmApplyWire(items, sourceLabel) {
   var firstLoad = (GM_WIRE_SEEN === null);
@@ -745,6 +668,7 @@ function gmApplyWire(items, sourceLabel) {
   items.forEach(function (it) {
     nowSeen[it.id] = true;
     it.isNew = !firstLoad && !GM_WIRE_SEEN[it.id];
+    if (!it.sev) it.sev = 'active';
   });
   GM_WIRE_SEEN = nowSeen;
   GM_WIRE = items;
@@ -753,30 +677,79 @@ function gmApplyWire(items, sourceLabel) {
   gmRenderTicker();
 }
 
-function gmWireUnavailable(msg) {
+function gmWireUnavailable() {
   var host = document.getElementById('gm-wire-feed');
-  if (host) host.innerHTML = '<p class="term-empty">' + gmEsc(msg) + '</p>';
+  if (host) host.innerHTML = '<p class="term-empty">Newswire is temporarily offline — it retries automatically.</p>';
   gmSetBadge('gm-wire-badge', 'offline', true);
   var track = document.getElementById('gm-ticker-track');
-  if (track) track.innerHTML = '<span class="gm-ticker-item">' + gmEsc(msg) + '</span>';
+  if (track) track.innerHTML = '<span class="gm-ticker-item">Newswire reconnecting…</span>';
+}
+
+function gmWireCounts() {
+  var c = { highplus: 0, elevated: 0, total: GM_WIRE.length };
+  GM_WIRE.forEach(function (it) {
+    if (it.sev === 'critical' || it.sev === 'high') c.highplus++;
+    else if (it.sev === 'elevated') c.elevated++;
+  });
+  return c;
 }
 
 function gmRenderWire() {
   var host = document.getElementById('gm-wire-feed');
   if (!host) return;
-  host.innerHTML = GM_WIRE.map(function (it) {
-    return '<a class="news-item' + (it.isNew ? ' is-new' : '') + '"' +
-        (it.url ? ' href="' + gmEscAttr(it.url) + '" target="_blank" rel="noopener noreferrer"' : '') + '>' +
-      '<span class="news-bar" style="background:' + gmCatColour(it.cat) + '"></span>' +
-      '<span class="news-body">' +
-        '<span class="news-title">' + gmEsc(it.title) + '</span>' +
-        '<span class="news-meta">' +
-          '<time>' + gmEsc(gmTimeAgo(it.at)) + '</time>' +
-          (it.source ? '<span class="news-src">' + gmEsc(it.source) + '</span>' : '') +
+
+  var counts = gmWireCounts();
+  var stats = document.getElementById('gm-wire-stats');
+  if (stats) {
+    stats.innerHTML =
+      '<span class="gm-stat is-high">' + counts.highplus + ' HIGH+</span>' +
+      '<span class="gm-stat is-elev">' + counts.elevated + ' ELEVATED</span>' +
+      '<span class="gm-stat">' + counts.total + ' ACTIVE</span>';
+  }
+
+  var chips = document.getElementById('gm-wire-chips');
+  if (chips) {
+    chips.innerHTML = ['critical', 'high', 'elevated', 'active'].map(function (k) {
+      var n = GM_WIRE.filter(function (it) { return it.sev === k; }).length;
+      var on = !GM_WIRE_SEV || GM_WIRE_SEV === k;
+      return '<button type="button" class="term-cat' + (on ? ' is-on' : '') +
+        (n ? '' : ' is-empty') + '" data-sev="' + k + '">' +
+        '<i style="background:' + gmSevMeta(k).colour + '"></i>' +
+        gmSevMeta(k).label + '<b>' + n + '</b></button>';
+    }).join('');
+  }
+
+  var q = GM_WIRE_QUERY_TEXT.toLowerCase();
+  var list = GM_WIRE.filter(function (it) {
+    if (GM_WIRE_SEV && it.sev !== GM_WIRE_SEV) return false;
+    if (q && (it.title + ' ' + (it.country || '') + ' ' + (it.source || '')).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+
+  if (!list.length) {
+    host.innerHTML = '<p class="term-empty">Nothing matches. Clear the search or filters.</p>';
+    return;
+  }
+
+  host.innerHTML = list.slice(0, 120).map(function (it) {
+    var m = gmSevMeta(it.sev);
+    var inner =
+      '<span class="gm-wire-dot" style="background:' + m.colour + '; box-shadow:0 0 8px ' + m.colour + '66"></span>' +
+      '<span class="gm-wire-body">' +
+        '<span class="gm-wire-meta-top">' +
+          (it.country ? '<span class="gm-wire-loc">' + gmEsc(it.country.toUpperCase()) + '</span>' : '') +
+          '<span class="gm-wire-sev" style="color:' + m.colour + '; border-color:' + m.colour + '55; background:' + m.colour + '14">' + m.label.toUpperCase() + '</span>' +
+          '<span class="gm-wire-time">' + gmEsc(gmTimeAgo(it.at)) + ' ago</span>' +
         '</span>' +
-      '</span>' +
-    '</a>';
+        '<span class="gm-wire-title">' + gmEsc(it.title) + '</span>' +
+        (it.source ? '<span class="gm-wire-src">' + gmEsc(it.source) + '</span>' : '') +
+      '</span>';
+    return it.url
+      ? '<a class="gm-wire-item' + (it.isNew ? ' is-new' : '') + '" href="' + gmEscAttr(it.url) +
+        '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
+      : '<div class="gm-wire-item' + (it.isNew ? ' is-new' : '') + '">' + inner + '</div>';
   }).join('');
+  gmAnimate(host);
 }
 
 function gmRenderTicker() {
@@ -785,15 +758,13 @@ function gmRenderTicker() {
   var items = GM_WIRE.slice(0, 30);
   if (!items.length) return;
   var html = items.map(function (it) {
-    var inner = '<i style="background:' + gmCatColour(it.cat) + '"></i>' + gmEsc(it.title);
+    var inner = '<i style="background:' + gmSevMeta(it.sev).colour + '"></i>' + gmEsc(it.title);
     return it.url
       ? '<a class="gm-ticker-item" href="' + gmEscAttr(it.url) +
         '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
       : '<span class="gm-ticker-item">' + inner + '</span>';
   }).join('');
-  // Content duplicated once so the CSS loop (translateX 0 → -50%) is seamless.
   track.innerHTML = html + html;
-  // Constant speed regardless of headline count: duration scales with width.
   requestAnimationFrame(function () {
     var w = track.scrollWidth / 2;
     track.style.animationDuration = Math.max(30, Math.round(w / 55)) + 's';
@@ -801,113 +772,43 @@ function gmRenderTicker() {
 }
 
 function gmTickWireTimes() {
-  document.querySelectorAll('#gm-wire-feed .news-item time').forEach(function (el, i) {
-    if (GM_WIRE[i]) el.textContent = gmTimeAgo(GM_WIRE[i].at);
+  document.querySelectorAll('#gm-wire-feed .gm-wire-time').forEach(function (el, i) {
+    // indexes line up only when unfiltered; cheap and cosmetic either way
+    if (!GM_WIRE_SEV && !GM_WIRE_QUERY_TEXT && GM_WIRE[i]) {
+      el.textContent = gmTimeAgo(GM_WIRE[i].at) + ' ago';
+    }
   });
 }
 
-// ---- Financial & forex news by severity -------------------------------------
-// Severity comes from GDELT's tone filter: one query for sharply negative
-// coverage (tone < -7) and one for negative coverage (tone < -2.5). Membership
-// in the severe set plus hard keywords decides the band. The two queries run
-// 1.5s apart — GDELT rate-limits per IP, and two simultaneous requests from
-// one browser is how you meet that limit.
-
-var GM_SEV_ACTIVE = null;   // null = all bands
+// ============================================================================
+// FINANCIAL SEVERITY FEED
+// ============================================================================
+var GM_SEV_ACTIVE = null;
 var GM_SEV_ITEMS = [];
-
 var GM_HARD_RE = /\b(crash|collaps|plunge|panic|emergency|default|crisis|war|invasion|meltdown|turmoil|freefall|contagion|bank run)\b/i;
 
-function gmLoadSeverity() {
-  var severeUrl = GDELT_DOC + '?query=' + encodeURIComponent(GM_FIN_QUERY + ' tone<-7') +
-    '&mode=artlist&format=json&maxrecords=50&sort=datedesc&timespan=12h';
-  var moderateUrl = GDELT_DOC + '?query=' + encodeURIComponent(GM_FIN_QUERY + ' tone<-2.5') +
-    '&mode=artlist&format=json&maxrecords=75&sort=datedesc&timespan=12h';
-
-  gmFetchJson(severeUrl, 20000)
-    .then(function (severeJson) {
-      var severe = gmParseArticles(severeJson);
-      return new Promise(function (resolve) { setTimeout(resolve, 1500); })
-        .then(function () { return gmFetchJson(moderateUrl, 20000); })
-        .then(function (moderateJson) {
-          gmApplySeverity(severe, gmParseArticles(moderateJson), 'live');
-        })
-        .catch(function () { gmApplySeverity(severe, [], 'live'); });
-    })
-    .catch(function () {
-      // Fallback: the cached market newswire, no tone data — everything lands
-      // in Watch unless keywords argue otherwise.
-      gmFetchJson(FN_BASE + 'getNewswire', 15000)
-        .then(function (data) {
-          var items = ((data && data.items) || []).filter(function (it) {
-            return it.cat === 'markets' || it.cat === 'econ' || it.cat === 'centralbank';
-          }).map(function (it) {
-            return {
-              id: it.id, title: it.title, url: it.url, source: it.source, at: it.at,
-              sev: GM_HARD_RE.test(it.title) ? 'high' : 'watch'
-            };
-          });
-          if (!items.length) throw new Error('empty');
-          GM_SEV_ITEMS = items;
-          gmSetBadge('gm-sev-badge', 'cached', true);
-          gmRenderSeverity();
-        })
-        .catch(function () {
-          var host = document.getElementById('gm-sev-list');
-          if (host) host.innerHTML = '<p class="term-empty">Severity feed unreachable.</p>';
-          gmSetBadge('gm-sev-badge', 'offline', true);
-        });
-    });
-}
-
-function gmApplySeverity(severe, moderate, sourceLabel) {
-  var severeIds = new Set(severe.map(function (it) { return it.id; }));
-  var all = {};
-  severe.forEach(function (it) { all[it.id] = it; });
-  moderate.forEach(function (it) { if (!all[it.id]) all[it.id] = it; });
-
-  var items = Object.keys(all).map(function (id) {
-    var it = all[id];
-    var hard = GM_HARD_RE.test(it.title);
-    var sev;
-    if (severeIds.has(id)) sev = hard ? 'critical' : 'high';
-    else sev = hard ? 'high' : 'watch';
-    return {
-      id: it.id, title: it.title, url: it.url, source: it.source, at: it.at, sev: sev
-    };
-  });
-
-  var rank = { critical: 0, high: 1, watch: 2 };
-  items.sort(function (a, b) {
-    return rank[a.sev] - rank[b.sev] || (b.at || 0) - (a.at || 0);
-  });
-
-  GM_SEV_ITEMS = items.slice(0, 60);
+function gmApplyFinance(items, sourceLabel) {
+  GM_SEV_ITEMS = items;
   gmSetBadge('gm-sev-badge', sourceLabel, sourceLabel !== 'live');
   gmRenderSeverity();
 }
-
-var GM_SEV_META = {
-  critical: { label: 'Critical', colour: '#e5484d' },
-  high:     { label: 'High',     colour: '#f5a524' },
-  watch:    { label: 'Watch',    colour: '#f5c542' }
-};
 
 function gmRenderSeverity() {
   var chips = document.getElementById('gm-sev-chips');
   var host = document.getElementById('gm-sev-list');
   if (!host) return;
 
-  var counts = { critical: 0, high: 0, watch: 0 };
-  GM_SEV_ITEMS.forEach(function (it) { counts[it.sev]++; });
+  var counts = {};
+  GM_SEV_ITEMS.forEach(function (it) { counts[it.sev] = (counts[it.sev] || 0) + 1; });
 
+  var bands = ['critical', 'high', 'watch'];
   if (chips) {
-    chips.innerHTML = ['critical', 'high', 'watch'].map(function (k) {
+    chips.innerHTML = bands.map(function (k) {
       var on = !GM_SEV_ACTIVE || GM_SEV_ACTIVE === k;
       return '<button type="button" class="term-cat' + (on ? ' is-on' : '') +
-        (counts[k] ? '' : ' is-empty') + '" data-sev="' + k + '">' +
-        '<i style="background:' + GM_SEV_META[k].colour + '"></i>' +
-        GM_SEV_META[k].label + '<b>' + counts[k] + '</b></button>';
+        ((counts[k] || 0) ? '' : ' is-empty') + '" data-sev="' + k + '">' +
+        '<i style="background:' + gmSevMeta(k).colour + '"></i>' +
+        gmSevMeta(k).label + '<b>' + (counts[k] || 0) + '</b></button>';
     }).join('');
   }
 
@@ -921,7 +822,7 @@ function gmRenderSeverity() {
   }
 
   host.innerHTML = list.map(function (it) {
-    var m = GM_SEV_META[it.sev];
+    var m = gmSevMeta(it.sev);
     return '<a class="news-item"' +
         (it.url ? ' href="' + gmEscAttr(it.url) + '" target="_blank" rel="noopener noreferrer"' : '') + '>' +
       '<span class="news-bar" style="background:' + m.colour + '"></span>' +
@@ -935,83 +836,277 @@ function gmRenderSeverity() {
       '</span>' +
     '</a>';
   }).join('');
+  gmAnimate(host);
 }
 
-// ---- Prediction markets -----------------------------------------------------
-// Polymarket's public gamma API, keyless. Filtered to geopolitics by keyword
-// because tag coverage is inconsistent. Falls back to the getIntel function's
-// curated predictions list.
+// ============================================================================
+// MARKETS
+// ============================================================================
+var GM_MARKET_GROUPS = [
+  ['idx', 'US indices'], ['fut', 'US futures'], ['haven', 'Safe havens'],
+  ['fx', 'Forex'], ['energy', 'Energy'], ['defense', 'Defense stocks'],
+  ['crypto', 'Crypto']
+];
 
-var GM_GEO_RE = /\b(war|ceasefire|invasion|invade|missile|nuclear|NATO|Russia|Ukraine|Israel|Gaza|Iran|China|Taiwan|Korea|strike[s]? on|military|troops|sanctions?|Hezbollah|Houthis?|Putin|Zelensky|Netanyahu|Xi Jinping|regime|annex|treaty|border)\b/i;
-
-function gmLoadPredictions() {
-  var url = POLYMARKET + '?closed=false&order=volume24hr&ascending=false&limit=100';
-  gmFetchJson(url, 20000)
-    .then(function (json) {
-      var events = Array.isArray(json) ? json : [];
-      var rows = [];
-      for (var i = 0; i < events.length && rows.length < 10; i++) {
-        var ev = events[i];
-        var title = String(ev.title || '');
-        if (!GM_GEO_RE.test(title)) continue;
-        var mk = gmTopMarket(ev.markets);
-        if (!mk) continue;
-        rows.push({
-          question: title.slice(0, 120),
-          detail: mk.label,
-          probability: mk.prob,
-          volume: Number(ev.volume24hr || ev.volume || 0),
-          url: ev.slug ? 'https://polymarket.com/event/' + ev.slug : null
-        });
-      }
-      if (!rows.length) throw new Error('no geo markets');
-      gmRenderPredictions(rows, 'live');
-    })
-    .catch(function () {
-      gmFetchJson(FN_BASE + 'getIntel', 15000)
-        .then(function (res) {
-          var rows = (((res || {}).data || {}).predictions || []).map(function (r) {
-            return { question: r.question, detail: null,
-                     probability: r.probability, volume: null, url: null };
-          });
-          if (!rows.length) throw new Error('empty');
-          gmRenderPredictions(rows, 'cached');
-        })
-        .catch(function () {
-          var host = document.getElementById('gm-predict');
-          if (host) host.innerHTML = '<p class="term-empty">Prediction feed unreachable.</p>';
-          gmSetBadge('gm-predict-badge', 'offline', true);
-        });
-    });
+function gmSpark(points, up) {
+  if (!points || points.length < 2) return '';
+  var min = Infinity, max = -Infinity;
+  points.forEach(function (v) { if (v < min) min = v; if (v > max) max = v; });
+  var range = (max - min) || 1;
+  var W = 72, H = 22;
+  var coords = points.map(function (v, i) {
+    var x = (i / (points.length - 1)) * W;
+    var y = H - 2 - ((v - min) / range) * (H - 4);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  var colour = up ? 'var(--bull)' : 'var(--bear)';
+  return '<svg class="gm-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+    '<polyline points="' + coords + '" fill="none" stroke="' + colour + '" stroke-width="1.4" ' +
+    'stroke-linejoin="round" stroke-linecap="round"/></svg>';
 }
 
-// Pick the market that best summarises an event: for a Yes/No market, its Yes
-// probability; for a multi-outcome event, the leading market's own title.
-function gmTopMarket(markets) {
-  if (!Array.isArray(markets) || !markets.length) return null;
-  var best = null, bestVol = -1;
-  for (var i = 0; i < markets.length; i++) {
-    var m = markets[i];
-    var vol = Number(m.volume24hr || m.volume || 0);
-    var prices, outcomes;
-    try {
-      prices = JSON.parse(m.outcomePrices || '[]');
-      outcomes = JSON.parse(m.outcomes || '[]');
-    } catch (e) { continue; }
-    if (!prices.length) continue;
-    var yesIdx = 0;
-    for (var o = 0; o < outcomes.length; o++) {
-      if (String(outcomes[o]).toLowerCase() === 'yes') { yesIdx = o; break; }
-    }
-    var prob = Number(prices[yesIdx]);
-    if (isNaN(prob)) continue;
-    var label = null;
-    if (markets.length > 1) {
-      label = String(m.groupItemTitle || m.question || '').slice(0, 60) || null;
-    }
-    if (vol > bestVol) { bestVol = vol; best = { prob: prob, label: label }; }
+function gmFmtPct(p) {
+  var s = (p > 0 ? '+' : '') + p.toFixed(2) + '%';
+  return '<span class="' + (p >= 0 ? 'gm-up' : 'gm-down') + '">' + s + '</span>';
+}
+
+function gmFmtPrice(v) {
+  if (v >= 10000) return Math.round(v).toLocaleString('en-US');
+  if (v >= 100) return v.toFixed(1);
+  if (v >= 1) return v.toFixed(2);
+  return v.toFixed(4);
+}
+
+function gmRenderMarkets(markets) {
+  var host = document.getElementById('gm-markets-grid');
+  var sigHost = document.getElementById('gm-signals');
+  var secHost = document.getElementById('gm-sectors');
+  if (!host) return;
+
+  if (!markets || !markets.items || !markets.items.length) {
+    host.innerHTML = '<p class="term-empty">Market data feed is warming up — the live TradingView quotes below are unaffected.</p>';
+    if (sigHost) sigHost.innerHTML = '';
+    if (secHost) secHost.innerHTML = '';
+    gmSetBadge('gm-markets-badge', 'offline', true);
+    return;
   }
-  return best;
+  gmSetBadge('gm-markets-badge', markets.stale ? 'stale' : 'live', !!markets.stale);
+
+  var byGroup = {};
+  markets.items.forEach(function (it) {
+    (byGroup[it.group] = byGroup[it.group] || []).push(it);
+  });
+
+  host.innerHTML = GM_MARKET_GROUPS.map(function (g) {
+    var rows = byGroup[g[0]];
+    if (!rows || !rows.length) return '';
+    return '<div class="gm-mkt-table">' +
+      '<div class="gm-mkt-head"><span>[' + g[0].toUpperCase() + ']</span> ' + g[1] +
+        '<span class="gm-mkt-count">' + rows.length + '</span></div>' +
+      rows.map(function (r) {
+        return '<div class="gm-mkt-row">' +
+          '<span class="gm-mkt-label">' + gmEsc(r.label) + '</span>' +
+          '<span class="gm-mkt-price">' + gmFmtPrice(r.price) + '</span>' +
+          '<span class="gm-mkt-chg">' + gmFmtPct(r.chgPct) + '</span>' +
+          gmSpark(r.spark, r.chgPct >= 0) +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+  gmAnimate(host);
+
+  // signals
+  var s = markets.signals || {};
+  if (sigHost) {
+    var tiles = [];
+    if (s.riskTone) {
+      tiles.push('<div class="gm-sig">' +
+        '<div class="gm-sig-name">Risk tone</div>' +
+        '<div class="gm-sig-val" style="color:' +
+          (s.riskTone.label === 'RISK-ON' ? 'var(--bull)' : (s.riskTone.label === 'RISK-OFF' ? 'var(--bear)' : 'var(--amber)')) + '">' +
+          s.riskTone.label + '</div>' +
+        '<div class="gm-sig-sub">Score ' + s.riskTone.score + '/100 · SPX ' +
+          (s.riskTone.spx > 0 ? '+' : '') + s.riskTone.spx + '%</div>' +
+        '<div class="gm-tension-bar"><i style="width:' + s.riskTone.score + '%"></i></div>' +
+      '</div>');
+    }
+    if (s.breadth) {
+      tiles.push('<div class="gm-sig">' +
+        '<div class="gm-sig-name">Sector breadth</div>' +
+        '<div class="gm-sig-val ' + (s.breadth.adv * 2 >= s.breadth.total ? 'gm-up' : 'gm-down') + '">' +
+          s.breadth.adv + '/' + s.breadth.total + '</div>' +
+        '<div class="gm-sig-sub">sector avg ' + (s.breadth.avg > 0 ? '+' : '') + s.breadth.avg + '%</div>' +
+      '</div>');
+    }
+    if (s.rotation) {
+      tiles.push('<div class="gm-sig">' +
+        '<div class="gm-sig-name">Rotation leader</div>' +
+        '<div class="gm-sig-val">' + gmEsc(s.rotation.leader) + '</div>' +
+        '<div class="gm-sig-sub">' + (s.rotation.leaderPct > 0 ? '+' : '') + s.rotation.leaderPct +
+          '% vs ' + gmEsc(s.rotation.laggard) + ' ' + s.rotation.laggardPct + '%</div>' +
+      '</div>');
+    }
+    if (s.curve) {
+      tiles.push('<div class="gm-sig">' +
+        '<div class="gm-sig-name">Yield curve 10Y–5Y</div>' +
+        '<div class="gm-sig-val ' + (s.curve.spreadBp >= 0 ? 'gm-up' : 'gm-down') + '">' +
+          (s.curve.spreadBp > 0 ? '+' : '') + s.curve.spreadBp + ' bp</div>' +
+        '<div class="gm-sig-sub">10Y ' + s.curve.y10 + '% · 5Y ' + s.curve.y5 + '%</div>' +
+      '</div>');
+    }
+    if (s.vix) {
+      tiles.push('<div class="gm-sig">' +
+        '<div class="gm-sig-name">Volatility / VIX</div>' +
+        '<div class="gm-sig-val" style="color:' +
+          (s.vix.label === 'CALM' ? 'var(--bull)' : (s.vix.label === 'NORMAL' ? 'var(--amber)' : 'var(--bear)')) + '">' +
+          s.vix.value.toFixed(2) + ' ' + s.vix.label + '</div>' +
+        '<div class="gm-sig-sub">' + (s.vix.chgPct > 0 ? '+' : '') + s.vix.chgPct + '% today</div>' +
+      '</div>');
+    }
+    sigHost.innerHTML = tiles.join('');
+    gmAnimate(sigHost);
+  }
+
+  // sector board
+  if (secHost) {
+    var sectors = (byGroup.sector || []).slice().sort(function (a, b) { return b.chgPct - a.chgPct; });
+    if (sectors.length) {
+      var maxAbs = Math.max.apply(null, sectors.map(function (x) { return Math.abs(x.chgPct); })) || 1;
+      secHost.innerHTML = sectors.map(function (r) {
+        var w = Math.round((Math.abs(r.chgPct) / maxAbs) * 100);
+        return '<div class="gm-sector-row">' +
+          '<span class="gm-sector-name">' + gmEsc(r.label) + '</span>' +
+          '<div class="gm-sector-bar">' +
+            '<i class="' + (r.chgPct >= 0 ? 'is-up' : 'is-down') + '" style="width:' + w + '%"></i>' +
+          '</div>' +
+          '<span class="gm-mkt-chg">' + gmFmtPct(r.chgPct) + '</span>' +
+        '</div>';
+      }).join('');
+      gmAnimate(secHost);
+    } else {
+      secHost.innerHTML = '';
+    }
+  }
+}
+
+function gmMountTradingView() {
+  var host = document.getElementById('gm-tv-quotes');
+  if (!host || host.dataset.mounted === '1') return;
+  host.innerHTML = '';
+  var s = document.createElement('script');
+  s.type = 'text/javascript';
+  s.async = true;
+  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
+  s.innerHTML = JSON.stringify({
+    colorTheme: 'dark', isTransparent: true, locale: 'en',
+    width: '100%', height: 450,
+    symbolsGroups: [
+      { name: 'Safe havens', symbols: [
+        { name: 'OANDA:XAUUSD', displayName: 'Gold' },
+        { name: 'OANDA:XAGUSD', displayName: 'Silver' },
+        { name: 'TVC:DXY', displayName: 'Dollar index' },
+        { name: 'OANDA:USDCHF', displayName: 'USD/CHF' },
+        { name: 'OANDA:USDJPY', displayName: 'USD/JPY' }
+      ] },
+      { name: 'Energy', symbols: [
+        { name: 'TVC:USOIL', displayName: 'WTI crude' },
+        { name: 'TVC:UKOIL', displayName: 'Brent crude' },
+        { name: 'NYMEX:NG1!', displayName: 'Natural gas' }
+      ] },
+      { name: 'Risk barometers', symbols: [
+        { name: 'OANDA:SPX500USD', displayName: 'S&P 500' },
+        { name: 'OANDA:EURUSD', displayName: 'EUR/USD' },
+        { name: 'BITSTAMP:BTCUSD', displayName: 'Bitcoin' }
+      ] }
+    ]
+  });
+  host.appendChild(s);
+  host.dataset.mounted = '1';
+}
+
+// ============================================================================
+// RISK: DEFCON + OUTBREAKS + PREDICTIONS
+// ============================================================================
+var GM_DEFCON_LEVELS = [
+  { n: 1, name: 'COCKED PISTOL', desc: 'Nuclear war is imminent or has already begun. Maximum readiness.', colour: '#e5484d' },
+  { n: 2, name: 'FAST PACE', desc: 'Armed forces ready to deploy and engage in 6 hours.', colour: '#f56042' },
+  { n: 3, name: 'ROUND HOUSE', desc: 'Air Force ready to mobilize in 15 minutes. Increased readiness.', colour: '#f5a524' },
+  { n: 4, name: 'DOUBLE TAKE', desc: 'Above normal readiness. Increased intelligence watch.', colour: '#03c988' },
+  { n: 5, name: 'FADE OUT', desc: 'Lowest state of readiness. Normal peacetime posture.', colour: '#03c988' }
+];
+
+function gmRenderDefcon(d) {
+  var host = document.getElementById('gm-defcon');
+  if (!host) return;
+  if (!d || !d.level) {
+    host.innerHTML = '<p class="term-empty">DEFCON estimate unavailable right now.</p>';
+    return;
+  }
+  var current = GM_DEFCON_LEVELS.filter(function (l) { return l.n === d.level; })[0] || GM_DEFCON_LEVELS[4];
+  host.innerHTML =
+    '<div class="gm-defcon-hero" style="border-color:' + current.colour + '66; box-shadow:0 0 40px -18px ' + current.colour + '">' +
+      '<div class="gm-defcon-num" style="color:' + current.colour + '; text-shadow:0 0 24px ' + current.colour + '66">' + d.level + '</div>' +
+      '<div class="gm-defcon-word">DEFCON</div>' +
+      '<div class="gm-defcon-name" style="color:' + current.colour + '">' + current.name + '</div>' +
+      '<div class="gm-defcon-desc">' + current.desc + '</div>' +
+    '</div>' +
+    '<div class="gm-defcon-levels">' +
+      GM_DEFCON_LEVELS.map(function (l) {
+        var isCur = l.n === d.level;
+        return '<div class="gm-defcon-level' + (isCur ? ' is-current' : '') + '">' +
+          '<span class="gm-defcon-badge" style="color:' + l.colour + '; border-color:' + l.colour + '">' + l.n + '</span>' +
+          '<div><b>' + l.name + (isCur ? ' <span class="gm-defcon-cur">(current)</span>' : '') + '</b>' +
+          '<p>' + l.desc + '</p></div>' +
+        '</div>';
+      }).join('') +
+    '</div>' +
+    '<p class="gm-fineprint">Source: ' + gmEsc(d.source || 'OSINT estimate') +
+      (d.at ? ' · updated ' + gmTimeAgo(d.at) + ' ago' : '') + '</p>' +
+    '<p class="gm-fineprint gm-warnprint">Third-party OSINT estimate — not official DoD data.</p>';
+  gmAnimate(host);
+}
+
+function gmRenderOutbreaks(ob) {
+  var host = document.getElementById('gm-outbreaks');
+  if (!host) return;
+  var items = (ob && ob.items) || [];
+  if (!items.length) {
+    host.innerHTML = '<p class="term-empty">Outbreak feed unavailable right now.</p>';
+    return;
+  }
+  var hi = items.filter(function (i) { return i.sev === 'critical' || i.sev === 'high'; }).length;
+  var el = items.filter(function (i) { return i.sev === 'elevated'; }).length;
+  var head = document.getElementById('gm-outbreak-stats');
+  if (head) {
+    head.innerHTML =
+      '<span class="gm-stat is-high">' + hi + ' HIGH+</span>' +
+      '<span class="gm-stat is-elev">' + el + ' ELEVATED</span>' +
+      '<span class="gm-stat">' + items.length + ' TRACKED</span>';
+  }
+
+  host.innerHTML = items.slice(0, 20).map(function (it) {
+    var m = gmSevMeta(it.sev === 'high' ? 'high' : it.sev);
+    var chips = '';
+    if (it.cases) chips += '<span class="gm-chip">' + gmEsc(it.cases) + ' cases</span>';
+    if (it.deaths) chips += '<span class="gm-chip is-bad">' + gmEsc(it.deaths) + ' deaths</span>';
+    if (it.cfr) chips += '<span class="gm-chip is-warn">' + gmEsc(it.cfr) + '% CFR</span>';
+    var inner =
+      '<span class="gm-wire-dot" style="background:' + m.colour + '; box-shadow:0 0 8px ' + m.colour + '66"></span>' +
+      '<span class="gm-wire-body">' +
+        '<span class="gm-wire-meta-top">' +
+          (it.country ? '<span class="gm-wire-loc">' + gmEsc(it.country.toUpperCase()) + '</span>' : '') +
+          '<span class="gm-wire-sev" style="color:' + m.colour + '; border-color:' + m.colour + '55; background:' + m.colour + '14">' + m.label.toUpperCase() + '</span>' +
+          '<span class="gm-wire-time">' + gmEsc(gmTimeAgo(it.at)) + ' ago</span>' +
+        '</span>' +
+        '<span class="gm-wire-title">' + gmEsc(it.disease) + '</span>' +
+        (chips ? '<span class="gm-chip-row">' + chips + '</span>' : '') +
+        (it.summary ? '<span class="gm-wire-src">' + gmEsc(it.summary) + '…</span>' : '') +
+      '</span>';
+    return it.url
+      ? '<a class="gm-wire-item" href="' + gmEscAttr(it.url) + '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
+      : '<div class="gm-wire-item">' + inner + '</div>';
+  }).join('');
+  gmAnimate(host);
 }
 
 function gmFmtVolume(v) {
@@ -1044,77 +1139,393 @@ function gmRenderPredictions(rows, sourceLabel) {
         '" target="_blank" rel="noopener noreferrer">' + inner + '</a>'
       : '<div class="gm-pred-row">' + inner + '</div>';
   }).join('');
+  gmAnimate(host);
 }
 
-// ---- Market impact (TradingView) --------------------------------------------
-// Same rationale as the Terminal: free data APIs are non-commercial or
-// quota-starved; TradingView's widgets are free, live and embeddable.
+// ============================================================================
+// STREAMS
+// ============================================================================
+// youtube.com/embed/live_stream?channel=<id> shows whatever that channel is
+// currently broadcasting live — no API key, survives stream-ID rotation.
+var GM_STREAMS = [
+  { key: 'bloomberg', label: 'Bloomberg', channel: 'UCIALMKvObZNtJ6AmdCLP7Lg' },
+  { key: 'skynews', label: 'Sky News', channel: 'UCoMdktPbSTixAyNGwb-UYkQ' },
+  { key: 'dw', label: 'DW News', channel: 'UCknLrEdhRCp1aegoMqRaCZg' },
+  { key: 'aljazeera', label: 'Al Jazeera', channel: 'UCNye-wNBqNL5ZzHSJj3l8Bg' },
+  { key: 'euronews', label: 'Euronews', channel: 'UCSrZ3UV4jOidv8ppoVuvW9Q' },
+  { key: 'cnbc', label: 'CNBC', channel: 'UCvJJ_dzjViJCoLf5uKUTwoA' }
+];
+var GM_STREAM_ACTIVE = null;
 
-function gmMountMarkets() {
-  var host = document.getElementById('gm-markets');
-  if (!host || host.dataset.mounted === '1') return;
-  host.innerHTML = '';
-  var s = document.createElement('script');
-  s.type = 'text/javascript';
-  s.async = true;
-  s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js';
-  s.innerHTML = JSON.stringify({
-    colorTheme: 'dark', isTransparent: true, locale: 'en',
-    width: '100%', height: 480,
-    symbolsGroups: [
-      { name: 'Safe havens', symbols: [
-        { name: 'OANDA:XAUUSD', displayName: 'Gold' },
-        { name: 'OANDA:XAGUSD', displayName: 'Silver' },
-        { name: 'TVC:DXY', displayName: 'Dollar index' },
-        { name: 'OANDA:USDCHF', displayName: 'USD/CHF' },
-        { name: 'OANDA:USDJPY', displayName: 'USD/JPY' }
-      ] },
-      { name: 'Energy', symbols: [
-        { name: 'TVC:USOIL', displayName: 'WTI crude' },
-        { name: 'TVC:UKOIL', displayName: 'Brent crude' },
-        { name: 'NYMEX:NG1!', displayName: 'Natural gas' }
-      ] },
-      { name: 'Defense stocks', symbols: [
-        { name: 'NYSE:LMT', displayName: 'Lockheed Martin' },
-        { name: 'NYSE:RTX', displayName: 'RTX' },
-        { name: 'NYSE:NOC', displayName: 'Northrop Grumman' },
-        { name: 'NYSE:GD', displayName: 'General Dynamics' },
-        { name: 'NYSE:BA', displayName: 'Boeing' }
-      ] },
-      { name: 'Risk barometers', symbols: [
-        { name: 'OANDA:SPX500USD', displayName: 'S&P 500' },
-        { name: 'OANDA:EURUSD', displayName: 'EUR/USD' },
-        { name: 'BITSTAMP:BTCUSD', displayName: 'Bitcoin' }
-      ] }
-    ]
+function gmMountStream(key) {
+  var conf = null;
+  for (var i = 0; i < GM_STREAMS.length; i++) if (GM_STREAMS[i].key === key) conf = GM_STREAMS[i];
+  if (!conf) return;
+  GM_STREAM_ACTIVE = key;
+
+  var tabs = document.getElementById('gm-stream-tabs');
+  if (tabs) {
+    tabs.querySelectorAll('.term-cat').forEach(function (b) {
+      b.classList.toggle('is-on', b.dataset.stream === key);
+    });
+  }
+  var label = document.getElementById('gm-stream-label');
+  if (label) label.textContent = conf.label.toUpperCase();
+
+  var host = document.getElementById('gm-stream-frame');
+  if (!host) return;
+  host.innerHTML = '<iframe src="https://www.youtube.com/embed/live_stream?channel=' +
+    conf.channel + '" title="' + gmEscAttr(conf.label) + ' live" ' +
+    'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" ' +
+    'allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>';
+}
+
+function gmInitStreams() {
+  var tabs = document.getElementById('gm-stream-tabs');
+  if (!tabs || tabs.dataset.built === '1') return;
+  tabs.dataset.built = '1';
+  tabs.innerHTML = GM_STREAMS.map(function (s) {
+    return '<button type="button" class="term-cat" data-stream="' + s.key + '">' + s.label + '</button>';
+  }).join('');
+  tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-cat');
+    if (btn) gmMountStream(btn.dataset.stream);
   });
-  host.appendChild(s);
-  host.dataset.mounted = '1';
+  gmMountStream(GM_STREAMS[0].key);
 }
 
-// ---- Clock ------------------------------------------------------------------
+// ============================================================================
+// DATA LOADING — pipeline first, per-section fallbacks second
+// ============================================================================
+var GM_HAVE = { events: false, wire: false, finance: false, predictions: false };
+
+function gmUpdateFreshness(generatedAt) {
+  var el = document.getElementById('gm-data-age');
+  var badge = document.getElementById('gm-live-badge');
+  if (!generatedAt) {
+    if (badge) badge.className = 'gm-live is-off';
+    if (el) el.textContent = 'FALLBACK FEEDS';
+    return;
+  }
+  var mins = Math.max(0, Math.round((Date.now() - generatedAt) / 60000));
+  if (el) el.textContent = 'DATA ' + (mins < 1 ? 'LIVE' : mins + 'M AGO');
+  if (badge) badge.className = 'gm-live' + (mins > 90 ? ' is-off' : '');
+}
+
+function gmLoadData() {
+  // raw.githubusercontent caches ~5 min per URL; a slow-rolling buster keeps
+  // us at most one cache window behind the pipeline.
+  var buster = Math.floor(Date.now() / 300000);
+  gmFetchJson(GM_DATA_URL + '?t=' + buster, 25000)
+    .then(function (d) {
+      gmUpdateFreshness(d.generatedAt);
+
+      if (d.events && d.events.items && d.events.items.length) {
+        GM_HAVE.events = true;
+        gmApplyEvents(d.events.items, d.events.stale ? 'stale' : 'live');
+      }
+      if (d.active24 && d.active24.items) gmRenderActive24(d.active24.items);
+
+      if (d.wire && d.wire.items && d.wire.items.length) {
+        GM_HAVE.wire = true;
+        gmApplyWire(d.wire.items, d.wire.stale ? 'stale' : 'live');
+      }
+      if (d.finance && d.finance.items && d.finance.items.length) {
+        GM_HAVE.finance = true;
+        gmApplyFinance(d.finance.items, d.finance.stale ? 'stale' : 'live');
+      }
+      if (d.markets) gmRenderMarkets(d.markets);
+      if (d.outbreaks) gmRenderOutbreaks(d.outbreaks);
+      if (d.defcon) gmRenderDefcon(d.defcon);
+      if (d.predictions && d.predictions.items && d.predictions.items.length) {
+        GM_HAVE.predictions = true;
+        gmRenderPredictions(d.predictions.items, d.predictions.stale ? 'stale' : 'live');
+      }
+
+      // Anything the pipeline could not supply still tries its fallback.
+      gmLoadFallbacks();
+    })
+    .catch(function (err) {
+      console.warn('Global Monitor: pipeline data unavailable, using fallbacks', err);
+      gmUpdateFreshness(null);
+      gmRenderMarkets(null);
+      gmRenderOutbreaks(null);
+      gmRenderDefcon(null);
+      gmLoadFallbacks();
+    });
+}
+
+function gmLoadFallbacks() {
+  if (!GM_HAVE.events) gmLoadEventsDirect();
+  if (!GM_HAVE.wire) setTimeout(gmLoadWireDirect, 1500);
+  if (!GM_HAVE.finance) setTimeout(gmLoadFinanceDirect, 4000);
+  if (!GM_HAVE.predictions) gmLoadPredictionsDirect();
+}
+
+// ---- Fallback: events -------------------------------------------------------
+function gmParseGeo(json) {
+  var features = (json && json.features) || [];
+  return features.map(function (f) {
+    var coords = (f.geometry && f.geometry.coordinates) || [];
+    var p = f.properties || {};
+    var lon = typeof coords[0] === 'number' ? coords[0] : null;
+    var lat = typeof coords[1] === 'number' ? coords[1] : null;
+    if (lon === null || lat === null) return null;
+    var raw = String(p.html || p.name || '');
+    var link = raw.match(/href=["']([^"']+)["']/i);
+    var title = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!title) return null;
+    return {
+      lon: lon, lat: lat,
+      place: String(p.name || '').trim().slice(0, 80),
+      title: title.slice(0, 220),
+      url: link ? link[1] : null,
+      count: Number(p.count) || 1,
+      cat: gmCategorise(title + ' ' + (p.name || ''))
+    };
+  }).filter(Boolean).sort(function (a, b) { return b.count - a.count; });
+}
+
+function gmLoadEventsDirect() {
+  var url = GDELT_GEO + '?query=' + encodeURIComponent(GM_EVENTS_QUERY) +
+    '&mode=pointdata&format=geojson&timespan=6h';
+  gmFetchJson(url, 20000)
+    .then(function (json) {
+      var events = gmParseGeo(json);
+      if (!events.length) throw new Error('empty');
+      GM_HAVE.events = true;
+      gmApplyEvents(events, 'direct');
+    })
+    .catch(function () {
+      gmFetchJson(FN_BASE + 'getWorldEvents', 15000)
+        .then(function (data) {
+          var events = ((data && data.events) || []).filter(function (e) {
+            return e.cat === 'conflict' || e.cat === 'politics';
+          }).map(function (e) {
+            return { lon: e.lon, lat: e.lat, place: e.place, title: e.title,
+                     url: e.url, count: e.count || 1,
+                     cat: gmCategorise(e.title + ' ' + (e.place || '')) };
+          });
+          if (!events.length) throw new Error('cache empty');
+          GM_HAVE.events = true;
+          gmApplyEvents(events, 'cached');
+        })
+        .catch(function (err) {
+          console.warn('Global Monitor: all event sources failed', err);
+          gmEventsUnavailable();
+        });
+    });
+}
+
+// ---- Fallback: wire ---------------------------------------------------------
+function gmParseArticles(json) {
+  var articles = (json && json.articles) || [];
+  var seen = {};
+  var items = [];
+  for (var i = 0; i < articles.length; i++) {
+    var a = articles[i];
+    var title = String(a.title || '').trim();
+    if (!title) continue;
+    var fp = gmFingerprint(title);
+    if (!fp || seen[fp]) continue;
+    seen[fp] = true;
+    items.push({
+      id: fp, title: title.slice(0, 200), url: a.url || null,
+      source: String(a.domain || '').replace(/^www\./, '').slice(0, 40),
+      country: String(a.sourcecountry || '').slice(0, 40) || null,
+      at: gmParseSeenDate(a.seendate), cat: gmCategorise(title),
+      sev: GM_HARD_RE.test(title) ? 'high' : 'active'
+    });
+    if (items.length >= 60) break;
+  }
+  return items;
+}
+
+function gmLoadWireDirect() {
+  var url = GDELT_DOC + '?query=' + encodeURIComponent(GM_WIRE_QUERY) +
+    '&mode=artlist&format=json&maxrecords=100&sort=datedesc&timespan=3h';
+  gmFetchJson(url, 20000)
+    .then(function (json) {
+      var items = gmParseArticles(json);
+      if (!items.length) throw new Error('empty');
+      GM_HAVE.wire = true;
+      gmApplyWire(items, 'direct');
+    })
+    .catch(function () {
+      gmFetchJson(FN_BASE + 'getNewswire', 15000)
+        .then(function (data) {
+          var items = ((data && data.items) || []).map(function (it) {
+            return { id: it.id, title: it.title, url: it.url, source: it.source,
+                     country: null, at: it.at, cat: gmCategorise(it.title),
+                     sev: GM_HARD_RE.test(it.title) ? 'high' : 'active' };
+          });
+          if (!items.length) throw new Error('cache empty');
+          GM_HAVE.wire = true;
+          gmApplyWire(items, 'cached');
+        })
+        .catch(function (err) {
+          console.warn('Global Monitor: all wire sources failed', err);
+          gmWireUnavailable();
+        });
+    });
+}
+
+// ---- Fallback: finance severity --------------------------------------------
+function gmLoadFinanceDirect() {
+  var severeUrl = GDELT_DOC + '?query=' + encodeURIComponent(GM_FIN_QUERY + ' tone<-7') +
+    '&mode=artlist&format=json&maxrecords=50&sort=datedesc&timespan=12h';
+  var moderateUrl = GDELT_DOC + '?query=' + encodeURIComponent(GM_FIN_QUERY + ' tone<-2.5') +
+    '&mode=artlist&format=json&maxrecords=75&sort=datedesc&timespan=12h';
+
+  gmFetchJson(severeUrl, 20000)
+    .then(function (severeJson) {
+      var severe = gmParseArticles(severeJson);
+      return new Promise(function (resolve) { setTimeout(resolve, 1500); })
+        .then(function () { return gmFetchJson(moderateUrl, 20000); })
+        .then(function (moderateJson) { return [severe, gmParseArticles(moderateJson)]; })
+        .catch(function () { return [severe, []]; });
+    })
+    .then(function (pair) {
+      var severeIds = {}, all = {};
+      pair[0].forEach(function (it) { severeIds[it.id] = true; all[it.id] = it; });
+      pair[1].forEach(function (it) { if (!all[it.id]) all[it.id] = it; });
+      var items = Object.keys(all).map(function (id) {
+        var it = all[id];
+        var hard = GM_HARD_RE.test(it.title);
+        var sev = severeIds[id] ? (hard ? 'critical' : 'high') : (hard ? 'high' : 'watch');
+        return { id: it.id, title: it.title, url: it.url, source: it.source, at: it.at, sev: sev };
+      });
+      var rank = { critical: 0, high: 1, watch: 2 };
+      items.sort(function (a, b) { return rank[a.sev] - rank[b.sev] || (b.at || 0) - (a.at || 0); });
+      if (!items.length) throw new Error('empty');
+      GM_HAVE.finance = true;
+      gmApplyFinance(items.slice(0, 60), 'direct');
+    })
+    .catch(function () {
+      gmFetchJson(FN_BASE + 'getNewswire', 15000)
+        .then(function (data) {
+          var items = ((data && data.items) || []).filter(function (it) {
+            return it.cat === 'markets' || it.cat === 'econ' || it.cat === 'centralbank';
+          }).map(function (it) {
+            return { id: it.id, title: it.title, url: it.url, source: it.source, at: it.at,
+                     sev: GM_HARD_RE.test(it.title) ? 'high' : 'watch' };
+          });
+          if (!items.length) throw new Error('cache empty');
+          GM_HAVE.finance = true;
+          gmApplyFinance(items, 'cached');
+        })
+        .catch(function (err) {
+          console.warn('Global Monitor: all finance sources failed', err);
+          var host = document.getElementById('gm-sev-list');
+          if (host) host.innerHTML = '<p class="term-empty">Severity feed is temporarily offline.</p>';
+          gmSetBadge('gm-sev-badge', 'offline', true);
+        });
+    });
+}
+
+// ---- Fallback: predictions --------------------------------------------------
+var GM_GEO_RE = /\b(war|ceasefire|invasion|invade|missile|nuclear|NATO|Russia|Ukraine|Israel|Gaza|Iran|China|Taiwan|Korea|military|troops|sanctions?|Hezbollah|Houthis?|Putin|Zelensky|Netanyahu|regime|annex|treaty|border)\b/i;
+
+function gmLoadPredictionsDirect() {
+  gmFetchJson(POLYMARKET + '?closed=false&order=volume24hr&ascending=false&limit=100', 20000)
+    .then(function (json) {
+      var events = Array.isArray(json) ? json : [];
+      var rows = [];
+      for (var i = 0; i < events.length && rows.length < 10; i++) {
+        var ev = events[i];
+        var title = String(ev.title || '');
+        if (!GM_GEO_RE.test(title)) continue;
+        var best = null, bestVol = -1;
+        for (var k = 0; k < (ev.markets || []).length; k++) {
+          var m = ev.markets[k];
+          var prices, outcomes;
+          try { prices = JSON.parse(m.outcomePrices || '[]'); outcomes = JSON.parse(m.outcomes || '[]'); }
+          catch (e) { continue; }
+          if (!prices.length) continue;
+          var yesIdx = 0;
+          for (var o = 0; o < outcomes.length; o++) {
+            if (String(outcomes[o]).toLowerCase() === 'yes') { yesIdx = o; break; }
+          }
+          var prob = Number(prices[yesIdx]);
+          if (isNaN(prob)) continue;
+          var vol = Number(m.volume24hr || m.volume || 0);
+          if (vol > bestVol) {
+            bestVol = vol;
+            best = { prob: prob,
+                     label: ev.markets.length > 1 ? String(m.groupItemTitle || m.question || '').slice(0, 60) : null };
+          }
+        }
+        if (!best) continue;
+        rows.push({
+          question: title.slice(0, 120), detail: best.label, probability: best.prob,
+          volume: Number(ev.volume24hr || ev.volume || 0),
+          url: ev.slug ? 'https://polymarket.com/event/' + ev.slug : null
+        });
+      }
+      if (!rows.length) throw new Error('no geo markets');
+      GM_HAVE.predictions = true;
+      gmRenderPredictions(rows, 'direct');
+    })
+    .catch(function () {
+      gmFetchJson(FN_BASE + 'getIntel', 15000)
+        .then(function (res) {
+          var rows = (((res || {}).data || {}).predictions || []).map(function (r) {
+            return { question: r.question, detail: null,
+                     probability: r.probability, volume: null, url: null };
+          });
+          if (!rows.length) throw new Error('empty');
+          GM_HAVE.predictions = true;
+          gmRenderPredictions(rows, 'cached');
+        })
+        .catch(function (err) {
+          console.warn('Global Monitor: all prediction sources failed', err);
+          var host = document.getElementById('gm-predict');
+          if (host) host.innerHTML = '<p class="term-empty">Prediction feed is temporarily offline.</p>';
+          gmSetBadge('gm-predict-badge', 'offline', true);
+        });
+    });
+}
+
+// ============================================================================
+// TABS + CLOCK + BOOT
+// ============================================================================
+function gmShowTab(tab) {
+  document.querySelectorAll('.gm-panel').forEach(function (p) {
+    p.classList.toggle('is-active', p.dataset.tab === tab);
+  });
+  document.querySelectorAll('#gm-tabs .term-tab').forEach(function (b) {
+    b.classList.toggle('is-active', b.dataset.tab === tab);
+  });
+  // Heavy embeds mount on first view, not at page load.
+  if (tab === 'markets') gmMountTradingView();
+  if (tab === 'streams') gmInitStreams();
+  if (tab === 'map') { gmApplyView(); }
+  try { localStorage.setItem('stryker_gm_tab', tab); } catch (e) {}
+}
+
 function gmTickClock() {
   var el = document.getElementById('gm-utc');
   if (!el) return;
   var d = new Date();
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  el.textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ' UTC';
+  el.textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + ' UTC';
 }
 
-// ---- Boot -------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function () {
   if (!document.getElementById('gm-map')) return;
 
   gmRenderMap();
   gmTickClock();
-  gmMountMarkets();
+  gmLoadData();
 
-  // Loads are staggered so a fresh page never fires four GDELT requests in
-  // the same second from one IP.
-  gmLoadEvents();
-  setTimeout(gmLoadWire, 2000);
-  setTimeout(gmLoadSeverity, 5000);
-  setTimeout(gmLoadPredictions, 1000);
+  var tabs = document.getElementById('gm-tabs');
+  if (tabs) tabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-tab');
+    if (btn) gmShowTab(btn.dataset.tab);
+  });
+  var saved = 'map';
+  try { saved = localStorage.getItem('stryker_gm_tab') || 'map'; } catch (e) {}
+  gmShowTab(saved);
 
   var cats = document.getElementById('gm-cats');
   if (cats) cats.addEventListener('click', function (e) {
@@ -1127,6 +1538,20 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!GM_ACTIVE_CATS.size) GM_ACTIVE_CATS = null;
     } else GM_ACTIVE_CATS.add(key);
     gmRenderCatFilter(); gmDrawEvents(); gmRenderEventTable();
+  });
+
+  var wireChips = document.getElementById('gm-wire-chips');
+  if (wireChips) wireChips.addEventListener('click', function (e) {
+    var btn = e.target.closest('.term-cat');
+    if (!btn) return;
+    GM_WIRE_SEV = (GM_WIRE_SEV === btn.dataset.sev) ? null : btn.dataset.sev;
+    gmRenderWire();
+  });
+
+  var wireSearch = document.getElementById('gm-wire-search');
+  if (wireSearch) wireSearch.addEventListener('input', function () {
+    GM_WIRE_QUERY_TEXT = wireSearch.value.trim();
+    gmRenderWire();
   });
 
   var sevChips = document.getElementById('gm-sev-chips');
@@ -1144,18 +1569,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (row) gmFlyTo(parseFloat(row.dataset.lon), parseFloat(row.dataset.lat));
   });
 
-  var tension = document.getElementById('gm-tension');
-  if (tension) tension.addEventListener('click', function (e) {
+  function flyToCountryRow(e) {
     var row = e.target.closest('.gm-tension-row');
-    if (!row || typeof COUNTRY_SHAPES === 'undefined') return;
-    for (var i = 0; i < COUNTRY_SHAPES.length; i++) {
-      if (COUNTRY_SHAPES[i].n === row.dataset.country) {
-        var c = gmCountryCentroid(COUNTRY_SHAPES[i]);
-        if (c) gmFlyTo(c[0], c[1]);
-        return;
-      }
-    }
-  });
+    if (!row || !row.dataset.country) return;
+    var c = gmCountryCentroid(row.dataset.country);
+    if (c) { gmShowTab('map'); gmFlyTo(c[0], c[1]); }
+  }
+  var tension = document.getElementById('gm-tension');
+  if (tension) tension.addEventListener('click', flyToCountryRow);
+  var active24 = document.getElementById('gm-active24');
+  if (active24) active24.addEventListener('click', flyToCountryRow);
 
   var zin = document.getElementById('gm-zoom-in');
   var zout = document.getElementById('gm-zoom-out');
@@ -1164,11 +1587,8 @@ document.addEventListener('DOMContentLoaded', function () {
   if (zout) zout.addEventListener('click', function () { gmZoomBy(1 / 1.6); gmDrawEvents(); });
   if (zres) zres.addEventListener('click', function () { gmResetView(); gmDrawEvents(); });
 
-  setInterval(gmTickClock, 15000);
-  setInterval(gmRenderMap, 10 * 60000);            // refresh the night band
-  setInterval(gmLoadEvents, 12 * 60000);           // GDELT updates every 15 min
-  setInterval(gmLoadWire, 10 * 60000);
-  setInterval(gmLoadSeverity, 15 * 60000);
-  setInterval(gmLoadPredictions, 10 * 60000);
+  setInterval(gmTickClock, 1000);
+  setInterval(gmRenderMap, 10 * 60000);        // night band drift
+  setInterval(gmLoadData, 6 * 60000);          // pipeline republishes every ~20
   setInterval(gmTickWireTimes, 60000);
 });

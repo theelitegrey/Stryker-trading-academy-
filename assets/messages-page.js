@@ -16,6 +16,10 @@ var MSG_ACTIVE_CONV = null;
 var MSG_ACTIVE_OTHER = null;
 var MSG_UNSUB_THREAD = null;
 var MSG_UNSUB_LIST = null;
+var MSG_UNSUB_CONV = null;      // the open conversation DOC, for typing
+var MSG_UNSUB_PRESENCE = null;
+var MSG_PRESENCE = {};          // uid -> presence doc, shared by list and header
+var MSG_LAST_CONVS = null;
 
 function renderThreadList(convs){
   var wrap = document.getElementById('msg-thread-list');
@@ -44,7 +48,9 @@ function renderThreadList(convs){
     row.type = 'button';
     row.className = 'msg-thread' + (c.id === MSG_ACTIVE_CONV ? ' active' : '') + (unread ? ' has-unread' : '');
     row.innerHTML =
-      (typeof avatarImgHtml === 'function' ? avatarImgHtml(otherUid, name, info, 44) : '<div class="floor-avatar" style="width:44px;height:44px;"></div>') +
+      '<span class="msg-avatar-wrap' + (presenceIsOnline(MSG_PRESENCE[otherUid]) ? ' online' : '') + '">' +
+        (typeof avatarImgHtml === 'function' ? avatarImgHtml(otherUid, name, info, 44) : '<div class="floor-avatar" style="width:44px;height:44px;"></div>') +
+      '</span>' +
       '<div class="msg-thread-body">' +
         '<div class="msg-thread-top">' +
           '<span class="msg-thread-name">' + escapeMsgText(name) + '</span>' +
@@ -132,13 +138,41 @@ function openConversation(convId, otherUid, otherName, otherInfo){
         '<div class="msg-empty"><p>Could not load this conversation.</p><span>' + escapeMsgText(err.message || err) + '</span></div>';
     });
 
+  // Separate listener on the conversation DOC. The messages subcollection
+  // listener above never fires for a typing beat, because typing is stored on
+  // the parent document — deliberately, so it does not pollute the message
+  // history with rows that are not messages.
+  if (MSG_UNSUB_CONV) { MSG_UNSUB_CONV(); MSG_UNSUB_CONV = null; }
+  MSG_UNSUB_CONV = db.collection('conversations').doc(convId)
+    .onSnapshot(function (doc) {
+      if (!doc.exists) return;
+      renderTyping(isTyping(doc.data(), otherUid));
+    });
+
   markConversationRead(convId, MSG_UID);
+  updatePeerPresence();
   document.getElementById('msg-input').focus();
+}
+
+function renderTyping(on){
+  var el = document.getElementById('msg-typing');
+  if (!el) return;
+  el.style.display = on ? 'flex' : 'none';
+  if (on) {
+    // Keep it in view: an indicator below the fold announces nothing.
+    var wrap = document.getElementById('msg-bubbles');
+    if (wrap && wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight < 80) {
+      wrap.scrollTop = wrap.scrollHeight;
+    }
+  }
 }
 
 function closeConversation(){
   document.getElementById('msg-pane').classList.remove('open');
   if (MSG_UNSUB_THREAD) { MSG_UNSUB_THREAD(); MSG_UNSUB_THREAD = null; }
+  if (MSG_UNSUB_CONV) { MSG_UNSUB_CONV(); MSG_UNSUB_CONV = null; }
+  if (MSG_ACTIVE_CONV) clearTyping(MSG_ACTIVE_CONV, MSG_UID);
+  renderTyping(false);
   MSG_ACTIVE_CONV = null;
   MSG_ACTIVE_OTHER = null;
 }
@@ -153,17 +187,56 @@ function watchThreadList(){
       // Sorted client-side: ordering by lastMessageAt in the query would need
       // a composite index, and a brand-new thread has an unresolved
       // serverTimestamp that would sort unpredictably anyway.
+      MSG_LAST_CONVS = convs;
       convs.sort(function (a, b) {
         var at = a.lastMessageAt && a.lastMessageAt.toMillis ? a.lastMessageAt.toMillis() : 0;
         var bt = b.lastMessageAt && b.lastMessageAt.toMillis ? b.lastMessageAt.toMillis() : 0;
         return bt - at;
       });
       renderThreadList(convs);
+      watchPresenceFor(convs);
     }, function (err) {
       console.error('Stryker: conversation list failed', err);
       document.getElementById('msg-thread-list').innerHTML =
         '<div class="msg-empty"><p>Could not load conversations.</p><span>' + escapeMsgText(err.message || err) + '</span></div>';
     });
+}
+
+// One listener covering every person in the thread list. Firestore caps an
+// 'in' query at 30 values, which is comfortably more conversations than this
+// list shows, and one subscription beats one per contact.
+var _presenceWatching = '';
+function watchPresenceFor(convs){
+  var uids = convs.map(function (c) { return otherParticipant(c, MSG_UID); })
+                  .filter(Boolean).slice(0, 30);
+  if (!uids.length) return;
+
+  var signature = uids.slice().sort().join(',');
+  if (signature === _presenceWatching) return;   // same people, keep the listener
+  _presenceWatching = signature;
+
+  if (MSG_UNSUB_PRESENCE) MSG_UNSUB_PRESENCE();
+  MSG_UNSUB_PRESENCE = db.collection('presence')
+    .where(firebase.firestore.FieldPath.documentId(), 'in', uids)
+    .onSnapshot(function (snap) {
+      MSG_PRESENCE = {};
+      snap.forEach(function (d) { MSG_PRESENCE[d.id] = d.data(); });
+      // Re-render so dots appear without waiting for the next message.
+      if (MSG_LAST_CONVS) renderThreadList(MSG_LAST_CONVS);
+      updatePeerPresence();
+    }, function (err) {
+      console.warn('Stryker: presence unavailable', err);
+    });
+}
+
+function updatePeerPresence(){
+  var el = document.getElementById('msg-peer-status');
+  if (!el || !MSG_ACTIVE_OTHER) return;
+  var online = presenceIsOnline(MSG_PRESENCE[MSG_ACTIVE_OTHER]);
+  el.textContent = online ? 'Online' : '';
+  el.className = 'msg-peer-status' + (online ? ' online' : '');
+  var wrap = document.getElementById('msg-peer-avatar');
+  if (wrap) wrap.className = 'msg-avatar-wrap' + (online ? ' online' : '');
 }
 
 function submitMessage(){
@@ -176,6 +249,7 @@ function submitMessage(){
   // the moment it lands.
   input.value = '';
   autoGrow(input);
+  clearTyping(MSG_ACTIVE_CONV, MSG_UID);
 
   sendMessage(MSG_ACTIVE_CONV, MSG_UID, MSG_ACTIVE_OTHER, text)
     .then(function () {
@@ -205,7 +279,18 @@ document.addEventListener('DOMContentLoaded', function () {
   if (sendBtn) sendBtn.addEventListener('click', submitMessage);
   if (backBtn) backBtn.addEventListener('click', closeConversation);
   if (input) {
-    input.addEventListener('input', function () { autoGrow(input); });
+    input.addEventListener('input', function () {
+      autoGrow(input);
+      if (MSG_ACTIVE_CONV) {
+        if (input.value.trim()) signalTyping(MSG_ACTIVE_CONV, MSG_UID);
+        else clearTyping(MSG_ACTIVE_CONV, MSG_UID);
+      }
+    });
+    // Emptying the box on blur too: walking away mid-sentence should not leave
+    // the other person watching dots indefinitely.
+    input.addEventListener('blur', function () {
+      if (MSG_ACTIVE_CONV) clearTyping(MSG_ACTIVE_CONV, MSG_UID);
+    });
     input.addEventListener('keydown', function (e) {
       // Enter sends, Shift+Enter breaks the line — the convention everywhere.
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitMessage(); }
@@ -246,4 +331,7 @@ document.addEventListener('DOMContentLoaded', function () {
 window.addEventListener('beforeunload', function () {
   if (MSG_UNSUB_THREAD) MSG_UNSUB_THREAD();
   if (MSG_UNSUB_LIST) MSG_UNSUB_LIST();
+  if (MSG_UNSUB_CONV) MSG_UNSUB_CONV();
+  if (MSG_UNSUB_PRESENCE) MSG_UNSUB_PRESENCE();
+  if (MSG_ACTIVE_CONV) clearTyping(MSG_ACTIVE_CONV, MSG_UID);
 });

@@ -116,3 +116,44 @@ function messageTimeLabel(ts){
   if (d.toDateString() === yest.toDateString()) return 'Yesterday';
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+
+// ---- Typing indicator -----------------------------------------------------
+//
+// Stored on the conversation document as typing.{uid} = timestamp, not as a
+// boolean. A boolean needs a reliable "stopped" write to clear it, and the one
+// thing you cannot rely on is the other end getting a chance to send anything
+// — close the tab mid-sentence and the recipient would see "typing…" forever.
+// A timestamp simply goes stale.
+//
+// Throttled hard: without it every keystroke is a document write, which is
+// both expensive and pointless when the reader only checks whether the last
+// beat was recent.
+
+var TYPING_THROTTLE_MS = 3000;
+var TYPING_FRESH_MS = 6000;      // twice the throttle, so a normal gap between
+                                 // beats never reads as "stopped typing"
+var _lastTypingWrite = 0;
+
+function signalTyping(convId, myUid){
+  var now = Date.now();
+  if (now - _lastTypingWrite < TYPING_THROTTLE_MS) return Promise.resolve();
+  _lastTypingWrite = now;
+  var update = {};
+  update['typing.' + myUid] = firebase.firestore.FieldValue.serverTimestamp();
+  return db.collection('conversations').doc(convId).update(update)
+    .catch(function () { /* a missed typing beat is not worth surfacing */ });
+}
+
+function clearTyping(convId, myUid){
+  _lastTypingWrite = 0;
+  var update = {};
+  update['typing.' + myUid] = null;
+  return db.collection('conversations').doc(convId).update(update).catch(function () {});
+}
+
+function isTyping(conv, otherUid){
+  var t = (conv && conv.typing) ? conv.typing[otherUid] : null;
+  if (!t || !t.toMillis) return false;
+  return (Date.now() - t.toMillis()) < TYPING_FRESH_MS;
+}

@@ -2064,3 +2064,78 @@ a.todo-title:hover{ color:var(--teal); }
   font-family:var(--font-mono); font-size:10px; font-weight:700;
   display:none; align-items:center; justify-content:center;
 }
+
+/* Push notification prompt -------------------------------------------------- */
+.push-prompt{
+  position:relative; overflow:hidden;
+  display:flex; align-items:flex-start; gap:14px;
+  padding:18px 44px 18px 18px; margin-bottom:26px;
+  border-radius:14px;
+  border:1px solid rgba(0,173,181,0.28);
+  background:linear-gradient(135deg, rgba(0,173,181,0.09), rgba(3,201,136,0.05) 60%, transparent);
+  opacity:0; transform:translateY(-8px);
+  transition:opacity .3s ease, transform .3s cubic-bezier(.2,.8,.2,1);
+}
+.push-prompt.in{ opacity:1; transform:translateY(0); }
+.push-prompt.out{ opacity:0; transform:translateY(-8px); }
+
+/* Slow drifting highlight. Deliberately long and low-contrast: this sits on a
+   page people load repeatedly, and anything faster becomes an irritation
+   rather than a nudge. */
+.push-prompt-glow{
+  position:absolute; top:-60%; left:-30%;
+  width:60%; height:220%;
+  background:radial-gradient(ellipse at center, rgba(0,173,181,0.16), transparent 70%);
+  animation:pushGlow 7s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes pushGlow{
+  0%,100%{ transform:translateX(0) rotate(8deg); opacity:.55; }
+  50%    { transform:translateX(140%) rotate(8deg); opacity:.95; }
+}
+
+.push-prompt-icon{
+  position:relative; flex-shrink:0;
+  width:44px; height:44px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,173,181,0.14); color:var(--teal);
+  animation:pushRing 3.2s ease-in-out infinite;
+  transform-origin:50% 15%;
+}
+/* A bell that rings occasionally rather than constantly — motion draws the eye
+   once, then gets out of the way. */
+@keyframes pushRing{
+  0%,72%,100%{ transform:rotate(0); }
+  76%{ transform:rotate(13deg); }
+  80%{ transform:rotate(-11deg); }
+  84%{ transform:rotate(8deg); }
+  88%{ transform:rotate(-5deg); }
+  92%{ transform:rotate(0); }
+}
+
+.push-prompt-body{ position:relative; flex:1; min-width:0; }
+.push-prompt-body h3{ font-size:15.5px; color:var(--ink-0); margin:0 0 5px; }
+.push-prompt-body p{ font-size:13.5px; color:var(--ink-2); line-height:1.6; margin:0 0 14px; }
+.push-prompt-actions{ display:flex; gap:8px; flex-wrap:wrap; }
+
+.push-prompt-close{
+  position:absolute; top:12px; right:12px;
+  background:none; border:none; cursor:pointer;
+  color:var(--ink-3); padding:5px; line-height:0; border-radius:6px;
+  opacity:.55; transition:opacity .15s ease, color .15s ease, background .15s ease;
+}
+.push-prompt-close:hover{ opacity:1; color:var(--ink-0); background:var(--bg-3); }
+
+@media (max-width:560px){
+  .push-prompt{ padding:16px 40px 16px 15px; gap:12px; }
+  .push-prompt-icon{ width:38px; height:38px; }
+  .push-prompt-actions .btn{ flex:1; justify-content:center; }
+}
+
+/* Motion here is decoration, not information — it carries nothing the text
+   does not already say, so it goes entirely when asked. */
+@media (prefers-reduced-motion:reduce){
+  .push-prompt{ transition:opacity .15s linear; transform:none; }
+  .push-prompt.in, .push-prompt.out{ transform:none; }
+  .push-prompt-glow, .push-prompt-icon{ animation:none; }
+}

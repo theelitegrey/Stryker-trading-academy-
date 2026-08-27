@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="196">
+<meta name="stryker-build" content="197">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=196">
-<script src="assets/device-mode.js?v=196"></script>
-<script src="assets/toast.js?v=196" defer></script>
-<script src="assets/version-check.js?v=196" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=197">
+<script src="assets/device-mode.js?v=197"></script>
+<script src="assets/toast.js?v=197" defer></script>
+<script src="assets/version-check.js?v=197" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -158,29 +158,59 @@
 
     <!-- ============== DASHBOARD ============== -->
     <div class="journal-tab-panel" id="tab-dashboard">
-      <div class="stat-grid-3" id="journal-stats-row1">
-        <div class="stat-card"><div class="stat-val" id="jstat-total-pnl">—</div><div class="stat-label">Total P&amp;L</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-today-pnl">—</div><div class="stat-label">Today's P&amp;L</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-week-pnl">—</div><div class="stat-label">This week</div></div>
-      </div>
-      <div class="stat-grid-3" id="journal-stats-row2">
-        <div class="stat-card"><div class="stat-val" id="jstat-month-pnl">—</div><div class="stat-label">This month</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-winrate">—</div><div class="stat-label">Win rate</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-total-trades">—</div><div class="stat-label">Total trades</div></div>
-      </div>
-      <div class="stat-grid-3" id="journal-stats-row3">
-        <div class="stat-card"><div class="stat-val" id="jstat-wl-count">—</div><div class="stat-label">Wins vs losses</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-avg-win-loss">—</div><div class="stat-label">Avg win / avg loss</div></div>
-        <div class="stat-card"><div class="stat-val" id="jstat-profit-factor">—</div><div class="stat-label">Profit factor</div></div>
+      <div class="jz-top">
+        <div class="jz-hero panel">
+          <div class="jz-hero-label">Net P&amp;L</div>
+          <div class="jz-hero-val" id="jstat-total-pnl">—</div>
+          <div class="jz-hero-sub" id="jz-trade-count">—</div>
+          <div class="jz-hero-mini">
+            <div><span id="jstat-today-pnl">—</span><label>Today</label></div>
+            <div><span id="jstat-week-pnl">—</span><label>This week</label></div>
+          </div>
+        </div>
+        <div class="jz-radar-card panel">
+          <div class="jz-radar-head">
+            <div>
+              <div class="jz-hero-label">Stryker score</div>
+              <div class="jz-score" id="jz-score">—</div>
+              <div class="jz-score-label" id="jz-score-label"></div>
+            </div>
+            <div class="jz-radar-wrap"><canvas id="jz-radar"></canvas></div>
+          </div>
+        </div>
       </div>
 
-      <div class="panel">
-        <div class="panel-head"><h2>Equity curve</h2></div>
-        <div style="position:relative; height:260px;"><canvas id="journal-equity-chart"></canvas></div>
+      <p class="term-empty" id="jz-empty-note" style="display:none; margin:0 0 18px;">Log or import at least 3 closed trades to unlock the score, gauges and calendar.</p>
+
+      <div class="jz-kpis" id="jz-kpis"></div>
+
+      <div class="jz-charts">
+        <div class="panel">
+          <div class="panel-head"><h2>Cumulative P&amp;L</h2></div>
+          <div style="position:relative; height:240px;"><canvas id="journal-equity-chart"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Daily P&amp;L</h2></div>
+          <div style="position:relative; height:240px;"><canvas id="journal-daily-chart"></canvas></div>
+        </div>
       </div>
-      <div class="panel">
-        <div class="panel-head"><h2>Daily P&amp;L</h2></div>
-        <div style="position:relative; height:220px;"><canvas id="journal-daily-chart"></canvas></div>
+
+      <div class="jz-bottom">
+        <div class="panel">
+          <div class="panel-head">
+            <h2 id="jz-cal-label">—</h2>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="jz-cal-total" id="jz-cal-total"></span>
+              <button class="icon-btn" id="jz-cal-prev" aria-label="Previous month">‹</button>
+              <button class="icon-btn" id="jz-cal-next" aria-label="Next month">›</button>
+            </div>
+          </div>
+          <div class="jz-cal" id="jz-cal"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><h2>Recent trades</h2><a href="#" onclick="switchJournalTab('history'); return false;">View all</a></div>
+          <div id="jz-recent"></div>
+        </div>
       </div>
     </div>
 
@@ -262,6 +292,29 @@
 
     <!-- ============== HISTORY ============== -->
     <div class="journal-tab-panel" id="tab-history" style="display:none;">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Import &amp; export</h2>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+          <button class="btn btn-primary btn-sm" id="ji-open-btn">Import CSV</button>
+          <button class="btn btn-ghost btn-sm" id="ji-export-btn">Export CSV</button>
+          <a class="btn btn-ghost btn-sm" href="assets/samples/sample-trades.csv" download>Download sample CSV</a>
+          <input type="file" id="ji-file" accept=".csv,text/csv" style="display:none;">
+          <span style="font-size:12px; color:var(--ink-3);">Works with exports from most brokers and journals — you can adjust the column mapping before anything is saved.</span>
+        </div>
+        <div id="ji-panel" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
+          <div class="panel-head" style="margin-bottom:12px;"><h2 style="font-size:14px;">Map your columns</h2>
+            <span id="ji-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span></div>
+          <div class="ji-map-grid" id="ji-map-grid"></div>
+          <div id="ji-preview" style="margin-top:14px;"></div>
+          <div style="display:flex; gap:10px; margin-top:14px;">
+            <button class="btn btn-primary btn-sm" id="ji-import-btn">Import trades</button>
+            <button class="btn btn-ghost btn-sm" id="ji-cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
+
       <div class="panel">
         <div class="panel-head">
           <h2>Filters</h2>
@@ -385,41 +438,43 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=196"></script>
-<script src="assets/gate-timeout.js?v=196"></script>
-<script src="assets/progress.js?v=196"></script>
-<script src="assets/presence.js?v=196"></script>
-<script src="assets/messages.js?v=196"></script>
-<script src="assets/messages-badge.js?v=196"></script>
-<script src="assets/gm-badge.js?v=196"></script>
-<script src="assets/activity-log.js?v=196"></script>
-<script src="assets/banned-check.js?v=196"></script>
-<script src="assets/email-verify.js?v=196"></script>
-<script src="assets/achievements-data.js?v=196"></script>
-<script src="assets/notifications.js?v=196"></script>
+<script src="assets/auth.js?v=197"></script>
+<script src="assets/gate-timeout.js?v=197"></script>
+<script src="assets/progress.js?v=197"></script>
+<script src="assets/presence.js?v=197"></script>
+<script src="assets/messages.js?v=197"></script>
+<script src="assets/messages-badge.js?v=197"></script>
+<script src="assets/gm-badge.js?v=197"></script>
+<script src="assets/activity-log.js?v=197"></script>
+<script src="assets/banned-check.js?v=197"></script>
+<script src="assets/email-verify.js?v=197"></script>
+<script src="assets/achievements-data.js?v=197"></script>
+<script src="assets/notifications.js?v=197"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=196"></script>
-<script src="assets/admin-link.js?v=196"></script>
-<script src="assets/profiles-sync.js?v=196"></script>
+<script src="assets/push.js?v=197"></script>
+<script src="assets/admin-link.js?v=197"></script>
+<script src="assets/profiles-sync.js?v=197"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=196"></script>
-<script src="assets/avatars.js?v=196"></script>
-<script src="assets/account-menu.js?v=196"></script>
-<script src="assets/referrals.js?v=196"></script>
-<script src="assets/roles.js?v=196"></script>
-<script src="assets/plan-modal.js?v=196"></script>
-<script src="assets/plan-guard.js?v=196"></script>
-<script src="assets/maintenance-check.js?v=196"></script>
-<script src="assets/branding.js?v=196"></script>
-<script src="assets/dash-nav.js?v=196"></script>
+<script src="assets/loading-animation.js?v=197"></script>
+<script src="assets/avatars.js?v=197"></script>
+<script src="assets/account-menu.js?v=197"></script>
+<script src="assets/referrals.js?v=197"></script>
+<script src="assets/roles.js?v=197"></script>
+<script src="assets/plan-modal.js?v=197"></script>
+<script src="assets/plan-guard.js?v=197"></script>
+<script src="assets/maintenance-check.js?v=197"></script>
+<script src="assets/branding.js?v=197"></script>
+<script src="assets/dash-nav.js?v=197"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=196"></script>
-<script src="assets/journal-data.js?v=196"></script>
-<script src="assets/journal-charts.js?v=196"></script>
-<script src="assets/journal-history-calendar.js?v=196"></script>
-<script src="assets/journal-form-settings.js?v=196"></script>
-<script src="assets/journal-propfirms.js?v=196"></script>
-<script src="assets/journal-ai.js?v=196"></script>
-<script src="assets/journal-main.js?v=196"></script>
+<script src="assets/journal-calc.js?v=197"></script>
+<script src="assets/journal-data.js?v=197"></script>
+<script src="assets/journal-charts.js?v=197"></script>
+<script src="assets/journal-history-calendar.js?v=197"></script>
+<script src="assets/journal-form-settings.js?v=197"></script>
+<script src="assets/journal-propfirms.js?v=197"></script>
+<script src="assets/journal-ai.js?v=197"></script>
+<script src="assets/journal-zella.js?v=197"></script>
+<script src="assets/journal-import.js?v=197"></script>
+<script src="assets/journal-main.js?v=197"></script>
 </body>
 </html>

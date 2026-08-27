@@ -53,8 +53,65 @@ function renderHistoryList(){
     return;
   }
 
+  // Zella-style trade log: a real table, with an expandable detail row per
+  // trade (the detail reuses renderTradeDetail, same as the calendar view).
+  const table = document.createElement('table');
+  table.className = 'jz-table jz-log';
+  table.innerHTML = '<thead><tr>' +
+    '<th></th><th>Date</th><th>Symbol</th><th>Side</th><th>Entry → Exit</th>' +
+    '<th>Size</th><th class="ta-r">Net P&amp;L</th><th class="ta-r">R</th><th>Setup</th>' +
+    '</tr></thead>';
+  const tbody = document.createElement('tbody');
+
+  trades.forEach((t) => {
+    const tr = document.createElement('tr');
+    tr.className = 'jz-log-row';
+    const win = t.pnl > 0, loss = t.pnl < 0;
+    tr.innerHTML =
+      '<td><span class="jz-pill ' + (win ? 'is-win' : (loss ? 'is-loss' : 'is-flat')) + '">' +
+        (t.pnl === null || t.pnl === undefined ? 'OPEN' : (win ? 'WIN' : (loss ? 'LOSS' : 'BE'))) + '</span></td>' +
+      '<td class="mono">' + (t.date || '—') + (t.time ? '<span class="jz-dim"> ' + t.time + '</span>' : '') + '</td>' +
+      '<td><b>' + escapeJournalHtml(t.instrument || '—') + '</b></td>' +
+      '<td><span class="jz-side ' + (t.direction === 'short' ? 'is-short' : 'is-long') + '">' +
+        (t.direction === 'short' ? 'SHORT' : 'LONG') + '</span></td>' +
+      '<td class="mono jz-dim">' + (t.entryPrice ?? '—') + ' → ' + (t.exitPrice ?? '—') + '</td>' +
+      '<td class="mono jz-dim">' + (t.positionSize ?? '—') + '</td>' +
+      '<td class="mono ta-r ' + (win ? 'gm-up' : (loss ? 'gm-down' : '')) + '"><b>' +
+        journalFormatCurrency(t.pnl, currency) + '</b></td>' +
+      '<td class="mono ta-r jz-dim">' + (t.rMultiple !== null && t.rMultiple !== undefined ? t.rMultiple.toFixed(2) + 'R' : '—') + '</td>' +
+      '<td class="jz-dim">' + escapeJournalHtml(t.setup || '—') + '</td>';
+
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'jz-log-detail';
+    detailTr.style.display = 'none';
+    const detailTd = document.createElement('td');
+    detailTd.colSpan = 9;
+    detailTr.appendChild(detailTd);
+
+    tr.addEventListener('click', () => {
+      const willOpen = detailTr.style.display === 'none';
+      tbody.querySelectorAll('.jz-log-detail').forEach((d) => { d.style.display = 'none'; });
+      tbody.querySelectorAll('.jz-log-row').forEach((r) => r.classList.remove('is-open'));
+      if (willOpen) {
+        detailTr.style.display = '';
+        tr.classList.add('is-open');
+        if (!detailTd.dataset.built) {
+          detailTd.dataset.built = '1';
+          detailTd.appendChild(renderTradeDetail(t, currency));
+        }
+      }
+    });
+
+    tbody.appendChild(tr);
+    tbody.appendChild(detailTr);
+  });
+  table.appendChild(tbody);
+
   wrap.innerHTML = '';
-  trades.forEach((t) => wrap.appendChild(renderHistoryRow(t, currency)));
+  const scroller = document.createElement('div');
+  scroller.className = 'jz-table-wrap';
+  scroller.appendChild(table);
+  wrap.appendChild(scroller);
 }
 
 function pnlClass(pnl){

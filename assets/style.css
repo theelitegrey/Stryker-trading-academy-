@@ -3600,3 +3600,132 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
 }
 .jai-card h5{ font-size:13.5px; margin:0 0 6px; color:var(--ink-0); }
 .jai-card p{ font-size:12.5px; color:var(--ink-2); line-height:1.65; margin:0; }
+
+/* --------------------------------------------------------------------------
+   TRADE JOURNAL v3 — Zella-style dashboard, trade log table, CSV import
+   -------------------------------------------------------------------------- */
+
+.jz-top{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.4fr); gap:16px; margin-bottom:18px; }
+@media (max-width:900px){ .jz-top{ grid-template-columns:1fr; } }
+
+.jz-hero{ display:flex; flex-direction:column; justify-content:center; margin-bottom:0 !important; }
+.jz-hero-label{
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3);
+}
+.jz-hero-val{ font-family:var(--font-mono); font-size:clamp(28px,4.5vw,40px); font-weight:700; margin:8px 0 4px; }
+.jz-hero-sub{ font-size:12px; color:var(--ink-3); font-family:var(--font-mono); }
+.jz-hero-mini{ display:flex; gap:26px; margin-top:18px; padding-top:14px; border-top:1px solid var(--line-soft); }
+.jz-hero-mini span{ font-family:var(--font-mono); font-size:15px; font-weight:700; display:block; }
+.jz-hero-mini label{ font-size:10.5px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em; }
+
+.jz-radar-card{ margin-bottom:0 !important; }
+.jz-radar-head{ display:flex; gap:18px; align-items:center; justify-content:space-between; }
+.jz-score{ font-family:var(--font-mono); font-size:44px; font-weight:700; color:var(--ink-0); line-height:1.1; }
+.jz-score-label{ font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.16em; }
+.jz-radar-wrap{ position:relative; height:190px; flex:1; min-width:0; max-width:340px; }
+@media (max-width:640px){
+  .jz-radar-head{ flex-direction:column; align-items:flex-start; }
+  .jz-radar-wrap{ width:100%; max-width:none; }
+}
+
+.jz-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:18px; }
+@media (max-width:900px){ .jz-kpis{ grid-template-columns:repeat(2,1fr); } }
+.jz-kpi{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md);
+  padding:16px; text-align:center;
+  transition:transform .15s ease, border-color .15s ease;
+}
+.jz-kpi:hover{ transform:translateY(-2px); border-color:#3a3a42; }
+.jz-arc{ width:64px; height:54px; margin:0 auto 6px; display:block; }
+.jz-kpi-val{ font-family:var(--font-mono); font-size:19px; font-weight:700; color:var(--ink-0); }
+.jz-kpi-label{ font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.08em; margin-top:3px; }
+.jz-kpi-sub{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); margin-top:5px; }
+.jz-wl-split{
+  display:flex; height:10px; border-radius:6px; overflow:hidden;
+  margin:22px auto 16px; max-width:150px; background:var(--bg-3);
+}
+.jz-wl-split i.is-win{ background:var(--bull); }
+.jz-wl-split i.is-loss{ background:var(--bear); }
+
+.jz-charts{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width:900px){ .jz-charts{ grid-template-columns:1fr; } }
+.jz-bottom{ display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px; }
+@media (max-width:900px){ .jz-bottom{ grid-template-columns:1fr; } }
+
+/* mini P&L calendar with weekly totals */
+.jz-cal{ display:grid; grid-template-columns:repeat(7,1fr) minmax(52px,0.9fr); gap:4px; }
+.jz-cal-h{
+  font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:.1em;
+  color:var(--ink-3); text-align:center; padding:2px 0 6px;
+}
+.jz-cal-c{
+  aspect-ratio:1/0.9; border-radius:7px; background:var(--bg-2);
+  border:1px solid var(--line-soft);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  font-family:var(--font-mono);
+  transition:transform .12s ease;
+}
+.jz-cal-c:hover:not(.empty){ transform:scale(1.06); }
+.jz-cal-c span{ font-size:9px; color:var(--ink-3); }
+.jz-cal-c b{ font-size:10.5px; font-weight:700; color:var(--ink-1); }
+.jz-cal-c.empty{ background:transparent; border-color:transparent; }
+.jz-cal-c.win{ background:rgba(3,201,136,.14); border-color:rgba(3,201,136,.35); }
+.jz-cal-c.win b{ color:var(--bull); }
+.jz-cal-c.loss{ background:rgba(229,72,77,.12); border-color:rgba(229,72,77,.35); }
+.jz-cal-c.loss b{ color:var(--bear); }
+.jz-cal-c.flat b{ color:var(--ink-2); }
+.jz-cal-c.jz-cal-wk{ background:var(--bg-3); border-style:dashed; }
+.jz-cal-total{ font-family:var(--font-mono); font-size:13px; font-weight:700; }
+
+/* recent trades strip */
+.jz-recent-row{
+  display:grid; grid-template-columns:auto minmax(0,1fr) auto auto auto;
+  gap:10px; align-items:center; padding:9px 0;
+  border-bottom:1px solid var(--line-soft); font-size:12.5px;
+}
+.jz-recent-row:last-child{ border-bottom:none; }
+.jz-recent-row b{ color:var(--ink-0); }
+.jz-recent-side{ font-family:var(--font-mono); font-size:9.5px; color:var(--ink-3); letter-spacing:.08em; }
+.jz-recent-date{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }
+.jz-recent-pnl{ font-family:var(--font-mono); font-size:12.5px; font-weight:700; text-align:right; }
+
+/* pills */
+.jz-pill{
+  display:inline-block; padding:3px 9px; border-radius:6px;
+  font-family:var(--font-mono); font-size:9.5px; font-weight:700; letter-spacing:.1em;
+}
+.jz-pill.is-win{ color:var(--bull); background:rgba(3,201,136,.12); border:1px solid rgba(3,201,136,.35); }
+.jz-pill.is-loss{ color:var(--bear); background:rgba(229,72,77,.1); border:1px solid rgba(229,72,77,.35); }
+.jz-pill.is-flat{ color:var(--ink-2); background:var(--bg-3); border:1px solid var(--line); }
+
+/* trade log table */
+.jz-table-wrap{ overflow-x:auto; margin:0 -4px; }
+.jz-table{ width:100%; border-collapse:collapse; min-width:760px; }
+.jz-table th{
+  font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--ink-3); text-align:left;
+  padding:8px 10px; border-bottom:1px solid var(--line);
+  position:sticky; top:0; background:var(--bg-1);
+}
+.jz-table td{
+  padding:10px; font-size:12.5px; color:var(--ink-1);
+  border-bottom:1px solid var(--line-soft); white-space:nowrap;
+}
+.jz-table td b{ color:var(--ink-0); }
+.jz-table .ta-r{ text-align:right; }
+.jz-table .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.jz-dim{ color:var(--ink-3); font-size:11.5px; }
+.jz-log-row{ cursor:pointer; transition:background .12s ease; }
+.jz-log-row:hover td{ background:var(--bg-2); }
+.jz-log-row.is-open td{ background:var(--bg-2); border-bottom-color:transparent; }
+.jz-log-detail > td{ background:var(--bg-2); white-space:normal; padding:4px 16px 18px; }
+.jz-side{ font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.08em; }
+.jz-side.is-long{ color:var(--teal); }
+.jz-side.is-short{ color:#b04adf; }
+
+/* CSV import mapper */
+.ji-map-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; }
+.ji-map-row{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--ink-3); }
+.ji-map-row.is-key span::after{ content:' •'; color:var(--gold); }
+.ji-map-row select{ width:100%; }

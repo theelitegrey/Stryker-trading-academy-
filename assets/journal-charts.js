@@ -17,7 +17,7 @@ if (typeof Chart !== 'undefined') {
   Chart.defaults.color = JCOLOR.ink2;
 }
 
-// ---- Dashboard ----
+// ---- Dashboard (Zella-style layout; widgets live in journal-zella.js) ----
 function renderDashboardTab(){
   const trades = JOURNAL_TRADES || [];
   const currency = (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD';
@@ -25,19 +25,21 @@ function renderDashboardTab(){
   const all = journalAggregateStats(trades);
   const today = journalStatsForPeriod(trades, 1);
   const week = journalStatsForPeriod(trades, 7);
-  const month = journalStatsForPeriod(trades, 30);
 
   setPnlStat('jstat-total-pnl', all.totalPnl, currency);
   setPnlStat('jstat-today-pnl', today.totalPnl, currency);
   setPnlStat('jstat-week-pnl', week.totalPnl, currency);
-  setPnlStat('jstat-month-pnl', month.totalPnl, currency);
+  const nTrades = document.getElementById('jz-trade-count');
+  if (nTrades) nTrades.textContent = all.closedTrades + ' closed trades';
 
-  document.getElementById('jstat-winrate').textContent = all.closedTrades ? Math.round(all.winRate) + '%' : '—';
-  document.getElementById('jstat-total-trades').textContent = all.totalTrades;
-  document.getElementById('jstat-wl-count').textContent = all.winCount + ' / ' + all.lossCount;
-  document.getElementById('jstat-avg-win-loss').innerHTML =
-    '<span style="color:' + JCOLOR.win + ';">' + journalFormatCurrency(all.avgWin, currency) + '</span> / <span style="color:' + JCOLOR.loss + ';">' + journalFormatCurrency(-all.avgLoss, currency) + '</span>';
-  document.getElementById('jstat-profit-factor').textContent = isFinite(all.profitFactor) ? all.profitFactor.toFixed(2) : '∞';
+  const m = (typeof jzComputeMetrics === 'function') ? jzComputeMetrics(trades) : null;
+  if (typeof jzRenderRadar === 'function') jzRenderRadar(m);
+  if (typeof jzRenderKpis === 'function') jzRenderKpis(m, currency);
+  if (typeof jzRenderMiniCalendar === 'function') jzRenderMiniCalendar(trades, currency);
+  if (typeof jzRenderRecent === 'function') jzRenderRecent(trades, currency);
+
+  const emptyNote = document.getElementById('jz-empty-note');
+  if (emptyNote) emptyNote.style.display = m ? 'none' : '';
 
   renderEquityCurveChart(trades);
   renderDailyPnlChart(trades);

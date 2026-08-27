@@ -84,6 +84,7 @@
     document.querySelectorAll('.dov-mod').forEach(function (el) {
       el.style.display = MODS[el.dataset.mod] ? '' : 'none';
     });
+    drawEquitySpark(null);   // the journal card may have just changed width
   }
 
   // ---- journal overview ------------------------------------------------------
@@ -117,7 +118,7 @@
         '<div><b>' + (s.closedTrades ? (isFinite(s.profitFactor) ? s.profitFactor.toFixed(2) : '∞') : '—') + '</b><span>Profit factor</span></div>' +
         '<div><b>' + s.closedTrades + '</b><span>Trades</span></div>' +
       '</div>' +
-      '<canvas class="dov-spark" id="dov-j-spark" height="52"></canvas>' +
+      '<canvas class="dov-eq" id="dov-j-spark" height="52"></canvas>' +
       recent.map(function (t) {
         var win = t.pnl > 0;
         return '<div class="dov-row">' +
@@ -132,15 +133,21 @@
     drawEquitySpark(t30.length ? t30 : trades);
   }
 
+  var DOV_EQ_SERIES = null;
+
   function drawEquitySpark(closed){
     var c = $('dov-j-spark');
-    if (!c) return;
+    if (closed) DOV_EQ_SERIES = closed;
+    if (!c || !DOV_EQ_SERIES) return;
+    closed = DOV_EQ_SERIES;
+    // A hidden card measures 0 wide; skip and redraw when it comes back.
+    if (!c.clientWidth) return;
     var chrono = closed.slice().sort(function (a, b) {
       return ((a.date || '') + (a.time || '')).localeCompare((b.date || '') + (b.time || ''));
     });
     if (chrono.length < 2) { c.style.display = 'none'; return; }
     var dpr = window.devicePixelRatio || 1;
-    var w = c.clientWidth || 280, h = 52;
+    var w = c.clientWidth, h = 52;
     c.width = w * dpr; c.height = h * dpr;
     var x = c.getContext('2d');
     x.scale(dpr, dpr);
@@ -360,6 +367,12 @@
     });
 
     loadMonitor();
+
+    var rz;
+    window.addEventListener('resize', function(){
+      clearTimeout(rz);
+      rz = setTimeout(function(){ drawEquitySpark(null); }, 180);
+    });
 
     if (typeof auth === 'undefined' || !auth) { DOV.trades = []; DOV.posts = []; renderJournal(); renderFloor(); return; }
     var handled = false;

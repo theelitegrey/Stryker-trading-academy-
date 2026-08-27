@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: read
+  actions: write   # revive the monitor-data relay if its data has gone stale
 
 concurrency:
   group: cf-deploy
@@ -136,3 +137,19 @@ jobs:
             --branch main \
             --commit-hash "${{ github.sha }}" \
             --commit-dirty=false
+
+      # Every deploy doubles as a watchdog for the Global Monitor relay:
+      # if the published data is older than 45 minutes the chain has died
+      # (GitHub's cron alone proved unable to keep it alive), so restart it.
+      - name: Revive the monitor-data relay if stale
+        if: always()
+        run: |
+          gen=$(curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json?t=$(date +%s)"             | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).generatedAt||0))" 2>/dev/null || echo 0)
+          now=$(date +%s%3N)
+          age_min=$(( (now - gen) / 60000 ))
+          echo "monitor data age: ${age_min} minutes"
+          if [ "$age_min" -gt 45 ]; then
+            curl -sf -X POST               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"               -H "Accept: application/vnd.github+json"               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/monitor-data.yml/dispatches"               -d '{"ref":"main"}' && echo "relay revived" || echo "could not dispatch relay"
+          else
+            echo "relay healthy"
+          fi

@@ -1,41 +1,47 @@
-# Global Monitor data pipeline.
+# Global Monitor data pipeline — self-sustaining relay.
 #
 # Fetches GDELT, Yahoo Finance, WHO outbreak news, Polymarket and a DEFCON
-# estimate on a schedule, then publishes one monitor-data.json to the `data`
-# branch (single force-pushed commit — the branch never accumulates history).
-# The Global Monitor page reads it from raw.githubusercontent.com, which sends
-# CORS headers. Pushing to `data` does NOT trigger a GitHub Pages rebuild;
-# only main does.
+# estimate, then publishes one monitor-data.json to the `data` branch (single
+# force-pushed commit — the branch never accumulates history). The Global
+# Monitor page reads it from raw.githubusercontent.com, which sends CORS
+# headers.
 #
-# Why not fetch from the browser or a Cloud Function: GDELT rate-limits shared
-# datacenter IPs into minute-long 429s (see functions-src/refreshWorldData.js)
-# and is unreachable from some student networks entirely. A runner fetch into
-# static JSON means students only need to reach GitHub — the same requirement
-# as loading the site at all.
+# WHY A RELAY AND NOT A CRON: GitHub's scheduler is best-effort and it shows.
+# '*/20' fired with 4-11 hour gaps; moving to quiet minutes (7,27,47) still
+# produced only TWO scheduled runs in 24 hours — the data sat 6 hours stale
+# while every run that did fire succeeded. So the schedule can never be the
+# heartbeat. Instead each run refreshes the data every 20 minutes for ~5.5
+# hours inside one job (public repo: standard runners are free), then
+# dispatches its own successor via the API. The cron remains only as a
+# backstop that revives a dropped chain (runner loss, GitHub incident), and
+# every main deploy also revives it if the data has gone stale.
 
 name: Global Monitor data
 
 on:
   schedule:
-    # Off-peak minutes on purpose. GitHub throttles scheduled workflows hard
-    # on the crowded minute marks — with '*/20 * * * *' this fired at 22:43,
-    # then 02:52, then 13:44 (gaps of 4-11 HOURS), leaving the monitor
-    # showing data hundreds of minutes old. :07/:27/:47 are quiet minutes
-    # and fire far more reliably. Delays of a few minutes are still normal.
-    - cron: '7,27,47 * * * *'
+    # Backstop only — the relay below is the real heartbeat. Quiet minutes,
+    # hourly; if the chain ever dies this revives it within the hour-ish
+    # (subject to GitHub's throttling, which is exactly why it's not the
+    # primary mechanism).
+    - cron: '11 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write   # the relay dispatches its own next run
 
+# One chain alive at a time. cancel-in-progress stays FALSE so a backstop or
+# manual run queues behind the running chain instead of killing it mid-loop;
+# GitHub keeps at most one pending run per group, so requests never pile up.
 concurrency:
   group: monitor-data
   cancel-in-progress: false
 
 jobs:
-  refresh:
+  relay:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 350          # 16 cycles x ~21 min ≈ 5h36m, under the 6h job cap
     steps:
       - uses: actions/checkout@v4
 
@@ -43,22 +49,43 @@ jobs:
         with:
           node-version: 20
 
-      - name: Fetch previous data (kept per-section when an upstream fails)
+      - name: Seed previous data (kept per-section when an upstream fails)
         run: |
           mkdir -p out
           curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json" \
             -o out/previous.json || echo "no previous data yet"
 
-      - name: Build monitor-data.json
-        run: node tools/fetch-monitor-data.js out/previous.json out/monitor-data.json
-
-      - name: Publish to the data branch
+      - name: Relay — refresh every 20 minutes for ~5.5 hours
         run: |
-          cd out
-          rm -f previous.json
-          git init -b data
-          git config user.email "actions@github.com"
-          git config user.name "monitor-data bot"
-          git add monitor-data.json
-          git commit -m "refresh $(date -u +%FT%TZ)"
-          git push --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
+          set +e   # one bad cycle must not kill the chain
+          for i in $(seq 1 16); do
+            echo "=== cycle $i/16 $(date -u +%FT%TZ) ==="
+            if node tools/fetch-monitor-data.js out/previous.json out/monitor-data.json; then
+              (
+                cd out
+                rm -rf .git
+                git init -q -b data
+                git config user.email "actions@github.com"
+                git config user.name "monitor-data bot"
+                git add monitor-data.json
+                git commit -q -m "refresh $(date -u +%FT%TZ)"
+                git push -q --force "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" data
+              ) && cp out/monitor-data.json out/previous.json \
+                && echo "published cycle $i"
+            else
+              echo "cycle $i fetch failed — keeping previous data, retrying next cycle"
+            fi
+            [ "$i" -lt 16 ] && sleep 1200
+          done
+          true
+
+      - name: Dispatch the next link in the chain
+        if: success()
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/monitor-data.yml/dispatches" \
+            -d '{"ref":"main"}' \
+            && echo "next chain link dispatched" \
+            || echo "self-dispatch failed — the hourly backstop cron will revive the chain"

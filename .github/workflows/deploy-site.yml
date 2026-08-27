@@ -45,13 +45,25 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          # Trim whitespace/newlines that ride along with copy-pasted secrets.
-          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
-          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
+          # Secrets arrive as pasted — sometimes with a "Bearer " prefix, an
+          # example command, or stray whitespace around the real value. Run 2
+          # failed with Cloudflare's "Invalid format for Authorization
+          # header", which is exactly that. So extract the value instead of
+          # trusting the paste: an API token is a long [A-Za-z0-9_-] run, an
+          # account id is 32 hex chars.
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          [ -z "$ACCOUNT" ] && ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
           if [ -z "$TOKEN" ]; then
             echo "::error::CLOUDFLARE_API_TOKEN secret is missing (repo Settings -> Secrets -> Actions)"; exit 1; fi
           if [ -z "$ACCOUNT" ]; then
             echo "::error::CLOUDFLARE_ACCOUNT_ID secret is missing — copy the Account ID from the Cloudflare dashboard home page (right-hand sidebar)"; exit 1; fi
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$ACCOUNT"
+          echo "Extracted token length: ${#TOKEN} (Cloudflare API tokens are 40); account id length: ${#ACCOUNT} (should be 32)."
+          echo "CF_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          echo "CF_ACCOUNT=$ACCOUNT" >> "$GITHUB_ENV"
 
           # Step 1: is the token itself valid? (scope-independent check)
           verify=$(curl -s -H "Authorization: Bearer $TOKEN" \
@@ -61,8 +73,8 @@ jobs:
           echo "Token is valid."
 
           # Step 2: can it list Pages projects on this account?
-          resp=$(curl -s -H "Authorization: Bearer $TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects")
+          resp=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/pages/projects")
           if [ "$(echo "$resp" | jq -r '.success')" != "true" ]; then
             echo "::error::Pages API refused the request: $(echo "$resp" | jq -c '.errors') — the token needs the 'Cloudflare Pages: Edit' account permission, and the Account ID must match the account that owns the Pages project."; exit 1; fi
           name=$(echo "$resp" | jq -r '.result[].name' | grep -i 'stryker' | head -1)
@@ -80,8 +92,8 @@ jobs:
 
       - name: Deploy to production
         env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
         run: |
           npx --yes wrangler@4 pages deploy /tmp/site \
             --project-name "${{ steps.proj.outputs.name }}" \

@@ -512,6 +512,7 @@ function gmApplyEvents(events, sourceLabel) {
 }
 
 function gmEventsUnavailable() {
+  if (GM_EVENTS.length) return;   // stale data on screen beats an offline note
   var host = document.getElementById('gm-table-body');
   if (host) host.innerHTML = '<p class="term-empty">Event feed is temporarily offline — it retries automatically every few minutes.</p>';
   gmSetBadge('gm-events-badge', 'offline', true);
@@ -691,6 +692,7 @@ function gmApplyWire(items, sourceLabel) {
 }
 
 function gmWireUnavailable() {
+  if (GM_WIRE.length) return;     // stale data on screen beats an offline note
   var host = document.getElementById('gm-wire-feed');
   if (host) host.innerHTML = '<p class="term-empty">Newswire is temporarily offline — it retries automatically.</p>';
   gmSetBadge('gm-wire-badge', 'offline', true);
@@ -1235,6 +1237,7 @@ function gmPredRowHtml(raw) {
 
 var GM_PRED_TRENDING = [];
 var GM_PRED_SEARCH = '';
+var GM_PRED_RENDERED = false;
 
 function gmRenderPredictions(rows, sourceLabel) {
   var host = document.getElementById('gm-predict');
@@ -1242,6 +1245,7 @@ function gmRenderPredictions(rows, sourceLabel) {
     gmSetBadge('gm-predict-badge', sourceLabel, sourceLabel !== 'live');
     host.innerHTML = rows.map(gmPredRowHtml).join('');
     gmAnimate(host);
+    GM_PRED_RENDERED = true;
   }
 }
 
@@ -1650,9 +1654,16 @@ function gmUpdateFreshness(generatedAt) {
     return;
   }
   var mins = Math.max(0, Math.round((Date.now() - generatedAt) / 60000));
-  if (el) el.textContent = 'DATA ' + (mins < 1 ? 'LIVE' : mins + 'M AGO');
+  var label = mins < 1 ? 'LIVE'
+    : (mins < 90 ? mins + 'M AGO' : Math.round(mins / 60) + 'H AGO');
+  if (el) el.textContent = 'DATA ' + label;
   if (badge) badge.className = 'gm-live' + (mins > 90 ? ' is-off' : '');
 }
+
+// Pipeline data older than this counts as stale on the page: it still
+// renders (old data beats empty panels), but the direct browser fallbacks
+// are fired to try to top it up with something fresher.
+var GM_FRESH_MS = 90 * 60000;
 
 function gmLoadData() {
   // raw.githubusercontent caches ~5 min per URL; a slow-rolling buster keeps
@@ -1662,32 +1673,38 @@ function gmLoadData() {
     .then(function (d) {
       gmUpdateFreshness(d.generatedAt);
 
-      if (d.events && d.events.items && d.events.items.length) {
-        GM_HAVE.events = true;
-        gmApplyEvents(d.events.items, d.events.stale ? 'stale' : 'live');
+      // Old pipeline data still renders (old beats empty), but only FRESH
+      // data marks a section as satisfied — anything else lets the direct
+      // browser fallbacks try to top it up. And stale pipeline data never
+      // overwrites fresher data a fallback already fetched this session.
+      var fresh = d.generatedAt && (Date.now() - d.generatedAt) < GM_FRESH_MS;
+
+      if (d.events && d.events.items && d.events.items.length &&
+          (fresh || !GM_EVENTS.length)) {
+        GM_HAVE.events = fresh && !d.events.stale;
+        gmApplyEvents(d.events.items, (d.events.stale || !fresh) ? 'stale' : 'live');
       }
       if (d.active24 && d.active24.items) gmRenderActive24(d.active24.items);
 
-      if (d.wire && d.wire.items && d.wire.items.length) {
-        GM_HAVE.wire = true;
-        gmApplyWire(d.wire.items, d.wire.stale ? 'stale' : 'live');
+      if (d.wire && d.wire.items && d.wire.items.length &&
+          (fresh || !GM_WIRE.length)) {
+        GM_HAVE.wire = fresh && !d.wire.stale;
+        gmApplyWire(d.wire.items, (d.wire.stale || !fresh) ? 'stale' : 'live');
       }
-      if (d.finance && d.finance.items && d.finance.items.length) {
-        GM_HAVE.finance = true;
-        gmApplyFinance(d.finance.items, d.finance.stale ? 'stale' : 'live');
+      if (d.finance && d.finance.items && d.finance.items.length &&
+          (fresh || !GM_SEV_ITEMS.length)) {
+        GM_HAVE.finance = fresh && !d.finance.stale;
+        gmApplyFinance(d.finance.items, (d.finance.stale || !fresh) ? 'stale' : 'live');
       }
       if (d.markets) gmRenderMarkets(d.markets);
       if (d.outbreaks) gmRenderOutbreaks(d.outbreaks);
       if (d.defcon) gmRenderDefcon(d.defcon);
-      if (d.predictions && d.predictions.items && d.predictions.items.length) {
-        GM_HAVE.predictions = true;
-        gmRenderPredictions(d.predictions.items, d.predictions.stale ? 'stale' : 'live');
-      }
-      if (d.predictions && d.predictions.trending && d.predictions.trending.length) {
-        GM_PRED_TRENDING = d.predictions.trending;
-        gmRenderTrendingPredictions();
-      } else if (d.predictions && d.predictions.items) {
-        GM_PRED_TRENDING = d.predictions.items;
+      if (d.predictions && d.predictions.items && d.predictions.items.length &&
+          (fresh || !GM_PRED_RENDERED)) {
+        GM_HAVE.predictions = fresh && !d.predictions.stale;
+        gmRenderPredictions(d.predictions.items, (d.predictions.stale || !fresh) ? 'stale' : 'live');
+        GM_PRED_TRENDING = (d.predictions.trending && d.predictions.trending.length)
+          ? d.predictions.trending : d.predictions.items;
         gmRenderTrendingPredictions();
       }
       if (d.calendar && d.calendar.items) {
@@ -1870,6 +1887,7 @@ function gmLoadFinanceDirect() {
         })
         .catch(function (err) {
           console.warn('Global Monitor: all finance sources failed', err);
+          if (GM_SEV_ITEMS.length) return;   // keep the stale list on screen
           var host = document.getElementById('gm-sev-list');
           if (host) host.innerHTML = '<p class="term-empty">Severity feed is temporarily offline.</p>';
           gmSetBadge('gm-sev-badge', 'offline', true);
@@ -1933,6 +1951,7 @@ function gmLoadPredictionsDirect() {
         })
         .catch(function (err) {
           console.warn('Global Monitor: all prediction sources failed', err);
+          if (GM_PRED_RENDERED) return;      // keep the stale ladders on screen
           var host = document.getElementById('gm-predict');
           if (host) host.innerHTML = '<p class="term-empty">Prediction feed is temporarily offline.</p>';
           gmSetBadge('gm-predict-badge', 'offline', true);

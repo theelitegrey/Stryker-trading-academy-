@@ -17,7 +17,12 @@ name: Global Monitor data
 
 on:
   schedule:
-    - cron: '*/20 * * * *'
+    # Off-peak minutes on purpose. GitHub throttles scheduled workflows hard
+    # on the crowded minute marks — with '*/20 * * * *' this fired at 22:43,
+    # then 02:52, then 13:44 (gaps of 4-11 HOURS), leaving the monitor
+    # showing data hundreds of minutes old. :07/:27/:47 are quiet minutes
+    # and fire far more reliably. Delays of a few minutes are still normal.
+    - cron: '7,27,47 * * * *'
   workflow_dispatch:
 
 permissions:

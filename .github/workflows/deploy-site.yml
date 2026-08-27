@@ -1,0 +1,77 @@
+# Deploys the site to Cloudflare Pages on every push to main, via direct
+# upload (wrangler). This replaced the dashboard's Git integration after it
+# silently stopped building post-migration and froze the site at build 193 —
+# a deploy that lives in the repo can be watched, debugged, and retried from
+# code, with no dashboard toggle to drift.
+#
+# Needs two repository secrets:
+#   CLOUDFLARE_API_TOKEN  — API token with the Cloudflare Pages edit scope
+#   CLOUDFLARE_ACCOUNT_ID — dashboard home -> right sidebar -> Account ID
+#
+# The data branch (pushed every 20 min by monitor-data.yml) does NOT trigger
+# this — only main does, exactly like the old GitHub Pages behavior.
+#
+# If the dashboard's own Git integration ever gets re-enabled, the worst
+# case is a duplicate deploy of identical content — harmless.
+
+name: Deploy site to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Find the Pages project
+        id: proj
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN secret is missing (repo Settings -> Secrets -> Actions)"; exit 1; fi
+          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::error::CLOUDFLARE_ACCOUNT_ID secret is missing — copy the Account ID from the Cloudflare dashboard home page (right-hand sidebar)"; exit 1; fi
+          resp=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects") || {
+            echo "::error::Cloudflare API refused the token — check its permissions include Cloudflare Pages: Edit"; exit 1; }
+          name=$(echo "$resp" | jq -r '.result[].name' | grep -i 'stryker' | head -1)
+          [ -z "$name" ] && name=$(echo "$resp" | jq -r '.result[0].name // empty')
+          if [ -z "$name" ]; then
+            echo "::error::No Pages project found on this Cloudflare account"; exit 1; fi
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "Deploying to Pages project: $name"
+
+      - name: Assemble the site (repo internals excluded)
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
+                   --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
+
+      - name: Deploy to production
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@4 pages deploy /tmp/site \
+            --project-name "${{ steps.proj.outputs.name }}" \
+            --branch main \
+            --commit-hash "${{ github.sha }}" \
+            --commit-dirty=false

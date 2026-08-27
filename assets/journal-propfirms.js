@@ -149,8 +149,14 @@ function renderPfPayoutTicker(fmt){
 function renderPfEntryPanel(){
   const panel = document.getElementById('pf-entry-panel');
   if (!panel) return;
-  if (!PF_DATA.firms.length) { panel.style.display = 'none'; return; }
-  panel.style.display = '';
+  // The panel is always visible so it's discoverable; with no firms yet it
+  // shows a pointer to the add-a-firm panel instead of an empty form.
+  const body = document.getElementById('pfe-body');
+  const empty = document.getElementById('pfe-empty');
+  const hasFirms = PF_DATA.firms.length > 0;
+  if (body) body.style.display = hasFirms ? '' : 'none';
+  if (empty) empty.style.display = hasFirms ? 'none' : '';
+  if (!hasFirms) return;
 
   const firmSel = document.getElementById('pfe-firm');
   const prev = firmSel.value;

@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="200">
+<meta name="stryker-build" content="201">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=200">
-<script src="assets/device-mode.js?v=200"></script>
-<script src="assets/toast.js?v=200" defer></script>
-<script src="assets/version-check.js?v=200" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=201">
+<script src="assets/device-mode.js?v=201"></script>
+<script src="assets/toast.js?v=201" defer></script>
+<script src="assets/version-check.js?v=201" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -414,11 +414,13 @@
         <div class="stat-card"><div class="stat-val" id="pf-stat-firms">—</div><div class="stat-label">Firms tracked</div></div>
       </div>
 
-      <div class="panel" id="pf-entry-panel" style="display:none;">
+      <div class="panel" id="pf-entry-panel">
         <div class="panel-head" style="display:block;">
-          <h2>Add a new entry</h2>
+          <h2>Add a new entry — payouts &amp; expenses</h2>
           <p style="margin:6px 0 0; font-size:12.5px; color:var(--ink-3); font-weight:400;">Log a payout you received or an expense you paid.</p>
         </div>
+        <p class="term-empty" id="pfe-empty" style="display:none; margin:0;">No prop firm tracked yet — add one in the panel just below (FTMO, Topstep, Apex…), and this form unlocks so you can log its payouts and expenses.</p>
+        <div id="pfe-body">
         <div class="pfe-toggle">
           <button type="button" class="pfe-type is-payout-btn" id="pfe-type-payout">↗ Payout</button>
           <button type="button" class="pfe-type is-expense-btn" id="pfe-type-expense">↘ Expense</button>
@@ -460,6 +462,7 @@
           <input type="text" id="pfe-notes" maxlength="120" placeholder="Anything worth remembering about this entry">
         </div>
         <button type="button" class="btn btn-primary btn-sm" id="pfe-add-btn" style="margin-top:18px;">+ Add entry</button>
+        </div>
       </div>
 
       <div class="panel">
@@ -558,45 +561,45 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=200"></script>
-<script src="assets/gate-timeout.js?v=200"></script>
-<script src="assets/progress.js?v=200"></script>
-<script src="assets/presence.js?v=200"></script>
-<script src="assets/messages.js?v=200"></script>
-<script src="assets/messages-badge.js?v=200"></script>
-<script src="assets/gm-badge.js?v=200"></script>
-<script src="assets/activity-log.js?v=200"></script>
-<script src="assets/banned-check.js?v=200"></script>
-<script src="assets/email-verify.js?v=200"></script>
-<script src="assets/achievements-data.js?v=200"></script>
-<script src="assets/notifications.js?v=200"></script>
+<script src="assets/auth.js?v=201"></script>
+<script src="assets/gate-timeout.js?v=201"></script>
+<script src="assets/progress.js?v=201"></script>
+<script src="assets/presence.js?v=201"></script>
+<script src="assets/messages.js?v=201"></script>
+<script src="assets/messages-badge.js?v=201"></script>
+<script src="assets/gm-badge.js?v=201"></script>
+<script src="assets/activity-log.js?v=201"></script>
+<script src="assets/banned-check.js?v=201"></script>
+<script src="assets/email-verify.js?v=201"></script>
+<script src="assets/achievements-data.js?v=201"></script>
+<script src="assets/notifications.js?v=201"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=200"></script>
-<script src="assets/admin-link.js?v=200"></script>
-<script src="assets/profiles-sync.js?v=200"></script>
+<script src="assets/push.js?v=201"></script>
+<script src="assets/admin-link.js?v=201"></script>
+<script src="assets/profiles-sync.js?v=201"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=200"></script>
-<script src="assets/avatars.js?v=200"></script>
-<script src="assets/account-menu.js?v=200"></script>
-<script src="assets/referrals.js?v=200"></script>
-<script src="assets/roles.js?v=200"></script>
-<script src="assets/plan-modal.js?v=200"></script>
-<script src="assets/plan-guard.js?v=200"></script>
-<script src="assets/maintenance-check.js?v=200"></script>
-<script src="assets/branding.js?v=200"></script>
-<script src="assets/dash-nav.js?v=200"></script>
+<script src="assets/loading-animation.js?v=201"></script>
+<script src="assets/avatars.js?v=201"></script>
+<script src="assets/account-menu.js?v=201"></script>
+<script src="assets/referrals.js?v=201"></script>
+<script src="assets/roles.js?v=201"></script>
+<script src="assets/plan-modal.js?v=201"></script>
+<script src="assets/plan-guard.js?v=201"></script>
+<script src="assets/maintenance-check.js?v=201"></script>
+<script src="assets/branding.js?v=201"></script>
+<script src="assets/dash-nav.js?v=201"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=200"></script>
-<script src="assets/journal-data.js?v=200"></script>
-<script src="assets/journal-charts.js?v=200"></script>
-<script src="assets/journal-history-calendar.js?v=200"></script>
-<script src="assets/journal-form-settings.js?v=200"></script>
-<script src="assets/journal-propfirms.js?v=200"></script>
-<script src="assets/journal-ai.js?v=200"></script>
-<script src="assets/journal-zella.js?v=200"></script>
-<script src="assets/journal-import.js?v=200"></script>
-<script src="assets/journal-card.js?v=200"></script>
-<script src="assets/journal-demo.js?v=200"></script>
-<script src="assets/journal-main.js?v=200"></script>
+<script src="assets/journal-calc.js?v=201"></script>
+<script src="assets/journal-data.js?v=201"></script>
+<script src="assets/journal-charts.js?v=201"></script>
+<script src="assets/journal-history-calendar.js?v=201"></script>
+<script src="assets/journal-form-settings.js?v=201"></script>
+<script src="assets/journal-propfirms.js?v=201"></script>
+<script src="assets/journal-ai.js?v=201"></script>
+<script src="assets/journal-zella.js?v=201"></script>
+<script src="assets/journal-import.js?v=201"></script>
+<script src="assets/journal-card.js?v=201"></script>
+<script src="assets/journal-demo.js?v=201"></script>
+<script src="assets/journal-main.js?v=201"></script>
 </body>
 </html>

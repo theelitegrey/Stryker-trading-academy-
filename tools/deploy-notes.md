@@ -51,3 +51,5 @@ tools/check.py fails the deploy when they disagree.
   almost never trigger there.
 - Keep the ?v=/version.json bump discipline anyway: it stays correct on
   any host, and GitHub Pages remains the fallback if DNS ever moves back.
+
+Migrated to Cloudflare Pages on 2026-08-27; push-to-deploy verified by this commit.

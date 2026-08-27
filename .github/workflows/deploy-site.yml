@@ -72,7 +72,30 @@ jobs:
             echo "::error::The API token is not valid: $(echo "$verify" | jq -c '.errors') — if you copied the Global API Key, that won't work; create an API TOKEN (My Profile -> API Tokens -> Create Token) instead."; exit 1; fi
           echo "Token is valid."
 
-          # Step 2: can it list Pages projects on this account?
+          # Step 2: resolve the account. If the ACCOUNT secret isn't a clean
+          # 32-hex id (run 4: the token was pasted into both secrets), ask
+          # Cloudflare which accounts this token can see and pick the one
+          # that actually has a Pages project.
+          if ! printf '%s' "$ACCOUNT" | grep -qE '^[0-9a-f]{32}$'; then
+            echo "CLOUDFLARE_ACCOUNT_ID is not a 32-hex account id — auto-discovering from the token."
+            accts=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
+              "https://api.cloudflare.com/client/v4/accounts?per_page=25")
+            found=""
+            for id in $(echo "$accts" | jq -r '.result[].id // empty'); do
+              probe=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
+                "https://api.cloudflare.com/client/v4/accounts/$id/pages/projects")
+              if [ "$(echo "$probe" | jq -r '.success')" = "true" ] && \
+                 [ "$(echo "$probe" | jq '.result | length')" -gt 0 ]; then found="$id"; break; fi
+            done
+            if [ -z "$found" ]; then
+              echo "::error::Could not auto-discover an account with Pages projects — the token may lack the 'Account Settings: Read' or 'Cloudflare Pages: Edit' permission. Fix the CLOUDFLARE_ACCOUNT_ID secret to the 32-character Account ID from the dashboard sidebar."; exit 1; fi
+            ACCOUNT="$found"
+            echo "::add-mask::$ACCOUNT"
+            echo "CF_ACCOUNT=$ACCOUNT" >> "$GITHUB_ENV"
+            echo "Auto-discovered the account id."
+          fi
+
+          # Step 3: can it list Pages projects on this account?
           resp=$(curl -s -H "Authorization: Bearer ${TOKEN}" \
             "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/pages/projects")
           if [ "$(echo "$resp" | jq -r '.success')" != "true" ]; then

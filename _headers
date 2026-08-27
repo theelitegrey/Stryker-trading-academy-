@@ -12,6 +12,13 @@
   Cache-Control: public, max-age=31536000
   X-Content-Type-Options: nosniff
 
+# version.json is the one /assets/ file that must NEVER be cached — it is the
+# source of truth the stale-page reload check compares against. The in-page
+# fetch already cache-busts with ?t=, but this keeps the bare URL honest too.
+# Listed after /assets/* so its Cache-Control wins.
+/assets/version.json
+  Cache-Control: no-store
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff

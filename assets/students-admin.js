@@ -494,3 +494,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // roleOf depends on them, and they load asynchronously.
   window.__strykerApplyUserFilters = applyFilters;
 });
+
+// ---- CSV export (WordPress-style "export users") ---------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('students-export-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (!ALL_STUDENTS.length) { if (typeof showToast === 'function') showToast('error', 'Nothing loaded yet.'); return; }
+    const esc = (v) => {
+      const s = String(v === null || v === undefined ? '' : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const when = (ts) => ts && typeof ts.toDate === 'function' ? ts.toDate().toISOString().slice(0, 10) : '';
+    const header = ['UID', 'Name', 'Email', 'Plan', 'Joined', 'Chapters completed', 'TradingView username', 'TV access'];
+    const lines = [header.join(',')].concat(ALL_STUDENTS.map((s) => [
+      s.uid, s.name || s.displayName || '', s.email || '', s.plan || '',
+      when(s.createdAt), Array.isArray(s.completedChapters) ? s.completedChapters.length : '',
+      s.tradingViewUsername || '', s.tradingViewAccessGranted ? 'granted' : (s.tradingViewUsername ? 'pending' : '')
+    ].map(esc).join(',')));
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'stryker-students-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    if (typeof showToast === 'function') showToast('success', 'Exported ' + ALL_STUDENTS.length + ' students.');
+  });
+});

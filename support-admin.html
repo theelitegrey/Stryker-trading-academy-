@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="207">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Models — Stryker Admin</title>
+<title>Support Inbox — Stryker Admin</title>
 <link rel="stylesheet" href="assets/style.css?v=207">
 <script src="assets/device-mode.js?v=207"></script>
 <script src="assets/toast.js?v=207" defer></script>
@@ -68,7 +68,7 @@
         <a href="students-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Users</a>
         <a href="access-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Roles &amp; access</a>
         <a href="moderation-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>Moderation</a>
-        <a href="support-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M5.6 5.6l4 4M14.4 14.4l4 4M18.4 5.6l-4 4M9.6 14.4l-4 4"/></svg>Support inbox</a>
+        <a href="support-admin.html" class="side-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M5.6 5.6l4 4M14.4 14.4l4 4M18.4 5.6l-4 4M9.6 14.4l-4 4"/></svg>Support inbox</a>
         <a href="referrals-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Referrals</a>
         </div>
       </div>
@@ -82,7 +82,7 @@
       <div class="side-group-body">
         <div class="side-group-inner">
         <a href="chapters-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Chapters &amp; content</a>
-        <a href="models-admin.html" class="side-link active"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>Trading models</a>
+        <a href="models-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>Trading models</a>
         <a href="indicators-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Trading indicators</a>
         <a href="#live-sessions-admin" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>Live sessions</a>
         <a href="pages-admin.html" class="side-link"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 9h1M9 13h6M9 17h6"/></svg>Site pages</a>
@@ -136,24 +136,27 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Trading models</h1>
-        <p>Create and edit named trading models/setups — the same rich editor as chapters, published separately for students to browse and study.</p>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-ghost" id="update-all-models-btn">Update all</button>
-        <button class="btn btn-primary" onclick="window.location.href='model-editor.html?new=1'">+ Add new model</button>
+        <h1>Support inbox</h1>
+        <p>Messages sent through the public contact form. Mark each one handled once it's dealt with.</p>
       </div>
     </div>
 
-    <div class="auth-error" id="update-all-models-error"></div>
-    <div class="auth-error" id="update-all-models-success" style="display:none; background:rgba(3,201,136,0.1); border-color:rgba(3,201,136,0.3); color:#7fe0c2;"></div>
+    <div class="stat-grid-3" style="margin-bottom:24px;">
+      <div class="stat-card"><div class="stat-val" id="sup-stat-new" style="color:var(--gold);">—</div><div class="stat-label">Awaiting reply</div></div>
+      <div class="stat-card"><div class="stat-val" id="sup-stat-handled" style="color:var(--bull);">—</div><div class="stat-label">Handled</div></div>
+      <div class="stat-card"><div class="stat-val" id="sup-stat-total">—</div><div class="stat-label">All time</div></div>
+    </div>
 
     <div class="panel">
       <div class="panel-head">
-        <h2>All models</h2>
-        <span id="model-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+        <h2>Messages</h2>
+        <div class="term-cats" id="sup-filter">
+          <button type="button" class="term-cat is-on" data-f="new">New</button>
+          <button type="button" class="term-cat" data-f="handled">Handled</button>
+          <button type="button" class="term-cat" data-f="all">All</button>
+        </div>
       </div>
-      <div id="model-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+      <div id="sup-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
     </div>
   </main>
 </div>
@@ -176,7 +179,6 @@
 <script src="assets/loading-animation.js?v=207"></script>
 <script src="assets/avatars.js?v=207"></script>
 <script src="assets/referrals.js?v=207"></script>
-<script src="assets/roles.js?v=207"></script>
 <script src="assets/branding.js?v=207"></script>
 <script src="assets/admin-guard.js?v=207"></script>
 <script src="assets/dash-nav.js?v=207"></script>
@@ -187,8 +189,8 @@
 <script src="assets/admin-tasks.js?v=207"></script>
 <script src="assets/admin-notify.js?v=207"></script>
 <script src="assets/admin-nav.js?v=207"></script>
-<script src="assets/models-data.js?v=207"></script>
-<script src="assets/models-store.js?v=207"></script>
-<script src="assets/models-admin.js?v=207"></script>
+<script src="assets/roles.js?v=207"></script>
+<script src="assets/site-pages-defaults.js?v=207"></script>
+<script src="assets/support-admin.js?v=207"></script>
 </body>
 </html>

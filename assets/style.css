@@ -4186,3 +4186,23 @@ a.dov-link:hover{ background:var(--bg-2); }
   .sw-path3,.sw-ph1,.sw-ph2,.sw-ph3,.sw-htfc{ animation:none; opacity:1; stroke-dashoffset:0; }
   .sw-flip{ fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6); }
 }
+
+/* ==========================================================================
+   ADMIN — support inbox, notes, quick actions
+   ========================================================================== */
+.sup-msg.is-handled{ opacity:.6; }
+.record-card-flash{ animation:supFlash 2.4s ease; }
+@keyframes supFlash{ 0%,60%{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(245,197,66,0.18); } 100%{ } }
+
+.note-pri{
+  font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:.08em;
+  padding:2px 8px; border-radius:999px; border:1px solid; flex-shrink:0;
+}
+.note-row.is-done{ opacity:.55; }
+.dash-note-line{
+  display:flex; align-items:baseline; gap:10px; padding:7px 0;
+  border-bottom:1px solid var(--line-soft); font-size:13px; color:var(--ink-1);
+}
+.dash-note-line:last-child{ border-bottom:none; }
+
+.admin-quick-row{ display:flex; gap:10px; flex-wrap:wrap; }

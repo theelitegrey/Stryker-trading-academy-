@@ -4079,3 +4079,110 @@ a.dov-link:hover{ background:var(--bg-2); }
   .page-dash .dov-mod, .page-dash .stat-grid .stat-card{ transition:none; }
   .page-dash .dov-mod:hover, .page-dash .stat-grid .stat-card:hover{ transform:none; }
 }
+
+/* ==========================================================================
+   TRADING INDICATORS — showcase + "more on the way"
+   ========================================================================== */
+.ind-sc-head{ margin:6px 0 18px; }
+.ind-sc-head h2{ font-size:19px; margin:0 0 6px; }
+.ind-sc-head p{ margin:0; font-size:13px; color:var(--ink-3); max-width:560px; line-height:1.6; }
+
+.ind-sc-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:16px; margin-bottom:24px; }
+@media (max-width:1080px){ .ind-sc-grid{ grid-template-columns:1fr 1fr; } }
+@media (max-width:680px){ .ind-sc-grid{ grid-template-columns:1fr; } }
+
+.ind-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:14px;
+  overflow:hidden; min-width:0; display:flex; flex-direction:column;
+  animation:jzFadeUp .5s ease both;
+  transition:transform .18s ease, border-color .18s ease;
+}
+.ind-card:hover{ transform:translateY(-3px); border-color:var(--gold-dim); }
+
+.ind-demo{
+  background:radial-gradient(ellipse at 30% 20%, rgba(3,201,136,0.05), transparent 65%), #0b0e13;
+  border-bottom:1px solid var(--line); padding:14px 12px 8px; line-height:0;
+}
+.ind-demo-svg{ width:100%; height:auto; }
+
+.ind-card-body{ padding:16px 18px 18px; display:flex; flex-direction:column; gap:9px; flex:1; }
+.ind-card-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.ind-card-top h3{ margin:0; font-size:15.5px; }
+.ind-dev{
+  display:inline-flex; align-items:center; gap:6px; flex-shrink:0;
+  font-family:var(--font-mono); font-size:8.5px; font-weight:700; letter-spacing:.1em;
+  color:var(--gold); border:1px solid rgba(245,197,66,0.35); border-radius:999px;
+  padding:3px 9px; background:rgba(245,197,66,0.07);
+}
+.ind-dev i{ width:5px; height:5px; border-radius:50%; background:var(--gold);
+  animation:jzSparkPulse 1.8s ease-in-out infinite; }
+.ind-tag{ margin:0; font-size:12px; color:var(--gold); font-family:var(--font-mono); }
+.ind-body{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.6; flex:1; }
+.ind-chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.ind-chips span{
+  font-size:10.5px; color:var(--ink-3); border:1px solid var(--line);
+  border-radius:999px; padding:3px 9px; background:var(--bg-3);
+}
+
+/* ---- demo scene choreography (one shared 7s loop per card) ---- */
+.sw-gap1{ animation:swAppear1 7s ease infinite; }
+.sw-ce1{  animation:swAppear1 7s ease infinite; }
+.sw-path1{ stroke-dasharray:1; animation:swDrawMid 7s ease infinite; }
+.sw-gap2{ animation:swAppear2 7s ease infinite; }
+.sw-relay{ animation:swPop 7s ease infinite; transform-origin:172px 41px; }
+@keyframes swAppear1{ 0%,6%{opacity:0} 14%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes swDrawMid{ 0%,22%{stroke-dashoffset:1; opacity:1} 55%,88%{stroke-dashoffset:0; opacity:1} 96%,100%{stroke-dashoffset:0; opacity:0} }
+@keyframes swAppear2{ 0%,55%{opacity:0} 63%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes swPop{ 0%,66%{opacity:0; transform:scale(.6)} 74%,88%{opacity:1; transform:scale(1)} 96%,100%{opacity:0} }
+
+.sw-flip{ stroke-width:1; animation:swFlip 7s ease infinite; }
+.sw-break{ animation:swAppear2b 7s ease infinite; }
+.sw-path2{ stroke-dasharray:1; animation:swDrawLate 7s ease infinite; }
+.sw-sig{ animation:swPopLate 7s ease infinite; transform-origin:150px 72px; }
+@keyframes swFlip{
+  0%,6%{opacity:0}
+  12%,34%{opacity:1; fill:rgba(3,201,136,0.16); stroke:rgba(3,201,136,0.55)}
+  42%,88%{opacity:1; fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6)}
+  96%,100%{opacity:0}
+}
+@keyframes swAppear2b{ 0%,30%{opacity:0} 38%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes swDrawLate{ 0%,44%{stroke-dashoffset:1; opacity:1} 74%,88%{stroke-dashoffset:0; opacity:1} 96%,100%{opacity:0} }
+@keyframes swPopLate{ 0%,74%{opacity:0; transform:scale(.6)} 82%,88%{opacity:1; transform:scale(1)} 96%,100%{opacity:0} }
+
+.sw-path3{ stroke-dasharray:1; animation:swDrawLong 7s ease infinite; }
+.sw-ph1{ animation:swPh 7s ease infinite; }
+.sw-ph2{ animation:swPh2 7s ease infinite; }
+.sw-ph3{ animation:swPh3 7s ease infinite; }
+.sw-htfc{ animation:swAppear2 7s ease infinite; }
+@keyframes swDrawLong{ 0%,4%{stroke-dashoffset:1; opacity:1} 62%,88%{stroke-dashoffset:0; opacity:1} 96%,100%{opacity:0} }
+@keyframes swPh{  0%,14%{opacity:0} 20%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes swPh2{ 0%,32%{opacity:0} 38%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes swPh3{ 0%,54%{opacity:0} 60%,88%{opacity:1} 96%,100%{opacity:0} }
+
+/* ---- "more indicators on the way" ---- */
+.ind-otw{ position:relative; overflow:hidden; text-align:center; padding:34px 28px 30px; }
+.ind-otw-wave{
+  position:absolute; top:0; left:0; width:100%; height:40px; opacity:.7;
+}
+.ind-otw-wave path{ stroke-dasharray:1; animation:otwWave 4.5s linear infinite; }
+@keyframes otwWave{ 0%{stroke-dashoffset:1} 60%,100%{stroke-dashoffset:-1} }
+.ind-otw-body{ position:relative; padding-top:16px; }
+.ind-otw-body h2{ font-size:18px; margin:0 0 8px; }
+.ind-otw-body p{ margin:0 auto 18px; font-size:13px; color:var(--ink-3); max-width:440px; line-height:1.6; }
+.ind-otw-ghosts{ display:flex; justify-content:center; gap:12px; }
+.ind-otw-ghosts i{
+  width:88px; height:34px; border-radius:9px; border:1px dashed var(--line);
+  background:linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
+  background-size:200% 100%; animation:dovShimmer 1.6s ease infinite;
+}
+.ind-otw-ghosts i:nth-child(2){ animation-delay:.2s; }
+.ind-otw-ghosts i:nth-child(3){ animation-delay:.4s; }
+
+@media (prefers-reduced-motion: reduce){
+  .ind-card{ animation:none; transition:none; }
+  .ind-card:hover{ transform:none; }
+  .ind-dev i, .ind-otw-wave path, .ind-otw-ghosts i{ animation:none; }
+  .sw-gap1,.sw-ce1,.sw-path1,.sw-gap2,.sw-relay,.sw-flip,.sw-break,.sw-path2,.sw-sig,
+  .sw-path3,.sw-ph1,.sw-ph2,.sw-ph3,.sw-htfc{ animation:none; opacity:1; stroke-dashoffset:0; }
+  .sw-flip{ fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6); }
+}

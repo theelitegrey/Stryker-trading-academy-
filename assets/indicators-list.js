@@ -3,20 +3,30 @@
 // instead of a plain one-line message, since this module is intentionally
 // launching with no content yet.
 
+// "More on the way" — replaces the old static Coming-soon card. An animated
+// pulse line and a trio of shimmering ghost slots; always rendered after the
+// live list (or alone while the list is empty).
+function onTheWayBox(){
+  return '<div class="panel ind-otw">' +
+    '<svg class="ind-otw-wave" viewBox="0 0 600 40" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path d="M0 20 L120 20 L140 6 L160 34 L180 20 L300 20 L320 10 L340 30 L360 20 L600 20" ' +
+        'fill="none" stroke="rgba(3,201,136,0.55)" stroke-width="2" pathLength="1"/>' +
+    '</svg>' +
+    '<div class="ind-otw-body">' +
+      '<h2>More indicators on the way</h2>' +
+      '<p>The lab is busy — session tools, liquidity maps and model-specific overlays are in the build queue. Each one lands here first, with setup and usage notes.</p>' +
+      '<div class="ind-otw-ghosts"><i></i><i></i><i></i></div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderIndicators(){
   const container = document.getElementById('indicators-render-target');
   if (!container || typeof INDICATORS === 'undefined') return;
   container.innerHTML = '';
 
   if (!INDICATORS.length) {
-    container.innerHTML =
-      '<div class="panel" style="text-align:center; padding:56px 32px;">' +
-        '<div style="width:52px; height:52px; border-radius:50%; background:rgba(3,201,136,0.1); border:1px solid rgba(3,201,136,0.3); display:flex; align-items:center; justify-content:center; margin:0 auto 20px;">' +
-          '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' +
-        '</div>' +
-        '<h2 style="font-size:19px; margin-bottom:8px;">Coming soon</h2>' +
-        '<p style="color:var(--ink-3); font-size:14px; max-width:380px; margin:0 auto;">We\'re building out a library of the indicators used across the curriculum, with setup and usage notes for each. Check back soon.</p>' +
-      '</div>';
+    container.innerHTML = onTheWayBox();
     return;
   }
 
@@ -42,6 +52,7 @@ function renderIndicators(){
   });
 
   container.appendChild(list);
+  container.insertAdjacentHTML('beforeend', onTheWayBox());
 }
 
 function showGuestPaywall(show){

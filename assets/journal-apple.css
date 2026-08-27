@@ -1,0 +1,174 @@
+/* Stryker Trading Academy — Trade Journal "Glass" skin (Apple-like).
+   TEMPORARY overlay: loaded after style.css on trade-journal.html only,
+   scoped to that page via body[data-page-access="trade-journal"].
+   Removing its single <link> tag reverts the journal to the house style. */
+
+body[data-page-access="trade-journal"]{
+  --ja-font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+             'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --ja-ink: #f5f5f7;
+  --ja-ink-2: #b9bdc6;
+  --ja-ink-3: #86888f;
+  --ja-glass: rgba(255,255,255,0.055);
+  --ja-glass-2: rgba(255,255,255,0.09);
+  --ja-hairline: rgba(255,255,255,0.09);
+  --ja-blue: #0a84ff;
+  background:#0a0a0c;
+}
+
+/* ---- typography: SF everywhere, tabular numerals for data ---- */
+body[data-page-access="trade-journal"] .dash-main,
+body[data-page-access="trade-journal"] .dash-main h1,
+body[data-page-access="trade-journal"] .dash-main h2,
+body[data-page-access="trade-journal"] .dash-main button,
+body[data-page-access="trade-journal"] .dash-main input,
+body[data-page-access="trade-journal"] .dash-main select,
+body[data-page-access="trade-journal"] .dash-main textarea{
+  font-family: var(--ja-font);
+}
+body[data-page-access="trade-journal"] .dash-topbar h1{
+  font-size:30px; font-weight:700; letter-spacing:-0.022em; color:var(--ja-ink);
+}
+body[data-page-access="trade-journal"] .dash-topbar p{ color:var(--ja-ink-3); }
+body[data-page-access="trade-journal"] .panel-head h2{
+  font-family:var(--ja-font); font-size:15px; font-weight:600;
+  letter-spacing:-0.01em; text-transform:none; color:var(--ja-ink);
+}
+
+/* ---- glass cards ---- */
+body[data-page-access="trade-journal"] .panel,
+body[data-page-access="trade-journal"] .stat-card,
+body[data-page-access="trade-journal"] .jz-ai-box,
+body[data-page-access="trade-journal"] .pf-card,
+body[data-page-access="trade-journal"] .pf-ticker,
+body[data-page-access="trade-journal"] .journal-trade-row{
+  background:var(--ja-glass);
+  border:1px solid var(--ja-hairline);
+  border-radius:20px;
+  backdrop-filter:blur(22px) saturate(1.4);
+  -webkit-backdrop-filter:blur(22px) saturate(1.4);
+  box-shadow:0 10px 30px rgba(0,0,0,0.35);
+}
+body[data-page-access="trade-journal"] .panel{ padding:24px; }
+body[data-page-access="trade-journal"] .stat-card{ border-radius:16px; }
+body[data-page-access="trade-journal"] .journal-trade-row{ border-radius:16px; box-shadow:none; }
+body[data-page-access="trade-journal"] .jz-kpis .panel:hover,
+body[data-page-access="trade-journal"] .jz-charts .panel:hover,
+body[data-page-access="trade-journal"] .jz-bottom .panel:hover{
+  border-color:rgba(255,255,255,0.16);
+}
+
+/* ---- tabs: iOS segmented control ---- */
+body[data-page-access="trade-journal"] #journal-tabs{
+  background:rgba(255,255,255,0.06);
+  border:1px solid var(--ja-hairline);
+  border-radius:14px;
+  padding:4px;
+  gap:2px;
+}
+body[data-page-access="trade-journal"] #journal-tabs .level-tab{
+  background:transparent; border:none; border-radius:10px;
+  padding:8px 14px; font-size:13px; font-weight:590; letter-spacing:-0.005em;
+  color:var(--ja-ink-2); transition:background .18s ease, color .18s ease;
+}
+body[data-page-access="trade-journal"] #journal-tabs .level-tab:hover{ color:var(--ja-ink); }
+body[data-page-access="trade-journal"] #journal-tabs .level-tab.active{
+  background:rgba(255,255,255,0.14);
+  color:var(--ja-ink);
+  box-shadow:0 1px 4px rgba(0,0,0,0.35);
+}
+
+/* ---- hero numbers: big, light-tracked SF ---- */
+body[data-page-access="trade-journal"] .jz-hero-label,
+body[data-page-access="trade-journal"] .jz-kpi-label,
+body[data-page-access="trade-journal"] .stat-label,
+body[data-page-access="trade-journal"] .jz-hero-mini label{
+  font-family:var(--ja-font); font-size:11px; font-weight:600;
+  letter-spacing:0.07em; color:var(--ja-ink-3);
+}
+body[data-page-access="trade-journal"] .jz-hero-val{
+  font-family:var(--ja-font); font-size:54px; font-weight:650;
+  letter-spacing:-0.03em; font-variant-numeric:tabular-nums;
+}
+body[data-page-access="trade-journal"] .jz-hero-mini span,
+body[data-page-access="trade-journal"] .jz-kpi-val,
+body[data-page-access="trade-journal"] .jz-score,
+body[data-page-access="trade-journal"] .stat-val{
+  font-family:var(--ja-font); font-weight:650; letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ---- controls: pill fields, Apple-blue focus ring ---- */
+body[data-page-access="trade-journal"] .dash-main input[type="text"],
+body[data-page-access="trade-journal"] .dash-main input[type="number"],
+body[data-page-access="trade-journal"] .dash-main input[type="date"],
+body[data-page-access="trade-journal"] .dash-main input[type="time"],
+body[data-page-access="trade-journal"] .dash-main select,
+body[data-page-access="trade-journal"] .dash-main textarea{
+  background:rgba(255,255,255,0.065);
+  border:1px solid var(--ja-hairline);
+  border-radius:12px;
+  color:var(--ja-ink);
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+body[data-page-access="trade-journal"] .dash-main input:focus,
+body[data-page-access="trade-journal"] .dash-main select:focus,
+body[data-page-access="trade-journal"] .dash-main textarea:focus{
+  outline:none; border-color:var(--ja-blue);
+  box-shadow:0 0 0 3.5px rgba(10,132,255,0.28);
+}
+body[data-page-access="trade-journal"] .dash-main .btn{
+  border-radius:12px; font-family:var(--ja-font); font-weight:600;
+  letter-spacing:-0.005em;
+}
+body[data-page-access="trade-journal"] .dash-main .btn-ghost{
+  background:rgba(255,255,255,0.08); border:1px solid var(--ja-hairline);
+  color:var(--ja-ink);
+}
+body[data-page-access="trade-journal"] .dash-main .btn-ghost:hover{
+  background:rgba(255,255,255,0.13);
+}
+body[data-page-access="trade-journal"] .term-cat{
+  border-radius:999px; background:rgba(255,255,255,0.06);
+  border:1px solid var(--ja-hairline); font-family:var(--ja-font);
+}
+body[data-page-access="trade-journal"] .term-cat.is-on{
+  background:rgba(255,255,255,0.13); color:var(--ja-ink);
+}
+
+/* ---- calendars: soft rounded cells ---- */
+body[data-page-access="trade-journal"] .jz-cal-c,
+body[data-page-access="trade-journal"] .journal-cal-cell{
+  border-radius:12px; border-color:rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.04);
+}
+body[data-page-access="trade-journal"] .jz-cal-c.empty,
+body[data-page-access="trade-journal"] .journal-cal-cell.empty{ background:transparent; border-color:transparent; }
+body[data-page-access="trade-journal"] .jz-cal-c b,
+body[data-page-access="trade-journal"] .journal-cal-pnl{ font-family:var(--ja-font); font-variant-numeric:tabular-nums; }
+
+/* ---- AI box: quieter glass, no shimmer stripe ---- */
+body[data-page-access="trade-journal"] .jz-ai-box{
+  background:linear-gradient(150deg, rgba(245,197,66,0.05), rgba(255,255,255,0.045) 60%);
+}
+body[data-page-access="trade-journal"] .jz-ai-box::before{ display:none; }
+
+/* ---- prop firms: segmented payout/expense, glass ticker ---- */
+body[data-page-access="trade-journal"] .pfe-type{ border-radius:12px; font-family:var(--ja-font); }
+body[data-page-access="trade-journal"] .pf-ticker{ border-radius:14px; box-shadow:none; }
+body[data-page-access="trade-journal"] .pf-tick{ font-family:var(--ja-font); font-variant-numeric:tabular-nums; }
+
+/* ---- trade log table ---- */
+body[data-page-access="trade-journal"] .jz-table th{
+  font-family:var(--ja-font); letter-spacing:0.06em; background:transparent;
+}
+body[data-page-access="trade-journal"] .jz-table td{ font-family:var(--ja-font); }
+body[data-page-access="trade-journal"] .jz-table .mono{ font-family:var(--ja-font); font-variant-numeric:tabular-nums; }
+
+/* ---- share-card modal ---- */
+body[data-page-access="trade-journal"] .jcard-box{
+  border-radius:22px; background:rgba(28,28,30,0.92);
+  backdrop-filter:blur(30px) saturate(1.4);
+  -webkit-backdrop-filter:blur(30px) saturate(1.4);
+  border:1px solid var(--ja-hairline);
+}

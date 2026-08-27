@@ -31,9 +31,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function openDrawer(){
     sidebar.classList.add('mobile-open');
     backdrop.classList.add('visible');
-    // Only lock on the breakpoint where the sidebar is an overlay. On desktop
-    // it's part of the layout and locking the page would be wrong.
-    if (window.matchMedia('(max-width:900px)').matches) lockPageScroll();
+    // Only lock where the sidebar is an overlay: below the breakpoint, or on
+    // a phone forced into the mobile shell at any width (landscape). On
+    // desktop it's part of the layout and locking the page would be wrong.
+    if (window.matchMedia('(max-width:900px)').matches ||
+        document.documentElement.getAttribute('data-device') === 'mobile') lockPageScroll();
   }
   function closeDrawer(){
     sidebar.classList.remove('mobile-open');

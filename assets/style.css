@@ -3411,3 +3411,55 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
     box-shadow:0 0 5px rgba(255,36,24,1), 0 0 11px rgba(255,36,24,.7);
   }
 }
+
+/* --------------------------------------------------------------------------
+   DEVICE-FORCED VIEWS
+   assets/device-mode.js stamps <html data-device="mobile|tablet|desktop">
+   before first paint. Width breakpoints still handle window resizing on
+   desktop; these rules override them where the PHYSICAL device should win.
+   -------------------------------------------------------------------------- */
+
+/* A phone in landscape reports >900px — keep the MOBILE shell anyway:
+   drawer sidebar, hamburger, mobile header. */
+@media (min-width:901px){
+  html[data-device="mobile"] .dash-shell{
+    grid-template-columns:1fr; min-height:100vh;
+  }
+  html[data-device="mobile"] .sidebar{
+    display:flex; position:fixed; top:0; left:0; width:280px; max-width:82vw;
+    z-index:200; transform:translateX(-100%); transition:transform .25s ease;
+    box-shadow:20px 0 40px -20px rgba(0,0,0,0.6);
+    height:100vh; height:100dvh; overflow-y:auto;
+    -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
+    padding-top:22px;
+  }
+  html[data-device="mobile"] .sidebar.mobile-open{ transform:translateX(0); }
+  html[data-device="mobile"] .sidebar > .brand{ display:flex; }
+  html[data-device="mobile"] .mobile-topnav{
+    height:auto; padding:14px 18px; background:var(--bg-0);
+    border-bottom:1px solid var(--line-soft); box-shadow:none;
+  }
+  html[data-device="mobile"] .mobile-topnav #dash-menu-toggle{
+    display:flex; align-items:center; justify-content:center;
+  }
+  html[data-device="mobile"] .mobile-topnav .brand-mark{ height:42px; }
+  html[data-device="mobile"] body.sidebar-locked{ overflow:hidden; }
+}
+
+/* A tablet in portrait reports <900px — keep a visible sidebar anyway
+   instead of hiding navigation behind a hamburger. Static (scrolls with the
+   page) so it needs no height agreement with the sticky header. */
+@media (min-width:768px) and (max-width:900px){
+  html[data-device="tablet"] .dash-shell{
+    grid-template-columns:minmax(0,225px) minmax(0,1fr);
+  }
+  html[data-device="tablet"] .sidebar{
+    display:flex; position:static; transform:none; transition:none;
+    width:auto; max-width:none; height:auto; min-height:100%;
+    box-shadow:none; z-index:auto; overflow:visible;
+  }
+  html[data-device="tablet"] .sidebar > .brand{ display:none; }
+  html[data-device="tablet"] .sidebar{ padding-top:14px; }
+  html[data-device="tablet"] .mobile-topnav #dash-menu-toggle{ display:none; }
+  html[data-device="tablet"] .sidebar-backdrop{ display:none !important; }
+}

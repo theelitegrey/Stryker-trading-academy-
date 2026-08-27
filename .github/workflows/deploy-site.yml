@@ -45,13 +45,26 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+          # Trim whitespace/newlines that ride along with copy-pasted secrets.
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
+          if [ -z "$TOKEN" ]; then
             echo "::error::CLOUDFLARE_API_TOKEN secret is missing (repo Settings -> Secrets -> Actions)"; exit 1; fi
-          if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+          if [ -z "$ACCOUNT" ]; then
             echo "::error::CLOUDFLARE_ACCOUNT_ID secret is missing — copy the Account ID from the Cloudflare dashboard home page (right-hand sidebar)"; exit 1; fi
-          resp=$(curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
-            "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects") || {
-            echo "::error::Cloudflare API refused the token — check its permissions include Cloudflare Pages: Edit"; exit 1; }
+
+          # Step 1: is the token itself valid? (scope-independent check)
+          verify=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.cloudflare.com/client/v4/user/tokens/verify")
+          if [ "$(echo "$verify" | jq -r '.success')" != "true" ]; then
+            echo "::error::The API token is not valid: $(echo "$verify" | jq -c '.errors') — if you copied the Global API Key, that won't work; create an API TOKEN (My Profile -> API Tokens -> Create Token) instead."; exit 1; fi
+          echo "Token is valid."
+
+          # Step 2: can it list Pages projects on this account?
+          resp=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects")
+          if [ "$(echo "$resp" | jq -r '.success')" != "true" ]; then
+            echo "::error::Pages API refused the request: $(echo "$resp" | jq -c '.errors') — the token needs the 'Cloudflare Pages: Edit' account permission, and the Account ID must match the account that owns the Pages project."; exit 1; fi
           name=$(echo "$resp" | jq -r '.result[].name' | grep -i 'stryker' | head -1)
           [ -z "$name" ] && name=$(echo "$resp" | jq -r '.result[0].name // empty')
           if [ -z "$name" ]; then

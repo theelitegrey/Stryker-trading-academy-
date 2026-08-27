@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="197">
+<meta name="stryker-build" content="198">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=197">
-<script src="assets/device-mode.js?v=197"></script>
-<script src="assets/toast.js?v=197" defer></script>
-<script src="assets/version-check.js?v=197" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=198">
+<script src="assets/device-mode.js?v=198"></script>
+<script src="assets/toast.js?v=198" defer></script>
+<script src="assets/version-check.js?v=198" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -141,6 +141,9 @@
         <h1>Trade journal</h1>
         <p>Private to your account — log every trade, and see exactly what's actually working.</p>
       </div>
+      <button type="button" class="btn btn-ghost btn-sm" id="jcard-open">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>P&amp;L card
+      </button>
     </div>
 
     <div class="level-tabs" id="journal-tabs" style="margin-bottom:24px;">
@@ -158,6 +161,7 @@
 
     <!-- ============== DASHBOARD ============== -->
     <div class="journal-tab-panel" id="tab-dashboard">
+      <div class="jz-ai-box" id="jz-ai-box" style="display:none;"></div>
       <div class="jz-top">
         <div class="jz-hero panel">
           <div class="jz-hero-label">Net P&amp;L</div>
@@ -257,6 +261,10 @@
           </div>
         </div>
         <div class="field">
+          <label for="jf-account">Trading account <span style="color:var(--ink-3); font-weight:400;">(prop-firm accounts come from the Prop firms tab)</span></label>
+          <select id="jf-account" class="journal-select"></select>
+        </div>
+        <div class="field">
           <label>Tags</label>
           <div id="jf-tags-wrap" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
         </div>
@@ -333,6 +341,10 @@
             </select>
           </div>
         </div>
+        <div class="form-row-2" style="margin-top:16px;">
+          <div class="field" style="margin-bottom:0;"><label for="jh-account">Trading account</label><select id="jh-account" class="journal-select"><option value="">All</option></select></div>
+          <div></div>
+        </div>
       </div>
 
       <div class="panel">
@@ -354,6 +366,7 @@
             <button class="icon-btn" id="jc-next-btn" aria-label="Next month">›</button>
           </div>
         </div>
+        <div class="term-cats" id="jc-opts" style="margin-bottom:14px;"></div>
         <div id="jc-grid" class="journal-calendar-grid"></div>
       </div>
       <div class="panel" id="jc-day-detail-panel" style="display:none;">
@@ -369,6 +382,7 @@
       <div class="panel"><div class="panel-head"><h2>By session</h2></div><div id="ja-by-session"></div></div>
       <div class="panel"><div class="panel-head"><h2>Long vs short</h2></div><div id="ja-by-direction"></div></div>
       <div class="panel"><div class="panel-head"><h2>By day of week</h2></div><div id="ja-by-dow"></div></div>
+      <div class="panel"><div class="panel-head"><h2>By trading account</h2></div><div id="ja-by-account"></div></div>
     </div>
 
     <!-- ============== AI COACH ============== -->
@@ -429,52 +443,89 @@
       <div class="panel"><div class="panel-head"><h2>Sessions</h2></div><div id="js-sessions-list" class="journal-tag-editor"></div></div>
       <div class="panel"><div class="panel-head"><h2>Tags</h2></div><div id="js-tags-list" class="journal-tag-editor"></div></div>
 
+      <div class="panel">
+        <div class="panel-head"><h2>Demo data</h2></div>
+        <p style="font-size:13px; color:var(--ink-3); margin:0 0 14px;">Explore every journal feature with a realistic sample: dozens of trades from the last two months plus three prop-firm accounts. Demo entries are marked internally, so removing them never touches your real trades.</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" id="jd-load-btn">Load demo data</button>
+          <button class="btn btn-ghost btn-sm" id="jd-clear-btn">Remove demo data</button>
+        </div>
+      </div>
+
       <button class="btn btn-primary btn-sm" id="js-save-btn">Save settings</button>
     </div>
   </main>
 
 </div>
 
+<!-- Shareable P&L card modal -->
+<div class="jcard-modal" id="jcard-modal" style="display:none;">
+  <div class="jcard-box">
+    <div class="jcard-head">
+      <h3>P&amp;L card</h3>
+      <button type="button" class="icon-btn" id="jcard-close" aria-label="Close">✕</button>
+    </div>
+    <div class="jcard-controls">
+      <label class="jcard-ctl">Period
+        <select id="jcard-period" class="journal-select">
+          <option value="today">Today</option>
+          <option value="week" selected>This week</option>
+          <option value="month">This month</option>
+          <option value="all">All time</option>
+        </select>
+      </label>
+      <label class="jcard-check"><input type="checkbox" id="jcard-cal" checked> Include calendar</label>
+      <label class="jcard-check"><input type="checkbox" id="jcard-accts" checked> Show trading accounts</label>
+    </div>
+    <div class="jcard-preview"><canvas id="jcard-canvas" width="1080" height="1350"></canvas></div>
+    <div class="jcard-foot">
+      <button type="button" class="btn btn-primary btn-sm" id="jcard-download">Download PNG</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=197"></script>
-<script src="assets/gate-timeout.js?v=197"></script>
-<script src="assets/progress.js?v=197"></script>
-<script src="assets/presence.js?v=197"></script>
-<script src="assets/messages.js?v=197"></script>
-<script src="assets/messages-badge.js?v=197"></script>
-<script src="assets/gm-badge.js?v=197"></script>
-<script src="assets/activity-log.js?v=197"></script>
-<script src="assets/banned-check.js?v=197"></script>
-<script src="assets/email-verify.js?v=197"></script>
-<script src="assets/achievements-data.js?v=197"></script>
-<script src="assets/notifications.js?v=197"></script>
+<script src="assets/auth.js?v=198"></script>
+<script src="assets/gate-timeout.js?v=198"></script>
+<script src="assets/progress.js?v=198"></script>
+<script src="assets/presence.js?v=198"></script>
+<script src="assets/messages.js?v=198"></script>
+<script src="assets/messages-badge.js?v=198"></script>
+<script src="assets/gm-badge.js?v=198"></script>
+<script src="assets/activity-log.js?v=198"></script>
+<script src="assets/banned-check.js?v=198"></script>
+<script src="assets/email-verify.js?v=198"></script>
+<script src="assets/achievements-data.js?v=198"></script>
+<script src="assets/notifications.js?v=198"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=197"></script>
-<script src="assets/admin-link.js?v=197"></script>
-<script src="assets/profiles-sync.js?v=197"></script>
+<script src="assets/push.js?v=198"></script>
+<script src="assets/admin-link.js?v=198"></script>
+<script src="assets/profiles-sync.js?v=198"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=197"></script>
-<script src="assets/avatars.js?v=197"></script>
-<script src="assets/account-menu.js?v=197"></script>
-<script src="assets/referrals.js?v=197"></script>
-<script src="assets/roles.js?v=197"></script>
-<script src="assets/plan-modal.js?v=197"></script>
-<script src="assets/plan-guard.js?v=197"></script>
-<script src="assets/maintenance-check.js?v=197"></script>
-<script src="assets/branding.js?v=197"></script>
-<script src="assets/dash-nav.js?v=197"></script>
+<script src="assets/loading-animation.js?v=198"></script>
+<script src="assets/avatars.js?v=198"></script>
+<script src="assets/account-menu.js?v=198"></script>
+<script src="assets/referrals.js?v=198"></script>
+<script src="assets/roles.js?v=198"></script>
+<script src="assets/plan-modal.js?v=198"></script>
+<script src="assets/plan-guard.js?v=198"></script>
+<script src="assets/maintenance-check.js?v=198"></script>
+<script src="assets/branding.js?v=198"></script>
+<script src="assets/dash-nav.js?v=198"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=197"></script>
-<script src="assets/journal-data.js?v=197"></script>
-<script src="assets/journal-charts.js?v=197"></script>
-<script src="assets/journal-history-calendar.js?v=197"></script>
-<script src="assets/journal-form-settings.js?v=197"></script>
-<script src="assets/journal-propfirms.js?v=197"></script>
-<script src="assets/journal-ai.js?v=197"></script>
-<script src="assets/journal-zella.js?v=197"></script>
-<script src="assets/journal-import.js?v=197"></script>
-<script src="assets/journal-main.js?v=197"></script>
+<script src="assets/journal-calc.js?v=198"></script>
+<script src="assets/journal-data.js?v=198"></script>
+<script src="assets/journal-charts.js?v=198"></script>
+<script src="assets/journal-history-calendar.js?v=198"></script>
+<script src="assets/journal-form-settings.js?v=198"></script>
+<script src="assets/journal-propfirms.js?v=198"></script>
+<script src="assets/journal-ai.js?v=198"></script>
+<script src="assets/journal-zella.js?v=198"></script>
+<script src="assets/journal-import.js?v=198"></script>
+<script src="assets/journal-card.js?v=198"></script>
+<script src="assets/journal-demo.js?v=198"></script>
+<script src="assets/journal-main.js?v=198"></script>
 </body>
 </html>

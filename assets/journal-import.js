@@ -46,6 +46,7 @@ const JI_FIELDS = [
   { key: 'fees', label: 'Fees', syn: ['fees', 'fee', 'commission', 'commissions', 'comm', 'swap', 'costs'] },
   { key: 'stopLoss', label: 'Stop loss', syn: ['stop', 'sl', 'stop loss', 'stoploss', 'stop price'] },
   { key: 'takeProfit', label: 'Take profit', syn: ['target', 'tp', 'take profit', 'takeprofit', 'target price', 'limit'] },
+  { key: 'account', label: 'Account', syn: ['account', 'account name', 'acct', 'trading account', 'firm'] },
   { key: 'setup', label: 'Setup', syn: ['setup', 'strategy', 'playbook', 'model', 'pattern'] },
   { key: 'session', label: 'Session', syn: ['session', 'market session'] },
   { key: 'tags', label: 'Tags', syn: ['tags', 'labels', 'tag'] },
@@ -188,6 +189,7 @@ function jiRowToTrade(row, map){
     takeProfit: jiNum(get('takeProfit')),
     setup: String(get('setup') || '').trim().slice(0, 40),
     session: String(get('session') || '').trim().slice(0, 40),
+    account: String(get('account') || '').trim().slice(0, 40),
     tags: tagsRaw ? tagsRaw.split(/[;|]/).map((t) => t.trim()).filter(Boolean).slice(0, 8) : [],
     notes: String(get('notes') || '').trim().slice(0, 2000),
     imported: true

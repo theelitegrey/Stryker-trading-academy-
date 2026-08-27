@@ -16,6 +16,17 @@ function populateHistoryFilterOptions(){
   setupSel.innerHTML = '<option value="">All</option>' + setups.map((s) => '<option value="' + escapeJournalHtml(s) + '">' + escapeJournalHtml(s) + '</option>').join('');
   instSel.value = currentInst;
   setupSel.value = currentSetup;
+
+  const acctSel = document.getElementById('jh-account');
+  if (acctSel) {
+    const currentAcct = acctSel.value;
+    const names = new Set();
+    (JOURNAL_TRADES || []).forEach((t) => names.add(t.account || 'Personal'));
+    if (typeof PF_DATA !== 'undefined' && PF_DATA.firms) PF_DATA.firms.forEach((f) => names.add(f.name));
+    acctSel.innerHTML = '<option value="">All accounts</option>' +
+      [...names].sort().map((n) => '<option value="' + escapeJournalHtml(n) + '">' + escapeJournalHtml(n) + '</option>').join('');
+    acctSel.value = currentAcct;
+  }
 }
 
 function filteredHistoryTrades(){
@@ -24,10 +35,13 @@ function filteredHistoryTrades(){
   const setup = document.getElementById('jh-setup').value;
   const direction = document.getElementById('jh-direction').value;
 
+  const account = (document.getElementById('jh-account') || {}).value || '';
+
   return (JOURNAL_TRADES || []).filter((t) => {
     if (instrument && t.instrument !== instrument) return false;
     if (setup && t.setup !== setup) return false;
     if (direction && t.direction !== direction) return false;
+    if (account && (t.account || 'Personal') !== account) return false;
     if (search) {
       const haystack = [(t.instrument || ''), (t.setup || ''), (t.notes || '')].join(' ').toLowerCase();
       if (!haystack.includes(search)) return false;
@@ -196,14 +210,37 @@ function confirmDeleteTrade(tradeId){
 let JOURNAL_CAL_DATE = new Date();
 JOURNAL_CAL_DATE.setDate(1);
 
+// What each day cell displays. Everything on by default; toggles persist
+// per device.
+let JC_OPTS = { pnl: true, trades: true, wl: true, winrate: true };
+try {
+  const saved = JSON.parse(localStorage.getItem('stryker_jc_opts') || 'null');
+  if (saved) JC_OPTS = Object.assign(JC_OPTS, saved);
+} catch (e) {}
+
+const JC_OPT_DEFS = [
+  ['pnl', 'P&L'], ['trades', 'Trade count'], ['wl', 'Wins / losses'], ['winrate', 'Win %']
+];
+
+function renderCalendarOptions(){
+  const host = document.getElementById('jc-opts');
+  if (!host) return;
+  host.innerHTML = JC_OPT_DEFS.map(([k, label]) =>
+    '<button type="button" class="term-cat' + (JC_OPTS[k] ? ' is-on' : '') + '" data-opt="' + k + '">' +
+    '<i style="background:' + (JC_OPTS[k] ? '#03c988' : '#5c6472') + '"></i>' + label + '</button>').join('');
+}
+
 function renderCalendarTab(){
+  renderCalendarOptions();
   const trades = (JOURNAL_TRADES || []).filter((t) => t.date && t.pnl !== null && t.pnl !== undefined);
   const currency = (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD';
   const byDay = {};
   trades.forEach((t) => {
-    if (!byDay[t.date]) byDay[t.date] = { pnl: 0, count: 0, trades: [] };
+    if (!byDay[t.date]) byDay[t.date] = { pnl: 0, count: 0, wins: 0, losses: 0, trades: [] };
     byDay[t.date].pnl += t.pnl;
     byDay[t.date].count += 1;
+    if (t.pnl > 0) byDay[t.date].wins += 1;
+    else if (t.pnl < 0) byDay[t.date].losses += 1;
     byDay[t.date].trades.push(t);
   });
 
@@ -232,9 +269,18 @@ function renderCalendarTab(){
     const dayData = byDay[dateStr];
     const cell = document.createElement('div');
     cell.className = 'journal-cal-cell' + (dayData ? (dayData.pnl >= 0 ? ' win' : ' loss') : '');
+    let body = '';
+    if (dayData) {
+      if (JC_OPTS.pnl) body += '<div class="journal-cal-pnl" style="color:' + (dayData.pnl >= 0 ? '#03c988' : '#e5484d') + ';">' + journalFormatCurrency(dayData.pnl, currency) + '</div>';
+      if (JC_OPTS.trades) body += '<div class="journal-cal-count">' + dayData.count + ' trade' + (dayData.count === 1 ? '' : 's') + '</div>';
+      if (JC_OPTS.wl) body += '<div class="jc-wl"><b class="gm-up">' + dayData.wins + 'W</b><span>·</span><b class="gm-down">' + dayData.losses + 'L</b></div>';
+      if (JC_OPTS.winrate && (dayData.wins + dayData.losses) > 0) {
+        body += '<div class="jc-wr">' + Math.round((dayData.wins / (dayData.wins + dayData.losses)) * 100) + '% win</div>';
+      }
+    }
     cell.innerHTML =
       '<span class="journal-cal-daynum">' + day + '</span>' +
-      (dayData ? '<div><div class="journal-cal-pnl" style="color:' + (dayData.pnl >= 0 ? '#03c988' : '#e5484d') + ';">' + journalFormatCurrency(dayData.pnl, currency) + '</div><div class="journal-cal-count">' + dayData.count + ' trade' + (dayData.count === 1 ? '' : 's') + '</div></div>' : '');
+      (body ? '<div class="jc-cell-body">' + body + '</div>' : '');
     if (dayData) cell.addEventListener('click', () => showCalendarDayDetail(dateStr, dayData, currency));
     grid.appendChild(cell);
   }
@@ -265,8 +311,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('jc-day-detail-panel').style.display = 'none';
     renderCalendarTab();
   });
-  ['jh-search', 'jh-instrument', 'jh-setup', 'jh-direction'].forEach((id) => {
+  ['jh-search', 'jh-instrument', 'jh-setup', 'jh-direction', 'jh-account'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', renderHistoryList);
+  });
+
+  const opts = document.getElementById('jc-opts');
+  if (opts) opts.addEventListener('click', (e) => {
+    const btn = e.target.closest('.term-cat');
+    if (!btn) return;
+    JC_OPTS[btn.dataset.opt] = !JC_OPTS[btn.dataset.opt];
+    try { localStorage.setItem('stryker_jc_opts', JSON.stringify(JC_OPTS)); } catch (err) {}
+    renderCalendarTab();
   });
 });

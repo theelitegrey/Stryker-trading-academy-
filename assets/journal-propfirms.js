@@ -222,6 +222,18 @@ function renderPfFirmCards(fmt){
           (t.net > 0 ? '+' : '') + fmt(t.net) + ' net</span>' +
         (t.roi !== null ? '<span class="pf-roi">' + (t.roi > 0 ? '+' : '') + Math.round(t.roi) + '% return on fees</span>' : '') +
       '</div>' +
+      (function(){
+        // journal trades attributed to this account (the Add-trade form's
+        // Account dropdown) — the firm's live trading result, separate from
+        // the fee/payout cash flow.
+        var tp = 0, tn = 0;
+        (typeof JOURNAL_TRADES !== 'undefined' ? JOURNAL_TRADES : []).forEach(function (tr) {
+          if ((tr.account || '') === firm.name && typeof tr.pnl === 'number') { tp += tr.pnl; tn++; }
+        });
+        return tn ? '<div class="pf-tradepnl">Trading P&amp;L on this account: ' +
+          '<b class="' + (tp > 0 ? 'gm-up' : (tp < 0 ? 'gm-down' : '')) + '">' + fmt(tp) + '</b>' +
+          ' <span>· ' + tn + ' journaled trade' + (tn === 1 ? '' : 's') + '</span></div>' : '';
+      })() +
 
       (entryRows.length ?
         '<details class="pf-entries"><summary>' + entryRows.length + ' entr' + (entryRows.length === 1 ? 'y' : 'ies') + '</summary>' +

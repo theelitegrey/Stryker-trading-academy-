@@ -43,7 +43,7 @@ function loadAllTrades(uid){
     .then((snap) => {
       const trades = [];
       snap.forEach((doc) => {
-        if (doc.id === JOURNAL_SETTINGS_DOC_ID) return;
+        if (doc.id.charAt(0) === '_') return;   // reserved docs: _settings, _propfirms
         trades.push(Object.assign({ id: doc.id }, doc.data()));
       });
       trades.sort((a, b) => {

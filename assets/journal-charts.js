@@ -33,6 +33,7 @@ function renderDashboardTab(){
   if (nTrades) nTrades.textContent = all.closedTrades + ' closed trades';
 
   const m = (typeof jzComputeMetrics === 'function') ? jzComputeMetrics(trades) : null;
+  if (typeof jzRenderAiBox === 'function') jzRenderAiBox();
   if (typeof jzRenderRadar === 'function') jzRenderRadar(m);
   if (typeof jzRenderKpis === 'function') jzRenderKpis(m, currency);
   if (typeof jzRenderMiniCalendar === 'function') jzRenderMiniCalendar(trades, currency);
@@ -139,6 +140,7 @@ function renderAnalyticsTab(){
   renderBreakdown('ja-by-setup', groupAndAggregate(trades, (t) => t.setup || 'Unset'), currency);
   renderBreakdown('ja-by-session', groupAndAggregate(trades, (t) => t.session || 'Unset'), currency);
   renderBreakdown('ja-by-direction', groupAndAggregate(trades, (t) => t.direction === 'short' ? 'Short' : 'Long'), currency);
+  renderBreakdown('ja-by-account', groupAndAggregate(trades, (t) => t.account || 'Personal'), currency);
   renderBreakdown('ja-by-dow', groupAndAggregate(trades, (t) => dayOfWeekName(t.date)), currency, DOW_ORDER);
 }
 

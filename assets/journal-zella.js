@@ -125,7 +125,10 @@ function jzArc(pct, colour){
   return '<svg viewBox="0 0 64 54" class="jz-arc">' +
     '<path d="M9 46 A 26 26 0 1 1 55 46" fill="none" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>' +
     '<path d="M9 46 A 26 26 0 1 1 55 46" fill="none" stroke="' + colour + '" stroke-width="6" stroke-linecap="round" ' +
-      'stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '"/>' +
+      'stroke-dasharray="0 ' + circ.toFixed(1) + '" style="filter:drop-shadow(0 0 4px ' + colour + '55)">' +
+      '<animate attributeName="stroke-dasharray" from="0 ' + circ.toFixed(1) + '" to="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
+        'dur="0.9s" fill="freeze" calcMode="spline" keySplines="0.2 0.7 0.3 1"/>' +
+    '</path>' +
   '</svg>';
 }
 
@@ -258,6 +261,43 @@ function jzRenderRecent(trades, currency){
     '</div>';
   }).join('');
   if (typeof gmAnimate === 'function') gmAnimate(host);
+}
+
+// ---- AI summary box (dashboard top) -----------------------------------------
+// A one-glance digest of the full AI Coach report: the single most important
+// fix, up to three concrete actions, and one strength — with a link to the
+// full report. Hidden until the coach has enough trades to be honest.
+function jzRenderAiBox(){
+  const host = document.getElementById('jz-ai-box');
+  if (!host || typeof jaiAnalyse !== 'function') return;
+  const res = jaiAnalyse(JOURNAL_TRADES || [], JOURNAL_SETTINGS || {});
+  if (res.locked !== undefined) { host.style.display = 'none'; return; }
+  host.style.display = '';
+
+  const focus = res.insights.find((i) => i.sev === 'crit') || res.insights.find((i) => i.sev === 'warn');
+  const strength = res.insights.find((i) => i.sev === 'good');
+  const hue = res.score >= 70 ? '#03c988' : (res.score >= 50 ? '#f5c542' : '#e5484d');
+
+  host.innerHTML =
+    '<div class="jz-ai-head">' +
+      '<span class="jz-ai-spark">✦</span>' +
+      '<b>AI COACH</b>' +
+      '<span class="jz-ai-score" style="color:' + hue + '; border-color:' + hue + '55; background:' + hue + '14">' +
+        'DISCIPLINE ' + res.score + '/100</span>' +
+      '<button type="button" class="jz-ai-open" onclick="switchJournalTab(\'ai\')">Full report →</button>' +
+    '</div>' +
+    (focus
+      ? '<p class="jz-ai-focus"><span style="color:' + (focus.sev === 'crit' ? '#e5484d' : '#f5a524') + '">' +
+        (focus.sev === 'crit' ? 'Fix first:' : 'Biggest leak:') + '</span> ' + escapeJournalHtml(focus.title) +
+        '. ' + escapeJournalHtml(focus.body.split('. ')[0]) + '.</p>'
+      : '<p class="jz-ai-focus">' + escapeJournalHtml(res.verdict) + '</p>') +
+    (res.actions.length
+      ? '<ul class="jz-ai-actions">' + res.actions.slice(0, 3).map((a) =>
+          '<li>' + escapeJournalHtml(a) + '</li>').join('') + '</ul>'
+      : '') +
+    (strength
+      ? '<p class="jz-ai-strength">✓ ' + escapeJournalHtml(strength.title) + '</p>'
+      : '');
 }
 
 // ---- calendar month switcher -----------------------------------------------

@@ -3729,3 +3729,126 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
 .ji-map-row{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--ink-3); }
 .ji-map-row.is-key span::after{ content:' •'; color:var(--gold); }
 .ji-map-row select{ width:100%; }
+
+/* ==========================================================================
+   TRADE JOURNAL v4 — AI summary box, P&L share card, calendar options,
+   account tracking, mobile fixes, extra motion
+   ========================================================================== */
+
+/* ---- AI coach summary box (top of dashboard) ---- */
+.jz-ai-box{
+  position:relative; border-radius:14px; padding:18px 20px; margin-bottom:18px;
+  background:linear-gradient(135deg, rgba(245,197,66,.07), rgba(3,201,136,.05) 55%, var(--bg-2));
+  border:1px solid var(--line); overflow:hidden;
+  animation:jzFadeUp .5s ease both;
+}
+.jz-ai-box::before{
+  content:''; position:absolute; inset:0 auto 0 -60%; width:45%;
+  background:linear-gradient(105deg, transparent, rgba(245,197,66,.06), transparent);
+  transform:skewX(-18deg); animation:jzShimmer 5.5s ease-in-out infinite;
+  pointer-events:none;
+}
+.jz-ai-head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.jz-ai-head b{ font-family:var(--font-mono); font-size:11px; letter-spacing:.14em; color:var(--gold); }
+.jz-ai-spark{ color:var(--gold); animation:jzSparkPulse 2.4s ease-in-out infinite; }
+.jz-ai-score{
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  padding:3px 9px; border-radius:999px; border:1px solid;
+}
+.jz-ai-open{
+  margin-left:auto; background:none; border:none; cursor:pointer;
+  color:var(--ink-3); font-size:12px; transition:color .15s ease;
+}
+.jz-ai-open:hover{ color:var(--gold); }
+.jz-ai-focus{ margin:0 0 10px; font-size:14px; color:var(--ink-0); line-height:1.55; }
+.jz-ai-focus b{ color:var(--gold); }
+.jz-ai-actions{ margin:0 0 10px; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+.jz-ai-actions li{
+  font-size:12.5px; color:var(--ink-1); padding-left:18px; position:relative;
+}
+.jz-ai-actions li::before{ content:'→'; position:absolute; left:0; color:var(--gold); }
+.jz-ai-strength{ margin:0; font-size:12px; color:#7fe0c2; }
+
+/* ---- calendar cell extras (wins/losses, win %) ---- */
+.jc-cell-body{ display:flex; flex-direction:column; gap:1px; min-width:0; overflow:hidden; }
+.jc-wl{ display:flex; gap:4px; align-items:center; font-family:var(--font-mono); font-size:9.5px; }
+.jc-wl span{ color:var(--ink-3); }
+.jc-wr{ font-family:var(--font-mono); font-size:9px; color:var(--ink-3); }
+
+/* ---- prop firm card: journaled trading P&L line ---- */
+.pf-tradepnl{
+  margin-top:10px; padding-top:10px; border-top:1px dashed var(--line-soft);
+  font-size:12px; color:var(--ink-3);
+}
+.pf-tradepnl b{ font-family:var(--font-mono); }
+
+/* ---- P&L share card modal ---- */
+.jcard-modal{
+  position:fixed; inset:0; z-index:340; display:flex; align-items:center; justify-content:center;
+  background:rgba(6,8,12,.82); backdrop-filter:blur(6px); padding:18px;
+}
+.jcard-box{
+  width:min(520px, 100%); max-height:92vh; overflow-y:auto;
+  background:var(--bg-1); border:1px solid var(--line); border-radius:16px; padding:18px;
+  animation:jzFadeUp .3s ease both;
+}
+.jcard-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.jcard-head h3{ font-size:16px; margin:0; }
+.jcard-controls{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; }
+.jcard-ctl{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--ink-3); }
+.jcard-ctl select{ width:auto; }
+.jcard-check{
+  display:flex; align-items:center; gap:7px; font-size:12.5px; color:var(--ink-1); cursor:pointer;
+}
+.jcard-check input{ accent-color:var(--gold); }
+.jcard-preview{
+  border-radius:12px; overflow:hidden; border:1px solid var(--line);
+  background:#0a0d13; line-height:0;
+}
+.jcard-preview canvas{ width:100%; height:auto; }
+.jcard-foot{ display:flex; justify-content:flex-end; margin-top:14px; }
+
+/* ---- mobile: keep both calendars inside the viewport ---- */
+#journal-tabs{
+  flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  scrollbar-width:none; padding-bottom:4px;
+}
+#journal-tabs::-webkit-scrollbar{ display:none; }
+#journal-tabs .level-tab{ flex-shrink:0; white-space:nowrap; }
+
+.journal-cal-cell{ min-width:0; overflow:hidden; }
+@media (max-width:640px){
+  .journal-calendar-grid{ gap:3px; }
+  .journal-cal-cell{ padding:4px 3px; min-height:48px; aspect-ratio:auto; border-radius:6px; }
+  .journal-cal-count{ display:none; }
+  .jc-wr{ display:none; }
+  .jz-cal{ gap:2px; }
+  .jz-cal-c{ min-height:30px; padding:2px 1px; border-radius:5px; }
+  .jz-cal-c span{ font-size:7.5px; }
+  .jz-cal-c b{ font-size:8.5px; }
+  .jz-cal-h{ font-size:8px; }
+  .dash-topbar #jcard-open{ align-self:flex-start; }
+}
+
+/* ---- extra motion polish ---- */
+.journal-tab-panel{ animation:jzFadeUp .35s ease both; }
+.jz-kpis .panel, .jz-charts .panel, .jz-bottom .panel{ transition:transform .18s ease, border-color .18s ease; }
+.jz-kpis .panel:hover, .jz-charts .panel:hover, .jz-bottom .panel:hover{ transform:translateY(-2px); border-color:var(--gold-dim); }
+.pf-card{ transition:transform .18s ease, border-color .18s ease; }
+.pf-card:hover{ transform:translateY(-2px); }
+.stat-card{ transition:transform .18s ease, border-color .18s ease; }
+#tab-dashboard .stat-card:hover, #tab-propfirms .stat-card:hover{ transform:translateY(-2px); border-color:var(--gold-dim); }
+.jz-hero-val{ animation:jzGlowIn .8s ease both; }
+
+@keyframes jzFadeUp{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+@keyframes jzShimmer{ 0%{ left:-60%; } 55%{ left:120%; } 100%{ left:120%; } }
+@keyframes jzSparkPulse{ 0%,100%{ opacity:.55; transform:scale(1); } 50%{ opacity:1; transform:scale(1.25); } }
+@keyframes jzGlowIn{ from{ opacity:0; filter:blur(4px); } to{ opacity:1; filter:none; } }
+
+@media (prefers-reduced-motion: reduce){
+  .jz-ai-box, .jz-ai-box::before, .jz-ai-spark, .journal-tab-panel, .jcard-box, .jz-hero-val{ animation:none; }
+  .jz-kpis .panel, .jz-charts .panel, .jz-bottom .panel, .pf-card, .stat-card{ transition:none; }
+  .jz-kpis .panel:hover, .jz-charts .panel:hover, .jz-bottom .panel:hover, .pf-card:hover,
+  #tab-dashboard .stat-card:hover, #tab-propfirms .stat-card:hover{ transform:none; }
+  .jz-cal-c:hover:not(.empty){ transform:none; }
+}

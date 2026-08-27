@@ -21,6 +21,17 @@ function populateTradeFormDropdowns(){
   sessionSel.innerHTML = s.sessions.map((x) => '<option value="' + escapeJournalHtml(x) + '">' + escapeJournalHtml(x) + '</option>').join('');
   setupSel.innerHTML = s.setups.map((x) => '<option value="' + escapeJournalHtml(x) + '">' + escapeJournalHtml(x) + '</option>').join('');
 
+  // Trading account: Personal plus every firm on the Prop firms tab, so a
+  // trade can be attributed to the account it was actually taken on.
+  const acctSel = document.getElementById('jf-account');
+  if (acctSel) {
+    const prevAcct = acctSel.value;
+    const firms = (typeof PF_DATA !== 'undefined' && PF_DATA.firms) ? PF_DATA.firms.map((f) => f.name) : [];
+    acctSel.innerHTML = '<option value="">Personal</option>' +
+      firms.map((n) => '<option value="' + escapeJournalHtml(n) + '">' + escapeJournalHtml(n) + '</option>').join('');
+    if (prevAcct) acctSel.value = prevAcct;
+  }
+
   // Re-selecting a value that no longer exists in the list is a silent no-op
   // in the DOM (falls back to the first option) — that's fine here since it
   // only happens if the option was actually removed in Settings.
@@ -73,6 +84,7 @@ function readTradeForm(){
     takeProfit: document.getElementById('jf-target').value || null,
     session: document.getElementById('jf-session').value,
     setup: document.getElementById('jf-setup').value,
+    account: (document.getElementById('jf-account') || {}).value || '',
     tags: JOURNAL_SELECTED_TAGS.slice(),
     notes: document.getElementById('jf-notes').value.trim(),
     screenshotDataUrl: JOURNAL_SCREENSHOT_DATA_URL
@@ -118,6 +130,8 @@ function startEditTrade(tradeId){
   document.getElementById('jf-target').value = trade.takeProfit !== undefined && trade.takeProfit !== null ? trade.takeProfit : '';
   document.getElementById('jf-session').value = trade.session || '';
   document.getElementById('jf-setup').value = trade.setup || '';
+  const editAcct = document.getElementById('jf-account');
+  if (editAcct) editAcct.value = trade.account || '';
   document.getElementById('jf-notes').value = trade.notes || '';
 
   const preview = document.getElementById('jf-screenshot-preview');

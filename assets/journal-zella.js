@@ -11,6 +11,31 @@
 
 let JZ_RADAR_CHART = null;
 
+// ---- dashboard date-range filter --------------------------------------------
+// One subtle select that scopes every dashboard widget (hero, radar, KPIs,
+// charts, calendar, recent) to a time window. Persists per device.
+let JZ_RANGE = 'all';
+try { JZ_RANGE = localStorage.getItem('stryker_jz_range') || 'all'; } catch (e) {}
+
+function jzRangeTrades(trades){
+  if (JZ_RANGE === 'all') return trades;
+  const now = new Date();
+  let from;
+  if (JZ_RANGE === 'today') {
+    from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  } else if (JZ_RANGE === 'week') {
+    const dow = (now.getDay() + 6) % 7;             // Monday start
+    from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dow);
+  } else if (JZ_RANGE === 'month') {
+    from = new Date(now.getFullYear(), now.getMonth(), 1);
+  } else if (JZ_RANGE === 'quarter') {
+    from = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+  } else {                                          // year
+    from = new Date(now.getFullYear(), 0, 1);
+  }
+  return trades.filter((t) => t.date && new Date(t.date + 'T00:00:00') >= from);
+}
+
 // ---- metrics ----------------------------------------------------------------
 // Six axes, each normalized to 0-100. The composite "Stryker Score" is their
 // mean. Normalisation caps are the conventional "excellent" thresholds:
@@ -191,10 +216,16 @@ function jzRenderMiniCalendar(trades, currency){
   const byDay = {};
   trades.forEach((t) => {
     if (!t.date || t.pnl === null || t.pnl === undefined) return;
-    if (!byDay[t.date]) byDay[t.date] = { pnl: 0, n: 0 };
+    if (!byDay[t.date]) byDay[t.date] = { pnl: 0, n: 0, w: 0, l: 0 };
     byDay[t.date].pnl += t.pnl;
     byDay[t.date].n++;
+    if (t.pnl > 0) byDay[t.date].w++;
+    else if (t.pnl < 0) byDay[t.date].l++;
   });
+
+  // Same display toggles as the Calendar tab (JC_OPTS, shared storage) —
+  // flipping "Trade count" or "Win %" there changes this calendar too.
+  const opts = (typeof JC_OPTS !== 'undefined') ? JC_OPTS : { trades: true, winrate: true };
 
   const firstDow = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -212,10 +243,18 @@ function jzRenderMiniCalendar(trades, currency){
       const d = byDay[dateStr];
       if (d) { weekPnl += d.pnl; weekHas = true; monthTotal += d.pnl; }
       const cls = d ? (d.pnl > 0 ? ' win' : (d.pnl < 0 ? ' loss' : ' flat')) : '';
+      let sub = '';
+      if (d) {
+        const bits = [];
+        if (opts.trades) bits.push(d.n + 't');
+        if (opts.winrate && (d.w + d.l) > 0) bits.push(Math.round((d.w / (d.w + d.l)) * 100) + '%');
+        if (bits.length) sub = '<i class="jz-cal-sub">' + bits.join(' ') + '</i>';
+      }
       html += '<div class="jz-cal-c' + cls + '" title="' +
-        (d ? journalFormatCurrency(d.pnl, currency) + ' · ' + d.n + ' trade' + (d.n === 1 ? '' : 's') : '') + '">' +
+        (d ? journalFormatCurrency(d.pnl, currency) + ' · ' + d.n + ' trade' + (d.n === 1 ? '' : 's') +
+             (d.w + d.l > 0 ? ' · ' + d.w + 'W/' + d.l + 'L' : '') : '') + '">' +
         '<span>' + day + '</span>' +
-        (d ? '<b>' + jzShortMoney(d.pnl) + '</b>' : '') +
+        (d ? '<b>' + jzShortMoney(d.pnl) + '</b>' : '') + sub +
       '</div>';
       day++;
     }
@@ -302,14 +341,26 @@ function jzRenderAiBox(){
 
 // ---- calendar month switcher -----------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
+  const calTrades = () => jzRangeTrades(JOURNAL_TRADES || []);
   const prev = document.getElementById('jz-cal-prev');
   const next = document.getElementById('jz-cal-next');
   if (prev) prev.addEventListener('click', () => {
     JZ_CAL_OFFSET++;
-    jzRenderMiniCalendar(JOURNAL_TRADES || [], (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD');
+    jzRenderMiniCalendar(calTrades(), (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD');
   });
   if (next) next.addEventListener('click', () => {
     if (JZ_CAL_OFFSET > 0) JZ_CAL_OFFSET--;
-    jzRenderMiniCalendar(JOURNAL_TRADES || [], (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD');
+    jzRenderMiniCalendar(calTrades(), (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD');
   });
+
+  const range = document.getElementById('jz-range');
+  if (range) {
+    range.value = JZ_RANGE;
+    if (range.value !== JZ_RANGE) { JZ_RANGE = 'all'; range.value = 'all'; }
+    range.addEventListener('change', () => {
+      JZ_RANGE = range.value;
+      try { localStorage.setItem('stryker_jz_range', JZ_RANGE); } catch (e) {}
+      if (typeof renderDashboardTab === 'function') renderDashboardTab();
+    });
+  }
 });

@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="199">
+<meta name="stryker-build" content="200">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=199">
-<script src="assets/device-mode.js?v=199"></script>
-<script src="assets/toast.js?v=199" defer></script>
-<script src="assets/version-check.js?v=199" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=200">
+<script src="assets/device-mode.js?v=200"></script>
+<script src="assets/toast.js?v=200" defer></script>
+<script src="assets/version-check.js?v=200" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -161,6 +161,17 @@
 
     <!-- ============== DASHBOARD ============== -->
     <div class="journal-tab-panel" id="tab-dashboard">
+      <div class="jz-range-row">
+        <label for="jz-range">Showing</label>
+        <select id="jz-range" class="journal-select">
+          <option value="all">All time</option>
+          <option value="today">Today</option>
+          <option value="week">This week</option>
+          <option value="month">This month</option>
+          <option value="quarter">This quarter</option>
+          <option value="year">This year</option>
+        </select>
+      </div>
       <div class="jz-ai-box" id="jz-ai-box" style="display:none;"></div>
       <div class="jz-top">
         <div class="jz-hero panel">
@@ -529,6 +540,14 @@
       <label class="jcard-check"><input type="checkbox" id="jcard-cal" checked> Include calendar</label>
       <label class="jcard-check"><input type="checkbox" id="jcard-accts" checked> Show trading accounts</label>
     </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label for="jcard-name">Name on card <span style="color:var(--ink-3); font-weight:400;">(optional — your name or handle)</span></label>
+      <input type="text" id="jcard-name" maxlength="24" placeholder="e.g. Gaurav Singh">
+    </div>
+    <div class="jcard-stats-row">
+      <span>Stats on card</span>
+      <div class="term-cats" id="jcard-stats"></div>
+    </div>
     <div class="jcard-preview"><canvas id="jcard-canvas" width="1080" height="1350"></canvas></div>
     <div class="jcard-foot">
       <button type="button" class="btn btn-primary btn-sm" id="jcard-download">Download PNG</button>
@@ -539,45 +558,45 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=199"></script>
-<script src="assets/gate-timeout.js?v=199"></script>
-<script src="assets/progress.js?v=199"></script>
-<script src="assets/presence.js?v=199"></script>
-<script src="assets/messages.js?v=199"></script>
-<script src="assets/messages-badge.js?v=199"></script>
-<script src="assets/gm-badge.js?v=199"></script>
-<script src="assets/activity-log.js?v=199"></script>
-<script src="assets/banned-check.js?v=199"></script>
-<script src="assets/email-verify.js?v=199"></script>
-<script src="assets/achievements-data.js?v=199"></script>
-<script src="assets/notifications.js?v=199"></script>
+<script src="assets/auth.js?v=200"></script>
+<script src="assets/gate-timeout.js?v=200"></script>
+<script src="assets/progress.js?v=200"></script>
+<script src="assets/presence.js?v=200"></script>
+<script src="assets/messages.js?v=200"></script>
+<script src="assets/messages-badge.js?v=200"></script>
+<script src="assets/gm-badge.js?v=200"></script>
+<script src="assets/activity-log.js?v=200"></script>
+<script src="assets/banned-check.js?v=200"></script>
+<script src="assets/email-verify.js?v=200"></script>
+<script src="assets/achievements-data.js?v=200"></script>
+<script src="assets/notifications.js?v=200"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=199"></script>
-<script src="assets/admin-link.js?v=199"></script>
-<script src="assets/profiles-sync.js?v=199"></script>
+<script src="assets/push.js?v=200"></script>
+<script src="assets/admin-link.js?v=200"></script>
+<script src="assets/profiles-sync.js?v=200"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=199"></script>
-<script src="assets/avatars.js?v=199"></script>
-<script src="assets/account-menu.js?v=199"></script>
-<script src="assets/referrals.js?v=199"></script>
-<script src="assets/roles.js?v=199"></script>
-<script src="assets/plan-modal.js?v=199"></script>
-<script src="assets/plan-guard.js?v=199"></script>
-<script src="assets/maintenance-check.js?v=199"></script>
-<script src="assets/branding.js?v=199"></script>
-<script src="assets/dash-nav.js?v=199"></script>
+<script src="assets/loading-animation.js?v=200"></script>
+<script src="assets/avatars.js?v=200"></script>
+<script src="assets/account-menu.js?v=200"></script>
+<script src="assets/referrals.js?v=200"></script>
+<script src="assets/roles.js?v=200"></script>
+<script src="assets/plan-modal.js?v=200"></script>
+<script src="assets/plan-guard.js?v=200"></script>
+<script src="assets/maintenance-check.js?v=200"></script>
+<script src="assets/branding.js?v=200"></script>
+<script src="assets/dash-nav.js?v=200"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=199"></script>
-<script src="assets/journal-data.js?v=199"></script>
-<script src="assets/journal-charts.js?v=199"></script>
-<script src="assets/journal-history-calendar.js?v=199"></script>
-<script src="assets/journal-form-settings.js?v=199"></script>
-<script src="assets/journal-propfirms.js?v=199"></script>
-<script src="assets/journal-ai.js?v=199"></script>
-<script src="assets/journal-zella.js?v=199"></script>
-<script src="assets/journal-import.js?v=199"></script>
-<script src="assets/journal-card.js?v=199"></script>
-<script src="assets/journal-demo.js?v=199"></script>
-<script src="assets/journal-main.js?v=199"></script>
+<script src="assets/journal-calc.js?v=200"></script>
+<script src="assets/journal-data.js?v=200"></script>
+<script src="assets/journal-charts.js?v=200"></script>
+<script src="assets/journal-history-calendar.js?v=200"></script>
+<script src="assets/journal-form-settings.js?v=200"></script>
+<script src="assets/journal-propfirms.js?v=200"></script>
+<script src="assets/journal-ai.js?v=200"></script>
+<script src="assets/journal-zella.js?v=200"></script>
+<script src="assets/journal-import.js?v=200"></script>
+<script src="assets/journal-card.js?v=200"></script>
+<script src="assets/journal-demo.js?v=200"></script>
+<script src="assets/journal-main.js?v=200"></script>
 </body>
 </html>

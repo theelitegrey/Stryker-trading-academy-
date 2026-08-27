@@ -19,18 +19,25 @@ if (typeof Chart !== 'undefined') {
 
 // ---- Dashboard (Zella-style layout; widgets live in journal-zella.js) ----
 function renderDashboardTab(){
-  const trades = JOURNAL_TRADES || [];
+  const allTrades = JOURNAL_TRADES || [];
+  // Everything below the hero minis respects the dashboard range filter;
+  // the Today/This-week minis stay fixed-period on purpose.
+  const trades = (typeof jzRangeTrades === 'function') ? jzRangeTrades(allTrades) : allTrades;
   const currency = (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD';
 
   const all = journalAggregateStats(trades);
-  const today = journalStatsForPeriod(trades, 1);
-  const week = journalStatsForPeriod(trades, 7);
+  const today = journalStatsForPeriod(allTrades, 1);
+  const week = journalStatsForPeriod(allTrades, 7);
 
   setPnlStat('jstat-total-pnl', all.totalPnl, currency);
   setPnlStat('jstat-today-pnl', today.totalPnl, currency);
   setPnlStat('jstat-week-pnl', week.totalPnl, currency);
   const nTrades = document.getElementById('jz-trade-count');
-  if (nTrades) nTrades.textContent = all.closedTrades + ' closed trades';
+  if (nTrades) {
+    const rangeNames = { all: '', today: ' today', week: ' this week', month: ' this month', quarter: ' this quarter', year: ' this year' };
+    const suffix = (typeof JZ_RANGE !== 'undefined' && rangeNames[JZ_RANGE]) || '';
+    nTrades.textContent = all.closedTrades + ' closed trades' + suffix;
+  }
 
   const m = (typeof jzComputeMetrics === 'function') ? jzComputeMetrics(trades) : null;
   if (typeof jzRenderAiBox === 'function') jzRenderAiBox();

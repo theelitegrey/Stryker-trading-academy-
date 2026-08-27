@@ -100,8 +100,21 @@ jobs:
             "https://api.cloudflare.com/client/v4/accounts/${ACCOUNT}/pages/projects")
           if [ "$(echo "$resp" | jq -r '.success')" != "true" ]; then
             echo "::error::Pages API refused the request: $(echo "$resp" | jq -c '.errors') — the token needs the 'Cloudflare Pages: Edit' account permission, and the Account ID must match the account that owns the Pages project."; exit 1; fi
-          name=$(echo "$resp" | jq -r '.result[].name' | grep -i 'stryker' | head -1)
-          [ -z "$name" ] && name=$(echo "$resp" | jq -r '.result[0].name // empty')
+          # Show the full project/domain layout — run 5 deployed successfully
+          # yet the live domain kept serving old content, which smells like
+          # two projects with the domain on the other one.
+          echo "Projects on this account:"
+          echo "$resp" | jq -r '.result[] | "  - " + .name + "  domains: " + ((.domains // []) | join(", "))'
+
+          # The right project is the one that OWNS the custom domain.
+          name=$(echo "$resp" | jq -r '.result[] | select((.domains // []) | map(test("strykertrading"; "i")) | any) | .name' | head -1)
+          if [ -n "$name" ]; then
+            echo "Selected by custom domain: $name"
+          else
+            name=$(echo "$resp" | jq -r '.result[].name' | grep -i 'stryker' | head -1)
+            [ -z "$name" ] && name=$(echo "$resp" | jq -r '.result[0].name // empty')
+            echo "No project carries the custom domain — falling back to: $name"
+          fi
           if [ -z "$name" ]; then
             echo "::error::No Pages project found on this Cloudflare account"; exit 1; fi
           echo "name=$name" >> "$GITHUB_OUTPUT"

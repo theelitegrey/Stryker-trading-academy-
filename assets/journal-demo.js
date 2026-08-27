@@ -135,18 +135,20 @@ function jdBuildFirms(){
   const ago = (days) => new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
   return [
     {
-      id: pfId(), name: JD_FIRM_NAMES[0], status: 'funded', accountSize: 100000, demo: true,
+      id: pfId(), name: JD_FIRM_NAMES[0], status: 'funded', accountSize: 100000,
+      accountType: '2-Step Evaluation', demo: true,
       expenses: [
         { id: pfId(), label: 'Challenge fee', amount: 540, date: ago(88) },
         { id: pfId(), label: 'Data fee', amount: 39, date: ago(60) }
       ],
       payouts: [
-        { id: pfId(), amount: 2240, date: ago(34), note: 'First payout' },
-        { id: pfId(), amount: 3125, date: ago(6), note: 'Second payout' }
+        { id: pfId(), amount: 2240, date: ago(34), note: 'First payout', via: 'Wise' },
+        { id: pfId(), amount: 3125, date: ago(6), note: 'Second payout', via: 'Rise' }
       ]
     },
     {
-      id: pfId(), name: JD_FIRM_NAMES[1], status: 'evaluation', accountSize: 50000, demo: true,
+      id: pfId(), name: JD_FIRM_NAMES[1], status: 'evaluation', accountSize: 50000,
+      accountType: '1-Step Evaluation', demo: true,
       expenses: [
         { id: pfId(), label: 'Challenge fee', amount: 49, date: ago(52) },
         { id: pfId(), label: 'Challenge fee', amount: 49, date: ago(22) }
@@ -154,7 +156,8 @@ function jdBuildFirms(){
       payouts: []
     },
     {
-      id: pfId(), name: JD_FIRM_NAMES[2], status: 'failed', accountSize: 150000, demo: true,
+      id: pfId(), name: JD_FIRM_NAMES[2], status: 'failed', accountSize: 150000,
+      accountType: '2-Step Evaluation', demo: true,
       expenses: [
         { id: pfId(), label: 'Challenge fee', amount: 167, date: ago(75) },
         { id: pfId(), label: 'Reset fee', amount: 167, date: ago(58) }

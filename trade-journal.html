@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="198">
+<meta name="stryker-build" content="199">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=198">
-<script src="assets/device-mode.js?v=198"></script>
-<script src="assets/toast.js?v=198" defer></script>
-<script src="assets/version-check.js?v=198" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=199">
+<script src="assets/device-mode.js?v=199"></script>
+<script src="assets/toast.js?v=199" defer></script>
+<script src="assets/version-check.js?v=199" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -392,11 +392,63 @@
 
     <!-- ============== PROP FIRMS ============== -->
     <div class="journal-tab-panel" id="tab-propfirms" style="display:none;">
+      <div class="pf-ticker" id="pf-ticker" style="display:none;" aria-hidden="true">
+        <div class="pf-ticker-track" id="pf-ticker-track"></div>
+      </div>
+
       <div class="stat-grid" style="margin-bottom:24px;">
         <div class="stat-card"><div class="stat-val" id="pf-stat-spent" style="color:var(--bear);">—</div><div class="stat-label">Total spent on firms</div></div>
         <div class="stat-card"><div class="stat-val" id="pf-stat-received" style="color:var(--bull);">—</div><div class="stat-label">Total payouts received</div></div>
         <div class="stat-card"><div class="stat-val" id="pf-stat-net">—</div><div class="stat-label">Net result</div></div>
         <div class="stat-card"><div class="stat-val" id="pf-stat-firms">—</div><div class="stat-label">Firms tracked</div></div>
+      </div>
+
+      <div class="panel" id="pf-entry-panel" style="display:none;">
+        <div class="panel-head" style="display:block;">
+          <h2>Add a new entry</h2>
+          <p style="margin:6px 0 0; font-size:12.5px; color:var(--ink-3); font-weight:400;">Log a payout you received or an expense you paid.</p>
+        </div>
+        <div class="pfe-toggle">
+          <button type="button" class="pfe-type is-payout-btn" id="pfe-type-payout">↗ Payout</button>
+          <button type="button" class="pfe-type is-expense-btn" id="pfe-type-expense">↘ Expense</button>
+        </div>
+        <div class="form-row-2">
+          <div class="field" style="margin-bottom:0;"><label for="pfe-firm">Prop firm</label>
+            <select id="pfe-firm" class="journal-select"></select>
+          </div>
+          <div class="field" style="margin-bottom:0;"><label for="pfe-accttype">Account type</label>
+            <select id="pfe-accttype" class="journal-select"></select>
+          </div>
+        </div>
+        <div class="form-row-2" style="margin-top:16px;">
+          <div class="field" style="margin-bottom:0;"><label for="pfe-size">Account size</label>
+            <input type="number" step="any" min="0" id="pfe-size" placeholder="100000">
+          </div>
+          <div class="field" style="margin-bottom:0;"><label for="pfe-amount"><span id="pfe-amount-label">Payout amount</span></label>
+            <input type="number" step="any" min="0" id="pfe-amount" placeholder="0.00">
+          </div>
+        </div>
+        <div class="form-row-2" style="margin-top:16px;">
+          <div class="field" style="margin-bottom:0;"><label for="pfe-date">Date</label>
+            <input type="date" id="pfe-date">
+          </div>
+          <div class="field pfe-expense-only" style="margin-bottom:0;"><label for="pfe-category">Category</label>
+            <select id="pfe-category" class="journal-select"></select>
+          </div>
+          <div class="field pfe-payout-only" style="margin-bottom:0;"><label for="pfe-bank">Received in bank <span style="color:var(--ink-3); font-weight:400;">(optional — local currency, e.g. ₹1,67,400)</span></label>
+            <input type="text" id="pfe-bank" maxlength="40" placeholder="Amount that hit your bank">
+          </div>
+        </div>
+        <div class="field pfe-payout-only" style="margin-top:16px; margin-bottom:0;">
+          <label for="pfe-via">Received via</label>
+          <input type="text" id="pfe-via" maxlength="40" list="pfe-via-list" placeholder="Wise, Rise, Wire transfer…">
+          <datalist id="pfe-via-list"></datalist>
+        </div>
+        <div class="field" style="margin-top:16px; margin-bottom:0;">
+          <label for="pfe-notes">Notes <span style="color:var(--ink-3); font-weight:400;">(optional)</span></label>
+          <input type="text" id="pfe-notes" maxlength="120" placeholder="Anything worth remembering about this entry">
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="pfe-add-btn" style="margin-top:18px;">+ Add entry</button>
       </div>
 
       <div class="panel">
@@ -487,45 +539,45 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=198"></script>
-<script src="assets/gate-timeout.js?v=198"></script>
-<script src="assets/progress.js?v=198"></script>
-<script src="assets/presence.js?v=198"></script>
-<script src="assets/messages.js?v=198"></script>
-<script src="assets/messages-badge.js?v=198"></script>
-<script src="assets/gm-badge.js?v=198"></script>
-<script src="assets/activity-log.js?v=198"></script>
-<script src="assets/banned-check.js?v=198"></script>
-<script src="assets/email-verify.js?v=198"></script>
-<script src="assets/achievements-data.js?v=198"></script>
-<script src="assets/notifications.js?v=198"></script>
+<script src="assets/auth.js?v=199"></script>
+<script src="assets/gate-timeout.js?v=199"></script>
+<script src="assets/progress.js?v=199"></script>
+<script src="assets/presence.js?v=199"></script>
+<script src="assets/messages.js?v=199"></script>
+<script src="assets/messages-badge.js?v=199"></script>
+<script src="assets/gm-badge.js?v=199"></script>
+<script src="assets/activity-log.js?v=199"></script>
+<script src="assets/banned-check.js?v=199"></script>
+<script src="assets/email-verify.js?v=199"></script>
+<script src="assets/achievements-data.js?v=199"></script>
+<script src="assets/notifications.js?v=199"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=198"></script>
-<script src="assets/admin-link.js?v=198"></script>
-<script src="assets/profiles-sync.js?v=198"></script>
+<script src="assets/push.js?v=199"></script>
+<script src="assets/admin-link.js?v=199"></script>
+<script src="assets/profiles-sync.js?v=199"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=198"></script>
-<script src="assets/avatars.js?v=198"></script>
-<script src="assets/account-menu.js?v=198"></script>
-<script src="assets/referrals.js?v=198"></script>
-<script src="assets/roles.js?v=198"></script>
-<script src="assets/plan-modal.js?v=198"></script>
-<script src="assets/plan-guard.js?v=198"></script>
-<script src="assets/maintenance-check.js?v=198"></script>
-<script src="assets/branding.js?v=198"></script>
-<script src="assets/dash-nav.js?v=198"></script>
+<script src="assets/loading-animation.js?v=199"></script>
+<script src="assets/avatars.js?v=199"></script>
+<script src="assets/account-menu.js?v=199"></script>
+<script src="assets/referrals.js?v=199"></script>
+<script src="assets/roles.js?v=199"></script>
+<script src="assets/plan-modal.js?v=199"></script>
+<script src="assets/plan-guard.js?v=199"></script>
+<script src="assets/maintenance-check.js?v=199"></script>
+<script src="assets/branding.js?v=199"></script>
+<script src="assets/dash-nav.js?v=199"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=198"></script>
-<script src="assets/journal-data.js?v=198"></script>
-<script src="assets/journal-charts.js?v=198"></script>
-<script src="assets/journal-history-calendar.js?v=198"></script>
-<script src="assets/journal-form-settings.js?v=198"></script>
-<script src="assets/journal-propfirms.js?v=198"></script>
-<script src="assets/journal-ai.js?v=198"></script>
-<script src="assets/journal-zella.js?v=198"></script>
-<script src="assets/journal-import.js?v=198"></script>
-<script src="assets/journal-card.js?v=198"></script>
-<script src="assets/journal-demo.js?v=198"></script>
-<script src="assets/journal-main.js?v=198"></script>
+<script src="assets/journal-calc.js?v=199"></script>
+<script src="assets/journal-data.js?v=199"></script>
+<script src="assets/journal-charts.js?v=199"></script>
+<script src="assets/journal-history-calendar.js?v=199"></script>
+<script src="assets/journal-form-settings.js?v=199"></script>
+<script src="assets/journal-propfirms.js?v=199"></script>
+<script src="assets/journal-ai.js?v=199"></script>
+<script src="assets/journal-zella.js?v=199"></script>
+<script src="assets/journal-import.js?v=199"></script>
+<script src="assets/journal-card.js?v=199"></script>
+<script src="assets/journal-demo.js?v=199"></script>
+<script src="assets/journal-main.js?v=199"></script>
 </body>
 </html>

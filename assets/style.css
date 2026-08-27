@@ -3852,3 +3852,45 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
   #tab-dashboard .stat-card:hover, #tab-propfirms .stat-card:hover{ transform:none; }
   .jz-cal-c:hover:not(.empty){ transform:none; }
 }
+
+/* ---- prop firms: payout ticker + unified add-entry panel ---- */
+.pf-ticker{
+  overflow:hidden; margin-bottom:18px; padding:10px 0;
+  border:1px solid var(--line); border-radius:10px; background:var(--bg-2);
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image:linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.pf-ticker-track{ display:inline-flex; gap:34px; white-space:nowrap; will-change:transform; padding-left:14px; }
+.pf-ticker-track.pf-tick-anim{ animation:pfTicker 36s linear infinite; }
+.pf-ticker:hover .pf-ticker-track{ animation-play-state:paused; }
+.pf-tick{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2);
+}
+.pf-tick i{ width:6px; height:6px; border-radius:50%; background:var(--bull); flex-shrink:0;
+  box-shadow:0 0 6px rgba(3,201,136,.7); }
+.pf-tick b{ color:var(--bull); font-weight:700; }
+.pf-tick span{ color:var(--ink-3); }
+@keyframes pfTicker{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+.pfe-toggle{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
+.pfe-type{
+  padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2);
+  color:var(--ink-2); font-size:14px; font-weight:600; cursor:pointer;
+  transition:border-color .15s ease, color .15s ease, background .15s ease;
+}
+.pfe-type.is-payout-btn.is-on{
+  color:var(--bull); border-color:rgba(3,201,136,.55); background:rgba(3,201,136,.08);
+}
+.pfe-type.is-expense-btn.is-on{
+  color:var(--bear); border-color:rgba(229,72,77,.55); background:rgba(229,72,77,.08);
+}
+.pf-accttype{
+  font-family:var(--font-mono); font-size:10px; color:var(--ink-3);
+  border:1px solid var(--line); border-radius:999px; padding:2px 8px; margin-left:8px;
+}
+.pf-entry-extra{ display:block; font-style:normal; font-size:10.5px; color:var(--ink-3); margin-top:1px; }
+
+@media (prefers-reduced-motion: reduce){
+  .pf-ticker-track.pf-tick-anim{ animation:none; }
+}

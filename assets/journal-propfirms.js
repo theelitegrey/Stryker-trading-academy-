@@ -30,6 +30,13 @@ const PF_KNOWN_FIRMS = ['FTMO', 'Topstep', 'Apex Trader Funding', 'FundedNext',
 
 const PF_EXPENSE_LABELS = ['Challenge fee', 'Reset fee', 'Activation fee', 'Data fee', 'Other'];
 
+const PF_ACCOUNT_TYPES = ['1-Step Evaluation', '2-Step Evaluation', '3-Step Evaluation',
+  'Instant Funding', 'Live Funded', 'Trial'];
+
+const PF_PAYOUT_VIA = ['Wise', 'Rise', 'Deel', 'Crypto', 'Wire transfer', 'PayPal'];
+
+let PF_ENTRY_TYPE = 'payout';   // the Add-entry panel's active toggle
+
 // ---- data -------------------------------------------------------------------
 function loadPropFirms(uid){
   return journalCollectionRef(uid).doc(JOURNAL_PROPFIRMS_DOC_ID).get()
@@ -100,8 +107,140 @@ function renderPropFirmsTab(){
   const countEl = document.getElementById('pf-stat-firms');
   if (countEl) countEl.textContent = PF_DATA.firms.length + (funded ? ' · ' + funded + ' funded' : '');
 
+  renderPfPayoutTicker(fmt);
+  renderPfEntryPanel();
   renderPfCashflowChart();
   renderPfFirmCards(fmt);
+}
+
+// Scrolling strip of the most recent payouts across every firm — the
+// motivational "money actually came back" wall.
+function renderPfPayoutTicker(fmt){
+  const wrap = document.getElementById('pf-ticker');
+  const track = document.getElementById('pf-ticker-track');
+  if (!wrap || !track) return;
+
+  const rows = [];
+  PF_DATA.firms.forEach((f) => {
+    (f.payouts || []).forEach((p) => {
+      const amt = parseFloat(p.amount);
+      if (!isNaN(amt) && amt > 0) rows.push({ firm: f.name, amount: amt, date: p.date || '' });
+    });
+  });
+  rows.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const recent = rows.slice(0, 12);
+  if (!recent.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+
+  const niceDate = (d) => {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    return isNaN(dt) ? d : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const items = recent.map((r) =>
+    '<span class="pf-tick"><i></i>' + pfEsc(r.firm) +
+    ' <b>+' + fmt(r.amount) + '</b> <span>' + pfEsc(niceDate(r.date)) + '</span></span>').join('');
+  // duplicated once so the marquee loops seamlessly
+  track.innerHTML = items + items;
+  track.classList.toggle('pf-tick-anim', recent.length > 2);
+}
+
+// The unified Add-entry panel: payout or expense, against any tracked firm.
+function renderPfEntryPanel(){
+  const panel = document.getElementById('pf-entry-panel');
+  if (!panel) return;
+  if (!PF_DATA.firms.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+
+  const firmSel = document.getElementById('pfe-firm');
+  const prev = firmSel.value;
+  firmSel.innerHTML = PF_DATA.firms.map((f) =>
+    '<option value="' + f.id + '">' + pfEsc(f.name) + '</option>').join('');
+  if (prev && PF_DATA.firms.some((f) => f.id === prev)) firmSel.value = prev;
+
+  const typeSel = document.getElementById('pfe-accttype');
+  if (typeSel && !typeSel.options.length) {
+    typeSel.innerHTML = PF_ACCOUNT_TYPES.map((t) => '<option>' + t + '</option>').join('');
+  }
+  const catSel = document.getElementById('pfe-category');
+  if (catSel && !catSel.options.length) {
+    catSel.innerHTML = PF_EXPENSE_LABELS.map((l) => '<option>' + l + '</option>').join('');
+  }
+  const viaList = document.getElementById('pfe-via-list');
+  if (viaList && !viaList.children.length) {
+    viaList.innerHTML = PF_PAYOUT_VIA.map((v) => '<option value="' + v + '">').join('');
+  }
+  const date = document.getElementById('pfe-date');
+  if (date && !date.value) date.value = new Date().toISOString().slice(0, 10);
+
+  pfEntrySyncFirm();
+  pfEntrySyncType();
+}
+
+// Prefill account type + size from the selected firm.
+function pfEntrySyncFirm(){
+  const firm = pfFindFirm((document.getElementById('pfe-firm') || {}).value);
+  if (!firm) return;
+  const typeSel = document.getElementById('pfe-accttype');
+  if (typeSel && firm.accountType) typeSel.value = firm.accountType;
+  const size = document.getElementById('pfe-size');
+  if (size) size.value = firm.accountSize || '';
+}
+
+// Toggle the panel between payout and expense mode.
+function pfEntrySyncType(){
+  const panel = document.getElementById('pf-entry-panel');
+  if (!panel) return;
+  const isPayout = PF_ENTRY_TYPE === 'payout';
+  panel.classList.toggle('is-payout', isPayout);
+  document.getElementById('pfe-type-payout').classList.toggle('is-on', isPayout);
+  document.getElementById('pfe-type-expense').classList.toggle('is-on', !isPayout);
+  document.getElementById('pfe-amount-label').textContent = isPayout ? 'Payout amount' : 'Expense amount';
+  document.querySelectorAll('#pf-entry-panel .pfe-payout-only').forEach((el) => {
+    el.style.display = isPayout ? '' : 'none';
+  });
+  document.querySelectorAll('#pf-entry-panel .pfe-expense-only').forEach((el) => {
+    el.style.display = isPayout ? 'none' : '';
+  });
+}
+
+function pfEntrySubmit(){
+  const firm = pfFindFirm((document.getElementById('pfe-firm') || {}).value);
+  const amount = parseFloat(document.getElementById('pfe-amount').value);
+  const dateVal = document.getElementById('pfe-date').value;
+  if (!firm) { if (typeof showToast === 'function') showToast('error', 'Add a prop firm first.'); return; }
+  if (isNaN(amount) || amount <= 0) {
+    if (typeof showToast === 'function') showToast('error', 'Enter an amount above zero.');
+    return;
+  }
+
+  // The panel doubles as a quick editor for the firm's profile fields.
+  firm.accountType = document.getElementById('pfe-accttype').value;
+  const size = parseFloat(document.getElementById('pfe-size').value);
+  if (!isNaN(size) && size > 0) firm.accountSize = size;
+
+  const note = (document.getElementById('pfe-notes').value || '').trim().slice(0, 120);
+  if (PF_ENTRY_TYPE === 'payout') {
+    const via = (document.getElementById('pfe-via').value || '').trim().slice(0, 40);
+    const bank = (document.getElementById('pfe-bank').value || '').trim().slice(0, 40);
+    (firm.payouts = firm.payouts || []).push({
+      id: pfId(), amount, date: dateVal, note, via: via || null, bank: bank || null
+    });
+  } else {
+    const label = document.getElementById('pfe-category').value || 'Fee';
+    (firm.expenses = firm.expenses || []).push({ id: pfId(), label, amount, date: dateVal, note: note || null });
+  }
+
+  document.getElementById('pfe-amount').value = '';
+  document.getElementById('pfe-notes').value = '';
+  const via = document.getElementById('pfe-via'); if (via) via.value = '';
+  const bank = document.getElementById('pfe-bank'); if (bank) bank.value = '';
+
+  savePropFirms(JOURNAL_UID);
+  renderPropFirmsTab();
+  if (typeof showToast === 'function') {
+    showToast('success', PF_ENTRY_TYPE === 'payout' ? 'Payout logged. Nice.' : 'Expense logged.');
+  }
 }
 
 // Monthly net cash flow (payouts − fees) as polarity bars, with the running
@@ -200,6 +339,7 @@ function renderPfFirmCards(fmt){
         '<div class="pf-card-title">' +
           '<b>' + pfEsc(firm.name) + '</b>' +
           (firm.accountSize ? '<span class="pf-acct">' + fmt(firm.accountSize) + ' account</span>' : '') +
+          (firm.accountType ? '<span class="pf-accttype">' + pfEsc(firm.accountType) + '</span>' : '') +
         '</div>' +
         '<select class="pf-status-select" data-act="status" style="color:' + st.colour + '; border-color:' + st.colour + '55;">' +
           Object.keys(PF_STATUS).map((k) =>
@@ -237,16 +377,21 @@ function renderPfFirmCards(fmt){
 
       (entryRows.length ?
         '<details class="pf-entries"><summary>' + entryRows.length + ' entr' + (entryRows.length === 1 ? 'y' : 'ies') + '</summary>' +
-        entryRows.map((r) =>
-          '<div class="pf-entry">' +
+        entryRows.map((r) => {
+          const extras = [];
+          if (r.via) extras.push('via ' + pfEsc(r.via));
+          if (r.bank) extras.push(pfEsc(r.bank) + ' received in bank');
+          if (r.kind === 'expense' && r.note) extras.push(pfEsc(r.note));
+          return '<div class="pf-entry">' +
             '<i class="' + (r.kind === 'payout' ? 'is-win' : 'is-loss') + '"></i>' +
-            '<span class="pf-entry-label">' + pfEsc(r.label || (r.kind === 'payout' ? 'Payout' : 'Fee')) + '</span>' +
+            '<span class="pf-entry-label">' + pfEsc(r.label || (r.kind === 'payout' ? 'Payout' : 'Fee')) +
+              (extras.length ? '<em class="pf-entry-extra">' + extras.join(' · ') + '</em>' : '') + '</span>' +
             '<span class="pf-entry-date">' + pfEsc(r.date || '') + '</span>' +
             '<span class="pf-entry-amt ' + (r.kind === 'payout' ? 'gm-up' : 'gm-down') + '">' +
               (r.kind === 'payout' ? '+' : '−') + fmt(parseFloat(r.amount) || 0) + '</span>' +
             '<button type="button" class="pf-entry-del" data-act="del-entry" data-kind="' + r.kind + '" data-id="' + r.id + '" title="Delete entry">×</button>' +
-          '</div>'
-        ).join('') + '</details>' : '') +
+          '</div>';
+        }).join('') + '</details>' : '') +
 
       '<div class="pf-card-actions">' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="open-expense">+ Fee</button>' +
@@ -363,6 +508,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const addBtn = document.getElementById('pf-add-btn');
   if (addBtn) addBtn.addEventListener('click', pfAddFirm);
+
+  // Add-entry panel controls
+  const entryBtn = document.getElementById('pfe-add-btn');
+  if (entryBtn) {
+    entryBtn.addEventListener('click', pfEntrySubmit);
+    document.getElementById('pfe-type-payout').addEventListener('click', () => {
+      PF_ENTRY_TYPE = 'payout'; pfEntrySyncType();
+    });
+    document.getElementById('pfe-type-expense').addEventListener('click', () => {
+      PF_ENTRY_TYPE = 'expense'; pfEntrySyncType();
+    });
+    document.getElementById('pfe-firm').addEventListener('change', pfEntrySyncFirm);
+  }
 
   // quick-pick chips fill the name field
   const chips = document.getElementById('pf-known-chips');

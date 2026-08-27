@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="203">
+<meta name="stryker-build" content="204">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Stryker Trading Academy</title>
 <meta name="description" content="Your Stryker Trading Academy student dashboard.">
-<link rel="stylesheet" href="assets/style.css?v=203">
-<script src="assets/device-mode.js?v=203"></script>
-<script src="assets/toast.js?v=203" defer></script>
-<script src="assets/version-check.js?v=203" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=204">
+<script src="assets/device-mode.js?v=204"></script>
+<script src="assets/toast.js?v=204" defer></script>
+<script src="assets/version-check.js?v=204" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -17,7 +17,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 </head>
-<body>
+<body class="page-dash">
 
 
 <div class="access-gate-overlay" id="access-gate-overlay">
@@ -148,10 +148,40 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Welcome back, <span id="dash-first-name">Trader</span></h1>
+        <h1><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
         <p id="dash-subtitle">Loading your progress…</p>
       </div>
       <a href="courses.html" class="btn btn-primary" id="dash-resume-btn">Resume</a>
+    </div>
+
+    <!-- ===== Integrated overview: journal + markets + community ===== -->
+    <div class="dov" id="dov">
+      <div class="panel dov-brief">
+        <div class="dov-brief-head">
+          <span class="dov-spark">✦</span><b>DAILY BRIEFING</b>
+          <span class="dov-date" id="dov-brief-date"></span>
+        </div>
+        <div id="dov-brief-body">
+          <div class="dov-brief-line"><i style="background:#f5c542"></i><span>Pulling today's picture together…</span></div>
+        </div>
+      </div>
+
+      <div class="dov-filter" id="dov-filter" aria-label="Choose which modules to show"></div>
+
+      <div class="dov-grid">
+        <section class="panel dov-mod" data-mod="journal">
+          <div class="panel-head"><h2>Trade journal</h2><a href="trade-journal.html">Open →</a></div>
+          <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
+        </section>
+        <section class="panel dov-mod" data-mod="markets">
+          <div class="panel-head"><h2>Markets</h2><a href="global-monitor.html">Global Monitor →</a></div>
+          <div id="dov-markets-body"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
+        </section>
+        <section class="panel dov-mod" data-mod="floor">
+          <div class="panel-head"><h2>Trading floor</h2><a href="trading-floor.html">Join in →</a></div>
+          <div id="dov-floor-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
+        </section>
+      </div>
     </div>
 
     <div class="stat-grid">
@@ -258,35 +288,37 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=203"></script>
-<script src="assets/gate-timeout.js?v=203"></script>
-<script src="assets/progress.js?v=203"></script>
-<script src="assets/presence.js?v=203"></script>
-<script src="assets/messages.js?v=203"></script>
-<script src="assets/messages-badge.js?v=203"></script>
-<script src="assets/gm-badge.js?v=203"></script>
-<script src="assets/activity-log.js?v=203"></script>
-<script src="assets/banned-check.js?v=203"></script>
-<script src="assets/email-verify.js?v=203"></script>
-<script src="assets/notifications.js?v=203"></script>
+<script src="assets/auth.js?v=204"></script>
+<script src="assets/gate-timeout.js?v=204"></script>
+<script src="assets/progress.js?v=204"></script>
+<script src="assets/presence.js?v=204"></script>
+<script src="assets/messages.js?v=204"></script>
+<script src="assets/messages-badge.js?v=204"></script>
+<script src="assets/gm-badge.js?v=204"></script>
+<script src="assets/activity-log.js?v=204"></script>
+<script src="assets/banned-check.js?v=204"></script>
+<script src="assets/email-verify.js?v=204"></script>
+<script src="assets/notifications.js?v=204"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=203"></script>
-<script src="assets/push-prompt.js?v=203"></script>
-<script src="assets/admin-link.js?v=203"></script>
-<script src="assets/profiles-sync.js?v=203"></script>
+<script src="assets/push.js?v=204"></script>
+<script src="assets/push-prompt.js?v=204"></script>
+<script src="assets/admin-link.js?v=204"></script>
+<script src="assets/profiles-sync.js?v=204"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=203"></script>
-<script src="assets/avatars.js?v=203"></script>
-<script src="assets/account-menu.js?v=203"></script>
-<script src="assets/referrals.js?v=203"></script>
-<script src="assets/roles.js?v=203"></script>
-<script src="assets/plan-modal.js?v=203"></script>
-<script src="assets/plan-guard.js?v=203"></script>
-<script src="assets/maintenance-check.js?v=203"></script>
-<script src="assets/branding.js?v=203"></script>
-<script src="assets/chapters-data.js?v=203"></script>
-<script src="assets/chapters-store.js?v=203"></script>
-<script src="assets/dashboard.js?v=203"></script>
-<script src="assets/dash-nav.js?v=203"></script>
+<script src="assets/loading-animation.js?v=204"></script>
+<script src="assets/avatars.js?v=204"></script>
+<script src="assets/account-menu.js?v=204"></script>
+<script src="assets/referrals.js?v=204"></script>
+<script src="assets/roles.js?v=204"></script>
+<script src="assets/plan-modal.js?v=204"></script>
+<script src="assets/plan-guard.js?v=204"></script>
+<script src="assets/maintenance-check.js?v=204"></script>
+<script src="assets/branding.js?v=204"></script>
+<script src="assets/chapters-data.js?v=204"></script>
+<script src="assets/chapters-store.js?v=204"></script>
+<script src="assets/dashboard.js?v=204"></script>
+<script src="assets/journal-calc.js?v=204"></script>
+<script src="assets/dash-overview.js?v=204"></script>
+<script src="assets/dash-nav.js?v=204"></script>
 </body>
 </html>

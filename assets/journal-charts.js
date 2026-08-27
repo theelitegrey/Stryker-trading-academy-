@@ -46,7 +46,13 @@ function renderDashboardTab(){
 function setPnlStat(elId, value, currency){
   const el = document.getElementById(elId);
   if (!el) return;
-  el.textContent = journalFormatCurrency(value, currency);
+  // Count-up animation when the helper (journal-propfirms.js) is loaded;
+  // plain text otherwise, so this file stays usable standalone.
+  if (typeof jCountUp === 'function' && typeof value === 'number' && isFinite(value)) {
+    jCountUp(el, value, (v) => journalFormatCurrency(v, currency));
+  } else {
+    el.textContent = journalFormatCurrency(value, currency);
+  }
   el.style.color = value > 0 ? JCOLOR.win : (value < 0 ? JCOLOR.loss : JCOLOR.ink0);
 }
 

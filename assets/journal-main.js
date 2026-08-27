@@ -18,6 +18,8 @@ const JOURNAL_TAB_RENDERERS = {
   history: () => renderHistoryTab(),
   calendar: () => renderCalendarTab(),
   analytics: () => renderAnalyticsTab(),
+  ai: () => renderAiCoachTab(),
+  propfirms: () => renderPropFirmsTab(),
   settings: () => renderSettingsTab()
 };
 
@@ -59,10 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
     handled = true;
     JOURNAL_UID = user.uid;
 
-    Promise.all([loadAllTrades(JOURNAL_UID), loadJournalSettings(JOURNAL_UID)])
-      .then(([trades, settings]) => {
+    Promise.all([loadAllTrades(JOURNAL_UID), loadJournalSettings(JOURNAL_UID), loadPropFirms(JOURNAL_UID)])
+      .then(([trades, settings, propFirms]) => {
         JOURNAL_TRADES = trades;
         JOURNAL_SETTINGS = settings;
+        PF_DATA = propFirms;
         resetTradeForm();
         switchJournalTab('dashboard');
       })

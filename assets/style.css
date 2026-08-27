@@ -3463,3 +3463,140 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
   html[data-device="tablet"] .mobile-topnav #dash-menu-toggle{ display:none; }
   html[data-device="tablet"] .sidebar-backdrop{ display:none !important; }
 }
+
+/* --------------------------------------------------------------------------
+   TRADE JOURNAL v2 — motion pass, AI Coach, prop firm tracker
+   -------------------------------------------------------------------------- */
+
+/* Tab panels glide in when switched (display toggle restarts the animation). */
+.journal-tab-panel{ animation:gmPanelIn .3s cubic-bezier(.2,.7,.3,1) both; }
+
+/* Stat cards get a gentle lift site-wide — they were fully static before. */
+.stat-card{ transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease; }
+.stat-card:hover{
+  transform:translateY(-2px); border-color:#3a3a42;
+  box-shadow:0 12px 30px -18px rgba(0,0,0,.7);
+}
+
+/* Shared empty state ---------------------------------------------------------- */
+.pf-empty{
+  border:1px dashed var(--line); border-radius:12px;
+  padding:34px 24px; text-align:center;
+}
+.pf-empty h3{ font-size:16px; margin:0 0 10px; text-wrap:balance; }
+.pf-empty p{ font-size:13.5px; color:var(--ink-2); max-width:52ch; margin:0 auto; line-height:1.65; }
+
+/* Prop firms ------------------------------------------------------------------ */
+.pf-add-row{ display:grid; grid-template-columns:2fr 1.4fr auto; gap:10px; }
+@media (max-width:640px){ .pf-add-row{ grid-template-columns:1fr; } }
+.pf-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
+  gap:14px;
+}
+.pf-card{
+  border:1px solid var(--line); border-radius:12px; background:var(--bg-2);
+  padding:16px; display:flex; flex-direction:column; gap:12px;
+  transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.pf-card:hover{
+  transform:translateY(-2px); border-color:#3a3a42;
+  box-shadow:0 14px 34px -20px rgba(0,0,0,.75);
+}
+.pf-card-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.pf-card-title b{ font-size:15px; color:var(--ink-0); display:block; }
+.pf-acct{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }
+.pf-status-select{
+  background:var(--bg-3); border:1px solid; border-radius:999px;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  padding:3px 8px; cursor:pointer; outline:none;
+}
+.pf-bars{ display:flex; flex-direction:column; gap:7px; }
+.pf-bar-row{ display:grid; grid-template-columns:52px 1fr auto; gap:10px; align-items:center; }
+.pf-bar-label{ font-size:11px; color:var(--ink-3); text-transform:uppercase; letter-spacing:.06em; }
+.pf-bar{ height:6px; border-radius:4px; background:var(--bg-3); overflow:hidden; }
+.pf-bar i{ display:block; height:100%; border-radius:4px; transition:width .6s cubic-bezier(.2,.7,.3,1); }
+.pf-bar i.is-win{ background:var(--bull); }
+.pf-bar i.is-loss{ background:var(--bear); }
+.pf-bar-val{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-1); font-variant-numeric:tabular-nums; }
+.pf-net-row{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.pf-net{ font-family:var(--font-mono); font-size:16px; font-weight:700; color:var(--ink-0); }
+.pf-roi{ font-family:var(--font-mono); font-size:11px; color:var(--ink-3); }
+.pf-entries summary{
+  cursor:pointer; font-family:var(--font-mono); font-size:11px; color:var(--ink-3);
+  list-style:none; padding:2px 0;
+}
+.pf-entries summary::before{ content:'▸ '; color:var(--gold); }
+.pf-entries[open] summary::before{ content:'▾ '; }
+.pf-entry{
+  display:grid; grid-template-columns:8px minmax(0,1fr) auto auto 22px;
+  gap:8px; align-items:center; padding:6px 0;
+  border-bottom:1px solid var(--line-soft); font-size:12px;
+}
+.pf-entry:last-child{ border-bottom:none; }
+.pf-entry i{ width:7px; height:7px; border-radius:50%; display:block; }
+.pf-entry i.is-win{ background:var(--bull); }
+.pf-entry i.is-loss{ background:var(--bear); }
+.pf-entry-label{ color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pf-entry-date{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }
+.pf-entry-amt{ font-family:var(--font-mono); font-size:11.5px; font-variant-numeric:tabular-nums; }
+.pf-entry-del{
+  background:none; border:none; color:var(--ink-3); cursor:pointer;
+  font-size:15px; line-height:1; padding:2px; border-radius:5px;
+}
+.pf-entry-del:hover{ color:var(--bear); background:rgba(229,72,77,.1); }
+.pf-card-actions{ display:flex; gap:8px; align-items:center; }
+.pf-delete-firm{
+  margin-left:auto; background:none; border:none; cursor:pointer;
+  font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3);
+}
+.pf-delete-firm:hover{ color:var(--bear); }
+.pf-inline-form{
+  display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:8px;
+  padding-top:12px; border-top:1px solid var(--line-soft);
+}
+.pf-inline-form .btn{ grid-column:span 1; }
+@media (max-width:640px){ .pf-inline-form{ grid-template-columns:1fr 1fr; } }
+.pf-inline-form input, .pf-inline-form select{
+  background:var(--bg-1); border:1px solid var(--line); border-radius:8px;
+  color:var(--ink-0); padding:8px 10px; font-size:13px; outline:none;
+}
+.pf-inline-form input:focus, .pf-inline-form select:focus{ border-color:var(--gold-dim); }
+
+/* AI Coach -------------------------------------------------------------------- */
+.jai-hero{
+  display:grid; grid-template-columns:170px 1fr; gap:22px; align-items:center;
+  border:1px solid var(--line); border-radius:12px;
+  background:linear-gradient(180deg, rgba(3,201,136,.05), transparent 200px), var(--bg-1);
+  padding:20px; margin-bottom:18px;
+}
+@media (max-width:640px){ .jai-hero{ grid-template-columns:1fr; text-align:center; } }
+.jai-gauge svg{ width:100%; max-width:170px; height:auto; }
+.jai-gauge-num{ font-family:var(--font-mono); font-size:34px; font-weight:700; }
+.jai-gauge-sub{ font-family:var(--font-mono); font-size:8.5px; letter-spacing:.2em; }
+.jai-verdict p{ font-size:14px; line-height:1.7; color:var(--ink-1); margin:10px 0 0; }
+.jai-actions{
+  border:1px solid rgba(245,197,66,.3); border-radius:12px;
+  background:rgba(245,197,66,.05); padding:16px 18px; margin-bottom:18px;
+}
+.jai-actions h4{
+  margin:0 0 10px; font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--amber); font-weight:700;
+}
+.jai-actions ol{ margin:0; padding-left:20px; }
+.jai-actions li{ font-size:13.5px; color:var(--ink-1); line-height:1.7; }
+.jai-cards{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:12px;
+}
+.jai-card{
+  border:1px solid var(--line); border-left:3px solid; border-radius:10px;
+  background:var(--bg-2); padding:14px 16px;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.jai-card:hover{ transform:translateY(-2px); box-shadow:0 12px 30px -18px rgba(0,0,0,.7); }
+.jai-card-tag{
+  font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:.14em;
+  border:1px solid; border-radius:4px; padding:2px 7px; display:inline-block;
+  margin-bottom:8px;
+}
+.jai-card h5{ font-size:13.5px; margin:0 0 6px; color:var(--ink-0); }
+.jai-card p{ font-size:12.5px; color:var(--ink-2); line-height:1.65; margin:0; }

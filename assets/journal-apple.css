@@ -1,4 +1,5 @@
-/* Stryker Trading Academy — Trade Journal "Glass" skin (Apple-like).
+/* Stryker Trading Academy — Trade Journal "Glass" skin.
+   Apple glass surfaces + Google Material tonal color, state layers and FAB.
    TEMPORARY overlay: loaded after style.css on trade-journal.html only,
    scoped to that page via body[data-page-access="trade-journal"].
    Removing its single <link> tag reverts the journal to the house style. */
@@ -12,7 +13,9 @@ body[data-page-access="trade-journal"]{
   --ja-glass: rgba(255,255,255,0.055);
   --ja-glass-2: rgba(255,255,255,0.09);
   --ja-hairline: rgba(255,255,255,0.09);
-  --ja-blue: #0a84ff;
+  --ja-blue: #4285f4;          /* Google blue for focus/interaction states */
+  --ja-tonal: rgba(245,197,66,0.14);   /* Material "primary container" tone */
+  --ja-tonal-ink: #f8d569;
   background:#0a0a0c;
 }
 
@@ -73,9 +76,9 @@ body[data-page-access="trade-journal"] #journal-tabs .level-tab{
 }
 body[data-page-access="trade-journal"] #journal-tabs .level-tab:hover{ color:var(--ja-ink); }
 body[data-page-access="trade-journal"] #journal-tabs .level-tab.active{
-  background:rgba(255,255,255,0.14);
-  color:var(--ja-ink);
-  box-shadow:0 1px 4px rgba(0,0,0,0.35);
+  background:var(--ja-tonal);
+  color:var(--ja-tonal-ink);
+  box-shadow:none;
 }
 
 /* ---- hero numbers: big, light-tracked SF ---- */
@@ -115,7 +118,7 @@ body[data-page-access="trade-journal"] .dash-main input:focus,
 body[data-page-access="trade-journal"] .dash-main select:focus,
 body[data-page-access="trade-journal"] .dash-main textarea:focus{
   outline:none; border-color:var(--ja-blue);
-  box-shadow:0 0 0 3.5px rgba(10,132,255,0.28);
+  box-shadow:0 0 0 3.5px rgba(66,133,244,0.3);
 }
 body[data-page-access="trade-journal"] .dash-main .btn{
   border-radius:12px; font-family:var(--ja-font); font-weight:600;
@@ -133,7 +136,8 @@ body[data-page-access="trade-journal"] .term-cat{
   border:1px solid var(--ja-hairline); font-family:var(--ja-font);
 }
 body[data-page-access="trade-journal"] .term-cat.is-on{
-  background:rgba(255,255,255,0.13); color:var(--ja-ink);
+  background:var(--ja-tonal); border-color:rgba(245,197,66,0.4);
+  color:var(--ja-tonal-ink);
 }
 
 /* ---- calendars: soft rounded cells ---- */
@@ -171,4 +175,70 @@ body[data-page-access="trade-journal"] .jcard-box{
   backdrop-filter:blur(30px) saturate(1.4);
   -webkit-backdrop-filter:blur(30px) saturate(1.4);
   border:1px solid var(--ja-hairline);
+}
+
+/* ==== Material layer: tonal surfaces, state layers, pill buttons, FAB ==== */
+
+/* faint primary surface tint on every glass card (Material surface tint) */
+body[data-page-access="trade-journal"] .panel,
+body[data-page-access="trade-journal"] .stat-card,
+body[data-page-access="trade-journal"] .pf-card{
+  background:linear-gradient(180deg, rgba(245,197,66,0.02), var(--ja-glass) 45%);
+}
+
+/* Material buttons: full pills, hover elevation, press scale */
+body[data-page-access="trade-journal"] .dash-main .btn,
+body[data-page-access="trade-journal"] .jcard-box .btn{
+  border-radius:999px;
+  transition:filter .15s ease, box-shadow .15s ease, transform .1s ease, background .15s ease;
+}
+body[data-page-access="trade-journal"] .dash-main .btn-primary:hover,
+body[data-page-access="trade-journal"] .jcard-box .btn-primary:hover{
+  filter:brightness(1.07);
+  box-shadow:0 4px 14px rgba(245,197,66,0.3);
+}
+body[data-page-access="trade-journal"] .dash-main .btn:active{
+  transform:scale(0.97);
+}
+
+/* state layers: rows and cards brighten by an overlay on hover */
+body[data-page-access="trade-journal"] .journal-trade-row:hover,
+body[data-page-access="trade-journal"] .jz-recent-row:hover{
+  background:rgba(255,255,255,0.05);
+}
+body[data-page-access="trade-journal"] .jz-log-row:hover td{
+  background:rgba(255,255,255,0.05);
+}
+body[data-page-access="trade-journal"] .jz-recent-row{
+  border-radius:12px; transition:background .15s ease;
+}
+
+/* selected calendar-option chips and payout toggle: tonal fills already
+   carry the Material container look; give unselected ones a state layer */
+body[data-page-access="trade-journal"] .term-cat:hover{
+  background:rgba(255,255,255,0.1);
+}
+
+/* Material FAB: quick jump to Add trade from anywhere in the journal */
+body[data-page-access="trade-journal"] .ja-fab{
+  position:fixed; right:26px; bottom:26px; z-index:120;
+  width:58px; height:58px; border-radius:18px; border:none; cursor:pointer;
+  background:linear-gradient(160deg, #f8d569, #f5c542);
+  color:#141414; font-size:28px; font-weight:500; line-height:1;
+  font-family:var(--ja-font);
+  box-shadow:0 6px 20px rgba(245,197,66,0.35), 0 2px 6px rgba(0,0,0,0.4);
+  transition:transform .15s ease, box-shadow .15s ease;
+  display:flex; align-items:center; justify-content:center;
+}
+body[data-page-access="trade-journal"] .ja-fab:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 26px rgba(245,197,66,0.45), 0 3px 8px rgba(0,0,0,0.45);
+}
+body[data-page-access="trade-journal"] .ja-fab:active{ transform:scale(0.94); }
+@media (max-width:640px){
+  body[data-page-access="trade-journal"] .ja-fab{ right:18px; bottom:18px; width:54px; height:54px; }
+}
+@media (prefers-reduced-motion: reduce){
+  body[data-page-access="trade-journal"] .ja-fab,
+  body[data-page-access="trade-journal"] .dash-main .btn{ transition:none; }
 }

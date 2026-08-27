@@ -41,24 +41,69 @@
   if (typeof auth === 'undefined' || !auth) { revealPageContent(); return; }
 
   function showPlanPaywall(requiredRoleName){
-    const shell = document.querySelector('.dash-shell');
-    if (shell) shell.classList.add('paywall-dimmed');
-
-    const overlay = document.getElementById('guest-paywall-overlay');
-    if (overlay) {
-      const heading = document.getElementById('paywall-heading');
-      const body = document.getElementById('paywall-body');
-      const actions = document.getElementById('paywall-actions');
-      if (heading) heading.textContent = 'Upgrade to unlock this page';
-      if (body) {
-        body.textContent = requiredRoleName
-          ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
-          : 'This page requires an active plan. Upgrade to keep going.';
-      }
-      if (actions) actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="' + (requiredRoleName ? ('This page needs the ' + requiredRoleName + ' plan.') : 'This page needs a higher plan.') + '">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
-      overlay.style.display = 'flex';
+    let overlay = document.getElementById('guest-paywall-overlay');
+    // A page without the shared overlay markup still gets the card.
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'paywall-overlay';
+      overlay.id = 'guest-paywall-overlay';
+      overlay.innerHTML = '<div class="paywall-card">' +
+        '<div class="paywall-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>' +
+        '<h2 id="paywall-heading"></h2><p id="paywall-body"></p>' +
+        '<div class="paywall-actions" id="paywall-actions"></div></div>';
+      document.body.appendChild(overlay);
     }
-    revealPageContent(); // reveal already-dimmed, with the card on top — never a sharp frame first
+    const heading = document.getElementById('paywall-heading');
+    const body = document.getElementById('paywall-body');
+    const actions = document.getElementById('paywall-actions');
+    if (heading) heading.textContent = 'Upgrade to unlock this page';
+    if (body) {
+      body.textContent = requiredRoleName
+        ? ('This page requires the ' + requiredRoleName + ' plan. Upgrade to keep going.')
+        : 'This page requires an active plan. Upgrade to keep going.';
+    }
+    if (actions) actions.innerHTML = '<button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="' + (requiredRoleName ? ('This page needs the ' + requiredRoleName + ' plan.') : 'This page needs a higher plan.') + '">See plans</button><a href="dashboard-user.html" class="btn btn-ghost">Back to dashboard</a>';
+
+    // Paywall only the CONTENT column: the sidebar and top nav stay live so
+    // a locked page never traps the student — they can keep navigating.
+    const main = document.querySelector('.dash-main');
+    if (main) {
+      Array.from(main.children).forEach((c) => { if (c !== overlay) c.style.display = 'none'; });
+      overlay.classList.add('paywall-inline');
+      main.appendChild(overlay);
+    } else {
+      // no main column on this page — fall back to the full-screen overlay
+      const shell = document.querySelector('.dash-shell');
+      if (shell) shell.classList.add('paywall-dimmed');
+    }
+    overlay.style.display = 'flex';
+    revealPageContent();
+  }
+
+  // ---- sidebar lock badges ------------------------------------------------
+  // A subtle lock on every sidebar link whose page the current plan can't
+  // open, so students see what's gated before they click.
+  const PAGE_KEY_BY_FILE = {
+    'courses.html': 'curriculum', 'models.html': 'models', 'indicators.html': 'indicators',
+    'live-sessions.html': 'live-sessions', 'achievements.html': 'achievements',
+    'global-monitor.html': 'global-monitor', 'trading-floor.html': 'trading-floor',
+    'trade-journal.html': 'trade-journal', 'referrals.html': 'referrals'
+  };
+
+  function annotateSidebarLocks(plan, pageAccess){
+    if (!pageAccess || typeof getPageAccessLevel !== 'function') return;
+    document.querySelectorAll('.sidebar a.side-link').forEach((a) => {
+      const file = (a.getAttribute('href') || '').split(/[?#]/)[0];
+      const key = PAGE_KEY_BY_FILE[file];
+      if (!key) return;
+      const level = getPageAccessLevel(plan, pageAccess[key]);
+      if (level !== 'blocked' || a.querySelector('.side-lock')) return;
+      const s = document.createElement('span');
+      s.className = 'side-lock';
+      s.title = 'Upgrade to unlock';
+      s.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+      a.appendChild(s);
+    });
   }
 
   let handled = false;
@@ -85,6 +130,8 @@
       // Published so plan-modal.js can offer only genuine UPGRADES rather
       // than listing the tier they already hold alongside a downgrade.
       window.__strykerCurrentPlan = plan;
+
+      annotateSidebarLocks(plan, pageAccess);
 
       if (!pageKey) {
         // Ungated page: nothing to check. This used to paywall anyone with no

@@ -3927,3 +3927,16 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
   display:block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--ink-3); margin-bottom:8px;
 }
+
+/* ---- plan gating: sidebar locks + content-only paywall ---- */
+.side-link .side-lock{
+  margin-left:auto; display:inline-flex; align-items:center;
+  color:var(--ink-3); opacity:.55; flex-shrink:0;
+}
+.side-link:hover .side-lock{ opacity:.9; color:var(--gold); }
+.paywall-overlay.paywall-inline{
+  position:static; inset:auto; width:auto; height:auto;
+  background:transparent; backdrop-filter:none;
+  display:flex; justify-content:center; align-items:flex-start;
+  padding:56px 0;
+}

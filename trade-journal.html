@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="201">
+<meta name="stryker-build" content="202">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trade Journal — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=201">
-<script src="assets/device-mode.js?v=201"></script>
-<script src="assets/toast.js?v=201" defer></script>
-<script src="assets/version-check.js?v=201" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=202">
+<script src="assets/device-mode.js?v=202"></script>
+<script src="assets/toast.js?v=202" defer></script>
+<script src="assets/version-check.js?v=202" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -316,12 +316,25 @@
           <h2>Import &amp; export</h2>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-          <button class="btn btn-primary btn-sm" id="ji-open-btn">Import CSV</button>
+          <button class="btn btn-primary btn-sm" id="ji-open-btn">Import trades</button>
+          <button class="btn btn-ghost btn-sm" id="ji-open-payouts">Import payouts</button>
+          <button class="btn btn-ghost btn-sm" id="ji-open-expenses">Import expenses</button>
+          <button class="btn btn-ghost btn-sm" id="ji-open-combined">Import combined</button>
           <button class="btn btn-ghost btn-sm" id="ji-export-btn">Export CSV</button>
-          <a class="btn btn-ghost btn-sm" href="assets/samples/sample-trades.csv" download>Download sample CSV</a>
           <input type="file" id="ji-file" accept=".csv,text/csv" style="display:none;">
-          <span style="font-size:12px; color:var(--ink-3);">Works with exports from most brokers and journals — you can adjust the column mapping before anything is saved.</span>
         </div>
+        <p style="font-size:12px; color:var(--ink-3); margin:12px 0 0;">
+          Trades files work with exports from most brokers and journals — you can adjust the column mapping before anything is saved.
+          Payout/expense files need Firm, Date and Amount columns; a combined file adds a Type column (trade / payout / expense) and everything routes automatically, creating any firm it doesn't know yet.
+        </p>
+        <p style="font-size:12px; color:var(--ink-3); margin:8px 0 0;">
+          Sample data (4 months):
+          <a href="assets/samples/sample-trades-4months.csv" download>trades</a> ·
+          <a href="assets/samples/sample-payouts.csv" download>payouts</a> ·
+          <a href="assets/samples/sample-expenses.csv" download>expenses</a> ·
+          <a href="assets/samples/sample-combined.csv" download>combined</a> ·
+          <a href="assets/samples/sample-trades.csv" download>small trades file</a>
+        </p>
         <div id="ji-panel" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
           <div class="panel-head" style="margin-bottom:12px;"><h2 style="font-size:14px;">Map your columns</h2>
             <span id="ji-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span></div>
@@ -511,7 +524,7 @@
 
       <div class="panel">
         <div class="panel-head"><h2>Demo data</h2></div>
-        <p style="font-size:13px; color:var(--ink-3); margin:0 0 14px;">Explore every journal feature with a realistic sample: dozens of trades from the last two months plus three prop-firm accounts. Demo entries are marked internally, so removing them never touches your real trades.</p>
+        <p style="font-size:13px; color:var(--ink-3); margin:0 0 14px;">Explore every journal feature with a realistic sample: four months of trades plus three prop-firm accounts with payouts and fees. Demo entries are marked internally, so removing them never touches your real trades.</p>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn btn-primary btn-sm" id="jd-load-btn">Load demo data</button>
           <button class="btn btn-ghost btn-sm" id="jd-clear-btn">Remove demo data</button>
@@ -561,45 +574,45 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=201"></script>
-<script src="assets/gate-timeout.js?v=201"></script>
-<script src="assets/progress.js?v=201"></script>
-<script src="assets/presence.js?v=201"></script>
-<script src="assets/messages.js?v=201"></script>
-<script src="assets/messages-badge.js?v=201"></script>
-<script src="assets/gm-badge.js?v=201"></script>
-<script src="assets/activity-log.js?v=201"></script>
-<script src="assets/banned-check.js?v=201"></script>
-<script src="assets/email-verify.js?v=201"></script>
-<script src="assets/achievements-data.js?v=201"></script>
-<script src="assets/notifications.js?v=201"></script>
+<script src="assets/auth.js?v=202"></script>
+<script src="assets/gate-timeout.js?v=202"></script>
+<script src="assets/progress.js?v=202"></script>
+<script src="assets/presence.js?v=202"></script>
+<script src="assets/messages.js?v=202"></script>
+<script src="assets/messages-badge.js?v=202"></script>
+<script src="assets/gm-badge.js?v=202"></script>
+<script src="assets/activity-log.js?v=202"></script>
+<script src="assets/banned-check.js?v=202"></script>
+<script src="assets/email-verify.js?v=202"></script>
+<script src="assets/achievements-data.js?v=202"></script>
+<script src="assets/notifications.js?v=202"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=201"></script>
-<script src="assets/admin-link.js?v=201"></script>
-<script src="assets/profiles-sync.js?v=201"></script>
+<script src="assets/push.js?v=202"></script>
+<script src="assets/admin-link.js?v=202"></script>
+<script src="assets/profiles-sync.js?v=202"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=201"></script>
-<script src="assets/avatars.js?v=201"></script>
-<script src="assets/account-menu.js?v=201"></script>
-<script src="assets/referrals.js?v=201"></script>
-<script src="assets/roles.js?v=201"></script>
-<script src="assets/plan-modal.js?v=201"></script>
-<script src="assets/plan-guard.js?v=201"></script>
-<script src="assets/maintenance-check.js?v=201"></script>
-<script src="assets/branding.js?v=201"></script>
-<script src="assets/dash-nav.js?v=201"></script>
+<script src="assets/loading-animation.js?v=202"></script>
+<script src="assets/avatars.js?v=202"></script>
+<script src="assets/account-menu.js?v=202"></script>
+<script src="assets/referrals.js?v=202"></script>
+<script src="assets/roles.js?v=202"></script>
+<script src="assets/plan-modal.js?v=202"></script>
+<script src="assets/plan-guard.js?v=202"></script>
+<script src="assets/maintenance-check.js?v=202"></script>
+<script src="assets/branding.js?v=202"></script>
+<script src="assets/dash-nav.js?v=202"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="assets/journal-calc.js?v=201"></script>
-<script src="assets/journal-data.js?v=201"></script>
-<script src="assets/journal-charts.js?v=201"></script>
-<script src="assets/journal-history-calendar.js?v=201"></script>
-<script src="assets/journal-form-settings.js?v=201"></script>
-<script src="assets/journal-propfirms.js?v=201"></script>
-<script src="assets/journal-ai.js?v=201"></script>
-<script src="assets/journal-zella.js?v=201"></script>
-<script src="assets/journal-import.js?v=201"></script>
-<script src="assets/journal-card.js?v=201"></script>
-<script src="assets/journal-demo.js?v=201"></script>
-<script src="assets/journal-main.js?v=201"></script>
+<script src="assets/journal-calc.js?v=202"></script>
+<script src="assets/journal-data.js?v=202"></script>
+<script src="assets/journal-charts.js?v=202"></script>
+<script src="assets/journal-history-calendar.js?v=202"></script>
+<script src="assets/journal-form-settings.js?v=202"></script>
+<script src="assets/journal-propfirms.js?v=202"></script>
+<script src="assets/journal-ai.js?v=202"></script>
+<script src="assets/journal-zella.js?v=202"></script>
+<script src="assets/journal-import.js?v=202"></script>
+<script src="assets/journal-card.js?v=202"></script>
+<script src="assets/journal-demo.js?v=202"></script>
+<script src="assets/journal-main.js?v=202"></script>
 </body>
 </html>

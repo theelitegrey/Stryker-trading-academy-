@@ -55,7 +55,7 @@ const JD_NOTES_LOSS = [
 function jdRound(v, dec){ return parseFloat(v.toFixed(dec)); }
 
 // Build the full demo trade list (pure — no Firestore, unit-testable).
-// A few dozen trades across the last ~60 days: a believable but imperfect
+// Trades across the last ~4 months: a believable but imperfect
 // journal (~55% win rate, a couple of revenge-trade clusters, one oversized
 // loss) so the AI coach and analytics have real material to critique.
 function jdBuildTrades(settings){
@@ -66,7 +66,7 @@ function jdBuildTrades(settings){
   today.setHours(12, 0, 0, 0);
 
   let lastWasLoss = false;
-  for (let back = 60; back >= 0; back--) {
+  for (let back = 122; back >= 0; back--) {
     const d = new Date(today.getTime() - back * 86400000);
     const dow = d.getDay();
     if (dow === 0 || dow === 6) continue;          // weekends: markets closed
@@ -138,12 +138,16 @@ function jdBuildFirms(){
       id: pfId(), name: JD_FIRM_NAMES[0], status: 'funded', accountSize: 100000,
       accountType: '2-Step Evaluation', demo: true,
       expenses: [
-        { id: pfId(), label: 'Challenge fee', amount: 540, date: ago(88) },
-        { id: pfId(), label: 'Data fee', amount: 39, date: ago(60) }
+        { id: pfId(), label: 'Challenge fee', amount: 540, date: ago(118) },
+        { id: pfId(), label: 'Data fee', amount: 39, date: ago(90) },
+        { id: pfId(), label: 'Data fee', amount: 39, date: ago(60) },
+        { id: pfId(), label: 'Data fee', amount: 39, date: ago(30) }
       ],
       payouts: [
-        { id: pfId(), amount: 2240, date: ago(34), note: 'First payout', via: 'Wise' },
-        { id: pfId(), amount: 3125, date: ago(6), note: 'Second payout', via: 'Rise' }
+        { id: pfId(), amount: 1850, date: ago(98), note: 'First payout', via: 'Wise' },
+        { id: pfId(), amount: 2240, date: ago(68), note: '', via: 'Wise' },
+        { id: pfId(), amount: 2760, date: ago(34), note: '', via: 'Rise' },
+        { id: pfId(), amount: 3125, date: ago(6), note: 'Best month so far', via: 'Rise' }
       ]
     },
     {

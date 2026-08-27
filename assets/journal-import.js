@@ -113,8 +113,10 @@ function jiDirection(v){
 let JI_ROWS = [];        // parsed data rows
 let JI_HEADERS = [];
 let JI_MAP = {};
+let JI_MODE = 'trades';  // trades | payouts | expenses | combined
 
-function jiOpenPicker(){
+function jiOpenPicker(mode){
+  JI_MODE = mode || 'trades';
   document.getElementById('ji-file').click();
 }
 
@@ -125,6 +127,11 @@ function jiHandleFile(file){
     const rows = jiParseCsv(String(reader.result || ''));
     if (rows.length < 2) {
       showToast('error', 'That file has no data rows.');
+      return;
+    }
+    if (JI_MODE !== 'trades') {
+      jiImportLedger(rows, JI_MODE);
+      document.getElementById('ji-file').value = '';
       return;
     }
     JI_HEADERS = rows[0].map((h) => String(h).trim());
@@ -299,6 +306,155 @@ function jiRunImport(){
   });
 }
 
+// ---- payout / expense (ledger) import ---------------------------------------
+// Payout and expense files skip the mapping UI: they're small and their
+// columns auto-map reliably. A combined file carries a Type column that
+// routes each row — trade rows go through the full trade pipeline, payout
+// and expense rows into the prop-firm tracker. Unknown firms are created
+// automatically, which is what links the three data sets together.
+const JIL_SYN = {
+  type:     ['type', 'kind', 'record type', 'entry type'],
+  firm:     ['firm', 'prop firm', 'firm name', 'company', 'provider', 'account', 'trading account'],
+  date:     ['date', 'paid on', 'received on', 'payout date', 'expense date'],
+  amount:   ['amount', 'amount usd', 'value', 'payout', 'payout amount', 'expense', 'expense amount', 'fee', 'price'],
+  category: ['category', 'label', 'expense type', 'fee type', 'expense category'],
+  via:      ['received via', 'via', 'method', 'payment method', 'rail'],
+  bank:     ['bank received', 'received in bank', 'bank', 'local amount', 'bank amount'],
+  note:     ['notes', 'note', 'description', 'memo', 'comment', 'comments']
+};
+
+function jilAutoMap(headers){
+  const map = {}, used = new Set();
+  const norm = headers.map((h) => String(h).toLowerCase().replace(/[^a-z0-9&/ ]+/g, ' ').replace(/\s+/g, ' ').trim());
+  Object.keys(JIL_SYN).forEach((k) => {
+    let idx = norm.findIndex((h, i) => !used.has(i) && JIL_SYN[k].indexOf(h) !== -1);
+    if (idx === -1) idx = norm.findIndex((h, i) => !used.has(i) && JIL_SYN[k].some((s) => s.length > 2 && h.indexOf(s) !== -1));
+    if (idx !== -1) { map[k] = idx; used.add(idx); }
+  });
+  return map;
+}
+
+// Find the firm by name (case-insensitive) or create it, so an imported
+// ledger never silently drops rows for firms that weren't added by hand.
+function jilFirmFor(name){
+  const clean = String(name || '').trim().slice(0, 40);
+  if (!clean) return null;
+  let firm = PF_DATA.firms.find((f) => f.name.toLowerCase() === clean.toLowerCase());
+  if (!firm) {
+    firm = { id: pfId(), name: clean, status: 'evaluation', accountSize: null, expenses: [], payouts: [] };
+    PF_DATA.firms.unshift(firm);
+  }
+  return firm;
+}
+
+function jilApplyRow(kind, row, map){
+  const firm = jilFirmFor(map.firm !== undefined ? row[map.firm] : '');
+  const amount = jiNum(map.amount !== undefined ? row[map.amount] : null);
+  const dt = jiDate(map.date !== undefined ? row[map.date] : '');
+  if (!firm || amount === null || amount <= 0 || !dt.date) return 'bad';
+  const list = kind === 'payout' ? (firm.payouts = firm.payouts || []) : (firm.expenses = firm.expenses || []);
+  // duplicate guard: same firm + date + amount already logged
+  if (list.some((e) => e.date === dt.date && Math.abs((parseFloat(e.amount) || 0) - amount) < 0.005)) return 'dup';
+  const note = String(map.note !== undefined ? (row[map.note] || '') : '').trim().slice(0, 120);
+  if (kind === 'payout') {
+    const via = String(map.via !== undefined ? (row[map.via] || '') : '').trim().slice(0, 40);
+    const bank = String(map.bank !== undefined ? (row[map.bank] || '') : '').trim().slice(0, 40);
+    list.push({ id: pfId(), amount, date: dt.date, note, via: via || null, bank: bank || null });
+  } else {
+    const label = String(map.category !== undefined ? (row[map.category] || '') : '').trim().slice(0, 40) || 'Other';
+    list.push({ id: pfId(), label, amount, date: dt.date, note: note || null });
+  }
+  return 'ok';
+}
+
+function jiImportLedger(rows, mode){
+  const headers = rows[0].map((h) => String(h).trim());
+  const dataRows = rows.slice(1);
+  const map = jilAutoMap(headers);
+  if (map.firm === undefined || map.amount === undefined || map.date === undefined) {
+    showToast('error', 'Need Firm, Date and Amount columns — check the file headers.');
+    return;
+  }
+  if (mode === 'combined' && map.type === undefined) {
+    showToast('error', 'A combined file needs a Type column (trade / payout / expense).');
+    return;
+  }
+
+  // Combined: trade rows use the trade auto-mapper, with the Type column
+  // masked so it can't be mistaken for the trade Side column.
+  const tradeMap = mode === 'combined'
+    ? jiAutoMap(headers.map((h, i) => (i === map.type ? '__record_type__' : h)))
+    : null;
+
+  let ledgerOk = 0, dup = 0, bad = 0;
+  const tradeRows = [];
+  dataRows.forEach((row) => {
+    let kind = mode === 'combined'
+      ? String(row[map.type] || '').trim().toLowerCase()
+      : (mode === 'payouts' ? 'payout' : 'expense');
+    if (kind === 'payouts') kind = 'payout';
+    if (kind === 'expenses' || kind === 'fee') kind = 'expense';
+    if (kind === 'trade' || kind === 'trades') { tradeRows.push(row); return; }
+    if (kind !== 'payout' && kind !== 'expense') { bad++; return; }
+    const r = jilApplyRow(kind, row, map);
+    if (r === 'ok') ledgerOk++; else if (r === 'dup') dup++; else bad++;
+  });
+
+  // Trade rows from a combined file — same duplicate guard as the trade import.
+  const tradesToWrite = [];
+  if (tradeRows.length && tradeMap) {
+    const seen = new Set((JOURNAL_TRADES || []).map((t) =>
+      [t.date, t.time || '', t.instrument || '', t.pnl].join('|')));
+    tradeRows.forEach((row) => {
+      const t = jiRowToTrade(row, tradeMap);
+      if (!t) { bad++; return; }
+      const key = [t.date, t.time || '', t.instrument || '', t.pnl].join('|');
+      if (seen.has(key)) { dup++; return; }
+      seen.add(key);
+      tradesToWrite.push(t);
+    });
+  }
+
+  const col = journalCollectionRef(JOURNAL_UID);
+  let done = Promise.resolve();
+  for (let i = 0; i < tradesToWrite.length; i += 350) {
+    const chunk = tradesToWrite.slice(i, i + 350);
+    done = done.then(() => {
+      const batch = db.batch();
+      chunk.forEach((t) => batch.set(col.doc(), Object.assign({}, t, {
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      })));
+      return batch.commit();
+    });
+  }
+
+  done.then(() => {
+    if (tradesToWrite.length) {
+      const counterUpdate = { journalEntryCount: firebase.firestore.FieldValue.increment(tradesToWrite.length) };
+      if (tradesToWrite.some((t) => t.pnl > 0)) counterUpdate.hasWinningTrade = true;
+      return db.collection('students').doc(JOURNAL_UID).set(counterUpdate, { merge: true }).catch(() => {});
+    }
+  }).then(() => {
+    return ledgerOk > 0 ? savePropFirms(JOURNAL_UID) : null;
+  }).then(() => {
+    const parts = [];
+    if (tradesToWrite.length) parts.push(tradesToWrite.length + ' trade' + (tradesToWrite.length === 1 ? '' : 's'));
+    if (ledgerOk) parts.push(ledgerOk + ' payout/expense entr' + (ledgerOk === 1 ? 'y' : 'ies'));
+    if (!parts.length) {
+      showToast('error', 'Nothing new to import' + (dup ? ' — ' + dup + ' duplicates skipped.' : '.'));
+      return;
+    }
+    showToast('success', 'Imported ' + parts.join(' + ') +
+      (dup ? ' (' + dup + ' duplicates skipped)' : '') +
+      (bad ? ' · ' + bad + ' rows unreadable' : '') + '.');
+    return reloadJournalData();
+  }).catch((err) => {
+    console.error('Stryker: ledger import failed', err);
+    showToast('error', 'Import failed: ' + (err.message || err));
+  });
+}
+
 // ---- export -----------------------------------------------------------------
 function jiExportCsv(){
   const trades = (JOURNAL_TRADES || []).slice().reverse();   // oldest first
@@ -327,7 +483,12 @@ function jiExportCsv(){
 document.addEventListener('DOMContentLoaded', () => {
   const file = document.getElementById('ji-file');
   if (!file) return;
-  document.getElementById('ji-open-btn').addEventListener('click', jiOpenPicker);
+  document.getElementById('ji-open-btn').addEventListener('click', () => jiOpenPicker('trades'));
+  [['ji-open-payouts', 'payouts'], ['ji-open-expenses', 'expenses'], ['ji-open-combined', 'combined']]
+    .forEach(([id, mode]) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', () => jiOpenPicker(mode));
+    });
   file.addEventListener('change', () => jiHandleFile(file.files[0]));
   document.getElementById('ji-import-btn').addEventListener('click', jiRunImport);
   document.getElementById('ji-cancel-btn').addEventListener('click', () => {

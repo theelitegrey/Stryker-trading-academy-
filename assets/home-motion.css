@@ -188,3 +188,113 @@
   .m-rotate { transition: none !important; }
   .m-tilt { transition: none !important; transform: none !important; }
 }
+
+/* ==========================================================================
+   GRAPHICS LAYER (build 209) — tape, module vignettes, AMD diagram, rail
+   ========================================================================== */
+
+/* Live market tape under the hero */
+.mtape{ border-bottom:1px solid var(--line-soft); background:rgba(255,255,255,0.015); overflow:hidden; }
+.mtape-track{ display:inline-flex; align-items:center; gap:18px; padding:10px 16px; white-space:nowrap; will-change:transform; }
+.mtape-track.scrolling{ animation:mtapeScroll 60s linear infinite; padding-left:0; }
+.mtape:hover .mtape-track.scrolling{ animation-play-state:paused; }
+@keyframes mtapeScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+.mtape-item{ font-family:var(--font-mono); font-size:11.5px; letter-spacing:0.02em; color:var(--ink-2); }
+.mtape-item b{ color:var(--ink-1); font-weight:600; }
+.mtape-item i{ font-style:normal; }
+.mtape-item i.up{ color:var(--gold); }
+.mtape-item i.down{ color:#e5484d; }
+.mtape-sep{ color:var(--ink-3); }
+
+/* LIVE chip on the hero chart card */
+.live-chip{ display:inline-flex; align-items:center; gap:5px; margin-left:8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.14em; color:var(--gold); vertical-align:1px; }
+.live-chip i{ width:6px; height:6px; border-radius:50%; background:var(--gold); animation:liveChipPulse 1.8s ease-out infinite; }
+@keyframes liveChipPulse{ 0%{ box-shadow:0 0 0 0 rgba(3,201,136,0.5); } 70%{ box-shadow:0 0 0 7px rgba(3,201,136,0); } 100%{ box-shadow:0 0 0 0 rgba(3,201,136,0); } }
+
+/* Platform module vignettes */
+.module-viz{ margin-bottom:16px; border:1px solid var(--line-soft); border-radius:10px; background:rgba(255,255,255,0.015); overflow:hidden; }
+.module-viz svg{ display:block; width:100%; height:auto; }
+.mv-mono{ font-family:var(--font-mono), monospace; font-size:8.5px; letter-spacing:0.06em; }
+
+.mv-cell{ animation:mvCell 5.6s ease-in-out infinite; opacity:0.25; }
+@keyframes mvCell{ 0%,8%{ opacity:0.22; } 25%,62%{ opacity:1; } 82%,100%{ opacity:0.22; } }
+
+.mv-draw{ stroke-dasharray:1; stroke-dashoffset:1; animation:mvDraw 5.6s ease-in-out infinite; }
+@keyframes mvDraw{ 0%,6%{ stroke-dashoffset:1; opacity:1; } 55%{ stroke-dashoffset:0; opacity:1; } 88%{ stroke-dashoffset:0; opacity:1; } 96%,100%{ stroke-dashoffset:0; opacity:0; } }
+
+.mv-bar{ transform-box:fill-box; transform-origin:center bottom; animation:mvBar 5.6s ease-in-out infinite; }
+@keyframes mvBar{ 0%,8%{ transform:scaleY(0.18); } 40%,74%{ transform:scaleY(1); } 92%,100%{ transform:scaleY(0.18); } }
+
+.mv-pop{ opacity:0; transform-box:fill-box; transform-origin:center; animation:mvPop 5.6s ease infinite; }
+@keyframes mvPop{ 0%,42%{ opacity:0; transform:scale(0.6); } 52%,86%{ opacity:1; transform:scale(1); } 95%,100%{ opacity:0; transform:scale(0.9); } }
+
+.mv-blink{ animation:mvBlink 2.2s ease-in-out infinite; opacity:0.15; }
+@keyframes mvBlink{ 0%,100%{ opacity:0.15; } 50%{ opacity:1; } }
+
+.mv-ring{ transform-box:fill-box; transform-origin:center; opacity:0; animation:mvRing 3.2s ease-out infinite; }
+@keyframes mvRing{ 0%{ transform:scale(0.45); opacity:0.85; } 70%,100%{ transform:scale(1.6); opacity:0; } }
+
+.mv-pulse{ transform-box:fill-box; transform-origin:center; animation:mvPulse 3.2s ease-in-out infinite; }
+@keyframes mvPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+
+.mv-orbit{ transform-box:view-box; transform-origin:52px 42px; animation:mvOrbit 7s linear infinite; }
+@keyframes mvOrbit{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+.mv-bub{ opacity:0; transform-box:fill-box; transform-origin:center; animation:mvBub 5.6s ease infinite; }
+@keyframes mvBub{ 0%{ opacity:0; transform:translateY(6px) scale(0.92); } 10%,86%{ opacity:1; transform:none; } 96%,100%{ opacity:0; transform:translateY(6px) scale(0.92); } }
+
+/* AMD diagram in the Method band */
+.amd-wrap{ max-width:760px; margin:36px auto 0; }
+.amd-svg{ display:block; width:100%; height:auto; }
+.amd-path{ stroke-dasharray:1; stroke-dashoffset:1; animation:amdDraw 9s ease-in-out infinite; }
+@keyframes amdDraw{ 0%,4%{ stroke-dashoffset:1; opacity:1; } 62%{ stroke-dashoffset:0; opacity:1; } 90%{ stroke-dashoffset:0; opacity:1; } 97%,100%{ stroke-dashoffset:0; opacity:0; } }
+.amd-ph{ opacity:0; }
+.amd-ph1{ animation:amdPh1 9s ease infinite; }
+.amd-ph2{ animation:amdPh2 9s ease infinite; }
+.amd-ph3{ animation:amdPh3 9s ease infinite; }
+@keyframes amdPh1{ 0%,12%{ opacity:0; } 18%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
+@keyframes amdPh2{ 0%,30%{ opacity:0; } 38%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
+@keyframes amdPh3{ 0%,56%{ opacity:0; } 64%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
+
+/* Curriculum progress rail */
+.chapter-rail{ position:relative; }
+.chapter-rail::before{
+  content:""; position:absolute; left:34px; top:22px; bottom:22px; width:1px;
+  background:linear-gradient(180deg, transparent, var(--gold-dim) 18%, var(--gold-dim) 82%, transparent);
+  opacity:0.55;
+}
+.chapter-rail::after{
+  content:""; position:absolute; left:34px; top:22px; bottom:22px; width:1px;
+  background:linear-gradient(180deg, transparent 42%, rgba(3,201,136,0.9) 50%, transparent 58%);
+  background-size:100% 400%; animation:railFlow 4.5s linear infinite;
+}
+@keyframes railFlow{ from{ background-position:0 0%; } to{ background-position:0 100%; } }
+.chapter-rail .chapter{ position:relative; z-index:1; }
+.chapter .chapter-num{ transition:border-color .25s ease, box-shadow .25s ease, color .25s ease; }
+.chapter:hover .chapter-num{ border-color:var(--gold); box-shadow:0 0 0 4px rgba(3,201,136,0.12); }
+@media (max-width:700px){
+  .chapter-rail::before, .chapter-rail::after{ display:none; }
+}
+
+/* Featured pricing card: rotating border sweep */
+@property --sweep-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
+.price-card.featured::after{
+  content:""; position:absolute; inset:-1px; border-radius:var(--radius-lg); padding:1px; pointer-events:none;
+  background:conic-gradient(from var(--sweep-ang), transparent 0deg, transparent 292deg, rgba(3,201,136,0.75) 330deg, transparent 358deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  animation:sweepSpin 5.5s linear infinite;
+}
+@keyframes sweepSpin{ to{ --sweep-ang:360deg; } }
+
+/* Reduced motion: freeze everything at its finished state */
+@media (prefers-reduced-motion: reduce){
+  .mtape-track.scrolling{ animation:none; transform:none; }
+  .mv-cell, .mv-bar, .mv-blink, .mv-pulse{ animation:none; opacity:1; transform:none; }
+  .mv-draw, .amd-path{ animation:none; stroke-dashoffset:0; opacity:1; }
+  .mv-pop, .mv-bub, .amd-ph{ animation:none; opacity:1; transform:none; }
+  .mv-ring, .mv-orbit{ animation:none; display:none; }
+  .chapter-rail::after{ animation:none; display:none; }
+  .live-chip i{ animation:none; }
+  .price-card.featured::after{ animation:none; }
+}

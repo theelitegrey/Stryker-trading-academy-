@@ -108,7 +108,7 @@
     if (!('IntersectionObserver' in window)) return;
 
     var groups = document.querySelectorAll(
-      '.feature-grid, .price-grid, .proof-grid, .concept-grid, .step-grid');
+      '.feature-grid, .price-grid, .proof-grid, .concept-grid, .step-grid, .chapter-list');
 
     groups.forEach(function (group) {
       var kids = Array.prototype.filter.call(group.children, function (c) {
@@ -426,6 +426,89 @@
     scrollProgress();
     spotlight();
     cardTilt();
+  });
+
+})();
+
+// ============================================================================
+// MOTION LAYER 3 — the market tape
+//
+// A scrolling strip of real quotes under the hero, fed by the same Global
+// Monitor feed the dashboard uses. Renders immediately from a static seed so
+// the strip never sits empty, then swaps to live numbers when the feed
+// answers. Under prefers-reduced-motion the strip stands still.
+// ============================================================================
+
+(function () {
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+
+  var FEED = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+
+  // Shown until (or in case) the live feed answers — plausible, clearly
+  // ballpark values, never presented with a timestamp.
+  var SEED = [
+    { label: 'S&P 500',   price: 7706,   chgPct: 0.40 },
+    { label: 'Nasdaq',    price: 26386,  chgPct: 0.98 },
+    { label: 'Dow Jones', price: 53494,  chgPct: 0.06 },
+    { label: 'Gold',      price: 3341,   chgPct: 0.31 },
+    { label: 'EUR/USD',   price: 1.171,  chgPct: -0.12 },
+    { label: 'Bitcoin',   price: 111500, chgPct: 1.24 },
+    { label: 'Crude WTI', price: 63.9,   chgPct: -0.55 },
+    { label: 'US 10Y',    price: 4.23,   chgPct: 0.02 }
+  ];
+
+  function fmt(n) {
+    if (typeof n !== 'number' || isNaN(n)) return '—';
+    return n.toLocaleString('en-US', { maximumFractionDigits: n < 10 ? 3 : 2 });
+  }
+
+  function rowHtml(items) {
+    return items.map(function (q) {
+      var pct = typeof q.chgPct === 'number' ? q.chgPct : 0;
+      var up = pct >= 0;
+      return '<span class="mtape-item"><b>' + q.label + '</b> ' + fmt(q.price) +
+             ' <i class="' + (up ? 'up' : 'down') + '">' + (up ? '\u25b2' : '\u25bc') + ' ' +
+             Math.abs(pct).toFixed(2) + '%</i></span>';
+    }).join('<span class="mtape-sep">\u00b7</span>');
+  }
+
+  function build(items) {
+    var track = document.getElementById('mtape-track');
+    if (!track || !items.length) return;
+    var html = rowHtml(items);
+    if (reduced) {
+      track.classList.remove('scrolling');
+      track.innerHTML = html;
+      return;
+    }
+    // Content doubled so translateX(-50%) loops seamlessly.
+    track.innerHTML = html + '<span class="mtape-sep">\u00b7</span>' + html +
+                      '<span class="mtape-sep">\u00b7</span>';
+    track.classList.add('scrolling');
+    // Slower for longer strips, so speed stays roughly constant per item.
+    track.style.animationDuration = Math.max(36, items.length * 5) + 's';
+  }
+
+  ready(function () {
+    if (!document.getElementById('mtape-track')) return;
+    build(SEED);
+    fetch(FEED + '?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (j) {
+        var items = j && j.markets && j.markets.items;
+        if (!items || !items.length) return;
+        var usable = items.filter(function (q) {
+          return q && q.label && typeof q.price === 'number';
+        }).slice(0, 14);
+        if (usable.length >= 4) build(usable);
+      })
+      .catch(function () { /* seed row already showing */ });
   });
 
 })();

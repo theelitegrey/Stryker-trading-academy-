@@ -4218,3 +4218,97 @@ a.feature-card{ display:block; text-decoration:none; color:inherit; }
 }
 .module-go i{ font-style:normal; transition:transform .25s ease; }
 a.feature-card:hover .module-go i{ transform:translateX(4px); }
+
+/* ==========================================================================
+   READER v2 — lesson accordions, resume chip, completion card, video tools
+   ========================================================================== */
+.reader-scrollbar{
+  position:fixed; top:0; left:0; width:100%; height:2px; z-index:60;
+  background:linear-gradient(90deg, var(--gold), var(--gold-bright));
+  transform-origin:left; transform:scaleX(0); pointer-events:none;
+}
+
+.lesson-block.lv2{ display:block; padding:0; border:1px solid var(--line-soft); border-radius:12px; margin-bottom:12px; background:var(--bg-2); overflow:hidden; transition:border-color .25s; }
+.lesson-block.lv2:hover{ border-color:var(--line); }
+.lesson-block.lv2.open{ border-color:var(--gold-dim); }
+.lesson-block.lv2.done{ background:rgba(3,201,136,0.03); }
+.lesson-block.lv2 .lesson-head{
+  display:flex; align-items:center; gap:14px; width:100%; padding:16px 18px;
+  background:none; border:none; cursor:pointer; text-align:left; font-family:inherit;
+}
+.lesson-block.lv2 .lesson-head h4{ margin:0; flex:1; font-size:14.5px; color:var(--ink-0); font-weight:600; }
+.lesson-block.lv2.done .lesson-head h4{ color:var(--ink-2); }
+.lesson-block.lv2 .lesson-chev{ color:var(--ink-3); flex-shrink:0; transition:transform .3s; }
+.lesson-block.lv2.open .lesson-chev{ transform:rotate(180deg); color:var(--gold); }
+.lesson-block.lv2 .lesson-check{ margin:0; flex-shrink:0; cursor:pointer; }
+.lesson-block.lv2 .lesson-body{
+  display:grid; grid-template-rows:0fr; transition:grid-template-rows .4s cubic-bezier(.22,1,.36,1);
+}
+.lesson-block.lv2.open .lesson-body{ grid-template-rows:1fr; }
+.lesson-block.lv2 .lesson-body-in{ overflow:hidden; min-height:0; padding:0 18px; }
+.lesson-block.lv2.open .lesson-body-in{ padding:0 18px 18px 50px; }
+.lesson-block.lv2 .lesson-actions{ margin-top:14px; }
+@media (max-width:640px){ .lesson-block.lv2.open .lesson-body-in{ padding-left:18px; } }
+
+.reader-resume-chip{
+  background:rgba(3,201,136,0.1); border:1px solid rgba(3,201,136,0.35); color:var(--gold-bright);
+  font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; padding:6px 12px;
+  border-radius:999px; cursor:pointer; transition:background .2s;
+}
+.reader-resume-chip:hover{ background:rgba(3,201,136,0.18); }
+
+.reader-complete-card{
+  display:flex; align-items:center; gap:18px; margin-top:18px; padding:22px 24px;
+  border:1px solid rgba(3,201,136,0.35); border-radius:14px;
+  background:linear-gradient(120deg, rgba(3,201,136,0.08), rgba(0,173,181,0.05));
+  animation:rccIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes rccIn{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+.reader-complete-card .rcc-glyph{ font-size:28px; }
+.reader-complete-card .rcc-body{ flex:1; }
+.reader-complete-card h3{ font-size:16px; margin-bottom:4px; }
+.reader-complete-card p{ font-size:13.5px; color:var(--ink-2); margin:0; }
+.reader-complete-card .btn{ flex-shrink:0; }
+@media (max-width:640px){ .reader-complete-card{ flex-direction:column; align-items:flex-start; } }
+
+.video-tools{
+  display:flex; align-items:center; gap:6px; margin-top:10px; flex-wrap:wrap;
+}
+.video-tools .vt-label{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.18em; color:var(--ink-3); margin-right:4px; }
+.video-tools .vt-rate{
+  background:var(--bg-2); border:1px solid var(--line-soft); color:var(--ink-2);
+  font-family:var(--font-mono); font-size:11px; padding:4px 10px; border-radius:999px;
+  cursor:pointer; transition:all .2s;
+}
+.video-tools .vt-rate:hover{ border-color:var(--gold-dim); color:var(--ink-0); }
+.video-tools .vt-rate.on{ background:rgba(3,201,136,0.12); border-color:rgba(3,201,136,0.4); color:var(--gold-bright); }
+
+.toc-item.started .toc-num{ color:#f5c542; }
+.toc-item.started:after{ content:""; width:5px; height:5px; border-radius:50%; background:#f5c542; margin-left:auto; flex-shrink:0; }
+
+/* courses.html — continue banner + per-chapter mini progress */
+.continue-banner{
+  display:flex; align-items:center; gap:24px; margin-bottom:28px;
+  border-color:rgba(3,201,136,0.3);
+  background:linear-gradient(120deg, rgba(3,201,136,0.06), var(--bg-2) 60%);
+}
+.continue-banner .cb-main{ flex:1; min-width:0; }
+.continue-banner .cb-kicker{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:0.24em; color:var(--gold); }
+.continue-banner h3{ font-size:17px; margin:6px 0 12px; }
+.continue-banner .cb-progress{ display:flex; align-items:center; gap:12px; }
+.continue-banner .cb-progress .progress-track{ flex:1; max-width:340px; }
+.continue-banner .cb-label{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); white-space:nowrap; }
+.continue-banner .btn{ flex-shrink:0; }
+@media (max-width:640px){ .continue-banner{ flex-direction:column; align-items:flex-start; } }
+
+.ch-mini-progress{
+  width:52px; height:4px; border-radius:2px; background:var(--bg-3); overflow:hidden; display:inline-block;
+}
+.ch-mini-progress i{ display:block; height:100%; background:var(--gold); border-radius:2px; }
+.ch-mini-label{ font-family:var(--font-mono); font-size:10px; color:var(--ink-3); }
+
+@media (prefers-reduced-motion: reduce){
+  .reader-scrollbar{ display:none; }
+  .lesson-block.lv2 .lesson-body{ transition:none; }
+  .reader-complete-card{ animation:none; }
+}

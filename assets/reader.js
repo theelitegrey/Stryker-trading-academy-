@@ -160,9 +160,16 @@ function buildTOC(activeIndex){
 
     CHAPTERS.forEach((ch, i) => {
       if (ch.level !== part.key) return;
+      // three states per chapter: untouched, in progress (amber number),
+      // complete (check). "In progress" = at least one lesson ticked.
+      let started = false;
+      for (let li = 0; li < ch.lessons.length; li++) {
+        if (completedLessonsSet.has(ch.num + '-' + li)) { started = true; break; }
+      }
       const item = document.createElement('a');
       item.href = 'chapter.html?ch=' + ch.num;
-      item.className = 'toc-item' + (i === activeIndex ? ' current' : '') + (completedChaptersSet.has(ch.num) ? ' done' : '');
+      item.className = 'toc-item' + (i === activeIndex ? ' current' : '') +
+        (completedChaptersSet.has(ch.num) ? ' done' : (started ? ' started' : ''));
       item.innerHTML =
         '<span class="toc-num">' + ch.num + '</span>' +
         '<span>' + ch.title + '</span>' +
@@ -248,37 +255,21 @@ function renderReader(){
   metaWrap.innerHTML =
     '<span class="chapter-tag ' + LEVEL_TAG_CLASS[ch.level] + '">' + LEVEL_LABEL[ch.level] + '</span>' +
     '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ch.lessons.length + ' lessons</span>' +
-    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ch.dur + '</span>';
+    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ch.dur + '</span>' +
+    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">~' + estimateReadMinutes(ch) + ' min read</span>';
 
   const video = document.getElementById('reader-video');
   video.src = ch.video;
   video.load();
   hardenVideoAgainstDownload(video);
+  setupVideoTools(video);
+  setupVideoResume(video, ch);
 
   const body = document.getElementById('reader-body');
   body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');
   activateLiveCharts(body);
 
-  const lessonsWrap = document.getElementById('reader-lessons');
-  lessonsWrap.innerHTML = '';
-  ch.lessons.forEach((lesson, li) => {
-    const lid = ch.num + '-' + li;
-    const block = document.createElement('div');
-    block.className = 'lesson-block';
-    block.innerHTML =
-      '<div class="lesson-check' + (completedLessonsSet.has(lid) ? ' done' : '') + '" data-lid="' + lid + '">' +
-        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>' +
-      '</div>' +
-      '<div><h4>' + (li+1) + '. ' + lesson.title + '</h4><div class="lesson-desc-rendered">' + (lesson.descHtml || ('<p>' + (lesson.desc || '') + '</p>')) + '</div></div>';
-    block.querySelector('.lesson-check').addEventListener('click', function(){
-      this.classList.toggle('done');
-      if (this.classList.contains('done')) completedLessonsSet.add(lid);
-      else completedLessonsSet.delete(lid);
-      updateChapterProgressUI(ch);
-    });
-    lessonsWrap.appendChild(block);
-    activateLiveCharts(block);
-  });
+  renderLessonList(ch);
 
   updateChapterProgressUI(ch);
 
@@ -314,17 +305,258 @@ function updateChapterProgressUI(ch){
   if (fill) fill.style.width = Math.round((done/total)*100) + '%';
   if (label) label.textContent = done + ' / ' + total + ' lessons complete';
 
+  const wasComplete = completedChaptersSet.has(ch.num);
   const markBtn = document.getElementById('reader-mark-complete');
-  if (done === total) {
+  if (done === total && total > 0) {
     completedChaptersSet.add(ch.num);
     if (markBtn){ markBtn.textContent = 'Chapter complete ✓'; markBtn.classList.add('btn-ghost'); markBtn.classList.remove('btn-primary'); }
+    showChapterCompleteCard(ch, !wasComplete);
   } else {
     completedChaptersSet.delete(ch.num);
     if (markBtn){ markBtn.textContent = 'Mark all lessons complete'; markBtn.classList.add('btn-primary'); markBtn.classList.remove('btn-ghost'); }
+    const card = document.getElementById('reader-complete-card');
+    if (card) card.remove();
   }
+  updateResumeChip(ch, done, total);
   persistProgress();
   buildTOC(CURRENT_INDEX);
 }
+
+// ---------------------------------------------------------------------------
+// Learning-flow layer: lesson accordions, resume chip, completion card,
+// video speed/resume, reading time, scroll progress. All rendering-side —
+// chapter CONTENT still comes from Firestore untouched.
+// ---------------------------------------------------------------------------
+
+const CHECK_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
+
+function firstIncompleteIndex(ch){
+  for (let li = 0; li < ch.lessons.length; li++) {
+    if (!completedLessonsSet.has(ch.num + '-' + li)) return li;
+  }
+  return -1;
+}
+
+// Renders the lesson list as focused accordions: the first unfinished lesson
+// arrives open, finished ones arrive collapsed, and every open lesson ends
+// with a "Mark done · continue" button that closes it and opens the next —
+// so working through a chapter is one guided path instead of a wall of text.
+function renderLessonList(ch, openIndex){
+  const lessonsWrap = document.getElementById('reader-lessons');
+  if (!lessonsWrap) return;
+  lessonsWrap.innerHTML = '';
+  if (openIndex === undefined) openIndex = firstIncompleteIndex(ch);
+
+  ch.lessons.forEach((lesson, li) => {
+    const lid = ch.num + '-' + li;
+    const isDone = completedLessonsSet.has(lid);
+    const open = li === openIndex;
+    const block = document.createElement('div');
+    block.className = 'lesson-block lv2' + (isDone ? ' done' : '') + (open ? ' open' : '');
+    block.dataset.li = li;
+    block.innerHTML =
+      '<button type="button" class="lesson-head" aria-expanded="' + open + '">' +
+        '<span class="lesson-check' + (isDone ? ' done' : '') + '" data-lid="' + lid + '" role="checkbox" aria-checked="' + isDone + '" aria-label="Mark lesson done">' + CHECK_SVG + '</span>' +
+        '<h4>' + (li+1) + '. ' + lesson.title + '</h4>' +
+        '<svg class="lesson-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+      '</button>' +
+      '<div class="lesson-body"><div class="lesson-body-in">' +
+        '<div class="lesson-desc-rendered">' + (lesson.descHtml || ('<p>' + (lesson.desc || '') + '</p>')) + '</div>' +
+        '<div class="lesson-actions"><button type="button" class="btn btn-sm ' + (isDone ? 'btn-ghost' : 'btn-primary') + ' lesson-done-next">' + (isDone ? 'Completed ✓' : 'Mark done · continue') + '</button></div>' +
+      '</div></div>';
+
+    block.querySelector('.lesson-head').addEventListener('click', (e) => {
+      if (e.target.closest('.lesson-check')) { toggleLessonDone(ch, block, li); return; }
+      const nowOpen = !block.classList.contains('open');
+      block.classList.toggle('open', nowOpen);
+      block.querySelector('.lesson-head').setAttribute('aria-expanded', nowOpen);
+    });
+    block.querySelector('.lesson-done-next').addEventListener('click', () => {
+      const lid2 = ch.num + '-' + li;
+      if (!completedLessonsSet.has(lid2)) toggleLessonDone(ch, block, li);
+      block.classList.remove('open');
+      block.querySelector('.lesson-head').setAttribute('aria-expanded', 'false');
+      const next = firstIncompleteIndex(ch);
+      if (next !== -1) {
+        const nb = lessonsWrap.querySelector('.lesson-block[data-li="' + next + '"]');
+        if (nb) {
+          nb.classList.add('open');
+          nb.querySelector('.lesson-head').setAttribute('aria-expanded', 'true');
+          setTimeout(() => nb.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+        }
+      } else {
+        const card = document.getElementById('reader-complete-card');
+        if (card) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 60);
+      }
+    });
+
+    lessonsWrap.appendChild(block);
+    activateLiveCharts(block);
+  });
+}
+
+function toggleLessonDone(ch, block, li){
+  const lid = ch.num + '-' + li;
+  const nowDone = !completedLessonsSet.has(lid);
+  if (nowDone) completedLessonsSet.add(lid); else completedLessonsSet.delete(lid);
+  block.classList.toggle('done', nowDone);
+  const check = block.querySelector('.lesson-check');
+  check.classList.toggle('done', nowDone);
+  check.setAttribute('aria-checked', nowDone);
+  const btn = block.querySelector('.lesson-done-next');
+  if (btn) {
+    btn.textContent = nowDone ? 'Completed ✓' : 'Mark done · continue';
+    btn.classList.toggle('btn-ghost', nowDone);
+    btn.classList.toggle('btn-primary', !nowDone);
+  }
+  updateChapterProgressUI(ch);
+}
+
+// "Resume lesson N" chip in the lessons panel head — appears once the
+// chapter is started but unfinished, and jumps to the first open item.
+function updateResumeChip(ch, done, total){
+  const head = document.querySelector('.panel-head');
+  if (!head) return;
+  let chip = document.getElementById('reader-resume-chip');
+  const next = firstIncompleteIndex(ch);
+  if (done > 0 && done < total && next !== -1) {
+    if (!chip) {
+      chip = document.createElement('button');
+      chip.id = 'reader-resume-chip';
+      chip.type = 'button';
+      chip.className = 'reader-resume-chip';
+      head.appendChild(chip);
+      chip.addEventListener('click', () => {
+        const wrap = document.getElementById('reader-lessons');
+        const nb = wrap && wrap.querySelector('.lesson-block[data-li="' + firstIncompleteIndex(ch) + '"]');
+        if (nb) {
+          nb.classList.add('open');
+          nb.querySelector('.lesson-head').setAttribute('aria-expanded', 'true');
+          nb.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    }
+    chip.textContent = 'Resume lesson ' + (next + 1) + ' ↓';
+  } else if (chip) {
+    chip.remove();
+  }
+}
+
+// Completion card with the next chapter's door, shown under the lessons the
+// moment every box is ticked. `celebrate` also fires a toast, only on the
+// transition — not on every re-render of an already-finished chapter.
+function showChapterCompleteCard(ch, celebrate){
+  if (document.getElementById('reader-complete-card')) return;
+  const row = document.querySelector('.mark-complete-row');
+  if (!row) return;
+  const next = CHAPTERS[CURRENT_INDEX + 1];
+  const card = document.createElement('div');
+  card.id = 'reader-complete-card';
+  card.className = 'reader-complete-card';
+  card.innerHTML =
+    '<div class="rcc-glyph">🏁</div>' +
+    '<div class="rcc-body"><h3>Chapter ' + ch.num + ' complete</h3>' +
+    '<p>' + (next ? 'Next up: <b>Chapter ' + next.num + ' — ' + next.title + '</b>' : 'That was the final chapter of the curriculum. Well traded.') + '</p></div>' +
+    (next ? '<a class="btn btn-primary" href="chapter.html?ch=' + next.num + '">Start Chapter ' + next.num + ' →</a>' : '<a class="btn btn-ghost" href="courses.html">Back to curriculum</a>');
+  row.insertAdjacentElement('afterend', card);
+  if (celebrate && typeof showToast === 'function') {
+    showToast('success', 'Chapter ' + ch.num + ' complete' + (next ? ' — Chapter ' + next.num + ' is open.' : '!'));
+  }
+}
+
+// Word-count estimate over the chapter body plus every lesson, at a reading
+// pace of 200 wpm. Cheap, deterministic, and honest enough for a chip.
+function estimateReadMinutes(ch){
+  const strip = (h) => String(h || '').replace(/<[^>]*>/g, ' ');
+  let text = strip(ch.bodyHtml) + ' ' + (ch.paragraphs || []).join(' ');
+  (ch.lessons || []).forEach(l => { text += ' ' + strip(l.descHtml || l.desc); });
+  const words = (text.match(/\S+/g) || []).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+// Speed pills under the video. The chosen rate persists per device and
+// re-applies to every chapter's video.
+let VIDEO_TOOLS_BUILT = false;
+function setupVideoTools(video){
+  let saved = 1;
+  try { saved = parseFloat(localStorage.getItem('stryker_video_rate')) || 1; } catch(e) {}
+  if (!VIDEO_TOOLS_BUILT) {
+    VIDEO_TOOLS_BUILT = true;
+    const frame = document.querySelector('.video-frame');
+    if (frame) {
+      const tools = document.createElement('div');
+      tools.id = 'video-tools';
+      tools.className = 'video-tools';
+      tools.innerHTML = '<span class="vt-label">SPEED</span>' +
+        [0.75, 1, 1.25, 1.5, 1.75, 2].map(r =>
+          '<button type="button" class="vt-rate' + (r === saved ? ' on' : '') + '" data-r="' + r + '">' + r + '×</button>').join('');
+      frame.insertAdjacentElement('afterend', tools);
+      tools.addEventListener('click', (e) => {
+        const b = e.target.closest('.vt-rate');
+        if (!b) return;
+        const r = parseFloat(b.dataset.r);
+        video.playbackRate = r;
+        try { localStorage.setItem('stryker_video_rate', String(r)); } catch(err) {}
+        tools.querySelectorAll('.vt-rate').forEach(x => x.classList.toggle('on', x === b));
+      });
+    }
+  }
+  video.playbackRate = saved;
+  video.addEventListener('loadedmetadata', () => { video.playbackRate = saved; }, { once: true });
+}
+
+// Per-chapter playback position, saved to this device every few seconds and
+// restored on return (skipped near the very start or end of the video).
+let VIDEO_RESUME_BOUND = false;
+let VIDEO_RESUME_KEY = null;
+function setupVideoResume(video, ch){
+  VIDEO_RESUME_KEY = 'stryker_vidpos_' + ch.num;
+  let restored = null;
+  try { restored = parseFloat(localStorage.getItem(VIDEO_RESUME_KEY)); } catch(e) {}
+  video.addEventListener('loadedmetadata', () => {
+    if (restored && restored > 10 && video.duration && restored < video.duration - 20) {
+      video.currentTime = restored;
+      if (typeof showToast === 'function') showToast('info', 'Video resumed where you left off.');
+    }
+  }, { once: true });
+
+  if (VIDEO_RESUME_BOUND) return;
+  VIDEO_RESUME_BOUND = true;
+  let lastSave = 0;
+  video.addEventListener('timeupdate', () => {
+    const now = Date.now();
+    if (now - lastSave < 5000 || !VIDEO_RESUME_KEY) return;
+    lastSave = now;
+    try {
+      if (video.currentTime > 10 && video.duration && video.currentTime < video.duration - 20) {
+        localStorage.setItem(VIDEO_RESUME_KEY, String(Math.floor(video.currentTime)));
+      }
+    } catch(e) {}
+  });
+  video.addEventListener('ended', () => {
+    try { if (VIDEO_RESUME_KEY) localStorage.removeItem(VIDEO_RESUME_KEY); } catch(e) {}
+  });
+}
+
+// Thin gold reading-progress bar along the top of the chapter page.
+(function initReaderScrollBar(){
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!document.getElementById('reader-content-wrap')) return;
+    const bar = document.createElement('div');
+    bar.className = 'reader-scrollbar';
+    document.body.appendChild(bar);
+    let ticking = false;
+    function update(){
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, window.scrollY / max) : 0) + ')';
+      ticking = false;
+    }
+    window.addEventListener('scroll', () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    update();
+  });
+})();
 
 function markAllComplete(){
   const ch = CHAPTERS[CURRENT_INDEX];

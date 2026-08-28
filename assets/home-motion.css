@@ -311,7 +311,12 @@
    each counter-rotating so it stays upright. Falls back to the plain grid
    on narrow screens and under prefers-reduced-motion.
    ========================================================================== */
-.plat-wheel-wrap{ position:relative; height:1100px; margin-top:10px; }
+.plat-wheel-wrap{ position:relative; height:1150px; margin-top:10px;
+  /* clip + contain: a composited 360deg rotation makes the browser reserve the
+     whole swept circle as potential overflow, which some engines surface as
+     the page width pulsing ("zooming"). Clipping at the wrap kills that. */
+  overflow:clip; contain:layout paint; }
+body{ overflow-x:clip; }
 .wheel-ring{
   position:absolute; left:50%; top:50%; width:740px; height:740px; border-radius:50%;
   border:1px dashed rgba(3,201,136,0.18); transform:translate(-50%,-50%);
@@ -344,7 +349,7 @@
 @media (max-width:1160px){
   .plat-wheel .spoke{ transform:rotate(var(--a)) translateY(-320px); }
   .plat-wheel .wcard{ width:260px; left:-130px; top:-155px; transform-origin:130px 155px; }
-  .plat-wheel-wrap{ height:960px; }
+  .plat-wheel-wrap{ height:1010px; }
   .wheel-ring{ width:640px; height:640px; }
 }
 @media (max-width:940px){

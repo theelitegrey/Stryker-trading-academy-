@@ -138,6 +138,28 @@ jobs:
             --commit-hash "${{ github.sha }}" \
             --commit-dirty=false
 
+      # Trust nothing until the DOMAIN serves it: a deploy has gone green
+      # before while strykertrading.com kept serving old content (two Pages
+      # projects, run 5), and wrangler's "already uploaded" dedupe count is
+      # useless as a signal. version.json is Cache-Control: no-store, so what
+      # this reads is what every visitor's stale-page check reads.
+      - name: Verify the live domain serves this build
+        run: |
+          want=$(node -e "console.log(require('./assets/version.json').build)")
+          got=0
+          for i in 1 2 3 4 5 6; do
+            sleep 10
+            got=$(curl -sf "https://strykertrading.com/assets/version.json?t=$(date +%s)" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).build||0))" 2>/dev/null || echo 0)
+            echo "attempt $i: live build $got (want $want)"
+            if [ "$got" = "$want" ]; then
+              page=$(curl -sf "https://strykertrading.com/index.html?t=$(date +%s)" | grep -o 'stryker-build" content="[0-9]*"' || true)
+              echo "live version.json matches; homepage meta: ${page:-unreadable}"
+              exit 0
+            fi
+          done
+          echo "::error::strykertrading.com still serves build $got after deploying build $want — production is not picking up the new deployment (check which deployment is live in the Pages dashboard)."
+          exit 1
+
       # Every deploy doubles as a watchdog for the Global Monitor relay:
       # if the published data is older than 45 minutes the chain has died
       # (GitHub's cron alone proved unable to keep it alive), so restart it.

@@ -298,3 +298,10 @@
   .live-chip i{ animation:none; }
   .price-card.featured::after{ animation:none; }
 }
+
+/* Hero chart (build 210): entry-arrow bob on the Judas-swing scene */
+.hero-entry-bob{ animation:heroEntryBob 1.8s ease-in-out 4.4s infinite; }
+@keyframes heroEntryBob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(4px); } }
+@media (prefers-reduced-motion: reduce){
+  .hero-entry-bob{ animation:none; }
+}

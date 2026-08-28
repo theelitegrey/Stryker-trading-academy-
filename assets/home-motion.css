@@ -305,3 +305,61 @@
 @media (prefers-reduced-motion: reduce){
   .hero-entry-bob{ animation:none; }
 }
+
+/* ==========================================================================
+   PLATFORM FERRIS WHEEL (build 211) — the six module cards orbit slowly,
+   each counter-rotating so it stays upright. Falls back to the plain grid
+   on narrow screens and under prefers-reduced-motion.
+   ========================================================================== */
+.plat-wheel-wrap{ position:relative; height:1100px; margin-top:10px; }
+.wheel-ring{
+  position:absolute; left:50%; top:50%; width:740px; height:740px; border-radius:50%;
+  border:1px dashed rgba(3,201,136,0.18); transform:translate(-50%,-50%);
+}
+.wheel-hub{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:170px; height:170px; border-radius:50%; text-align:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  background:radial-gradient(circle, rgba(3,201,136,0.10), rgba(19,19,22,0.9) 70%);
+  border:1px solid rgba(3,201,136,0.3);
+}
+.wheel-hub b{ font-size:15px; letter-spacing:.14em; color:var(--ink-0); }
+.wheel-hub span{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); }
+.plat-wheel{
+  position:absolute; left:50%; top:50%; width:0; height:0;
+  animation:wheelSpin 80s linear infinite;
+}
+.plat-wheel .spoke{ position:absolute; left:0; top:0; transform:rotate(var(--a)) translateY(-370px); }
+.plat-wheel .wcard{
+  position:absolute; left:-150px; top:-165px; width:300px;
+  transform-origin:150px 165px;
+  animation:wheelSpinRev 80s linear infinite;
+}
+.plat-wheel .feature-card{ background:var(--bg-2); }
+@keyframes wheelSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+@keyframes wheelSpinRev{ from{ transform:rotate(calc(0deg - var(--a))); } to{ transform:rotate(calc(-360deg - var(--a))); } }
+.plat-wheel-wrap:hover .plat-wheel,
+.plat-wheel-wrap:hover .wcard{ animation-play-state:paused; }
+
+@media (max-width:1160px){
+  .plat-wheel .spoke{ transform:rotate(var(--a)) translateY(-320px); }
+  .plat-wheel .wcard{ width:260px; left:-130px; top:-155px; transform-origin:130px 155px; }
+  .plat-wheel-wrap{ height:960px; }
+  .wheel-ring{ width:640px; height:640px; }
+}
+@media (max-width:940px){
+  .plat-wheel-wrap{ height:auto; }
+  .wheel-ring,.wheel-hub{ display:none; }
+  .plat-wheel{ position:static; width:auto; height:auto; animation:none;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px; }
+  .plat-wheel .spoke{ position:static; transform:none; }
+  .plat-wheel .wcard{ position:static; width:auto; animation:none; transform:none; left:auto; top:auto; }
+}
+@media (prefers-reduced-motion: reduce){
+  .plat-wheel-wrap{ height:auto; }
+  .wheel-ring,.wheel-hub{ display:none; }
+  .plat-wheel{ position:static; width:auto; height:auto; animation:none;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px; }
+  .plat-wheel .spoke{ position:static; transform:none; }
+  .plat-wheel .wcard{ position:static; width:auto; animation:none; transform:none; left:auto; top:auto; }
+}

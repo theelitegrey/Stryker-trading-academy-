@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentUser = null;
   let handled = false;
+  let studentData = null;   // the loaded student doc, for the save handler
 
   auth.onAuthStateChanged((user) => {
     if (handled) return;
@@ -29,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('settings-uid').textContent = user.uid;
 
     ensureStudentDoc(user).then((student) => {
+      studentData = student || {};
       if (student && student.createdAt && typeof student.createdAt.toDate === 'function') {
         document.getElementById('settings-member-since').textContent =
           student.createdAt.toDate().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -37,6 +39,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
       renderAvatarPreview(student);
       document.getElementById('settings-bio').value = (student && student.bio) || '';
+      const unEl = document.getElementById('settings-username');
+      if (unEl) unEl.value = (student && student.username) || '';
+      const mnEl = document.getElementById('settings-mention-notify');
+      if (mnEl) mnEl.checked = !(student && student.mentionNotifications === false);
+      // A pre-username account: derive the default now so the field is never
+      // just blank the first time they look at it.
+      if (unEl && !unEl.value && typeof ensureUsername === 'function') {
+        ensureUsername(currentUser).then((name) => { if (name && !unEl.value) unEl.value = name; });
+      }
     }).catch((err) => console.error('Stryker: failed to load account info', err));
   });
 
@@ -106,13 +117,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const newName = document.getElementById('settings-name').value.trim();
     const newBio = document.getElementById('settings-bio').value.trim();
     if (!newName) { showSettingsMsg('settings-error', 'Display name cannot be empty.'); return; }
-    currentUser.updateProfile({ displayName: newName })
-      .then(() => {
-        if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid, { displayName: newName, bio: newBio });
-        return db.collection('students').doc(currentUser.uid).set({ displayName: newName, bio: newBio }, { merge: true });
-      })
-      .then(() => showSettingsMsg('settings-success', 'Saved.'))
-      .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not save changes.'));
+
+    const unEl = document.getElementById('settings-username');
+    const mnEl = document.getElementById('settings-mention-notify');
+    const wantedUsername = unEl ? normalizeUsername(unEl.value) : '';
+    const mentionsOn = mnEl ? mnEl.checked : true;
+
+    // The username goes through its claim (uniqueness) path first: if the
+    // handle is taken or malformed, nothing else should half-save around it.
+    const currentUsername = (studentData && studentData.username) || '';
+    const usernameStep = (unEl && wantedUsername !== currentUsername)
+      ? claimUsername(currentUser.uid, wantedUsername, currentUsername)
+      : Promise.resolve({ ok: true, username: currentUsername });
+
+    usernameStep.then((res) => {
+      if (!res.ok) { showSettingsMsg('settings-error', res.error); return; }
+      if (unEl) unEl.value = res.username || wantedUsername;
+      if (studentData) studentData.username = res.username || currentUsername;
+
+      currentUser.updateProfile({ displayName: newName })
+        .then(() => {
+          // mentionNotifications lives on the PUBLIC profile doc deliberately:
+          // the tagger's client is what writes the notification, so it has to
+          // be able to read whether the tagged person wants one.
+          if (typeof syncPublicProfile === 'function') syncPublicProfile(currentUser.uid,
+            { displayName: newName, bio: newBio, mentionNotifications: mentionsOn });
+          return db.collection('students').doc(currentUser.uid).set(
+            { displayName: newName, bio: newBio, mentionNotifications: mentionsOn }, { merge: true });
+        })
+        .then(() => showSettingsMsg('settings-success', 'Saved.'))
+        .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not save changes.'));
+    });
   });
 
   document.getElementById('settings-reset-password').addEventListener('click', () => {

@@ -141,6 +141,9 @@ function renderProfile(uid, profile, isOwnProfile, postCount){
       '<div style="text-align:center; padding:0 32px 40px; margin-top:-52px;">' +
         '<div style="display:flex; justify-content:center; margin-bottom:14px;"><div style="border-radius:50%; border:4px solid var(--bg-2); overflow:hidden; line-height:0;">' + avatarHtml + '</div></div>' +
         '<h2 style="font-size:21px; margin-bottom:4px;">' + escapeProfileText(name) + roleTag + '</h2>' +
+        (profile.username
+          ? '<p class="profile-username">@' + escapeProfileText(profile.username) + '</p>'
+          : '') +
         (profile.bio ? '<p style="font-size:13.5px; color:var(--ink-1); max-width:420px; margin:0 auto 10px;">' + escapeProfileText(profile.bio) + '</p>' : '') +
         (joinDate ? '<p style="color:var(--ink-3); font-size:12.5px; margin-bottom:24px;">Member since ' + joinDate + '</p>' : '<div style="margin-bottom:24px;"></div>') +
         '<div style="display:flex; justify-content:center; gap:36px; flex-wrap:wrap;">' +
@@ -205,7 +208,19 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const targetUid = getProfileUidFromQuery() || currentUser.uid;
+    // A profile can be addressed by uid (?uid=) or by handle (?u=username) —
+    // the second is what floor @mentions link to, since a rendered post knows
+    // the handle but not the account behind it.
+    const byUsername = new URLSearchParams(window.location.search).get('u');
+    const uidStep = getProfileUidFromQuery()
+      ? Promise.resolve(getProfileUidFromQuery())
+      : (byUsername && typeof lookupUsername === 'function')
+        ? lookupUsername(byUsername)
+        : Promise.resolve(null);
+
+    uidStep.then((resolvedUid) => {
+    if (byUsername && !getProfileUidFromQuery() && !resolvedUid) { renderProfileNotFound(); return; }
+    const targetUid = resolvedUid || currentUser.uid;
     const isOwnProfile = targetUid === currentUser.uid;
 
     // When viewing your own profile, make sure it actually exists first —
@@ -246,5 +261,6 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Stryker: failed to prepare profile', err);
       renderProfileNotFound();
     });
+    });   // uidStep.then
   });
 });

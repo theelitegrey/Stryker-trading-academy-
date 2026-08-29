@@ -77,12 +77,16 @@ function linkifyTags(html){
     let lastIndex = 0;
     text.replace(/([@#])(\w+)/g, (match, symbol, word, offset) => {
       frag.appendChild(document.createTextNode(text.slice(lastIndex, offset)));
-      const span = document.createElement('span');
-      span.className = 'floor-tag';
-      span.dataset.tag = symbol + word;
-      span.dataset.tagType = symbol === '#' ? 'hashtag' : 'mention';
-      span.textContent = match;
-      frag.appendChild(span);
+      // A mention is a real link to that person's profile, resolved by handle
+      // (profile.html?u=) since the rendered text knows the name, not the
+      // account. A hashtag stays a styled span.
+      const el = document.createElement(symbol === '@' ? 'a' : 'span');
+      el.className = 'floor-tag';
+      el.dataset.tag = symbol + word;
+      el.dataset.tagType = symbol === '#' ? 'hashtag' : 'mention';
+      el.textContent = match;
+      if (symbol === '@') el.href = 'profile.html?u=' + encodeURIComponent(word.toLowerCase());
+      frag.appendChild(el);
       lastIndex = offset + match.length;
       return match;
     });
@@ -91,6 +95,33 @@ function linkifyTags(html){
   });
 
   return container.innerHTML;
+}
+
+// Notify everyone @mentioned in a just-published post or reply. The tagger's
+// client writes the notifications (same pattern as likes and replies), which
+// is why the opt-out flag lives on the public profile doc — it has to be
+// readable from here. Self-mentions are skipped, handles are deduped, and the
+// count is capped: a post tagging twenty people is spam, not conversation.
+function notifyMentions(rawText, contextLabel){
+  if (typeof lookupUsername !== 'function' || typeof createNotification !== 'function') return;
+  const seen = {};
+  const names = [];
+  String(rawText || '').replace(/@(\w+)/g, (m, w) => {
+    const n = w.toLowerCase();
+    if (!seen[n] && names.length < 5) { seen[n] = true; names.push(n); }
+    return m;
+  });
+  names.forEach((name) => {
+    lookupUsername(name).then((uid) => {
+      if (!uid || uid === FLOOR_UID) return;
+      db.collection('profiles').doc(uid).get().then((doc) => {
+        if (doc.exists && doc.data().mentionNotifications === false) return;
+        createNotification(uid, 'mention',
+          FLOOR_NAME + ' mentioned you ' + (contextLabel || 'on the Trading Floor') + '.',
+          'trading-floor.html');
+      }).catch(() => {});
+    });
+  });
 }
 
 function initials(name){
@@ -525,7 +556,10 @@ function sendReply(post, inputEl, cardEl){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   })
     .then(() => db.collection('communityPosts').doc(post.id).update({ replyCount: firebase.firestore.FieldValue.increment(1) }))
-    .then(() => { if (typeof logActivity === 'function') logActivity('reply.created', 'Replied to a post on the Trading Floor', { detail: 'post ' + post.id }); })
+    .then(() => {
+      notifyMentions(text, 'in a reply on the Trading Floor');
+      if (typeof logActivity === 'function') logActivity('reply.created', 'Replied to a post on the Trading Floor', { detail: 'post ' + post.id });
+    })
     .then(() => {
       if (post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
         createNotification(post.authorUid, 'reply', FLOOR_NAME + ' replied to your post.', 'trading-floor.html');
@@ -943,6 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
       likedBy: [], upvotedBy: [], downvotedBy: [], replyCount: 0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
+      notifyMentions(rawHtml.replace(/<[^>]*>/g, ' '), 'in a post on the Trading Floor');
       if (typeof logActivity === 'function') logActivity(
         asTeam ? 'post.created.team' : 'post.created',
         asTeam ? 'Posted on the Trading Floor as Stryker Team' : 'Posted on the Trading Floor',

@@ -72,6 +72,17 @@ function isBotUid(uid) {
   return typeof uid === 'string' && uid.indexOf('bot-') === 0;
 }
 
+// A bot's one-line bio, in the terms of what it actually does. The mirror
+// names the account it relays; the market bots name their job, because
+// "Automated feed" tells a student nothing about whether to trust the post.
+function botBioFor(bot) {
+  var cfg = (bot && bot.config) || {};
+  if (cfg.screenName) return 'Automated feed \u00b7 mirrors @' + cfg.screenName;
+  if (bot && bot.type === 'market-analyst') return 'Automated desk analysis \u00b7 session briefings';
+  if (bot && bot.type === 'setup-scout') return 'Automated setup scanner \u00b7 sweep, MSS and fair value gaps';
+  return 'Automated feed';
+}
+
 // The profile document a bot posts behind. Written whenever the bot is saved,
 // so a renamed bot or a changed avatar updates every post it has ever made
 // rather than only future ones.
@@ -80,9 +91,7 @@ function botProfile(bot) {
     uid: botUid(bot.id),
     name: bot.name,
     displayName: bot.name,
-    bio: bot.config && bot.config.screenName
-      ? 'Automated feed \u00b7 mirrors @' + bot.config.screenName
-      : 'Automated feed',
+    bio: botBioFor(bot),
     isBotAccount: true,
     // resolveAvatarUrl checks customPhotoURL first, so this is the field that
     // actually drives the avatar everywhere it appears.

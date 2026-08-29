@@ -49,6 +49,73 @@ var BOT_TYPES = {
         help: 'Shown on every post this bot makes. Square images work best. '
             + 'Left empty, the bot gets a generated avatar from its name.' }
     ]
+  },
+
+  'market-analyst': {
+    label: 'Market analyst',
+    blurb: 'Reads the tape across a watchlist and posts a session briefing to the '
+         + 'Trading Floor — what moved, which session set the high and low, which '
+         + 'liquidity has been taken, and the levels that matter next. Every number '
+         + 'is computed from candles, never guessed.',
+    icon: 'M3 3v18h18v-2H5V3H3zm4 12h2v-5H7v5zm4 0h2V7h-2v8zm4 0h2v-3h-2v3z',
+    fields: [
+      { key: 'watchlist', label: 'Watchlist', type: 'text',
+        placeholder: 'EURUSD=X:EURUSD, GC=F:Gold, NQ=F:Nasdaq',
+        help: 'Yahoo Finance symbols, comma separated. Add a colon and a display '
+            + 'name to control how each one reads in the post. Up to 8; left empty '
+            + 'the bot watches EURUSD, Gold, Nasdaq, S&P and GBPUSD.' },
+      { key: 'briefings', label: 'Publish', type: 'select',
+        options: [['all', 'All three briefings'], ['london', 'London session only'],
+                  ['newyork', 'New York session only'], ['wrap', 'Daily wrap only']],
+        def: 'all',
+        help: 'London posts after 07:00 UTC, New York after 13:00, the wrap after '
+            + '20:00 — each one once per day however often the function runs.' },
+      { key: 'category', label: 'Post to', type: 'select',
+        options: [['general', 'Posts'], ['propfirm', 'Prop firm feed']],
+        def: 'general' },
+      { key: 'avatarUrl', label: 'Profile picture', type: 'image',
+        help: 'Shown on every post this bot makes. Square images work best. '
+            + 'Left empty, the bot gets a generated avatar from its name.' }
+    ]
+  },
+
+  'setup-scout': {
+    label: 'Setup scout',
+    blurb: 'Scans a watchlist for the setups the curriculum teaches and posts the '
+         + 'ones that pass, with entry zone, invalidation, target, R:R and the '
+         + 'reasoning. Each post carries the education disclaimer — it is a scanner '
+         + 'showing its work, not a signal service.',
+    icon: 'M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z',
+    fields: [
+      { key: 'watchlist', label: 'Watchlist', type: 'text',
+        placeholder: 'EURUSD=X:EURUSD, GC=F:Gold, NQ=F:Nasdaq',
+        help: 'Yahoo Finance symbols, comma separated, display name after a colon. '
+            + 'Up to 8 — a scanner watching everything posts noise.' },
+      { key: 'timeframe', label: 'Timeframe', type: 'select',
+        options: [['15m', '15 minutes'], ['1h', '1 hour']], def: '15m' },
+      { key: 'modelIct2022', label: 'Sweep → MSS → FVG (ICT 2022)', type: 'bool', def: true },
+      { key: 'modelJudas', label: 'Judas swing (session open)', type: 'bool', def: true },
+      { key: 'modelPdSweep', label: 'Prior-day liquidity sweep', type: 'bool', def: true },
+      { key: 'minGrade', label: 'Only post setups graded', type: 'select',
+        options: [['A', 'A only — the strongest'], ['B', 'B and above'], ['C', 'Everything it finds']],
+        def: 'B',
+        help: 'Grade comes from reward against risk, how hard price moved on the '
+            + 'shift, whether the liquidity taken was a level anyone watches, and '
+            + 'whether it runs with the higher-timeframe read.' },
+      { key: 'maxPerRun', label: 'Max setups per run', type: 'number', def: 2, min: 1, max: 5,
+        help: 'The scanner runs every 30 minutes. Two is a desk pointing things '
+            + 'out; five is a feed nobody reads.' },
+      { key: 'cooldownMinutes', label: 'Cooldown per instrument', type: 'number',
+        def: 180, min: 30, max: 1440,
+        help: 'Minutes before the same instrument can be posted again, whatever '
+            + 'else it prints in between.' },
+      { key: 'category', label: 'Post to', type: 'select',
+        options: [['general', 'Posts'], ['propfirm', 'Prop firm feed']],
+        def: 'general' },
+      { key: 'avatarUrl', label: 'Profile picture', type: 'image',
+        help: 'Shown on every post this bot makes. Square images work best. '
+            + 'Left empty, the bot gets a generated avatar from its name.' }
+    ]
   }
   // Future types drop in here. Nothing below this object needs to change.
 };
@@ -72,6 +139,20 @@ function relTime(ts) {
   if (d < 3600000) return Math.floor(d / 60000) + 'm ago';
   if (d < 86400000) return Math.floor(d / 3600000) + 'h ago';
   return Math.floor(d / 86400000) + 'd ago';
+}
+
+// What a bot is pointed at, in its own terms: a handle for a mirror, a
+// watchlist for the market bots. One cell, three meanings, so the card does not
+// need a branch per type in its markup.
+function botSourceLabel(b) {
+  var cfg = b.config || {};
+  if (cfg.screenName) return '@' + cfg.screenName;
+  if (cfg.watchlist) {
+    var n = String(cfg.watchlist).split(',').filter(function (s) { return s.trim(); }).length;
+    return n + (n === 1 ? ' instrument' : ' instruments');
+  }
+  if (b.type === 'market-analyst' || b.type === 'setup-scout') return 'Default watchlist';
+  return '\u2014';
 }
 
 // ---- Rendering -------------------------------------------------------------
@@ -112,9 +193,7 @@ function renderBots() {
       '<div class="bot-meta">' +
         '<div><span>Last run</span><b>' + relTime(b.lastRunAt) + '</b></div>' +
         '<div><span>Published</span><b>' + (b.publishedCount || 0) + '</b></div>' +
-        '<div><span>Source</span><b>' +
-          esc(b.config && b.config.screenName ? '@' + b.config.screenName : '—') +
-        '</b></div>' +
+        '<div><span>Source</span><b>' + esc(botSourceLabel(b)) + '</b></div>' +
       '</div>' +
 
       // A failed run has to be visible HERE. A bot that quietly stopped
@@ -181,9 +260,9 @@ function fieldHtml(f, value) {
   '</div>';
 }
 
-function openBotModal(bot) {
+function openBotModal(bot, forceType) {
   var isNew = !bot;
-  var type = bot ? bot.type : Object.keys(BOT_TYPES)[0];
+  var type = bot ? bot.type : (forceType || Object.keys(BOT_TYPES)[0]);
   var def = botTypeDef(type);
   var cfg = (bot && bot.config) || {};
 
@@ -212,6 +291,20 @@ function openBotModal(bot) {
       '<input type="text" id="bot-f-name" class="input" value="' +
       esc(bot ? bot.name : '') + '" placeholder="' + esc(def.label) + '"></div>' +
     def.fields.map(function (f) { return fieldHtml(f, cfg[f.key]); }).join('');
+
+  // Switching type has to rebuild the form: each type declares its own fields,
+  // and with only one type registered this never showed — the select had
+  // nothing to switch to. Any name already typed is carried across, since it
+  // belongs to the bot rather than to the type.
+  var typeEl = document.getElementById('bot-f-type');
+  if (typeEl && isNew) {
+    typeEl.addEventListener('change', function () {
+      var typed = document.getElementById('bot-f-name').value;
+      openBotModal(null, typeEl.value);
+      var nameEl = document.getElementById('bot-f-name');
+      if (nameEl) nameEl.value = typed;
+    });
+  }
 }
 
 function closeBotModal() {

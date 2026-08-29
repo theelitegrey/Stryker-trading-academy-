@@ -5022,3 +5022,84 @@ body.nav-authed .appnav-acts{ display:flex; }
 :root[data-theme="light"] .pp-off{ color:#03281c; }
 :root[data-theme="light"] .plan-sale-flag{ color:#3a1c00; box-shadow:0 6px 18px -10px rgba(165,118,26,.9); }
 :root[data-theme="light"] .price-card.on-sale{ border-color:rgba(165,118,26,.45); }
+
+/* ==========================================================================
+   BOT POSTS ON THE TRADING FLOOR (build 224)
+   The market bots publish structured analysis rather than prose: a setup card
+   with its levels, or a session briefing with a row per instrument. Both are
+   generated server-side by functions-src/marketBots.js and land in a post's
+   textHtml, so the styling lives here.
+   ========================================================================== */
+.sig-card{
+  border:1px solid var(--line); border-left:3px solid var(--gold);
+  border-radius:12px; padding:14px 16px; background:var(--bg-3);
+}
+.sig-card.sig-short{ border-left-color:var(--bear); }
+.sig-top{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:4px; }
+.sig-dir{
+  font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; padding:3px 9px; border-radius:999px;
+  color:#04140d; background:var(--gold);
+}
+.sig-short .sig-dir{ color:#fff; background:var(--bear); }
+.sig-sym{ font-size:15px; font-weight:700; color:var(--ink-0); }
+.sig-tf{ font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }
+.sig-grade{
+  margin-left:auto; font-family:var(--font-mono); font-size:10px; font-weight:700;
+  border-radius:999px; padding:3px 9px; border:1px solid var(--line);
+  color:var(--ink-2); background:var(--bg-2);
+}
+.sig-grade-a{ color:var(--gold); border-color:var(--gold-dim); background:rgba(3,201,136,.10); }
+.sig-grade-b{ color:var(--teal); border-color:var(--teal-dim); background:rgba(0,173,181,.08); }
+.sig-model{ margin:0 0 12px; font-size:12.5px; color:var(--ink-2); }
+
+.sig-levels{
+  display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px;
+  padding:11px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
+}
+@media (max-width:560px){ .sig-levels{ grid-template-columns:1fr 1fr; } }
+.sig-levels div{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.sig-levels span{
+  font-family:var(--font-mono); font-size:9.5px; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--ink-3);
+}
+.sig-levels b{ font-family:var(--font-mono); font-size:13.5px; color:var(--ink-0); font-weight:600; }
+
+.sig-why{ list-style:none; margin:12px 0 0; padding:0; display:flex; flex-direction:column; gap:6px; }
+.sig-why li{
+  font-size:12.5px; color:var(--ink-2); line-height:1.55; padding-left:15px; position:relative;
+}
+.sig-why li::before{
+  content:''; position:absolute; left:2px; top:7px; width:5px; height:5px;
+  border-radius:50%; background:var(--gold-dim);
+}
+.sig-foot{
+  margin:12px 0 0; padding-top:10px; border-top:1px solid var(--line-soft);
+  font-size:11px; color:var(--ink-3); line-height:1.5;
+}
+
+/* ---- session briefing ---- */
+.sig-brief{
+  border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--bg-3);
+}
+.sb-title{
+  font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--gold); margin-bottom:8px;
+}
+.sb-summary{ margin:0 0 14px; font-size:13px; color:var(--ink-1); line-height:1.6; }
+.sb-row{ padding:10px 0; border-top:1px solid var(--line-soft); }
+.sb-head{ display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+.sb-head b{ font-size:13.5px; color:var(--ink-0); }
+.sb-px{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink-1); }
+.sb-chg{ font-family:var(--font-mono); font-size:11.5px; }
+.sb-chg.up{ color:var(--bull); }
+.sb-chg.down{ color:var(--bear); }
+.sb-bias{
+  margin-left:auto; font-family:var(--font-mono); font-size:9.5px; letter-spacing:.06em;
+  text-transform:uppercase; border-radius:999px; padding:2px 8px; border:1px solid var(--line);
+  color:var(--ink-3);
+}
+.sb-bullish{ color:var(--gold); border-color:var(--gold-dim); }
+.sb-bearish{ color:var(--bear); border-color:rgba(229,72,77,.35); }
+.sb-note{ margin-top:4px; font-size:12.5px; color:var(--ink-2); line-height:1.55; }
+.sb-levels{ margin-top:4px; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }

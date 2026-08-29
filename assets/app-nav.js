@@ -18,7 +18,7 @@
     if (f === '' || f === 'index.html' || f === 'dashboard-user.html') return 'home';
     if (f === 'courses.html' || f === 'chapter.html') return 'learn';
     if (f === 'trade-journal.html') return 'journal';
-    if (f === 'indicators.html' || f === 'indicator.html') return 'charts';
+    if (f === 'global-monitor.html') return 'monitor';
     if (f === 'trading-floor.html') return 'floor';
     return null;
   }

@@ -4671,3 +4671,247 @@ body.nav-authed .nav-cta{ display:none !important; }
   }
   .mv-flip{ fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6); }
 }
+
+/* ==========================================================================
+   DAY THEME (build 221)
+   Night is the native look and is untouched. Day is a real light palette:
+   the same token names, re-pointed, so every component that already reads
+   var(--bg-*) / var(--ink-*) / var(--line) follows automatically. Below the
+   token block are the handful of places that hardcoded a dark value, plus
+   SVG presentation-attribute mappings for the chart illustrations (CSS wins
+   over fill="" / stroke="" attributes, so the diagrams re-colour too).
+   Applied by assets/theme.js via data-theme="light" on <html>.
+   ========================================================================== */
+:root[data-theme="light"]{
+  /* surfaces — cool paper, cards lift with white rather than shadow alone */
+  --bg-0:#e6eaf0;
+  --bg-1:#f4f6fa;
+  --bg-2:#ffffff;
+  --bg-3:#eef1f6;
+  --line:#d6dce6;
+  --line-soft:#e8ecf2;
+
+  /* text — near-black headings down to a readable faint tone (all >=4.5:1
+     against --bg-2 except --ink-3, which is only used for decorative meta) */
+  --ink-0:#0e1621;
+  --ink-1:#2a3543;
+  --ink-2:#57626f;
+  --ink-3:#7b8593;
+
+  /* brand — the same mint, darkened enough to be legible as text and
+     borders on paper; the bright tone stays for fills and glows */
+  --gold:#07996a;
+  --gold-bright:#05b47c;
+  --gold-dim:#7ed6b6;
+  --teal:#0b8a95;
+  --teal-dim:#a7d9de;
+
+  --indigo:#3d2fa8;
+  --royal-blue:#1657b8;
+
+  --bull:#07996a;
+  --bear:#c9353a;
+
+  --amber:#a5761a;
+  --amber-dim:#e9cf95;
+
+  --shadow-card: 0 8px 24px -14px rgba(14,22,33,0.22);
+  --shadow-glow: 0 0 0 1px rgba(7,153,106,0.16), 0 8px 30px -12px rgba(7,153,106,0.20);
+}
+
+/* the dissolve between themes, added briefly by theme.js */
+:root.theme-anim, :root.theme-anim *{
+  transition:background-color .34s ease, color .34s ease, border-color .34s ease,
+             fill .34s ease, stroke .34s ease, box-shadow .34s ease !important;
+}
+
+/* ---- surfaces that named a dark colour directly ---- */
+:root[data-theme="light"] body{ background:var(--bg-1); color:var(--ink-1); }
+:root[data-theme="light"] .nav{ background:rgba(255,255,255,.88); }
+:root[data-theme="light"] .appnav-dock{ background:rgba(255,255,255,.96); }
+:root[data-theme="light"] .sidebar-backdrop{ background:rgba(14,22,33,.35); }
+:root[data-theme="light"] .icon-btn{ background:rgba(14,22,33,.04); }
+:root[data-theme="light"] .code-block,
+:root[data-theme="light"] .lesson-code{ background:var(--bg-3); border-color:var(--line); }
+:root[data-theme="light"] .ind-demo,
+:root[data-theme="light"] .mdl-demo,
+:root[data-theme="light"] .mdl-hero{
+  background:radial-gradient(ellipse at 30% 20%, rgba(7,153,106,0.07), transparent 65%), #f8fafc;
+}
+:root[data-theme="light"] .access-gate-overlay{ background:var(--bg-1); }
+:root[data-theme="light"] .paywall-overlay{ background:rgba(244,246,250,.82); }
+
+/* shadows tuned for paper — the night values are near-black and far too
+   heavy once the surface behind them is white */
+:root[data-theme="light"] .panel,
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .stat-card,
+:root[data-theme="light"] .chapter,
+:root[data-theme="light"] .mdl-card,
+:root[data-theme="light"] .ind-card{ box-shadow:0 1px 2px rgba(14,22,33,.04), 0 8px 24px -18px rgba(14,22,33,.35); }
+:root[data-theme="light"] .account-panel,
+:root[data-theme="light"] .notif-panel,
+:root[data-theme="light"] .modal-card,
+:root[data-theme="light"] .plan-modal-card,
+:root[data-theme="light"] .toast{ box-shadow:0 18px 46px -20px rgba(14,22,33,.35); }
+
+/* ---- chart illustrations: CSS beats fill="" / stroke="" attributes, so the
+   inline SVG scenes across the site re-colour without touching markup ---- */
+:root[data-theme="light"] svg [stroke="#3a4150"]{ stroke:#aab3c0; }
+:root[data-theme="light"] svg [fill="#3a4150"]{ fill:#aab3c0; }
+:root[data-theme="light"] svg [fill="#eeeeee"]{ fill:var(--ink-0); }
+:root[data-theme="light"] svg [stroke="#eeeeee"]{ stroke:#334155; }
+:root[data-theme="light"] svg [fill="#8b93a0"]{ fill:var(--ink-2); }
+:root[data-theme="light"] svg [stroke="#8b93a0"]{ stroke:var(--ink-2); }
+:root[data-theme="light"] svg [fill="#5c6472"]{ fill:var(--ink-2); }
+:root[data-theme="light"] svg [fill="#050506"],
+:root[data-theme="light"] svg [fill="#0b0b0d"]{ fill:#f8fafc; }
+:root[data-theme="light"] svg [fill="#2fbf8f"]{ fill:#0a9a6b; }
+:root[data-theme="light"] svg [fill="#7fe0c2"]{ fill:#4cc39a; }
+:root[data-theme="light"] svg [fill="#2ea583"]{ fill:#12a377; }
+:root[data-theme="light"] svg [fill="#cf4046"]{ fill:#cf4046; }
+:root[data-theme="light"] svg [fill="#03c988"]{ fill:#07996a; }
+:root[data-theme="light"] svg [stroke="#03c988"]{ stroke:#07996a; }
+:root[data-theme="light"] svg [fill="#f5c542"]{ fill:#b8860b; }
+:root[data-theme="light"] svg [stroke="#f5c542"]{ stroke:#b8860b; }
+:root[data-theme="light"] svg [fill="#00adb5"]{ fill:#0b8a95; }
+:root[data-theme="light"] svg [stroke="#00adb5"]{ stroke:#0b8a95; }
+:root[data-theme="light"] svg [stroke="#e5484d"]{ stroke:#c9353a; }
+
+/* ==========================================================================
+   THE DAY / NIGHT SWITCH
+   A segmented control with a glass capsule that glides between a sun and a
+   moon. Lives in the account menu, the profile page and settings.
+   ========================================================================== */
+.theme-seg{
+  position:relative; display:inline-flex; align-items:center; gap:0;
+  background:var(--bg-3); border:1px solid var(--line); border-radius:999px;
+  padding:3px; width:100%; box-sizing:border-box;
+}
+.theme-seg-glide{
+  position:absolute; top:3px; bottom:3px; left:3px; width:calc(50% - 3px);
+  border-radius:999px; background:var(--bg-2); border:1px solid var(--line);
+  box-shadow:0 2px 8px -4px rgba(0,0,0,.5);
+  transform:translateX(100%);
+  transition:transform .34s cubic-bezier(.22,1,.36,1), background .34s ease;
+}
+.theme-seg.is-day .theme-seg-glide{
+  transform:translateX(0);
+  background:linear-gradient(140deg, #fff6dd, #ffe6ad);
+  border-color:#f0d190;
+}
+.theme-seg-opt{
+  position:relative; z-index:1; flex:1; display:inline-flex; align-items:center;
+  justify-content:center; gap:7px; cursor:pointer; background:none; border:0;
+  padding:7px 10px; border-radius:999px; color:var(--ink-3);
+  font-family:inherit; font-size:12.5px; font-weight:600;
+  transition:color .25s ease; -webkit-tap-highlight-color:transparent;
+}
+.theme-seg-opt:hover{ color:var(--ink-1); }
+.theme-seg-opt.on{ color:var(--ink-0); }
+.theme-seg-opt[data-theme-opt="day"].on{ color:#8a5a06; }
+.theme-seg-ic{ display:inline-flex; width:15px; height:15px; }
+.theme-seg-ic svg{ width:100%; height:100%; }
+.theme-seg-opt[data-theme-opt="day"].on .theme-seg-ic{ animation:themeSunSpin .6s ease; }
+.theme-seg-opt[data-theme-opt="night"].on .theme-seg-ic{ animation:themeMoonRise .5s ease; }
+@keyframes themeSunSpin{ from{ transform:rotate(-90deg) scale(.6); opacity:.4 } to{ transform:none; opacity:1 } }
+@keyframes themeMoonRise{ from{ transform:translateY(4px) scale(.7); opacity:.4 } to{ transform:none; opacity:1 } }
+
+/* larger presentation for the profile / settings appearance card */
+.theme-seg-lg{ padding:4px; }
+.theme-seg-lg .theme-seg-opt{ padding:10px 14px; font-size:13.5px; gap:9px; }
+.theme-seg-lg .theme-seg-ic{ width:17px; height:17px; }
+.theme-seg-lg .theme-seg-glide{ top:4px; bottom:4px; left:4px; width:calc(50% - 4px); }
+
+.theme-card{ display:flex; flex-direction:column; gap:12px; }
+.theme-card p{ margin:0; font-size:12.5px; color:var(--ink-3); line-height:1.6; }
+.account-theme{ padding:9px 10px 5px; border-top:1px solid var(--line-soft); }
+.account-theme-label{
+  font-family:var(--font-mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); padding:0 2px 7px; display:block;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .theme-seg-glide{ transition:none; }
+  .theme-seg-opt .theme-seg-ic{ animation:none !important; }
+}
+
+/* Global Monitor world map + other dark SVG canvases drawn by JS. These use
+   presentation attributes, so light-theme CSS re-points them without the
+   drawing code needing to know which theme it is in. */
+:root[data-theme="light"] svg [fill="#1c2126"]{ fill:#e3e8ef; }
+:root[data-theme="light"] svg [stroke="#2e363d"]{ stroke:#c3ccd8; }
+:root[data-theme="light"] svg [stroke="#12181c"]{ stroke:#dde3ec; }
+:root[data-theme="light"] svg [stop-color="#0d1a14"]{ stop-color:#eef4f1; }
+:root[data-theme="light"] svg [stop-color="#08080a"]{ stop-color:#f4f6fa; }
+:root[data-theme="light"] svg [fill="#0b0e13"],
+:root[data-theme="light"] svg [fill="#0a0d13"],
+:root[data-theme="light"] svg [fill="#08080a"]{ fill:#f4f6fa; }
+:root[data-theme="light"] svg [fill="#1b2132"]{ fill:#e6ebf3; }
+:root[data-theme="light"] svg [fill="#8891ab"],
+:root[data-theme="light"] svg [fill="#5c6485"]{ fill:var(--ink-2); }
+:root[data-theme="light"] svg [stroke="#3e4550"]{ stroke:#c3ccd8; }
+
+/* The market tape, hero scene and other homepage motion layers paint their
+   own vignettes over the page background. */
+:root[data-theme="light"] .mtape,
+:root[data-theme="light"] .hero-chart-wrap{ background:var(--bg-2); }
+:root[data-theme="light"] .plat-wheel-wrap .wcard{ background:var(--bg-2); }
+
+/* Inline styles can't be overridden without !important — these are the few
+   places a night-only colour is written straight onto the element. */
+:root[data-theme="light"] [style*="color:#eeeeee"]{ color:var(--ink-0) !important; }
+:root[data-theme="light"] [style*="color:#7fe0c2"]{ color:#0a8a60 !important; }
+:root[data-theme="light"] [style*="background:rgba(47,191,143,0.1)"]{ background:rgba(7,153,106,0.10) !important; }
+
+/* Remaining night-palette SVG attributes: gridlines, wick greys and the
+   couple of navy tones the hero/journal scenes draw with. */
+:root[data-theme="light"] svg [stroke="#1b2132"]{ stroke:#e3e8f0; }
+:root[data-theme="light"] svg [stroke="#2c2c32"]{ stroke:#d6dce6; }
+:root[data-theme="light"] svg [stroke="#1e1e22"]{ stroke:#e3e8ef; }
+:root[data-theme="light"] svg [stroke="#5c6485"]{ stroke:#98a2b3; }
+:root[data-theme="light"] svg [fill="#04110c"]{ fill:#04110c; }
+:root[data-theme="light"] svg [stroke="#4d96ff"]{ stroke:#2563c9; }
+:root[data-theme="light"] svg [fill="#4d96ff"]{ fill:#2563c9; }
+
+/* The header logo is a light-on-dark mark; on paper it needs a touch more
+   weight to read as solidly as it does at night. */
+:root[data-theme="light"] .brand-mark{ filter:saturate(1.25) contrast(1.12) brightness(.82); }
+
+/* Active states that used the bright brand tone as text — legible at night on
+   a dark tint, too pale on the day tint. */
+:root[data-theme="light"] .side-link.active,
+:root[data-theme="light"] .level-tab.active,
+:root[data-theme="light"] .level-tab:hover,
+:root[data-theme="light"] .vt-rate.on,
+:root[data-theme="light"] .chapter-tag.tag-intermediate{ color:#06694a; }
+:root[data-theme="light"] .side-link.active{ background:rgba(7,153,106,0.12); }
+:root[data-theme="light"] .reader-head span,
+:root[data-theme="light"] .toc-item.current{ color:#06694a; }
+
+/* ==========================================================================
+   LESSON & MODEL CONTENT written with inline night colours
+   The chapter/model write-ups embed diagram panels, tables and callouts with
+   colours written straight onto the element (401 dark panels, 200 hairlines,
+   and inline text tones). Inline styles only yield to !important, so day
+   theme re-points them here rather than rewriting the stored content.
+   ========================================================================== */
+:root[data-theme="light"] [style*="background:#050506"],
+:root[data-theme="light"] [style*="background:#0b0b0d"],
+:root[data-theme="light"] [style*="background:#0a0d13"],
+:root[data-theme="light"] [style*="background:#131316"]{
+  background:#f7f9fc !important;
+}
+:root[data-theme="light"] [style*="#1e1e22"],
+:root[data-theme="light"] [style*="solid #131316"]{ border-color:var(--line) !important; }
+:root[data-theme="light"] [style*="color:#eeeeee"]{ color:var(--ink-0) !important; }
+:root[data-theme="light"] [style*="color:#8b93a0"]{ color:var(--ink-2) !important; }
+:root[data-theme="light"] [style*="color:#5c6472"]{ color:var(--ink-2) !important; }
+:root[data-theme="light"] [style*="color:#f5c542"]{ color:#8a6210 !important; }
+:root[data-theme="light"] [style*="color:#00adb5"]{ color:#0b8a95 !important; }
+:root[data-theme="light"] [style*="color:#7fe0c2"]{ color:#07996a !important; }
+:root[data-theme="light"] [style*="color:#03c988"]{ color:#06694a !important; }
+:root[data-theme="light"] [style*="color:#f08488"],
+:root[data-theme="light"] [style*="color:#e5484d"]{ color:#b8323a !important; }
+:root[data-theme="light"] svg [stroke="#5c6472"]{ stroke:#9aa3b1; }
+:root[data-theme="light"] svg [stroke="#4fe3ac"]{ stroke:#0a9a6b; }

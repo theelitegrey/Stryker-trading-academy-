@@ -104,7 +104,8 @@ function jzRenderRadar(m){
     jCountUp(scoreEl, m.score, (v) => String(Math.round(v)));
   } else if (scoreEl) scoreEl.textContent = m.score;
 
-  const hue = m.score >= 70 ? '#03c988' : (m.score >= 45 ? '#f5c542' : '#e5484d');
+  const ZP = (typeof strykerPalette === 'function') ? strykerPalette() : { win:'#03c988', warn:'#f5c542', loss:'#e5484d', track:'#1e1e22' };
+  const hue = m.score >= 70 ? ZP.win : (m.score >= 45 ? ZP.warn : ZP.loss);
   const scoreSub = document.getElementById('jz-score-label');
   if (scoreSub) {
     scoreSub.textContent = m.score >= 70 ? 'STRONG' : (m.score >= 45 ? 'DEVELOPING' : 'AT RISK');
@@ -119,8 +120,8 @@ function jzRenderRadar(m){
         data: [m.axes.winRate, m.axes.profitFactor, m.axes.avgWinLoss,
                m.axes.dayWinRate, m.axes.recovery, m.axes.consistency],
         backgroundColor: 'rgba(3,201,136,0.14)',
-        borderColor: '#03c988', borderWidth: 2,
-        pointBackgroundColor: '#03c988', pointRadius: 3, pointHoverRadius: 5
+        borderColor: (typeof strykerPalette === 'function' ? strykerPalette().win : '#03c988'), borderWidth: 2,
+        pointBackgroundColor: (typeof strykerPalette === 'function' ? strykerPalette().win : '#03c988'), pointRadius: 3, pointHoverRadius: 5
       }]
     },
     options: {
@@ -148,7 +149,7 @@ function jzArc(pct, colour){
   const circ = 2 * Math.PI * 26;
   const dash = clamped * circ * 0.75;
   return '<svg viewBox="0 0 64 54" class="jz-arc">' +
-    '<path d="M9 46 A 26 26 0 1 1 55 46" fill="none" stroke="#1e1e22" stroke-width="6" stroke-linecap="round"/>' +
+    '<path d="M9 46 A 26 26 0 1 1 55 46" fill="none" stroke="' + ((typeof strykerPalette === 'function') ? strykerPalette().track : '#1e1e22') + '" stroke-width="6" stroke-linecap="round"/>' +
     '<path d="M9 46 A 26 26 0 1 1 55 46" fill="none" stroke="' + colour + '" stroke-width="6" stroke-linecap="round" ' +
       'stroke-dasharray="0 ' + circ.toFixed(1) + '" style="filter:drop-shadow(0 0 4px ' + colour + '55)">' +
       '<animate attributeName="stroke-dasharray" from="0 ' + circ.toFixed(1) + '" to="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '" ' +
@@ -163,9 +164,10 @@ function jzRenderKpis(m, currency){
   if (!m) { host.innerHTML = ''; return; }
   const s = m.stats;
   const pfDisplay = isFinite(m.pf) ? m.pf.toFixed(2) : '∞';
-  const pfCol = (isFinite(m.pf) ? m.pf : 3) >= 1.5 ? '#03c988' : (m.pf >= 1 ? '#f5c542' : '#e5484d');
-  const wrCol = s.winRate >= 50 ? '#03c988' : (s.winRate >= 40 ? '#f5c542' : '#e5484d');
-  const dwCol = m.dayWinRate >= 50 ? '#03c988' : (m.dayWinRate >= 40 ? '#f5c542' : '#e5484d');
+  const P = (typeof strykerPalette === 'function') ? strykerPalette() : { win:'#03c988', warn:'#f5c542', loss:'#e5484d' };
+  const pfCol = (isFinite(m.pf) ? m.pf : 3) >= 1.5 ? P.win : (m.pf >= 1 ? P.warn : P.loss);
+  const wrCol = s.winRate >= 50 ? P.win : (s.winRate >= 40 ? P.warn : P.loss);
+  const dwCol = m.dayWinRate >= 50 ? P.win : (m.dayWinRate >= 40 ? P.warn : P.loss);
   const wlTotal = (s.avgWin + s.avgLoss) || 1;
 
   host.innerHTML =
@@ -315,7 +317,8 @@ function jzRenderAiBox(){
 
   const focus = res.insights.find((i) => i.sev === 'crit') || res.insights.find((i) => i.sev === 'warn');
   const strength = res.insights.find((i) => i.sev === 'good');
-  const hue = res.score >= 70 ? '#03c988' : (res.score >= 50 ? '#f5c542' : '#e5484d');
+  const AP = (typeof strykerPalette === 'function') ? strykerPalette() : { win:'#03c988', warn:'#f5c542', loss:'#e5484d' };
+  const hue = res.score >= 70 ? AP.win : (res.score >= 50 ? AP.warn : AP.loss);
 
   host.innerHTML =
     '<div class="jz-ai-head">' +
@@ -326,7 +329,7 @@ function jzRenderAiBox(){
       '<button type="button" class="jz-ai-open" onclick="switchJournalTab(\'ai\')">Full report →</button>' +
     '</div>' +
     (focus
-      ? '<p class="jz-ai-focus"><span style="color:' + (focus.sev === 'crit' ? '#e5484d' : '#f5a524') + '">' +
+      ? '<p class="jz-ai-focus"><span style="color:' + (focus.sev === 'crit' ? AP.loss : AP.warn) + '">' +
         (focus.sev === 'crit' ? 'Fix first:' : 'Biggest leak:') + '</span> ' + escapeJournalHtml(focus.title) +
         '. ' + escapeJournalHtml(focus.body.split('. ')[0]) + '.</p>'
       : '<p class="jz-ai-focus">' + escapeJournalHtml(res.verdict) + '</p>') +

@@ -7,6 +7,10 @@
 // dashboard-user.html and degrades module-by-module: a source that fails
 // simply shows its quiet empty note, never an error wall.
 
+// Theme-aware accents for the brief dots and sparklines (assets/theme.js).
+function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette()
+  : { win:'#03c988', loss:'#e5484d', warn:'#f5c542', info:'#7fb4ff' }; }
+
 (function(){
   var MONITOR_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
 
@@ -155,7 +159,8 @@
     var min = Math.min(0, Math.min.apply(null, pts)), max = Math.max.apply(null, pts);
     var span = (max - min) || 1;
     var up = pts[pts.length - 1] >= 0;
-    var col = up ? '#03c988' : '#e5484d';
+    var _p = (typeof strykerPalette === 'function') ? strykerPalette() : { win:'#03c988', loss:'#e5484d' };
+    var col = up ? _p.win : _p.loss;
     x.beginPath();
     pts.forEach(function (p, i) {
       var px = 2 + (w - 4) * i / (pts.length - 1);
@@ -193,7 +198,8 @@
     if (quotes.length) {
       html += '<div class="dov-quotes">' + quotes.map(function (q) {
         var up = (q.chgPct || 0) >= 0;
-        var col = up ? '#03c988' : '#e5484d';
+        var _p = (typeof strykerPalette === 'function') ? strykerPalette() : { win:'#03c988', loss:'#e5484d' };
+    var col = up ? _p.win : _p.loss;
         return '<div class="dov-quote">' +
           '<span class="dov-dim">' + esc(q.label || q.s) + '</span>' +
           '<b>' + (typeof q.price === 'number' ? q.price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—') + '</b>' +
@@ -212,7 +218,7 @@
       html += '<div class="dov-sub">Upcoming news</div>' + events.map(function (e) {
         var when = new Date(e.at).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' });
         return '<div class="dov-row">' +
-          '<i class="dov-dot" style="background:' + (e.impact === 'high' ? '#e5484d' : '#f5a524') + '"></i>' +
+          '<i class="dov-dot" style="background:' + (e.impact === 'high' ? DOVP().loss : DOVP().warn) + '"></i>' +
           '<b>' + esc(e.country || '') + '</b>' +
           '<span class="dov-trunc">' + esc(e.title || '') + '</span>' +
           '<span class="dov-dim" style="margin-left:auto; flex-shrink:0;">' + esc(when) + '</span>' +
@@ -269,39 +275,39 @@
         .filter(function (e) { return e.at && e.at > Date.now() && e.impact === 'high'; })
         .sort(function (a, b) { return a.at - b.at; })[0];
       if (next) {
-        lines.push('<i style="background:#e5484d"></i><span><b>' + esc(next.country || '') + ' ' + esc(next.title || '') + '</b> is the next red-folder event — ' +
+        lines.push('<i style="background:' + DOVP().loss + '"></i><span><b>' + esc(next.country || '') + ' ' + esc(next.title || '') + '</b> is the next red-folder event — ' +
           esc(new Date(next.at).toLocaleString(undefined, { weekday: 'long', hour: '2-digit', minute: '2-digit' })) + '. Size down around it.</span>');
       }
       var top = (d.finance && d.finance.items || [])[0];
-      if (top) lines.push('<i style="background:#f5c542"></i><span>On the wire: ' + esc(stripHtml(top.title)) + '</span>');
+      if (top) lines.push('<i style="background:' + DOVP().warn + '"></i><span>On the wire: ' + esc(stripHtml(top.title)) + '</span>');
     }
 
     if (DOV.trades && DOV.trades.length) {
       var week = closedSince(DOV.trades, 7);
       if (week.length) {
         var s = journalAggregateStats(week);
-        lines.push('<i style="background:' + (s.totalPnl >= 0 ? '#03c988' : '#e5484d') + '"></i><span>Your week so far: <b>' +
+        lines.push('<i style="background:' + (s.totalPnl >= 0 ? DOVP().win : DOVP().loss) + '"></i><span>Your week so far: <b>' +
           money(s.totalPnl) + '</b> over ' + s.closedTrades + ' trade' + (s.closedTrades === 1 ? '' : 's') +
           ' (' + Math.round(s.winRate) + '% win rate).</span>');
       }
       var last5 = DOV.trades.filter(function (t) { return typeof t.pnl === 'number'; }).slice(0, 5);
       var losses = last5.filter(function (t) { return t.pnl < 0; }).length;
       if (last5.length >= 4 && losses >= 3) {
-        lines.push('<i style="background:#e5484d"></i><span><b>Cool off:</b> ' + losses + ' of your last ' + last5.length + ' trades were losses. Step away before the next entry.</span>');
+        lines.push('<i style="background:' + DOVP().loss + '"></i><span><b>Cool off:</b> ' + losses + ' of your last ' + last5.length + ' trades were losses. Step away before the next entry.</span>');
       }
     } else if (DOV.trades) {
-      lines.push('<i style="background:#f5c542"></i><span>Your journal is empty — log today\'s trades while they\'re fresh, or load the demo data to explore.</span>');
+      lines.push('<i style="background:' + DOVP().warn + '"></i><span>Your journal is empty — log today\'s trades while they\'re fresh, or load the demo data to explore.</span>');
     }
 
     if (DOV.posts && DOV.posts.length) {
       var dayAgo = Date.now() - 86400000;
       var fresh = DOV.posts.filter(function (p) { return p.atMs > dayAgo; }).length;
-      if (fresh) lines.push('<i style="background:#7fb4ff"></i><span>' + fresh + ' new post' + (fresh === 1 ? '' : 's') + ' on the trading floor in the last 24 hours.</span>');
+      if (fresh) lines.push('<i style="background:' + DOVP().info + '"></i><span>' + fresh + ' new post' + (fresh === 1 ? '' : 's') + ' on the trading floor in the last 24 hours.</span>');
     }
 
     host.innerHTML = lines.length
       ? lines.map(function (l) { return '<div class="dov-brief-line">' + l + '</div>'; }).join('')
-      : '<div class="dov-brief-line"><i style="background:#f5c542"></i><span>Pulling today\'s picture together…</span></div>';
+      : '<div class="dov-brief-line"><i style="background:' + DOVP().warn + '"></i><span>Pulling today\'s picture together…</span></div>';
   }
 
   // ---- data loading ----------------------------------------------------------

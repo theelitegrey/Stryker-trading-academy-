@@ -242,3 +242,57 @@ body[data-page-access="trade-journal"] .ja-fab:active{ transform:scale(0.94); }
   body[data-page-access="trade-journal"] .ja-fab,
   body[data-page-access="trade-journal"] .dash-main .btn{ transition:none; }
 }
+
+/* ==========================================================================
+   DAY THEME (build 221)
+   The glass skin is white-on-dark by construction: translucent white panes
+   over a near-black page. In day it inverts — solid white panes over paper,
+   hairlines in ink instead of light, and the amber tonal accent darkened so
+   it still reads as text.
+   ========================================================================== */
+:root[data-theme="light"] body[data-page-access="trade-journal"]{
+  --ja-ink:#0e1621;
+  --ja-ink-2:#4b5563;
+  --ja-ink-3:#6b7280;
+  --ja-glass:#ffffff;
+  --ja-glass-2:#f2f5f9;
+  --ja-hairline:rgba(14,22,33,0.10);
+  --ja-blue:#1a73e8;
+  --ja-tonal:rgba(165,118,26,0.12);
+  --ja-tonal-ink:#8a6210;
+  background:var(--bg-1);
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .panel,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .stat-card,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .jz-ai-box,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .pf-card,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .pf-ticker,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .journal-trade-row{
+  box-shadow:0 1px 2px rgba(14,22,33,.04), 0 10px 26px -20px rgba(14,22,33,.4);
+}
+/* the translucent white state layers all need to become ink washes */
+:root[data-theme="light"] body[data-page-access="trade-journal"] [class]{
+  --ja-state:rgba(14,22,33,0.05);
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .panel:hover,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .journal-trade-row:hover{
+  border-color:rgba(14,22,33,0.16);
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .ja-seg,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .ja-chip,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .ja-pill,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .level-tab,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .journal-tab{
+  background:#eef1f6; border-color:rgba(14,22,33,0.10); color:var(--ja-ink-2);
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .level-tab.active,
+:root[data-theme="light"] body[data-page-access="trade-journal"] .journal-tab.active{
+  background:rgba(7,153,106,0.12); border-color:#7ed6b6; color:#06694a;
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .ja-fab{
+  background:linear-gradient(160deg, #12b07c, #07996a); color:#ffffff;
+  box-shadow:0 6px 20px rgba(7,153,106,0.32), 0 2px 6px rgba(14,22,33,0.18);
+}
+:root[data-theme="light"] body[data-page-access="trade-journal"] .ja-fab:hover{
+  box-shadow:0 10px 26px rgba(7,153,106,0.42), 0 3px 8px rgba(14,22,33,0.22);
+}

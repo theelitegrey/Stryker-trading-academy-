@@ -164,10 +164,25 @@ function renderProfile(uid, profile, isOwnProfile, postCount){
         '</div>' +
       '</div>' +
     '</div>' +
+    // Your own profile is where people go looking for "settings about me",
+    // so the day/night switch lives here as well as in the account menu.
+    (isOwnProfile && typeof strykerThemeToggleHtml === 'function'
+      ? '<div class="panel">' +
+          '<div class="panel-head"><h2 style="font-size:15px;">Appearance</h2></div>' +
+          '<div class="theme-card">' +
+            '<p>Night is the desk look this site was built in. Day is a full light theme — same layout, paper surfaces, charts and dashboards re-coloured to match. Your choice is remembered on this device and follows your account.</p>' +
+            strykerThemeToggleHtml({ large: true }) +
+          '</div>' +
+        '</div>'
+      : '') +
     '<div class="panel">' +
       '<div class="panel-head"><h2 style="font-size:15px;">Recent Trading Floor posts</h2></div>' +
       '<div id="profile-posts-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>' +
     '</div>';
+
+  if (typeof setStrykerTheme === 'function' && typeof strykerTheme === 'function') {
+    setStrykerTheme(strykerTheme(), { silent: true });
+  }
 
   const copyBtn = document.getElementById('profile-copy-link-btn');
   if (copyBtn) {

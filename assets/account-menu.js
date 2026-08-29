@@ -69,6 +69,12 @@
             '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
             'stroke-width="1.9">' + it.icon + '</svg>' + it.label + '</a>';
         }).join('') +
+        // Appearance sits in the account menu because that is where people
+        // look for "my settings for me" — and it is one tap from anywhere.
+        (typeof strykerThemeToggleHtml === 'function'
+          ? '<div class="account-theme"><span class="account-theme-label">Appearance</span>' +
+            strykerThemeToggleHtml() + '</div>'
+          : '') +
         '<button type="button" class="account-item account-item-danger" role="menuitem" data-sign-out>' +
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
           'stroke-width="1.9">' + SIGNOUT_ICON + '</svg>Sign out' +
@@ -76,6 +82,12 @@
       '</div>';
 
     right.appendChild(wrap);
+
+    // The menu is built after theme.js has already applied the theme, so
+    // its freshly-created switch needs its state painted in.
+    if (typeof setStrykerTheme === 'function' && typeof strykerTheme === 'function') {
+      setStrykerTheme(strykerTheme(), { silent: true });
+    }
 
     var trigger = document.getElementById('account-trigger');
     var panel = document.getElementById('account-panel');

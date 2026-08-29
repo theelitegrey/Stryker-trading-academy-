@@ -227,7 +227,7 @@ function renderCalendarOptions(){
   if (!host) return;
   host.innerHTML = JC_OPT_DEFS.map(([k, label]) =>
     '<button type="button" class="term-cat' + (JC_OPTS[k] ? ' is-on' : '') + '" data-opt="' + k + '">' +
-    '<i style="background:' + (JC_OPTS[k] ? '#03c988' : '#5c6472') + '"></i>' + label + '</button>').join('');
+    '<i style="background:' + (JC_OPTS[k] ? ((typeof strykerPalette === 'function') ? strykerPalette().win : '#03c988') : 'var(--ink-3)') + '"></i>' + label + '</button>').join('');
 }
 
 function renderCalendarTab(){
@@ -271,7 +271,7 @@ function renderCalendarTab(){
     cell.className = 'journal-cal-cell' + (dayData ? (dayData.pnl >= 0 ? ' win' : ' loss') : '');
     let body = '';
     if (dayData) {
-      if (JC_OPTS.pnl) body += '<div class="journal-cal-pnl" style="color:' + (dayData.pnl >= 0 ? '#03c988' : '#e5484d') + ';">' + journalFormatCurrency(dayData.pnl, currency) + '</div>';
+      if (JC_OPTS.pnl) body += '<div class="journal-cal-pnl" style="color:' + (dayData.pnl >= 0 ? ((typeof strykerPalette === 'function') ? strykerPalette().win : '#03c988') : ((typeof strykerPalette === 'function') ? strykerPalette().loss : '#e5484d')) + ';">' + journalFormatCurrency(dayData.pnl, currency) + '</div>';
       if (JC_OPTS.trades) body += '<div class="journal-cal-count">' + dayData.count + ' trade' + (dayData.count === 1 ? '' : 's') + '</div>';
       if (JC_OPTS.wl) body += '<div class="jc-wl"><b class="gm-up">' + dayData.wins + 'W</b><span>·</span><b class="gm-down">' + dayData.losses + 'L</b></div>';
       if (JC_OPTS.winrate && (dayData.wins + dayData.losses) > 0) {

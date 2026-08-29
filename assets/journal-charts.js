@@ -2,6 +2,9 @@
 // Depends on: assets/journal-calc.js, Chart.js (CDN), and the global
 // JOURNAL_TRADES / JOURNAL_SETTINGS state set up by assets/journal-main.js
 
+// Chart colours follow the site theme (assets/theme.js). The object is
+// mutated in place rather than replaced so every reference already handed to
+// Chart.js picks up the new values on the next render.
 const JCOLOR = {
   win: '#03c988', winSoft: 'rgba(3,201,136,0.15)',
   loss: '#e5484d', lossSoft: 'rgba(229,72,77,0.15)',
@@ -9,8 +12,33 @@ const JCOLOR = {
   line: 'rgba(62,69,80,0.6)', gold: '#f5c542'
 };
 
+function refreshJournalChartColors(){
+  if (typeof strykerPalette !== 'function') return;
+  const p = strykerPalette();
+  JCOLOR.win = p.win; JCOLOR.winSoft = p.winSoft;
+  JCOLOR.loss = p.loss; JCOLOR.lossSoft = p.lossSoft;
+  JCOLOR.ink0 = p.ink0; JCOLOR.ink2 = p.ink2; JCOLOR.ink3 = p.ink3;
+  JCOLOR.line = p.line; JCOLOR.gold = p.gold;
+  if (typeof Chart !== 'undefined') Chart.defaults.color = JCOLOR.ink2;
+}
+
+// Repaint whatever is on screen when the theme changes — a chart drawn in
+// night colours sitting on a paper card is the one thing a token swap can't
+// fix on its own.
+document.addEventListener('stryker:theme', function(){
+  refreshJournalChartColors();
+  if (typeof renderDashboardTab === 'function' && document.getElementById('journal-equity-chart')) {
+    try { renderDashboardTab(); } catch (e) {}
+  }
+  if (typeof renderAnalyticsTab === 'function' && document.getElementById('ja-by-instrument')) {
+    try { renderAnalyticsTab(); } catch (e) {}
+  }
+});
+
 let JOURNAL_EQUITY_CHART = null;
 let JOURNAL_DAILY_CHART = null;
+
+refreshJournalChartColors();
 
 if (typeof Chart !== 'undefined') {
   Chart.defaults.font.family = "'JetBrains Mono', monospace";

@@ -368,3 +368,10 @@ body{ overflow-x:clip; }
   .plat-wheel .spoke{ position:static; transform:none; }
   .plat-wheel .wcard{ position:static; width:auto; animation:none; transform:none; left:auto; top:auto; }
 }
+
+/* Day theme: the homepage motion layer's own accents (build 221) */
+:root[data-theme="light"] #m-price.up, :root[data-theme="light"] #m-change.up{ color:#07996a; }
+:root[data-theme="light"] #m-price.down, :root[data-theme="light"] #m-change.down{ color:#c9353a; }
+:root[data-theme="light"] .mtape-item i.down{ color:#c9353a; }
+:root[data-theme="light"] .mtape{ background:var(--bg-2); border-color:var(--line); }
+:root[data-theme="light"] .hero-vignette, :root[data-theme="light"] .home-glow{ opacity:.35; }

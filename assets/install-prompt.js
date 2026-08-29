@@ -89,9 +89,12 @@
     var ios = isIOS();
     var canPrompt = !!deferredEvent;
 
-    // One-tap button only when the browser has actually offered install;
-    // otherwise the platform's manual steps. Never a button that cannot work.
-    var steps = canPrompt ? '' : (ios ? iosStepsHtml() : androidStepsHtml());
+    // The one-tap button leads on every platform that has a native prompt:
+    // Android always opens on the button, and only falls back to the manual
+    // steps if tapping it turns out to have nothing to trigger. iOS has no
+    // native prompt at all, so it starts on the steps.
+    var showButton = !ios;
+    var steps = ios ? iosStepsHtml() : '';
 
     var wrap = document.createElement('div');
     wrap.id = 'install-sheet';
@@ -105,8 +108,8 @@
         '<p>The full academy as an app — opens straight to your dashboard, full screen, with your notifications. No app store needed.</p>' +
         '<div id="install-sheet-mid">' + steps + '</div>' +
         '<div class="install-sheet-actions">' +
-          (canPrompt ? '<button type="button" class="btn btn-primary" id="install-go">Install the app</button>' : '') +
-          '<button type="button" class="btn btn-ghost" data-install-close>' + (canPrompt ? 'Not now' : 'Got it') + '</button>' +
+          (showButton ? '<button type="button" class="btn btn-primary" id="install-go">Install the app</button>' : '') +
+          '<button type="button" class="btn btn-ghost" data-install-close id="install-dismiss">' + (showButton ? 'Not now' : 'Got it') + '</button>' +
         '</div>' +
         '<p class="install-later">You can always do this later from Settings.</p>' +
       '</div>';
@@ -117,44 +120,49 @@
       el.addEventListener('click', closeSheet);
     });
 
+    // Falling back to the manual steps, in place: the button goes, the steps
+    // come in, and the dismiss button relabels — the sheet stays up so the
+    // person still gets a working path instead of a shrug.
+    function showManualSteps(){
+      var mid = document.getElementById('install-sheet-mid');
+      var go2 = document.getElementById('install-go');
+      var dismiss = document.getElementById('install-dismiss');
+      if (mid) mid.innerHTML = androidStepsHtml();
+      if (go2) go2.remove();
+      if (dismiss) dismiss.textContent = 'Got it';
+    }
+
     var go = document.getElementById('install-go');
     if (go) go.addEventListener('click', function () {
-      if (!deferredEvent) { closeSheet(); return; }
-      var ev = deferredEvent;
-      // A used event is spent either way — Chrome will not accept a second
-      // prompt() on it, but fires a fresh beforeinstallprompt on later visits.
-      deferredEvent = null;
-      ev.prompt();
-      ev.userChoice.then(function (choice) { closeSheet(); });
-    });
-
-    // Chrome sometimes decides the site is installable only after the sheet is
-    // already open. If the event lands now, swap the steps for the one-tap
-    // button rather than leaving instructions for a menu nobody needs.
-    if (!canPrompt) {
-      window.addEventListener('beforeinstallprompt', function upgrade(e) {
+      if (deferredEvent) {
+        var ev = deferredEvent;
+        // A used event is spent either way — Chrome will not accept a second
+        // prompt() on it, but fires a fresh beforeinstallprompt on later visits.
+        deferredEvent = null;
+        ev.prompt();
+        ev.userChoice.then(function () { closeSheet(); });
+        return;
+      }
+      // No event yet. Chrome sometimes decides installability late, so give
+      // it a moment before conceding to the manual path.
+      go.disabled = true;
+      go.textContent = 'One moment…';
+      var waited = false;
+      var timer = setTimeout(function () {
+        if (waited) return;
+        waited = true;
+        showManualSteps();
+      }, 1500);
+      window.addEventListener('beforeinstallprompt', function late(e) {
         e.preventDefault();
-        deferredEvent = e;
-        window.removeEventListener('beforeinstallprompt', upgrade);
-        var sheet = document.getElementById('install-sheet');
-        if (!sheet) return;
-        var mid = document.getElementById('install-sheet-mid');
-        if (mid) mid.innerHTML = '';
-        var actions = sheet.querySelector('.install-sheet-actions');
-        if (actions && !document.getElementById('install-go')) {
-          var btn = document.createElement('button');
-          btn.type = 'button'; btn.className = 'btn btn-primary'; btn.id = 'install-go';
-          btn.textContent = 'Install the app';
-          actions.insertBefore(btn, actions.firstChild);
-          btn.addEventListener('click', function () {
-            if (!deferredEvent) { closeSheet(); return; }
-            var ev = deferredEvent; deferredEvent = null;
-            ev.prompt();
-            ev.userChoice.then(function () { closeSheet(); });
-          });
-        }
+        window.removeEventListener('beforeinstallprompt', late);
+        if (waited) { deferredEvent = e; return; }   // steps already shown — keep it for next time
+        waited = true;
+        clearTimeout(timer);
+        e.prompt();
+        e.userChoice.then(function () { closeSheet(); });
       });
-    }
+    });
   }
 
   // Public: the Settings button (and anything else) can open this any time.

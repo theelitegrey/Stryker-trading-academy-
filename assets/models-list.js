@@ -1,42 +1,114 @@
 // Stryker Trading Academy — trading models listing (models.html)
-// Mirrors assets/courses.js.
+//
+// The page used to be a flat list of link rows. Each model now gets a card
+// with its animated vignette (assets/models-showcase.js), the category, the
+// write-up length, its first few steps as a preview, and a "resume where you
+// left off" marker driven by the per-model step checklist saved on the model
+// page. Categories filter the grid client-side; the "more models on the way"
+// box closes the page out.
+
+var MODELS_FILTER = 'all';
+
+function modelStepsDone(id){
+  try {
+    var raw = localStorage.getItem('stryker_model_steps_' + id);
+    if (!raw) return [];
+    var arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+
+function modelCategories(){
+  var seen = [];
+  MODELS.forEach(function (m){
+    var c = (m.category || '').trim();
+    if (c && seen.indexOf(c) === -1) seen.push(c);
+  });
+  return seen.sort();
+}
+
+function modelCardHtml(m){
+  var steps = m.steps || [];
+  var done = modelStepsDone(m.id).filter(function (v){ return v; }).length;
+  var mins = (typeof modelReadMinutes === 'function') ? modelReadMinutes(m) : 0;
+  var scene = (typeof modelSceneHtml === 'function') ? modelSceneHtml(m) : '';
+
+  var preview = steps.slice(0, 3).map(function (s, i){
+    return '<li><b>' + (i + 1) + '</b>' + escapeModelText(s.title || ('Step ' + (i + 1))) + '</li>';
+  }).join('');
+  var moreSteps = steps.length > 3 ? '<li class="mdl-more">+ ' + (steps.length - 3) + ' more</li>' : '';
+
+  var progress = '';
+  if (done > 0 && steps.length) {
+    var pct = Math.round((done / steps.length) * 100);
+    progress =
+      '<div class="mdl-prog" title="' + done + ' of ' + steps.length + ' steps checked">' +
+        '<span style="width:' + pct + '%"></span>' +
+      '</div>' +
+      '<span class="mdl-prog-txt">' + done + '/' + steps.length + ' steps checked</span>';
+  }
+
+  return '<a class="mdl-card" href="model.html?id=' + encodeURIComponent(m.id) + '">' +
+    '<div class="mdl-demo">' + scene + '</div>' +
+    '<div class="mdl-card-body">' +
+      '<div class="mdl-card-top">' +
+        '<h3>' + escapeModelText(m.name || 'Untitled model') + '</h3>' +
+        (m.category ? '<span class="mdl-cat">' + escapeModelText(m.category) + '</span>' : '') +
+      '</div>' +
+      '<p class="mdl-sum">' + escapeModelText(m.summary || '') + '</p>' +
+      (steps.length ? '<ul class="mdl-steps">' + preview + moreSteps + '</ul>' : '') +
+      '<div class="mdl-foot">' +
+        '<span>' + steps.length + ' step' + (steps.length === 1 ? '' : 's') + '</span>' +
+        (mins ? '<span>· ' + mins + ' min read</span>' : '') +
+        '<span class="mdl-go">Open playbook →</span>' +
+      '</div>' +
+      progress +
+    '</div>' +
+  '</a>';
+}
+
+function escapeModelText(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 function renderModels(){
   const container = document.getElementById('models-render-target');
   if (!container || typeof MODELS === 'undefined') return;
-  container.innerHTML = '';
 
   if (!MODELS.length) {
-    container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No trading models have been published yet — check back soon.</p>';
+    container.innerHTML = (typeof modelsMoreBoxHtml === 'function') ? modelsMoreBoxHtml() :
+      '<p style="color:var(--ink-3); font-size:13.5px;">No trading models have been published yet — check back soon.</p>';
     return;
   }
 
-  const list = document.createElement('div');
-  list.className = 'chapter-list';
+  var cats = modelCategories();
+  var list = MODELS.slice().sort(function (a, b){ return (a.name || '').localeCompare(b.name || ''); });
+  var shown = list.filter(function (m){ return MODELS_FILTER === 'all' || m.category === MODELS_FILTER; });
 
-  MODELS.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).forEach((m) => {
-    const el = document.createElement('a');
-    el.href = 'model.html?id=' + encodeURIComponent(m.id);
-    el.className = 'chapter';
-    el.style.textDecoration = 'none';
-    el.style.color = 'inherit';
+  var chips = '<button type="button" class="mdl-chip' + (MODELS_FILTER === 'all' ? ' on' : '') +
+    '" data-mfilter="all">All models <i>' + list.length + '</i></button>' +
+    cats.map(function (c){
+      var n = list.filter(function (m){ return m.category === c; }).length;
+      return '<button type="button" class="mdl-chip' + (MODELS_FILTER === c ? ' on' : '') +
+        '" data-mfilter="' + escapeModelText(c) + '">' + escapeModelText(c) + ' <i>' + n + '</i></button>';
+    }).join('');
 
-    el.innerHTML =
-      '<div class="chapter-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg></div>' +
-      '<div class="chapter-body">' +
-        '<h3>' + (m.name || 'Untitled model') + '</h3>' +
-        '<p>' + (m.summary || '') + '</p>' +
-        '<div class="chapter-meta">' +
-          (m.category ? '<span class="chapter-tag tag-intermediate">' + m.category + '</span>' : '') +
-          '<span>' + (m.steps ? m.steps.length : 0) + ' steps</span>' +
-        '</div>' +
-      '</div>' +
-      '<div class="chapter-status"><svg class="chapter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>';
+  container.innerHTML =
+    '<div class="mdl-head">' +
+      '<h2>The model library</h2>' +
+      '<p>Each model is a complete playbook — the conditions it needs, the exact entry criteria, and a written walkthrough. Work through one at a time, tick off its steps as you learn them, and journal every trade against the model you actually used.</p>' +
+    '</div>' +
+    '<div class="mdl-chips">' + chips + '</div>' +
+    '<div class="mdl-grid">' + shown.map(modelCardHtml).join('') + '</div>' +
+    ((typeof modelsMoreBoxHtml === 'function') ? modelsMoreBoxHtml() : '');
 
-    list.appendChild(el);
+  container.querySelectorAll('[data-mfilter]').forEach(function (btn){
+    btn.addEventListener('click', function (){
+      MODELS_FILTER = btn.dataset.mfilter;
+      renderModels();
+    });
   });
-
-  container.appendChild(list);
 }
 
 function showGuestPaywall(show){

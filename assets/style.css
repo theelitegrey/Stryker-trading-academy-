@@ -4494,3 +4494,180 @@ body.nav-authed .nav-cta{ display:none !important; }
   transform:translateX(-50%) scaleX(1);
   border-radius:0 0 4px 4px;
 }
+
+/* ==========================================================================
+   TRADING MODELS MODULE (build 220)
+   The models list becomes a card grid — each model fronted by an animated
+   SVG vignette of its core idea — and the model page becomes a working
+   playbook: checkable steps, progress, and previous/next navigation.
+   Scene motion is built from the shared mv-* primitives at the end.
+   ========================================================================== */
+.mdl-head{ margin:22px 0 14px; }
+.mdl-head h2{ font-size:19px; margin:0 0 6px; }
+.mdl-head p{ margin:0; font-size:13px; color:var(--ink-3); max-width:640px; line-height:1.65; }
+
+.mdl-chips{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+.mdl-chip{
+  font-size:12px; color:var(--ink-2); background:var(--bg-2); cursor:pointer;
+  border:1px solid var(--line); border-radius:999px; padding:6px 13px;
+  display:inline-flex; align-items:center; gap:7px; transition:border-color .18s, color .18s;
+}
+.mdl-chip i{ font-style:normal; font-family:var(--font-mono); font-size:10px; color:var(--ink-3); }
+.mdl-chip:hover{ border-color:var(--gold-dim); color:var(--ink-0); }
+.mdl-chip.on{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,0.08); }
+.mdl-chip.on i{ color:var(--gold); }
+
+.mdl-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+@media (max-width:860px){ .mdl-grid{ grid-template-columns:1fr; } }
+
+.mdl-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:14px;
+  overflow:hidden; min-width:0; display:flex; flex-direction:column;
+  text-decoration:none; color:inherit; animation:jzFadeUp .5s ease both;
+  transition:transform .18s ease, border-color .18s ease;
+}
+.mdl-card:hover{ transform:translateY(-3px); border-color:var(--gold-dim); }
+.mdl-demo{
+  background:radial-gradient(ellipse at 30% 20%, rgba(3,201,136,0.05), transparent 65%), #0b0e13;
+  border-bottom:1px solid var(--line); padding:12px 12px 6px; line-height:0;
+}
+.mv-svg{ width:100%; height:auto; }
+
+.mdl-card-body{ padding:15px 17px 17px; display:flex; flex-direction:column; gap:9px; flex:1; }
+.mdl-card-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.mdl-card-top h3{ margin:0; font-size:15.5px; line-height:1.35; }
+.mdl-cat{
+  flex-shrink:0; font-family:var(--font-mono); font-size:9px; letter-spacing:.06em;
+  color:var(--gold); border:1px solid rgba(3,201,136,0.3); border-radius:999px;
+  padding:3px 9px; background:rgba(3,201,136,0.07);
+}
+.mdl-sum{ margin:0; font-size:12.5px; color:var(--ink-2); line-height:1.6; }
+
+.mdl-steps{ list-style:none; margin:2px 0 0; padding:0; display:flex; flex-direction:column; gap:5px; }
+.mdl-steps li{
+  font-size:11.5px; color:var(--ink-3); display:flex; gap:8px; align-items:flex-start; line-height:1.45;
+}
+.mdl-steps li b{
+  font-family:var(--font-mono); font-size:9.5px; color:var(--gold); flex-shrink:0;
+  border:1px solid var(--line); border-radius:4px; padding:1px 5px; background:var(--bg-3);
+}
+.mdl-steps li.mdl-more{ color:var(--ink-3); opacity:.75; padding-left:2px; }
+
+.mdl-foot{
+  margin-top:auto; padding-top:10px; border-top:1px solid var(--line-soft);
+  display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3);
+}
+.mdl-go{ margin-left:auto; color:var(--gold); font-weight:700; }
+.mdl-prog{ height:4px; border-radius:2px; background:var(--bg-3); overflow:hidden; }
+.mdl-prog span{ display:block; height:100%; background:var(--gold); }
+.mdl-prog-txt{ font-family:var(--font-mono); font-size:10px; color:var(--ink-3); }
+
+/* ---- "more models on the way" ---- */
+.mdl-otw{ position:relative; overflow:hidden; text-align:center; padding:34px 28px 30px; margin-top:20px; }
+.mdl-otw-wave{ position:absolute; top:0; left:0; width:100%; height:40px; opacity:.7; }
+.mdl-otw-wave path{ stroke-dasharray:1; animation:otwWave 4.5s linear infinite; }
+.mdl-otw-body{ position:relative; padding-top:16px; }
+.mdl-otw-body h2{ font-size:18px; margin:0 0 8px; }
+.mdl-otw-body p{ margin:0 auto 18px; font-size:13px; color:var(--ink-3); max-width:470px; line-height:1.6; }
+.mdl-otw-ghosts{ display:flex; justify-content:center; gap:12px; }
+.mdl-otw-ghosts i{
+  width:88px; height:34px; border-radius:9px; border:1px dashed var(--line);
+  background:linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 50%, var(--bg-2) 75%);
+  background-size:200% 100%; animation:dovShimmer 1.6s ease infinite;
+}
+.mdl-otw-ghosts i:nth-child(2){ animation-delay:.2s; }
+.mdl-otw-ghosts i:nth-child(3){ animation-delay:.4s; }
+
+/* ---- model reader ---- */
+.mdl-hero{
+  background:radial-gradient(ellipse at 30% 20%, rgba(3,201,136,0.06), transparent 65%), #0b0e13;
+  border:1px solid var(--line); border-radius:14px; padding:14px 14px 8px;
+  margin-bottom:18px; line-height:0; max-width:520px;
+}
+.mdl-meta-mono{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); }
+
+.mdl-step-head{ display:flex; flex-direction:column; gap:8px; padding:2px 0 16px; }
+.mdl-step-barwrap{ height:5px; border-radius:3px; background:var(--bg-3); overflow:hidden; }
+.mdl-step-barwrap span{ display:block; height:100%; width:0; background:var(--gold); transition:width .3s ease; }
+.mdl-step-meta{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  font-family:var(--font-mono); font-size:11px; color:var(--ink-3);
+}
+.mdl-step-reset{
+  background:none; border:1px solid var(--line); border-radius:999px; cursor:pointer;
+  color:var(--ink-3); font-family:var(--font-mono); font-size:10px; padding:3px 10px;
+}
+.mdl-step-reset:hover{ color:var(--ink-0); border-color:var(--gold-dim); }
+
+.mdl-step{ transition:opacity .2s ease; }
+.mdl-step-tick{
+  position:relative; width:26px; height:26px; border-radius:50%; flex-shrink:0; cursor:pointer;
+  background:var(--bg-2); border:1px solid var(--line); color:var(--ink-2);
+  display:flex; align-items:center; justify-content:center; transition:background .18s, border-color .18s, color .18s;
+}
+.mdl-step-tick i{ font-style:normal; font-family:var(--font-mono); font-size:11px; }
+.mdl-step-tick svg{ position:absolute; width:14px; height:14px; opacity:0; transition:opacity .18s; }
+.mdl-step-tick:hover{ border-color:var(--gold-dim); color:var(--ink-0); }
+.mdl-step.checked .mdl-step-tick{ background:var(--gold); border-color:var(--gold); color:#04140d; }
+.mdl-step.checked .mdl-step-tick i{ opacity:0; }
+.mdl-step.checked .mdl-step-tick svg{ opacity:1; }
+.mdl-step.checked h4{ color:var(--ink-2); }
+
+.mdl-done{
+  margin-top:16px; padding:20px; border-radius:12px; text-align:center;
+  border:1px solid rgba(3,201,136,0.35); background:rgba(3,201,136,0.06);
+}
+.mdl-done h3{ margin:0 0 6px; font-size:15px; }
+.mdl-done p{ margin:0 auto 14px; font-size:12.5px; color:var(--ink-2); max-width:460px; line-height:1.6; }
+.mdl-done-acts{ display:flex; gap:9px; justify-content:center; flex-wrap:wrap; }
+
+.mdl-nav{ display:flex; gap:12px; margin-top:26px; }
+.mdl-nav-item{
+  flex:1; min-width:0; background:var(--bg-2); border:1px solid var(--line); border-radius:12px;
+  padding:13px 15px; text-decoration:none; color:inherit; display:flex; flex-direction:column; gap:3px;
+  transition:border-color .18s, transform .18s;
+}
+.mdl-nav-item:hover{ border-color:var(--gold-dim); transform:translateY(-2px); }
+.mdl-nav-item span{ font-family:var(--font-mono); font-size:10px; color:var(--ink-3); }
+.mdl-nav-item b{ font-size:13px; color:var(--ink-0); font-weight:600; line-height:1.4; }
+.mdl-nav-item.next{ text-align:right; }
+@media (max-width:640px){ .mdl-nav{ flex-direction:column; } .mdl-nav-item.next{ text-align:left; } }
+
+.toc-cat{
+  font-family:var(--font-mono); font-size:9.5px; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--ink-3); padding:14px 4px 6px;
+}
+.toc-mini{ font-style:normal; font-family:var(--font-mono); font-size:9.5px; color:var(--gold); margin-left:auto; }
+.toc-item.done{ color:var(--ink-2); }
+
+/* ---- vignette motion primitives (one shared 7s loop) ---- */
+.mv-a{ animation:mvAppearA 7s ease infinite; }
+.mv-b{ animation:mvAppearB 7s ease infinite; }
+.mv-c{ animation:mvAppearC 7s ease infinite; }
+.mv-draw{ stroke-dasharray:1; animation:mvDraw 7s ease infinite; }
+.mv-draw-late{ stroke-dasharray:1; animation:mvDrawLate 7s ease infinite; }
+.mv-pop{ animation:mvPop 7s ease infinite; transform-box:fill-box; transform-origin:center; }
+.mv-flip{ stroke-width:1; animation:mvFlip 7s ease infinite; }
+@keyframes mvAppearA{ 0%,5%{opacity:0} 13%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes mvAppearB{ 0%,32%{opacity:0} 40%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes mvAppearC{ 0%,55%{opacity:0} 63%,88%{opacity:1} 96%,100%{opacity:0} }
+@keyframes mvDraw{ 0%,10%{stroke-dashoffset:1; opacity:1} 62%,88%{stroke-dashoffset:0; opacity:1} 96%,100%{opacity:0} }
+@keyframes mvDrawLate{ 0%,26%{stroke-dashoffset:1; opacity:1} 74%,88%{stroke-dashoffset:0; opacity:1} 96%,100%{opacity:0} }
+@keyframes mvPop{ 0%,70%{opacity:0; transform:scale(.6)} 78%,88%{opacity:1; transform:scale(1)} 96%,100%{opacity:0} }
+@keyframes mvFlip{
+  0%,5%{opacity:0}
+  12%,36%{opacity:1; fill:rgba(3,201,136,0.16); stroke:rgba(3,201,136,0.55)}
+  46%,88%{opacity:1; fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6)}
+  96%,100%{opacity:0}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .mdl-card{ animation:none; transition:none; }
+  .mdl-card:hover, .mdl-nav-item:hover{ transform:none; }
+  .mdl-otw-wave path, .mdl-otw-ghosts i{ animation:none; }
+  .mv-a,.mv-b,.mv-c,.mv-draw,.mv-draw-late,.mv-pop,.mv-flip{
+    animation:none; opacity:1; stroke-dashoffset:0; transform:none;
+  }
+  .mv-flip{ fill:rgba(229,72,77,0.16); stroke:rgba(229,72,77,0.6); }
+}

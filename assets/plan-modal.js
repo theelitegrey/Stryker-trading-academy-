@@ -89,16 +89,22 @@
                'stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>' + esc(f) + '</li>';
       }).join('');
 
+      var sale = (typeof planSaleInfo === 'function') ? planSaleInfo(plan) : { active: false };
       var card = document.createElement('div');
-      card.className = 'plan-modal-card';
+      card.className = 'plan-modal-card' + (sale.active ? ' on-sale' : '');
       card.style.borderColor = color + '55';
       card.innerHTML =
+        (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
         '<span class="plan-modal-pill" style="color:' + color + '; background:' + color + '1a; border-color:' + color + '55;">' +
           esc(plan.name || 'Plan') + '</span>' +
-        '<div class="plan-modal-price">$' + esc(plan.price || '0') +
-          '<span>/ ' + esc(plan.period || 'month') + '</span></div>' +
+        (typeof planPriceHtml === 'function'
+          ? planPriceHtml(plan, 'md')
+          : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
+            '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
-        '<button type="button" class="btn btn-primary plan-modal-pick">Choose ' + esc(plan.name || 'plan') + '</button>';
+        '<button type="button" class="btn btn-primary plan-modal-pick">' +
+          (sale.active ? 'Claim the ' + esc(plan.name || 'plan') + ' offer' : 'Choose ' + esc(plan.name || 'plan')) +
+        '</button>';
 
       card.querySelector('.plan-modal-pick').addEventListener('click', function () {
         // checkout.js reads ?plan=<id>, and auth.js already stores a return-to
@@ -107,6 +113,7 @@
       });
 
       grid.appendChild(card);
+      if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
     });
   }
 

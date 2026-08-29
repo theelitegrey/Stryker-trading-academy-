@@ -4390,8 +4390,6 @@ a.feature-card:hover .module-go i{ transform:translateX(4px); }
    ========================================================================== */
 .appnav-pills, .appnav-acts, .appnav-dock{ display:none; }
 body.nav-authed .appnav-acts{ display:flex; }
-body.nav-authed .nav-links,
-body.nav-authed .nav-cta{ display:none !important; }
 @media (min-width:821px){
   body.nav-authed .appnav-pills{ display:flex; }
 }
@@ -4472,8 +4470,6 @@ body.nav-authed .nav-cta{ display:none !important; }
    bundles. These :root rules mirror the body.nav-authed ones above.
    ========================================================================== */
 :root.nav-authed .appnav-acts{ display:flex; }
-:root.nav-authed .nav-links,
-:root.nav-authed .nav-cta{ display:none !important; }
 @media (min-width:821px){
   :root.nav-authed .appnav-pills{ display:flex; }
 }
@@ -4915,3 +4911,114 @@ body.nav-authed .nav-cta{ display:none !important; }
 :root[data-theme="light"] [style*="color:#e5484d"]{ color:#b8323a !important; }
 :root[data-theme="light"] svg [stroke="#5c6472"]{ stroke:#9aa3b1; }
 :root[data-theme="light"] svg [stroke="#4fe3ac"]{ stroke:#0a9a6b; }
+
+/* ==========================================================================
+   SALE / OFFER PRICING (build 222)
+   A plan on offer shows the sale price large with the old price struck
+   through beside it, a pulsing SAVE badge, the cash saved, and a countdown
+   when the offer has an end date. The card gets a ribbon with a sheen that
+   sweeps across it. All motion is inert under prefers-reduced-motion.
+   ========================================================================== */
+.plan-price{ display:flex; flex-direction:column; gap:8px; margin-bottom:4px; }
+.pp-row{ display:flex; align-items:baseline; gap:9px; flex-wrap:wrap; }
+/* price and period never break apart — only the struck original wraps */
+.pp-main{ display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap; }
+.pp-now{ font-family:var(--font-display); font-size:38px; color:var(--ink-0); line-height:1; }
+.pp-per{ font-size:14px; color:var(--ink-3); }
+.pp-was{ font-size:16px; color:var(--ink-3); position:relative; }
+.pp-was s{ text-decoration:none; position:relative; }
+.pp-was s::after{
+  content:''; position:absolute; left:-2px; right:-2px; top:52%; height:2px;
+  background:var(--bear); border-radius:2px; transform-origin:left center;
+  transform:scaleX(0); animation:ppStrike .5s cubic-bezier(.22,1,.36,1) .35s forwards;
+}
+@keyframes ppStrike{ to{ transform:scaleX(1); } }
+
+.plan-price.is-sale .pp-now{
+  color:var(--gold-bright);
+  animation:ppPop .55s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes ppPop{ 0%{ transform:scale(.82); opacity:0 } 60%{ transform:scale(1.04) } 100%{ transform:scale(1); opacity:1 } }
+
+.pp-tags{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.pp-off{
+  display:inline-flex; align-items:center; gap:6px; position:relative; overflow:hidden;
+  font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.09em;
+  color:#04140d; background:linear-gradient(120deg, var(--gold-bright), var(--gold));
+  border-radius:999px; padding:4px 10px;
+  box-shadow:0 0 0 0 rgba(3,201,136,.45); animation:ppBadgePulse 2.4s ease-in-out infinite;
+}
+.pp-off i{ width:5px; height:5px; border-radius:50%; background:#04140d; opacity:.55; }
+.pp-off::after{
+  content:''; position:absolute; inset:0; transform:translateX(-120%);
+  background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%);
+  animation:ppSheen 3.2s ease-in-out infinite;
+}
+@keyframes ppBadgePulse{
+  0%, 100%{ box-shadow:0 0 0 0 rgba(3,201,136,.45) }
+  50%{ box-shadow:0 0 0 7px rgba(3,201,136,0) }
+}
+@keyframes ppSheen{ 0%,55%{ transform:translateX(-120%) } 85%,100%{ transform:translateX(120%) } }
+
+.pp-save{ font-family:var(--font-mono); font-size:11px; color:var(--gold); }
+.pp-ends{
+  font-family:var(--font-mono); font-size:10.5px; color:var(--amber);
+  border:1px solid rgba(245,197,66,.32); background:rgba(245,197,66,.08);
+  border-radius:999px; padding:3px 9px;
+}
+.pp-ends.tick{ animation:ppTick .5s ease; }
+.pp-ends.done{ color:var(--ink-3); border-color:var(--line); background:var(--bg-3); }
+@keyframes ppTick{ 0%{ transform:translateY(-1px); opacity:.6 } 100%{ transform:none; opacity:1 } }
+
+/* medium (upgrade modal) and small (checkout summary) scales */
+.plan-price-md .pp-now{ font-size:26px; }
+.plan-price-md .pp-was{ font-size:14px; }
+.plan-price-sm{ gap:6px; }
+.plan-price-sm .pp-now{ font-size:22px; font-family:var(--font-mono); }
+.plan-price-sm .pp-was{ font-size:13px; }
+.plan-price-sm .pp-off{ font-size:9px; padding:3px 8px; }
+
+/* the ribbon on a discounted card */
+.plan-sale-flag{
+  position:absolute; top:-11px; right:22px; z-index:2; overflow:hidden;
+  font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.09em;
+  color:#2b0d0f; background:linear-gradient(120deg, #ffb057, var(--amber));
+  border-radius:20px; padding:4px 11px;
+  box-shadow:0 6px 18px -8px rgba(245,197,66,.9);
+  animation:ppFlagIn .5s cubic-bezier(.22,1,.36,1) both;
+}
+.plan-sale-flag::after{
+  content:''; position:absolute; inset:0; transform:translateX(-120%);
+  background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.6) 50%, transparent 80%);
+  animation:ppSheen 3.6s ease-in-out .4s infinite;
+}
+@keyframes ppFlagIn{ from{ transform:translateY(-6px) scale(.9); opacity:0 } to{ transform:none; opacity:1 } }
+
+.price-card.on-sale{ position:relative; border-color:rgba(245,197,66,.45); }
+.price-card.on-sale::after{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(245,197,66,.18), 0 10px 40px -22px rgba(245,197,66,.65);
+}
+/* a featured card already carries a badge top-left — the sale ribbon moves
+   right so the two never collide */
+.price-card.featured.on-sale .plan-sale-flag{ right:18px; }
+.plan-modal-card.on-sale{ position:relative; border-color:rgba(245,197,66,.5) !important; }
+
+/* checkout: the offer line in the order summary */
+.co-offer-row{ color:var(--gold); }
+.co-offer-row .mini-bar-val{ color:var(--gold) !important; }
+
+@media (prefers-reduced-motion: reduce){
+  .plan-price.is-sale .pp-now, .plan-sale-flag{ animation:none; }
+  .pp-off, .pp-off::after, .plan-sale-flag::after, .pp-ends.tick{ animation:none; }
+  .pp-was s::after{ animation:none; transform:scaleX(1); }
+}
+
+/* Day theme: the offer chips need more weight on paper (build 222) */
+:root[data-theme="light"] .pp-ends{
+  color:#8a6210; border-color:rgba(165,118,26,.35); background:rgba(245,197,66,.16);
+}
+:root[data-theme="light"] .pp-save{ color:#06694a; }
+:root[data-theme="light"] .pp-off{ color:#03281c; }
+:root[data-theme="light"] .plan-sale-flag{ color:#3a1c00; box-shadow:0 6px 18px -10px rgba(165,118,26,.9); }
+:root[data-theme="light"] .price-card.on-sale{ border-color:rgba(165,118,26,.45); }

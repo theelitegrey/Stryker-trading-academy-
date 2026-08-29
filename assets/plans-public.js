@@ -5,7 +5,9 @@
 // the HTML are left untouched, so the homepage never shows a blank section.
 
 function ctaForPlan(plan){
+  const onSale = (typeof planSaleInfo === 'function') && planSaleInfo(plan).active;
   if (/mentor/i.test(plan.name || '')) return { label: 'Apply for mentorship', cls: 'btn-ghost' };
+  if (onSale) return { label: 'Claim this price', cls: 'btn-primary' };
   if (plan.featured) return { label: 'Join the desk', cls: 'btn-primary' };
   if (!parseFloat(plan.price)) return { label: 'Start free', cls: 'btn-ghost' };
   return { label: 'Get started', cls: 'btn-ghost' };
@@ -16,11 +18,15 @@ function renderPublicPlanCard(plan){
   const featuresHtml = (plan.features || []).map(f =>
     '<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
+  const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(plan) : { active: false };
   const el = document.createElement('div');
-  el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '');
+  el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
+    (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
     '<h3>' + (plan.name || 'Plan') + '</h3>' +
-    '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>' +
+    (typeof planPriceHtml === 'function'
+      ? planPriceHtml(plan, 'lg')
+      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     '<ul>' + featuresHtml + '</ul>' +
     '<a href="checkout.html?plan=' + encodeURIComponent(plan.id) + '" class="btn ' + cta.cls + ' btn-block">' + cta.label + '</a>';
   return el;
@@ -37,6 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
     grid.innerHTML = '';
     plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan)));
+    if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
   }).catch((err) => {
     console.error('Stryker: failed to load live plans, showing static fallback', err);
   });

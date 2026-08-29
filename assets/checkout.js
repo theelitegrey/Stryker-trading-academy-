@@ -22,13 +22,28 @@ function renderPlanSummary(plan){
   ).join('');
   wrap.innerHTML =
     '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + plan.name + '</h3>' +
-    '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>' +
+    (typeof planPriceHtml === 'function'
+      ? planPriceHtml(plan, 'sm')
+      : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
     '<ul style="margin:0; padding:0; list-style:none;">' + featuresHtml + '</ul>';
 }
 
 function updateOrderSummary(){
-  const price = parseFloat(CHECKOUT_PLAN.price) || 0;
-  document.getElementById('checkout-original-price').textContent = '$' + price.toFixed(2);
+  // An active offer is applied before any coupon: the coupon then discounts
+  // the offer price, not the list price.
+  const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
+  const listPrice = parseFloat(CHECKOUT_PLAN.price) || 0;
+  const price = sale.active ? sale.price : listPrice;
+  document.getElementById('checkout-original-price').textContent = '$' + listPrice.toFixed(2);
+
+  const offerRow = document.getElementById('checkout-offer-row');
+  if (offerRow) {
+    offerRow.style.display = sale.active ? '' : 'none';
+    if (sale.active) {
+      document.getElementById('checkout-offer-label').textContent = sale.label + ' (' + sale.pct + '% off)';
+      document.getElementById('checkout-offer-amount').textContent = '-$' + sale.save.toFixed(2);
+    }
+  }
 
   const completeBtn = document.getElementById('checkout-complete-btn');
 
@@ -129,7 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
     errEl.style.display = 'none';
     if (!CHECKOUT_UID || !CHECKOUT_PLAN) return;
 
-    const price = parseFloat(CHECKOUT_PLAN.price) || 0;
+    const price = (typeof planEffectivePrice === 'function')
+      ? planEffectivePrice(CHECKOUT_PLAN)
+      : (parseFloat(CHECKOUT_PLAN.price) || 0);
     if (price > 0 && !APPLIED_COUPON) return; // paid plan still needs a coupon right now
 
     const btn = document.getElementById('checkout-complete-btn');
@@ -146,6 +163,8 @@ document.addEventListener('DOMContentLoaded', () => {
       studentEmail: user && user.email,
       planId: CHECKOUT_PLAN.id,
       planName: CHECKOUT_PLAN.name,
+      listPrice: parseFloat(CHECKOUT_PLAN.price) || 0,
+      offerApplied: (typeof planSaleInfo === 'function') && planSaleInfo(CHECKOUT_PLAN).active,
       originalPrice: price,
       couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null,
       discountApplied: discount,

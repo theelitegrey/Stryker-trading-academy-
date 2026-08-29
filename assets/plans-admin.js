@@ -10,7 +10,9 @@ let ALL_PLANS = [];
 
 function renderPlanCard(plan){
   const el = document.createElement('div');
-  el.className = 'price-card' + (plan.featured ? ' featured' : '');
+  el.className = 'price-card' + (plan.featured ? ' featured' : '') +
+    ((typeof planSaleInfo === 'function' && planSaleInfo(plan).active) ? ' on-sale' : '');
+  var ribbon = (typeof planSaleRibbonHtml === 'function') ? planSaleRibbonHtml(plan) : '';
   const featuresHtml = (plan.features || []).map(f =>
     '<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
@@ -18,8 +20,10 @@ function renderPlanCard(plan){
   const rankBadge = '<span style="display:inline-block; margin-bottom:8px; padding:2px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; background:' + color + '1a; border:1px solid ' + color + '55;">' + (plan.name || 'role') + ' \u00b7 rank ' + (plan.rank ?? 0) + '</span>';
   el.innerHTML =
     rankBadge +
-    '<h3>' + (plan.name || 'Untitled plan') + '</h3>' +
-    '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>' +
+    ribbon + '<h3>' + (plan.name || 'Untitled plan') + '</h3>' +
+    (typeof planPriceHtml === 'function'
+      ? planPriceHtml(plan, 'lg')
+      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     '<ul>' + featuresHtml + '</ul>' +
     '<div style="font-size:12px; color:var(--ink-3); margin:10px 0 16px; font-family:var(--font-mono);">Chapter access: ' + (plan.chapterAccess || 'all') + '</div>' +
     '<div style="display:flex; gap:8px;">' +
@@ -53,6 +57,11 @@ function openPlanEditor(plan){
   document.getElementById('plan-name').value = plan ? (plan.name || '') : '';
   document.getElementById('plan-price').value = plan ? (plan.price || '') : '';
   document.getElementById('plan-period').value = plan ? (plan.period || '') : 'month';
+  document.getElementById('plan-on-sale').checked = !!(plan && plan.onSale);
+  document.getElementById('plan-sale-price').value = plan ? (plan.salePrice || '') : '';
+  document.getElementById('plan-sale-label').value = plan ? (plan.saleLabel || '') : '';
+  document.getElementById('plan-sale-ends').value = plan ? (plan.saleEndsAt || '') : '';
+  updateSalePreview();
   document.getElementById('plan-chapters').value = plan ? (plan.chapterAccess || '') : 'all';
   document.getElementById('plan-rank').value = String(plan && plan.rank != null ? plan.rank : 0);
   document.getElementById('plan-color').value = (plan && plan.color) || '#00adb5';
@@ -62,6 +71,29 @@ function openPlanEditor(plan){
   document.getElementById('plan-edit-panel').style.display = 'block';
   document.getElementById('plan-edit-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
   updatePlanColorPreview();
+}
+
+// Live read-out of what the offer works out to, so a bad sale price (higher
+// than the plan price, or a date already gone) is obvious before saving.
+function updateSalePreview(){
+  var out = document.getElementById('plan-sale-preview');
+  if (!out) return;
+  var on = document.getElementById('plan-on-sale').checked;
+  if (!on) { out.textContent = ''; return; }
+  var full = parseFloat(document.getElementById('plan-price').value) || 0;
+  var sale = parseFloat(document.getElementById('plan-sale-price').value);
+  var ends = document.getElementById('plan-sale-ends').value;
+  if (!isFinite(sale) || sale < 0) { out.textContent = 'Enter a sale price to switch the offer on.'; out.style.color = 'var(--amber)'; return; }
+  if (full <= 0 || sale >= full) { out.textContent = 'The sale price must be lower than the plan price ($' + full + ') — the offer will not show.'; out.style.color = 'var(--bear)'; return; }
+  var pct = Math.round(((full - sale) / full) * 100);
+  var endTxt = '';
+  if (ends) {
+    var d = new Date(ends); d.setHours(23,59,59,999);
+    endTxt = d.getTime() < Date.now() ? ' — but that end date has passed, so it will not show'
+                                      : ' — runs until ' + d.toLocaleDateString();
+  }
+  out.style.color = /passed/.test(endTxt) ? 'var(--bear)' : 'var(--gold)';
+  out.textContent = 'Students pay $' + sale + ' instead of $' + full + ' — ' + pct + '% off, saving $' + (full - sale).toFixed(2) + endTxt;
 }
 
 function updatePlanColorPreview(){
@@ -89,6 +121,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('add-plan-btn').addEventListener('click', () => openPlanEditor(null));
   document.getElementById('cancel-plan-btn').addEventListener('click', closePlanEditor);
+  ['plan-on-sale','plan-sale-price','plan-sale-ends','plan-price'].forEach(function (id){
+    var el = document.getElementById(id);
+    if (el) el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', updateSalePreview);
+  });
   document.getElementById('plan-color').addEventListener('input', updatePlanColorPreview);
   document.getElementById('plan-name').addEventListener('input', updatePlanColorPreview);
 
@@ -103,6 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
       name,
       price: document.getElementById('plan-price').value.trim() || '0',
       period: document.getElementById('plan-period').value.trim() || 'month',
+      onSale: document.getElementById('plan-on-sale').checked,
+      salePrice: document.getElementById('plan-sale-price').value.trim(),
+      saleLabel: document.getElementById('plan-sale-label').value.trim(),
+      saleEndsAt: document.getElementById('plan-sale-ends').value || '',
       chapterAccess: document.getElementById('plan-chapters').value.trim() || 'all',
       rank: parseInt(document.getElementById('plan-rank').value, 10) || 0,
       color: document.getElementById('plan-color').value || '#00adb5',

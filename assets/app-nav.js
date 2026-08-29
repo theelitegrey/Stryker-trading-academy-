@@ -11,6 +11,15 @@
 
 (function(){
 
+  // Instant render across navigations: remember the signed-in state so the
+  // dock/pills are already visible while Firebase re-resolves on the next
+  // page — the nav appears to persist instead of blinking out on every tap.
+  try {
+    if (localStorage.getItem('stryker_nav_authed') === '1' && document.body) {
+      document.body.classList.add('nav-authed');
+    }
+  } catch(e) {}
+
   // Which pill/dock item is "current" for this page. Pages outside this map
   // (about, legal, support…) simply show no active state.
   function activeKey(){
@@ -53,6 +62,11 @@
     // without a reload
     window.addEventListener('hashchange', function(){ setActive(activeKey()); });
 
+    // Feedback on tap: light the pressed item instantly, before navigation.
+    document.querySelectorAll('.appnav-dk, .appnav-pill').forEach(function(el){
+      el.addEventListener('click', function(){ setActive(el.dataset.nav); });
+    });
+
     // Auth gating: the app nav (pills + bell/profile + dock) only renders
     // for signed-in users — guests keep the classic marketing nav. Without
     // firebase the class is never added, so guests are the safe default.
@@ -63,10 +77,12 @@
       var badge = document.getElementById('appnav-bell-badge');
       if (!user) {
         document.body.classList.remove('nav-authed');
+        try { localStorage.removeItem('stryker_nav_authed'); } catch(e) {}
         if (badge) badge.style.display = 'none';
         return;
       }
       document.body.classList.add('nav-authed');
+      try { localStorage.setItem('stryker_nav_authed', '1'); } catch(e) {}
       // pills just became visible — the capsule can only measure them now
       setActive(activeKey());
       requestAnimationFrame(moveCapsule);

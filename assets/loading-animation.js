@@ -1,38 +1,42 @@
 // Stryker Trading Academy — shared loading animation
-// Depends on: lottie-web (CDN, loaded before this file), assets/lottie/loading.json
 //
-// Two ways to use this:
-//   1. Static HTML placeholders: give a container `data-lottie-auto` and an
-//      inner `.loading-lottie-wrap` div — on page load, initLoadingAnimations()
-//      finds every one of these and starts the animation automatically.
-//      Markup: <div class="loading-state" data-lottie-auto>
-//                <div class="loading-lottie-wrap"></div>
-//                <p class="loading-state-text">Loading…</p>
-//              </div>
-//   2. JS-driven states (before/during a fetch): call
-//      showLoadingAnimation(container, 'Loading whatever…') directly — it
-//      injects the same markup and starts the animation in one call.
+// The loader is a brand-built candlestick pulse: five candles breathing in
+// sequence under a scanning price line — pure CSS/SVG, no library, themed to
+// the site's bull/bear palette. (Replaces the old generic lottie spinner;
+// the lottie CDN tag on older pages is simply unused now.)
+//
+// Two ways to use it, same API as before:
+//   1. Static HTML placeholders: a container with `data-lottie-auto` and an
+//      inner `.loading-lottie-wrap` div gets the loader injected on load.
+//   2. JS-driven: showLoadingAnimation(containerOrId, 'Loading whatever…').
 
-const LOADING_LOTTIE_PATH = 'assets/lottie/loading.json';
-
-function loadingStateHtml(message){
+function stkLoaderHtml(){
+  // heights/delays tuned so the wave reads left-to-right like a forming tape
+  const candles = [
+    { h: 26, d: 0.00, bull: true  },
+    { h: 42, d: 0.12, bull: false },
+    { h: 54, d: 0.24, bull: true  },
+    { h: 34, d: 0.36, bull: true  },
+    { h: 46, d: 0.48, bull: false }
+  ];
   return (
-    '<div class="loading-state">' +
-      '<div class="loading-lottie-wrap"></div>' +
-      (message ? '<p class="loading-state-text">' + message + '</p>' : '') +
+    '<div class="stk-loader-candles" aria-hidden="true">' +
+      candles.map(c =>
+        '<span class="stk-candle ' + (c.bull ? 'bull' : 'bear') + '"' +
+        ' style="height:' + c.h + 'px; animation-delay:' + c.d + 's"></span>'
+      ).join('') +
+      '<span class="stk-scan"></span>' +
     '</div>'
   );
 }
 
-function startLoadingLottie(wrapEl){
-  if (!wrapEl || typeof lottie === 'undefined') return;
-  lottie.loadAnimation({
-    container: wrapEl,
-    renderer: 'svg',
-    loop: true,
-    autoplay: true,
-    path: LOADING_LOTTIE_PATH
-  });
+function loadingStateHtml(message){
+  return (
+    '<div class="loading-state">' +
+      '<div class="loading-lottie-wrap">' + stkLoaderHtml() + '</div>' +
+      (message ? '<p class="loading-state-text">' + message + '</p>' : '') +
+    '</div>'
+  );
 }
 
 // For JS that currently does `container.innerHTML = '<p>Loading X…</p>'` —
@@ -42,14 +46,13 @@ function showLoadingAnimation(container, message){
   const el = typeof container === 'string' ? document.getElementById(container) : container;
   if (!el) return;
   el.innerHTML = loadingStateHtml(message);
-  startLoadingLottie(el.querySelector('.loading-lottie-wrap'));
 }
 
 // For static HTML placeholders already in the markup — finds every
-// data-lottie-auto container on the page and starts its animation.
+// data-lottie-auto container on the page and injects the loader.
 function initLoadingAnimations(){
   document.querySelectorAll('[data-lottie-auto] .loading-lottie-wrap').forEach((wrapEl) => {
-    startLoadingLottie(wrapEl);
+    if (!wrapEl.querySelector('.stk-loader-candles')) wrapEl.innerHTML = stkLoaderHtml();
   });
 }
 

@@ -4406,3 +4406,59 @@ body.nav-authed .nav-cta{ display:none !important; }
   body.nav-authed .floor-fab{ bottom:96px; }
   body.nav-authed[data-page-access="trade-journal"] .ja-fab{ bottom:96px; }
 }
+
+/* ==========================================================================
+   STRYKER CANDLE LOADER (build 218) — brand loading animation: five candles
+   breathing in sequence under a scanning price line. Replaces the lottie
+   spinner everywhere loading-animation.js is used.
+   ========================================================================== */
+.stk-loader-candles{
+  position:relative; display:flex; align-items:flex-end; justify-content:center;
+  gap:8px; height:60px; padding:0 6px;
+}
+.stk-candle{
+  position:relative; width:9px; border-radius:2px; transform-origin:bottom;
+  animation:stkGrow 1.5s cubic-bezier(.45,0,.25,1) infinite;
+}
+.stk-candle.bull{ background:var(--gold); }
+.stk-candle.bear{ background:var(--bear); }
+.stk-candle:before{
+  content:""; position:absolute; left:50%; transform:translateX(-50%);
+  top:-7px; bottom:-5px; width:1.5px; background:inherit; opacity:.7; border-radius:1px;
+}
+@keyframes stkGrow{
+  0%,100%{ transform:scaleY(.3); opacity:.4; }
+  50%{ transform:scaleY(1); opacity:1; }
+}
+.stk-scan{
+  position:absolute; left:-8%; right:-8%; top:46%; height:1.5px; pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(3,201,136,.75), transparent);
+  animation:stkScan 1.5s ease-in-out infinite;
+}
+@keyframes stkScan{
+  0%{ transform:translateX(-22%); opacity:0; }
+  25%,75%{ opacity:1; }
+  100%{ transform:translateX(22%); opacity:0; }
+}
+/* lottie wrapper may carry a fixed size from the old spinner — neutralise */
+.loading-lottie-wrap{ width:auto; height:auto; min-height:60px; display:flex; align-items:center; justify-content:center; }
+@media (prefers-reduced-motion: reduce){
+  .stk-candle{ animation:none; transform:none; opacity:1; }
+  .stk-scan{ animation:none; opacity:.6; transform:none; }
+}
+
+/* ==========================================================================
+   DOCK PERSISTENCE + STRONGER SELECTION (build 218)
+   The dock now sits ABOVE the page access gate (z 700), so while a page is
+   loading/authorising only the content area shows the loader — the nav
+   stays put. Selection gets a wider glowing bar, gold label and icon glow.
+   ========================================================================== */
+.appnav-dock{ z-index:720; }
+.appnav-dkbar{
+  width:32px; height:3px;
+  box-shadow:0 0 10px rgba(3,201,136,.85), 0 0 22px rgba(3,201,136,.4);
+}
+.appnav-dk{ transition:color .2s, transform .15s; }
+.appnav-dk:active{ transform:scale(.94); }
+.appnav-dk.on .appnav-dkl{ color:var(--gold-bright); font-weight:700; }
+.appnav-dk.on svg{ filter:drop-shadow(0 0 7px rgba(3,201,136,.7)); }

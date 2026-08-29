@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="213">
+<meta name="stryker-build" content="214">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stryker Trading Academy">
@@ -18,10 +18,10 @@
 <meta name="twitter:image" content="https://strykertrading.com/assets/images/og-image.png">
 <meta name="theme-color" content="#050506">
 <title>Contact Us — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=213">
-<script src="assets/device-mode.js?v=213"></script>
-<script src="assets/toast.js?v=213" defer></script>
-<script src="assets/version-check.js?v=213" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=214">
+<script src="assets/device-mode.js?v=214"></script>
+<script src="assets/toast.js?v=214" defer></script>
+<script src="assets/version-check.js?v=214" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -31,24 +31,36 @@
 </head>
 <body data-page-key="contact">
 
-<nav class="nav" id="site-nav">
-  <div class="nav-inner">
+<nav class="nav appnav" id="site-nav">
+  <div class="nav-inner appnav-inner">
     <a href="index.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
     </a>
-    <div class="nav-links">
-      <a href="index.html#curriculum">Curriculum</a>
-      <a href="index.html#concepts">ICT / SMT</a>
-      <a href="index.html#pricing">Pricing</a>
-      <a href="courses.html">Courses</a>
-      <a href="dashboard-user.html">Dashboard</a>
+    <div class="appnav-pills" id="appnav-pills">
+      <span class="appnav-capsule" id="appnav-capsule"></span>
+      <a class="appnav-pill" data-nav="home" href="index.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Home</span></a>
+      <a class="appnav-pill" data-nav="curriculum" href="courses.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg><span>Curriculum</span></a>
+      <a class="appnav-pill" data-nav="platform" href="index.html#platform"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Platform</span></a>
+      <a class="appnav-pill" data-nav="indicators" href="indicators.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span>Indicators</span></a>
+      <a class="appnav-pill" data-nav="floor" href="trading-floor.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Floor</span></a>
     </div>
-    <div class="nav-cta">
-      <a href="login.html" class="btn btn-ghost btn-sm">Log in</a>
-      <a href="signup.html" class="btn btn-primary btn-sm">Start learning</a>
-      <button class="nav-toggle" aria-label="Menu">☰</button>
+    <div class="appnav-acts">
+      <a class="appnav-icon" id="appnav-bell" href="dashboard-user.html" aria-label="Notifications">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="appnav-badge" id="appnav-bell-badge" style="display:none;"></span>
+      </a>
+      <a class="appnav-icon" id="appnav-profile" href="login.html" aria-label="Account">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-3.6 4.5-5.5 8-5.5s6.5 1.9 8 5.5"/></svg>
+      </a>
     </div>
   </div>
+</nav>
+<nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
+  <a class="appnav-dk" data-nav="home" href="index.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="appnav-dkl">Home</span></a>
+  <a class="appnav-dk" data-nav="curriculum" href="courses.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg><span class="appnav-dkl">Learn</span></a>
+  <a class="appnav-dk" data-nav="platform" href="index.html#platform"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span class="appnav-dkl">Platform</span></a>
+  <a class="appnav-dk" data-nav="indicators" href="indicators.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg><span class="appnav-dkl">Charts</span></a>
+  <a class="appnav-dk" data-nav="floor" href="trading-floor.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="appnav-dkl">Floor</span></a>
 </nav>
 
 <header class="site-page-hero">
@@ -129,18 +141,19 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/main.js?v=213"></script>
-<script src="assets/auth.js?v=213"></script>
-<script src="assets/progress.js?v=213"></script>
-<script src="assets/activity-log.js?v=213"></script>
-<script src="assets/banned-check.js?v=213"></script>
-<script src="assets/email-verify.js?v=213"></script>
-<script src="assets/profiles-sync.js?v=213"></script>
+<script src="assets/main.js?v=214"></script>
+<script src="assets/auth.js?v=214"></script>
+<script src="assets/progress.js?v=214"></script>
+<script src="assets/activity-log.js?v=214"></script>
+<script src="assets/banned-check.js?v=214"></script>
+<script src="assets/email-verify.js?v=214"></script>
+<script src="assets/profiles-sync.js?v=214"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=213"></script>
-<script src="assets/site-pages.js?v=213"></script>
-<script src="assets/site-pages-defaults.js?v=213"></script>
-<script src="assets/site-page-render.js?v=213"></script>
-<script src="assets/branding.js?v=213"></script>
+<script src="assets/loading-animation.js?v=214"></script>
+<script src="assets/site-pages.js?v=214"></script>
+<script src="assets/site-pages-defaults.js?v=214"></script>
+<script src="assets/site-page-render.js?v=214"></script>
+<script src="assets/branding.js?v=214"></script>
+<script src="assets/app-nav.js?v=214" defer></script>
 </body>
 </html>

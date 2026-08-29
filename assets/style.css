@@ -5146,3 +5146,8 @@ body.nav-authed .appnav-acts{ display:flex; }
 @media (prefers-reduced-motion: reduce){
   .install-sheet, .install-sheet-backdrop{ transition:none; }
 }
+
+/* Android manual-path note inside the install sheet (build 227) */
+.install-steps .install-step-note{
+  background:none; border:none; padding:2px 2px 0; font-size:11.5px; color:var(--ink-3);
+}

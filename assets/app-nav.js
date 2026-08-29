@@ -52,23 +52,23 @@
     // without a reload
     window.addEventListener('hashchange', function(){ setActive(activeKey()); });
 
-    // the fixed dock needs breathing room at the page bottom while visible
-    if (document.getElementById('appnav-dock')) {
-      document.body.classList.add('has-appdock');
-    }
-
-    // auth wiring — degrade to guest links when firebase never initialised
+    // Auth gating: the app nav (pills + bell/profile + dock) only renders
+    // for signed-in users — guests keep the classic marketing nav. Without
+    // firebase the class is never added, so guests are the safe default.
     if (typeof auth === 'undefined' || !auth) return;
     auth.onAuthStateChanged(function(user){
       var bell = document.getElementById('appnav-bell');
       var prof = document.getElementById('appnav-profile');
       var badge = document.getElementById('appnav-bell-badge');
       if (!user) {
-        if (bell) bell.href = 'login.html';
-        if (prof) prof.href = 'login.html';
+        document.body.classList.remove('nav-authed');
         if (badge) badge.style.display = 'none';
         return;
       }
+      document.body.classList.add('nav-authed');
+      // pills just became visible — the capsule can only measure them now
+      setActive(activeKey());
+      requestAnimationFrame(moveCapsule);
       if (bell) bell.href = 'dashboard-user.html';
       if (prof) prof.href = 'profile.html';
       if (badge && typeof db !== 'undefined' && db) {

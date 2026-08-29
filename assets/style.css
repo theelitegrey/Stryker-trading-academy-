@@ -4381,3 +4381,21 @@ a.feature-card:hover .module-go i{ transform:translateX(4px); }
   .appnav-capsule{ transition:opacity .2s; }
   .appnav-dkbar{ transition:none; }
 }
+
+/* ==========================================================================
+   APP NAV auth gating (build 215) — the pill rail, bell/profile actions and
+   mobile dock exist in the markup but only render for signed-in users
+   (body.nav-authed, added by app-nav.js once auth resolves). Guests keep
+   the classic marketing nav (.nav-links / .nav-cta) untouched.
+   ========================================================================== */
+.appnav-pills, .appnav-acts, .appnav-dock{ display:none; }
+body.nav-authed .appnav-acts{ display:flex; }
+body.nav-authed .nav-links,
+body.nav-authed .nav-cta{ display:none !important; }
+@media (min-width:821px){
+  body.nav-authed .appnav-pills{ display:flex; }
+}
+@media (max-width:820px){
+  body.nav-authed .appnav-dock{ display:flex; }
+  body.nav-authed{ padding-bottom:84px; }
+}

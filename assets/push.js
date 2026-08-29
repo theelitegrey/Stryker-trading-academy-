@@ -112,11 +112,10 @@ function setPushKeepAfterSignOut(on){
 
 function disablePush(){
   if (!pushSupported() || !auth || !auth.currentUser) return Promise.resolve();
-  var messaging = firebase.messaging();
-  return messaging.getToken().then(function (token) {
+  return currentPushToken().then(function (token) {
     if (!token) return;
     return db.collection('pushTokens').doc(token).delete()
-      .then(function () { return messaging.deleteToken(); });
+      .then(function () { return firebase.messaging().deleteToken(); });
   }).catch(function (err) {
     console.warn('Stryker: could not fully disable push', err);
   });
@@ -135,10 +134,32 @@ function disablePushOnSignOut(){
   return disablePush().then(function () { return 'removed'; });
 }
 
+// This device's current token, fetched the same way enablePush() fetches it.
+// getToken() called bare — no VAPID key, no service-worker registration —
+// FAILS on this SDK, which is why Settings used to report push as off moments
+// after enabling it: the enable path and the check path were asking different
+// questions. Permission is already granted wherever this is used, so nothing
+// here ever prompts.
+function currentPushToken(){
+  if (!pushSupported() || Notification.permission !== 'granted') return Promise.resolve(null);
+  return loadVapidKey().then(function (vapidKey) {
+    if (!vapidKey) return null;
+    return navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(function (registration) {
+        return firebase.messaging().getToken({
+          vapidKey: vapidKey,
+          serviceWorkerRegistration: registration
+        });
+      });
+  }).catch(function (err) {
+    console.warn('Stryker: could not read push token', err);
+    return null;
+  });
+}
+
 function pushEnabledOnThisDevice(){
-  if (!pushSupported() || !auth || !auth.currentUser) return Promise.resolve(false);
-  if (Notification.permission !== 'granted') return Promise.resolve(false);
-  return firebase.messaging().getToken()
+  if (!auth || !auth.currentUser) return Promise.resolve(false);
+  return currentPushToken()
     .then(function (token) {
       if (!token) return false;
       return db.collection('pushTokens').doc(token).get().then(function (d) { return d.exists; });

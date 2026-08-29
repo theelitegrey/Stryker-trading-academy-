@@ -5103,3 +5103,46 @@ body.nav-authed .appnav-acts{ display:flex; }
 .sb-bearish{ color:var(--bear); border-color:rgba(229,72,77,.35); }
 .sb-note{ margin-top:4px; font-size:12.5px; color:var(--ink-2); line-height:1.55; }
 .sb-levels{ margin-top:4px; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); }
+
+/* ==========================================================================
+   INSTALL-TO-HOME-SCREEN SHEET (build 226)
+   Bottom sheet on mobile, centred dialog on wider screens. Shown once on a
+   new student's first dashboard visit; reopenable from Settings.
+   ========================================================================== */
+.install-sheet-wrap{ position:fixed; inset:0; z-index:860; display:flex; align-items:flex-end; justify-content:center; }
+.install-sheet-backdrop{
+  position:absolute; inset:0; background:rgba(0,0,0,.55); backdrop-filter:blur(3px);
+  opacity:0; transition:opacity .28s ease;
+}
+.install-sheet{
+  position:relative; width:100%; max-width:430px; box-sizing:border-box;
+  background:var(--bg-2); border:1px solid var(--line); border-bottom:none;
+  border-radius:20px 20px 0 0; padding:14px 22px calc(22px + env(safe-area-inset-bottom));
+  text-align:center; transform:translateY(100%);
+  transition:transform .34s cubic-bezier(.22,1,.36,1);
+  box-shadow:0 -18px 50px -20px rgba(0,0,0,.7);
+}
+.install-sheet-wrap.in .install-sheet{ transform:translateY(0); }
+.install-sheet-wrap.in .install-sheet-backdrop{ opacity:1; }
+@media (min-width:640px){
+  .install-sheet-wrap{ align-items:center; padding:20px; }
+  .install-sheet{ border-radius:20px; border-bottom:1px solid var(--line); padding-bottom:24px; }
+}
+.install-grab{ display:block; width:38px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 16px; }
+@media (min-width:640px){ .install-grab{ display:none; } }
+.install-icon{ width:64px; height:64px; border-radius:15px; margin-bottom:12px; box-shadow:0 8px 24px -10px rgba(3,201,136,.5); }
+.install-sheet h3{ margin:0 0 7px; font-size:17.5px; }
+.install-sheet p{ margin:0 auto 16px; max-width:330px; font-size:13px; color:var(--ink-2); line-height:1.6; }
+.install-steps{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:9px; text-align:left; }
+.install-steps li{
+  display:flex; align-items:center; gap:11px; font-size:13px; color:var(--ink-1);
+  background:var(--bg-3); border:1px solid var(--line-soft); border-radius:11px; padding:10px 13px;
+}
+.install-steps b{ color:var(--ink-0); }
+.install-step-ic{ display:inline-flex; width:19px; height:19px; flex-shrink:0; color:var(--gold); }
+.install-step-ic svg{ width:100%; height:100%; }
+.install-sheet-actions{ display:flex; flex-direction:column; gap:9px; }
+.install-later{ margin:12px 0 0 !important; font-size:11px !important; color:var(--ink-3) !important; }
+@media (prefers-reduced-motion: reduce){
+  .install-sheet, .install-sheet-backdrop{ transition:none; }
+}

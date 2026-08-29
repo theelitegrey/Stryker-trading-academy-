@@ -15,9 +15,10 @@
   // (about, legal, support…) simply show no active state.
   function activeKey(){
     var f = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
-    if (f === '' || f === 'index.html') return location.hash === '#platform' ? 'platform' : 'home';
-    if (f === 'courses.html' || f === 'chapter.html') return 'curriculum';
-    if (f === 'indicators.html' || f === 'indicator.html') return 'indicators';
+    if (f === '' || f === 'index.html' || f === 'dashboard-user.html') return 'home';
+    if (f === 'courses.html' || f === 'chapter.html') return 'learn';
+    if (f === 'trade-journal.html') return 'journal';
+    if (f === 'indicators.html' || f === 'indicator.html') return 'charts';
     if (f === 'trading-floor.html') return 'floor';
     return null;
   }
@@ -40,7 +41,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function(){
-    if (!document.querySelector('.appnav')) return;
+    if (!document.querySelector('.appnav-pills, .appnav-dock')) return;
 
     setActive(activeKey());
     // capsule position depends on fonts/logo having laid out

@@ -1,0 +1,33 @@
+# Stryker Trading Academy
+# The app itself (dashboard, journal, floor…) is sign-in only and noindexed;
+# crawlers are pointed at the public pages and told where the sitemap lives.
+
+User-agent: *
+Allow: /
+Disallow: /dashboard-admin
+Disallow: /students-admin
+Disallow: /access-admin
+Disallow: /moderation-admin
+Disallow: /support-admin
+Disallow: /referrals-admin
+Disallow: /chapters-admin
+Disallow: /models-admin
+Disallow: /indicators-admin
+Disallow: /pages-admin
+Disallow: /commerce-admin
+Disallow: /billing-admin
+Disallow: /coupons-admin
+Disallow: /orders-admin
+Disallow: /appearance-admin
+Disallow: /logs-admin
+Disallow: /notes-admin
+Disallow: /bots-admin
+Disallow: /settings-admin
+Disallow: /seo-admin
+Disallow: /chapter-editor
+Disallow: /indicator-editor
+Disallow: /model-editor
+Disallow: /page-editor
+Disallow: /checkout
+
+Sitemap: https://strykertrading.com/sitemap.xml

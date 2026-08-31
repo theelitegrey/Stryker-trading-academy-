@@ -121,6 +121,9 @@ jobs:
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "Deploying to Pages project: $name"
 
+      - name: Refresh the sitemap (lastmod = this deploy)
+        run: node tools/gen-sitemap.js
+
       - name: Assemble the site (repo internals excluded)
         run: |
           mkdir -p /tmp/site

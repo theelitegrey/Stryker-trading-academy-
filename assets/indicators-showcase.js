@@ -1,8 +1,8 @@
 // Stryker Trading Academy — Trading Indicators showcase
-// Three in-house indicators presented with animated chart vignettes, ahead
-// of their TradingView release. Everything here is static/presentational —
-// no downloads and no TradingView links until the scripts are published;
-// access itself still runs through the TradingView-username panel above.
+// Three in-house indicators presented with animated chart vignettes. A card
+// stays presentational until its script is actually published; once it has a
+// tvUrl it flips to LIVE with a link to the TradingView page. Access itself
+// still runs through the TradingView-username panel above.
 
 (function(){
   // Each demo is a hand-drawn SVG scene; the motion lives in style.css
@@ -64,6 +64,7 @@
   var INDS = [
     {
       name: 'FVG Relay',
+      tvUrl: 'https://www.tradingview.com/script/Hcuencnm-FVG-Relay-Stryker/',
       tag: 'Fair value gaps that chain into delivery',
       body: 'Displacement gaps with consequent-encroachment lines, four mitigation models, and the relay read: the moment a mitigated gap hands price into a fresh one, the chain is counted and flagged.',
       chips: ['Bull & bear FVGs', 'CE lines', '4 mitigation models', 'Relay chains', 'Size filter', 'Alerts'],
@@ -91,20 +92,28 @@
     host.innerHTML =
       '<div class="ind-sc-head">' +
         '<h2>The Stryker indicator suite</h2>' +
-        '<p>Built in-house for the way the curriculum trades. Finishing TradingView review now — access lands automatically once your username above is approved.</p>' +
+        '<p>Built in-house for the way the curriculum trades. FVG Relay is live on TradingView now; the rest are finishing review — access lands automatically once your username above is approved.</p>' +
       '</div>' +
       '<div class="ind-sc-grid">' +
       INDS.map(function (it, i) {
-        return '<article class="ind-card" style="animation-delay:' + (0.08 * i) + 's">' +
+        return '<article class="ind-card' + (it.tvUrl ? ' is-live' : '') + '" style="animation-delay:' + (0.08 * i) + 's">' +
           '<div class="ind-demo">' + it.demo + '</div>' +
           '<div class="ind-card-body">' +
             '<div class="ind-card-top"><h3>' + it.name + '</h3>' +
-              '<span class="ind-dev"><i></i>IN DEVELOPMENT</span></div>' +
+              (it.tvUrl
+                ? '<span class="ind-dev ind-live"><i></i>LIVE</span>'
+                : '<span class="ind-dev"><i></i>IN DEVELOPMENT</span>') +
+            '</div>' +
             '<p class="ind-tag">' + it.tag + '</p>' +
             '<p class="ind-body">' + it.body + '</p>' +
             '<div class="ind-chips">' + it.chips.map(function (c) {
               return '<span>' + c + '</span>';
             }).join('') + '</div>' +
+            (it.tvUrl
+              ? '<a class="btn btn-primary btn-sm ind-tv-link" href="' + it.tvUrl + '" target="_blank" rel="noopener noreferrer">' +
+                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:7px; vertical-align:-2px;"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>' +
+                'View on TradingView</a>'
+              : '') +
           '</div>' +
         '</article>';
       }).join('') +

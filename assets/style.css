@@ -5218,3 +5218,11 @@ a.floor-tag:hover{ text-decoration:underline; }
   .seo-printable .btn{ display:none !important; }
   .seo-code{ max-height:none; overflow:visible; color:#000; background:#fff; border-color:#ccc; }
 }
+
+/* Indicators showcase: a published script's card (build 231) */
+.ind-dev.ind-live{
+  color:var(--gold); border-color:rgba(3,201,136,.4); background:rgba(3,201,136,.08);
+}
+.ind-dev.ind-live i{ background:var(--gold); }
+.ind-card.is-live{ border-color:var(--gold-dim); }
+.ind-tv-link{ margin-top:4px; align-self:flex-start; }

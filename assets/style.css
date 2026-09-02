@@ -5226,3 +5226,7 @@ a.floor-tag:hover{ text-decoration:underline; }
 .ind-dev.ind-live i{ background:var(--gold); }
 .ind-card.is-live{ border-color:var(--gold-dim); }
 .ind-tv-link{ margin-top:4px; align-self:flex-start; }
+
+/* Indicators showcase: rendered mockup images (build 232) */
+.ind-demo.is-img{ padding:0; line-height:0; }
+.ind-demo.is-img img{ width:100%; height:auto; display:block; }

@@ -71,7 +71,9 @@
       demo: DEMO_FVG
     },
     {
-      name: 'iFVG Engine',
+      name: 'IFVG Pro',
+      tvUrl: 'https://www.tradingview.com/script/n7Lpx8cB-IFVG-Pro-Stryker/',
+      img: 'assets/images/indicator-ifvg-pro.png',
       tag: 'Broken gaps flip roles — trade the retest',
       body: 'Tracks every gap through its whole life: formed, inverted, retested. Rejections at inverted zones print entry-style signals, with an EMA bias filter and a live respect-rate dashboard.',
       chips: ['Inversion zones', 'Retest signals', 'Trend bias filter', 'Respect-rate stats', 'Zone retirement', 'Alerts'],
@@ -92,12 +94,14 @@
     host.innerHTML =
       '<div class="ind-sc-head">' +
         '<h2>The Stryker indicator suite</h2>' +
-        '<p>Built in-house for the way the curriculum trades. FVG Relay is live on TradingView now; the rest are finishing review — access lands automatically once your username above is approved.</p>' +
+        '<p>Built in-house for the way the curriculum trades. FVG Relay and IFVG Pro are live on TradingView now; HTF Power of Three is finishing review — access lands automatically once your username above is approved.</p>' +
       '</div>' +
       '<div class="ind-sc-grid">' +
       INDS.map(function (it, i) {
         return '<article class="ind-card' + (it.tvUrl ? ' is-live' : '') + '" style="animation-delay:' + (0.08 * i) + 's">' +
-          '<div class="ind-demo">' + it.demo + '</div>' +
+          (it.img
+            ? '<div class="ind-demo is-img"><img src="' + it.img + '" alt="' + it.name + ' on a chart" loading="lazy"></div>'
+            : '<div class="ind-demo">' + it.demo + '</div>') +
           '<div class="ind-card-body">' +
             '<div class="ind-card-top"><h3>' + it.name + '</h3>' +
               (it.tvUrl

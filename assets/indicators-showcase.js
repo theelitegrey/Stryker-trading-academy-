@@ -1,131 +1,153 @@
 // Stryker Trading Academy — Trading Indicators showcase
-// Three in-house indicators presented with animated chart vignettes. A card
-// stays presentational until its script is actually published; once it has a
-// tvUrl it flips to LIVE with a link to the TradingView page. Access itself
-// still runs through the TradingView-username panel above.
+//
+// The suite shown at the top of the Trading Indicators page. Content lives in
+// Firestore (showcaseIndicators/{id}, public read / admin write) so the
+// Indicators admin can edit, remove, relink or flip a card between LIVE and
+// IN DEVELOPMENT without a deploy. SHOWCASE_SEED below is the bundled
+// fallback — what renders when the collection is empty or unreachable, and
+// what the admin panel seeds the collection from on first use.
+//
+// A card with status 'live' shows the LIVE badge and its TradingView button;
+// 'dev' shows IN DEVELOPMENT and no link. `img` is a rendered chart-window
+// mockup (an asset path, or a data URL when uploaded from the admin); a card
+// without one falls back to a small drawn scene.
+
+var SHOWCASE_SEED = [
+  {
+    id: 'fvg-relay',
+    order: 1,
+    name: 'FVG Relay',
+    status: 'live',
+    tvUrl: 'https://www.tradingview.com/script/Hcuencnm-FVG-Relay-Stryker/',
+    img: 'assets/images/indicator-fvg-relay.png',
+    tag: 'Fair value gaps that chain into delivery',
+    body: 'Displacement gaps with consequent-encroachment lines, four mitigation models, and the relay read: the moment a mitigated gap hands price into a fresh one, the chain is counted and flagged.',
+    chips: ['Bull & bear FVGs', 'CE lines', '4 mitigation models', 'Relay chains', 'Size filter', 'Alerts']
+  },
+  {
+    id: 'ifvg-pro',
+    order: 2,
+    name: 'IFVG Pro',
+    status: 'live',
+    tvUrl: 'https://www.tradingview.com/script/n7Lpx8cB-IFVG-Pro-Stryker/',
+    img: 'assets/images/indicator-ifvg-pro.png',
+    tag: 'Broken gaps flip roles — trade the retest',
+    body: 'Tracks every gap through its whole life: formed, inverted, retested. Rejections at inverted zones print entry-style signals, with an EMA bias filter and a live respect-rate dashboard.',
+    chips: ['Inversion zones', 'Retest signals', 'Trend bias filter', 'Respect-rate stats', 'Zone retirement', 'Alerts']
+  },
+  {
+    id: 'htf-po3-lens',
+    order: 3,
+    name: 'HTF PO3 Lens',
+    status: 'live',
+    tvUrl: 'https://www.tradingview.com/script/6A3kytc5-HTF-PO3-Lens-Stryker/',
+    img: 'assets/images/indicator-htf-po3.png',
+    tag: 'Accumulation · Manipulation · Distribution',
+    body: 'The last few higher-timeframe candles projected beside your chart, the live HTF open extended across it, and each candle read as the AMD sequence — with a real-time phase readout.',
+    chips: ['HTF candles on-chart', 'Live phase readout', 'M / D labels', 'Open line', 'Any timeframe', 'Alerts']
+  },
+  {
+    id: 'smt-divergence-pro',
+    order: 4,
+    name: 'SMT Divergence Pro',
+    status: 'live',
+    tvUrl: 'https://www.tradingview.com/script/UJLd5TSn-SMT-Divergence-Pro-Stryker/',
+    img: 'assets/images/indicator-smt-pro.png',
+    tag: 'One index runs the high — the other refuses',
+    body: 'Plots a correlated symbol over your chart and flags the cracks: swings where one market makes a higher high or lower low and the other does not confirm, with the divergence drawn on both legs.',
+    chips: ['Any pair', 'Auto swing detection', 'Bull & bear SMT', 'Divergence lines', 'Session filter', 'Alerts']
+  }
+];
 
 (function(){
-  // Each demo is a hand-drawn SVG scene; the motion lives in style.css
-  // keyframes keyed off the sw-* classes (one shared 7s loop per card).
 
-  var CANDLES_BASE =
-    // a small rising tape the first two scenes share (wick line + body rect)
-    '<g stroke="#3a4150" stroke-width="1.6">' +
-      '<line x1="18" y1="86" x2="18" y2="58"/><line x1="38" y1="78" x2="38" y2="44"/>' +
-      '<line x1="58" y1="66" x2="58" y2="26"/></g>' +
-    '<rect x="13" y="66" width="10" height="16" rx="1.5" fill="#2ea583"/>' +
-    '<rect x="33" y="52" width="10" height="20" rx="1.5" fill="#2ea583"/>' +
-    '<rect x="53" y="30" width="10" height="28" rx="1.5" fill="#2ea583"/>';
-
-  var DEMO_FVG =
+  // Fallback scene for a card without a rendered mockup (typically a fresh
+  // admin-added entry): a small candle tape with a zone and an entry arrow.
+  var GENERIC_SCENE =
     '<svg viewBox="0 0 220 120" class="ind-demo-svg" aria-hidden="true">' +
-      CANDLES_BASE +
-      // the gap left behind by the displacement leg
-      '<rect class="sw-gap1" x="66" y="44" width="70" height="16" rx="3" fill="rgba(3,201,136,0.16)" stroke="rgba(3,201,136,0.55)"/>' +
-      '<line class="sw-ce1" x1="66" y1="52" x2="136" y2="52" stroke="rgba(3,201,136,0.5)" stroke-dasharray="3 4"/>' +
-      // retrace into the gap, then delivery onward
-      '<path class="sw-path1" d="M64 28 L88 52 L108 46 L128 20" fill="none" stroke="#eeeeee" stroke-width="2" stroke-linecap="round" pathLength="1"/>' +
-      // the second gap the move hands off into
-      '<rect class="sw-gap2" x="128" y="18" width="70" height="13" rx="3" fill="rgba(3,201,136,0.16)" stroke="rgba(3,201,136,0.55)"/>' +
-      '<g class="sw-relay"><rect x="146" y="34" width="52" height="15" rx="7.5" fill="rgba(3,201,136,0.9)"/>' +
-      '<text x="172" y="45" text-anchor="middle" font-size="9" font-weight="700" fill="#04110c" font-family="monospace">RELAY ×2</text></g>' +
+      '<g stroke="#3a4150" stroke-width="1.6">' +
+        '<line x1="24" y1="92" x2="24" y2="62"/><line x1="48" y1="84" x2="48" y2="48"/>' +
+        '<line x1="72" y1="70" x2="72" y2="30"/></g>' +
+      '<rect x="19" y="70" width="10" height="18" rx="1.5" fill="#2ea583"/>' +
+      '<rect x="43" y="56" width="10" height="22" rx="1.5" fill="#cf4046"/>' +
+      '<rect x="67" y="36" width="10" height="26" rx="1.5" fill="#2ea583"/>' +
+      '<rect x="84" y="40" width="110" height="18" rx="3" fill="rgba(3,201,136,0.14)" stroke="rgba(3,201,136,0.5)"/>' +
+      '<path d="M80 34 L104 50 L126 46 L152 26 L182 12" fill="none" stroke="#eeeeee" stroke-width="2" stroke-linecap="round"/>' +
     '</svg>';
 
-  var DEMO_IFVG =
-    '<svg viewBox="0 0 220 120" class="ind-demo-svg" aria-hidden="true">' +
-      CANDLES_BASE +
-      // fresh bullish gap… until price closes through it
-      '<rect class="sw-flip" x="66" y="40" width="130" height="18" rx="3"/>' +
-      '<line x1="66" y1="49" x2="196" y2="49" stroke="rgba(139,147,160,0.5)" stroke-dasharray="3 4"/>' +
-      // the violation candle
-      '<g class="sw-break"><line x1="92" y1="30" x2="92" y2="82" stroke="#3a4150" stroke-width="1.6"/>' +
-      '<rect x="87" y="36" width="10" height="40" rx="1.5" fill="#cf4046"/></g>' +
-      // the retest from below and the rejection signal
-      '<path class="sw-path2" d="M100 82 L128 46 L150 58 L178 88" fill="none" stroke="#eeeeee" stroke-width="2" stroke-linecap="round" pathLength="1"/>' +
-      '<g class="sw-sig"><path d="M150 66 l7 12 h-14 z" fill="#e5484d" transform="rotate(180 150 72)"/>' +
-      '<text x="150" y="96" text-anchor="middle" font-size="8.5" font-weight="700" fill="#e5484d" font-family="monospace">iFVG ▼</text></g>' +
-    '</svg>';
+  function esc(s){
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 
-  var DEMO_PO3 =
-    '<svg viewBox="0 0 220 120" class="ind-demo-svg" aria-hidden="true">' +
-      // the HTF open, dead centre
-      '<line x1="10" y1="60" x2="160" y2="60" stroke="rgba(245,197,66,0.55)" stroke-dasharray="5 4"/>' +
-      '<text x="12" y="54" font-size="8" fill="rgba(245,197,66,0.8)" font-family="monospace">HTF OPEN</text>' +
-      // accumulation chop, the sweep below, then delivery up
-      '<path class="sw-path3" d="M14 60 L34 56 L50 64 L66 58 L84 92 L100 74 L118 44 L142 30 L158 18" fill="none" stroke="#eeeeee" stroke-width="2" stroke-linecap="round" pathLength="1"/>' +
-      '<text class="sw-ph1" x="38" y="44" text-anchor="middle" font-size="9" font-weight="700" fill="#8b93a0" font-family="monospace">A</text>' +
-      '<text class="sw-ph2" x="84" y="106" text-anchor="middle" font-size="9" font-weight="700" fill="#e5484d" font-family="monospace">M</text>' +
-      '<text class="sw-ph3" x="142" y="20" text-anchor="middle" font-size="9" font-weight="700" fill="#03c988" font-family="monospace">D</text>' +
-      // the same story compressed into one HTF candle on the right
-      '<g class="sw-htfc"><line x1="192" y1="10" x2="192" y2="102" stroke="#3a4150" stroke-width="2"/>' +
-      '<rect x="183" y="18" width="18" height="44" rx="2" fill="rgba(3,201,136,0.85)"/></g>' +
-    '</svg>';
+  // Only http(s) URLs make it into an href — showcase content is stored data,
+  // and an admin-typed link should never be able to smuggle a javascript: URI.
+  function safeUrl(u){
+    return /^https?:\/\//i.test(String(u || '')) ? String(u) : '';
+  }
 
-  var INDS = [
-    {
-      name: 'FVG Relay',
-      tvUrl: 'https://www.tradingview.com/script/Hcuencnm-FVG-Relay-Stryker/',
-      img: 'assets/images/indicator-fvg-relay.png',
-      tag: 'Fair value gaps that chain into delivery',
-      body: 'Displacement gaps with consequent-encroachment lines, four mitigation models, and the relay read: the moment a mitigated gap hands price into a fresh one, the chain is counted and flagged.',
-      chips: ['Bull & bear FVGs', 'CE lines', '4 mitigation models', 'Relay chains', 'Size filter', 'Alerts'],
-      demo: DEMO_FVG
-    },
-    {
-      name: 'IFVG Pro',
-      tvUrl: 'https://www.tradingview.com/script/n7Lpx8cB-IFVG-Pro-Stryker/',
-      img: 'assets/images/indicator-ifvg-pro.png',
-      tag: 'Broken gaps flip roles — trade the retest',
-      body: 'Tracks every gap through its whole life: formed, inverted, retested. Rejections at inverted zones print entry-style signals, with an EMA bias filter and a live respect-rate dashboard.',
-      chips: ['Inversion zones', 'Retest signals', 'Trend bias filter', 'Respect-rate stats', 'Zone retirement', 'Alerts'],
-      demo: DEMO_IFVG
-    },
-    {
-      name: 'HTF PO3 Lens',
-      tvUrl: 'https://www.tradingview.com/script/6A3kytc5-HTF-PO3-Lens-Stryker/',
-      img: 'assets/images/indicator-htf-po3.png',
-      tag: 'Accumulation · Manipulation · Distribution',
-      body: 'The last few higher-timeframe candles projected beside your chart, the live HTF open extended across it, and each candle read as the AMD sequence — with a real-time phase readout.',
-      chips: ['HTF candles on-chart', 'Live phase readout', 'M / D labels', 'Open line', 'Any timeframe', 'Alerts'],
-      demo: DEMO_PO3
-    }
-  ];
+  function cardHtml(it, i){
+    var live = it.status === 'live' && safeUrl(it.tvUrl);
+    var chips = (it.chips || []).map(function (c) { return '<span>' + esc(c) + '</span>'; }).join('');
+    var demo = it.img
+      ? '<div class="ind-demo is-img"><img src="' + esc(it.img) + '" alt="' + esc(it.name) + ' on a chart" loading="lazy"></div>'
+      : '<div class="ind-demo">' + GENERIC_SCENE + '</div>';
 
-  function render(){
+    return '<article class="ind-card' + (live ? ' is-live' : '') + '" style="animation-delay:' + (0.08 * i) + 's">' +
+      demo +
+      '<div class="ind-card-body">' +
+        '<div class="ind-card-top"><h3>' + esc(it.name) + '</h3>' +
+          (live
+            ? '<span class="ind-dev ind-live"><i></i>LIVE</span>'
+            : '<span class="ind-dev"><i></i>IN DEVELOPMENT</span>') +
+        '</div>' +
+        (it.tag ? '<p class="ind-tag">' + esc(it.tag) + '</p>' : '') +
+        (it.body ? '<p class="ind-body">' + esc(it.body) + '</p>' : '') +
+        (chips ? '<div class="ind-chips">' + chips + '</div>' : '') +
+        (live
+          ? '<a class="btn btn-primary btn-sm ind-tv-link" href="' + esc(safeUrl(it.tvUrl)) + '" target="_blank" rel="noopener noreferrer">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:7px; vertical-align:-2px;"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>' +
+            'View on TradingView</a>'
+          : '') +
+      '</div>' +
+    '</article>';
+  }
+
+  function render(items){
     var host = document.getElementById('indicators-showcase');
-    if (!host) return;
+    if (!host || !items.length) return;
+
+    var liveCount = items.filter(function (it) { return it.status === 'live'; }).length;
+    var blurb = liveCount === items.length
+      ? 'Built in-house for the way the curriculum trades. The full suite is live on TradingView — access lands automatically once your username above is approved.'
+      : (liveCount === 0
+        ? 'Built in-house for the way the curriculum trades. Finishing TradingView review now — access lands automatically once your username above is approved.'
+        : 'Built in-house for the way the curriculum trades. ' + liveCount + ' of ' + items.length + ' are live on TradingView; the rest are finishing review — access lands automatically once your username above is approved.');
+
     host.innerHTML =
       '<div class="ind-sc-head">' +
         '<h2>The Stryker indicator suite</h2>' +
-        '<p>Built in-house for the way the curriculum trades. The full suite is live on TradingView — access lands automatically once your username above is approved.</p>' +
+        '<p>' + blurb + '</p>' +
       '</div>' +
-      '<div class="ind-sc-grid">' +
-      INDS.map(function (it, i) {
-        return '<article class="ind-card' + (it.tvUrl ? ' is-live' : '') + '" style="animation-delay:' + (0.08 * i) + 's">' +
-          (it.img
-            ? '<div class="ind-demo is-img"><img src="' + it.img + '" alt="' + it.name + ' on a chart" loading="lazy"></div>'
-            : '<div class="ind-demo">' + it.demo + '</div>') +
-          '<div class="ind-card-body">' +
-            '<div class="ind-card-top"><h3>' + it.name + '</h3>' +
-              (it.tvUrl
-                ? '<span class="ind-dev ind-live"><i></i>LIVE</span>'
-                : '<span class="ind-dev"><i></i>IN DEVELOPMENT</span>') +
-            '</div>' +
-            '<p class="ind-tag">' + it.tag + '</p>' +
-            '<p class="ind-body">' + it.body + '</p>' +
-            '<div class="ind-chips">' + it.chips.map(function (c) {
-              return '<span>' + c + '</span>';
-            }).join('') + '</div>' +
-            (it.tvUrl
-              ? '<a class="btn btn-primary btn-sm ind-tv-link" href="' + it.tvUrl + '" target="_blank" rel="noopener noreferrer">' +
-                '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" style="margin-right:7px; vertical-align:-2px;"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>' +
-                'View on TradingView</a>'
-              : '') +
-          '</div>' +
-        '</article>';
-      }).join('') +
-      '</div>';
+      '<div class="ind-sc-grid">' + items.map(cardHtml).join('') + '</div>';
   }
 
-  document.addEventListener('DOMContentLoaded', render);
+  // Firestore first, bundled seed as the fallback — the same shape the
+  // chapters and models stores use.
+  function loadShowcaseIndicators(){
+    if (typeof db === 'undefined' || !db) return Promise.resolve(SHOWCASE_SEED);
+    return db.collection('showcaseIndicators').get().then(function (snap) {
+      var items = [];
+      snap.forEach(function (d) { items.push(d.data()); });
+      items.sort(function (a, b) { return (a.order || 0) - (b.order || 0); });
+      return items.length ? items : SHOWCASE_SEED;
+    }).catch(function () { return SHOWCASE_SEED; });
+  }
+  window.loadShowcaseIndicators = loadShowcaseIndicators;
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!document.getElementById('indicators-showcase')) return;
+    render(SHOWCASE_SEED);                    // instant paint from the bundle
+    loadShowcaseIndicators().then(render);    // then whatever the admin saved
+  });
 })();

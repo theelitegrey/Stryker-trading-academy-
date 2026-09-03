@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="237">
+<meta name="stryker-build" content="238">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Indicators — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=237">
-<script src="assets/device-mode.js?v=237"></script>
-<script src="assets/toast.js?v=237" defer></script>
-<script src="assets/version-check.js?v=237" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=238">
+<script src="assets/device-mode.js?v=238"></script>
+<script src="assets/toast.js?v=238" defer></script>
+<script src="assets/version-check.js?v=238" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -147,6 +147,38 @@
       </div>
     </div>
 
+    <div class="panel">
+      <div class="panel-head" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+        <h2>Indicator showcase</h2>
+        <button class="btn btn-primary btn-sm" id="sc-add-btn">Add indicator</button>
+      </div>
+      <p style="font-size:12.5px; color:var(--ink-3); line-height:1.6; margin:0 0 14px;">The cards students see at the top of the Trading Indicators page. Edit a card, add or change its TradingView link, flip it between LIVE and IN DEVELOPMENT, or remove it — changes show on the site immediately, no deploy needed.</p>
+      <div id="showcase-admin-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
+    </div>
+
+    <div class="panel" id="sc-edit-panel" style="display:none;">
+      <div class="panel-head"><h2 id="sc-edit-heading">Edit indicator</h2></div>
+      <div class="field"><label for="sc-f-name">Name</label><input type="text" id="sc-f-name" placeholder="e.g. SMT Divergence Pro"></div>
+      <div class="field"><label for="sc-f-tag">Tagline <span style="color:var(--ink-3); font-weight:400;">(the one-liner under the name)</span></label><input type="text" id="sc-f-tag"></div>
+      <div class="field"><label for="sc-f-body">Description</label><textarea id="sc-f-body" rows="3" class="textarea-field"></textarea></div>
+      <div class="field"><label for="sc-f-chips">Feature chips <span style="color:var(--ink-3); font-weight:400;">(comma separated, up to 8)</span></label><input type="text" id="sc-f-chips" placeholder="Alerts, Any pair, Session filter"></div>
+      <div class="field"><label for="sc-f-url">TradingView link</label><input type="text" id="sc-f-url" placeholder="https://www.tradingview.com/script/…"></div>
+      <div class="field"><label for="sc-f-status">Status</label>
+        <select id="sc-f-status" class="input">
+          <option value="live">Live — badge + TradingView button</option>
+          <option value="dev">In development — badge only, no link</option>
+        </select>
+      </div>
+      <div class="field"><label for="sc-f-img">Card image <span style="color:var(--ink-3); font-weight:400;">(a chart screenshot or mockup, landscape works best)</span></label>
+        <input type="file" id="sc-f-img" accept="image/*" style="padding:9px;">
+        <p id="sc-img-note" style="font-size:12px; color:var(--ink-3); margin:7px 0 0;"></p>
+      </div>
+      <div style="display:flex; gap:9px;">
+        <button class="btn btn-primary btn-sm" id="sc-save-btn">Save</button>
+        <button class="btn btn-ghost btn-sm" id="sc-cancel-btn">Cancel</button>
+      </div>
+    </div>
+
     <div class="panel" id="tv-requests-panel" style="display:none;">
       <div class="panel-head">
         <h2>TradingView access requests</h2>
@@ -169,33 +201,34 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=237"></script>
-<script src="assets/progress.js?v=237"></script>
-<script src="assets/presence.js?v=237"></script>
-<script src="assets/messages.js?v=237"></script>
-<script src="assets/messages-badge.js?v=237"></script>
-<script src="assets/gm-badge.js?v=237"></script>
-<script src="assets/account-menu.js?v=237"></script>
-<script src="assets/activity-log.js?v=237"></script>
-<script src="assets/banned-check.js?v=237"></script>
-<script src="assets/email-verify.js?v=237"></script>
-<script src="assets/notifications.js?v=237"></script>
+<script src="assets/auth.js?v=238"></script>
+<script src="assets/progress.js?v=238"></script>
+<script src="assets/presence.js?v=238"></script>
+<script src="assets/messages.js?v=238"></script>
+<script src="assets/messages-badge.js?v=238"></script>
+<script src="assets/gm-badge.js?v=238"></script>
+<script src="assets/account-menu.js?v=238"></script>
+<script src="assets/activity-log.js?v=238"></script>
+<script src="assets/banned-check.js?v=238"></script>
+<script src="assets/email-verify.js?v=238"></script>
+<script src="assets/notifications.js?v=238"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=237"></script>
-<script src="assets/admin-tasks.js?v=237"></script>
-<script src="assets/admin-notify.js?v=237"></script>
-<script src="assets/profiles-sync.js?v=237"></script>
+<script src="assets/push.js?v=238"></script>
+<script src="assets/admin-tasks.js?v=238"></script>
+<script src="assets/admin-notify.js?v=238"></script>
+<script src="assets/profiles-sync.js?v=238"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=237"></script>
-<script src="assets/avatars.js?v=237"></script>
-<script src="assets/referrals.js?v=237"></script>
-<script src="assets/roles.js?v=237"></script>
-<script src="assets/branding.js?v=237"></script>
-<script src="assets/admin-guard.js?v=237"></script>
-<script src="assets/dash-nav.js?v=237"></script>
-<script src="assets/admin-nav.js?v=237"></script>
-<script src="assets/indicators-store.js?v=237"></script>
-<script src="assets/indicators-admin.js?v=237"></script>
-<script src="assets/theme.js?v=237"></script>
+<script src="assets/loading-animation.js?v=238"></script>
+<script src="assets/avatars.js?v=238"></script>
+<script src="assets/referrals.js?v=238"></script>
+<script src="assets/roles.js?v=238"></script>
+<script src="assets/branding.js?v=238"></script>
+<script src="assets/admin-guard.js?v=238"></script>
+<script src="assets/dash-nav.js?v=238"></script>
+<script src="assets/admin-nav.js?v=238"></script>
+<script src="assets/indicators-store.js?v=238"></script>
+<script src="assets/indicators-showcase.js?v=238"></script>
+<script src="assets/indicators-admin.js?v=238"></script>
+<script src="assets/theme.js?v=238"></script>
 </body>
 </html>

@@ -5202,3 +5202,45 @@ a.floor-tag:hover{ text-decoration:underline; }
 }
 .auth-legal a{ color:var(--ink-2); text-decoration:underline; text-underline-offset:2px; }
 .auth-legal a:hover{ color:var(--gold); }
+
+/* ==========================================================================
+   SIDEBAR / TOC SCROLLBARS on desktop (build 236)
+   The menus are their own scroll containers, so they showed the browser's
+   default gutter scrollbar between the nav and the content — the heaviest
+   visual element in the frame. Replaced with a slim, rounded thumb in the
+   brand tone that stays ghosted until the menu is hovered, on the dashboard
+   sidebar, the reader's chapter rail, and the admin sidebar alike.
+   ========================================================================== */
+.sidebar, .reader-toc{
+  scrollbar-width:thin;                          /* Firefox */
+  scrollbar-color:rgba(3,201,136,.28) transparent;
+}
+.sidebar::-webkit-scrollbar, .reader-toc::-webkit-scrollbar{ width:9px; }
+.sidebar::-webkit-scrollbar-track, .reader-toc::-webkit-scrollbar-track{ background:transparent; }
+.sidebar::-webkit-scrollbar-thumb, .reader-toc::-webkit-scrollbar-thumb{
+  background:linear-gradient(180deg, rgba(3,201,136,.30), rgba(0,173,181,.22));
+  border-radius:999px;
+  /* the transparent border inset makes the 9px lane read as a 5px pill
+     floating in a gutter instead of a bar glued to the edge */
+  border:2px solid transparent; background-clip:padding-box;
+}
+.sidebar::-webkit-scrollbar-thumb:hover, .reader-toc::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(180deg, rgba(3,201,136,.6), rgba(0,173,181,.45));
+  background-clip:padding-box;
+}
+/* quiet until the pointer is actually in the menu */
+@media (hover:hover){
+  .sidebar:not(:hover)::-webkit-scrollbar-thumb,
+  .reader-toc:not(:hover)::-webkit-scrollbar-thumb{
+    background:rgba(139,147,160,.14); background-clip:padding-box;
+  }
+}
+/* Chrome 121+ uses these standard properties and ignores the -webkit rules
+   once they are set, so the hover brightening must exist in this form too. */
+.sidebar:hover, .reader-toc:hover{ scrollbar-color:rgba(3,201,136,.55) transparent; }
+:root[data-theme="light"] .sidebar, :root[data-theme="light"] .reader-toc{
+  scrollbar-color:rgba(7,153,106,.35) transparent;
+}
+:root[data-theme="light"] .sidebar:hover, :root[data-theme="light"] .reader-toc:hover{
+  scrollbar-color:rgba(7,153,106,.6) transparent;
+}

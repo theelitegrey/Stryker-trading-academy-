@@ -65,6 +65,7 @@
     {
       name: 'FVG Relay',
       tvUrl: 'https://www.tradingview.com/script/Hcuencnm-FVG-Relay-Stryker/',
+      img: 'assets/images/indicator-fvg-relay.png',
       tag: 'Fair value gaps that chain into delivery',
       body: 'Displacement gaps with consequent-encroachment lines, four mitigation models, and the relay read: the moment a mitigated gap hands price into a fresh one, the chain is counted and flagged.',
       chips: ['Bull & bear FVGs', 'CE lines', '4 mitigation models', 'Relay chains', 'Size filter', 'Alerts'],
@@ -80,7 +81,9 @@
       demo: DEMO_IFVG
     },
     {
-      name: 'HTF Power of Three',
+      name: 'HTF PO3 Lens',
+      tvUrl: 'https://www.tradingview.com/script/6A3kytc5-HTF-PO3-Lens-Stryker/',
+      img: 'assets/images/indicator-htf-po3.png',
       tag: 'Accumulation · Manipulation · Distribution',
       body: 'The last few higher-timeframe candles projected beside your chart, the live HTF open extended across it, and each candle read as the AMD sequence — with a real-time phase readout.',
       chips: ['HTF candles on-chart', 'Live phase readout', 'M / D labels', 'Open line', 'Any timeframe', 'Alerts'],
@@ -94,7 +97,7 @@
     host.innerHTML =
       '<div class="ind-sc-head">' +
         '<h2>The Stryker indicator suite</h2>' +
-        '<p>Built in-house for the way the curriculum trades. FVG Relay and IFVG Pro are live on TradingView now; HTF Power of Three is finishing review — access lands automatically once your username above is approved.</p>' +
+        '<p>Built in-house for the way the curriculum trades. The full suite is live on TradingView — access lands automatically once your username above is approved.</p>' +
       '</div>' +
       '<div class="ind-sc-grid">' +
       INDS.map(function (it, i) {

@@ -30,19 +30,68 @@ function renderAdminSessionRow(session){
         '<span>' + session.date + (session.time ? ' · ' + session.time : '') + '</span>' +
         (session.instrument ? '<span>' + session.instrument + '</span>' : '') +
         (session.videoId ? '<span>▶ video ' + session.videoId + '</span>' : '<span style="opacity:.6;">no video attached</span>') +
+        (sessionStatsSummary(session) ? '<span style="color:var(--gold);">' + sessionStatsSummary(session) + '</span>' : '') +
       '</div>' +
     '</div>' +
     '<div class="chapter-status" style="display:flex; gap:8px; align-items:center;">' +
       (session.videoId
         ? '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">' + (session.isLive ? 'End live' : 'Go live') + '</button>'
         : '') +
+      '<button class="btn btn-ghost btn-sm" data-edit-session="' + session.id + '">Edit</button>' +
       '<button class="icon-btn" data-session-id="' + session.id + '" title="Delete session">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>' +
     '</button></div>';
   row.querySelector('[data-session-id]').addEventListener('click', () => deleteAdminSession(session.id));
   const liveBtn = row.querySelector('[data-live-toggle]');
   if (liveBtn) liveBtn.addEventListener('click', () => toggleSessionLive(session));
+  row.querySelector('[data-edit-session]').addEventListener('click', () => startEditSession(session));
   return row;
+}
+
+// ---- editing ----------------------------------------------------------------
+// The add form doubles as the edit form: Edit fills it (including the
+// session-recap stats), the add button becomes "Save changes", and cancel
+// returns it to add mode untouched.
+let ADMIN_SESSION_EDITING = null;
+
+function sessionStatsSummary(s){
+  const bits = [];
+  if (s.tradesTotal !== null && s.tradesTotal !== undefined) bits.push(s.tradesTotal + ' trades');
+  if ((s.tradesWon !== null && s.tradesWon !== undefined) || (s.tradesLost !== null && s.tradesLost !== undefined)) {
+    bits.push((s.tradesWon ?? 0) + 'W / ' + (s.tradesLost ?? 0) + 'L');
+  }
+  if (s.riskReward) bits.push('RR ' + s.riskReward);
+  return bits.join(' · ');
+}
+
+function startEditSession(session){
+  ADMIN_SESSION_EDITING = session.id;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = (v === null || v === undefined) ? '' : v; };
+  set('admin-session-title', session.title);
+  set('admin-session-instrument', session.instrument);
+  set('admin-session-date', session.date);
+  set('admin-session-time', session.time);
+  set('admin-session-desc', session.description);
+  set('admin-session-video', session.videoId);
+  set('admin-session-trades', session.tradesTotal);
+  set('admin-session-won', session.tradesWon);
+  set('admin-session-lost', session.tradesLost);
+  set('admin-session-rr', session.riskReward);
+  document.getElementById('admin-session-add-btn').textContent = 'Save changes';
+  document.getElementById('admin-session-cancel-edit').style.display = '';
+  document.getElementById('admin-session-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetSessionForm(){
+  ADMIN_SESSION_EDITING = null;
+  ['admin-session-title', 'admin-session-instrument', 'admin-session-date', 'admin-session-time',
+   'admin-session-desc', 'admin-session-video', 'admin-session-trades', 'admin-session-won',
+   'admin-session-lost', 'admin-session-rr'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('admin-session-add-btn').textContent = 'Add live session';
+  document.getElementById('admin-session-cancel-edit').style.display = 'none';
 }
 
 // Going live on one session ends any other live session in the same write, so
@@ -122,24 +171,36 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    addBtn.disabled = true;
-    db.collection('liveSessions').add({
+    const num = (id) => {
+      const raw = (document.getElementById(id) || {}).value;
+      if (raw === undefined || String(raw).trim() === '') return null;
+      const n = parseInt(raw, 10);
+      return isNaN(n) || n < 0 ? null : n;
+    };
+    const data = {
       title, instrument, date, time, description,
       videoId: videoId || null,
-      isLive: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
-      const v = document.getElementById('admin-session-video');
-      if (v) v.value = '';
-      document.getElementById('admin-session-title').value = '';
-      document.getElementById('admin-session-instrument').value = '';
-      document.getElementById('admin-session-date').value = '';
-      document.getElementById('admin-session-time').value = '';
-      document.getElementById('admin-session-desc').value = '';
+      tradesTotal: num('admin-session-trades'),
+      tradesWon: num('admin-session-won'),
+      tradesLost: num('admin-session-lost'),
+      riskReward: ((document.getElementById('admin-session-rr') || {}).value || '').trim().slice(0, 30) || null
+    };
+
+    addBtn.disabled = true;
+    const write = ADMIN_SESSION_EDITING
+      ? db.collection('liveSessions').doc(ADMIN_SESSION_EDITING).set(data, { merge: true })
+      : db.collection('liveSessions').add(Object.assign({ isLive: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp() }, data));
+
+    write.then(() => {
+      if (typeof showToast === 'function') showToast('success', ADMIN_SESSION_EDITING ? 'Session updated.' : 'Session added.');
+      resetSessionForm();
       loadAdminSessions();
     }).catch((err) => {
-      errEl.textContent = err.message || 'Could not add session.';
+      errEl.textContent = err.message || 'Could not save session.';
       errEl.style.display = 'block';
     }).finally(() => { addBtn.disabled = false; });
   });
+
+  document.getElementById('admin-session-cancel-edit').addEventListener('click', resetSessionForm);
 });

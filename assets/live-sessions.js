@@ -254,6 +254,19 @@ function lsRenderNext(next){
 
 // ---- session lists ----------------------------------------------------------
 
+// Session recap chips (filled in by the admin after a session): trades taken,
+// win/loss split, risk:reward.
+function lsStatsHtml(s){
+  const chips = [];
+  if (s.tradesTotal !== null && s.tradesTotal !== undefined) chips.push(s.tradesTotal + ' trade' + (s.tradesTotal === 1 ? '' : 's'));
+  if ((s.tradesWon !== null && s.tradesWon !== undefined) || (s.tradesLost !== null && s.tradesLost !== undefined)) {
+    chips.push('<b class="gm-up">' + (s.tradesWon ?? 0) + 'W</b> / <b class="gm-down">' + (s.tradesLost ?? 0) + 'L</b>');
+  }
+  if (s.riskReward) chips.push('RR ' + lsEsc(s.riskReward));
+  if (!chips.length) return '';
+  return '<br><span class="ls-stats">' + chips.join('<i></i>') + '</span>';
+}
+
 function renderSessionRow(session, isPast){
   const row = document.createElement('div');
   row.className = 'event-item';
@@ -265,6 +278,7 @@ function renderSessionRow(session, isPast){
     '<div class="event-body"><h4>' + lsEsc(session.title || 'Untitled session') + '</h4>' +
     '<span>' + lsEsc(session.time || '') + (session.instrument ? ' · ' + lsEsc(session.instrument) : '') + '</span>' +
     (session.description ? '<br><span style="font-size:12px;">' + lsEsc(session.description) + '</span>' : '') +
+    (isPast ? lsStatsHtml(session) : '') +
     '</div>' +
     (isPast && session.videoId
       ? '<button class="btn btn-ghost btn-sm" style="align-self:center;">▶ Watch replay</button>'

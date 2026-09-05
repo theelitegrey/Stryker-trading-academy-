@@ -2,15 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="247">
+<meta name="stryker-build" content="248">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard — Stryker Trading Academy</title>
 <meta name="description" content="Stryker Trading Academy admin dashboard.">
-<link rel="stylesheet" href="assets/style.css?v=247">
-<script src="assets/device-mode.js?v=247"></script>
-<script src="assets/toast.js?v=247" defer></script>
-<script src="assets/version-check.js?v=247" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=248">
+<script src="assets/device-mode.js?v=248"></script>
+<script src="assets/toast.js?v=248" defer></script>
+<script src="assets/version-check.js?v=248" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -279,7 +279,28 @@
         <label for="admin-session-video">YouTube video / stream (optional)</label>
         <input type="text" id="admin-session-video" placeholder="Paste the YouTube link or video ID — unlisted streams work">
       </div>
+      <div class="form-row-2">
+        <div class="field">
+          <label for="admin-session-trades">Total trades taken (optional)</label>
+          <input type="number" id="admin-session-trades" min="0" placeholder="e.g. 4">
+        </div>
+        <div class="field">
+          <label for="admin-session-rr">Risk / reward (optional)</label>
+          <input type="text" id="admin-session-rr" placeholder="e.g. 1:2.5 avg">
+        </div>
+      </div>
+      <div class="form-row-2">
+        <div class="field">
+          <label for="admin-session-won">Trades won (optional)</label>
+          <input type="number" id="admin-session-won" min="0" placeholder="e.g. 3">
+        </div>
+        <div class="field">
+          <label for="admin-session-lost">Trades lost (optional)</label>
+          <input type="number" id="admin-session-lost" min="0" placeholder="e.g. 1">
+        </div>
+      </div>
       <button class="btn btn-primary btn-sm" id="admin-session-add-btn">Add live session</button>
+      <button class="btn btn-ghost btn-sm" id="admin-session-cancel-edit" style="display:none;">Cancel edit</button>
 
       <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--line-soft);">
         <h3 style="font-size:14px; color:var(--ink-0); margin-bottom:14px;">All scheduled sessions</h3>
@@ -294,37 +315,37 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=247"></script>
-<script src="assets/progress.js?v=247"></script>
-<script src="assets/presence.js?v=247"></script>
-<script src="assets/messages.js?v=247"></script>
-<script src="assets/messages-badge.js?v=247"></script>
-<script src="assets/gm-badge.js?v=247"></script>
-<script src="assets/account-menu.js?v=247"></script>
-<script src="assets/activity-log.js?v=247"></script>
-<script src="assets/banned-check.js?v=247"></script>
-<script src="assets/email-verify.js?v=247"></script>
-<script src="assets/profiles-sync.js?v=247"></script>
+<script src="assets/auth.js?v=248"></script>
+<script src="assets/progress.js?v=248"></script>
+<script src="assets/presence.js?v=248"></script>
+<script src="assets/messages.js?v=248"></script>
+<script src="assets/messages-badge.js?v=248"></script>
+<script src="assets/gm-badge.js?v=248"></script>
+<script src="assets/account-menu.js?v=248"></script>
+<script src="assets/activity-log.js?v=248"></script>
+<script src="assets/banned-check.js?v=248"></script>
+<script src="assets/email-verify.js?v=248"></script>
+<script src="assets/profiles-sync.js?v=248"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=247"></script>
-<script src="assets/avatars.js?v=247"></script>
-<script src="assets/referrals.js?v=247"></script>
-<script src="assets/roles.js?v=247"></script>
-<script src="assets/branding.js?v=247"></script>
-<script src="assets/admin-guard.js?v=247"></script>
-<script src="assets/dash-nav.js?v=247"></script>
-<script src="assets/admin-nav.js?v=247"></script>
-<script src="assets/notifications.js?v=247"></script>
+<script src="assets/loading-animation.js?v=248"></script>
+<script src="assets/avatars.js?v=248"></script>
+<script src="assets/referrals.js?v=248"></script>
+<script src="assets/roles.js?v=248"></script>
+<script src="assets/branding.js?v=248"></script>
+<script src="assets/admin-guard.js?v=248"></script>
+<script src="assets/dash-nav.js?v=248"></script>
+<script src="assets/admin-nav.js?v=248"></script>
+<script src="assets/notifications.js?v=248"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=247"></script>
-<script src="assets/push-prompt.js?v=247"></script>
-<script src="assets/admin-tasks.js?v=247"></script>
-<script src="assets/admin-notify.js?v=247"></script>
-<script src="assets/admin-overview.js?v=247"></script>
-<script src="assets/admin-todo.js?v=247"></script>
-<script src="assets/notes-admin.js?v=247"></script>
-<script src="assets/admin-ai.js?v=247"></script>
-<script src="assets/admin-sessions.js?v=247"></script>
-<script src="assets/theme.js?v=247"></script>
+<script src="assets/push.js?v=248"></script>
+<script src="assets/push-prompt.js?v=248"></script>
+<script src="assets/admin-tasks.js?v=248"></script>
+<script src="assets/admin-notify.js?v=248"></script>
+<script src="assets/admin-overview.js?v=248"></script>
+<script src="assets/admin-todo.js?v=248"></script>
+<script src="assets/notes-admin.js?v=248"></script>
+<script src="assets/admin-ai.js?v=248"></script>
+<script src="assets/admin-sessions.js?v=248"></script>
+<script src="assets/theme.js?v=248"></script>
 </body>
 </html>

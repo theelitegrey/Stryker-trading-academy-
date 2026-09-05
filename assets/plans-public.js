@@ -13,12 +13,40 @@ function ctaForPlan(plan){
   return { label: 'Get started', cls: 'btn-ghost' };
 }
 
-function renderPublicPlanCard(plan){
+// The WELCOME founding offer (first 50 join free) shows as a note on the plan
+// card it applies to, with a live seats-left count read from the coupon doc.
+// commerce.js isn't loaded on the homepage, so the validity checks are inlined
+// here; a read denied by rules (e.g. for signed-out visitors) simply hides the
+// note rather than breaking the pricing grid.
+function loadFoundingOffer(){
+  return db.collection('coupons').doc('WELCOME').get().then((doc) => {
+    if (!doc.exists) return null;
+    const c = Object.assign({ code: doc.id }, doc.data());
+    if (c.active === false) return null;
+    if (c.expiresAt && c.expiresAt < new Date().toISOString().slice(0, 10)) return null;
+    if (c.maxRedemptions && (c.redemptionCount || 0) >= c.maxRedemptions) return null;
+    return c;
+  }).catch(() => null);
+}
+
+function offerAppliesToCard(offer, plan){
+  if (!offer) return false;
+  if (offer.appliesToPlan && offer.appliesToPlan !== 'all') return offer.appliesToPlan === plan.id;
+  // an any-plan offer is advertised once, on the highest-profile card
+  return !!plan.featured || /elite/i.test(plan.name || '');
+}
+
+function renderPublicPlanCard(plan, offer){
   const cta = ctaForPlan(plan);
   const featuresHtml = (plan.features || []).map(f =>
     '<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(plan) : { active: false };
+  const hasOffer = offerAppliesToCard(offer, plan);
+  const seatsLeft = hasOffer && offer.maxRedemptions
+    ? offer.maxRedemptions - (offer.redemptionCount || 0) : null;
+  const checkoutHref = 'checkout.html?plan=' + encodeURIComponent(plan.id) +
+    (hasOffer ? '&coupon=' + encodeURIComponent(offer.code) : '');
   const el = document.createElement('div');
   el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
@@ -27,8 +55,12 @@ function renderPublicPlanCard(plan){
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
+    (hasOffer
+      ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b>' +
+        (seatsLeft !== null ? '<span class="fn-seats">' + seatsLeft + ' seats left</span>' : '') + '</div>'
+      : '') +
     '<ul>' + featuresHtml + '</ul>' +
-    '<a href="checkout.html?plan=' + encodeURIComponent(plan.id) + '" class="btn ' + cta.cls + ' btn-block">' + cta.label + '</a>';
+    '<a href="' + checkoutHref + '" class="btn ' + cta.cls + ' btn-block">' + (hasOffer ? 'Claim a free seat' : cta.label) + '</a>';
   return el;
 }
 
@@ -37,12 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('pricing-grid');
   if (!grid) return;
 
-  db.collection('plans').get().then((snap) => {
+  Promise.all([db.collection('plans').get(), loadFoundingOffer()]).then(([snap, offer]) => {
     if (snap.empty) return; // keep the static fallback cards already in the HTML
     const plans = [];
     snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
     grid.innerHTML = '';
-    plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan)));
+    plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan, offer)));
     if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
   }).catch((err) => {
     console.error('Stryker: failed to load live plans, showing static fallback', err);

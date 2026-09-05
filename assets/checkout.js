@@ -15,6 +15,56 @@ function getPlanIdFromQuery(){
   return new URLSearchParams(window.location.search).get('plan');
 }
 
+function getCouponFromQuery(){
+  return normalizeCouponCode(new URLSearchParams(window.location.search).get('coupon'));
+}
+
+// Marketing links say `?plan=elite`, not `?plan=x7Kq2...` — so when the query
+// value isn't a document id, fall back to matching it against plan NAMES.
+function loadCheckoutPlan(planId){
+  return db.collection('plans').doc(planId).get().then((doc) => {
+    if (doc.exists) return Object.assign({ id: doc.id }, doc.data());
+    return db.collection('plans').get().then((snap) => {
+      let found = null;
+      snap.forEach((d) => {
+        const p = Object.assign({ id: d.id }, d.data());
+        if (!found && (p.name || '').toLowerCase() === String(planId).toLowerCase()) found = p;
+      });
+      return found;
+    });
+  });
+}
+
+// One seat per account: a capped coupon (e.g. WELCOME's 50 founding seats)
+// shouldn't be consumable twice by the same student. Fails open if this
+// account's orders can't be read, so it never blocks a legitimate first use.
+function hasAlreadyRedeemed(code){
+  return db.collection('orders')
+    .where('studentUid', '==', CHECKOUT_UID)
+    .where('couponCode', '==', code)
+    .limit(1).get()
+    .then((snap) => !snap.empty)
+    .catch(() => false);
+}
+
+// Claiming a seat happens in a transaction so two students racing for the
+// last redemption can't both get in: the count is re-checked and incremented
+// atomically, BEFORE the order/plan writes. Resolves with nothing on success,
+// rejects with a user-readable error when the coupon no longer qualifies.
+function claimCouponSeat(coupon){
+  if (!coupon) return Promise.resolve(null);
+  const ref = db.collection('coupons').doc(coupon.code);
+  return db.runTransaction((tx) => tx.get(ref).then((doc) => {
+    if (!doc.exists) throw new Error('That coupon no longer exists.');
+    const fresh = Object.assign({ code: doc.id }, doc.data());
+    if (fresh.active === false) throw new Error('That coupon is no longer active.');
+    if (isCouponExpired(fresh)) throw new Error('That coupon has expired.');
+    if (isCouponExhausted(fresh)) throw new Error('That coupon has reached its redemption limit — all seats are taken.');
+    tx.update(ref, { redemptionCount: (fresh.redemptionCount || 0) + 1 });
+    return fresh;
+  }));
+}
+
 function renderPlanSummary(plan){
   const wrap = document.getElementById('checkout-plan-summary');
   const featuresHtml = (plan.features || []).map(f =>
@@ -102,23 +152,30 @@ document.addEventListener('DOMContentLoaded', () => {
     handled = true;
     CHECKOUT_UID = user.uid;
 
-    db.collection('plans').doc(planId).get().then((doc) => {
-      if (!doc.exists) {
+    loadCheckoutPlan(planId).then((plan) => {
+      if (!plan) {
         document.getElementById('checkout-plan-summary').innerHTML =
-          '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found.</p>';
+          '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="index.html#pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';
         return;
       }
-      CHECKOUT_PLAN = Object.assign({ id: doc.id }, doc.data());
+      CHECKOUT_PLAN = plan;
       renderPlanSummary(CHECKOUT_PLAN);
       updateOrderSummary();
+
+      // Campaign links (`?coupon=WELCOME`) pre-fill and apply the code so the
+      // student lands on a ready-to-complete order instead of an empty field.
+      const queryCoupon = getCouponFromQuery();
+      if (queryCoupon) {
+        document.getElementById('checkout-coupon-input').value = queryCoupon;
+        applyCouponCode(queryCoupon);
+      }
     }).catch((err) => {
       document.getElementById('checkout-error').textContent = 'Could not load plan: ' + (err.message || err);
       document.getElementById('checkout-error').style.display = 'block';
     });
   });
 
-  document.getElementById('checkout-apply-coupon-btn').addEventListener('click', () => {
-    const code = normalizeCouponCode(document.getElementById('checkout-coupon-input').value);
+  function applyCouponCode(code){
     if (!code) { showCouponStatus('Enter a coupon code first.', true); return; }
     if (!CHECKOUT_PLAN) { showCouponStatus('Plan is still loading — try again in a moment.', true); return; }
 
@@ -131,12 +188,20 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isCouponExhausted(coupon)) { showCouponStatus('That coupon has reached its redemption limit.', true); APPLIED_COUPON = null; updateOrderSummary(); return; }
       if (!couponAppliesToPlan(coupon, CHECKOUT_PLAN.id)) { showCouponStatus('That coupon doesn\'t apply to this plan.', true); APPLIED_COUPON = null; updateOrderSummary(); return; }
 
-      APPLIED_COUPON = coupon;
-      showCouponStatus('Coupon applied: ' + coupon.code, false);
-      updateOrderSummary();
+      return hasAlreadyRedeemed(code).then((used) => {
+        if (used) { showCouponStatus('You\'ve already used this coupon on this account.', true); APPLIED_COUPON = null; updateOrderSummary(); return; }
+        APPLIED_COUPON = coupon;
+        const seatsLeft = coupon.maxRedemptions ? coupon.maxRedemptions - (coupon.redemptionCount || 0) : null;
+        showCouponStatus('Coupon applied: ' + coupon.code + (seatsLeft !== null ? ' — ' + seatsLeft + ' of ' + coupon.maxRedemptions + ' seats left' : ''), false);
+        updateOrderSummary();
+      });
     }).catch((err) => {
       showCouponStatus('Could not check that coupon: ' + (err.message || err), true);
     });
+  }
+
+  document.getElementById('checkout-apply-coupon-btn').addEventListener('click', () => {
+    applyCouponCode(normalizeCouponCode(document.getElementById('checkout-coupon-input').value));
   });
 
   document.getElementById('checkout-complete-btn').addEventListener('click', () => {
@@ -173,19 +238,36 @@ document.addEventListener('DOMContentLoaded', () => {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    db.collection('orders').add(order)
-      .then(() => {
-        if (!APPLIED_COUPON) return null;
-        return db.collection('coupons').doc(APPLIED_COUPON.code).update({
-          redemptionCount: firebase.firestore.FieldValue.increment(1)
-        });
+    // The seat is claimed FIRST, atomically — if the last redemption was taken
+    // while this student was reading the page, they get a clear error and no
+    // order/plan write happens at all. (Replaces the old post-order increment,
+    // which could oversell a capped coupon in a race.)
+    const duplicateCheck = APPLIED_COUPON ? hasAlreadyRedeemed(APPLIED_COUPON.code) : Promise.resolve(false);
+    duplicateCheck
+      .then((used) => {
+        if (used) throw new Error('You\'ve already used this coupon on this account.');
+        return claimCouponSeat(APPLIED_COUPON);
       })
-      .then(() => db.collection('students').doc(CHECKOUT_UID).set({
-        plan: CHECKOUT_PLAN.name,
-        planId: CHECKOUT_PLAN.id
-      }, { merge: true }))
+      .then(() => db.collection('orders').add(order))
       .then(() => {
-        if (typeof syncPublicProfile === 'function') syncPublicProfile(CHECKOUT_UID, { plan: CHECKOUT_PLAN.name });
+        const studentPatch = {
+          plan: CHECKOUT_PLAN.name,
+          planId: CHECKOUT_PLAN.id
+        };
+        // A coupon flagged `marksFounding` (e.g. WELCOME's first-50 launch
+        // offer) permanently tags the account as a founding member.
+        if (APPLIED_COUPON && APPLIED_COUPON.marksFounding) {
+          studentPatch.foundingMember = true;
+          studentPatch.foundingCoupon = APPLIED_COUPON.code;
+        }
+        return db.collection('students').doc(CHECKOUT_UID).set(studentPatch, { merge: true });
+      })
+      .then(() => {
+        if (typeof syncPublicProfile === 'function') {
+          const profilePatch = { plan: CHECKOUT_PLAN.name };
+          if (APPLIED_COUPON && APPLIED_COUPON.marksFounding) profilePatch.foundingMember = true;
+          syncPublicProfile(CHECKOUT_UID, profilePatch);
+        }
       })
       .then(() => {
         // Two entries, not one: the money and the access change are separate

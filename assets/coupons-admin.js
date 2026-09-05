@@ -23,6 +23,30 @@ function loadPlansIntoCouponSelect(){
   });
 }
 
+// The WELCOME launch coupon exists from the first time an admin opens this
+// page: free Elite access for the first 50 redemptions, each of which tags
+// the account as a founding member (see checkout.js). Created only when
+// missing, so edits made here afterwards are never overwritten.
+function seedWelcomeCoupon(){
+  return db.collection('coupons').doc('WELCOME').get().then((doc) => {
+    if (doc.exists) return;
+    const elite = ALL_PLANS_FOR_COUPON.find(p => /elite/i.test(p.name || ''));
+    return db.collection('coupons').doc('WELCOME').set({
+      type: 'free',
+      value: 0,
+      appliesToPlan: elite ? elite.id : 'all',
+      maxRedemptions: 50,
+      redemptionCount: 0,
+      expiresAt: null,
+      active: true,
+      marksFounding: true,
+      createdAtMillis: Date.now()
+    });
+  }).catch((err) => {
+    console.error('Stryker: could not seed WELCOME coupon', err);
+  });
+}
+
 function planNameById(planId){
   const plan = ALL_PLANS_FOR_COUPON.find(p => p.id === planId);
   return plan ? plan.name : (planId === 'all' ? 'Any plan' : planId);
@@ -43,7 +67,8 @@ function renderCouponRow(coupon){
   row.innerHTML =
     '<div style="flex:1 1 200px;">' +
       '<span class="cell-name" style="font-family:var(--font-mono);">' + coupon.code + '</span>' +
-      '<div class="chapter-meta" style="margin-top:6px;"><span class="status-tag ' + statusClass + '">' + statusLabel + '</span><span>' + discountLabel + '</span><span>' + planNameById(coupon.appliesToPlan) + '</span></div>' +
+      '<div class="chapter-meta" style="margin-top:6px;"><span class="status-tag ' + statusClass + '">' + statusLabel + '</span><span>' + discountLabel + '</span><span>' + planNameById(coupon.appliesToPlan) + '</span>' +
+      (coupon.marksFounding ? '<span style="color:var(--gold); font-weight:700;">★ Founding</span>' : '') + '</div>' +
     '</div>' +
     '<div class="record-stats">' +
       '<div class="record-stat"><span class="rs-label">Redeemed</span><span class="rs-val">' + (coupon.redemptionCount || 0) + (coupon.maxRedemptions ? ' / ' + coupon.maxRedemptions : '') + '</span></div>' +
@@ -88,6 +113,8 @@ function openCouponEditor(coupon){
   document.getElementById('coupon-max').value = coupon && coupon.maxRedemptions ? coupon.maxRedemptions : '';
   document.getElementById('coupon-expires').value = coupon && coupon.expiresAt ? coupon.expiresAt : '';
   document.getElementById('coupon-active').checked = coupon ? coupon.active !== false : true;
+  const foundingEl = document.getElementById('coupon-founding');
+  if (foundingEl) foundingEl.checked = coupon ? !!coupon.marksFounding : false;
   document.getElementById('delete-coupon-btn').style.display = coupon ? 'inline-flex' : 'none';
   document.getElementById('coupon-edit-panel').style.display = 'block';
   document.getElementById('coupon-edit-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -101,6 +128,7 @@ function closeCouponEditor(){
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     loadPlansIntoCouponSelect()
+      .then(() => seedWelcomeCoupon())
       .then(() => loadCoupons())
       .catch((err) => {
         console.error('Stryker: failed to load coupons', err);
@@ -132,6 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
       maxRedemptions,
       expiresAt,
       active: document.getElementById('coupon-active').checked,
+      marksFounding: !!(document.getElementById('coupon-founding') && document.getElementById('coupon-founding').checked),
       createdAtMillis: Date.now()
     };
     if (!EDITING_COUPON_CODE) data.redemptionCount = 0;

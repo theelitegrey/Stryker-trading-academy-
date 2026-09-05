@@ -8,7 +8,9 @@
 //     checkout can look one up directly by ID instead of running a query.
 //     { type: 'free'|'percent'|'fixed', value, appliesToPlan: planId|'all',
 //       maxRedemptions: number|null, redemptionCount, expiresAt: 'YYYY-MM-DD'|null,
-//       active, createdAt }
+//       active, createdAt, marksFounding: bool — redeeming tags the student
+//       doc (and public profile) with foundingMember: true; used by the
+//       WELCOME first-50 launch coupon, which is seeded by coupons-admin }
 //   orders/{orderId}: { studentUid, studentName, studentEmail, planId,
 //     planName, originalPrice, couponCode, discountApplied, finalAmount,
 //     status: 'completed', createdAt }

@@ -5319,3 +5319,21 @@ a.floor-tag:hover{ text-decoration:underline; }
 :root[data-theme="light"] .promo-code{ color:#4c5a53; border-color:rgba(7,153,106,.5); background:rgba(7,153,106,.06); }
 :root[data-theme="light"] .promo-code b{ color:#07996a; text-shadow:none; }
 :root[data-theme="light"] .promo-cta{ color:#07996a; }
+
+/* founding-offer note on public pricing cards (WELCOME first-50 coupon) */
+.founding-note{
+  display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap;
+  margin:2px 0 14px; padding:8px 12px; border-radius:11px;
+  font-family:var(--font-mono, 'JetBrains Mono', monospace); font-size:12.5px;
+  color:#93a39a; border:1.5px dashed rgba(79,227,172,.5); background:rgba(3,201,136,.06);
+}
+.founding-note b{ color:#4fe3ac; }
+.founding-note .fn-seats{
+  padding:2px 9px; border-radius:999px; font-weight:700; font-size:11px;
+  color:#0b120e; background:linear-gradient(135deg, #4fe3ac, #03c988);
+}
+:root[data-theme="light"] .founding-note{
+  color:#4c5a53; border-color:rgba(7,153,106,.45); background:rgba(7,153,106,.06);
+}
+:root[data-theme="light"] .founding-note b{ color:#07996a; }
+:root[data-theme="light"] .founding-note .fn-seats{ color:#fff; background:linear-gradient(135deg, #0bb27e, #07996a); }

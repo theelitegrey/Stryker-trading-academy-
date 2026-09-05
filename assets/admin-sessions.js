@@ -38,6 +38,7 @@ function renderAdminSessionRow(session){
         ? '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">' + (session.isLive ? 'End live' : 'Go live') + '</button>'
         : '') +
       '<button class="btn btn-ghost btn-sm" data-edit-session="' + session.id + '">Edit</button>' +
+      '<button class="btn btn-ghost btn-sm" data-copy-session="' + session.id + '">Copy</button>' +
       '<button class="icon-btn" data-session-id="' + session.id + '" title="Delete session">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/></svg>' +
     '</button></div>';
@@ -45,7 +46,27 @@ function renderAdminSessionRow(session){
   const liveBtn = row.querySelector('[data-live-toggle]');
   if (liveBtn) liveBtn.addEventListener('click', () => toggleSessionLive(session));
   row.querySelector('[data-edit-session]').addEventListener('click', () => startEditSession(session));
+  row.querySelector('[data-copy-session]').addEventListener('click', () => copySession(session));
   return row;
+}
+
+// Copy = the session's details pre-filled in ADD mode, so saving creates a
+// brand-new session. The date, video and recap stats are deliberately left
+// blank: a copied session is a template for the NEXT stream, which gets its
+// own scheduled-stream link, date, and (eventually) its own results.
+function copySession(session){
+  resetSessionForm();
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('admin-session-title', session.title);
+  set('admin-session-instrument', session.instrument);
+  set('admin-session-time', session.time);
+  set('admin-session-desc', session.description);
+  if (typeof showToast === 'function') {
+    showToast('success', 'Copied — pick a date (and a stream link), then add it as a new session.');
+  }
+  document.getElementById('admin-session-title').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const dateEl = document.getElementById('admin-session-date');
+  if (dateEl) dateEl.focus();
 }
 
 // ---- editing ----------------------------------------------------------------

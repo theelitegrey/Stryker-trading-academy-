@@ -130,16 +130,27 @@ function scSlug(name){
 
 function scSeedIfEmpty(){
   return db.collection('showcaseIndicators').get().then((snap) => {
-    if (!snap.empty) {
-      const items = [];
-      snap.forEach((d) => items.push(d.data()));
+    const items = [];
+    snap.forEach((d) => items.push(d.data()));
+    if (typeof SHOWCASE_SEED === 'undefined' || !SHOWCASE_SEED.length) return items;
+
+    // Seed whatever is MISSING, not just an empty collection: a new indicator
+    // shipped in SHOWCASE_SEED (e.g. Liquidity Master) must reach Firestore
+    // even after the original cards were seeded. Existing docs are never
+    // touched, so admin edits always win over the bundled defaults.
+    const have = new Set(items.map((it) => it.id));
+    const missing = SHOWCASE_SEED.filter((it) => !have.has(it.id));
+    if (!missing.length) {
       items.sort((a, b) => (a.order || 0) - (b.order || 0));
       return items;
     }
-    if (typeof SHOWCASE_SEED === 'undefined' || !SHOWCASE_SEED.length) return [];
     const batch = db.batch();
-    SHOWCASE_SEED.forEach((it) => batch.set(db.collection('showcaseIndicators').doc(it.id), it));
-    return batch.commit().then(() => SHOWCASE_SEED.slice());
+    missing.forEach((it) => batch.set(db.collection('showcaseIndicators').doc(it.id), it));
+    return batch.commit().then(() => {
+      const all = items.concat(missing);
+      all.sort((a, b) => (a.order || 0) - (b.order || 0));
+      return all;
+    });
   });
 }
 

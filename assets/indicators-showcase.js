@@ -56,6 +56,17 @@ var SHOWCASE_SEED = [
     tag: 'One index runs the high — the other refuses',
     body: 'Plots a correlated symbol over your chart and flags the cracks: swings where one market makes a higher high or lower low and the other does not confirm, with the divergence drawn on both legs.',
     chips: ['Any pair', 'Auto swing detection', 'Bull & bear SMT', 'Divergence lines', 'Session filter', 'Alerts']
+  },
+  {
+    id: 'liquidity-master',
+    order: 5,
+    name: 'Liquidity Master',
+    status: 'live',
+    tvUrl: 'https://www.tradingview.com/script/7db99YJA-Liquidity-Master-Stryker/',
+    img: 'assets/images/indicator-liquidity-master.png',
+    tag: 'Where the stops pool — and when they get swept',
+    body: 'Maps the liquidity on your chart: equal highs and lows, prior-day and session extremes drawn as live pools, each level tracked until price runs it — with the sweep flagged the moment the stops are taken.',
+    chips: ['Equal highs & lows', 'PDH / PDL pools', 'Session extremes', 'Sweep flags', 'Live pool tracking', 'Alerts']
   }
 ];
 

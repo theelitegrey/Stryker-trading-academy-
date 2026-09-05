@@ -109,8 +109,8 @@ function updateOrderSummary(){
   if (!APPLIED_COUPON) {
     document.getElementById('checkout-discount').textContent = '—';
     document.getElementById('checkout-total').textContent = '$' + price.toFixed(2);
-    completeBtn.disabled = true;
-    completeBtn.textContent = 'Apply a coupon to continue';
+    completeBtn.disabled = false;
+    completeBtn.textContent = 'Pay $' + price.toFixed(2) + ' securely';
     return;
   }
 
@@ -119,7 +119,113 @@ function updateOrderSummary(){
   document.getElementById('checkout-discount').textContent = '-$' + discount.toFixed(2);
   document.getElementById('checkout-total').textContent = '$' + total.toFixed(2);
   completeBtn.disabled = false;
-  completeBtn.textContent = 'Complete order';
+  completeBtn.textContent = total > 0 ? 'Pay $' + total.toFixed(2) + ' securely' : 'Complete order';
+}
+
+// ---- Razorpay Standard Checkout ---------------------------------------------
+// Anything with money still owed goes through Razorpay. The amount is
+// computed and charged SERVER-SIDE (functions-src/razorpay.js) from the plan
+// doc + live sale + coupon — the client only opens the modal and relays the
+// signed result back for verification. The plan grant happens on the server
+// after the signature checks out, so nothing here writes orders/students.
+function checkoutTotalDue(){
+  const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
+  const price = sale.active ? sale.price : (parseFloat(CHECKOUT_PLAN.price) || 0);
+  const discount = APPLIED_COUPON ? computeDiscount(APPLIED_COUPON, price) : 0;
+  return Math.max(price - discount, 0);
+}
+
+function launchRazorpay(btn, errEl){
+  if (typeof Razorpay === 'undefined') {
+    errEl.textContent = 'The payment window could not load — check your connection and refresh.';
+    errEl.style.display = 'block';
+    return;
+  }
+  let fns = null;
+  try { fns = firebase.app().functions(); } catch (e) {}
+  if (!fns) {
+    errEl.textContent = 'Payments are not available right now.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Preparing secure payment…';
+  const reset = () => { btn.disabled = false; updateOrderSummary(); };
+
+  fns.httpsCallable('razorpayCreateOrder')({
+    planId: CHECKOUT_PLAN.id,
+    couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null
+  }).then((res) => {
+    const o = res.data;
+    const user = auth.currentUser;
+    const rzp = new Razorpay({
+      key: o.keyId,
+      order_id: o.orderId,
+      amount: o.amount,
+      currency: o.currency,
+      name: 'Stryker Trading Academy',
+      description: o.planName,
+      image: 'https://strykertrading.com/assets/images/icon-192.png',
+      prefill: {
+        email: (user && user.email) || '',
+        name: (user && user.displayName) || ''
+      },
+      theme: { color: '#03c988' },
+      modal: { ondismiss: reset },
+      handler: (resp) => {
+        btn.textContent = 'Confirming payment…';
+        fns.httpsCallable('razorpayVerifyPayment')({
+          orderId: resp.razorpay_order_id,
+          paymentId: resp.razorpay_payment_id,
+          signature: resp.razorpay_signature
+        }).then(() => {
+          finishPaidCheckout();
+        }).catch((err) => {
+          errEl.textContent = 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
+            resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
+          errEl.style.display = 'block';
+          reset();
+        });
+      }
+    });
+    rzp.on('payment.failed', (resp) => {
+      errEl.textContent = 'Payment failed: ' + ((resp.error && resp.error.description) || 'the payment was declined.');
+      errEl.style.display = 'block';
+      reset();
+    });
+    rzp.open();
+  }).catch((err) => {
+    errEl.textContent = err.message || 'Could not start the payment.';
+    errEl.style.display = 'block';
+    reset();
+  });
+}
+
+// The server has already written the order, claimed the coupon seat, and
+// granted the plan — this is the client-side tail the free path also runs:
+// activity log, referral credit, confirmation, redirect.
+function finishPaidCheckout(){
+  if (typeof logActivity === 'function') {
+    logActivity('commerce.order_created',
+      'Bought ' + CHECKOUT_PLAN.name + ' via Razorpay' +
+      (APPLIED_COUPON ? ' with coupon ' + APPLIED_COUPON.code : ''),
+      { detail: 'plan ' + CHECKOUT_PLAN.id });
+    logActivity('student.plan_changed',
+      'Upgraded their own plan to ' + CHECKOUT_PLAN.name,
+      { targetUid: CHECKOUT_UID, detail: 'via razorpay checkout' });
+  }
+  const work = [];
+  if (typeof processReferralConversion === 'function') {
+    work.push(processReferralConversion(CHECKOUT_UID, CHECKOUT_PLAN.name).catch(() => null));
+  }
+  Promise.race([Promise.all(work), new Promise((r) => setTimeout(r, 6000))]).then(() => {
+    showToast('success', 'Order complete — you now have ' + CHECKOUT_PLAN.name + '.', {
+      title: 'Payment confirmed',
+      duration: 2600
+    });
+    setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 1800);
+  });
 }
 
 function showCouponStatus(message, isError){
@@ -208,10 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
     errEl.style.display = 'none';
     if (!CHECKOUT_UID || !CHECKOUT_PLAN) return;
 
+    // Money still owed (list price minus sale minus coupon) → Razorpay.
+    // Only a genuinely free order continues down the coupon path below.
+    if (checkoutTotalDue() > 0) {
+      launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
+      return;
+    }
+
     const price = (typeof planEffectivePrice === 'function')
       ? planEffectivePrice(CHECKOUT_PLAN)
       : (parseFloat(CHECKOUT_PLAN.price) || 0);
-    if (price > 0 && !APPLIED_COUPON) return; // paid plan still needs a coupon right now
 
     const btn = document.getElementById('checkout-complete-btn');
     btn.disabled = true;

@@ -43,8 +43,6 @@ function renderPublicPlanCard(plan, offer){
   ).join('');
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(plan) : { active: false };
   const hasOffer = offerAppliesToCard(offer, plan);
-  const seatsLeft = hasOffer && offer.maxRedemptions
-    ? offer.maxRedemptions - (offer.redemptionCount || 0) : null;
   const checkoutHref = 'checkout.html?plan=' + encodeURIComponent(plan.id) +
     (hasOffer ? '&coupon=' + encodeURIComponent(offer.code) : '');
   const el = document.createElement('div');
@@ -56,8 +54,7 @@ function renderPublicPlanCard(plan, offer){
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     (hasOffer
-      ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b>' +
-        (seatsLeft !== null ? '<span class="fn-seats">' + seatsLeft + ' seats left</span>' : '') + '</div>'
+      ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b><span class="fn-seats">Limited seats</span></div>'
       : '') +
     '<ul>' + featuresHtml + '</ul>' +
     '<a href="' + checkoutHref + '" class="btn ' + cta.cls + ' btn-block">' + (hasOffer ? 'Claim a free seat' : cta.label) + '</a>';

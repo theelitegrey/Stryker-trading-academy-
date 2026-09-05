@@ -191,8 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return hasAlreadyRedeemed(code).then((used) => {
         if (used) { showCouponStatus('You\'ve already used this coupon on this account.', true); APPLIED_COUPON = null; updateOrderSummary(); return; }
         APPLIED_COUPON = coupon;
-        const seatsLeft = coupon.maxRedemptions ? coupon.maxRedemptions - (coupon.redemptionCount || 0) : null;
-        showCouponStatus('Coupon applied: ' + coupon.code + (seatsLeft !== null ? ' — ' + seatsLeft + ' of ' + coupon.maxRedemptions + ' seats left' : ''), false);
+        showCouponStatus('Coupon applied: ' + coupon.code + (coupon.maxRedemptions ? ' — limited founding seats' : ''), false);
         updateOrderSummary();
       });
     }).catch((err) => {

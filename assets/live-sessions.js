@@ -69,6 +69,17 @@ function lsOpenPlayer(session, mode){
   document.getElementById('lc-progress').style.display = mode === 'live' ? 'none' : '';
   LS_PLAYER_MODE = mode;
 
+  // On-player title flash: shows over the video for a few seconds whenever a
+  // session opens, then fades, leaving only the corner watermark.
+  const tbar = document.getElementById('live-player-titlebar');
+  if (tbar) {
+    document.getElementById('lpt-title').textContent = session.title || '';
+    document.getElementById('lpt-live').style.display = mode === 'live' ? '' : 'none';
+    tbar.classList.add('show');
+    clearTimeout(tbar._hideTimer);
+    tbar._hideTimer = setTimeout(() => tbar.classList.remove('show'), 4000);
+  }
+
   if (mode === 'live') lsOpenChat(session);
   else lsCloseChat();
 

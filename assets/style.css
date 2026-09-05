@@ -5452,3 +5452,26 @@ a.floor-tag:hover{ text-decoration:underline; }
 .dash-live-strip .live-badge{ flex:0 0 auto; }
 .dash-live-strip b{ color:var(--ink-0); font-size:13.5px; }
 .dash-live-strip span{ color:var(--ink-3); font-size:12px; margin-left:auto; font-family:var(--font-mono); }
+
+/* on-player branding: watermark + title flash (both above the iframe,
+   below the controls; the shield still owns all input) */
+.live-player-brand{
+  position:absolute; right:12px; bottom:12px; z-index:3; display:flex; align-items:center;
+  gap:7px; opacity:.55; pointer-events:none;
+}
+.live-player-brand img{ width:22px; height:22px; filter:drop-shadow(0 0 8px rgba(3,201,136,.6)); }
+.live-player-brand span{ font-family:var(--font-mono); font-size:10px; font-weight:800;
+  letter-spacing:.22em; color:#eef2ee; text-shadow:0 1px 6px rgba(0,0,0,.8); }
+.live-player-titlebar{
+  position:absolute; left:0; right:0; top:0; z-index:3; pointer-events:none;
+  display:flex; align-items:center; gap:12px; padding:14px 16px 26px;
+  background:linear-gradient(180deg, rgba(0,0,0,.65), transparent);
+  opacity:0; transition:opacity .5s;
+}
+.live-player-titlebar.show{ opacity:1; }
+.live-player-titlebar b{ font-size:14px; color:#f2f6f3; text-shadow:0 1px 8px rgba(0,0,0,.8);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lpt-live{ display:inline-flex; align-items:center; gap:6px; flex:0 0 auto;
+  font-family:var(--font-mono); font-size:10px; font-weight:800; letter-spacing:.12em;
+  color:#fff; background:#e5484d; border-radius:6px; padding:3px 9px; }
+.lpt-live i{ width:6px; height:6px; border-radius:50%; background:#fff; animation:live-pulse 1.4s ease-in-out infinite; }

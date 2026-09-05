@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="247">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Stream Overlay — Stryker Trading Academy</title>
+<script src="assets/version-check.js?v=247" defer></script>
+<style>
+  /* OBS BROWSER-SOURCE OVERLAY — transparent background, 1920x1080.
+     Add in OBS as a Browser source pointed at:
+       https://strykertrading.com/overlay?title=NY%20Open%20Live%20Read&sub=NQ%20·%20ES
+     Query params: title, sub, live=0 hides the LIVE pill, clock=0 hides the
+     clock, frame=0 hides the edge frame. Everything is driven by CSS/JS —
+     no Firebase, no auth, loads instantly. */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:1920px; height:1080px; background:transparent; overflow:hidden;
+    font-family:'JetBrains Mono', Consolas, monospace; }
+
+  .frame-edge { position:absolute; inset:14px; border-radius:22px; pointer-events:none;
+    border:1.5px solid rgba(3,201,136,.35);
+    box-shadow:inset 0 0 60px rgba(0,0,0,.18); }
+  .frame-edge::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:3px;
+    border-radius:3px; background:linear-gradient(90deg, transparent, rgba(3,201,136,.8), transparent); }
+
+  .brand { position:absolute; top:34px; left:38px; display:flex; align-items:center; gap:13px;
+    background:rgba(8,10,9,.78); border:1px solid rgba(3,201,136,.35); border-radius:999px;
+    padding:9px 22px 9px 12px; backdrop-filter:blur(6px); }
+  .brand img { width:38px; height:38px; filter:drop-shadow(0 0 10px rgba(3,201,136,.5)); }
+  .brand b { font-size:14.5px; letter-spacing:.2em; color:#eef2ee; font-weight:800; }
+  .brand b em { font-style:normal; color:#4fe3ac; }
+
+  .top-right { position:absolute; top:34px; right:38px; display:flex; align-items:center; gap:12px; }
+  .live-pill { display:flex; align-items:center; gap:9px; font-size:13px; font-weight:800;
+    letter-spacing:.14em; color:#ff6d76; background:rgba(8,10,9,.78);
+    border:1px solid rgba(229,72,77,.55); border-radius:999px; padding:10px 20px; backdrop-filter:blur(6px); }
+  .live-pill i { width:10px; height:10px; border-radius:50%; background:#e5484d;
+    animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1; box-shadow:0 0 0 0 rgba(229,72,77,.5);} 50%{opacity:.55; box-shadow:0 0 0 8px rgba(229,72,77,0);} }
+  .clock { font-size:15px; font-weight:700; letter-spacing:.1em; color:#dfe7e2;
+    background:rgba(8,10,9,.78); border:1px solid rgba(255,255,255,.14); border-radius:999px;
+    padding:10px 20px; backdrop-filter:blur(6px); font-variant-numeric:tabular-nums; }
+
+  .lower-third { position:absolute; left:38px; bottom:44px; max-width:1100px;
+    background:rgba(8,10,9,.82); border:1px solid rgba(3,201,136,.4); border-left:5px solid #03c988;
+    border-radius:16px; padding:18px 30px; backdrop-filter:blur(8px);
+    animation:slide-in .6s cubic-bezier(.2,.9,.3,1); }
+  @keyframes slide-in { from{ transform:translateX(-30px); opacity:0; } to{ transform:none; opacity:1; } }
+  .lower-third h1 { font-size:30px; font-weight:800; color:#f2f6f3; letter-spacing:.01em; line-height:1.2; }
+  .lower-third p { margin-top:5px; font-size:14.5px; letter-spacing:.14em; color:#7ce8bd; }
+
+  .url-mark { position:absolute; right:44px; bottom:52px; font-size:13.5px; letter-spacing:.18em;
+    color:rgba(223,231,226,.75); background:rgba(8,10,9,.6); border-radius:999px; padding:8px 16px; }
+  .url-mark b { color:#4fe3ac; }
+</style>
+</head>
+<body>
+
+<div class="frame-edge" id="ov-frame"></div>
+
+<div class="brand">
+  <img src="assets/images/logo-emblem.png" alt="">
+  <b>STRYKER <em>TRADING ACADEMY</em></b>
+</div>
+
+<div class="top-right">
+  <span class="live-pill" id="ov-live"><i></i>LIVE</span>
+  <span class="clock" id="ov-clock">00:00:00</span>
+</div>
+
+<div class="lower-third" id="ov-lower">
+  <h1 id="ov-title">Live trading session</h1>
+  <p id="ov-sub">STRYKERTRADING.COM</p>
+</div>
+
+<div class="url-mark">JOIN AT <b>STRYKERTRADING.COM</b></div>
+
+<script>
+(function(){
+  var q = new URLSearchParams(location.search);
+  var title = q.get('title');
+  var sub = q.get('sub');
+  if (title) document.getElementById('ov-title').textContent = title;
+  if (sub) document.getElementById('ov-sub').textContent = sub.toUpperCase() + '  ·  STRYKERTRADING.COM';
+  if (q.get('live') === '0') document.getElementById('ov-live').style.display = 'none';
+  if (q.get('frame') === '0') document.getElementById('ov-frame').style.display = 'none';
+
+  var clock = document.getElementById('ov-clock');
+  if (q.get('clock') === '0') { clock.style.display = 'none'; return; }
+  function tick(){
+    var d = new Date();
+    var p = function(n){ return String(n).padStart(2, '0'); };
+    clock.textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

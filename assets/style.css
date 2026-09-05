@@ -5485,3 +5485,9 @@ a.floor-tag:hover{ text-decoration:underline; }
 }
 .ls-stats b{ font-weight:800; }
 .ls-stats i{ width:3px; height:3px; border-radius:50%; background:var(--ink-3); }
+
+/* homepage nav theme toggle: icons-only on small screens */
+@media (max-width:900px){
+  .nav-theme-seg .theme-seg-txt{ display:none; }
+  .nav-theme-seg .theme-seg-opt{ padding:6px 9px; }
+}

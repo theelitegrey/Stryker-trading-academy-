@@ -31,11 +31,11 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<p>If you\'re stuck on something, here\'s the fastest way to get help.</p>' +
       '<h2>Account &amp; billing</h2>' +
-      '<p>Trouble signing in, changing your plan, or a coupon not working? <a href="contact.html">Contact us</a> with your account email and we\'ll take a look.</p>' +
+      '<p>Trouble signing in, changing your plan, or a coupon not working? <a href="contact.html">Contact us</a> or email <a href="mailto:support@strykertrading.com">support@strykertrading.com</a> with your account email and we\'ll take a look.</p>' +
       '<h2>Curriculum questions</h2>' +
       '<p>Questions about a specific chapter or model are often fastest to resolve on the <a href="trading-floor.html">Trading Floor</a>, where other students and instructors are active. For anything account-specific, use the contact form instead.</p>' +
       '<h2>Technical issues</h2>' +
-      '<p>If a page isn\'t loading correctly, try refreshing first. If the problem continues, let us know via the <a href="contact.html">contact page</a> — include what device/browser you\'re using and what you were doing when it happened, since that helps us track it down faster.</p>' +
+      '<p>If a page isn\'t loading correctly, try refreshing first. If the problem continues, let us know via the <a href="contact.html">contact page</a> or at <a href="mailto:support@strykertrading.com">support@strykertrading.com</a> — include what device/browser you\'re using and what you were doing when it happened, since that helps us track it down faster.</p>' +
       '<h2>Response time</h2>' +
       '<p>[Add your typical response time here, e.g. "We aim to respond within 1-2 business days."]</p>'
   },
@@ -72,7 +72,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>12. Changes to these terms</h2>' +
       '<p>We may update these terms from time to time. Continued use of the platform after changes take effect means you accept the updated terms.</p>' +
       '<h2>13. Contact</h2>' +
-      '<p>Questions about these terms? <a href="contact.html">Contact us</a>.</p>'
+      '<p>Questions about these terms? <a href="contact.html">Contact us</a> or email <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>.</p>'
   },
 
   'privacy': {
@@ -104,7 +104,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>10. Changes to this policy</h2>' +
       '<p>We may update this policy from time to time. Material changes will be reflected by the "last updated" date at the top of this page.</p>' +
       '<h2>11. Contact</h2>' +
-      '<p>Questions about this policy or your data? <a href="contact.html">Contact us</a>.</p>'
+      '<p>Questions about this policy or your data? <a href="contact.html">Contact us</a> or email <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>.</p>'
   },
 
   'cookies': {
@@ -122,7 +122,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>If this changes</h2>' +
       '<p>If we add analytics or advertising in the future, we\'ll update this page to reflect that honestly, rather than leave outdated claims here.</p>' +
       '<h2>Contact</h2>' +
-      '<p>Questions? <a href="contact.html">Contact us</a>.</p>'
+      '<p>Questions? <a href="contact.html">Contact us</a> or email <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>.</p>'
   },
 
   'gdpr': {
@@ -140,19 +140,19 @@ const SITE_PAGES_DEFAULTS = {
       '</ul>' +
       '<p>We extend these same rights to every student, regardless of location.</p>' +
       '<h2>How to exercise these rights</h2>' +
-      '<p>Submit your request through our <a href="contact.html">contact form</a>. We aim to respond within 30 days, in line with GDPR\'s standard response window.</p>' +
+      '<p>Submit your request through our <a href="contact.html">contact form</a> or by email to <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>. We aim to respond within 30 days, in line with GDPR\'s standard response window.</p>' +
       '<h2>Legal basis for processing</h2>' +
       '<p>We process your account and progress data based on our contract with you (providing the educational service you signed up for), and community/journal data based on your consent when you choose to use those features.</p>' +
       '<h2>International data transfers</h2>' +
       '<p>Our infrastructure (Firebase/Google Cloud) may store and process data outside the EU/UK. Google Cloud makes Standard Contractual Clauses available for this by default as part of its infrastructure — worth confirming this is properly in place given your EU/UK user base.</p>' +
       '<h2>Contact</h2>' +
-      '<p>Reach us through the <a href="contact.html">contact form</a> with any GDPR-related question or request.</p>'
+      '<p>Reach us through the <a href="contact.html">contact form</a>, or email <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, with any GDPR-related question or request.</p>'
   },
 
   'contact': {
     title: 'Contact Us',
     bodyHtml:
-      '<p>Have a question about your account, a chapter, or anything else? Send us a message below and we\'ll get back to you.</p>'
+      '<p>Have a question about your account, a chapter, or anything else? Send us a message below, or email us directly at <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, and we\'ll get back to you.</p>'
   },
 
   'refund-policy': {
@@ -161,7 +161,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>All sales are final</h2>' +
       '<p>Stryker Trading does not offer refunds on any purchase. When you complete a purchase, you\'re confirming you understand and accept this before checkout.</p>' +
       '<h2>Discretionary exceptions</h2>' +
-      '<p>Stryker Trading administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a>, but approval is entirely at our discretion.</p>' +
+      '<p>Stryker Trading administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a> or by email to <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, but approval is entirely at our discretion.</p>' +
       '<h2>Why we do this</h2>' +
       '<p>Our curriculum, trading models, and community access are digital educational content delivered immediately upon purchase, which is why we don\'t offer a standard refund window.</p>'
   }

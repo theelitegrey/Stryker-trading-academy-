@@ -5337,3 +5337,30 @@ a.floor-tag:hover{ text-decoration:underline; }
 }
 :root[data-theme="light"] .founding-note b{ color:#07996a; }
 :root[data-theme="light"] .founding-note .fn-seats{ color:#fff; background:linear-gradient(135deg, #0bb27e, #07996a); }
+
+/* ============ JOURNAL: Edge Score panel (LuxAlgo open formula) ============ */
+.jz-edge{ margin-bottom:18px; }
+.jz-edge-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap; }
+.jz-edge-open{
+  font-size:10px; letter-spacing:.08em; color:var(--ink-3); font-weight:600;
+  border:1px solid var(--line); border-radius:999px; padding:2px 8px; margin-left:8px; vertical-align:middle;
+}
+.jz-edge-score{ font-family:var(--font-mono); font-size:44px; font-weight:800; color:var(--ink-0); line-height:1.05; }
+.jz-edge-score span{ font-size:16px; color:var(--ink-3); font-weight:600; }
+.jz-edge-grade{ font-family:var(--font-mono); font-size:12.5px; color:var(--gold); margin-top:2px; }
+.jz-edge-facts{ display:grid; grid-template-columns:repeat(2, minmax(150px, 1fr)); gap:8px 26px; }
+.jz-edge-facts div{ display:flex; justify-content:space-between; gap:14px; font-size:12.5px; }
+.jz-edge-facts span{ color:var(--ink-3); }
+.jz-edge-facts b{ font-family:var(--font-mono); color:var(--ink-0); }
+.jz-edge-bars{ margin-top:16px; display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px 26px; }
+.jz-edge-bar{ display:flex; align-items:center; gap:10px; font-size:12px; }
+.jeb-name{ flex:0 0 108px; color:var(--ink-2); }
+.jeb-track{ flex:1; height:7px; border-radius:999px; background:rgba(139,147,160,.16); overflow:hidden; }
+.jeb-track i{ display:block; height:100%; border-radius:999px;
+  background:linear-gradient(90deg, rgba(3,201,136,.55), #03c988); }
+.jeb-val{ flex:0 0 26px; text-align:right; font-family:var(--font-mono); color:var(--ink-1); }
+@media (max-width:640px){
+  .jz-edge-facts{ grid-template-columns:1fr; }
+  .jeb-name{ flex-basis:96px; }
+}
+:root[data-theme="light"] .jeb-track{ background:rgba(23,33,28,.10); }

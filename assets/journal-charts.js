@@ -73,6 +73,7 @@ function renderDashboardTab(){
   if (typeof jzRenderKpis === 'function') jzRenderKpis(m, currency);
   if (typeof jzRenderMiniCalendar === 'function') jzRenderMiniCalendar(trades, currency);
   if (typeof jzRenderRecent === 'function') jzRenderRecent(trades, currency);
+  if (typeof jzRenderEdge === 'function') jzRenderEdge(trades, currency);
 
   const emptyNote = document.getElementById('jz-empty-note');
   if (emptyNote) emptyNote.style.display = m ? 'none' : '';

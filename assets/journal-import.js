@@ -124,7 +124,27 @@ function jiHandleFile(file){
   if (!file) return;
   const reader = new FileReader();
   reader.onload = () => {
-    const rows = jiParseCsv(String(reader.result || ''));
+    const text = String(reader.result || '');
+
+    // Recognized broker/journal statements (TradeZella, Tradervue,
+    // TradingView, MetaTrader, IBKR, ThinkorSwim, NinjaTrader, Tradovate,
+    // Webull, DAS…) skip the column mapper entirely: the LuxAlgo engine
+    // parses the fills and rebuilds round-trip trades. Anything it doesn't
+    // recognize falls through to the manual mapper below, unchanged.
+    if (JI_MODE === 'trades' && typeof luxTryAutoImport === 'function') {
+      const auto = luxTryAutoImport(text, file.name);
+      if (auto && auto.trades.length) {
+        JI_AUTO = auto;
+        const rows0 = jiParseCsv(text);
+        JI_HEADERS = rows0.length ? rows0[0].map((h) => String(h).trim()) : [];
+        JI_ROWS = rows0.slice(1);
+        JI_MAP = JI_HEADERS.length ? jiAutoMap(JI_HEADERS) : {};
+        jiRenderAutoPreview();
+        return;
+      }
+    }
+
+    const rows = jiParseCsv(text);
     if (rows.length < 2) {
       showToast('error', 'That file has no data rows.');
       return;
@@ -134,6 +154,7 @@ function jiHandleFile(file){
       document.getElementById('ji-file').value = '';
       return;
     }
+    JI_AUTO = null;
     JI_HEADERS = rows[0].map((h) => String(h).trim());
     JI_ROWS = rows.slice(1);
     JI_MAP = jiAutoMap(JI_HEADERS);
@@ -146,10 +167,67 @@ function jiHandleFile(file){
   reader.readAsText(file);
 }
 
+// ---- auto-detected statement preview ----------------------------------------
+let JI_AUTO = null;
+
+function jiRenderAutoPreview(){
+  const panel = document.getElementById('ji-panel');
+  if (!panel || !JI_AUTO) return;
+  panel.style.display = '';
+
+  const title = document.getElementById('ji-panel-title');
+  if (title) title.textContent = 'Statement recognized';
+  document.getElementById('ji-map-grid').innerHTML = '';
+  document.getElementById('ji-count').textContent =
+    JI_AUTO.formatLabel + ' · ' + JI_AUTO.trades.length + ' trades';
+
+  const currency = (JOURNAL_SETTINGS && JOURNAL_SETTINGS.currency) || 'USD';
+  const sample = JI_AUTO.trades.slice(0, 5);
+  const notes = [];
+  if (JI_AUTO.openSkipped) notes.push(JI_AUTO.openSkipped + ' still-open position' + (JI_AUTO.openSkipped === 1 ? '' : 's') + ' skipped');
+  if (JI_AUTO.skippedRows) notes.push(JI_AUTO.skippedRows + ' unreadable row' + (JI_AUTO.skippedRows === 1 ? '' : 's') + ' skipped');
+
+  document.getElementById('ji-preview').innerHTML =
+    '<p style="font-size:13px; color:var(--ink-2); margin:0 0 10px;">Detected a <b>' + escapeJournalHtml(JI_AUTO.formatLabel) +
+      '</b> file — fills were rebuilt into round-trip trades automatically.' +
+      (notes.length ? ' <span style="color:var(--ink-3);">(' + notes.join(', ') + ')</span>' : '') + '</p>' +
+    (JI_AUTO.warnings.length
+      ? '<p class="gm-fineprint" style="margin:0 0 10px;">' + escapeJournalHtml(JI_AUTO.warnings[0]) + '</p>' : '') +
+    '<div class="jz-table-wrap"><table class="jz-table"><thead><tr>' +
+      '<th>Date</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Size</th><th>Fees</th><th>P&amp;L</th>' +
+    '</tr></thead><tbody>' +
+    sample.map((t) =>
+      '<tr>' +
+        '<td>' + t.date + ' ' + (t.time || '') + '</td>' +
+        '<td><b>' + escapeJournalHtml(t.instrument) + '</b></td>' +
+        '<td>' + (t.direction === 'short' ? 'Short' : 'Long') + '</td>' +
+        '<td>' + (t.entryPrice ?? '—') + '</td>' +
+        '<td>' + (t.exitPrice ?? '—') + '</td>' +
+        '<td>' + (t.positionSize ?? '—') + '</td>' +
+        '<td>' + (t.fees ?? 0) + '</td>' +
+        '<td class="' + (t.pnl > 0 ? 'gm-up' : (t.pnl < 0 ? 'gm-down' : '')) + '">' + journalFormatCurrency(t.pnl, currency) + '</td>' +
+      '</tr>').join('') +
+    '</tbody></table></div>' +
+    '<p class="gm-fineprint">Preview of the first ' + sample.length + ' of ' + JI_AUTO.trades.length + ' trades. Verify the P&amp;L against your statement. ' +
+      (JI_HEADERS.length > 1 ? '<a href="#" id="ji-manual-link" style="color:var(--teal);">Use the manual column mapper instead</a>' : '') + '</p>';
+
+  const manual = document.getElementById('ji-manual-link');
+  if (manual) manual.addEventListener('click', (e) => {
+    e.preventDefault();
+    JI_AUTO = null;
+    if (title) title.textContent = 'Map your columns';
+    jiRenderMapper();
+  });
+
+  document.getElementById('ji-import-btn').textContent = 'Import ' + JI_AUTO.trades.length + ' trades';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function jiRenderMapper(){
   const panel = document.getElementById('ji-panel');
   if (!panel) return;
   panel.style.display = '';
+  document.getElementById('ji-import-btn').textContent = 'Import trades';
 
   const colOptions = (selected) =>
     '<option value="">— skip —</option>' +
@@ -246,8 +324,13 @@ function jiRenderPreview(){
 }
 
 function jiRunImport(){
-  const map = jiReadMapFromUi();
-  const trades = JI_ROWS.map((r) => jiRowToTrade(r, map)).filter(Boolean);
+  let trades;
+  if (JI_AUTO) {
+    trades = JI_AUTO.trades;
+  } else {
+    const map = jiReadMapFromUi();
+    trades = JI_ROWS.map((r) => jiRowToTrade(r, map)).filter(Boolean);
+  }
   if (!trades.length) {
     showToast('error', 'No importable rows — check the column mapping.');
     return;
@@ -294,7 +377,7 @@ function jiRunImport(){
   }).then(() => {
     showToast('success', 'Imported ' + fresh.length + ' trades' + (skipped ? ' (' + skipped + ' duplicates skipped)' : '') + '.');
     document.getElementById('ji-panel').style.display = 'none';
-    JI_ROWS = []; JI_HEADERS = []; JI_MAP = {};
+    JI_ROWS = []; JI_HEADERS = []; JI_MAP = {}; JI_AUTO = null;
     document.getElementById('ji-file').value = '';
     return reloadJournalData();
   }).catch((err) => {
@@ -303,6 +386,8 @@ function jiRunImport(){
   }).finally(() => {
     btn.disabled = false;
     btn.textContent = 'Import trades';
+    const title = document.getElementById('ji-panel-title');
+    if (title) title.textContent = 'Map your columns';
   });
 }
 
@@ -493,6 +578,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('ji-import-btn').addEventListener('click', jiRunImport);
   document.getElementById('ji-cancel-btn').addEventListener('click', () => {
     document.getElementById('ji-panel').style.display = 'none';
+    JI_AUTO = null;
+    const title = document.getElementById('ji-panel-title');
+    if (title) title.textContent = 'Map your columns';
+    document.getElementById('ji-import-btn').textContent = 'Import trades';
     file.value = '';
   });
   document.getElementById('ji-export-btn').addEventListener('click', jiExportCsv);

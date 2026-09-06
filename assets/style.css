@@ -5505,6 +5505,21 @@ a.floor-tag:hover{ text-decoration:underline; }
 .role-tag, .brand-plan{
   position:relative; overflow:hidden; isolation:isolate;
   animation:plan-glow 2.8s ease-in-out infinite;
+  /* Engraved-in-metal text: a dark cut below, a hairline catch of light above. */
+  text-shadow:0 1px 1px rgba(0,0,0,.55), 0 -0.5px 0 rgba(255,255,255,.18);
+}
+/* The metal itself: a machined vertical curve laid over the pill's own plan
+   color — bright rim at the top, mid-band reflection, shadowed lower edge.
+   z-index:-1 slots it above the pill's background but under the text
+   (isolation:isolate on the pill keeps that stacking local). */
+.role-tag::before, .brand-plan::before{
+  content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  z-index:-1;
+  background:
+    linear-gradient(180deg,
+      rgba(255,255,255,.32) 0%, rgba(255,255,255,.10) 30%,
+      rgba(255,255,255,.02) 48%, rgba(0,0,0,.10) 55%,
+      rgba(0,0,0,.30) 100%);
 }
 .role-tag::after, .brand-plan::after{
   content:''; position:absolute; top:0; bottom:0; left:-70%; width:45%;
@@ -5513,12 +5528,23 @@ a.floor-tag:hover{ text-decoration:underline; }
   animation:plan-shine 3.4s ease-in-out infinite;
 }
 @keyframes plan-shine{ 0%{ left:-70%; } 55%, 100%{ left:140%; } }
+/* The bevel edges ride inside the animated shadow so the breathing glow can't
+   wipe them: a light catch on the top rim, a dark seat under the bottom rim,
+   and a drop shadow lifting the pill off the surface. */
 @keyframes plan-glow{
-  0%, 100%{ box-shadow:0 0 5px -5px currentColor; }
-  50%{ box-shadow:0 0 12px -3px currentColor; }
+  0%, 100%{ box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
+    0 1.5px 2.5px rgba(0,0,0,.4), 0 0 5px -5px currentColor; }
+  50%{ box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
+    0 1.5px 2.5px rgba(0,0,0,.4), 0 0 12px -3px currentColor; }
 }
 @media (prefers-reduced-motion: reduce){
-  .role-tag, .brand-plan{ animation:none; }
+  .role-tag, .brand-plan{ animation:none;
+    /* The bevel normally rides in the animation's shadow — restate it here so
+       stopping the motion doesn't flatten the metal. */
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
+      0 1.5px 2.5px rgba(0,0,0,.4); }
   .role-tag::after, .brand-plan::after{ animation:none; display:none; }
 }
 /* Desktop and larger screens only — on phones the header has no room and the

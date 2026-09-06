@@ -5493,10 +5493,23 @@ a.floor-tag:hover{ text-decoration:underline; }
 }
 
 /* ---- Plan label flair ------------------------------------------------------
-   The plan badge beside the logo (desktop header / sidebar; hidden on mobile
-   at the end of this block) and the role-tag pills shown next to user names
-   share a bright treatment: a light sweep gliding across the pill plus a
-   soft breathing glow in the plan's own color. */
+   The plan badge beside the logo and the role-tag pills next to user names,
+   rendered as polished metal. Three techniques layered together:
+
+   1. METAL LETTERING (the CodeFronts shimmer-text technique): the text fill
+      is a multi-stop light/dark gradient mixed from the plan's own color
+      (color-mix), clipped to the glyphs, with a bright streak layer whose
+      background-position sweeps THROUGH the letters.
+   2. ANISOTROPIC CHIP (the MetalliCSS look): polished metal reflects in
+      sectors AROUND the surface, so the chip under the text carries a
+      slowly rotating conic sheen over a machined vertical curve.
+   3. RANDOM SHINE: each pill gets its own streak duration and phase from
+      custom properties randomized at creation (roles.js / auth.js), and the
+      11s sheen rotation drifts against them — a row of labels never
+      flashes in unison and the pattern never visibly repeats.
+
+   Each pill carries inline --plan-c (its role color); older browsers without
+   color-mix / background-clip:text keep the previous flat-color pill. */
 .brand-plan{
   display:inline-block; margin-left:10px; padding:3px 11px; border-radius:999px;
   font-family:var(--font-mono); font-size:10.5px; font-weight:800; letter-spacing:.09em;
@@ -5505,32 +5518,48 @@ a.floor-tag:hover{ text-decoration:underline; }
 .role-tag, .brand-plan{
   position:relative; overflow:hidden; isolation:isolate;
   animation:plan-glow 2.8s ease-in-out infinite;
-  /* Engraved-in-metal text: a dark cut below, a hairline catch of light above. */
-  text-shadow:0 1px 1px rgba(0,0,0,.55), 0 -0.5px 0 rgba(255,255,255,.18);
+  text-shadow:0 1px 1px rgba(0,0,0,.45);
 }
-/* The metal itself: a machined vertical curve laid over the pill's own plan
-   color — bright rim at the top, mid-band reflection, shadowed lower edge.
-   z-index:-1 slots it above the pill's background but under the text
-   (isolation:isolate on the pill keeps that stacking local). */
+
+/* The chip surface, painted behind the text (z-index:-1 sits above the
+   element background but under the glyphs; isolation keeps that local):
+   rotating conic sheen → vertical machined curve → base wash mixed from the
+   plan color. Day mode swaps only the base via --chip-bg. */
+@property --sheen-rot { syntax:'<angle>'; inherits:false; initial-value:0deg; }
 .role-tag::before, .brand-plan::before{
   content:''; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
   z-index:-1;
   background:
+    conic-gradient(from calc(200deg + var(--sheen-rot, 0deg)) at 50% 42%,
+      rgba(255,255,255,0) 0deg, rgba(255,255,255,.22) 40deg,
+      rgba(0,0,0,.16) 95deg, rgba(255,255,255,.12) 150deg,
+      rgba(0,0,0,.20) 215deg, rgba(255,255,255,.26) 275deg,
+      rgba(0,0,0,.12) 330deg, rgba(255,255,255,0) 360deg),
     linear-gradient(180deg,
-      rgba(255,255,255,.32) 0%, rgba(255,255,255,.10) 30%,
+      rgba(255,255,255,.28) 0%, rgba(255,255,255,.08) 30%,
       rgba(255,255,255,.02) 48%, rgba(0,0,0,.10) 55%,
-      rgba(0,0,0,.30) 100%);
+      rgba(0,0,0,.30) 100%),
+    linear-gradient(var(--chip-bg, transparent), var(--chip-bg, transparent));
+  animation:plan-sheen-rot 11s linear infinite;
 }
+@keyframes plan-sheen-rot{ to{ --sheen-rot:360deg; } }
+
+/* Glass glint travelling across the whole chip (on top of everything): a
+   bright leading streak with a fainter chaser, on the pill's own random
+   clock. */
 .role-tag::after, .brand-plan::after{
-  content:''; position:absolute; top:0; bottom:0; left:-70%; width:45%;
+  content:''; position:absolute; top:0; bottom:0; left:-90%; width:65%;
   transform:skewX(-20deg); pointer-events:none;
-  background:linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent);
-  animation:plan-shine 3.4s ease-in-out infinite;
+  background:linear-gradient(105deg,
+    transparent 0%, rgba(255,255,255,.18) 14%, transparent 30%,
+    transparent 44%, rgba(255,255,255,.5) 62%, transparent 82%);
+  animation:plan-shine var(--shine-dur, 3.4s) ease-in-out infinite;
+  animation-delay:var(--shine-delay, 0s);
 }
-@keyframes plan-shine{ 0%{ left:-70%; } 55%, 100%{ left:140%; } }
-/* The bevel edges ride inside the animated shadow so the breathing glow can't
-   wipe them: a light catch on the top rim, a dark seat under the bottom rim,
-   and a drop shadow lifting the pill off the surface. */
+@keyframes plan-shine{ 0%{ left:-90%; } 55%, 100%{ left:150%; } }
+
+/* Bevel edges and breathing glow share the animated shadow so neither wipes
+   the other. */
 @keyframes plan-glow{
   0%, 100%{ box-shadow:
     inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
@@ -5539,12 +5568,77 @@ a.floor-tag:hover{ text-decoration:underline; }
     inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
     0 1.5px 2.5px rgba(0,0,0,.4), 0 0 12px -3px currentColor; }
 }
+
+/* Metal lettering. !important throughout because each pill arrives with an
+   inline flat background and color from roleTagHtml/applyBrandPlan (kept as
+   the fallback for older browsers) — here they are replaced by the
+   text-clipped metal. currentColor still drives the glow, so color moves to
+   -webkit-text-fill-color rather than color:transparent. */
+@supports (background-clip: text) and (color: color-mix(in srgb, red 50%, blue)) {
+  /* Five background layers on the pill itself, because a ::before chip
+     would paint ABOVE the element background where text-clipped layers
+     live. Per-layer background-clip keeps the top two inside the glyphs
+     and the bottom three as the chip:
+       1 streak    (text)  — the shine sweeping through the letters
+       2 metal     (text)  — light/dark stops mixed from the plan color
+       3 sheen     (box)   — rotating conic anisotropy, the MetalliCSS look
+       4 curve     (box)   — machined vertical curvature
+       5 base wash (box)   — the chip color (day mode swaps --chip-fill) */
+  .role-tag, .brand-plan{
+    background-color:transparent !important;
+    background-image:
+      linear-gradient(115deg, transparent 42%, rgba(255,255,255,.95) 50%, transparent 58%),
+      linear-gradient(105deg,
+        color-mix(in srgb, var(--plan-c, #cfd6dd) 78%, #000) 0%,
+        color-mix(in srgb, var(--plan-c, #cfd6dd) 34%, #fff) 28%,
+        color-mix(in srgb, var(--plan-c, #cfd6dd) 92%, #000) 52%,
+        color-mix(in srgb, var(--plan-c, #cfd6dd) 42%, #fff) 74%,
+        color-mix(in srgb, var(--plan-c, #cfd6dd) 70%, #000) 100%),
+      conic-gradient(from calc(200deg + var(--sheen-rot, 0deg)) at 50% 42%,
+        rgba(255,255,255,0) 0deg, rgba(255,255,255,.20) 40deg,
+        rgba(0,0,0,.16) 95deg, rgba(255,255,255,.10) 150deg,
+        rgba(0,0,0,.20) 215deg, rgba(255,255,255,.22) 275deg,
+        rgba(0,0,0,.12) 330deg, rgba(255,255,255,0) 360deg),
+      linear-gradient(180deg,
+        rgba(255,255,255,.22) 0%, rgba(255,255,255,.06) 30%,
+        rgba(255,255,255,.02) 48%, rgba(0,0,0,.10) 55%,
+        rgba(0,0,0,.28) 100%),
+      linear-gradient(var(--chip-fill), var(--chip-fill)) !important;
+    background-size:220% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100% !important;
+    /* No !important: an !important declaration would outrank the
+       plan-text-streak animation and freeze the in-letter shine. For the
+       100%-sized chip layers a percentage position is a no-op, so the
+       keyframes' repeating two-value pattern is harmless. */
+    background-position:-180% 0, 0 0;
+    background-repeat:no-repeat !important;
+    -webkit-background-clip:text, text, border-box, border-box, border-box !important;
+    background-clip:text, text, border-box, border-box, border-box !important;
+    -webkit-text-fill-color:transparent;
+    /* The engraving shadow reads as mud behind gradient glyphs — off here. */
+    text-shadow:none;
+    --chip-fill: color-mix(in srgb, var(--plan-c, #cfd6dd) 18%, rgb(13 16 14 / .92));
+    animation:
+      plan-glow 2.8s ease-in-out infinite,
+      plan-sheen-rot 11s linear infinite,
+      plan-text-streak var(--shine-dur, 3.4s) ease-in-out var(--shine-delay, 0s) infinite;
+  }
+  /* The chip moved into the element layers above — the fallback ::before
+     would repaint the sheen over the lettering. */
+  .role-tag::before, .brand-plan::before{ display:none; }
+  /* Only the streak layer moves; the metal body and chip stay put. */
+  @keyframes plan-text-streak{
+    0%{ background-position:-180% 0, 0 0; }
+    55%, 100%{ background-position:180% 0, 0 0; }
+  }
+}
+
 @media (prefers-reduced-motion: reduce){
-  .role-tag, .brand-plan{ animation:none;
-    /* The bevel normally rides in the animation's shadow — restate it here so
+  .role-tag, .brand-plan{ animation:none !important;
+    /* The bevel normally rides in the animation's shadow — restate it so
        stopping the motion doesn't flatten the metal. */
     box-shadow:inset 0 1px 0 rgba(255,255,255,.38), inset 0 -1.5px 2px rgba(0,0,0,.5),
       0 1.5px 2.5px rgba(0,0,0,.4); }
+  .role-tag::before, .brand-plan::before{ animation:none; }
   .role-tag::after, .brand-plan::after{ animation:none; display:none; }
 }
 /* Desktop and larger screens only — on phones the header has no room and the
@@ -5552,14 +5646,19 @@ a.floor-tag:hover{ text-decoration:underline; }
 @media (max-width:900px){ .brand-plan{ display:none; } }
 html[data-device="mobile"] .brand-plan{ display:none; }
 
-/* Day mode: the plan colors are bright, tuned for a dark ground — on the
-   light theme's near-white surfaces a 10%-alpha wash of the same color is
-   invisible. Instead of dimming each plan's color (which kills the shine),
-   the pill keeps its color and sits on a small dark token chip. !important
-   because the base background/border arrive as inline styles from
-   roleTagHtml/applyBrandPlan. */
+/* Day mode: the metal lettering carries its own light/dark contrast, but the
+   chip base tuned for the dark theme would wash out — swap it for the solid
+   token chip so every plan color stays legible on near-white surfaces. */
 html[data-theme="light"] .role-tag,
 html[data-theme="light"] .brand-plan{
-  background:#141a17 !important;
+  --chip-bg:#141a17;
+  background-color:#141a17 !important;   /* fallback browsers keep a dark chip too */
   box-shadow:0 1px 3px rgba(10,14,12,.25);
+}
+@supports (background-clip: text) and (color: color-mix(in srgb, red 50%, blue)) {
+  html[data-theme="light"] .role-tag,
+  html[data-theme="light"] .brand-plan{
+    background-color:transparent !important;   /* the chip is background layer 5 */
+    --chip-fill: color-mix(in srgb, var(--plan-c, #cfd6dd) 10%, #141916);
+  }
 }

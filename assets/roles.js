@@ -199,10 +199,15 @@ function roleTagHtml(planNameOrId, opts){
   const size = (opts && opts.size) || 'normal';
   const fontSize = size === 'small' ? '9.5px' : '10.5px';
   const pad = size === 'small' ? '1px 6px' : '2px 8px';
+  // --plan-c drives the metal lettering (style.css mixes the light/dark
+  // stops from it); the two --shine-* values give THIS pill its own streak
+  // clock, so a page full of labels never glints in unison.
   return (
     '<span class="role-tag" style="display:inline-block; margin-left:7px; padding:' + pad + '; ' +
     'border-radius:999px; font-family:var(--font-mono); font-size:' + fontSize + '; font-weight:700; ' +
     'letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; ' +
+    '--plan-c:' + color + '; --shine-dur:' + (2.6 + Math.random() * 2.6).toFixed(2) + 's; ' +
+    '--shine-delay:-' + (Math.random() * 8).toFixed(2) + 's; ' +
     'background:' + color + '1a; border:1px solid ' + color + '55; vertical-align:middle;">' +
     escapeRoleTagText(plan.name) + '</span>'
   );

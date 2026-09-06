@@ -383,6 +383,11 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.style.color = color;
         badge.style.background = color + '1a';
         badge.style.borderColor = color + '55';
+        // Metal lettering source color + this badge's own random streak clock
+        // (see the plan-label flair block in style.css).
+        badge.style.setProperty('--plan-c', color);
+        badge.style.setProperty('--shine-dur', (2.6 + Math.random() * 2.6).toFixed(2) + 's');
+        badge.style.setProperty('--shine-delay', '-' + (Math.random() * 8).toFixed(2) + 's');
         badge.textContent = p.name;
       });
     }

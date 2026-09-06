@@ -5525,3 +5525,15 @@ a.floor-tag:hover{ text-decoration:underline; }
    sidebar is a drawer. */
 @media (max-width:900px){ .brand-plan{ display:none; } }
 html[data-device="mobile"] .brand-plan{ display:none; }
+
+/* Day mode: the plan colors are bright, tuned for a dark ground — on the
+   light theme's near-white surfaces a 10%-alpha wash of the same color is
+   invisible. Instead of dimming each plan's color (which kills the shine),
+   the pill keeps its color and sits on a small dark token chip. !important
+   because the base background/border arrive as inline styles from
+   roleTagHtml/applyBrandPlan. */
+html[data-theme="light"] .role-tag,
+html[data-theme="light"] .brand-plan{
+  background:#141a17 !important;
+  box-shadow:0 1px 3px rgba(10,14,12,.25);
+}

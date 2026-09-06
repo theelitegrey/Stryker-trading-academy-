@@ -30,6 +30,13 @@ var BOT_TYPES = {
       { key: 'screenName', label: 'X account', type: 'text', required: true,
         placeholder: 'handle without the @',
         help: 'The account to mirror. Omit the @.' },
+      { key: 'intervalMinutes', label: 'Check for new posts every', type: 'select',
+        options: [['10', '10 minutes'], ['15', '15 minutes'], ['30', '30 minutes'],
+                  ['60', '1 hour'], ['120', '2 hours'], ['240', '4 hours'],
+                  ['360', '6 hours'], ['720', '12 hours'], ['1440', 'Once a day']],
+        def: '30',
+        help: 'How often THIS bot polls the account and posts what it finds — '
+            + 'each bot keeps its own pace. Takes effect on the bot’s next tick.' },
       { key: 'maxPerRun', label: 'Max posts per run', type: 'number',
         def: 3, min: 1, max: 10,
         help: 'Caps a catch-up burst. A quiet account that suddenly posts '
@@ -37,8 +44,9 @@ var BOT_TYPES = {
       { key: 'maxAgeMinutes', label: 'Only post tweets from the last', type: 'number',
         def: 60, min: 5, max: 1440,
         help: 'Minutes. Anything older is marked seen and never published, so '
-            + 'a new bot starts from now rather than replaying history. 60 '
-            + 'gives a 30-minute schedule room to recover from a missed run.' },
+            + 'a new bot starts from now rather than replaying history. The '
+            + 'server always widens this to cover the posting interval, so a '
+            + 'slow-checking bot never drops the tweets between its checks.' },
       { key: 'category', label: 'Post to', type: 'select',
         options: [['propfirm', 'Prop firm feed'], ['general', 'Posts']],
         def: 'propfirm' },
@@ -155,6 +163,22 @@ function botSourceLabel(b) {
   return '\u2014';
 }
 
+// How often the bot acts, in its own terms: twitter mirrors poll on their own
+// per-bot interval; the analyst posts per session window; the scout scans on
+// the shared schedule with its per-instrument cooldown.
+function botCadenceLabel(b) {
+  var cfg = b.config || {};
+  if (b.type === 'twitter-mirror') {
+    var m = parseInt(cfg.intervalMinutes, 10) || 30;
+    if (m >= 1440) return 'Once a day';
+    if (m >= 60) return 'Every ' + (m / 60) + 'h';
+    return 'Every ' + m + 'm';
+  }
+  if (b.type === 'market-analyst') return 'Per session';
+  if (b.type === 'setup-scout') return 'Scans every 30m';
+  return '—';
+}
+
 // ---- Rendering -------------------------------------------------------------
 function renderBots() {
   var host = document.getElementById('bots-list');
@@ -192,6 +216,7 @@ function renderBots() {
 
       '<div class="bot-meta">' +
         '<div><span>Last run</span><b>' + relTime(b.lastRunAt) + '</b></div>' +
+        '<div><span>Posts</span><b>' + esc(botCadenceLabel(b)) + '</b></div>' +
         '<div><span>Published</span><b>' + (b.publishedCount || 0) + '</b></div>' +
         '<div><span>Source</span><b>' + esc(botSourceLabel(b)) + '</b></div>' +
       '</div>' +

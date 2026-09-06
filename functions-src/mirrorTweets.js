@@ -8,12 +8,19 @@
  *   firebase deploy --only functions:deleteUserAccount,functions:onNotificationCreated,
  *     functions:onContactMessageCreated,functions:mirrorTweets
  *
- * CONFIG lives in Firestore at settings/twitterBot:
- *   { enabled: true,
- *     screenName: 'someaccount',      // without the @
- *     maxPerRun: 3,
- *     includeReplies: false,
- *     includeRetweets: false }
+ * CONFIG lives on each bots/{id} doc (type 'twitter-mirror'), written by the
+ * Bots admin:
+ *   config: { screenName: 'someaccount',   // without the @
+ *             intervalMinutes: 30,         // per-bot posting pace, see below
+ *             maxPerRun: 3,
+ *             maxAgeMinutes: 60,
+ *             includeReplies: false,
+ *             includeRetweets: false }
+ *
+ * PER-BOT PACE: the function itself ticks every 10 minutes, but each bot only
+ * actually polls once its own intervalMinutes have elapsed since its last
+ * poll (lastPollAtMs on the bot doc) — so one bot can post every 10 minutes
+ * while another checks once a day, all inside a single scheduled function.
  *
  * The API key comes from Secret Manager, never from Firestore —
  * Firestore settings docs are world-readable by design so the site can render
@@ -93,9 +100,19 @@ function tweetTimeMs(t) {
   return isNaN(parsed) ? null : parsed;
 }
 
+// The base tick. Each bot's intervalMinutes is clamped to at least this (a
+// bot cannot poll more often than the function runs) and at most a day.
+const TICK_MINUTES = 10;
+
+function pollIntervalMinutes(cfg) {
+  const n = parseInt(cfg && cfg.intervalMinutes, 10);
+  if (!isFinite(n)) return 30;                       // pre-existing bots keep the old pace
+  return Math.min(Math.max(n, TICK_MINUTES), 1440);
+}
+
 exports.mirrorTweets = functions
   .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [TWITTERAPI_KEY] })
-  .pubsub.schedule('every 30 minutes')
+  .pubsub.schedule('every 10 minutes')
   .timeZone('UTC')
   .onRun(async () => {
     const db = admin.firestore();
@@ -103,13 +120,27 @@ exports.mirrorTweets = functions
     // Reads the bots COLLECTION, not a single settings doc. That is what makes
     // "add another bot" a row in the admin panel rather than a code change
     // here plus a new form there.
-    const snap = await db.collection('bots')
+    const all = await db.collection('bots')
       .where('type', '==', 'twitter-mirror')
       .where('enabled', '==', true)
       .get();
 
-    if (snap.empty) {
+    if (all.empty) {
       console.log('mirrorTweets: no enabled twitter-mirror bots');
+      return null;
+    }
+
+    // Per-bot pace: keep only the bots whose own interval has elapsed. Half a
+    // tick of slack so scheduler jitter can't push a 30-minute bot to 40 —
+    // at the tick nearest its interval, elapsed time already clears the bar.
+    const snap = { docs: all.docs.filter((doc) => {
+      const d = doc.data();
+      const intervalMs = pollIntervalMinutes(d.config) * 60000;
+      return Date.now() - (d.lastPollAtMs || 0) >= intervalMs - (TICK_MINUTES * 60000) / 2;
+    }) };
+
+    if (!snap.docs.length) {
+      console.log('mirrorTweets: ' + all.size + ' bot(s), none due this tick');
       return null;
     }
 
@@ -134,6 +165,10 @@ exports.mirrorTweets = functions
 async function runBot(db, doc, apiKey) {
   const cfg = (doc.data().config) || {};
   const name = doc.data().name || doc.id;
+
+  // Stamp the poll FIRST, whatever happens after: a bot that crashes mid-run
+  // waits out its own interval instead of hammering the API every tick.
+  await doc.ref.set({ lastPollAtMs: Date.now() }, { merge: true });
 
   if (!cfg.screenName) {
     await doc.ref.set({
@@ -175,10 +210,12 @@ async function runBot(db, doc, apiKey) {
   tweets = tweets.slice().reverse();
 
   const maxPerRun = Math.min(cfg.maxPerRun || 3, 10);
-  // Default 60 minutes against a 30-minute schedule: wide enough that a late
-  // or briefly failed run still catches everything, narrow enough that nothing
-  // stale reaches the feed.
-  const maxAgeMs = Math.max(5, cfg.maxAgeMinutes || 60) * 60 * 1000;
+  // The age cutoff is always widened to cover this bot's own polling interval
+  // (plus recovery slack). Without that, a bot checking every 4 hours with the
+  // default 60-minute cutoff would silently drop every tweet posted between
+  // its polls — the slower the bot, the more it would lose.
+  const intervalMinutes = pollIntervalMinutes(cfg);
+  const maxAgeMs = Math.max(intervalMinutes + 30, parseInt(cfg.maxAgeMinutes, 10) || 60) * 60 * 1000;
   let published = 0;
   let skippedOld = 0;
 

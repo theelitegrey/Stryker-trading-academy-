@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="253">
+<meta name="stryker-build" content="254">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Billing & Plans — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=253">
-<script src="assets/device-mode.js?v=253"></script>
-<script src="assets/toast.js?v=253" defer></script>
-<script src="assets/version-check.js?v=253" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=254">
+<script src="assets/device-mode.js?v=254"></script>
+<script src="assets/toast.js?v=254" defer></script>
+<script src="assets/version-check.js?v=254" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -147,10 +147,27 @@
 
     <div class="notice">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-      <p><b>These edits are real and go live on the homepage pricing section immediately.</b> What's not yet built: an actual payment processor (Stripe or similar) to charge people, and access control that automatically enforces a plan's chapter limit for a given student. Right now this defines what each plan should include; enforcing and billing for it are separate, larger pieces.</p>
+      <p><b>These edits are real and go live on the homepage pricing section immediately.</b> Paid plans are charged through Razorpay at checkout — in ₹ for Indian visitors (using the rate below) and $ for everyone else — and chapter access is enforced per plan.</p>
     </div>
 
     <div class="auth-error" id="plans-error"></div>
+
+    <div class="panel" style="margin-bottom:22px;">
+      <div class="panel-head"><h2>International pricing</h2></div>
+      <p style="font-size:13px; color:var(--ink-3); margin:0 0 14px; line-height:1.6;">
+        Plan prices below are in <b>US Dollars</b>. Visitors in India automatically see — and are charged —
+        rupees at this rate, rounded to whole ₹. Everyone else sees dollars. Update it now and then to
+        track the real exchange rate.
+      </p>
+      <div style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+        <div class="field" style="margin-bottom:0; max-width:220px;">
+          <label for="usd-inr-rate">1 USD = ₹</label>
+          <input type="number" id="usd-inr-rate" min="1" step="0.01" placeholder="e.g. 88">
+        </div>
+        <button class="btn btn-primary btn-sm" id="save-fx-btn">Save rate</button>
+        <span id="fx-preview" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+    </div>
 
     <div id="plan-edit-panel" style="display:none;" class="panel">
       <div class="panel-head"><h2 id="plan-edit-heading">Edit plan</h2></div>
@@ -211,35 +228,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=253"></script>
-<script src="assets/progress.js?v=253"></script>
-<script src="assets/presence.js?v=253"></script>
-<script src="assets/messages.js?v=253"></script>
-<script src="assets/messages-badge.js?v=253"></script>
-<script src="assets/gm-badge.js?v=253"></script>
-<script src="assets/account-menu.js?v=253"></script>
-<script src="assets/activity-log.js?v=253"></script>
-<script src="assets/banned-check.js?v=253"></script>
-<script src="assets/email-verify.js?v=253"></script>
-<script src="assets/profiles-sync.js?v=253"></script>
+<script src="assets/auth.js?v=254"></script>
+<script src="assets/progress.js?v=254"></script>
+<script src="assets/presence.js?v=254"></script>
+<script src="assets/messages.js?v=254"></script>
+<script src="assets/messages-badge.js?v=254"></script>
+<script src="assets/gm-badge.js?v=254"></script>
+<script src="assets/account-menu.js?v=254"></script>
+<script src="assets/activity-log.js?v=254"></script>
+<script src="assets/banned-check.js?v=254"></script>
+<script src="assets/email-verify.js?v=254"></script>
+<script src="assets/profiles-sync.js?v=254"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=253"></script>
-<script src="assets/avatars.js?v=253"></script>
-<script src="assets/referrals.js?v=253"></script>
-<script src="assets/roles.js?v=253"></script>
-<script src="assets/branding.js?v=253"></script>
-<script src="assets/admin-guard.js?v=253"></script>
-<script src="assets/dash-nav.js?v=253"></script>
-<script src="assets/achievements-data.js?v=253"></script>
-<script src="assets/notifications.js?v=253"></script>
+<script src="assets/loading-animation.js?v=254"></script>
+<script src="assets/avatars.js?v=254"></script>
+<script src="assets/referrals.js?v=254"></script>
+<script src="assets/roles.js?v=254"></script>
+<script src="assets/branding.js?v=254"></script>
+<script src="assets/admin-guard.js?v=254"></script>
+<script src="assets/dash-nav.js?v=254"></script>
+<script src="assets/achievements-data.js?v=254"></script>
+<script src="assets/notifications.js?v=254"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=253"></script>
-<script src="assets/admin-tasks.js?v=253"></script>
-<script src="assets/admin-notify.js?v=253"></script>
-<script src="assets/admin-nav.js?v=253"></script>
-<script src="assets/plan-price.js?v=253"></script>
-<script src="assets/plans-admin.js?v=253"></script>
+<script src="assets/push.js?v=254"></script>
+<script src="assets/admin-tasks.js?v=254"></script>
+<script src="assets/admin-notify.js?v=254"></script>
+<script src="assets/admin-nav.js?v=254"></script>
+<script src="assets/plan-price.js?v=254"></script>
+<script src="assets/plans-admin.js?v=254"></script>
 
-<script src="assets/theme.js?v=253"></script>
+<script src="assets/theme.js?v=254"></script>
 </body>
 </html>

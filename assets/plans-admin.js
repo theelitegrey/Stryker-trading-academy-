@@ -4,6 +4,13 @@
 // Plans live in Firestore's `plans` collection. Reads are public (the
 // homepage pricing section pulls from here too, via assets/plans-public.js)
 // — writes are admin-only, enforced by security rules.
+//
+// Prices here are the USD base. Indian visitors see them converted to ₹ at
+// the rate set in the "International pricing" panel below (stored in
+// settings/commerce.usdInr, read by plan-price.js and the payment function).
+// This page always shows the base dollars, whatever the admin's timezone.
+
+window.STRYKER_FORCE_CURRENCY = 'USD';
 
 let EDITING_PLAN_ID = null;
 let ALL_PLANS = [];
@@ -23,7 +30,7 @@ function renderPlanCard(plan){
     ribbon + '<h3>' + (plan.name || 'Untitled plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
-      : '<div class="price-amt">₹' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
+      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     '<ul>' + featuresHtml + '</ul>' +
     '<div style="font-size:12px; color:var(--ink-3); margin:10px 0 16px; font-family:var(--font-mono);">Chapter access: ' + (plan.chapterAccess || 'all') + '</div>' +
     '<div style="display:flex; gap:8px;">' +
@@ -84,7 +91,7 @@ function updateSalePreview(){
   var sale = parseFloat(document.getElementById('plan-sale-price').value);
   var ends = document.getElementById('plan-sale-ends').value;
   if (!isFinite(sale) || sale < 0) { out.textContent = 'Enter a sale price to switch the offer on.'; out.style.color = 'var(--amber)'; return; }
-  if (full <= 0 || sale >= full) { out.textContent = 'The sale price must be lower than the plan price (₹' + full + ') — the offer will not show.'; out.style.color = 'var(--bear)'; return; }
+  if (full <= 0 || sale >= full) { out.textContent = 'The sale price must be lower than the plan price ($' + full + ') — the offer will not show.'; out.style.color = 'var(--bear)'; return; }
   var pct = Math.round(((full - sale) / full) * 100);
   var endTxt = '';
   if (ends) {
@@ -93,7 +100,7 @@ function updateSalePreview(){
                                       : ' — runs until ' + d.toLocaleDateString();
   }
   out.style.color = /passed/.test(endTxt) ? 'var(--bear)' : 'var(--gold)';
-  out.textContent = 'Students pay ₹' + sale + ' instead of ₹' + full + ' — ' + pct + '% off, saving ₹' + (full - sale).toFixed(2) + endTxt;
+  out.textContent = 'Students pay $' + sale + ' instead of $' + full + ' — ' + pct + '% off, saving $' + (full - sale).toFixed(2) + endTxt;
 }
 
 function updatePlanColorPreview(){
@@ -110,14 +117,63 @@ function closePlanEditor(){
   EDITING_PLAN_ID = null;
 }
 
+// The USD→INR rate lives in settings/commerce.usdInr — world-readable (the
+// homepage converts with it before anyone signs in), admin-writable. The
+// payment function reads the same doc, so saving here changes what Indian
+// buyers see AND what they're charged, together.
+function loadFxRate(){
+  const input = document.getElementById('usd-inr-rate');
+  if (!input) return Promise.resolve();
+  return db.collection('settings').doc('commerce').get().then((doc) => {
+    const r = doc.exists ? parseFloat(doc.data().usdInr) : NaN;
+    input.value = (isFinite(r) && r > 0) ? r : 88;
+    updateFxPreview();
+  }).catch(() => { input.value = 88; updateFxPreview(); });
+}
+
+function updateFxPreview(){
+  const out = document.getElementById('fx-preview');
+  const r = parseFloat(document.getElementById('usd-inr-rate').value);
+  if (!out) return;
+  out.textContent = (isFinite(r) && r > 0)
+    ? 'A $49 plan shows as ₹' + Math.round(49 * r).toLocaleString('en-IN') + ' in India.'
+    : '';
+}
+
+function saveFxRate(){
+  const errEl = document.getElementById('plans-error');
+  const r = parseFloat(document.getElementById('usd-inr-rate').value);
+  if (!isFinite(r) || r <= 0) {
+    errEl.textContent = 'Enter a valid rate — how many rupees one dollar is worth.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const btn = document.getElementById('save-fx-btn');
+  btn.disabled = true;
+  if (typeof logActivity === 'function') logActivity('commerce.fx_saved', 'Set USD→INR rate to ' + r, { detail: 'usdInr ' + r });
+  db.collection('settings').doc('commerce').set({
+    usdInr: r,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+    .then(() => showToast('success', 'Rate saved — Indian visitors now see ₹ prices at ' + r + ' per dollar.'))
+    .catch((err) => { errEl.textContent = err.message || 'Could not save the rate.'; errEl.style.display = 'block'; })
+    .finally(() => { btn.disabled = false; });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
+    loadFxRate();
     loadPlans().catch((err) => {
       console.error('Stryker: failed to load plans', err);
       document.getElementById('plans-grid').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load plans: ' + (err.message || err) + '</p>';
     });
   });
+
+  const fxBtn = document.getElementById('save-fx-btn');
+  if (fxBtn) fxBtn.addEventListener('click', saveFxRate);
+  const fxInput = document.getElementById('usd-inr-rate');
+  if (fxInput) fxInput.addEventListener('input', updateFxPreview);
 
   document.getElementById('add-plan-btn').addEventListener('click', () => openPlanEditor(null));
   document.getElementById('cancel-plan-btn').addEventListener('click', closePlanEditor);

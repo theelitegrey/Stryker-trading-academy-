@@ -15,7 +15,8 @@ function renderOrderRow(order){
     '<div class="record-stats">' +
       '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + (order.planName || '—') + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Coupon</span><span class="rs-val" style="font-family:var(--font-mono);">' + (order.couponCode || '—') + '</span></div>' +
-      '<div class="record-stat"><span class="rs-label">Amount</span><span class="rs-val">₹' + (order.finalAmount != null ? order.finalAmount : 0) + '</span></div>' +
+      '<div class="record-stat"><span class="rs-label">Amount</span><span class="rs-val">' +
+        (order.currency === 'INR' ? '₹' : '$') + (order.finalAmount != null ? order.finalAmount : 0) + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Date</span><span class="rs-val">' + dateLabel + '</span></div>' +
     '</div>';
   return row;

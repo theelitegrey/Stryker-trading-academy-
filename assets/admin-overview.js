@@ -64,7 +64,7 @@ function renderAdminStats(students, plans, sessions, chapters){
     if (!s.plan) return;
     mrr += priceByName[String(s.plan).toLowerCase()] || 0;
   });
-  set('stat-mrr', '₹' + Math.round(mrr).toLocaleString());
+  set('stat-mrr', '$' + Math.round(mrr).toLocaleString());
 
   // Average completion across students who have started at least one chapter.
   // Including everyone who has never opened a lesson would drag this toward

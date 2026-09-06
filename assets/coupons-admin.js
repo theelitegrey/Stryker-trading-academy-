@@ -60,7 +60,7 @@ function renderCouponRow(coupon){
 
   const discountLabel = coupon.type === 'free' ? 'Free access'
     : coupon.type === 'percent' ? (coupon.value + '% off')
-    : ('₹' + coupon.value + ' off');
+    : ('$' + coupon.value + ' off');
 
   const row = document.createElement('div');
   row.className = 'record-card';

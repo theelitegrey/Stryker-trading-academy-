@@ -99,7 +99,7 @@
           esc(plan.name || 'Plan') + '</span>' +
         (typeof planPriceHtml === 'function'
           ? planPriceHtml(plan, 'md')
-          : '<div class="plan-modal-price">₹' + esc(plan.price || '0') +
+          : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
             '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
@@ -126,8 +126,11 @@
     document.body.style.overflow = 'hidden';
 
     var load = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve([]);
-    load.then(function (plans) {
-      renderPlans(plans || []);
+    // Wait for the USD→INR rate too, so Indian students see rupee prices
+    // from the first frame of the modal.
+    var fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
+    Promise.all([load, fx]).then(function (results) {
+      renderPlans(results[0] || []);
     }).catch(function (err) {
       var grid = document.getElementById('plan-modal-grid');
       if (grid) {

@@ -52,7 +52,7 @@ function renderPublicPlanCard(plan, offer){
     '<h3>' + (plan.name || 'Plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
-      : '<div class="price-amt">₹' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
+      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     (hasOffer
       ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b><span class="fn-seats">Limited seats</span></div>'
       : '') +
@@ -66,7 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const grid = document.getElementById('pricing-grid');
   if (!grid) return;
 
-  Promise.all([db.collection('plans').get(), loadFoundingOffer()]).then(([snap, offer]) => {
+  // The USD→INR rate loads alongside the plans so Indian visitors' first
+  // paint is already in rupees — no dollar flash, no re-render.
+  const fxReady = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
+  Promise.all([db.collection('plans').get(), loadFoundingOffer(), fxReady]).then(([snap, offer]) => {
+    if (typeof strykerCurrencyNoteHtml === 'function') {
+      grid.insertAdjacentHTML('afterend', strykerCurrencyNoteHtml());
+    }
     if (snap.empty) return; // keep the static fallback cards already in the HTML
     const plans = [];
     snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));

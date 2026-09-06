@@ -12,6 +12,88 @@
 // and every surface (homepage cards, the upgrade modal, checkout, the amount
 // actually charged) agrees on the price because they all ask this file.
 
+// ---- Currency: USD base, ₹ for visitors in India -------------------------
+//
+// Plan prices are stored as plain USD numbers. Visitors whose device timezone
+// is India see (and are charged) rupees at an admin-controlled rate stored in
+// settings/commerce.usdInr — the SAME doc the payment function reads, and the
+// SAME rounding (whole rupees), so the price on the page is exactly what
+// Razorpay charges. Everyone else sees dollars. A manual switcher
+// (data-currency-switch links) overrides detection via localStorage, because
+// a timezone is a strong hint, not an identity — travellers and VPN users can
+// put themselves in the right currency in one click.
+
+var STRYKER_USD_INR = 88;   // fallback only — live rate comes from Firestore
+var _fxPromise = null;
+
+function strykerIsIndiaTz(){
+  try {
+    var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    return tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta';
+  } catch (e) { return false; }
+}
+
+function strykerCurrencyOverride(){
+  try {
+    var saved = localStorage.getItem('stryker_currency');
+    return (saved === 'USD' || saved === 'INR') ? saved : null;
+  } catch (e) { return null; }
+}
+
+function strykerCurrency(){
+  if (window.STRYKER_FORCE_CURRENCY) return window.STRYKER_FORCE_CURRENCY; // admin pages pin USD
+  return strykerCurrencyOverride() || (strykerIsIndiaTz() ? 'INR' : 'USD');
+}
+
+// Resolves once the live USD→INR rate is in. Pages that render prices wait on
+// this so the first paint already shows the right rupee amounts; USD viewers
+// skip the read entirely (the rate is irrelevant to them).
+function strykerFxReady(){
+  if (_fxPromise) return _fxPromise;
+  if (strykerCurrency() !== 'INR' || typeof db === 'undefined' || !db) {
+    _fxPromise = Promise.resolve(STRYKER_USD_INR);
+    return _fxPromise;
+  }
+  _fxPromise = db.collection('settings').doc('commerce').get().then(function (doc){
+    var r = doc.exists ? parseFloat(doc.data().usdInr) : NaN;
+    if (isFinite(r) && r > 0) STRYKER_USD_INR = r;
+    return STRYKER_USD_INR;
+  }).catch(function (){ return STRYKER_USD_INR; });
+  return _fxPromise;
+}
+
+// USD number in, display string out — '$49' or '₹4,312'. Rupee prices round
+// to whole rupees (functions-src/razorpay.js does the identical Math.round,
+// so display and charge can never drift apart).
+function planMoneyDisplay(usd){
+  if (strykerCurrency() === 'INR') {
+    return '₹' + Math.round(usd * STRYKER_USD_INR).toLocaleString('en-IN');
+  }
+  return '$' + planMoney(usd);
+}
+
+// The small "shown in ₹ · switch" line under pricing. Empty for plain-USD
+// visitors with no override — they have nothing to switch about.
+function strykerCurrencyNoteHtml(){
+  if (!strykerIsIndiaTz() && !strykerCurrencyOverride()) return '';
+  var cur = strykerCurrency();
+  var msg = cur === 'INR'
+    ? 'Prices shown in ₹ Indian Rupees (converted from USD)'
+    : 'Prices shown in US Dollars';
+  var other = cur === 'INR' ? 'USD' : 'INR';
+  var otherLabel = cur === 'INR' ? 'Show in $ USD' : 'Show in ₹ INR';
+  return '<div class="currency-note" style="margin-top:14px; text-align:center; font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">' +
+    msg + ' · <a href="#" data-currency-switch="' + other + '" style="color:var(--teal); text-decoration:underline;">' + otherLabel + '</a></div>';
+}
+
+document.addEventListener('click', function (ev){
+  var link = ev.target && ev.target.closest ? ev.target.closest('[data-currency-switch]') : null;
+  if (!link) return;
+  ev.preventDefault();
+  try { localStorage.setItem('stryker_currency', link.dataset.currencySwitch); } catch (e) {}
+  location.reload();   // every price on the page re-renders in the new currency
+});
+
 // Strict: returns null when the field holds no number at all. A blank or
 // mistyped sale price must NOT read as zero — that would silently price the
 // plan at 100% off. An explicit '0' is still a real (free) sale price.
@@ -88,21 +170,21 @@ function planPriceHtml(plan, size){
   var cls = 'plan-price plan-price-' + (size || 'lg');
 
   if (!s.active) {
-    return '<div class="' + cls + '"><span class="pp-main"><span class="pp-now">₹' + planMoney(s.full) +
+    return '<div class="' + cls + '"><span class="pp-main"><span class="pp-now">' + planMoneyDisplay(s.full) +
            '</span><span class="pp-per">/ ' + period + '</span></span></div>';
   }
 
   return '<div class="' + cls + ' is-sale">' +
       '<div class="pp-row">' +
         '<span class="pp-main">' +
-          '<span class="pp-now">₹' + planMoney(s.sale) + '</span>' +
+          '<span class="pp-now">' + planMoneyDisplay(s.sale) + '</span>' +
           '<span class="pp-per">/ ' + period + '</span>' +
         '</span>' +
-        '<span class="pp-was"><s>₹' + planMoney(s.full) + '</s></span>' +
+        '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
       '</div>' +
       '<div class="pp-tags">' +
         '<span class="pp-off"><i></i>SAVE ' + s.pct + '%</span>' +
-        '<span class="pp-save">You save ₹' + planMoney(s.save) + '</span>' +
+        '<span class="pp-save">You save ' + planMoneyDisplay(s.save) + '</span>' +
         (s.endsMs ? '<span class="pp-ends" data-sale-countdown="' + s.endsMs + '">' +
           saleCountdownText(s.endsMs) + '</span>' : '') +
       '</div>' +

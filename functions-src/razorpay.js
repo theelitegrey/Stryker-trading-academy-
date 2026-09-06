@@ -20,15 +20,18 @@
  *   cat >> .env << 'ENV'
  *   RAZORPAY_KEY_ID=rzp_test_...
  *   RAZORPAY_KEY_SECRET=...
- *   RAZORPAY_CURRENCY=INR
  *   ENV
  *   firebase deploy --only functions:razorpayCreateOrder,functions:razorpayVerifyPayment
  *
- * RAZORPAY_CURRENCY: the currency orders are charged in. Plan prices are
- * stored as plain numbers; they are converted to the currency's minor unit
- * (x100). If your Razorpay account is INR-only (the default), set INR and
- * price your plans in rupees — charging USD requires international payments
- * to be enabled on the Razorpay account.
+ * CURRENCY: plan prices are stored as USD numbers. The client sends the
+ * currency it DISPLAYED ('USD', or 'INR' for visitors in India — see
+ * assets/plan-price.js); for INR the dollar total is converted with the
+ * admin-set rate in settings/commerce.usdInr (fallback 88), rounded to whole
+ * rupees with the exact same Math.round the client uses, so the page price
+ * and the charge always match. If the Razorpay account can't accept a USD
+ * order (international currency presentment not enabled), the order is
+ * retried once in INR at the same rate — the Razorpay modal shows the buyer
+ * the ₹ amount and currency before they pay, so nothing is hidden.
  *
  * No SDK dependency: the two REST calls Razorpay needs are plain fetch()
  * with basic auth (Node 20 has global fetch), so nothing new to npm install.
@@ -102,12 +105,24 @@ function couponDiscount(coupon, price, planId){
   return { ok: true, discount };
 }
 
+// The admin-set USD→INR rate — the same settings/commerce doc the client
+// reads before rendering prices, so both sides convert identically.
+async function usdInrRate(){
+  try {
+    const doc = await db.collection('settings').doc('commerce').get();
+    const r = doc.exists ? parseFloat(doc.data().usdInr) : NaN;
+    if (isFinite(r) && r > 0) return r;
+  } catch (e) { /* fall through to the default */ }
+  return 88;
+}
+
 exports.razorpayCreateOrder = functions
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const planId = String((data && data.planId) || '');
     const couponCode = String((data && data.couponCode) || '').trim().toUpperCase() || null;
+    const reqCurrency = String((data && data.currency) || '').toUpperCase();
 
     const planDoc = await db.collection('plans').doc(planId).get();
     if (!planDoc.exists) throw new functions.https.HttpsError('not-found', 'That plan could not be found.');
@@ -124,24 +139,43 @@ exports.razorpayCreateOrder = functions
       price = Math.max(0, price - res.discount);
     }
 
-    const currency = (process.env.RAZORPAY_CURRENCY || 'INR').toUpperCase();
-    const amountMinor = Math.round(price * 100);
+    // `price` is the USD total after sale + coupon. The buyer pays it in the
+    // currency their page displayed: dollars as-is, or whole rupees at the
+    // admin rate — Math.round(usd * rate), matching planMoneyDisplay exactly.
+    let currency = (reqCurrency === 'INR' || reqCurrency === 'USD') ? reqCurrency : 'USD';
+    const rate = await usdInrRate();
+    const minorFor = (cur) => cur === 'INR' ? Math.round(price * rate) * 100 : Math.round(price * 100);
+
+    let amountMinor = minorFor(currency);
     if (amountMinor < 100) {
       // Fully (or nearly) discounted — the coupon checkout path handles free.
       throw new functions.https.HttpsError('failed-precondition',
         'This order is free after the coupon — complete it without payment.');
     }
 
-    const resp = await fetch('https://api.razorpay.com/v1/orders', {
+    const createOrder = (cur, minor) => fetch('https://api.razorpay.com/v1/orders', {
       method: 'POST',
       headers: { Authorization: rzpAuthHeader(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        amount: amountMinor,
-        currency,
+        amount: minor,
+        currency: cur,
         receipt: (uid.slice(0, 24) + '_' + Date.now()).slice(0, 40),
         notes: { uid, planId, coupon: couponCode || '' }
       })
     });
+
+    let resp = await createOrder(currency, amountMinor);
+    if (!resp.ok && resp.status !== 401 && currency === 'USD') {
+      // A Razorpay account without international currency presentment rejects
+      // USD orders outright. Rather than dead-ending every non-Indian buyer,
+      // fall back to the INR equivalent at the same rate — the Razorpay modal
+      // shows them the ₹ amount and currency before any card details go in.
+      const body = await resp.text().catch(() => '');
+      console.warn('USD order rejected, retrying in INR', resp.status, body.slice(0, 300));
+      currency = 'INR';
+      amountMinor = minorFor('INR');
+      resp = await createOrder(currency, amountMinor);
+    }
     if (!resp.ok) {
       const body = await resp.text().catch(() => '');
       console.error('Razorpay order create failed', resp.status, body.slice(0, 500));
@@ -157,6 +191,8 @@ exports.razorpayCreateOrder = functions
       couponCode,
       amountMinor,
       currency,
+      amountUsd: price,
+      fxRate: currency === 'INR' ? rate : null,
       status: 'created',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -230,6 +266,8 @@ exports.razorpayVerifyPayment = functions
       couponCode: order.couponCode,
       finalAmount: order.amountMinor / 100,
       currency: order.currency,
+      amountUsd: order.amountUsd != null ? order.amountUsd : null,
+      fxRate: order.fxRate || null,
       gateway: 'razorpay',
       razorpayOrderId: orderId,
       razorpayPaymentId: paymentId,

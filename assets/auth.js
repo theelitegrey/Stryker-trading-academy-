@@ -364,6 +364,29 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    // Plan badge beside the logo. The logo lives in the app header
+    // (.mobile-topnav .brand) at desktop widths and in the sidebar drawer on
+    // mobile, so the badge is added next to both — CSS (.brand-plan) then
+    // hides it on mobile/small screens, where header room is scarce.
+    function applyBrandPlan(plan){
+      if (!plan || typeof findPlan !== 'function') return;
+      const p = findPlan(plan);
+      if (!p || !p.name) return;
+      const color = p.color || '#8b93a0';
+      document.querySelectorAll('.sidebar > .brand, .mobile-topnav .brand').forEach((brand) => {
+        let badge = brand.querySelector('.brand-plan');
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'brand-plan';
+          brand.appendChild(badge);
+        }
+        badge.style.color = color;
+        badge.style.background = color + '1a';
+        badge.style.borderColor = color + '55';
+        badge.textContent = p.name;
+      });
+    }
+
     if (typeof db !== 'undefined' && db && typeof roleTagHtml === 'function' && typeof loadPlansForRoles === 'function') {
       Promise.all([
         db.collection('students').doc(user.uid).get().catch(() => null),
@@ -372,6 +395,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = studentDoc && studentDoc.exists ? studentDoc.data() : null;
         const plan = data ? data.plan : null;
         if (plan) applyChipName(roleTagHtml(plan, { size: 'small' }));
+        applyBrandPlan(plan);
         applyChipAvatar(Object.assign({}, data, { photoURL: (data && data.photoURL) || user.photoURL }));
       }).catch(() => {});
     }

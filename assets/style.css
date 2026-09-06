@@ -5491,3 +5491,37 @@ a.floor-tag:hover{ text-decoration:underline; }
   .nav-theme-seg .theme-seg-txt{ display:none; }
   .nav-theme-seg .theme-seg-opt{ padding:6px 9px; }
 }
+
+/* ---- Plan label flair ------------------------------------------------------
+   The plan badge beside the logo (desktop header / sidebar; hidden on mobile
+   at the end of this block) and the role-tag pills shown next to user names
+   share a bright treatment: a light sweep gliding across the pill plus a
+   soft breathing glow in the plan's own color. */
+.brand-plan{
+  display:inline-block; margin-left:10px; padding:3px 11px; border-radius:999px;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:800; letter-spacing:.09em;
+  text-transform:uppercase; border:1px solid; white-space:nowrap; align-self:center;
+}
+.role-tag, .brand-plan{
+  position:relative; overflow:hidden; isolation:isolate;
+  animation:plan-glow 2.8s ease-in-out infinite;
+}
+.role-tag::after, .brand-plan::after{
+  content:''; position:absolute; top:0; bottom:0; left:-70%; width:45%;
+  transform:skewX(-20deg); pointer-events:none;
+  background:linear-gradient(105deg, transparent, rgba(255,255,255,.55), transparent);
+  animation:plan-shine 3.4s ease-in-out infinite;
+}
+@keyframes plan-shine{ 0%{ left:-70%; } 55%, 100%{ left:140%; } }
+@keyframes plan-glow{
+  0%, 100%{ box-shadow:0 0 5px -5px currentColor; }
+  50%{ box-shadow:0 0 12px -3px currentColor; }
+}
+@media (prefers-reduced-motion: reduce){
+  .role-tag, .brand-plan{ animation:none; }
+  .role-tag::after, .brand-plan::after{ animation:none; display:none; }
+}
+/* Desktop and larger screens only — on phones the header has no room and the
+   sidebar is a drawer. */
+@media (max-width:900px){ .brand-plan{ display:none; } }
+html[data-device="mobile"] .brand-plan{ display:none; }

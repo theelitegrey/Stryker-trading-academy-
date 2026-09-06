@@ -5,7 +5,7 @@
 <meta name="stryker-build" content="257">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Achievements — Stryker Trading Academy</title>
+<title>Giveaways — Stryker Trading Academy</title>
 <link rel="stylesheet" href="assets/style.css?v=257">
 <script src="assets/device-mode.js?v=257"></script>
 <script src="assets/toast.js?v=257" defer></script>
@@ -19,7 +19,7 @@
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
-<body data-page-access="achievements">
+<body>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="home" href="dashboard-user.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="appnav-dkl">Home</span></a>
   <a class="appnav-dk" data-nav="learn" href="courses.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg><span class="appnav-dkl">Learn</span></a>
@@ -96,7 +96,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
         Live sessions
       </a>
-      <a href="achievements.html" class="side-link active">
+      <a href="achievements.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg>
         Achievements
       </a>
@@ -128,7 +128,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Invite &amp; earn
       </a>
-      <a href="giveaways.html" class="side-link">
+      <a href="giveaways.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v9H5v-9"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg>
         Giveaways
       </a>
@@ -161,14 +161,113 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Achievements</h1>
-        <p id="ach-subtitle">Loading your progress…</p>
+        <h1>Giveaways</h1>
+        <p>Prizes, license drops, and community rewards.</p>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head"><h2>Your badges</h2></div>
-      <div id="achievements-grid"></div>
+    <style>
+      /* The whole scene is CSS — no libraries, nothing to load. */
+      .gv-hero { position:relative; overflow:hidden; min-height:480px; display:flex; flex-direction:column;
+        align-items:center; justify-content:center; text-align:center; padding:46px 22px 42px; }
+      .gv-glow { position:absolute; top:50%; left:50%; width:560px; height:560px; transform:translate(-50%,-52%);
+        background:radial-gradient(circle, rgba(3,201,136,.16), rgba(93,99,255,.08) 45%, transparent 68%);
+        filter:blur(6px); animation:gv-breathe 5s ease-in-out infinite; pointer-events:none; }
+      @keyframes gv-breathe { 0%,100%{ transform:translate(-50%,-52%) scale(1); opacity:.9; }
+        50%{ transform:translate(-50%,-52%) scale(1.12); opacity:1; } }
+
+      .gv-scene { position:relative; width:190px; height:190px; margin-bottom:6px; }
+      .gv-gift { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+        animation:gv-float 3.6s ease-in-out infinite; }
+      @keyframes gv-float { 0%,100%{ transform:translateY(0) rotate(-1.5deg); } 50%{ transform:translateY(-14px) rotate(1.5deg); } }
+      .gv-lid { transform-box:fill-box; transform-origin:20% 100%; animation:gv-peek 4.8s ease-in-out infinite; }
+      @keyframes gv-peek { 0%,74%,100%{ transform:none; } 80%{ transform:translateY(-7px) rotate(-5deg); }
+        86%{ transform:translateY(-3px) rotate(2deg); } 92%{ transform:none; } }
+      .gv-shadow { position:absolute; bottom:4px; left:50%; width:110px; height:16px; transform:translateX(-50%);
+        background:radial-gradient(ellipse, rgba(0,0,0,.45), transparent 70%); animation:gv-shadowp 3.6s ease-in-out infinite; }
+      @keyframes gv-shadowp { 0%,100%{ transform:translateX(-50%) scaleX(1); opacity:.75; } 50%{ transform:translateX(-50%) scaleX(.8); opacity:.45; } }
+
+      .gv-orbit { position:absolute; inset:-14px; animation:gv-spin 9s linear infinite; pointer-events:none; color:#ffd057; }
+      .gv-orbit span { position:absolute; font-size:15px; filter:drop-shadow(0 0 6px rgba(255,208,87,.6)); }
+      .gv-orbit span:nth-child(1){ top:0; left:50%; }
+      .gv-orbit span:nth-child(2){ top:50%; right:0; font-size:11px; }
+      .gv-orbit span:nth-child(3){ bottom:0; left:46%; font-size:13px; }
+      .gv-orbit span:nth-child(4){ top:46%; left:0; font-size:10px; }
+      @keyframes gv-spin { to{ transform:rotate(360deg); } }
+
+      .gv-confetti { position:absolute; inset:0; pointer-events:none; }
+      .gv-confetti i { position:absolute; top:-14px; width:7px; height:11px; border-radius:2px; opacity:0;
+        animation-name:gv-fall; animation-timing-function:linear; animation-iteration-count:infinite; }
+      @keyframes gv-fall { 0%{ transform:translateY(0) rotate(0); opacity:0; }
+        8%{ opacity:.95; } 100%{ transform:translateY(560px) rotate(540deg); opacity:0; } }
+
+      .gv-title { font-size:clamp(32px, 6vw, 54px); font-weight:800; letter-spacing:.06em; line-height:1.08; margin:10px 0 0;
+        background:linear-gradient(100deg, #eef2ee 20%, #03c988 38%, #ffd057 52%, #eef2ee 68%);
+        background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+        animation:gv-shimmer 4.2s ease-in-out infinite; }
+      @keyframes gv-shimmer { 0%,100%{ background-position:0% 0; } 50%{ background-position:100% 0; } }
+
+      .gv-soon { display:inline-flex; align-items:center; gap:9px; margin-top:16px; padding:9px 20px; border-radius:999px;
+        font-family:var(--font-mono); font-size:12.5px; font-weight:800; letter-spacing:.16em; color:#7ce8bd;
+        background:rgba(3,201,136,.09); border:1px solid rgba(3,201,136,.4); }
+      .gv-soon i { width:9px; height:9px; border-radius:50%; background:#03c988; animation:gv-pulse 1.6s ease-in-out infinite; }
+      @keyframes gv-pulse { 0%,100%{ opacity:1; box-shadow:0 0 0 0 rgba(3,201,136,.5); } 50%{ opacity:.5; box-shadow:0 0 0 8px rgba(3,201,136,0); } }
+
+      .gv-sub { max-width:520px; margin:18px auto 0; font-size:14.5px; line-height:1.7; color:var(--ink-2); }
+
+      .gv-hints { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; margin-top:34px; width:100%; max-width:620px; }
+      .gv-hint { padding:16px 14px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2);
+        font-size:13px; color:var(--ink-1); }
+      .gv-hint b { display:block; font-size:20px; margin-bottom:6px; }
+
+      @media (prefers-reduced-motion: reduce) {
+        .gv-glow, .gv-gift, .gv-lid, .gv-shadow, .gv-orbit, .gv-title, .gv-soon i { animation:none; }
+        .gv-confetti { display:none; }
+      }
+    </style>
+
+    <div class="panel gv-hero">
+      <div class="gv-glow"></div>
+      <div class="gv-confetti" aria-hidden="true">
+        <i style="left:3.6%; background:#03c988; animation-duration:4.67s; animation-delay:1.79s;"></i>
+        <i style="left:8.7%; background:#ffd057; animation-duration:6.66s; animation-delay:4.4s;"></i>
+        <i style="left:18.2%; background:#e5484d; animation-duration:4.84s; animation-delay:2.74s;"></i>
+        <i style="left:21.5%; background:#5d63ff; animation-duration:5.21s; animation-delay:3.28s;"></i>
+        <i style="left:28.3%; background:#4fe3ac; animation-duration:5.16s; animation-delay:4.22s;"></i>
+        <i style="left:37.2%; background:#f79e1b; animation-duration:5.22s; animation-delay:3.83s;"></i>
+        <i style="left:45.0%; background:#03c988; animation-duration:4.62s; animation-delay:5.24s;"></i>
+        <i style="left:51.4%; background:#ffd057; animation-duration:5.55s; animation-delay:1.01s;"></i>
+        <i style="left:59.2%; background:#e5484d; animation-duration:5.54s; animation-delay:0.6s;"></i>
+        <i style="left:62.6%; background:#5d63ff; animation-duration:6.97s; animation-delay:3.92s;"></i>
+        <i style="left:72.2%; background:#4fe3ac; animation-duration:6.64s; animation-delay:3.49s;"></i>
+        <i style="left:79.7%; background:#f79e1b; animation-duration:5.66s; animation-delay:3.59s;"></i>
+        <i style="left:85.9%; background:#03c988; animation-duration:6.33s; animation-delay:5.6s;"></i>
+        <i style="left:91.7%; background:#ffd057; animation-duration:6.57s; animation-delay:0.3s;"></i>
+      </div>
+      <div class="gv-scene">
+        <div class="gv-orbit" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>
+        <div class="gv-gift">
+          <svg width="122" height="128" viewBox="0 0 120 126" fill="none" aria-hidden="true">
+            <rect x="14" y="70" width="92" height="50" rx="7" fill="#0c4f3b" stroke="#03c988" stroke-opacity=".35"/>
+            <rect x="52" y="70" width="16" height="50" fill="#ffd057"/>
+            <g class="gv-lid">
+              <path d="M60 44s-4-18-18-18a10 10 0 0 0 0 20z" fill="#ffb347" stroke="#e79b2e" stroke-width="1.5"/>
+              <path d="M60 44s4-18 18-18a10 10 0 0 1 0 20z" fill="#ffd057" stroke="#e7bb3e" stroke-width="1.5"/>
+              <rect x="6" y="44" width="108" height="26" rx="6" fill="#12775a" stroke="#03c988" stroke-opacity=".45"/>
+              <rect x="50" y="44" width="20" height="26" rx="2" fill="#ffd057"/>
+            </g>
+          </svg>
+        </div>
+        <div class="gv-shadow"></div>
+      </div>
+      <h2 class="gv-title" id="gv-headline">GIVEAWAYS ARE COMING</h2>
+      <span class="gv-soon"><i></i>STARTING SOON</span>
+      <p class="gv-sub" id="gv-sub">Indicator licenses, free Elite months, merch drops and more — the first giveaway is being prepared right now. Keep an eye on the trading floor and your notifications so you don’t miss the drop.</p>
+      <div class="gv-hints">
+        <div class="gv-hint"><b>📈</b>Indicator licenses</div>
+        <div class="gv-hint"><b>🚀</b>Free Elite months</div>
+        <div class="gv-hint"><b>🎁</b>Merch &amp; more</div>
+      </div>
     </div>
   </main>
 </div>
@@ -203,10 +302,7 @@
 <script src="assets/maintenance-check.js?v=257"></script>
 <script src="assets/branding.js?v=257"></script>
 <script src="assets/dash-nav.js?v=257"></script>
-<script src="assets/chapters-data.js?v=257"></script>
-<script src="assets/chapters-store.js?v=257"></script>
-<script src="assets/achievements-data.js?v=257"></script>
-<script src="assets/achievements.js?v=257"></script>
+<script src="assets/giveaways.js?v=257"></script>
 <script src="assets/theme.js?v=257"></script>
 </body>
 </html>

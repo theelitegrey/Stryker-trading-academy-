@@ -99,7 +99,7 @@
           esc(plan.name || 'Plan') + '</span>' +
         (typeof planPriceHtml === 'function'
           ? planPriceHtml(plan, 'md')
-          : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
+          : '<div class="plan-modal-price">₹' + esc(plan.price || '0') +
             '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
         '<button type="button" class="btn btn-primary plan-modal-pick">' +

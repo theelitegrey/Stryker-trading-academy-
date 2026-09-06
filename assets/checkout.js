@@ -74,7 +74,7 @@ function renderPlanSummary(plan){
     '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + plan.name + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'sm')
-      : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
+      : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">₹' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
     '<ul style="margin:0; padding:0; list-style:none;">' + featuresHtml + '</ul>';
 }
 
@@ -84,14 +84,14 @@ function updateOrderSummary(){
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
   const listPrice = parseFloat(CHECKOUT_PLAN.price) || 0;
   const price = sale.active ? sale.price : listPrice;
-  document.getElementById('checkout-original-price').textContent = '$' + listPrice.toFixed(2);
+  document.getElementById('checkout-original-price').textContent = '₹' + listPrice.toFixed(2);
 
   const offerRow = document.getElementById('checkout-offer-row');
   if (offerRow) {
     offerRow.style.display = sale.active ? '' : 'none';
     if (sale.active) {
       document.getElementById('checkout-offer-label').textContent = sale.label + ' (' + sale.pct + '% off)';
-      document.getElementById('checkout-offer-amount').textContent = '-$' + sale.save.toFixed(2);
+      document.getElementById('checkout-offer-amount').textContent = '-₹' + sale.save.toFixed(2);
     }
   }
 
@@ -108,18 +108,18 @@ function updateOrderSummary(){
 
   if (!APPLIED_COUPON) {
     document.getElementById('checkout-discount').textContent = '—';
-    document.getElementById('checkout-total').textContent = '$' + price.toFixed(2);
+    document.getElementById('checkout-total').textContent = '₹' + price.toFixed(2);
     completeBtn.disabled = false;
-    completeBtn.textContent = 'Pay $' + price.toFixed(2) + ' securely';
+    completeBtn.textContent = 'Pay ₹' + price.toFixed(2) + ' securely';
     return;
   }
 
   const discount = computeDiscount(APPLIED_COUPON, price);
   const total = Math.max(price - discount, 0);
-  document.getElementById('checkout-discount').textContent = '-$' + discount.toFixed(2);
-  document.getElementById('checkout-total').textContent = '$' + total.toFixed(2);
+  document.getElementById('checkout-discount').textContent = '-₹' + discount.toFixed(2);
+  document.getElementById('checkout-total').textContent = '₹' + total.toFixed(2);
   completeBtn.disabled = false;
-  completeBtn.textContent = total > 0 ? 'Pay $' + total.toFixed(2) + ' securely' : 'Complete order';
+  completeBtn.textContent = total > 0 ? 'Pay ₹' + total.toFixed(2) + ' securely' : 'Complete order';
 }
 
 // ---- Razorpay Standard Checkout ---------------------------------------------
@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // them into a single line would hide both cases.
         if (typeof logActivity === 'function') {
           logActivity('commerce.order_created',
-            'Bought ' + CHECKOUT_PLAN.name + ' for $' + finalAmount +
+            'Bought ' + CHECKOUT_PLAN.name + ' for ₹' + finalAmount +
             (APPLIED_COUPON ? ' with coupon ' + APPLIED_COUPON.code : ''),
             { detail: 'plan ' + CHECKOUT_PLAN.id });
           logActivity('student.plan_changed',

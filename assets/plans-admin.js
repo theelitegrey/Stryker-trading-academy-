@@ -23,7 +23,7 @@ function renderPlanCard(plan){
     ribbon + '<h3>' + (plan.name || 'Untitled plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
-      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
+      : '<div class="price-amt">₹' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     '<ul>' + featuresHtml + '</ul>' +
     '<div style="font-size:12px; color:var(--ink-3); margin:10px 0 16px; font-family:var(--font-mono);">Chapter access: ' + (plan.chapterAccess || 'all') + '</div>' +
     '<div style="display:flex; gap:8px;">' +
@@ -84,7 +84,7 @@ function updateSalePreview(){
   var sale = parseFloat(document.getElementById('plan-sale-price').value);
   var ends = document.getElementById('plan-sale-ends').value;
   if (!isFinite(sale) || sale < 0) { out.textContent = 'Enter a sale price to switch the offer on.'; out.style.color = 'var(--amber)'; return; }
-  if (full <= 0 || sale >= full) { out.textContent = 'The sale price must be lower than the plan price ($' + full + ') — the offer will not show.'; out.style.color = 'var(--bear)'; return; }
+  if (full <= 0 || sale >= full) { out.textContent = 'The sale price must be lower than the plan price (₹' + full + ') — the offer will not show.'; out.style.color = 'var(--bear)'; return; }
   var pct = Math.round(((full - sale) / full) * 100);
   var endTxt = '';
   if (ends) {
@@ -93,7 +93,7 @@ function updateSalePreview(){
                                       : ' — runs until ' + d.toLocaleDateString();
   }
   out.style.color = /passed/.test(endTxt) ? 'var(--bear)' : 'var(--gold)';
-  out.textContent = 'Students pay $' + sale + ' instead of $' + full + ' — ' + pct + '% off, saving $' + (full - sale).toFixed(2) + endTxt;
+  out.textContent = 'Students pay ₹' + sale + ' instead of ₹' + full + ' — ' + pct + '% off, saving ₹' + (full - sale).toFixed(2) + endTxt;
 }
 
 function updatePlanColorPreview(){

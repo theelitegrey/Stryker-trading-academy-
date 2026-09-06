@@ -52,7 +52,7 @@ function renderPublicPlanCard(plan, offer){
     '<h3>' + (plan.name || 'Plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
-      : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
+      : '<div class="price-amt">₹' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     (hasOffer
       ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b><span class="fn-seats">Limited seats</span></div>'
       : '') +

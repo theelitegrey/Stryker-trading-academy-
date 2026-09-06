@@ -88,21 +88,21 @@ function planPriceHtml(plan, size){
   var cls = 'plan-price plan-price-' + (size || 'lg');
 
   if (!s.active) {
-    return '<div class="' + cls + '"><span class="pp-main"><span class="pp-now">$' + planMoney(s.full) +
+    return '<div class="' + cls + '"><span class="pp-main"><span class="pp-now">₹' + planMoney(s.full) +
            '</span><span class="pp-per">/ ' + period + '</span></span></div>';
   }
 
   return '<div class="' + cls + ' is-sale">' +
       '<div class="pp-row">' +
         '<span class="pp-main">' +
-          '<span class="pp-now">$' + planMoney(s.sale) + '</span>' +
+          '<span class="pp-now">₹' + planMoney(s.sale) + '</span>' +
           '<span class="pp-per">/ ' + period + '</span>' +
         '</span>' +
-        '<span class="pp-was"><s>$' + planMoney(s.full) + '</s></span>' +
+        '<span class="pp-was"><s>₹' + planMoney(s.full) + '</s></span>' +
       '</div>' +
       '<div class="pp-tags">' +
         '<span class="pp-off"><i></i>SAVE ' + s.pct + '%</span>' +
-        '<span class="pp-save">You save $' + planMoney(s.save) + '</span>' +
+        '<span class="pp-save">You save ₹' + planMoney(s.save) + '</span>' +
         (s.endsMs ? '<span class="pp-ends" data-sale-countdown="' + s.endsMs + '">' +
           saleCountdownText(s.endsMs) + '</span>' : '') +
       '</div>' +

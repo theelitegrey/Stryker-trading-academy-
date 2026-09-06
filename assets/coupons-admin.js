@@ -10,6 +10,7 @@ function loadPlansIntoCouponSelect(){
   return db.collection('plans').get().then((snap) => {
     ALL_PLANS_FOR_COUPON = [];
     snap.forEach((doc) => ALL_PLANS_FOR_COUPON.push(Object.assign({ id: doc.id }, doc.data())));
+    ALL_PLANS_FOR_COUPON.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
     const select = document.getElementById('coupon-plan');
     const currentOptions = select.querySelectorAll('option[data-plan-option]');
     currentOptions.forEach((o) => o.remove());

@@ -6,11 +6,27 @@
 
 function ctaForPlan(plan){
   const onSale = (typeof planSaleInfo === 'function') && planSaleInfo(plan).active;
+  const cls = (plan.featured || onSale) ? 'btn-primary' : 'btn-ghost';
+  // A CTA set in Billing & plans admin wins; the heuristics below only cover
+  // plans that haven't set one.
+  if (plan.ctaLabel && String(plan.ctaLabel).trim()) {
+    const t = String(plan.ctaLabel).trim();
+    return { label: (typeof planEscape === 'function') ? planEscape(t) : t, cls };
+  }
   if (/mentor/i.test(plan.name || '')) return { label: 'Apply for mentorship', cls: 'btn-ghost' };
   if (onSale) return { label: 'Claim this price', cls: 'btn-primary' };
   if (plan.featured) return { label: 'Join the desk', cls: 'btn-primary' };
   if (!parseFloat(plan.price)) return { label: 'Start free', cls: 'btn-ghost' };
   return { label: 'Get started', cls: 'btn-ghost' };
+}
+
+// Cheapest tier first, priciest last — the order a pricing page reads in.
+// Rank is the primary key (it's what the role system already means by
+// "higher tier"); price breaks ties for plans that share a rank.
+function sortPlansAscending(plans){
+  return plans.sort((a, b) =>
+    ((a.rank ?? 0) - (b.rank ?? 0)) ||
+    ((parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)));
 }
 
 // The WELCOME founding offer (first 50 join free) shows as a note on the plan
@@ -76,6 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (snap.empty) return; // keep the static fallback cards already in the HTML
     const plans = [];
     snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
+    sortPlansAscending(plans);
     grid.innerHTML = '';
     plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan, offer)));
     if (typeof startSaleCountdowns === 'function') startSaleCountdowns();

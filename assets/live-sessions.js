@@ -16,6 +16,14 @@
 // CHAT: liveSessions/{id}/chat subcollection (rules: students read + create
 // their own messages, admins moderate). Live sessions only — replays show
 // the player without the chat column.
+//
+// PLAN GATE (the live/replay split): replays are a Pro feature, the live
+// room — realtime player + chat — is Elite's. Gated by plan RANK, not name,
+// so renaming a tier in Billing & plans doesn't break it: rank 1+ unlocks
+// replays, rank 2+ unlocks live. Admins bypass. A student below the bar
+// still SEES that a session is live — a locked card with an upgrade button
+// converts better than an empty page — they just can't open the player.
+// Unresolvable plan data fails open, like every other gate on the site.
 
 let LS_SESSIONS = [];
 let LS_PLAYER = null;
@@ -27,6 +35,30 @@ let LS_COUNTDOWN_TIMER = null;
 let LS_PROGRESS_TIMER = null;
 let LS_UID = null;
 let LS_NAME = 'Trader';
+
+const LS_REPLAY_MIN_RANK = 1;   // Pro and up
+const LS_LIVE_MIN_RANK = 2;     // Elite and up
+let LS_ACCESS = { live: true, replay: true };
+
+function lsCanWatch(mode){
+  return mode === 'live' ? LS_ACCESS.live : LS_ACCESS.replay;
+}
+
+// The name of the cheapest plan whose rank clears the bar — so the upsell
+// says "Go Elite" / "Upgrade to Pro" with the real, current plan names.
+function lsPlanNameForRank(minRank){
+  const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : [];
+  const match = plans.find((p) => (p.rank ?? 0) >= minRank); // list is rank-ascending
+  return match ? match.name : null;
+}
+
+function lsPromptUpgrade(mode){
+  const planName = lsPlanNameForRank(mode === 'live' ? LS_LIVE_MIN_RANK : LS_REPLAY_MIN_RANK);
+  const reason = mode === 'live'
+    ? ((planName ? planName + ' members' : 'Higher plans') + ' trade the live sessions in real time, chat included.')
+    : ('Session replays are included from the ' + (planName || 'next') + ' plan up.');
+  if (typeof openPlanUpgradeModal === 'function') openPlanUpgradeModal(reason);
+}
 
 function formatSessionDate(dateStr, timeStr){
   try {
@@ -58,6 +90,7 @@ function lsLoadYouTubeApi(){
 }
 
 function lsOpenPlayer(session, mode){
+  if (!lsCanWatch(mode)) { lsPromptUpgrade(mode); return; }
   const hero = document.getElementById('live-hero');
   hero.style.display = '';
   document.getElementById('live-hero-title').textContent = session.title || 'Live session';
@@ -219,6 +252,48 @@ function lsCloseChat(){
   if (panel) panel.style.display = 'none';
 }
 
+// ---- live upsell (plan below the live bar while a session runs) -------------
+
+function lsShowLiveUpsell(session){
+  let panel = document.getElementById('live-upsell-panel');
+  const planName = lsPlanNameForRank(LS_LIVE_MIN_RANK);
+  if (!panel) {
+    if (!document.getElementById('ls-upsell-style')) {
+      const st = document.createElement('style');
+      st.id = 'ls-upsell-style';
+      st.textContent = '@keyframes ls-upsell-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(229,72,77,.5);}50%{opacity:.55;box-shadow:0 0 0 7px rgba(229,72,77,0);}}';
+      document.head.appendChild(st);
+    }
+    panel = document.createElement('div');
+    panel.id = 'live-upsell-panel';
+    panel.className = 'panel';
+    panel.style.cssText = 'margin-bottom:22px; border-color:rgba(229,72,77,.45); background:linear-gradient(135deg, rgba(229,72,77,.08), transparent 55%);';
+    const hero = document.getElementById('live-hero');
+    if (hero && hero.parentNode) hero.parentNode.insertBefore(panel, hero);
+    else document.querySelector('.dash-main').prepend(panel);
+  }
+  panel.innerHTML =
+    '<div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">' +
+      '<span style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; font-weight:800; letter-spacing:.12em; color:#ff6d76;">' +
+        '<i style="width:9px; height:9px; border-radius:50%; background:#e5484d; animation:ls-upsell-pulse 1.4s ease-in-out infinite; display:inline-block;"></i>LIVE NOW</span>' +
+      '<div style="flex:1 1 240px;">' +
+        '<h3 style="font-size:16px; color:var(--ink-0); margin:0 0 3px;">' + lsEsc(session.title || 'Live trading session') + '</h3>' +
+        '<span style="font-size:12.5px; color:var(--ink-3);">' +
+          (session.instrument ? lsEsc(session.instrument) + ' · ' : '') +
+          'happening right now — ' + (planName ? lsEsc(planName) + ' members are' : 'higher plans are') + ' in the room.</span>' +
+      '</div>' +
+      '<button type="button" class="btn btn-primary" data-open-plan-modal ' +
+        'data-upgrade-reason="' + lsEsc((planName ? planName + ' members' : 'Higher plans') + ' trade the live sessions in real time, chat included.') + '">' +
+        (planName ? 'Go ' + lsEsc(planName) + ' to join live' : 'Upgrade to join live') + '</button>' +
+    '</div>';
+  panel.style.display = '';
+}
+
+function lsHideLiveUpsell(){
+  const panel = document.getElementById('live-upsell-panel');
+  if (panel) panel.style.display = 'none';
+}
+
 // ---- next-session countdown -------------------------------------------------
 
 function lsRenderNext(next){
@@ -281,7 +356,9 @@ function renderSessionRow(session, isPast){
     (isPast ? lsStatsHtml(session) : '') +
     '</div>' +
     (isPast && session.videoId
-      ? '<button class="btn btn-ghost btn-sm" style="align-self:center;">▶ Watch replay</button>'
+      ? (LS_ACCESS.replay
+          ? '<button class="btn btn-ghost btn-sm" style="align-self:center;">▶ Watch replay</button>'
+          : '<button class="btn btn-ghost btn-sm" style="align-self:center; opacity:.75;">🔒 Replay — upgrade</button>')
       : '');
   const btn = row.querySelector('button');
   if (btn) btn.addEventListener('click', () => lsOpenPlayer(session, 'replay'));
@@ -311,10 +388,16 @@ function lsRenderLists(){
   }
 
   const live = LS_SESSIONS.find((s) => s.isLive && s.videoId);
-  if (live) {
+  if (live && !LS_ACCESS.live) {
+    // A session is live but this plan can't enter the room: show it, locked.
+    lsShowLiveUpsell(live);
+    lsRenderNext(null);
+  } else if (live) {
+    lsHideLiveUpsell();
     lsOpenPlayer(live, 'live');
     lsRenderNext(null);
   } else {
+    lsHideLiveUpsell();
     // Live just ended (or never started): drop back to the countdown. The
     // player stays open only if the student explicitly opened a replay.
     if (LS_PLAYER_MODE === 'live') {
@@ -341,6 +424,24 @@ document.addEventListener('DOMContentLoaded', () => {
     LS_UID = user.uid;
     LS_NAME = user.displayName || (user.email ? user.email.split('@')[0] : 'Trader');
 
+    // Resolve the plan gate BEFORE the first render, so a locked student
+    // never sees the player flash open and then vanish. Same parallel reads
+    // plan-guard.js makes; the results are answered from cache by the SDK.
+    const adminCheck = db.collection('admins').doc(user.uid).get().catch(() => null);
+    const studentCheck = db.collection('students').doc(user.uid).get().catch(() => null);
+    const rolesCheck = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
+    Promise.all([adminCheck, studentCheck, rolesCheck]).then(([adminDoc, studentDoc]) => {
+      if (adminDoc && adminDoc.exists) return; // admins keep full access
+      const plan = (studentDoc && studentDoc.exists) ? studentDoc.data().plan : null;
+      // An unknown or missing plan is a data problem, not a permission one —
+      // fail open, same as roles.js does for chapters.
+      if (!plan || typeof rankOf !== 'function' || typeof findPlan !== 'function' || !findPlan(plan)) return;
+      const rank = rankOf(plan);
+      LS_ACCESS = { live: rank >= LS_LIVE_MIN_RANK, replay: rank >= LS_REPLAY_MIN_RANK };
+    }).catch(() => {}).then(() => lsSubscribe());
+  });
+
+  function lsSubscribe(){
     // Realtime: going live in the admin flips this page for everyone on it.
     LS_LIVE_UNSUB = db.collection('liveSessions').orderBy('date', 'asc')
       .onSnapshot((snap) => {
@@ -353,5 +454,5 @@ document.addEventListener('DOMContentLoaded', () => {
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load sessions: ' + (err.message || err) + '</p>';
         document.getElementById('live-past-list').innerHTML = '';
       });
-  });
+  }
 });

@@ -54,6 +54,11 @@ function loadPlans(){
   return db.collection('plans').get().then((snap) => {
     ALL_PLANS = [];
     snap.forEach((doc) => ALL_PLANS.push(Object.assign({ id: doc.id }, doc.data())));
+    // Same lowest→highest order the homepage shows, so this grid IS the
+    // preview of what visitors see.
+    ALL_PLANS.sort((a, b) =>
+      ((a.rank ?? 0) - (b.rank ?? 0)) ||
+      ((parseFloat(a.price) || 0) - (parseFloat(b.price) || 0)));
     renderPlansGrid();
   });
 }
@@ -73,6 +78,8 @@ function openPlanEditor(plan){
   document.getElementById('plan-rank').value = String(plan && plan.rank != null ? plan.rank : 0);
   document.getElementById('plan-color').value = (plan && plan.color) || '#00adb5';
   document.getElementById('plan-featured').checked = !!(plan && plan.featured);
+  const ctaEl = document.getElementById('plan-cta');
+  if (ctaEl) ctaEl.value = plan ? (plan.ctaLabel || '') : '';
   document.getElementById('plan-features').value = plan ? (plan.features || []).join('\n') : '';
   document.getElementById('delete-plan-btn').style.display = plan ? 'inline-flex' : 'none';
   document.getElementById('plan-edit-panel').style.display = 'block';
@@ -203,6 +210,7 @@ document.addEventListener('DOMContentLoaded', () => {
       rank: parseInt(document.getElementById('plan-rank').value, 10) || 0,
       color: document.getElementById('plan-color').value || '#00adb5',
       featured: document.getElementById('plan-featured').checked,
+      ctaLabel: (document.getElementById('plan-cta') ? document.getElementById('plan-cta').value.trim() : ''),
       features: document.getElementById('plan-features').value.split('\n').map(f => f.trim()).filter(Boolean),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };

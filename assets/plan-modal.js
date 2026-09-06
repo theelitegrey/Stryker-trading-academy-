@@ -103,7 +103,9 @@
             '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
-          (sale.active ? 'Claim the ' + esc(plan.name || 'plan') + ' offer' : 'Choose ' + esc(plan.name || 'plan')) +
+          (plan.ctaLabel && String(plan.ctaLabel).trim()
+            ? esc(String(plan.ctaLabel).trim())
+            : (sale.active ? 'Claim the ' + esc(plan.name || 'plan') + ' offer' : 'Choose ' + esc(plan.name || 'plan'))) +
         '</button>';
 
       card.querySelector('.plan-modal-pick').addEventListener('click', function () {

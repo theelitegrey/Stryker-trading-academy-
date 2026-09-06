@@ -11,6 +11,92 @@ let CHECKOUT_UID = null;
 let CHECKOUT_PLAN = null;
 let APPLIED_COUPON = null;
 
+// ---- billing details --------------------------------------------------------
+// Saved on students/{uid}.billing the first time someone buys, then reused:
+// returning buyers see a compact summary with an Edit button instead of the
+// form. Nothing — a card payment or a free coupon seat — completes until the
+// required fields are in.
+let CHECKOUT_BILLING = null;
+
+const BILLING_FIELDS = [
+  ['fullName', 'bill-name'], ['phone', 'bill-phone'], ['address', 'bill-address'],
+  ['city', 'bill-city'], ['state', 'bill-state'], ['postal', 'bill-postal'],
+  ['country', 'bill-country']
+];
+const BILLING_REQUIRED = ['fullName', 'address', 'city', 'postal', 'country'];
+
+function billingComplete(b){
+  return !!b && BILLING_REQUIRED.every((k) => String(b[k] || '').trim());
+}
+
+function billingEsc(s){
+  return (typeof planEscape === 'function') ? planEscape(s)
+    : String(s == null ? '' : s).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function showBillingForm(){
+  document.getElementById('checkout-billing-loading').style.display = 'none';
+  document.getElementById('checkout-billing-summary').style.display = 'none';
+  document.getElementById('checkout-billing-form').style.display = '';
+  const b = CHECKOUT_BILLING || {};
+  BILLING_FIELDS.forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = b[key] || '';
+  });
+  const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
+  const nameEl = document.getElementById('bill-name');
+  if (nameEl && !nameEl.value && user && user.displayName) nameEl.value = user.displayName;
+  // The country field almost always matches the currency the page detected —
+  // prefill it, leave it editable.
+  const countryEl = document.getElementById('bill-country');
+  if (countryEl && !countryEl.value && typeof strykerCurrency === 'function' && strykerCurrency() === 'INR') {
+    countryEl.value = 'India';
+  }
+}
+
+function showBillingSummary(){
+  const b = CHECKOUT_BILLING;
+  document.getElementById('checkout-billing-loading').style.display = 'none';
+  document.getElementById('checkout-billing-form').style.display = 'none';
+  document.getElementById('checkout-billing-summary-text').innerHTML =
+    '<b style="color:var(--ink-0);">' + billingEsc(b.fullName) + '</b><br>' +
+    billingEsc(b.address) + '<br>' +
+    billingEsc(b.city) + (b.state ? ', ' + billingEsc(b.state) : '') + ' ' + billingEsc(b.postal) + '<br>' +
+    billingEsc(b.country) + (b.phone ? ' · ' + billingEsc(b.phone) : '');
+  document.getElementById('checkout-billing-summary').style.display = '';
+}
+
+function initBillingSection(studentDoc){
+  CHECKOUT_BILLING = (studentDoc && studentDoc.exists && studentDoc.data().billing) || null;
+  if (billingComplete(CHECKOUT_BILLING)) showBillingSummary();
+  else showBillingForm();
+}
+
+// Resolves with the saved billing details, or rejects with the sentinel
+// 'billing-incomplete' (the error is already shown at the form) when the
+// required fields are missing.
+function ensureBillingSaved(){
+  const formVisible = document.getElementById('checkout-billing-form').style.display !== 'none';
+  if (!formVisible && billingComplete(CHECKOUT_BILLING)) return Promise.resolve(CHECKOUT_BILLING);
+
+  const b = {};
+  BILLING_FIELDS.forEach(([key, id]) => {
+    const el = document.getElementById(id);
+    b[key] = el ? el.value.trim() : '';
+  });
+  const errEl = document.getElementById('checkout-billing-error');
+  if (!billingComplete(b)) {
+    errEl.textContent = 'Fill in your name, address, city, postal code and country to continue.';
+    errEl.style.display = 'block';
+    document.getElementById('checkout-billing-form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return Promise.reject(new Error('billing-incomplete'));
+  }
+  errEl.style.display = 'none';
+  b.updatedAtMillis = Date.now();
+  return db.collection('students').doc(CHECKOUT_UID).set({ billing: b }, { merge: true })
+    .then(() => { CHECKOUT_BILLING = b; showBillingSummary(); return b; });
+}
+
 function getPlanIdFromQuery(){
   return new URLSearchParams(window.location.search).get('plan');
 }
@@ -182,7 +268,8 @@ function launchRazorpay(btn, errEl){
       image: 'https://strykertrading.com/assets/images/icon-192.png',
       prefill: {
         email: (user && user.email) || '',
-        name: (user && user.displayName) || ''
+        name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
+        contact: (CHECKOUT_BILLING && CHECKOUT_BILLING.phone) || ''
       },
       theme: { color: '#03c988' },
       modal: { ondismiss: reset },
@@ -272,7 +359,11 @@ document.addEventListener('DOMContentLoaded', () => {
     CHECKOUT_UID = user.uid;
 
     const fxReady = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
-    Promise.all([loadCheckoutPlan(planId), fxReady]).then(([plan]) => {
+    const studentReady = db.collection('students').doc(CHECKOUT_UID).get().catch(() => null);
+    Promise.all([loadCheckoutPlan(planId), fxReady, studentReady]).then(([plan, , studentDoc]) => {
+      // Billing resolves regardless of the plan lookup, so the panel never
+      // sticks on "Checking your saved details…".
+      initBillingSection(studentDoc);
       if (!plan) {
         document.getElementById('checkout-plan-summary').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="index.html#pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';
@@ -328,13 +419,26 @@ document.addEventListener('DOMContentLoaded', () => {
     errEl.style.display = 'none';
     if (!CHECKOUT_UID || !CHECKOUT_PLAN) return;
 
-    // Money still owed (list price minus sale minus coupon) → Razorpay.
-    // Only a genuinely free order continues down the coupon path below.
-    if (checkoutTotalDue() > 0) {
-      launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
-      return;
-    }
+    // Billing details validate and save BEFORE any money — or a free coupon
+    // seat — changes hands, so every order has a name and address behind it.
+    ensureBillingSaved().then(() => {
+      // Money still owed (list price minus sale minus coupon) → Razorpay.
+      // Only a genuinely free order continues down the coupon path below.
+      if (checkoutTotalDue() > 0) {
+        launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
+        return;
+      }
+      completeFreeOrder(errEl);
+    }).catch((err) => {
+      if (err && err.message === 'billing-incomplete') return; // shown at the form
+      errEl.textContent = 'Could not save billing details: ' + (err.message || err);
+      errEl.style.display = 'block';
+    });
+  });
 
+  document.getElementById('checkout-billing-edit-btn').addEventListener('click', showBillingForm);
+
+  function completeFreeOrder(errEl){
     const price = (typeof planEffectivePrice === 'function')
       ? planEffectivePrice(CHECKOUT_PLAN)
       : (parseFloat(CHECKOUT_PLAN.price) || 0);
@@ -359,6 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
       couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null,
       discountApplied: discount,
       finalAmount: finalAmount,
+      billing: CHECKOUT_BILLING || null,
       status: 'completed',
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -460,5 +565,5 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.disabled = false;
         btn.textContent = 'Complete order';
       });
-  });
+  }
 });

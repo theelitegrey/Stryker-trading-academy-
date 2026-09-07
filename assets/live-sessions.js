@@ -392,8 +392,13 @@ function renderSessionRow(session, isPast){
 
 function lsRenderLists(){
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = LS_SESSIONS.filter((s) => s.date >= today).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
-  const past = LS_SESSIONS.filter((s) => s.date < today).sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
+  // A session marked completed by the admin belongs to Past sessions no
+  // matter what its date says — otherwise a stream that ended this morning
+  // would sit in "Upcoming" until midnight. A live session always stays out
+  // of Past even if a stale completed flag lingers.
+  const isPast = (s) => !s.isLive && (s.completed || s.date < today);
+  const upcoming = LS_SESSIONS.filter((s) => !isPast(s)).sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+  const past = LS_SESSIONS.filter(isPast).sort((a, b) => (b.date + (b.time || '')).localeCompare(a.date + (a.time || '')));
 
   const upcomingEl = document.getElementById('live-upcoming-list');
   const pastEl = document.getElementById('live-past-list');

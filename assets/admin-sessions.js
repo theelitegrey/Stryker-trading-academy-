@@ -24,7 +24,8 @@ function renderAdminSessionRow(session){
   row.innerHTML =
     '<div class="chapter-body">' +
       '<h3 style="font-size:15px;">' + (session.title || 'Untitled session') +
-        (session.isLive ? ' <span class="status-tag active" style="vertical-align:middle;">● LIVE</span>' : '') + '</h3>' +
+        (session.isLive ? ' <span class="status-tag active" style="vertical-align:middle;">● LIVE</span>' : '') +
+        (!session.isLive && session.completed ? ' <span class="status-tag" style="vertical-align:middle; color:var(--bull); border-color:var(--bull);">✓ COMPLETED</span>' : '') + '</h3>' +
       '<p>' + (session.description || '') + '</p>' +
       '<div class="chapter-meta">' +
         '<span>' + session.date + (session.time ? ' · ' + session.time : '') + '</span>' +
@@ -37,8 +38,12 @@ function renderAdminSessionRow(session){
       (session.videoId
         ? (session.isLive
             ? '<button class="btn btn-sm" data-live-toggle="' + session.id + '" style="background:var(--bear); border:1px solid var(--bear); color:#fff; font-weight:700;">■ End live</button>'
-            : '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">Go live</button>')
+            : (session.completed ? '' : '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">Go live</button>'))
         : '') +
+      (session.isLive ? '' :
+        (session.completed
+          ? '<button class="btn btn-ghost btn-sm" data-complete-toggle="' + session.id + '">↩ Move to upcoming</button>'
+          : '<button class="btn btn-ghost btn-sm" data-complete-toggle="' + session.id + '" style="color:var(--bull);">✓ Mark completed</button>')) +
       '<button class="btn btn-ghost btn-sm" data-edit-session="' + session.id + '">Edit</button>' +
       '<button class="btn btn-ghost btn-sm" data-copy-session="' + session.id + '">Copy</button>' +
       '<button class="icon-btn" data-session-id="' + session.id + '" title="Delete session">' +
@@ -47,6 +52,8 @@ function renderAdminSessionRow(session){
   row.querySelector('[data-session-id]').addEventListener('click', () => deleteAdminSession(session.id));
   const liveBtn = row.querySelector('[data-live-toggle]');
   if (liveBtn) liveBtn.addEventListener('click', () => toggleSessionLive(session));
+  const completeBtn = row.querySelector('[data-complete-toggle]');
+  if (completeBtn) completeBtn.addEventListener('click', () => toggleSessionComplete(session));
   row.querySelector('[data-edit-session]').addEventListener('click', () => startEditSession(session));
   row.querySelector('[data-copy-session]').addEventListener('click', () => copySession(session));
   return row;
@@ -121,16 +128,21 @@ function resetSessionForm(){
 // the student page never has to pick between two "live" banners.
 function toggleSessionLive(session){
   const goingLive = !session.isLive;
-  if (!goingLive && !confirm('End the livestream for everyone? Students watching are dropped back to the schedule.')) return;
+  if (!goingLive && !confirm('End the livestream for everyone? The session moves to Past sessions and students watching are dropped back to the schedule.')) return;
   db.collection('liveSessions').where('isLive', '==', true).get().then((snap) => {
     const batch = db.batch();
+    // Ending a stream also completes the session: it leaves Upcoming and
+    // shows under Past sessions (as a replay, once the video processes)
+    // right away, instead of lingering in Upcoming until midnight.
     snap.forEach((doc) => batch.update(doc.ref, {
       isLive: false,
+      completed: true,
       liveEndedAt: firebase.firestore.FieldValue.serverTimestamp()
     }));
     if (goingLive) {
       batch.update(db.collection('liveSessions').doc(session.id), {
         isLive: true,
+        completed: false,
         liveStartedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
@@ -138,7 +150,23 @@ function toggleSessionLive(session){
   }).then(() => {
     showToast('success', goingLive
       ? 'Session is LIVE — students see the player now.'
-      : 'Livestream ended — remember to also end the broadcast in YouTube Studio.');
+      : 'Livestream ended — the session moved to Past sessions. Remember to also end the broadcast in YouTube Studio.');
+    loadAdminSessions();
+  }).catch((err) => showToast('error', 'Could not update: ' + (err.message || err)));
+}
+
+// Mark a session completed without it ever having been flipped live (or undo
+// a completion): completed sessions leave the students' Upcoming list and
+// appear under Past sessions immediately, whatever their date says.
+function toggleSessionComplete(session){
+  const completing = !session.completed;
+  db.collection('liveSessions').doc(session.id).set(completing
+    ? { completed: true, completedAt: firebase.firestore.FieldValue.serverTimestamp() }
+    : { completed: false }, { merge: true })
+  .then(() => {
+    showToast('success', completing
+      ? 'Session completed — students now see it under Past sessions.'
+      : 'Session moved back to Upcoming.');
     loadAdminSessions();
   }).catch((err) => showToast('error', 'Could not update: ' + (err.message || err)));
 }

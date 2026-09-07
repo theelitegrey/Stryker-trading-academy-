@@ -88,7 +88,12 @@ function renderManualGrants(){
       if (!g) return;
       if (!confirm('Revoke TradingView access for "' + g.username + '"?')) return;
       btn.disabled = true; btn.textContent = 'Revoking…';
-      tvCall('tvRevokeAccess', { username: g.username }).then(() => {
+      tvCall('tvRevokeAccess', { username: g.username }).catch((err) => {
+        // Same fallback as the student list: record-only removal on confirm.
+        if (!confirm('TradingView revoke failed:\n' + (err.message || err) + '\n\n' +
+                     'Remove the entry anyway? You would then remove "' + g.username +
+                     '" on TradingView\'s Manage Access page yourself.')) throw err;
+      }).then(() => {
         return db.collection('settings').doc('tradingview').set({
           manualGrants: firebase.firestore.FieldValue.arrayRemove(g)
         }, { merge: true });
@@ -388,10 +393,18 @@ function renderTvApprovedPanel(){
                      : 'This updates the site\'s record — also remove them on TradingView\'s Manage Access page.'))) return;
       btn.disabled = true;
 
+      // A failed TradingView revoke must not trap the record: removing the
+      // site's flag is the conservative direction (the student loses claimed
+      // access), so on failure the admin may fall back to record-only and
+      // clean up on TradingView's Manage Access page by hand.
       const tvFirst = TV_CFG.enabled
         ? (btn.textContent = 'Revoking…',
            tvCall('tvRevokeAccess', { username: s.tradingViewUsername }).then(() => {
              showToast('success', 'Removed on TradingView.');
+           }).catch((err) => {
+             if (!confirm('TradingView revoke failed:\n' + (err.message || err) + '\n\n' +
+                          'Remove the site record anyway? You would then remove "' + s.tradingViewUsername +
+                          '" on TradingView\'s Manage Access page yourself.')) throw err;
            }))
         : Promise.resolve();
 

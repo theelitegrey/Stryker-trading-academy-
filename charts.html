@@ -5,7 +5,7 @@
 <meta name="stryker-build" content="276">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Invite & Earn — Stryker Trading Academy</title>
+<title>Charts — Stryker Trading Academy</title>
 <link rel="stylesheet" href="assets/style.css?v=276">
 <script src="assets/device-mode.js?v=276"></script>
 <script src="assets/toast.js?v=276" defer></script>
@@ -18,8 +18,21 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<!-- Vela's ES-module build imports these @zag-js packages by bare name;
+     the import map resolves them to jsDelivr's self-contained +esm builds. -->
+<script type="importmap">
+{"imports":{
+  "@zag-js/vanilla":"https://cdn.jsdelivr.net/npm/@zag-js/vanilla@1.42.0/+esm",
+  "@zag-js/menu":"https://cdn.jsdelivr.net/npm/@zag-js/menu@1.42.0/+esm",
+  "@zag-js/dialog":"https://cdn.jsdelivr.net/npm/@zag-js/dialog@1.42.0/+esm",
+  "@zag-js/tooltip":"https://cdn.jsdelivr.net/npm/@zag-js/tooltip@1.42.0/+esm",
+  "@zag-js/core":"https://cdn.jsdelivr.net/npm/@zag-js/core@1.42.0/+esm",
+  "@zag-js/dom-query":"https://cdn.jsdelivr.net/npm/@zag-js/dom-query@1.42.0/+esm",
+  "@zag-js/types":"https://cdn.jsdelivr.net/npm/@zag-js/types@1.42.0/+esm"
+}}
+</script>
 </head>
-<body data-page-access="referrals">
+<body>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="home" href="dashboard-user.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="appnav-dkl">Home</span></a>
   <a class="appnav-dk" data-nav="learn" href="courses.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg><span class="appnav-dkl">Learn</span></a>
@@ -71,7 +84,7 @@
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
+
     </a>
 
     <div class="side-section">
@@ -112,7 +125,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21h18"/><path d="M4 18h16"/><path d="M6 18v-7M10 18v-7M14 18v-7M18 18v-7"/><path d="M2 10l10-6 10 6z"/></svg>
         Smart money
       </a>
-      <a href="charts.html" class="side-link">
+      <a href="charts.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3v4M7 17v4M15 2v3M15 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="12.5" y="5" width="5" height="14" rx="1"/></svg>
         Charts
       </a>
@@ -132,7 +145,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>
         Trade journal
       </a>
-      <a href="referrals.html" class="side-link active">
+      <a href="referrals.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         Invite &amp; earn
       </a>
@@ -169,55 +182,20 @@
   <main class="dash-main">
     <div class="dash-topbar">
       <div>
-        <h1>Invite &amp; earn</h1>
-        <p>Share your link, earn points for every trader who joins — and see how you rank.</p>
+        <h1>Charts</h1>
+        <p>A full interactive charting workspace — live crypto data, 70+ built-in indicators, drawing tools. Your layout, drawings and indicators are saved in this browser.</p>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head"><h2>Your invite link</h2></div>
-      <div class="auth-error" id="referral-error"></div>
-      <p style="color:var(--ink-3); font-size:13.5px; margin-bottom:14px;">Anyone who signs up through this link is credited to you automatically.</p>
-      <div class="form-row-2" style="align-items:flex-end;">
-        <div class="field" style="margin-bottom:0;">
-          <label for="referral-link-display">Link</label>
-          <input type="text" id="referral-link-display" readonly style="font-family:var(--font-mono); font-size:13px;">
-        </div>
-        <button class="btn btn-primary btn-sm" id="referral-copy-btn" style="height:44px;">Copy link</button>
-      </div>
-      <p style="color:var(--ink-3); font-size:12.5px; margin-top:10px; margin-bottom:0;">Your code: <span id="referral-code-display" style="font-family:var(--font-mono); color:var(--ink-0);">—</span></p>
-    </div>
-
-    <div class="stat-grid-3">
-      <div class="stat-card">
-        <div class="stat-val" id="referral-total-points">—</div>
-        <div class="stat-label">Total points</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="referral-total-invites">—</div>
-        <div class="stat-label">People invited</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-val" id="referral-rank">—</div>
-        <div class="stat-label">Your rank</div>
+    <div class="panel stkchart-panel">
+      <div id="vela-chart"></div>
+      <div id="stkchart-fallback" class="stkchart-fallback" hidden>
+        <p><b>The chart engine didn't load.</b></p>
+        <p>Check your connection and refresh the page. If it keeps failing, an ad-blocker may be blocking the cdn.jsdelivr.net script.</p>
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Your invites</h2>
-        <span id="referral-invite-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
-      </div>
-      <div id="referral-invite-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>Leaderboard</h2>
-        <span style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);">top invite points</span>
-      </div>
-      <div id="referral-leaderboard"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
+    <p class="stkchart-credit">Charts by <a href="https://github.com/LuxAlgo/Vela" target="_blank" rel="noopener">Vela™</a> (Apache-2.0) · live market data streamed from public Binance, Coinbase and Hyperliquid feeds · educational use, not trade advice.</p>
   </main>
 </div>
 
@@ -251,7 +229,7 @@
 <script src="assets/maintenance-check.js?v=276"></script>
 <script src="assets/branding.js?v=276"></script>
 <script src="assets/dash-nav.js?v=276"></script>
-<script src="assets/referrals-page.js?v=276"></script>
+<script type="module" src="assets/vela-chart.js?v=276"></script>
 <script src="assets/theme.js?v=276"></script>
 </body>
 </html>

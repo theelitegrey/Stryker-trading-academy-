@@ -5799,3 +5799,82 @@ html[data-theme="light"] .brand-plan{
   .sm-row{ flex-direction:column; }
   .sm-side-col{ align-items:flex-start; text-align:left; }
 }
+
+/* ---- Smart Money v2: stat tiles + overview charts (build 276) ---- */
+.sm-stats{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(165px, 1fr));
+  gap:12px; margin:0 0 16px;
+}
+.sm-tile{
+  padding:15px 16px 13px; border:1px solid var(--line); border-radius:12px;
+  background:var(--bg-2);
+}
+.sm-tile-label{
+  display:block; font-family:var(--font-mono); font-size:10px; font-weight:700;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3); margin-bottom:7px;
+}
+.sm-tile b{
+  display:block; font-size:23px; line-height:1.1; color:var(--ink-0);
+  font-variant-numeric:tabular-nums;
+}
+.sm-tile-sub{ display:block; font-size:11.5px; color:var(--ink-3); margin-top:5px; }
+
+.sm-viz-grid{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+  gap:16px; margin:0 0 18px;
+}
+.sm-viz-grid .panel{ margin:0; }
+.sm-chart h3{ font-size:14px; }
+.sm-chart-note{ font-size:11px; color:var(--ink-3); margin:12px 0 0; }
+.sm-legend{ display:flex; gap:14px; font-size:11px; color:var(--ink-2); }
+.sm-legend span{ display:inline-flex; align-items:center; gap:5px; }
+.sm-legend i, .smf-h i{ width:9px; height:9px; border-radius:2px; display:inline-block; }
+.is-buy{ background:var(--bull); }
+.is-sell{ background:var(--bear); }
+.is-other{ background:var(--ink-3); }
+
+.smc-row{
+  display:grid; grid-template-columns:56px minmax(0,1fr) 34px;
+  gap:10px; align-items:center; margin:9px 0;
+}
+.smc-tkr{ font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--ink-1); }
+.smc-n{ font-size:11.5px; color:var(--ink-2); font-variant-numeric:tabular-nums; text-align:right; }
+.smc-track{ display:flex; gap:2px; height:13px; }
+.smc-seg{ min-width:3px; display:block; }
+.smc-track .smc-seg:last-child{ border-radius:0 4px 4px 0; }
+.smc-row:hover .smc-seg{ filter:brightness(1.18); }
+
+.sm-flow-cols{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.smf-h{
+  display:flex; align-items:center; gap:6px; font-family:var(--font-mono);
+  font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--ink-3); margin-bottom:8px;
+}
+.smf-row{ margin:0 0 9px; }
+.smf-top{ display:flex; justify-content:space-between; gap:8px; }
+.smf-bar{ display:block; height:12px; margin-top:3px; border-radius:0 4px 4px 0; min-width:4px; }
+.smf-row:hover .smf-bar{ filter:brightness(1.18); }
+@media (max-width:480px){ .sm-flow-cols{ grid-template-columns:1fr; } }
+
+.sm-valbar{
+  display:block; width:78px; height:3px; border-radius:2px; background:var(--bg-3);
+  overflow:hidden; margin:1px 0;
+}
+.sm-valbar i{ display:block; height:100%; border-radius:2px; opacity:.75; }
+
+/* ---- Charts module: Vela workspace (build 276) ---- */
+.stkchart-panel{
+  position:relative; padding:0; overflow:hidden;
+  height:calc(100vh - 190px); min-height:540px;
+}
+#vela-chart{ position:absolute; inset:0; }
+.stkchart-fallback[hidden]{ display:none; }
+.stkchart-fallback{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:4px; text-align:center;
+  padding:30px; font-size:13.5px; color:var(--ink-2);
+}
+.stkchart-fallback b{ color:var(--ink-0); }
+.stkchart-credit{ font-size:11.5px; color:var(--ink-3); margin:14px 0 0; }
+.stkchart-credit a{ color:var(--gold); }
+@media (max-width:900px){ .stkchart-panel{ height:calc(100vh - 220px); min-height:440px; } }

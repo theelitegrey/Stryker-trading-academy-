@@ -132,6 +132,106 @@ function smLoadAll(){
   });
 }
 
+// ---- overview: stat tiles + charts ------------------------------------------
+// Chart colors are the site's bull/bear semantics. Validated (dataviz skill):
+// CVD ΔE 10.9 deutan / 35.2 normal / contrast ≥3:1 on the dark surface; on the
+// light surface the green warns on contrast, so every mark carries a direct
+// label and the lists below double as the table view — color is never the
+// only encoding (labels + position separate buys from sells).
+
+function smIsBuySide(r){
+  return String(r.side || '').toLowerCase().indexOf('sell') !== 0;
+}
+
+function smMidAmount(r){
+  const a = r.amountRange || {};
+  if (typeof a.min === 'number' && typeof a.max === 'number') return (a.min + a.max) / 2;
+  return typeof a.min === 'number' ? a.min : 0;
+}
+
+function smTile(label, value, sub){
+  return '<div class="sm-tile"><span class="sm-tile-label">' + label + '</span>' +
+    '<b>' + value + '</b><span class="sm-tile-sub">' + sub + '</span></div>';
+}
+
+function smRenderOverview(){
+  const host = document.getElementById('sm-overview');
+  if (!host) return;
+  const cg = SM_CONGRESS;
+  const cgBuys = cg.filter(smIsBuySide).length;
+  const cgSells = cg.length - cgBuys;
+  const insBuys = SM_INSIDER.filter((r) => r.code === 'P');
+  const insSells = SM_INSIDER.filter((r) => r.code === 'S');
+  const insBuyVal = insBuys.reduce((s, r) => s + (smInsiderValue(r) || 0), 0);
+  const insSellVal = insSells.reduce((s, r) => s + (smInsiderValue(r) || 0), 0);
+  const buyPct = cg.length ? Math.round(cgBuys / cg.length * 100) : 0;
+
+  const tiles = '<div class="sm-stats">' +
+    smTile('Congress trades tracked', cg.length.toLocaleString(),
+      cgBuys + ' buys · ' + cgSells + ' sells') +
+    smTile('Hill sentiment', buyPct + '%', 'of disclosed trades are buys') +
+    smTile('Insider buying', smMoney(insBuyVal), insBuys.length + ' open-market buy filings') +
+    smTile('Insider selling', smMoney(insSellVal), insSells.length + ' sale filings') +
+    '</div>';
+
+  // Most-traded tickers on the Hill: stacked buy/sell counts, widest = most traded.
+  const byTicker = {};
+  cg.forEach((r) => {
+    if (!r.ticker) return;
+    const t = byTicker[r.ticker] || (byTicker[r.ticker] = { b: 0, s: 0 });
+    if (smIsBuySide(r)) t.b++; else t.s++;
+  });
+  const top = Object.keys(byTicker)
+    .map((k) => ({ tkr: k, b: byTicker[k].b, s: byTicker[k].s, n: byTicker[k].b + byTicker[k].s }))
+    .sort((a, b) => b.n - a.n).slice(0, 6);
+  const maxN = top.length ? top[0].n : 1;
+  const hillRows = top.map((t) =>
+    '<div class="smc-row">' +
+      '<span class="smc-tkr">' + smEsc(t.tkr) + '</span>' +
+      '<div class="smc-track" style="width:' + Math.max(6, t.n / maxN * 100) + '%">' +
+        (t.b ? '<i class="smc-seg is-buy" style="flex:' + t.b + '" title="' + t.b + ' buy' + (t.b === 1 ? '' : 's') + '"></i>' : '') +
+        (t.s ? '<i class="smc-seg is-sell" style="flex:' + t.s + '" title="' + t.s + ' sell' + (t.s === 1 ? '' : 's') + '"></i>' : '') +
+      '</div>' +
+      '<span class="smc-n">' + t.n + '</span>' +
+    '</div>').join('');
+  const hill = '<div class="panel sm-chart">' +
+    '<div class="panel-head"><h3>Most traded on the Hill</h3>' +
+      '<div class="sm-legend"><span><i class="is-buy"></i>Buys</span><span><i class="is-sell"></i>Sells</span></div></div>' +
+    (top.length ? hillRows + '<p class="sm-chart-note">trades per ticker across tracked congressional filings</p>'
+                : '<p class="sm-empty">No ticker-level congressional trades in the current data.</p>') +
+    '</div>';
+
+  // Insider flow: biggest buy/sell tickers by dollar value, one column each so
+  // position (not just color) separates the sides.
+  const agg = (list) => {
+    const m = {};
+    list.forEach((r) => {
+      const v = smInsiderValue(r);
+      if (!v || !r.ticker) return;
+      m[r.ticker] = (m[r.ticker] || 0) + v;
+    });
+    return Object.keys(m).map((k) => ({ tkr: k, v: m[k] }))
+      .sort((a, b) => b.v - a.v).slice(0, 5);
+  };
+  const topB = agg(insBuys), topS = agg(insSells);
+  const maxV = Math.max(topB[0] ? topB[0].v : 0, topS[0] ? topS[0].v : 0, 1);
+  const flowCol = (rows, cls, head) =>
+    '<div><div class="smf-h"><i class="' + cls + '"></i>' + head + '</div>' +
+    (rows.length ? rows.map((r) =>
+      '<div class="smf-row" title="' + smEsc(r.tkr) + ' · ' + smMoney(r.v) + '">' +
+        '<div class="smf-top"><span class="smc-tkr">' + smEsc(r.tkr) + '</span><span class="smc-n">' + smMoney(r.v) + '</span></div>' +
+        '<i class="smf-bar ' + cls + '" style="width:' + Math.max(4, r.v / maxV * 100) + '%"></i>' +
+      '</div>').join('') : '<p class="sm-empty">None in the latest filings.</p>') +
+    '</div>';
+  const flow = '<div class="panel sm-chart">' +
+    '<div class="panel-head"><h3>Insider flow — latest filings</h3></div>' +
+    '<div class="sm-flow-cols">' + flowCol(topB, 'is-buy', 'Biggest buying') + flowCol(topS, 'is-sell', 'Biggest selling') + '</div>' +
+    '<p class="sm-chart-note">open-market value per ticker, both columns on one shared scale</p>' +
+    '</div>';
+
+  host.innerHTML = tiles + '<div class="sm-viz-grid">' + hill + flow + '</div>';
+}
+
 // ---- congress panel ---------------------------------------------------------
 
 const SM_PARTY_C = { Republican: '#e5484d', Democrat: '#4d7ce5' };
@@ -168,9 +268,12 @@ function smRenderCongress(){
     wrap.innerHTML = '<p class="sm-empty">Nothing matches.</p>';
     return;
   }
+  const maxMid = Math.max.apply(null, rows.map(smMidAmount).concat([1]));
   wrap.innerHTML = rows.map((r) => {
     const m = r.member || {};
     const pc = SM_PARTY_C[m.party] || '#8b93a0';
+    const isBuy = smIsBuySide(r);
+    const mid = smMidAmount(r);
     const asset = r.ticker
       ? '<span class="sm-tkr">' + smEsc(r.ticker) + '</span>'
       : '<span class="sm-asset" title="' + smEsc(r.assetDescription) + '">' +
@@ -186,6 +289,7 @@ function smRenderCongress(){
       '</div>' +
       '<div class="sm-side-col">' +
         '<b>' + smEsc(r.amountRange && r.amountRange.text || '—') + '</b>' +
+        (mid ? '<span class="sm-valbar"><i class="' + (isBuy ? 'is-buy' : 'is-sell') + '" style="width:' + Math.max(4, mid / maxMid * 100) + '%"></i></span>' : '') +
         '<span class="sm-dim">traded ' + smDay(r.transactedAt) + ' · filed ' + smDay(r.filedAt) + '</span>' +
         (r.provenance && r.provenance.sourceUrl
           ? '<a href="' + smEsc(r.provenance.sourceUrl) + '" target="_blank" rel="noopener" class="sm-src">official filing ↗</a>' : '') +
@@ -227,6 +331,7 @@ function smRenderInsider(){
     wrap.innerHTML = '<p class="sm-empty">Nothing matches.</p>';
     return;
   }
+  const maxVal = Math.max.apply(null, rows.map((r) => smInsiderValue(r) || 0).concat([1]));
   wrap.innerHTML = rows.map((r) => {
     const code = SM_CODE[r.code] || r.code || '—';
     const isBuy = r.code === 'P';
@@ -244,6 +349,7 @@ function smRenderInsider(){
       '</div>' +
       '<div class="sm-side-col">' +
         '<b>' + smMoney(val) + '</b>' +
+        (val ? '<span class="sm-valbar"><i class="' + (isBuy ? 'is-buy' : (isSell ? 'is-sell' : 'is-other')) + '" style="width:' + Math.max(4, val / maxVal * 100) + '%"></i></span>' : '') +
         '<span class="sm-dim">' +
           (typeof r.shares === 'number' ? r.shares.toLocaleString() + ' sh' : '') +
           (typeof r.pricePerShare === 'number' ? ' @ $' + r.pricePerShare.toLocaleString() : '') +
@@ -287,6 +393,7 @@ function smShowContent(){
   smLoadAll().then(() => {
     const status = document.getElementById('sm-status');
     if (status && SM_GENERATED) status.textContent = 'Data refreshed ' + smAgo(SM_GENERATED) + ' · daily from official filings';
+    smRenderOverview();
     smRenderCongress();
     smRenderInsider();
   }).catch((err) => {

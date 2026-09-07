@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="264">
+<meta name="stryker-build" content="265">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Indicators — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=264">
-<script src="assets/device-mode.js?v=264"></script>
-<script src="assets/toast.js?v=264" defer></script>
-<script src="assets/version-check.js?v=264" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=265">
+<script src="assets/device-mode.js?v=265"></script>
+<script src="assets/toast.js?v=265" defer></script>
+<script src="assets/version-check.js?v=265" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -189,6 +189,39 @@
       <div id="tv-requests-list"></div>
     </div>
 
+    <div class="panel" id="tv-autogrant-panel">
+      <div class="panel-head">
+        <h2>TradingView auto-grant</h2>
+        <span id="tv-auto-status" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px; line-height:1.6;">
+        When switched on, <b>Mark as granted</b> and <b>Revoke</b> below actually grant and remove access to your
+        invite-only scripts on TradingView (via the server, using the vendor account's credentials from the
+        functions <code style="font-family:var(--font-mono);">.env</code>) — no more clicking through TradingView's
+        Manage Access page. This drives TradingView's internal endpoints, which is against their ToS — the risk sits
+        on the vendor account. If a grant fails, nothing is recorded and the manual flow still works.
+      </p>
+      <div class="field">
+        <label style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="tv-auto-enabled"> <b>Auto-grant on TradingView when I click "Mark as granted"</b></label>
+      </div>
+      <div class="field">
+        <label for="tv-auto-pineids">Pine IDs <span style="color:var(--ink-3); font-weight:400;">(one per line — from the script page's source, shaped like PUB;abc123…)</span></label>
+        <textarea id="tv-auto-pineids" rows="3" class="textarea-field" placeholder="PUB;1234567890abcdef1234567890abcdef" style="font-family:var(--font-mono);"></textarea>
+      </div>
+      <div class="field" style="max-width:280px;">
+        <label for="tv-auto-duration">Access duration</label>
+        <select id="tv-auto-duration" style="width:100%; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:13.5px;">
+          <option value="1L">Lifetime</option>
+          <option value="1M">1 month</option>
+          <option value="3M">3 months</option>
+          <option value="6M">6 months</option>
+          <option value="1Y">1 year</option>
+          <option value="30D">30 days</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" id="tv-auto-save">Save settings</button>
+    </div>
+
     <div class="panel" id="tv-approved-panel">
       <div class="panel-head">
         <h2>Approved TradingView access</h2>
@@ -228,34 +261,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=264"></script>
-<script src="assets/progress.js?v=264"></script>
-<script src="assets/presence.js?v=264"></script>
-<script src="assets/messages.js?v=264"></script>
-<script src="assets/messages-badge.js?v=264"></script>
-<script src="assets/gm-badge.js?v=264"></script>
-<script src="assets/account-menu.js?v=264"></script>
-<script src="assets/activity-log.js?v=264"></script>
-<script src="assets/banned-check.js?v=264"></script>
-<script src="assets/email-verify.js?v=264"></script>
-<script src="assets/notifications.js?v=264"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+<script src="assets/auth.js?v=265"></script>
+<script src="assets/progress.js?v=265"></script>
+<script src="assets/presence.js?v=265"></script>
+<script src="assets/messages.js?v=265"></script>
+<script src="assets/messages-badge.js?v=265"></script>
+<script src="assets/gm-badge.js?v=265"></script>
+<script src="assets/account-menu.js?v=265"></script>
+<script src="assets/activity-log.js?v=265"></script>
+<script src="assets/banned-check.js?v=265"></script>
+<script src="assets/email-verify.js?v=265"></script>
+<script src="assets/notifications.js?v=265"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=264"></script>
-<script src="assets/admin-tasks.js?v=264"></script>
-<script src="assets/admin-notify.js?v=264"></script>
-<script src="assets/profiles-sync.js?v=264"></script>
+<script src="assets/push.js?v=265"></script>
+<script src="assets/admin-tasks.js?v=265"></script>
+<script src="assets/admin-notify.js?v=265"></script>
+<script src="assets/profiles-sync.js?v=265"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=264"></script>
-<script src="assets/avatars.js?v=264"></script>
-<script src="assets/referrals.js?v=264"></script>
-<script src="assets/roles.js?v=264"></script>
-<script src="assets/branding.js?v=264"></script>
-<script src="assets/admin-guard.js?v=264"></script>
-<script src="assets/dash-nav.js?v=264"></script>
-<script src="assets/admin-nav.js?v=264"></script>
-<script src="assets/indicators-store.js?v=264"></script>
-<script src="assets/indicators-showcase.js?v=264"></script>
-<script src="assets/indicators-admin.js?v=264"></script>
-<script src="assets/theme.js?v=264"></script>
+<script src="assets/loading-animation.js?v=265"></script>
+<script src="assets/avatars.js?v=265"></script>
+<script src="assets/referrals.js?v=265"></script>
+<script src="assets/roles.js?v=265"></script>
+<script src="assets/branding.js?v=265"></script>
+<script src="assets/admin-guard.js?v=265"></script>
+<script src="assets/dash-nav.js?v=265"></script>
+<script src="assets/admin-nav.js?v=265"></script>
+<script src="assets/indicators-store.js?v=265"></script>
+<script src="assets/indicators-showcase.js?v=265"></script>
+<script src="assets/indicators-admin.js?v=265"></script>
+<script src="assets/theme.js?v=265"></script>
 </body>
 </html>

@@ -6,6 +6,79 @@ function escapeIndicatorsAdminText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ---------------------------------------------------------------------------
+// TradingView auto-grant — settings + server calls.
+// When enabled, "Mark as granted" / "Revoke" first perform the REAL grant or
+// removal on TradingView through the admin-only callables in
+// functions-src/tvAccess.js, and only record the result here if that worked.
+// Disabled (or on any failure), everything behaves exactly as before: the
+// admin grants manually on TradingView's Manage Access page.
+// ---------------------------------------------------------------------------
+
+let TV_CFG = { enabled: false, pineIds: [], duration: '1L' };
+
+function tvCall(name, payload){
+  let fns = null;
+  try { fns = firebase.app().functions(); } catch (e) {}
+  if (!fns) return Promise.reject(new Error('The functions SDK did not load on this page.'));
+  return fns.httpsCallable(name)(payload).then((r) => r.data);
+}
+
+function renderTvConfigStatus(){
+  const el = document.getElementById('tv-auto-status');
+  if (el) el.textContent = TV_CFG.enabled
+    ? 'ON · ' + TV_CFG.pineIds.length + ' script' + (TV_CFG.pineIds.length === 1 ? '' : 's') + ' · ' + TV_CFG.duration
+    : 'off — grants are recorded only';
+}
+
+function loadTvConfig(){
+  return db.collection('settings').doc('tradingview').get().then((doc) => {
+    const d = doc.exists ? (doc.data() || {}) : {};
+    TV_CFG = {
+      enabled: !!d.enabled,
+      pineIds: Array.isArray(d.pineIds) ? d.pineIds : [],
+      duration: d.duration || '1L'
+    };
+    const en = document.getElementById('tv-auto-enabled');
+    const ids = document.getElementById('tv-auto-pineids');
+    const dur = document.getElementById('tv-auto-duration');
+    if (en) en.checked = TV_CFG.enabled;
+    if (ids) ids.value = TV_CFG.pineIds.join('\n');
+    if (dur) dur.value = TV_CFG.duration;
+    renderTvConfigStatus();
+  }).catch((err) => console.error('Stryker: could not load TradingView settings', err));
+}
+
+function saveTvConfig(){
+  const enabled = document.getElementById('tv-auto-enabled').checked;
+  const pineIds = document.getElementById('tv-auto-pineids').value
+    .split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
+  if (enabled && !pineIds.length) {
+    showToast('error', 'Add at least one Pine ID before switching auto-grant on.');
+    return;
+  }
+  const odd = pineIds.filter((id) => !/^PUB;/i.test(id));
+  if (odd.length && !confirm(odd.length + ' of the Pine IDs do not start with "PUB;" — they usually do.\n\nSave anyway?')) return;
+
+  const btn = document.getElementById('tv-auto-save');
+  btn.disabled = true;
+  const duration = document.getElementById('tv-auto-duration').value;
+  if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Saved TradingView auto-grant settings');
+  db.collection('settings').doc('tradingview').set({
+    enabled, pineIds, duration,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true })
+    .then(() => {
+      TV_CFG = { enabled, pineIds, duration };
+      renderTvConfigStatus();
+      showToast('success', enabled
+        ? 'Auto-grant is ON — "Mark as granted" now grants on TradingView itself.'
+        : 'Auto-grant is off — grants are recorded on the site only.');
+    })
+    .catch((err) => showToast('error', 'Could not save: ' + (err.message || err)))
+    .finally(() => { btn.disabled = false; });
+}
+
 function renderTvRequestsPanel(students){
   const panel = document.getElementById('tv-requests-panel');
   const list = document.getElementById('tv-requests-list');
@@ -36,16 +109,55 @@ function renderTvRequestsPanel(students){
         '<span class="cell-name">' + escapeIndicatorsAdminText(s.tradingViewUsername) + '</span>' +
         '<span class="cell-sub">' + escapeIndicatorsAdminText(s.displayName || s.email || s.uid) + (requestedLabel ? ' · requested ' + requestedLabel : '') + '</span>' +
       '</div>' +
-      '<button class="btn btn-primary btn-sm" data-grant-tv="' + s.uid + '">Mark as granted</button>';
+      '<div style="display:flex; gap:7px;">' +
+        '<button class="btn btn-ghost btn-sm" data-verify-tv="' + s.uid + '">Verify</button>' +
+        '<button class="btn btn-primary btn-sm" data-grant-tv="' + s.uid + '">' +
+          (TV_CFG.enabled ? 'Grant on TradingView' : 'Mark as granted') + '</button>' +
+      '</div>';
     list.appendChild(row);
+  });
+
+  // Verify: does this TradingView username actually exist? Catches typos
+  // before anyone burns time on TradingView's Manage Access page.
+  list.querySelectorAll('[data-verify-tv]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const s = TV_STUDENTS.find((x) => x.uid === btn.dataset.verifyTv);
+      if (!s) return;
+      btn.disabled = true; btn.textContent = 'Checking…';
+      tvCall('tvValidateUsername', { username: s.tradingViewUsername }).then((res) => {
+        btn.textContent = res.valid ? '✓ Exists' : '✗ Not found';
+        btn.style.color = res.valid ? 'var(--bull)' : 'var(--bear)';
+        if (!res.valid) showToast('error', '"' + s.tradingViewUsername + '" is not a TradingView username — ask the student to re-check it.');
+        else if (res.verifiedName && res.verifiedName !== s.tradingViewUsername) {
+          showToast('success', 'Exists — TradingView spells it "' + res.verifiedName + '".');
+        }
+      }).catch((err) => {
+        btn.disabled = false; btn.textContent = 'Verify';
+        showToast('error', 'Could not check: ' + (err.message || err));
+      });
+    });
   });
 
   list.querySelectorAll('[data-grant-tv]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const uid = btn.dataset.grantTv;
+      const s = TV_STUDENTS.find((x) => x.uid === uid);
       btn.disabled = true;
+
+      // With auto-grant on, the REAL TradingView grant happens first — and a
+      // failure records nothing, so the site never claims access that wasn't
+      // given. With it off, this is the same record-keeping click as always.
+      const tvFirst = (TV_CFG.enabled && s)
+        ? (btn.textContent = 'Granting on TradingView…',
+           tvCall('tvGrantAccess', { username: s.tradingViewUsername }).then((res) => {
+             showToast('success', 'TradingView: ' + res.results.map((r) => r.action).join(', ') +
+               ' for ' + res.username + ' (' + (res.duration === '1L' ? 'lifetime' : res.duration) + ').');
+           }))
+        : Promise.resolve();
+
+      tvFirst.then(() => {
       if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Granted TradingView indicator access', { targetUid: uid });
-      db.collection('students').doc(uid).set({
+      return db.collection('students').doc(uid).set({
         tradingViewAccessGranted: true,
         // Stamped so the approved list below can sort by when access was
         // actually given; rows granted before this existed fall back to
@@ -58,11 +170,15 @@ function renderTvRequestsPanel(students){
           }
           if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(uid, true);
         })
-        .then(loadTvRequests)
-        .catch((err) => {
-          showToast('error', 'Could not update: ' + (err.message || err));
-          btn.disabled = false;
-        });
+        .then(loadTvRequests);
+      }).catch((err) => {
+        // A failed TradingView grant lands here too — nothing was recorded,
+        // so the student still shows as pending and the click can be retried
+        // (or the grant done manually with auto-grant switched off).
+        showToast('error', (TV_CFG.enabled ? 'TradingView: ' : 'Could not update: ') + (err.message || err));
+        btn.disabled = false;
+        btn.textContent = TV_CFG.enabled ? 'Grant on TradingView' : 'Mark as granted';
+      });
     });
   });
 }
@@ -174,14 +290,27 @@ function renderTvApprovedPanel(){
       const s = TV_STUDENTS.find((x) => x.uid === uid);
       if (!s) return;
       if (!confirm('Revoke TradingView access for "' + (s.tradingViewUsername || uid) + '"?\n\n' +
-                   'This updates the site\'s record — also remove them on TradingView\'s Manage Access page.')) return;
+                   (TV_CFG.enabled
+                     ? 'Auto-grant is ON, so this also removes their access on TradingView itself.'
+                     : 'This updates the site\'s record — also remove them on TradingView\'s Manage Access page.'))) return;
       btn.disabled = true;
-      if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Revoked TradingView indicator access', { targetUid: uid });
-      db.collection('students').doc(uid).set({ tradingViewAccessGranted: false }, { merge: true })
+
+      const tvFirst = TV_CFG.enabled
+        ? (btn.textContent = 'Revoking…',
+           tvCall('tvRevokeAccess', { username: s.tradingViewUsername }).then(() => {
+             showToast('success', 'Removed on TradingView.');
+           }))
+        : Promise.resolve();
+
+      tvFirst.then(() => {
+        if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Revoked TradingView indicator access', { targetUid: uid });
+        return db.collection('students').doc(uid).set({ tradingViewAccessGranted: false }, { merge: true });
+      })
         .then(loadTvRequests)
         .catch((err) => {
           showToast('error', 'Could not revoke: ' + (err.message || err));
           btn.disabled = false;
+          btn.textContent = 'Revoke';
         });
     });
   });
@@ -227,8 +356,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('indicator-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });
-    loadTvRequests();
+    // Config first, then the lists — the pending panel's button label
+    // ("Grant on TradingView" vs "Mark as granted") depends on it.
+    loadTvConfig().then(loadTvRequests);
   });
+
+  const tvSaveBtn = document.getElementById('tv-auto-save');
+  if (tvSaveBtn) tvSaveBtn.addEventListener('click', saveTvConfig);
 
   // Search / filter / sort re-render the approved list from the students
   // already in memory — no Firestore reads on keystrokes.

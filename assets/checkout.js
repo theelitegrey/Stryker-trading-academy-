@@ -485,10 +485,19 @@ document.addEventListener('DOMContentLoaded', () => {
           planId: CHECKOUT_PLAN.id
         };
         // A coupon flagged `marksFounding` (e.g. WELCOME's first-50 launch
-        // offer) permanently tags the account as a founding member.
+        // offer) permanently tags the account as a founding member — exempt
+        // from subscription expiry forever, as promised.
         if (APPLIED_COUPON && APPLIED_COUPON.marksFounding) {
           studentPatch.foundingMember = true;
           studentPatch.foundingCoupon = APPLIED_COUPON.code;
+        } else if (typeof stkPeriodKind === 'function' &&
+                   stkPeriodKind(CHECKOUT_PLAN.period) !== 'none' &&
+                   (parseFloat(CHECKOUT_PLAN.price) || 0) > 0) {
+          // A non-founding free redemption of a paid periodic plan buys one
+          // billing period, same as a payment would — the daily sweep
+          // enforces the date (see functions-src/subscriptions.js).
+          studentPatch.paidThroughMillis = stkExtendPeriod(Date.now(), CHECKOUT_PLAN.period);
+          studentPatch.subscriptionStatus = 'active';
         }
         return db.collection('students').doc(CHECKOUT_UID).set(studentPatch, { merge: true });
       })

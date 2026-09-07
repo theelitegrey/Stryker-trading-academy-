@@ -225,3 +225,51 @@ function hideSessionNotice(){
     wire();
   });
 })();
+
+// ---- Subscription renewal strip ---------------------------------------------
+// When the student's paid plan is inside the reminder window (3 days before
+// expiry) or past it (grace), an amber strip points at renewal checkout.
+// Founding members and non-expiring plans never see it. The actual
+// enforcement lives server-side (functions-src/subscriptionSweep) — this is
+// only the heads-up.
+(function(){
+  document.addEventListener('DOMContentLoaded', () => {
+    const main = document.querySelector('.dash-main');
+    if (!main || typeof db === 'undefined' || !db) return;
+    function wire(tries){
+      tries = tries || 0;
+      if (typeof auth === 'undefined' || !auth) {
+        if (tries < 120) setTimeout(() => wire(tries + 1), 150);
+        return;
+      }
+      auth.onAuthStateChanged((user) => {
+        if (!user) return;
+        db.collection('students').doc(user.uid).get().then((doc) => {
+          if (!doc.exists) return;
+          const s = doc.data();
+          const pt = s.paidThroughMillis || 0;
+          if (!pt || s.foundingMember) return;
+          const now = Date.now();
+          const msLeft = pt - now;
+          if (msLeft > 3 * 24 * 60 * 60 * 1000) return;   // healthy — no strip
+
+          const strip = document.createElement('a');
+          strip.className = 'dash-renew-strip';
+          strip.href = 'checkout.html?plan=' + encodeURIComponent(s.planId || '');
+          const planName = String(s.plan || 'plan').replace(/</g, '&lt;');
+          if (msLeft <= 0) {
+            strip.innerHTML = '<b>⚠ Your ' + planName + ' payment is due — access pauses in a few days.</b>' +
+              '<span class="renew-cta">RENEW NOW →</span>';
+          } else {
+            const days = Math.max(1, Math.ceil(msLeft / 86400000));
+            strip.innerHTML = '<b>Your ' + planName + ' subscription renews in ' + days +
+              ' day' + (days === 1 ? '' : 's') + '.</b>' +
+              '<span class="renew-cta">RENEW NOW →</span>';
+          }
+          main.insertBefore(strip, main.firstChild);
+        }).catch(() => {});
+      });
+    }
+    wire();
+  });
+})();

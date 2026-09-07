@@ -275,9 +275,22 @@ exports.razorpayVerifyPayment = functions
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    // The access grant.
+    // The access grant — with the subscription clock. A paid periodic plan
+    // stamps paidThroughMillis one billing period past the later of now and
+    // any time already banked (an early renewal stacks, never resets). The
+    // daily subscriptionSweep (subscriptions.js) enforces the date.
     const patch = { plan: order.planName, planId: order.planId };
     if (founding) { patch.foundingMember = true; patch.foundingCoupon = order.couponCode; }
+
+    const subs = require('./subscriptions').__internals;
+    const planDoc2 = await db.collection('plans').doc(order.planId).get().catch(() => null);
+    const period = planDoc2 && planDoc2.exists ? planDoc2.data().period : null;
+    if (!founding && subs.periodKind(period) !== 'none') {
+      const studentDoc = await db.collection('students').doc(uid).get().catch(() => null);
+      const banked = studentDoc && studentDoc.exists ? (studentDoc.data().paidThroughMillis || 0) : 0;
+      patch.paidThroughMillis = subs.extendPeriod(Math.max(Date.now(), banked), period);
+      patch.subscriptionStatus = 'active';
+    }
     await db.collection('students').doc(uid).set(patch, { merge: true });
     const profilePatch = { plan: order.planName };
     if (founding) profilePatch.foundingMember = true;

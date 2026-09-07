@@ -94,6 +94,30 @@ document.addEventListener('click', function (ev){
   location.reload();   // every price on the page re-renders in the new currency
 });
 
+// ---- Subscription periods --------------------------------------------------
+// Client mirror of functions-src/subscriptions.js: 'month'/'year' periods
+// expire and renew; anything else (forever, one-time, lifetime, blank) never
+// does. Same calendar-aware extension math, so a date stamped client-side
+// (free-coupon checkout) matches one stamped server-side (paid checkout).
+
+function stkPeriodKind(period){
+  var p = String(period || '').toLowerCase();
+  if (/month/.test(p)) return 'month';
+  if (/year|annual/.test(p)) return 'year';
+  return 'none';
+}
+
+function stkExtendPeriod(fromMillis, period){
+  var kind = stkPeriodKind(period);
+  if (kind === 'none') return null;
+  var d = new Date(fromMillis);
+  var day = d.getUTCDate();
+  if (kind === 'month') d.setUTCMonth(d.getUTCMonth() + 1);
+  else d.setUTCFullYear(d.getUTCFullYear() + 1);
+  if (d.getUTCDate() !== day) d.setUTCDate(0);   // Jan 31 + 1mo → end of Feb
+  return d.getTime();
+}
+
 // Strict: returns null when the field holds no number at all. A blank or
 // mistyped sale price must NOT read as zero — that would silently price the
 // plan at 100% off. An explicit '0' is still a real (free) sale price.

@@ -308,5 +308,32 @@ exports.tvRevokeAccess = functions
     return { revoked: true, username, results };
   });
 
-// Exported for tests.
-exports.__internals = { computeExpiration };
+/**
+ * Revoke every configured script for a username, without throwing — used by
+ * subscriptionSweep when a lapsed student loses indicator access. Returns
+ * { ok, reason?, results? }; auto-grant switched off or unconfigured is a
+ * clean { ok:false } rather than an error, since manual-mode sites handle
+ * revocation by hand.
+ */
+async function revokeAllForUsername(username){
+  try {
+    const doc = await db.collection('settings').doc('tradingview').get();
+    const cfg = doc.exists ? (doc.data() || {}) : {};
+    const pineIds = (Array.isArray(cfg.pineIds) ? cfg.pineIds : []).map((s) => String(s).trim()).filter(Boolean);
+    if (!cfg.enabled || !pineIds.length) return { ok: false, reason: 'auto-grant off or no pine ids' };
+
+    const sessionid = await getSession();
+    const results = [];
+    for (const pineId of pineIds) {
+      const detail = await getAccessDetails(sessionid, pineId, username);
+      if (!detail.hasAccess) { results.push({ pineId, ok: true, action: 'already-removed' }); continue; }
+      results.push(await removeAccess(sessionid, detail));
+    }
+    return { ok: results.every((r) => r.ok), results };
+  } catch (err) {
+    return { ok: false, reason: String(err.message || err).slice(0, 200) };
+  }
+}
+
+// Exported for tests and for subscriptionSweep.
+exports.__internals = { computeExpiration, revokeAllForUsername };

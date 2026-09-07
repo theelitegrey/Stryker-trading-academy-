@@ -5453,6 +5453,15 @@ a.floor-tag:hover{ text-decoration:underline; }
 .dash-live-strip b{ color:var(--ink-0); font-size:13.5px; }
 .dash-live-strip span{ color:var(--ink-3); font-size:12px; margin-left:auto; font-family:var(--font-mono); }
 
+/* dashboard subscription-renewal strip — amber cousin of the live strip */
+.dash-renew-strip{
+  display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:12px 16px;
+  border-radius:13px; text-decoration:none;
+  border:1px solid rgba(232,176,75,.5); background:rgba(232,176,75,.08);
+}
+.dash-renew-strip b{ color:var(--ink-0); font-size:13.5px; }
+.dash-renew-strip .renew-cta{ color:#e8b04b; font-size:12px; margin-left:auto; font-family:var(--font-mono); font-weight:700; }
+
 /* on-player branding: watermark + title flash (both above the iframe,
    below the controls; the shield still owns all input) */
 .live-player-brand{

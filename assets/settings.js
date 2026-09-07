@@ -37,6 +37,36 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const planEl = document.getElementById('settings-plan-name');
       if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
+
+      // Subscription line: when the plan expires, how healthy it is, and a
+      // renew shortcut. Founding members and non-expiring plans show their
+      // standing instead of a date.
+      const renewalRow = document.getElementById('settings-renewal-row');
+      const renewalEl = document.getElementById('settings-plan-renewal');
+      const renewBtn = document.getElementById('settings-renew-btn');
+      if (renewalRow && renewalEl && student) {
+        const pt = student.paidThroughMillis || 0;
+        if (student.foundingMember) {
+          renewalRow.style.display = '';
+          renewalEl.textContent = '★ Founding member — lifetime access';
+          renewalEl.style.color = 'var(--gold)';
+        } else if (pt) {
+          renewalRow.style.display = '';
+          const dateLabel = new Date(pt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+          if (Date.now() > pt) {
+            renewalEl.textContent = 'Payment due — access pauses in a few days';
+            renewalEl.style.color = 'var(--bear)';
+          } else {
+            renewalEl.textContent = 'Active until ' + dateLabel;
+            const soon = pt - Date.now() < 3 * 24 * 60 * 60 * 1000;
+            renewalEl.style.color = soon ? 'var(--amber, #e8b04b)' : 'var(--ink-1)';
+          }
+          if (renewBtn && student.planId) {
+            renewBtn.style.display = '';
+            renewBtn.href = 'checkout.html?plan=' + encodeURIComponent(student.planId);
+          }
+        }
+      }
       renderAvatarPreview(student);
       document.getElementById('settings-bio').value = (student && student.bio) || '';
       const unEl = document.getElementById('settings-username');

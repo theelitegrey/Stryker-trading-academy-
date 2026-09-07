@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="263">
+<meta name="stryker-build" content="264">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trading Indicators — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=263">
-<script src="assets/device-mode.js?v=263"></script>
-<script src="assets/toast.js?v=263" defer></script>
-<script src="assets/version-check.js?v=263" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=264">
+<script src="assets/device-mode.js?v=264"></script>
+<script src="assets/toast.js?v=264" defer></script>
+<script src="assets/version-check.js?v=264" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -189,6 +189,32 @@
       <div id="tv-requests-list"></div>
     </div>
 
+    <div class="panel" id="tv-approved-panel">
+      <div class="panel-head">
+        <h2>Approved TradingView access</h2>
+        <span id="tv-approved-count" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
+      </div>
+      <p style="font-size:13px; color:var(--ink-2); margin-bottom:14px;">Everyone whose TradingView username has been marked as granted. Revoking here only updates the site's record — remember to also remove them on TradingView's "Manage Access" page.</p>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+        <input type="text" id="tv-approved-search" placeholder="Search username, name or email…"
+          style="flex:1 1 240px; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:13.5px;">
+        <select id="tv-approved-filter"
+          style="padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:13.5px;">
+          <option value="all">All plans</option>
+        </select>
+        <select id="tv-approved-sort"
+          style="padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:13.5px;">
+          <option value="granted-desc">Newest granted first</option>
+          <option value="granted-asc">Oldest granted first</option>
+          <option value="username">TV username A–Z</option>
+          <option value="name">Name A–Z</option>
+          <option value="plan">Plan (highest first)</option>
+          <option value="joined-desc">Newest members first</option>
+        </select>
+      </div>
+      <div id="tv-approved-list"><p style="color:var(--ink-3); font-size:13.5px;">Loading…</p></div>
+    </div>
+
     <div class="panel">
       <div class="panel-head">
         <h2>All indicators</h2>
@@ -202,34 +228,34 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=263"></script>
-<script src="assets/progress.js?v=263"></script>
-<script src="assets/presence.js?v=263"></script>
-<script src="assets/messages.js?v=263"></script>
-<script src="assets/messages-badge.js?v=263"></script>
-<script src="assets/gm-badge.js?v=263"></script>
-<script src="assets/account-menu.js?v=263"></script>
-<script src="assets/activity-log.js?v=263"></script>
-<script src="assets/banned-check.js?v=263"></script>
-<script src="assets/email-verify.js?v=263"></script>
-<script src="assets/notifications.js?v=263"></script>
+<script src="assets/auth.js?v=264"></script>
+<script src="assets/progress.js?v=264"></script>
+<script src="assets/presence.js?v=264"></script>
+<script src="assets/messages.js?v=264"></script>
+<script src="assets/messages-badge.js?v=264"></script>
+<script src="assets/gm-badge.js?v=264"></script>
+<script src="assets/account-menu.js?v=264"></script>
+<script src="assets/activity-log.js?v=264"></script>
+<script src="assets/banned-check.js?v=264"></script>
+<script src="assets/email-verify.js?v=264"></script>
+<script src="assets/notifications.js?v=264"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=263"></script>
-<script src="assets/admin-tasks.js?v=263"></script>
-<script src="assets/admin-notify.js?v=263"></script>
-<script src="assets/profiles-sync.js?v=263"></script>
+<script src="assets/push.js?v=264"></script>
+<script src="assets/admin-tasks.js?v=264"></script>
+<script src="assets/admin-notify.js?v=264"></script>
+<script src="assets/profiles-sync.js?v=264"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=263"></script>
-<script src="assets/avatars.js?v=263"></script>
-<script src="assets/referrals.js?v=263"></script>
-<script src="assets/roles.js?v=263"></script>
-<script src="assets/branding.js?v=263"></script>
-<script src="assets/admin-guard.js?v=263"></script>
-<script src="assets/dash-nav.js?v=263"></script>
-<script src="assets/admin-nav.js?v=263"></script>
-<script src="assets/indicators-store.js?v=263"></script>
-<script src="assets/indicators-showcase.js?v=263"></script>
-<script src="assets/indicators-admin.js?v=263"></script>
-<script src="assets/theme.js?v=263"></script>
+<script src="assets/loading-animation.js?v=264"></script>
+<script src="assets/avatars.js?v=264"></script>
+<script src="assets/referrals.js?v=264"></script>
+<script src="assets/roles.js?v=264"></script>
+<script src="assets/branding.js?v=264"></script>
+<script src="assets/admin-guard.js?v=264"></script>
+<script src="assets/dash-nav.js?v=264"></script>
+<script src="assets/admin-nav.js?v=264"></script>
+<script src="assets/indicators-store.js?v=264"></script>
+<script src="assets/indicators-showcase.js?v=264"></script>
+<script src="assets/indicators-admin.js?v=264"></script>
+<script src="assets/theme.js?v=264"></script>
 </body>
 </html>

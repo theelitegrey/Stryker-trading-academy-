@@ -45,7 +45,13 @@ function renderTvRequestsPanel(students){
       const uid = btn.dataset.grantTv;
       btn.disabled = true;
       if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Granted TradingView indicator access', { targetUid: uid });
-      db.collection('students').doc(uid).set({ tradingViewAccessGranted: true }, { merge: true })
+      db.collection('students').doc(uid).set({
+        tradingViewAccessGranted: true,
+        // Stamped so the approved list below can sort by when access was
+        // actually given; rows granted before this existed fall back to
+        // their request date.
+        tradingViewGrantedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true })
         .then(() => {
           if (typeof createNotification === 'function') {
             createNotification(uid, 'tv_access_granted', 'Your TradingView indicator access has been granted.', 'indicators.html');
@@ -61,12 +67,124 @@ function renderTvRequestsPanel(students){
   });
 }
 
+let TV_STUDENTS = [];
+
 function loadTvRequests(){
   return db.collection('students').get().then((snap) => {
-    const students = [];
-    snap.forEach((doc) => students.push(Object.assign({ uid: doc.id }, doc.data())));
-    renderTvRequestsPanel(students);
+    TV_STUDENTS = [];
+    snap.forEach((doc) => TV_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
+    renderTvRequestsPanel(TV_STUDENTS);
+    renderTvApprovedPanel();
   }).catch((err) => console.error('Stryker: failed to load TradingView requests', err));
+}
+
+// ---------------------------------------------------------------------------
+// Approved access — everyone whose TradingView username has been granted,
+// with their basic account details, searchable / filterable / sortable.
+// One in-memory pass over the students already fetched for the pending
+// panel; no extra reads, and typing in the search box re-renders instantly.
+// ---------------------------------------------------------------------------
+
+function tvMs(t){ return (t && typeof t.toMillis === 'function') ? t.toMillis() : 0; }
+
+function tvDateLabel(t){
+  return (t && typeof t.toDate === 'function')
+    ? t.toDate().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—';
+}
+
+function renderTvApprovedPanel(){
+  const list = document.getElementById('tv-approved-list');
+  const countEl = document.getElementById('tv-approved-count');
+  const searchEl = document.getElementById('tv-approved-search');
+  const filterEl = document.getElementById('tv-approved-filter');
+  const sortEl = document.getElementById('tv-approved-sort');
+  if (!list) return;
+
+  const approved = TV_STUDENTS.filter((s) => s.tradingViewUsername && s.tradingViewAccessGranted);
+
+  // Plan filter options come from the data itself, so a renamed or added
+  // plan shows up without touching this file. The current selection is
+  // preserved across re-renders (this runs on every keystroke).
+  const plans = Array.from(new Set(approved.map((s) => s.plan).filter(Boolean))).sort();
+  const current = filterEl.value || 'all';
+  filterEl.innerHTML = '<option value="all">All plans</option>' +
+    plans.map((p) => '<option value="' + escapeIndicatorsAdminText(p) + '">' + escapeIndicatorsAdminText(p) + '</option>').join('') +
+    '<option value="__founding">★ Founding members</option>';
+  filterEl.value = Array.from(filterEl.options).some((o) => o.value === current) ? current : 'all';
+
+  const q = (searchEl.value || '').trim().toLowerCase();
+  let rows = approved.filter((s) => {
+    if (filterEl.value === '__founding' && !s.foundingMember) return false;
+    if (filterEl.value !== 'all' && filterEl.value !== '__founding' && s.plan !== filterEl.value) return false;
+    if (!q) return true;
+    return [s.tradingViewUsername, s.displayName, s.name, s.email]
+      .some((v) => v && String(v).toLowerCase().includes(q));
+  });
+
+  const grantedMs = (s) => tvMs(s.tradingViewGrantedAt) || tvMs(s.tradingViewRequestedAt) || tvMs(s.createdAt);
+  const nameOf = (s) => (s.displayName || s.name || s.email || '').toLowerCase();
+  const sorts = {
+    'granted-desc': (a, b) => grantedMs(b) - grantedMs(a),
+    'granted-asc': (a, b) => grantedMs(a) - grantedMs(b),
+    'username': (a, b) => String(a.tradingViewUsername).toLowerCase().localeCompare(String(b.tradingViewUsername).toLowerCase()),
+    'name': (a, b) => nameOf(a).localeCompare(nameOf(b)),
+    'plan': (a, b) => ((typeof rankOf === 'function') ? rankOf(b.plan) - rankOf(a.plan) : 0) || nameOf(a).localeCompare(nameOf(b)),
+    'joined-desc': (a, b) => tvMs(b.createdAt) - tvMs(a.createdAt)
+  };
+  rows.sort(sorts[sortEl.value] || sorts['granted-desc']);
+
+  countEl.textContent = approved.length + ' approved' +
+    (rows.length !== approved.length ? ' · ' + rows.length + ' shown' : '');
+
+  if (!approved.length) {
+    list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No approved usernames yet — grant a pending request above and it appears here.</p>';
+    return;
+  }
+  if (!rows.length) {
+    list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">Nothing matches that search/filter.</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+  rows.forEach((s) => {
+    const name = s.displayName || s.name || (s.email ? s.email.split('@')[0] : 'Trader');
+    const planTag = (typeof roleTagHtml === 'function' && s.plan) ? roleTagHtml(s.plan, { size: 'small' }) : '';
+    const row = document.createElement('div');
+    row.className = 'record-card';
+    row.innerHTML =
+      '<div style="flex:1 1 220px; min-width:0;">' +
+        '<span class="cell-name" style="font-family:var(--font-mono);">' + escapeIndicatorsAdminText(s.tradingViewUsername) + '</span>' +
+        '<span class="cell-sub" style="display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">' +
+          escapeIndicatorsAdminText(name) + planTag +
+          (s.foundingMember ? ' <span style="color:var(--gold); font-weight:700;">★</span>' : '') +
+          (s.email ? ' · ' + escapeIndicatorsAdminText(s.email) : '') + '</span>' +
+      '</div>' +
+      '<div class="record-stats">' +
+        '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + tvDateLabel(s.createdAt) + '</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Granted</span><span class="rs-val">' + tvDateLabel(s.tradingViewGrantedAt || s.tradingViewRequestedAt) + '</span></div>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" data-revoke-tv="' + escapeIndicatorsAdminText(s.uid) + '" style="border-color:rgba(229,72,77,0.35);">Revoke</button>';
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-revoke-tv]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const uid = btn.dataset.revokeTv;
+      const s = TV_STUDENTS.find((x) => x.uid === uid);
+      if (!s) return;
+      if (!confirm('Revoke TradingView access for "' + (s.tradingViewUsername || uid) + '"?\n\n' +
+                   'This updates the site\'s record — also remove them on TradingView\'s Manage Access page.')) return;
+      btn.disabled = true;
+      if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Revoked TradingView indicator access', { targetUid: uid });
+      db.collection('students').doc(uid).set({ tradingViewAccessGranted: false }, { merge: true })
+        .then(loadTvRequests)
+        .catch((err) => {
+          showToast('error', 'Could not revoke: ' + (err.message || err));
+          btn.disabled = false;
+        });
+    });
+  });
 }
 
 function renderIndicatorList(){
@@ -111,6 +229,15 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     loadTvRequests();
   });
+
+  // Search / filter / sort re-render the approved list from the students
+  // already in memory — no Firestore reads on keystrokes.
+  const searchEl = document.getElementById('tv-approved-search');
+  const filterEl = document.getElementById('tv-approved-filter');
+  const sortEl = document.getElementById('tv-approved-sort');
+  if (searchEl) searchEl.addEventListener('input', renderTvApprovedPanel);
+  if (filterEl) filterEl.addEventListener('change', renderTvApprovedPanel);
+  if (sortEl) sortEl.addEventListener('change', renderTvApprovedPanel);
 });
 
 // ---------------------------------------------------------------------------

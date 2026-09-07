@@ -35,7 +35,9 @@ function renderAdminSessionRow(session){
     '</div>' +
     '<div class="chapter-status" style="display:flex; gap:8px; align-items:center;">' +
       (session.videoId
-        ? '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">' + (session.isLive ? 'End live' : 'Go live') + '</button>'
+        ? (session.isLive
+            ? '<button class="btn btn-sm" data-live-toggle="' + session.id + '" style="background:var(--bear); border:1px solid var(--bear); color:#fff; font-weight:700;">■ End live</button>'
+            : '<button class="btn btn-ghost btn-sm" data-live-toggle="' + session.id + '">Go live</button>')
         : '') +
       '<button class="btn btn-ghost btn-sm" data-edit-session="' + session.id + '">Edit</button>' +
       '<button class="btn btn-ghost btn-sm" data-copy-session="' + session.id + '">Copy</button>' +
@@ -119,9 +121,13 @@ function resetSessionForm(){
 // the student page never has to pick between two "live" banners.
 function toggleSessionLive(session){
   const goingLive = !session.isLive;
+  if (!goingLive && !confirm('End the livestream for everyone? Students watching are dropped back to the schedule.')) return;
   db.collection('liveSessions').where('isLive', '==', true).get().then((snap) => {
     const batch = db.batch();
-    snap.forEach((doc) => batch.update(doc.ref, { isLive: false }));
+    snap.forEach((doc) => batch.update(doc.ref, {
+      isLive: false,
+      liveEndedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }));
     if (goingLive) {
       batch.update(db.collection('liveSessions').doc(session.id), {
         isLive: true,
@@ -130,9 +136,46 @@ function toggleSessionLive(session){
     }
     return batch.commit();
   }).then(() => {
-    showToast('success', goingLive ? 'Session is LIVE — students see the player now.' : 'Live ended.');
+    showToast('success', goingLive
+      ? 'Session is LIVE — students see the player now.'
+      : 'Livestream ended — remember to also end the broadcast in YouTube Studio.');
     loadAdminSessions();
   }).catch((err) => showToast('error', 'Could not update: ' + (err.message || err)));
+}
+
+// The always-visible way to end a stream: while any session is live, a red
+// banner sits at the top of this page with an End button — no hunting for the
+// right row in the list. Ending flips isLive off on EVERY live doc (belt and
+// braces against duplicates), which the student page reacts to in realtime.
+function renderAdminLiveBanner(sessions){
+  const wrap = document.getElementById('admin-live-banner');
+  if (!wrap) return;
+  const live = (sessions || []).find((s) => s.isLive);
+  if (!live) { wrap.style.display = 'none'; wrap.innerHTML = ''; return; }
+
+  if (!document.getElementById('admin-live-pulse-style')) {
+    const st = document.createElement('style');
+    st.id = 'admin-live-pulse-style';
+    st.textContent = '@keyframes admin-live-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(229,72,77,.5);}50%{opacity:.55;box-shadow:0 0 0 7px rgba(229,72,77,0);}}';
+    document.head.appendChild(st);
+  }
+
+  const since = live.liveStartedAt && typeof live.liveStartedAt.toDate === 'function'
+    ? 'since ' + live.liveStartedAt.toDate().toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) + ' · '
+    : '';
+  wrap.innerHTML =
+    '<div class="panel" style="margin-bottom:22px; border-color:rgba(229,72,77,.5); background:linear-gradient(135deg, rgba(229,72,77,.09), transparent 55%); display:flex; align-items:center; gap:16px; flex-wrap:wrap;">' +
+      '<span style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; font-weight:800; letter-spacing:.12em; color:#ff6d76;">' +
+        '<i style="width:9px; height:9px; border-radius:50%; background:var(--bear); animation:admin-live-pulse 1.4s ease-in-out infinite; display:inline-block;"></i>LIVE NOW</span>' +
+      '<div style="flex:1 1 240px; min-width:0;">' +
+        '<h3 style="font-size:15px; color:var(--ink-0); margin:0 0 3px;">' + (live.title || 'Untitled session') + '</h3>' +
+        '<span style="font-size:12.5px; color:var(--ink-3);">' + since + 'students see the player and chat right now.</span>' +
+      '</div>' +
+      '<a href="live-sessions.html" class="btn btn-ghost btn-sm" style="flex-shrink:0;">View student page ↗</a>' +
+      '<button type="button" class="btn btn-sm" id="admin-end-live-btn" style="flex-shrink:0; background:var(--bear); border:1px solid var(--bear); color:#fff; font-weight:700;">■ End livestream</button>' +
+    '</div>';
+  wrap.style.display = '';
+  document.getElementById('admin-end-live-btn').addEventListener('click', () => toggleSessionLive(live));
 }
 
 function loadAdminSessions(){
@@ -140,13 +183,14 @@ function loadAdminSessions(){
     .then((snap) => {
       const list = document.getElementById('admin-session-list');
       list.innerHTML = '';
-      if (snap.empty) {
+      const sessions = [];
+      snap.forEach((doc) => sessions.push(Object.assign({ id: doc.id }, doc.data())));
+      renderAdminLiveBanner(sessions);
+      if (!sessions.length) {
         list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No sessions scheduled yet.</p>';
         return;
       }
-      snap.forEach((doc) => {
-        list.appendChild(renderAdminSessionRow(Object.assign({ id: doc.id }, doc.data())));
-      });
+      sessions.forEach((s) => list.appendChild(renderAdminSessionRow(s)));
     })
     .catch((err) => {
       console.error('Stryker: failed to load sessions', err);

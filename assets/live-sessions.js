@@ -76,6 +76,26 @@ function lsEsc(s){
 
 // ---- YouTube player (locked-down) -------------------------------------------
 
+// Best-effort maximum quality. YouTube's embed picks a rendition adaptively
+// and has deprecated most quality control, so this pulls every lever the
+// IFrame API still exposes: the vq player var, suggestedQuality on loads, and
+// re-asserting the top entry of getAvailableQualityLevels() (highest first)
+// on ready / play / whenever YouTube downshifts. Throttled so a genuinely
+// bandwidth-starved connection isn't stuck in a set-quality fight loop.
+let LS_HQ_LAST = 0;
+function lsForceHq(p){
+  if (!p) return;
+  const now = Date.now();
+  if (now - LS_HQ_LAST < 4000) return;
+  LS_HQ_LAST = now;
+  try {
+    const levels = (typeof p.getAvailableQualityLevels === 'function') ? p.getAvailableQualityLevels() : [];
+    const best = (levels && levels.length) ? levels[0] : 'highres';
+    if (typeof p.getPlaybackQuality === 'function' && p.getPlaybackQuality() === best) return;
+    p.setPlaybackQuality(best);
+  } catch (e) {}
+}
+
 let LS_YT_READY = null;
 function lsLoadYouTubeApi(){
   if (LS_YT_READY) return LS_YT_READY;
@@ -123,7 +143,7 @@ function lsOpenPlayer(session, mode){
 
   lsLoadYouTubeApi().then(() => {
     if (LS_PLAYER) {
-      LS_PLAYER.loadVideoById(session.videoId);
+      LS_PLAYER.loadVideoById({ videoId: session.videoId, suggestedQuality: 'highres' });
       return;
     }
     LS_PLAYER = new YT.Player('live-player-host', {
@@ -132,14 +152,19 @@ function lsOpenPlayer(session, mode){
       videoId: session.videoId,
       playerVars: {
         controls: 0, rel: 0, fs: 0, disablekb: 1, iv_load_policy: 3,
-        modestbranding: 1, playsinline: 1
+        modestbranding: 1, playsinline: 1, vq: 'hd1080'
       },
       events: {
-        onReady: (e) => { try { e.target.setVolume(80); } catch (err) {} },
+        onReady: (e) => {
+          try { e.target.setVolume(80); } catch (err) {}
+          lsForceHq(e.target);
+        },
         onStateChange: (e) => {
           const btn = document.getElementById('lc-play');
           if (btn) btn.textContent = e.data === YT.PlayerState.PLAYING ? '❚❚' : '▶';
-        }
+          if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING) lsForceHq(e.target);
+        },
+        onPlaybackQualityChange: (e) => lsForceHq(e.target)
       }
     });
   });

@@ -202,11 +202,25 @@ function updateOrderSummary(){
     return;
   }
 
+  // Auto-debit is offered when it can actually be set up: an INR viewer
+  // (mandates need Indian rails), a renewing plan, no coupon riding along
+  // (mandates debit a fixed amount), and money actually owed.
+  const autopayRow = document.getElementById('checkout-autopay-row');
+  const autopayBox = document.getElementById('checkout-autopay');
+  const autopayOk = !!autopayRow && typeof strykerCurrency === 'function' && strykerCurrency() === 'INR' &&
+    typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) !== 'none' &&
+    !APPLIED_COUPON && price > 0;
+  if (autopayRow) autopayRow.style.display = autopayOk ? 'flex' : 'none';
+  const autopayOn = autopayOk && autopayBox && autopayBox.checked;
+  const cycle = (typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) === 'year') ? 'year' : 'month';
+
   if (!APPLIED_COUPON) {
     document.getElementById('checkout-discount').textContent = '—';
     document.getElementById('checkout-total').textContent = checkoutFmt(price);
     completeBtn.disabled = false;
-    completeBtn.textContent = 'Pay ' + checkoutFmt(price) + ' securely';
+    completeBtn.textContent = autopayOn
+      ? 'Subscribe — ' + checkoutFmt(price) + ' / ' + cycle
+      : 'Pay ' + checkoutFmt(price) + ' securely';
     return;
   }
 
@@ -297,6 +311,76 @@ function launchRazorpay(btn, errEl){
     rzp.open();
   }).catch((err) => {
     errEl.textContent = err.message || 'Could not start the payment.';
+    errEl.style.display = 'block';
+    reset();
+  });
+}
+
+// Auto-debit: the server creates the Razorpay subscription (mandate), the
+// modal authorizes it (UPI AutoPay / card e-mandate), and verification
+// activates it and grants the first period. From then on Razorpay charges
+// each cycle on its own and the webhook keeps access current.
+function launchRazorpaySubscription(btn, errEl){
+  if (typeof Razorpay === 'undefined') {
+    errEl.textContent = 'The payment window could not load — check your connection and refresh.';
+    errEl.style.display = 'block';
+    return;
+  }
+  let fns = null;
+  try { fns = firebase.app().functions(); } catch (e) {}
+  if (!fns) {
+    errEl.textContent = 'Payments are not available right now.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Setting up auto-renewal…';
+  const reset = () => { btn.disabled = false; updateOrderSummary(); };
+
+  fns.httpsCallable('razorpaySubscribe')({
+    planId: CHECKOUT_PLAN.id,
+    currency: (typeof strykerCurrency === 'function') ? strykerCurrency() : 'INR'
+  }).then((res) => {
+    const o = res.data;
+    const user = auth.currentUser;
+    const rzp = new Razorpay({
+      key: o.keyId,
+      subscription_id: o.subscriptionId,
+      name: 'Stryker Trading Academy',
+      description: o.planName + ' · auto-renews',
+      image: 'https://strykertrading.com/assets/images/icon-192.png',
+      prefill: {
+        email: (user && user.email) || '',
+        name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
+        contact: (CHECKOUT_BILLING && CHECKOUT_BILLING.phone) || ''
+      },
+      theme: { color: '#03c988' },
+      modal: { ondismiss: reset },
+      handler: (resp) => {
+        btn.textContent = 'Confirming subscription…';
+        fns.httpsCallable('razorpaySubsVerify')({
+          subscriptionId: resp.razorpay_subscription_id,
+          paymentId: resp.razorpay_payment_id,
+          signature: resp.razorpay_signature
+        }).then(() => {
+          finishPaidCheckout();
+        }).catch((err) => {
+          errEl.textContent = 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
+            resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
+          errEl.style.display = 'block';
+          reset();
+        });
+      }
+    });
+    rzp.on('payment.failed', (resp) => {
+      errEl.textContent = 'Payment failed: ' + ((resp.error && resp.error.description) || 'the payment was declined.');
+      errEl.style.display = 'block';
+      reset();
+    });
+    rzp.open();
+  }).catch((err) => {
+    errEl.textContent = err.message || 'Could not set up the subscription.';
     errEl.style.display = 'block';
     reset();
   });
@@ -422,10 +506,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Billing details validate and save BEFORE any money — or a free coupon
     // seat — changes hands, so every order has a name and address behind it.
     ensureBillingSaved().then(() => {
-      // Money still owed (list price minus sale minus coupon) → Razorpay.
-      // Only a genuinely free order continues down the coupon path below.
+      // Money still owed (list price minus sale minus coupon) → Razorpay:
+      // the auto-renewing mandate when the toggle is on, a one-time charge
+      // otherwise. Only a genuinely free order takes the coupon path below.
       if (checkoutTotalDue() > 0) {
-        launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
+        const autopayRow = document.getElementById('checkout-autopay-row');
+        const autopayBox = document.getElementById('checkout-autopay');
+        const wantAutopay = autopayRow && autopayRow.style.display !== 'none' &&
+                            autopayBox && autopayBox.checked;
+        if (wantAutopay) launchRazorpaySubscription(document.getElementById('checkout-complete-btn'), errEl);
+        else launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
         return;
       }
       completeFreeOrder(errEl);
@@ -437,6 +527,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('checkout-billing-edit-btn').addEventListener('click', showBillingForm);
+
+  const autopayBox = document.getElementById('checkout-autopay');
+  if (autopayBox) autopayBox.addEventListener('change', () => { if (CHECKOUT_PLAN) updateOrderSummary(); });
 
   function completeFreeOrder(errEl){
     const price = (typeof planEffectivePrice === 'function')

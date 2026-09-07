@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="268">
+<meta name="stryker-build" content="269">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Checkout — Stryker Trading Academy</title>
-<link rel="stylesheet" href="assets/style.css?v=268">
-<script src="assets/device-mode.js?v=268"></script>
-<script src="assets/toast.js?v=268" defer></script>
-<script src="assets/version-check.js?v=268" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=269">
+<script src="assets/device-mode.js?v=269"></script>
+<script src="assets/toast.js?v=269" defer></script>
+<script src="assets/version-check.js?v=269" defer></script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body>
@@ -206,6 +206,10 @@
             <span style="font-weight:600; color:var(--ink-0);">Total due today</span>
             <span style="font-family:var(--font-mono); font-size:22px; color:var(--ink-0);" id="checkout-total">—</span>
           </div>
+          <label id="checkout-autopay-row" style="display:none; gap:10px; align-items:flex-start; margin-bottom:14px; padding:12px 14px; border:1px solid rgba(3,201,136,.35); border-radius:10px; background:rgba(3,201,136,.06); cursor:pointer;">
+            <input type="checkbox" id="checkout-autopay" checked style="margin-top:2px;">
+            <span style="font-size:12.5px; color:var(--ink-1); line-height:1.55;"><b style="color:var(--ink-0);">Auto-renew each billing cycle</b> via UPI AutoPay or card mandate — never lose access, cancel any time from Settings. Untick to pay for one cycle only.</span>
+          </label>
           <button class="btn btn-primary btn-block" id="checkout-complete-btn" disabled>Apply a coupon to continue</button>
 
           <!-- Payment method + trust badges. The wordmarks are drawn inline
@@ -243,31 +247,31 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="assets/auth.js?v=268"></script>
-<script src="assets/progress.js?v=268"></script>
-<script src="assets/presence.js?v=268"></script>
-<script src="assets/messages.js?v=268"></script>
-<script src="assets/messages-badge.js?v=268"></script>
-<script src="assets/gm-badge.js?v=268"></script>
-<script src="assets/activity-log.js?v=268"></script>
-<script src="assets/banned-check.js?v=268"></script>
-<script src="assets/email-verify.js?v=268"></script>
-<script src="assets/notifications.js?v=268"></script>
+<script src="assets/auth.js?v=269"></script>
+<script src="assets/progress.js?v=269"></script>
+<script src="assets/presence.js?v=269"></script>
+<script src="assets/messages.js?v=269"></script>
+<script src="assets/messages-badge.js?v=269"></script>
+<script src="assets/gm-badge.js?v=269"></script>
+<script src="assets/activity-log.js?v=269"></script>
+<script src="assets/banned-check.js?v=269"></script>
+<script src="assets/email-verify.js?v=269"></script>
+<script src="assets/notifications.js?v=269"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=268"></script>
-<script src="assets/admin-link.js?v=268"></script>
-<script src="assets/profiles-sync.js?v=268"></script>
+<script src="assets/push.js?v=269"></script>
+<script src="assets/admin-link.js?v=269"></script>
+<script src="assets/profiles-sync.js?v=269"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=268"></script>
-<script src="assets/avatars.js?v=268"></script>
-<script src="assets/account-menu.js?v=268"></script>
-<script src="assets/referrals.js?v=268"></script>
-<script src="assets/roles.js?v=268"></script>
-<script src="assets/branding.js?v=268"></script>
-<script src="assets/dash-nav.js?v=268"></script>
-<script src="assets/commerce.js?v=268"></script>
-<script src="assets/plan-price.js?v=268"></script>
-<script src="assets/checkout.js?v=268"></script>
-<script src="assets/theme.js?v=268"></script>
+<script src="assets/loading-animation.js?v=269"></script>
+<script src="assets/avatars.js?v=269"></script>
+<script src="assets/account-menu.js?v=269"></script>
+<script src="assets/referrals.js?v=269"></script>
+<script src="assets/roles.js?v=269"></script>
+<script src="assets/branding.js?v=269"></script>
+<script src="assets/dash-nav.js?v=269"></script>
+<script src="assets/commerce.js?v=269"></script>
+<script src="assets/plan-price.js?v=269"></script>
+<script src="assets/checkout.js?v=269"></script>
+<script src="assets/theme.js?v=269"></script>
 </body>
 </html>

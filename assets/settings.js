@@ -53,7 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (pt) {
           renewalRow.style.display = '';
           const dateLabel = new Date(pt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-          if (Date.now() > pt) {
+          if (student.subscriptionAutopay) {
+            renewalEl.textContent = '↻ Auto-renews on ' + dateLabel;
+            renewalEl.style.color = 'var(--bull)';
+          } else if (Date.now() > pt) {
             renewalEl.textContent = 'Payment due — access pauses in a few days';
             renewalEl.style.color = 'var(--bear)';
           } else {
@@ -61,9 +64,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const soon = pt - Date.now() < 3 * 24 * 60 * 60 * 1000;
             renewalEl.style.color = soon ? 'var(--amber, #e8b04b)' : 'var(--ink-1)';
           }
-          if (renewBtn && student.planId) {
+          if (renewBtn && student.planId && !student.subscriptionAutopay) {
             renewBtn.style.display = '';
             renewBtn.href = 'checkout.html?plan=' + encodeURIComponent(student.planId);
+          }
+          // Auto-renewal is the student's to switch off: cancels at cycle
+          // end via the server, access runs to the paid date, and stage-1
+          // reminders take over from there.
+          const cancelBtn = document.getElementById('settings-cancel-autopay');
+          if (cancelBtn && student.subscriptionAutopay && student.razorpaySubscriptionId) {
+            cancelBtn.style.display = '';
+            cancelBtn.addEventListener('click', () => {
+              if (!confirm('Switch off auto-renewal?\n\nYour ' + (student.plan || 'plan') +
+                           ' access continues until ' + dateLabel + ' — after that you can renew manually.')) return;
+              cancelBtn.disabled = true; cancelBtn.textContent = 'Cancelling…';
+              let fns = null;
+              try { fns = firebase.app().functions(); } catch (e) {}
+              if (!fns) { cancelBtn.disabled = false; cancelBtn.textContent = 'Cancel auto-renewal'; return; }
+              fns.httpsCallable('razorpaySubsCancel')({}).then(() => {
+                showToast('success', 'Auto-renewal is off — your access runs until ' + dateLabel + '.');
+                cancelBtn.style.display = 'none';
+                renewalEl.textContent = 'Active until ' + dateLabel + ' (auto-renewal off)';
+                renewalEl.style.color = 'var(--ink-1)';
+                if (renewBtn && student.planId) {
+                  renewBtn.style.display = '';
+                  renewBtn.href = 'checkout.html?plan=' + encodeURIComponent(student.planId);
+                }
+              }).catch((err) => {
+                showToast('error', 'Could not cancel: ' + (err.message || err));
+                cancelBtn.disabled = false; cancelBtn.textContent = 'Cancel auto-renewal';
+              });
+            });
           }
         }
       }

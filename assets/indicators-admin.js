@@ -15,7 +15,7 @@ function escapeIndicatorsAdminText(s){
 // admin grants manually on TradingView's Manage Access page.
 // ---------------------------------------------------------------------------
 
-let TV_CFG = { enabled: false, pineIds: [], duration: '1L' };
+let TV_CFG = { enabled: false, pineIds: [], duration: '1L', manualGrants: [] };
 
 function tvCall(name, payload){
   let fns = null;
@@ -37,8 +37,10 @@ function loadTvConfig(){
     TV_CFG = {
       enabled: !!d.enabled,
       pineIds: Array.isArray(d.pineIds) ? d.pineIds : [],
-      duration: d.duration || '1L'
+      duration: d.duration || '1L',
+      manualGrants: Array.isArray(d.manualGrants) ? d.manualGrants : []
     };
+    renderManualGrants();
     const en = document.getElementById('tv-auto-enabled');
     const ids = document.getElementById('tv-auto-pineids');
     const dur = document.getElementById('tv-auto-duration');
@@ -47,6 +49,97 @@ function loadTvConfig(){
     if (dur) dur.value = TV_CFG.duration;
     renderTvConfigStatus();
   }).catch((err) => console.error('Stryker: could not load TradingView settings', err));
+}
+
+// ---- manual grants ----------------------------------------------------------
+// For people who aren't students (giveaway winners, partners): verify the
+// username, grant on TradingView, and remember who got what on the same
+// settings/tradingview doc (merge-saved, so Save settings never clobbers it).
+
+function renderManualGrants(){
+  const list = document.getElementById('tv-manual-list');
+  if (!list) return;
+  const grants = (TV_CFG.manualGrants || []).slice()
+    .sort((a, b) => (b.grantedAtMillis || 0) - (a.grantedAtMillis || 0));
+  if (!grants.length) {
+    list.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">No manual grants yet.</p>';
+    return;
+  }
+  list.innerHTML = '';
+  grants.forEach((g) => {
+    const when = g.grantedAtMillis
+      ? new Date(g.grantedAtMillis).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      : '—';
+    const row = document.createElement('div');
+    row.className = 'record-card';
+    row.innerHTML =
+      '<div style="flex:1 1 200px; min-width:0;">' +
+        '<span class="cell-name" style="font-family:var(--font-mono);">' + escapeIndicatorsAdminText(g.username) + '</span>' +
+        '<span class="cell-sub">' + (g.note ? escapeIndicatorsAdminText(g.note) + ' · ' : '') +
+          'granted ' + when + ' · ' + (g.duration === '1L' ? 'lifetime' : escapeIndicatorsAdminText(g.duration || '')) + '</span>' +
+      '</div>' +
+      '<button class="btn btn-ghost btn-sm" data-manual-revoke="' + escapeIndicatorsAdminText(g.username) + '" style="border-color:rgba(229,72,77,0.35);">Revoke</button>';
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('[data-manual-revoke]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const g = (TV_CFG.manualGrants || []).find((x) => x.username === btn.dataset.manualRevoke);
+      if (!g) return;
+      if (!confirm('Revoke TradingView access for "' + g.username + '"?')) return;
+      btn.disabled = true; btn.textContent = 'Revoking…';
+      tvCall('tvRevokeAccess', { username: g.username }).then(() => {
+        return db.collection('settings').doc('tradingview').set({
+          manualGrants: firebase.firestore.FieldValue.arrayRemove(g)
+        }, { merge: true });
+      }).then(() => {
+        TV_CFG.manualGrants = (TV_CFG.manualGrants || []).filter((x) => x !== g);
+        renderManualGrants();
+        if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Revoked manual TradingView access for ' + g.username);
+        showToast('success', 'Removed on TradingView: ' + g.username);
+      }).catch((err) => {
+        btn.disabled = false; btn.textContent = 'Revoke';
+        showToast('error', 'Could not revoke: ' + (err.message || err));
+      });
+    });
+  });
+}
+
+function manualGrant(){
+  const input = document.getElementById('tv-manual-username');
+  const noteEl = document.getElementById('tv-manual-note');
+  const btn = document.getElementById('tv-manual-grant-btn');
+  const username = input.value.trim().replace(/^@/, '');
+  if (!username) { showToast('error', 'Enter a TradingView username first.'); return; }
+  if ((TV_CFG.manualGrants || []).some((g) => g.username.toLowerCase() === username.toLowerCase())) {
+    showToast('error', username + ' already has a manual grant — revoke it below first if you want to re-grant.');
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Granting…';
+  // tvGrantAccess validates the username itself before granting, so one call
+  // does verify + grant; its error messages name what went wrong.
+  tvCall('tvGrantAccess', { username }).then((res) => {
+    const entry = {
+      username: res.username,           // TradingView's exact spelling
+      note: noteEl.value.trim(),
+      duration: res.duration,
+      grantedAtMillis: Date.now()
+    };
+    return db.collection('settings').doc('tradingview').set({
+      manualGrants: firebase.firestore.FieldValue.arrayUnion(entry)
+    }, { merge: true }).then(() => entry);
+  }).then((entry) => {
+    TV_CFG.manualGrants = (TV_CFG.manualGrants || []).concat([entry]);
+    renderManualGrants();
+    input.value = ''; noteEl.value = '';
+    if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Manually granted TradingView access to ' + entry.username);
+    showToast('success', 'Granted on TradingView: ' + entry.username + ' (' + (entry.duration === '1L' ? 'lifetime' : entry.duration) + ').');
+  }).catch((err) => {
+    showToast('error', 'TradingView: ' + (err.message || err));
+  }).finally(() => {
+    btn.disabled = false; btn.textContent = 'Verify & grant';
+  });
 }
 
 function saveTvConfig(){
@@ -363,6 +456,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const tvSaveBtn = document.getElementById('tv-auto-save');
   if (tvSaveBtn) tvSaveBtn.addEventListener('click', saveTvConfig);
+  const tvManualBtn = document.getElementById('tv-manual-grant-btn');
+  if (tvManualBtn) tvManualBtn.addEventListener('click', manualGrant);
+  const tvManualInput = document.getElementById('tv-manual-username');
+  if (tvManualInput) tvManualInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') manualGrant(); });
 
   // Search / filter / sort re-render the approved list from the students
   // already in memory — no Firestore reads on keystrokes.

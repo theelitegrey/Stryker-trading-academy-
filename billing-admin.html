@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="269">
+<meta name="stryker-build" content="270">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Billing & Plans — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=269">
-<script src="assets/device-mode.js?v=269"></script>
-<script src="assets/toast.js?v=269" defer></script>
-<script src="assets/version-check.js?v=269" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=270">
+<script src="assets/device-mode.js?v=270"></script>
+<script src="assets/toast.js?v=270" defer></script>
+<script src="assets/version-check.js?v=270" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -157,17 +157,10 @@
       <div class="panel-head"><h2>International pricing</h2></div>
       <p style="font-size:13px; color:var(--ink-3); margin:0 0 14px; line-height:1.6;">
         Plan prices below are in <b>US Dollars</b>. Visitors in India automatically see — and are charged —
-        rupees at this rate, rounded to whole ₹. Everyone else sees dollars. Update it now and then to
-        track the real exchange rate.
+        rupees at the <b>live market rate</b>, fetched fresh once a day by the server and rounded to whole ₹.
+        Nothing to maintain here; auto-renewal mandates lock the rate on their signup day.
       </p>
-      <div style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
-        <div class="field" style="margin-bottom:0; max-width:220px;">
-          <label for="usd-inr-rate">1 USD = ₹</label>
-          <input type="number" id="usd-inr-rate" min="1" step="0.01" placeholder="e.g. 88">
-        </div>
-        <button class="btn btn-primary btn-sm" id="save-fx-btn">Save rate</button>
-        <span id="fx-preview" style="font-family:var(--font-mono); font-size:12px; color:var(--ink-3);"></span>
-      </div>
+      <p id="fx-live-status" style="font-family:var(--font-mono); font-size:13px; color:var(--ink-1); margin:0;">Loading the current rate…</p>
     </div>
 
     <div id="plan-edit-panel" style="display:none;" class="panel">
@@ -233,35 +226,35 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=269"></script>
-<script src="assets/progress.js?v=269"></script>
-<script src="assets/presence.js?v=269"></script>
-<script src="assets/messages.js?v=269"></script>
-<script src="assets/messages-badge.js?v=269"></script>
-<script src="assets/gm-badge.js?v=269"></script>
-<script src="assets/account-menu.js?v=269"></script>
-<script src="assets/activity-log.js?v=269"></script>
-<script src="assets/banned-check.js?v=269"></script>
-<script src="assets/email-verify.js?v=269"></script>
-<script src="assets/profiles-sync.js?v=269"></script>
+<script src="assets/auth.js?v=270"></script>
+<script src="assets/progress.js?v=270"></script>
+<script src="assets/presence.js?v=270"></script>
+<script src="assets/messages.js?v=270"></script>
+<script src="assets/messages-badge.js?v=270"></script>
+<script src="assets/gm-badge.js?v=270"></script>
+<script src="assets/account-menu.js?v=270"></script>
+<script src="assets/activity-log.js?v=270"></script>
+<script src="assets/banned-check.js?v=270"></script>
+<script src="assets/email-verify.js?v=270"></script>
+<script src="assets/profiles-sync.js?v=270"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=269"></script>
-<script src="assets/avatars.js?v=269"></script>
-<script src="assets/referrals.js?v=269"></script>
-<script src="assets/roles.js?v=269"></script>
-<script src="assets/branding.js?v=269"></script>
-<script src="assets/admin-guard.js?v=269"></script>
-<script src="assets/dash-nav.js?v=269"></script>
-<script src="assets/achievements-data.js?v=269"></script>
-<script src="assets/notifications.js?v=269"></script>
+<script src="assets/loading-animation.js?v=270"></script>
+<script src="assets/avatars.js?v=270"></script>
+<script src="assets/referrals.js?v=270"></script>
+<script src="assets/roles.js?v=270"></script>
+<script src="assets/branding.js?v=270"></script>
+<script src="assets/admin-guard.js?v=270"></script>
+<script src="assets/dash-nav.js?v=270"></script>
+<script src="assets/achievements-data.js?v=270"></script>
+<script src="assets/notifications.js?v=270"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=269"></script>
-<script src="assets/admin-tasks.js?v=269"></script>
-<script src="assets/admin-notify.js?v=269"></script>
-<script src="assets/admin-nav.js?v=269"></script>
-<script src="assets/plan-price.js?v=269"></script>
-<script src="assets/plans-admin.js?v=269"></script>
+<script src="assets/push.js?v=270"></script>
+<script src="assets/admin-tasks.js?v=270"></script>
+<script src="assets/admin-notify.js?v=270"></script>
+<script src="assets/admin-nav.js?v=270"></script>
+<script src="assets/plan-price.js?v=270"></script>
+<script src="assets/plans-admin.js?v=270"></script>
 
-<script src="assets/theme.js?v=269"></script>
+<script src="assets/theme.js?v=270"></script>
 </body>
 </html>

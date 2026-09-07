@@ -124,63 +124,40 @@ function closePlanEditor(){
   EDITING_PLAN_ID = null;
 }
 
-// The USD→INR rate lives in settings/commerce.usdInr — world-readable (the
-// homepage converts with it before anyone signs in), admin-writable. The
-// payment function reads the same doc, so saving here changes what Indian
-// buyers see AND what they're charged, together.
-function loadFxRate(){
-  const input = document.getElementById('usd-inr-rate');
-  if (!input) return Promise.resolve();
+// The USD→INR rate lives in settings/commerce.usdInr, written once a day by
+// the refreshFxRate function from the live market (Yahoo's USDINR quote,
+// er-api fallback). This panel only REPORTS it — every consumer (homepage
+// display, one-time charges, new mandates) reads the same doc, so there is
+// nothing to edit here any more.
+function loadFxStatus(){
+  const el = document.getElementById('fx-live-status');
+  if (!el) return Promise.resolve();
   return db.collection('settings').doc('commerce').get().then((doc) => {
-    const r = doc.exists ? parseFloat(doc.data().usdInr) : NaN;
-    input.value = (isFinite(r) && r > 0) ? r : 88;
-    updateFxPreview();
-  }).catch(() => { input.value = 88; updateFxPreview(); });
-}
-
-function updateFxPreview(){
-  const out = document.getElementById('fx-preview');
-  const r = parseFloat(document.getElementById('usd-inr-rate').value);
-  if (!out) return;
-  out.textContent = (isFinite(r) && r > 0)
-    ? 'A $49 plan shows as ₹' + Math.round(49 * r).toLocaleString('en-IN') + ' in India.'
-    : '';
-}
-
-function saveFxRate(){
-  const errEl = document.getElementById('plans-error');
-  const r = parseFloat(document.getElementById('usd-inr-rate').value);
-  if (!isFinite(r) || r <= 0) {
-    errEl.textContent = 'Enter a valid rate — how many rupees one dollar is worth.';
-    errEl.style.display = 'block';
-    return;
-  }
-  const btn = document.getElementById('save-fx-btn');
-  btn.disabled = true;
-  if (typeof logActivity === 'function') logActivity('commerce.fx_saved', 'Set USD→INR rate to ' + r, { detail: 'usdInr ' + r });
-  db.collection('settings').doc('commerce').set({
-    usdInr: r,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true })
-    .then(() => showToast('success', 'Rate saved — Indian visitors now see ₹ prices at ' + r + ' per dollar.'))
-    .catch((err) => { errEl.textContent = err.message || 'Could not save the rate.'; errEl.style.display = 'block'; })
-    .finally(() => { btn.disabled = false; });
+    const d = doc.exists ? (doc.data() || {}) : {};
+    const r = parseFloat(d.usdInr);
+    if (!isFinite(r) || r <= 0) {
+      el.textContent = 'Awaiting the first daily market refresh — until then the built-in fallback (\u20b988) applies.';
+      return;
+    }
+    const when = (d.usdInrUpdatedAt && typeof d.usdInrUpdatedAt.toDate === 'function')
+      ? d.usdInrUpdatedAt.toDate().toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : null;
+    el.textContent = '1 USD = \u20b9' + r +
+      (when ? ' \u00b7 refreshed ' + when : ' \u00b7 awaiting first market refresh') +
+      (d.usdInrSource ? ' \u00b7 ' + d.usdInrSource : '') +
+      ' \u2014 a $49 plan shows as \u20b9' + Math.round(49 * r).toLocaleString('en-IN') + ' in India.';
+  }).catch(() => { el.textContent = 'Could not load the current rate.'; });
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
-    loadFxRate();
+    loadFxStatus();
     loadPlans().catch((err) => {
       console.error('Stryker: failed to load plans', err);
       document.getElementById('plans-grid').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load plans: ' + (err.message || err) + '</p>';
     });
   });
-
-  const fxBtn = document.getElementById('save-fx-btn');
-  if (fxBtn) fxBtn.addEventListener('click', saveFxRate);
-  const fxInput = document.getElementById('usd-inr-rate');
-  if (fxInput) fxInput.addEventListener('input', updateFxPreview);
 
   document.getElementById('add-plan-btn').addEventListener('click', () => openPlanEditor(null));
   document.getElementById('cancel-plan-btn').addEventListener('click', closePlanEditor);

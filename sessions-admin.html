@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="273">
+<meta name="stryker-build" content="274">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Live Sessions — Stryker Admin</title>
-<link rel="stylesheet" href="assets/style.css?v=273">
-<script src="assets/device-mode.js?v=273"></script>
-<script src="assets/toast.js?v=273" defer></script>
-<script src="assets/version-check.js?v=273" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=274">
+<script src="assets/device-mode.js?v=274"></script>
+<script src="assets/toast.js?v=274" defer></script>
+<script src="assets/version-check.js?v=274" defer></script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
 <body>
@@ -164,6 +164,18 @@
         </div>
       </div>
       <div class="field">
+        <label for="admin-session-tz">Session timezone</label>
+        <select id="admin-session-tz" class="journal-select">
+          <option value="America/New_York">New York (ET) — NQ &amp; ES hours</option>
+          <option value="America/Chicago">Chicago (CT)</option>
+          <option value="Europe/London">London (UK)</option>
+          <option value="UTC">UTC</option>
+          <option value="Asia/Kolkata">India (IST)</option>
+          <option value="Asia/Singapore">Singapore (SGT)</option>
+        </select>
+        <p style="font-size:12px; color:var(--ink-3); margin:6px 0 0;">The time above is read in this timezone. Every student's countdown and session time convert to their own local time automatically.</p>
+      </div>
+      <div class="field">
         <label for="admin-session-desc">Description (optional)</label>
         <input type="text" id="admin-session-desc" placeholder="Short description shown under the session">
       </div>
@@ -205,34 +217,34 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=273"></script>
-<script src="assets/progress.js?v=273"></script>
-<script src="assets/presence.js?v=273"></script>
-<script src="assets/messages.js?v=273"></script>
-<script src="assets/messages-badge.js?v=273"></script>
-<script src="assets/gm-badge.js?v=273"></script>
-<script src="assets/account-menu.js?v=273"></script>
-<script src="assets/activity-log.js?v=273"></script>
-<script src="assets/banned-check.js?v=273"></script>
-<script src="assets/email-verify.js?v=273"></script>
-<script src="assets/profiles-sync.js?v=273"></script>
+<script src="assets/auth.js?v=274"></script>
+<script src="assets/progress.js?v=274"></script>
+<script src="assets/presence.js?v=274"></script>
+<script src="assets/messages.js?v=274"></script>
+<script src="assets/messages-badge.js?v=274"></script>
+<script src="assets/gm-badge.js?v=274"></script>
+<script src="assets/account-menu.js?v=274"></script>
+<script src="assets/activity-log.js?v=274"></script>
+<script src="assets/banned-check.js?v=274"></script>
+<script src="assets/email-verify.js?v=274"></script>
+<script src="assets/profiles-sync.js?v=274"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
-<script src="assets/loading-animation.js?v=273"></script>
-<script src="assets/avatars.js?v=273"></script>
-<script src="assets/referrals.js?v=273"></script>
-<script src="assets/roles.js?v=273"></script>
-<script src="assets/admin-guard.js?v=273"></script>
-<script src="assets/branding.js?v=273"></script>
-<script src="assets/dash-nav.js?v=273"></script>
-<script src="assets/achievements-data.js?v=273"></script>
-<script src="assets/notifications.js?v=273"></script>
+<script src="assets/loading-animation.js?v=274"></script>
+<script src="assets/avatars.js?v=274"></script>
+<script src="assets/referrals.js?v=274"></script>
+<script src="assets/roles.js?v=274"></script>
+<script src="assets/admin-guard.js?v=274"></script>
+<script src="assets/branding.js?v=274"></script>
+<script src="assets/dash-nav.js?v=274"></script>
+<script src="assets/achievements-data.js?v=274"></script>
+<script src="assets/notifications.js?v=274"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=273"></script>
-<script src="assets/admin-tasks.js?v=273"></script>
-<script src="assets/admin-notify.js?v=273"></script>
-<script src="assets/admin-nav.js?v=273"></script>
-<script src="assets/admin-sessions.js?v=273"></script>
-<script src="assets/notes-admin.js?v=273"></script>
-<script src="assets/theme.js?v=273"></script>
+<script src="assets/push.js?v=274"></script>
+<script src="assets/admin-tasks.js?v=274"></script>
+<script src="assets/admin-notify.js?v=274"></script>
+<script src="assets/admin-nav.js?v=274"></script>
+<script src="assets/admin-sessions.js?v=274"></script>
+<script src="assets/notes-admin.js?v=274"></script>
+<script src="assets/theme.js?v=274"></script>
 </body>
 </html>

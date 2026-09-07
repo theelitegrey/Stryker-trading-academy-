@@ -70,6 +70,26 @@ function formatSessionDate(dateStr, timeStr){
   }
 }
 
+// The universal start instant. Sessions saved since the timezone fix carry
+// startAtMillis (the admin's wall-clock converted from the session's own
+// timezone); older ones fall back to parsing date+time in the viewer's local
+// zone, which is what the admin meant only when both are in the same zone.
+function lsWhenMs(s){
+  if (typeof s.startAtMillis === 'number' && isFinite(s.startAtMillis)) return s.startAtMillis;
+  const d = new Date(s.date + 'T' + (s.time || '00:00'));
+  return d.getTime();   // NaN when unparsable — callers treat that as "no clock"
+}
+
+// "Sep 7 · 7:00 PM" in the VIEWER's timezone when the real instant is known.
+function lsSessionWhenText(s){
+  if (typeof s.startAtMillis === 'number' && isFinite(s.startAtMillis)) {
+    const d = new Date(s.startAtMillis);
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) +
+      (s.time ? ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '');
+  }
+  return formatSessionDate(s.date, s.time);
+}
+
 function lsEsc(s){
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -115,7 +135,7 @@ function lsOpenPlayer(session, mode){
   hero.style.display = '';
   document.getElementById('live-hero-title').textContent = session.title || 'Live session';
   document.getElementById('live-hero-sub').textContent =
-    (session.instrument ? session.instrument + ' · ' : '') + formatSessionDate(session.date, session.time) +
+    (session.instrument ? session.instrument + ' · ' : '') + lsSessionWhenText(session) +
     (mode === 'replay' ? ' · replay' : '');
   document.getElementById('live-hero-badge').style.display = mode === 'live' ? '' : 'none';
   document.getElementById('lc-live').style.display = mode === 'live' ? '' : 'none';
@@ -328,9 +348,10 @@ function lsRenderNext(next){
   if (!next) { panel.style.display = 'none'; return; }
   panel.style.display = '';
 
-  const target = new Date(next.date + 'T' + (next.time || '00:00'));
+  const targetMs = lsWhenMs(next);
+  const localized = typeof next.startAtMillis === 'number' && isFinite(next.startAtMillis);
   const tick = () => {
-    const ms = target - Date.now();
+    const ms = targetMs - Date.now();
     let counter;
     if (isNaN(ms)) counter = '';
     else if (ms <= 0) counter = 'starting any moment — hold tight';
@@ -343,7 +364,8 @@ function lsRenderNext(next){
       '<div class="live-next-inner">' +
         '<div>' +
           '<h3>' + lsEsc(next.title || 'Untitled session') + '</h3>' +
-          '<span>' + formatSessionDate(next.date, next.time) + (next.instrument ? ' · ' + lsEsc(next.instrument) : '') + '</span>' +
+          '<span>' + lsSessionWhenText(next) + (next.instrument ? ' · ' + lsEsc(next.instrument) : '') +
+            (localized ? ' · your local time' : '') + '</span>' +
         '</div>' +
         '<div class="live-countdown">' + counter + '</div>' +
       '</div>';
@@ -376,7 +398,10 @@ function renderSessionRow(session, isPast){
   row.innerHTML =
     '<div class="event-date"><b>' + day + '</b>' + mon + '</div>' +
     '<div class="event-body"><h4>' + lsEsc(session.title || 'Untitled session') + '</h4>' +
-    '<span>' + lsEsc(session.time || '') + (session.instrument ? ' · ' + lsEsc(session.instrument) : '') + '</span>' +
+    '<span>' + (typeof session.startAtMillis === 'number' && isFinite(session.startAtMillis) && session.time
+        ? new Date(session.startAtMillis).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) + ' your time'
+        : lsEsc(session.time || '')) +
+      (session.instrument ? ' · ' + lsEsc(session.instrument) : '') + '</span>' +
     (session.description ? '<br><span style="font-size:12px;">' + lsEsc(session.description) + '</span>' : '') +
     (isPast ? lsStatsHtml(session) : '') +
     '</div>' +

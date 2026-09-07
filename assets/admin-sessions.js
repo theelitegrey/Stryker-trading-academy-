@@ -17,6 +17,36 @@ function ytExtractId(input){
   return m ? m[1] : null;
 }
 
+// Sessions are scheduled in a market timezone (default New York — NQ/ES
+// hours) but watched worldwide, so the wall-clock the admin types is
+// converted to a universal instant (startAtMillis) at save time. Student
+// pages count down against that instant and print it in the viewer's own
+// timezone — an Indian student sees a 9:30 AM ET session as 7:00 PM IST,
+// not as a time that already passed.
+const SESSION_TZ_SHORT = {
+  'America/New_York': 'ET', 'America/Chicago': 'CT', 'Europe/London': 'UK',
+  'UTC': 'UTC', 'Asia/Kolkata': 'IST', 'Asia/Singapore': 'SGT'
+};
+
+// Interpret dateStr+timeStr as wall-clock time IN tz and return the epoch ms.
+// No library: format a trial instant back into tz to measure the offset.
+function zonedTimeToMillis(dateStr, timeStr, tz){
+  try {
+    const naive = new Date(dateStr + 'T' + (timeStr || '00:00') + ':00Z');
+    if (isNaN(naive)) return null;
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    });
+    const p = {};
+    dtf.formatToParts(naive).forEach((part) => { p[part.type] = part.value; });
+    const asInTz = Date.UTC(p.year, p.month - 1, p.day, p.hour === '24' ? 0 : p.hour, p.minute, p.second);
+    return naive.getTime() - (asInTz - naive.getTime());
+  } catch (e) {
+    return null;
+  }
+}
+
 function renderAdminSessionRow(session){
   const row = document.createElement('div');
   row.className = 'chapter';
@@ -28,7 +58,7 @@ function renderAdminSessionRow(session){
         (!session.isLive && session.completed ? ' <span class="status-tag" style="vertical-align:middle; color:var(--bull); border-color:var(--bull);">✓ COMPLETED</span>' : '') + '</h3>' +
       '<p>' + (session.description || '') + '</p>' +
       '<div class="chapter-meta">' +
-        '<span>' + session.date + (session.time ? ' · ' + session.time : '') + '</span>' +
+        '<span>' + session.date + (session.time ? ' · ' + session.time + (SESSION_TZ_SHORT[session.timezone] ? ' ' + SESSION_TZ_SHORT[session.timezone] : '') : '') + '</span>' +
         (session.instrument ? '<span>' + session.instrument + '</span>' : '') +
         (session.videoId ? '<span>▶ video ' + session.videoId + '</span>' : '<span style="opacity:.6;">no video attached</span>') +
         (sessionStatsSummary(session) ? '<span style="color:var(--gold);">' + sessionStatsSummary(session) + '</span>' : '') +
@@ -102,6 +132,7 @@ function startEditSession(session){
   set('admin-session-date', session.date);
   set('admin-session-time', session.time);
   set('admin-session-desc', session.description);
+  set('admin-session-tz', session.timezone || 'America/New_York');
   set('admin-session-video', session.videoId);
   set('admin-session-trades', session.tradesTotal);
   set('admin-session-won', session.tradesWon);
@@ -120,6 +151,8 @@ function resetSessionForm(){
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
+  const tzEl = document.getElementById('admin-session-tz');
+  if (tzEl) tzEl.value = 'America/New_York';
   document.getElementById('admin-session-add-btn').textContent = 'Add live session';
   document.getElementById('admin-session-cancel-edit').style.display = 'none';
 }
@@ -270,8 +303,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const n = parseInt(raw, 10);
       return isNaN(n) || n < 0 ? null : n;
     };
+    const timezone = ((document.getElementById('admin-session-tz') || {}).value) || 'America/New_York';
     const data = {
-      title, instrument, date, time, description,
+      title, instrument, date, time, description, timezone,
+      startAtMillis: zonedTimeToMillis(date, time, timezone),
       videoId: videoId || null,
       tradesTotal: num('admin-session-trades'),
       tradesWon: num('admin-session-won'),

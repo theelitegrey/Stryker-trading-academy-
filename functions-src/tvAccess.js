@@ -106,10 +106,19 @@ async function loginWithPassword(){
     if (m && m[1]) return m[1];
   }
   const bodyText = await res.text().catch(() => '');
-  console.error('TV login gave no sessionid', res.status, bodyText.slice(0, 300));
+  console.error('TV login gave no sessionid', res.status, bodyText.slice(0, 500));
+  // Surface TradingView's own reason so the admin can tell wrong-password
+  // from captcha/2FA without digging through function logs. The body is
+  // JSON like {"error": "..."} or {"code": "2FA_required", ...}.
+  let reason = '';
+  try {
+    const j = JSON.parse(bodyText);
+    reason = j.error || j.code || (j.errors && JSON.stringify(j.errors)) || '';
+  } catch (e) { /* not JSON — leave reason empty */ }
   throw new functions.https.HttpsError('failed-precondition',
-    'TradingView login failed (status ' + res.status + '). If the account has 2FA or TradingView is showing a captcha, ' +
-    'paste a browser sessionid cookie into TV_SESSIONID in the functions .env and redeploy.');
+    'TradingView login failed (status ' + res.status + (reason ? ', "' + String(reason).slice(0, 160) + '"' : '') + '). ' +
+    'Wrong password reads as an error here; for a captcha or 2FA, paste a browser sessionid cookie ' +
+    'into TV_SESSIONID in the functions .env and redeploy.');
 }
 
 async function getSession(){

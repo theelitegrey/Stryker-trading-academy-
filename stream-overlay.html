@@ -1,0 +1,147 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Stryker live stream overlay</title>
+<meta name="stryker-build" content="277">
+<meta name="robots" content="noindex">
+<script src="assets/version-check.js?v=277" defer></script><style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:1920px;height:1080px;overflow:hidden;background:transparent;font-family:'Space Grotesk',sans-serif;color:#fff}
+body.bg{background:radial-gradient(1400px 900px at 50% 50%,#121a26,#05070b)}
+body.bg:after{content:'YOUR STREAM VIDEO';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:28px;letter-spacing:.4em;color:rgba(255,255,255,.12)}
+#top,#bot{position:absolute;left:0;width:1920px;will-change:transform}
+#top{top:0;height:92px;background:linear-gradient(180deg,rgba(6,9,14,.96),rgba(6,9,14,.86));border-bottom:2px solid rgba(3,201,136,.7);box-shadow:0 10px 40px rgba(0,0,0,.55);display:flex;align-items:center;overflow:hidden}
+#top .sheen{position:absolute;top:0;left:0;width:420px;height:100%;background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.09) 50%,transparent 100%);pointer-events:none}
+.brand{display:flex;align-items:center;gap:16px;padding:0 34px;height:100%;border-right:1px solid rgba(255,255,255,.08);flex:0 0 auto}
+.brand img{height:60px;filter:drop-shadow(0 0 12px rgba(56,200,255,.65))}
+.brand b{font-size:19px;letter-spacing:.22em;font-weight:700;color:#fff;line-height:1.05}
+.brand b small{display:block;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.32em;color:#03c988;margin-top:5px}
+.livebox{display:flex;align-items:center;gap:18px;padding:0 30px;height:100%;border-right:1px solid rgba(255,255,255,.08);flex:0 0 auto}
+.pill{display:flex;align-items:center;gap:10px;background:#e5484d;font-weight:700;font-size:20px;letter-spacing:.12em;padding:8px 18px 8px 14px;border-radius:9px;box-shadow:0 0 0 3px rgba(229,72,77,.22),0 8px 26px rgba(229,72,77,.45)}
+.pill i{width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+.sess{font-weight:700;font-size:24px;letter-spacing:-.01em;white-space:nowrap}
+.sess em{font-style:normal;color:#03c988}
+.clock{font-family:'JetBrains Mono',monospace;font-size:22px;color:#cfd8e6;letter-spacing:.06em;white-space:nowrap;padding-left:6px}
+.clock small{font-size:12px;color:#7f8ea6;letter-spacing:.2em;margin-left:8px}
+.tick{flex:1 1 auto;height:100%;overflow:hidden;position:relative;display:flex;align-items:center;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.tick .track{display:flex;white-space:nowrap;will-change:transform}
+.tick span{font-family:'JetBrains Mono',monospace;font-size:17px;letter-spacing:.24em;color:#dfe6f2;padding:0 26px}
+.tick span b{color:#03c988;margin-right:26px}
+#bot{bottom:0;height:150px;background:linear-gradient(0deg,rgba(6,9,14,.97),rgba(6,9,14,.88));border-top:2px solid rgba(3,201,136,.7);box-shadow:0 -10px 40px rgba(0,0,0,.55);display:flex;align-items:stretch;overflow:hidden}
+.feat{position:relative;flex:1 1 auto;display:flex;align-items:center;gap:26px;padding:0 44px;overflow:hidden}
+.feat .lbl{position:absolute;left:44px;top:14px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.34em;color:#03c988}
+.feat .lbl b{color:#fff;margin-left:14px;font-weight:700}
+.feat .ic{width:74px;height:74px;border-radius:18px;background:linear-gradient(135deg,rgba(3,201,136,.25),rgba(3,201,136,.05));border:1px solid rgba(3,201,136,.45);display:flex;align-items:center;justify-content:center;font-size:36px;flex:0 0 auto;margin-top:16px;box-shadow:0 0 30px rgba(3,201,136,.18)}
+.feat .tx{margin-top:16px;will-change:transform,opacity}
+.feat h2{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1.05}
+.feat h2 em{font-style:normal;color:#03c988}
+.feat p{font-size:20px;color:#b8c3d4;margin-top:6px;font-weight:500}
+.feat .bar{position:absolute;left:44px;bottom:0;height:4px;background:#03c988;box-shadow:0 0 14px rgba(3,201,136,.9);transform-origin:left}
+.feat .dots{position:absolute;right:30px;top:20px;display:flex;gap:8px}
+.feat .dots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.18)}
+.feat .dots i.on{background:#03c988;box-shadow:0 0 10px #03c988}
+.cta{flex:0 0 640px;display:flex;align-items:center;gap:26px;padding:0 40px;border-left:1px solid rgba(255,255,255,.08);background:linear-gradient(90deg,rgba(3,201,136,.06),rgba(3,201,136,.12));position:relative;overflow:hidden}
+.cta .glowbg{position:absolute;right:-120px;top:-120px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(3,201,136,.28),transparent 65%);pointer-events:none}
+.btn{position:relative;flex:0 0 auto;background:#03c988;color:#04120c;font-weight:700;font-size:28px;letter-spacing:.02em;padding:18px 30px;border-radius:14px;box-shadow:0 0 0 4px rgba(3,201,136,.22),0 14px 40px rgba(3,201,136,.45);display:flex;align-items:center;gap:14px;overflow:hidden;will-change:transform}
+.btn .ar{display:inline-block;will-change:transform}
+.btn .shine{position:absolute;top:0;left:-160px;width:120px;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.32),transparent);transform:skewX(-18deg)}
+.cta .txt{line-height:1.15}
+.cta .txt b{display:block;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.cta .txt b em{font-style:normal;color:#03c988}
+.cta .txt span{display:block;font-family:'JetBrains Mono',monospace;font-size:20px;color:#fff;letter-spacing:.06em;margin-top:6px}
+.cta .txt small{display:block;font-size:14px;color:#9fb0c7;margin-top:6px;letter-spacing:.04em}
+.corner{position:absolute;width:26px;height:26px;border:3px solid #03c988;pointer-events:none;opacity:.9}
+</style></head><body>
+<div id="top">
+  <div class="sheen"></div>
+  <div class="brand"><img id="emb" src="assets/images/logo-emblem.png"><b>STRYKER<small>TRADING ACADEMY</small></b></div>
+  <div class="livebox"><div class="pill"><i id="dot"></i>LIVE</div><div class="sess" id="sess">NQ · <em>New York session</em></div><div class="clock" id="clock"></div></div>
+  <div class="tick"><div class="track" id="track"></div></div>
+</div>
+<div id="bot">
+  <div class="feat">
+    <div class="lbl">INSIDE THE ACADEMY <b id="ftn">01 / 08</b></div>
+    <div class="ic" id="ic">📚</div>
+    <div class="tx" id="tx"><h2 id="h2"></h2><p id="p"></p></div>
+    <div class="dots" id="dots"></div>
+    <div class="bar" id="bar"></div>
+  </div>
+  <div class="cta">
+    <div class="glowbg"></div>
+    <div class="btn" id="btn"><div class="shine" id="shine"></div>SIGN UP NOW <span class="ar" id="ar">→</span></div>
+    <div class="txt"><b>Don't trade the next session <em>alone</em></b><span>strykertrading.com</span><small>Create your account today · full access to every module</small></div>
+  </div>
+</div>
+<script>
+const q = new URLSearchParams(location.search);
+const part = q.get('part') || 'both';
+if (q.get('bg') === '1') document.body.classList.add('bg');
+if (part === 'top') document.getElementById('bot').style.display = 'none';
+if (part === 'bottom') document.getElementById('top').style.display = 'none';
+if (q.get('session')) document.getElementById('sess').innerHTML = q.get('session');
+const INTRO = q.get('intro') !== '0';
+const SHOWCLOCK = q.get('clock') !== '0';
+const FEATS = [
+  ['📚','<em>Structured</em> ICT curriculum','Liquidity, FVGs, order flow and models — taught in order, not in fragments'],
+  ['🏛️','<em>Smart Money</em> desk','Congress trades and insider flow, refreshed daily from official filings'],
+  ['🔴','<em>Live</em> New York sessions','Trade the open together — every session recorded and replayable'],
+  ['📈','<em>Pro</em> TradingView indicators','FVG Relay, Liquidity Master, HTF PO3, SMT Pro — access granted automatically'],
+  ['💬','The <em>Trading Floor</em>','A private community of serious traders sharing setups in real time'],
+  ['🕯️','<em>Pro</em> charting','Multi-provider live charts with institutional tooling built in'],
+  ['🌍','<em>Global</em> monitor','Sessions, macro events and market movers on one screen'],
+  ['🎁','<em>Giveaways</em> & prizes','Prop-firm challenges and rewards for active members'],
+];
+const TICK = (q.get('ticker') || 'ICT CURRICULUM|SMART MONEY DESK|LIVE NY SESSIONS|PRO INDICATORS|TRADING FLOOR|PRO CHARTS|GLOBAL MONITOR|GIVEAWAYS|SIGN UP AT STRYKERTRADING.COM').split('|');
+const track = document.getElementById('track');
+const one = TICK.map(t => '<span><b>◆</b>' + t + '</span>').join('');
+track.innerHTML = one + one + one;
+const dots = document.getElementById('dots'); dots.innerHTML = FEATS.map(() => '<i></i>').join('');
+let trackW = 0;
+const PER = 5000, LOOP = PER * FEATS.length;   // 40 s full cycle
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const ease = x => 1 - Math.pow(1 - x, 3);
+const back = x => { const c = 1.70158; return 1 + (c+1)*Math.pow(x-1,3) + c*Math.pow(x-1,2); };
+let curIdx = -1;
+function render(t) {
+  if (!trackW) trackW = track.scrollWidth / 3;
+  // intro slide-in
+  let ty = 0, by = 0;
+  if (INTRO) { const k = clamp(t/900, 0, 1); ty = -110*(1-back(k)); by = 170*(1-back(k)); }
+  document.getElementById('top').style.transform = 'translateY(' + ty + 'px)';
+  document.getElementById('bot').style.transform = 'translateY(' + by + 'px)';
+  // ticker
+  const tx = -((t*0.11) % trackW);
+  track.style.transform = 'translateX(' + tx + 'px)';
+  // sheen sweep across the top bar every 5 s
+  const sh = (t % 5000) / 5000; document.querySelector('#top .sheen').style.transform = 'translateX(' + (-420 + (1920+840)*sh) + 'px)';
+  // live dot pulse
+  document.getElementById('dot').style.opacity = 0.55 + 0.45*Math.abs(Math.sin(t/500));
+  // feature rotation
+  const idx = Math.floor((t % LOOP) / PER), local = (t % LOOP) % PER;
+  if (idx !== curIdx) {
+    curIdx = idx; const f = FEATS[idx];
+    document.getElementById('ic').textContent = f[0];
+    document.getElementById('h2').innerHTML = f[1];
+    document.getElementById('p').textContent = f[2];
+    document.getElementById('ftn').textContent = String(idx+1).padStart(2,'0') + ' / ' + String(FEATS.length).padStart(2,'0');
+    [...dots.children].forEach((d,i) => d.classList.toggle('on', i === idx));
+  }
+  let op = 1, sy = 0, sc = 1;
+  if (local < 520) { const k = ease(local/520); op = k; sy = 28*(1-k); }
+  else if (local > PER-380) { const k = (local-(PER-380))/380; op = 1-k; sy = -28*k; }
+  const txEl = document.getElementById('tx'); txEl.style.opacity = op; txEl.style.transform = 'translateY(' + sy + 'px)';
+  const ic = document.getElementById('ic'); const ik = local < 520 ? back(clamp(local/520,0,1)) : 1;
+  ic.style.transform = 'scale(' + (0.6 + 0.4*ik) + ') rotate(' + (-12*(1-ik)) + 'deg)'; ic.style.opacity = local > PER-380 ? op : 1;
+  document.getElementById('bar').style.width = (local/PER*1180) + 'px';
+  // CTA button pulse + shine + arrow nudge
+  const b = document.getElementById('btn'); b.style.transform = 'scale(' + (1 + 0.035*Math.sin(t/380)) + ')';
+  const ss = (t % 2600) / 2600; document.getElementById('shine').style.transform = 'translateX(' + (ss*520) + 'px) skewX(-18deg)';
+  document.getElementById('ar').style.transform = 'translateX(' + (5*Math.max(0, Math.sin(t/260))) + 'px)';
+  // clock (browser-source mode only)
+  if (SHOWCLOCK && !window.__RENDER) {
+    const d = new Date();
+    document.getElementById('clock').innerHTML = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false }) + '<small>ET</small>';
+  }
+}
+window.TOTAL = LOOP;
+window.seek = ms => { window.__RENDER = true; document.getElementById('clock').style.display = 'none'; render(ms); };
+if (!q.get('render')) { const t0 = performance.now(); (function loop(){ render(performance.now() - t0); requestAnimationFrame(loop); })(); }
+</script></body></html>

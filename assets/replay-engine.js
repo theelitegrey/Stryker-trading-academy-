@@ -198,9 +198,9 @@
 
       if (type === 'market') {
         const fill = roundTick(this.price() + dir * this.spec.slippage * this.spec.tick, this.spec.tick);
-        return this._open({ side, size, sl, tp, comment: o.comment || '', type }, fill, this.bar.t, this.idx);
+        return this._open({ side, size, sl, tp, comment: o.comment || '', type, tags: o.tags, mistakes: o.mistakes, notes: o.notes, checklist: o.checklist }, fill, this.bar.t, this.idx);
       }
-      const order = { id: this.nextId++, side, type, price: roundTick(ref, this.spec.tick), size, sl, tp, comment: o.comment || '', t: this.bar.t, idx: this.idx };
+      const order = { id: this.nextId++, side, type, price: roundTick(ref, this.spec.tick), size, sl, tp, comment: o.comment || '', t: this.bar.t, idx: this.idx, tags: o.tags || [], mistakes: o.mistakes || [], notes: o.notes || '', checklist: o.checklist || null };
       this.pending.push(order);
       this._log(order.t, `${side.toUpperCase()} ${type} ${size} @ ${order.price} placed`);
       return order;
@@ -245,6 +245,7 @@
       return this._close(p, fill, this.bar.t, this.idx, 'manual', part);
     }
     closeAll() { for (const p of this.positions.slice()) this.close(p.id); }
+    updateTradeMeta(tradeId, meta) { const t = this.trades.find((x) => x.id === tradeId); if (!t) return null; if (meta.tags) t.tags = meta.tags.slice(); if (meta.mistakes) t.mistakes = meta.mistakes.slice(); if ('notes' in meta) t.notes = meta.notes || ''; if ('journaled' in meta) t.journaled = !!meta.journaled; return t; }
     reverse(posId) {
       const p = this.positions.find((x) => x.id === posId);
       if (!p) return null;
@@ -307,7 +308,8 @@
       const pos = {
         id: fromPending ? o.id : this.nextId++, side: o.side, size: o.size, entry: fill, entryT: t, entryIdx: idx,
         sl: o.sl != null ? roundTick(o.sl, this.spec.tick) : null, tp: o.tp != null ? roundTick(o.tp, this.spec.tick) : null,
-        sl0: o.sl != null ? o.sl : null, comment: o.comment || '', type: o.type || 'market', mfe: 0, mae: 0, bars: 0
+        sl0: o.sl != null ? o.sl : null, comment: o.comment || '', type: o.type || 'market', mfe: 0, mae: 0, bars: 0,
+        tags: o.tags || [], mistakes: o.mistakes || [], notes: o.notes || '', checklist: o.checklist || null
       };
       const fee = this.spec.commission * o.size;
       this.balance -= fee; pos.fees = fee;
@@ -327,7 +329,8 @@
       const trade = {
         id: this.nextId++, posId: p.id, symbol: this.spec.symbol || '', side: p.side, size, entry: p.entry, entryT: p.entryT, entryIdx: p.entryIdx,
         exit: fill, exitT: t, exitIdx: idx, gross: round2(gross), fees: round2(fee + feesIn), pnl: round2(pnl),
-        r: risk > 0 ? round2(pnl / risk) : null, risk: round2(risk), mfe: round2(p.mfe), mae: round2(p.mae), bars: p.bars, reason, comment: p.comment, sl: p.sl0, tp: p.tp
+        r: risk > 0 ? round2(pnl / risk) : null, risk: round2(risk), mfe: round2(p.mfe), mae: round2(p.mae), bars: p.bars, reason, comment: p.comment, sl: p.sl0, tp: p.tp,
+        tags: (p.tags || []).slice(), mistakes: (p.mistakes || []).slice(), notes: p.notes || '', checklist: p.checklist || null, journaled: false
       };
       this.trades.push(trade);
       if (partSize) { p.size -= size; p.fees -= feesIn; }

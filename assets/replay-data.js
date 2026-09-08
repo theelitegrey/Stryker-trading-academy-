@@ -51,12 +51,13 @@
     if (dbp) return dbp;
     dbp = new Promise((resolve, reject) => {
       if (!root.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
-      const req = root.indexedDB.open('stryker_replay', 1);
+      const req = root.indexedDB.open('stryker_replay', 2);
       req.onupgradeneeded = () => {
         const d = req.result;
         if (!d.objectStoreNames.contains('datasets')) d.createObjectStore('datasets');
         if (!d.objectStoreNames.contains('sessions')) d.createObjectStore('sessions', { keyPath: 'id' });
         if (!d.objectStoreNames.contains('csv')) d.createObjectStore('csv', { keyPath: 'name' });
+        if (!d.objectStoreNames.contains('snaps')) d.createObjectStore('snaps');   // chart snapshots per trade: key sessionId:posId:entry|exit
       };
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error || new Error('IndexedDB open failed'));
@@ -81,7 +82,10 @@
     listCsv: () => tx('csv', 'readonly', (s) => s.getAll()).then((l) => (l || []).map((c) => ({ name: c.name, bars: c.bars.length, baseTf: c.baseTf, first: c.bars[0] && c.bars[0].t, last: c.bars[c.bars.length - 1] && c.bars[c.bars.length - 1].t }))),
     getCsv: (name) => tx('csv', 'readonly', (s) => s.get(name)),
     putCsv: (obj) => tx('csv', 'readwrite', (s) => s.put(obj)),
-    deleteCsv: (name) => tx('csv', 'readwrite', (s) => s.delete(name))
+    deleteCsv: (name) => tx('csv', 'readwrite', (s) => s.delete(name)),
+    getSnap: (key) => tx('snaps', 'readonly', (s) => s.get(key)),
+    putSnap: (key, dataUrl) => tx('snaps', 'readwrite', (s) => s.put(dataUrl, key)),
+    deleteSnaps: (sessionId) => tx('snaps', 'readwrite', (s) => { const r = s.openCursor(IDBKeyRange.bound(sessionId + ':', sessionId + ':\uffff')); r.onsuccess = () => { const c = r.result; if (c) { c.delete(); c.continue(); } }; return null; })
   };
 
   // ---- fetch helpers ---------------------------------------------------------

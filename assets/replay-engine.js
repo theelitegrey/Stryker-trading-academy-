@@ -321,6 +321,7 @@
       const size = partSize || p.size;
       const dir = p.side === 'buy' ? 1 : -1;
       const gross = (fill - p.entry) * size * this.spec.pointValue * dir;
+      if (gross > p.mfe) p.mfe = gross; if (-gross > p.mae) p.mae = -gross;   // an exit is itself an excursion
       const fee = this.spec.commission * size;
       const feesIn = partSize ? p.fees * (size / p.size) : p.fees;
       const pnl = gross - fee - feesIn;

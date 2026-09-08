@@ -38,8 +38,8 @@
       const LW = root.LightweightCharts; if (!LW) throw new Error('Lightweight Charts did not load');
       this.LW = LW; this.el = container; this.el.classList.add('rp-chartwrap');
       this.opts = Object.assign({ tz: 'America/New_York', decimals: 2, tick: 0.01, symbol: '', theme: 'dark', sessions: { ny: true, ldn: false } }, opts || {});
-      this.el.innerHTML = '<div class="rp-lwc"></div><canvas class="rp-overlay"></canvas><div class="rp-legend"></div><div class="rp-strip"></div><div class="rp-indlegend"></div>';
-      this.chartEl = this.el.querySelector('.rp-lwc'); this.ov = this.el.querySelector('.rp-overlay'); this.legendEl = this.el.querySelector('.rp-legend'); this.stripEl = this.el.querySelector('.rp-strip'); this.indLegendEl = this.el.querySelector('.rp-indlegend');
+      this.el.innerHTML = '<div class="rp-lwc"></div><canvas class="rp-overlay"></canvas><div class="rp-legend"></div><div class="rp-strip"></div><div class="rp-indlegend"></div><div class="rp-chips"></div>';
+      this.chartEl = this.el.querySelector('.rp-lwc'); this.ov = this.el.querySelector('.rp-overlay'); this.legendEl = this.el.querySelector('.rp-legend'); this.stripEl = this.el.querySelector('.rp-strip'); this.indLegendEl = this.el.querySelector('.rp-indlegend'); this.chipsEl = this.el.querySelector('.rp-chips');
       const T = THEMES[this.opts.theme] || THEMES.dark; this.T = T;
       this.chart = LW.createChart(this.chartEl, this._chartOptions(T));
       this.candles = this.chart.addSeries(LW.CandlestickSeries, { upColor: T.up, downColor: T.down, borderVisible: false, wickUpColor: T.up, wickDownColor: T.down, priceFormat: { type: 'price', precision: this.opts.decimals, minMove: this.opts.tick || Math.pow(10, -this.opts.decimals) }, priceLineVisible: true, lastValueVisible: true });
@@ -50,7 +50,7 @@
       this.lines = []; this.priceLines = new Map(); this.markers = [];
       this.drawings = []; this.tool = 'none'; this.pendingPts = []; this.selected = null; this.hoverLine = null; this.drag = null; this.mouse = null;
       this.indicators = []; this.indSeq = 1; this.shapes = [];
-      this.onLineDrag = null; this.onDrawingsChange = null; this.onSelect = null; this.onIndicatorAction = null; this.onCrosshair = null;
+      this.onLineDrag = null; this.onDrawingsChange = null; this.onSelect = null; this.onIndicatorAction = null; this.onCrosshair = null; this.onLineAction = null; this.onContextMenu = null;
       this._raf = 0; this._indTimer = 0;
       this._bind(); this.resize();
       if (root.ResizeObserver) { this._ro = new ResizeObserver(() => this.resize()); this._ro.observe(this.el); }
@@ -189,7 +189,7 @@
       const ctx = this.ov.getContext('2d'); const d = root.devicePixelRatio || 1; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, this.ov.width, this.ov.height);
       if (!this.n) return; const R = this.paneRect(); ctx.save(); ctx.beginPath(); ctx.rect(R.x, R.y, R.w, R.h); ctx.clip();
       const range = this.chart.timeScale().getVisibleLogicalRange(); const from = range ? Math.max(0, Math.floor(range.from) - 1) : 0, to = range ? Math.ceil(range.to) + 1 : this.n;
-      this._drawSessions(ctx, R, from, to); this._drawShapes(ctx, R, from, to); this._drawDrawings(ctx, R);
+      this._drawSessions(ctx, R, from, to); this._drawShapes(ctx, R, from, to); this._drawDrawings(ctx, R); this._layoutChips(R);
       if (this.tool !== 'none' && this.pendingPts.length && this.mouse) this._drawOne(ctx, R, { type: this.tool, p1: this.pendingPts[0], p2: { t: this.tOfIndex(this.iOf(this.mouse.x)), price: this.pOf(this.mouse.y) } }, false);
       ctx.restore();
     }
@@ -208,15 +208,29 @@
         if (s.type === 'box') { const yt = this.yOf(s.top), yb = this.yOf(s.bottom); if (isNaN(yt) || isNaN(yb)) continue; ctx.fillStyle = s.fill || 'rgba(255,255,255,0.05)'; ctx.fillRect(x0, yt, x1 - x0, yb - yt); ctx.strokeStyle = s.color; ctx.setLineDash(s.dashed ? [4, 4] : []); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(yt) + 0.5, Math.round(x1 - x0), Math.round(yb - yt)); ctx.setLineDash([]); if (s.text && yb - yt > 9 && x0 >= R.x) { ctx.fillStyle = s.color; ctx.fillText(s.text, x0 + 3, yt + 10); } }
       }
     }
+    // ---- order-line chips (FX-Replay style labels with an action button) ---------------
+    _layoutChips(R) {
+      const chips = this.chipsEl; const want = this.lines.filter((l) => l.chip);
+      const have = new Map([...chips.children].map((c) => [c.dataset.id, c]));
+      for (const l of want) {
+        let c = have.get(l.id); const y = this.yOf(l.price); const visible = !isNaN(y) && y >= R.y && y <= R.y + R.h;
+        if (!c) { c = document.createElement('div'); c.className = 'rp-chip-line'; c.dataset.id = l.id; c.innerHTML = '<span class="t"></span><button type="button" class="x" title="' + (l.chip.action === 'close' ? 'Close position' : 'Cancel order') + '">✕</button>'; c.querySelector('.x').addEventListener('mousedown', (e) => e.stopPropagation()); c.querySelector('.x').addEventListener('click', (e) => { e.stopPropagation(); if (this.onLineAction) this.onLineAction(l, l.chip.action); }); chips.appendChild(c); }
+        have.delete(l.id); c.style.display = visible ? '' : 'none'; if (visible) { c.style.top = Math.round(y) + 'px'; c.style.borderColor = l.color; c.querySelector('.t').textContent = l.chip.text; c.style.right = (this.el.clientWidth - R.w + 6) + 'px'; }
+      }
+      for (const [, c] of have) c.remove();
+    }
     // ---- drawings -----------------------------------------------------------------------
     setDrawings(d) { this.drawings = d || []; this.request(); }
+    toggleDrawing(i) { const d = this.drawings[i]; if (!d) return; d.hidden = !d.hidden; this._changed(); }
+    removeDrawing(i) { if (i < 0 || i >= this.drawings.length) return; this.drawings.splice(i, 1); if (this.selected === i) this.selected = null; this._changed(); }
+    selectDrawing(i) { this.selected = i; this.request(); }
     getDrawings() { return this.drawings; }
     setTool(tool) { this.tool = tool || 'none'; this.pendingPts = []; this.ov.style.pointerEvents = this.tool === 'none' ? 'none' : 'auto'; this.ov.style.cursor = this.tool === 'none' ? '' : 'crosshair'; this.request(); }
     deleteSelected() { if (this.selected == null) return false; this.drawings.splice(this.selected, 1); this.selected = null; this._changed(); return true; }
     clearDrawings() { this.drawings = []; this.selected = null; this._changed(); }
     _changed() { if (this.onDrawingsChange) this.onDrawingsChange(this.drawings); this.request(); }
     _pt(p) { return { x: this.xOf(this.indexOfT(p.t)), y: this.yOf(p.price) }; }
-    _drawDrawings(ctx, R) { this.drawings.forEach((d, i) => this._drawOne(ctx, R, d, i === this.selected)); }
+    _drawDrawings(ctx, R) { this.drawings.forEach((d, i) => { if (!d.hidden) this._drawOne(ctx, R, d, i === this.selected); }); }
     _drawOne(ctx, R, d, sel) {
       const col = sel ? this.T.sel : (d.color || this.T.draw); ctx.save(); ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = sel ? 2 : 1.25; ctx.font = '11px JetBrains Mono, monospace';
       const a = this._pt(d.p1), b = d.p2 ? this._pt(d.p2) : null; if (isNaN(a.x) || isNaN(a.y) || (b && (isNaN(b.x) || isNaN(b.y)))) { ctx.restore(); return; }
@@ -231,7 +245,7 @@
     }
     _hitDrawing(x, y) {
       const dist = (ax, ay, bx, by) => { const l2 = (bx - ax) ** 2 + (by - ay) ** 2; if (!l2) return Math.hypot(x - ax, y - ay); let t = ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / l2; t = Math.max(0, Math.min(1, t)); return Math.hypot(x - (ax + t * (bx - ax)), y - (ay + t * (by - ay))); };
-      for (let i = this.drawings.length - 1; i >= 0; i--) { const d = this.drawings[i]; const a = this._pt(d.p1), b = d.p2 ? this._pt(d.p2) : null; if (d.type === 'hline') { if (Math.abs(a.y - y) < 6) return i; continue; } if (!b) continue; if (d.type === 'trend' || d.type === 'ray') { if (dist(a.x, a.y, b.x, b.y) < 6) return i; } else if (x >= Math.min(a.x, b.x) - 4 && x <= Math.max(a.x, b.x) + 4 && y >= Math.min(a.y, b.y) - 4 && y <= Math.max(a.y, b.y) + 4) return i; }
+      for (let i = this.drawings.length - 1; i >= 0; i--) { const d = this.drawings[i]; if (d.hidden) continue; const a = this._pt(d.p1), b = d.p2 ? this._pt(d.p2) : null; if (d.type === 'hline') { if (Math.abs(a.y - y) < 6) return i; continue; } if (!b) continue; if (d.type === 'trend' || d.type === 'ray') { if (dist(a.x, a.y, b.x, b.y) < 6) return i; } else if (x >= Math.min(a.x, b.x) - 4 && x <= Math.max(a.x, b.x) + 4 && y >= Math.min(a.y, b.y) - 4 && y <= Math.max(a.y, b.y) + 4) return i; }
       return null;
     }
     // ---- screenshot ------------------------------------------------------------------------
@@ -265,6 +279,7 @@
         this.drawings.push({ type: this.tool, p1: this.pendingPts[0], p2: p }); this.pendingPts = []; if (this.tool === 'measure') this.selected = this.drawings.length - 1; this._changed(); this.setTool('none');
       });
       this.ov.addEventListener('mousemove', (e) => { if (this.tool === 'none') return; const r = this.ov.getBoundingClientRect(); this.mouse = { x: e.clientX - r.left, y: e.clientY - r.top }; if (this.pendingPts.length) this.request(); });
+      this.chartEl.addEventListener('contextmenu', (e) => { if (!this.onContextMenu || !this.n) return; const m = pos(e); const R = this.paneRect(); if (m.x > R.w || m.y > R.h) return; e.preventDefault(); const price = this.snap(this.pOf(m.y)); const i = Math.round(this.iOf(m.x)); this.onContextMenu({ x: e.clientX, y: e.clientY, price, index: i, bar: this.bar(Math.max(0, Math.min(this.n - 1, i))), hitDrawing: this._hitDrawing(m.x, m.y) }); });
       this.indLegendEl.addEventListener('click', (e) => { const b = e.target.closest('button'); const row = e.target.closest('[data-iid]'); if (!b || !row) return; if (this.onIndicatorAction) this.onIndicatorAction(row.dataset.iid, b.dataset.act); });
     }
   }

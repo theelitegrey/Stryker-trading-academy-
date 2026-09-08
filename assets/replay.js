@@ -85,13 +85,14 @@
       RP.sim = session.sim ? E.Simulator.fromSnapshot(RP.spec, session.sim) : new E.Simulator(RP.spec, { balance: session.balance }); RP.sim.setBar(RP.series.base[RP.cursor], RP.cursor);
       buildWorkspace(); RP.chart.setDrawings(session.drawings || []);
       for (const ind of (session.indicators || [])) RP.chart.addIndicator(ind.id, ind.params, ind.iid);
-      $('rp-setup').hidden = true; $('rp-work').hidden = false; $('rp-title').textContent = session.name; $('rp-res').textContent = data.note + (data.cached ? ' · cached' : '');
+      renderObjects();
+      closeSetup(); $('rp-home').hidden = true; $('rp-work').hidden = false; $('rp-title').textContent = RP.spec.symbol + ' · ' + session.name; $('rp-res').textContent = data.note + (data.cached ? ' · cached' : '');
       RP.tradesRendered = -1; refresh(true); RP.chart.scrollToEnd(); if (RP.htf) RP.htf.scrollToEnd(); renderTrades(); renderStats(); saveSession();
       history.replaceState(null, '', 'replay.html?session=' + encodeURIComponent(session.id));
     } catch (err) { console.error(err); toast(err.message || String(err), 'error'); }
     btn.disabled = false; prog.textContent = '';
   }
-  function leaveWorkspace() { pause(); saveSession(); if (RP.chart) { RP.chart.destroy(); RP.chart = null; } if (RP.htf) { RP.htf.destroy(); RP.htf = null; } $('rp-work').hidden = true; $('rp-setup').hidden = false; history.replaceState(null, '', 'replay.html'); renderSessionList(); }
+  function leaveWorkspace() { pause(); saveSession(); if (RP.chart) { RP.chart.destroy(); RP.chart = null; } if (RP.htf) { RP.htf.destroy(); RP.htf = null; } $('rp-work').hidden = true; $('rp-home').hidden = false; $('rp-h1').textContent = 'Replay'; $('rp-h1-sub').textContent = 'Bar-by-bar replay with the future hidden.'; history.replaceState(null, '', 'replay.html'); renderSessionList(); }
 
   // ---- workspace ---------------------------------------------------------------------------
   function buildWorkspace() {
@@ -100,7 +101,10 @@
     const opts = { tz: RP.tz, decimals: RP.spec.decimals, tick: RP.spec.tick, symbol: RP.spec.symbol, theme, sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } };
     RP.chart = new window.ReplayChart($('rp-chart-main'), opts);
     RP.chart.onLineDrag = onLineDrag; RP.chart.onDrawingsChange = (d) => { RP.session.drawings = d; }; RP.chart.onSelect = (i) => { $('rp-tool-del').disabled = i == null; };
-    RP.chart.onIndicatorAction = (iid, act) => { if (act === 'remove') RP.chart.removeIndicator(iid); else if (act === 'toggle') RP.chart.toggleIndicator(iid); else if (act === 'settings') openIndicatorSettings(iid); saveIndicators(); };
+    RP.chart.onIndicatorAction = (iid, act) => { if (act === 'remove') RP.chart.removeIndicator(iid); else if (act === 'toggle') RP.chart.toggleIndicator(iid); else if (act === 'settings') openIndicatorSettings(iid); saveIndicators(); renderObjects(); };
+    RP.chart.onLineAction = (line, act) => { try { const before = RP.sim.trades.length; if (act === 'close' && line.pos) RP.sim.close(line.pos.id); else if (act === 'cancel' && line.order) RP.sim.cancel(line.order.id); refresh(); if (RP.sim.trades.length > before) onTradesClosed(RP.sim.trades.slice(before)); saveSession(); } catch (err) { toast(err.message, 'error'); } };
+    RP.chart.onContextMenu = openContextMenu;
+    const _odc = RP.chart.onDrawingsChange; RP.chart.onDrawingsChange = (d) => { _odc(d); renderObjects(); };
     RP.htf = new window.ReplayChart($('rp-chart-htf'), Object.assign({}, opts, { symbol: RP.spec.symbol + ' HTF' })); RP.htf.onLineDrag = onLineDrag;
     buildStrip();
     const tfs = RP.series.availableTimeframes();
@@ -110,10 +114,10 @@
     $('rp-chart-htf').hidden = !$('rp-split').checked; $('rp-charts').classList.toggle('is-split', $('rp-split').checked);
     $('rp-speed').innerHTML = SPEEDS.map((s, i) => '<option value="' + i + '"' + (i === RP.speedIdx ? ' selected' : '') + '>' + s + ' bar' + (s > 1 ? 's' : '') + '/s</option>').join('');
     $('rp-unit').textContent = RP.spec.unit || 'units'; $('rp-size').value = RP.spec.lotStep >= 1 ? 1 : RP.spec.lotStep * 10; $('rp-size').step = RP.spec.lotStep;
-    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true;
+    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true; renderObjects(); $('rp-h1').textContent = RP.session.name; $('rp-h1-sub').textContent = RP.spec.label + ' · ' + (RP.session.dataNote || '');
   }
   function buildStrip() {
-    const el = RP.chart.stripEl; el.innerHTML = '<button type="button" class="rp-sbtn is-sell" id="rp-strip-sell"><small>SELL</small><b>—</b></button><div class="rp-smid"><input type="number" id="rp-strip-size" step="' + RP.spec.lotStep + '" min="0" value="' + ($('rp-size').value || 1) + '" title="Size"><label title="Attach stop (ticks) and target (R) automatically"><input type="checkbox" id="rp-strip-attach" checked> SL <input type="number" id="rp-strip-sl" value="' + pref('stripSl', 40) + '" min="1" title="Stop in ticks"> t · TP <input type="number" id="rp-strip-tp" value="' + pref('stripTp', 2) + '" min="0.1" step="0.1" title="Target as R multiple"> R</label></div><button type="button" class="rp-sbtn is-buy" id="rp-strip-buy"><small>BUY</small><b>—</b></button>';
+    const el = $('rp-tradebar-strip'); el.innerHTML = '<button type="button" class="rp-sbtn is-sell" id="rp-strip-sell"><small>SELL</small><b>—</b></button><div class="rp-smid"><input type="number" id="rp-strip-size" step="' + RP.spec.lotStep + '" min="0" value="' + ($('rp-size').value || 1) + '" title="Size"><label title="Attach stop (ticks) and target (R) automatically"><input type="checkbox" id="rp-strip-attach" checked> SL <input type="number" id="rp-strip-sl" value="' + pref('stripSl', 40) + '" min="1" title="Stop in ticks"> t · TP <input type="number" id="rp-strip-tp" value="' + pref('stripTp', 2) + '" min="0.1" step="0.1" title="Target as R multiple"> R</label></div><button type="button" class="rp-sbtn is-buy" id="rp-strip-buy"><small>BUY</small><b>—</b></button>';
     $('rp-strip-sell').addEventListener('click', () => stripOrder('sell')); $('rp-strip-buy').addEventListener('click', () => stripOrder('buy'));
     $('rp-strip-size').addEventListener('change', (e) => { $('rp-size').value = e.target.value; updateTicketMath(); });
     $('rp-strip-sl').addEventListener('change', (e) => setPref('stripSl', Number(e.target.value))); $('rp-strip-tp').addEventListener('change', (e) => setPref('stripTp', Number(e.target.value)));
@@ -154,12 +158,12 @@
     const lines = []; const sim = RP.sim; const fmt = (p) => RP.chart.fmt(p); const pv = RP.spec.pointValue;
     for (const p of sim.positions) {
       const pnl = sim.openPnl(p); const risk = p.sl != null ? Math.abs(p.entry - p.sl) * p.size * pv : 0;
-      lines.push({ id: 'e' + p.id, price: p.entry, color: p.side === 'buy' ? '#03c988' : '#e5484d', width: 1, label: (p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.size + ' @ ' + fmt(p.entry) + '  ' + money(pnl, true), kind: 'entry' });
+      lines.push({ id: 'e' + p.id, price: p.entry, color: p.side === 'buy' ? '#03c988' : '#e5484d', width: 1, label: (p.side === 'buy' ? 'LONG ' : 'SHORT ') + p.size + ' @ ' + fmt(p.entry), kind: 'entry', pos: p, chip: { text: '#' + p.id + ' → ' + money(pnl, true) + ' | ' + p.size, action: 'close' } });
       if (p.sl != null) lines.push({ id: 's' + p.id, price: p.sl, color: '#e5484d', dash: true, label: 'SL  ' + money(-risk), draggable: true, kind: 'sl', pos: p, dragLabel: (np) => 'SL  ' + money(-Math.abs(p.entry - np) * p.size * pv) });
       if (p.tp != null) lines.push({ id: 't' + p.id, price: p.tp, color: '#03c988', dash: true, label: 'TP  ' + money(Math.abs(p.tp - p.entry) * p.size * pv, true) + (risk ? '  ' + (Math.abs(p.tp - p.entry) * p.size * pv / risk).toFixed(1) + 'R' : ''), draggable: true, kind: 'tp', pos: p, dragLabel: (np) => 'TP  ' + money(Math.abs(np - p.entry) * p.size * pv, true) + (risk ? '  ' + (Math.abs(np - p.entry) * p.size * pv / risk).toFixed(1) + 'R' : '') });
     }
     for (const o of sim.pending) {
-      lines.push({ id: 'o' + o.id, price: o.price, color: '#f5c542', dash: true, label: (o.side === 'buy' ? 'BUY ' : 'SELL ') + o.type.toUpperCase() + ' ' + o.size, draggable: true, kind: 'order', order: o });
+      lines.push({ id: 'o' + o.id, price: o.price, color: '#f5c542', dash: true, label: (o.side === 'buy' ? 'BUY ' : 'SELL ') + o.type.toUpperCase(), draggable: true, kind: 'order', order: o, chip: { text: '#' + o.id + ' ' + o.side.toUpperCase() + ' ' + o.type + ' | ' + o.size, action: 'cancel' } });
       if (o.sl != null) lines.push({ id: 'os' + o.id, price: o.sl, color: 'rgba(229,72,77,0.7)', dash: true, label: 'SL', kind: 'osl', order: o, draggable: true });
       if (o.tp != null) lines.push({ id: 'ot' + o.id, price: o.tp, color: 'rgba(3,201,136,0.7)', dash: true, label: 'TP', kind: 'otp', order: o, draggable: true });
     }
@@ -220,7 +224,7 @@
   function renderTagChips() { $('rp-tags').innerHTML = COACH.TAGS.map((t) => '<button type="button" class="rp-chip' + (RP.nextTags.includes(t) ? ' is-on' : '') + '" data-tag="' + esc(t) + '">' + esc(t) + '</button>').join(''); }
 
   // ---- positions / trades panels ---------------------------------------------------------------------
-  function renderAccount() { const s = RP.sim; const eq = s.equityValue(); const open = eq - s.balance; const net = s.balance - s.startBalance; $('rp-acc-balance').textContent = money(s.balance); $('rp-acc-equity').textContent = money(eq); const o = $('rp-acc-open'); o.textContent = money(open, true); o.className = 'rp-acc-val ' + (open > 0 ? 'up' : open < 0 ? 'down' : ''); const n = $('rp-acc-net'); n.textContent = money(net, true) + ' (' + (100 * net / s.startBalance).toFixed(2) + '%)'; n.className = 'rp-acc-val ' + (net > 0 ? 'up' : net < 0 ? 'down' : ''); }
+  function renderAccount() { const s = RP.sim; const eq = s.equityValue(); const open = eq - s.balance; const net = s.balance - s.startBalance; $('rp-bb-balance').textContent = money(s.balance); const br = $('rp-bb-real'); br.textContent = money(net, true); br.className = net > 0 ? 'up' : net < 0 ? 'down' : ''; const bu = $('rp-bb-unreal'); bu.textContent = money(open, true); bu.className = open > 0 ? 'up' : open < 0 ? 'down' : ''; $('rp-acc-balance').textContent = money(s.balance); $('rp-acc-equity').textContent = money(eq); const o = $('rp-acc-open'); o.textContent = money(open, true); o.className = 'rp-acc-val ' + (open > 0 ? 'up' : open < 0 ? 'down' : ''); const n = $('rp-acc-net'); n.textContent = money(net, true) + ' (' + (100 * net / s.startBalance).toFixed(2) + '%)'; n.className = 'rp-acc-val ' + (net > 0 ? 'up' : net < 0 ? 'down' : ''); }
   function renderPositions() {
     const s = RP.sim; const fmt = (p) => RP.chart.fmt(p); const el = $('rp-positions'); $('rp-poscount').textContent = s.positions.length + (s.pending.length ? ' + ' + s.pending.length + ' pending' : '');
     if (!s.positions.length && !s.pending.length) { el.innerHTML = '<p class="rp-empty">Flat. Use the Buy / Sell strip on the chart or the ticket to open a position.</p>'; return; }
@@ -317,6 +321,42 @@
   }
   function saveIndicators() { if (!RP.session || !RP.chart) return; RP.session.indicators = RP.chart.getIndicators(); setPref('lastIndicators', RP.session.indicators.map((i) => ({ id: i.id, params: i.params }))); saveSession(); }
 
+  // ---- object tree -----------------------------------------------------------------------------------
+  const DRAW_NAMES = { trend: 'Trend line', ray: 'Ray', hline: 'Horizontal line', rect: 'Rectangle', fib: 'Fibonacci', measure: 'Measure' };
+  function renderObjects() {
+    const el = $('rp-objtree'); if (!el || !RP.chart) return; const inds = RP.chart.indicators, dr = RP.chart.drawings;
+    el.innerHTML = '<h4>Indicators</h4>' + (inds.length ? inds.map((i) => '<div class="rp-obj' + (i.visible ? '' : ' is-off') + '" data-iid="' + i.iid + '"><span class="rp-obj-ic">ƒ</span><b>' + esc(i.def.name) + '</b><button type="button" data-act="toggle" title="Show / hide">' + (i.visible ? '👁' : '◌') + '</button><button type="button" data-act="settings" title="Settings">⚙</button><button type="button" data-act="remove" title="Remove">✕</button></div>').join('') : '<p class="rp-empty">No indicators. Add one from the top bar.</p>') +
+      '<h4>Drawings</h4>' + (dr.length ? dr.map((d, i) => '<div class="rp-obj' + (d.hidden ? ' is-off' : '') + (RP.chart.selected === i ? ' is-sel' : '') + '" data-di="' + i + '"><span class="rp-obj-ic">✎</span><b>' + (DRAW_NAMES[d.type] || d.type) + '</b><small>' + RP.chart.fmt(d.p1.price) + (d.p2 ? ' → ' + RP.chart.fmt(d.p2.price) : '') + '</small><button type="button" data-act="dtoggle" title="Show / hide">' + (d.hidden ? '◌' : '👁') + '</button><button type="button" data-act="dremove" title="Remove">✕</button></div>').join('') : '<p class="rp-empty">No drawings yet. Pick a tool on the left rail.</p>');
+  }
+  function onObjectsClick(e) {
+    const b = e.target.closest('button'), row = e.target.closest('.rp-obj'); if (!row) return;
+    if (row.dataset.iid) { if (b) RP.chart.onIndicatorAction(row.dataset.iid, b.dataset.act); return; }
+    const i = Number(row.dataset.di);
+    if (!b) { RP.chart.selectDrawing(i); renderObjects(); return; }
+    if (b.dataset.act === 'dtoggle') RP.chart.toggleDrawing(i); else if (b.dataset.act === 'dremove') RP.chart.removeDrawing(i); saveSession();
+  }
+  // ---- context menu -------------------------------------------------------------------------------------
+  function openContextMenu(info) {
+    const m = $('rp-ctx'); const px = RP.sim.price(); const size = Number($('rp-strip-size') ? $('rp-strip-size').value : $('rp-size').value) || 1; const fmt = (v) => RP.chart.fmt(v); const items = [];
+    const buyType = info.price < px ? 'limit' : 'stop', sellType = info.price > px ? 'limit' : 'stop';
+    items.push({ t: 'Buy ' + size + ' @ ' + fmt(info.price) + ' ' + buyType, f: () => placeOrder({ side: 'buy', type: buyType, price: info.price, size }) });
+    items.push({ t: 'Sell ' + size + ' @ ' + fmt(info.price) + ' ' + sellType, f: () => placeOrder({ side: 'sell', type: sellType, price: info.price, size }) });
+    const pos = RP.sim.positions[RP.sim.positions.length - 1];
+    if (pos) { const dir = pos.side === 'buy' ? 1 : -1; if ((info.price - px) * dir < 0) items.push({ t: 'Set stop here (' + fmt(info.price) + ')', f: () => { RP.sim.modifyPosition(pos.id, { sl: info.price }); refresh(); saveSession(); } }); else items.push({ t: 'Set target here (' + fmt(info.price) + ')', f: () => { RP.sim.modifyPosition(pos.id, { tp: info.price }); refresh(); saveSession(); } }); items.push({ t: 'Close position #' + pos.id, f: () => { const before = RP.sim.trades.length; RP.sim.close(pos.id); refresh(); onTradesClosed(RP.sim.trades.slice(before)); saveSession(); } }); }
+    items.push({ sep: true });
+    items.push({ t: 'Horizontal line at ' + fmt(info.price), f: () => { RP.chart.drawings.push({ type: 'hline', p1: { t: info.bar ? info.bar.t : RP.series.base[RP.cursor].t, price: info.price } }); RP.chart._changed(); saveSession(); } });
+    if (info.hitDrawing != null) items.push({ t: 'Delete this drawing', f: () => { RP.chart.removeDrawing(info.hitDrawing); saveSession(); } });
+    items.push({ t: 'Copy price ' + fmt(info.price), f: () => { try { navigator.clipboard.writeText(fmt(info.price)); } catch (e) { /* clipboard blocked */ } } });
+    items.push({ t: 'Reset chart view', f: () => RP.chart.scrollToEnd() });
+    m.innerHTML = items.map((it, i) => it.sep ? '<li class="sep"></li>' : '<li data-i="' + i + '">' + esc(it.t) + '</li>').join('');
+    m.hidden = false; const w = m.offsetWidth, h = m.offsetHeight; m.style.left = Math.min(window.innerWidth - w - 8, info.x) + 'px'; m.style.top = Math.min(window.innerHeight - h - 8, info.y) + 'px';
+    m.onclick = (e) => { const li = e.target.closest('li[data-i]'); if (!li) return; m.hidden = true; try { items[Number(li.dataset.i)].f(); } catch (err) { toast(err.message, 'error'); } };
+  }
+  function closeContextMenu() { const m = $('rp-ctx'); if (m) m.hidden = true; }
+  function setDrawer(which) { if (which === 'objects') renderObjects(); document.querySelectorAll('#rp-drawerbtns [data-d]').forEach((b) => b.classList.toggle('is-on', b.dataset.d === which)); document.querySelectorAll('.rpw-pane').forEach((p) => { p.hidden = p.id !== 'rp-pane-' + which; }); $('rp-drawer').classList.toggle('is-closed', !which); if (RP.chart) setTimeout(() => { RP.chart.resize(); if (RP.htf) RP.htf.resize(); }, 220); }
+  function openSetup() { $('rp-setup-modal').hidden = false; }
+  function closeSetup() { $('rp-setup-modal').hidden = true; }
+
   // ---- modal ------------------------------------------------------------------------------------------
   function openModal(html) { const m = $('rp-modal'); m.querySelector('.rp-modal-card').innerHTML = html; m.hidden = false; m.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closeModal)); }
   function closeModal() { $('rp-modal').hidden = true; RP.pendingSubmit = null; }
@@ -342,7 +382,7 @@
     $('rp-htf-tf').addEventListener('change', (e) => { RP.htfTf = e.target.value; refresh(); RP.htf.scrollToEnd(); saveSession(); });
     $('rp-split').addEventListener('change', (e) => { $('rp-chart-htf').hidden = !e.target.checked; $('rp-charts').classList.toggle('is-split', e.target.checked); setTimeout(() => { RP.chart.resize(); if (RP.htf) { RP.htf.resize(); refresh(); RP.htf.scrollToEnd(); } }, 30); });
     ['rp-sess-ny', 'rp-sess-ldn'].forEach((id) => $(id).addEventListener('change', () => { const o = { sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } }; RP.chart.setOptions(o); RP.htf.setOptions(o); }));
-    $('rp-tools').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.tool) setTool(b.dataset.tool === RP.chart.tool ? 'none' : b.dataset.tool); else if (b.id === 'rp-tool-del') { RP.chart.deleteSelected(); saveSession(); } else if (b.id === 'rp-tool-clear' && confirm('Remove all drawings?')) { RP.chart.clearDrawings(); saveSession(); } });
+    $('rp-tools').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.tool) setTool(b.dataset.tool === RP.chart.tool && b.dataset.tool !== 'none' ? 'none' : b.dataset.tool); else if (b.id === 'rp-tool-del') { RP.chart.deleteSelected(); saveSession(); } else if (b.id === 'rp-tool-clear' && confirm('Remove all drawings?')) { RP.chart.clearDrawings(); saveSession(); } });
     $('rp-ind-btn').addEventListener('click', openIndicatorPicker); $('rp-snap-btn').addEventListener('click', () => { try { const url = RP.chart.screenshot(1280); const a = document.createElement('a'); a.href = url; a.download = (RP.session.name || 'replay').replace(/[^\w.-]+/g, '_') + '-' + Date.now() + '.jpg'; a.click(); } catch (e) { toast('Snapshot failed', 'error'); } });
     document.querySelectorAll('#rp-sidebtns [data-side]').forEach((b) => b.addEventListener('click', () => { RP.side = b.dataset.side; document.querySelectorAll('#rp-sidebtns [data-side]').forEach((x) => x.classList.toggle('is-on', x === b)); updateTicketMath(); }));
     $('rp-type').addEventListener('change', () => { $('rp-price').disabled = $('rp-type').value === 'market'; if ($('rp-type').value === 'market') $('rp-price').value = RP.chart.fmt(RP.sim.price()); updateTicketMath(); syncLines(); });
@@ -366,7 +406,12 @@
     });
     window.addEventListener('beforeunload', () => { if (RP.session) saveSession(); });
     new MutationObserver(() => { const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; if (RP.chart) RP.chart.setOptions({ theme }); if (RP.htf) RP.htf.setOptions({ theme }); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    const q = new URLSearchParams(location.search); if (q.get('session')) resumeSession(q.get('session'));
+    $('rp-new-btn').addEventListener('click', openSetup); $('rp-hero-btn').addEventListener('click', openSetup); $('rp-setup-modal').querySelector('[data-close]').addEventListener('click', closeSetup); $('rp-setup-modal').addEventListener('click', (e) => { if (e.target === $('rp-setup-modal')) closeSetup(); });
+    document.querySelectorAll('#rp-drawerbtns [data-d]').forEach((b) => b.addEventListener('click', () => setDrawer(b.classList.contains('is-on') ? null : b.dataset.d)));
+    $('rp-objtree').addEventListener('click', onObjectsClick);
+    $('rp-sheet-toggle').addEventListener('click', () => { const open = $('rp-sheet').classList.toggle('is-open'); $('rp-sheet-toggle').classList.toggle('is-on', open); if (open) { renderEquity(); $('rp-sheet').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });
+    document.addEventListener('mousedown', (e) => { if (!e.target.closest('#rp-ctx')) closeContextMenu(); }); window.addEventListener('blur', closeContextMenu);
+    const q = new URLSearchParams(location.search); if (q.get('session')) resumeSession(q.get('session')); else if (q.get('new')) openSetup();
   }
 
   function planNameForRank(minRank) { const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : []; const m = plans.find((p) => (p.rank ?? 0) >= minRank); return m ? m.name : null; }

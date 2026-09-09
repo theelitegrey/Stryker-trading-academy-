@@ -116,6 +116,34 @@ The rules are what actually close the plan-self-grant hole. The functions make
 the correct path exist; the rules are what stop the browser taking the other
 one.
 
+#### Verifying the rules from outside, after publishing
+
+Signed out, these should be denied (403) and these should be allowed (200).
+Run it from anywhere with curl; no credentials are needed, which is the point.
+
+```bash
+K=$(grep -o 'apiKey: "[^"]*"' ../assets/auth.js | cut -d'"' -f2)   # or paste it
+B="https://firestore.googleapis.com/v1/projects/strykertrades-e0cd8/databases/(default)/documents"
+
+# must be 403 — paid content and anything private
+for c in chapters models indicators students admins orders coupons referrals \
+         communityPosts profiles settings/tradingview settings/pageAccess; do
+  printf '%-26s %s\n' "$c" "$(curl -s -o /dev/null -w '%{http_code}' "$B/$c?pageSize=1&key=$K")"
+done
+
+# must be 200 — the public pages read these before anyone signs in
+for c in plans sitePages seoPages publicStats \
+         settings/site settings/logo settings/favicon settings/commerce settings/seo; do
+  printf '%-26s %s\n' "$c" "$(curl -s -o /dev/null -w '%{http_code}' "$B/$c?key=$K")"
+done
+```
+
+The five `settings` documents in the allowed list are load-bearing for signed-out
+visitors. `settings/seo` is the one that fails silently: `seo.js` catches the
+denial, so nothing looks broken, but the site-wide title template stops applying
+and the "discourage indexing" master switch stops reaching the anonymous
+crawlers it exists to stop.
+
 ---
 
 ## Node runtime

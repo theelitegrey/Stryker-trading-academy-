@@ -97,7 +97,6 @@ service cloud.firestore {
 
     // Marketing pages are meant to be public; they are admin-authored.
     match /sitePages/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /seoPages/{id}  { allow read: if true; allow write: if isAdmin(); }
 
     // ---------------------------------------------------------------------
     // Students
@@ -258,15 +257,33 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     // Settings and admin tooling
     //
-    // Only site/logo/favicon/commerce need to be readable signed out, for
-    // branding and price display on the public pages. settings/tradingview in
-    // particular should NOT be public: it lists the Pine script ids and any
-    // manual grants, which include members' TradingView usernames.
+    // Five documents must be readable signed out, because the public pages
+    // read them before anyone logs in:
+    //   site      maintenance-check.js, on every page
+    //   logo      branding.js
+    //   favicon   branding.js
+    //   commerce  plan-price.js, for the USD->INR display rate
+    //   seo       seo.js, on all 20 public marketing pages
+    //
+    // settings/seo is easy to miss and the failure is silent. seo.js catches
+    // the denial and carries on, so nothing breaks visibly — but the
+    // site-wide title template stops applying, and worse, the
+    // "discourage indexing" master switch stops applying for exactly the
+    // anonymous crawlers it exists to stop. A switch that looks on and does
+    // nothing is worse than no switch. It holds nothing sensitive: a site
+    // name, a title template and an indexing toggle, all meta content
+    // written for crawlers.
+    //
+    // settings/tradingview must NOT be public: it lists the Pine script ids
+    // and any manual grants, which include members' TradingView usernames.
     // ---------------------------------------------------------------------
     match /settings/{doc} {
-      allow read:  if doc in ['site', 'logo', 'favicon', 'commerce'] || signedIn();
+      allow read:  if doc in ['site', 'logo', 'favicon', 'commerce', 'seo'] || signedIn();
       allow write: if isAdmin();
     }
+
+    // Per-page SEO overrides, read by seo.js on public pages before sign-in.
+    match /seoPages/{key} { allow read: if true; allow write: if isAdmin(); }
     match /tvSession/{doc}      { allow read, write: if false; }   // functions only
     match /brokerSync/{id}      { allow read, write: if false; }   // functions only
     match /bots/{id}            { allow read: if isAdmin(); allow write: if isAdmin(); }

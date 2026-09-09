@@ -1,3 +1,37 @@
+# ---------------------------------------------------------------------------
+# Security headers (added after the 2026-09 audit)
+#
+# These apply to every response. The two that do real work:
+#
+#   X-Frame-Options / frame-ancestors — nothing may embed this site in a
+#   frame. Without it, a clickjacking page can overlay an invisible copy of
+#   the dashboard and harvest clicks on real buttons.
+#
+#   Content-Security-Policy — the backstop for injected markup. It is
+#   deliberately shipped in REPORT-ONLY mode first: it changes nothing for
+#   visitors and only logs violations to the browser console. Load every page
+#   signed in, read the violations, widen this list where the site legitimately
+#   needs an origin, and only then rename the header to Content-Security-Policy
+#   to start enforcing it.
+#
+#   'unsafe-inline' is in script-src because the pages carry inline <script>
+#   blocks and inline event handlers. It is the honest description of the site
+#   as it stands, and it is also the thing that most limits CSP's value here —
+#   moving those handlers to addEventListener is what would let it come out.
+#
+# connect-src lists what the app actually talks to: Firebase (Auth, Firestore,
+# Storage, Installations), our own Cloud Functions, the monitor data branch on
+# raw.githubusercontent.com, and the keyless market/news feeds behind the
+# Global Monitor and the charts.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(self "https://checkout.razorpay.com"), usb=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.razorpay.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://checkout.razorpay.com https://s3.tradingview.com https://www.tradingview.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net https://raw.githubusercontent.com https://api.dicebear.com https://api.binance.com https://api.binance.us https://data-api.binance.vision https://api.gdeltproject.org https://gamma-api.polymarket.com https://s3.tradingview.com https://checkout.razorpay.com https://lumberjack.razorpay.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://s3.tradingview.com https://www.tradingview.com https://api.razorpay.com https://checkout.razorpay.com https://*.firebaseapp.com; worker-src 'self' blob:
+
 # Cloudflare Pages headers (ignored by GitHub Pages, which serves this as a
 # plain file — harmless there).
 #

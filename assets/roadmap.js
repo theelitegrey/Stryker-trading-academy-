@@ -14,16 +14,7 @@
  */
 (function () {
   'use strict';
-  const DEFAULT = {
-    heading: "What's next at Stryker",
-    note: 'Built in the open. Members see new modules the day they ship.',
-    items: [
-      { title: 'Smart Money desk', desc: 'Congress trades and insider filings, refreshed daily.', status: 'shipped', when: 'Shipped', link: 'smart-money.html' },
-      { title: 'Charts workspace', desc: 'Live multi-provider charting inside the academy.', status: 'shipped', when: 'Shipped', link: 'charts.html' },
-      { title: 'Backtest replay', desc: 'Bar-by-bar replay with simulated orders, ICT indicators and a coach.', status: 'shipped', when: 'Shipped', link: 'backtests.html' },
-      { title: 'Full backtesting module', desc: 'In-depth analytics, strategy testing and Pine Script integration.', status: 'progress', when: 'In progress', progress: 35, sub: ['In-depth analytics', 'Strategy testing', 'Pine Script integration', 'Portfolio-level stats'] }
-    ]
-  };
+  const DEFAULT = window.StrykerRoadmap ? window.StrykerRoadmap.DEFAULT : { items: [] };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const KEY = 'stryker_roadmap_collapsed';
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -36,7 +27,7 @@
     const n = items.length;
     mount.innerHTML = '<section class="rm' + (collapsed ? ' is-collapsed' : '') + (reduced ? ' is-static' : '') + '" aria-label="Roadmap">' +
       '<div class="rm-bg"></div>' +
-      '<div class="rm-head"><div><span class="rm-kicker"><i></i>ROADMAP</span><h2>' + esc(data.heading || DEFAULT.heading) + '</h2></div><p>' + esc(data.note || '') + '</p><button type="button" class="rm-toggle" aria-expanded="' + (!collapsed) + '">' + (collapsed ? 'Show' : 'Hide') + '</button></div>' +
+      '<div class="rm-head"><div><span class="rm-kicker"><i></i>ROADMAP</span><h2>' + esc(data.heading || DEFAULT.heading) + '</h2></div><p>' + esc(data.note || '') + '</p><a class="rm-link" href="roadmap.html">Full roadmap →</a><button type="button" class="rm-toggle" aria-expanded="' + (!collapsed) + '">' + (collapsed ? 'Show' : 'Hide') + '</button></div>' +
       '<div class="rm-body">' +
         '<div class="rm-track"><svg class="rm-line" viewBox="0 0 1000 12" preserveAspectRatio="none" aria-hidden="true"><line class="rm-line-base" x1="0" y1="6" x2="1000" y2="6"/><line class="rm-line-done" x1="0" y1="6" x2="' + (cur >= 0 ? (1000 * (cur + 0.5) / n) : 1000) + '" y2="6"/></svg><span class="rm-pulse" aria-hidden="true"></span>' +
           items.map((it, i) => '<div class="rm-node is-' + esc(it.status || 'planned') + '" style="left:' + (100 * (i + 0.5) / n) + '%; --d:' + (0.35 + i * 0.22) + 's"><span class="rm-dot">' + (it.status === 'shipped' ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12l5 5L20 7"/></svg>' : it.status === 'progress' ? '<i class="rm-orbit"></i>' : '') + '</span></div>').join('') +
@@ -61,8 +52,6 @@
   document.addEventListener('DOMContentLoaded', () => {
     const mount = document.getElementById('dash-roadmap'); if (!mount) return;
     const go = (data) => render(mount, data || DEFAULT);
-    if (typeof db === 'undefined' || !db) { go(DEFAULT); return; }
-    let done = false; const t = setTimeout(() => { if (!done) { done = true; go(DEFAULT); } }, 2500);
-    db.collection('settings').doc('roadmap').get().then((doc) => { if (done) return; done = true; clearTimeout(t); go(doc.exists && doc.data() && Array.isArray(doc.data().items) ? doc.data() : DEFAULT); }).catch(() => { if (!done) { done = true; clearTimeout(t); go(DEFAULT); } });
+    if (window.StrykerRoadmap) window.StrykerRoadmap.load().then(go); else go(DEFAULT);
   });
 })();

@@ -5,7 +5,7 @@
 <meta name="stryker-build" content="282">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Profile — Stryker Trading Academy</title>
+<title>Roadmap — Stryker Trading Academy</title>
 <link rel="stylesheet" href="assets/style.css?v=282">
 <script src="assets/device-mode.js?v=282"></script>
 <script src="assets/toast.js?v=282" defer></script>
@@ -29,6 +29,23 @@
 </nav>
 <script src="assets/app-nav.js?v=282"></script>
 
+<div class="access-gate-overlay" id="access-gate-overlay">
+  <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
+</div>
+
+<div class="paywall-overlay" id="guest-paywall-overlay" style="display:none;">
+  <div class="paywall-card">
+    <div class="paywall-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <h2 id="paywall-heading">Upgrade to unlock this page</h2>
+    <p id="paywall-body">This page requires an active plan.</p>
+    <div class="paywall-actions" id="paywall-actions">
+      <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
+    </div>
+  </div>
+</div>
+
 <div class="mobile-topnav">
   <div class="topnav-left"><button class="icon-btn menu-toggle-btn" id="dash-menu-toggle" aria-label="Open menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></button><a href="dashboard-user.html" class="brand"><img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy"></a></div>
   <div class="topnav-right">
@@ -49,12 +66,12 @@
 </div>
 <div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
 
-<div class="dash-shell">
+<div class="dash-shell gate-pending">
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
-      
+
     </a>
 
     <div class="side-section">
@@ -131,7 +148,7 @@
 
     <div class="side-section">
       <div class="side-label">Account</div>
-      <a href="profile.html" class="side-link active">
+      <a href="profile.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg>
         Profile
       </a>
@@ -139,7 +156,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         Settings
       </a>
-      <a href="roadmap.html" class="side-link">
+      <a href="roadmap.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h6M14 12h6"/><circle cx="12" cy="12" r="2"/><circle cx="4" cy="12" r="1.5"/><circle cx="20" cy="12" r="1.5"/></svg>
         Roadmap
       </a>
@@ -158,16 +175,16 @@
   </aside>
 
   <main class="dash-main">
-    <div class="dash-topbar">
-      <div>
-        <a href="trading-floor.html" style="font-size:13px; color:var(--ink-2); display:inline-flex; align-items:center; gap:6px; margin-bottom:10px;">&larr; Back</a>
-        <h1>Profile</h1>
-      </div>
+    <div class="rmp-head">
+      <div><h1 id="rmp-heading">Roadmap</h1><p id="rmp-note">What is being built, what is planned, and what shipped, with the milestones behind each one.</p></div>
+      <span class="rmp-meta" id="rmp-updated"></span>
     </div>
-
-    <div id="profile-render-target">
-      <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div>
-    </div>
+    <div class="rmp-summary" id="rmp-summary"></div>
+    <section class="rmp-section" id="rmp-now"><h2>Now building</h2><div id="rmp-now-list"></div></section>
+    <section class="rmp-section" id="rmp-planned" hidden><h2>Planned</h2><div class="rmp-planned" id="rmp-planned-list"></div></section>
+    <section class="rmp-section" id="rmp-shipped"><h2>Shipped</h2><div class="rmp-timeline" id="rmp-shipped-list"></div></section>
+    <section class="rmp-section" id="rmp-cl" hidden><h2>Build log</h2><div class="rmp-changelog" id="rmp-cl-list"></div></section>
+    <p class="rmp-note">Dates and build numbers are the actual deploys. Plans can change; nothing here is a promise of a delivery date.</p>
   </main>
 </div>
 
@@ -175,6 +192,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="assets/auth.js?v=282"></script>
+<script src="assets/gate-timeout.js?v=282"></script>
 <script src="assets/progress.js?v=282"></script>
 <script src="assets/presence.js?v=282"></script>
 <script src="assets/messages.js?v=282"></script>
@@ -188,19 +206,20 @@
 <script src="assets/push.js?v=282"></script>
 <script src="assets/admin-link.js?v=282"></script>
 <script src="assets/profiles-sync.js?v=282"></script>
-<script src="assets/usernames.js?v=282"></script>
 <script src="https://cdn.jsdelivr.net/npm/lottie-web@5.13.0/build/player/lottie_light.min.js"></script>
 <script src="assets/loading-animation.js?v=282"></script>
 <script src="assets/avatars.js?v=282"></script>
 <script src="assets/account-menu.js?v=282"></script>
 <script src="assets/referrals.js?v=282"></script>
 <script src="assets/roles.js?v=282"></script>
+<script src="assets/plan-price.js?v=282"></script>
+<script src="assets/plan-modal.js?v=282"></script>
 <script src="assets/plan-guard.js?v=282"></script>
-<script src="assets/achievements-data.js?v=282"></script>
 <script src="assets/maintenance-check.js?v=282"></script>
 <script src="assets/branding.js?v=282"></script>
 <script src="assets/dash-nav.js?v=282"></script>
-<script src="assets/profile.js?v=282"></script>
+<script src="assets/roadmap-data.js?v=282"></script>
+<script src="assets/roadmap-page.js?v=282"></script>
 <script src="assets/theme.js?v=282"></script>
 </body>
 </html>

@@ -617,7 +617,14 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 1800);
       })
       .catch((err) => {
-        errEl.textContent = 'Could not complete order: ' + (err.message || err);
+        // 'not-found' from a callable means the FUNCTION itself is missing,
+        // not the plan — i.e. redeemFreeCheckout has not been deployed yet.
+        // Say something a buyer can act on instead of leaking that detail.
+        const missingFunction = err && (err.code === 'functions/not-found' ||
+                                        err.code === 'functions/unimplemented');
+        errEl.textContent = missingFunction
+          ? 'Checkout is being updated right now. Please try again in a few minutes, or contact support and we will set this up for you.'
+          : 'Could not complete order: ' + (err.message || err);
         errEl.style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Complete order';

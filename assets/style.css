@@ -6424,3 +6424,221 @@ section.rmp-section{ padding:0; margin-bottom:30px; }
 .rma-cl{ display:grid; grid-template-columns:90px 150px 1fr auto; gap:8px; align-items:center; margin-bottom:8px; } .rma-cl input{ padding:7px 9px; font-size:12.5px; }
 .rma-save{ position:sticky; bottom:16px; display:flex; justify-content:flex-end; gap:10px; align-items:center; margin-top:16px; }
 .rma-status{ font:12px var(--font-mono); color:var(--ink-3); }
+
+/* ===========================================================================
+   PLAYBOOK  (Trade Journal → Playbook tab)
+   Depends on the journal's existing card/field language; only the pieces that
+   are genuinely new to this tab live here.
+   =========================================================================== */
+
+.pb-intro { margin-bottom: 20px; }
+.pb-intro h3 { font-size: 19px; color: var(--ink-0); margin: 0 0 6px; }
+.pb-intro p { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; max-width: 720px; margin: 0; }
+
+.pb-up { color: var(--bull, #03c988); }
+.pb-down { color: var(--bear, #e5484d); }
+.pb-up-bg { background: var(--bull, #03c988); }
+.pb-down-bg { background: var(--bear, #e5484d); }
+.pb-muted { color: var(--ink-3); }
+
+.pb-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.pb-toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.pb-section-title {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-3); font-weight: 700; margin: 22px 0 10px;
+}
+
+.pb-note, .pb-callout {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 14px; font-size: 13px; color: var(--ink-1);
+  line-height: 1.55; margin-bottom: 14px; background: var(--bg-2);
+}
+.pb-callout-warn { border-color: rgba(245, 197, 66, 0.35); background: rgba(245, 197, 66, 0.07); }
+.pb-note b, .pb-callout b { color: var(--ink-0); }
+
+/* ---- library grid ---- */
+.pb-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+
+.pb-card {
+  position: relative; display: flex; flex-direction: column; gap: 8px;
+  text-align: left; width: 100%; cursor: pointer;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px 14px 20px; overflow: hidden;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  font-family: inherit; color: inherit;
+}
+.pb-card:hover { border-color: var(--teal-dim, #2a6f74); transform: translateY(-1px); }
+.pb-card-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px; }
+.pb-detail-title .pb-card-bar { position: static; width: 4px; height: 22px; border-radius: 2px; flex-shrink: 0; }
+
+.pb-card-head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.pb-card-name { font-size: 14.5px; font-weight: 650; color: var(--ink-0); }
+.pb-card-sub { font-size: 11.5px; color: var(--ink-3); }
+.pb-card-young {
+  font-size: 11.5px; color: var(--ink-3); border-top: 1px dashed var(--line-soft);
+  padding-top: 8px; margin-top: 2px;
+}
+
+.pb-chip {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  border: 1px solid; border-radius: 999px; padding: 2px 8px; white-space: nowrap;
+}
+
+.pb-spark { width: 100%; height: 30px; display: block; opacity: 0.9; }
+.pb-spark-zero { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
+
+.pb-card-stats { display: flex; flex-wrap: wrap; gap: 14px; }
+.pb-stat { display: flex; flex-direction: column; gap: 1px; }
+.pb-stat b { font-family: var(--font-mono); font-size: 13.5px; color: var(--ink-0); font-weight: 700; white-space: nowrap; }
+.pb-stat i { font-style: normal; font-size: 10.5px; color: var(--ink-3); }
+
+/* ---- empty state ---- */
+.pb-empty {
+  border: 1px dashed var(--line); border-radius: 14px; padding: 34px 26px;
+  text-align: center; max-width: 640px; margin: 10px auto;
+}
+.pb-empty h3 { font-size: 17px; color: var(--ink-0); margin: 0 0 8px; }
+.pb-empty p { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; margin: 0 0 18px; }
+.pb-empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ---- detail ---- */
+.pb-detail-head {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line-soft);
+}
+.pb-detail-title { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 200px; }
+.pb-detail-title h3 { font-size: 18px; color: var(--ink-0); margin: 0; }
+.pb-detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pb-notes { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; margin: 0 0 16px; }
+
+.pb-kpis {
+  display: grid; gap: 1px; background: var(--line-soft);
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  grid-template-columns: repeat(4, 1fr); margin-bottom: 16px;
+}
+@media (max-width: 900px) { .pb-kpis { grid-template-columns: repeat(2, 1fr); } }
+.pb-kpi { background: var(--bg-2); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; }
+.pb-kpi span { font-family: var(--font-mono); font-size: 16px; font-weight: 700; color: var(--ink-0); }
+.pb-kpi i { font-style: normal; font-size: 10.5px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* The headline discipline comparison — the reason this tab exists. */
+.pb-headline {
+  display: flex; align-items: stretch; gap: 16px; flex-wrap: wrap;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 18px 20px; margin-bottom: 14px;
+}
+.pb-headline-side { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 3px; }
+.pb-headline-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); font-weight: 700; }
+.pb-headline-num { font-family: var(--font-mono); font-size: 26px; font-weight: 700; color: var(--ink-0); line-height: 1.1; }
+.pb-headline-sub { font-size: 11.5px; color: var(--ink-3); }
+.pb-headline-vs {
+  align-self: center; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--ink-3); font-weight: 700;
+}
+.pb-headline-waiting { display: block; }
+.pb-headline-waiting p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 6px 0 0; max-width: 640px; }
+
+/* ---- panels, rules, bars ---- */
+.pb-panel {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px 18px; margin-bottom: 14px;
+}
+.pb-panel h5 { font-size: 13px; color: var(--ink-0); margin: 0 0 12px; font-weight: 650; }
+.pb-panel-foot { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; margin: 12px 0 0; }
+
+.pb-rules { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.pb-rule-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--line-soft);
+}
+.pb-rule-row:last-child { border-bottom: none; }
+.pb-rule-dot { width: 6px; height: 6px; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+.pb-rule-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pb-rule-text { font-size: 13.5px; color: var(--ink-0); line-height: 1.45; }
+.pb-rule-verdict { font-size: 11.5px; color: var(--ink-3); }
+.pb-rule-verdict b { font-family: var(--font-mono); }
+.pb-rule-skip { font-size: 11px; color: var(--ink-3); font-family: var(--font-mono); white-space: nowrap; padding-top: 2px; }
+
+.pb-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pb-bars li { display: grid; grid-template-columns: 110px 1fr 96px; gap: 10px; align-items: center; }
+.pb-bar-thin { opacity: 0.45; }
+.pb-bar-key { font-size: 12.5px; color: var(--ink-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pb-bar-track { height: 8px; background: var(--bg-3, #1e1e22); border-radius: 999px; overflow: hidden; }
+.pb-bar-fill { display: block; height: 100%; border-radius: 999px; }
+.pb-bar-val { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--ink-0); }
+.pb-bar-val i { display: block; font-style: normal; font-size: 10px; color: var(--ink-3); }
+
+/* ---- modals ---- */
+.pb-modal {
+  position: fixed; inset: 0; z-index: 1200; display: flex;
+  align-items: center; justify-content: center; padding: 20px;
+  background: rgba(0, 0, 0, 0.62); backdrop-filter: blur(3px);
+}
+.pb-modal-box {
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 14px;
+  width: 100%; max-width: 560px; max-height: 88vh; display: flex; flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.pb-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--line-soft);
+}
+.pb-modal-head h3 { font-size: 15.5px; color: var(--ink-0); margin: 0; }
+.pb-modal-body { padding: 18px; overflow-y: auto; flex: 1; }
+.pb-modal-foot {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 14px 18px; border-top: 1px solid var(--line-soft);
+}
+.pb-modal-spacer { flex: 1; }
+.pb-modal-note { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+
+.pb-edit-rules { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.pb-edit-rule { display: flex; gap: 8px; align-items: center; }
+.pb-rule-input { flex: 1; }
+.pb-rule-del {
+  background: none; border: 1px solid var(--line); color: var(--ink-3);
+  border-radius: 8px; width: 32px; height: 32px; flex-shrink: 0; cursor: pointer;
+  font-size: 15px; line-height: 1;
+}
+.pb-rule-del:hover { color: var(--bear, #e5484d); border-color: rgba(229, 72, 77, 0.4); }
+
+.pb-adopt-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pb-adopt-list li {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.pb-adopt-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pb-adopt-main b { font-size: 13.5px; color: var(--ink-0); }
+.pb-adopt-main span { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
+.pb-adopt-main i { font-style: normal; font-size: 11px; color: var(--ink-3); }
+
+/* ---- rule checklist on the add-trade form ----
+   `.field input` is styled full-width with heavy padding for text inputs, so a
+   checkbox inside a .field inherits that and lands on its own line, right
+   aligned, away from its label. These rules put it back to a checkbox. */
+.jf-rules { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.jf-rules li { display: block; }
+/* `.field label` is display:block with a bottom margin, and it wins on
+   specificity over a bare .jf-rule, which is why the checkbox and its text
+   collapsed together with a gap under every row. Matching the same depth
+   (.field label.jf-rule) puts the flex row back. */
+.field label.jf-rule, .jf-rule {
+  display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+  font-size: 13px; color: var(--ink-1); line-height: 1.45; font-weight: 400;
+  padding: 7px 10px; margin-bottom: 0; border-radius: 8px; border: 1px solid transparent;
+}
+.jf-rule:hover { background: var(--bg-2); border-color: var(--line-soft); }
+.jf-rule:hover span { color: var(--ink-0); }
+.field .jf-rule input[type="checkbox"] {
+  width: 16px; height: 16px; min-width: 16px; margin: 1px 0 0; padding: 0;
+  flex: 0 0 16px; accent-color: var(--teal, #00adb5); cursor: pointer;
+}
+.jf-rule span { flex: 1; }
+.jf-rule:has(input:checked) span { color: var(--ink-0); }
+
+@media (max-width: 640px) {
+  .pb-bars li { grid-template-columns: 84px 1fr 78px; gap: 8px; }
+  .pb-headline-vs { display: none; }
+  .pb-detail-head { gap: 8px; }
+}

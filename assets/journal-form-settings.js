@@ -39,6 +39,21 @@ function populateTradeFormDropdowns(){
   if (prevSession) sessionSel.value = prevSession;
   if (prevSetup) setupSel.value = prevSetup;
 
+  // Playbook picker. The rule checklist below it is what turns a logged trade
+  // into evidence: without it the Playbook tab can count trades but cannot say
+  // anything about which rule mattered.
+  const pbSel = document.getElementById('jf-playbook');
+  if (pbSel) {
+    const prevPb = pbSel.value;
+    const books = (typeof PB_DATA !== 'undefined' && PB_DATA.playbooks) ? PB_DATA.playbooks : [];
+    const live = books.filter((b) => b.status !== 'retired');
+    pbSel.innerHTML = '<option value="">No playbook</option>' +
+      live.map((b) => '<option value="' + escapeJournalHtml(b.id) + '">' +
+        escapeJournalHtml(b.name || 'Untitled playbook') + '</option>').join('');
+    if (prevPb) pbSel.value = prevPb;
+    renderTradeFormRules();
+  }
+
   const tagsWrap = document.getElementById('jf-tags-wrap');
   tagsWrap.innerHTML = '';
   s.tags.forEach((tag) => {
@@ -55,6 +70,52 @@ function populateTradeFormDropdowns(){
   });
 }
 
+// Draws the selected playbook's rules as checkboxes, preserving anything the
+// student has already ticked for rules that still exist. Called on load, on
+// playbook change, and when opening a trade for editing.
+function renderTradeFormRules(preselected){
+  const field = document.getElementById('jf-rules-field');
+  const list = document.getElementById('jf-rules');
+  const sel = document.getElementById('jf-playbook');
+  if (!field || !list || !sel) return;
+
+  const books = (typeof PB_DATA !== 'undefined' && PB_DATA.playbooks) ? PB_DATA.playbooks : [];
+  const book = books.find((b) => b.id === sel.value);
+  const rules = (book && book.rules) || [];
+
+  if (!rules.length) {
+    field.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+
+  // Keep existing ticks across a re-render, unless an explicit set was passed.
+  const already = preselected
+    ? preselected.slice()
+    : Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map((c) => c.value);
+
+  field.style.display = '';
+  list.innerHTML = rules.map((r) => {
+    const checked = already.indexOf(r.id) !== -1 ? ' checked' : '';
+    return '<li><label class="jf-rule">' +
+      '<input type="checkbox" value="' + escapeJournalHtml(r.id) + '"' + checked + '>' +
+      '<span>' + escapeJournalHtml(r.text) + '</span>' +
+      '</label></li>';
+  }).join('');
+}
+
+function readTradeFormRules(){
+  const list = document.getElementById('jf-rules');
+  const sel = document.getElementById('jf-playbook');
+  if (!list || !sel || !sel.value) return null;
+  const field = document.getElementById('jf-rules-field');
+  if (!field || field.style.display === 'none') return null;
+  // An empty array is meaningful — "graded, met nothing" — so it is returned
+  // as an array rather than null. null means "not graded at all".
+  return Array.from(list.querySelectorAll('input[type="checkbox"]'))
+    .filter((c) => c.checked).map((c) => c.value);
+}
+
 function resetTradeForm(){
   JOURNAL_EDIT_ID = null;
   JOURNAL_SELECTED_TAGS = [];
@@ -66,6 +127,10 @@ function resetTradeForm(){
   document.getElementById('jf-direction').value = 'long';
   document.getElementById('jf-screenshot-preview').style.display = 'none';
   document.getElementById('jf-screenshot-status').textContent = '';
+  const pbSel = document.getElementById('jf-playbook');
+  if (pbSel) pbSel.value = '';
+  const rulesList = document.getElementById('jf-rules');
+  if (rulesList) rulesList.innerHTML = '';
   populateTradeFormDropdowns();
   updateLiveCalc();
 }
@@ -86,6 +151,12 @@ function readTradeForm(){
     setup: document.getElementById('jf-setup').value,
     account: (document.getElementById('jf-account') || {}).value || '',
     tags: JOURNAL_SELECTED_TAGS.slice(),
+    // playbookId files the trade; rulesMet is the grading. rulesMet is null
+    // when no playbook was chosen, which the analytics treat as "not graded"
+    // rather than "met no rules" — the difference matters, because counting an
+    // ungraded trade as a broken rule would slander the student's discipline.
+    playbookId: (document.getElementById('jf-playbook') || {}).value || null,
+    rulesMet: (typeof readTradeFormRules === 'function') ? readTradeFormRules() : null,
     notes: document.getElementById('jf-notes').value.trim(),
     screenshotDataUrl: JOURNAL_SCREENSHOT_DATA_URL
   };
@@ -130,6 +201,11 @@ function startEditTrade(tradeId){
   document.getElementById('jf-target').value = trade.takeProfit !== undefined && trade.takeProfit !== null ? trade.takeProfit : '';
   document.getElementById('jf-session').value = trade.session || '';
   document.getElementById('jf-setup').value = trade.setup || '';
+  const editPb = document.getElementById('jf-playbook');
+  if (editPb) {
+    editPb.value = trade.playbookId || '';
+    renderTradeFormRules(Array.isArray(trade.rulesMet) ? trade.rulesMet : []);
+  }
   const editAcct = document.getElementById('jf-account');
   if (editAcct) editAcct.value = trade.account || '';
   document.getElementById('jf-notes').value = trade.notes || '';
@@ -248,6 +324,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', updateLiveCalc);
   });
+
+  // Changing the playbook swaps in that playbook's checklist. Ticks are not
+  // carried across, because a rule id from one playbook means nothing in
+  // another.
+  const pbPicker = document.getElementById('jf-playbook');
+  if (pbPicker) pbPicker.addEventListener('change', () => renderTradeFormRules([]));
 
   document.getElementById('jf-save-btn').addEventListener('click', saveTradeFromForm);
   document.getElementById('jf-cancel-edit-btn').addEventListener('click', resetTradeForm);

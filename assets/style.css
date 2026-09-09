@@ -6763,3 +6763,78 @@ body.ob-open { overflow: hidden; }
   .ob-card-head { gap: 8px; }
   .ob-steps li.is-next { flex-direction: column; align-items: stretch; gap: 8px; }
 }
+
+/* ===========================================================================
+   GUIDED WALKTHROUGH  (assets/tour.js)
+   The dim is painted by an enormous box-shadow on the highlight ring, which is
+   how the "hole" in the overlay is cut without masks or clip-paths.
+   =========================================================================== */
+
+body.tour-open { overflow: hidden; }
+
+.tour-root { position: fixed; inset: 0; z-index: 1500; }
+.tour-root[hidden] { display: none; }
+
+/* The veil covers everything; the ring below paints over it with its own
+   shadow, leaving the target lit. Both are click-through to the veil handler. */
+.tour-veil { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); }
+
+.tour-hole {
+  position: fixed; border-radius: 10px; pointer-events: none;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55), 0 0 0 2px var(--teal, #00adb5), 0 0 22px rgba(0, 173, 181, 0.45);
+  transition: left .28s cubic-bezier(.4, 0, .2, 1), top .28s cubic-bezier(.4, 0, .2, 1),
+              width .28s cubic-bezier(.4, 0, .2, 1), height .28s cubic-bezier(.4, 0, .2, 1);
+}
+.tour-hole[hidden] { display: none; }
+
+.tour-card {
+  position: fixed; width: min(340px, calc(100vw - 32px));
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: 13px;
+  padding: 16px 18px 14px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  transition: left .28s cubic-bezier(.4, 0, .2, 1), top .28s cubic-bezier(.4, 0, .2, 1);
+}
+/* No usable target: the card takes the middle of the screen instead of
+   pointing at nothing. */
+.tour-card.is-centred {
+  left: 50% !important; top: 50% !important;
+  transform: translate(-50%, -50%); width: min(420px, calc(100vw - 32px));
+  padding: 22px 24px 18px;
+}
+
+.tour-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.tour-count {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.tour-x {
+  background: none; border: none; padding: 2px 4px; cursor: pointer;
+  color: var(--ink-3); font-size: 13px; line-height: 1; font-family: inherit;
+}
+.tour-x:hover { color: var(--ink-0); }
+
+.tour-card h4 { font-size: 15px; color: var(--ink-0); margin: 0 0 6px; line-height: 1.35; }
+.tour-card.is-centred h4 { font-size: 18px; }
+.tour-card p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 0 0 14px; }
+
+.tour-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--line-soft);
+}
+.tour-actions-left, .tour-actions-right { display: flex; align-items: center; gap: 12px; }
+.tour-link {
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 12px; color: var(--ink-3); white-space: nowrap;
+}
+.tour-link:hover { color: var(--ink-0); }
+.tour-link-quiet { opacity: 0.75; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-hole, .tour-card { transition: none; }
+}
+
+@media (max-width: 560px) {
+  .tour-card { width: calc(100vw - 24px); }
+  .tour-actions { flex-direction: column-reverse; align-items: stretch; gap: 10px; }
+  .tour-actions-left, .tour-actions-right { justify-content: space-between; }
+  .tour-actions-right .btn { flex: 1; }
+}

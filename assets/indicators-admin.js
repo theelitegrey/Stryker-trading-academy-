@@ -447,8 +447,8 @@ function renderIndicatorList(){
     card.className = 'record-card';
     card.innerHTML =
       '<div style="flex:1 1 260px;">' +
-        '<span class="cell-name">' + (ind.name || 'Untitled indicator') + '</span>' +
-        (ind.summary ? '<p style="font-size:12.5px; color:var(--ink-3); margin-top:6px; max-width:520px;">' + ind.summary + '</p>' : '') +
+        '<span class="cell-name">' + stkEsc(ind.name || 'Untitled indicator') + '</span>' +
+        (ind.summary ? '<p style="font-size:12.5px; color:var(--ink-3); margin-top:6px; max-width:520px;">' + stkEsc(ind.summary) + '</p>' : '') +
       '</div>' +
       '<div style="display:flex; gap:8px;">' +
         '<a href="indicator.html?id=' + encodeURIComponent(ind.id) + '" class="btn btn-ghost btn-sm" target="_blank">View</a>' +

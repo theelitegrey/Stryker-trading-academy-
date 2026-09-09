@@ -31,10 +31,10 @@ function renderTeamList(currentUid){
     row.className = 'record-card';
     row.innerHTML =
       '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(admin.uid, (admin.displayName || admin.email), null, 36) : '<div class="cell-avatar" style="background:linear-gradient(135deg,var(--teal),var(--teal-dim));"></div>') + '<div><span class="cell-name">' +
-        (admin.displayName || admin.email || 'Unnamed') + (isSelf ? ' <span class="status-tag active" style="margin-left:6px;">You</span>' : '') +
-        '</span><span class="cell-sub">' + (admin.email || '—') + '</span></div></div>' +
+        stkEsc(admin.displayName || admin.email || 'Unnamed') + (isSelf ? ' <span class="status-tag active" style="margin-left:6px;">You</span>' : '') +
+        '</span><span class="cell-sub">' + stkEsc(admin.email || '—') + '</span></div></div>' +
       '<div class="record-stats"><div class="record-stat"><span class="rs-label">Admin since</span><span class="rs-val">' + grantedDate + '</span></div></div>' +
-      (!isSelf ? '<button class="btn btn-ghost btn-sm" data-revoke-uid="' + admin.uid + '">Revoke</button>' : '');
+      (!isSelf ? '<button class="btn btn-ghost btn-sm" data-revoke-uid="' + stkEsc(admin.uid) + '">Revoke</button>' : '');
 
     if (!isSelf) {
       row.querySelector('[data-revoke-uid]').addEventListener('click', (e) => {

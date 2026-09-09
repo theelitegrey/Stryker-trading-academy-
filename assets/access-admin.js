@@ -17,7 +17,7 @@ function renderRolesSummary(plans){
         '<div style="display:flex; align-items:center; gap:12px; flex:1;">' +
           '<span style="width:14px; height:14px; border-radius:50%; background:' + color + '; flex-shrink:0; display:inline-block;"></span>' +
           '<div>' +
-            '<span class="cell-name">' + (p.name || 'Untitled plan') + '</span>' +
+            '<span class="cell-name">' + stkEsc(p.name || 'Untitled plan') + '</span>' +
             '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">rank ' + (p.rank ?? 0) + ' · $' + (p.price || '0') + '/' + (p.period || 'month') + ' · chapters: ' + (p.chapterAccess || 'all') + '</div>' +
           '</div>' +
         '</div>' +
@@ -31,7 +31,7 @@ function planOptionsHtml(plans, selectedId, noRestrictionLabel){
   let opts = '<option value="">' + (noRestrictionLabel || 'No restriction — any signed-in student') + '</option>';
   plans.forEach((p) => {
     const sel = p.id === selectedId ? ' selected' : '';
-    opts += '<option value="' + p.id + '"' + sel + '>' + (p.name || p.id) + ' (rank ' + (p.rank ?? 0) + ')</option>';
+    opts += '<option value="' + stkEsc(p.id) + '"' + sel + '>' + stkEsc(p.name || p.id) + ' (rank ' + (p.rank ?? 0) + ')</option>';
   });
   return opts;
 }

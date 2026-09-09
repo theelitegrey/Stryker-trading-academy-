@@ -77,7 +77,7 @@ function renderDashboard(student){
         row.innerHTML =
           '<div class="continue-thumb">' + ch.num + '</div>' +
           '<div class="continue-body">' +
-            '<h4>' + ch.title + '</h4>' +
+            '<h4>' + stkEsc(ch.title) + '</h4>' +
             '<div class="progress-track"><div class="progress-fill" style="width:' + pct(doneL, totalL) + '%"></div></div>' +
             '<div class="continue-meta">' + (isDone ? 'Completed' : (doneL + ' / ' + totalL + ' lessons')) + ' · ' + LEVEL_LABEL[ch.level] + '</div>' +
           '</div>' +
@@ -217,7 +217,7 @@ function hideSessionNotice(){
             }
             strip.innerHTML =
               '<span class="live-badge"><i></i>LIVE</span>' +
-              '<b>' + String(s.title || 'Live session').replace(/</g, '&lt;') + '</b>' +
+              '<b>' + stkEsc(s.title || 'Live session') + '</b>' +
               '<span>join now →</span>';
           }, () => { /* rules may not allow yet — no strip */ });
       });
@@ -258,11 +258,11 @@ function hideSessionNotice(){
           strip.href = 'checkout.html?plan=' + encodeURIComponent(s.planId || '');
           const planName = String(s.plan || 'plan').replace(/</g, '&lt;');
           if (msLeft <= 0) {
-            strip.innerHTML = '<b>⚠ Your ' + planName + ' payment is due — access pauses in a few days.</b>' +
+            strip.innerHTML = '<b>⚠ Your ' + stkEsc(planName) + ' payment is due — access pauses in a few days.</b>' +
               '<span class="renew-cta">RENEW NOW →</span>';
           } else {
             const days = Math.max(1, Math.ceil(msLeft / 86400000));
-            strip.innerHTML = '<b>Your ' + planName + ' subscription renews in ' + days +
+            strip.innerHTML = '<b>Your ' + stkEsc(planName) + ' subscription renews in ' + days +
               ' day' + (days === 1 ? '' : 's') + '.</b>' +
               '<span class="renew-cta">RENEW NOW →</span>';
           }

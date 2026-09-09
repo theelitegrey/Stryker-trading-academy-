@@ -77,7 +77,7 @@ function buildIndicatorTOC(activeId){
     const item = document.createElement('a');
     item.href = 'indicator.html?id=' + encodeURIComponent(ind.id);
     item.className = 'toc-item' + (ind.id === activeId ? ' current' : '');
-    item.innerHTML = '<span>' + (ind.name || 'Untitled') + '</span>';
+    item.innerHTML = '<span>' + stkEsc(ind.name || 'Untitled') + '</span>';
     toc.appendChild(item);
   });
 }
@@ -86,7 +86,7 @@ function renderIndicator(ind){
   document.getElementById('indicator-crumb-title').textContent = ind.name || 'Indicator';
   document.getElementById('indicator-title').textContent = ind.name || 'Untitled indicator';
   document.getElementById('indicator-meta').innerHTML =
-    (ind.summary ? '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ind.summary + '</span>' : '');
+    (ind.summary ? '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + stkEsc(ind.summary) + '</span>' : '');
 
   const body = document.getElementById('indicator-body');
   body.innerHTML = ind.bodyHtml || '<p style="color:var(--ink-3);">No write-up yet.</p>';

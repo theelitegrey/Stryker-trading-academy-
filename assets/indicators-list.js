@@ -43,8 +43,8 @@ function renderIndicators(){
     el.innerHTML =
       '<div class="chapter-num"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>' +
       '<div class="chapter-body">' +
-        '<h3>' + (ind.name || 'Untitled indicator') + '</h3>' +
-        '<p>' + (ind.summary || '') + '</p>' +
+        '<h3>' + stkEsc(ind.name || 'Untitled indicator') + '</h3>' +
+        '<p>' + stkEsc(ind.summary || '') + '</p>' +
       '</div>' +
       '<div class="chapter-status"><svg class="chapter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>';
 

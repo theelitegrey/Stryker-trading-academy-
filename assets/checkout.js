@@ -145,7 +145,7 @@ function renderPlanSummary(plan){
     '<li style="display:flex; gap:8px; align-items:flex-start; font-size:13.5px; color:var(--ink-1); margin-bottom:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px; color:var(--teal);"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
   wrap.innerHTML =
-    '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + plan.name + '</h3>' +
+    '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + stkEsc(plan.name) + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'sm')
       : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +

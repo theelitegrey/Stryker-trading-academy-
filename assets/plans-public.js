@@ -65,7 +65,7 @@ function renderPublicPlanCard(plan, offer){
   el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
     (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
-    '<h3>' + (plan.name || 'Plan') + '</h3>' +
+    '<h3>' + stkEsc(plan.name || 'Plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +

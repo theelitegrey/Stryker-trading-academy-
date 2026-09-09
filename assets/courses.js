@@ -34,7 +34,7 @@ function renderContinueBanner(container){
   banner.innerHTML =
     '<div class="cb-main">' +
       '<span class="cb-kicker">' + (target ? 'CONTINUE LEARNING' : 'CURRICULUM COMPLETE') + '</span>' +
-      '<h3>' + (target ? ('Chapter ' + target.num + ' — ' + target.title) : 'Every lesson, done. Well traded.') + '</h3>' +
+      '<h3>' + (target ? ('Chapter ' + stkEsc(target.num) + ' — ' + stkEsc(target.title)) : 'Every lesson, done. Well traded.') + '</h3>' +
       '<div class="cb-progress"><div class="progress-track"><div class="progress-fill" style="width:' + pct + '%"></div></div>' +
       '<span class="cb-label">' + doneLessons + ' / ' + totalLessons + ' lessons · ' + pct + '%</span></div>' +
     '</div>' +
@@ -104,7 +104,7 @@ function renderChapters(filterLevel){
       el.setAttribute('data-expand', '');
 
       const lessonsHtml = ch.lessons.map((l, i) =>
-        '<div class="lesson-item"><span class="lnum">0' + (i+1) + '</span><span>' + l.title + '</span></div>'
+        '<div class="lesson-item"><span class="lnum">0' + (i+1) + '</span><span>' + stkEsc(l.title) + '</span></div>'
       ).join('');
 
       const preview = ch.paragraphs[0];
@@ -112,7 +112,7 @@ function renderChapters(filterLevel){
       el.innerHTML =
         '<div class="chapter-num">' + ch.num + '</div>' +
         '<div class="chapter-body">' +
-          '<h3>' + ch.title + '</h3>' +
+          '<h3>' + stkEsc(ch.title) + '</h3>' +
           '<p>' + preview.slice(0, 130) + (preview.length > 130 ? '…' : '') + '</p>' +
           '<div class="chapter-meta">' +
             '<span class="chapter-tag ' + LEVEL_TAG_CLASS[ch.level] + '">' + LEVEL_LABEL[ch.level] + '</span>' +

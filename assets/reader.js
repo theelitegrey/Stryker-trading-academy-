@@ -172,7 +172,7 @@ function buildTOC(activeIndex){
         (completedChaptersSet.has(ch.num) ? ' done' : (started ? ' started' : ''));
       item.innerHTML =
         '<span class="toc-num">' + ch.num + '</span>' +
-        '<span>' + ch.title + '</span>' +
+        '<span>' + stkEsc(ch.title) + '</span>' +
         '<svg class="toc-check" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>';
       toc.appendChild(item);
     });
@@ -357,7 +357,7 @@ function renderLessonList(ch, openIndex){
     block.innerHTML =
       '<button type="button" class="lesson-head" aria-expanded="' + open + '">' +
         '<span class="lesson-check' + (isDone ? ' done' : '') + '" data-lid="' + lid + '" role="checkbox" aria-checked="' + isDone + '" aria-label="Mark lesson done">' + CHECK_SVG + '</span>' +
-        '<h4>' + (li+1) + '. ' + lesson.title + '</h4>' +
+        '<h4>' + (li+1) + '. ' + stkEsc(lesson.title) + '</h4>' +
         '<svg class="lesson-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
       '</button>' +
       '<div class="lesson-body"><div class="lesson-body-in">' +
@@ -456,7 +456,7 @@ function showChapterCompleteCard(ch, celebrate){
   card.innerHTML =
     '<div class="rcc-glyph">🏁</div>' +
     '<div class="rcc-body"><h3>Chapter ' + ch.num + ' complete</h3>' +
-    '<p>' + (next ? 'Next up: <b>Chapter ' + next.num + ' — ' + next.title + '</b>' : 'That was the final chapter of the curriculum. Well traded.') + '</p></div>' +
+    '<p>' + (next ? 'Next up: <b>Chapter ' + stkEsc(next.num) + ' — ' + stkEsc(next.title) + '</b>' : 'That was the final chapter of the curriculum. Well traded.') + '</p></div>' +
     (next ? '<a class="btn btn-primary" href="chapter.html?ch=' + next.num + '">Start Chapter ' + next.num + ' →</a>' : '<a class="btn btn-ghost" href="courses.html">Back to curriculum</a>');
   row.insertAdjacentElement('afterend', card);
   if (celebrate && typeof showToast === 'function') {

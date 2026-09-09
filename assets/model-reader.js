@@ -138,7 +138,7 @@ function buildModelTOC(activeId){
       item.href = 'model.html?id=' + encodeURIComponent(m.id);
       item.className = 'toc-item' + (m.id === activeId ? ' current' : '') +
         (total && done === total ? ' done' : (done ? ' started' : ''));
-      item.innerHTML = '<span>' + (m.name || 'Untitled') + '</span>' +
+      item.innerHTML = '<span>' + stkEsc(m.name || 'Untitled') + '</span>' +
         (done ? '<em class="toc-mini">' + done + '/' + total + '</em>' : '');
       toc.appendChild(item);
     });
@@ -221,7 +221,7 @@ function renderModel(m){
       '<button type="button" class="mdl-step-tick" aria-pressed="' + (saved[i] ? 'true' : 'false') +
         '" aria-label="Mark step ' + (i + 1) + ' as learned"><i>' + (i + 1) + '</i>' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></button>' +
-      '<div><h4>' + (step.title || 'Step ' + (i + 1)) + '</h4>' +
+      '<div><h4>' + stkEsc(step.title || 'Step ' + (i + 1)) + '</h4>' +
       '<div class="lesson-desc-rendered">' + (step.descHtml || ('<p>' + (step.desc || '') + '</p>')) + '</div></div>';
 
     block.querySelector('.mdl-step-tick').addEventListener('click', function (){
@@ -264,9 +264,9 @@ function renderModel(m){
   }
   nav.innerHTML =
     (nb.prev ? '<a class="mdl-nav-item" href="model.html?id=' + encodeURIComponent(nb.prev.id) + '">' +
-      '<span>← Previous model</span><b>' + (nb.prev.name || '') + '</b></a>' : '<span></span>') +
+      '<span>← Previous model</span><b>' + stkEsc(nb.prev.name || '') + '</b></a>' : '<span></span>') +
     (nb.next ? '<a class="mdl-nav-item next" href="model.html?id=' + encodeURIComponent(nb.next.id) + '">' +
-      '<span>Next model →</span><b>' + (nb.next.name || '') + '</b></a>' : '<span></span>');
+      '<span>Next model →</span><b>' + stkEsc(nb.next.name || '') + '</b></a>' : '<span></span>');
 
   updateModelStepProgress(m);
   buildModelTOC(m.id);

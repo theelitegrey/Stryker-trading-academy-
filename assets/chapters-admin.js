@@ -34,7 +34,7 @@ function renderChapterList(){
     card.className = 'record-card';
     card.innerHTML =
       '<div style="flex:1 1 260px;">' +
-        '<span class="cell-name">' + ch.num + ' — ' + (ch.title || 'Untitled') + '</span>' +
+        '<span class="cell-name">' + stkEsc(ch.num) + ' — ' + stkEsc(ch.title || 'Untitled') + '</span>' +
         '<div class="chapter-meta" style="margin-top:6px;"><span class="chapter-tag ' + (typeof LEVEL_TAG_CLASS !== 'undefined' ? LEVEL_TAG_CLASS[ch.level] : '') + '">' + (LEVEL_LABEL[ch.level] || ch.level) + '</span><span>' + (ch.lessons ? ch.lessons.length : 0) + ' lessons</span><span>' + (ch.dur || '') + '</span></div>' +
       '</div>' +
       '<a href="chapter-editor.html?ch=' + encodeURIComponent(ch.num) + '" class="btn btn-primary btn-sm">Edit</a>';

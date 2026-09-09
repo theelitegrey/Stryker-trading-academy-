@@ -21,12 +21,12 @@ function renderModelList(){
     card.className = 'record-card';
     card.innerHTML =
       '<div style="flex:1 1 260px;">' +
-        '<span class="cell-name">' + (m.name || 'Untitled model') + '</span>' +
+        '<span class="cell-name">' + stkEsc(m.name || 'Untitled model') + '</span>' +
         '<div class="chapter-meta" style="margin-top:6px;">' +
           (m.category ? '<span class="chapter-tag tag-intermediate">' + m.category + '</span>' : '') +
           '<span>' + (m.steps ? m.steps.length : 0) + ' steps</span>' +
         '</div>' +
-        (m.summary ? '<p style="font-size:12.5px; color:var(--ink-3); margin-top:6px; max-width:520px;">' + m.summary + '</p>' : '') +
+        (m.summary ? '<p style="font-size:12.5px; color:var(--ink-3); margin-top:6px; max-width:520px;">' + stkEsc(m.summary) + '</p>' : '') +
       '</div>' +
       '<div style="display:flex; gap:8px;">' +
         '<a href="model.html?id=' + encodeURIComponent(m.id) + '" class="btn btn-ghost btn-sm" target="_blank">View</a>' +

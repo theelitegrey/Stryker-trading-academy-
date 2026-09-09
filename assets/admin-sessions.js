@@ -53,7 +53,7 @@ function renderAdminSessionRow(session){
   row.style.gridTemplateColumns = '1fr auto';
   row.innerHTML =
     '<div class="chapter-body">' +
-      '<h3 style="font-size:15px;">' + (session.title || 'Untitled session') +
+      '<h3 style="font-size:15px;">' + stkEsc(session.title || 'Untitled session') +
         (session.isLive ? ' <span class="status-tag active" style="vertical-align:middle;">● LIVE</span>' : '') +
         (!session.isLive && session.completed ? ' <span class="status-tag" style="vertical-align:middle; color:var(--bull); border-color:var(--bull);">✓ COMPLETED</span>' : '') + '</h3>' +
       '<p>' + (session.description || '') + '</p>' +
@@ -229,7 +229,7 @@ function renderAdminLiveBanner(sessions){
       '<span style="display:flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12px; font-weight:800; letter-spacing:.12em; color:#ff6d76;">' +
         '<i style="width:9px; height:9px; border-radius:50%; background:var(--bear); animation:admin-live-pulse 1.4s ease-in-out infinite; display:inline-block;"></i>LIVE NOW</span>' +
       '<div style="flex:1 1 240px; min-width:0;">' +
-        '<h3 style="font-size:15px; color:var(--ink-0); margin:0 0 3px;">' + (live.title || 'Untitled session') + '</h3>' +
+        '<h3 style="font-size:15px; color:var(--ink-0); margin:0 0 3px;">' + stkEsc(live.title || 'Untitled session') + '</h3>' +
         '<span style="font-size:12.5px; color:var(--ink-3);">' + since + 'students see the player and chat right now.</span>' +
       '</div>' +
       '<a href="live-sessions.html" class="btn btn-ghost btn-sm" style="flex-shrink:0;">View student page ↗</a>' +

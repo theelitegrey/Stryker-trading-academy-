@@ -13,7 +13,7 @@ const TWITTER_FEED_FUNCTION_URL = 'https://us-central1-strykertrades-e0cd8.cloud
 const PROPFIRM_TWEETS_PAGE_SIZE = 10;
 
 function escapeTweetText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function tweetTimeAgo(iso){
@@ -38,11 +38,11 @@ function renderTweetCard(tweet){
   const tweetUrl = tweet.url || ('https://x.com/' + encodeURIComponent(author.userName || '') + '/status/' + encodeURIComponent(tweet.id || ''));
 
   const avatarHtml = avatarUrl
-    ? '<img src="' + avatarUrl + '" alt="' + name + '" loading="lazy" style="width:32px; height:32px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg-3,#1e1e22);" onerror="this.style.visibility=\'hidden\';">'
+    ? '<img src="' + escapeTweetText(stkImgUrl(avatarUrl)) + '" alt="' + name + '" loading="lazy" style="width:32px; height:32px; border-radius:50%; flex-shrink:0; object-fit:cover; background:var(--bg-3,#1e1e22);" onerror="this.style.visibility=\'hidden\';">'
     : '<div style="width:32px; height:32px; border-radius:50%; flex-shrink:0; background:var(--bg-3);"></div>';
 
   return (
-    '<a href="' + tweetUrl + '" target="_blank" rel="noopener noreferrer" style="display:block; text-decoration:none; color:inherit; padding:12px 0; border-bottom:1px solid var(--line-soft);">' +
+    '<a href="' + escapeTweetText(stkUrl(tweetUrl)) + '" target="_blank" rel="noopener noreferrer" style="display:block; text-decoration:none; color:inherit; padding:12px 0; border-bottom:1px solid var(--line-soft);">' +
       '<div style="display:flex; gap:9px; align-items:flex-start;">' +
         avatarHtml +
         '<div style="min-width:0; flex:1;">' +

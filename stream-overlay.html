@@ -1,7 +1,7 @@
 <!doctype html><html><head><meta charset="utf-8"><title>Stryker live stream overlay</title>
-<meta name="stryker-build" content="282">
+<meta name="stryker-build" content="283">
 <meta name="robots" content="noindex">
-<script src="assets/version-check.js?v=282" defer></script><style>
+<script src="assets/version-check.js?v=283" defer></script><style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@700&display=swap');
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:1920px;height:1080px;overflow:hidden;background:transparent;font-family:'Space Grotesk',sans-serif;color:#fff}
@@ -76,7 +76,7 @@ const part = q.get('part') || 'both';
 if (q.get('bg') === '1') document.body.classList.add('bg');
 if (part === 'top') document.getElementById('bot').style.display = 'none';
 if (part === 'bottom') document.getElementById('top').style.display = 'none';
-if (q.get('session')) document.getElementById('sess').innerHTML = q.get('session');
+if (q.get('session')) document.getElementById('sess').textContent = q.get('session');
 const INTRO = q.get('intro') !== '0';
 const SHOWCLOCK = q.get('clock') !== '0';
 const FEATS = [
@@ -91,7 +91,8 @@ const FEATS = [
 ];
 const TICK = (q.get('ticker') || 'ICT CURRICULUM|SMART MONEY DESK|LIVE NY SESSIONS|PRO INDICATORS|TRADING FLOOR|PRO CHARTS|GLOBAL MONITOR|GIVEAWAYS|SIGN UP AT STRYKERTRADING.COM').split('|');
 const track = document.getElementById('track');
-const one = TICK.map(t => '<span><b>◆</b>' + t + '</span>').join('');
+const escTick = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const one = TICK.map(t => '<span><b>◆</b>' + escTick(t) + '</span>').join('');
 track.innerHTML = one + one + one;
 const dots = document.getElementById('dots'); dots.innerHTML = FEATS.map(() => '<i></i>').join('');
 let trackW = 0;

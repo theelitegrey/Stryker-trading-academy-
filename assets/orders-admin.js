@@ -11,10 +11,10 @@ function renderOrderRow(order){
   row.className = 'record-card';
   row.innerHTML =
     '<div class="cell-user" style="flex:1 1 220px;"><div class="cell-avatar"></div><div><span class="cell-name">' +
-      (order.studentName || 'Unknown') + '</span><span class="cell-sub">' + (order.studentEmail || '—') + '</span></div></div>' +
+      stkEsc(order.studentName || 'Unknown') + '</span><span class="cell-sub">' + stkEsc(order.studentEmail || '—') + '</span></div></div>' +
     '<div class="record-stats">' +
-      '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + (order.planName || '—') + '</span></div>' +
-      '<div class="record-stat"><span class="rs-label">Coupon</span><span class="rs-val" style="font-family:var(--font-mono);">' + (order.couponCode || '—') + '</span></div>' +
+      '<div class="record-stat"><span class="rs-label">Plan</span><span class="rs-val">' + stkEsc(order.planName || '—') + '</span></div>' +
+      '<div class="record-stat"><span class="rs-label">Coupon</span><span class="rs-val" style="font-family:var(--font-mono);">' + stkEsc(order.couponCode || '—') + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Amount</span><span class="rs-val">' +
         (order.currency === 'INR' ? '₹' : '$') + (order.finalAmount != null ? order.finalAmount : 0) + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Date</span><span class="rs-val">' + dateLabel + '</span></div>' +

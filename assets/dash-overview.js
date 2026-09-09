@@ -26,7 +26,7 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
   function $(id){ return document.getElementById(id); }
   function esc(s){
     return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
   function stripHtml(h){
     var d = document.createElement('div');

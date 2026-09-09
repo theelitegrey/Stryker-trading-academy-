@@ -126,8 +126,12 @@ function notifyMentions(rawText, contextLabel){
 
 function initials(name){
   if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  const raw = (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  // Display names are user-chosen, and this value lands in text nodes and in
+  // an onerror attribute. Two letters is all it is ever meant to be.
+  return raw.replace(/[^A-Z0-9]/g, '') || '?';
 }
 
 function timeAgo(date){
@@ -368,8 +372,8 @@ function renderPostCard(post){
           '</div>'
         : '') +
     '</div>' +
-    '<div class="floor-post-body">' + stripSourceLink(post.textHtml || '') + '</div>' +
-    (post.imageDataUrl ? '<img class="floor-post-image" src="' + post.imageDataUrl + '" alt="">' : '') +
+    '<div class="floor-post-body">' + stkHtml(stripSourceLink(post.textHtml || '')) + '</div>' +
+    (stkImgUrl(post.imageDataUrl) ? '<img class="floor-post-image" src="' + stkEsc(stkImgUrl(post.imageDataUrl)) + '" alt="">' : '') +
     '<div class="floor-actions">' +
       '<button type="button" class="floor-action-btn' + (liked ? ' active' : '') + '" data-action="like" title="Like">' +
         '<svg width="17" height="17" viewBox="0 0 24 24" fill="' + (liked ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>' +
@@ -816,7 +820,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (postToEdit) {
       if (titleEl) titleEl.textContent = 'Edit post';
       if (postBtnLabel) postBtnLabel.textContent = 'Save changes';
-      if (editable) editable.innerHTML = postToEdit.textHtml || '';
+      if (editable) editable.innerHTML = stkHtml(postToEdit.textHtml || '');
       PENDING_FLAIR = postToEdit.flair || null;
       if (PENDING_FLAIR) {
         const btn = document.querySelector('#floor-flair-picker [data-flair="' + PENDING_FLAIR + '"]');
@@ -928,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // edit rule actually allows (see the Firestore rule this feature
       // needs, given separately).
       db.collection('communityPosts').doc(EDITING_POST_ID).update({
-        textHtml: linkifyTags(rawHtml),
+        textHtml: linkifyTags(stkHtml(rawHtml)),
         imageDataUrl: PENDING_IMAGE_DATA_URL || null,
         flair: PENDING_FLAIR || null,
         editedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -970,7 +974,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // there is no way to tell which admin published something.
       postedByUid: asTeam ? FLOOR_UID : null,
       postedByName: asTeam ? FLOOR_NAME : null,
-      textHtml: linkifyTags(rawHtml),
+      textHtml: linkifyTags(stkHtml(rawHtml)),
       imageDataUrl: PENDING_IMAGE_DATA_URL || null,
       category: CURRENT_CATEGORY,
       flair: PENDING_FLAIR || null,

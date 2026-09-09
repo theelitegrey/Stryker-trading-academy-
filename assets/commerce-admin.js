@@ -14,8 +14,8 @@ function renderRecentOrders(orders){
     const row = document.createElement('div');
     row.className = 'event-item';
     row.innerHTML =
-      '<div class="event-body"><h4>' + (order.studentName || 'Unknown') + ' — ' + (order.planName || 'Plan') + '</h4>' +
-      '<span>' + (order.couponCode ? 'Coupon ' + order.couponCode : 'No coupon') + (createdDate ? ' · ' + createdDate.toLocaleDateString() : '') + '</span></div>';
+      '<div class="event-body"><h4>' + stkEsc(order.studentName || 'Unknown') + ' — ' + stkEsc(order.planName || 'Plan') + '</h4>' +
+      '<span>' + (order.couponCode ? 'Coupon ' + stkEsc(order.couponCode) : 'No coupon') + (createdDate ? ' · ' + createdDate.toLocaleDateString() : '') + '</span></div>';
     wrap.appendChild(row);
   });
 }

@@ -15,7 +15,7 @@ let JAI_TYPED = false;
 // ---- helpers ----------------------------------------------------------------
 function jaiEsc(s){
   return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 function jaiMean(arr){ return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
 function jaiStd(arr){

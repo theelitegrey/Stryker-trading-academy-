@@ -18,7 +18,7 @@ function renderTopReferrers(list){
       '<div style="display:flex; align-items:center; gap:12px; flex:1;">' +
         '<span style="font-family:var(--font-mono); font-size:13px; color:var(--ink-3); width:24px;">#' + (i + 1) + '</span>' +
         avatarHtml +
-        '<span class="cell-name">' + entry.name + roleTag + '</span>' +
+        '<span class="cell-name">' + stkEsc(entry.name) + roleTag + '</span>' +
       '</div>' +
       '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">' + entry.points + ' pts</div>';
     wrap.appendChild(row);
@@ -43,8 +43,8 @@ function renderRecentReferrals(docs){
     const row = document.createElement('div');
     row.className = 'record-card';
     row.innerHTML =
-      '<div style="flex:1;"><span class="cell-name">' + (r.referredName || r.referredEmail || 'Unknown') + '</span>' +
-        '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">' + when + ' · code ' + (r.referrerCode || '—') + '</div></div>' +
+      '<div style="flex:1;"><span class="cell-name">' + stkEsc(r.referredName || r.referredEmail || 'Unknown') + '</span>' +
+        '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">' + when + ' · code ' + stkEsc(r.referrerCode || '—') + '</div></div>' +
       '<div style="text-align:right;">' +
         '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">+' + (r.pointsAwarded || 0) + ' pts</div>' +
         '<div style="font-family:var(--font-mono); font-size:11px; color:' + statusColor + '; margin-top:3px; text-transform:capitalize;">' + (r.status || 'signed_up').replace('_', ' ') + '</div>' +

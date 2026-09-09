@@ -214,7 +214,7 @@ function roleTagHtml(planNameOrId, opts){
 }
 
 function escapeRoleTagText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // Fetch a single page-access requirement (a plan id, or null if that page

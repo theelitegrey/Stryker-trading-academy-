@@ -135,7 +135,11 @@ function routeAfterAuth(){
 
     const isUsableReturn = returnTo &&
       returnTo.indexOf('login.html') === -1 &&
-      returnTo.indexOf('signup.html') === -1;
+      returnTo.indexOf('signup.html') === -1 &&
+      // Must be a path on this site: "/dashboard-user.html" yes,
+      // "//evil.example/x" (protocol-relative) and "https://…" no.
+      returnTo.charAt(0) === '/' && returnTo.charAt(1) !== '/' &&
+      returnTo.indexOf('\\') === -1;
 
     if (isUsableReturn) {
       window.location.href = returnTo;
@@ -412,5 +416,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function escapeChipText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

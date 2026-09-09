@@ -142,7 +142,7 @@ function renderLeaderboard(list, myUid, myPoints){
       '<div style="display:flex; align-items:center; gap:12px; flex:1;">' +
         '<span style="font-family:var(--font-mono); font-size:14px; color:var(--ink-3); width:24px;">#' + (i + 1) + '</span>' +
         avatarHtml +
-        '<span class="cell-name">' + entry.name + (isMe ? ' (you)' : '') + roleTag + '</span>' +
+        '<span class="cell-name">' + stkEsc(entry.name) + (isMe ? ' (you)' : '') + roleTag + '</span>' +
       '</div>' +
       '<div style="font-family:var(--font-mono); font-size:13px; color:#f5c542; font-weight:700;">' + entry.points + ' pts</div>';
     wrap.appendChild(row);

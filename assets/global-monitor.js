@@ -86,7 +86,7 @@ function gmSevMeta(sev) { return GM_SEV_META[sev] || { label: sev || '—', colo
 // ---- Small helpers ----------------------------------------------------------
 function gmEsc(s) {
   return String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 function gmEscAttr(s) { return gmEsc(s).replace(/"/g, '&quot;'); }
 

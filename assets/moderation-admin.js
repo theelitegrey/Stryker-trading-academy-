@@ -12,7 +12,7 @@
 // result client-side avoids requiring one just for this admin queue.
 
 function escapeModText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function renderModerationQueue(posts){
@@ -43,9 +43,9 @@ function renderModerationQueue(posts){
           '</div>'
         : '') +
       '<div style="font-size:13.5px; color:var(--ink-1); line-height:1.5; padding:10px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); margin:8px 0;">' +
-        (post.textHtml || '<em style="color:var(--ink-3);">(no text)</em>') +
+        (post.textHtml ? stkHtml(post.textHtml) : '<em style="color:var(--ink-3);">(no text)</em>') +
       '</div>' +
-      (post.imageDataUrl ? '<img src="' + post.imageDataUrl + '" alt="" style="max-width:220px; border-radius:8px; border:1px solid var(--line); display:block; margin-bottom:10px;">' : '') +
+      (stkImgUrl(post.imageDataUrl) ? '<img src="' + stkEsc(stkImgUrl(post.imageDataUrl)) + '" alt="" style="max-width:220px; border-radius:8px; border:1px solid var(--line); display:block; margin-bottom:10px;">' : '') +
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm btn-primary" data-restore="' + post.id + '">Restore</button>' +
         '<button class="btn btn-sm btn-ghost" data-delete-permanently="' + post.id + '" style="border-color:rgba(229,72,77,0.35);">Delete permanently</button>' +

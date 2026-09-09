@@ -28,10 +28,20 @@ function randomAvatarSeed(){
 // studentData: the student's Firestore doc data (may be null/undefined).
 // uid: required — used as the deterministic seed fallback if no avatarSeed
 // has been explicitly rolled.
+//
+// SECURITY: customPhotoURL and photoURL live on documents the user writes
+// themselves, and this value is interpolated into an <img src="…"> attribute
+// that other students and admins render. A value like `x" onerror="…` would
+// break out of the attribute, so every candidate goes through stkImgUrl
+// (https: or data:image/ only, no quotes or angle brackets) and anything that
+// fails falls back to the generated avatar rather than rendering.
 function resolveAvatarUrl(uid, studentData){
   const d = studentData || {};
-  if (d.customPhotoURL) return d.customPhotoURL;
-  if (d.photoURL) return d.photoURL;
+  const safe = (typeof stkImgUrl === 'function') ? stkImgUrl : function (v) { return v || ''; };
+  const custom = safe(d.customPhotoURL);
+  if (custom) return custom;
+  const google = safe(d.photoURL);
+  if (google) return google;
   return dicebearAvatarUrl(d.avatarSeed || uid);
 }
 
@@ -44,9 +54,15 @@ function resolveAvatarUrl(uid, studentData){
 // community posts, leaderboards — not for admin tooling or your own chip.
 function avatarImgHtml(uid, name, studentData, sizePx, linkToProfile){
   const size = sizePx || 36;
-  const url = resolveAvatarUrl(uid, studentData);
+  const url = escapeAvatarText(resolveAvatarUrl(uid, studentData));
   const escapedName = escapeAvatarText(name || 'Trader');
-  const initialsFallback = (typeof initials === 'function') ? initials(name) : escapedName.slice(0, 2).toUpperCase();
+  // initials() slices raw characters out of a user-chosen display name, and
+  // the fallback below nests them inside a JS string inside an HTML attribute.
+  // HTML-escaping is not enough there: the attribute is decoded before the JS
+  // is parsed, so &#39; would still close the string. Since this value is only
+  // ever one or two letters, restrict it to letters and digits outright.
+  const rawInitials = (typeof initials === 'function') ? initials(name) : String(name || 'Trader').slice(0, 2).toUpperCase();
+  const initialsFallback = String(rawInitials || '?').replace(/[^A-Za-z0-9]/g, '').slice(0, 2) || '?';
   // onerror swaps a broken/blocked image for the same colored-initials
   // circle used site-wide before this feature, so a network hiccup never
   // shows a broken-image icon.
@@ -61,8 +77,14 @@ function avatarImgHtml(uid, name, studentData, sizePx, linkToProfile){
   return imgHtml;
 }
 
+// Delegates to the shared escaper (assets/sanitize.js) when it is loaded, so
+// there is one definition of "escaped" on the site. The inline version is the
+// same five replacements, kept so this file still works standalone.
 function escapeAvatarText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  if (typeof stkEsc === 'function') return stkEsc(s);
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 // Used by the Settings "Upload photo" control — same resize-to-data-URL

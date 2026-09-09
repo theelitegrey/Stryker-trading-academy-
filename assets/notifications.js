@@ -187,7 +187,7 @@ function renderNotifList(docs){
     const n = doc.data();
     const when = n.createdAt && n.createdAt.toDate ? timeAgoShort(n.createdAt.toDate()) : '';
     const icon = NOTIF_ICONS[n.type] || NOTIF_ICONS.achievement;
-    const href = escapeNotifText(n.link || '#');
+    const href = escapeNotifText(stkUrl(n.link) || '#');
     // Message is escaped rather than trusted as HTML: moderation reasons
     // are free text typed by a moderator or admin, so an unescaped render
     // here would be a stored XSS vector against whoever opens the panel.

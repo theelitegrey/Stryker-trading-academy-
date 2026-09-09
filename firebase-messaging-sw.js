@@ -44,9 +44,24 @@ messaging.onBackgroundMessage(function (payload) {
   });
 });
 
+// A notification's link arrives in the push payload. Only ever navigate to a
+// path on this origin: an absolute URL here would let anyone who can send a
+// push (now or after a future key leak) redirect a tap straight off-site.
+function sameOriginPath(link) {
+  const fallback = '/dashboard-user.html';
+  if (!link || typeof link !== 'string') return fallback;
+  try {
+    const url = new URL(link, self.location.origin);
+    if (url.origin !== self.location.origin) return fallback;
+    return url.pathname + url.search + url.hash;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  const link = (event.notification.data && event.notification.data.link) || '/dashboard-user.html';
+  const link = sameOriginPath(event.notification.data && event.notification.data.link);
 
   // Focus an existing tab rather than opening a duplicate. Someone with the
   // site already open should be taken to it, not given a second copy.

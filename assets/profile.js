@@ -62,7 +62,7 @@ function formatJoinDate(createdAt){
 }
 
 function escapeProfileText(s){
-  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function timeAgoLabel(date){
@@ -94,11 +94,12 @@ function bannerGradientFor(plan){
 
 function renderPostCard(post){
   const when = post.createdAt && post.createdAt.toDate ? timeAgoLabel(post.createdAt.toDate()) : '';
-  const imgHtml = post.imageDataUrl ? '<img src="' + post.imageDataUrl + '" style="width:100%; border-radius:8px; margin-top:10px; display:block;">' : '';
+  const safeImg = (typeof stkImgUrl === 'function') ? stkImgUrl(post.imageDataUrl) : '';
+  const imgHtml = safeImg ? '<img src="' + stkEsc(safeImg) + '" alt="" style="width:100%; border-radius:8px; margin-top:10px; display:block;">' : '';
   return (
     '<div class="record-card" style="flex-direction:column; align-items:stretch; gap:6px;">' +
       '<span class="cell-sub">' + when + '</span>' +
-      '<div style="font-size:14px; color:var(--ink-1); line-height:1.5;">' + (post.textHtml || '') + '</div>' +
+      '<div style="font-size:14px; color:var(--ink-1); line-height:1.5;">' + stkHtml(post.textHtml || '') + '</div>' +
       imgHtml +
     '</div>'
   );

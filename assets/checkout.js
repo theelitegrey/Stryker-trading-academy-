@@ -133,23 +133,11 @@ function hasAlreadyRedeemed(code){
     .catch(() => false);
 }
 
-// Claiming a seat happens in a transaction so two students racing for the
-// last redemption can't both get in: the count is re-checked and incremented
-// atomically, BEFORE the order/plan writes. Resolves with nothing on success,
-// rejects with a user-readable error when the coupon no longer qualifies.
-function claimCouponSeat(coupon){
-  if (!coupon) return Promise.resolve(null);
-  const ref = db.collection('coupons').doc(coupon.code);
-  return db.runTransaction((tx) => tx.get(ref).then((doc) => {
-    if (!doc.exists) throw new Error('That coupon no longer exists.');
-    const fresh = Object.assign({ code: doc.id }, doc.data());
-    if (fresh.active === false) throw new Error('That coupon is no longer active.');
-    if (isCouponExpired(fresh)) throw new Error('That coupon has expired.');
-    if (isCouponExhausted(fresh)) throw new Error('That coupon has reached its redemption limit — all seats are taken.');
-    tx.update(ref, { redemptionCount: (fresh.redemptionCount || 0) + 1 });
-    return fresh;
-  }));
-}
+// The coupon seat is claimed server-side now, inside redeemFreeCheckout,
+// together with the per-account redemption record — see functions-src/
+// freeCheckout.js. hasAlreadyRedeemed above stays as a courtesy check that
+// tells someone before they press the button; it is not what enforces the
+// limit, and it does not need to be.
 
 function renderPlanSummary(plan){
   const wrap = document.getElementById('checkout-plan-summary');
@@ -543,64 +531,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const discount = APPLIED_COUPON ? computeDiscount(APPLIED_COUPON, price) : 0;
     const finalAmount = Math.max(price - discount, 0);
 
-    const user = auth.currentUser;
-    const order = {
-      studentUid: CHECKOUT_UID,
-      studentName: (user && user.displayName) || (user && user.email ? user.email.split('@')[0] : 'Trader'),
-      studentEmail: user && user.email,
-      planId: CHECKOUT_PLAN.id,
-      planName: CHECKOUT_PLAN.name,
-      listPrice: parseFloat(CHECKOUT_PLAN.price) || 0,
-      offerApplied: (typeof planSaleInfo === 'function') && planSaleInfo(CHECKOUT_PLAN).active,
-      originalPrice: price,
-      couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null,
-      discountApplied: discount,
-      finalAmount: finalAmount,
-      billing: CHECKOUT_BILLING || null,
-      status: 'completed',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    // THE GRANT HAPPENS ON THE SERVER. This page used to claim the coupon
+    // seat, write the order and set plan / paidThroughMillis / foundingMember
+    // on the student document itself — which meant anyone with devtools open
+    // could award themselves any plan, permanently in the founding-member
+    // case. redeemFreeCheckout re-reads the plan and the coupon from
+    // Firestore, proves the total really is zero, claims one redemption per
+    // account atomically, and writes the entitlement with the Admin SDK.
+    //
+    // Nothing about the price, the plan or the coupon is taken from this
+    // page any more; it sends two identifiers and is told what happened.
+    let fns = null;
+    try { fns = firebase.app().functions(); } catch (e) {}
+    if (!fns) {
+      btn.disabled = false;
+      btn.textContent = 'Complete order';
+      errEl.textContent = 'Checkout is unavailable right now. Please refresh and try again.';
+      errEl.style.display = 'block';
+      return;
+    }
 
-    // The seat is claimed FIRST, atomically — if the last redemption was taken
-    // while this student was reading the page, they get a clear error and no
-    // order/plan write happens at all. (Replaces the old post-order increment,
-    // which could oversell a capped coupon in a race.)
-    const duplicateCheck = APPLIED_COUPON ? hasAlreadyRedeemed(APPLIED_COUPON.code) : Promise.resolve(false);
-    duplicateCheck
-      .then((used) => {
-        if (used) throw new Error('You\'ve already used this coupon on this account.');
-        return claimCouponSeat(APPLIED_COUPON);
-      })
-      .then(() => db.collection('orders').add(order))
-      .then(() => {
-        const studentPatch = {
-          plan: CHECKOUT_PLAN.name,
-          planId: CHECKOUT_PLAN.id
-        };
-        // A coupon flagged `marksFounding` (e.g. WELCOME's first-50 launch
-        // offer) permanently tags the account as a founding member — exempt
-        // from subscription expiry forever, as promised.
-        if (APPLIED_COUPON && APPLIED_COUPON.marksFounding) {
-          studentPatch.foundingMember = true;
-          studentPatch.foundingCoupon = APPLIED_COUPON.code;
-        } else if (typeof stkPeriodKind === 'function' &&
-                   stkPeriodKind(CHECKOUT_PLAN.period) !== 'none' &&
-                   (parseFloat(CHECKOUT_PLAN.price) || 0) > 0) {
-          // A non-founding free redemption of a paid periodic plan buys one
-          // billing period, same as a payment would — the daily sweep
-          // enforces the date (see functions-src/subscriptions.js).
-          studentPatch.paidThroughMillis = stkExtendPeriod(Date.now(), CHECKOUT_PLAN.period);
-          studentPatch.subscriptionStatus = 'active';
-        }
-        return db.collection('students').doc(CHECKOUT_UID).set(studentPatch, { merge: true });
-      })
-      .then(() => {
-        if (typeof syncPublicProfile === 'function') {
-          const profilePatch = { plan: CHECKOUT_PLAN.name };
-          if (APPLIED_COUPON && APPLIED_COUPON.marksFounding) profilePatch.foundingMember = true;
-          syncPublicProfile(CHECKOUT_UID, profilePatch);
-        }
-      })
+    fns.httpsCallable('redeemFreeCheckout')({
+      planId: CHECKOUT_PLAN.id,
+      couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null,
+      billing: CHECKOUT_BILLING || null
+    })
       .then(() => {
         // Two entries, not one: the money and the access change are separate
         // facts. An order can exist without a plan change (a failed grant) and

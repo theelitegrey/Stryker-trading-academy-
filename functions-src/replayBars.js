@@ -22,6 +22,35 @@
  */
 
 const functions = require('firebase-functions');
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) admin.initializeApp();
+
+// Origins allowed to call this from a browser. The wildcard this replaces let
+// anyone embed the endpoint in their own page and spend our Yahoo quota.
+const ALLOWED_ORIGINS = [
+  'https://strykertrading.com',
+  'https://www.strykertrading.com',
+  'http://localhost:8000'
+];
+
+// REQUIRE_AUTH gates the expensive path. Set it to true once the site has
+// been deployed with a build that sends an ID token (assets/replay-data.js
+// does from build 284), so an already-open tab on an older build is not
+// broken by the function deploy. Until then the token is verified when
+// present and simply logged when absent.
+const REQUIRE_AUTH = false;
+
+async function callerUid(req) {
+  const header = String(req.headers.authorization || '');
+  if (!header.startsWith('Bearer ')) return null;
+  try {
+    const decoded = await admin.auth().verifyIdToken(header.slice(7));
+    return decoded && decoded.uid ? decoded.uid : null;
+  } catch (e) {
+    return null;
+  }
+}
 
 const UA = { 'User-Agent': 'Mozilla/5.0 (StrykerTradingAcademy replay; +https://strykertrading.com)' };
 const INTERVALS = { '1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '1d': 86400 };
@@ -58,9 +87,18 @@ async function fetchChunk(symbol, interval, p1, p2) {
 exports.replayBars = functions
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
   .https.onRequest(async (req, res) => {
-    res.set('Access-Control-Allow-Origin', '*');
+    const origin = String(req.headers.origin || '');
+    if (ALLOWED_ORIGINS.includes(origin)) res.set('Access-Control-Allow-Origin', origin);
+    res.set('Vary', 'Origin');
     res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
     if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+    const uid = await callerUid(req);
+    if (!uid) {
+      if (REQUIRE_AUTH) { res.status(401).json({ error: 'Sign in to load candles.' }); return; }
+      console.log('replayBars: unauthenticated request from origin ' + (origin || '(none)'));
+    }
 
     const symbol = String(req.query.symbol || '').toUpperCase();
     const interval = String(req.query.interval || '1h');
@@ -93,7 +131,9 @@ exports.replayBars = functions
       res.set('Cache-Control', 'public, max-age=300');
       res.json(body);
     } catch (err) {
+      // The full error goes to the log; the caller gets a generic message so
+      // upstream response bodies are not reflected back out.
       console.error('replayBars', symbol, interval, err);
-      res.status(502).json({ error: 'Could not load candles: ' + (err.message || err) });
+      res.status(502).json({ error: 'Could not load candles for ' + symbol + ' right now.' });
     }
   });

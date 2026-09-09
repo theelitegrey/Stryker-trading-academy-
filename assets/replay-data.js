@@ -89,9 +89,25 @@
   };
 
   // ---- fetch helpers ---------------------------------------------------------
-  function getJson(url, timeoutMs) {
+  function getJson(url, timeoutMs, opts) {
     const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), timeoutMs || 20000);
-    return fetch(url, { signal: ctl.signal }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).finally(() => clearTimeout(to));
+    return fetch(url, Object.assign({ signal: ctl.signal }, opts || {}))
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .finally(() => clearTimeout(to));
+  }
+
+  // The replayBars function is ours, and it fans one browser request out to as
+  // many as twelve Yahoo requests. Sending the signed-in user's ID token lets
+  // it charge that work to a real account instead of serving the whole
+  // internet anonymously. Sent as a bearer token; the function currently
+  // accepts requests without one too, so this is safe to ship before the
+  // function is redeployed.
+  function authHeader() {
+    try {
+      const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+      if (!user) return Promise.resolve(null);
+      return user.getIdToken().then((t) => (t ? { Authorization: 'Bearer ' + t } : null)).catch(() => null);
+    } catch (e) { return Promise.resolve(null); }
   }
   function compact(rows) { // [[t,o,h,l,c,v]] → bars
     const out = [];
@@ -135,7 +151,9 @@
   async function loadYahoo(sym, startMs, endMs, onProgress) {
     const iv = yahooInterval(startMs);
     if (onProgress) onProgress(0.1, 0);
-    const json = await getJson(`${FN_BASE}replayBars?symbol=${encodeURIComponent(sym)}&interval=${iv}&period1=${Math.floor(startMs / 1000)}&period2=${Math.floor(endMs / 1000)}`, 60000);
+    const headers = await authHeader();
+    const json = await getJson(`${FN_BASE}replayBars?symbol=${encodeURIComponent(sym)}&interval=${iv}&period1=${Math.floor(startMs / 1000)}&period2=${Math.floor(endMs / 1000)}`,
+      60000, headers ? { headers } : undefined);
     if (json.error) throw new Error(json.error);
     if (onProgress) onProgress(0.95, (json.bars || []).length);
     const bars = compact(json.bars || []);

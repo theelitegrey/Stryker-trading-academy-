@@ -107,14 +107,31 @@ function couponDiscount(coupon, price, planId){
 
 // The admin-set USD→INR rate — the same settings/commerce doc the client
 // reads before rendering prices, so both sides convert identically.
+//
+// SECURITY: this value decides what a buyer is actually charged, so it is
+// bounded here the same way fxRate.js bounds it when it writes the doc. Any
+// rate outside a plausible band (a mistyped 0.5, or a tampered settings doc)
+// would otherwise sell a 200-dollar plan for about one rupee. Out of band =>
+// fall back to the hard-coded default rather than trusting it.
+const FX_BOUNDS = { min: 40, max: 200 };
+
 async function usdInrRate(){
   try {
     const doc = await db.collection('settings').doc('commerce').get();
     const r = doc.exists ? parseFloat(doc.data().usdInr) : NaN;
-    if (isFinite(r) && r > 0) return r;
+    if (isFinite(r) && r >= FX_BOUNDS.min && r <= FX_BOUNDS.max) return r;
+    if (isFinite(r)) {
+      console.error('usdInrRate: settings/commerce.usdInr is out of bounds (' + r +
+        ') — falling back to 88. Check the Billing admin page.');
+    }
   } catch (e) { /* fall through to the default */ }
   return 88;
 }
+
+// Exported so the free-checkout callable computes prices and coupon discounts
+// with exactly the same code the paid path uses. Two copies of pricing logic
+// is how a discount ends up meaning different things on two routes.
+exports.__internals = { effectivePlanPrice, couponDiscount, usdInrRate, requireAuth };
 
 exports.razorpayCreateOrder = functions
   .runWith({ timeoutSeconds: 60, memory: '256MB' })
@@ -217,7 +234,16 @@ exports.razorpayVerifyPayment = functions
       throw new functions.https.HttpsError('invalid-argument', 'Missing payment fields.');
     }
 
-    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || '')
+    // Fail closed. With no secret configured the HMAC below would be
+    // computed against an empty key, which is a signature anyone can forge.
+    const keySecret = process.env.RAZORPAY_KEY_SECRET;
+    if (!keySecret) {
+      console.error('razorpayVerifyPayment: RAZORPAY_KEY_SECRET is not set — refusing to verify.');
+      throw new functions.https.HttpsError('failed-precondition',
+        'Payments are not configured. Please contact support.');
+    }
+
+    const expected = crypto.createHmac('sha256', keySecret)
       .update(orderId + '|' + paymentId).digest('hex');
     const a = Buffer.from(expected), b = Buffer.from(signature);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {

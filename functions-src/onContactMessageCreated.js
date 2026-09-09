@@ -68,6 +68,37 @@ exports.onContactMessageCreated = onDocumentCreated(
     const msg = snap.data() || {};
     const db = admin.firestore();
 
+    // ABUSE GUARD. contactMessages is writable by anonymous visitors — that is
+    // the point of a public contact form — and every message here fans out a
+    // push notification to every admin. Without a cap, a loop against the form
+    // buries every admin's phone. So the fan-out (not the message itself, which
+    // is still stored and still visible in the admin inbox) is rate-limited to
+    // a fixed number of notifications per hour, site-wide.
+    //
+    // Counting happens in a transaction on one counter document so concurrent
+    // deliveries cannot each read "under the limit" and all proceed.
+    const NOTIFY_PER_HOUR = 12;
+    const hourKey = new Date().toISOString().slice(0, 13).replace(/[-T:]/g, '');  // YYYYMMDDHH
+    const throttleRef = db.collection('contactNotifyThrottle').doc(hourKey);
+    const allowed = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(throttleRef);
+      const count = doc.exists ? (doc.data().count || 0) : 0;
+      if (count >= NOTIFY_PER_HOUR) return false;
+      tx.set(throttleRef, {
+        count: count + 1,
+        // Lets a scheduled cleanup (or a TTL policy on this field) drop old
+        // buckets; nothing reads them after the hour is over.
+        expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 6 * 3600 * 1000)
+      }, { merge: true });
+      return true;
+    });
+
+    if (!allowed) {
+      console.warn('onContactMessageCreated: notification rate limit reached for hour ' + hourKey +
+        ' — message ' + event.params.messageId + ' stored but not pushed.');
+      return null;
+    }
+
     const adminsSnap = await db.collection('admins').get();
     if (adminsSnap.empty) {
       // Not an error: a project with no admins is a valid, if unusual, state.

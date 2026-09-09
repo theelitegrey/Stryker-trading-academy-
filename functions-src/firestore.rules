@@ -1,0 +1,286 @@
+// Stryker Trading Academy — Firestore security rules (REFERENCE COPY)
+//
+// ============================================================================
+// READ THIS FIRST
+// ============================================================================
+//
+// This file is a reference draft, not the live rules. The rules that are
+// actually enforced live in the Firebase console (Firestore -> Rules) and are
+// not deployed from this repo. Nothing here takes effect until you paste it
+// in, test it, and publish it.
+//
+// It lives in functions-src/ deliberately: the deploy workflow rsyncs the repo
+// to Cloudflare Pages and excludes functions-src, so this file is never served
+// from the website.
+//
+// BEFORE PUBLISHING, use the Rules Playground in the console and test each
+// collection as three identities: signed out, an ordinary student, and an
+// admin. Rules that are too tight fail quietly on this site, because
+// plan-guard.js and gate-timeout.js both fail OPEN on error — the page will
+// render with its data missing rather than showing an error.
+//
+// The rules below assume the server-side functions added in the same change
+// as this file are deployed:
+//   redeemFreeCheckout   (functions-src/freeCheckout.js)   — grants free plans
+//   onReferralWritten    (functions-src/referralPoints.js) — credits referrals
+// Both use the Admin SDK, which bypasses rules entirely, so locking these
+// fields against clients costs them nothing.
+//
+// ============================================================================
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------------
+    // Identity helpers
+    // ---------------------------------------------------------------------
+    function signedIn()      { return request.auth != null; }
+    function isSelf(uid)     { return signedIn() && request.auth.uid == uid; }
+    function isAdmin()       { return signedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)); }
+    function isModerator()   { return signedIn() && exists(/databases/$(database)/documents/moderators/$(request.auth.uid)); }
+
+    // Fields that decide what someone has paid for, what they are owed, and
+    // what they are allowed to do. Every one of these is written by a Cloud
+    // Function using the Admin SDK. A client that sends any of them is
+    // refused outright rather than silently ignored.
+    function touchesPrivileged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
+        'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
+        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'lapsedFromPlan', 'lapsedAtMillis'
+      ]);
+    }
+    function createsPrivileged() {
+      return request.resource.data.keys().hasAny([
+        'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
+        'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
+        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned'
+      ]);
+    }
+
+    // ---------------------------------------------------------------------
+    // Privileged rosters — the whole authorisation model rests on these
+    //
+    // guardAdminPage() and every admin Cloud Function decide "is this person
+    // an admin" by asking whether admins/{uid} exists. If a client can create
+    // that document, a client can become an admin. This is the single most
+    // important block in the file.
+    //
+    // The update rule exists because an admin edits their own notification
+    // preferences on their own admins/{uid} document (admin-settings.js).
+    // ---------------------------------------------------------------------
+    match /admins/{uid} {
+      allow read:           if signedIn();
+      allow update:         if isAdmin() && isSelf(uid);
+      allow create, delete: if isAdmin();
+    }
+    match /moderators/{uid}  { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /staff/{uid}       { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /bannedUsers/{uid} { allow read: if isSelf(uid) || isAdmin(); allow write: if isAdmin(); }
+
+    // ---------------------------------------------------------------------
+    // Paid content
+    //
+    // These were world-readable. The entire written curriculum and every
+    // trading model could be downloaded with one unauthenticated REST call
+    // using the API key from the page source, which is the same as giving it
+    // away. Requiring sign-in is the minimum fix; gating by plan needs the
+    // body text moved into a subcollection, since rules cannot hide fields.
+    // ---------------------------------------------------------------------
+    match /chapters/{id}            { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /models/{id}              { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /indicators/{id}          { allow read: if signedIn(); allow write: if isAdmin(); }
+    match /showcaseIndicators/{id}  { allow read: if signedIn(); allow write: if isAdmin(); }
+
+    // Marketing pages are meant to be public; they are admin-authored.
+    match /sitePages/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /seoPages/{id}  { allow read: if true; allow write: if isAdmin(); }
+
+    // ---------------------------------------------------------------------
+    // Students
+    //
+    // A student owns their document but cannot decide what they have paid
+    // for. Everything in touchesPrivileged() is written by a function.
+    // ---------------------------------------------------------------------
+    match /students/{uid} {
+      allow read:   if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid) && !createsPrivileged();
+      allow update: if isAdmin() || (isSelf(uid) && !touchesPrivileged());
+      allow delete: if isAdmin();
+
+      // Owner-only subtrees. The replay rule is what the backtesting module
+      // needs for cross-device sync.
+      match /replay/{doc}   { allow read, write: if isSelf(uid) || isAdmin(); }
+      match /journal/{doc}  { allow read, write: if isSelf(uid) || isAdmin(); }
+      match /{sub=**}       { allow read, write: if isSelf(uid) || isAdmin(); }
+    }
+
+    // The public mirror the Trading Floor and leaderboards read. Same rule:
+    // a student may set their name and avatar, not their plan or points.
+    match /profiles/{uid} {
+      allow read:   if signedIn();
+      allow create: if isSelf(uid) && !createsPrivileged();
+      allow update: if isAdmin() || (isSelf(uid) && !touchesPrivileged());
+      allow delete: if isAdmin();
+    }
+
+    match /usernames/{name}     { allow read: if signedIn(); allow write: if signedIn(); }
+    match /presence/{uid}       { allow read: if signedIn(); allow write: if isSelf(uid); }
+    match /pushTokens/{uid}     { allow read, write: if isSelf(uid) || isAdmin(); }
+    match /bookmarks/{uid}      { allow read, write: if isSelf(uid); }
+
+    // ---------------------------------------------------------------------
+    // Money — clients read, functions write
+    //
+    // Orders are created by redeemFreeCheckout and by the Razorpay verify
+    // callables, all with the Admin SDK. No client writes here at all.
+    // ---------------------------------------------------------------------
+    match /orders/{id} {
+      allow read:  if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
+      allow write: if false;
+    }
+    match /coupons/{code} {
+      allow read:  if signedIn();     // the checkout page validates before submitting
+      allow write: if isAdmin();      // redemptionCount is bumped by the function
+    }
+    match /couponRedemptions/{id}  { allow read: if isAdmin(); allow write: if false; }
+    match /razorpayOrders/{id}     { allow read, write: if false; }
+    match /razorpaySubs/{id}       { allow read, write: if false; }
+    match /razorpaySubCharges/{id} { allow read, write: if false; }
+    match /razorpayPlans/{id}      { allow read, write: if false; }
+    match /plans/{id}              { allow read: if true; allow write: if isAdmin(); }
+
+    // ---------------------------------------------------------------------
+    // Referrals — recorded by the client, PAID by onReferralWritten
+    //
+    // The row may only be created by the person being referred, and the
+    // credited* flags belong to the function.
+    // ---------------------------------------------------------------------
+    match /referrals/{id} {
+      allow read:   if isAdmin();
+      allow create: if signedIn()
+                    && request.resource.data.referredUid == request.auth.uid
+                    && request.resource.data.referrerUid != request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    match /referralCodes/{code} {
+      allow read:   if true;                 // resolving an invite link, signed out
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
+    // Community
+    //
+    // Authors edit their own text; only moderators touch the moderation
+    // fields. Without the hasOnly() clause, any signed-in user can hide
+    // anyone's post by writing hidden:true to it.
+    // ---------------------------------------------------------------------
+    match /communityPosts/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
+      allow update: if isAdmin() || isModerator()
+                    || (resource.data.authorUid == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['textHtml', 'imageDataUrl', 'flair', 'editedAt']))
+                    // Reactions: anyone signed in may add or remove themselves.
+                    || (signedIn() && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['likedBy', 'upvotedBy', 'downvotedBy', 'replyCount']));
+      allow delete: if isAdmin() || isModerator() || resource.data.authorUid == request.auth.uid;
+
+      match /replies/{replyId} {
+        allow read:   if signedIn();
+        allow create: if signedIn() && request.resource.data.authorUid == request.auth.uid;
+        allow update, delete: if isAdmin() || isModerator()
+                              || resource.data.authorUid == request.auth.uid;
+      }
+    }
+
+    // Direct messages: only the two participants, and the sender must be who
+    // they claim to be.
+    match /conversations/{convId} {
+      allow read:   if signedIn() && request.auth.uid in resource.data.participants;
+      allow create: if signedIn() && request.auth.uid in request.resource.data.participants;
+      allow update: if signedIn() && request.auth.uid in resource.data.participants;
+
+      match /messages/{msgId} {
+        allow read:   if signedIn() && request.auth.uid in
+                         get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
+        allow create: if signedIn() && request.resource.data.senderUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    match /liveSessions/{id} {
+      allow read:  if signedIn();
+      allow write: if isAdmin();
+      match /chat/{msgId} {
+        allow read:   if signedIn();
+        allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
+        allow update, delete: if isAdmin() || isModerator();
+      }
+    }
+
+    // ---------------------------------------------------------------------
+    // Notifications, logs, support
+    // ---------------------------------------------------------------------
+    match /notifications/{id} {
+      allow read:   if signedIn() && resource.data.recipientUid == request.auth.uid;
+      // Other users' clients raise these (a like, a reply, a mention), so the
+      // create stays open to signed-in users. The rendering side treats the
+      // link and message as untrusted; see assets/notifications.js.
+      allow create: if signedIn();
+      allow update: if signedIn() && resource.data.recipientUid == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if signedIn() && resource.data.recipientUid == request.auth.uid;
+    }
+
+    match /activityLog/{id} {
+      allow read:   if isAdmin();
+      // Pin the actor to the caller so the log cannot be written in someone
+      // else's name. actorRole is still self-declared; treat it as a hint.
+      allow create: if signedIn() && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // The public contact form. Anonymous create is intentional; the fan-out
+    // to admins is rate-limited in onContactMessageCreated.
+    match /contactMessages/{id} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    match /contactNotifyThrottle/{hour} { allow read, write: if false; }
+
+    // ---------------------------------------------------------------------
+    // Settings and admin tooling
+    //
+    // Only site/logo/favicon/commerce need to be readable signed out, for
+    // branding and price display on the public pages. settings/tradingview in
+    // particular should NOT be public: it lists the Pine script ids and any
+    // manual grants, which include members' TradingView usernames.
+    // ---------------------------------------------------------------------
+    match /settings/{doc} {
+      allow read:  if doc in ['site', 'logo', 'favicon', 'commerce'] || signedIn();
+      allow write: if isAdmin();
+    }
+    match /tvSession/{doc}      { allow read, write: if false; }   // functions only
+    match /brokerSync/{id}      { allow read, write: if false; }   // functions only
+    match /bots/{id}            { allow read: if isAdmin(); allow write: if isAdmin(); }
+    match /adminNotes/{id}      { allow read, write: if isAdmin(); }
+    match /adminTasks/{id}      { allow read, write: if isAdmin(); }
+    match /adminTaskDismissals/{id} { allow read, write: if isAdmin(); }
+    match /publicStats/{id}     { allow read: if true; allow write: if isAdmin(); }
+
+    // ---------------------------------------------------------------------
+    // Anything not named above is denied. New collections must be added here
+    // deliberately rather than inheriting an open rule.
+    // ---------------------------------------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

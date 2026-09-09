@@ -104,15 +104,21 @@ function cleanReferredName(value){
 // and students/{uid} is readable only by its owner and admins — so a
 // leaderboard built on students/ returns nothing for a normal student. The
 // public profiles collection is the only place a cross-student read can work.
+//
+// CREDITING NOW HAPPENS ON THE SERVER. This function used to increment
+// referralPoints on ANOTHER user's student and profile documents from the
+// referred person's browser. That required Firestore rules permissive enough
+// for one account to write another's document — and with that door open,
+// anyone could award themselves unlimited points from the console, which the
+// leaderboard and the giveaway draws both take seriously.
+//
+// The browser now only records the referral event in referrals/{id}. The
+// onReferralWritten trigger (functions-src/referralPoints.js) reads the point
+// values from settings/referralConfig and credits the referrer with the Admin
+// SDK, exactly once per stage. Kept as a no-op so the three call sites below
+// still read as a sequence of steps.
 function awardReferralPoints(referrerUid, points){
-  if (!points) return Promise.resolve();
-  const inc = firebase.firestore.FieldValue.increment(points);
-  return Promise.all([
-    db.collection('students').doc(referrerUid).set({ referralPoints: inc }, { merge: true })
-      .catch((err) => console.error('Stryker: could not award referral points on student doc', err)),
-    db.collection('profiles').doc(referrerUid).set({ referralPoints: inc }, { merge: true })
-      .catch((err) => console.error('Stryker: could not mirror referral points to profile', err))
-  ]);
+  return Promise.resolve();
 }
 
 function notifyReferrer(referrerUid, type, message){

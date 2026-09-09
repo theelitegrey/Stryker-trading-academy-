@@ -249,11 +249,38 @@ exports.brokerConnect = functions
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const broker = String((data && data.broker) || '');
-    const credentials = (data && data.credentials) || {};
+    const submitted = (data && data.credentials) || {};
     if (SYNCABLE.indexOf(broker) === -1) {
       throw new functions.https.HttpsError('invalid-argument', 'That broker is not supported for sync.');
     }
-    Object.keys(credentials).forEach((k) => { credentials[k] = String(credentials[k] || '').trim(); });
+    if (typeof submitted !== 'object' || Array.isArray(submitted)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Credentials must be an object.');
+    }
+
+    // Take only the fields the SDK declares for this broker, and cap their
+    // size. The client used to be able to put ANY key into this object and
+    // have it forwarded verbatim into the broker SDK's connect() — including,
+    // potentially, a field the SDK reads as an endpoint URL. An allow-list
+    // built from the SDK's own declaration keeps that surface exactly as wide
+    // as the connection form.
+    const spec = listBrokers().find((b) => b.id === broker);
+    const allowedKeys = ((spec && spec.credentials) || []).map((c) => (typeof c === 'string' ? c : c && c.key)).filter(Boolean);
+    if (!allowedKeys.length) {
+      throw new functions.https.HttpsError('failed-precondition', 'That broker has no credential fields declared.');
+    }
+
+    const MAX_LEN = 4096;
+    const credentials = {};
+    allowedKeys.forEach((k) => {
+      if (!Object.prototype.hasOwnProperty.call(submitted, k)) return;
+      const v = String(submitted[k] === null || submitted[k] === undefined ? '' : submitted[k]).trim();
+      if (v.length > MAX_LEN) {
+        throw new functions.https.HttpsError('invalid-argument', 'That "' + k + '" value is too long.');
+      }
+      credentials[k] = v;
+    });
+    const ignored = Object.keys(submitted).filter((k) => allowedKeys.indexOf(k) === -1);
+    if (ignored.length) console.warn('brokerConnect: ignored unexpected credential fields:', ignored.join(', '));
 
     // Validate before storing anything: a live read-only fetch either works
     // or the student gets the broker's rejection immediately. Brokers with
@@ -267,8 +294,11 @@ exports.brokerConnect = functions
         onCredentialsRotated: (rotated) => { effectiveCredentials = rotated; }
       }).fetchSnapshot();
     } catch (err) {
+      // Full detail to the log; the caller gets a fixed message so an SDK or
+      // broker response body is never reflected back into the page.
+      console.error('brokerConnect: ' + broker + ' rejected credentials for ' + uid, err);
       throw new functions.https.HttpsError('failed-precondition',
-        'The broker rejected those credentials: ' + (err.message || err));
+        'The broker rejected those credentials. Check them and try again.');
     }
 
     await db.collection('brokerSync').doc(uid + '__' + broker).set({
@@ -291,6 +321,9 @@ exports.brokerSyncNow = functions
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const broker = String((data && data.broker) || '');
+    if (SYNCABLE.indexOf(broker) === -1) {
+      throw new functions.https.HttpsError('invalid-argument', 'That broker is not supported for sync.');
+    }
     const ref = db.collection('brokerSync').doc(uid + '__' + broker);
     const doc = await ref.get();
     if (!doc.exists || doc.data().uid !== uid) {
@@ -299,15 +332,19 @@ exports.brokerSyncNow = functions
     try {
       return Object.assign({ ok: true }, await runSync(doc.data()));
     } catch (err) {
-      await ref.set({ status: 'error', statusDetail: String(err.message || err).slice(0, 300),
+      console.error('brokerSyncNow: ' + broker + ' failed for ' + uid, err);
+      await ref.set({ status: 'error', statusDetail: 'Sync failed — check the connection and try again.',
         lastSyncAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
-      throw new functions.https.HttpsError('internal', 'Sync failed: ' + (err.message || err));
+      throw new functions.https.HttpsError('internal', 'Sync failed. Check the connection and try again.');
     }
   });
 
 exports.brokerDisconnect = functions.https.onCall(async (data, context) => {
   const uid = requireAuth(context);
   const broker = String((data && data.broker) || '');
+  if (SYNCABLE.indexOf(broker) === -1) {
+    throw new functions.https.HttpsError('invalid-argument', 'That broker is not supported for sync.');
+  }
   const ref = db.collection('brokerSync').doc(uid + '__' + broker);
   const doc = await ref.get();
   if (doc.exists && doc.data().uid === uid) await ref.delete();

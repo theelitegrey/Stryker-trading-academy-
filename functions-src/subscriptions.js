@@ -198,13 +198,20 @@ exports.subscriptionSweep = functions
 
           // Best-effort TradingView revocation — the site record above is
           // already cleared either way, since entitlement follows the plan.
-          if (s.tradingViewAccessGranted && s.tradingViewUsername) {
+          // Revoke the username access was GRANTED to, which an admin wrote,
+          // never the freely editable tradingViewUsername field. Otherwise a
+          // student could point that field at someone else's handle, let
+          // their own plan lapse, and have this sweep strip that person's
+          // script access. Rows granted before tradingViewGrantedUsername
+          // existed fall back to the old field.
+          const tvTarget = s.tradingViewGrantedUsername || s.tradingViewUsername;
+          if (s.tradingViewAccessGranted && tvTarget) {
             try {
               const tv = require('./tvAccess').__internals;
-              const res = await tv.revokeAllForUsername(s.tradingViewUsername);
-              console.log('subscriptionSweep: TV revoke for', s.tradingViewUsername, JSON.stringify(res));
+              const res = await tv.revokeAllForUsername(tvTarget);
+              console.log('subscriptionSweep: TV revoke for', tvTarget, JSON.stringify(res));
             } catch (err) {
-              console.error('subscriptionSweep: TV revoke failed for', s.tradingViewUsername, err.message);
+              console.error('subscriptionSweep: TV revoke failed for', tvTarget, err.message);
             }
           }
           expired++;

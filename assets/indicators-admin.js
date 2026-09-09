@@ -257,6 +257,11 @@ function renderTvRequestsPanel(students){
       if (typeof logActivity === 'function') logActivity('content.indicator_saved', 'Granted TradingView indicator access', { targetUid: uid });
       return db.collection('students').doc(uid).set({
         tradingViewAccessGranted: true,
+        // The username access was actually granted to, kept separate from the
+        // editable tradingViewUsername field. The lapse sweep revokes THIS
+        // one: a student who later edits their username to someone else's
+        // must not be able to aim the revocation at that person's account.
+        tradingViewGrantedUsername: s.tradingViewUsername || null,
         // Stamped so the approved list below can sort by when access was
         // actually given; rows granted before this existed fall back to
         // their request date.

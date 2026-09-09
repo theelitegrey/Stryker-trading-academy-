@@ -64,8 +64,15 @@
     const days = Number($('rp-days').value) || 14; const balance = Number($('rp-balance').value) || 100000; const csvName = spec.src === 'csv' ? $('rp-csv-list').value : null;
     if (spec.src === 'csv' && !csvName) { toast('Choose a CSV file first', 'error'); return; }
     setPref('symbol', spec.id); setPref('checklistItems', $('rp-checklist-items').value); setPref('checklistOn', $('rp-opt-checklist').checked); setPref('nudgesOn', $('rp-opt-nudges').checked);
+    const pbSel = $('rp-playbook'); const pb = pbSel ? findPlaybook(pbSel.value) : null; setPref('playbookId', pb ? pb.id : '');
     const session = { id: 'rp_' + Date.now().toString(36), name: $('rp-name').value.trim() || (spec.label.split(' · ')[0] + ' · ' + $('rp-start').value), symbolId: spec.id, symbolLabel: spec.label, csvName, startMs, endMs: startMs + days * 86400000, loadFrom: startMs - 3 * 86400000, balance, tz: $('rp-tz').value, tf: null, htfTf: null, cursor: null, sim: null, drawings: [], indicators: pref('lastIndicators', [{ id: 'ema', params: { len: 20 } }, { id: 'killzones', params: {} }]),
-      settings: { commission: Number($('rp-commission').value) || 0, slippage: Number($('rp-slippage').value) || 0, checklistOn: $('rp-opt-checklist').checked, nudgesOn: $('rp-opt-nudges').checked, checklist: $('rp-checklist-items').value.split('\n').map((x) => x.trim()).filter(Boolean) }, createdAt: Date.now(), updatedAt: Date.now() };
+      settings: { commission: Number($('rp-commission').value) || 0, slippage: Number($('rp-slippage').value) || 0, checklistOn: $('rp-opt-checklist').checked, nudgesOn: $('rp-opt-nudges').checked,
+        checklist: pb ? (pb.rules || []).map((r) => r.text) : $('rp-checklist-items').value.split('\n').map((x) => x.trim()).filter(Boolean),
+        playbookId: pb ? pb.id : null, playbookName: pb ? pb.name : null,
+        // Rule ids in the same order as `checklist`, so a ticked box maps back
+        // to a rule id rather than to a line of text that could be reworded.
+        checklistRuleIds: pb ? (pb.rules || []).map((r) => r.id) : null },
+      createdAt: Date.now(), updatedAt: Date.now() };
     await openSession(session, spec, true);
   }
   async function resumeSession(id) { const s = await D.store.getSession(id); if (!s) { toast('That session is gone', 'error'); return; } const spec = D.findSymbol(s.symbolId); if (!spec) { toast('Unknown market in that session', 'error'); return; } await openSession(s, spec, false); }
@@ -114,7 +121,12 @@
     $('rp-chart-htf').hidden = !$('rp-split').checked; $('rp-charts').classList.toggle('is-split', $('rp-split').checked);
     $('rp-speed').innerHTML = SPEEDS.map((s, i) => '<option value="' + i + '"' + (i === RP.speedIdx ? ' selected' : '') + '>' + s + ' bar' + (s > 1 ? 's' : '') + '/s</option>').join('');
     $('rp-unit').textContent = RP.spec.unit || 'units'; $('rp-size').value = RP.spec.lotStep >= 1 ? 1 : RP.spec.lotStep * 10; $('rp-size').step = RP.spec.lotStep;
-    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true; renderObjects(); $('rp-h1').textContent = RP.session.name; $('rp-h1-sub').textContent = RP.spec.label + ' · ' + (RP.session.dataNote || '');
+    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true; renderObjects(); $('rp-h1').textContent = RP.session.name;
+    // Say out loud when a session is being graded against a playbook, so the
+    // pre-trade checklist is understood as evidence rather than a nag.
+    const pbName = (RP.session.settings || {}).playbookName;
+    $('rp-h1-sub').textContent = RP.spec.label + ' · ' + (RP.session.dataNote || '') +
+      (pbName ? ' · playbook: ' + pbName : '');
   }
   function buildStrip() {
     const el = $('rp-tradebar-strip'); el.innerHTML = '<button type="button" class="rp-sbtn is-sell" id="rp-strip-sell"><small>SELL</small><b>—</b></button><div class="rp-smid"><input type="number" id="rp-strip-size" step="' + RP.spec.lotStep + '" min="0" value="' + ($('rp-size').value || 1) + '" title="Size"><label title="Attach stop (ticks) and target (R) automatically"><input type="checkbox" id="rp-strip-attach" checked> SL <input type="number" id="rp-strip-sl" value="' + pref('stripSl', 40) + '" min="1" title="Stop in ticks"> t · TP <input type="number" id="rp-strip-tp" value="' + pref('stripTp', 2) + '" min="0.1" step="0.1" title="Target as R multiple"> R</label></div><button type="button" class="rp-sbtn is-buy" id="rp-strip-buy"><small>BUY</small><b>—</b></button>';
@@ -219,7 +231,23 @@
   function openChecklist(o) {
     const items = RP.session.settings.checklist; RP.pendingSubmit = o;
     openModal('<h3>Pre-trade checklist</h3><p class="rp-modal-sub">' + (o.side === 'buy' ? 'Buy' : 'Sell') + ' ' + o.type + ' · ' + o.size + ' ' + esc(RP.spec.unit || '') + (o.sl != null ? ' · SL ' + RP.chart.fmt(o.sl) : ' · <span class="down">no stop</span>') + (o.tp != null ? ' · TP ' + RP.chart.fmt(o.tp) : '') + '</p><div class="rp-checklist">' + items.map((it, i) => '<label><input type="checkbox" data-ci="' + i + '"> ' + esc(it) + '</label>').join('') + '</div><div class="rp-modal-actions"><button type="button" class="btn btn-secondary" data-close>Cancel</button><button type="button" class="btn btn-primary" id="rp-check-go">Place order</button></div>');
-    $('rp-check-go').addEventListener('click', () => { const boxes = [...document.querySelectorAll('#rp-modal [data-ci]')]; const done = boxes.filter((b) => b.checked).length; const o2 = RP.pendingSubmit; RP.pendingSubmit = null; o2.checklist = { done, total: boxes.length }; closeModal(); if (done < boxes.length && !confirm('Only ' + done + ' of ' + boxes.length + ' items checked. Place the order anyway?')) return; finalizeOrder(o2); });
+    $('rp-check-go').addEventListener('click', () => {
+      const boxes = [...document.querySelectorAll('#rp-modal [data-ci]')];
+      const done = boxes.filter((b) => b.checked).length;
+      const o2 = RP.pendingSubmit; RP.pendingSubmit = null;
+      // Which items, not just how many. Against a playbook these map to rule
+      // ids, which is what makes per-rule analysis possible later.
+      const ruleIds = (RP.session.settings || {}).checklistRuleIds || null;
+      const metIdx = boxes.map((b, i) => (b.checked ? i : -1)).filter((i) => i >= 0);
+      o2.checklist = {
+        done, total: boxes.length,
+        metIndexes: metIdx,
+        rulesMet: ruleIds ? metIdx.map((i) => ruleIds[i]).filter(Boolean) : null
+      };
+      closeModal();
+      if (done < boxes.length && !confirm('Only ' + done + ' of ' + boxes.length + ' items checked. Place the order anyway?')) return;
+      finalizeOrder(o2);
+    });
   }
   function renderTagChips() { $('rp-tags').innerHTML = COACH.TAGS.map((t) => '<button type="button" class="rp-chip' + (RP.nextTags.includes(t) ? ' is-on' : '') + '" data-tag="' + esc(t) + '">' + esc(t) + '</button>').join(''); }
 
@@ -295,11 +323,17 @@
     const todo = RP.sim.trades.filter((t) => !t.journaled); if (!todo.length) { toast('Every trade in this session is already in your journal', 'info'); return; }
     if (!confirm('Copy ' + todo.length + ' trade' + (todo.length > 1 ? 's' : '') + ' into your Trade journal, tagged "backtest"?')) return;
     const fmtD = new Intl.DateTimeFormat('en-CA', { timeZone: RP.tz, year: 'numeric', month: '2-digit', day: '2-digit' }), fmtT = new Intl.DateTimeFormat('en-US', { timeZone: RP.tz, hour: '2-digit', minute: '2-digit', hour12: false });
+    const pbId = (RP.session.settings || {}).playbookId || null;
     let ok = 0;
     for (const t of todo) {
       try {
         const snap = await D.store.getSnap(snapKey(t.posId, 'entry'));
-        const raw = { instrument: RP.spec.symbol, direction: t.side === 'buy' ? 'long' : 'short', date: fmtD.format(new Date(t.entryT)), time: fmtT.format(new Date(t.entryT)), entryPrice: String(t.entry), exitPrice: String(t.exit), positionSize: String(t.size), fees: String(t.fees || 0), stopLoss: t.sl != null ? String(t.sl) : null, takeProfit: t.tp != null ? String(t.tp) : null, session: COACH.sessionOf(t.entryT), setup: (t.tags && t.tags[0]) || 'Backtest', account: 'Backtest', tags: ['backtest'].concat(t.tags || []), notes: ((t.notes || '') + '\nBacktest replay · ' + RP.session.name + (t.mistakes && t.mistakes.length ? ' · mistakes: ' + t.mistakes.join(', ') : '')).trim(), screenshotDataUrl: snap || null, source: 'replay', replaySessionId: RP.session.id, replayTradeId: t.id };
+        const raw = { instrument: RP.spec.symbol, direction: t.side === 'buy' ? 'long' : 'short', date: fmtD.format(new Date(t.entryT)), time: fmtT.format(new Date(t.entryT)), entryPrice: String(t.entry), exitPrice: String(t.exit), positionSize: String(t.size), fees: String(t.fees || 0), stopLoss: t.sl != null ? String(t.sl) : null, takeProfit: t.tp != null ? String(t.tp) : null, session: COACH.sessionOf(t.entryT), setup: (t.tags && t.tags[0]) || 'Backtest', account: 'Backtest', tags: ['backtest'].concat(t.tags || []),
+          playbookId: pbId,
+          // null means "not graded" and must stay null: an empty array would
+          // read as "met none of the rules" and unfairly drag the discipline
+          // numbers down for a session run without a checklist.
+          rulesMet: (t.checklist && Array.isArray(t.checklist.rulesMet)) ? t.checklist.rulesMet : null, notes: ((t.notes || '') + '\nBacktest replay · ' + RP.session.name + (t.mistakes && t.mistakes.length ? ' · mistakes: ' + t.mistakes.join(', ') : '')).trim(), screenshotDataUrl: snap || null, source: 'replay', replaySessionId: RP.session.id, replayTradeId: t.id };
         const derived = journalComputeDerived(raw, RP.sim.startBalance);
         await db.collection('students').doc(RP.uid).collection('journal').doc().set(Object.assign({}, raw, derived, { createdAt: firebase.firestore.FieldValue.serverTimestamp(), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }));
         RP.sim.updateTradeMeta(t.id, { journaled: true }); ok++;
@@ -369,12 +403,54 @@
   // ---- tools / options -----------------------------------------------------------------------------------
   function setTool(tool) { RP.chart.setTool(tool); document.querySelectorAll('#rp-tools [data-tool]').forEach((b) => b.classList.toggle('is-on', b.dataset.tool === tool)); }
   function setTf(tf) { RP.tf = tf; document.querySelectorAll('#rp-tfs .rp-tf').forEach((b) => b.classList.toggle('is-on', b.dataset.tf === tf)); refresh(); RP.chart.scrollToEnd(); saveSession(); }
+  // ---- playbooks ------------------------------------------------------------------------------
+  // A backtest session can be run against one of the student's playbooks. Its
+  // rules become the pre-trade checklist, and every trade records which of them
+  // were actually met — so a replay evening produces the same graded evidence a
+  // month of live trades would, and the Playbook tab can say something useful
+  // far sooner.
+  RP.playbooks = [];
+
+  function loadPlaybookPicker() {
+    const sel = $('rp-playbook'); if (!sel) return;
+    if (!RP.uid || typeof loadPlaybooks !== 'function') return;
+    loadPlaybooks(RP.uid).then((data) => {
+      RP.playbooks = ((data && data.playbooks) || []).filter((p) => p.status !== 'retired');
+      const prev = pref('playbookId', '');
+      sel.innerHTML = '<option value="">No playbook</option>' +
+        RP.playbooks.map((p) => '<option value="' + esc(p.id) + '">' + esc(p.name || 'Untitled playbook') + '</option>').join('');
+      if (prev && RP.playbooks.some((p) => p.id === prev)) sel.value = prev;
+      applyPlaybookToChecklist();
+    }).catch(() => {});
+  }
+
+  function findPlaybook(id) { return RP.playbooks.find((p) => p.id === id) || null; }
+
+  // Choosing a playbook replaces the checklist text with its rules and turns
+  // the checklist on, because a playbook you do not grade against is just a
+  // label. Choosing "No playbook" restores the coach's generic list.
+  function applyPlaybookToChecklist() {
+    const sel = $('rp-playbook'); if (!sel) return;
+    const pb = findPlaybook(sel.value);
+    const ta = $('rp-checklist-items');
+    if (pb && (pb.rules || []).length) {
+      ta.value = pb.rules.map((r) => r.text).join('\n');
+      ta.readOnly = true;
+      $('rp-opt-checklist').checked = true;
+    } else {
+      ta.readOnly = false;
+      if (ta.value === '' ) ta.value = pref('checklistItems', COACH.CHECKLIST.join('\n'));
+    }
+  }
+
   const ICON_PLAY = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg>', ICON_PAUSE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
 
   function wire() {
     fillSymbols(); defaultDates(); updateDataNote(); refreshCsvList(); renderSessionList();
     $('rp-checklist-items').value = pref('checklistItems', COACH.CHECKLIST.join('\n')); $('rp-opt-checklist').checked = !!pref('checklistOn', false); $('rp-opt-nudges').checked = pref('nudgesOn', true) !== false;
+    loadPlaybookPicker();
     $('rp-symbol').addEventListener('change', updateDataNote); $('rp-start').addEventListener('change', updateDataNote); $('rp-days').addEventListener('change', updateDataNote); $('rp-csv-file').addEventListener('change', onCsvFile);
+    if ($('rp-playbook')) $('rp-playbook').addEventListener('change', applyPlaybookToChecklist);
     $('rp-start-btn').addEventListener('click', startNew);
     $('rp-session-list').addEventListener('click', async (e) => { const card = e.target.closest('.rp-sess'); if (!card) return; if (e.target.closest('[data-resume]')) resumeSession(card.dataset.id); else if (e.target.closest('[data-del]') && confirm('Delete this saved session and its snapshots?')) { await D.store.deleteSession(card.dataset.id); D.store.deleteSnaps(card.dataset.id); renderSessionList(); } });
     $('rp-back').addEventListener('click', leaveWorkspace); $('rp-play').addEventListener('click', () => RP.playing ? pause() : play()); $('rp-step').addEventListener('click', () => { pause(); advance(1); }); $('rp-step10').addEventListener('click', () => { pause(); advance(10); }); $('rp-jumpny').addEventListener('click', jumpNextNyOpen); $('rp-jumpday').addEventListener('click', jumpNextDay); $('rp-speed').addEventListener('change', (e) => setSpeed(Number(e.target.value)));

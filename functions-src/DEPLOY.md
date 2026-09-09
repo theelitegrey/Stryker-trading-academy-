@@ -1,16 +1,20 @@
 # Cloud Functions — deploy notes
 
-The functions are deployed by hand from Cloud Shell, from
-`~/twitter-feed-function/functions/`. This directory is the source of record;
-copy a changed file across before deploying it.
+The functions are deployed by hand from Cloud Shell. This directory is the
+source of record; copy a changed file across before deploying it.
 
-`index.js` in that directory picks up each file with:
+> **Everything in a `bash` block below is meant to be pasted into the shell.
+> Anything in a `js` block is file content — it goes inside a file, never into
+> the shell.** Pasting a line of JavaScript into bash gives
+> `syntax error near unexpected token`.
 
-```js
-Object.assign(exports, require('./<file>'));
+**Run every command from the folder that holds `firebase.json`**, not from your
+home directory. `firebase deploy` from `~` fails with "Not in a Firebase app
+directory". If you are unsure where it is:
+
+```bash
+find ~ -maxdepth 4 -name firebase.json -not -path '*/node_modules/*'
 ```
-
-so a NEW file needs a line adding there before it can deploy.
 
 **Always name the functions you are deploying.** A bare `firebase deploy
 --only functions` deletes anything that is not in the current source tree.
@@ -23,12 +27,49 @@ These four steps finish the fixes that are already in the site build. Until
 they are done, the site is running the client half of a change whose server
 half does not exist yet.
 
-### 1. Deploy the two new functions
+### 0. Get the current sources onto the Cloud Shell machine
 
-Copy `freeCheckout.js` and `referralPoints.js` across, add both to
-`index.js`, then:
+One block, start to finish. Set `PROJECT` to whatever the `find` above printed,
+minus the `/firebase.json`.
 
 ```bash
+PROJECT=~/twitter-feed-function            # the folder containing firebase.json
+cd "$PROJECT" || echo "wrong path — run the find command above"
+
+# Fresh copy of the repo, then overwrite the function sources with it.
+rm -rf /tmp/sta && git clone --depth 1 \
+  https://github.com/theelitegrey/Stryker-trading-academy-.git /tmp/sta
+
+cp /tmp/sta/functions-src/*.js functions/
+ls -la functions/*.js
+```
+
+That copies the .js files only, so `index.js`, `package.json`, `.env` and
+`node_modules` in `functions/` are untouched.
+
+### 1. Register the two new files, then deploy them
+
+`index.js` loads each function file with a line of JavaScript. The two new
+files need one line each. This appends them only if they are missing:
+
+```bash
+cd "$PROJECT/functions"
+grep -q "freeCheckout"   index.js || echo "Object.assign(exports, require('./freeCheckout'));"   >> index.js
+grep -q "referralPoints" index.js || echo "Object.assign(exports, require('./referralPoints'));" >> index.js
+tail -5 index.js
+```
+
+The lines it adds look like this — this is *file content*, not a command:
+
+```js
+Object.assign(exports, require('./freeCheckout'));
+Object.assign(exports, require('./referralPoints'));
+```
+
+Then, from the project root:
+
+```bash
+cd "$PROJECT"
 firebase deploy --only functions:redeemFreeCheckout,functions:onReferralWritten
 ```
 

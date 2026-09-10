@@ -5,10 +5,10 @@
 <meta name="stryker-build" content="292">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trading Models — Stryker Trading Academy</title>
-<meta name="description" content="Named ICT/SMT trading models and setups, each with full criteria and a written walkthrough.">
+<title>Economic calendar — Stryker Trading Academy</title>
 <link rel="stylesheet" href="assets/style.css?v=292">
 <script src="assets/sanitize.js?v=292"></script>
+<script src="assets/motion.js?v=292"></script>
 <script src="assets/device-mode.js?v=292"></script>
 <script src="assets/toast.js?v=292" defer></script>
 <script src="assets/version-check.js?v=292" defer></script>
@@ -21,7 +21,7 @@
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
-<body data-page-access="models">
+<body>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="home" href="dashboard-user.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="appnav-dkl">Home</span></a>
   <a class="appnav-dk" data-nav="learn" href="courses.html"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V4a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 0 4 5.5z"/><path d="M20 17v4H6.5a2.5 2.5 0 0 1 0-5"/></svg><span class="appnav-dkl">Learn</span></a>
@@ -40,11 +40,10 @@
     <div class="paywall-icon">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     </div>
-    <h2 id="paywall-heading">Sign in to browse trading models</h2>
-    <p id="paywall-body">Create a free account or log in to see every model and its full write-up.</p>
+    <h2 id="paywall-heading">Upgrade to unlock this page</h2>
+    <p id="paywall-body">This page requires an active plan.</p>
     <div class="paywall-actions" id="paywall-actions">
-      <a href="login.html" class="btn btn-primary">Log in</a>
-      <a href="signup.html" class="btn btn-ghost">Create free account</a>
+      <button type="button" class="btn btn-primary" data-open-plan-modal data-upgrade-reason="This page needs a higher plan.">See plans</button>
     </div>
   </div>
 </div>
@@ -69,11 +68,12 @@
 </div>
 <div class="sidebar-backdrop" id="dash-sidebar-backdrop"></div>
 
-<div class="dash-shell gate-pending" id="models-content-wrap">
+<div class="dash-shell gate-pending">
 
   <aside class="sidebar">
     <a href="dashboard-user.html" class="brand">
       <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
+
     </a>
 
     <div class="side-section">
@@ -86,7 +86,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
         Curriculum
       </a>
-      <a href="models.html" class="side-link active">
+      <a href="models.html" class="side-link">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L3 17.6"/></svg>
         Trading models
       </a>
@@ -122,7 +122,7 @@
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M10 8l5 4-5 4z"/></svg>
         Backtesting
       </a>
-      <a href="economic-calendar.html" class="side-link">
+      <a href="economic-calendar.html" class="side-link active">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3"/></svg>
         Economic calendar
       </a>
@@ -189,50 +189,9 @@
   </aside>
 
   <main class="dash-main">
-    <div class="dash-topbar">
-      <div>
-        <h1>Trading models</h1>
-        <p>Named setups and models, each with the full criteria and a written walkthrough.</p>
-      </div>
-    </div>
-
-    <div class="notice" style="display:block;">
-      <h3 style="margin-top:0; margin-bottom:6px; font-size:15px; color:var(--ink-0);">How to trade any model on this page</h3>
-      <p style="margin-bottom:0; color:var(--ink-2); font-size:13px;">Every model below has its own specific rules, but the process for actually executing any of them is the same five steps every time. This isn't optional structure around the model — skipping any one of these is how a good model still produces a bad trade.</p>
-      <svg viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg" width="900" height="130" style="width:100%; height:auto; display:block; margin:16px 0 4px;">
-        <g font-family="monospace" font-size="10.5">
-          <rect x="10" y="15" width="160" height="55" rx="6" fill="none" stroke="#00adb5" stroke-width="1.3"/>
-          <text x="90" y="38" text-anchor="middle" fill="#00adb5">1. Prep</text>
-          <text x="90" y="55" text-anchor="middle" fill="#8b93a0" font-size="9">calendar, levels, pick model</text>
-
-          <rect x="200" y="15" width="160" height="55" rx="6" fill="none" stroke="#03c988" stroke-width="1.3"/>
-          <text x="280" y="38" text-anchor="middle" fill="#03c988">2. Apply rules</text>
-          <text x="280" y="55" text-anchor="middle" fill="#8b93a0" font-size="9">exactly as written</text>
-
-          <rect x="390" y="15" width="160" height="55" rx="6" fill="none" stroke="#f5c542" stroke-width="1.3"/>
-          <text x="470" y="38" text-anchor="middle" fill="#f5c542">3. Confirm</text>
-          <text x="470" y="55" text-anchor="middle" fill="#8b93a0" font-size="9">never skip this step</text>
-
-          <rect x="580" y="15" width="160" height="55" rx="6" fill="none" stroke="#e5484d" stroke-width="1.3"/>
-          <text x="660" y="38" text-anchor="middle" fill="#f08488">4. Size the risk</text>
-          <text x="660" y="55" text-anchor="middle" fill="#8b93a0" font-size="9">before you click</text>
-
-          <rect x="740" y="15" width="150" height="55" rx="6" fill="none" stroke="#8b93a0" stroke-width="1.3"/>
-          <text x="815" y="38" text-anchor="middle" fill="#eeeeee">5. Journal it</text>
-          <text x="815" y="55" text-anchor="middle" fill="#8b93a0" font-size="9">every trade, no exceptions</text>
-        </g>
-        <text x="450" y="105" text-anchor="middle" fill="#8b93a0" font-size="10.5" font-family="monospace">the same five steps, regardless of which model you're trading</text>
-      </svg>
-      <div style="display:grid; gap:10px; margin-top:14px; font-size:13px; color:var(--ink-2);">
-        <div><b style="color:#00adb5;">1. Prep before the session.</b> Check the economic calendar for scheduled news, mark your higher-timeframe key levels and liquidity references, and decide which model actually fits today's conditions — not every model fits every day.</div>
-        <div><b style="color:#03c988;">2. Apply that model's rules exactly.</b> Once you've picked a model, follow its specific steps as written. Don't blend rules from two different models mid-trade because a hybrid setup "looks" more convincing — that's how a tested edge quietly becomes an untested guess.</div>
-        <div><b style="color:#f5c542;">3. Never skip the confirmation step.</b> Every model on this page has a specific confirmation requirement — SMT, a structural shift, a reaction quality check. Skipping it because a setup looks obvious is exactly when it matters most.</div>
-        <div><b style="color:#f08488;">4. Calculate position size from your stop distance, every time.</b> Before entering, size the trade mechanically from your stop distance and risk percentage — the same discipline covered in the curriculum's risk chapters, applied here without exception.</div>
-        <div><b style="color:#eeeeee;">5. Journal every trade against the model's own criteria.</b> Log which model you used, whether you followed its specific rules, and the outcome — regardless of whether it won or lost. This is what turns "I tried a model" into real, personal data on whether it actually works for you.</div>
-      </div>
-    </div>
-
-    <div id="models-render-target"></div>
+    <section class="ec-section">
+      <div id="ec-page" class="ec-page"></div>
+    </section>
   </main>
 </div>
 
@@ -265,10 +224,7 @@
 <script src="assets/maintenance-check.js?v=292"></script>
 <script src="assets/branding.js?v=292"></script>
 <script src="assets/dash-nav.js?v=292"></script>
-<script src="assets/models-data.js?v=292"></script>
-<script src="assets/models-store.js?v=292"></script>
-<script src="assets/models-showcase.js?v=292"></script>
-<script src="assets/models-list.js?v=292"></script>
+<script src="assets/econ-calendar.js?v=292"></script>
 <script src="assets/theme.js?v=292"></script>
 </body>
 </html>

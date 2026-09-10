@@ -96,6 +96,14 @@ number, every grid is a real `<table>` with row and column headers and a
 caption, and forced-colors mode drops the fills and puts borders back. A
 reader who sees no colour at all loses scanning speed and nothing else.
 
+## The other two terminal files
+
+`assets/market-brief.json` (what moved overnight and what is due) and
+`assets/econ-calendar.json` (the schedule itself) are produced in the same
+sitting from the same research. All three describe one session, so a stale one
+among two fresh ones is the failure mode to avoid. See `tools/market-brief.md`
+and `tools/econ-calendar.md`.
+
 ## Automating it
 
 A scheduled agent session can do the whole thing. Two things it must be told:

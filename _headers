@@ -64,6 +64,11 @@
 /assets/market-map.json
   Cache-Control: public, max-age=0, must-revalidate
 
+# And the economic calendar, which goes wrong the fastest of the three: a
+# cached copy would show a release time that has already passed.
+/assets/econ-calendar.json
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff

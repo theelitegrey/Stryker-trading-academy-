@@ -40,6 +40,15 @@
 
   const MAP_URL = 'assets/market-map.json';
 
+  // Every motion call goes through this. If motion.js is missing the module
+  // renders exactly as before, just without the movement — a chart nobody can
+  // read because an animation library failed is not a trade-off worth making.
+  const M = () => (window.stkMotion || {
+    reveal: function () {}, countAll: function () {}, growBars: function () {},
+    drawPath: function () {}, flip: function (c, sel, f) { f(); },
+    reduced: function () { return true; }
+  });
+
   const esc = (s) => (typeof stkEsc === 'function'
     ? stkEsc(s)
     : String(s === null || s === undefined ? '' : s)
@@ -162,9 +171,9 @@
       '<span class="mm-bar-label" title="' + esc(item.group) + '">' + esc(item.label) + '</span>' +
       '<span class="mm-bar-track">' +
         '<span class="mm-bar-fill mm-b' + (b < 0 ? 'd' : 'u') + Math.abs(b) + '" ' +
-          'style="width:' + w.toFixed(1) + '%"></span>' +
+          'data-grow-to="' + w.toFixed(1) + '%" style="width:' + w.toFixed(1) + '%"></span>' +
       '</span>' +
-      '<span class="mm-bar-val">' + esc(fmtPct(item.v)) + '</span>' +
+      '<span class="mm-bar-val" data-count-to="' + item.v + '">' + esc(fmtPct(item.v)) + '</span>' +
     '</li>';
   }
 
@@ -180,7 +189,7 @@
 
     mount.hidden = false;
     mount.innerHTML =
-      '<section class="mm-strip">' +
+      '<section class="mm-strip stk-rise">' +
         '<div class="mm-strip-head">' +
           '<div>' +
             '<span class="mm-kicker">Leaders and laggards</span>' +
@@ -204,6 +213,10 @@
   + 'against outright returns.</p>' +
         '<a class="mm-more" href="market-map.html">See the full market map &rarr;</a>' +
       '</section>';
+
+    M().reveal(mount, {});
+    M().growBars(mount, '.mm-bar-fill[data-grow-to]');
+    M().countAll(mount, fmtPct);
   }
 
   // ---- the Treasury curve --------------------------------------------------
@@ -320,7 +333,7 @@
             '<b>' + esc(s.label) + '</b>' +
             (s.note ? '<span>' + esc(s.note) + '</span>' : '') + '</li>').join('') + '</ul>'
       : '';
-    return '<section class="mm-block" id="mm-curve">' +
+    return '<section class="mm-block stk-rise" id="mm-curve">' +
       '<h2>' + esc(curve.title || 'The Treasury curve') + '</h2>' +
       (curve.note ? '<p class="mm-note">' + esc(curve.note) + '</p>' : '') +
       curveSvg(curve) + spreads + curveTable(curve) +
@@ -356,15 +369,17 @@
         const b = bucket(v, p, g.scale);
         const cls = b === null ? 'mm-na' : (b === 0 ? 'mm-b0' : 'mm-b' + (b < 0 ? 'd' : 'u') + Math.abs(b));
         return '<td class="mm-cell ' + cls + (p === PERIOD ? ' is-on' : '') + '" ' +
+          'style="--mm-c:' + i + '" ' +
           'title="' + esc(r.label + ' (' + r.ticker + ') · ' + p + unit + ': ' + fmtPct(v)) + '">' +
           esc(fmtPct(v)) + '</td>';
       }).join('');
-      return '<tr><th scope="row" class="mm-row-name">' + esc(r.label) +
+      return '<tr class="mm-tr" data-flip-key="' + esc(g.id + '|' + r.ticker) + '">' +
+        '<th scope="row" class="mm-row-name">' + esc(r.label) +
         '<span class="mm-ticker">' + esc(r.ticker) + '</span></th>' +
         '<td class="mm-price">' + esc(fmtPrice(r.price)) + '</td>' + cells + '</tr>';
     }).join('');
 
-    return '<section class="mm-block" id="mm-g-' + esc(g.id) + '">' +
+    return '<section class="mm-block stk-rise" id="mm-g-' + esc(g.id) + '">' +
       '<h2>' + esc(g.title) + '</h2>' +
       (g.note ? '<p class="mm-note">' + esc(g.note) + '</p>' : '') +
       '<div class="mm-scroll"><table class="mm-grid mm-heat">' +
@@ -410,7 +425,7 @@
   function renderPage(mount) {
     const read = DATA.read || {};
     mount.innerHTML =
-      '<header class="mm-head">' +
+      '<header class="mm-head stk-rise">' +
         '<span class="mm-kicker">Cross-asset map</span>' +
         '<h1>' + esc(read.headline || 'The board') + '</h1>' +
         (read.standfirst ? '<p class="mm-standfirst">' + esc(read.standfirst) + '</p>' : '') +
@@ -423,10 +438,10 @@
       '<div id="mm-strip-inline"></div>' +
 
       ((read.points || []).length
-        ? '<section class="mm-block mm-read">' +
+        ? '<section class="mm-block mm-read stk-rise">' +
             '<h2>What the spread between them means</h2>' +
             '<ul class="mm-points">' + read.points.map((p) =>
-              '<li><b>' + esc(p.title) + '</b><p>' + esc(p.text) + '</p></li>').join('') + '</ul>' +
+              '<li class="stk-rise"><b>' + esc(p.title) + '</b><p>' + esc(p.text) + '</p></li>').join('') + '</ul>' +
             (read.howToUse ? '<p class="mm-howto">' + esc(read.howToUse) + '</p>' : '') +
           '</section>'
         : '') +
@@ -444,7 +459,16 @@
         (DATA.disclaimer ? '<p class="mm-disclaimer">' + esc(DATA.disclaimer) + '</p>' : '') +
       '</footer>';
 
-    paintPeriodDependent(mount);
+    paintPeriodDependent(mount, true);
+    M().reveal(mount, { stagger: 28 });
+
+    // The curve is the one chart on the page whose meaning IS its shape, so
+    // drawing it left to right is not decoration — it walks the reader along
+    // the maturities in the order the story is told.
+    const now = mount.querySelector('.mm-curve-now');
+    const prior = mount.querySelector('.mm-curve-prior');
+    if (prior) M().drawPath(prior, 900, 120);
+    if (now) M().drawPath(now, 1000, 320);
 
     mount.addEventListener('click', (e) => {
       const btn = e.target.closest('.mm-chip[data-period]');
@@ -452,18 +476,26 @@
       const p = btn.getAttribute('data-period');
       if (!p || p === PERIOD) return;
       PERIOD = p;
-      paintPeriodDependent(mount);
+      paintPeriodDependent(mount, false);
     });
   }
 
   // Everything that depends on the selected window is repainted together, so
   // the chips, the sort order, the highlighted column and the strip can never
   // disagree about which period is showing.
-  function paintPeriodDependent(mount) {
+  function paintPeriodDependent(mount, first) {
     const grids = mount.querySelector('#mm-grids');
     if (grids) {
-      grids.innerHTML = renderControls() +
-        (DATA.groups || []).map(renderGroup).join('');
+      // A FLIP, not a repaint. When the reader switches window the rows
+      // visibly travel to their new ranks, so they can see WHICH row overtook
+      // which — a re-sorted table that simply appears tells them only that
+      // something changed.
+      M().flip(grids, 'tr.mm-tr', () => {
+        grids.innerHTML = renderControls() + (DATA.groups || []).map(renderGroup).join('');
+      });
+      if (first) M().reveal(grids, { stagger: 24 });
+      else Array.prototype.forEach.call(grids.querySelectorAll('.stk-rise'),
+        (n) => n.classList.add('is-in'));
     }
     const strip = mount.querySelector('#mm-strip-inline');
     if (strip) renderStrip(strip, { period: PERIOD, count: 6 });

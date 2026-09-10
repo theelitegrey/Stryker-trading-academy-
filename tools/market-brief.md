@@ -85,6 +85,10 @@ eight asset classes. The brief page renders the map's leaders-and-laggards strip
 underneath itself, so the two must describe the same board — produce them in the
 same sitting. See `tools/market-map.md`.
 
+The economic calendar (`assets/econ-calendar.json`) is the third file in the
+set and shares this brief's `calendar[]` research — do not let the two
+disagree about a release time. See `tools/econ-calendar.md`.
+
 ## Automating it
 
 A scheduled agent session can do the research and commit the file. Two things

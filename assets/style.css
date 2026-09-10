@@ -7167,3 +7167,354 @@ section.mm-section, section.mm-block, section.mm-strip { padding: 0; }
   .mm-cell { border: 1px solid CanvasText; background: Canvas !important; color: CanvasText !important; }
   .mm-bar-fill { border: 1px solid CanvasText; }
 }
+
+/* ============================================================
+   MOTION PRIMITIVES  (assets/motion.js)
+   ============================================================
+   The hidden start state is scoped to .stk-motion, a class motion.js adds to
+   <html> as its first act. If that file ever fails to load while a renderer
+   still emits .stk-rise markup, the content is simply visible instead of
+   permanently transparent — an animation that never fires must never be able
+   to hide the page. Reduced motion turns all of it off, not down. */
+
+.stk-motion .stk-rise {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity .5s cubic-bezier(.22,1,.36,1) var(--stk-delay, 0ms),
+              transform .5s cubic-bezier(.22,1,.36,1) var(--stk-delay, 0ms);
+  will-change: opacity, transform;
+}
+.stk-motion .stk-rise.is-in { opacity: 1; transform: none; will-change: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stk-motion .stk-rise { opacity: 1 !important; transform: none !important; transition: none !important; }
+  .ec-ring-pulse, .ec-next.is-imminent, .ec-shimmer { animation: none !important; }
+}
+
+/* ============================================================
+   ECONOMIC CALENDAR  (assets/econ-calendar.js)
+   ============================================================ */
+
+section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding: 0; }
+
+.ec-section { max-width: 1120px; margin: 0 auto; }
+.ec-page { padding: 4px 0 60px; }
+
+.ec-kicker {
+  display: inline-block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--teal, #00adb5); font-weight: 700; margin-bottom: 8px;
+}
+.ec-head { margin-bottom: 24px; }
+.ec-head h1 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; color: var(--ink-0); }
+.ec-standfirst { font-size: 15px; line-height: 1.7; color: var(--ink-2); margin: 0; max-width: 74ch; }
+
+.ec-stale {
+  background: color-mix(in srgb, var(--bear, #e5484d) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bear, #e5484d) 40%, transparent);
+  border-radius: 12px; padding: 13px 16px; margin: 0 0 22px;
+  font-size: 13px; line-height: 1.6; color: var(--ink-1, #ccc);
+}
+.ec-stale b { color: var(--ink-0); }
+
+/* ---- next release hero ---- */
+.ec-next {
+  display: flex; align-items: center; gap: 26px; flex-wrap: wrap;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 18px;
+  padding: 24px 26px; margin-bottom: 26px; position: relative; overflow: hidden;
+}
+.ec-next::before {
+  content: ''; position: absolute; inset: 0 auto 0 0; width: 3px;
+  background: var(--ink-3); transition: background .3s;
+}
+.ec-next.is-high::before { background: var(--bear, #e5484d); }
+.ec-next.is-medium::before { background: #d9a441; }
+.ec-next.is-low::before { background: var(--teal, #00adb5); }
+.ec-next.is-imminent { animation: ecBreathe 2.4s ease-in-out infinite; }
+@keyframes ecBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--bear, #e5484d) 32%, transparent); }
+  50% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--bear, #e5484d) 0%, transparent); }
+}
+
+.ec-ring { position: relative; width: 92px; height: 92px; flex: none; }
+.ec-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ec-ring circle { fill: none; stroke-width: 6; }
+.ec-ring-bg { stroke: var(--line); }
+.ec-ring-fg { stroke: var(--teal, #00adb5); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.ec-next.is-high .ec-ring-fg { stroke: var(--bear, #e5484d); }
+.ec-ring-time {
+  position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: var(--ink-1, #ccc);
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.ec-ring-pulse {
+  position: absolute; inset: 22px; border-radius: 50%; z-index: 0;
+  background: color-mix(in srgb, var(--teal, #00adb5) 18%, transparent);
+  animation: ecPulse 2.8s ease-out infinite;
+}
+.ec-next.is-high .ec-ring-time {
+  position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; color: var(--ink-1, #ccc);
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+}
+.ec-ring-pulse { background: color-mix(in srgb, var(--bear, #e5484d) 18%, transparent); }
+@keyframes ecPulse {
+  0% { transform: scale(.7); opacity: .9; }
+  70% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.ec-next-body { flex: 1 1 300px; min-width: 0; }
+.ec-next-body h2 { font-size: 22px; margin: 0 0 10px; color: var(--ink-0); line-height: 1.25; }
+.ec-next-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ec-next-at { font-size: 12px; color: var(--ink-3); }
+.ec-cd { display: flex; align-items: baseline; gap: 9px; margin-bottom: 12px; }
+.ec-cd-v {
+  font-size: 30px; font-weight: 700; color: var(--ink-0); letter-spacing: -.01em;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.ec-next.is-imminent .ec-cd-v, .ec-next.is-live .ec-cd-v { color: var(--bear, #e5484d); }
+.ec-cd-l { font-size: 12px; color: var(--ink-3); }
+.ec-next-nums { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 12px; }
+.ec-next-nums span { font-size: 11px; color: var(--ink-3); display: flex; flex-direction: column; gap: 2px; }
+.ec-next-nums b { font-size: 17px; color: var(--ink-1, #ccc); font-variant-numeric: tabular-nums; }
+.ec-next-note { font-size: 13px; line-height: 1.65; color: var(--ink-2); margin: 0; max-width: 70ch; }
+.ec-next.is-quiet { justify-content: center; text-align: center; }
+
+/* ---- controls ---- */
+.ec-controls {
+  position: sticky; top: 0; z-index: 3; background: var(--bg-1);
+  padding: 12px 0 14px; margin-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+.ec-ctrl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ec-ctrl-row + .ec-ctrl-row { margin-top: 9px; }
+.ec-ctrl-label {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 4px;
+}
+.ec-ctrl-spacer { flex: 1 1 12px; }
+.ec-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-2);
+  border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  transition: background .18s, color .18s, border-color .18s, transform .18s;
+}
+.ec-chip:hover { color: var(--ink-0); border-color: var(--ink-3); transform: translateY(-1px); }
+.ec-chip.is-on { background: var(--teal, #00adb5); border-color: var(--teal, #00adb5); color: #04191b; }
+:root[data-theme="light"] .ec-chip.is-on { color: #ffffff; }
+.ec-chip-n {
+  font-size: 10px; font-weight: 700; opacity: .65;
+  background: rgba(255,255,255,.1); border-radius: 6px; padding: 1px 5px;
+}
+.ec-chip.is-on .ec-chip-n { background: rgba(0,0,0,.16); opacity: .85; }
+
+/* ---- days and rows ---- */
+.ec-day { margin-bottom: 26px; }
+.ec-day-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin: 0 0 10px; }
+.ec-day-head h3 { font-size: 16px; margin: 0; color: var(--ink-0); }
+.ec-daytag {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  background: var(--teal, #00adb5); color: #04191b; border-radius: 6px; padding: 2px 7px;
+}
+:root[data-theme="light"] .ec-daytag { color: #fff; }
+.ec-daycount { font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
+.ec-daycount b { color: var(--bear, #e5484d); font-weight: 600; }
+
+.ec-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Every day is its own table, which with auto layout meant the columns shifted
+   between days depending on the longest event name in each — the page read as
+   several grids rather than one. Fixed layout pins them so a reader can run a
+   finger down the Forecast column across the whole week. */
+.ec-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; min-width: 720px; }
+.ec-table th:nth-child(1), .ec-table td:nth-child(1) { width: 68px; }
+.ec-table th:nth-child(2), .ec-table td:nth-child(2) { width: 74px; }
+.ec-table th:nth-child(3), .ec-table td:nth-child(3) { width: 104px; }
+.ec-table th:nth-child(4), .ec-table td:nth-child(4) { width: auto; }
+.ec-table th:nth-child(n+5), .ec-table td:nth-child(n+5) { width: 92px; }
+.ec-name { overflow: hidden; }
+.ec-name-v { display: inline-block; max-width: 100%; vertical-align: bottom;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ec-table thead th {
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; text-align: left;
+  color: var(--ink-3); font-weight: 600; padding: 0 10px 7px; white-space: nowrap;
+}
+.ec-table thead th:nth-child(n+5) { text-align: right; }
+
+.ec-row { border-top: 1px solid var(--line); cursor: default; }
+.ec-row[data-note] { cursor: pointer; }
+.ec-row > td { padding: 10px; vertical-align: middle; }
+.ec-row[data-note]:hover { background: var(--bg-2); }
+.ec-row[data-note]:focus-visible { outline: 2px solid var(--teal, #00adb5); outline-offset: -2px; }
+.ec-row.is-past { opacity: .52; }
+.ec-row.is-past:hover { opacity: .85; }
+.ec-row.is-high .ec-name-v { color: var(--ink-0); font-weight: 600; }
+
+.ec-time { white-space: nowrap; width: 1%; }
+.ec-time-v { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12.5px; }
+.ec-cur { white-space: nowrap; width: 1%; }
+.ec-flag { font-size: 14px; margin-right: 5px; }
+.ec-code { font-size: 11px; font-weight: 700; color: var(--ink-3); letter-spacing: .04em; }
+.ec-imp { width: 1%; }
+.ec-name-v { color: var(--ink-1, #ccc); }
+.ec-tick {
+  font-size: 10px; font-weight: 700; color: var(--teal, #00adb5);
+  border: 1px solid color-mix(in srgb, var(--teal, #00adb5) 40%, transparent);
+  border-radius: 5px; padding: 1px 5px; margin-left: 8px;
+}
+.ec-why {
+  font-size: 9.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3);
+  margin-left: 9px; opacity: 0; transition: opacity .18s;
+}
+.ec-row:hover .ec-why, .ec-row.is-open .ec-why { opacity: .85; }
+.ec-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink-2); }
+.ec-num i { color: var(--ink-3); opacity: .5; font-style: normal; }
+.ec-actual { font-weight: 700; color: var(--ink-0); }
+.ec-actual.is-above { color: var(--bull, #03c988); }
+.ec-actual.is-below { color: var(--bear, #e5484d); }
+.ec-fc { color: var(--ink-2); }
+.ec-prev { color: var(--ink-3); }
+
+/* Impact reads as three bars, with the word beside it. Never colour alone. */
+.ec-impact { display: inline-flex; align-items: center; gap: 2px; }
+.ec-bar { width: 3px; height: 9px; border-radius: 1px; background: var(--line); display: block; }
+.ec-impact.is-low .ec-bar.on { background: var(--ink-3); }
+.ec-impact.is-medium .ec-bar.on { background: #d9a441; }
+.ec-impact.is-high .ec-bar.on { background: var(--bear, #e5484d); }
+.ec-imp-word {
+  font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--ink-3); margin-left: 6px; font-weight: 600;
+}
+.ec-impact.is-high .ec-imp-word { color: var(--bear, #e5484d); }
+.ec-impact.is-holiday .ec-imp-word { margin-left: 0; }
+
+.ec-note-row > td { padding: 0 10px 12px 10px; border: 0; }
+.ec-note {
+  background: var(--bg-3); border-radius: 10px; padding: 12px 14px;
+  border-left: 2px solid var(--teal, #00adb5);
+  animation: ecNoteIn .28s cubic-bezier(.22,1,.36,1);
+}
+@keyframes ecNoteIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: none; } }
+.ec-note-k {
+  display: block; font-size: 9.5px; letter-spacing: .11em; text-transform: uppercase;
+  color: var(--teal, #00adb5); font-weight: 700; margin-bottom: 5px;
+}
+.ec-note p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); max-width: 80ch; }
+
+.ec-empty { text-align: center; padding: 42px 20px; color: var(--ink-3); }
+.ec-empty b { display: block; color: var(--ink-0); font-size: 15px; margin-bottom: 6px; }
+.ec-empty p { font-size: 13px; margin: 0; }
+
+/* ---- policy cards ---- */
+.ec-block { margin: 34px 0; }
+.ec-block h2 {
+  font-size: 18px; margin: 0 0 6px; color: var(--ink-0);
+  padding-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+.ec-note-p { font-size: 13px; line-height: 1.65; color: var(--ink-3); margin: 8px 0 16px; max-width: 78ch; }
+.ec-banks { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); }
+.ec-bank {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px; padding: 15px 16px;
+  transition: transform .22s cubic-bezier(.22,1,.36,1), border-color .22s;
+}
+.ec-bank:hover { transform: translateY(-3px); border-color: var(--ink-3); }
+.ec-bank header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.ec-bias { width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; margin-left: auto; }
+.ec-bank.is-up .ec-bias { border-bottom: 6px solid var(--bull, #03c988); }
+.ec-bank.is-hold .ec-bias { border: 0; width: 8px; height: 2px; background: var(--ink-3); border-radius: 1px; }
+.ec-bank-rate { font-size: 22px; font-weight: 700; color: var(--ink-0); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ec-bank-name { font-size: 12px; color: var(--ink-2); margin: 4px 0 6px; }
+.ec-bank-next { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+
+.ec-how { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 15px; }
+.ec-how li { border-left: 2px solid var(--line); padding-left: 14px; }
+.ec-how b { display: block; font-size: 13.5px; color: var(--ink-0); margin-bottom: 5px; }
+.ec-how p { font-size: 13px; line-height: 1.7; color: var(--ink-2); margin: 0; max-width: 76ch; }
+
+.ec-foot { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 26px; }
+.ec-foot p { font-size: 11.5px; color: var(--ink-3); line-height: 1.6; margin: 0 0 6px; }
+.ec-foot b { color: var(--ink-2); }
+.ec-disclaimer { font-style: italic; }
+
+/* ---- compact strip ---- */
+.ec-strip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; margin-bottom: 26px; }
+.ec-strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.ec-strip-head .ec-kicker { margin-bottom: 0; }
+.ec-more { font-size: 12px; color: var(--teal, #00adb5); text-decoration: none; font-weight: 600; }
+.ec-more:hover { text-decoration: underline; }
+.ec-strip-next { display: flex; align-items: center; gap: 11px; padding: 11px 13px; border-radius: 12px; background: var(--bg-3); }
+.ec-strip-next > div { flex: 1; min-width: 0; }
+.ec-strip-next b { display: block; font-size: 13.5px; color: var(--ink-0); }
+.ec-strip-next span:not(.ec-flag):not(.ec-cd-v) { font-size: 11.5px; color: var(--ink-3); }
+.ec-strip-next .ec-cd-v { font-size: 16px; }
+.ec-strip-next.is-high .ec-cd-v { color: var(--bear, #e5484d); }
+.ec-strip-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 7px; }
+.ec-strip-list li { display: flex; align-items: baseline; gap: 9px; font-size: 12px; }
+.ec-strip-list b { flex: 1; color: var(--ink-2); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ec-strip-list span:last-child { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* ---- skeleton ---- */
+.ec-skel { display: grid; gap: 12px; }
+.ec-skel-hero, .ec-skel-row {
+  border-radius: 14px;
+  background: linear-gradient(90deg, var(--bg-2) 25%, var(--bg-3) 37%, var(--bg-2) 63%);
+  background-size: 400% 100%; animation: ecShimmer 1.4s ease-in-out infinite;
+}
+.ec-skel-hero { height: 148px; }
+.ec-skel-row { height: 54px; }
+@keyframes ecShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .ec-skel-hero, .ec-skel-row { animation: none; } }
+
+@media (max-width: 900px) {
+  .ec-head h1 { font-size: 24px; }
+  .ec-controls { position: static; }
+}
+@media (max-width: 620px) {
+  .ec-next { padding: 18px; gap: 16px; }
+  .ec-ring { width: 68px; height: 68px; }
+  .ec-ring-time { font-size: 12px; }
+  .ec-table { min-width: 560px; }
+  .ec-cd-v { font-size: 25px; }
+  .ec-imp-word { display: none; }
+  .ec-table { font-size: 12px; }
+  .ec-row > td { padding: 9px 7px; }
+  .ec-prev, .ec-table thead th:nth-child(7) { display: none; }
+  .ec-daycount { margin-left: 0; width: 100%; }
+}
+@media (forced-colors: active) {
+  .ec-bar.on { background: CanvasText; }
+  .ec-actual.is-above, .ec-actual.is-below { color: CanvasText; }
+}
+
+/* ---- market map: cells wash in by column ----
+   The cascade runs left to right along the time windows, which is the axis the
+   eye reads anyway — 1D first, 1Y last. It fires once per render, so a period
+   change (a FLIP) does not restart it and leave rows flickering mid-travel. */
+.stk-motion .mm-block.is-in .mm-cell {
+  animation: mmCellIn .42s cubic-bezier(.22,1,.36,1) backwards;
+  animation-delay: calc(var(--mm-c, 0) * 45ms);
+}
+@keyframes mmCellIn {
+  from { opacity: 0; transform: scale(.92); }
+  to { opacity: 1; transform: none; }
+}
+.mm-cell { transition: box-shadow .2s, filter .2s; }
+.mm-grid tbody tr:hover .mm-cell { filter: brightness(1.14); }
+.mm-bar-fill { transition: filter .2s; }
+.mm-bar-row:hover .mm-bar-fill { filter: brightness(1.18); }
+.mm-chip, .mm-more { transition: background .18s, color .18s, border-color .18s, transform .18s; }
+.mm-chip:hover { transform: translateY(-1px); }
+.mm-spreads li { transition: transform .22s cubic-bezier(.22,1,.36,1), border-color .22s; }
+.mm-spreads li:hover { transform: translateY(-3px); border-color: var(--ink-3); }
+.mm-points li { transition: border-color .25s; }
+.mm-points li:hover { border-color: var(--teal, #00adb5); }
+.mb-card, .mb-block { transition: border-color .25s; }
+.mb-card-points li, .mb-points li { transition: transform .2s cubic-bezier(.22,1,.36,1); }
+.mb-points li:hover { transform: translateX(3px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .stk-motion .mm-block.is-in .mm-cell { animation: none; }
+  .mm-grid tbody tr:hover .mm-cell { filter: none; }
+  .mm-chip:hover, .mm-spreads li:hover, .mm-points li:hover, .ec-bank:hover, .ec-chip:hover {
+    transform: none;
+  }
+}

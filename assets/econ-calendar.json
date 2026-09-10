@@ -1,0 +1,458 @@
+{
+  "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
+  "schema": 1,
+  "generatedAt": "2026-09-10T09:30:00Z",
+  "staleAfterHours": 30,
+  "defaultCurrency": "USD",
+  "rangeStart": "2026-09-04",
+  "rangeEnd": "2026-09-18",
+  "currencies": [
+    {
+      "code": "USD",
+      "name": "US dollar",
+      "flag": "🇺🇸"
+    },
+    {
+      "code": "EUR",
+      "name": "Euro",
+      "flag": "🇪🇺"
+    },
+    {
+      "code": "GBP",
+      "name": "British pound",
+      "flag": "🇬🇧"
+    },
+    {
+      "code": "JPY",
+      "name": "Japanese yen",
+      "flag": "🇯🇵"
+    },
+    {
+      "code": "CNY",
+      "name": "Chinese yuan",
+      "flag": "🇨🇳"
+    },
+    {
+      "code": "CAD",
+      "name": "Canadian dollar",
+      "flag": "🇨🇦"
+    },
+    {
+      "code": "AUD",
+      "name": "Australian dollar",
+      "flag": "🇦🇺"
+    },
+    {
+      "code": "TRY",
+      "name": "Turkish lira",
+      "flag": "🇹🇷"
+    },
+    {
+      "code": "ZAR",
+      "name": "South African rand",
+      "flag": "🇿🇦"
+    }
+  ],
+  "banks": [
+    {
+      "cur": "USD",
+      "bank": "Federal Reserve",
+      "rate": "3.50–4.00%",
+      "next": "2026-09-16",
+      "expect": "~60% priced for +25bp",
+      "bias": "up"
+    },
+    {
+      "cur": "EUR",
+      "bank": "European Central Bank",
+      "rate": "2.25%",
+      "next": "2026-09-10",
+      "expect": "+25bp to 2.50% fully priced",
+      "bias": "up"
+    },
+    {
+      "cur": "GBP",
+      "bank": "Bank of England",
+      "rate": "3.75%",
+      "next": "2026-09-17",
+      "expect": "~86% priced for a hold",
+      "bias": "hold"
+    },
+    {
+      "cur": "JPY",
+      "bank": "Bank of Japan",
+      "rate": "1.00%",
+      "next": "2026-09-18",
+      "expect": "80–90% priced for +25bp",
+      "bias": "up"
+    },
+    {
+      "cur": "CAD",
+      "bank": "Bank of Canada",
+      "rate": "—",
+      "next": "2026-10-28",
+      "expect": "No decision until late October",
+      "bias": "hold"
+    }
+  ],
+  "events": [
+    {
+      "at": "2026-09-04T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Non-farm payrolls (Aug)",
+      "actual": "162K",
+      "unit": "jobs",
+      "note": "Stronger than expected. This is the print that took September hike odds from roughly one in three to about 60%."
+    },
+    {
+      "at": "2026-09-07T00:00:00Z",
+      "cur": "USD",
+      "impact": "holiday",
+      "event": "Labor Day — US markets closed",
+      "allday": true,
+      "note": "Cash equities and bonds shut. Thin liquidity either side of it."
+    },
+    {
+      "at": "2026-09-08T10:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "NFIB small business optimism (Aug)",
+      "actual": "Lower",
+      "note": "Declined in August, led by weaker expectations for the overall economy."
+    },
+    {
+      "at": "2026-09-08T15:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "NY Fed 1-year inflation expectations (Aug)"
+    },
+    {
+      "at": "2026-09-08T17:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "3-year note auction"
+    },
+    {
+      "at": "2026-09-08T19:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Consumer credit (Jul)"
+    },
+    {
+      "at": "2026-09-09T11:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "MBA mortgage applications",
+      "actual": "Lower",
+      "note": "Fell in the week to 4 September as 30-year mortgage rates hit their highest since June 2025."
+    },
+    {
+      "at": "2026-09-09T12:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "ADP employment change, 4-week average",
+      "actual": "12K",
+      "previous": "10K",
+      "unit": "jobs",
+      "note": "Previous week revised down to 10K. A small series, but the only weekly read on hiring."
+    },
+    {
+      "at": "2026-09-09T12:55:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Redbook same-store sales"
+    },
+    {
+      "at": "2026-09-09T17:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "ECB President Lagarde speaks"
+    },
+    {
+      "at": "2026-09-10T07:00:00Z",
+      "cur": "ZAR",
+      "impact": "low",
+      "event": "South Africa current account (Q2), manufacturing production (Jul)"
+    },
+    {
+      "at": "2026-09-10T11:00:00Z",
+      "cur": "TRY",
+      "impact": "medium",
+      "event": "Turkey central bank policy rate (Sep)"
+    },
+    {
+      "at": "2026-09-10T12:15:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "ECB interest rate decision",
+      "forecast": "2.50%",
+      "previous": "2.25%",
+      "note": "A 25bp hike is fully priced — all but one analyst surveyed expects it. The decision is not the event; the press conference is. Second hike since the energy shock, after June ended a two-year-nine-month pause."
+    },
+    {
+      "at": "2026-09-10T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "PPI (Aug, y/y)",
+      "forecast": "5.3%",
+      "previous": "4.7%",
+      "note": "A 60bp jump is expected. The wholesale side of inflation — it feeds tomorrow's CPI and, a fortnight later, PCE."
+    },
+    {
+      "at": "2026-09-10T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Core PPI (Aug, y/y)",
+      "forecast": "4.6%",
+      "previous": "4.2%",
+      "note": "Strips food and energy. Still more than double the Fed's 2% goal, which is the point: this is not only an oil story any more."
+    },
+    {
+      "at": "2026-09-10T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "PPI (Aug, m/m)",
+      "forecast": "0.4%",
+      "previous": "0.0%"
+    },
+    {
+      "at": "2026-09-10T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Initial jobless claims",
+      "note": "Week ending 5 September. Same release time as PPI, so it will be read through PPI rather than on its own."
+    },
+    {
+      "at": "2026-09-10T12:45:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "ECB press conference",
+      "note": "Lagarde and the new quarterly staff forecasts. The question is whether September is a standalone adjustment to the energy shock or the start of an autumn tightening cycle. Swaps price roughly 90bp of ECB hikes by end-2027."
+    },
+    {
+      "at": "2026-09-10T14:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Existing home sales (Aug)"
+    },
+    {
+      "at": "2026-09-10T14:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Wholesale inventories (Jul, final)"
+    },
+    {
+      "at": "2026-09-10T16:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "EIA crude oil inventories",
+      "note": "Week ending 4 September. Shifted later by the holiday week."
+    },
+    {
+      "at": "2026-09-10T17:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "30-year bond auction",
+      "note": "$22bn. With the 30-year at 5.28% the auction is a real test of demand at the long end, not a formality."
+    },
+    {
+      "at": "2026-09-10T18:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Treasury buyback, 10- to 20-year",
+      "note": "Up to $6bn. Watch whether it pulls yields down at all — a buyback that fails to is a signal in itself."
+    },
+    {
+      "at": "2026-09-10T20:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Oracle Q1 FY27 earnings",
+      "kind": "earnings",
+      "ticker": "ORCL",
+      "note": "After the close. The cloud read-through for AI demand into enterprise spending."
+    },
+    {
+      "at": "2026-09-10T20:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Adobe Q3 earnings",
+      "kind": "earnings",
+      "ticker": "ADBE",
+      "note": "After the close. Matters for Nasdaq breadth into Friday."
+    },
+    {
+      "at": "2026-09-10T21:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "RH Q2 earnings",
+      "kind": "earnings",
+      "ticker": "RH"
+    },
+    {
+      "at": "2026-09-11T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China CPI (Aug, y/y)"
+    },
+    {
+      "at": "2026-09-11T06:00:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK monthly GDP (Jul)",
+      "previous": "0.3%",
+      "unit": "m/m",
+      "note": "June beat at +0.3% m/m; July is expected to slow. A soft print supports the Bank of England holding on the 17th."
+    },
+    {
+      "at": "2026-09-11T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK industrial production (Jul)"
+    },
+    {
+      "at": "2026-09-11T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Kroger Q2 earnings",
+      "kind": "earnings",
+      "ticker": "KR",
+      "note": "A clean read on the value-conscious consumer."
+    },
+    {
+      "at": "2026-09-11T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "CPI (Aug, y/y)",
+      "forecast": "3.4%",
+      "previous": "3.4%",
+      "note": "The single most important number of the month. It lands four days before the FOMC meeting opens."
+    },
+    {
+      "at": "2026-09-11T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Core CPI (Aug, y/y)",
+      "previous": "2.5%",
+      "note": "July matched the 2026 low at 2.5%. No clean consensus figure published for August — treat the previous as the reference point, not a forecast."
+    },
+    {
+      "at": "2026-09-11T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "CPI (Aug, m/m)",
+      "forecast": "0.4%",
+      "previous": "0.1%",
+      "note": "A four-fold jump on the month. This is where the energy pass-through shows up first."
+    },
+    {
+      "at": "2026-09-11T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Core CPI (Aug, m/m)",
+      "forecast": "0.2%",
+      "previous": "0.2%"
+    },
+    {
+      "at": "2026-09-11T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "UoM consumer sentiment (Sep, prelim)",
+      "note": "The index recently fell from 55 to 51. A sentiment read taken during a $100 oil print is worth more than usual."
+    },
+    {
+      "at": "2026-09-11T18:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Monthly Treasury statement (Aug)"
+    },
+    {
+      "at": "2026-09-14T20:30:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Dave & Buster's Q2 earnings",
+      "kind": "earnings",
+      "ticker": "PLAY"
+    },
+    {
+      "at": "2026-09-15T00:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "FOMC meeting begins",
+      "allday": true,
+      "note": "Two days. No statement until Wednesday."
+    },
+    {
+      "at": "2026-09-16T18:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "FOMC rate decision",
+      "forecast": "3.75–4.00%",
+      "previous": "3.50–3.75%",
+      "note": "Roughly 60% priced for a 25bp hike. Officials went into the blackout divided, which is unusual and makes the statement itself less predictable than the number."
+    },
+    {
+      "at": "2026-09-16T18:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Fed Chair press conference"
+    },
+    {
+      "at": "2026-09-17T11:00:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "Bank of England rate decision",
+      "forecast": "3.75%",
+      "previous": "3.75%",
+      "note": "Around 86% priced for a hold. Bailey has said inflation risks are to the upside but pushed back on the idea of a preset path. Swaps still price about 90bp of hikes by end-2027."
+    },
+    {
+      "at": "2026-09-17T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Lennar Q3 earnings",
+      "kind": "earnings",
+      "ticker": "LEN",
+      "note": "Housing, read against mortgage rates at their highest since June 2025."
+    },
+    {
+      "at": "2026-09-18T03:00:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "Bank of Japan rate decision",
+      "forecast": "1.25%",
+      "previous": "1.00%",
+      "note": "80–90% priced for a hike. The yen has gained around 4% this month on the repricing, and a carry unwind is the transmission channel into US tech."
+    }
+  ],
+  "howToRead": [
+    {
+      "title": "Impact is about how much price moves, not how much the number matters",
+      "text": "A high-impact release is one where the spread widens, liquidity thins and the first move often reverses. That is a statement about market structure at 08:30, not about economics. Plenty of important data is marked medium because the market has already priced it."
+    },
+    {
+      "title": "The forecast is the level that matters, not the previous",
+      "text": "Price reacts to the gap between actual and forecast, not to whether a number went up or down. A 5.3% PPI print against a 5.3% forecast is a non-event; the same print against a 4.7% forecast is not."
+    },
+    {
+      "title": "Two releases at the same minute are one event",
+      "text": "Today's jobless claims land at the same second as PPI. Nobody trades claims on a PPI morning. When you see the same time twice, read the higher-impact row and ignore the other."
+    },
+    {
+      "title": "A release-driven wick is not displacement",
+      "text": "Models built on liquidity runs misfire badly on data prints, because the move has no intent behind it — it is an auction gap. If your playbook has no rule about scheduled releases, this page is the argument for adding one."
+    }
+  ],
+  "sources": [
+    {
+      "name": "Bigdata.com",
+      "note": "release schedules, consensus forecasts, previous readings and central bank pricing, compiled from indexed reporting"
+    },
+    {
+      "name": "Bigdata.com events calendar",
+      "note": "corporate earnings dates and times"
+    }
+  ],
+  "attribution": "Compiled from reporting and event data indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
+  "disclaimer": "Educational context, not trading advice. Times and forecasts change — confirm against a primary source before trading a release."
+}

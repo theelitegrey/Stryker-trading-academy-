@@ -25,6 +25,9 @@
 
   const BRIEF_URL = 'assets/market-brief.json';
 
+  // Guarded, like the map's: no motion.js means no movement, never no content.
+  const M = () => (window.stkMotion || { reveal: function () {} });
+
   const esc = (s) => (typeof stkEsc === 'function'
     ? stkEsc(s)
     : String(s === null || s === undefined ? '' : s)
@@ -77,7 +80,7 @@
 
     mount.hidden = false;
     mount.innerHTML =
-      '<section class="mb-card">' +
+      '<section class="mb-card stk-rise">' +
         '<div class="mb-card-head">' +
           '<div>' +
             '<span class="mb-kicker">Pre-market brief</span>' +
@@ -89,7 +92,7 @@
         '<p class="mb-standfirst">' + esc(brief.standfirst || '') + '</p>' +
         (bullets.length
           ? '<ul class="mb-card-points">' + bullets.map((b) =>
-              '<li><b>' + esc(b.title) + '</b> ' + esc(b.text) + '</li>').join('') + '</ul>'
+              '<li class="stk-rise"><b>' + esc(b.title) + '</b> ' + esc(b.text) + '</li>').join('') + '</ul>'
           : '') +
         (!stale && next
           ? '<div class="mb-next"><span class="mb-next-time">' + esc(next.time) + '</span>' +
@@ -97,6 +100,8 @@
           : '') +
         '<a class="mb-more" href="market-brief.html">Read the full brief &rarr;</a>' +
       '</section>';
+
+    M().reveal(mount, {});
   }
 
   // ---- full page -----------------------------------------------------------
@@ -105,10 +110,10 @@
     const stale = isStale(brief);
 
     const calendar = (!stale && (brief.calendar || []).length)
-      ? '<section class="mb-block">' +
+      ? '<section class="mb-block stk-rise">' +
           '<h2>On the calendar</h2>' +
           '<ul class="mb-cal">' + brief.calendar.map((c) =>
-            '<li>' +
+            '<li class="stk-rise">' +
               '<span class="mb-cal-time">' + esc(c.time) + '</span>' +
               '<span class="mb-cal-body">' +
                 '<b>' + esc(c.event) + '</b>' +
@@ -119,7 +124,7 @@
       : '';
 
     const archive = (brief.archive || []).length
-      ? '<section class="mb-block">' +
+      ? '<section class="mb-block stk-rise">' +
           '<h2>Earlier briefs</h2>' +
           '<ul class="mb-archive">' + brief.archive.map((a) =>
             '<li><span class="mb-archive-date">' + esc(a.date) + '</span>' +
@@ -129,7 +134,7 @@
       : '';
 
     mount.innerHTML =
-      '<header class="mb-head">' +
+      '<header class="mb-head stk-rise">' +
         '<span class="mb-kicker">Pre-market brief</span>' +
         '<h1>' + esc(brief.headline || 'Market brief') + '</h1>' +
         '<p class="mb-standfirst">' + esc(brief.standfirst || '') + '</p>' +
@@ -138,20 +143,20 @@
 
       (stale ? staleBanner(brief) : '') +
 
-      '<section class="mb-block">' +
+      '<section class="mb-block stk-rise">' +
         '<h2>What is actually moving it</h2>' +
         '<ul class="mb-points">' + (brief.bullets || []).map((b) =>
-          '<li><b>' + esc(b.title) + '</b><p>' + esc(b.text) + '</p></li>').join('') + '</ul>' +
+          '<li class="stk-rise"><b>' + esc(b.title) + '</b><p>' + esc(b.text) + '</p></li>').join('') + '</ul>' +
       '</section>' +
 
       calendar +
 
       (brief.sessionNote
-        ? '<section class="mb-block mb-note"><h2>Reading the session</h2><p>' + esc(brief.sessionNote) + '</p></section>'
+        ? '<section class="mb-block mb-note stk-rise"><h2>Reading the session</h2><p>' + esc(brief.sessionNote) + '</p></section>'
         : '') +
 
       (brief.watchOut
-        ? '<section class="mb-block mb-warn"><h2>The trap today</h2><p>' + esc(brief.watchOut) + '</p></section>'
+        ? '<section class="mb-block mb-warn stk-rise"><h2>The trap today</h2><p>' + esc(brief.watchOut) + '</p></section>'
         : '') +
 
       archive +
@@ -164,6 +169,8 @@
         (brief.attribution ? '<p>' + esc(brief.attribution) + '</p>' : '') +
         (brief.disclaimer ? '<p class="mb-disclaimer">' + esc(brief.disclaimer) + '</p>' : '') +
       '</footer>';
+
+    M().reveal(mount, { stagger: 30 });
   }
 
   // ---- boot ----------------------------------------------------------------

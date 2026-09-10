@@ -6942,3 +6942,228 @@ section.mb-section, section.mb-block { padding: 0; }
   .mb-cal li { flex-direction: column; gap: 4px; }
   .mb-cal-time { min-width: 0; }
 }
+
+/* ============================================================
+   CROSS-ASSET MARKET MAP  (assets/market-map.js)
+   ============================================================
+   The diverging ramp below is not a taste decision. Returns are polarity
+   data, so the scale is two hues around a neutral middle, and each arm was
+   validated separately as a one-hue ramp against its own surface: lightness
+   monotone, adjacent steps at least 0.06 apart in L, and the pale end
+   clearing 2:1 against the chart background. Swapping a value by eye breaks
+   that. The paired --mm-i* inks are the text colour that clears 4.5:1 on
+   each fill, which is why the strong step flips to the opposite ink.
+   Colour is redundant here in any case: every cell prints its number. */
+
+:root {
+  --mm-d3:#e5484d; --mm-d2:#b03a3f; --mm-d1:#853740;
+  --mm-b0:#2c2c32;
+  --mm-u1:#1c5a48; --mm-u2:#02936a; --mm-u3:#03c988;
+  --mm-id3:#0e1621; --mm-id2:#eeeeee; --mm-id1:#eeeeee;
+  --mm-i0:#eeeeee;
+  --mm-iu1:#eeeeee; --mm-iu2:#0e1621; --mm-iu3:#0e1621;
+  --mm-surface:#131316;
+}
+:root[data-theme="light"] {
+  --mm-d3:#c9353a; --mm-d2:#d95a60; --mm-d1:#e8989c;
+  --mm-b0:#eef1f6;
+  --mm-u1:#63c2a0; --mm-u2:#18a075; --mm-u3:#066d4d;
+  --mm-id3:#ffffff; --mm-id2:#0e1621; --mm-id1:#0e1621;
+  --mm-i0:#0e1621;
+  --mm-iu1:#0e1621; --mm-iu2:#0e1621; --mm-iu3:#ffffff;
+  --mm-surface:#ffffff;
+}
+
+/* The global `section { padding: 96px 0 }` catches anything a renderer emits
+   as a <section>, which on a dashboard page is a page and a half of dead
+   space. Opt these out explicitly. */
+section.mm-section, section.mm-block, section.mm-strip { padding: 0; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.mm-section { max-width: 1180px; margin: 0 auto; }
+.mm-page { padding: 4px 0 60px; }
+.mm-loading { color: var(--ink-3); font-size: 13px; }
+
+.mm-kicker {
+  display: inline-block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--teal, #00adb5); font-weight: 700; margin-bottom: 8px;
+}
+.mm-head { margin-bottom: 26px; }
+.mm-head h1 { font-size: 30px; line-height: 1.2; margin: 0 0 12px; color: var(--ink-0); }
+.mm-standfirst { font-size: 15px; line-height: 1.7; color: var(--ink-2); margin: 0 0 12px; max-width: 74ch; }
+.mm-meta { font-size: 12px; color: var(--ink-3); margin: 0; }
+.mm-meta.is-stale, .mm-when.is-stale { color: var(--bear, #e5484d); }
+
+.mm-stale {
+  background: color-mix(in srgb, var(--bear, #e5484d) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bear, #e5484d) 40%, transparent);
+  border-radius: 12px; padding: 13px 16px; margin: 0 0 22px;
+  font-size: 13px; line-height: 1.6; color: var(--ink-1, #ccc);
+}
+.mm-stale b { color: var(--ink-0); }
+
+.mm-block { margin-bottom: 34px; }
+.mm-block h2 {
+  font-size: 18px; margin: 0 0 6px; color: var(--ink-0);
+  padding-bottom: 8px; border-bottom: 1px solid var(--line);
+}
+.mm-note { font-size: 13px; line-height: 1.65; color: var(--ink-3); margin: 8px 0 14px; max-width: 78ch; }
+
+.mm-points { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 16px; }
+.mm-points li { border-left: 2px solid var(--line); padding-left: 14px; }
+.mm-points b { display: block; font-size: 14px; color: var(--ink-0); margin-bottom: 5px; }
+.mm-points p { font-size: 13.5px; line-height: 1.7; color: var(--ink-2); margin: 0; max-width: 76ch; }
+.mm-howto {
+  margin: 18px 0 0; padding: 13px 16px; border-radius: 12px;
+  background: var(--bg-3); font-size: 13px; line-height: 1.7; color: var(--ink-2);
+}
+
+/* ---- controls ---- */
+.mm-controls {
+  position: sticky; top: 0; z-index: 3;
+  background: var(--bg-1); padding: 12px 0 14px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.mm-periods { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mm-ctrl-label, .mm-key-label {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin-right: 4px;
+}
+.mm-chip {
+  border: 1px solid var(--line); background: var(--bg-2); color: var(--ink-2);
+  border-radius: 999px; padding: 5px 13px; font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background .15s, color .15s, border-color .15s;
+}
+.mm-chip:hover { color: var(--ink-0); border-color: var(--ink-3); }
+.mm-chip.is-on { background: var(--teal, #00adb5); border-color: var(--teal, #00adb5); color: #04191b; }
+:root[data-theme="light"] .mm-chip.is-on { color: #ffffff; }
+
+.mm-key-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 11px; }
+.mm-ramp-wrap { display: inline-flex; flex-direction: column; gap: 4px; }
+.mm-ramp { display: inline-flex; border-radius: 5px; overflow: hidden; }
+.mm-ramp-step { width: 22px; height: 11px; display: block; }
+.mm-key-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink-3); }
+.mm-key-note { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; max-width: 60ch; }
+
+/* ---- the grids ---- */
+.mm-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mm-grid { width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 12.5px; }
+.mm-grid th, .mm-grid td { text-align: right; white-space: nowrap; }
+.mm-grid thead th {
+  font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 600; padding: 4px 8px 8px;
+}
+.mm-grid thead th.is-on { color: var(--teal, #00adb5); }
+.mm-th-name { text-align: left !important; }
+.mm-row-name {
+  text-align: left !important; font-weight: 600; color: var(--ink-1, #ccc);
+  padding: 0 12px 0 2px; font-size: 12.5px; min-width: 168px;
+}
+.mm-ticker { color: var(--ink-3); font-weight: 500; margin-left: 7px; font-size: 11px; }
+.mm-price { color: var(--ink-3); padding-right: 12px; font-variant-numeric: tabular-nums; }
+
+/* Thin marks, 4px corners, a 2px surface gap between adjacent fills — the gap
+   is the border-spacing above, so neighbouring cells never bleed together. */
+.mm-cell {
+  padding: 6px 9px; border-radius: 4px; font-variant-numeric: tabular-nums;
+  font-weight: 600; min-width: 62px; background: transparent; color: var(--ink-3);
+}
+.mm-cell.is-on { box-shadow: inset 0 0 0 1px var(--teal, #00adb5); }
+.mm-na { color: var(--ink-3); opacity: .5; }
+.mm-b0  { background: var(--mm-b0); color: var(--mm-i0); }
+.mm-bd1 { background: var(--mm-d1); color: var(--mm-id1); }
+.mm-bd2 { background: var(--mm-d2); color: var(--mm-id2); }
+.mm-bd3 { background: var(--mm-d3); color: var(--mm-id3); }
+.mm-bu1 { background: var(--mm-u1); color: var(--mm-iu1); }
+.mm-bu2 { background: var(--mm-u2); color: var(--mm-iu2); }
+.mm-bu3 { background: var(--mm-u3); color: var(--mm-iu3); }
+
+.mm-grid tbody tr:hover .mm-row-name { color: var(--ink-0); }
+
+.mm-table-toggle { margin-top: 14px; }
+.mm-table-toggle summary {
+  cursor: pointer; font-size: 12px; color: var(--ink-3); padding: 6px 0;
+}
+.mm-table-toggle summary:hover { color: var(--ink-0); }
+.mm-table-toggle .mm-grid td, .mm-table-toggle .mm-grid th[scope="row"] {
+  padding: 5px 10px; color: var(--ink-2); font-variant-numeric: tabular-nums;
+}
+
+/* ---- the curve ---- */
+.mm-figure { margin: 16px 0 0; }
+.mm-curve { width: 100%; height: auto; max-width: 100%; display: block; overflow: visible; }
+.mm-grid-line { stroke: var(--line); stroke-width: 1; opacity: .55; }
+.mm-axis { fill: var(--ink-3); font-size: 11px; font-family: inherit; }
+.mm-curve-now { fill: none; stroke: var(--teal, #00adb5); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.mm-curve-prior { fill: none; stroke: var(--ink-3); stroke-width: 2; stroke-dasharray: 5 4; stroke-linejoin: round; }
+.mm-curve-dot { fill: var(--teal, #00adb5); stroke: var(--bg-1); stroke-width: 2; }
+.mm-curve-tag { font-size: 11px; font-family: inherit; font-weight: 600; }
+.mm-curve-tag.is-now { fill: var(--teal, #00adb5); }
+.mm-curve-tag.is-prior { fill: var(--ink-3); }
+.mm-legend { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 12px 0 0; font-size: 12px; color: var(--ink-3); }
+.mm-key { display: inline-flex; align-items: center; gap: 7px; }
+.mm-swatch { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.mm-swatch.is-now { background: var(--teal, #00adb5); }
+.mm-swatch.is-prior { background: var(--ink-3); }
+.mm-axis-note { margin-left: auto; }
+
+.mm-spreads { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.mm-spreads li { background: var(--bg-2); border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px; }
+.mm-spread-v { display: block; font-size: 20px; font-weight: 700; color: var(--ink-0); font-variant-numeric: tabular-nums; }
+.mm-spreads b { display: block; font-size: 12px; color: var(--ink-2); margin: 3px 0 5px; }
+.mm-spreads span:not(.mm-spread-v) { font-size: 11.5px; color: var(--ink-3); line-height: 1.55; }
+
+/* ---- leaders and laggards strip ---- */
+.mm-strip { background: var(--bg-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; margin-bottom: 30px; }
+.mm-strip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.mm-strip-head h3 { font-size: 16px; color: var(--ink-0); margin: 0; }
+.mm-when { font-size: 11.5px; color: var(--ink-3); white-space: nowrap; }
+.mm-strip-cols { display: grid; gap: 26px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.mm-strip-col h4 {
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin: 0 0 11px; font-weight: 600;
+}
+.mm-bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.mm-bar-row { display: grid; grid-template-columns: minmax(96px, 1fr) minmax(60px, 2fr) auto; align-items: center; gap: 10px; }
+.mm-bar-label { font-size: 12.5px; color: var(--ink-1, #ccc); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mm-bar-track { background: var(--bg-3); border-radius: 3px; height: 8px; overflow: hidden; }
+.mm-bar-fill { display: block; height: 100%; border-radius: 3px; min-width: 2px; }
+.mm-bar-fill.mm-bd1 { background: var(--mm-d1); } .mm-bar-fill.mm-bd2 { background: var(--mm-d2); } .mm-bar-fill.mm-bd3 { background: var(--mm-d3); }
+.mm-bar-fill.mm-bu1 { background: var(--mm-u1); } .mm-bar-fill.mm-bu2 { background: var(--mm-u2); } .mm-bar-fill.mm-bu3 { background: var(--mm-u3); }
+.mm-bar-fill.mm-bu0, .mm-bar-fill.mm-bd0 { background: var(--mm-b0); }
+.mm-bar-val { font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; min-width: 54px; }
+.mm-strip-foot { font-size: 11px; color: var(--ink-3); line-height: 1.55; margin: 16px 0 0; max-width: 74ch; }
+.mm-more { display: inline-block; margin-top: 12px; font-size: 12.5px; color: var(--teal, #00adb5); text-decoration: none; font-weight: 600; }
+.mm-more:hover { text-decoration: underline; }
+
+.mm-foot { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 12px; }
+.mm-foot p { font-size: 11.5px; color: var(--ink-3); line-height: 1.6; margin: 0 0 6px; }
+.mm-foot b { color: var(--ink-2); }
+.mm-disclaimer { font-style: italic; }
+
+@media (max-width: 900px) {
+  .mm-head h1 { font-size: 24px; }
+  .mm-controls { position: static; }
+  .mm-axis-note { margin-left: 0; }
+}
+@media (max-width: 560px) {
+  .mm-strip { padding: 16px; }
+  .mm-row-name { min-width: 132px; font-size: 12px; }
+  .mm-ticker { display: none; }
+  .mm-price { display: none; }
+  .mm-th-price { display: none; }
+  .mm-cell { min-width: 54px; padding: 6px 7px; font-size: 11.5px; }
+}
+@media (prefers-reduced-motion: reduce) { .mm-chip { transition: none; } }
+
+/* Forced colours strip the fills entirely, so the sign has to survive on its
+   own. The number is already there; this puts a border back on the cells so
+   the grid still reads as a grid. */
+@media (forced-colors: active) {
+  .mm-cell { border: 1px solid CanvasText; background: Canvas !important; color: CanvasText !important; }
+  .mm-bar-fill { border: 1px solid CanvasText; }
+}

@@ -77,6 +77,14 @@ No version bump is needed for a content-only change: `market-brief.json` is
 excluded from the year-long asset cache in `_headers` and is fetched with a
 cache-busting parameter, so a commit is live as soon as Cloudflare deploys it.
 
+## The map is produced alongside it
+
+`assets/market-map.json` covers the same session from the other direction: the
+brief says what moved and what is due, the map says where it all landed across
+eight asset classes. The brief page renders the map's leaders-and-laggards strip
+underneath itself, so the two must describe the same board — produce them in the
+same sitting. See `tools/market-map.md`.
+
 ## Automating it
 
 A scheduled agent session can do the research and commit the file. Two things

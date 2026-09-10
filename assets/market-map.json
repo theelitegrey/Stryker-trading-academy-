@@ -1,0 +1,1635 @@
+{
+  "_comment": "Cross-asset market map. Regenerated on a schedule and committed; the site only renders it. See tools/market-map.md for how it is produced. Values are percentage returns over each window, from the Bigdata.com market tearsheet.",
+  "schema": 1,
+  "generatedAt": "2026-09-10T09:20:00Z",
+  "asOf": "Close of 9 September 2026, with commodities, FX and crypto to 09:00 UTC on 10 September",
+  "staleAfterHours": 30,
+  "periods": [
+    "1D",
+    "5D",
+    "1M",
+    "3M",
+    "6M",
+    "YTD",
+    "1Y"
+  ],
+  "defaultPeriod": "1D",
+  "read": {
+    "headline": "One trade is setting the price of everything else",
+    "standfirst": "Energy is up sixty-nine percent on the year while the index is up twelve, the belly of the curve is repricing for rate rises, and long-duration equity is paying for both. Almost every other spread on this page is downstream of that.",
+    "points": [
+      {
+        "title": "Equities are not selling off. Long-duration equities are.",
+        "text": "Energy is the best sector on every window past three months and the only one up on the day. Consumer Discretionary and Communication Services are negative year to date while the index is up double digits. That is not a growth scare — a growth scare takes energy down with it. It is a rate shock working through the discount rate, and it hits the assets whose value sits furthest in the future."
+      },
+      {
+        "title": "The curve says hikes, not term premium.",
+        "text": "Over the past month the two- to five-year part of the curve rose about five percent while the twenty- and thirty-year moved less than one. When the front and belly lead, the market is repricing the policy path. When the long end leads, it is repricing risk. This is the first, and it is why the twenty-year Treasury ETF is down over six percent on the year while the one-to-three-year is down under two."
+      },
+      {
+        "title": "Value over growth is a seventeen-point spread, and it is a rates trade.",
+        "text": "Value is nine percent ahead of the S&P year to date; growth is eight percent behind. Trading these as separate ideas misses that they are one position expressed twice. If you are long value and short growth you are short duration in equity form, and you will be right and wrong on the same days the bond market is."
+      },
+      {
+        "title": "“Emerging markets” has stopped being one thing.",
+        "text": "Korea is up ninety-six percent year to date and Taiwan seventy-six, while China is down eleven, India down ten and Indonesia down thirty. The EM index is up twenty-five, which describes none of them. A basket whose components disagree this violently is a basket you should not be trading as a basket."
+      },
+      {
+        "title": "The dollar is not confirming the rate story.",
+        "text": "Yields at three-year highs would normally pull the dollar up with them. Instead the Australian dollar is up eight percent against it this year and the Korean won seven. Gold is roughly flat on the year despite the geopolitics. When rates and the dollar disagree, one of them is early — and that disagreement is the cleanest thing on this page to have an opinion about."
+      },
+      {
+        "title": "Crypto has decoupled on the year and recoupled on the month.",
+        "text": "Bitcoin is down twelve percent year to date against an S&P up twelve, but up twenty-three over the past month. If you carry crypto exposure alongside index positions and size it as a diversifier, check the correlation you are actually running rather than the one you assumed."
+      }
+    ],
+    "howToUse": "Do not trade the cells. Trade the disagreements between them. A page like this earns its keep on the days two rows that normally move together stop moving together — that is where a thesis lives. Everything here is a snapshot of a close, not a live quote."
+  },
+  "curve": {
+    "title": "The US Treasury curve",
+    "note": "Today against a month ago. The shape is the macro read: a front and belly rising faster than the long end is a market pricing rate rises, not a term-premium story.",
+    "points": [
+      {
+        "label": "1M",
+        "years": 0.083,
+        "yield": 3.81,
+        "chg1M": 0.53
+      },
+      {
+        "label": "3M",
+        "years": 0.25,
+        "yield": 3.95,
+        "chg1M": 1.54
+      },
+      {
+        "label": "6M",
+        "years": 0.5,
+        "yield": 4.01,
+        "chg1M": 0.5
+      },
+      {
+        "label": "1Y",
+        "years": 1,
+        "yield": 4.17,
+        "chg1M": 3.47
+      },
+      {
+        "label": "2Y",
+        "years": 2,
+        "yield": 4.43,
+        "chg1M": 4.98
+      },
+      {
+        "label": "3Y",
+        "years": 3,
+        "yield": 4.49,
+        "chg1M": 5.15
+      },
+      {
+        "label": "5Y",
+        "years": 5,
+        "yield": 4.61,
+        "chg1M": 5.01
+      },
+      {
+        "label": "7Y",
+        "years": 7,
+        "yield": 4.71,
+        "chg1M": 3.74
+      },
+      {
+        "label": "10Y",
+        "years": 10,
+        "yield": 4.83,
+        "chg1M": 2.77
+      },
+      {
+        "label": "20Y",
+        "years": 20,
+        "yield": 5.28,
+        "chg1M": 0.57
+      },
+      {
+        "label": "30Y",
+        "years": 30,
+        "yield": 5.28,
+        "chg1M": 0.76
+      }
+    ],
+    "spreads": [
+      {
+        "label": "2s10s",
+        "value": 40,
+        "unit": "bp",
+        "note": "Positive and steepening slowly. Not a recession signal."
+      },
+      {
+        "label": "3M10Y",
+        "value": 88,
+        "unit": "bp",
+        "note": "Comfortably positive, unlike 2023."
+      },
+      {
+        "label": "10s30s",
+        "value": 45,
+        "unit": "bp",
+        "note": "The long end is where the term premium sits."
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "regions",
+      "title": "Equities by country",
+      "note": "Country ETF prices in US dollars, so these include the currency move a local index does not show.",
+      "scale": 1.0,
+      "rows": [
+        {
+          "label": "United States",
+          "ticker": "SPY",
+          "price": 762.4,
+          "v": [
+            -0.46,
+            -1.01,
+            -1.06,
+            3.34,
+            12.73,
+            11.8,
+            16.89
+          ]
+        },
+        {
+          "label": "Canada",
+          "ticker": "EWC",
+          "price": 60.99,
+          "v": [
+            -0.81,
+            -1.69,
+            -0.85,
+            4.27,
+            7.99,
+            13.09,
+            23.41
+          ]
+        },
+        {
+          "label": "Mexico",
+          "ticker": "EWW",
+          "price": 76.5,
+          "v": [
+            -0.22,
+            -0.17,
+            0.34,
+            -1.09,
+            2.42,
+            10.34,
+            19.01
+          ]
+        },
+        {
+          "label": "Brazil",
+          "ticker": "EWZ",
+          "price": 38.07,
+          "v": [
+            -1.4,
+            0.55,
+            12.04,
+            9.37,
+            1.22,
+            19.83,
+            27.79
+          ]
+        },
+        {
+          "label": "Argentina",
+          "ticker": "ARGT",
+          "price": 96.12,
+          "v": [
+            0.17,
+            -0.3,
+            3.8,
+            -1.89,
+            7.07,
+            5.15,
+            29.79
+          ]
+        },
+        {
+          "label": "United Kingdom",
+          "ticker": "EWU",
+          "price": 47.83,
+          "v": [
+            -1.08,
+            -1.56,
+            -0.97,
+            1.98,
+            3.28,
+            8.75,
+            14.59
+          ]
+        },
+        {
+          "label": "Germany",
+          "ticker": "EWG",
+          "price": 43.04,
+          "v": [
+            -1.22,
+            -1.94,
+            -2.16,
+            1.82,
+            5.49,
+            1.27,
+            4.8
+          ]
+        },
+        {
+          "label": "France",
+          "ticker": "EWQ",
+          "price": 44.89,
+          "v": [
+            -1.6,
+            -1.75,
+            -5.87,
+            -3.55,
+            1.56,
+            -0.22,
+            4.64
+          ]
+        },
+        {
+          "label": "Italy",
+          "ticker": "EWI",
+          "price": 61.25,
+          "v": [
+            -0.29,
+            -0.99,
+            -2.92,
+            1.19,
+            14.36,
+            12.74,
+            20.26
+          ]
+        },
+        {
+          "label": "Spain",
+          "ticker": "EWP",
+          "price": 61.59,
+          "v": [
+            -1.01,
+            -1.85,
+            -1.66,
+            5.59,
+            13.91,
+            14.25,
+            27.07
+          ]
+        },
+        {
+          "label": "Netherlands",
+          "ticker": "EWN",
+          "price": 68.49,
+          "v": [
+            -1.15,
+            -0.9,
+            -1.35,
+            -1.78,
+            14.09,
+            20.09,
+            27.33
+          ]
+        },
+        {
+          "label": "Switzerland",
+          "ticker": "EWL",
+          "price": 60.76,
+          "v": [
+            -1.36,
+            -3.75,
+            -5.11,
+            -3.42,
+            1.11,
+            1.33,
+            9.24
+          ]
+        },
+        {
+          "label": "Poland",
+          "ticker": "EPOL",
+          "price": 45.55,
+          "v": [
+            -0.46,
+            0.95,
+            2.61,
+            12.3,
+            27.48,
+            29.44,
+            43.1
+          ]
+        },
+        {
+          "label": "Japan",
+          "ticker": "EWJ",
+          "price": 97.0,
+          "v": [
+            -0.98,
+            -1.3,
+            0.75,
+            5.23,
+            13.15,
+            20.14,
+            20.71
+          ]
+        },
+        {
+          "label": "China",
+          "ticker": "MCHI",
+          "price": 53.34,
+          "v": [
+            -1.13,
+            -2.86,
+            -4.1,
+            -1.84,
+            -8.52,
+            -11.2,
+            -14.71
+          ]
+        },
+        {
+          "label": "Hong Kong",
+          "ticker": "EWH",
+          "price": 22.69,
+          "v": [
+            -1.05,
+            -2.2,
+            0.93,
+            3.7,
+            -2.83,
+            6.78,
+            4.76
+          ]
+        },
+        {
+          "label": "South Korea",
+          "ticker": "EWY",
+          "price": 190.78,
+          "v": [
+            0.46,
+            1.01,
+            14.08,
+            -4.1,
+            43.61,
+            96.24,
+            148.9
+          ]
+        },
+        {
+          "label": "Taiwan",
+          "ticker": "EWT",
+          "price": 111.76,
+          "v": [
+            0.2,
+            -0.37,
+            7.52,
+            9.09,
+            55.42,
+            75.92,
+            78.64
+          ]
+        },
+        {
+          "label": "India",
+          "ticker": "INDA",
+          "price": 48.67,
+          "v": [
+            -0.86,
+            -2.48,
+            -2.83,
+            1.84,
+            -1.22,
+            -9.95,
+            -8.45
+          ]
+        },
+        {
+          "label": "Australia",
+          "ticker": "EWA",
+          "price": 29.62,
+          "v": [
+            -1.27,
+            -2.02,
+            -1.1,
+            2.28,
+            2.14,
+            13.1,
+            9.26
+          ]
+        },
+        {
+          "label": "Singapore",
+          "ticker": "EWS",
+          "price": 33.77,
+          "v": [
+            -1.46,
+            -2.31,
+            -0.44,
+            15.93,
+            21.56,
+            22.76,
+            16.69
+          ]
+        },
+        {
+          "label": "Indonesia",
+          "ticker": "EIDO",
+          "price": 13.13,
+          "v": [
+            -0.68,
+            0.54,
+            5.21,
+            8.33,
+            -18.8,
+            -29.79,
+            -24.24
+          ]
+        },
+        {
+          "label": "South Africa",
+          "ticker": "EZA",
+          "price": 71.31,
+          "v": [
+            0.01,
+            -0.46,
+            3.97,
+            7.59,
+            0.37,
+            3.65,
+            19.39
+          ]
+        },
+        {
+          "label": "Turkey",
+          "ticker": "TUR",
+          "price": 40.78,
+          "v": [
+            0.77,
+            3.95,
+            6.31,
+            4.19,
+            3.79,
+            18.48,
+            23.88
+          ]
+        },
+        {
+          "label": "Emerging Markets",
+          "ticker": "EEM",
+          "price": 68.48,
+          "v": [
+            -0.51,
+            -0.32,
+            4.66,
+            1.45,
+            16.4,
+            25.17,
+            32.87
+          ]
+        },
+        {
+          "label": "Developed ex-US",
+          "ticker": "EFA",
+          "price": 106.56,
+          "v": [
+            -1.11,
+            -1.65,
+            -1.42,
+            1.75,
+            7.63,
+            10.97,
+            15.35
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sectors",
+      "title": "US sectors",
+      "note": "The eleven S&P sector SPDRs. The spread between the best and worst column is the number that matters, not any single cell.",
+      "scale": 1.0,
+      "rows": [
+        {
+          "label": "Energy",
+          "ticker": "XLE",
+          "price": 65.31,
+          "v": [
+            0.83,
+            1.95,
+            7.19,
+            14.34,
+            14.62,
+            46.07,
+            46.57
+          ]
+        },
+        {
+          "label": "Technology",
+          "ticker": "XLK",
+          "price": 187.87,
+          "v": [
+            0.0,
+            0.32,
+            0.96,
+            2.54,
+            33.78,
+            30.49,
+            39.09
+          ]
+        },
+        {
+          "label": "Materials",
+          "ticker": "XLB",
+          "price": 51.39,
+          "v": [
+            -1.06,
+            -2.0,
+            -3.47,
+            0.33,
+            3.11,
+            13.32,
+            13.29
+          ]
+        },
+        {
+          "label": "Industrials",
+          "ticker": "XLI",
+          "price": 171.79,
+          "v": [
+            -1.51,
+            -1.99,
+            -7.49,
+            -1.92,
+            1.36,
+            10.75,
+            13.5
+          ]
+        },
+        {
+          "label": "Health Care",
+          "ticker": "XLV",
+          "price": 166.58,
+          "v": [
+            -0.33,
+            -2.84,
+            -0.85,
+            8.11,
+            8.98,
+            7.61,
+            21.3
+          ]
+        },
+        {
+          "label": "Real Estate",
+          "ticker": "XLRE",
+          "price": 43.41,
+          "v": [
+            -1.12,
+            -1.18,
+            -1.52,
+            -3.36,
+            2.36,
+            7.58,
+            3.7
+          ]
+        },
+        {
+          "label": "Consumer Staples",
+          "ticker": "XLP",
+          "price": 83.05,
+          "v": [
+            -1.15,
+            -1.81,
+            -1.94,
+            -2.6,
+            -1.82,
+            6.91,
+            3.89
+          ]
+        },
+        {
+          "label": "Financials",
+          "ticker": "XLF",
+          "price": 57.06,
+          "v": [
+            -0.42,
+            -1.79,
+            -1.28,
+            8.44,
+            14.95,
+            4.18,
+            7.34
+          ]
+        },
+        {
+          "label": "Utilities",
+          "ticker": "XLU",
+          "price": 42.94,
+          "v": [
+            -1.17,
+            -0.32,
+            -1.58,
+            -2.52,
+            -7.0,
+            0.59,
+            1.49
+          ]
+        },
+        {
+          "label": "Consumer Discretionary",
+          "ticker": "XLY",
+          "price": 112.46,
+          "v": [
+            -1.34,
+            -2.13,
+            -5.69,
+            -3.3,
+            -1.47,
+            -5.82,
+            -3.42
+          ]
+        },
+        {
+          "label": "Communication Services",
+          "ticker": "XLC",
+          "price": 110.83,
+          "v": [
+            -0.62,
+            -1.07,
+            -0.4,
+            -1.15,
+            -5.27,
+            -5.85,
+            -3.31
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bonds",
+      "title": "Bonds and credit",
+      "note": "Total-return prices, so a falling number means yields rose. Duration is the sort order: the longer the bond, the worse the year.",
+      "scale": 0.45,
+      "rows": [
+        {
+          "label": "1-3Y Treasury",
+          "ticker": "SHY",
+          "price": 81.62,
+          "v": [
+            -0.04,
+            -0.08,
+            -0.3,
+            -0.57,
+            -1.23,
+            -1.44,
+            -1.55
+          ]
+        },
+        {
+          "label": "3-7Y Treasury",
+          "ticker": "IEI",
+          "price": 115.37,
+          "v": [
+            -0.17,
+            -0.25,
+            -0.84,
+            -1.69,
+            -3.13,
+            -3.33,
+            -3.84
+          ]
+        },
+        {
+          "label": "7-10Y Treasury",
+          "ticker": "IEF",
+          "price": 91.89,
+          "v": [
+            -0.29,
+            -0.38,
+            -1.05,
+            -2.59,
+            -4.28,
+            -4.44,
+            -5.37
+          ]
+        },
+        {
+          "label": "20Y+ Treasury",
+          "ticker": "TLT",
+          "price": 81.73,
+          "v": [
+            -0.57,
+            -0.58,
+            -0.56,
+            -4.94,
+            -6.21,
+            -6.23,
+            -8.93
+          ]
+        },
+        {
+          "label": "TIPS",
+          "ticker": "TIP",
+          "price": 106.8,
+          "v": [
+            -0.23,
+            -0.16,
+            -0.08,
+            -2.55,
+            -3.84,
+            -2.83,
+            -4.34
+          ]
+        },
+        {
+          "label": "Mortgage-backed",
+          "ticker": "MBB",
+          "price": 92.22,
+          "v": [
+            -0.34,
+            -0.54,
+            -0.87,
+            -2.43,
+            -3.09,
+            -3.15,
+            -3.22
+          ]
+        },
+        {
+          "label": "Municipals",
+          "ticker": "MUB",
+          "price": 103.48,
+          "v": [
+            -0.52,
+            -0.53,
+            -2.31,
+            -3.34,
+            -3.51,
+            -3.39,
+            -2.46
+          ]
+        },
+        {
+          "label": "US Aggregate",
+          "ticker": "AGG",
+          "price": 96.68,
+          "v": [
+            -0.23,
+            -0.33,
+            -0.66,
+            -2.22,
+            -2.99,
+            -3.2,
+            -3.74
+          ]
+        },
+        {
+          "label": "Investment grade",
+          "ticker": "LQD",
+          "price": 105.31,
+          "v": [
+            -0.16,
+            -0.16,
+            -0.64,
+            -3.46,
+            -3.53,
+            -4.43,
+            -5.71
+          ]
+        },
+        {
+          "label": "High yield",
+          "ticker": "HYG",
+          "price": 78.98,
+          "v": [
+            -0.18,
+            -0.23,
+            -0.67,
+            -1.2,
+            -1.1,
+            -2.05,
+            -2.3
+          ]
+        },
+        {
+          "label": "Senior loans",
+          "ticker": "BKLN",
+          "price": 20.59,
+          "v": [
+            -0.05,
+            -0.1,
+            0.34,
+            0.73,
+            0.24,
+            -1.95,
+            -1.72
+          ]
+        },
+        {
+          "label": "EM sovereign (USD)",
+          "ticker": "EMB",
+          "price": 94.17,
+          "v": [
+            -0.2,
+            -0.32,
+            -0.7,
+            -2.18,
+            -1.54,
+            -2.19,
+            -1.06
+          ]
+        }
+      ]
+    },
+    {
+      "id": "commodities",
+      "title": "Commodities",
+      "note": "The energy column is the reason the rest of this page looks the way it does.",
+      "scale": 1.8,
+      "rows": [
+        {
+          "label": "WTI crude",
+          "ticker": "CLUSD",
+          "price": 97.49,
+          "v": [
+            1.5,
+            6.57,
+            17.18,
+            11.15,
+            11.74,
+            69.05,
+            53.12
+          ]
+        },
+        {
+          "label": "Brent crude",
+          "ticker": "BZUSD",
+          "price": 102.41,
+          "v": [
+            1.19,
+            6.37,
+            15.18,
+            13.31,
+            11.34,
+            67.56,
+            51.74
+          ]
+        },
+        {
+          "label": "Heating oil",
+          "ticker": "HOUSD",
+          "price": 4.4,
+          "v": [
+            -0.7,
+            -3.01,
+            3.55,
+            25.34,
+            19.7,
+            106.38,
+            88.69
+          ]
+        },
+        {
+          "label": "Gasoline",
+          "ticker": "RBUSD",
+          "price": 3.06,
+          "v": [
+            0.35,
+            -4.85,
+            -2.48,
+            -1.37,
+            9.7,
+            78.14,
+            52.33
+          ]
+        },
+        {
+          "label": "Natural gas",
+          "ticker": "NGUSD",
+          "price": 2.78,
+          "v": [
+            -1.52,
+            -6.59,
+            0.43,
+            -9.98,
+            -13.4,
+            -23.17,
+            -8.25
+          ]
+        },
+        {
+          "label": "Gold",
+          "ticker": "GCUSD",
+          "price": 4435.7,
+          "v": [
+            -0.56,
+            -0.91,
+            -0.12,
+            7.82,
+            -14.35,
+            1.11,
+            20.47
+          ]
+        },
+        {
+          "label": "Silver",
+          "ticker": "SIUSD",
+          "price": 67.41,
+          "v": [
+            -1.8,
+            0.99,
+            3.81,
+            5.33,
+            -21.19,
+            -7.4,
+            62.04
+          ]
+        },
+        {
+          "label": "Platinum",
+          "ticker": "PLUSD",
+          "price": 1872.9,
+          "v": [
+            -2.4,
+            2.57,
+            6.72,
+            12.44,
+            -15.03,
+            -12.34,
+            33.99
+          ]
+        },
+        {
+          "label": "Copper",
+          "ticker": "HGUSD",
+          "price": 6.82,
+          "v": [
+            -1.03,
+            2.02,
+            2.77,
+            8.65,
+            15.72,
+            18.67,
+            47.64
+          ]
+        },
+        {
+          "label": "Aluminium",
+          "ticker": "ALIUSD",
+          "price": 3533.75,
+          "v": [
+            -0.48,
+            1.74,
+            0.25,
+            0.47,
+            3.59,
+            18.41,
+            38.46
+          ]
+        },
+        {
+          "label": "Corn",
+          "ticker": "ZCUSX",
+          "price": 530.37,
+          "v": [
+            0.5,
+            -1.19,
+            21.44,
+            26.28,
+            15.24,
+            20.47,
+            27.19
+          ]
+        },
+        {
+          "label": "Wheat",
+          "ticker": "KEUSX",
+          "price": 803.75,
+          "v": [
+            -0.31,
+            0.19,
+            14.94,
+            26.62,
+            31.01,
+            56.14,
+            58.53
+          ]
+        },
+        {
+          "label": "Soybeans",
+          "ticker": "ZSUSX",
+          "price": 1314.5,
+          "v": [
+            0.38,
+            0.36,
+            12.47,
+            17.89,
+            8.28,
+            25.49,
+            28.21
+          ]
+        },
+        {
+          "label": "Sugar",
+          "ticker": "SBUSX",
+          "price": 18.59,
+          "v": [
+            -4.13,
+            2.88,
+            11.12,
+            34.81,
+            30.46,
+            23.85,
+            16.7
+          ]
+        },
+        {
+          "label": "Coffee",
+          "ticker": "KCUSX",
+          "price": 286.35,
+          "v": [
+            -1.95,
+            -3.13,
+            -9.3,
+            14.43,
+            -0.37,
+            -17.89,
+            -25.99
+          ]
+        },
+        {
+          "label": "Cocoa",
+          "ticker": "CCUSD",
+          "price": 5907.0,
+          "v": [
+            -0.1,
+            -4.54,
+            4.47,
+            55.53,
+            72.27,
+            -2.61,
+            -20.9
+          ]
+        },
+        {
+          "label": "Cotton",
+          "ticker": "CTUSX",
+          "price": 86.79,
+          "v": [
+            0.53,
+            0.53,
+            2.84,
+            19.73,
+            33.17,
+            35.04,
+            30.18
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fx",
+      "title": "Currencies",
+      "note": "Read USD/XXX pairs the right way round: a green cell means the dollar gained on that currency, not that the currency did well.",
+      "scale": 0.22,
+      "rows": [
+        {
+          "label": "EUR/USD",
+          "ticker": "EURUSD",
+          "price": 1.16,
+          "v": [
+            -0.01,
+            0.21,
+            0.82,
+            0.51,
+            0.61,
+            -1.0,
+            -0.48
+          ]
+        },
+        {
+          "label": "GBP/USD",
+          "ticker": "GBPUSD",
+          "price": 1.36,
+          "v": [
+            0.08,
+            0.34,
+            0.37,
+            1.05,
+            1.09,
+            0.62,
+            0.22
+          ]
+        },
+        {
+          "label": "AUD/USD",
+          "ticker": "AUDUSD",
+          "price": 0.72,
+          "v": [
+            -0.07,
+            0.15,
+            2.15,
+            2.33,
+            0.86,
+            8.01,
+            9.06
+          ]
+        },
+        {
+          "label": "NZD/USD",
+          "ticker": "NZDUSD",
+          "price": 0.58,
+          "v": [
+            0.11,
+            -0.53,
+            -0.57,
+            0.17,
+            -1.14,
+            1.56,
+            -1.52
+          ]
+        },
+        {
+          "label": "USD/JPY",
+          "ticker": "USDJPY",
+          "price": 153.64,
+          "v": [
+            0.08,
+            -1.64,
+            -3.53,
+            -3.9,
+            -3.34,
+            -2.03,
+            4.19
+          ]
+        },
+        {
+          "label": "USD/CHF",
+          "ticker": "USDCHF",
+          "price": 0.81,
+          "v": [
+            0.14,
+            0.04,
+            0.01,
+            1.93,
+            3.88,
+            2.31,
+            1.38
+          ]
+        },
+        {
+          "label": "USD/CAD",
+          "ticker": "USDCAD",
+          "price": 1.38,
+          "v": [
+            0.0,
+            -0.19,
+            -0.85,
+            -1.15,
+            1.56,
+            0.66,
+            -0.41
+          ]
+        },
+        {
+          "label": "USD/CNY",
+          "ticker": "USDCNY",
+          "price": 6.71,
+          "v": [
+            0.11,
+            -0.08,
+            -0.59,
+            -1.03,
+            -2.33,
+            -4.11,
+            -5.84
+          ]
+        },
+        {
+          "label": "USD/INR",
+          "ticker": "USDINR",
+          "price": 95.42,
+          "v": [
+            0.31,
+            1.0,
+            0.0,
+            -0.34,
+            3.51,
+            6.08,
+            8.42
+          ]
+        },
+        {
+          "label": "USD/KRW",
+          "ticker": "USDKRW",
+          "price": 1341.46,
+          "v": [
+            0.14,
+            -0.32,
+            -5.04,
+            -11.48,
+            -9.17,
+            -7.01,
+            -3.44
+          ]
+        },
+        {
+          "label": "USD/MXN",
+          "ticker": "USDMXN",
+          "price": 16.9,
+          "v": [
+            0.13,
+            0.12,
+            -1.06,
+            -1.98,
+            -4.36,
+            -5.94,
+            -9.02
+          ]
+        },
+        {
+          "label": "USD/BRL",
+          "ticker": "USDBRL",
+          "price": 5.11,
+          "v": [
+            0.06,
+            -0.33,
+            -0.97,
+            0.17,
+            -0.92,
+            -6.74,
+            -5.46
+          ]
+        },
+        {
+          "label": "USD/TRY",
+          "ticker": "USDTRY",
+          "price": 48.49,
+          "v": [
+            0.01,
+            0.23,
+            1.79,
+            5.16,
+            10.06,
+            12.79,
+            17.59
+          ]
+        },
+        {
+          "label": "USD/ZAR",
+          "ticker": "USDZAR",
+          "price": 16.07,
+          "v": [
+            0.24,
+            0.73,
+            -0.68,
+            -1.16,
+            -2.36,
+            -2.83,
+            -7.88
+          ]
+        }
+      ]
+    },
+    {
+      "id": "crypto",
+      "title": "Crypto",
+      "note": "Scaled differently from the rest of the page: a 3% day here is not the event a 3% day in equities is.",
+      "scale": 3.5,
+      "rows": [
+        {
+          "label": "Bitcoin",
+          "ticker": "BTCUSD",
+          "price": 78076.0,
+          "v": [
+            -0.28,
+            -2.2,
+            22.89,
+            22.83,
+            11.21,
+            -12.02,
+            -31.5
+          ]
+        },
+        {
+          "label": "Ethereum",
+          "ticker": "ETHUSD",
+          "price": 2470.45,
+          "v": [
+            0.11,
+            -0.41,
+            31.36,
+            47.76,
+            20.38,
+            -17.66,
+            -43.21
+          ]
+        },
+        {
+          "label": "Solana",
+          "ticker": "SOLUSD",
+          "price": 101.13,
+          "v": [
+            -0.48,
+            -1.99,
+            32.68,
+            51.28,
+            16.81,
+            -20.2,
+            -54.88
+          ]
+        },
+        {
+          "label": "BNB",
+          "ticker": "BNBUSD",
+          "price": 718.42,
+          "v": [
+            -0.6,
+            -6.31,
+            16.55,
+            18.7,
+            10.26,
+            -16.81,
+            -19.63
+          ]
+        },
+        {
+          "label": "XRP",
+          "ticker": "XRPUSD",
+          "price": 1.38,
+          "v": [
+            -0.95,
+            -2.2,
+            35.18,
+            21.02,
+            -0.25,
+            -26.41,
+            -53.7
+          ]
+        },
+        {
+          "label": "Chainlink",
+          "ticker": "LINKUSD",
+          "price": 11.77,
+          "v": [
+            -0.32,
+            -2.36,
+            34.12,
+            49.33,
+            30.75,
+            -6.68,
+            -50.08
+          ]
+        },
+        {
+          "label": "Cardano",
+          "ticker": "ADAUSD",
+          "price": 0.21,
+          "v": [
+            0.32,
+            -2.59,
+            13.77,
+            24.7,
+            -19.03,
+            -40.29,
+            -75.98
+          ]
+        },
+        {
+          "label": "Dogecoin",
+          "ticker": "DOGEUSD",
+          "price": 0.09,
+          "v": [
+            -1.07,
+            -4.98,
+            18.65,
+            -0.86,
+            -8.24,
+            -32.7,
+            -65.27
+          ]
+        },
+        {
+          "label": "Litecoin",
+          "ticker": "LTCUSD",
+          "price": 52.41,
+          "v": [
+            -1.39,
+            -4.21,
+            15.27,
+            23.49,
+            -4.36,
+            -34.38,
+            -55.46
+          ]
+        }
+      ]
+    },
+    {
+      "id": "factors",
+      "title": "Factors, against the S&P 500",
+      "note": "Excess return, not total return. A green cell means the factor beat the index over that window; it does not mean it made money.",
+      "scale": 0.7,
+      "excess": true,
+      "rows": [
+        {
+          "label": "Value",
+          "ticker": "IWD",
+          "price": 254.06,
+          "v": [
+            -0.11,
+            -0.37,
+            -0.44,
+            2.62,
+            4.04,
+            8.98,
+            9.36
+          ]
+        },
+        {
+          "label": "Growth",
+          "ticker": "IWF",
+          "price": 122.46,
+          "v": [
+            0.01,
+            0.24,
+            0.14,
+            -2.61,
+            -4.19,
+            -8.31,
+            -9.53
+          ]
+        },
+        {
+          "label": "Momentum",
+          "ticker": "MTUM",
+          "price": 309.29,
+          "v": [
+            0.66,
+            2.46,
+            1.37,
+            -6.39,
+            11.59,
+            11.76,
+            4.7
+          ]
+        },
+        {
+          "label": "Small-cap",
+          "ticker": "IJR",
+          "price": 142.7,
+          "v": [
+            -0.61,
+            -0.8,
+            -2.79,
+            -3.05,
+            1.87,
+            6.94,
+            4.43
+          ]
+        },
+        {
+          "label": "Small-cap value",
+          "ticker": "IWN",
+          "price": 220.48,
+          "v": [
+            -0.56,
+            -0.83,
+            -0.94,
+            -1.18,
+            3.02,
+            9.87,
+            9.35
+          ]
+        },
+        {
+          "label": "Small-cap growth",
+          "ticker": "IWO",
+          "price": 370.95,
+          "v": [
+            -1.17,
+            -0.73,
+            -3.64,
+            -5.18,
+            1.46,
+            3.04,
+            2.89
+          ]
+        },
+        {
+          "label": "Mid-cap core",
+          "ticker": "IJH",
+          "price": 74.56,
+          "v": [
+            -0.6,
+            -0.69,
+            -3.07,
+            -4.58,
+            -3.67,
+            1.17,
+            -2.92
+          ]
+        },
+        {
+          "label": "Low volatility",
+          "ticker": "USMV",
+          "price": 99.45,
+          "v": [
+            -0.01,
+            -0.33,
+            -0.21,
+            0.64,
+            -8.5,
+            -6.18,
+            -10.8
+          ]
+        },
+        {
+          "label": "High dividend",
+          "ticker": "VYM",
+          "price": 162.69,
+          "v": [
+            -0.04,
+            0.07,
+            -1.02,
+            -1.05,
+            -4.48,
+            1.56,
+            -1.33
+          ]
+        },
+        {
+          "label": "Quality",
+          "ticker": "QUAL",
+          "price": 219.56,
+          "v": [
+            -0.09,
+            -0.35,
+            -1.42,
+            -1.64,
+            -2.68,
+            -1.26,
+            -1.07
+          ]
+        },
+        {
+          "label": "Buybacks",
+          "ticker": "PKW",
+          "price": 150.22,
+          "v": [
+            0.18,
+            -1.15,
+            1.13,
+            4.66,
+            -0.04,
+            0.03,
+            -2.05
+          ]
+        },
+        {
+          "label": "Recent IPOs",
+          "ticker": "IPO",
+          "price": 52.97,
+          "v": [
+            -1.78,
+            -1.65,
+            -2.58,
+            -7.15,
+            8.21,
+            4.23,
+            -16.08
+          ]
+        },
+        {
+          "label": "Private equity",
+          "ticker": "PSP",
+          "price": 60.94,
+          "v": [
+            -1.04,
+            -1.47,
+            -3.68,
+            0.83,
+            -5.48,
+            -20.94,
+            -31.09
+          ]
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "name": "Financial Modeling Prep, via Bigdata.com",
+      "note": "prices and period returns across all eight asset classes"
+    }
+  ],
+  "attribution": "Market data compiled via Bigdata.com (https://bigdata.com). The reading of it is our own.",
+  "disclaimer": "Educational context, not trading advice. These are period returns to a close, not live quotes — confirm against your own data before acting."
+}

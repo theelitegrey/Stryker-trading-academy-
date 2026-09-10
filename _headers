@@ -59,6 +59,11 @@
 /assets/market-brief.json
   Cache-Control: public, max-age=0, must-revalidate
 
+# Same for the cross-asset map, for the same reason: it is dated content
+# living under a path that is otherwise cached for a year.
+/assets/market-map.json
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff

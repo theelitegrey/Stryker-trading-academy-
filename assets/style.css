@@ -7284,6 +7284,7 @@ section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding
 .ec-controls {
   position: sticky; top: 0; z-index: 3; background: var(--bg-1);
   padding: 12px 0 14px; margin-bottom: 8px; border-bottom: 1px solid var(--line);
+  max-height: 46vh; overflow-y: auto;
 }
 .ec-ctrl-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .ec-ctrl-row + .ec-ctrl-row { margin-top: 9px; }
@@ -7307,6 +7308,14 @@ section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding
   background: rgba(255,255,255,.1); border-radius: 6px; padding: 1px 5px;
 }
 .ec-chip.is-on .ec-chip-n { background: rgba(0,0,0,.16); opacity: .85; }
+/* A range chip reading 0 is still useful — it says the window is empty before
+   you click into it — so it dims rather than disappearing. Still clickable:
+   hiding a filter because it currently has no results makes the control set
+   shift under the reader every time another filter changes. */
+.ec-chip.is-empty { opacity: .42; }
+.ec-chip.is-empty:hover { opacity: .75; }
+.ec-chip.is-empty.is-on { opacity: 1; }
+.ec-chip.is-range { font-weight: 600; }
 
 /* ---- days and rows ---- */
 .ec-day { margin-bottom: 26px; }
@@ -7320,7 +7329,15 @@ section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding
 .ec-daycount { font-size: 11.5px; color: var(--ink-3); margin-left: auto; }
 .ec-daycount b { color: var(--bear, #e5484d); font-weight: 600; }
 
-.ec-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.ec-scroll {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  /* The right-hand fade is painted by the background itself and scrolls away
+     with the content, so it vanishes exactly when there is nothing more to
+     reach — no scroll listener, no state to get out of step. */
+  background:
+    linear-gradient(to left, var(--bg-1), rgba(0,0,0,0)) right / 34px 100% no-repeat local,
+    linear-gradient(to left, rgba(0,0,0,0), rgba(0,0,0,0)) right / 34px 100% no-repeat scroll;
+}
 /* Every day is its own table, which with auto layout meant the columns shifted
    between days depending on the longest event name in each — the page read as
    several grids rather than one. Fixed layout pins them so a reader can run a
@@ -7472,13 +7489,27 @@ section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding
   .ec-next { padding: 18px; gap: 16px; }
   .ec-ring { width: 68px; height: 68px; }
   .ec-ring-time { font-size: 12px; }
-  .ec-table { min-width: 560px; }
+  .ec-table { min-width: 470px; }
   .ec-cd-v { font-size: 25px; }
   .ec-imp-word { display: none; }
   .ec-table { font-size: 12px; }
   .ec-row > td { padding: 9px 7px; }
   .ec-prev, .ec-table thead th:nth-child(7) { display: none; }
   .ec-daycount { margin-left: 0; width: 100%; }
+  /* With Previous hidden the remaining six columns tighten so the scroll is a
+     nudge rather than a journey. Actual and Forecast stay: on a calendar the
+     numbers are the point, and pushing them off-screen to fit the event name
+     would be the wrong trade. */
+  .ec-table th:nth-child(1), .ec-table td:nth-child(1) { width: 46px; }
+  .ec-table th:nth-child(2), .ec-table td:nth-child(2) { width: 52px; }
+  /* Wide enough for the word "Impact" at 10px. Squeezing the column to the
+     width of the bars alone made the header collide with the next one, and
+     dropping the header text would leave a column with no name. */
+  .ec-table th:nth-child(3), .ec-table td:nth-child(3) { width: 48px; }
+  .ec-table th:nth-child(5), .ec-table td:nth-child(5),
+  .ec-table th:nth-child(6), .ec-table td:nth-child(6) { width: 64px; }
+  .ec-flag { margin-right: 3px; }
+  .ec-tick, .ec-why { display: none; }
 }
 @media (forced-colors: active) {
   .ec-bar.on { background: CanvasText; }

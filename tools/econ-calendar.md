@@ -58,6 +58,12 @@ and survive every impact filter by design. A closed market is the single most
 useful thing this page can tell someone, and burying it under a "high only"
 filter would be a bug. (It was one, briefly.)
 
+**A policy card needs a rate.** `banks[]` entries lead with the current policy
+rate as their headline number. If the research did not give you one, leave the
+central bank out rather than shipping a card whose hero is a dash. The next
+meeting date alone is not worth a card — its absence from the calendar already
+says that. The test suite fails a bank row with no rate.
+
 **Notes earn their place.** `note` is what the row means for the session, in
 trading terms. Every high-impact row should have one. If a note could have been
 written without looking at anything, cut it.
@@ -68,6 +74,35 @@ up or down against the *previous* reading is deliberately left uncoloured,
 because that is not what price trades.
 
 ---
+
+## The date ranges
+
+The chips are `From today` (the default), `Today`, `Past week`, `This week`,
+`Next week`, `This month`, `Next month` and `All dates`. Three things about how
+they are built:
+
+They compare **calendar-day strings in the displayed zone**, not timestamps.
+That means "this week" always means the same week as the day headers the reader
+is looking at, switching to the New York view reshuffles both together, and
+there is no hour of the day where a boundary lands on the wrong side.
+
+Weeks start **Monday**. A trading week is Monday to Friday, and "this week" on
+a Sunday should mean the week about to start, not the one that just ended.
+
+Every chip's badge answers one question: **how many rows would I see if I
+clicked this, leaving my other choices alone.** All three rows — range,
+currency, impact — are built from the same helper so the numbers are
+comparable. A chip reading 0 dims but stays clickable: hiding a filter because
+it currently has no results makes the control set shift under the reader every
+time another filter changes.
+
+The default is `From today` rather than `Today` because the page's job is
+preparation. Someone opening it at 06:00 needs the rest of the week, not only
+the next few hours. The past is one click away.
+
+Keep `rangeStart` and `rangeEnd` honest — the empty state quotes them verbatim
+when a reader picks a window the file does not reach, which is a far better
+message than blaming a filter.
 
 ## Regenerating it
 

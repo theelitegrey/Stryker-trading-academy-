@@ -85,14 +85,6 @@
       "next": "2026-09-18",
       "expect": "80–90% priced for +25bp",
       "bias": "up"
-    },
-    {
-      "cur": "CAD",
-      "bank": "Bank of Canada",
-      "rate": "—",
-      "next": "2026-10-28",
-      "expect": "No decision until late October",
-      "bias": "hold"
     }
   ],
   "events": [

@@ -49,6 +49,7 @@
   let DATA = null;
   let CUR = 'USD';           // selected currency, or 'ALL'
   let MINIMPACT = 'low';     // low = show everything
+  let RANGE = 'ahead';       // see RANGES; defaults to today onwards
   let TZMODE = 'local';      // 'local' | 'ny'
   let TICKER = null;         // countdown interval
 
@@ -83,6 +84,69 @@
     return { name: name, tag: '' };
   }
 
+  // Ranges are computed as calendar-day strings (YYYY-MM-DD) in the DISPLAYED
+  // zone and compared against each event's own day key. Doing it this way
+  // instead of with timestamp arithmetic means "this week" means the same
+  // thing as the day headers the reader is looking at — switching to the New
+  // York view reshuffles both together, and there is no hour of the day where
+  // the boundary lands on the wrong side. YYYY-MM-DD also sorts as a string,
+  // so the comparison is just <= and >=.
+  function todayKey() {
+    return new Date().toLocaleDateString('en-CA', { timeZone: tz() });
+  }
+
+  function shiftKey(key, days) {
+    const d = new Date(key + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  // 0 = Sunday. Weeks start Monday here: a trading week is Monday to Friday,
+  // and "this week" on a Sunday should mean the week about to start, not the
+  // one that just ended.
+  function mondayOf(key) {
+    const dow = new Date(key + 'T12:00:00Z').getUTCDay();
+    return shiftKey(key, -((dow + 6) % 7));
+  }
+
+  function monthBounds(key, monthsAhead) {
+    const d = new Date(key + 'T12:00:00Z');
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() + (monthsAhead || 0));
+    const from = d.toISOString().slice(0, 10);
+    d.setUTCMonth(d.getUTCMonth() + 1);
+    d.setUTCDate(0);            // day 0 of the next month is the last of this one
+    return { from: from, to: d.toISOString().slice(0, 10) };
+  }
+
+  const RANGES = {
+    // The default. Not "today" — a calendar whose job is preparation has to
+    // show what is coming, and a member opening this at 06:00 needs the rest
+    // of the week, not just the next few hours.
+    ahead:  { label: 'From today', span: () => ({ from: todayKey(), to: null }) },
+    today:  { label: 'Today',      span: () => ({ from: todayKey(), to: todayKey() }) },
+    past:   { label: 'Past week',  span: () => ({ from: shiftKey(todayKey(), -6), to: todayKey() }) },
+    week:   { label: 'This week',  span: () => { const m = mondayOf(todayKey());
+                                                 return { from: m, to: shiftKey(m, 6) }; } },
+    next:   { label: 'Next week',  span: () => { const m = shiftKey(mondayOf(todayKey()), 7);
+                                                 return { from: m, to: shiftKey(m, 6) }; } },
+    month:  { label: 'This month', span: () => monthBounds(todayKey(), 0) },
+    nmonth: { label: 'Next month', span: () => monthBounds(todayKey(), 1) },
+    all:    { label: 'All dates',  span: () => ({ from: null, to: null }) }
+  };
+  const RANGE_ORDER = ['ahead', 'today', 'past', 'week', 'next', 'month', 'nmonth', 'all'];
+
+  function span() {
+    return (RANGES[RANGE] || RANGES.ahead).span();
+  }
+
+  function inRange(ev, s) {
+    const k = dayKey(ev.at);
+    if (s.from && k < s.from) return false;
+    if (s.to && k > s.to) return false;
+    return true;
+  }
+
   function zoneName() {
     if (TZMODE === 'ny') return 'New York';
     try {
@@ -104,6 +168,9 @@
 
   // ---- selection -----------------------------------------------------------
 
+  // Currency and impact only. The date range is applied separately, because
+  // the two things it feeds want different answers: the table browses a
+  // window, the next-release card is always about now.
   function matches(ev) {
     if (CUR !== 'ALL' && ev.cur !== CUR) return false;
     // A holiday is not an impact level, it is a different kind of row, and a
@@ -114,13 +181,35 @@
     return true;
   }
 
+  // What the table shows: everything, including the date range.
   function shown() {
-    return (DATA.events || []).filter(matches);
+    const s = span();
+    return (DATA.events || []).filter((e) => matches(e) && inRange(e, s));
   }
 
+  // Every chip's badge answers exactly one question: how many rows would I see
+  // if I clicked THIS, leaving my other choices alone. Built from one helper so
+  // the numbers are comparable across the three rows — a currency count that
+  // quietly ignored the impact floor could promise three rows and deliver one.
+  function countWith(over) {
+    const o = over || {};
+    const cur = o.cur !== undefined ? o.cur : CUR;
+    const imp = o.imp !== undefined ? o.imp : MINIMPACT;
+    const sp = (RANGES[o.range !== undefined ? o.range : RANGE] || RANGES.ahead).span();
+    return (DATA.events || []).filter((e) => {
+      if (cur !== 'ALL' && e.cur !== cur) return false;
+      if (e.impact !== 'holiday' && IMPACT_RANK[e.impact] > IMPACT_RANK[imp]) return false;
+      return inRange(e, sp);
+    }).length;
+  }
+
+  // What the hero and the strip show. Deliberately NOT range-filtered: "next
+  // release" means the next one, full stop. Browsing last week's prints should
+  // not make the countdown claim there is nothing coming.
   function nextUp() {
     const now = Date.now();
-    return shown().filter((e) => Date.parse(e.at) > now && e.impact !== 'holiday')
+    return (DATA.events || []).filter((e) =>
+        matches(e) && Date.parse(e.at) > now && e.impact !== 'holiday')
       .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0] || null;
   }
 
@@ -220,8 +309,22 @@
       return d || (IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]);
     });
     if (!list.length) {
-      return '<div class="ec-empty"><b>Nothing scheduled for that filter.</b>' +
-        '<p>Widen the currency or drop the impact floor. An empty week is usually a filter, not a quiet market.</p></div>';
+      const sp = span();
+      const anyInRange = (DATA.events || []).some((e) => inRange(e, sp));
+      const label = (RANGES[RANGE] || RANGES.ahead).label.toLowerCase();
+      const anyDate = RANGE === 'all';
+      // Two different empty states, because they have two different fixes.
+      // "Nothing in this window at all" is about the file's coverage; "nothing
+      // that matches" is about the currency and impact chips.
+      return '<div class="ec-empty">' +
+        (anyInRange
+          ? '<b>Nothing matching those filters ' + esc(anyDate ? 'at all' : 'in ' + label) + '.</b>' +
+            '<p>Widen the currency or drop the impact floor. An empty week is usually a filter, ' +
+            'not a quiet market.</p>'
+          : '<b>This calendar does not reach ' + esc(label) + '.</b>' +
+            '<p>It covers ' + esc(DATA.rangeStart || '') + ' to ' + esc(DATA.rangeEnd || '') +
+            '. Pick a nearer window, or check back once it has been refreshed.</p>') +
+      '</div>';
     }
     const groups = [];
     let cur = null;
@@ -332,15 +435,28 @@
 
   function renderControls() {
     const counts = {};
-    (DATA.events || []).forEach((e) => { counts[e.cur] = (counts[e.cur] || 0) + 1; });
+    (DATA.currencies || []).forEach((c) => { counts[c.code] = countWith({ cur: c.code }); });
     const list = (DATA.currencies || []).filter((c) => counts[c.code]);
+    const allCount = countWith({ cur: 'ALL' });
 
+    // A chip reading 0 is information — it says the window is empty before you
+    // click it, rather than sending you to a blank page.
     return '<div class="ec-controls">' +
+      '<div class="ec-ctrl-row" role="group" aria-label="Filter by date range">' +
+        '<span class="ec-ctrl-label">Showing</span>' +
+        RANGE_ORDER.map((k) => {
+          const n = countWith({ range: k });
+          return '<button type="button" class="ec-chip is-range' +
+            (RANGE === k ? ' is-on' : '') + (n === 0 ? ' is-empty' : '') + '" ' +
+            'data-range="' + k + '" aria-pressed="' + (RANGE === k) + '">' +
+            esc(RANGES[k].label) + '<span class="ec-chip-n">' + n + '</span></button>';
+        }).join('') +
+      '</div>' +
       '<div class="ec-ctrl-row" role="group" aria-label="Filter by currency">' +
         '<span class="ec-ctrl-label">Currency</span>' +
         '<button type="button" class="ec-chip' + (CUR === 'ALL' ? ' is-on' : '') + '" data-cur="ALL" ' +
           'aria-pressed="' + (CUR === 'ALL') + '">All<span class="ec-chip-n">' +
-          (DATA.events || []).length + '</span></button>' +
+          allCount + '</span></button>' +
         list.map((c) =>
           '<button type="button" class="ec-chip' + (CUR === c.code ? ' is-on' : '') + '" ' +
             'data-cur="' + esc(c.code) + '" aria-pressed="' + (CUR === c.code) + '" ' +
@@ -350,11 +466,14 @@
       '</div>' +
       '<div class="ec-ctrl-row">' +
         '<span class="ec-ctrl-label">Impact</span>' +
-        ['high', 'medium', 'low'].map((k) =>
-          '<button type="button" class="ec-chip is-imp' + (MINIMPACT === k ? ' is-on' : '') + '" ' +
+        ['high', 'medium', 'low'].map((k) => {
+          const n = countWith({ imp: k });
+          return '<button type="button" class="ec-chip is-imp' + (MINIMPACT === k ? ' is-on' : '') +
+            (n === 0 ? ' is-empty' : '') + '" ' +
             'data-imp="' + k + '" aria-pressed="' + (MINIMPACT === k) + '">' +
-            (k === 'high' ? 'High only' : k === 'medium' ? 'Medium and up' : 'Everything') +
-          '</button>').join('') +
+            (k === 'high' ? 'High only' : k === 'medium' ? 'Medium and up' : 'All impacts') +
+            '<span class="ec-chip-n">' + n + '</span></button>';
+        }).join('') +
         '<span class="ec-ctrl-spacer"></span>' +
         '<span class="ec-ctrl-label">Times in</span>' +
         '<button type="button" class="ec-chip' + (TZMODE === 'local' ? ' is-on' : '') + '" ' +
@@ -373,8 +492,9 @@
         '<span class="ec-kicker">Economic calendar</span>' +
         '<h1>What is scheduled, and what it does to the tape</h1>' +
         '<p class="ec-standfirst">Every release with its consensus and its previous reading, in your ' +
-          'own clock. Impact is graded by what happens to spreads and liquidity at the print, ' +
-          'not by what the number means for the economy.</p>' +
+          'own clock. Opens on what is still to come; the range chips reach back over ' +
+          'the past week or forward into next month. Impact is graded by what happens to ' +
+          'spreads and liquidity at the print, not by what the number means for the economy.</p>' +
       '</header>' +
       (isStale()
         ? '<div class="ec-stale"><b>This calendar has not been refreshed.</b> Times and forecasts ' +
@@ -433,7 +553,12 @@
     const c = chip.getAttribute('data-cur');
     const i = chip.getAttribute('data-imp');
     const z = chip.getAttribute('data-tz');
-    if (c) CUR = c; else if (i) MINIMPACT = i; else if (z) TZMODE = z; else return;
+    const g = chip.getAttribute('data-range');
+    if (c) CUR = c;
+    else if (i) MINIMPACT = i;
+    else if (z) TZMODE = z;
+    else if (g) RANGE = g;
+    else return;
     paint(mount, false);
   }
 
@@ -523,7 +648,12 @@
     countdown: countdown,
     surprise: surprise,
     setData: function (d) { DATA = d; CUR = (d && d.defaultCurrency) || 'USD'; },
-    setFilter: function (c, i, z) { if (c) CUR = c; if (i) MINIMPACT = i; if (z) TZMODE = z; },
+    setFilter: function (c, i, z, g) {
+      if (c) CUR = c; if (i) MINIMPACT = i; if (z) TZMODE = z; if (g) RANGE = g;
+    },
+    span: span,
+    ranges: RANGE_ORDER,
+    getRange: function () { return RANGE; },
     shown: shown,
     nextUp: nextUp,
     dayKey: dayKey,

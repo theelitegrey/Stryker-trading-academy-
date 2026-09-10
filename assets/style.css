@@ -6838,3 +6838,107 @@ body.tour-open { overflow: hidden; }
   .tour-actions-left, .tour-actions-right { justify-content: space-between; }
   .tour-actions-right .btn { flex: 1; }
 }
+
+/* ===========================================================================
+   PRE-MARKET BRIEF  (assets/market-brief.js)
+   =========================================================================== */
+
+/* The site-wide `section { padding: 96px 0 }` applies to the <section>
+   elements the renderer emits too, which drops ~200px of dead space between
+   every block. Same trap as the replay, backtest and roadmap views. */
+section.mb-section, section.mb-block { padding: 0; }
+.mb-page { max-width: 760px; margin: 0 auto; padding: 8px 0 60px; }
+.mb-loading { color: var(--ink-3); font-size: 13.5px; padding: 40px 0; text-align: center; }
+
+.mb-kicker {
+  display: inline-block; font-family: var(--font-mono); font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal, #00adb5);
+  margin-bottom: 8px;
+}
+
+/* ---- the stale warning: deliberately loud ---- */
+.mb-stale {
+  border: 1px solid rgba(245, 197, 66, 0.4); background: rgba(245, 197, 66, 0.08);
+  border-radius: 10px; padding: 12px 15px; margin-bottom: 18px;
+  font-size: 13px; color: var(--ink-1); line-height: 1.6;
+}
+.mb-stale b { color: var(--ink-0); }
+
+/* ---- dashboard card ---- */
+.mb-card {
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+  padding: 18px 20px; margin-bottom: 18px;
+}
+.mb-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.mb-card-head h3 { font-size: 17px; color: var(--ink-0); margin: 0; line-height: 1.35; }
+.mb-when { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; padding-top: 3px; }
+.mb-when.is-stale { color: #f5c542; }
+
+.mb-standfirst { font-size: 13.5px; color: var(--ink-2); line-height: 1.65; margin: 10px 0 0; }
+
+.mb-card-points { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.mb-card-points li { font-size: 13px; color: var(--ink-2); line-height: 1.6; padding-left: 13px; position: relative; }
+.mb-card-points li::before { content: ''; position: absolute; left: 0; top: 8px; width: 4px; height: 4px; border-radius: 50%; background: var(--teal, #00adb5); }
+.mb-card-points b { color: var(--ink-0); }
+
+.mb-next {
+  display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  padding: 10px 13px; border-radius: 9px; background: var(--bg-1); border: 1px solid var(--line-soft);
+}
+.mb-next-time { font-family: var(--font-mono); font-size: 12px; color: var(--teal, #00adb5); font-weight: 700; white-space: nowrap; }
+.mb-next-event { font-size: 12.5px; color: var(--ink-1); }
+
+.mb-more {
+  display: inline-block; margin-top: 14px; font-size: 12.5px;
+  color: var(--ink-2); text-decoration: none;
+}
+.mb-more:hover { color: var(--teal, #00adb5); }
+
+/* ---- full page ---- */
+.mb-head { padding: 28px 0 22px; border-bottom: 1px solid var(--line-soft); margin-bottom: 26px; }
+.mb-head h1 { font-size: clamp(24px, 4vw, 33px); color: var(--ink-0); margin: 0 0 10px; line-height: 1.25; }
+.mb-head .mb-standfirst { font-size: 15px; margin: 0 0 12px; }
+.mb-meta { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); margin: 0; }
+.mb-meta.is-stale { color: #f5c542; }
+
+.mb-block { margin-bottom: 30px; }
+.mb-block h2 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--ink-3); font-weight: 700; margin: 0 0 14px;
+}
+
+.mb-points { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+.mb-points li { border-left: 2px solid var(--line); padding-left: 16px; }
+.mb-points b { display: block; font-size: 15px; color: var(--ink-0); margin-bottom: 6px; line-height: 1.4; }
+.mb-points p { font-size: 14px; color: var(--ink-2); line-height: 1.7; margin: 0; }
+
+.mb-cal { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px;
+  background: var(--line-soft); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.mb-cal li { display: flex; gap: 14px; padding: 13px 16px; background: var(--bg-2); }
+.mb-cal-time { font-family: var(--font-mono); font-size: 12px; color: var(--teal, #00adb5); font-weight: 700; white-space: nowrap; min-width: 82px; }
+.mb-cal-body { display: flex; flex-direction: column; gap: 3px; }
+.mb-cal-body b { font-size: 13.5px; color: var(--ink-0); }
+.mb-cal-body span { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
+
+.mb-note, .mb-warn {
+  border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; background: var(--bg-2);
+}
+.mb-warn { border-color: rgba(229, 72, 77, 0.3); background: rgba(229, 72, 77, 0.05); }
+.mb-note p, .mb-warn p { font-size: 14px; color: var(--ink-1); line-height: 1.7; margin: 0; }
+.mb-note h2, .mb-warn h2 { margin-bottom: 10px; }
+
+.mb-archive { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.mb-archive li { border-top: 1px solid var(--line-soft); padding-top: 14px; }
+.mb-archive-date { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-bottom: 4px; }
+.mb-archive b { font-size: 14px; color: var(--ink-0); }
+.mb-archive p { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin: 5px 0 0; }
+
+.mb-foot { border-top: 1px solid var(--line-soft); padding-top: 18px; }
+.mb-foot p { font-size: 11.5px; color: var(--ink-3); line-height: 1.6; margin: 0 0 7px; }
+.mb-foot b { color: var(--ink-2); }
+.mb-disclaimer { font-style: italic; }
+
+@media (max-width: 560px) {
+  .mb-cal li { flex-direction: column; gap: 4px; }
+  .mb-cal-time { min-width: 0; }
+}

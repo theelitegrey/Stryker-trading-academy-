@@ -53,6 +53,12 @@
 /assets/version.json
   Cache-Control: no-store
 
+# The pre-market brief is rewritten every session. A cached copy would show
+# yesterday's plan as today's, which is the one failure this feature exists to
+# avoid, so it revalidates on every request.
+/assets/market-brief.json
+  Cache-Control: public, max-age=0, must-revalidate
+
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
   X-Content-Type-Options: nosniff

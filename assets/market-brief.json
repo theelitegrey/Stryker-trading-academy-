@@ -1,0 +1,62 @@
+{
+  "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
+  "schema": 1,
+  "generatedAt": "2026-09-10T08:45:00Z",
+  "sessionDate": "2026-09-10",
+  "staleAfterHours": 30,
+  "headline": "Oil back over $100 into a two-day inflation print",
+  "standfirst": "Two sessions of selling on energy-driven inflation fear, a 10-year yield at a three-year high, and hike odds near 60% going into the Fed's blackout. PPI lands 08:30 ET today, CPI tomorrow.",
+  "bullets": [
+    {
+      "title": "The tape has been risk-off for two days, and the reason is oil",
+      "text": "Brent settled at $101.21 and WTI at $96.05 after renewed US–Iran hostilities, with Brent back above $100 for the first time since July. The Dow lost more than 600 points Tuesday and over 400 more Wednesday; the S&P fell 0.5% and the Nasdaq 100 0.3% on Wednesday. This is not a growth scare — it is an inflation scare arriving four days before an FOMC meeting."
+    },
+    {
+      "title": "Rates are the transmission mechanism to watch",
+      "text": "The 10-year yield touched roughly 4.85%, its highest since late 2023, and did so even as the Treasury announced it will buy back up to $6bn of 10- to 20-year debt today. A buyback that fails to pull yields down is a signal in itself. If yields press higher through the release, index futures have been following."
+    },
+    {
+      "title": "The market is pricing a hike, and the Fed is not united",
+      "text": "CME FedWatch has been showing roughly 60% odds of a 25bp increase at the 15–16 September meeting, up sharply after a strong August payrolls report. DBS notes officials went into the blackout period divided on whether to move. A hawkish surprise in today's or tomorrow's data has an unusually direct path into price."
+    },
+    {
+      "title": "Futures are flat-to-firm into the number",
+      "text": "Early Thursday the Dow was up about 0.34%, the S&P about 0.19% and the Nasdaq 100 close to unchanged. That is positioning, not conviction. A quiet pre-market ahead of a release that the whole week has been building toward usually means thin liquidity above and below."
+    },
+    {
+      "title": "Dollar soft, gold firm",
+      "text": "The dollar index has been drifting around 98.70 despite the hawkish repricing, and gold has pushed up near $4,408 on the softer dollar rather than on the geopolitics. Worth noting the divergence: if the dollar were confirming the rate story, gold would not be where it is."
+    }
+  ],
+  "calendar": [
+    { "time": "08:30 ET", "event": "August PPI", "note": "Headline expected around 5.3% year-over-year from 4.7%; core around 4.6% from 4.2%. The high-impact release of the session." },
+    { "time": "08:30 ET", "event": "Initial jobless claims", "note": "Same print time as PPI, so it will be read through PPI rather than on its own." },
+    { "time": "10:00 ET", "event": "Wholesale trade, existing home sales", "note": "Second-tier, but lands inside the New York morning window." },
+    { "time": "Pre-open", "event": "ECB rate decision", "note": "Moves EUR and can set the tone for the dollar before the US data." },
+    { "time": "After hours", "event": "Oracle, Adobe, Macy's earnings", "note": "Oracle and Adobe matter for Nasdaq breadth into Friday." },
+    { "time": "Tomorrow", "event": "August CPI", "note": "Headline seen holding at 3.4%, core easing to 2.4%. The bigger of the two." }
+  ],
+  "sessionNote": "Two 08:30 releases and an ECB decision before the bell is a poor morning for assuming a clean opening range. If your model needs the first fifteen minutes to be orderly, this is a day where waiting for the reaction to settle costs you very little and saves you the fake move.",
+  "watchOut": "The single trap today is treating the 08:30 spike as displacement. A release-driven wick through a level is not the same as a sweep with intent behind it, and models built on liquidity runs misfire badly on data prints. If your playbook does not have a rule about trading around scheduled releases, today is the day to add one.",
+  "sources": [
+    { "name": "FXStreet", "note": "index futures, PPI expectations, dollar" },
+    { "name": "Benzinga", "note": "oil settlement, Treasury buyback, session recaps" },
+    { "name": "Bloomberg Daybreak Asia", "note": "overnight Asia and yields" },
+    { "name": "Yahoo Finance", "note": "Treasury curve, single-stock moves" },
+    { "name": "Economy Middle East", "note": "gold" }
+  ],
+  "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
+  "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
+  "archive": [
+    {
+      "date": "2026-09-09",
+      "headline": "Oil tops $100, Dow sheds 400 more",
+      "summary": "Brent broke $100 for the first time since July and the 10-year yield hit a three-year high. Amgen fell over 10% on a failed cardiovascular trial and software names sold off. Fear and Greed stayed in the Fear zone. Barclays nonetheless lifted its year-end S&P target to 7,950."
+    },
+    {
+      "date": "2026-09-08",
+      "headline": "Weekend strikes push energy up, futures down",
+      "summary": "A weekend exchange between the US and Iran lifted energy and pulled index futures lower. Strong August labour data pushed September hike odds above 60%. New Canadian tariffs added a second inflation channel."
+    }
+  ]
+}

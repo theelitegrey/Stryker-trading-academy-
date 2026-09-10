@@ -147,11 +147,19 @@
     return true;
   }
 
+  // The IANA identifier is the wrong thing to print. It is a database key, not
+  // a label: a reader in Kolkata was being shown "Asia/Calcutta" — a deprecated
+  // alias for a city that changed its name in 2001 — where they expected a
+  // clock. Ask Intl for the short name instead and get "IST", "BST", "EDT" or
+  // "GMT+5:30", which is what people actually say.
   function zoneName() {
-    if (TZMODE === 'ny') return 'New York';
+    const zone = TZMODE === 'ny' ? NY_TZ : undefined;
     try {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'your time';
-    } catch (e) { return 'your time'; }
+      const part = new Intl.DateTimeFormat(undefined, { timeZone: zone, timeZoneName: 'short' })
+        .formatToParts(new Date()).find((p) => p.type === 'timeZoneName');
+      if (part && part.value) return part.value;
+    } catch (e) { /* fall through */ }
+    return TZMODE === 'ny' ? 'New York' : 'your time';
   }
 
   function countdown(ms) {

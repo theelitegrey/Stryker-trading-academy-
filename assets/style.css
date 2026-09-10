@@ -6846,7 +6846,18 @@ body.tour-open { overflow: hidden; }
 /* The site-wide `section { padding: 96px 0 }` applies to the <section>
    elements the renderer emits too, which drops ~200px of dead space between
    every block. Same trap as the replay, backtest and roadmap views. */
+
+/* WHY THESE ARE WRITTEN AS `section.x` AND NOT `.x`
+   The global `section { padding: 96px 0 }` (line ~311) catches any <section> a
+   renderer emits, so each module neutralises it. But `section.mb-block` has a
+   higher specificity than a component's own `.mb-note` rule, so the
+   neutraliser was ALSO wiping the padding these cards declare — four of them
+   rendered with their text flush against their own border. Any component in
+   this module that wants padding has to claim it back at the same specificity.
+   ec-test asserts this: a section with a visible background or border and zero
+   padding fails the suite. */
 section.mb-section, section.mb-block { padding: 0; }
+section.mb-note, section.mb-warn { padding: 18px 20px; }
 .mb-page { max-width: 760px; margin: 0 auto; padding: 8px 0 60px; }
 .mb-loading { color: var(--ink-3); font-size: 13.5px; padding: 40px 0; text-align: center; }
 
@@ -6977,7 +6988,8 @@ section.mb-section, section.mb-block { padding: 0; }
 /* The global `section { padding: 96px 0 }` catches anything a renderer emits
    as a <section>, which on a dashboard page is a page and a half of dead
    space. Opt these out explicitly. */
-section.mm-section, section.mm-block, section.mm-strip { padding: 0; }
+section.mm-section, section.mm-block { padding: 0; }
+section.mm-strip { padding: 20px 22px; }
 
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
@@ -7151,7 +7163,7 @@ section.mm-section, section.mm-block, section.mm-strip { padding: 0; }
   .mm-axis-note { margin-left: 0; }
 }
 @media (max-width: 560px) {
-  .mm-strip { padding: 16px; }
+  section.mm-strip { padding: 16px; }
   .mm-row-name { min-width: 132px; font-size: 12px; }
   .mm-ticker { display: none; }
   .mm-price { display: none; }
@@ -7195,7 +7207,8 @@ section.mm-section, section.mm-block, section.mm-strip { padding: 0; }
    ECONOMIC CALENDAR  (assets/econ-calendar.js)
    ============================================================ */
 
-section.ec-section, section.ec-block, section.ec-day, section.ec-strip { padding: 0; }
+section.ec-section, section.ec-block, section.ec-day { padding: 0; }
+section.ec-strip { padding: 18px 20px; }
 
 .ec-section { max-width: 1120px; margin: 0 auto; }
 .ec-page { padding: 4px 0 60px; }

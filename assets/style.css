@@ -7562,3 +7562,158 @@ section.ec-strip { padding: 18px 20px; }
     transform: none;
   }
 }
+
+/* ============================================================
+   PROP FIRM RISK PANEL  (assets/journal-propfirm-risk.js)
+   ============================================================
+   Severity is a three-band scale — comfortable, tight, critical — and every
+   band prints its word alongside the colour and the number. A trader checking
+   headroom on a phone in daylight, or with any red-green deficiency, must get
+   the same answer as everyone else. */
+
+:root {
+  --pfr-ok:    #03c988;
+  --pfr-warn:  #d9a441;
+  --pfr-crit:  #e5484d;
+}
+:root[data-theme="light"] {
+  --pfr-ok:    #07996a;
+  --pfr-warn:  #a8761d;
+  --pfr-crit:  #c9353a;
+}
+
+.pfr-kicker {
+  display: block; font-size: 10px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 700; margin-bottom: 5px;
+}
+
+/* ---- the cross-account strip ---- */
+.pfr-strip {
+  background: var(--bg-2); border: 1px solid var(--line); border-left-width: 3px;
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 18px;
+}
+.pfr-strip.is-ok { border-left-color: var(--pfr-ok); }
+.pfr-strip.is-warn { border-left-color: var(--pfr-warn); }
+.pfr-strip.is-critical { border-left-color: var(--pfr-crit); }
+.pfr-strip-lead b { font-size: 15px; color: var(--ink-0); margin-right: 9px; }
+.pfr-strip-lead span:not(.pfr-kicker) { font-size: 13px; color: var(--ink-2); }
+.pfr-strip.is-critical .pfr-strip-lead span:not(.pfr-kicker) { color: var(--pfr-crit); font-weight: 600; }
+.pfr-strip-rest { list-style: none; margin: 12px 0 0; padding: 12px 0 0; border-top: 1px solid var(--line); display: grid; gap: 7px; }
+.pfr-strip-rest li { display: flex; align-items: baseline; gap: 10px; font-size: 12.5px; }
+.pfr-strip-rest span { color: var(--ink-1, #ccc); min-width: 120px; }
+.pfr-strip-rest em { color: var(--ink-3); font-style: normal; flex: 1; }
+.pfr-strip-rest b { color: var(--ink-0); font-variant-numeric: tabular-nums; }
+
+/* ---- setup prompt ---- */
+.pfr-setup {
+  border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px;
+  margin: 14px 0; background: var(--bg-3);
+}
+.pfr-setup b { display: block; font-size: 13.5px; color: var(--ink-0); margin-bottom: 6px; }
+.pfr-setup p { font-size: 12.5px; line-height: 1.65; color: var(--ink-2); margin: 0 0 12px; max-width: 70ch; }
+
+/* ---- panel ---- */
+.pfr-panel { margin: 14px 0 4px; padding-top: 14px; border-top: 1px solid var(--line); }
+
+.pfr-breach {
+  background: color-mix(in srgb, var(--pfr-crit) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pfr-crit) 42%, transparent);
+  border-radius: 12px; padding: 13px 15px; margin-bottom: 14px;
+}
+.pfr-breach b { color: var(--ink-0); font-size: 13.5px; }
+.pfr-breach ul { margin: 8px 0; padding-left: 18px; }
+.pfr-breach li { font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.pfr-breach p { font-size: 11.5px; color: var(--ink-3); margin: 8px 0 0; line-height: 1.6; }
+
+.pfr-binding {
+  border-radius: 12px; padding: 15px 17px; margin-bottom: 14px;
+  background: var(--bg-3); border: 1px solid var(--line); border-left-width: 3px;
+}
+.pfr-binding.is-ok { border-left-color: var(--pfr-ok); }
+.pfr-binding.is-warn { border-left-color: var(--pfr-warn); }
+.pfr-binding.is-critical { border-left-color: var(--pfr-crit); }
+.pfr-binding h4 { margin: 0 0 8px; font-size: 14px; color: var(--ink-0); }
+.pfr-binding-num { font-size: 26px; font-weight: 700; color: var(--ink-0); font-variant-numeric: tabular-nums; line-height: 1.1; }
+.pfr-binding-num em { font-size: 12px; font-weight: 400; font-style: normal; color: var(--ink-3); margin-left: 8px; }
+.pfr-binding-bar { height: 6px; border-radius: 3px; background: var(--bg-1); overflow: hidden; margin: 11px 0 8px; }
+.pfr-binding-bar i { display: block; height: 100%; border-radius: 3px; background: var(--pfr-ok); transition: width .5s cubic-bezier(.22,1,.36,1); }
+.pfr-binding.is-warn .pfr-binding-bar i { background: var(--pfr-warn); }
+.pfr-binding.is-critical .pfr-binding-bar i { background: var(--pfr-crit); }
+.pfr-binding-word { font-size: 11.5px; color: var(--ink-3); }
+.pfr-binding.is-critical .pfr-binding-word { color: var(--pfr-crit); font-weight: 600; }
+
+.pfr-meters { display: grid; gap: 9px; margin-bottom: 14px; }
+.pfr-meter { display: grid; grid-template-columns: 104px 1fr auto; align-items: center; gap: 11px; }
+.pfr-meter-label { font-size: 12px; color: var(--ink-2); }
+.pfr-meter-track { height: 5px; border-radius: 3px; background: var(--bg-3); overflow: hidden; }
+.pfr-meter-track i { display: block; height: 100%; border-radius: 3px; background: var(--pfr-ok); transition: width .5s cubic-bezier(.22,1,.36,1); }
+.pfr-meter.is-warn .pfr-meter-track i { background: var(--pfr-warn); }
+.pfr-meter.is-critical .pfr-meter-track i { background: var(--pfr-crit); }
+.pfr-meter-val { font-size: 12px; color: var(--ink-0); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pfr-meter-val em { font-style: normal; color: var(--ink-3); font-size: 11px; margin-left: 5px; }
+
+.pfr-rows { display: grid; gap: 8px; margin-bottom: 14px; }
+.pfr-row { display: grid; grid-template-columns: 104px 1fr; gap: 11px; font-size: 12.5px; align-items: baseline; }
+.pfr-row-k { color: var(--ink-3); }
+.pfr-row-v { color: var(--ink-2); line-height: 1.6; }
+.pfr-row-v b { color: var(--ink-0); }
+.pfr-row.is-warn .pfr-row-v b { color: var(--pfr-warn); }
+
+.pfr-caveat {
+  font-size: 11.5px; line-height: 1.65; color: var(--ink-3); margin: 12px 0 0;
+  padding: 11px 13px; border-radius: 10px; background: var(--bg-3); max-width: 76ch;
+}
+.pfr-caveat b { color: var(--ink-2); }
+
+.pfr-foot {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  flex-wrap: wrap; margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--line);
+  font-size: 11.5px; color: var(--ink-3);
+}
+.pfr-edit { background: none; border: 0; color: var(--teal, #00adb5); font-size: 11.5px; cursor: pointer; font-family: inherit; padding: 0; }
+.pfr-edit:hover { text-decoration: underline; }
+
+/* ---- sizer ---- */
+.pfr-sizer {
+  display: grid; grid-template-columns: auto 120px 1fr; gap: 10px; align-items: center;
+  padding: 13px 15px; border-radius: 12px; background: var(--bg-3); margin-bottom: 4px;
+}
+.pfr-sizer-lab { font-size: 12px; color: var(--ink-2); }
+.pfr-risk { width: 100%; }
+.pfr-sizer-hint, .pfr-sizer-out { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+.pfr-sizer-out b { color: var(--ink-0); }
+.pfr-sizer-out.is-stop b { color: var(--pfr-crit); }
+.pfr-sizer-note { grid-column: 1 / -1; font-size: 11px; color: var(--ink-3); }
+
+/* ---- rules editor ---- */
+.pfr-form { margin: 14px 0 4px; padding: 16px; border-radius: 12px; background: var(--bg-3); border: 1px solid var(--line); }
+.pfr-form-warn {
+  font-size: 12px; line-height: 1.6; color: var(--ink-2); margin-bottom: 14px;
+  padding: 11px 13px; border-radius: 10px;
+  background: color-mix(in srgb, var(--pfr-warn) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--pfr-warn) 38%, transparent);
+}
+.pfr-form-warn b { color: var(--ink-0); }
+.pfr-f-lab { display: block; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.pfr-f-note { font-size: 11.5px; color: var(--ink-3); margin: 6px 0 14px; line-height: 1.55; }
+.pfr-f-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); margin-bottom: 14px; }
+.pfr-f-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; color: var(--ink-3); }
+.pfr-f-check { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--ink-2); margin-bottom: 10px; line-height: 1.5; }
+.pfr-f-check input { margin-top: 2px; flex: none; }
+.pfr-f-confirm b { color: var(--ink-0); }
+.pfr-form-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+@media (max-width: 620px) {
+  .pfr-meter { grid-template-columns: 88px 1fr; }
+  .pfr-meter-val { grid-column: 1 / -1; text-align: right; }
+  .pfr-row { grid-template-columns: 1fr; gap: 2px; }
+  .pfr-sizer { grid-template-columns: 1fr; }
+  .pfr-binding-num { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pfr-binding-bar i, .pfr-meter-track i { transition: none; }
+}
+@media (forced-colors: active) {
+  .pfr-binding-bar i, .pfr-meter-track i { background: CanvasText; }
+}
+.pfr-f-help { display: block; font-size: 11px; line-height: 1.5; color: var(--ink-3); font-style: normal; margin-top: 2px; }

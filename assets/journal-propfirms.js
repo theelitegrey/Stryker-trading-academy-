@@ -107,6 +107,9 @@ function renderPropFirmsTab(){
   const countEl = document.getElementById('pf-stat-firms');
   if (countEl) countEl.textContent = PF_DATA.firms.length + (funded ? ' · ' + funded + ' funded' : '');
 
+  const strip = document.getElementById('pf-risk-strip');
+  if (strip && typeof pfRiskStrip === 'function') strip.innerHTML = pfRiskStrip();
+
   renderPfPayoutTicker(fmt);
   renderPfEntryPanel();
   renderPfCashflowChart();
@@ -399,13 +402,17 @@ function renderPfFirmCards(fmt){
           '</div>';
         }).join('') + '</details>' : '') +
 
+      (typeof pfRiskPanel === 'function' ? pfRiskPanel(firm) : '') +
+
       '<div class="pf-card-actions">' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="open-expense">+ Fee</button>' +
         '<button type="button" class="btn btn-ghost btn-sm" data-act="open-payout">+ Payout</button>' +
         '<button type="button" class="pf-delete-firm" data-act="del-firm" title="Delete firm">Remove</button>' +
       '</div>' +
 
-      (openForm ?
+      (openForm === 'rules' && typeof pfRulesForm === 'function' ? pfRulesForm(firm) : '') +
+
+      (openForm && openForm !== 'rules' ?
         '<div class="pf-inline-form">' +
           (openForm === 'expense'
             ? '<select class="journal-select pf-f-label">' +
@@ -436,6 +443,10 @@ function pfHandleClick(e){
   const card = e.target.closest('.pf-card');
   const firm = card ? pfFindFirm(card.dataset.firm) : null;
   const act = btn.dataset.act;
+
+  // The risk panel owns its own actions. It returns true when it handled one,
+  // so a rules button never falls through to the fee/payout branches below.
+  if (typeof pfRiskHandleClick === 'function' && pfRiskHandleClick(act, firm, card)) return;
 
   if (act === 'open-expense' || act === 'open-payout') {
     PF_OPEN_FORMS = {};
@@ -477,6 +488,11 @@ function pfHandleClick(e){
 }
 
 function pfHandleChange(e){
+  const card0 = e.target.closest('.pf-card');
+  const firm0 = card0 ? pfFindFirm(card0.dataset.firm) : null;
+  if (typeof pfRiskHandleChange === 'function' && firm0
+      && pfRiskHandleChange(e.target, firm0, card0)) return;
+
   const sel = e.target.closest('.pf-status-select');
   if (!sel) return;
   const card = e.target.closest('.pf-card');
@@ -511,6 +527,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!tab) return;
   tab.addEventListener('click', pfHandleClick);
   tab.addEventListener('change', pfHandleChange);
+  // The sizer recomputes as you type; 'change' alone only fires on blur,
+  // which makes a number field that answers a question feel broken.
+  tab.addEventListener('input', (e) => {
+    if (!e.target.classList || !e.target.classList.contains('pfr-risk')) return;
+    pfHandleChange(e);
+  });
 
   const addBtn = document.getElementById('pf-add-btn');
   if (addBtn) addBtn.addEventListener('click', pfAddFirm);

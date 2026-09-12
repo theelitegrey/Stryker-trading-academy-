@@ -2,9 +2,14 @@
 
 Ad copy for `trade-journal.html`. Every claim below is something the page
 actually does today; if a feature changes, the line that sells it changes with
-it. Character counts are for the tweet body including the URL as typed —
-X counts any link as 23 characters, so the real count is lower than the raw
-length wherever a link appears.
+it.
+
+Every tweet here has been checked against the 280 limit using X's *weighted*
+count, not a raw character count: a link always counts as 23 however long it
+is, and an emoji counts as 2. Six emoji bullets therefore cost 12 characters
+before a single word — which is why the emoji ads carry a shorter headline
+than the plain ones. Re-check with that rule if you edit a line; a naive
+`len()` will tell you a 290-character tweet fits.
 
 Ground rules used throughout:
 
@@ -109,6 +114,66 @@ firms tracked.
 
 Attach a card exported from the Dashboard tab. Choose a modest month — a
 four-figure card sells the tool, a screenshot of a blow-up month sells nothing.
+
+---
+
+## Emoji + bullets — the feature-list ads
+
+These lead with the feature list rather than a hook. They scan faster in a
+crowded timeline and carry the whole product in one post, at the cost of the
+tension the hook ads open with. One emoji per line, always the same meaning
+across every ad: 📊 metrics, 🎯 edge breakdown, 🧠 the coach, 🛡️ prop firm
+rules, 💸 money in and out, 📥 getting data in.
+
+### Everything it does
+
+> 📓 Your trading, finally explained.
+>
+> 📊 Expectancy, profit factor, drawdown
+> 🎯 Edge by setup, session & day of week
+> 🧠 Revenge trades & risk creep, flagged
+> 🛡️ Prop firm headroom before you breach
+> 💸 Fees vs payouts, netted
+> 📥 CSV import + broker sync
+>
+> strykertrading.com
+
+The default of this group. Six lines is the ceiling — a seventh reads as a
+spec sheet and the reader stops at three.
+
+### Prop firm
+
+> 🚨 The rule that ends your prop account is the one you stopped counting.
+>
+> The Stryker Trade Journal tracks it:
+>
+> 📉 Static, trailing closed or intraday drawdown
+> ⏰ Daily loss limit, on your firm's reset
+> 🛡️ Headroom left before the next trade breaches
+>
+> strykertrading.com
+
+### Privacy
+
+> 🔒 Every other "AI trading coach" wants your statements uploaded.
+>
+> Ours never sees them.
+>
+> 🧠 Early exits & overtrading, spotted
+> 📉 Expectancy and drawdown, computed
+> 🖼️ P&L cards, drawn on your machine
+>
+> All of it on your device.
+>
+> strykertrading.com
+
+### Thread opener, if you want the emoji version pinned
+
+> 📓 We rebuilt the trade journal.
+>
+> Here's everything it now does 🧵
+
+Follows into tweets 2–6 of the thread below unchanged.
 
 ---
 

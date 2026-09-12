@@ -1,62 +1,121 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-10T08:45:00Z",
-  "sessionDate": "2026-09-10",
+  "generatedAt": "2026-09-12T06:10:00Z",
+  "sessionDate": "2026-09-14",
   "staleAfterHours": 30,
-  "headline": "Oil back over $100 into a two-day inflation print",
-  "standfirst": "Two sessions of selling on energy-driven inflation fear, a 10-year yield at a three-year high, and hike odds near 60% going into the Fed's blackout. PPI lands 08:30 ET today, CPI tomorrow.",
+  "goodUntil": "2026-09-14T11:00:00Z",
+  "headline": "Core CPI ran hot into an FOMC that is now 90% priced to hike",
+  "standfirst": "Stocks closed the week higher anyway, the 10-year is at 4.96% — the highest since 2023 — and Wednesday brings a decision, a dot plot and a press conference. The BoE follows Thursday, the BoJ Friday.",
   "bullets": [
     {
-      "title": "The tape has been risk-off for two days, and the reason is oil",
-      "text": "Brent settled at $101.21 and WTI at $96.05 after renewed US–Iran hostilities, with Brent back above $100 for the first time since July. The Dow lost more than 600 points Tuesday and over 400 more Wednesday; the S&P fell 0.5% and the Nasdaq 100 0.3% on Wednesday. This is not a growth scare — it is an inflation scare arriving four days before an FOMC meeting."
+      "title": "The inflation data did not cooperate, and the market bought it anyway",
+      "text": "August CPI held at 3.4% year-over-year as expected, but core rose 0.3% on the month against 0.2% expected — a four-month high. PPI the day before came in at 5.4% year-over-year versus 5.3% expected, with July revised up. The S&P still added 0.86% Friday to close at 7,656.98, the Dow 0.98% and the Nasdaq 0.96%, and the VIX fell 11% to 15.84. Equities are trading the fact that the hike is now known, not the inflation that caused it."
     },
     {
-      "title": "Rates are the transmission mechanism to watch",
-      "text": "The 10-year yield touched roughly 4.85%, its highest since late 2023, and did so even as the Treasury announced it will buy back up to $6bn of 10- to 20-year debt today. A buyback that fails to pull yields down is a signal in itself. If yields press higher through the release, index futures have been following."
+      "title": "The hike is priced at nine-in-ten, and the curve has already moved",
+      "text": "Futures odds went from roughly 61% before PPI to 72% after it and 86–91% after CPI — a step to 3.75–4.00%. Meanwhile the 10-year finished at 4.96% after touching 4.97%, its highest since late 2023, the 30-year at 5.35% and the 2-year at 4.63%, leaving 2s10s at 33bp and 3m10y at 89bp. The long end moved more than the front, which is the market saying it believes the inflation more than it believes any one meeting. When a move is priced this far in advance, the tradeable content sits in the projections and the press conference, not in the 14:00 ET statement."
     },
     {
-      "title": "The market is pricing a hike, and the Fed is not united",
-      "text": "CME FedWatch has been showing roughly 60% odds of a 25bp increase at the 15–16 September meeting, up sharply after a strong August payrolls report. DBS notes officials went into the blackout period divided on whether to move. A hawkish surprise in today's or tomorrow's data has an unusually direct path into price."
+      "title": "Oil gave back the geopolitical premium",
+      "text": "WTI topped $100 midweek and then fell 2.37% Friday to $100.05 on reports easing Strait of Hormuz fears; Brent sat at $104.61. Energy was the channel that pushed this inflation scare in the first place, so an oil tape that stops going up removes the most direct route to another upside surprise — and removes it right before the meeting."
     },
     {
-      "title": "Futures are flat-to-firm into the number",
-      "text": "Early Thursday the Dow was up about 0.34%, the S&P about 0.19% and the Nasdaq 100 close to unchanged. That is positioning, not conviction. A quiet pre-market ahead of a release that the whole week has been building toward usually means thin liquidity above and below."
+      "title": "The ECB has already gone, and two more central banks follow this week",
+      "text": "The ECB hiked 25bp on 10 September, taking the deposit rate to 2.50% effective the 16th, with staff forecasting 3.0% inflation this year falling to 2.1% by 2028. Markets price roughly 79% odds of another move on 29 October. The Bank of England decides Thursday (a hold at 3.75% is expected) and the Bank of Japan Friday, where a move to 1.25% is the base case. Three decisions in three days is a week that does not let currency positions sit."
     },
     {
-      "title": "Dollar soft, gold firm",
-      "text": "The dollar index has been drifting around 98.70 despite the hawkish repricing, and gold has pushed up near $4,408 on the softer dollar rather than on the geopolitics. Worth noting the divergence: if the dollar were confirming the rate story, gold would not be where it is."
+      "title": "The dollar is the thing that has not confirmed",
+      "text": "DXY finished around 99.11 and gold at $4,408.90 despite a full week of hawkish repricing. If rates were the whole story the dollar would be higher and gold lower. Either the dollar catches up this week or the rate move is closer to done than the headlines suggest — that divergence is the cleanest single tell on the board right now."
     }
   ],
   "calendar": [
-    { "time": "08:30 ET", "event": "August PPI", "note": "Headline expected around 5.3% year-over-year from 4.7%; core around 4.6% from 4.2%. The high-impact release of the session." },
-    { "time": "08:30 ET", "event": "Initial jobless claims", "note": "Same print time as PPI, so it will be read through PPI rather than on its own." },
-    { "time": "10:00 ET", "event": "Wholesale trade, existing home sales", "note": "Second-tier, but lands inside the New York morning window." },
-    { "time": "Pre-open", "event": "ECB rate decision", "note": "Moves EUR and can set the tone for the dollar before the US data." },
-    { "time": "After hours", "event": "Oracle, Adobe, Macy's earnings", "note": "Oracle and Adobe matter for Nasdaq breadth into Friday." },
-    { "time": "Tomorrow", "event": "August CPI", "note": "Headline seen holding at 3.4%, core easing to 2.4%. The bigger of the two." }
+    {
+      "time": "Mon",
+      "event": "China industrial production and retail sales",
+      "note": "Nothing major from the US. A quiet Monday before a loaded week usually means range, not trend."
+    },
+    {
+      "time": "Tue",
+      "event": "German and Eurozone ZEW, US Empire State manufacturing",
+      "note": "FOMC begins behind closed doors. Nothing here is big enough to break structure — the last such session of the week."
+    },
+    {
+      "time": "Wed 08:30 ET",
+      "event": "US retail sales and import/export prices (August)",
+      "note": "The last hard consumer read the committee sees before it votes, and it prints five and a half hours ahead of them. Import prices land in the same minute and matter more than usual with the tariff channel live."
+    },
+    {
+      "time": "Wed 14:00 ET",
+      "event": "FOMC decision and projections",
+      "note": "18:00 UTC. The dots are the event, not the hike. Press conference 14:30 ET."
+    },
+    {
+      "time": "Thu 07:00 ET",
+      "event": "Bank of England decision",
+      "note": "11:00 UTC. Hold at 3.75% expected — the vote split is where the GBP move comes from."
+    },
+    {
+      "time": "Thu 08:30 ET",
+      "event": "US jobless claims, Philadelphia Fed, housing starts, building permits",
+      "note": "Four releases into one print time, the morning after an FOMC. Thin book, wide quotes."
+    },
+    {
+      "time": "Fri ~03:00 UTC",
+      "event": "Bank of Japan decision",
+      "note": "A move to 1.25% from 1.00% is the base case. Watch the yen, then watch what the yen does to Japanese equities in dollars."
+    },
+    {
+      "time": "Fri 09:15 ET",
+      "event": "US industrial production",
+      "note": "Followed by Conference Board leading indicators. A quiet close to a loud week."
+    }
   ],
-  "sessionNote": "Two 08:30 releases and an ECB decision before the bell is a poor morning for assuming a clean opening range. If your model needs the first fifteen minutes to be orderly, this is a day where waiting for the reaction to settle costs you very little and saves you the fake move.",
-  "watchOut": "The single trap today is treating the 08:30 spike as displacement. A release-driven wick through a level is not the same as a sweep with intent behind it, and models built on liquidity runs misfire badly on data prints. If your playbook does not have a rule about trading around scheduled releases, today is the day to add one.",
+  "sessionNote": "Monday and Tuesday are the only two sessions this week with no scheduled US event large enough to break structure. If you need clean conditions to take a setup, they are at the front of the week, not the back. From Wednesday 14:00 ET onward you are trading inside a three-day central bank window across three currencies, and the overnight gaps that come out of a BoJ decision are not the kind you manage with a stop sitting at yesterday's low.",
+  "watchOut": "The trap this week is the FOMC itself being a non-event. A hike priced at nine-in-ten does not move price when it lands — the move comes from the dots and the press conference half an hour later, and it frequently comes in the opposite direction to the first reaction. If your rule is to stand aside for scheduled releases, extend it through 15:00 ET Wednesday rather than stopping at the statement.",
   "sources": [
-    { "name": "FXStreet", "note": "index futures, PPI expectations, dollar" },
-    { "name": "Benzinga", "note": "oil settlement, Treasury buyback, session recaps" },
-    { "name": "Bloomberg Daybreak Asia", "note": "overnight Asia and yields" },
-    { "name": "Yahoo Finance", "note": "Treasury curve, single-stock moves" },
-    { "name": "Economy Middle East", "note": "gold" }
+    {
+      "name": "Reuters",
+      "note": "CPI and PPI detail, rate probabilities"
+    },
+    {
+      "name": "Forbes",
+      "note": "post-CPI hike odds"
+    },
+    {
+      "name": "BMO Economics",
+      "note": "core CPI composition"
+    },
+    {
+      "name": "Carson Group",
+      "note": "services ex-shelter run rate"
+    },
+    {
+      "name": "European Central Bank",
+      "note": "10 September decision and staff projections"
+    },
+    {
+      "name": "Business Standard",
+      "note": "Asia session, oil and the Hormuz reports"
+    }
   ],
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
     {
-      "date": "2026-09-09",
-      "headline": "Oil tops $100, Dow sheds 400 more",
-      "summary": "Brent broke $100 for the first time since July and the 10-year yield hit a three-year high. Amgen fell over 10% on a failed cardiovascular trial and software names sold off. Fear and Greed stayed in the Fear zone. Barclays nonetheless lifted its year-end S&P target to 7,950."
+      "date": "2026-09-11",
+      "headline": "Core CPI at a four-month high, hike odds jump to ~90%",
+      "summary": "Headline CPI held at 3.4% year-over-year but core rose 0.3% on the month against 0.2% expected. Energy added 2.1% and gasoline 3.9%; airline fares rose 2.7%. Equities rallied regardless — S&P +0.86%, VIX −11% — while the 10-year touched 4.97%."
     },
     {
-      "date": "2026-09-08",
-      "headline": "Weekend strikes push energy up, futures down",
-      "summary": "A weekend exchange between the US and Iran lifted energy and pulled index futures lower. Strong August labour data pushed September hike odds above 60%. New Canadian tariffs added a second inflation channel."
+      "date": "2026-09-10",
+      "headline": "PPI beats, ECB hikes to 2.50%",
+      "summary": "August PPI came in at 5.4% year-over-year against 5.3% expected with July revised up from flat. The ECB raised its deposit rate 25bp to 2.50% effective 16 September and cut its 2028 inflation forecast to 2.1%. September hike odds moved from 61% to 72%."
+    },
+    {
+      "date": "2026-09-09",
+      "headline": "Oil tops $100, Dow sheds 400 more",
+      "summary": "Brent broke $100 for the first time since July and the 10-year yield hit a three-year high. Amgen fell over 10% on a failed cardiovascular trial and software names sold off. Barclays nonetheless lifted its year-end S&P target to 7,950."
     }
   ]
 }

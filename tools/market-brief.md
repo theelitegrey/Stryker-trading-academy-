@@ -29,8 +29,9 @@ without one. A wrong level in a trading brief is worse than no level.
 "The market will do X" is not. This is context, not a call.
 
 **Staleness is handled for you, but do not rely on it.** The renderer hides the
-calendar and shows a warning once the brief is past `staleAfterHours`. That is a
-safety net for a missed day, not a licence to skip.
+calendar and shows a warning once the brief is past `goodUntil`, or past
+`staleAfterHours` if the file does not set one. That is a safety net for a missed
+day, not a licence to skip.
 
 ---
 
@@ -53,7 +54,8 @@ Then write the JSON. Fields:
 | --- | --- |
 | `generatedAt` | ISO timestamp, UTC. Drives the staleness check. |
 | `sessionDate` | The trading day the brief is for. |
-| `staleAfterHours` | 30 is right for a daily brief; it survives a weekend gap poorly on purpose. |
+| `staleAfterHours` | 30 is right for a daily brief. The fallback when `goodUntil` is absent. |
+| `goodUntil` | Optional. ISO UTC instant past which the brief is stale regardless of the hour count. See below. |
 | `headline` | Eight words or fewer. The one thing that defines the session. |
 | `standfirst` | Two sentences. What happened, what is due. |
 | `bullets[]` | Three to five. `title` is the claim, `text` is the evidence. |
@@ -99,3 +101,31 @@ it must be told, because neither is obvious from the schema:
 - Skip weekends and US market holidays. A Saturday brief with a Friday calendar
   is exactly the failure the staleness check exists to catch, and it is better
   not to produce it at all than to rely on the warning.
+
+## `goodUntil` — telling the banner when to stop shouting
+
+Every one of these three files carries `staleAfterHours`, and every one of them
+also accepts `goodUntil`: an ISO timestamp, UTC, past which the file is stale no
+matter what the hour count says.
+
+`goodUntil` exists because a fixed hour count cannot know the market is shut. A
+file published Friday morning with a 30-hour window turns red on Saturday
+afternoon and stays red until Monday, shouting "not refreshed" at a reader
+across a weekend in which nothing happened and nothing could. A banner that
+cries wolf every weekend is a banner people learn to scroll past, which is
+exactly when it stops protecting anyone.
+
+So set `goodUntil` to the instant the next session opens — the Sunday futures
+open, or the Monday cash open, whichever the file speaks to. The renderer
+prefers it and falls back to `staleAfterHours` for a file that does not say.
+
+Two rules:
+
+- **`goodUntil` is not a licence to publish old numbers.** It says "this file is
+  still current", so it is only honest when the content genuinely still is. A
+  weekend edition must be written as a weekend edition — the week that just
+  closed and the week ahead — not Friday's pre-market brief with a later expiry
+  bolted on.
+- **Never set it past the next scheduled regeneration.** If the job runs daily
+  before the London open, `goodUntil` should land at or before that open. A
+  `goodUntil` further out silences the one alarm that catches a missed run.

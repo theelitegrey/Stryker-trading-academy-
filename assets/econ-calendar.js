@@ -221,7 +221,12 @@
       .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0] || null;
   }
 
+  // Same rule as the brief and the map: the generator knows when the next
+  // session opens and may declare an explicit expiry, so a Friday file does
+  // not spend the whole weekend claiming to be out of date.
   function isStale() {
+    const until = Date.parse(DATA && DATA.goodUntil);
+    if (isFinite(until)) return Date.now() > until;
     const t = Date.parse(DATA && DATA.generatedAt);
     if (!isFinite(t)) return true;
     return (Date.now() - t) / 3600000 > (Number(DATA.staleAfterHours) || 30);

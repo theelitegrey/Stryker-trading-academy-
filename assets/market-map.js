@@ -112,7 +112,11 @@
     return (Date.now() - t) / 3600000;
   }
 
+  // See the note in market-brief.js: a fixed hour count cannot know the market
+  // is shut, so the generator may declare its own expiry instead.
   function isStale() {
+    const until = Date.parse(DATA && DATA.goodUntil);
+    if (isFinite(until)) return Date.now() > until;
     const limit = Number(DATA && DATA.staleAfterHours) || 30;
     return ageHours() > limit;
   }
@@ -131,7 +135,9 @@
   // today's. So the map keeps everything and dates it loudly.
   function staleBanner() {
     const hrs = Math.floor(ageHours());
-    const when = hrs >= 48 ? Math.floor(hrs / 24) + ' days old' : hrs + ' hours old';
+    // "built 43 hours old" is not English. Age reads as "ago"; the noun form
+    // belongs to the thing, not the act of building it.
+    const when = hrs >= 48 ? Math.floor(hrs / 24) + ' days ago' : hrs + ' hours ago';
     return '<div class="mm-stale"><b>These numbers have not been refreshed.</b> ' +
       'The map was built ' + esc(when) + ', so treat every figure as history rather than as ' +
       'the current board.</div>';

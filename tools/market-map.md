@@ -112,3 +112,31 @@ A scheduled agent session can do the whole thing. Two things it must be told:
   strip on the brief page and the brief itself describe the same board.
 - Skip weekends and US market holidays. The staleness banner exists to catch a
   missed day, not to excuse publishing a Saturday map of Friday's close.
+
+## `goodUntil` — telling the banner when to stop shouting
+
+Every one of these three files carries `staleAfterHours`, and every one of them
+also accepts `goodUntil`: an ISO timestamp, UTC, past which the file is stale no
+matter what the hour count says.
+
+`goodUntil` exists because a fixed hour count cannot know the market is shut. A
+file published Friday morning with a 30-hour window turns red on Saturday
+afternoon and stays red until Monday, shouting "not refreshed" at a reader
+across a weekend in which nothing happened and nothing could. A banner that
+cries wolf every weekend is a banner people learn to scroll past, which is
+exactly when it stops protecting anyone.
+
+So set `goodUntil` to the instant the next session opens — the Sunday futures
+open, or the Monday cash open, whichever the file speaks to. The renderer
+prefers it and falls back to `staleAfterHours` for a file that does not say.
+
+Two rules:
+
+- **`goodUntil` is not a licence to publish old numbers.** It says "this file is
+  still current", so it is only honest when the content genuinely still is. A
+  weekend edition must be written as a weekend edition — the week that just
+  closed and the week ahead — not Friday's pre-market brief with a later expiry
+  bolted on.
+- **Never set it past the next scheduled regeneration.** If the job runs daily
+  before the London open, `goodUntil` should land at or before that open. A
+  `goodUntil` further out silences the one alarm that catches a missed run.

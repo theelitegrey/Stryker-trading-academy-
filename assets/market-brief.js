@@ -48,7 +48,20 @@
     return (Date.now() - t) / 3600000;
   }
 
+  // WHY A FILE CAN DECLARE ITS OWN EXPIRY
+  //
+  // A fixed hour count cannot know the market is shut. With staleAfterHours
+  // alone a Friday brief turns red on Saturday afternoon and stays red all
+  // weekend, shouting "not refreshed" when nothing has happened and nothing
+  // can. A banner that cries wolf every weekend is a banner people learn to
+  // scroll past, which is exactly when it stops protecting anyone.
+  //
+  // So the generator, which knows when the next session opens, may set
+  // `goodUntil` to that instant. staleAfterHours stays as the fallback for a
+  // file that does not say.
   function isStale(brief) {
+    const until = Date.parse(brief && brief.goodUntil);
+    if (isFinite(until)) return Date.now() > until;
     const limit = Number(brief && brief.staleAfterHours) || 30;
     return ageHours(brief) > limit;
   }
@@ -64,7 +77,9 @@
 
   function staleBanner(brief) {
     const hrs = Math.floor(ageHours(brief));
-    const when = hrs >= 48 ? Math.floor(hrs / 24) + ' days old' : hrs + ' hours old';
+    // "built 43 hours old" is not English. Age reads as "ago"; the noun form
+    // belongs to the thing, not the act of building it.
+    const when = hrs >= 48 ? Math.floor(hrs / 24) + ' days ago' : hrs + ' hours ago';
     return '<div class="mb-stale">' +
       '<b>This brief has not been refreshed.</b> It was written ' + esc(when) +
       ', so today’s releases are not shown. Read the analysis as background, not as a plan for this session.' +

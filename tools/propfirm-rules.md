@@ -140,6 +140,54 @@ and `propfirmRules.evaluate()` and requires the same verdict — including the
 case that separates the rule types: a giveback that a trailing floor breaches
 and a static floor survives.
 
+## The news blackout guard
+
+`assets/propfirm-news.js` turns the economic calendar's high-impact releases
+into the restricted windows most firms enforce, and checks journal trades
+against them.
+
+### The timezone problem is the whole problem
+
+A journal trade stores a date and an `HH:MM` time and **nothing about what zone
+that time is in**. Members type whatever their platform showed — often broker
+server time, frequently UTC+2 or +3. The calendar stores UTC. A blackout window
+is four minutes wide.
+
+Comparing an unknown-zone time against a UTC instant can be wrong by hours, and
+both kinds of wrong answer here cause harm: a false accusation, or a clean bill
+of health for a trade that did breach. The test suite proves the stakes —
+*the same trade is clear in UTC and a breach in Berlin*.
+
+So the audit refuses to run until the member picks their journal's zone **and
+confirms it**, exactly like the rule limits. Upcoming windows need no journal
+time at all and are always available, which is why the feature splits in two.
+
+The zone picker canonicalises retired IANA names. Chromium reports
+`Asia/Calcutta`, which would otherwise appear as a second entry beside
+`Asia/Kolkata` — two options for one zone, one of them a name India stopped
+using in 2001. `PF_TZ_ALIASES` maps them; it is presentation only and changes
+no arithmetic.
+
+`zonedToUtc()` looks the offset up **twice**. The first lookup happens at the
+wrong instant and is an hour out across a DST boundary; re-reading at the
+corrected instant fixes it. That is why it is not a one-liner.
+
+### Three counts, always
+
+The audit reports how many trades were checked, how many had no time recorded,
+and how many fall outside the calendar's own range. A clean result that quietly
+skipped most of the journal is not a clean result, and the two gaps have
+different fixes — record entry times, versus wait for the calendar to cover
+that period. `clean` is `false` when nothing was checked at all.
+
+### What it does not do
+
+It does not rule on compliance. Firms differ on whether the restriction covers
+all high-impact news or only news affecting the instrument traded, on whether
+it is symmetric, and on whether a position merely *held* through the window
+counts. The defaults are the conservative reading and the panel says the
+decision is the firm's.
+
 ## Adding a rule
 
 1. Add the field to `defaultRules()`.

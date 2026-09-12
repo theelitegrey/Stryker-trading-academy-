@@ -28,6 +28,13 @@ const PF_RULES = (typeof propfirmRules !== 'undefined') ? propfirmRules : null;
 let PF_SIZER = {};   // firmId -> risk per unit, kept across re-renders
 let PF_SIM = {};     // firmId -> the last study, so a re-render does not re-run it
 const PF_SIM_MODULE = (typeof propfirmSim !== 'undefined') ? propfirmSim : null;
+const PF_NEWS_MODULE = (typeof propfirmNews !== 'undefined') ? propfirmNews : null;
+
+// The economic calendar, fetched once and shared by every firm card. null
+// means not fetched yet; false means the fetch failed and should not retry on
+// every render.
+let PF_CAL = null;
+let PF_CAL_TICK = null;
 
 function pfTrades() {
   return (typeof JOURNAL_TRADES !== 'undefined' && Array.isArray(JOURNAL_TRADES)) ? JOURNAL_TRADES : [];
@@ -170,6 +177,7 @@ function pfRiskPanel(firm) {
     '</div>' +
     '<div class="pfr-rows">' + target + minDays + consRow + '</div>' +
     pfSizer(firm, st, fmt) +
+    pfNewsBlock(firm) +
     pfSimBlock(firm) +
     optimistic +
     '<div class="pfr-foot">' +
@@ -423,6 +431,231 @@ function pfRunSim(firm, card) {
   }, 30);
 }
 
+
+// ---- the news blackout guard -----------------------------------------------
+//
+// Most firms void trades, or fail accounts, for trading inside a window around
+// high-impact news. The economic calendar already holds every release as a UTC
+// instant, so the windows come for free. The audit does not: see the timezone
+// note in assets/propfirm-news.js.
+
+function pfLoadCalendar() {
+  if (PF_CAL !== null) return Promise.resolve(PF_CAL);
+  PF_CAL = false;   // claim it, so a slow fetch does not start a second one
+  return fetch('assets/econ-calendar.json?t=' + Math.floor(Date.now() / 60000))
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then((d) => { PF_CAL = d; renderPropFirmsTab(); return d; })
+    .catch((err) => {
+      console.error('Stryker: economic calendar could not be loaded for the news guard', err);
+      PF_CAL = false;
+      return false;
+    });
+}
+
+function pfNewsWindows(firm) {
+  if (!PF_NEWS_MODULE || !PF_CAL || !PF_CAL.events) return [];
+  return PF_NEWS_MODULE.windowsFor(PF_CAL.events, firm.rules || {});
+}
+
+function pfNewsBlock(firm) {
+  if (!PF_NEWS_MODULE || !PF_RULES || !PF_RULES.isConfigured(firm.rules)) return '';
+  const rules = firm.rules || {};
+  if (!PF_NEWS_MODULE.isConfigured(rules)) return '';
+
+  if (PF_CAL === null) { pfLoadCalendar(); }
+  if (!PF_CAL) {
+    return '<div class="pfr-news"><span class="pfr-kicker">News blackout</span>' +
+      '<p class="pfr-news-note">The economic calendar could not be loaded, so windows ' +
+      'cannot be worked out right now.</p></div>';
+  }
+
+  const windows = pfNewsWindows(firm);
+  const st = PF_NEWS_MODULE.status(windows, Date.now());
+  const before = Number(rules.newsBeforeMin) || 0;
+  const after = Number(rules.newsAfterMin) || 0;
+
+  return '<div class="pfr-news' + (st.inside ? ' is-blocked' : '') + '" data-firm-news="' + pfEsc(firm.id) + '">' +
+    '<div class="pfr-news-head">' +
+      '<span class="pfr-kicker">News blackout</span>' +
+      '<span class="pfr-news-rule">' + before + ' min before, ' + after + ' min after ' +
+        (rules.newsImpact === 'medium' ? 'medium and high' : 'high') + '-impact releases</span>' +
+    '</div>' +
+    pfNewsStatus(st) +
+    pfNewsUpcoming(windows) +
+    pfNewsAudit(firm, windows) +
+  '</div>';
+}
+
+function pfNewsStatus(st) {
+  if (st.inside) {
+    return '<div class="pfr-news-now is-blocked">' +
+      '<b>Restricted right now — ' + pfEsc(st.inside.event) + '</b>' +
+      '<span class="pfr-news-cd" data-until="' + st.inside.to + '" data-mode="clear">—</span>' +
+      '<em>until the window clears</em>' +
+    '</div>';
+  }
+  if (st.next) {
+    return '<div class="pfr-news-now">' +
+      '<b>Next window — ' + pfEsc(st.next.event) + '</b>' +
+      '<span class="pfr-news-cd" data-until="' + st.next.from + '" data-mode="open">—</span>' +
+      '<em>until it opens</em>' +
+    '</div>';
+  }
+  return '<div class="pfr-news-now is-quiet">' +
+    '<b>No further windows on the calendar.</b>' +
+    '<em>Nothing left in the published range.</em></div>';
+}
+
+function pfNewsUpcoming(windows) {
+  const now = Date.now();
+  const soon = windows.filter((w) => w.to > now).slice(0, 4);
+  if (!soon.length) return '';
+  const t = (ms) => new Date(ms).toLocaleString(undefined,
+    { weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+  return '<ul class="pfr-news-list">' + soon.map((w) =>
+    '<li><span class="pfr-news-when">' + pfEsc(t(w.from)) + ' – ' +
+      pfEsc(new Date(w.to).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false })) +
+      '</span><span class="ec-code">' + pfEsc(w.cur) + '</span>' +
+      '<b>' + pfEsc(w.event) + '</b></li>').join('') + '</ul>';
+}
+
+// The retrospective half. Gated on a confirmed journal timezone, because a
+// four-minute window compared against a time of unknown zone can be hours out,
+// and both kinds of wrong answer here are harmful: a false accusation, or a
+// clean bill of health for a trade that did breach.
+function pfNewsAudit(firm, windows) {
+  const rules = firm.rules || {};
+  if (!PF_NEWS_MODULE.canAudit(rules)) {
+    const guess = pfGuessTz();
+    return '<div class="pfr-news-audit is-locked">' +
+      '<b>Past trades are not checked yet.</b>' +
+      '<p>Your journal records a time but not a timezone, and the difference decides ' +
+        'the answer — the same trade can be clear in one zone and a breach in another. ' +
+        'Tell the rules editor which zone your entry times are in (it looks like <b>' +
+        pfEsc(guess) + '</b> from this browser) and past trades get checked against ' +
+        'every window.</p>' +
+    '</div>';
+  }
+
+  const res = PF_NEWS_MODULE.audit(pfTrades(), windows, {
+    account: firm.name, journalTz: rules.journalTz,
+    rangeStart: PF_CAL.rangeStart, rangeEnd: PF_CAL.rangeEnd
+  });
+
+  // Three counts, always. A clean result that quietly skipped most of the
+  // journal is not a clean result, and the skipped ones have different fixes.
+  const gaps = [];
+  if (res.noTime) gaps.push(res.noTime + ' with no entry time recorded');
+  if (res.outOfRange) gaps.push(res.outOfRange + ' outside the calendar’s range');
+  const gapLine = gaps.length
+    ? '<p class="pfr-news-gap">Not checked: ' + pfEsc(gaps.join(', ')) + '. ' +
+      (res.outOfRange ? 'The calendar covers ' + pfEsc(PF_CAL.rangeStart || '') + ' to ' +
+        pfEsc(PF_CAL.rangeEnd || '') + '. ' : '') +
+      'Those are neither cleared nor flagged.</p>'
+    : '';
+
+  if (!res.hits.length) {
+    return '<div class="pfr-news-audit">' +
+      '<b>' + (res.checked
+        ? res.checked + ' trade' + (res.checked === 1 ? '' : 's') + ' checked, none inside a window.'
+        : 'No trades could be checked.') + '</b>' + gapLine +
+    '</div>';
+  }
+
+  return '<div class="pfr-news-audit is-hit">' +
+    '<b>' + res.hits.length + ' trade' + (res.hits.length === 1 ? '' : 's') +
+      ' landed inside a restricted window.</b>' +
+    '<ul>' + res.hits.slice(0, 6).map((h) =>
+      '<li><span>' + pfEsc(h.trade.date || '') + ' ' + pfEsc(h.trade.time || '') + '</span>' +
+        (h.trade.instrument ? '<em>' + pfEsc(h.trade.instrument) + '</em>' : '') +
+        '<b>' + pfEsc(h.window.event) + '</b></li>').join('') +
+    '</ul>' + gapLine +
+    '<p class="pfr-news-gap">Whether that breaches your agreement is your firm’s call, ' +
+      'not this page’s — rules differ on held positions and on which releases count.</p>' +
+  '</div>';
+}
+
+// A short list rather than the full IANA set. These cover the platform clocks
+// members actually see — broker servers are overwhelmingly in the EET band,
+// exchanges in Chicago and New York — plus whatever this browser reports, so
+// the right answer is always present without a 400-entry dropdown.
+const PF_TZ_LIST = [
+  'UTC', 'Europe/London', 'Europe/Berlin', 'Europe/Athens', 'Europe/Moscow',
+  'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'America/Sao_Paulo',
+  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Singapore', 'Asia/Tokyo', 'Australia/Sydney'
+];
+
+function pfTzOptions(selected) {
+  const list = PF_TZ_LIST.slice();
+  const mine = pfGuessTz();
+  selected = pfCanonTz(selected);
+  if (list.indexOf(mine) < 0) list.unshift(mine);
+  if (selected && list.indexOf(selected) < 0) list.unshift(selected);
+  return list.map((z) =>
+    '<option value="' + pfEsc(z) + '"' + (z === selected ? ' selected' : '') + '>' +
+      pfEsc(z.replace(/_/g, ' ')) + (z === mine ? ' (this browser)' : '') +
+    '</option>').join('');
+}
+
+// Chromium still reports several zones under names their countries retired
+// decades ago. Left alone, the browser's "Asia/Calcutta" appears in the picker
+// as a SECOND entry beside "Asia/Kolkata" — two options for one zone, one of
+// them a name India stopped using in 2001. They resolve to identical offsets,
+// so this is presentation only and changes no arithmetic.
+const PF_TZ_ALIASES = {
+  'Asia/Calcutta': 'Asia/Kolkata',
+  'Asia/Saigon': 'Asia/Ho_Chi_Minh',
+  'Asia/Rangoon': 'Asia/Yangon',
+  'Asia/Katmandu': 'Asia/Kathmandu',
+  'Europe/Kiev': 'Europe/Kyiv',
+  'America/Buenos_Aires': 'America/Argentina/Buenos_Aires',
+  'Australia/Canberra': 'Australia/Sydney',
+  'US/Eastern': 'America/New_York',
+  'US/Central': 'America/Chicago',
+  'US/Pacific': 'America/Los_Angeles'
+};
+
+function pfCanonTz(z) {
+  return PF_TZ_ALIASES[z] || z;
+}
+
+function pfGuessTz() {
+  try { return pfCanonTz(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'); }
+  catch (e) { return 'UTC'; }
+}
+
+// One interval for every countdown on the page, started only when at least one
+// exists. Re-rendering the whole tab every second to move a clock would fight
+// with the sizer input and every open form.
+function pfNewsTick() {
+  const els = document.querySelectorAll('.pfr-news-cd[data-until]');
+  if (!els.length) {
+    if (PF_CAL_TICK) { clearInterval(PF_CAL_TICK); PF_CAL_TICK = null; }
+    return;
+  }
+  const now = Date.now();
+  let expired = false;
+  els.forEach((el) => {
+    const left = Number(el.getAttribute('data-until')) - now;
+    if (left <= 0) { expired = true; el.textContent = 'now'; return; }
+    const s = Math.floor(left / 1000);
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+    el.textContent = h > 0
+      ? h + 'h ' + String(m).padStart(2, '0') + 'm'
+      : m + 'm ' + String(ss).padStart(2, '0') + 's';
+  });
+  // A window that has just opened or closed changes the whole block, so it is
+  // the one case worth a re-render.
+  if (expired) renderPropFirmsTab();
+}
+
+function pfNewsStartTick() {
+  if (PF_CAL_TICK) return;
+  if (!document.querySelector('.pfr-news-cd[data-until]')) return;
+  pfNewsTick();
+  PF_CAL_TICK = setInterval(pfNewsTick, 1000);
+}
+
 // ---- the rules editor ------------------------------------------------------
 
 function pfRulesForm(firm) {
@@ -488,6 +721,27 @@ function pfRulesForm(firm) {
         '<input type="number" step="1" min="0" class="journal-input pfr-f-mindays" value="' + v(r.minDays) + '"' +
           ' placeholder="blank if none"></label>' +
 
+      '<label>News blackout, minutes before' +
+        '<input type="number" step="1" min="0" class="journal-input pfr-f-newsbefore" value="' +
+          v(r.newsBeforeMin) + '" placeholder="blank if none"></label>' +
+
+      '<label>Minutes after' +
+        '<input type="number" step="1" min="0" class="journal-input pfr-f-newsafter" value="' +
+          v(r.newsAfterMin) + '" placeholder="blank if none"></label>' +
+
+      '<label>Blackout applies to' +
+        '<select class="journal-select pfr-f-newsimpact">' +
+          '<option value="high"' + (r.newsImpact !== 'medium' ? ' selected' : '') + '>High impact only</option>' +
+          '<option value="medium"' + (r.newsImpact === 'medium' ? ' selected' : '') + '>Medium and high</option>' +
+        '</select></label>' +
+
+      '<label>My journal times are in' +
+        '<select class="journal-select pfr-f-journaltz">' +
+          pfTzOptions(r.journalTz || pfGuessTz()) +
+        '</select>' +
+        '<em class="pfr-f-help">The journal stores a time but not a zone. This decides ' +
+          'whether a trade was inside a window.</em></label>' +
+
       '<label>Day resets at' +
         '<select class="journal-select pfr-f-reset">' +
           '<option value="0"' + (Number(r.resetHour) === 0 ? ' selected' : '') + '>Midnight UTC</option>' +
@@ -499,6 +753,11 @@ function pfRulesForm(firm) {
     '<label class="pfr-f-check"><input type="checkbox" class="pfr-f-lock"' +
       (r.lockAtStart ? ' checked' : '') + '> ' +
       'The trailing floor stops once it reaches my starting balance</label>' +
+
+    '<label class="pfr-f-check"><input type="checkbox" class="pfr-f-tzconfirmed"' +
+      (r.journalTzConfirmed ? ' checked' : '') + '> ' +
+      'My journal entry times really are in that zone (needed before past trades ' +
+      'are checked against news windows)</label>' +
 
     '<label class="pfr-f-check pfr-f-confirm"><input type="checkbox" class="pfr-f-confirmed"' +
       (r.confirmed ? ' checked' : '') + '> ' +
@@ -531,6 +790,11 @@ function pfReadRulesForm(card, firm) {
     // The zone only means something for a non-midnight reset; pinning it to
     // New York for the futures case is the whole point of that option.
     resetTz: resetHour === 17 ? 'America/New_York' : 'UTC',
+    newsBeforeMin: numOf('.pfr-f-newsbefore'),
+    newsAfterMin: numOf('.pfr-f-newsafter'),
+    newsImpact: (g('.pfr-f-newsimpact') || {}).value || 'high',
+    journalTz: (g('.pfr-f-journaltz') || {}).value || 'UTC',
+    journalTzConfirmed: !!(g('.pfr-f-tzconfirmed') || {}).checked,
     lockAtStart: !!(g('.pfr-f-lock') || {}).checked,
     confirmed: !!(g('.pfr-f-confirmed') || {}).checked
   });

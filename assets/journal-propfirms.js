@@ -114,6 +114,11 @@ function renderPropFirmsTab(){
   renderPfEntryPanel();
   renderPfCashflowChart();
   renderPfFirmCards(fmt);
+
+  // Countdowns are driven by one interval over the rendered nodes rather than
+  // by re-rendering the tab every second, which would fight the sizer input
+  // and close any open form mid-typing.
+  if (typeof pfNewsStartTick === 'function') pfNewsStartTick();
 }
 
 // Scrolling strip of the most recent payouts across every firm — the

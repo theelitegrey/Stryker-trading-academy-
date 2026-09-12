@@ -177,6 +177,69 @@ Follows into tweets 2–6 of the thread below unchanged.
 
 ---
 
+## Names only — no explanation
+
+Bullets that name the feature and stop. No verbs, no benefit clause. These
+read as a contents page: the reader sees the scope in two seconds and the
+click does the explaining. They run short — none is over 200 weighted
+characters — so there is room to attach an image without the copy fighting it.
+
+### What's in it
+
+> 📓 The Stryker Trade Journal
+>
+> 📊 Dashboard
+> ➕ Add trade
+> 🗓️ Calendar
+> 📈 Analytics
+> 📕 Playbook
+> 🧠 AI Coach
+> 🛡️ Prop firms
+> 📥 Import & export
+> 🔗 Broker sync
+> 🖼️ P&L cards
+>
+> strykertrading.com
+
+Ten lines is the practical ceiling for a bare list — past that it stops
+scanning as a list and starts scanning as a wall.
+
+### What it measures
+
+> 📓 The Stryker Trade Journal
+>
+> 📊 Expectancy
+> 📈 Profit factor
+> 🎯 Win rate
+> 📉 Max drawdown
+> ⚖️ Consistency
+> 💰 Avg win / avg loss
+> 📏 R multiple
+> 📅 Best & worst day
+>
+> strykertrading.com
+
+For the audience that already journals and is comparing tools. Naming the
+metrics is the whole pitch to them.
+
+### Short list
+
+> 📓 The Stryker Trade Journal
+>
+> 📊 Analytics
+> 🗓️ Calendar
+> 📕 Playbook
+> 🧠 AI Coach
+> 🛡️ Prop firms
+> 🔗 Broker sync
+> 🖼️ P&L cards
+>
+> strykertrading.com
+
+Same idea with the obvious entries cut. Best of the three as an image tweet.
+
+---
+
 ## Thread — for a pinned or launch post
 
 **1/**

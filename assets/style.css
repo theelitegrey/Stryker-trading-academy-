@@ -7788,3 +7788,52 @@ section.ec-strip { padding: 18px 20px; }
   .pfr-news-when { min-width: 0; }
   .pfr-news-audit li { flex-wrap: wrap; gap: 4px 9px; }
 }
+
+/* ---- prop firm: payout planner ---- */
+.pfr-payout { margin: 14px 0 4px; padding: 15px 17px; border-radius: 12px; background: var(--bg-3); border: 1px solid var(--line); }
+.pfr-payout-intro { font-size: 12.5px; line-height: 1.65; color: var(--ink-2); margin: 10px 0 12px; max-width: 74ch; }
+
+.pfr-payout-elig { margin-top: 12px; }
+.pfr-payout-elig > b { display: block; font-size: 13px; color: var(--ink-0); margin-bottom: 7px; }
+.pfr-payout-elig.is-ok > b { color: var(--pfr-ok); }
+.pfr-payout-elig.is-ok span { font-size: 12px; color: var(--ink-3); }
+.pfr-payout-elig ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; }
+.pfr-payout-elig li { display: flex; align-items: baseline; gap: 10px; font-size: 12px; flex-wrap: wrap; }
+.pfr-payout-elig li span { color: var(--ink-2); min-width: 190px; }
+.pfr-payout-elig li em { font-style: normal; color: var(--ink-3); }
+
+.pfr-payout-calc { display: grid; grid-template-columns: auto 130px; gap: 10px 12px; align-items: center; margin: 14px 0 0; padding-top: 13px; border-top: 1px solid var(--line); }
+.pfr-withdraw { width: 100%; }
+.pfr-payout-result { grid-column: 1 / -1; display: grid; gap: 8px; }
+.pfr-payout-hint { font-size: 12.5px; color: var(--ink-3); line-height: 1.55; }
+.pfr-payout-verdict { font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+.pfr-payout-verdict b { color: var(--ink-0); }
+.pfr-payout-verdict.is-ok b { color: var(--pfr-ok); }
+.pfr-payout-verdict.is-warn b { color: var(--pfr-warn); }
+.pfr-payout-verdict.is-stop b { color: var(--pfr-crit); }
+.pfr-payout-pays { font-size: 12.5px; color: var(--ink-2); }
+.pfr-payout-pays b { color: var(--ink-0); font-size: 15px; }
+
+/* The before-and-after. Two numbers and an arrow — the smallest form that
+   carries the point, and the point is that the second one is smaller. */
+.pfr-payout-ba { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 11px 13px; border-radius: 10px; background: var(--bg-1); }
+.pfr-payout-ba > span { display: flex; flex-direction: column; gap: 2px; }
+.pfr-payout-ba em { font-style: normal; font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); }
+.pfr-payout-ba b { font-size: 18px; color: var(--ink-0); font-variant-numeric: tabular-nums; }
+.pfr-payout-ba .is-stop b { color: var(--pfr-crit); }
+.pfr-payout-arrow { font-size: 16px; color: var(--ink-3); align-self: center; }
+.pfr-payout-why { font-size: 11.5px; color: var(--ink-3); line-height: 1.55; max-width: 76ch; }
+
+.pfr-payout-ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px; margin-top: 13px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pfr-payout-ledger > span { display: flex; flex-direction: column; gap: 2px; }
+.pfr-payout-ledger em { font-style: normal; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.pfr-payout-ledger b { font-size: 15px; color: var(--ink-1, #ccc); font-variant-numeric: tabular-nums; }
+.pfr-payout-ledger .is-up b { color: var(--pfr-ok); }
+.pfr-payout-ledger .is-down b { color: var(--pfr-crit); }
+
+@media (max-width: 620px) {
+  .pfr-payout-calc { grid-template-columns: 1fr; }
+  .pfr-payout-elig li span { min-width: 0; }
+  .pfr-payout-ba { gap: 10px; }
+}
+.pfr-payout-calc.is-hypothetical .pfr-sizer-lab { color: var(--ink-3); font-style: italic; }

@@ -188,6 +188,52 @@ it is symmetric, and on whether a position merely *held* through the window
 counts. The defaults are the conservative reading and the panel says the
 decision is the firm's.
 
+## The payout and scaling planner
+
+`assets/propfirm-payout.js` turns the fee-and-payout ledger from a record of
+the past into a forward plan.
+
+### The trap it exists for
+
+**A withdrawal reduces the balance. On most trailing accounts the floor does
+not come down with it.** Someone sitting $5,300 above their floor who withdraws
+$3,800 is not left comfortable — they are left with $1,500, and the next losing
+run ends the account. A few firms lower the floor by the withdrawn amount; most
+do not.
+
+So `payoutFloorBehaviour` is a **required choice with no default**, and the
+planner's hero is the before-and-after headroom. The same account with $6,200
+of profit can safely withdraw $3,800 under one behaviour and the whole $6,200
+under the other. That difference is the single most expensive thing a funded
+trader can be wrong about.
+
+A withdrawal that lands the account at or below its floor is called what it is:
+not a payout, but a failed account with a bank transfer attached.
+
+### Every blocker, not just the first
+
+`eligibility()` returns all unmet conditions — minimum profit, minimum trading
+days, the payout cycle, and the consistency cap. Someone told only "you need
+more profit" will hit the day requirement next and feel misled. The consistency
+cap belongs here as much as in the rule engine: it is a *payout* condition, and
+it is where people are blindsided having passed everything else.
+
+With no payout history the cycle is measured from the account's start date, not
+assumed satisfied — optimism in exactly the situation where a real answer
+matters most.
+
+### While ineligible, the calculator is a hypothetical
+
+Labelling it "Withdraw" next to "not eligible yet" reads as contradiction, so
+it becomes "If you withdrew". It stays useful for planning without reading as
+permission.
+
+### The ledger keeps banked money separate from paper profit
+
+Fees paid, money actually received, net so far, and — listed apart — what is
+still sitting in the account. Counting unbanked profit as a return is how
+people convince themselves a losing run of challenges was working.
+
 ## Adding a rule
 
 1. Add the field to `defaultRules()`.

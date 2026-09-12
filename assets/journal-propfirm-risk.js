@@ -29,6 +29,9 @@ let PF_SIZER = {};   // firmId -> risk per unit, kept across re-renders
 let PF_SIM = {};     // firmId -> the last study, so a re-render does not re-run it
 const PF_SIM_MODULE = (typeof propfirmSim !== 'undefined') ? propfirmSim : null;
 const PF_NEWS_MODULE = (typeof propfirmNews !== 'undefined') ? propfirmNews : null;
+const PF_PAYOUT_MODULE = (typeof propfirmPayout !== 'undefined') ? propfirmPayout : null;
+
+let PF_WITHDRAW = {};   // firmId -> the amount being considered
 
 // The economic calendar, fetched once and shared by every firm card. null
 // means not fetched yet; false means the fetch failed and should not retry on
@@ -178,6 +181,7 @@ function pfRiskPanel(firm) {
     '<div class="pfr-rows">' + target + minDays + consRow + '</div>' +
     pfSizer(firm, st, fmt) +
     pfNewsBlock(firm) +
+    pfPayoutBlock(firm, st) +
     pfSimBlock(firm) +
     optimistic +
     '<div class="pfr-foot">' +
@@ -656,6 +660,151 @@ function pfNewsStartTick() {
   PF_CAL_TICK = setInterval(pfNewsTick, 1000);
 }
 
+
+// ---- the payout planner ----------------------------------------------------
+//
+// Turns the fee-and-payout ledger from a record of the past into a forward
+// plan. The hero is the before-and-after: a withdrawal lowers the balance, and
+// on most trailing accounts the floor does not follow it down, so the money
+// leaving the account comes straight out of the headroom.
+
+function pfPayoutBlock(firm, st) {
+  if (!PF_PAYOUT_MODULE || !PF_RULES || !PF_RULES.isConfigured(firm.rules)) return '';
+  const rules = firm.rules || {};
+  const fmt = pfCurrencyFmt();
+
+  if (!PF_PAYOUT_MODULE.isConfigured(rules)) {
+    return '<div class="pfr-payout">' +
+      '<span class="pfr-kicker">Payout plan</span>' +
+      '<p class="pfr-payout-intro">Add your profit split and say whether a withdrawal ' +
+        'lowers your drawdown floor, and this works out when you can request a payout, ' +
+        'how much you can safely take, and what the account looks like the moment after ' +
+        'it lands. That last one matters more than people expect.</p>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="open-rules">Add the payout terms</button>' +
+    '</div>';
+  }
+
+  const plan = PF_PAYOUT_MODULE.plan(firm, st, {});
+  if (!plan) return '';
+
+  return '<div class="pfr-payout">' +
+    '<div class="pfr-news-head"><span class="pfr-kicker">Payout plan</span>' +
+      '<span class="pfr-news-rule">' + (rules.profitSplitPct) + '% split &middot; floor ' +
+        (rules.payoutFloorBehaviour === 'reduces' ? 'drops with the withdrawal' : 'stays put') +
+      '</span></div>' +
+    pfPayoutEligibility(plan, fmt) +
+    pfPayoutWithdraw(firm, st, plan, fmt) +
+    pfPayoutScaling(plan, fmt) +
+    pfPayoutLedger(plan, fmt) +
+  '</div>';
+}
+
+function pfPayoutEligibility(plan, fmt) {
+  const e = plan.eligibility;
+  if (e.eligible) {
+    return '<div class="pfr-payout-elig is-ok">' +
+      '<b>Eligible to request a payout.</b>' +
+      '<span>Every condition you have entered is met.</span></div>';
+  }
+  // Every blocker, not just the first. Someone told only "you need more
+  // profit" will hit the day requirement next and feel misled.
+  const word = (b) => {
+    if (b.rule === 'minProfit') return 'another ' + fmt(b.need) + ' of profit';
+    if (b.rule === 'minDays') return b.need + ' more trading day' + (b.need === 1 ? '' : 's');
+    if (b.rule === 'cycle') return b.need + ' more day' + (b.need === 1 ? '' : 's') + ' of the cycle';
+    if (b.rule === 'consistency') return fmt(b.need) + ' more profit on days other than your best';
+    return '';
+  };
+  return '<div class="pfr-payout-elig">' +
+    '<b>Not eligible yet — ' + e.blockers.length + ' condition' +
+      (e.blockers.length === 1 ? '' : 's') + ' outstanding.</b>' +
+    '<ul>' + e.blockers.map((b) =>
+      '<li><span>' + pfEsc(b.label) + '</span><em>' + pfEsc(word(b)) + '</em></li>').join('') + '</ul>' +
+  '</div>';
+}
+
+function pfPayoutWithdraw(firm, st, plan, fmt) {
+  const raw = PF_WITHDRAW[firm.id];
+  const amount = raw === undefined || raw === null || raw === ''
+    ? plan.maxSafe : parseFloat(raw);
+  const val = raw === undefined || raw === null ? (plan.maxSafe || '') : raw;
+  // While a condition is outstanding the calculator is a planning tool, not a
+  // permission slip. Labelling it "Withdraw" beside "not eligible yet" reads
+  // as contradiction; "If you withdrew" reads as what it is.
+  const hypothetical = !plan.eligibility.eligible;
+  return '<div class="pfr-payout-calc' + (hypothetical ? ' is-hypothetical' : '') + '">' +
+    '<label class="pfr-sizer-lab" for="pfr-wd-' + pfEsc(firm.id) + '">' +
+      (hypothetical ? 'If you withdrew' : 'Withdraw') + '</label>' +
+    '<input type="number" step="any" min="0" id="pfr-wd-' + pfEsc(firm.id) + '" ' +
+      'class="journal-input pfr-withdraw" value="' + pfEsc(String(val)) + '">' +
+    '<span class="pfr-payout-result">' + pfPayoutImpact(firm, st, amount, plan, fmt) + '</span>' +
+  '</div>';
+}
+
+// The before-and-after. This is the whole feature.
+function pfPayoutImpact(firm, st, amount, plan, fmt) {
+  const a = parseFloat(amount);
+  if (!isFinite(a) || a <= 0) {
+    return '<span class="pfr-payout-hint">Nothing to withdraw yet, or enter an amount to ' +
+      'see what the account looks like afterwards.</span>';
+  }
+  const i = PF_PAYOUT_MODULE.impact(firm, st, a);
+  if (!i) return '';
+
+  const safe = plan.maxSafe;
+  const verdict = i.breaches
+    ? '<span class="pfr-payout-verdict is-stop"><b>This withdrawal fails the account.</b> ' +
+      'It leaves the balance at or below the drawdown floor.</span>'
+    : (safe !== null && a > safe
+        ? '<span class="pfr-payout-verdict is-warn"><b>Above what is comfortable.</b> ' +
+          fmt(safe) + ' keeps a quarter of the drawdown allowance in reserve.</span>'
+        : '<span class="pfr-payout-verdict is-ok"><b>Leaves a working buffer.</b></span>');
+
+  return verdict +
+    '<span class="pfr-payout-pays">You receive <b>' +
+      (i.received === null ? '—' : fmt(i.received)) + '</b>' +
+      (i.split !== null ? ' at your ' + i.split + '% split' : '') + '.</span>' +
+    '<span class="pfr-payout-ba">' +
+      '<span><em>Headroom now</em><b>' + fmt(i.headroomBefore) + '</b></span>' +
+      '<span class="pfr-payout-arrow" aria-hidden="true">&rarr;</span>' +
+      '<span class="' + (i.breaches ? 'is-stop' : '') + '"><em>After</em><b>' +
+        fmt(i.headroomAfter) + '</b></span>' +
+    '</span>' +
+    (i.floorStays
+      ? '<span class="pfr-payout-why">Your floor stays at ' + fmt(i.floorAfter) +
+        ' — every pound withdrawn is a pound of headroom gone.</span>'
+      : '<span class="pfr-payout-why">Your floor drops to ' + fmt(i.floorAfter) +
+        ' with the withdrawal, so headroom is unchanged.</span>');
+}
+
+function pfPayoutScaling(plan, fmt) {
+  const s = plan.scaling;
+  if (!s) return '';
+  if (s.reached) {
+    return '<div class="pfr-row"><span class="pfr-row-k">Scaling</span>' +
+      '<span class="pfr-row-v"><b>Target reached.</b>' +
+      (s.newSize ? ' The account scales to ' + fmt(s.newSize) + '.' : '') + '</span></div>';
+  }
+  return '<div class="pfr-row"><span class="pfr-row-k">Scaling</span>' +
+    '<span class="pfr-row-v">' + fmt(s.remaining) + ' more profit to the next step' +
+      (s.newSize ? ', which takes the account to ' + fmt(s.newSize) : '') + '. ' +
+      Math.round(s.progress * 100) + '% of the way.</span></div>';
+}
+
+// Fees against money actually banked, kept separate from profit still sitting
+// in the account. Counting unbanked profit as a return is how people convince
+// themselves a losing run of challenges was working.
+function pfPayoutLedger(plan, fmt) {
+  const t = plan.totals;
+  return '<div class="pfr-payout-ledger">' +
+    '<span><em>Fees paid</em><b>' + fmt(t.spent) + '</b></span>' +
+    '<span><em>Banked</em><b>' + fmt(t.received) + '</b></span>' +
+    '<span class="' + (t.net > 0 ? 'is-up' : (t.net < 0 ? 'is-down' : '')) + '">' +
+      '<em>Net so far</em><b>' + (t.net > 0 ? '+' : '') + fmt(t.net) + '</b></span>' +
+    '<span><em>Still in the account</em><b>' + fmt(plan.unrealised) + '</b></span>' +
+  '</div>';
+}
+
 // ---- the rules editor ------------------------------------------------------
 
 function pfRulesForm(firm) {
@@ -742,6 +891,39 @@ function pfRulesForm(firm) {
         '<em class="pfr-f-help">The journal stores a time but not a zone. This decides ' +
           'whether a trade was inside a window.</em></label>' +
 
+      '<label>Profit split, my share %' +
+        '<input type="number" step="any" min="0" max="100" class="journal-input pfr-f-split" value="' +
+          v(r.profitSplitPct) + '" placeholder="e.g. 80"></label>' +
+
+      '<label>On a withdrawal, my drawdown floor' +
+        '<select class="journal-select pfr-f-floorbehave">' +
+          '<option value=""' + (!r.payoutFloorBehaviour ? ' selected' : '') + '>Choose…</option>' +
+          '<option value="stays"' + (r.payoutFloorBehaviour === 'stays' ? ' selected' : '') + '>Stays where it is</option>' +
+          '<option value="reduces"' + (r.payoutFloorBehaviour === 'reduces' ? ' selected' : '') + '>Drops by the amount withdrawn</option>' +
+        '</select>' +
+        '<em class="pfr-f-help">The most expensive thing to be wrong about. Most firms leave ' +
+          'the floor where it is, so the money you take out comes straight off your headroom.</em></label>' +
+
+      '<label>Minimum profit before a payout %' +
+        '<input type="number" step="any" min="0" class="journal-input pfr-f-minprofit" value="' +
+          v(r.payoutMinProfitPct) + '" placeholder="blank if none"></label>' +
+
+      '<label>Minimum trading days before a payout' +
+        '<input type="number" step="1" min="0" class="journal-input pfr-f-paydays" value="' +
+          v(r.payoutMinDays) + '" placeholder="blank if none"></label>' +
+
+      '<label>Payout cycle, days' +
+        '<input type="number" step="1" min="0" class="journal-input pfr-f-cycle" value="' +
+          v(r.payoutCycleDays) + '" placeholder="blank if none"></label>' +
+
+      '<label>Scales at profit %' +
+        '<input type="number" step="any" min="0" class="journal-input pfr-f-scaleat" value="' +
+          v(r.scaleAtProfitPct) + '" placeholder="blank if none"></label>' +
+
+      '<label>Scales to account size' +
+        '<input type="number" step="any" min="0" class="journal-input pfr-f-scalesize" value="' +
+          v(r.scaleNewSize) + '" placeholder="blank if none"></label>' +
+
       '<label>Day resets at' +
         '<select class="journal-select pfr-f-reset">' +
           '<option value="0"' + (Number(r.resetHour) === 0 ? ' selected' : '') + '>Midnight UTC</option>' +
@@ -790,6 +972,13 @@ function pfReadRulesForm(card, firm) {
     // The zone only means something for a non-midnight reset; pinning it to
     // New York for the futures case is the whole point of that option.
     resetTz: resetHour === 17 ? 'America/New_York' : 'UTC',
+    profitSplitPct: numOf('.pfr-f-split'),
+    payoutFloorBehaviour: (g('.pfr-f-floorbehave') || {}).value || null,
+    payoutMinProfitPct: numOf('.pfr-f-minprofit'),
+    payoutMinDays: numOf('.pfr-f-paydays'),
+    payoutCycleDays: numOf('.pfr-f-cycle'),
+    scaleAtProfitPct: numOf('.pfr-f-scaleat'),
+    scaleNewSize: numOf('.pfr-f-scalesize'),
     newsBeforeMin: numOf('.pfr-f-newsbefore'),
     newsAfterMin: numOf('.pfr-f-newsafter'),
     newsImpact: (g('.pfr-f-newsimpact') || {}).value || 'high',
@@ -860,9 +1049,12 @@ function pfRiskHandleClick(act, firm, card) {
     const read = pfReadRulesForm(card, firm);
     if (read.startBalance !== null) firm.startBalance = read.startBalance;
     firm.rules = read.rules;
-    // The cached study was run against the OLD limits. Keeping it would show a
-    // pass rate for rules that no longer apply.
+    // Everything derived from the OLD limits goes. A pass rate computed against
+    // rules that no longer apply is worse than none, and a withdrawal amount
+    // that was safe under the previous floor behaviour may now fail the
+    // account outright.
     delete PF_SIM[firm.id];
+    delete PF_WITHDRAW[firm.id];
     PF_OPEN_FORMS = {};
     savePropFirms(typeof JOURNAL_UID !== 'undefined' ? JOURNAL_UID : null);
     renderPropFirmsTab();
@@ -903,6 +1095,16 @@ function pfRiskHandleChange(el, firm, card) {
       trailingIntraday: 'Unrealised profit raises the floor too, even if you give it back.'
     }[el.value];
     if (help && txt) help.textContent = txt;
+    return true;
+  }
+  if (el.classList.contains('pfr-withdraw')) {
+    PF_WITHDRAW[firm.id] = el.value;
+    const out = card.querySelector('.pfr-payout-result');
+    const st = pfState(firm);
+    if (out && st && PF_PAYOUT_MODULE) {
+      const plan = PF_PAYOUT_MODULE.plan(firm, st, {});
+      out.innerHTML = pfPayoutImpact(firm, st, el.value, plan, pfCurrencyFmt());
+    }
     return true;
   }
   if (el.classList.contains('pfr-risk')) {

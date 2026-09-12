@@ -378,7 +378,14 @@
   function defaultRules() {
     return { ddType: 'static', ddPct: null, dailyPct: null, targetPct: null,
              lockAtStart: false, dailyBasis: 'prevClose', resetHour: 0, resetTz: 'UTC',
-             minDays: null, minDayPnl: null, consistencyPct: null, newsWindowMin: null,
+             minDays: null, minDayPnl: null, consistencyPct: null,
+             // news blackout
+             newsBeforeMin: null, newsAfterMin: null, newsImpact: 'high',
+             journalTz: null, journalTzConfirmed: false,
+             // payout and scaling
+             profitSplitPct: null, payoutFloorBehaviour: null, payoutMinProfitPct: null,
+             payoutMinDays: null, payoutCycleDays: null, payoutMaxPct: null,
+             scaleAtProfitPct: null, scaleNewSize: null,
              confirmed: false };
   }
 

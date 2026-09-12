@@ -532,10 +532,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!tab) return;
   tab.addEventListener('click', pfHandleClick);
   tab.addEventListener('change', pfHandleChange);
-  // The sizer recomputes as you type; 'change' alone only fires on blur,
-  // which makes a number field that answers a question feel broken.
+  // Fields that answer a question recompute as you type; 'change' alone only
+  // fires on blur, which makes them feel broken. Listed by class rather than
+  // hardcoded to one, because this was written for the sizer and then silently
+  // failed to cover the payout field added beside it.
+  const PF_LIVE_FIELDS = ['pfr-risk', 'pfr-withdraw'];
   tab.addEventListener('input', (e) => {
-    if (!e.target.classList || !e.target.classList.contains('pfr-risk')) return;
+    if (!e.target.classList) return;
+    if (!PF_LIVE_FIELDS.some((c) => e.target.classList.contains(c))) return;
     pfHandleChange(e);
   });
 

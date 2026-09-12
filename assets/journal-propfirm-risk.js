@@ -26,6 +26,8 @@
 const PF_RULES = (typeof propfirmRules !== 'undefined') ? propfirmRules : null;
 
 let PF_SIZER = {};   // firmId -> risk per unit, kept across re-renders
+let PF_SIM = {};     // firmId -> the last study, so a re-render does not re-run it
+const PF_SIM_MODULE = (typeof propfirmSim !== 'undefined') ? propfirmSim : null;
 
 function pfTrades() {
   return (typeof JOURNAL_TRADES !== 'undefined' && Array.isArray(JOURNAL_TRADES)) ? JOURNAL_TRADES : [];
@@ -168,6 +170,7 @@ function pfRiskPanel(firm) {
     '</div>' +
     '<div class="pfr-rows">' + target + minDays + consRow + '</div>' +
     pfSizer(firm, st, fmt) +
+    pfSimBlock(firm) +
     optimistic +
     '<div class="pfr-foot">' +
       '<span>Balance ' + fmt(st.balance) + ' · floor ' + fmt(st.floor) + ' · ' +
@@ -221,6 +224,203 @@ function pfSizerResult(risk, st, fmt) {
     }
   }
   return result;
+}
+
+
+// ---- the challenge simulator -----------------------------------------------
+//
+// Answers "can this account pass, and at what size" with the member's own
+// numbers. It is deliberately behind a button: it replays thousands of
+// evaluations and takes a few hundred milliseconds, and a panel that stalls
+// every time it renders is a panel people stop opening.
+
+function pfSimBlock(firm) {
+  if (!PF_SIM_MODULE || !PF_RULES || !PF_RULES.isConfigured(firm.rules)) return '';
+
+  // The profile is recomputed on every render. It is one pass over the trades,
+  // and caching it would leave "you need 18 more graded trades" frozen on
+  // screen after the member had added them — with no button to clear it,
+  // because a refusal has nothing to re-run. This way it heals itself.
+  const profile = PF_SIM_MODULE.profileFrom(pfTrades(), {
+    account: firm.name, rules: firm.rules
+  });
+  if (!profile.ok) return pfSimRefusal(firm, { profile: profile });
+
+  let cached = PF_SIM[firm.id];
+  // A study computed from fewer trades than the journal now holds is stale.
+  if (cached && cached.ok && cached.profile && cached.profile.trades !== profile.trades) {
+    cached = null;
+    delete PF_SIM[firm.id];
+  }
+
+  if (!cached) {
+    return '<div class="pfr-sim">' +
+      '<div class="pfr-sim-head"><span class="pfr-kicker">Odds of getting paid</span>' +
+        '<button type="button" class="btn btn-ghost btn-sm" data-act="run-sim">Run the numbers</button></div>' +
+      '<p class="pfr-sim-intro">Replays this evaluation thousands of times using your own ' +
+        'win rate and R distribution, against the rules above, and reports what share of ' +
+        'those runs reached a payout — at each position size.</p>' +
+    '</div>';
+  }
+
+  if (cached.pending) {
+    return '<div class="pfr-sim"><div class="pfr-sim-head">' +
+      '<span class="pfr-kicker">Odds of getting paid</span></div>' +
+      '<p class="pfr-sim-intro">Replaying…</p></div>';
+  }
+
+  if (!cached.ok) return pfSimRefusal(firm, cached);
+
+  return '<div class="pfr-sim">' +
+    '<div class="pfr-sim-head"><span class="pfr-kicker">Odds of getting paid</span>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-act="run-sim">Run again</button></div>' +
+    pfSimResult(firm, cached) +
+  '</div>';
+}
+
+// A refusal is not an error state. It says what is missing and why it matters,
+// because "record your stops" is a more useful instruction than a number
+// computed from twelve trades would have been.
+function pfSimRefusal(firm, study) {
+  const p = study.profile || {};
+  let body;
+  if (p.reason === 'r' && p.missingStops > p.have) {
+    body = '<b>' + p.missingStops + ' of your ' + p.closed + ' trades on this account have no ' +
+      'stop recorded</b>, so there is no R-multiple to resample. The simulator needs R ' +
+      'because the question it answers is about position size, and size only means ' +
+      'something relative to risk. Add the stop to past trades, or start recording it, ' +
+      'and this becomes available at ' + PF_SIM_MODULE.MIN_TRADES + ' graded trades.';
+  } else if (p.reason === 'days') {
+    body = '<b>' + p.have + ' trading days is not enough to resample a day.</b> ' +
+      'Daily loss limits bite on how many trades you take in a session, so the ' +
+      'simulator needs ' + PF_SIM_MODULE.MIN_DAYS + ' days of that shape. ' +
+      p.need + ' more to go.';
+  } else {
+    body = '<b>' + (p.have || 0) + ' graded trades on this account.</b> ' +
+      'The simulator needs ' + PF_SIM_MODULE.MIN_TRADES + ' before it will give you a ' +
+      'number — ' + (p.need || 0) + ' more. Below that the answer would be noise ' +
+      'dressed up as a probability.';
+  }
+  return '<div class="pfr-sim"><div class="pfr-sim-head">' +
+    '<span class="pfr-kicker">Odds of getting paid</span></div>' +
+    '<p class="pfr-sim-intro">' + body + '</p></div>';
+}
+
+// What the sweep actually shows, rather than assuming smaller is always better.
+// Under-sizing has its own failure mode: the target is never reached inside the
+// horizon, which a member reading only the breach rate would never see coming.
+function pfSimShape(study) {
+  const rs = study.results;
+  const best = study.best;
+  const i = rs.indexOf(best);
+  if (i === 0) {
+    return 'That was the smallest size tried, and every larger one did worse — ' +
+      'worth testing smaller still if the target is reachable in the time.';
+  }
+  if (i === rs.length - 1) {
+    return 'That was the largest size tried. Smaller sizes ran out of time before ' +
+      'reaching the target more often than they breached.';
+  }
+  const under = rs[0];
+  return 'Sizes above it breached more often; below it, ' + under.timeoutRate.toFixed(0) +
+    '% of runs ran out of time before reaching the target.';
+}
+
+function pfSimResult(firm, study) {
+  const fmt = pfCurrencyFmt();
+  const p = study.profile;
+  const best = study.best;
+  const max = Math.max.apply(null, study.results.map((r) => r.passRate).concat([1]));
+
+  // Horizontal bars, one per size. Single measure, single series — so no
+  // legend, and the optimum is marked with a label and an outline rather than
+  // a different colour. Colour tracking rank instead of identity is how a
+  // chart starts lying when the data changes.
+  const bars = study.results.map((r) => {
+    const isBest = r.riskPct === best.riskPct;
+    return '<li class="pfr-sim-row' + (isBest ? ' is-best' : '') + '">' +
+      '<span class="pfr-sim-risk">' + r.riskPct + '%' +
+        '<em>' + fmt(r.riskAmount) + '</em></span>' +
+      '<span class="pfr-sim-track">' +
+        '<i style="width:' + ((r.passRate / max) * 100).toFixed(1) + '%"></i>' +
+      '</span>' +
+      '<span class="pfr-sim-pct">' + r.passRate.toFixed(0) + '%' +
+        (isBest ? '<em>best</em>' : '') + '</span>' +
+    '</li>';
+  }).join('');
+
+  const killer = study.killerRule
+    ? '<div class="pfr-row"><span class="pfr-row-k">Usually killed by</span>' +
+      '<span class="pfr-row-v">' +
+        (study.killerRule === 'maxDrawdown' ? 'The drawdown floor' : 'The daily loss limit') +
+      '</span></div>'
+    : '';
+
+  const timing = best.medianDaysToPass !== null
+    ? '<div class="pfr-row"><span class="pfr-row-k">Typical time</span>' +
+      '<span class="pfr-row-v">' + best.medianDaysToPass + ' trading days at ' +
+        best.riskPct + '%.</span></div>'
+    : '';
+
+  return '<div class="pfr-sim-body">' +
+    '<div class="pfr-sim-lead">' +
+      '<span class="pfr-sim-big">' + best.passRate.toFixed(0) + '%</span>' +
+      '<span class="pfr-sim-lead-txt">of runs reached a payout, risking <b>' +
+        best.riskPct + '%</b> per trade — the best of the sizes tried. ' +
+        (study.funded
+          ? 'On a funded account that means surviving ' + study.maxDays + ' days without a breach.'
+          : pfSimShape(study)) +
+      '</span>' +
+    '</div>' +
+
+    '<h5 class="pfr-sim-h">Pass rate by position size</h5>' +
+    '<ul class="pfr-sim-chart">' + bars + '</ul>' +
+    '<div class="sr-only"><table><caption>Pass rate by risk per trade</caption>' +
+      '<thead><tr><th scope="col">Risk per trade</th><th scope="col">Reached a payout</th>' +
+      '<th scope="col">Breached</th></tr></thead><tbody>' +
+      study.results.map((r) => '<tr><th scope="row">' + r.riskPct + '%</th><td>' +
+        r.passRate.toFixed(0) + '%</td><td>' + r.breachRate.toFixed(0) + '%</td></tr>').join('') +
+      '</tbody></table></div>' +
+
+    '<div class="pfr-rows">' + timing + killer +
+      '<div class="pfr-row"><span class="pfr-row-k">Built from</span>' +
+        '<span class="pfr-row-v">' + p.trades + ' graded trades over ' + p.days + ' days — ' +
+          p.winRate.toFixed(0) + '% win rate, ' + p.avgR.toFixed(2) + 'R average. ' +
+          study.iterations.toLocaleString() + ' replays per size.</span></div>' +
+    '</div>' +
+
+    '<p class="pfr-caveat"><b>Read this as an optimistic bound.</b> Replays draw your past ' +
+      'trades independently, but real losses cluster — a bad morning becomes a bad week, and ' +
+      'people size up to make it back. Clustering makes a drawdown breach more likely than ' +
+      'these numbers suggest, so your real odds are lower than the figure above. It also ' +
+      'assumes the edge still works: this is what your past results did against these rules, ' +
+      'not a forecast.</p>' +
+  '</div>';
+}
+
+function pfRunSim(firm, card) {
+  if (!PF_SIM_MODULE || !PF_RULES) return;
+  PF_SIM[firm.id] = { pending: true };
+  renderPropFirmsTab();
+  // Yield a frame so the "Replaying…" state paints before the main thread is
+  // taken for a few hundred milliseconds.
+  setTimeout(() => {
+    try {
+      const profile = PF_SIM_MODULE.profileFrom(pfTrades(), {
+        account: firm.name, rules: firm.rules
+      });
+      const study = PF_SIM_MODULE.study(profile, firm, { iterations: 2500, seed: 20260912 });
+      // Only a real result is cached. A refusal is derived fresh each render
+      // from the profile, so it can never outlive the condition that caused it.
+      if (study.ok) PF_SIM[firm.id] = study;
+      else delete PF_SIM[firm.id];
+    } catch (err) {
+      console.error('Stryker: simulation failed', err);
+      delete PF_SIM[firm.id];
+      if (typeof showToast === 'function') showToast('error', 'The simulation could not run.');
+    }
+    renderPropFirmsTab();
+  }, 30);
 }
 
 // ---- the rules editor ------------------------------------------------------
@@ -388,10 +588,17 @@ function pfRiskHandleClick(act, firm, card) {
     renderPropFirmsTab();
     return true;
   }
+  if (act === 'run-sim') {
+    pfRunSim(firm, card);
+    return true;
+  }
   if (act === 'save-rules') {
     const read = pfReadRulesForm(card, firm);
     if (read.startBalance !== null) firm.startBalance = read.startBalance;
     firm.rules = read.rules;
+    // The cached study was run against the OLD limits. Keeping it would show a
+    // pass rate for rules that no longer apply.
+    delete PF_SIM[firm.id];
     PF_OPEN_FORMS = {};
     savePropFirms(typeof JOURNAL_UID !== 'undefined' ? JOURNAL_UID : null);
     renderPropFirmsTab();

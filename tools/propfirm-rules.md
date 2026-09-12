@@ -93,6 +93,53 @@ so — *"The trade this tool recommends is not taking one."*
 
 ---
 
+## The challenge simulator
+
+`assets/propfirm-sim.js` answers "can this account pass, and at what size" by
+replaying the evaluation thousands of times against the member's own results.
+
+**Bootstrap resampling, not a fitted distribution.** Drawing from their actual
+R-multiples preserves the fat left tail, the outlier win that carries a month,
+and the real win rate. Fitting a normal or lognormal would smooth exactly the
+features that decide whether a drawdown rule gets hit, and would flatter almost
+everyone.
+
+**It requires R, and says so when it cannot have it.** R only exists when a
+stop was recorded. The refusal names the real problem — *"66 of your 66 trades
+have no stop recorded"* — rather than telling someone to trade more, which
+would not fix it. Minimums are 30 graded trades and 8 trading days; below that
+the output is a count of what is missing, never a probability.
+
+**Refusals are never cached.** The profile is recomputed on every render, so
+"you need 18 more trades" clears itself the moment they exist. A cached refusal
+has no button to re-run — there is nothing to run — so caching one would strand
+the member permanently. Studies *are* cached, and are discarded when the rules
+change or the trade count moves, because a pass rate computed against limits
+that no longer apply is worse than no pass rate.
+
+**Common random numbers across the sweep.** Every risk level is replayed
+against the same seeded stream, so a difference between two levels is the
+sizing and not sampling noise. Without it the sweep jitters and the "best" size
+moves between runs on identical input.
+
+**The sweep must reach low enough to show under-sizing.** Risk too little and
+the horizon runs out before the target is reached — a failure mode a member
+reading only the breach rate never sees coming. The default range starts at
+0.1% so the optimum is genuinely interior, and the summary says which side of
+the best size failed for which reason.
+
+**The independence caveat is the most important text on the block.** Resampling
+assumes trades are independent; real losses cluster. Clustering makes drawdown
+breaches *more* likely than independent draws suggest, so every figure is an
+optimistic bound and the UI says so. A simulator that quietly overstates
+someone's odds is worse than none, because they will size up on it.
+
+**The two rule implementations are cross-checked.** `runOnce()` re-implements
+the floor walk for speed. The test suite pushes fixed sequences through both it
+and `propfirmRules.evaluate()` and requires the same verdict — including the
+case that separates the rule types: a giveback that a trailing floor breaches
+and a static floor survives.
+
 ## Adding a rule
 
 1. Add the field to `defaultRules()`.

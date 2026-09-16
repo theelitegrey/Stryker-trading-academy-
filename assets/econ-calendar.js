@@ -214,11 +214,20 @@
   // What the hero and the strip show. Deliberately NOT range-filtered: "next
   // release" means the next one, full stop. Browsing last week's prints should
   // not make the countdown claim there is nothing coming.
+  //
+  // Agencies batch their releases, so the next instant often carries several
+  // rows. The how-to-read card tells members to read the highest-impact row at
+  // a shared print time; the hero has to follow its own advice, or it will
+  // headline import prices while retail sales prints in the same minute.
+  function byTimeThenImpact(a, b) {
+    return (Date.parse(a.at) - Date.parse(b.at)) ||
+           (IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]);
+  }
   function nextUp() {
     const now = Date.now();
     return (DATA.events || []).filter((e) =>
         matches(e) && Date.parse(e.at) > now && e.impact !== 'holiday')
-      .sort((a, b) => Date.parse(a.at) - Date.parse(b.at))[0] || null;
+      .sort(byTimeThenImpact)[0] || null;
   }
 
   // Same rule as the brief and the map: the generator knows when the next
@@ -317,10 +326,7 @@
   }
 
   function renderDays() {
-    const list = shown().slice().sort((a, b) => {
-      const d = Date.parse(a.at) - Date.parse(b.at);
-      return d || (IMPACT_RANK[a.impact] - IMPACT_RANK[b.impact]);
-    });
+    const list = shown().slice().sort(byTimeThenImpact);
     if (!list.length) {
       const sp = span();
       const anyInRange = (DATA.events || []).some((e) => inRange(e, sp));
@@ -597,7 +603,7 @@
   function renderStrip(mount) {
     const ev = nextUp();
     const soon = shown().filter((e) => Date.parse(e.at) > Date.now() && e.impact === 'high')
-      .sort((a, b) => Date.parse(a.at) - Date.parse(b.at)).slice(0, 3);
+      .sort(byTimeThenImpact).slice(0, 3);
     if (!ev) { mount.hidden = true; return; }
     const cur = curMeta(ev.cur);
 

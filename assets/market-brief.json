@@ -1,107 +1,116 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-12T06:10:00Z",
-  "sessionDate": "2026-09-14",
+  "generatedAt": "2026-09-16T08:25:00Z",
+  "sessionDate": "2026-09-16",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-14T11:00:00Z",
-  "headline": "Core CPI ran hot into an FOMC that is now 90% priced to hike",
-  "standfirst": "Stocks closed the week higher anyway, the 10-year is at 4.96% — the highest since 2023 — and Wednesday brings a decision, a dot plot and a press conference. The BoE follows Thursday, the BoJ Friday.",
+  "goodUntil": "2026-09-17T05:30:00Z",
+  "headline": "The ten-year touched 5% into the decision. The hike is not the event.",
+  "standfirst": "Tuesday put every US sector but energy in the red as oil jumped five percent and the 10-year traded through 5.04% for the first time since 2007. A 25bp rise at 14:00 ET is priced at 92–94%; retail sales at 08:30, the dot plot and the 14:30 press conference are where the money is.",
   "bullets": [
     {
-      "title": "The inflation data did not cooperate, and the market bought it anyway",
-      "text": "August CPI held at 3.4% year-over-year as expected, but core rose 0.3% on the month against 0.2% expected — a four-month high. PPI the day before came in at 5.4% year-over-year versus 5.3% expected, with July revised up. The S&P still added 0.86% Friday to close at 7,656.98, the Dow 0.98% and the Nasdaq 0.96%, and the VIX fell 11% to 15.84. Equities are trading the fact that the hike is now known, not the inflation that caused it."
+      "title": "The bond market set the tone, and it did so before the Fed said a word",
+      "text": "The 10-year rose 5bp to close at 5.00% after touching 5.04%, its highest since July 2007. The 20-year auction cleared at a record 5.42%, the 30-year at 5.36%. The S&P lost 0.45% to 7,585.73, the Dow 0.63% and the Nasdaq 0.78%; the VIX sat at 16.98. Every point on the curve rose together, which is the market saying it is no longer pricing one meeting but a ten-year yield in a world where the Fed hikes into 3.4% inflation."
     },
     {
-      "title": "The hike is priced at nine-in-ten, and the curve has already moved",
-      "text": "Futures odds went from roughly 61% before PPI to 72% after it and 86–91% after CPI — a step to 3.75–4.00%. Meanwhile the 10-year finished at 4.96% after touching 4.97%, its highest since late 2023, the 30-year at 5.35% and the 2-year at 4.63%, leaving 2s10s at 33bp and 3m10y at 89bp. The long end moved more than the front, which is the market saying it believes the inflation more than it believes any one meeting. When a move is priced this far in advance, the tradeable content sits in the projections and the press conference, not in the 14:00 ET statement."
+      "title": "Oil is the reason, again",
+      "text": "WTI jumped 5.1% to $106.56 and Brent 3.3% to $109.17 as fighting intensified in the Middle East; both have given back about one percent this morning. Energy was the only sector to close green, up 2.17%; consumer discretionary was the worst, down 1.75%. Crude is up 23.5% over a month and 81% on the year. This is the channel that produced Friday's hot core CPI, and it has not stopped."
     },
     {
-      "title": "Oil gave back the geopolitical premium",
-      "text": "WTI topped $100 midweek and then fell 2.37% Friday to $100.05 on reports easing Strait of Hormuz fears; Brent sat at $104.61. Energy was the channel that pushed this inflation scare in the first place, so an oil tape that stops going up removes the most direct route to another upside surprise — and removes it right before the meeting."
+      "title": "The hike is priced. The projections are not.",
+      "text": "CME FedWatch has a 25bp move to 3.75–4.00% at 92–94%, the first rise since July 2023, with roughly a 70% chance of at least one more before year-end. The gap is in the dots: the committee's June median had 3.8% for end-2026 and 3.6% for 2027, while futures sit near 4.18% and 4.55% — close to a full point above the Fed for next year. TD Securities expects the dot plot to show fewer hikes than the market has priced, which would mean knee-jerk dollar weakness at 14:00 before the press conference at 14:30 has its say. Chair Warsh is known to dislike forward guidance, so the dots carry more weight than usual."
     },
     {
-      "title": "The ECB has already gone, and two more central banks follow this week",
-      "text": "The ECB hiked 25bp on 10 September, taking the deposit rate to 2.50% effective the 16th, with staff forecasting 3.0% inflation this year falling to 2.1% by 2028. Markets price roughly 79% odds of another move on 29 October. The Bank of England decides Thursday (a hold at 3.75% is expected) and the Bank of Japan Friday, where a move to 1.25% is the base case. Three decisions in three days is a week that does not let currency positions sit."
+      "title": "Retail sales at 08:30 will look strong, and most of it is petrol",
+      "text": "Consensus is +0.8% for August after −0.6% in July, with ex-autos at +0.5%. Gasoline prices rose 3.9% in the month and retail sales are measured in dollars, so the headline is flattered before anyone buys anything. The control group — ex fuel, autos, building materials and food services — is expected at +0.4% after −0.4%, and it is the only line the committee will read six hours before it votes."
     },
     {
-      "title": "The dollar is the thing that has not confirmed",
-      "text": "DXY finished around 99.11 and gold at $4,408.90 despite a full week of hawkish repricing. If rates were the whole story the dollar would be higher and gold lower. Either the dollar catches up this week or the rate move is closer to done than the headlines suggest — that divergence is the cleanest single tell on the board right now."
+      "title": "The dollar has confirmed, and the UK has already printed",
+      "text": "DXY reached 99.60, a two-week high; EUR/USD fell for a fifth straight day to a one-month low near 1.153; USD/JPY sits at 155 with the yen the weakest major. Gold fell to $4,335 in New York before bouncing this morning. UK CPI came in at 3.1% as expected at 06:00 UTC, with core steady at 2.6% and input PPI at 6.1% against 5.4% expected — sterling barely moved, but the market now gives tomorrow's Bank of England a one-in-three chance of hiking rather than the near-certain hold of a week ago."
     }
   ],
   "calendar": [
     {
-      "time": "Mon",
-      "event": "China industrial production and retail sales",
-      "note": "Nothing major from the US. A quiet Monday before a loaded week usually means range, not trend."
+      "time": "08:30 ET",
+      "event": "Retail sales (August)",
+      "note": "+0.8% expected after −0.6%. Read the control group, not the headline — the headline is gasoline."
     },
     {
-      "time": "Tue",
-      "event": "German and Eurozone ZEW, US Empire State manufacturing",
-      "note": "FOMC begins behind closed doors. Nothing here is big enough to break structure — the last such session of the week."
+      "time": "08:30 ET",
+      "event": "Import and export price indexes (August)",
+      "note": "Same minute as retail sales, so it will be read through them. The tariff channel makes it worth its own look afterward."
     },
     {
-      "time": "Wed 08:30 ET",
-      "event": "US retail sales and import/export prices (August)",
-      "note": "The last hard consumer read the committee sees before it votes, and it prints five and a half hours ahead of them. Import prices land in the same minute and matter more than usual with the tariff channel live."
+      "time": "10:30 ET",
+      "event": "EIA crude oil inventories",
+      "note": "Normally second-tier. Not this week, with WTI at $105 and the inflation story running through it."
     },
     {
-      "time": "Wed 14:00 ET",
+      "time": "14:00 ET",
       "event": "FOMC decision and projections",
-      "note": "18:00 UTC. The dots are the event, not the hike. Press conference 14:30 ET."
+      "note": "18:00 UTC. A 25bp hike to 3.75–4.00% is 92–94% priced. The dot plot lands at the same instant and is the event."
     },
     {
-      "time": "Thu 07:00 ET",
+      "time": "14:30 ET",
+      "event": "Fed Chair Warsh press conference",
+      "note": "Historically the larger of the two moves, and frequently the reverse of the 14:00 reaction."
+    },
+    {
+      "time": "Tomorrow 07:00 ET",
       "event": "Bank of England decision",
-      "note": "11:00 UTC. Hold at 3.75% expected — the vote split is where the GBP move comes from."
+      "note": "11:00 UTC. A hold at 3.75% is still the base case, but a hike is now priced at one-in-three after today's CPI. The vote split moves sterling."
     },
     {
-      "time": "Thu 08:30 ET",
-      "event": "US jobless claims, Philadelphia Fed, housing starts, building permits",
-      "note": "Four releases into one print time, the morning after an FOMC. Thin book, wide quotes."
+      "time": "Tomorrow 08:30 ET",
+      "event": "Jobless claims, Philadelphia Fed, housing starts, building permits",
+      "note": "Four releases in one minute, the morning after an FOMC."
     },
     {
-      "time": "Fri ~03:00 UTC",
+      "time": "Friday ~03:00 UTC",
       "event": "Bank of Japan decision",
-      "note": "A move to 1.25% from 1.00% is the base case. Watch the yen, then watch what the yen does to Japanese equities in dollars."
-    },
-    {
-      "time": "Fri 09:15 ET",
-      "event": "US industrial production",
-      "note": "Followed by Conference Board leading indicators. A quiet close to a loud week."
+      "note": "A move to 1.25% remains the base case. The yen is already the weakest major going in."
     }
   ],
-  "sessionNote": "Monday and Tuesday are the only two sessions this week with no scheduled US event large enough to break structure. If you need clean conditions to take a setup, they are at the front of the week, not the back. From Wednesday 14:00 ET onward you are trading inside a three-day central bank window across three currencies, and the overnight gaps that come out of a BoJ decision are not the kind you manage with a stop sitting at yesterday's low.",
-  "watchOut": "The trap this week is the FOMC itself being a non-event. A hike priced at nine-in-ten does not move price when it lands — the move comes from the dots and the press conference half an hour later, and it frequently comes in the opposite direction to the first reaction. If your rule is to stand aside for scheduled releases, extend it through 15:00 ET Wednesday rather than stopping at the statement.",
+  "sessionNote": "There are two clean windows today and both are short: after the 08:30 reaction settles and before 14:00, and — for those who trade it — the hour after the press conference ends. Everything else is inside a scheduled event. The 14:00 statement will move price for about a minute before the dots are read; the real move is usually between 14:30 and 15:15, and it frequently reverses the first one. A stop that survives 14:00 has not survived the day.",
+  "watchOut": "The trap today is trading the decision. A hike priced at 92–94% does not move price when it lands. What moves it is whether the dots show one more hike this year or two, and whether Warsh sounds like a man who intends to keep going — and those two signals can point in different directions within the same half hour. If your rule is to stand aside for scheduled releases, the release today runs from 14:00 to 15:15 ET, not for one minute at 14:00.",
   "sources": [
     {
-      "name": "Reuters",
-      "note": "CPI and PPI detail, rate probabilities"
+      "name": "FXStreet",
+      "note": "DXY, 10-year, hike odds, dot plot expectations, UK CPI"
     },
     {
-      "name": "Forbes",
-      "note": "post-CPI hike odds"
+      "name": "MT Newswires",
+      "note": "Tuesday session, 20-year auction, oil settlement, retail sales consensus, Empire State, UK CPI detail"
     },
     {
-      "name": "BMO Economics",
-      "note": "core CPI composition"
+      "name": "Yahoo Finance",
+      "note": "index closes and week-to-date"
     },
     {
-      "name": "Carson Group",
-      "note": "services ex-shelter run rate"
+      "name": "Deutsche Bank",
+      "note": "hike probability, retail sales forecast"
     },
     {
-      "name": "European Central Bank",
-      "note": "10 September decision and staff projections"
+      "name": "TD Securities",
+      "note": "dot plot expectations"
     },
     {
-      "name": "Business Standard",
-      "note": "Asia session, oil and the Hormuz reports"
+      "name": "CNN",
+      "note": "the 10-year at 5% and the bond market into the meeting"
+    },
+    {
+      "name": "RTE, Alliance News",
+      "note": "Bank of England pricing after UK CPI"
     }
   ],
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-09-14",
+      "headline": "Core CPI ran hot into an FOMC that is now 90% priced to hike",
+      "summary": "Weekend edition. Core CPI rose 0.3% on the month against 0.2% expected, PPI came in at 5.4% year-over-year, and September hike odds moved from 61% to about 90%. Equities closed the week higher regardless — S&P +0.86% Friday, VIX −11% — while the 10-year finished at 4.96%."
+    },
     {
       "date": "2026-09-11",
       "headline": "Core CPI at a four-month high, hike odds jump to ~90%",

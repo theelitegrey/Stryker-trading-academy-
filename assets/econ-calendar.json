@@ -1,7 +1,7 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-12T06:20:00Z",
+  "generatedAt": "2026-09-16T08:25:00Z",
   "staleAfterHours": 30,
   "defaultCurrency": "USD",
   "rangeStart": "2026-09-04",
@@ -59,7 +59,7 @@
       "bank": "Federal Reserve",
       "rate": "3.50–3.75%",
       "next": "2026-09-16",
-      "expect": "86–91% priced for +25bp",
+      "expect": "92–94% priced for +25bp",
       "bias": "up"
     },
     {
@@ -75,7 +75,7 @@
       "bank": "Bank of England",
       "rate": "3.75%",
       "next": "2026-09-17",
-      "expect": "Hold expected; watch the vote split",
+      "expect": "Hold expected; a hike is now one-in-three",
       "bias": "hold"
     },
     {
@@ -373,8 +373,21 @@
       "at": "2026-09-14T01:30:00Z",
       "cur": "CNY",
       "impact": "medium",
-      "event": "China industrial production, retail sales (Aug)",
-      "note": "The only scheduled release of consequence on Monday. Sets the tone for commodities before Europe opens."
+      "event": "China industrial production (Aug, y/y)",
+      "actual": "5.2%",
+      "forecast": "4.8%",
+      "previous": "4.5%",
+      "note": "Beat, led by high-tech manufacturing up 16.7%. Supply is fine; demand is the problem."
+    },
+    {
+      "at": "2026-09-14T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China retail sales (Aug, y/y)",
+      "actual": "0.4%",
+      "forecast": "0.7%",
+      "previous": "0.6%",
+      "note": "Missed, with auto sales down 18.5%. Fixed-asset investment contracted for a sixth month. Weak domestic demand, again."
     },
     {
       "at": "2026-09-14T20:30:00Z",
@@ -394,29 +407,61 @@
       "at": "2026-09-15T09:00:00Z",
       "cur": "EUR",
       "impact": "medium",
-      "event": "German and Eurozone ZEW economic sentiment (Sep)",
-      "note": "First read on how European institutions took the ECB hike five days earlier."
+      "event": "German ZEW economic sentiment (Sep)",
+      "actual": "34.7",
+      "forecast": "39.8",
+      "previous": "34.2",
+      "note": "Missed on expectations, but the current-situation index jumped 14 points to −47.1, its best since mid-2023."
+    },
+    {
+      "at": "2026-09-15T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Eurozone ZEW economic sentiment (Sep)",
+      "actual": "25.8",
+      "forecast": "39.9",
+      "previous": "31.4",
+      "note": "The bigger miss: sentiment fell where a sharp rise was expected. Five days after an ECB hike."
     },
     {
       "at": "2026-09-15T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Empire State manufacturing index (Sep)",
-      "note": "Regional survey, first of the September batch. Moves the tape only when it misses badly."
+      "note": "A clear miss — the softest since spring — and the dollar did not blink. On a Fed week the regional surveys do not get a vote.",
+      "actual": "7.6",
+      "forecast": "14.0",
+      "previous": "20.6"
     },
     {
       "at": "2026-09-16T06:00:00Z",
       "cur": "GBP",
       "impact": "high",
       "event": "UK CPI (Aug, y/y)",
-      "note": "Lands the day before the Bank of England decides. A surprise here changes Thursday, not just sterling."
+      "actual": "3.1%",
+      "forecast": "3.1%",
+      "previous": "2.9%",
+      "note": "As expected. First reading above 3% since March; motor fuels up 23% on the year did the work. Services held at 3.4%."
     },
     {
-      "at": "2026-09-16T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "Retail sales (Aug)",
-      "note": "The last hard consumer read the committee sees before it votes, printing five and a half hours ahead of them."
+      "at": "2026-09-16T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK core CPI (Aug, y/y)",
+      "actual": "2.6%",
+      "forecast": "2.6%",
+      "previous": "2.6%",
+      "note": "Unchanged for a fourth month. This is what lets the Bank of England hold tomorrow."
+    },
+    {
+      "at": "2026-09-16T06:00:00Z",
+      "cur": "GBP",
+      "impact": "low",
+      "event": "UK input PPI (Aug, y/y)",
+      "actual": "6.1%",
+      "forecast": "5.4%",
+      "previous": "4.9%",
+      "note": "The one hot number in the UK set. Pipeline pressure from energy, and the reason two hikes are priced by year-end."
     },
     {
       "at": "2026-09-16T12:30:00Z",
@@ -424,6 +469,24 @@
       "impact": "medium",
       "event": "Import and export price indexes (Aug)",
       "note": "Same print time as retail sales, so it will be read through retail sales. Worth its own look with the tariff channel live."
+    },
+    {
+      "at": "2026-09-16T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Retail sales (Aug, m/m)",
+      "forecast": "0.8%",
+      "previous": "-0.6%",
+      "note": "The headline is flattered by gasoline prices, which rose 3.9% in the month. It prints five and a half hours before the committee votes."
+    },
+    {
+      "at": "2026-09-16T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Retail sales control group (Aug, m/m)",
+      "forecast": "0.4%",
+      "previous": "-0.4%",
+      "note": "Ex fuel, autos, building materials and food services. The only retail line that says anything about the consumer rather than the pump."
     },
     {
       "at": "2026-09-16T14:30:00Z",
@@ -438,7 +501,7 @@
       "event": "FOMC rate decision and projections",
       "forecast": "3.75–4.00%",
       "previous": "3.50–3.75%",
-      "note": "A 25bp hike is priced at roughly nine-in-ten, so the statement is not the event. The projections — the dot plot — land at the same instant and are."
+      "note": "A 25bp hike is priced at 92–94%, the first since July 2023, so the statement is not the event. The dot plot lands at the same instant: June had 3.8% for end-2026 and 3.6% for 2027, futures sit near 4.18% and 4.55%."
     },
     {
       "at": "2026-09-16T18:30:00Z",
@@ -461,7 +524,7 @@
       "event": "Bank of England rate decision",
       "forecast": "3.75%",
       "previous": "3.75%",
-      "note": "A hold is expected. The vote split and any change to guidance are where the sterling move comes from."
+      "note": "A hold is still the base case, but after today's CPI the market gives a hike about a one-in-three chance and has two priced by year-end. The vote split is where the sterling move comes from."
     },
     {
       "at": "2026-09-17T12:30:00Z",
@@ -625,5 +688,5 @@
   ],
   "attribution": "Compiled from reporting and event data indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice. Times and forecasts change — confirm against a primary source before trading a release.",
-  "goodUntil": "2026-09-14T11:00:00Z"
+  "goodUntil": "2026-09-17T05:30:00Z"
 }

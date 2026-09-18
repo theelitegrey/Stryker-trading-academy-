@@ -9,6 +9,7 @@ const log = require('./log');
 const scheduler = require('./scheduler');
 
 db.get();
+require('./secrets').apply();
 
 if (process.argv.includes('--once')) {
   scheduler.tick('cli').then((r) => { log.info('tick done', r); process.exit(0); }).catch((e) => { log.error(e); process.exit(1); });

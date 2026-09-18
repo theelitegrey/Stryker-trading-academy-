@@ -20,6 +20,7 @@ function firestore() {
   try {
     const admin = require('firebase-admin');
     const cred = JSON.parse(fs.readFileSync(path.resolve(env.root, env.firebaseServiceAccount), 'utf8'));
+    if (!cred.project_id) throw new Error('service account JSON has no project_id');
     app = admin.apps.length ? admin.app() : admin.initializeApp({ credential: admin.credential.cert(cred) });
     return app.firestore();
   } catch (e) {

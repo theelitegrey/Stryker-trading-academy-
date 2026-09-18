@@ -17,6 +17,8 @@ const scheduler = require('../scheduler');
 const Publish = require('../publish');
 const TTS = require('../tts');
 const Cards = require('../render/cards');
+const secrets = require('../secrets');
+const oauth = require('./oauth');
 const { utcDate, id: newId } = require('../util');
 
 const MIME = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.png': 'image/png', '.svg': 'image/svg+xml', '.wav': 'audio/wav', '.html': 'text/html; charset=utf-8' };
@@ -71,7 +73,9 @@ function snapshot() {
   return {
     now: t, settings: s, defaults: DEFAULT_SETTINGS, state: st, posts, counts,
     configured: Object.assign({ claude: !!env.anthropicApiKey, chatterbox: !!env.tts.chatterboxUrl, kokoro: !!env.tts.kokoroUrl, firestore: !!env.firebaseServiceAccount }, Publish.configured()),
-    publicBaseUrl: env.publicBaseUrl, cardStyles: Cards.STYLE_KEYS, log: log.recent(150)
+    publicBaseUrl: env.publicBaseUrl, cardStyles: Cards.STYLE_KEYS, log: log.recent(150),
+    secrets: secrets.masked(), callbacks: Object.fromEntries(['x', 'youtube', 'instagram', 'threads'].map((p) => [p, oauth.callbackUrl(p)])),
+    notice: db.kvGet('notice', null)
   };
 }
 
@@ -80,6 +84,8 @@ async function api(req, res, url) {
   const m = req.method;
   if (parts[1] === 'state' && m === 'GET') return send(res, 200, snapshot());
   if (parts[1] === 'settings' && m === 'POST') return send(res, 200, { settings: db.saveSettings(await readBody(req)) });
+  if (parts[1] === 'secrets' && m === 'POST') { secrets.save(await readBody(req)); return send(res, 200, { secrets: secrets.masked(), configured: snapshot().configured }); }
+  if (parts[1] === 'notice' && m === 'DELETE') { db.kvSet('notice', null); return send(res, 200, { ok: true }); }
   if (parts[1] === 'tick' && m === 'POST') { const r = await scheduler.tick('admin'); return send(res, 200, Object.assign(r, { state: snapshot() })); }
   if (parts[1] === 'test' && m === 'POST') {
     const target = parts[2];
@@ -148,8 +154,20 @@ function start() {
     try {
       if (url.pathname === '/healthz') return send(res, 200, { ok: true, lastTickAtMs: db.state().lastTickAtMs || null });
       if (url.pathname.startsWith('/media/')) return serveMedia(req, res, url.pathname.slice(7));
+      const oa = url.pathname.match(/^\/oauth\/(x|youtube|instagram|threads)\/(start|callback)$/);
+      if (oa && oa[2] === 'callback') {
+        const q = Object.fromEntries(url.searchParams);
+        let msg;
+        try { msg = await oauth.FLOWS[oa[1]].callback(q); } catch (e) { msg = 'Connecting ' + oa[1] + ' failed: ' + e.message; }
+        db.kvSet('notice', { at: Date.now(), text: msg });
+        res.writeHead(302, { location: '/' }); return res.end();
+      }
       if (!authed(req)) { res.writeHead(401, { 'www-authenticate': 'Basic realm="Stryker social"' }); return res.end('Sign in'); }
       if (url.pathname.startsWith('/api/')) return await api(req, res, url);
+      if (oa && oa[2] === 'start') {
+        try { res.writeHead(302, { location: await oauth.FLOWS[oa[1]].start() }); return res.end(); }
+        catch (e) { db.kvSet('notice', { at: Date.now(), text: e.message }); res.writeHead(302, { location: '/' }); return res.end(); }
+      }
       if (url.pathname === '/' || url.pathname === '/index.html') return send(res, 200, html, MIME['.html']);
       send(res, 404, 'Not found');
     } catch (e) {

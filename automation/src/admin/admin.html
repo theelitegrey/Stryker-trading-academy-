@@ -54,9 +54,13 @@ label{display:block;font-size:12px;color:var(--ink2);margin:8px 0 3px}input,sele
       <div class="check"><input type="checkbox" id="m-verbatim" checked><span>Post exactly as written (no AI rewrite)</span></div>
       <button class="primary" id="m-send">Queue post</button>
     </div>
-    <div class="box">
-      <h2 style="margin-top:0">Connections</h2>
-      <div id="conn"></div>
+    <div class="box" id="setup-box">
+      <h2 style="margin-top:0">Setup &amp; connections</h2>
+      <p class="muted">Paste each key, press <b>Save keys</b>, then press <b>Connect</b> to sign in. Values shown as •••1234 are already saved. The step-by-step guide is <a href="https://github.com/theelitegrey/Stryker-trading-academy-/blob/main/automation/GETTING-STARTED.md" target="_blank" rel="noopener">GETTING-STARTED.md</a>.</p>
+      <div id="notice" class="err" style="display:none;margin-bottom:8px"></div>
+      <div id="setup"></div>
+      <button class="primary" id="save-secrets" style="margin-top:10px">Save keys</button>
+      <div id="test-out" class="muted" style="margin-top:8px"></div>
     </div>
     <div class="box">
       <h2 style="margin-top:0">Settings</h2>
@@ -111,8 +115,7 @@ function render() {
   document.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => act(b.dataset.id, b.dataset.act));
   document.querySelectorAll('[data-save]').forEach((b) => b.onclick = () => saveEdit(b.dataset.save));
 
-  $('#conn').innerHTML = Object.keys(S.configured).map((k) => `<div class="check"><span style="width:110px">${k}</span><span class="${S.configured[k] ? 'ok' : 'no'}" style="color:${S.configured[k] ? 'var(--mint)' : 'var(--red)'}">${S.configured[k] ? 'configured' : 'not set'}</span>${['firestore'].includes(k) ? '' : `<button data-test="${k}" ${S.configured[k] ? '' : 'disabled'}>Test</button>`}</div>`).join('') + '<div id="test-out" class="muted"></div>';
-  document.querySelectorAll('[data-test]').forEach((b) => b.onclick = async () => { b.disabled = true; $('#test-out').textContent = 'Testing ' + b.dataset.test + '…'; const r = await api('test/' + b.dataset.test, 'POST'); $('#test-out').textContent = r.ok ? 'OK: ' + JSON.stringify(r.result) : 'Failed: ' + r.error; b.disabled = false; });
+  renderSetup();
 
   renderSettings(s);
   $('#log').textContent = S.log.slice().reverse().join('\n');
@@ -164,6 +167,42 @@ async function saveEdit(id) {
   const yt = f('yt'); if (yt) drafts.youtube = Object.assign({}, (S.posts.find((p) => p.id === id).drafts || {}).youtube || {}, { title: yt.value });
   try { await api('posts/' + encodeURIComponent(id), 'POST', { drafts }); toast('Saved'); await load(); } catch (e) { toast('Failed: ' + e.message); }
 }
+
+const SETUP = [
+  { key: 'claude', title: 'Claude (writes the posts)', fields: [['anthropicApiKey', 'Anthropic API key', 'password']] },
+  { key: 'x', title: 'X', fields: [['x.apiKey', 'API key', 'password'], ['x.apiSecret', 'API key secret', 'password']], connect: 'x', note: 'From developer.x.com → your app → Keys and tokens. Callback URL to add on X: ' },
+  { key: 'youtube', title: 'YouTube', fields: [['youtube.clientId', 'Google client ID', 'text'], ['youtube.clientSecret', 'Google client secret', 'password']], connect: 'youtube', note: 'From console.cloud.google.com → Credentials. Redirect URI to add on Google: ' },
+  { key: 'instagram', title: 'Instagram', fields: [['meta.appId', 'Meta app ID', 'text'], ['meta.appSecret', 'Meta app secret', 'password']], connect: 'instagram', note: 'From developers.facebook.com → your app → App settings → Basic. Redirect URI to add under Facebook Login: ' },
+  { key: 'threads', title: 'Threads', fields: [['meta.threadsAppId', 'Threads app ID', 'text'], ['meta.threadsAppSecret', 'Threads app secret', 'password']], connect: 'threads', note: 'Same Meta app → Use cases → Threads API → Settings. Redirect URI to add there: ' },
+  { key: 'voice', title: 'Voices', fields: [['tts.chatterboxVoice', 'Chatterbox voice file (in voices/)', 'text'], ['tts.kokoroVoice', 'Kokoro voice name', 'text']], tests: ['chatterbox', 'kokoro'] },
+  { key: 'firestore', title: 'Firebase (optional: live chapters, announcements)', fields: [['firebaseServiceAccountJson', 'Paste the service-account JSON', 'textarea']] }
+];
+function renderSetup() {
+  const n = S.notice; const nb = $('#notice');
+  if (n && Date.now() - n.at < 3600000) { nb.style.display = 'block'; nb.innerHTML = esc(n.text) + ' <button data-dismiss style="margin-left:8px">OK</button>'; nb.querySelector('[data-dismiss]').onclick = async () => { await api('notice', 'DELETE'); await load(); }; } else nb.style.display = 'none';
+  const ms = S.secrets;
+  $('#setup').innerHTML = SETUP.map((g) => {
+    const ok = g.key === 'voice' ? (S.configured.chatterbox || S.configured.kokoro) : S.configured[g.key];
+    const conn = g.connect ? `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'connected' : 'not connected'}</span>` : `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'configured' : 'not set'}</span>`;
+    return `<details ${ok ? '' : 'open'} style="margin:8px 0;border-top:1px solid var(--line);padding-top:6px"><summary style="cursor:pointer;display:flex;justify-content:space-between"><b>${g.title}</b>${conn}</summary>
+      ${g.note ? `<p class="muted" style="margin:6px 0">${g.note}<code style="user-select:all">${esc(S.callbacks[g.connect])}</code></p>` : ''}
+      ${g.fields.map(([k, l, t]) => { const v = getp(ms, k) || ''; return `<label>${l}</label>` + (t === 'textarea' ? `<textarea data-sec="${k}" placeholder="${ms.firebase ? 'saved' : ''}" style="width:100%;min-height:60px;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:8px;padding:6px;font:12px monospace"></textarea>` : `<input data-sec="${k}" type="${t}" placeholder="${esc(v) || 'not set'}" value="${t === 'text' ? esc(v) : ''}">`); }).join('')}
+      <div class="actions" style="margin-top:8px">${g.connect ? `<a href="/oauth/${g.connect}/start"><button class="primary" type="button">${ok ? 'Reconnect' : 'Connect'} ${g.title}</button></a><button data-test="${g.key}" ${ok ? '' : 'disabled'}>Test</button>` : ''}
+      ${g.key === 'claude' ? `<button data-test="claude" ${ok ? '' : 'disabled'}>Test</button>` : ''}${(g.tests || []).map((t) => `<button data-test="${t}" ${S.configured[t] ? '' : 'disabled'}>Test ${t}</button>`).join('')}</div>
+    </details>`;
+  }).join('');
+  document.querySelectorAll('[data-test]').forEach((b) => b.onclick = async () => { b.disabled = true; $('#test-out').textContent = 'Testing ' + b.dataset.test + '…'; const r = await api('test/' + b.dataset.test, 'POST'); $('#test-out').textContent = r.ok ? 'OK: ' + JSON.stringify(r.result) : 'Failed: ' + r.error; b.disabled = false; });
+}
+$('#save-secrets').onclick = async () => {
+  const patch = {};
+  document.querySelectorAll('[data-sec]').forEach((el) => {
+    const v = el.value.trim(); if (!v) return;
+    const keys = el.dataset.sec.split('.'); let o = patch;
+    keys.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; }); o[keys[keys.length - 1]] = v;
+  });
+  if (!Object.keys(patch).length) return toast('Nothing to save');
+  try { await api('secrets', 'POST', patch); toast('Keys saved'); await load(); } catch (e) { toast('Failed: ' + e.message); }
+};
 
 const FIELDS = [
   ['tickMinutes', 'Tick every (min)', 'number'], ['xLinkPolicy', 'X link policy', 'select', ['all', 'brief', 'none']],

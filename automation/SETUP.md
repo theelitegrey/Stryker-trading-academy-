@@ -1,4 +1,9 @@
-# Setup
+# Setup (reference)
+
+**If you are not a developer, read GETTING-STARTED.md instead.** It is the
+same setup as a numbered click-by-click guide, with the one-command
+installer and the Connect buttons on the admin page. This file is the
+reference for people who prefer to do it by hand with `.env`.
 
 Everything below is done once. Budget an afternoon for the server and the
 X and Threads keys; Instagram and YouTube need reviews from Meta and Google

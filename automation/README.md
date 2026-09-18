@@ -68,7 +68,8 @@ automation/
 
 ## Running it
 
-See **SETUP.md** for the VPS and platform setup. Locally:
+**GETTING-STARTED.md** is the click-by-click guide (one-command install,
+Connect buttons). **SETUP.md** is the reference. Locally:
 
 ```bash
 cd automation

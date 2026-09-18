@@ -52,6 +52,7 @@ const env = {
   meta: {
     appId: e('META_APP_ID', ''), appSecret: e('META_APP_SECRET', ''),
     igUserId: e('IG_USER_ID', ''), igAccessToken: e('IG_ACCESS_TOKEN', ''),
+    threadsAppId: e('THREADS_APP_ID', ''), threadsAppSecret: e('THREADS_APP_SECRET', ''),
     threadsUserId: e('THREADS_USER_ID', ''), threadsAccessToken: e('THREADS_ACCESS_TOKEN', '')
   },
   youtube: {

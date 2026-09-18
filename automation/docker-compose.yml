@@ -1,0 +1,62 @@
+# Stryker social automation on one VPS.
+#
+#   cp .env.example .env   # fill it in
+#   docker compose up -d --build
+#
+# Services:
+#   app         the scheduler + admin page + /media (this repo)
+#   kokoro      Kokoro TTS, CPU image, OpenAI-compatible on :8880
+#   chatterbox  Chatterbox TTS server (devnen/Chatterbox-TTS-Server), CPU,
+#               OpenAI-compatible on :8004. Put the cloned brand voice WAV in
+#               ./voices (see SETUP.md). Comment this service out to run with
+#               Kokoro only.
+#   caddy       HTTPS in front of the app (Let's Encrypt), see Caddyfile
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: automation/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      CHATTERBOX_URL: http://chatterbox:8004
+      KOKORO_URL: http://kokoro:8880
+    volumes:
+      - ./data:/data
+    depends_on:
+      - kokoro
+    expose: ["8787"]
+
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    restart: unless-stopped
+    expose: ["8880"]
+
+  chatterbox:
+    build:
+      context: https://github.com/devnen/Chatterbox-TTS-Server.git
+      dockerfile: Dockerfile-cpu
+    restart: unless-stopped
+    environment:
+      DEVICE: cpu
+    volumes:
+      - ./voices:/app/voices
+      - chatterbox-cache:/app/hf_cache
+    expose: ["8004"]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy-data:
+  caddy-config:
+  chatterbox-cache:

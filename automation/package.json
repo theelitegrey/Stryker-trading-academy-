@@ -1,0 +1,25 @@
+{
+  "name": "stryker-social-automation",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stryker Trading Academy social automation: generates short videos and cards from the site's own content and posts them to YouTube Shorts, Instagram Reels, Threads and X.",
+  "main": "src/index.js",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/index.js",
+    "tick": "node src/index.js --once",
+    "test": "node --test test/*.test.js",
+    "youtube-auth": "node scripts/youtube-auth.js",
+    "meta-token": "node scripts/meta-token.js",
+    "demo-video": "node scripts/demo-video.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@resvg/resvg-js": "^2.6.2",
+    "better-sqlite3": "^12.2.0",
+    "ffmpeg-static": "^5.2.0"
+  },
+  "optionalDependencies": {
+    "firebase-admin": "^13.4.0"
+  }
+}

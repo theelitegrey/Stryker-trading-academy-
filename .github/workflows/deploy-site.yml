@@ -128,6 +128,7 @@ jobs:
         run: |
           mkdir -p /tmp/site
           rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
+                   --exclude '.claude' --exclude 'graphify-out' \
                    --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
 
       - name: Deploy to production

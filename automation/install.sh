@@ -36,7 +36,7 @@ HOST="${DOMAIN:-${IP}.sslip.io}"
 
 if [ ! -f .env ]; then
   say "Creating .env"
-  PASS="$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 20)"
+  PASS="$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
   cat > .env <<ENV
 PUBLIC_BASE_URL=https://${HOST}
 PORT=8787

@@ -115,3 +115,20 @@ Do not publish a partial set. Three stale files with an accurate stale banner
 are a better outcome than one fresh file beside two old ones, because the banner
 is honest and the mismatch is not. Leave the files untouched, let the banner
 fire, and say what broke.
+
+## How it is actually scheduled
+
+The refresh is a claude.ai Routine, weekdays at 05:30 UTC. It fires into a
+long-lived agent session that holds the Bigdata.com connector, because a
+Routine that spawns a fresh session each time cannot: connector grants could
+not be attached to it either through the API (refused for this organisation)
+or through the Routines UI (the grant never reached the fired sessions — each
+one launched with the seven built-in tools only and exited in under a minute
+on the BLOCKED path). That standalone Routine is kept, disabled, in case the
+platform changes.
+
+If the session the Routine is bound to is ever lost, recreate the binding
+from a session that has used Bigdata.com successfully; the prompt to give it
+is the numbered list above, which is what the bound session is told each
+morning.
+

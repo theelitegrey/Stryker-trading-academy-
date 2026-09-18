@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Social automation · Stryker Admin</title>
+<style>
+:root{--bg0:#050506;--bg1:#0b0b0d;--bg2:#131316;--bg3:#1e1e22;--line:#2c2c32;--ink0:#eeeeee;--ink1:#c9cdd3;--ink2:#8b93a0;--mint:#03c988;--red:#e5484d;--amber:#f5c542;--violet:#7c3aed;--blue:#3b82f6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg1);color:var(--ink0);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--mint)}button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--bg3);color:var(--ink0);border-radius:10px;padding:7px 12px}
+button:hover{border-color:var(--ink2)}button.primary{background:var(--mint);color:#04120c;border-color:var(--mint);font-weight:600}button.danger{color:var(--red)}button:disabled{opacity:.5;cursor:default}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line);background:var(--bg0);position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0 auto 0 0;font-weight:600}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:16px 20px}
+.tile{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}.tile b{display:block;font-size:12px;color:var(--ink2);font-weight:500;text-transform:uppercase;letter-spacing:.06em}.tile span{font-size:18px;font-weight:600}
+.tile.bad span{color:var(--red)}.tile.ok span{color:var(--mint)}
+main{padding:0 20px 60px;display:grid;gap:24px;grid-template-columns:minmax(0,1fr) 360px}@media(max-width:1000px){main{grid-template-columns:1fr}}
+section h2{font-size:15px;color:var(--ink2);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin:22px 0 10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}.tabs button.on{background:var(--ink0);color:#000;border-color:var(--ink0)}
+.post{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin:10px 0;display:grid;gap:10px;grid-template-columns:minmax(0,1fr) 140px}@media(max-width:700px){.post{grid-template-columns:1fr}}
+.post .meta{font-size:12px;color:var(--ink2);display:flex;gap:10px;flex-wrap:wrap}.kind{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;background:var(--bg3);color:var(--ink1)}
+.kind.brief{color:var(--mint)}.kind.calendar{color:var(--red)}.kind.monitor{color:var(--blue)}.kind.lesson,.kind.promo{color:#b39cff}.kind.failed{color:var(--red)}
+.post h3{margin:0;font-size:16px}.post pre{white-space:pre-wrap;font:13px/1.45 inherit;background:var(--bg1);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0;max-height:220px;overflow:auto}
+.post textarea{width:100%;min-height:90px;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:10px;padding:8px;font:13px/1.45 inherit}
+.post .preview img,.post .preview video{width:100%;border-radius:10px;border:1px solid var(--line);background:#000}
+.actions{display:flex;gap:6px;flex-wrap:wrap}.err{color:var(--red);font-size:13px}.res{font-size:13px}.res a{margin-right:10px}
+.platforms span{display:inline-block;margin-right:8px;font-size:12px}.platforms .ok{color:var(--mint)}.platforms .no{color:var(--red)}.platforms .wait{color:var(--ink2)}
+aside .box{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px}
+label{display:block;font-size:12px;color:var(--ink2);margin:8px 0 3px}input,select{width:100%;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.check{display:flex;align-items:center;gap:8px;margin:6px 0}.check input{width:auto}
+#log{font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap;color:var(--ink1);background:var(--bg1);border:1px solid var(--line);border-radius:10px;padding:10px;max-height:320px;overflow:auto}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink0);color:#000;padding:10px 16px;border-radius:12px;font-weight:600;display:none;z-index:9}
+.muted{color:var(--ink2);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Social automation</h1>
+  <button id="tick">Run now</button>
+  <button id="toggle" class="primary">…</button>
+</header>
+<div class="strip" id="strip"></div>
+<main>
+  <section>
+    <div class="tabs" id="tabs"></div>
+    <div id="list"></div>
+  </section>
+  <aside>
+    <div class="box">
+      <h2 style="margin-top:0">Compose</h2>
+      <label>Title (card headline, optional)</label><input id="m-title">
+      <label>Text</label><textarea id="m-text" style="width:100%;min-height:90px;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit"></textarea>
+      <label>Link path on the site (optional, e.g. /courses.html)</label><input id="m-link" placeholder="/">
+      <div class="check"><input type="checkbox" id="m-verbatim" checked><span>Post exactly as written (no AI rewrite)</span></div>
+      <button class="primary" id="m-send">Queue post</button>
+    </div>
+    <div class="box" id="setup-box">
+      <h2 style="margin-top:0">Setup &amp; connections</h2>
+      <p class="muted">Paste each key, press <b>Save keys</b>, then press <b>Connect</b> to sign in. Values shown as •••1234 are already saved. The step-by-step guide is <a href="https://github.com/theelitegrey/Stryker-trading-academy-/blob/main/automation/GETTING-STARTED.md" target="_blank" rel="noopener">GETTING-STARTED.md</a>.</p>
+      <div id="notice" class="err" style="display:none;margin-bottom:8px"></div>
+      <div id="setup"></div>
+      <button class="primary" id="save-secrets" style="margin-top:10px">Save keys</button>
+      <div id="test-out" class="muted" style="margin-top:8px"></div>
+    </div>
+    <div class="box">
+      <h2 style="margin-top:0">Settings</h2>
+      <form id="settings"></form>
+      <button class="primary" id="save" style="margin-top:10px">Save settings</button>
+    </div>
+    <div class="box">
+      <h2 style="margin-top:0">Log</h2>
+      <div id="log"></div>
+    </div>
+  </aside>
+</main>
+<div class="toast" id="toast"></div>
+<script>
+let S = null, tab = 'attention';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago = (ms) => !ms ? 'never' : (Math.round((Date.now() - ms) / 60000) < 1 ? 'just now' : Math.round((Date.now() - ms) / 60000) + ' min ago');
+const inMin = (ms) => !ms ? '' : (ms < Date.now() ? 'due' : 'in ' + Math.round((ms - Date.now()) / 60000) + ' min');
+function toast(m) { const t = $('#toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2500); }
+async function api(path, method, body) {
+  const r = await fetch('/api/' + path, { method: method || 'GET', headers: { 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status); return j;
+}
+async function load() { S = await api('state'); render(); }
+
+const TABS = [['attention', 'Needs attention'], ['scheduled', 'Scheduled'], ['posted', 'Posted'], ['all', 'All']];
+function bucket(p) {
+  if (['queued', 'failed', 'partial'].includes(p.status)) return 'attention';
+  if (['ready', 'drafting', 'drafted', 'rendering', 'approved', 'posting'].includes(p.status)) return 'scheduled';
+  if (p.status === 'posted') return 'posted';
+  return 'other';
+}
+
+function render() {
+  const st = S.state, s = S.settings;
+  const stale = st.lastTickAtMs && Date.now() - st.lastTickAtMs > (s.tickMinutes * 2 + 2) * 60000;
+  $('#toggle').textContent = s.enabled ? 'Posting is ON — pause' : 'Posting is OFF — enable';
+  $('#toggle').className = s.enabled ? '' : 'primary';
+  $('#strip').innerHTML = [
+    ['Last tick', ago(st.lastTickAtMs), stale ? 'bad' : ''],
+    ['Last post', ago(st.lastPostAtMs), ''],
+    ...Object.keys(S.counts).map((p) => [p + ' today', S.counts[p].today + ' / ' + (s.pacing[p] || {}).maxPerDay, '']),
+    ['Last error', st.lastError ? st.lastError.slice(0, 60) : 'none', st.lastError ? 'bad' : 'ok']
+  ].map(([b, v, c]) => `<div class="tile ${c}"><b>${esc(b)}</b><span>${esc(v)}</span></div>`).join('');
+
+  const counts = {}; S.posts.forEach((p) => { const b = bucket(p); counts[b] = (counts[b] || 0) + 1; });
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${l} ${k === 'all' ? '' : '(' + (counts[k] || 0) + ')'}</button>`).join('');
+  document.querySelectorAll('[data-tab]').forEach((b) => b.onclick = () => { tab = b.dataset.tab; render(); });
+  const list = S.posts.filter((p) => tab === 'all' || bucket(p) === tab);
+  $('#list').innerHTML = list.length ? list.map(postHtml).join('') : '<p class="muted">Nothing here.</p>';
+  document.querySelectorAll('[data-act]').forEach((b) => b.onclick = () => act(b.dataset.id, b.dataset.act));
+  document.querySelectorAll('[data-save]').forEach((b) => b.onclick = () => saveEdit(b.dataset.save));
+
+  renderSetup();
+
+  renderSettings(s);
+  $('#log').textContent = S.log.slice().reverse().join('\n');
+}
+
+function postHtml(p) {
+  const d = p.drafts || {}; const r = p.results || {}; const m = p.media || {};
+  const plat = p.platforms.map((x) => `<span class="${r[x] && r[x].id ? 'ok' : (r[x] && r[x].error ? 'no' : 'wait')}">${x}${r[x] && r[x].id ? ' ✓' : (r[x] && r[x].error ? ' ✗' : '')}</span>`).join('');
+  const preview = m.video ? `<video controls preload="metadata" poster="/${m.poster || ''}" src="/${m.video}"></video>` : (m.cardPng ? `<img src="/${m.cardPng}" alt="">` : '');
+  const canEdit = ['queued', 'approved', 'drafted', 'failed', 'partial'].includes(p.status);
+  const acts = [];
+  if (p.status === 'queued') acts.push(['approve', 'Approve'], ['post-now', 'Approve & post next']);
+  if (['approved', 'drafted', 'rendering'].includes(p.status)) acts.push(['hold', 'Hold for approval']);
+  if (['failed', 'partial'].includes(p.status)) acts.push(['retry', 'Retry']);
+  if (canEdit) acts.push(['redraft', 'Redraft']);
+  if (p.video && p.drafts && ['queued', 'approved', 'failed', 'partial'].includes(p.status)) acts.push(['rerender', 'Re-render video']);
+  if (!['posted', 'rejected'].includes(p.status)) acts.push(['reject', 'Reject']);
+  acts.push(['delete', 'Delete']);
+  return `<div class="post" id="p-${esc(p.id)}">
+    <div>
+      <div class="meta"><span class="kind ${esc(p.kind)}">${esc(p.kind)}</span><span class="kind ${p.status === 'failed' ? 'failed' : ''}">${esc(p.status)}</span>
+        ${p.video ? '<span>video' + (m.seconds ? ' · ' + m.seconds + 's' : '') + (m.voiced != null ? ' · ' + (m.engine || 'no voice') : '') + '</span>' : '<span>text + card</span>'}
+        <span>${esc(inMin(p.scheduledForMs))}</span><span>${esc(p.id)}</span></div>
+      <h3>${esc(p.title || '')}</h3>
+      <div class="platforms">${plat}</div>
+      ${p.error ? `<div class="err">${esc(p.error)}</div>` : ''}
+      ${Object.keys(r).filter((k) => r[k].url).length ? `<div class="res">${Object.keys(r).filter((k) => r[k].url).map((k) => `<a href="${esc(r[k].url)}" target="_blank" rel="noopener">${k} ↗</a>`).join('')}</div>` : ''}
+      ${d.x ? (canEdit
+        ? `<label>X</label><textarea data-f="x" data-p="${esc(p.id)}">${esc(d.x.join('\n---\n'))}</textarea>
+           <label>Threads</label><textarea data-f="threads" data-p="${esc(p.id)}">${esc(d.threads)}</textarea>
+           <label>Instagram</label><textarea data-f="instagram" data-p="${esc(p.id)}">${esc(d.instagram)}</textarea>
+           ${p.video ? `<label>YouTube title</label><input data-f="yt" data-p="${esc(p.id)}" value="${esc((d.youtube || {}).title)}">` : ''}
+           <div class="actions" style="margin-top:6px"><button data-save="${esc(p.id)}">Save text</button></div>`
+        : `<pre>${esc(d.x.join('\n---\n'))}</pre>`) : ''}
+      ${p.script ? `<details><summary class="muted">Script (${p.script.scenes.length} scenes)</summary><pre>${esc(p.script.scenes.map((s, i) => (i + 1) + '. [' + s.type + '] ' + s.heading + '\n   ' + s.narration).join('\n'))}</pre></details>` : ''}
+      <div class="actions">${acts.map(([a, l]) => `<button data-act="${a}" data-id="${esc(p.id)}" class="${a === 'reject' || a === 'delete' ? 'danger' : (a.startsWith('approve') || a === 'post-now' ? 'primary' : '')}">${l}</button>`).join('')}</div>
+    </div>
+    <div class="preview">${preview}</div>
+  </div>`;
+}
+
+async function act(id, a) {
+  if ((a === 'delete' || a === 'reject') && !confirm(a + ' this post?')) return;
+  try { await api('posts/' + encodeURIComponent(id) + '/' + a, 'POST'); toast('Done'); await load(); } catch (e) { toast('Failed: ' + e.message); }
+}
+async function saveEdit(id) {
+  const f = (k) => document.querySelector(`[data-f="${k}"][data-p="${CSS.escape(id)}"]`);
+  const drafts = { x: f('x').value.split(/\n---\n/).map((s) => s.trim()).filter(Boolean), threads: f('threads').value, instagram: f('instagram').value };
+  const yt = f('yt'); if (yt) drafts.youtube = Object.assign({}, (S.posts.find((p) => p.id === id).drafts || {}).youtube || {}, { title: yt.value });
+  try { await api('posts/' + encodeURIComponent(id), 'POST', { drafts }); toast('Saved'); await load(); } catch (e) { toast('Failed: ' + e.message); }
+}
+
+const SETUP = [
+  { key: 'claude', title: 'Claude (writes the posts)', fields: [['anthropicApiKey', 'Anthropic API key', 'password']] },
+  { key: 'buffer', title: 'Buffer (easy path: one key for every platform)', fields: [['buffer.token', 'Buffer API key', 'password']], tests: ['buffer'],
+    help: 'Connect X, Instagram, Threads and YouTube inside buffer.com first, then paste the key from buffer.com → Settings → API. Press Test to see the channels. Then tick "Publish via Buffer" in Settings below. The sections after this one are only needed for platforms you do NOT route through Buffer.' },
+  { key: 'x', title: 'X', fields: [['x.apiKey', 'API key', 'password'], ['x.apiSecret', 'API key secret', 'password']], connect: 'x', note: 'From developer.x.com → your app → Keys and tokens. Callback URL to add on X: ' },
+  { key: 'youtube', title: 'YouTube', fields: [['youtube.clientId', 'Google client ID', 'text'], ['youtube.clientSecret', 'Google client secret', 'password']], connect: 'youtube', note: 'From console.cloud.google.com → Credentials. Redirect URI to add on Google: ' },
+  { key: 'instagram', title: 'Instagram', fields: [['meta.appId', 'Meta app ID', 'text'], ['meta.appSecret', 'Meta app secret', 'password']], connect: 'instagram', note: 'From developers.facebook.com → your app → App settings → Basic. Redirect URI to add under Facebook Login: ' },
+  { key: 'threads', title: 'Threads', fields: [['meta.threadsAppId', 'Threads app ID', 'text'], ['meta.threadsAppSecret', 'Threads app secret', 'password']], connect: 'threads', note: 'Same Meta app → Use cases → Threads API → Settings. Redirect URI to add there: ' },
+  { key: 'voice', title: 'Voices', fields: [['tts.chatterboxVoice', 'Chatterbox voice file (in voices/)', 'text'], ['tts.kokoroVoice', 'Kokoro voice name', 'text']], tests: ['chatterbox', 'kokoro'] },
+  { key: 'firestore', title: 'Firebase (optional: live chapters, announcements)', fields: [['firebaseServiceAccountJson', 'Paste the service-account JSON', 'textarea']] }
+];
+function renderSetup() {
+  const n = S.notice; const nb = $('#notice');
+  if (n && Date.now() - n.at < 3600000) { nb.style.display = 'block'; nb.innerHTML = esc(n.text) + ' <button data-dismiss style="margin-left:8px">OK</button>'; nb.querySelector('[data-dismiss]').onclick = async () => { await api('notice', 'DELETE'); await load(); }; } else nb.style.display = 'none';
+  const ms = S.secrets;
+  $('#setup').innerHTML = SETUP.map((g) => {
+    const ok = g.key === 'voice' ? (S.configured.chatterbox || S.configured.kokoro) : S.configured[g.key];
+    const conn = g.connect ? `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'connected' : 'not connected'}</span>` : `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'configured' : 'not set'}</span>`;
+    return `<details ${ok ? '' : 'open'} style="margin:8px 0;border-top:1px solid var(--line);padding-top:6px"><summary style="cursor:pointer;display:flex;justify-content:space-between"><b>${g.title}</b>${conn}</summary>
+      ${g.note ? `<p class="muted" style="margin:6px 0">${g.note}<code style="user-select:all">${esc(S.callbacks[g.connect])}</code></p>` : ''}
+      ${g.help ? `<p class="muted" style="margin:6px 0">${g.help}</p>` : ''}
+      ${g.key === 'buffer' && S.bufferChannels.length ? `<p class="muted" style="margin:6px 0">Channels in Buffer: ${S.bufferChannels.map((c) => esc((c.platform || c.service) + ': ' + c.name + (c.disconnected ? ' (disconnected)' : ''))).join(' · ')}</p>` : ''}
+      ${g.fields.map(([k, l, t]) => { const v = getp(ms, k) || ''; return `<label>${l}</label>` + (t === 'textarea' ? `<textarea data-sec="${k}" placeholder="${ms.firebase ? 'saved' : ''}" style="width:100%;min-height:60px;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:8px;padding:6px;font:12px monospace"></textarea>` : `<input data-sec="${k}" type="${t}" placeholder="${esc(v) || 'not set'}" value="${t === 'text' ? esc(v) : ''}">`); }).join('')}
+      <div class="actions" style="margin-top:8px">${g.connect ? `<a href="/oauth/${g.connect}/start"><button class="primary" type="button">${ok ? 'Reconnect' : 'Connect'} ${g.title}</button></a><button data-test="${g.key}" ${ok ? '' : 'disabled'}>Test</button>` : ''}
+      ${g.key === 'claude' ? `<button data-test="claude" ${ok ? '' : 'disabled'}>Test</button>` : ''}${(g.tests || []).map((t) => `<button data-test="${t}" ${S.configured[t] ? '' : 'disabled'}>Test ${t}</button>`).join('')}</div>
+    </details>`;
+  }).join('');
+  document.querySelectorAll('[data-test]').forEach((b) => b.onclick = async () => { b.disabled = true; $('#test-out').textContent = 'Testing ' + b.dataset.test + '…'; const r = await api('test/' + b.dataset.test, 'POST'); $('#test-out').textContent = r.ok ? 'OK: ' + JSON.stringify(r.result) : 'Failed: ' + r.error; b.disabled = false; });
+}
+$('#save-secrets').onclick = async () => {
+  const patch = {};
+  document.querySelectorAll('[data-sec]').forEach((el) => {
+    const v = el.value.trim(); if (!v) return;
+    const keys = el.dataset.sec.split('.'); let o = patch;
+    keys.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; }); o[keys[keys.length - 1]] = v;
+  });
+  if (!Object.keys(patch).length) return toast('Nothing to save');
+  try { await api('secrets', 'POST', patch); toast('Keys saved'); await load(); } catch (e) { toast('Failed: ' + e.message); }
+};
+
+const FIELDS = [
+  ['buffer.enabled', 'Publish via Buffer', 'bool'], ['buffer.platforms.x', '  via Buffer: X', 'bool'], ['buffer.platforms.threads', '  via Buffer: Threads', 'bool'], ['buffer.platforms.instagram', '  via Buffer: Instagram', 'bool'], ['buffer.platforms.youtube', '  via Buffer: YouTube', 'bool'],
+  ['tickMinutes', 'Tick every (min)', 'number'], ['xLinkPolicy', 'X link policy', 'select', ['all', 'brief', 'none']],
+  ['videoPreviewMinutes', 'Video preview window (min)', 'number'], ['voice', 'Voice', 'select', ['auto', 'chatterbox', 'kokoro', 'none']],
+  ['musicDb', 'Music bed (dB, 0 = off)', 'number'], ['cards', 'Cards on text posts', 'bool'],
+  ['brief.hour', 'Brief hour UTC', 'number'], ['brief.minute', 'Brief minute', 'number'], ['brief.video', 'Brief as video', 'bool'],
+  ['lesson.hour', 'Lesson hour UTC', 'number'], ['lesson.video', 'Lesson as video', 'bool'], ['lesson.enabled', 'Lessons on', 'bool'],
+  ['promo.hour', 'Promo hour UTC', 'number'], ['promo.days', 'Promo days (0=Sun…6)', 'list'], ['promo.enabled', 'Promos on', 'bool'],
+  ['feature.hour', 'Feature post hour UTC', 'number'], ['feature.enabled', 'Feature posts on', 'bool'],
+  ['calendar.leadMinutes', 'Calendar lead (min)', 'number'], ['calendar.enabled', 'Calendar countdowns on', 'bool'],
+  ['monitor.maxPerDay', 'Monitor alerts / day', 'number'], ['monitor.enabled', 'Monitor alerts on', 'bool'],
+  ['announce.enabled', 'Announcements on', 'bool'], ['holdKinds', 'Always hold kinds (comma list)', 'list']
+];
+const getp = (o, k) => k.split('.').reduce((a, b) => (a == null ? a : a[b]), o);
+function renderSettings(s) {
+  let h = '';
+  for (const [k, l, t, opts] of FIELDS) {
+    const v = getp(s, k);
+    if (t === 'bool') h += `<div class="check"><input type="checkbox" data-s="${k}" data-t="bool" ${v ? 'checked' : ''}><span>${l}</span></div>`;
+    else if (t === 'select') h += `<label>${l}</label><select data-s="${k}" data-t="select">${opts.map((o) => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+    else h += `<label>${l}</label><input data-s="${k}" data-t="${t}" value="${esc(Array.isArray(v) ? v.join(',') : v)}">`;
+  }
+  h += '<label>Platforms on</label>' + Object.keys(s.platforms).map((p) => `<div class="check"><input type="checkbox" data-s="platforms.${p}" data-t="bool" ${s.platforms[p] ? 'checked' : ''}><span>${p}</span></div>`).join('');
+  h += '<label>Pacing: gap (min) / max per day</label>' + Object.keys(s.pacing).map((p) => `<div class="row"><input data-s="pacing.${p}.minGapMinutes" data-t="number" value="${s.pacing[p].minGapMinutes}" placeholder="${p} gap"><input data-s="pacing.${p}.maxPerDay" data-t="number" value="${s.pacing[p].maxPerDay}" placeholder="${p} max"></div><div class="muted">${p}</div>`).join('');
+  $('#settings').innerHTML = h;
+}
+$('#save').onclick = async () => {
+  const patch = {};
+  document.querySelectorAll('[data-s]').forEach((el) => {
+    const t = el.dataset.t; let v = t === 'bool' ? el.checked : (t === 'number' ? Number(el.value) : (t === 'list' ? el.value.split(',').map((x) => x.trim()).filter(Boolean).map((x) => (/^\d+$/.test(x) ? Number(x) : x)) : el.value));
+    const keys = el.dataset.s.split('.'); let o = patch;
+    keys.slice(0, -1).forEach((k) => { o = o[k] = o[k] || {}; }); o[keys[keys.length - 1]] = v;
+  });
+  try { await api('settings', 'POST', patch); toast('Settings saved'); await load(); } catch (e) { toast('Failed: ' + e.message); }
+};
+$('#toggle').onclick = async () => { await api('settings', 'POST', { enabled: !S.settings.enabled }); await load(); };
+$('#tick').onclick = async () => { $('#tick').disabled = true; try { await api('tick', 'POST'); toast('Tick ran'); } catch (e) { toast('Tick failed: ' + e.message); } $('#tick').disabled = false; await load(); };
+$('#m-send').onclick = async () => {
+  try { await api('manual', 'POST', { title: $('#m-title').value, text: $('#m-text').value, linkPath: $('#m-link').value || null, verbatim: $('#m-verbatim').checked }); $('#m-text').value = ''; toast('Queued'); tab = 'scheduled'; await load(); } catch (e) { toast('Failed: ' + e.message); }
+};
+load(); setInterval(load, 60000);
+</script>
+</body>
+</html>

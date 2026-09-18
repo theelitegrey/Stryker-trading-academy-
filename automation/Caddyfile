@@ -1,0 +1,6 @@
+# Replace the hostname with the DNS name that points at the VPS.
+# Caddy fetches and renews the certificate itself.
+social.strykertrading.com {
+    encode gzip
+    reverse_proxy app:8787
+}

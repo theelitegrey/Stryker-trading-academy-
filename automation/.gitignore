@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/*
+!data/music/
+data/music/*
+!data/music/.gitkeep
+*.log

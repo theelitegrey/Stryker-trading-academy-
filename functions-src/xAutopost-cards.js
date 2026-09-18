@@ -122,6 +122,108 @@ function foot(ink, ink2, x, y, boldSite) {
 const up = (s) => esc(String(s || '').toUpperCase());
 const svgOpen = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">`;
 
+
+// ---- illustrations -----------------------------------------------------------------
+// Pure vector, drawn here so a card never depends on a file on the server. All
+// decorative: none of these encode data except the gauge, which shows the
+// stat value's position within the label's range when one is known.
+
+const ILLUS = {};
+
+/** Abstract candlesticks along the lower half, low opacity. Decorative only. */
+ILLUS.candles = (x0, y0, w, h, color, opacity) => {
+  // A fixed pseudo-random walk so every render is identical.
+  const seq = [3, -2, 4, -1, -3, 5, 2, -4, 1, 3, -2, -1, 4, 2, -3, 5, -1, 2, 3, -2, 4, 1, -3, 2];
+  const n = seq.length, cw = w / n;
+  let y = y0 + h * 0.55, out = [];
+  seq.forEach((d, i) => {
+    const open = y, close = y - d * (h / 26);
+    const hi = Math.min(open, close) - (h / 20), lo = Math.max(open, close) + (h / 20);
+    const cx = x0 + i * cw + cw / 2, upc = close < open;
+    out.push(`<line x1="${cx}" y1="${hi}" x2="${cx}" y2="${lo}" stroke="${color}" stroke-width="2" stroke-opacity="${opacity}"/>`);
+    out.push(`<rect x="${cx - cw * 0.28}" y="${Math.min(open, close)}" width="${cw * 0.56}" height="${Math.max(3, Math.abs(close - open))}" ` +
+             `fill="${upc ? color : 'none'}" stroke="${color}" stroke-width="2" fill-opacity="${opacity}" stroke-opacity="${opacity}"/>`);
+    y = close;
+  });
+  return `<g>${out.join('')}</g>`;
+};
+
+/** Clock face with hands, plus a small bell. `minutes` sets the minute hand. */
+ILLUS.clock = (cx, cy, r, color, ink, minutes) => {
+  const ticks = [];
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2, big = i % 3 === 0;
+    ticks.push(`<line x1="${cx + Math.sin(a) * (r - (big ? 22 : 14))}" y1="${cy - Math.cos(a) * (r - (big ? 22 : 14))}" ` +
+               `x2="${cx + Math.sin(a) * (r - 6)}" y2="${cy - Math.cos(a) * (r - 6)}" stroke="${ink}" stroke-width="${big ? 4 : 2}" stroke-opacity="0.55"/>`);
+  }
+  const m = ((Number(minutes) || 30) % 60) / 60 * Math.PI * 2;
+  const wedge = `<path d="M${cx} ${cy} L${cx} ${cy - r + 8} A${r - 8} ${r - 8} 0 ${m > Math.PI ? 1 : 0} 1 ${cx + Math.sin(m) * (r - 8)} ${cy - Math.cos(m) * (r - 8)} Z" fill="${color}" fill-opacity="0.18"/>`;
+  return `<g><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="6"/>` +
+    `<circle cx="${cx}" cy="${cy}" r="${r - 10}" fill="none" stroke="${ink}" stroke-opacity="0.15"/>${wedge}${ticks.join('')}` +
+    `<line x1="${cx}" y1="${cy}" x2="${cx}" y2="${cy - r * 0.55}" stroke="${ink}" stroke-width="7" stroke-linecap="round"/>` +
+    `<line x1="${cx}" y1="${cy}" x2="${cx + Math.sin(m) * r * 0.78}" y2="${cy - Math.cos(m) * r * 0.78}" stroke="${color}" stroke-width="5" stroke-linecap="round"/>` +
+    `<circle cx="${cx}" cy="${cy}" r="9" fill="${color}"/>` +
+    // bell, top right of the face
+    `<g transform="translate(${cx + r * 0.72},${cy - r * 0.95})"><path d="M0 26 C0 10 8 4 16 4 C24 4 32 10 32 26 L36 32 L-4 32 Z" fill="${color}"/>` +
+    `<circle cx="16" cy="38" r="5" fill="${color}"/><circle cx="16" cy="2" r="3" fill="${color}"/></g></g>`;
+};
+
+/** A half-ring gauge with a needle. `frac` in 0..1; decorative when null. */
+ILLUS.gauge = (cx, cy, r, colorLo, colorHi, ink, frac) => {
+  const f = typeof frac === 'number' ? Math.max(0, Math.min(1, frac)) : 0.62;
+  const a = Math.PI * (1 - f), nx = cx + Math.cos(a) * (r - 30), ny = cy - Math.sin(a) * (r - 30);
+  const arc = (r0, w, col, op) => `<path d="M${cx - r0} ${cy} A${r0} ${r0} 0 0 1 ${cx + r0} ${cy}" fill="none" stroke="${col}" stroke-width="${w}" stroke-opacity="${op}" stroke-linecap="round"/>`;
+  const seg = [];
+  for (let i = 0; i < 24; i++) {
+    const t0 = Math.PI * (1 - i / 24), t1 = Math.PI * (1 - (i + 0.7) / 24);
+    const col = i < 8 ? colorLo : (i < 16 ? '#f5c542' : colorHi);
+    seg.push(`<path d="M${cx + Math.cos(t0) * r} ${cy - Math.sin(t0) * r} A${r} ${r} 0 0 1 ${cx + Math.cos(t1) * r} ${cy - Math.sin(t1) * r}" fill="none" stroke="${col}" stroke-width="14" stroke-opacity="${i / 24 <= f ? 0.95 : 0.22}"/>`);
+  }
+  return `<g>${arc(r + 22, 2, ink, 0.18)}${seg.join('')}` +
+    `<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>` +
+    `<circle cx="${cx}" cy="${cy}" r="12" fill="${ink}"/><circle cx="${cx}" cy="${cy}" r="5" fill="${colorHi}"/></g>`;
+};
+
+/** Three stacked chapter cards with a bookmark, tilted. */
+ILLUS.cards = (x, y, color, ink) => {
+  const card = (dx, dy, rot, op) => `<g transform="translate(${x + dx},${y + dy}) rotate(${rot})"><rect width="220" height="150" rx="14" fill="#0b0b0d" fill-opacity="${op}" stroke="#fff" stroke-opacity="0.35"/>` +
+    `<rect x="18" y="20" width="110" height="10" rx="5" fill="${ink}" fill-opacity="0.8"/><rect x="18" y="42" width="180" height="7" rx="3.5" fill="${ink}" fill-opacity="0.35"/>` +
+    `<rect x="18" y="58" width="150" height="7" rx="3.5" fill="${ink}" fill-opacity="0.35"/><rect x="18" y="74" width="165" height="7" rx="3.5" fill="${ink}" fill-opacity="0.35"/>` +
+    `<rect x="18" y="112" width="70" height="20" rx="10" fill="${color}"/></g>`;
+  return `<g>${card(40, 30, -8, 0.55)}${card(20, 15, -4, 0.7)}${card(0, 0, 0, 0.9)}` +
+    `<path d="M${x + 186} ${y - 6} L${x + 186} ${y + 52} L${x + 200} ${y + 40} L${x + 214} ${y + 52} L${x + 214} ${y - 6} Z" fill="${color}"/></g>`;
+};
+
+/** A dashboard window: title bar, a line chart pane and three bars. */
+ILLUS.dashboard = (x, y, color, accent) => {
+  return `<g transform="translate(${x},${y})"><rect width="300" height="210" rx="16" fill="#0b0b0d" fill-opacity="0.55" stroke="#fff" stroke-opacity="0.35"/>` +
+    `<rect width="300" height="30" rx="16" fill="#fff" fill-opacity="0.12"/><circle cx="18" cy="15" r="5" fill="${accent}"/><circle cx="34" cy="15" r="5" fill="#f5c542"/><circle cx="50" cy="15" r="5" fill="${color}"/>` +
+    `<rect x="18" y="46" width="176" height="120" rx="10" fill="#fff" fill-opacity="0.06"/>` +
+    `<polyline points="30,150 60,120 90,132 120,96 150,104 180,70" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<circle cx="180" cy="70" r="6" fill="${color}"/>` +
+    `<rect x="212" y="110" width="18" height="56" rx="4" fill="${accent}" fill-opacity="0.9"/><rect x="240" y="80" width="18" height="86" rx="4" fill="${color}"/><rect x="268" y="128" width="18" height="38" rx="4" fill="#fff" fill-opacity="0.5"/>` +
+    `<rect x="18" y="180" width="120" height="8" rx="4" fill="#fff" fill-opacity="0.35"/></g>`;
+};
+
+/** The brand mark, large and faint, as a watermark. */
+ILLUS.watermark = (x, y, size, color) => {
+  const k = size / 44;
+  return `<g transform="translate(${x},${y}) scale(${k})" opacity="0.08"><rect width="44" height="44" rx="10" fill="${color}"/>` +
+    `<path d="M12 30 L20 16 L26 24 L32 12" fill="none" stroke="#000" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g>`;
+};
+
+/** Reads a number out of a stat value like "22.4" or "4.93%" for the gauge. */
+function statFrac(stat) {
+  if (!stat || !stat.value) return null;
+  const v = parseFloat(String(stat.value).replace(/[^\d.\-]/g, ''));
+  if (isNaN(v)) return null;
+  const l = String(stat.label || '').toLowerCase();
+  if (l.includes('vix')) return (v - 10) / 30;          // 10 calm .. 40 extreme
+  if (l.includes('defcon')) return (5 - v) / 4;          // 5 calm .. 1 max
+  if (l.includes('risk')) return v / 100;                // risk score 0..100
+  return null;
+}
+
 // ---- styles --------------------------------------------------------------------
 // Every style takes spec = { eyebrow, title, body, stat?, ticker?, label?, kind }.
 
@@ -134,6 +236,7 @@ STYLES.terminal = (s) => {
     `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.bg1}"/><stop offset="1" stop-color="${C.bg0}"/></linearGradient>` +
     `<radialGradient id="r" cx="0.9" cy="0.1" r="0.7"><stop offset="0" stop-color="${C.indigo}" stop-opacity="0.9"/><stop offset="1" stop-color="${C.bg0}" stop-opacity="0"/></radialGradient></defs>` +
     `<rect width="${W}" height="${H}" fill="url(#g)"/><rect width="${W}" height="${H}" fill="url(#r)"/><rect width="${W}" height="6" fill="${C.mint}"/>` +
+    ILLUS.watermark(860, 250, 300, C.mint) +
     brand(72, 78, C.bg2, C.mint, C.ink0, C.line) +
     `<text x="72" y="152" font-family="${SANS}" font-size="20" font-weight="600" fill="${C.mint}" letter-spacing="3">${up(s.eyebrow)}</text>` +
     L(t, 72, 242, 52, 61, C.ink0, 700) + L(b, 72, bt + 26, 26, 38, C.ink1) +
@@ -182,7 +285,9 @@ STYLES.ticker = (s) => {
   }).join('');
   const body = items.length ? '' : L(wrap(s.body, 24, 900, 2), 600, 300 + t.length * 64 + 20, 24, 34, C.ink1, 400, { anchor: 'middle' });
   return svgOpen + `<defs><radialGradient id="v" cx="0.5" cy="0.45" r="0.6"><stop offset="0" stop-color="${C.bg1}" stop-opacity="0"/><stop offset="1" stop-color="${C.bg0}" stop-opacity="0.9"/></radialGradient></defs>` +
-    `<rect width="${W}" height="${H}" fill="${C.bg1}"/>${grid.join('')}<rect width="${W}" height="${H}" fill="url(#v)"/>` +
+    `<rect width="${W}" height="${H}" fill="${C.bg1}"/>${grid.join('')}` +
+    ILLUS.candles(60, 400, 1080, 170, C.mint, 0.22) +
+    `<rect width="${W}" height="${H}" fill="url(#v)"/>` +
     brand(72, 60, C.bg2, C.mint, C.ink0, C.line) +
     `<text x="600" y="215" text-anchor="middle" font-family="${SANS}" font-size="19" font-weight="600" fill="${C.mint}" letter-spacing="4">${up(s.eyebrow)}</text>` +
     L(t, 600, 300, 54, 64, C.ink0, 700, { anchor: 'middle' }) + body +
@@ -192,11 +297,12 @@ STYLES.ticker = (s) => {
 };
 
 STYLES.glass = (s) => {
-  const t = wrap(s.title, 48, 880, 3, { bold: true }), b = wrap(s.body, 24, 880, 3);
+  const t = wrap(s.title, 48, 640, 3, { bold: true }), b = wrap(s.body, 24, 640, 4);
   const bt = 250 + t.length * 57 + 20;
   return svgOpen + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.royal}"/><stop offset="0.5" stop-color="${C.indigo}"/><stop offset="1" stop-color="${C.mintDim}"/></linearGradient></defs>` +
     `<rect width="${W}" height="${H}" fill="url(#g)"/><circle cx="1050" cy="120" r="260" fill="${C.mint}" fill-opacity="0.18"/><circle cx="120" cy="620" r="200" fill="${C.teal}" fill-opacity="0.18"/>` +
     `<rect x="72" y="120" width="1056" height="460" rx="24" fill="#000" fill-opacity="0.42" stroke="#fff" stroke-opacity="0.18"/>` +
+    ILLUS.cards(830, 250, C.mint, '#fff') +
     brand(112, 160, C.bg2, C.mintBright, C.ink0, C.line) +
     `<text x="112" y="234" font-family="${SANS}" font-size="18" font-weight="600" fill="${C.mintBright}" letter-spacing="3">${up(s.eyebrow)}</text>` +
     L(t, 112, 290, 48, 57, '#fff', 700) + L(b, 112, bt + 24, 24, 34, '#d7dbe2') +
@@ -236,21 +342,22 @@ STYLES.alert = (s) => {
     brand(100, 150, C.red, '#fff', '#fff') +
     `<text x="100" y="228" font-family="${SANS}" font-size="20" font-weight="700" fill="#ff6b70" letter-spacing="4">${up(s.eyebrow)}</text>` +
     L(t, 100, 302, 56, 66, '#fff', 700) + L(b, 100, bt + 25, 25, 36, C.ink1) +
-    (hasStat ? `<text x="${W - 100}" y="330" text-anchor="end" font-family="${SANS}" font-size="132" font-weight="700" fill="${C.red}">${esc(s.stat.value)}</text>` +
-      `<text x="${W - 100}" y="376" text-anchor="end" font-family="${SANS}" font-size="19" fill="#ff9da0" letter-spacing="3">${up(s.stat.label)}</text>` : '') +
+    (hasStat ? ILLUS.clock(985, 300, 120, C.red, '#fff', s.stat.value) +
+      `<text x="985" y="478" text-anchor="middle" font-family="${SANS}" font-size="64" font-weight="700" fill="${C.red}">${esc(s.stat.value)}</text>` +
+      `<text x="985" y="512" text-anchor="middle" font-family="${SANS}" font-size="18" fill="#ff9da0" letter-spacing="3">${up(s.stat.label)}</text>` : '') +
     `<text x="100" y="${H - 64}" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com</text><text x="${W - 100}" y="${H - 64}" text-anchor="end" font-family="${SANS}" font-size="20" fill="${C.ink2}">Not financial advice</text></svg>`;
 };
 
 STYLES.electric = (s) => {
   const hasStat = s.stat && s.stat.value;
-  const t = wrap(s.title, 50, hasStat ? 600 : 940, 3, { bold: true }), b = wrap(s.body, 24, hasStat ? 720 : 960, 3);
+  const t = wrap(s.title, 50, hasStat ? 600 : 680, 3, { bold: true }), b = wrap(s.body, 24, hasStat ? 720 : 680, 4);
   const bt = 250 + t.length * 59 + 22;
   return svgOpen + `<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${C.magenta}"/><stop offset="0.6" stop-color="${C.violet}"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>` +
     `<filter id="sh"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.45"/></filter></defs><rect width="${W}" height="${H}" fill="url(#g)"/>` +
     (hasStat ? `<circle cx="1010" cy="330" r="190" fill="#000" fill-opacity="0.28"/><circle cx="1010" cy="330" r="190" fill="none" stroke="#fff" stroke-opacity="0.35" stroke-width="3"/>` +
       `<text x="1010" y="352" text-anchor="middle" font-family="${SANS}" font-size="96" font-weight="700" fill="#fff" filter="url(#sh)">${esc(s.stat.value)}</text>` +
       `<text x="1010" y="398" text-anchor="middle" font-family="${SANS}" font-size="18" fill="#ffd6e6" letter-spacing="3">${up(s.stat.label)}</text>`
-      : `<circle cx="1040" cy="560" r="260" fill="#000" fill-opacity="0.18"/>`) +
+      : `<circle cx="1040" cy="560" r="260" fill="#000" fill-opacity="0.18"/>` + ILLUS.dashboard(820, 230, '#fff', C.magenta)) +
     brand(72, 78, '#fff', C.magenta, '#fff') +
     `<text x="72" y="152" font-family="${SANS}" font-size="20" font-weight="700" fill="#ffd6e6" letter-spacing="4">${up(s.eyebrow)}</text>` +
     L(t, 72, 292, 50, 59, '#fff', 700, { extra: ' filter="url(#sh)"' }) + L(b, 72, bt + 24, 24, 35, '#f1e8ff') +
@@ -285,15 +392,20 @@ STYLES.splitcolor = (s) => {
 };
 
 STYLES.breaking = (s) => {
-  const t = wrap(s.title, 60, 960, 3, { bold: true }), b = wrap(s.body, 25, 1000, 3);
-  const bt = 270 + t.length * 70 + 26;
+  const hasStat = s.stat && s.stat.value;
+  const t = wrap(s.title, hasStat ? 54 : 60, hasStat ? 700 : 960, 3, { bold: true }), b = wrap(s.body, 25, hasStat ? 700 : 1000, 3);
+  const bt = 270 + t.length * (hasStat ? 64 : 70) + 26;
   const label = String(s.label || 'MARKET BRIEF').toUpperCase().slice(0, 22);
   const lw = Math.round(textWidth(label, 26, { bold: true }) + 26 * 0.18 * label.length + 40);
   return svgOpen + `<rect width="${W}" height="${H}" fill="#000"/><rect width="${W}" height="6" fill="${C.amber}"/>` +
     `<rect x="72" y="72" width="${lw}" height="54" fill="${C.red}"/>` +
     `<text x="92" y="110" font-family="${SANS}" font-size="26" font-weight="700" fill="#fff" letter-spacing="4">${esc(label)}</text>` +
     `<text x="${72 + lw + 20}" y="110" font-family="${SANS}" font-size="22" font-weight="700" fill="${C.amber}" letter-spacing="3">${up(s.eyebrow)}</text>` +
-    `<rect x="72" y="150" width="1056" height="2" fill="${C.line}"/>` + L(t, 72, 320, 60, 70, '#fff', 700) +
+    `<rect x="72" y="150" width="1056" height="2" fill="${C.line}"/>` +
+    (hasStat ? ILLUS.gauge(980, 400, 130, C.mint, C.red, '#fff', statFrac(s.stat)) +
+      `<text x="980" y="452" text-anchor="middle" font-family="${SANS}" font-size="56" font-weight="700" fill="#fff">${esc(s.stat.value)}</text>` +
+      `<text x="980" y="484" text-anchor="middle" font-family="${SANS}" font-size="17" fill="${C.ink2}" letter-spacing="3">${up(s.stat.label)}</text>` : '') +
+    L(t, 72, 320, hasStat ? 54 : 60, hasStat ? 64 : 70, '#fff', 700) +
     `<rect x="72" y="${bt - 6}" width="6" height="${b.length * 36 + 10}" fill="${C.amber}"/>` + L(b, 96, bt + 25, 25, 36, '#d9dee6') +
     `<rect y="${H - 70}" width="${W}" height="70" fill="${C.red}"/>` + brand(72, H - 57, '#000', '#fff', '#fff') +
     `<text x="${W - 72}" y="${H - 28}" text-anchor="end" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com · not financial advice</text></svg>`;

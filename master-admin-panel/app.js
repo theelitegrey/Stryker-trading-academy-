@@ -27,11 +27,8 @@ const catColor = (c) => c in CAT_SLOT ? SERIES[CAT_SLOT[c]] : 'var(--text-3)';
 
 function toast(msg, err) { const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg; $('#toasts').appendChild(t); setTimeout(() => t.remove(), 3500); }
 async function api(path, opts = {}) {
-  const res = await fetch('/api' + path, { headers: { 'content-type': 'application/json' }, ...opts, body: opts.body ? JSON.stringify(opts.body) : undefined });
-  if (res.status === 401 && !path.startsWith('/auth')) { S.auth = { configured: true, authenticated: false }; renderLogin(); throw new Error('Unauthorized'); }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
+  try { return await window.PanelApi.api(path, opts); }
+  catch (e) { if (e.status === 401) { forget(false); renderLogin('GitHub rejected the token. Sign in again.'); throw new Error('Unauthorized'); } throw e; }
 }
 async function refresh() {
   const [summary, sites, subs, tasks, settings] = await Promise.all([api('/summary'), api('/sites'), api('/subscriptions'), api('/tasks'), api('/settings')]);
@@ -160,7 +157,7 @@ function shell(content, title, actions = '') {
     <aside class="sidebar" id="sidebar">
       <div class="brand"><span class="logo">${raw(I.audit)}</span>${S.settings.panelName || 'Master Admin'}</div>
       <nav class="nav">${NAV.map(([href, label, ic]) => h`<a href="${href}" class="${href === cur ? 'active' : ''}">${raw(I[ic])}${label}${href === '#dashboard' && alerts ? h`<span class="badge ${S.summary.alerts.some(a => a.sev === 'critical') ? 'critical' : 'warn'}">${alerts}</span>` : ''}</a>`)}</nav>
-      <div class="foot"><button class="btn ghost sm" id="theme" title="Toggle theme">${raw(I.sun)}</button><button class="btn ghost sm" id="logout" title="Log out">${raw(I.out)} Log out</button></div>
+      <div class="foot"><button class="btn ghost sm" id="theme" title="Toggle theme">${raw(I.sun)}</button><button class="btn ghost sm" id="logout" title="Lock the vault">${raw(I.out)} Lock</button></div>
     </aside>
     <main class="main">
       <div class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="btn ghost menu-btn" id="menu">${raw(I.menu)}</button><h1>${title}</h1></div><div class="actions">${raw(actions)}</div></div>
@@ -168,26 +165,43 @@ function shell(content, title, actions = '') {
     </main></div>`;
   $('#menu').onclick = () => $('#sidebar').classList.toggle('open');
   $('#theme').onclick = () => { const cur = document.documentElement.dataset.theme; const next = cur === 'dark' ? 'light' : cur === 'light' ? 'dark' : (matchMedia('(prefers-color-scheme: dark)').matches ? 'light' : 'dark'); document.documentElement.dataset.theme = next; try { localStorage.setItem('theme', next); } catch {} };
-  $('#logout').onclick = async () => { await api('/auth/logout', { method: 'POST' }); location.reload(); };
+  $('#logout').onclick = () => { forget(!store.get('map_token')); location.hash = ''; location.reload(); };
   $('.main').addEventListener('click', () => $('#sidebar').classList.remove('open'));
 }
 try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
 
 // ---------------------------------------------------------------- login ----
-function renderLogin() {
-  const setup = !S.auth.configured;
+const CFG = window.PANEL_CONFIG;
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} }, del: (k) => { try { localStorage.removeItem(k); } catch {} } };
+const sess = { get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} }, del: (k) => { try { sessionStorage.removeItem(k); } catch {} } };
+function forget(all) { sess.del('map_pass'); if (all) { store.del('map_token'); sess.del('map_token'); } S.auth = null; }
+function renderLogin(msg, mode) {
+  const token = store.get('map_token') || sess.get('map_token') || '';
+  const needPass = mode === 'password';
   $('#app').innerHTML = h`<div class="login"><div class="card"><div class="brand"><span class="logo">${raw(I.audit)}</span>Master Admin</div>
-    <h2 style="text-align:center;margin-bottom:6px">${setup ? 'Create your admin password' : 'Sign in'}</h2>
-    <p class="muted small" style="text-align:center;margin:0 0 16px">${setup ? 'This is a fresh install. Choose a password of at least 8 characters.' : 'Enter the admin password to continue.'}</p>
-    <form id="login" class="stack" style="gap:10px"><input class="input" type="password" name="password" placeholder="Password" autocomplete="${setup ? 'new-password' : 'current-password'}" required minlength="8">
-    ${setup ? raw('<input class="input" type="password" name="confirm" placeholder="Confirm password" required minlength="8">') : ''}
-    <button class="btn primary" type="submit">${setup ? 'Set password & continue' : 'Sign in'}</button></form></div></div>`;
+    <h2 style="text-align:center;margin-bottom:6px">${needPass ? 'Unlock the vault' : mode === 'setup' ? 'Create your vault' : 'Sign in'}</h2>
+    <p class="muted small" style="text-align:center;margin:0 0 16px">${needPass ? 'Subscriptions, tasks and settings are encrypted in the repository. Enter the vault password to decrypt them.' : mode === 'setup' ? 'First run. Choose a vault password (8+ characters). It encrypts your financial data before it is committed to GitHub and is never stored anywhere.' : `Data lives in GitHub (${CFG.owner}/${CFG.repo}, branch ${CFG.branch}). Sign in with a fine-grained personal access token for that repository with Contents and Actions read/write.`}</p>
+    ${msg ? h`<p class="small" style="color:var(--critical);text-align:center;margin:0 0 12px">${msg}</p>` : ''}
+    <form id="login" class="stack" style="gap:10px">
+      ${needPass ? '' : h`<input class="input mono" type="password" name="token" placeholder="github_pat_…" autocomplete="off" required value="${token}">`}
+      ${mode === 'setup' ? h`<input class="input" type="password" name="pass" placeholder="Vault password" minlength="8" required autocomplete="new-password"><input class="input" type="password" name="confirm" placeholder="Confirm vault password" minlength="8" required autocomplete="new-password">` : needPass ? h`<input class="input" type="password" name="pass" placeholder="Vault password" required autocomplete="current-password" autofocus>` : ''}
+      ${needPass ? '' : h`<label class="check small"><input type="checkbox" name="remember" ${token && store.get('map_token') ? raw('checked') : ''}> Remember the token on this device</label>`}
+      <button class="btn primary" type="submit">${needPass ? 'Unlock' : mode === 'setup' ? 'Create vault' : 'Continue'}</button>
+      ${needPass ? h`<button class="btn ghost small" type="button" id="switch">Use a different token</button>` : ''}
+    </form>
+    ${needPass || mode === 'setup' ? '' : h`<details style="margin-top:14px"><summary class="small muted" style="cursor:pointer">How to create the token</summary><ol class="small muted" style="padding-left:18px;margin:8px 0 0"><li>GitHub → Settings → Developer settings → Personal access tokens → <b>Fine-grained tokens</b> → Generate.</li><li>Repository access: <b>Only select repositories</b> → ${CFG.repo}.</li><li>Permissions: <b>Contents: Read and write</b>, <b>Actions: Read and write</b>, Metadata: read.</li><li>Copy the token and paste it above.</li></ol></details>`}
+  </div></div>`;
+  if ($('#switch')) $('#switch').onclick = () => { forget(true); renderLogin(); };
   $('#login').onsubmit = async (e) => {
-    e.preventDefault(); const d = formData(e.target);
-    try { if (setup && d.password !== d.confirm) throw new Error('Passwords do not match'); await api(setup ? '/auth/setup' : '/auth/login', { method: 'POST', body: { password: d.password } }); await boot(); } catch (err) { toast(err.message, true); }
+    e.preventDefault(); const d = formData(e.target); const btn = e.target.querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Connecting…';
+    try {
+      if (mode === 'setup' && d.pass !== d.confirm) throw new Error('Passwords do not match');
+      if (!needPass) { const t = d.token.trim(); if (d.remember) store.set('map_token', t); else store.del('map_token'); sess.set('map_token', t); }
+      if (d.pass) sess.set('map_pass', d.pass);
+      await boot();
+    } catch (err) { renderLogin(err.message, mode); }
   };
 }
-
 // --------------------------------------------------------------- router ----
 const routes = {};
 async function route() {
@@ -197,12 +211,24 @@ async function route() {
   try { await refresh(); await view(id); } catch (e) { if (e.message !== 'Unauthorized') { toast(e.message, true); console.error(e); } }
 }
 window.addEventListener('hashchange', route);
+let gh = null;
 async function boot() {
-  S.auth = await api('/auth/status');
-  if (!S.auth.authenticated) return renderLogin();
+  const token = sess.get('map_token') || store.get('map_token');
+  if (!token) return renderLogin();
+  gh = new window.PanelGitHub({ owner: CFG.owner, repo: CFG.repo, branch: CFG.branch, token });
+  S.gh = gh;
+  let res;
+  try { res = await window.PanelApi.load(gh, sess.get('map_pass') || null); }
+  catch (e) { if (e.message === 'Wrong vault password') { sess.del('map_pass'); return renderLogin(e.message, 'password'); } if (e.status === 401) { forget(true); return renderLogin('GitHub rejected that token.'); } if (e.status === 404) { return renderLogin(`Repository ${CFG.owner}/${CFG.repo} not found or the token cannot see it.`); } return renderLogin(e.message); }
+  if (res.needsPassword) return renderLogin(null, 'password');
+  if (res.fresh) {
+    if (!sess.get('map_pass')) return renderLogin(null, 'setup');
+    window.PanelApi.state.pass = sess.get('map_pass'); await window.PanelApi.saveVault('panel: create vault'); await window.PanelApi.saveSites('panel: initialise');
+  }
+  S.auth = { authenticated: true };
   if (!location.hash) location.hash = '#dashboard';
   await route();
-  setInterval(() => { if (S.auth?.authenticated && !$('#modal-root').innerHTML) route(); }, 120000);
+  if (!boot.timer) boot.timer = setInterval(async () => { if (S.auth?.authenticated && !$('#modal-root').innerHTML) { try { await window.PanelApi.refreshMonitor(); } catch {} route(); } }, 180000);
 }
-Object.assign(window, { __panel: { S, routes, route, api, modal, field, input, select, confirmDialog, toast, h, raw, esc, money, fmtDate, ago, daysWord, sevOf, scoreSev, siteName, cap, catColor, stackedBars, lineChart, hbars, sparkline, shell, I, CATEGORIES, CYCLES, STATUSES, SERIES, refresh, boot, formData } });
+Object.assign(window, { __panel: { S, routes, route, api, modal, field, input, select, confirmDialog, toast, h, raw, esc, money, fmtDate, ago, daysWord, sevOf, scoreSev, siteName, cap, catColor, stackedBars, lineChart, hbars, sparkline, shell, I, CATEGORIES, CYCLES, STATUSES, SERIES, refresh, boot, formData, forget, store, CFG } });
 })();

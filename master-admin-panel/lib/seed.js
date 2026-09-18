@@ -1,7 +1,9 @@
+(function () {
 'use strict';
-// Demo data so the panel is not empty on first run. Delete from Settings.
+// Demo data so the panel is not empty on first run. Remove it from Settings.
 const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
-module.exports = function seed(store) {
+const id = () => Math.random().toString(16).slice(2, 10) + Math.random().toString(16).slice(2, 10);
+function demoData() {
   const sites = [
     { id: 'demo-portfolio', name: 'Portfolio', url: 'https://example.com', category: 'personal', host: 'Vercel', registrar: 'Cloudflare', stack: 'Next.js', repo: 'https://github.com/you/portfolio', tags: ['live', 'static'], notes: 'Main personal site.', analytics: { provider: 'plausible', url: '' }, trackingEnabled: true },
     { id: 'demo-shop', name: 'Shop', url: 'https://example.org', category: 'business', host: 'DigitalOcean', registrar: 'Namecheap', stack: 'WooCommerce', repo: '', tags: ['live', 'revenue'], notes: 'Storefront. Renewals matter here.', analytics: { provider: 'ga4', url: '' }, trackingEnabled: true },
@@ -18,21 +20,16 @@ module.exports = function seed(store) {
     { name: 'Stock photos bundle', vendor: 'Unsplash+', category: 'assets', siteIds: ['demo-shop'], amount: 60, currency: 'USD', cycle: 'one-time', startDate: day(-45), status: 'active' },
     { name: 'Old CDN plan', vendor: 'BunnyCDN', category: 'cdn', siteIds: ['demo-shop'], amount: 5, currency: 'USD', cycle: 'monthly', startDate: day(-600), nextRenewal: day(-10), endDate: day(-10), autoRenew: false, status: 'cancelled' },
   ];
-  for (const s of sites) store.insert('sites', s);
-  for (const s of subs) store.insert('subscriptions', s);
-  store.insert('tasks', { title: 'Turn on auto-renew for example.org', siteId: 'demo-shop', due: day(5), done: false });
-  store.insert('tasks', { title: 'Add CSP header to Portfolio', siteId: 'demo-portfolio', due: day(-2), done: false });
-  // a few days of synthetic pageviews so the analytics charts render
-  const pv = {};
-  for (const site of sites.slice(0, 2)) {
-    pv[site.id] = {};
-    for (let i = 29; i >= 0; i--) {
-      const d = day(-i);
-      const base = site.id === 'demo-shop' ? 140 : 60;
-      const v = Math.round(base + Math.sin(i / 3) * base * 0.3 + (i % 7 === 0 ? base * 0.4 : 0));
-      pv[site.id][d] = { v, u: Math.round(v * 0.7), paths: { '/': Math.round(v * 0.5), '/pricing': Math.round(v * 0.2), '/blog': Math.round(v * 0.3) }, refs: { direct: Math.round(v * 0.4), 'google.com': Math.round(v * 0.45), 'x.com': Math.round(v * 0.15) }, ua: { desktop: Math.round(v * 0.55), mobile: Math.round(v * 0.45) } };
-    }
-  }
-  store.set('pageviews', pv);
-  store.set('meta', { seeded: true, seededAt: new Date().toISOString() });
-};
+  const now = new Date().toISOString();
+  const stamp = (o) => ({ id: o.id || id(), createdAt: now, updatedAt: now, ...o });
+  return {
+    sites: sites.map(stamp),
+    subscriptions: subs.map(stamp),
+    tasks: [
+      stamp({ title: 'Turn on auto-renew for example.org', siteId: 'demo-shop', due: day(5), done: false }),
+      stamp({ title: 'Add CSP header to Portfolio', siteId: 'demo-portfolio', due: day(-2), done: false }),
+    ],
+  };
+}
+if (typeof module !== 'undefined') module.exports = demoData; else window.PanelDemo = demoData;
+})();

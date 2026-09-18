@@ -1,3 +1,4 @@
+(function () {
 'use strict';
 // Subscription cost normalisation and renewal maths.
 const CYCLE_MONTHS = { weekly: 12 / 52, monthly: 1, quarterly: 3, biannual: 6, yearly: 12, biennial: 24, 'one-time': 0 };
@@ -68,4 +69,6 @@ function chargesBetween(sub, from, to) {
   return out;
 }
 
-module.exports = { CYCLE_MONTHS, monthlyCost, yearlyCost, nextRenewal, daysUntil, chargesBetween, addCycle };
+const __exports = { CYCLE_MONTHS, monthlyCost, yearlyCost, nextRenewal, daysUntil, chargesBetween, addCycle };
+if (typeof module !== 'undefined') module.exports = __exports; else window.PanelMoney = __exports;
+})();

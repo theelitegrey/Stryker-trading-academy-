@@ -1,0 +1,69 @@
+# Master Admin Panel monitor — uptime probes, site audits and alerts, with no
+# server. Follows the same relay pattern as monitor-data.yml: one job keeps
+# probing for ~5.5 hours, then dispatches its successor; the hourly cron is
+# only a backstop. Results are committed to the `panel-data` branch (never
+# `data`, which monitor-data force-pushes as a single file).
+#
+# Optional repository settings (Settings → Secrets and variables → Actions):
+#   secret   PANEL_ALERT_WEBHOOK_URL   Slack / Discord / JSON webhook for alerts
+#   variable PANEL_ALERT_ISSUES=1      also open a GitHub issue per new alert
+
+name: Master Admin Panel monitor
+
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site id to audit now (leave empty for a normal pass)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+concurrency:
+  group: panel-monitor-${{ inputs.site || 'relay' }}
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: master-admin-panel
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: One-off audit of a single site
+        if: inputs.site != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SITE: ${{ inputs.site }}
+          PANEL_ALERT_WEBHOOK_URL: ${{ secrets.PANEL_ALERT_WEBHOOK_URL }}
+          PANEL_ALERT_ISSUES: ${{ vars.PANEL_ALERT_ISSUES }}
+        run: node master-admin-panel/scripts/monitor.js
+
+      - name: Relay — probe every N minutes for ~5.5 hours
+        if: inputs.site == ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MODE: relay
+          PANEL_ALERT_WEBHOOK_URL: ${{ secrets.PANEL_ALERT_WEBHOOK_URL }}
+          PANEL_ALERT_ISSUES: ${{ vars.PANEL_ALERT_ISSUES }}
+        run: node master-admin-panel/scripts/monitor.js
+
+      - name: Dispatch the next link in the chain
+        if: inputs.site == '' && success()
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/panel-monitor.yml/dispatches" \
+            -d '{"ref":"main"}' && echo "next run dispatched" || echo "self-dispatch failed — the hourly cron revives the chain"

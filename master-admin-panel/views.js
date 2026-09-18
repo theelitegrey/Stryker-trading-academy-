@@ -35,7 +35,7 @@ routes.dashboard = async () => {
       <div class="card"><h2>Monthly cost by website</h2>${raw(hbars(bySite.map(([k, v]) => ({ label: siteName(k), value: v })), { fmt: (v) => money(v) }))}</div>
     </div></div>`;
   shell(content, 'Dashboard', h`<span class="small dim">Updated ${ago(s.now)}</span>${btn('Refresh', '', 'onclick="__panel.route()"', I.refresh)}`);
-  $('#audit-all').onclick = async (e) => { e.target.disabled = true; await api('/audit/all', { method: 'POST' }); toast('Audits queued for all sites. Results appear within a minute.'); setTimeout(route, 20000); };
+  $('#audit-all').onclick = (e) => P.runMonitor(e.target);
 };
 function siteCard(s) {
   const a = s.audit; const up = a ? a.up : s.lastCheck?.up;
@@ -50,7 +50,7 @@ const $ = (sel, root = document) => root.querySelector(sel);
 routes.sites = async (id) => {
   if (id) return siteDetail(id);
   const rows = S.summary.sites;
-  const content = h`<div class="card">${rows.length ? h`<div class="table-wrap"><table><thead><tr><th>Website</th><th>Status</th><th>Score</th><th>Uptime</th><th>TLS</th><th>Domain</th><th>Host / stack</th><th class="right">Cost / mo</th><th class="right">Views 30d</th><th></th></tr></thead><tbody>
+  const content = h`<div class="card">${rows.length ? h`<div class="table-wrap"><table><thead><tr><th>Website</th><th>Status</th><th>Score</th><th>Uptime</th><th>TLS</th><th>Domain</th><th>Host / stack</th><th class="right">Cost / mo</th><th></th></tr></thead><tbody>
     ${rows.map(s => { const a = s.audit; const up = a ? a.up : s.lastCheck?.up; return h`<tr class="clickable" onclick="location.hash='#sites/${s.id}'">
       <td><div class="name">${s.name}</div><div class="small dim">${s.url.replace(/^https?:\/\//, '')}</div></td>
       <td><span class="badge ${up == null ? '' : up ? 'good' : 'critical'}">${up == null ? 'pending' : up ? `up · ${a?.ms ?? s.lastCheck?.ms} ms` : 'down'}</span></td>
@@ -59,21 +59,21 @@ routes.sites = async (id) => {
       <td>${a?.sslDays != null ? h`<span class="badge ${sevOf(a.sslDays, 7, 21)}">${a.sslDays}d</span>` : '—'}</td>
       <td>${a?.domainDays != null ? h`<span class="badge ${sevOf(a.domainDays, 14, 45)}">${a.domainDays}d</span>` : '—'}</td>
       <td class="small">${[s.host, s.stack].filter(Boolean).join(' · ') || '—'}</td>
-      <td class="right num">${money(s.monthlyCost)}</td><td class="right num">${s.views30 || '—'}</td>
+      <td class="right num">${money(s.monthlyCost)}</td>
       <td><button class="btn sm ghost" onclick="event.stopPropagation();__panel.editSite('${s.id}')">Edit</button></td></tr>`; })}</tbody></table></div>` : raw('<div class="empty">No websites yet. Click “Add website” to start.</div>')}</div>`;
   shell(content, 'Websites', btn('Add website', 'primary', 'onclick="__panel.editSite()"', I.plus));
 };
 P.editSite = (id) => {
-  const s = id ? S.sites.find(x => x.id === id) : { analytics: {}, tags: [], trackingEnabled: true };
+  const s = id ? S.sites.find(x => x.id === id) : { analytics: {}, tags: [] };
   const body = h`<div class="form-grid">
     ${raw(field('Name', input('name', s.name, 'required placeholder="My site"')))}${raw(field('URL', input('url', s.url || 'https://', 'required type="url"')))}
     ${raw(field('Category', input('category', s.category, 'placeholder="business, personal, client…" list="cats"')))}${raw(field('Tags (comma separated)', input('tags', (s.tags || []).join(', '))))}
     ${raw(field('Hosting provider', input('host', s.host, 'placeholder="Vercel, Hetzner…"')))}${raw(field('Registrar', input('registrar', s.registrar)))}
     ${raw(field('Stack', input('stack', s.stack, 'placeholder="Next.js, WordPress…"')))}${raw(field('Repository URL', input('repo', s.repo)))}
-    ${raw(field('Analytics provider', select('analytics_provider', [['none', 'None / built-in only'], ['plausible', 'Plausible'], ['ga4', 'Google Analytics 4'], ['umami', 'Umami'], ['matomo', 'Matomo'], ['fathom', 'Fathom'], ['cloudflare', 'Cloudflare Web Analytics'], ['other', 'Other']], s.analytics?.provider || 'none')))}${raw(field('Analytics dashboard link', input('analytics_url', s.analytics?.url, 'placeholder="https://plausible.io/…"')))}
+    ${raw(field('Analytics provider', select('analytics_provider', [['none', 'None / built-in only'], ['plausible', 'Plausible'], ['ga4', 'Google Analytics 4'], ['umami', 'Umami'], ['matomo', 'Matomo'], ['fathom', 'Fathom'], ['cloudflare', 'Cloudflare Web Analytics'], ['other', 'Other']], s.analytics?.provider || 'none')))}${raw(field('Analytics dashboard link', input('analytics_url', s.analytics?.url, 'placeholder="https://dash.cloudflare.com/…/web-analytics/…"')))}
     ${raw(field('Where are the credentials? (never store secrets here)', input('credentialsNote', s.credentialsNote, 'placeholder="1Password vault → Sites"'), true))}
     ${raw(field('Notes', h`<textarea class="input" name="notes">${s.notes || ''}</textarea>`, true))}
-    <label class="check full"><input type="checkbox" name="trackingEnabled" ${s.trackingEnabled !== false ? raw('checked') : ''}> Accept pageviews from the built-in tracker</label></div>
+    </div>
     <datalist id="cats">${['business', 'personal', 'client', 'project', 'landing', 'internal'].map(c => h`<option value="${c}">`)}</datalist>`;
   modal(id ? 'Edit website' : 'Add website', body, {
     extraFoot: id ? btn('Delete', 'danger', `type="button" onclick="__panel.deleteSite('${id}')"`) : '',
@@ -87,12 +87,11 @@ P.deleteSite = async (id) => { if (!await confirmDialog('Delete this website and
 
 async function siteDetail(id) {
   const site = S.sites.find(s => s.id === id); if (!site) { location.hash = '#sites'; return; }
-  const [a, checks, an] = await Promise.all([api(`/sites/${id}/audit`), api(`/sites/${id}/checks?limit=200`), api(`/sites/${id}/analytics?days=30`)]);
+  const [a, checks] = await Promise.all([api(`/sites/${id}/audit`), api(`/sites/${id}/checks?limit=200`)]);
   const subs = S.subs.filter(s => (s.siteIds || []).includes(id));
   const tasks = S.tasks.filter(t => t.siteId === id);
   const upPct = checks.length ? Math.round(1000 * checks.filter(c => c.up).length / checks.length) / 10 : null;
   const yes = (v) => v ? raw('<span class="ok">✓ yes</span>') : raw('<span class="bad">✗ no</span>');
-  const snippet = `<script defer src="${location.origin}/track.js" data-site="${id}"></script>`;
   const content = h`<div class="stack">
     <div class="tiles">
       <div class="tile"><div class="label">Health score</div><div class="value" style="color:var(--${a ? { good: 'good', warn: 'warn', critical: 'critical' }[scoreSev(a.score)] : 'text-3'})">${a ? a.score + '/100' : '—'}</div><div class="sub">${a ? `${a.issues.length} issue${a.issues.length === 1 ? '' : 's'} · audited ${ago(a.t)}` : 'Not audited yet'}</div></div>
@@ -100,7 +99,6 @@ async function siteDetail(id) {
       <div class="tile"><div class="label">TLS certificate</div><div class="value num" style="color:var(--${a?.ssl ? { good: 'good', warn: 'warn', critical: 'critical' }[sevOf(a.ssl.daysLeft, 7, 21)] || 'text' : 'text-3'})">${a?.ssl?.daysLeft != null ? a.ssl.daysLeft + 'd' : '—'}</div><div class="sub">${a?.ssl ? (a.ssl.ok ? `${a.ssl.issuer || ''} · until ${fmtDate(a.ssl.validTo)}` : a.ssl.error) : 'no TLS'}</div></div>
       <div class="tile"><div class="label">Domain expiry</div><div class="value num" style="color:var(--${a?.domain?.daysLeft != null ? { good: 'good', warn: 'warn', critical: 'critical' }[sevOf(a.domain.daysLeft, 14, 45)] : 'text-3'})">${a?.domain?.daysLeft != null ? a.domain.daysLeft + 'd' : '—'}</div><div class="sub">${a?.domain?.expires ? `${a.domain.registrar || ''} · ${fmtDate(a.domain.expires)}` : (a?.domain?.error || 'unknown')}</div></div>
       <div class="tile"><div class="label">Cost</div><div class="value num">${money(subs.reduce((x, s) => x + s.monthlyCost / Math.max(1, s.siteIds.length), 0))}<span class="muted" style="font-size:13px;font-weight:500">/mo</span></div><div class="sub">${subs.length} subscription${subs.length === 1 ? '' : 's'}</div></div>
-      <div class="tile"><div class="label">Pageviews 30d</div><div class="value num">${an.totalViews}</div><div class="sub">${an.totalUniques} unique visitors</div></div>
     </div>
     <div class="grid g23">
       <div class="stack">
@@ -108,10 +106,8 @@ async function siteDetail(id) {
           ${a ? (a.issues.length ? h`<ul class="issues">${a.issues.map(i => h`<li><span class="badge ${i.sev === 'critical' ? 'critical' : i.sev === 'warn' ? 'warn' : ''}">${i.sev}</span><span>${i.msg}</span></li>`)}</ul>` : raw('<div class="empty">No issues found. Nice.</div>')) : raw('<div class="empty">No audit yet. Click “Re-run audit”.</div>')}</div>
         <div class="card"><h2>Response time (ms)</h2>${raw(lineChart([{ name: 'ms', values: checks.slice(-60).map(c => ({ x: new Date(c.t).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }), y: c.up ? c.ms : 0 })) }], { height: 160 }))}
           <div class="checks-list" style="margin-top:10px">${checks.slice(-6).reverse().map(c => h`<div class="checkrow"><span class="dot ${c.up ? 'good' : 'critical'}"></span><span class="num" style="width:60px">${c.ms} ms</span><span class="muted">HTTP ${c.status || '—'}${c.error ? ' · ' + c.error : ''}</span><span class="dim small" style="margin-left:auto">${ago(c.t)}</span></div>`)}</div></div>
-        <div class="card"><div class="card-head"><h2>Traffic (30 days)</h2>${site.analytics?.url ? h`<a class="btn sm" target="_blank" rel="noopener" href="${site.analytics.url}">${raw(I.ext)} ${cap(site.analytics.provider)}</a>` : ''}</div>
-          ${raw(lineChart([{ name: 'Pageviews', values: an.days.map(d => ({ x: d.date.slice(5), y: d.views })) }, { name: 'Unique visitors', values: an.days.map(d => ({ x: d.date.slice(5), y: d.uniques })) }], { height: 180 }))}
-          <div class="grid g3" style="margin-top:14px"><div><h3>Top pages</h3>${raw(hbars(an.paths.slice(0, 6).map(p => ({ label: p.key, value: p.n }))))}</div><div><h3>Referrers</h3>${raw(hbars(an.refs.slice(0, 6).map(p => ({ label: p.key, value: p.n })), { color: () => 'var(--s2)' }))}</div><div><h3>Devices</h3>${raw(hbars(an.ua.map(p => ({ label: cap(p.key), value: p.n })), { color: () => 'var(--s3)' }))}</div></div>
-          <details style="margin-top:12px"><summary class="small muted" style="cursor:pointer">Tracker snippet (cookieless, paste before &lt;/body&gt;)</summary><pre class="snippet" style="margin-top:8px">${snippet}</pre></details></div>
+        <div class="card"><div class="card-head"><h2>Analytics</h2>${site.analytics?.url ? h`<a class="btn sm" target="_blank" rel="noopener" href="${site.analytics.url}">${raw(I.ext)} Open ${cap(site.analytics.provider)}</a>` : btn('Link a provider', 'sm', `onclick="__panel.editSite('${id}')"`)}</div>
+          <p class="small muted" style="margin:0">${site.analytics?.url ? `Traffic for this site is tracked in ${cap(site.analytics.provider)}. The button opens its dashboard.` : 'No analytics provider linked yet. Edit the site and paste the dashboard URL of Cloudflare Web Analytics, Plausible, GA4, Umami or similar so it is one click away from here.'}</p></div>
       </div>
       <div class="stack">
         <div class="card"><div class="card-head"><h2>Details</h2>${btn('Edit', 'sm', `onclick="__panel.editSite('${id}')"`)}</div>
@@ -128,7 +124,7 @@ async function siteDetail(id) {
         <div class="card tasks"><div class="card-head"><h2>Tasks</h2></div>${raw(taskList(tasks, id))}</div>
       </div></div></div>`;
   shell(content, site.name, h`<a class="btn" href="${site.url}" target="_blank" rel="noopener">${raw(I.ext)} Open site</a>${btn('Edit', '', `onclick="__panel.editSite('${id}')"`)}`);
-  $('#reaudit').onclick = async (e) => { e.target.disabled = true; e.target.textContent = 'Auditing…'; try { await api(`/sites/${id}/audit`, { method: 'POST' }); toast('Audit complete'); route(); } catch (err) { toast(err.message, true); e.target.disabled = false; } };
+  $('#reaudit').onclick = (e) => P.runMonitor(e.target, id);
   bindTasks(id);
 }
 
@@ -152,7 +148,7 @@ routes.subscriptions = async (id) => {
           <td class="small">${(s.siteIds || []).map(siteName).join(', ') || raw('<span class="dim">shared</span>')}</td><td class="right num">${money(s.amount, s.currency)}</td><td>${s.cycle}</td><td class="right num">${s.cycle === 'one-time' ? '—' : money(s.monthlyCost)}</td>
           <td>${s.next ? h`<span class="badge ${sevOf(d)}">${daysWord(d)}</span> <span class="small dim">${fmtDate(s.next)}</span>` : '—'}${s.autoRenew === false && s.cycle !== 'one-time' && live(s) ? raw('<div class="small" style="color:var(--warn)">manual renew</div>') : ''}</td>
           <td class="small">${s.endDate ? fmtDate(s.endDate) : '—'}</td><td><span class="badge ${s.status === 'active' ? 'good' : s.status === 'trial' ? 'warn' : ''}">${s.status}</span></td><td class="small">${s.paymentMethod || '—'}</td></tr>`; })}</tbody></table></div>` : raw('<div class="empty">No subscriptions match.</div>')}</div></div>`;
-  shell(content, 'Subscriptions & expenses', h`<a class="btn" href="/api/export" download>Export JSON</a>${btn('Add subscription', 'primary', 'onclick="__panel.editSub()"', I.plus)}`);
+  shell(content, 'Subscriptions & expenses', h`${btn('Export JSON', '', 'onclick="__panel.exportJson()"')}${btn('Add subscription', 'primary', 'onclick="__panel.editSub()"', I.plus)}`);
   const upd = () => { subFilter = { q: $('#f-q').value, site: $('#f-site').value, category: $('#f-cat').value, status: $('#f-status').value }; routes.subscriptions(); };
   $('#f-q').oninput = upd; for (const k of ['#f-site', '#f-cat', '#f-status']) $(k).onchange = upd;
   if (subFilter.q) { const el = $('#f-q'); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
@@ -204,7 +200,7 @@ routes.audits = async () => {
       <div class="tile"><div class="label">TLS expiring ≤ 21d</div><div class="value num">${rows.filter(r => r.audit?.sslDays != null && r.audit.sslDays <= 21).length}</div><div class="sub">certificates</div></div>
       <div class="tile"><div class="label">Domains expiring ≤ 45d</div><div class="value num">${rows.filter(r => r.audit?.domainDays != null && r.audit.domainDays <= 45).length}</div><div class="sub">registrations</div></div>
       <div class="tile"><div class="label">Open issues</div><div class="value num">${scored.reduce((a, r) => a + r.audit.issues, 0)}</div><div class="sub">across all audits</div></div></div>
-    <div class="card"><div class="card-head"><h2>Audit results</h2><span class="small dim">Audits run every ${S.settings.auditIntervalHours}h; uptime probes every ${S.settings.checkIntervalMin} min</span></div>
+    <div class="card"><div class="card-head"><h2>Audit results</h2><span class="small dim" id="mon-status">Uptime probes every ${S.settings.checkIntervalMin} min, full audits every ${S.settings.auditIntervalHours}h, via GitHub Actions</span></div>
       ${rows.length ? h`<div class="table-wrap"><table><thead><tr><th>Website</th><th>Score</th><th>Status</th><th>Uptime</th><th>Response</th><th>TLS</th><th>Domain</th><th>Issues</th><th>Last audit</th><th></th></tr></thead><tbody>
       ${rows.map(s => { const a = s.audit; return h`<tr class="clickable" onclick="location.hash='#sites/${s.id}'"><td><div class="name">${s.name}</div><div class="small dim">${s.url.replace(/^https?:\/\//, '')}</div></td>
         <td>${a ? h`<span class="score ${scoreSev(a.score)}" style="width:34px;height:34px;font-size:12px">${a.score}</span>` : '—'}</td>
@@ -215,27 +211,34 @@ routes.audits = async () => {
         <td><button class="btn sm ghost" onclick="event.stopPropagation();__panel.reaudit('${s.id}',this)">Re-run</button></td></tr>`; })}</tbody></table></div>` : raw('<div class="empty">Add websites first.</div>')}</div>
     <div class="card"><h2>What the audit checks</h2><div class="grid g3 small muted"><div><b>Availability</b><br>HTTP status, redirects, response time, uptime history from periodic probes.</div><div><b>Security</b><br>TLS validity and expiry, HSTS, CSP, X-Frame-Options, nosniff, Referrer-Policy, Permissions-Policy, leaked X-Powered-By, mixed content.</div><div><b>SEO & hygiene</b><br>Title, meta description, canonical, viewport, H1s, alt text, lang, favicon, robots.txt, sitemap.xml, HTML weight.</div><div><b>DNS</b><br>A/AAAA/CNAME/MX/NS records and SPF.</div><div><b>Domain</b><br>Registrar, creation and expiry via RDAP.</div><div><b>Score</b><br>Starts at 100, deducts per finding weighted by severity. Below 60 raises an alert.</div></div></div></div>`;
   shell(content, 'Health & audits', btn('Run all audits', 'primary', 'id="audit-all"', I.refresh));
-  $('#audit-all').onclick = async (e) => { e.target.disabled = true; await api('/audit/all', { method: 'POST' }); toast('Audits running. Refreshing in 20s…'); setTimeout(route, 20000); };
+  $('#audit-all').onclick = (e) => P.runMonitor(e.target);
+  api('/monitor/status').then(r => { if (r) $('#mon-status').innerHTML = h`Last monitor run: <a href="${r.url}" target="_blank" rel="noopener">${r.status === 'completed' ? (r.conclusion || 'done') : r.status}</a> · ${ago(r.at)}`; }).catch(() => {});
 };
-P.reaudit = async (id, el) => { el.disabled = true; el.textContent = '…'; try { await api(`/sites/${id}/audit`, { method: 'POST' }); route(); } catch (e) { toast(e.message, true); el.disabled = false; el.textContent = 'Re-run'; } };
+P.reaudit = (id, el) => P.runMonitor(el, id);
+// Trigger the GitHub Actions monitor (optionally for one site) and refresh when it has run.
+P.runMonitor = async (el, siteId) => {
+  if (el) { el.disabled = true; el.textContent = 'Queued…'; }
+  try {
+    await api(siteId ? `/sites/${siteId}/audit` : '/audit/all', { method: 'POST' });
+    toast('Monitor workflow queued on GitHub Actions. Results land in about 1–2 minutes; this page refreshes itself.');
+    let tries = 0; const poll = async () => { tries++; try { await window.PanelApi.refreshMonitor(); } catch {} if (tries < 6 && !$('#modal-root').innerHTML) setTimeout(poll, 25000); route(); };
+    setTimeout(poll, 45000);
+  } catch (e) { toast(e.message, true); if (el) { el.disabled = false; el.textContent = 'Retry'; } }
+};
+P.exportJson = async () => { const data = await api('/export'); const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `admin-panel-export-${new Date().toISOString().slice(0, 10)}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
 
 // ------------------------------------------------------------- analytics ----
-let anState = { site: '', days: 30 };
 routes.analytics = async () => {
-  if (!anState.site || !S.sites.find(s => s.id === anState.site)) anState.site = S.sites[0]?.id || '';
-  const data = anState.site ? await api(`/sites/${anState.site}/analytics?days=${anState.days}`) : null;
-  const totals = S.summary.sites.map(s => ({ label: s.name, value: s.views30 })).sort((a, b) => b.value - a.value);
-  const site = S.sites.find(s => s.id === anState.site);
+  const rows = S.sites.map(site => ({ site, a: S.summary.sites.find(x => x.id === site.id) }));
   const content = h`<div class="stack">
-    <div class="card"><div class="filters">${raw(select('site', S.sites.map(s => [s.id, s.name]), anState.site, 'id="an-site"'))}<div class="seg">${[7, 30, 90].map(d => h`<button class="${anState.days === d ? 'active' : ''}" data-days="${d}">${d}d</button>`)}</div>${site?.analytics?.url ? h`<a class="btn" style="margin-left:auto" target="_blank" rel="noopener" href="${site.analytics.url}">${raw(I.ext)} Open ${cap(site.analytics.provider)}</a>` : ''}</div>
-      ${data ? h`<div class="tiles" style="margin-bottom:14px"><div class="tile"><div class="label">Pageviews</div><div class="value num">${data.totalViews}</div><div class="sub">last ${anState.days} days</div></div><div class="tile"><div class="label">Unique visitors</div><div class="value num">${data.totalUniques}</div><div class="sub">daily-unique, cookieless</div></div><div class="tile"><div class="label">Avg / day</div><div class="value num">${Math.round(data.totalViews / anState.days)}</div><div class="sub">pageviews</div></div><div class="tile"><div class="label">Mobile share</div><div class="value num">${(() => { const m = data.ua.find(u => u.key === 'mobile')?.n || 0; const t = data.ua.reduce((a, u) => a + u.n, 0); return t ? Math.round(100 * m / t) + '%' : '—'; })()}</div><div class="sub">of pageviews</div></div></div>
-      ${raw(lineChart([{ name: 'Pageviews', values: data.days.map(d => ({ x: d.date.slice(5), y: d.views })) }, { name: 'Unique visitors', values: data.days.map(d => ({ x: d.date.slice(5), y: d.uniques })) }], { height: 220 }))}` : raw('<div class="empty">Add a website to see analytics.</div>')}</div>
-    ${data ? h`<div class="grid g3"><div class="card"><h2>Top pages</h2>${raw(hbars(data.paths.map(p => ({ label: p.key, value: p.n }))))}</div><div class="card"><h2>Referrers</h2>${raw(hbars(data.refs.map(p => ({ label: p.key, value: p.n })), { color: () => 'var(--s2)' }))}</div><div class="card"><h2>Devices</h2>${raw(hbars(data.ua.map(p => ({ label: cap(p.key), value: p.n })), { color: () => 'var(--s3)' }))}</div></div>` : ''}
-    <div class="grid g2"><div class="card"><h2>All websites · pageviews last 30d</h2>${raw(hbars(totals))}</div>
-    <div class="card"><h2>Built-in tracker</h2><p class="small muted" style="margin:0 0 8px">Privacy-friendly, cookieless pageview counter. Paste on each site; the panel records path, referrer host and device class. Uniques are a daily-rotating hash, so nothing personal is stored. External providers (Plausible, GA4, Umami…) can be linked per site and open in one click.</p>${site ? h`<pre class="snippet">&lt;script defer src="${location.origin}/track.js" data-site="${site.id}"&gt;&lt;/script&gt;</pre>` : ''}</div></div></div>`;
+    <div class="card"><h2>Analytics per website</h2><p class="small muted" style="margin:0 0 12px">There is no server in this GitHub-only setup to receive pageviews, so each site links to the analytics provider it already uses. Cloudflare Web Analytics is free and needs one script tag; Plausible, GA4, Umami, Matomo and Fathom work the same way.</p>
+      ${rows.length ? h`<div class="table-wrap"><table><thead><tr><th>Website</th><th>Provider</th><th>Status</th><th>Uptime</th><th>Health</th><th></th></tr></thead><tbody>
+        ${rows.map(({ site, a }) => h`<tr><td><div class="name">${site.name}</div><div class="small dim">${site.url.replace(/^https?:\/\//, '')}</div></td>
+          <td>${site.analytics?.provider && site.analytics.provider !== 'none' ? h`<span class="badge accent">${cap(site.analytics.provider)}</span>` : raw('<span class="dim">none</span>')}</td>
+          <td>${a?.audit ? h`<span class="badge ${a.audit.up ? 'good' : 'critical'}">${a.audit.up ? 'up' : 'down'}</span>` : '—'}</td><td class="num">${a?.uptime == null ? '—' : a.uptime + '%'}</td><td>${a?.audit ? h`<span class="badge ${scoreSev(a.audit.score)}">${a.audit.score}/100</span>` : '—'}</td>
+          <td style="text-align:right">${site.analytics?.url ? h`<a class="btn sm" target="_blank" rel="noopener" href="${site.analytics.url}">${raw(I.ext)} Open dashboard</a>` : btn('Link provider', 'sm', `onclick="__panel.editSite('${site.id}')"`)}</td></tr>`)}</tbody></table></div>` : raw('<div class="empty">Add websites first.</div>')}</div>
+    <div class="card"><h2>Set up Cloudflare Web Analytics (free)</h2><ol class="small muted" style="margin:0;padding-left:18px"><li>Cloudflare dashboard → Web Analytics → Add a site → pick the hostname.</li><li>Paste the beacon script it gives you before <code>&lt;/body&gt;</code> on the site (or enable automatic injection for Cloudflare Pages / proxied sites).</li><li>Copy the analytics page URL and paste it into the site's "Analytics dashboard link" here.</li></ol></div></div>`;
   shell(content, 'Analytics');
-  $('#an-site').onchange = (e) => { anState.site = e.target.value; routes.analytics(); };
-  document.querySelectorAll('[data-days]').forEach(b => b.onclick = () => { anState.days = Number(b.dataset.days); routes.analytics(); });
 };
 
 // ----------------------------------------------------------------- tasks ----
@@ -261,28 +264,37 @@ P.quickTask = async (title, siteId) => { await api('/tasks', { method: 'POST', b
 
 // -------------------------------------------------------------- settings ----
 routes.settings = async () => {
-  const st = S.settings;
+  const st = S.settings; const CFG = P.CFG;
   const hasDemo = S.sites.some(s => s.id.startsWith('demo-'));
   const content = h`<div class="grid g2">
+    <div class="stack">
     <div class="card"><h2>General</h2><form id="f-general" class="form-grid">
       ${raw(field('Panel name', input('panelName', st.panelName)))}${raw(field('Default currency (ISO code)', input('currency', st.currency, 'maxlength="3" style="text-transform:uppercase"')))}
-      ${raw(field('Renewal warning (days ahead)', input('renewalWarnDays', st.renewalWarnDays, 'type="number" min="1" max="120"')))}${raw(field('Uptime probe interval (minutes)', input('checkIntervalMin', st.checkIntervalMin, 'type="number" min="1" max="1440"')))}
-      ${raw(field('Full audit interval (hours)', input('auditIntervalHours', st.auditIntervalHours, 'type="number" min="1" max="720"')))}${raw(field('Probe history to keep (per site)', input('keepChecks', st.keepChecks, 'type="number" min="50" max="20000"')))}
+      ${raw(field('Renewal warning (days ahead)', input('renewalWarnDays', st.renewalWarnDays, 'type="number" min="1" max="120"')))}${raw(field('Uptime probe interval (minutes)', input('checkIntervalMin', st.checkIntervalMin, 'type="number" min="5" max="1440"')))}
+      ${raw(field('Full audit interval (hours)', input('auditIntervalHours', st.auditIntervalHours, 'type="number" min="1" max="720"')))}${raw(field('Probe history to keep (per site)', input('keepChecks', st.keepChecks, 'type="number" min="50" max="5000"')))}
       <div class="full" style="display:flex;justify-content:flex-end">${raw(btn('Save settings', 'primary', 'type="submit"'))}</div></form></div>
+    <div class="card"><h2>Vault & encryption</h2>
+      <p class="small muted" style="margin:0 0 10px">Subscriptions, tasks and settings are stored in <span class="mono">${CFG.dir}/vault.json</span> on the <span class="mono">${CFG.branch}</span> branch. With encryption on they are AES-256 encrypted in your browser before being committed, so the repository can stay public. Sites and audit results are stored in plain JSON because the Actions monitor needs to read them.</p>
+      <label class="check" style="margin-bottom:12px"><input type="checkbox" id="encrypt" ${st.encrypt !== false ? raw('checked') : ''}> Encrypt the vault <span class="dim small">(turn off only if this repository is private and you want Actions to send renewal alerts too)</span></label>
+      <form id="f-pw" class="form-grid">${raw(field('New vault password (8+ chars)', input('password', '', 'type="password" minlength="8" autocomplete="new-password" required')))}${raw(field('Confirm', input('confirm', '', 'type="password" minlength="8" autocomplete="new-password" required')))}<div class="full" style="display:flex;justify-content:flex-end">${raw(btn('Change vault password', 'primary', 'type="submit"'))}</div></form></div>
+    </div>
     <div class="stack">
-      <div class="card"><h2>Alert webhook</h2><p class="small muted" style="margin:0 0 10px">New alerts (renewals, downtime, expiring TLS/domains, low scores) are pushed once each to this URL. Slack incoming webhooks, Discord webhooks and any JSON endpoint work.</p>
-        <form id="f-hook" class="inline-form">${raw(input('webhookUrl', st.webhookUrl, 'placeholder="https://hooks.slack.com/services/…" type="url"'))}${raw(btn('Save', 'primary', 'type="submit"'))}${raw(btn('Send test', '', 'type="button" id="hook-test"'))}</form></div>
-      <div class="card"><h2>Change password</h2><form id="f-pw" class="form-grid">${raw(field('Current password', input('current', '', 'type="password" required autocomplete="current-password"')))}${raw(field('New password (8+ chars)', input('password', '', 'type="password" required minlength="8" autocomplete="new-password"')))}<div class="full" style="display:flex;justify-content:flex-end">${raw(btn('Update password', 'primary', 'type="submit"'))}</div></form></div>
-      <div class="card"><h2>Data</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="/api/export" download>Export everything (JSON)</a><label class="btn">Import JSON<input type="file" id="import" accept="application/json" hidden></label>${hasDemo ? raw(btn('Remove demo data', 'danger', 'id="rm-demo"')) : ''}</div>
-        <p class="small dim" style="margin:10px 0 0">Data lives as JSON files in the server's data directory. Back that folder up, or use export. Import adds records that don't exist yet and never overwrites.</p></div>
+      <div class="card"><h2>GitHub Actions monitor</h2><p class="small muted" style="margin:0 0 10px">Uptime probes, audits and alerts run in <span class="mono">.github/workflows/${CFG.workflow}</span>. Alerts are posted to a webhook if the repository secret <span class="mono">PANEL_ALERT_WEBHOOK_URL</span> is set (Slack, Discord or any JSON endpoint), and opened as GitHub issues if the repository variable <span class="mono">PANEL_ALERT_ISSUES</span> is <span class="mono">1</span>. Set both under the repository's Settings → Secrets and variables → Actions.</p>
+        <div id="mon-status" class="small dim">Checking last run…</div><div style="margin-top:10px">${raw(btn('Run monitor now', '', 'id="run-now"', I.refresh))} <a class="btn" target="_blank" rel="noopener" href="https://github.com/${CFG.owner}/${CFG.repo}/actions/workflows/${CFG.workflow}">${raw(I.ext)} Open in GitHub</a></div></div>
+      <div class="card"><h2>This device</h2><p class="small muted" style="margin:0 0 10px">The GitHub token ${P.store.get('map_token') ? 'is remembered in this browser' : 'is kept for this tab only'}. The vault password is never stored; it is kept in memory until you lock the panel or close the tab.</p><div style="display:flex;gap:8px;flex-wrap:wrap">${raw(btn('Forget token on this device', 'danger', 'id="forget"'))}</div></div>
+      <div class="card"><h2>Data</h2><div style="display:flex;gap:8px;flex-wrap:wrap">${raw(btn('Export everything (JSON)', '', 'onclick="__panel.exportJson()"'))}<label class="btn">Import JSON<input type="file" id="import" accept="application/json" hidden></label>${hasDemo ? raw(btn('Remove demo data', 'danger', 'id="rm-demo"')) : raw(btn('Load demo data', '', 'id="add-demo"'))}</div>
+        <p class="small dim" style="margin:10px 0 0">Every change is a commit on the <span class="mono">${CFG.branch}</span> branch, so the history of your data is <a target="_blank" rel="noopener" href="https://github.com/${CFG.owner}/${CFG.repo}/commits/${CFG.branch}">in git</a>. Import adds records that don't exist yet and never overwrites.</p></div>
     </div></div>`;
   shell(content, 'Settings');
   $('#f-general').onsubmit = async (e) => { e.preventDefault(); try { await api('/settings', { method: 'PUT', body: P.formData($('#f-general')) }); toast('Settings saved'); route(); } catch (err) { toast(err.message, true); } };
-  $('#f-hook').onsubmit = async (e) => { e.preventDefault(); try { await api('/settings', { method: 'PUT', body: { webhookUrl: $('#f-hook [name=webhookUrl]').value } }); toast('Webhook saved'); } catch (err) { toast(err.message, true); } };
-  $('#hook-test').onclick = async () => { try { await api('/settings', { method: 'PUT', body: { webhookUrl: $('#f-hook [name=webhookUrl]').value } }); const r = await api('/alerts/test', { method: 'POST' }); toast(r.ok ? 'Test alert delivered' : 'Webhook rejected the request', !r.ok); } catch (err) { toast('Webhook failed: ' + err.message, true); } };
-  $('#f-pw').onsubmit = async (e) => { e.preventDefault(); try { await api('/auth/password', { method: 'POST', body: P.formData($('#f-pw')) }); toast('Password updated'); $('#f-pw').reset(); } catch (err) { toast(err.message, true); } };
+  $('#encrypt').onchange = async (e) => { try { if (!e.target.checked && !await confirmDialog('Store subscriptions, tasks and settings as plain JSON in the repository? Anyone who can read the repo will see them.')) { e.target.checked = true; return; } await api('/settings', { method: 'PUT', body: { encrypt: e.target.checked } }); toast(e.target.checked ? 'Vault encrypted' : 'Vault stored as plain JSON'); } catch (err) { toast(err.message, true); e.target.checked = !e.target.checked; } };
+  $('#f-pw').onsubmit = async (e) => { e.preventDefault(); const d = P.formData($('#f-pw')); if (d.password !== d.confirm) return toast('Passwords do not match', true); try { await api('/vault/password', { method: 'POST', body: { password: d.password } }); try { sessionStorage.setItem('map_pass', d.password); } catch {} toast('Vault password changed'); $('#f-pw').reset(); } catch (err) { toast(err.message, true); } };
+  $('#run-now').onclick = (e) => P.runMonitor(e.target);
+  $('#forget').onclick = () => { P.forget(true); location.hash = ''; location.reload(); };
   $('#import').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { const body = JSON.parse(await f.text()); const r = await api('/import', { method: 'POST', body }); toast(`Imported ${r.imported} records`); route(); } catch (err) { toast('Import failed: ' + err.message, true); } };
   if ($('#rm-demo')) $('#rm-demo').onclick = async () => { if (!await confirmDialog('Remove all demo sites, subscriptions and tasks?')) return; await api('/demo', { method: 'DELETE' }); toast('Demo data removed'); route(); };
+  if ($('#add-demo')) $('#add-demo').onclick = async () => { await api('/demo', { method: 'POST' }); toast('Demo data added and a monitor run queued'); route(); };
+  api('/monitor/status').then(r => { $('#mon-status').innerHTML = r ? h`Last run: <a href="${r.url}" target="_blank" rel="noopener">${r.status === 'completed' ? (r.conclusion || 'done') : r.status}</a> · ${ago(r.at)}` : 'The monitor has not run yet. Merge the workflow to main, then press “Run monitor now”.'; }).catch(e => { $('#mon-status').textContent = 'Could not read workflow runs: ' + e.message; });
 };
 
 P.boot();

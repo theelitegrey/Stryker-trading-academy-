@@ -1,6 +1,7 @@
+(function () {
 'use strict';
 // Derive actionable alerts from the current state, and push new ones to a webhook.
-const { nextRenewal, daysUntil } = require('./money');
+const { nextRenewal, daysUntil } = typeof require === 'function' ? require('./money') : window.PanelMoney;
 
 function buildAlerts(state, settings, now = new Date()) {
   const warnDays = Number(settings.renewalWarnDays || 14);
@@ -57,4 +58,6 @@ async function notify(webhookUrl, alerts) {
   } catch { return false; }
 }
 
-module.exports = { buildAlerts, notify };
+const __exports = { buildAlerts, notify };
+if (typeof module !== 'undefined') module.exports = __exports; else window.PanelAlerts = __exports;
+})();

@@ -78,7 +78,7 @@ const SCHEMA = {
       description: 'Every number, level, time or percentage that appears in parts, exactly as written there (e.g. "5.04%", "14:00 ET", "$106.56"). Empty if none.'
     },
     cardTitle: { type: 'string', description: 'Headline for the image card, under 90 characters.' },
-    cardBody: { type: 'string', description: 'One or two supporting sentences for the image card, under 220 characters. May be empty.' },
+    cardBody: { type: 'string', description: 'Supporting sentences for the image card, under 300 characters unless the task says otherwise. May be empty.' },
     altText: { type: 'string', description: 'Accessible description of the card for screen readers, under 200 characters.' }
   }
 };
@@ -189,7 +189,7 @@ async function draft(opts) {
       return {
         parts,
         cardTitle: String(out.cardTitle || '').slice(0, 120),
-        cardBody: String(out.cardBody || '').slice(0, 260),
+        cardBody: String(out.cardBody || '').slice(0, 320),
         altText: String(out.altText || '').slice(0, 300),
         model: res.model,
         usage: res.usage ? { in: res.usage.input_tokens, out: res.usage.output_tokens } : null

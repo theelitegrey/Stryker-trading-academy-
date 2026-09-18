@@ -230,7 +230,8 @@ async function produceBrief(cfg, state, t) {
       'Summarise this pre-market brief as a thread for traders about to start the session. ' +
       'Post 1: the headline idea, in your own words, as a hook. Middle posts: one per bullet, the point and why it matters. ' +
       'Last post: the session note or the trap to avoid, then credit the named sources. ' +
-      'Every figure must appear verbatim in the source.'
+      'Every figure must appear verbatim in the source. ' +
+      'cardTitle: the headline idea in under 70 characters. cardBody: three short sentences, one per key point, up to 300 characters.'
   });
 }
 
@@ -305,7 +306,8 @@ async function produceCalendar(cfg, state, t) {
       instructions:
         `Write a single post that ${cfg.calendarLeadMinutes} minutes before this release tells traders what is due, at what time (${hhmm}), ` +
         'and what the note says to watch. Include the forecast and previous figures only if they are given. ' +
-        'One sentence of context, no prediction of the outcome.'
+        'One sentence of context, no prediction of the outcome. ' +
+        'cardBody: two or three sentences for the image card, up to 300 characters: the previous and forecast figures if given, and what the note says to watch.'
     });
   }
 }
@@ -418,7 +420,8 @@ async function produceFeature(cfg, state, t) {
     instructions:
       'Write a single post that tells a retail trader what this feature does and why it would matter to them, ' +
       'based only on the description. One concrete detail from the description, no superlatives, no "game-changer". ' +
-      'End with a short invitation to look, not a command.'
+      'End with a short invitation to look, not a command. ' +
+      'cardTitle: a bold, benefit-led headline under 60 characters. cardBody: two punchy sentences on what the trader gets, up to 200 characters.'
   });
   if (created) {
     await db().doc('xAutopost/state').set({ featureIndex: idx + 1 }, { merge: true });

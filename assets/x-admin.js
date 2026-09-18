@@ -68,11 +68,11 @@ function callAdmin(action, extra) {
 
 // Must match STYLE_KEYS in functions-src/xAutopost-cards.js.
 var CARD_STYLES = [
-  ['aurora', 'Aurora — soft mint glow, six live prints on a translucent strip'],
-  ['countdown', 'Countdown — big number in a light panel, orange accent'],
+  ['aurora', 'Aurora — mint glow, headline, three lines of body, six live prints'],
+  ['countdown', 'Countdown — deep red field, minutes-to-go ring'],
   ['signal', 'Signal — gauge ring with the reading, blue accent'],
-  ['sheet', 'Sheet — light card lifted over the brand gradient'],
-  ['spotlight', 'Spotlight — violet glow, headline centred'],
+  ['sheet', 'Sheet — light card; live sessions get a LIVE badge and broadcast mark'],
+  ['spotlight', 'Spotlight — blue-violet mesh, gradient headline, call-to-action pill'],
   ['quiet', 'Quiet — plain dark, nothing but the words'],
   ['terminal', 'Terminal — dark, mint eyebrow'], ['ticker', 'Ticker tape — centred headline, six live prints'],
   ['alert', 'Alert — red hazard stripes, big number'], ['breaking', 'Breaking — red label block, news bar'],

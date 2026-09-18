@@ -36,10 +36,10 @@ services:
   chatterbox:
     build:
       context: https://github.com/devnen/Chatterbox-TTS-Server.git
-      dockerfile: Dockerfile-cpu
+      dockerfile: Dockerfile.cpu
     restart: unless-stopped
     environment:
-      DEVICE: cpu
+      HF_HUB_ENABLE_HF_TRANSFER: "1"
     volumes:
       - ./voices:/app/voices
       - chatterbox-cache:/app/hf_cache

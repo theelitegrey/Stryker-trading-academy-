@@ -36,14 +36,13 @@ Environment variables (see `.env.example`):
 | `SEED_DEMO` | – | `1` seeds sample sites/subscriptions on an empty install |
 | `ALERT_WEBHOOK_URL` | – | Initial webhook for alerts (also editable in Settings) |
 
-## Deploying on the Stryker VPS
+## Deploying (the site itself is static, so the panel needs its own small host)
 
-The panel is a service in `automation/docker-compose.yml` and Caddy serves it at **https://panel.strykertrading.com**.
+**Render, one click (recommended).** `render.yaml` at the repo root is a blueprint: Render dashboard → *New* → *Blueprint* → pick this repo → *Apply*. It builds the Dockerfile, mounts a 1 GB disk at `/app/data` so nothing is lost on redeploys, and health-checks `/healthz`. Set `ADMIN_PASSWORD` in the service's environment or leave it blank and choose one on the first visit. Then add a custom domain such as `panel.strykertrading.com` in Render and create the CNAME it shows you in Cloudflare DNS (proxy off). Persistent disks need the Starter instance, about US$7 a month.
 
-1. In Cloudflare DNS add an `A` record `panel` pointing at the VPS IP (DNS only / grey cloud, so Caddy can get its own certificate).
-2. On the VPS, in `automation/.env`, set `PANEL_ADMIN_PASSWORD` (see `.env.example`).
-3. `cd automation && docker compose up -d --build panel caddy`
-4. Open https://panel.strykertrading.com and sign in. Data persists in `automation/panel-data/`.
+**Fly.io.** `master-admin-panel/fly.toml` is ready: `fly launch --copy-config --no-deploy && fly volumes create panel_data -s 1 && fly deploy`.
+
+**Any VPS with Docker.** `automation/docker-compose.yml` includes a `panel` service and `automation/Caddyfile` serves it at `panel.strykertrading.com`; set `PANEL_ADMIN_PASSWORD` in `automation/.env` and run `docker compose up -d --build panel caddy`.
 
 ## Docker (standalone)
 

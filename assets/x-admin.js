@@ -75,7 +75,7 @@ var CONFIG_FIELDS = [
   { key: 'calendarLeadMinutes', label: 'Calendar alert lead (minutes)', type: 'number', min: 15, max: 120, def: 30,
     help: 'High-impact events only. Posted this many minutes before the release; never after it.' },
   { key: 'featureHourUtc', label: 'Feature promo drafted at (UTC hour)', type: 'number', min: 0, max: 23, def: 14,
-    help: 'One per day, rotating through the features pages. It waits here for your approval.' },
+    help: 'One per day, rotating through the features pages. Posts on its own like everything else.' },
   { key: 'announceDelayMinutes', label: 'Announce new content after (minutes)', type: 'number', min: 5, max: 1440, def: 30,
     help: 'Time for you to finish editing a chapter, model, indicator or session before it is announced. The title is re-read at posting time.' },
   { key: 'minGapMinutes', label: 'Minimum gap between posts (minutes)', type: 'number', min: 10, max: 720, def: 45,
@@ -274,7 +274,7 @@ function renderQueue() {
   var rows = XP.posts.filter(function (p) { return tab[2].indexOf(p.status) >= 0; });
   if (!rows.length) {
     host.innerHTML = '<div class="empty-state"><h3>Nothing here</h3><p>' + {
-      queued: 'Feature promos land here once a day for you to approve. Everything else posts on its own.',
+      queued: 'Everything posts on its own. Use “Hold for approval” on a scheduled post to park it here.',
       upcoming: 'Drafts waiting for their slot appear here. The brief is enqueued each weekday morning.',
       posted: 'Nothing has been posted yet.',
       problems: 'No failures, rejections or missed windows.'
@@ -454,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('xp-config-save').addEventListener('click', saveConfig);
   document.getElementById('xp-toggle-btn').addEventListener('click', function () {
     var on = !(XP.config && XP.config.enabled);
-    if (on && !confirm('Enable automatic posting to X?\n\nThe brief, calendar alerts, monitor alerts and announcements will post without approval. Feature promos still wait for you.')) return;
+    if (on && !confirm('Enable automatic posting to X?\n\nEvery drafted post goes out without approval. You can hold any scheduled post from this page before it posts.')) return;
     setEnabled(on);
   });
 

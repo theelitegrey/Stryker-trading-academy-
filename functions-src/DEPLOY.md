@@ -152,6 +152,7 @@ Six functions, five secrets, two npm packages. The full guide, including
 creating the X developer app, is `tools/x-autopost.md`. The deploy itself:
 
 ```bash
+cp -r /tmp/sta/functions-src/fonts "$PROJECT/functions/"
 cd "$PROJECT/functions"
 npm install @anthropic-ai/sdk @resvg/resvg-js
 grep -q "xAutopost'" index.js || echo "Object.assign(exports, require('./xAutopost'));" >> index.js
@@ -166,7 +167,9 @@ firebase deploy --only functions:xAutopostTick,functions:xAutopostAdmin,function
 
 `xAutopost-x.js`, `xAutopost-cards.js` and `xAutopost-draft.js` are required
 by `xAutopost.js` and export no functions of their own; the `cp` in step 0
-copies them across. The rules need the three `xAutopost` / `xPosts` lines from
+copies them across. `functions-src/fonts/` holds the Inter typefaces the
+cards are set in and must be copied as a folder (the `cp -r` above); the
+`*.js` copy in step 0 does not include it. The rules need the three `xAutopost` / `xPosts` lines from
 `firestore.rules`.
 
 ## Node runtime

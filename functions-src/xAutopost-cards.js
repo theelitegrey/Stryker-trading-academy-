@@ -41,13 +41,19 @@ const C = {
 
 const SANS = "'DejaVu Sans', 'Liberation Sans', Arial, Helvetica, sans-serif";
 const SERIF = "'DejaVu Serif', Georgia, serif";
+// Inter (SIL OFL) ships in ./fonts and is loaded by renderPng. Inter Display
+// is the tight-tracked cut for large headlines; Inter for everything else.
+const UI = "'Inter', 'DejaVu Sans', Arial, sans-serif";
+const DISPLAY = "'Inter Display', 'Inter', 'DejaVu Sans', Arial, sans-serif";
+const FONT_DIR = require('path').join(__dirname, 'fonts');
 
 const DEFAULT_STYLES = {
-  brief: 'ticker', calendar: 'alert', monitor: 'breaking',
-  announce: 'glass', feature: 'electric', manual: 'terminal'
+  brief: 'aurora', calendar: 'countdown', monitor: 'signal',
+  announce: 'sheet', feature: 'spotlight', manual: 'quiet'
 };
 
-const STYLE_KEYS = ['terminal', 'split', 'editorial', 'ticker', 'glass', 'poster',
+const STYLE_KEYS = ['aurora', 'countdown', 'signal', 'sheet', 'spotlight', 'quiet',
+                    'terminal', 'split', 'editorial', 'ticker', 'glass', 'poster',
                     'neon', 'alert', 'electric', 'gold', 'splitcolor', 'breaking'];
 
 function esc(s) {
@@ -67,8 +73,14 @@ function charWidth(ch, size) {
 }
 
 // Bold DejaVu is about a tenth wider than regular; the serif wider again.
+// Inter is narrower than DejaVu; Inter Display with negative tracking narrower
+// still. The factors were tuned against rendered output, not the font tables.
 function textWidth(s, size, opts) {
-  const f = (opts && opts.serif) ? 1.22 : ((opts && opts.bold) ? 1.12 : 1);
+  let f = 1;
+  if (opts && opts.serif) f = 1.22;
+  else if (opts && opts.display) f = 0.84;
+  else if (opts && opts.inter) f = (opts.bold ? 0.95 : 0.9);
+  else if (opts && opts.bold) f = 1.12;
   let w = 0;
   for (const ch of String(s)) w += charWidth(ch, size);
   return w * f;
@@ -411,6 +423,208 @@ STYLES.breaking = (s) => {
     `<text x="${W - 72}" y="${H - 28}" text-anchor="end" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com · not financial advice</text></svg>`;
 };
 
+
+// ---- Apple-style set (defaults) --------------------------------------------------
+// Restraint over noise: one accent per kind, a mesh-gradient glow instead of
+// hard colour blocks, translucent rounded materials with a light top edge,
+// Inter Display headlines with negative tracking, sentence-case labels in
+// capsules, muted secondary text, and generous margins.
+
+const A = {
+  bg: '#000000', label: '#f5f5f7', secondary: '#a1a1a6', tertiary: '#6e6e73',
+  lightBg: '#f5f5f7', lightLabel: '#1d1d1f', lightSecondary: '#6e6e73',
+  mint: C.mint, green: '#30d158', orange: '#ff9f0a', red: '#ff453a', purple: '#bf5af2', blue: '#0a84ff', teal: '#64d2ff'
+};
+
+// Two blurred glows in the accent, positioned per style. Filters are declared
+// once per SVG in <defs>; keep ids unique inside a card.
+function mesh(spots, blur) {
+  return `<defs><filter id="mesh" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${blur || 90}"/></filter></defs>` +
+    `<g filter="url(#mesh)">${spots.map((p) => `<ellipse cx="${p[0]}" cy="${p[1]}" rx="${p[2]}" ry="${p[3]}" fill="${p[4]}" fill-opacity="${p[5]}"/>`).join('')}</g>`;
+}
+
+/** A translucent material panel with a bright top edge. */
+function material(x, y, w, h, r, dark) {
+  const fill = dark ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.72)';
+  const edge = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.9)';
+  const line = dark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.06)';
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${fill}" stroke="${line}"/>` +
+    `<path d="M${x + r} ${y + 0.5} H${x + w - r}" stroke="${edge}" stroke-width="1"/>`;
+}
+
+/** Capsule label. */
+function capsule(x, y, text, accent, dark) {
+  const w = Math.round(textWidth(text, 15, { inter: true, bold: true }) + 32);
+  return `<g><rect x="${x}" y="${y}" width="${w}" height="32" rx="16" fill="${accent}" fill-opacity="${dark ? 0.18 : 0.14}"/>` +
+    `<circle cx="${x + 16}" cy="${y + 16}" r="4" fill="${accent}"/>` +
+    `<text x="${x + 27}" y="${y + 21}" font-family="${UI}" font-size="15" font-weight="600" fill="${accent}">${esc(text)}</text></g>`;
+}
+
+function appleBrand(x, y, dark) {
+  const label = dark ? A.label : A.lightLabel;
+  return `<g transform="translate(${x},${y})"><rect width="36" height="36" rx="10" fill="${dark ? '#1c1c1e' : '#ffffff'}" stroke="${dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)'}"/>` +
+    `<path d="M10 24 L16 14 L21 20 L26 10" fill="none" stroke="${A.mint}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<text x="48" y="24" font-family="${UI}" font-size="19" font-weight="500" fill="${label}" fill-opacity="0.92">Stryker Trading Academy</text></g>`;
+}
+
+function appleFoot(dark, y) {
+  const c = dark ? A.tertiary : A.lightSecondary;
+  return `<text x="72" y="${y || H - 46}" font-family="${UI}" font-size="17" font-weight="400" fill="${c}">strykertrading.com</text>` +
+    `<text x="${W - 72}" y="${y || H - 46}" text-anchor="end" font-family="${UI}" font-size="17" fill="${c}">Not financial advice</text>`;
+}
+
+/** Display headline: Inter Display, tight tracking, tight leading. */
+function headline(lines, x, y, size, fill, anchor) {
+  const track = -(size * 0.035).toFixed(1);
+  return L(lines, x, y, size, Math.round(size * 1.08), fill, 700, { font: DISPLAY, anchor, extra: ` letter-spacing="${track}"` });
+}
+function bodyText(lines, x, y, size, fill) {
+  return L(lines, x, y, size, Math.round(size * 1.42), fill, 400, { font: UI });
+}
+
+/** Smooth area sparkline, Apple Stocks style. Decorative fixed shape. */
+ILLUS.area = (x, y, w, h, color, id) => {
+  const pts = [0.62, 0.58, 0.66, 0.5, 0.55, 0.42, 0.47, 0.36, 0.4, 0.3, 0.34, 0.22, 0.28, 0.18];
+  const step = w / (pts.length - 1);
+  let d = `M${x} ${y + h * pts[0]}`;
+  for (let i = 1; i < pts.length; i++) {
+    const x0 = x + (i - 1) * step, x1 = x + i * step, y0 = y + h * pts[i - 1], y1 = y + h * pts[i];
+    d += ` C${x0 + step / 2} ${y0}, ${x1 - step / 2} ${y1}, ${x1} ${y1}`;
+  }
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity="0.35"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>` +
+    `<path d="${d} L${x + w} ${y + h} L${x} ${y + h} Z" fill="url(#${id})"/>` +
+    `<path d="${d}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>` +
+    `<circle cx="${x + w}" cy="${y + h * pts[pts.length - 1]}" r="7" fill="${color}"/><circle cx="${x + w}" cy="${y + h * pts[pts.length - 1]}" r="14" fill="${color}" fill-opacity="0.25"/>`;
+};
+
+/** Thin progress ring with the value inside. frac 0..1. */
+ILLUS.ring = (cx, cy, r, accent, frac, value, label, dark) => {
+  const f = Math.max(0.02, Math.min(0.999, frac));
+  const a = -Math.PI / 2 + f * Math.PI * 2;
+  const ex = cx + Math.cos(a) * r, ey = cy + Math.sin(a) * r;
+  return `<g><circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${accent}" stroke-opacity="0.18" stroke-width="14"/>` +
+    `<path d="M${cx} ${cy - r} A${r} ${r} 0 ${f > 0.5 ? 1 : 0} 1 ${ex} ${ey}" fill="none" stroke="${accent}" stroke-width="14" stroke-linecap="round"/>` +
+    `<text x="${cx}" y="${cy + 30}" text-anchor="middle" font-family="${DISPLAY}" font-size="104" font-weight="700" letter-spacing="-4" fill="${dark ? A.label : A.lightLabel}">${esc(value)}</text>` +
+    `<text x="${cx}" y="${cy + 70}" text-anchor="middle" font-family="${UI}" font-size="18" font-weight="500" fill="${dark ? A.secondary : A.lightSecondary}">${esc(label)}</text></g>`;
+};
+
+/** Thin arc gauge with rounded caps and a soft needle dot. */
+ILLUS.arc = (cx, cy, r, accent, frac, value, label) => {
+  const f = typeof frac === 'number' ? Math.max(0.02, Math.min(0.98, frac)) : 0.6;
+  const a = Math.PI * (1 - f);
+  const px = cx + Math.cos(a) * r, py = cy - Math.sin(a) * r;
+  return `<defs><linearGradient id="arcg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${A.green}"/><stop offset="0.5" stop-color="${A.orange}"/><stop offset="1" stop-color="${A.red}"/></linearGradient></defs>` +
+    `<path d="M${cx - r} ${cy} A${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="16" stroke-linecap="round"/>` +
+    `<path d="M${cx - r} ${cy} A${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="url(#arcg)" stroke-width="16" stroke-linecap="round" stroke-opacity="0.9"/>` +
+    `<circle cx="${px}" cy="${py}" r="16" fill="#000" stroke="${accent}" stroke-width="5"/><circle cx="${px}" cy="${py}" r="30" fill="${accent}" fill-opacity="0.18"/>` +
+    `<text x="${cx}" y="${cy - 8}" text-anchor="middle" font-family="${DISPLAY}" font-size="88" font-weight="700" letter-spacing="-3" fill="${A.label}">${esc(value)}</text>` +
+    `<text x="${cx}" y="${cy + 30}" text-anchor="middle" font-family="${UI}" font-size="18" font-weight="500" fill="${A.secondary}">${esc(label)}</text>`;
+};
+
+/** Three glass chapter cards, softly stacked. */
+ILLUS.glassCards = (x, y) => {
+  const card = (dx, dy, rot, op) => `<g transform="translate(${x + dx},${y + dy}) rotate(${rot})">` +
+    `<rect width="230" height="150" rx="22" fill="#fff" fill-opacity="${op}" stroke="rgba(0,0,0,0.06)"/>` +
+    `<rect x="22" y="24" width="96" height="12" rx="6" fill="#1d1d1f" fill-opacity="0.85"/><rect x="22" y="48" width="180" height="8" rx="4" fill="#1d1d1f" fill-opacity="0.18"/>` +
+    `<rect x="22" y="64" width="150" height="8" rx="4" fill="#1d1d1f" fill-opacity="0.18"/><rect x="22" y="80" width="166" height="8" rx="4" fill="#1d1d1f" fill-opacity="0.18"/>` +
+    `<rect x="22" y="112" width="64" height="22" rx="11" fill="${A.mint}"/></g>`;
+  return `<g>${card(46, 34, -7, 0.55)}${card(22, 16, -3.5, 0.75)}${card(0, 0, 0, 1)}</g>`;
+};
+
+/** Glass dashboard with a light top edge and drop shadow. */
+ILLUS.glassDash = (x, y, accent) => {
+  return `<defs><filter id="dsh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/></filter></defs>` +
+    `<g transform="translate(${x},${y})" filter="url(#dsh)">${material(0, 0, 320, 220, 26, true)}` +
+    `<circle cx="24" cy="22" r="5" fill="${A.red}"/><circle cx="42" cy="22" r="5" fill="${A.orange}"/><circle cx="60" cy="22" r="5" fill="${A.green}"/>` +
+    `<rect x="20" y="46" width="184" height="128" rx="14" fill="rgba(255,255,255,0.06)"/>` +
+    `<polyline points="34,160 64,128 94,140 124,100 154,110 184,72" fill="none" stroke="${accent}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<circle cx="184" cy="72" r="6" fill="${accent}"/>` +
+    `<rect x="222" y="112" width="20" height="62" rx="6" fill="${A.purple}" fill-opacity="0.9"/><rect x="250" y="84" width="20" height="90" rx="6" fill="${accent}"/><rect x="278" y="132" width="20" height="42" rx="6" fill="rgba(255,255,255,0.5)"/>` +
+    `<rect x="20" y="190" width="120" height="8" rx="4" fill="rgba(255,255,255,0.35)"/></g>`;
+};
+
+// aurora — the brief: dark, mint glow, sparkline, a material tape of six prints
+STYLES.aurora = (s) => {
+  const t = wrap(s.title, 62, 900, 3, { display: true });
+  const items = (s.ticker || []).slice(0, 6);
+  const tapeY = 468, chipW = 166, gap = 12;
+  const tape = items.length ? material(72, tapeY, 1056, 124, 28, true) + items.map((k, i) => {
+    const x = 72 + 24 + i * (chipW + gap);
+    const col = k.dir > 0 ? A.green : (k.dir < 0 ? A.red : A.label);
+    return `<text x="${x}" y="${tapeY + 48}" font-family="${UI}" font-size="15" font-weight="500" fill="${A.secondary}">${esc(k.label)}</text>` +
+      `<text x="${x}" y="${tapeY + 86}" font-family="${DISPLAY}" font-size="30" font-weight="600" letter-spacing="-0.8" fill="${col}">${esc(k.text)}</text>`;
+  }).join('') : '';
+  const body = items.length ? '' : bodyText(wrap(s.body, 26, 880, 3, { inter: true }), 72, 250 + t.length * 67 + 22, 26, A.secondary);
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
+    mesh([[1000, 120, 420, 260, A.mint, 0.42], [180, 640, 380, 200, A.teal, 0.22]]) +
+    ILLUS.area(640, 150, 488, 260, A.mint, 'aur') +
+    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.mint, true) +
+    headline(t, 72, 250 + 50, 62, A.label) + body + tape + appleFoot(true, H - 42) + '</svg>';
+};
+
+// countdown — calendar: dark, orange glow, ring with the minutes inside
+STYLES.countdown = (s) => {
+  const hasStat = s.stat && s.stat.value;
+  const t = wrap(s.title, 56, hasStat ? 640 : 940, 3, { display: true }), b = wrap(s.body, 24, hasStat ? 640 : 940, 3, { inter: true });
+  const mins = parseFloat(String((s.stat || {}).value || '').replace(/[^\d.]/g, ''));
+  const frac = isNaN(mins) ? 0.5 : Math.min(1, mins / 60);
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
+    mesh([[960, 340, 360, 300, A.orange, 0.34], [120, 80, 300, 200, A.red, 0.14]]) +
+    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.orange, true) +
+    (hasStat ? ILLUS.ring(960, 340, 150, A.orange, frac, s.stat.value, s.stat.label, true) : '') +
+    headline(t, 72, 240 + 45, 56, A.label) + bodyText(b, 72, 240 + t.length * 60 + 30, 24, A.secondary) +
+    appleFoot(true) + '</svg>';
+};
+
+// signal — monitor: dark, red glow, thin gauge with the value inside
+STYLES.signal = (s) => {
+  const hasStat = s.stat && s.stat.value;
+  const t = wrap(s.title, 56, hasStat ? 660 : 940, 3, { display: true }), b = wrap(s.body, 24, hasStat ? 660 : 940, 3, { inter: true });
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
+    mesh([[980, 420, 380, 260, A.red, 0.30], [140, 120, 320, 220, A.purple, 0.16]]) +
+    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.label || 'Monitor', 15, { inter: true, bold: true }) + 32), 64, s.label || 'Monitor', A.red, true) +
+    `<text x="72" y="176" font-family="${UI}" font-size="20" font-weight="500" fill="${A.red}">${esc(s.eyebrow)}</text>` +
+    (hasStat ? ILLUS.arc(970, 420, 170, A.red, statFrac(s.stat), s.stat.value, s.stat.label) : '') +
+    headline(t, 72, 240 + 45, 56, A.label) + bodyText(b, 72, 240 + t.length * 60 + 30, 24, A.secondary) +
+    appleFoot(true) + '</svg>';
+};
+
+// sheet — announcements: light, white material, glass chapter cards
+STYLES.sheet = (s) => {
+  const t = wrap(s.title, 54, 620, 3, { display: true }), b = wrap(s.body, 23, 620, 4, { inter: true });
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.lightBg}"/>` +
+    mesh([[1040, 80, 360, 240, A.mint, 0.35], [140, 620, 320, 200, A.blue, 0.18]], 80) +
+    `<defs><filter id="ssh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000" flood-opacity="0.10"/></filter></defs>` +
+    `<g filter="url(#ssh)"><rect x="60" y="56" width="1080" height="563" rx="34" fill="#fff" fill-opacity="0.82"/></g>` +
+    `<path d="M94 56.5 H1106" stroke="#fff"/>` +
+    appleBrand(104, 96, false) + capsule(W - 104 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 98, s.eyebrow, '#027a54', false) +
+    ILLUS.glassCards(820, 236) +
+    headline(t, 104, 232 + 44, 54, A.lightLabel) + bodyText(b, 104, 232 + t.length * 58 + 28, 23, A.lightSecondary) +
+    `<text x="104" y="${H - 82}" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">strykertrading.com</text>` +
+    `<text x="${W - 104}" y="${H - 82}" text-anchor="end" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">Not financial advice</text></svg>`;
+};
+
+// spotlight — feature promos: dark, mint-blue-purple mesh, glass dashboard
+STYLES.spotlight = (s) => {
+  const t = wrap(s.title, 56, 640, 3, { display: true }), b = wrap(s.body, 24, 640, 4, { inter: true });
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
+    mesh([[220, 120, 380, 280, A.blue, 0.42], [1000, 560, 420, 300, A.purple, 0.42], [900, 60, 260, 200, A.mint, 0.3]], 100) +
+    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.teal, true) +
+    ILLUS.glassDash(790, 210, A.mint) +
+    headline(t, 72, 236 + 45, 56, A.label) + bodyText(b, 72, 236 + t.length * 60 + 30, 24, A.secondary) +
+    appleFoot(true) + '</svg>';
+};
+
+// quiet — manual posts: dark, one soft glow, nothing else
+STYLES.quiet = (s) => {
+  const t = wrap(s.title, 62, 940, 3, { display: true }), b = wrap(s.body, 26, 900, 3, { inter: true });
+  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
+    mesh([[1040, 560, 420, 300, A.mint, 0.28]]) +
+    appleBrand(72, 62, true) +
+    headline(t, 72, 250 + 50, 62, A.label) + bodyText(b, 72, 250 + t.length * 67 + 26, 26, A.secondary) +
+    appleFoot(true) + '</svg>';
+};
+
 // ---- API ------------------------------------------------------------------------
 
 /** The style key for a post kind, honouring an admin override map. */
@@ -443,9 +657,14 @@ async function renderPng(svg) {
     return null;
   }
   try {
+    let fontFiles = [];
+    try {
+      const fs = require('fs');
+      fontFiles = fs.readdirSync(FONT_DIR).filter((f) => /\.(ttf|otf)$/i.test(f)).map((f) => require('path').join(FONT_DIR, f));
+    } catch (e) { /* no bundled fonts: system fonts only */ }
     const r = new Resvg(svg, {
       fitTo: { mode: 'width', value: W },
-      font: { loadSystemFonts: true, defaultFontFamily: 'DejaVu Sans' },
+      font: { fontFiles, loadSystemFonts: true, defaultFontFamily: fontFiles.length ? 'Inter' : 'DejaVu Sans' },
       background: C.bg1
     });
     return Buffer.from(r.render().asPng());

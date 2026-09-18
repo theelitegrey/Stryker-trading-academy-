@@ -27,15 +27,21 @@ reading it. The loud styles are reserved for time-sensitive posts.
 
 | Kind | Default style | What it shows |
 |---|---|---|
-| brief | `ticker` | centred headline over a strip of six prints from `market-map.json` (S&P 500, 10Y yield, WTI, gold, USD/JPY, bitcoin) |
-| calendar | `alert` | red hazard stripes, minutes-to-release as the big number |
-| monitor | `breaking` | red label naming the signal (VIX REGIME, RISK TONE, DEFCON), news-bar footer |
-| announce | `glass` | brand gradient with a frosted panel |
-| feature | `electric` | magenta-to-violet gradient |
-| manual | `terminal` | neutral dark card |
+| brief | `aurora` | soft mint glow on dark, the headline in Inter Display, six prints from `market-map.json` (S&P 500, 10Y yield, WTI, gold, USD/JPY, bitcoin) on a translucent strip |
+| calendar | `countdown` | minutes-to-release as a large number in a light panel, orange accent |
+| monitor | `signal` | a gauge ring showing the reading (VIX, risk tone, DEFCON), blue accent |
+| announce | `sheet` | a light card lifted over the brand gradient |
+| feature | `spotlight` | violet glow, headline centred |
+| manual | `quiet` | plain dark, nothing but the words |
 
-Six more styles (`split`, `editorial`, `poster`, `neon`, `gold`, `splitcolor`)
-are available. Reassign any kind from **Settings** on the admin page; the
+These six follow Apple's design language: mesh-gradient glows, translucent
+panels with a light top edge, capsule labels, tight negative tracking on the
+headline and muted secondary text. They use the Inter and Inter Display fonts
+bundled in `functions-src/fonts/` (SIL Open Font License), which must be
+copied to the functions folder with the code (see below). Twelve louder
+legacy styles (`terminal`, `ticker`, `alert`, `breaking`, `glass`,
+`electric`, `split`, `editorial`, `poster`, `neon`, `gold`, `splitcolor`)
+remain available. Reassign any kind from **Settings** on the admin page; the
 change applies to posts drafted after it is saved and needs no redeploy. The
 styles themselves live in `functions-src/xAutopost-cards.js`.
 
@@ -90,6 +96,7 @@ cents.
 ### 3. Dependencies and deploy
 
 ```bash
+cp -r /tmp/sta/functions-src/fonts functions/
 cd functions
 npm install @anthropic-ai/sdk @resvg/resvg-js
 grep -q "xAutopost'" index.js || echo "Object.assign(exports, require('./xAutopost'));" >> index.js
@@ -97,7 +104,9 @@ cd ..
 firebase deploy --only functions:xAutopostTick,functions:xAutopostAdmin,functions:xAutopostOnChapter,functions:xAutopostOnModel,functions:xAutopostOnIndicator,functions:xAutopostOnSession
 ```
 
-`@resvg/resvg-js` renders the image cards. If it fails to install, deploy
+`@resvg/resvg-js` renders the image cards and `functions/fonts/` supplies
+the Inter typefaces they use (without the folder the cards fall back to
+DejaVu Sans and look wrong, but still post). If it fails to install, deploy
 without it: the function posts text only and the admin's *Test connection*
 button says "card renderer not installed".
 

@@ -68,6 +68,12 @@ function callAdmin(action, extra) {
 
 // Must match STYLE_KEYS in functions-src/xAutopost-cards.js.
 var CARD_STYLES = [
+  ['aurora', 'Aurora — soft mint glow, six live prints on a translucent strip'],
+  ['countdown', 'Countdown — big number in a light panel, orange accent'],
+  ['signal', 'Signal — gauge ring with the reading, blue accent'],
+  ['sheet', 'Sheet — light card lifted over the brand gradient'],
+  ['spotlight', 'Spotlight — violet glow, headline centred'],
+  ['quiet', 'Quiet — plain dark, nothing but the words'],
   ['terminal', 'Terminal — dark, mint eyebrow'], ['ticker', 'Ticker tape — centred headline, six live prints'],
   ['alert', 'Alert — red hazard stripes, big number'], ['breaking', 'Breaking — red label block, news bar'],
   ['glass', 'Glass — brand gradient, frosted panel'], ['electric', 'Electric — magenta to violet'],
@@ -105,12 +111,12 @@ var CONFIG_FIELDS = [
   { key: 'monitorMaxPerDay', label: 'Maximum monitor alerts per day', type: 'number', min: 0, max: 10, def: 2 },
   { key: 'cards', label: 'Attach image cards', type: 'bool', def: true,
     help: 'A branded 1200×675 card on every post. Turn off if the server renderer is unavailable.' },
-  { key: 'cardStyles.brief',    label: 'Card style · daily brief',     type: 'select', options: CARD_STYLES, def: 'ticker' },
-  { key: 'cardStyles.calendar', label: 'Card style · calendar alert',  type: 'select', options: CARD_STYLES, def: 'alert' },
-  { key: 'cardStyles.monitor',  label: 'Card style · monitor alert',   type: 'select', options: CARD_STYLES, def: 'breaking' },
-  { key: 'cardStyles.announce', label: 'Card style · new content',     type: 'select', options: CARD_STYLES, def: 'glass' },
-  { key: 'cardStyles.feature',  label: 'Card style · feature promo',   type: 'select', options: CARD_STYLES, def: 'electric' },
-  { key: 'cardStyles.manual',   label: 'Card style · manual posts',    type: 'select', options: CARD_STYLES, def: 'terminal',
+  { key: 'cardStyles.brief',    label: 'Card style · daily brief',     type: 'select', options: CARD_STYLES, def: 'aurora' },
+  { key: 'cardStyles.calendar', label: 'Card style · calendar alert',  type: 'select', options: CARD_STYLES, def: 'countdown' },
+  { key: 'cardStyles.monitor',  label: 'Card style · monitor alert',   type: 'select', options: CARD_STYLES, def: 'signal' },
+  { key: 'cardStyles.announce', label: 'Card style · new content',     type: 'select', options: CARD_STYLES, def: 'sheet' },
+  { key: 'cardStyles.feature',  label: 'Card style · feature promo',   type: 'select', options: CARD_STYLES, def: 'spotlight' },
+  { key: 'cardStyles.manual',   label: 'Card style · manual posts',    type: 'select', options: CARD_STYLES, def: 'quiet',
     help: 'Styles are defined in functions-src/xAutopost-cards.js. A change applies to posts drafted after it is saved.' }
 ];
 

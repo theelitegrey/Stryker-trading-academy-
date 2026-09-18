@@ -531,6 +531,24 @@ ILLUS.glassCards = (x, y) => {
   return `<g>${card(46, 34, -7, 0.55)}${card(22, 16, -3.5, 0.75)}${card(0, 0, 0, 1)}</g>`;
 };
 
+/** LIVE badge: red capsule with a glowing dot and two pulse rings. */
+ILLUS.liveBadge = (x, y) => {
+  return `<g transform="translate(${x},${y})"><rect width="118" height="36" rx="18" fill="${A.red}"/>` +
+    `<circle cx="20" cy="18" r="9" fill="#fff" fill-opacity="0.25"/><circle cx="20" cy="18" r="5" fill="#fff"/>` +
+    `<text x="36" y="24" font-family="${UI}" font-size="16" font-weight="700" letter-spacing="1.5" fill="#fff">LIVE</text></g>`;
+};
+
+/** Broadcast mark: a red play disc with radiating signal arcs. */
+ILLUS.broadcast = (cx, cy) => {
+  const arc = (r, op) => `<path d="M${cx - r * 0.72} ${cy - r * 0.7} A${r} ${r} 0 0 0 ${cx - r * 0.72} ${cy + r * 0.7}" fill="none" stroke="${A.red}" stroke-opacity="${op}" stroke-width="10" stroke-linecap="round"/>` +
+    `<path d="M${cx + r * 0.72} ${cy - r * 0.7} A${r} ${r} 0 0 1 ${cx + r * 0.72} ${cy + r * 0.7}" fill="none" stroke="${A.red}" stroke-opacity="${op}" stroke-width="10" stroke-linecap="round"/>`;
+  return `<defs><filter id="bsh" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="${A.red}" flood-opacity="0.45"/></filter></defs>` +
+    `<g>${arc(150, 0.22)}${arc(118, 0.42)}` +
+    `<circle cx="${cx}" cy="${cy}" r="76" fill="${A.red}" filter="url(#bsh)"/>` +
+    `<path d="M${cx - 18} ${cy - 30} L${cx + 34} ${cy} L${cx - 18} ${cy + 30} Z" fill="#fff"/>` +
+    `<circle cx="${cx + 88}" cy="${cy - 78}" r="12" fill="${A.red}"/><circle cx="${cx + 88}" cy="${cy - 78}" r="22" fill="${A.red}" fill-opacity="0.3"/></g>`;
+};
+
 /** Glass dashboard with a light top edge and drop shadow. */
 ILLUS.glassDash = (x, y, accent) => {
   return `<defs><filter id="dsh" x="-20%" y="-20%" width="140%" height="160%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.45"/></filter></defs>` +
@@ -543,36 +561,41 @@ ILLUS.glassDash = (x, y, accent) => {
     `<rect x="20" y="190" width="120" height="8" rx="4" fill="rgba(255,255,255,0.35)"/></g>`;
 };
 
-// aurora — the brief: dark, mint glow, sparkline, a material tape of six prints
+// aurora — the brief: dark, mint glow, sparkline, two-line headline, three
+// lines of body, then a material tape of six prints
 STYLES.aurora = (s) => {
-  const t = wrap(s.title, 62, 900, 3, { display: true });
+  const t = wrap(s.title, 52, 1000, 2, { display: true });
+  const b = wrap(s.body, 23, 1000, 3, { inter: true });
   const items = (s.ticker || []).slice(0, 6);
-  const tapeY = 468, chipW = 166, gap = 12;
-  const tape = items.length ? material(72, tapeY, 1056, 124, 28, true) + items.map((k, i) => {
+  const tapeY = 466, chipW = 166, gap = 12;
+  const tape = items.length ? material(72, tapeY, 1056, 118, 26, true) + items.map((k, i) => {
     const x = 72 + 24 + i * (chipW + gap);
     const col = k.dir > 0 ? A.green : (k.dir < 0 ? A.red : A.label);
-    return `<text x="${x}" y="${tapeY + 48}" font-family="${UI}" font-size="15" font-weight="500" fill="${A.secondary}">${esc(k.label)}</text>` +
-      `<text x="${x}" y="${tapeY + 86}" font-family="${DISPLAY}" font-size="30" font-weight="600" letter-spacing="-0.8" fill="${col}">${esc(k.text)}</text>`;
+    return `<text x="${x}" y="${tapeY + 44}" font-family="${UI}" font-size="15" font-weight="500" fill="${A.secondary}">${esc(k.label)}</text>` +
+      `<text x="${x}" y="${tapeY + 82}" font-family="${DISPLAY}" font-size="30" font-weight="600" letter-spacing="-0.8" fill="${col}">${esc(k.text)}</text>`;
   }).join('') : '';
-  const body = items.length ? '' : bodyText(wrap(s.body, 26, 880, 3, { inter: true }), 72, 250 + t.length * 67 + 22, 26, A.secondary);
+  const headTop = 172;
+  const bodyY = headTop + 44 + t.length * 56 + 16;
   return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
     mesh([[1000, 120, 420, 260, A.mint, 0.42], [180, 640, 380, 200, A.teal, 0.22]]) +
-    ILLUS.area(640, 150, 488, 260, A.mint, 'aur') +
+    `<g opacity="0.55">${ILLUS.area(760, 130, 368, 250, A.mint, 'aur')}</g>` +
     appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.mint, true) +
-    headline(t, 72, 250 + 50, 62, A.label) + body + tape + appleFoot(true, H - 42) + '</svg>';
+    headline(t, 72, headTop + 44, 52, A.label) + bodyText(b, 72, bodyY + 14, 23, '#c7c7cc') +
+    tape + appleFoot(true, H - 42) + '</svg>';
 };
 
-// countdown — calendar: dark, orange glow, ring with the minutes inside
+// countdown — calendar: deep red field, red glow, ring with the minutes inside
 STYLES.countdown = (s) => {
   const hasStat = s.stat && s.stat.value;
-  const t = wrap(s.title, 56, hasStat ? 640 : 940, 3, { display: true }), b = wrap(s.body, 24, hasStat ? 640 : 940, 3, { inter: true });
+  const t = wrap(s.title, 54, hasStat ? 660 : 940, 3, { display: true }), b = wrap(s.body, 23, hasStat ? 660 : 940, 4, { inter: true });
   const mins = parseFloat(String((s.stat || {}).value || '').replace(/[^\d.]/g, ''));
   const frac = isNaN(mins) ? 0.5 : Math.min(1, mins / 60);
-  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
-    mesh([[960, 340, 360, 300, A.orange, 0.34], [120, 80, 300, 200, A.red, 0.14]]) +
-    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.orange, true) +
-    (hasStat ? ILLUS.ring(960, 340, 150, A.orange, frac, s.stat.value, s.stat.label, true) : '') +
-    headline(t, 72, 240 + 45, 56, A.label) + bodyText(b, 72, 240 + t.length * 60 + 30, 24, A.secondary) +
+  return svgOpen + `<defs><linearGradient id="cdbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a0a0a"/><stop offset="0.55" stop-color="#2a0505"/><stop offset="1" stop-color="#120000"/></linearGradient></defs>` +
+    `<rect width="${W}" height="${H}" fill="url(#cdbg)"/>` +
+    mesh([[960, 340, 380, 320, A.red, 0.55], [120, 80, 340, 240, '#ff2d55', 0.28], [300, 640, 420, 180, '#c1121f', 0.35]]) +
+    appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, '#ff8a80', true) +
+    (hasStat ? ILLUS.ring(960, 340, 150, '#ff6b6b', frac, s.stat.value, s.stat.label, true) : '') +
+    headline(t, 72, 220 + 44, 54, A.label) + bodyText(b, 72, 220 + t.length * 58 + 46, 23, '#f2c4c4') +
     appleFoot(true) + '</svg>';
 };
 
@@ -589,30 +612,48 @@ STYLES.signal = (s) => {
     appleFoot(true) + '</svg>';
 };
 
-// sheet — announcements: light, white material, glass chapter cards
+// sheet — announcements: light, white material, glass chapter cards; a live
+// session gets a red LIVE badge and a broadcast mark instead
 STYLES.sheet = (s) => {
+  const live = /live/i.test(String(s.label || '')) || /^live session/i.test(String(s.eyebrow || ''));
   const t = wrap(s.title, 54, 620, 3, { display: true }), b = wrap(s.body, 23, 620, 4, { inter: true });
+  const accent = live ? A.red : '#027a54';
   return svgOpen + `<rect width="${W}" height="${H}" fill="${A.lightBg}"/>` +
-    mesh([[1040, 80, 360, 240, A.mint, 0.35], [140, 620, 320, 200, A.blue, 0.18]], 80) +
+    mesh(live ? [[1040, 80, 360, 240, A.red, 0.30], [140, 620, 320, 200, '#ff2d55', 0.16]] : [[1040, 80, 360, 240, A.mint, 0.35], [140, 620, 320, 200, A.blue, 0.18]], 80) +
     `<defs><filter id="ssh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000" flood-opacity="0.10"/></filter></defs>` +
     `<g filter="url(#ssh)"><rect x="60" y="56" width="1080" height="563" rx="34" fill="#fff" fill-opacity="0.82"/></g>` +
     `<path d="M94 56.5 H1106" stroke="#fff"/>` +
-    appleBrand(104, 96, false) + capsule(W - 104 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 98, s.eyebrow, '#027a54', false) +
-    ILLUS.glassCards(820, 236) +
+    appleBrand(104, 96, false) +
+    (live
+      ? ILLUS.liveBadge(W - 104 - 118, 96) + capsule(W - 104 - 118 - 12 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 98, s.eyebrow, accent, false)
+      : capsule(W - 104 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 98, s.eyebrow, accent, false)) +
+    (live ? ILLUS.broadcast(950, 330) : ILLUS.glassCards(820, 236)) +
     headline(t, 104, 232 + 44, 54, A.lightLabel) + bodyText(b, 104, 232 + t.length * 58 + 28, 23, A.lightSecondary) +
     `<text x="104" y="${H - 82}" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">strykertrading.com</text>` +
     `<text x="${W - 104}" y="${H - 82}" text-anchor="end" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">Not financial advice</text></svg>`;
 };
 
-// spotlight — feature promos: dark, mint-blue-purple mesh, glass dashboard
+// spotlight — feature promos: saturated blue-violet mesh, gradient display
+// headline, brighter body, a solid call-to-action pill, glass dashboard
 STYLES.spotlight = (s) => {
-  const t = wrap(s.title, 56, 640, 3, { display: true }), b = wrap(s.body, 24, 640, 4, { inter: true });
-  return svgOpen + `<rect width="${W}" height="${H}" fill="${A.bg}"/>` +
-    mesh([[220, 120, 380, 280, A.blue, 0.42], [1000, 560, 420, 300, A.purple, 0.42], [900, 60, 260, 200, A.mint, 0.3]], 100) +
+  const t = wrap(s.title, 60, 660, 3, { display: true }), b = wrap(s.body, 24, 640, 3, { inter: true });
+  const ctaText = s.cta || 'Explore the academy';
+  const ctaW = Math.round(textWidth(ctaText, 19, { inter: true, bold: true }) + 104);
+  const ctaY = 236 + t.length * 65 + b.length * 34 + 44;
+  return svgOpen + `<defs><linearGradient id="spbg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a1a4a"/><stop offset="0.5" stop-color="#1a0a3d"/><stop offset="1" stop-color="#000"/></linearGradient>` +
+    `<linearGradient id="sphl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffffff"/><stop offset="0.6" stop-color="${A.mint}"/><stop offset="1" stop-color="${A.teal}"/></linearGradient>` +
+    `<filter id="spsh" x="-20%" y="-20%" width="140%" height="180%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="${A.mint}" flood-opacity="0.55"/></filter></defs>` +
+    `<rect width="${W}" height="${H}" fill="url(#spbg)"/>` +
+    mesh([[200, 100, 420, 300, A.blue, 0.75], [1020, 580, 460, 320, A.purple, 0.8], [900, 40, 300, 220, A.mint, 0.5], [420, 660, 360, 160, '#ff2d55', 0.35]], 100) +
+    `<g opacity="0.16" stroke="#fff" stroke-width="2"><path d="M760 0 L560 675"/><path d="M840 0 L640 675"/><path d="M1200 90 L980 675"/></g>` +
     appleBrand(72, 62, true) + capsule(W - 72 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 64, s.eyebrow, A.teal, true) +
-    ILLUS.glassDash(790, 210, A.mint) +
-    headline(t, 72, 236 + 45, 56, A.label) + bodyText(b, 72, 236 + t.length * 60 + 30, 24, A.secondary) +
-    appleFoot(true) + '</svg>';
+    `<g transform="translate(760,190) scale(1.15)">${ILLUS.glassDash(0, 0, A.mint)}</g>` +
+    headline(t, 72, 236 + 48, 60, 'url(#sphl)') + bodyText(b, 72, 236 + t.length * 65 + 30, 24, '#e5e5ea') +
+    `<g filter="url(#spsh)"><rect x="72" y="${ctaY}" width="${ctaW}" height="52" rx="26" fill="${A.mint}"/></g>` +
+    `<text x="${72 + 30}" y="${ctaY + 33}" font-family="${UI}" font-size="19" font-weight="700" fill="#03150e">${esc(ctaText)}</text>` +
+    `<path d="M${72 + ctaW - 50} ${ctaY + 26} h18 m-7 -7 l7 7 l-7 7" fill="none" stroke="#03150e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<text x="72" y="${H - 46}" font-family="${UI}" font-size="17" fill="#fff" fill-opacity="0.7">strykertrading.com</text>` +
+    `<text x="${W - 72}" y="${H - 46}" text-anchor="end" font-family="${UI}" font-size="17" fill="#fff" fill-opacity="0.7">Not financial advice</text></svg>`;
 };
 
 // quiet — manual posts: dark, one soft glow, nothing else

@@ -27,11 +27,11 @@ reading it. The loud styles are reserved for time-sensitive posts.
 
 | Kind | Default style | What it shows |
 |---|---|---|
-| brief | `aurora` | soft mint glow on dark, the headline in Inter Display, six prints from `market-map.json` (S&P 500, 10Y yield, WTI, gold, USD/JPY, bitcoin) on a translucent strip |
-| calendar | `countdown` | minutes-to-release as a large number in a light panel, orange accent |
+| brief | `aurora` | soft mint glow on dark, a two-line headline, three lines of body text (one per key point), six prints from `market-map.json` (S&P 500, 10Y yield, WTI, gold, USD/JPY, bitcoin) on a translucent strip |
+| calendar | `countdown` | deep red field, minutes-to-release inside a ring, up to four lines on the previous and forecast figures |
 | monitor | `signal` | a gauge ring showing the reading (VIX, risk tone, DEFCON), blue accent |
-| announce | `sheet` | a light card lifted over the brand gradient |
-| feature | `spotlight` | violet glow, headline centred |
+| announce | `sheet` | a light card lifted over the brand gradient; a live session gets a red LIVE badge and a broadcast mark |
+| feature | `spotlight` | saturated blue-violet mesh, gradient headline, a solid "Explore the academy" pill |
 | manual | `quiet` | plain dark, nothing but the words |
 
 These six follow Apple's design language: mesh-gradient glows, translucent

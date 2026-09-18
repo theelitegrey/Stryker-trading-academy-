@@ -170,6 +170,8 @@ async function saveEdit(id) {
 
 const SETUP = [
   { key: 'claude', title: 'Claude (writes the posts)', fields: [['anthropicApiKey', 'Anthropic API key', 'password']] },
+  { key: 'buffer', title: 'Buffer (easy path: one key for every platform)', fields: [['buffer.token', 'Buffer API key', 'password']], tests: ['buffer'],
+    help: 'Connect X, Instagram, Threads and YouTube inside buffer.com first, then paste the key from buffer.com → Settings → API. Press Test to see the channels. Then tick "Publish via Buffer" in Settings below. The sections after this one are only needed for platforms you do NOT route through Buffer.' },
   { key: 'x', title: 'X', fields: [['x.apiKey', 'API key', 'password'], ['x.apiSecret', 'API key secret', 'password']], connect: 'x', note: 'From developer.x.com → your app → Keys and tokens. Callback URL to add on X: ' },
   { key: 'youtube', title: 'YouTube', fields: [['youtube.clientId', 'Google client ID', 'text'], ['youtube.clientSecret', 'Google client secret', 'password']], connect: 'youtube', note: 'From console.cloud.google.com → Credentials. Redirect URI to add on Google: ' },
   { key: 'instagram', title: 'Instagram', fields: [['meta.appId', 'Meta app ID', 'text'], ['meta.appSecret', 'Meta app secret', 'password']], connect: 'instagram', note: 'From developers.facebook.com → your app → App settings → Basic. Redirect URI to add under Facebook Login: ' },
@@ -186,6 +188,8 @@ function renderSetup() {
     const conn = g.connect ? `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'connected' : 'not connected'}</span>` : `<span style="color:${ok ? 'var(--mint)' : 'var(--ink2)'}">${ok ? 'configured' : 'not set'}</span>`;
     return `<details ${ok ? '' : 'open'} style="margin:8px 0;border-top:1px solid var(--line);padding-top:6px"><summary style="cursor:pointer;display:flex;justify-content:space-between"><b>${g.title}</b>${conn}</summary>
       ${g.note ? `<p class="muted" style="margin:6px 0">${g.note}<code style="user-select:all">${esc(S.callbacks[g.connect])}</code></p>` : ''}
+      ${g.help ? `<p class="muted" style="margin:6px 0">${g.help}</p>` : ''}
+      ${g.key === 'buffer' && S.bufferChannels.length ? `<p class="muted" style="margin:6px 0">Channels in Buffer: ${S.bufferChannels.map((c) => esc((c.platform || c.service) + ': ' + c.name + (c.disconnected ? ' (disconnected)' : ''))).join(' · ')}</p>` : ''}
       ${g.fields.map(([k, l, t]) => { const v = getp(ms, k) || ''; return `<label>${l}</label>` + (t === 'textarea' ? `<textarea data-sec="${k}" placeholder="${ms.firebase ? 'saved' : ''}" style="width:100%;min-height:60px;background:var(--bg1);color:var(--ink0);border:1px solid var(--line);border-radius:8px;padding:6px;font:12px monospace"></textarea>` : `<input data-sec="${k}" type="${t}" placeholder="${esc(v) || 'not set'}" value="${t === 'text' ? esc(v) : ''}">`); }).join('')}
       <div class="actions" style="margin-top:8px">${g.connect ? `<a href="/oauth/${g.connect}/start"><button class="primary" type="button">${ok ? 'Reconnect' : 'Connect'} ${g.title}</button></a><button data-test="${g.key}" ${ok ? '' : 'disabled'}>Test</button>` : ''}
       ${g.key === 'claude' ? `<button data-test="claude" ${ok ? '' : 'disabled'}>Test</button>` : ''}${(g.tests || []).map((t) => `<button data-test="${t}" ${S.configured[t] ? '' : 'disabled'}>Test ${t}</button>`).join('')}</div>
@@ -205,6 +209,7 @@ $('#save-secrets').onclick = async () => {
 };
 
 const FIELDS = [
+  ['buffer.enabled', 'Publish via Buffer', 'bool'], ['buffer.platforms.x', '  via Buffer: X', 'bool'], ['buffer.platforms.threads', '  via Buffer: Threads', 'bool'], ['buffer.platforms.instagram', '  via Buffer: Instagram', 'bool'], ['buffer.platforms.youtube', '  via Buffer: YouTube', 'bool'],
   ['tickMinutes', 'Tick every (min)', 'number'], ['xLinkPolicy', 'X link policy', 'select', ['all', 'brief', 'none']],
   ['videoPreviewMinutes', 'Video preview window (min)', 'number'], ['voice', 'Voice', 'select', ['auto', 'chatterbox', 'kokoro', 'none']],
   ['musicDb', 'Music bed (dB, 0 = off)', 'number'], ['cards', 'Cards on text posts', 'bool'],

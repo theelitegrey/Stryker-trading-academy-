@@ -82,8 +82,19 @@ npm start                     # admin page on http://localhost:8787 (user admin)
 
 `npm run tick` runs a single tick and exits, for cron-style hosting.
 
+## Publishing routes
+
+Each platform posts either **directly** (its own API, credentials on this
+server) or **via Buffer** (one Buffer API key; Buffer holds the platform
+logins and its approvals cover Instagram, YouTube and Threads). The choice
+is per platform in Settings. Buffer costs about $24 a month for four
+channels and removes every developer-site step; direct is free but needs
+Meta and Google reviews. Media always comes from this server's public
+`/media` path, so a public hostname is required either way.
+
 ## Cost
 
 At the default settings (1 video and 2–4 posts a day): a small VPS (~$12),
 the Claude API (~$8), X pay-per-use (~$2–18 depending on the X link
-policy). Instagram, Threads, YouTube, the voices, storage and music are $0.
+policy). Instagram, Threads, YouTube, the voices, storage and music are $0. Routing
+through Buffer adds about $24.

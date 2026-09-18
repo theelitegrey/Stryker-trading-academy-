@@ -55,6 +55,7 @@ const env = {
     threadsAppId: e('THREADS_APP_ID', ''), threadsAppSecret: e('THREADS_APP_SECRET', ''),
     threadsUserId: e('THREADS_USER_ID', ''), threadsAccessToken: e('THREADS_ACCESS_TOKEN', '')
   },
+  buffer: { token: e('BUFFER_API_KEY', '') },
   youtube: {
     clientId: e('YT_CLIENT_ID', ''), clientSecret: e('YT_CLIENT_SECRET', ''),
     refreshToken: e('YT_REFRESH_TOKEN', '')
@@ -77,6 +78,11 @@ const DEFAULT_SETTINGS = {
     instagram: { minGapMinutes: 120, maxPerDay: 2 },
     youtube:   { minGapMinutes: 240, maxPerDay: 1 }
   },
+
+  // Publish through Buffer (one API key, Buffer holds the platform
+  // connections) instead of the direct platform APIs. Per platform, so X can
+  // stay direct while Instagram and YouTube go through Buffer, or all four.
+  buffer: { enabled: false, platforms: { x: true, threads: true, instagram: true, youtube: true }, channels: {} },
 
   // X charges more for a post that carries a link. 'all' links every post,
   // 'brief' only the daily brief, 'none' relies on the link in bio.

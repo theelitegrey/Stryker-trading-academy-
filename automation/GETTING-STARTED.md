@@ -6,7 +6,9 @@ signed in to the academy's X, YouTube, Instagram, Facebook and Threads
 accounts.
 
 The order below is the order things become useful. You can stop after any
-step and the platform posts to whatever is connected so far.
+step and the platform posts to whatever is connected so far. **If you would
+rather not touch any developer website, do Steps 1–2, then the Buffer section,
+then Steps 6–7.**
 
 ---
 
@@ -62,7 +64,39 @@ Claude writes the captions and video scripts.
 
 ---
 
+## The easy path: Buffer (do this instead of Steps 3–5)
+
+Buffer is a $24-a-month service that already has approved connections to X,
+Instagram, Threads and YouTube. You connect the four accounts inside Buffer
+by signing in, paste one key here, and skip every developer site and every
+review wait. Our server still makes the videos, cards and captions; Buffer
+only does the posting.
+
+1. Go to <https://buffer.com>, create an account, choose **Essentials**
+   (billed per channel: 4 channels ≈ $24 a month; the free plan allows only
+   3 channels and 10 queued posts each, which is too few).
+2. In Buffer, **Channels → Connect channel** and sign in to each: **X**,
+   **Instagram** (a Professional account; Buffer walks you through the
+   Facebook Page link), **Threads**, **YouTube**. Four channels.
+3. Buffer → your avatar → **Settings → API** (or
+   <https://publish.buffer.com/settings/api>) → **Create API key**, copy it.
+4. On the admin page under **Setup & connections → Buffer**, paste the key,
+   **Save keys**, then **Test buffer**. It lists the four channels.
+5. Under **Settings**, tick **Publish via Buffer** and leave the four
+   "via Buffer" boxes ticked. **Save settings**.
+
+That is it for platforms. Continue at Step 6 (voice) and Step 7 (switch on).
+Buffer's API allows 7,500 requests a month on Essentials; this platform uses
+roughly one per post per platform, about 400 a month at the default pacing.
+
+Later, if you want to drop the $24, follow Steps 3–5 for a platform and untick
+its "via Buffer" box; the rest keep going through Buffer.
+
+---
+
 ## Step 3 — X (15 minutes)
+
+*Skip this and Steps 4–5 if you use Buffer.*
 
 1. Sign in to <https://developer.x.com> **with the academy's X account**.
    Choose the pay-per-use plan (there is no free plan any more).

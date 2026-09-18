@@ -16,7 +16,7 @@ const path = require('path');
 const { env } = require('./config');
 const db = require('./db');
 
-const BASE = JSON.parse(JSON.stringify({ anthropicApiKey: env.anthropicApiKey, tts: env.tts, x: env.x, meta: env.meta, youtube: env.youtube }));
+const BASE = JSON.parse(JSON.stringify({ anthropicApiKey: env.anthropicApiKey, tts: env.tts, x: env.x, meta: env.meta, youtube: env.youtube, buffer: env.buffer }));
 
 function overlay(target, base, saved) {
   for (const k of Object.keys(base)) {
@@ -66,6 +66,7 @@ function masked() {
     meta: { appId: env.meta.appId || '', appSecret: m(env.meta.appSecret), threadsAppId: env.meta.threadsAppId || '', threadsAppSecret: m(env.meta.threadsAppSecret),
       igUserId: env.meta.igUserId || '', igAccessToken: m(env.meta.igAccessToken), threadsUserId: env.meta.threadsUserId || '', threadsAccessToken: m(env.meta.threadsAccessToken) },
     youtube: { clientId: env.youtube.clientId || '', clientSecret: m(env.youtube.clientSecret), refreshToken: m(env.youtube.refreshToken) },
+    buffer: { token: m(env.buffer.token) },
     firebase: !!env.firebaseServiceAccount
   };
 }

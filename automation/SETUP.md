@@ -54,6 +54,13 @@ narration by `musicDb` (default −18 dB). No tracks means no music.
 `ANTHROPIC_API_KEY` from <https://console.anthropic.com>. The **Test** button
 next to *claude* on the admin page drafts a one-line post to confirm it.
 
+## 2b. Buffer (alternative to 3–5)
+
+`BUFFER_API_KEY` from buffer.com → Settings → API, with the four channels
+connected in Buffer. Then in settings `buffer.enabled: true` and the
+per-platform `buffer.platforms.*` switches. Instagram, Threads and YouTube
+still fetch media from `PUBLIC_BASE_URL/media`.
+
 ## 3. X
 
 Same keys as the existing X function (`tools/x-autopost.md`, step 1): an app

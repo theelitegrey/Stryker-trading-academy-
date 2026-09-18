@@ -118,7 +118,7 @@ function notePosted(platform, t) {
 }
 
 async function publishDue(s, t) {
-  const configured = Publish.configured();
+  const configured = Publish.configured(s);
   const usedThisTick = new Set();
   for (const post of db.byStatus('approved')) {
     if (post.expiresAtMs && post.expiresAtMs < t) { db.update(post.id, { status: 'skipped', error: 'Missed its window.' }); continue; }

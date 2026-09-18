@@ -72,10 +72,10 @@ function snapshot() {
   }
   return {
     now: t, settings: s, defaults: DEFAULT_SETTINGS, state: st, posts, counts,
-    configured: Object.assign({ claude: !!env.anthropicApiKey, chatterbox: !!env.tts.chatterboxUrl, kokoro: !!env.tts.kokoroUrl, firestore: !!env.firebaseServiceAccount }, Publish.configured()),
+    configured: Object.assign({ claude: !!env.anthropicApiKey, chatterbox: !!env.tts.chatterboxUrl, kokoro: !!env.tts.kokoroUrl, firestore: !!env.firebaseServiceAccount }, Publish.configured(s)),
     publicBaseUrl: env.publicBaseUrl, cardStyles: Cards.STYLE_KEYS, log: log.recent(150),
     secrets: secrets.masked(), callbacks: Object.fromEntries(['x', 'youtube', 'instagram', 'threads'].map((p) => [p, oauth.callbackUrl(p)])),
-    notice: db.kvGet('notice', null)
+    notice: db.kvGet('notice', null), bufferChannels: (db.kvGet('bufferChannels', null) || {}).list || []
   };
 }
 

@@ -10,8 +10,8 @@
  *   feature    a promo for one of the features pages, rotating daily
  *   manual     anything typed into the composer on the admin page
  *
- * brief, calendar, monitor and announce post on their own. feature posts wait
- * for approval on x-admin.html. Every post is drafted by the Claude API from
+ * Every kind posts on its own once drafted; x-admin.html can still hold any
+ * drafted post back for review before it goes. Every post is drafted by the Claude API from
  * the source data (xAutopost-draft.js), carries a branded image card
  * (xAutopost-cards.js) and ends with a UTM-tagged link back to the site.
  *
@@ -44,7 +44,7 @@
  *
  * POST LIFECYCLE (status field):
  *   ready     enqueued, not yet drafted
- *   queued    drafted, waiting for an admin (feature posts only)
+ *   queued    drafted, held for an admin (only when held from the admin page)
  *   approved  drafted, will post when scheduledForMs passes and pacing allows
  *   posted    on X; tweetIds and url set
  *   failed    posting or drafting threw; error set; admin can retry
@@ -363,7 +363,7 @@ async function produceMonitor(cfg, state, t) {
   }, { merge: true });
 }
 
-/** Feature promo: one per day, rotating, waits for approval. */
+/** Feature promo: one per day, rotating. */
 async function produceFeature(cfg, state, t) {
   const d = new Date(t);
   if (d.getUTCHours() < cfg.featureHourUtc) return;
@@ -371,7 +371,7 @@ async function produceFeature(cfg, state, t) {
   const idx = ((state.featureIndex || 0) % FEATURES.length + FEATURES.length) % FEATURES.length;
   const f = FEATURES[idx];
   const created = await enqueue('feat-' + day, {
-    kind: 'feature', auto: false,
+    kind: 'feature', auto: true,
     title: f.title,
     link: link('/' + f.page, 'feature-' + slug(f.title)),
     scheduledForMs: t,

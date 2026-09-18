@@ -12,7 +12,7 @@ and the operating notes. The admin page is `x-admin.html`.
 | calendar | `assets/econ-calendar.json`, `impact: "high"` events | 30 minutes before the event, never after it | automatic |
 | monitor | `monitor-data.json` on the `data` branch | when the VIX regime, risk tone or DEFCON estimate changes; at most 2 a day | automatic |
 | announce | a new document in `chapters`, `models`, `indicators`, `liveSessions` | 30 minutes after creation, title re-read at posting time | automatic |
-| feature | the eight `features-*.html` pages, in rotation | drafted at 14:00 UTC, one per day | **waits for approval** |
+| feature | the eight `features-*.html` pages, in rotation | drafted at 14:00 UTC, one per day | automatic |
 | manual | typed into the composer on `x-admin.html` | next tick | none needed |
 
 Every post is drafted by the Claude API from the source data, under a rule
@@ -97,10 +97,11 @@ not wait.
 
 ## Operating it
 
-**Needs approval** holds the daily feature promo. Edit the text in place,
-then *Approve* (posts at the next slot the pacing allows) or *Approve & post
-next* (jumps the queue but still respects the daily cap). *Redraft* asks the
-model again. *Reject* means this item is never drafted again — the doc id is
+**Needs approval** is empty unless you park something there: *Hold for
+approval* on any scheduled post moves it here. Edit the text in place, then
+*Approve* (posts at the next slot the pacing allows) or *Approve & post next*
+(jumps the queue but still respects the daily cap). *Redraft* asks the model
+again. *Reject* means this item is never drafted again — the doc id is
 the de-duplication key, so deleting a rejected feature promo lets tomorrow's
 tick create it afresh, while deleting today's brief record would let the
 brief post twice.

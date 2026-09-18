@@ -20,6 +20,25 @@ that no number may appear that the source does not contain (the draft is
 checked and rejected if it does), carries a 1200×675 branded card, and ends
 with a link to the site tagged `utm_source=x&utm_medium=social&utm_campaign=…`.
 
+## Card styles
+
+Each kind has its own card style so a follower recognises the post before
+reading it. The loud styles are reserved for time-sensitive posts.
+
+| Kind | Default style | What it shows |
+|---|---|---|
+| brief | `ticker` | centred headline over a strip of six prints from `market-map.json` (S&P 500, 10Y yield, WTI, gold, USD/JPY, bitcoin) |
+| calendar | `alert` | red hazard stripes, minutes-to-release as the big number |
+| monitor | `breaking` | red label naming the signal (VIX REGIME, RISK TONE, DEFCON), news-bar footer |
+| announce | `glass` | brand gradient with a frosted panel |
+| feature | `electric` | magenta-to-violet gradient |
+| manual | `terminal` | neutral dark card |
+
+Six more styles (`split`, `editorial`, `poster`, `neon`, `gold`, `splitcolor`)
+are available. Reassign any kind from **Settings** on the admin page; the
+change applies to posts drafted after it is saved and needs no redeploy. The
+styles themselves live in `functions-src/xAutopost-cards.js`.
+
 Pacing: one post or thread per ten-minute tick, at least 45 minutes apart
 (calendar alerts excepted), at most 5 a day. All of these are settings on the
 admin page.

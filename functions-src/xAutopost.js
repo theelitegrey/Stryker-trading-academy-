@@ -75,6 +75,7 @@ const SECRETS = [X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET, ANTHR
 
 const SITE = 'https://strykertrading.com';
 const BRIEF_URL = SITE + '/assets/market-brief.json';
+const MAP_URL = SITE + '/assets/market-map.json';
 const CALENDAR_URL = SITE + '/assets/econ-calendar.json';
 const MONITOR_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
 
@@ -90,7 +91,9 @@ const DEFAULT_CONFIG = {
   maxPerDay: 5,
   monitorMaxPerDay: 2,
   cards: true,
-  announceDelayMinutes: 30
+  announceDelayMinutes: 30,
+  // Card style per post kind; any key from Cards.STYLE_KEYS. See xAutopost-cards.js.
+  cardStyles: Object.assign({}, Cards.DEFAULT_STYLES)
 };
 
 // The features pages, in rotation order. Descriptions are the pages' own
@@ -221,12 +224,42 @@ async function produceBrief(cfg, state, t) {
     source: JSON.stringify(source),
     sourceLabel: 'Pre-market brief · ' + brief.sessionDate,
     eyebrow: 'Pre-market brief · ' + fmtDate(brief.sessionDate),
+    ticker: await briefTicker(),
+    label: 'MARKET BRIEF',
     instructions:
       'Summarise this pre-market brief as a thread for traders about to start the session. ' +
       'Post 1: the headline idea, in your own words, as a hook. Middle posts: one per bullet, the point and why it matters. ' +
       'Last post: the session note or the trap to avoid, then credit the named sources. ' +
       'Every figure must appear verbatim in the source.'
   });
+}
+
+/**
+ * Six prints for the brief card's ticker strip, from the same map file the
+ * site renders — so the strip is only ever numbers the site already shows.
+ * Returns [] on any failure; the ticker style then falls back to text.
+ */
+async function briefTicker() {
+  try {
+    const m = await fetchJson(MAP_URL);
+    const rows = {};
+    (m.groups || []).forEach((g) => (g.rows || []).forEach((r) => { rows[r.ticker] = r; }));
+    const pct = (t, label) => {
+      const r = rows[t]; if (!r || !r.v || typeof r.v[0] !== 'number') return null;
+      const v = r.v[0];
+      return { label, text: (v > 0 ? '+' : (v < 0 ? '\u2212' : '')) + Math.abs(v).toFixed(2) + '%', dir: v > 0 ? 1 : (v < 0 ? -1 : 0) };
+    };
+    const y10 = ((m.curve || {}).points || []).find((p) => p.label === '10Y');
+    const out = [
+      pct('SPY', 'S&P 500'),
+      y10 && typeof y10.yield === 'number' ? { label: '10Y yield', text: y10.yield.toFixed(2) + '%', dir: 0 } : null,
+      pct('CLUSD', 'WTI'), pct('GCUSD', 'Gold'), pct('USDJPY', 'USD/JPY'), pct('BTCUSD', 'Bitcoin')
+    ].filter(Boolean);
+    return out.length >= 4 ? out : [];
+  } catch (e) {
+    console.warn('xAutopost: ticker strip unavailable:', e.message);
+    return [];
+  }
 }
 
 function fmtDate(iso) {
@@ -267,7 +300,8 @@ async function produceCalendar(cfg, state, t) {
       source: JSON.stringify(source),
       sourceLabel: 'Calendar · ' + ev.event,
       eyebrow: `${ev.cur} · high impact · ${hhmm}`,
-      stat: { label: 'minutes', value: String(cfg.calendarLeadMinutes) },
+      stat: { label: 'minutes to go', value: String(cfg.calendarLeadMinutes) },
+      label: 'CALENDAR ALERT',
       instructions:
         `Write a single post that ${cfg.calendarLeadMinutes} minutes before this release tells traders what is due, at what time (${hhmm}), ` +
         'and what the note says to watch. Include the forecast and previous figures only if they are given. ' +
@@ -346,8 +380,9 @@ async function produceMonitor(cfg, state, t) {
       expiresAtMs: t + 90 * 60000,       // a regime alert 2 hours late is a different regime
       source: JSON.stringify(c.source),
       sourceLabel: 'Global Monitor · ' + c.source.signal,
-      eyebrow: 'Global Monitor · ' + c.source.signal,
+      eyebrow: 'Global Monitor · ' + fmtDate(day),
       stat: c.stat,
+      label: c.key === 'vix' ? 'VIX REGIME' : (c.key === 'risk' ? 'RISK TONE' : 'DEFCON'),
       instructions:
         'Write a single post that reports this change in the Global Monitor signal, what it moved from and to, ' +
         'and one line of context from the summary or rotation data. Present it as an observation, not a forecast. ' +
@@ -379,6 +414,7 @@ async function produceFeature(cfg, state, t) {
     source: JSON.stringify({ feature: f.title, page: f.page, description: f.blurb }),
     sourceLabel: 'Feature · ' + f.title,
     eyebrow: 'Inside the academy',
+    label: 'FEATURE',
     instructions:
       'Write a single post that tells a retail trader what this feature does and why it would matter to them, ' +
       'based only on the description. One concrete detail from the description, no superlatives, no "game-changer". ' +
@@ -429,13 +465,15 @@ async function draftReady(cfg, t) {
         kind: p.kind, instructions: p.instructions, source,
         linkLength: p.link ? LINK_LEN : 0, thread: p.kind === 'brief'
       });
+      const style = Cards.styleFor(p.kind, cfg.cardStyles);
       const svg = cfg.cards ? Cards.cardSvg({
         kind: p.kind, eyebrow: p.eyebrow, title: out.cardTitle || title,
-        body: out.cardBody, stat: p.stat || null
-      }) : null;
+        body: out.cardBody, stat: p.stat || null, ticker: p.ticker || null,
+        label: p.label || null
+      }, style) : null;
       await doc.ref.set({
         status: p.auto ? 'approved' : 'queued',
-        title,
+        title, cardStyle: style,
         parts: out.parts,
         cardSvg: svg,
         altText: out.altText,
@@ -530,7 +568,8 @@ async function postOne(cfg, state, t) {
     // Manual posts carry only a card title; the SVG is built here so the
     // composer never has to duplicate the renderer.
     const svg = p.cardSvg || (p.cardTitle
-      ? Cards.cardSvg({ kind: 'manual', eyebrow: p.eyebrow || 'Stryker Trading Academy', title: p.cardTitle, body: p.cardBody || '' })
+      ? Cards.cardSvg({ kind: 'manual', eyebrow: p.eyebrow || 'Stryker Trading Academy', title: p.cardTitle, body: p.cardBody || '', label: 'STRYKER' },
+                      Cards.styleFor('manual', cfg.cardStyles))
       : null);
     if (cfg.cards && svg) {
       const png = await Cards.renderPng(svg);
@@ -678,6 +717,7 @@ function announceTrigger(collection, subjectKind, page, campaign) {
       source: s ? JSON.stringify(s.source) : '{}',
       sourceLabel: 'New ' + subjectKind,
       eyebrow: subjectKind === 'session' ? 'Live session' : 'New on the academy',
+      label: subjectKind === 'session' ? 'LIVE SESSION' : 'NEW ' + subjectKind.toUpperCase(),
       instructions:
         subjectKind === 'session'
           ? 'Write a single post announcing this upcoming live session: what, when (give the UTC time as written), which instrument, and one line from the description. Invite readers to join.'

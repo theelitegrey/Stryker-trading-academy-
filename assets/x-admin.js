@@ -66,6 +66,26 @@ function callAdmin(action, extra) {
 
 // ---- Settings ------------------------------------------------------------------
 
+// Must match STYLE_KEYS in functions-src/xAutopost-cards.js.
+var CARD_STYLES = [
+  ['terminal', 'Terminal — dark, mint eyebrow'], ['ticker', 'Ticker tape — centred headline, six live prints'],
+  ['alert', 'Alert — red hazard stripes, big number'], ['breaking', 'Breaking — red label block, news bar'],
+  ['glass', 'Glass — brand gradient, frosted panel'], ['electric', 'Electric — magenta to violet'],
+  ['split', 'Split stat — text left, number right'], ['editorial', 'Editorial — serif headline'],
+  ['poster', 'Poster — mint field, black type'], ['neon', 'Neon — glowing gradient headline'],
+  ['gold', 'Gold — black with gold frame'], ['splitcolor', 'Cyan / magenta split']
+];
+
+// Reads a dotted key ('cardStyles.brief') out of the config object.
+function cfgGet(cfg, key) {
+  return key.split('.').reduce(function (o, k) { return o && o[k] !== undefined ? o[k] : undefined; }, cfg);
+}
+function cfgSet(out, key, value) {
+  var parts = key.split('.'), o = out;
+  for (var i = 0; i < parts.length - 1; i++) { o[parts[i]] = o[parts[i]] || {}; o = o[parts[i]]; }
+  o[parts[parts.length - 1]] = value;
+}
+
 var CONFIG_FIELDS = [
   { key: 'handle', label: 'Account handle', type: 'text', placeholder: 'without the @',
     help: 'Only used to build the link to each post once it is live.' },
@@ -84,7 +104,14 @@ var CONFIG_FIELDS = [
     help: 'A thread counts once. The X Free tier has a monthly write cap; five a day stays under it.' },
   { key: 'monitorMaxPerDay', label: 'Maximum monitor alerts per day', type: 'number', min: 0, max: 10, def: 2 },
   { key: 'cards', label: 'Attach image cards', type: 'bool', def: true,
-    help: 'A branded 1200×675 card on every post. Turn off if the server renderer is unavailable.' }
+    help: 'A branded 1200×675 card on every post. Turn off if the server renderer is unavailable.' },
+  { key: 'cardStyles.brief',    label: 'Card style · daily brief',     type: 'select', options: CARD_STYLES, def: 'ticker' },
+  { key: 'cardStyles.calendar', label: 'Card style · calendar alert',  type: 'select', options: CARD_STYLES, def: 'alert' },
+  { key: 'cardStyles.monitor',  label: 'Card style · monitor alert',   type: 'select', options: CARD_STYLES, def: 'breaking' },
+  { key: 'cardStyles.announce', label: 'Card style · new content',     type: 'select', options: CARD_STYLES, def: 'glass' },
+  { key: 'cardStyles.feature',  label: 'Card style · feature promo',   type: 'select', options: CARD_STYLES, def: 'electric' },
+  { key: 'cardStyles.manual',   label: 'Card style · manual posts',    type: 'select', options: CARD_STYLES, def: 'terminal',
+    help: 'Styles are defined in functions-src/xAutopost-cards.js. A change applies to posts drafted after it is saved.' }
 ];
 
 function renderConfig() {
@@ -92,10 +119,15 @@ function renderConfig() {
   if (!host) return;
   var cfg = XP.config || {};
   host.innerHTML = CONFIG_FIELDS.map(function (f) {
-    var v = cfg[f.key] === undefined || cfg[f.key] === null ? f.def : cfg[f.key];
-    var id = 'xp-c-' + f.key;
+    var cv = cfgGet(cfg, f.key);
+    var v = cv === undefined || cv === null ? f.def : cv;
+    var id = 'xp-c-' + f.key.replace(/\./g, '-');
     var input;
-    if (f.type === 'bool') {
+    if (f.type === 'select') {
+      input = '<select id="' + id + '" class="input">' + f.options.map(function (o) {
+        return '<option value="' + esc(o[0]) + '"' + (String(v) === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>';
+      }).join('') + '</select>';
+    } else if (f.type === 'bool') {
       input = '<label class="bot-switch"><input type="checkbox" id="' + id + '"' + (v ? ' checked' : '') + '><span></span></label>';
     } else if (f.type === 'number') {
       input = '<input type="number" id="' + id + '" class="input" value="' + esc(v) + '" min="' + f.min + '" max="' + f.max + '">';
@@ -111,13 +143,16 @@ function renderConfig() {
 function saveConfig() {
   var out = {};
   CONFIG_FIELDS.forEach(function (f) {
-    var el = document.getElementById('xp-c-' + f.key);
+    var el = document.getElementById('xp-c-' + f.key.replace(/\./g, '-'));
     if (!el) return;
-    if (f.type === 'bool') out[f.key] = el.checked;
+    var val;
+    if (f.type === 'bool') val = el.checked;
     else if (f.type === 'number') {
       var n = parseInt(el.value, 10);
-      out[f.key] = isNaN(n) ? f.def : Math.min(f.max, Math.max(f.min, n));
-    } else out[f.key] = el.value.trim().replace(/^@/, '');
+      val = isNaN(n) ? f.def : Math.min(f.max, Math.max(f.min, n));
+    } else if (f.type === 'select') val = el.value;
+    else val = el.value.trim().replace(/^@/, '');
+    cfgSet(out, f.key, val);
   });
   return db.collection('xAutopost').doc('config').set(out, { merge: true }).then(function () {
     if (typeof logActivity === 'function') logActivity('x.config', 'Updated X autopost settings');
@@ -249,6 +284,7 @@ function renderPost(p) {
     '<div class="bot-meta xp-meta">' +
       '<div><span>When</span><b>' + when + '</b></div>' +
       (p.draftedBy ? '<div><span>Drafted by</span><b>' + esc(p.draftedBy) + '</b></div>' : '') +
+      (p.cardStyle ? '<div><span>Card style</span><b>' + esc(p.cardStyle) + '</b></div>' : '') +
       (p.tweetIds ? '<div><span>Tweets</span><b>' + p.tweetIds.length + (p.hadCard ? ' · with card' : ' · text only') + '</b></div>' : '') +
     '</div>' +
     '<div class="bot-card-actions">' + actions.join('') + '</div>' +

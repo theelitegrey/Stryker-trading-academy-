@@ -9,5 +9,9 @@
   },
   "enabledPlugins": {
     "caveman@caveman": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "f=$(ls -d \"${CLAUDE_CONFIG_DIR:-$HOME/.claude}\"/plugins/cache/caveman/caveman/*/src/hooks/caveman-statusline.sh 2>/dev/null | sort -V | tail -1); [ -n \"$f\" ] && bash \"$f\""
   }
 }

@@ -67,10 +67,8 @@ const SCHEMA = {
   properties: {
     parts: {
       type: 'array',
-      minItems: 1,
-      maxItems: 6,
       items: { type: 'string' },
-      description: 'The post text. One entry for a single post; several for a thread, in order. No URLs.'
+      description: 'The post text. One entry for a single post; several for a thread, in order (at most 6). No URLs. (No minItems/maxItems here: the API rejects array length keywords, and the count is checked in code.)'
     },
     figuresUsed: {
       type: 'array',

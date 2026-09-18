@@ -146,6 +146,29 @@ crawlers it exists to stop.
 
 ---
 
+## X autopost (`xAutopost.js` and its three helper files)
+
+Six functions, five secrets, two npm packages. The full guide, including
+creating the X developer app, is `tools/x-autopost.md`. The deploy itself:
+
+```bash
+cd "$PROJECT/functions"
+npm install @anthropic-ai/sdk @resvg/resvg-js
+grep -q "xAutopost'" index.js || echo "Object.assign(exports, require('./xAutopost'));" >> index.js
+cd "$PROJECT"
+firebase functions:secrets:set X_API_KEY
+firebase functions:secrets:set X_API_SECRET
+firebase functions:secrets:set X_ACCESS_TOKEN
+firebase functions:secrets:set X_ACCESS_SECRET
+firebase functions:secrets:set ANTHROPIC_API_KEY
+firebase deploy --only functions:xAutopostTick,functions:xAutopostAdmin,functions:xAutopostOnChapter,functions:xAutopostOnModel,functions:xAutopostOnIndicator,functions:xAutopostOnSession
+```
+
+`xAutopost-x.js`, `xAutopost-cards.js` and `xAutopost-draft.js` are required
+by `xAutopost.js` and export no functions of their own; the `cp` in step 0
+copies them across. The rules need the three `xAutopost` / `xPosts` lines from
+`firestore.rules`.
+
 ## Node runtime
 
 `engines.node` in `package.json` must be `"22"`. Node 20 is decommissioned on

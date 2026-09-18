@@ -287,6 +287,12 @@ service cloud.firestore {
     match /tvSession/{doc}      { allow read, write: if false; }   // functions only
     match /brokerSync/{id}      { allow read, write: if false; }   // functions only
     match /bots/{id}            { allow read: if isAdmin(); allow write: if isAdmin(); }
+    // X autopost (functions-src/xAutopost.js). config is admin-written; state
+    // is written only by the function; xPosts is the queue — admins approve,
+    // edit, reject and compose, the function drafts and posts.
+    match /xAutopost/config     { allow read, write: if isAdmin(); }
+    match /xAutopost/state      { allow read: if isAdmin(); allow write: if false; }
+    match /xPosts/{id}          { allow read, write: if isAdmin(); }
     match /adminNotes/{id}      { allow read, write: if isAdmin(); }
     match /adminTasks/{id}      { allow read, write: if isAdmin(); }
     match /adminTaskDismissals/{id} { allow read, write: if isAdmin(); }

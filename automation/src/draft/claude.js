@@ -56,7 +56,7 @@ const CAPTIONS_SCHEMA = {
   type: 'object', additionalProperties: false,
   required: ['x', 'threads', 'instagram', 'youtube', 'figuresUsed', 'cardTitle', 'cardBody', 'altText'],
   properties: {
-    x: { type: 'array', minItems: 1, maxItems: 6, items: { type: 'string' }, description: 'X post text. One entry, or several for a thread, in order. No URLs.' },
+    x: { type: 'array', items: { type: 'string' }, description: 'X post text. One entry, or several for a thread, in order. No URLs.' },
     threads: { type: 'string', description: 'Threads post. No URLs.' },
     instagram: { type: 'string', description: 'Instagram caption. No URLs.' },
     youtube: {
@@ -76,7 +76,7 @@ const SCRIPT_SCHEMA = {
   properties: {
     title: { type: 'string', description: 'Working title of the video, under 60 characters.' },
     scenes: {
-      type: 'array', minItems: 4, maxItems: 9,
+      type: 'array',
       items: {
         type: 'object', additionalProperties: false, required: ['type', 'heading', 'text', 'narration', 'stat'],
         properties: {
@@ -87,7 +87,7 @@ const SCRIPT_SCHEMA = {
       }
     },
     figuresUsed: { type: 'array', items: { type: 'string' } },
-    hashtags: { type: 'array', items: { type: 'string' }, maxItems: 5 }
+    hashtags: { type: 'array', items: { type: 'string' } }
   }
 };
 

@@ -5,6 +5,3 @@ data/*
 data/music/*
 !data/music/.gitkeep
 *.log
-
-# Master Admin Panel data volume
-panel-data/

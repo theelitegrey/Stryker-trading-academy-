@@ -4,10 +4,3 @@ social.strykertrading.com {
     encode gzip
     reverse_proxy app:8787
 }
-
-# Master Admin Panel (../master-admin-panel). Add an A record for "panel"
-# pointing at this VPS; Caddy issues the certificate on first request.
-panel.strykertrading.com {
-    encode gzip
-    reverse_proxy panel:8080
-}

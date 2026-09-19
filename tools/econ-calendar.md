@@ -75,6 +75,42 @@ because that is not what price trades.
 
 ---
 
+## `currencies[]` is coverage, not a summary of this week
+
+**`currencies[]` declares the currencies this calendar covers. It is not the
+list of currencies that happen to have an event in the current file.** Leave a
+currency in it through a quiet fortnight. Remove one only when this calendar
+has genuinely stopped covering that market.
+
+This was ambiguous once and the two readings drifted apart. A refresh narrowed
+the window to a fortnight in which TRY and ZAR printed nothing; the renderer
+was dropping any currency whose count was 0, so both chips disappeared. The
+page then said "this calendar does not cover the rand" when what it meant was
+"the rand has nothing scheduled this fortnight". Those are opposite claims and
+only one of them was true.
+
+So the renderer builds the currency row from `currencies[]`, every entry, and a
+chip reading 0 dims and stays clickable — the same rule the range and impact
+rows already followed. Clicking it lands on the "nothing matching those
+filters" empty state, which names the fix. The control set no longer reshuffles
+when the reader moves an unrelated filter.
+
+Two obligations follow, and `python3 tools/check.py` fails the file on either:
+
+- **Every currency in `events[]` must be declared in `currencies[]`.** An
+  undeclared code renders rows with no flag, no name and no chip to reach them
+  by. The same goes for every `banks[]` entry and for `defaultCurrency` — the
+  page opens on that currency, and opening on a code the file never declared is
+  a blank first paint.
+- **A declared currency needs a `code`, a `name` and a `flag`.** The chip's
+  tooltip and the row's flag come from there, and `curMeta` falling back to the
+  bare code is a symptom, not a design.
+
+Nothing requires a declared currency to have events. That is the whole point:
+a zero is a fact about the window, not about the coverage.
+
+---
+
 ## The date ranges
 
 The chips are `From today` (the default), `Today`, `Past week`, `This week`,
@@ -114,6 +150,8 @@ message than blaming a filter.
    forward week readable.
 4. Move any release that has printed from `forecast`-only to carrying `actual`.
 5. Refresh `banks` — the policy rate, the next meeting date and what is priced.
+   Leave `currencies[]` alone unless coverage itself changed; a quiet week is
+   not a reason to drop an entry.
 6. `python3 tools/check.py`, then commit.
 
 No version bump is needed for a content-only change: `econ-calendar.json` is

@@ -452,14 +452,44 @@
 
   // ---- controls ------------------------------------------------------------
 
+  // The currency row is built from `currencies[]` — the file's declared
+  // coverage — and never from the codes that happen to appear in `events[]`.
+  // The two are not the same thing, and the difference showed up as a bug: a
+  // data window in which South Africa printed nothing dropped the ZAR chip
+  // entirely, so the page said "this calendar does not cover the rand" when
+  // what it meant was "the rand has nothing scheduled this fortnight". Those
+  // are opposite claims, and only one of them is true.
+  //
+  // Counts are range- and impact-aware, so a chip built from the events would
+  // also come and go as the reader moved the other two rows — the control set
+  // shifting under someone mid-filter, which the range and impact rows already
+  // refuse to do.
+  //
+  // A code in `events[]` that `currencies[]` does not declare is a broken file
+  // and tools/check.py fails it. Render a chip for it anyway: rows the reader
+  // can see but cannot filter to are worse than a chip with no flag.
+  function currencyList() {
+    const list = (DATA.currencies || []).slice();
+    const seen = {};
+    list.forEach((c) => { seen[c.code] = true; });
+    (DATA.events || []).forEach((e) => {
+      if (!e.cur || seen[e.cur]) return;
+      seen[e.cur] = true;
+      list.push({ code: e.cur, name: e.cur, flag: '' });
+    });
+    return list;
+  }
+
   function renderControls() {
+    const list = currencyList();
     const counts = {};
-    (DATA.currencies || []).forEach((c) => { counts[c.code] = countWith({ cur: c.code }); });
-    const list = (DATA.currencies || []).filter((c) => counts[c.code]);
+    list.forEach((c) => { counts[c.code] = countWith({ cur: c.code }); });
     const allCount = countWith({ cur: 'ALL' });
 
     // A chip reading 0 is information — it says the window is empty before you
-    // click it, rather than sending you to a blank page.
+    // click it, rather than sending you to a blank page. It dims and stays
+    // clickable on all three rows; clicking it lands on the empty state, which
+    // names the fix.
     return '<div class="ec-controls">' +
       '<div class="ec-ctrl-row" role="group" aria-label="Filter by date range">' +
         '<span class="ec-ctrl-label">Showing</span>' +
@@ -477,7 +507,8 @@
           'aria-pressed="' + (CUR === 'ALL') + '">All<span class="ec-chip-n">' +
           allCount + '</span></button>' +
         list.map((c) =>
-          '<button type="button" class="ec-chip' + (CUR === c.code ? ' is-on' : '') + '" ' +
+          '<button type="button" class="ec-chip' + (CUR === c.code ? ' is-on' : '') +
+            (counts[c.code] === 0 ? ' is-empty' : '') + '" ' +
             'data-cur="' + esc(c.code) + '" aria-pressed="' + (CUR === c.code) + '" ' +
             'title="' + esc(c.name) + '">' +
             '<span class="ec-flag" aria-hidden="true">' + esc(c.flag) + '</span>' + esc(c.code) +

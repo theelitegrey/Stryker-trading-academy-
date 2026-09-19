@@ -110,6 +110,56 @@ def check_build_markers():
             fail(f'{path}: does not load version-check.js')
 
 
+def check_econ_calendar_currencies():
+    """econ-calendar.json must declare every currency it uses.
+
+    `currencies[]` is the calendar's declared coverage, not a summary of which
+    currencies happen to have an event this week — see tools/econ-calendar.md.
+    The renderer builds the currency chip row from it and lets a chip reading 0
+    dim rather than vanish, so a quiet fortnight for one market no longer makes
+    its filter disappear.
+
+    That only works in one direction on its own. A code appearing in events[],
+    banks[] or defaultCurrency that the list never declares still renders a row
+    with no flag, no name and no chip to filter to it, and nothing on the page
+    would say so. Fail the file here instead.
+    """
+    import json
+    path = 'assets/econ-calendar.json'
+    if not os.path.exists(path):
+        return
+    try:
+        data = json.load(open(path))
+    except Exception as exc:
+        fail(f'{path} unreadable: {exc}')
+        return
+
+    declared = {}
+    for i, c in enumerate(data.get('currencies') or []):
+        code = c.get('code')
+        if not code:
+            fail(f'{path}: currencies[{i}] has no code')
+            continue
+        declared[code] = c
+        for field in ('name', 'flag'):
+            if not c.get(field):
+                fail(f'{path}: currency {code} has no {field}')
+
+    used = {}   # code -> where it was first seen, for a message worth reading
+    for e in data.get('events') or []:
+        used.setdefault(e.get('cur'), 'events')
+    for b in data.get('banks') or []:
+        used.setdefault(b.get('cur'), f"the {b.get('bank', 'central bank')} card")
+    if data.get('defaultCurrency'):
+        used.setdefault(data['defaultCurrency'], 'defaultCurrency')
+
+    for code, where in used.items():
+        if not code:
+            fail(f'{path}: a row in {where} has no cur')
+        elif code not in declared:
+            fail(f'{path}: {code} is used by {where} but not declared in currencies[]')
+
+
 def check_assets_changed_without_bump():
     """Warn if tracked assets were modified since the last commit that touched
     version.json.
@@ -156,6 +206,7 @@ def main():
     check_css_braces()
     check_referenced_assets_exist()
     check_build_markers()
+    check_econ_calendar_currencies()
     check_assets_changed_without_bump()
 
     if FAILURES:

@@ -179,6 +179,41 @@ function buildTOC(activeIndex){
   });
 }
 
+// A chapter with no recording of its own shows no player at all — not an
+// empty black box, and not the sample clip the seed data used to carry (see
+// chapterVideoUrl in chapters-store.js). The frame, the speed pills and the
+// "watch on strykertrading.com" note all go together: each one on its own is
+// a promise of a video that is not there.
+//
+// This runs on every chapter render, so it has to undo itself as well as
+// apply itself — the elements are reused as the reader moves between
+// chapters, and a chapter without a video follows one that has it.
+function renderChapterVideo(ch){
+  const video = document.getElementById('reader-video');
+  if (!video) return;
+
+  const url = typeof chapterVideoUrl === 'function' ? chapterVideoUrl(ch) : String((ch && ch.video) || '');
+  const parts = [video.closest('.video-frame'), document.getElementById('video-note'),
+                 document.getElementById('video-tools')].filter(Boolean);
+
+  if (!url) {
+    // Stop whatever the previous chapter was playing before hiding the
+    // element, or its audio carries on over a page with no player on it.
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    parts.forEach((el) => { el.hidden = true; });
+    return;
+  }
+
+  parts.forEach((el) => { el.hidden = false; });
+  video.src = url;
+  video.load();
+  hardenVideoAgainstDownload(video);
+  setupVideoTools(video);
+  setupVideoResume(video, ch);
+}
+
 // Casual-download deterrents. This does NOT prevent a technically determined
 // person from capturing the video (screen recording or browser dev tools can
 // always do that for anything played in a browser — only real DRM, which
@@ -251,19 +286,18 @@ function renderReader(){
   document.getElementById('reader-crumb-title').textContent = 'Chapter ' + ch.num;
   document.getElementById('reader-title').textContent = ch.title;
 
+  // `dur` is the runtime of the chapter's recording, so it is only meaningful
+  // while there is one to play. Beside "~17 min read" on a page with no
+  // player, a bare "72 min" is a promise of something the reader cannot find.
   const metaWrap = document.getElementById('reader-meta');
+  const metaCell = (t) => '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + t + '</span>';
   metaWrap.innerHTML =
     '<span class="chapter-tag ' + LEVEL_TAG_CLASS[ch.level] + '">' + LEVEL_LABEL[ch.level] + '</span>' +
-    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ch.lessons.length + ' lessons</span>' +
-    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">' + ch.dur + '</span>' +
-    '<span style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3);">~' + estimateReadMinutes(ch) + ' min read</span>';
+    metaCell(ch.lessons.length + ' lessons') +
+    (chapterVideoUrl(ch) ? metaCell(ch.dur) : '') +
+    metaCell('~' + estimateReadMinutes(ch) + ' min read');
 
-  const video = document.getElementById('reader-video');
-  video.src = ch.video;
-  video.load();
-  hardenVideoAgainstDownload(video);
-  setupVideoTools(video);
-  setupVideoResume(video, ch);
+  renderChapterVideo(ch);
 
   const body = document.getElementById('reader-body');
   body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');

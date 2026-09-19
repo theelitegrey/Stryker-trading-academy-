@@ -12,7 +12,7 @@ const CHAPTERS_SEED = [
     "title": "Candles, Charts & the Language of Price",
     "level": "foundation",
     "dur": "72 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Anatomy of a candlestick",
@@ -69,7 +69,7 @@ const CHAPTERS_SEED = [
     "title": "How Markets Are Actually Structured",
     "level": "foundation",
     "dur": "65 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Retail vs. institutional order flow",
@@ -123,7 +123,7 @@ const CHAPTERS_SEED = [
     "title": "Discipline, Process & the Trader's Mindset",
     "level": "foundation",
     "dur": "58 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Process over prediction",
@@ -177,7 +177,7 @@ const CHAPTERS_SEED = [
     "title": "Trend, Range & Swing Points",
     "level": "foundation",
     "dur": "60 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Defining higher-highs / higher-lows",
@@ -229,7 +229,7 @@ const CHAPTERS_SEED = [
     "title": "Support, Resistance & Key Levels",
     "level": "foundation",
     "dur": "57 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Horizontal levels that actually matter",
@@ -280,7 +280,7 @@ const CHAPTERS_SEED = [
     "title": "Candlestick Behavior at Key Levels",
     "level": "foundation",
     "dur": "55 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Rejection wicks and what they signal",
@@ -330,7 +330,7 @@ const CHAPTERS_SEED = [
     "title": "Liquidity: BSL, SSL & Resting Orders",
     "level": "foundation",
     "dur": "64 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Buy-side vs. sell-side liquidity",
@@ -382,7 +382,7 @@ const CHAPTERS_SEED = [
     "title": "Market Structure & Break of Structure",
     "level": "intermediate",
     "dur": "78 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Confirming a valid BOS",
@@ -433,7 +433,7 @@ const CHAPTERS_SEED = [
     "title": "Order Blocks: Identification & Validity",
     "level": "intermediate",
     "dur": "75 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "The last opposing candle before displacement",
@@ -483,7 +483,7 @@ const CHAPTERS_SEED = [
     "title": "Fair Value Gaps & Imbalance",
     "level": "intermediate",
     "dur": "70 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Spotting the three-candle imbalance",
@@ -533,7 +533,7 @@ const CHAPTERS_SEED = [
     "title": "Premium & Discount: Reading PD Arrays",
     "level": "intermediate",
     "dur": "62 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Plotting equilibrium on a range",
@@ -583,7 +583,7 @@ const CHAPTERS_SEED = [
     "title": "Liquidity Sweeps & Stop Hunts",
     "level": "intermediate",
     "dur": "80 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Anatomy of an engineered sweep",
@@ -633,7 +633,7 @@ const CHAPTERS_SEED = [
     "title": "Killzones & Session Timing",
     "level": "intermediate",
     "dur": "58 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Asia, London & New York sessions",
@@ -683,7 +683,7 @@ const CHAPTERS_SEED = [
     "title": "Liquidity Engineering: Putting It Together",
     "level": "intermediate",
     "dur": "85 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Accumulation, manipulation, distribution",
@@ -733,7 +733,7 @@ const CHAPTERS_SEED = [
     "title": "Order Flow Case Studies: Gold & Indices",
     "level": "intermediate",
     "dur": "78 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "XAUUSD structure walkthroughs",
@@ -783,7 +783,7 @@ const CHAPTERS_SEED = [
     "title": "Multi-Timeframe Analysis",
     "level": "intermediate",
     "dur": "90 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Setting HTF bias before you look at entries",
@@ -839,7 +839,7 @@ const CHAPTERS_SEED = [
     "title": "Correlated Pairs & Intermarket Basics",
     "level": "advanced",
     "dur": "82 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "What correlation actually means for traders",
@@ -892,7 +892,7 @@ const CHAPTERS_SEED = [
     "title": "Introduction to SMT Divergence",
     "level": "advanced",
     "dur": "88 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "What SMT divergence signals",
@@ -946,7 +946,7 @@ const CHAPTERS_SEED = [
     "title": "SMT on Major FX Pairs",
     "level": "advanced",
     "dur": "92 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "EURUSD vs. GBPUSD divergence",
@@ -997,7 +997,7 @@ const CHAPTERS_SEED = [
     "title": "SMT on Indices & DXY",
     "level": "advanced",
     "dur": "90 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "ES vs. NQ divergence patterns",
@@ -1047,7 +1047,7 @@ const CHAPTERS_SEED = [
     "title": "Advanced Order Block Refinement",
     "level": "advanced",
     "dur": "85 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Breaker blocks explained",
@@ -1097,7 +1097,7 @@ const CHAPTERS_SEED = [
     "title": "Advanced Fair Value Gap Concepts",
     "level": "advanced",
     "dur": "78 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Balanced price ranges",
@@ -1147,7 +1147,7 @@ const CHAPTERS_SEED = [
     "title": "Judas Swings & False Breakouts",
     "level": "advanced",
     "dur": "80 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Anatomy of a Judas swing",
@@ -1197,7 +1197,7 @@ const CHAPTERS_SEED = [
     "title": "Power of Three: AMD in Practice",
     "level": "advanced",
     "dur": "88 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "The three-phase daily cycle",
@@ -1247,7 +1247,7 @@ const CHAPTERS_SEED = [
     "title": "Weekly & Daily Range Profiles",
     "level": "advanced",
     "dur": "82 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Typical weekly range behavior",
@@ -1297,7 +1297,7 @@ const CHAPTERS_SEED = [
     "title": "Optimal Trade Entry (OTE) Zones",
     "level": "advanced",
     "dur": "88 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Fibonacci retracement for OTE",
@@ -1347,7 +1347,7 @@ const CHAPTERS_SEED = [
     "title": "SMT Divergence Across Correlated Pairs",
     "level": "advanced",
     "dur": "100 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Full DXY / ES / correlated-FX workflow",
@@ -1397,7 +1397,7 @@ const CHAPTERS_SEED = [
     "title": "Advanced SMT: Indices, Bonds & Correlation Baskets",
     "level": "advanced",
     "dur": "95 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Yield-sensitive pair behavior",
@@ -1447,7 +1447,7 @@ const CHAPTERS_SEED = [
     "title": "SMT Failure Modes & Edge Cases",
     "level": "advanced",
     "dur": "75 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "When correlations temporarily break",
@@ -1497,7 +1497,7 @@ const CHAPTERS_SEED = [
     "title": "Institutional Reference Points",
     "level": "advanced",
     "dur": "78 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Previous day/week high and low",
@@ -1547,7 +1547,7 @@ const CHAPTERS_SEED = [
     "title": "Algorithmic Price Delivery Basics",
     "level": "advanced",
     "dur": "85 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "What IPDA ranges represent",
@@ -1596,7 +1596,7 @@ const CHAPTERS_SEED = [
     "title": "Advanced Algorithmic Price Delivery",
     "level": "advanced",
     "dur": "95 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Applying IPDA concepts across timeframes",
@@ -1646,7 +1646,7 @@ const CHAPTERS_SEED = [
     "title": "News, Fundamentals & Displacement",
     "level": "advanced",
     "dur": "70 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "When fundamentals matter to a technical trader",
@@ -1696,7 +1696,7 @@ const CHAPTERS_SEED = [
     "title": "Building a Personal Playbook \u2014 Part 1",
     "level": "advanced",
     "dur": "82 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Choosing your instrument and session",
@@ -1746,7 +1746,7 @@ const CHAPTERS_SEED = [
     "title": "Building a Personal Playbook \u2014 Part 2",
     "level": "advanced",
     "dur": "82 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Stress-testing your model on new data",
@@ -1796,7 +1796,7 @@ const CHAPTERS_SEED = [
     "title": "Risk & Position Sizing",
     "level": "advanced",
     "dur": "90 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Position sizing from stop distance",
@@ -1847,7 +1847,7 @@ const CHAPTERS_SEED = [
     "title": "Trade Execution & Order Types",
     "level": "advanced",
     "dur": "68 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Limit vs. market entries on setups",
@@ -1897,7 +1897,7 @@ const CHAPTERS_SEED = [
     "title": "Risk, Position Sizing & Execution Discipline",
     "level": "advanced",
     "dur": "85 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Translating a setup into a sized, risk-defined order",
@@ -1948,7 +1948,7 @@ const CHAPTERS_SEED = [
     "title": "Trade Journaling & Performance Review",
     "level": "advanced",
     "dur": "75 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "What to log after every trade",
@@ -1998,7 +1998,7 @@ const CHAPTERS_SEED = [
     "title": "Scaling From Demo to Live",
     "level": "advanced",
     "dur": "68 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Demo-to-live transition checklist",
@@ -2048,7 +2048,7 @@ const CHAPTERS_SEED = [
     "title": "Prop Firm & Funded Account Considerations",
     "level": "advanced",
     "dur": "78 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "How evaluation rules affect setup choice",
@@ -2099,7 +2099,7 @@ const CHAPTERS_SEED = [
     "title": "Building Your Own Institutional Playbook",
     "level": "advanced",
     "dur": "95 min",
-    "video": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    "video": "",
     "lessons": [
       {
         "title": "Combining structure, liquidity, FVGs & SMT into one plan",

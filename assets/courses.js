@@ -116,11 +116,15 @@ function renderChapters(filterLevel){
           '<p>' + preview.slice(0, 130) + (preview.length > 130 ? '…' : '') + '</p>' +
           '<div class="chapter-meta">' +
             '<span class="chapter-tag ' + LEVEL_TAG_CLASS[ch.level] + '">' + LEVEL_LABEL[ch.level] + '</span>' +
-            '<span>' + ch.lessons.length + ' lessons</span><span>' + ch.dur + '</span>' +
+            // ch.dur is the recording's runtime — omitted while there is no
+            // recording, same as on the chapter page itself.
+            '<span>' + ch.lessons.length + ' lessons</span>' +
+            (chapterVideoUrl(ch) ? '<span>' + ch.dur + '</span>' : '') +
           '</div>' +
           '<div class="chapter-detail"><div class="chapter-detail-inner">' +
             '<div><h5>What you\'ll learn</h5><p>' + preview + '</p>' +
-              '<a class="btn btn-primary btn-sm" style="margin-top:14px; display:inline-flex;" href="chapter.html?ch=' + ch.num + '">Read full chapter &amp; watch video →</a></div>' +
+              '<a class="btn btn-primary btn-sm" style="margin-top:14px; display:inline-flex;" href="chapter.html?ch=' + ch.num + '">' +
+                (chapterVideoUrl(ch) ? 'Read full chapter &amp; watch video →' : 'Read full chapter →') + '</a></div>' +
             '<div><h5>Lessons</h5>' + lessonsHtml + '</div>' +
           '</div></div>' +
         '</div>' +

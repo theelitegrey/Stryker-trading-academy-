@@ -1,0 +1,93 @@
+# Master Panel — deploy to its own Cloudflare Pages project.
+#
+# The panel is a separate site on a separate origin (panel.strykertrading.com),
+# not a folder of the main site. That is deliberate:
+#   - the main site's deploy excludes panel/, so a panel change never reissues
+#     the public site and a public-site rollback never reverts the panel;
+#   - a separate origin means separate cookies, separate storage and separate
+#     CSP — a bug in a public page cannot reach an admin session;
+#   - Cloudflare Access (or any other front door) can be put in front of the
+#     panel's hostname alone.
+#
+# Uses the same two secrets as deploy-site.yml:
+#   CLOUDFLARE_API_TOKEN   — API token with Cloudflare Pages: Edit
+#   CLOUDFLARE_ACCOUNT_ID  — 32-hex Account ID
+#
+# The Pages project is created on first run if it does not exist. Mapping
+# panel.strykertrading.com to it is a one-time step in the Cloudflare
+# dashboard — see panel/README.md.
+
+name: Deploy Master Panel
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'panel/**'
+      - '.github/workflows/deploy-panel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cf-deploy-panel
+  cancel-in-progress: true
+
+env:
+  PANEL_PROJECT: stryker-master-panel
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Resolve credentials and ensure the Pages project exists
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          # Same defensive extraction as deploy-site.yml: these secrets have
+          # arrived pasted with a "Bearer " prefix and stray whitespace before.
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          [ -z "$ACCOUNT" ] && ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID must both be set (repo Settings -> Secrets -> Actions)."; exit 1; fi
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$ACCOUNT"
+          echo "CF_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          echo "CF_ACCOUNT=$ACCOUNT" >> "$GITHUB_ENV"
+
+          exists=$(curl -s -H "Authorization: Bearer $TOKEN" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects/${PANEL_PROJECT}" \
+            | jq -r '.success')
+          if [ "$exists" = "true" ]; then
+            echo "Pages project ${PANEL_PROJECT} already exists."
+          else
+            echo "Creating Pages project ${PANEL_PROJECT}."
+            created=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+              "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects" \
+              -d "{\"name\":\"${PANEL_PROJECT}\",\"production_branch\":\"main\"}")
+            if [ "$(echo "$created" | jq -r '.success')" != "true" ]; then
+              echo "::error::Could not create the Pages project: $(echo "$created" | jq -c '.errors')"; exit 1; fi
+            echo "Created. Map panel.strykertrading.com to it in the Cloudflare dashboard (Pages -> ${PANEL_PROJECT} -> Custom domains)."
+          fi
+
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
+        run: |
+          npx --yes wrangler@4 pages deploy panel \
+            --project-name "${PANEL_PROJECT}" \
+            --branch main \
+            --commit-hash "${{ github.sha }}" \
+            --commit-dirty=false

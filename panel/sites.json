@@ -1,0 +1,30 @@
+{
+  "_readme": [
+    "Registry of everything the health workflow probes (.github/workflows/panel-health.yml).",
+    "This file is PUBLIC — it ships in a public repo. Put URLs here, never keys or tokens.",
+    "The panel reads it too: any site you add in the panel UI that is missing from this",
+    "list is shown as 'not monitored', because a browser cannot run the server-side checks.",
+    "",
+    "Fields per site:",
+    "  id            stable slug — never reuse one, uptime history is keyed on it",
+    "  name          label shown in the panel",
+    "  url           canonical https URL to probe",
+    "  group         free-text grouping (brand, client, internal ...)",
+    "  critical      true = a failure raises a red alert instead of a warning",
+    "  expectStatus  status code that counts as healthy (default 200)",
+    "  expectText    substring the response body must contain (optional)",
+    "  paths         extra paths probed alongside the root (optional)"
+  ],
+  "sites": [
+    {
+      "id": "strykertrading",
+      "name": "Stryker Trading Academy",
+      "url": "https://strykertrading.com",
+      "group": "Stryker",
+      "critical": true,
+      "expectStatus": 200,
+      "expectText": "Stryker",
+      "paths": ["/courses.html", "/indicators.html", "/assets/version.json"]
+    }
+  ]
+}

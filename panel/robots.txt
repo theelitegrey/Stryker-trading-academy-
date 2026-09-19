@@ -1,0 +1,4 @@
+# Nothing here is for crawlers. The panel is admin-only and carries a
+# noindex header as well — this file is the polite half of the same statement.
+User-agent: *
+Disallow: /

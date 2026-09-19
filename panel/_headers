@@ -1,0 +1,32 @@
+# Master Panel — response headers (Cloudflare Pages).
+#
+# The panel is stricter than the public site, and can afford to be: every
+# script here is a file in assets/, so script-src carries no 'unsafe-inline'
+# and the CSP is enforced rather than report-only.
+#
+# style-src DOES allow 'unsafe-inline' — the views set style attributes for
+# bar widths and sparkline heights, which style-src-attr governs. An injected
+# style cannot execute; an injected script can, and that is the one this
+# blocks outright.
+#
+# connect-src allows any https origin because of one feature: the Ping button
+# on Sites, which fetches a site you registered to see whether it answers.
+# Enumerating those origins is impossible — you add them at runtime. With
+# script-src locked down there is no attacker script to abuse the allowance.
+
+/*
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Content-Security-Policy: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src https: wss:; frame-src https://strykertrades-e0cd8.firebaseapp.com
+
+# The panel is a single HTML file plus its assets. Nothing here is versioned
+# with a content hash, so nothing may be cached beyond a revalidation.
+/*.html
+  Cache-Control: no-cache
+/assets/*
+  Cache-Control: public, max-age=300, must-revalidate

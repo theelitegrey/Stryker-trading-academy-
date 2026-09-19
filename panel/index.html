@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Master Panel — Stryker</title>
+<meta name="description" content="Private operations panel.">
+<link rel="stylesheet" href="assets/panel.css?v=1">
+<link rel="icon" type="image/x-icon" href="https://strykertrading.com/assets/images/favicon.ico">
+<script src="assets/theme-boot.js?v=1"></script>
+</head>
+<body>
+
+<!-- Sign-in gate. The panel lives on its own origin, so it has its own
+     Firebase session — signing in on the main site does not carry over. -->
+<div class="gate" id="gate">
+  <form class="gate-box" id="gate-form" autocomplete="on">
+    <div class="gate-mark">Master Panel</div>
+    <p class="gate-sub">Admin accounts only.</p>
+    <label class="field">
+      <span>Email</span>
+      <input type="email" id="gate-email" autocomplete="username" required>
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input type="password" id="gate-pass" autocomplete="current-password" required>
+    </label>
+    <p class="gate-err" id="gate-err" role="alert"></p>
+    <button class="btn btn-primary btn-block" type="submit" id="gate-submit">Sign in</button>
+    <p class="gate-note">Access is granted by the <code>admins</code> roster in Firestore, the same one the main admin suite uses.</p>
+  </form>
+</div>
+
+<div class="shell" id="shell" hidden>
+
+  <aside class="side" id="side">
+    <div class="side-brand">
+      <span class="side-dot"></span>
+      <span>Master Panel</span>
+    </div>
+
+    <nav class="side-nav">
+      <a href="#/overview"   class="side-link" data-route="overview">Overview</a>
+      <a href="#/money"      class="side-link" data-route="money">Spend &amp; subscriptions</a>
+      <a href="#/calendar"   class="side-link" data-route="calendar">Renewal calendar</a>
+      <a href="#/sites"      class="side-link" data-route="sites">Sites &amp; health</a>
+      <a href="#/analytics"  class="side-link" data-route="analytics">Analytics</a>
+      <a href="#/ops"        class="side-link" data-route="ops">Alerts, incidents &amp; tasks</a>
+      <a href="#/settings"   class="side-link" data-route="settings">Settings &amp; backup</a>
+    </nav>
+
+    <div class="side-foot">
+      <a class="side-out" href="https://strykertrading.com/dashboard-admin.html" target="_blank" rel="noopener">Site admin ↗</a>
+      <button class="side-out" type="button" id="theme-toggle">Toggle theme</button>
+      <button class="side-out" type="button" data-sign-out>Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn" id="side-toggle" aria-label="Menu">☰</button>
+      <h1 class="topbar-title" id="view-title">Overview</h1>
+      <div class="topbar-right">
+        <span class="alert-chip" id="alert-chip" hidden></span>
+        <span class="who" id="who"></span>
+      </div>
+    </header>
+
+    <main class="view" id="view" tabindex="-1"></main>
+  </div>
+</div>
+
+<div class="modal-back" id="modal-back" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-head"><h2 id="modal-title"></h2><button class="icon-btn" id="modal-close" aria-label="Close">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot" id="modal-foot"></div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/core.js?v=1"></script>
+<script src="assets/money.js?v=1"></script>
+<script src="assets/health.js?v=1"></script>
+<script src="assets/view-overview.js?v=1"></script>
+<script src="assets/view-money.js?v=1"></script>
+<script src="assets/view-calendar.js?v=1"></script>
+<script src="assets/view-sites.js?v=1"></script>
+<script src="assets/view-analytics.js?v=1"></script>
+<script src="assets/view-ops.js?v=1"></script>
+<script src="assets/view-settings.js?v=1"></script>
+<script src="assets/boot.js?v=1"></script>
+</body>
+</html>

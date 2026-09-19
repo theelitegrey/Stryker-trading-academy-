@@ -1,0 +1,81 @@
+# Master Panel — site health and audit probe.
+#
+# Checks every site in panel/sites.json from a runner (status, latency, the
+# redirect chain, security headers, TLS expiry, an SEO/perf audit) and force-
+# pushes one panel-health.json to the `panel-data` branch. The panel reads it
+# over raw.githubusercontent.com, which sends CORS headers.
+#
+# WHY A BRANCH AND NOT THE `data` BRANCH: monitor-data.yml force-pushes `data`
+# from a fresh git init every cycle, so anything else placed there is deleted
+# within twenty minutes. `panel-data` is this workflow's own branch, published
+# the same way, and the two never touch.
+#
+# WHY A RUNNER AND NOT THE BROWSER: a page cannot read another origin's status
+# code, response headers or certificate — CORS forbids exactly the data an
+# audit needs. The panel falls back to an opaque reachability ping when this
+# feed is missing, and says so rather than implying it checked more.
+#
+# GitHub's scheduler is best-effort (see the note in monitor-data.yml — '*/20'
+# has fired with multi-hour gaps on this repo). Half-hourly here is a target,
+# not a promise; the panel flags the feed as stale after six hours, which is
+# the honest signal.
+
+name: Master Panel health
+
+on:
+  schedule:
+    - cron: '9,39 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'panel/sites.json'
+      - 'tools/panel-health.js'
+      - '.github/workflows/panel-health.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: panel-health
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Uptime history lives in the published file itself. Without this the
+      # sparklines and the 7/30-day uptime figures reset on every run.
+      - name: Seed the previous results (carries the uptime history forward)
+        run: |
+          mkdir -p out
+          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/panel-data/panel-health.json" \
+            -o out/previous.json || echo "no previous health file yet"
+
+      - name: Probe every site
+        env:
+          # Optional. Without it the panel's traffic card stays empty instead
+          # of showing numbers nobody can trace to a source.
+          CF_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
+        run: node tools/panel-health.js panel/sites.json out/previous.json out/panel-health.json
+
+      - name: Publish to the panel-data branch
+        run: |
+          cd out
+          rm -f previous.json
+          rm -rf .git
+          git init -q -b panel-data
+          git config user.email "actions@github.com"
+          git config user.name "panel-health bot"
+          git add panel-health.json
+          git commit -q -m "health $(date -u +%FT%TZ)"
+          git push -q --force \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" panel-data
+          echo "published panel-data/panel-health.json"

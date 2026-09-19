@@ -299,6 +299,24 @@ service cloud.firestore {
     match /publicStats/{id}     { allow read: if true; allow write: if isAdmin(); }
 
     // ---------------------------------------------------------------------
+    // Master Panel (panel.strykertrading.com) — the operator's own records:
+    // the site registry, subscriptions, the expense ledger, incidents and
+    // tasks. Admin-only in both directions. None of it is student data and
+    // none of it is ever read by a public page, so there is no read rule to
+    // relax here: a student who could read panelExpenses would learn the
+    // business's cost base, and one who could write panelSites could point a
+    // health check anywhere.
+    //
+    // Its settings live at settings/masterPanel, covered by the settings rule
+    // above: admin-write, signed-in-read.
+    // ---------------------------------------------------------------------
+    match /panelSites/{id}         { allow read, write: if isAdmin(); }
+    match /panelSubscriptions/{id} { allow read, write: if isAdmin(); }
+    match /panelExpenses/{id}      { allow read, write: if isAdmin(); }
+    match /panelIncidents/{id}     { allow read, write: if isAdmin(); }
+    match /panelTasks/{id}         { allow read, write: if isAdmin(); }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

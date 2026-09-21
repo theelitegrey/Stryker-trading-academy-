@@ -85,6 +85,32 @@ def check_referenced_assets_exist():
                 fail(f'{path}: references {target}, which does not exist')
 
 
+def check_mobile_width_guards():
+    """Two CSS rules stop pages forcing the document wider than the phone.
+
+    A page whose content cannot fit the viewport does not clip or scroll by
+    default — the browser shrinks the whole page to fit, so every word on it
+    renders smaller than on every other page. It looks like a font bug, which
+    is why it sat unnoticed on two pages.
+
+    Both causes were shrink-to-fit sizing that nothing had constrained:
+    a stacked Smart Money row sized to a long unbroken filing descriptor, and
+    a reader grid track sized to its item's min-content because a grid item
+    defaults to min-width:auto. This asserts the fixes are still present. It
+    is a "the rule is there" check, not a layout measurement — the browser
+    suite in the working notes measures the real thing.
+    """
+    css = open('assets/style.css').read()
+    for rule, why in [
+        ('.sm-row > .sm-main{ width:100%; }',
+         'Smart Money rows stack at <=640px and would size to their text'),
+        ('.reader-shell > .reader-main{ min-width:0; }',
+         'the reader grid track would size to its min-content'),
+    ]:
+        if rule not in css:
+            fail(f'style.css: missing mobile width guard `{rule}` — without it, {why}')
+
+
 def check_build_markers():
     """Every page's build meta must match assets/version.json.
 
@@ -156,6 +182,7 @@ def main():
     check_css_braces()
     check_referenced_assets_exist()
     check_build_markers()
+    check_mobile_width_guards()
     check_assets_changed_without_bump()
 
     if FAILURES:

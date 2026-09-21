@@ -26,14 +26,27 @@ Bigdata.com covers two of the three layers directly and one indirectly.
 
 | Layer | Tool | Notes |
 | --- | --- | --- |
-| Macro releases, forecasts, previous | `bigdata_search` | Not a structured feed. Research it the way the brief is researched: focused queries, one topic each. |
-| Central bank decisions and market pricing | `bigdata_search` | Swap and futures pricing gets quoted constantly in FX coverage; that is where the odds come from. |
-| Corporate earnings | `bigdata_events_calendar` | Structured. `categories: ["earnings-call"]`, `countries: ["US"]`. Returns UTC timestamps already. |
+| Macro releases, forecasts, previous, actuals | `bigdata_events_calendar` with `calendar_type: "economic_calendar"` | Structured. UTC timestamps, `actual`, `consensus`, `previous` and an impact grade, per country. |
+| Central bank decisions and market pricing | `bigdata_search` | The calendar gives the decision and the rate; it does not give what is priced for the *next* one. Swap and futures pricing gets quoted constantly in FX coverage; that is where the odds come from. |
+| Corporate earnings | `bigdata_events_calendar` with `calendar_type: "corporate_calendar"` | `categories: ["earnings-call"]`, `countries: ["US"]`. Returns UTC timestamps already. |
 
-**`bigdata_events_calendar` does not cover macro releases.** It is a corporate
-events calendar — earnings, conferences, IPOs, delistings. Reaching for it to
-build a Forex Factory-style page returns the wrong thing. Use it for the
-earnings rows only, and mark those `"kind": "earnings"`.
+**`bigdata_events_calendar` takes a `calendar_type` and the two calendars are
+different tools wearing one name.** `corporate_calendar` is earnings,
+conferences, IPOs and delistings; `economic_calendar` is the macro releases
+this page is made of. An earlier version of this runbook said the tool did not
+cover macro at all and sent the job to `bigdata_search` instead, which is a
+slower path to a worse answer: prose reporting rarely states the consensus and
+the previous reading for every row, and this file needs both. Ask the economic
+calendar first and fall back to search only for what it does not carry. Mark
+earnings rows `"kind": "earnings"`.
+
+**What `currencies[]` may contain.** Only currencies that have at least one row
+in `events[]`. The chip row is built from the events, not from this list, so a
+currency declared here with nothing behind it renders a control that can never
+do anything — it sits at zero, dimmed, for as long as the window excludes it.
+This is not cosmetic: it happened to TRY and ZAR when the range moved on 18
+September, and the test suite had hardcoded one of them, so the suite failed on
+a page that was working correctly. Rebuild the list from the events every run.
 
 ---
 
@@ -106,15 +119,21 @@ message than blaming a filter.
 
 ## Regenerating it
 
-1. Research the week's macro releases — one focused Bigdata.com search per
-   topic, per the discipline in `tools/market-brief.md`.
-2. Pull earnings with `bigdata_events_calendar` for the same window.
+1. Pull the macro rows with `bigdata_events_calendar`, `calendar_type:
+   "economic_calendar"`, one call for the US and one for the rest, over the
+   window below. Then research what the rows do not carry — what is priced for
+   the next central bank meeting — with focused searches, per the discipline in
+   `tools/market-brief.md`.
+2. Pull earnings with the same tool and `calendar_type: "corporate_calendar"`
+   for the same window.
 3. Update the row literals in the generator, keeping `rangeStart` / `rangeEnd`
    about a week back and a week forward. The past week is what makes the
    forward week readable.
 4. Move any release that has printed from `forecast`-only to carrying `actual`.
 5. Refresh `banks` — the policy rate, the next meeting date and what is priced.
-6. `python3 tools/check.py`, then commit.
+6. Rebuild `currencies[]` from the currencies that actually appear in
+   `events[]`, per the rule above.
+7. `python3 tools/check.py`, then commit.
 
 No version bump is needed for a content-only change: `econ-calendar.json` is
 excluded from the year-long asset cache in `_headers`.

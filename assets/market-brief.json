@@ -1,119 +1,132 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-18T11:45:00Z",
-  "sessionDate": "2026-09-18",
+  "generatedAt": "2026-09-21T05:45:00Z",
+  "sessionDate": "2026-09-21",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-21T11:00:00Z",
-  "headline": "The hike landed. The bond market blinked first.",
-  "standfirst": "Weekend edition. The Fed's unanimous 25bp on Wednesday took the Dow down 631 points; Thursday gave most of it back, with the S&P up 1.14% to 7,637.76, its best day since early August, as the ten-year fell to 4.93% from Tuesday's 5.04% high and oil slid. Friday's data is light — industrial production at 09:15 ET — and the weekend risk is the Iran war: Trump says he is near a decision on resuming large-scale strikes, and meets Gulf leaders on Tuesday.",
+  "goodUntil": "2026-09-22T05:30:00Z",
+  "headline": "The war premium leaks out before the UN",
+  "standfirst": "Brent traded under $102 this morning and WTI broke $100, a fourth straight losing session and the lowest for both since 10 September, as traders priced a chance of US–Iran contact at the UN General Assembly and Saudi Arabia worked to restore its East–West pipeline. There is no US data today — Chicago Fed's Goolsbee at 06:30 ET is the only scheduled Fed event — so the week's risk sits on Wednesday's flash PMIs and three Treasury auctions into a ten-year that closed Friday at 5.01%.",
   "bullets": [
     {
-      "title": "A hawkish hike, priced, and the market still sold it",
-      "text": "The FOMC raised the target range 25bp to 3.75–4.00%, the first increase since July 2023, on a 12–0 vote. The dots moved to 4.1% for end-2026 and end-2027, from 3.8% and 3.6% in June; 16 of 18 officials see at least one more hike this year, four see two. Growth was revised up to 2.3%, unemployment down to 4.1%, PCE to 3.7% and core PCE to 3.4%. Warsh said he was hard-pressed to call financial conditions restrictive and that summer inflation had not passed the test. The Dow fell 1.21% to 51,461.90, the S&P 0.45% to 7,551.81, and the two-year rose about 7bp."
+      "title": "The oil premium is leaking, and it has not gone",
+      "text": "Crude has fallen for four sessions. Brent was down about 2% this morning near $101.7 and WTI broke below $100, both the lowest since 10 September, after Trump said he would \"probably\" be open to meeting Iranian President Masoud Pezeshkian on the sidelines of the UN General Assembly this week, with Qatar passing messages between the two. Saudi Arabia is aiming to restore roughly half its East–West pipeline capacity within days and all of it within six weeks, shuttling crude through the Strait of Hormuz in the meantime; JPMorgan put Middle East flows at 17.1 million barrels a day over the past ten days, still 6.1 million below the 2025 average. Against that, Houthi missiles and drones hit Saudi Arabia on Saturday, Iran has promised \"painful\" retaliation and Trump says he is in \"deciding mode\". Brent was about $72 before the war began in late February and near $110 earlier last week."
     },
     {
-      "title": "Thursday reversed it, on semiconductors and a bond rally",
-      "text": "The S&P rose 1.14% to 7,637.76, the Nasdaq 1.69% to 26,418.30 and the Dow 0.61% to 51,778.04. The Philadelphia semiconductor index gained 3.14% after Nvidia said chip sales would double next year; Intel rose 7.67%, AMD 6.4%, Arm 8.6%. Technology added 2.2% and every sector but financials and staples closed green. The ten-year fell 7bp to 4.93% and the two-year 5.4bp to 4.67%. For the week the S&P is down 0.3%, the Dow 1.5% and the Nasdaq up 0.3%."
+      "title": "A ten-year at 5% is now the constraint on everything else",
+      "text": "The ten-year closed Friday at 5.01% after touching roughly 5.04% on 15–16 September, its first close above 5% since July 2007, and is on course for a seventh consecutive monthly rise. The thirty-year is 5.34% and the twenty-year 5.38%. The move is a real-yield move, not an inflation-expectations one: ten-year breakevens have risen less than 10bp since the war began against roughly 100bp on real yields. Supply is the other half of the story — the fiscal 2026 deficit is approaching $2 trillion and Treasury has been leaning on bills while raising its 10- to 30-year buybacks to at least $4 billion an operation."
     },
     {
-      "title": "Oil is heading for its first weekly loss in three",
-      "text": "WTI is near $96 and Brent $103 after four-month highs above $102 and $107 on Tuesday. Saudi Arabia says it will restore about half the East-West pipeline within days and all of it within six weeks, is routing crude through Oman and shuttling it past the Strait of Hormuz; China has asked Iran to rein in the Houthis. Against that, the IRGC says it struck a tanker in the strait, Saudi–Houthi strikes widened on Thursday, and Trump says he is approaching a major decision on resuming large-scale attacks on Iran."
+      "title": "The curve has given up half its slope in a month",
+      "text": "The two-year is 4.76% against about 4.24% a month ago; the ten-year is 5.01% against about 4.74%. That takes 2s10s to 25bp from roughly 50bp, and it flattened another 2bp on Friday as the two-year added 9bp to the ten-year's 7bp. 3M10Y is still 87bp positive and widened on the week. A curve flattening while every point on it rises is a hiking cycle being priced, not a recession."
     },
     {
-      "title": "The Bank of England held and sterling fell anyway",
-      "text": "Bank Rate stayed at 3.75% on a 6–3 vote, with three members including the chief economist voting for 4%. August CPI was 3.1%, a five-month high, and the Bank's own forecast has inflation above 4% in early 2027; it said risks are tilted further to the upside than in July. Markets price a 74% chance of a November hike. GBP/USD fell to 1.3336, its lowest since July, the FTSE 100 rose 1.2% and the ten-year gilt yield fell 8.1bp to 5.218%. The MPC also voted to run its gilt holdings down to zero by the end of 2034."
+      "title": "Eight major central banks have moved and the market wants more",
+      "text": "The Fed is at 3.75–4.00% after a unanimous 25bp on 16 September, its first hike since 2023. The Bank of Japan went to 1.25% on 18 September, a 31-year high. The ECB is at 2.50% after its second increase of the year, with Governing Council members saying no meeting is ruled out. The Bank of England held at 3.75% on a 6–3 vote and stopped selling long gilts. The Bank of Canada is still at 2.25%, but its minutes said hikes may be needed if high oil prices pass into other goods. Friday's money markets priced another 25bp from the Fed by year-end and two more by June 2027."
     },
     {
-      "title": "The Bank of Japan hiked to a 31-year high and the yen sold off",
-      "text": "The policy rate went to 1.25% from 1.00% on a 7–2 vote, three months after the last move rather than six. Ueda said the phase of monetary policy has changed and the Bank will keep raising. The two dissenters were the prime minister's appointees, which analysts read as a limit on the pace. USD/JPY rose to about 157, up 1.18% on the day. Reuters' poll has 1.50% by end-March. The data behind all three central banks kept pointing one way: US retail sales rose 1.2% in August against 0.8% expected, jobless claims fell to 196,000 against 208,000, and the Atlanta Fed's Q3 nowcast is 5.1%."
+      "title": "The week's real event is supply, and it is not on most calendars",
+      "text": "Treasury sells $69 billion of two-years on Tuesday, $70 billion of five-years on Wednesday and $44 billion of seven-years on Thursday, into a curve at its highs. New York Fed President Williams speaks at the Treasury Market Conference on Tuesday. Flash September PMIs land Wednesday: US manufacturing is seen at 53.6 after 53.9 and services at 56.0 after 56.5. With a Fed that has said it wants to see restriction, a strong flash reads hawkish rather than as good news."
     }
   ],
   "calendar": [
     {
-      "time": "09:15 ET",
-      "event": "Industrial production and capacity utilisation (August)",
-      "note": "Consensus +0.3% after +0.2%. Second-tier on a normal Friday; today it is the only US print, so it will get more of a reaction than it deserves."
+      "time": "06:30 ET",
+      "event": "Fed's Goolsbee speaks",
+      "note": "A 2027 voter. Warsh has deliberately stopped giving forward guidance, so speeches are the only read on the path between meetings — which makes them carry more than they used to."
     },
     {
-      "time": "10:00 ET",
-      "event": "Conference Board leading index (August)",
-      "note": "Rarely moves price. Fed's Bowman speaks in London this morning; Lagarde spoke at 04:20 ET."
+      "time": "11:00 ET",
+      "event": "ECB President Lagarde and BoC Governor Macklem both speak",
+      "note": "Macklem is the one to watch: the Bank of Canada is still at 2.25% with about 59% priced for an October hike, and its September minutes flagged oil pass-through."
     },
     {
-      "time": "Mon",
-      "event": "PBoC loan prime rate; Goolsbee and Lagarde speak",
-      "note": "A quiet Monday. The week's risk is loaded onto Tuesday and Wednesday."
+      "time": "All day",
+      "event": "UN General Assembly opens in New York",
+      "note": "The unscheduled risk. Any signal on a Trump–Pezeshkian meeting trades oil first and everything else second. A Trump–Xi summit is also expected this week."
     },
     {
-      "time": "Tue",
-      "event": "Trump meets Gulf leaders at the UN General Assembly",
-      "note": "The post-war plan for Iran. Oil trades this headline; Saudi pipeline repair and Houthi strikes are the two inputs. KB Home reports after the close."
+      "time": "Tue 13:00 ET",
+      "event": "$69bn two-year auction; Williams at the Treasury Market Conference",
+      "note": "The front end is where the repricing has happened. A soft two-year tail would say the market does not believe the dots it just sold off for."
     },
     {
-      "time": "Wed 04:00–09:45 ET",
-      "event": "Flash September PMIs: eurozone, UK, US",
-      "note": "US services printed 56.5 in August, the fastest expansion since 2020, and manufacturing 53.9. With a Fed that wants to see restriction, a strong flash is a hawkish print, not a growth cheer."
+      "time": "Wed 09:45 ET",
+      "event": "US flash PMIs (September); euro area 04:00, UK 04:30",
+      "note": "Manufacturing seen 53.6 after 53.9, services 56.0 after 56.5. The first US data of the week and the first read on activity since the hike."
     },
     {
       "time": "Thu 08:30 ET",
-      "event": "Jobless claims; new home sales at 10:00",
-      "note": "Claims at 196,000 last week were distorted by Labor Day. A rebound toward 210,000 would be noise; a second sub-200,000 print would not."
+      "event": "Jobless claims; new home sales 10:00; SNB decision 03:30",
+      "note": "Claims are seen at 202,000 after 196,000. New home sales fell 10.5% last month, with mortgage rates approaching 7%. The SNB is expected to hold at 0%."
     },
     {
       "time": "Fri 08:30 ET",
-      "event": "Durable goods (August); Michigan sentiment final at 10:00",
-      "note": "The one-year inflation expectation, 4.6% in the preliminary, matters more than the headline sentiment number now."
+      "event": "Durable goods (August); Michigan final 10:00",
+      "note": "Durable goods seen −0.5% after +1.1%. The Michigan one-year inflation expectation, 4.6% in the preliminary, matters more here than the sentiment headline."
     },
     {
       "time": "30 Sep 08:30 ET",
       "event": "PCE price index (August)",
-      "note": "The print the Fed named. Core PCE was 3.3% year-over-year in July; the September dots assume 3.4% for the year. A 0.3% month is the number that makes December a second hike."
+      "note": "The print the Fed named. Core PCE was 3.3% year-over-year last month and the September projections assume 3.4% for the year."
     }
   ],
-  "sessionNote": "Friday after three central banks in 36 hours. The tape has had a three-day sell-off and a one-day rebound, and the rebound was narrow: semiconductors and the long bond, not breadth. There is no US release that can change the picture before Monday, so the session is about positioning into a weekend with an open war headline and a Tuesday summit. The clean window is the US morning after 09:15 ET; expect the afternoon to thin out and moves to exaggerate.",
-  "watchOut": "The trap is reading Thursday as the turn. The ten-year at 4.95% this morning is flat, not falling; the two-year is up almost 2bp. A rally on lower yields that yields then stop delivering is a rally without a floor. The second trap is oil: it is down on Saudi repair headlines that can reverse on one strike, and the Trump decision on Iran is unscheduled. Size for the gap, not for the trend.",
+  "sessionNote": "A Monday with no US data and a live geopolitical wire is a headline tape, not a data tape. Friday's levels are the reference: S&P 7,650.50, Dow 51,682.64, Nasdaq 26,522.54. Overnight the pattern that has run all week held — crude down more than 2%, US futures up, with Dow futures about +0.23%, S&P +0.34% and Nasdaq 100 +0.55% late Sunday — and Asia followed, with the Nikkei up 1.38% and the Kospi 1.47%. The clean window is the US morning; the risk is that the move that matters arrives from New York diplomacy rather than from an opening bell.",
+  "watchOut": "Trading the de-escalation as if it were done. Crude has round-tripped this move twice since February: Brent was near $110 early last week and about $72 before the war. What has actually happened is a possible meeting, a pipeline under repair and a flow number that is still 6.1 million barrels a day below last year's average — set against Houthi strikes on Saudi Arabia on Saturday and an Iranian promise of retaliation. A short-energy or long-duration position sized for a settlement is sized for the one outcome nobody has been shown yet.",
   "sources": [
     {
       "name": "MT Newswires",
-      "note": "FOMC statement and press conference, Thursday close, yields, BoE decision, BoJ decision, retail sales, US data roundup"
+      "note": "Friday's US close, sector leadership and the crude settlement"
     },
     {
-      "name": "Yahoo Finance",
-      "note": "index closes, weekly and year-to-date moves, Thursday data"
+      "name": "Associated Press, via AOL",
+      "note": "Friday index levels and weekly changes"
     },
     {
       "name": "CNBC",
-      "note": "Fed takeaways, Friday morning yields, oil"
+      "note": "Monday's crude move, the JPMorgan flow estimate and UN General Assembly reporting"
     },
     {
       "name": "FXStreet",
-      "note": "dot plot detail, dollar, sterling and yen reaction, WTI levels"
+      "note": "Saudi East–West pipeline repair, Hormuz shipping and Monday WTI levels"
     },
     {
-      "name": "Finwire",
-      "note": "BoE vote and gilt programme, BoJ vote, dot plot distribution"
+      "name": "TradeArabia",
+      "note": "Monday Brent and WTI levels and the four-session slide"
     },
     {
-      "name": "Nuveen",
-      "note": "reading of the FOMC statement and projections"
+      "name": "Morningstar",
+      "note": "week-ahead calendar, Treasury auction sizes and Fed and BoC rate pricing"
     },
     {
-      "name": "Alliance News",
-      "note": "Fed analyst reaction, BoJ"
+      "name": "Macro Horizons",
+      "note": "the real-yield versus breakeven split and the monthly yield streak"
     },
     {
-      "name": "Axios via Hurriyet Daily News",
-      "note": "Trump–Gulf leaders meeting on 22 September"
+      "name": "Crypto Briefing",
+      "note": "Treasury bill issuance, buyback sizes and the 5% ten-year"
     },
     {
-      "name": "Business Standard",
-      "note": "week-ahead US data and August PMI readings"
+      "name": "Eastmoney and China Financial Information Network",
+      "note": "central bank roundup and the week's speakers"
+    },
+    {
+      "name": "Benzinga",
+      "note": "Sunday evening US futures and the dollar index"
+    },
+    {
+      "name": "Bigdata.com economic calendar",
+      "note": "release times, consensus and previous readings"
     }
   ],
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-09-18",
+      "headline": "The hike landed. The bond market blinked first.",
+      "summary": "Weekend edition. The Fed's unanimous 25bp on Wednesday took the Dow down 631 points and Thursday gave most of it back, with the S&P up 1.14% to 7,637.76 as the ten-year fell to 4.93% and oil slid. The weekend risk was the Iran war, with Trump saying he was near a decision on resuming large-scale strikes."
+    },
     {
       "date": "2026-09-16",
       "headline": "The ten-year touched 5% into the decision. The hike is not the event.",

@@ -102,6 +102,23 @@ input,select,textarea{ font-family:inherit; }
   border-radius:4px;
 }
 
+/* Skip link: the first thing a keyboard user reaches on every page. Off
+   screen until it has focus, then it drops in over the top-left corner so
+   the page underneath does not move. Each page marks its landmark with the
+   id this points at, plus tabindex="-1" so focus actually lands there. */
+.skip-link{
+  position:fixed; left:12px; top:12px; z-index:10000;
+  padding:10px 16px; border-radius:8px;
+  background:var(--gold); color:#04120c; font-weight:700; font-size:14px;
+  text-decoration:none; box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
+  transform:translateY(-200%);
+}
+.skip-link:focus, .skip-link:focus-visible{ transform:none; outline:2px solid var(--ink-0); outline-offset:2px; }
+/* The landmark takes focus from the skip link only, never from a click, so
+   it needs no ring of its own. */
+main[tabindex="-1"]:focus{ outline:none; }
+
+
 .container{
   width:100%;
   max-width:1240px;
@@ -7898,3 +7915,42 @@ section.ec-strip { padding: 18px 20px; }
 .xp-card{ width:100%; border-radius:8px; border:1px solid var(--line); display:block; }
 .xp-meta{ margin-top:14px; }
 .xp-compose textarea{ width:100%; resize:vertical; }
+
+/* ==========================================================================
+   KEYBOARD FOCUS RING FOR FIELDS THAT TURN THEIR OUTLINE OFF
+   Each rule listed here removes the browser outline and styles :focus with a
+   border tint, which is fine for a mouse click but too faint to follow from
+   the keyboard. Browsers treat a clicked text field as :focus-visible too, so
+   :focus-visible alone would bring a ring back for mouse users; focus-mode.js
+   puts .kbd on <html> while the keyboard is in use and removes it on any
+   pointer press, and the ring is scoped to that. Kept at the end of the file
+   so it outranks the :focus rules above at equal specificity.
+   ========================================================================== */
+:root.kbd .field input:focus-visible, :root.kbd .field select:focus-visible,
+:root.kbd .rte-editable:focus-visible,
+:root.kbd .floor-reply-input-row input:focus-visible,
+:root.kbd .search-box input:focus-visible,
+:root.kbd .journal-select:focus-visible,
+:root.kbd .log-filter-input:focus-visible,
+:root.kbd .todo-add-input:focus-visible,
+:root.kbd .msg-composer textarea:focus-visible,
+:root.kbd .gm-search:focus-visible,
+:root.kbd .gm-cal-select:focus-visible,
+:root.kbd .pf-status-select:focus-visible,
+:root.kbd .pf-inline-form input:focus-visible, :root.kbd .pf-inline-form select:focus-visible,
+:root.kbd .qn-add input:focus-visible,
+:root.kbd .sm-search:focus-visible,
+:root.kbd .ob-field input:focus-visible, :root.kbd .ob-field select:focus-visible{
+  outline:2px solid var(--gold); outline-offset:2px;
+}
+
+/* Scroll reveals start at opacity 0 and fade in when their observer fires.
+   Tabbing to a control inside one that has not fired yet would put keyboard
+   focus on something invisible for a moment, so any reveal holding focus is
+   shown straight away. No effect on mouse or touch: those never focus an
+   element that is still off screen. */
+.reveal:focus-within, .ft-reveal:focus-within,
+.m-ready .m-stagger:focus-within, .m-ready .m-rise:focus-within,
+.m-ready .m-head:focus-within, .m-ready .m-card-rise:focus-within{
+  opacity:1; transform:none; transition:none;
+}

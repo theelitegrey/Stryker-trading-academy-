@@ -120,6 +120,13 @@ body[data-page-access="trade-journal"] .dash-main textarea:focus{
   outline:none; border-color:var(--ja-blue);
   box-shadow:0 0 0 3.5px rgba(66,133,244,0.3);
 }
+/* Keyboard focus: the soft blue halo above is the mouse-click style; from the
+   keyboard add a solid ring (see the focus-ring block at the end of style.css). */
+:root.kbd body[data-page-access="trade-journal"] .dash-main input:focus-visible,
+:root.kbd body[data-page-access="trade-journal"] .dash-main select:focus-visible,
+:root.kbd body[data-page-access="trade-journal"] .dash-main textarea:focus-visible{
+  outline:2px solid var(--ja-blue); outline-offset:2px;
+}
 body[data-page-access="trade-journal"] .dash-main .btn{
   border-radius:12px; font-family:var(--ja-font); font-weight:600;
   letter-spacing:-0.005em;

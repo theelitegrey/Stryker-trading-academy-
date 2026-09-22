@@ -80,6 +80,19 @@
     target = Math.max(0, Math.min(target, max));
     if (reduced || typeof nav.scrollTo !== 'function') nav.scrollLeft = target;
     else nav.scrollTo({ left: target, behavior: 'smooth' });
+    markOverflow();
+  }
+
+  // Only about one and a half tabs fit on a phone, so the strip reads as a short
+  // row rather than something that scrolls. Mark which side still has tabs
+  // beyond the edge and let the stylesheet fade that side. Toggling classes
+  // rather than writing styles keeps the appearance entirely in the CSS.
+  function markOverflow() {
+    if (!nav) return;
+    var max = nav.scrollWidth - nav.clientWidth;
+    var scrollable = max > 1 && window.innerWidth <= 940;
+    nav.classList.toggle('has-before', scrollable && nav.scrollLeft > 1);
+    nav.classList.toggle('has-after', scrollable && nav.scrollLeft < max - 1);
   }
 
   function schedule() {
@@ -140,4 +153,12 @@
   }
 
   if (reduced) desk.classList.add('is-stopped');
+
+  // Keep the edge fade honest: after a manual scroll, on resize, and once at
+  // startup. Passive listener so it never delays the scroll itself.
+  if (nav) {
+    nav.addEventListener('scroll', markOverflow, { passive: true });
+    window.addEventListener('resize', markOverflow);
+    markOverflow();
+  }
 })();

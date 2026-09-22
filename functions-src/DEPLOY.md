@@ -1,205 +1,97 @@
-# Cloud Functions — deploy notes
+# Cloud Functions: what's deployed, and how to roll back
 
-The functions are deployed by hand from Cloud Shell. This directory is the
-source of record; copy a changed file across before deploying it.
+Project `strykertrades-e0cd8`, region `us-central1`. This directory holds the
+source for all 35 live functions. `index.js` loads every module and
+`package.json` pins Node 22. The site deploy excludes `functions-src/`, so
+none of it is published to the website.
 
-> **Everything in a `bash` block below is meant to be pasted into the shell.
-> Anything in a `js` block is file content — it goes inside a file, never into
-> the shell.** Pasting a line of JavaScript into bash gives
-> `syntax error near unexpected token`.
+## Deploying
 
-**Run every command from the folder that holds `firebase.json`**, not from your
-home directory. `firebase deploy` from `~` fails with "Not in a Firebase app
-directory". If you are unsure where it is:
-
-```bash
-find ~ -maxdepth 4 -name firebase.json -not -path '*/node_modules/*'
-```
-
-**Always name the functions you are deploying.** A bare `firebase deploy
---only functions` deletes anything that is not in the current source tree.
-
----
-
-## Outstanding after the 2026-09 security work
-
-These four steps finish the fixes that are already in the site build. Until
-they are done, the site is running the client half of a change whose server
-half does not exist yet.
-
-### 0. Get the current sources onto the Cloud Shell machine
-
-One block, start to finish. Set `PROJECT` to whatever the `find` above printed,
-minus the `/firebase.json`.
+Use a folder whose `firebase.json` has `"functions": {"source": "functions"}`.
+Copy this directory into `functions/`, and put the secrets listed below in
+`functions/.env`.
 
 ```bash
-PROJECT=~/twitter-feed-function            # the folder containing firebase.json
-cd "$PROJECT" || echo "wrong path — run the find command above"
-
-# Fresh copy of the repo, then overwrite the function sources with it.
-rm -rf /tmp/sta && git clone --depth 1 \
-  https://github.com/theelitegrey/Stryker-trading-academy-.git /tmp/sta
-
-cp /tmp/sta/functions-src/*.js functions/
-ls -la functions/*.js
+cd functions && npm ci && cd ..
+firebase deploy --only functions:NAME1,functions:NAME2
 ```
 
-That copies the .js files only, so `index.js`, `package.json`, `.env` and
-`node_modules` in `functions/` are untouched.
+Always deploy by name, a few at a time, and check the logs after each group.
+This tree holds all 35 functions, so a bare `--only functions` no longer
+deletes anything, but it redeploys every function at once.
 
-### 1. Register the two new files, then deploy them
+## What's live (hardening of 2026-09-22)
 
-`index.js` loads each function file with a line of JavaScript. The two new
-files need one line each. This appends them only if they are missing:
+- Every function has a `maxInstances` cap. A budget alert only sends an email;
+  the caps are what actually limit spend.
+- Node 22 everywhere once the payment group ships; Node 20 is retired on
+  2026-10-30.
+- `replayBars` requires a signed-in user: no ID token means 401.
+- No function changed generation, so no URL or trigger moved.
+
+| Cap | Functions | Why |
+|---|---|---|
+| 1 | refreshFxRate, refreshWorldData, marketBots, mirrorTweets, brokerSyncSweep, xAutopostTick, subscriptionSweep* | Scheduled jobs: one run at a time |
+| 2 | xAutopostAdmin, xAutopostOnChapter, xAutopostOnModel, xAutopostOnIndicator, xAutopostOnSession, deleteUserAccount* | Admin-only or admin-triggered |
+| 3 | onContactMessageCreated | Public form fan-out (the code also throttles per hour) |
+| 5 | replayBars, tvValidateUsername, tvGrantAccess, tvRevokeAccess, brokerConnect, brokerSyncNow, brokerDisconnect | Signed-in or admin calls; replayBars fans out to Yahoo |
+| 10 | getNewswire, getWorldEvents, getIntel, getTwitterFeed, brokerCatalog, onReferralWritten*, razorpaySubsCancel* | Public reads served from cache; light calls |
+| 20 | redeemFreeCheckout*, onNotificationCreated | Checkout; push fan-out after bulk notifications |
+| 30 | razorpayCreateOrder*, razorpayVerifyPayment*, razorpaySubscribe*, razorpaySubsVerify*, razorpayWebhook* | Payments: far above real traffic, so no buyer is ever throttled |
+
+\* **The payment group is in this source but NOT yet deployed.** It waits for
+the Owner's OK, and until then it runs its previous code with no cap. Deploy
+it last, after a test purchase:
 
 ```bash
-cd "$PROJECT/functions"
-grep -q "freeCheckout"   index.js || echo "Object.assign(exports, require('./freeCheckout'));"   >> index.js
-grep -q "referralPoints" index.js || echo "Object.assign(exports, require('./referralPoints'));" >> index.js
-tail -5 index.js
-```
-
-The lines it adds look like this — this is *file content*, not a command:
-
-```js
-Object.assign(exports, require('./freeCheckout'));
-Object.assign(exports, require('./referralPoints'));
-```
-
-Then, from the project root:
-
-```bash
-cd "$PROJECT"
-firebase deploy --only functions:redeemFreeCheckout,functions:onReferralWritten
-```
-
-Until `redeemFreeCheckout` exists, a fully-discounted coupon checkout shows
-"Checkout is being updated right now" and grants nothing. Until
-`onReferralWritten` exists, referral points are recorded but not credited;
-re-saving a referral row from the Referrals admin page fires the trigger and
-credits it late.
-
-### 2. Redeploy the hardened existing functions
-
-```bash
+firebase deploy --only functions:subscriptionSweep,functions:deleteUserAccount,functions:onReferralWritten
+firebase deploy --only functions:redeemFreeCheckout
 firebase deploy --only functions:razorpayCreateOrder,functions:razorpayVerifyPayment
 firebase deploy --only functions:razorpaySubscribe,functions:razorpaySubsVerify,functions:razorpayWebhook,functions:razorpaySubsCancel
-firebase deploy --only functions:replayBars
-firebase deploy --only functions:brokerConnect,functions:brokerSyncNow,functions:brokerDisconnect,functions:brokerCatalog
-firebase deploy --only functions:onContactMessageCreated
-firebase deploy --only functions:subscriptionSweep
 ```
 
-### 3. Turn on the replayBars auth requirement
+## Rolling back
 
-`replayBars.js` ships with `REQUIRE_AUTH = false` so that a tab still open on
-an older build does not break the moment the function is deployed. Once the
-site has been on build 284 or later for a day, set it to `true` and redeploy
-that one function. After that, only signed-in users can spend the Yahoo quota.
+- **A cap is throttling real users.** Raise or delete that function's
+  `maxInstances`, then redeploy it by name.
+- **The code itself is broken.** Tag `functions-pre-hardening` has every
+  module as it was before the caps and replayBars auth. It does not include
+  `index.js`, `package.json` or `accountAdmin.js`, which came into the repo
+  after it. Copy the old module back and redeploy that function by name:
+  `git show functions-pre-hardening:functions-src/FILE.js > FILE.js`
+- **The fastest rollback, for 2nd Gen functions** (getTwitterFeed,
+  onContactMessageCreated, onNotificationCreated, onReferralWritten and the
+  four xAutopostOn* triggers): in the console, open Cloud Run, then the
+  service, then Revisions, and send 100% of traffic to the previous revision.
+- **Don't roll back to Node 20**, because it is being retired. Fix forward
+  on 22.
+- **If a deploy hangs, cancel it and rerun it for that one name.** Don't
+  delete the function: that drops its trigger or changes its URL.
 
-### 4. Publish the Firestore rules
+## Budget alert
 
-`firestore.rules` in this directory is a reference draft, not the live rules.
-Paste it into the Firebase console (Firestore → Rules), test every collection
-in the Rules Playground as signed out / student / admin, and publish.
-
-Two lines in it matter more than all the rest:
-
-- `admins/{uid}` must not be creatable by a client. Admin status on this site
-  is "does this document exist", so a client that can create it can become an
-  admin.
-- `chapters` and `models` must require `request.auth != null`. They are
-  world-readable today, which means the whole written curriculum can be
-  downloaded with one unauthenticated request.
-
-The rules are what actually close the plan-self-grant hole. The functions make
-the correct path exist; the rules are what stop the browser taking the other
-one.
-
-#### Verifying the rules from outside, after publishing
-
-Signed out, these should be denied (403) and these should be allowed (200).
-Run it from anywhere with curl; no credentials are needed, which is the point.
-
-```bash
-K=$(grep -o 'apiKey: "[^"]*"' ../assets/auth.js | cut -d'"' -f2)   # or paste it
-B="https://firestore.googleapis.com/v1/projects/strykertrades-e0cd8/databases/(default)/documents"
-
-# must be 403 — paid content and anything private
-for c in chapters models indicators students admins orders coupons referrals \
-         communityPosts profiles settings/tradingview settings/pageAccess; do
-  printf '%-26s %s\n' "$c" "$(curl -s -o /dev/null -w '%{http_code}' "$B/$c?pageSize=1&key=$K")"
-done
-
-# must be 200 — the public pages read these before anyone signs in
-for c in plans sitePages seoPages publicStats \
-         settings/site settings/logo settings/favicon settings/commerce settings/seo; do
-  printf '%-26s %s\n' "$c" "$(curl -s -o /dev/null -w '%{http_code}' "$B/$c?key=$K")"
-done
-```
-
-The five `settings` documents in the allowed list are load-bearing for signed-out
-visitors. `settings/seo` is the one that fails silently: `seo.js` catches the
-denial, so nothing looks broken, but the site-wide title template stops applying
-and the "discourage indexing" master switch stops reaching the anonymous
-crawlers it exists to stop.
-
----
-
-## X autopost (`xAutopost.js` and its three helper files)
-
-Six functions, five secrets, two npm packages. The full guide, including
-creating the X developer app, is `tools/x-autopost.md`. The deploy itself:
-
-```bash
-cp -r /tmp/sta/functions-src/fonts "$PROJECT/functions/"
-cd "$PROJECT/functions"
-npm install @anthropic-ai/sdk @resvg/resvg-js
-grep -q "xAutopost'" index.js || echo "Object.assign(exports, require('./xAutopost'));" >> index.js
-cd "$PROJECT"
-firebase functions:secrets:set X_API_KEY
-firebase functions:secrets:set X_API_SECRET
-firebase functions:secrets:set X_ACCESS_TOKEN
-firebase functions:secrets:set X_ACCESS_SECRET
-firebase functions:secrets:set ANTHROPIC_API_KEY
-firebase deploy --only functions:xAutopostTick,functions:xAutopostAdmin,functions:xAutopostOnChapter,functions:xAutopostOnModel,functions:xAutopostOnIndicator,functions:xAutopostOnSession
-```
-
-`xAutopost-x.js`, `xAutopost-cards.js` and `xAutopost-draft.js` are required
-by `xAutopost.js` and export no functions of their own; the `cp` in step 0
-copies them across. `functions-src/fonts/` holds the Inter typefaces the
-cards are set in and must be copied as a folder (the `cp -r` above); the
-`*.js` copy in step 0 does not include it. The rules need the three `xAutopost` / `xPosts` lines from
-`firestore.rules`.
-
-## Node runtime
-
-`engines.node` in `package.json` must be `"22"`. Node 20 is decommissioned on
-2026-10-30, and a deploy onto a decommissioned runtime hangs for twenty
-minutes and then fails. `replayBars` is already on 22; every other function
-moves the next time it is deployed, which the steps above cover.
-
-If a deploy hangs on "creating Node.js 20 function <name>", cancel it, then:
-
-```bash
-firebase functions:delete <name> --region us-central1 --force
-firebase deploy --only functions:<name>
-```
+"Stryker monthly INR 500 alert", on billing account `019C89-1DB83D-8B4CCC`.
+It covers this project at INR 500 a month, and emails the billing admins at
+50%, 90% and 100% of actual spend. It only notifies; it never stops spending.
 
 ## Secrets
 
-These live only in `functions/.env` on the deploy machine. They are not in
-this repo, not in Firestore, and must never be pasted into a chat or a commit.
+These live only in `functions/.env` on the deploy machine. Never put them in
+the repo, a chat, or Firestore.
 
 ```
-RAZORPAY_KEY_ID          RAZORPAY_KEY_SECRET       RAZORPAY_WEBHOOK_SECRET
-TV_USERNAME              TV_PASSWORD               TV_SESSIONID
-BROKER_SYNC_SECRET
+RAZORPAY_KEY_ID  RAZORPAY_KEY_SECRET  RAZORPAY_WEBHOOK_SECRET  RAZORPAY_CURRENCY
+TV_USERNAME      TV_PASSWORD          TV_SESSIONID             BROKER_SYNC_SECRET
 ```
 
-`BROKER_SYNC_SECRET` is the one that cannot be regenerated: it derives the
-AES-256-GCM key that every stored broker credential is encrypted with. Lose it
-and every connected broker has to be reconnected by hand.
+`TWITTERAPI_KEY`, the four X keys and `ANTHROPIC_API_KEY` are in Secret
+Manager. `BROKER_SYNC_SECRET` can't be regenerated, because it encrypts every
+stored broker credential. If it's lost, every broker has to be reconnected by
+hand.
 
-`TWITTERAPI_KEY` is the exception — it is already in Secret Manager via
-`defineSecret`, which is where the rest should end up too.
+## Firestore rules
+
+`firestore.rules` here is a reference draft, not necessarily the live rules.
+It is unchanged by this work. For the publish checklist and the curl check
+for signed-out access, see this file as it was before 2026-09-22 (in git
+history).

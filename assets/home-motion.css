@@ -562,3 +562,73 @@
 :root[data-theme="light"] .mtape-item i.down{ color:#c9353a; }
 :root[data-theme="light"] .mtape{ background:var(--bg-2); border-color:var(--line); }
 :root[data-theme="light"] .hero-vignette, :root[data-theme="light"] .home-glow{ opacity:.35; }
+
+/* ==========================================================================
+   Core vocabulary constellation (#concepts)
+   Markup: tools/gen-vocab.js. Behaviour: assets/vocab-constellation.js.
+   Before the script runs (or without it) the nodes sit at their resting
+   positions from the --x/--y custom properties and the default term's card is
+   shown, so the section is complete and usable as static HTML.
+   ========================================================================== */
+.vc{ display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:20px; align-items:stretch; }
+.vc-field{ position:relative; height:540px; border:1px solid var(--line); border-radius:16px; overflow:hidden; min-width:0;
+  background:radial-gradient(90% 80% at 50% 50%, var(--bg-2), var(--bg-1)); contain:layout paint; }
+.vc-glow{ position:absolute; left:0; top:0; width:360px; height:360px; margin:-180px 0 0 -180px; border-radius:50%;
+  background:radial-gradient(circle, rgba(3,201,136,.16), transparent 65%); pointer-events:none; will-change:transform; transform:translate(-999px,-999px); }
+.vc-edges{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible; }
+.vc-e{ stroke:var(--ink-3); stroke-width:1; opacity:.28; }
+.vc-h{ stroke:var(--gold); stroke-width:2; opacity:0; }
+.vc-nodes{ list-style:none; margin:0; padding:0; position:absolute; inset:0; }
+.vc-node{ position:absolute; left:var(--x); top:var(--y); }
+.vc-ready .vc-node{ left:0; top:0; will-change:transform; }
+.vc-sc{ position:relative; }
+.vc-ready .vc-sc{ will-change:transform,opacity; }
+.vc-pill{ position:absolute; left:0; top:0; transform:translate(-50%,-50%); display:flex; flex-direction:column; align-items:center; gap:1px;
+  padding:7px 12px 6px; border-radius:12px; background:var(--bg-1); border:1px solid var(--line); cursor:pointer;
+  font-family:var(--font-mono); font-size:13px; font-weight:600; color:var(--ink-0); white-space:nowrap; line-height:1.2; box-shadow:var(--shadow-card); }
+.vc-pill small{ font-size:9.5px; font-weight:500; color:var(--ink-3); letter-spacing:.06em; }
+.vc-pill:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+.vc-node.on .vc-pill, .vc-pill[aria-current="true"]{ border-color:var(--gold); color:var(--gold); box-shadow:var(--shadow-glow); }
+.vc-node.on .vc-pill small{ color:var(--ink-1); }
+.vc-ring{ position:absolute; left:-34px; top:-34px; width:68px; height:68px; border-radius:50%; border:1px solid var(--gold); opacity:0; pointer-events:none; }
+.vc-axis{ position:absolute; left:18px; bottom:12px; font-family:var(--font-mono); font-size:10.5px; color:var(--ink-3); letter-spacing:.08em; }
+.vc-pause{ position:absolute; right:12px; bottom:10px; z-index:6; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em;
+  color:var(--ink-3); background:transparent; border:1px solid transparent; border-radius:6px; padding:6px 10px; cursor:pointer; }
+.vc-pause:hover{ color:var(--ink-1); border-color:var(--line); }
+.vc-pause[aria-pressed="true"]{ display:none; }
+.vc-card{ background:var(--bg-2); border:1px solid var(--line); border-radius:16px; padding:24px; position:relative; overflow:hidden; min-width:0;
+  box-shadow:var(--shadow-card); display:flex; flex-direction:column; }
+.vc-card::before{ content:''; position:absolute; right:-80px; top:-80px; width:240px; height:240px; border-radius:50%; background:var(--gold); filter:blur(80px); opacity:.10; pointer-events:none; }
+.vc-in{ display:flex; flex-direction:column; gap:10px; flex:1; position:relative; }
+.vc-ready .vc-in{ will-change:transform,opacity; }
+.vc-in[hidden]{ display:none; }
+.vc-k{ font-family:var(--font-mono); font-size:11.5px; font-weight:500; color:var(--gold); letter-spacing:.12em; text-transform:uppercase; margin:0; }
+.vc-ab{ font-family:var(--font-mono); font-size:46px; font-weight:600; line-height:1; color:var(--ink-0); letter-spacing:-.03em; overflow-wrap:anywhere; }
+.vc-d{ margin:0; color:var(--ink-2); font-size:14.5px; line-height:1.5; }
+.vc-mini{ display:block; width:100%; height:auto; background:#08090b; border:1px solid #1e1e22; border-radius:10px; }
+.vc-mini text{ font-family:var(--font-mono); font-size:10px; fill:#8b93a0; }
+.vc-mini .lbl{ fill:#4fe3ac; font-weight:600; } .vc-mini .lbl-r{ fill:#f08488; font-weight:600; }
+.vc-meta{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.vc-lv{ display:inline-block; font-family:var(--font-mono); font-size:10.5px; letter-spacing:.06em; padding:3px 8px; border-radius:4px; text-transform:uppercase; }
+.vc-lv-f{ background:rgba(0,173,181,.12); color:var(--teal); }
+.vc-lv-i{ background:rgba(3,201,136,.12); color:var(--gold); }
+.vc-lv-a{ background:rgba(229,72,77,.12); color:#f08488; }
+:root[data-theme="light"] .vc-lv-i{ color:#06694a; }
+:root[data-theme="light"] .vc-lv-a{ color:#c9353a; }
+.vc-ch{ font-family:var(--font-mono); font-size:11.5px; color:var(--gold); }
+.vc-rel{ font-family:var(--font-mono); font-size:11px; color:var(--ink-3); margin-top:auto; }
+.vc-rel b{ color:var(--ink-1); font-weight:500; }
+@media (max-width:900px){
+  .vc{ grid-template-columns:1fr; gap:12px; }
+  .vc-field{ height:318px; }
+  .vc-pause{ bottom:4px; right:6px; }
+  .vc-node{ left:var(--px); top:calc(var(--py) * (318 - 30) / 318); }
+  .vc-pill{ font-size:11.5px; padding:5px 8px 4px; border-radius:9px; }
+  .vc-pill small{ font-size:8.5px; }
+  .vc-card{ padding:16px; } .vc-in{ gap:6px; } .vc-ab{ font-size:32px; } .vc-d{ font-size:13.5px; }
+  .vc-mini{ max-height:96px; } .vc-axis{ display:none; } .vc-rel{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .vc-glow, .vc-ring{ display:none; }
+  .vc-ready .vc-node, .vc-ready .vc-sc, .vc-ready .vc-in{ will-change:auto; }
+}

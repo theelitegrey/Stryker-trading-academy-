@@ -439,35 +439,66 @@
   .plat-desk{ grid-template-columns:240px 1fr; }
   .desk-pane{ padding:32px; gap:26px; }
 }
+/* Scroll chevrons for the phone tab strip; they exist only below 940px. */
+.desk-chev{ display:none; }
 @media (max-width:940px){
   .plat-desk{ grid-template-columns:1fr; min-height:0; margin-bottom:64px; }
   .desk-orbit{ display:none; }
-  .desk-nav{ flex-direction:row; overflow-x:auto; border-right:0; border-bottom:1px solid var(--line);
-    scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:10px; gap:6px;
-    scroll-snap-type:x proximity; }
+  /* The strip carries no background or border of its own on a phone. The edge
+     fade below is a mask on the strip, and a mask fades everything the element
+     paints: with its own darker background and bottom border, the faded edge
+     showed the card colour through the strip and read as a smudge rather than
+     as tabs running off the edge. With nothing painted on the strip, the mask
+     fades only the tab labels, and the separator moves to the top of the panes. */
+  .desk-nav{ flex-direction:row; overflow-x:auto; border-right:0; background:transparent;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:10px 7px; gap:2px; }
+  .desk-panes{ border-top:1px solid var(--line); }
   .desk-nav::-webkit-scrollbar{ display:none; }
-  .desk-tab{ scroll-snap-align:center; }
-  /* Discoverability: only ~1.5 of the six tabs fit on a phone, so without a cue
-     the strip looks like a short row rather than a scroller. Fade the edge that
-     has more tabs beyond it. Done with a mask rather than a gradient overlay so
-     it needs no background colour and therefore works in both themes unchanged,
-     and so it can never paint over the tab text. Classes come from
-     platform-desk.js; with JS off, no class means no mask and the strip still
-     scrolls exactly as before. */
+  /* The peek. Spacing is tuned so the third label is cut mid-word by the edge
+     at 375, 390 and 414 alike, rather than the edge falling cleanly between two
+     tabs, which reads as a finished row. That needs the room the small "01"
+     index takes; the pane already shows "01 / 06", so the index is dropped on
+     phones only. Desktop keeps it. */
+  .desk-tab .desk-k{ display:none; }
+
+  /* Discoverability: only about two of the six tabs fit on a phone. Three cues:
+     the next label is cut mid-word by the edge, that edge fades, and a chevron
+     button sits beyond the fade. The mask goes fully transparent where the
+     chevron begins, so the chevron never sits on top of readable tab text.
+     A mask has no colour of its own, so it works unchanged in both themes.
+     has-before / has-after come from platform-desk.js; without scripting no
+     class is set, no mask applies and no chevrons exist. */
+  .plat-desk{ --desk-chev:34px; --desk-fade:32px; }
   .desk-nav.has-after{
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent);
-            mask-image:linear-gradient(90deg,#000 calc(100% - 44px),transparent);
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
+            mask-image:linear-gradient(90deg,#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
   }
   .desk-nav.has-before{
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 44px);
-            mask-image:linear-gradient(90deg,transparent,#000 44px);
+    -webkit-mask-image:linear-gradient(90deg,transparent var(--desk-chev),#000 calc(var(--desk-chev) + var(--desk-fade)));
+            mask-image:linear-gradient(90deg,transparent var(--desk-chev),#000 calc(var(--desk-chev) + var(--desk-fade)));
   }
   .desk-nav.has-before.has-after{
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent);
-            mask-image:linear-gradient(90deg,transparent,#000 44px,#000 calc(100% - 44px),transparent);
+    -webkit-mask-image:linear-gradient(90deg,transparent var(--desk-chev),#000 calc(var(--desk-chev) + var(--desk-fade)),#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
+            mask-image:linear-gradient(90deg,transparent var(--desk-chev),#000 calc(var(--desk-chev) + var(--desk-fade)),#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
   }
+  .desk-chev{
+    position:absolute; top:0; z-index:3; width:var(--desk-chev); height:55px;
+    display:flex; align-items:center; justify-content:center; padding:0;
+    background:none; border:0; color:var(--ink-0); font-size:22px; line-height:1;
+    cursor:pointer; -webkit-tap-highlight-color:transparent;
+  }
+  .desk-chev[hidden]{ display:none; }
+  .desk-chev-next{ right:0; }
+  .desk-chev-prev{ left:0; }
+  .desk-chev span{
+    display:flex; align-items:center; justify-content:center; width:26px; height:26px;
+    border-radius:50%; border:1px solid var(--line); background:var(--bg-3); color:var(--gold);
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .desk-chev:focus-visible{ outline:none; }
+  .desk-chev:focus-visible span{ border-color:var(--gold); box-shadow:0 0 0 2px var(--gold); }
   .desk-hub{ display:none; }
-  .desk-tab{ flex:0 0 auto; padding:9px 12px; font-size:13px; white-space:nowrap; }
+  .desk-tab{ flex:0 0 auto; padding:9px 8px; font-size:13px; white-space:nowrap; }
   .desk-tab:hover{ transform:none; }
   .desk-pane{ grid-template-columns:1fr; padding:22px 18px 26px; gap:18px; }
   .desk-copy h3{ font-size:20px; }
@@ -479,7 +510,6 @@
   .desk-tab.on .desk-prog{ animation:none; transform:scaleX(1); opacity:.35; }
   .desk-pane.on *, .desk-pane.on .desk-stage, .desk-pane.on .desk-glow{ animation:none !important; }
   .desk-tab{ transition:none; }
-  .desk-nav{ scroll-snap-type:none; }
 }
 
 

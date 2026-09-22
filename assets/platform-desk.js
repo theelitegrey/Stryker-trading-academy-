@@ -28,6 +28,7 @@
   var tabs  = Array.prototype.slice.call(desk.querySelectorAll('.desk-tab'));
   var panes = Array.prototype.slice.call(desk.querySelectorAll('.desk-pane'));
   var nav   = desk.querySelector('.desk-nav');
+  var chevPrev = null, chevNext = null;
   if (!tabs.length || tabs.length !== panes.length) return;
 
   var reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -83,16 +84,65 @@
     markOverflow();
   }
 
-  // Only about one and a half tabs fit on a phone, so the strip reads as a short
-  // row rather than something that scrolls. Mark which side still has tabs
-  // beyond the edge and let the stylesheet fade that side. Toggling classes
-  // rather than writing styles keeps the appearance entirely in the CSS.
+  // Only about two tabs fit on a phone, so the strip reads as a short row
+  // rather than something that scrolls. Mark which side still has tabs beyond
+  // the edge (the stylesheet fades that side) and show the matching chevron.
+  // Toggling classes and the hidden attribute keeps appearance in the CSS.
   function markOverflow() {
     if (!nav) return;
     var max = nav.scrollWidth - nav.clientWidth;
     var scrollable = max > 1 && window.innerWidth <= 940;
-    nav.classList.toggle('has-before', scrollable && nav.scrollLeft > 1);
-    nav.classList.toggle('has-after', scrollable && nav.scrollLeft < max - 1);
+    var before = scrollable && nav.scrollLeft > 1;
+    var after  = scrollable && nav.scrollLeft < max - 1;
+    nav.classList.toggle('has-before', before);
+    nav.classList.toggle('has-after', after);
+    if (chevPrev) chevPrev.hidden = !before;
+    if (chevNext) chevNext.hidden = !after;
+  }
+
+  // The chevrons page the strip one tab at a time. They only move the strip;
+  // they do not change which tool is showing, so they never fight the tabs.
+  // Width reserved for a chevron plus its fade, read from the stylesheet so
+  // the numbers live in one place.
+  function edgeReserve() {
+    var cs = getComputedStyle(desk);
+    return (parseFloat(cs.getPropertyValue('--desk-chev')) || 34) +
+           (parseFloat(cs.getPropertyValue('--desk-fade')) || 32);
+  }
+  function pageStrip(dir) {
+    var max = nav.scrollWidth - nav.clientWidth;
+    var edge = edgeReserve();
+    var left = nav.scrollLeft, target = left, i, t;
+    if (dir > 0) {
+      // First tab not fully clear of the right fade: bring it fully into view.
+      for (i = 0; i < tabs.length; i++) {
+        t = tabs[i];
+        if (t.offsetLeft + t.offsetWidth > left + nav.clientWidth - edge + 1) {
+          target = t.offsetLeft + t.offsetWidth - (nav.clientWidth - edge);
+          break;
+        }
+      }
+    } else {
+      // Last tab not fully clear of the left fade: bring it fully into view.
+      for (i = tabs.length - 1; i >= 0; i--) {
+        t = tabs[i];
+        if (t.offsetLeft < left + edge - 1) { target = t.offsetLeft - edge; break; }
+      }
+    }
+    target = Math.max(0, Math.min(target, max));
+    if (reduced || typeof nav.scrollTo !== 'function') { nav.scrollLeft = target; markOverflow(); }
+    else nav.scrollTo({ left: target, behavior: 'smooth' });
+  }
+  function makeChev(cls, label, glyph, dir) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'desk-chev ' + cls;
+    b.setAttribute('aria-label', label);
+    b.hidden = true;
+    b.innerHTML = '<span aria-hidden="true">' + glyph + '</span>';
+    b.addEventListener('click', function () { stop(); pageStrip(dir); });
+    nav.parentNode.insertBefore(b, nav.nextSibling);
+    return b;
   }
 
   function schedule() {
@@ -154,9 +204,13 @@
 
   if (reduced) desk.classList.add('is-stopped');
 
-  // Keep the edge fade honest: after a manual scroll, on resize, and once at
-  // startup. Passive listener so it never delays the scroll itself.
+  // Keep the edge fade and chevrons honest: after a manual scroll, on resize,
+  // and once at startup. Passive listener so it never delays the scroll itself.
+  // The next chevron is inserted first so the previous one lands before it and
+  // keyboard order runs previous, then next.
   if (nav) {
+    chevNext = makeChev('desk-chev-next', 'Show more tools', '\u203A', 1);
+    chevPrev = makeChev('desk-chev-prev', 'Show previous tools', '\u2039', -1);
     nav.addEventListener('scroll', markOverflow, { passive: true });
     window.addEventListener('resize', markOverflow);
     markOverflow();

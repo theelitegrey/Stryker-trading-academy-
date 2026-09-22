@@ -16,6 +16,10 @@
 // class, forcing a reflow with offsetWidth, then adding it does.
 //
 // prefers-reduced-motion: no autoplay at all. The tabs still work.
+//
+// Keeping the active tab visible on phones scrolls the tab strip itself and
+// never scrollIntoView, which would drag the whole desk sideways behind its
+// hidden overflow and clip the pane. See centreTab().
 
 (function () {
   var desk = document.getElementById('plat-desk');
@@ -23,6 +27,7 @@
 
   var tabs  = Array.prototype.slice.call(desk.querySelectorAll('.desk-tab'));
   var panes = Array.prototype.slice.call(desk.querySelectorAll('.desk-pane'));
+  var nav   = desk.querySelector('.desk-nav');
   if (!tabs.length || tabs.length !== panes.length) return;
 
   var reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -58,9 +63,23 @@
     restartAnimations(tabs[i]);
     restartAnimations(panes[i]);
     // On the phone the tabs are a horizontal strip; keep the active one visible.
-    if (tabs[i].scrollIntoView && window.innerWidth <= 940) {
-      tabs[i].scrollIntoView({ block: 'nearest', inline: 'center', behavior: reduced ? 'auto' : 'smooth' });
-    }
+    centreTab(tabs[i]);
+  }
+
+  // scrollIntoView() walks up and scrolls EVERY scrollable ancestor, so if the
+  // page is still smooth-scrolling towards the section when a tab is tapped,
+  // it also shifts #plat-desk itself sideways. The desk is overflow-x:hidden,
+  // so that shift clips the pane's heading, copy and call to action off the
+  // left edge with no way to scroll them back. Scroll the strip and nothing
+  // else: set scrollLeft on the strip directly.
+  function centreTab(tab) {
+    if (!nav || window.innerWidth > 940) return;
+    var max = nav.scrollWidth - nav.clientWidth;
+    if (max <= 0) return;
+    var target = tab.offsetLeft - (nav.clientWidth - tab.offsetWidth) / 2;
+    target = Math.max(0, Math.min(target, max));
+    if (reduced || typeof nav.scrollTo !== 'function') nav.scrollLeft = target;
+    else nav.scrollTo({ left: target, behavior: 'smooth' });
   }
 
   function schedule() {

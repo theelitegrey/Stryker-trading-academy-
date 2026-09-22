@@ -307,67 +307,153 @@
 }
 
 /* ==========================================================================
-   PLATFORM FERRIS WHEEL (build 211) — the six module cards orbit slowly,
-   each counter-rotating so it stays upright. Falls back to the plain grid
-   on narrow screens and under prefers-reduced-motion.
+   PLATFORM DESK (build 306) — the six module cards become one app-shell
+   frame: a sidebar of tools and a single large stage. One tool shows at a
+   time; the stage auto-advances until the visitor touches it (see
+   assets/platform-desk.js). Replaces the Ferris wheel from build 211.
+
+   Motion, all transforms/opacity only:
+     - three orbit rings drift slowly behind the frame (continuous life)
+     - the hub dot breathes
+     - the active tab carries a progress bar that fills over the autoplay
+       interval, so the advance never surprises anyone
+     - a pane change slides copy up and the stage in from the right, with a
+       radial glow that swells behind the illustration
+     - the illustration keeps its own mv-* animations, restarted per switch
    ========================================================================== */
-.plat-wheel-wrap{ position:relative; height:1150px; margin-top:10px;
-  /* clip + contain: a composited 360deg rotation makes the browser reserve the
-     whole swept circle as potential overflow, which some engines surface as
-     the page width pulsing ("zooming"). Clipping at the wrap kills that. */
-  overflow:clip; contain:layout paint; }
-body{ overflow-x:clip; }
-.wheel-ring{
-  position:absolute; left:50%; top:50%; width:740px; height:740px; border-radius:50%;
-  border:1px dashed rgba(3,201,136,0.18); transform:translate(-50%,-50%);
+.plat-desk{ position:relative; margin:10px 0 96px; }
+.desk-orbit{ position:absolute; inset:-60px -40px; pointer-events:none; z-index:0; overflow:hidden; border-radius:40px; }
+.desk-orbit span{
+  position:absolute; left:50%; top:50%; border-radius:50%;
+  border:1px dashed rgba(3,201,136,0.16);
+  transform:translate(-50%,-50%);
+  animation:deskOrbit 90s linear infinite;
 }
-.wheel-hub{
-  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-  width:170px; height:170px; border-radius:50%; text-align:center;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-  background:radial-gradient(circle, rgba(3,201,136,0.10), rgba(19,19,22,0.9) 70%);
-  border:1px solid rgba(3,201,136,0.3);
+.desk-orbit span:nth-child(1){ width:120%; padding-top:120%; }
+.desk-orbit span:nth-child(2){ width:90%; padding-top:90%; animation-direction:reverse; animation-duration:70s; border-color:rgba(0,173,181,0.14); }
+.desk-orbit span:nth-child(3){ width:60%; padding-top:60%; animation-duration:50s; border-style:dotted; }
+.desk-orbit span::after{
+  content:''; position:absolute; left:50%; top:-3px; width:6px; height:6px; margin-left:-3px;
+  border-radius:50%; background:var(--gold); box-shadow:0 0 12px 2px rgba(3,201,136,0.55);
 }
-.wheel-hub b{ font-size:15px; letter-spacing:.14em; color:var(--ink-0); }
-.wheel-hub span{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); }
-.plat-wheel{
-  position:absolute; left:50%; top:50%; width:0; height:0;
-  animation:wheelSpin 80s linear infinite;
+@keyframes deskOrbit{ from{ transform:translate(-50%,-50%) rotate(0deg); } to{ transform:translate(-50%,-50%) rotate(360deg); } }
+
+.plat-desk > .desk-nav,
+.plat-desk > .desk-panes{ position:relative; z-index:1; }
+.plat-desk{
+  display:grid; grid-template-columns:280px 1fr; min-height:440px;
+  border:1px solid var(--line); border-radius:var(--radius-lg);
+  background:var(--bg-2); overflow:hidden;
+  box-shadow:0 30px 80px -40px rgba(0,0,0,0.6), 0 0 0 1px rgba(3,201,136,0.06);
 }
-.plat-wheel .spoke{ position:absolute; left:0; top:0; transform:rotate(var(--a)) translateY(-370px); }
-.plat-wheel .wcard{
-  position:absolute; left:-150px; top:-165px; width:300px;
-  transform-origin:150px 165px;
-  animation:wheelSpinRev 80s linear infinite;
+.plat-desk::before{
+  /* thin scanning highlight along the top edge — the "live" cue */
+  content:''; position:absolute; left:0; right:0; top:0; height:1px; z-index:2;
+  background:linear-gradient(90deg, transparent, var(--gold) 50%, transparent);
+  background-size:40% 100%; background-repeat:no-repeat;
+  animation:deskScan 6s ease-in-out infinite;
+  opacity:.8;
 }
-.plat-wheel .feature-card{ background:var(--bg-2); }
-@keyframes wheelSpin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
-@keyframes wheelSpinRev{ from{ transform:rotate(calc(0deg - var(--a))); } to{ transform:rotate(calc(-360deg - var(--a))); } }
-.plat-wheel-wrap:hover .plat-wheel,
-.plat-wheel-wrap:hover .wcard{ animation-play-state:paused; }
+@keyframes deskScan{ 0%{ background-position:-40% 0; } 100%{ background-position:140% 0; } }
+
+/* --- sidebar -------------------------------------------------------------- */
+.desk-nav{
+  display:flex; flex-direction:column; gap:4px; padding:14px;
+  background:var(--bg-1); border-right:1px solid var(--line);
+}
+.desk-hub{ position:relative; padding:12px 12px 18px; }
+.desk-hub-eyebrow{ font-family:var(--font-mono); font-size:9.5px; letter-spacing:.22em; text-transform:uppercase; color:var(--gold); display:block; }
+.desk-hub b{ display:block; font-size:16px; letter-spacing:.12em; color:var(--ink-0); margin-top:2px; }
+.desk-hub-pulse{
+  position:absolute; right:14px; top:16px; width:8px; height:8px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 0 0 rgba(3,201,136,0.6);
+  animation:deskPulse 2.4s ease-out infinite;
+}
+@keyframes deskPulse{ 0%{ box-shadow:0 0 0 0 rgba(3,201,136,0.6); } 70%{ box-shadow:0 0 0 12px rgba(3,201,136,0); } 100%{ box-shadow:0 0 0 0 rgba(3,201,136,0); } }
+
+.desk-tab{
+  position:relative; display:flex; align-items:center; gap:10px; text-align:left;
+  font-family:inherit; font-size:14px; color:var(--ink-2); cursor:pointer;
+  background:none; border:1px solid transparent; border-radius:8px; padding:11px 12px;
+  overflow:hidden; transition:color .25s ease, background .25s ease, border-color .25s ease, transform .25s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.desk-tab .desk-k{ font-family:var(--font-mono); font-size:10px; color:var(--ink-3); width:18px; transition:color .25s ease; }
+.desk-tab:hover{ color:var(--ink-0); transform:translateX(2px); }
+.desk-tab.on{ background:var(--bg-2); border-color:var(--line); color:var(--ink-0); }
+.desk-tab.on .desk-k{ color:var(--gold); }
+.desk-prog{
+  position:absolute; left:0; bottom:0; height:2px; width:100%;
+  background:var(--gold); transform:scaleX(0); transform-origin:left;
+}
+.desk-tab.on .desk-prog{ animation:deskProg var(--desk-ms, 5200ms) linear forwards; }
+.plat-desk.is-paused .desk-tab.on .desk-prog{ animation-play-state:paused; }
+.plat-desk.is-stopped .desk-tab.on .desk-prog{ animation:none; transform:scaleX(1); opacity:.35; }
+@keyframes deskProg{ from{ transform:scaleX(0); } to{ transform:scaleX(1); } }
+
+/* --- stage ---------------------------------------------------------------- */
+.desk-panes{ position:relative; display:flex; align-items:stretch; }
+.desk-pane{
+  position:absolute; inset:0; display:grid; grid-template-columns:1fr 1.1fr; gap:36px;
+  align-items:center; padding:44px; opacity:0; pointer-events:none; visibility:hidden;
+}
+.desk-pane.on{ position:relative; flex:1; opacity:1; pointer-events:auto; visibility:visible; }
+.desk-copy h3{ font-size:24px; margin:0 0 10px; line-height:1.15; }
+.desk-copy p{ font-size:15px; color:var(--ink-2); margin:0; }
+.desk-idx{ font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--ink-3); display:block; margin-bottom:12px; }
+.desk-copy .module-go{ margin-top:18px; }
+
+.desk-stage{ position:relative; }
+.desk-glow{
+  position:absolute; inset:-30% -20%; border-radius:50%; pointer-events:none;
+  background:radial-gradient(closest-side, rgba(3,201,136,0.18), transparent 70%);
+  filter:blur(10px);
+}
+.desk-viz{ position:relative; margin:0; border-radius:12px; background:var(--bg-1); border:1px solid var(--line);
+  box-shadow:0 20px 50px -30px rgba(0,0,0,0.7); }
+.desk-viz svg{ display:block; width:100%; height:auto; }
+
+/* entrance per switch — restarted from JS by toggling .on */
+.desk-pane.on .desk-idx,
+.desk-pane.on h3,
+.desk-pane.on p,
+.desk-pane.on .module-go{ animation:deskUp .55s cubic-bezier(.22,1,.36,1) both; }
+.desk-pane.on h3{ animation-delay:.05s; }
+.desk-pane.on p{ animation-delay:.12s; }
+.desk-pane.on .module-go{ animation-delay:.2s; }
+.desk-pane.on .desk-stage{ animation:deskIn .6s cubic-bezier(.22,1,.36,1) both; }
+.desk-pane.on .desk-glow{ animation:deskGlow 5.2s ease-in-out infinite; }
+@keyframes deskUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:none; } }
+@keyframes deskIn{ from{ opacity:0; transform:translateX(28px) scale(.97); } to{ opacity:1; transform:none; } }
+@keyframes deskGlow{ 0%,100%{ transform:scale(.9); opacity:.7; } 50%{ transform:scale(1.08); opacity:1; } }
+
+/* the wheel's hover-pause rule carried over: hovering the frame pauses autoplay (JS adds .is-paused) */
 
 @media (max-width:1160px){
-  .plat-wheel .spoke{ transform:rotate(var(--a)) translateY(-320px); }
-  .plat-wheel .wcard{ width:260px; left:-130px; top:-155px; transform-origin:130px 155px; }
-  .plat-wheel-wrap{ height:1010px; }
-  .wheel-ring{ width:640px; height:640px; }
+  .plat-desk{ grid-template-columns:240px 1fr; }
+  .desk-pane{ padding:32px; gap:26px; }
 }
 @media (max-width:940px){
-  .plat-wheel-wrap{ height:auto; }
-  .wheel-ring,.wheel-hub{ display:none; }
-  .plat-wheel{ position:static; width:auto; height:auto; animation:none;
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px; }
-  .plat-wheel .spoke{ position:static; transform:none; }
-  .plat-wheel .wcard{ position:static; width:auto; animation:none; transform:none; left:auto; top:auto; }
+  .plat-desk{ grid-template-columns:1fr; min-height:0; margin-bottom:64px; }
+  .desk-orbit{ display:none; }
+  .desk-nav{ flex-direction:row; overflow-x:auto; border-right:0; border-bottom:1px solid var(--line);
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; padding:10px; gap:6px; }
+  .desk-nav::-webkit-scrollbar{ display:none; }
+  .desk-hub{ display:none; }
+  .desk-tab{ flex:0 0 auto; padding:9px 12px; font-size:13px; white-space:nowrap; }
+  .desk-tab:hover{ transform:none; }
+  .desk-pane{ grid-template-columns:1fr; padding:22px 18px 26px; gap:18px; }
+  .desk-copy h3{ font-size:20px; }
+  .desk-copy p{ font-size:14.5px; }
+  .desk-pane.on .desk-stage{ animation-name:deskUp; }
 }
 @media (prefers-reduced-motion: reduce){
-  .plat-wheel-wrap{ height:auto; }
-  .wheel-ring,.wheel-hub{ display:none; }
-  .plat-wheel{ position:static; width:auto; height:auto; animation:none;
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px; }
-  .plat-wheel .spoke{ position:static; transform:none; }
-  .plat-wheel .wcard{ position:static; width:auto; animation:none; transform:none; left:auto; top:auto; }
+  .desk-orbit, .plat-desk::before, .desk-hub-pulse{ display:none; }
+  .desk-tab.on .desk-prog{ animation:none; transform:scaleX(1); opacity:.35; }
+  .desk-pane.on *, .desk-pane.on .desk-stage, .desk-pane.on .desk-glow{ animation:none !important; }
+  .desk-tab{ transition:none; }
 }
+
 
 /* Day theme: the homepage motion layer's own accents (build 221) */
 :root[data-theme="light"] #m-price.up, :root[data-theme="light"] #m-change.up{ color:#07996a; }

@@ -4833,7 +4833,8 @@ body.nav-authed .appnav-acts{ display:flex; }
    own vignettes over the page background. */
 :root[data-theme="light"] .mtape,
 :root[data-theme="light"] .hero-chart-wrap{ background:var(--bg-2); }
-:root[data-theme="light"] .plat-wheel-wrap .wcard{ background:var(--bg-2); }
+:root[data-theme="light"] .plat-desk{ box-shadow:var(--shadow-card); }
+:root[data-theme="light"] .desk-viz{ box-shadow:var(--shadow-card); }
 
 /* Inline styles can't be overridden without !important — these are the few
    places a night-only colour is written straight onto the element. */

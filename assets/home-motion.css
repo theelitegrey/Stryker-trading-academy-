@@ -256,25 +256,67 @@
 @keyframes amdPh2{ 0%,30%{ opacity:0; } 38%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
 @keyframes amdPh3{ 0%,56%{ opacity:0; } 64%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
 
-/* Curriculum progress rail */
-.chapter-rail{ position:relative; }
-.chapter-rail::before{
-  content:""; position:absolute; left:34px; top:22px; bottom:22px; width:1px;
-  background:linear-gradient(180deg, transparent, var(--gold-dim) 18%, var(--gold-dim) 82%, transparent);
-  opacity:0.55;
+/* Curriculum bento (#curriculum). Markup is written by tools/gen-curriculum.js
+   from assets/chapters-data.js. Three level cards sized by weight plus a
+   start card; Advanced takes the full-width row because it is 26 of the 42
+   chapters. Cards rise in via the shared .m-stagger reveal (opacity and
+   transform only), which reduced motion already switches off. */
+.cur-bento{ display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
+.cur-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-lg);
+  padding:28px; position:relative; overflow:hidden; box-shadow:var(--shadow-card); min-width:0;
 }
-.chapter-rail::after{
-  content:""; position:absolute; left:34px; top:22px; bottom:22px; width:1px;
-  background:linear-gradient(180deg, transparent 42%, rgba(3,201,136,0.9) 50%, transparent 58%);
-  background-size:100% 400%; animation:railFlow 4.5s linear infinite;
+.cur-card > *{ position:relative; }
+.cur-glow{
+  position:absolute !important; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%;
+  filter:blur(40px); opacity:.18; pointer-events:none;
 }
-@keyframes railFlow{ from{ background-position:0 0%; } to{ background-position:0 100%; } }
-.chapter-rail .chapter{ position:relative; z-index:1; }
-.chapter .chapter-num{ transition:border-color .25s ease, box-shadow .25s ease, color .25s ease; }
-.chapter:hover .chapter-num{ border-color:var(--gold); box-shadow:0 0 0 4px rgba(3,201,136,0.12); }
-@media (max-width:700px){
-  .chapter-rail::before, .chapter-rail::after{ display:none; }
+.cur-big{ font-family:var(--font-mono); font-size:64px; line-height:1; font-weight:600; letter-spacing:-.03em; }
+.cur-card h3{ font-size:22px; margin:14px 0 6px; }
+.cur-rng{ font-family:var(--font-mono); font-size:12px; color:var(--ink-3); }
+.cur-card p{ color:var(--ink-2); font-size:14px; margin:14px 0 0; }
+.cur-list{ margin-top:18px; }
+.cur-list li{ font-size:14px; padding:7px 0; border-top:1px solid var(--line-soft); color:var(--ink-1); display:flex; gap:10px; }
+.cur-list li span{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); width:22px; flex-shrink:0; padding-top:2px; }
+
+.cur-f{ grid-column:span 2; } .cur-f .cur-big{ color:var(--teal); } .cur-f .cur-glow{ background:var(--teal); }
+.cur-i{ grid-column:span 2; } .cur-i .cur-big{ color:var(--gold); } .cur-i .cur-glow{ background:var(--gold); }
+.cur-a .cur-big{ color:#f08488; } .cur-a .cur-glow{ background:#f08488; }
+
+.cur-start{
+  grid-column:span 2; display:flex; flex-direction:column; justify-content:space-between; gap:22px;
+  background:radial-gradient(120% 90% at 100% 0%, rgba(3,201,136,.16), transparent 60%), var(--bg-2);
+  border-color:var(--gold-dim);
 }
+.cur-k{ font-family:var(--font-mono); font-size:12px; color:var(--gold); letter-spacing:.1em; text-transform:uppercase; }
+.cur-start h3{ font-size:24px; line-height:1.25; margin-top:14px; }
+.cur-start p{ margin-top:10px; }
+.cur-start .btn{ align-self:stretch; }
+
+.cur-a{ grid-column:span 6; display:grid; grid-template-columns:260px 1fr; gap:32px; align-items:start; }
+.cur-themes{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.cur-theme{ border:1px solid var(--line-soft); border-radius:12px; padding:16px; background:var(--bg-1); }
+.cur-theme h4{ font-size:14.5px; margin-bottom:6px; }
+.cur-theme p{ margin:0; font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); }
+
+.cur-foot{ text-align:center; margin-top:32px; }
+
+/* In the light theme the advanced pink and intermediate mint are too pale to
+   read as big numerals on white; use the darker text tones the chapter tags
+   already use there. */
+:root[data-theme="light"] .cur-i .cur-big{ color:#06694a; }
+:root[data-theme="light"] .cur-a .cur-big{ color:var(--bear); }
+:root[data-theme="light"] .cur-a .cur-glow{ background:var(--bear); }
+
+@media (max-width:980px){
+  .cur-bento{ grid-template-columns:1fr; }
+  .cur-f, .cur-i, .cur-start, .cur-a{ grid-column:auto; }
+  .cur-a{ grid-template-columns:1fr; gap:18px; }
+  .cur-themes{ grid-template-columns:1fr 1fr; }
+  .cur-card{ padding:22px; }
+  .cur-big{ font-size:48px; }
+}
+@media (max-width:420px){ .cur-themes{ grid-template-columns:1fr; } }
 
 /* Featured pricing card: rotating border sweep */
 @property --sweep-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
@@ -294,7 +336,6 @@
   .mv-draw, .amd-path{ animation:none; stroke-dashoffset:0; opacity:1; }
   .mv-pop, .mv-bub, .amd-ph{ animation:none; opacity:1; transform:none; }
   .mv-ring, .mv-orbit{ animation:none; display:none; }
-  .chapter-rail::after{ animation:none; display:none; }
   .live-chip i{ animation:none; }
   .price-card.featured::after{ animation:none; }
 }

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="305">
+<meta name="stryker-build" content="306">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stryker Trading Academy">
@@ -20,12 +20,12 @@
 <title>Stryker Trading Academy — Learn ICT & Smart Money Trading</title>
 <link rel="canonical" href="https://strykertrading.com/">
 <meta name="description" content="Learn ICT concepts and SMT divergence chapter by chapter — a 42-chapter curriculum with live sessions, a trade journal and a trading floor community.">
-<link rel="stylesheet" href="assets/style.css?v=305">
-<script src="assets/sanitize.js?v=305"></script>
-<script src="assets/device-mode.js?v=305"></script>
-<link rel="stylesheet" href="assets/home-motion.css?v=305">
-<script src="assets/toast.js?v=305" defer></script>
-<script src="assets/version-check.js?v=305" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=306">
+<script src="assets/sanitize.js?v=306"></script>
+<script src="assets/device-mode.js?v=306"></script>
+<link rel="stylesheet" href="assets/home-motion.css?v=306">
+<script src="assets/toast.js?v=306" defer></script>
+<script src="assets/version-check.js?v=306" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -403,14 +403,32 @@
     <p>The chapters teach the method — the rest of the platform is built so you can actually trade it: a full journal, a prop-firm ledger, live market data, in-house indicators, and an AI layer that reads it all for you.</p>
   </div>
 
-  <div class="plat-wheel-wrap" aria-label="The six platform tools, arranged in a slowly turning wheel">
-    <div class="wheel-ring" aria-hidden="true"></div>
-    <div class="plat-wheel">
-      <div class="spoke" style="--a:0deg">
-        <div class="wcard">
-<a class="feature-card" href="trade-journal.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+  <div class="plat-desk reveal" id="plat-desk" data-autoplay="5200">
+    <div class="desk-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+    <nav class="desk-nav" role="tablist" aria-label="The six platform tools">
+      <div class="desk-hub" aria-hidden="true">
+        <span class="desk-hub-eyebrow">six desk tools</span>
+        <b>ONE LOGIN</b>
+        <i class="desk-hub-pulse"></i>
+      </div>
+      <button type="button" class="desk-tab on" role="tab" aria-selected="true" aria-controls="desk-pane-1" id="desk-tab-1"><span class="desk-k">01</span><span class="desk-lbl">Trade Journal</span><span class="desk-prog" aria-hidden="true"></span></button>
+      <button type="button" class="desk-tab" role="tab" aria-selected="false" aria-controls="desk-pane-2" id="desk-tab-2"><span class="desk-k">02</span><span class="desk-lbl">Prop-Firm Ledger</span><span class="desk-prog" aria-hidden="true"></span></button>
+      <button type="button" class="desk-tab" role="tab" aria-selected="false" aria-controls="desk-pane-3" id="desk-tab-3"><span class="desk-k">03</span><span class="desk-lbl">AI Coach & Briefing</span><span class="desk-prog" aria-hidden="true"></span></button>
+      <button type="button" class="desk-tab" role="tab" aria-selected="false" aria-controls="desk-pane-4" id="desk-tab-4"><span class="desk-k">04</span><span class="desk-lbl">Global Monitor</span><span class="desk-prog" aria-hidden="true"></span></button>
+      <button type="button" class="desk-tab" role="tab" aria-selected="false" aria-controls="desk-pane-5" id="desk-tab-5"><span class="desk-k">05</span><span class="desk-lbl">Indicator Suite</span><span class="desk-prog" aria-hidden="true"></span></button>
+      <button type="button" class="desk-tab" role="tab" aria-selected="false" aria-controls="desk-pane-6" id="desk-tab-6"><span class="desk-k">06</span><span class="desk-lbl">Trading Floor</span><span class="desk-prog" aria-hidden="true"></span></button>
+    </nav>
+    <div class="desk-panes">
+    <div class="desk-pane on" role="tabpanel" id="desk-pane-1" aria-labelledby="desk-tab-1">
+      <div class="desk-copy">
+        <span class="desk-idx">01 / 06</span>
+        <h3>Trade Journal &amp; Analytics</h3>
+        <p>Log trades or import your broker CSV, then read your month at a glance — calendar P&amp;L, win rate, profit factor, equity curve, and a downloadable P&amp;L card to share.</p>
+        <a class="module-go" href="trade-journal.html">Open the journal <i>→</i></a>
+      </div>
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <g>
             <rect class="mv-cell" x="14" y="16" width="13" height="9" rx="2" fill="rgba(3,201,136,0.75)" style="animation-delay:0s"/>
             <rect class="mv-cell" x="31" y="16" width="13" height="9" rx="2" fill="rgba(3,201,136,0.45)" style="animation-delay:.12s"/>
@@ -431,19 +449,19 @@
           <text x="14" y="70" class="mv-mono" fill="#5c6472">AUG · 62% WIN DAYS</text>
           <text x="118" y="20" class="mv-mono" fill="#03c988" font-weight="700">+$12,480</text>
           <path class="mv-draw" d="M118 66 L136 58 L150 62 L168 44 L184 48 L206 26" pathLength="1" fill="none" stroke="#03c988" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
+        </svg></div>
       </div>
-      <h3>Trade Journal &amp; Analytics</h3>
-      <p>Log trades or import your broker CSV, then read your month at a glance — calendar P&amp;L, win rate, profit factor, equity curve, and a downloadable P&amp;L card to share.</p>
-      <span class="module-go">Open the journal <i>→</i></span>
-    </a>
-        </div>
+    </div>
+    <div class="desk-pane" role="tabpanel" id="desk-pane-2" aria-labelledby="desk-tab-2">
+      <div class="desk-copy">
+        <span class="desk-idx">02 / 06</span>
+        <h3>Prop-Firm Ledger</h3>
+        <p>Every funded account tracked side by side — evaluations, payouts and expenses per firm, with a live net ticker so you always know what your firms have actually paid.</p>
+        <a class="module-go" href="trade-journal.html">Track your firms <i>→</i></a>
       </div>
-      <div class="spoke" style="--a:60deg">
-        <div class="wcard">
-<a class="feature-card" href="trade-journal.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <line x1="14" y1="64" x2="150" y2="64" stroke="#2c2c32" stroke-dasharray="3 3"/>
           <rect class="mv-bar" x="20" y="38" width="16" height="26" rx="2" fill="rgba(3,201,136,0.8)" style="animation-delay:0s"/>
           <rect class="mv-bar" x="46" y="30" width="16" height="34" rx="2" fill="rgba(3,201,136,0.6)" style="animation-delay:.18s"/>
@@ -454,19 +472,19 @@
           <circle cx="182" cy="32" r="14" fill="none" stroke="#f5c542" stroke-width="1.5"/>
           <text x="182" y="36" text-anchor="middle" class="mv-mono" fill="#f5c542" font-weight="700">$</text>
           <g class="mv-pop"><path d="M182 62 l-5 8 h10 z" fill="#03c988" transform="rotate(180 182 66)"/><text x="182" y="80" text-anchor="middle" class="mv-mono" fill="#03c988">NET +</text></g>
-        </svg>
+        </svg></div>
       </div>
-      <h3>Prop-Firm Ledger</h3>
-      <p>Every funded account tracked side by side — evaluations, payouts and expenses per firm, with a live net ticker so you always know what your firms have actually paid.</p>
-      <span class="module-go">Track your firms <i>→</i></span>
-    </a>
-        </div>
+    </div>
+    <div class="desk-pane" role="tabpanel" id="desk-pane-3" aria-labelledby="desk-tab-3">
+      <div class="desk-copy">
+        <span class="desk-idx">03 / 06</span>
+        <h3>AI Coach &amp; Daily Briefing</h3>
+        <p>The journal coach flags the habits costing you money; the dashboard briefing folds your stats, the markets and the trading floor into one morning read.</p>
+        <a class="module-go" href="dashboard-user.html">See your briefing <i>→</i></a>
       </div>
-      <div class="spoke" style="--a:120deg">
-        <div class="wcard">
-<a class="feature-card" href="dashboard-user.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <circle class="mv-ring" cx="42" cy="42" r="17" fill="none" stroke="rgba(245,197,66,0.6)" stroke-width="1.5" style="animation-delay:0s"/>
           <circle class="mv-ring" cx="42" cy="42" r="17" fill="none" stroke="rgba(245,197,66,0.35)" stroke-width="1.5" style="animation-delay:1.1s"/>
           <path class="mv-pulse" d="M42 26 l4.2 11.8 11.8 4.2 -11.8 4.2 -4.2 11.8 -4.2 -11.8 -11.8 -4.2 11.8 -4.2 z" fill="#f5c542"/>
@@ -474,19 +492,19 @@
           <rect class="mv-cell" x="88" y="38" width="84" height="6" rx="3" fill="rgba(255,255,255,0.12)" style="animation-delay:.7s"/>
           <rect class="mv-cell" x="88" y="54" width="64" height="6" rx="3" fill="rgba(3,201,136,0.4)" style="animation-delay:1.2s"/>
           <text x="88" y="76" class="mv-mono" fill="#5c6472">READING YOUR JOURNAL…</text>
-        </svg>
+        </svg></div>
       </div>
-      <h3>AI Coach &amp; Daily Briefing</h3>
-      <p>The journal coach flags the habits costing you money; the dashboard briefing folds your stats, the markets and the trading floor into one morning read.</p>
-      <span class="module-go">See your briefing <i>→</i></span>
-    </a>
-        </div>
+    </div>
+    <div class="desk-pane" role="tabpanel" id="desk-pane-4" aria-labelledby="desk-tab-4">
+      <div class="desk-copy">
+        <span class="desk-idx">04 / 06</span>
+        <h3>Global Market Monitor</h3>
+        <p>Live quotes across FX, indices, gold and crypto, an economic calendar and market headlines — on a feed that refreshes itself around the clock.</p>
+        <a class="module-go" href="global-monitor.html">Watch the markets <i>→</i></a>
       </div>
-      <div class="spoke" style="--a:180deg">
-        <div class="wcard">
-<a class="feature-card" href="global-monitor.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <circle cx="52" cy="42" r="24" fill="none" stroke="rgba(0,173,181,0.7)" stroke-width="1.5"/>
           <ellipse cx="52" cy="42" rx="10" ry="24" fill="none" stroke="rgba(0,173,181,0.3)"/>
           <line x1="28" y1="42" x2="76" y2="42" stroke="rgba(0,173,181,0.3)"/>
@@ -496,19 +514,19 @@
           <circle class="mv-blink" cx="158" cy="16" r="2.4" fill="#f5c542" style="animation-delay:.7s"/>
           <circle class="mv-blink" cx="196" cy="50" r="2.4" fill="#f5c542" style="animation-delay:1.4s"/>
           <text x="112" y="76" class="mv-mono" fill="#5c6472">QUOTES · CALENDAR · WIRE</text>
-        </svg>
+        </svg></div>
       </div>
-      <h3>Global Market Monitor</h3>
-      <p>Live quotes across FX, indices, gold and crypto, an economic calendar and market headlines — on a feed that refreshes itself around the clock.</p>
-      <span class="module-go">Watch the markets <i>→</i></span>
-    </a>
-        </div>
+    </div>
+    <div class="desk-pane" role="tabpanel" id="desk-pane-5" aria-labelledby="desk-tab-5">
+      <div class="desk-copy">
+        <span class="desk-idx">05 / 06</span>
+        <h3>Stryker Indicator Suite</h3>
+        <p>FVG Relay, iFVG Engine and HTF Power of Three — in-house TradingView tools built for the way the curriculum trades, finishing review now.</p>
+        <a class="module-go" href="indicators.html">Preview the suite <i>→</i></a>
       </div>
-      <div class="spoke" style="--a:240deg">
-        <div class="wcard">
-<a class="feature-card" href="indicators.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <g stroke="#3a4150" stroke-width="1.4">
             <line x1="24" y1="62" x2="24" y2="30"/><line x1="42" y1="66" x2="42" y2="22"/><line x1="60" y1="56" x2="60" y2="16"/>
           </g>
@@ -519,19 +537,19 @@
           <path class="mv-draw" d="M66 20 L96 46 L120 40 L148 18" pathLength="1" fill="none" stroke="#eeeeee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           <g class="mv-pop"><text x="162" y="30" class="mv-mono" fill="#03c988" font-weight="700">iFVG ▲</text></g>
           <text x="72" y="72" class="mv-mono" fill="#5c6472">FVG RELAY · iFVG · HTF PO3</text>
-        </svg>
+        </svg></div>
       </div>
-      <h3>Stryker Indicator Suite</h3>
-      <p>FVG Relay, iFVG Engine and HTF Power of Three — in-house TradingView tools built for the way the curriculum trades, finishing review now.</p>
-      <span class="module-go">Preview the suite <i>→</i></span>
-    </a>
-        </div>
+    </div>
+    <div class="desk-pane" role="tabpanel" id="desk-pane-6" aria-labelledby="desk-tab-6">
+      <div class="desk-copy">
+        <span class="desk-idx">06 / 06</span>
+        <h3>Trading Floor</h3>
+        <p>The desk-style community feed — daily bias calls, journal accountability and SMT checks across pairs, straight from members and mentors.</p>
+        <a class="module-go" href="trading-floor.html">Step on the floor <i>→</i></a>
       </div>
-      <div class="spoke" style="--a:300deg">
-        <div class="wcard">
-<a class="feature-card" href="trading-floor.html">
-      <div class="module-viz" aria-hidden="true">
-        <svg viewBox="0 0 220 84">
+      <div class="desk-stage">
+        <div class="desk-glow" aria-hidden="true"></div>
+        <div class="module-viz desk-viz" aria-hidden="true"><svg viewBox="0 0 220 84">
           <g class="mv-bub" style="animation-delay:0s">
             <rect x="14" y="12" width="96" height="20" rx="10" fill="rgba(255,255,255,0.08)"/>
             <rect x="24" y="20" width="66" height="4" rx="2" fill="rgba(255,255,255,0.28)"/>
@@ -547,16 +565,10 @@
             <circle class="mv-blink" cx="46" cy="61" r="2.2" fill="#8b93a0" style="animation-delay:.6s"/>
           </g>
           <text x="110" y="76" class="mv-mono" fill="#5c6472">DAILY BIAS · SMT CHECKS</text>
-        </svg>
-      </div>
-      <h3>Trading Floor</h3>
-      <p>The desk-style community feed — daily bias calls, journal accountability and SMT checks across pairs, straight from members and mentors.</p>
-      <span class="module-go">Step on the floor <i>→</i></span>
-    </a>
-        </div>
+        </svg></div>
       </div>
     </div>
-    <div class="wheel-hub" aria-hidden="true"><b>ONE LOGIN</b><span>six desk tools</span></div>
+    </div>
   </div>
 </section>
 
@@ -677,22 +689,23 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=305"></script>
-<script src="assets/progress.js?v=305"></script>
-<script src="assets/activity-log.js?v=305"></script>
-<script src="assets/banned-check.js?v=305"></script>
-<script src="assets/email-verify.js?v=305"></script>
-<script src="assets/profiles-sync.js?v=305"></script>
-<script src="assets/loading-animation.js?v=305"></script>
-<script src="assets/avatars.js?v=305"></script>
-<script src="assets/referrals.js?v=305"></script>
-<script src="assets/maintenance-check.js?v=305"></script>
-<script src="assets/branding.js?v=305"></script>
-<script src="assets/seo.js?v=305"></script>
-<script src="assets/plan-price.js?v=305"></script>
-<script src="assets/plans-public.js?v=305"></script>
-<script src="assets/main.js?v=305"></script>
-<script src="assets/home-motion.js?v=305"></script>
-<script src="assets/theme.js?v=305"></script>
+<script src="assets/auth.js?v=306"></script>
+<script src="assets/progress.js?v=306"></script>
+<script src="assets/activity-log.js?v=306"></script>
+<script src="assets/banned-check.js?v=306"></script>
+<script src="assets/email-verify.js?v=306"></script>
+<script src="assets/profiles-sync.js?v=306"></script>
+<script src="assets/loading-animation.js?v=306"></script>
+<script src="assets/avatars.js?v=306"></script>
+<script src="assets/referrals.js?v=306"></script>
+<script src="assets/maintenance-check.js?v=306"></script>
+<script src="assets/branding.js?v=306"></script>
+<script src="assets/seo.js?v=306"></script>
+<script src="assets/plan-price.js?v=306"></script>
+<script src="assets/plans-public.js?v=306"></script>
+<script src="assets/main.js?v=306"></script>
+<script src="assets/home-motion.js?v=306"></script>
+<script src="assets/platform-desk.js?v=306"></script>
+<script src="assets/theme.js?v=306"></script>
 </body>
 </html>

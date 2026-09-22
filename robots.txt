@@ -24,6 +24,10 @@ Disallow: /notes-admin
 Disallow: /bots-admin
 Disallow: /settings-admin
 Disallow: /seo-admin
+Disallow: /sessions-admin
+Disallow: /giveaways-admin
+Disallow: /roadmap-admin
+Disallow: /x-admin
 Disallow: /chapter-editor
 Disallow: /indicator-editor
 Disallow: /model-editor

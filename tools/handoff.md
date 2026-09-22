@@ -231,51 +231,22 @@ python3 tools/check.py
 Validates the version/meta/build agreement, build markers, and the two mobile
 width guard rules in `assets/style.css`. Must pass before every commit.
 
-### The browser suites — read this, they are not in the repo
-
-There are several headless-browser suites (`mb-test`, `mm-test`, `ec-test`,
-`pad-test`, `video-test`, width checks, screenshot rigs). **They live in the
-session scratchpad, not in version control**, so a fresh session does not have
-them and has to rebuild the ones it needs. This is a real gap; if you have time,
-moving them into `tools/` would be a genuine improvement.
-
-The rig, so you can reconstruct it:
+### The browser suites
 
 ```bash
-# 1. A local server. It dies frequently — restart it before every run.
-(setsid nohup python3 -m http.server 8000 \
-   --directory /path/to/repo >/dev/null 2>&1 &)
-
-# 2. playwright-core against the preinstalled Chromium.
-#    Do NOT run "playwright install".
+cd tools/tests && npm install && node run.js      # all six
+node run.js mm ec                                  # a subset
 ```
 
-```js
-const { chromium } = require('<scratchpad>/node_modules/playwright-core');
-const b = await chromium.launch({
-  executablePath: '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell'
-});
-// Block every non-local request; the container cannot reach the internet
-// from the page context anyway, and an unblocked CDN hangs the run.
-await ctx.route(/^https?:\/\/(?!localhost)/, (r) => r.abort());
-```
+Six headless-Chromium suites live in `tools/tests/` — brief, map, calendar,
+section padding, chapter player and phone-width layout. `run.js` starts the
+local server itself and exits with the number of failing suites. Details,
+stubs and options are in `tools/tests/README.md`. Run them before pushing
+anything that touches the member pages or the three terminal JSON files.
 
-Firebase has to be stubbed, because the page will otherwise sit on an auth
-gate forever. There are **two** stubs and they are not interchangeable:
-
-- a **plain stub** returning empty snapshots — for tests, where empty is the
-  point;
-- a **rich stub** returning plausible data — for screenshots, where an empty
-  state is a useless picture.
-
-Never regex one suite's stub out of another suite's source; build the stub the
-job needs.
-
-Mobile screenshots: viewport 390x844, `deviceScaleFactor: 3`, `isMobile: true`,
-`hasTouch: true`, an iPhone user agent — which yields 1170x2532 files. Suppress
-the iOS install sheet, which otherwise covers every frame, by pre-setting its
-seen flag in an init script: `localStorage.setItem('stryker_install_prompt_shown_<uid>', '1')`
-(the key is `'stryker_install_prompt_shown_' + uid`).
+Screenshot rigs (desktop feature shots, phone shots) are not suites and are
+not in the repo; `richstub.js` in `tools/tests/` is the Firebase stub they
+need, and `README.md` there gives the phone viewport settings.
 
 ### Two CSS traps this codebase has hit
 
@@ -373,8 +344,6 @@ There is no `gh` CLI. Use the `mcp__github__*` tools for everything GitHub.
 Repository-side:
 
 - Fix the deploy verify step's `homepage meta: unreadable` (section 5).
-- Move the browser test suites out of the scratchpad and into `tools/`
-  (section 7).
 - `robots.txt` omits four admin pages that exist and are linked from the admin
   nav: `sessions-admin`, `x-admin`, `giveaways-admin`, `roadmap-admin`.
 - `.claude/hooks/session-start.sh` exists but is **not registered** in

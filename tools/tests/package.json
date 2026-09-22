@@ -1,0 +1,11 @@
+{
+  "name": "stryker-browser-tests",
+  "private": true,
+  "description": "Headless-browser suites for the member pages. Not deployed; see README.md.",
+  "scripts": {
+    "test": "node run.js"
+  },
+  "dependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

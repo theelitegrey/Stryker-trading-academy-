@@ -468,7 +468,9 @@
      A mask has no colour of its own, so it works unchanged in both themes.
      has-before / has-after come from platform-desk.js; without scripting no
      class is set, no mask applies and no chevrons exist. */
-  .plat-desk{ --desk-chev:34px; --desk-fade:32px; }
+  /* --desk-chev is the whole edge zone the mask clears; the button sits inset
+     from the card border by --desk-chev-inset so it does not crowd the edge. */
+  .plat-desk{ --desk-chev:38px; --desk-chev-inset:4px; --desk-fade:32px; }
   .desk-nav.has-after{
     -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
             mask-image:linear-gradient(90deg,#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
@@ -482,14 +484,14 @@
             mask-image:linear-gradient(90deg,transparent var(--desk-chev),#000 calc(var(--desk-chev) + var(--desk-fade)),#000 calc(100% - var(--desk-chev) - var(--desk-fade)),transparent calc(100% - var(--desk-chev)));
   }
   .desk-chev{
-    position:absolute; top:0; z-index:3; width:var(--desk-chev); height:55px;
+    position:absolute; top:0; z-index:3; width:calc(var(--desk-chev) - var(--desk-chev-inset)); height:55px;
     display:flex; align-items:center; justify-content:center; padding:0;
     background:none; border:0; color:var(--ink-0); font-size:22px; line-height:1;
     cursor:pointer; -webkit-tap-highlight-color:transparent;
   }
   .desk-chev[hidden]{ display:none; }
-  .desk-chev-next{ right:0; }
-  .desk-chev-prev{ left:0; }
+  .desk-chev-next{ right:var(--desk-chev-inset); }
+  .desk-chev-prev{ left:var(--desk-chev-inset); }
   .desk-chev span{
     display:flex; align-items:center; justify-content:center; width:26px; height:26px;
     border-radius:50%; border:1px solid var(--line); background:var(--bg-3); color:var(--gold);

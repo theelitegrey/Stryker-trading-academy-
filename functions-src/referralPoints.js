@@ -98,7 +98,8 @@ exports.onReferralWritten = onDocumentWritten(
     document: 'referrals/{referralId}',
     region: 'us-central1',
     timeoutSeconds: 60,
-    memory: '256MiB'
+    memory: '256MiB',
+    maxInstances: 10
   },
   async (event) => {
     const after = event.data && event.data.after;

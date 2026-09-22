@@ -235,7 +235,9 @@ function requireAuth(context){
 
 // ---- callables --------------------------------------------------------------
 
-exports.brokerCatalog = functions.https.onCall(async (data, context) => {
+exports.brokerCatalog = functions
+  .runWith({ maxInstances: 10 })
+  .https.onCall(async (data, context) => {
   requireAuth(context);
   return {
     brokers: listBrokers()
@@ -245,7 +247,7 @@ exports.brokerCatalog = functions.https.onCall(async (data, context) => {
 });
 
 exports.brokerConnect = functions
-  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 120, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const broker = String((data && data.broker) || '');
@@ -317,7 +319,7 @@ exports.brokerConnect = functions
   });
 
 exports.brokerSyncNow = functions
-  .runWith({ timeoutSeconds: 300, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 300, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const broker = String((data && data.broker) || '');
@@ -339,7 +341,9 @@ exports.brokerSyncNow = functions
     }
   });
 
-exports.brokerDisconnect = functions.https.onCall(async (data, context) => {
+exports.brokerDisconnect = functions
+  .runWith({ maxInstances: 5 })
+  .https.onCall(async (data, context) => {
   const uid = requireAuth(context);
   const broker = String((data && data.broker) || '');
   if (SYNCABLE.indexOf(broker) === -1) {
@@ -354,7 +358,7 @@ exports.brokerDisconnect = functions.https.onCall(async (data, context) => {
 // ---- scheduled sweep --------------------------------------------------------
 
 exports.brokerSyncSweep = functions
-  .runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '512MB' })
   .pubsub.schedule('every 360 minutes')
   .timeZone('UTC')
   .onRun(async () => {

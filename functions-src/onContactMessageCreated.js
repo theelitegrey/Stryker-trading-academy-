@@ -54,7 +54,8 @@ exports.onContactMessageCreated = onDocumentCreated(
     document: 'contactMessages/{messageId}',
     region: 'us-central1',      // match the other functions in this project
     timeoutSeconds: 60,
-    memory: '256MiB'
+    memory: '256MiB',
+    maxInstances: 3
   },
   async (event) => {
     // v2 delivers a single event object, and the snapshot can be absent if the

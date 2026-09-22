@@ -629,7 +629,7 @@ async function tick(reason) {
 }
 
 exports.xAutopostTick = functions
-  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: SECRETS })
+  .runWith({ maxInstances: 1, timeoutSeconds: 300, memory: '512MB', secrets: SECRETS })
   .pubsub.schedule('every 10 minutes')
   .timeZone('UTC')
   .onRun(() => tick('schedule'));
@@ -643,7 +643,7 @@ async function assertAdmin(context) {
 }
 
 exports.xAutopostAdmin = functions
-  .runWith({ timeoutSeconds: 300, memory: '512MB', secrets: SECRETS })
+  .runWith({ maxInstances: 2, timeoutSeconds: 300, memory: '512MB', secrets: SECRETS })
   .https.onCall(async (data, context) => {
     await assertAdmin(context);
     const action = data && data.action;
@@ -698,7 +698,7 @@ function tryRequire(name) { try { return require(name); } catch (e) { return nul
 // needs to know about the subject is looked up then, not now.
 
 function announceTrigger(collection, subjectKind, page, campaign) {
-  return onDocumentCreated(collection + '/{id}', async (event) => {
+  return onDocumentCreated({ document: collection + '/{id}', region: 'us-central1', maxInstances: 2 }, async (event) => {
     const snap = event.data;
     if (!snap) return;
     const cfg = await loadConfig();

@@ -60,7 +60,7 @@ async function fetchErApi(){
 }
 
 exports.refreshFxRate = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 1, timeoutSeconds: 60, memory: '256MB' })
   .pubsub.schedule('every 24 hours')
   .timeZone('UTC')
   .onRun(async () => {

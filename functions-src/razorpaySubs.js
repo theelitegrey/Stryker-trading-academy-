@@ -152,7 +152,7 @@ async function ensureRazorpayPlan(sitePlan, sitePlanId, amountMinor, kind){
 }
 
 exports.razorpaySubscribe = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const planId = String((data && data.planId) || '');
@@ -205,7 +205,7 @@ exports.razorpaySubscribe = functions
   });
 
 exports.razorpaySubsVerify = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const subscriptionId = String((data && data.subscriptionId) || '');
@@ -277,7 +277,7 @@ exports.razorpaySubsVerify = functions
   });
 
 exports.razorpayWebhook = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
   .https.onRequest(async (req, res) => {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
     if (!secret) { res.status(500).send('webhook secret not configured'); return; }
@@ -400,7 +400,7 @@ exports.razorpayWebhook = functions
   });
 
 exports.razorpaySubsCancel = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 10, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const studentDoc = await db.collection('students').doc(uid).get();

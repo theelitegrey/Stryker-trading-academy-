@@ -134,7 +134,7 @@ async function usdInrRate(){
 exports.__internals = { effectivePlanPrice, couponDiscount, usdInrRate, requireAuth };
 
 exports.razorpayCreateOrder = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const planId = String((data && data.planId) || '');
@@ -224,7 +224,7 @@ exports.razorpayCreateOrder = functions
   });
 
 exports.razorpayVerifyPayment = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const orderId = String((data && data.orderId) || '');

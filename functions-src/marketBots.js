@@ -401,7 +401,7 @@ exports.marketBots = functions
   // Long timeout: a watchlist of eight instruments is sixteen sequential
   // requests, and the whole point of running sequentially is not hammering a
   // free endpoint.
-  .runWith({ timeoutSeconds: 540, memory: '256MB' })
+  .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '256MB' })
   .pubsub.schedule('every 30 minutes')
   .timeZone('UTC')
   .onRun(async () => {

@@ -39,7 +39,7 @@ const ALLOWED_ORIGINS = [
 // does from build 284), so an already-open tab on an older build is not
 // broken by the function deploy. Until then the token is verified when
 // present and simply logged when absent.
-const REQUIRE_AUTH = false;
+const REQUIRE_AUTH = true;
 
 async function callerUid(req) {
   const header = String(req.headers.authorization || '');
@@ -85,7 +85,7 @@ async function fetchChunk(symbol, interval, p1, p2) {
 }
 
 exports.replayBars = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 60, memory: '256MB' })
   .https.onRequest(async (req, res) => {
     const origin = String(req.headers.origin || '');
     if (ALLOWED_ORIGINS.includes(origin)) res.set('Access-Control-Allow-Origin', origin);

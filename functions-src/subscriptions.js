@@ -113,7 +113,7 @@ function planPriceNum(v){
 }
 
 exports.subscriptionSweep = functions
-  .runWith({ timeoutSeconds: 540, memory: '256MB' })
+  .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '256MB' })
   .pubsub.schedule('every 24 hours')
   .timeZone('UTC')
   .onRun(async () => {

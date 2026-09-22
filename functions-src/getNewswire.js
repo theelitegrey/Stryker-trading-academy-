@@ -21,7 +21,7 @@ const CATEGORIES = [
 ];
 
 exports.getNewswire = functions
-  .runWith({ timeoutSeconds: 30, memory: '256MB' })
+  .runWith({ maxInstances: 10, timeoutSeconds: 30, memory: '256MB' })
   .https.onRequest(async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Cache-Control', 'public, max-age=120');

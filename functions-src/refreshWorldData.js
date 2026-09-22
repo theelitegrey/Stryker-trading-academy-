@@ -227,7 +227,7 @@ async function refreshNewswire(db) {
 exports.refreshWorldData = functions
   // Long timeout because THIS function is allowed to wait — nobody is blocked
   // on it. Three attempts with backoff, each up to 90s, needs the headroom.
-  .runWith({ timeoutSeconds: 540, memory: '256MB' })
+  .runWith({ maxInstances: 1, timeoutSeconds: 540, memory: '256MB' })
   .pubsub.schedule('every 20 minutes')
   .timeZone('UTC')
   .onRun(async () => {

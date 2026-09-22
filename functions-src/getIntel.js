@@ -225,7 +225,7 @@ function describeFetchError(err) {
 }
 
 exports.getIntel = functions
-  .runWith({ timeoutSeconds: 60, memory: '256MB' })
+  .runWith({ maxInstances: 10, timeoutSeconds: 60, memory: '256MB' })
   .https.onRequest(async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Cache-Control', 'public, max-age=120');

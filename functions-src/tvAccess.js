@@ -245,7 +245,7 @@ async function loadTvConfig(){
 // ---- callables --------------------------------------------------------------
 
 exports.tvValidateUsername = functions
-  .runWith({ timeoutSeconds: 30, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 30, memory: '256MB' })
   .https.onCall(async (data, context) => {
     await requireAdmin(context);
     const username = String((data && data.username) || '').trim().replace(/^@/, '');
@@ -254,7 +254,7 @@ exports.tvValidateUsername = functions
   });
 
 exports.tvGrantAccess = functions
-  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 120, memory: '256MB' })
   .https.onCall(async (data, context) => {
     await requireAdmin(context);
     const username = String((data && data.username) || '').trim().replace(/^@/, '');
@@ -285,7 +285,7 @@ exports.tvGrantAccess = functions
   });
 
 exports.tvRevokeAccess = functions
-  .runWith({ timeoutSeconds: 120, memory: '256MB' })
+  .runWith({ maxInstances: 5, timeoutSeconds: 120, memory: '256MB' })
   .https.onCall(async (data, context) => {
     await requireAdmin(context);
     const username = String((data && data.username) || '').trim().replace(/^@/, '');

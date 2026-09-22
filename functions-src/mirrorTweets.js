@@ -111,7 +111,7 @@ function pollIntervalMinutes(cfg) {
 }
 
 exports.mirrorTweets = functions
-  .runWith({ timeoutSeconds: 300, memory: '256MB', secrets: [TWITTERAPI_KEY] })
+  .runWith({ maxInstances: 1, timeoutSeconds: 300, memory: '256MB', secrets: [TWITTERAPI_KEY] })
   .pubsub.schedule('every 10 minutes')
   .timeZone('UTC')
   .onRun(async () => {

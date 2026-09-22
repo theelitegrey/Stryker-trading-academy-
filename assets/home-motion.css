@@ -400,6 +400,12 @@
 .desk-pane.on{ position:relative; flex:1; opacity:1; pointer-events:auto; visibility:visible; }
 .desk-copy h3{ font-size:24px; margin:0 0 10px; line-height:1.15; }
 .desk-copy p{ font-size:15px; color:var(--ink-2); margin:0; }
+/* Substantiation: the journal stage shows sample numbers (+$12,480, 62% win
+   days). They are interface illustration, not a trading result, and the page
+   must say so legibly rather than in a tooltip or footnote. Uses --ink-2, the
+   same colour as body copy, NOT the faint --ink-3: a disclaimer that is
+   required for substantiation must not be styled to be overlooked. */
+.desk-copy .desk-disclaimer{ font-size:13px; line-height:1.45; color:var(--ink-2); margin:10px 0 0; }
 .desk-idx{ font-family:var(--font-mono); font-size:10px; letter-spacing:.2em; color:var(--ink-3); display:block; margin-bottom:12px; }
 .desk-copy .module-go{ margin-top:18px; }
 

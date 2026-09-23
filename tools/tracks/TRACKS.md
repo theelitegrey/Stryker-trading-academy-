@@ -38,8 +38,8 @@ Status key:
 | VP-08 | Footprint Charts & Delta | advanced | reviewed | 2038 | 5 |
 | VP-09 | Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs | advanced | reviewed | 2157 | 6 |
 | VP-10 | Data & Tools: Futures, FX Tick Volume & Platforms | intermediate | reviewed | 2018 | 12 |
-| VP-11 | Combining Profile & Order Flow with Liquidity & SMC | advanced | todo | | |
-| VP-12 | Case Studies & the Profile/Order-Flow Playbook | advanced | todo | | |
+| VP-11 | Combining Profile & Order Flow with Liquidity & SMC | advanced | reviewed | 2050 | 6 |
+| VP-12 | Case Studies & the Profile/Order-Flow Playbook | advanced | reviewed | 2053 | 6 |
 
 Chapter scope:
 - VP-01:

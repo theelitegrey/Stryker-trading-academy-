@@ -78,7 +78,7 @@ function strykerCurrencyNoteHtml(){
   if (!strykerIsIndiaTz() && !strykerCurrencyOverride()) return '';
   var cur = strykerCurrency();
   var msg = cur === 'INR'
-    ? 'Prices shown in ₹ Indian Rupees (converted from USD)'
+    ? 'Prices shown in ₹ Indian Rupees'
     : 'Prices shown in US Dollars';
   var other = cur === 'INR' ? 'USD' : 'INR';
   var otherLabel = cur === 'INR' ? 'Show in $ USD' : 'Show in ₹ INR';
@@ -93,6 +93,27 @@ document.addEventListener('click', function (ev){
   try { localStorage.setItem('stryker_currency', link.dataset.currencySwitch); } catch (e) {}
   location.reload();   // every price on the page re-renders in the new currency
 });
+
+// ---- Local preview (development only) ------------------------------------------
+// On localhost with ?preview=launch, pricing surfaces read the prepared plan
+// records from tools/launch-sale/ instead of Firestore, so the launch sale can
+// be screenshotted before any live record changes. Inert everywhere else.
+function strykerPreviewMode(){
+  try {
+    return /^(127\.0\.0\.1|localhost)$/.test(location.hostname) &&
+      new URLSearchParams(location.search).get('preview') === 'launch';
+  } catch (e) { return false; }
+}
+function strykerLoadPlans(){
+  if (strykerPreviewMode()) {
+    return fetch('tools/launch-sale/plans.preview.json').then(function (r){ return r.json(); });
+  }
+  return db.collection('plans').get().then(function (snap){
+    var list = [];
+    snap.forEach(function (d){ list.push(Object.assign({ id: d.id }, d.data())); });
+    return list;
+  });
+}
 
 // ---- Subscription periods --------------------------------------------------
 // Client mirror of functions-src/subscriptions.js: 'month'/'year' periods
@@ -142,13 +163,35 @@ function planSaleEndMs(plan){
   return d.getTime();
 }
 
+// ---- Fixed rupee prices (launch sale, build 319) ------------------------------
+// A plan may carry priceInr / salePriceInr: exact rupee prices set by hand
+// instead of the converted USD ones. For an INR viewer they are expressed
+// here as USD-equivalents (rupees / rate), so every existing caller keeps
+// working in "USD" and planMoneyDisplay's Math.round(usd * rate) lands back
+// on the exact rupee figure. functions-src/razorpay.js + razorpaySubs.js
+// charge the same rupee numbers (see inrPlanPrices there).
+function planUsesInrPrices(plan){
+  return !!plan && strykerCurrency() === 'INR' && planParsePrice(plan.priceInr) !== null;
+}
+function planListPrice(plan){
+  if (planUsesInrPrices(plan)) return planParsePrice(plan.priceInr) / STRYKER_USD_INR;
+  return planPriceNum(plan && plan.price);
+}
+function planSalePriceRaw(plan){
+  if (planUsesInrPrices(plan)) {
+    var si = planParsePrice(plan.salePriceInr);
+    return si === null ? null : si / STRYKER_USD_INR;
+  }
+  return planParsePrice(plan && plan.salePrice);
+}
+
 function planSaleInfo(plan){
-  var full = planPriceNum(plan && plan.price);
+  var full = planListPrice(plan);
   var out = { active: false, price: full, full: full, sale: full, pct: 0, save: 0,
               label: '', endsMs: null };
   if (!plan || !plan.onSale) return out;
 
-  var sale = planParsePrice(plan.salePrice);
+  var sale = planSalePriceRaw(plan);
   if (sale === null || sale < 0 || sale >= full || full <= 0) return out;
 
   var endsMs = planSaleEndMs(plan);
@@ -207,7 +250,7 @@ function planPriceHtml(plan, size){
         '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
       '</div>' +
       '<div class="pp-tags">' +
-        '<span class="pp-off"><i></i>SAVE ' + s.pct + '%</span>' +
+        '<span class="pp-off"><i></i>' + planEscape(s.label) + '</span>' +
         '<span class="pp-save">You save ' + planMoneyDisplay(s.save) + '</span>' +
         (s.endsMs ? '<span class="pp-ends" data-sale-countdown="' + s.endsMs + '">' +
           saleCountdownText(s.endsMs) + '</span>' : '') +
@@ -219,7 +262,7 @@ function planPriceHtml(plan, size){
 function planSaleRibbonHtml(plan){
   var s = planSaleInfo(plan);
   if (!s.active) return '';
-  return '<span class="plan-sale-flag"><b>' + planEscape(s.label) + '</b></span>';
+  return '<span class="plan-sale-flag"><b>' + s.pct + '% OFF</b></span>';
 }
 
 // Countdown chips tick themselves. One interval for the whole page, started

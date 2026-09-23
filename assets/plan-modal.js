@@ -71,6 +71,7 @@
     // Only plans ABOVE the current one are worth showing — offering someone
     // the tier they already hold, or a downgrade, is noise on a paywall.
     var upgrades = plans.filter(function (p) {
+      if (p.hidden) return false;   // yearly twins are sold from their parent card
       if (myRank < 0) return true;
       return (p.rank !== null && p.rank !== undefined ? p.rank : 0) > myRank;
     });

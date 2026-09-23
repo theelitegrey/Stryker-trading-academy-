@@ -1,0 +1,97 @@
+[
+ {
+  "id": "WuvUQyHX82ZzHP2sKLms",
+  "rank": 0,
+  "saleLabel": "",
+  "featured": false,
+  "features": [
+   "Chapters 1–7 — the complete ICT foundations",
+   "Progress dashboard & achievements",
+   "Trading floor community (read-only)"
+  ],
+  "saleEndsAt": "",
+  "color": "#00ffff",
+  "chapterAccess": "1-7",
+  "salePrice": "",
+  "name": "Starter",
+  "onSale": false,
+  "price": "0",
+  "ctaLabel": "",
+  "period": "month"
+ },
+ {
+  "id": "Sj1bjdpwvYJUVErjNMAb",
+  "color": "#ff0000",
+  "chapterAccess": "all",
+  "name": "Pro",
+  "price": "49",
+  "ctaLabel": "Join Pro",
+  "salePrice": "19",
+  "saleEndsAt": "",
+  "saleLabel": "Launch price",
+  "rank": 1,
+  "onSale": true,
+  "featured": true,
+  "features": [
+   "All 42 chapters — candle basics to liquidity engineering",
+   "Session replays with trade recaps",
+   "Trading floor community — post, DM, share trades",
+   "Advanced trade journal with broker auto-sync & Edge Score",
+   "Graded chapter reviews & trade case studies"
+  ],
+  "period": "month",
+  "priceInr": "2499",
+  "salePriceInr": "699",
+  "yearlyPlanId": "proYearly"
+ },
+ {
+  "id": "OMSNNQrZ4aBPReRMOpUB",
+  "onSale": true,
+  "chapterAccess": "all",
+  "featured": false,
+  "features": [
+   "Everything in Pro",
+   "Live killzone sessions — trade the open with Stryker, live chat included",
+   "Monthly 1:1 trade journal audit — your trades, reviewed personally",
+   "Exclusive Stryker indicator suite",
+   "The full Stryker trading system & model templates",
+   "Private VIP community with priority support"
+  ],
+  "name": "Elite",
+  "period": "month",
+  "salePrice": "49",
+  "ctaLabel": "Go Elite",
+  "saleLabel": "Launch price",
+  "price": "129",
+  "rank": 2,
+  "saleEndsAt": "",
+  "color": "#ffff00",
+  "priceInr": "5999",
+  "salePriceInr": "1999"
+ },
+ {
+  "id": "proYearly",
+  "name": "Pro",
+  "period": "year",
+  "price": "490",
+  "salePrice": "149",
+  "onSale": true,
+  "saleLabel": "Launch price",
+  "saleEndsAt": "",
+  "hidden": true,
+  "rank": 1,
+  "chapterAccess": "all",
+  "featured": false,
+  "features": [
+   "All 42 chapters — candle basics to liquidity engineering",
+   "Session replays with trade recaps",
+   "Trading floor community — post, DM, share trades",
+   "Advanced trade journal with broker auto-sync & Edge Score",
+   "Graded chapter reviews & trade case studies"
+  ],
+  "ctaLabel": "Join Pro yearly",
+  "color": "#ff0000",
+  "priceInr": "24990",
+  "salePriceInr": "5499"
+ }
+]

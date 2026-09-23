@@ -108,6 +108,10 @@ function getCouponFromQuery(){
 // Marketing links say `?plan=elite`, not `?plan=x7Kq2...` — so when the query
 // value isn't a document id, fall back to matching it against plan NAMES.
 function loadCheckoutPlan(planId){
+  if (typeof strykerPreviewMode === 'function' && strykerPreviewMode()) {
+    return strykerLoadPlans().then((all) => all.find((p) => p.id === planId ||
+      (p.name || '').toLowerCase() === String(planId).toLowerCase()) || null);
+  }
   return db.collection('plans').doc(planId).get().then((doc) => {
     if (doc.exists) return Object.assign({ id: doc.id }, doc.data());
     return db.collection('plans').get().then((snap) => {
@@ -163,7 +167,7 @@ function updateOrderSummary(){
   // An active offer is applied before any coupon: the coupon then discounts
   // the offer price, not the list price.
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
-  const listPrice = parseFloat(CHECKOUT_PLAN.price) || 0;
+  const listPrice = (typeof planListPrice === 'function') ? planListPrice(CHECKOUT_PLAN) : (parseFloat(CHECKOUT_PLAN.price) || 0);
   const price = sale.active ? sale.price : listPrice;
   document.getElementById('checkout-original-price').textContent = checkoutFmt(listPrice);
 
@@ -228,7 +232,7 @@ function updateOrderSummary(){
 // after the signature checks out, so nothing here writes orders/students.
 function checkoutTotalDue(){
   const sale = (typeof planSaleInfo === 'function') ? planSaleInfo(CHECKOUT_PLAN) : { active: false };
-  const price = sale.active ? sale.price : (parseFloat(CHECKOUT_PLAN.price) || 0);
+  const price = sale.active ? sale.price : ((typeof planListPrice === 'function') ? planListPrice(CHECKOUT_PLAN) : (parseFloat(CHECKOUT_PLAN.price) || 0));
   const discount = APPLIED_COUPON ? computeDiscount(APPLIED_COUPON, price) : 0;
   return Math.max(price - discount, 0);
 }
@@ -527,7 +531,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function completeFreeOrder(errEl){
     const price = (typeof planEffectivePrice === 'function')
       ? planEffectivePrice(CHECKOUT_PLAN)
-      : (parseFloat(CHECKOUT_PLAN.price) || 0);
+      : ((typeof planListPrice === 'function') ? planListPrice(CHECKOUT_PLAN) : (parseFloat(CHECKOUT_PLAN.price) || 0));
 
     const btn = document.getElementById('checkout-complete-btn');
     btn.disabled = true;

@@ -81,6 +81,16 @@
 <li>Session highs and lows are common sweep targets. Many ICT-based approaches pay particular attention to the first sweep of the prior session's high or low after a major market opens.</li>
 </ul>
 
+<h2>A worked example</h2>
+<p>A hypothetical example with made-up prices on a five-minute chart:</p>
+<ol>
+<li>Yesterday's high was 18,420.00, and price tested it twice this morning without breaking it. Those two tests are equal highs, so stops and breakout orders are probably resting just above.</li>
+<li>At the New York open a candle spikes to 18,428.50, trades above the level, then closes at 18,414.25, back below yesterday's high. That candle is a sweep candidate.</li>
+<li>The next candle closes below the last higher low at 18,402.00, a shift in structure against the push up.</li>
+<li>A trader who uses sweeps now has a defined story: buy-side liquidity was taken, price was rejected, and structure turned. They still decide under their own rules whether any trade is justified.</li>
+</ol>
+<p>If the spike candle had instead closed at 18,426.00 and the next candle had held above 18,420.00, the same move would read as a breakout, and the sweep idea would be wrong.</p>
+
 <h2>Common mistakes</h2>
 <ul>
 <li><strong>Calling every wick a sweep.</strong> A sweep needs an obvious level with a clear reason for orders to sit beyond it.</li>
@@ -99,3 +109,25 @@
 <li>Note any fair value gap or order block left by the move.</li>
 </ul>
 </div>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is a liquidity sweep in simple terms?</h3>
+<p>It is a quick move through an obvious high or low, where stop and breakout orders sit, followed by a close back inside the previous range.</p>
+<h3>Is a liquidity sweep the same as a stop hunt?</h3>
+<p>They describe the same price event. "Stop hunt" implies someone is deliberately targeting stops; "liquidity sweep" describes what happens without assuming intent. Other names include liquidity grab and stop run.</p>
+<h3>What is buy-side and sell-side liquidity?</h3>
+<p>Buy-side liquidity is the cluster of buy orders (short sellers' stops and breakout buy orders) above a high. Sell-side liquidity is the cluster of sell orders below a low.</p>
+<h3>How do I tell a sweep from a breakout?</h3>
+<p>Wait for the candle to close. A sweep closes back inside the range and fails to follow through; a breakout closes beyond the level and holds there.</p>
+<h3>Where should I put my stop-loss to avoid being swept?</h3>
+<p>There is no placement that cannot be hit. Knowing where stops cluster helps you think about whether your stop sits in the most obvious spot and what it means if it is hit.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>LuxAlgo Library, "Liquidity Sweep" (where liquidity rests, the run-then-failure check, sweep vs breakout): <a href="https://www.luxalgo.com/library/concept/liquidity-sweep/" rel="noopener" target="_blank">luxalgo.com/library/concept/liquidity-sweep</a></li>
+<li>Investopedia, "Stop-Loss Order" (how stop orders become market orders at the stop price): <a href="https://www.investopedia.com/terms/s/stop-lossorder.asp" rel="noopener" target="_blank">investopedia.com/terms/s/stop-lossorder.asp</a></li>
+<li>Investopedia, "Breakout" (breakouts, failed breakouts and typical stop placement around the level): <a href="https://www.investopedia.com/terms/b/breakout.asp" rel="noopener" target="_blank">investopedia.com/terms/b/breakout.asp</a></li>
+<li>Investopedia, "Liquidity" (the everyday meaning of the word): <a href="https://www.investopedia.com/terms/l/liquidity.asp" rel="noopener" target="_blank">investopedia.com/terms/l/liquidity.asp</a></li>
+</ol>

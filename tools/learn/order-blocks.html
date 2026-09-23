@@ -15,10 +15,10 @@
 <figure class="lx-fig">
 <svg viewBox="0 0 640 300" role="img" aria-labelledby="ob1t ob1d">
 <title id="ob1t">A bullish order block</title>
-<desc id="ob1d">Price drifts lower with small candles. The last down-close candle is highlighted as the order block zone. Three large bullish candles follow, moving sharply higher and leaving the zone behind.</desc>
-<rect class="zone2" x="232" y="196" width="376" height="46"/>
-<line class="zone2-line" x1="232" y1="196" x2="608" y2="196"/>
-<line class="zone2-line" x1="232" y1="242" x2="608" y2="242"/>
+<desc id="ob1d">Price drifts lower with small candles. The last down-close candle is highlighted, and the order block zone spans its full range from wick high to wick low. Three large bullish candles follow, moving sharply higher and leaving the zone behind.</desc>
+<rect class="zone2" x="232" y="190" width="376" height="60"/>
+<line class="zone2-line" x1="232" y1="190" x2="608" y2="190"/>
+<line class="zone2-line" x1="232" y1="250" x2="608" y2="250"/>
 <line class="w" x1="70" y1="120" x2="70" y2="178"/><rect class="dn" x="58" y="130" width="24" height="38"/>
 <line class="w" x1="120" y1="140" x2="120" y2="200"/><rect class="up" x="108" y="150" width="24" height="30"/>
 <line class="w" x1="170" y1="150" x2="170" y2="222"/><rect class="dn" x="158" y="160" width="24" height="46"/>
@@ -28,9 +28,9 @@
 <line class="w" x1="400" y1="36" x2="400" y2="96"/><rect class="up" x="388" y="44" width="24" height="46"/>
 <text class="lbl-t" x="440" y="224">ORDER BLOCK</text>
 <text class="lbl-s" x="424" y="112">strong move away</text>
-<text class="lbl-s" x="250" y="276" text-anchor="middle">last down candle</text>
+<text class="lbl-s" x="250" y="274" text-anchor="middle">last down candle</text>
 </svg>
-<figcaption>A bullish order block: the last down-close candle before a strong move up. The zone is usually drawn across that candle's range.</figcaption>
+<figcaption>A bullish order block: the last down-close candle before a strong move up. The zone is drawn across that candle's full range, wick to wick.</figcaption>
 </figure>
 
 <h2>How traders draw the zone</h2>
@@ -75,6 +75,16 @@
 <figcaption>Price has already returned to the left block, so it has been used once. The right block has not been revisited yet.</figcaption>
 </figure>
 
+<h2>A worked example</h2>
+<p>A hypothetical walk-through with made-up prices on a fifteen-minute chart:</p>
+<ol>
+<li>Price has been drifting lower and trades just below an obvious prior swing low at 2,340.0, taking out the stops sitting under it.</li>
+<li>The next candle is a small down-close candle with a high of 2,339.5 and a low of 2,336.0. Nobody can call it an order block yet.</li>
+<li>Three strong bullish candles follow, closing at 2,352.0, and they leave a fair value gap behind. Now the small down candle is the last opposing candle before displacement.</li>
+<li>Using the full-range convention, the trader marks the zone from 2,339.5 down to 2,336.0, with the midpoint at 2,337.75, and extends it to the right.</li>
+</ol>
+<p>All three checks are present: displacement, an imbalance and a liquidity sweep just before. That makes it a well-defined area to watch if price returns. It says nothing about whether price will return, or what it will do there.</p>
+
 <h2>Common mistakes</h2>
 <ul>
 <li><strong>Marking every candle before a move.</strong> Without the displacement, imbalance and liquidity checks, almost anything qualifies.</li>
@@ -97,3 +107,25 @@
 <li>Check whether the block has already been revisited.</li>
 </ul>
 </div>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is an order block in simple terms?</h3>
+<p>It is the last candle that closed against the direction of a strong move, just before that move started. Traders mark its range as an area to watch if price comes back.</p>
+<h3>Should I mark the full candle or just the body?</h3>
+<p>The full range, wick to wick, is the most common convention. Some traders use only the body on higher timeframes where wicks are long. Pick one rule and use it consistently.</p>
+<h3>What is the difference between a mitigated and an unmitigated order block?</h3>
+<p>A mitigated block is one price has already returned to and reacted from. An unmitigated block has not been revisited since it formed and is usually given more weight.</p>
+<h3>Is an order block the same as supply and demand?</h3>
+<p>They are related ideas. Supply and demand zones usually cover a whole base of candles, while an order block is defined more narrowly as the last opposing candle before a strong move.</p>
+<h3>Do order blocks prove where institutions placed orders?</h3>
+<p>No. Nobody outside a firm can see its orders. The order block story is a model for organising a chart, not verified evidence of any particular order.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>LuxAlgo Blog, "ICT Concepts: Order Blocks Explained" (last opposing candle convention, confirmation and the limits of the institutional story): <a href="https://www.luxalgo.com/blog/ict-trader-concepts-order-blocks-unpacked/" rel="noopener" target="_blank">luxalgo.com/blog</a></li>
+<li>LuxAlgo Library, "Fair Value Gap": <a href="https://www.luxalgo.com/library/concept/fair-value-gap/" rel="noopener" target="_blank">luxalgo.com/library/concept/fair-value-gap</a></li>
+<li>LuxAlgo Library, "Liquidity Sweep": <a href="https://www.luxalgo.com/library/concept/liquidity-sweep/" rel="noopener" target="_blank">luxalgo.com/library/concept/liquidity-sweep</a></li>
+<li>LuxAlgo Library, "Change of Character" (structure break as confirmation): <a href="https://www.luxalgo.com/library/concept/change-of-character/" rel="noopener" target="_blank">luxalgo.com/library/concept/change-of-character</a></li>
+</ol>

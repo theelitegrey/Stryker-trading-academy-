@@ -64,3 +64,62 @@
   .lx-body h2{ font-size:22px; }
   .lx-cta .btn{ display:block; width:100%; text-align:center; margin:0 0 10px; }
 }
+
+/* ---- Interactive figures (assets/learn-ix.js). Without JS every part shows. ---- */
+.lx-ix svg .lbl{ font-size:14px; }
+.lx-ix svg .lbl-s{ font-size:12.5px; }
+.lx-fig .lbl-r{ fill:var(--bear); font-family:var(--font-mono); font-size:13px; font-weight:700; }
+.lx-fig .lbl-w{ fill:var(--ink-0); font-family:var(--font-mono); font-size:14px; font-weight:700; }
+.lx-fig .lvl-up{ stroke:var(--bull); stroke-width:1.5; stroke-dasharray:5 4; }
+.lx-fig .lvl-dn{ stroke:var(--bear); stroke-width:1.5; stroke-dasharray:5 4; }
+.lx-fig .hit{ fill:var(--bull); }
+.lx-fig .hit-r{ fill:none; stroke:var(--bear); stroke-width:2; }
+.lx-fig .grid{ stroke:var(--line); stroke-width:1; }
+.lx-fig .tline{ stroke:var(--ink-3); stroke-width:1; stroke-dasharray:2 4; }
+.lx-fig .equity{ stroke:var(--ink-0); stroke-width:2.2; fill:none; stroke-linejoin:round; }
+.lx-fig .floor{ stroke:var(--bear); stroke-width:2; fill:none; stroke-dasharray:6 4; }
+.lx-ix [data-step], .lx-ix [data-mode], .lx-ix [data-variant]{ transition:opacity .35s ease; }
+.lx-ix .ix-off{ opacity:0; visibility:hidden; }
+.lx-ix.ix-on .ix-new .path, .lx-ix.ix-on polyline.ix-new{ stroke:var(--gold); }
+.lx-ctrl, .lx-seg{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 0 4px; }
+.lx-ctrl{ justify-content:space-between; }
+.lx-ctrl button, .lx-seg button, .lx-quiz button{ font:600 14px/1 var(--font-mono); color:var(--ink-0); background:var(--bg-2);
+  border:1px solid var(--line); border-radius:8px; padding:11px 14px; min-height:44px; cursor:pointer; }
+.lx-ctrl button:disabled{ opacity:.4; cursor:default; }
+.lx-seg button[aria-pressed="true"]{ border-color:var(--gold); color:var(--gold); }
+.lx-ctrl-n{ font-family:var(--font-mono); font-size:13px; color:var(--ink-2); }
+.lx-caps{ list-style:none; padding:0; margin:8px 0 0; }
+.lx-caps li, .lx-fig [data-for]{ font-size:15px; line-height:1.6; color:var(--ink-1); margin:8px 0 0; }
+.lx-pair{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.lx-pair > *{ min-width:0; }
+.lx-quiz{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 18px; margin:24px 0; }
+.lx-quiz p{ margin:0 0 12px; }
+.lx-quiz .lx-quiz-opts{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+.lx-quiz button.ok{ border-color:var(--bull); color:var(--bull); }
+.lx-quiz button.no{ border-color:var(--bear); color:var(--bear); }
+.lx-quiz .lx-quiz-a{ margin:0; }
+.lx-calc{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:16px 18px; margin:24px 0; }
+.lx-calc-row{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:10px 0 12px; }
+.lx-calc label{ font-family:var(--font-mono); font-size:12.5px; color:var(--ink-2); display:block; }
+.lx-calc input{ width:100%; box-sizing:border-box; margin-top:4px; font:16px var(--font-mono); color:var(--ink-0); background:var(--bg-0);
+  border:1px solid var(--line); border-radius:8px; padding:10px; }
+.lx-calc output{ display:block; font-size:15px; line-height:1.6; color:var(--ink-0); }
+.lx-table{ width:100%; overflow-x:auto; margin:0 0 22px; }
+.lx-table table{ table-layout:fixed; min-width:0; }
+.lx-table th:first-child, .lx-table td:first-child{ width:26%; }
+.lx-table table{ width:100%; border-collapse:collapse; font-size:14.5px; line-height:1.5; }
+.lx-table th, .lx-table td{ text-align:left; vertical-align:top; padding:9px 10px; border-bottom:1px solid var(--line); }
+.lx-table th{ color:var(--ink-0); font-family:var(--font-mono); font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; }
+.lx-faq h3{ font-size:17px; margin:22px 0 6px; }
+.lx-sources{ font-size:14px; line-height:1.6; }
+.lx-sources li{ margin-bottom:6px; overflow-wrap:anywhere; }
+@media (max-width:640px){
+  .lx-pair{ grid-template-columns:1fr; }
+  .lx-calc-row{ grid-template-columns:1fr; }
+  .lx-table table{ font-size:14px; }
+  .lx-table th, .lx-table td{ padding:8px 6px; overflow-wrap:anywhere; hyphens:auto; }
+  .lx-table th{ text-transform:none; letter-spacing:0; font-size:12px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .lx-ix [data-step], .lx-ix [data-mode], .lx-ix [data-variant]{ transition:none; }
+}

@@ -1,118 +1,130 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-22T05:45:00Z",
-  "sessionDate": "2026-09-22",
+  "generatedAt": "2026-09-23T05:50:00Z",
+  "sessionDate": "2026-09-23",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-23T05:30:00Z",
-  "headline": "An App Store ranking moved a trillion dollars",
-  "standfirst": "Meta's Muse agent took the top of the US iPhone free chart and the semiconductor complex repriced around it: Meta rose 11.43%, AMD 9.95% to close above a $1 trillion market capitalisation for the first time, Intel 12% and Arm 17%. The Nasdaq Composite closed at 27,122.09, a record and its first since 2 June, the S&P 500 at 7,764.70 and the Dow at 52,048.83. Underneath it, crude fell to an eleven-day low on Strait of Hormuz shipping data and the ten-year came back under 5% at 4.96%. Treasury sells $69 billion of two-years at 13:00 ET into that, with Williams, Jefferson and Barkin all speaking first.",
+  "goodUntil": "2026-09-24T05:30:00Z",
+  "headline": "The Fed said “we’ll see”. The two-year auction said 4.787%.",
+  "standfirst": "Tuesday was quiet on the surface — the S&P 500 lost 0.06 points to 7,764.64, the Nasdaq added 0.45% to a second straight record at 27,244.28, the Dow fell 0.36% — and busy underneath. Treasury sold $69 billion of two-year notes at 4.787%, the highest stop since May 2024 and 58bp above August's; Brent settled at $99.25, its first close under $100 since 9 September, and has kept falling overnight; and four Fed officials, none of them voters this year, all pointed the same way. Today brings the first activity data since the hike — flash PMIs for the euro area at 04:00 ET, the UK at 04:30 and the US at 09:45 — a $70 billion five-year auction at 13:00, and Xi Jinping's arrival in Washington.",
   "bullets": [
     {
-      "title": "One product ranking, four chipmakers, a trillion dollars",
-      "text": "Muse, Meta's personal AI agent, launched two weeks ago and has now been the most downloaded free iPhone app in the US for three days running, ahead of ChatGPT, on Sensor Tower's data — roughly 600,000 downloads in its first five days. The trade that followed is a CPU trade, not a GPU one: agents chain tool calls and orchestrate steps, which is general-purpose compute. AMD rose 9.95% to $615.52, a record close and its first $1 trillion valuation, making it the fourth US chip company there after Nvidia, Broadcom and Micron; Intel added 12%, Arm 17%, Qualcomm about 6%. The Philadelphia Semiconductor Index rose 4.3%, its best day since 4 August and a fifth straight gain. Meta itself added about $194 billion of market value in a session, its strongest since April 2025, helped by a Wells Fargo target raised from $640 to $796."
+      "title": "The market took the two-year paper. It just charged 58bp more for it.",
+      "text": "The $69 billion two-year auction stopped at 4.787% against 4.204% in August, the highest yield Treasury has paid on the maturity since May 2024. Demand was fine: bid-to-cover 2.63 against a 2.61 six-auction average, a tail of 0.2bp, indirect bidders at 57.79% against a 58.6% average, and the Fed's own SOMA account taking $10.4 billion non-competitively. Cash closes barely moved — the two-year at 4.749%, the ten-year at 4.966%, the thirty-year at 5.302% — and one-year inflation swaps have slipped to 2.3% from 2.6% a fortnight ago on the oil move. Five-years today (last stop 4.393%), seven-years Thursday (4.512%)."
     },
     {
-      "title": "The oil half of the day was a shipping report",
-      "text": "US Central Command put oil and LNG movements through the Strait of Hormuz at their highest in six months over the past fortnight, and satellite tracking showed Saudi Aramco loading about 14 million barrels onto seven large tankers. WTI fell about 5% to $95.16 intraday, an eleven-day low, and Brent settled near $100.34 after dipping below $100. Energy was the only S&P sector down, at −2.88%, against technology's +2.77% and communication services' +3.56% — ten of eleven sectors rose. Crude has given back 8.26% over five sessions and is still up 62% year to date."
+      "title": "Six sessions of oil, and the physical market still says the other thing",
+      "text": "WTI's October contract settled at $94.59 and Brent at $99.25, then both kept falling overnight — the November WTI contract is near $89, Brent near $98.4 — for a sixth straight decline. The drivers are diplomatic and logistical: Saudi Arabia has begun testing its East–West pipeline and could resume exports from Yanbu within days; Trump told the UN he faces a “big decision” between a deal with Iran and annihilating it, said a deal was likely after the 3 November midterms, then said US officials had a “very good” three-hour meeting with Iran's delegation. Iran has reportedly offered to reopen Hormuz within seven days if the US lifts its blockade on Iranian ports; the Revolutionary Guards then added Yemen to the list. Against all that: tanker tracking showed only two merchant ships through the strait on Monday, diesel is at record highs in Europe and the US, the API reported a 1.8 million barrel build against a draw expected, and Treasury is reported to be studying a diesel export ban. Tighter US sanctions on Iranian aviation take effect today."
     },
     {
-      "title": "The ten-year fell back under five. The two-year did not move.",
-      "text": "The benchmark ten-year closed at about 4.95%, down roughly 4bp, after touching 5.041% last week — a nineteen-year high. The thirty-year fell a similar amount to 5.286%. The two-year, the policy-sensitive end, closed at 4.751%, up slightly, having traded 4.772% intraday, its highest since July 2024. German and UK ten-years fell about 5bp alongside. That is a long-end rally on the oil print sitting on top of an unmoved front end: 2s10s is 20bp against 25bp on Friday, and futures still price roughly 88% odds of another Fed hike in December."
+      "title": "Four Fed speakers, no votes, one direction",
+      "text": "Richmond's Barkin: “Will additional hikes be required, and how many? We'll see.” He said more than 60% of the PCE basket was rising faster than 3% in July, that “passing” shocks are not proving short-lived, and that the economy is if anything firming — defence, manufacturing, bank loan pipelines. Boston's Collins backed the September hike and flagged “an increased likelihood of future scenarios in which inflation remains notably above 2%”, arguing for a “somewhat more restrictive” rate. Williams defended policy and gave no guidance; Jefferson spoke on the discount window. On Monday Goolsbee said the Fed could no longer look through supply shocks and Musalem said further hikes may be needed. None of the six votes in 2026; Barkin does next year. Futures put 28 October at about 55% and December near 89%, and 16 of 18 officials projected at least one more hike this year. The dollar index closed at 100.60, and the greenback hit its highest since late July against the Canadian dollar."
     },
     {
-      "title": "The supply the week is really about starts today",
-      "text": "Treasury sells $69 billion of two-years at 13:00 ET, with the previous stop at 4.204% and the front end 50bp higher over the month. Five-years follow Wednesday, seven-years Thursday. New York Fed President Williams speaks at 10:05 ET, Vice Chair Jefferson at 10:20 and Richmond's Barkin at 13:00, the same minute the auction closes. With Warsh giving no forward guidance between meetings, the speeches are the only read on the path — and a soft two-year tail would say the market does not believe the dots it has just sold off for."
+      "title": "A record close with more new lows than new highs",
+      "text": "On Monday, more S&P 500 stocks set 52-week lows than 52-week highs — the first time that has happened on a record-setting day since December 1999. Tuesday kept the shape: the Nasdaq's second straight record came with the Magnificent Seven index down 0.23%, Amazon off 1.34%, Alphabet 1.07%, Microsoft 0.72%, Meta 0.63%. The bid moved to memory — Micron rose 5% and the Philadelphia Semiconductor Index 2.06% — and financials fell 1.97% as the large banks sold off. The Richmond Fed survey printed −2 against +5 expected. KB Home reported housing revenue down 20% on 19% fewer deliveries at a $473,000 average price, with the first year-on-year rise in backlog in four years. FactSet has S&P 500 earnings growing about 29% for the quarter now ending, a third straight quarter above 25% — the reason the index is 0.4% from its high with the ten-year at 4.97%."
     },
     {
-      "title": "What the sell-side thinks breaks this",
-      "text": "Morgan Stanley has said the S&P 500 could fall as much as 7% if energy prices rise further and the ten-year stays near 5%. On the other side, HSBC now sees the ten-year at 4.65% by year-end, iCapital at 5.3%, and Miller Tabak's Matt Maley argues a sustained break above 4.8% is the nearer-term test rather than any run at 6%. Forecasts cluster between 4.65% and 5.3%. This week's flash PMIs, Thursday's claims and the Fed speeches are what decides which camp is right."
+      "title": "Xi lands today. The truce he is here about expires in November.",
+      "text": "Xi Jinping arrives at Joint Base Andrews today for a three-day state visit — Trump is meeting him on the tarmac — with the bilateral on Thursday and a state dinner that evening to which Bezos, Musk, Pichai, Dell, Huang, Altman, Fraser and Cook have been invited. The agenda is the one-year trade truce that expires in November, export controls, rare earths and AI policy; Bessent and Vice Premier He Lifeng did the preparatory work on Monday. Both sides are described as wanting stability and spectacle over deliverables. Hong Kong opened flat and Shanghai mixed on it. Tokyo is shut for a second day for Silver Week, the Kospi rose about 1%, and the Australian dollar is under pressure after Bullock said upside inflation risks could materialise from energy and that she is not signalling the 29 September decision."
     }
   ],
   "calendar": [
     {
-      "time": "08:00 ET",
-      "event": "ECB President Lagarde speaks",
-      "note": "Her second appearance in two days, a day before the euro-area flash PMIs. The ECB is at 2.50% and has said no meeting is ruled out, October included."
+      "time": "03:30 ET",
+      "event": "Flash PMIs: Germany 03:30, euro area 04:00, UK 04:30 (September)",
+      "note": "Euro-area manufacturing seen 52.7 after 52.7, services 51.7 after 51.6; UK manufacturing 51.4 after 51.7, services 52.0 after 52.5. Both central banks are in hiking mode, so a firm print is hawkish rather than good."
     },
     {
-      "time": "08:15 ET",
-      "event": "US ADP employment change, 4-week average",
-      "note": "The weekly series, not the monthly print, which lands 30 September. Previous average 16,250. The only labour reading before Thursday's claims."
-    },
-    {
-      "time": "10:00 ET",
-      "event": "Richmond Fed manufacturing index (September)",
-      "note": "Seen at 5 after 4. Worth watching this week only as an early read on tomorrow's flash PMIs."
+      "time": "09:45 ET",
+      "event": "US flash PMIs (September)",
+      "note": "Manufacturing seen 53.5 after 53.9, services 56.0 after 56.5, composite 56.0. The first activity data since the hike, a day after the Richmond Fed survey missed at −2. The prices-paid lines matter more than the headlines."
     },
     {
       "time": "10:05 ET",
-      "event": "Fed's Williams speaks; Jefferson at 10:20",
-      "note": "Williams runs the New York desk and Jefferson is Vice Chair. Between them they are the closest thing to guidance the Fed is giving right now."
+      "event": "Fed's Barr speaks",
+      "note": "Fifth Fed speaker in two days. Every non-voter so far has leaned toward more; the Chair has said nothing."
+    },
+    {
+      "time": "10:30 ET",
+      "event": "EIA crude inventories",
+      "note": "A 0.6 million barrel draw expected after the API's 1.8 million build. With crude down six sessions, a second build would be the first physical number to agree with the price."
     },
     {
       "time": "13:00 ET",
-      "event": "$69bn two-year note auction; Fed's Barkin speaks",
-      "note": "Previous stop 4.204%. The two-year is 4.76% and has moved 12% over the month. The tail is the number, not the yield."
+      "event": "$70bn five-year note auction",
+      "note": "Previous stop 4.393%; the five-year is 4.83%. After Tuesday's two-year the question is not whether it clears but at what tail."
     },
     {
-      "time": "Wed 09:45 ET",
-      "event": "US flash PMIs (September); euro area 04:00, UK 04:30",
-      "note": "US manufacturing seen 53.5 after 53.9, services 56.0 after 56.5. UK manufacturing has been marked down to 51.4 from 52.7 since yesterday. A strong flash reads hawkish, not as good news."
+      "time": "All day",
+      "event": "Xi Jinping arrives in Washington; Iran aviation sanctions take effect",
+      "note": "Arrival ceremony at Andrews today, the bilateral and state dinner Thursday. Any line on the trade truce or AI policy trades semis first."
     },
     {
       "time": "Thu 08:30 ET",
-      "event": "Jobless claims; SNB decision 03:30; $44bn seven-year auction 13:00",
-      "note": "Claims seen 203,000 after 196,000, revised up from 202,000 yesterday. The SNB is expected to hold at zero."
+      "event": "Jobless claims; SNB 03:30; Australia jobs (Wed 21:30 ET); $44bn seven-year 13:00",
+      "note": "Claims seen 201,000 after 196,000, marked down from 203,000. Australia is seen adding 20,000 jobs at 4.5% unemployment ahead of the RBA on Monday. The SNB is expected to hold at zero."
     },
     {
       "time": "Fri 08:30 ET",
       "event": "Durable goods (August); Michigan final 10:00",
-      "note": "Durable goods seen −0.3% after +1.1%, ex-transport +0.6%, core capital goods +0.5% off a July now revised to flat. Michigan sentiment 47.5, one-year inflation expectations 4.6%."
+      "note": "Durable goods now seen −0.4% after +1.1%, ex-transport +0.6%, core capital goods +0.5% off a July revised to flat. Michigan sentiment 47.6, one-year inflation expectations 4.6%."
     }
   ],
-  "sessionNote": "Asia extended the move and the commodity and crypto tapes have partly given it back. The Kospi rose about 1.6% with SK Hynix up as much as 3.6% and Samsung 3.5%; the Korea ETF had already risen 4.33% on Monday and Taiwan 3.58%, though a third of the Korean move is the won, which gained 1.40% against the dollar. Overnight, WTI has bounced 1.21% to $93.49 and Brent 1.51% to $101.86, and Bitcoin, which traded above $86,000 during Monday's session, is back at $85,152, down 1.46%. So the two things that drove Monday — cheaper oil and risk appetite — are both slightly worse this morning than they were at the New York close.",
-  "watchOut": "Treating an App Store ranking as a revenue line. Meta is up about 21% since Muse launched a fortnight ago and AMD is up roughly 183% this year and 30% this month, on a download chart and a distribution metric. AMD's own management describes the agentic share of its server-CPU market as a projection rather than a booked line, and the $220 billion figure it points at is a 2030 number. A broker target that moves from $640 to $796 in one note is describing sentiment, not earnings. Meanwhile the input that actually moved the whole board — crude — has already bounced overnight, and a ten-year at 4.96% is four basis points from being back where it was on Friday.",
+  "sessionNote": "The overnight tape has extended Tuesday rather than reversed it. WTI's November contract is down about 1.5% near $89.2 and Brent 0.9% near $98.4 at 01:00 ET, a sixth session; the dollar index is near 100.7; Bitcoin is $86,721, up 0.61%, having taken back Tuesday's dip; gold is flat at $4,375. US futures were within 0.03% of unchanged at 20:45 ET. Tokyo is closed, Hong Kong opened flat, the Kospi rose about 1%. The day has a shape: Europe's PMIs print before New York opens, the US flash at 09:45 is the first activity read since the hike, and the five-year at 13:00 is the second of three auctions into a curve the two-year sale just repriced. The clean window is the US morning; the risk is a headline out of Washington or New York — Xi's arrival, an Iran line — landing on top of the auction.",
+  "watchOut": "Reading six down days in crude as a settlement, and reading $89 WTI as a $5 crash. The first: Brent has fallen about $10 since last Tuesday on pipeline tests, a three-hour meeting and a tanker count, while the evidence from the physical market points the other way — two merchant ships through Hormuz on Monday, diesel at record highs, an API build, and a president whose own timeline puts a deal after 3 November. Saxo's Ole Hansen does not see much further downside until refined-product flows actually increase. The second: WTI's front month rolled from October to November overnight, and the October contract settled at $94.59 — the gap between the two is the market paying up for barrels now, not a fall. A short-energy position sized for the headline is sized for the roll.",
   "sources": [
     {
       "name": "MT Newswires",
-      "note": "Monday's US close, sector leadership and the crude move"
+      "note": "the two-year auction statistics, Tuesday's close and the crude settlements"
     },
     {
-      "name": "Benzinga",
-      "note": "AMD's close, the CPU-versus-accelerator logic and Sensor Tower download data"
+      "name": "Yahoo! Finance / Associated Press",
+      "note": "index levels, points changes and the S&P's distance from its high"
     },
     {
-      "name": "Finwire",
-      "note": "the semiconductor move and US Central Command's Hormuz shipping figures"
+      "name": "Morningstar (Tradeweb data)",
+      "note": "the ten- and thirty-year closing yields"
     },
     {
-      "name": "Morningstar",
-      "note": "the Korean chip reaction and Philadelphia Semiconductor Index history"
+      "name": "Yahoo! Finance Japan",
+      "note": "auction tail, indirect share and six-auction averages"
     },
     {
-      "name": "Yonhap News",
-      "note": "Intel, Arm and the Nasdaq 100 close"
+      "name": "Reuters, via AOL and US News",
+      "note": "Barkin's and Collins' remarks"
     },
     {
-      "name": "Yahoo! Finance",
-      "note": "the Wells Fargo target change and Muse's download run"
+      "name": "FXStreet",
+      "note": "Fed pricing, the dollar index and the Australian dollar"
     },
     {
-      "name": "News 1 and Global Economic",
-      "note": "Treasury yield closes across the curve and European yields"
+      "name": "CNBC",
+      "note": "the overnight crude move and the US–Iran meeting"
     },
     {
-      "name": "NewsPim",
-      "note": "the two-year intraday high and December Fed pricing"
+      "name": "Channel NewsAsia and Stockwatch",
+      "note": "Saudi pipeline restart, Yanbu and Trump's UN remarks"
     },
     {
-      "name": "The Wall Street Journal, via Livemint",
-      "note": "the ten-year's path to 5% and the deficit backdrop"
+      "name": "MSN (Reuters)",
+      "note": "Hormuz shipping counts, Aramco loadings and diesel"
+    },
+    {
+      "name": "The Washington Post and CNBC",
+      "note": "the Xi visit schedule, guest list and agenda"
+    },
+    {
+      "name": "Eastmoney and 21st Century Business Herald",
+      "note": "sector breakdown and the memory-chip move"
+    },
+    {
+      "name": "Quartr transcripts",
+      "note": "KB Home's third-quarter results"
     },
     {
       "name": "Bigdata.com economic calendar",
-      "note": "release times, consensus and previous readings"
+      "note": "release times, consensus, previous readings and Tuesday's actuals"
     },
     {
       "name": "Financial Modeling Prep, via Bigdata.com",
@@ -122,6 +134,11 @@
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-09-22",
+      "headline": "An App Store ranking moved a trillion dollars",
+      "summary": "Meta's Muse agent topped the US iPhone chart and the CPU complex repriced around it: Meta +11.43%, AMD +9.95% to a first $1 trillion close, Intel +12%, Arm +17%, and the Nasdaq to its first record since June. Crude fell to an eleven-day low on Hormuz shipping data and the ten-year came back under 5%, into a $69 billion two-year auction."
+    },
     {
       "date": "2026-09-21",
       "headline": "The war premium leaks out before the UN",
@@ -151,11 +168,6 @@
       "date": "2026-09-10",
       "headline": "PPI beats, ECB hikes to 2.50%",
       "summary": "August PPI came in at 5.4% year-over-year against 5.3% expected with July revised up from flat. The ECB raised its deposit rate 25bp to 2.50% effective 16 September and cut its 2028 inflation forecast to 2.1%. September hike odds moved from 61% to 72%."
-    },
-    {
-      "date": "2026-09-09",
-      "headline": "Oil tops $100, Dow sheds 400 more",
-      "summary": "Brent broke $100 for the first time since July and the 10-year yield hit a three-year high. Amgen fell over 10% on a failed cardiovascular trial and software names sold off. Barclays nonetheless lifted its year-end S&P target to 7,950."
     }
   ]
 }

@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-22T05:45:00Z",
+  "generatedAt": "2026-09-23T05:50:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-23T05:30:00Z",
+  "goodUntil": "2026-09-24T05:30:00Z",
   "defaultCurrency": "USD",
   "rangeStart": "2026-09-14",
-  "rangeEnd": "2026-10-06",
+  "rangeEnd": "2026-10-08",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. Futures now price about 88% for another hike in December; Williams, Jefferson and Barkin all speak today",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. Futures price about 55% for 28 Oct and roughly 89% for at least one more by December; four speakers on Tuesday all leaned toward more",
       "bias": "up"
     },
     {
@@ -95,7 +95,7 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.35%",
       "next": "2026-09-29",
-      "expect": "Bullock spoke overnight. About 90% priced for a hike on 29 Sep, with August CPI the day after at 3.5%",
+      "expect": "Bullock: upside inflation risks from energy, and she is \"not signalling\" the 29 Sep path. About 90% priced for a hike from 4.35%",
       "bias": "up"
     },
     {
@@ -103,7 +103,7 @@
       "bank": "Swiss National Bank",
       "rate": "0.00%",
       "next": "2026-09-24",
-      "expect": "Expected to hold at zero on 24 Sep. A strong franc is doing the tightening instead",
+      "expect": "Decides tomorrow at 03:30 ET. Expected to hold at zero; a strong franc is doing the tightening instead",
       "bias": "hold"
     }
   ],
@@ -320,15 +320,16 @@
       "cur": "EUR",
       "impact": "high",
       "event": "ECB President Lagarde speaks",
-      "note": "Her second appearance in two days. The ECB is at 2.50% after its second hike of the year and has ruled no meeting out, October included."
+      "note": "Spoke Tuesday, a day before the flash PMIs. No change to the message: no meeting is ruled out, October included."
     },
     {
       "at": "2026-09-22T12:15:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "US ADP employment change, 4-week average",
-      "previous": "16.25k",
-      "note": "The weekly series, not the monthly print. The monthly ADP number lands 30 September; this is the running average in between and it is the only labour reading before Thursday's claims."
+      "previous": "16.75k",
+      "note": "Up from a revised 16,750. Small, but in the direction the Fed speakers were already pointing. The monthly ADP print is 30 September.",
+      "actual": "20k"
     },
     {
       "at": "2026-09-22T14:00:00Z",
@@ -337,34 +338,45 @@
       "event": "Richmond Fed manufacturing index (Sep)",
       "forecast": "5",
       "previous": "4",
-      "note": "A regional survey, worth watching this week only as an early read on tomorrow's flash PMIs."
+      "note": "A miss: −2 against 5 expected and 4 before. One regional survey, and the Philadelphia and Kansas City readings this month were firmer — but it is the only activity number this week that has come in below zero.",
+      "actual": "-2"
     },
     {
       "at": "2026-09-22T14:05:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Williams speaks",
-      "note": "At the Treasury Market Conference, on the morning of a $69bn two-year auction. The venue is the point."
+      "note": "Defended the September hike at the Treasury Market Conference and gave no guidance on the next move — the Warsh-era pattern."
     },
     {
       "at": "2026-09-22T14:20:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Fed's Jefferson speaks"
+      "event": "Fed's Jefferson speaks",
+      "note": "Spoke on discount-window upgrades and financial stability. Nothing on the rate path."
+    },
+    {
+      "at": "2026-09-22T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Collins speaks",
+      "note": "Supported the September hike and flagged \"an increased likelihood of future scenarios in which inflation remains notably above 2%\", arguing for a \"somewhat more restrictive\" funds rate. The dollar index went to its session high on the remarks."
     },
     {
       "at": "2026-09-22T17:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Barkin speaks",
-      "note": "Third Fed speaker of the day, and he is on at the same minute as the two-year auction closes."
+      "note": "\"Will additional hikes be required, and how many? We'll see.\" Said more than 60% of the PCE basket was rising faster than 3% in July, that \"passing\" shocks are not proving short-lived, and that the economy is if anything firming. A 2027 voter."
     },
     {
       "at": "2026-09-22T17:00:00Z",
       "cur": "USD",
       "impact": "low",
       "event": "US 2-year note auction, $69bn",
-      "note": "The front end is where the repricing happened. A soft tail here says the market does not believe the dots it just sold off for."
+      "note": "The highest two-year stop since May 2024, 58bp above August's. Demand held — bid-to-cover 2.63 against a 2.61 six-auction average, a 0.2bp tail — so the market took the paper; it just charged more for it. Five-years today, seven-years Thursday.",
+      "actual": "4.787%",
+      "previous": "4.204%"
     },
     {
       "at": "2026-09-22T21:00:00Z",
@@ -373,7 +385,7 @@
       "event": "KB Home Q3 earnings",
       "kind": "earnings",
       "ticker": "KBH",
-      "note": "Housing into mortgage rates approaching 7%. The order book matters more than the quarter."
+      "note": "Reported: housing revenue down 20% on 19% fewer deliveries, average price $473,000, and the first year-on-year rise in backlog in four years. Full-year guidance held at 10,500–11,000 homes. A read on what 7% mortgage rates do to volume rather than price."
     },
     {
       "at": "2026-09-23T07:30:00Z",
@@ -473,6 +485,22 @@
       "ticker": "CTAS"
     },
     {
+      "at": "2026-09-23T14:05:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Barr speaks",
+      "note": "Fifth Fed speaker in two days. The pattern so far: every non-voter who has spoken has leaned toward more, and the Chair has said nothing."
+    },
+    {
+      "at": "2026-09-23T14:30:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "EIA crude oil inventories (w/e 18 Sep)",
+      "forecast": "-0.6m",
+      "previous": "-0.64m",
+      "note": "The API's own count on Tuesday showed a 1.8 million barrel build against a draw expected. With crude down six sessions, a second build would be the first physical number to agree with the price."
+    },
+    {
       "at": "2026-09-23T17:00:00Z",
       "cur": "USD",
       "impact": "low",
@@ -526,7 +554,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US initial jobless claims",
-      "forecast": "203k",
+      "forecast": "201k",
       "previous": "196k"
     },
     {
@@ -565,7 +593,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US durable goods orders (Aug)",
-      "forecast": "-0.3%",
+      "forecast": "-0.4%",
       "previous": "1.1%"
     },
     {
@@ -590,7 +618,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Michigan sentiment, final (Sep)",
-      "forecast": "47.5",
+      "forecast": "47.6",
       "previous": "47.8"
     },
     {
@@ -668,7 +696,8 @@
       "impact": "high",
       "event": "UK GDP, final (Q2, q/q)",
       "previous": "0.4%",
-      "note": "A final estimate, so a revision is the only way it moves anything."
+      "note": "A final estimate, so a revision is the only way it moves anything.",
+      "forecast": "0.4%"
     },
     {
       "at": "2026-09-30T12:00:00Z",
@@ -867,6 +896,53 @@
       "event": "US 3-year note auction",
       "previous": "4.474%",
       "note": "The first auction of the October cycle. Last month's stop was 4.474%; the two-year sells today at a front end that has moved 50bp in a month."
+    },
+    {
+      "at": "2026-10-07T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Constellation Brands Q2 earnings"
+    },
+    {
+      "at": "2026-10-07T17:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "US 10-year note auction",
+      "previous": "4.834%",
+      "note": "The first ten-year sale since the yield touched 5%. Last month stopped at 4.834%."
+    },
+    {
+      "at": "2026-10-07T18:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "FOMC minutes (16 Sep meeting)",
+      "note": "The record of the first hike since 2023 — the meeting that was 12–0 on the vote and 16 of 18 on at least one more this year. With Warsh giving no guidance in public, the minutes are the closest thing to a forward view the Fed publishes."
+    },
+    {
+      "at": "2026-10-08T12:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "PepsiCo Q3 earnings"
+    },
+    {
+      "at": "2026-10-08T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US initial jobless claims"
+    },
+    {
+      "at": "2026-10-08T17:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "US 30-year bond auction",
+      "previous": "5.308%",
+      "note": "The long bond at a yield the market has not paid since 2007. Last month's stop was 5.308%."
+    },
+    {
+      "at": "2026-10-08T21:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Levi Strauss Q3 earnings"
     }
   ],
   "howToRead": [

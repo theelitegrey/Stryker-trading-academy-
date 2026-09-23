@@ -1,9 +1,9 @@
 {
   "_comment": "Cross-asset market map. Regenerated on a schedule and committed; the site only renders it. See tools/market-map.md. Values are percentage returns over each window, from the Bigdata.com market tearsheet. A window the tearsheet does not carry is null and renders as a dash — never an estimate.",
   "schema": 1,
-  "generatedAt": "2026-09-22T05:45:00Z",
-  "goodUntil": "2026-09-23T05:30:00Z",
-  "asOf": "Close of Monday 21 September 2026 for equities, sectors, bonds and the Treasury curve, with commodities, currencies and crypto to 05:40 UTC on Tuesday 22 September",
+  "generatedAt": "2026-09-23T05:50:00Z",
+  "goodUntil": "2026-09-24T05:30:00Z",
+  "asOf": "Close of Tuesday 22 September 2026 for equities, sectors, bonds and the Treasury curve, with commodities, currencies and crypto to 05:44 UTC on Wednesday 23 September",
   "staleAfterHours": 30,
   "periods": [
     "1D",
@@ -16,124 +16,124 @@
   ],
   "defaultPeriod": "1D",
   "read": {
-    "headline": "Oil gave up the premium, the long end took it, and the Nasdaq closed at a record.",
-    "standfirst": "Monday was a risk day with one exception. The S&P 500 rose 1.49% to 7,764.70, the Nasdaq Composite 2.26% to 27,122.09 for its first record close since 2 June, and the Dow 0.71% to 52,048.83, while WTI fell to an eleven-day low and Brent settled at $100.34. The ten-year closed at 4.96%, back under 5% after touching 5.041% last week, and the two-year did not move at all. Energy was the only sector down. The one-year column, blank across most of this board yesterday, is carried by the source table again today.",
+    "headline": "The banks fell, oil fell for a sixth day, and the two-year auction cost 58bp more than last month's.",
+    "standfirst": "Tuesday closed flat on the surface — the S&P 500 lost 0.06 points to 7,764.64, the Nasdaq rose 0.45% to a second straight record at 27,244.28, the Dow fell 0.36% — with financials down 1.97% as the day's loser. Underneath, Treasury sold $69 billion of two-years at 4.787%, the highest stop since May 2024, and Brent settled at $99.25 for its first close under $100 since 9 September, then kept falling overnight. WTI's front month rolled to November, so its level below reads about $5 lower than Tuesday's settle without a $5 move.",
     "points": [
       {
-        "title": "Ten of the eleven sectors rose. The eleventh was the one that has led all year.",
-        "text": "Energy fell 2.88% on the day while technology rose 2.77% and communication services 3.56%. Energy is still up 39.70% year to date and 42.47% over twelve months, the best sector on both windows — it is giving back the war premium, not breaking down. Crude is down 8.26% over five sessions and gasoline 8.32%, and the equity sector has now moved with it rather than lagging as it did last week."
+        "title": "The sector that fell on Tuesday was the banks, not energy.",
+        "text": "Financials lost 1.97%, the widest fall on the board, with the large banks leading; energy was second at 1.09%. Materials rose 1.65% and staples 0.99%. Financials are now up 0.05% year to date — the only sector with a year of nothing — against technology's 36.33% and energy's 38.18%. A two-year at 4.79% and a ten-year at 4.96% is a flat curve for a lender, and the tape has started to price it as one."
       },
       {
-        "title": "The ten-year came back under five and the two-year did not move.",
-        "text": "The ten-year yield is 4.96% against 5.01% on Friday, a 1.00% fall on the day, and the thirty-year is 5.29% after a 0.94% fall. The two-year was unchanged at 4.76%. That takes 2s10s to 20bp from 25 and 3M10Y to 79bp from 87: the long end rallied on the oil move while the front end stayed where the Fed put it. Flattening from the long end is a different message from flattening from the front, and this week's three auctions will test it."
+        "title": "WTI did not fall $5 overnight. Its front month changed.",
+        "text": "The October contract settled at $94.59 on Tuesday; the November contract now trades at $89.31, and that is the row above. The gap between the two is the backwardation — the premium the market pays for a barrel now over a barrel in six weeks — and it is why the five-day column reads −10.96% for WTI against −5.05% for Brent. The real move is six straight sessions down and a first Brent close under $100 since 9 September. Natural gas has gone the other way: +8.86% over five days and +13.95% over the month."
       },
       {
-        "title": "Korea's 4.33% day is partly Korea and partly the won.",
-        "text": "The Korea ETF rose 4.33% and Taiwan 3.58%, the two largest moves on the equity board, and both are priced in dollars. USD/KRW fell 1.40% on the day and 11.37% over three months, so roughly a third of Monday's Korean move is currency. On the twelve-month column Korea is up 131.93% and Taiwan 80.63%, against 15.99% for the United States. Whatever this is, it is not a broad global rally."
+        "title": "The two-year in the source table reads 4.71%. The cash close was 4.75%.",
+        "text": "The curve above shows 2s10s at 25bp, up from 20 yesterday — but that widening is the source table's two-year print, not the market's. Reported closes were 4.749% on the two-year and 4.966% on the ten, which is 2s10s at 22bp and a curve that barely moved. The number that did move was the auction: $69 billion of two-years stopped at 4.787%, the highest since May 2024 and 58bp above August's, on a bid-to-cover of 2.63. Demand was there; the price was higher."
       },
       {
-        "title": "The one-year column is back, and it is an energy column.",
-        "text": "The source table carried no one-year figures for most of the board yesterday; today it does. Heating oil is up 106.52% over twelve months, gasoline 62.55%, wheat 58.04% and Brent 53.01%. Gold is up 15.68% over the same year and silver 49.52%. An inflation the metals only half-tracked is what the last twelve months have been, and it is the reason a ten-year at 4.96% is being called low."
+        "title": "Korea is running away from Taiwan, and from everything else.",
+        "text": "The Korea ETF rose 1.83% on Tuesday while Taiwan fell 0.46%; over five days Korea is up 6.24% and over a month 10.93%. On the twelve-month column it is 136.49%, against Taiwan's 79.05% and the United States' 16.61%. About a fifth of the month's move is the won, which has gained 2.15% on the dollar. Japan shows 0.00% over five days because Tokyo was shut Tuesday and is shut again today for Silver Week; the Nikkei's 65,018.95 is Monday's close."
       },
       {
-        "title": "The biggest single move on this board is a pork contract.",
-        "text": "Lean hogs fell 10.63% in one session and 11.53% over five, more than anything in crypto, equities or energy. Over three months they are down 28.21% and over twelve 29.35%. It is on the board because a board about what moved should show what moved — not because it belongs in anybody's macro thesis."
+        "title": "Coffee is the worst month on the board and nobody is talking about it.",
+        "text": "Coffee is down 20.30% over a month and 7.55% over five days, more than any energy contract, and is now off 21.92% year to date. Lean hogs bounced 1.72% on Tuesday after Monday's 10.63% fall and are still down 9.09% on the week. Cocoa, the other soft that has been moving, is up 66.99% over six months and down 22.74% over twelve — the same contract, two opposite stories, depending on where you start the clock."
       },
       {
-        "title": "Crypto had the week and sold the day equities rallied.",
-        "text": "Dogecoin is up 21.47% over five sessions, Cardano 20.40%, XRP 16.46% and Solana 14.66%, yet every major coin fell on Monday — Bitcoin 1.46%, Ethereum 1.65%, Solana 1.97% — on a day the Nasdaq closed at a record. Chainlink at 2.56% is the only one positive year to date; Cardano is down 70.51% over twelve months. The five-day column and the one-year column are describing different assets."
+        "title": "The dollar is up because the Fed's non-voters keep talking.",
+        "text": "The euro is down 2.04% on the dollar over a month and sterling 2.33%; the dollar closed Tuesday at its highest against the Canadian dollar since late July, at 1.41. Barkin, Collins, Goolsbee and Musalem have all leaned toward more tightening in the past two sessions, none of them votes this year, and the Chair has said nothing. Futures put 28 October at about 55% and December near 89%. A dollar bid on speeches is a dollar bid that a speech can unwind."
       }
     ]
   },
   "curve": {
     "title": "The US Treasury curve",
-    "note": "Today against a month ago. The front end still owns the month — the two-year is up 12.26% and the thirty-year 0.38% — but Monday's move was the opposite shape: the ten-year fell 1.00% and the thirty-year 0.94% on the oil price while the two-year was unchanged. Three auctions land this week into that curve: $69bn of two-years today, five-years tomorrow, seven-years Thursday.",
+    "note": "Today against a month ago. The front end owns the month — the two-year is up 11.08% and the thirty-year 1.15% — and Tuesday added almost nothing: reported closes were 4.749% on the two-year, 4.966% on the ten-year and 5.302% on the thirty. The source table prints the two-year at 4.71%, which is what the curve above draws; read the spreads with that in mind. The auction is the real datum: $69 billion of two-years at 4.787%. Five-years today at 13:00 ET, seven-years Thursday.",
     "points": [
       {
         "label": "1M",
         "years": 0.083,
-        "yield": 3.96,
-        "chg1M": 4.21
+        "yield": 3.97,
+        "chg1M": 4.75
       },
       {
         "label": "3M",
         "years": 0.25,
-        "yield": 4.17,
-        "chg1M": 7.47
+        "yield": 4.16,
+        "chg1M": 7.49
       },
       {
         "label": "6M",
         "years": 0.5,
-        "yield": 4.27,
-        "chg1M": 8.1
+        "yield": 4.26,
+        "chg1M": 7.58
       },
       {
         "label": "1Y",
         "years": 1,
-        "yield": 4.45,
-        "chg1M": 10.42
+        "yield": 4.43,
+        "chg1M": 9.65
       },
       {
         "label": "2Y",
         "years": 2,
-        "yield": 4.76,
-        "chg1M": 12.26
+        "yield": 4.71,
+        "chg1M": 11.08
       },
       {
         "label": "3Y",
         "years": 3,
-        "yield": 4.82,
-        "chg1M": 11.83
+        "yield": 4.81,
+        "chg1M": 11.6
       },
       {
         "label": "5Y",
         "years": 5,
         "yield": 4.83,
-        "chg1M": 9.03
+        "chg1M": 9.52
       },
       {
         "label": "7Y",
         "years": 7,
         "yield": 4.89,
-        "chg1M": 7.0
+        "chg1M": 7.47
       },
       {
         "label": "10Y",
         "years": 10,
         "yield": 4.96,
-        "chg1M": 4.64
+        "chg1M": 5.53
       },
       {
         "label": "20Y",
         "years": 20,
         "yield": 5.33,
-        "chg1M": 1.52
+        "chg1M": 2.3
       },
       {
         "label": "30Y",
         "years": 30,
         "yield": 5.29,
-        "chg1M": 0.38
+        "chg1M": 1.15
       }
     ],
     "spreads": [
       {
         "label": "2s10s",
-        "value": 20,
+        "value": 25,
         "unit": "bp",
-        "note": "Flatter again, 20bp against 25bp on Friday and about 50bp a month ago — but flatter this time because the ten-year fell, not because the two-year rose."
+        "note": "Reads 25bp from the source table's 4.71% two-year; on the reported 4.749% close it is 22bp. Either way, flat, and the auction just printed the two-year at 4.787%."
       },
       {
         "label": "3M10Y",
-        "value": 79,
+        "value": 80,
         "unit": "bp",
-        "note": "Narrowed from 87bp as the ten-year rallied and the three-month bill rose. Still firmly positive, which is a hiking cycle being priced rather than a recession."
+        "note": "80bp against 79bp. The bill did not move and neither did the ten-year. Still firmly positive: a hiking cycle being priced, not a recession."
       },
       {
         "label": "10s30s",
         "value": 33,
         "unit": "bp",
-        "note": "Unchanged at 33bp for a third session. The ten-year and the long bond fell almost exactly together on Monday."
+        "note": "Unchanged at 33bp for a fourth session. The long end has stopped being the part of the curve that moves."
       }
     ]
   },
@@ -142,370 +142,370 @@
       "id": "regions",
       "title": "Equities by country",
       "scale": 1.0,
-      "note": "Country ETF prices in US dollars, so these include the currency move a local index does not show. Korea is the worked example today: see the read.",
+      "note": "Country ETF prices in US dollars, so these include the currency move a local index does not show. Japan reads flat over five days because Tokyo was shut Tuesday and Wednesday.",
       "rows": [
         {
           "label": "United States",
           "ticker": "SPY",
-          "price": 773.5,
+          "price": 773.38,
           "v": [
-            1.55,
-            1.43,
-            1.02,
-            5.44,
-            18.02,
-            13.43,
-            15.99
+            -0.02,
+            1.53,
+            1.3,
+            5.47,
+            18.4,
+            13.41,
+            16.61
           ]
         },
         {
           "label": "Canada",
           "ticker": "EWC",
-          "price": 60.43,
+          "price": 60.76,
           "v": [
-            0.35,
-            0.03,
-            -3.09,
-            4.79,
-            11.45,
-            12.05,
-            18.77
+            0.55,
+            0.9,
+            -2.19,
+            6.06,
+            12.35,
+            12.66,
+            20.25
           ]
         },
         {
           "label": "Mexico",
           "ticker": "EWW",
-          "price": 73.7,
+          "price": 74.46,
           "v": [
-            0.49,
-            -0.79,
-            -4.76,
-            -1.38,
-            3.66,
-            6.3,
-            10.16
+            1.03,
+            1.53,
+            -3.49,
+            0.91,
+            2.76,
+            7.4,
+            10.43
           ]
         },
         {
           "label": "Brazil",
           "ticker": "EWZ",
-          "price": 38.07,
+          "price": 38.26,
           "v": [
-            1.47,
-            0.87,
-            8.59,
-            11.48,
-            3.31,
-            19.83,
-            23.64
+            0.5,
+            1.97,
+            8.79,
+            13.03,
+            4.34,
+            20.43,
+            22.16
           ]
         },
         {
           "label": "Argentina",
           "ticker": "ARGT",
-          "price": 92.39,
+          "price": 92.88,
           "v": [
-            -0.04,
-            -1.55,
-            -0.45,
-            -0.17,
-            5.88,
-            1.07,
-            24.2
+            0.53,
+            0.49,
+            -2.09,
+            2.37,
+            5.94,
+            1.61,
+            23.91
           ]
         },
         {
           "label": "United Kingdom",
           "ticker": "EWU",
-          "price": 47.69,
+          "price": 47.67,
           "v": [
-            0.89,
-            -0.54,
-            -2.55,
-            4.65,
-            7.02,
-            8.44,
-            14.61
+            -0.04,
+            0.85,
+            -2.91,
+            4.88,
+            7.36,
+            8.39,
+            14.95
           ]
         },
         {
           "label": "Germany",
           "ticker": "EWG",
-          "price": 42.6,
+          "price": 42.65,
           "v": [
-            1.07,
-            -0.21,
-            -3.62,
-            3.95,
-            8.34,
-            0.24,
-            3.3
+            0.12,
+            1.19,
+            -3.35,
+            5.18,
+            9.5,
+            0.35,
+            3.34
           ]
         },
         {
           "label": "France",
           "ticker": "EWQ",
-          "price": 44.22,
+          "price": 44.25,
           "v": [
-            1.17,
-            -0.43,
-            -5.91,
-            -1.18,
-            3.22,
-            -1.71,
-            1.01
+            0.07,
+            1.24,
+            -5.73,
+            -1.32,
+            4.26,
+            -1.64,
+            0.82
           ]
         },
         {
           "label": "Italy",
           "ticker": "EWI",
-          "price": 61.24,
+          "price": 60.75,
           "v": [
-            1.98,
-            0.1,
-            -2.65,
-            3.08,
-            17.5,
-            12.72,
-            18.36
+            -0.8,
+            1.17,
+            -3.2,
+            3.23,
+            17.8,
+            11.82,
+            17.94
           ]
         },
         {
           "label": "Spain",
           "ticker": "EWP",
-          "price": 61.42,
+          "price": 61.55,
           "v": [
-            1.39,
-            -0.36,
-            -2.38,
-            4.05,
-            15.69,
-            13.93,
-            26.82
+            0.21,
+            1.6,
+            -2.66,
+            5.47,
+            16.62,
+            14.17,
+            26.78
           ]
         },
         {
           "label": "Netherlands",
           "ticker": "EWN",
-          "price": 67.85,
+          "price": 68.58,
           "v": [
-            1.25,
-            1.68,
-            -2.32,
-            -0.09,
-            17.41,
-            18.97,
-            18.29
+            1.08,
+            2.34,
+            -0.92,
+            1.42,
+            18.49,
+            20.25,
+            19.02
           ]
         },
         {
           "label": "Switzerland",
           "ticker": "EWL",
-          "price": 60.81,
+          "price": 61.18,
           "v": [
-            1.28,
-            0.78,
-            -5.52,
-            -1.09,
-            5.89,
-            1.42,
-            9.43
+            0.61,
+            1.9,
+            -4.75,
+            -1.62,
+            6.73,
+            2.03,
+            10.75
           ]
         },
         {
           "label": "Poland",
           "ticker": "EPOL",
-          "price": 45.67,
+          "price": 45.57,
           "v": [
-            2.84,
-            1.99,
-            2.81,
-            17.92,
-            29.3,
-            29.78,
-            42.72
+            -0.22,
+            2.61,
+            2.36,
+            19.95,
+            31.67,
+            29.5,
+            42.23
           ]
         },
         {
           "label": "Japan",
           "ticker": "EWJ",
-          "price": 97.96,
+          "price": 98.78,
           "v": [
-            0.99,
-            0.05,
-            2.92,
-            5.62,
-            17.25,
-            21.33,
-            20.57
+            0.84,
+            1.84,
+            4.15,
+            6.66,
+            18.61,
+            22.34,
+            21.82
           ]
         },
         {
           "label": "China",
           "ticker": "MCHI",
-          "price": 54.0,
+          "price": 54.25,
           "v": [
-            1.75,
-            2.53,
-            -2.98,
-            4.23,
-            -2.86,
-            -10.1,
-            -16.19
+            0.46,
+            2.22,
+            -1.24,
+            5.48,
+            -2.5,
+            -9.69,
+            -14.78
           ]
         },
         {
           "label": "Hong Kong",
           "ticker": "EWH",
-          "price": 22.76,
+          "price": 22.84,
           "v": [
+            0.35,
+            1.74,
+            -1.72,
+            7.99,
             1.38,
-            1.07,
-            -2.53,
-            7.77,
-            1.7,
-            7.11,
-            6.45
+            7.48,
+            7.84
           ]
         },
         {
           "label": "South Korea",
           "ticker": "EWY",
-          "price": 189.16,
+          "price": 192.62,
           "v": [
-            4.33,
-            3.71,
-            6.07,
-            -1.58,
-            41.36,
-            94.57,
-            131.93
+            1.83,
+            6.24,
+            10.93,
+            -2.35,
+            49.61,
+            98.13,
+            136.49
           ]
         },
         {
           "label": "Taiwan",
           "ticker": "EWT",
-          "price": 115.64,
+          "price": 115.11,
           "v": [
-            3.58,
-            4.52,
-            10.87,
-            9.88,
-            60.25,
-            82.02,
-            80.63
+            -0.46,
+            3.11,
+            11.4,
+            9.92,
+            62.72,
+            81.19,
+            79.05
           ]
         },
         {
           "label": "India",
           "ticker": "INDA",
-          "price": 48.5,
+          "price": 48.29,
           "v": [
-            1.0,
-            1.02,
-            -2.3,
-            -1.16,
-            1.83,
-            -10.27,
-            -9.35
+            -0.43,
+            0.56,
+            -2.15,
+            -2.7,
+            4.1,
+            -10.66,
+            -8.99
           ]
         },
         {
           "label": "Australia",
           "ticker": "EWA",
-          "price": 29.04,
+          "price": 29.09,
           "v": [
-            1.01,
-            -0.31,
-            -3.65,
-            3.64,
-            3.38,
-            10.88,
-            7.88
+            0.17,
+            1.18,
+            -3.23,
+            4.23,
+            5.55,
+            11.07,
+            8.26
           ]
         },
         {
           "label": "Singapore",
           "ticker": "EWS",
-          "price": 33.16,
+          "price": 33.59,
           "v": [
-            1.1,
-            0.36,
-            -1.81,
-            11.91,
-            18.77,
-            20.54,
-            14.62
+            1.3,
+            2.41,
+            -0.44,
+            13.29,
+            22.23,
+            22.1,
+            17.16
           ]
         },
         {
           "label": "Indonesia",
           "ticker": "EIDO",
-          "price": 12.36,
+          "price": 12.16,
           "v": [
-            -0.88,
-            -2.91,
-            -3.21,
-            1.31,
-            -19.9,
-            -33.9,
-            -30.29
+            -1.62,
+            -2.49,
+            -3.87,
+            3.58,
+            -20.37,
+            -34.97,
+            -31.53
           ]
         },
         {
           "label": "South Africa",
           "ticker": "EZA",
-          "price": 68.23,
+          "price": 69.15,
           "v": [
-            -0.38,
-            -0.67,
-            -5.9,
-            6.73,
-            6.14,
-            -0.83,
-            9.24
+            1.35,
+            0.96,
+            -3.06,
+            11.21,
+            8.39,
+            0.51,
+            9.99
           ]
         },
         {
           "label": "Turkey",
           "ticker": "TUR",
-          "price": 37.64,
+          "price": 37.35,
           "v": [
-            0.97,
-            -0.16,
-            -7.61,
-            -5.92,
-            -3.44,
-            9.36,
-            5.79
+            -0.77,
+            0.19,
+            -7.71,
+            -5.59,
+            -2.68,
+            8.51,
+            6.53
           ]
         },
         {
           "label": "Emerging Markets",
           "ticker": "EEM",
-          "price": 68.83,
+          "price": 69.1,
           "v": [
-            2.69,
-            2.87,
-            2.55,
-            2.47,
-            20.1,
-            25.81,
-            29.21
+            0.39,
+            3.09,
+            4.52,
+            2.75,
+            22.26,
+            26.3,
+            29.64
           ]
         },
         {
           "label": "Developed ex-US",
           "ticker": "EFA",
-          "price": 106.13,
+          "price": 106.5,
           "v": [
-            1.11,
-            0.08,
-            -1.95,
-            3.58,
-            10.74,
-            10.52,
-            13.75
+            0.35,
+            1.46,
+            -1.42,
+            4.15,
+            11.79,
+            10.9,
+            14.37
           ]
         }
       ]
@@ -514,160 +514,160 @@
       "id": "sectors",
       "title": "US sectors",
       "scale": 1.0,
-      "note": "The eleven S&P sector SPDRs. Ten rose on Monday and energy fell 2.88%, the widest one-day spread on this group in weeks.",
+      "note": "The eleven S&P sector SPDRs. Six fell on Tuesday, led by financials at −1.97%; the year-to-date column is where the dispersion lives.",
       "rows": [
         {
           "label": "Energy",
           "ticker": "XLE",
-          "price": 62.46,
+          "price": 61.78,
           "v": [
-            -2.88,
-            -3.13,
-            -1.85,
-            14.69,
-            4.75,
-            39.7,
-            42.47
+            -1.09,
+            -3.93,
+            -2.11,
+            15.33,
+            1.55,
+            38.18,
+            38.55
           ]
         },
         {
           "label": "Technology",
           "ticker": "XLK",
-          "price": 194.85,
+          "price": 196.27,
           "v": [
-            2.77,
-            3.61,
-            6.3,
-            5.79,
-            42.28,
-            35.34,
-            37.87
+            0.73,
+            3.52,
+            9.01,
+            7.22,
+            44.16,
+            36.33,
+            40.08
           ]
         },
         {
           "label": "Industrials",
           "ticker": "XLI",
-          "price": 169.98,
+          "price": 170.27,
           "v": [
-            0.14,
-            0.57,
-            -5.7,
-            -4.59,
-            4.25,
-            9.58,
-            11.1
+            0.17,
+            0.31,
+            -4.88,
+            -5.52,
+            3.82,
+            9.77,
+            11.26
           ]
         },
         {
           "label": "Materials",
           "ticker": "XLB",
-          "price": 49.71,
+          "price": 50.53,
           "v": [
-            -0.56,
-            -1.97,
-            -7.15,
-            -2.28,
-            4.54,
-            9.61,
-            10.0
+            1.65,
+            1.08,
+            -5.69,
+            -1.23,
+            4.29,
+            11.42,
+            12.19
           ]
         },
         {
           "label": "Real Estate",
           "ticker": "XLRE",
-          "price": 42.59,
+          "price": 42.5,
           "v": [
-            0.14,
-            -0.82,
-            -5.52,
-            -4.59,
-            4.85,
-            5.55,
-            2.21
+            -0.21,
+            -0.07,
+            -6.24,
+            -4.52,
+            5.49,
+            5.33,
+            1.19
           ]
         },
         {
           "label": "Consumer Staples",
           "ticker": "XLP",
-          "price": 81.92,
+          "price": 82.73,
           "v": [
-            -1.06,
-            -1.88,
-            -4.73,
-            -2.15,
-            0.91,
-            5.46,
-            5.08
+            0.99,
+            -0.08,
+            -5.4,
+            -2.03,
+            2.0,
+            6.5,
+            5.59
           ]
         },
         {
           "label": "Health Care",
           "ticker": "XLV",
-          "price": 169.01,
+          "price": 169.89,
           "v": [
-            0.37,
-            0.12,
-            -3.21,
-            11.06,
-            16.74,
-            9.18,
-            23.7
+            0.52,
+            0.89,
+            -2.75,
+            10.79,
+            17.34,
+            9.75,
+            24.06
           ]
         },
         {
           "label": "Financials",
           "ticker": "XLF",
-          "price": 55.9,
+          "price": 54.8,
           "v": [
-            0.07,
-            0.04,
-            -2.75,
-            3.75,
-            13.46,
-            2.06,
-            3.52
+            -1.97,
+            -1.9,
+            -5.87,
+            2.01,
+            11.2,
+            0.05,
+            1.93
           ]
         },
         {
           "label": "Utilities",
           "ticker": "XLU",
-          "price": 40.66,
+          "price": 40.53,
           "v": [
-            -1.07,
-            -2.47,
-            -4.93,
-            -9.78,
-            -9.2,
-            -4.76,
-            -4.55
+            -0.32,
+            -1.39,
+            -6.22,
+            -11.0,
+            -10.11,
+            -5.06,
+            -5.35
           ]
         },
         {
           "label": "Communication Services",
           "ticker": "XLC",
-          "price": 114.75,
+          "price": 113.53,
           "v": [
-            3.56,
-            2.14,
-            3.01,
-            6.97,
-            1.81,
-            -2.52,
-            -3.23
+            -1.06,
+            2.45,
+            1.08,
+            6.56,
+            2.16,
+            -3.56,
+            -4.12
           ]
         },
         {
           "label": "Consumer Discretionary",
           "ticker": "XLY",
-          "price": 112.23,
+          "price": 112.33,
           "v": [
-            1.08,
-            0.75,
-            -4.91,
-            -1.34,
-            1.92,
-            -6.01,
-            -6.55
+            0.09,
+            1.17,
+            -5.05,
+            -2.38,
+            2.42,
+            -5.93,
+            -5.57
           ]
         }
       ]
@@ -676,118 +676,118 @@
       "id": "bonds",
       "title": "Bonds and credit",
       "scale": 0.45,
-      "note": "Total-return prices, so a falling number means yields rose. Monday went the other way for the first time in a while, and the long end gained most.",
+      "note": "Total-return prices, so a falling number means yields rose. Tuesday was a nothing day for bonds; the week column still shows Monday's rally.",
       "rows": [
         {
           "label": "1-3Y Treasury",
           "ticker": "SHY",
-          "price": 81.29,
+          "price": 81.32,
           "v": [
-            0.06,
-            -0.09,
-            -0.87,
+            0.04,
+            0.1,
             -0.83,
-            -1.38,
-            -1.85,
+            -0.91,
+            -1.2,
+            -1.81,
             -1.97
           ]
         },
         {
           "label": "3-7Y Treasury",
           "ticker": "IEI",
-          "price": 114.46,
+          "price": 114.47,
           "v": [
-            0.19,
-            -0.13,
-            -1.68,
-            -2.23,
-            -3.3,
-            -4.1,
-            -4.27
+            0.01,
+            0.21,
+            -1.74,
+            -2.55,
+            -3.0,
+            -4.08,
+            -4.4
           ]
         },
         {
           "label": "7-10Y Treasury",
           "ticker": "IEF",
-          "price": 91.15,
+          "price": 91.16,
           "v": [
-            0.39,
-            -0.11,
-            -1.8,
-            -3.16,
-            -4.23,
-            -5.21,
-            -5.51
+            0.01,
+            0.4,
+            -1.99,
+            -3.77,
+            -3.9,
+            -5.2,
+            -5.77
           ]
         },
         {
           "label": "20Y+ Treasury",
           "ticker": "TLT",
-          "price": 81.8,
+          "price": 81.75,
           "v": [
-            0.68,
-            0.02,
-            -0.3,
-            -5.1,
-            -5.31,
-            -6.15,
-            -7.78
+            -0.06,
+            0.62,
+            -0.98,
+            -6.44,
+            -4.95,
+            -6.21,
+            -8.48
           ]
         },
         {
           "label": "TIPS",
           "ticker": "TIP",
-          "price": 105.68,
+          "price": 105.56,
           "v": [
-            0.39,
-            -0.03,
-            -1.35,
-            -2.96,
-            -4.09,
-            -3.85,
-            -4.94
+            -0.11,
+            0.28,
+            -1.58,
+            -3.44,
+            -3.89,
+            -3.96,
+            -5.3
           ]
         },
         {
           "label": "Mortgage-backed",
           "ticker": "MBB",
-          "price": 91.59,
+          "price": 91.45,
           "v": [
-            0.33,
-            -0.24,
-            -1.64,
-            -2.91,
-            -3.12,
-            -3.81,
-            -3.59
+            -0.15,
+            0.18,
+            -1.99,
+            -3.48,
+            -2.95,
+            -3.96,
+            -4.05
           ]
         },
         {
           "label": "Municipals",
           "ticker": "MUB",
-          "price": 102.86,
+          "price": 102.75,
           "v": [
-            -0.02,
-            -0.29,
-            -2.35,
-            -4.1,
-            -3.34,
-            -3.97,
-            -3.4
+            -0.11,
+            -0.13,
+            -2.52,
+            -4.38,
+            -2.76,
+            -4.07,
+            -3.46
           ]
         },
         {
           "label": "US Aggregate",
           "ticker": "AGG",
-          "price": 96.21,
+          "price": 96.25,
           "v": [
-            0.26,
-            -0.12,
-            -1.17,
-            -2.53,
-            -2.85,
-            -3.67,
-            -3.95
+            0.04,
+            0.3,
+            -1.33,
+            -2.96,
+            -2.54,
+            -3.63,
+            -4.07
           ]
         },
         {
@@ -795,55 +795,55 @@
           "ticker": "LQD",
           "price": 105.09,
           "v": [
+            0.0,
             0.37,
-            -0.07,
-            -0.78,
-            -3.51,
-            -3.2,
+            -1.03,
+            -3.95,
+            -3.0,
             -4.63,
-            -5.74
+            -5.93
           ]
         },
         {
           "label": "High yield",
           "ticker": "HYG",
-          "price": 78.68,
+          "price": 78.67,
           "v": [
-            0.19,
-            -0.05,
-            -1.17,
-            -1.49,
-            -0.96,
-            -2.42,
-            -3.25
+            -0.01,
+            0.18,
+            -1.29,
+            -1.48,
+            -0.63,
+            -2.43,
+            -3.19
           ]
         },
         {
           "label": "Senior loans",
           "ticker": "BKLN",
-          "price": 20.56,
+          "price": 20.57,
           "v": [
-            -0.46,
-            -0.58,
-            -0.19,
-            1.08,
-            0.44,
-            -2.1,
-            -1.72
+            0.05,
+            -0.44,
+            0.34,
+            1.23,
+            0.59,
+            -2.05,
+            -1.67
           ]
         },
         {
           "label": "EM sovereign (USD)",
           "ticker": "EMB",
-          "price": 93.78,
+          "price": 93.71,
           "v": [
-            0.43,
-            0.13,
-            -0.99,
-            -2.58,
-            -0.3,
-            -2.6,
-            -1.48
+            -0.07,
+            0.35,
+            -1.2,
+            -2.96,
+            0.14,
+            -2.67,
+            -1.94
           ]
         }
       ]
@@ -852,48 +852,48 @@
       "id": "commodities",
       "title": "Commodities",
       "scale": 1.8,
-      "note": "Energy over five days is the reason the rest of this page looks the way it does. The single largest move on the board, though, is lean hogs.",
+      "note": "WTI rolled to the November contract overnight, which is most of its five-day fall — see the read. Coffee is the worst month on the board.",
       "rows": [
         {
           "label": "WTI crude",
           "ticker": "CLUSD",
-          "price": 93.49,
+          "price": 89.31,
           "v": [
-            1.21,
-            -8.26,
-            7.39,
-            27.7,
-            6.08,
-            62.11,
-            49.25
+            -1.34,
+            -10.96,
+            5.06,
+            26.97,
+            -3.29,
+            54.86,
+            40.85
           ]
         },
         {
           "label": "Brent crude",
           "ticker": "BZUSD",
-          "price": 101.86,
+          "price": 98.62,
           "v": [
-            1.51,
-            -2.82,
-            7.91,
-            32.15,
-            1.92,
-            66.66,
-            53.01
+            -0.63,
+            -5.05,
+            7.0,
+            33.74,
+            -5.62,
+            61.35,
+            45.82
           ]
         },
         {
           "label": "Heating oil",
           "ticker": "HOUSD",
-          "price": 4.73,
+          "price": 4.62,
           "v": [
-            0.56,
-            -7.43,
-            5.32,
-            50.07,
-            16.72,
-            121.88,
-            106.52
+            -2.97,
+            -8.64,
+            8.27,
+            45.48,
+            7.69,
+            116.57,
+            98.48
           ]
         },
         {
@@ -901,69 +901,69 @@
           "ticker": "RBUSD",
           "price": 3.22,
           "v": [
-            0.63,
-            -8.32,
-            -3.95,
-            8.67,
-            8.09,
-            87.26,
-            62.55
+            -0.09,
+            -8.74,
+            -1.57,
+            11.71,
+            2.26,
+            87.48,
+            61.04
           ]
         },
         {
           "label": "Natural gas",
           "ticker": "NGUSD",
-          "price": 2.85,
+          "price": 3.17,
           "v": [
-            0.35,
-            -1.9,
-            2.63,
-            -9.56,
-            -1.56,
-            -21.32,
-            1.43
+            1.7,
+            8.86,
+            13.95,
+            -1.58,
+            7.71,
+            -12.36,
+            11.11
           ]
         },
         {
           "label": "Gold",
           "ticker": "GCUSD",
-          "price": 4367.2,
+          "price": 4375.3,
           "v": [
-            -0.38,
-            -0.74,
-            -6.7,
-            5.25,
-            -0.91,
-            -0.45,
-            15.68
+            -0.03,
+            -1.12,
+            -6.86,
+            9.14,
+            -0.61,
+            -0.26,
+            14.67
           ]
         },
         {
           "label": "Silver",
           "ticker": "SIUSD",
-          "price": 66.11,
+          "price": 66.89,
           "v": [
-            -0.46,
-            0.02,
-            -4.92,
-            6.51,
-            -4.68,
-            -9.19,
-            49.52
+            0.55,
+            -0.38,
+            -2.48,
+            15.16,
+            -3.84,
+            -8.11,
+            49.96
           ]
         },
         {
           "label": "Platinum",
           "ticker": "PLUSD",
-          "price": 1785.95,
+          "price": 1814.55,
           "v": [
-            -1.24,
-            -0.47,
-            -5.79,
-            7.46,
-            -4.17,
-            -16.41,
-            25.27
+            -1.42,
+            0.61,
+            -3.95,
+            14.71,
+            -4.12,
+            -15.07,
+            20.48
           ]
         },
         {
@@ -971,139 +971,139 @@
           "ticker": "HGUSD",
           "price": 6.81,
           "v": [
-            0.39,
-            2.27,
-            3.43,
-            10.81,
-            24.49,
-            18.59,
-            47.08
+            -1.34,
+            3.01,
+            3.16,
+            14.55,
+            24.91,
+            18.61,
+            46.73
           ]
         },
         {
           "label": "Aluminium",
           "ticker": "ALIUSD",
-          "price": 3451.5,
+          "price": 3485.25,
           "v": [
-            0.17,
-            -0.21,
-            1.55,
-            1.86,
-            11.37,
-            15.66,
-            34.01
+            -0.56,
+            0.53,
+            2.61,
+            7.84,
+            10.32,
+            16.79,
+            35.97
           ]
         },
         {
           "label": "Corn",
           "ticker": "ZCUSX",
-          "price": 543.9,
+          "price": 532.5,
           "v": [
-            0.17,
-            2.53,
-            4.35,
-            30.2,
-            18.37,
-            23.54,
-            28.96
+            -0.79,
+            0.95,
+            8.34,
+            28.08,
+            15.14,
+            20.95,
+            24.93
           ]
         },
         {
           "label": "Wheat",
           "ticker": "KEUSX",
-          "price": 793.75,
+          "price": 772.75,
           "v": [
-            -0.09,
-            -0.09,
-            1.7,
-            26.95,
-            31.58,
-            54.2,
-            58.04
+            -1.09,
+            -1.4,
+            0.72,
+            23.54,
+            27.94,
+            50.12,
+            51.08
           ]
         },
         {
           "label": "Soybeans",
           "ticker": "ZSUSX",
-          "price": 1328.0,
+          "price": 1320.5,
           "v": [
-            0.0,
-            0.63,
-            7.64,
-            16.31,
-            14.14,
-            26.78,
-            31.36
+            -0.38,
+            1.3,
+            7.86,
+            16.34,
+            14.33,
+            26.06,
+            30.48
           ]
         },
         {
           "label": "Sugar",
           "ticker": "SBUSX",
-          "price": 18.38,
+          "price": 18.57,
           "v": [
-            -0.05,
-            5.51,
-            4.37,
-            36.96,
-            18.43,
-            22.45,
-            20.52
+            0.05,
+            6.97,
+            5.21,
+            38.38,
+            16.94,
+            23.72,
+            18.58
           ]
         },
         {
           "label": "Coffee",
           "ticker": "KCUSX",
-          "price": 276.4,
+          "price": 272.3,
           "v": [
             0.0,
-            -0.04,
+            -7.55,
+            -20.3,
+            -1.77,
             -14.33,
-            0.16,
-            -9.97,
-            -20.75,
-            -24.76
+            -21.92,
+            -22.23
           ]
         },
         {
           "label": "Cocoa",
           "ticker": "CCUSD",
-          "price": 5351.0,
+          "price": 5402.0,
           "v": [
-            0.45,
-            -7.29,
-            -11.32,
-            15.2,
-            68.27,
-            -11.77,
-            -23.11
+            0.95,
+            1.41,
+            -9.13,
+            8.63,
+            66.99,
+            -10.93,
+            -22.74
           ]
         },
         {
           "label": "Cotton",
           "ticker": "CTUSX",
-          "price": 83.52,
+          "price": 82.52,
           "v": [
-            0.12,
-            1.64,
-            -5.26,
-            6.08,
-            24.32,
-            29.95,
-            26.13
+            -0.42,
+            1.69,
+            -7.1,
+            8.21,
+            22.03,
+            28.4,
+            23.83
           ]
         },
         {
           "label": "Lean hogs",
           "ticker": "HEUSX",
-          "price": 69.8,
+          "price": 71.0,
           "v": [
-            -10.63,
-            -11.53,
-            -13.69,
-            -28.21,
-            -23.13,
-            -17.98,
-            -29.35
+            1.72,
+            -9.09,
+            -12.48,
+            -26.58,
+            -22.02,
+            -16.57,
+            -29.37
           ]
         }
       ]
@@ -1117,29 +1117,29 @@
         {
           "label": "EUR/USD",
           "ticker": "EURUSD",
-          "price": 1.15,
+          "price": 1.14,
           "v": [
-            0.02,
-            -0.03,
-            -1.77,
-            0.79,
-            -1.2,
-            -2.42,
-            -2.8
+            -0.24,
+            -0.52,
+            -2.04,
+            0.6,
+            -1.56,
+            -2.8,
+            -3.29
           ]
         },
         {
           "label": "GBP/USD",
           "ticker": "GBPUSD",
-          "price": 1.34,
+          "price": 1.33,
           "v": [
-            0.13,
-            0.0,
-            -1.93,
-            1.35,
-            -0.31,
-            -0.68,
-            -0.96
+            -0.23,
+            -0.59,
+            -2.33,
+            1.12,
+            -0.73,
+            -1.19,
+            -1.56
           ]
         },
         {
@@ -1147,13 +1147,13 @@
           "ticker": "AUDUSD",
           "price": 0.71,
           "v": [
-            -0.03,
-            0.1,
+            -0.28,
+            -0.31,
             -0.69,
-            2.97,
-            1.59,
-            6.66,
-            7.93
+            2.91,
+            1.51,
+            6.33,
+            7.61
           ]
         },
         {
@@ -1161,27 +1161,27 @@
           "ticker": "NZDUSD",
           "price": 0.57,
           "v": [
-            0.26,
-            0.16,
-            -3.96,
-            1.23,
-            -2.07,
-            -0.35,
-            -2.23
+            -0.51,
+            -0.34,
+            -4.3,
+            0.97,
+            -2.26,
+            -0.92,
+            -2.64
           ]
         },
         {
           "label": "USD/JPY",
           "ticker": "USDJPY",
-          "price": 157.49,
+          "price": 157.66,
           "v": [
-            0.11,
-            0.86,
-            -0.92,
-            -2.53,
-            -0.58,
-            0.43,
-            6.62
+            0.22,
+            0.52,
+            -0.89,
+            -2.54,
+            -0.64,
+            0.54,
+            6.79
           ]
         },
         {
@@ -1189,125 +1189,125 @@
           "ticker": "USDCHF",
           "price": 0.82,
           "v": [
-            0.0,
-            -0.54,
-            2.49,
-            1.34,
-            4.35,
-            3.61,
-            3.55
+            0.25,
+            -0.03,
+            2.42,
+            1.2,
+            4.25,
+            3.77,
+            3.88
           ]
         },
         {
           "label": "USD/CAD",
           "ticker": "USDCAD",
-          "price": 1.4,
+          "price": 1.41,
           "v": [
-            -0.05,
-            0.27,
-            1.7,
-            -1.28,
-            2.21,
-            2.29,
-            1.52
+            0.19,
+            0.66,
+            1.73,
+            -1.05,
+            2.33,
+            2.69,
+            1.8
           ]
         },
         {
           "label": "USD/CNY",
           "ticker": "USDCNY",
-          "price": 6.7,
+          "price": 6.71,
           "v": [
-            0.03,
-            -0.16,
-            -0.39,
-            -1.37,
-            -2.67,
-            -4.23,
-            -5.86
+            0.1,
+            0.14,
+            -0.23,
+            -1.53,
+            -2.69,
+            -4.1,
+            -5.7
           ]
         },
         {
           "label": "USD/INR",
           "ticker": "USDINR",
-          "price": 95.78,
+          "price": 95.67,
           "v": [
-            -0.03,
-            -0.02,
-            0.13,
-            1.11,
-            2.8,
-            6.48,
-            8.51
+            0.09,
+            -0.33,
+            -0.07,
+            1.07,
+            1.8,
+            6.36,
+            7.78
           ]
         },
         {
           "label": "USD/KRW",
           "ticker": "USDKRW",
-          "price": 1356.53,
+          "price": 1353.12,
           "v": [
-            -1.4,
-            -1.67,
-            -1.74,
-            -11.37,
-            -8.73,
-            -5.97,
-            -2.42
+            -0.18,
+            -2.22,
+            -2.15,
+            -12.21,
+            -9.7,
+            -6.2,
+            -2.87
           ]
         },
         {
           "label": "USD/MXN",
           "ticker": "USDMXN",
-          "price": 17.22,
+          "price": 17.33,
           "v": [
-            0.09,
-            0.3,
-            1.73,
-            -1.91,
-            -3.14,
-            -4.2,
-            -6.21
+            0.23,
+            0.96,
+            2.24,
+            -1.55,
+            -2.34,
+            -3.58,
+            -5.58
           ]
         },
         {
           "label": "USD/BRL",
           "ticker": "USDBRL",
-          "price": 5.11,
+          "price": 5.1,
           "v": [
-            -0.03,
-            -0.26,
-            -0.49,
-            -1.39,
-            -2.35,
-            -6.68,
-            -4.2
+            0.0,
+            -0.82,
+            -1.1,
+            -1.64,
+            -2.52,
+            -6.87,
+            -3.43
           ]
         },
         {
           "label": "USD/TRY",
           "ticker": "USDTRY",
-          "price": 48.8,
+          "price": 48.83,
           "v": [
-            -0.02,
-            0.04,
-            1.53,
-            5.12,
-            10.19,
-            13.51,
+            0.06,
+            0.22,
+            1.59,
+            5.07,
+            10.34,
+            13.59,
             18.06
           ]
         },
         {
           "label": "USD/ZAR",
           "ticker": "USDZAR",
-          "price": 16.26,
+          "price": 16.2,
           "v": [
-            0.09,
             -0.02,
-            1.59,
-            -1.2,
-            -3.24,
-            -1.66,
-            -6.04
+            -0.29,
+            1.1,
+            -2.07,
+            -4.41,
+            -2.04,
+            -5.96
           ]
         }
       ]
@@ -1321,99 +1321,99 @@
         {
           "label": "Bitcoin",
           "ticker": "BTCUSD",
-          "price": 85335.92,
+          "price": 86721.16,
           "v": [
-            -1.46,
-            11.77,
-            9.79,
-            36.22,
-            20.4,
-            -3.83,
-            -24.31
+            0.61,
+            7.23,
+            9.8,
+            42.21,
+            22.95,
+            -2.27,
+            -22.58
           ]
         },
         {
           "label": "Ethereum",
           "ticker": "ETHUSD",
-          "price": 2730.17,
+          "price": 2767.42,
           "v": [
-            -1.65,
-            11.64,
-            10.83,
-            63.97,
-            26.88,
-            -9.01,
-            -35.03
+            0.51,
+            5.98,
+            11.49,
+            70.86,
+            28.39,
+            -7.77,
+            -33.56
           ]
         },
         {
           "label": "Solana",
           "ticker": "SOLUSD",
-          "price": 116.43,
+          "price": 118.95,
           "v": [
-            -1.97,
-            14.66,
-            22.01,
-            67.28,
-            27.36,
-            -8.13,
-            -47.21
+            0.37,
+            5.55,
+            20.19,
+            74.9,
+            31.06,
+            -6.14,
+            -44.24
           ]
         },
         {
           "label": "BNB",
           "ticker": "BNBUSD",
-          "price": 786.6,
+          "price": 791.77,
           "v": [
-            -1.55,
-            6.59,
-            11.98,
-            36.19,
-            23.05,
-            -8.91,
-            -20.84
+            0.46,
+            4.03,
+            12.42,
+            40.38,
+            24.07,
+            -8.32,
+            -22.11
           ]
         },
         {
           "label": "XRP",
           "ticker": "XRPUSD",
-          "price": 1.51,
+          "price": 1.62,
           "v": [
-            -1.63,
-            16.46,
-            -0.82,
-            36.01,
-            5.32,
-            -19.66,
-            -47.18
+            3.1,
+            16.09,
+            9.4,
+            51.18,
+            14.5,
+            -13.67,
+            -42.63
           ]
         },
         {
           "label": "Chainlink",
           "ticker": "LINKUSD",
-          "price": 12.93,
+          "price": 13.05,
           "v": [
-            -1.57,
-            13.66,
-            12.06,
-            69.61,
-            42.01,
-            2.56,
-            -40.34
+            0.15,
+            6.73,
+            12.26,
+            76.0,
+            41.18,
+            3.52,
+            -39.35
           ]
         },
         {
           "label": "Cardano",
           "ticker": "ADAUSD",
-          "price": 0.24,
+          "price": 0.26,
           "v": [
-            -0.47,
-            20.4,
-            7.38,
-            60.96,
-            -6.84,
-            -31.56,
-            -70.51
+            1.57,
+            15.03,
+            16.56,
+            75.0,
+            -3.03,
+            -27.51,
+            -67.99
           ]
         },
         {
@@ -1421,27 +1421,27 @@
           "ticker": "DOGEUSD",
           "price": 0.1,
           "v": [
-            -0.44,
-            21.47,
-            6.19,
-            25.88,
-            5.33,
-            -21.68,
-            -58.92
+            2.08,
+            17.14,
+            13.73,
+            34.67,
+            7.8,
+            -19.1,
+            -56.79
           ]
         },
         {
           "label": "Litecoin",
           "ticker": "LTCUSD",
-          "price": 61.06,
+          "price": 64.41,
           "v": [
-            -1.51,
-            13.32,
-            16.79,
-            44.9,
-            9.61,
-            -23.55,
-            -42.27
+            2.42,
+            10.74,
+            24.67,
+            56.6,
+            14.28,
+            -19.36,
+            -39.29
           ]
         }
       ]
@@ -1456,183 +1456,183 @@
         {
           "label": "Value",
           "ticker": "IWD",
-          "price": 253.45,
+          "price": 252.67,
           "v": [
-            -0.86,
-            -1.18,
-            -2.51,
-            -0.25,
-            0.89,
-            7.07,
-            9.18
+            -0.29,
+            -1.15,
+            -3.49,
+            -0.63,
+            -0.23,
+            6.71,
+            8.08
           ]
         },
         {
           "label": "Growth",
           "ticker": "IWF",
-          "price": 126.25,
+          "price": 126.7,
           "v": [
-            0.88,
-            1.61,
-            2.14,
-            -0.07,
-            -1.67,
-            -6.74,
-            -9.16
+            0.37,
+            1.26,
+            3.38,
+            0.4,
+            -0.39,
+            -6.34,
+            -8.27
           ]
         },
         {
           "label": "Momentum",
           "ticker": "MTUM",
-          "price": 316.25,
+          "price": 317.9,
           "v": [
-            0.59,
-            1.88,
-            2.61,
-            -9.54,
-            11.31,
-            12.91,
-            6.73
+            0.54,
+            1.14,
+            4.46,
+            -8.67,
+            11.07,
+            13.59,
+            7.19
           ]
         },
         {
           "label": "Small-cap",
           "ticker": "IJR",
-          "price": 139.24,
+          "price": 139.7,
           "v": [
-            -1.31,
-            -1.62,
-            -6.49,
-            -7.91,
-            -4.72,
-            2.43,
+            0.35,
+            -0.96,
+            -6.12,
+            -8.74,
+            -5.53,
+            2.83,
             0.46
           ]
         },
         {
           "label": "Small-cap value",
           "ticker": "IWN",
-          "price": 215.95,
+          "price": 216.69,
           "v": [
-            -1.38,
-            -1.79,
-            -4.96,
-            -6.18,
-            -2.75,
-            5.74,
-            5.69
+            0.36,
+            -1.02,
+            -4.59,
+            -6.34,
+            -3.74,
+            6.17,
+            5.57
           ]
         },
         {
           "label": "Small-cap growth",
           "ticker": "IWO",
-          "price": 365.15,
+          "price": 367.92,
           "v": [
-            -0.71,
-            -1.02,
-            -6.75,
-            -11.25,
-            -2.65,
-            -0.38,
-            -3.62
+            0.77,
+            0.08,
+            -5.28,
+            -10.9,
+            -2.36,
+            0.49,
+            -3.08
           ]
         },
         {
           "label": "Mid-cap core",
           "ticker": "IJH",
-          "price": 73.25,
+          "price": 73.47,
           "v": [
-            -1.18,
-            -1.37,
-            -5.6,
-            -8.16,
-            -8.83,
-            -2.44,
-            -4.32
+            0.32,
+            -0.86,
+            -4.88,
+            -8.5,
+            -9.77,
+            -2.09,
+            -4.5
           ]
         },
         {
           "label": "Low volatility",
           "ticker": "USMV",
-          "price": 99.07,
+          "price": 98.91,
           "v": [
-            -0.86,
+            -0.15,
+            -1.01,
+            -3.92,
             -1.2,
-            -3.15,
-            -0.66,
-            -11.22,
-            -8.22,
-            -10.53
+            -11.25,
+            -8.37,
+            -11.54
           ]
         },
         {
           "label": "High dividend",
           "ticker": "VYM",
-          "price": 159.43,
+          "price": 158.71,
           "v": [
-            -1.44,
-            -2.16,
-            -4.37,
-            -4.62,
-            -9.33,
-            -2.34,
-            -2.2
+            -0.44,
+            -1.88,
+            -5.16,
+            -5.02,
+            -10.7,
+            -2.83,
+            -3.7
           ]
         },
         {
           "label": "Quality",
           "ticker": "QUAL",
-          "price": 222.93,
+          "price": 223.07,
           "v": [
-            0.16,
-            0.39,
-            -1.15,
-            -0.78,
-            -3.08,
-            -1.19,
+            0.08,
+            0.24,
+            -1.62,
+            -0.84,
+            -3.0,
+            -1.1,
             -0.95
           ]
         },
         {
           "label": "Buybacks",
           "ticker": "PKW",
-          "price": 148.11,
+          "price": 145.9,
           "v": [
-            -1.81,
-            -2.44,
-            -2.96,
-            1.16,
-            -5.19,
-            -3.16,
-            -3.24
+            -1.48,
+            -3.28,
+            -5.18,
+            -1.47,
+            -7.55,
+            -4.79,
+            -5.65
           ]
         },
         {
           "label": "Recent IPOs",
           "ticker": "IPO",
-          "price": 53.88,
+          "price": 54.65,
           "v": [
-            0.97,
-            1.94,
-            -1.91,
-            -11.09,
-            5.86,
-            4.59,
-            -13.65
+            1.43,
+            2.46,
+            0.72,
+            -8.83,
+            9.55,
+            6.3,
+            -10.29
           ]
         },
         {
           "label": "Private equity",
           "ticker": "PSP",
-          "price": 58.77,
+          "price": 58.74,
           "v": [
-            -1.21,
-            -1.95,
-            -8.57,
-            1.55,
-            -12.62,
-            -25.8,
-            -33.52
+            -0.04,
+            -1.24,
+            -9.08,
+            2.68,
+            -12.22,
+            -25.83,
+            -34.02
           ]
         }
       ]

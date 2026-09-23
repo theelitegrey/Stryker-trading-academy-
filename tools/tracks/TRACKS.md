@@ -32,12 +32,12 @@ Status key:
 | VP-02 | Market Profile & TPO Charts | foundation | reviewed | 2254 | 5 |
 | VP-03 | Volume Profile Anatomy: POC, Value Area, HVN & LVN | foundation | reviewed | 2164 | 6 |
 | VP-04 | Profile Shapes & Day Types | intermediate | reviewed | 2126 | 5 |
-| VP-05 | Session, Composite & Fixed-Range Profiles | intermediate | reviewed | 2101 | 6 |
+| VP-05 | Session, Composite & Fixed-Range Profiles | intermediate | reviewed | 2106 | 6 |
 | VP-06 | VWAP, Anchored VWAP & Deviation Bands | intermediate | reviewed | 2020 | 5 |
 | VP-07 | Order Flow Foundations: Orders, the Book & Matching | intermediate | reviewed | 2052 | 9 |
 | VP-08 | Footprint Charts & Delta | advanced | reviewed | 2038 | 5 |
-| VP-09 | Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs | advanced | todo | | |
-| VP-10 | Data & Tools: Futures, FX Tick Volume & Platforms | intermediate | todo | | |
+| VP-09 | Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs | advanced | reviewed | 2157 | 6 |
+| VP-10 | Data & Tools: Futures, FX Tick Volume & Platforms | intermediate | reviewed | 2018 | 12 |
 | VP-11 | Combining Profile & Order Flow with Liquidity & SMC | advanced | todo | | |
 | VP-12 | Case Studies & the Profile/Order-Flow Playbook | advanced | todo | | |
 

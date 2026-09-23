@@ -126,7 +126,7 @@ body = [
     'in CD, is a bullish divergence.</p>',
     '<p>A divergence is a <strong>warning, not a signal</strong>. Trends can show divergence for a long time and keep going. It becomes more '
     'interesting when it happens at a level you already care about: a prior VAH, a naked POC, a liquidity pool above equal highs. It sits in '
-    'the same family as SMT divergence from the core course (<a href="chapter.html?ch=17">chapter 17</a>): one measure makes a new extreme, a '
+    'the same family as SMT divergence from the core course (<a href="chapter.html?ch=18">chapter 18</a>): one measure makes a new extreme, a '
     'related one doesn\'t.</p>',
 
     '<h3>Where the delta sits inside the bar</h3>',

@@ -100,9 +100,9 @@ ohlc = [(5210.00, 5212.25, 5209.25, 5211.50), (5211.50, 5213.00, 5210.00, 5210.5
 first_touch = next(i for i, b in enumerate(ohlc) if b[2] <= prior_poc <= b[1])
 assert all(b[2] > prior_poc for b in ohlc[:first_touch])
 fig_naked_svg, _ = candles(ohlc, 'A naked POC from a prior session', lo=5205.5, hi=5213.5, height=240,
-                           levels=[(prior_poc, 'naked POC', GOLD, '5 4')],
+                           levels=[(prior_poc, 'nPOC', GOLD, '5 4')],
                            labels=[(first_touch, ohlc[first_touch][2], 'touched', GOLD, 'below')])
-fig_naked = figure(fig_naked_svg, 'The prior session\'s POC at %s had not been traded since it formed. Bars 1 to %d stay above it; '
+fig_naked = figure(fig_naked_svg, 'The dashed nPOC line: the prior session\'s POC at %s, which had not been traded since it formed. Bars 1 to %d stay above it; '
                    'bar %d trades down through it, and from then on it is no longer "naked".' % (fmt(prior_poc), first_touch, first_touch + 1))
 
 # ---------------------------------------------------------------- open location table

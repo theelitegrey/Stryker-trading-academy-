@@ -116,7 +116,7 @@ body = [
     'support or resistance on exactly that reasoning.</p>',
     '<p>AVWAP fits Stryker\'s framework neatly. Anchor it to the start of the displacement leg that broke structure (<a href="chapter.html?ch=08">chapter 08</a>), '
     'and you have a line that tracks the average entry of that move. A pullback into a fair value gap or order block (<a href="chapter.html?ch=10">chapter 10</a>, '
-    '<a href="chapter.html?ch=11">chapter 11</a>) that also meets the AVWAP is two separate methods pointing at the same area.</p>',
+    '<a href="chapter.html?ch=09">chapter 09</a>) that also meets the AVWAP is two separate methods pointing at the same area.</p>',
 
     '<h3>VWAP and the volume profile together</h3>',
     '<p>VWAP and the POC answer related questions differently. The POC is the single busiest price. VWAP is the average of all prices, weighted '

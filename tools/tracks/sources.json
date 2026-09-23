@@ -239,5 +239,14 @@
   "facts": [
    "CME lists Euro FX futures (Globex code 6E) on EUR/USD, with exchange-reported volume"
   ]
+ },
+ "cme_rolldates": {
+  "title": "Equity Index Roll Dates - CME Group",
+  "url": "https://www.cmegroup.com/trading/equity-index/rolldates.html",
+  "facts": [
+   "Equity index futures are quarterly; roll date is the Monday prior to the third Friday of the expiration month",
+   "After the roll date the second-nearest month is customarily the lead month because the expiring contract becomes less liquid",
+   "2026 U.S. index roll dates: 3/16, 6/15, 9/14, 12/14"
+  ]
  }
 }

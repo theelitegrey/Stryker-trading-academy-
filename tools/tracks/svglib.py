@@ -264,6 +264,7 @@ def candles(ohlc, title, lo=None, hi=None, height=260, left=16, right=330, top=2
     zone_labels = [(left + 4, Y(max(p1, p2)) + 15, t, c) for p1, p2, t, c in zones or []]
     for p, t, c, dash in levels or []:
         o.append(line(left, Y(p), right, Y(p), c, 1.2, dash))
+        assert right + 4 + len(t) * 8 <= W + 2, 'level label too long for the right margin: %r' % t
         o.append(text(right + 4, Y(p) + 5, t, 13, c))
     for i, (op, h_, l_, cl) in enumerate(ohlc):
         c = GREEN if cl >= op else RED
@@ -367,11 +368,16 @@ def series(values_list, title, height=200, left=16, right=330, top=18, bottom=No
     if zero:
         o.append(line(left, Y(0), right, Y(0), GRID, 1, '3 3'))
         o.append(text(right + 4, Y(0) + 5, '0', 13, MUTED))
+    used = []
     for k, (vals, c, name) in enumerate(values_list):
         pts = ' '.join('%s,%s' % (f(X(i)), f(Y(v))) for i, v in enumerate(vals) if v is not None)
         o.append('<polyline points="%s" fill="none" stroke="%s" stroke-width="2"/>' % (pts, c))
         last = max(i for i, v in enumerate(vals) if v is not None)
-        o.append(text(right + 4, Y(vals[last]) + 5, name, 13, c))
+        ly = Y(vals[last]) + 5
+        while any(abs(ly - u) < 15 for u in used):   # keep end labels apart
+            ly += 15
+        used.append(ly)
+        o.append(text(right + 4, ly, name, 13, c))
     for i, v, t, c in point_labels or []:
         o.append('<circle cx="%s" cy="%s" r="4" fill="%s"/>' % (f(X(i)), f(Y(v)), c))
         o.append(text(X(i), Y(v) - 10, t, 13, c, 'middle'))

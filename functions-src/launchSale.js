@@ -26,6 +26,7 @@
  *            automatically.
  *
  * CONFIG launchSaleConfig/main (Admin SDK only; default-deny for clients):
+ *   launchSaleConfig/members { uids } is written by the counter: the seat holders.
  *   { active, startAt (Timestamp), limit: 100, planIds: [...],
  *     excludeUids: [...], excludeCoupons: [...] }
  */
@@ -62,6 +63,13 @@ function inrEffective(plan) {
   return Math.round(sale);
 }
 
+function millis(t) {
+  if (!t) return 0;
+  if (typeof t.toMillis === 'function') return t.toMillis();
+  const n = new Date(t).getTime();
+  return isNaN(n) ? 0 : n;
+}
+
 async function config() {
   const snap = await db.collection('launchSaleConfig').doc('main').get().catch(() => null);
   return snap && snap.exists ? snap.data() : null;
@@ -86,9 +94,16 @@ async function foundingLock(uid, planId) {
 async function recordFoundingPrice(uid, planId, baseUsd, baseInr) {
   const cfg = await config();
   if (!cfg || cfg.active !== true || !(cfg.planIds || []).includes(planId)) return false;
-  const pub = await db.collection('settings').doc('commerce').get().catch(() => null);
+  // Seats left, OR this member is already one of the counted first `limit`
+  // (their own order fires launchSaleOnOrder, which can fill the last seat
+  // before this runs; without this check the 100th member would lose it).
+  const [pub, seats] = await Promise.all([
+    db.collection('settings').doc('commerce').get().catch(() => null),
+    db.collection('launchSaleConfig').doc('members').get().catch(() => null)
+  ]);
   const taken = pub && pub.exists ? ((pub.data().launchSale || {}).taken || 0) : 0;
-  if (taken >= (cfg.limit || 100)) return false;
+  const counted = seats && seats.exists ? (seats.data().uids || []) : [];
+  if (taken >= (cfg.limit || 100) && !counted.includes(uid)) return false;
   const ref = db.collection('foundingPrices').doc(uid);
   return db.runTransaction(async (tx) => {
     const cur = await tx.get(ref);
@@ -112,9 +127,12 @@ async function recount() {
   const exU = new Set(cfg.excludeUids || []);
   const exC = (cfg.excludeCoupons || []).map((c) => String(c).toUpperCase());
   const snap = await db.collection('orders').where('createdAt', '>=', cfg.startAt).get();
+  // Oldest first, so "the first `limit` members" is deterministic.
+  const rows = [];
+  snap.forEach((d) => rows.push(d.data()));
+  rows.sort((a, b) => millis(a.createdAt) - millis(b.createdAt));
   const members = new Set();
-  snap.forEach((d) => {
-    const o = d.data();
+  rows.forEach((o) => {
     if (o.status !== 'completed' || !planIds.has(o.planId) || exU.has(o.studentUid)) return;
     if (!(Number(o.finalAmount) > 0)) return;                // free-coupon grants don't count
     const code = String(o.couponCode || '').toUpperCase();
@@ -122,6 +140,12 @@ async function recount() {
     members.add(o.studentUid);
   });
   const taken = Math.min(members.size, limit);
+  // The seat holders themselves (functions-only doc): recordFoundingPrice
+  // checks it so a member who took the last seat still gets their lock.
+  await db.collection('launchSaleConfig').doc('members').set({
+    uids: Array.from(members).slice(0, limit),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  });
   await db.collection('settings').doc('commerce').set({
     launchSale: {
       active: cfg.active === true, limit, taken,

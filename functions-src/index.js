@@ -181,3 +181,4 @@ Object.assign(exports, require('./referralPoints'));
 Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
 exports.onContactMessageCreated = require('./onContactMessageCreated').onContactMessageCreated;
+Object.assign(exports, require('./welcomeEmails'));

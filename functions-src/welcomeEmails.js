@@ -2,7 +2,7 @@
  * Stryker Trading Academy: welcome email series for new free accounts.
  *
  *   welcomeEmailTick   scheduled hourly. Enrols free accounts created after
- *                      settings/emailSeries.launchAt, and sends each one the
+ *                      emailSeriesConfig/welcome.launchAt, and sends each one the
  *                      next due email: day 0, 2, 5, 9, 14 (emailTemplates.js).
  *   emailUnsubscribe   public HTTPS endpoint behind the footer link. One
  *                      click (GET) or the RFC 8058 List-Unsubscribe-Post
@@ -10,7 +10,11 @@
  *
  * STATE: emailSeries/{uid}: { email, step (next to send, 0..5), nextAt,
  * status: active|done|stopped, stopReason, unsubToken, sent: {day0: ts…} }.
- * Daily send counts: emailSeriesDaily/{YYYY-MM-DD}.
+ * Daily send counts: emailSeriesDaily/{YYYY-MM-DD}. Config:
+ * emailSeriesConfig/welcome { enabled, testOnly, testRecipients[], launchAt,
+ * postalAddress, offerPlanId, from }. Kept out of settings/ on purpose:
+ * settings/* is readable by every signed-in user, and this holds the test
+ * addresses.
  * Written only here with the Admin SDK. No client rule allows access, so
  * the Firestore rules need no change (the catch-all deny covers it).
  *
@@ -21,16 +25,16 @@
  *     Resend's dashboard; not wired to a webhook yet)
  *
  * SAFETY (every one must hold, or nothing is sent):
- *   - settings/emailSeries.enabled === true
- *   - settings/emailSeries.postalAddress is set (anti-spam law footer)
+ *   - emailSeriesConfig/welcome.enabled === true
+ *   - emailSeriesConfig/welcome.postalAddress is set (anti-spam law footer)
  *   - the rendered email has no [COPY PENDING]/[PRICE] placeholder left
  *   - the RESEND_API_KEY secret exists (it's read from Secret Manager, never
  *     from code or chat)
  *   - the address is verified (password accounts must click the verify link;
  *     Google accounts are verified from the start)
  *   - at most DAILY_CAP emails a day (Resend free tier: 100/day, 3,000/month)
- * With settings/emailSeries.testOnly = true, mail goes only to addresses in
- * settings/emailSeries.testRecipients.
+ * With emailSeriesConfig/welcome.testOnly = true, mail goes only to addresses in
+ * emailSeriesConfig/welcome.testRecipients.
  *
  * DEPLOY (by name, after the secret exists):
  *   firebase deploy --only functions:welcomeEmailTick,functions:emailUnsubscribe
@@ -96,7 +100,7 @@ exports.welcomeEmailTick = functions
   .pubsub.schedule('every 60 minutes')
   .timeZone('UTC')
   .onRun(async () => {
-    const cfgSnap = await db.collection('settings').doc('emailSeries').get();
+    const cfgSnap = await db.collection('emailSeriesConfig').doc('welcome').get();
     const cfg = cfgSnap.exists ? cfgSnap.data() : {};
     if (cfg.enabled !== true) { console.log('welcomeEmailTick: disabled'); return null; }
     if (!cfg.postalAddress) { console.warn('welcomeEmailTick: no postal address set, not sending'); return null; }

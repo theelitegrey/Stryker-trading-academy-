@@ -95,3 +95,20 @@ hand.
 It is unchanged by this work. For the publish checklist and the curl check
 for signed-out access, see this file as it was before 2026-09-22 (in git
 history).
+
+## Welcome email series (built, NOT deployed)
+
+`welcomeEmails.js` + `emailTemplates.js`: `welcomeEmailTick` (hourly) and
+`emailUnsubscribe` (public link). Deploy only after all of these hold:
+1. Resend account, `send.strykertrading.com` verified, secret
+   `RESEND_API_KEY` in Secret Manager (the Owner does this; nobody pastes the key anywhere else).
+2. Final copy in `emailTemplates.js` (no `[COPY PENDING]` left; the tick
+   refuses to send while any placeholder remains).
+3. `emailSeriesConfig/welcome` written: `enabled`, `testOnly: true` +
+   `testRecipients` for the first run, `launchAt`, `postalAddress`, `offerPlanId`.
+4. Privacy Policy line added.
+
+    firebase deploy --only functions:welcomeEmailTick,functions:emailUnsubscribe
+
+Preview without sending: `node tools/preview-emails.js` then open
+`tools/email-previews/day*.html`.

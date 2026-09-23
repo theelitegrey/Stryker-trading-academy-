@@ -1,0 +1,22 @@
+Subject: The full desk is open: [PLAN] at [PRICE]/month
+Preheader: Everything beyond the free chapters, in one plan.
+
+[PLAN]: the full curriculum
+
+[COPY PENDING: Day 14 offer]
+
+[PRICE]/month
+
+See the plan: https://strykertrading.com/checkout.html?plan=PLAN_ID&utm_source=email&utm_medium=welcome&utm_campaign=day14
+
+
+
+--
+
+Education only. Not financial advice.
+
+You're getting this because you created a free account at strykertrading.com.
+
+Unsubscribe: https://us-central1-strykertrades-e0cd8.cloudfunctions.net/emailUnsubscribe?u=PREVIEW&t=PREVIEW
+
+Stryker Trading, operating as Stryker Trading Academy · [POSTAL ADDRESS PENDING]

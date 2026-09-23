@@ -96,17 +96,23 @@ It is unchanged by this work. For the publish checklist and the curl check
 for signed-out access, see this file as it was before 2026-09-22 (in git
 history).
 
-## Welcome email series (built, NOT deployed)
+## Welcome email series
 
 `welcomeEmails.js` + `emailTemplates.js`: `welcomeEmailTick` (hourly) and
-`emailUnsubscribe` (public link). Deploy only after all of these hold:
-1. Resend account, `send.strykertrading.com` verified, secret
-   `RESEND_API_KEY` in Secret Manager (the Owner does this; nobody pastes the key anywhere else).
-2. Final copy in `emailTemplates.js` (no `[COPY PENDING]` left; the tick
-   refuses to send while any placeholder remains).
-3. `emailSeriesConfig/welcome` written: `enabled`, `testOnly: true` +
-   `testRecipients` for the first run, `launchAt`, `postalAddress`, `offerPlanId`.
-4. Privacy Policy line added.
+`emailUnsubscribe` (public link).
+- Sender: Resend, domain `send.strykertrading.com` (DKIM/SPF/MX set by Resend
+  through Cloudflare). Secret `RESEND_API_KEY` is in Secret Manager; it is
+  piped in from a file and never printed, pasted or committed.
+- Config `emailSeriesConfig/welcome` (Admin SDK only): `enabled`, `testOnly`
+  + `testRecipients`, `launchAt` (accounts created after this are enrolled),
+  `postalAddress` (the footer line: one value, one-line change), `offerPlanId`
+  (day 14 plan, read live), `alsoOfferPlanId` (optional one-line mention),
+  `from`, `replyTo`.
+- Real sends need `testOnly: false`, which only happens on CoS go. Until then
+  `launchAt` stays in the future, so no account is enrolled.
+- The tick refuses to send while any placeholder remains or the postal
+  address is missing.
+- Privacy Policy line: add when real sends go live.
 
     firebase deploy --only functions:welcomeEmailTick,functions:emailUnsubscribe
 

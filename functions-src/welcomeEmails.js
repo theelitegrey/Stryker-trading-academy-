@@ -12,7 +12,7 @@
  * status: active|done|stopped, stopReason, unsubToken, sent: {day0: ts…} }.
  * Daily send counts: emailSeriesDaily/{YYYY-MM-DD}. Config:
  * emailSeriesConfig/welcome { enabled, testOnly, testRecipients[], launchAt,
- * postalAddress, offerPlanId, alsoOfferPlanId, from }. Kept out of settings/ on purpose:
+ * postalAddress, offerPlanId, alsoOfferPlanId, from, replyTo }. Kept out of settings/ on purpose:
  * settings/* is readable by every signed-in user, and this holds the test
  * addresses.
  * Written only here with the Admin SDK. No client rule allows access, so
@@ -109,7 +109,7 @@ exports.welcomeEmailTick = functions
     if (!cfg.postalAddress) { console.warn('welcomeEmailTick: no postal address set, not sending'); return null; }
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) { console.warn('welcomeEmailTick: RESEND_API_KEY missing'); return null; }
-    const from = cfg.from || 'Stryker Trading Academy <hello@send.strykertrading.com>';
+    const from = cfg.from || 'Stryker Trading <hello@send.strykertrading.com>';
     const launchAt = cfg.launchAt && cfg.launchAt.toDate ? cfg.launchAt.toDate() : null;
     if (!launchAt) { console.warn('welcomeEmailTick: no launchAt, not enrolling'); return null; }
     const testOnly = cfg.testOnly !== false;
@@ -214,6 +214,7 @@ exports.welcomeEmailTick = functions
       try {
         await sendViaResend(apiKey, {
           from, to: [email], subject: r.subject, html: r.html, text: r.text,
+          reply_to: cfg.replyTo || undefined,
           headers: {
             'List-Unsubscribe': '<' + url + '>',
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
@@ -270,4 +271,4 @@ exports.emailUnsubscribe = functions
 
 // Not a function, so the Functions loader ignores it; named so it can't
 // collide with subscriptions.js's __internals in index.js's Object.assign.
-exports.__welcomeInternals = { offerFor, unsubUrl };
+exports.__welcomeInternals = { offerFor, unsubUrl, sendViaResend };

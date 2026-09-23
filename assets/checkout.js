@@ -388,6 +388,11 @@ function finishPaidCheckout(){
       { targetUid: CHECKOUT_UID, detail: 'via razorpay checkout' });
   }
   const work = [];
+  // First-touch attribution for accounts that predate it (client-side only;
+  // the payment functions are untouched).
+  if (typeof saveAcquisitionIfMissing === 'function') {
+    work.push(saveAcquisitionIfMissing(CHECKOUT_UID));
+  }
   if (typeof processReferralConversion === 'function') {
     work.push(processReferralConversion(CHECKOUT_UID, CHECKOUT_PLAN.name).catch(() => null));
   }

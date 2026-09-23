@@ -25,6 +25,33 @@ function daysBetween(a, b){
 // Creates the student's Firestore doc on first sign-in, and advances their
 // study streak at most once per calendar day. Safe to call on every page load
 // — it's a no-op write if nothing has changed since today.
+// First-touch attribution (see assets/acquisition.js). Returns the stored
+// landing record shaped for the student doc, or null when there is none.
+// Only these five keys are ever written, all short strings.
+function acquisitionForStudentDoc(){
+  let a = null;
+  try { a = JSON.parse(localStorage.getItem('stryker_acq') || 'null'); } catch (e) {}
+  if (!a || typeof a !== 'object') return null;
+  const s = (v, n) => String(v || '').slice(0, n || 100);
+  return {
+    source: s(a.source), medium: s(a.medium), campaign: s(a.campaign),
+    referrer: s(a.referrer, 200), landedAt: s(a.landedAt, 40)
+  };
+}
+
+// Saves first touch onto an existing student doc if it has none yet. Used
+// after a paid checkout for accounts created before tracking existed.
+// Never overwrites: the first recorded touch stays the source of record.
+function saveAcquisitionIfMissing(uid){
+  const acq = acquisitionForStudentDoc();
+  if (!uid || !acq) return Promise.resolve(false);
+  const ref = db.collection('students').doc(uid);
+  return ref.get().then(snap => {
+    if (!snap.exists || snap.data().acquisition) return false;
+    return ref.update({ acquisition: acq }).then(() => true);
+  }).catch(err => { console.warn('Stryker: acquisition not saved', err && err.code); return false; });
+}
+
 function ensureStudentDoc(user){
   if (!user) return Promise.resolve(null);
   const ref = db.collection('students').doc(user.uid);
@@ -55,6 +82,10 @@ function ensureStudentDoc(user){
         // a single page. Gating is now opt-in per page instead.
         plan: planName
       };
+      // Where this person first arrived from (utm tags / referrer), if the
+      // browser recorded it. Absent rather than empty when there is nothing.
+      const acquisition = acquisitionForStudentDoc();
+      if (acquisition) data.acquisition = acquisition;
       return ref.set(data).then(() => {
         // Non-blocking: resolve any pending ?ref= invite code from signup.
         // A failure here should never prevent the student doc itself from

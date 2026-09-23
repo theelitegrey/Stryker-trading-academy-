@@ -34,8 +34,8 @@ Status key:
 | VP-04 | Profile Shapes & Day Types | intermediate | reviewed | 2126 | 5 |
 | VP-05 | Session, Composite & Fixed-Range Profiles | intermediate | reviewed | 2101 | 6 |
 | VP-06 | VWAP, Anchored VWAP & Deviation Bands | intermediate | reviewed | 2020 | 5 |
-| VP-07 | Order Flow Foundations: Orders, the Book & Matching | intermediate | todo | | |
-| VP-08 | Footprint Charts & Delta | advanced | todo | | |
+| VP-07 | Order Flow Foundations: Orders, the Book & Matching | intermediate | reviewed | 2052 | 9 |
+| VP-08 | Footprint Charts & Delta | advanced | reviewed | 2038 | 5 |
 | VP-09 | Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs | advanced | todo | | |
 | VP-10 | Data & Tools: Futures, FX Tick Volume & Platforms | intermediate | todo | | |
 | VP-11 | Combining Profile & Order Flow with Liquidity & SMC | advanced | todo | | |

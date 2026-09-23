@@ -50,8 +50,54 @@ const ARTICLES = [
     description: 'A liquidity sweep is a quick move beyond an obvious high or low that closes back inside the range. Learn where stops cluster, how to tell a sweep from a breakout, and common mistakes.',
     dek: 'Why price so often spikes through an obvious level and then reverses, where the orders behind that move sit, and how to tell a sweep from a genuine breakout.',
     published: '2026-09-23', modified: '2026-09-23'
+  },
+  {
+    slug: 'prop-firm-challenge-rules',
+    title: 'How to Pass a Prop Firm Challenge: Drawdown, Daily Loss & Consistency Rules',
+    short: 'How to pass a prop firm challenge: the rules that matter',
+    description: 'Static vs end-of-day vs intraday trailing drawdown, daily loss limits, consistency and payout rules, quoted from Topstep, Apex, Tradeify and other firms, with a calculator.',
+    dek: 'Most challenges end on a rule, not a bad read. Static, end-of-day and intraday trailing drawdown on the same trades, daily loss limits, consistency and payout rules, quoted from the firms themselves.',
+    published: '2026-09-23', modified: '2026-09-23',
+    cta: 'signup'
+  },
+  {
+    slug: 'bos-vs-choch',
+    title: 'Break of Structure vs Change of Character (BOS vs CHoCH) Explained',
+    short: 'Break of structure vs change of character (BOS vs CHoCH)',
+    description: 'BOS is a break of a swing point with the trend; CHoCH is the first break against it. Step through an interactive chart and learn which swing counts, wicks vs closes, and common mistakes.',
+    dek: 'The two market structure labels every smart money chart uses, stepped through on an interactive chart: what each break means, which swing counts, and why a wick is not a break.',
+    published: '2026-09-23', modified: '2026-09-23'
+  },
+  {
+    slug: 'smt-divergence',
+    title: 'SMT Divergence Explained: ES vs NQ and Correlated Pairs',
+    short: 'SMT divergence explained',
+    description: 'SMT divergence is when two correlated markets such as ES and NQ disagree at a high or low. See bullish and bearish SMT side by side, how traders use it, and its limits.',
+    dek: 'When two markets that normally move together disagree at a key high or low. Bullish and bearish SMT side by side on ES and NQ, inverse pairs like EUR/USD and DXY, and where the idea breaks down.',
+    published: '2026-09-23', modified: '2026-09-23'
   }
 ];
+
+// End-of-article calls to action. 'cheatsheet' is the default.
+const CTAS = {
+  cheatsheet: (slug, utm) => `<h2 id="cta-${slug}">Get the free FVG &amp; Order Block cheat sheet</h2>
+<p>Two pages with the rules we teach for fair value gaps and order blocks. Create a free account to download it and read the first chapters of the curriculum.</p>
+<a class="btn btn-primary" href="cheat-sheet.html?${utm}">Get the free cheat sheet</a>
+<a class="btn btn-ghost" href="signup.html?${utm}">Create a free account</a>`,
+  signup: (slug, utm) => `<h2 id="cta-${slug}">Learn the method as written lessons with chart diagrams</h2>
+<p>Create a free account to read the first chapters of the curriculum and get the free FVG &amp; Order Block cheat sheet. The course is education only and makes no promise that you will pass a challenge.</p>
+<a class="btn btn-primary" href="signup.html?${utm}">Create a free account</a>
+<a class="btn btn-ghost" href="cheat-sheet.html?${utm}">Get the free cheat sheet</a>`
+};
+
+// FAQ pairs for FAQPage JSON-LD: every <h3> + following <p> inside .lx-faq.
+function faqs(body) {
+  const m = body.match(/<div class="lx-faq">([\s\S]*?)<\/div>/);
+  if (!m) return [];
+  const txt = (h) => h.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+  return [...m[1].matchAll(/<h3>([\s\S]*?)<\/h3>\s*<p>([\s\S]*?)<\/p>/g)].map((x) => (
+    { '@type': 'Question', name: txt(x[1]), acceptedAnswer: { '@type': 'Answer', text: txt(x[2]) } }));
+}
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const V = (p) => `${p}?v=${BUILD}`;
@@ -135,7 +181,11 @@ function articlePage(a) {
   const url = `${ORIGIN}/learn-${a.slug}`;
   const body = fs.readFileSync(path.join(__dirname, 'learn', a.slug + '.html'), 'utf8').trim();
   const n = words(body);
-  if (n < 900 || n > 1400) throw new Error(`${a.slug}: ${n} words, outside 900-1400`);
+  // Launch articles were 900-1400; the in-depth standard from batch 2 on is 1200-2500.
+  if (n < 900 || n > 2500) throw new Error(`${a.slug}: ${n} words, outside 900-2500`);
+  if (/<!-- FIG:/.test(body) && /<!-- FIG:(\w+) -->\s*<!-- \/FIG/.test(body)) throw new Error(`${a.slug}: empty figure, run python3 tools/learn/figs.py`);
+  const faq = faqs(body);
+  const interactive = /class="[^"]*\b(lx-ix|lx-quiz|lx-calc)\b/.test(body);
   const utm = `utm_source=google&utm_medium=organic&utm_campaign=${a.slug}`;
   const others = ARTICLES.filter((x) => x.slug !== a.slug);
   const jsonld = {
@@ -149,7 +199,7 @@ function articlePage(a) {
         { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
         { '@type': 'ListItem', position: 2, name: 'Learn', item: ORIGIN + '/learn' },
         { '@type': 'ListItem', position: 3, name: a.short, item: url } ] }
-    ]
+    ].concat(faq.length ? [{ '@type': 'FAQPage', mainEntity: faq }] : [])
   };
   const d = new Date(a.modified + 'T00:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   const main = `<div class="lx-wrap">
@@ -164,26 +214,24 @@ function articlePage(a) {
 ${body}
 </div>
 <aside class="lx-cta" aria-labelledby="cta-${a.slug}">
-<h2 id="cta-${a.slug}">Get the free FVG &amp; Order Block cheat sheet</h2>
-<p>Two pages with the rules we teach for fair value gaps and order blocks. Create a free account to download it and read the first chapters of the curriculum.</p>
-<a class="btn btn-primary" href="cheat-sheet.html?${utm}">Get the free cheat sheet</a>
-<a class="btn btn-ghost" href="signup.html?${utm}">Create a free account</a>
+${CTAS[a.cta || 'cheatsheet'](a.slug, utm)}
 </aside>
 <p class="lx-disclaimer">${DISCLAIMER}</p>
 </article>
 <section class="lx-related" aria-labelledby="rel-${a.slug}">
 <h2 id="rel-${a.slug}">Keep reading</h2>
 <ul class="lx-list">
-${others.map((o) => `<li><a class="lx-card" href="learn-${o.slug}.html"><h3>${esc(o.short)}</h3><p>${esc(o.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
+${others.slice(0, 4).map((o) => `<li><a class="lx-card" href="learn-${o.slug}.html"><h3>${esc(o.short)}</h3><p>${esc(o.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
 </ul>
 </section>
 </div>`;
-  return page({ title: a.title, description: a.description, url, ogType: 'article', jsonld, key: 'learn-' + a.slug, main });
+  const extra = interactive ? `\n<script src="${V('assets/learn-ix.js')}" defer></script>` : '';
+  return page({ title: a.title, description: a.description, url, ogType: 'article', jsonld, key: 'learn-' + a.slug, main: main + extra });
 }
 
 function indexPage() {
   const url = `${ORIGIN}/learn`;
-  const description = 'Free, plain-English guides to ICT and smart money concepts: fair value gaps, order blocks, liquidity sweeps and more, with simple diagrams.';
+  const description = 'Free, plain-English guides to ICT and smart money concepts: market structure, fair value gaps, order blocks, liquidity sweeps, SMT divergence and prop firm rules.';
   const jsonld = {
     '@context': 'https://schema.org',
     '@graph': [

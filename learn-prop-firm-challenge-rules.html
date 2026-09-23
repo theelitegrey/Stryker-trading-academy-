@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="318">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Static vs end-of-day vs intraday trailing drawdown, daily loss limits, consistency and payout rules, quoted from Topstep, Apex, Tradeify and other firms, with a calculator.">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="How to Pass a Prop Firm Challenge: Drawdown, Daily Loss &amp; Consistency Rules">
+<meta property="og:description" content="Static vs end-of-day vs intraday trailing drawdown, daily loss limits, consistency and payout rules, quoted from Topstep, Apex, Tradeify and other firms, with a calculator.">
+<meta property="og:url" content="https://strykertrading.com/learn-prop-firm-challenge-rules">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How to Pass a Prop Firm Challenge: Drawdown, Daily Loss &amp; Consistency Rules">
+<meta name="twitter:description" content="Static vs end-of-day vs intraday trailing drawdown, daily loss limits, consistency and payout rules, quoted from Topstep, Apex, Tradeify and other firms, with a calculator.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta name="theme-color" content="#050506">
+<title>How to Pass a Prop Firm Challenge: Drawdown, Daily Loss &amp; Consistency Rules | Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/learn-prop-firm-challenge-rules">
+<link rel="stylesheet" href="assets/style.css?v=318">
+<link rel="stylesheet" href="assets/learn.css?v=318">
+<script src="assets/sanitize.js?v=318"></script>
+<script src="assets/device-mode.js?v=318"></script>
+<script src="assets/toast.js?v=318" defer></script>
+<script src="assets/version-check.js?v=318" defer></script>
+<script src="assets/acquisition.js?v=318" defer></script>
+<script src="assets/focus-mode.js?v=318" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Article",
+      "headline": "How to pass a prop firm challenge: the rules that matter",
+      "name": "How to Pass a Prop Firm Challenge: Drawdown, Daily Loss & Consistency Rules",
+      "description": "Static vs end-of-day vs intraday trailing drawdown, daily loss limits, consistency and payout rules, quoted from Topstep, Apex, Tradeify and other firms, with a calculator.",
+      "image": [
+        "https://strykertrading.com/assets/images/og-image.png"
+      ],
+      "datePublished": "2026-09-23",
+      "dateModified": "2026-09-23",
+      "wordCount": 2219,
+      "inLanguage": "en",
+      "author": {
+        "@type": "Organization",
+        "name": "Stryker Trading Academy",
+        "url": "https://strykertrading.com/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://strykertrading.com/assets/images/logo-header.png"
+        }
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Stryker Trading Academy",
+        "url": "https://strykertrading.com/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://strykertrading.com/assets/images/logo-header.png"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://strykertrading.com/learn-prop-firm-challenge-rules"
+      },
+      "isAccessibleForFree": true
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://strykertrading.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Learn",
+          "item": "https://strykertrading.com/learn"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "How to pass a prop firm challenge: the rules that matter",
+          "item": "https://strykertrading.com/learn-prop-firm-challenge-rules"
+        }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is the difference between trailing and static drawdown?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A static drawdown floor never moves. A trailing drawdown floor rises as your balance makes new highs and never falls, so profits you give back reduce the room you have left."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is end-of-day drawdown better than intraday trailing?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It is more forgiving of open profit that comes back, because only the closing balance moves the floor. It is not a safety net: most firms still enforce the floor in real time during the day."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does hitting the daily loss limit fail the challenge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It depends on the firm. At Topstep and Blue Guardian Futures it pauses the account until the next session. At other firms or on other plans it can end the account, so check your own rules."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How is the consistency rule calculated?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Divide your best day's profit by your total net profit since the start (or since your last payout). If the result is above your firm's limit, you need more profit on other days."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can a prop firm challenge be passed in one day?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "At some firms it is technically allowed, but consistency rules at many firms make a one-day pass impossible or raise the target. Topstep, for example, says you can pass in as few as two days."
+          }
+        }
+      ]
+    }
+  ]
+}
+</script>
+</head>
+<body data-page-key="learn-prop-firm-challenge-rules">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="index.html" class="brand">
+      <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
+    </a>
+    <div class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="learn.html">Learn</a>
+      <a href="index.html#curriculum">Curriculum</a>
+      <a href="index.html#concepts">ICT / SMT</a>
+      <a href="index.html#pricing">Pricing</a>
+      <a href="courses.html">Courses</a>
+      <a href="dashboard-user.html">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login.html" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<div class="lx-wrap">
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <a href="learn.html">Learn</a> / <span aria-current="page">How to pass a prop firm challenge: the rules that matter</span></nav>
+<article>
+<header class="lx-head">
+<h1>How to pass a prop firm challenge: the rules that matter</h1>
+<p class="lx-dek">Most challenges end on a rule, not a bad read. Static, end-of-day and intraday trailing drawdown on the same trades, daily loss limits, consistency and payout rules, quoted from the firms themselves.</p>
+<p class="lx-meta">Stryker Trading Academy · Updated <time datetime="2026-09-23">September 23, 2026</time> · 10 min read</p>
+</header>
+<div class="lx-body">
+<p>A <strong>prop firm challenge</strong> (also called an evaluation or combine) is a test account run by a proprietary trading firm. You pay a fee, trade a simulated account under a set of rules, and if you hit the profit target without breaking a rule, the firm offers you a funded account. Most people who fail do not fail because their analysis was wrong. They fail because they misunderstood a rule: usually the drawdown. This guide explains the rules that decide most challenges, with real examples quoted from the firms' own help pages, so you know exactly what you are signing up for.</p>
+
+<div class="lx-key">
+<p><strong>Key takeaways</strong></p>
+<ul>
+<li>The <strong>maximum drawdown</strong> is the rule that ends most accounts. Know whether yours is <strong>static</strong>, <strong>end-of-day trailing</strong> or <strong>intraday trailing</strong>; they behave very differently with the same trades.</li>
+<li>A <strong>daily loss limit</strong> caps losses in one session. At some firms hitting it only pauses you for the day; at others it can fail the account.</li>
+<li>A <strong>consistency rule</strong> limits how much of your profit can come from one day. It can block a pass or a payout even when you are in profit.</li>
+<li>Rules differ between firms, account types and even trading platforms, and they change often. Always read your own firm's current page before you trade.</li>
+<li>Nothing here makes passing likely. It helps you avoid failing for reasons that have nothing to do with your trading.</li>
+</ul>
+</div>
+
+<div class="lx-key">
+<p><strong>About the firm rules on this page.</strong> Every firm rule below is quoted from that firm's official help centre <strong>as of September 2026</strong>, with a link in the sources. Prop firms change rules, amounts and account types regularly. Treat these as examples of how the rules work, and check the firm's own page before you buy or trade.</p>
+</div>
+
+<h2>How a challenge works</h2>
+<p>Almost every futures prop challenge has the same shape:</p>
+<ol>
+<li><strong>A starting balance</strong>, such as $50,000. This is simulated money. Topstep, for example, describes its Trading Combine as "a simulated account with one rule and two objectives".</li>
+<li><strong>A profit target</strong> you must reach, such as $3,000 on a $50,000 account.</li>
+<li><strong>A maximum loss</strong> you must never breach, usually called the drawdown or maximum loss limit.</li>
+<li><strong>Extra conditions</strong>: a daily loss limit, a consistency rule, a minimum number of trading days, position-size caps, and time rules such as being flat before the daily close.</li>
+</ol>
+<p>Pass, and you move to a funded stage, which has its own rules, including the conditions for requesting a <strong>payout</strong> (a withdrawal of profit). Many funded accounts are also simulated, and payouts come from the firm under its own terms.</p>
+
+<h2>The three types of drawdown</h2>
+<p>The <strong>drawdown</strong> is the lowest your account balance is allowed to go. Firms often call that lowest level the <em>floor</em>, <em>threshold</em> or <em>minimum balance</em>. Touch it and the account fails. What matters is how that floor moves.</p>
+
+<h3>Static drawdown</h3>
+<p>The floor is fixed at the start and never moves. On a $50,000 account with a $2,000 static drawdown, the floor is $48,000 forever. It is the easiest to understand, and it never punishes you for being in profit. It is less common in futures challenges today than the two trailing types.</p>
+
+<h3>End-of-day (EOD) trailing drawdown</h3>
+<p>The floor follows your <strong>highest end-of-day balance</strong> and only moves up. It is recalculated once, after the session closes. Topstep's Maximum Loss Limit works this way: it "is calculated from your account balance high at the end of the trading day", so "the minimum account balance will not be adjusted while you are trading". Their own example: make $500 on day one of a $50K account and the floor rises from $48,000 to $48,500, and it stays there even if you lose $500 the next day.</p>
+<p>One trap: the floor only <em>moves</em> at the end of the day, but most firms <em>enforce</em> it in real time. Tradeify's rules page says its EOD limit "is still enforced in real time, and touching it fails the account immediately". MyFundedFutures says open-equity losses count too. A trade that dips below the floor mid-session fails the account even if it would have recovered by the close.</p>
+
+<h3>Intraday trailing drawdown</h3>
+<p>The floor follows your <strong>highest balance at any moment, including unrealised profit</strong> on open trades. Apex Trader Funding's help centre spells it out: the peak balance "includes both realized and unrealized gains", the threshold "never moves down", and "no closing trade is required" for it to rise. Their $50,000 example: an open trade that pushes the balance to $50,900 lifts the floor from $48,000 to $48,900 immediately. If that trade then closes at $50,300, the floor stays at $48,900.</p>
+<p>That is the rule that surprises beginners most: a winning trade you let come back to breakeven has <em>permanently</em> cost you room.</p>
+
+<h3>When trailing stops</h3>
+<p>Most trailing drawdowns stop trailing at some point, after which the floor is fixed. The lock level differs by firm, as of September 2026:</p>
+<ul>
+<li><strong>Topstep:</strong> once the Maximum Loss Limit reaches the starting balance, "it won't change for the remainder of the account".</li>
+<li><strong>MyFundedFutures and Lucid (LucidFlex):</strong> the EOD trail locks at the starting balance plus $100 (for example $50,100 on a $50K account).</li>
+<li><strong>Apex:</strong> in funded (Performance) accounts, trailing stops at starting balance plus $100. In evaluations it depends on the platform: on Rithmic and Wealthcharts it stops at the profit-target balance, and on Tradovate it "continues to trail indefinitely".</li>
+</ul>
+
+<h2>Same trades, three rules</h2>
+<p>The chart below runs one set of hypothetical trades on a $50,000 account with a $2,000 maximum loss through all three drawdown types. Switch between them and watch the red floor.</p>
+
+<figure class="lx-fig lx-ix" data-ix="toggle" data-attr="mode">
+<div class="lx-seg" hidden role="group" aria-label="Choose the drawdown type">
+<button type="button" data-val="static" aria-pressed="true">Static</button>
+<button type="button" data-val="eod" aria-pressed="false">End-of-day trailing</button>
+<button type="button" data-val="intraday" aria-pressed="false">Intraday trailing</button>
+</div>
+<!-- FIG:dd -->
+<svg viewBox="0 0 430 290" role="img" aria-labelledby="dd1t dd1d">
+<title id="dd1t">The same hypothetical trades under three drawdown rules</title>
+<desc id="dd1d">A hypothetical 50,000 dollar account with a 2,000 dollar maximum loss, over four trading days. The static floor stays at 48,000. The end-of-day trailing floor rises to 48,600 after day 1 closes at 50,600. The intraday trailing floor rises to 48,900 and then 49,400 with the unrealised peaks, and the day-4 dip to 49,300 breaches it.</desc>
+<line class="grid" x1="58" y1="228.1" x2="418" y2="228.1"/>
+<text class="lbl-s" x="52" y="232.1" text-anchor="end">48,000</text>
+<line class="grid" x1="58" y1="173.3" x2="418" y2="173.3"/>
+<text class="lbl-s" x="52" y="177.3" text-anchor="end">49,000</text>
+<line class="grid" x1="58" y1="118.6" x2="418" y2="118.6"/>
+<text class="lbl-s" x="52" y="122.6" text-anchor="end">50,000</text>
+<line class="grid" x1="58" y1="63.8" x2="418" y2="63.8"/>
+<text class="lbl-s" x="52" y="67.8" text-anchor="end">51,000</text>
+<text class="lbl-s" x="94" y="272" text-anchor="middle">Day 1</text>
+<line class="grid" x1="142" y1="20" x2="142" y2="250"/>
+<text class="lbl-s" x="190" y="272" text-anchor="middle">Day 2</text>
+<line class="grid" x1="238" y1="20" x2="238" y2="250"/>
+<text class="lbl-s" x="286" y="272" text-anchor="middle">Day 3</text>
+<line class="grid" x1="334" y1="20" x2="334" y2="250"/>
+<text class="lbl-s" x="382" y="272" text-anchor="middle">Day 4</text>
+<g data-mode="static">
+<polyline class="floor" points="58,228.1 82,228.1 82,228.1 106,228.1 106,228.1 130,228.1 130,228.1 154,228.1 154,228.1 178,228.1 178,228.1 202,228.1 202,228.1 226,228.1 226,228.1 250,228.1 250,228.1 274,228.1 274,228.1 298,228.1 298,228.1 322,228.1 322,228.1 346,228.1 346,228.1 370,228.1 370,228.1 394,228.1 394,228.1 418,228.1 418,228.1"/>
+<text class="lbl-r" x="416" y="14" text-anchor="end">floor now 48,000</text>
+</g>
+<g data-mode="eod">
+<polyline class="floor" points="58,228.1 82,228.1 82,228.1 106,228.1 106,228.1 130,228.1 130,228.1 154,228.1 154,195.2 178,195.2 178,195.2 202,195.2 202,195.2 226,195.2 226,195.2 250,195.2 250,195.2 274,195.2 274,195.2 298,195.2 298,195.2 322,195.2 322,195.2 346,195.2 346,195.2 370,195.2 370,195.2 394,195.2 394,195.2 418,195.2 418,195.2"/>
+<text class="lbl-r" x="416" y="14" text-anchor="end">floor now 48,600</text>
+</g>
+<g data-mode="intraday">
+<polyline class="floor" points="58,228.1 82,228.1 82,228.1 106,228.1 106,178.8 130,178.8 130,178.8 154,178.8 154,178.8 178,178.8 178,151.4 202,151.4 202,151.4 226,151.4 226,151.4 250,151.4 250,151.4 274,151.4 274,151.4 298,151.4 298,151.4 322,151.4 322,151.4 346,151.4 346,151.4 370,151.4 370,151.4 394,151.4 394,151.4 418,151.4 418,151.4"/>
+<text class="lbl-r" x="416" y="14" text-anchor="end">floor now 49,400</text>
+<circle class="hit-r" cx="394" cy="156.9" r="7"/>
+<text class="lbl-r" x="394" y="184.9" text-anchor="middle">BREACH</text>
+</g>
+<polyline class="equity" points="58,118.6 82,129.5 106,69.3 130,85.7 154,85.7 178,41.9 202,102.1 226,91.2 250,91.2 274,74.8 298,140.5 322,124 346,124 370,85.7 394,156.9 418,146"/>
+<text class="lbl-s" x="58" y="14">HYPOTHETICAL</text>
+</svg>
+<!-- /FIG:dd -->
+<p data-for="static"><strong>Static.</strong> The floor sits at $48,000 the whole time. The lowest point, $49,300 on day 4, is $1,300 clear of it.</p>
+<p data-for="eod"><strong>End-of-day trailing.</strong> Day 1 closes at $50,600, so the floor rises to $48,600 overnight. Day 2's intraday high of $51,400 does not count because it did not hold to the close. The account survives.</p>
+<p data-for="intraday"><strong>Intraday trailing.</strong> The open-profit peaks of $50,900 and $51,400 drag the floor up to $49,400. The day-4 dip to $49,300 touches it: the account fails, even though it is still down only $700 from where it started.</p>
+<figcaption>Hypothetical balances, not real trades. The white line is the balance including open profit and loss; the dashed red line is the floor. Without JavaScript all three floors are drawn together.</figcaption>
+</figure>
+
+<h2>Daily loss limits</h2>
+<p>A <strong>daily loss limit</strong> (DLL) caps how much you can lose in one trading day. Two things vary a lot between firms: whether there is one at all, and what happens when you hit it. As of September 2026:</p>
+<ul>
+<li><strong>Topstep:</strong> the DLL is optional in the Trading Combine and Express Funded Account and automatic in the Live Funded Account. Hitting it "is not a rule violation": positions are flattened and you cannot trade until the next session.</li>
+<li><strong>Blue Guardian Futures (Standard):</strong> 2% of the initial balance (no daily limit on the $25,000 account). A breach is "a soft breach, not a hard breach", and the account is reinstated the next trading day.</li>
+<li><strong>Tradeify:</strong> depends on the plan. Select evaluations have no daily loss limit; Growth evaluations do, set by account size.</li>
+<li><strong>Apex:</strong> its evaluation rules page states there is no daily maximum drawdown.</li>
+</ul>
+<p>Also check when the "day" starts. Futures firms usually run the trading day from the evening open, not midnight: Topstep's runs from 5 PM to 3:10 PM Central Time, Tradeify's from 6 PM to 5 PM Eastern. A trade placed on Monday evening belongs to Tuesday's session.</p>
+
+<h2>Consistency rules</h2>
+<p>A <strong>consistency rule</strong> limits how much of your total profit can come from your single best day. The idea is to stop one lucky, oversized day from passing an account. The maths is the same everywhere:</p>
+<p><strong>Best day profit ÷ total profit = consistency percentage</strong></p>
+<p>If the result is above the firm's limit, you have not met the rule yet. The limits, as of September 2026:</p>
+<div class="lx-table">
+<table>
+<thead><tr><th>Firm</th><th>Where it applies</th><th>Limit</th></tr></thead>
+<tbody>
+<tr><td>Topstep</td><td>Trading Combine (pass)</td><td>Best day at or below 55% of profit; above that, the profit target rises</td></tr>
+<tr><td>Topstep</td><td>Express Funded, consistency path (payout)</td><td>40%</td></tr>
+<tr><td>Apex</td><td>Performance account (payout)</td><td>Below 50%</td></tr>
+<tr><td>Tradeify</td><td>Select evaluation / Growth funded / Lightning funded</td><td>40% / 35% / 20% rising to 30% by the third payout</td></tr>
+<tr><td>Blue Guardian Futures</td><td>Standard, funded accounts only</td><td>40%</td></tr>
+</tbody>
+</table>
+</div>
+<p>Two details catch people. First, losing days reduce total profit but do not reduce your best day, so a loss can push you further from the target. Apex's own example: make $1,000 on day one and lose $200 on day two, and your ratio is $1,000 ÷ $800 = 125%. Second, at Topstep you cannot fix a best-day problem by trading more the same day; any extra profit that day just raises the best day.</p>
+<p>The fix is always the same: more profit, made on <em>other</em> days, each smaller than your best day. You can work out how much with:</p>
+<p><strong>Best day ÷ limit − total profit = extra profit needed</strong></p>
+
+<div class="lx-calc" hidden>
+<p><strong>Consistency calculator.</strong> Enter your numbers. Nothing is saved or sent anywhere.</p>
+<div class="lx-calc-row">
+<label>Best day ($)<input name="best" type="number" inputmode="decimal" min="0" step="any" value="1500"></label>
+<label>Total net profit ($)<input name="total" type="number" inputmode="decimal" step="any" value="2400"></label>
+<label>Firm's limit (%)<input name="cap" type="number" inputmode="decimal" min="1" max="99" step="any" value="40"></label>
+</div>
+<output aria-live="polite"></output>
+</div>
+
+<h2>Payout rules</h2>
+<p>Passing the challenge is not the finish line. Funded accounts have their own conditions before you can request a payout. As of September 2026, examples include:</p>
+<ul>
+<li><strong>Topstep Express Funded:</strong> two paths. Standard needs 5 winning days of $150 or more; Consistency needs 3 trading days and the 40% consistency target. Either way you can request up to 50% of the account balance, subject to a cap by account size, with a 90/10 profit split.</li>
+<li><strong>Tradeify:</strong> Growth needs 5 profitable trading days per payout cycle; Select Flex needs 5 winning days; Lightning has no minimum days. Tradeify's funded accounts also require that over 50% of trades and profits come from trades held longer than 10 seconds.</li>
+<li><strong>Apex:</strong> the 50% consistency check above is applied at the payout request, and it resets after each approved payout.</li>
+</ul>
+<p>Read the payout page before you buy an evaluation, not after you pass. Profit split, minimum days, caps and consistency all decide how much of a funded balance you can actually withdraw, and when.</p>
+
+<h2>A pre-trade checklist</h2>
+<ol>
+<li>Write down your drawdown type, amount, and when (if ever) it stops trailing.</li>
+<li>Write down your daily loss limit, if any, and whether hitting it fails the account or pauses it.</li>
+<li>Know your firm's trading day and the time you must be flat.</li>
+<li>Calculate your consistency limit in dollars for your best day before you start the day.</li>
+<li>Decide your own per-trade risk as a small, fixed slice of the distance to your floor, not of the account balance.</li>
+<li>On intraday trailing accounts, decide in advance how much open profit you will let come back before you manage the trade.</li>
+</ol>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Measuring risk from the account size.</strong> On a $50,000 account with a $2,000 drawdown, your real capital is $2,000. Size positions against that.</li>
+<li><strong>Letting winners round-trip on an intraday trail.</strong> Open profit that disappears still raised your floor.</li>
+<li><strong>Assuming the EOD floor is only checked at the close.</strong> It moves at the close; it is usually enforced all day.</li>
+<li><strong>One huge day.</strong> It feels like progress, then the consistency rule makes you earn it again on other days.</li>
+<li><strong>Trusting a summary instead of the firm's page.</strong> Rules differ by firm, plan and platform, and they change. Summaries, including this one, go out of date.</li>
+</ul>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is the difference between trailing and static drawdown?</h3>
+<p>A static drawdown floor never moves. A trailing drawdown floor rises as your balance makes new highs and never falls, so profits you give back reduce the room you have left.</p>
+<h3>Is end-of-day drawdown better than intraday trailing?</h3>
+<p>It is more forgiving of open profit that comes back, because only the closing balance moves the floor. It is not a safety net: most firms still enforce the floor in real time during the day.</p>
+<h3>Does hitting the daily loss limit fail the challenge?</h3>
+<p>It depends on the firm. At Topstep and Blue Guardian Futures it pauses the account until the next session. At other firms or on other plans it can end the account, so check your own rules.</p>
+<h3>How is the consistency rule calculated?</h3>
+<p>Divide your best day's profit by your total net profit since the start (or since your last payout). If the result is above your firm's limit, you need more profit on other days.</p>
+<h3>Can a prop firm challenge be passed in one day?</h3>
+<p>At some firms it is technically allowed, but consistency rules at many firms make a one-day pass impossible or raise the target. Topstep, for example, says you can pass in as few as two days.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>Topstep Help Center, "What is the Maximum Loss Limit?": <a href="https://help.topstep.com/en/articles/8284204-what-is-the-maximum-loss-limit" rel="noopener" target="_blank">help.topstep.com</a></li>
+<li>Topstep Help Center, "Trading Combine Parameters": <a href="https://help.topstep.com/en/articles/8284197-trading-combine-parameters" rel="noopener" target="_blank">help.topstep.com</a></li>
+<li>Topstep Help Center, "Daily Loss Limit in the Trading Combine and Express Funded Account": <a href="https://help.topstep.com/en/articles/10490293-daily-loss-limit-in-the-trading-combine-and-express-funded-account" rel="noopener" target="_blank">help.topstep.com</a></li>
+<li>Topstep Help Center, "Consistency at Topstep": <a href="https://help.topstep.com/en/articles/8284208-consistency-at-topstep" rel="noopener" target="_blank">help.topstep.com</a></li>
+<li>Topstep Help Center, "Express Funded Account Parameters": <a href="https://help.topstep.com/en/articles/8284215-express-funded-account-parameters" rel="noopener" target="_blank">help.topstep.com</a></li>
+<li>Apex Trader Funding Help Center, "Intraday Trailing Drawdown Explained": <a href="https://apextraderfunding.com/help-center/intraday-trailing-drawdown-accounts/intraday-trailing-drawdown-explained/" rel="noopener" target="_blank">apextraderfunding.com</a></li>
+<li>Apex Trader Funding Help Center, "50% Consistency Requirement": <a href="https://apextraderfunding.com/help-center/additional-helpful-items/50-consistency-requirement/" rel="noopener" target="_blank">apextraderfunding.com</a></li>
+<li>Apex Trader Funding Support, "Evaluation Rules": <a href="https://support.apextraderfunding.com/hc/en-us/articles/31519769997083-Evaluation-Rules" rel="noopener" target="_blank">support.apextraderfunding.com</a></li>
+<li>Tradeify Help Center, "Essential Trading Rules Overview": <a href="https://help.tradeify.co/en/articles/12268167-essential-trading-rules-overview" rel="noopener" target="_blank">help.tradeify.co</a></li>
+<li>Tradeify Help Center, "Rules: Consistency Rule": <a href="https://help.tradeify.co/en/articles/10468320-rules-consistency-rule" rel="noopener" target="_blank">help.tradeify.co</a></li>
+<li>Blue Guardian Futures Help, "Standard Account Rules": <a href="https://helpfutures.blueguardian.com/en/articles/15654479-standard-account-rules" rel="noopener" target="_blank">helpfutures.blueguardian.com</a></li>
+<li>MyFundedFutures Help Center, "End of Day (EOD) Drawdown Explained": <a href="https://help.myfundedfutures.com/en/articles/8348565-end-of-day-eod-drawdown-explained" rel="noopener" target="_blank">help.myfundedfutures.com</a></li>
+<li>Lucid Trading Help Center, "LucidFlex Drawdown": <a href="https://support.lucidtrading.com/en/articles/12945815-lucidflex-drawdown" rel="noopener" target="_blank">support.lucidtrading.com</a></li>
+</ol>
+</div>
+<aside class="lx-cta" aria-labelledby="cta-prop-firm-challenge-rules">
+<h2 id="cta-prop-firm-challenge-rules">Learn the method as written lessons with chart diagrams</h2>
+<p>Create a free account to read the first chapters of the curriculum and get the free FVG &amp; Order Block cheat sheet. The course is education only and makes no promise that you will pass a challenge.</p>
+<a class="btn btn-primary" href="signup.html?utm_source=google&utm_medium=organic&utm_campaign=prop-firm-challenge-rules">Create a free account</a>
+<a class="btn btn-ghost" href="cheat-sheet.html?utm_source=google&utm_medium=organic&utm_campaign=prop-firm-challenge-rules">Get the free cheat sheet</a>
+</aside>
+<p class="lx-disclaimer">Education only. Not financial advice. Trading foreign exchange, indices, futures and commodities carries a high level of risk and may not be suitable for everyone. The concepts here describe how some traders read charts; they do not predict what price will do.</p>
+</article>
+<section class="lx-related" aria-labelledby="rel-prop-firm-challenge-rules">
+<h2 id="rel-prop-firm-challenge-rules">Keep reading</h2>
+<ul class="lx-list">
+<li><a class="lx-card" href="learn-fair-value-gap.html"><h3>What is a fair value gap (FVG)?</h3><p>The three-candle pattern behind one of the most-used ICT concepts: how to identify it with a strict rule, why traders watch it, and where beginners go wrong.</p><span>Read the article →</span></a></li>
+<li><a class="lx-card" href="learn-order-blocks.html"><h3>Order blocks explained</h3><p>A tighter definition of one of the most loosely used ideas in smart money trading, with the checks that separate a real order block from a random candle.</p><span>Read the article →</span></a></li>
+<li><a class="lx-card" href="learn-liquidity-sweeps.html"><h3>Liquidity sweeps and stop hunts</h3><p>Why price so often spikes through an obvious level and then reverses, where the orders behind that move sit, and how to tell a sweep from a genuine breakout.</p><span>Read the article →</span></a></li>
+<li><a class="lx-card" href="learn-bos-vs-choch.html"><h3>Break of structure vs change of character (BOS vs CHoCH)</h3><p>The two market structure labels every smart money chart uses, stepped through on an interactive chart: what each break means, which swing counts, and why a wick is not a break.</p><span>Read the article →</span></a></li>
+</ul>
+</section>
+</div>
+<script src="assets/learn-ix.js?v=318" defer></script>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="index.html" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="assets/images/logo-header.png" alt="Stryker Trading Academy">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features.html">All features</a>
+        <a href="courses.html">Full curriculum</a>
+        <a href="index.html#concepts">ICT / SMT glossary</a>
+        <a href="learn.html">Learn: free articles</a>
+        <a href="index.html#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="login.html">Log in</a>
+        <a href="signup.html">Create account</a>
+        <a href="dashboard-user.html">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about.html">About Stryker</a>
+        <a href="support.html">Support</a>
+        <a href="contact.html">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms.html">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="cookies.html">Cookie Policy</a>
+      <a href="gdpr.html">GDPR</a>
+      <a href="refund-policy.html">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/main.js?v=318"></script>
+<script src="assets/auth.js?v=318"></script>
+<script src="assets/progress.js?v=318"></script>
+<script src="assets/activity-log.js?v=318"></script>
+<script src="assets/banned-check.js?v=318"></script>
+<script src="assets/email-verify.js?v=318"></script>
+<script src="assets/profiles-sync.js?v=318"></script>
+<script src="assets/loading-animation.js?v=318"></script>
+<script src="assets/site-pages.js?v=318"></script>
+<script src="assets/site-pages-defaults.js?v=318"></script>
+<script src="assets/site-page-render.js?v=318"></script>
+<script src="assets/branding.js?v=318"></script>
+<script src="assets/seo.js?v=318"></script>
+<script src="assets/theme.js?v=318"></script>
+</body>
+</html>

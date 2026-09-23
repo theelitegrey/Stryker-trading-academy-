@@ -35,8 +35,8 @@ quoted from the firm's own page and marked "as of <month year>".
 | 6 | Planned | buy-side-sell-side-liquidity | buy side liquidity and sell side liquidity | ICT / liquidity | 07 |
 | 7 | Planned | premium-and-discount | premium and discount ict | ICT | 11 |
 | 8 | Planned | ict-killzones | ict killzone times | ICT / sessions | 13 |
-| 9 | Planned | volume-profile | volume profile | Volume | 15 |
-| 10 | Planned | order-flow-basics | order flow trading | Order flow | 15 |
+| 9 | Written (track funnel) | volume-profile | volume profile | Volume | VP track (VP-01 to VP-06) |
+| 10 | Written (track funnel) | order-flow | order flow trading | Order flow | VP track (VP-07 to VP-11) |
 | 11 | Planned | prop-firm-payouts | prop firm payout rules | Prop firms | 41 |
 | 12 | Planned | multiple-timeframe-analysis | multiple timeframe analysis | Market structure | 16 |
 
@@ -118,3 +118,11 @@ quoted from the firm's own page and marked "as of <month year>".
 Displacement; optimal trade entry (OTE); breaker blocks vs order blocks; inverse FVG;
 Judas swing; power of three (AMD); how to journal trades; stop placement;
 ICT vs classic supply and demand.
+
+## Specialist tracks (paid, Pro/Elite)
+Separate from the core 42 chapters; outline and status in tools/tracks/TRACKS.md.
+
+| Track | IDs | Status | Free funnel articles |
+|---|---|---|---|
+| Volume Profile & Order Flow | VP-01 to VP-12 | Written, reviewed at 390/1440 | /learn-volume-profile, /learn-order-flow |
+| Prop Firm Mastery | PF-01 to PF-10 | Next | /learn-prop-firm-challenge-rules (exists), /learn-prop-firm-payouts (planned, topic 11) |

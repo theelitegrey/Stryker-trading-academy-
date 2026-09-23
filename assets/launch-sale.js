@@ -43,7 +43,7 @@
     el.innerHTML =
       '<div class="ls-head"><span class="ls-fire" aria-hidden="true">🔥</span>' +
         '<b>LAUNCH SALE' + (off > 0 ? ': up to ' + off + '% OFF' : '') + '</b></div>' +
-      '<p class="ls-sub">First ' + s.limit + ' members lock this price for life · ' +
+      '<p class="ls-sub">First ' + s.limit + ' members keep this price while subscribed · ' +
         '<b class="ls-left">' + left + ' spot' + (left === 1 ? '' : 's') + ' left</b></p>' +
       '<div class="ls-bar" role="progressbar" aria-label="Launch spots taken" aria-valuemin="0" aria-valuemax="' +
         s.limit + '" aria-valuenow="' + s.taken + '"><i style="transform:scaleX(' + (pct / 100) + ')"></i></div>';

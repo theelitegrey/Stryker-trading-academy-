@@ -11,7 +11,9 @@ Writes (nothing else):
                                        featured true, ctaLabel "Join Pro", yearlyPlanId proYearly
   plans/OMSNNQrZ4aBPReRMOpUB (Elite)  price 129, salePrice 49, priceInr 5999, salePriceInr 1999,
                                        onSale, saleLabel "Launch price", saleEndsAt ""
-  plans/proYearly (new, hidden)        Pro yearly $490 -> $149, Rs 24,990 -> Rs 5,499
+                                       + features: copy fixes from the content gate (verdict 2026-09-23,
+                                       items 1-5), built from the LIVE arrays, only those strings replaced
+  plans/proYearly (new, hidden)        Pro yearly $490 -> $149, Rs 24,990 -> Rs 5,499, features = Pro's fixed array
                                        (INR yearly approved by chief-of-staff 2026-09-23)
   launchSaleConfig/main                active, startAt (= apply time), limit 100, planIds,
                                        excludeUids (Owner test account), excludeCoupons TEST*
@@ -36,6 +38,40 @@ PRO, ELITE = 'Sj1bjdpwvYJUVErjNMAb', 'OMSNNQrZ4aBPReRMOpUB'
 PRO_CHANGES = {'price': '49', 'salePrice': '19', 'priceInr': '2499', 'salePriceInr': '699',
                'onSale': True, 'saleLabel': 'Launch price', 'saleEndsAt': '', 'featured': True,
                'ctaLabel': 'Join Pro', 'yearlyPlanId': 'proYearly'}
+# Content-gate copy fixes (launch-sale-copy-VERDICT.md items 1-5): {index: (old, new)}.
+# Each old string must be present at that index in the live record or the run stops.
+PRO_FEATURE_FIXES = {
+    0: ('All 42 chapters : candle basics to liquidity engineering',
+        'All 42 chapters \u2014 candle basics to liquidity engineering'),
+    1: ('Full session replay library with trade recaps',
+        'Session replays with trade recaps'),
+    2: ('Trading floor community : post, DM, share trades',
+        'Trading floor community \u2014 post, DM, share trades'),
+}
+ELITE_FEATURE_FIXES = {
+    1: ('Live killzone sessions : trade the open with Stryker, live chat included',
+        'Live killzone sessions \u2014 trade the open with Stryker, live chat included'),
+    3: ('Exclusive stryker indicator suite',
+        'Exclusive Stryker indicator suite'),
+}
+
+
+def fixed_features(fields, fixes, label):
+    live = [v.get('stringValue', '') for v in fields.get('features', {}).get('arrayValue', {}).get('values', [])]
+    new = list(live)
+    for i, (old, rep) in fixes.items():
+        if i >= len(live) or live[i] != old:
+            raise SystemExit(f'{label} features[{i}] is {live[i] if i < len(live) else None!r}, expected {old!r}; stop and check')
+        new[i] = rep
+    return live, new
+
+
+def show_features(label, old, new):
+    print(f'{label} features:')
+    for i, (a, b) in enumerate(zip(old, new)):
+        print(f'  [{i}] ' + (f'- {a}\n      + {b}' if a != b else f'  {a}'))
+
+
 ELITE_CHANGES = {'price': '129', 'salePrice': '49', 'priceInr': '5999', 'salePriceInr': '1999',
                  'onSale': True, 'saleLabel': 'Launch price', 'saleEndsAt': '', 'featured': False}
 
@@ -97,11 +133,16 @@ def main():
     if docs['plans/proYearly']: raise SystemExit('plans/proYearly already exists; stop and check')
 
     pro = docs[f'plans/{PRO}']['fields']
+    el = docs[f'plans/{ELITE}']['fields']
+    pro_old, pro_new = fixed_features(pro, PRO_FEATURE_FIXES, 'Pro')
+    el_old, el_new = fixed_features(el, ELITE_FEATURE_FIXES, 'Elite')
+    pro_changes = {**PRO_CHANGES, 'features': pro_new}
+    elite_changes = {**ELITE_CHANGES, 'features': el_new}
     yearly = {'name': 'Pro', 'period': 'year', 'price': '490', 'salePrice': '149',
               'priceInr': '24990', 'salePriceInr': '5499', 'onSale': True,
               'saleLabel': 'Launch price', 'saleEndsAt': '', 'hidden': True, 'rank': 1,
               'chapterAccess': 'all', 'featured': False, 'ctaLabel': 'Join Pro yearly',
-              'features': [v['stringValue'] for v in pro['features']['arrayValue']['values']]}
+              'features': list(pro_new)}
 
     # Owner test account: resolve the full uid from its prefix (orders.studentUid).
     s, res = call('POST', f'{B}:runQuery', {'structuredQuery': {'from': [{'collectionId': 'orders'}],
@@ -113,16 +154,19 @@ def main():
            'excludeUids': test_uids, 'excludeCoupons': ['TEST*']}
 
     print('\nPro   ', {k: (pro.get(k, {}).get('stringValue', pro.get(k, {}).get('booleanValue')), v) for k, v in PRO_CHANGES.items()})
-    el = docs[f'plans/{ELITE}']['fields']
     print('Elite ', {k: (el.get(k, {}).get('stringValue', el.get(k, {}).get('booleanValue')), v) for k, v in ELITE_CHANGES.items()})
     print('proYearly (new)', {k: v for k, v in yearly.items() if k != 'features'})
+    print()
+    show_features('Pro', pro_old, pro_new)
+    show_features('Elite', el_old, el_new)
+    print('proYearly features = Pro (new):', pro_new == yearly['features'])
     print('launchSaleConfig/main', {**cfg, 'excludeUids': [u[:6] + '…' for u in test_uids]})
     if not apply:
         print('\nDRY RUN: nothing written. Re-run with --apply on CoS go.')
         return
 
-    patch(f'plans/{PRO}', PRO_CHANGES, docs[f'plans/{PRO}']['updateTime'])
-    patch(f'plans/{ELITE}', ELITE_CHANGES, docs[f'plans/{ELITE}']['updateTime'])
+    patch(f'plans/{PRO}', pro_changes, docs[f'plans/{PRO}']['updateTime'])
+    patch(f'plans/{ELITE}', elite_changes, docs[f'plans/{ELITE}']['updateTime'])
     s, b = call('PATCH', f'{B}/plans/proYearly?currentDocument.exists=false',
                 {'fields': {k: enc(v) for k, v in yearly.items()}})
     if s != 200: raise SystemExit('FAILED proYearly ' + str(b))
@@ -134,6 +178,7 @@ def main():
         s, b = call('GET', f'{B}/{path}')
         f = b['fields']
         print(' ', path, {k: list(f[k].values())[0] for k in ('price', 'salePrice', 'priceInr', 'salePriceInr', 'onSale') if k in f})
+        print('    features', [v.get('stringValue') for v in f.get('features', {}).get('arrayValue', {}).get('values', [])])
 
 
 if __name__ == '__main__':

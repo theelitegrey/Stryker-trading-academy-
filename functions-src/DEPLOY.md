@@ -20,28 +20,28 @@ Always deploy by name, a few at a time, and check the logs after each group.
 This tree holds all 35 functions, so a bare `--only functions` no longer
 deletes anything, but it redeploys every function at once.
 
-## What's live (hardening of 2026-09-22)
+## What's live (hardening of 2026-09-22/23)
 
 - Every function has a `maxInstances` cap. A budget alert only sends an email;
   the caps are what actually limit spend.
-- Node 22 everywhere once the payment group ships; Node 20 is retired on
-  2026-10-30.
+- All 35 functions run Node 22 (Node 20 is retired on 2026-10-30).
 - `replayBars` requires a signed-in user: no ID token means 401.
 - No function changed generation, so no URL or trigger moved.
 
 | Cap | Functions | Why |
 |---|---|---|
-| 1 | refreshFxRate, refreshWorldData, marketBots, mirrorTweets, brokerSyncSweep, xAutopostTick, subscriptionSweep* | Scheduled jobs: one run at a time |
-| 2 | xAutopostAdmin, xAutopostOnChapter, xAutopostOnModel, xAutopostOnIndicator, xAutopostOnSession, deleteUserAccount* | Admin-only or admin-triggered |
+| 1 | refreshFxRate, refreshWorldData, marketBots, mirrorTweets, brokerSyncSweep, xAutopostTick, subscriptionSweep | Scheduled jobs: one run at a time |
+| 2 | xAutopostAdmin, xAutopostOnChapter, xAutopostOnModel, xAutopostOnIndicator, xAutopostOnSession, deleteUserAccount | Admin-only or admin-triggered |
 | 3 | onContactMessageCreated | Public form fan-out (the code also throttles per hour) |
 | 5 | replayBars, tvValidateUsername, tvGrantAccess, tvRevokeAccess, brokerConnect, brokerSyncNow, brokerDisconnect | Signed-in or admin calls; replayBars fans out to Yahoo |
-| 10 | getNewswire, getWorldEvents, getIntel, getTwitterFeed, brokerCatalog, onReferralWritten*, razorpaySubsCancel* | Public reads served from cache; light calls |
-| 20 | redeemFreeCheckout*, onNotificationCreated | Checkout; push fan-out after bulk notifications |
-| 30 | razorpayCreateOrder*, razorpayVerifyPayment*, razorpaySubscribe*, razorpaySubsVerify*, razorpayWebhook* | Payments: far above real traffic, so no buyer is ever throttled |
+| 10 | getNewswire, getWorldEvents, getIntel, getTwitterFeed, brokerCatalog, onReferralWritten, razorpaySubsCancel | Public reads served from cache; light calls |
+| 20 | redeemFreeCheckout, onNotificationCreated | Checkout; push fan-out after bulk notifications |
+| 30 | razorpayCreateOrder, razorpayVerifyPayment, razorpaySubscribe, razorpaySubsVerify, razorpayWebhook | Payments: far above real traffic, so no buyer is ever throttled |
 
-\* **The payment group is in this source but NOT yet deployed.** It waits for
-the Owner's OK, and until then it runs its previous code with no cap. Deploy
-it last, after a test purchase:
+**Payments are live.** The payment group (Stage 2) was approved by the Owner
+and deployed on 2026-09-23 with only the cap changed: the code is
+byte-identical to what ran before. The webhook URL did not change. For
+reference, it went out in this order, one group at a time:
 
 ```bash
 firebase deploy --only functions:subscriptionSweep,functions:deleteUserAccount,functions:onReferralWritten

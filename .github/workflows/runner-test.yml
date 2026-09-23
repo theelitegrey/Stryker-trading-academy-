@@ -1,0 +1,52 @@
+# Runs the deploy's build steps and one Global Monitor fetch on BOTH the
+# pinned runner (ubuntu-24.04) and the one ubuntu-latest becomes between
+# 2026-10-19 and 2026-11-19 (ubuntu-26.04). Nothing is deployed or published.
+# Triggered by pushes to hermes/* branches, or by hand.
+
+name: Runner compatibility test
+
+on:
+  push:
+    branches: ['hermes/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Tools the workflows rely on
+        run: |
+          lsb_release -ds; node -v; npx --version
+          for t in curl jq rsync unzip git python3; do printf '%-8s' "$t"; command -v $t || { echo MISSING; exit 1; }; done
+      - name: Site checks and sitemap (as the deploy runs them)
+        run: |
+          python3 tools/check.py
+          node tools/gen-sitemap.js
+          if [ -f tools/gen-learn.js ]; then node tools/gen-learn.js --check; fi
+      - name: Assemble the site (same rsync as the deploy)
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
+                   --exclude '.claude' --exclude 'graphify-out' \
+                   --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
+          test -f /tmp/site/index.html && test ! -e /tmp/site/tools && echo "assembled: $(find /tmp/site -type f | wc -l) files"
+      - name: wrangler starts
+        run: npx --yes wrangler@4 --version
+      - name: One Global Monitor fetch (not published)
+        run: |
+          mkdir -p out
+          curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json" -o out/previous.json || true
+          node tools/fetch-monitor-data.js out/previous.json out/monitor-data.json
+          jq '{events:(.events.items|length), wire:(.wire.items|length), finance:(.finance.items|length)}' out/monitor-data.json

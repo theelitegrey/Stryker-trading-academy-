@@ -31,14 +31,18 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moves to 26.04 between 2026-10-19 and 2026-11-19.
+    # runner-test.yml runs these build steps on 26.04 too; switch this label
+    # once that has been green for a while.
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      # v6 actions run on Node 24 (the Node 20 action runtime is retired).
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Find the Pages project
         id: proj
@@ -147,21 +151,28 @@ jobs:
       # projects, run 5), and wrangler's "already uploaded" dedupe count is
       # useless as a signal. version.json is Cache-Control: no-store, so what
       # this reads is what every visitor's stale-page check reads.
+      # Both signals must match: version.json AND the homepage's
+      # <meta name="stryker-build">. The homepage is fetched at "/" with -L,
+      # because Pages 308-redirects /index.html to / and a non-following curl
+      # got an empty body — which is why this step used to print
+      # "homepage meta: unreadable" on every run and checked nothing.
       - name: Verify the live domain serves this build
         run: |
           want=$(node -e "console.log(require('./assets/version.json').build)")
-          got=0
-          for i in 1 2 3 4 5 6; do
+          got=0; meta=0
+          for i in 1 2 3 4 5 6 7 8; do
             sleep 10
-            got=$(curl -sf "https://strykertrading.com/assets/version.json?t=$(date +%s)" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).build||0))" 2>/dev/null || echo 0)
-            echo "attempt $i: live build $got (want $want)"
-            if [ "$got" = "$want" ]; then
-              page=$(curl -sf "https://strykertrading.com/index.html?t=$(date +%s)" | grep -o 'stryker-build" content="[0-9]*"' || true)
-              echo "live version.json matches; homepage meta: ${page:-unreadable}"
+            t=$(date +%s)
+            got=$(curl -sfL "https://strykertrading.com/assets/version.json?t=$t" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).build||0)}catch(e){console.log(0)}})" 2>/dev/null || echo 0)
+            meta=$(curl -sfL "https://strykertrading.com/?t=$t" | grep -o 'name="stryker-build" content="[0-9]*"' | grep -o '[0-9]*"$' | tr -d '"' || true)
+            meta=${meta:-0}
+            echo "attempt $i: version.json $got, homepage meta $meta (want $want)"
+            if [ "$got" = "$want" ] && [ "$meta" = "$want" ]; then
+              echo "live domain serves build $want (version.json and homepage meta agree)"
               exit 0
             fi
           done
-          echo "::error::strykertrading.com still serves build $got after deploying build $want — production is not picking up the new deployment (check which deployment is live in the Pages dashboard)."
+          echo "::error::strykertrading.com serves version.json $got / homepage meta $meta after deploying build $want — production is not picking up the new deployment (check which deployment is live in the Pages dashboard)."
           exit 1
 
       # Every deploy doubles as a watchdog for the Global Monitor relay:

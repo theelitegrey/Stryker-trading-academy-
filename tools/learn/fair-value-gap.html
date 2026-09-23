@@ -1,0 +1,97 @@
+<p>Open almost any fast-moving chart and you will find places where price seemed to skip a level entirely. One candle travels so far, so quickly, that the candles on either side of it never touch. Traders who follow ICT (Inner Circle Trader) concepts call that empty space a <strong>fair value gap</strong>, or FVG. This guide explains what one is, how to identify it with a strict rule instead of guesswork, why traders pay attention to it, and the mistakes that trip up most beginners.</p>
+
+<div class="lx-key">
+<p><strong>In one sentence:</strong> a fair value gap is a three-candle pattern in which the wick of the first candle and the wick of the third candle do not overlap, leaving a price range that only the middle candle traded through.</p>
+</div>
+
+<h2>The three-candle rule</h2>
+<p>A fair value gap is not "a big candle". It is defined by the relationship between three consecutive candles, and the definition is mechanical:</p>
+<ol>
+<li><strong>Candle 1</strong> is the reference candle. Only its wick matters here: its high (for a bullish gap) or its low (for a bearish gap).</li>
+<li><strong>Candle 2</strong> is the fast move. It is usually large, with a strong body, and it travels well beyond candle 1.</li>
+<li><strong>Candle 3</strong> is the candle that confirms the gap. For a bullish gap, its low must stay <em>above</em> candle 1's high. For a bearish gap, its high must stay <em>below</em> candle 1's low.</li>
+</ol>
+<p>The space between candle 1's wick and candle 3's wick is the fair value gap. If the wicks overlap by even a small amount, there is no gap, however impressive candle 2 looks.</p>
+
+<figure class="lx-fig">
+<svg viewBox="0 0 640 300" role="img" aria-labelledby="fvg1t fvg1d">
+<title id="fvg1t">A bullish fair value gap</title>
+<desc id="fvg1d">Three candles. Candle 1 is small with its high marked. Candle 2 is a large bullish candle. Candle 3 opens higher and its low stays above candle 1's high. The shaded band between candle 1's high and candle 3's low is the fair value gap.</desc>
+<rect class="zone" x="120" y="118" width="300" height="52"/>
+<line class="zone-line" x1="120" y1="170" x2="420" y2="170"/>
+<line class="zone-line" x1="120" y1="118" x2="420" y2="118"/>
+<line class="w" x1="170" y1="170" x2="170" y2="262"/><rect class="dn" x="156" y="196" width="28" height="50"/>
+<line class="w" x1="260" y1="78" x2="260" y2="246"/><rect class="up" x="246" y="90" width="28" height="146"/>
+<line class="w" x1="350" y1="48" x2="350" y2="118"/><rect class="up" x="336" y="58" width="28" height="44"/>
+<text class="lbl" x="163" y="284">1</text><text class="lbl" x="253" y="284">2</text><text class="lbl" x="343" y="284">3</text>
+<text class="lbl-g" x="440" y="149">FVG</text>
+<text class="lbl-s" x="440" y="174">candle 1 high</text>
+<text class="lbl-s" x="440" y="122">candle 3 low</text>
+</svg>
+<figcaption>A bullish fair value gap: candle 3's low never comes back down to candle 1's high. The shaded band is the gap.</figcaption>
+</figure>
+
+<h3>Bullish and bearish gaps</h3>
+<p>A <strong>bullish FVG</strong> forms during a move up. The gap sits between candle 1's high (the bottom of the gap) and candle 3's low (the top of the gap). A <strong>bearish FVG</strong> is the mirror image: it forms during a move down, between candle 1's low (the top of the gap) and candle 3's high (the bottom of the gap).</p>
+<p>You will see several other names for the same idea. "Imbalance", "inefficiency" and "liquidity void" are used loosely, and different educators draw slightly different lines between them. The three-candle wick rule is the part that stays constant, so it is the part worth learning first.</p>
+
+<h2>Why traders pay attention to it</h2>
+<p>The reasoning behind the concept is about how orders get filled. In a normal, two-sided market, price moves up and down through each level several times, and buyers and sellers both get the chance to trade there. When a single candle covers a large distance with no overlap from its neighbours, the range inside the gap was traded in one direction only. It was offered and taken, or bid and hit, without much back-and-forth.</p>
+<p>ICT-style analysis treats that one-sided range as unfinished business. Price often comes back into a fair value gap later, partially or fully, before continuing in its original direction. Traders describe this as price "rebalancing" or "filling" the gap.</p>
+<p>That is a tendency, not a law. Some gaps are revisited within a few candles, some weeks later, and some never. Price can also run straight through a gap without any reaction at all. The value of the concept is that it gives you specific, pre-defined areas to watch, instead of reacting to every candle.</p>
+
+<h2>How to mark a fair value gap on a chart</h2>
+<p>A repeatable process matters more than a good eye. For a bullish example:</p>
+<ol>
+<li>Find a strong up-move and pick the candle with the biggest body inside it. That is your candidate candle 2.</li>
+<li>Look at the candle immediately before it (candle 1) and note its <strong>high</strong>, including the wick.</li>
+<li>Look at the candle immediately after it (candle 3) and note its <strong>low</strong>, including the wick.</li>
+<li>If candle 3's low is above candle 1's high, draw a box from candle 1's high up to candle 3's low and extend it to the right. If not, there is no gap: move on.</li>
+</ol>
+<p>Two refinements help keep the chart readable:</p>
+<ul>
+<li><strong>The midpoint.</strong> Many traders also mark the 50% level of the gap, sometimes called the consequent encroachment. It gives a reference inside the zone rather than only at its edges.</li>
+<li><strong>Invalidation.</strong> Decide in advance what "used up" means for you. A common approach is to treat a bullish gap as invalid once a candle closes fully below its bottom edge.</li>
+</ul>
+
+<figure class="lx-fig">
+<svg viewBox="0 0 640 300" role="img" aria-labelledby="fvg2t fvg2d">
+<title id="fvg2t">Price returning to a fair value gap</title>
+<desc id="fvg2d">A bullish fair value gap forms during a rally. Price continues higher, then pulls back into the shaded gap, touches its midpoint and moves higher again.</desc>
+<rect class="zone" x="120" y="170" width="480" height="44"/>
+<line class="zone-line" x1="120" y1="192" x2="600" y2="192"/>
+<polyline class="path" points="40,270 110,236 150,214 170,170 230,96 290,70 350,110 400,150 440,188 470,168 520,110 590,52"/>
+<text class="lbl-g" x="560" y="186">FVG</text>
+<text class="lbl-s" x="490" y="206">midpoint (50%)</text>
+<text class="lbl-s" x="380" y="232">pullback into the gap</text>
+</svg>
+<figcaption>A simplified path: after the gap forms, price later pulls back into it before moving on. Price may also ignore a gap or break through it.</figcaption>
+</figure>
+
+<h2>Timeframes: the same pattern, different weight</h2>
+<p>The three-candle rule works the same way on a one-minute chart as on a daily chart, but a gap on a higher timeframe represents a much larger, more significant move. A gap that looks dramatic on the one-minute chart may be invisible on the four-hour chart covering the same hours.</p>
+<p>For that reason, many traders mark gaps on a higher timeframe first to decide where they are interested, then drop to a lower timeframe to watch how price behaves when it arrives. Mixing timeframes without a plan is one of the fastest ways to end up with a chart covered in boxes that all contradict each other.</p>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Calling every big candle a gap.</strong> Size alone means nothing. Check the wicks of candles 1 and 3 every time.</li>
+<li><strong>Using bodies instead of wicks.</strong> The standard definition uses the full range of candles 1 and 3, wicks included. Measuring from the bodies creates gaps that are not there.</li>
+<li><strong>Treating a gap as a guaranteed turning point.</strong> A fair value gap is an area of interest. It does not tell you on its own that price will react there, or which way.</li>
+<li><strong>Ignoring context.</strong> A gap that forms in the direction of the larger trend is read very differently from one that forms against it.</li>
+<li><strong>Keeping every gap forever.</strong> Old, already-revisited gaps clutter the chart. Remove them once they are invalidated by your own rule.</li>
+</ul>
+
+<h2>Fair value gaps and other concepts</h2>
+<p>On its own, a fair value gap is a fairly weak signal. It becomes more interesting when it lines up with other ideas from the same framework. Gaps often form inside the strong move that follows an <a href="learn-order-blocks">order block</a>, and they often appear right after a <a href="learn-liquidity-sweeps">liquidity sweep</a>, when price has taken out a cluster of stops and then moved sharply the other way. A gap that sits where several of these ideas agree is usually treated with more interest than one sitting in empty space.</p>
+<p>That is the practical takeaway: learn the definition precisely, mark gaps mechanically, and then ask what else is happening around them before giving any single gap much weight.</p>
+
+<div class="lx-key">
+<p><strong>Quick checklist</strong></p>
+<ul>
+<li>Three consecutive candles, judged by their wicks.</li>
+<li>Bullish: candle 3's low is above candle 1's high. Bearish: candle 3's high is below candle 1's low.</li>
+<li>Mark the gap, its midpoint and your invalidation rule.</li>
+<li>Note the timeframe and the direction of the larger move.</li>
+<li>Look for confluence before treating the gap as important.</li>
+</ul>
+</div>

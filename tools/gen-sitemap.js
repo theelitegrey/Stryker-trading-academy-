@@ -17,19 +17,46 @@ const ORIGIN = 'https://strykertrading.com';
 // path (extensionless), priority, changefreq. The homepage and signup carry
 // the weight; legal pages exist to be findable, not to rank.
 const PAGES = [
-  ['/',              '1.0', 'weekly'],
-  ['/about',         '0.8', 'monthly'],
-  ['/signup',        '0.8', 'monthly'],
-  ['/cheat-sheet',   '0.7', 'monthly'],
-  ['/login',         '0.5', 'monthly'],
-  ['/contact',       '0.6', 'monthly'],
-  ['/support',       '0.6', 'monthly'],
-  ['/terms',         '0.3', 'yearly'],
-  ['/privacy',       '0.3', 'yearly'],
-  ['/cookies',       '0.3', 'yearly'],
-  ['/gdpr',          '0.3', 'yearly'],
-  ['/refund-policy', '0.3', 'yearly']
+  ['/',                     '1.0', 'weekly'],
+  ['/about',                '0.8', 'monthly'],
+  ['/signup',               '0.8', 'monthly'],
+  ['/learn',                '0.8', 'weekly'],
+  ['/learn-fair-value-gap', '0.8', 'monthly'],
+  ['/learn-order-blocks',   '0.8', 'monthly'],
+  ['/learn-liquidity-sweeps','0.8', 'monthly'],
+  ['/cheat-sheet',          '0.7', 'monthly'],
+  ['/features',             '0.7', 'monthly'],
+  ['/features-curriculum',  '0.6', 'monthly'],
+  ['/features-smart-money', '0.6', 'monthly'],
+  ['/features-models',      '0.6', 'monthly'],
+  ['/features-indicators',  '0.6', 'monthly'],
+  ['/features-charts',      '0.6', 'monthly'],
+  ['/features-monitor',     '0.6', 'monthly'],
+  ['/features-live',        '0.6', 'monthly'],
+  ['/features-community',   '0.6', 'monthly'],
+  ['/login',                '0.5', 'monthly'],
+  ['/contact',              '0.6', 'monthly'],
+  ['/support',              '0.6', 'monthly'],
+  ['/terms',                '0.3', 'yearly'],
+  ['/privacy',              '0.3', 'yearly'],
+  ['/cookies',              '0.3', 'yearly'],
+  ['/gdpr',                 '0.3', 'yearly'],
+  ['/refund-policy',        '0.3', 'yearly']
 ];
+
+// Guard: every root page that is indexable (no noindex) and canonical to
+// itself must be listed above, so a new public page can't be forgotten.
+{
+  const root = path.join(__dirname, '..');
+  const listed = new Set(PAGES.map(([p]) => p));
+  const missing = fs.readdirSync(root).filter((f) => f.endsWith('.html')).filter((f) => {
+    const h = fs.readFileSync(path.join(root, f), 'utf8');
+    if (/name="robots"[^>]*noindex/i.test(h)) return false;
+    const c = (h.match(/rel="canonical" href="https:\/\/strykertrading\.com([^"]*)"/) || [])[1];
+    return c !== undefined && !listed.has(c);
+  });
+  if (missing.length) { console.error('Indexable pages missing from the sitemap:', missing.join(', ')); process.exit(1); }
+}
 
 const today = new Date().toISOString().slice(0, 10);
 const xml =

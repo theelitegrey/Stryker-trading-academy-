@@ -1,6 +1,6 @@
 # graphify knowledge-graph output (regenerate with /graphify .)
 graphify-out/
 
-# local-only: functions deps link and rendered email previews
-functions-src/node_modules
+# Dependencies and local-only output: never committed
+node_modules
 tools/email-previews/

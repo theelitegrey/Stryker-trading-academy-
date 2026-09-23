@@ -146,6 +146,14 @@ exports.razorpayCreateOrder = functions
     const plan = planDoc.data();
 
     let price = effectivePlanPrice(plan);
+    // Launch sale: a fixed rupee price when the plan has one, and a founding
+    // member's locked price when it is lower than today's (launchSale.js).
+    const L = require('./launchSale').__launchInternals;
+    let inr = L.inrEffective(plan);          // whole rupees, or null
+    const lock = await L.foundingLock(uid, planId);
+    if (lock && lock.usd != null && lock.usd < price) price = lock.usd;
+    if (lock && lock.inr != null && inr != null && lock.inr < inr) inr = lock.inr;
+    const baseUsd = price, baseInr = inr;
     let coupon = null;
     if (couponCode) {
       const cDoc = await db.collection('coupons').doc(couponCode).get();
@@ -153,6 +161,13 @@ exports.razorpayCreateOrder = functions
       coupon = cDoc.data();
       const res = couponDiscount(coupon, price, planId);
       if (!res.ok) throw new functions.https.HttpsError('failed-precondition', res.why);
+      if (inr != null) {
+        // Same coupon on the rupee price: fixed-value coupons are USD amounts.
+        const r = coupon.type === 'fixed'
+          ? Math.min(inr, (parseFloat(coupon.value) || 0) * (await usdInrRate()))
+          : couponDiscount(coupon, inr, planId).discount;
+        inr = Math.max(0, Math.round(inr - r));
+      }
       price = Math.max(0, price - res.discount);
     }
 
@@ -161,7 +176,11 @@ exports.razorpayCreateOrder = functions
     // admin rate — Math.round(usd * rate), matching planMoneyDisplay exactly.
     let currency = (reqCurrency === 'INR' || reqCurrency === 'USD') ? reqCurrency : 'USD';
     const rate = await usdInrRate();
-    const minorFor = (cur) => cur === 'INR' ? Math.round(price * rate) * 100 : Math.round(price * 100);
+    // `fixed` false = convert the USD total even when a rupee price exists
+    // (only for the USD-rejected fallback below: that buyer was shown dollars).
+    const minorFor = (cur, fixed = true) => cur === 'INR'
+      ? (fixed && inr != null ? inr * 100 : Math.round(price * rate) * 100)
+      : Math.round(price * 100);
 
     let amountMinor = minorFor(currency);
     if (amountMinor < 100) {
@@ -190,7 +209,7 @@ exports.razorpayCreateOrder = functions
       const body = await resp.text().catch(() => '');
       console.warn('USD order rejected, retrying in INR', resp.status, body.slice(0, 300));
       currency = 'INR';
-      amountMinor = minorFor('INR');
+      amountMinor = minorFor('INR', false);
       resp = await createOrder(currency, amountMinor);
     }
     if (!resp.ok) {
@@ -210,6 +229,7 @@ exports.razorpayCreateOrder = functions
       currency,
       amountUsd: price,
       fxRate: currency === 'INR' ? rate : null,
+      baseUsd, baseInr: baseInr != null ? baseInr : null,
       status: 'created',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -321,6 +341,12 @@ exports.razorpayVerifyPayment = functions
     const profilePatch = { plan: order.planName };
     if (founding) profilePatch.foundingMember = true;
     await db.collection('profiles').doc(uid).set(profilePatch, { merge: true }).catch(() => {});
+
+    // Launch sale: remember the founding price (no-op outside the sale).
+    await require('./launchSale').__launchInternals
+      .recordFoundingPrice(uid, order.planId, order.baseUsd != null ? order.baseUsd : null,
+        order.baseInr != null ? order.baseInr : null)
+      .catch((e) => console.error('founding price not recorded', uid, e.message));
 
     return { ok: true, planName: order.planName };
   });

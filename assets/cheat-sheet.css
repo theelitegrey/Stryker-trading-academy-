@@ -1,0 +1,42 @@
+/* cheat-sheet.css — the free FVG & Order Block cheat sheet page (cheat-sheet.html).
+   Uses the site's colour variables only, so day/night themes follow automatically. */
+.cs-hero{ padding:72px 0 40px; }
+.cs-grid{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr); gap:56px; align-items:center; }
+.cs-eyebrow{ display:inline-block; font-family:var(--font-mono); font-size:12px; letter-spacing:.12em; text-transform:uppercase;
+  color:var(--gold); border:1px solid var(--gold-dim); border-radius:999px; padding:4px 12px; margin-bottom:18px; }
+.cs-copy h1{ font-size:clamp(30px,4.4vw,46px); line-height:1.1; margin-bottom:16px; }
+.cs-lede{ color:var(--ink-1); font-size:17px; line-height:1.65; max-width:560px; margin-bottom:22px; }
+.cs-points{ list-style:none; padding:0; margin:0 0 28px; display:grid; gap:12px; max-width:560px; }
+.cs-points li{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md); padding:14px 16px;
+  color:var(--ink-1); font-size:14.5px; line-height:1.6; }
+.cs-points strong{ color:var(--ink-0); }
+.cs-ch{ font-family:var(--font-mono); font-size:11.5px; color:var(--gold); margin-left:4px; white-space:nowrap; }
+.cs-cta .btn{ font-size:15px; padding:14px 22px; }
+.cs-note{ color:var(--ink-2); font-size:13.5px; margin-top:12px; }
+.cs-note a{ color:var(--gold); }
+.cs-legal{ color:var(--ink-3); font-size:12.5px; padding-bottom:64px; }
+.cs-legal a{ color:var(--ink-2); }
+
+/* .btn sets display, which beats the hidden attribute; keep hidden hidden. */
+.cs-hero [hidden]{ display:none !important; }
+
+/* Preview illustration (decorative) */
+.cs-preview{ margin:0; justify-self:center; width:100%; max-width:340px; }
+.cs-preview svg{ display:block; width:100%; height:auto; }
+.cs-sheet{ fill:var(--bg-2); stroke:var(--line); stroke-width:1.5; }
+.cs-sheet-t{ fill:var(--ink-0); font-family:var(--font-mono); font-size:13px; letter-spacing:.08em; }
+.cs-rule{ stroke:var(--gold); stroke-width:2; }
+.cs-wick{ stroke:var(--ink-2); stroke-width:1.5; }
+.cs-up{ fill:var(--bull); }
+.cs-dn{ fill:var(--bear); }
+.cs-gap{ fill:var(--gold); opacity:.16; stroke:var(--gold); stroke-dasharray:4 3; }
+.cs-ob{ fill:var(--teal); opacity:.16; stroke:var(--teal); stroke-dasharray:4 3; }
+.cs-lbl{ fill:var(--ink-1); font-family:var(--font-mono); font-size:13px; }
+.cs-txt{ stroke:var(--line); stroke-width:6; stroke-linecap:round; }
+
+@media (max-width:860px){
+  .cs-hero{ padding:40px 0 24px; }
+  .cs-grid{ grid-template-columns:1fr; gap:32px; }
+  .cs-preview{ max-width:240px; order:-1; }
+  .cs-cta .btn{ display:block; width:100%; text-align:center; }
+}

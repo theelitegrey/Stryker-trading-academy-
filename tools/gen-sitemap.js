@@ -20,6 +20,7 @@ const PAGES = [
   ['/',              '1.0', 'weekly'],
   ['/about',         '0.8', 'monthly'],
   ['/signup',        '0.8', 'monthly'],
+  ['/cheat-sheet',   '0.7', 'monthly'],
   ['/login',         '0.5', 'monthly'],
   ['/contact',       '0.6', 'monthly'],
   ['/support',       '0.6', 'monthly'],

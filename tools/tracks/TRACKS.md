@@ -28,12 +28,12 @@ Status key:
 
 | ID | Title | Level | Status | Words | Sources |
 |---|---|---|---|---|---|
-| VP-01 | Auction Market Theory: How Markets Find Value | foundation | todo | | |
-| VP-02 | Market Profile & TPO Charts | foundation | todo | | |
-| VP-03 | Volume Profile Anatomy: POC, Value Area, HVN & LVN | foundation | todo | | |
-| VP-04 | Profile Shapes & Day Types | intermediate | todo | | |
-| VP-05 | Session, Composite & Fixed-Range Profiles | intermediate | todo | | |
-| VP-06 | VWAP, Anchored VWAP & Deviation Bands | intermediate | todo | | |
+| VP-01 | Auction Market Theory: How Markets Find Value | foundation | reviewed | 2165 | 6 |
+| VP-02 | Market Profile & TPO Charts | foundation | reviewed | 2254 | 5 |
+| VP-03 | Volume Profile Anatomy: POC, Value Area, HVN & LVN | foundation | reviewed | 2164 | 6 |
+| VP-04 | Profile Shapes & Day Types | intermediate | reviewed | 2126 | 5 |
+| VP-05 | Session, Composite & Fixed-Range Profiles | intermediate | reviewed | 2101 | 6 |
+| VP-06 | VWAP, Anchored VWAP & Deviation Bands | intermediate | reviewed | 2020 | 5 |
 | VP-07 | Order Flow Foundations: Orders, the Book & Matching | intermediate | todo | | |
 | VP-08 | Footprint Charts & Delta | advanced | todo | | |
 | VP-09 | Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs | advanced | todo | | |

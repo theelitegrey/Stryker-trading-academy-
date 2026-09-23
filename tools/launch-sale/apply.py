@@ -11,8 +11,8 @@ Writes (nothing else):
                                        featured true, ctaLabel "Join Pro", yearlyPlanId proYearly
   plans/OMSNNQrZ4aBPReRMOpUB (Elite)  price 129, salePrice 49, priceInr 5999, salePriceInr 1999,
                                        onSale, saleLabel "Launch price", saleEndsAt ""
-  plans/proYearly (new, hidden)        Pro yearly $490 -> $149; no rupee price, so INR
-                                       visitors are not shown it (see plans-public.js)
+  plans/proYearly (new, hidden)        Pro yearly $490 -> $149, Rs 24,990 -> Rs 5,499
+                                       (INR yearly approved by chief-of-staff 2026-09-23)
   launchSaleConfig/main                active, startAt (= apply time), limit 100, planIds,
                                        excludeUids (Owner test account), excludeCoupons TEST*
   settings/commerce.launchSale         {active, limit, taken: 0}; launchSaleOnOrder recounts
@@ -97,7 +97,8 @@ def main():
     if docs['plans/proYearly']: raise SystemExit('plans/proYearly already exists; stop and check')
 
     pro = docs[f'plans/{PRO}']['fields']
-    yearly = {'name': 'Pro', 'period': 'year', 'price': '490', 'salePrice': '149', 'onSale': True,
+    yearly = {'name': 'Pro', 'period': 'year', 'price': '490', 'salePrice': '149',
+              'priceInr': '24990', 'salePriceInr': '5499', 'onSale': True,
               'saleLabel': 'Launch price', 'saleEndsAt': '', 'hidden': True, 'rank': 1,
               'chapterAccess': 'all', 'featured': False, 'ctaLabel': 'Join Pro yearly',
               'features': [v['stringValue'] for v in pro['features']['arrayValue']['values']]}

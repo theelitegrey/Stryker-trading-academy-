@@ -166,7 +166,10 @@ const EMAILS = [
     const price = o.priceLabel || '[PRICE]';
     const feats = (o.features && o.features.length) ? o.features : ['[PLAN FEATURES]'];
     const url = link(o.planId ? '/checkout.html?plan=' + encodeURIComponent(o.planId) : '/#pricing', 14);
-    const priceLine = `The ${name} plan is ${price}/month` + (o.wasLabel ? ` (usually ${o.wasLabel})` : '') + ' and includes:';
+    // While a sale runs (wasLabel set) both price lines say "at the launch price" and give the
+    // regular price, so they stay true after the launch spots are gone (content gate 2026-09-23).
+    const priceLine = `The ${name} plan is ${price}/month` +
+      (o.wasLabel ? ` at the launch price (usually ${o.wasLabel})` : '') + ' and includes:';
     const a = ["Two weeks in — no pitch today, just information in case you're wondering what's beyond the free plan."];
     const b = [
       `That's the whole list — nothing hidden, nothing "unlocked later." If you're getting real value from the free chapters and want the rest of the curriculum, this is what that looks like.`,
@@ -174,7 +177,10 @@ const EMAILS = [
     ];
     const al = ctx.alsoOffer;
     const hasAlso = !!(al && al.planName && al.priceLabel);
-    const alsoLead = hasAlso ? `(There's also the ${al.planName} plan at ${al.priceLabel}/month, if you want more than ${name} includes. Both are on the ` : '';
+    const alsoPrice = hasAlso && al.wasLabel
+      ? `, ${al.priceLabel}/month at the launch price, usually ${al.wasLabel},`
+      : (hasAlso ? ` at ${al.priceLabel}/month,` : '');
+    const alsoLead = hasAlso ? `(There's also the ${al.planName} plan${alsoPrice} if you want more than ${name} includes. Both are on the ` : '';
     const pricing = link('/#pricing', 14);
     const also = hasAlso ? [alsoLead + 'pricing page: ' + pricing + ')'] : [];
     const alsoHtml = hasAlso ? p(esc(alsoLead) + `<a href="${esc(pricing)}" style="color:${C.gold};">pricing page</a>.)`) : '';

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="318">
+<meta name="stryker-build" content="319">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stryker Trading Academy">
@@ -20,14 +20,14 @@
 <title>Stryker Trading Academy — Learn ICT & Smart Money Trading</title>
 <link rel="canonical" href="https://strykertrading.com/">
 <meta name="description" content="Learn ICT concepts and SMT divergence chapter by chapter — a 42-chapter curriculum with live sessions, a trade journal and a trading floor community.">
-<link rel="stylesheet" href="assets/style.css?v=318">
-<script src="assets/sanitize.js?v=318"></script>
-<script src="assets/device-mode.js?v=318"></script>
-<link rel="stylesheet" href="assets/home-motion.css?v=318">
-<script src="assets/toast.js?v=318" defer></script>
-<script src="assets/version-check.js?v=318" defer></script>
-<script src="assets/acquisition.js?v=318" defer></script>
-<script src="assets/focus-mode.js?v=318" defer></script>
+<link rel="stylesheet" href="assets/style.css?v=319">
+<script src="assets/sanitize.js?v=319"></script>
+<script src="assets/device-mode.js?v=319"></script>
+<link rel="stylesheet" href="assets/home-motion.css?v=319">
+<script src="assets/toast.js?v=319" defer></script>
+<script src="assets/version-check.js?v=319" defer></script>
+<script src="assets/acquisition.js?v=319" defer></script>
+<script src="assets/focus-mode.js?v=319" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -759,39 +759,45 @@
   <div class="section-head reveal">
     <span class="eyebrow">Enrollment</span>
     <h2>Pick your track.</h2>
-    <p>Every plan includes the full 42-chapter curriculum. Higher tiers add live sessions and direct mentorship.</p>
+    <p>Start free with chapters 1–7. Pro and Elite unlock all 42 chapters; Elite adds live sessions and a monthly 1:1 journal audit.</p>
   </div>
   <div class="pricing-grid" id="pricing-grid">
+    <!-- Static fallback for no-JS visitors, crawlers and link previews: mirrors the live
+         plans records (Firestore plans/*). plans-public.js replaces it with the live cards. -->
     <div class="price-card reveal">
-      <h3>Self-Paced</h3>
-      <div class="price-amt">$0<span>/ forever</span></div>
+      <h3>Starter</h3>
+      <div class="price-amt">$0<span>/ month</span></div>
       <ul>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Chapters 1–7 (Foundations)</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Progress dashboard</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Community access (read-only)</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Chapters 1–7 — the complete ICT foundations</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Progress dashboard &amp; achievements</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Trading floor community (read-only)</li>
       </ul>
       <a href="signup.html" class="btn btn-ghost btn-block">Start free</a>
     </div>
     <div class="price-card featured reveal">
-      <h3>Desk Membership</h3>
-      <div class="price-amt">$49<span>/ month</span></div>
+      <h3>Pro</h3>
+      <div class="price-amt">$65<span>/ month</span></div>
       <ul>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>All 42 chapters, ICT + SMT</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Weekly live killzone sessions</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Full trading floor community</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Graded chapter reviews</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>All 42 chapters : candle basics to liquidity engineering</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Full session replay library with trade recaps</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Trading floor community : post, DM, share trades</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Advanced trade journal with broker auto-sync &amp; Edge Score</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Graded chapter reviews &amp; trade case studies</li>
       </ul>
-      <a href="signup.html" class="btn btn-primary btn-block">Join the desk</a>
+      <a href="checkout.html?plan=Sj1bjdpwvYJUVErjNMAb" class="btn btn-primary btn-block">Join the desk</a>
     </div>
     <div class="price-card reveal">
-      <h3>1:1 Mentorship</h3>
-      <div class="price-amt">$199<span>/ month</span></div>
+      <h3>Elite</h3>
+      <div class="price-amt">$110<span>/ month</span></div>
       <ul>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Everything in Desk Membership</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Bi-weekly 1:1 chart review</li>
-        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Personal trade journal audits</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Everything in Pro</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Live killzone sessions : trade the open with Stryker, live chat included</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Monthly 1:1 trade journal audit — your trades, reviewed personally</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Exclusive stryker indicator suite</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>The full Stryker trading system &amp; model templates</li>
+        <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Private VIP community with priority support</li>
       </ul>
-      <a href="signup.html" class="btn btn-ghost btn-block">Apply for mentorship</a>
+      <a href="checkout.html?plan=OMSNNQrZ4aBPReRMOpUB" class="btn btn-ghost btn-block">Go Elite</a>
     </div>
   </div>
 </section>
@@ -851,24 +857,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=318"></script>
-<script src="assets/progress.js?v=318"></script>
-<script src="assets/activity-log.js?v=318"></script>
-<script src="assets/banned-check.js?v=318"></script>
-<script src="assets/email-verify.js?v=318"></script>
-<script src="assets/profiles-sync.js?v=318"></script>
-<script src="assets/loading-animation.js?v=318"></script>
-<script src="assets/avatars.js?v=318"></script>
-<script src="assets/referrals.js?v=318"></script>
-<script src="assets/maintenance-check.js?v=318"></script>
-<script src="assets/branding.js?v=318"></script>
-<script src="assets/seo.js?v=318"></script>
-<script src="assets/plan-price.js?v=318"></script>
-<script src="assets/plans-public.js?v=318"></script>
-<script src="assets/main.js?v=318"></script>
-<script src="assets/home-motion.js?v=318"></script>
-<script src="assets/platform-desk.js?v=318"></script>
-<script src="assets/vocab-constellation.js?v=318" defer></script>
-<script src="assets/theme.js?v=318"></script>
+<script src="assets/auth.js?v=319"></script>
+<script src="assets/progress.js?v=319"></script>
+<script src="assets/activity-log.js?v=319"></script>
+<script src="assets/banned-check.js?v=319"></script>
+<script src="assets/email-verify.js?v=319"></script>
+<script src="assets/profiles-sync.js?v=319"></script>
+<script src="assets/loading-animation.js?v=319"></script>
+<script src="assets/avatars.js?v=319"></script>
+<script src="assets/referrals.js?v=319"></script>
+<script src="assets/maintenance-check.js?v=319"></script>
+<script src="assets/branding.js?v=319"></script>
+<script src="assets/seo.js?v=319"></script>
+<script src="assets/plan-price.js?v=319"></script>
+<script src="assets/plans-public.js?v=319"></script>
+<script src="assets/main.js?v=319"></script>
+<script src="assets/home-motion.js?v=319"></script>
+<script src="assets/platform-desk.js?v=319"></script>
+<script src="assets/vocab-constellation.js?v=319" defer></script>
+<script src="assets/theme.js?v=319"></script>
 </body>
 </html>

@@ -415,6 +415,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
+// ---- Public-page header: signed-in state ----------------------------------
+// The marketing pages (index, about, features, legal…) ship a static header
+// with "Log in / Start learning". For a signed-in visitor that is wrong, so
+// swap it for a single "Dashboard" button. The last known state is kept in
+// localStorage so a returning signed-in visitor sees "Dashboard" on first
+// paint instead of a flash of "Log in"; Firebase then confirms or corrects it.
+// Only touches the classic .nav header; the app pages don't have one.
+(function publicNavAuthState(){
+  var KEY = 'stryker_nav_signed_in';
+  function apply(signedIn){
+    document.querySelectorAll('nav.nav .nav-cta').forEach(function (cta) {
+      var login = cta.querySelector('a[href="login.html"]');
+      var start = cta.querySelector('a[href="signup.html"]');
+      if (!login && !start) return;
+      var dash = cta.querySelector('a[data-nav-dashboard]');
+      if (!dash) {
+        dash = document.createElement('a');
+        dash.href = 'dashboard-user.html';
+        dash.className = 'btn btn-primary btn-sm';
+        dash.setAttribute('data-nav-dashboard', '');
+        dash.textContent = 'Dashboard';
+        cta.insertBefore(dash, cta.querySelector('.nav-toggle'));
+      }
+      // Inline display, not [hidden]: .btn sets display and would win.
+      if (login) login.style.display = signedIn ? 'none' : '';
+      if (start) start.style.display = signedIn ? 'none' : '';
+      dash.style.display = signedIn ? '' : 'none';
+    });
+  }
+  function hint(){ try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } }
+  function run(){
+    apply(hint());
+    if (!auth) return;
+    auth.onAuthStateChanged(function (user) {
+      try { if (user) localStorage.setItem(KEY, '1'); else localStorage.removeItem(KEY); } catch (e) {}
+      apply(!!user);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+})();
+
 function escapeChipText(s){
   return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

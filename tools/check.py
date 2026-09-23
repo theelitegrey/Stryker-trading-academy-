@@ -30,6 +30,15 @@ def fail(msg):
     FAILURES.append(msg)
 
 
+def check_merge_markers():
+    """Unresolved git conflict markers in any shipped text file."""
+    pat = re.compile(r'^(<{7} |={7}$|>{7} )', re.M)
+    files = glob.glob('*.html') + glob.glob('assets/*.js') + glob.glob('assets/*.css') + ['_headers', 'robots.txt']
+    for f in files:
+        if os.path.exists(f) and pat.search(open(f, encoding='utf-8', errors='replace').read()):
+            fail(f'{f}: unresolved merge conflict markers')
+
+
 def check_unversioned_assets():
     """Every local css/js reference must carry ?v= or it can never be busted."""
     pattern = re.compile(r'(?:href|src)="(assets/[^"?]+\.(?:css|js))"')
@@ -175,6 +184,7 @@ def check_assets_changed_without_bump():
 
 
 def main():
+    check_merge_markers()
     check_unversioned_assets()
     version = check_version_consistency()
     check_js_syntax()

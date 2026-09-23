@@ -1,0 +1,159 @@
+<p>Most chart tools look at one market at a time. <strong>SMT divergence</strong> looks at two. The idea, popularised by the educator Michael J. Huddleston (known online as ICT, the Inner Circle Trader), is simple: when two markets that normally move together suddenly disagree at a key high or low, that disagreement may be a clue. This guide explains what SMT divergence is, how bullish and bearish versions look, why traders compare pairs like ES and NQ, and the limits you need to keep in mind.</p>
+
+<div class="lx-key">
+<p><strong>Key takeaways</strong></p>
+<ul>
+<li><strong>SMT divergence</strong> is when two normally correlated markets disagree at a swing point: one makes a new high (or low) and the other does not.</li>
+<li><strong>Bearish SMT:</strong> one market makes a higher high while the other makes a lower high. <strong>Bullish SMT:</strong> one makes a lower low while the other makes a higher low.</li>
+<li>It only means something if the two markets are genuinely correlated, compared on the same timeframe and at the same moment.</li>
+<li>SMT is a practitioner method, not a proven law. Traders use it as confirmation at a level they already care about, not as a signal on its own.</li>
+</ul>
+</div>
+
+<h2>What does SMT stand for?</h2>
+<p>SMT is usually expanded as "smart money technique" or "smart money tool". The name reflects the belief behind it: if large participants are buying or selling one market more heavily than its close relative, the two will briefly stop moving in step. Nobody outside those firms can confirm that story, so it is best treated as a way to organise what you see, not an explanation of why it happens.</p>
+
+<h2>First, correlation</h2>
+<p><strong>Correlation</strong> measures how closely two things move together. It is usually expressed as a number called the correlation coefficient, from -1 to +1. A value near +1 means they tend to move in the same direction; near -1 means they tend to move in opposite directions; near 0 means there is no consistent linear relationship.</p>
+<p>SMT depends on this relationship. Some pairs traders commonly compare:</p>
+<ul>
+<li><strong>ES and NQ</strong>, the E-mini S&amp;P 500 and E-mini Nasdaq-100 futures traded at CME Group. Both track large US stocks, so they usually move together. They are not identical: the S&amp;P 500 covers about 500 large US companies, while the Nasdaq-100 holds 100 large companies listed on Nasdaq and excludes financials, which gives it a heavier technology weighting. CME Group's own paper on index spreads measured a weekly correlation of 0.924 between the two indexes over January 2007 to April 2014, while noting that over one three-month window the S&amp;P 500 rose and the Nasdaq-100 fell. That combination, closely related but not locked together, is exactly what SMT relies on.</li>
+<li><strong>EUR/USD and GBP/USD</strong>, two major currency pairs that are both priced against the US dollar and often move together.</li>
+<li><strong>EUR/USD and the US Dollar Index (DXY)</strong>, which usually move in <em>opposite</em> directions. The euro is 57.6% of the ICE US Dollar Index basket, so when the euro rises against the dollar, the index tends to fall.</li>
+</ul>
+<p>Correlations are not constant. They change with market conditions and can break down for days at a time, especially around news that affects one market more than the other.</p>
+
+<h2>Bearish and bullish SMT divergence</h2>
+<p>For two <strong>positively correlated</strong> markets, like ES and NQ:</p>
+<ul>
+<li><strong>Bearish SMT:</strong> both rally into a prior high. One trades above it (a higher high); the other fails and prints a lower high. The failure to confirm is read as weakness, a hint that the push higher may not last.</li>
+<li><strong>Bullish SMT:</strong> both fall into a prior low. One trades below it (a lower low); the other holds and prints a higher low. The market that refused to make a new low is read as showing strength.</li>
+</ul>
+<p>Use the toggle to switch between the two. The dotted vertical line marks the same moment in both markets, which is the whole point: SMT compares the same swing, at the same time, on the same timeframe.</p>
+
+<figure class="lx-fig lx-ix" data-ix="toggle" data-attr="variant">
+<div class="lx-seg" hidden role="group" aria-label="Choose the divergence">
+<button type="button" data-val="bear" aria-pressed="true">Bearish SMT</button>
+<button type="button" data-val="bull" aria-pressed="false">Bullish SMT</button>
+</div>
+<div class="lx-pair">
+<!-- FIG:es -->
+<svg viewBox="0 0 280 230" role="img" aria-label="ES (S&P 500 futures), illustrative">
+<text class="lbl-s" x="10" y="16">ES (S&P 500 futures)</text>
+<g data-variant="bear">
+<polyline class="path" points="16,190 58,120 100,78 142,132 184,116 226,62 262,170"/>
+<line class="lvl" x1="100" y1="78" x2="252" y2="78"/>
+<line class="tline" x1="226" y1="46" x2="226" y2="200"/>
+<circle class="hit" cx="100" cy="78" r="4.5"/>
+<circle class="hit" cx="226" cy="62" r="5"/>
+<text class="lbl" x="100" y="66" text-anchor="middle">A</text>
+<text class="lbl" x="226" y="50" text-anchor="middle">B</text>
+<text class="lbl-g" x="270" y="36" text-anchor="end">B: higher high</text>
+</g>
+<g data-variant="bull">
+<polyline class="path" points="16,40 58,110 100,152 142,98 184,114 226,168 262,60"/>
+<line class="lvl" x1="100" y1="152" x2="252" y2="152"/>
+<line class="tline" x1="226" y1="46" x2="226" y2="200"/>
+<circle class="hit" cx="100" cy="152" r="4.5"/>
+<circle class="hit" cx="226" cy="168" r="5"/>
+<text class="lbl" x="100" y="174" text-anchor="middle">A</text>
+<text class="lbl" x="226" y="192" text-anchor="middle">B</text>
+<text class="lbl-g" x="270" y="218" text-anchor="end">B: lower low</text>
+</g>
+</svg>
+<!-- /FIG:es -->
+<!-- FIG:nq -->
+<svg viewBox="0 0 280 230" role="img" aria-label="NQ (Nasdaq-100 futures), illustrative">
+<text class="lbl-s" x="10" y="16">NQ (Nasdaq-100 futures)</text>
+<g data-variant="bear">
+<polyline class="path" points="16,184 58,118 100,72 142,128 184,112 226,90 262,168"/>
+<line class="lvl" x1="100" y1="72" x2="252" y2="72"/>
+<line class="tline" x1="226" y1="46" x2="226" y2="200"/>
+<circle class="hit" cx="100" cy="72" r="4.5"/>
+<circle class="hit-r" cx="226" cy="90" r="5"/>
+<text class="lbl" x="100" y="60" text-anchor="middle">A</text>
+<text class="lbl" x="226" y="114" text-anchor="middle">B</text>
+<text class="lbl-r" x="270" y="36" text-anchor="end">B: lower high: fails</text>
+</g>
+<g data-variant="bull">
+<polyline class="path" points="16,46 58,112 100,158 142,102 184,118 226,140 262,62"/>
+<line class="lvl" x1="100" y1="158" x2="252" y2="158"/>
+<line class="tline" x1="226" y1="46" x2="226" y2="200"/>
+<circle class="hit" cx="100" cy="158" r="4.5"/>
+<circle class="hit-r" cx="226" cy="140" r="5"/>
+<text class="lbl" x="100" y="180" text-anchor="middle">A</text>
+<text class="lbl" x="226" y="128" text-anchor="middle">B</text>
+<text class="lbl-r" x="270" y="218" text-anchor="end">B: higher low: fails</text>
+</g>
+</svg>
+<!-- /FIG:nq -->
+</div>
+<p data-for="bear"><strong>Bearish SMT.</strong> At point B, ES trades above its earlier high A. NQ reaches the same moment but stays below its own high A. One market confirms the new high and the other does not.</p>
+<p data-for="bull"><strong>Bullish SMT.</strong> At point B, ES trades below its earlier low A. NQ stays above its own low A. One market makes a new low and the other refuses to.</p>
+<figcaption>Illustrative paths, not real prices. Both panels share the same time axis. Without JavaScript both versions are drawn together.</figcaption>
+</figure>
+
+<h3>Inversely correlated pairs</h3>
+<p>With markets that normally move in <em>opposite</em> directions, like EUR/USD and DXY, you flip one of them. You expect EUR/USD to make a lower low when DXY makes a higher high. If EUR/USD makes a lower low but DXY fails to make a higher high, the two are no longer mirroring each other, and that is the divergence. Many traders simply invert one chart so the comparison looks like a normal positive pair.</p>
+
+<h2>How traders use SMT in practice</h2>
+<p>In ICT-style approaches, SMT is rarely used on its own. It is treated as <strong>confirmation at a location</strong>. A typical sequence looks like this:</p>
+<ol>
+<li><strong>Mark the level first.</strong> Pick an obvious high or low where stop orders are likely to sit: a previous day's high, a session low, or a pair of equal highs. (See <a href="learn-liquidity-sweeps">liquidity sweeps</a> for why these matter.)</li>
+<li><strong>Watch both markets arrive.</strong> As price reaches the level, check whether both markets take it out, or only one.</li>
+<li><strong>Note the divergence.</strong> If one sweeps the level and the other fails, you have an SMT at a meaningful location.</li>
+<li><strong>Wait for structure.</strong> Many traders then want a <a href="learn-bos-vs-choch">change of character</a> on the lower timeframe, a break against the move that made the divergence, before treating it as a possible reversal.</li>
+</ol>
+
+<h2>A worked example</h2>
+<p>Here is a hypothetical morning, described the way a trader might write it in a journal. The figures are made up to show the logic.</p>
+<ul>
+<li>Before the New York open, the trader marks the previous day's high on both ES and NQ.</li>
+<li>At 09:50 New York time, ES trades a few points above its previous day's high. At the same minute, NQ rallies but stops short of its own previous day's high.</li>
+<li>That is a bearish SMT at a level the trader had already marked. They write it down but do not act yet.</li>
+<li>Ten minutes later, ES closes back below the previous day's high and then below the last higher low on the five-minute chart: a bearish change of character.</li>
+<li>Only at this point does the trader consider the idea valid enough to plan a trade under their own rules. If ES had instead kept building above the high and NQ had followed, the SMT would simply have failed, which happens often.</li>
+</ul>
+
+<div class="lx-quiz">
+<p><strong>Quick check.</strong> ES and NQ both drop toward yesterday's low. NQ trades below it; ES stays above its own low. What is that?</p>
+<div class="lx-quiz-opts">
+<button type="button" data-ok="0">Bearish SMT</button>
+<button type="button" data-ok="1">Bullish SMT</button>
+<button type="button" data-ok="0">No divergence</button>
+</div>
+<p class="lx-quiz-a"><strong></strong>One market made a lower low and the other held a higher low at the same moment. That is bullish SMT: the market that refused to make a new low is read as the stronger one.</p>
+</div>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Comparing uncorrelated markets.</strong> If two markets do not normally move together, their disagreeing tells you nothing.</li>
+<li><strong>Mismatched swings.</strong> Comparing a swing high on one chart with a different, earlier or later swing on the other. Line up the same candles, on the same timeframe.</li>
+<li><strong>Seeing SMT everywhere.</strong> Small disagreements happen constantly on low timeframes. SMT is only interesting at a level you had already marked.</li>
+<li><strong>Trading it with no structure.</strong> A divergence is not a trend change. Without a break in structure afterwards, it is just an observation.</li>
+<li><strong>Forgetting news.</strong> An earnings report from a big technology company can move NQ far more than ES. That kind of divergence has a fundamental reason and may not reverse.</li>
+</ul>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is SMT divergence in simple terms?</h3>
+<p>It is when two markets that usually move together disagree at a key high or low: one makes a new high or low and the other does not.</p>
+<h3>Which pairs are used for SMT divergence?</h3>
+<p>Common examples are ES and NQ (and sometimes YM, the Dow futures), EUR/USD and GBP/USD, and EUR/USD against the US Dollar Index, which is inversely correlated.</p>
+<h3>Is SMT divergence the same as RSI divergence?</h3>
+<p>No. RSI divergence compares price with an indicator on the same market. SMT compares the price of two different, correlated markets.</p>
+<h3>Which timeframe should I use?</h3>
+<p>SMT can appear on any timeframe, but it must be the same timeframe on both charts. Many traders look for it on lower timeframes at levels marked on higher ones.</p>
+<h3>Does SMT divergence always lead to a reversal?</h3>
+<p>No. It is a practitioner tool with no guarantee. Divergences often resolve with the lagging market simply catching up.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>CME Group, "Stock Index Spread Opportunities" (index construction and the 0.924 S&amp;P 500 / Nasdaq-100 correlation, Jan 2007 to Apr 2014): <a href="https://www.cmegroup.com/education/whitepapers/stock-index-spread-opportunities" rel="noopener" target="_blank">cmegroup.com</a></li>
+<li>Nasdaq, "Nasdaq-100 Index Product Guide" (eligibility, financials excluded): <a href="https://www.nasdaq.com/docs/nasdaq-100-index-product-guide" rel="noopener" target="_blank">nasdaq.com</a></li>
+<li>ICE Futures U.S., "U.S. Dollar Index Contracts: Frequently Asked Questions" (currency weights, euro 0.576): <a href="https://www.ice.com/publicdocs/futures_us/ICE_Dollar_Index_FAQ.pdf" rel="noopener" target="_blank">ice.com (PDF)</a></li>
+<li>Investopedia, "Understanding the Correlation Coefficient": <a href="https://www.investopedia.com/terms/c/correlationcoefficient.asp" rel="noopener" target="_blank">investopedia.com</a></li>
+<li>innercircletrader.net, "ICT SMT Divergence Explained" (practitioner definitions of bullish and bearish SMT, positive and negative correlation): <a href="https://innercircletrader.net/tutorials/ict-smt-divergence-smart-money-technique/" rel="noopener" target="_blank">innercircletrader.net</a></li>
+<li>The Ordinary Trader, "What Is an SMT Divergence and How to Use It With ES and NQ" (attribution to Michael J. Huddleston; ES/NQ usage): <a href="https://www.theordinarytrader.com/knowledge/what-is-an-smt-divergence-and-how-to-use-it-with-es-and-nq/" rel="noopener" target="_blank">theordinarytrader.com</a></li>
+</ol>

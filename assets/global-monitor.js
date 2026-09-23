@@ -1758,15 +1758,10 @@ function gmParseGeo(json) {
 }
 
 function gmLoadEventsDirect() {
-  var url = GDELT_GEO + '?query=' + encodeURIComponent(GM_EVENTS_QUERY) +
-    '&mode=pointdata&format=geojson&timespan=6h';
-  gmFetchJson(url, 20000)
-    .then(function (json) {
-      var events = gmParseGeo(json);
-      if (!events.length) throw new Error('empty');
-      GM_HAVE.events = true;
-      gmApplyEvents(events, 'direct');
-    })
+  // GDELT's GEO API (GDELT_GEO) now answers 404 for every query, so a direct
+  // call only cost students ~10 seconds before failing. Go straight to the
+  // Firebase cache, which refreshWorldData fills from the same pipeline JSON.
+  Promise.reject(new Error('GDELT GEO API retired'))
     .catch(function () {
       gmFetchJson(FN_BASE + 'getWorldEvents', 15000)
         .then(function (data) {

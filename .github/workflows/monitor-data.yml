@@ -31,23 +31,45 @@ permissions:
   contents: write
   actions: write   # the relay dispatches its own next run
 
-# One chain alive at a time. cancel-in-progress stays FALSE so a backstop or
-# manual run queues behind the running chain instead of killing it mid-loop;
-# GitHub keeps at most one pending run per group, so requests never pile up.
-concurrency:
-  group: monitor-data
-  cancel-in-progress: false
-
 jobs:
+  # The hourly backstop used to queue behind the live chain and then get
+  # CANCELLED when the chain dispatched its next link (GitHub keeps only one
+  # pending run per concurrency group). Harmless, but it filled the run list
+  # with red. Now a scheduled run first checks the published data: if it is
+  # fresh, the chain is alive and the run ends green without starting a relay.
+  # Dispatched runs (the chain itself, the deploy watchdog, manual) always relay.
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    outputs:
+      run: ${{ steps.age.outputs.run }}
+    steps:
+      - id: age
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"; echo "dispatched run: relay"; exit 0; fi
+          gen=$(curl -sf "https://raw.githubusercontent.com/${{ github.repository }}/data/monitor-data.json?t=$(date +%s)" | jq -r '.generatedAt // 0' 2>/dev/null || echo 0)
+          age_min=$(( ($(date +%s%3N) - ${gen:-0}) / 60000 ))
+          echo "monitor data age: ${age_min} minutes"
+          if [ "$age_min" -gt 45 ]; then echo "run=true" >> "$GITHUB_OUTPUT"; echo "stale: reviving the chain"
+          else echo "run=false" >> "$GITHUB_OUTPUT"; echo "chain alive: nothing to do"; fi
+
   relay:
-    runs-on: ubuntu-latest
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    # One chain alive at a time. cancel-in-progress stays FALSE so a revival
+    # queues behind a running chain instead of killing it mid-loop.
+    concurrency:
+      group: monitor-data
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04         # pinned ahead of the ubuntu-latest -> 26.04 move
     timeout-minutes: 350          # 16 cycles x ~21 min ≈ 5h36m, under the 6h job cap
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Seed previous data (kept per-section when an upstream fails)
         run: |

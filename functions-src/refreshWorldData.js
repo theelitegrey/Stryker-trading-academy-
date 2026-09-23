@@ -146,39 +146,38 @@ async function fetchWithBackoff(url, label) {
   throw new Error(label + ': ' + (last ? last.message : 'unknown'));
 }
 
+// Map events now come from the site's own Global Monitor pipeline
+// (.github/workflows/monitor-data.yml), which builds them every ~20 minutes
+// from GDELT's static 15-minute export files. The GDELT GEO API this used to
+// call (api.gdeltproject.org/api/v2/geo/geo) now answers 404 for every query,
+// so the cache had been empty. Reading the pipeline's JSON keeps this cache,
+// and therefore getWorldEvents, a working fallback for students whose network
+// can reach Firebase but not raw.githubusercontent.com.
+const PIPELINE_JSON = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+
 async function refreshEvents(db) {
-  const url = 'https://api.gdeltproject.org/api/v2/geo/geo' +
-    '?query=' + encodeURIComponent(EVENTS_QUERY) +
-    '&mode=pointdata&format=geojson&timespan=3h';
-
-  const json = await fetchWithBackoff(url, 'events');
-  const features = (json && json.features) || [];
-
-  const events = features.map((f) => {
-    const coords = (f.geometry && f.geometry.coordinates) || [];
-    const p = f.properties || {};
-    const lon = typeof coords[0] === 'number' ? coords[0] : null;
-    const lat = typeof coords[1] === 'number' ? coords[1] : null;
-    if (lon === null || lat === null) return null;
-
-    const raw = String(p.html || p.name || '');
-    const link = raw.match(/href=["']([^"']+)["']/i);
-    const title = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    if (!title) return null;
-
+  const json = await fetchWithBackoff(PIPELINE_JSON + '?t=' + Date.now(), 'events');
+  const sec = (json && json.events) || {};
+  const src = Array.isArray(sec.rolling) && sec.rolling.length ? sec.rolling : (sec.items || []);
+  const events = src.map((e) => {
+    if (typeof e.lon !== 'number' || typeof e.lat !== 'number' || !e.title) return null;
     return {
-      lon, lat,
-      place: String(p.name || '').trim().slice(0, 80),
-      title: title.slice(0, 220),
-      url: link ? link[1] : null,
-      count: Number(p.count) || 1,
-      cat: categorise(title + ' ' + (p.name || ''))
+      lon: e.lon, lat: e.lat,
+      place: String(e.place || '').slice(0, 80),
+      title: String(e.title).slice(0, 220),
+      url: e.url || null,
+      count: Number(e.count) || 1,
+      // Every pipeline event is already a geopolitical one (CAMEO conflict
+      // roots); the page re-categorises from the title.
+      cat: 'conflict'
     };
   }).filter(Boolean);
+  if (!events.length) throw new Error('pipeline JSON has no events');
 
   events.sort((a, b) => b.count - a.count);
   await db.doc('cache/worldEvents').set({
-    events: events.slice(0, 400), fetchedAt: Date.now()
+    events: events.slice(0, 400), fetchedAt: Date.now(),
+    source: 'monitor-data pipeline', lastError: null
   });
   return events.length;
 }

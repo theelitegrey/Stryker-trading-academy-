@@ -12,7 +12,7 @@
  * status: active|done|stopped, stopReason, unsubToken, sent: {day0: ts…} }.
  * Daily send counts: emailSeriesDaily/{YYYY-MM-DD}. Config:
  * emailSeriesConfig/welcome { enabled, testOnly, testRecipients[], launchAt,
- * postalAddress, offerPlanId, from }. Kept out of settings/ on purpose:
+ * postalAddress, offerPlanId, alsoOfferPlanId, from }. Kept out of settings/ on purpose:
  * settings/* is readable by every signed-in user, and this holds the test
  * addresses.
  * Written only here with the Admin SDK. No client rule allows access, so
@@ -80,7 +80,10 @@ function offerFor(plan) {
   return {
     planId: plan.id, planName: plan.name,
     priceLabel: usd(saleOn ? sale : base),
-    wasLabel: saleOn ? usd(base) : null
+    wasLabel: saleOn ? usd(base) : null,
+    // The same bullet list the pricing page shows for this plan.
+    features: (Array.isArray(plan.features) ? plan.features : [])
+      .map((f) => String(f || '').trim()).filter(Boolean).slice(0, 8)
   };
 }
 
@@ -118,6 +121,8 @@ exports.welcomeEmailTick = functions
     plans.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
     const entry = plans[0];
     const offer = offerFor(plans.find((p) => p.id === cfg.offerPlanId));
+    // Optional one-line mention of a higher plan (cfg.alsoOfferPlanId).
+    const alsoOffer = cfg.alsoOfferPlanId ? offerFor(plans.find((p) => p.id === cfg.alsoOfferPlanId)) : null;
 
     // 1. Enrol new free accounts created since launch.
     const fresh = await db.collection('students').where('createdAt', '>=', launchAt).get();
@@ -190,7 +195,7 @@ exports.welcomeEmailTick = functions
       const url = unsubUrl(uid, rec.unsubToken);
       const r = T.render(step, {
         firstName: (user.displayName || sd.displayName || '').split(' ')[0] || 'trader',
-        unsubscribeUrl: url, postalAddress: cfg.postalAddress, offer
+        unsubscribeUrl: url, postalAddress: cfg.postalAddress, offer, alsoOffer
       });
       if (T.hasPlaceholders(r)) { console.error('welcomeEmailTick: step ' + step + ' still has placeholders; not sending'); break; }
 

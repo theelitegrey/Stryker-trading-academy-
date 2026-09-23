@@ -3,9 +3,8 @@
  *
  * render(step, ctx) -> { subject, preheader, html, text }
  *
- * COPY: every block marked [COPY PENDING] is a placeholder. The final text
- * comes from social-media-manager and must pass the content rules before it
- * replaces a placeholder:
+ * COPY: final text from social-media-manager (see the note above EMAILS).
+ * Any edit must keep to the content rules:
  *   - no profit, income or win-rate claims; no invented numbers
  *   - no mention of video lessons / courses on video
  *   - payout certificates (day 9) are described only as the instructor's
@@ -45,11 +44,6 @@ function link(path, day) {
 function p(html) {
   return `<p style="margin:0 0 16px;color:${C.ink1};font-size:15px;line-height:1.65;">${html}</p>`;
 }
-function pending(label) {
-  return `<p style="margin:0 0 16px;padding:12px 14px;border:1px dashed ${C.bear};border-radius:8px;` +
-    `color:${C.bear};font-size:13px;line-height:1.5;font-family:Menlo,Consolas,monospace;">` +
-    `[COPY PENDING: ${esc(label)}]</p>`;
-}
 function button(href, label) {
   return `<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:8px 0 24px;"><tr>` +
     `<td style="border-radius:8px;background:${C.gold};">` +
@@ -61,91 +55,139 @@ function h1(t) {
 }
 
 // ---- The five emails -------------------------------------------------------
+// Copy: social-media-manager, /root/projects/stryker-notes/social-strategy/
+// emails/welcome-series.md (2026-09-23), with these factual corrections:
+//   - the free plan is called "Starter" on the live site (not "Self-Paced");
+//   - a free account reads chapters 1-7 only, so the Day 2 and Day 5 links go
+//     to the free public Learn articles, not the locked Chapters 10 and 12;
+//   - Day 14 takes the plan's name, price and feature list from the plan
+//     record at send time instead of a hardcoded "Desk $49" list, so the
+//     email can never disagree with the pricing page.
+
+// Paragraphs are plain text; each becomes one <p> in HTML and one block in
+// the text version, so the two can never drift apart.
+function paras(list) { return list.map((t) => p(esc(t))).join(''); }
+function signoff() { return p(esc('— Stryker Trading Academy')); }
 
 const EMAILS = [
   // Day 0 — welcome + cheat sheet
-  (ctx) => ({
-    subject: 'Welcome to Stryker: your FVG & Order Block cheat sheet',
-    preheader: 'Your free two-page cheat sheet is ready.',
-    body:
-      h1(`Welcome, ${esc(ctx.firstName)}.`) +
-      pending('Day 0 welcome: who we are, what the free account includes, what the next emails cover') +
-      p('Your free cheat sheet covers the rules we teach for Order Blocks (Chapter 09) and Fair Value Gaps (Chapter 10).') +
-      button(link('/cheat-sheet', 0), 'Get the cheat sheet'),
-    text: [
-      `Welcome, ${ctx.firstName}.`,
-      '[COPY PENDING: Day 0 welcome]',
-      'Your free cheat sheet covers the rules we teach for Order Blocks (Chapter 09) and Fair Value Gaps (Chapter 10).',
-      'Get it: ' + link('/cheat-sheet', 0)
-    ]
-  }),
-
-  // Day 2 — free mini-lesson
-  () => ({
-    subject: 'A 5-minute lesson: what a fair value gap really is',
-    preheader: 'The three-candle rule, in plain words.',
-    body:
-      h1('The three-candle rule') +
-      pending('Day 2 mini-lesson on fair value gaps (original text, not pasted from the paid chapters)') +
-      button(link('/learn/fair-value-gap', 2), 'Read the full lesson'),
-    text: ['The three-candle rule', '[COPY PENDING: Day 2 mini-lesson]',
-      'Read the full lesson: ' + link('/learn/fair-value-gap', 2)]
-  }),
-
-  // Day 5 — chart breakdown: liquidity sweep / stop hunt
-  () => ({
-    subject: 'Chart breakdown: how a stop hunt looks on the chart',
-    preheader: 'Liquidity sweeps, step by step.',
-    body:
-      h1('Anatomy of a liquidity sweep') +
-      pending('Day 5 chart breakdown: liquidity sweep / stop hunt, with a diagram image') +
-      button(link('/learn/liquidity-sweeps', 5), 'See the full breakdown'),
-    text: ['Anatomy of a liquidity sweep', '[COPY PENDING: Day 5 chart breakdown]',
-      'See the full breakdown: ' + link('/learn/liquidity-sweeps', 5)]
-  }),
-
-  // Day 9 — proof: the instructor's real Tradeify payout certificates
   () => {
-    const proofs = [1, 2, 3, 4];
-    const imgs = proofs.map((n) =>
-      `<td width="50%" style="padding:6px;"><img src="${SITE}/assets/images/proofs/proof-${n}.jpg" ` +
-      `alt="Tradeify payout certificate ${n}" width="260" style="display:block;width:100%;max-width:260px;` +
-      `height:auto;border:1px solid ${C.line};border-radius:8px;"></td>`);
+    const intro = [
+      'Hey — welcome to Stryker Trading Academy.',
+      "You've got full access to the free Starter plan: chapters 1 through 7, covering how institutional order flow actually works, liquidity, and the foundations everything else builds on. Start there if you're new to any of this — the chapters are built to be read in order.",
+      "To go with it, here's a 2-page cheat sheet on two of the most useful ideas in the curriculum: Fair Value Gaps and Order Blocks. Keep it next to your charts."
+    ];
+    const outro = [
+      "Over the next two weeks we'll send a few more things: a practical mini lesson, a real chart breakdown, and — because we know \"trust me\" isn't worth much — some actual proof behind who's teaching this.",
+      'For now, just start reading. Chapter 1 is a good place.'
+    ];
+    const url = link('/cheat-sheet', 0);
     return {
-      subject: 'Who teaches this: the payout certificates',
-      preheader: 'Real funded-account payouts from Tradeify, issued to the instructor.',
-      body:
-        h1('Who is teaching you') +
-        pending('Day 9 proof: introduce the instructor and the certificates; no profit or win-rate claims') +
-        `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 12px;">` +
-        `<tr>${imgs[0]}${imgs[1]}</tr><tr>${imgs[2]}${imgs[3]}</tr></table>` +
-        `<p style="margin:0 0 20px;color:${C.ink2};font-size:12.5px;line-height:1.55;">These are real funded-account ` +
-        `payouts issued by the prop firm Tradeify to the academy's instructor. They are not student results, and ` +
-        `past results do not guarantee future results.</p>` +
-        button(link('/#proof', 9), 'See all 14 certificates'),
-      text: ['Who is teaching you', '[COPY PENDING: Day 9 proof]',
-        "Real funded-account payouts issued by the prop firm Tradeify to the academy's instructor. Not student results; past results do not guarantee future results.",
-        'See all 14 certificates: ' + link('/#proof', 9)]
+      subject: "Welcome to Stryker — here's your first download",
+      preheader: 'Your FVG & Order Block cheat sheet, plus what to read first.',
+      body: paras(intro) + button(url, 'Get the cheat sheet') + paras(outro) + signoff(),
+      text: intro.concat(['Get the cheat sheet: ' + url], outro, ['— Stryker Trading Academy'])
     };
   },
 
-  // Day 14 — the paid-plan offer (price read live when sending)
+  // Day 2 — free mini-lesson
+  () => {
+    const body = [
+      'Quick one today — a single idea you can start looking for on a chart right away: the Fair Value Gap.',
+      "A Fair Value Gap (FVG) is a precise three-candle pattern. Look at candle one and candle three — specifically their wicks. If they don't overlap, if there's real empty space between them, the middle candle's aggressive move created a gap. That's it. Not a guess, not a feeling — a mechanical check you can run on any chart.",
+      'Why it matters: that gap represents real imbalance between buying and selling pressure, and price often returns to it later. Not because markets "remember" anything mystical, but because unfilled orders and reference points tend to sit inside these gaps.',
+      "Treat an FVG as either a potential entry zone (in the direction of your bias) or a potential price target (in the opposite direction). It's most useful stacked with other signals — an FVG inside an order block carries more weight than one sitting alone.",
+      'We wrote up the full breakdown, with diagrams, as a free guide if you want to go deeper.'
+    ];
+    const url = link('/learn-fair-value-gap', 2);
+    return {
+      subject: 'The gap price keeps coming back to',
+      preheader: 'What a Fair Value Gap actually is, in one read.',
+      body: paras(body) + button(url, 'Read the full guide') + signoff(),
+      text: body.concat(['Read the full guide: ' + url, '— Stryker Trading Academy'])
+    };
+  },
+
+  // Day 5 — chart breakdown: liquidity sweep / stop hunt
+  () => {
+    const body = [
+      "You've probably had this happen: price runs just past an obvious high or low, taps your stop, then reverses hard in the direction you originally wanted. Infuriating — and also explainable.",
+      "It's called a liquidity sweep. Traders who buy above a swing low put their stop-loss just below it. Enough traders doing this in the same area builds a cluster of resting sell orders — a pool of liquidity a larger order can use to fill itself. The same thing happens in reverse above swing highs.",
+      "A genuine sweep has three parts, in sequence: price wicks through the level, closes back on the original side of it, and then reverses with real conviction — not a slow drift back. All three need to be present. A wick through without a clean close-back is ambiguous; it might just be a real breakout instead.",
+      "The practical fix isn't to move your stop further away and hope. It's to wait for confirmation — the order block or fair value gap the reversal leaves behind — rather than reacting to the sweep itself as a signal. That's the difference between guessing at the exact bottom and taking a structural entry with a defined invalidation point.",
+      'Full walkthrough, with diagrams, in our free guide.'
+    ];
+    const url = link('/learn-liquidity-sweeps', 5);
+    return {
+      subject: 'Why your stop got hit right before price reversed',
+      preheader: 'The mechanics behind a liquidity sweep, broken down.',
+      body: paras(body) + button(url, 'Read the walkthrough') + signoff(),
+      text: body.concat(['Read the walkthrough: ' + url, '— Stryker Trading Academy'])
+    };
+  },
+
+  // Day 9 — proof: the instructor's real Tradeify payout certificates
+  () => {
+    // Four certificates with the same 900x535 shape, so the grid lines up.
+    const imgs = [1, 3, 4, 5].map((n) =>
+      `<td width="50%" style="padding:6px;"><img src="${SITE}/assets/images/proofs/proof-${n}.jpg" ` +
+      `alt="Tradeify payout certificate" width="260" style="display:block;width:100%;max-width:260px;` +
+      `height:auto;border:1px solid ${C.line};border-radius:8px;"></td>`);
+    const a = [
+      "We could tell you this curriculum works. Instead, here's something you can actually check.",
+      "These are real funded-account payout certificates, issued directly by the prop firm Tradeify — not student results, not projections, not a screenshot from someone else's account. They're proof that the person teaching this curriculum trades it themselves, under real prop-firm rules, with real money on the other end of the wire."
+    ];
+    const b = [
+      "We're not going to tell you what your win rate will be, or promise you'll see a payout of your own — that depends entirely on how you trade, and anyone who tells you otherwise is selling something. What we can tell you is that the curriculum you're reading is built by someone with actual funded-account track record behind it, not just theory.",
+      "If you haven't started the chapters yet, this is a good moment to pick it back up."
+    ];
+    const proof = link('/#proof', 9);
+    const cur = link('/courses.html', 9);
+    return {
+      subject: 'Proof, not promises',
+      preheader: 'Real payout certificates from the person teaching this curriculum.',
+      body:
+        paras(a) +
+        `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin:0 0 12px;">` +
+        `<tr>${imgs[0]}${imgs[1]}</tr><tr>${imgs[2]}${imgs[3]}</tr></table>` +
+        button(proof, 'See the payout certificates') + paras(b) +
+        button(cur, 'Continue the curriculum') + signoff(),
+      text: a.concat(['See the payout certificates: ' + proof], b,
+        ['Continue the curriculum: ' + cur, '— Stryker Trading Academy'])
+    };
+  },
+
+  // Day 14 — the paid-plan offer. Name, price and features come from the
+  // plan record at send time (ctx.offer); an optional second plan
+  // (ctx.alsoOffer) gets one line.
   (ctx) => {
     const o = ctx.offer || {};
-    const price = o.priceLabel ? esc(o.priceLabel) : '[PRICE]';
-    const was = o.wasLabel ? ` <span style="color:${C.ink3};text-decoration:line-through;">${esc(o.wasLabel)}</span>` : '';
+    const name = o.planName || '[PLAN]';
+    const price = o.priceLabel || '[PRICE]';
+    const feats = (o.features && o.features.length) ? o.features : ['[PLAN FEATURES]'];
     const url = link(o.planId ? '/checkout.html?plan=' + encodeURIComponent(o.planId) : '/#pricing', 14);
+    const priceLine = `The ${name} plan is ${price}/month` + (o.wasLabel ? ` (usually ${o.wasLabel})` : '') + ' and includes:';
+    const a = ["Two weeks in — no pitch today, just information in case you're wondering what's beyond the free plan."];
+    const b = [
+      `That's the whole list — nothing hidden, nothing "unlocked later." If you're getting real value from the free chapters and want the rest of the curriculum, this is what that looks like.`,
+      "If you're not ready, that's completely fine — the free chapters and everything we've sent you stay yours either way, no expiration, no pressure to upgrade."
+    ];
+    const al = ctx.alsoOffer;
+    const hasAlso = !!(al && al.planName && al.priceLabel);
+    const alsoLead = hasAlso ? `(There's also the ${al.planName} plan at ${al.priceLabel}/month, if you want more than ${name} includes. Both are on the ` : '';
+    const pricing = link('/#pricing', 14);
+    const also = hasAlso ? [alsoLead + 'pricing page: ' + pricing + ')'] : [];
+    const alsoHtml = hasAlso ? p(esc(alsoLead) + `<a href="${esc(pricing)}" style="color:${C.gold};">pricing page</a>.)`) : '';
+    const c = ['Either way, thanks for spending two weeks with the curriculum. We mean that.'];
+    const list = `<ul style="margin:0 0 16px;padding-left:20px;color:${C.ink1};font-size:15px;line-height:1.65;">` +
+      feats.map((f) => `<li style="margin:0 0 4px;">${esc(f)}</li>`).join('') + '</ul>';
     return {
-      subject: `The full desk is open: ${o.planName || '[PLAN]'} at ${o.priceLabel || '[PRICE]'}/month`,
-      preheader: 'Everything beyond the free chapters, in one plan.',
-      body:
-        h1(`${esc(o.planName || '[PLAN]')}: the full curriculum`) +
-        pending('Day 14 offer: what the plan adds over the free account, factual feature list only') +
-        `<p style="margin:0 0 20px;color:${C.ink0};font-size:28px;font-weight:700;">${price}` +
-        `<span style="font-size:15px;color:${C.ink2};font-weight:400;">/month</span>${was}</p>` +
-        button(url, 'See the plan'),
-      text: [`${o.planName || '[PLAN]'}: the full curriculum`, '[COPY PENDING: Day 14 offer]',
-        `${o.priceLabel || '[PRICE]'}/month${o.wasLabel ? ' (was ' + o.wasLabel + ')' : ''}`, 'See the plan: ' + url]
+      subject: `What's in the ${name} plan, if you want to go further`,
+      preheader: 'No pressure — just what you get, in plain terms.',
+      body: paras(a) + p(esc(priceLine)) + list + paras(b) + button(url, `See the ${name} plan`) +
+        alsoHtml + paras(c) + signoff(),
+      text: a.concat([priceLine], feats.map((f) => '- ' + f), b, [`See the ${name} plan: ` + url], also, c,
+        ['— Stryker Trading Academy'])
     };
   }
 ];
@@ -197,7 +239,7 @@ function render(step, ctx) {
 // True while any placeholder is still in the output; the sender refuses to
 // send such an email.
 function hasPlaceholders(r) {
-  return /\[(COPY PENDING|POSTAL ADDRESS PENDING|PRICE|PLAN)\b/.test(r.html + r.text);
+  return /\[(COPY PENDING|POSTAL ADDRESS PENDING|PRICE|PLAN|PLAN FEATURES)\b/.test(r.html + r.text);
 }
 
 module.exports = { render, hasPlaceholders, DAYS, link };

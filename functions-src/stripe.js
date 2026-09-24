@@ -98,6 +98,11 @@ const SIG_TOLERANCE_S = 300;
 // may open a checkout. Live keys skip this entirely.
 const QA_EMAIL = /^stryker-qa-[a-z0-9._-]+@example\.com$/i;
 function isTestKey() { return /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY || ''); }
+// Cached Stripe ids (products, prices, coupons, customers) exist in ONE mode only: a test-mode
+// price_… is "No such price" to a live key. Every cache doc records live:true|false and is reused
+// only in the same mode (docs written before this field existed were all test mode).
+function cacheModeOk(d) { return !!d && (d.live === true) === !isTestKey(); }
+function modeTag() { return isTestKey() ? 'test_' : 'live_'; }
 async function testModeGate(uid, context) {
   if (!isTestKey()) {
     // Live: the site-wide switch must be on (admins may still test with it off).
@@ -200,12 +205,12 @@ async function baseUsdFor(uid, plan, planId) {
 async function ensureProduct(plan, planId) {
   const ref = db.collection('stripePrices').doc('product_' + planId.replace(/[^A-Za-z0-9_-]/g, '_'));
   const snap = await ref.get();
-  if (snap.exists && snap.data().productId) return snap.data().productId;
+  if (snap.exists && snap.data().productId && cacheModeOk(snap.data())) return snap.data().productId;
   const product = await stripe('POST', 'products', {
     name: (plan.name || planId) + ' (Stryker Trading Academy)',
     metadata: { sitePlanId: planId }
-  }, 'product_' + planId);
-  await ref.set({ productId: product.id, sitePlanId: planId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  }, modeTag() + 'product_' + planId);
+  await ref.set({ productId: product.id, sitePlanId: planId, live: !isTestKey(), createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return product.id;
 }
 
@@ -214,7 +219,7 @@ async function ensurePrice(plan, planId, amountCents, interval) {
   const id = (planId + '_' + amountCents + '_usd_' + interval).replace(/[^A-Za-z0-9_-]/g, '_');
   const ref = db.collection('stripePrices').doc(id);
   const snap = await ref.get();
-  if (snap.exists && snap.data().priceId) return snap.data().priceId;
+  if (snap.exists && snap.data().priceId && cacheModeOk(snap.data())) return snap.data().priceId;
   const productId = await ensureProduct(plan, planId);
   const price = await stripe('POST', 'prices', {
     product: productId,
@@ -222,8 +227,8 @@ async function ensurePrice(plan, planId, amountCents, interval) {
     unit_amount: amountCents,
     recurring: { interval },
     metadata: { sitePlanId: planId }
-  }, 'price_' + id);
-  await ref.set({ priceId: price.id, productId, sitePlanId: planId, amountCents, interval,
+  }, modeTag() + 'price_' + id);
+  await ref.set({ priceId: price.id, productId, sitePlanId: planId, amountCents, interval, live: !isTestKey(),
     createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return price.id;
 }
@@ -237,26 +242,26 @@ async function ensureStripeCoupon(code, coupon, planId) {
     .replace(/[^A-Za-z0-9_-]/g, '_');
   const ref = db.collection('stripeCoupons').doc(key);
   const snap = await ref.get();
-  if (snap.exists && snap.data().stripeCouponId) return snap.data().stripeCouponId;
+  if (snap.exists && snap.data().stripeCouponId && cacheModeOk(snap.data())) return snap.data().stripeCouponId;
   const c = await stripe('POST', 'coupons', Object.assign({
     duration: 'once',
     name: String(code).slice(0, 40),
     metadata: { siteCoupon: code }
-  }, shape), 'coupon_' + key);
-  await ref.set({ stripeCouponId: c.id, code, planId, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  }, shape), modeTag() + 'coupon_' + key);
+  await ref.set({ stripeCouponId: c.id, code, planId, live: !isTestKey(), createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return c.id;
 }
 
 async function ensureCustomer(uid, token) {
   const ref = db.collection('stripeCustomers').doc(uid);
   const snap = await ref.get();
-  if (snap.exists && snap.data().customerId) return snap.data().customerId;
+  if (snap.exists && snap.data().customerId && cacheModeOk(snap.data())) return snap.data().customerId;
   const customer = await stripe('POST', 'customers', {
     email: (token && token.email) || undefined,
     name: (token && token.name) || undefined,
     metadata: { uid }
-  }, 'customer_' + uid);
-  await ref.set({ customerId: customer.id, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  }, modeTag() + 'customer_' + uid);
+  await ref.set({ customerId: customer.id, live: !isTestKey(), createdAt: admin.firestore.FieldValue.serverTimestamp() });
   return customer.id;
 }
 
@@ -634,7 +639,7 @@ exports.stripePortal = functions
     const uid = requireAuth(context);
     // Read from the functions-only record, never from anything a client wrote.
     const snap = await db.collection('stripeCustomers').doc(uid).get();
-    const customerId = snap.exists ? snap.data().customerId : null;
+    const customerId = snap.exists && cacheModeOk(snap.data()) ? snap.data().customerId : null;
     if (!customerId) throw new functions.https.HttpsError('not-found', 'No card subscription on this account.');
     const session = await stripe('POST', 'billing_portal/sessions', {
       customer: customerId,

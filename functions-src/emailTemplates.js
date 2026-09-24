@@ -20,7 +20,7 @@
  *   - no profit, income or win-rate claims; no invented numbers
  *   - no mention of video lessons / courses on video
  *   - payout certificates (day 9) are described only as the instructor's
- *     own Tradeify payouts, never as student results
+ *     own prop-firm payouts, never as student results
  * The footer (sender identity, postal address, unsubscribe, disclaimer) is
  * not copy: it is required on every email and is built here, not edited.
  *
@@ -260,9 +260,9 @@ const EMAILS = [
             'potential target (in the opposite direction). An FVG inside an order block carries more weight than one sitting alone.' }
         ]),
         B.h2('Why it matters'),
-        B.p('The gap represents a real imbalance between buying and selling pressure, and price often returns to it later. ' +
-          'Not because markets "remember" anything mystical, but because unfilled orders and reference points tend to sit ' +
-          'inside these gaps.'),
+        B.p('The gap is often read as an imbalance between buying and selling pressure, and price often returns to it ' +
+          'later. Not because markets "remember" anything mystical: the common explanation is that the range was traded ' +
+          'in one direction only, so traders expect price may come back to it.'),
         B.p('We wrote up the full breakdown, with diagrams, as a free guide.'),
         B.cta(url, 'Read the full guide'),
         signoff()
@@ -309,14 +309,19 @@ const EMAILS = [
 
   // Day 9 — proof: the instructor's real payout certificates
   () => {
-    // Four certificates with the same 900x535 shape, so the grid lines up.
-    const alt = 'Tradeify payout certificate issued to the Stryker instructor';
-    const cell = (n) => `<td width="50%" valign="top" style="padding:5px;"><img src="${SITE}/assets/images/proofs/proof-${n}.jpg" ` +
-      `alt="${alt}" width="262" height="156" style="display:block;width:100%;max-width:262px;height:auto;` +
+    // One certificate from each of the four prop firms, padded to the same
+    // 900x675 frame (assets/images/email/proof-*.jpg) so the 2x2 grid lines up.
+    const firms = [['tradeify', 'Tradeify'], ['blue-guardian', 'Blue Guardian'],
+      ['my-funded-futures', 'My Funded Futures'], ['lucid-trading', 'Lucid Trading']];
+    const cell = ([file, firm]) => `<td width="50%" valign="top" style="padding:5px;"><img ` +
+      `src="${SITE}/assets/images/email/proof-${file}.jpg" alt="${firm} payout certificate issued to the Stryker instructor" ` +
+      `width="262" height="197" style="display:block;width:100%;max-width:262px;height:auto;` +
       `border:1px solid ${C.line};border-radius:8px;"></td>`;
     const grid = B.raw(
-      `<table ${TABLE} style="margin:0 0 16px;"><tr>${cell(1)}${cell(3)}</tr><tr>${cell(4)}${cell(5)}</tr></table>`,
-      '[Images: four Tradeify payout certificates issued to the Stryker instructor]');
+      `<table ${TABLE} style="margin:0 0 16px;"><tr>${cell(firms[0])}${cell(firms[1])}</tr>` +
+      `<tr>${cell(firms[2])}${cell(firms[3])}</tr></table>`,
+      '[Images: payout certificates issued to the Stryker instructor by Tradeify, Blue Guardian, My Funded Futures ' +
+      'and Lucid Trading]');
     const cur = link('/courses.html', 9);
     return {
       subject: 'Proof, not promises',
@@ -326,8 +331,9 @@ const EMAILS = [
         B.h1('Proof, not promises'),
         B.lead("We could tell you this curriculum works. Instead, here's something you can actually check."),
         grid,
-        B.callout('These are real funded-account payout certificates, issued directly by the prop firm Tradeify. Not student ' +
-          "results, not projections, not a screenshot from someone else's account."),
+        B.callout('These are real funded-account payout certificates, issued directly by the prop firms: ' +
+          'Tradeify, Blue Guardian, My Funded Futures and Lucid Trading. Not student results, not projections, ' +
+          "not a screenshot from someone else's account."),
         B.p("They're proof that the person teaching this curriculum trades it themselves, under real prop-firm rules, with " +
           'real money on the other end of the wire.'),
         B.h2("What we won't promise"),

@@ -141,8 +141,8 @@ Firm rules are quoted as of September 2026 from each firm's own help pages.
 | PF-06 | Passing the Evaluation: Sizing, Risk Plan & Frequency | intermediate | reviewed | 2034 | 7 |
 | PF-07 | The Funded Stage: Buffers, Payouts & Withdrawals | intermediate | drafted | 2018 | 9 |
 | PF-08 | Psychology & Failure Modes | intermediate | drafted | 2013 | 6 |
-| PF-09 | Multiple Accounts, Copy Trading & Automation Rules | advanced | todo | | |
-| PF-10 | The Business View: Costs, Resets & Expected Value | advanced | todo | | |
+| PF-09 | Multiple Accounts, Copy Trading & Automation Rules | advanced | drafted | 2017 | 13 |
+| PF-10 | The Business View: Costs, Resets & Expected Value | advanced | drafted | 2049 | 7 |
 
 Free Learn funnel articles:
 - /learn-prop-firm-challenge-rules (live on batch 2)

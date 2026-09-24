@@ -81,6 +81,7 @@ the repo, a chat, or Firestore.
 
 ```
 RAZORPAY_KEY_ID  RAZORPAY_KEY_SECRET  RAZORPAY_WEBHOOK_SECRET  RAZORPAY_CURRENCY
+STRIPE_SECRET_KEY  STRIPE_WEBHOOK_SECRET  STRIPE_PORTAL_CONFIG (optional)  SITE_ORIGIN (optional)
 TV_USERNAME      TV_PASSWORD          TV_SESSIONID             BROKER_SYNC_SECRET
 ```
 
@@ -95,3 +96,15 @@ hand.
 It is unchanged by this work. For the publish checklist and the curl check
 for signed-out access, see this file as it was before 2026-09-22 (in git
 history).
+
+## Stripe (non-INR subscriptions), added 2026-09-24
+
+functions: stripeCreateCheckout, stripeWebhook, stripePortal, stripeStatus (stripe.js).
+Deploy by name only:
+
+    firebase deploy --only functions:stripeCreateCheckout,functions:stripeWebhook,functions:stripePortal,functions:stripeStatus
+
+LIVE key = a restricted key with Write on Checkout Sessions, Customers, Products,
+Prices, Coupons, Customer portal and Webhook Endpoints (the last only for the one-time endpoint
+creation), and Read on Subscriptions, Invoices and Events. Test plan: tools/stripe/TEST-PLAN.md.
+Stripe Tax is OFF (a legal/tax decision for the Owner).

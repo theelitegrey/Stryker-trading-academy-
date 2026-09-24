@@ -15,7 +15,8 @@ function renderRecentOrders(orders){
     row.className = 'event-item';
     row.innerHTML =
       '<div class="event-body"><h4>' + stkEsc(order.studentName || 'Unknown') + ' — ' + stkEsc(order.planName || 'Plan') + '</h4>' +
-      '<span>' + (order.couponCode ? 'Coupon ' + stkEsc(order.couponCode) : 'No coupon') + (createdDate ? ' · ' + createdDate.toLocaleDateString() : '') + '</span></div>';
+      '<span>' + (order.provider === 'stripe' || order.gateway === 'stripe' ? 'Stripe · ' : (String(order.gateway || '').indexOf('razorpay') === 0 ? 'Razorpay · ' : '')) +
+      (order.couponCode ? 'Coupon ' + stkEsc(order.couponCode) : 'No coupon') + (createdDate ? ' · ' + createdDate.toLocaleDateString() : '') + '</span></div>';
     wrap.appendChild(row);
   });
 }
@@ -76,3 +77,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// Stripe connected yes/no (admins only; the server never returns the key).
+function loadStripeStatus(){
+  const el = document.getElementById('commerce-stripe-status');
+  if (!el) return;
+  let fns = null;
+  try { fns = firebase.app().functions(); } catch (e) {}
+  if (!fns) { el.textContent = 'unknown'; return; }
+  fns.httpsCallable('stripeStatus')({}).then((res) => {
+    const s = (res && res.data) || {};
+    if (!s.configured) { el.textContent = 'No (no key on the server)'; el.style.color = 'var(--bear)'; return; }
+    const ok = s.reachable && s.webhookSecretSet;
+    el.textContent = (ok ? 'Yes' : 'Not fully') + ' · ' + (s.mode === 'live' ? 'LIVE mode' : 'TEST mode') +
+      (s.reachable ? '' : ' · API unreachable (' + (s.error || '?') + ')') +
+      (s.webhookSecretSet ? '' : ' · webhook secret missing');
+    el.style.color = ok ? (s.mode === 'live' ? 'var(--bull)' : 'var(--amber, #e8b04b)') : 'var(--bear)';
+  }).catch((err) => {
+    const missing = err && (err.code === 'functions/not-found' || err.code === 'functions/unimplemented');
+    el.textContent = missing ? 'No (not deployed yet)' : 'unknown';
+  });
+}
+if (typeof firebase !== 'undefined') {
+  try { firebase.auth().onAuthStateChanged((u) => { if (u) loadStripeStatus(); }); } catch (e) {}
+}

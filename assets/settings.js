@@ -72,7 +72,31 @@ document.addEventListener('DOMContentLoaded', () => {
           // end via the server, access runs to the paid date, and stage-1
           // reminders take over from there.
           const cancelBtn = document.getElementById('settings-cancel-autopay');
-          if (cancelBtn && student.subscriptionAutopay && student.razorpaySubscriptionId) {
+          // Stripe members manage everything (card, invoices, cancel at period
+          // end) on Stripe's hosted Billing Portal; the server opens it for
+          // their stored customer, never for an id this page sends.
+          const billingBtn = document.getElementById('settings-manage-billing');
+          if (billingBtn && student.billingProvider === 'stripe' && student.stripeSubscriptionId) {
+            billingBtn.style.display = '';
+            if (renewBtn && student.subscriptionAutopay) renewBtn.style.display = 'none';
+            billingBtn.addEventListener('click', () => {
+              billingBtn.disabled = true; billingBtn.textContent = 'Opening billing…';
+              let fns = null;
+              try { fns = firebase.app().functions(); } catch (e) {}
+              const fail = (msg) => {
+                showToast('error', msg);
+                billingBtn.disabled = false; billingBtn.textContent = 'Manage billing (card, invoices, cancel)';
+              };
+              if (!fns) { fail('Billing is unavailable right now. Please try again.'); return; }
+              fns.httpsCallable('stripePortal')({}).then((res) => {
+                const url = res && res.data && res.data.url;
+                if (!url || url.indexOf('https://billing.stripe.com/') !== 0) throw new Error('Could not open billing.');
+                window.location.assign(url);
+              }).catch((err) => fail('Could not open billing: ' + ((err && err.message) || err)));
+            });
+          }
+          if (cancelBtn && student.subscriptionAutopay && student.razorpaySubscriptionId &&
+              student.billingProvider !== 'stripe') {
             cancelBtn.style.display = '';
             cancelBtn.addEventListener('click', () => {
               if (!confirm('Switch off auto-renewal?\n\nYour ' + (student.plan || 'plan') +

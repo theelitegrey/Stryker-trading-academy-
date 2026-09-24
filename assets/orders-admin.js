@@ -3,6 +3,15 @@
 
 let ALL_ORDERS = [];
 
+// Which gateway took the money. Older coupon-only orders have no gateway.
+function orderProviderLabel(order){
+  const g = String(order.provider || order.gateway || '');
+  if (g === 'stripe') return 'Stripe';
+  if (g === 'razorpay-subscription') return 'Razorpay AutoPay';
+  if (g === 'razorpay') return 'Razorpay';
+  return (order.finalAmount > 0) ? '—' : 'Coupon';
+}
+
 function renderOrderRow(order){
   const createdDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
   const dateLabel = createdDate ? createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -17,6 +26,7 @@ function renderOrderRow(order){
       '<div class="record-stat"><span class="rs-label">Coupon</span><span class="rs-val" style="font-family:var(--font-mono);">' + stkEsc(order.couponCode || '—') + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Amount</span><span class="rs-val">' +
         (order.currency === 'INR' ? '₹' : '$') + (order.finalAmount != null ? order.finalAmount : 0) + '</span></div>' +
+      '<div class="record-stat"><span class="rs-label">Provider</span><span class="rs-val">' + stkEsc(orderProviderLabel(order)) + '</span></div>' +
       '<div class="record-stat"><span class="rs-label">Date</span><span class="rs-val">' + dateLabel + '</span></div>' +
     '</div>';
   return row;

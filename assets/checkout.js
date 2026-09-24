@@ -184,6 +184,11 @@ function updateOrderSummary(){
   }
 
   const completeBtn = document.getElementById('checkout-complete-btn');
+  const disclosure = document.getElementById('checkout-renew-disclosure');
+  const payInr = document.getElementById('checkout-pay-inr');
+  if (disclosure) disclosure.style.display = 'none';
+  if (payInr) payInr.style.display = (typeof strykerCurrency === 'function' && strykerCurrency() !== 'INR' && price > 0) ? '' : 'none';
+  checkoutGatewayChrome(checkoutUsesStripe());
 
   if (price <= 0) {
     // Genuinely free plan — no coupon needed, nothing to discount.
@@ -206,6 +211,23 @@ function updateOrderSummary(){
   const autopayOn = autopayOk && autopayBox && autopayBox.checked;
   const cycle = (typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) === 'year') ? 'year' : 'month';
 
+  const discount = APPLIED_COUPON ? computeDiscount(APPLIED_COUPON, price) : 0;
+  const total = Math.max(price - discount, 0);
+
+  // Every non-INR buyer of a renewing plan subscribes through Stripe. The
+  // renewal terms sit directly above the button (automatic-renewal laws).
+  if (checkoutUsesStripe() && total > 0) {
+    document.getElementById('checkout-discount').textContent = APPLIED_COUPON ? '-' + checkoutFmt(discount) : '—';
+    document.getElementById('checkout-total').textContent = checkoutFmt(total);
+    completeBtn.disabled = false;
+    completeBtn.textContent = 'Subscribe: ' + checkoutFmt(total) + ' today';
+    if (disclosure) {
+      disclosure.innerHTML = checkoutRenewalText(price, total, cycle);
+      disclosure.style.display = '';
+    }
+    return;
+  }
+
   if (!APPLIED_COUPON) {
     document.getElementById('checkout-discount').textContent = '—';
     document.getElementById('checkout-total').textContent = checkoutFmt(price);
@@ -216,12 +238,122 @@ function updateOrderSummary(){
     return;
   }
 
-  const discount = computeDiscount(APPLIED_COUPON, price);
-  const total = Math.max(price - discount, 0);
   document.getElementById('checkout-discount').textContent = '-' + checkoutFmt(discount);
   document.getElementById('checkout-total').textContent = checkoutFmt(total);
   completeBtn.disabled = false;
   completeBtn.textContent = total > 0 ? 'Pay ' + checkoutFmt(total) + ' securely' : 'Complete order';
+}
+
+// ---- Stripe (every non-INR buyer) ---------------------------------------------
+// Show the payment marks and the note for the gateway this buyer will use.
+function checkoutGatewayChrome(stripe){
+  document.querySelectorAll('.pay-chip-inr').forEach((el) => { el.style.display = stripe ? 'none' : 'inline-flex'; });
+  document.querySelectorAll('.pay-chip-card').forEach((el) => { el.style.display = stripe ? 'inline-flex' : 'none'; });
+  const note = document.getElementById('checkout-gateway-note');
+  if (note) {
+    note.textContent = stripe
+      ? 'Pay securely by card, Apple Pay or Google Pay on Stripe\'s checkout page. Or apply a coupon first and pay the discounted total.'
+      : 'Pay securely by card or UPI via Razorpay — or apply a coupon first and pay the discounted total.';
+  }
+}
+
+// Routing: INR viewers keep Razorpay, unchanged. Everyone else buying a plan
+// that renews goes to Stripe's hosted Checkout page (card, Apple Pay, Google
+// Pay); a plan that never renews stays a one-time Razorpay charge.
+function checkoutUsesStripe(){
+  if (!CHECKOUT_PLAN) return false;
+  const cur = (typeof strykerCurrency === 'function') ? strykerCurrency() : 'USD';
+  const renews = typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) !== 'none';
+  return cur !== 'INR' && renews;
+}
+
+// The auto-renew disclosure shown above the Pay button. DRAFT wording,
+// pending content-developer approval.
+function checkoutRenewalText(price, total, cycle){
+  const per = cycle === 'year' ? 'year' : 'month';
+  const first = total < price
+    ? 'You pay ' + checkoutFmt(total) + ' today, then ' + checkoutFmt(price) + ' every ' + per
+    : 'You pay ' + checkoutFmt(price) + ' today and every ' + per + ' after that';
+  return '<b style="color:var(--ink-0);">Auto-renews until you cancel.</b> ' + first +
+    ', charged to the card you use at checkout, until you cancel. Cancel any time in ' +
+    '<a href="settings.html" style="color:var(--teal); text-decoration:underline;">Settings</a> &gt; Manage billing, and ' +
+    'you keep access until the end of the period you paid for. See the ' +
+    '<a href="refund-policy.html" style="color:var(--teal); text-decoration:underline;">refund policy</a>.';
+}
+
+function launchStripe(btn, errEl){
+  let fns = null;
+  try { fns = firebase.app().functions(); } catch (e) {}
+  if (!fns) {
+    errEl.textContent = 'Payments are not available right now.';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Opening secure checkout…';
+  // TODO(meta-pixel): InitiateCheckout fires here once the pixel branch lands.
+  fns.httpsCallable('stripeCreateCheckout')({
+    planId: CHECKOUT_PLAN.id,
+    couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null
+  }).then((res) => {
+    const url = res && res.data && res.data.url;
+    if (!url || url.indexOf('https://checkout.stripe.com/') !== 0) throw new Error('The checkout page could not be opened.');
+    window.location.assign(url);
+  }).catch((err) => {
+    errEl.textContent = (err && err.message) || 'Could not open checkout.';
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    updateOrderSummary();
+  });
+}
+
+// Back from Stripe: ?stripe=success waits for the webhook to grant the plan
+// (the page never grants anything itself); ?stripe=cancel says nothing was charged.
+function handleStripeReturn(uid){
+  const q = new URLSearchParams(window.location.search);
+  const state = q.get('stripe');
+  if (!state) return;
+  const okEl = document.getElementById('checkout-success');
+  const errEl = document.getElementById('checkout-error');
+  const clean = () => {
+    try {
+      const u = new URL(window.location.href);
+      ['stripe', 'session_id'].forEach((k) => u.searchParams.delete(k));
+      history.replaceState(null, '', u.pathname + u.search);
+    } catch (e) {}
+  };
+  if (state === 'cancel') {
+    errEl.textContent = 'Checkout was cancelled, so you haven\'t been charged. You can try again below.';
+    errEl.style.display = 'block';
+    clean();
+    return;
+  }
+  if (state !== 'success') return;
+  const ref = (q.get('session_id') || '').replace(/[^A-Za-z0-9_]/g, '').slice(-12);
+  okEl.innerHTML = '<b>Payment received, setting up your access…</b> This usually takes a few seconds.';
+  okEl.style.display = 'block';
+  document.body.classList.add('checkout-returning');
+  const started = Date.now();
+  let done = false;
+  let unsub = () => {};
+  unsub = db.collection('students').doc(uid).onSnapshot((doc) => {
+    const s = doc.exists ? doc.data() : {};
+    if (done || s.billingProvider !== 'stripe' || !s.stripeSubscriptionId || !((s.paidThroughMillis || 0) > Date.now())) return;
+    if (!((s.paidThroughMillis || 0) > started - 60000)) return;
+    done = true; setTimeout(() => unsub(), 0);
+    okEl.innerHTML = '<b>You\'re in.</b> Your ' + stkEsc(s.plan || 'plan') + ' access is active. Taking you to your dashboard…';
+    // TODO(meta-pixel): Purchase fires here (event_id = the order id) once that branch lands.
+    if (typeof showToast === 'function') showToast('success', 'Payment confirmed: you now have ' + (s.plan || 'your plan') + '.', { title: 'Welcome aboard', duration: 2600 });
+    clean();
+    setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 2200);
+  }, () => {});
+  setTimeout(() => {
+    if (done) return;
+    unsub();
+    okEl.innerHTML = '<b>Your payment went through, and your access is still being set up.</b> Refresh this page in a minute. ' +
+      'If your plan isn\'t active within 10 minutes, email <a href="mailto:support@strykertrading.com" style="color:inherit; text-decoration:underline;">support@strykertrading.com</a>' +
+      (ref ? ' with reference <code>' + ref + '</code>' : '') + '.';
+  }, 45000);
 }
 
 // ---- Razorpay Standard Checkout ---------------------------------------------
@@ -438,6 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     handled = true;
     CHECKOUT_UID = user.uid;
+    handleStripeReturn(user.uid);
 
     const fxReady = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
     const studentReady = db.collection('students').doc(CHECKOUT_UID).get().catch(() => null);
@@ -511,7 +644,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const autopayBox = document.getElementById('checkout-autopay');
         const wantAutopay = autopayRow && autopayRow.style.display !== 'none' &&
                             autopayBox && autopayBox.checked;
-        if (wantAutopay) launchRazorpaySubscription(document.getElementById('checkout-complete-btn'), errEl);
+        if (checkoutUsesStripe()) launchStripe(document.getElementById('checkout-complete-btn'), errEl);
+        else if (wantAutopay) launchRazorpaySubscription(document.getElementById('checkout-complete-btn'), errEl);
         else launchRazorpay(document.getElementById('checkout-complete-btn'), errEl);
         return;
       }

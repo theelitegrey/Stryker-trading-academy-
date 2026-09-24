@@ -140,7 +140,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
         run: |
-          npx --yes wrangler@4 pages deploy /tmp/site \
+          npx --yes wrangler@4.138.0 pages deploy /tmp/site \
             --project-name "${{ steps.proj.outputs.name }}" \
             --branch main \
             --commit-hash "${{ github.sha }}" \

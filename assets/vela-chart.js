@@ -8,6 +8,12 @@
 // exact version. Vela's providers stream free public crypto data from
 // Binance, Coinbase and Hyperliquid — no API keys.
 //
+// SRI (P3-4 audit): these load via dynamic import(), which has no
+// integrity="" attribute to set (that only exists on <script> tags and on
+// <link rel="modulepreload">, and browsers don't check it for import()
+// resolution). Left pinned-only — VELA_BASE below is already locked to an
+// exact version, never a moving tag.
+//
 // ATTRIBUTION: Vela renders its own small watermark on the chart and this
 // page credits it in the footer line. Per its NOTICE terms the watermark must
 // stay unless equivalent visible attribution exists — we keep both, so never

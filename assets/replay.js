@@ -18,6 +18,9 @@
   const RP_MIN_RANK = 1;
   const SPEEDS = [1, 2, 4, 8, 15, 30];
   const LWC_URL = 'https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js';
+  // SRI (P3-4 audit): computed from the exact pinned file above via
+  // `curl -sL "$LWC_URL" | openssl dgst -sha384 -binary | base64`.
+  const LWC_INTEGRITY = 'sha384-KkYqTZlM13Zya6fVUF3IGCBOQ1ehFeJVVgxaVvD/0MebineF9EI8Jkd3NnWNChqN';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n, sign) => { const v = Number(n) || 0; return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -57,7 +60,7 @@
   }
 
   // ---- start / resume -------------------------------------------------------------------
-  function loadLwc() { if (window.LightweightCharts) return Promise.resolve(); if (loadLwc.p) return loadLwc.p; loadLwc.p = new Promise((res, rej) => { const s = document.createElement('script'); s.src = LWC_URL; s.onload = res; s.onerror = () => rej(new Error('The chart engine could not be loaded (cdn.jsdelivr.net). Check your connection or ad-blocker and try again.')); document.head.appendChild(s); }); return loadLwc.p; }
+  function loadLwc() { if (window.LightweightCharts) return Promise.resolve(); if (loadLwc.p) return loadLwc.p; loadLwc.p = new Promise((res, rej) => { const s = document.createElement('script'); s.src = LWC_URL; s.integrity = LWC_INTEGRITY; s.crossOrigin = 'anonymous'; s.onload = res; s.onerror = () => rej(new Error('The chart engine could not be loaded (cdn.jsdelivr.net). Check your connection or ad-blocker and try again.')); document.head.appendChild(s); }); return loadLwc.p; }
   async function startNew() {
     const spec = D.findSymbol($('rp-symbol').value); if (!spec) return;
     const startMs = Date.parse($('rp-start').value + 'T00:00:00Z'); if (!isFinite(startMs)) { toast('Pick a start date', 'error'); return; }

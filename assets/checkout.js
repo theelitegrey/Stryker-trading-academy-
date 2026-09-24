@@ -294,7 +294,15 @@ function launchStripe(btn, errEl){
   }
   btn.disabled = true;
   btn.textContent = 'Opening secure checkout…';
-  // TODO(meta-pixel): InitiateCheckout fires here once the pixel branch lands.
+  // Meta Pixel — deliberately NOT firing InitiateCheckout or Purchase here.
+  // The buyer is redirected off-site to Stripe's own checkout page, so
+  // there is no "start" moment on this page worth logging as InitiateCheckout
+  // beyond the one already fired when the checkout page itself loaded (see
+  // the InitiateCheckout hook further down in this file, which fires once
+  // for the page regardless of which payment method is eventually chosen).
+  // Purchase for Stripe is fired server-side from the Stripe webhook, once
+  // payment is actually confirmed — see handleStripeReturn below for why the
+  // client-side return page doesn't fire it either.
   fns.httpsCallable('stripeCreateCheckout')({
     planId: CHECKOUT_PLAN.id,
     couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null
@@ -345,7 +353,15 @@ function handleStripeReturn(uid){
     if (!((s.paidThroughMillis || 0) > started - 60000)) return;
     done = true; setTimeout(() => unsub(), 0);
     okEl.innerHTML = '<b>You\'re in.</b> Your ' + stkEsc(s.plan || 'plan') + ' access is active. Taking you to your dashboard…';
-    // TODO(meta-pixel): Purchase fires here (event_id = the order id) once that branch lands.
+    // Meta Pixel — deliberately NOT firing Purchase here. The Stripe success
+    // page is reached over an unauthenticated redirect the buyer could
+    // revisit, refresh, or share — firing Purchase client-side on this
+    // onSnapshot would risk double-counting (or firing on a stale/replayed
+    // load) instead of firing exactly once for a confirmed charge. The
+    // authoritative Purchase event (value + currency + event_id =
+    // 'purchase_' + session.id, for dedup with the pixel-side event this
+    // page never sends) is fired server-side from the stripeWebhook handler,
+    // the same place that actually verified the payment with Stripe.
     if (typeof showToast === 'function') showToast('success', 'Payment confirmed: you now have ' + (s.plan || 'your plan') + '.', { title: 'Welcome aboard', duration: 2600 });
     clean();
     setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 2200);
@@ -421,7 +437,11 @@ function launchRazorpay(btn, errEl){
           paymentId: resp.razorpay_payment_id,
           signature: resp.razorpay_signature
         }).then(() => {
-          finishPaidCheckout();
+          // o.amount is in the smallest currency unit (paise/cents) — divide
+          // by 100 to get the actual charged amount, in o.currency. This is
+          // what the buyer was really charged (sale price, minus any coupon,
+          // in whichever currency Razorpay actually billed), not list price.
+          finishPaidCheckout(resp.razorpay_order_id, o.amount / 100, o.currency);
         }).catch((err) => {
           errEl.textContent = 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
             resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
@@ -516,7 +536,7 @@ function launchRazorpaySubscription(btn, errEl){
 // The server has already written the order, claimed the coupon seat, and
 // granted the plan — this is the client-side tail the free path also runs:
 // activity log, referral credit, confirmation, redirect.
-function finishPaidCheckout(){
+function finishPaidCheckout(razorpayOrderId, chargedAmount, chargedCurrency){
   if (typeof logActivity === 'function') {
     logActivity('commerce.order_created',
       'Bought ' + CHECKOUT_PLAN.name + ' via Razorpay' +
@@ -525,6 +545,25 @@ function finishPaidCheckout(){
     logActivity('student.plan_changed',
       'Upgraded their own plan to ' + CHECKOUT_PLAN.name,
       { targetUid: CHECKOUT_UID, detail: 'via razorpay checkout' });
+  }
+  // Meta Pixel — Purchase, only reached after razorpayVerifyPayment above has
+  // confirmed the payment server-side. value/currency are what the buyer was
+  // actually charged (sale price minus any coupon, in whatever currency
+  // Razorpay billed — see launchRazorpay's o.amount/o.currency), not the
+  // plan's USD list price. event_id matches the one the server sends via
+  // metaCapi.sendEvent (functions-src/razorpay.js) for Meta's dedup.
+  // Stripe purchases do NOT go through this function — see launchStripe /
+  // handleStripeReturn below, where the client never fires Purchase at all
+  // (the buyer is redirected off-site; the server fires it from the
+  // Stripe webhook once payment is actually confirmed).
+  if (typeof strykerTrack === 'function' && razorpayOrderId) {
+    try {
+      strykerTrack('Purchase', {
+        value: (chargedAmount != null) ? chargedAmount : CHECKOUT_PLAN.price,
+        currency: chargedCurrency || 'USD',
+        content_name: CHECKOUT_PLAN.name
+      }, 'purchase_' + razorpayOrderId);
+    } catch (e) {}
   }
   const work = [];
   // First-touch attribution for accounts that predate it (client-side only;
@@ -592,6 +631,22 @@ document.addEventListener('DOMContentLoaded', () => {
       CHECKOUT_PLAN = plan;
       renderPlanSummary(CHECKOUT_PLAN);
       updateOrderSummary();
+      // Meta Pixel — InitiateCheckout. Uses the same sale-aware price the
+      // page is showing (checkoutTotalDue: sale price minus any coupon
+      // already applied, list price otherwise) and the page's own currency,
+      // not the raw list price in USD — a buyer in INR on a sale plan must
+      // report the number Meta will actually see charged, not list*1. Fires
+      // once per checkout-page load regardless of which payment method
+      // (Razorpay or Stripe) the buyer ends up choosing below.
+      if (typeof strykerTrack === 'function') {
+        try {
+          strykerTrack('InitiateCheckout', {
+            content_name: CHECKOUT_PLAN.name,
+            value: checkoutTotalDue(),
+            currency: (typeof strykerCurrency === 'function') ? strykerCurrency() : 'USD'
+          });
+        } catch (e) {}
+      }
 
       // Campaign links (`?coupon=WELCOME`) pre-fill and apply the code so the
       // student lands on a ready-to-complete order instead of an empty field.

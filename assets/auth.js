@@ -248,6 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         })
         .then(() => {
+          // Meta Pixel — CompleteRegistration, once account creation actually
+          // succeeded (this .then only runs after createUserWithEmailAndPassword
+          // resolved). event_id shared with the server-side twin fired by
+          // functions-src/metaCapiSignup.js's onCreate trigger for dedup.
+          if (typeof strykerTrack === 'function' && auth.currentUser) {
+            try { strykerTrack('CompleteRegistration', {}, 'signup_' + auth.currentUser.uid); } catch (e) {}
+          }
           if (typeof logActivityBeforeNavigating === 'function') {
             return logActivityBeforeNavigating('auth.signup', 'Created an account').then(routeAfterAuth);
           }

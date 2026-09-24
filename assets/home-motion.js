@@ -234,6 +234,30 @@
     };
   }
 
+  // ---- Shared run/pause gate for the three hero loops (win 3) -------------
+  // The candle canvas rAF loop and the two setIntervals used to run forever,
+  // even scrolled off-screen or backgrounded. They now pause when the hero
+  // leaves the viewport (IntersectionObserver) or the tab is hidden
+  // (visibilitychange), and resume cleanly — no queued-frame burst, because
+  // intervals are fully cleared/recreated and the rAF loop resets its delta
+  // clock on resume instead of catching up.
+  var runnables = [];   // { start: fn, stop: fn }
+  function registerRunnable(r) { runnables.push(r); if (gateActive()) r.start(); }
+
+  var heroVisible = true;   // assume visible until the observer reports in
+  var tabVisible = document.visibilityState !== 'hidden';
+  function gateActive() { return heroVisible && tabVisible; }
+
+  function applyGate() {
+    var active = gateActive();
+    runnables.forEach(function (r) { active ? r.start() : r.stop(); });
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    tabVisible = document.visibilityState !== 'hidden';
+    applyGate();
+  });
+
   // ---- 1. Live price ticker on the chart card ----------------------------
   // The single highest-impact addition: a number that keeps changing reads as
   // a connected feed, which is what makes the whole card feel live rather than
@@ -251,8 +275,9 @@
     var price = 2418.60, base = price, next = walker(7741, 0.9), t = 0;
     var el = document.getElementById('m-price');
     var ch = document.getElementById('m-change');
+    var timer = null;
 
-    setInterval(function () {
+    function tick() {
       t++;
       // Mean-reverting, so it never drifts somewhere implausible over a long
       // session on the page.
@@ -267,7 +292,12 @@
       el.classList.remove('m-tick');
       void el.offsetWidth;               // reflow to restart the animation
       el.classList.add('m-tick');
-    }, 1400);
+    }
+
+    registerRunnable({
+      start: function () { if (!timer) timer = setInterval(tick, 1400); },
+      stop: function () { if (timer) { clearInterval(timer); timer = null; } }
+    });
   }
 
   // ---- 2. Rotating headline word -----------------------------------------
@@ -281,21 +311,38 @@
                  'fill their orders', 'trap the crowd'];
     var i = 0;
     em.classList.add('m-rotate');
-    setInterval(function () {
+    var timer = null, innerTimers = [];
+
+    function clearInner() {
+      innerTimers.forEach(clearTimeout);
+      innerTimers = [];
+    }
+
+    function cycle() {
       em.classList.add('m-out');
-      setTimeout(function () {
+      innerTimers.push(setTimeout(function () {
         i = (i + 1) % words.length;
         em.textContent = words[i];
         em.classList.remove('m-out');
         em.classList.add('m-in-word');
-        setTimeout(function () { em.classList.remove('m-in-word'); }, 500);
-      }, 380);
-    }, 3600);
+        innerTimers.push(setTimeout(function () { em.classList.remove('m-in-word'); }, 500));
+      }, 380));
+    }
+
+    registerRunnable({
+      start: function () { if (!timer) timer = setInterval(cycle, 3600); },
+      stop: function () {
+        if (timer) { clearInterval(timer); timer = null; }
+        clearInner();
+        em.classList.remove('m-out');
+      }
+    });
   }
 
   // ---- 3. Candle rain behind the hero ------------------------------------
   // Canvas, not DOM: dozens of animated elements as divs would thrash layout.
-  // One canvas draws them all in a single frame.
+  // One canvas draws them all in a single frame. Capped at ~30fps — this is
+  // decorative background motion, not something that needs 60.
   function candleField() {
     var hero = document.querySelector('.hero');
     if (!hero || document.getElementById('m-canvas')) return;
@@ -307,6 +354,8 @@
     var ctx = c.getContext('2d');
 
     var candles = [], W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var rafId = null, lastT = null;
+    var FRAME_MS = 1000 / 30;
 
     function size() {
       W = hero.offsetWidth; H = hero.offsetHeight;
@@ -333,7 +382,7 @@
       }
     }
 
-    function frame() {
+    function draw() {
       ctx.clearRect(0, 0, W, H);
       for (var i = 0; i < candles.length; i++) {
         var k = candles[i];
@@ -345,12 +394,30 @@
         ctx.fillRect(k.x + k.w / 2 - 0.5, k.y - 6, 1, k.h + 12);
       }
       ctx.globalAlpha = 1;
-      requestAnimationFrame(frame);
+    }
+
+    function frame(t) {
+      rafId = requestAnimationFrame(frame);
+      // Cap at ~30fps: skip the draw (but keep scheduling) on the frames
+      // that land too soon after the last one actually drawn.
+      if (lastT !== null && (t - lastT) < FRAME_MS) return;
+      lastT = t;
+      draw();
     }
 
     size();
     window.addEventListener('resize', size, { passive: true });
-    requestAnimationFrame(frame);
+
+    registerRunnable({
+      start: function () {
+        if (rafId !== null) return;
+        lastT = null;           // reset the fps clock so resume never bursts
+        rafId = requestAnimationFrame(frame);
+      },
+      stop: function () {
+        if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+      }
+    });
   }
 
   // ---- 5. Scroll progress --------------------------------------------------
@@ -419,6 +486,21 @@
     });
   }
 
+  // ---- Hero visibility observer -------------------------------------------
+  // Feeds the run/pause gate above. Threshold 0 means "any pixel on screen"
+  // still counts as visible, which is the right call for a background layer.
+  function heroObserver() {
+    var hero = document.querySelector('.hero');
+    if (!hero || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        heroVisible = e.isIntersecting;
+        applyGate();
+      });
+    }, { threshold: 0 });
+    io.observe(hero);
+  }
+
   ready(function () {
     livePrice();
     rotatingWord();
@@ -426,6 +508,7 @@
     scrollProgress();
     spotlight();
     cardTilt();
+    heroObserver();
   });
 
 })();

@@ -29,6 +29,7 @@ const PAGES = [
   ['/learn-smt-divergence',  '0.8', 'monthly'],
   ['/learn-volume-profile',  '0.8', 'monthly'],
   ['/learn-order-flow',      '0.8', 'monthly'],
+  ['/learn-how-prop-firms-work', '0.8', 'monthly'],
   ['/cheat-sheet',          '0.7', 'monthly'],
   ['/features',             '0.7', 'monthly'],
   ['/features-curriculum',  '0.6', 'monthly'],

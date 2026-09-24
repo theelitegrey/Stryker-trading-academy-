@@ -37,6 +37,7 @@ quoted from the firm's own page and marked "as of <month year>".
 | 8 | Planned | ict-killzones | ict killzone times | ICT / sessions | 13 |
 | 9 | Written (track funnel) | volume-profile | volume profile | Volume | VP track (VP-01 to VP-06) |
 | 10 | Written (track funnel) | order-flow | order flow trading | Order flow | VP track (VP-07 to VP-11) |
+| 12 | Written (track funnel) | how-prop-firms-work | how do prop firms work | Prop firms | PF track (PF-01 to PF-03) |
 | 11 | Planned | prop-firm-payouts | prop firm payout rules | Prop firms | 41 |
 | 12 | Planned | multiple-timeframe-analysis | multiple timeframe analysis | Market structure | 16 |
 
@@ -125,4 +126,4 @@ Separate from the core 42 chapters; outline and status in tools/tracks/TRACKS.md
 | Track | IDs | Status | Free funnel articles |
 |---|---|---|---|
 | Volume Profile & Order Flow | VP-01 to VP-12 | Written, reviewed at 390/1440 | /learn-volume-profile, /learn-order-flow |
-| Prop Firm Mastery | PF-01 to PF-10 | Next | /learn-prop-firm-challenge-rules (exists), /learn-prop-firm-payouts (planned, topic 11) |
+| Prop Firm Mastery | PF-01 to PF-10 | Written (branch hermes/content-track-pf) | /learn-prop-firm-challenge-rules (exists), /learn-how-prop-firms-work (written, track funnel), /learn-prop-firm-payouts (planned, topic 11) |

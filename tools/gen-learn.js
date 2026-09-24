@@ -93,6 +93,15 @@ const ARTICLES = [
     dek: 'Market and limit orders, the order book, how CME matches trades, footprint charts, delta and imbalances, worked through on illustrative data, plus the limits of what order flow shows.',
     published: '2026-09-24', modified: '2026-09-24',
     cta: 'signup'
+  },
+  {
+    slug: 'how-prop-firms-work',
+    title: 'How Prop Firms Work: Evaluations, Funded Accounts and How They Make Money',
+    short: 'How prop firms work',
+    description: 'How futures and forex prop firms work: the evaluation, what a funded account really is, how firms make money, a worked cost example, and what to check before you pay.',
+    dek: 'The evaluation, what "funded" usually means, where the money goes, a worked cost example with published prices, and a checklist for vetting a firm before you pay.',
+    published: '2026-09-25', modified: '2026-09-25',
+    cta: 'signup'
   }
 ];
 

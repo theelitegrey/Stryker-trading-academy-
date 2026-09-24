@@ -146,7 +146,7 @@ Firm rules are quoted as of September 2026 from each firm's own help pages.
 
 Free Learn funnel articles:
 - /learn-prop-firm-challenge-rules (live on batch 2)
-- /learn-how-prop-firms-work
+- /learn-how-prop-firms-work (written, 1,937 words)
 - /learn-prop-firm-payouts
 
 ## Overlaps flagged in the core curriculum

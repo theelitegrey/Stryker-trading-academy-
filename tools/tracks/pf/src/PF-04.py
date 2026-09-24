@@ -90,8 +90,7 @@ body = [
     '<p>There are three main designs.</p>',
     fig_types,
     '<h3>Static</h3>',
-    '<p>A <strong>static</strong> floor never moves. On a $50K account with a $2,000 limit, the floor is $48,000 for the life of the account. Apex lists a 100K Static plan with a $625 drawdown, '
-    'and many forex/CFD firms use a static overall limit (Blue Guardian\'s 2-Step lists 8%% static, as of %s).</p>' % AS_OF,
+    '<p>A <strong>static</strong> floor never moves. On a $50K account with a $2,000 limit, the floor is $48,000 for the life of the account. Many forex/CFD firms use a static overall limit (Blue Guardian\'s 2-Step lists 8%% static, as of %s).</p>' % AS_OF,
     '<h3>End-of-day (EOD) trailing</h3>',
     '<p>An <strong>EOD trailing</strong> floor moves up only when your account <em>closes the day</em> at a new high. Topstep\'s example: start at $50,000 with the limit at $48,000; '
     'make $500 on day 1 and the limit trails up to $48,500; lose $500 on day 2 and it stays at $48,500. Tradeify describes its version the same way: it "recalculates only at market close", '
@@ -145,7 +144,7 @@ body = [
     '<h2>Time rules</h2>',
     '<ul>'
     '<li><strong>Close time:</strong> most futures firms are day-trade only. Tradeify requires all positions closed by 4:45 p.m. ET; Topstep\'s day ends at 3:10 p.m. CT.</li>'
-    '<li><strong>Minimum days:</strong> Apex\'s evaluation page lists a seven-day minimum; MFFU lists 2 days; LucidMaxx lists 5. Topstep says you can pass "in as few as two days".</li>'
+    '<li><strong>Minimum days:</strong> Apex\'s current EOD and intraday evaluations list no minimum; Tradeify Growth lists 1 day and Select 3; MFFU lists 2; LucidMaxx lists 5. Topstep says you can pass "in as few as two days".</li>'
     '<li><strong>Inactivity:</strong> MFFU\'s Flex sim funded page lists a 7-calendar-day inactivity rule. Going quiet can close an account.</li>'
     '<li><strong>News:</strong> MFFU\'s news-restricted accounts must be flat from 2 minutes before to 2 minutes after Tier 1 releases; Topstep prohibits trading your full maximum size into a scheduled major news event.</li>'
     '</ul>',
@@ -210,7 +209,8 @@ src = [
     ('Consistency at Topstep - Topstep Help Center', 'https://help.topstep.com/en/articles/8284208-consistency-at-topstep'),
     ('Prohibited Trading Strategies at Topstep - Topstep Help Center', 'https://help.topstep.com/en/articles/10305426-prohibited-trading-strategies-at-topstep'),
     ('Intraday Trailing Drawdown Explained - Apex Trader Funding Help Center', 'https://apextraderfunding.com/help-center/intraday-trailing-drawdown-accounts/intraday-trailing-drawdown-explained/'),
-    ('Evaluation Rules - Apex Trader Funding Support', 'https://support.apextraderfunding.com/hc/en-us/articles/31519769997083-Evaluation-Rules'),
+    ('EOD Evaluations - Apex Trader Funding Help Center', 'https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-evaluations'),
+    ('SELECT vs Growth: Choosing Your Evaluation Type - Tradeify Help Center', 'https://help.tradeify.co/en/articles/13252431-select-vs-growth-choosing-your-evaluation-type'),
     ('EOD Performance Accounts (PA) - Apex Trader Funding Help Center', 'https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-performance-accounts-pa/'),
     ('EOD Payouts - Apex Trader Funding Help Center', 'https://apextraderfunding.com/help-center/eod-trailing-drawdown-accounts/eod-payouts/'),
     ('Essential Trading Rules Overview - Tradeify Help Center', 'https://help.tradeify.co/en/articles/12268167-essential-trading-rules-overview'),

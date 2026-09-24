@@ -136,9 +136,9 @@ Firm rules are quoted as of September 2026 from each firm's own help pages.
 | PF-01 | What Prop Firms Are & How They Make Money | foundation | reviewed | 2378 | 9 |
 | PF-02 | Futures vs Forex/CFD Firms & the Regulatory Landscape | foundation | reviewed | 2193 | 13 |
 | PF-03 | How to Vet a Prop Firm | foundation | reviewed | 2092 | 12 |
-| PF-04 | The Rules Deep Dive | intermediate | reviewed | 2058 | 15 |
-| PF-05 | Major Firms Compared (as of September 2026) | intermediate | todo | | |
-| PF-06 | Passing the Evaluation: Sizing, Risk Plan & Frequency | intermediate | todo | | |
+| PF-04 | The Rules Deep Dive | intermediate | reviewed | 2068 | 16 |
+| PF-05 | Major Firms Compared (as of September 2026) | intermediate | reviewed | 2046 | 16 |
+| PF-06 | Passing the Evaluation: Sizing, Risk Plan & Frequency | intermediate | reviewed | 2034 | 7 |
 | PF-07 | The Funded Stage: Buffers, Payouts & Withdrawals | intermediate | todo | | |
 | PF-08 | Psychology & Failure Modes | intermediate | todo | | |
 | PF-09 | Multiple Accounts, Copy Trading & Automation Rules | advanced | todo | | |

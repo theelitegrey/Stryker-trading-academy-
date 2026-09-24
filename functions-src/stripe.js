@@ -92,6 +92,21 @@ function subPeriodEnd(sub) {
 }
 const SIG_TOLERANCE_S = 300;
 
+// While the key is a TEST key the functions are deployed to production but
+// must not be usable by real members: a test card would otherwise buy a real
+// plan. In test mode only admins and QA throwaways (stryker-qa-*@example.com)
+// may open a checkout. Live keys skip this entirely.
+const QA_EMAIL = /^stryker-qa-[a-z0-9._-]+@example\.com$/i;
+function isTestKey() { return /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY || ''); }
+async function testModeGate(uid, context) {
+  if (!isTestKey()) return;
+  const email = String((context.auth.token && context.auth.token.email) || '');
+  if (QA_EMAIL.test(email)) return;
+  const adm = await db.collection('admins').doc(uid).get();
+  if (adm.exists) return;
+  throw new functions.https.HttpsError('failed-precondition', 'Card payments are not open yet.');
+}
+
 const siteOrigin = () => (process.env.SITE_ORIGIN || 'https://strykertrading.com').replace(/\/$/, '');
 
 function requireAuth(context) {
@@ -243,6 +258,7 @@ exports.stripeCreateCheckout = functions
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     stripeKey();
+    await testModeGate(uid, context);
     const planId = String((data && data.planId) || '');
     const couponCode = String((data && data.couponCode) || '').trim().toUpperCase() || null;
 

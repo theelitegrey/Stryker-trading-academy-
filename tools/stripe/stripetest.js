@@ -149,7 +149,7 @@ function reset() {
   };
   STRIPE_SUBS = {};
 }
-const ctx = (uid) => ({ auth: { uid, token: { email: uid + '@example.com', name: 'U ' + uid } } });
+const ctx = (uid) => ({ auth: { uid, token: { email: 'stryker-qa-' + uid.toLowerCase() + '@example.com', name: 'U ' + uid } } });
 
 let fails = 0;
 function check(label, got, want) {
@@ -356,6 +356,17 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
   check('portal returns to settings', /\/settings\.html$/.test(sent[0].b.return_url), true);
   await rejects('second checkout while subscribed is refused', checkout({ planId: 'ELITE' }, 'u9'), 'already-exists');
   await rejects('stripeStatus is admin-only', ST.stripeStatus({}, ctx('u9')), 'permission-denied');
+  // Test-mode gate: a real member can't buy with a test key; QA throwaways and admins can.
+  {
+    let msg = '';
+    try { await ST.stripeCreateCheckout({ planId: 'PRO' }, { auth: { uid: 'realmember', token: { email: 'someone@gmail.com' } } }); }
+    catch (e) { msg = e.message; }
+    check('test key: real member refused', /not open yet/.test(msg), true);
+    DB['admins/admgate'] = { x: 1 };
+    let ok = false;
+    try { const r = await ST.stripeCreateCheckout({ planId: 'PRO' }, { auth: { uid: 'admgate', token: { email: 'owner@gmail.com' } } }); ok = !!r.url; } catch (e) { ok = e.message; }
+    check('test key: admin allowed', ok, true);
+  }
   DB['admins/adm'] = { x: 1 };
   sent = [];
   const st = await ST.stripeStatus({}, ctx('adm'));

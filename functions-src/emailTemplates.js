@@ -230,7 +230,7 @@ const EMAILS = [
         B.steps([
           { title: 'Read Chapter 1', text: "The chapters are built to be read in order. Start there if you're new to any of this." },
           { title: 'Keep the cheat sheet next to your charts', text: 'It fits on two pages, so it is quick to check mid-session.' },
-          { title: 'Watch your inbox', text: 'Over the next two weeks: a practical mini lesson, a real chart breakdown, and, ' +
+          { title: 'Watch your inbox', text: 'Over the next two weeks: a practical mini lesson, a chart breakdown, and, ' +
             'because we know "trust me" isn\'t worth much, some actual proof behind who\'s teaching this.' }
         ]),
         signoff()
@@ -257,11 +257,11 @@ const EMAILS = [
           { title: 'Check for empty space', text: "If the wicks don't overlap, the middle candle's aggressive move left a gap. " +
             'Not a guess, not a feeling: a mechanical check you can run on any chart.' },
           { title: 'Use it with other signals', text: 'Treat it as a potential entry zone (in the direction of your bias) or a ' +
-            'potential target (in the opposite direction). An FVG inside an order block carries more weight than one sitting alone.' }
+            'potential target (in the opposite direction). Many traders give more weight to an FVG that sits inside an order block than to one on its own.' }
         ]),
         B.h2('Why it matters'),
-        B.p('The gap is often read as an imbalance between buying and selling pressure, and price often returns to it ' +
-          'later. Not because markets "remember" anything mystical: the common explanation is that the range was traded ' +
+        B.p('The gap is often read as an imbalance between buying and selling pressure, and traders watch for price to ' +
+          'return to it later. Not because markets "remember" anything mystical: the common explanation is that the range was traded ' +
           'in one direction only, so traders expect price may come back to it.'),
         B.p('We wrote up the full breakdown, with diagrams, as a free guide.'),
         B.cta(url, 'Read the full guide'),

@@ -164,18 +164,29 @@ document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('chapter-render-target');
   if (container) showLoadingAnimation(container, 'Loading curriculum…');
 
-  loadChapters().then(() => renderChapters('all'));
-
   if (!auth) {
-    // Firebase failed to init — still let the curriculum render, just as a
-    // guest (matches how chapter.html degrades in the same situation).
+    // Firebase failed to init entirely — treat as a guest, but chapters
+    // still render from the bundled seed (loadChapters() falls back to
+    // CHAPTERS_SEED whenever `db` is unavailable, so this is a local read,
+    // never a Firestore call).
+    loadChapters().then(() => renderChapters('all'));
     showGuestPaywall(true);
     return;
   }
 
   auth.onAuthStateChanged((user) => {
     showGuestPaywall(!user);
-    if (user && typeof db !== 'undefined' && db) {
+    if (!user) {
+      // Signed out: the curriculum stays fully behind the paywall overlay
+      // (see showGuestPaywall above), so there is nothing to render here —
+      // skip the `chapters` read entirely rather than firing it and eating
+      // the resulting Firestore rules rejection. Rules require signedIn()
+      // on chapters/models/indicators; reading any of them while signed out
+      // only ever produced a console "Missing or insufficient permissions"
+      // error with no visible effect (dev audit P3-7).
+      return;
+    }
+    if (typeof db !== 'undefined' && db) {
       STUDENT_SIGNED_IN = true;
       const planLookup = db.collection('students').doc(user.uid).get()
         .then((doc) => {
@@ -186,10 +197,14 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .catch(() => {});
       const rolesLookup = (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve();
-      Promise.all([planLookup, rolesLookup]).then(() => {
+      Promise.all([loadChapters(), planLookup, rolesLookup]).then(() => {
         const activeTab = document.querySelector('.level-tab.active');
         renderChapters(activeTab ? activeTab.dataset.level : 'all');
       });
+    } else {
+      // Signed in, but Firestore itself is unavailable — still show the
+      // bundled chapters rather than leaving the loading animation forever.
+      loadChapters().then(() => renderChapters('all'));
     }
   });
 });

@@ -69,9 +69,27 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 const STRIPE_API = 'https://api.stripe.com/v1/';
-// Pinned: the payload shapes below (subscription.current_period_end,
-// invoice.subscription, invoice.subscription_details) are this version's.
+// Pinned for our own API calls. Webhook EVENTS arrive in the endpoint's (or the
+// account's) API version, which may be newer (2025+ "basil"/"dahlia" moved
+// invoice.subscription to invoice.parent.subscription_details and
+// current_period_end onto subscription items), so everything read from an
+// event goes through the version-tolerant helpers below.
 const STRIPE_VERSION = '2024-06-20';
+
+function invSubId(inv) {
+  if (inv.subscription) return typeof inv.subscription === 'string' ? inv.subscription : inv.subscription.id;
+  const d = inv.parent && inv.parent.subscription_details;
+  return (d && (typeof d.subscription === 'string' ? d.subscription : d.subscription && d.subscription.id)) || null;
+}
+function invSubMeta(inv) {
+  return (inv.subscription_details && inv.subscription_details.metadata) ||
+    (inv.parent && inv.parent.subscription_details && inv.parent.subscription_details.metadata) || {};
+}
+function subPeriodEnd(sub) {
+  if (sub.current_period_end) return sub.current_period_end;
+  const ends = ((sub.items && sub.items.data) || []).map((i) => i.current_period_end).filter(Boolean);
+  return ends.length ? Math.max.apply(null, ends) : null;
+}
 const SIG_TOLERANCE_S = 300;
 
 const siteOrigin = () => (process.env.SITE_ORIGIN || 'https://strykertrading.com').replace(/\/$/, '');
@@ -386,7 +404,7 @@ async function onCheckoutCompleted(session) {
     customerId: rec.customerId, priceId: rec.priceId, renewCents: rec.baseCents,
     baseUsd: rec.baseUsd, couponCode: rec.couponCode || null, sessionId: session.id,
     status: sub.status, cancelAtPeriodEnd: !!sub.cancel_at_period_end,
-    currentPeriodEnd: sub.current_period_end, latestInvoice: sub.latest_invoice || null,
+    currentPeriodEnd: subPeriodEnd(sub), latestInvoice: sub.latest_invoice || null,
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   }, { merge: true });
 
@@ -420,7 +438,7 @@ async function onCheckoutCompleted(session) {
     }).catch(() => {});
   }
 
-  await grantThrough(rec.uid, rec.planName, rec.planId, sub.current_period_end, {
+  await grantThrough(rec.uid, rec.planName, rec.planId, subPeriodEnd(sub), {
     subscriptionAutopay: !sub.cancel_at_period_end,
     stripeCustomerId: rec.customerId,
     stripeSubscriptionId: sub.id
@@ -432,15 +450,15 @@ async function onCheckoutCompleted(session) {
 }
 
 async function onInvoicePaid(inv) {
-  const subId = inv.subscription;
+  const subId = invSubId(inv);
   if (!subId) return 'ignored: no subscription';
   if (String(inv.currency || '').toLowerCase() !== 'usd') return 'ignored: currency ' + inv.currency;
-  const meta = (inv.subscription_details && inv.subscription_details.metadata) || {};
-  const rec = await subRecord(subId, meta);
+  const rec = await subRecord(subId, invSubMeta(inv));
   if (!rec) { console.warn('stripeWebhook: invoice for unknown subscription', subId); return 'unknown subscription'; }
 
-  const line = (inv.lines && inv.lines.data || []).find((l) => l.period && l.period.end) || null;
-  const periodEnd = line ? line.period.end : null;
+  // Latest service period on the invoice (the subscription line; prorations end earlier).
+  const ends = ((inv.lines && inv.lines.data) || []).map((l) => l.period && l.period.end).filter(Boolean);
+  const periodEnd = ends.length ? Math.max.apply(null, ends) : null;
   if (!periodEnd) return 'no period';
 
   // Renewals must be for what this subscription costs (a first invoice may be
@@ -486,7 +504,9 @@ async function onInvoicePaid(inv) {
 }
 
 async function onInvoiceFailed(inv) {
-  const rec = await subRecord(inv.subscription, (inv.subscription_details && inv.subscription_details.metadata) || {});
+  const subId = invSubId(inv);
+  if (!subId) return 'ignored: no subscription';
+  const rec = await subRecord(subId, invSubMeta(inv));
   if (!rec) return 'unknown subscription';
   if (rec.ref && !rec.pending) {
     await rec.ref.set({ lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -511,7 +531,7 @@ async function onSubscriptionChanged(sub, deleted) {
     ['active', 'trialing', 'past_due'].includes(sub.status);
   if (rec.ref && !rec.pending) {
     await rec.ref.set({ status: deleted ? 'canceled' : sub.status, cancelAtPeriodEnd: !!sub.cancel_at_period_end,
-      currentPeriodEnd: sub.current_period_end || null }, { merge: true });
+      currentPeriodEnd: subPeriodEnd(sub) }, { merge: true });
   }
   const stu = db.collection('students').doc(rec.uid);
   const snap = await stu.get();

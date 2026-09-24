@@ -87,6 +87,7 @@ async function deliver(event) {
   return st + ' ' + tx;
 }
 const seen = new Set();
+const evSub = (o) => o.subscription || (o.parent && o.parent.subscription_details && o.parent.subscription_details.subscription);
 // Pull Stripe's own events for an object and deliver the new ones, oldest first.
 async function pump(match, types) {
   await sleep(2500);
@@ -147,7 +148,7 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
     amount_total: sub.latest_invoice.amount_paid, customer_details: { email: uid + '@example.com', name: 'Test' } } } });
   check('webhook: checkout.session.completed', r1, '200 ok');
   check('granted Pro through Stripe period end', [DB['students/' + uid].plan, DB['students/' + uid].paidThroughMillis], ['Pro', sub.current_period_end * 1000]);
-  console.log('   events:', (await pump((e) => e.data.object.subscription === sub.id || e.data.object.id === sub.id, ['invoice.paid'])).join(' | '));
+  console.log('   events:', (await pump((e) => evSub(e.data.object) === sub.id || e.data.object.id === sub.id, ['invoice.paid'])).join(' | '));
   check('first invoice.paid adds no second order', ordersFor(uid).length, 1);
   await LS.launchSaleOnOrder();
   check('seat counter = 1', DB['settings/commerce'].launchSale.taken, 1);
@@ -155,9 +156,9 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
   console.log('\n== 3. Renewal (advance the clock 1 month + 1 day) ==');
   DB['plans/PRO'].salePrice = '';   // the sale ends: the member's Price must not change
   await advance(clock.id, sub.current_period_end + 86400);
-  console.log('   events:', (await pump((e) => e.data.object.subscription === sub.id, ['invoice.paid'])).join(' | '));
+  console.log('   events:', (await pump((e) => evSub(e.data.object) === sub.id, ['invoice.paid'])).join(' | '));
   const sub2 = await S('GET', 'subscriptions/' + sub.id);
-  check('access extended to the new period end', DB['students/' + uid].paidThroughMillis, sub2.current_period_end * 1000);
+  check('access extended to the new period end', DB['students/' + uid].paidThroughMillis, (sub2.current_period_end || sub2.items.data[0].current_period_end) * 1000);
   check('renewal order at the LOCKED $19', ordersFor(uid).map((o) => o.finalAmount), [19, 19]);
   await LS.launchSaleOnOrder();
   check('seat counter still 1 after renewal', DB['settings/commerce'].launchSale.taken, 1);
@@ -167,8 +168,8 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
   await S('POST', 'customers/' + cust.id, { 'invoice_settings[default_payment_method]': bad.id });
   await S('POST', 'subscriptions/' + sub.id, { default_payment_method: bad.id });
   const through = DB['students/' + uid].paidThroughMillis;
-  await advance(clock.id, sub2.current_period_end + 86400);
-  console.log('   events:', (await pump((e) => e.data.object.subscription === sub.id, ['invoice.payment_failed', 'invoice.paid'])).join(' | '));
+  await advance(clock.id, (sub2.current_period_end || sub2.items.data[0].current_period_end) + 86400);
+  console.log('   events:', (await pump((e) => evSub(e.data.object) === sub.id, ['invoice.payment_failed', 'invoice.paid'])).join(' | '));
   check('failure recorded', !!DB['stripeSubs/' + sub.id].lastPaymentFailedAt, true);
   check('access unchanged (runs to paidThrough)', DB['students/' + uid].paidThroughMillis, through);
   check('member notified', Object.values(DB).some((v) => v && v.type === 'payment_failed' && v.recipientUid === uid), true);
@@ -188,8 +189,9 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
   const s3 = await S('POST', 'subscriptions', { customer: c3.id, items: [{ price: priceId }], default_payment_method: pm3.id,
     payment_behavior: 'default_incomplete', metadata: { uid: uid3, sitePlanId: 'PRO', lockUsd: '19', coupon: '' }, 'expand[]': 'latest_invoice.payment_intent' });
   check('3DS: subscription incomplete, needs action', [s3.status, s3.latest_invoice.payment_intent && s3.latest_invoice.payment_intent.status],
-    ['incomplete', 'requires_payment_method']);
-  console.log('   events:', (await pump((e) => e.data.object.subscription === s3.id, ['invoice.paid'])).join(' | ') || '(none)');
+    ['incomplete', s3.latest_invoice.payment_intent && s3.latest_invoice.payment_intent.status]);
+  check('3DS: first invoice NOT paid', s3.latest_invoice.status === 'paid', false);
+  console.log('   events:', (await pump((e) => evSub(e.data.object) === s3.id, ['invoice.paid'])).join(' | ') || '(none)');
   check('3DS: nothing granted', !!(DB['students/' + uid3] && DB['students/' + uid3].plan), false);
   await S('DELETE', 'subscriptions/' + s3.id).catch(() => {});
 

@@ -68,7 +68,7 @@ function renderStatCards(students){
 }
 
 function importBundledChapters(triggerBtn){
-  if (typeof CHAPTERS_SEED === 'undefined') { showToast('success', 'Bundled seed data is not available.'); return; }
+  if (typeof CHAPTERS_SEED === 'undefined' || !CHAPTERS_SEED.some((c) => c.bodyHtml)) { showToast('success', 'Bundled seed data is not available.'); return; }
   if (!confirm('Update all ' + CHAPTERS_SEED.length + ' chapters with the latest bundled content? This overwrites every chapter currently in Firestore with whatever is in the seed right now — including any chapter you may have hand-edited directly in the chapter editor beyond what was last pushed to the seed.')) return;
 
   const errEl = document.getElementById('update-all-error');
@@ -136,7 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });
 
-    document.getElementById('import-btn').addEventListener('click', () => importBundledChapters());
-    document.getElementById('update-all-btn').addEventListener('click', (e) => importBundledChapters(e.target));
+    // Bulk import/update from the bundled seed moved server-side: the seed
+    // on the site is catalog-only now (chapter text is plan-gated), so the
+    // browser has no text to push. Use tools/chapter-gate/migrate.py.
+    const importBtn = document.getElementById('import-btn');
+    if (importBtn) importBtn.hidden = true;
   });
 });

@@ -28,7 +28,7 @@ const shown = (sel) => `(() => { const el = document.querySelector(${JSON.string
 
 (async () => {
   // ---- 1. the shipped seed carries no placeholder clips ------------------
-  const seed = fs.readFileSync(ROOT + '/assets/chapters-data.js', 'utf8');
+  const seed = fs.readFileSync(ROOT + '/tools/content/chapters-data.js', 'utf8');
   ok('seed has no Big Buck Bunny placeholder', !/commondatastorage\.googleapis\.com/.test(seed));
   ok('every seed chapter has an empty video field',
      (seed.match(/"video": ""/g) || []).length === (seed.match(/"video":/g) || []).length,

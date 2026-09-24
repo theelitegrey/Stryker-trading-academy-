@@ -496,7 +496,7 @@ function announceSource(kind, id, d) {
     if (!d.title || /^untitled/i.test(d.title)) return null;
     const lessons = (d.lessons || []).map((l) => l.title).filter(Boolean).slice(0, 6);
     return { title: d.title, source: { type: 'New curriculum chapter', number: d.num || id, title: d.title,
-             level: d.level || null, duration: d.dur || null, lessons, firstParagraph: (d.paragraphs || [])[0] || null } };
+             level: d.level || null, duration: d.dur || null, lessons, firstParagraph: d.preview || (d.paragraphs || [])[0] || null } };
   }
   if (kind === 'model') {
     if (!d.name || /^untitled/i.test(d.name)) return null;

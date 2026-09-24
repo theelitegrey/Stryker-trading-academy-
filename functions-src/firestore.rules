@@ -99,7 +99,28 @@ service cloud.firestore {
     // away. Requiring sign-in is the minimum fix; gating by plan needs the
     // body text moved into a subcollection, since rules cannot hide fields.
     // ---------------------------------------------------------------------
+    // Chapter CATALOG (titles, levels, lesson titles, teaser): any member.
+    // The paid text lives in chapterBodies, gated by plan rank below.
     match /chapters/{id}            { allow read: if signedIn(); allow write: if isAdmin(); }
+
+    // Chapter CONTENT. Readable when the chapter is free (minRank 0) or the
+    // reader's plan rank reaches it. plan is a privileged field (functions
+    // and admins only), and the daily sweep lapses expired members to the
+    // entry plan, so access follows payment without any client input.
+    // settings/planAccess.rankByPlan maps plan NAME -> rank; it's kept in
+    // sync from plans/* by the syncPlanAccess function. A missing or unknown
+    // plan counts as rank 0.
+    function planRankOf(uid) {
+      let st = get(/databases/$(database)/documents/students/$(uid)).data;
+      let ranks = get(/databases/$(database)/documents/settings/planAccess).data.rankByPlan;
+      return ('plan' in st && st.plan is string && st.plan in ranks) ? ranks[st.plan] : 0;
+    }
+    match /chapterBodies/{id} {
+      allow read: if isAdmin()
+                  || (signedIn() && (resource.data.minRank == 0
+                                     || planRankOf(request.auth.uid) >= resource.data.minRank));
+      allow write: if isAdmin();
+    }
     match /models/{id}              { allow read: if signedIn(); allow write: if isAdmin(); }
     match /indicators/{id}          { allow read: if signedIn(); allow write: if isAdmin(); }
     match /showcaseIndicators/{id}  { allow read: if signedIn(); allow write: if isAdmin(); }

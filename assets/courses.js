@@ -107,7 +107,7 @@ function renderChapters(filterLevel){
         '<div class="lesson-item"><span class="lnum">0' + (i+1) + '</span><span>' + stkEsc(l.title) + '</span></div>'
       ).join('');
 
-      const preview = ch.paragraphs[0];
+      const preview = stkEsc(ch.preview || '');
 
       el.innerHTML =
         '<div class="chapter-num">' + ch.num + '</div>' +
@@ -119,12 +119,12 @@ function renderChapters(filterLevel){
             // ch.dur is the recording's runtime — omitted while there is no
             // recording, same as on the chapter page itself.
             '<span>' + ch.lessons.length + ' lessons</span>' +
-            (chapterVideoUrl(ch) ? '<span>' + ch.dur + '</span>' : '') +
+            ((chapterVideoUrl(ch) || ch.hasVideo === true) ? '<span>' + ch.dur + '</span>' : '') +
           '</div>' +
           '<div class="chapter-detail"><div class="chapter-detail-inner">' +
             '<div><h5>What you\'ll learn</h5><p>' + preview + '</p>' +
               '<a class="btn btn-primary btn-sm" style="margin-top:14px; display:inline-flex;" href="chapter.html?ch=' + ch.num + '">' +
-                (chapterVideoUrl(ch) ? 'Read full chapter &amp; watch video →' : 'Read full chapter →') + '</a></div>' +
+                ((chapterVideoUrl(ch) || ch.hasVideo === true) ? 'Read full chapter &amp; watch video →' : 'Read full chapter →') + '</a></div>' +
             '<div><h5>Lessons</h5>' + lessonsHtml + '</div>' +
           '</div></div>' +
         '</div>' +

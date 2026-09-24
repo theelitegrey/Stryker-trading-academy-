@@ -2,7 +2,7 @@
 // Stryker Trading Academy — homepage curriculum generator
 //
 // Writes the #curriculum "price path" block on index.html from
-// assets/chapters-data.js, so the chapter numbers, titles, level counts and
+// tools/content/chapters-data.js, so the chapter numbers, titles, level counts and
 // ranges on the homepage come from the same data the courses page is seeded
 // from and are never retyped. Everything between the CURRICULUM:GENERATED
 // markers in index.html is replaced; nothing outside them is touched.
@@ -54,7 +54,7 @@ const LEVELS = [
 ];
 
 function loadChapters() {
-  const src = fs.readFileSync(path.join(ROOT, 'assets', 'chapters-data.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'tools', 'content', 'chapters-data.js'), 'utf8');
   const ctx = {};
   vm.createContext(ctx);
   vm.runInContext(src + '\n;this.__C = CHAPTERS_SEED;', ctx);

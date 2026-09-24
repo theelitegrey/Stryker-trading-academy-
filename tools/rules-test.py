@@ -95,6 +95,31 @@ for col in ['stripeCustomers','stripeSessions','stripeSubs','stripeEvents','stri
     c('student reads '+col,'DENY','get','/'+col+'/alice',A,old={'uid':A})
     c('student writes '+col,'DENY','create','/'+col+'/alice',A,res={'uid':A})
 c('admin client writes stripeCustomers','DENY','create','/stripeCustomers/alice',ADM,res={'customerId':'cus_x'})
+# chapter gate: chapterBodies by plan rank
+RANKS={'rankByPlan':{'Starter':0,'Pro':1,'Elite':2}}
+def stu(uid,data): return {'function':'get','args':[{'exactValue':D+'/students/'+uid}],'result':{'value':{'data':data}}}
+cg=[{'function':'get','args':[{'exactValue':D+'/settings/planAccess'}],'result':{'value':{'data':RANKS}}},
+    stu(A,{'plan':'Starter'}), stu(B,{'plan':'Pro'}), stu('carol',{'plan':'Elite'}), stu('dave',{}), stu('erin',{'plan':'Legacy'}),
+    ex('/admins/carol',False), ex('/admins/dave',False), ex('/admins/erin',False)]
+mocks.extend(cg)
+free={'minRank':0,'bodyHtml':'<p>x</p>'}; paid={'minRank':1,'bodyHtml':'<p>x</p>'}
+c('signed-out reads free body','DENY','get','/chapterBodies/01',None,old=free)
+c('Starter reads free body','ALLOW','get','/chapterBodies/01',A,old=free)
+c('Starter reads paid body','DENY','get','/chapterBodies/08',A,old=paid)
+c('Pro reads paid body','ALLOW','get','/chapterBodies/08',B,old=paid)
+c('Elite reads paid body','ALLOW','get','/chapterBodies/08',"carol",old=paid)
+c('Pro reads Elite-only body','DENY','get','/chapterBodies/X',B,old={'minRank':2})
+c('planless student reads paid body','DENY','get','/chapterBodies/08','dave',old=paid)
+c('planless student reads free body','ALLOW','get','/chapterBodies/01','dave',old=free)
+c('unknown plan reads paid body','DENY','get','/chapterBodies/08','erin',old=paid)
+c('admin reads paid body','ALLOW','get','/chapterBodies/08',ADM,old=paid)
+c('Starter lists all bodies (query not limited to free)','DENY','list','/chapterBodies/08',A,old=paid)
+c('Pro writes a body','DENY','update','/chapterBodies/08',B,res=paid,old=paid)
+c('admin writes a body','ALLOW','update','/chapterBodies/08',ADM,res=paid,old=paid)
+c('Pro writes settings/planAccess','DENY','update','/settings/planAccess',B,res={'rankByPlan':{'Starter':9}},old=RANKS)
+c('Starter reads settings/planAccess','ALLOW','get','/settings/planAccess',A,old=RANKS)
+c('student sets own plan to Pro','DENY','update','/students/alice',A,res={'plan':'Pro'},old={'plan':'Starter'})
+c('member reads catalog','ALLOW','get','/chapters/08',A,old={'num':'08','title':'t'})
 body={'source':{'files':[{'name':'firestore.rules','content':src}]},'testSuite':{'testCases':[t for _,t in cases]}}
 r=urllib.request.Request('https://firebaserules.googleapis.com/v1/projects/strykertrades-e0cd8:test',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+tok,'Content-Type':'application/json'})
 try: out=json.load(urllib.request.urlopen(r))

@@ -51,6 +51,7 @@ def check(track):
             except ET.ParseError as e: errs.append('bad svg: %s' % e)
         for m in re.finditer(r'font-size="(\d+(?:\.\d+)?)"', ''.join(svgs)):
             if float(m.group(1)) < 13: errs.append('svg font < 13'); break
+        if '%%' in allhtml: errs.append('literal %% in text (format escape left in)')
         if 'Illustrative' not in body and 'illustrative' not in body: errs.append('no illustrative label')
         if 'Education only. Not financial advice.' not in body: errs.append('no disclaimer')
         srcs = re.search(r'<h3>Sources</h3><ol[^>]*>([\s\S]*?)</ol>', body)

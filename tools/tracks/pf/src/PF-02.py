@@ -35,8 +35,8 @@ spec = [('ES', 'E-mini S&P 500', 50.0, 0.25), ('MES', 'Micro E-mini S&P 500', 5.
         ('NQ', 'E-mini Nasdaq-100', 20.0, 0.25), ('MNQ', 'Micro E-mini Nasdaq-100', 2.0, 0.25)]
 rows = []
 for sym, name, mult, tick in spec:
-    rows.append([sym, name, '$%s' % fmt(mult, 2), fmt(tick, 2), '$%s' % fmt(mult * tick, 2), '$%s' % fmt(mult * 10, 0)])
-assert rows[0][4] == '$12.50' and rows[1][4] == '$1.25' and rows[2][4] == '$5.00' and rows[3][4] == '$0.50'
+    rows.append([sym, name, '$%s' % fmt(mult, 2), '$%s' % fmt(mult * tick, 2)])
+assert [r[3] for r in rows] == ['$12.50', '$1.25', '$5.00', '$0.50']   # all ticks are 0.25 points
 
 # ---------------------------------------------------------------- how 10 points eats a $2,000 loss limit (illustrative)
 LIMIT = 2000
@@ -142,7 +142,7 @@ body = [
     '<h2>Why contract size matters more on futures firms</h2>',
     '<p>Futures rules are set in dollars, and each contract has a fixed dollar value per point. That makes position size the biggest risk decision you make. '
     'From CME Group\'s published specs:</p>',
-    table(['Symbol', 'Contract', '$ per point', 'Tick', '$ per tick', '$ per 10 pts'], rows),
+    table(['Symbol', 'Contract', '$ per point', '$ per 0.25 tick'], rows),
     fig_pts,
     '<p>With a $2,000 loss limit, one ES contract can lose it all on a 40-point move against you. Four Micro E-mini contracts (MES) need 100 points. The micro contracts are one-tenth '
     'the size of the E-minis, which is why many firms count 10 micros as one mini in their contract limits. PF-06 turns this into a sizing plan.</p>',

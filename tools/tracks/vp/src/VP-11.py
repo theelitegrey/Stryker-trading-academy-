@@ -116,8 +116,8 @@ body = [
     'blocks and need to choose one.</p>',
 
     '<h3>Premium, discount and value</h3>',
-    '<p><strong>Premium and discount</strong> split a swing range at its 50%% midpoint (<a href="chapter.html?ch=11">chapter 11</a>). The '
-    '<strong>value area</strong> is where 70%% of the volume traded. They measure different things. Premium and discount are geometry: halves of a price '
+    '<p><strong>Premium and discount</strong> split a swing range at its 50% midpoint (<a href="chapter.html?ch=11">chapter 11</a>). The '
+    '<strong>value area</strong> is where 70% of the volume traded. They measure different things. Premium and discount are geometry: halves of a price '
     'range. Value is measured participation. On a P-shaped day, for example, most of the value sits in the upper, "premium" half of the range. '
     'Profile traders would read buying there as buying at value, not buying expensive. When the two methods disagree like this, it is worth asking '
     'which question you are really trying to answer.</p>',

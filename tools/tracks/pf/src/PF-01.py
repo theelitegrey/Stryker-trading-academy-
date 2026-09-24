@@ -34,9 +34,9 @@ CUST, DEMO, LIVE = 135000, 111000, 24000
 assert FEES - PAID == 173  # the complaint states net income of $172M; its own figures are "approximately", so we quote the complaint, not our subtraction
 
 def mff_bars():
-    o = []; left, right = 150, 360; top = 30
+    o = []; left, right = 96, 380; top = 30
     scale = (right - left) / float(FEES)
-    rows = [('Fees taken in', FEES, GOLD), ('Paid out to customers', PAID, GREEN)]
+    rows = [('Fees in', FEES, GOLD), ('Paid out', PAID, GREEN)]
     for k, (name, v, c) in enumerate(rows):
         y = top + k * 58
         o.append(text(left - 8, y + 24, name, 13, INK, 'end'))

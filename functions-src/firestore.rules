@@ -45,6 +45,12 @@ service cloud.firestore {
     // what they are allowed to do. Every one of these is written by a Cloud
     // Function using the Admin SDK. A client that sends any of them is
     // refused outright rather than silently ignored.
+    function privilegedKeys() {
+      return ['plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
+        'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
+        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'lapsedFromPlan', 'lapsedAtMillis'];
+    }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
@@ -107,8 +113,21 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     match /students/{uid} {
       allow read:   if isSelf(uid) || isAdmin();
-      allow create: if isSelf(uid) && !createsPrivileged();
-      allow update: if isAdmin() || (isSelf(uid) && !touchesPrivileged());
+      // A new account starts itself on the free entry plan: progress.js
+      // ensureStudentDoc writes plan 'Starter' on first sign-in, or heals a doc
+      // that another script (theme, @username) created first without a plan.
+      // Allow EXACTLY that (plan absent -> 'Starter'); every other privileged
+      // key stays function/admin-only. Without it, sign-ups since 2026-09-09
+      // got no plan and sat on "took too long to confirm your access".
+      allow create: if isSelf(uid) && (!createsPrivileged() || (
+                      request.resource.data.plan == 'Starter'
+                      && !request.resource.data.keys().toSet().difference(['plan'].toSet())
+                            .hasAny(privilegedKeys())));
+      allow update: if isAdmin() || (isSelf(uid) && (!touchesPrivileged() || (
+                      resource.data.get('plan', null) in [null, '']
+                      && request.resource.data.plan == 'Starter'
+                      && !request.resource.data.diff(resource.data).affectedKeys()
+                            .difference(['plan'].toSet()).hasAny(privilegedKeys()))));
       allow delete: if isAdmin();
 
       // Owner-only subtrees. The replay rule is what the backtesting module

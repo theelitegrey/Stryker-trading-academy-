@@ -114,8 +114,13 @@ input,select,textarea{ font-family:inherit; }
   background:var(--gold); color:#04120c; font-weight:700; font-size:14px;
   text-decoration:none; box-shadow:0 8px 24px -8px rgba(0,0,0,.5);
   transform:translateY(-200%);
+  /* Visually hidden until keyboard focus, but still focusable (visibility or
+     display would take it out of the Tab order). Full-page captures painted the
+     fixed, translated link bottom-left, so clip it as well as moving it off-screen. */
+  clip-path:inset(50%); white-space:nowrap;
 }
 .skip-link:focus, .skip-link:focus-visible{
+  clip-path:none;
   position:relative; left:auto; top:auto; display:block; width:100%; box-sizing:border-box;
   transform:none; border-radius:0; text-align:center; box-shadow:none;
   outline:2px solid var(--ink-0); outline-offset:-4px;

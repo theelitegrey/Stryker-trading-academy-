@@ -59,6 +59,8 @@
       if (typeof logActivity === 'function') {
         try { logActivity('content.download', 'Downloaded the FVG & Order Block cheat sheet'); } catch (e) {}
       }
+      // Meta Pixel — Lead, on the actual download click (not just page view).
+      if (typeof strykerTrack === 'function') { try { strykerTrack('Lead', { content_name: 'FVG & Order Block cheat sheet' }); } catch (e) {} }
     });
   }
 

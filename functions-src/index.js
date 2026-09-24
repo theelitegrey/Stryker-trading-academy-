@@ -183,3 +183,7 @@ Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
 exports.onContactMessageCreated = require('./onContactMessageCreated').onContactMessageCreated;
 exports.launchSaleOnOrder = require('./launchSale').launchSaleOnOrder;
+// Meta Conversions API — inert until META_CAPI_TOKEN + META_PIXEL_ID exist
+// (see functions-src/metaCapi.js). Deploy alongside the other functions once
+// ids are configured: firebase deploy --only functions:metaCapiOnSignup
+exports.metaCapiOnSignup = require('./metaCapiSignup').metaCapiOnSignup;

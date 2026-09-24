@@ -320,6 +320,9 @@ exports.stripeCreateCheckout = functions
       // Card + wallets (Apple Pay / Google Pay ride on 'card' in Checkout).
       payment_method_types: ['card'],
       billing_address_collection: 'auto',
+      // USD only: Adaptive Pricing would show local currency with a ~4% FX fee
+      // (India → Razorpay handles INR instead).
+      adaptive_pricing: { enabled: 'false' },
       metadata: meta,
       subscription_data: { metadata: meta },
       // Stripe shows its own recurring-terms line; ours sits above the button.

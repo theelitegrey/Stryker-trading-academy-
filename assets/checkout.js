@@ -9,6 +9,9 @@
 
 let CHECKOUT_UID = null;
 let CHECKOUT_PLAN = null;
+// settings/commerce.stripeCheckout: the switch that turns the Stripe route on.
+// Off (or unreadable) = every visitor keeps the existing Razorpay checkout.
+let STRIPE_CHECKOUT_ON = false;
 let APPLIED_COUPON = null;
 
 // ---- billing details --------------------------------------------------------
@@ -187,7 +190,7 @@ function updateOrderSummary(){
   const disclosure = document.getElementById('checkout-renew-disclosure');
   const payInr = document.getElementById('checkout-pay-inr');
   if (disclosure) disclosure.style.display = 'none';
-  if (payInr) payInr.style.display = (typeof strykerCurrency === 'function' && strykerCurrency() !== 'INR' && price > 0) ? '' : 'none';
+  if (payInr) payInr.style.display = (checkoutUsesStripe() && price > 0) ? '' : 'none';
   checkoutGatewayChrome(checkoutUsesStripe());
 
   if (price <= 0) {
@@ -261,14 +264,14 @@ function checkoutGatewayChrome(stripe){
 // that renews goes to Stripe's hosted Checkout page (card, Apple Pay, Google
 // Pay); a plan that never renews stays a one-time Razorpay charge.
 function checkoutUsesStripe(){
-  if (!CHECKOUT_PLAN) return false;
+  if (!CHECKOUT_PLAN || !STRIPE_CHECKOUT_ON) return false;
   const cur = (typeof strykerCurrency === 'function') ? strykerCurrency() : 'USD';
   const renews = typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) !== 'none';
   return cur !== 'INR' && renews;
 }
 
-// The auto-renew disclosure shown above the Pay button. DRAFT wording,
-// pending content-developer approval.
+// The auto-renew disclosure shown above the Pay button (wording approved by
+// content-developer, 2026-09-24).
 function checkoutRenewalText(price, total, cycle){
   const per = cycle === 'year' ? 'year' : 'month';
   const first = total < price
@@ -574,7 +577,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fxReady = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
     const studentReady = db.collection('students').doc(CHECKOUT_UID).get().catch(() => null);
-    Promise.all([loadCheckoutPlan(planId), fxReady, studentReady]).then(([plan, , studentDoc]) => {
+    const stripeFlag = db.collection('settings').doc('commerce').get()
+      .then((d) => { STRIPE_CHECKOUT_ON = !!(d.exists && d.data().stripeCheckout === true); })
+      .catch(() => { STRIPE_CHECKOUT_ON = false; });
+    Promise.all([loadCheckoutPlan(planId), fxReady, studentReady, stripeFlag]).then(([plan, , studentDoc]) => {
       // Billing resolves regardless of the plan lookup, so the panel never
       // sticks on "Checking your saved details…".
       initBillingSection(studentDoc);

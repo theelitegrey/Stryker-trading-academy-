@@ -93,6 +93,11 @@ function loadStripeStatus(){
       (s.reachable ? '' : ' · API unreachable (' + (s.error || '?') + ')') +
       (s.webhookSecretSet ? '' : ' · webhook secret missing');
     el.style.color = ok ? (s.mode === 'live' ? 'var(--bull)' : 'var(--amber, #e8b04b)') : 'var(--bear)';
+    // The site switch (settings/commerce.stripeCheckout) decides whether visitors see Stripe.
+    db.collection('settings').doc('commerce').get().then((d) => {
+      const on = !!(d.exists && d.data().stripeCheckout === true);
+      el.textContent += ' · checkout switch ' + (on ? 'ON (non-INR visitors pay with Stripe)' : 'OFF (everyone uses Razorpay)');
+    }).catch(() => {});
   }).catch((err) => {
     const missing = err && (err.code === 'functions/not-found' || err.code === 'functions/unimplemented');
     el.textContent = missing ? 'No (not deployed yet)' : 'unknown';

@@ -45,7 +45,7 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<p><em>This is a draft template. Replace the bracketed placeholders with your actual business details, and have it reviewed by a lawyer before treating it as final.</em></p>' +
       '<h2>1. Acceptance of these terms</h2>' +
-      '<p>Stryker Trading Academy is operated by Stryker Trading, a sole proprietorship ("we", "us", "Stryker Trading"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
+      '<p>Stryker Trading Academy is operated by Stryker Trading ("we", "us", "Stryker Trading"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
       '<h2>2. Eligibility</h2>' +
       '<p>You must be at least 18 years old to create an account. Stryker Trading does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
       '<h2>3. Risk disclosure</h2>' +
@@ -55,7 +55,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>4. Your account</h2>' +
       '<p>You\'re responsible for keeping your login credentials secure and for all activity under your account. Let us know immediately if you believe your account has been compromised.</p>' +
       '<h2>5. Plans, payment, and coupons</h2>' +
-      '<p>Access to certain curriculum, trading models, live sessions, and community features may require an active plan. [Describe your actual pricing/payment process here once live — e.g. which payment processor you use, billing frequency, and how plan changes are handled.]</p>' +
+      '<p>Access to certain curriculum, trading models, live sessions, and community features may require an active plan. Paid plans are subscriptions billed monthly or yearly. Payments in Indian rupees are processed by Razorpay (one-time or UPI AutoPay). All other payments are processed by Stripe and renew automatically each billing period at the price shown at checkout until you cancel. You can cancel online at any time from Settings; access continues until the end of the period you\'ve paid for. If a renewal payment fails, we\'ll retry it and let you know; if it can\'t be collected, your plan returns to the free plan after a short grace period. Coupons apply to the first payment only unless stated otherwise.</p>' +
       '<p>See our <a href="refund-policy.html">Refund Policy</a> for details on refund eligibility.</p>' +
       '<h2>6. Referral program</h2>' +
       '<p>Our referral program awards points for successful invites, shown on the leaderboard for recognition. Points do not currently have a cash or credit redemption value. We reserve the right to adjust, withhold, or reverse points awarded through fraudulent activity, self-referral, or abuse of the program.</p>' +
@@ -68,7 +68,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>10. Limitation of liability</h2>' +
       '<p>To the fullest extent permitted by law, Stryker Trading is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content. <em>This clause in particular should be reviewed by a lawyer — and worth knowing: as a sole proprietorship, Stryker Trading does not have the liability separation an LLC or corporation would have, which is worth discussing with a lawyer or accountant.</em></p>' +
       '<h2>11. Governing law</h2>' +
-      '<p>Stryker Trading operates as a sole proprietorship and has not designated a specific governing jurisdiction for these terms. <em>Note: most businesses name a specific governing law here, since it materially affects how disputes are resolved — this is worth revisiting with a lawyer if that changes.</em></p>' +
+      '<p>Stryker Trading has not designated a specific governing jurisdiction for these terms. <em>Note: most businesses name a specific governing law here, since it materially affects how disputes are resolved — this is worth revisiting with a lawyer if that changes.</em></p>' +
       '<h2>12. Changes to these terms</h2>' +
       '<p>We may update these terms from time to time. Continued use of the platform after changes take effect means you accept the updated terms.</p>' +
       '<h2>13. Contact</h2>' +
@@ -91,7 +91,7 @@ const SITE_PAGES_DEFAULTS = {
       '<ul>' +
         '<li><strong>Firebase / Google Cloud</strong> — provides authentication and database infrastructure. Your account and platform data is stored on Firebase\'s infrastructure.</li>' +
         '<li><strong>TradingView</strong> — chapter pages may embed live TradingView charts. This embed is provided directly by TradingView and is subject to their own privacy policy.</li>' +
-        '<li>[If/when you add a payment processor, describe it here — e.g. "Payments are processed by [processor name]; we do not store your full card details."]</li>' +
+        '<li><strong>Razorpay</strong> — Payments are processed by Razorpay. We never see or store your card, UPI or bank details; Razorpay handles them under its own privacy policy. For each payment we keep only a record, linked to your account, of the plan, the amount and currency, any coupon used, the date, and the Razorpay order, payment or subscription reference.</li><li><strong>Stripe</strong> — Card and wallet payments (such as Apple Pay and Google Pay, where your device supports them) outside India are processed by Stripe on Stripe\'s own secure checkout page. We never see or store your full card details; Stripe handles them under its own privacy policy. For each payment we keep only a record, linked to your account, of the plan, the amount and currency, any coupon used, the date, and the Stripe customer, subscription, checkout or invoice reference.</li>' +
       '</ul>' +
       '<h2>6. Data retention</h2>' +
       '<p>We retain your account data for as long as your account is active. You can request deletion of your account and associated data at any time — see our <a href="gdpr.html">GDPR</a> page for how.</p>' +
@@ -160,7 +160,7 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<h2>All sales are final</h2>' +
       '<p>Stryker Trading does not offer refunds on any purchase. When you complete a purchase, you\'re confirming you understand and accept this before checkout.</p>' +
-      '<h2>Discretionary exceptions</h2>' +
+      '<h2>Subscriptions and cancelling</h2><p>Paid plans renew automatically at the end of each billing period (monthly or yearly) at the price shown at checkout, until you cancel. You can cancel online at any time: card subscriptions from Settings &gt; Manage billing, and Indian AutoPay subscriptions from Settings &gt; Cancel auto-renewal. Cancelling stops future charges; you keep access until the end of the period you\'ve already paid for, and that period isn\'t refunded. Card payments get an emailed receipt from Stripe, and every payment is listed in Settings.</p><h2>Discretionary exceptions</h2>' +
       '<p>Stryker Trading administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a> or by email to <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, but approval is entirely at our discretion.</p>' +
       '<h2>Why we do this</h2>' +
       '<p>Our curriculum, trading models, and community access are digital educational content delivered immediately upon purchase, which is why we don\'t offer a standard refund window.</p>'

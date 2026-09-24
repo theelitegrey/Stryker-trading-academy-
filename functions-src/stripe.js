@@ -99,7 +99,14 @@ const SIG_TOLERANCE_S = 300;
 const QA_EMAIL = /^stryker-qa-[a-z0-9._-]+@example\.com$/i;
 function isTestKey() { return /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY || ''); }
 async function testModeGate(uid, context) {
-  if (!isTestKey()) return;
+  if (!isTestKey()) {
+    // Live: the site-wide switch must be on (admins may still test with it off).
+    const com = await db.collection('settings').doc('commerce').get();
+    if (com.exists && com.data().stripeCheckout === true) return;
+    const adm = await db.collection('admins').doc(uid).get();
+    if (adm.exists) return;
+    throw new functions.https.HttpsError('failed-precondition', 'Card payments are not open yet.');
+  }
   const email = String((context.auth.token && context.auth.token.email) || '');
   if (QA_EMAIL.test(email)) return;
   const adm = await db.collection('admins').doc(uid).get();

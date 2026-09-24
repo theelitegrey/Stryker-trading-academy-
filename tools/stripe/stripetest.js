@@ -367,6 +367,18 @@ const ordersFor = (uid) => Object.entries(DB).filter(([p, v]) => p.startsWith('o
     try { const r = await ST.stripeCreateCheckout({ planId: 'PRO' }, { auth: { uid: 'admgate', token: { email: 'owner@gmail.com' } } }); ok = !!r.url; } catch (e) { ok = e.message; }
     check('test key: admin allowed', ok, true);
   }
+  // Live key: the settings/commerce.stripeCheckout switch gates real members.
+  {
+    const k = process.env.STRIPE_SECRET_KEY; process.env.STRIPE_SECRET_KEY = 'rk_live_offline';
+    const com = DB['settings/commerce']; DB['settings/commerce'] = Object.assign({}, com, { stripeCheckout: false });
+    let msg = '';
+    try { await ST.stripeCreateCheckout({ planId: 'PRO' }, { auth: { uid: 'livemember', token: { email: 'someone@gmail.com' } } }); } catch (e) { msg = e.message; }
+    check('live key + switch OFF: member refused', /not open yet/.test(msg), true);
+    DB['settings/commerce'].stripeCheckout = true; msg = '';
+    try { await ST.stripeCreateCheckout({ planId: 'PRO' }, { auth: { uid: 'livemember', token: { email: 'someone@gmail.com' } } }); } catch (e) { msg = e.message; }
+    check('live key + switch ON: member passes the gate', /not open yet/.test(msg), false);
+    DB['settings/commerce'] = com; process.env.STRIPE_SECRET_KEY = k;
+  }
   DB['admins/adm'] = { x: 1 };
   sent = [];
   const st = await ST.stripeStatus({}, ctx('adm'));

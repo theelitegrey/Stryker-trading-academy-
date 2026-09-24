@@ -4,3 +4,4 @@ graphify-out/
 # Dependencies and local-only output: never committed
 node_modules
 tools/email-previews/
+__pycache__/

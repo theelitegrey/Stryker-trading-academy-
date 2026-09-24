@@ -37,18 +37,18 @@ def spiral_chart():
     n = max(len(plan_path), len(rev_path))
     pp = plan_path + [None] * (n - len(plan_path))
     alt_path = rev_path[:4] + [alt] + [None] * (n - 5)
-    return series([(rev_path, GOLD, 'doubling'), (alt_path, RED, 'if trade 4 lost'), (pp, GREEN, 'plan')],
+    return series([(rev_path, GOLD, 'doubling'), (alt_path, RED, 'if 4 lost'), (pp, GREEN, 'plan')],
                   'Illustrative: fixed size with a daily stop vs doubling after losses', height=240, zero=True, left=16, right=300)
 svg_s, _ = spiral_chart()
 fig_spiral = figure(svg_s,
     'Hypothetical. The same six trade outcomes (L, L, L, W, L, W), each loss \u22121R and each win +1.5R. Green: $200 per trade, stop for the day at \u2212$400. '
-    'Gold: doubling size after every loss. It happened to recover, but if trade 4 had also lost (red), the account would have dropped to \u2212$3,000, past a $2,000 limit.')
+    'Gold: doubling size after every loss. It happened to recover, but if trade 4 had also lost (red, "if 4 lost"), the account would have dropped to \u2212$3,000, past a $2,000 limit.')
 
 # ---------------------------------------------------------------- the failure loop diagram
 fig_loop = figure(boxes([
     ('1. Trigger', ['a loss, a missed move', 'or a rule nearly hit'], RED),
     ('2. Feeling', ['urge to win it back', 'or fear of the floor'], GOLD),
-    ('3. Action', ['bigger size, extra trades', 'wider or no stop'], GOLD),
+    ('3. Action', ['bigger size, more', 'trades, wider stop'], GOLD),
     ('4. Result', ['a bigger loss or', 'a broken rule'], RED),
 ], 'The failure loop: trigger, feeling, action, result', cols=2),
     'A simple way to describe the pattern many firms list as a reason for review (Topstep names revenge trading and "large swings in position size"). '

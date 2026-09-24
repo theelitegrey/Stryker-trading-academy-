@@ -89,8 +89,8 @@ fig_nodes = figure(fig_nodes_svg, 'A common reading: price crosses the thin LVN 
                    'then rotates in small candles once it reaches the high-volume node around the POC.')
 
 fig_tpo_vs_vol = figure(boxes([
-    ('Volume profile', ['counts contracts traded', 'at each price'], TEAL),
-    ('TPO profile', ['counts 30-minute periods', 'that visited each price'], GOLD),
+    ('Volume profile', ['counts contracts', 'traded at each price'], TEAL),
+    ('TPO profile', ['counts 30-min periods', 'at each price'], GOLD),
     ('Agree when...', ['time spent and size', 'traded line up'], GREEN),
     ('Differ when...', ['a big burst of volume', 'trades in little time'], RED),
 ], 'Volume profile compared with TPO profile'),

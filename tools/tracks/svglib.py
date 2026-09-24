@@ -377,6 +377,7 @@ def series(values_list, title, height=200, left=16, right=330, top=18, bottom=No
         while any(abs(ly - u) < 15 for u in used):   # keep end labels apart
             ly += 15
         used.append(ly)
+        assert right + 4 + len(name) * 7.8 <= W, 'series end label runs off the right edge: %r' % name
         o.append(text(right + 4, ly, name, 13, c))
     for i, v, t, c in point_labels or []:
         o.append('<circle cx="%s" cy="%s" r="4" fill="%s"/>' % (f(X(i)), f(Y(v)), c))
@@ -393,6 +394,11 @@ def boxes(items, title, cols=2, box_h=74, gap=12, top=10):
     for k, (hd, lines_, c) in enumerate(items):
         x = 10 + (k % cols) * (bw + gap); y = top + (k // cols) * (box_h + gap)
         o.append(rect(x, y, bw, box_h, stroke=c, width=1.3, rx=6))
+        # Monospace at 13-14px is about 0.6em per character. Fail the build if text would spill out of the box.
+        assert len(hd) * 8.4 <= bw - 10, 'box heading too wide: %r' % hd
+        assert 42 + (len(lines_) - 1) * 17 + 8 <= box_h, 'box too short for %d lines: raise box_h (%r)' % (len(lines_), hd)
+        for ln in lines_:
+            assert len(ln) * 7.8 <= bw - 10, 'box line too wide (%d chars, max %d): %r' % (len(ln), int((bw - 10) / 7.8), ln)
         o.append(text(x + bw / 2, y + 22, hd, 14, c, 'middle', 'bold'))
         for m, ln in enumerate(lines_):
             o.append(text(x + bw / 2, y + 42 + m * 17, ln, 13, MUTED, 'middle'))

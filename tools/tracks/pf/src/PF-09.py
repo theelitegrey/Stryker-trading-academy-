@@ -52,11 +52,11 @@ short2 = sum(p for s, p in trades2 if s <= 5); total2 = sum(p for s, p in trades
 assert short2 / total2 > 0.5
 
 fig_rules = figure(boxes([
-    ('Usually allowed', ['your own accounts, one copier', 'your own automated strategy', 'real scalping'], GREEN),
-    ('Usually conditional', ['firm must allow the copier', 'you own every account', 'no help if it breaks'], GOLD),
-    ('Usually prohibited', ['hedging across accounts', 'copying other people', 'sim-fill exploits, HFT'], RED),
-    ('Always check', ['account caps per household', 'what live call-up closes', 'news and size rules'], INK),
-], 'Multiple accounts and automation: the common pattern', cols=2),
+    ('Usually allowed', ['copier, own accounts', 'your own bot', 'real scalping'], GREEN),
+    ('Usually conditional', ['firm allows copier', 'you own every acct', 'no help if it breaks'], GOLD),
+    ('Usually banned', ['hedging across accts', 'copying other people', 'sim-fill exploits'], RED),
+    ('Always check', ['household acct caps', 'what live call-up', 'closes; news rules'], INK),
+], 'Multiple accounts and automation: the common pattern', cols=2, box_h=96),
     'A summary of the pattern across the firm pages cited in this chapter, as of %s. Individual firms differ: read each one before you set anything up.' % AS_OF, illustrative=False)
 
 body = [

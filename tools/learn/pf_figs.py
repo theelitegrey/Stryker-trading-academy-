@@ -30,18 +30,18 @@ G, GO, R, I = svglib.GREEN, svglib.GOLD, svglib.RED, svglib.INK
 
 # the path: four stages
 path_svg = boxes([
-    ('1. Evaluation', ['you pay a fee', 'hit the target, keep the rules'], GO),
-    ('2. Funded account', ['usually simulated', 'activation fee at some firms'], G),
+    ('1. Evaluation', ['you pay a fee', 'hit target, keep rules'], GO),
+    ('2. Funded account', ['usually simulated', 'some charge activation'], G),
     ('3. Payouts', ['meet payout rules', 'you keep the split'], G),
-    ('4. Live (sometimes)', ['firm decides, after review', 'not automatic'], I),
+    ('4. Live (sometimes)', ['firm decides', 'after review'], I),
 ], 'The usual path at a futures prop firm', cols=2)
 
 # the money: where it flows in the simulated model
 money_svg = boxes([
-    ('Traders pay in', ['evaluation fees', 'resets, activation fees'], GO),
+    ('Traders pay in', ['evaluation fees', 'resets, activation'], GO),
     ('The firm', ['keeps fees as income', 'runs the platform'], I),
-    ('The firm pays out', ['payouts to funded traders', 'from its own funds'], G),
-    ('The market', ['usually not involved', 'in simulated stages'], R),
+    ('The firm pays out', ['payouts to traders', 'from its own funds'], G),
+    ('The market', ['not involved in', 'simulated stages'], R),
 ], 'Where the money goes in the simulated model', cols=2)
 
 # worked cost table (Topstep 50K Standard, published prices, Sep 2026)

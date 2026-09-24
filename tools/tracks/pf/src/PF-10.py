@@ -51,6 +51,8 @@ def spend_bars():
     for j, q in enumerate(qs):
         x = left + j * 92
         o.append(rect(x, 6, 12, 10, fill=cols[j])); o.append(text(x + 17, 15, 'q=%d%%' % round(100 * q), 13, INK))
+    nx = left + NET_FIRST * sc
+    labels = []
     for i, p in enumerate(ps):
         y = top + i * 56
         o.append(text(left - 8, y + 26, 'p=%d%%' % round(100 * p), 13, INK, 'end'))
@@ -59,11 +61,14 @@ def spend_bars():
             o.append(rect(left, yy, v * sc, 14, fill=cols[j], opacity=0.85, rx=2))
             lab = m(v); tx = left + v * sc + 5
             if tx + 7 * len(lab) > W - 4:
-                o.append(text(left + v * sc - 5, yy + 12, lab, 13, BG, 'end', 'bold'))
+                labels.append(text(left + v * sc - 5, yy + 12, lab, 13, BG, 'end', 'bold'))
             else:
-                o.append(text(tx, yy + 12, lab, 13, cols[j]))
-    nx = left + NET_FIRST * sc
+                # Dark backing so the dashed $900 line never runs through a value label.
+                labels.append(rect(tx - 2, yy, 8 * len(lab) + 4, 15, fill=BG))
+                labels.append(text(tx, yy + 12, lab, 13, cols[j]))
+    # Draw the line under the labels.
     o.append(line(nx, top - 4, nx, top + len(ps) * 56 - 8, INK, 1.2, '4 3'))
+    o.extend(labels)
     o.append(text(nx + 4, top + len(ps) * 56 + 6, '$900 first payout', 13, INK))
     return svg(top + len(ps) * 56 + 16, o, 'Model: expected spend per first payout by pass chance p and funded survival q')
 

@@ -65,7 +65,7 @@ assert round(required_total(2200)) == 4000
 
 fig_types = figure(boxes([
     ('Static', ['floor never moves', 'e.g. $48,000 forever', 'simplest to plan'], GREEN),
-    ('EOD trailing', ['moves on new best close', 'intraday dips ignored', 'enforced in real time'], GOLD),
+    ('EOD trailing', ['moves on a best close', 'intraday dips ignored', 'enforced in real time'], GOLD),
     ('Intraday trailing', ['moves on any new high', 'open profit counts', 'tightest of the three'], RED),
     ('Lock level', ['trailing stops here', 'often start + $100', 'check it for your plan'], INK),
 ], 'The three drawdown designs and the lock level', cols=2, box_h=96),

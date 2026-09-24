@@ -19,6 +19,10 @@ const SM_MIN_RANK = 2;
 
 // jsDelivr first (CDN-cached, fast worldwide), raw GitHub as the fallback.
 // Both send permissive CORS headers.
+// Intentionally left on @main, not pinned to a commit SHA (audit P3-4): this
+// is daily JSON data read with fetch(), not executed code, and the whole
+// point is that it updates — pinning would freeze the congress/insider
+// tables. Decided with website-developer 2026-09-24.
 const SM_SOURCES = [
   'https://cdn.jsdelivr.net/gh/LuxAlgo/market-trackers-data@main/',
   'https://raw.githubusercontent.com/LuxAlgo/market-trackers-data/main/'

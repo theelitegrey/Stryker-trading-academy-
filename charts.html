@@ -22,7 +22,13 @@
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <!-- Vela's ES-module build imports these @zag-js packages by bare name;
-     the import map resolves them to jsDelivr's self-contained +esm builds. -->
+     the import map resolves them to jsDelivr's self-contained +esm builds.
+     Every URL is already pinned to an exact version (no ^/latest/@main).
+     SRI (P3-4): import maps don't support a per-entry `integrity` field in
+     any browser this site supports yet (the "Import Integrity Metadata"
+     proposal isn't shipped), and these are resolved by the module loader,
+     not a <script> tag, so an integrity="" attribute has nowhere to go.
+     Left pinned-only, as the brief allows. -->
 <script type="importmap">
 {"imports":{
   "@zag-js/vanilla":"https://cdn.jsdelivr.net/npm/@zag-js/vanilla@1.42.0/+esm",

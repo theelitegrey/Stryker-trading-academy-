@@ -43,7 +43,7 @@ jobs:
                    --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
           test -f /tmp/site/index.html && test ! -e /tmp/site/tools && echo "assembled: $(find /tmp/site -type f | wc -l) files"
       - name: wrangler starts
-        run: npx --yes wrangler@4 --version
+        run: npx --yes wrangler@4.138.0 --version
       - name: One Global Monitor fetch (not published)
         run: |
           mkdir -p out

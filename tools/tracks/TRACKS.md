@@ -139,10 +139,10 @@ Firm rules are quoted as of September 2026 from each firm's own help pages.
 | PF-04 | The Rules Deep Dive | intermediate | reviewed | 2068 | 16 |
 | PF-05 | Major Firms Compared (as of September 2026) | intermediate | reviewed | 2046 | 16 |
 | PF-06 | Passing the Evaluation: Sizing, Risk Plan & Frequency | intermediate | reviewed | 2034 | 7 |
-| PF-07 | The Funded Stage: Buffers, Payouts & Withdrawals | intermediate | drafted | 2018 | 9 |
-| PF-08 | Psychology & Failure Modes | intermediate | drafted | 2013 | 6 |
-| PF-09 | Multiple Accounts, Copy Trading & Automation Rules | advanced | drafted | 2017 | 13 |
-| PF-10 | The Business View: Costs, Resets & Expected Value | advanced | drafted | 2049 | 7 |
+| PF-07 | The Funded Stage: Buffers, Payouts & Withdrawals | intermediate | reviewed | 2018 | 9 |
+| PF-08 | Psychology & Failure Modes | intermediate | reviewed | 2013 | 6 |
+| PF-09 | Multiple Accounts, Copy Trading & Automation Rules | advanced | reviewed | 2017 | 13 |
+| PF-10 | The Business View: Costs, Resets & Expected Value | advanced | reviewed | 2049 | 7 |
 
 Free Learn funnel articles:
 - /learn-prop-firm-challenge-rules (live on batch 2)

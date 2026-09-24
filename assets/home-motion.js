@@ -578,9 +578,7 @@
     track.style.animationDuration = Math.max(36, items.length * 5) + 's';
   }
 
-  ready(function () {
-    if (!document.getElementById('mtape-track')) return;
-    build(SEED);
+  function fetchLive() {
     fetch(FEED + '?t=' + Date.now())
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
@@ -592,6 +590,31 @@
         if (usable.length >= 4) build(usable);
       })
       .catch(function () { /* seed row already showing */ });
+  }
+
+  ready(function () {
+    var track = document.getElementById('mtape-track');
+    if (!track) return;
+    build(SEED);
+
+    // Win 4 (audit P2-1): monitor-data.json is 135 KiB from
+    // raw.githubusercontent.com, the largest single transfer on the home
+    // page. The seeded row above already renders instantly, so there is no
+    // reason to spend that download until the tape is about to be seen —
+    // fetch it only once the section nears the viewport.
+    var section = document.querySelector('.mtape') || track;
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (!e.isIntersecting) return;
+          io.disconnect();
+          fetchLive();
+        });
+      }, { rootMargin: '300px 0px' });
+      io.observe(section);
+    } else {
+      fetchLive();   // no IO support: fall back to the old eager behaviour
+    }
   });
 
 })();

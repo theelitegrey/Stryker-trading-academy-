@@ -170,9 +170,16 @@ exports.razorpaySubscribe = functions
       throw new functions.https.HttpsError('failed-precondition', 'That plan does not renew — buy it once instead.');
     }
 
-    const priceUsd = effectivePlanPrice(plan);
+    let priceUsd = effectivePlanPrice(plan);
     const rate = await usdInrRate();
-    const amountMinor = Math.round(priceUsd * rate) * 100;   // whole rupees, same as one-time
+    // Launch sale: fixed rupee price when set; founding lock when lower.
+    const L = require('./launchSale').__launchInternals;
+    let inr = L.inrEffective(plan);
+    const lock = await L.foundingLock(uid, planId);
+    if (lock && lock.usd != null && lock.usd < priceUsd) priceUsd = lock.usd;
+    if (lock && lock.inr != null && inr != null && lock.inr < inr) inr = lock.inr;
+    const amountMinor = inr != null ? inr * 100
+      : Math.round(priceUsd * rate) * 100;   // whole rupees, same as one-time
     if (amountMinor < 100) {
       throw new functions.https.HttpsError('failed-precondition', 'This plan is free — no subscription needed.');
     }
@@ -191,6 +198,7 @@ exports.razorpaySubscribe = functions
       planName: plan.name || planId,
       period: plan.period,
       amountMinor, currency: 'INR',
+      baseUsd: priceUsd, baseInr: amountMinor / 100,
       razorpayPlanId,
       status: 'created',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -272,6 +280,14 @@ exports.razorpaySubsVerify = functions
       razorpaySubscriptionId: subscriptionId
     }, { merge: true });
     await db.collection('profiles').doc(uid).set({ plan: record.planName }, { merge: true }).catch(() => {});
+
+    // Launch sale: remember the founding price (no-op outside the sale). The
+    // mandate itself already debits a fixed amount; this covers a later
+    // switch to one-time renewal.
+    await require('./launchSale').__launchInternals
+      .recordFoundingPrice(uid, record.planId, record.baseUsd != null ? record.baseUsd : null,
+        record.baseInr != null ? record.baseInr : null)
+      .catch((e) => console.error('founding price not recorded', uid, e.message));
 
     return { ok: true, planName: record.planName };
   });

@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-23T05:50:00Z",
+  "generatedAt": "2026-09-24T05:50:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-24T05:30:00Z",
+  "goodUntil": "2026-09-25T05:30:00Z",
   "defaultCurrency": "USD",
   "rangeStart": "2026-09-14",
-  "rangeEnd": "2026-10-08",
+  "rangeEnd": "2026-10-09",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. Futures price about 55% for 28 Oct and roughly 89% for at least one more by December; four speakers on Tuesday all leaned toward more",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. After the 58.4 flash PMI and Barr saying more is \"likely needed\", futures price about 73% for 28 Oct; swaps carry three hikes over the next year",
       "bias": "up"
     },
     {
@@ -63,7 +63,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep. Lagarde speaks again today, a day before the flash PMIs; no meeting is ruled out, October included",
+      "expect": "Second hike of 2026 on 10 Sep. September's flash composite PMI rose to 53.1 against 51.5 expected; no meeting is ruled out, October included",
       "bias": "up"
     },
     {
@@ -95,7 +95,7 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.35%",
       "next": "2026-09-29",
-      "expect": "Bullock: upside inflation risks from energy, and she is \"not signalling\" the 29 Sep path. About 90% priced for a hike from 4.35%",
+      "expect": "August jobs +39,500 against 20,000 expected. About 90% priced for a hike from 4.35% on Monday 29 Sep",
       "bias": "up"
     },
     {
@@ -103,7 +103,7 @@
       "bank": "Swiss National Bank",
       "rate": "0.00%",
       "next": "2026-09-24",
-      "expect": "Decides tomorrow at 03:30 ET. Expected to hold at zero; a strong franc is doing the tightening instead",
+      "expect": "Decides today at 03:30 ET. Expected to hold at zero; a strong franc is doing the tightening instead",
       "bias": "hold"
     }
   ],
@@ -394,7 +394,8 @@
       "event": "Germany flash manufacturing PMI (Sep)",
       "forecast": "54.5",
       "previous": "54.3",
-      "note": "The only large euro-area manufacturing sector comfortably above 50. It is also the one most exposed to the energy bill."
+      "note": "A touch under the 54.5 expected, still expanding. Input costs rose at the fastest rate in four months on fuel and energy.",
+      "actual": "53.8"
     },
     {
       "at": "2026-09-23T07:30:00Z",
@@ -403,7 +404,8 @@
       "event": "Germany flash services PMI (Sep)",
       "forecast": "50",
       "previous": "49.7",
-      "note": "Seen at 50.0 after 49.7 — right on the line between contraction and growth."
+      "note": "Well above the 50 expected and a seven-month high, ending five months of contraction. Germany's composite went to 53.8 from 51.8.",
+      "actual": "52.9"
     },
     {
       "at": "2026-09-23T08:00:00Z",
@@ -412,7 +414,8 @@
       "event": "Euro area flash manufacturing PMI (Sep)",
       "forecast": "52.7",
       "previous": "52.7",
-      "note": "Seen at 52.9 after 52.7. Euro-area data now reads straight into ECB pricing, which has no meeting ruled out."
+      "note": "Exactly as forecast and unchanged on the month. The surprise was in services.",
+      "actual": "52.7"
     },
     {
       "at": "2026-09-23T08:00:00Z",
@@ -421,7 +424,8 @@
       "event": "Euro area flash services PMI (Sep)",
       "forecast": "51.7",
       "previous": "51.6",
-      "note": "Seen at 51.7 after 51.6. Services is where the wage half of euro-area inflation shows up."
+      "note": "53.0 against 51.7 expected; the composite rose to 53.1 from 52.0. An ECB that has hiked twice this year and ruled no meeting out now has an activity number that agrees with it.",
+      "actual": "53"
     },
     {
       "at": "2026-09-23T08:30:00Z",
@@ -430,7 +434,8 @@
       "event": "UK flash manufacturing PMI (Sep)",
       "forecast": "51.4",
       "previous": "51.7",
-      "note": "Seen at 52.7 after 51.7. Three MPC members already voted to hike in September, so a strong print is a sterling story."
+      "note": "52.0 against 51.4 expected and 51.7 before — the one UK line that improved.",
+      "actual": "52"
     },
     {
       "at": "2026-09-23T08:30:00Z",
@@ -439,7 +444,8 @@
       "event": "UK flash services PMI (Sep)",
       "forecast": "52",
       "previous": "52.5",
-      "note": "Seen at 52.1 after 52.5. The larger half of the UK economy and the one the Bank watches for persistence."
+      "note": "51.7 against 52.0 expected and 52.5 before; the composite slipped to 51.7. The UK was the soft print in a strong day for PMIs, and sterling fell below 1.33.",
+      "actual": "51.7"
     },
     {
       "at": "2026-09-23T11:00:00Z",
@@ -465,7 +471,8 @@
       "event": "US flash manufacturing PMI (Sep)",
       "forecast": "53.5",
       "previous": "53.9",
-      "note": "Seen at 53.6 after 53.9. The first read on activity since the hike."
+      "note": "57.0 against 53.5 expected and 53.9 before, a 52-month high — after every regional Fed survey this month had pointed the other way. New orders rose to 57.3 and output to 56.7. Input prices across the survey jumped to 66.4, the highest since October 2022.",
+      "actual": "57"
     },
     {
       "at": "2026-09-23T13:45:00Z",
@@ -474,7 +481,8 @@
       "event": "US flash services PMI (Sep)",
       "forecast": "56",
       "previous": "56.5",
-      "note": "Seen at 56.0 after 56.5, the fastest expansion since 2020. With a Fed that says it wants to see restriction, a strong flash reads hawkish, not as good news."
+      "note": "58.7 against 56.0 expected and 56.5 before, a 59-month high; the composite went to 58.4, the highest since July 2021. S&P Global's Williamson said the survey is consistent with growth of about 5% annualised. The ten-year rose 14.6bp on the day, its largest move since April 2025, and October hike odds went to 73%.",
+      "actual": "58.7"
     },
     {
       "at": "2026-09-23T14:00:00Z",
@@ -489,7 +497,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Barr speaks",
-      "note": "Fifth Fed speaker in two days. The pattern so far: every non-voter who has spoken has leaned toward more, and the Chair has said nothing."
+      "note": "Said \"further policy adjustments are likely to be needed\" to return inflation to 2% in time, that the Fed had been \"out of position\", and that inflation risks have risen while labour-market risks have receded. A Governor, so a voter — the first one to say more is coming."
     },
     {
       "at": "2026-09-23T14:30:00Z",
@@ -498,13 +506,17 @@
       "event": "EIA crude oil inventories (w/e 18 Sep)",
       "forecast": "-0.6m",
       "previous": "-0.64m",
-      "note": "The API's own count on Tuesday showed a 1.8 million barrel build against a draw expected. With crude down six sessions, a second build would be the first physical number to agree with the price."
+      "note": "A 3.0 million barrel commercial build against a 0.7 million draw expected, after the API's 1.8 million build. Gasoline and distillate stocks both fell. Crude rose anyway, on Iran rather than on inventories.",
+      "actual": "+2.97m"
     },
     {
       "at": "2026-09-23T17:00:00Z",
       "cur": "USD",
       "impact": "low",
-      "event": "US 5-year note auction, $70bn"
+      "event": "US 5-year note auction, $70bn",
+      "actual": "5.033%",
+      "previous": "4.393%",
+      "note": "The highest five-year stop since June 2006, about 3bp above where the issue was trading at the deadline. Bid-to-cover 2.21 against a 2.33 six-auction average; dealers were left with 15.8%, the most since 2024. The five-year yield closed above 5% for the first time since 2007. Seven-years today."
     },
     {
       "at": "2026-09-24T01:30:00Z",
@@ -513,7 +525,8 @@
       "event": "Australia employment change (Aug)",
       "forecast": "20k",
       "previous": "-15.8k",
-      "note": "Seen at 20,000 after a fall of 15,800, five days before an RBA meeting the market has 90% priced."
+      "note": "Nearly double the 20,000 expected, after a revised −15,900 in July. Strong enough to keep Monday's RBA hike at about 90% priced even with the jobless rate ticking up.",
+      "actual": "+39.5k"
     },
     {
       "at": "2026-09-24T01:30:00Z",
@@ -522,7 +535,8 @@
       "event": "Australia unemployment rate (Aug)",
       "forecast": "4.5%",
       "previous": "4.5%",
-      "note": "Seen unchanged at 4.5%. A rise here is the one thing that could unwind the 90% priced for an RBA hike."
+      "note": "4.6% against 4.5% expected — more people looking, not fewer jobs, given the employment gain alongside it.",
+      "actual": "4.6%"
     },
     {
       "at": "2026-09-24T07:30:00Z",
@@ -556,6 +570,29 @@
       "event": "US initial jobless claims",
       "forecast": "201k",
       "previous": "196k"
+    },
+    {
+      "at": "2026-09-24T12:50:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Hammack speaks",
+      "note": "Cleveland's president, a 2026 voter, ten minutes after claims and the morning after Barr said more hikes are likely needed."
+    },
+    {
+      "at": "2026-09-24T13:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Paulson speaks",
+      "note": "Philadelphia. Third Fed speaker of the morning after Williams and Hammack."
+    },
+    {
+      "at": "2026-09-24T14:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "US new home sales (Aug)",
+      "forecast": "620k",
+      "previous": "607k",
+      "note": "The level, alongside the monthly change in the next row. The MBA put the 30-year mortgage at 7.12% this week, the highest since May 2024."
     },
     {
       "at": "2026-09-24T14:00:00Z",
@@ -720,7 +757,8 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US GDP, final (Q2, annualised)",
-      "previous": "1.5%"
+      "previous": "1.5%",
+      "forecast": "1.5%"
     },
     {
       "at": "2026-09-30T13:30:00Z",
@@ -780,7 +818,8 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US manufacturing PMI, final (Sep)",
-      "note": "Seen at 53.6 after 53.9. The first read on activity since the hike."
+      "note": "The final read of the flash 57.0 that moved the ten-year 14.6bp on 23 September. Revisions to flash PMIs are usually small; this one will be read closely anyway.",
+      "previous": "57"
     },
     {
       "at": "2026-10-01T14:00:00Z",
@@ -943,6 +982,36 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Levi Strauss Q3 earnings"
+    },
+    {
+      "at": "2026-10-09T01:30:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China CPI (Sep, y/y)",
+      "previous": "0.8%",
+      "note": "Still under 1% while the US prints 3%-plus. The gap is the whole US–China rates and currency story, and the yuan has strengthened 4% this year regardless."
+    },
+    {
+      "at": "2026-10-09T12:30:00Z",
+      "cur": "CAD",
+      "impact": "high",
+      "event": "Canada unemployment rate (Sep)",
+      "previous": "6.4%",
+      "note": "The Bank of Canada is still at 2.25% with an October hike about 59% priced. A jobless rate at 6.4% is the argument against; oil pass-through is the argument for."
+    },
+    {
+      "at": "2026-10-09T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Delta Air Lines Q3 earnings",
+      "note": "The first big airline of the season, reporting into jet fuel that has doubled in a year. Guidance on fuel and demand is the read, not the quarter."
+    },
+    {
+      "at": "2026-10-09T14:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Michigan sentiment, preliminary (Oct)",
+      "note": "The first October survey. September's preliminary was 47.8 with one-year inflation expectations at 4.6%; the expectations line is the one the Fed reads."
     }
   ],
   "howToRead": [

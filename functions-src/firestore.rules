@@ -45,6 +45,12 @@ service cloud.firestore {
     // what they are allowed to do. Every one of these is written by a Cloud
     // Function using the Admin SDK. A client that sends any of them is
     // refused outright rather than silently ignored.
+    function privilegedKeys() {
+      return ['plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
+        'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
+        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'lapsedFromPlan', 'lapsedAtMillis'];
+    }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
         'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
@@ -97,6 +103,7 @@ service cloud.firestore {
 
     // Marketing pages are meant to be public; they are admin-authored.
     match /sitePages/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /seoPages/{id}  { allow read: if true; allow write: if isAdmin(); }
 
     // ---------------------------------------------------------------------
     // Students
@@ -106,15 +113,32 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     match /students/{uid} {
       allow read:   if isSelf(uid) || isAdmin();
-      allow create: if isSelf(uid) && !createsPrivileged();
-      allow update: if isAdmin() || (isSelf(uid) && !touchesPrivileged());
+      // A new account starts itself on the free entry plan: progress.js
+      // ensureStudentDoc writes plan 'Starter' on first sign-in, or heals a doc
+      // that another script (theme, @username) created first without a plan.
+      // Allow EXACTLY that (plan absent -> 'Starter'); every other privileged
+      // key stays function/admin-only. Without it, sign-ups since 2026-09-09
+      // got no plan and sat on "took too long to confirm your access".
+      allow create: if isSelf(uid) && (!createsPrivileged() || (
+                      request.resource.data.plan == 'Starter'
+                      && !request.resource.data.keys().toSet().difference(['plan'].toSet())
+                            .hasAny(privilegedKeys())));
+      allow update: if isAdmin() || (isSelf(uid) && (!touchesPrivileged() || (
+                      resource.data.get('plan', null) in [null, '']
+                      && request.resource.data.plan == 'Starter'
+                      && !request.resource.data.diff(resource.data).affectedKeys()
+                            .difference(['plan'].toSet()).hasAny(privilegedKeys()))));
       allow delete: if isAdmin();
 
       // Owner-only subtrees. The replay rule is what the backtesting module
       // needs for cross-device sync.
       match /replay/{doc}   { allow read, write: if isSelf(uid) || isAdmin(); }
       match /journal/{doc}  { allow read, write: if isSelf(uid) || isAdmin(); }
-      match /{sub=**}       { allow read, write: if isSelf(uid) || isAdmin(); }
+      // At least ONE segment below the student doc. Under rules_version 2 a
+      // bare {sub=**} also matches students/{uid} ITSELF, which let a student
+      // write plan/paidThroughMillis on their own doc and bypass
+      // touchesPrivileged() (audit 2026-09-23, SEV-2).
+      match /{sub}/{rest=**} { allow read, write: if isSelf(uid) || isAdmin(); }
     }
 
     // The public mirror the Trading Floor and leaderboards read. Same rule:
@@ -126,7 +150,19 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    match /usernames/{name}     { allow read: if signedIn(); allow write: if signedIn(); }
+    // @handles: usernames/{name} -> { uid, username }. A member may claim a
+    // free handle for themselves and release only their own; nobody can take
+    // over or delete another member's handle. Admins can fix anything.
+    // (audit 2026-09-23 P1-2)
+    match /usernames/{name} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'username']);
+      allow update: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['uid', 'username']));
+      allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+    }
     match /presence/{uid}       { allow read: if signedIn(); allow write: if isSelf(uid); }
     match /pushTokens/{uid}     { allow read, write: if isSelf(uid) || isAdmin(); }
     match /bookmarks/{uid}      { allow read, write: if isSelf(uid); }
@@ -209,7 +245,11 @@ service cloud.firestore {
       match /messages/{msgId} {
         allow read:   if signedIn() && request.auth.uid in
                          get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
-        allow create: if signedIn() && request.resource.data.senderUid == request.auth.uid;
+        // Only a participant of THIS conversation may post into it
+        // (audit 2026-09-23: any signed-in user could write into any thread).
+        allow create: if signedIn() && request.resource.data.senderUid == request.auth.uid
+                      && request.auth.uid in
+                         get(/databases/$(database)/documents/conversations/$(convId)).data.participants;
         allow update, delete: if false;
       }
     }
@@ -232,7 +272,16 @@ service cloud.firestore {
       // Other users' clients raise these (a like, a reply, a mention), so the
       // create stays open to signed-in users. The rendering side treats the
       // link and message as untrusted; see assets/notifications.js.
-      allow create: if signedIn();
+      // Shape-checked (audit 2026-09-23): only the fields createNotification()
+      // writes, unread, a bounded message, and senderUid (when present) must
+      // be the caller. Pinning senderUid as REQUIRED needs the client to send
+      // it first; that is a follow-up site change.
+      allow create: if signedIn()
+                    && request.resource.data.keys().hasOnly(['recipientUid', 'type', 'message', 'link', 'read', 'createdAt', 'senderUid'])
+                    && request.resource.data.recipientUid is string
+                    && request.resource.data.read == false
+                    && request.resource.data.message is string && request.resource.data.message.size() <= 500
+                    && (!('senderUid' in request.resource.data) || request.resource.data.senderUid == request.auth.uid);
       allow update: if signedIn() && resource.data.recipientUid == request.auth.uid
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
       allow delete: if signedIn() && resource.data.recipientUid == request.auth.uid;
@@ -257,39 +306,18 @@ service cloud.firestore {
     // ---------------------------------------------------------------------
     // Settings and admin tooling
     //
-    // Five documents must be readable signed out, because the public pages
-    // read them before anyone logs in:
-    //   site      maintenance-check.js, on every page
-    //   logo      branding.js
-    //   favicon   branding.js
-    //   commerce  plan-price.js, for the USD->INR display rate
-    //   seo       seo.js, on all 20 public marketing pages
-    //
-    // settings/seo is easy to miss and the failure is silent. seo.js catches
-    // the denial and carries on, so nothing breaks visibly — but the
-    // site-wide title template stops applying, and worse, the
-    // "discourage indexing" master switch stops applying for exactly the
-    // anonymous crawlers it exists to stop. A switch that looks on and does
-    // nothing is worse than no switch. It holds nothing sensitive: a site
-    // name, a title template and an indexing toggle, all meta content
-    // written for crawlers.
-    //
-    // settings/tradingview must NOT be public: it lists the Pine script ids
-    // and any manual grants, which include members' TradingView usernames.
+    // Only site/logo/favicon/commerce need to be readable signed out, for
+    // branding and price display on the public pages. settings/tradingview in
+    // particular should NOT be public: it lists the Pine script ids and any
+    // manual grants, which include members' TradingView usernames.
     // ---------------------------------------------------------------------
     match /settings/{doc} {
       allow read:  if doc in ['site', 'logo', 'favicon', 'commerce', 'seo'] || signedIn();
       allow write: if isAdmin();
     }
-
-    // Per-page SEO overrides, read by seo.js on public pages before sign-in.
-    match /seoPages/{key} { allow read: if true; allow write: if isAdmin(); }
     match /tvSession/{doc}      { allow read, write: if false; }   // functions only
     match /brokerSync/{id}      { allow read, write: if false; }   // functions only
     match /bots/{id}            { allow read: if isAdmin(); allow write: if isAdmin(); }
-    // X autopost (functions-src/xAutopost.js). config is admin-written; state
-    // is written only by the function; xPosts is the queue — admins approve,
-    // edit, reject and compose, the function drafts and posts.
     match /xAutopost/config     { allow read, write: if isAdmin(); }
     match /xAutopost/state      { allow read: if isAdmin(); allow write: if false; }
     match /xPosts/{id}          { allow read, write: if isAdmin(); }

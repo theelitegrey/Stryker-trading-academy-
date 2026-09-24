@@ -35,6 +35,7 @@ function sortPlansAscending(plans){
 // here; a read denied by rules (e.g. for signed-out visitors) simply hides the
 // note rather than breaking the pricing grid.
 function loadFoundingOffer(){
+  if (typeof strykerPreviewMode === 'function' && strykerPreviewMode()) return Promise.resolve(null);
   return db.collection('coupons').doc('WELCOME').get().then((doc) => {
     if (!doc.exists) return null;
     const c = Object.assign({ code: doc.id }, doc.data());
@@ -50,6 +51,21 @@ function offerAppliesToCard(offer, plan){
   if (offer.appliesToPlan && offer.appliesToPlan !== 'all') return offer.appliesToPlan === plan.id;
   // an any-plan offer is advertised once, on the highest-profile card
   return !!plan.featured || /elite/i.test(plan.name || '');
+}
+
+// A monthly plan can point at a hidden yearly twin (plan.yearlyPlanId); the
+// card then offers it in one line. Shown only when the twin can be priced in
+// the visitor's currency: INR visitors need a fixed rupee price on it,
+// otherwise the converted figure would not match anything we advertise.
+let _plansById = {};
+function planYearlyLineHtml(plan){
+  const y = plan.yearlyPlanId && _plansById[plan.yearlyPlanId];
+  if (!y) return '';
+  if (strykerCurrency() === 'INR' && !planUsesInrPrices(y)) return '';
+  const s = planSaleInfo(y);
+  return '<a class="plan-yearly" href="checkout.html?plan=' + encodeURIComponent(y.id) + '">or ' +
+    planMoneyDisplay(s.price) + '/year' +
+    (s.active ? ' <s>' + planMoneyDisplay(s.full) + '</s>' : '') + ' →</a>';
 }
 
 function renderPublicPlanCard(plan, offer){
@@ -72,6 +88,7 @@ function renderPublicPlanCard(plan, offer){
     (hasOffer
       ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b><span class="fn-seats">Limited seats</span></div>'
       : '') +
+    planYearlyLineHtml(plan) +
     '<ul>' + featuresHtml + '</ul>' +
     '<a href="' + checkoutHref + '" class="btn ' + cta.cls + ' btn-block">' + (hasOffer ? 'Claim a free seat' : cta.label) + '</a>';
   return el;
@@ -85,13 +102,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // The USD→INR rate loads alongside the plans so Indian visitors' first
   // paint is already in rupees — no dollar flash, no re-render.
   const fxReady = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
-  Promise.all([db.collection('plans').get(), loadFoundingOffer(), fxReady]).then(([snap, offer]) => {
+  Promise.all([strykerLoadPlans(), loadFoundingOffer(), fxReady]).then(([all, offer]) => {
     if (typeof strykerCurrencyNoteHtml === 'function') {
       grid.insertAdjacentHTML('afterend', strykerCurrencyNoteHtml());
     }
-    if (snap.empty) return; // keep the static fallback cards already in the HTML
-    const plans = [];
-    snap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
+    if (!all.length) return; // keep the static fallback cards already in the HTML
+    _plansById = {};
+    all.forEach((p) => { _plansById[p.id] = p; });
+    // hidden plans (the yearly twin) are sold from their parent card only
+    const plans = all.filter((p) => !p.hidden);
     sortPlansAscending(plans);
     grid.innerHTML = '';
     plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan, offer)));

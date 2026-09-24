@@ -174,6 +174,7 @@ Object.assign(exports, require('./razorpay'));
 Object.assign(exports, require('./tvAccess'));
 Object.assign(exports, require('./subscriptions'));
 Object.assign(exports, require('./razorpaySubs'));
+Object.assign(exports, require('./stripe'));
 Object.assign(exports, require('./fxRate'));
 Object.assign(exports, require('./replayBars'));
 Object.assign(exports, require('./freeCheckout'));

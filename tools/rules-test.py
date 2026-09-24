@@ -84,6 +84,17 @@ c('lapsed member resets lapsedFromPlan','DENY','update','/students/alice',A,res=
 c('signed-out read plans','ALLOW','get','/plans/p1',None,old={'price':'19'})
 c('student reads foundingPrices','DENY','get','/foundingPrices/alice',A,old={'x':1})
 c('student makes self admin','DENY','create','/admins/alice',A,res={'x':1})
+# stripe (2026-09-24): billing ids and provider are function-only
+c('student sets own stripeCustomerId','DENY','update','/students/alice',A,res={'plan':'Starter','stripeCustomerId':'cus_x'},old={'plan':'Starter'})
+c('student sets own stripeSubscriptionId','DENY','update','/students/alice',A,res={'plan':'Pro','stripeSubscriptionId':'sub_x'},old={'plan':'Pro'})
+c('student sets billingProvider','DENY','update','/students/alice',A,res={'plan':'Pro','billingProvider':'stripe'},old={'plan':'Pro'})
+c('new user creates Starter + stripeCustomerId','DENY','create','/students/alice',A,res=dict(full,stripeCustomerId='cus_x'))
+c('heal to Starter + stripeSubscriptionId','DENY','update','/students/alice',A,res={'plan':'Starter','stripeSubscriptionId':'sub_x'},old={'theme':'night'})
+c('student edits billing while on stripe','ALLOW','update','/students/alice',A,res={'plan':'Pro','stripeCustomerId':'cus_x','billing':{'fullName':'A'}},old={'plan':'Pro','stripeCustomerId':'cus_x'})
+for col in ['stripeCustomers','stripeSessions','stripeSubs','stripeEvents','stripeInvoices','stripePrices','stripeCoupons']:
+    c('student reads '+col,'DENY','get','/'+col+'/alice',A,old={'uid':A})
+    c('student writes '+col,'DENY','create','/'+col+'/alice',A,res={'uid':A})
+c('admin client writes stripeCustomers','DENY','create','/stripeCustomers/alice',ADM,res={'customerId':'cus_x'})
 body={'source':{'files':[{'name':'firestore.rules','content':src}]},'testSuite':{'testCases':[t for _,t in cases]}}
 r=urllib.request.Request('https://firebaserules.googleapis.com/v1/projects/strykertrades-e0cd8:test',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+tok,'Content-Type':'application/json'})
 try: out=json.load(urllib.request.urlopen(r))

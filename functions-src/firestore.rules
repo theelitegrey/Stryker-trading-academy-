@@ -49,6 +49,7 @@ service cloud.firestore {
       return ['plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis'];
     }
     function touchesPrivileged() {
@@ -56,6 +57,7 @@ service cloud.firestore {
         'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis'
       ]);
     }
@@ -63,7 +65,8 @@ service cloud.firestore {
       return request.resource.data.keys().hasAny([
         'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
-        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned'
+        'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
+        'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider'
       ]);
     }
 

@@ -642,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (user) {
         CURRENT_UID = user.uid;
         showGuestBanner(false);
-        ensureStudentDoc(user).then((student) => {
+        withAuthRetry(user, () => ensureStudentDoc(user)).then((student) => {
           completedLessonsSet = new Set((student && student.completedLessons) || []);
           completedChaptersSet = new Set((student && student.completedChapters) || []);
           CURRENT_BEST_STREAK = (student && student.bestStreak) || 0;
@@ -659,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }).catch((err) => {
           console.error('Stryker: failed to load the chapter', err);
+          showReaderLoadError();
           revealReaderContent();
         });
       } else {
@@ -670,6 +671,35 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// A permission-denied right after sign-in is almost always the Firestore
+// client racing the auth token on first load (seen live on 2026-09-25: a Pro
+// member got one refusal on their own student doc, then every retry worked).
+// Wait for a fresh ID token and try again, twice, with a short backoff. Any
+// other error, or a third refusal, goes to the caller.
+function withAuthRetry(user, fn){
+  const delays = [400, 1200];
+  const attempt = (i) => fn().catch((err) => {
+    if (!err || err.code !== 'permission-denied' || i >= delays.length) throw err;
+    return new Promise((r) => setTimeout(r, delays[i]))
+      .then(() => (user && user.getIdToken ? user.getIdToken(true) : null))
+      .catch(() => null)
+      .then(() => attempt(i + 1));
+  });
+  return attempt(0);
+}
+
+// Never leave a blank chapter: if loading fails after the retries, say so
+// and let the reader try again with a fresh page load.
+function showReaderLoadError(){
+  const body = document.getElementById('reader-body');
+  if (!body) return;
+  body.innerHTML = '<div class="reader-load-error" role="alert" style="padding:28px 22px; border:1px solid var(--line, rgba(255,255,255,.12)); border-radius:12px; text-align:center;">' +
+    '<p style="margin:0 0 14px;">Couldn\'t load this chapter.</p>' +
+    '<button type="button" class="btn btn-primary btn-sm" id="reader-retry">Tap to retry</button></div>';
+  const btn = document.getElementById('reader-retry');
+  if (btn) btn.addEventListener('click', () => window.location.reload());
+}
 
 // true = text loaded, false = the plan doesn't cover it (or no such doc).
 function loadCurrentChapterBody(){

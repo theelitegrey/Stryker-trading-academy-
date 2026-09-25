@@ -16,7 +16,11 @@ function stubFor(mode) {
   const body = function (MODE) {
     const UID = 'u1';
     const RANK = { Starter: 0, Pro: 1, Elite: 2 };
-    const PLAN = { starter: 'Starter', pro: 'Pro', admin: 'Starter', out: null }[MODE];
+    // 'pro-flaky' = Pro whose first 2 student reads are refused (token race);
+    // 'pro-broken' = every student read refused.
+    const FLAKY = MODE === 'pro-flaky' ? 2 : MODE === 'pro-broken' ? 1e9 : 0;
+    window.__studentDenials = 0;
+    const PLAN = { starter: 'Starter', pro: 'Pro', 'pro-flaky': 'Pro', 'pro-broken': 'Pro', admin: 'Starter', out: null }[MODE];
     const plans = [
       { id: 'st', name: 'Starter', rank: 0, chapterAccess: '1-7', price: 0 },
       { id: 'pr', name: 'Pro', rank: 1, chapterAccess: 'all', price: 19 },
@@ -44,6 +48,7 @@ function stubFor(mode) {
         }));
       }
       if (coll === 'admins') return Promise.resolve(snap(id, MODE === 'admin' ? { role: 'admin' } : null));
+      if (coll === 'students' && window.__studentDenials < FLAKY) { window.__studentDenials++; return Promise.reject(denied()); }
       if (coll === 'students') return Promise.resolve(snap(id, PLAN || MODE === 'admin' ? { uid: UID, plan: PLAN, name: 'Gate Test', completedLessons: [], completedChapters: [] } : null));
       if (coll === 'plans') return Promise.resolve(snap(id, plans.find((p) => p.id === id) || null));
       return Promise.resolve(snap(id, null));
@@ -245,6 +250,32 @@ async function readerState(b, mode, ch, width) {
     const real = qe.filter((m) => !/reading 'collection'/.test(m));
     ok(`learn @${width}: no page errors (besides blocked-Firebase noise)`, real.length === 0, real.join(' | ').slice(0, 200));
     await q.close();
+  }
+
+  // Token-race recovery and the no-blank-page message (build 333).
+  for (const [mode, want] of [['pro-flaky', 'text'], ['pro-broken', 'error']]) {
+    const p = await b.newPage({ viewport: { width: 390, height: 844 } });
+    const errs = []; p.on('pageerror', (e) => errs.push(e.message));
+    await p.addInitScript(stubFor(mode));
+    await p.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (r) => r.abort());
+    await p.goto(BASE + '/chapter.html?ch=08', { waitUntil: 'domcontentloaded' });
+    let r;
+    for (let k = 0; k < 24; k++) {
+      await p.waitForTimeout(250);
+      r = await p.evaluate(() => ({ text: document.body.innerText.includes('FULL-TEXT-08'), err: !!document.getElementById('reader-retry'),
+        denials: window.__studentDenials, pending: !!document.querySelector('.gate-pending') }));
+      if (r.text || r.err) break;
+    }
+    if (want === 'text') {
+      ok('pro-flaky: 2 refusals then the text loads', r.text && r.denials === 2 && !r.err, JSON.stringify(r));
+    } else {
+      ok('pro-broken: retries exhausted -> "Couldn\'t load" + retry button', r.err && !r.text && r.denials >= 3 && !r.pending, JSON.stringify(r));
+      if (SHOTS) await p.screenshot({ path: `${SHOTS}/gate-pro-broken-390.png` });
+      const [nav] = await Promise.all([p.waitForNavigation({ timeout: 5000 }).then(() => true).catch(() => false), p.click('#reader-retry')]);
+      ok('pro-broken: retry button reloads the page', nav);
+    }
+    ok(mode + ': no page errors', errs.length === 0, errs.join(' | '));
+    await p.close();
   }
 
   await b.close();

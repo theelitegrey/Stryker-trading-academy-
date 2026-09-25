@@ -132,7 +132,7 @@ ${['Foundation', 'Intermediate', 'Advanced', 'Start'].map((t, i) => `      <butt
 ${lv3.map(card).join('\n')}
     <div class="cp-cell"><div class="cp-card cp-start" id="cp-card-3">
         <span class="cp-sweep" aria-hidden="true"></span>
-        <div><div class="cur-k">Start here · Free</div><h3>${esc(byNum['01'].title)}</h3><p>Chapter 01 is free with an account. Each chapter after it unlocks the next.</p></div>
+        <div><div class="cur-k">Start here · Free</div><h3>${esc(byNum['01'].title)}</h3><p>Chapters 1–7 free with a free account. No card required.</p></div>
         <a href="chapter?ch=01" class="btn btn-primary"><span class="cp-sweep" aria-hidden="true"></span>Start Chapter 01</a>
       </div></div>
     </div>

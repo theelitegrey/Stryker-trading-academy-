@@ -188,11 +188,6 @@
 .mtape-item i.down{ color:#e5484d; }
 .mtape-sep{ color:var(--ink-3); }
 
-/* LIVE chip on the hero chart card */
-.live-chip{ display:inline-flex; align-items:center; gap:5px; margin-left:8px; font-family:var(--font-mono); font-size:9px; font-weight:700; letter-spacing:0.14em; color:var(--gold); vertical-align:1px; }
-.live-chip i{ width:6px; height:6px; border-radius:50%; background:var(--gold); animation:liveChipPulse 1.8s ease-out infinite; }
-@keyframes liveChipPulse{ 0%{ box-shadow:0 0 0 0 rgba(3,201,136,0.5); } 70%{ box-shadow:0 0 0 7px rgba(3,201,136,0); } 100%{ box-shadow:0 0 0 0 rgba(3,201,136,0); } }
-
 /* Platform module vignettes */
 .module-viz{ margin-bottom:16px; border:1px solid var(--line-soft); border-radius:10px; background:rgba(255,255,255,0.015); overflow:hidden; }
 .module-viz svg{ display:block; width:100%; height:auto; }
@@ -342,7 +337,6 @@
   .mv-draw, .amd-path{ animation:none; stroke-dashoffset:0; opacity:1; }
   .mv-pop, .mv-bub, .amd-ph{ animation:none; opacity:1; transform:none; }
   .mv-ring, .mv-orbit{ animation:none; display:none; }
-  .live-chip i{ animation:none; }
   .price-card.featured::after{ animation:none; }
 }
 

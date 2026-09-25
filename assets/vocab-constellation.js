@@ -205,7 +205,9 @@
   var inView = false, raf = 0, last = 0;
   function frame(now) {
     raf = 0;
-    var dt = Math.min(0.1, (now - last) / 1000); last = now;
+    // rAF's timestamp can be slightly older than the performance.now() taken in
+    // start(); a negative dt would push t below 0 and index ORDER at -1.
+    var dt = Math.min(0.1, Math.max(0, (now - last) / 1000)); last = now;
     // The clock stops while the pointer rests on the section, so drift and
     // the walk both hold still; a spotlight picked by hover keeps animating in.
     if (!hovering || manual) t += dt;

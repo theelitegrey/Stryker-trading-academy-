@@ -108,7 +108,7 @@
     if (!('IntersectionObserver' in window)) return;
 
     var groups = document.querySelectorAll(
-      '.feature-grid, .price-grid, .proof-grid, .step-grid, .cur-bento');
+      '.feature-grid, .price-grid, .proof-grid, .step-grid');
 
     groups.forEach(function (group) {
       var kids = Array.prototype.filter.call(group.children, function (c) {

@@ -256,67 +256,91 @@
 @keyframes amdPh2{ 0%,30%{ opacity:0; } 38%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
 @keyframes amdPh3{ 0%,56%{ opacity:0; } 64%,90%{ opacity:1; } 97%,100%{ opacity:0; } }
 
-/* Curriculum bento (#curriculum). Markup is written by tools/gen-curriculum.js
-   from assets/chapters-data.js. Three level cards sized by weight plus a
-   start card; Advanced takes the full-width row because it is 26 of the 42
-   chapters. Cards rise in via the shared .m-stagger reveal (opacity and
-   transform only), which reduced motion already switches off. */
-.cur-bento{ display:grid; grid-template-columns:repeat(6,1fr); gap:16px; }
-.cur-card{
+/* Curriculum "price path" (#curriculum). Markup is written by
+   tools/gen-curriculum.js from assets/chapters-data.js; motion is
+   assets/curriculum-path.js. An illustrative rising line crosses three level
+   zones and each level card rises as the line reaches its zone, then the free
+   Chapter 01 card. Without scripting or with reduced motion the static markup
+   is already the final frame. On phones the four cards share one stage and the
+   level buttons pick which one shows (JS adds .cp-js; without it they stack). */
+.cp-chart{ background:#08090b; border:1px solid #1e1e22; border-radius:var(--radius-lg); padding:10px 10px 6px; box-shadow:var(--shadow-card); }
+.cp-svg{ display:block; width:100%; height:auto; }
+.cp-svg text{ font-family:var(--font-mono); }
+.cp-svg-m{ display:none; }
+.cp-cards{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:14px; }
+.cp-cell{ position:relative; border-radius:var(--radius-lg); min-width:0; }
+.cp-js .cp-cell::before{ content:''; position:absolute; inset:0; border:1px dashed var(--line); border-radius:var(--radius-lg); }
+.cp-card{
   background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-lg);
-  padding:28px; position:relative; overflow:hidden; box-shadow:var(--shadow-card); min-width:0;
+  padding:20px; position:relative; overflow:hidden; box-shadow:var(--shadow-card); min-width:0; height:100%;
 }
-.cur-card > *{ position:relative; }
+.cp-card > *{ position:relative; }
 .cur-glow{
   position:absolute !important; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%;
   filter:blur(40px); opacity:.18; pointer-events:none;
 }
-.cur-big{ font-family:var(--font-mono); font-size:64px; line-height:1; font-weight:600; letter-spacing:-.03em; }
-.cur-card h3{ font-size:22px; margin:14px 0 6px; }
-.cur-rng{ font-family:var(--font-mono); font-size:12px; color:var(--ink-3); }
-.cur-card p{ color:var(--ink-2); font-size:14px; margin:14px 0 0; }
-.cur-list{ margin-top:18px; }
-.cur-list li{ font-size:14px; padding:7px 0; border-top:1px solid var(--line-soft); color:var(--ink-1); display:flex; gap:10px; }
-.cur-list li span{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); width:22px; flex-shrink:0; padding-top:2px; }
-
-.cur-f{ grid-column:span 2; } .cur-f .cur-big{ color:var(--teal); } .cur-f .cur-glow{ background:var(--teal); }
-.cur-i{ grid-column:span 2; } .cur-i .cur-big{ color:var(--gold); } .cur-i .cur-glow{ background:var(--gold); }
-.cur-a .cur-big{ color:#f08488; } .cur-a .cur-glow{ background:#f08488; }
-
-.cur-start{
-  grid-column:span 2; display:flex; flex-direction:column; justify-content:space-between; gap:22px;
+.cp-top{ display:flex; align-items:center; gap:14px; }
+.cp-big{ font-family:var(--font-mono); font-size:44px; line-height:1; font-weight:600; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.cp-card h3{ font-size:19px; line-height:1.2; }
+.cp-rng{ font-family:var(--font-mono); font-size:12px; color:var(--ink-3); }
+.cp-list{ margin-top:12px; }
+.cp-list li{ font-size:13.5px; line-height:1.45; padding:6px 0; border-top:1px solid var(--line-soft); color:var(--ink-1); display:flex; gap:10px; }
+.cp-list li > span{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); width:22px; flex-shrink:0; padding-top:2px; }
+.cp-ty{ font-style:normal; }
+.cp-th li{ justify-content:space-between; }
+.cp-th li b{ font-family:var(--font-mono); font-size:11px; font-weight:500; color:var(--ink-3); white-space:nowrap; padding-top:2px; }
+.cp-gh{ opacity:0; }                 /* untyped remainder keeps the final line width, so typing never reflows */
+.cp-car{ display:inline-block; width:0; height:1.05em; border-left:2px solid var(--gold-bright); vertical-align:-2px; margin-right:-2px; }
+.cur-f .cp-big{ color:var(--teal); } .cur-f .cur-glow{ background:var(--teal); }
+.cur-i .cp-big{ color:var(--gold); } .cur-i .cur-glow{ background:var(--gold); }
+.cur-a .cp-big{ color:#f08488; }     .cur-a .cur-glow{ background:#f08488; }
+.cp-start{
+  display:flex; flex-direction:column; justify-content:space-between; gap:16px;
   background:radial-gradient(120% 90% at 100% 0%, rgba(3,201,136,.16), transparent 60%), var(--bg-2);
   border-color:var(--gold-dim);
 }
 .cur-k{ font-family:var(--font-mono); font-size:12px; color:var(--gold); letter-spacing:.1em; text-transform:uppercase; }
-.cur-start h3{ font-size:24px; line-height:1.25; margin-top:14px; }
-.cur-start p{ margin-top:10px; }
-.cur-start .btn{ align-self:stretch; }
+.cp-start h3{ font-size:22px; line-height:1.25; margin-top:10px; }
+.cp-start p{ color:var(--ink-2); font-size:14px; line-height:1.5; margin:8px 0 0; }
+.cp-start .btn{ align-self:stretch; position:relative; overflow:hidden; }
+.cp-sweep{
+  position:absolute !important; inset:0; pointer-events:none; transform:translateX(-110%);
+  background:linear-gradient(100deg,transparent 30%,rgba(79,227,172,.22) 48%,rgba(79,227,172,.05) 56%,transparent 70%);
+}
+.cp-tabs{ display:none; }
+.cur-foot{ text-align:center; margin-top:28px; }
+.cp-card, .cp-foot, .cp-list li b, .cp-band, .cp-cn{ will-change:opacity; }
 
-.cur-a{ grid-column:span 6; display:grid; grid-template-columns:260px 1fr; gap:32px; align-items:start; }
-.cur-themes{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-.cur-theme{ border:1px solid var(--line-soft); border-radius:12px; padding:16px; background:var(--bg-1); }
-.cur-theme h4{ font-size:14.5px; margin-bottom:6px; }
-.cur-theme p{ margin:0; font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); }
-
-.cur-foot{ text-align:center; margin-top:32px; }
-
-/* In the light theme the advanced pink and intermediate mint are too pale to
-   read as big numerals on white; use the darker text tones the chapter tags
-   already use there. */
-:root[data-theme="light"] .cur-i .cur-big{ color:#06694a; }
-:root[data-theme="light"] .cur-a .cur-big{ color:var(--bear); }
+/* Light theme: the chart surface stays dark (it is a chart); card numerals use
+   the darker tones the chapter tags already use there. */
+:root[data-theme="light"] .cur-i .cp-big{ color:#06694a; }
+:root[data-theme="light"] .cur-a .cp-big{ color:var(--bear); }
 :root[data-theme="light"] .cur-a .cur-glow{ background:var(--bear); }
 
 @media (max-width:980px){
-  .cur-bento{ grid-template-columns:1fr; }
-  .cur-f, .cur-i, .cur-start, .cur-a{ grid-column:auto; }
-  .cur-a{ grid-template-columns:1fr; gap:18px; }
-  .cur-themes{ grid-template-columns:1fr 1fr; }
-  .cur-card{ padding:22px; }
-  .cur-big{ font-size:48px; }
+  .cp-cards{ grid-template-columns:1fr 1fr; }
 }
-@media (max-width:420px){ .cur-themes{ grid-template-columns:1fr; } }
+@media (max-width:640px){
+  .cp-chart{ padding:6px 6px 2px; }
+  .cp-svg-d{ display:none; } .cp-svg-m{ display:block; }
+  .cp-cards{ grid-template-columns:1fr; gap:12px; margin-top:12px; }
+  .cp-card{ padding:18px; }
+  .cp-big{ font-size:40px; }
+  /* one-card stage, driven by curriculum-path.js */
+  .cp-js .cp-tabs{ display:flex; gap:6px; margin-top:12px; }
+  .cp-tab{
+    flex:1 1 auto; min-width:0; padding:8px 6px; border-radius:8px; border:1px solid var(--line);
+    background:var(--bg-2); color:var(--ink-2); font-family:var(--font-body); font-size:12.5px; font-weight:600;
+    white-space:nowrap;
+  }
+  .cp-tab[aria-pressed="true"]{ color:var(--ink-0); border-color:var(--gold-dim); background:rgba(3,201,136,.08); }
+  .cp-js .cp-cards{ display:block; position:relative; }
+  .cp-js .cp-cell{ position:absolute; left:0; right:0; top:0; }
+  .cp-js .cp-cell::before{ display:none; }
+  .cp-js .cp-cell.cp-off{ visibility:hidden; }
+  .cur-foot{ margin-top:12px; }
+}
+@media (prefers-reduced-motion: reduce){ .cp-sweep{ display:none; } }
 
 /* Featured pricing card: rotating border sweep */
 @property --sweep-ang{ syntax:'<angle>'; inherits:false; initial-value:0deg; }
@@ -362,7 +386,7 @@
        radial glow that swells behind the illustration
      - the illustration keeps its own mv-* animations, restarted per switch
    ========================================================================== */
-.plat-desk{ position:relative; margin:10px 0 96px; }
+.plat-desk{ position:relative; margin:10px 0 0; }
 .desk-orbit{ position:absolute; inset:-60px -40px; pointer-events:none; z-index:0; overflow:hidden; border-radius:40px; }
 .desk-orbit span{
   position:absolute; left:50%; top:50%; border-radius:50%;
@@ -483,7 +507,7 @@
 /* Scroll chevrons for the phone tab strip; they exist only below 940px. */
 .desk-chev{ display:none; }
 @media (max-width:940px){
-  .plat-desk{ grid-template-columns:1fr; min-height:0; margin-bottom:64px; }
+  .plat-desk{ grid-template-columns:1fr; min-height:0; }
   .desk-orbit{ display:none; }
   /* The strip carries no background or border of its own on a phone. The edge
      fade below is a mask on the strip, and a mask fades everything the element
@@ -632,3 +656,15 @@
   .vc-glow, .vc-ring{ display:none; }
   .vc-ready .vc-node, .vc-ready .vc-sc, .vc-ready .vc-in{ will-change:auto; }
 }
+
+
+/* Homepage section rhythm. The five content sections are
+   <section class="container">, and .container's `padding:0 32px` beats the
+   site-wide `section{ padding:96px 0 }` (a class outranks an element), so they
+   had no vertical padding at all and ran into each other (18px between the
+   vocabulary, curriculum and platform blocks). This restores an even gap
+   between them; padding-block leaves .container's side padding alone. The
+   platform desk used to carry its own 96px bottom margin to fake this gap;
+   that margin is now 0 so the space below it matches the rest. */
+#main > section.container{ padding-block:72px; }
+@media (max-width:640px){ #main > section.container{ padding-block:52px; } }

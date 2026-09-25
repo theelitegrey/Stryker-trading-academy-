@@ -25,9 +25,17 @@ var STRYKER_MONITOR_DATA_URL_FALLBACK = 'https://raw.githubusercontent.com/theel
 // non-2xx handled by the caller as a throw/rejection) try FALLBACK. When the
 // two constants are equal (today) this costs nothing extra on success and
 // simply reports the same failure twice on total outage.
+// fetch() RESOLVES on an HTTP error (404 from a moved or private host), so a
+// Response with ok === false counts as a failure here too; otherwise the
+// fallback would never fire in exactly the case it exists for.
 function strykerFetchMonitorData(fetchOneUrl) {
-  return fetchOneUrl(STRYKER_MONITOR_DATA_URL).catch(function (err) {
-    if (STRYKER_MONITOR_DATA_URL_FALLBACK === STRYKER_MONITOR_DATA_URL) throw err;
+  var same = STRYKER_MONITOR_DATA_URL_FALLBACK === STRYKER_MONITOR_DATA_URL;
+  var fallback = function (err) {
+    if (same) throw err;
     return fetchOneUrl(STRYKER_MONITOR_DATA_URL_FALLBACK);
-  });
+  };
+  return fetchOneUrl(STRYKER_MONITOR_DATA_URL).then(function (r) {
+    if (r && r.ok === false && !same) return fallback(new Error('HTTP ' + r.status));
+    return r;
+  }, fallback);
 }

@@ -119,6 +119,33 @@ function collectFormData(){
   };
 }
 
+// One chapter = a catalog doc (anyone signed in) + a body doc (plan-gated).
+// Written in one batch so the two can never disagree. minRank on the body is
+// (re)computed server-side by the chapterBodyMinRank function from the plans
+// and this minRole; until it lands only admins can read a new body.
+function chapterCatalogOf(data){
+  const strip = (h) => String(h || '').replace(/<[^>]*>/g, ' ');
+  let text = strip(data.bodyHtml);
+  (data.lessons || []).forEach((l) => { text += ' ' + strip(l.descHtml || l.desc); });
+  const url = String(data.video || '').trim();
+  return {
+    num: data.num, title: data.title, level: data.level, dur: data.dur, minRole: data.minRole || null,
+    lessons: (data.lessons || []).map((l) => ({ title: l.title || '' })),
+    preview: String((data.paragraphs || [])[0] || '').replace(/<[^>]*>/g, ''),
+    readMinutes: Math.max(1, Math.round(((text.match(/\S+/g) || []).length) / 200)),
+    hasVideo: !!url && !(typeof PLACEHOLDER_CHAPTER_VIDEO !== 'undefined' && PLACEHOLDER_CHAPTER_VIDEO.test(url))
+  };
+}
+function saveChapterSplit(data){
+  const batch = db.batch();
+  batch.set(db.collection('chapters').doc(data.num), chapterCatalogOf(data));
+  batch.set(db.collection('chapterBodies').doc(data.num), {
+    num: data.num, minRole: data.minRole || null,
+    bodyHtml: data.bodyHtml, paragraphs: data.paragraphs, lessons: data.lessons, video: data.video || ''
+  }, { merge: true });
+  return batch.commit();
+}
+
 function resizeImageToDataUrl(file, maxDim, mimeType){
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -231,7 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextNum = String((nums.length ? Math.max(...nums) : 0) + 1).padStart(2, '0');
         ch = { num: nextNum, title: '', level: 'foundation', dur: '', video: '', minRole: null, bodyHtml: '', lessons: [{ title: '', desc: '' }] };
       } else {
-        ch = CHAPTERS.find(c => c.num === chNum);
+        ch = CHAPTERS.find(c => c.num === chNum) ||
+             ((typeof TRACK_CHAPTERS !== 'undefined') ? TRACK_CHAPTERS.find(c => c.num === chNum) : null);
         if (!ch) {
           document.getElementById('editor-error').textContent = 'Chapter not found.';
           document.getElementById('editor-error').style.display = 'block';
@@ -240,7 +268,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       EDITING_NUM = ch.num;
-      loadChapterIntoForm(ch);
+      if (IS_NEW_CHAPTER) { loadChapterIntoForm(ch); return; }
+      // The catalog has no text; the editor (admin) reads chapterBodies.
+      loadChapterBody(ch.num, true)
+        .then((body) => loadChapterIntoForm(Object.assign({}, ch, body || {})))
+        .catch((err) => {
+          document.getElementById('editor-error').textContent = 'Could not load the chapter text: ' + (err.message || err);
+          document.getElementById('editor-error').style.display = 'block';
+        });
     });
   });
 
@@ -265,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btn = document.getElementById('save-chapter-btn');
     btn.disabled = true;
-    db.collection('chapters').doc(data.num).set(data)
+    saveChapterSplit(data)
       .then(() => loadChapters(true))
       .then(() => {
         okEl.textContent = 'Saved.';
@@ -282,8 +317,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .finally(() => { btn.disabled = false; });
   });
 
-  document.getElementById('reset-from-seed-btn').addEventListener('click', () => {
-    if (!EDITING_NUM || typeof CHAPTERS_SEED === 'undefined') return;
+  // The bundled seed is catalog-only now (the text is plan-gated server
+  // side), so there is nothing to reset from in the browser. The server-side
+  // equivalent is tools/chapter-gate/migrate.py.
+  const resetBtn = document.getElementById('reset-from-seed-btn');
+  if (resetBtn) resetBtn.hidden = true;
+  if (resetBtn) resetBtn.addEventListener('click', () => {
+    if (!EDITING_NUM || typeof CHAPTERS_SEED === 'undefined' || !CHAPTERS_SEED.some((c) => c.bodyHtml)) return;
     const seedChapter = CHAPTERS_SEED.find(c => c.num === EDITING_NUM);
     if (!seedChapter) {
       showToast('error', 'No bundled version of Chapter ' + EDITING_NUM + ' exists to reset from.');
@@ -309,7 +349,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('delete-chapter-btn').addEventListener('click', () => {
     if (!EDITING_NUM) return;
     if (!confirm('Delete Chapter ' + EDITING_NUM + '? This removes it from the live curriculum immediately. This cannot be undone.')) return;
-    db.collection('chapters').doc(EDITING_NUM).delete()
+    const batch = db.batch();
+    batch.delete(db.collection('chapters').doc(EDITING_NUM));
+    batch.delete(db.collection('chapterBodies').doc(EDITING_NUM));
+    batch.commit()
       .then(() => loadChapters(true))
       .then(() => { window.location.href = 'chapters-admin.html'; })
       .catch((err) => showToast('error', 'Could not delete: ' + (err.message || err)));

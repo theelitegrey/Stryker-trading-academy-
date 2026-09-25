@@ -1,0 +1,116 @@
+<p><strong>Order flow</strong> is the study of the orders behind every price move: who was willing to wait, who was in a hurry, and what happened when they met. Where a candlestick shows you four prices, order-flow tools show you the trades inside the candle. This guide explains the building blocks: market and limit orders, the order book, how an exchange matches trades, footprint charts, delta and imbalances. It also covers what order flow can and can't tell you.</p>
+
+<div class="lx-key">
+<p><strong>Key takeaways</strong></p>
+<ul>
+<li><strong>Limit orders</strong> wait in the order book and provide liquidity. <strong>Market orders</strong> execute immediately and take it.</li>
+<li>Price moves when aggressive orders use up the resting orders at a price.</li>
+<li>A <strong>footprint chart</strong> shows how many contracts traded at the bid and at the ask at each price inside a bar.</li>
+<li><strong>Delta</strong> is ask volume minus bid volume: a measure of which side was more urgent, not of how many buyers or sellers there were.</li>
+<li>Order flow needs complete exchange data, so it works best on futures. Patterns are practitioner methods, not guarantees.</li>
+</ul>
+</div>
+
+<h2>Market orders and limit orders</h2>
+<p>A <strong>limit order</strong> is an instruction to buy or sell at a set price or better. The SEC's investor guide explains that a buy limit only executes at the limit price or lower, and a sell limit only at the limit price or higher. If no one will trade at that price yet, the order waits in the book. Limit orders provide <strong>liquidity</strong>: they are prices other traders can trade against.</p>
+<p>A <strong>market order</strong> is an instruction to buy or sell now, at the best price available. It fills straight away against resting limit orders, but the price isn't guaranteed. In order-flow terms, the market order is the <strong>aggressor</strong> and the limit order is the <strong>passive</strong> side. <strong>Stop orders</strong> wait outside the book until price reaches them and then become market or limit orders, which is why a cluster of triggered stops arrives as a burst of aggressive trading.</p>
+
+<h2>The order book and the DOM</h2>
+<p>The <strong>order book</strong> is the list of resting limit orders at every price. Trading platforms usually show it as a ladder called the <strong>DOM</strong> (depth of market). Buy orders (<strong>bids</strong>) sit below, sell orders (<strong>asks</strong> or offers) above. The highest bid is the <strong>best bid</strong>, the lowest ask is the <strong>best ask</strong>, and the difference is the <strong>spread</strong>. On E-mini S&amp;P 500 futures (ES) the smallest price step, a <strong>tick</strong>, is 0.25 index points, worth $12.50 per contract.</p>
+
+<figure class="lx-fig">
+<!-- FIG:dom -->
+<svg viewBox="0 0 400 212" xmlns="http://www.w3.org/2000/svg" width="400" height="212" role="img" aria-label="Illustrative order book" style="width:100%; height:auto; display:block; max-width:560px; margin:0 auto;"><title>Illustrative order book</title><text x="70" y="22" font-size="14" fill="#03c988" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">BID</text><text x="200" y="22" font-size="14" fill="#8b93a0" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">PRICE</text><text x="330" y="22" font-size="14" fill="#e5484d" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">ASK</text><rect x="10" y="34" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="270" y="36" width="120" height="20" fill="#e5484d" fill-opacity="0.14"/><text x="330" y="51" font-size="14" fill="#f08488" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">55</text><text x="200" y="51" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,812.00</text><rect x="10" y="58" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="270" y="60" width="120" height="20" fill="#e5484d" fill-opacity="0.14"/><text x="330" y="75" font-size="14" fill="#f08488" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">34</text><text x="200" y="75" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,811.75</text><rect x="10" y="82" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="270" y="84" width="120" height="20" fill="#e5484d" fill-opacity="0.14"/><text x="330" y="99" font-size="14" fill="#f08488" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">18</text><text x="200" y="99" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,811.50</text><rect x="10" y="106" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="10" y="108" width="120" height="20" fill="#03c988" fill-opacity="0.14"/><text x="70" y="123" font-size="14" fill="#7fe0c2" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">21</text><text x="200" y="123" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,811.25</text><rect x="10" y="130" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="10" y="132" width="120" height="20" fill="#03c988" fill-opacity="0.14"/><text x="70" y="147" font-size="14" fill="#7fe0c2" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">40</text><text x="200" y="147" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,811.00</text><rect x="10" y="154" width="380" height="24" fill="none" stroke="#1e1e22" stroke-width="1"/><rect x="10" y="156" width="120" height="20" fill="#03c988" fill-opacity="0.14"/><text x="70" y="171" font-size="14" fill="#7fe0c2" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">62</text><text x="200" y="171" font-size="14" fill="#eeeeee" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">4,810.75</text><text x="200" y="202" font-size="13" fill="#8b93a0" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">spread = 1 tick (0.25)</text></svg>
+<!-- /FIG:dom -->
+<figcaption>Illustrative order book. Best bid 4,811.25, best ask 4,811.50: a one-tick spread. A 30-lot market buy would take all 18 at 4,811.50 and 12 of the 34 at 4,811.75, moving the last traded price up a tick.</figcaption>
+</figure>
+
+<h2>How a trade actually matches</h2>
+<p>On CME Group's Globex platform, a trade happens when an aggressive order meets resting ones. For equity index futures like ES, CME uses <strong>FIFO</strong> (first in, first out) matching: the best price fills first, and at the same price, the order that arrived first fills first. CME's documentation says FIFO uses price and time as its only criteria, and an order goes to the back of the queue if its size is increased or its price is changed.</p>
+<p>This leads to the single most useful idea in order flow: <strong>price moves when aggressive orders consume the resting liquidity at a price.</strong> A thin book moves easily. A book with large resting orders can absorb a lot of aggression without moving. Every order-flow pattern is a variation on that.</p>
+
+<h2>Time and sales</h2>
+<p><strong>Time and sales</strong>, often called <em>the tape</em>, lists every trade: the time, the price, the size, and whether it traded at the bid or the ask. A trade at the ask means a buyer crossed the spread; a trade at the bid means a seller did. One large market order that fills across several prices shows up as several prints with the same timestamp.</p>
+
+<h2>Footprint charts</h2>
+<p>A <strong>footprint chart</strong> opens up each candle and shows every price inside it, with two numbers per price: contracts traded at the bid (aggressive selling) and at the ask (aggressive buying). Platforms give it different names, such as Numbers Bars in Sierra Chart, Volumetric Bars in NinjaTrader and Volume Footprint in TradingView, but the idea is the same.</p>
+
+<figure class="lx-fig">
+<!-- FIG:fp -->
+<svg viewBox="0 0 400 221" xmlns="http://www.w3.org/2000/svg" width="400" height="221" role="img" aria-label="Illustrative footprint bar" style="width:100%; height:auto; display:block; max-width:560px; margin:0 auto;"><title>Illustrative footprint bar</title><text x="66" y="31" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,812.25</text><text x="66" y="52" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,812.00</text><text x="66" y="73" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,811.75</text><text x="66" y="94" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,811.50</text><text x="66" y="115" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,811.25</text><text x="66" y="136" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,811.00</text><text x="66" y="157" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,810.75</text><rect x="78" y="16" width="310" height="147" fill="none" stroke="#03c988" stroke-width="1.2" rx="3"/><rect x="78" y="37" width="4" height="105" fill="#03c988"/><text x="227" y="31" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">3</text><text x="233" y="31" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="31" font-size="13" fill="#8b93a0" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace">14</text><text x="227" y="52" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">9</text><text x="233" y="52" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="52" font-size="13" fill="#7fe0c2" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">38</text><text x="227" y="73" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">11</text><text x="233" y="73" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="73" font-size="13" fill="#7fe0c2" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">42</text><text x="227" y="94" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">8</text><text x="233" y="94" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="94" font-size="13" fill="#7fe0c2" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">40</text><text x="227" y="115" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">12</text><text x="233" y="115" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="115" font-size="13" fill="#8b93a0" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace">19</text><text x="227" y="136" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">28</text><text x="233" y="136" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="136" font-size="13" fill="#8b93a0" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace">16</text><text x="227" y="157" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">17</text><text x="233" y="157" font-size="13" fill="#1e1e22" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">x</text><text x="239" y="157" font-size="13" fill="#8b93a0" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace">8</text><text x="233" y="183" font-size="14" fill="#03c988" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">delta +89</text><text x="233" y="201" font-size="13" fill="#8b93a0" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, monospace">vol 265</text><text x="66" y="183" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">delta</text></svg>
+<!-- /FIG:fp -->
+<figcaption>Illustrative footprint bar. Each row is "bid x ask" at that price. Bold green numbers are buy imbalances. The bar's delta is +89 on 265 contracts.</figcaption>
+</figure>
+
+<h2>Delta and cumulative delta</h2>
+<p><strong>Delta</strong> is ask volume minus bid volume: aggressive buying minus aggressive selling. In the footprint above, 177 contracts traded at the ask and 88 at the bid, so delta is <strong>+89</strong>. <strong>Cumulative delta</strong> is the running total of delta through the session.</p>
+<p>Two points are easy to miss. First, every contract has a buyer and a seller, so delta doesn't mean there were "more buyers". It means buyers were more <strong>urgent</strong>: they were willing to cross the spread. Second, not all delta is equal. Platforms that use the exchange's bid and ask at the time of each trade give true aggressor-side delta. TradingView's footprint guide explains that it classifies volume from the direction of intrabar price moves instead, which is an approximation.</p>
+<p>Traders watch for <strong>delta divergence</strong>: price makes a new high but cumulative delta doesn't. It suggests the new high was made with less aggressive buying than the last one. It is a warning, not a signal. Trends can diverge for a long time.</p>
+
+<h2>Imbalances</h2>
+<p>An <strong>imbalance</strong> is a price where one side traded far more than the other. The main platforms compare <strong>diagonally</strong>: the ask volume at a price against the bid volume one tick lower, because those are the two numbers that were competing at the same moment in the book. ATAS explains this reasoning in its knowledge base. The threshold is a setting. ATAS uses 200% by default and 400% for "strong"; NinjaTrader's default ratio is 1.5. This guide uses 3 to 1.</p>
+<p>Check one from the footprint: at 4,811.75, 42 contracts traded at the ask. One tick lower, 8 traded at the bid. 42 is more than three times 8, so 4,811.75 is a buy imbalance. The bar has three in a row, at 4,811.50, 4,811.75 and 4,812.00. A run of three or more is called a <strong>stacked imbalance</strong>, and traders watch it as a zone where one side was repeatedly aggressive.</p>
+
+<h2>Common order-flow patterns</h2>
+<ul>
+<li><strong>Absorption:</strong> heavy aggressive selling (or buying) that fails to move price, because a large passive order is taking the other side.</li>
+<li><strong>Exhaustion:</strong> aggressive volume shrinks as price pushes to a new extreme, until the high or low prints on very few contracts.</li>
+<li><strong>Icebergs:</strong> large limit orders that show only part of their size. CME supports this as a display quantity that refills each time it is filled. The tell is more volume trading at a price than was ever displayed.</li>
+<li><strong>Trapped traders:</strong> traders who entered aggressively on a breakout that then fails. Their stop-losses can add fuel to the reversal. This is the order-flow view of a <a href="learn-liquidity-sweeps.html">liquidity sweep</a>.</li>
+</ul>
+<p>These are practitioner patterns. Many traders use them, and platform documentation describes them, but none is a reliable signal on its own. They are most useful at prices you already marked for another reason, such as a <a href="learn-volume-profile.html">volume profile</a> level or a set of equal highs.</p>
+
+<h2>A worked example</h2>
+<p>A hypothetical walk-through, not a recommendation. ES rallies into a prior value area high that also lines up with a set of equal highs.</p>
+<ol>
+<li>As price approaches, the footprint shows ask volume shrinking at each new tick: possible exhaustion.</li>
+<li>Price trades two ticks above the equal highs, with a burst of buying at the ask right at the top.</li>
+<li>The bar closes back below the highs with negative delta. The buyers at the top are now trapped.</li>
+<li>The next bars show sell imbalances stacking on the way down.</li>
+</ol>
+<p>Liquidity, value and order flow all point the same way. That is the kind of agreement order-flow traders look for. It doesn't guarantee what happens next, and position size and stop placement still come from your risk plan.</p>
+
+<h2>What order flow can't tell you</h2>
+<ul>
+<li><strong>Who traded.</strong> Exchange data is anonymous. Labels like "institutions" are interpretation.</li>
+<li><strong>Intentions.</strong> Resting orders can be cancelled at any time. Placing orders you intend to cancel before execution, known as spoofing, is illegal under the U.S. Commodity Exchange Act, but it is one reason experienced traders trust executed trades more than displayed size.</li>
+<li><strong>Anything on spot forex.</strong> Spot FX has no central order book, so broker "volume" is usually tick volume, and footprints built from it can't know the aggressor.</li>
+</ul>
+
+<h2>Going further</h2>
+<p>Order flow works best alongside a map of where value is, which is what a <a href="learn-volume-profile.html">volume profile</a> gives you. Stryker's <strong>Volume Profile &amp; Order Flow</strong> specialist track, for Pro and Elite members, covers both across twelve written chapters with chart diagrams, including footprint patterns, data and platform differences, and how order flow fits the liquidity framework.</p>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Reading positive delta as "price will rise".</strong> Delta measures urgency, not direction.</li>
+<li><strong>Treating big resting orders as walls.</strong> They can disappear in a millisecond.</li>
+<li><strong>Comparing imbalances horizontally.</strong> The standard comparison is diagonal.</li>
+<li><strong>Trading patterns anywhere on the chart.</strong> Order flow is confirmation at a level, not a map.</li>
+<li><strong>Using footprints on CFDs or spot FX.</strong> Use the exchange-traded future.</li>
+</ul>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is order flow trading in simple terms?</h3>
+<p>It means reading the actual trades and resting orders behind price moves, such as who crossed the spread and how much traded at each price, instead of only the candle shape.</p>
+<h3>What is the difference between the DOM and a footprint chart?</h3>
+<p>The DOM shows resting orders waiting in the book right now. A footprint shows trades that already happened, split into bid and ask at each price.</p>
+<h3>What does delta mean in trading?</h3>
+<p>Delta is volume traded at the ask minus volume traded at the bid. Positive delta means aggressive buyers were more active; negative means aggressive sellers were.</p>
+<h3>Can you use order flow on forex?</h3>
+<p>Not on spot forex in a reliable way, because it has no central exchange. Traders use CME currency futures such as Euro FX (6E) instead.</p>
+<h3>Do I need expensive software for order flow?</h3>
+<p>Footprint charts need trade data with the bid and ask at each trade, which several platforms provide. Many offer replay or simulated data, so you can learn before paying for a live feed.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>CME Group Client Systems Wiki, "Supported Matching Algorithms" (FIFO, loss of priority): <a href="https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457218479/Supported+Matching+Algorithms" rel="noopener" target="_blank">cmegroup</a></li>
+<li>CME Group Client Systems Wiki, "Order Qualifiers" (display quantity): <a href="https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457218264/Order+Qualifiers" rel="noopener" target="_blank">cmegroup</a></li>
+<li>CME Group, "Micro E-mini Equity Index Futures FAQ" (ES multiplier and tick): <a href="https://www.cmegroup.com/articles/faqs/micro-e-mini-equity-index-futures-frequently-asked-questions.html" rel="noopener" target="_blank">cmegroup.com</a></li>
+<li>Investor.gov (SEC), "Investor Bulletin: Understanding Order Types": <a href="https://investor.gov/additional-resources/news-alerts/alerts-bulletins/investor-bulletin-understanding-order-types" rel="noopener" target="_blank">investor.gov</a></li>
+<li>ATAS knowledge base, "Imbalances" (diagonal comparison, default thresholds): <a href="https://learn.atas.net/volume-basics/volume-analysis/imbalances" rel="noopener" target="_blank">atas.net</a></li>
+<li>NinjaTrader 8 Help Guide, "Order Flow Volumetric Bars": <a href="https://ninjatrader.com/support/helpGuides/nt8/order_flow_volumetric_bars.htm" rel="noopener" target="_blank">ninjatrader.com</a></li>
+<li>TradingView Help Center, "Volume Footprint charts: a complete guide": <a href="https://www.tradingview.com/support/solutions/43000726164-volume-footprint-charts-a-complete-guide/" rel="noopener" target="_blank">tradingview.com</a></li>
+<li>CFTC, "Disruptive Trading Practices" fact sheet (spoofing): <a href="https://www.cftc.gov/sites/default/files/idc/groups/public/@newsroom/documents/file/dtp_factsheet.pdf" rel="noopener" target="_blank">cftc.gov (PDF)</a></li>
+</ol>

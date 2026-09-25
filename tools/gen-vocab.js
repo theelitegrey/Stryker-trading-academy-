@@ -12,7 +12,7 @@
 //
 // Chapter numbers are checked, not trusted: each term names the chapter that
 // teaches it and a pattern that must match that chapter's title or one of its
-// lesson titles in assets/chapters-data.js. If a chapter is renamed or
+// lesson titles in tools/content/chapters-data.js. If a chapter is renamed or
 // renumbered so the pattern no longer matches, the script stops instead of
 // putting a wrong "Ch. NN" on the homepage. The chapter title and level shown
 // on each card are read from the same data.
@@ -116,7 +116,7 @@ const MINI = {
 };
 
 function loadChapters() {
-  const src = fs.readFileSync(path.join(ROOT, 'assets', 'chapters-data.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'tools', 'content', 'chapters-data.js'), 'utf8');
   const ctx = {};
   vm.createContext(ctx);
   vm.runInContext(src + '\n;this.__C = CHAPTERS_SEED;', ctx);

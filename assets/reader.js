@@ -277,9 +277,20 @@ function activateLiveCharts(container){
   });
 }
 
+// Chapter text fetched from chapterBodies (plan-gated by the Firestore
+// rules), keyed by chapter num. The catalog entry in CHAPTERS has the title,
+// level and lesson titles only; currentChapter() merges the two.
+const CHAPTER_BODIES = {};
+function currentChapter(){
+  const cat = CHAPTERS[CURRENT_INDEX];
+  if (!cat) return null;
+  const body = CHAPTER_BODIES[cat.num];
+  return body ? Object.assign({}, cat, body) : cat;
+}
+
 function renderReader(){
   CURRENT_INDEX = getChapterIndexFromQuery();
-  const ch = CHAPTERS[CURRENT_INDEX];
+  const ch = currentChapter();
   if (!ch) return;
 
   document.title = 'Chapter ' + ch.num + ' — ' + ch.title + ' | Stryker Trading Academy';
@@ -294,13 +305,16 @@ function renderReader(){
   metaWrap.innerHTML =
     '<span class="chapter-tag ' + LEVEL_TAG_CLASS[ch.level] + '">' + LEVEL_LABEL[ch.level] + '</span>' +
     metaCell(ch.lessons.length + ' lessons') +
-    (chapterVideoUrl(ch) ? metaCell(ch.dur) : '') +
+    ((chapterVideoUrl(ch) || ch.hasVideo === true) ? metaCell(ch.dur) : '') +
     metaCell('~' + estimateReadMinutes(ch) + ' min read');
 
   renderChapterVideo(ch);
 
   const body = document.getElementById('reader-body');
-  body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('');
+  // No text (signed out, or the plan doesn't cover it): show the teaser
+  // under the paywall rather than an empty page.
+  body.innerHTML = ch.bodyHtml || (ch.paragraphs || []).map(p => '<p>' + p + '</p>').join('')
+    || ('<p>' + stkEsc(ch.preview || '') + '</p>');
   activateLiveCharts(body);
 
   renderLessonList(ch);
@@ -501,6 +515,7 @@ function showChapterCompleteCard(ch, celebrate){
 // Word-count estimate over the chapter body plus every lesson, at a reading
 // pace of 200 wpm. Cheap, deterministic, and honest enough for a chip.
 function estimateReadMinutes(ch){
+  if (ch.readMinutes && !ch.bodyHtml && !(ch.paragraphs && ch.paragraphs.length)) return ch.readMinutes;
   const strip = (h) => String(h || '').replace(/<[^>]*>/g, ' ');
   let text = strip(ch.bodyHtml) + ' ' + (ch.paragraphs || []).join(' ');
   (ch.lessons || []).forEach(l => { text += ' ' + strip(l.descHtml || l.desc); });
@@ -593,7 +608,7 @@ function setupVideoResume(video, ch){
 })();
 
 function markAllComplete(){
-  const ch = CHAPTERS[CURRENT_INDEX];
+  const ch = currentChapter();
   ch.lessons.forEach((l, li) => completedLessonsSet.add(ch.num + '-' + li));
   persistProgress();
   renderReader();
@@ -604,6 +619,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (body) showLoadingAnimation(body, 'Loading chapter…');
 
   loadChapters().then(() => {
+    // A specialist-track chapter (?ch=VP-01) reads within its own track:
+    // prev/next and the contents list walk that track, not the core 42.
+    const want = new URLSearchParams(window.location.search).get('ch');
+    const tr = (typeof TRACK_CHAPTERS !== 'undefined') ? TRACK_CHAPTERS.find((c) => c.num === want) : null;
+    if (tr) CHAPTERS = TRACK_CHAPTERS.filter((c) => c.track === tr.track);
     const local = loadLocalProgress();
     completedLessonsSet = new Set(local.completedLessons);
     completedChaptersSet = new Set(local.completedChapters);
@@ -627,9 +647,20 @@ document.addEventListener('DOMContentLoaded', () => {
           completedChaptersSet = new Set((student && student.completedChapters) || []);
           CURRENT_BEST_STREAK = (student && student.bestStreak) || 0;
           CURRENT_NOTIFIED_ACHIEVEMENTS = (student && student.notifiedAchievements) || [];
-          renderReader();
-          applyChapterRoleGate(user.uid, student);
-        }).catch(err => console.error('Stryker: failed to load progress from Firestore', err));
+          return loadCurrentChapterBody().then((unlocked) => {
+            renderReader();
+            if (unlocked === false) {
+              // The server refused the text: the plan doesn't cover it.
+              lockReaderForPlan();
+              revealReaderContent();
+            } else {
+              applyChapterRoleGate(user.uid, student);
+            }
+          });
+        }).catch((err) => {
+          console.error('Stryker: failed to load the chapter', err);
+          revealReaderContent();
+        });
       } else {
         CURRENT_UID = null;
         setPaywallMessage('signin');
@@ -639,6 +670,27 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// true = text loaded, false = the plan doesn't cover it (or no such doc).
+function loadCurrentChapterBody(){
+  CURRENT_INDEX = getChapterIndexFromQuery();
+  const cat = CHAPTERS[CURRENT_INDEX];
+  if (!cat || typeof loadChapterBody !== 'function') return Promise.resolve(true);
+  return loadChapterBody(cat.num).then((body) => {
+    if (!body) return false;
+    CHAPTER_BODIES[cat.num] = body;
+    return true;
+  });
+}
+
+function lockReaderForPlan(){
+  const ch = CHAPTERS[CURRENT_INDEX];
+  const requiredName = (ch && ch.minRole && typeof labelOf === 'function') ? labelOf(ch.minRole) : null;
+  setPaywallMessage('role', requiredName);
+  showGuestBanner(true);
+  const body = document.getElementById('reader-body');
+  if (body) body.innerHTML = '<p>' + stkEsc((ch && ch.preview) || '') + '</p>';
+}
 
 function applyChapterRoleGate(uid, student){
   const ch = CHAPTERS[CURRENT_INDEX];

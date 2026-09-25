@@ -1,0 +1,252 @@
+{
+ "_note": "URLs opened and read on 2026-09-23, with the facts confirmed from each. Add to this when you open a new one.",
+ "cme_matching": {
+  "title": "Supported Matching Algorithms - CME Group Client Systems Wiki",
+  "url": "https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457218479/Supported+Matching+Algorithms",
+  "facts": [
+   "FIFO uses price and time as the only criteria; orders at the same price are filled by time priority; the first order at a price level is the first matched",
+   "An order loses priority and is re-queued if its quantity is increased, its price changed, or its account number changed",
+   "Other Globex algorithms include Allocation, FIFO with LMM, Pro-Rata, Configurable, Threshold Pro-Rata"
+  ]
+ },
+ "cme_matching_overview": {
+  "title": "Matching Algorithm Overview - CME Group",
+  "url": "https://www.cmegroup.com/education/matching-algorithm-overview",
+  "facts": [
+   "Resting orders are matched with aggressing orders using the CME Group algorithms"
+  ]
+ },
+ "cme_order_qualifiers": {
+  "title": "Order Qualifiers - CME Group Client Systems Wiki",
+  "url": "https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/457218264/Order+Qualifiers",
+  "facts": [
+   "Display quantity specifies the quantity of an order shown to the market, replenishes that quantity when filled, and exposes the entire order gradually until depleted (this is the exchange-native iceberg)"
+  ]
+ },
+ "cme_order_types": {
+  "title": "Futures Order Types - CME Group",
+  "url": "https://www.cmegroup.com/education/courses/things-to-know-before-trading-cme-futures/futures-order-types",
+  "facts": [
+   "Common order types are market, limit and stop",
+   "A market limit order executes at the best available price; if only partly filled, the rest becomes a limit order resting at that price",
+   "A limit order cannot be filled worse than its limit price but can be filled better"
+  ]
+ },
+ "investor_gov_orders": {
+  "title": "Investor Bulletin: Understanding Order Types - Investor.gov (SEC)",
+  "url": "https://investor.gov/additional-resources/news-alerts/alerts-bulletins/investor-bulletin-understanding-order-types",
+  "facts": [
+   "A market order is to buy or sell at the best available price, generally executed immediately, but the price is not guaranteed",
+   "A buy limit executes only at the limit or lower; a sell limit only at the limit or higher"
+  ]
+ },
+ "cme_micro_faq": {
+  "title": "Micro E-mini Equity Index Futures: FAQ - CME Group",
+  "url": "https://www.cmegroup.com/articles/faqs/micro-e-mini-equity-index-futures-frequently-asked-questions.html",
+  "facts": [
+   "E-mini S&P 500 multiplier is $50 and Micro is $5",
+   "E-mini Nasdaq-100 multiplier is $20 and Micro is $2",
+   "Micro tick increments follow the E-mini: 0.25 index points (MES $1.25, MNQ $0.50), so ES tick = 0.25 x $50 = $12.50 and NQ tick = 0.25 x $20 = $5.00"
+  ]
+ },
+ "cme_gold": {
+  "title": "Gold Futures Contract Specs - CME Group",
+  "url": "https://www.cmegroup.com/markets/metals/precious/gold.contractSpecs.html",
+  "facts": [
+   "Contract unit is 100 troy ounces",
+   "Minimum tick is 0.10 per troy ounce = $10.00",
+   "CME Globex hours are Sunday-Friday 6:00pm-5:00pm ET with a 60-minute daily break"
+  ]
+ },
+ "cme_crude": {
+  "title": "Crude Oil Futures Contract Specs - CME Group",
+  "url": "https://www.cmegroup.com/markets/energy/crude-oil/light-sweet-crude.contractSpecs.html",
+  "facts": [
+   "Contract unit is 1,000 barrels",
+   "Minimum price fluctuation is 0.01 per barrel = $10.00 (as listed in the CME spec table)"
+  ]
+ },
+ "bis_fx_2022": {
+  "title": "OTC foreign exchange turnover in April 2022 - BIS Triennial Survey",
+  "url": "https://www.bis.org/publications/202210-commentary-otc-derivatives",
+  "facts": [
+   "OTC FX trading reached $7.5 trillion per day in April 2022 (net-net, all FX instruments)",
+   "FX is an over-the-counter market (no single central exchange), so there is no single consolidated volume figure for spot FX"
+  ]
+ },
+ "tv_vp_basics": {
+  "title": "Volume profile indicators: basic concepts - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000502040-volume-profile-indicators-basic-concepts/",
+  "facts": [
+   "Volume profile displays trading activity over a period at price levels as a histogram",
+   "TradingView builds profiles from lower-timeframe bars (e.g. 1-minute bars for a daily session)",
+   "It uses up/down volume, not buy/sell: if a bar's close >= open the bar's volume counts as up, otherwise down",
+   "Volume used: trade volume for stocks; TICK volume (number of price updates) for indices, forex and crypto CFDs",
+   "POC is the price with the highest traded volume; value area is the range holding a specified percentage of volume, typically 70%",
+   "Profile types: auto anchored, fixed range, periodic, session, session HD, visible range"
+  ]
+ },
+ "tv_frvp": {
+  "title": "Fixed Range Volume Profile indicator - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000480324-fixed-range-volume-profile-indicator/",
+  "facts": [
+   "FRVP calculates volume data within a user-specified time range"
+  ]
+ },
+ "tv_svp": {
+  "title": "Session Volume Profile - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000703072-session-volume-profile/",
+  "facts": [
+   "SVP calculates volume data within a specified session or sub-session"
+  ]
+ },
+ "tv_avwap": {
+  "title": "Anchored VWAP drawing tool - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000669764-anchored-vwap",
+  "facts": [
+   "Anchored VWAP displays the volume-weighted average price starting from a user-selected point"
+  ]
+ },
+ "sierra_vwap": {
+  "title": "VWAP with Standard Deviation Lines - Sierra Chart",
+  "url": "https://sierrachart.com/?ID=108&Name=Volume_Weighted_Average_Price_-_VWAP_-_with_Standard_Deviation_Lines.&page=doc/StudiesReference.php",
+  "facts": [
+   "The standard deviation bands are computed from volume-weighted squared deviations of price from VWAP, divided by total volume, then square-rooted",
+   "Sierra Chart also offers a Draw Anchored VWAP tool"
+  ]
+ },
+ "sierra_vbp": {
+  "title": "Volume By Price study - Sierra Chart",
+  "url": "https://www.sierrachart.com/index.php?ID=141&Name=Volume_by_Price&page=doc%2FStudiesReference.php",
+  "facts": [
+   "Volume by Price has settings for value area percentage, POC highlighting, peaks and valleys (HVN/LVN) and bid/ask volume colouring"
+  ]
+ },
+ "sierra_numbers": {
+  "title": "Numbers Bars - Sierra Chart",
+  "url": "https://www.sierrachart.com/index.php?page=doc%2FNumbersBars.php",
+  "facts": [
+   "Numbers Bars (Sierra's footprint) show bid and ask volume per price; they need only best bid/ask with each trade, not market depth",
+   "Cumulative delta is the running sum of ask volume minus bid volume"
+  ]
+ },
+ "nt_volumetric": {
+  "title": "Order Flow Volumetric Bars - NinjaTrader 8 Help Guide",
+  "url": "https://ninjatrader.com/support/helpGuides/nt8/order_flow_volumetric_bars.htm",
+  "facts": [
+   "Imbalance compares buying volume with selling volume diagonally below: e.g. buy 1000 vs sell 300 diagonal below = buying imbalance at the default ratio 1.5",
+   "Clusters of imbalances can form support/resistance areas (their words)",
+   "Bar statistics include delta, delta %, cumulative delta, min/max delta"
+  ]
+ },
+ "atas_imbalances": {
+  "title": "Volume Imbalances in Footprint: Why Diagonal Comparison Matters - ATAS",
+  "url": "https://learn.atas.net/volume-basics/volume-analysis/imbalances",
+  "facts": [
+   "An ask imbalance is when aggressive buys at a level are several times greater than aggressive sells one level below; comparison is diagonal because it reflects order-book mechanics",
+   "ATAS uses 200% as an imbalance and 400% as strong, adjustable per instrument"
+  ]
+ },
+ "bookmap_icebergs": {
+  "title": "Stops & Icebergs On-Chart Indicator - Bookmap Knowledge Base",
+  "url": "https://bookmap.com/knowledgebase/docs/Addons-Stops-And-Icebergs-On-Chart-Indicator",
+  "facts": [
+   "Iceberg orders are limit orders split into smaller visible pieces to hide the total quantity",
+   "The add-on detects icebergs only from CME MBO (market-by-order) data",
+   "CME does not allow native icebergs on certain instruments"
+  ]
+ },
+ "investopedia_vwap": {
+  "title": "VWAP: Definition and Calculation - Investopedia",
+  "url": "https://www.investopedia.com/terms/v/vwap.asp",
+  "facts": [
+   "VWAP = cumulative (price x volume) / cumulative volume",
+   "Charting packages often approximate with typical price (H+L+C)/3 per bar",
+   "VWAP resets each session"
+  ]
+ },
+ "wiki_market_profile": {
+  "title": "Market profile - Wikipedia (history, secondary)",
+  "url": "https://en.wikipedia.org/wiki/Market_profile",
+  "facts": [
+   "Devised by J. Peter Steidlmayer, a CBOT trader; introduced publicly in 1985 as the CBOT Market Profile product",
+   "TPO = time price opportunity; letters mark 30-minute periods",
+   "Initial balance = range of the first hour; day types include neutral, non-trend and trend day",
+   "Value area described as the central 70% of activity about the POC, by a normal-distribution analogy",
+   "Steidlmayer and Kevin Koy started Market Logic School in 1986"
+  ]
+ },
+ "dalton_mom": {
+  "title": "Mind Over Markets, Updated Edition (Dalton, Jones, Dalton; Wiley 2013) - O'Reilly listing",
+  "url": "https://oreilly.com/library/view/mind-over-markets/9781118659762/f02.html",
+  "facts": [
+   "Authors James F. Dalton, Eric T. Jones, Robert B. Dalton; Wiley, July 2013; credits Steidlmayer as pioneer of the theories. FURTHER READING ONLY, the text was not opened"
+  ]
+ },
+ "steidlmayer_koy": {
+  "title": "Markets and Market Logic (Steidlmayer & Koy, Porcupine Press 1986) - Google Books listing",
+  "url": "https://books.google.com/books/about/Markets_and_Market_Logic.html?id=Lb9FPQAACAAJ",
+  "facts": [
+   "Bibliographic only: Porcupine Press 1986, 161 pages. FURTHER READING ONLY"
+  ]
+ },
+ "tv_tpo": {
+  "title": "Time price opportunity charts explained - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000725590-time-price-opportunity-tpo-chart/",
+  "facts": [
+   "Each letter is one block of time in the profile period (5, 10, 15, 30 min, 1h, 2h, 4h); letters run A-Z then a-z",
+   "A letter block appears at each price where activity occurred in that time segment",
+   "A value area setting sets the percentage of blocks used"
+  ]
+ },
+ "sierra_tpo": {
+  "title": "TPO (Time Price Opportunity) Profile Charts - Sierra Chart",
+  "url": "https://www.sierrachart.com/index.php?page=doc/StudiesReference/TimePriceOpportunityCharts.html",
+  "facts": [
+   "Settings include Initial Balance Range and IBR extensions, TPO value area %, TPO POC, 'Count 2 Levels at a Time for Value Area', Extend Singles, Extend Poor High/Poor Low, opening range highlight"
+  ]
+ },
+ "cftc_spoofing": {
+  "title": "Fact Sheet: Interpretive Guidance on Disruptive Practices (CEA 4c(a)(5)) - CFTC",
+  "url": "https://www.cftc.gov/sites/default/files/idc/groups/public/@newsroom/documents/file/dtp_factsheet.pdf",
+  "facts": [
+   "CEA section 4c(a)(5)(C) makes it unlawful to engage in trading that is, is of the character of, or is commonly known as 'spoofing' (bidding or offering with the intent to cancel the bid or offer before execution)"
+  ]
+ },
+ "cme_mbo": {
+  "title": "Market by Order (MBO) FAQ - CME Group",
+  "url": "https://cmegroup.com/articles/faqs/market-by-order-mbo.html",
+  "facts": [
+   "MBO is an order-based data feed showing individual queue position, full depth and individual order sizes at each price",
+   "Market by Price (MBP) aggregates quantity per level (previously max 10 levels)",
+   "Each order has an anonymous OrderID and PriorityID; no customer-identifying information",
+   "CME MBO rollout ran Dec 2016 to June 2017"
+  ]
+ },
+ "tv_footprint": {
+  "title": "Volume footprint charts: a complete guide - TradingView",
+  "url": "https://www.tradingview.com/support/solutions/43000726164-volume-footprint-charts-a-complete-guide/",
+  "facts": [
+   "Seller volume shown left and buyer volume right of each candle",
+   "Buy/sell is categorised from the direction of intrabar price moves (intrabar close > open = buy, < open = sell; ties use the prior intrabar close), not from trade-by-trade aggressor data",
+   "Intrabar source for intraday charts: 1 tick on professional plans, otherwise 1 second or 1 minute",
+   "Guide covers imbalance detection, failed auction, delta divergence"
+  ]
+ },
+ "cme_6e": {
+  "title": "Euro FX (6E) futures overview - CME Group",
+  "url": "https://cmegroup.com/trading/fx/g10/euro-fx.html",
+  "facts": [
+   "CME lists Euro FX futures (Globex code 6E) on EUR/USD, with exchange-reported volume"
+  ]
+ },
+ "cme_rolldates": {
+  "title": "Equity Index Roll Dates - CME Group",
+  "url": "https://www.cmegroup.com/trading/equity-index/rolldates.html",
+  "facts": [
+   "Equity index futures are quarterly; roll date is the Monday prior to the third Friday of the expiration month",
+   "After the roll date the second-nearest month is customarily the lead month because the expiring contract becomes less liquid",
+   "2026 U.S. index roll dates: 3/16, 6/15, 9/14, 12/14"
+  ]
+ }
+}

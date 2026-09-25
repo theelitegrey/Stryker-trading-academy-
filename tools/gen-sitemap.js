@@ -31,6 +31,7 @@ const PAGES = [
   ['/learn-order-flow',      '0.8', 'monthly'],
   ['/learn-how-prop-firms-work', '0.8', 'monthly'],
   ['/cheat-sheet',          '0.7', 'monthly'],
+  ['/prop-firm-cheat-sheet', '0.7', 'monthly'],
   ['/features',             '0.7', 'monthly'],
   ['/features-curriculum',  '0.6', 'monthly'],
   ['/features-smart-money', '0.6', 'monthly'],

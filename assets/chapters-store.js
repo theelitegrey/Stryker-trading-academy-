@@ -19,7 +19,9 @@ let _chaptersLoadPromise = null;
 // 'core') is the core curriculum. Order here = order on /courses.
 const TRACKS = [
   { id: 'vp', name: 'Volume Profile & Order Flow', blurb: 'Auction theory, profiles, VWAP, the order book, footprint and delta.' },
-  { id: 'pf', name: 'Prop Firm Mastery', blurb: 'How prop firms work, how to vet one, the rules, passing and staying funded.' }
+  { id: 'pf', name: 'Prop Firm Mastery', blurb: 'How prop firms work, how to vet one, the rules, passing and staying funded.',
+    // Optional link under the blurb on /courses (copy from content-developer).
+    link: { href: 'prop-firm-cheat-sheet', lead: 'PLACEHOLDER track line.', label: 'PLACEHOLDER link label' } }
 ];
 function isTrackChapter(ch){ return !!(ch && ch.track && ch.track !== 'core'); }
 function trackOf(id){ return TRACKS.find((t) => t.id === id) || null; }

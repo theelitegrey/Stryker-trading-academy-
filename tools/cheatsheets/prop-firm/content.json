@@ -1,0 +1,47 @@
+{
+  "_note": "PLACEHOLDER layout copy. Replace with content-developer's APPROVED text from stryker-notes/content/propfirm-cheatsheet/TEXT.md, word for word, and delete 'placeholder'.",
+  "placeholder": true,
+  "pdf": "assets/downloads/stryker-prop-firm-cheat-sheet.pdf",
+  "preview": "assets/images/propfirm-cheatsheet-preview",
+  "og": "assets/images/og-propfirm-cheatsheet.png",
+  "pdfTitle": "Stryker Prop Firm Cheat Sheet",
+  "tag": "Cheat Sheet",
+  "pages": [
+    {
+      "eyebrow": "Placeholder eyebrow",
+      "title": "Placeholder page one title of about this length",
+      "blocks": [
+        { "type": "lede", "text": "Placeholder lede. This paragraph stands in for the approved introduction and is roughly the length of the real one, so the layout can be checked. **Bold phrase** placeholder text continues here for a second and third line of copy." },
+        { "type": "diagram", "name": "drawdown", "caption": "PLACEHOLDER DIAGRAM CAPTION" },
+        { "type": "checklist", "title": "Placeholder checklist title", "items": [
+          { "lead": "Placeholder item one.", "text": "Supporting text for the first item, about one line long." },
+          { "lead": "Placeholder item two.", "text": "Supporting text for the second item, about one line long." },
+          { "lead": "Placeholder item three.", "text": "Supporting text for the third item, about one line long." },
+          { "lead": "Placeholder item four.", "text": "Supporting text for the fourth item, about one line long." }
+        ]},
+        { "type": "duo", "items": [
+          { "label": "Placeholder A", "text": "Two or three lines of placeholder text for the left note, standing in for approved copy." },
+          { "label": "Placeholder B", "tone": "bad", "text": "Two or three lines of placeholder text for the right note, standing in for approved copy." }
+        ]}
+      ]
+    },
+    {
+      "eyebrow": "Placeholder eyebrow",
+      "title": "Placeholder page two title",
+      "cta": "Placeholder footer call to action on strykertrading.com",
+      "blocks": [
+        { "type": "lede", "text": "Placeholder lede for page two, about two lines long, standing in for approved copy that introduces the page." },
+        { "type": "checklist", "title": "Placeholder checklist title", "items": [
+          { "lead": "Placeholder item one.", "text": "Supporting text, about one line long." },
+          { "lead": "Placeholder item two.", "text": "Supporting text, about one line long." },
+          { "lead": "Placeholder item three.", "text": "Supporting text, about one line long." },
+          { "lead": "Placeholder item four.", "text": "Supporting text, about one line long." },
+          { "lead": "Placeholder item five.", "text": "Supporting text, about one line long." },
+          { "lead": "Placeholder item six.", "text": "Supporting text, about one line long." }
+        ]},
+        { "type": "rule", "title": "Placeholder box title", "text": "Placeholder rule box text, two lines long, standing in for approved copy about the topic of this box." },
+        { "type": "rule", "tone": "warn", "title": "Placeholder warning title", "text": "Placeholder warning text, two lines long, standing in for approved copy." }
+      ]
+    }
+  ]
+}

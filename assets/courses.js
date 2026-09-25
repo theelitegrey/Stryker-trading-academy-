@@ -134,6 +134,15 @@ function renderTracks(container){
     const blurb = document.createElement('p');
     blurb.style.cssText = 'color:var(--ink-3); font-size:13.5px; margin:-4px 0 12px;';
     blurb.textContent = t.blurb + (trackLocked() ? ' Included with Pro and Elite.' : '');
+    if (t.link) {
+      const a = document.createElement('a');
+      a.href = t.link.href;
+      a.textContent = t.link.label;
+      a.style.color = 'var(--gold)';
+      a.setAttribute('data-track-link', t.id);
+      blurb.appendChild(document.createTextNode(' ' + t.link.lead + ' '));
+      blurb.appendChild(a);
+    }
     container.appendChild(blurb);
     const list = document.createElement('div');
     list.className = 'chapter-list';

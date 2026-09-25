@@ -47,6 +47,7 @@ is found. Do not run `playwright install` in the cloud container.
 | `pad-test.js`    | every app `<section>` with a background or border has padding        |
 | `video-test.js`  | chapters with no recording show no player                            |
 | `width-check.js` | 20 gated pages lay out at 390px with no document overflow            |
+| `cheatsheet-test.js` | both cheat-sheet pages signed out/in, return path, PDF, download log, UTM, links |
 
 The three data suites read the live JSON under `assets/` and rebase its
 timestamps to "now", so they test the file that is about to ship, not a

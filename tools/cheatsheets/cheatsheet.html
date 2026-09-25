@@ -1,0 +1,191 @@
+<!doctype html>
+<!--
+  Stryker cheat-sheet template: A4 portrait, two pages, one PDF.
+  Same look as the FVG & Order Block sheet (social-posts/src/cheatsheet.html):
+  dark page, mint accent, Space Grotesk + JetBrains Mono, chart-grid texture.
+
+  Filled by tools/cheatsheets/build.py from <sheet>/content.json. The copy
+  lives ONLY in content.json; this file is layout. Text is real text (Chrome
+  print-to-PDF), so the PDF is selectable and the fonts are embedded as
+  subsets. Inline markup allowed in copy: **bold** only; everything else is
+  escaped.
+
+  Layout is designed at 1240 x 1754 CSS px (A4 at 150 dpi, the size of the
+  FVG sheet) and zoomed to A4 (794 x 1123 px) for print.
+-->
+<html lang="en"><head><meta charset="utf-8">
+<title>Stryker cheat sheet</title>
+<style>
+  /* Static weight instances (not the variable fonts): Chrome embeds variable
+     fonts in PDFs as Type3 bitmaps-of-outlines; static TTFs embed as TrueType. */
+  @font-face { font-family: "Space Grotesk"; src: url("__FONTS__/SpaceGrotesk-500.ttf") format("truetype"); font-weight: 500; }
+  @font-face { font-family: "Space Grotesk"; src: url("__FONTS__/SpaceGrotesk-600.ttf") format("truetype"); font-weight: 600; }
+  @font-face { font-family: "Space Grotesk"; src: url("__FONTS__/SpaceGrotesk-700.ttf") format("truetype"); font-weight: 700; }
+  @font-face { font-family: "JetBrains Mono"; src: url("__FONTS__/JetBrainsMono-700.ttf") format("truetype"); font-weight: 700; }
+  @font-face { font-family: "JetBrains Mono"; src: url("__FONTS__/JetBrainsMono-800.ttf") format("truetype"); font-weight: 800; }
+  @page { size: A4; margin: 0; }
+  :root {
+    --bg-0: #050506; --surface: #131316; --line: #232329;
+    --ink-0: #f6f6f7; --ink-1: #d2d5da; --ink-2: #9aa1ad;
+    --green: #03c988; --green-ink: #03140d; --red: #e5484d;
+    --sans: "Space Grotesk", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-0); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: var(--sans); color: var(--ink-0); -webkit-font-smoothing: antialiased; }
+  .sheet { zoom: 0.64; }
+  @media screen { .sheet { zoom: 1; } }
+  .page {
+    position: relative; width: 1240px; height: 1754px; overflow: hidden; break-after: page;
+    padding: 70px 84px 60px; display: flex; flex-direction: column; gap: 20px;
+    background:
+      radial-gradient(1100px 750px at 100% 0%, rgba(3, 201, 136, 0.14), transparent 60%),
+      radial-gradient(800px 600px at 0% 100%, rgba(3, 201, 136, 0.06), transparent 60%),
+      linear-gradient(180deg, #0c0c0f, var(--bg-0) 75%);
+  }
+  .page:last-child { break-after: auto; }
+  /* chart-grid texture: plain lines (no mask) so the PDF keeps it as vectors */
+  .page::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image: linear-gradient(to right, rgba(255,255,255,.025) 2px, transparent 2px),
+                      linear-gradient(to bottom, rgba(255,255,255,.025) 2px, transparent 2px);
+    background-size: 108px 108px;
+  }
+  .page > * { position: relative; z-index: 1; }
+
+  .hd { display: flex; align-items: center; justify-content: space-between; }
+  .brand { display: flex; align-items: center; gap: 18px; }
+  .brand .logo { width: 62px; height: 62px; border-radius: 50%; background: #050506; display: grid; place-items: center; flex: none; }
+  .brand .logo img { width: 52px; height: 52px; object-fit: contain; }
+  .brand .wm { font-weight: 700; font-size: 26px; letter-spacing: .01em; line-height: 1.1; }
+  .brand .wm small { display: block; font-family: var(--mono); font-weight: 700; font-size: 15px; letter-spacing: .18em; color: var(--ink-2); text-transform: uppercase; margin-top: 3px; }
+  .doctag { font-family: var(--mono); font-weight: 800; font-size: 20px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--green); border: 2px solid rgba(3,201,136,.45); background: rgba(3,201,136,.1);
+    padding: 10px 20px; border-radius: 999px; white-space: nowrap; }
+  .pagenum { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--ink-2); }
+
+  .eyebrow { font-family: var(--mono); font-weight: 800; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
+  .h1 { font-weight: 700; font-size: 58px; letter-spacing: -0.03em; line-height: 1.06; margin-top: 6px; text-wrap: balance; }
+  .lede { font-size: 24px; line-height: 1.36; color: var(--ink-1); font-weight: 500; }
+  .lede.small { font-size: 20px; }
+  .lede b { color: var(--ink-0); font-weight: 700; }
+  .block-title { font-family: var(--mono); font-weight: 800; font-size: 19px; letter-spacing: .1em; text-transform: uppercase; color: var(--green); margin-bottom: 10px; }
+  .rulebox { background: var(--surface); border: 2px solid var(--line); border-radius: 20px; padding: 18px 26px; }
+  .rulebox p { font-size: 20px; line-height: 1.32; color: var(--ink-1); }
+  .rulebox p + p { margin-top: 8px; }
+  .rulebox b { color: var(--ink-0); }
+  .rulebox.warn { border-color: rgba(229,72,77,.45); }
+  .rulebox.warn .block-title { color: var(--red); }
+
+  .checklist { display: flex; flex-direction: column; gap: 10px; }
+  .citem { display: flex; gap: 18px; align-items: flex-start; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 14px 22px; }
+  .citem .num { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--green); color: var(--green-ink);
+    font-family: var(--mono); font-weight: 800; font-size: 19px; display: grid; place-items: center; margin-top: 2px; }
+  .citem .tx { font-size: 21px; line-height: 1.28; font-weight: 600; color: var(--ink-0); }
+  .citem .tx b { color: var(--green); }
+  .citem .tx span { font-weight: 500; color: var(--ink-1); }
+
+  .duo2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .note { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 20px 24px; }
+  .note .lab { font-family: var(--mono); font-weight: 800; font-size: 17px; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; color: var(--green); }
+  .note.muted .lab { color: var(--ink-2); }
+  .note.bad .lab { color: var(--red); }
+  .note p { font-size: 20px; line-height: 1.32; color: var(--ink-1); }
+  .note b { color: var(--ink-0); }
+
+  .diagram { background: var(--surface); border: 2px solid var(--line); border-radius: 20px; padding: 16px 20px 10px; }
+  .diagram svg { display: block; width: 100%; height: auto; }
+  .diagram .cap { font-family: var(--mono); font-weight: 700; font-size: 16px; color: var(--ink-2); text-align: center; margin-top: 6px; letter-spacing: .04em; }
+
+  .ft { margin-top: auto; padding-top: 22px; border-top: 2px solid var(--line); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
+  .ft .site { font-family: var(--mono); font-weight: 800; font-size: 25px; }
+  .ft .site b { color: var(--green); }
+  .ft .disc { font-size: 18px; color: var(--ink-2); font-weight: 500; max-width: 460px; text-align: right; line-height: 1.28; }
+  .cta { font-family: var(--mono); font-weight: 800; font-size: 19px; color: var(--green-ink); background: var(--green); border-radius: 999px; padding: 12px 24px; white-space: nowrap; }
+
+  .placeholder-mark { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 5;
+    font-family: var(--mono); font-weight: 800; font-size: 18px; color: #050506; background: #ffcc00; padding: 4px 14px; border-radius: 6px; }
+</style></head>
+<body><div class="sheet" id="root"></div>
+<script>window.SHEET = /*DATA*/{}/*END*/;</script>
+<script>
+(function () {
+  const S = window.SHEET;
+  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const fmt = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+  const paras = (t) => (Array.isArray(t) ? t : [t]).map((x) => `<p>${fmt(x)}</p>`).join("");
+  const title = (t) => (t ? `<div class="block-title">${fmt(t)}</div>` : "");
+
+  /* Schematic diagrams. No prices, no percentages, no firm names: these show
+     rule SHAPES only (standing rule: never ship a prop firm's real limits). */
+  const MONO = 'font-family="JetBrains Mono, monospace" font-weight="800"';
+  function drawdownDiagram() {
+    const W = 1040, H = 360, L = 40, R = 1000, top = 40, bot = 300;
+    // an equity path: rises, pulls back, rises, pulls back hard
+    const eq = [0, 20, 12, 38, 55, 44, 70, 88, 76, 60, 66, 50, 42];
+    const n = eq.length, x = (i) => L + (R - L) * i / (n - 1), y = (v) => bot - (v + 40) / 140 * (bot - top);
+    const gap = 40; // the drawdown allowance, schematic
+    let peak = -1e9; const trail = eq.map((v) => (peak = Math.max(peak, v), peak - gap));
+    const path = (arr) => arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(" ");
+    const stepPath = (arr) => arr.map((v, i) => (i ? `L${x(i).toFixed(1)} ${y(arr[i - 1]).toFixed(1)} L${x(i).toFixed(1)} ${y(v).toFixed(1)}` : `M${x(0)} ${y(v).toFixed(1)}`)).join(" ");
+    let o = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+    o += `<line x1="${L}" x2="${R}" y1="${y(-gap)}" y2="${y(-gap)}" stroke="#9aa1ad" stroke-width="3" stroke-dasharray="10 8"/>`;
+    o += `<text x="${R}" y="${y(-gap) + 30}" text-anchor="end" fill="#9aa1ad" ${MONO} font-size="18">STATIC FLOOR (STAYS PUT)</text>`;
+    o += `<path d="${stepPath(trail)}" fill="none" stroke="#e5484d" stroke-width="4"/>`;
+    o += `<text x="${x(8) - 10}" y="${y(trail[8]) - 14}" text-anchor="end" fill="#e5484d" ${MONO} font-size="18">TRAILING FLOOR (FOLLOWS THE PEAK)</text>`;
+    o += `<path d="${path(eq)}" fill="none" stroke="#03c988" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>`;
+    o += `<text x="${x(1)}" y="${y(eq[1]) - 18}" fill="#03c988" ${MONO} font-size="18">ACCOUNT BALANCE</text>`;
+    return o + "</svg>";
+  }
+  const DIAGRAMS = { drawdown: drawdownDiagram };
+
+  function block(b) {
+    switch (b.type) {
+      case "lede": return `<p class="lede${b.small ? " small" : ""}">${fmt(b.text)}</p>`;
+      case "rule": return `<div class="rulebox${b.tone === "warn" ? " warn" : ""}">${title(b.title)}${paras(b.text)}</div>`;
+      case "checklist": return `<div>${title(b.title)}<div class="checklist">${b.items.map((it, i) =>
+        `<div class="citem"><div class="num">${i + 1}</div><div class="tx">${it.lead ? `<b>${fmt(it.lead)}</b> ` : ""}${it.text ? `<span>${fmt(it.text)}</span>` : ""}</div></div>`).join("")}</div></div>`;
+      case "duo": return `<div>${title(b.title)}<div class="duo2">${b.items.map((it) =>
+        `<div class="note ${esc(it.tone || "")}"><div class="lab">${fmt(it.label)}</div>${paras(it.text)}</div>`).join("")}</div></div>`;
+      case "diagram": return `<div class="diagram">${DIAGRAMS[b.name]()}${b.caption ? `<div class="cap">${fmt(b.caption)}</div>` : ""}</div>`;
+      default: throw new Error("unknown block type " + b.type);
+    }
+  }
+
+  const total = S.pages.length;
+  const page = (p, i) => `<div class="page">
+    ${S.placeholder ? `<div class="placeholder-mark">PLACEHOLDER TEXT, NOT FOR RELEASE</div>` : ""}
+    <div class="hd"><div class="brand"><div class="logo"><img src="__LOGO__" alt=""></div>
+      <div class="wm">STRYKER<small>TRADING ACADEMY</small></div></div>
+      <div style="display:flex;align-items:center;gap:16px"><div class="doctag">${fmt(p.tag || S.tag || "Cheat Sheet")}</div><div class="pagenum">${i + 1} / ${total}</div></div></div>
+    <div>${p.eyebrow ? `<div class="eyebrow">${fmt(p.eyebrow)}</div>` : ""}<h1 class="h1">${fmt(p.title)}</h1></div>
+    ${(p.blocks || []).map(block).join("\n")}
+    <div class="ft"><div class="site">stryker<b>trading</b>.com</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
+        ${p.cta ? `<div class="cta">${fmt(p.cta)}</div>` : ""}
+        <div class="disc">Education only. Not financial advice.</div>
+      </div></div>
+  </div>`;
+  document.getElementById("root").innerHTML = S.pages.map(page).join("");
+
+  const imgs = [...document.images].map((i) => (i.complete ? Promise.resolve() : new Promise((r) => { i.onload = i.onerror = r; })));
+  Promise.all([document.fonts.ready, ...imgs]).then(() => {
+    const ok = document.fonts.check('700 40px "Space Grotesk"') && document.fonts.check('800 20px "JetBrains Mono"');
+    document.body.dataset.fonts = ok ? "ok" : "fallback";
+    const bad = [];
+    document.querySelectorAll(".page").forEach((pg, n) => {
+      const R = pg.getBoundingClientRect();
+      pg.querySelectorAll("*").forEach((e) => {
+        const r = e.getBoundingClientRect();
+        if (r.width && (r.right > R.right + 1 || r.bottom > R.bottom + 1 || r.left < R.left - 1)) bad.push("p" + (n + 1) + ":" + (e.className.baseVal ?? e.className));
+      });
+      // the footer must not be pushed under the content (margin-top:auto collapses to 0 when full)
+      const ft = pg.querySelector(".ft"), prev = ft.previousElementSibling;
+      if (prev && ft.getBoundingClientRect().top - prev.getBoundingClientRect().bottom < 20) bad.push("p" + (n + 1) + ":full");
+    });
+    document.body.dataset.overflow = bad.slice(0, 8).join(",");
+    document.body.dataset.ready = "1";
+  });
+})();
+</script></body></html>

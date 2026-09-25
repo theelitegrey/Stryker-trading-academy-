@@ -258,47 +258,13 @@
     applyGate();
   });
 
-  // ---- 1. Live price ticker on the chart card ----------------------------
-  // The single highest-impact addition: a number that keeps changing reads as
-  // a connected feed, which is what makes the whole card feel live rather than
-  // like a screenshot of a chart.
-  function livePrice() {
-    var head = document.querySelector('.chart-card-head');
-    if (!head || document.getElementById('m-price')) return;
-
-    var wrap = document.createElement('div');
-    wrap.className = 'm-price-wrap';
-    wrap.innerHTML = '<span id="m-price">2418.60</span>' +
-                     '<span id="m-change" class="up">+0.42%</span>';
-    head.appendChild(wrap);
-
-    var price = 2418.60, base = price, next = walker(7741, 0.9), t = 0;
-    var el = document.getElementById('m-price');
-    var ch = document.getElementById('m-change');
-    var timer = null;
-
-    function tick() {
-      t++;
-      // Mean-reverting, so it never drifts somewhere implausible over a long
-      // session on the page.
-      price += next() - (price - base) * 0.04;
-      var pct = ((price - base) / base) * 100;
-      var up = pct >= 0;
-      el.textContent = price.toFixed(2);
-      el.className = up ? 'up' : 'down';
-      ch.textContent = (up ? '+' : '') + pct.toFixed(2) + '%';
-      ch.className = up ? 'up' : 'down';
-      // Flash on change: the cue traders actually read on a live board.
-      el.classList.remove('m-tick');
-      void el.offsetWidth;               // reflow to restart the animation
-      el.classList.add('m-tick');
-    }
-
-    registerRunnable({
-      start: function () { if (!timer) timer = setInterval(tick, 1400); },
-      stop: function () { if (timer) { clearInterval(timer); timer = null; } }
-    });
-  }
+  // ---- 1. Live price ticker on the chart card — REMOVED --------------------
+  // Used to inject a moving "2418.60 +0.42%" readout into the chart card
+  // header, which made the illustrative 4-step-model card read as a live
+  // market feed. The card is explicitly illustrative (see index.html), so
+  // this function is gone — nothing calls it any more (see the ready()
+  // block below). Left as a stub only so a stray external call doesn't throw.
+  function livePrice() {}
 
   // ---- 2. Rotating headline word -----------------------------------------
   // The headline states one idea; the market does several. Cycling the phrase

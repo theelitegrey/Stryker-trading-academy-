@@ -1,0 +1,108 @@
+<p>A normal chart tells you <em>when</em> price was where. A <strong>volume profile</strong> tells you <em>how much trading happened</em> at each price. That one change of view is why profile tools are standard on futures platforms, and why traders use them to find the prices a market treats as fair and the prices it rushed through. This guide explains how a volume profile is built, what the point of control, value area, HVNs and LVNs mean, how to calculate the value area yourself, and where beginners go wrong.</p>
+
+<div class="lx-key">
+<p><strong>Key takeaways</strong></p>
+<ul>
+<li>A <strong>volume profile</strong> is a sideways histogram of the volume traded at each price over a chosen period.</li>
+<li>The <strong>point of control (POC)</strong> is the price with the most volume. The <strong>value area</strong> is the range around it holding about 70% of the volume, bounded by the <strong>value area high (VAH)</strong> and <strong>value area low (VAL)</strong>.</li>
+<li><strong>High-volume nodes (HVNs)</strong> are prices the market accepted; <strong>low-volume nodes (LVNs)</strong> are prices it moved through quickly.</li>
+<li>Profiles need real volume. Exchange-traded futures have it; spot forex does not.</li>
+<li>Volume profile is a way of reading where business was done, not a prediction of what price will do next.</li>
+</ul>
+</div>
+
+<h2>What is a volume profile?</h2>
+<p>Take every trade in a period, say one trading session, and add up the volume at each price. Then draw a horizontal bar for each price, as long as the volume traded there. The result, stacked from the lowest price at the bottom to the highest at the top, is a <strong>volume profile</strong>. TradingView's help pages describe it as an indicator that shows trading activity over a specified time period at specified price levels, plotted as a histogram on the price scale.</p>
+<p>The idea grew out of <strong>Market Profile</strong>, a charting method developed by J. Peter Steidlmayer at the Chicago Board of Trade and released publicly in the 1980s. Market Profile counted time at each price. Volume profile counts contracts instead, which became practical once exchanges published every trade electronically.</p>
+
+<figure class="lx-fig">
+<!-- FIG:vp -->
+<svg viewBox="0 0 400 304" xmlns="http://www.w3.org/2000/svg" width="400" height="304" role="img" aria-label="Illustrative volume profile" style="width:100%; height:auto; display:block; max-width:560px; margin:0 auto;"><title>Illustrative volume profile</title><rect x="82" y="106" width="302" height="130" fill="#00adb5" fill-opacity="0.07"/><rect x="86" y="254" width="9.2" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="266" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,810</text><rect x="86" y="236" width="20.8" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="248" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,811</text><rect x="86" y="218" width="48.5" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="230" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,812</text><rect x="86" y="200" width="99.4" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="212" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,813</text><rect x="86" y="182" width="141" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="194" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,814</text><rect x="86" y="164" width="180.3" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="176" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,815</text><rect x="86" y="146" width="208" height="14" fill="#f5c542" fill-opacity="0.95" rx="2"/><text x="78" y="158" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,816</text><rect x="86" y="128" width="166.4" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="140" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,817</text><rect x="86" y="110" width="87.8" height="14" fill="#00adb5" fill-opacity="0.75" rx="2"/><text x="78" y="122" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,818</text><rect x="86" y="92" width="34.7" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="104" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,819</text><rect x="86" y="74" width="25.4" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="86" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,820</text><rect x="86" y="56" width="60.1" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="68" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,821</text><rect x="86" y="38" width="78.6" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="50" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,822</text><rect x="86" y="20" width="27.7" height="14" fill="#8b93a0" fill-opacity="0.45" rx="2"/><text x="78" y="32" font-size="13" fill="#8b93a0" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace">4,823</text><text x="384" y="122" font-size="14" fill="#00adb5" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">VAH</text><text x="384" y="158" font-size="14" fill="#f5c542" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">POC</text><text x="384" y="230" font-size="14" fill="#00adb5" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">VAL</text><text x="384" y="86" font-size="14" fill="#eeeeee" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">LVN</text><text x="384" y="50" font-size="14" fill="#eeeeee" text-anchor="end" font-family="JetBrains Mono, ui-monospace, monospace" font-weight="bold">HVN</text><text x="86" y="294" font-size="13" fill="#8b93a0" text-anchor="start" font-family="JetBrains Mono, ui-monospace, monospace">value area = 78% of 5,140 contracts</text></svg>
+<!-- /FIG:vp -->
+<figcaption>Illustrative data, one bar per point. The longest bar is the POC; the shaded band is the value area; the thin bar marked LVN separates two busy areas.</figcaption>
+</figure>
+
+<h2>The point of control (POC)</h2>
+<p>The <strong>point of control</strong> is the single price where the most volume traded. In the profile above it is <strong>4,816</strong>. It is the price the market spent the most business at during the period, so traders treat it as the centre of that period's activity. If price comes back to a prior POC later, many traders watch how it behaves there, because it was the busiest level last time.</p>
+<p>A POC that has not been traded since its session ended is often called a <strong>naked</strong> or <strong>virgin POC</strong>. Traders keep lists of them as reference levels. That is a habit, not a rule: plenty of naked POCs are never revisited.</p>
+
+<h2>The value area: VAH and VAL</h2>
+<p>The <strong>value area</strong> is the price range around the POC that contains roughly 70% of the period's volume. Its top is the <strong>value area high (VAH)</strong> and its bottom the <strong>value area low (VAL)</strong>. The 70% figure is a convention inherited from Market Profile, loosely based on one standard deviation of a normal distribution. Most platforms let you change it, and TradingView notes 70% as the typical setting.</p>
+<p>In the example, value runs from <strong>4,812</strong> to <strong>4,818</strong>. Inside it, the market broadly agreed on price. Outside it, trade was lighter. Traders often read the edges of value as the places where the market either rejects a move and turns back, or accepts it and starts building a new area of value.</p>
+
+<h2>How the value area is calculated</h2>
+<p>The standard method, taught in the Market Profile literature and used by several platforms, works outward from the POC two rows at a time:</p>
+<ol>
+<li>Start at the POC.</li>
+<li>Add up the volume of the next two rows <em>above</em> the current area, and the next two rows <em>below</em> it.</li>
+<li>Add whichever pair is larger to the value area.</li>
+<li>Repeat until the value area holds at least 70% of the total volume.</li>
+</ol>
+<p>The example profile has 5,140 contracts, so the target is at least 3,598. Working outward from 4,816 gives a value area of 4,812 to 4,818 holding 4,030 contracts. That is about 78%, more than 70%, because rows are added in pairs and the last pair takes it past the line. Different platforms use slightly different steps (one row at a time, or different tie rules), so two platforms can show slightly different VAH and VAL on the same data.</p>
+
+<h2>High-volume and low-volume nodes</h2>
+<p>A <strong>high-volume node (HVN)</strong> is a price area where the profile bulges out: lots of trade, over time. It marks prices the market <strong>accepted</strong>. A <strong>low-volume node (LVN)</strong> is a narrow waist in the profile: little trade. It marks prices the market <strong>moved through quickly</strong>, usually because one side was in control.</p>
+<p>In the example, the LVN at <strong>4,820</strong> sits between the main HVN around the POC and a smaller HVN at <strong>4,822</strong>. That shape, two busy areas with a thin gap between them, is common. The market balanced in one area, moved fast through the gap, and balanced again.</p>
+<p>Traders tend to read the two kinds of node differently. HVNs are where price is expected to slow down and rotate, because both sides have been happy to trade there. LVNs are where price is expected to either move quickly again or be rejected, because the market didn't want to stay there last time. Both are tendencies traders watch for, not certainties.</p>
+
+<h2>Session, composite and fixed-range profiles</h2>
+<p>A profile covers whatever period you choose, and that choice changes every level on it.</p>
+<ul>
+<li>A <strong>session profile</strong> covers one trading session. For index futures like the E-mini S&amp;P 500 (ES), traders usually separate the regular cash session from the overnight session.</li>
+<li>A <strong>composite profile</strong> merges several sessions, such as a week or a month, to show the bigger picture of where business has been done.</li>
+<li>A <strong>fixed-range profile</strong> covers a range you pick, for example one swing from low to high. TradingView describes it as calculating volume within a user-specified range.</li>
+<li>A <strong>visible-range profile</strong> covers whatever is on screen. It changes every time you scroll, so levels from it are hard to reproduce.</li>
+</ul>
+
+<h2>Why real volume matters: futures vs forex</h2>
+<p>A volume profile is only as good as the volume behind it. On an exchange-traded future such as ES, NQ, gold (GC) or crude oil (CL), every trade passes through CME Group's central order book, so the volume is complete. Spot forex is different. It trades over the counter between banks and brokers, with no single exchange; the Bank for International Settlements put global FX turnover at about $7.5 trillion a day in its April 2022 survey, and no single data feed sees all of it. The "volume" on a spot forex chart is usually <strong>tick volume</strong>, a count of price changes, not traded size.</p>
+<p>Tick volume tends to rise and fall with activity, so it is not useless, but it can't tell a one-lot trade from a thousand-lot trade. For EUR/USD, many profile traders use CME's Euro FX futures (6E) instead, because they have exchange-reported volume.</p>
+
+<h2>A worked example</h2>
+<p>Here is how a trader might use the example profile as yesterday's session, before today's open. This is a hypothetical walk-through, not a trade recommendation.</p>
+<ol>
+<li><strong>Mark the levels.</strong> POC 4,816, VAH 4,818, VAL 4,812, LVN 4,820, second HVN 4,822.</li>
+<li><strong>Note where today opens.</strong> Suppose it opens at 4,815, inside yesterday's value. The market still broadly agrees with yesterday's prices, so a trader expects rotation inside value until something changes.</li>
+<li><strong>Watch the edges.</strong> If price rises to 4,818 (VAH) and quickly turns back, the edge is holding. If it pushes through, trades into the thin area at 4,820 and keeps building volume above it, the market is accepting higher prices.</li>
+<li><strong>Decide in advance what each outcome means</strong> for your own plan, including where your idea would be proven wrong.</li>
+</ol>
+<p>The profile doesn't say which of these will happen. It gives you a short list of prices that matter and a clear question to ask at each one: accepted or rejected?</p>
+
+<h2>Volume profile and smart money concepts</h2>
+<p>If you already use smart money concepts, several ideas will look familiar. An LVN left by a fast move often lines up with a <a href="learn-fair-value-gap.html">fair value gap</a> on the candle chart, because both describe price moving quickly without two-sided trade. Volume can also help you judge an <a href="learn-order-blocks.html">order block</a>: one that sits on a high-volume node is a place where real business was done. A <a href="learn-liquidity-sweeps.html">liquidity sweep</a> that reaches into an LVN and is rejected quickly is another place where the two methods agree. When independent methods point to the same price, that level is worth more attention. It still doesn't guarantee a reaction.</p>
+
+<h2>Going further</h2>
+<p>This guide covers the basics. Stryker's <strong>Volume Profile &amp; Order Flow</strong> specialist track, for Pro and Elite members, goes further across twelve written chapters with chart diagrams: auction market theory, Market Profile and TPO charts, profile shapes and day types, composite profiles, VWAP, and the <a href="learn-order-flow.html">order flow</a> side of the same auction.</p>
+
+<h2>Common mistakes</h2>
+<ul>
+<li><strong>Using tick volume as if it were real volume.</strong> Build profiles on futures where you can.</li>
+<li><strong>Treating the POC as support or resistance that must hold.</strong> It is a reference level, not a promise.</li>
+<li><strong>Mixing sessions.</strong> An ES profile built from the overnight session will not match one built from the cash session. Pick one and stick with it.</li>
+<li><strong>Trusting visible-range levels.</strong> They move when you scroll.</li>
+<li><strong>Drawing too many profiles.</strong> Three or four well-chosen levels beat a chart full of lines.</li>
+</ul>
+
+<div class="lx-faq">
+<h2>FAQ</h2>
+<h3>What is the difference between volume profile and Market Profile?</h3>
+<p>Market Profile (TPO) counts how much time the market spent at each price, using letters for each 30-minute period. Volume profile counts how many contracts traded at each price.</p>
+<h3>Why is the value area 70%?</h3>
+<p>It is a convention from Market Profile, loosely based on one standard deviation of a normal distribution. It is a setting, not a law, and most platforms let you change it.</p>
+<h3>What is a good timeframe for volume profile?</h3>
+<p>Profiles are built over periods, not chart timeframes. A session profile is the most common starting point, with weekly or monthly composites for context.</p>
+<h3>Can I use volume profile on forex?</h3>
+<p>Spot forex has no central volume, so profiles on spot use tick volume. Many traders build their profile on the matching CME currency future instead.</p>
+<h3>Does price always return to the POC?</h3>
+<p>No. A prior POC is a level many traders watch, but price can move away from it and never come back.</p>
+</div>
+
+<h2>Sources</h2>
+<ol class="lx-sources">
+<li>TradingView Help Center, "Volume profile indicators: basic concepts" (POC, value area, 70% default, HVN and LVN): <a href="https://www.tradingview.com/support/solutions/43000502040-volume-profile-indicators-basic-concepts/" rel="noopener" target="_blank">tradingview.com</a></li>
+<li>TradingView Help Center, "Fixed Range Volume Profile indicator": <a href="https://www.tradingview.com/support/solutions/43000480324-fixed-range-volume-profile-indicator/" rel="noopener" target="_blank">tradingview.com</a></li>
+<li>Sierra Chart, "Volume by Price" study documentation (value area calculation settings): <a href="https://www.sierrachart.com/index.php?ID=141&amp;Name=Volume_by_Price&amp;page=doc%2FStudiesReference.php" rel="noopener" target="_blank">sierrachart.com</a></li>
+<li>Wikipedia, "Market profile" (Steidlmayer, CBOT, TPO and value area history): <a href="https://en.wikipedia.org/wiki/Market_profile" rel="noopener" target="_blank">wikipedia.org</a></li>
+<li>Bank for International Settlements, "OTC foreign exchange turnover in April 2022": <a href="https://www.bis.org/publications/202210-commentary-otc-derivatives" rel="noopener" target="_blank">bis.org</a></li>
+<li>CME Group, Euro FX futures (6E): <a href="https://cmegroup.com/trading/fx/g10/euro-fx.html" rel="noopener" target="_blank">cmegroup.com</a></li>
+</ol>

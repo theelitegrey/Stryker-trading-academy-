@@ -75,6 +75,33 @@ const ARTICLES = [
     description: 'SMT divergence is when two correlated markets such as ES and NQ disagree at a high or low. See bullish and bearish SMT side by side, how traders use it, and its limits.',
     dek: 'When two markets that normally move together disagree at a key high or low. Bullish and bearish SMT side by side on ES and NQ, inverse pairs like EUR/USD and DXY, and where the idea breaks down.',
     published: '2026-09-23', modified: '2026-09-23'
+  },
+  {
+    slug: 'volume-profile',
+    title: 'Volume Profile Explained: POC, Value Area, HVN and LVN',
+    short: 'Volume profile explained',
+    description: 'A volume profile shows how much traded at each price. Learn the point of control, the 70% value area and how to calculate it, HVNs and LVNs, and why futures volume beats forex tick volume.',
+    dek: 'How a volume profile is built, what the POC, value area, HVNs and LVNs mean, a value-area calculation by hand, and why the data behind the profile matters.',
+    published: '2026-09-24', modified: '2026-09-24',
+    cta: 'signup'
+  },
+  {
+    slug: 'order-flow',
+    title: 'Order Flow Trading Explained: The DOM, Footprint Charts and Delta',
+    short: 'Order flow trading explained',
+    description: 'Order flow is the study of the orders behind price. Learn market vs limit orders, the DOM, FIFO matching, footprint charts, delta and diagonal imbalances, and what order flow cannot tell you.',
+    dek: 'Market and limit orders, the order book, how CME matches trades, footprint charts, delta and imbalances, worked through on illustrative data, plus the limits of what order flow shows.',
+    published: '2026-09-24', modified: '2026-09-24',
+    cta: 'signup'
+  },
+  {
+    slug: 'how-prop-firms-work',
+    title: 'How Prop Firms Work: Evaluations, Funded Accounts and How They Make Money',
+    short: 'How prop firms work',
+    description: 'How futures and forex prop firms work: the evaluation, what a funded account really is, how firms make money, a worked cost example, and what to check before you pay.',
+    dek: 'The evaluation, what "funded" usually means, where the money goes, a worked cost example with published prices, and a checklist for vetting a firm before you pay.',
+    published: '2026-09-25', modified: '2026-09-25',
+    cta: 'signup'
   }
 ];
 

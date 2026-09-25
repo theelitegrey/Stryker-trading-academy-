@@ -5583,6 +5583,65 @@ a.floor-tag:hover{ text-decoration:underline; }
   .nav-theme-seg .theme-seg-opt{ padding:6px 9px; }
 }
 
+/* Public-nav day/night button (signed-out visitors; built by theme.js,
+   shown/hidden by the public-nav auth hook in auth.js). Deliberately quiet:
+   muted ink, no border, faint wash on hover. 32px visual circle; on touch
+   screens the button box grows to 44px with the circle kept at 32px, so the
+   tap target is honest without looking heavier. Motion is transform/opacity
+   only and switched off for reduced motion. */
+.nav-theme-btn{
+  position:relative; flex:0 0 auto;
+  width:32px; height:32px; padding:0; margin:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:none; border:0; border-radius:50%; cursor:pointer;
+  color:var(--ink-2); -webkit-tap-highlight-color:transparent;
+}
+.nav-theme-btn::before{
+  content:""; position:absolute; left:50%; top:50%;
+  width:32px; height:32px; margin:-16px 0 0 -16px; border-radius:50%;
+  background:var(--ink-2); opacity:0; transition:opacity .18s ease;
+}
+.nav-theme-btn:hover{ color:var(--ink-0); }
+.nav-theme-btn:hover::before{ opacity:.1; }
+.nav-theme-btn:active::before{ opacity:.16; }
+.nav-theme-btn:focus-visible{ outline:none; }
+/* Focus ring hugs the 32px visual circle, not the 44px touch box, so on a
+   phone it never runs into the logo. Forced-colours mode keeps the outline. */
+.nav-theme-btn::after{
+  content:""; position:absolute; left:50%; top:50%;
+  width:36px; height:36px; margin:-18px 0 0 -18px; border-radius:50%;
+  box-shadow:0 0 0 2px var(--teal); opacity:0; pointer-events:none;
+}
+.nav-theme-btn:focus-visible::after{ opacity:1; }
+@media (forced-colors: active){
+  .nav-theme-btn:focus-visible{ outline:2px solid CanvasText; outline-offset:2px; }
+}
+.nav-theme-btn svg{
+  position:absolute; left:50%; top:50%; width:17px; height:17px; margin:-8.5px 0 0 -8.5px;
+  transition:opacity .28s ease, transform .38s cubic-bezier(.3,.7,.2,1);
+}
+.nav-theme-btn .ntb-sun{ opacity:1; transform:rotate(0) scale(1); }
+.nav-theme-btn .ntb-moon{ opacity:0; transform:rotate(-70deg) scale(.6); }
+.nav-theme-btn.is-day .ntb-sun{ opacity:0; transform:rotate(70deg) scale(.6); }
+.nav-theme-btn.is-day .ntb-moon{ opacity:1; transform:rotate(0) scale(1); }
+/* theme.js's dissolve sets transition:… !important on every element for
+   420ms — exactly when this button is clicked — which would snap the icons.
+   Keep the icon motion (plus the colour dissolve) during that window. */
+:root.theme-anim .nav-theme-btn svg{
+  transition:opacity .28s ease, transform .38s cubic-bezier(.3,.7,.2,1), color .34s ease !important;
+}
+@media (pointer:coarse), (max-width:640px){
+  .nav-theme-btn{ width:44px; height:44px; }
+}
+@media (max-width:640px){
+  /* the bar is tight on phones: the 44px box's own padding does the spacing */
+  .nav-cta .nav-theme-btn{ margin-right:-8px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .nav-theme-btn svg, .nav-theme-btn::before{ transition:none; }
+  :root.theme-anim .nav-theme-btn svg{ transition:none !important; }
+}
+
 /* ---- Plan label flair ------------------------------------------------------
    The plan badge beside the logo and the role-tag pills next to user names,
    rendered as polished metal. Three techniques layered together:

@@ -55,6 +55,8 @@
       el.classList.toggle('is-day', day);
     });
 
+    document.querySelectorAll('[data-nav-theme]').forEach(paintNavButton);
+
     try { document.dispatchEvent(new CustomEvent('stryker:theme', { detail: { theme: theme } })); }
     catch (e) { /* older browsers just skip the redraw hook */ }
   }
@@ -132,6 +134,38 @@
       '<button type="button" class="theme-seg-opt" data-theme-opt="night" role="radio" aria-checked="false">' +
         '<span class="theme-seg-ic">' + moon + '</span>Night</button>' +
     '</div>';
+  };
+
+  // The icon-only sun/moon button in the public marketing nav, for visitors
+  // who are signed out and so have no account menu. It is created by the
+  // public-nav auth hook in auth.js (the same code that swaps Log in for
+  // Dashboard), so shown/hidden is decided in one place from one signal and
+  // there is never a second switch next to the account one. All it does on
+  // click is call setStrykerTheme: same key, same dissolve, same first paint.
+  // aria-pressed = "day theme is on"; the label names the action it performs.
+  function paintNavButton(btn){
+    var day = current() === 'day';
+    btn.setAttribute('aria-pressed', day ? 'true' : 'false');
+    btn.setAttribute('aria-label', day ? 'Switch to night theme' : 'Switch to day theme');
+    btn.classList.toggle('is-day', day);
+  }
+
+  window.strykerNavThemeButton = function (){
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'nav-theme-btn';
+    btn.setAttribute('data-nav-theme', '');
+    // Both glyphs are always present and crossfade (opacity + rotate only).
+    // Night shows the sun (what you get), day shows the moon.
+    btn.innerHTML =
+      '<svg class="ntb-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false">' +
+        '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4' +
+        'M2.5 12h2M19.5 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>' +
+      '<svg class="ntb-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true" focusable="false">' +
+        '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>';
+    btn.addEventListener('click', function (){ window.toggleStrykerTheme(); });
+    paintNavButton(btn);
+    return btn;
   };
 
   // Any toggle anywhere on the page works, including ones added later by

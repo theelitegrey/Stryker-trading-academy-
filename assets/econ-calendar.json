@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-24T05:50:00Z",
+  "generatedAt": "2026-09-25T05:50:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-25T05:30:00Z",
+  "goodUntil": "2026-09-28T11:00:00Z",
   "defaultCurrency": "USD",
   "rangeStart": "2026-09-14",
-  "rangeEnd": "2026-10-09",
+  "rangeEnd": "2026-10-13",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. After the 58.4 flash PMI and Barr saying more is \"likely needed\", futures price about 73% for 28 Oct; swaps carry three hikes over the next year",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. Three voters — Williams, Paulson, Hammack — backed more on 24 Sep; futures price about 71% for 28 Oct and roughly 94% for at least one more by December",
       "bias": "up"
     },
     {
@@ -79,7 +79,7 @@
       "bank": "Bank of Japan",
       "rate": "1.25%",
       "next": null,
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high; economists see 1.75% by mid-2027",
+      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. The yen is 158 to the dollar regardless; economists see 1.75% by mid-2027",
       "bias": "up"
     },
     {
@@ -95,15 +95,15 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.35%",
       "next": "2026-09-29",
-      "expect": "August jobs +39,500 against 20,000 expected. About 90% priced for a hike from 4.35% on Monday 29 Sep",
+      "expect": "Decides Monday 29 Sep at 00:30 ET. About 90% priced for a hike from 4.35% after August jobs printed +39,500 against 20,000 expected",
       "bias": "up"
     },
     {
       "cur": "CHF",
       "bank": "Swiss National Bank",
       "rate": "0.00%",
-      "next": "2026-09-24",
-      "expect": "Decides today at 03:30 ET. Expected to hold at zero; a strong franc is doing the tightening instead",
+      "next": null,
+      "expect": "Held at 0% on 24 Sep and nudged the inflation forecast up to 0.7–0.8% on energy. A weaker franc is doing what a hike would; December is the next meeting",
       "bias": "hold"
     }
   ],
@@ -545,14 +545,15 @@
       "event": "SNB decision",
       "forecast": "0%",
       "previous": "0%",
-      "note": "Expected to hold at zero. The franc is doing the tightening: USD/CHF is up 2.76% on the month."
+      "note": "Held at zero as expected. Inflation is 0.8% and the forecast was nudged up to 0.7% for 2026 and 0.8% for 2027–28 on energy, still inside the 0–2% band. The statement dropped its \"increased willingness to intervene\" line for a plainer \"willing to be active\", and the franc weakened on it.",
+      "actual": "0%"
     },
     {
       "at": "2026-09-24T08:10:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Williams speaks",
-      "note": "At the Treasury Market Conference, on the morning of a $69bn two-year auction. The venue is the point."
+      "note": "Told a London forum it is \"reasonable\" to expect another hike this year, that the era of explicit forward guidance is over, and that \"the data have not suddenly changed on us\". A voter. The third of three voters that day to lean toward more."
     },
     {
       "at": "2026-09-24T12:30:00Z",
@@ -569,21 +570,23 @@
       "impact": "medium",
       "event": "US initial jobless claims",
       "forecast": "201k",
-      "previous": "196k"
+      "previous": "196k",
+      "actual": "197k",
+      "note": "197,000 against 201,000 expected, with the prior week revised to 198,000 and the four-week average at 202,250. Nothing in the claims data argues against the hike the Fed's speakers keep describing."
     },
     {
       "at": "2026-09-24T12:50:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Hammack speaks",
-      "note": "Cleveland's president, a 2026 voter, ten minutes after claims and the morning after Barr said more hikes are likely needed."
+      "note": "Cleveland, a voter: the inflation outlook is \"highly uncertain\" with risks to the upside, and \"the longer that high inflation persists, the more challenging and costly it can be to bring it back down\"."
     },
     {
       "at": "2026-09-24T13:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Paulson speaks",
-      "note": "Philadelphia. Third Fed speaker of the morning after Williams and Hammack."
+      "note": "Philadelphia, a voter who had favoured holding before September: \"some modest further tightening may be warranted\". Underlying inflation is running 2.5–3% and \"the best I can say about it this year is that it hasn't gotten worse\"."
     },
     {
       "at": "2026-09-24T14:00:00Z",
@@ -591,23 +594,27 @@
       "impact": "low",
       "event": "US new home sales (Aug)",
       "forecast": "620k",
-      "previous": "607k",
-      "note": "The level, alongside the monthly change in the next row. The MBA put the 30-year mortgage at 7.12% this week, the highest since May 2024."
+      "previous": "643k",
+      "note": "684,000 against 620,000 expected, with July revised up to 643,000. A strong print a week after mortgage rates went back above 7% — builders are buying the rate down, and the volume is showing up before the margin cost does.",
+      "actual": "684k"
     },
     {
       "at": "2026-09-24T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "US new home sales (Aug, m/m)",
-      "previous": "-10.5%",
-      "note": "Fell 10.5% last month with mortgage rates approaching 7%. Housing is where a 5% ten-year shows up first."
+      "previous": "-4.3%",
+      "note": "Up 6.4% after a July now revised to −4.3% from −10.5%.",
+      "actual": "+6.4%"
     },
     {
       "at": "2026-09-24T17:00:00Z",
       "cur": "USD",
       "impact": "low",
       "event": "US 7-year note auction, $44bn",
-      "note": "The last of three auctions in three days, into a ten-year that closed last week at 5.01%."
+      "note": "The highest seven-year stop since the tenor was reintroduced in 2009, 57bp above August's and 0.7bp above the when-issued level. Bid-to-cover 2.42 against a 2.50 ten-auction average; indirect bidders took 57.2%, the least since November 2025. The ten-year went through 5.2% after the result. Treasury's buyback the same afternoon filled only $4.1bn of a $6bn cap.",
+      "actual": "5.085%",
+      "previous": "4.512%"
     },
     {
       "at": "2026-09-25T09:15:00Z",
@@ -785,6 +792,13 @@
       "note": "The semiconductor print of the fortnight, and the one that can move the Nasdaq on its own."
     },
     {
+      "at": "2026-09-30T22:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Kashkari speaks",
+      "note": "Minneapolis, after the close on quarter-end day and after the PCE print. The eighth Fed speaker in the fortnight since the hike; the Chair is still not one of them."
+    },
+    {
       "at": "2026-09-30T23:50:00Z",
       "cur": "JPY",
       "impact": "high",
@@ -811,7 +825,8 @@
       "at": "2026-10-01T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US initial jobless claims"
+      "event": "US initial jobless claims",
+      "previous": "197k"
     },
     {
       "at": "2026-10-01T13:45:00Z",
@@ -1012,6 +1027,67 @@
       "impact": "high",
       "event": "Michigan sentiment, preliminary (Oct)",
       "note": "The first October survey. September's preliminary was 47.8 with one-year inflation expectations at 4.6%; the expectations line is the one the Fed reads."
+    },
+    {
+      "at": "2026-10-12T05:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "Columbus Day — US bond market closed",
+      "note": "Equities trade; Treasuries and the banks do not. The IMF and World Bank annual meetings run in Washington through the week."
+    },
+    {
+      "at": "2026-10-13T00:30:00Z",
+      "cur": "AUD",
+      "impact": "high",
+      "event": "RBA minutes (29 Sep meeting)",
+      "note": "The record of the meeting that markets have at about 90% for a hike from 4.35%. How close the vote was, and what August's 4.6% unemployment did to it, is the read."
+    },
+    {
+      "at": "2026-10-13T06:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany HICP, final (Sep, y/y)",
+      "previous": "2.9%",
+      "note": "The final read of the flash due 30 September. Germany sits at 2.9% against a euro-area 3.2%, and the ECB has said no meeting is ruled out."
+    },
+    {
+      "at": "2026-10-13T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "JPMorgan Chase Q3 earnings",
+      "note": "The start of the third-quarter reporting season, with Goldman Sachs, Wells Fargo, Citigroup and BlackRock the same morning. FactSet has S&P 500 earnings growing about 29% for the quarter, a third straight quarter above 25%; the banks report into a curve at 5% and a financials sector that is flat on the year."
+    },
+    {
+      "at": "2026-10-13T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Johnson & Johnson and UnitedHealth Q3 earnings"
+    },
+    {
+      "at": "2026-10-13T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Goldman Sachs Q3 earnings"
+    },
+    {
+      "at": "2026-10-13T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US existing home sales (Sep)",
+      "previous": "3.98m",
+      "note": "The first full month of sales agreed at mortgage rates above 7%. August fell 2.0%."
+    },
+    {
+      "at": "2026-10-13T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Wells Fargo Q3 earnings"
+    },
+    {
+      "at": "2026-10-13T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Citigroup Q3 earnings"
     }
   ],
   "howToRead": [

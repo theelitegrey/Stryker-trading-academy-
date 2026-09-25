@@ -1,134 +1,126 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-24T05:50:00Z",
-  "sessionDate": "2026-09-24",
+  "generatedAt": "2026-09-25T05:50:00Z",
+  "sessionDate": "2026-09-25",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-25T05:30:00Z",
-  "headline": "A survey took the ten-year to 5.11%. An auction kept it there.",
-  "standfirst": "Wednesday was the Treasury market's worst day since the April 2025 tariff shock, and it started with a purchasing managers' survey. S&P Global's flash composite PMI printed 58.4, the highest since July 2021, with input prices at their highest since October 2022; the ten-year yield rose 14.6bp to 5.116%, its highest close since July 2007, the two-year 12.8bp to 4.903%, and the five-year closed above 5% for the first time since 2007. Then Treasury's $70 billion five-year auction stopped at 5.033%, the highest since June 2006, 3bp cheap to the market, with dealers left holding the most paper since 2024. Fed Governor Barr said further hikes are “likely needed” and October went to 73% priced. Stocks fell — the S&P 500 0.75% to 7,706.03, the Nasdaq 1.13% off its record, the Russell 2000 1.77% — with energy the only sector up, because Brent rose 3.86% back above $100 after Iran's president said the strait stays shut. Today: the SNB at 03:30 ET, claims and three Fed speakers before the open, a $44 billion seven-year at 13:00, and Xi in the Oval Office.",
+  "goodUntil": "2026-09-28T11:00:00Z",
+  "headline": "The week the Treasury market stopped waiting for the Fed",
+  "standfirst": "Weekend edition. The ten-year yield went from 4.95% on Monday to 5.21% on Thursday, its highest since 2007; the thirty-year to 5.49%, its highest since 2004; and every Treasury from two years out now yields five or more. It took a flash PMI at a five-year high, three coupon auctions that each cleared at a two-decade high with a little less demand than the last, and eight Fed officials — five of them voters — saying some version of “more” while the Chair said nothing. October is 71% priced; swaps carry three hikes over the next year. Equities absorbed it: the S&P 500 is up 0.7% on the week at 7,704.13 and the Nasdaq 1.6% after two record closes, while the Dow is down 0.6% for a fourth losing week and utilities lost 4.2%. Brent round-tripped from $100 to $99 to $106 on Iran. Friday brings durable goods and Michigan; the week ahead brings the RBA, PCE, quarter-end, Micron and September payrolls.",
   "bullets": [
     {
-      "title": "The PMI said the economy is running at 5%. The Fed had just hiked into that.",
-      "text": "The flash composite rose to 58.4 from 56.0 against 55.3 expected — a fourth straight monthly rise and the fastest since July 2021. Services printed 58.7, a 59-month high; manufacturing 57.0, a 52-month high, after the New York, Philadelphia and Richmond Fed surveys had all fallen this month. New orders rose to 58.2, the strongest since March 2022; backlogs are the highest since May 2022; supplier delivery delays are the widest since July 2022; and the input-price index jumped to 66.4 from 59.9, the highest since October 2022, on fuel, diesel, wages and materials. S&P Global's Chris Williamson put the survey at about 5% annualised growth, with 4% signalled for the third quarter; the Atlanta Fed's tracker is at 5.1%. The Atlanta Fed's own one-year business inflation expectation rose to 2.4% from 2.2%. Europe printed strong too: the euro-area composite 53.1 against 51.5, German services 52.9 after five months of contraction; only the UK softened, its composite slipping to 51.7."
+      "title": "Three auctions, three two-decade highs, and a buyback that could not fill",
+      "text": "Treasury sold $69 billion of two-years at 4.787% on Tuesday (the highest since May 2024, demand average), $70 billion of five-years at 5.033% on Wednesday (the highest since June 2006, 3bp cheap, dealers left with the most paper since 2024) and $44 billion of seven-years at 5.085% on Thursday (the highest since the tenor was reintroduced in 2009, 0.7bp cheap, indirect bidders at 57.2%, the least since November 2025). Between the second and third, Treasury's buyback of 20- to 30-year bonds accepted $4.1 billion of a $6 billion cap — 68% against 86% a fortnight earlier — and thirty-year municipal yields went through 5% for the first time since 2011. The MOVE index closed Wednesday at its highest since March. Mortgage rates are back above 7% for the first time since May 2024, and Stifel's note put total federal debt above $40 trillion. The next coupon supply is the ten-year on 7 October and the thirty-year on 8 October."
     },
     {
-      "title": "Then the five-year auction tailed, and the belly of the curve went through 5%",
-      "text": "The $70 billion five-year stopped at 5.033% against 4.393% in August — the highest since June 2006 and about 3bp above the 5.002% the issue was trading at the deadline. Bid-to-cover was 2.21 against a 2.33 six-auction average; indirects took 54.31%; primary dealers were left with 15.8%, the largest share since 2024. Yields rose further after the result. The ten-year closed at 5.116%, up 14.6bp, its largest one-day rise since 7 April 2025 and a move Sina's desk note called roughly four standard deviations, two weeks after a three-sigma day; the two-year at 4.903% is the highest since May 2024 and the thirty-year at 5.402% since June 2007. Swaps now fully price three quarter-point hikes over the next year with hedging for a fourth, which would take the funds rate to 5%. The MOVE index closed at its highest since March. Treasury buys back up to $6 billion of 20- to 30-year paper today, and sells $44 billion of seven-years at 13:00 ET; the last stop was 4.512%. The 30-year mortgage rate is 7.12%, the highest since May 2024."
+      "title": "Why: a 58.4 PMI, and a Fed that has stopped arguing with itself",
+      "text": "Wednesday's flash composite PMI printed 58.4 against 55.3 expected, the highest since July 2021, with services at 58.7, manufacturing at 57.0 and the input-price index at 66.4, the highest since October 2022; S&P Global's Chris Williamson put it at about 5% annualised growth. Then the speakers: Governor Barr on Wednesday said further hikes are “likely needed” and the Fed had been “out of position”; on Thursday Williams said another hike this year is “reasonable” and that the era of forward guidance is over, Paulson — who had favoured holding in September — said “some modest further tightening may be warranted”, and Hammack said the longer inflation persists the costlier it is to remove. Barkin, Collins, Goolsbee and Musalem said the same earlier in the week. Chair Warsh has said nothing between meetings, by design. October went from 49% a week ago to 71%; December is about 94%; CME futures imply as many as four more quarter-points by the end of 2027. Thursday's data agreed: claims 197,000, new home sales 684,000 against 620,000, Kansas City Fed 20 against 17."
     },
     {
-      "title": "Barr is a voter, and he said the Fed was “out of position”",
-      "text": "Governor Michael Barr, in remarks to a housing conference in Chicago, said “further policy adjustments are likely to be needed” to return inflation to 2% in a timely way, that the committee had been “out of position” and had “made an adjustment in the right direction”, and that risks to inflation have risen while risks to the labour market have receded. Unlike Barkin, Collins, Goolsbee and Musalem earlier in the week, Barr votes. The CME's FedWatch put a hike at the 27–28 October meeting at 73%, from 48.7% a week ago; December is now the second hike, not the first. Sixteen of eighteen officials projected at least one more increase this year. The dollar index closed at 101.23, an eight-week high, the euro traded below 1.14 and sterling below 1.33; the Australian dollar was the weakest major even before this morning's jobs print of +39,500 against 20,000 expected."
+      "title": "Oil: a $7 round trip on tankers, talks and a Houthi strike",
+      "text": "Brent settled at $100.34 on Monday, $99.25 on Tuesday — its first close under $100 since 9 September, on Saudi pipeline tests and a three-hour US–Iran meeting — then $103.08 on Wednesday and $106.41 on Thursday, up 3.2% on the day and the highest close since 15 September. The reversal was Iran's president telling the UN the country would not surrender, a cargo vessel struck inside Hormuz, Houthi missile and drone attacks on Riyadh and Aramco's Yanbu facilities, and Iran's military saying it could widen the war to the Indian Ocean. Against that, Reuters reported US and Iranian negotiators exploring a phased path — Tehran reopens the strait, Washington lifts the port blockade — and the S&P 500 came off its lows on it. Trump floated and then walked back a diesel export ban within a day. Brent is up 17.6% in September and 75% on the year; WTI shows a 6.4% weekly fall only because its front month rolled to November. Overnight both are lower, Brent near $105.7."
     },
     {
-      "title": "Oil reversed six days on a speech and a struck ship — and the inventories said sell",
-      "text": "Brent settled at $103.08, up $3.83 or 3.86%, and WTI's November contract at $92.16, up 1.81%, ending five sessions of declines. Iranian President Pezeshkian told the UN that Iran will not surrender and officials said the Strait of Hormuz stays closed until its conditions are met; a cargo vessel struck by an unidentified projectile caught fire inside the strait, killing two, according to UKMTO. Tanker tracking had three merchant ships through Hormuz on Tuesday against a ten-day average of about 15; Bank of America now puts the disruption at 4–8 million barrels a day and says $150 is possible if supply tightens further, while forecasting $80 for 2027. Aramco is offering Asian refiners more crude from outside the strait and has told European buyers there will be no October allocation. Against all of that, the EIA reported a 3.0 million barrel commercial build against a 0.7 million draw expected, and the market bought crude anyway. Trump still describes the talks as “very productive” and still puts a deal after the 3 November midterms."
+      "title": "Equities held, narrowly, on Meta and AMD",
+      "text": "The Nasdaq set records on Monday and Tuesday, fell 1.13% on Wednesday and closed Thursday flat at 26,939.37, up 1.6% on the week; the S&P 500 is 0.7% higher at 7,704.13; the Dow is 0.6% lower at 51,349.98, a fourth straight weekly loss and a three-month low; the Russell 2000 is off 0.9%. The leadership was narrow: Meta rose 11.43% on Monday when its Muse agent topped the App Store and 4.5% on Thursday to $777.59, more than 30% on the month; AMD closed above a $1 trillion valuation on Monday and then gave back. On Monday more S&P 500 stocks set 52-week lows than highs, the first time that has happened on a record day since December 1999. Financials lost 2.38% on the week and utilities 4.23%; Oracle fell 3.5% on Thursday after a force majeure notice on a New Mexico data centre, with its credit-default swaps at a record. After the bell, Akamai rose about 20% on an $11.6 billion seven-year deal with Anthropic and Costco beat. FactSet has third-quarter S&P 500 earnings growing about 29%; the banks open the season on 13 October."
     },
     {
-      "title": "Xi is in Washington, the truce is extended, and the tape did not care",
-      "text": "Trump met Xi on the tarmac at Andrews on Wednesday evening — the first time a US president has done so since Obama met the Pope in 2015 — and Xi arrived saying the two countries should be “partners, not rivals”. Bessent said the trade truce that was due to expire on 10 November has been extended by two months. The bilateral is today, followed by a state dinner attended by Bezos, Musk, Pichai, Huang, Altman, Cook and the chief executives of GM and Stellantis; the agenda is AI, export controls, rare earths, Taiwan and Iran, and the expectation on both sides is pageantry over deliverables. None of it helped equities: Alphabet fell 3.58%, Amazon 2.24%, Nvidia 1.47% and the Philadelphia Semiconductor Index 1.23%, while Meta rose 1.02%. Every sector but energy fell; utilities lost 1.92%, real estate 1.55%, consumer discretionary 1.50%. Overnight Tokyo reopened after three days and the Nikkei rose 1.65%; the Kospi added 0.9%; Hong Kong fell 0.75% and Shanghai 1%."
+      "title": "The week ahead: RBA Monday, PCE and quarter-end Wednesday, payrolls Friday",
+      "text": "Xi Jinping left Washington with the trade truce extended to 10 January and nothing else — the summit produced warm words, no movement on Taiwan, Iran or AI, and Trump saying “let’s leave AI as it is” against Xi’s “under human control”. Monday the RBA decides with about 90% priced for a hike from 4.35% after August jobs printed +39,500. Tuesday: JOLTS, consumer confidence, and Musalem, Goolsbee and Williams. Wednesday is quarter-end and the week's heaviest day: ADP (previous 38,000), August PCE with core at 3.3% year on year last month, final Q2 GDP at 1.5%, Chicago PMI, China's PMIs, Australian CPI, German CPI, UK GDP, Micron after the close and Kashkari after that. Thursday: ISM manufacturing (previous 54.6, prices paid 71.1), Challenger, claims, Nike, and Chinese markets shut for Golden Week through 7 October. Friday 2 October: September payrolls after August's 162,000, unemployment at 4.1%, hourly earnings at 3.1%, and the euro-area flash HICP against 3.2%. The FOMC minutes follow on 7 October, the ten- and thirty-year auctions on 7 and 8, and JPMorgan, Goldman, Wells Fargo and Citi on the 13th."
     }
   ],
   "calendar": [
     {
-      "time": "03:30 ET",
-      "event": "SNB decision; press conference 04:00",
-      "note": "Expected to hold at zero. The franc is the currency that has not weakened against the dollar this month, so the pressure on the SNB is the opposite of everyone else's."
-    },
-    {
-      "time": "04:10 ET",
-      "event": "Fed's Williams speaks; Hammack 08:50, Paulson 09:00",
-      "note": "Three speakers around the claims print, the morning after a Governor said more hikes are likely needed. Williams gave no guidance on Tuesday; whether he does today is the tell."
-    },
-    {
-      "time": "08:30 ET",
-      "event": "Jobless claims; Q2 current account",
-      "note": "Claims seen 201,000 after 196,000. With the PMI employment index at its strongest since June 2022, a sub-200,000 print would confirm the survey rather than surprise."
-    },
-    {
-      "time": "10:00 ET",
-      "event": "New home sales (August)",
-      "note": "Seen at 620,000 after 607,000, following a 10.5% fall. Mortgage rates are 7.12%, and KB Home said on Tuesday that volumes, not prices, are what 7% does."
-    },
-    {
-      "time": "13:00 ET",
-      "event": "$44bn seven-year auction; Treasury buyback of up to $6bn",
-      "note": "The last seven-year stopped at 4.512%; the yield is 5.05%. After the five-year tailed 3bp with dealers stuck holding 15.8%, this is the event of the day. The buyback is in 20- to 30-year paper, which is not where the auction is."
-    },
-    {
-      "time": "All day",
-      "event": "Trump–Xi bilateral at the White House; state dinner this evening",
-      "note": "The truce extension is already announced. Anything on AI cooperation, rare earths or export controls trades semiconductors first; anything on Iran trades crude."
+      "time": "Fri 05:15 ET",
+      "event": "Fed's Williams speaks; Hammack 14:00",
+      "note": "Williams for a second day. He said Thursday that forward guidance is over and another hike this year is reasonable; a repeat would be the message."
     },
     {
       "time": "Fri 08:30 ET",
-      "event": "Durable goods (August); Michigan final 10:00; Fed's Williams 05:15",
-      "note": "Durable goods seen −0.4% after +1.1%, ex-transport +0.6%, core capital goods +0.5%. Michigan sentiment 47.6; the one-year inflation expectation at 4.6% is the number."
+      "event": "Durable goods (August)",
+      "note": "Seen −0.4% after +1.1%, ex-transport +0.6%, core capital goods +0.5% off a July revised to flat. After a 57.0 manufacturing PMI, the risk is to the upside."
+    },
+    {
+      "time": "Fri 10:00 ET",
+      "event": "Michigan sentiment, final (September)",
+      "note": "Seen 47.6 after 47.8. The one-year inflation expectation at 4.6% is the line the Fed reads; Michigan's household number and the Fed's own 2.4% business number are two points apart."
     },
     {
       "time": "Mon 00:30 ET",
-      "event": "RBA decision",
-      "note": "About 90% priced for a hike from 4.35% after August jobs printed +39,500 against 20,000 expected, even with unemployment ticking up to 4.6%."
+      "event": "RBA decision; press conference 01:30",
+      "note": "About 90% priced for a hike from 4.35% after +39,500 jobs against 20,000 expected. Bullock has said she is not signalling the path; the market has signalled it for her."
+    },
+    {
+      "time": "Tue 10:00 ET",
+      "event": "JOLTS (August); consumer confidence (September)",
+      "note": "Openings were 7.27 million. Fed speakers around it: Musalem 07:30, Goolsbee 13:00, Williams 14:00 ET."
+    },
+    {
+      "time": "Wed 08:30 ET",
+      "event": "PCE (August); final Q2 GDP; ADP 08:15; quarter-end",
+      "note": "Core PCE was 3.3% year on year and 0.2% on the month; headline 3.7%. The print the Fed named. Micron reports after the close, Kashkari speaks at 18:00 ET, and quarter-end flows sit on top of all of it."
+    },
+    {
+      "time": "Thu 10:00 ET",
+      "event": "ISM manufacturing (September); Nike after the close",
+      "note": "Previous 54.6 with prices paid at 71.1. The flash PMI said 57.0 with input prices at a four-year high; a matching ISM would confirm the repricing. China is shut for Golden Week from today."
+    },
+    {
+      "time": "Fri 2 Oct 08:30 ET",
+      "event": "Nonfarm payrolls (September); euro-area flash HICP 05:00",
+      "note": "August was 162,000 with unemployment 4.1% and hourly earnings 3.1%. With October at 71%, a strong print does not add a hike so much as remove the last doubt; a weak one is the only thing on the calendar that could take it away."
     }
   ],
-  "sessionNote": "The overnight tape has held Wednesday rather than extended it. Brent is $103.21 and WTI $92.11, both within a tenth of a percent of the settle; the dollar index is 101.2; gold is unchanged at $4,319.70 and down 2.38% on the week; Bitcoin is $84,173, off 0.23%, having sat out the sell-off. Asia is split — Tokyo up 1.65% on reopening, Seoul up 0.9%, Hong Kong and Shanghai down — and the Australian dollar weakened into a strong jobs print. The day has a clear shape: the SNB before Europe opens, claims and three Fed speakers before New York, then a seven-year auction at 13:00 into a belly that just repriced 15bp, with Xi in the Oval Office at the same time. The US morning is the window. The auction is the event, and the tail is the number.",
-  "watchOut": "Fading Wednesday because “it was only a survey”. The PMI started it, but the bond market did not sell off 15bp on a diffusion index alone: the five-year auction tailed with dealers forced to hold 15.8%, the MOVE index is at March highs, Treasury's $6 billion buyback is set against $114 billion of coupon supply this week, and a four-sigma day two weeks after a three-sigma day is a value-at-risk event — risk books shrink mechanically, and mechanical selling does not read your view. The second trap is the one flagged yesterday: six days of oil de-escalation reversed on one speech and one struck ship, exactly the asymmetry a $10 decline on pipeline tests and a tanker count implied. A long duration or short energy position sized for the trend is sized for the wrong week.",
+  "sessionNote": "Friday's tape opens softer: Brent is $105.73, down 0.8%, and WTI $93.05, down 1.7%, after Thursday's rally; the dollar index is 101.2 after its first back-to-back weekly gain since June; gold is $4,301 and down 2.8% on the week; Bitcoin is $84,271. Tokyo rose 1.26%, Hong Kong fell 1.55%, Seoul is shut for Chuseok and Shanghai for Mid-Autumn. The session itself is light — durable goods at 08:30 ET, Michigan at 10:00, Williams before the open and Hammack after lunch — which is what makes it dangerous: the bond market has repriced 26bp in four sessions into no supply and a holiday-thinned Asia, and a quiet Friday is when positions get squared. The clean window is the US morning. Anything after 14:00 ET is a weekend headline being priced by whoever is left.",
+  "watchOut": "Assuming the bond market is finished. The ten-year rose 26bp in four sessions on a survey, three auctions and speeches; next week has no coupon supply, which sounds like relief, but it also has PCE, quarter-end rebalancing out of the asset class that fell least into the one that fell most, and a payrolls print that only matters if it is weak. A market that demanded 5.085% for seven-year paper on Thursday has not said what it wants for ten-year paper on 7 October. The second trap is the one that has held all month: trading oil on the last headline. Brent moved $7 in three days on a pipeline test, a meeting, a speech and a missile; the phased-deal report that lifted stocks on Thursday came from the same wire that reported the Houthi strike. Size for the range, not the direction.",
   "sources": [
     {
       "name": "MT Newswires",
-      "note": "the flash PMI detail, Wednesday's close, the five-year auction statistics and the EIA report"
+      "note": "auction statistics for all three sales, Thursday's close, the Fed speakers and the crude settlements"
     },
     {
       "name": "Associated Press, via ABC News",
-      "note": "index points and percentage changes"
+      "note": "index levels, weekly changes and the reversals in Thursday's session"
     },
     {
-      "name": "Xinhua, via Ifeng",
-      "note": "Treasury yield closes across the curve"
-    },
-    {
-      "name": "Bloomberg, via The Straits Times",
-      "note": "swaps pricing, the MOVE index and the five-year's 2006 comparison"
-    },
-    {
-      "name": "Investing.com, via Yahoo! Finance",
-      "note": "the five-year yield's first close above 5% since 2007"
-    },
-    {
-      "name": "Eastmoney and Sina",
-      "note": "auction tail against the when-issued level and the dealer takedown"
+      "name": "Reuters, via The Straits Times, AOL and US News",
+      "note": "the buyback fill, October pricing, the phased-deal report and the Xi summit"
     },
     {
       "name": "CNBC",
-      "note": "Barr's remarks and CME FedWatch pricing"
+      "note": "Paulson's and Williams' remarks, FedWatch pricing and the year-end 2027 implied rate"
+    },
+    {
+      "name": "Wallstreetcn",
+      "note": "the seven-year's tail and indirect share, municipal yields and Thursday's stock moves"
+    },
+    {
+      "name": "Nasdaq (RTTNews)",
+      "note": "the ten-auction bid-to-cover averages"
+    },
+    {
+      "name": "El Economista and MT Newswires Global Energy",
+      "note": "Thursday's Brent and WTI settlements, the Houthi attacks and the diesel export episode"
     },
     {
       "name": "FXStreet",
-      "note": "the dollar index, the Williamson quote and October hike odds"
+      "note": "the dollar index, December pricing and Thursday's US data"
     },
     {
-      "name": "Segye",
-      "note": "MBA mortgage rates and the Treasury buyback"
+      "name": "MT Newswires EMEA and Alliance News",
+      "note": "the SNB decision and forecasts"
     },
     {
-      "name": "Wallstreetcn and 21st Century Business Herald",
-      "note": "crude settlements, the WTI contract roll and the sector breakdown"
+      "name": "Business Standard, Tempo and Money Today",
+      "note": "summit takeaways and the AI exchange"
     },
     {
-      "name": "MT Newswires Global Energy",
-      "note": "the Hormuz vessel strike and Aramco allocations"
-    },
-    {
-      "name": "Cailian Press, via Sohu",
-      "note": "Bank of America's oil call and Hormuz transit counts"
-    },
-    {
-      "name": "Reuters, via US News; The Washington Post",
-      "note": "Xi's arrival, the truce extension and the state-dinner guest list"
+      "name": "CNBC Arabia",
+      "note": "after-hours moves in Akamai, Costco and Scholastic"
     },
     {
       "name": "Bigdata.com economic calendar",
-      "note": "release times, consensus, previous readings and Wednesday's actuals"
+      "note": "release times, consensus, previous readings and Thursday's actuals"
     },
     {
       "name": "Financial Modeling Prep, via Bigdata.com",
@@ -138,6 +130,11 @@
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-09-24",
+      "headline": "A survey took the ten-year to 5.11%. An auction kept it there.",
+      "summary": "A flash composite PMI of 58.4, the highest since July 2021, took the ten-year up 14.6bp to 5.116% — its worst day since April 2025 — and a $70 billion five-year auction stopped at 5.033%, the highest since 2006. Barr said further hikes were likely needed and October went to 73% priced; every sector but energy fell and Brent rose back above $100."
+    },
     {
       "date": "2026-09-23",
       "headline": "The Fed said “we’ll see”. The two-year auction said 4.787%.",
@@ -167,11 +164,6 @@
       "date": "2026-09-14",
       "headline": "Core CPI ran hot into an FOMC that is now 90% priced to hike",
       "summary": "Weekend edition. Core CPI rose 0.3% on the month against 0.2% expected, PPI came in at 5.4% year-over-year, and September hike odds moved from 61% to about 90%. Equities closed the week higher regardless — S&P +0.86% Friday, VIX −11% — while the 10-year finished at 4.96%."
-    },
-    {
-      "date": "2026-09-11",
-      "headline": "Core CPI at a four-month high, hike odds jump to ~90%",
-      "summary": "Headline CPI held at 3.4% year-over-year but core rose 0.3% on the month against 0.2% expected. Energy added 2.1% and gasoline 3.9%; airline fares rose 2.7%. Equities rallied regardless — S&P +0.86%, VIX −11% — while the 10-year touched 4.97%."
     }
   ]
 }

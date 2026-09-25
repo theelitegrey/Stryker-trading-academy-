@@ -115,7 +115,10 @@
     o.el.innerHTML = esc(o.full.slice(0, n)) + (n > 0 ? '<i class="cp-car"></i>' : '') +
       '<span class="cp-gh">' + esc(o.full.slice(n)) + '</span>';
   }
-  function set(el, tr, op) { el.style.transform = tr; if (op !== undefined) el.style.opacity = op; }
+  function set(el, tr, op) {
+    el.style.transform = tr;
+    if (op !== undefined) { el.style.opacity = op; el.style.pointerEvents = op < 0.5 ? 'none' : ''; }
+  }
 
   // ---- one frame ---------------------------------------------------------------
   function render(t) {
@@ -153,11 +156,16 @@
   }
 
   // ---- clock -------------------------------------------------------------------
+  // Hover pauses only while the mouse is actually being moved over the
+  // section (last move < HOLD ms ago). A cursor left parked where the page
+  // scrolls the section underneath it fires pointerenter too, and a plain
+  // "hovering" flag froze the timeline at frame 0 with every card invisible.
+  var HOLD = 1500, lastMove = -1e9;
   var t = 0, playing = false, done = false, hover = false, inView = false, raf = 0, last = 0;
   function frame(now) {
     raf = 0;
     if (!playing || done) return;
-    if (!hover) t += Math.min(0.1, Math.max(0, (now - last) / 1000));
+    if (!(hover && now - lastMove < HOLD)) t += Math.min(0.1, Math.max(0, (now - last) / 1000));
     last = now;
     if (t >= END) { finish(); return; }
     render(t);
@@ -185,12 +193,20 @@
       c.cn.forEach(function (g) { g[0].style.opacity = ''; });
       c.bands.forEach(function (b) { b.style.opacity = ''; });
     });
-    cards.concat([foot]).concat(sweeps).concat(rangeTags).forEach(function (el) { el.style.transform = ''; el.style.opacity = ''; });
+    cards.concat([foot]).concat(sweeps).concat(rangeTags).forEach(function (el) { el.style.transform = ''; el.style.opacity = ''; el.style.pointerEvents = ''; });
     nums.forEach(function (n) { n[0].textContent = pad(n[1]); });
     typers.forEach(function (list) { list.forEach(function (o) { o.n = -1; o.el.textContent = o.full; }); });
     selectCard(selected);
   }
-  stop = function () { if (!done) finish(); };
+  stop = function () {
+    if (done) return;
+    if (phoneMQ.matches && playing) {
+      var vis = -1;
+      cards.forEach(function (c, i) { if (+(c.style.opacity || 1) >= 0.5) vis = i; });
+      if (vis >= 0) selected = vis;
+    }
+    finish();
+  };
 
   // Hide the cards (frame 0) only once the section is armed to play, so a
   // script failure can never leave the section invisible.
@@ -214,6 +230,7 @@
 
   document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); else play(); });
   root.addEventListener('pointerenter', function (e) { if (e.pointerType === 'mouse') hover = true; });
+  root.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse') { hover = true; lastMove = performance.now(); } });
   root.addEventListener('pointerleave', function () { hover = false; });
   ['pointerdown', 'keydown', 'focusin'].forEach(function (ev) { root.addEventListener(ev, function () { stop(); }); });
 })();

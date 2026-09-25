@@ -44,9 +44,23 @@ function renderContinueBanner(container){
   container.appendChild(banner);
 }
 
-function unlockLabel(index){
-  if (index === 0) return '<span class="status-pill unlocked">Free</span>';
-  return '<span class="status-pill locked">Unlocks Ch.' + String(index).padStart(2,'0') + '</span>';
+// "Free" only on core-curriculum chapters within the Starter plan's own
+// chapter-number ceiling (chapterLimitOf/hasChapterNumberAccess — never
+// hardcoded, so it tracks whatever chapterAccess is actually set to).
+// Everything else gets no pill here: roleLockBadge() already shows the
+// lock for anyone without access, and there is no one-chapter-at-a-time
+// unlock sequence to imply with a "Unlocks Ch.0N" label — chapters open
+// purely by plan tier, not by finishing the one before them. Track
+// chapters (VP-/PF-, ch.track set to anything but 'core') are always
+// paid content and never show "Free", even if their number happens to
+// fall inside the Starter numeric range (track numbering is separate).
+function unlockLabel(ch){
+  if (typeof isTrackChapter === 'function' && isTrackChapter(ch)) return '';
+  const entryPlan = (typeof defaultPlanName === 'function') ? defaultPlanName() : 'Starter';
+  const freeForEntry = (typeof hasChapterNumberAccess === 'function')
+    ? hasChapterNumberAccess(entryPlan, ch.num)
+    : false;
+  return freeForEntry ? '<span class="status-pill unlocked">Free</span>' : '';
 }
 
 function roleLockBadge(ch){
@@ -177,7 +191,6 @@ function renderChapters(filterLevel){
     list.style.marginBottom = '8px';
 
     items.forEach((ch) => {
-      const globalIndex = parseInt(ch.num, 10) - 1;
       const el = document.createElement('div');
       el.className = 'chapter';
       el.setAttribute('data-expand', '');
@@ -208,7 +221,7 @@ function renderChapters(filterLevel){
           '</div></div>' +
         '</div>' +
         '<div class="chapter-status" style="display:flex; align-items:center; gap:10px;">' +
-          progressBadge(ch) + unlockLabel(globalIndex) + roleLockBadge(ch) +
+          progressBadge(ch) + unlockLabel(ch) + roleLockBadge(ch) +
           '<svg class="chapter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
         '</div>';
 

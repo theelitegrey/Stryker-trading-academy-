@@ -258,13 +258,13 @@
     applyGate();
   });
 
-  // ---- 1. Live price ticker on the chart card — REMOVED --------------------
+  // ---- 1. (formerly a live price ticker on the chart card, now removed) ---
   // Used to inject a moving "2418.60 +0.42%" readout into the chart card
   // header, which made the illustrative 4-step-model card read as a live
-  // market feed. The card is explicitly illustrative (see index.html), so
-  // this function is gone — nothing calls it any more (see the ready()
-  // block below). Left as a stub only so a stray external call doesn't throw.
-  function livePrice() {}
+  // market feed. The card makes no live claim (see index.html: the header
+  // is now "Illustrative · 4-step model", no LIVE chip). Function, its call
+  // in ready() below, and the #m-price/#m-change CSS in home-motion.css are
+  // all deleted — no dead code left behind.
 
   // ---- 2. Rotating headline word -----------------------------------------
   // The headline states one idea; the market does several. Cycling the phrase
@@ -468,7 +468,6 @@
   }
 
   ready(function () {
-    livePrice();
     rotatingWord();
     candleField();
     scrollProgress();

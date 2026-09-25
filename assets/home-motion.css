@@ -115,21 +115,6 @@
    MOTION LAYER 2 — the visible tier
    ============================================================================ */
 
-/* Live price on the chart card ---------------------------------------------- */
-.m-price-wrap {
-  display: flex; align-items: baseline; gap: 10px;
-  margin-left: auto; padding-right: 12px;
-  font-family: var(--font-mono, monospace);
-}
-#m-price { font-size: 15px; font-weight: 700; transition: color .2s ease; }
-#m-change { font-size: 11.5px; }
-#m-price.up, #m-change.up { color: #03c988; }
-#m-price.down, #m-change.down { color: #e5484d; }
-/* Flash on tick — the cue traders actually read on a live board. */
-@keyframes m-tick-flash { 0% { background: rgba(255,255,255,.16); }
-                          100% { background: transparent; } }
-#m-price.m-tick { animation: m-tick-flash .45s ease-out; border-radius: 3px; }
-
 /* Rotating headline word ----------------------------------------------------- */
 .m-rotate { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
 .m-rotate.m-out { opacity: 0; transform: translateY(-12px); }
@@ -178,13 +163,10 @@
   /* The canvas and spotlight cost frames on a phone and read as noise on a
      small screen. */
   .m-canvas, .m-spot { display: none; }
-  .m-price-wrap { padding-right: 4px; }
-  #m-price { font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .m-canvas, .m-spot, .m-progress { display: none !important; }
-  #m-price.m-tick { animation: none !important; }
   .m-rotate { transition: none !important; }
   .m-tilt { transition: none !important; transform: none !important; }
 }
@@ -581,8 +563,6 @@
 
 
 /* Day theme: the homepage motion layer's own accents (build 221) */
-:root[data-theme="light"] #m-price.up, :root[data-theme="light"] #m-change.up{ color:#07996a; }
-:root[data-theme="light"] #m-price.down, :root[data-theme="light"] #m-change.down{ color:#c9353a; }
 :root[data-theme="light"] .mtape-item i.down{ color:#c9353a; }
 :root[data-theme="light"] .mtape{ background:var(--bg-2); border-color:var(--line); }
 :root[data-theme="light"] .hero-vignette, :root[data-theme="light"] .home-glow{ opacity:.35; }

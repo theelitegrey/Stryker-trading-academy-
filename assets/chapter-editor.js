@@ -258,7 +258,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextNum = String((nums.length ? Math.max(...nums) : 0) + 1).padStart(2, '0');
         ch = { num: nextNum, title: '', level: 'foundation', dur: '', video: '', minRole: null, bodyHtml: '', lessons: [{ title: '', desc: '' }] };
       } else {
-        ch = CHAPTERS.find(c => c.num === chNum);
+        ch = CHAPTERS.find(c => c.num === chNum) ||
+             ((typeof TRACK_CHAPTERS !== 'undefined') ? TRACK_CHAPTERS.find(c => c.num === chNum) : null);
         if (!ch) {
           document.getElementById('editor-error').textContent = 'Chapter not found.';
           document.getElementById('editor-error').style.display = 'block';

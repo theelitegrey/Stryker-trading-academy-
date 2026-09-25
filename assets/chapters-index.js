@@ -1260,6 +1260,580 @@ const CHAPTERS_SEED = [
   "preview": "This capstone chapter doesn't introduce new concepts — it's where every tool from this entire curriculum gets combined into one finished, personal, written trading plan. Forty-one chapters of individual concepts become, here, a single coherent document you can actually use.",
   "readMinutes": 8,
   "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-01",
+  "title": "Auction Market Theory: How Markets Find Value",
+  "level": "foundation",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "The market as a two-way auction"
+   },
+   {
+    "title": "Balance and imbalance"
+   },
+   {
+    "title": "Rotations and edges"
+   },
+   {
+    "title": "Initiative vs responsive activity"
+   },
+   {
+    "title": "Timeframe participants"
+   }
+  ],
+  "preview": "Every chart you have studied so far shows the result of an auction. Buyers and sellers keep testing prices to find out where the other side is willing to trade. Auction market theory is a way of reading the chart as that search. It gives you words for what you see: price trying higher, finding no one to sell to, and coming back; or price leaving a range because a new group of traders turned up. Profile and order-flow tools in this track all sit on top of this idea, so it is the right place to start.",
+  "readMinutes": 17,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-02",
+  "title": "Market Profile & TPO Charts",
+  "level": "foundation",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Building a TPO profile"
+   },
+   {
+    "title": "Initial balance and range extension"
+   },
+   {
+    "title": "Single prints and tails"
+   },
+   {
+    "title": "Poor highs and lows"
+   },
+   {
+    "title": "TPO value area"
+   }
+  ],
+  "preview": "Market Profile is the chart that started this whole family of tools. Instead of counting contracts, it counts time : how many 30-minute periods the market spent at each price. The result is a picture of the day's auction built out of letters, and a set of named features traders read from it: the initial balance, range extension, single prints, tails, and poor highs and lows. This chapter teaches you to build one by hand and read those features.",
+  "readMinutes": 19,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-03",
+  "title": "Volume Profile Anatomy: POC, Value Area, HVN & LVN",
+  "level": "foundation",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "How a volume profile is built"
+   },
+   {
+    "title": "Finding the POC, VAH and VAL"
+   },
+   {
+    "title": "Computing a value area by hand"
+   },
+   {
+    "title": "Spotting HVNs and LVNs"
+   },
+   {
+    "title": "Volume vs TPO profiles"
+   }
+  ],
+  "preview": "A candlestick chart tells you when price moved. A volume profile tells you where business was done. It takes all the contracts traded over a period and stacks them sideways at each price, so you can see at a glance which prices the market accepted and which it rushed past. This chapter builds a profile from scratch, then names its parts: the point of control, the value area and its edges, and the high- and low-volume nodes. You will compute a value area by hand, because doing it once makes every profile you see afterwards easier to read.",
+  "readMinutes": 18,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-04",
+  "title": "Profile Shapes & Day Types",
+  "level": "intermediate",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Recognising profile shapes"
+   },
+   {
+    "title": "P and b days"
+   },
+   {
+    "title": "Day types from the IB"
+   },
+   {
+    "title": "Classifying during the session"
+   }
+  ],
+  "preview": "Once you can build a profile, the next skill is recognising what kind of day produced it. Profiles come in a handful of recurring shapes , and Market Profile practitioners group whole sessions into day types based on the size of the initial balance and how far the day extended beyond it. Knowing the shape and the day type won't tell you what happens tomorrow. It tells you what kind of auction just happened, which is the context for everything you do next.",
+  "readMinutes": 18,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-05",
+  "title": "Session, Composite & Fixed-Range Profiles",
+  "level": "intermediate",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Choosing the session"
+   },
+   {
+    "title": "Composite profiles"
+   },
+   {
+    "title": "Fixed-range profiles on a displacement leg"
+   },
+   {
+    "title": "Naked POC tracker"
+   },
+   {
+    "title": "Value migration log"
+   }
+  ],
+  "preview": "A profile is only as useful as the period it covers. The same week of ES can give you five different POCs depending on whether you build one profile per session, one profile for the whole week, or one profile from a swing low you picked yourself. This chapter covers the main profile types, when each is useful, and three ideas that only make sense once you compare profiles over time: naked POCs , value migration , and the open relative to prior value .",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-06",
+  "title": "VWAP, Anchored VWAP & Deviation Bands",
+  "level": "intermediate",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "How VWAP is calculated"
+   },
+   {
+    "title": "VWAP as an execution benchmark"
+   },
+   {
+    "title": "Standard-deviation bands"
+   },
+   {
+    "title": "Anchored VWAP"
+   },
+   {
+    "title": "VWAP and the profile together"
+   }
+  ],
+  "preview": "VWAP stands for volume-weighted average price : the average price of everything that traded, where each trade counts in proportion to its size. It sits next to the volume profile as the other main \"where is value?\" tool. The profile shows you where volume traded; VWAP condenses the same information into one moving line that tells you the average price paid today.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-07",
+  "title": "Order Flow Foundations: Orders, the Book & Matching",
+  "level": "intermediate",
+  "dur": "35 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Market, limit and stop orders"
+   },
+   {
+    "title": "Reading the DOM"
+   },
+   {
+    "title": "FIFO matching and queue priority"
+   },
+   {
+    "title": "A market order sweeps the book"
+   },
+   {
+    "title": "Time and sales"
+   }
+  ],
+  "preview": "Volume profile tells you where trade happened. Order flow tells you how it happened: who crossed the spread, who waited, and what was sitting in the book when they did. Before any footprint chart or delta reading makes sense, you need a clear picture of the plumbing: the kinds of orders, the order book, and how an exchange actually matches a buyer with a seller.",
+  "readMinutes": 17,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-08",
+  "title": "Footprint Charts & Delta",
+  "level": "advanced",
+  "dur": "40 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Reading bid x ask"
+   },
+   {
+    "title": "Delta and what it measures"
+   },
+   {
+    "title": "Diagonal and stacked imbalances"
+   },
+   {
+    "title": "Cumulative delta and divergence"
+   }
+  ],
+  "preview": "A candlestick shows four prices. A footprint chart opens the candle up and shows every price inside it, with how many contracts traded there and on which side. It is the main tool of order-flow trading, and the place where the ideas from VP-07 (aggressors, passive orders, the bid and the ask) become something you can read bar by bar.",
+  "readMinutes": 17,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-09",
+  "title": "Order Flow Patterns: Absorption, Exhaustion, Imbalances & Icebergs",
+  "level": "advanced",
+  "dur": "40 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Absorption"
+   },
+   {
+    "title": "Exhaustion and finished auctions"
+   },
+   {
+    "title": "Stacked imbalances as zones"
+   },
+   {
+    "title": "Icebergs"
+   },
+   {
+    "title": "Trapped traders"
+   }
+  ],
+  "preview": "With the footprint and delta from VP-08 , you can start naming the recurring situations order-flow traders look for. This chapter covers five: absorption , exhaustion , stacked imbalances , iceberg orders and trapped traders . Each is a way of describing how aggressive and passive orders met at an important price.",
+  "readMinutes": 17,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-10",
+  "title": "Data & Tools: Futures, FX Tick Volume & Platforms",
+  "level": "intermediate",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Why futures have real volume"
+   },
+   {
+    "title": "Spot FX and tick volume"
+   },
+   {
+    "title": "Contracts, micros and rolls"
+   },
+   {
+    "title": "Choosing and checking your platform"
+   }
+  ],
+  "preview": "Everything in this track depends on the data . A volume profile is only as good as the volume it counts, and a footprint only as good as its record of who was the aggressor. This chapter explains where real volume comes from, why spot forex doesn't have it, what tick volume is and isn't, and what the main platforms say about how they build their order-flow tools. It stays neutral: Stryker has no affiliate relationship with any platform named here, and nothing below is a recommendation to buy one.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-11",
+  "title": "Combining Profile & Order Flow with Liquidity & SMC",
+  "level": "advanced",
+  "dur": "40 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "FVGs, LVNs and single prints"
+   },
+   {
+    "title": "Order blocks and volume"
+   },
+   {
+    "title": "Premium, discount and value"
+   },
+   {
+    "title": "Sweeps confirmed by profile and footprint"
+   },
+   {
+    "title": "A combined pre-session plan"
+   }
+  ],
+  "preview": "The core course teaches you to read the chart through liquidity , structure and imbalance : where the stops are, where price displaced, where it may come back to. This track has taught you to read volume and order flow : where business was done, and how. This chapter puts the two side by side. They were developed by different communities and use different words, but at key prices they often describe the same thing from two angles.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "vp",
+  "num": "VP-12",
+  "title": "Case Studies & the Profile/Order-Flow Playbook",
+  "level": "advanced",
+  "dur": "40 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Case study: rotation inside value"
+   },
+   {
+    "title": "Case study: an accepted open outside the range"
+   },
+   {
+    "title": "Case study: a failed break of a poor high"
+   },
+   {
+    "title": "The playbook checklist"
+   }
+  ],
+  "preview": "This final chapter pulls the track together. First, three worked case studies on illustrative ES sessions, each read through the profile, the order flow and the liquidity framework together. Then the playbook : a 16-point checklist that turns the whole track into a routine you can follow every session.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-01",
+  "title": "What Prop Firms Are & How They Make Money",
+  "level": "foundation",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "What an evaluation-model prop firm is"
+   },
+   {
+    "title": "The three stages"
+   },
+   {
+    "title": "How prop firms make money"
+   },
+   {
+    "title": "A cautionary case"
+   }
+  ],
+  "preview": "A prop firm (short for proprietary trading firm) is a company that trades with its own money instead of its customers' money. Traditional prop firms hire traders, give them the firm's capital and share the profits. The firms most retail traders now mean by \"prop firm\" work differently: you pay a fee to take a trading test, and if you pass under their rules, you trade a firm account and can request a share of the profits.",
+  "readMinutes": 20,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-02",
+  "title": "Futures vs Forex/CFD Firms & the Regulatory Landscape",
+  "level": "foundation",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Futures vs forex/CFD firms"
+   },
+   {
+    "title": "What \"simulated\" means"
+   },
+   {
+    "title": "Regulators and your money"
+   },
+   {
+    "title": "Checking a firm and sizing risk"
+   }
+  ],
+  "preview": "\"Prop firm\" covers two different businesses. One offers futures evaluations, where you trade exchange-listed contracts such as the E-mini S&amp;P 500 in a simulated account. The other offers forex and CFD evaluations, where you trade currency pairs, indices and gold through a broker-style platform, also simulated. The rules look similar, but the instruments, the data and the regulatory picture are not.",
+  "readMinutes": 17,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-03",
+  "title": "How to Vet a Prop Firm",
+  "level": "foundation",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "The six-part scorecard"
+   },
+   {
+    "title": "Terms, payouts and rules"
+   },
+   {
+    "title": "Pricing the whole path"
+   },
+   {
+    "title": "Evidence and red flags"
+   }
+  ],
+  "preview": "There are dozens of prop firms, and new ones launch all the time. Some last; some change rules overnight; a few close. Choosing well won't make you a better trader, but choosing badly can cost you fees, time and payouts you thought you had earned. This chapter gives you a repeatable way to vet a firm, meaning to check it properly before you pay, using only what the firm publishes and what regulators let you look up.",
+  "readMinutes": 15,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-04",
+  "title": "The Rules Deep Dive",
+  "level": "intermediate",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "The maximum loss limit"
+   },
+   {
+    "title": "Daily loss limits"
+   },
+   {
+    "title": "Consistency rules"
+   },
+   {
+    "title": "Size, time and news rules"
+   }
+  ],
+  "preview": "Every prop firm account is a set of rules. Break one, and the account ends, however good your trading was. This chapter explains each rule type you will meet at the main U.S. futures firms, how the maths works, and how the same rule can behave differently from one firm to the next. It is the reference chapter for the rest of the track.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-05",
+  "title": "Major Firms Compared (as of September 2026)",
+  "level": "intermediate",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Reading a firm comparison"
+   },
+   {
+    "title": "The $50K evaluations side by side"
+   },
+   {
+    "title": "Size and payouts"
+   },
+   {
+    "title": "Matching a plan to your style"
+   }
+  ],
+  "preview": "This chapter puts the main U.S. futures prop firms side by side, using their own help pages. It is a snapshot as of September 2026 . Firms change their rules and prices often, sometimes monthly, so treat every number as a starting point and check the linked page before you buy.",
+  "readMinutes": 13,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-06",
+  "title": "Passing the Evaluation: Sizing, Risk Plan & Frequency",
+  "level": "intermediate",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Sizing from the loss limit"
+   },
+   {
+    "title": "What size does to your odds"
+   },
+   {
+    "title": "Daily rules and pacing"
+   },
+   {
+    "title": "Your written risk plan"
+   }
+  ],
+  "preview": "An evaluation is a narrow test: make a set amount before you lose a smaller set amount, without breaking any rule. Most of that is decided before your first trade, by how big you trade and how you plan to behave on good and bad days. This chapter turns the rules from PF-04 into a written risk plan you can follow.",
+  "readMinutes": 15,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-07",
+  "title": "The Funded Stage: Buffers, Payouts & Withdrawals",
+  "level": "intermediate",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "What changes when you are funded"
+   },
+   {
+    "title": "Payout eligibility"
+   },
+   {
+    "title": "Buffers and the floor"
+   },
+   {
+    "title": "Caps, live accounts and your payout rule"
+   }
+  ],
+  "preview": "Passing an evaluation gets you a funded account : an account where the firm pays you a share of the profits you make. At most futures firms this stage is still simulated . Topstep calls its Express Funded Account \"the simulated funded-level account you earn after passing\", and Apex calls its Performance Account a \"Simulated Funded (Sim Funded) account\". Payouts are real money, paid by the firm from its own funds, as PF-01 explained.",
+  "readMinutes": 15,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-08",
+  "title": "Psychology & Failure Modes",
+  "level": "intermediate",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "What firms look for"
+   },
+   {
+    "title": "Why these habits are common"
+   },
+   {
+    "title": "Five failure modes"
+   },
+   {
+    "title": "Your rule-break log"
+   }
+  ],
+  "preview": "Most funded-account rules can be followed on paper by almost anyone. The difficulty is following them on the day you are losing, tired, or one good trade away from a payout. This chapter looks at the failure modes : the repeatable patterns that end evaluations and funded accounts. For each one, we give a rule you can set in advance.",
+  "readMinutes": 16,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-09",
+  "title": "Multiple Accounts, Copy Trading & Automation Rules",
+  "level": "advanced",
+  "dur": "25 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "Account limits"
+   },
+   {
+    "title": "Trade copiers"
+   },
+   {
+    "title": "Hedging and account stacking"
+   },
+   {
+    "title": "Automation and simulator exploits"
+   }
+  ],
+  "preview": "Once traders pass one evaluation, many want to run several accounts, copy trades between them, or automate a strategy. Firms allow a lot of this, but with limits, and the rules against hedging and simulator exploits are among the strictest in the industry. Breaking them can cost every account at once.",
+  "readMinutes": 14,
+  "hasVideo": false
+ },
+ {
+  "track": "pf",
+  "num": "PF-10",
+  "title": "The Business View: Costs, Resets & Expected Value",
+  "level": "advanced",
+  "dur": "30 min",
+  "minRole": null,
+  "lessons": [
+   {
+    "title": "The costs"
+   },
+   {
+    "title": "Path cost by attempts"
+   },
+   {
+    "title": "Expected value"
+   },
+   {
+    "title": "Budget, records and exit rules"
+   }
+  ],
+  "preview": "Prop trading is sold as a trading opportunity, but from your side it is also a small business with clear costs: evaluation fees, resets, activation, data and your time. This chapter adds those costs up and shows how to judge whether your own numbers make sense. It uses one firm's published prices as a worked example, and a simple expected value model with inputs you supply.",
+  "readMinutes": 16,
+  "hasVideo": false
  }
 ];
 

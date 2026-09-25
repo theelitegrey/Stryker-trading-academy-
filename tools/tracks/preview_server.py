@@ -46,8 +46,8 @@ class H(http.server.SimpleHTTPRequestHandler):
                           '.paywall-dimmed{filter:none!important;opacity:1!important;pointer-events:auto!important}'
                           '.guest-banner{display:none!important}</style></head>')
             return self.send_body(s, 'text/html; charset=utf-8')
-        if path == '/assets/chapters-data.js':
-            s = open(os.path.join(ROOT, 'assets', 'chapters-data.js'), encoding='utf-8').read()
+        if path == '/assets/chapters-index.js':
+            s = open(os.path.join(ROOT, 'assets', 'chapters-index.js'), encoding='utf-8').read()
             extra = [json.load(open(p)) for p in sorted(glob.glob(os.path.join(TRACKS, '*', '*.json')))]
             s += '\n;CHAPTERS_SEED.push.apply(CHAPTERS_SEED, %s);\n' % json.dumps(extra)
             return self.send_body(s, 'application/javascript; charset=utf-8')

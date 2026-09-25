@@ -109,12 +109,12 @@ const ARTICLES = [
 const CTAS = {
   cheatsheet: (slug, utm) => `<h2 id="cta-${slug}">Get the free FVG &amp; Order Block cheat sheet</h2>
 <p>Two pages with the rules we teach for fair value gaps and order blocks. Create a free account to download it and read the first chapters of the curriculum.</p>
-<a class="btn btn-primary" href="cheat-sheet.html?${utm}">Get the free cheat sheet</a>
-<a class="btn btn-ghost" href="signup.html?${utm}">Create a free account</a>`,
+<a class="btn btn-primary" href="cheat-sheet?${utm}">Get the free cheat sheet</a>
+<a class="btn btn-ghost" href="signup?${utm}">Create a free account</a>`,
   signup: (slug, utm) => `<h2 id="cta-${slug}">Learn the method as written lessons with chart diagrams</h2>
 <p>Create a free account to read the first chapters of the curriculum and get the free FVG &amp; Order Block cheat sheet. The course is education only and makes no promise that you will pass a challenge.</p>
-<a class="btn btn-primary" href="signup.html?${utm}">Create a free account</a>
-<a class="btn btn-ghost" href="cheat-sheet.html?${utm}">Get the free cheat sheet</a>`
+<a class="btn btn-primary" href="signup?${utm}">Create a free account</a>
+<a class="btn btn-ghost" href="cheat-sheet?${utm}">Get the free cheat sheet</a>`
 };
 
 // FAQ pairs for FAQPage JSON-LD: every <h3> + following <p> inside .lx-faq.
@@ -169,17 +169,20 @@ ${JSON.stringify(jsonld, null, 2)}
 // Nav and footer are the site's standard public ones (as on about.html).
 const about = fs.readFileSync(path.join(ROOT, 'about.html'), 'utf8');
 const NAV = about.slice(about.indexOf('<nav class="nav"'), about.indexOf('</nav>') + 6)
-  .replace('<a href="features.html">Features</a>', '<a href="features.html">Features</a>\n      <a href="learn.html">Learn</a>');
+  .replace(/<a href="features(\.html)?">Features<\/a>/, (m) => m.includes('learn') ? m : m + '\n      <a href="learn">Learn</a>');
 const FOOTER = about.slice(about.indexOf('<footer>'), about.indexOf('</footer>') + 9)
   ;  // about.html's footer already links Learn
-if (!NAV.includes('learn.html') || !FOOTER.includes('learn.html')) throw new Error('nav/footer anchors moved; update gen-learn.js');
+// Internal links are clean URLs (no .html) since build 327.
+if (!/href="learn(\.html)?"/.test(NAV) || !/href="learn(\.html)?"/.test(FOOTER)) throw new Error('nav/footer anchors moved; update gen-learn.js');
 
 // Everything else in <head> (stylesheet, scripts, icons, theme snippet) and
 // the scripts after the footer are copied from about.html, so Learn pages load
 // exactly what every other public page loads (auth, theme, seo overrides,
 // first-touch tracking) and pick up changes to that list automatically.
 const ver = (html) => html.replace(/\?v=\d+/g, '?v=' + BUILD);
-const HEAD_ASSETS = ver(about.slice(about.indexOf('<link rel="stylesheet"'), about.indexOf('</head>')).trim())
+const HEAD_START = about.indexOf('<link rel="preload"') >= 0 && about.indexOf('<link rel="preload"') < about.indexOf('<link rel="stylesheet"')
+  ? about.indexOf('<link rel="preload"') : about.indexOf('<link rel="stylesheet"');
+const HEAD_ASSETS = ver(about.slice(HEAD_START, about.indexOf('</head>')).trim())
   .replace(/(<link rel="stylesheet" href="assets\/style\.css\?v=\d+">)/, `$1\n<link rel="stylesheet" href="${V('assets/learn.css')}">`);
 if (!HEAD_ASSETS.includes('learn.css') || /application\/ld\+json|<title|canonical/.test(HEAD_ASSETS)) throw new Error('about.html <head> layout changed; update gen-learn.js');
 const SCRIPTS = '\n' + ver(about.slice(about.indexOf('</footer>') + 9, about.indexOf('</body>')).trim());
@@ -230,7 +233,7 @@ function articlePage(a) {
   };
   const d = new Date(a.modified + 'T00:00:00Z').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <a href="learn.html">Learn</a> / <span aria-current="page">${esc(a.short)}</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <a href="learn">Learn</a> / <span aria-current="page">${esc(a.short)}</span></nav>
 <article>
 <header class="lx-head">
 <h1>${esc(a.short)}</h1>
@@ -248,7 +251,7 @@ ${CTAS[a.cta || 'cheatsheet'](a.slug, utm)}
 <section class="lx-related" aria-labelledby="rel-${a.slug}">
 <h2 id="rel-${a.slug}">Keep reading</h2>
 <ul class="lx-list">
-${others.slice(0, 4).map((o) => `<li><a class="lx-card" href="learn-${o.slug}.html"><h3>${esc(o.short)}</h3><p>${esc(o.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
+${others.slice(0, 4).map((o) => `<li><a class="lx-card" href="learn-${o.slug}"><h3>${esc(o.short)}</h3><p>${esc(o.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
 </ul>
 </section>
 </div>`;
@@ -270,18 +273,18 @@ function indexPage() {
     ]
   };
   const main = `<div class="lx-wrap">
-<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <span aria-current="page">Learn</span></nav>
+<nav class="lx-crumbs" aria-label="Breadcrumb"><a href="/">Home</a> / <span aria-current="page">Learn</span></nav>
 <header class="lx-head">
 <h1>Learn</h1>
 <p class="lx-dek">Free, plain-English guides to the ICT and smart money concepts we teach, with simple diagrams. Start with any of them.</p>
 </header>
 <ul class="lx-list">
-${ARTICLES.map((a) => `<li><a class="lx-card" href="learn-${a.slug}.html"><h2>${esc(a.short)}</h2><p>${esc(a.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
+${ARTICLES.map((a) => `<li><a class="lx-card" href="learn-${a.slug}"><h2>${esc(a.short)}</h2><p>${esc(a.dek)}</p><span>Read the article →</span></a></li>`).join('\n')}
 </ul>
 <aside class="lx-cta" aria-labelledby="cta-learn">
 <h2 id="cta-learn">Get the free FVG &amp; Order Block cheat sheet</h2>
 <p>Two pages with the rules we teach. Create a free account to download it.</p>
-<a class="btn btn-primary" href="cheat-sheet.html?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=learn">Get the free cheat sheet</a>
+<a class="btn btn-primary" href="cheat-sheet?utm_source=google&amp;utm_medium=organic&amp;utm_campaign=learn">Get the free cheat sheet</a>
 </aside>
 <p class="lx-disclaimer">${DISCLAIMER}</p>
 </div>`;

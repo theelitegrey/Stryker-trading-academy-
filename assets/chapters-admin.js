@@ -17,7 +17,7 @@ function renderChapterList(){
 
   const importNotice = document.getElementById('import-notice');
   if (importNotice) {
-    const usingSeedFallback = typeof CHAPTERS_SEED !== 'undefined' && CHAPTERS === CHAPTERS_SEED;
+    const usingSeedFallback = typeof CHAPTERS_FROM_SEED !== 'undefined' && CHAPTERS_FROM_SEED;
     importNotice.style.display = usingSeedFallback ? 'flex' : 'none';
   }
 

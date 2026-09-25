@@ -11,8 +11,29 @@
 // before reading the CHAPTERS array — unlike the old static file, this is
 // no longer synchronously available at parse time.
 
-let CHAPTERS = [];
+let CHAPTERS = [];          // the core curriculum (01..42) only
+let TRACK_CHAPTERS = [];    // specialist-track chapters (ids like VP-01), paid
 let _chaptersLoadPromise = null;
+
+// Specialist tracks. Chapters carry `track`; anything without one (or
+// 'core') is the core curriculum. Order here = order on /courses.
+const TRACKS = [
+  { id: 'vp', name: 'Volume Profile & Order Flow', blurb: 'Auction theory, profiles, VWAP, the order book, footprint and delta.' },
+  { id: 'pf', name: 'Prop Firm Mastery', blurb: 'How prop firms work, how to vet one, the rules, passing and staying funded.' }
+];
+function isTrackChapter(ch){ return !!(ch && ch.track && ch.track !== 'core'); }
+function trackOf(id){ return TRACKS.find((t) => t.id === id) || null; }
+let CHAPTERS_FROM_SEED = false;
+function splitChapters(all){
+  CHAPTERS_FROM_SEED = (typeof CHAPTERS_SEED !== 'undefined' && all === CHAPTERS_SEED);
+  const core = [], tracks = [];
+  (all || []).forEach((c) => (isTrackChapter(c) ? tracks : core).push(c));
+  core.sort((a, b) => a.num.localeCompare(b.num));
+  const trackIdx = (c) => { const i = TRACKS.findIndex((t) => t.id === c.track); return i < 0 ? 99 : i; };
+  tracks.sort((a, b) => trackIdx(a) - trackIdx(b) || a.num.localeCompare(b.num));
+  TRACK_CHAPTERS = tracks;
+  return core;
+}
 
 function loadChapters(forceRefresh){
   if (_chaptersLoadPromise && !forceRefresh) return _chaptersLoadPromise;
@@ -20,7 +41,7 @@ function loadChapters(forceRefresh){
   if (!db) {
     // Firestore never initialized — fall back to bundled content instead of
     // leaving the page stuck on "Loading chapter…" forever.
-    CHAPTERS = typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : [];
+    CHAPTERS = splitChapters(typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : []);
     _chaptersLoadPromise = Promise.resolve(CHAPTERS);
     return _chaptersLoadPromise;
   }
@@ -29,21 +50,19 @@ function loadChapters(forceRefresh){
     .then((snap) => {
       const list = [];
       snap.forEach((doc) => list.push(normalizeCatalogEntry(doc.data())));
-      list.sort((a, b) => a.num.localeCompare(b.num));
-
       if (!list.length && typeof CHAPTERS_SEED !== 'undefined') {
         // Firestore hasn't been seeded yet — fall back to the bundled data
         // so the site still works, rather than showing an empty curriculum.
-        CHAPTERS = CHAPTERS_SEED;
+        CHAPTERS = splitChapters(CHAPTERS_SEED);
       } else {
-        CHAPTERS = list;
+        CHAPTERS = splitChapters(list);
       }
       return CHAPTERS;
     })
     .catch((err) => {
       console.error('Stryker: failed to load chapters from Firestore', err);
       if (typeof CHAPTERS_SEED !== 'undefined') {
-        CHAPTERS = CHAPTERS_SEED;
+        CHAPTERS = splitChapters(CHAPTERS_SEED);
       }
       return CHAPTERS;
     });

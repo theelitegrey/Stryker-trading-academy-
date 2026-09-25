@@ -75,12 +75,82 @@ function progressBadge(ch){
   return '';
 }
 
+// Specialist tracks are paid: a plan with a finite core chapter limit
+// (Starter, "1-7") can't read them. Same test the server's chapterGate uses
+// to set minRank, so the badge and the Firestore rules agree.
+function trackLocked(){
+  if (typeof chapterLimitOf !== 'function') return false;
+  return chapterLimitOf(CURRENT_STUDENT_PLAN) !== Infinity;
+}
+
+function trackChapterEl(ch){
+  const el = document.createElement('div');
+  el.className = 'chapter';
+  el.setAttribute('data-expand', '');
+  el.setAttribute('data-track', ch.track);
+  const lessonsHtml = ch.lessons.map((l, i) =>
+    '<div class="lesson-item"><span class="lnum">0' + (i+1) + '</span><span>' + stkEsc(l.title) + '</span></div>'
+  ).join('');
+  const preview = stkEsc(ch.preview || '');
+  const locked = trackLocked();
+  el.innerHTML =
+    '<div class="chapter-num" style="font-size:15px;">' + stkEsc(ch.num) + '</div>' +
+    '<div class="chapter-body">' +
+      '<h3>' + stkEsc(ch.title) + '</h3>' +
+      '<p>' + preview.slice(0, 130) + (preview.length > 130 ? '…' : '') + '</p>' +
+      '<div class="chapter-meta">' +
+        '<span class="chapter-tag ' + (LEVEL_TAG_CLASS[ch.level] || '') + '">' + (LEVEL_LABEL[ch.level] || '') + '</span>' +
+        '<span>' + ch.lessons.length + ' lessons</span>' +
+      '</div>' +
+      '<div class="chapter-detail"><div class="chapter-detail-inner">' +
+        '<div><h5>What you\'ll learn</h5><p>' + preview + '</p>' +
+          '<a class="btn btn-primary btn-sm" style="margin-top:14px; display:inline-flex;" href="chapter.html?ch=' + encodeURIComponent(ch.num) + '">' +
+            (locked ? 'Preview chapter →' : 'Read full chapter →') + '</a></div>' +
+        '<div><h5>Lessons</h5>' + lessonsHtml + '</div>' +
+      '</div></div>' +
+    '</div>' +
+    '<div class="chapter-status" style="display:flex; align-items:center; gap:10px;">' +
+      progressBadge(ch) +
+      (locked ? '<span class="status-pill locked" title="Upgrade to unlock" style="background:rgba(245,197,66,0.12); border-color:rgba(245,197,66,0.35); color:#f5c542;">🔒 Pro</span>' : '') +
+      '<svg class="chapter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+    '</div>';
+  el.addEventListener('click', (e) => {
+    if (e.target.closest('a,button')) return;
+    el.classList.toggle('expanded');
+  });
+  return el;
+}
+
+function renderTracks(container){
+  if (typeof TRACK_CHAPTERS === 'undefined' || !TRACK_CHAPTERS.length) return;
+  TRACKS.forEach((t) => {
+    const items = TRACK_CHAPTERS.filter((c) => c.track === t.id);
+    if (!items.length) return;
+    const heading = document.createElement('div');
+    heading.className = 'part-heading';
+    heading.setAttribute('data-track-heading', t.id);
+    heading.innerHTML = '<span>Specialist track · ' + stkEsc(t.name) + '</span><span class="part-count">' + items.length + ' chapters</span>';
+    container.appendChild(heading);
+    const blurb = document.createElement('p');
+    blurb.style.cssText = 'color:var(--ink-3); font-size:13.5px; margin:-4px 0 12px;';
+    blurb.textContent = t.blurb + (trackLocked() ? ' Included with Pro and Elite.' : '');
+    container.appendChild(blurb);
+    const list = document.createElement('div');
+    list.className = 'chapter-list';
+    list.style.marginBottom = '8px';
+    items.forEach((ch) => list.appendChild(trackChapterEl(ch)));
+    container.appendChild(list);
+  });
+}
+
 function renderChapters(filterLevel){
   const container = document.getElementById('chapter-render-target');
   if (!container || typeof CHAPTERS === 'undefined') return;
   container.innerHTML = '';
 
   renderContinueBanner(container);
+
+  if (filterLevel === 'tracks') { renderTracks(container); return; }
 
   const order = ['foundation','intermediate','advanced'];
   order.forEach(level => {
@@ -143,6 +213,7 @@ function renderChapters(filterLevel){
 
     container.appendChild(list);
   });
+  if (filterLevel === 'all') renderTracks(container);
 }
 
 function showGuestPaywall(show){

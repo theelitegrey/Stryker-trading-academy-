@@ -11,6 +11,10 @@ Run from the repo root. It needs an admin OAuth token printed by $STRYKER_TOKEN_
                                      or to the backup (after strip); minRank as expected
   migrate.py strip --backup F [--apply]  remove text fields from chapters/*, add catalog fields
   migrate.py restore --backup F [--only 01] [--apply]  write chapters/* back from a backup
+  migrate.py tracks [--apply]        publish tools/tracks/<t>/<ID>.json: catalog -> chapters/<ID>,
+                                     text -> chapterBodies/<ID> (minRank from plans; a track id has no
+                                     number, so it needs a plan with chapterAccess 'all')
+  migrate.py verify-tracks           bodies byte-equal to the JSON files; catalogs carry no text
 Without --apply, a mode only prints what it would do.
 """
 import json, os, re, subprocess, sys, time, urllib.request, urllib.error
@@ -210,6 +214,55 @@ def restore(backup_file, only, apply):
         if apply: req('PATCH', 'chapters/' + cid, {'fields': snap[cid]})
     print(f'restore: {len(ids)} chapters {"written" if apply else "would be written"} from {backup_file}')
 
+TRACK_ORDER = ['vp', 'pf']
+def track_files():
+    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tracks')
+    out = []
+    for t in TRACK_ORDER:
+        d = os.path.join(root, t)
+        if os.path.isdir(d):
+            out += [os.path.join(d, f) for f in sorted(os.listdir(d)) if re.fullmatch(r'[A-Z]+-\d+\.json', f)]
+    return out
+
+def track_docs(plans, ranks):
+    for i, fp in enumerate(track_files()):
+        f = json.load(open(fp))
+        cid = f['num']
+        cat = {'num': cid, 'title': f['title'], 'level': f['level'], 'dur': f.get('dur', ''),
+               'minRole': f.get('minRole'), 'track': f['track'], 'order': i}
+        cat.update(catalog_of(f))
+        yield cid, cat, body_of(cid, f, plans, ranks)
+
+def tracks(apply):
+    plans, ranks = load_plans()
+    n = 0
+    for cid, cat, body in track_docs(plans, ranks):
+        n += 1
+        print(f'  {cid:6} track={cat["track"]} minRank={body["minRank"]} lessons={len(cat["lessons"])} '
+              f'body={len(body["bodyHtml"])}B')
+        if apply:
+            # body first: the catalog doc is what makes the chapter appear, and
+            # it must never appear before its (gated) text exists.
+            req('PATCH', 'chapterBodies/' + cid, {'fields': {k: wrap(v) for k, v in body.items()}})
+            req('PATCH', 'chapters/' + cid, {'fields': {k: wrap(v) for k, v in cat.items()}})
+    print(f'tracks: {n} chapters {"written" if apply else "would be written"}')
+
+def verify_tracks():
+    plans, ranks = load_plans()
+    bad = 0; n = 0
+    for cid, cat, want in track_docs(plans, ranks):
+        n += 1
+        b = req('GET', 'chapterBodies/' + cid)
+        c = req('GET', 'chapters/' + cid)
+        bf = fields(b); cf = fields(c)
+        for k in ('bodyHtml', 'paragraphs', 'lessons', 'minRank'):
+            if json.dumps(bf.get(k), sort_keys=True) != json.dumps(want[k], sort_keys=True):
+                print('DIFF', cid, k); bad += 1
+        if any(k in cf for k in ('bodyHtml', 'paragraphs', 'video')) or any('desc' in (l or {}) or 'descHtml' in (l or {}) for l in cf.get('lessons') or []):
+            print('TEXT IN CATALOG', cid); bad += 1
+    print(f'verify-tracks: {n} checked: ' + ('ALL MATCH' if not bad else f'{bad} PROBLEMS'))
+    return bad
+
 def arg(name):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv else None
 
@@ -222,4 +275,6 @@ if __name__ == '__main__':
     elif mode == 'verify': sys.exit(1 if verify(arg('--backup')) else 0)
     elif mode == 'strip': strip(arg('--backup'), apply)
     elif mode == 'restore': restore(arg('--backup'), arg('--only'), apply)
+    elif mode == 'tracks': tracks(apply)
+    elif mode == 'verify-tracks': sys.exit(1 if verify_tracks() else 0)
     else: print(__doc__); sys.exit(2)

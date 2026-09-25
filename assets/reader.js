@@ -619,6 +619,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (body) showLoadingAnimation(body, 'Loading chapter…');
 
   loadChapters().then(() => {
+    // A specialist-track chapter (?ch=VP-01) reads within its own track:
+    // prev/next and the contents list walk that track, not the core 42.
+    const want = new URLSearchParams(window.location.search).get('ch');
+    const tr = (typeof TRACK_CHAPTERS !== 'undefined') ? TRACK_CHAPTERS.find((c) => c.num === want) : null;
+    if (tr) CHAPTERS = TRACK_CHAPTERS.filter((c) => c.track === tr.track);
     const local = loadLocalProgress();
     completedLessonsSet = new Set(local.completedLessons);
     completedChaptersSet = new Set(local.completedChapters);

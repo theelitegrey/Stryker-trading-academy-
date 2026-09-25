@@ -22,7 +22,7 @@ function stubFor(mode) {
       { id: 'pr', name: 'Pro', rank: 1, chapterAccess: 'all', price: 19 },
       { id: 'el', name: 'Elite', rank: 2, chapterAccess: 'all', price: 49 }
     ];
-    const minRank = (num) => (parseInt(num, 10) <= 7 ? 0 : 1);
+    const minRank = (num) => (/^\d+$/.test(num) && parseInt(num, 10) <= 7 ? 0 : 1);   // track ids: Pro
     const catalog = () => (typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : []);
     window.__bodyReads = [];
     const snap = (id, d) => ({ id, exists: !!d, data: () => d || {} });
@@ -127,7 +127,9 @@ async function readerState(b, mode, ch, width) {
       bodyText: body ? body.textContent : '',
       lessonsText: lessons ? lessons.textContent : '',
       pageHtmlHasFull: document.documentElement.innerHTML.includes('FULL-TEXT-'),
-      reads: window.__bodyReads || []
+      reads: window.__bodyReads || [],
+      crumb: (document.getElementById('reader-crumb-title') || {}).textContent || '',
+      next: (() => { const n = document.getElementById('reader-next'); return n && n.style.visibility !== 'hidden' ? (n.querySelector('b') || {}).textContent || '' : ''; })()
     };
   });
   r.errs = errs.filter((e) => !/net::ERR_FAILED|Failed to load resource/.test(e));
@@ -147,7 +149,12 @@ async function readerState(b, mode, ch, width) {
     ['pro',     '42', true,  null],
     ['admin',   '08', true,  null],
     ['out',     '08', false, /Sign in/],
-    ['out',     '01', false, /Sign in/]
+    ['out',     '01', false, /Sign in/],
+    ['starter', 'VP-01', false, /Upgrade/],
+    ['starter', 'PF-10', false, /Upgrade/],
+    ['pro',     'VP-01', true,  null],
+    ['pro',     'PF-05', true,  null],
+    ['out',     'VP-01', false, /Sign in/]
   ];
   for (const width of [390, 1440]) {
     for (const [mode, ch, text, pw] of cases) {
@@ -164,6 +171,10 @@ async function readerState(b, mode, ch, width) {
         ok(tag + ': paywall shown', r.paywall && pw.test(r.heading), r.heading);
       }
       if (mode === 'out') ok(tag + ': signed out never asks for the body', r.reads.length === 0, r.reads.join(','));
+      if (/-/.test(ch)) {
+        ok(tag + ': reader stays inside its track (next link)', !r.next || r.next.startsWith(ch.slice(0, 3)) || r.next === '', r.next);
+        ok(tag + ': the requested track chapter is the one shown', r.title.length > 3 && r.crumb === 'Chapter ' + ch, r.crumb);
+      }
       ok(tag + ': old chapters-data.js not requested', !r.oldSeed);
       ok(tag + ': no page/console errors', r.errs.length === 0, r.errs.join(' | ').slice(0, 300));
     }
@@ -181,14 +192,56 @@ async function readerState(b, mode, ch, width) {
     const r = await p.evaluate(() => ({
       cards: document.querySelectorAll('.chapter-num').length,
       text: (document.querySelector('.chapter-body p') || {}).textContent || '',
+      tracks: document.querySelectorAll('[data-track-heading]').length,
+      trackLocks: [...document.querySelectorAll('[data-track] .status-pill.locked')].length,
       reads: window.__bodyReads || []
     }));
-    ok(`courses @${width}: 42 chapter cards`, r.cards === 42, String(r.cards));
+    ok(`courses @${width}: 42 core + 22 track cards`, r.cards === 64, String(r.cards));
+    ok(`courses @${width}: both track headings`, r.tracks === 2, String(r.tracks));
+    ok(`courses @${width}: Starter sees 22 track locks`, r.trackLocks === 22, String(r.trackLocks));
     ok(`courses @${width}: teaser text present`, r.text.length > 20, r.text.slice(0, 50));
     ok(`courses @${width}: no chapter bodies fetched`, r.reads.length === 0, r.reads.join(','));
     ok(`courses @${width}: no page errors`, errs.length === 0, errs.join(' | '));
     if (SHOTS) await p.screenshot({ path: `${SHOTS}/gate-courses-starter-${width}.png` });
     await p.close();
+  }
+
+  for (const width of [390, 1440]) {
+    const p = await b.newPage({ viewport: { width, height: width < 500 ? 844 : 950 } });
+    const errs = [];
+    p.on('pageerror', (e) => errs.push(e.message));
+    await p.addInitScript(stubFor('pro'));
+    await p.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (r) => r.abort());
+    await p.goto(BASE + '/courses.html', { waitUntil: 'domcontentloaded' });
+    await p.waitForTimeout(1800);
+    await p.click('.level-tab[data-level="tracks"]');
+    await p.waitForTimeout(400);
+    const r = await p.evaluate(() => ({
+      cards: document.querySelectorAll('.chapter').length,
+      locks: document.querySelectorAll('[data-track] .status-pill.locked').length,
+      core: [...document.querySelectorAll('.chapter-num')].filter((e) => /^\d+$/.test(e.textContent)).length
+    }));
+    ok(`courses Pro Tracks tab @${width}: 22 track cards, no core`, r.cards === 22 && r.core === 0, r.cards + '/' + r.core);
+    ok(`courses Pro Tracks tab @${width}: no locks`, r.locks === 0, String(r.locks));
+    ok(`courses Pro Tracks tab @${width}: no page errors`, errs.length === 0, errs.join(' | '));
+    if (SHOTS) await p.screenshot({ path: `${SHOTS}/tracks-courses-pro-tab-${width}.png`, fullPage: false });
+    await p.close();
+    // Learn article (public, no stub needed beyond blocking the network)
+    const q = await b.newPage({ viewport: { width, height: width < 500 ? 844 : 950 } });
+    const qe = [];
+    q.on('pageerror', (e) => qe.push(e.message));
+    await q.route(/^https?:\/\/(?!localhost|127\.0\.0\.1)/, (r) => r.abort());
+    for (const slug of ['learn-volume-profile', 'learn-order-flow', 'learn-how-prop-firms-work']) {
+      await q.goto(BASE + '/' + slug + '.html', { waitUntil: 'domcontentloaded' });
+      await q.waitForTimeout(700);
+      const a = await q.evaluate(() => ({ h1: (document.querySelector('h1') || {}).textContent || '', words: document.querySelector('main').innerText.split(/\s+/).length,
+        svg: document.querySelectorAll('main svg').length, over: document.documentElement.scrollWidth - window.innerWidth }));
+      ok(`${slug} @${width}: renders`, a.h1.length > 10 && a.words > 800, a.h1.slice(0, 50) + ' / ' + a.words + ' words / ' + a.svg + ' svg');
+      ok(`${slug} @${width}: no sideways scroll`, a.over <= 0, String(a.over));
+      if (SHOTS) await q.screenshot({ path: `${SHOTS}/${slug}-${width}.png` });
+    }
+    ok(`learn @${width}: no page errors`, qe.length === 0, qe.join(' | ').slice(0, 200));
+    await q.close();
   }
 
   await b.close();

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="334">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A free two-page prop firm cheat sheet: how evaluations work, the drawdown rules that end accounts, a sizing table and a daily routine. Free account needed.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Free Prop Firm Cheat Sheet — Stryker Trading Academy">
+<meta property="og:description" content="A free two-page prop firm cheat sheet: how evaluations work, the drawdown rules that end accounts, a sizing table and a daily routine. Free account needed.">
+<meta property="og:url" content="https://strykertrading.com/prop-firm-cheat-sheet">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og-propfirm-cheatsheet.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Free Prop Firm Cheat Sheet — Stryker Trading Academy">
+<meta name="twitter:description" content="A free two-page prop firm cheat sheet: how evaluations work, the drawdown rules that end accounts, a sizing table and a daily routine. Free account needed.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og-propfirm-cheatsheet.png">
+<meta name="theme-color" content="#050506">
+<title>Free Prop Firm Cheat Sheet — Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/prop-firm-cheat-sheet">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=334">
+<script src="assets/sanitize.js?v=334"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=334" defer></script>
+<script src="assets/version-check.js?v=334" defer></script>
+<script src="assets/acquisition.js?v=334" defer></script>
+<script src="assets/focus-mode.js?v=334" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="assets/cheat-sheet.css?v=334">
+</head>
+<body data-page-key="prop-firm-cheat-sheet" data-cs-pdf="assets/downloads/stryker-prop-firm-cheat-sheet.pdf" data-cs-return="/prop-firm-cheat-sheet" data-cs-label="Downloaded the Prop Firm cheat sheet">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#concepts">ICT / SMT</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="courses">Courses</a>
+      <a href="dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+
+<section class="cs-hero">
+  <div class="container cs-grid">
+    <div class="cs-copy">
+      <span class="cs-eyebrow">Free download</span>
+      <h1>Prop Firm Cheat Sheet</h1>
+      <p class="cs-lede">Two pages on how prop firm evaluations work, the rules that end accounts, and how to size and stop each day. Built from the Prop Firm Mastery track.</p>
+      <ul class="cs-points">
+        <li><strong>The rules that fail people:</strong> daily loss limits, static vs trailing drawdown, where the floor locks, consistency and news rules.</li>
+        <li><strong>Sizing you can check:</strong> a table that turns your stop and a small share of your drawdown into a micro-contract count.</li>
+        <li><strong>A daily routine:</strong> what to check before, during and after each session, plus a &quot;stop for the day&quot; rule card.</li>
+      </ul>
+
+      <!-- Signed out (default, and what shows with JS off) -->
+      <div class="cs-cta" id="cs-signed-out">
+        <a class="btn btn-primary" id="cs-signup" href="signup">Create a free account to download</a>
+        <p class="cs-note">Already have an account? <a href="login" id="cs-login">Log in</a> and you'll come straight back here.</p>
+      </div>
+
+      <!-- Signed in -->
+      <div class="cs-cta" id="cs-signed-in" hidden>
+        <a class="btn btn-primary" id="cs-download" download hidden>Download the cheat sheet (PDF)</a>
+        <p class="cs-note" id="cs-pending" hidden>The PDF is being finished. It will appear here shortly.</p>
+        <p class="cs-note">Want more detail? Read <a href="learn-how-prop-firms-work">How prop firms work</a> and <a href="learn-prop-firm-challenge-rules">Prop firm challenge rules explained</a>.</p>
+      </div>
+    </div>
+
+    <figure class="cs-preview">
+      <picture>
+        <source srcset="assets/images/propfirm-cheatsheet-preview-480.webp 480w, assets/images/propfirm-cheatsheet-preview.webp 720w" sizes="(max-width: 860px) 240px, 360px" type="image/webp">
+        <img src="assets/images/propfirm-cheatsheet-preview.jpg" width="720" height="1019" fetchpriority="high"
+             alt="Page 1 of the cheat sheet: a three-step flow from evaluation to funded account to payout, a two-column glossary of the rules that fail people, and a nine-item rule check to tick before you buy.">
+      </picture>
+      <figcaption>2 pages · PDF · How prop firms work, the rules, sizing and a daily routine</figcaption>
+    </figure>
+  </div>
+</section>
+
+<p class="container cs-legal">Education only. Not financial advice. Most traders fail evaluations. By creating an account you agree to the <a href="terms">Terms</a> and <a href="privacy">Privacy Policy</a>.</p>
+
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About Stryker</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/main.js?v=334"></script>
+<script src="assets/auth.js?v=334"></script>
+<script src="assets/plan-price.js?v=334"></script>
+<script src="assets/launch-sale.js?v=334"></script>
+<script src="assets/progress.js?v=334"></script>
+<script src="assets/profiles-sync.js?v=334"></script>
+<script src="assets/referrals.js?v=334"></script>
+<script src="assets/roles.js?v=334"></script>
+<script src="assets/activity-log.js?v=334"></script>
+<script src="assets/branding.js?v=334"></script>
+<script src="assets/seo.js?v=334"></script>
+<script src="assets/theme.js?v=334"></script>
+<script src="assets/cheat-sheet.js?v=334"></script>
+
+</body>
+</html>

@@ -19,6 +19,7 @@ const SUITES = [
   ['pad-test',    'section padding'],
   ['video-test',  'chapter player'],
   ['width-check', 'phone-width layout'],
+  ['cheatsheet-test', 'cheat-sheet pages + links'],
 ];
 
 const want = process.argv.slice(2);

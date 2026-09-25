@@ -20,6 +20,8 @@ let _chaptersLoadPromise = null;
 const TRACKS = [
   { id: 'vp', name: 'Volume Profile & Order Flow', blurb: 'Auction theory, profiles, VWAP, the order book, footprint and delta.' },
   { id: 'pf', name: 'Prop Firm Mastery', blurb: 'How prop firms work, how to vet one, the rules, passing and staying funded.' }
+    // Optional: add  link: { href, lead, label }  to show a line under the blurb on
+    // /courses. The approved Prop Firm cheat sheet line is HELD (see the handback).
 ];
 function isTrackChapter(ch){ return !!(ch && ch.track && ch.track !== 'core'); }
 function trackOf(id){ return TRACKS.find((t) => t.id === id) || null; }

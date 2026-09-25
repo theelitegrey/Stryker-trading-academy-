@@ -94,7 +94,7 @@ function trackChapterEl(ch){
   const preview = stkEsc(ch.preview || '');
   const locked = trackLocked();
   el.innerHTML =
-    '<div class="chapter-num" style="font-size:15px;">' + stkEsc(ch.num) + '</div>' +
+    '<div class="chapter-num" style="font-size:12px; white-space:nowrap; letter-spacing:-.02em;">' + stkEsc(ch.num) + '</div>' +
     '<div class="chapter-body">' +
       '<h3>' + stkEsc(ch.title) + '</h3>' +
       '<p>' + preview.slice(0, 130) + (preview.length > 130 ? '…' : '') + '</p>' +

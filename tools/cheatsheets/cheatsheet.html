@@ -38,7 +38,7 @@
   @media screen { .sheet { zoom: 1; } }
   .page {
     position: relative; width: 1240px; height: 1754px; overflow: hidden; break-after: page;
-    padding: 70px 84px 60px; display: flex; flex-direction: column; gap: 20px;
+    padding: 58px 84px 46px; display: flex; flex-direction: column; gap: 20px;
     background:
       radial-gradient(1100px 750px at 100% 0%, rgba(3, 201, 136, 0.14), transparent 60%),
       radial-gradient(800px 600px at 0% 100%, rgba(3, 201, 136, 0.06), transparent 60%),
@@ -66,7 +66,7 @@
   .pagenum { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--ink-2); }
 
   .eyebrow { font-family: var(--mono); font-weight: 800; font-size: 22px; letter-spacing: .12em; text-transform: uppercase; color: var(--green); }
-  .h1 { font-weight: 700; font-size: 58px; letter-spacing: -0.03em; line-height: 1.06; margin-top: 6px; text-wrap: balance; }
+  .h1 { font-weight: 700; font-size: 50px; letter-spacing: -0.03em; line-height: 1.05; margin-top: 4px; text-wrap: balance; }
   .lede { font-size: 24px; line-height: 1.36; color: var(--ink-1); font-weight: 500; }
   .lede.small { font-size: 20px; }
   .lede b { color: var(--ink-0); font-weight: 700; }
@@ -78,8 +78,8 @@
   .rulebox.warn { border-color: rgba(229,72,77,.45); }
   .rulebox.warn .block-title { color: var(--red); }
 
-  .checklist { display: flex; flex-direction: column; gap: 10px; }
-  .citem { display: flex; gap: 18px; align-items: flex-start; background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 14px 22px; }
+  .checklist { display: flex; flex-direction: column; gap: 7px; }
+  .citem { display: flex; gap: 18px; align-items: flex-start; background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 10px 22px; }
   .citem .num { flex: none; width: 36px; height: 36px; border-radius: 50%; background: var(--green); color: var(--green-ink);
     font-family: var(--mono); font-weight: 800; font-size: 19px; display: grid; place-items: center; margin-top: 2px; }
   .citem .tx { font-size: 21px; line-height: 1.28; font-weight: 600; color: var(--ink-0); }
@@ -101,11 +101,77 @@
   .ft { margin-top: auto; padding-top: 22px; border-top: 2px solid var(--line); display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
   .ft .site { font-family: var(--mono); font-weight: 800; font-size: 25px; }
   .ft .site b { color: var(--green); }
-  .ft .disc { font-size: 18px; color: var(--ink-2); font-weight: 500; max-width: 460px; text-align: right; line-height: 1.28; }
+  .ft .disc { font-size: 16.8px; color: var(--ink-2); font-weight: 500; max-width: 640px; text-align: right; line-height: 1.28; text-wrap: balance; white-space: normal; }
   .cta { font-family: var(--mono); font-weight: 800; font-size: 19px; color: var(--green-ink); background: var(--green); border-radius: 999px; padding: 12px 24px; white-space: nowrap; }
 
   .placeholder-mark { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 5;
     font-family: var(--mono); font-weight: 800; font-size: 18px; color: #050506; background: #ffcc00; padding: 4px 14px; border-radius: 6px; }
+
+  /* --- steps (3-step flow) --- */
+  .steps { display: flex; align-items: stretch; gap: 0; }
+  .step { flex: 1; background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 11px 16px; display: flex; flex-direction: column; gap: 3px; }
+  .step .n { font-family: var(--mono); font-weight: 800; font-size: 15px; letter-spacing: .1em; color: var(--green); }
+  .step .t { font-weight: 700; font-size: 20px; }
+  .step p { font-size: 17px; line-height: 1.22; color: var(--ink-1); font-weight: 500; }
+  .step-arrow { flex: none; width: 30px; display: flex; align-items: center; justify-content: center; color: var(--green); font-size: 22px; font-weight: 800; }
+  .steps-note { font-size: 17px; line-height: 1.24; color: var(--ink-2); font-weight: 500; margin-top: 9px; }
+  .steps-note b { color: var(--ink-0); }
+
+  /* --- glossary --- */
+  .glossary { column-count: 2; column-gap: 20px; }
+  .gitem { break-inside: avoid; background: var(--surface); border: 2px solid var(--line); border-radius: 12px; padding: 8px 14px; margin-bottom: 7px; }
+  .gitem .term { font-family: var(--mono); font-weight: 800; font-size: 17px; letter-spacing: .03em; color: var(--green); margin-bottom: 2px; }
+  .gitem p { font-size: 17px; line-height: 1.2; color: var(--ink-1); font-weight: 500; }
+  .gitem p + p { margin-top: 3px; }
+  .gitem .sub { margin: 3px 0 0 0; padding-left: 10px; border-left: 2px solid var(--line); }
+  .gitem .sub .slab { font-family: var(--mono); font-weight: 800; font-size: 17px; color: var(--ink-0); }
+  .gitem .note { color: var(--ink-2); font-style: normal; }
+
+  /* --- check-style checklist --- */
+  .checklist.check { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .checklist.check .citem .num { border-radius: 6px; background: transparent; border: 2px solid var(--green); color: transparent; width: 20px; height: 20px; }
+  .checklist.check .citem { padding: 7px 14px; gap: 12px; }
+  .checklist.check .tx { font-size: 17px; line-height: 1.18; font-weight: 500; color: var(--ink-1); }
+
+  /* --- table --- */
+  .tbl-wrap { background: var(--surface); border: 2px solid var(--line); border-radius: 18px; padding: 14px 18px; }
+  table.tbl { width: 100%; border-collapse: collapse; }
+  table.tbl th, table.tbl td { text-align: left; padding: 6px 8px; font-size: 16.8px; }
+  table.tbl th { font-family: var(--mono); font-weight: 800; font-size: 15.7px; letter-spacing: .03em; text-transform: uppercase; color: var(--green); border-bottom: 2px solid var(--line); }
+  table.tbl td { border-bottom: 1px solid var(--line); color: var(--ink-1); font-weight: 500; }
+  table.tbl td.h { color: var(--ink-0); font-weight: 700; font-family: var(--mono); font-size: 16.8px; }
+  table.tbl tr:last-child td { border-bottom: none; }
+  .tbl-key { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
+  .tbl-key p { font-size: 16.8px; line-height: 1.2; color: var(--ink-2); font-weight: 500; }
+  .tbl-key b { color: var(--ink-0); }
+
+  /* --- 3-column routine --- */
+  .cols3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .colc { background: var(--surface); border: 2px solid var(--line); border-radius: 16px; padding: 12px 16px; }
+  .colc .h { font-family: var(--mono); font-weight: 800; font-size: 15.7px; letter-spacing: .05em; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+  .colc ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .colc li { font-size: 16.8px; line-height: 1.18; color: var(--ink-1); font-weight: 500; padding-left: 12px; position: relative; }
+  .colc li::before { content: "–"; position: absolute; left: 0; color: var(--green); }
+
+  /* --- killers --- */
+  .killers { display: flex; flex-direction: column; gap: 8px; }
+  .kitem { background: var(--surface); border: 2px solid var(--line); border-radius: 14px; padding: 10px 18px; display: flex; gap: 14px; align-items: flex-start; }
+  .kitem .kn { flex: none; font-family: var(--mono); font-weight: 800; font-size: 15.7px; color: var(--ink-2); margin-top: 1px; }
+  .kitem .kbody p { font-size: 16.8px; line-height: 1.18; font-weight: 500; }
+  .kitem .kbody .k { color: var(--red); font-weight: 700; }
+  .kitem .kbody .f { color: var(--green); font-weight: 700; }
+  .kitem .kbody span { color: var(--ink-1); font-weight: 500; }
+
+  /* --- card (bold boxed rule) --- */
+  .card { border: 3px solid var(--green); border-radius: 16px; padding: 12px 22px; background: rgba(3,201,136,.06); }
+  .card .block-title { font-size: 19px; margin-bottom: 4px; }
+  .card ul { list-style: none; display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+  .card li { font-size: 20.3px; line-height: 1.16; font-weight: 600; color: var(--ink-0); padding-left: 18px; position: relative; }
+  .card li::before { content: "•"; position: absolute; left: 0; color: var(--green); font-weight: 800; }
+  .card .foot { margin-top: 6px; font-size: 16.8px; color: var(--ink-2); font-weight: 500; line-height: 1.2; }
+
+  .go-deeper { font-size: 16.8px; color: var(--ink-2); font-weight: 500; }
+  .go-deeper b { color: var(--green); }
 </style></head>
 <body><div class="sheet" id="root"></div>
 <script>window.SHEET = /*DATA*/{}/*END*/;</script>
@@ -144,11 +210,26 @@
     switch (b.type) {
       case "lede": return `<p class="lede${b.small ? " small" : ""}">${fmt(b.text)}</p>`;
       case "rule": return `<div class="rulebox${b.tone === "warn" ? " warn" : ""}">${title(b.title)}${paras(b.text)}</div>`;
-      case "checklist": return `<div>${title(b.title)}<div class="checklist">${b.items.map((it, i) =>
+      case "checklist": return `<div>${title(b.title)}<div class="checklist${b.check ? " check" : ""}">${b.items.map((it, i) =>
         `<div class="citem"><div class="num">${i + 1}</div><div class="tx">${it.lead ? `<b>${fmt(it.lead)}</b> ` : ""}${it.text ? `<span>${fmt(it.text)}</span>` : ""}</div></div>`).join("")}</div></div>`;
       case "duo": return `<div>${title(b.title)}<div class="duo2">${b.items.map((it) =>
         `<div class="note ${esc(it.tone || "")}"><div class="lab">${fmt(it.label)}</div>${paras(it.text)}</div>`).join("")}</div></div>`;
       case "diagram": return `<div class="diagram">${DIAGRAMS[b.name]()}${b.caption ? `<div class="cap">${fmt(b.caption)}</div>` : ""}</div>`;
+      case "steps": return `<div>${title(b.title)}<div class="steps">${b.items.map((it, i) =>
+        (i ? `<div class="step-arrow">&#8594;</div>` : "") +
+        `<div class="step"><div class="n">${fmt(it.n)}</div><div class="t">${fmt(it.t)}</div><p>${fmt(it.text)}</p></div>`).join("")}</div>${b.note ? `<p class="steps-note">${fmt(b.note)}</p>` : ""}</div>`;
+      case "glossary": return `<div>${title(b.title)}<div class="glossary">${b.items.map((it) =>
+        `<div class="gitem"><div class="term">${fmt(it.term)}</div>${paras(it.text)}${it.sub ? `<div class="sub">${it.sub.map((s) =>
+          `<p><span class="slab">${fmt(s.label)}:</span> ${fmt(s.text)}</p>`).join("")}</div>` : ""}${it.note ? `<p class="note">${fmt(it.note)}</p>` : ""}</div>`).join("")}</div></div>`;
+      case "table": return `<div class="tbl-wrap">${title(b.title)}<table class="tbl"><thead><tr>${b.headers.map((h) => `<th>${fmt(h)}</th>`).join("")}</tr></thead>
+        <tbody>${b.rows.map((r) => `<tr>${r.map((c, i) => `<td${i === 0 ? " class=\"h\"" : ""}>${fmt(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+        ${b.key ? `<div class="tbl-key">${b.key.map((k) => `<p>${fmt(k)}</p>`).join("")}</div>` : ""}</div>`;
+      case "cols3": return `<div class="cols3">${b.items.map((c) =>
+        `<div class="colc"><div class="h">${fmt(c.h)}</div><ul>${c.items.map((it) => `<li>${fmt(it)}</li>`).join("")}</ul></div>`).join("")}</div>`;
+      case "killers": return `<div>${title(b.title)}<div class="killers">${b.items.map((it, i) =>
+        `<div class="kitem"><div class="kn">${i + 1}</div><div class="kbody"><p><span class="k">KILLER:</span> <span>${fmt(it.killer)}</span></p><p><span class="f">FIX:</span> <span>${fmt(it.fix)}</span></p></div></div>`).join("")}</div></div>`;
+      case "card": return `<div class="card">${title(b.title)}<ul>${b.items.map((it) => `<li>${fmt(it)}</li>`).join("")}</ul>${b.foot ? `<p class="foot">${fmt(b.foot)}</p>` : ""}</div>`;
+      case "small": return `<p class="go-deeper">${fmt(b.text)}</p>`;
       default: throw new Error("unknown block type " + b.type);
     }
   }
@@ -164,7 +245,7 @@
     <div class="ft"><div class="site">stryker<b>trading</b>.com</div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:12px">
         ${p.cta ? `<div class="cta">${fmt(p.cta)}</div>` : ""}
-        <div class="disc">Education only. Not financial advice.</div>
+        <div class="disc">${fmt(p.footer || S.footer || "Education only. Not financial advice.")}</div>
       </div></div>
   </div>`;
   document.getElementById("root").innerHTML = S.pages.map(page).join("");

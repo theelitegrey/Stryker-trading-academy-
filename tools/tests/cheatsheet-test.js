@@ -92,6 +92,18 @@ async function pageRun(b, pg, signedIn, width, utm) {
   });
   ok(`${tag}: no horizontal overflow`, st.overflow <= 0, 'overflow ' + st.overflow);
   ok(`${tag}: preview image loaded`, st.preview);
+  const txt = await p.evaluate(() => document.documentElement.outerHTML);
+  ok(`${tag}: no PLACEHOLDER text`, !/PLACEHOLDER/.test(txt));
+  if (pg.name === 'prop') {
+    const c = await p.evaluate(() => ({ title: document.title, h1: document.querySelector('h1').textContent,
+      desc: document.querySelector('meta[name=description]').content, bullets: document.querySelectorAll('.cs-points li').length,
+      legal: document.querySelector('.cs-legal').textContent, cap: document.querySelector('.cs-preview figcaption').textContent }));
+    ok(`${tag}: approved copy (title/H1/meta/3 bullets/legal/caption)`,
+      c.title === 'Free Prop Firm Cheat Sheet — Stryker Trading Academy' && c.h1 === 'Prop Firm Cheat Sheet' &&
+      c.desc.startsWith('A free two-page prop firm cheat sheet:') && c.bullets === 3 &&
+      c.legal.startsWith('Education only. Not financial advice. Most traders fail evaluations.') &&
+      c.cap === '2 pages · PDF · How prop firms work, the rules, sizing and a daily routine', JSON.stringify(c).slice(0, 200));
+  }
   if (SHOTS && !utm && (width === 390 || width === 1440)) await p.screenshot({ path: `${SHOTS}/${pg.name}-${signedIn ? 'signedin' : 'signedout'}-${width}.png` });
   if (!signedIn) {
     ok(`${tag}: gate shows, download hidden`, st.out && !st.inn && !st.dl, JSON.stringify(st));
@@ -134,6 +146,15 @@ async function links(b) {
         return { box: !!box, href: a ? a.getAttribute('href') : '', visible: !!a && a.getBoundingClientRect().width > 0,
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
       });
+      const place = await p.evaluate(() => {
+        const box = document.getElementById('prop-firm-cheat-sheet');
+        let n = box && box.nextElementSibling;
+        return { next: n ? n.textContent.trim() : '', text: box ? box.innerText : '' };
+      });
+      const want = { 'how-prop-firms-work': ['Keep the rules on one page', 'Get the free prop firm cheat sheet'],
+                     'prop-firm-challenge-rules': ['Get these rules as a cheat sheet', 'Download the free cheat sheet'] }[slug];
+      ok(`learn-${slug} ${width}: callout sits directly before the FAQ`, place.next === 'FAQ', place.next);
+      ok(`learn-${slug} ${width}: approved callout copy`, place.text.startsWith(want[0]) && place.text.includes(want[1]) && !/PLACEHOLDER/.test(place.text), place.text.slice(0, 80));
       ok(`learn-${slug} ${width}: cheat-sheet callout links to the page`, r.box && r.visible && /^prop-firm-cheat-sheet\?utm_/.test(r.href), r.href);
       ok(`learn-${slug} ${width}: no horizontal overflow`, r.overflow <= 0, 'overflow ' + r.overflow);
       if (SHOTS) {
@@ -162,14 +183,13 @@ async function courses(b) {
       await p.waitForSelector('.level-tab[data-level="tracks"]', { timeout: 8000 });
       await p.waitForTimeout(1200);
       await p.click('.level-tab[data-level="tracks"]');
+      // The approved /courses line is HELD for now: neither track shows a link.
       const r = await p.waitForFunction(() => {
-        const a = document.querySelector('a[data-track-link="pf"]');
-        return a ? { href: a.getAttribute('href'), text: a.parentElement.textContent, w: a.getBoundingClientRect().width,
-          vp: !!document.querySelector('a[data-track-link="vp"]'),
+        const h = document.querySelector('[data-track-heading="pf"]');
+        return h ? { links: document.querySelectorAll('a[data-track-link]').length,
           overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth } : null;
       }, null, { timeout: 8000 }).then((h) => h.jsonValue()).catch(() => null);
-      ok(`courses ${mode} ${width}: PF track shows the cheat-sheet link`, !!r && r.href === 'prop-firm-cheat-sheet' && r.w > 0, r ? r.text : 'missing');
-      ok(`courses ${mode} ${width}: VP track has no link`, !!r && !r.vp);
+      ok(`courses ${mode} ${width}: tracks render, cheat-sheet line held (no track link)`, !!r && r.links === 0, r ? String(r.links) : 'missing');
       ok(`courses ${mode} ${width}: no horizontal overflow`, !!r && r.overflow <= 0, r ? 'overflow ' + r.overflow : '');
       ok(`courses ${mode} ${width}: no page errors`, !errs.length, errs.slice(0, 2).join(' | '));
       if (SHOTS && mode === 'starter') {

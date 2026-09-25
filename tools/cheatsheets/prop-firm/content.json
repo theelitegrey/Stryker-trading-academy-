@@ -1,46 +1,100 @@
 {
-  "_note": "PLACEHOLDER layout copy. Replace with content-developer's APPROVED text from stryker-notes/content/propfirm-cheatsheet/TEXT.md, word for word, and delete 'placeholder'.",
-  "placeholder": true,
   "pdf": "assets/downloads/stryker-prop-firm-cheat-sheet.pdf",
   "preview": "assets/images/propfirm-cheatsheet-preview",
   "og": "assets/images/og-propfirm-cheatsheet.png",
   "pdfTitle": "Stryker Prop Firm Cheat Sheet",
   "tag": "Cheat Sheet",
+  "footer": "Education only. Not financial advice. Most traders fail evaluations.",
   "pages": [
     {
-      "eyebrow": "Placeholder eyebrow",
-      "title": "Placeholder page one title of about this length",
+      "eyebrow": "Prop Firm Cheat Sheet",
+      "title": "How prop firms work, the rules that fail people, and what to check before you pay.",
       "blocks": [
-        { "type": "lede", "text": "Placeholder lede. This paragraph stands in for the approved introduction and is roughly the length of the real one, so the layout can be checked. **Bold phrase** placeholder text continues here for a second and third line of copy." },
-        { "type": "diagram", "name": "drawdown", "caption": "PLACEHOLDER DIAGRAM CAPTION" },
-        { "type": "checklist", "title": "Placeholder checklist title", "items": [
-          { "lead": "Placeholder item one.", "text": "Supporting text for the first item, about one line long." },
-          { "lead": "Placeholder item two.", "text": "Supporting text for the second item, about one line long." },
-          { "lead": "Placeholder item three.", "text": "Supporting text for the third item, about one line long." },
-          { "lead": "Placeholder item four.", "text": "Supporting text for the fourth item, about one line long." }
-        ]},
-        { "type": "duo", "items": [
-          { "label": "Placeholder A", "text": "Two or three lines of placeholder text for the left note, standing in for approved copy." },
-          { "label": "Placeholder B", "tone": "bad", "text": "Two or three lines of placeholder text for the right note, standing in for approved copy." }
-        ]}
+        { "type": "steps", "title": "How prop firms work", "items": [
+          { "n": "Step 1", "t": "Evaluation", "text": "You pay a fee and trade a practice account under the firm's rules. Hit the profit target without breaking a rule and you pass. Break one rule and the account ends." },
+          { "n": "Step 2", "t": "Funded account", "text": "You get a funded account. At most firms this is still simulated trading. The firm pays you a share of the profit it shows. Some firms charge an activation fee here." },
+          { "n": "Step 3", "t": "Payout", "text": "After the conditions are met (profitable days, a minimum balance, sometimes a consistency rule), you request a withdrawal. You receive your split. Taking a payout can change your drawdown, so read the payout rules before you request one." }
+        ], "note": "**Most of a firm's income comes from evaluation fees.** Moving to a live account, where it exists at all, is the firm's decision after a review. It is never automatic." },
+        { "type": "glossary", "title": "The rules that fail people", "items": [
+          { "term": "Daily loss limit", "text": "The most you may lose in one day. Touch it and the day ends; at some firms the account ends too." },
+          { "term": "Max drawdown (maximum loss limit)", "text": "The lowest balance your account may ever reach. Touch it once and the account is gone. It comes in three kinds:", "sub": [
+            { "label": "Static", "text": "the floor never moves. Easiest to plan." },
+            { "label": "EOD trailing", "text": "the floor rises only when you close the day at a new high. Intraday dips are ignored." },
+            { "label": "Intraday trailing", "text": "the floor follows your highest balance at any moment, open profit included. Giving back an open winner raises your floor for good. The tightest of the three." }
+          ], "note": "Most trailing floors stop rising at a set level (the \"lock\"). Know where yours locks." },
+          { "term": "Consistency rule", "text": "Limits how much of your total profit can come from your best day. One huge day can block a pass or a payout. **Example: 40% to 55%** at the firms we reviewed, Sept 2026. Check your firm's current rules." },
+          { "term": "Max contracts", "text": "The largest position you may hold. 10 micros usually count as 1 mini. It is a ceiling, not a target. **Example: 3 to 6 minis** on a $50K evaluation across four firms, Sept 2026. Check your firm's current rules." },
+          { "term": "News rules", "text": "Some plans ban trading around major releases (CPI, FOMC, NFP) or around a set window. Others allow it. Breaking a news rule can end the account even if you made money." },
+          { "term": "Minimum trading days", "text": "How many days you must trade before passing or before a payout. **Example: none to 5 days** across firms, Sept 2026. Check your firm's current rules." },
+          { "term": "Payout split", "text": "The share of profit you keep. **Example: 80% to 100%** at the firms we reviewed, Sept 2026. Check your firm's current rules." },
+          { "term": "Payout buffer", "text": "The profit you must leave in the account, or the balance you must stay above, when you withdraw. After a payout, some firms reset or fix the drawdown. Check your firm's current rules." }
+        ] },
+        { "type": "checklist", "title": "Rule check before you buy", "check": true, "items": [
+          { "text": "I have read the firm's official rule pages, not a video or a review site." },
+          { "text": "I know the max drawdown amount, whether it is static, EOD trailing or intraday trailing, and where it locks." },
+          { "text": "I know whether there is a daily loss limit, and what happens if I touch it." },
+          { "text": "I know the max contracts for my account size, and how micros count." },
+          { "text": "I know the news rules and the times I must be flat." },
+          { "text": "I know the consistency rule for passing AND for payouts (they can differ)." },
+          { "text": "I know the minimum trading days, the payout conditions, the split and the buffer." },
+          { "text": "I know every cost: the fee, the monthly charge, the reset, the activation, the data." },
+          { "text": "I have checked the firm's track record and complaints, and I have saved today's rules (they change)." }
+        ] }
       ]
     },
     {
-      "eyebrow": "Placeholder eyebrow",
-      "title": "Placeholder page two title",
-      "cta": "Placeholder footer call to action on strykertrading.com",
+      "eyebrow": "Prop Firm Cheat Sheet",
+      "title": "How to survive the evaluation",
       "blocks": [
-        { "type": "lede", "text": "Placeholder lede for page two, about two lines long, standing in for approved copy that introduces the page." },
-        { "type": "checklist", "title": "Placeholder checklist title", "items": [
-          { "lead": "Placeholder item one.", "text": "Supporting text, about one line long." },
-          { "lead": "Placeholder item two.", "text": "Supporting text, about one line long." },
-          { "lead": "Placeholder item three.", "text": "Supporting text, about one line long." },
-          { "lead": "Placeholder item four.", "text": "Supporting text, about one line long." },
-          { "lead": "Placeholder item five.", "text": "Supporting text, about one line long." },
-          { "lead": "Placeholder item six.", "text": "Supporting text, about one line long." }
-        ]},
-        { "type": "rule", "title": "Placeholder box title", "text": "Placeholder rule box text, two lines long, standing in for approved copy about the topic of this box." },
-        { "type": "rule", "tone": "warn", "title": "Placeholder warning title", "text": "Placeholder warning text, two lines long, standing in for approved copy." }
+        { "type": "table", "title": "Risk per trade \u2192 MNQ contracts", "headers": ["Account (example max drawdown)", "Risk 2.5% of drawdown", "Risk 5% of drawdown", "Risk 10% of drawdown"],
+          "rows": [
+            ["$50K ($2,000)", "$50 \u2192 2 / 1 / 0", "$100 \u2192 5 / 2 / 1", "$200 \u2192 10 / 5 / 3"],
+            ["$100K ($3,000)", "$75 \u2192 3 / 1 / 1", "$150 \u2192 7 / 3 / 2", "$300 \u2192 15 / 7 / 5"],
+            ["$150K ($4,500)", "$112.50 \u2192 5 / 2 / 1", "$225 \u2192 11 / 5 / 3", "$450 \u2192 22 / 11 / 7"]
+          ],
+          "key": [
+            "Example accounts; the drawdown amounts are examples, check your firm's current rules.",
+            "**How to use:** 1) Risk budget = max drawdown \u00d7 your risk %. 2) Risk per MNQ contract = stop in points \u00d7 $2 (MNQ = Micro E-mini Nasdaq-100: $2 per index point, and a 0.25-point tick = $0.50). 3) Contracts = budget \u00f7 risk per contract, rounded DOWN. If the result is 0, don't take the trade, or use a tighter stop only if your setup allows it.",
+            "Cell = risk budget \u2192 MNQ contracts at a 10 / 20 / 30-point stop.",
+            "10% of the drawdown = 10 full losses before the account ends. 5% = 20. 2.5% = 40.",
+            "Never go above your plan's max contracts (10 MNQ usually count as 1 NQ). On a trailing drawdown, don't size up after a winning run \u2014 the floor rose too, so your room did not grow."
+          ]
+        },
+        { "type": "cols3", "items": [
+          { "h": "Before the session", "items": [
+            "Write down your room: balance minus floor. That number, not your balance, sets today's size.",
+            "Check the calendar and mark no-trade times around news.",
+            "Set your daily stop (see the card below) in the platform if you can.",
+            "Pick your size from the table. Write it down."
+          ] },
+          { "h": "During the session", "items": [
+            "Every trade has a stop placed at entry.",
+            "Same size on every trade. No adding to losers.",
+            "Log each trade as you take it.",
+            "On intraday trailing: take partial profit or move your stop. Don't let open profit come back."
+          ] },
+          { "h": "After the session", "items": [
+            "Update your room (balance minus the new floor).",
+            "Mark every rule you followed or broke. Be honest; nobody else sees it.",
+            "Check your best day against the consistency rule.",
+            "Write one line on what to repeat and one on what to change."
+          ] }
+        ] },
+        { "type": "killers", "title": "5 account killers and the fix", "items": [
+          { "killer": "Sizing to the contract limit.", "fix": "Size from your stop and a fixed 5\u201310% of the drawdown, using the table above." },
+          { "killer": "Revenge trading after a loss. The next trade is bigger and faster.", "fix": "After 2 losses in a row, take a 15-minute break. After the daily stop, you are done." },
+          { "killer": "Letting a big open winner come back on an intraday trailing account.", "fix": "The floor already moved up with the open profit. Take partial profit or trail your stop." },
+          { "killer": "Holding through news or past the close.", "fix": "Put release times and the close time in your calendar. Be flat 2 minutes before each." },
+          { "killer": "One huge day that breaks the consistency rule.", "fix": "Set a daily profit cap below the consistency limit, and stop when you reach it." }
+        ] },
+        { "type": "card", "title": "Stop for the day when any one is true:", "items": [
+          "I have lost half of my daily loss limit (or 25% of my room, if my plan has no daily limit).",
+          "I have taken 3 full losses.",
+          "I broke one of my own rules, even once.",
+          "I reached my daily profit cap.",
+          "I feel the urge to \"win it back\"."
+        ], "foot": "Stopping keeps you in the game for tomorrow." },
+        { "type": "small", "text": "Go deeper: the Prop Firm Mastery track in the course covers each of these in full. Rules (PF-04), sizing and the risk plan (PF-06), payouts and buffers (PF-07), psychology (PF-08) and the real cost of evaluations (PF-10)." }
       ]
     }
   ]

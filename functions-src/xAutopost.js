@@ -65,6 +65,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const X = require('./xAutopost-x');
 const Cards = require('./xAutopost-cards');
 const Draft = require('./xAutopost-draft');
+const { MONITOR_DATA_URL, MONITOR_DATA_URL_FALLBACK } = require('./data-config');
 
 const X_API_KEY = defineSecret('X_API_KEY');
 const X_API_SECRET = defineSecret('X_API_SECRET');
@@ -77,7 +78,9 @@ const SITE = 'https://strykertrading.com';
 const BRIEF_URL = SITE + '/assets/market-brief.json';
 const MAP_URL = SITE + '/assets/market-map.json';
 const CALENDAR_URL = SITE + '/assets/econ-calendar.json';
-const MONITOR_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+// URL lives in ./data-config.js so every monitor-data.json reader in
+// functions-src repoints from one place when the repo goes private.
+const MONITOR_URL = MONITOR_DATA_URL;
 
 const TICK_MINUTES = 10;
 const LINK_LEN = 23;   // every URL is 23 weighted characters on X
@@ -315,7 +318,13 @@ async function produceCalendar(cfg, state, t) {
 /** Monitor: alert on regime changes, never on the same state twice. */
 async function produceMonitor(cfg, state, t) {
   let m;
-  try { m = await fetchJson(MONITOR_URL); } catch (e) { console.warn('xAutopost: monitor fetch failed:', e.message); return; }
+  try { m = await fetchJson(MONITOR_URL); }
+  catch (e) {
+    console.warn('xAutopost: monitor fetch failed, trying fallback:', e.message);
+    if (MONITOR_DATA_URL_FALLBACK === MONITOR_URL) return;
+    try { m = await fetchJson(MONITOR_DATA_URL_FALLBACK); }
+    catch (e2) { console.warn('xAutopost: monitor fallback fetch failed:', e2.message); return; }
+  }
   const sig = (m && m.finance && m.finance.signals) || {};
   const seen = state.monitorSeen || {};
   const next = Object.assign({}, seen);

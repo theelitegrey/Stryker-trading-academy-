@@ -12,7 +12,8 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
   : { win:'#03c988', loss:'#e5484d', warn:'#f5c542', info:'#7fb4ff' }; }
 
 (function(){
-  var MONITOR_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+  // URL lives in assets/data-config.js (loaded before this file).
+  var MONITOR_URL = STRYKER_MONITOR_DATA_URL;
 
   // ---- module visibility filter (default: everything) -----------------------
   var MODS = { journal: true, markets: true, floor: true };
@@ -328,7 +329,7 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
 
   function loadMonitor(){
     var buster = Math.floor(Date.now() / 300000);
-    fetch(MONITOR_URL + '?t=' + buster)
+    strykerFetchMonitorData(function (u) { return fetch(u + '?t=' + buster); })
       .then(function (r) { return r.ok ? r.json() : null; })
       .catch(function () { return null; })
       .then(function (d) { DOV.monitor = d || false; renderMarkets(); renderBrief(); });

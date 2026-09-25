@@ -7,7 +7,8 @@
 // Depends on: admin-tasks.js (loadAdminTaskCounts), progress.js (db).
 
 (function () {
-  var MON_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+  // URL lives in assets/data-config.js (loaded before this file).
+  var MON_URL = STRYKER_MONITOR_DATA_URL;
 
   function esc(s){
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -33,7 +34,7 @@
   }
 
   function checkMonitor(){
-    return fetch(MON_URL + '?t=' + Math.floor(Date.now() / 300000))
+    return strykerFetchMonitorData(function (u) { return fetch(u + '?t=' + Math.floor(Date.now() / 300000)); })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.generatedAt) return line('warn', 'Global Monitor data feed unreachable — students may see stale market data.');

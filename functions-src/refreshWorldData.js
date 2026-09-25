@@ -29,6 +29,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
+const { MONITOR_DATA_URL, MONITOR_DATA_URL_FALLBACK } = require('./data-config');
 
 const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://strykertrading.com)' };
 
@@ -153,10 +154,17 @@ async function fetchWithBackoff(url, label) {
 // so the cache had been empty. Reading the pipeline's JSON keeps this cache,
 // and therefore getWorldEvents, a working fallback for students whose network
 // can reach Firebase but not raw.githubusercontent.com.
-const PIPELINE_JSON = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+const PIPELINE_JSON = MONITOR_DATA_URL;
 
 async function refreshEvents(db) {
-  const json = await fetchWithBackoff(PIPELINE_JSON + '?t=' + Date.now(), 'events');
+  let json;
+  try {
+    json = await fetchWithBackoff(PIPELINE_JSON + '?t=' + Date.now(), 'events');
+  } catch (err) {
+    if (MONITOR_DATA_URL_FALLBACK === PIPELINE_JSON) throw err;
+    console.warn('refreshWorldData: events primary failed, trying fallback:', err.message);
+    json = await fetchWithBackoff(MONITOR_DATA_URL_FALLBACK + '?t=' + Date.now(), 'events-fallback');
+  }
   const sec = (json && json.events) || {};
   const src = Array.isArray(sec.rolling) && sec.rolling.length ? sec.rolling : (sec.items || []);
   const events = src.map((e) => {

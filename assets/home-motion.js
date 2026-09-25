@@ -531,7 +531,8 @@
     else document.addEventListener('DOMContentLoaded', fn);
   }
 
-  var FEED = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+  // URL lives in assets/data-config.js (loaded before this file).
+  var FEED = STRYKER_MONITOR_DATA_URL;
 
   // Shown until (or in case) the live feed answers — plausible, clearly
   // ballpark values, never presented with a timestamp.
@@ -579,7 +580,7 @@
   }
 
   function fetchLive() {
-    fetch(FEED + '?t=' + Date.now())
+    strykerFetchMonitorData(function (u) { return fetch(u + '?t=' + Date.now()); })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (j) {
         var items = j && j.markets && j.markets.items;

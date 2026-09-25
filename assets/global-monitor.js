@@ -20,7 +20,11 @@
 // Upstream error text is logged to the console, never shown to students.
 
 // ---- Data sources -----------------------------------------------------------
-var GM_DATA_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
+// URL lives in assets/data-config.js (loaded before this file) so every
+// monitor-data.json reader repoints from one place when the repo goes
+// private. GM_DATA_URL keeps its old name here since the rest of this file
+// already refers to it.
+var GM_DATA_URL = STRYKER_MONITOR_DATA_URL;
 var GDELT_GEO = 'https://api.gdeltproject.org/api/v2/geo/geo';
 var GDELT_DOC = 'https://api.gdeltproject.org/api/v2/doc/doc';
 var POLYMARKET = 'https://gamma-api.polymarket.com/events';
@@ -1669,7 +1673,7 @@ function gmLoadData() {
   // raw.githubusercontent caches ~5 min per URL; a slow-rolling buster keeps
   // us at most one cache window behind the pipeline.
   var buster = Math.floor(Date.now() / 300000);
-  gmFetchJson(GM_DATA_URL + '?t=' + buster, 25000)
+  strykerFetchMonitorData(function (u) { return gmFetchJson(u + '?t=' + buster, 25000); })
     .then(function (d) {
       gmUpdateFreshness(d.generatedAt);
 

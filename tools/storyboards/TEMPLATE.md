@@ -73,6 +73,9 @@ point at a candle several frames in the future and it will still render
 correctly stretching into that space — this is how you draw "buy-side
 liquidity" pointing at a high the story hasn't reached yet. Only the
 line's `from` (its origin) needs to be on an already-revealed candle.
+This is a confirmed, intentional contract (per website-developer, not a
+guess): a line always extends all the way to its `to` (default: the last
+candle) regardless of how many candles are currently revealed.
 `highlight`, `sweep` and `note` are different: they index straight into a
 specific candle's real price, so every candle index they use must already
 be revealed in that frame (or a later frame while the annotation is still

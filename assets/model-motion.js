@@ -143,7 +143,9 @@
 
     var panelOnScreen = false;
     function refreshVisibility() {
-      pill.classList.toggle('mm-steppill-show', panelOnScreen);
+      // Never float the pill over the paywall or before access is decided.
+      var blocked = !!panel.closest('.paywall-dimmed, .gate-pending');
+      pill.classList.toggle('mm-steppill-show', panelOnScreen && !blocked);
     }
 
     if (!('IntersectionObserver' in window)) {

@@ -135,6 +135,13 @@ jobs:
                    --exclude '.claude' --exclude 'graphify-out' \
                    --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
 
+      # First-paint work (build 337): style.css is render-blocking on every
+      # page and about a third of it is comments. Ship it minified; the repo
+      # keeps the commented source. The script refuses (non-zero exit) if
+      # brace balance changes, which fails the deploy before anything ships.
+      - name: Minify CSS in the deploy copy
+        run: python3 tools/min-css.py /tmp/site
+
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}

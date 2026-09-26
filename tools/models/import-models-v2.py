@@ -222,7 +222,7 @@ def geometry_gaps(cd, gaps, bad_frames):
         sc = fr.get('showCandles') or [0, len(c) - 1]
         if prev is not None and sc[1] < prev[1]:
             gaps.append(f'frame {fi+1} ("{fr.get("title")}"): shows fewer candles ({sc[1]+1}) than frame {fi} ({prev[1]+1}); '
-                        'candles disappear on play. Frame {fi} already shows the move the next frame calls the outcome')
+                        f'candles disappear on play, and frame {fi} already shows the move that frame {fi+1} calls the outcome')
         prev = sc
     for fi, fr in enumerate(cd.get('frames') or []):
         txt = (fr.get('caption', '') + ' ' + fr.get('title', '')).lower()

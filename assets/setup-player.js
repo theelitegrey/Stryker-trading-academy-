@@ -287,12 +287,27 @@
     if ('IntersectionObserver' in window) {
       this.io = new IntersectionObserver(function (entries) {
         entries.forEach(function (en) {
-          self.visible = en.isIntersecting && en.intersectionRatio >= 0.45;
+          // "In view" = 45% of the player visible, OR the player filling 60%
+          // of the viewport (a tall player on a short phone screen can never
+          // reach 45% of itself).
+          var vh = (en.rootBounds && en.rootBounds.height) || window.innerHeight || 1;
+          self.visible = en.isIntersecting &&
+            (en.intersectionRatio >= 0.45 || en.intersectionRect.height >= vh * 0.6);
           if (self.visible) self.maybeAutoPlay();
           else if (self.playing) { self.stop(false); self.autoPaused = true; }
         });
-      }, { threshold: [0, 0.45, 0.8] });
+      }, { threshold: [0, 0.2, 0.3, 0.45, 0.6, 0.8, 1] });
       this.io.observe(root);
+    }
+
+    // Autoplay is held back while the reader is .gate-pending (access check
+    // running) or .paywall-dimmed. When that class is lifted the player has
+    // not moved, so the IntersectionObserver never fires again; without this
+    // a player scrolled into view during the access check sat on step 1.
+    var shell = this.slot.closest && this.slot.closest('.reader-shell');
+    if (shell && 'MutationObserver' in window) {
+      this.mo = new MutationObserver(function () { self.maybeAutoPlay(); });
+      this.mo.observe(shell, { attributes: true, attributeFilter: ['class'] });
     }
     this.onVis = function () {
       if (document.hidden && self.playing) { self.stop(false); self.autoPaused = true; }
@@ -308,6 +323,7 @@
     this.destroyed = true;
     if (this.io) this.io.disconnect();
     if (this.ro) this.ro.disconnect();
+    if (this.mo) this.mo.disconnect();
     if (this.onResize) window.removeEventListener('resize', this.onResize);
     document.removeEventListener('visibilitychange', this.onVis);
   };

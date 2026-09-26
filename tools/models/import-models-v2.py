@@ -35,6 +35,17 @@ FIELD_ORDER = ['id', 'name', 'category', 'summary', 'video', 'minRole',
 SLUG = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 UNSAFE = re.compile(r'<\s*(script|iframe|object|embed)\b|\son[a-z]+\s*=|javascript\s*:', re.I)
 
+# Storyboards that pass the player validator but whose chart contradicts the
+# model's own rules (found on review). Held back with the reason until re-delivered.
+HOLD = {
+    'ib-80-rule-model': [
+        'frame 3 ("SHIFT: two bars close back inside value"): the 10:00 and 10:30 bars close at 20,022 and 20,006, '
+        'both ABOVE the prior VAH (20,000), so neither closes inside value; the chart shows a setup the rules say is no trade',
+        'frame 6 ("STOP"): entry 20,006 to stop 20,041 is 35 points, over the 25-point max stated in the same caption and in '
+        'the model steps ("skip if over 25 points")',
+    ],
+}
+
 errors = []
 def err(msg): errors.append(msg)
 
@@ -215,18 +226,20 @@ def geometry_gaps(cd, gaps, bad_frames):
     try:
         steps = sorted({mins(times[i + 1]) - mins(times[i]) for i in range(len(times) - 1)})
         if len(steps) > 1:
-            gaps.append(f'candle times are unevenly spaced (gaps of {steps} minutes); the .md says 4-minute candles. '
+            gaps.append(f'candle times are unevenly spaced (gaps of {steps} minutes). '
                         'The player draws candles evenly and shows no times, so this is cosmetic, but the captions quote times')
     except Exception:
         pass
     prev = None
     for fi, fr in enumerate(cd.get('frames') or []):
+        if fi in bad_frames: continue  # separate series, already reported and not shipped
         sc = fr.get('showCandles') or [0, len(c) - 1]
         if prev is not None and sc[1] < prev[1]:
             gaps.append(f'frame {fi+1} ("{fr.get("title")}"): shows fewer candles ({sc[1]+1}) than frame {fi} ({prev[1]+1}); '
                         f'candles disappear on play, and frame {fi} already shows the move that frame {fi+1} calls the outcome')
         prev = sc
     for fi, fr in enumerate(cd.get('frames') or []):
+        if fi in bad_frames: continue
         txt = (fr.get('caption', '') + ' ' + fr.get('title', '')).lower()
         lines = {a.get('text', '').split()[0].upper(): a.get('price') for a in fr.get('annotations', []) if a.get('type') == 'line' and a.get('text')}
         if 'stop' in txt and 'hit' in txt and 'ENTRY' in lines and 'STOP' in lines:
@@ -316,7 +329,11 @@ def main():
             gaps_all[mid] = gaps
             # A storyboard that can't play is left out; the model text still imports
             # and the page simply shows no player until the storyboard is fixed.
-            if not v.get('ok'):
+            if mid in HOLD:
+                gaps.extend(HOLD[mid])
+                gaps.append('STORYBOARD NOT SHIPPED: the chart contradicts the model rules (see the notes above)')
+                print(f'{mid}: storyboard HELD (review), model imported without it')
+            elif not v.get('ok'):
                 gaps.append('STORYBOARD NOT SHIPPED: fails the player validator (see the notes above)')
                 print(f'{mid}: storyboard REJECTED, model imported without it')
             elif v['inAdd'] != v['outAdd']:

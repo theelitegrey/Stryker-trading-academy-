@@ -1,0 +1,100 @@
+/* Stryker Trading Academy — model page stats card (model.html)
+   Styles for assets/model-stats.js. Renders nothing unless the mounting
+   script decides to; this file only styles what exists. CSS variables only,
+   so it matches both night (default) and day (html[data-theme="light"]). */
+
+.mdl-stats-card {
+  position: relative;
+  margin-top: 32px;
+  padding: 22px 22px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-2);
+}
+
+.mdl-stats-demo-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--bear);
+  border: 1px solid var(--bear);
+  border-radius: 6px;
+  padding: 3px 8px;
+  background: rgba(229, 72, 77, .08);
+}
+
+.mdl-stats-head h3 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--ink-0);
+  padding-right: 96px; /* keep clear of the demo badge */
+}
+
+.mdl-stats-meta {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.mdl-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.mdl-stats-cell {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 10px;
+  background: var(--bg-1);
+}
+
+.mdl-stats-val {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink-0);
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.mdl-stats-lab {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+
+.mdl-stats-sparkwrap {
+  margin-top: 18px;
+  max-width: 280px;
+}
+
+.mdl-stats-spark {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.mdl-stats-disclaimer {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-2);
+}
+
+@media (max-width: 480px) {
+  .mdl-stats-card { padding: 18px 16px 16px; }
+  .mdl-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mdl-stats-head h3 { padding-right: 84px; font-size: 16px; }
+  .mdl-stats-demo-badge { font-size: 9.5px; padding: 2px 6px; }
+  .mdl-stats-val { font-size: 21px; }
+}

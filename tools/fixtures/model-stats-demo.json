@@ -1,0 +1,15 @@
+{
+  "demo": "DEMO DATA - not real results",
+  "approved": true,
+  "title": "Backtest summary (DEMO)",
+  "period": "Jan 2024 - Jun 2025",
+  "sample": "NQ, 5m, 212 trades",
+  "metrics": [
+    { "label": "Win rate", "value": 48.5, "unit": "%", "decimals": 1 },
+    { "label": "Avg R", "value": 1.9, "unit": "R", "decimals": 1 },
+    { "label": "Max drawdown", "value": 12.4, "unit": "%", "decimals": 1 },
+    { "label": "Trades", "value": 212, "unit": "", "decimals": 0 }
+  ],
+  "equity": [0, 0.8, 0.4, 1.6, 1.1, 2.4, 2.0, 3.1, 2.6, 3.8, 3.4, 4.5, 4.0, 5.2, 4.7, 5.9],
+  "disclaimer": "DEMO DATA - not real results. This fixture exists only for local development at ?statsdemo=1 and is excluded from deploy."
+}

@@ -122,7 +122,8 @@ def short_label(text):
     t = PRICE_IN_LABEL.sub('', text or '').strip()
     t = re.sub(r'\s{2,}', ' ', t)
     t = re.sub(r'^\s*-\s*', '', t)
-    if t.isupper() and len(t) > 4: t = t.capitalize()
+    # ENTRY/STOP/TARGET/SWEEP read as shouting on a chart; acronyms (PRH, FVG) stay.
+    t = re.sub(r'\b(ENTRY|STOP|TARGET|SWEEP)\b', lambda mm: mm.group(1).capitalize(), t)
     return t.replace(' - ', ' · ')
 
 
@@ -216,6 +217,13 @@ def geometry_gaps(cd, gaps, bad_frames):
                         'The player draws candles evenly and shows no times, so this is cosmetic, but the captions quote times')
     except Exception:
         pass
+    prev = None
+    for fi, fr in enumerate(cd.get('frames') or []):
+        sc = fr.get('showCandles') or [0, len(c) - 1]
+        if prev is not None and sc[1] < prev[1]:
+            gaps.append(f'frame {fi+1} ("{fr.get("title")}"): shows fewer candles ({sc[1]+1}) than frame {fi} ({prev[1]+1}); '
+                        'candles disappear on play. Frame {fi} already shows the move the next frame calls the outcome')
+        prev = sc
     for fi, fr in enumerate(cd.get('frames') or []):
         txt = (fr.get('caption', '') + ' ' + fr.get('title', '')).lower()
         lines = {a.get('text', '').split()[0].upper(): a.get('price') for a in fr.get('annotations', []) if a.get('type') == 'line' and a.get('text')}

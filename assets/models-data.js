@@ -765,7 +765,7 @@ const MODELS_SEED = [
             {
               "type": "stop",
               "price": 20053,
-              "label": "STOP",
+              "label": "Stop",
               "from": 12,
               "id": "stop10"
             }

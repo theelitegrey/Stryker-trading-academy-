@@ -25,7 +25,7 @@ const UTM = '?utm_source=instagram&utm_medium=social&utm_campaign=cheatsheet-pro
 const PAGES = [
   { path: '/cheat-sheet.html', ret: '/cheat-sheet', pdf: 'assets/downloads/stryker-fvg-order-block-cheat-sheet.pdf',
     label: 'Downloaded the FVG & Order Block cheat sheet', name: 'fvg' },
-  { path: '/prop-firm-cheat-sheet.html', ret: '/prop-firm-cheat-sheet', pdf: 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=341',
+  { path: '/prop-firm-cheat-sheet.html', ret: '/prop-firm-cheat-sheet', pdf: 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=342',
     label: 'Downloaded the Prop Firm cheat sheet', name: 'prop' }
 ];
 

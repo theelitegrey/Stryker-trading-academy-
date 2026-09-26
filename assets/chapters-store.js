@@ -48,28 +48,56 @@ function loadChapters(forceRefresh){
     return _chaptersLoadPromise;
   }
 
-  _chaptersLoadPromise = db.collection('chapters').get()
-    .then((snap) => {
-      const list = [];
-      snap.forEach((doc) => list.push(normalizeCatalogEntry(doc.data())));
-      if (!list.length && typeof CHAPTERS_SEED !== 'undefined') {
-        // Firestore hasn't been seeded yet — fall back to the bundled data
-        // so the site still works, rather than showing an empty curriculum.
-        CHAPTERS = splitChapters(CHAPTERS_SEED);
-      } else {
-        CHAPTERS = splitChapters(list);
-      }
+  _chaptersLoadPromise = _chaptersAuthKnown().then((user) => {
+    if (!user) {
+      // Signed out: firestore.rules requires signedIn() to read chapters/*,
+      // so this read is certain to fail. Skip it and go straight to the
+      // bundled fallback, same pattern as build 328's courses.js fix — no
+      // point firing a request whose only outcome is a console error.
+      CHAPTERS = splitChapters(typeof CHAPTERS_SEED !== 'undefined' ? CHAPTERS_SEED : []);
       return CHAPTERS;
-    })
-    .catch((err) => {
-      console.error('Stryker: failed to load chapters from Firestore', err);
-      if (typeof CHAPTERS_SEED !== 'undefined') {
-        CHAPTERS = splitChapters(CHAPTERS_SEED);
-      }
-      return CHAPTERS;
-    });
+    }
+    return db.collection('chapters').get()
+      .then((snap) => {
+        const list = [];
+        snap.forEach((doc) => list.push(normalizeCatalogEntry(doc.data())));
+        if (!list.length && typeof CHAPTERS_SEED !== 'undefined') {
+          // Firestore hasn't been seeded yet — fall back to the bundled data
+          // so the site still works, rather than showing an empty curriculum.
+          CHAPTERS = splitChapters(CHAPTERS_SEED);
+        } else {
+          CHAPTERS = splitChapters(list);
+        }
+        return CHAPTERS;
+      })
+      .catch((err) => {
+        console.error('Stryker: failed to load chapters from Firestore', err);
+        if (typeof CHAPTERS_SEED !== 'undefined') {
+          CHAPTERS = splitChapters(CHAPTERS_SEED);
+        }
+        return CHAPTERS;
+      });
+  });
 
   return _chaptersLoadPromise;
+}
+
+// Resolves once we know whether a visitor is signed in, without racing the
+// Firebase SDK's own session restore. auth.currentUser can be null for a
+// moment even for a returning signed-in user — the first
+// onAuthStateChanged callback is the actual "ready" signal. No auth
+// object (Firebase failed to init) resolves to null, same as signed-out.
+let _chaptersAuthReadyPromise = null;
+function _chaptersAuthKnown(){
+  if (_chaptersAuthReadyPromise) return _chaptersAuthReadyPromise;
+  if (typeof auth === 'undefined' || !auth) {
+    _chaptersAuthReadyPromise = Promise.resolve(null);
+    return _chaptersAuthReadyPromise;
+  }
+  _chaptersAuthReadyPromise = new Promise((resolve) => {
+    const unsub = auth.onAuthStateChanged((user) => { unsub(); resolve(user); });
+  });
+  return _chaptersAuthReadyPromise;
 }
 
 // Catalog docs carry `preview` (the teaser) and `readMinutes`. Until the

@@ -489,6 +489,14 @@ section{ padding:96px 0; }
   background:var(--bg-2);
   box-shadow:var(--shadow-card);
 }
+/* gap has no trailing edge after the last flex item, so the -50% loop point
+   lands half a gap short of the loop copy's first card. A zero-width spacer
+   picks up one more flex gap after the last card, closing that half-gap so
+   translateX(-50%) is exactly seamless. */
+.proof-marquee-track::after{
+  content:'';
+  flex:0 0 0;
+}
 .proof-card img{
   width:100%; height:auto; display:block;
 }

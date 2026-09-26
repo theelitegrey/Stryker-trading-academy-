@@ -10,6 +10,8 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=338">
+<link rel="stylesheet" href="assets/setup-player.css?v=338">
+<link rel="stylesheet" href="assets/model-motion.css?v=338">
 <script src="assets/sanitize.js?v=338"></script>
 <script>
 // Stryker Trading Academy — device detection for forced views
@@ -138,6 +140,10 @@
       <h1 id="model-title">Model title</h1>
     </div>
 
+    <!-- Models v2: interactive setup player (setup-player.js). Empty and
+         hidden unless the model has a valid storyboard. -->
+    <div id="model-player-slot" hidden></div>
+
     <div class="video-frame" id="model-video-frame" style="display:none;">
       <video id="model-video" controls preload="metadata" controlsList="nodownload noremoteplayback" disablePictureInPicture disableRemotePlayback oncontextmenu="return false;"></video>
     </div>
@@ -147,6 +153,10 @@
     </div>
 
     <div class="reader-body" id="model-body"></div>
+
+    <!-- Models v2: stats card (model-stats.js). Renders nothing unless the
+         model has stats.approved === true. -->
+    <div id="model-stats-slot"></div>
 
     <div class="panel" style="margin-top:32px;">
       <div class="panel-head">
@@ -180,6 +190,9 @@
 <script src="assets/models-data.js?v=338"></script>
 <script src="assets/models-store.js?v=338"></script>
 <script src="assets/models-showcase.js?v=338"></script>
+<script src="assets/setup-player.js?v=338"></script>
+<script src="assets/model-stats.js?v=338"></script>
+<script src="assets/model-motion.js?v=338"></script>
 <script src="assets/model-reader.js?v=338"></script>
 <script src="assets/theme.js?v=338"></script>
 </body>

@@ -271,6 +271,17 @@ function renderModel(m){
   updateModelStepProgress(m);
   buildModelTOC(m.id);
   window.scrollTo({ top: 0 });
+
+  // ---- Models v2 add-ons ---------------------------------------------------
+  // Optional fields on the model object (see models-data.js header):
+  //   m.storyboard -> setup player  (assets/setup-player.js)
+  //   m.stats      -> stats card    (assets/model-stats.js, approved only)
+  // Each add-on is wrapped so a failure in one can never break the article.
+  try { if (typeof mountSetupPlayer === 'function') mountSetupPlayer(document.getElementById('model-player-slot'), m); }
+  catch (e) { console.error('Stryker: setup player failed', e); }
+  try {
+    document.dispatchEvent(new CustomEvent('stryker:model-rendered', { detail: { model: m } }));
+  } catch (e) { console.error('Stryker: model-rendered listeners failed', e); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

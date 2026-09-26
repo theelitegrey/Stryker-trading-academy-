@@ -49,7 +49,7 @@ frames = [
      "add": [{"type": "highlight", "id": "gap3", "from": 3, "to": 5}]},
     {"title": "Mark the 15m FVG", "reveal": 6, "remove": ["gap3"],
      "caption": "That untouched space is the fair value gap. Mark it from the first candle's high to the third candle's low and extend it to the right.",
-     "add": [{"type": "fvg", "id": "fvg", "top": 103.2, "bottom": 102.2, "from": 3, "to": last, "label": "15m FVG", "labelSide": "left"}]},
+     "add": [{"type": "fvg", "id": "fvg", "top": 103.2, "bottom": 102.2, "from": 3, "to": last, "label": "15m FVG"}]},
     {"title": "Read the delivery context", "reveal": 10,
      "caption": "Delivery is one-sided and bullish, and the swing high it leaves behind holds buy-side liquidity. That old high is the draw on liquidity you will target later.",
      "add": [{"type": "level", "id": "bsl", "price": 107.8, "from": 9, "to": last, "label": "Buy-side liquidity", "tone": "liq"}]},
@@ -63,15 +63,15 @@ frames = [
     {"title": "Confirm with the MSS", "reveal": 18, "remove": ["react"],
      "caption": "Confirmation comes when price closes above the last lower high of the pullback, a market structure shift. Check SMT on the correlated index before you act on it.",
      "add": [{"type": "mss", "id": "mss", "price": 104.9, "from": 13, "to": 17, "label": "MSS"}]},
-    {"title": "Entry, stop and target", "reveal": 18,
+    {"title": "Entry, stop and target", "reveal": 18, "remove": ["bsl"],
      "caption": "Enter on the retest of the broken level, stop below the low that touched the gap, and target the opposite draw on liquidity: the old high.",
      "add": [
          {"type": "entry", "id": "entry", "price": 104.9, "from": 17, "to": last, "label": "Entry"},
          {"type": "stop", "id": "stop", "price": 102.5, "from": 17, "to": last, "label": "Stop"},
-         {"type": "target", "id": "target", "price": 107.8, "from": 17, "to": last, "label": "Target", "labelSide": "left"}]},
+         {"type": "target", "id": "target", "price": 107.8, "from": 17, "to": last, "label": "Target: old high", "labelSide": "left"}]},
     {"title": "Delivery to the opposite liquidity", "reveal": len(C),
      "caption": "In this drawn example price runs the old high. Plenty of real setups fail at the MSS or before the target, which is why the stop is placed before the trade, not after.",
-     "focus": ["bsl", "entry", "stop", "target", "fvg", "run"],
+     "focus": ["entry", "stop", "target", "fvg", "run"],
      "add": [{"type": "sweep", "id": "run", "at": 22, "side": "high", "label": "Liquidity taken"}]},
 ]
 

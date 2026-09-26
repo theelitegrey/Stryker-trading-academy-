@@ -544,6 +544,12 @@
     // print on top of each other, so a label that would overlap one already
     // placed is nudged up or down a line until it is clear.
     var placed = [];
+    // Markers are obstacles too: a label never sits on a sweep circle.
+    act.forEach(function (it) {
+      if (it.a.type !== 'sweep') return;
+      var c = sb.candles[it.a.at], py = Y(it.a.side === 'high' ? c.h : c.l), px = X(it.a.at);
+      placed.push([px - 9, py - 9, px + 9, py + 9]);
+    });
     function box(x, y, wdt, anchor) {
       var x0 = anchor === 'start' ? x : (anchor === 'end' ? x - wdt : x - wdt / 2);
       return [x0 - 2, y - 10, x0 + wdt + 2, y + 3];

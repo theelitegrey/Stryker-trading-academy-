@@ -150,8 +150,7 @@ const MODELS_SEED = [
               "bottom": 102.2,
               "from": 3,
               "to": 23,
-              "label": "15m FVG",
-              "labelSide": "left"
+              "label": "15m FVG"
             }
           ]
         },
@@ -231,6 +230,9 @@ const MODELS_SEED = [
         {
           "title": "Entry, stop and target",
           "reveal": 18,
+          "remove": [
+            "bsl"
+          ],
           "caption": "Enter on the retest of the broken level, stop below the low that touched the gap, and target the opposite draw on liquidity: the old high.",
           "add": [
             {
@@ -255,7 +257,7 @@ const MODELS_SEED = [
               "price": 107.8,
               "from": 17,
               "to": 23,
-              "label": "Target",
+              "label": "Target: old high",
               "labelSide": "left"
             }
           ]
@@ -265,7 +267,6 @@ const MODELS_SEED = [
           "reveal": 24,
           "caption": "In this drawn example price runs the old high. Plenty of real setups fail at the MSS or before the target, which is why the stop is placed before the trade, not after.",
           "focus": [
-            "bsl",
             "entry",
             "stop",
             "target",

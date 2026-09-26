@@ -18,13 +18,20 @@ function modelStepsDone(id){
   } catch (e) { return []; }
 }
 
-function modelCategories(){
-  var seen = [];
-  MODELS.forEach(function (m){
-    var c = (m.category || '').trim();
-    if (c && seen.indexOf(c) === -1) seen.push(c);
-  });
-  return seen.sort();
+// Filter chips: 4 fixed groups (CoS decision, 26 Sep 2026). Each model names
+// its group in the `group` field (assets/models-data.js). Live Firestore docs
+// seeded before that field existed fall back to the bundled seed's value for
+// the same id. The detailed `category` stays on the card as a sub-tag.
+var MODEL_GROUPS = ['Opening & Session', 'Liquidity & Reversal', 'Imbalance / FVG', 'Mean Reversion'];
+
+function modelGroup(m){
+  if (m && typeof m.group === 'string' && m.group) return m.group;
+  if (typeof MODELS_SEED !== 'undefined' && m) {
+    for (var i = 0; i < MODELS_SEED.length; i++) {
+      if (MODELS_SEED[i].id === m.id) return MODELS_SEED[i].group || '';
+    }
+  }
+  return '';
 }
 
 function modelCardHtml(m){
@@ -82,16 +89,19 @@ function renderModels(){
     return;
   }
 
-  var cats = modelCategories();
   var list = MODELS.slice().sort(function (a, b){ return (a.name || '').localeCompare(b.name || ''); });
-  var shown = list.filter(function (m){ return MODELS_FILTER === 'all' || m.category === MODELS_FILTER; });
+  if (MODELS_FILTER !== 'all' && MODEL_GROUPS.indexOf(MODELS_FILTER) === -1) MODELS_FILTER = 'all';
+  var shown = list.filter(function (m){ return MODELS_FILTER === 'all' || modelGroup(m) === MODELS_FILTER; });
 
-  var chips = '<button type="button" class="mdl-chip' + (MODELS_FILTER === 'all' ? ' on' : '') +
-    '" data-mfilter="all">All models <i>' + list.length + '</i></button>' +
-    cats.map(function (c){
-      var n = list.filter(function (m){ return m.category === c; }).length;
-      return '<button type="button" class="mdl-chip' + (MODELS_FILTER === c ? ' on' : '') +
-        '" data-mfilter="' + escapeModelText(c) + '">' + escapeModelText(c) + ' <i>' + n + '</i></button>';
+  var chip = function (key, label, n){
+    var on = MODELS_FILTER === key;
+    return '<button type="button" class="mdl-chip' + (on ? ' on' : '') + '" aria-pressed="' + (on ? 'true' : 'false') +
+      '" data-mfilter="' + escapeModelText(key) + '">' + escapeModelText(label) + ' <i aria-hidden="true">' + n + '</i>' +
+      '<span class="sr-only"> (' + n + ' model' + (n === 1 ? '' : 's') + ')</span></button>';
+  };
+  var chips = chip('all', 'All', list.length) +
+    MODEL_GROUPS.map(function (g){
+      return chip(g, g, list.filter(function (m){ return modelGroup(m) === g; }).length);
     }).join('');
 
   container.innerHTML =
@@ -99,7 +109,7 @@ function renderModels(){
       '<h2>The model library</h2>' +
       '<p>Each model is a complete playbook — the conditions it needs, the exact entry criteria, and a written walkthrough. Work through one at a time, tick off its steps as you learn them, and journal every trade against the model you actually used.</p>' +
     '</div>' +
-    '<div class="mdl-chips">' + chips + '</div>' +
+    '<div class="mdl-chips" role="group" aria-label="Filter models by type">' + chips + '</div>' +
     '<div class="mdl-grid">' + shown.map(modelCardHtml).join('') + '</div>' +
     ((typeof modelsMoreBoxHtml === 'function') ? modelsMoreBoxHtml() : '');
 
@@ -107,6 +117,9 @@ function renderModels(){
     btn.addEventListener('click', function (){
       MODELS_FILTER = btn.dataset.mfilter;
       renderModels();
+      // the chips are re-drawn; keep keyboard focus on the one just pressed
+      var again = container.querySelector('[data-mfilter="' + (window.CSS && CSS.escape ? CSS.escape(MODELS_FILTER) : MODELS_FILTER) + '"]');
+      if (again) again.focus();
     });
   });
 }

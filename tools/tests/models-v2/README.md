@@ -10,5 +10,8 @@ signed-in user and empty Firestore, so models fall back to MODELS_SEED.
 
 Run one Chrome at a time on the 4 GB server.
     node list-and-sb.mjs <base> <shotdir> <model-id> "<H1>"  # models list (11) + one storyboard player
-    node final.mjs <base> <shotdir> [mainBase]      # final pass: list, 3 players + 2 no-player pages, 390/1440 x night/day,
-                                                    # reduced motion, signed-out paywall compared with main
+    node final.mjs <base> <shotdir> [mainBase]      # final pass: list + filter chips, the 5 new pages + fvg-model-b + orb-model-a,
+                                                    # 390/1440 x night/day, Option B (no stats on any of the 11 pages),
+                                                    # approved footer copy, reduced motion, signed-out paywall vs main.
+                                                    # Player/no-player is read from MODELS_SEED (SEED_JS=<path> to override).
+    node record.mjs <base> <outdir> <model-id> [theme] [speed]  # 4 hero PNGs + a webm of the player auto-playing every frame

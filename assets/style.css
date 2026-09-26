@@ -4565,6 +4565,7 @@ body.nav-authed .appnav-acts{ display:flex; }
 .mdl-chip:hover{ border-color:var(--gold-dim); color:var(--ink-0); }
 .mdl-chip.on{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,0.08); }
 .mdl-chip.on i{ color:var(--gold); }
+.mdl-chip:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
 
 .mdl-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
 @media (max-width:860px){ .mdl-grid{ grid-template-columns:1fr; } }

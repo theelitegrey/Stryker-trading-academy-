@@ -30,7 +30,7 @@ SEED = os.path.join(ROOT, 'assets', 'models-data.js')
 DEFAULT_SRC = '/root/projects/stryker-notes/content/models-v2'
 MANAGED = ['silver-bullet-model', 'turtle-soup-model', 'ib-80-rule-model',
            'vwap-reversion-model', 'unicorn-model']
-FIELD_ORDER = ['id', 'name', 'category', 'summary', 'video', 'minRole',
+FIELD_ORDER = ['id', 'name', 'category', 'group', 'summary', 'video', 'minRole',
                'bodyHtml', 'paragraphs', 'steps', 'storyboard', 'stats']
 SLUG = re.compile(r'^[a-z0-9]+(?:-[a-z0-9]+)*$')
 UNSAFE = re.compile(r'<\s*(script|iframe|object|embed)\b|\son[a-z]+\s*=|javascript\s*:', re.I)
@@ -38,12 +38,36 @@ UNSAFE = re.compile(r'<\s*(script|iframe|object|embed)\b|\son[a-z]+\s*=|javascri
 # Storyboards that pass the player validator but whose chart contradicts the
 # model's own rules (found on review). Held back with the reason until re-delivered.
 HOLD = {
+    'silver-bullet-model': [
+        'frames 1, 2 and 7: PRL is drawn and captioned at 20,000, but the lowest low of the 09:30-09:55 candles (0-5) is 20,004 '
+        '(candle 0, 09:30). "Mark the high and low of the 09:30-09:59 candles" gives 20,004, so the line sits under every range candle. '
+        'Fix: candle 0 low 20004 -> 20000',
+    ],
     'ib-80-rule-model': [
         'frame 3 ("SHIFT: two bars close back inside value"): the 10:00 and 10:30 bars close at 20,022 and 20,006, '
         'both ABOVE the prior VAH (20,000), so neither closes inside value; the chart shows a setup the rules say is no trade',
         'frame 6 ("STOP"): entry 20,006 to stop 20,041 is 35 points, over the 25-point max stated in the same caption and in '
         'the model steps ("skip if over 25 points")',
     ],
+    'unicorn-model': [
+        'frame 2: SL1 (10:00 low 20,055) is first swept by candle 3 (10:15, low 20,040), not bar 6 (10:30) as captioned',
+        'frame 3: bar 7 (10:35) closes 20,048, 42 points BELOW SH (20,090); the first close above SH is candle 10 (10:50, 20,092)',
+        'frames 4-8: breaker zone, FVG, entry, stop and target are described but the file has no annotations, so the chart shows none of them',
+    ],
+    'vwap-reversion-model': [
+        'no VWAP line or bands in the file, so the chart never shows the level every caption refers to. From the candles '
+        '(typical price since 10:00): candle 0 closes 20,058 under VWAP ~20,064 (frame 1 says above); candle 7 closes 20,032 '
+        'under VWAP ~20,044 (frame 4 says it reclaims); candle 8 low 20,030 under VWAP ~20,044 (frame 5 says it holds)',
+        'frame 6: stop = lower low of bars 7 and 8 (20,018) - 2 = 20,016; entry 20,048 -> 32 points, over the 20-point max',
+    ],
+}
+
+# Models-list filter chips (CoS decision 26 Sep): chip group per model id.
+GROUP_BY_ID = {
+    'silver-bullet-model': 'Opening & Session', 'ib-80-rule-model': 'Opening & Session',
+    'turtle-soup-model': 'Liquidity & Reversal',
+    'unicorn-model': 'Imbalance / FVG',
+    'vwap-reversion-model': 'Mean Reversion',
 }
 
 errors = []
@@ -300,6 +324,7 @@ def main():
         if m.get('id') != mid: err(f'{path}: id {m.get("id")!r} does not match the file name')
         validate_model(m, os.path.basename(path))
         m.setdefault('video', ''); m.setdefault('paragraphs', [])
+        m['group'] = GROUP_BY_ID[mid]
         if not m['paragraphs'] and isinstance(m.get('bodyHtml'), str):
             # same plain-text fallback the editor generates (htmlToParagraphs)
             m['paragraphs'] = [re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', '', p)).strip()

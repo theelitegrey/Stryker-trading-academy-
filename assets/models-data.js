@@ -865,7 +865,139 @@ const MODELS_SEED = [
         "desc": "Entries 09:45\u201315:00 ET, one long and one short max, flat by 15:55.",
         "descHtml": "<p>Only enter between 09:45 and 15:00 ET. Take at most one long and one short per day, close anything open at 15:55 ET, and stop after two losses.</p>"
       }
-    ]
+    ],
+    "storyboard": {
+      "version": 1,
+      "title": "Turtle Soup (intraday) \u2014 false break, fast reclaim",
+      "timeframe": "",
+      "illustrative": true,
+      "source": "content-designer",
+      "candles": [
+        {"o": 20040, "h": 20048, "l": 20032, "c": 20036},
+        {"o": 20036, "h": 20044, "l": 20028, "c": 20040},
+        {"o": 20040, "h": 20050, "l": 20034, "c": 20038},
+        {"o": 20038, "h": 20042, "l": 19980, "c": 19984},
+        {"o": 19984, "h": 20000, "l": 19982, "c": 19996},
+        {"o": 19996, "h": 20010, "l": 19992, "c": 20004},
+        {"o": 20004, "h": 20018, "l": 20000, "c": 20014},
+        {"o": 20014, "h": 20024, "l": 20010, "c": 20020},
+        {"o": 20020, "h": 20030, "l": 20016, "c": 20026},
+        {"o": 20026, "h": 20036, "l": 20022, "c": 20032},
+        {"o": 20032, "h": 20040, "l": 20028, "c": 20036},
+        {"o": 20036, "h": 20036, "l": 19979, "c": 19980},
+        {"o": 19980, "h": 19988, "l": 19979, "c": 19986},
+        {"o": 19986, "h": 19988, "l": 19980, "c": 19984},
+        {"o": 19984, "h": 19998, "l": 19982, "c": 19994},
+        {"o": 19994, "h": 20010, "l": 19990, "c": 20006},
+        {"o": 20006, "h": 20022, "l": 20002, "c": 20018}
+      ],
+      "frames": [
+        {
+          "title": "Context: the 20-bar low forms",
+          "caption": "At 10:00 a sharp 5-minute bar sets a new 20-bar low at 19,980. That low becomes the level everyone watches.",
+          "reveal": 6,
+          "add": [
+            {
+              "type": "level",
+              "price": 19980,
+              "label": "L20",
+              "tone": "liq",
+              "id": "level1"
+            }
+          ]
+        },
+        {
+          "title": "Liquidity marked: stops sit just below",
+          "caption": "Sell stops from longs, and breakout buy orders, cluster just below 19,980. That is the liquidity this setup targets.",
+          "reveal": 11,
+          "add": []
+        },
+        {
+          "title": "SWEEP: a new low, four bars later",
+          "caption": "At 10:40, four bars after L20 formed, price trades to 19,979 - one tick below L20. A new low prints.",
+          "reveal": 12,
+          "add": [
+            {
+              "type": "level",
+              "price": 19979,
+              "label": "sweep low",
+              "tone": "liq",
+              "id": "level2"
+            },
+            {
+              "type": "highlight",
+              "from": 11,
+              "to": 11,
+              "id": "highlight3"
+            }
+          ]
+        },
+        {
+          "title": "SHIFT: fails and closes back above",
+          "caption": "The break bar closes back at 19,980, above L20. The breakdown failed immediately - a Turtle Soup signal.",
+          "reveal": 13,
+          "add": [],
+          "remove": [
+            "level2"
+          ]
+        },
+        {
+          "title": "ENTRY: buy stop at L20 + 2 ticks",
+          "caption": "A buy stop sits at 19,980.50, two ticks above L20. It stays live for the break bar plus two more bars.",
+          "reveal": 14,
+          "add": [
+            {
+              "type": "entry",
+              "price": 19980.5,
+              "label": "Entry",
+              "from": 11,
+              "id": "entry4"
+            }
+          ],
+          "remove": [
+            "level1",
+            "highlight3"
+          ]
+        },
+        {
+          "title": "STOP: one tick below the sweep low",
+          "caption": "The stop goes 1 tick below 19,979, the lowest point reached before the fill. Risk is capped at 15 points.",
+          "reveal": 14,
+          "add": [
+            {
+              "type": "stop",
+              "price": 19978.5,
+              "label": "Stop",
+              "from": 11,
+              "id": "stop5"
+            }
+          ]
+        },
+        {
+          "title": "TARGET: 2R",
+          "caption": "Target is set at 2 times the risk: about 3 points of risk means roughly 6 points of reward, no fixed level.",
+          "reveal": 14,
+          "add": [
+            {
+              "type": "target",
+              "price": 19992.5,
+              "label": "Target 2R =",
+              "from": 11,
+              "id": "target6"
+            }
+          ]
+        },
+        {
+          "title": "Outcome: target reached",
+          "caption": "Price fills the buy stop, then reclaims through the range. By 11:00 it trades through the 2R target.",
+          "reveal": 17,
+          "add": [],
+          "remove": [
+            "stop5"
+          ]
+        }
+      ]
+    }
   },
   {
     "id": "ib-80-rule-model",

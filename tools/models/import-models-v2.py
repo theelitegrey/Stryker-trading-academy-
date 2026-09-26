@@ -363,6 +363,15 @@ def main():
         print('ABORT: an existing model would change; nothing written'); sys.exit(1)
     if out != src:
         open(SEED, 'w', encoding='utf-8').write(out)
+        # Second opinion: w1's whole-seed validator (tools/storyboards/validate.mjs)
+        # checks reveal windows, id references and price ranges on every storyboard.
+        v = os.path.join(ROOT, 'tools', 'storyboards', 'validate.mjs')
+        if os.path.exists(v):
+            r = subprocess.run(['node', v], capture_output=True, text=True, cwd=ROOT)
+            if r.returncode:
+                open(SEED, 'w', encoding='utf-8').write(src)
+                print(r.stdout[-2000:], r.stderr[-500:])
+                print('ABORT: validate.mjs failed on the new seed; the old seed was restored'); sys.exit(1)
     print(f'seed: {len(after)} models ({len(after_unmanaged)} untouched, {len(incoming)} imported)',
           '(no change)' if out == src else '(written)')
 

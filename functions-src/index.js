@@ -179,6 +179,7 @@ Object.assign(exports, require('./fxRate'));
 Object.assign(exports, require('./replayBars'));
 Object.assign(exports, require('./freeCheckout'));
 Object.assign(exports, require('./referralPoints'));
+Object.assign(exports, require('./communityLikes'));
 Object.assign(exports, require('./xAutopost'));
 Object.assign(exports, require('./accountAdmin'));
 Object.assign(exports, require('./chapterGate'));

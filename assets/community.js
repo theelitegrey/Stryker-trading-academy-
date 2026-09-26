@@ -460,16 +460,17 @@ function toggleReaction(post, field){
   update[field] = has ? firebase.firestore.FieldValue.arrayRemove(FLOOR_UID) : firebase.firestore.FieldValue.arrayUnion(FLOOR_UID);
   ref.update(update).then(() => {
     if (field !== 'likedBy') return;
-    // This writes to the POST AUTHOR's doc, not the liker's — the like-
-    // count achievement belongs to whoever received the like. Needs a
-    // narrow Firestore rule exception (see the floorLikesReceived-only
-    // update clause) since a student can otherwise only write their own doc.
-    const delta = has ? -1 : 1;
-    db.collection('students').doc(post.authorUid).set({
-      floorLikesReceived: firebase.firestore.FieldValue.increment(delta)
-    }, { merge: true }).then(() => {
-      if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid, false);
-    }).catch((err) => console.error('Stryker: failed to update likes-received count', err));
+    // The like-count achievement belongs to the POST AUTHOR, not the
+    // liker — but a browser can only write its own students/{uid} doc
+    // (firestore.rules: isAdmin() || isSelf(uid), no non-owner
+    // exception), so this client can never legally increment someone
+    // else's floorLikesReceived. That count is credited server-side by
+    // the onCommunityPostLikesChanged trigger (functions-src/
+    // communityLikes.js — DRAFT, not deployed yet), which diffs this
+    // same likedBy array with the Admin SDK. This handler only updates
+    // likedBy itself (above) and notifies/rechecks achievements for the
+    // author below; it does not touch their counter directly.
+    if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid, false);
     // Only notify on a genuine new like (not un-liking), and never for
     // liking your own post.
     if (!has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {

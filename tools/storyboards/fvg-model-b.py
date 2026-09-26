@@ -71,7 +71,7 @@ frames = [
          {"type": "target", "id": "target", "price": 107.8, "from": 17, "to": last, "label": "Target", "labelSide": "left"}]},
     {"title": "Delivery to the opposite liquidity", "reveal": len(C),
      "caption": "In this drawn example price runs the old high. Plenty of real setups fail at the MSS or before the target, which is why the stop is placed before the trade, not after.",
-     "focus": ["bsl", "entry", "stop", "target", "fvg"],
+     "focus": ["bsl", "entry", "stop", "target", "fvg", "run"],
      "add": [{"type": "sweep", "id": "run", "at": 22, "side": "high", "label": "Liquidity taken"}]},
 ]
 

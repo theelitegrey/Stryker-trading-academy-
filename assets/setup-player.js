@@ -540,12 +540,33 @@
     });
 
     // Labels last, on top, clamped inside the chart so nothing is cut off.
+    // Two labels at the same price (a target on an old high, say) would
+    // print on top of each other, so a label that would overlap one already
+    // placed is nudged up or down a line until it is clear.
+    var placed = [];
+    function box(x, y, wdt, anchor) {
+      var x0 = anchor === 'start' ? x : (anchor === 'end' ? x - wdt : x - wdt / 2);
+      return [x0 - 2, y - 10, x0 + wdt + 2, y + 3];
+    }
+    function hits(b) {
+      for (var q = 0; q < placed.length; q++) {
+        var p = placed[q];
+        if (b[0] < p[2] && b[2] > p[0] && b[1] < p[3] && b[3] > p[1]) return true;
+      }
+      return false;
+    }
     labels.forEach(function (L) {
       var approx = L.text.length * 6.3, x = L.x;
       if (L.anchor === 'start') x = Math.max(padL, Math.min(x, W - padR - approx));
       else if (L.anchor === 'end') x = Math.min(W - padR, Math.max(x, padL + approx));
       else x = Math.min(Math.max(x, padL + approx / 2), W - padR - approx / 2);
-      var y = Math.min(Math.max(L.y, 11), H - 5);
+      var y0 = Math.min(Math.max(L.y, 11), H - 5), y = y0;
+      var tries = [0, 13, -13, 26, -26, 39];
+      for (var t = 0; t < tries.length; t++) {
+        var yy = Math.min(Math.max(y0 + tries[t], 11), H - 5);
+        if (!hits(box(x, yy, approx, L.anchor))) { y = yy; break; }
+      }
+      placed.push(box(x, y, approx, L.anchor));
       out.push('<text class="' + cls(L.it, 'sp-lab sp-lab-' + L.tone + ' sp-fade') + '"' + delay(L.it, 150) + ' x="' + r(x) + '" y="' + r(y) + '" text-anchor="' + L.anchor + '">' + esc(L.text) + '</text>');
     });
 

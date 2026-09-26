@@ -269,7 +269,8 @@ const MODELS_SEED = [
             "entry",
             "stop",
             "target",
-            "fvg"
+            "fvg",
+            "run"
           ],
           "add": [
             {

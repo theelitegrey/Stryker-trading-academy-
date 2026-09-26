@@ -9,3 +9,6 @@ signed-in user and empty Firestore, so models fall back to MODELS_SEED.
     node autoplay.mjs https://127.0.0.1:8150             # autoplay regression: scrolled in during the access check; short screens
 
 Run one Chrome at a time on the 4 GB server.
+    node list-and-sb.mjs <base> <shotdir> <model-id> "<H1>"  # models list (11) + one storyboard player
+    node final.mjs <base> <shotdir> [mainBase]      # final pass: list, 3 players + 2 no-player pages, 390/1440 x night/day,
+                                                    # reduced motion, signed-out paywall compared with main

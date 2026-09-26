@@ -141,8 +141,6 @@ def map_storyboard(cd, gaps):
 
     for fi, fr in enumerate(frames_in):
         sc = fr.get('showCandles') or [0, last]
-        if sc[0] != 0:
-            gaps.append(f'frame {fi+1}: showCandles starts at {sc[0]}; the player always shows from candle 0')
         reveal = int(sc[1]) + 1
         wanted = {}               # key -> annotation (without id)
         hl = fr.get('highlight') or []
@@ -200,6 +198,8 @@ def map_storyboard(cd, gaps):
         f = {'title': fr.get('title', ''), 'caption': fr.get('caption', ''), 'reveal': reveal, 'add': add}
         if remove: f['remove'] = remove
         frames.append(f)
+    used = max([f['reveal'] for f in frames] or [len(out_c)])
+    out_c = out_c[:used]            # a second series after the used range is not drawn
     return {'version': 1, 'title': cd.get('title', ''), 'timeframe': cd.get('timeframe', ''),
             'illustrative': True, 'source': 'content-designer', 'candles': out_c, 'frames': frames}
 
@@ -294,16 +294,35 @@ def main():
         if os.path.exists(sbp):
             cd = json.load(open(sbp, encoding='utf-8'))
             gaps, bad = [], set()
+            for i, c in enumerate(cd.get('candles') or []):
+                if not all(isinstance(c.get(k), (int, float)) for k in 'ohlc') or \
+                        c['h'] < max(c['o'], c['c']) or c['l'] > min(c['o'], c['c']):
+                    gaps.append(f'candle {i} ({c.get("t")}) is impossible: o={c.get("o")} h={c.get("h")} '
+                                f'l={c.get("l")} c={c.get("c")} (high must be >= open/close, low <= open/close)')
+            for i, f in enumerate(cd.get('frames') or []):
+                sc = f.get('showCandles') or [0]
+                if sc[0] != 0:
+                    gaps.append(f'frame {i+1} ("{f.get("title")}"): showCandles {sc} is a separate candle series. The player '
+                                'draws one series from candle 0, so this frame is NOT shipped. Deliver the alternate path as '
+                                f'its own file ({mid}-fail.json) and it can play as a second walkthrough')
+                    bad.add(i)
             geometry_gaps(cd, gaps, bad)
             # A frame whose chart contradicts its caption is not shipped.
             cd = dict(cd, frames=[f for i, f in enumerate(cd.get('frames') or []) if i not in bad])
             sb = map_storyboard(cd, gaps)
             v = node_validate(sb)
-            if not v.get('ok'): err(f'{mid}: mapped storyboard fails SetupPlayer.validate() {v}')
-            elif v['inAdd'] != v['outAdd']: err(f'{mid}: validate() dropped {v["inAdd"] - v["outAdd"]} annotation(s)')
-            m['storyboard'] = sb
             gaps_all[mid] = gaps
-            print(f'{mid}: storyboard mapped: {v}')
+            # A storyboard that can't play is left out; the model text still imports
+            # and the page simply shows no player until the storyboard is fixed.
+            if not v.get('ok'):
+                gaps.append('STORYBOARD NOT SHIPPED: fails the player validator (see the notes above)')
+                print(f'{mid}: storyboard REJECTED, model imported without it')
+            elif v['inAdd'] != v['outAdd']:
+                gaps.append(f'STORYBOARD NOT SHIPPED: the validator dropped {v["inAdd"] - v["outAdd"]} annotation(s)')
+                print(f'{mid}: storyboard REJECTED (dropped annotations)')
+            else:
+                m['storyboard'] = sb
+                print(f'{mid}: storyboard mapped: {v}')
         incoming[mid] = m
 
     all_ids = [p['id'] for _, p in unmanaged] + list(incoming)

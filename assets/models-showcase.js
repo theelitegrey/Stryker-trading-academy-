@@ -127,7 +127,12 @@
     'ifvg-model-c': SCENE_IFVG,
     'judas-swing-model': SCENE_JUDAS,
     'ict-2022-model': SCENE_2022,
-    'crt-model': SCENE_CRT
+    'crt-model': SCENE_CRT,
+    // Models v2. Named explicitly: Turtle Soup's category ("Failed Breakout
+    // Reversal") would otherwise match the ORB keyword and show a breakout.
+    'silver-bullet-model': SCENE_2022,   // sweep, shift, FVG entry inside a time window
+    'turtle-soup-model': SCENE_CRT,      // run a prior high/low, close back inside, reverse
+    'unicorn-model': SCENE_FVG
   };
 
   var BY_KEYWORD = [

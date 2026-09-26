@@ -1,0 +1,41 @@
+[
+  {
+    "id": "broken-bad-annotations",
+    "name": "Fixture: bad-type / duplicate-id / missing-price annotations",
+    "storyboard": {
+      "version": 1,
+      "title": "Broken fixture — bad annotations",
+      "timeframe": "15m",
+      "candles": [
+        { "o": 100.0, "h": 100.8, "l": 99.6,  "c": 100.4 },
+        { "o": 100.4, "h": 101.2, "l": 100.0, "c": 100.9 },
+        { "o": 100.9, "h": 101.6, "l": 100.5, "c": 101.3 },
+        { "o": 101.3, "h": 102.4, "l": 101.0, "c": 102.1 },
+        { "o": 102.1, "h": 102.6, "l": 101.6, "c": 101.9 },
+        { "o": 101.9, "h": 102.2, "l": 101.2, "c": 101.5 },
+        { "o": 101.5, "h": 101.8, "l": 100.6, "c": 100.9 },
+        { "o": 100.9, "h": 101.4, "l": 100.7, "c": 101.2 }
+      ],
+      "frames": [
+        {
+          "title": "Frame with problems",
+          "caption": "This frame deliberately adds four broken annotations to exercise the validator.",
+          "reveal": 6,
+          "add": [
+            { "type": "made-up-type", "id": "bad1", "from": 0, "to": 2 },
+            { "type": "level", "id": "dup", "price": 101.0, "from": 0, "to": 3 },
+            { "type": "level", "id": "dup", "price": 102.0, "from": 1, "to": 4 },
+            { "type": "level", "id": "noprice", "from": 0, "to": 3 }
+          ]
+        },
+        {
+          "title": "Frame that removes/focuses a ghost id",
+          "caption": "This frame references an annotation id that was never declared anywhere.",
+          "reveal": 7,
+          "remove": ["never-declared"],
+          "focus": ["also-never-declared"]
+        }
+      ]
+    }
+  }
+]

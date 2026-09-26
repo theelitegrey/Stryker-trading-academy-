@@ -1,0 +1,37 @@
+[
+  {
+    "id": "broken-candle-shape",
+    "name": "Fixture: a candle whose high/low don't bound its own open/close",
+    "storyboard": {
+      "version": 1,
+      "title": "Broken fixture — bad candle shape",
+      "timeframe": "15m",
+      "candles": [
+        { "o": 100.0, "h": 100.8, "l": 99.6,  "c": 100.4 },
+        { "o": 100.4, "h": 100.5, "l": 100.0, "c": 100.9 },
+        { "o": 100.9, "h": 101.6, "l": 100.5, "c": 101.3 },
+        { "o": 101.3, "h": 102.4, "l": 101.0, "c": 102.1 },
+        { "o": 102.1, "h": 102.6, "l": 101.6, "c": 101.9 },
+        { "o": 101.9, "h": 102.2, "l": 101.2, "c": 101.5 }
+      ],
+      "frames": [
+        {
+          "title": "Frame 1",
+          "caption": "This whole storyboard should be rejected outright by SetupPlayer.validate() -- candle index 1 has a close (100.9) above its own high (100.5).",
+          "reveal": 6
+        }
+      ]
+    }
+  },
+  {
+    "id": "broken-stats-approved",
+    "name": "Fixture: stats.approved is true (truth-rule violation)",
+    "stats": {
+      "approved": true,
+      "metrics": [
+        { "label": "Win rate", "value": "71%" }
+      ]
+    },
+    "summary": "This model has no storyboard at all -- it exists purely to exercise the truth-rule check (stats.approved must never be true on this branch)."
+  }
+]

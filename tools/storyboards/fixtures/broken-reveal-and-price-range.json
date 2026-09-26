@@ -1,0 +1,42 @@
+[
+  {
+    "id": "broken-reveal-and-price-range",
+    "name": "Fixture: reveal too small + price way outside candle range",
+    "storyboard": {
+      "version": 1,
+      "title": "Broken fixture — reveal / price range",
+      "timeframe": "15m",
+      "candles": [
+        { "o": 100.0, "h": 100.8, "l": 99.6,  "c": 100.4 },
+        { "o": 100.4, "h": 101.2, "l": 100.0, "c": 100.9 },
+        { "o": 100.9, "h": 101.6, "l": 100.5, "c": 101.3 },
+        { "o": 101.3, "h": 102.4, "l": 101.0, "c": 102.1 },
+        { "o": 102.1, "h": 102.6, "l": 101.6, "c": 101.9 },
+        { "o": 101.9, "h": 102.2, "l": 101.2, "c": 101.5 },
+        { "o": 101.5, "h": 101.8, "l": 100.6, "c": 100.9 },
+        { "o": 100.9, "h": 101.4, "l": 100.7, "c": 101.2 },
+        { "o": 101.2, "h": 102.5, "l": 101.0, "c": 102.3 },
+        { "o": 102.3, "h": 103.4, "l": 102.1, "c": 103.1 }
+      ],
+      "frames": [
+        {
+          "title": "Highlight a candle nobody has seen yet",
+          "caption": "Only 3 candles are revealed, but this highlight references candle index 8 -- it does not project like a line, so this must be flagged.",
+          "reveal": 3,
+          "add": [
+            { "type": "highlight", "id": "badReveal", "from": 8, "to": 8 }
+          ]
+        },
+        {
+          "title": "A price nowhere near the chart",
+          "caption": "This level's price is far outside the candle range shown on this storyboard.",
+          "reveal": 5,
+          "remove": ["badReveal"],
+          "add": [
+            { "type": "level", "id": "wildPrice", "price": 999.0, "from": 0, "to": 4, "label": "Way off chart" }
+          ]
+        }
+      ]
+    }
+  }
+]

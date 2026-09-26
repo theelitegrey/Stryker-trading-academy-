@@ -312,7 +312,7 @@ function checkStoryboard(model) {
       // authoring bug worth flagging.
       const removedAt = lastActiveFrame.has(a.id) ? lastActiveFrame.get(a.id) : fIdx;
       const bestReveal = maxRevealDuring(fIdx, removedAt);
-      refIdxs.forEach((idx) => {
+      [...new Set(refIdxs)].forEach((idx) => {
         if (num(idx) && idx >= bestReveal) {
           problems.push(`${where}: references candle[${idx}], never revealed while this annotation is on screen (max reveal in that window: ${bestReveal}).`);
         }

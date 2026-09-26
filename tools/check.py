@@ -49,10 +49,16 @@ def check_unversioned_assets():
 
 
 def check_version_consistency():
-    """All ?v= values across the site should be the same number."""
+    """All ?v= values across the site should match, except the v341 prop firm PDF."""
     versions = set()
+    exception = 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=341'
     for path in sorted(glob.glob('*.html')):
-        versions.update(re.findall(r'\?v=(\d+)', open(path).read()))
+        text = open(path).read()
+        for match in re.finditer(r"([^\"'<> ]+)\?v=(\d+)", text):
+            url, version = match.group(1), match.group(2)
+            if f'{url}?v={version}' == exception:
+                continue
+            versions.add(version)
     if len(versions) > 1:
         fail(f'Mixed cache versions in use: {sorted(versions)}')
     return versions.pop() if len(versions) == 1 else None

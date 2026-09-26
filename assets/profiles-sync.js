@@ -31,9 +31,13 @@ function syncPublicProfile(uid, fields){
       return;
     }
     const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
-    const refresh = (user && user.uid === uid && user.getIdToken) ? user.getIdToken(true) : Promise.resolve();
+    if (!user || user.uid !== uid) {
+      console.error('Stryker: failed to sync public profile', err);
+      return;
+    }
     return new Promise((r) => setTimeout(r, 400))
-      .then(() => refresh).catch(() => null)
+      .then(() => (user.getIdToken) ? user.getIdToken(true) : null)
+      .catch(() => null)
       .then(write)
       .catch((err2) => console.error('Stryker: failed to sync public profile', err2));
   });

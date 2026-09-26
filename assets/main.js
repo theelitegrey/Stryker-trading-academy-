@@ -26,15 +26,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Scroll reveal
+  // Scroll reveal. .reveal content is visible by default (style.css only
+  // hides it under html.rv), so a slow or failed script never leaves a blank
+  // section. Anything already on screen, or scrolled past, is marked .in in
+  // this same task BEFORE .rv goes on, so text that has already painted is
+  // never hidden and faded back in. Only content still below the fold gets
+  // the fade. Reduced motion: no .rv at all, so nothing is ever hidden.
   const revealEls = document.querySelectorAll('.reveal');
-  if ('IntersectionObserver' in window && revealEls.length) {
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if ('IntersectionObserver' in window && revealEls.length && !reduceMotion) {
+    const vh = window.innerHeight || document.documentElement.clientHeight;
     const io = new IntersectionObserver((entries) => {
       entries.forEach(e => {
         if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
       });
     }, { threshold: 0.12 });
-    revealEls.forEach(el => io.observe(el));
+    revealEls.forEach(el => {
+      if (el.getBoundingClientRect().top < vh) el.classList.add('in');
+      else io.observe(el);
+    });
+    document.documentElement.classList.add('rv');
   } else {
     revealEls.forEach(el => el.classList.add('in'));
   }

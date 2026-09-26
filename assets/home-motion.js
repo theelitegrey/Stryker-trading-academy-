@@ -39,6 +39,7 @@
   function heroEntrance() {
     var copy = document.querySelector('.hero-copy');
     if (!copy) return;
+    if (late) return;   // hero already painted and readable: leave it be
 
     var steps = [
       copy.querySelector('.eyebrow'),
@@ -88,6 +89,7 @@
   }
 
   function heroStats() {
+    if (late) return;   // never reset numbers the visitor has already read
     document.querySelectorAll('.hero-stat b').forEach(function (el) {
       var raw = (el.textContent || '').trim();
       if (raw === '—' || raw === '') return;         // still loading from Firestore
@@ -114,6 +116,12 @@
       var kids = Array.prototype.filter.call(group.children, function (c) {
         return c.nodeType === 1;
       });
+      // Late and already on screen: show at once (m-in in the same task as
+      // m-stagger, so no hidden frame and no fade of painted content).
+      if (late && onScreen(group)) {
+        kids.forEach(function (k) { k.classList.add('m-stagger', 'm-in'); });
+        return;
+      }
       kids.forEach(function (k) { k.classList.add('m-stagger'); });
 
       var io = new IntersectionObserver(function (entries) {
@@ -134,6 +142,7 @@
   function headings() {
     if (!('IntersectionObserver' in window)) return;
     document.querySelectorAll('.section-head, .container > h2').forEach(function (h) {
+      if (late && onScreen(h)) { h.classList.add('m-head', 'm-in'); return; }
       h.classList.add('m-head');
       var io = new IntersectionObserver(function (entries) {
         entries.forEach(function (e) {
@@ -182,7 +191,31 @@
     });
   }
 
+  // ---- Already painted? -------------------------------------------------
+  // This file runs at DOMContentLoaded, after the whole script chain at the
+  // end of <body>. On a fast connection that is a few hundred ms after first
+  // paint, so the entrance reads as the page arriving. On a slow phone
+  // connection it can be several SECONDS after the hero text has painted and
+  // been read; hiding it then and fading it back in (and resetting the hero
+  // stats to 0 to count up again) looks like the page broke. So: if the page
+  // painted more than a moment ago, keep what is on screen exactly as it is
+  // and only animate content still below the fold. (First-paint work, build
+  // 337.) No paint-timing support = treat as fresh, the previous behaviour.
+  var LATE_MS = 400;
+  function paintedLongAgo() {
+    try {
+      var fcp = performance.getEntriesByName('first-contentful-paint')[0];
+      return !!fcp && (performance.now() - fcp.startTime) > LATE_MS;
+    } catch (e) { return false; }
+  }
+  function onScreen(el) {
+    var r = el.getBoundingClientRect();
+    return r.top < (window.innerHeight || document.documentElement.clientHeight);
+  }
+  var late = false;
+
   ready(function () {
+    late = paintedLongAgo();
     document.documentElement.classList.add('m-ready');
 
     if (reduced) {

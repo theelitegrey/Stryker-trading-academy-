@@ -621,7 +621,190 @@ const MODELS_SEED = [
         "desc": "One trade per window; close by 12:00 (AM) or 15:55 (PM); stop after two losses.",
         "descHtml": "<p>Take at most one trade per window. Close an open AM trade at 12:00 ET, and a PM trade at 15:55 ET. After two losing trades in a day, stop.</p>"
       }
-    ]
+    ],
+    "storyboard": {
+      "version": 1,
+      "title": "ICT Silver Bullet \u2014 AM window walk-through",
+      "timeframe": "",
+      "illustrative": true,
+      "source": "content-designer",
+      "candles": [
+        {"o": 20010, "h": 20018, "l": 20000, "c": 20015},
+        {"o": 20015, "h": 20022, "l": 20012, "c": 20020},
+        {"o": 20020, "h": 20028, "l": 20016, "c": 20024},
+        {"o": 20024, "h": 20034, "l": 20020, "c": 20030},
+        {"o": 20030, "h": 20040, "l": 20026, "c": 20036},
+        {"o": 20036, "h": 20050, "l": 20032, "c": 20044},
+        {"o": 20044, "h": 20052, "l": 20038, "c": 20046},
+        {"o": 20046, "h": 20048, "l": 20040, "c": 20044},
+        {"o": 20044, "h": 20044, "l": 20010, "c": 20014},
+        {"o": 20014, "h": 20036, "l": 20008, "c": 20030},
+        {"o": 20031, "h": 20038, "l": 20031, "c": 20034},
+        {"o": 20034, "h": 20036, "l": 20018, "c": 20020},
+        {"o": 20020, "h": 20022, "l": 20008, "c": 20010},
+        {"o": 20010, "h": 20012, "l": 19998, "c": 20002}
+      ],
+      "frames": [
+        {
+          "title": "Context: mark the reference range",
+          "caption": "At 10:00, mark the high and low of the 09:30-09:59 candles. This range sets up the whole window.",
+          "reveal": 6,
+          "add": [
+            {
+              "type": "level",
+              "price": 20050,
+              "label": "PRH",
+              "tone": "liq",
+              "id": "level1"
+            },
+            {
+              "type": "level",
+              "price": 20000,
+              "label": "PRL",
+              "tone": "liq",
+              "id": "level2"
+            }
+          ]
+        },
+        {
+          "title": "Liquidity marked",
+          "caption": "Resting stop orders sit just above PRH and just below PRL. The window watches for either side to trade through.",
+          "reveal": 7,
+          "add": [
+            {
+              "type": "note",
+              "at": 5,
+              "price": 20055,
+              "label": "liquidity above PRH",
+              "id": "note3"
+            }
+          ]
+        },
+        {
+          "title": "SWEEP of PRH",
+          "caption": "At 10:00 price trades up to 20,052, through PRH. That sets the direction: shorts only for this window.",
+          "reveal": 7,
+          "add": [
+            {
+              "type": "sweep",
+              "at": 6,
+              "side": "high",
+              "label": "Sweep",
+              "id": "sweep4"
+            },
+            {
+              "type": "highlight",
+              "from": 6,
+              "to": 6,
+              "id": "highlight5"
+            }
+          ],
+          "remove": [
+            "note3"
+          ]
+        },
+        {
+          "title": "SHIFT: bearish FVG forms",
+          "caption": "Candles 10:05-10:15 leave a bearish FVG: candle 3's high (20,036) sits below candle 1's low (20,040).",
+          "reveal": 10,
+          "add": [
+            {
+              "type": "fvg",
+              "top": 20040,
+              "bottom": 20036,
+              "from": 7,
+              "to": 13,
+              "label": "bearish FVG",
+              "tone": "bear",
+              "id": "fvg6"
+            },
+            {
+              "type": "highlight",
+              "from": 7,
+              "to": 9,
+              "id": "highlight7"
+            }
+          ],
+          "remove": [
+            "sweep4",
+            "highlight5"
+          ]
+        },
+        {
+          "title": "ENTRY at the FVG edge",
+          "caption": "At 10:20 price retraces up and fills a sell limit at 20,036, the bottom edge of the gap.",
+          "reveal": 11,
+          "add": [
+            {
+              "type": "entry",
+              "price": 20036,
+              "label": "Entry",
+              "from": 10,
+              "id": "entry8"
+            },
+            {
+              "type": "highlight",
+              "from": 10,
+              "to": 10,
+              "id": "highlight9"
+            }
+          ],
+          "remove": [
+            "level1",
+            "level2",
+            "highlight7"
+          ]
+        },
+        {
+          "title": "STOP placed",
+          "caption": "The stop sits 1 point above the sweep extreme (20,052): 20,053, about 17 points of risk, inside the 20-point max.",
+          "reveal": 11,
+          "add": [
+            {
+              "type": "stop",
+              "price": 20053,
+              "label": "Stop",
+              "from": 8,
+              "id": "stop10"
+            }
+          ],
+          "remove": [
+            "fvg6",
+            "highlight9"
+          ]
+        },
+        {
+          "title": "TARGET set",
+          "caption": "Target is the opposite side of the reference range: PRL at 20,000. That is 36 points of room, well past the 10-point minimum.",
+          "reveal": 13,
+          "add": [
+            {
+              "type": "target",
+              "price": 20000,
+              "label": "Target",
+              "from": 10,
+              "id": "target11"
+            }
+          ]
+        },
+        {
+          "title": "Outcome: target reached",
+          "caption": "Price fills the limit at 20,036, then grinds down through the range. The 10:35 candle trades through 20,000: target reached.",
+          "reveal": 14,
+          "add": [
+            {
+              "type": "highlight",
+              "from": 13,
+              "to": 13,
+              "id": "highlight12"
+            }
+          ],
+          "remove": [
+            "stop10"
+          ]
+        }
+      ]
+    }
   },
   {
     "id": "turtle-soup-model",
@@ -895,7 +1078,140 @@ const MODELS_SEED = [
         "desc": "One trade per day; close by 15:55 ET.",
         "descHtml": "<p>Take at most one trade per day with this model, and close it by 15:55 ET if neither stop nor target has been reached.</p>"
       }
-    ]
+    ],
+    "storyboard": {
+      "version": 1,
+      "title": "Initial Balance + 80% Rule \u2014 open outside value, reclaim",
+      "timeframe": "",
+      "illustrative": true,
+      "source": "content-designer",
+      "candles": [
+        {"o": 20020, "h": 20034, "l": 20010, "c": 20028},
+        {"o": 19995, "h": 19999, "l": 19975, "c": 19985},
+        {"o": 19985, "h": 19990, "l": 19965, "c": 19980},
+        {"o": 19980, "h": 19984, "l": 19955, "c": 19960},
+        {"o": 19960, "h": 19964, "l": 19935, "c": 19940},
+        {"o": 19940, "h": 19944, "l": 19915, "c": 19920},
+        {"o": 19920, "h": 19924, "l": 19895, "c": 19900},
+        {"o": 19900, "h": 19905, "l": 19880, "c": 19890}
+      ],
+      "frames": [
+        {
+          "title": "Context: the IB forms above value",
+          "caption": "09:30-10:29:59 is the initial balance. Today's RTH opens at 20,020, above the prior day's VAH of 20,000.",
+          "reveal": 2,
+          "add": [
+            {
+              "type": "level",
+              "price": 20000,
+              "label": "prior VAH",
+              "tone": "liq",
+              "id": "level1"
+            }
+          ]
+        },
+        {
+          "title": "Open outside value confirmed",
+          "caption": "The open at 20,020 is clearly above the prior value area. This is the precondition for the short setup.",
+          "reveal": 2,
+          "add": [
+            {
+              "type": "level",
+              "price": 19940,
+              "label": "prior VAL",
+              "tone": "liq",
+              "id": "level2"
+            }
+          ]
+        },
+        {
+          "title": "SHIFT: two bars close back inside value",
+          "caption": "The 10:00 and 10:30 bars both close between the prior VAH and VAL - two consecutive acceptance bars.",
+          "reveal": 3,
+          "add": [
+            {
+              "type": "highlight",
+              "from": 1,
+              "to": 2,
+              "id": "highlight3"
+            }
+          ]
+        },
+        {
+          "title": "No range extension before entry",
+          "caption": "Between 10:30 and the entry, price makes no new high above the IB high. The setup stays valid.",
+          "reveal": 3,
+          "add": [
+            {
+              "type": "level",
+              "price": 20034,
+              "label": "IB high",
+              "tone": "liq",
+              "id": "level4"
+            }
+          ],
+          "remove": [
+            "level1",
+            "level2",
+            "highlight3"
+          ]
+        },
+        {
+          "title": "ENTRY: market at the close of bar 2",
+          "caption": "Entry is a market order at the close of the second acceptance bar (10:30), at 19,980.",
+          "reveal": 3,
+          "add": [
+            {
+              "type": "entry",
+              "price": 19980,
+              "label": "Entry",
+              "from": 0,
+              "id": "entry5"
+            }
+          ],
+          "remove": [
+            "level4"
+          ]
+        },
+        {
+          "title": "STOP: above the higher acceptance high",
+          "caption": "Stop sits 1 point above the higher of the two acceptance bars' highs (19,999): 20,000, about 20 points of risk. Max stop is 25 points.",
+          "reveal": 3,
+          "add": [
+            {
+              "type": "stop",
+              "price": 20000,
+              "label": "Stop",
+              "from": 0,
+              "id": "stop6"
+            }
+          ]
+        },
+        {
+          "title": "TARGET: the far side of value",
+          "caption": "Target is the prior VAL, 19,940 - the opposite edge of yesterday's value area.",
+          "reveal": 3,
+          "add": [
+            {
+              "type": "target",
+              "price": 19940,
+              "label": "Target",
+              "from": 0,
+              "id": "target7"
+            }
+          ]
+        },
+        {
+          "title": "Outcome: target reached",
+          "caption": "Price grinds down through the session. By 13:00 it trades well through the prior VAL: target reached.",
+          "reveal": 8,
+          "add": [],
+          "remove": [
+            "stop6"
+          ]
+        }
+      ]
+    }
   },
   {
     "id": "vwap-reversion-model",
@@ -962,7 +1278,303 @@ const MODELS_SEED = [
         "desc": "Entries 10:00\u201315:00 ET; one of each setup max; flat by 15:55.",
         "descHtml": "<p>Only enter between 10:00 and 15:00 ET. Take at most one Setup A and one Setup B per day, close anything open by 15:55 ET, and stop after two losses.</p>"
       }
-    ]
+    ],
+    "storyboard": {
+      "version": 1,
+      "title": "VWAP Reversion & Reclaim \u2014 Setup B, bullish reclaim",
+      "timeframe": "",
+      "illustrative": true,
+      "source": "content-designer",
+      "candles": [
+        {"o": 20064, "h": 20110, "l": 20060, "c": 20104},
+        {"o": 20104, "h": 20106, "l": 20070, "c": 20072},
+        {"o": 20072, "h": 20076, "l": 20054, "c": 20056},
+        {"o": 20056, "h": 20060, "l": 20040, "c": 20042},
+        {"o": 20042, "h": 20046, "l": 20030, "c": 20032},
+        {"o": 20032, "h": 20038, "l": 20026, "c": 20028},
+        {"o": 20028, "h": 20048, "l": 20026, "c": 20046},
+        {"o": 20048, "h": 20062, "l": 20048, "c": 20060},
+        {"o": 20060, "h": 20066, "l": 20059, "c": 20062},
+        {"o": 20062, "h": 20068, "l": 20058, "c": 20066},
+        {"o": 20066, "h": 20072, "l": 20062, "c": 20070},
+        {"o": 20070, "h": 20078, "l": 20066, "c": 20076},
+        {"o": 20076, "h": 20084, "l": 20072, "c": 20082},
+        {"o": 20082, "h": 20090, "l": 20078, "c": 20088},
+        {"o": 20088, "h": 20096, "l": 20084, "c": 20094}
+      ],
+      "frames": [
+        {
+          "title": "context: price above VWAP at 10:00",
+          "caption": "10:00 bar closes 20,104, above its VWAP 20,091.33. VWAP and the \u00b11\u03c3/\u00b12\u03c3 bands are drawn as they stand at each bar.",
+          "reveal": 1,
+          "add": [
+            {
+              "type": "level",
+              "price": 20091.33,
+              "label": "2\u03c3",
+              "tone": "liq",
+              "id": "level1"
+            }
+          ]
+        },
+        {
+          "title": "dip below VWAP begins",
+          "caption": "10:05 (bar 1) closes 20,072, below VWAP 20,088.58. Setup B needs at least 6 consecutive closes below VWAP.",
+          "reveal": 2,
+          "add": [
+            {
+              "type": "level",
+              "price": 20096.65,
+              "label": "+2\u03c3",
+              "tone": "liq",
+              "id": "level2"
+            },
+            {
+              "type": "level",
+              "price": 20092.61,
+              "label": "+1\u03c3",
+              "tone": "liq",
+              "id": "level3"
+            },
+            {
+              "type": "level",
+              "price": 20088.58,
+              "label": "VWAP",
+              "tone": "liq",
+              "id": "level4"
+            },
+            {
+              "type": "level",
+              "price": 20084.54,
+              "label": "1\u03c3",
+              "tone": "liq",
+              "id": "level5"
+            },
+            {
+              "type": "level",
+              "price": 20080.5,
+              "label": "2\u03c3",
+              "tone": "liq",
+              "id": "level6"
+            }
+          ],
+          "remove": [
+            "level1"
+          ]
+        },
+        {
+          "title": "6 bars closing below VWAP",
+          "caption": "Bars 1-6 (10:05-10:30) all close below their VWAP. Bar 6 closes 20,046 vs VWAP 20,058.32. Precondition met.",
+          "reveal": 7,
+          "add": [
+            {
+              "type": "level",
+              "price": 20105.22,
+              "label": "+2\u03c3",
+              "tone": "liq",
+              "id": "level7"
+            },
+            {
+              "type": "level",
+              "price": 20081.77,
+              "label": "+1\u03c3",
+              "tone": "liq",
+              "id": "level8"
+            },
+            {
+              "type": "level",
+              "price": 20058.32,
+              "label": "VWAP",
+              "tone": "liq",
+              "id": "level9"
+            },
+            {
+              "type": "level",
+              "price": 20034.87,
+              "label": "1\u03c3",
+              "tone": "liq",
+              "id": "level10"
+            },
+            {
+              "type": "level",
+              "price": 20011.42,
+              "label": "2\u03c3",
+              "tone": "liq",
+              "id": "level11"
+            }
+          ],
+          "remove": [
+            "level2",
+            "level3",
+            "level4",
+            "level5",
+            "level6"
+          ]
+        },
+        {
+          "title": "reclaim bar: closes above VWAP",
+          "caption": "Bar 7 (10:35) closes 20,060, above VWAP 20,058.16. This is the reclaim bar.",
+          "reveal": 8,
+          "add": [
+            {
+              "type": "level",
+              "price": 20102.73,
+              "label": "+2\u03c3",
+              "tone": "liq",
+              "id": "level12"
+            },
+            {
+              "type": "level",
+              "price": 20080.44,
+              "label": "+1\u03c3",
+              "tone": "liq",
+              "id": "level13"
+            },
+            {
+              "type": "level",
+              "price": 20058.16,
+              "label": "VWAP",
+              "tone": "liq",
+              "id": "level14"
+            },
+            {
+              "type": "level",
+              "price": 20035.87,
+              "label": "1\u03c3",
+              "tone": "liq",
+              "id": "level15"
+            },
+            {
+              "type": "level",
+              "price": 20013.59,
+              "label": "2\u03c3",
+              "tone": "liq",
+              "id": "level16"
+            },
+            {
+              "type": "highlight",
+              "from": 7,
+              "to": 7,
+              "id": "highlight17"
+            }
+          ],
+          "remove": [
+            "level7",
+            "level8",
+            "level9",
+            "level10",
+            "level11"
+          ]
+        },
+        {
+          "title": "hold bar: low stays above VWAP",
+          "caption": "Bar 8 (10:40) low 20,059 stays above its VWAP 20,058.48, and it closes 20,062. Hold confirmed.",
+          "reveal": 9,
+          "add": [
+            {
+              "type": "level",
+              "price": 20101.36,
+              "label": "+2\u03c3",
+              "tone": "liq",
+              "id": "level18"
+            },
+            {
+              "type": "level",
+              "price": 20079.92,
+              "label": "+1\u03c3",
+              "tone": "liq",
+              "id": "level19"
+            },
+            {
+              "type": "level",
+              "price": 20058.48,
+              "label": "VWAP",
+              "tone": "liq",
+              "id": "level20"
+            },
+            {
+              "type": "level",
+              "price": 20037.04,
+              "label": "1\u03c3",
+              "tone": "liq",
+              "id": "level21"
+            },
+            {
+              "type": "level",
+              "price": 20015.6,
+              "label": "2\u03c3",
+              "tone": "liq",
+              "id": "level22"
+            },
+            {
+              "type": "highlight",
+              "from": 8,
+              "to": 8,
+              "id": "highlight23"
+            }
+          ],
+          "remove": [
+            "level12",
+            "level13",
+            "level14",
+            "level15",
+            "level16",
+            "highlight17"
+          ]
+        },
+        {
+          "title": "entry: close of the hold bar",
+          "caption": "Entry: market at bar 8's close, 20,062. Stop 20,046 = lower low of bars 7-8 (20,048) minus 2. Risk 16 pts.",
+          "reveal": 9,
+          "add": [
+            {
+              "type": "entry",
+              "price": 20062,
+              "label": "Entry",
+              "from": 6,
+              "id": "entry24"
+            },
+            {
+              "type": "stop",
+              "price": 20046,
+              "label": "Stop",
+              "from": 6,
+              "id": "stop25"
+            }
+          ],
+          "remove": [
+            "level18",
+            "level19",
+            "level21",
+            "level22",
+            "highlight23"
+          ]
+        },
+        {
+          "title": "target: the +1\u03c3 band, fixed at entry",
+          "caption": "Target = +1\u03c3 at entry, 20,079.92, fixed as a price. Distance 17.92 pts, at least R (16), so no skip.",
+          "reveal": 11,
+          "add": [
+            {
+              "type": "target",
+              "price": 20079.92,
+              "label": "Target (+1\u03c3 at entry)",
+              "from": 8,
+              "id": "target26"
+            }
+          ],
+          "remove": [
+            "level20"
+          ]
+        },
+        {
+          "title": "outcome: target reached",
+          "caption": "Bar 12 (11:00) trades to 20,084, through the 20,079.92 target. Exit on fill, or at 15:55 ET.",
+          "reveal": 15,
+          "add": []
+        }
+      ]
+    }
   },
   {
     "id": "unicorn-model",
@@ -1027,6 +1639,194 @@ const MODELS_SEED = [
         "desc": "Setups 09:30\u201312:00 ET; max 2 trades; flat by 15:55.",
         "descHtml": "<p>Only take setups that complete between 09:30 and 12:00 ET. Take at most two trades per day, and close anything open by 15:55 ET.</p>"
       }
-    ]
+    ],
+    "storyboard": {
+      "version": 1,
+      "title": "ICT Unicorn \u2014 bullish breaker + FVG overlap",
+      "timeframe": "",
+      "illustrative": true,
+      "source": "content-designer",
+      "candles": [
+        {"o": 20064, "h": 20080, "l": 20058, "c": 20075},
+        {"o": 20075, "h": 20085, "l": 20068, "c": 20078},
+        {"o": 20078, "h": 20090, "l": 20070, "c": 20088},
+        {"o": 20088, "h": 20089, "l": 20068, "c": 20072},
+        {"o": 20072, "h": 20076, "l": 20062, "c": 20065},
+        {"o": 20065, "h": 20069, "l": 20059, "c": 20062},
+        {"o": 20062, "h": 20066, "l": 20057, "c": 20060},
+        {"o": 20060, "h": 20098, "l": 20059, "c": 20096},
+        {"o": 20096, "h": 20108, "l": 20076, "c": 20084},
+        {"o": 20084, "h": 20088, "l": 20073, "c": 20080},
+        {"o": 20080, "h": 20092, "l": 20078, "c": 20090},
+        {"o": 20090, "h": 20100, "l": 20086, "c": 20098},
+        {"o": 20098, "h": 20110, "l": 20095, "c": 20106},
+        {"o": 20106, "h": 20115, "l": 20102, "c": 20112},
+        {"o": 20112, "h": 20120, "l": 20108, "c": 20118}
+      ],
+      "frames": [
+        {
+          "title": "SL1 and SH established",
+          "caption": "Swing low SL1 forms at 10:00 (bar 0, low 20,058). Swing high SH forms after it at 10:10 (bar 2, high 20,090).",
+          "reveal": 4,
+          "add": [
+            {
+              "type": "level",
+              "price": 20058,
+              "label": "SL1",
+              "tone": "liq",
+              "id": "level1"
+            },
+            {
+              "type": "level",
+              "price": 20090,
+              "label": "SH",
+              "tone": "liq",
+              "id": "level2"
+            }
+          ]
+        },
+        {
+          "title": "sweep low: price below SL1",
+          "caption": "Bar 6 (10:30) dips to 20,057, below SL1 20,058: the sweep low SWL. Breaker = bar 2, the last up-close bar before SH.",
+          "reveal": 7,
+          "add": [
+            {
+              "type": "level",
+              "price": 20057,
+              "label": "SWL",
+              "tone": "liq",
+              "id": "level3"
+            },
+            {
+              "type": "fvg",
+              "top": 20090,
+              "bottom": 20070,
+              "from": 2,
+              "to": 14,
+              "label": "breaker",
+              "tone": "bull",
+              "id": "fvg4"
+            }
+          ]
+        },
+        {
+          "title": "MSS: bar closes above SH",
+          "caption": "Bar 7 (10:35) closes at 20,096, above SH 20,090. This market structure shift (MSS) is the displacement. Now find the bullish FVG.",
+          "reveal": 8,
+          "add": [
+            {
+              "type": "note",
+              "at": 6,
+              "price": 20096,
+              "label": "MSS close",
+              "id": "note5"
+            }
+          ],
+          "remove": [
+            "level1"
+          ]
+        },
+        {
+          "title": "FVG formed in the rally",
+          "caption": "Bars 6-7-8 leave a bullish FVG: bar 6 high 20,066 to bar 8 low 20,076, 10 pts, after SWL.",
+          "reveal": 9,
+          "add": [
+            {
+              "type": "fvg",
+              "top": 20076,
+              "bottom": 20066,
+              "from": 6,
+              "to": 14,
+              "label": "FVG",
+              "tone": "bull",
+              "id": "fvg6"
+            }
+          ],
+          "remove": [
+            "fvg4",
+            "note5"
+          ]
+        },
+        {
+          "title": "unicorn zone: breaker and FVG",
+          "caption": "Breaker 20,070-20,090 overlaps FVG 20,066-20,076. The overlap 20,070-20,076 (6 pts) is the Unicorn zone.",
+          "reveal": 10,
+          "add": [
+            {
+              "type": "fvg",
+              "top": 20090,
+              "bottom": 20070,
+              "from": 2,
+              "to": 14,
+              "label": "breaker",
+              "tone": "bull",
+              "id": "fvg7"
+            },
+            {
+              "type": "fvg",
+              "top": 20076,
+              "bottom": 20070,
+              "from": 2,
+              "to": 14,
+              "label": "UNICORN",
+              "tone": "bull",
+              "id": "fvg8"
+            }
+          ],
+          "remove": [
+            "level2",
+            "level3"
+          ]
+        },
+        {
+          "title": "entry: buy limit at unicorn top",
+          "caption": "Buy limit at the zone top, 20,076, live 12 bars after the MSS close. Bar 9 (10:45) dips to 20,073 and fills it.",
+          "reveal": 11,
+          "add": [
+            {
+              "type": "entry",
+              "price": 20076,
+              "label": "Entry",
+              "from": 8,
+              "id": "entry9"
+            },
+            {
+              "type": "stop",
+              "price": 20056,
+              "label": "Stop (SWL \u00b7 1)",
+              "from": 8,
+              "id": "stop10"
+            }
+          ],
+          "remove": [
+            "fvg6",
+            "fvg7"
+          ]
+        },
+        {
+          "title": "price rallies to target",
+          "caption": "Target: the swing high above the MSS bar, 20,108 (bar 8 high). Risk 20 pts, so 20,108 is 1.6R, above the 1.5R minimum.",
+          "reveal": 12,
+          "add": [
+            {
+              "type": "target",
+              "price": 20108,
+              "label": "Target",
+              "from": 9,
+              "id": "target11"
+            }
+          ],
+          "remove": [
+            "fvg8"
+          ]
+        },
+        {
+          "title": "target reached",
+          "caption": "Bar 12 (11:00) trades to 20,110, through the 20,108 target. Exit at target, or at 15:55 ET if not reached.",
+          "reveal": 15,
+          "add": []
+        }
+      ]
+    }
   }
 ];

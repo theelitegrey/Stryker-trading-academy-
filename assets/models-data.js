@@ -1304,7 +1304,7 @@ const MODELS_SEED = [
       ],
       "frames": [
         {
-          "title": "context: price above VWAP at 10:00",
+          "title": "Context: price above VWAP at 10:00",
           "caption": "10:00 bar closes 20,104, above its VWAP 20,091.33. VWAP and the \u00b11\u03c3/\u00b12\u03c3 bands are drawn as they stand at each bar.",
           "reveal": 1,
           "add": [

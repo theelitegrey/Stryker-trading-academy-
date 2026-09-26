@@ -78,12 +78,16 @@ function checkAndNotifyNewAchievements(uid, student, chapters, extra){
 //
 // isSelf matters here: this function sometimes runs against the CALLER's
 // own uid (after their own post/reply/referral) and sometimes against
-// someone else's (after THEY receive a like — the liker's session is what
-// triggers the recheck for the post author). The full multi-field profile
-// sync below is only safe for the self case; a cross-user write can only
-// touch the one field the Firestore rules specifically allow for that
-// (floorLikesReceived), or it'll be rejected. Pass isSelf: false for any
-// caller acting on someone else's uid.
+// someone else's (after THEY receive a like, or a referral credits them —
+// the acting user's session is what triggers the recheck for the OTHER
+// person). The public-profile sync below is self-write only: profiles/{uid}
+// in firestore.rules is `allow update: if isAdmin() || (isSelf(uid) &&
+// !touchesPrivileged())` — there is no field-level exception for a
+// non-owner, floorLikesReceived included, so a cross-user write here was
+// always denied (see the handback proposal for how this field should
+// really be kept current for other students). Pass isSelf: false for any
+// caller acting on someone else's uid; it now skips the doomed write
+// instead of firing it.
 function checkAndNotifyNewAchievementsFor(uid, isSelf){
   if (typeof db === 'undefined' || !db) return Promise.resolve();
   return db.collection('students').doc(uid).get().then((doc) => {
@@ -104,24 +108,20 @@ function checkAndNotifyNewAchievementsFor(uid, isSelf){
     // are deliberately never synced here — they stay private, per the
     // reasoning in achievements-data.js's file header.
     //
-    // The self case can sync all five fields at once (writing your own
-    // profile doc, no restriction). The cross-user case (someone else's
-    // uid, after they received a like) can only touch floorLikesReceived —
-    // that's the one field the Firestore rules specifically allow a
-    // non-owner to update, matching the same narrow exception on the
-    // students/{uid} rule that the counter increment itself relies on.
-    if (typeof syncPublicProfile === 'function') {
-      if (isSelf) {
-        syncPublicProfile(uid, {
-          floorPostCount: extra.postCount,
-          floorReplyCount: extra.replyCount,
-          floorLikesReceived: extra.likesReceived,
-          referralPoints: student.referralPoints || 0,
-          tradingViewAccessGranted: !!student.tradingViewAccessGranted
-        });
-      } else {
-        syncPublicProfile(uid, { floorLikesReceived: extra.likesReceived });
-      }
+    // Self-write only. profiles/{uid} update rule is isAdmin() ||
+    // (isSelf(uid) && !touchesPrivileged()) — there is no non-owner
+    // exception for any field, floorLikesReceived included, so a
+    // cross-user write here would always be denied. Skip it rather than
+    // firing a write that can only fail; the achievement check itself
+    // still runs for both self and cross-user calls.
+    if (isSelf && typeof syncPublicProfile === 'function') {
+      syncPublicProfile(uid, {
+        floorPostCount: extra.postCount,
+        floorReplyCount: extra.replyCount,
+        floorLikesReceived: extra.likesReceived,
+        referralPoints: student.referralPoints || 0,
+        tradingViewAccessGranted: !!student.tradingViewAccessGranted
+      });
     }
     return checkAndNotifyNewAchievements(uid, student, null, extra);
   }).catch((err) => console.error('Stryker: failed to check achievements', err));

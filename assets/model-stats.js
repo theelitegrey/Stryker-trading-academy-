@@ -22,7 +22,7 @@
 // visitor can ever see outside of an Owner-approved model.stats are the demo
 // fixture below, which is fenced off from production in three ways: (1) only
 // on localhost/127.0.0.1, (2) only with ?statsdemo=1 in the URL, (3) the
-// fixture lives under tools/, which tools/check.py's deploy list excludes —
+// fixture lives under tools/, which the Deploy workflow's rsync excludes —
 // it cannot ship. The fixture is loaded over fetch(), never inlined here.
 //
 // DEFAULT DISCLAIMER: DRAFT COPY pending content-developer APPROVED/REVISE
@@ -39,6 +39,9 @@
   // Per-mount teardown so re-renders (Reset button -> renderModel again)
   // never leak IntersectionObservers from a previous card.
   var activeTeardown = null;
+  // Bumped on every render; a demo fetch that resolves after a newer render
+  // started is dropped, so a quick re-render can never mount two cards.
+  var renderGen = 0;
 
   function isFiniteNum(v) {
     return typeof v === 'number' && isFinite(v);
@@ -118,16 +121,16 @@
   // timing/animation never runs). Animation only replaces it in-place, and
   // only when the metric is below the fold at mount time (never resets a
   // number already on screen — the build-337 first-paint rule).
-  function animateCountUp(el, target, decimals) {
+  function animateCountUp(el, target, decimals, unit) {
     var dur = 900;
     var start = null;
     function frame(t) {
       if (start === null) start = t;
       var k = Math.min(1, (t - start) / dur);
       var eased = 1 - Math.pow(1 - k, 3);
-      el.textContent = fmtValue(target * eased, decimals);
+      el.textContent = fmtValue(target * eased, decimals) + unit;
       if (k < 1) requestAnimationFrame(frame);
-      else el.textContent = fmtValue(target, decimals);
+      else el.textContent = fmtValue(target, decimals) + unit;
     }
     requestAnimationFrame(frame);
   }
@@ -256,7 +259,7 @@
         played = true;
         counters.forEach(function (c) {
           c.el.textContent = fmtValue(0, c.m.decimals) + (c.m.unit || '');
-          animateCountUp(c.el, c.m.value, c.m.decimals);
+          animateCountUp(c.el, c.m.value, c.m.decimals, c.m.unit || '');
         });
         if (sparkPath) {
           sparkPath.style.transition = 'stroke-dashoffset 900ms cubic-bezier(.2,.8,.2,1)';
@@ -283,12 +286,13 @@
     var slot = document.getElementById(SLOT_ID);
     if (!slot) return;
     clearSlot(slot);
+    var gen = ++renderGen;
 
     if (isDemoRequest()) {
       fetch('tools/fixtures/model-stats-demo.json', { cache: 'no-store' })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (fixture) {
-          if (!fixture || fixture.approved !== true) return;
+          if (gen !== renderGen || !fixture || fixture.approved !== true) return;
           buildCard(slot, fixture, true);
         })
         .catch(function (e) { console.error('Stryker: stats demo fixture failed', e); });

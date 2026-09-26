@@ -32,7 +32,7 @@ const ACHIEVEMENTS = [
   { id: 'chapters-10', title: '10 Chapters Complete', desc: 'Complete any 10 chapters.', category: 'Curriculum', color: '#03c988',
     icon: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9 7h6M9 11h6"/>',
     check: (s) => s.completedChapters.length >= 10 },
-  { id: 'halfway-there', title: 'Halfway There', desc: 'Complete 21 of the 42 chapters.', category: 'Curriculum', color: '#03c988',
+  { id: 'halfway-there', title: 'Halfway There', desc: 'Complete 21 of the 42 core chapters.', category: 'Curriculum', color: '#03c988',
     icon: '<circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z" fill="currentColor" stroke="none"/>',
     check: (s) => s.completedChapters.length >= 21 },
   { id: 'chapters-30', title: '30 Chapters Complete', desc: 'Complete any 30 chapters.', category: 'Curriculum', color: '#03c988',
@@ -47,7 +47,7 @@ const ACHIEVEMENTS = [
   { id: 'smt-certified', title: 'SMT Certified', desc: 'Complete all Part III advanced chapters.', category: 'Curriculum', color: '#4fe3ac',
     icon: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/>',
     check: (s, ch) => !!ch && ch.filter(c => c.level === 'advanced').every(c => s.completedChapters.includes(c.num)) },
-  { id: 'curriculum-complete', title: 'Curriculum Complete', desc: 'Finish all 42 chapters, start to finish.', category: 'Curriculum', color: '#f5c542',
+  { id: 'curriculum-complete', title: 'Curriculum Complete', desc: 'Finish all 42 core chapters, start to finish.', category: 'Curriculum', color: '#f5c542',
     icon: '<path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/><circle cx="12" cy="12" r="10"/>',
     check: (s, ch) => !!ch && s.completedChapters.length >= ch.length },
 

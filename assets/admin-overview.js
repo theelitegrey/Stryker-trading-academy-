@@ -26,7 +26,7 @@ function renderRecentStudents(students){
     row.innerHTML =
       '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + stkEsc(name) + '</span><span class="cell-sub">' + stkEsc(s.email || '—') + '</span></div></div>' +
       '<div class="record-stats">' +
-        '<div class="record-stat"><span class="rs-label">Progress</span><span class="rs-val">' + doneCount + ' / 42 chapters</span></div>' +
+        '<div class="record-stat"><span class="rs-label">Progress</span><span class="rs-val">' + doneCount + ' / 42 core chapters</span></div>' +
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
       '</div>';
     list.appendChild(row);

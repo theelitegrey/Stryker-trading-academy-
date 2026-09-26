@@ -137,7 +137,7 @@ ${lv3.map(card).join('\n')}
       </div></div>
     </div>
     <div class="cur-foot cp-foot">
-      <a href="courses" class="btn btn-ghost">See all ${total} chapters</a>
+      <a href="courses" class="btn btn-ghost">See all ${total + 22} chapters</a>
     </div>
   </div>
   ${END}`;

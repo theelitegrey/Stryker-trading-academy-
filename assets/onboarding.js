@@ -209,7 +209,7 @@
     return '<h3>You’re set up.</h3>' +
       '<p class="ob-sub">' + esc(chapterLine) + '</p>' +
       '<ul class="ob-recap">' +
-        '<li><b>Curriculum</b> — 42 chapters, in order, with your progress tracked.</li>' +
+        '<li><b>Curriculum</b> — 42 core chapters (64 with specialist tracks), in order, with your progress tracked.</li>' +
         '<li><b>Trade journal</b> — log trades, tick your playbook rules, watch the analytics build.</li>' +
         '<li><b>Backtesting</b> — replay past sessions against your playbook to build a track record in an evening.</li>' +
         '<li><b>Live sessions and the Trading Floor</b> — trade the open together, then talk about it.</li>' +

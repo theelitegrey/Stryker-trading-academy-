@@ -57,7 +57,12 @@ function renderContinueBanner(container){
 function unlockLabel(ch){
   if (typeof isTrackChapter === 'function' && isTrackChapter(ch)) return '';
   const entryPlan = (typeof defaultPlanName === 'function') ? defaultPlanName() : 'Starter';
-  const freeForEntry = (typeof hasChapterNumberAccess === 'function')
+  // hasChapterNumberAccess fails OPEN when the plans can't be read (right for
+  // access, wrong for a label), so only claim "Free" when the entry plan was
+  // actually found and has a finite chapter ceiling.
+  const entryKnown = (typeof findPlan === 'function') && !!findPlan(entryPlan) &&
+    (typeof chapterLimitOf === 'function') && isFinite(chapterLimitOf(entryPlan));
+  const freeForEntry = entryKnown && (typeof hasChapterNumberAccess === 'function')
     ? hasChapterNumberAccess(entryPlan, ch.num)
     : false;
   return freeForEntry ? '<span class="status-pill unlocked">Free</span>' : '';

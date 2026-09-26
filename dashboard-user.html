@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="335">
+<meta name="stryker-build" content="336">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Stryker Trading Academy</title>
 <meta name="description" content="Your Stryker Trading Academy student dashboard.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=335">
+<link rel="stylesheet" href="assets/style.css?v=336">
 <!-- Kept synchronous, NOT deferred (audit P2-1 win 3 asked to check this):
      every stkEsc/stkHtml/stkUrl/stkImgUrl caller across the site (34 files,
      e.g. dashboard.js, community.js, checkout.js) is itself a plain sync
@@ -20,8 +20,8 @@
      need it. Verified by grep: no caller sits ahead of </head> in any
      page, so all of them run after this script has already executed
      synchronously; that ordering breaks if this becomes defer. -->
-<script src="assets/sanitize.js?v=335"></script>
-<script src="assets/motion.js?v=335"></script>
+<script src="assets/sanitize.js?v=336"></script>
+<script src="assets/motion.js?v=336"></script>
 <script>
 // Stryker Trading Academy — device detection for forced views
 //
@@ -66,10 +66,10 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=335" defer></script>
-<script src="assets/version-check.js?v=335" defer></script>
-<script src="assets/acquisition.js?v=335" defer></script>
-<script src="assets/focus-mode.js?v=335" defer></script>
+<script src="assets/toast.js?v=336" defer></script>
+<script src="assets/version-check.js?v=336" defer></script>
+<script src="assets/acquisition.js?v=336" defer></script>
+<script src="assets/focus-mode.js?v=336" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -88,7 +88,7 @@
   <a class="appnav-dk" data-nav="journal" href="trade-journal"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="appnav-dkl">Journal</span></a>
   <a class="appnav-dk" data-nav="monitor" href="global-monitor"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span class="appnav-dkl">Monitor</span></a>
 </nav>
-<script src="assets/app-nav.js?v=335"></script>
+<script src="assets/app-nav.js?v=336"></script>
 
 
 <div class="access-gate-overlay" id="access-gate-overlay">
@@ -396,37 +396,37 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=335"></script>
-<script src="assets/gate-timeout.js?v=335"></script>
-<script src="assets/progress.js?v=335"></script>
-<script src="assets/presence.js?v=335"></script>
-<script src="assets/messages.js?v=335"></script>
-<script src="assets/messages-badge.js?v=335"></script>
-<script src="assets/gm-badge.js?v=335"></script>
-<script src="assets/activity-log.js?v=335"></script>
-<script src="assets/banned-check.js?v=335"></script>
-<script src="assets/email-verify.js?v=335"></script>
-<script src="assets/notifications.js?v=335"></script>
+<script src="assets/auth.js?v=336"></script>
+<script src="assets/gate-timeout.js?v=336"></script>
+<script src="assets/progress.js?v=336"></script>
+<script src="assets/presence.js?v=336"></script>
+<script src="assets/messages.js?v=336"></script>
+<script src="assets/messages-badge.js?v=336"></script>
+<script src="assets/gm-badge.js?v=336"></script>
+<script src="assets/activity-log.js?v=336"></script>
+<script src="assets/banned-check.js?v=336"></script>
+<script src="assets/email-verify.js?v=336"></script>
+<script src="assets/notifications.js?v=336"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=335"></script>
-<script src="assets/install-prompt.js?v=335"></script>
-<script src="assets/push-prompt.js?v=335"></script>
-<script src="assets/admin-link.js?v=335"></script>
-<script src="assets/profiles-sync.js?v=335"></script>
-<script src="assets/usernames.js?v=335"></script>
-<script src="assets/loading-animation.js?v=335"></script>
-<script src="assets/avatars.js?v=335"></script>
-<script src="assets/account-menu.js?v=335"></script>
-<script src="assets/referrals.js?v=335"></script>
-<script src="assets/roles.js?v=335"></script>
-<script src="assets/plan-price.js?v=335"></script>
-<script src="assets/plan-modal.js?v=335"></script>
-<script src="assets/plan-guard.js?v=335"></script>
-<script src="assets/maintenance-check.js?v=335"></script>
-<script src="assets/branding.js?v=335"></script>
-<script src="assets/chapters-index.js?v=335"></script>
-<script src="assets/chapters-store.js?v=335"></script>
-<script src="assets/dashboard.js?v=335"></script>
+<script src="assets/push.js?v=336"></script>
+<script src="assets/install-prompt.js?v=336"></script>
+<script src="assets/push-prompt.js?v=336"></script>
+<script src="assets/admin-link.js?v=336"></script>
+<script src="assets/profiles-sync.js?v=336"></script>
+<script src="assets/usernames.js?v=336"></script>
+<script src="assets/loading-animation.js?v=336"></script>
+<script src="assets/avatars.js?v=336"></script>
+<script src="assets/account-menu.js?v=336"></script>
+<script src="assets/referrals.js?v=336"></script>
+<script src="assets/roles.js?v=336"></script>
+<script src="assets/plan-price.js?v=336"></script>
+<script src="assets/plan-modal.js?v=336"></script>
+<script src="assets/plan-guard.js?v=336"></script>
+<script src="assets/maintenance-check.js?v=336"></script>
+<script src="assets/branding.js?v=336"></script>
+<script src="assets/chapters-index.js?v=336"></script>
+<script src="assets/chapters-store.js?v=336"></script>
+<script src="assets/dashboard.js?v=336"></script>
 <!-- Guided feature walkthrough -->
 <div class="tour-root" id="tour-root" hidden>
   <div class="tour-veil" id="tour-veil"></div>
@@ -449,17 +449,17 @@
   </div>
 </div>
 
-<script src="assets/models-data.js?v=335"></script>
-<script src="assets/models-store.js?v=335"></script>
-<script src="assets/playbook-data.js?v=335"></script>
-<script src="assets/market-brief.js?v=335"></script>
-<script src="assets/market-map.js?v=335"></script>
-<script src="assets/econ-calendar.js?v=335"></script>
-<script src="assets/onboarding.js?v=335"></script>
-<script src="assets/tour.js?v=335"></script>
-<script src="assets/journal-calc.js?v=335"></script>
-<script src="assets/dash-overview.js?v=335"></script>
-<script src="assets/dash-nav.js?v=335"></script>
-<script src="assets/theme.js?v=335"></script>
+<script src="assets/models-data.js?v=336"></script>
+<script src="assets/models-store.js?v=336"></script>
+<script src="assets/playbook-data.js?v=336"></script>
+<script src="assets/market-brief.js?v=336"></script>
+<script src="assets/market-map.js?v=336"></script>
+<script src="assets/econ-calendar.js?v=336"></script>
+<script src="assets/onboarding.js?v=336"></script>
+<script src="assets/tour.js?v=336"></script>
+<script src="assets/journal-calc.js?v=336"></script>
+<script src="assets/dash-overview.js?v=336"></script>
+<script src="assets/dash-nav.js?v=336"></script>
+<script src="assets/theme.js?v=336"></script>
 </body>
 </html>

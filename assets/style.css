@@ -474,7 +474,7 @@ section{ padding:96px 0; }
   align-items:center;
   gap:24px;
   width:max-content;
-  animation:proof-scroll 48s linear infinite;
+  animation:proof-scroll 75.4s linear infinite;
 }
 @keyframes proof-scroll{
   from{ transform:translateX(0); }
@@ -494,7 +494,7 @@ section{ padding:96px 0; }
 }
 @media (max-width:640px){
   .proof-card{ width:260px; }
-  .proof-marquee-track{ gap:16px; animation-duration:34s; }
+  .proof-marquee-track{ gap:16px; animation-duration:53.4s; }
 }
 
 .parallax-band{

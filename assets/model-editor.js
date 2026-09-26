@@ -4,6 +4,17 @@
 
 let EDITING_ID = null;
 let IS_NEW_MODEL = false;
+// The model exactly as it was loaded. Fields this form doesn't edit
+// (storyboard, stats, and anything added later) are carried over on save,
+// because .set() replaces the whole document and would otherwise strip them.
+let LOADED_MODEL = null;
+const FORM_FIELDS = ['id', 'name', 'category', 'summary', 'video', 'minRole', 'bodyHtml', 'paragraphs', 'steps'];
+function preservedFields(){
+  const keep = {};
+  if (!LOADED_MODEL || IS_NEW_MODEL) return keep;
+  Object.keys(LOADED_MODEL).forEach((k) => { if (FORM_FIELDS.indexOf(k) < 0) keep[k] = LOADED_MODEL[k]; });
+  return keep;
+}
 
 function getQueryParam(name){
   return new URLSearchParams(window.location.search).get(name);
@@ -67,6 +78,7 @@ function wireRemoveButtons(){
 }
 
 function loadModelIntoForm(m){
+  LOADED_MODEL = m;
   document.getElementById('ed-id').value = m.id || '';
   document.getElementById('ed-id').disabled = !IS_NEW_MODEL; // id is the doc ID — fixed once created
   document.getElementById('ed-name').value = m.name || '';
@@ -239,7 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
     errEl.style.display = 'none';
     okEl.style.display = 'none';
 
-    const data = collectFormData();
+    const data = Object.assign(preservedFields(), collectFormData());
     if (!data.id) {
       errEl.textContent = 'Model ID (slug) is required.';
       errEl.style.display = 'block';
@@ -261,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof showToast === 'function') showToast('success', 'Saved.');
         IS_NEW_MODEL = false;
         EDITING_ID = data.id;
+        LOADED_MODEL = data;
         document.getElementById('ed-id').disabled = true;
         document.getElementById('editor-heading').textContent = 'Edit: ' + data.name;
       })

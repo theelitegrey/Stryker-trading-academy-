@@ -1,1 +1,170 @@
-/* placeholder, filled in by the Models v2 work (hermes/models-v2). */
+/* Stryker Trading Academy — interactive setup player (assets/setup-player.js)
+   Theme: every colour is a CSS variable, so day/night follows :root[data-theme].
+   Motion: transforms and opacity only. Under prefers-reduced-motion (and the
+   .sp-still class the script adds) nothing tweens; steps render instantly. */
+
+#model-player-slot[hidden]{ display:none !important; }
+#model-player-slot{ margin:6px 0 26px; min-width:0; }
+
+.sp{
+  --sp-up: var(--bull);
+  --sp-dn: var(--bear);
+  --sp-liq: var(--amber);
+  --sp-entry: var(--teal);
+  --sp-stop: var(--bear);
+  --sp-target: var(--bull);
+  --sp-mss: var(--ink-0);
+  position:relative; min-width:0; max-width:100%;
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md, 14px);
+  padding:14px 14px 10px; outline:none;
+  box-shadow:0 1px 0 0 var(--line-soft);
+}
+.sp:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+.sp-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; min-width:0; }
+.sp-head-l{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.sp-kicker{ font-family:var(--font-mono, monospace); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold); }
+.sp-title{ font-size:15px; font-weight:650; color:var(--ink-0); line-height:1.3; overflow-wrap:anywhere; }
+.sp-head-r{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end; flex-shrink:0; }
+.sp-badge, .sp-tf{
+  font-family:var(--font-mono, monospace); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+  padding:3px 7px; border-radius:999px; border:1px solid var(--line); color:var(--ink-2); white-space:nowrap;
+}
+.sp-badge{ color:var(--amber); border-color:color-mix(in srgb, var(--amber) 45%, transparent); }
+
+.sp-chart{
+  position:relative; width:100%; min-width:0; overflow:hidden; border-radius:10px;
+  background:var(--bg-1); border:1px solid var(--line-soft);
+  touch-action:pan-y; -webkit-user-select:none; user-select:none;
+  height:260px;
+}
+.sp-svg{ display:block; max-width:100%; }
+
+.sp-grid{ stroke:var(--line-soft); stroke-width:1; }
+.sp-c line{ stroke-width:1.2; }
+.sp-up line{ stroke:var(--sp-up); } .sp-up rect{ fill:var(--sp-up); }
+.sp-dn line{ stroke:var(--sp-dn); } .sp-dn rect{ fill:var(--sp-dn); }
+
+.sp-band{ fill:var(--ink-2); opacity:.08; }
+.sp-zone{ stroke-width:1; }
+.sp-t-bull{ fill:color-mix(in srgb, var(--bull) 16%, transparent); stroke:color-mix(in srgb, var(--bull) 60%, transparent); }
+.sp-t-bear{ fill:color-mix(in srgb, var(--bear) 16%, transparent); stroke:color-mix(in srgb, var(--bear) 60%, transparent); }
+.sp-t-liq{ fill:color-mix(in srgb, var(--amber) 14%, transparent); stroke:color-mix(in srgb, var(--amber) 60%, transparent); }
+.sp-t-neutral{ fill:color-mix(in srgb, var(--ink-2) 12%, transparent); stroke:color-mix(in srgb, var(--ink-2) 50%, transparent); }
+
+.sp-line{ stroke-width:1.5; fill:none; }
+.sp-l-liq{ stroke:var(--sp-liq); stroke-dasharray:5 4; }
+.sp-l-bull{ stroke:var(--bull); stroke-dasharray:5 4; }
+.sp-l-bear{ stroke:var(--bear); stroke-dasharray:5 4; }
+.sp-l-neutral{ stroke:var(--ink-2); stroke-dasharray:5 4; }
+.sp-l-mss{ stroke:var(--sp-mss); stroke-width:1.4; }
+.sp-l-entry{ stroke:var(--sp-entry); stroke-width:1.8; }
+.sp-l-stop{ stroke:var(--sp-stop); stroke-width:1.6; stroke-dasharray:3 3; }
+.sp-l-target{ stroke:var(--sp-target); stroke-width:1.6; stroke-dasharray:3 3; }
+
+.sp-hl{ fill:none; stroke:var(--gold); stroke-width:1.5; stroke-dasharray:3 3; }
+.sp-sweep circle{ fill:none; stroke:var(--amber); stroke-width:1.6; }
+.sp-sweep .sp-dot{ fill:var(--amber); stroke:none; }
+.sp-arrow path{ stroke:var(--ink-1); stroke-width:1.5; fill:none; }
+.sp-arrow .sp-ahead{ fill:var(--ink-1); stroke:none; }
+
+.sp-lab{
+  font-family:var(--font-mono, monospace); font-size:10.5px; font-weight:600; letter-spacing:.02em;
+  paint-order:stroke; stroke:var(--bg-1); stroke-width:3px; stroke-linejoin:round;
+}
+.sp-lab-liq, .sp-lab-sweep{ fill:var(--amber); }
+.sp-lab-bull, .sp-lab-target{ fill:var(--bull); }
+.sp-lab-bear, .sp-lab-stop{ fill:var(--bear); }
+.sp-lab-entry{ fill:var(--teal); }
+.sp-lab-mss{ fill:var(--ink-0); }
+.sp-lab-neutral, .sp-lab-band{ fill:var(--ink-2); }
+.sp-lab-note{ fill:var(--ink-1); }
+
+/* Focus: everything not named in the frame's focus list steps back. */
+.sp-dim{ opacity:.28; }
+.sp-band.sp-dim{ opacity:.04; }
+
+/* Caption */
+.sp-cap{ margin:12px 2px 4px; min-height:78px; min-width:0; }
+.sp-cap-top{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin-bottom:4px; }
+.sp-stepno{ font-family:var(--font-mono, monospace); font-size:11px; color:var(--gold); letter-spacing:.06em; text-transform:uppercase; white-space:nowrap; }
+.sp-cap-title{ font-weight:650; color:var(--ink-0); font-size:14.5px; overflow-wrap:anywhere; }
+.sp-cap-text{ margin:0; color:var(--ink-1); font-size:14px; line-height:1.55; overflow-wrap:anywhere; }
+
+/* Controls */
+.sp-ctrls{ display:flex; align-items:center; gap:8px; margin-top:8px; min-width:0; flex-wrap:wrap; }
+.sp-btn{
+  width:40px; height:40px; flex:0 0 40px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--bg-3); border:1px solid var(--line); color:var(--ink-0); cursor:pointer;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1), background .2s ease, border-color .2s ease;
+}
+.sp-btn svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.sp-btn .sp-ifill{ fill:currentColor; stroke:none; }
+.sp-btn:hover:not(:disabled){ border-color:var(--gold); }
+.sp-btn:active:not(:disabled){ transform:scale(.94); }
+.sp-btn:disabled{ opacity:.4; cursor:default; }
+.sp-btn:focus-visible, .sp-speed button:focus-visible, .sp-scrub:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.sp-play{ width:46px; height:46px; flex-basis:46px; background:var(--gold); border-color:var(--gold); color:var(--bg-0); }
+:root[data-theme="light"] .sp-play{ color:#fff; }
+.sp-play:hover:not(:disabled){ border-color:var(--gold-bright); background:var(--gold-bright); }
+
+.sp-scrub{
+  flex:1 1 120px; min-width:0; height:28px; margin:0 4px; background:transparent; cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+}
+.sp-scrub::-webkit-slider-runnable-track{
+  height:4px; border-radius:4px;
+  background:linear-gradient(90deg, var(--gold) var(--sp-pct), var(--line) var(--sp-pct));
+}
+.sp-scrub::-moz-range-track{ height:4px; border-radius:4px; background:var(--line); }
+.sp-scrub::-moz-range-progress{ height:4px; border-radius:4px; background:var(--gold); }
+.sp-scrub::-webkit-slider-thumb{
+  -webkit-appearance:none; width:16px; height:16px; border-radius:50%; margin-top:-6px;
+  background:var(--ink-0); border:2px solid var(--gold);
+}
+.sp-scrub::-moz-range-thumb{ width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--gold); }
+
+.sp-speed{ display:inline-flex; border:1px solid var(--line); border-radius:999px; overflow:hidden; flex:0 0 auto; }
+.sp-speed button{
+  font-family:var(--font-mono, monospace); font-size:11.5px; min-width:40px; height:32px; padding:0 8px;
+  background:transparent; border:0; color:var(--ink-2); cursor:pointer;
+}
+.sp-speed button + button{ border-left:1px solid var(--line); }
+.sp-speed button[aria-pressed="true"]{ background:var(--bg-3); color:var(--gold); font-weight:700; }
+
+.sp-foot{ margin:10px 2px 2px; font-size:11.5px; color:var(--ink-2); line-height:1.45; }
+
+/* Phones: the scrubber takes its own full-width row under the buttons, so
+   every control stays a comfortable touch target at 390px. */
+@media (max-width:560px){
+  .sp{ padding:12px 10px 8px; border-radius:12px; }
+  .sp-head{ flex-direction:column; align-items:stretch; gap:6px; }
+  .sp-head-r{ justify-content:flex-start; }
+  .sp-scrub{ order:5; flex:1 1 100%; margin:4px 0 0; }
+  .sp-speed{ margin-left:auto; }
+  .sp-cap{ min-height:96px; }
+}
+
+/* ---- motion (only on a forward step, only without reduced motion) ------- */
+@keyframes sp-rise{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+@keyframes sp-fade{ from{ opacity:0; } }
+@keyframes sp-grow{ from{ opacity:0; transform:scaleX(0); } to{ transform:scaleX(1); } }
+@keyframes sp-pop{ 0%{ opacity:0; transform:scale(.2); } 70%{ opacity:1; transform:scale(1.25); } 100%{ transform:scale(1); } }
+
+.sp .sp-new{ animation-fill-mode:both; animation-timing-function:cubic-bezier(.2,.8,.2,1); }
+.sp .sp-new.sp-rise{ animation-name:sp-rise; transform-box:fill-box; }
+.sp .sp-new.sp-fade{ animation-name:sp-fade; }
+.sp .sp-new.sp-grow{ animation-name:sp-grow; transform-box:fill-box; transform-origin:left center; }
+.sp .sp-new.sp-pop{ animation-name:sp-pop; }
+/* A dimmed newcomer should end dimmed, not flash to full strength. */
+.sp .sp-new.sp-dim{ animation-name:sp-fade; }
+
+.sp-cap-text, .sp-cap-title{ transition:opacity .25s ease; }
+
+@media (prefers-reduced-motion: reduce){
+  .sp .sp-new{ animation:none !important; }
+  .sp-btn{ transition:none; }
+  .sp-cap-text, .sp-cap-title{ transition:none; }
+}
+.sp.sp-still .sp-new{ animation:none !important; }

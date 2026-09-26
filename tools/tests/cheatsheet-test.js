@@ -25,7 +25,7 @@ const UTM = '?utm_source=instagram&utm_medium=social&utm_campaign=cheatsheet-pro
 const PAGES = [
   { path: '/cheat-sheet.html', ret: '/cheat-sheet', pdf: 'assets/downloads/stryker-fvg-order-block-cheat-sheet.pdf',
     label: 'Downloaded the FVG & Order Block cheat sheet', name: 'fvg' },
-  { path: '/prop-firm-cheat-sheet.html', ret: '/prop-firm-cheat-sheet', pdf: 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf',
+  { path: '/prop-firm-cheat-sheet.html', ret: '/prop-firm-cheat-sheet', pdf: 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=341',
     label: 'Downloaded the Prop Firm cheat sheet', name: 'prop' }
 ];
 
@@ -100,9 +100,9 @@ async function pageRun(b, pg, signedIn, width, utm) {
       legal: document.querySelector('.cs-legal').textContent, cap: document.querySelector('.cs-preview figcaption').textContent }));
     ok(`${tag}: approved copy (title/H1/meta/3 bullets/legal/caption)`,
       c.title === 'Free Prop Firm Cheat Sheet — Stryker Trading Academy' && c.h1 === 'Prop Firm Cheat Sheet' &&
-      c.desc.startsWith('A free two-page prop firm cheat sheet:') && c.bullets === 3 &&
+      c.desc.startsWith('A free four-page prop firm cheat sheet:') && c.bullets === 3 &&
       c.legal.startsWith('Education only. Not financial advice. Most traders fail evaluations.') &&
-      c.cap === '2 pages · PDF · How prop firms work, the rules, sizing and a daily routine', JSON.stringify(c).slice(0, 200));
+      c.cap === '4 pages · PDF · The rules, sizing, the IFVG model and everything inside Stryker', JSON.stringify(c).slice(0, 200));
   }
   if (SHOTS && !utm && (width === 390 || width === 1440)) await p.screenshot({ path: `${SHOTS}/${pg.name}-${signedIn ? 'signedin' : 'signedout'}-${width}.png` });
   if (!signedIn) {

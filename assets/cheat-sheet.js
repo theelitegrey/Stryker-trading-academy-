@@ -43,7 +43,14 @@
   function checkPdf() {
     fetch(PDF_PATH, { method: 'HEAD', cache: 'no-store' }).then(function (r) {
       var ok = r.ok && /pdf/i.test(r.headers.get('content-type') || '');
-      if (ok) dl.setAttribute('href', PDF_PATH);
+      if (ok) {
+        dl.setAttribute('href', PDF_PATH);
+        // The href can carry a ?v= cache-buster; strip any query string and
+        // directory so the browser always offers a clean, real filename
+        // instead of something like "stryker-prop-firm-cheat-sheet.pdf?v=341".
+        var fname = PDF_PATH.split('?')[0].split('/').pop();
+        if (fname) dl.setAttribute('download', fname);
+      }
       dl.hidden = !ok;
       pending.hidden = ok;
     }).catch(function () { dl.hidden = true; pending.hidden = false; });

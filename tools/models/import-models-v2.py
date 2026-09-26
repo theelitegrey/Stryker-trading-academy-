@@ -122,6 +122,8 @@ def short_label(text):
     t = PRICE_IN_LABEL.sub('', text or '').strip()
     t = re.sub(r'\s{2,}', ' ', t)
     t = re.sub(r'^\s*-\s*', '', t)
+    t = re.sub(r'[\s=:\-–—]+$', '', t)     # "TARGET 2R = 19,992.5" -> "Target 2R"
+    t = re.sub(r'\s*-\s*-\s*', ' - ', t)
     # ENTRY/STOP/TARGET/SWEEP read as shouting on a chart; acronyms (PRH, FVG) stay.
     t = re.sub(r'\b(ENTRY|STOP|TARGET|SWEEP)\b', lambda mm: mm.group(1).capitalize(), t)
     return t.replace(' - ', ' · ')

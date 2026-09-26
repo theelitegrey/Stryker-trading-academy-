@@ -1,13 +1,13 @@
 // node sb.mjs <base> <outdir>: models list (11) + silver bullet player pass
 import { launch, openPage } from './mv2.mjs';
-const [base, out] = process.argv.slice(2);
+const [base, out, SB = 'silver-bullet-model', H1 = 'ICT Silver Bullet'] = process.argv.slice(2);
 const b = await launch();
 const res = [];
 const ok = (n, c, x) => res.push((c ? 'PASS ' : 'FAIL ') + n + (x ? '  ' + x : ''));
 const clean = (e) => e.filter((x) => !/ERR_FAILED/.test(x));
 try {
   // models list
-  for (const [w, h, theme] of [[390, 844, 'night'], [1440, 900, 'day']]) {
+  if (SB === 'silver-bullet-model') for (const [w, h, theme] of [[390, 844, 'night'], [1440, 900, 'day']]) {
     const { ctx, page, errors } = await openPage(b, base + '/models.html', { w, h, theme });
     await page.waitForTimeout(1200);
     const r = await page.evaluate(() => ({
@@ -30,7 +30,7 @@ try {
     await ctx.close();
   }
   // silver bullet player
-  const url = base + '/model.html?id=silver-bullet-model';
+  const url = base + '/model.html?id=' + SB;
   for (const [w, h, theme, reduced] of [[390, 844, 'night', false], [390, 844, 'day', false], [1440, 900, 'night', false], [1440, 900, 'day', false], [390, 844, 'night', true]]) {
     const tag = `${w}-${theme}${reduced ? '-reduced' : ''}`;
     const { ctx, page, errors } = await openPage(b, url, { w, h, theme, reduced });
@@ -41,7 +41,7 @@ try {
       sw: document.documentElement.scrollWidth, iw: innerWidth, h1: document.getElementById('model-title').textContent,
       priceInLabels: [...document.querySelectorAll('.sp-lab')].some((t) => /\d{3,}/.test(t.textContent)) }));
     ok(`sb ${tag}: autoplay ${reduced ? 'off' : 'on'}`, s1.playing === !reduced, JSON.stringify({ step: s1.step, playing: s1.playing }));
-    ok(`sb ${tag}: badge + title`, s1.badge === 'Illustrative example' && s1.h1 === 'ICT Silver Bullet', s1.title);
+    ok(`sb ${tag}: badge + title`, s1.badge === 'Illustrative example' && s1.h1 === H1, s1.title);
     ok(`sb ${tag}: no overflow`, s1.sw <= s1.iw, `${s1.sw}/${s1.iw}`);
     ok(`sb ${tag}: no prices in chart labels`, !s1.priceInLabels);
     if (!s1.playing) {} else { await page.click('.sp-play'); }
@@ -51,7 +51,7 @@ try {
       if (i) await page.keyboard.press('ArrowRight');
       await page.waitForTimeout(reduced ? 60 : 1100);
       seen.push(await page.textContent('.sp-stepno'));
-      if ((i === 3 && !reduced) || (i === 7)) await page.locator('.sp').screenshot({ path: `${out}/sb-${tag}-step${i + 1}.png` });
+      if ((i === 3 && !reduced) || (i === 7)) await page.locator('.sp').screenshot({ path: `${out}/${SB.split('-')[0]}-${tag}-step${i + 1}.png` });
     }
     ok(`sb ${tag}: steps 1..8 by keyboard`, seen.join(',') === [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `Step ${n} of 8`).join(','), seen.at(-1));
     if (reduced) {

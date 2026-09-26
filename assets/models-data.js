@@ -981,7 +981,7 @@ const MODELS_SEED = [
             {
               "type": "target",
               "price": 19992.5,
-              "label": "Target 2R =",
+              "label": "Target 2R",
               "from": 11,
               "id": "target6"
             }

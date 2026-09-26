@@ -67,60 +67,6 @@ function renderStatCards(students){
   document.getElementById('chstat-most-completed').textContent = mostCompletedChapter ? ('Ch. ' + mostCompletedChapter.num) : '—';
 }
 
-function importBundledChapters(triggerBtn){
-  if (typeof CHAPTERS_SEED === 'undefined' || !CHAPTERS_SEED.some((c) => c.bodyHtml)) { showToast('success', 'Bundled seed data is not available.'); return; }
-  if (!confirm('Update all ' + CHAPTERS_SEED.length + ' chapters with the latest bundled content? This overwrites every chapter currently in Firestore with whatever is in the seed right now — including any chapter you may have hand-edited directly in the chapter editor beyond what was last pushed to the seed.')) return;
-
-  const errEl = document.getElementById('update-all-error');
-  const okEl = document.getElementById('update-all-success');
-  if (errEl) errEl.style.display = 'none';
-  if (okEl) okEl.style.display = 'none';
-  if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.textContent = 'Updating…'; }
-
-  // Use allSettled (not all) so one chapter failing doesn't hide the status of
-  // every other chapter — each write is independent and gets its own result,
-  // so we can tell the user exactly which chapters succeeded and which didn't.
-  const writes = CHAPTERS_SEED.map((ch) =>
-    db.collection('chapters').doc(ch.num).set(ch)
-      .then(() => ({ num: ch.num, ok: true }))
-      .catch((err) => ({ num: ch.num, ok: false, error: err && (err.message || String(err)) }))
-  );
-
-  // One line per bulk publish, not one per chapter — 42 identical entries
-  // would bury everything else in the log.
-  if (typeof logActivity === 'function') logActivity('content.chapter_saved',
-    'Published the chapter set (' + writes.length + ' chapters)');
-
-  Promise.allSettled(writes)
-    .then((results) => {
-      const outcomes = results.map((r) => r.value || { ok: false, error: 'unknown failure' });
-      const failed = outcomes.filter((o) => !o.ok);
-      const succeeded = outcomes.filter((o) => o.ok);
-      return loadChapters(true).then(() => ({ failed, succeeded }));
-    })
-    .then(({ failed, succeeded }) => {
-      renderChapterList();
-      if (failed.length === 0) {
-        if (okEl) {
-          okEl.textContent = 'All ' + succeeded.length + ' chapters updated from the latest bundled content.';
-          okEl.style.display = 'block';
-          if (typeof showToast === 'function') showToast('success', 'All ' + succeeded.length + ' chapters updated from the latest bundled content.');
-        } else {
-          showToast('success', 'Import complete.');
-        }
-      } else {
-        const msg = failed.length + ' of ' + CHAPTERS_SEED.length + ' chapters FAILED to update: chapter(s) '
-          + failed.map((f) => f.num).join(', ') + '. First error: ' + failed[0].error
-          + '. The other ' + succeeded.length + ' chapters updated successfully.';
-        if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { showToast('success', msg); }
-        console.error('Stryker: chapter update failures', failed);
-      }
-    })
-    .finally(() => {
-      if (triggerBtn) { triggerBtn.disabled = false; triggerBtn.textContent = 'Update all'; }
-    });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     Promise.all([db.collection('students').get(), loadChapters()])
@@ -135,11 +81,5 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('chapter-editor-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });
-
-    // Bulk import/update from the bundled seed moved server-side: the seed
-    // on the site is catalog-only now (chapter text is plan-gated), so the
-    // browser has no text to push. Use tools/chapter-gate/migrate.py.
-    const importBtn = document.getElementById('import-btn');
-    if (importBtn) importBtn.hidden = true;
   });
 });

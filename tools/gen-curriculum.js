@@ -28,6 +28,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const { trackChapters } = require('./gen-chapters-index.js');
 
 const ROOT = path.join(__dirname, '..');
 const INDEX = path.join(ROOT, 'index.html');
@@ -137,7 +138,7 @@ ${lv3.map(card).join('\n')}
       </div></div>
     </div>
     <div class="cur-foot cp-foot">
-      <a href="courses" class="btn btn-ghost">See all ${total + 22} chapters</a>
+      <a href="courses" class="btn btn-ghost">See all ${total + trackChapters().length} chapters</a>
     </div>
   </div>
   ${END}`;

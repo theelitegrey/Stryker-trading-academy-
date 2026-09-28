@@ -120,6 +120,19 @@ c('Pro writes settings/planAccess','DENY','update','/settings/planAccess',B,res=
 c('Starter reads settings/planAccess','ALLOW','get','/settings/planAccess',A,old=RANKS)
 c('student sets own plan to Pro','DENY','update','/students/alice',A,res={'plan':'Pro'},old={'plan':'Starter'})
 c('member reads catalog','ALLOW','get','/chapters/08',A,old={'num':'08','title':'t'})
+# admin analytics snapshot (functions-src/adminStats.js): admin read only, no client writes
+st={'totalUsers':1000,'generatedAt':None}
+c('signed-out reads adminStats','DENY','get','/adminStats/current',None,old=st)
+c('student reads adminStats','DENY','get','/adminStats/current',A,old=st)
+c('student lists adminStats','DENY','list','/adminStats/daily-2026-09-28',A,old=st)
+c('admin reads adminStats','ALLOW','get','/adminStats/current',ADM,old=st)
+c('admin reads daily snapshot','ALLOW','get','/adminStats/daily-2026-09-28',ADM,old=st)
+c('admin client writes adminStats','DENY','update','/adminStats/current',ADM,res={'totalUsers':1},old=st)
+c('student creates adminStats','DENY','create','/adminStats/x',A,res={'totalUsers':1})
+c('admin deletes adminStats','DENY','delete','/adminStats/current',ADM,old=st)
+# regression: presence rule unchanged (any signed-in user reads; see handback privacy finding)
+c('student reads presence (unchanged)','ALLOW','get','/presence/bob',A,old={'name':'b'})
+c('signed-out reads presence (unchanged)','DENY','get','/presence/bob',None,old={'name':'b'})
 body={'source':{'files':[{'name':'firestore.rules','content':src}]},'testSuite':{'testCases':[t for _,t in cases]}}
 r=urllib.request.Request('https://firebaserules.googleapis.com/v1/projects/strykertrades-e0cd8:test',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+tok,'Content-Type':'application/json'})
 try: out=json.load(urllib.request.urlopen(r))

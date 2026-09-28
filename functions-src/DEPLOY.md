@@ -108,3 +108,32 @@ LIVE key = a restricted key with Write on Checkout Sessions, Customers, Products
 Prices, Coupons, Customer portal and Webhook Endpoints (the last only for the one-time endpoint
 creation), and Read on Subscriptions, Invoices and Events. Test plan: tools/stripe/TEST-PLAN.md.
 Stripe Tax is OFF (a legal/tax decision for the Owner).
+
+## Admin analytics snapshot (adminStats), added 2026-09-28 (NOT deployed yet)
+
+Two new functions in `adminStats.js`, exported by name from `index.js`:
+
+- `adminStatsScheduled`: v1 pubsub schedule, every 60 minutes, UTC.
+- `adminStatsRefresh`: v1 callable. Admin only (checks `admins/{uid}` server-side) and throttled to one scan a minute.
+
+Both write `adminStats/current` and `adminStats/daily-YYYY-MM-DD` (aggregates only, no per-student fields). The rules add one block, `match /adminStats/{id}`: admins read, nobody writes. Nothing else in the rules changes (diff vs the live ruleset 8c534da3 = that block only).
+
+Deploy (after approval; rules first so the dashboard can read the doc the functions write):
+
+```bash
+# 1. rules, from a folder whose firebase.json is { "firestore": { "rules": "firestore.rules" } }
+cp functions-src/firestore.rules <rules-folder>/firestore.rules
+firebase deploy --only firestore:rules --project strykertrades-e0cd8
+# 2. functions, from a folder whose firebase.json is { "functions": { "source": "functions" } }
+firebase deploy --only functions:adminStatsScheduled,functions:adminStatsRefresh --project strykertrades-e0cd8
+# 3. first snapshot now instead of waiting up to an hour: press "Refresh now" on the admin
+#    dashboard, or: gcloud scheduler jobs run firebase-schedule-adminStatsScheduled-us-central1 --location us-central1
+```
+
+No composite index is needed. The count() queries use single-field range filters (`createdAt >=`, `lastActiveDate >=`, `startsAt >`), which Firestore indexes automatically.
+
+Rollback:
+
+- functions: `firebase functions:delete adminStatsScheduled adminStatsRefresh --region us-central1` (nothing else calls them; the dashboard shows "Unavailable" / "No data yet").
+- rules: republish ruleset 8c534da3 (the live one before this), or deploy `firestore.rules` from main.
+- data: `adminStats/*` holds only derived aggregates, so it is safe to delete.

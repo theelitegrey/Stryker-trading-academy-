@@ -59,7 +59,7 @@ function aaDayKey(dAgo){
 // ---- A. adminStats/current --------------------------------------------------
 
 var AA_STATS_IDS = [
-  'aa-total-users', 'aa-online-now', 'aa-new-range', 'aa-active-range',
+  'aa-total-users', 'aa-new-range', 'aa-active-range',
   'aa-paid-conv', 'aa-plan-split', 'aa-mrr', 'aa-completion', 'aa-completion-sub'
 ];
 
@@ -86,6 +86,11 @@ function aaRenderStats(){
   var range = AA_STATE.range;
   var newVal = range === 'today' ? stats.new1 : range === '7d' ? stats.new7 : range === '30d' ? stats.new30 : stats.totalUsers;
   var activeVal = range === 'today' ? stats.active1 : range === '7d' ? stats.active7 : range === '30d' ? stats.active30 : null;
+  // Labels follow the selected chip.
+  var newLabel = { today: 'New today', '7d': 'New \u00b7 7 days', '30d': 'New \u00b7 30 days', all: 'Total signups (all)' }[range];
+  var activeLabel = { today: 'Active today', '7d': 'Active \u00b7 7 days', '30d': 'Active \u00b7 30 days', all: 'Active (all)' }[range];
+  var nl = document.getElementById('aa-new-label'); if (nl) nl.textContent = newLabel;
+  var al = document.getElementById('aa-active-label'); if (al) al.textContent = activeLabel;
   aaSet('aa-new-range', (typeof newVal === 'number') ? newVal.toLocaleString() : 'No data yet');
   aaSet('aa-active-range', (typeof activeVal === 'number') ? activeVal.toLocaleString()
     : (range === 'all' ? 'n/a' : 'No data yet'));
@@ -185,17 +190,26 @@ function aaFetchOnlineNow(){
   });
 }
 
+// Online dot is green only when a real count came back; neutral grey while
+// loading ("…"), on "Unavailable" and on "No data yet".
+function aaSetOnline(text, live){
+  aaSet('aa-online-now', text);
+  var dot = document.getElementById('aa-online-dot');
+  if (dot) dot.classList.toggle('is-live', !!live);
+}
+
 function aaRefreshOnlineNow(){
   return aaFetchOnlineNow().then(function (n) {
-    aaSet('aa-online-now', n === null ? 'No data yet' : n.toLocaleString());
+    if (n === null) aaSetOnline('No data yet', false);
+    else aaSetOnline(n.toLocaleString(), true);
   }).catch(function (err) {
     console.error('Stryker: online-now aggregation failed', err);
-    aaSet('aa-online-now', 'Unavailable');
+    aaSetOnline('Unavailable', false);
   });
 }
 
 function aaStartOnlineNowPolling(){
-  aaSet('aa-online-now', '…');
+  aaSetOnline('\u2026', false);
   aaRefreshOnlineNow();
   if (AA_ONLINE_TIMER) clearInterval(AA_ONLINE_TIMER);
   AA_ONLINE_TIMER = setInterval(function () {

@@ -17,7 +17,7 @@ fs.mkdirSync(SHOTS_DIR, { recursive: true });
 
 const REQUIRED_PANEL_IDS = [
   'admin-ai-panel', 'todo-panel', 'dash-notes-list', 'recent-students-list',
-  'chapter-engagement', 'stat-students', 'stat-mrr', 'stat-completion', 'stat-sessions'
+  'chapter-engagement', 'aa-sessions'
 ];
 
 async function newCtx(browser, viewport, theme) {
@@ -95,17 +95,19 @@ async function runMode(browser, mode) {
           const cards = Array.from(document.querySelectorAll('.aa-card .v'));
           return cards.some((el) => {
             if (el.querySelector('#aa-online-now')) return false;
+            // aa-sessions: the liveSessions read answered (empty list in this
+            // fixture), so 0 upcoming is a real answer, same rule as above.
+            if (el.id === 'aa-sessions') return false;
             return el.textContent.trim() === '0';
           });
         });
-        results.checks.push({ name: mode + ' no bare 0 in analytics tiles (excl. live online-now aggregate)', pass: !bareZero });
+        results.checks.push({ name: mode + ' no bare 0 in analytics tiles (excl. live online-now + sessions answers)', pass: !bareZero });
         // SE review: every snapshot-backed tile must show exactly the state
         // word for this mode (not "—", not 0, not blank), and so must the
         // legacy stat cards that now read the same snapshot.
         const want = mode === 'failed' ? 'Unavailable' : 'No data yet';
         const wrongState = await p.evaluate((w) => {
-          const ids = ['aa-total-users', 'aa-new-range', 'aa-active-range', 'aa-paid-conv', 'aa-mrr', 'aa-completion',
-                       'stat-students', 'stat-mrr', 'stat-completion'];
+          const ids = ['aa-total-users', 'aa-new-range', 'aa-active-range', 'aa-paid-conv', 'aa-mrr', 'aa-completion'];
           return ids.map((id) => [id, (document.getElementById(id) || {}).textContent])
                     .filter(([, t]) => (t || '').trim() !== w);
         }, want);
@@ -115,7 +117,58 @@ async function runMode(browser, mode) {
         if (mode === 'failed') {
           const online = await p.evaluate(() => (document.getElementById('aa-online-now') || {}).textContent || '');
           results.checks.push({ name: 'failed online-now reads "Unavailable"', pass: online.trim() === 'Unavailable', detail: online.trim() });
+          const sess = await p.evaluate(() => (document.getElementById('aa-sessions') || {}).textContent || '');
+          results.checks.push({ name: 'failed upcoming-sessions reads "Unavailable"', pass: sess.trim() === 'Unavailable', detail: sess.trim() });
         }
+      }
+
+      // Manager review A: the old stat row is gone, no duplicate figures.
+      const oldCards = await p.evaluate(() => ['stat-students', 'stat-mrr', 'stat-completion', 'stat-sessions']
+        .filter((id) => document.getElementById(id)).concat(document.querySelector('.stat-grid') ? ['.stat-grid'] : []));
+      results.checks.push({ name: mode + ' old stat row removed (no duplicate Total/MRR/Completion)', pass: oldCards.length === 0, detail: oldCards });
+
+      // Manager review C: the online dot is green only when a real count is shown.
+      const dot = await p.evaluate(() => {
+        const d = document.getElementById('aa-online-dot');
+        const t = ((document.getElementById('aa-online-now') || {}).textContent || '').trim();
+        return { live: !!(d && d.classList.contains('is-live')), bg: d ? getComputedStyle(d).backgroundColor : null, text: t };
+      });
+      const isNumber = /^[\d,]+$/.test(dot.text);
+      results.checks.push({ name: mode + ' online dot green iff a real count is shown', pass: dot.live === isNumber, detail: dot });
+
+      if (mode === 'loaded') {
+        const sess = await p.evaluate(() => (document.getElementById('aa-sessions') || {}).textContent || '');
+        results.checks.push({ name: 'loaded upcoming-sessions is a number (bento card)', pass: /^\d+$/.test(sess.trim()), detail: sess.trim() });
+
+        // Manager review B: labels follow the chip.
+        const want = { today: ['New today', 'Active today'], '7d': ['New · 7 days', 'Active · 7 days'],
+                       '30d': ['New · 30 days', 'Active · 30 days'], all: ['Total signups (all)', 'Active (all)'] };
+        const got = {};
+        for (const r of Object.keys(want)) {
+          await p.click('#aa-range-seg [data-range="' + r + '"]');
+          await p.waitForTimeout(150);
+          got[r] = await p.evaluate(() => [document.getElementById('aa-new-label').textContent.trim(), document.getElementById('aa-active-label').textContent.trim(),
+                                           document.getElementById('aa-active-range').textContent.trim()]);
+        }
+        const labelsOk = Object.keys(want).every((r) => got[r][0] === want[r][0] && got[r][1] === want[r][1]) && got.all[2] === 'n/a';
+        results.checks.push({ name: 'labels follow the range chip (and Active (all) = n/a)', pass: labelsOk, detail: got });
+        await p.click('#aa-range-seg [data-range="today"]');
+        await p.waitForTimeout(150);
+
+        // Manager review C, loading state: a fetch that never answers leaves "…" and a grey dot.
+        const pending = await p.evaluate(() => {
+          const of = window.fetch;
+          window.fetch = () => new Promise(() => {});
+          aaStartOnlineNowPolling();
+          const d = document.getElementById('aa-online-dot');
+          const r = { live: d.classList.contains('is-live'), text: document.getElementById('aa-online-now').textContent.trim() };
+          window.fetch = of;
+          return r;
+        });
+        await p.waitForTimeout(100);
+        results.checks.push({ name: 'loading online-now shows "…" with a grey dot', pass: pending.text === '…' && !pending.live, detail: pending });
+        await p.evaluate(() => aaRefreshOnlineNow());
+        await p.waitForTimeout(300);
       }
     }
 

@@ -42,10 +42,13 @@
 .aa-card .drill{ font-size:10.5px; color:var(--gold); display:block; margin-top:8px; }
 
 .aa-online-dot{
-  width:9px; height:9px; border-radius:50%; background:var(--bull);
-  display:inline-block; margin-right:6px; box-shadow:0 0 0 4px rgba(3,201,136,0.16);
-  vertical-align:middle;
+  width:9px; height:9px; border-radius:50%; background:var(--ink-3);
+  display:inline-block; margin-right:6px; box-shadow:0 0 0 4px rgba(139,147,160,0.16);
+  vertical-align:middle; opacity:.7;
 }
+/* Green only once a real count has come back (admin-analytics.js aaSetOnline). */
+.aa-online-dot.is-live{ background:var(--bull); box-shadow:0 0 0 4px rgba(3,201,136,0.16); opacity:1; }
+.aa-card-wide{ grid-column:1 / -1; }
 
 .aa-two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
 @media (max-width:900px){ .aa-two-col{ grid-template-columns:1fr; } }

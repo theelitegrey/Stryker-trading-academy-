@@ -47,36 +47,25 @@ function renderRecentStudents(students){
 // for a real zero.
 
 function renderAdminStats(stats, sessions){
-  const set = (id, value) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = value;
-    // "Unavailable" / "No data yet" read as state text, not as a figure.
-    el.classList.toggle('aa-v-text', /[A-Za-z]{2,}/.test(String(value)));
-  };
-
-  if (stats === undefined) {
-    ['stat-students', 'stat-mrr', 'stat-completion'].forEach((id) => set(id, 'Unavailable'));
-  } else if (stats === null) {
-    ['stat-students', 'stat-mrr', 'stat-completion'].forEach((id) => set(id, 'No data yet'));
-  } else {
-    set('stat-students', (typeof stats.totalUsers === 'number') ? stats.totalUsers.toLocaleString() : 'No data yet');
-    set('stat-mrr', (typeof stats.mrr === 'number') ? '$' + Math.round(stats.mrr).toLocaleString() : 'No data yet');
-    set('stat-completion', (typeof stats.avgCompletion === 'number') ? stats.avgCompletion + '%' : 'No data yet');
-  }
-
-  // Upcoming sessions still comes from its own small collection — the order
-  // said this can stay if the collection is small, and liveSessions is.
+  // Total users, MRR and avg completion now live only in the analytics bento
+  // (assets/admin-analytics.js, from adminStats/current), so the old stat row
+  // is gone. This keeps the one figure the bento did not have: upcoming live
+  // sessions, from the small liveSessions collection read below.
+  const el = document.getElementById('aa-sessions');
+  if (!el) return;
+  let value;
   if (sessions === undefined) {
-    set('stat-sessions', 'Unavailable');
+    value = 'Unavailable';
   } else {
     const now = Date.now();
-    const upcoming = sessions.filter((v) => {
+    value = String(sessions.filter((v) => {
       const t = v.startsAt && v.startsAt.toMillis ? v.startsAt.toMillis() : 0;
       return t > now;
-    }).length;
-    set('stat-sessions', String(upcoming));
+    }).length);
   }
+  el.textContent = value;
+  // "Unavailable" reads as state text, not as a figure.
+  el.classList.toggle('aa-v-text', /[A-Za-z]{2,}/.test(value));
 }
 
 function renderChapterEngagement(stats){

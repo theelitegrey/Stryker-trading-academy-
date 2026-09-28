@@ -225,17 +225,17 @@
           <div class="l">Total users</div>
         </div>
         <div class="aa-card">
-          <div class="v"><span class="aa-online-dot"></span><span id="aa-online-now">…</span></div>
+          <div class="v"><span class="aa-online-dot" id="aa-online-dot"></span><span id="aa-online-now">…</span></div>
           <div class="l">Online now</div>
           <div class="sub">Visible tab heartbeat within the last 2½ minutes.</div>
         </div>
         <div class="aa-card">
           <div class="v" id="aa-new-range">…</div>
-          <div class="l">New users</div>
+          <div class="l" id="aa-new-label" title="Signups whose createdAt falls in the window (windows start at UTC midnight)">New today</div>
         </div>
         <div class="aa-card">
           <div class="v" id="aa-active-range">…</div>
-          <div class="l">Active (last active)</div>
+          <div class="l" id="aa-active-label" title="Students whose lastActiveDate is in the window. lastActiveDate is the student's local date; windows are UTC dates, so edges can shift by up to a day.">Active today</div>
         </div>
         <div class="aa-card">
           <div class="v" id="aa-paid-conv">…</div>
@@ -252,7 +252,12 @@
           <div class="sub" id="aa-completion-sub"></div>
           <a class="drill" href="chapters-admin.html">Chapter analytics →</a>
         </div>
-        <div class="aa-card" id="aa-visits">
+        <div class="aa-card">
+          <div class="v" id="aa-sessions">…</div>
+          <div class="l">Upcoming live sessions</div>
+          <a class="drill" href="sessions-admin.html">Live sessions →</a>
+        </div>
+        <div class="aa-card aa-card-wide" id="aa-visits">
           <div id="aa-visits-body"><div class="v">…</div><div class="l">Visits (site-wide day totals)</div></div>
         </div>
       </div>
@@ -315,41 +320,6 @@
         <a href="notes-admin.html">Open notes →</a>
       </div>
       <div id="dash-notes-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div></div></div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
-          <span class="stat-delta" id="stat-students-delta"></span>
-        </div>
-        <div class="stat-val" id="stat-students">—</div>
-        <div class="stat-label">Total students</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg></div>
-          <span class="stat-delta" id="stat-mrr-delta"></span>
-        </div>
-        <div class="stat-val" id="stat-mrr">—</div>
-        <div class="stat-label">Monthly recurring revenue</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-          <span class="stat-delta" id="stat-completion-delta"></span>
-        </div>
-        <div class="stat-val" id="stat-completion">—</div>
-        <div class="stat-label">Avg. chapter completion rate</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
-          <span class="stat-delta" id="stat-sessions-delta"></span>
-        </div>
-        <div class="stat-val" id="stat-sessions">—</div>
-        <div class="stat-label">Upcoming live sessions</div>
-      </div>
     </div>
 
     <div class="two-col">

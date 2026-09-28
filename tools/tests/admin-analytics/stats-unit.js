@@ -187,11 +187,17 @@ function check(name, fn) {
     assert.strictEqual(cur.active30, 4);    // + c (10)
     assert.strictEqual(cur.upcomingSessions, 1);
   });
-  await check('paid/free, plan histogram, MRR (case-insensitive plan names)', () => {
-    assert.strictEqual(cur.paid, 3);        // b Pro, c pro, d Elite
-    assert.strictEqual(cur.free, 3);
+  await check('plan histogram, and NO revenue without payment evidence', () => {
+    // Updated for the paid rule (fix 1). These fixture students carry paid
+    // plan LABELS but the fixture has no orders/subscriptions, so under the
+    // rule none of them is revenue. Before the fix this asserted paid 3 and
+    // mrr 87 purely from the labels — that assertion encoded the bug.
+    assert.strictEqual(cur.paid, 0, 'a label is not a payment');
+    assert.strictEqual(cur.payingMembers, 0);
+    assert.strictEqual(cur.freeAccessMembers, 3, 'b Pro, c pro, d Elite: labels, no money');
+    assert.strictEqual(cur.mrr, 0);
+    assert.strictEqual(cur.mrrCurrency, 'USD');
     assert.deepStrictEqual(cur.byPlan, { Starter: 1, Pro: 1, pro: 1, Elite: 1, 'No plan': 1, Legacy: 1 });
-    assert.strictEqual(cur.mrr, 19 + 19 + 49);
   });
   await check('completion ignores unknown chapter ids; avg over starters only', () => {
     assert.deepStrictEqual(cur.chapterCompletions, { 1: 3, 2: 2, 3: 1, 4: 1 });
@@ -210,9 +216,16 @@ function check(name, fn) {
     // projected scan, because an aggregation cannot skip bot- ids (see
     // countWindows in adminStats.js). That is ONE students read per run, down
     // from eight; the projection still keeps names/emails in the database.
-    assert.deepStrictEqual(kinds, ['select:plan,completedChapters,createdAt,lastActiveDate']);
+    assert.deepStrictEqual(kinds, ['select:plan,completedChapters,createdAt,lastActiveDate,paidThroughMillis,subscriptionStatus,foundingMember,foundingCoupon']);
     assert.strictEqual(st.length, 1, 'exactly one students read per snapshot');
     assert.ok(!st.some((c) => c.kind === 'get'), 'never an unprojected students get()');
+    // Fix 1 added the payment-evidence reads. They are projected too, and
+    // there is ONE of each per run — never one read per student.
+    ['orders', 'coupons', 'razorpaySubs'].forEach((col) => {
+      const cs = currentDb._calls.filter((c) => c.col === col);
+      assert.strictEqual(cs.length, 1, 'exactly one ' + col + ' read per snapshot');
+      assert.ok(String(cs[0].kind).indexOf('select:') === 0, col + ' must be projected, not a full get()');
+    });
   });
   await check('seriesStart is preserved on later runs', async () => {
     currentDb._store.adminStats.current.seriesStart = '2026-01-01';
@@ -302,8 +315,12 @@ function check(name, fn) {
     assert.strictEqual(realCur.new1, noBots.new1 + 1);
     assert.strictEqual(realCur.new30, noBots.new30 + 1);
     assert.strictEqual(realCur.active1, noBots.active1 + 1);
-    assert.strictEqual(realCur.paid, noBots.paid + 1, 'Elite is a paid plan');
-    assert.strictEqual(realCur.mrr, noBots.mrr + 49);
+    // Under the paid rule this Elite label has no payment evidence, so it
+    // reaches the aggregates as a free-access member, not as revenue. The
+    // point of this test is that the row is COUNTED, not that it is paid.
+    assert.strictEqual(realCur.freeAccessMembers, noBots.freeAccessMembers + 1, 'Elite label, no gateway record');
+    assert.strictEqual(realCur.paid, noBots.paid, 'a label must not create revenue');
+    assert.strictEqual(realCur.mrr, noBots.mrr);
     assert.strictEqual(realCur.byPlan.Elite, noBots.byPlan.Elite + 1);
   });
 
@@ -317,7 +334,8 @@ function check(name, fn) {
 
   await check('robot-abc and xbot-1 still COUNT (prefix rule, not substring)', () => {
     assert.strictEqual(lookCur.totalUsers, noBots.totalUsers + 2);
-    assert.strictEqual(lookCur.paid, noBots.paid + 2);
+    // Counted as members; not revenue, since neither has a payment record.
+    assert.strictEqual(lookCur.freeAccessMembers, noBots.freeAccessMembers + 2);
     assert.strictEqual(lookCur.byPlan.Elite, noBots.byPlan.Elite + 2);
   });
 
@@ -345,6 +363,177 @@ function check(name, fn) {
     assert.strictEqual(w.new30, 2);
     assert.strictEqual(w.active1, 1);
     assert.strictEqual(w.active30, 2);
+  });
+
+  // ---- THE PAID RULE: evidence of payment, not a plan label ---------------
+  // Every case below is modelled on a real account from the 2026-09-28 revenue
+  // audit, which found 29 of 30 "paid" members had never paid anything.
+  // These MUST fail on main (where price>0 alone counted as paid) and pass here.
+  const NOW = Date.parse('2026-09-28T20:00:00Z');
+  const FUTURE = NOW + 30 * 86400000;
+  const PAST = NOW - 30 * 86400000;
+  const PLANS = [{ name: 'Elite', price: '$129/mo' }, { name: 'Starter', price: 'Free' }];
+  const COUPONS = {
+    WELCOME: { type: 'free', value: 0 },
+    BETA: { type: 'free', value: 0 },
+    FREE: { type: 'percent', value: 0 }
+  };
+  // Runs summarise() with payment evidence; one student unless told otherwise.
+  const sum1 = (row, evidence) => T.summarise(
+    [Object.assign({ __uid: 'u1', plan: 'Elite' }, row)], PLANS, [],
+    Object.assign({ couponsByCode: COUPONS, nowMs: NOW }, evidence)
+  );
+
+  await check('RULE 1: founding grant (foundingMember, WELCOME) is NOT paid', () => {
+    const s = sum1({ foundingMember: true, foundingCoupon: 'WELCOME',
+      subscriptionStatus: 'active', paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 0, currency: 'USD', gateway: 'coupon',
+        couponCode: 'WELCOME', status: 'completed' }] } });
+    assert.strictEqual(s.mrr, 0, 'a grant is not revenue');
+    assert.strictEqual(s.payingMembers, 0);
+    assert.strictEqual(s.freeAccessMembers, 1);
+    assert.strictEqual(s.freeAccessReasons['founding grant'], 1);
+  });
+
+  await check('RULE 2: free-coupon checkout (BETA) is NOT paid', () => {
+    const s = sum1({ foundingCoupon: 'BETA', subscriptionStatus: 'active', paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 0, currency: 'USD', gateway: 'coupon',
+        couponCode: 'BETA', status: 'completed' }] } });
+    assert.strictEqual(s.mrr, 0);
+    assert.strictEqual(s.payingMembers, 0);
+    assert.strictEqual(s.freeAccessMembers, 1);
+    assert.strictEqual(s.freeAccessReasons['free coupon BETA'], 1);
+  });
+
+  await check('RULE 3: hand-set paid label, no gateway record and no coupon, is NOT paid', () => {
+    const s = sum1({ subscriptionStatus: 'active', paidThroughMillis: FUTURE }, {});
+    assert.strictEqual(s.mrr, 0, 'a label is not money');
+    assert.strictEqual(s.payingMembers, 0);
+    assert.strictEqual(s.freeAccessMembers, 1);
+    assert.strictEqual(s.freeAccessReasons['hand-set label, no gateway record'], 1);
+  });
+
+  await check('RULE 4: zero-amount order with no coupon is NOT paid', () => {
+    const s = sum1({ subscriptionStatus: 'active', paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 0, currency: 'USD', gateway: 'stripe', status: 'completed' }] } });
+    assert.strictEqual(s.mrr, 0);
+    assert.strictEqual(s.payingMembers, 0);
+    assert.strictEqual(s.freeAccessMembers, 1);
+    assert.strictEqual(s.freeAccessReasons['zero-amount order'], 1);
+  });
+
+  await check('RULE 5: real Stripe subscription + future paidThrough IS paid', () => {
+    const s = sum1({ subscriptionStatus: 'active', paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 129, currency: 'USD', amountUsd: 129,
+        gateway: 'stripe', status: 'completed', stripeSubscriptionId: 'sub_live' }] },
+        subsByUid: { u1: { stripe: true } } });
+    assert.strictEqual(s.payingMembers, 1);
+    assert.strictEqual(s.mrr, 129);
+    assert.strictEqual(s.freeAccessMembers, 0);
+    assert.strictEqual(s.expiredMembers, 0);
+  });
+
+  await check('RULE 6: expired entitlement with a real past payment is NOT paid, lands in expiredMembers', () => {
+    const s = sum1({ subscriptionStatus: 'active', paidThroughMillis: PAST },
+      { ordersByUid: { u1: [{ finalAmount: 129, currency: 'USD', amountUsd: 129,
+        gateway: 'stripe', status: 'completed', stripeSubscriptionId: 'sub_old' }] },
+        subsByUid: { u1: { stripe: true } } });
+    assert.strictEqual(s.payingMembers, 0, 'the period has lapsed');
+    assert.strictEqual(s.mrr, 0);
+    assert.strictEqual(s.expiredMembers, 1);
+    assert.strictEqual(s.freeAccessMembers, 0);
+  });
+
+  await check('RULE 7: INR order with amountUsd converts; one without it never joins the sum', () => {
+    const ok = sum1({ paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 10700, currency: 'INR', amountUsd: 129,
+        fxRate: 83, gateway: 'razorpay', status: 'completed' }] } });
+    assert.strictEqual(ok.mrr, 129, 'amountUsd is used, not the rupee figure');
+    assert.strictEqual(ok.mrrCurrency, 'USD');
+    assert.strictEqual(ok.mrrUnconvertible, 0);
+
+    const bad = sum1({ paidThroughMillis: FUTURE },
+      { ordersByUid: { u1: [{ finalAmount: 10700, currency: 'INR',
+        gateway: 'razorpay', status: 'completed' }] } });
+    assert.strictEqual(bad.mrr, 0, '10700 rupees must never be summed as dollars');
+    assert.strictEqual(bad.mrrUnconvertible, 1, 'surfaced as an exception, not dropped');
+    assert.strictEqual(bad.payingMembers, 1, 'still a paying member, just unconvertible');
+  });
+
+  await check('mrrCurrency is USD, never null', () => {
+    assert.strictEqual(T.summarise([], PLANS, []).mrrCurrency, 'USD');
+    assert.strictEqual(sum1({ paidThroughMillis: FUTURE }, {}).mrrCurrency, 'USD');
+  });
+
+  await check('the three buckets are separate and sum to the paid-labelled count', () => {
+    const rows = [
+      { __uid: 'pay', plan: 'Elite', paidThroughMillis: FUTURE },
+      { __uid: 'grant', plan: 'Elite', foundingMember: true, paidThroughMillis: FUTURE },
+      { __uid: 'lapsed', plan: 'Elite', paidThroughMillis: PAST },
+      { __uid: 'starter', plan: 'Starter' }
+    ];
+    const s = T.summarise(rows, PLANS, [], {
+      couponsByCode: COUPONS, nowMs: NOW,
+      ordersByUid: {
+        pay: [{ finalAmount: 129, currency: 'USD', amountUsd: 129, gateway: 'stripe', status: 'completed' }],
+        lapsed: [{ finalAmount: 129, currency: 'USD', amountUsd: 129, gateway: 'stripe', status: 'completed' }]
+      }
+    });
+    assert.strictEqual(s.payingMembers, 1);
+    assert.strictEqual(s.freeAccessMembers, 1);
+    assert.strictEqual(s.expiredMembers, 1);
+    assert.strictEqual(s.payingMembers + s.freeAccessMembers + s.expiredMembers, 3,
+      'the three buckets must account for every paid-labelled student');
+    assert.strictEqual(s.mrr, 129, 'only the genuine payer contributes revenue');
+    assert.strictEqual(s.paid, 1, 'the legacy key must mean paying, never a grant');
+  });
+
+  await check('a refunded/failed order is not proof of payment', () => {
+    ['refunded', 'failed', 'cancelled', 'created'].forEach((st) => {
+      assert.strictEqual(T.orderProvesPayment(
+        { finalAmount: 129, gateway: 'stripe', status: st }, COUPONS), false, st);
+    });
+    assert.strictEqual(T.orderProvesPayment(
+      { finalAmount: 129, gateway: 'stripe', status: 'completed' }, COUPONS), true);
+  });
+
+  await check('MRR is the CURRENT recurring charge, not lifetime revenue', () => {
+    // Six monthly payments of $19 are $114 of lifetime revenue but $19 of
+    // MRR. Summing every order would overstate a real customer, the mirror
+    // image of the label bug. Found by cross-checking the rule against the
+    // real audit evidence, where the one paying account has two orders.
+    const s = sum1({ paidThroughMillis: FUTURE }, {
+      ordersByUid: { u1: [
+        { finalAmount: 19, currency: 'USD', amountUsd: 19, gateway: 'stripe',
+          status: 'completed', createdAt: NOW - 150 * 86400000 },
+        { finalAmount: 19, currency: 'USD', amountUsd: 19, gateway: 'stripe',
+          status: 'completed', createdAt: NOW - 5 * 86400000 }
+      ] }
+    });
+    assert.strictEqual(s.payingMembers, 1);
+    assert.strictEqual(s.mrr, 19, 'two $19 orders are $19 of MRR, not $38');
+  });
+
+  await check('the newest qualifying order sets the rate, and a free order never does', () => {
+    // An upgrade: old $19, current $49. MRR follows the newest.
+    const up = sum1({ paidThroughMillis: FUTURE }, {
+      ordersByUid: { u1: [
+        { finalAmount: 19, currency: 'USD', amountUsd: 19, gateway: 'stripe', status: 'completed', createdAt: NOW - 90 * 86400000 },
+        { finalAmount: 49, currency: 'USD', amountUsd: 49, gateway: 'stripe', status: 'completed', createdAt: NOW - 2 * 86400000 }
+      ] }
+    });
+    assert.strictEqual(up.mrr, 49, 'the current rate, not the old one');
+
+    // A later zero-amount coupon order must not zero out a real payment:
+    // it is disqualified before the newest-order choice is made.
+    const mixed = sum1({ paidThroughMillis: FUTURE }, {
+      ordersByUid: { u1: [
+        { finalAmount: 49, currency: 'USD', amountUsd: 49, gateway: 'stripe', status: 'completed', createdAt: NOW - 10 * 86400000 },
+        { finalAmount: 0, currency: 'USD', gateway: 'coupon', couponCode: 'WELCOME', status: 'completed', createdAt: NOW - 1 * 86400000 }
+      ] }
+    });
+    assert.strictEqual(mixed.payingMembers, 1);
+    assert.strictEqual(mixed.mrr, 49, 'a free grant on top of a paid plan does not erase the revenue');
   });
 
   console.log(pass + '/' + (pass + fail) + ' passed');

@@ -35,11 +35,22 @@ var ADMIN_TASK_SOURCES = [
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     tone: 'normal',
     load: function () {
-      return db.collection('students').get().then(function (snap) {
+      // Bounded by design, not a full scan: tradingViewAccessGranted is only
+      // ever SET to true (indicators-admin.js:259) and is otherwise absent
+      // from the doc, so where('tradingViewAccessGranted','==',false) would
+      // MISS every student who has never been touched by that code path —
+      // silently under-counting. A single-field range query on
+      // tradingViewUsername gets an automatic index (no composite needed)
+      // and narrows to only students who actually entered a username, which
+      // is the actual population this task is about; access is filtered
+      // client-side from that already-small set.
+      // NOTE: this still does not count someone who never set a username at
+      // all — there is nothing to grant them, so that is correct, not a gap.
+      return db.collection('students').where('tradingViewUsername', '>', '').get().then(function (snap) {
         var n = 0;
         snap.forEach(function (d) {
           var s = d.data();
-          if (s.tradingViewUsername && !s.tradingViewAccessGranted) n++;
+          if (!s.tradingViewAccessGranted) n++;
         });
         return n;
       });

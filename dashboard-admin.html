@@ -10,6 +10,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=342">
+<link rel="stylesheet" href="assets/admin-analytics.css?v=342">
 <script src="assets/sanitize.js?v=342"></script>
 <script>
 // Stryker Trading Academy — device detection for forced views
@@ -201,6 +202,72 @@
       </div>
     </div>
 
+    <section class="panel" id="admin-analytics">
+      <div class="aa-topbar">
+        <div>
+          <h2>Analytics</h2>
+          <span class="aa-updated" id="aa-updated"></span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <div class="aa-range-seg" id="aa-range-seg">
+            <button type="button" data-range="today" class="active">Today</button>
+            <button type="button" data-range="7d">7d</button>
+            <button type="button" data-range="30d">30d</button>
+            <button type="button" data-range="all">All</button>
+          </div>
+          <button type="button" class="aa-refresh-btn" id="aa-refresh-btn">Refresh now</button>
+        </div>
+      </div>
+
+      <div class="aa-bento-grid">
+        <div class="aa-card">
+          <div class="v" id="aa-total-users">…</div>
+          <div class="l">Total users</div>
+        </div>
+        <div class="aa-card">
+          <div class="v"><span class="aa-online-dot"></span><span id="aa-online-now">…</span></div>
+          <div class="l">Online now</div>
+          <div class="sub">Visible tab heartbeat within the last 2½ minutes.</div>
+        </div>
+        <div class="aa-card">
+          <div class="v" id="aa-new-range">…</div>
+          <div class="l">New users</div>
+        </div>
+        <div class="aa-card">
+          <div class="v" id="aa-active-range">…</div>
+          <div class="l">Active (last active)</div>
+        </div>
+        <div class="aa-card">
+          <div class="v" id="aa-paid-conv">…</div>
+          <div class="l">Paid conversion</div>
+          <div class="sub" id="aa-plan-split">…</div>
+        </div>
+        <div class="aa-card">
+          <div class="v" id="aa-mrr">…</div>
+          <div class="l">MRR</div>
+        </div>
+        <div class="aa-card">
+          <div class="v" id="aa-completion">…</div>
+          <div class="l">Avg. chapter completion</div>
+          <div class="sub" id="aa-completion-sub"></div>
+          <a class="drill" href="chapters-admin.html">Chapter analytics →</a>
+        </div>
+        <div class="aa-card" id="aa-visits">…</div>
+      </div>
+      <div class="aa-trend-note" id="aa-trend-note"></div>
+
+      <div class="aa-two-col">
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-head"><h2 style="font-size:15px;">Recent signups</h2><a href="students-admin.html">View all →</a></div>
+          <div id="aa-recent-signups"><p class="aa-empty">…</p></div>
+        </div>
+        <div class="panel" style="margin-bottom:0;">
+          <div class="panel-head"><h2 style="font-size:15px;">Recent activity</h2><a href="logs-admin.html">View log →</a></div>
+          <div id="aa-recent-activity"><p class="aa-empty">…</p></div>
+        </div>
+      </div>
+    </section>
+
     <div class="panel dov-brief" id="admin-ai-panel">
       <div class="dov-brief-head">
         <span class="dov-brief-star">✦</span><b>AI OPS BRIEF</b>
@@ -308,6 +375,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
 <script src="assets/auth.js?v=342"></script>
 <script src="assets/progress.js?v=342"></script>
 <script src="assets/presence.js?v=342"></script>
@@ -325,6 +393,7 @@
 <script src="assets/roles.js?v=342"></script>
 <script src="assets/branding.js?v=342"></script>
 <script src="assets/admin-guard.js?v=342"></script>
+<script src="assets/admin-analytics.js?v=342"></script>
 <script src="assets/dash-nav.js?v=342"></script>
 <script src="assets/admin-nav.js?v=342"></script>
 <script src="assets/notifications.js?v=342"></script>

@@ -1,24 +1,31 @@
-// Stryker Trading Academy — Admin overview: recent students preview
+// Stryker Trading Academy — Admin overview: recent students, stat cards,
+// chapter engagement.
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
+//
+// Historically this pulled every student doc to compute all three panels in
+// the browser. That does not scale (cost + load time grow with every signup,
+// and it ships every student's PII to the browser to render four numbers).
+// Stat cards and chapter engagement now read the adminStats/current snapshot
+// written by the adminStatsRefresh Cloud Function; the visible student list
+// is its own small bounded query. There is no unbounded students.get() left
+// in this file.
 
 function renderRecentStudents(students){
   const list = document.getElementById('recent-students-list');
   if (!list) return;
 
+  if (students === null) {
+    list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">Unavailable</p>';
+    return;
+  }
   if (!students.length) {
     list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">No students yet.</p>';
     return;
   }
 
-  // Most recently created first, capped to 5 for this preview panel.
-  const sorted = students.slice().sort((a, b) => {
-    const at = (a.createdAt && a.createdAt.toMillis) ? a.createdAt.toMillis() : 0;
-    const bt = (b.createdAt && b.createdAt.toMillis) ? b.createdAt.toMillis() : 0;
-    return bt - at;
-  }).slice(0, 5);
-
+  // Already ordered by createdAt desc from the query, capped to 5 there too.
   list.innerHTML = '';
-  sorted.forEach((s) => {
+  students.forEach((s) => {
     const name = s.displayName || (s.email ? s.email.split('@')[0] : 'Unnamed');
     const doneCount = s.completedChapters ? s.completedChapters.length : 0;
     const row = document.createElement('div');
@@ -33,76 +40,66 @@ function renderRecentStudents(students){
   });
 }
 
-
 // ---- Headline stats -------------------------------------------------------
-// Every figure here was previously hardcoded in the markup — 18,412 students,
-// $61,940 MRR, a -1.4% trend. Impressive-looking placeholders are worse than
-// no number at all on an admin panel: they are indistinguishable from real
-// data, so a decision could be made on them.
-//
-// The percentage deltas are gone rather than faked. A trend needs a stored
-// historical snapshot to compare against, and nothing records one — inventing
-// a movement would repeat exactly the mistake being fixed.
+// Every figure here comes from the adminStats/current snapshot (written by
+// the adminStatsRefresh Cloud Function), never from a client-side scan.
+// Missing/loading/failed states are distinct so a "—" never gets mistaken
+// for a real zero.
 
-function renderAdminStats(students, plans, sessions, chapters){
+function renderAdminStats(stats, sessions){
   const set = (id, value) => {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   };
 
-  set('stat-students', students.length.toLocaleString());
+  if (stats === undefined) {
+    ['stat-students', 'stat-mrr', 'stat-completion'].forEach((id) => set(id, 'Unavailable'));
+  } else if (stats === null) {
+    ['stat-students', 'stat-mrr', 'stat-completion'].forEach((id) => set(id, 'No data yet'));
+  } else {
+    set('stat-students', (typeof stats.totalUsers === 'number') ? stats.totalUsers.toLocaleString() : 'No data yet');
+    set('stat-mrr', (typeof stats.mrr === 'number') ? '$' + Math.round(stats.mrr).toLocaleString() : 'No data yet');
+    set('stat-completion', (typeof stats.avgCompletion === 'number') ? stats.avgCompletion + '%' : 'No data yet');
+  }
 
-  // MRR: sum each student's plan price. Only plans priced above zero count,
-  // so the free entry tier every account now defaults to doesn't inflate it.
-  const priceByName = {};
-  plans.forEach((p) => {
-    const price = parseFloat(String(p.price || '0').replace(/[^0-9.]/g, '')) || 0;
-    if (p.name) priceByName[String(p.name).toLowerCase()] = price;
-  });
-  let mrr = 0;
-  students.forEach((s) => {
-    if (!s.plan) return;
-    mrr += priceByName[String(s.plan).toLowerCase()] || 0;
-  });
-  set('stat-mrr', '$' + Math.round(mrr).toLocaleString());
-
-  // Average completion across students who have started at least one chapter.
-  // Including everyone who has never opened a lesson would drag this toward
-  // zero and say more about signup volume than about the curriculum.
-  const total = chapters.length || 42;
-  const started = students.filter((s) => (s.completedChapters || []).length > 0);
-  const avg = started.length
-    ? Math.round(started.reduce((acc, s) => acc + ((s.completedChapters || []).length / total), 0) / started.length * 100)
-    : 0;
-  set('stat-completion', avg + '%');
-
-  const now = Date.now();
-  const upcoming = sessions.filter((v) => {
-    const t = v.startsAt && v.startsAt.toMillis ? v.startsAt.toMillis() : 0;
-    return t > now;
-  }).length;
-  set('stat-sessions', String(upcoming));
+  // Upcoming sessions still comes from its own small collection — the order
+  // said this can stay if the collection is small, and liveSessions is.
+  if (sessions === undefined) {
+    set('stat-sessions', 'Unavailable');
+  } else {
+    const now = Date.now();
+    const upcoming = sessions.filter((v) => {
+      const t = v.startsAt && v.startsAt.toMillis ? v.startsAt.toMillis() : 0;
+      return t > now;
+    }).length;
+    set('stat-sessions', String(upcoming));
+  }
 }
 
-function renderChapterEngagement(students, chapters){
+function renderChapterEngagement(stats){
   const wrap = document.getElementById('chapter-engagement');
   if (!wrap) return;
 
-  if (!students.length || !chapters.length) {
-    wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13px; padding:6px 0;">Not enough data yet.</p>';
+  if (stats === undefined) {
+    wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13px; padding:6px 0;">Unavailable</p>';
+    return;
+  }
+  if (stats === null || !stats.chapterCompletions || !stats.totalUsers) {
+    wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13px; padding:6px 0;">No data yet</p>';
     return;
   }
 
-  // How many students have completed each chapter, as a share of all students.
-  const counts = chapters.map((ch) => {
-    const id = String(ch.num || ch.id);
-    const done = students.filter((s) => (s.completedChapters || []).map(String).indexOf(id) !== -1).length;
-    return { id: id, title: ch.title || ('Chapter ' + id), pct: Math.round(done / students.length * 100) };
+  const titles = stats.chapterTitles || {};
+  const comps = stats.chapterCompletions || {};
+  const total = stats.totalUsers;
+  const rows = Object.keys(comps).map((id) => {
+    const done = comps[id] || 0;
+    return { id, title: titles[id] || ('Chapter ' + id), pct: Math.round((done / total) * 100) };
   });
 
   // Busiest five: a full 42-row list would bury the panel it lives in.
-  counts.sort((a, b) => b.pct - a.pct);
-  const top = counts.slice(0, 5);
+  rows.sort((a, b) => b.pct - a.pct);
+  const top = rows.slice(0, 5);
 
   if (!top.length || top[0].pct === 0) {
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:13px; padding:6px 0;">No chapters completed yet.</p>';
@@ -129,30 +126,25 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!list) return; // not on this page
 
   guardAdminPage(() => {
-    // One parallel batch rather than four sequential reads. Each secondary
-    // source resolves to an empty list on failure so a missing collection
-    // degrades one panel instead of blanking the whole dashboard.
+    // One parallel batch rather than sequential reads. Each source resolves
+    // independently so one broken query degrades a single panel instead of
+    // blanking the whole dashboard. Recent students is a bounded top-5 query
+    // (not a scan); stats + chapter engagement come from the adminStats
+    // snapshot, not from students at all.
     Promise.all([
-      db.collection('students').get(),
-      db.collection('plans').get().catch(() => ({ forEach: () => {} })),
-      db.collection('liveSessions').get().catch(() => ({ forEach: () => {} })),
-      db.collection('chapters').get().catch(() => ({ forEach: () => {} }))
-    ]).then(([studentSnap, planSnap, sessionSnap, chapterSnap]) => {
-      const students = [];
-      studentSnap.forEach((doc) => students.push(Object.assign({ uid: doc.id }, doc.data())));
-      const plans = [];
-      planSnap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
-      const sessions = [];
-      sessionSnap.forEach((doc) => sessions.push(doc.data()));
-      const chapters = [];
-      chapterSnap.forEach((doc) => chapters.push(Object.assign({ id: doc.id }, doc.data())));
-
+      db.collection('students').orderBy('createdAt', 'desc').limit(5).get()
+        .then((snap) => { const out = []; snap.forEach((doc) => out.push(Object.assign({ uid: doc.id }, doc.data()))); return out; })
+        .catch((err) => { console.error('Stryker: recent students query failed', err); return null; }),
+      db.collection('adminStats').doc('current').get()
+        .then((doc) => (doc.exists ? doc.data() : null))
+        .catch((err) => { console.error('Stryker: adminStats/current read failed', err); return undefined; }),
+      db.collection('liveSessions').get()
+        .then((snap) => { const out = []; snap.forEach((doc) => out.push(doc.data())); return out; })
+        .catch((err) => { console.error('Stryker: liveSessions read failed', err); return undefined; })
+    ]).then(([students, stats, sessions]) => {
       renderRecentStudents(students);
-      renderAdminStats(students, plans, sessions, chapters);
-      renderChapterEngagement(students, chapters);
-    }).catch((err) => {
-      console.error('Stryker: failed to load admin overview', err);
-      list.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">Could not load students: ' + (err.message || err) + '</p>';
+      renderAdminStats(stats, sessions);
+      renderChapterEngagement(stats);
     });
   });
 });

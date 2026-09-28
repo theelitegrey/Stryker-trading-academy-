@@ -1,0 +1,64 @@
+/* Admin analytics — bento section at the top of dashboard-admin.html
+   Reuses the site's existing tokens (--bg-2, --line, --ink-*, --gold*,
+   --font-mono, --radius-md) so it matches dark and light themes without any
+   new palette. No motion beyond a plain opacity fade on load, and even that
+   is skipped for prefers-reduced-motion. */
+
+.aa-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  margin-bottom:14px; flex-wrap:wrap;
+}
+.aa-topbar h2{ font-size:16.5px; margin:0; }
+.aa-updated{ font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); }
+
+.aa-range-seg{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+.aa-range-seg button{
+  font-family:var(--font-mono); font-size:11.5px; padding:7px 12px; color:var(--ink-2);
+  background:transparent; border:none; cursor:pointer;
+}
+.aa-range-seg button.active{ background:rgba(3,201,136,0.14); color:var(--gold-bright); }
+.aa-range-seg button:hover:not(.active){ color:var(--ink-0); }
+
+.aa-refresh-btn{
+  font-family:var(--font-mono); font-size:11.5px; padding:7px 12px; border-radius:8px;
+  border:1px solid var(--line); background:transparent; color:var(--ink-2); cursor:pointer;
+}
+.aa-refresh-btn:hover:not(:disabled){ color:var(--ink-0); border-color:var(--gold-dim); }
+.aa-refresh-btn:disabled{ opacity:0.6; cursor:default; }
+
+.aa-bento-grid{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px;
+}
+@media (max-width:960px){ .aa-bento-grid{ grid-template-columns:1fr 1fr; } }
+@media (max-width:520px){ .aa-bento-grid{ grid-template-columns:1fr 1fr; gap:10px; } }
+
+.aa-card{
+  background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-md, 10px);
+  padding:14px;
+}
+.aa-card .v{ font-family:var(--font-mono); font-size:20px; color:var(--ink-0); line-height:1.2; }
+.aa-card .l{ font-size:10.5px; color:var(--ink-3); margin-top:3px; }
+.aa-card .sub{ font-size:10.5px; color:var(--ink-3); margin-top:6px; line-height:1.4; }
+.aa-card .drill{ font-size:10.5px; color:var(--gold); display:block; margin-top:8px; }
+
+.aa-online-dot{
+  width:9px; height:9px; border-radius:50%; background:var(--bull);
+  display:inline-block; margin-right:6px; box-shadow:0 0 0 4px rgba(3,201,136,0.16);
+  vertical-align:middle;
+}
+
+.aa-two-col{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media (max-width:900px){ .aa-two-col{ grid-template-columns:1fr; } }
+
+.aa-empty{ color:var(--ink-3); font-size:13px; padding:10px 0; }
+
+.aa-visit-total{ font-family:var(--font-mono); font-size:22px; color:var(--ink-0); }
+.aa-visit-sub{ font-size:11.5px; color:var(--ink-3); margin-top:4px; }
+
+.aa-trend-note{ font-size:11px; color:var(--ink-3); margin-top:4px; }
+
+#admin-analytics{ animation:aaFadeIn .25s ease; }
+@keyframes aaFadeIn{ from{ opacity:0; } to{ opacity:1; } }
+@media (prefers-reduced-motion:reduce){
+  #admin-analytics{ animation:none; }
+}

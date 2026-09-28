@@ -295,7 +295,14 @@ function aaDaysForRange(range){
   return out;
 }
 
+// Only the newest aaLoadVisits call may write the card. "30d" issues 30 reads
+// and "Today" one, so a later Today answer used to be overwritten when the
+// earlier 30d batch finally settled. Every write path below (total, "No data
+// yet"/"Unavailable", and the catch) bails out when a newer call has started.
+var aaVisitsSeq = 0;
+
 function aaLoadVisits(range){
+  var my = ++aaVisitsSeq;
   var wrap = document.getElementById('aa-visits-body');
   if (wrap) wrap.innerHTML = '<div class="v">\u2026</div><div class="l">Visits (site-wide day totals)</div>';
   var days = aaDaysForRange(range || 'today');
@@ -303,6 +310,7 @@ function aaLoadVisits(range){
   return Promise.all(days.map(function (day) {
     return db.collection('traffic').doc(day).get().catch(function () { failed++; return { exists: false }; });
   })).then(function (docs) {
+    if (my !== aaVisitsSeq) return; // a newer range was picked while these reads were in flight
     var found = docs.filter(function (d) { return d.exists; });
     if (!found.length) {
       // Every read failing is an outage; reads that succeeded and found no
@@ -323,7 +331,10 @@ function aaLoadVisits(range){
         (failed ? ' \u00b7 ' + failed + ' unreadable' : '') + '</div>';
     }
   }).catch(function (err) {
+    // A stale request that rejects late must not flip a newer answer to
+    // "Unavailable"; still log it, so a real outage stays visible.
     console.error('Stryker: visits read failed', err);
+    if (my !== aaVisitsSeq) return;
     if (wrap) wrap.innerHTML = '<div class="v aa-v-text">Unavailable</div><div class="l">Visits (site-wide day totals)</div>';
   });
 }

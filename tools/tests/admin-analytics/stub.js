@@ -182,6 +182,17 @@ function build(mode) {
           return {
             get: function () {
               if (MODE === 'failed') return fail();
+              // Race tests (race.js) install window.__trafficCtl(id) to control
+              // each read's latency and outcome: { data, delayMs, fail }.
+              if (typeof window.__trafficCtl === 'function') {
+                var c = window.__trafficCtl(id) || {};
+                return new Promise(function (resolve, reject) {
+                  setTimeout(function () {
+                    if (c.fail) reject(new Error('stub: traffic read failed (race test)'));
+                    else resolve(snap(!!c.data, c.data));
+                  }, c.delayMs || 0);
+                });
+              }
               var d = TRAFFIC_DOCS[id];
               return Promise.resolve(snap(!!d, d));
             }

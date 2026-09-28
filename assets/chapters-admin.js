@@ -42,29 +42,101 @@ function renderChapterList(){
   });
 }
 
-function renderStatCards(students){
-  const totalStudents = students.length;
-  document.getElementById('chstat-total-students').textContent = totalStudents;
+// ---- Stat cards -------------------------------------------------------------
+//
+// These three cards used to be computed in the browser from
+// db.collection('students').get() — an unprojected download of EVERY student
+// document (names, emails, plans, streaks) just to produce three summary
+// numbers that display none of it. That was the last unbounded student scan on
+// the site, it grew linearly with the member base, and it did not benefit from
+// the bot- exclusion shipped in 345, so this page and the main dashboard could
+// disagree about the member count.
+//
+// They now read the adminStats/current snapshot the scheduled function already
+// writes: one document read instead of N, bot-filtered, and computed from the
+// same source the main dashboard uses, so the two pages cannot drift apart.
+//
+// Definitions note: the old card summed RAW completedChapters array lengths,
+// counting duplicates and ids no longer in the catalogue. chapterCompletions
+// de-duplicates per student and counts catalogue ids only, so a stale id can't
+// inflate the average. Measured on live data before the swap: both definitions
+// gave 0.9 (48 completions / 56 students, 0 duplicates, 0 unknown ids).
 
-  if (!totalStudents) {
-    document.getElementById('chstat-avg-completion').textContent = '0';
-    document.getElementById('chstat-most-completed').textContent = '—';
+function chRelativeTime(ms){
+  if (!ms) return null;
+  var diff = Date.now() - ms;
+  if (diff < 0) diff = 0;
+  var m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + ' min ago';
+  var h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+
+// The freshness line is created here rather than in chapters-admin.html so this
+// change stays within a single file, as scoped.
+function chSetFreshness(text){
+  var grid = document.querySelector('.stat-grid-3');
+  if (!grid) return;
+  var el = document.getElementById('chstat-updated');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'chstat-updated';
+    el.style.cssText = 'font-family:var(--font-mono); font-size:12px; color:var(--ink-3); margin:-4px 0 14px;';
+    grid.parentNode.insertBefore(el, grid.nextSibling);
+  }
+  el.textContent = text || '';
+}
+
+function chSet(id, value){
+  var el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+// stats: the adminStats/current document data, or null/undefined when the
+// snapshot has never been generated or could not be read. Never throws, and
+// never falls back to scanning students — a missing snapshot shows a dash.
+function renderStatCards(stats){
+  if (!stats) {
+    chSet('chstat-total-students', '—');
+    chSet('chstat-avg-completion', '—');
+    chSet('chstat-most-completed', '—');
+    chSetFreshness('Stats not yet generated — they appear after the next scheduled refresh.');
     return;
   }
 
-  const totalChaptersCompleted = students.reduce((sum, s) => sum + ((s.completedChapters || []).length), 0);
-  document.getElementById('chstat-avg-completion').textContent = (totalChaptersCompleted / totalStudents).toFixed(1);
+  var totalStudents = typeof stats.totalUsers === 'number' ? stats.totalUsers : 0;
+  chSet('chstat-total-students', totalStudents);
 
-  const counts = {};
-  CHAPTERS.forEach(ch => { counts[ch.num] = 0; });
-  students.forEach(s => {
-    (s.completedChapters || []).forEach(num => { if (counts.hasOwnProperty(num)) counts[num]++; });
-  });
-  let mostCompletedChapter = null, mostCount = -1;
-  CHAPTERS.forEach(ch => {
-    if (counts[ch.num] > mostCount) { mostCount = counts[ch.num]; mostCompletedChapter = ch; }
-  });
-  document.getElementById('chstat-most-completed').textContent = mostCompletedChapter ? ('Ch. ' + mostCompletedChapter.num) : '—';
+  var counts = stats.chapterCompletions || {};
+  var ids = Object.keys(counts);
+
+  var sum = 0;
+  for (var i = 0; i < ids.length; i++) {
+    var n = counts[ids[i]];
+    if (typeof n === 'number' && isFinite(n)) sum += n;
+  }
+  chSet('chstat-avg-completion', totalStudents ? (sum / totalStudents).toFixed(1) : '0');
+
+  // Argmax over the completion counts. Ties break toward the chapter that comes
+  // first in the catalogue (CHAPTERS order), so the card is stable between
+  // loads instead of depending on object key order; with no catalogue loaded,
+  // fall back to the snapshot's own key order.
+  var order = (typeof CHAPTERS !== 'undefined' && CHAPTERS && CHAPTERS.length)
+    ? CHAPTERS.map(function (ch) { return String(ch.num); })
+    : ids;
+  var best = null, bestCount = -1;
+  for (var j = 0; j < order.length; j++) {
+    var id = order[j];
+    var c = counts[id];
+    if (typeof c === 'number' && isFinite(c) && c > bestCount) { bestCount = c; best = id; }
+  }
+  chSet('chstat-most-completed', (best !== null && bestCount > 0) ? ('Ch. ' + best) : '—');
+
+  var ms = (stats.generatedAt && stats.generatedAt.toMillis) ? stats.generatedAt.toMillis() : null;
+  var rel = chRelativeTime(ms);
+  chSetFreshness(rel ? ('Stats updated ' + rel) : '');
 }
 
 function importBundledChapters(triggerBtn){
@@ -123,11 +195,20 @@ function importBundledChapters(triggerBtn){
 
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
-    Promise.all([db.collection('students').get(), loadChapters()])
-      .then(([snap]) => {
-        const students = [];
-        snap.forEach((doc) => students.push(doc.data()));
-        renderStatCards(students);
+    Promise.all([
+      // One document read, replacing db.collection('students').get().
+      // A failed or missing snapshot degrades to the dash state rather than
+      // rejecting, so the chapter list below still renders.
+      db.collection('adminStats').doc('current').get()
+        .then(function (doc) { return doc.exists ? doc.data() : null; })
+        .catch(function (err) {
+          console.error('Stryker: adminStats/current read failed', err);
+          return null;
+        }),
+      loadChapters(),
+    ])
+      .then(([stats]) => {
+        renderStatCards(stats);
         renderChapterList();
       })
       .catch((err) => {

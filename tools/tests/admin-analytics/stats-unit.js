@@ -203,10 +203,16 @@ function check(name, fn) {
     const json = JSON.stringify(cur);
     ['a@x', 'Student A', 'email', 'displayName'].forEach((s) => assert.ok(json.indexOf(s) === -1, 'leaked ' + s));
   });
-  await check('students read only via count() and one projected select(plan,completedChapters)', () => {
+  await check('students read via ONE projected select, no full-document get()', () => {
     const st = currentDb._calls.filter((c) => c.col === 'students');
     const kinds = [...new Set(st.map((c) => c.kind))].sort();
-    assert.deepStrictEqual(kinds, ['count', 'select:plan,completedChapters']);
+    // The window counts moved off count() aggregations and onto this same
+    // projected scan, because an aggregation cannot skip bot- ids (see
+    // countWindows in adminStats.js). That is ONE students read per run, down
+    // from eight; the projection still keeps names/emails in the database.
+    assert.deepStrictEqual(kinds, ['select:plan,completedChapters,createdAt,lastActiveDate']);
+    assert.strictEqual(st.length, 1, 'exactly one students read per snapshot');
+    assert.ok(!st.some((c) => c.kind === 'get'), 'never an unprojected students get()');
   });
   await check('seriesStart is preserved on later runs', async () => {
     currentDb._store.adminStats.current.seriesStart = '2026-01-01';
@@ -231,6 +237,114 @@ function check(name, fn) {
   await check('refresh: throttled within 60 s', async () => {
     const r = await registered.call({}, { auth: { uid: 'adm' } });
     assert.strictEqual(r.throttled, true);
+  });
+
+  // ---- bot-* exclusion (CoS item 3) --------------------------------------
+  // The rule is the generated `bot-` PREFIX and nothing else. These tests
+  // prove both directions: a bot record reaches NO aggregate, and a real user
+  // still reaches every one.
+  await check('isBotUid: prefix only, never a substring match', () => {
+    assert.strictEqual(T.isBotUid('bot-8gOMwJ7KPpFCY7eK1Tm1'), true);
+    assert.strictEqual(T.isBotUid('bot-'), true, 'bare prefix is a bot id');
+    assert.strictEqual(T.isBotUid('robot-abc'), false, 'contains but does not start with bot-');
+    assert.strictEqual(T.isBotUid('xbot-1'), false, 'contains but does not start with bot-');
+    assert.strictEqual(T.isBotUid('Bot-1'), false, 'case-sensitive: generated ids are lower-case');
+    assert.strictEqual(T.isBotUid(undefined), false);
+  });
+
+  // Baseline snapshot with no bot records at all.
+  currentDb = makeDb(fixture);
+  await registered.schedule.h();
+  const noBots = JSON.parse(JSON.stringify(currentDb._store.adminStats.current, (k, v) => (k === 'generatedAt' ? undefined : v)));
+
+  // The same fixture plus one synthetic bot record that would, if counted,
+  // move totalUsers, scanned, new*, active*, paid, mrr, byPlan and completion.
+  const withBot = JSON.parse(JSON.stringify(fixture));
+  withBot.students['bot-synthetic123'] = {
+    plan: 'Elite', createdAt: ts(0), lastActiveDate: day(0),
+    completedChapters: ['1', '2', '3'], email: 'bot@x', displayName: 'Desk Bot'
+  };
+  currentDb = makeDb(withBot);
+  await registered.schedule.h();
+  const botCur = currentDb._store.adminStats.current;
+
+  await check('a synthetic bot- record reaches NO aggregate (full stat object identical)', () => {
+    const got = JSON.parse(JSON.stringify(botCur, (k, v) => (k === 'generatedAt' ? undefined : v)));
+    // Asserting on the WHOLE object, not just totalUsers: a bot must be
+    // invisible to the aggregation, not subtracted from one line.
+    assert.deepStrictEqual(got, noBots);
+  });
+  await check('...specifically: totalUsers, scanned, paid, mrr and byPlan are unmoved', () => {
+    assert.strictEqual(botCur.totalUsers, noBots.totalUsers);
+    assert.strictEqual(botCur.scanned, noBots.scanned);
+    assert.strictEqual(botCur.paid, noBots.paid);
+    assert.strictEqual(botCur.mrr, noBots.mrr);
+    assert.strictEqual(botCur.new1, noBots.new1);
+    assert.strictEqual(botCur.active1, noBots.active1);
+    assert.strictEqual(botCur.byPlan.Elite, noBots.byPlan.Elite, 'bot must not inflate its plan bucket');
+    assert.strictEqual(botCur.chapterCompletions['1'], noBots.chapterCompletions['1']);
+  });
+
+  // A real 28-char Firebase uid must still be counted, in every number.
+  const withReal = JSON.parse(JSON.stringify(fixture));
+  const REAL_UID = 'aSgVnKuaY9evfRSCMlVZdFXWFuI2';   // 28 chars, real-uid shape
+  assert.strictEqual(REAL_UID.length, 28);
+  withReal.students[REAL_UID] = {
+    plan: 'Elite', createdAt: ts(0), lastActiveDate: day(0), completedChapters: ['1']
+  };
+  currentDb = makeDb(withReal);
+  await registered.schedule.h();
+  const realCur = currentDb._store.adminStats.current;
+
+  await check('a real 28-char uid DOES still reach totalUsers and every aggregate', () => {
+    assert.strictEqual(realCur.totalUsers, noBots.totalUsers + 1);
+    assert.strictEqual(realCur.scanned, noBots.scanned + 1);
+    assert.strictEqual(realCur.new1, noBots.new1 + 1);
+    assert.strictEqual(realCur.new30, noBots.new30 + 1);
+    assert.strictEqual(realCur.active1, noBots.active1 + 1);
+    assert.strictEqual(realCur.paid, noBots.paid + 1, 'Elite is a paid plan');
+    assert.strictEqual(realCur.mrr, noBots.mrr + 49);
+    assert.strictEqual(realCur.byPlan.Elite, noBots.byPlan.Elite + 1);
+  });
+
+  // Edge: ids that merely CONTAIN "bot-" are real users and must count.
+  const withLookalikes = JSON.parse(JSON.stringify(fixture));
+  withLookalikes.students['robot-abc'] = { plan: 'Elite', createdAt: ts(0), lastActiveDate: day(0), completedChapters: [] };
+  withLookalikes.students['xbot-1'] = { plan: 'Elite', createdAt: ts(0), lastActiveDate: day(0), completedChapters: [] };
+  currentDb = makeDb(withLookalikes);
+  await registered.schedule.h();
+  const lookCur = currentDb._store.adminStats.current;
+
+  await check('robot-abc and xbot-1 still COUNT (prefix rule, not substring)', () => {
+    assert.strictEqual(lookCur.totalUsers, noBots.totalUsers + 2);
+    assert.strictEqual(lookCur.paid, noBots.paid + 2);
+    assert.strictEqual(lookCur.byPlan.Elite, noBots.byPlan.Elite + 2);
+  });
+
+  // Edge: the bare prefix `bot-` as an id is excluded.
+  const withBare = JSON.parse(JSON.stringify(fixture));
+  withBare.students['bot-'] = { plan: 'Elite', createdAt: ts(0), lastActiveDate: day(0), completedChapters: [] };
+  currentDb = makeDb(withBare);
+  await registered.schedule.h();
+  await check('the bare id "bot-" is excluded too', () => {
+    const c = currentDb._store.adminStats.current;
+    assert.strictEqual(c.totalUsers, noBots.totalUsers);
+    assert.strictEqual(c.paid, noBots.paid);
+  });
+
+  await check('window counts still honour field type, as the old queries did', () => {
+    const now = new Date('2026-09-28T12:00:00Z');
+    const w = T.countWindows([
+      { createdAt: { toMillis: () => Date.parse('2026-09-28T01:00:00Z') }, lastActiveDate: '2026-09-28' },
+      { createdAt: { toMillis: () => Date.parse('2026-09-01T01:00:00Z') }, lastActiveDate: '2026-09-01' },
+      { },                                          // no fields: counted in total only
+      { createdAt: 'not-a-timestamp', lastActiveDate: 12345 }  // wrong types: never matched by the old queries either
+    ], now);
+    assert.strictEqual(w.totalUsers, 4);
+    assert.strictEqual(w.new1, 1);
+    assert.strictEqual(w.new30, 2);
+    assert.strictEqual(w.active1, 1);
+    assert.strictEqual(w.active30, 2);
   });
 
   console.log(pass + '/' + (pass + fail) + ' passed');

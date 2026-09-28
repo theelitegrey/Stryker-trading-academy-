@@ -65,6 +65,59 @@ function windowStartDate(now, days) {
   return new Date(windowStartStr(now, days) + 'T00:00:00.000Z');
 }
 
+// ---- Bot records
+//
+// The trading-floor bots (functions-src/marketBots.js, mirrorTweets.js) write
+// profile/post records under a generated `bot-<id>` uid, and one of those ids
+// had also ended up in students/, where it was counted as a user. Bots are not
+// people, so the aggregation skips them entirely: they must be invisible to
+// every derived number, not subtracted from one line.
+//
+// PREFIX ONLY, deliberately. The rule is exactly the generated prefix and
+// nothing else — no regex over the whole id, no name/email matching, no
+// "looks like a test" heuristic. An id that merely CONTAINS "bot-" (robot-abc,
+// xbot-1) is a real user and still counts. This mirrors the existing browser
+// helper in assets/team-identity.js (`uid.indexOf('bot-') === 0`).
+const BOT_UID_PREFIX = 'bot-';
+
+function isBotUid(id) {
+  return typeof id === 'string' && id.indexOf(BOT_UID_PREFIX) === 0;
+}
+
+// Window counts derived from the same projected scan the plan/MRR figures
+// use, rather than from count() aggregations.
+//
+// WHY NOT count(): an aggregation cannot skip documents by id prefix, so with
+// count() a bot record would still land in totalUsers/new*/active* even though
+// it is filtered out of everything else — exactly the "subtracted from one
+// line" outcome this change exists to avoid. The projected scan already reads
+// every student document, so deriving the windows from it adds no document
+// reads (it removes seven queries) and lets one filter govern every number.
+//
+// Field semantics mirror the queries this replaces, so the numbers do not
+// move for real users: `createdAt >= <Timestamp>` matched only documents whose
+// createdAt is a Timestamp, and `lastActiveDate >= '<YYYY-MM-DD>'` matched only
+// string values. Documents missing the field, or holding another type, were
+// never matched by those queries and are not counted here either.
+function countWindows(rows, now) {
+  const out = { totalUsers: rows.length, new1: 0, new7: 0, new30: 0, active1: 0, active7: 0, active30: 0 };
+  const createdCut = { 1: windowStartDate(now, 1).getTime(), 7: windowStartDate(now, 7).getTime(), 30: windowStartDate(now, 30).getTime() };
+  const activeCut = { 1: windowStartStr(now, 1), 7: windowStartStr(now, 7), 30: windowStartStr(now, 30) };
+  rows.forEach((s) => {
+    const c = s.createdAt;
+    const ms = c && typeof c.toMillis === 'function' ? c.toMillis()
+      : (c instanceof Date ? c.getTime() : null);
+    if (ms !== null) {
+      [1, 7, 30].forEach((d) => { if (ms >= createdCut[d]) out['new' + d] += 1; });
+    }
+    const la = s.lastActiveDate;
+    if (typeof la === 'string') {
+      [1, 7, 30].forEach((d) => { if (la >= activeCut[d]) out['active' + d] += 1; });
+    }
+  });
+  return out;
+}
+
 // Same price parsing as the old browser renderAdminStats: strip everything
 // but digits and the decimal point. Returns a map of lower-cased plan NAME
 // to price (students store their plan as a name string).
@@ -145,36 +198,36 @@ async function buildStats(db, now) {
   const students = db.collection('students');
   const ts = (d) => admin.firestore.Timestamp.fromDate(d);
 
-  const [totalUsers, new1, new7, new30, active1, active7, active30,
-         upcomingSessions] = await Promise.all([
-    countOf(students),
-    countOf(students.where('createdAt', '>=', ts(windowStartDate(now, 1)))),
-    countOf(students.where('createdAt', '>=', ts(windowStartDate(now, 7)))),
-    countOf(students.where('createdAt', '>=', ts(windowStartDate(now, 30)))),
-    countOf(students.where('lastActiveDate', '>=', windowStartStr(now, 1))),
-    countOf(students.where('lastActiveDate', '>=', windowStartStr(now, 7))),
-    countOf(students.where('lastActiveDate', '>=', windowStartStr(now, 30))),
-    countOf(db.collection('liveSessions').where('startsAt', '>', ts(now)))
-  ]);
+  const upcomingSessions = await countOf(
+    db.collection('liveSessions').where('startsAt', '>', ts(now))
+  );
 
   // Small collections: read whole, as the dashboard already did.
   const [planSnap, chapterSnap, rowSnap] = await Promise.all([
     db.collection('plans').get(),
     db.collection('chapters').get(),
-    // Projection: only these two fields leave the database.
-    students.select('plan', 'completedChapters').get()
+    // Projection: only these four fields leave the database. createdAt and
+    // lastActiveDate are dates, not personal data, and they let the window
+    // counts honour the bot filter (see countWindows).
+    students.select('plan', 'completedChapters', 'createdAt', 'lastActiveDate').get()
   ]);
   const plans = planSnap.docs.map((d) => d.data());
   const chapters = chapterSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-  const rows = rowSnap.docs.map((d) => d.data());
 
+  // THE bot filter. Applied once, here, before anything is derived, so a bot
+  // record reaches no number at all.
+  const rows = rowSnap.docs
+    .filter((d) => !isBotUid(d.id))
+    .map((d) => d.data());
+
+  const windows = countWindows(rows, now);
   const sum = summarise(rows, plans, chapters);
   return Object.assign({
-    totalUsers, new1, new7, new30, active1, active7, active30, upcomingSessions,
+    upcomingSessions,
     tz: 'UTC',
     day: utcDateStr(now),
     mrrCurrency: null   // plan prices are stored as display strings; see handback
-  }, sum);
+  }, windows, sum);
 }
 
 async function writeSnapshot(db, trigger) {
@@ -236,4 +289,4 @@ exports.adminStatsRefresh = functions
   });
 
 // Exported for the unit test only.
-exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr };
+exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, countWindows, buildStats };

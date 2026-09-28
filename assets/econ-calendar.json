@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-25T05:50:00Z",
+  "generatedAt": "2026-09-28T05:58:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-28T11:00:00Z",
+  "goodUntil": "2026-09-29T05:30:00Z",
   "defaultCurrency": "USD",
-  "rangeStart": "2026-09-14",
-  "rangeEnd": "2026-10-13",
+  "rangeStart": "2026-09-21",
+  "rangeEnd": "2026-10-16",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. Three voters — Williams, Paulson, Hammack — backed more on 24 Sep; futures price about 71% for 28 Oct and roughly 94% for at least one more by December",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. Williams, Barr, Hammack and Paulson all backed more last week; after Friday's oil drop futures price about 65% for 28 Oct, down from 71% on Thursday, and roughly 80% for at least one more by December",
       "bias": "up"
     },
     {
@@ -63,7 +63,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep. September's flash composite PMI rose to 53.1 against 51.5 expected; no meeting is ruled out, October included",
+      "expect": "Second hike of 2026 on 10 Sep. Lagarde testifies to the European Parliament on Monday; Friday's flash HICP is seen 3.5% after 3.2%, and no meeting is ruled out, October included",
       "bias": "up"
     },
     {
@@ -71,7 +71,7 @@
       "bank": "Bank of England",
       "rate": "3.75%",
       "next": null,
-      "expect": "Held 6–3 on 17 Sep and stopped selling long gilts; November is the live meeting",
+      "expect": "Held 6–3 on 17 Sep. Bailey said on Friday that high energy prices make the hold harder to maintain and the Bank cannot wait for full evidence; about 80% priced for a November hike",
       "bias": "up"
     },
     {
@@ -79,7 +79,7 @@
       "bank": "Bank of Japan",
       "rate": "1.25%",
       "next": null,
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. The yen is 158 to the dollar regardless; economists see 1.75% by mid-2027",
+      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Katayama says Trump raised the weak yen with Takaichi on 22 Sep; the pair fell to 156.94 on Friday on intervention talk and is back near 157.75",
       "bias": "up"
     },
     {
@@ -95,7 +95,7 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.35%",
       "next": "2026-09-29",
-      "expect": "Decides Monday 29 Sep at 00:30 ET. About 90% priced for a hike from 4.35% after August jobs printed +39,500 against 20,000 expected",
+      "expect": "Decides Tuesday 29 Sep at 04:30 UTC. About 90% priced for a hike to 4.60%, the fourth of 2026; ANZ expects another in November to 4.85%",
       "bias": "up"
     },
     {
@@ -108,192 +108,6 @@
     }
   ],
   "events": [
-    {
-      "at": "2026-09-14T12:30:00Z",
-      "cur": "CAD",
-      "impact": "high",
-      "event": "Canada CPI (Aug, y/y)",
-      "forecast": "3%",
-      "previous": "3%",
-      "actual": "3%",
-      "note": "Held at 3.0% against a 2.0% target. Core ticked up to 2.4%. Enough to keep an October hike live, not enough to force one."
-    },
-    {
-      "at": "2026-09-14T15:15:00Z",
-      "cur": "EUR",
-      "impact": "high",
-      "event": "ECB President Lagarde speaks",
-      "note": "The ECB has hiked twice this year and its Council says no meeting is ruled out. Lagarde speaks several times this fortnight; the page carries the first one."
-    },
-    {
-      "at": "2026-09-15T02:00:00Z",
-      "cur": "CNY",
-      "impact": "high",
-      "event": "China industrial production (Aug, y/y)",
-      "forecast": "4.8%",
-      "previous": "4.5%",
-      "actual": "5.2%",
-      "note": "5.2% against 4.8% expected. Factories are carrying an economy whose consumer is not."
-    },
-    {
-      "at": "2026-09-15T02:00:00Z",
-      "cur": "CNY",
-      "impact": "high",
-      "event": "China retail sales (Aug, y/y)",
-      "forecast": "0.8%",
-      "previous": "0.6%",
-      "actual": "0.4%",
-      "note": "0.4% against 0.8% expected. The consumer is still the weak half of this economy."
-    },
-    {
-      "at": "2026-09-15T06:00:00Z",
-      "cur": "GBP",
-      "impact": "high",
-      "event": "UK claimant count (Aug)",
-      "forecast": "8.3k",
-      "previous": "-11k",
-      "actual": "27.8k",
-      "note": "27,800 against 8,300 expected, after a fall of 11,000. The labour market is loosening faster than the MPC's hawks allow for."
-    },
-    {
-      "at": "2026-09-15T06:00:00Z",
-      "cur": "GBP",
-      "impact": "high",
-      "event": "UK unemployment rate (3M)",
-      "forecast": "5%",
-      "previous": "4.9%",
-      "actual": "4.9%",
-      "note": "Held at 4.9%, a shade below the 5.0% expected, alongside a much worse claimant count."
-    },
-    {
-      "at": "2026-09-15T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Empire State manufacturing (Sep)",
-      "forecast": "14.75",
-      "previous": "20.6",
-      "actual": "7.6",
-      "note": "7.6 against 14.75 expected, from 20.6. A 48% downside surprise that the market ignored on FOMC eve."
-    },
-    {
-      "at": "2026-09-16T06:00:00Z",
-      "cur": "GBP",
-      "impact": "high",
-      "event": "UK CPI (Aug, y/y)",
-      "forecast": "3.1%",
-      "previous": "2.9%",
-      "actual": "3.1%",
-      "note": "3.1% against 2.9%, in line with forecast. Core held at 2.6%."
-    },
-    {
-      "at": "2026-09-16T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US retail sales (Aug, m/m)",
-      "forecast": "0.8%",
-      "previous": "-0.6%",
-      "actual": "1.2%",
-      "note": "1.2% against 0.8% expected after a 0.6% fall. The control group was stronger still at 1.4%. This is what made the hike easy to justify."
-    },
-    {
-      "at": "2026-09-16T18:00:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "Fed decision — hiked to 3.75–4.00%",
-      "forecast": "4%",
-      "previous": "3.75%",
-      "actual": "4%",
-      "note": "First increase since July 2023, on a 12–0 vote. The dots show 4.1% at end-2026 and 3.9% at end-2027."
-    },
-    {
-      "at": "2026-09-17T11:00:00Z",
-      "cur": "GBP",
-      "impact": "high",
-      "event": "Bank of England decision — held at 3.75%",
-      "forecast": "3.75%",
-      "previous": "3.75%",
-      "actual": "3.75%",
-      "note": "Six to three to hold, with three voting to hike and none to cut, and long-gilt sales halted. November is the live meeting."
-    },
-    {
-      "at": "2026-09-17T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Philadelphia Fed manufacturing (Sep)",
-      "forecast": "30.5",
-      "previous": "47.4",
-      "actual": "37.8"
-    },
-    {
-      "at": "2026-09-17T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US building permits (Aug)",
-      "forecast": "1.41m",
-      "previous": "1.443m",
-      "actual": "1.394m"
-    },
-    {
-      "at": "2026-09-17T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US housing starts (Aug)",
-      "forecast": "1.31m",
-      "previous": "1.239m",
-      "actual": "1.275m"
-    },
-    {
-      "at": "2026-09-17T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US initial jobless claims",
-      "forecast": "208k",
-      "previous": "206k",
-      "actual": "196k"
-    },
-    {
-      "at": "2026-09-17T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US pending home sales (Aug, m/m)",
-      "forecast": "2%",
-      "previous": "-2.3%",
-      "actual": "0.3%"
-    },
-    {
-      "at": "2026-09-17T23:30:00Z",
-      "cur": "AUD",
-      "impact": "high",
-      "event": "RBA Governor Bullock speaks",
-      "note": "Roughly 90% is priced for a hike at next Tuesday's meeting. This is the last scheduled chance to push back on that."
-    },
-    {
-      "at": "2026-09-18T03:00:00Z",
-      "cur": "JPY",
-      "impact": "high",
-      "event": "Bank of Japan decision — hiked to 1.25%",
-      "note": "A 31-year high for the policy rate. Wage growth and imported energy did the work."
-    },
-    {
-      "at": "2026-09-18T06:00:00Z",
-      "cur": "GBP",
-      "impact": "high",
-      "event": "UK retail sales (Aug, m/m)",
-      "forecast": "-0.2%",
-      "previous": "-0.5%",
-      "actual": "0.5%",
-      "note": "0.5% against an expected fall of 0.2%. Sterling's one piece of good news last week."
-    },
-    {
-      "at": "2026-09-18T13:15:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US industrial production (Aug, m/m)",
-      "forecast": "0.3%",
-      "previous": "0.2%",
-      "actual": "0%",
-      "note": "Flat against 0.3% expected. The softest of last week's US numbers and the one that got least attention."
-    },
     {
       "at": "2026-09-21T10:30:00Z",
       "cur": "USD",
@@ -559,20 +373,20 @@
       "at": "2026-09-24T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Darden Restaurants Q1 earnings",
-      "kind": "earnings",
-      "ticker": "DRI",
-      "note": "Discretionary spending with a fuel bill attached. Traffic is the line to read."
-    },
-    {
-      "at": "2026-09-24T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
       "event": "US initial jobless claims",
       "forecast": "201k",
       "previous": "196k",
       "actual": "197k",
       "note": "197,000 against 201,000 expected, with the prior week revised to 198,000 and the four-week average at 202,250. Nothing in the claims data argues against the hike the Fed's speakers keep describing."
+    },
+    {
+      "at": "2026-09-24T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Darden Restaurants Q1 earnings",
+      "kind": "earnings",
+      "ticker": "DRI",
+      "note": "Discretionary spending with a fuel bill attached. Traffic is the line to read."
     },
     {
       "at": "2026-09-24T12:50:00Z",
@@ -629,8 +443,9 @@
       "impact": "medium",
       "event": "US core capital goods orders (Aug)",
       "previous": "0.2%",
-      "note": "Non-defence capital goods ex-aircraft, the business-investment line. August's 0.2% has been revised to zero, so the 0.5% consensus is a rebound off a flat month rather than an acceleration.",
-      "forecast": "0.5%"
+      "note": "Non-defence capital goods ex-aircraft rose 1.6% against 0.5% expected, and July was revised up from flat to +0.6%. The business-investment line is not slowing.",
+      "forecast": "0.5%",
+      "actual": "1.6%"
     },
     {
       "at": "2026-09-25T12:30:00Z",
@@ -638,7 +453,9 @@
       "impact": "medium",
       "event": "US durable goods orders (Aug)",
       "forecast": "-0.4%",
-      "previous": "1.1%"
+      "previous": "1.1%",
+      "actual": "0.0%",
+      "note": "Flat against −0.4% expected, after July was revised up to +0.9%. Ex-transport rose 0.3% against 0.6%."
     },
     {
       "at": "2026-09-25T14:00:00Z",
@@ -646,8 +463,9 @@
       "impact": "medium",
       "event": "Michigan 1-year inflation expectations (Sep)",
       "previous": "4.6%",
-      "note": "4.6% in the preliminary. With the Fed hiking into an energy shock, this series matters more than the sentiment headline.",
-      "forecast": "4.6%"
+      "note": "Confirmed at 4.6%, up from 4.0% in August. This is the number that took the ten-year to 5.228% on Friday morning before oil fell and pulled it back.",
+      "forecast": "4.6%",
+      "actual": "4.6%"
     },
     {
       "at": "2026-09-25T14:00:00Z",
@@ -655,7 +473,8 @@
       "impact": "medium",
       "event": "Michigan 5-year inflation expectations (Sep)",
       "forecast": "3.4%",
-      "previous": "3.4%"
+      "previous": "3.4%",
+      "actual": "3.4%"
     },
     {
       "at": "2026-09-25T14:00:00Z",
@@ -663,7 +482,30 @@
       "impact": "medium",
       "event": "Michigan sentiment, final (Sep)",
       "forecast": "47.6",
-      "previous": "47.8"
+      "previous": "47.8",
+      "actual": "48.1",
+      "note": "Revised up from the 47.8 preliminary and above 47.6 expected, but down from 51.7 in August and the lowest in four months. The survey director blamed fuel prices and trade frictions for a sharp fall in near-term business expectations."
+    },
+    {
+      "at": "2026-09-28T14:30:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "US Dallas Fed manufacturing (Sep)",
+      "note": "The only US release of the day. The regional surveys have run hot since the flash PMI printed 57.0; Dallas is the oil-patch one."
+    },
+    {
+      "at": "2026-09-28T16:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "BoE's Ramsden speaks",
+      "note": "On quantitative tightening, three days after Bailey said high energy prices make the hold harder to maintain. About 80% is priced for a November hike."
+    },
+    {
+      "at": "2026-09-28T17:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Barkin speaks",
+      "note": "Richmond. Said last week that inflation pressures may persist for a while; the first Fed voice since Friday's Michigan expectations print and the weekend's oil move."
     },
     {
       "at": "2026-09-28T20:00:00Z",
@@ -680,7 +522,22 @@
       "impact": "high",
       "event": "RBA decision",
       "previous": "4.35%",
-      "note": "About 90% priced for a hike from 4.35%. Westpac brought its call forward to September."
+      "note": "About 90% priced for a 25bp hike to 4.60%, the fourth of 2026 and the highest cash rate in 15 years. All four big Australian banks call it; ANZ expects a split vote and another in November to 4.85%.",
+      "forecast": "4.60%"
+    },
+    {
+      "at": "2026-09-29T05:30:00Z",
+      "cur": "AUD",
+      "impact": "high",
+      "event": "RBA press conference",
+      "note": "Bullock has said unemployment may need to rise to tame inflation. Whether she signals November is the read; the hike itself is priced."
+    },
+    {
+      "at": "2026-09-29T11:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Musalem speaks",
+      "note": "St Louis, a voter this year. The first of three Fed speakers on Tuesday; Goolsbee follows at 17:00 and Williams at 18:00 UTC."
     },
     {
       "at": "2026-09-29T12:00:00Z",
@@ -691,25 +548,37 @@
       "ticker": "KMX"
     },
     {
-      "at": "2026-09-29T14:00:00Z",
+      "at": "2026-09-29T13:00:00Z",
       "cur": "USD",
-      "impact": "medium",
-      "event": "Carnival Q3 earnings",
-      "kind": "earnings",
-      "ticker": "CCL"
+      "impact": "low",
+      "event": "US FHFA house price index (Jul, m/m)",
+      "forecast": "0.1%",
+      "previous": "0.0%"
     },
     {
       "at": "2026-09-29T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "US JOLTS job openings (Aug)",
-      "previous": "7.271m"
+      "previous": "7.271m",
+      "forecast": "7.23m"
     },
     {
       "at": "2026-09-29T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US consumer confidence (Sep)"
+      "event": "US consumer confidence (Sep)",
+      "forecast": "90.0",
+      "previous": "89.4",
+      "note": "August's 89.4 was the lowest since January. Consensus has a small bounce; gasoline says otherwise."
+    },
+    {
+      "at": "2026-09-29T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Carnival Q3 earnings",
+      "kind": "earnings",
+      "ticker": "CCL"
     },
     {
       "at": "2026-09-29T17:00:00Z",
@@ -719,12 +588,28 @@
       "note": "A 2027 voter. Warsh has stopped giving forward guidance, so between meetings the speeches are the only read on the path."
     },
     {
+      "at": "2026-09-29T18:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Williams speaks",
+      "note": "Third appearance in a week. Said on Thursday that another hike this year is reasonable and that forward guidance is over."
+    },
+    {
       "at": "2026-09-30T01:30:00Z",
       "cur": "AUD",
       "impact": "high",
-      "event": "Australia trimmed mean CPI (Q3, y/y)",
+      "event": "Australia CPI (Aug, y/y)",
+      "forecast": "4.1%",
+      "previous": "3.5%",
+      "note": "Seen 4.1% after 3.5% — the oil shock reaching the monthly indicator. This is the print that made every big bank bring its hike call forward to September."
+    },
+    {
+      "at": "2026-09-30T01:30:00Z",
+      "cur": "AUD",
+      "impact": "high",
+      "event": "Australia trimmed mean CPI (Aug, y/y)",
       "previous": "3.6%",
-      "note": "3.6% last time, above the 2–3% target band. This lands the day after the RBA decides."
+      "note": "3.6% in July, above the 2–3% band. Prints the morning after the RBA decides, alongside a headline CPI seen at 4.1%."
     },
     {
       "at": "2026-09-30T01:30:00Z",
@@ -732,7 +617,23 @@
       "impact": "high",
       "event": "China NBS manufacturing PMI (Sep)",
       "previous": "49.8",
-      "note": "Has been below 50 for months. China is the one large economy not fighting inflation."
+      "note": "Has been below 50 for months. China is the one large economy not fighting inflation.",
+      "forecast": "50.1"
+    },
+    {
+      "at": "2026-09-30T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China NBS non-manufacturing PMI (Sep)",
+      "forecast": "49.3",
+      "previous": "49.0"
+    },
+    {
+      "at": "2026-09-30T06:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany retail sales (Aug, y/y)",
+      "previous": "-2.5%"
     },
     {
       "at": "2026-09-30T06:00:00Z",
@@ -757,7 +658,8 @@
       "impact": "high",
       "event": "US ADP employment change (Sep)",
       "previous": "38k",
-      "note": "38,000 last month. It correlates with payrolls badly enough that it trades as its own event two days before them."
+      "note": "38,000 last month. It correlates with payrolls badly enough that it trades as its own event two days before them.",
+      "forecast": "70k"
     },
     {
       "at": "2026-09-30T12:30:00Z",
@@ -765,7 +667,41 @@
       "impact": "medium",
       "event": "US GDP, final (Q2, annualised)",
       "previous": "1.5%",
-      "forecast": "1.5%"
+      "forecast": "1.6%",
+      "note": "Consensus has edged up to 1.6% from the 1.5% second estimate. A final read; the PCE rows printing at the same minute are what the market trades."
+    },
+    {
+      "at": "2026-09-30T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US PCE price index (Aug, y/y)",
+      "previous": "3.7%",
+      "note": "Headline was 3.7% in July; the monthly is seen +0.4% after +0.2% on the energy pass-through."
+    },
+    {
+      "at": "2026-09-30T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US core PCE price index (Aug, m/m)",
+      "forecast": "0.3%",
+      "previous": "0.2%"
+    },
+    {
+      "at": "2026-09-30T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US core PCE price index (Aug, y/y)",
+      "forecast": "3.4%",
+      "previous": "3.3%",
+      "note": "The Fed's preferred measure, seen 3.4% after 3.3% — moving away from 2%, not towards it. The Fed named this print when it hiked on 16 September; it lands on quarter-end with October about 65% priced."
+    },
+    {
+      "at": "2026-09-30T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US personal spending (Aug, m/m)",
+      "forecast": "0.8%",
+      "previous": "0.2%"
     },
     {
       "at": "2026-09-30T13:30:00Z",
@@ -774,6 +710,14 @@
       "event": "Conagra Brands Q1 earnings",
       "kind": "earnings",
       "ticker": "CAG"
+    },
+    {
+      "at": "2026-09-30T13:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Chicago PMI (Sep)",
+      "forecast": "51.3",
+      "previous": "47.1"
     },
     {
       "at": "2026-09-30T20:05:00Z",
@@ -807,6 +751,21 @@
       "note": "22 last quarter. The Bank of Japan has just hiked to a 31-year high, so corporate confidence is now a policy input."
     },
     {
+      "at": "2026-10-01T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia trade balance (Aug)",
+      "previous": "A$1.9bn"
+    },
+    {
+      "at": "2026-10-01T06:30:00Z",
+      "cur": "CHF",
+      "impact": "high",
+      "event": "Switzerland CPI (Sep, y/y)",
+      "previous": "0.8%",
+      "note": "0.8% last month. The SNB held at 0% on 24 September and nudged its forecast up to 0.7–0.8% on energy; a print above that is the only thing that moves a bank with no room to cut."
+    },
+    {
       "at": "2026-10-01T07:55:00Z",
       "cur": "EUR",
       "impact": "medium",
@@ -826,7 +785,8 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US initial jobless claims",
-      "previous": "197k"
+      "previous": "197k",
+      "forecast": "199k"
     },
     {
       "at": "2026-10-01T13:45:00Z",
@@ -842,7 +802,8 @@
       "impact": "high",
       "event": "US ISM manufacturing PMI (Sep)",
       "previous": "54.6",
-      "note": "54.6 last month. Read it with the prices-paid sub-index below rather than on its own."
+      "note": "54.6 last month. Read it with the prices-paid sub-index below rather than on its own.",
+      "forecast": "54.8"
     },
     {
       "at": "2026-10-01T14:00:00Z",
@@ -850,7 +811,15 @@
       "impact": "medium",
       "event": "US ISM manufacturing prices paid (Sep)",
       "previous": "71.1",
-      "note": "71.1 last month. This is the cleanest monthly read on whether the energy shock is reaching factory-gate costs."
+      "note": "71.1 last month. This is the cleanest monthly read on whether the energy shock is reaching factory-gate costs.",
+      "forecast": "72.0"
+    },
+    {
+      "at": "2026-10-01T19:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Williams speaks",
+      "note": "New York, the day before payrolls. Fourth appearance in eight days."
     },
     {
       "at": "2026-10-01T21:00:00Z",
@@ -862,12 +831,29 @@
       "note": "Freight and input costs in a quarter when heating oil rose 56% over three months."
     },
     {
+      "at": "2026-10-01T23:30:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "Tokyo CPI (Sep, y/y)",
+      "previous": "1.9%",
+      "note": "The capital's print leads the national one by three weeks. At 1.9% headline and 2.0% core it is the one G7 inflation rate still near target, which is why the BoJ is at 1.25% and the yen is at 157."
+    },
+    {
       "at": "2026-10-02T09:00:00Z",
       "cur": "EUR",
       "impact": "high",
       "event": "Euro area HICP, flash (Sep, y/y)",
       "previous": "3.2%",
-      "note": "3.2% last month against a 2% target, which is the whole reason the ECB is still moving."
+      "note": "Seen 3.5% after 3.2%, against a 2% target. Core is seen 2.6% after 2.4%. The ECB has hiked twice this year and says no meeting is ruled out; this is the print that decides whether 29 October is one.",
+      "forecast": "3.5%"
+    },
+    {
+      "at": "2026-10-02T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area core HICP, flash (Sep, y/y)",
+      "forecast": "2.6%",
+      "previous": "2.4%"
     },
     {
       "at": "2026-10-02T12:30:00Z",
@@ -883,14 +869,16 @@
       "impact": "high",
       "event": "US nonfarm payrolls (Sep)",
       "previous": "162k",
-      "note": "162,000 last month. The first payrolls since the Fed restarted hiking, and the number that decides whether December is a second one."
+      "note": "Consensus 100,000 after 162,000; Barclays is at 50,000 and expects August revised down. The first payrolls since the Fed restarted hiking, and the number that decides whether December is a second one.",
+      "forecast": "100k"
     },
     {
       "at": "2026-10-02T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "US unemployment rate (Sep)",
-      "previous": "4.1%"
+      "previous": "4.1%",
+      "forecast": "4.2%"
     },
     {
       "at": "2026-10-02T14:00:00Z",
@@ -898,7 +886,8 @@
       "impact": "medium",
       "event": "US factory orders (Aug, m/m)",
       "previous": "0.9%",
-      "note": "Lands ninety minutes after payrolls, which is why nobody trades it."
+      "note": "Lands ninety minutes after payrolls, which is why nobody trades it.",
+      "forecast": "-0.1%"
     },
     {
       "at": "2026-10-05T14:00:00Z",
@@ -1088,6 +1077,118 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Citigroup Q3 earnings"
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US CPI (Sep, y/y)",
+      "previous": "3.4%",
+      "note": "3.4% in August with the monthly at +0.4%. The first CPI after the September hike, two weeks before the 28 October decision."
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US core CPI (Sep, m/m)",
+      "previous": "0.3%",
+      "note": "0.3% last month. The Fed is hiking against the risk that energy leaks into core; this is where it would show."
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Bank of America Q3 earnings",
+      "kind": "earnings",
+      "ticker": "BAC"
+    },
+    {
+      "at": "2026-10-14T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Morgan Stanley Q3 earnings",
+      "kind": "earnings",
+      "ticker": "MS"
+    },
+    {
+      "at": "2026-10-15T00:30:00Z",
+      "cur": "AUD",
+      "impact": "high",
+      "event": "Australia employment change (Sep)",
+      "previous": "+39.5k",
+      "note": "August's +39,500 against 20,000 expected is what tipped the RBA into a September hike. Unemployment was 4.6%; UBS thinks it needs to reach about 5% to bring inflation back."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US PPI (Sep, y/y)",
+      "previous": "5.4%"
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Philadelphia Fed manufacturing (Oct)",
+      "previous": "37.8"
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US core PPI (Sep, y/y)",
+      "previous": "4.6%",
+      "note": "4.6% last month, headline 5.4%. Pipeline pressure the Fed has been pointing at."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US initial jobless claims"
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US retail sales (Sep, m/m)",
+      "previous": "1.2%",
+      "note": "August rose 1.2% with the control group up 1.4%. Nominal sales are being flattered by fuel prices; the control group strips that out."
+    },
+    {
+      "at": "2026-10-16T02:00:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China GDP (Q3, y/y)",
+      "previous": "4.3%",
+      "note": "4.3% in the second quarter. The one large economy still not fighting inflation reports the morning after a fortnight of holiday-thinned data."
+    },
+    {
+      "at": "2026-10-16T02:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China industrial production (Sep, y/y)",
+      "previous": "5.2%"
+    },
+    {
+      "at": "2026-10-16T02:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China retail sales (Sep, y/y)",
+      "previous": "0.4%"
+    },
+    {
+      "at": "2026-10-16T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Empire State manufacturing (Oct)",
+      "previous": "7.6"
+    },
+    {
+      "at": "2026-10-16T13:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US industrial production (Sep, m/m)",
+      "previous": "0.0%"
     }
   ],
   "howToRead": [

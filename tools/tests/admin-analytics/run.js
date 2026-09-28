@@ -99,6 +99,23 @@ async function runMode(browser, mode) {
           });
         });
         results.checks.push({ name: mode + ' no bare 0 in analytics tiles (excl. live online-now aggregate)', pass: !bareZero });
+        // SE review: every snapshot-backed tile must show exactly the state
+        // word for this mode (not "—", not 0, not blank), and so must the
+        // legacy stat cards that now read the same snapshot.
+        const want = mode === 'failed' ? 'Unavailable' : 'No data yet';
+        const wrongState = await p.evaluate((w) => {
+          const ids = ['aa-total-users', 'aa-new-range', 'aa-active-range', 'aa-paid-conv', 'aa-mrr', 'aa-completion',
+                       'stat-students', 'stat-mrr', 'stat-completion'];
+          return ids.map((id) => [id, (document.getElementById(id) || {}).textContent])
+                    .filter(([, t]) => (t || '').trim() !== w);
+        }, want);
+        results.checks.push({ name: mode + ' snapshot tiles all read "' + want + '"', pass: wrongState.length === 0, detail: wrongState });
+        const visits = await p.evaluate(() => ((document.querySelector('#aa-visits-body .v') || {}).textContent || ''));
+        results.checks.push({ name: mode + ' visits tile reads "' + want + '"', pass: visits.trim() === want, detail: visits.trim() });
+        if (mode === 'failed') {
+          const online = await p.evaluate(() => (document.getElementById('aa-online-now') || {}).textContent || '');
+          results.checks.push({ name: 'failed online-now reads "Unavailable"', pass: online.trim() === 'Unavailable', detail: online.trim() });
+        }
       }
     }
 

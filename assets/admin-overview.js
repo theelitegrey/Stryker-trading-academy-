@@ -49,7 +49,10 @@ function renderRecentStudents(students){
 function renderAdminStats(stats, sessions){
   const set = (id, value) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (!el) return;
+    el.textContent = value;
+    // "Unavailable" / "No data yet" read as state text, not as a figure.
+    el.classList.toggle('aa-v-text', /[A-Za-z]{2,}/.test(String(value)));
   };
 
   if (stats === undefined) {

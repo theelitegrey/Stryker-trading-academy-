@@ -27,7 +27,11 @@ function aaEsc(v){
 
 function aaSet(id, text){
   var el = document.getElementById(id);
-  if (el) el.textContent = text;
+  if (!el) return;
+  el.textContent = text;
+  // State words ("Unavailable", "No data yet", "n/a") use a smaller style
+  // so they never wrap mid-word inside a number-sized tile.
+  el.classList.toggle('aa-v-text', /[A-Za-z]{2,}/.test(String(text)) && !/^\$?[\d.,]+%?$/.test(String(text)));
 }
 
 function aaSetLoading(ids){ ids.forEach(function (id) { aaSet(id, '…'); }); }
@@ -146,7 +150,10 @@ var AA_ONLINE_TIMER = null;
 
 function aaFetchOnlineNow(){
   if (typeof auth === 'undefined' || !auth || !auth.currentUser) return Promise.resolve(null);
-  var onlineMs = (typeof PRESENCE_ONLINE_MS === 'number') ? PRESENCE_ONLINE_MS : 150000;
+  // Same constant presence.js uses to decide "online"; deliberately no local
+  // fallback copy, so the two definitions can never drift apart.
+  if (typeof PRESENCE_ONLINE_MS !== 'number') return Promise.reject(new Error('presence.js not loaded'));
+  var onlineMs = PRESENCE_ONLINE_MS;
   var cutoff = new Date(Date.now() - onlineMs).toISOString();
   var url = 'https://firestore.googleapis.com/v1/projects/' + STRYKER_PROJECT_ID +
     '/databases/(default)/documents:runAggregationQuery';
@@ -170,9 +177,11 @@ function aaFetchOnlineNow(){
     return res.json();
   }).then(function (rows) {
     var row = Array.isArray(rows) ? rows.find(function (r) { return r && r.result; }) : null;
-    if (!row) return 0;
-    var v = row.result.aggregateFields && row.result.aggregateFields.n && row.result.aggregateFields.n.integerValue;
-    return v === undefined ? 0 : Number(v);
+    var v = row && row.result.aggregateFields && row.result.aggregateFields.n && row.result.aggregateFields.n.integerValue;
+    // A count aggregation always answers with a row; anything else is a
+    // malformed reply, which must read "Unavailable", never a made-up 0.
+    if (v === undefined || v === null || isNaN(Number(v))) throw new Error('runAggregationQuery: no count in reply');
+    return Number(v);
   });
 }
 
@@ -273,15 +282,19 @@ function aaDaysForRange(range){
 }
 
 function aaLoadVisits(range){
-  var wrap = document.getElementById('aa-visits');
-  if (wrap) wrap.innerHTML = '<p class="aa-empty">\u2026</p>';
+  var wrap = document.getElementById('aa-visits-body');
+  if (wrap) wrap.innerHTML = '<div class="v">\u2026</div><div class="l">Visits (site-wide day totals)</div>';
   var days = aaDaysForRange(range || 'today');
+  var failed = 0;
   return Promise.all(days.map(function (day) {
-    return db.collection('traffic').doc(day).get().catch(function () { return { exists: false }; });
+    return db.collection('traffic').doc(day).get().catch(function () { failed++; return { exists: false }; });
   })).then(function (docs) {
     var found = docs.filter(function (d) { return d.exists; });
     if (!found.length) {
-      if (wrap) wrap.innerHTML = '<p class="aa-empty">No data yet</p>';
+      // Every read failing is an outage; reads that succeeded and found no
+      // doc mean nothing has been counted for those days yet.
+      var msg = failed === days.length ? 'Unavailable' : 'No data yet';
+      if (wrap) wrap.innerHTML = '<div class="v aa-v-text">' + msg + '</div><div class="l">Visits (site-wide day totals)</div>';
       return;
     }
     var total = found.reduce(function (acc, d) {
@@ -289,12 +302,15 @@ function aaLoadVisits(range){
       return acc + (typeof v === 'number' ? v : 0);
     }, 0);
     if (wrap) {
-      wrap.innerHTML = '<div class="aa-visit-total">' + total.toLocaleString() + '</div>' +
-        '<div class="aa-visit-sub">' + found.length + ' of ' + days.length + ' day' + (days.length === 1 ? '' : 's') + ' in range with data</div>';
+      var span = range === 'all' ? 'last 30 days' : (days.length === 1 ? 'today' : 'last ' + days.length + ' days');
+      wrap.innerHTML = '<div class="v">' + total.toLocaleString() + '</div>' +
+        '<div class="l">Visits (site-wide day totals)</div>' +
+        '<div class="sub">' + span + ' \u00b7 ' + found.length + ' of ' + days.length + ' day' + (days.length === 1 ? '' : 's') + ' with data' +
+        (failed ? ' \u00b7 ' + failed + ' unreadable' : '') + '</div>';
     }
   }).catch(function (err) {
     console.error('Stryker: visits read failed', err);
-    if (wrap) wrap.innerHTML = '<p class="aa-empty">Unavailable</p>';
+    if (wrap) wrap.innerHTML = '<div class="v aa-v-text">Unavailable</div><div class="l">Visits (site-wide day totals)</div>';
   });
 }
 
@@ -356,6 +372,7 @@ function aaWireRefreshButton(){
     fns.httpsCallable('adminStatsRefresh')({})
       .then(function () { return aaLoadStats(); })
       .then(function () {
+        aaLoadTrendNote(AA_STATE.stats);
         btn.textContent = 'Refreshed';
         setTimeout(function () { btn.textContent = original; btn.disabled = false; }, 2000);
       })

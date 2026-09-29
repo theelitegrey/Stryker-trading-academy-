@@ -26,7 +26,7 @@ function build() {
     window.db = window.__stubDb;
     window.__stubAuth = {
       currentUser: { uid: 'u1', email: 't@e.com' },
-      onAuthStateChanged: (cb) => setTimeout(() => cb({ uid: 'u1', email: 't@e.com' }), 10),
+      onAuthStateChanged: (cb) => { setTimeout(() => cb({ uid: 'u1', email: 't@e.com' }), 10); return () => {}; },
       setPersistence: () => Promise.resolve(),
       signOut: () => Promise.resolve()
     };

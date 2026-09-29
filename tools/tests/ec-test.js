@@ -8,7 +8,7 @@ const stub = `(${function () {
   const docRef = () => ({ get: () => Promise.resolve(snap(null)), set: () => Promise.resolve(), collection: () => colRef() });
   const colRef = () => ({ doc: docRef, get: () => Promise.resolve({empty:true,size:0,forEach:()=>{}}), where: () => colRef(), orderBy: () => colRef(), limit: () => colRef(), onSnapshot: () => () => {} });
   window.__stubDb = { collection: colRef }; window.db = window.__stubDb;
-  window.__stubAuth = { currentUser: {uid:'u1'}, onAuthStateChanged: (cb)=>setTimeout(()=>cb({uid:'u1'}),10), setPersistence: ()=>Promise.resolve() };
+  window.__stubAuth = { currentUser: {uid:'u1'}, onAuthStateChanged: (cb) => { setTimeout(() => cb({uid:'u1'}), 10); return () => {}; }, setPersistence: ()=>Promise.resolve() };
   window.firebase = { apps: [], initializeApp: () => ({}), app: () => ({ functions: () => ({ httpsCallable: () => () => Promise.resolve({data:{}}) }) }),
     firestore: Object.assign(()=>window.__stubDb,{FieldValue:{serverTimestamp:()=>'TS',increment:n=>({inc:n}),delete:()=>'DEL',arrayUnion:()=>'AU',arrayRemove:()=>'AR'}}),
     auth: Object.assign(()=>window.__stubAuth,{Auth:{Persistence:{LOCAL:'l',SESSION:'s'}}}), messaging: () => ({ getToken: () => Promise.resolve(null), onMessage: () => {} }) };

@@ -7315,7 +7315,7 @@ section.mm-strip { padding: 20px 22px; }
 .mm-bar-fill { display: block; height: 100%; border-radius: 3px; min-width: 2px; }
 .mm-bar-fill.mm-bd1 { background: var(--mm-d1); } .mm-bar-fill.mm-bd2 { background: var(--mm-d2); } .mm-bar-fill.mm-bd3 { background: var(--mm-d3); }
 .mm-bar-fill.mm-bu1 { background: var(--mm-u1); } .mm-bar-fill.mm-bu2 { background: var(--mm-u2); } .mm-bar-fill.mm-bu3 { background: var(--mm-u3); }
-.mm-bar-fill.mm-bu0, .mm-bar-fill.mm-bd0 { background: var(--mm-b0); }
+.mm-bar-fill.mm-bu0 { background: var(--mm-u1); } .mm-bar-fill.mm-bd0 { background: var(--mm-d1); } /* a ranked bar must be visible on its track even when the grid would paint the move neutral */
 .mm-bar-val { font-size: 12px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; text-align: right; min-width: 54px; }
 .mm-strip-foot { font-size: 11px; color: var(--ink-3); line-height: 1.55; margin: 16px 0 0; max-width: 74ch; }
 .mm-more { display: inline-block; margin-top: 12px; font-size: 12.5px; color: var(--teal, #00adb5); text-decoration: none; font-weight: 600; }

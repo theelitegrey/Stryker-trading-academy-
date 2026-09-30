@@ -52,6 +52,10 @@ function build(mode) {
         active1: 100, active7: 300, active30: 500,
         paid: 200, free: 800, byPlan: { Starter: 800, Growth: 100, Pro: 100 },
         mrr: 1000, mrrCurrency: 'USD',
+        // The paid-rule buckets. paid === payingMembers now: a grant is never
+        // revenue, so the MRR sub-line must show the split beside the figure.
+        payingMembers: 200, freeAccessMembers: 40, expiredMembers: 12,
+        mrrUnconvertible: 3,
         avgCompletion: 50, startedCount: 500,
         chapterCompletions: { '1': 800, '2': 600, '3': 500, '4': 400, '38': 100 },
         chapterTitles: { '1': 'Candles, Charts & the Language of Price', '2': 'Market Structure', '3': 'Liquidity', '4': 'Order Blocks', '38': 'Prop Firm Psychology' },

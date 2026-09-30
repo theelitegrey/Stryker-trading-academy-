@@ -1,138 +1,138 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-09-29T05:58:00Z",
-  "sessionDate": "2026-09-29",
+  "generatedAt": "2026-09-30T05:58:00Z",
+  "sessionDate": "2026-09-30",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-30T05:30:00Z",
-  "headline": "The ten-year closed at 5.24%. Nothing else mattered.",
-  "standfirst": "Monday belonged to the bond market again: the ten-year rose 7.6bp to 5.236%, its highest close since 2007, the thirty-year touched 5.58% and the two-year 4.93%, and the S&P 500 fell 0.77% to 7,683.69 — its lowest in ten sessions — with the Dow down 0.67% to 51,481.51 and the Nasdaq 0.92% to 26,820.38. Oil did the pushing, Brent trading near $108 in the afternoon after Trump's weekend rejection of Iran's Hormuz offer, before an Axios report of a US sanctions-relief offer knocked it back and lifted stocks off their lows; Trump then called the report fake. Gold fell 3% to a seven-week low. Overnight the RBA hiked to 4.60% and said more may be needed, the Nikkei fell 1.4% and the Kospi 1.3%, and the dollar sits near a two-month high. Tuesday is JOLTS, consumer confidence, six Fed speakers and, if Qatar's mediators are right, Washington's reply to Tehran.",
+  "goodUntil": "2026-10-01T05:30:00Z",
+  "headline": "October hike back to a coin flip.",
+  "standfirst": "Tuesday took October from about 70% to about 50% priced in three hours: job openings fell to 7.079 million, a five-month low; the Conference Board's confidence index dropped to 81.9, the lowest since 2014; and John Williams said another hike this year is likely but there is 'no need for urgency'. The two-year fell 6bp to 4.87% while the thirty-year touched 5.621%, its highest since 2002, before closing near 5.57% — the first day since the hike on which the two ends of the curve disagreed. Stocks drifted, the S&P 500 down 0.17% to 7,670.84 and the Dow 0.26% to 51,349.92. Brent settled 2.6% lower at $102.59 and WTI 3.5% lower at $89.38 on recovering Saudi exports and a US strategic-reserve offer; the November Brent contract expires today about $7 above December. Overnight Australia's CPI printed 4.0% and the Aussie fell through 70 cents, China's PMIs went back above 50, the Nikkei rose 1.95% and the yen touched 156.38. It is quarter-end: ADP at 08:15 ET, PCE and final GDP at 08:30, three Fed speakers, Micron after the close.",
   "bullets": [
     {
-      "title": "Rates: 5.24% on the ten-year, 4.93% on the two-year, and a Fed still talking it higher",
-      "text": "The ten-year closed at 5.2361%, up 7.56bp, after touching 5.24% — the highest since 2007 and within 9bp of that year's 5.3228% peak; the thirty-year reached 5.581% intraday, a high not seen since the early 2000s, and closed near 5.57%; the two-year rose 7.89bp to 4.9305%, its highest since 2023, so every maturity from three years out now yields above 5% and the two-year is a session away. The long Treasury ETF fell 0.88% and is down 12.28% over twelve months. Governor Cook said inflation pressures will persist for several months and that AI productivity gains will not arrive fast enough this year to offset them, noting data-centre demand has pushed electricity and water costs up about 5%; Barkin said supply shocks are no longer temporary and laid out two paths without saying which needs more tightening; Bowman spoke only on supervision. Trackers put October at 68–72.5% and at least one more hike by December at about 94%, with roughly 91bp priced over the next year. UBS pointed out the Fed has not hiked at an October meeting before an election since 1990 and expects the pricing to migrate to December and beyond; Commerzbank has December as the last hike. Treasury's stepped-up buybacks of long bonds have not capped the move."
+      "title": "Williams, JOLTS and a 2014 confidence low took October to 50%",
+      "text": "August job openings fell 256,000 to 7.079 million, the lowest since March and below the 7.23 million expected, though July was revised up to 7.335 million; openings per unemployed worker slipped to 1.01 from 1.06, hires rose to 5.19 million and both quits and layoffs fell — softer demand, not firing. Consumer confidence fell 6.7 points to 81.9 against 89 expected, the lowest since 2014, with the present-situation index down 7.9 points, expectations down a third month, appraisals of current business conditions negative for the first time since September 2024, and write-ins about petrol prices at a record; for the first time in the question's four-year history more respondents called their finances bad than good. Then the Fed: Williams said another hike this year is likely if the economy meets expectations but there is 'no need for urgency' after September, and projected inflation reaching 2% only in 2028; Barr said further hikes may be necessary and policy needs recalibrating; Musalem said policy is still slightly accommodative. Futures pricing for 28 October fell to about 50% from about 70%; December remains the favoured date and roughly 75bp is priced for the cycle. Also on the tape: FHFA house prices +0.3%, Case-Shiller +0.1% and 1.9% on the year, the Dallas Fed services index back in contraction at −1.8."
     },
     {
-      "title": "Equities: a ten-session low, Meta and Tesla down 4–5%, Nvidia up on a $150 billion buyback",
-      "text": "The S&P 500 and the Nasdaq 100 both closed at their lowest in ten sessions; the Nasdaq 100 fell 1.08%, the Russell 2000 0.69%, and the VIX rose 8.07% to 16.07. At the lows the Dow was off more than 400 points and the S&P 500 about 1%; the bounce came at midday on the Axios sanctions report and faded when it was denied. Meta fell 4.79%, Tesla 3.94%, Amazon 1.41%, Microsoft 1.35% and Apple 0.78%; Nvidia rose 1.68% after adding $150 billion to its buyback and on reports Beijing may let Alibaba and ByteDance buy its latest chips, and the Golden Dragon China index rose 1.12%. Energy, up 0.10%, staples and health care were the only sectors to close higher; communication services lost 1.58%, consumer discretionary 1.41% and financials 1.19%. Europe was flat — DAX −0.13%, CAC +0.01%, FTSE −0.10% — while Shanghai fell 1.67% to a seven-week low and the ChiNext 4.53%, and India's Nifty lost 1.54% to close below 23,000 for the first time since April, with the Sensex at its lowest close since March and foreign investors net sellers of about ₹5,350 crore. This morning: Nikkei −1.36%, Kospi −1.25%, Hang Seng −0.96%, ASX −0.16%, Shanghai flat, Nifty −0.37%. OpenAI's developer day and Trump's AI meeting with technology chief executives are both today."
+      "title": "Rates: the front end rallied, the long end set another two-decade high",
+      "text": "The two-year touched a 52-week high of 4.96% in the morning and closed at 4.872%, down 5.8bp; the ten-year opened at 5.23%, hit 5.293% — the highest in 19 years — and closed at 5.232%, unchanged; the thirty-year rose for a sixth straight session, touching 5.621%, the highest since 2002, and closing near 5.567%, up 2bp. Two-tens steepened to about 36bp and the three-month-bill-to-ten-year gap is through 100bp for the first time this cycle. Demand at Tuesday's bill auctions was soft. Barclays now has the thirty-year reaching 6%; Wells Fargo puts the ten-year at 5.25–5.75% by the end of 2027; BNY notes the market still prices about 75bp of further tightening. The long Treasury ETF fell 0.50% and is down 12.47% over twelve months. In equities, the S&P 500 fell for a second day to 7,670.84, the Nasdaq 0.09% to 26,797.54 while the Nasdaq 100 rose 0.21%; Carnival jumped 13.4% on record revenue, Meta rose 3.24%, Apple fell 2.66%, Nvidia 0.72% and Tesla 1.29%. Utilities were the best sector at +1.17% as the front end rallied; energy fell 0.90%. The VIX closed at 16.04. Europe was mixed — DAX +0.28%, CAC −0.53%, FTSE −0.45% — and the euro-area sentiment index fell to 97.9."
     },
     {
-      "title": "Oil and Iran: a reply due through Qatar, exports at 80% of normal, and a Brent roll to read correctly",
-      "text": "Trump said in the Oval Office on Monday that US officials had spoken separately with mediators, gave no detail, and said the US would win \"pretty quickly\" and that petrol prices would fall when it did; the afternoon announcement was a $15 billion steel mill in Iowa, alongside a rollback of fuel-economy standards. Araghchi met Qatari mediators in New York and said he expects Washington's response \"hopefully by Tuesday\" before returning to Tehran; Iran's plan gives the US four to five days to release frozen funds, lift oil sanctions and end the port blockade, with nuclear talks starting within seven. Trump denied the Axios report that he had offered sanctions relief — \"I offered them NOTHING\" — and repeated over the weekend that strikes could resume after November's midterms. On the physical side, Kpler has Middle East crude exports back to just under 80% of pre-war levels, the highest since February, with Hormuz clearance at 10.6 million barrels a day on Saturday against a 17.1 million baseline, and Saudi Arabia's east–west pipeline running about 3.5 million barrels a day, half its capacity; the IEA still has the fourth quarter in a 2.2 million barrel a day deficit. Prices: Brent reached about $108 on Monday afternoon and WTI $95 before both eased; this morning November Brent is $105.91, up 0.6%, and WTI $93.32, up 0.8%. The November Brent contract expires on Wednesday and December trades about $6 lower — near $98–100 — which is why the market map's Brent row prints −4.76% today. It is a roll, not a sell-off. OPEC+'s monthly meeting of seven producers is this week."
+      "title": "Oil: Saudi exports recover, the US opens the reserve, and Brent's November contract expires today",
+      "text": "November Brent settled at $102.59, down $2.69 or 2.6%, and WTI at $89.38, down $3.22 or 3.5%, as Saudi Arabia resumed loading at the Red Sea port of Yanbu via the restarted east–west pipeline, now carrying about 3.5 million barrels a day; ANZ has Saudi exports at 5.8 million barrels a day in September, the highest since February, Kpler has Hormuz flows at 13.2 million barrels a day or 77% of pre-war, and JPMorgan puts Middle East crude exports near 98% of pre-war levels. The US said it would offer up to 40 million barrels from the Strategic Petroleum Reserve, and Trump is reportedly considering allowing sales of red-dyed diesel rather than an export ban, which Rystad called the most consequential near-term policy question for energy. Against that, Saudi August output was 6.24 million barrels a day, the lowest since 1990, Houthi attacks on Saudi facilities continue, Trump repeated he offered Iran 'nothing', and Qatar's foreign ministry said it is exchanging messages to find common ground with no reply yet delivered; Iran wants a seven-day ceasefire including Lebanon before reopening the strait, and Macquarie expects the standoff to run to the 3 November midterms. This morning November Brent is $103.30, December $96.51 and WTI $89.81; the November contract expires today, so the market map's Brent row already shows December and every front-month chart gaps down tomorrow. Brent is up about 14% in September, its best month since July; Murban traded near $120."
     },
     {
-      "title": "The RBA hiked to 4.60% and left the door open; the dollar, the yen and gold",
-      "text": "The Reserve Bank of Australia raised the cash rate 25bp to 4.60% in a unanimous decision — the fourth hike of 2026, a full percentage point this year, and the highest since November 2011. The statement said some of the upside risks flagged in August are materialising, with further disruptions to global oil supply, fuel prices partly passed into other goods and services, and growth and inflation both higher than expected; the board judged further tightening warranted and said it will do what is necessary, including raising rates again. Core inflation is 3.6% against a 2–3% band; markets price another hike by February and an each-way bet on a third in 2027. AUD/USD barely moved at $0.702 and the ASX 200 was flat; Wednesday's August CPI, seen 4.0% after 3.5%, matters more than the press conference. The dollar index is 101.2, near a two-month high and up about 1.8% in September, its best month since June. The euro is $1.1367, a three-month low, after Lagarde told the European Parliament the ECB will take measured steps; sterling is $1.3248. USD/JPY is 157.35 after Japan's top currency diplomat Mimura said markets should heed last week's \"very clear\" joint warning and Katayama said she and Bessent agreed to strengthen cooperation; the market treats 160 as the line. Gold fell 3% on Monday to $4,156, its lowest since 5 August and down about 7% in September; spot is $4,124 this morning, silver $60.62, platinum $1,700."
+      "title": "Overnight: Australia at 4.0%, China back above 50, the yen at 156.38",
+      "text": "Australia's August CPI rose 4.0% year on year after 3.5%, a fraction under the 4.1% some surveys carried, with housing up 5.7%, transport 5.6% and fuel almost 15%; the trimmed mean held at 3.6% for a third month but the monthly core reading cooled to 0.2% against 0.3–0.4% expected. AUD/USD fell to a nine-week low of $0.6959, through 70 cents for the first time since early August, helped by Bullock's disclosure on Tuesday that the board had discussed holding before hiking; ANZ still expects a November hike to 4.85%, Oxford Economics does not, and CBA thinks the next big move in the currency is down. China's official manufacturing PMI rose to 50.1 and non-manufacturing to 50.2 against 49.3 expected, both back above 50 for the first time since June, with the composite at 50.7, the highest since December, construction at 50.3 and input prices at 60.8; the RatingDog measures came in at 52.1 and 51.6. Beijing added home-loan interest subsidies on Tuesday and markets close for Golden Week from tomorrow to 7 October. The Nikkei rose 1.95% to 66,755 on SoftBank and the chipmakers, Taiwan 1.12%, the ASX 1.02%; the Kospi was flat. USD/JPY touched 156.38, its strongest since 18 September, after Japan's top currency official repeated that the joint US–Japan warning was 'very clear' and July's BoJ minutes showed a debate on faster hikes. The dollar is up about 2.5% on the euro in September, its biggest monthly gain in 14 months, after the euro touched 1.1312 on Tuesday, its lowest since May 2025; the franc hit a 16-month low against the dollar and the kiwi its lowest since November. Gold rebounded 1.6% on Tuesday and is $4,210 this morning."
     },
     {
-      "title": "Today and the week: JOLTS, six Fed speakers, then PCE, ISM and an 84,000 payrolls consensus",
-      "text": "Tuesday: Lagarde again at 07:00 ET; FHFA house prices at 09:00; JOLTS at 10:00, seen 7.23 million after 7.27 million — openings have missed for two months — alongside Conference Board confidence seen 89.0 after 89.4, a third straight fall; then Bowman at 11:00 on supervision, Barr on the economic outlook at 12:40, Goolsbee 13:00, Musalem 13:30, Williams 14:00 and Waller on payments at 15:00, with BoE's Mann and Tenreyro in between. Carnival reports. Tuesday evening at 21:30 ET: Australia's August CPI seen 4.0% and China's PMIs, NBS manufacturing seen 50.1. Wednesday is quarter-end: ADP seen 72,000 after 38,000; core PCE seen +0.3% on the month and 3.4% on the year after 0.2% and 3.3%, headline 3.7% unchanged with the monthly +0.4%; final Q2 GDP 1.5%; Chicago PMI 51.0 after 47.1; German HICP seen 3.2% after 2.9%; UK final GDP; Micron after the close; Cook 15:25 ET, Goolsbee 16:05, Kashkari 18:00; the Tankan at 19:50 seen 25. Thursday: Swiss CPI seen 1.0%; ISM manufacturing seen 54.9 after 54.6 with prices paid 72.5; claims 200,000; Waller, Jefferson, Bowman, Cook and Williams; Lagarde a third time; Nike after the close; Tokyo CPI; Chinese markets shut for Golden Week. Friday: euro-area HICP seen 3.6% after 3.2% with core 2.5%; payrolls, where consensus has drifted to about 84,000 from 100,000 a week ago, after 162,000, with Barclays at 50,000; unemployment seen 4.1%, earnings +0.3%. Then Williams on 6 October, the FOMC minutes and ten-year auction on the 7th, the thirty-year and the ECB accounts on the 8th, the banks on the 13th, and CPI with the Beige Book on the 14th."
+      "title": "Today and the week: PCE and quarter-end, then ISM, then payrolls seen near 90,000",
+      "text": "Wednesday: ADP at 08:15 ET seen 70,000 after 38,000; at 08:30 August PCE — core seen +0.3% on the month and 3.3–3.4% on the year after 3.3%, with a BEA methodology change that may trim the annual rate, headline +0.4% and 3.7% — alongside personal income +0.4%, spending +0.8% and final Q2 GDP at 1.5%; Chicago PMI at 09:45 seen 51.2 after 47.1; Cook at 15:25 ET, Goolsbee at 16:05, Kashkari at 18:00; Micron after the close; the Tankan at 19:50 seen 25 after 22; German HICP seen 3.1% and UK final GDP earlier in the day. Quarter-end rebalancing flows and the Brent expiry sit on top of all of it. Thursday: Swiss CPI seen 1.0%; ISM manufacturing seen 55.0 after 54.6 with prices paid 72.3; claims 200,000; Waller, Jefferson, Bowman, Cook and Williams; Lagarde; Nike after the close; Tokyo CPI; China shut. Friday: euro-area flash HICP seen 3.6% after 3.2% with core 2.5%; September payrolls with consensus between 84,000 and 100,000 after 162,000, Barclays at 50,000, unemployment seen 4.1%, earnings +0.3%. After Tuesday, payrolls is the print that decides whether October is a hike or a pause. Then Williams on 6 October, the FOMC minutes and ten-year auction on the 7th, the thirty-year and the ECB accounts on the 8th, the banks on the 13th, CPI and the Beige Book on the 14th."
     }
   ],
   "calendar": [
     {
-      "time": "Tue 07:00 ET",
-      "event": "ECB President Lagarde speaks",
-      "note": "Second appearance in two days. Monday's \"measured steps\" took the euro to a three-month low; Friday's HICP is seen 3.6%."
+      "time": "Wed 08:15 ET",
+      "event": "ADP (September); PCE, income and final Q2 GDP 08:30",
+      "note": "ADP seen 70,000 after 38,000. Core PCE seen 0.3% on the month and 3.3–3.4% on the year; the print the Fed named, on quarter-end, with October at 50%."
     },
     {
-      "time": "Tue 10:00 ET",
-      "event": "JOLTS (August); consumer confidence (September)",
-      "note": "Openings seen 7.23 million after 7.27 million; confidence seen 89.0 after 89.4. Soft prints are the only thing this week that trims October before PCE does or does not."
+      "time": "Wed 09:45 ET",
+      "event": "Chicago PMI (September)",
+      "note": "Seen 51.2 after 47.1. A regional read the day before ISM; the flash national PMI said 57.0."
     },
     {
-      "time": "Tue 12:40 ET",
-      "event": "Fed's Barr on the outlook; Goolsbee 13:00, Musalem 13:30, Williams 14:00, Waller 15:00",
-      "note": "Six Fed voices in four hours, with Bowman at 11:00 on supervision. Barr called for more hikes last Wednesday; Williams is on his fourth appearance in a week."
-    },
-    {
-      "time": "Tue 21:30 ET",
-      "event": "Australia CPI (August); China PMIs",
-      "note": "Seen 4.0% after 3.5%, the morning after the RBA hiked to 4.60% and said more may be needed. NBS manufacturing seen 50.1 after 49.8."
-    },
-    {
-      "time": "Wed 08:30 ET",
-      "event": "PCE (August); final Q2 GDP; ADP 08:15; quarter-end",
-      "note": "Core PCE seen 0.3% on the month and 3.4% on the year after 3.3%; headline 3.7%. The print the Fed named, on the day rebalancing flows are largest. November Brent expires today."
+      "time": "Wed 15:25 ET",
+      "event": "Fed's Cook; Goolsbee 16:05; Kashkari 18:00",
+      "note": "Three speakers after the PCE print. Cook said Monday inflation pressure will persist for months; Kashkari is a 2026 voter closing out quarter-end day."
     },
     {
       "time": "Wed 16:00 ET",
-      "event": "Micron Q4 after the close; Kashkari 18:00",
-      "note": "Earnings seen about $31 a share against $3 a year ago, with options implying a 9% move. Kashkari is the last Fed speaker of quarter-end day, after the PCE print."
+      "event": "Micron Q4 after the close; November Brent expires",
+      "note": "Earnings seen about $31 a share against $3 a year ago, with options implying a 9% move. From tomorrow every front-month Brent chart gaps about $7 lower; the map's Brent row already shows December."
+    },
+    {
+      "time": "Wed 19:50 ET",
+      "event": "Japan Tankan (Q3)",
+      "note": "Large manufacturers seen 25 after 22. With the BoJ debating faster hikes and the yen at 156, corporate confidence is a policy input."
     },
     {
       "time": "Thu 10:00 ET",
       "event": "ISM manufacturing (September); Nike after the close",
-      "note": "Seen 54.9 after 54.6 with prices paid 72.5 after 71.1. The flash PMI said 57.0; a matching ISM confirms the repricing. China shuts for Golden Week."
+      "note": "Seen 55.0 after 54.6 with prices paid 72.3 after 71.1. The flash PMI said 57.0; a matching ISM keeps December live. China shuts for Golden Week."
+    },
+    {
+      "time": "Fri 05:00 ET",
+      "event": "Euro-area flash HICP (September)",
+      "note": "Seen 3.6% after 3.2%, core 2.5%. The euro is at a 16-month low and Lagarde has promised measured steps; this is the print that decides whether 29 October is one."
     },
     {
       "time": "Fri 08:30 ET",
-      "event": "Nonfarm payrolls (September); euro-area flash HICP 05:00",
-      "note": "Consensus has slipped to about 84,000 after 162,000, unemployment 4.1%, earnings +0.3%. With October near 70%, a strong print removes the last doubt; a weak one is the only thing on the calendar that could take the hike away."
+      "event": "Nonfarm payrolls (September)",
+      "note": "Consensus 84,000–100,000 after 162,000, unemployment 4.1%, earnings +0.3%. With October at a coin flip after Tuesday, this print now decides it in both directions."
     }
   ],
-  "sessionNote": "Tuesday opens with the ten-year at 5.24% and the two-year 8bp from 5%, S&P futures soft after Monday's ten-session low, Brent near $106 for the November contract, gold at a seven-week low and the dollar near a two-month high. The session has two data points at 10:00 ET and six Fed speakers from 11:00 to 15:00, with Barr at 12:40 the one who has already said \"more\". The headline risk is Iran: Araghchi expects Washington's answer through Qatar by Tuesday, and Monday showed the reaction function — a report of concessions took Brent $3 off its high and stocks off their lows within the hour, and a denial took half of it back. Two things to have straight before the open: the November Brent contract expires tomorrow and December is $6 lower, so any oil quote you see this week needs a contract attached; and tomorrow is quarter-end with PCE at 08:30, so today is the last day to position before the flows. In trading terms, the ten-year's 5.2361% close is the level — equities have not rallied with it above 5.20% — and the two-year at 5% is the next headline the bond market will write.",
-  "watchOut": "Trading an oil chart without knowing which contract is on it. November Brent expires on Wednesday; December trades about $6 below it; the source table behind our market map has already switched and prints Brent −4.76% on a day the physical barrel is up. From Thursday every continuous-front-month chart will show a gap that no barrel actually traded through, and WTI produced the same illusion last week. If a level on your chart sits inside that gap, it is not a level. The second trap is Monday's: an unsourced report of US concessions was worth $3 on Brent and 60 S&P points for about two hours, and was called fake by the President before the close. With Washington's reply to Tehran due through Qatar today, expect more of the same, and size for the reversal, not the headline.",
+  "sessionNote": "Quarter-end Wednesday opens with the curve disagreeing with itself: the two-year at 4.87% says the Fed can wait for December, the thirty-year at 5.57% says supply and term premium do not care. October is a coin flip, which means PCE at 08:30 ET matters again — a hot core print puts the hike back, a soft one is discounted as August data that does not know about September's oil. Stocks have drifted for two sessions inside the 7,650–7,690 gap; the S&P 500 held it on Tuesday. Oil has two prices today: November Brent near $103 expiring, December near $96.50 taking over, WTI $89.80 — quote the contract, not the ticker. Rebalancing flows into month- and quarter-end are largest in the last hour; the yen at 156.4 and the euro near 1.134 already carry some of them. In trading terms the session has one scheduled catalyst before the London close and none after it until Micron: 08:30 ET is the window, the Fed speakers from 15:25 ET are the echo, and anything that moves between them is flow.",
+  "watchOut": "Reading today's tape as a verdict when half of it is calendar. It is the last day of September and of the third quarter: the S&P 500 is roughly flat on the month while long bonds have lost 5% and the dollar has gained 2.5% on the euro, so the rebalancing flow is out of equities and the dollar and into duration — a bond rally into the close today is a pension fund, not a change of view about the Fed. The second trap is the one Tuesday set up: October at 50% means every data point now swings the front end both ways, and PCE is the first. A core print of 0.3% is consensus, not a surprise; the reaction to a consensus print is positioning being squared, and it reverses. Size for a two-way 08:30 ET and a flow-driven last hour, and keep the Brent contract straight — the November expiry will print a $7 gap on Thursday's charts that no barrel traded through.",
   "sources": [
     {
-      "name": "Associated Press, via WTOP and MSN",
-      "note": "Monday's index closes, point moves and the ten-year's high"
-    },
-    {
-      "name": "Reuters, via US News, AOL, Channel NewsAsia and The Wichita Eagle",
-      "note": "the RBA decision, the dollar, euro, sterling and yen levels, Mimura's remarks and Tuesday's Asian session"
-    },
-    {
-      "name": "CNBC",
-      "note": "the mediator talks, Araghchi's Tuesday deadline, Kpler's export and Hormuz data, Tuesday's oil prices and the RBA statement"
-    },
-    {
       "name": "MT Newswires",
-      "note": "Monday's data and speaker schedule, the RBA's statement language and Tokyo's open"
+      "note": "Tuesday's Treasury yields intraday and at the close, the JOLTS detail, the confidence index and the day's data roundup, the Australian CPI and PMIs, and the Rystad and Macquarie notes"
     },
     {
-      "name": "Business Insider",
-      "note": "Monday's oil highs, the thirty-year and two-year moves and Principal's rates view"
+      "name": "Reuters, via US News, Yahoo, Channel NewsAsia and others",
+      "note": "the dollar's monthly move, the euro's low, the yen and Mimura's remarks, Wednesday's oil prices, the JOLTS release and the Australian dollar"
     },
     {
-      "name": "Flush Financial Services Network and Eastmoney",
-      "note": "the closing yields on the two-, ten- and thirty-year, Monday's megacap moves, European closes and Wednesday's PCE consensus"
+      "name": "Associated Press, via The Joplin Globe and WKRG",
+      "note": "Tuesday's index moves and Wednesday's Asian session"
     },
     {
-      "name": "Yonhap News, Yahoo Finance and Zero Hedge",
-      "note": "Cook's remarks, gold's seven-week low, the CME pricing range and the UBS note on October hikes before elections"
+      "name": "Eastmoney, InfoQuanta and Flush Financial",
+      "note": "closing index levels, Tuesday's closing yields, Williams', Barr's and Musalem's remarks, the October pricing shift, the SPR offer and the Barclays and Wells Fargo forecasts"
     },
     {
-      "name": "Nasdaq (Barchart) and Centre Daily Times",
-      "note": "October and December hike probabilities and Monday's ten-year intraday high"
+      "name": "Conference Board, via Benzinga and CNBC",
+      "note": "the confidence index components and the write-in detail"
     },
     {
-      "name": "Benzinga, Times Now and NPR",
-      "note": "Trump's Oval Office remarks, the Axios denial, the Iowa steel mill and the fuel-economy rollback"
+      "name": "Emirates News Agency (WAM) and Qatar News Agency",
+      "note": "Tuesday's Brent and WTI settlements and Wednesday's early prices"
+    },
+    {
+      "name": "CNBC and Yahoo Finance (Barchart)",
+      "note": "Kpler's Hormuz flow data, Saudi output and the Houthi attacks, China's PMIs and the gold rebound"
+    },
+    {
+      "name": "Zhitongcaijing",
+      "note": "the JPMorgan estimate of Middle East exports and the November–December Brent spread"
     },
     {
       "name": "FXStreet",
-      "note": "the RBA preview and reaction, WTI and Saudi pipeline flows, USD/JPY and the Katayama–Bessent call"
+      "note": "the RBA press conference reaction, the Australian dollar, BNY's pricing note and Williams' tone"
     },
     {
-      "name": "Finanz und Wirtschaft",
-      "note": "Nvidia's buyback and the China chip report, Monday's Nasdaq 100 close and Tuesday's schedule"
+      "name": "Alliance News and Mysteel",
+      "note": "China's PMI detail and Iran's ceasefire precondition"
     },
     {
-      "name": "Livemint, The Hindu and Emirates News Agency (WAM)",
-      "note": "Indian market closes and foreign flows, Tuesday's oil prices and Tuesday's gold and silver"
+      "name": "MSN, Finwire and Nine",
+      "note": "the Australian CPI detail, the Bloomberg consensus and the ANZ and Oxford Economics calls"
     },
     {
-      "name": "MINKABU and InfoQuanta",
-      "note": "the JOLTS and confidence consensus, Tuesday's central-bank speaker times and the AI meeting"
+      "name": "Morningstar (Dow Jones)",
+      "note": "Saudi export volumes via ANZ and the EMEA morning view on PCE"
     },
     {
-      "name": "Perpetual and Commerzbank, via PubT and The Economic Observer",
-      "note": "the one-year hike pricing and the December-then-done view"
+      "name": "Nikkei and Kabutan",
+      "note": "Tuesday's Tokyo session, Wednesday's yen trade and Carnival's move"
+    },
+    {
+      "name": "Equity Clock",
+      "note": "the S&P 500's gap support levels"
     },
     {
       "name": "Bigdata.com economic calendar",
-      "note": "release times, consensus and previous readings, and the RBA actual"
+      "note": "release times, consensus and previous readings, and Tuesday's and Wednesday's actuals"
     },
     {
       "name": "Financial Modeling Prep, via Bigdata.com",
@@ -142,6 +142,11 @@
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-09-29",
+      "headline": "The ten-year closed at 5.24%. Nothing else mattered.",
+      "summary": "The ten-year closed at 5.236%, its highest since 2007, and the S&P 500 fell 0.77% to a ten-session low as Trump's rejection of Iran's Hormuz offer put Brent back above $107; Cook and Barkin talked rates higher, gold fell 3% to a seven-week low, and the RBA hiked to 4.60% overnight. The November Brent roll and Washington's reply to Tehran via Qatar were the day's traps."
+    },
     {
       "date": "2026-09-28",
       "headline": "Trump said no. Oil is back above $107.",
@@ -171,11 +176,6 @@
       "date": "2026-09-21",
       "headline": "The war premium leaks out before the UN",
       "summary": "Monday with no US data and a live diplomatic wire. Crude fell for a fourth session as traders priced a chance of US–Iran contact at the UN General Assembly and Saudi Arabia worked to restore its East–West pipeline, with the ten-year coming into the day at 5.01% after its first close above 5% since July 2007."
-    },
-    {
-      "date": "2026-09-18",
-      "headline": "The hike landed. The bond market blinked first.",
-      "summary": "Weekend edition. The Fed's unanimous 25bp on Wednesday took the Dow down 631 points and Thursday gave most of it back, with the S&P up 1.14% to 7,637.76 as the ten-year fell to 4.93% and oil slid. The weekend risk was the Iran war, with Trump saying he was near a decision on resuming large-scale strikes."
     }
   ]
 }

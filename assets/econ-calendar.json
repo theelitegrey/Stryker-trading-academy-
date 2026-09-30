@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-09-29T05:58:00Z",
+  "generatedAt": "2026-09-30T05:58:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-09-30T05:30:00Z",
+  "goodUntil": "2026-10-01T05:30:00Z",
   "defaultCurrency": "USD",
-  "rangeStart": "2026-09-22",
-  "rangeEnd": "2026-10-19",
+  "rangeStart": "2026-09-23",
+  "rangeEnd": "2026-10-20",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. Cook and Barkin added to the hawkish chorus on Monday; trackers put 28 Oct at roughly 68–72% and at least one more by December at about 94%. UBS notes the Fed has not hiked at an October meeting before an election since 1990",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. After Williams said there is 'no need for urgency' and confidence fell to a 2014 low, futures price 28 Oct at about 50%, down from about 70%; December remains the favoured date for the next move and roughly 75bp is priced for the cycle",
       "bias": "up"
     },
     {
@@ -63,7 +63,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep. Lagarde told the European Parliament on Monday the ECB will take measured steps; the euro fell to a three-month low. Friday's flash HICP is seen 3.6% after 3.2%, and no meeting is ruled out",
+      "expect": "Second hike of 2026 on 10 Sep. The euro fell to $1.1312 on Tuesday, its lowest since May 2025, after Lagarde promised measured steps; Friday's flash HICP is seen 3.6% after 3.2%, and no meeting is ruled out",
       "bias": "up"
     },
     {
@@ -79,7 +79,7 @@
       "bank": "Bank of Japan",
       "rate": "1.25%",
       "next": null,
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Tokyo and Washington have spent a week warning on the yen — Trump to Takaichi, Katayama with Bessent, Mimura on Monday — and the pair is 157.35 with 160 treated as the line",
+      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. July's minutes showed a debate on faster hikes and markets now look to October or December; with Tokyo and Washington both warning on the yen, the pair touched 156.38 on Wednesday",
       "bias": "up"
     },
     {
@@ -95,7 +95,7 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.60%",
       "next": null,
-      "expect": "Hiked 25bp to 4.60% on 29 Sep, unanimous — the fourth rise of 2026 and the highest since 2011 — and said further tightening may be needed. Markets price another by February; August CPI prints Wednesday",
+      "expect": "Hiked 25bp to 4.60% on 29 Sep, unanimous, and said more may be needed — but Bullock disclosed the board discussed holding, and August CPI printed 4.0% with a soft 0.2% monthly trimmed mean. ANZ still calls November; the currency fell through $0.70",
       "bias": "up"
     },
     {
@@ -108,85 +108,6 @@
     }
   ],
   "events": [
-    {
-      "at": "2026-09-22T03:10:00Z",
-      "cur": "AUD",
-      "impact": "high",
-      "event": "RBA Governor Bullock speaks",
-      "note": "Spoke overnight, a week before the 29 September decision that markets have at roughly 90% for a hike from 4.35%."
-    },
-    {
-      "at": "2026-09-22T12:00:00Z",
-      "cur": "EUR",
-      "impact": "high",
-      "event": "ECB President Lagarde speaks",
-      "note": "Spoke Tuesday, a day before the flash PMIs. No change to the message: no meeting is ruled out, October included."
-    },
-    {
-      "at": "2026-09-22T12:15:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US ADP employment change, 4-week average",
-      "previous": "16.75k",
-      "note": "Up from a revised 16,750. Small, but in the direction the Fed speakers were already pointing. The monthly ADP print is 30 September.",
-      "actual": "20k"
-    },
-    {
-      "at": "2026-09-22T14:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "Richmond Fed manufacturing index (Sep)",
-      "forecast": "5",
-      "previous": "4",
-      "note": "A miss: −2 against 5 expected and 4 before. One regional survey, and the Philadelphia and Kansas City readings this month were firmer — but it is the only activity number this week that has come in below zero.",
-      "actual": "-2"
-    },
-    {
-      "at": "2026-09-22T14:05:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Williams speaks",
-      "note": "Defended the September hike at the Treasury Market Conference and gave no guidance on the next move — the Warsh-era pattern."
-    },
-    {
-      "at": "2026-09-22T14:20:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Jefferson speaks",
-      "note": "Spoke on discount-window upgrades and financial stability. Nothing on the rate path."
-    },
-    {
-      "at": "2026-09-22T15:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Collins speaks",
-      "note": "Supported the September hike and flagged \"an increased likelihood of future scenarios in which inflation remains notably above 2%\", arguing for a \"somewhat more restrictive\" funds rate. The dollar index went to its session high on the remarks."
-    },
-    {
-      "at": "2026-09-22T17:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Barkin speaks",
-      "note": "\"Will additional hikes be required, and how many? We'll see.\" Said more than 60% of the PCE basket was rising faster than 3% in July, that \"passing\" shocks are not proving short-lived, and that the economy is if anything firming. A 2027 voter."
-    },
-    {
-      "at": "2026-09-22T17:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US 2-year note auction, $69bn",
-      "note": "The highest two-year stop since May 2024, 58bp above August's. Demand held — bid-to-cover 2.63 against a 2.61 six-auction average, a 0.2bp tail — so the market took the paper; it just charged more for it. Five-years today, seven-years Thursday.",
-      "actual": "4.787%",
-      "previous": "4.204%"
-    },
-    {
-      "at": "2026-09-22T21:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "KB Home Q3 earnings",
-      "kind": "earnings",
-      "ticker": "KBH",
-      "note": "Reported: housing revenue down 20% on 19% fewer deliveries, average price $473,000, and the first year-on-year rise in backlog in four years. Full-year guidance held at 10,500–11,000 homes. A read on what 7% mortgage rates do to volume rather than price."
-    },
     {
       "at": "2026-09-23T07:30:00Z",
       "cur": "EUR",
@@ -517,7 +438,7 @@
       "cur": "AUD",
       "impact": "high",
       "event": "RBA press conference",
-      "note": "After a unanimous hike with hawkish guidance already in the statement, the question is whether Bullock leaves November open. Wednesday's August CPI, seen 4.0%, matters more than the press conference."
+      "note": "Bullock said the board discussed holding before voting unanimously to hike, which the currency read as a softer signal than the statement. AUD/USD slipped and fell through $0.70 the next morning on the CPI."
     },
     {
       "at": "2026-09-29T11:00:00Z",
@@ -540,7 +461,8 @@
       "impact": "low",
       "event": "US FHFA house price index (Jul, m/m)",
       "forecast": "0.1%",
-      "previous": "0.0%"
+      "previous": "0.0%",
+      "actual": "0.3%"
     },
     {
       "at": "2026-09-29T14:00:00Z",
@@ -549,7 +471,8 @@
       "event": "US JOLTS job openings (Aug)",
       "previous": "7.271m",
       "forecast": "7.23m",
-      "note": "Seen 7.23 million after 7.27 million, a second monthly fall; openings have missed consensus two months running. The first labour print of a week that ends with payrolls."
+      "note": "7.079 million against 7.23 million expected, the lowest since March, with July revised up to 7.335 million. Openings per unemployed worker fell to 1.01 from 1.06; hires rose to 5.19 million and layoffs fell. Softer demand, not firing.",
+      "actual": "7.079m"
     },
     {
       "at": "2026-09-29T14:00:00Z",
@@ -558,7 +481,8 @@
       "event": "US consumer confidence (Sep)",
       "forecast": "89.0",
       "previous": "89.4",
-      "note": "August's 89.4 was the lowest since January and consensus has a third straight fall. Michigan's one-year inflation expectation already jumped to 4.6% on Friday."
+      "note": "81.9 against 89.0 expected and 88.6 in August — the lowest since 2014. Present situation fell 7.9 points, expectations a third straight month, and write-ins about fuel prices hit a record. With Williams' 'no need for urgency' the same day, October went from about 70% to about 50% priced.",
+      "actual": "81.9"
     },
     {
       "at": "2026-09-29T14:00:00Z",
@@ -580,7 +504,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Barr speaks",
-      "note": "The economic outlook at the Detroit Economic Club. Barr said last Wednesday that further hikes are likely needed and the Fed had been out of position; the first chance to hear whether a 5.24% ten-year changes that."
+      "note": "Repeated that further hikes may be necessary and policy needs recalibrating; the baseline is more adjustment."
     },
     {
       "at": "2026-09-29T17:00:00Z",
@@ -594,14 +518,14 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Musalem speaks",
-      "note": "St Louis, a voter this year, on the US economy — the fourth of six Fed speakers on Tuesday, between Goolsbee at 17:00 and Williams at 18:00 UTC."
+      "note": "Said policy is still slightly accommodative even after the September hike."
     },
     {
       "at": "2026-09-29T18:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Williams speaks",
-      "note": "Third appearance in a week. Said on Thursday that another hike this year is reasonable and that forward guidance is over."
+      "note": "Said another hike this year is likely if the economy meets expectations but there is 'no need for urgency' after September's move. The two-year fell 6bp and October's hike odds roughly halved on the remark."
     },
     {
       "at": "2026-09-29T19:00:00Z",
@@ -617,7 +541,8 @@
       "event": "Australia CPI (Aug, y/y)",
       "forecast": "4.0%",
       "previous": "3.5%",
-      "note": "Seen 4.0% after 3.5%, the morning after the RBA hiked to 4.60% and said more may be needed. This print decides whether November is priced as a certainty or a probability."
+      "note": "4.0% after 3.5%, a fraction under the 4.1% some surveys carried; housing +5.7%, transport +5.6% with fuel up almost 15%. AUD/USD fell to a nine-week low of $0.6959. ANZ still expects a November hike to 4.85%; Oxford Economics does not.",
+      "actual": "4.0%"
     },
     {
       "at": "2026-09-30T01:30:00Z",
@@ -625,8 +550,9 @@
       "impact": "high",
       "event": "Australia trimmed mean CPI (Aug, y/y)",
       "previous": "3.6%",
-      "note": "3.6% in July, above the 2–3% band. Prints the morning after the RBA decides, alongside a headline CPI seen at 4.1%.",
-      "forecast": "3.6%"
+      "note": "Steady at 3.6% for a third month, but the monthly trimmed mean cooled to 0.2% against 0.3–0.4% expected. That soft monthly is what took the Australian dollar below 70 cents.",
+      "forecast": "3.6%",
+      "actual": "3.6%"
     },
     {
       "at": "2026-09-30T01:30:00Z",
@@ -634,8 +560,9 @@
       "impact": "high",
       "event": "China NBS manufacturing PMI (Sep)",
       "previous": "49.8",
-      "note": "Has been below 50 for months. China is the one large economy not fighting inflation.",
-      "forecast": "50.1"
+      "note": "Back above 50 for the first time since June, in line with consensus. Production 51.7, new orders 50.5, input prices 60.8 — the energy bill is arriving in Chinese factory costs too. Markets shut for Golden Week from 1 to 7 October.",
+      "forecast": "50.1",
+      "actual": "50.1"
     },
     {
       "at": "2026-09-30T01:30:00Z",
@@ -643,7 +570,18 @@
       "impact": "medium",
       "event": "China NBS non-manufacturing PMI (Sep)",
       "forecast": "49.3",
-      "previous": "49.0"
+      "previous": "49.0",
+      "actual": "50.2",
+      "note": "50.2 against 49.3 expected, with construction back to 50.3 and the composite at 50.7, the highest since December. Beijing added home-loan interest subsidies on Tuesday."
+    },
+    {
+      "at": "2026-09-30T01:45:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China RatingDog manufacturing PMI (Sep)",
+      "actual": "52.1",
+      "forecast": "51.6",
+      "previous": "51.5"
     },
     {
       "at": "2026-09-30T06:00:00Z",
@@ -667,7 +605,7 @@
       "impact": "high",
       "event": "Germany CPI (Sep, y/y)",
       "previous": "2.9%",
-      "note": "2.9% last month. The harmonised measure is seen 3.2% after 2.9%; Germany prints two days before the euro-area flash and usually sets the direction of the surprise."
+      "note": "2.9% last month. The harmonised measure is seen 3.1% after 2.9%; Germany prints two days before the euro-area flash, which is seen 3.6%."
     },
     {
       "at": "2026-09-30T12:15:00Z",
@@ -676,7 +614,7 @@
       "event": "US ADP employment change (Sep)",
       "previous": "38k",
       "note": "38,000 last month. It correlates with payrolls badly enough that it trades as its own event two days before them.",
-      "forecast": "72k"
+      "forecast": "70k"
     },
     {
       "at": "2026-09-30T12:30:00Z",
@@ -709,9 +647,9 @@
       "cur": "USD",
       "impact": "high",
       "event": "US core PCE price index (Aug, y/y)",
-      "forecast": "3.4%",
+      "forecast": "3.3%",
       "previous": "3.3%",
-      "note": "The Fed's preferred measure, seen 3.4% after 3.3% — moving away from 2%, not towards it. The Fed named this print when it hiked on 16 September; it lands on quarter-end with October about 65% priced."
+      "note": "The Fed's preferred measure, seen 3.3–3.4% after 3.3% depending on the survey, with a BEA methodology change that may shave a few basis points off the annual rate. The Fed named this print when it hiked; it lands on quarter-end with October now a coin flip."
     },
     {
       "at": "2026-09-30T12:30:00Z",
@@ -734,7 +672,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US Chicago PMI (Sep)",
-      "forecast": "51.0",
+      "forecast": "51.2",
       "previous": "47.1"
     },
     {
@@ -841,7 +779,7 @@
       "event": "US ISM manufacturing PMI (Sep)",
       "previous": "54.6",
       "note": "54.6 last month. Read it with the prices-paid sub-index below rather than on its own.",
-      "forecast": "54.9"
+      "forecast": "55.0"
     },
     {
       "at": "2026-10-01T14:00:00Z",
@@ -850,7 +788,7 @@
       "event": "US ISM manufacturing prices paid (Sep)",
       "previous": "71.1",
       "note": "71.1 last month. This is the cleanest monthly read on whether the energy shock is reaching factory-gate costs.",
-      "forecast": "72.5"
+      "forecast": "72.3"
     },
     {
       "at": "2026-10-01T17:30:00Z",
@@ -926,8 +864,8 @@
       "impact": "high",
       "event": "US nonfarm payrolls (Sep)",
       "previous": "162k",
-      "note": "Consensus has drifted down to about 84,000 from 100,000 a week ago, after 162,000 in August; Barclays is at 50,000 and expects August revised lower. The first payrolls since the Fed restarted hiking, and the one number this week that could take October away.",
-      "forecast": "84k"
+      "note": "Consensus sits around 84,000–100,000 after 162,000 in August, with Barclays at 50,000 and August likely revised. After Tuesday's JOLTS and confidence prints this is the number that decides whether October is a hike or a pause.",
+      "forecast": "90k"
     },
     {
       "at": "2026-10-02T12:30:00Z",
@@ -1274,6 +1212,21 @@
       "event": "Canada CPI (Sep, y/y)",
       "previous": "3.0%",
       "note": "3.0% in August against a 2% target with core at 2.4%. The Bank of Canada has held at 2.25% for seven meetings and has an October hike about 59% priced; this lands ten days before it decides."
+    },
+    {
+      "at": "2026-10-20T06:00:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK unemployment rate (Aug, 3m)",
+      "previous": "4.9%",
+      "note": "4.9% last time, the highest in years, against a Bank of England that has turned hawkish on energy. The labour market is the argument against a November hike; this is the last read before it."
+    },
+    {
+      "at": "2026-10-20T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US housing starts (Sep)",
+      "previous": "1.275m"
     }
   ],
   "howToRead": [

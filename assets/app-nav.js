@@ -39,7 +39,7 @@
     if (f === 'index' || f === 'dashboard-user') return 'home';
     if (f === 'courses' || f === 'chapter') return 'learn';
     if (f === 'trade-journal') return 'journal';
-    if (f === 'global-monitor') return 'monitor';
+    if (f === 'global-monitor' || f === 'gex') return 'monitor';
     if (f === 'trading-floor') return 'floor';
     return null;
   }

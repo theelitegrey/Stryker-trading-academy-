@@ -15,8 +15,9 @@ plans or the count. Safe to run from cron as often as you like; it appends
 only when the count changes or a new alert appears (state in a small JSON
 file next to the report).
 
-Token: the website manager's tok.sh (firebase-tools OAuth). Never printed.
-Exit codes: 0 ok, 2 Firestore unreadable (the report gets a line saying so).
+Token: durable helper under the website manager profile scripts, backed by
+firebase-tools' OAuth login. Never printed.
+Exit codes: 0 ok, 2 Firestore unreadable (the report gets a deduped line).
 """
 import json
 import os
@@ -28,15 +29,23 @@ import urllib.request
 
 PROJECT = 'strykertrades-e0cd8'
 BASE = f'https://firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents'
-TOK_SH = '/root/.hermes/profiles/stryker-website-manager/cache/scratch/fn/tok.sh'
-REPORT = '/root/projects/stryker-notes/reports/launch-sale-count.md'
-STATE = '/root/projects/stryker-notes/reports/.launch-sale-count.state.json'
+TOKEN_HELPER = os.environ.get(
+    'STRYKER_FIREBASE_TOKEN_HELPER',
+    '/root/.hermes/profiles/stryker-website-manager/scripts/firebase_access_token.js')
+REPORT = os.environ.get(
+    'STRYKER_LAUNCH_SALE_REPORT',
+    '/root/projects/stryker-notes/reports/launch-sale-count.md')
+STATE = os.environ.get(
+    'STRYKER_LAUNCH_SALE_STATE',
+    '/root/projects/stryker-notes/reports/.launch-sale-count.state.json')
 
 
 def token():
-    out = subprocess.run([TOK_SH], capture_output=True, text=True, timeout=30)
+    out = subprocess.run([TOKEN_HELPER], capture_output=True, text=True, timeout=30)
+    if out.returncode != 0:
+        raise RuntimeError('token helper failed')
     tok = out.stdout.strip()
-    if not tok or ' ' in tok:
+    if not tok or any(c.isspace() for c in tok):
         raise RuntimeError('token helper returned nothing usable')
     return tok
 
@@ -74,6 +83,17 @@ def now():
     return time.strftime('%Y-%m-%d %H:%M UTC', time.gmtime())
 
 
+def error_key(exc):
+    """Stable key for deduping unchanged failures across hourly runs."""
+    key = [type(exc).__name__]
+    if isinstance(exc, urllib.error.HTTPError):
+        key.append(str(exc.code))
+    elif isinstance(exc, urllib.error.URLError):
+        reason = getattr(exc, 'reason', None)
+        key.append(type(reason).__name__ if reason is not None else '')
+    return ':'.join(k for k in key if k)
+
+
 def append(lines, dry):
     if dry:
         print('\n'.join(lines))
@@ -100,10 +120,11 @@ def main():
         commerce = get('settings/commerce', tok)
         alerts = {m: get(f'launchSaleAlerts/{m}', tok) for m in (90, 100)}
     except Exception as e:  # noqa: BLE001 (report and stop; never guess a number)
+        key = error_key(e)
         msg = f'- {now()}: could not read Firestore ({type(e).__name__}); count unknown'
-        if state.get('last_error') != msg[:40]:
+        if state.get('last_error_key') != key:
             append([msg], dry)
-        state['last_error'] = msg[:40]
+        state['last_error_key'] = key
         if not dry:
             json.dump(state, open(STATE, 'w'))
         return 2
@@ -135,10 +156,16 @@ def main():
                             'Nothing changes automatically.'))
             state[key] = True
     state.pop('last_error', None)
+    state.pop('last_error_key', None)
     if lines:
         append(lines, dry)
     elif dry:
-        print(f'{now()}: no change (taken={state.get("taken")})')
+        if ls:
+            taken, limit, active = ls.get('taken'), ls.get('limit'), ls.get('active')
+            left = (limit - taken) if isinstance(limit, int) and isinstance(taken, int) else '?'
+            print(f'{now()}: no change (taken={taken}, limit={limit}, active={active}, left={left})')
+        else:
+            print(f'{now()}: no change (launchSale missing)')
     if not dry:
         json.dump(state, open(STATE, 'w'))
     return 0

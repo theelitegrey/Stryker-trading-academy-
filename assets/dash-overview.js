@@ -15,7 +15,7 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
   var MONITOR_URL = 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json';
 
   // ---- module visibility filter (default: everything) -----------------------
-  var MODS = { journal: true, markets: true, floor: true };
+  var MODS = { journal: true, markets: true, floor: true, gex: true };
   try {
     var saved = JSON.parse(localStorage.getItem('stryker_dash_mods') || 'null');
     if (saved) MODS = Object.assign(MODS, saved);
@@ -70,7 +70,7 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
   }
 
   // ---- module filter chips ---------------------------------------------------
-  var MOD_DEFS = [['journal', 'Journal'], ['markets', 'Markets'], ['floor', 'Community']];
+  var MOD_DEFS = [['journal', 'Journal'], ['markets', 'Markets'], ['floor', 'Community'], ['gex', 'GEX']];
 
   function renderFilter(){
     var host = $('dov-filter');

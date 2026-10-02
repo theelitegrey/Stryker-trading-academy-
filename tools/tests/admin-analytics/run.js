@@ -122,6 +122,28 @@ async function runMode(browser, mode) {
         }
       }
 
+      // SE review (revenue evidence): in loaded mode the MRR card must carry
+      // its currency AND the paid-rule split, so a grant can never be read as
+      // revenue. "—" here would mean the sub-line never got its numbers.
+      if (mode === 'loaded') {
+        const mrr = await p.evaluate(() => ({
+          v: ((document.getElementById('aa-mrr') || {}).textContent || '').trim(),
+          sub: ((document.getElementById('aa-mrr-sub') || {}).textContent || '').trim(),
+          conv: ((document.getElementById('aa-paid-conv') || {}).textContent || '').trim()
+        }));
+        results.checks.push({
+          name: 'loaded MRR shows its currency', pass: /USD/.test(mrr.v), detail: mrr.v });
+        results.checks.push({
+          name: 'loaded MRR sub-line shows the paying/comped/expired split',
+          pass: /200 paying/.test(mrr.sub) && /40 comped/.test(mrr.sub) &&
+                /12 expired/.test(mrr.sub) && /3 unconverted/.test(mrr.sub),
+          detail: mrr.sub });
+        // 200 paying of 1000 users = 20%. Derived from payingMembers, not the
+        // blended legacy key.
+        results.checks.push({
+          name: 'loaded conversion uses paying members', pass: mrr.conv === '20%', detail: mrr.conv });
+      }
+
       // Manager review A: the old stat row is gone, no duplicate figures.
       const oldCards = await p.evaluate(() => ['stat-students', 'stat-mrr', 'stat-completion', 'stat-sessions']
         .filter((id) => document.getElementById(id)).concat(document.querySelector('.stat-grid') ? ['.stat-grid'] : []));

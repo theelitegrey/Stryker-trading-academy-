@@ -131,14 +131,149 @@ function planPriceMap(plans) {
   return map;
 }
 
+// ---- THE PAID RULE -------------------------------------------------------
+//
+// This is the rule. The code below implements it; read the rule, not the code.
+//
+// A student counts as PAID only if BOTH hold:
+//   (a) there is a real gateway record proving money moved — an active/valid
+//       Stripe subscription, OR an active Razorpay subscription, OR a paid
+//       order with a non-zero COLLECTED amount; AND
+//   (b) paidThroughMillis is in the future.
+//
+// The following are NOT paid, full stop:
+//   - a free / zero-value coupon (WELCOME, BETA, FREE, or any coupon whose
+//     type is 'free' or whose value is 0)
+//   - a zero-amount order (freeCheckout.js writes finalAmount:0, gateway
+//     'coupon' — an order row is therefore NOT by itself proof of payment)
+//   - foundingMember
+//   - a hand-set plan label with no gateway record anywhere
+//   - expired or grace entitlements, whether or not they once counted
+//
+// Why this exists: MRR and the paid count used to be derived from the plan
+// LABEL alone, so every comped, founding and free-checkout account was
+// reported at full list price. The 2026-09-28 revenue audit measured the
+// damage: 29 of 30 "paid" members had never paid anything, and $3,741 of a
+// reported $3,870 MRR was free access.
+//
+// A student is reported in exactly ONE of three buckets, and the dashboard
+// shows all three rather than a single blended "paid" figure:
+//   payingMembers      — meets the rule above
+//   freeAccessMembers  — paid-looking label, no payment evidence (with the
+//                        reason, where known)
+//   expiredMembers     — had an entitlement, paidThroughMillis now in the past
+//
+// MONEY IS COUNTED IN USD. Gateway charges are converted, never summed
+// unitless across currencies: Razorpay orders carry amountUsd (razorpay.js),
+// and an order with a foreign currency but NO amountUsd is excluded from MRR
+// and counted in mrrUnconvertible rather than guessed at with an fx rate.
+
+const FREE_GATEWAYS = ['coupon', 'free', 'manual', 'admin'];
+
+// A coupon proves free access when the catalogue says it is free/zero-value.
+function isFreeCoupon(code, couponsByCode) {
+  if (!code) return false;
+  const c = couponsByCode[String(code).toUpperCase()] || couponsByCode[String(code)];
+  if (!c) return false;
+  return String(c.type).toLowerCase() === 'free' || Number(c.value) === 0;
+}
+
+// The USD amount an order actually COLLECTED, or null when it cannot be known.
+// null is deliberate: it means "unconvertible", not "zero".
+function collectedUsd(order) {
+  const final = Number(order && order.finalAmount);
+  if (!(final > 0)) return 0;                       // zero-amount order: no money moved
+  if (order.amountUsd != null && Number(order.amountUsd) > 0) return Number(order.amountUsd);
+  if (String(order.currency || '').toUpperCase() === 'USD') return final;
+  return null;                                      // foreign currency, no amountUsd
+}
+
+// When an order was placed, in millis; 0 when unknown so it sorts last.
+function orderMillis(order) {
+  const c = order && order.createdAt;
+  if (!c) return 0;
+  if (typeof c.toMillis === 'function') return c.toMillis();
+  if (typeof c === 'number') return c;
+  const p = Date.parse(c);
+  return Number.isFinite(p) ? p : 0;
+}
+
+// Does this order prove money moved? Gateway must be a real one, the amount
+// must be non-zero, and a free coupon disqualifies it whatever else it says.
+function orderProvesPayment(order, couponsByCode) {
+  if (!order) return false;
+  const gw = String(order.gateway || order.provider || '').toLowerCase();
+  if (!gw || FREE_GATEWAYS.indexOf(gw) !== -1) return false;
+  if (isFreeCoupon(order.couponCode, couponsByCode)) return false;
+  const status = String(order.status || '').toLowerCase();
+  if (status && ['failed', 'cancelled', 'canceled', 'refunded', 'created'].indexOf(status) !== -1) return false;
+  return Number(order.finalAmount) > 0;
+}
+
+// Classifies ONE student against the rule. Returns the bucket plus the
+// evidence that decided it, so the dashboard can show a reason and a human
+// can audit the number without re-deriving it.
+function classifyPayment(row, evidence, couponsByCode, nowMs) {
+  const listPrice = evidence.listPrice || 0;
+  if (!(listPrice > 0)) return { bucket: 'unpaidPlan' };   // Starter/no plan: not a revenue question
+
+  const orders = (evidence.orders || []).filter((o) => orderProvesPayment(o, couponsByCode));
+  const subActive = !!evidence.stripeSubActive || !!evidence.razorpaySubActive;
+  const hasGatewayProof = subActive || orders.length > 0;
+  const paidThrough = Number(row.paidThroughMillis);
+  const currentPeriod = Number.isFinite(paidThrough) && paidThrough > nowMs;
+
+  if (!hasGatewayProof) {
+    let reason = 'hand-set label, no gateway record';
+    if (row.foundingMember) reason = 'founding grant';
+    else if (row.foundingCoupon) reason = 'free coupon ' + row.foundingCoupon;
+    else {
+      const freeCoupon = (evidence.orders || [])
+        .map((o) => o.couponCode).filter((c) => isFreeCoupon(c, couponsByCode))[0];
+      if (freeCoupon) reason = 'free coupon ' + freeCoupon;
+      else if ((evidence.orders || []).length) reason = 'zero-amount order';
+    }
+    return { bucket: 'freeAccess', reason: reason };
+  }
+  if (!currentPeriod) return { bucket: 'expired', reason: 'paid once, entitlement expired' };
+
+  // Paid. MRR is the CURRENT RECURRING charge, not lifetime revenue: summing
+  // every order a member ever placed would report six months of $19 as $114
+  // of monthly recurring. So take the most recent qualifying order — the one
+  // that bought the period we are currently in — and use its collected USD.
+  const sorted = orders.slice().sort((a, b) => orderMillis(b) - orderMillis(a));
+  const latest = sorted[0];
+  const usd = collectedUsd(latest);
+  if (usd === null) {
+    // Foreign currency with no amountUsd: a paying member whose amount we
+    // refuse to guess. Counted as an exception, contributing 0 to MRR.
+    return { bucket: 'paying', amount: 0, unconvertible: 1 };
+  }
+  let amount = usd;
+  // A live subscription with no convertible order still counts as a paying
+  // member; its recurring amount is the sale/list price of the plan.
+  if (!amount && subActive) amount = evidence.chargePrice || listPrice;
+  return { bucket: 'paying', amount: amount, unconvertible: 0 };
+}
+
 // Folds the projected student rows into the plan / MRR / completion figures.
 // rows: [{ plan, completedChapters }]; plans: [{ name, price }];
 // chapters: [{ id, num, title }]
-function summarise(rows, plans, chapters) {
+function summarise(rows, plans, chapters, payment) {
   const prices = planPriceMap(plans);
+  const pay = payment || {};
+  const couponsByCode = pay.couponsByCode || {};
+  const ordersByUid = pay.ordersByUid || {};
+  const subsByUid = pay.subsByUid || {};
+  const nowMs = pay.nowMs || Date.now();
   const byPlan = {};
   let paid = 0;
   let mrr = 0;
+  let payingMembers = 0;
+  let freeAccessMembers = 0;
+  let expiredMembers = 0;
+  let mrrUnconvertible = 0;
+  const freeAccessReasons = {};
   const chapterCompletions = {};
   const chapterTitles = {};
   (chapters || []).forEach((ch) => {
@@ -154,7 +289,30 @@ function summarise(rows, plans, chapters) {
     const plan = s.plan ? String(s.plan) : 'No plan';
     byPlan[plan] = (byPlan[plan] || 0) + 1;
     const price = s.plan ? (prices[String(s.plan).toLowerCase()] || 0) : 0;
-    if (price > 0) { paid += 1; mrr += price; }
+
+    // THE PAID RULE (see the block above). The plan label alone decides
+    // nothing about revenue: it only tells us whether this student is a
+    // revenue question at all. Payment evidence decides the rest.
+    const uid = s.__uid || s.uid;
+    const verdict = classifyPayment(s, {
+      listPrice: price,
+      chargePrice: price,
+      orders: ordersByUid[uid] || [],
+      stripeSubActive: !!(subsByUid[uid] && subsByUid[uid].stripe),
+      razorpaySubActive: !!(subsByUid[uid] && subsByUid[uid].razorpay)
+    }, couponsByCode, nowMs);
+
+    if (verdict.bucket === 'paying') {
+      payingMembers += 1;
+      mrr += verdict.amount || 0;
+      mrrUnconvertible += verdict.unconvertible || 0;
+      paid += 1;                       // legacy key: now means PAYING, never a grant
+    } else if (verdict.bucket === 'freeAccess') {
+      freeAccessMembers += 1;
+      freeAccessReasons[verdict.reason] = (freeAccessReasons[verdict.reason] || 0) + 1;
+    } else if (verdict.bucket === 'expired') {
+      expiredMembers += 1;
+    }
 
     // Only chapters that exist in the catalogue count, so a stale id in a
     // student's array can't invent a chapter row or push completion past
@@ -177,8 +335,17 @@ function summarise(rows, plans, chapters) {
     scanned: rows.length,
     paid: paid,
     free: rows.length - paid,
+    // The three numbers that must never be blended into one "paid" figure.
+    payingMembers: payingMembers,
+    freeAccessMembers: freeAccessMembers,
+    expiredMembers: expiredMembers,
+    freeAccessReasons: freeAccessReasons,
     byPlan: byPlan,
     mrr: Math.round(mrr * 100) / 100,
+    mrrCurrency: 'USD',
+    // Orders in a foreign currency with no amountUsd: excluded from mrr and
+    // counted here rather than guessed at with an fx rate.
+    mrrUnconvertible: mrrUnconvertible,
     startedCount: started,
     // null, not 0, when nobody has started: "no data" is not "0% completion".
     avgCompletion: started ? Math.round((completionSum / started) * 100) : null,
@@ -203,31 +370,79 @@ async function buildStats(db, now) {
   );
 
   // Small collections: read whole, as the dashboard already did.
-  const [planSnap, chapterSnap, rowSnap] = await Promise.all([
+  // orders/coupons/razorpaySubs are the PAYMENT EVIDENCE the paid rule needs:
+  // the plan label cannot prove money moved. orders is projected with select()
+  // so only the money fields leave the database, never names or emails.
+  const [planSnap, chapterSnap, rowSnap, orderSnap, couponSnap, rzSubSnap] = await Promise.all([
     db.collection('plans').get(),
     db.collection('chapters').get(),
-    // Projection: only these four fields leave the database. createdAt and
+    // Projection: only these fields leave the database. createdAt and
     // lastActiveDate are dates, not personal data, and they let the window
-    // counts honour the bot filter (see countWindows).
-    students.select('plan', 'completedChapters', 'createdAt', 'lastActiveDate').get()
+    // counts honour the bot filter (see countWindows). The payment fields
+    // are what the paid rule tests condition (b) and the free-access
+    // reasons against.
+    students.select('plan', 'completedChapters', 'createdAt', 'lastActiveDate',
+      'paidThroughMillis', 'subscriptionStatus', 'foundingMember', 'foundingCoupon').get(),
+    db.collection('orders').select('studentUid', 'finalAmount', 'currency', 'amountUsd',
+      'gateway', 'provider', 'status', 'couponCode', 'stripeSubscriptionId',
+      'razorpayPaymentId', 'createdAt').get(),
+    db.collection('coupons').select('type', 'value').get(),
+    db.collection('razorpaySubs').select('uid', 'status').get()
   ]);
   const plans = planSnap.docs.map((d) => d.data());
   const chapters = chapterSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
 
+  // ---- payment evidence, indexed by uid ----
+  const couponsByCode = {};
+  couponSnap.docs.forEach((d) => { couponsByCode[String(d.id).toUpperCase()] = d.data(); });
+
+  const ordersByUid = {};
+  orderSnap.docs.forEach((d) => {
+    const o = d.data();
+    const uid = o.studentUid;
+    if (!uid) return;
+    (ordersByUid[uid] = ordersByUid[uid] || []).push(o);
+  });
+
+  // An active Stripe subscription is proved by a completed order carrying a
+  // stripeSubscriptionId: stripe.js writes that row only after the payment
+  // succeeds, and stripeSubs/stripeInvoices do not exist in this database.
+  const subsByUid = {};
+  orderSnap.docs.forEach((d) => {
+    const o = d.data();
+    if (o.studentUid && o.stripeSubscriptionId &&
+        String(o.gateway || o.provider || '').toLowerCase() === 'stripe') {
+      subsByUid[o.studentUid] = Object.assign({}, subsByUid[o.studentUid], { stripe: true });
+    }
+  });
+  rzSubSnap.docs.forEach((d) => {
+    const s = d.data();
+    const live = ['active', 'authenticated', 'completed', 'charged'].indexOf(
+      String(s.status || '').toLowerCase()) !== -1;
+    if (s.uid && live) {
+      subsByUid[s.uid] = Object.assign({}, subsByUid[s.uid], { razorpay: true });
+    }
+  });
+
   // THE bot filter. Applied once, here, before anything is derived, so a bot
-  // record reaches no number at all.
+  // record reaches no number at all. The doc id is carried through as __uid
+  // so the paid rule can find each student's payment evidence.
   const rows = rowSnap.docs
     .filter((d) => !isBotUid(d.id))
-    .map((d) => d.data());
+    .map((d) => Object.assign({ __uid: d.id }, d.data()));
 
   const windows = countWindows(rows, now);
-  const sum = summarise(rows, plans, chapters);
+  const sum = summarise(rows, plans, chapters, {
+    couponsByCode: couponsByCode,
+    ordersByUid: ordersByUid,
+    subsByUid: subsByUid,
+    nowMs: now.getTime()
+  });
   return Object.assign({
     upcomingSessions,
     tz: 'UTC',
-    day: utcDateStr(now),
-    mrrCurrency: null   // plan prices are stored as display strings; see handback
-  }, windows, sum);
+    day: utcDateStr(now)
+  }, windows, sum);   // summarise() sets mrrCurrency: 'USD'
 }
 
 async function writeSnapshot(db, trigger) {
@@ -289,4 +504,4 @@ exports.adminStatsRefresh = functions
   });
 
 // Exported for the unit test only.
-exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, countWindows, buildStats };
+exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, countWindows, buildStats, classifyPayment, orderProvesPayment, collectedUsd, isFreeCoupon };

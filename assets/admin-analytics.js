@@ -60,7 +60,7 @@ function aaDayKey(dAgo){
 
 var AA_STATS_IDS = [
   'aa-total-users', 'aa-new-range', 'aa-active-range',
-  'aa-paid-conv', 'aa-plan-split', 'aa-mrr', 'aa-completion', 'aa-completion-sub'
+  'aa-paid-conv', 'aa-plan-split', 'aa-mrr', 'aa-mrr-sub', 'aa-completion', 'aa-completion-sub'
 ];
 
 var AA_STATE = { stats: null, range: 'today' };
@@ -96,18 +96,28 @@ function aaRenderStats(){
     : (range === 'all' ? 'n/a' : 'No data yet'));
 
   var totalUsers = stats.totalUsers || 0;
-  var paid = stats.paid;
-  if (typeof paid === 'number' && totalUsers) {
-    aaSet('aa-paid-conv', Math.round((paid / totalUsers) * 100) + '%');
+  // The conversion card shows PAYING members only. A grant is not a customer,
+  // so payingMembers is preferred over the legacy blended `paid` key.
+  var paying = (typeof stats.payingMembers === 'number') ? stats.payingMembers : stats.paid;
+  if (typeof paying === 'number' && totalUsers) {
+    aaSet('aa-paid-conv', Math.round((paying / totalUsers) * 100) + '%');
   } else {
     aaSet('aa-paid-conv', 'No data yet');
   }
   var split = aaFormatPlanSplit(stats);
   aaSet('aa-plan-split', split || '\u2014');
 
+  // MRR always carries its currency, and the comped/expired counts sit beside
+  // it so a grant can never be mistaken for revenue.
   aaSet('aa-mrr', (typeof stats.mrr === 'number')
-    ? '$' + Math.round(stats.mrr).toLocaleString() + (stats.mrrCurrency && stats.mrrCurrency !== 'USD' ? ' ' + stats.mrrCurrency : '')
+    ? '$' + Math.round(stats.mrr).toLocaleString() + ' ' + (stats.mrrCurrency || 'USD')
     : 'No data yet');
+  var mrrBits = [];
+  if (typeof stats.payingMembers === 'number') mrrBits.push(stats.payingMembers + ' paying');
+  if (stats.freeAccessMembers) mrrBits.push(stats.freeAccessMembers + ' comped');
+  if (stats.expiredMembers) mrrBits.push(stats.expiredMembers + ' expired');
+  if (stats.mrrUnconvertible) mrrBits.push(stats.mrrUnconvertible + ' unconverted');
+  aaSet('aa-mrr-sub', mrrBits.join(' \u00b7 ') || '\u2014');
 
   if (typeof stats.avgCompletion === 'number') {
     aaSet('aa-completion', stats.avgCompletion + '%');

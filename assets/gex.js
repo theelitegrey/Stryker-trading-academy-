@@ -5,8 +5,9 @@
   var DTES = [{v:0,l:'0DTE'}, {v:1,l:'1DTE'}, {v:7,l:'1W'}, {v:30,l:'1M'}];
   var IVS = ['1m', '5m', '15m', '1h'];
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
+  var viewFrom = 0, viewTo = 0;
   var showMkt = true;
-  var tvChart = null, tvSeries = null, tvPriceLines = [];
+  var tvChart = null, tvSeries = null, tvPriceLines = [], tvBarSpacing = 7;
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -24,9 +25,10 @@
     $('gex-ivs').addEventListener('click', function(e){ var i=e.target.dataset.i; if(!i) return; curIv=i; paintButtons(); loadChart(); });
     $('gex-futs').addEventListener('click', function(e){ var f=e.target.dataset.f; if(!f || !DATA) return; curFut=f; render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
-    $('gex-zoom-in').addEventListener('click', function(){ tvZoom(0.72); });
-    $('gex-zoom-out').addEventListener('click', function(){ tvZoom(1.38); });
-    $('gex-zoom-reset').addEventListener('click', function(){ if(tvChart) tvChart.timeScale().fitContent(); updateChartRangeLabel(); });
+    function bindZoom(id, fn){ var b=$(id); if(b){ b.onclick = fn; } }
+    bindZoom('gex-zoom-in', function(e){ if(e) e.preventDefault(); tvZoom(0.72); });
+    bindZoom('gex-zoom-out', function(e){ if(e) e.preventDefault(); tvZoom(1.38); });
+    bindZoom('gex-zoom-reset', function(e){ if(e) e.preventDefault(); tvReset(); });
     window.addEventListener('resize', function(){ if(tvChart) tvChart.resize($('gex-chart').clientWidth, $('gex-chart').clientHeight); }, {passive:true});
   }
 
@@ -169,7 +171,7 @@
         vertLine: { color: '#03c988', labelBackgroundColor: '#03c988' },
         horzLine: { color: '#03c988', labelBackgroundColor: '#03c988' }
       },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
       localization: { locale: 'en-US' }
     });
@@ -177,18 +179,86 @@
       upColor: '#03c988', downColor: '#e5484d', borderUpColor: '#03c988', borderDownColor: '#e5484d', wickUpColor: '#03c988', wickDownColor: '#e5484d'
     });
     tvChart.timeScale().subscribeVisibleLogicalRangeChange(updateChartRangeLabel);
+    lockChartTouchGestures(host);
+  }
+
+  function lockChartTouchGestures(host){
+    if(!host || host.dataset.touchLocked === '1') return;
+    host.dataset.touchLocked = '1';
+    var lastX = null, lastDist = null;
+    function dist(t){ var dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.sqrt(dx*dx+dy*dy); }
+    host.addEventListener('touchstart', function(e){
+      if(e.cancelable) e.preventDefault();
+      if(e.touches.length === 1){ lastX = e.touches[0].clientX; lastDist = null; }
+      else if(e.touches.length >= 2){ lastDist = dist(e.touches); lastX = null; }
+    }, {passive:false});
+    host.addEventListener('touchmove', function(e){
+      if(e.cancelable) e.preventDefault();
+      if(!CANDLES.length) return;
+      if(e.touches.length >= 2){
+        var d = dist(e.touches);
+        if(lastDist){ tvZoom(lastDist / d); }
+        lastDist = d;
+        return;
+      }
+      if(e.touches.length === 1 && lastX != null){
+        var x = e.touches[0].clientX;
+        var dx = x - lastX;
+        if(Math.abs(dx) >= 6){ tvPan(-dx / 7); lastX = x; }
+      }
+    }, {passive:false});
+    host.addEventListener('touchend', function(){ lastX = null; lastDist = null; }, {passive:true});
+  }
+
+  function clampIdx(i){ return Math.max(0, Math.min(CANDLES.length - 1, Math.round(i))); }
+
+  function clampIdx(i){ return Math.max(0, Math.min(CANDLES.length - 1, Math.round(i))); }
+
+  function ensureView(){
+    if(!CANDLES.length) return;
+    if(viewTo <= viewFrom || viewTo >= CANDLES.length){
+      viewTo = CANDLES.length - 1;
+      viewFrom = Math.max(0, viewTo - 70);
+    }
+  }
+
+  function applyView(){
+    if(!tvSeries || !CANDLES.length) return;
+    ensureView();
+    tvSeries.setData(CANDLES.slice(viewFrom, viewTo + 1));
+    renderPriceLines();
+    tvChart.timeScale().fitContent();
+    updateChartRangeLabel();
   }
 
   function tvZoom(factor){
     if(!tvChart || !CANDLES.length) return;
-    var ts = tvChart.timeScale();
-    var r = ts.getVisibleLogicalRange();
-    if(!r) return;
-    var mid = (r.from + r.to) / 2;
-    var span = Math.max(12, (r.to - r.from) * factor);
-    span = Math.min(CANDLES.length, span);
-    ts.setVisibleLogicalRange({ from: mid - span / 2, to: mid + span / 2 });
-    updateChartRangeLabel();
+    ensureView();
+    var mid = (viewFrom + viewTo) / 2;
+    var span = Math.max(12, Math.min(CANDLES.length - 1, (viewTo - viewFrom) * factor));
+    viewFrom = clampIdx(mid - span / 2);
+    viewTo = clampIdx(mid + span / 2);
+    if(viewTo <= viewFrom) viewTo = Math.min(CANDLES.length - 1, viewFrom + 12);
+    applyView();
+  }
+
+  function tvPan(deltaBars){
+    if(!tvChart || !CANDLES.length) return;
+    ensureView();
+    var span = viewTo - viewFrom;
+    var shift = Math.round(deltaBars);
+    if(!shift) return;
+    viewFrom = clampIdx(viewFrom + shift);
+    viewTo = viewFrom + span;
+    if(viewTo >= CANDLES.length){ viewTo = CANDLES.length - 1; viewFrom = Math.max(0, viewTo - span); }
+    applyView();
+  }
+
+  function tvReset(){
+    if(!tvChart || !CANDLES.length) return;
+    viewTo = CANDLES.length - 1;
+    viewFrom = Math.max(0, viewTo - 70);
+    applyView();
   }
 
   async function loadChart(){
@@ -199,6 +269,7 @@
     try{
       var d = await getJson('/api/gex/candles/' + encodeURIComponent(curFut) + '?interval=' + encodeURIComponent(curIv) + '&t=' + Date.now());
       CANDLES = (d.candles || []).map(function(c){ return { time:c.time, open:c.open, high:c.high, low:c.low, close:c.close }; });
+      viewFrom = 0; viewTo = 0;
       drawChart();
     }catch(e){
       $('gex-chart').innerHTML = '<div class="gex-chart-fallback">chart: '+esc(e.message)+'</div>';
@@ -208,10 +279,7 @@
   function drawChart(){
     ensureTradingViewChart();
     if(!tvSeries || !CANDLES.length) return;
-    tvSeries.setData(CANDLES);
-    renderPriceLines();
-    tvChart.timeScale().fitContent();
-    updateChartRangeLabel();
+    tvReset();
   }
 
   function renderPriceLines(){
@@ -233,16 +301,18 @@
   function updateChartRangeLabel(){
     var host = $('gex-chart');
     if(!host || !tvChart || !CANDLES.length) return;
-    var r = tvChart.timeScale().getVisibleLogicalRange();
-    if(!r) return;
-    var visible = Math.max(1, Math.round(Math.min(CANDLES.length, r.to) - Math.max(0, r.from)));
+    ensureView();
+    var visible = Math.max(1, viewTo - viewFrom + 1);
     host.dataset.visibleBars = String(visible);
     host.dataset.totalBars = String(CANDLES.length);
+    host.dataset.viewFrom = String(viewFrom);
+    host.dataset.viewTo = String(viewTo);
     var label = $('gex-chart-range');
     if(label) label.textContent = visible + ' / ' + CANDLES.length + ' bars · TradingView pan/zoom/pinch';
   }
 
   function label(ctx, text, x, y, color){ /* legacy no-op: kept for old callers */ }
+
 
   function collectLines(){
     if(!DATA || !curFut) return [];

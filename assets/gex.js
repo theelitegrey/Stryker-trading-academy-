@@ -6,6 +6,7 @@
   var IVS = ['1m', '5m', '15m', '1h'];
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
   var showMkt = true;
+  var chartStart = null, chartEnd = null, dragChart = null;
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -20,9 +21,13 @@
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
     $('gex-tabs').addEventListener('click', function(e){ var m=e.target.dataset.m; if(!m) return; cur=m; curFut=null; paintButtons(); loadLevels(); });
     $('gex-dtes').addEventListener('click', function(e){ var d=e.target.dataset.d; if(d == null) return; curDte=Number(d); paintButtons(); loadLevels(); });
-    $('gex-ivs').addEventListener('click', function(e){ var i=e.target.dataset.i; if(!i) return; curIv=i; paintButtons(); loadChart(); });
-    $('gex-futs').addEventListener('click', function(e){ var f=e.target.dataset.f; if(!f || !DATA) return; curFut=f; render(DATA); loadChart(); });
+    $('gex-ivs').addEventListener('click', function(e){ var i=e.target.dataset.i; if(!i) return; curIv=i; chartStart=null; chartEnd=null; paintButtons(); loadChart(); });
+    $('gex-futs').addEventListener('click', function(e){ var f=e.target.dataset.f; if(!f || !DATA) return; curFut=f; chartStart=null; chartEnd=null; render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
+    $('gex-zoom-in').addEventListener('click', function(){ zoomChart(0.72); });
+    $('gex-zoom-out').addEventListener('click', function(){ zoomChart(1.38); });
+    $('gex-zoom-reset').addEventListener('click', function(){ chartStart=null; chartEnd=null; drawChart(); });
+    wireChartGestures();
     window.addEventListener('resize', drawChart, {passive:true});
   }
 
@@ -143,11 +148,74 @@
     try{
       var d = await getJson('/api/gex/candles/' + encodeURIComponent(curFut) + '?interval=' + encodeURIComponent(curIv) + '&t=' + Date.now());
       CANDLES = d.candles || [];
+      if(chartEnd != null && chartEnd > CANDLES.length) { var span = chartEnd - chartStart; chartEnd = CANDLES.length; chartStart = Math.max(0, chartEnd - span); }
       drawChart();
     }catch(e){
       CANDLES = [];
       drawChart(e.message);
     }
+  }
+
+  function defaultVisibleCount(width){ return Math.max(30, Math.min(CANDLES.length, Math.floor((width - 96) / 5))); }
+
+  function clampRange(width){
+    var len = CANDLES.length;
+    if(!len) return [0, 0];
+    if(chartStart == null || chartEnd == null || chartEnd <= chartStart){
+      var n = defaultVisibleCount(width || 760);
+      chartEnd = len; chartStart = Math.max(0, len - n);
+    }
+    var minBars = Math.min(20, len), span = Math.max(minBars, Math.round(chartEnd - chartStart));
+    if(span > len) span = len;
+    chartStart = Math.max(0, Math.min(len - span, Math.round(chartStart)));
+    chartEnd = chartStart + span;
+    return [chartStart, chartEnd];
+  }
+
+  function zoomChart(factor, px){
+    if(!CANDLES.length) return;
+    var canvas = $('gex-chart'), rect = canvas.getBoundingClientRect(), padL = 12, padR = 84;
+    var range = clampRange(rect.width), start = range[0], end = range[1], span = end - start;
+    var plotW = Math.max(1, rect.width - padL - padR);
+    var frac = px == null ? 0.5 : Math.max(0, Math.min(1, (px - padL) / plotW));
+    var center = start + span * frac;
+    var minBars = Math.min(20, CANDLES.length);
+    var newSpan = Math.max(minBars, Math.min(CANDLES.length, Math.round(span * factor)));
+    chartStart = Math.max(0, Math.min(CANDLES.length - newSpan, Math.round(center - newSpan * frac)));
+    chartEnd = chartStart + newSpan;
+    drawChart();
+  }
+
+  function panChart(deltaBars){
+    if(!CANDLES.length || !deltaBars) return;
+    var range = clampRange($('gex-chart').getBoundingClientRect().width), span = range[1] - range[0];
+    chartStart = Math.max(0, Math.min(CANDLES.length - span, Math.round(chartStart + deltaBars)));
+    chartEnd = chartStart + span;
+    drawChart();
+  }
+
+  function wireChartGestures(){
+    var canvas = $('gex-chart');
+    if(!canvas) return;
+    canvas.addEventListener('wheel', function(e){
+      e.preventDefault();
+      if(Math.abs(e.deltaX) > Math.abs(e.deltaY)) { panChart(e.deltaX > 0 ? 6 : -6); return; }
+      zoomChart(e.deltaY < 0 ? 0.82 : 1.18, e.offsetX);
+    }, {passive:false});
+    canvas.addEventListener('pointerdown', function(e){
+      canvas.setPointerCapture(e.pointerId);
+      var r = clampRange(canvas.getBoundingClientRect().width);
+      dragChart = {x:e.clientX, start:r[0], end:r[1]};
+    });
+    canvas.addEventListener('pointermove', function(e){
+      if(!dragChart) return;
+      var rect = canvas.getBoundingClientRect(), span = dragChart.end - dragChart.start;
+      var bars = -Math.round((e.clientX - dragChart.x) / Math.max(1, rect.width - 96) * span);
+      chartStart = Math.max(0, Math.min(CANDLES.length - span, dragChart.start + bars));
+      chartEnd = chartStart + span;
+      drawChart();
+    });
+    ['pointerup','pointercancel','lostpointercapture'].forEach(function(evt){ canvas.addEventListener(evt, function(){ dragChart = null; }); });
   }
 
   function drawChart(err){
@@ -163,8 +231,10 @@
     ctx.fillStyle = '#050608'; ctx.fillRect(0,0,w,h);
     if(err){ label(ctx, err, 20, 30, 'var(--bear)'); return; }
     if(!CANDLES.length){ label(ctx, 'loading chart…', 20, 30, '#8b949e'); return; }
-    var n = Math.min(CANDLES.length, Math.floor((w - padL - padR) / 5));
-    var data = CANDLES.slice(-Math.max(30,n));
+    var r = clampRange(w), start = r[0], end = r[1];
+    canvas.dataset.visibleBars = String(end - start);
+    canvas.dataset.totalBars = String(CANDLES.length);
+    var data = CANDLES.slice(start, end);
     var vals = [];
     data.forEach(function(c){ vals.push(c.high, c.low); });
     var lines = collectLines(); lines.forEach(function(l){ if(l.price != null) vals.push(l.price); });
@@ -184,6 +254,8 @@
     lines.forEach(function(l){ drawLine(ctx, y(l.price), padL, w-padR, l); });
     ctx.fillStyle = '#8b949e'; ctx.font = '10px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.textAlign='right';
     for(var t=0;t<5;t++){ var pv=max - t*span/4; ctx.fillText(fmt(pv,2), w-10, padT + t*(h-padT-padB)/4 + 3); }
+    ctx.textAlign='left'; ctx.fillStyle = '#64748b';
+    ctx.fillText((end - start) + ' / ' + CANDLES.length + ' bars · wheel/pinch zoom · drag pan', padL + 4, h - 10);
   }
 
   function label(ctx, text, x, y, color){ ctx.fillStyle = color || '#8b949e'; ctx.font = '12px ui-monospace, SFMono-Regular, Menlo, monospace'; ctx.fillText(text, x, y); }

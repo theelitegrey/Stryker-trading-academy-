@@ -350,6 +350,16 @@ h1,h2,h3,h4{
 @media (max-width:480px){ .hero-copy .eyebrow{ font-size:11px; letter-spacing:0.06em; gap:8px; } }
 .hero-stat b{ display:block; font-family:var(--font-mono); font-size:22px; color:var(--ink-0); }
 .hero-stat span{ font-size:12.5px; color:var(--ink-3); }
+/* Product Hunt badge under the hero stats: official badge, size reserved (250x54) so nothing shifts.
+   Two imgs, one per theme; the hidden one is display:none so its lazy load never fires. */
+.hero-ph{ margin-top:22px; height:54px; }
+.hero-ph a{ display:inline-block; line-height:0; border-radius:10px; }
+.hero-ph a:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
+.hero-ph .ph-badge{ width:250px; height:54px; }
+.hero-ph .ph-badge-light{ display:none; }
+:root[data-theme="light"] .hero-ph .ph-badge-light{ display:block; }
+:root[data-theme="light"] .hero-ph .ph-badge-dark{ display:none; }
+@media (max-width:600px){ .hero-ph{ margin-top:8px; } }
 
 /* --- Signature: annotated market-structure chart --- */
 .chart-card{

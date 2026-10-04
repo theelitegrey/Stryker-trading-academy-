@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Make the 1200x630 share image (og:image / twitter:image) for a /features page.
+"""SUPERSEDED by tools/og/gen_og.py + tools/og/pages.json (every public page). Kept for reference.
+
+Make the 1200x630 share image (og:image / twitter:image) for a /features page.
 
     python3 tools/og/make_feature_og.py <slug> "<Title>" <hero file> [--focus FX,FY] [--name NAME]
     python3 tools/og/make_feature_og.py --hub "<Title>" <hero1> <hero2> <hero3> <hero4> [--name NAME]

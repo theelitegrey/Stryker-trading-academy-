@@ -231,22 +231,39 @@ def _image_info(path):
     return 'other', 0, 0
 
 
-def check_feature_share_images():
-    """Every /features page and the hub carry their OWN 1200x630 PNG/JPEG share
-    image with the full og/twitter tag set (chat apps show og:image on paste)."""
+def check_share_images():
+    """Every public page (no robots noindex) carries its OWN 1200x630 PNG/JPEG
+    share image with the full og/twitter tag set, matching tools/og/pages.json
+    (the table tools/og/gen_og.py renders from). No two pages share an image,
+    the default og-image.png is never used, and og:title contains the card title."""
+    import json
     site = 'https://strykertrading.com/'
-    pages = sorted(glob.glob(os.path.join(ROOT, 'features', '*.html')))
-    hub = os.path.join(ROOT, 'features.html')
-    if os.path.exists(hub):
-        pages.append(hub)
+    table_path = os.path.join(ROOT, 'tools', 'og', 'pages.json')
+    with open(table_path, encoding='utf-8') as fh:
+        table = {e['page']: e for e in json.load(fh)['pages']}
+    pages = sorted(glob.glob(os.path.join(ROOT, '*.html')) + glob.glob(os.path.join(ROOT, 'features', '*.html')))
+    seen = {}
+    public = set()
     for page in pages:
         rel = os.path.relpath(page, ROOT)
         with open(page, encoding='utf-8') as fh:
             html = fh.read()
+        robots = _meta(html, 'name', 'robots') or ''
+        if 'noindex' in robots:
+            if rel in table:
+                fail(f'{rel}: is noindex but listed in tools/og/pages.json')
+            continue
+        public.add(rel)
+        entry = table.get(rel)
+        if not entry:
+            fail(f'{rel}: public page missing from tools/og/pages.json (add it, run python3 tools/og/gen_og.py)')
+            continue
         og = _meta(html, 'property', 'og:image')
         tw = _meta(html, 'name', 'twitter:image')
         required = {
             'og:image': og, 'twitter:image': tw,
+            'og:title': _meta(html, 'property', 'og:title'),
+            'twitter:title': _meta(html, 'name', 'twitter:title'),
             'og:image:width': _meta(html, 'property', 'og:image:width'),
             'og:image:height': _meta(html, 'property', 'og:image:height'),
             'og:image:alt': _meta(html, 'property', 'og:image:alt'),
@@ -260,29 +277,50 @@ def check_feature_share_images():
             fail(f'{rel}: twitter:card is not summary_large_image')
         if not og:
             continue
+        t = entry['title'].lower()
+        for key in ('og:title', 'twitter:title'):
+            if required[key] and t not in required[key].replace('&amp;', '&').lower():
+                fail(f'{rel}: {key} does not contain the card title {entry["title"]!r} from pages.json')
+        if required['og:title'] != required['twitter:title']:
+            fail(f'{rel}: og:title and twitter:title differ')
         for key, val in (('og:image', og), ('twitter:image', tw)):
-            if val and val.rsplit('/', 1)[-1] == 'og-image.png':
-                fail(f'{rel}: {key} is the default og-image.png; give the page its own share image (tools/og/make_feature_og.py)')
+            if val and val.split('?')[0].rsplit('/', 1)[-1] == 'og-image.png':
+                fail(f'{rel}: {key} is the default og-image.png; give the page its own share image (tools/og/gen_og.py)')
         if tw and og != tw:
             fail(f'{rel}: og:image and twitter:image differ')
         if not og.startswith(site):
             fail(f'{rel}: og:image must be an absolute {site} URL')
             continue
-        img = os.path.join(ROOT, og[len(site):].split('?')[0])
+        if '?v=' not in og:
+            fail(f'{rel}: og:image needs a ?v=<build> cache-buster')
+        path = og[len(site):].split('?')[0]
+        if path in seen:
+            fail(f'{rel}: og:image {path} is also used by {seen[path]}; every page needs its own')
+        seen[path] = rel
+        img = os.path.join(ROOT, path)
         if not os.path.isfile(img):
-            fail(f'{rel}: og:image file not in repo: {og[len(site):]}')
+            fail(f'{rel}: og:image file not in repo: {path}')
             continue
+        if os.path.getsize(img) > 300 * 1024:
+            fail(f'{rel}: share image over 300 KB: {path}')
         kind, w, h = _image_info(img)
         if kind not in ('png', 'jpeg'):
-            fail(f'{rel}: share image is not PNG/JPEG: {og[len(site):]}')
+            fail(f'{rel}: share image is not PNG/JPEG: {path}')
         elif (w, h) != (1200, 630):
-            fail(f'{rel}: share image is {w}x{h}, needs 1200x630: {og[len(site):]}')
+            fail(f'{rel}: share image is {w}x{h}, needs 1200x630: {path}')
         else:
             want = 'image/png' if kind == 'png' else 'image/jpeg'
             if required['og:image:type'] and required['og:image:type'] != want:
                 fail(f'{rel}: og:image:type {required["og:image:type"]} does not match the file ({want})')
             if (required['og:image:width'], required['og:image:height']) != ('1200', '630'):
                 fail(f'{rel}: og:image:width/height must be 1200/630')
+    for rel in sorted(set(table) - public):
+        if os.path.exists(os.path.join(ROOT, rel)):
+            continue
+        fail(f'tools/og/pages.json lists {rel}, which does not exist')
+    titles = [e['title'].lower() for e in table.values()]
+    if len(titles) != len(set(titles)):
+        fail('tools/og/pages.json: two pages share a card title')
 
 
 def check_feature_image_frames():
@@ -372,7 +410,7 @@ def main():
     check_build_markers()
     check_mobile_width_guards()
     check_assets_changed_without_bump()
-    check_feature_share_images()
+    check_share_images()
     check_feature_image_frames()
 
     if FAILURES:

@@ -129,14 +129,24 @@ function faqs(body) {
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const V = (p) => `${p}?v=${BUILD}`;
 const LOGO = `${ORIGIN}/assets/images/logo-header.png`;
-const OG_IMAGE = `${ORIGIN}/assets/images/og-image.png`;
+// Share images come from tools/og/pages.json (rendered by tools/og/gen_og.py).
+const OG_TABLE = JSON.parse(fs.readFileSync(path.join(__dirname, 'og', 'pages.json'), 'utf8')).pages;
+function ogFor(key) {
+  const e = OG_TABLE.find((x) => x.page === key + '.html');
+  if (!e) throw new Error(`${key}: no entry in tools/og/pages.json`);
+  const stem = e.page.slice(0, -5).replace(/\//g, '_');
+  const ext = ['png', 'jpg'].find((x) => fs.existsSync(path.join(ROOT, 'assets/images/og/share', `${stem}.${x}`)));
+  if (!ext) throw new Error(`${key}: run python3 tools/og/gen_og.py`);
+  return { url: `${ORIGIN}/assets/images/og/share/${stem}.${ext}?v=${BUILD}`, type: ext === 'png' ? 'image/png' : 'image/jpeg', alt: e.alt, title: e.og_title };
+}
 const DISCLAIMER = 'Education only. Not financial advice. Trading foreign exchange, indices, futures and commodities carries a high level of risk and may not be suitable for everyone. The concepts here describe how some traders read charts; they do not predict what price will do.';
 
 function words(html) {
   return html.replace(/<svg[\s\S]*?<\/svg>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/g, ' ').split(/\s+/).filter(Boolean).length;
 }
 
-function head({ title, description, url, ogType, jsonld }) {
+function head({ title, description, url, ogType, jsonld, key }) {
+  const og = ogFor(key);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -146,16 +156,19 @@ function head({ title, description, url, ogType, jsonld }) {
 <meta name="description" content="${esc(description)}">
 <meta property="og:type" content="${ogType}">
 <meta property="og:site_name" content="Stryker Trading Academy">
-<meta property="og:title" content="${esc(title)}">
+<meta property="og:title" content="${esc(og.title || title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${url}">
-<meta property="og:image" content="${OG_IMAGE}">
+<meta property="og:image" content="${og.url}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:type" content="${og.type}">
+<meta property="og:image:alt" content="${esc(og.alt)}">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:title" content="${esc(og.title || title)}">
 <meta name="twitter:description" content="${esc(description)}">
-<meta name="twitter:image" content="${OG_IMAGE}">
+<meta name="twitter:image" content="${og.url}">
+<meta name="twitter:image:alt" content="${esc(og.alt)}">
 <meta name="theme-color" content="#050506">
 <title>${esc(title)} | Stryker Trading Academy</title>
 <link rel="canonical" href="${url}">
@@ -222,7 +235,7 @@ function articlePage(a) {
     '@context': 'https://schema.org',
     '@graph': [
       { '@type': 'Article', headline: a.short.replace(/\?$/, '?'), name: a.title, description: a.description,
-        image: [OG_IMAGE], datePublished: a.published, dateModified: a.modified, wordCount: n,
+        image: [ogFor('learn-' + a.slug).url], datePublished: a.published, dateModified: a.modified, wordCount: n,
         inLanguage: 'en', author: PUBLISHER, publisher: PUBLISHER,
         mainEntityOfPage: { '@type': 'WebPage', '@id': url }, isAccessibleForFree: true },
       { '@type': 'BreadcrumbList', itemListElement: [

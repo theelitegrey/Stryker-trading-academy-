@@ -1,0 +1,171 @@
+/* Home hero, variation A ("Layered"): one illustrative chart, three
+   toggleable lenses (GEX, Volume Profile, ICT). Preview only.
+   Colours reuse the site palette; day theme overrides at the bottom.
+   Only transform + opacity are animated. */
+
+.ca-card{
+  --ca-gex:#00adb5; --ca-call:#2fbf8f; --ca-put:#e5484d;
+  --ca-vp:#f5c542;  --ca-ict:#b07cff;  --ca-blue:#4d96ff;
+  --ca-entry:#f5a83c; --ca-mss:#03c988; --ca-dim:#8891ab;
+  --ca-wick:#3a4150; --ca-bull:#2fbf8f; --ca-bear:#e5484d;
+  --ca-grid:#1b2132; --ca-halo:#131316;
+}
+
+/* ---- pills ---- */
+.ca-pills{
+  display:flex; gap:8px; flex-wrap:wrap;
+  padding:12px 16px 0;
+}
+.ca-pill{
+  appearance:none; cursor:pointer;
+  display:inline-flex; align-items:center; gap:7px;
+  min-height:32px; padding:6px 13px;
+  border-radius:999px; border:1px solid var(--line);
+  background:transparent; color:var(--ink-3);
+  font:600 12px/1 var(--font-mono); letter-spacing:.02em;
+  transition:color .25s ease, border-color .25s ease, background-color .25s ease, box-shadow .25s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.ca-pill i{ width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.45; transition:opacity .25s ease; }
+.ca-pill:focus-visible{ outline:2px solid var(--ca-gex); outline-offset:2px; }
+.ca-pill[aria-pressed="true"]{ color:var(--c); border-color:var(--c); background:color-mix(in srgb, var(--c) 12%, transparent); box-shadow:0 0 0 1px color-mix(in srgb, var(--c) 25%, transparent), 0 0 18px -4px var(--c); }
+.ca-pill[aria-pressed="true"] i{ opacity:1; }
+.ca-p-gex{ --c:var(--ca-gex); }
+.ca-p-vp { --c:var(--ca-vp); }
+.ca-p-ict{ --c:var(--ca-ict); }
+.ca-pill[aria-pressed="true"] i{ animation:caPulse 2.4s ease-in-out infinite; }
+@keyframes caPulse{ 50%{ transform:scale(1.5); opacity:.6; } }
+
+/* ---- svg basics ---- */
+.ca-wrap{ padding:6px 4px 2px; }
+.ca-svg{ display:block; overflow:visible; }
+.ca-grid line{ stroke:var(--ca-grid); stroke-width:1; }
+.ca-t{ font-family:var(--font-mono, "JetBrains Mono"), monospace; font-size:9px; fill:var(--ca-dim); }
+.ca-t-b{ font-weight:700; }
+.ca-halo{ paint-order:stroke; stroke:var(--ca-halo); stroke-width:3px; stroke-linejoin:round; }
+.ca-wick{ fill:var(--ca-wick); }
+.ca-bull{ fill:var(--ca-bull); }
+.ca-bear{ fill:var(--ca-bear); }
+
+/* GEX */
+.ca-zone-pos{ fill:var(--ca-call); opacity:.045; }
+.ca-zone-neg{ fill:var(--ca-put);  opacity:.045; }
+.ca-wall{ stroke-width:1.4; }
+.ca-wall-call{ stroke:var(--ca-call); }
+.ca-wall-put { stroke:var(--ca-put); }
+.ca-wall-zero{ stroke:var(--ca-gex); stroke-dasharray:6 4; }
+.ca-t-call{ fill:var(--ca-call); }
+.ca-t-put { fill:var(--ca-put); }
+.ca-t-zero{ fill:var(--ca-gex); }
+
+/* Volume profile */
+.ca-vp-bars{ transform-box:fill-box; transform-origin:100% 50%; }
+.vp-out{ fill:var(--ca-vp); opacity:.16; }
+.vp-va { fill:var(--ca-vp); opacity:.34; }
+.vp-poc{ fill:var(--ca-vp); opacity:.8; }
+.ca-vp-va{ stroke:var(--ca-vp); stroke-width:.8; stroke-dasharray:2 3; opacity:.55; }
+.ca-vp-pocl{ stroke:var(--ca-vp); stroke-width:1.1; opacity:.8; }
+.ca-t-vp{ fill:var(--ca-vp); }
+
+/* ICT */
+.ca-liq{ stroke:var(--ca-dim); stroke-width:1; stroke-dasharray:4 4; }
+.ca-judas{ fill:color-mix(in srgb, var(--ca-blue) 18%, transparent); stroke:var(--ca-blue); stroke-width:1.4; }
+.ca-t-ict{ fill:var(--ca-blue); }
+.ca-mss{ stroke:var(--ca-mss); stroke-width:1; stroke-dasharray:4 3; }
+.ca-t-mss{ fill:var(--ca-mss); }
+.ca-fvg{ fill:rgba(238,238,238,.05); stroke:rgba(238,238,238,.35); stroke-width:1; stroke-dasharray:3 3; }
+.ca-t-fvg{ fill:#c9cdd3; }
+.ca-ob{ fill:color-mix(in srgb, var(--ca-ict) 14%, transparent); stroke:var(--ca-ict); stroke-width:1.1; }
+.ca-t-ob{ fill:var(--ca-ict); }
+.ca-entry{ fill:var(--ca-entry); }
+.ca-entry-l{ stroke:var(--ca-entry); stroke-width:1.2; }
+.ca-t-entry{ fill:var(--ca-entry); }
+
+/* Confluence */
+.ca-conf-band{ fill:var(--ca-entry); opacity:.10; }
+.ca-conf-pill{ fill:var(--ca-entry); }
+.ca-t-conf{ fill:#1a1206; font-size:8.5px; letter-spacing:.04em; }
+
+/* ---- legend ---- */
+.ca-legend{ gap:8px 16px; }
+.ca-legend span{ transition:opacity .3s ease; }
+.ca-legend i{ border-radius:50%; }
+.ca-lg-gex i{ background:var(--ca-gex); }
+.ca-lg-vp i { background:var(--ca-vp); }
+.ca-lg-ict i{ background:var(--ca-ict); }
+.ca-note{ flex-basis:100%; font-size:10.5px; color:var(--ink-3); opacity:.85; }
+
+/* ---- layer toggling (opacity only) ---- */
+.ca-layer, .ca-conf{ transition:opacity .45s ease; }
+.ca-card:not(.on-gex) .ca-gex,
+.ca-card:not(.on-vp)  .ca-vp,
+.ca-card:not(.on-ict) .ca-ict{ opacity:0; pointer-events:none; }
+.ca-card:not(.on-gex) .ca-lg-gex,
+.ca-card:not(.on-vp)  .ca-lg-vp,
+.ca-card:not(.on-ict) .ca-lg-ict{ opacity:.35; }
+.ca-conf{ opacity:0; }
+.ca-card.on-gex.on-vp.on-ict .ca-conf{ opacity:1; }
+
+/* ---- staged intro: candles -> ICT -> volume profile -> GEX -> confluence ----
+   .ca-anim is added by JS only when motion is allowed, so without JS or with
+   reduced motion the finished chart shows at once. */
+.ca-anim .ca-c{ transform-box:fill-box; transform-origin:50% 100%; opacity:0; transform:scaleY(.2); }
+.ca-anim .ca-i{ opacity:0; transform:translateY(-4px); }
+.ca-anim .ca-vp-bars{ transform:scaleX(0); opacity:0; }
+.ca-anim .ca-vpl{ opacity:0; }
+.ca-anim .ca-g{ opacity:0; transform:translateX(-24px); }
+.ca-anim .ca-zw{ opacity:0; }
+.ca-anim .ca-cb, .ca-anim .ca-conf-tag{ opacity:0; }
+.ca-anim .ca-conf-tag{ transform-box:fill-box; transform-origin:50% 50%; transform:scale(.6); }
+
+.ca-go .ca-c{ animation:caRise .5s cubic-bezier(.2,.8,.2,1) var(--d) forwards; }
+.ca-go .ca-i{ animation:caIn .45s ease calc(2.0s + var(--d)) forwards; }
+.ca-go .ca-vp-bars{ animation:caGrow .9s cubic-bezier(.2,.8,.2,1) 3.7s forwards; }
+.ca-go .ca-vpl{ animation:caFade .4s ease 4.5s forwards; }
+.ca-go .ca-g{ animation:caSlide .6s cubic-bezier(.2,.8,.2,1) calc(5.0s + var(--d)) forwards; }
+.ca-go .ca-zw{ animation:caFade .7s ease 5.2s forwards; }
+.ca-go .ca-cb{ animation:caFade .6s ease 6.1s forwards; }
+.ca-go .ca-conf-tag{ animation:caPop .45s cubic-bezier(.3,1.6,.5,1) 6.3s forwards; }
+.ca-done .ca-bob{ animation:caBob 1.8s ease-in-out infinite; }
+
+@keyframes caRise{ to{ opacity:1; transform:none; } }
+@keyframes caIn{ to{ opacity:1; transform:none; } }
+@keyframes caGrow{ to{ transform:none; opacity:1; } }
+@keyframes caFade{ to{ opacity:1; } }
+@keyframes caSlide{ to{ opacity:1; transform:none; } }
+@keyframes caPop{ to{ opacity:1; transform:none; } }
+@keyframes caBob{ 50%{ transform:translateY(-3px); } }
+
+/* off-screen / hidden tab: freeze the loops */
+.ca-paused, .ca-paused *{ animation-play-state:paused !important; }
+
+/* ---- phone: bigger chart text so labels stay legible at ~350px wide ---- */
+@media (max-width:600px){
+  .ca-pills{ padding:10px 12px 0; gap:6px; }
+  .ca-card .chart-dots{ display:none; }
+  .ca-pill{ padding:6px 11px; font-size:11.5px; }
+  .ca-t{ font-size:13px; }
+  .ca-t-conf{ font-size:10px; }
+  .ca-sm-hide{ display:none; }
+  .ca-legend{ font-size:11px; padding:10px 14px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ca-pill[aria-pressed="true"] i{ animation:none; }
+  .ca-bob{ animation:none !important; }
+}
+
+/* ---- day theme ---- */
+:root[data-theme="light"] .ca-card{
+  --ca-gex:#0b8a95; --ca-call:#0a9a6b; --ca-put:#cf3a40;
+  --ca-vp:#b8860b;  --ca-ict:#7c4ddb;  --ca-blue:#2563c9;
+  --ca-entry:#d9821c; --ca-mss:#07996a; --ca-dim:#57626f;
+  --ca-wick:#aab3c0; --ca-bull:#0a9a6b; --ca-bear:#cf4046;
+  --ca-grid:#e3e8f0; --ca-halo:#ffffff;
+}
+:root[data-theme="light"] .ca-fvg{ fill:rgba(15,23,42,.04); stroke:rgba(15,23,42,.35); }
+:root[data-theme="light"] .ca-t-fvg{ fill:#3b4350; }
+:root[data-theme="light"] .ca-zone-pos, :root[data-theme="light"] .ca-zone-neg{ opacity:.06; }
+:root[data-theme="light"] .ca-t-conf{ fill:#fff; }
+:root[data-theme="light"] .vp-out{ opacity:.2; }
+:root[data-theme="light"] .vp-va{ opacity:.38; }

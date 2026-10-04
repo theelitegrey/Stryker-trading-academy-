@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="368">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Replay historical charts bar by bar with the future hidden, place simulated orders, then review every practice session with a dashboard, analytics and a rule-based coach.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Backtesting and Bar-by-Bar Replay | Stryker Trading Academy">
+<meta property="og:description" content="Replay historical charts bar by bar with the future hidden, place simulated orders, then review every practice session with a dashboard, analytics and a rule-based coach.">
+<meta property="og:url" content="https://strykertrading.com/features/backtesting">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og/features-backtesting.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Backtesting feature page: a candlestick chart from the replay workspace with entry markers, with the Stryker logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Backtesting and Bar-by-Bar Replay | Stryker Trading Academy">
+<meta name="twitter:description" content="Replay historical charts bar by bar with the future hidden, place simulated orders, then review every practice session with a dashboard, analytics and a rule-based coach.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/features-backtesting.png">
+<meta name="twitter:image:alt" content="Backtesting feature page: a candlestick chart from the replay workspace with entry markers, with the Stryker logo">
+<meta name="theme-color" content="#050506">
+<title>Backtesting and Bar-by-Bar Replay | Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/backtesting">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=368">
+<script src="/assets/sanitize.js?v=368"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=368" defer></script>
+<script src="/assets/version-check.js?v=368" defer></script>
+<script src="/assets/acquisition.js?v=368" defer></script>
+<script src="/assets/focus-mode.js?v=368" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-page.css?v=368">
+</head>
+<body class="fp-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero fp-hero">
+<span class="ft-hero-kicker">Backtesting · Replay</span>
+<h1>Practise on past charts, <em>one bar at a time</em></h1>
+<figure class="gv-term solo" data-fp-play>
+<div class="gv-term-bar"><span class="gv-dot"></span><b>REPLAY · PRACTICE SESSION</b></div>
+<div class="gv-term-body">
+<div class="gv-chart"><picture><source media="(max-width:600px)" srcset="/assets/images/backtesting/hero-m.webp" width="740" height="430"><img src="/assets/images/backtesting/hero.webp" width="1000" height="582" fetchpriority="high" decoding="async" alt="The Stryker replay workspace with a demo practice session: a BTC/USDT 5-minute candlestick chart with a stop and target drawn on it, a play and step control, and an account panel with one open position."></picture></div>
+</div>
+<figcaption class="fg-cap">Demo data. A practice replay session on BTC/USDT.</figcaption>
+</figure>
+<p class="ft-hero-sub">Pick a market and a past date, and the chart stops there. Step forward bar by bar, place simulated orders with stops and targets, and see how you would have handled it. Every practice session then feeds a backtesting dashboard and a rule-based coach.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#whats-on-the-page" class="btn btn-ghost">See how it works</a></div>
+<p class="fg-note">Every number in these screenshots comes from one demo practice session. Education only. Not financial advice.</p>
+</header>
+<div class="container">
+<section class="ft-section sx" id="whats-on-the-page"><div class="ft-section-head ft-reveal"><h2>What’s in replay and backtesting</h2><p>Real screens from the tool, filled by one short demo practice session. Scroll through, or jump to one.</p></div><nav class="sx-index" aria-label="Jump to a feature"><div><a href="#sx-f-replay" data-fp-ix="replay"><em>01</em>Replay</a><a href="#sx-f-orders" data-fp-ix="orders"><em>02</em>Orders</a><a href="#sx-f-trades" data-fp-ix="trades"><em>03</em>Trades</a><a href="#sx-f-dashboard" data-fp-ix="dashboard"><em>04</em>Dashboard</a><a href="#sx-f-coach" data-fp-ix="coach"><em>05</em>Coach</a><a href="#sx-f-drawdown" data-fp-ix="drawdown"><em>06</em>Drawdown</a><a href="#sx-f-simulation" data-fp-ix="simulation"><em>07</em>Simulation</a><a href="#sx-f-side" data-fp-ix="side"><em>08</em>Breakdowns</a><a href="#sx-f-sessions" data-fp-ix="sessions"><em>09</em>Sessions</a></div></nav><div class="sx-rows"><article class="sx-row" id="sx-f-replay" data-fp-row="replay"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/582;--ar:1.7182"><img src="/assets/images/backtesting/hero.webp" width="1000" height="582" loading="lazy" decoding="async" alt="Replay workspace with demo data: a candlestick chart, timeframe buttons, drawing tools on the left and a play, +1 and +10 bar control."></div><p class="sx-cap">Demo data. The replay chart.</p></div><div class="sx-copy"><span class="sx-n">01 / 09</span><h3>Bar-by-bar replay</h3><p class="sx-text">The chart only shows what had happened up to the current bar. Play it at a chosen speed, step one or ten bars, or jump to the next day or the New York open.</p><details class="sx-how"><summary>How it works</summary><p>Choose a market, a start date and a window of one week to a few months. Futures, forex and crypto candles are loaded once and kept in your browser, or you can load your own CSV file. Switch timeframes from 1 minute up to weekly, and add a higher-timeframe chart beside it.</p></details></div></article><article class="sx-row flip" id="sx-f-orders" data-fp-row="orders"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:327/279;--ar:1.1720"><img src="/assets/images/backtesting/orders.webp" width="327" height="279" loading="lazy" decoding="async" alt="Replay account panel with demo data: balance, equity, open and net P&L, and one open position with stop and target fields."></div><p class="sx-cap">Demo data. The practice account and an open position.</p></div><div class="sx-copy"><span class="sx-n">02 / 09</span><h3>Simulated orders</h3><p class="sx-text">Buy or sell from the chart, the order ticket or the keyboard. Attach a stop and a target, move them, or close part of a position. The practice account tracks balance, equity and open P&L as you step.</p><details class="sx-how"><summary>How it works</summary><p>Fills are conservative: market orders fill at the last close plus any slippage you set, gaps fill at the open, and if one bar touches both your stop and your target the stop counts first. Commission per contract can be set per session.</p></details></div></article><article class="sx-row" id="sx-f-trades" data-fp-row="trades"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/423;--ar:2.3641"><img src="/assets/images/backtesting/trades.webp" width="1000" height="423" loading="lazy" decoding="async" alt="Backtesting trades table with demo data: date, session, market, side, size, entry and exit, P&L, R-multiple and exit reason."></div><p class="sx-cap">Demo data. Trades from the practice session.</p></div><div class="sx-copy"><span class="sx-n">03 / 09</span><h3>Every trade, logged</h3><p class="sx-text">Each closed practice trade is listed with its session, side, size, entry and exit, R-multiple and why it closed. Tag the setup and any mistake, and add a note.</p><details class="sx-how"><summary>How it works</summary><p>Filter by market, side, outcome, session, setup, weekday, hour or date. Trades can be exported to CSV or copied into your trade journal.</p></details></div></article><article class="sx-row flip" id="sx-f-dashboard" data-fp-row="dashboard"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/264;--ar:3.7879"><img src="/assets/images/backtesting/pnl.webp" width="1000" height="264" loading="lazy" decoding="async" alt="Backtesting dashboard with demo data: a profit and loss line over the practice session."></div><p class="sx-cap">Demo data. Practice P&L over time.</p></div><div class="sx-copy"><span class="sx-n">04 / 09</span><h3>Backtesting dashboard</h3><p class="sx-text">One dashboard across all your practice sessions: P&L over time, win and loss breakdowns, performance by side and by trading session, recent sessions and a P&L calendar.</p><details class="sx-how"><summary>How it works</summary><p>Sessions are saved in your browser as you go, with a copy on your account so you can resume on another device.</p></details></div></article><article class="sx-row" id="sx-f-coach" data-fp-row="coach"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:662/346;--ar:1.9133"><img src="/assets/images/backtesting/coach.webp" width="662" height="346" loading="lazy" decoding="async" alt="Replay coach card with demo data: findings about the sample size, a losing trading session and re-entries after a loss, each with a suggestion."></div><p class="sx-cap">Demo data. Coach findings on the practice session.</p></div><div class="sx-copy"><span class="sx-n">05 / 09</span><h3>The replay coach</h3><p class="sx-text">Rule-based checks on your own practice trades: losing streaks, overtrading, re-entries straight after a loss, which session costs you, and your most frequent tagged mistake. Each finding comes with a suggestion.</p><details class="sx-how"><summary>How it works</summary><p>It is a fixed set of rules that runs in your browser on your own trades. It is not a chatbot and nothing is sent anywhere for it. While you trade it can also show a short nudge, for example after several losses in a row.</p></details></div></article><article class="sx-row flip" id="sx-f-drawdown" data-fp-row="drawdown"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/603;--ar:1.6584"><img src="/assets/images/backtesting/drawdown.webp" width="1000" height="603" loading="lazy" decoding="async" alt="Backtesting drawdown view with demo data: drawdown stat cards above a drawdown chart and an equity chart."></div><p class="sx-cap">Demo data. Drawdown and equity for the practice session.</p></div><div class="sx-copy"><span class="sx-n">06 / 09</span><h3>Drawdown and equity</h3><p class="sx-text">How deep and how long your practice equity fell from its high, next to the equity curve itself.</p><details class="sx-how"><summary>How it works</summary><p>Drawn from closed practice trades and the starting balance you chose for each session.</p></details></div></article><article class="sx-row" id="sx-f-simulation" data-fp-row="simulation"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/469;--ar:2.1322"><img src="/assets/images/backtesting/sim.webp" width="1000" height="469" loading="lazy" decoding="async" alt="Backtesting simulation view with demo data: shuffled-order outcome bands around the practice equity curve."></div><p class="sx-cap">Demo data. Simulation output, not a forecast.</p></div><div class="sx-copy"><span class="sx-n">07 / 09</span><h3>Trade-order simulation</h3><p class="sx-text">Shuffles the order of your practice trades many times to show how much the same trades could have swung in a different sequence.</p><details class="sx-how"><summary>How it’s calculated</summary><p>It re-orders the trades you already took. It does not create new trades and it is not a forecast: a small sample, like the one here, says very little.</p></details></div></article><article class="sx-row flip" id="sx-f-side" data-fp-row="side"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/174;--ar:5.7471"><img src="/assets/images/backtesting/side.webp" width="1000" height="174" loading="lazy" decoding="async" alt="Backtesting analytics with demo data: donut charts splitting practice trades by long and short."></div><p class="sx-cap">Demo data. Long against short.</p></div><div class="sx-copy"><span class="sx-n">08 / 09</span><h3>Breakdowns</h3><p class="sx-text">Split your practice trades by side, session, hour, weekday, setup tag, market and exit reason, and see where the R-multiples cluster.</p><details class="sx-how"><summary>How it works</summary><p>Every chart uses the same filters as the trades table.</p></details></div></article><article class="sx-row" id="sx-f-sessions" data-fp-row="sessions"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:1000/169;--ar:5.9172"><img src="/assets/images/backtesting/sessions.webp" width="1000" height="169" loading="lazy" decoding="async" alt="A saved replay session card with demo data: name, market, progress ring, P&L and a resume button."></div><p class="sx-cap">Demo data. A saved practice session.</p></div><div class="sx-copy"><span class="sx-n">09 / 09</span><h3>Saved sessions</h3><p class="sx-text">Every session keeps its place, drawings, indicators and orders, so you can stop and resume where you left off.</p><details class="sx-how"><summary>How it works</summary><p>Rename, resume or delete sessions from the Sessions view.</p></details></div></article></div></section>
+
+<section class="ft-section" id="how-it-works">
+<div class="ft-section-head ft-reveal"><h2>Set up, replay, review</h2><p>A practice session takes a few minutes to start.</p></div>
+<div class="fg-flow ft-reveal" data-fp-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Set it up</h3><p>Pick a market, a start date, a window and a starting balance. Optionally choose a playbook so its rules become your pre-trade checklist.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>Replay it</h3><p>Step through the chart and trade it as if it were happening, with the future hidden.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Review it</h3><p>Open the backtesting dashboard: trades, analytics and the coach, built from what you just did.</p></div>
+</div>
+</section>
+
+<section class="ft-section" id="how-to-use">
+<div class="ft-section-head ft-reveal"><h2>One way to practise a model</h2><p>A simple routine for drilling one setup. Tap a step, or let it play.</p></div>
+<div class="fg-tl ft-reveal" data-fp-tl>
+  <button type="button" class="fg-tl-step is-active" aria-pressed="true"><span class="fg-when">Before</span><h3>Pick one setup</h3><p>Choose one model and the session window you trade it in.</p><ul><li>Write the rule down</li><li>Set a fixed stop and target</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">During</span><h3>Replay a few weeks</h3><p>Take only that setup and tag every trade.</p><ul><li>Tag the setup</li><li>Tag any mistake straight away</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">After</span><h3>Read the review</h3><p>Check the trades table and the coach, then decide what to drill next.</p><ul><li>Which mistake repeats?</li><li>Did you follow the rule?</li></ul><i class="fg-bar"></i></button>
+</div>
+<p class="fg-tl-note ft-reveal">Practice results are not trading results. A replay cannot reproduce real fills, nerves or news. Education only. Not financial advice.</p>
+</section>
+
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal">
+<details><summary>Is replay trading real?</summary><div class="fg-a"><p>No. Orders are simulated against historical candles in your browser. No money and no broker are involved.</p></div></details>
+<details><summary>Can I see the future candles?</summary><div class="fg-a"><p>No. The chart stops at the current bar and only moves forward when you step or press play.</p></div></details>
+<details><summary>Which markets can I replay?</summary><div class="fg-a"><p>Futures such as NQ, MNQ, ES, MES, YM, RTY, GC and CL, major forex pairs, and BTC, ETH, SOL and XRP against USDT. You can also load your own CSV file of candles.</p></div></details>
+<details><summary>Is the coach a chatbot?</summary><div class="fg-a"><p>No. It is a fixed set of rule-based checks that run on your own practice trades in your browser.</p></div></details>
+<details><summary>Does a good backtest mean the setup works?</summary><div class="fg-a"><p>No. Practice results are not trading results, and a small sample says very little. Use replay to drill execution and to test whether you follow your own rules.</p></div></details>
+<details><summary>Which plan includes it?</summary><div class="fg-a"><p>Replay and backtesting are part of the Pro plan and above. Members on other plans can see the page and upgrade from it.</p></div></details>
+</div>
+<div class="ft-cta ft-reveal"><h2>Practise before you risk anything</h2><p>Create your free account and start a replay session.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create your free account</a><a href="/features" class="btn btn-ghost">All features</a></div>
+<p class="fg-edu">Education only. Not financial advice.</p></div>
+</section>
+</div>
+
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=368"></script>
+<script src="/assets/auth.js?v=368"></script>
+<script src="/assets/plan-price.js?v=368"></script>
+<script src="/assets/launch-sale.js?v=368"></script>
+<script src="/assets/progress.js?v=368"></script>
+<script src="/assets/activity-log.js?v=368"></script>
+<script src="/assets/banned-check.js?v=368"></script>
+<script src="/assets/email-verify.js?v=368"></script>
+<script src="/assets/profiles-sync.js?v=368"></script>
+<script src="/assets/branding.js?v=368"></script>
+<script src="/assets/seo.js?v=368"></script>
+<script src="/assets/features.js?v=368"></script>
+<script src="/assets/features-page.js?v=368"></script>
+<script src="/assets/theme.js?v=368"></script>
+</body>
+</html>

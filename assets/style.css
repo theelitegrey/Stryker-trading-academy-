@@ -625,6 +625,15 @@ section{ padding:96px 0; }
 /* pricing */
 .pricing-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
 @media (max-width:900px){ .pricing-grid{ grid-template-columns:1fr; } }
+/* Homepage pricing holds two plans (Free, Pro) since 2026-10-05: a centred
+   two-column grid, centred heading, equal-height cards with the buttons
+   pinned to the bottom. Scoped to #pricing so billing-admin keeps its grid. */
+#pricing{ scroll-margin-top:40px; } /* header "Pricing" link (/#pricing) clears the sticky nav */
+#pricing .section-head{ margin-left:auto; margin-right:auto; text-align:center; }
+#pricing .pricing-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); max-width:880px; margin-left:auto; margin-right:auto; align-items:stretch; }
+#pricing .price-card ul{ flex:1 0 auto; }
+#pricing .currency-note{ max-width:880px; margin-left:auto; margin-right:auto; }
+@media (max-width:700px){ #pricing .pricing-grid{ grid-template-columns:minmax(0,1fr); max-width:520px; } }
 .price-card{ background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-lg); padding:32px 28px; display:flex; flex-direction:column; }
 .price-card.featured{ border-color:var(--gold-dim); box-shadow:var(--shadow-glow); position:relative; }
 .price-card.featured::before{

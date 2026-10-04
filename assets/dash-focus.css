@@ -11,6 +11,9 @@
 .fx-main{ --fx-r:22px; --fx-gold:#e8c26a; --fx-glow:rgba(3,201,136,.18); max-width:980px; margin:0 auto; }
 :root[data-theme="light"] .fx-main{ --fx-gold:#b88a1e; --fx-glow:rgba(3,168,114,.14); }
 
+/* style.css gives every <section> 96px padding (marketing pages); undo it here */
+.fx-main section.fx-hero, .fx-main section.fx-sec{ padding:0; }
+
 /* ---- icon system ---- */
 .fx-main svg .fx-d{ fill:color-mix(in srgb, var(--gold) 16%, transparent); stroke:var(--gold); stroke-width:1.6; stroke-linejoin:round; }
 .fx-main svg .fx-s{ fill:none; stroke:var(--teal); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
@@ -113,6 +116,21 @@
 .fx-custom summary::before{ content:'+'; font-family:var(--font-mono); color:var(--gold); }
 .fx-custom[open] summary::before{ content:'–'; }
 .fx-custom .dov-filter{ margin-top:10px; }
+.fx-subs{ display:flex; flex-direction:column; gap:10px; margin:0 0 14px; }
+.fx-sub-d{ border:1px solid var(--line); border-radius:16px; background:var(--bg-1); }
+.fx-sub-d > summary{ list-style:none; display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:pointer; border-radius:16px; }
+.fx-sub-d > summary::-webkit-details-marker{ display:none; }
+.fx-sub-d > summary::after{ content:''; margin-left:auto; width:8px; height:8px; flex:none; border-right:2px solid var(--ink-2); border-bottom:2px solid var(--ink-2); transform:rotate(45deg); transition:transform .3s; }
+.fx-sub-d[open] > summary::after{ transform:rotate(-135deg); border-color:var(--gold); }
+.fx-sub-d > summary:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.fx-sub-t{ display:flex; flex-direction:column; min-width:0; }
+.fx-sub-t b{ font-size:14.5px; color:var(--ink-0); }
+.fx-sub-t small{ font-size:12px; color:var(--ink-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fx-sub-d > div{ padding:0 14px 14px; animation:fxDrop .35s cubic-bezier(.2,.7,.2,1); }
+.fx-sub-d > div > *{ margin-top:0 !important; margin-bottom:0 !important; }
+@keyframes fxDrop{ from{ opacity:0; transform:translateY(-6px); } to{ opacity:1; transform:none; } }
+#fx-body-setup #dash-onboarding > *{ margin:0; }
+.fx-sec[hidden], .fx-sub-d[hidden]{ display:none; }
 .fx-links{ display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
 .fx-links a{ font-size:13px; color:var(--ink-1); text-decoration:none; padding:7px 12px; border-radius:999px; border:1px solid var(--line); transition:border-color .2s, color .2s; }
 .fx-links a:hover{ border-color:var(--gold); color:var(--ink-0); }
@@ -143,7 +161,7 @@
   .fx-grid{ grid-template-columns:minmax(0,1fr); }
 }
 @media (max-width:640px){
-  .fx-main{ padding-left:0; padding-right:0; }
+  .fx-main{ padding-left:14px; padding-right:14px; }
   .fx-hero{ border-radius:20px; margin-top:0; }
   .fx-cta-row{ gap:14px; }
   .fx-cta{ flex:1; justify-content:center; text-align:center; }
@@ -158,11 +176,15 @@
   .fx-stats{ grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
   .fx-stat:last-child{ grid-column:1 / -1; }
   .fx-grid-2{ grid-template-columns:minmax(0,1fr); }
+  #continue-learning-list.fx-card{ padding:10px 12px; }
+  .fx-main .continue-row{ gap:12px; }
+  .fx-main .continue-thumb{ width:38px; height:38px; flex:none; font-size:12px; }
+  .fx-main .continue-row h4{ font-size:14px; line-height:1.3; }
 }
 
 @media (prefers-reduced-motion: reduce){
   .fx-rv{ opacity:1; transform:none; transition:none; }
   .fx-ring-fg, .fx-sec-body, .fx-sec-in, .fx-chev, .fx-dock-a, .fx-dock-ic, .fx-cta{ transition:none !important; }
-  .fx-skel{ animation:none; }
+  .fx-skel, .fx-sub-d > div{ animation:none; }
   .fx-hero-canvas{ display:none; }
 }

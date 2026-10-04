@@ -37,7 +37,7 @@
   function initSections() {
     var saved = null;
     try { saved = JSON.parse(localStorage.getItem(OPEN_KEY) || 'null'); } catch (e) {}
-    var state = saved || { learn: true };
+    var state = Object.assign({ learn: true }, saved || {});
     document.querySelectorAll('.fx-sec').forEach(function (sec) {
       var key = sec.dataset.sec, btn = sec.querySelector('.fx-sec-btn');
       function set(on, store) {
@@ -182,12 +182,33 @@
     window.__fxCanvas = { halt: halt, run: run };
   }
 
+  // ---- wrappers follow their mounts: the data scripts toggle [hidden] on
+  // #dash-onboarding / #dash-brief / #dash-map / #dash-cal; the section or
+  // sub-section around each one shows only while its mount has content.
+  function initMounts() {
+    function follow(mountId, wrap) {
+      var m = $(mountId);
+      if (!m || !wrap) return;
+      var sync = function () {
+        wrap.hidden = m.hidden || !m.innerHTML.trim();
+        if (mountId === 'dash-onboarding') {
+          var mm = (m.textContent || '').match(/(\d+) of (\d+) done/);
+          setSum('fx-sum-setup', mm ? mm[1] + ' of ' + mm[2] + ' setup steps done' : 'A few first steps to set up your desk');
+        }
+      };
+      sync();
+      new MutationObserver(sync).observe(m, { attributes: true, attributeFilter: ['hidden'], childList: true });
+    }
+    follow('dash-onboarding', $('fx-sec-setup'));
+    document.querySelectorAll('.fx-sub-d').forEach(function (d) { follow(d.dataset.mount, d); });
+  }
+
   function initToday() {
     var el = $('fx-today');
     if (el) el.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    initToday(); initSections(); initReveal(); initProgress(); initMarket(); initCanvas();
+    initToday(); initMounts(); initSections(); initReveal(); initProgress(); initMarket(); initCanvas();
   });
 })();

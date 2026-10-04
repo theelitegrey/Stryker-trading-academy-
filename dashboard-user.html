@@ -301,13 +301,22 @@
       <a href="live-sessions.html" class="fx-dock-a"><span class="fx-dock-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="fx-d" x="3" y="6" width="13" height="12" rx="2.5"/><path class="fx-s" d="M16 10.5l5-3v9l-5-3"/><circle class="fx-a" cx="7" cy="10" r="1.6"/></svg></span><span>Live</span></a>
     </nav>
 
-    <div id="dash-brief" hidden></div>
-    <div id="dash-map" hidden></div>
-    <div id="dash-cal" hidden></div>
-    <div id="dash-onboarding" hidden></div>
-
     <!-- ===== One calm column of collapsible sections ===== -->
     <div class="fx-col">
+
+      <!-- Shown only while onboarding.js has steps left (it hides #dash-onboarding when all are done) -->
+      <section class="fx-sec fx-rv" data-sec="setup" id="fx-sec-setup" hidden>
+        <h2 class="fx-sec-h">
+          <button type="button" class="fx-sec-btn" aria-expanded="false" aria-controls="fx-body-setup">
+            <span class="fx-sec-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fx-d" d="M5 4h14v16H5z"/><path class="fx-s" d="M8.5 9l1.5 1.5L13 7.5M8.5 15l1.5 1.5 3-3"/><path class="fx-a" d="M15 9.5h1.5M15 15.5h1.5"/></svg></span>
+            <span class="fx-sec-tt"><b>Getting set up</b><span class="fx-sec-sum" id="fx-sum-setup">A few first steps to set up your desk</span></span>
+            <svg class="fx-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </h2>
+        <div class="fx-sec-body" id="fx-body-setup"><div class="fx-sec-in">
+          <div id="dash-onboarding" hidden></div>
+        </div></div>
+      </section>
 
       <section class="fx-sec fx-rv" data-sec="learn" id="fx-sec-learn">
         <h2 class="fx-sec-h">
@@ -368,6 +377,11 @@
                 <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
               </section>
             </div>
+          </div>
+          <div class="fx-subs">
+            <details class="fx-sub-d" data-mount="dash-brief" hidden><summary><span class="fx-mod-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="fx-d" d="M5 3h9l5 5v13H5z"/><path class="fx-s" d="M14 3v5h5M8.5 13h7M8.5 17h4.5"/></svg></span><span class="fx-sub-t"><b>Pre-market brief</b><small>What moved overnight and what is on the calendar</small></span></summary><div id="dash-brief" hidden></div></details>
+            <details class="fx-sub-d" data-mount="dash-map" hidden><summary><span class="fx-mod-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="fx-d" x="3" y="3" width="8" height="8" rx="1.5"/><rect class="fx-d" x="13" y="13" width="8" height="8" rx="1.5"/><path class="fx-s" d="M13 3h8v8h-8zM3 13h8v8H3z"/></svg></span><span class="fx-sub-t"><b>Leaders and laggards</b><small>Cross-asset market map strip</small></span></summary><div id="dash-map" hidden></div></details>
+            <details class="fx-sub-d" data-mount="dash-cal" hidden><summary><span class="fx-mod-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect class="fx-d" x="3" y="4.5" width="18" height="16" rx="2"/><path class="fx-s" d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path class="fx-a" d="M7.5 13.5h3M13.5 13.5h3M7.5 17h3"/></svg></span><span class="fx-sub-t"><b>Next economic release</b><small>From the economic calendar</small></span></summary><div id="dash-cal" hidden></div></details>
           </div>
           <div class="fx-links">
             <a href="market-brief.html">Pre-market brief</a><a href="economic-calendar.html">Economic calendar</a><a href="market-map.html">Market map</a><a href="smart-money.html">Smart money</a>

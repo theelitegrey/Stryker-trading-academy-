@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="385">
+<meta name="stryker-build" content="386">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard — Stryker Trading Academy</title>
 <meta name="description" content="Your Stryker Trading Academy student dashboard.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=385">
+<link rel="stylesheet" href="assets/style.css?v=386">
+<link rel="stylesheet" href="assets/dash-path.css?v=386">
 <!-- Kept synchronous, NOT deferred (audit P2-1 win 3 asked to check this):
      every stkEsc/stkHtml/stkUrl/stkImgUrl caller across the site (34 files,
      e.g. dashboard.js, community.js, checkout.js) is itself a plain sync
@@ -20,8 +21,8 @@
      need it. Verified by grep: no caller sits ahead of </head> in any
      page, so all of them run after this script has already executed
      synchronously; that ordering breaks if this becomes defer. -->
-<script src="assets/sanitize.js?v=385"></script>
-<script src="assets/motion.js?v=385"></script>
+<script src="assets/sanitize.js?v=386"></script>
+<script src="assets/motion.js?v=386"></script>
 <script>
 // Stryker Trading Academy — device detection for forced views
 //
@@ -66,10 +67,10 @@
   document.documentElement.setAttribute('data-device', device);
 })();
 </script>
-<script src="assets/toast.js?v=385" defer></script>
-<script src="assets/version-check.js?v=385" defer></script>
-<script src="assets/acquisition.js?v=385" defer></script>
-<script src="assets/focus-mode.js?v=385" defer></script>
+<script src="assets/toast.js?v=386" defer></script>
+<script src="assets/version-check.js?v=386" defer></script>
+<script src="assets/acquisition.js?v=386" defer></script>
+<script src="assets/focus-mode.js?v=386" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -88,7 +89,7 @@
   <a class="appnav-dk" data-nav="journal" href="trade-journal"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="appnav-dkl">Journal</span></a>
   <a class="appnav-dk" data-nav="monitor" href="global-monitor"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span class="appnav-dkl">Monitor</span></a>
 </nav>
-<script src="assets/app-nav.js?v=385"></script>
+<script src="assets/app-nav.js?v=386"></script>
 
 
 <div class="access-gate-overlay" id="access-gate-overlay">
@@ -252,151 +253,198 @@
     </div>
   </aside>
 
-  <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
-        <p id="dash-subtitle">Loading your progress…</p>
-      </div>
-      <a href="courses" class="btn btn-primary" id="dash-resume-btn">Resume</a>
-    </div>
+  <main class="dash-main gp-main" id="main" tabindex="-1">
+<svg class="gp-sprite" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <symbol id="gpi-book" viewBox="0 0 32 32"><path d="M6 7.5c3.5-1.6 7-1.6 10 .8v17.2c-3-2.4-6.5-2.4-10-.8z" style="fill:var(--gp-duo)"/><path d="M6 7.5c3.5-1.6 7-1.6 10 .8 3-2.4 6.5-2.4 10-.8v17.2c-3.5-1.6-7-1.6-10 .8-3-2.4-6.5-2.4-10-.8z"/><path d="M16 8.3v17.2"/><path d="M19.5 12.5h3.5" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-tools" viewBox="0 0 32 32"><rect x="5" y="5" width="9.5" height="9.5" rx="2.5" style="fill:var(--gp-duo)"/><rect x="5" y="5" width="9.5" height="9.5" rx="2.5"/><rect x="17.5" y="5" width="9.5" height="9.5" rx="4.75"/><rect x="5" y="17.5" width="9.5" height="9.5" rx="2.5"/><path d="M22.25 18v8.5M18 22.25h8.5" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-pulse" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" style="fill:var(--gp-duo)"/><path d="M4 16.5h5.5l2.5-6 4 12 3-8.5 2 2.5H28"/><circle cx="25" cy="7" r="1.6" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-people" viewBox="0 0 32 32"><circle cx="12" cy="11" r="4.5" style="fill:var(--gp-duo)"/><circle cx="12" cy="11" r="4.5"/><path d="M4.5 26c.6-4.4 3.6-7 7.5-7s6.9 2.6 7.5 7"/><path d="M20 6.8a4.4 4.4 0 0 1 0 8.4M22.5 19.5c2.6.8 4.4 3 4.9 6.5" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-gex" viewBox="0 0 32 32"><path d="M5 25V9M10.5 25V14M16 25v-7M21.5 25v-5M27 25V12" style="stroke:var(--gp-duo-s)"/><path d="M4 26.5h24"/><path d="M5 19c4-9 8-11 11-6s7 4 11-4"/><circle cx="16" cy="13.5" r="2" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-journal" viewBox="0 0 32 32"><rect x="7" y="4.5" width="18" height="23" rx="3" style="fill:var(--gp-duo)"/><rect x="7" y="4.5" width="18" height="23" rx="3"/><path d="M11.5 11h9M11.5 15.5h9M11.5 20h5"/><path d="M4.5 9h4M4.5 16h4M4.5 23h4" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-replay" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" style="fill:var(--gp-duo)"/><path d="M6.2 11.5A11 11 0 1 1 5 16"/><path d="M5 8v4.5h4.5"/><path d="M14 11.5l6 4.5-6 4.5z" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-candles" viewBox="0 0 32 32"><rect x="7" y="9" width="6" height="12" rx="1.5" style="fill:var(--gp-duo)"/><rect x="7" y="9" width="6" height="12" rx="1.5"/><path d="M10 4.5V9M10 21v5.5"/><rect x="19" y="7" width="6" height="15" rx="1.5" style="stroke:var(--gp-acc)"/><path d="M22 3.5V7M22 22v4" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-model" viewBox="0 0 32 32"><path d="M5 25.5h22" /><path d="M6 21l6-7 5 4 9-10" /><path d="M6 21l6-7 5 4 9-10v17.5H6z" style="fill:var(--gp-duo);stroke:none"/><path d="M21 8h5v5" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-wave" viewBox="0 0 32 32"><rect x="4" y="6" width="24" height="20" rx="4" style="fill:var(--gp-duo)"/><path d="M4 16h4.5l3-7 5 14 3.5-9 2 2H28"/><circle cx="26" cy="9" r="1.5" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-globe" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" style="fill:var(--gp-duo)"/><circle cx="16" cy="16" r="11"/><path d="M5 16h22M16 5c3.3 3.2 4.6 7 4.6 11s-1.3 7.8-4.6 11c-3.3-3.2-4.6-7-4.6-11S12.7 8.2 16 5z"/><circle cx="23" cy="10" r="1.4" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-bank" viewBox="0 0 32 32"><path d="M4.5 12L16 5l11.5 7z" style="fill:var(--gp-duo)"/><path d="M4.5 12L16 5l11.5 7zM5 26.5h22M7 23.5h18"/><path d="M8.5 15v8.5M13.5 15v8.5M18.5 15v8.5M23.5 15v8.5"/><circle cx="16" cy="9.5" r="1.2" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-live" viewBox="0 0 32 32"><rect x="4" y="7.5" width="18" height="17" rx="3.5" style="fill:var(--gp-duo)"/><rect x="4" y="7.5" width="18" height="17" rx="3.5"/><path d="M22 13.5l6-3.5v12l-6-3.5"/><circle cx="9.5" cy="12.5" r="1.6" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-trophy" viewBox="0 0 32 32"><path d="M10 5h12v7a6 6 0 0 1-12 0z" style="fill:var(--gp-duo)"/><path d="M10 5h12v7a6 6 0 0 1-12 0zM10 8H5.5c0 4 1.8 6 4.8 6.2M22 8h4.5c0 4-1.8 6-4.8 6.2M16 18v4.5M11 27h10M12.5 22.5h7v4.5h-7z"/><path d="M16 8.2l.9 1.8 2 .3-1.4 1.4.3 2-1.8-1-1.8 1 .3-2-1.4-1.4 2-.3z" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-flame" viewBox="0 0 32 32"><path d="M16 4c1 5 7 7.5 7 14a7 7 0 0 1-14 0c0-3.5 1.6-5.6 3.4-7.2.2 2.4 1.2 3.8 2.6 4.5C14.6 11.5 15 8 16 4z" style="fill:var(--gp-duo-acc)"/><path d="M16 4c1 5 7 7.5 7 14a7 7 0 0 1-14 0c0-3.5 1.6-5.6 3.4-7.2.2 2.4 1.2 3.8 2.6 4.5C14.6 11.5 15 8 16 4z" style="stroke:var(--gp-acc)"/><path d="M16 26a3 3 0 0 1-3-3c0-2 1.4-3 3-4.5 1.6 1.5 3 2.5 3 4.5a3 3 0 0 1-3 3z"/></symbol>
+    <symbol id="gpi-clock" viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" style="fill:var(--gp-duo)"/><circle cx="16" cy="16" r="11"/><path d="M16 9.5V16l4.5 3"/><path d="M16 5v2M27 16h-2M16 27v-2M5 16h2" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-check" viewBox="0 0 32 32"><rect x="5" y="5" width="22" height="22" rx="6" style="fill:var(--gp-duo)"/><rect x="5" y="5" width="22" height="22" rx="6"/><path d="M10.5 16.5l4 4 7-9" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-chat" viewBox="0 0 32 32"><path d="M27 15c0 5.5-5 9.5-11 9.5-1.6 0-3.1-.3-4.5-.8L5.5 26l1.7-5A9.3 9.3 0 0 1 5 15C5 9.5 10 5.5 16 5.5S27 9.5 27 15z" style="fill:var(--gp-duo)"/><path d="M27 15c0 5.5-5 9.5-11 9.5-1.6 0-3.1-.3-4.5-.8L5.5 26l1.7-5A9.3 9.3 0 0 1 5 15C5 9.5 10 5.5 16 5.5S27 9.5 27 15z"/><path d="M11 15h.01M16 15h.01M21 15h.01" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-gift" viewBox="0 0 32 32"><rect x="6" y="14" width="20" height="13" rx="2" style="fill:var(--gp-duo)"/><rect x="4.5" y="10" width="23" height="4.5" rx="1.5"/><path d="M6 14.5V27h20V14.5M16 10v17"/><path d="M16 10c-1.5-4-6.5-5-6.5-2s4 2 6.5 2c2.5 0 6.5 1 6.5-2s-5-2-6.5 2z" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-calendar" viewBox="0 0 32 32"><rect x="5" y="7" width="22" height="20" rx="3.5" style="fill:var(--gp-duo)"/><rect x="5" y="7" width="22" height="20" rx="3.5"/><path d="M5 13h22M11 4.5v5M21 4.5v5"/><path d="M10.5 18h3M18.5 18h3M10.5 22.5h3" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-brief" viewBox="0 0 32 32"><path d="M8 4.5h11l6 6v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-19a2 2 0 0 1 2-2z" style="fill:var(--gp-duo)"/><path d="M8 4.5h11l6 6v15a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-19a2 2 0 0 1 2-2zM19 4.5v6h6"/><path d="M10.5 16h11M10.5 21h7" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-star" viewBox="0 0 32 32"><path d="M16 4l3.6 7.4 8.1 1.2-5.9 5.7 1.4 8.1L16 22.6l-7.2 3.8 1.4-8.1-5.9-5.7 8.1-1.2z" style="fill:var(--gp-duo)"/><path d="M16 4l3.6 7.4 8.1 1.2-5.9 5.7 1.4 8.1L16 22.6l-7.2 3.8 1.4-8.1-5.9-5.7 8.1-1.2z"/><circle cx="16" cy="16" r="1.6" style="stroke:var(--gp-acc)"/></symbol>
+    <symbol id="gpi-map" viewBox="0 0 32 32"><rect x="5" y="5" width="9.5" height="13" rx="2" style="fill:var(--gp-duo)"/><rect x="5" y="5" width="9.5" height="13" rx="2"/><rect x="17.5" y="5" width="9.5" height="7" rx="2"/><rect x="5" y="21" width="9.5" height="6" rx="2"/><rect x="17.5" y="15" width="9.5" height="12" rx="2" style="stroke:var(--gp-acc)"/></symbol>
+  </defs>
+</svg>
 
-    <div id="dash-brief" hidden></div>
-    <div id="dash-map" hidden></div>
-    <div id="dash-cal" hidden></div>
+    <!-- ===== HERO: the learning path ===== -->
+    <section class="gp-hero" id="gp-hero" aria-labelledby="gp-hello">
+      <div class="gp-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="gp-hero-top">
+        <div class="gp-hello-wrap">
+          <p class="gp-eyebrow"><span class="gp-eyebrow-dot" aria-hidden="true"></span>Your learning path</p>
+          <h1 id="gp-hello"><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
+          <p id="dash-subtitle" class="gp-sub">Loading your progress…</p>
+        </div>
+        <div class="gp-mkt" id="gp-mkt" role="group" aria-label="US stock market clock">
+          <svg class="gpi gp-mkt-ic" aria-hidden="true" focusable="false"><use href="#gpi-clock"/></svg>
+          <div><span class="gp-mkt-k">US stocks · NYSE</span><b class="gp-mkt-v" id="gp-mkt-v">—</b></div>
+        </div>
+      </div>
+
+      <div class="gp-path-wrap">
+        <div class="gp-path-scroll" id="gp-path-scroll" tabindex="0" aria-label="Core chapters, scroll sideways">
+          <ol class="gp-path" id="gp-path" aria-label="Core chapter path">
+            <li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li><li class="gp-node is-skel"></li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="gp-hero-bottom">
+        <div class="gp-ring" id="gp-ring" role="img" aria-label="Core chapters progress">
+          <svg viewBox="0 0 64 64" aria-hidden="true"><circle class="gp-ring-bg" cx="32" cy="32" r="27"/><circle class="gp-ring-fg" id="gp-ring-fg" cx="32" cy="32" r="27"/></svg>
+          <div class="gp-ring-txt"><b id="gp-ring-pct">0%</b><span>core</span></div>
+        </div>
+        <div class="gp-next">
+          <span class="gp-next-k" id="gp-next-k">Up next</span>
+          <b class="gp-next-t" id="gp-next-t"><span class="gp-skel-line"></span></b>
+          <a href="courses" class="btn btn-primary gp-cta" id="dash-resume-btn">Resume</a>
+        </div>
+        <div class="gp-chips">
+          <div class="gp-chip gp-chip-flame"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-flame"/></svg><div><b id="stat-streak">0 days</b><span>study streak</span></div></div>
+          <div class="gp-chip"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-check"/></svg><div><b id="stat-lessons">0</b><span>lessons done</span></div></div>
+        </div>
+      </div>
+    </section>
+
     <div id="dash-onboarding" hidden></div>
 
-    <!-- ===== Integrated overview: journal + markets + community ===== -->
-    <div class="dov" id="dov">
-      <div class="panel dov-brief">
-        <div class="dov-brief-head">
-          <span class="dov-brief-star">✦</span><b>DAILY BRIEFING</b>
-          <span class="dov-date" id="dov-brief-date"></span>
-        </div>
-        <div id="dov-brief-body">
-          <div class="dov-brief-line"><i style="background:#f5c542"></i><span>Pulling today's picture together…</span></div>
-        </div>
-      </div>
+    <!-- ===== BANDS: one open detail per band ===== -->
+    <div class="gp-bands" id="dov">
 
-      <div class="dov-filter" id="dov-filter" aria-label="Choose which modules to show"></div>
-
-      <div class="dov-grid">
-        <section class="panel dov-mod" data-mod="journal">
-          <div class="panel-head"><h2>Trade journal</h2><a href="trade-journal">Open →</a></div>
-          <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="markets">
-          <div class="panel-head"><h2>Markets</h2><a href="global-monitor">Global Monitor →</a></div>
-          <div id="dov-markets-body"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="floor">
-          <div class="panel-head"><h2>Trading floor</h2><a href="trading-floor">Join in →</a></div>
-          <div id="dov-floor-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="gex">
-          <div class="panel-head"><h2>GEX</h2><a href="gex.html">Open →</a></div>
-          <p class="dov-empty">Track gamma walls, zero gamma, value areas and live intraday context from the GEX desk.</p>
-          <a class="btn btn-primary btn-sm" href="gex.html">Launch GEX</a>
-        </section>
-      </div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-chapters">0 / 42</div>
-        <div class="stat-label">Core chapters completed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-streak">0 days</div>
-        <div class="stat-label">Current study streak</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-lessons">0</div>
-        <div class="stat-label">Lessons completed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-member-since">—</div>
-        <div class="stat-label">Member since</div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Continue learning</h2>
-            <a href="courses">View curriculum</a>
+      <section class="gp-band" id="band-learn" aria-labelledby="band-learn-h" style="--gp-band:var(--gold)">
+        <header class="gp-band-head">
+          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg></span>
+          <div class="gp-band-t"><h2 id="band-learn-h">Learn</h2><p>Pick up where you left off, step by step.</p></div>
+          <div class="gp-tabs" role="tablist" aria-label="Learn">
+            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="lp-next" id="lt-next">Up next</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="lp-badges" id="lt-badges" tabindex="-1">Achievements</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="lp-track" id="lt-track" tabindex="-1">Your track</button>
           </div>
-
-          <div id="continue-learning-list">
-            <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div>
+        </header>
+        <div class="gp-panel" role="tabpanel" id="lp-next" aria-labelledby="lt-next">
+          <div id="continue-learning-list"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:85%"></div><div class="dov-skel" style="width:55%"></div></div>
+          <div class="gp-links">
+            <a href="courses"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg>Full curriculum</a><a href="models.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-model"/></svg>Trading models</a><a href="indicators"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-wave"/></svg>Indicators</a>
           </div>
         </div>
-
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Achievements</h2>
-            <a href="achievements.html">View all</a>
+        <div class="gp-panel" role="tabpanel" id="lp-badges" aria-labelledby="lt-badges" hidden>
+          <div class="gp-badges">
+            <div class="gp-badge locked" id="badge-first-chapter"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-star"/></svg><span>First chapter complete</span></div>
+            <div class="gp-badge locked" id="badge-foundations"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-book"/></svg><span>Foundations complete</span></div>
+            <div class="gp-badge locked" id="badge-structure-master"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-model"/></svg><span>Structure master</span></div>
+            <div class="gp-badge locked" id="badge-smt-certified"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-trophy"/></svg><span>SMT certified</span></div>
           </div>
-          <div class="badge-grid">
-            <div class="badge-item locked" id="badge-first-chapter">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
-              <span>First Chapter Complete</span>
-            </div>
-            <div class="badge-item locked" id="badge-foundations">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-              <span>Foundations Complete</span>
-            </div>
-            <div class="badge-item locked" id="badge-structure-master">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
-              <span>Structure Master</span>
-            </div>
-            <div class="badge-item locked" id="badge-smt-certified">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
-              <span>SMT Certified</span>
-            </div>
+          <a class="gp-more" href="achievements.html">See all achievements →</a>
+        </div>
+        <div class="gp-panel" role="tabpanel" id="lp-track" aria-labelledby="lt-track" hidden>
+          <div class="gp-track">
+            <div class="gp-track-row"><span>Self-paced core path</span><b id="stat-chapters">0 / 42</b></div>
+            <div class="progress-track"><div class="progress-fill" id="track-progress-fill" style="width:0%"></div></div>
+            <p class="gp-track-meta" id="track-progress-label">0 of 42 chapters · 0% complete</p>
+            <p class="gp-track-meta">Member since <b id="stat-member-since">—</b></p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Upcoming live sessions</h2>
+      <section class="gp-band" id="band-tools" aria-labelledby="band-tools-h" style="--gp-band:var(--teal)">
+        <header class="gp-band-head">
+          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-tools"/></svg></span>
+          <div class="gp-band-t"><h2 id="band-tools-h">Trade tools</h2><p>Your desk: plan, log and review.</p></div>
+          <div class="gp-tabs" role="tablist" aria-label="Trade tools">
+            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="tp-tools" id="tt-tools">All tools</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="tp-journal" id="tt-journal" tabindex="-1">Journal</button>
           </div>
-          <div class="event-item">
-            <div class="event-date"><b>19</b>AUG</div>
-            <div class="event-body"><h4>London Killzone Breakdown</h4><span>08:00 GMT · XAUUSD &amp; DXY</span></div>
-          </div>
-          <div class="event-item">
-            <div class="event-date"><b>21</b>AUG</div>
-            <div class="event-body"><h4>SMT Divergence Live Walkthrough</h4><span>13:30 GMT · ES vs. NQ</span></div>
-          </div>
-          <div class="event-item">
-            <div class="event-date"><b>24</b>AUG</div>
-            <div class="event-body"><h4>Weekly Q&amp;A with Mentors</h4><span>17:00 GMT · Open floor</span></div>
+        </header>
+        <div class="gp-panel" role="tabpanel" id="tp-tools" aria-labelledby="tt-tools">
+          <div class="gp-tools" data-mod="gex">
+            <a class="gp-tool" href="gex.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-gex"/></svg></span><span class="gp-tool-t"><b>GEX</b><span>Gamma walls, zero gamma and value areas</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
+            <a class="gp-tool" href="trade-journal"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-journal"/></svg></span><span class="gp-tool-t"><b>Trade journal</b><span>Log trades, review your stats</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
+            <a class="gp-tool" href="backtests"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-replay"/></svg></span><span class="gp-tool-t"><b>Backtesting</b><span>Replay sessions bar by bar</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
+            <a class="gp-tool" href="charts.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-candles"/></svg></span><span class="gp-tool-t"><b>Charts</b><span>Full charting workspace</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
+            <a class="gp-tool" href="smart-money.html"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-bank"/></svg></span><span class="gp-tool-t"><b>Smart money</b><span>Institutional filings</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
+            <a class="gp-tool" href="global-monitor"><span class="gp-tool-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-globe"/></svg></span><span class="gp-tool-t"><b>Global Monitor</b><span>The markets terminal</span></span><span class="gp-tool-go" aria-hidden="true">→</span></a>
           </div>
         </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Your track</h2></div>
-          <p style="font-size:13px; color:var(--ink-2); margin-bottom:16px;">Self-Paced</p>
-          <div class="progress-track" style="margin-bottom:8px;"><div class="progress-fill" id="track-progress-fill" style="width:0%"></div></div>
-          <p style="font-size:12px; color:var(--ink-3); font-family:var(--font-mono);" id="track-progress-label">0 of 42 chapters · 0% complete</p>
+        <div class="gp-panel" role="tabpanel" id="tp-journal" aria-labelledby="tt-journal" hidden>
+          <div class="gp-card" data-mod="journal">
+            <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
+          </div>
+          <a class="gp-more" href="trade-journal">Open the journal →</a>
         </div>
-      </div>
+      </section>
+
+      <section class="gp-band" id="band-market" aria-labelledby="band-market-h" style="--gp-band:var(--amber)">
+        <header class="gp-band-head">
+          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-pulse"/></svg></span>
+          <div class="gp-band-t"><h2 id="band-market-h">Market today</h2><p>Context before the session, in one place.</p></div>
+          <div class="gp-tabs" role="tablist" aria-label="Market today">
+            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="mp-brief" id="mt-brief">Briefing</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="mp-markets" id="mt-markets" tabindex="-1">Markets</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="mp-pre" id="mt-pre" tabindex="-1">Pre-market</button>
+          </div>
+        </header>
+        <div class="gp-panel" role="tabpanel" id="mp-brief" aria-labelledby="mt-brief">
+          <div class="gp-card dov-brief">
+            <div class="dov-brief-head"><b>Daily briefing</b><span class="dov-date" id="dov-brief-date"></span></div>
+            <div id="dov-brief-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:60%"></div></div>
+          </div>
+        </div>
+        <div class="gp-panel" role="tabpanel" id="mp-markets" aria-labelledby="mt-markets" hidden>
+          <div class="gp-card" data-mod="markets">
+            <div id="dov-markets-body"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
+          </div>
+          <a class="gp-more" href="global-monitor">Open Global Monitor →</a>
+        </div>
+        <div class="gp-panel" role="tabpanel" id="mp-pre" aria-labelledby="mt-pre" hidden>
+          <div id="dash-brief" hidden></div>
+          <div id="dash-cal" hidden></div>
+          <div id="dash-map" hidden></div>
+          <div class="gp-links">
+            <a href="market-brief.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-brief"/></svg>Pre-market brief</a><a href="economic-calendar.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-calendar"/></svg>Economic calendar</a><a href="market-map.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-map"/></svg>Market map</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="gp-band" id="band-community" aria-labelledby="band-community-h" style="--gp-band:#7fb4ff">
+        <header class="gp-band-head">
+          <span class="gp-band-ic"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-people"/></svg></span>
+          <div class="gp-band-t"><h2 id="band-community-h">Community &amp; live</h2><p>Learn alongside other members.</p></div>
+          <div class="gp-tabs" role="tablist" aria-label="Community and live">
+            <button type="button" role="tab" class="gp-tab" aria-selected="true" aria-controls="cp-floor" id="ct-floor">Trading floor</button>
+            <button type="button" role="tab" class="gp-tab" aria-selected="false" aria-controls="cp-live" id="ct-live" tabindex="-1">Live sessions</button>
+          </div>
+        </header>
+        <div class="gp-panel" role="tabpanel" id="cp-floor" aria-labelledby="ct-floor">
+          <div class="gp-card" data-mod="floor">
+            <div id="dov-floor-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
+          </div>
+          <div class="gp-links">
+            <a href="trading-floor"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-people"/></svg>Trading floor</a><a href="messages.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-chat"/></svg>Messages</a><a href="referrals.html"><svg class="gpi " aria-hidden="true" focusable="false"><use href="#gpi-gift"/></svg>Invite friends</a>
+          </div>
+        </div>
+        <div class="gp-panel" role="tabpanel" id="cp-live" aria-labelledby="ct-live" hidden>
+          <div class="gp-live" id="gp-live"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div></div>
+          <a class="gp-more" href="live-sessions.html">All live sessions →</a>
+        </div>
+      </section>
+
+      <p class="gp-foot">Education only. Not financial advice.</p>
     </div>
   </main>
 </div>
@@ -405,37 +453,37 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="assets/auth.js?v=385"></script>
-<script src="assets/gate-timeout.js?v=385"></script>
-<script src="assets/progress.js?v=385"></script>
-<script src="assets/presence.js?v=385"></script>
-<script src="assets/messages.js?v=385"></script>
-<script src="assets/messages-badge.js?v=385"></script>
-<script src="assets/gm-badge.js?v=385"></script>
-<script src="assets/activity-log.js?v=385"></script>
-<script src="assets/banned-check.js?v=385"></script>
-<script src="assets/email-verify.js?v=385"></script>
-<script src="assets/notifications.js?v=385"></script>
+<script src="assets/auth.js?v=386"></script>
+<script src="assets/gate-timeout.js?v=386"></script>
+<script src="assets/progress.js?v=386"></script>
+<script src="assets/presence.js?v=386"></script>
+<script src="assets/messages.js?v=386"></script>
+<script src="assets/messages-badge.js?v=386"></script>
+<script src="assets/gm-badge.js?v=386"></script>
+<script src="assets/activity-log.js?v=386"></script>
+<script src="assets/banned-check.js?v=386"></script>
+<script src="assets/email-verify.js?v=386"></script>
+<script src="assets/notifications.js?v=386"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js"></script>
-<script src="assets/push.js?v=385"></script>
-<script src="assets/install-prompt.js?v=385"></script>
-<script src="assets/push-prompt.js?v=385"></script>
-<script src="assets/admin-link.js?v=385"></script>
-<script src="assets/profiles-sync.js?v=385"></script>
-<script src="assets/usernames.js?v=385"></script>
-<script src="assets/loading-animation.js?v=385"></script>
-<script src="assets/avatars.js?v=385"></script>
-<script src="assets/account-menu.js?v=385"></script>
-<script src="assets/referrals.js?v=385"></script>
-<script src="assets/roles.js?v=385"></script>
-<script src="assets/plan-price.js?v=385"></script>
-<script src="assets/plan-modal.js?v=385"></script>
-<script src="assets/plan-guard.js?v=385"></script>
-<script src="assets/maintenance-check.js?v=385"></script>
-<script src="assets/branding.js?v=385"></script>
-<script src="assets/chapters-index.js?v=385"></script>
-<script src="assets/chapters-store.js?v=385"></script>
-<script src="assets/dashboard.js?v=385"></script>
+<script src="assets/push.js?v=386"></script>
+<script src="assets/install-prompt.js?v=386"></script>
+<script src="assets/push-prompt.js?v=386"></script>
+<script src="assets/admin-link.js?v=386"></script>
+<script src="assets/profiles-sync.js?v=386"></script>
+<script src="assets/usernames.js?v=386"></script>
+<script src="assets/loading-animation.js?v=386"></script>
+<script src="assets/avatars.js?v=386"></script>
+<script src="assets/account-menu.js?v=386"></script>
+<script src="assets/referrals.js?v=386"></script>
+<script src="assets/roles.js?v=386"></script>
+<script src="assets/plan-price.js?v=386"></script>
+<script src="assets/plan-modal.js?v=386"></script>
+<script src="assets/plan-guard.js?v=386"></script>
+<script src="assets/maintenance-check.js?v=386"></script>
+<script src="assets/branding.js?v=386"></script>
+<script src="assets/chapters-index.js?v=386"></script>
+<script src="assets/chapters-store.js?v=386"></script>
+<script src="assets/dashboard.js?v=386"></script>
 <!-- Guided feature walkthrough -->
 <div class="tour-root" id="tour-root" hidden>
   <div class="tour-veil" id="tour-veil"></div>
@@ -458,18 +506,19 @@
   </div>
 </div>
 
-<script src="assets/models-data.js?v=385"></script>
-<script src="assets/models-store.js?v=385"></script>
-<script src="assets/playbook-data.js?v=385"></script>
-<script src="assets/market-brief.js?v=385"></script>
-<script src="assets/market-map.js?v=385"></script>
-<script src="assets/econ-calendar.js?v=385"></script>
-<script src="assets/onboarding.js?v=385"></script>
-<script src="assets/tour.js?v=385"></script>
-<script src="assets/journal-calc.js?v=385"></script>
-<script src="assets/dash-overview.js?v=385"></script>
-<script src="assets/dash-nav.js?v=385"></script>
-<script src="assets/market-hours.js?v=385"></script>
-<script src="assets/theme.js?v=385"></script>
+<script src="assets/models-data.js?v=386"></script>
+<script src="assets/models-store.js?v=386"></script>
+<script src="assets/playbook-data.js?v=386"></script>
+<script src="assets/market-brief.js?v=386"></script>
+<script src="assets/market-map.js?v=386"></script>
+<script src="assets/econ-calendar.js?v=386"></script>
+<script src="assets/onboarding.js?v=386"></script>
+<script src="assets/tour.js?v=386"></script>
+<script src="assets/journal-calc.js?v=386"></script>
+<script src="assets/dash-overview.js?v=386"></script>
+<script src="assets/dash-nav.js?v=386"></script>
+<script src="assets/market-hours.js?v=386"></script>
+<script src="assets/theme.js?v=386"></script>
+<script src="assets/dash-path.js?v=386"></script>
 </body>
 </html>

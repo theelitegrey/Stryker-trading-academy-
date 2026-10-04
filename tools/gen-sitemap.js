@@ -47,6 +47,7 @@ const PAGES = [
   ['/features/backtesting',    '0.6', 'monthly'],
   ['/features/models',     '0.6', 'monthly'],
   ['/features/indicators', '0.6', 'monthly'],
+  ['/features/community',  '0.6', 'monthly'],
   ['/features-live',        '0.6', 'monthly'],
   ['/features-community',   '0.6', 'monthly'],
   ['/login',                '0.5', 'monthly'],

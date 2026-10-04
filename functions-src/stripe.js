@@ -29,6 +29,21 @@
  *   stripeStatus (callable, admins only) reports whether Stripe is configured,
  *                           test or live, for commerce-admin.
  *
+ * FREE TRIAL (trial.js owns the rules): stripeCreateCheckout({ trial: true })
+ *          re-checks eligibility server-side and, only if eligible, adds
+ *          subscription_data.trial_period_days = 7 and
+ *          payment_method_collection = 'always' (card required, $0 today).
+ *          The webhook sees a 'trialing' subscription: grants the plan to
+ *          trial_end, claims the trial for the account AND the card
+ *          fingerprint (a reused card cancels the subscription, no charge,
+ *          no access), writes a $0 orders/ record with kind 'trial'.
+ *          invoice.paid at trial end extends as a normal renewal;
+ *          invoice.payment_failed at trial end leaves access at trial_end
+ *          (+ the sweep's grace); a cancel in the portal during the trial
+ *          charges nothing and access stops at trial_end.
+ *          customer.subscription.trial_will_end (3 days before) becomes an
+ *          in-app notification.
+ *
  * PRICES   One Stripe Product per site plan, one Price per (plan, amount,
  *          interval), cached in stripePrices/. A member's subscription is bound
  *          to the Price it started on, so a founding/launch price stays fixed
@@ -189,6 +204,7 @@ async function stripe(method, path, params, idemKey) {
 const R = () => require('./razorpay').__internals;
 const L = () => require('./launchSale').__launchInternals;
 const S = () => require('./subscriptions').__internals;
+const T = () => require('./trial').__trialInternals;
 
 /**
  * The USD price this member pays for planId right now, before any coupon, and
@@ -273,6 +289,10 @@ exports.stripeCreateCheckout = functions
     await testModeGate(uid, context);
     const planId = String((data && data.planId) || '');
     const couponCode = String((data && data.couponCode) || '').trim().toUpperCase() || null;
+    const wantTrial = !!(data && data.trial === true);
+    if (wantTrial && couponCode) {
+      throw new functions.https.HttpsError('failed-precondition', 'A free trial can\'t be combined with a coupon.');
+    }
 
     const planDoc = await db.collection('plans').doc(planId).get();
     if (!planDoc.exists) throw new functions.https.HttpsError('not-found', 'That plan could not be found.');
@@ -318,10 +338,29 @@ exports.stripeCreateCheckout = functions
       }
     }
 
+    // Trial: decided here, never by the client. Not eligible = refused, so a
+    // member who was shown the trial button can never be charged by surprise.
+    let trial = false;
+    if (wantTrial) {
+      const el = await T().checkEligibility(uid, planId);
+      if (!el.eligible) {
+        throw new functions.https.HttpsError('failed-precondition',
+          'This account can\'t start a free trial (' + el.reason + '). You can still subscribe.');
+      }
+      trial = true;
+      firstCents = 0;
+    }
+
     const priceId = await ensurePrice(plan, planId, baseCents, kind);
     const customerId = await ensureCustomer(uid, context.auth.token);
     const back = siteOrigin() + '/checkout.html?plan=' + encodeURIComponent(planId);
-    const meta = { uid, sitePlanId: planId, lockUsd: String(baseUsd), coupon: couponCode || '' };
+    const meta = { uid, sitePlanId: planId, lockUsd: String(baseUsd), coupon: couponCode || '', trial: trial ? '1' : '' };
+    const subData = { metadata: meta };
+    if (trial) {
+      subData.trial_period_days = T().TRIAL_DAYS;
+      // No card on file at trial end = cancel, never an unpaid open invoice.
+      subData.trial_settings = { end_behavior: { missing_payment_method: 'cancel' } };
+    }
 
     const session = await stripe('POST', 'checkout/sessions', {
       mode: 'subscription',
@@ -336,19 +375,21 @@ exports.stripeCreateCheckout = functions
       // (India → Razorpay handles INR instead).
       adaptive_pricing: { enabled: 'false' },
       metadata: meta,
-      subscription_data: { metadata: meta },
+      subscription_data: subData,
+      // Card required even though nothing is due today (trial).
+      payment_method_collection: trial ? 'always' : undefined,
       // Stripe shows its own recurring-terms line; ours sits above the button.
-      success_url: back + '&stripe=success&session_id={CHECKOUT_SESSION_ID}',
+      success_url: back + (trial ? '&trial=1' : '') + '&stripe=success&session_id={CHECKOUT_SESSION_ID}',
       cancel_url: back + '&stripe=cancel'
     });
 
     await db.collection('stripeSessions').doc(session.id).set({
       uid, planId, planName: plan.name || planId, period: plan.period,
-      couponCode, baseUsd, baseCents, firstCents, priceId, customerId,
+      couponCode, baseUsd, baseCents, firstCents, priceId, customerId, trial,
       status: 'created', createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    return { url: session.url, sessionId: session.id, amountCents: firstCents, renewCents: baseCents, interval: kind };
+    return { url: session.url, sessionId: session.id, amountCents: firstCents, renewCents: baseCents, interval: kind, trial };
   });
 
 // ---- webhook -------------------------------------------------------------------
@@ -429,6 +470,7 @@ async function onCheckoutCompleted(session) {
 
   const sub = await stripe('GET', 'subscriptions/' + session.subscription);
   const amountPaid = Number(session.amount_total != null ? session.amount_total : rec.firstCents);
+  if (sub.status === 'trialing' || rec.trial) return onTrialStarted(session, rec, sub);
 
   await db.collection('stripeSubs').doc(sub.id).set({
     uid: rec.uid, planId: rec.planId, planName: rec.planName, period: rec.period,
@@ -480,12 +522,101 @@ async function onCheckoutCompleted(session) {
   return 'granted ' + rec.planName + ' to ' + rec.uid;
 }
 
+// Card fingerprint of the subscription's payment method (for the one-trial-per-
+// card rule). Best effort: null when Stripe doesn't give one.
+async function cardFingerprint(sub) {
+  try {
+    let pm = sub.default_payment_method;
+    if (pm && typeof pm === 'object') return (pm.card && pm.card.fingerprint) || null;
+    if (!pm) return null;
+    const obj = await stripe('GET', 'payment_methods/' + pm);
+    return (obj && obj.card && obj.card.fingerprint) || null;
+  } catch (e) { return null; }
+}
+
+async function onTrialStarted(session, rec, sub) {
+  const uid = rec.uid;
+  const trialEnd = Number(sub.trial_end || subPeriodEnd(sub));
+  const fp = await cardFingerprint(sub);
+  // Re-checked at grant time: the switch, the account and the card.
+  // The site switch being turned off after checkout doesn't void a trial the
+  // member already started; the account and card rules still apply.
+  const el = await T().checkEligibility(uid, rec.planId, { ignoreSwitch: true });
+  const claim = el.eligible || el.reason === 'trial-used'
+    ? await T().claimTrial(uid, 'stripe:' + sub.id, fp ? [{ kind: 'card', value: fp }] : [])
+    : { ok: false, reason: el.reason };
+  if (!claim.ok) {
+    // Cancel now: nothing has been charged, nothing is granted.
+    await stripe('DELETE', 'subscriptions/' + sub.id).catch((e) => console.error('trial cancel failed', sub.id, e.message));
+    await db.collection('stripeSubs').doc(sub.id).set({ uid, planId: rec.planId, status: 'canceled',
+      trialRefused: claim.reason, sessionId: session.id, createdAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    await notify(uid, 'trial_refused',
+      'We couldn\'t start a free trial on this account or card, so nothing was charged and the trial was cancelled. You can still subscribe from the checkout page.',
+      'checkout.html?plan=' + encodeURIComponent(rec.planId));
+    return 'trial refused: ' + claim.reason;
+  }
+
+  await db.collection('stripeSubs').doc(sub.id).set({
+    uid, planId: rec.planId, planName: rec.planName, period: rec.period,
+    customerId: rec.customerId, priceId: rec.priceId, renewCents: rec.baseCents,
+    baseUsd: rec.baseUsd, couponCode: null, sessionId: session.id, trial: true, trialEnd,
+    status: sub.status, cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    currentPeriodEnd: trialEnd, latestInvoice: sub.latest_invoice || null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  await db.collection('orders').add({
+    studentUid: uid,
+    studentEmail: (session.customer_details && session.customer_details.email) || null,
+    studentName: (session.customer_details && session.customer_details.name) || 'Trader',
+    planId: rec.planId, planName: rec.planName, couponCode: null,
+    finalAmount: 0, currency: 'USD', amountUsd: 0, kind: 'trial',
+    gateway: 'stripe', provider: 'stripe',
+    stripeSessionId: session.id, stripeSubscriptionId: sub.id, stripeInvoiceId: sub.latest_invoice || null,
+    trialEndsAt: trialEnd * 1000,
+    status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  if (sub.latest_invoice) {
+    await db.collection('stripeInvoices').doc(String(sub.latest_invoice)).create({
+      uid, subscriptionId: sub.id, kind: 'trial', createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }
+  await stripe('POST', 'customers/' + rec.customerId, { metadata: { trialUsedAt: String(Date.now()) } })
+    .catch((e) => console.error('customer trial mark failed', rec.customerId, e.message));
+  await grantThrough(uid, rec.planName, rec.planId, trialEnd, {
+    subscriptionAutopay: !sub.cancel_at_period_end,
+    subscriptionStatus: 'trialing',
+    stripeCustomerId: rec.customerId,
+    stripeSubscriptionId: sub.id,
+    trialUsedAt: Date.now(), trialEndsAt: trialEnd * 1000, trialProvider: 'stripe'
+  });
+  return 'trial started for ' + uid + ' until ' + new Date(trialEnd * 1000).toISOString();
+}
+
+async function onTrialWillEnd(sub) {
+  const rec = await subRecord(sub.id, sub.metadata || {});
+  if (!rec) return 'unknown subscription';
+  if (sub.cancel_at_period_end || sub.status === 'canceled') return 'cancelled, no reminder';
+  const marker = db.collection('stripeInvoices').doc(sub.id + '_trial_will_end');
+  try { await marker.create({ uid: rec.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() }); }
+  catch (e) { return 'reminder already sent'; }
+  const end = T().trialEndLabel(Number(sub.trial_end || subPeriodEnd(sub)) * 1000);
+  const amt = rec.renewCents ? ' $' + (rec.renewCents / 100).toFixed(2).replace(/\.00$/, '') : '';
+  const per = String(rec.period || '').toLowerCase().indexOf('year') >= 0 ? 'year' : 'month';
+  await notify(rec.uid, 'trial_ending',
+    'Your free ' + rec.planName + ' trial ends on ' + end + '. Your card will then be charged' + amt + ' per ' + per +
+    ' unless you cancel before then in Settings > Manage billing.', 'settings.html');
+  return 'trial reminder sent';
+}
+
 async function onInvoicePaid(inv) {
   const subId = invSubId(inv);
   if (!subId) return 'ignored: no subscription';
   if (String(inv.currency || '').toLowerCase() !== 'usd') return 'ignored: currency ' + inv.currency;
   const rec = await subRecord(subId, invSubMeta(inv));
   if (!rec) { console.warn('stripeWebhook: invoice for unknown subscription', subId); return 'unknown subscription'; }
+  // The $0 invoice that opens a trial grants nothing by itself: the trial is
+  // granted (after the abuse checks) by checkout.session.completed.
+  if (Number(inv.amount_paid) === 0 && (rec.trial || invSubMeta(inv).trial === '1')) return 'trial invoice: nothing to grant';
 
   // Latest service period on the invoice (the subscription line; prorations end earlier).
   const ends = ((inv.lines && inv.lines.data) || []).map((l) => l.period && l.period.end).filter(Boolean);
@@ -528,8 +659,11 @@ async function onInvoicePaid(inv) {
       gateway: 'stripe', provider: 'stripe', stripeSubscriptionId: subId, stripeInvoiceId: inv.id,
       status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
-    await notify(rec.uid, 'renewal_charged',
-      'Your ' + rec.planName + ' subscription renewed automatically, so you\'re all set for another cycle.', 'settings.html');
+    const converted = rec.trial && !rec.convertedAt;
+    if (converted && rec.ref && !rec.pending) await rec.ref.set({ convertedAt: Date.now() }, { merge: true });
+    await notify(rec.uid, 'renewal_charged', converted
+      ? 'Your free trial has ended and your ' + rec.planName + ' subscription is now active. Thanks for staying.'
+      : 'Your ' + rec.planName + ' subscription renewed automatically, so you\'re all set for another cycle.', 'settings.html');
   }
   return (fresh ? '' : 'repeat ') + 'paid through ' + new Date(through).toISOString();
 }
@@ -548,8 +682,9 @@ async function onInvoiceFailed(inv) {
   try { await marker.create({ uid: rec.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() }); }
   catch (e) { return 'failure already recorded'; }
   if ((inv.attempt_count || 1) === 1) {
-    await notify(rec.uid, 'payment_failed',
-      'We couldn\'t charge your card for ' + rec.planName + '. We\'ll retry automatically. Update your card in Settings > Manage billing to keep your access.',
+    await notify(rec.uid, 'payment_failed', (rec.trial && !rec.convertedAt)
+      ? 'Your free trial of ' + rec.planName + ' has ended, but we couldn\'t charge your card. We\'ll retry automatically. Update your card in Settings > Manage billing to keep your access.'
+      : 'We couldn\'t charge your card for ' + rec.planName + '. We\'ll retry automatically. Update your card in Settings > Manage billing to keep your access.',
       'settings.html');
   }
   return 'failure recorded (attempt ' + (inv.attempt_count || 1) + ')';
@@ -596,6 +731,8 @@ async function handleEvent(event) {
       return onSubscriptionChanged(obj, false);
     case 'customer.subscription.deleted':
       return onSubscriptionChanged(obj, true);
+    case 'customer.subscription.trial_will_end':
+      return onTrialWillEnd(obj);
     default:
       return 'ignored: ' + event.type;
   }

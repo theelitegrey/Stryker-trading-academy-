@@ -37,6 +37,22 @@
  * subscribers only. Coupons don't combine with mandates; a couponed
  * checkout falls back to the one-time flow client-side.
  *
+ * FREE TRIAL (rules in trial.js): razorpaySubscribe({ trial: true }) re-checks
+ * eligibility server-side and creates the subscription with start_at = now +
+ * 7 days. Razorpay then collects only its authentication transaction at
+ * signup (a token amount, auto-refunded, for a future start date) and the
+ * mandate; the first real debit is on start_at. Access is granted to start_at
+ * on authentication: razorpaySubsVerify (checkout handler) or, if the browser
+ * never comes back, the subscription.authenticated webhook. Either path
+ * claims the trial for the account and the UPI handle / Razorpay customer
+ * (trial.js claimTrial); a refused claim cancels the subscription at once,
+ * nothing granted, nothing charged. subscription.charged on day 8 then extends
+ * one period from the trial end, as for any renewal. Cancel during the trial
+ * (razorpaySubsCancel) cancels immediately: no cycle has been paid, access
+ * stays to the trial end. A failed day-8 debit halts the subscription and the
+ * daily sweep lapses the account after trial end + grace.
+ * Webhook events to enable: subscription.authenticated (new) plus the four above.
+ *
  * Firestore (all functions-only, covered by default-deny): razorpayPlans
  * (site-plan+amount → Razorpay plan id cache), razorpaySubs (subscription
  * records), razorpaySubCharges (webhook idempotency markers).
@@ -46,6 +62,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const crypto = require('crypto');
 const subs = require('./subscriptions').__internals;
+const T = () => require('./trial').__trialInternals;
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
@@ -157,6 +174,7 @@ exports.razorpaySubscribe = functions
     const uid = requireAuth(context);
     const planId = String((data && data.planId) || '');
     const currency = String((data && data.currency) || '').toUpperCase();
+    const wantTrial = !!(data && data.trial === true);
     if (currency !== 'INR') {
       throw new functions.https.HttpsError('failed-precondition',
         'Auto-debit mandates are available for INR only — use the one-time payment instead.');
@@ -184,14 +202,31 @@ exports.razorpaySubscribe = functions
       throw new functions.https.HttpsError('failed-precondition', 'This plan is free — no subscription needed.');
     }
 
+    // Trial: decided here, never by the client. Not eligible = refused, so
+    // nobody shown the trial button is debited by surprise.
+    let trialEndMillis = null;
+    if (wantTrial) {
+      const el = await T().checkEligibility(uid, planId);
+      if (!el.eligible) {
+        throw new functions.https.HttpsError('failed-precondition',
+          'This account can\'t start a free trial (' + el.reason + '). You can still subscribe.');
+      }
+      trialEndMillis = Date.now() + T().TRIAL_DAYS * T().DAY_MS;
+    }
+
     const razorpayPlanId = await ensureRazorpayPlan(plan, planId, amountMinor, kind);
-    const sub = await rzp('subscriptions', {
+    const sub = await rzp('subscriptions', Object.assign({
       plan_id: razorpayPlanId,
       // A mandate needs a fixed horizon: ten years of months / of years.
       total_count: kind === 'year' ? 10 : 120,
       customer_notify: 1,
-      notes: { uid, planId }
-    });
+      notes: { uid, planId, trial: trialEndMillis ? '1' : '' }
+    }, trialEndMillis ? {
+      // First debit on day 8; until then only the refundable authentication.
+      start_at: Math.floor(trialEndMillis / 1000),
+      // The mandate must be authorised now, not some day before start_at.
+      expire_by: Math.floor(Date.now() / 1000) + 2 * 60 * 60
+    } : {}));
 
     await db.collection('razorpaySubs').doc(sub.id).set({
       uid, planId,
@@ -200,6 +235,7 @@ exports.razorpaySubscribe = functions
       amountMinor, currency: 'INR',
       baseUsd: priceUsd, baseInr: amountMinor / 100,
       razorpayPlanId,
+      trial: !!trialEndMillis, trialEndMillis,
       status: 'created',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -208,9 +244,84 @@ exports.razorpaySubscribe = functions
       subscriptionId: sub.id,
       keyId: process.env.RAZORPAY_KEY_ID,
       planName: plan.name || planId,
-      amountMinor, currency: 'INR'
+      amountMinor, currency: 'INR',
+      trial: !!trialEndMillis, trialEndMillis
     };
   });
+
+// Payment fingerprints Razorpay exposes on the authentication payment: the
+// UPI handle (vpa) and the Razorpay customer it auto-created. Best effort.
+async function rzpFingerprints(paymentId) {
+  const out = [];
+  if (!paymentId) return out;
+  try {
+    const p = await rzp('payments/' + encodeURIComponent(paymentId));
+    if (p && p.vpa) out.push({ kind: 'vpa', value: p.vpa });
+    if (p && p.customer_id) out.push({ kind: 'rzp_customer', value: p.customer_id });
+    if (p && p.token_id) out.push({ kind: 'rzp_token', value: p.token_id });
+  } catch (e) { console.error('razorpay fingerprint fetch failed', paymentId, e.message); }
+  return out;
+}
+
+/**
+ * Mandate authenticated for a trial subscription: claim the trial, grant the
+ * plan to the trial end, write the $0 trial order. Idempotent (created ->
+ * authenticated exactly once). Returns { ok, reason }.
+ */
+async function startRazorpayTrial(subscriptionId, paymentId, email) {
+  const subRef = db.collection('razorpaySubs').doc(subscriptionId);
+  const rec = await db.runTransaction(async (tx) => {
+    const doc = await tx.get(subRef);
+    if (!doc.exists) return null;
+    const s = doc.data();
+    if (s.status !== 'created') return Object.assign({ already: true }, s);
+    tx.update(subRef, { status: 'authenticating', authPaymentId: paymentId || null });
+    return s;
+  });
+  if (!rec) return { ok: false, reason: 'unknown subscription' };
+  if (rec.already) return { ok: rec.status === 'authenticated' || rec.status === 'active', reason: 'already ' + rec.status };
+
+  const fps = await rzpFingerprints(paymentId);
+  const el = await T().checkEligibility(rec.uid, rec.planId, { ignoreSwitch: true });
+  const claim = el.eligible || el.reason === 'trial-used'
+    ? await T().claimTrial(rec.uid, 'razorpay:' + subscriptionId, fps)
+    : { ok: false, reason: el.reason };
+  if (!claim.ok) {
+    await rzp('subscriptions/' + subscriptionId + '/cancel', { cancel_at_cycle_end: 0 })
+      .catch((e) => console.error('trial cancel failed', subscriptionId, e.message));
+    await subRef.set({ status: 'cancelled', trialRefused: claim.reason }, { merge: true });
+    await db.collection('notifications').add({
+      recipientUid: rec.uid, type: 'trial_refused',
+      message: 'We couldn\'t start a free trial on this account or payment method, so nothing was charged and the trial was cancelled. You can still subscribe from the checkout page.',
+      link: 'checkout.html?plan=' + encodeURIComponent(rec.planId), read: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return { ok: false, reason: claim.reason };
+  }
+
+  const trialEnd = rec.trialEndMillis;
+  await subRef.set({ status: 'authenticated', authenticatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+  await db.collection('orders').add({
+    studentUid: rec.uid, studentEmail: email || null, studentName: 'Trader',
+    planId: rec.planId, planName: rec.planName, couponCode: null,
+    finalAmount: 0, currency: 'INR', amountUsd: 0, kind: 'trial',
+    gateway: 'razorpay-subscription', razorpaySubscriptionId: subscriptionId,
+    razorpayPaymentId: paymentId || null, trialEndsAt: trialEnd,
+    status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  const stuRef = db.collection('students').doc(rec.uid);
+  const cur = await stuRef.get();
+  const banked = cur.exists ? (cur.data().paidThroughMillis || 0) : 0;
+  await stuRef.set({
+    plan: rec.planName, planId: rec.planId,
+    paidThroughMillis: Math.max(banked, trialEnd),
+    subscriptionStatus: 'trialing', subscriptionAutopay: true,
+    razorpaySubscriptionId: subscriptionId, billingProvider: 'razorpay',
+    trialUsedAt: Date.now(), trialEndsAt: trialEnd, trialProvider: 'razorpay'
+  }, { merge: true });
+  await db.collection('profiles').doc(rec.uid).set({ plan: rec.planName }, { merge: true }).catch(() => {});
+  return { ok: true, reason: 'started' };
+}
 
 exports.razorpaySubsVerify = functions
   .runWith({ maxInstances: 30, timeoutSeconds: 60, memory: '256MB' })
@@ -242,6 +353,16 @@ exports.razorpaySubsVerify = functions
     }
 
     const subRef = db.collection('razorpaySubs').doc(subscriptionId);
+    const pre = await subRef.get();
+    if (pre.exists && pre.data().trial) {
+      if (pre.data().uid !== uid) throw new functions.https.HttpsError('permission-denied', 'Not your subscription.');
+      const r = await startRazorpayTrial(subscriptionId, paymentId, (context.auth.token && context.auth.token.email) || null);
+      if (!r.ok) {
+        throw new functions.https.HttpsError('failed-precondition',
+          'We couldn\'t start a free trial on this account or payment method, so the trial was cancelled and nothing was charged. You can still subscribe.');
+      }
+      return { ok: true, planName: pre.data().planName, trial: true, trialEndMillis: pre.data().trialEndMillis };
+    }
     const record = await db.runTransaction(async (tx) => {
       const doc = await tx.get(subRef);
       if (!doc.exists) throw new functions.https.HttpsError('not-found', 'Unknown subscription.');
@@ -323,6 +444,15 @@ exports.razorpayWebhook = functions
     const record = subDoc.data();
 
     try {
+      if (event === 'subscription.authenticated') {
+        // Backstop for a trial whose browser never came back to verify.
+        if (record.trial) {
+          const r = await startRazorpayTrial(subEntity.id, payEntity && payEntity.id, null);
+          console.log('razorpayWebhook: authenticated', subEntity.id, r.reason);
+        }
+        res.status(200).send('ok');
+        return;
+      }
       if (event === 'subscription.charged' && payEntity && payEntity.id) {
         // Only a captured payment extends a plan. Razorpay also emits this
         // event for authorized-but-not-captured and failed payments, and
@@ -384,9 +514,13 @@ exports.razorpayWebhook = functions
             razorpayPaymentId: payEntity.id, status: 'completed',
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
+          const converted = record.trial && !record.convertedAt;
+          if (record.trial) await subDoc.ref.set({ status: 'active', convertedAt: record.convertedAt || Date.now() }, { merge: true });
           await db.collection('notifications').add({
             recipientUid: record.uid, type: 'renewal_charged',
-            message: 'Your ' + record.planName + ' subscription renewed automatically — you\'re all set for another cycle.',
+            message: converted
+              ? 'Your free trial has ended and your ' + record.planName + ' subscription is now active. Thanks for staying.'
+              : 'Your ' + record.planName + ' subscription renewed automatically — you\'re all set for another cycle.',
             link: 'settings.html', read: false,
             createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
@@ -415,6 +549,8 @@ exports.razorpayWebhook = functions
     }
   });
 
+exports.__rzpSubsInternals = { startRazorpayTrial, rzpFingerprints };
+
 exports.razorpaySubsCancel = functions
   .runWith({ maxInstances: 10, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
@@ -428,7 +564,10 @@ exports.razorpaySubsCancel = functions
       throw new functions.https.HttpsError('permission-denied', 'Not your subscription.');
     }
 
-    await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: 1 });
+    // A trial that hasn't reached its first debit has no cycle to finish:
+    // cancel now, nothing is ever charged, access stays to the trial end.
+    const inTrial = subDoc.data().trial && subDoc.data().status === 'authenticated';
+    await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: inTrial ? 0 : 1 });
     await subDoc.ref.set({ status: 'cancel-at-cycle-end' }, { merge: true });
     await db.collection('students').doc(uid).set({ subscriptionAutopay: false }, { merge: true });
     return { ok: true };

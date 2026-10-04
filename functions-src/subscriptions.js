@@ -163,6 +163,20 @@ exports.subscriptionSweep = functions
           await doc.ref.set({ paidThroughMillis: paidThrough, subscriptionStatus: 'active' }, { merge: true });
           backfilled++;
 
+        } else if (d.action === 'remind' && d.notify && s.subscriptionStatus === 'trialing') {
+          // Free trial on a card/mandate: it converts on its own, so the
+          // reminder is the honest "you'll be charged unless you cancel", and
+          // never a "renew now" link that could start a second subscription.
+          await doc.ref.set({ lastRenewalReminderMillis: now }, { merge: true });
+          // Stripe trials get theirs from customer.subscription.trial_will_end.
+          if (s.subscriptionAutopay && s.trialProvider !== 'stripe') {
+            await notify(doc.id, 'trial_ending',
+              'Your free ' + info.name + ' trial ends on ' + dayLabel(s.paidThroughMillis) +
+              '. Your payment method will then be charged for ' + info.name + ' unless you cancel before then in Settings.',
+              'settings.html');
+          }
+          reminded++;
+
         } else if (d.action === 'remind' && d.notify) {
           await doc.ref.set({ lastRenewalReminderMillis: now, subscriptionStatus: 'active' }, { merge: true });
           await notify(doc.id, 'renewal_due',

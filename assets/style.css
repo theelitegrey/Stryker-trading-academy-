@@ -8206,6 +8206,9 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 #dash-menu-toggle.is-open path:nth-child(1){ transform:translateY(5px) rotate(45deg); }
 #dash-menu-toggle.is-open path:nth-child(2){ opacity:0; }
 #dash-menu-toggle.is-open path:nth-child(3){ transform:translateY(-5px) rotate(-45deg); }
+/* Backtesting / Journal module rail sits under the header, whose height now
+   varies (the phone-width header carries the clock as a second row). */
+@media (min-width:761px){ .bta-rail{ top:var(--topbar-h); height:calc(100vh - var(--topbar-h)); } }
 /* Content takes the full width the column used to occupy. */
 .dash-main{ max-width:1440px; }
 @media (prefers-reduced-motion: reduce){

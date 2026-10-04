@@ -1,0 +1,32 @@
+/* dragon-bg.css: page-scoped background layer for the flowing dragon demo.
+   Used by: features/models.html only (demo). Depends on: assets/dragon-bg.js,
+   which creates the two canvases below after the page has loaded.
+   The layer sits under all content (z-index:-1 inside the root stacking context;
+   body's background is propagated to the canvas, so the layer still shows),
+   never takes pointer events and never affects layout. */
+.dragon-bg{
+  position:fixed; left:0; top:0; width:100vw; height:100vh; height:100lvh;
+  z-index:-1; pointer-events:none; display:block;
+  opacity:0; transition:opacity 1.2s ease;
+  contain:strict;
+}
+.dragon-bg.on{ opacity:1; }
+/* Far layer: dim and soft. The blur is desktop-only (see JS: mobile skips the class). */
+.dragon-bg.far.soft{ filter:blur(2.5px); }
+/* Keep the dragon faint behind the reading column, brighter in the side gutters. */
+@media (min-width:901px){
+  .dragon-bg.near{
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 9%,rgba(0,0,0,.42) 24%,rgba(0,0,0,.42) 76%,#000 91%,#000 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 9%,rgba(0,0,0,.42) 24%,rgba(0,0,0,.42) 76%,#000 91%,#000 100%);
+  }
+}
+@media (max-width:900px){
+  .dragon-bg.near.on{ opacity:.62; }
+}
+:root[data-theme="light"] .dragon-bg.on{ opacity:.7; }
+@media (max-width:900px){
+  :root[data-theme="light"] .dragon-bg.near.on{ opacity:.5; }
+}
+@media (prefers-reduced-motion:reduce){
+  .dragon-bg{ transition:none; }
+}

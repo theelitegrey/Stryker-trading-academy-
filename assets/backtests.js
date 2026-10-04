@@ -7,12 +7,13 @@
  * (IndexedDB) plus best-effort cloud copies under students/{uid}/replay.
  * Numbers from replay-analytics.js, charts from bt-charts.js, findings from
  * replay-coach.js. Trade edits (tags, mistakes, notes) write back into the
- * session's saved simulator snapshot. Gate: Pro and above.
+ * session's saved simulator snapshot. Gate: any plan (Free is capped at 3
+ * new replay sessions a week in replay.js via plan-limits.js).
  */
 (function () {
   'use strict';
   const D = window.ReplayData, A = window.ReplayAnalytics, CH = window.BTCharts, COACH = window.ReplayCoach;
-  const MIN_RANK = 1; const $ = (id) => document.getElementById(id);
+  const MIN_RANK = 0; const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n, sign) => { const v = Number(n) || 0; return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 }); };
   const pct = (n) => (Number(n) || 0).toFixed(n % 1 ? 1 : 0) + '%';

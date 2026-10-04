@@ -95,7 +95,7 @@ function colorOf(idOrName){
 
 function labelOf(idOrName){
   const plan = findPlan(idOrName);
-  return plan ? plan.name : String(idOrName || '');
+  return plan ? (plan.displayName || plan.name) : String(idOrName || '');
 }
 
 // Parses a plan's `chapterAccess` field into a numeric ceiling.
@@ -209,7 +209,7 @@ function roleTagHtml(planNameOrId, opts){
     '--plan-c:' + color + '; --shine-dur:' + (2.6 + Math.random() * 2.6).toFixed(2) + 's; ' +
     '--shine-delay:-' + (Math.random() * 8).toFixed(2) + 's; ' +
     'background:' + color + '1a; border:1px solid ' + color + '55; vertical-align:middle;">' +
-    escapeRoleTagText(plan.name) + '</span>'
+    escapeRoleTagText(plan.displayName || plan.name) + '</span>'
   );
 }
 
@@ -242,6 +242,7 @@ const GATEABLE_PAGES = [
   { key: 'indicators', label: 'Trading indicators' },
   { key: 'trading-floor', label: 'Trading floor (community)' },
   { key: 'trade-journal', label: 'Trade journal' },
+  { key: 'messages', label: 'Direct messages' },
   { key: 'live-sessions', label: 'Live sessions' },
   { key: 'global-monitor', label: 'Global Monitor (war & geopolitics terminal)' },
   { key: 'achievements', label: 'Achievements' },

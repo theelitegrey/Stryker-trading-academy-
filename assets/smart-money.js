@@ -15,7 +15,7 @@
 // bypass, unresolvable plan data fails open. Locked students see the page
 // framing and an upgrade pitch, never the tables (and no fetch happens).
 
-const SM_MIN_RANK = 2;
+const SM_MIN_RANK = 1;   // Pro (Elite is no longer sold, 2026-10-05)
 
 // jsDelivr first (CDN-cached, fast worldwide), raw GitHub as the fallback.
 // Both send permissive CORS headers.

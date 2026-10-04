@@ -15,7 +15,9 @@
 (function () {
   'use strict';
   const E = window.ReplayEngine, D = window.ReplayData, IND = window.ReplayIndicators, COACH = window.ReplayCoach;
-  const RP_MIN_RANK = 1;
+  // Free members may replay too, capped at 3 new sessions a week by
+  // assets/plan-limits.js (strykerReplayLimitOk). Pro and up: unlimited.
+  const RP_MIN_RANK = 0;
   const SPEEDS = [1, 2, 4, 8, 15, 30];
   const LWC_URL = 'https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js';
   // SRI (P3-4 audit): computed from the exact pinned file above via
@@ -63,6 +65,7 @@
   function loadLwc() { if (window.LightweightCharts) return Promise.resolve(); if (loadLwc.p) return loadLwc.p; loadLwc.p = new Promise((res, rej) => { const s = document.createElement('script'); s.src = LWC_URL; s.integrity = LWC_INTEGRITY; s.crossOrigin = 'anonymous'; s.onload = res; s.onerror = () => rej(new Error('The chart engine could not be loaded (cdn.jsdelivr.net). Check your connection or ad-blocker and try again.')); document.head.appendChild(s); }); return loadLwc.p; }
   async function startNew() {
     const spec = D.findSymbol($('rp-symbol').value); if (!spec) return;
+    if (typeof window.strykerReplayLimitOk === 'function' && !(await window.strykerReplayLimitOk(D))) return;
     const startMs = Date.parse($('rp-start').value + 'T00:00:00Z'); if (!isFinite(startMs)) { toast('Pick a start date', 'error'); return; }
     const days = Number($('rp-days').value) || 14; const balance = Number($('rp-balance').value) || 100000; const csvName = spec.src === 'csv' ? $('rp-csv-list').value : null;
     if (spec.src === 'csv' && !csvName) { toast('Choose a CSV file first', 'error'); return; }

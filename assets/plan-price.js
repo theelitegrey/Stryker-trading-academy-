@@ -214,6 +214,22 @@ function planMoney(n){
   return (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
 }
 
+// Public name of a plan. `name` is the stable key students store (and the
+// Firestore rules pin new accounts to 'Starter'), so a rename on the public
+// side goes in `displayName` instead: plans/WuvUQyHX82ZzHP2sKLms has name
+// 'Starter', displayName 'Free' (pricing change 2026-10-05).
+function planDisplayName(plan){
+  if (!plan) return '';
+  return String(plan.displayName || plan.name || 'Plan');
+}
+
+// A plan that is no longer sold but still held by members (Elite since
+// 2026-10-05). It keeps its rank so those members keep full access; every
+// public surface (cards, upgrade modal, checkout) filters it out.
+function planIsArchived(plan){
+  return !!(plan && plan.archived === true);
+}
+
 function planEscape(s){
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');

@@ -50,7 +50,7 @@ function offerAppliesToCard(offer, plan){
   if (!offer) return false;
   if (offer.appliesToPlan && offer.appliesToPlan !== 'all') return offer.appliesToPlan === plan.id;
   // an any-plan offer is advertised once, on the highest-profile card
-  return !!plan.featured || /elite/i.test(plan.name || '');
+  return !!plan.featured;
 }
 
 // A monthly plan can point at a hidden yearly twin (plan.yearlyPlanId); the
@@ -61,7 +61,9 @@ let _plansById = {};
 function planYearlyLineHtml(plan){
   const y = plan.yearlyPlanId && _plansById[plan.yearlyPlanId];
   if (!y) return '';
-  if (strykerCurrency() === 'INR' && !planUsesInrPrices(y)) return '';
+  // INR viewers see the yearly twin converted at the live rate, the same
+  // Math.round(usd * rate) the payment functions charge (no fixed rupee
+  // prices since 2026-10-05).
   const s = planSaleInfo(y);
   return '<a class="plan-yearly" href="checkout.html?plan=' + encodeURIComponent(y.id) + '">or ' +
     planMoneyDisplay(s.price) + '/year' +
@@ -81,7 +83,7 @@ function renderPublicPlanCard(plan, offer){
   el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
     (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
-    '<h3>' + stkEsc(plan.name || 'Plan') + '</h3>' +
+    '<h3>' + stkEsc(planDisplayName(plan)) + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
@@ -110,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
     _plansById = {};
     all.forEach((p) => { _plansById[p.id] = p; });
     // hidden plans (the yearly twin) are sold from their parent card only
-    const plans = all.filter((p) => !p.hidden);
+    const plans = all.filter((p) => !p.hidden && !planIsArchived(p));
     sortPlansAscending(plans);
     grid.innerHTML = '';
     plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan, offer)));

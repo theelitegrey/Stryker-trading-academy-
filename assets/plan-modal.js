@@ -72,6 +72,7 @@
     // the tier they already hold, or a downgrade, is noise on a paywall.
     var upgrades = plans.filter(function (p) {
       if (p.hidden) return false;   // yearly twins are sold from their parent card
+      if (p.archived === true) return false;   // no longer sold (Elite, 2026-10-05)
       if (myRank < 0) return true;
       return (p.rank !== null && p.rank !== undefined ? p.rank : 0) > myRank;
     });
@@ -97,7 +98,7 @@
       card.innerHTML =
         (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
         '<span class="plan-modal-pill" style="color:' + color + '; background:' + color + '1a; border-color:' + color + '55;">' +
-          esc(plan.name || 'Plan') + '</span>' +
+          esc(plan.displayName || plan.name || 'Plan') + '</span>' +
         (typeof planPriceHtml === 'function'
           ? planPriceHtml(plan, 'md')
           : '<div class="plan-modal-price">$' + esc(plan.price || '0') +

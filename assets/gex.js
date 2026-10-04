@@ -8,6 +8,14 @@
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
   var viewFrom = 0, viewTo = 0;
   var showMkt = true;
+  // Plan limit (set by assets/plan-limits.js for Free members): which markets
+  // and expiry views may load, and whether the strike table shows. null = full.
+  // Client-side only: /api/gex/* itself is public.
+  var LIMIT = null;
+  function gexAllowed(m, d){ return !LIMIT || (LIMIT.markets.indexOf(m) >= 0 && LIMIT.dtes.indexOf(d) >= 0); }
+  function gexUpgrade(why){
+    if(typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
+  }
   var tvChart = null, tvSeries = null, tvPriceLines = [], tvBarSpacing = 7;
 
   function $(id){ return document.getElementById(id); }
@@ -105,8 +113,8 @@
     $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+m+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
     $('gex-dtes').innerHTML = DTES.map(function(d){ return '<button class="gex-dte'+cls(d.v === curDte)+'" data-d="'+d.v+'">'+d.l+'</button>'; }).join('');
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
-    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
-    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
+    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexUpgrade('Pro unlocks GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
+    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexUpgrade('Pro unlocks every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
     $('gex-ivs').addEventListener('click', function(e){ var btn=e.target.closest('[data-i]'); var i=btn && btn.dataset.i; if(!i) return; curIv=i; paintButtons(); resetChartData('Loading '+curFut+' '+i+'…'); loadChart(); });
     $('gex-futs').addEventListener('click', function(e){ var btn=e.target.closest('[data-f]'); var f=btn && btn.dataset.f; if(!f || !DATA || f===curFut) return; curFut=f; resetChartData('Loading '+f+'…'); render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
@@ -118,8 +126,8 @@
   }
 
   function paintButtons(){
-    document.querySelectorAll('.gex-tab').forEach(function(b){ b.classList.toggle('is-on', b.dataset.m === cur); });
-    document.querySelectorAll('.gex-dte').forEach(function(b){ b.classList.toggle('is-on', Number(b.dataset.d) === curDte); });
+    document.querySelectorAll('.gex-tab').forEach(function(b){ b.classList.toggle('is-on', b.dataset.m === cur); b.classList.toggle('is-locked', !!LIMIT && LIMIT.markets.indexOf(b.dataset.m) < 0); });
+    document.querySelectorAll('.gex-dte').forEach(function(b){ b.classList.toggle('is-on', Number(b.dataset.d) === curDte); b.classList.toggle('is-locked', !!LIMIT && LIMIT.dtes.indexOf(Number(b.dataset.d)) < 0); });
     document.querySelectorAll('.gex-iv').forEach(function(b){ b.classList.toggle('is-on', b.dataset.i === curIv); });
   }
 
@@ -220,6 +228,10 @@
   }
 
   function renderLadder(d, F){
+    if(LIMIT && LIMIT.noLadder){
+      $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Strike table is part of Pro</b><p>Pro shows net GEX, DEX and open interest strike by strike, for every symbol and expiry.</p><button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro unlocks the full GEX strike table for every symbol and expiry.">See Pro</button></div>';
+      return;
+    }
     var rows = d.ladder || [];
     if(!rows.length){ $('gex-ladder').innerHTML = '<p class="gex-empty">No strike profile available.</p>'; return; }
     var mx = Math.max.apply(null, rows.map(function(r){ return Math.abs(r.gex || 0); })) || 1;
@@ -439,6 +451,15 @@
     }
     return out;
   }
+
+  // Called by assets/plan-limits.js once the member's plan is known.
+  window.strykerGexSetLimit = function(l){
+    LIMIT = l || null;
+    var reload = !gexAllowed(cur, curDte);
+    if(reload){ cur = LIMIT.markets[0]; curDte = LIMIT.dtes[0]; curFut = null; resetChartData('Loading '+mlabel(cur)+'…'); }
+    paintButtons();
+    if(reload) loadLevels(); else if(DATA) render(DATA);
+  };
 
   document.addEventListener('DOMContentLoaded', function(){ wireTabs(); loadLevels(); setInterval(loadLevels, 60000); setInterval(loadChart, 60000); });
 })();

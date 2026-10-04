@@ -37,7 +37,7 @@ let LS_UID = null;
 let LS_NAME = 'Trader';
 
 const LS_REPLAY_MIN_RANK = 1;   // Pro and up
-const LS_LIVE_MIN_RANK = 2;     // Elite and up
+const LS_LIVE_MIN_RANK = 1;     // Pro and up (Elite no longer sold, 2026-10-05)
 let LS_ACCESS = { live: true, replay: true };
 
 function lsCanWatch(mode){

@@ -8282,3 +8282,15 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
 .mclock.same-tz .mclock-locm{ display:none !important; }
 :root[data-theme="light"] .mclock-pill{ background:#fff; }
 :root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }
+
+/* ---- Free plan limits (assets/plan-limits.js, pricing change 2026-10-05) ---- */
+.plan-usage-note{ margin:0 0 14px; padding:10px 14px; border:1px solid var(--line); border-radius:10px; background:var(--bg-1); color:var(--ink-2); font-size:13px; line-height:1.5; }
+.plan-usage-note b{ color:var(--ink-0); font-family:var(--font-mono); }
+.plan-usage-note a{ color:var(--teal); text-decoration:underline; }
+.plan-usage-note.is-full{ border-color:var(--gold); }
+.plan-lock-card{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:18px; border:1px dashed var(--line); border-radius:12px; background:var(--bg-1); }
+.plan-lock-card b{ color:var(--ink-0); font-size:14.5px; }
+.plan-lock-card p{ margin:0; color:var(--ink-2); font-size:13px; line-height:1.55; }
+.plan-locked > :not(.plan-lock-card){ display:none !important; }
+.gex-tab.is-locked, .gex-dte.is-locked{ opacity:.45; }
+.gex-tab.is-locked::after, .gex-dte.is-locked::after{ content:"\1F512"; font-size:9px; margin-left:4px; }

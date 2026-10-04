@@ -152,7 +152,7 @@ function renderPlanSummary(plan){
     '<li style="display:flex; gap:8px; align-items:flex-start; font-size:13.5px; color:var(--ink-1); margin-bottom:8px;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0; margin-top:2px; color:var(--teal);"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
   wrap.innerHTML =
-    '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + stkEsc(plan.name) + '</h3>' +
+    '<h3 style="font-size:18px; color:var(--ink-0); margin-bottom:6px;">' + stkEsc(typeof planDisplayName === 'function' ? planDisplayName(plan) : plan.name) + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'sm')
       : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
@@ -584,6 +584,18 @@ document.addEventListener('DOMContentLoaded', () => {
       // Billing resolves regardless of the plan lookup, so the panel never
       // sticks on "Checking your saved details…".
       initBillingSection(studentDoc);
+      // A plan that is no longer sold (Elite since 2026-10-05) can't be
+      // bought from a stale link. Members already on it keep their access and
+      // may still renew it here, so only block accounts not on that plan.
+      const myPlan = (studentDoc && studentDoc.exists) ? String(studentDoc.data().plan || '') : '';
+      if (plan && typeof planIsArchived === 'function' && planIsArchived(plan) &&
+          myPlan.toLowerCase() !== String(plan.name || '').toLowerCase()) {
+        document.getElementById('checkout-plan-summary').innerHTML =
+          '<p style="color:var(--ink-3); font-size:13.5px;">This plan is no longer offered. <a href="index.html#pricing" style="color:var(--teal);">See the current plans</a>.</p>';
+        const btn = document.getElementById('checkout-complete-btn');
+        if (btn) btn.disabled = true;
+        return;
+      }
       if (!plan) {
         document.getElementById('checkout-plan-summary').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">That plan could not be found — <a href="index.html#pricing" style="color:var(--teal);">choose a plan</a> and try again.</p>';

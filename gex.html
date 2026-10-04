@@ -256,32 +256,33 @@
 
       <div class="gex-status"><span class="gex-status-dot"></span><div id="gex-status-text"><b>Starting GEX…</b><span> Loading permanent site-hosted data.</span></div><div class="gex-freshness" id="gex-freshness-text"><b>Checking data</b><span>Reading Cboe timestamp…</span></div></div>
 
+      <!-- Chart gets its own full-width row; side panels sit below it. -->
+      <section class="gex-card gex-chart-card">
+        <div class="gex-chart-head">
+          <h2 id="gex-chart-title">GEX chart</h2>
+          <div class="gex-chart-controls" id="gex-ivs" aria-label="Chart interval"></div>
+          <div class="gex-chart-controls" aria-label="Chart zoom controls">
+            <button type="button" class="gex-iv gex-zoom" id="gex-zoom-in">+</button>
+            <button type="button" class="gex-iv gex-zoom" id="gex-zoom-out">−</button>
+            <button type="button" class="gex-iv gex-zoom" id="gex-zoom-reset">Reset</button>
+          </div>
+        </div>
+        <div id="gex-closed-note" class="gex-closed-note" role="status" hidden></div>
+        <div class="gex-chart-wrap"><div id="gex-chart" aria-label="GEX futures chart"></div><div class="gex-chart-tag" id="gex-chart-tag" hidden></div><div class="gex-chart-range" id="gex-chart-range">TradingView chart loading…</div></div>
+        <div class="gex-legend">
+          <span><i style="background:#ef4444"></i>Call wall</span>
+          <span><i style="background:#f59e0b"></i>Zero gamma</span>
+          <span><i style="background:#22c55e"></i>Put wall</span>
+          <span><i style="background:#8b7cf6"></i>IV 68%</span>
+          <span><i style="background:#38bdf8"></i>Prior VAH/POC/VAL</span>
+          <span><i style="background:#64748b"></i>ON hi/lo</span>
+          <button type="button" class="gex-iv" id="gex-toggle-market">Market levels: ON</button>
+        </div>
+        <p class="gex-edu">Delayed data. Education only. Not financial advice.</p>
+      </section>
+
       <div class="gex-grid">
         <div>
-          <section class="gex-card" style="margin-bottom:16px;">
-            <div class="gex-chart-head">
-              <h2 id="gex-chart-title">GEX chart</h2>
-              <div class="gex-chart-controls" id="gex-ivs" aria-label="Chart interval"></div>
-              <div class="gex-chart-controls" aria-label="Chart zoom controls">
-                <button type="button" class="gex-iv gex-zoom" id="gex-zoom-in">+</button>
-                <button type="button" class="gex-iv gex-zoom" id="gex-zoom-out">−</button>
-                <button type="button" class="gex-iv gex-zoom" id="gex-zoom-reset">Reset</button>
-              </div>
-            </div>
-            <div id="gex-closed-note" class="gex-closed-note" role="status" hidden></div>
-            <div class="gex-chart-wrap"><div id="gex-chart" aria-label="GEX futures chart"></div><div class="gex-chart-tag" id="gex-chart-tag" hidden></div><div class="gex-chart-range" id="gex-chart-range">TradingView chart loading…</div></div>
-            <div class="gex-legend">
-              <span><i style="background:#ef4444"></i>Call wall</span>
-              <span><i style="background:#f59e0b"></i>Zero gamma</span>
-              <span><i style="background:#22c55e"></i>Put wall</span>
-              <span><i style="background:#8b7cf6"></i>IV 68%</span>
-              <span><i style="background:#38bdf8"></i>Prior VAH/POC/VAL</span>
-              <span><i style="background:#64748b"></i>ON hi/lo</span>
-              <button type="button" class="gex-iv" id="gex-toggle-market">Market levels: ON</button>
-            </div>
-            <p class="gex-edu">Delayed data. Education only. Not financial advice.</p>
-          </section>
-
           <div id="gex-warnings" class="gex-warnings"></div>
 
           <section class="gex-card" style="margin-bottom:16px;">

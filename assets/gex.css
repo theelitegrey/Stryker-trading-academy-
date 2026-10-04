@@ -92,3 +92,19 @@
   :root[data-theme="light"] .gex-card :hover::-webkit-scrollbar-thumb{ background-color:rgba(160,174,200,.42); }
   :root[data-theme="light"] .gex-card ::-webkit-scrollbar-thumb:hover{ background-color:rgba(3,201,136,.62); }
 }
+
+/* Wide chart layout (Owner 2026-10-04: "make the gex chart wider").
+   The chart card owns a full-width row of its own; levels, market levels and
+   the strike profile sit below it. The page drops the 1180px .dash-main cap so
+   the chart uses all the content width, with or without the sidebar. */
+.page-gex .dash-main{max-width:none;}
+.gex-chart-card{min-width:0;}
+.gex-chart-card .gex-chart-wrap{height:clamp(460px,64vh,760px);}
+.gex-grid{grid-template-columns:minmax(0,1fr) minmax(360px,460px);}
+@media(max-width:1120px){.gex-grid{grid-template-columns:1fr}.gex-chart-card .gex-chart-wrap{height:clamp(400px,58vh,620px)}}
+@media(max-width:700px){
+  /* full-bleed on phones: the card meets the screen edges (dash-main pads 10px) */
+  .gex-chart-card{margin:0 -10px 0!important;border-radius:0;border-left:0;border-right:0;padding:12px 10px;}
+  .gex-chart-card .gex-chart-wrap{height:62vh;min-height:400px;max-height:600px;margin:0;border-radius:12px;}
+}
+@media(max-width:380px){.gex-chart-card .gex-chart-wrap{height:58vh;min-height:360px}}

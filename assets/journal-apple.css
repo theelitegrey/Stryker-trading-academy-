@@ -303,3 +303,27 @@ body[data-page-access="trade-journal"] .ja-fab:active{ transform:scale(0.94); }
 :root[data-theme="light"] body[data-page-access="trade-journal"] .ja-fab:hover{
   box-shadow:0 10px 26px rgba(7,153,106,0.42), 0 3px 8px rgba(14,22,33,0.22);
 }
+
+/* ==========================================================================
+   MODULE SHELL (Owner 2026-10-04: "journal module open separate like the
+   backtest module"). assets/journal-shell.js adds body.bt-app + .jr-app and
+   the left .bta-rail, so the journal reuses the Backtesting shell from
+   style.css (full-width .dash-main, drawer sidebar, rail with Academy exit).
+   Desktop: the rail is the section switcher, so the tab strip is hidden.
+   Phone (<=760px): the bottom .appnav-dock owns that edge, so the rail is
+   hidden and the tab strip stays as a swipeable row.
+   ========================================================================== */
+body.jr-app #journal-tabs{ margin-bottom:22px; }
+body.jr-app .bta-rail{ overflow-y:auto; }
+@media (min-width:761px){
+  body.jr-app #journal-tabs{ display:none; }
+}
+@media (max-width:760px){
+  body.jr-app .jr-rail{ display:none; }
+  body.jr-app .bta-content{ padding:16px 14px 110px; }
+  body.jr-app #journal-tabs{ flex-wrap:nowrap; overflow-x:auto; margin-bottom:16px; }
+}
+/* the rail runs over 9 sections, so tighten it on short desktop screens */
+@media (min-width:761px) and (max-height:820px){
+  body.jr-app .bta-item{ padding:7px 4px 6px; gap:3px; }
+}

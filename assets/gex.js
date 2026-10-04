@@ -17,6 +17,33 @@
   function money(n){ if(n == null || !isFinite(n)) return '—'; return '$' + Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
   function cls(on){ return on ? ' is-on' : ''; }
   function mlabel(m){ return MARKET_LABELS[m] || m; }
+  function ageLabel(ms){
+    if(ms == null || !isFinite(ms)) return 'unknown age';
+    var mins = Math.max(0, Math.round(ms / 60000));
+    if(mins < 60) return mins + 'm old';
+    var hrs = Math.floor(mins / 60), rem = mins % 60;
+    if(hrs < 48) return hrs + 'h' + (rem ? ' ' + rem + 'm' : '') + ' old';
+    var days = Math.floor(hrs / 24);
+    return days + 'd ' + (hrs % 24) + 'h old';
+  }
+  function dataFreshness(asof){
+    var t = asof ? Date.parse(asof) : NaN;
+    if(!isFinite(t)) return {state:'stale', age:'unknown age', label:'Data age unknown'};
+    var age = Date.now() - t;
+    var state = age <= 30*60000 ? 'fresh' : 'stale';
+    return {state:state, age:ageLabel(age), label:(state === 'fresh' ? 'Updating' : 'Stale') + ' · ' + ageLabel(age)};
+  }
+  function setFreshnessStatus(d){
+    var f = dataFreshness(d && d.asof);
+    var status = document.querySelector('.gex-status');
+    if(status){
+      status.classList.remove('is-fresh','is-stale');
+      status.classList.add(f.state === 'fresh' ? 'is-fresh' : 'is-stale');
+      status.setAttribute('data-freshness', f.state);
+    }
+    var txt = $('gex-freshness-text');
+    if(txt) txt.textContent = f.label;
+  }
 
   function wireTabs(){
     $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+m+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
@@ -51,6 +78,7 @@
 
   async function loadLevels(){
     $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on strykertrading.com.</span>';
+    var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale'); }
     try{
       var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + '&t=' + Date.now());
       DATA = d;
@@ -60,6 +88,8 @@
       if(curFut) loadChart();
     }catch(e){
       $('gex-status-text').innerHTML = '<b class="gex-error">GEX API error</b><span> '+esc(e.message)+'</span>';
+      var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh'); status.classList.add('is-stale'); }
+      var freshText = $('gex-freshness-text'); if(freshText) freshText.textContent = 'Data connection error';
       $('gex-levels').innerHTML = '<p class="gex-error">'+esc(e.message)+'</p>';
     }
   }
@@ -69,6 +99,7 @@
     var dteLabel = (DTES.find(function(x){return x.v===curDte;}) || {}).l || (curDte + 'DTE');
     var futs = Object.keys(d.futures || {}).filter(function(k){ return !(d.futures[k] || {}).error; });
     var F = curFut ? d.futures[curFut] : null;
+    setFreshnessStatus(d);
     $('gex-status-text').innerHTML = '<b>'+esc(d.underlying)+' → '+esc(futs.join(' / ') || d.fut)+'</b><span> '+esc(String(d.contracts))+' contracts · '+esc(dteLabel)+(d.expiry?' · exp '+esc(d.expiry):'')+' · Cboe delayed '+esc(d.asof || '')+'</span>';
     $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ var sub = ({ES:'S&P futures',MES:'Micro ES',NQ:'Nasdaq futures',MNQ:'Micro NQ',GC:'Gold futures',MGC:'Micro gold'})[f] || 'Futures'; return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'"><span>'+f+'</span><small>'+sub+'</small></button>'; }).join('') : '<span class="gex-empty">futures feed unavailable</span>';
     $('gex-hero').innerHTML = '<div class="gex-spot"><small>SPOT '+esc(d.underlying)+'</small>'+fmt(d.spot,2)+'</div>'+

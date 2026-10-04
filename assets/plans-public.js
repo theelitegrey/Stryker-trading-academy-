@@ -115,7 +115,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const plans = all.filter((p) => !p.hidden && !planIsArchived(p));
     sortPlansAscending(plans);
     grid.innerHTML = '';
-    plans.forEach((plan) => grid.appendChild(renderPublicPlanCard(plan, offer)));
+    plans.forEach((plan) => {
+      const card = renderPublicPlanCard(plan, offer);
+      grid.appendChild(card);
+      // 7-day free trial label + small print, only for an eligible signed-in
+      // member (assets/trial.js; no-op with the switch off). A card running a
+      // coupon offer keeps its own CTA.
+      const cta = card.querySelector('a.btn');
+      if (cta && typeof strykerTrialDecorate === 'function' && !offerAppliesToCard(offer, plan)) {
+        strykerTrialDecorate(cta, plan);
+      }
+    });
     if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
   }).catch((err) => {
     console.error('Stryker: failed to load live plans, showing static fallback', err);

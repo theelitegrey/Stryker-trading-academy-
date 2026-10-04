@@ -53,7 +53,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (pt) {
           renewalRow.style.display = '';
           const dateLabel = new Date(pt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-          if (student.subscriptionAutopay) {
+          const trialing = student.subscriptionStatus === 'trialing' && pt > Date.now();
+          if (trialing) {
+            // 7-day free trial: days left, the charge date, and that cancelling
+            // before then costs nothing (Stripe portal / Razorpay cancel below).
+            const left = Math.max(1, Math.ceil((pt - Date.now()) / 86400000));
+            renewalEl.textContent = student.subscriptionAutopay
+              ? 'Free trial: ' + left + ' day' + (left === 1 ? '' : 's') + ' left. First charge on ' + dateLabel + ' unless you cancel before then.'
+              : 'Free trial: ' + left + ' day' + (left === 1 ? '' : 's') + ' left. Cancelled, so you won\'t be charged; access ends ' + dateLabel + '.';
+            renewalEl.style.color = 'var(--teal)';
+          } else if (student.subscriptionAutopay) {
             renewalEl.textContent = '↻ Auto-renews on ' + dateLabel;
             renewalEl.style.color = 'var(--bull)';
           } else if (Date.now() > pt) {
@@ -79,13 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
           if (billingBtn && student.billingProvider === 'stripe' && student.stripeSubscriptionId) {
             billingBtn.style.display = '';
             if (renewBtn && student.subscriptionAutopay) renewBtn.style.display = 'none';
+            if (trialing && student.subscriptionAutopay) billingBtn.textContent = 'Cancel free trial or manage card';
             billingBtn.addEventListener('click', () => {
               billingBtn.disabled = true; billingBtn.textContent = 'Opening billing…';
               let fns = null;
               try { fns = firebase.app().functions(); } catch (e) {}
               const fail = (msg) => {
                 showToast('error', msg);
-                billingBtn.disabled = false; billingBtn.textContent = 'Manage billing (card, invoices, cancel)';
+                billingBtn.disabled = false; billingBtn.textContent = trialing && student.subscriptionAutopay ? 'Cancel free trial or manage card' : 'Manage billing (card, invoices, cancel)';
               };
               if (!fns) { fail('Billing is unavailable right now. Please try again.'); return; }
               fns.httpsCallable('stripePortal')({}).then((res) => {
@@ -98,15 +108,20 @@ document.addEventListener('DOMContentLoaded', () => {
           if (cancelBtn && student.subscriptionAutopay && student.razorpaySubscriptionId &&
               student.billingProvider !== 'stripe') {
             cancelBtn.style.display = '';
+            if (trialing) cancelBtn.textContent = 'Cancel free trial';
             cancelBtn.addEventListener('click', () => {
-              if (!confirm('Switch off auto-renewal?\n\nYour ' + (student.plan || 'plan') +
+              if (!confirm(trialing
+                ? 'Cancel your free trial?\n\nYou won\'t be charged. Your ' + (student.plan || 'plan') + ' access continues until ' + dateLabel + '.'
+                : 'Switch off auto-renewal?\n\nYour ' + (student.plan || 'plan') +
                            ' access continues until ' + dateLabel + ' — after that you can renew manually.')) return;
               cancelBtn.disabled = true; cancelBtn.textContent = 'Cancelling…';
               let fns = null;
               try { fns = firebase.app().functions(); } catch (e) {}
               if (!fns) { cancelBtn.disabled = false; cancelBtn.textContent = 'Cancel auto-renewal'; return; }
               fns.httpsCallable('razorpaySubsCancel')({}).then(() => {
-                showToast('success', 'Auto-renewal is off — your access runs until ' + dateLabel + '.');
+                showToast('success', trialing
+                  ? 'Free trial cancelled. You won\'t be charged, and your access runs until ' + dateLabel + '.'
+                  : 'Auto-renewal is off — your access runs until ' + dateLabel + '.');
                 cancelBtn.style.display = 'none';
                 renewalEl.textContent = 'Active until ' + dateLabel + ' (auto-renewal off)';
                 renewalEl.style.color = 'var(--ink-1)';

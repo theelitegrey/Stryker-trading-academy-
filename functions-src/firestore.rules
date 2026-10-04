@@ -50,7 +50,8 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'lapsedFromPlan', 'lapsedAtMillis'];
+        'lapsedFromPlan', 'lapsedAtMillis',
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'];
     }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -58,7 +59,8 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'lapsedFromPlan', 'lapsedAtMillis'
+        'lapsedFromPlan', 'lapsedAtMillis',
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'
       ]);
     }
     function createsPrivileged() {
@@ -66,7 +68,8 @@ service cloud.firestore {
         'plan', 'planId', 'paidThroughMillis', 'subscriptionStatus', 'subscriptionAutopay',
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
-        'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider'
+        'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'
       ]);
     }
 

@@ -324,6 +324,12 @@ async function rzpHook(body) {
   check('cancel in trial -> subscription.updated', await deliver(ev('customer.subscription.updated', STRIPE_SUBS.sub_t2)), '200 ok');
   check('autopay off, access still to trial_end', [DB['students/s4'].subscriptionAutopay, DB['students/s4'].paidThroughMillis], [false, te * 1000]);
   check('no charge order written for the cancel', ordersFor('s4').map((x) => x.finalAmount), [0]);
+  check('trialCancelledAt stamped', !!DB['students/s4'].trialCancelledAt, true);
+  const cs = Object.assign({}, DB['students/s4'], { plan: 'Pro' });
+  check('sweep: cancelled trial lapses right after trial_end (no grace)',
+    SUBS.__internals.decide(cs, { period: 'month', price: 39 }, te * 1000 + 3600e3).action, 'expire');
+  check('sweep: cancelled trial untouched before trial_end',
+    SUBS.__internals.decide(cs, { period: 'month', price: 39 }, te * 1000 - 5 * DAY * 1000).action, 'none');
   check('cancelled: no trial_will_end reminder', await deliver(ev('customer.subscription.trial_will_end', STRIPE_SUBS.sub_t2)).then(() => notesFor('s4').filter((x) => x.type === 'trial_ending').length), 0);
 
   console.log('\n== Repeat-trial attempts ==');
@@ -397,6 +403,7 @@ async function rzpHook(body) {
   const cancelCall = sent.find((s) => s.gw === 'rzp' && /cancel$/.test(s.path));
   check('cancel during trial: immediate (cancel_at_cycle_end 0)', cancelCall.b.cancel_at_cycle_end, 0);
   check('access stays to trial end, autopay off', [DB['students/r2'].paidThroughMillis === rs2.trialEndMillis, DB['students/r2'].subscriptionAutopay], [true, false]);
+  check('trialCancelledAt stamped (Razorpay)', !!DB['students/r2'].trialCancelledAt, true);
   // failed debit on day 8 -> halted
   const rs3 = await RS.razorpaySubscribe({ planId: 'PRO', currency: 'INR', trial: true }, ctx('r3'));
   RZP_PAY.pay_auth3 = { id: 'pay_auth3', vpa: 'r3@ybl' };

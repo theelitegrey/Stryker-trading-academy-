@@ -117,6 +117,8 @@
       });
 
       grid.appendChild(card);
+      // 7-day free trial label + small print for an eligible member (assets/trial.js).
+      if (typeof strykerTrialDecorate === 'function') strykerTrialDecorate(card.querySelector('.plan-modal-pick'), plan);
       if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
     });
   }

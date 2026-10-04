@@ -706,7 +706,10 @@ async function onSubscriptionChanged(sub, deleted) {
   // Only touch the member's autopay flag if this is still their subscription.
   if (cur.stripeSubscriptionId && cur.stripeSubscriptionId !== sub.id) return 'stale subscription';
   if (cur.subscriptionAutopay !== autopay) {
-    await stu.set({ subscriptionAutopay: autopay }, { merge: true });
+    const patch = { subscriptionAutopay: autopay };
+    // Cancelled inside the free trial: no charge ever, access ends at trial_end.
+    if (cur.subscriptionStatus === 'trialing') patch.trialCancelledAt = autopay ? null : Date.now();
+    await stu.set(patch, { merge: true });
     if (!autopay) {
       const until = cur.paidThroughMillis ? new Date(cur.paidThroughMillis).toISOString().slice(0, 10) : 'your paid date';
       await notify(rec.uid, 'autopay_stopped',

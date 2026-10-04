@@ -568,7 +568,8 @@ exports.razorpaySubsCancel = functions
     // cancel now, nothing is ever charged, access stays to the trial end.
     const inTrial = subDoc.data().trial && subDoc.data().status === 'authenticated';
     await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: inTrial ? 0 : 1 });
-    await subDoc.ref.set({ status: 'cancel-at-cycle-end' }, { merge: true });
-    await db.collection('students').doc(uid).set({ subscriptionAutopay: false }, { merge: true });
+    await subDoc.ref.set({ status: inTrial ? 'cancelled' : 'cancel-at-cycle-end' }, { merge: true });
+    await db.collection('students').doc(uid).set(Object.assign({ subscriptionAutopay: false },
+      inTrial ? { trialCancelledAt: Date.now() } : {}), { merge: true });
     return { ok: true };
   });

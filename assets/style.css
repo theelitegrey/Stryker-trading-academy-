@@ -8294,3 +8294,13 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
 .plan-locked > :not(.plan-lock-card){ display:none !important; }
 .gex-tab.is-locked, .gex-dte.is-locked{ opacity:.45; }
 .gex-tab.is-locked::after, .gex-dte.is-locked::after{ content:"\1F512"; font-size:9px; margin-left:4px; }
+
+/* 7-day free trial (assets/trial.js): small print under a trial button and the
+   dashboard strip. Body-copy colour on purpose: the terms must be readable. */
+.trial-smallprint { margin: 8px 0 0; font-size: 12px; line-height: 1.5; color: var(--ink-2); text-align: left; }
+.trial-smallprint a { color: var(--teal); text-decoration: underline; }
+.plan-modal-card .trial-smallprint { margin-top: 8px; }
+.trial-strip { margin: 0 0 14px; padding: 10px 14px; border: 1px solid rgba(3,201,136,.35); border-radius: 10px;
+  background: rgba(3,201,136,.06); color: var(--ink-1); font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.trial-strip b { color: var(--ink-0); }
+.trial-strip a { color: var(--teal); text-decoration: underline; white-space: nowrap; }

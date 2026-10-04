@@ -82,6 +82,12 @@ function decide(student, planInfo, nowMs){
   const paidThrough = student.paidThroughMillis || 0;
   if (!paidThrough) return { action: 'backfill' };
 
+  // A free trial the member cancelled ends exactly at the trial end: no grace
+  // (grace is for a renewal payment that is late, and nothing is owed here).
+  if (student.subscriptionStatus === 'trialing' && student.trialCancelledAt && nowMs > paidThrough) {
+    return { action: 'expire' };
+  }
+
   if (nowMs > paidThrough + GRACE_MS) return { action: 'expire' };
   if (nowMs > paidThrough) {
     const warned = (student.lastGraceNoticeMillis || 0) > paidThrough;

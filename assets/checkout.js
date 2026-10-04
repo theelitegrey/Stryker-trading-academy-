@@ -13,6 +13,9 @@ let CHECKOUT_PLAN = null;
 // Off (or unreadable) = every visitor keeps the existing Razorpay checkout.
 let STRIPE_CHECKOUT_ON = false;
 let APPLIED_COUPON = null;
+// 7-day free trial (assets/trial.js asks the server; settings/commerce.trialEnabled
+// gates it). true only when the server said this member may start one.
+let TRIAL_ELIGIBLE = false;
 
 // ---- billing details --------------------------------------------------------
 // Saved on students/{uid}.billing the first time someone buys, then reused:
@@ -190,6 +193,8 @@ function updateOrderSummary(){
   const disclosure = document.getElementById('checkout-renew-disclosure');
   const payInr = document.getElementById('checkout-pay-inr');
   if (disclosure) disclosure.style.display = 'none';
+  const trialPrint = document.getElementById('checkout-trial-print');
+  if (trialPrint) trialPrint.style.display = 'none';
   if (payInr) payInr.style.display = (checkoutUsesStripe() && price > 0) ? '' : 'none';
   checkoutGatewayChrome(checkoutUsesStripe());
 
@@ -216,6 +221,27 @@ function updateOrderSummary(){
 
   const discount = APPLIED_COUPON ? computeDiscount(APPLIED_COUPON, price) : 0;
   const total = Math.max(price - discount, 0);
+
+  // Free trial: card / mandate required, nothing charged today. Offered on the
+  // two subscription routes only (Stripe, or the INR mandate with auto-renew
+  // on) and never with a coupon. The server re-checks all of this.
+  if (checkoutTrialApplies(autopayOn)) {
+    document.getElementById('checkout-discount').textContent = '—';
+    document.getElementById('checkout-total').textContent = checkoutFmt(0) + ' today';
+    completeBtn.disabled = false;
+    completeBtn.textContent = 'Start ' + STRYKER_TRIAL_DAYS + '-day free trial';
+    // The terms sit right under the button (created once, next to it).
+    let tp = trialPrint;
+    if (!tp) {
+      tp = document.createElement('p');
+      tp.id = 'checkout-trial-print';
+      tp.className = 'trial-smallprint';
+      completeBtn.insertAdjacentElement('afterend', tp);
+    }
+    tp.innerHTML = strykerTrialSmallPrint(CHECKOUT_PLAN);
+    tp.style.display = '';
+    return;
+  }
 
   // Every non-INR buyer of a renewing plan subscribes through Stripe. The
   // renewal terms sit directly above the button (automatic-renewal laws).
@@ -245,6 +271,13 @@ function updateOrderSummary(){
   document.getElementById('checkout-total').textContent = checkoutFmt(total);
   completeBtn.disabled = false;
   completeBtn.textContent = total > 0 ? 'Pay ' + checkoutFmt(total) + ' securely' : 'Complete order';
+}
+
+function checkoutTrialApplies(autopayOn){
+  if (!TRIAL_ELIGIBLE || !CHECKOUT_PLAN || APPLIED_COUPON) return false;
+  if (typeof strykerTrialSmallPrint !== 'function') return false;
+  if (checkoutUsesStripe()) return true;
+  return !!autopayOn;   // INR: the trial rides on the auto-debit mandate
 }
 
 // ---- Stripe (every non-INR buyer) ---------------------------------------------
@@ -295,10 +328,11 @@ function launchStripe(btn, errEl){
   btn.disabled = true;
   btn.textContent = 'Opening secure checkout…';
   // TODO(meta-pixel): InitiateCheckout fires here once the pixel branch lands.
-  fns.httpsCallable('stripeCreateCheckout')({
+  const trial = checkoutTrialApplies(false);
+  fns.httpsCallable('stripeCreateCheckout')(Object.assign({
     planId: CHECKOUT_PLAN.id,
     couponCode: APPLIED_COUPON ? APPLIED_COUPON.code : null
-  }).then((res) => {
+  }, trial ? { trial: true } : {})).then((res) => {
     const url = res && res.data && res.data.url;
     if (!url || url.indexOf('https://checkout.stripe.com/') !== 0) throw new Error('The checkout page could not be opened.');
     window.location.assign(url);
@@ -321,7 +355,7 @@ function handleStripeReturn(uid){
   const clean = () => {
     try {
       const u = new URL(window.location.href);
-      ['stripe', 'session_id'].forEach((k) => u.searchParams.delete(k));
+      ['stripe', 'session_id', 'trial'].forEach((k) => u.searchParams.delete(k));
       history.replaceState(null, '', u.pathname + u.search);
     } catch (e) {}
   };
@@ -333,7 +367,10 @@ function handleStripeReturn(uid){
   }
   if (state !== 'success') return;
   const ref = (q.get('session_id') || '').replace(/[^A-Za-z0-9_]/g, '').slice(-12);
-  okEl.innerHTML = '<b>Payment received, setting up your access…</b> This usually takes a few seconds.';
+  const isTrial = q.get('trial') === '1';
+  okEl.innerHTML = isTrial
+    ? '<b>Card saved, starting your free trial…</b> This usually takes a few seconds. Nothing has been charged.'
+    : '<b>Payment received, setting up your access…</b> This usually takes a few seconds.';
   okEl.style.display = 'block';
   document.body.classList.add('checkout-returning');
   const started = Date.now();
@@ -344,7 +381,11 @@ function handleStripeReturn(uid){
     if (done || s.billingProvider !== 'stripe' || !s.stripeSubscriptionId || !((s.paidThroughMillis || 0) > Date.now())) return;
     if (!((s.paidThroughMillis || 0) > started - 60000)) return;
     done = true; setTimeout(() => unsub(), 0);
-    okEl.innerHTML = '<b>You\'re in.</b> Your ' + stkEsc(s.plan || 'plan') + ' access is active. Taking you to your dashboard…';
+    okEl.innerHTML = (isTrial || s.subscriptionStatus === 'trialing')
+      ? '<b>Your free trial has started.</b> ' + stkEsc(s.plan || 'Your plan') + ' is unlocked until ' +
+        stkEsc(new Date(s.paidThroughMillis).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) +
+        '. Taking you to your dashboard…'
+      : '<b>You\'re in.</b> Your ' + stkEsc(s.plan || 'plan') + ' access is active. Taking you to your dashboard…';
     // TODO(meta-pixel): Purchase fires here (event_id = the order id) once that branch lands.
     if (typeof showToast === 'function') showToast('success', 'Payment confirmed: you now have ' + (s.plan || 'your plan') + '.', { title: 'Welcome aboard', duration: 2600 });
     clean();
@@ -461,21 +502,22 @@ function launchRazorpaySubscription(btn, errEl){
     return;
   }
 
+  const trial = checkoutTrialApplies(true);
   btn.disabled = true;
-  btn.textContent = 'Setting up auto-renewal…';
+  btn.textContent = trial ? 'Setting up your free trial…' : 'Setting up auto-renewal…';
   const reset = () => { btn.disabled = false; updateOrderSummary(); };
 
-  fns.httpsCallable('razorpaySubscribe')({
+  fns.httpsCallable('razorpaySubscribe')(Object.assign({
     planId: CHECKOUT_PLAN.id,
     currency: (typeof strykerCurrency === 'function') ? strykerCurrency() : 'INR'
-  }).then((res) => {
+  }, trial ? { trial: true } : {})).then((res) => {
     const o = res.data;
     const user = auth.currentUser;
     const rzp = new Razorpay({
       key: o.keyId,
       subscription_id: o.subscriptionId,
       name: 'Stryker Trading Academy',
-      description: o.planName + ' · auto-renews',
+      description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
       image: 'https://strykertrading.com/assets/images/icon-192.png',
       prefill: {
         email: (user && user.email) || '',
@@ -490,11 +532,13 @@ function launchRazorpaySubscription(btn, errEl){
           subscriptionId: resp.razorpay_subscription_id,
           paymentId: resp.razorpay_payment_id,
           signature: resp.razorpay_signature
-        }).then(() => {
-          finishPaidCheckout();
+        }).then((v) => {
+          finishPaidCheckout(!!(v && v.data && v.data.trial));
         }).catch((err) => {
-          errEl.textContent = 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
-            resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
+          errEl.textContent = o.trial
+            ? ((err && err.message) || 'The free trial could not be started.') + ' Nothing has been charged.'
+            : 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
+              resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
           errEl.style.display = 'block';
           reset();
         });
@@ -516,7 +560,15 @@ function launchRazorpaySubscription(btn, errEl){
 // The server has already written the order, claimed the coupon seat, and
 // granted the plan — this is the client-side tail the free path also runs:
 // activity log, referral credit, confirmation, redirect.
-function finishPaidCheckout(){
+function finishPaidCheckout(trial){
+  if (trial) {
+    // A free trial is not a purchase: no order log line, no referral credit.
+    showToast('success', 'Your ' + STRYKER_TRIAL_DAYS + '-day free trial of ' + CHECKOUT_PLAN.name + ' has started. Nothing has been charged.', {
+      title: 'Free trial started', duration: 2600
+    });
+    setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 1800);
+    return;
+  }
   if (typeof logActivity === 'function') {
     logActivity('commerce.order_created',
       'Bought ' + CHECKOUT_PLAN.name + ' via Razorpay' +
@@ -604,6 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
       CHECKOUT_PLAN = plan;
       renderPlanSummary(CHECKOUT_PLAN);
       updateOrderSummary();
+      // Ask the server whether this member gets a free trial; the page shows
+      // the normal checkout until (and unless) it says yes.
+      if (typeof strykerTrialEligible === 'function') {
+        strykerTrialEligible(plan.id).then((ok) => {
+          TRIAL_ELIGIBLE = ok === true;
+          if (TRIAL_ELIGIBLE) updateOrderSummary();
+        });
+      }
 
       // Campaign links (`?coupon=WELCOME`) pre-fill and apply the code so the
       // student lands on a ready-to-complete order instead of an empty field.

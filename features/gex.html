@@ -110,7 +110,7 @@
 <h1>See where options positioning <em>may matter</em> for price</h1>
 <p class="ft-hero-sub">GEX turns the options chain into a handful of price levels: a call wall, a put wall and a zero-gamma line. Stryker draws them on a futures chart so you can read the session’s context before you take a single trade.</p>
 <div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#what-is-gex" class="btn btn-ghost">How GEX works</a></div>
-<p class="fg-note">Delayed options data. Levels are context, not trade signals.</p>
+<p class="fg-note">Delayed options data. Levels are context, not trade signals. Education only. Not financial advice.</p>
 <figure class="fg-shot fg-hero-shot" data-fg-play>
 <div class="fg-shot-frame">
 <div class="fg-shot-stage">
@@ -123,7 +123,7 @@
 <span class="fg-co fg-co-put" style="--yd:49.2%;--ym:55.3%;--d:1.7s"><i></i><b>Put wall</b><small>heaviest put strike below price</small></span>
 </div>
 </div>
-<figcaption class="fg-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE, shown in Nasdaq futures). Captured with the market closed; these are that session’s levels, not today’s.</figcaption>
+<figcaption class="fg-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE, shown on Nasdaq futures). Market closed: these are that session’s levels, not today’s.</figcaption>
 </figure>
 </header>
 
@@ -179,28 +179,28 @@
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><path class="fg-path fg-draw" style="--len:260;--dur:1.4s" d="M8 52 C50 50 80 40 100 32 S150 14 192 12" stroke-width="2"/><line class="fg-zero" x1="8" y1="32" x2="192" y2="32" stroke-width="1.5" stroke-dasharray="5 5"/><circle class="g-flip" cx="100" cy="32" r="4" fill="#f59e0b"/></svg></div>
 <h3>Zero-gamma flip</h3><p>The price where the model’s net gamma changes sign, from positive to negative. Traders read it as where the model’s regime reading changes.</p><div class="fg-how">Net GEX is re-computed with Black-Scholes gamma on a grid from −10% to +10% of spot; the zero crossing nearest spot is shown.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-fit" src="/assets/images/gex-real/tile-regime.webp" width="720" height="178" loading="lazy" decoding="async" alt="Real capture of the GEX regime panel: SPX spot, a POSITIVE GAMMA badge, net GEX and IV30."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-fit" src="/assets/images/gex-real/tile-regime.webp" width="720" height="178" loading="lazy" decoding="async" alt="Real capture of the GEX regime panel: SPX spot, a POSITIVE GAMMA badge, net GEX and IV30."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE). Market closed: these are that session’s levels, not current levels.</span></div>
 <h3>Regime</h3><p>A positive or negative gamma badge, plus the net GEX figure beside it. It is the headline read of the model.</p><div class="fg-how">The sign of summed net GEX across strikes within 6% of spot, for the expiry filter you picked.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-iv-crop" src="/assets/images/gex-real/tile-iv.webp" width="720" height="107" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes, 68% and 80%, in ES points."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-iv-crop" src="/assets/images/gex-real/tile-iv.webp" width="720" height="107" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes, 68% and 80%, in ES points."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE). Market closed: these are that session’s levels, not current levels.</span></div>
 <h3>IV expected range · 68% / 80%</h3><p>A one-day range implied by options volatility (IV30: 30-day implied volatility, how much movement options are pricing in). The 68% band is one standard deviation; the 80% band is wider.</p><div class="fg-how">Spot ± spot × IV30 × √(1/252) for 68%, and ×1.282 for 80%. It assumes a normal distribution of moves, so it is a statistical estimate of dispersion, not a forecast or a probability that price stays inside.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-ladder.webp" width="520" height="373" loading="lazy" decoding="async" alt="Real capture of the strike ladder near spot: net GEX profile bars, net DEX and open interest per strike."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-ladder.webp" width="520" height="373" loading="lazy" decoding="async" alt="Real capture of the strike ladder near spot: net GEX profile bars, net DEX and open interest per strike."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE). Market closed: these are that session’s levels, not current levels.</span></div>
 <h3>Strike ladder · net GEX / DEX / OI</h3><p>A table down the side of the page: for each strike, its net GEX, net delta exposure (DEX), open interest (contracts still open at that strike) and the matching futures price.</p><div class="fg-how">Strikes within 4% of spot. The profile bar scales to the largest net GEX in view.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips g-seq"><span class="fg-chip">0DTE</span><span class="fg-chip">1DTE</span><span class="fg-chip">1W</span><span class="fg-chip">1M</span></div></div>
 <h3>Expiry filters</h3><p>Switch between 0DTE, 1DTE, 1W and 1M. The levels re-compute for just those expiries.</p><div class="fg-how">0DTE uses the nearest listed expiry on its own and 1DTE uses the next one after it. 1W and 1M include every expiry within 7 or 30 days.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-walls-crop" src="/assets/images/gex-real/walls-spx-1dte.webp" width="720" height="588" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall, spot, zero gamma and put wall for SPX, each converted to an ES futures price."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-walls-crop" src="/assets/images/gex-real/walls-spx-1dte.webp" width="720" height="588" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall, spot, zero gamma and put wall for SPX, each converted to an ES futures price."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE). Market closed: these are that session’s levels, not current levels.</span></div>
 <h3>Futures conversion</h3><p>Options levels are calculated on the index or ETF. Stryker converts them to the futures contracts traders chart, so a level reads in futures points. SPY (to ES/MES) is also available.</p><div class="fg-how">Index levels shift by the current futures basis; ETF levels use a ratio anchored to the latest futures price. Futures prices are delayed too.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-market-levels.webp" width="720" height="437" loading="lazy" decoding="async" alt="Real capture of the market-generated levels card: prior value area, prior RTH range, overnight high and low, RTH open, high and low for ES."><span class="fg-crop-cap">Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-market-levels.webp" width="720" height="437" loading="lazy" decoding="async" alt="Real capture of the market-generated levels card: prior value area, prior RTH range, overnight high and low, RTH open, high and low for ES."><span class="fg-crop-cap">Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct). Market closed: not current levels.</span></div>
 <h3>Prior-day VAH · POC · VAL</h3><p>Yesterday’s value area high, point of control and value area low, drawn on the same chart as the gamma levels.</p><div class="fg-how">A 70% value area built from the prior regular session’s 5-minute futures candles, volume-weighted when volume is available.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-on" x1="14" y1="14" x2="186" y2="14" stroke-width="2" stroke-dasharray="6 5"/><line class="fg-on" x1="14" y1="50" x2="186" y2="50" stroke-width="2" stroke-dasharray="6 5"/><path class="fg-path fg-draw" style="--len:200;--dur:1.4s" d="M14 38 C44 20 70 46 98 30 S150 22 186 34" stroke-width="2"/></svg></div>
 <h3>Overnight high / low</h3><p>The extremes made between the prior close and the next open, a common reference for where the session begins.</p><div class="fg-how">Highest and lowest futures price from 16:00 New York time on the prior session to 09:30 today.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-chart.webp" width="720" height="511" loading="lazy" decoding="async" alt="Real capture of the GEX futures chart, SPX 1W levels on ES 1-hour candles, with IV band, overnight high, zero gamma, prior value area and put wall drawn as labelled lines."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1W on ES, 1h).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-chart.webp" width="720" height="511" loading="lazy" decoding="async" alt="Real capture of the GEX futures chart, SPX 1W levels on ES 1-hour candles, with IV band, overnight high, zero gamma, prior value area and put wall drawn as labelled lines."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1W shown on ES, 1h chart). Market closed: not current levels.</span></div>
 <h3>Chart with levels</h3><p>A TradingView Lightweight Charts candlestick chart for the futures contract, with the walls, the flip, the IV band and the market levels drawn as lines. Switch 1m, 5m, 15m or 1h.</p><div class="fg-how">Candles are delayed futures data. Market levels can be switched on and off from the legend.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><circle class="g-pinch l" cx="78" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><circle class="g-pinch r" cx="122" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><path d="M66 32h-18M134 32h18M56 26l-8 6 8 6M144 26l8 6-8 6" stroke="var(--ink-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -256,7 +256,7 @@
 </div>
 </div>
 <ol class="fg-pin-key"><li><b>Market</b> SPX, SPY, QQQ or GLD</li><li><b>Expiry</b> 0DTE, 1DTE, 1W or 1M</li><li><b>Data age</b> Cboe timestamp and market status</li><li><b>Levels on the chart</b> here, the zero-gamma line</li><li><span class="fg-d"><b>Strike ladder</b> net GEX, DEX and OI by strike</span><span class="fg-m"><b>Market levels</b> switch the extra chart lines on or off</span></li></ol>
-<figcaption class="fg-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX, 1DTE). Captured while the market was closed; not current levels. <button type="button" id="fg-replay">Replay labels</button></figcaption>
+<figcaption class="fg-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE). Market closed: not current levels. <button type="button" id="fg-replay">Replay labels</button></figcaption>
 </figure>
 </section>
 

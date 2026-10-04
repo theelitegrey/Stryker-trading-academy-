@@ -1,0 +1,120 @@
+/* Stryker — /features/gex-c preview ("Tile wall").
+   Bento of REAL crops from the GEX tool. Every animation sits on top of the
+   unedited screenshot and only uses transform/opacity. Without html.gc-anim
+   (reduced motion, no JS, no IntersectionObserver) every overlay shows its
+   finished state. */
+
+:root{ --gc-call:#ef4444; --gc-put:#22c55e; --gc-zero:#f59e0b; --gc-on:#94a3b8; --gc-acc:#03c988; --gc-shot:#08090b; }
+
+/* ---------- bento grid ---------- */
+.gc-bento{ display:grid; gap:12px; grid-template-columns:minmax(0,1fr); margin-top:6px; }
+@media (min-width:640px){ .gc-bento{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (min-width:1040px){ .gc-bento{ grid-template-columns:repeat(4,minmax(0,1fr)); } .gc-w2{ grid-column:span 2; } .gc-h2{ grid-row:span 2; } }
+@media (min-width:640px) and (max-width:1039px){ .gc-w2{ grid-column:span 2; } }
+
+.gc-tile{ position:relative; display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:18px;
+  background:var(--bg-2, #0d0f12); border:1px solid var(--line, rgba(255,255,255,.08)); outline:none;
+  -webkit-tap-highlight-color:transparent; cursor:pointer; transition:transform .25s ease; }
+.gc-tile:focus-visible{ box-shadow:0 0 0 2px var(--gc-acc); }
+@media (hover:hover){ .gc-tile:hover{ transform:translateY(-2px); } }
+.gc-tile h3{ font-size:17px; margin:2px 2px 0; }
+.gc-tile p{ font-size:14px; line-height:1.55; color:var(--ink-2); margin:0 2px; }
+.gc-how{ font-size:12.5px; line-height:1.55; color:var(--ink-3); margin:0 2px; padding-top:8px; border-top:1px dashed var(--line, rgba(255,255,255,.1)); }
+.gc-tap{ position:absolute; right:12px; top:12px; z-index:3; font:600 10px/1 var(--font-mono, ui-monospace, monospace); letter-spacing:.08em;
+  color:#e5e7eb; background:rgba(0,0,0,.55); border:1px solid rgba(255,255,255,.15); border-radius:999px; padding:5px 8px; pointer-events:none; }
+
+/* ---------- shot frame: real pixels + overlay layer ---------- */
+.gc-shot{ position:relative; overflow:hidden; border-radius:12px; background:var(--gc-shot); border:1px solid rgba(255,255,255,.08); isolation:isolate; }
+.gc-shot img{ display:block; width:100%; height:auto; }
+.gc-shot > i{ position:absolute; display:block; pointer-events:none; }
+.gc-cap{ display:block; font-size:10.5px; line-height:1.5; color:var(--ink-3); margin:0 2px; }
+
+/* wall line: slides in from the left over the real line */
+.gc-line{ left:0; height:3px; margin-top:-1.5px; top:var(--y); width:var(--w,72%); border-radius:2px; opacity:.9; transform-origin:left center; }
+.gc-line.call{ background:var(--gc-call); box-shadow:0 0 12px 2px rgba(239,68,68,.6); }
+.gc-line.put { background:var(--gc-put);  box-shadow:0 0 12px 2px rgba(34,197,94,.6); }
+.gc-line.zero{ background:var(--gc-zero); box-shadow:0 0 12px 2px rgba(245,158,11,.6); }
+.gc-line.on  { background:var(--gc-on);   box-shadow:0 0 10px 2px rgba(148,163,184,.55); }
+html.gc-anim .gc-line{ opacity:0; transform:translateX(-102%); }
+html.gc-anim .is-play .gc-line{ animation:gc-slide 1.1s cubic-bezier(.2,.8,.2,1) var(--d,0s) forwards; }
+@keyframes gc-slide{ 0%{ opacity:.95; transform:translateX(-102%); } 70%{ opacity:.95; transform:none; } 100%{ opacity:.45; transform:none; } }
+
+/* scanning highlight: a soft bar that sweeps down the capture */
+.gc-scan{ left:0; right:0; top:0; height:22%; background:linear-gradient(180deg, rgba(3,201,136,0), rgba(3,201,136,.16) 50%, rgba(3,201,136,0)); opacity:0; }
+html.gc-anim .is-play .gc-scan{ animation:gc-scan 2.6s ease-in-out var(--d,.2s) 2 both; }
+@keyframes gc-scan{ 0%{ opacity:0; transform:translateY(-100%); } 15%{ opacity:1; } 85%{ opacity:1; } 100%{ opacity:0; transform:translateY(460%); } }
+.gc-scanx{ top:0; bottom:0; left:0; width:16%; background:linear-gradient(90deg, rgba(3,201,136,0), rgba(3,201,136,.18) 50%, rgba(3,201,136,0)); opacity:0; }
+html.gc-anim .is-play .gc-scanx{ animation:gc-scanx 2.2s ease-in-out var(--d,.2s) 2 both; }
+@keyframes gc-scanx{ 0%{ opacity:0; transform:translateX(-100%); } 15%,85%{ opacity:1; } 100%{ opacity:0; transform:translateX(640%); } }
+
+/* ladder: a cover in the capture's own background colour shrinks away,
+   so the real profile bars appear to grow out from their anchor */
+.gc-cover{ left:var(--x); width:var(--w); top:var(--y); height:var(--h); background:rgb(8,10,11); transform-origin:left center; transform:scaleX(0); }
+html.gc-anim .gc-cover{ transform:scaleX(1); }
+html.gc-anim .is-play .gc-cover{ animation:gc-uncover 1.4s cubic-bezier(.3,.7,.2,1) var(--d,.25s) forwards; }
+@keyframes gc-uncover{ to{ transform:scaleX(0); } }
+
+/* range band expands from its centre */
+.gc-band{ left:var(--x); width:var(--w); top:var(--y); height:var(--h); border-radius:8px; background:rgba(3,201,136,.14); box-shadow:inset 0 0 0 1.5px rgba(3,201,136,.7); transform-origin:center; }
+html.gc-anim .gc-band{ opacity:0; transform:scaleX(.08); }
+html.gc-anim .is-play .gc-band{ animation:gc-band 1.1s cubic-bezier(.2,.8,.2,1) var(--d,.2s) forwards; }
+@keyframes gc-band{ 0%{ opacity:1; transform:scaleX(.08); } 100%{ opacity:1; transform:scaleX(1); } }
+
+/* ring / glow that pulses over a real control */
+.gc-ring{ left:var(--x); top:var(--y); width:var(--w); height:var(--h); border-radius:999px; box-shadow:0 0 0 2px var(--gc-acc), 0 0 16px 2px rgba(3,201,136,.5); }
+html.gc-anim .gc-ring{ opacity:0; }
+html.gc-anim .is-play .gc-ring{ animation:gc-ring 1.6s ease-out var(--d,.2s) 2 both; }
+@keyframes gc-ring{ 0%{ opacity:0; transform:scale(1.35); } 35%{ opacity:1; transform:scale(1); } 100%{ opacity:.85; transform:scale(1); } }
+
+/* chip scan: steps across the four expiry buttons */
+.gc-chip{ top:6%; bottom:6%; left:1%; width:24%; border-radius:999px; box-shadow:inset 0 0 0 2px rgba(3,201,136,.9); opacity:0; }
+html.gc-anim .is-play .gc-chip{ opacity:1; animation:gc-chips 4.8s steps(4, end) .2s infinite; }
+@keyframes gc-chips{ from{ transform:translateX(0); } to{ transform:translateX(410%); } }
+
+/* row sweep: highlights each wall row in turn */
+.gc-row{ left:0; right:0; top:var(--y); height:var(--h); background:rgba(255,255,255,.07); opacity:0; }
+html.gc-anim .is-play .gc-row{ animation:gc-row 1.2s ease-in-out var(--d,0s) both; }
+@keyframes gc-row{ 0%{ opacity:0; transform:translateX(-30%); } 40%{ opacity:1; transform:none; } 100%{ opacity:0; transform:none; } }
+
+/* ---------- hero bento ---------- */
+.gc-hero-grid{ display:grid; gap:12px; max-width:1120px; margin:28px auto 0; text-align:left; }
+@media (min-width:900px){ .gc-hero-grid{ grid-template-columns:minmax(0,1.65fr) minmax(0,1fr); } }
+.gc-side{ display:grid; gap:12px; align-content:start; }
+.gc-hero-grid .gc-tile{ cursor:pointer; }
+.gc-mini{ font:600 11px/1.3 var(--font-mono, ui-monospace, monospace); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2); margin:0 2px; }
+
+/* chart overlay positions differ for the phone (MNQ) and desktop (NQ) capture */
+.gc-big .gc-line{ top:var(--yd); width:var(--wd,73%); }
+@media (max-width:600px){ .gc-big .gc-line{ top:var(--ym); width:var(--wm,75%); } }
+
+/* ---------- regime toggle (before/after) ---------- */
+.gc-regime{ max-width:880px; margin:0 auto; }
+.gc-seg{ display:inline-flex; padding:4px; border-radius:999px; background:var(--bg-2, #0d0f12); border:1px solid var(--line, rgba(255,255,255,.1)); margin:0 auto 14px; }
+.gc-seg-wrap{ text-align:center; }
+.gc-seg button{ appearance:none; border:0; background:transparent; color:var(--ink-2); font:600 13px/1 inherit; padding:10px 16px; border-radius:999px; cursor:pointer; min-height:40px; transition:background-color .25s, color .25s; }
+.gc-seg button[aria-pressed="true"]{ color:#04130d; background:var(--gc-acc); }
+.gc-seg button[data-v="neg"][aria-pressed="true"]{ color:#fff; background:#dc2626; }
+.gc-rstage .gc-wash{ left:0; width:var(--w,73%); transition:opacity .6s ease, transform .8s cubic-bezier(.2,.8,.2,1); }
+.gc-wash.pos{ top:0; height:var(--yd); background:linear-gradient(180deg, rgba(34,197,94,.04), rgba(34,197,94,.30)); transform-origin:center bottom; }
+.gc-wash.neg{ top:var(--yd); bottom:0; background:linear-gradient(180deg, rgba(239,68,68,.34), rgba(239,68,68,.06)); transform-origin:center top; }
+@media (max-width:600px){ .gc-wash.pos{ height:var(--ym); } .gc-wash.neg{ top:var(--ym); } .gc-rstage .gc-wash{ width:var(--wm,75%); } }
+.gc-regime[data-state="pos"] .gc-wash.neg, .gc-regime[data-state="neg"] .gc-wash.pos{ opacity:0; transform:scaleY(.2); }
+.gc-regime[data-state="pos"] .gc-wash.pos, .gc-regime[data-state="neg"] .gc-wash.neg{ opacity:1; transform:none; }
+.gc-rstage .gc-line{ top:var(--yd); width:var(--w,73%); opacity:.6; }
+@media (max-width:600px){ .gc-rstage .gc-line{ top:var(--ym); width:var(--wm,75%); } }
+.gc-rtext{ position:relative; margin-top:14px; min-height:0; }
+.gc-rtext > div{ transition:opacity .4s ease; }
+.gc-regime[data-state="pos"] .gc-rtext .neg, .gc-regime[data-state="neg"] .gc-rtext .pos{ display:none; }
+.gc-rtext h3{ font-size:17px; margin:0 0 6px; }
+.gc-rtext p{ color:var(--ink-2); margin:0; }
+.gc-flipnote{ font-size:13px; color:var(--ink-3); margin:10px 0 0; }
+
+/* light theme: captures stay dark, text and frames follow the theme */
+html[data-theme="light"] .gc-tile{ background:#fff; border-color:rgba(0,0,0,.09); box-shadow:0 1px 2px rgba(0,0,0,.04); }
+html[data-theme="light"] .gc-seg{ background:#fff; border-color:rgba(0,0,0,.12); }
+
+/* reduced motion: final state, no hover lift */
+@media (prefers-reduced-motion: reduce){
+  .gc-tile, .gc-rstage .gc-wash, .gc-seg button{ transition:none; }
+  .gc-tile:hover{ transform:none; }
+}

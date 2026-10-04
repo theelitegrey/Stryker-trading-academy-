@@ -28,11 +28,11 @@
   }
   function dataFreshness(asof){
     var t = asof ? Date.parse(asof) : NaN;
-    if(!isFinite(t)) return {state:'stale', age:'unknown age', title:'Data age unknown', reason:'No Cboe timestamp was returned.'};
+    if(!isFinite(t)) return {state:'stale', age:'unknown age', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
     var age = Date.now() - t;
     var state = age <= 30*60000 ? 'fresh' : 'stale';
-    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Updating', reason:'Cboe options chain updated '+ageLabel(age)+'.'};
-    return {state:state, age:ageLabel(age), title:'Stale data', reason:'Cboe delayed options chain is '+ageLabel(age)+' — levels may lag.'};
+    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Cboe delayed options chain updated '+ageLabel(age)+'.'};
+    return {state:state, age:ageLabel(age), title:'Market closed', reason:'Options chain is frozen from the last Cboe session · '+ageLabel(age)+'.'};
   }
   function setFreshnessStatus(d){
     var f = dataFreshness(d && d.asof);
@@ -92,7 +92,7 @@
     }catch(e){
       $('gex-status-text').innerHTML = '<b class="gex-error">GEX API error</b><span> '+esc(e.message)+'</span>';
       var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh'); status.classList.add('is-stale'); }
-      var freshText = $('gex-freshness-text'); if(freshText) freshText.innerHTML = '<b>Connection issue</b><span>GEX API did not return fresh data.</span>';
+      var freshText = $('gex-freshness-text'); if(freshText) freshText.innerHTML = '<b>Session unavailable</b><span>GEX API did not return session timestamp data.</span>';
       $('gex-levels').innerHTML = '<p class="gex-error">'+esc(e.message)+'</p>';
     }
   }

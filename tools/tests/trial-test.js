@@ -169,19 +169,36 @@ async function page(browser, url, cfg, width) {
       check('checkout INR: no page errors', errors, []);
       await ctx.close();
 
-      // Pricing cards on the homepage
+      // Homepage pricing: the "Hero Pro" layout (build 393, assets/pricing-hero.js).
+      // The spotlight CTA .pv-hero [data-pro-cta] gets the trial label and small
+      // print; the "Start free" strip must stay untouched.
       ({ p, ctx, errors } = await page(browser, 'index.html', { trialOn: true, eligible: true, signedIn: true }, w));
+      await p.waitForSelector('.pv-hero [data-pro-cta]', { timeout: 8000 }).catch(() => {});
       await p.waitForTimeout(800);
       r = await p.evaluate(() => {
-        const cards = [...document.querySelectorAll('#pricing-grid .price-card')];
-        return cards.map((c) => ({ h: c.querySelector('h3') && c.querySelector('h3').textContent,
-          btn: (c.querySelector('a.btn') || {}).textContent, small: !!c.querySelector('.trial-smallprint') }));
+        const cta = document.querySelector('.pv-hero [data-pro-cta]');
+        const next = cta && cta.nextElementSibling;
+        const strip = document.querySelector('.pv-strip');
+        return { cta: cta ? cta.textContent : null,
+          small: !!(next && next.classList.contains('trial-smallprint')),
+          freeSmall: !!(strip && strip.querySelector('.trial-smallprint')),
+          freeBtn: strip ? (strip.querySelector('a.btn') || {}).textContent : null };
       });
-      const pro = r.find((c) => c.h === 'Pro') || {};
-      const free = r.find((c) => c.h === 'Free') || {};
-      check('pricing: Pro card says Start 7-day free trial', [pro.btn, pro.small], ['Start 7-day free trial', true]);
-      check('pricing: Free card untouched', free.small, false);
-      await shot(p, '#pricing-grid', 'pricing-' + w, true);
+      check('pricing: Hero Pro CTA says Start 7-day free trial + small print', [r.cta, r.small], ['Start 7-day free trial', true]);
+      check('pricing: Start free strip untouched', [r.freeSmall, /trial/i.test(r.freeBtn || '')], [false, false]);
+      await shot(p, '.pv-hero', 'pricing-' + w, true);
+      check('pricing: no page errors', errors, []);
+      await ctx.close();
+
+      // Switch off: the Hero Pro CTA keeps its normal label, no small print
+      ({ p, ctx, errors } = await page(browser, 'index.html', { trialOn: false, eligible: true, signedIn: true }, w));
+      await p.waitForSelector('.pv-hero [data-pro-cta]', { timeout: 8000 }).catch(() => {});
+      await p.waitForTimeout(800);
+      r = await p.evaluate(() => {
+        const cta = document.querySelector('.pv-hero [data-pro-cta]');
+        return { cta: cta ? cta.textContent : null, small: !!document.querySelector('.pv-hero .trial-smallprint') };
+      });
+      check('pricing (switch off): Hero Pro CTA has no trial label or small print', [/trial/i.test(r.cta || ''), r.small, !!r.cta], [false, false, true]);
       await ctx.close();
 
       // Upgrade modal (dashboard)

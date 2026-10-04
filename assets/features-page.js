@@ -21,6 +21,12 @@
 //                  while on screen, count-up of .sx-num b
 //  [data-fp-ix]    index-nav links, highlighted for the row under mid-screen
 //  [data-fp-tl]    3-step timeline: auto-advances while visible, click to pick
+//
+// DRAGON BACKGROUND
+//  After window load this script appends assets/dragon-bg.js (same ?v= build),
+//  so every page built on this template gets the background with no extra tag.
+//  The dragon script loads its own CSS and skips reduced-data / low-end devices.
+//  Opt a page out with <body data-no-dragon>.
 (function () {
   'use strict';
   var reduced = false;
@@ -188,4 +194,20 @@
       }, { passive: true });
     }
   });
+
+  // ---- dragon background: fetched only after load, never blocks the page ---
+  (function () {
+    var me = document.currentScript;
+    var v = me && /[?&]v=([^&]+)/.exec(me.src || '');
+    function add() {
+      if (document.body && document.body.hasAttribute('data-no-dragon')) return;
+      if (document.querySelector('script[src*="dragon-bg.js"]')) return;
+      var s = document.createElement('script');
+      s.src = '/assets/dragon-bg.js' + (v ? '?v=' + v[1] : '');
+      s.async = true;
+      document.body.appendChild(s);
+    }
+    if (document.readyState === 'complete') add();
+    else window.addEventListener('load', add, { once: true });
+  })();
 })();

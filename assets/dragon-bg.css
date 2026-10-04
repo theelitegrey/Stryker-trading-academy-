@@ -1,0 +1,58 @@
+/* dragon-bg.css: background layer for the flowing dragon.
+   Used by: the /features/<name> pages and the /features hub. Never linked from HTML:
+   assets/dragon-bg.js injects it (same ?v= build) and creates the two canvases below
+   after the page has loaded. Page overrides are scoped to html.dragon-on, which the
+   script sets only once the layer is actually drawing.
+   The layer sits under all content (z-index:-1 inside the root stacking context;
+   body's background is propagated to the canvas, so the layer still shows),
+   never takes pointer events and never affects layout. */
+.dragon-bg{
+  position:fixed; left:0; top:0; width:100vw; height:100vh; height:100lvh;
+  z-index:-1; pointer-events:none; display:block;
+  opacity:0; transition:opacity 1.2s ease;
+  contain:strict;
+}
+.dragon-bg.on{ opacity:1; }
+/* The hero paints an opaque base colour that would hide the layer; keep its green
+   radial glow but let the page background (same near-black) show through instead. */
+.dragon-on .ft-hero{ background-color:transparent; }
+/* Far layer: dim and soft. The blur is desktop-only (see JS: mobile skips the class). */
+.dragon-bg.far.soft{ filter:blur(2.5px); }
+/* Keep the dragon faint behind the reading column, brighter in the side gutters. */
+@media (min-width:901px){
+  .dragon-bg.near{
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 9%,rgba(0,0,0,.42) 24%,rgba(0,0,0,.42) 76%,#000 91%,#000 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 9%,rgba(0,0,0,.42) 24%,rgba(0,0,0,.42) 76%,#000 91%,#000 100%);
+  }
+}
+/* Far layer stays dim: it is the "deep" plane. */
+.dragon-bg.far.on{ opacity:.5; }
+@media (max-width:900px){
+  /* Phones: the reading column is the whole screen, so keep the dragon quieter. */
+  .dragon-bg.near.on{ opacity:.5; }
+  .dragon-bg.far.on{ opacity:.4; }
+}
+:root[data-theme="light"] .dragon-bg.near.on{ opacity:.55; }
+:root[data-theme="light"] .dragon-bg.far.on{ opacity:.35; }
+@media (max-width:900px){
+  :root[data-theme="light"] .dragon-bg.near.on{ opacity:.42; }
+  :root[data-theme="light"] .dragon-bg.far.on{ opacity:.28; }
+}
+@media (prefers-reduced-motion:reduce){
+  .dragon-bg{ transition:none; }
+}
+/* Feature cards + string on top of the dragon (build 369 layout).
+   The dragon canvases stay at z-index:-1, under .sx-rows (z-index:0), so the
+   cards, the thread and its travelling pulse always paint above it. Each card
+   gets a soft page-coloured halo so the dragon dims around the card edges and
+   the card reads crisp; the thread glow is lifted a touch so it stays visible
+   when the dragon passes behind it. */
+.dragon-on .sx-rows{ isolation:isolate; }
+.dragon-on .sx-rows .sx-row{
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.25), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent);
+}
+@media (hover:hover) and (pointer:fine){
+  .dragon-on .sx-rows .sx-row:hover{ box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent); }
+}
+.dragon-on .sx-rows .sx-row:focus-within, .dragon-on .sx-rows .sx-row.is-tilt{ box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent); }
+.dragon-on .sx-rows::before{ box-shadow:0 0 10px rgba(0,196,140,.5), 0 0 3px rgba(0,196,140,.6); }

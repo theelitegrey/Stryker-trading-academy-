@@ -1,4 +1,7 @@
 const CBOE = 'https://cdn.cboe.com/api/global/delayed_quotes/options/';
+const FETCH_TIMEOUT_MS = 4500;
+const quoteMemo = new Map();
+const candleMemo = new Map();
 
 const MARKETS = {
   SPX: { cboe: '_SPX', fut: 'ES', mult: 1.0 },
@@ -35,12 +38,20 @@ function json(data, init = {}) {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
-async function fetchJson(url) {
-  const res = await fetch(url, {
-    headers: { 'user-agent': 'Mozilla/5.0 StrykerGEX/1.0', 'accept': 'application/json' }
-  });
-  if (!res.ok) throw new Error(`fetch ${res.status} ${url}`);
-  return res.json();
+async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      redirect: 'follow',
+      headers: { 'user-agent': 'Mozilla/5.0 StrykerGEX/1.0', 'accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error(`fetch ${res.status} ${url}`);
+    return res.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function todayUtc() {
@@ -208,7 +219,12 @@ async function quoteLast(symbol, interval = '5m', range = '1d') {
 
 async function quoteLastRange(symbol, interval, range) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
-  const data = await fetchJson(url);
+  let data = quoteMemo.get(url);
+  if (!data) {
+    data = await fetchJson(url);
+    if (quoteMemo.size > 40) quoteMemo.clear();
+    quoteMemo.set(url, data);
+  }
   const r = data.chart?.result?.[0];
   const q = r?.indicators?.quote?.[0];
   const ts = r?.timestamp || [];
@@ -265,11 +281,13 @@ async function convertLevels(name, spot, rawLevels) {
   return res;
 }
 
+const nyFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false
+});
+
 function nyParts(tsSec) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', hour12: false
-  }).formatToParts(new Date(tsSec * 1000));
+  const parts = nyFormatter.formatToParts(new Date(tsSec * 1000));
   const get = t => parts.find(p => p.type === t)?.value;
   return { date: `${get('year')}-${get('month')}-${get('day')}`, min: Number(get('hour')) * 60 + Number(get('minute')) };
 }
@@ -277,6 +295,9 @@ function nyParts(tsSec) {
 async function yahooCandles(fut, interval = '5m') {
   fut = String(fut || '').toUpperCase();
   if (!FUTURES[fut]) throw new Error(`unknown futures symbol ${fut}`);
+  const memoKey = `${fut}:${interval}`;
+  const memo = candleMemo.get(memoKey);
+  if (memo && Date.now() - memo.ts < 60000) return structuredClone(memo.data);
   const periods = { '1m': '2d', '2m': '5d', '5m': '5d', '15m': '1mo', '30m': '1mo', '1h': '3mo', '1d': '1y' };
   if (!periods[interval]) interval = '5m';
   const [yh] = FUTURES[fut];
@@ -286,7 +307,10 @@ async function yahooCandles(fut, interval = '5m') {
   let out = await candleRows(yh, periods[interval], interval);
   if (!out.length && wider[interval]) out = await candleRows(yh, wider[interval], interval);
   if (!out.length) throw new Error(`no candle data for ${fut} ${interval}`);
-  return { symbol: fut, interval, candles: out, last: out[out.length - 1].close, count: out.length };
+  const data = { symbol: fut, interval, candles: out, last: out[out.length - 1].close, count: out.length };
+  if (candleMemo.size > 20) candleMemo.clear();
+  candleMemo.set(memoKey, { ts: Date.now(), data });
+  return structuredClone(data);
 }
 
 async function candleRows(yh, range, interval) {

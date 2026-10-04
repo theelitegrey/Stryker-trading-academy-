@@ -10,6 +10,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=384">
+<link rel="stylesheet" href="assets/dash-cc.css?v=384">
 <!-- Kept synchronous, NOT deferred (audit P2-1 win 3 asked to check this):
      every stkEsc/stkHtml/stkUrl/stkImgUrl caller across the site (34 files,
      e.g. dashboard.js, community.js, checkout.js) is itself a plain sync
@@ -252,150 +253,217 @@
     </div>
   </aside>
 
-  <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
-        <p id="dash-subtitle">Loading your progress…</p>
-      </div>
-      <a href="courses" class="btn btn-primary" id="dash-resume-btn">Resume</a>
-    </div>
+  <main class="dash-main cc" id="main" tabindex="-1">
+    <!-- Variation A "Command Center": themed duotone icon set (one style, brand mint/teal + amber accent) -->
+    <svg class="cc-sprite" aria-hidden="true" focusable="false" width="0" height="0">
+      <defs>
+        <symbol id="cci-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z" fill="currentColor" fill-opacity=".14"/><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/><path d="M9 8h7" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".14"/><circle cx="12" cy="12" r="9.5"/><path d="M10 8.5l5.5 3.5-5.5 3.5z" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-flame" viewBox="0 0 24 24"><path d="M12 2.5c1 3.5 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0c0-3 1.5-4.5 2.5-6 .5 2 1.5 3 2.5 3 0-3-1-5 .5-8z" fill="currentColor" fill-opacity=".14"/><path d="M12 2.5c1 3.5 5.5 5.5 5.5 11a5.5 5.5 0 0 1-11 0c0-3 1.5-4.5 2.5-6 .5 2 1.5 3 2.5 3 0-3-1-5 .5-8z"/><path d="M12 19a2 2 0 0 1-2-2c0-1.2 1-2 2-3.5 1 1.5 2 2.3 2 3.5a2 2 0 0 1-2 2z" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".14"/><circle cx="12" cy="12" r="9.5"/><path d="M12 7v5l3.5 2" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-trophy" viewBox="0 0 24 24"><path d="M7 3h10v6a5 5 0 0 1-10 0z" fill="currentColor" fill-opacity=".14"/><path d="M7 3h10v6a5 5 0 0 1-10 0zM7 5H4v2a3 3 0 0 0 3 3M17 5h3v2a3 3 0 0 1-3 3M12 14v4M8 21h8M9 18h6"/><path d="M12 6v3" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-journal" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5" fill="currentColor" fill-opacity=".14"/><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 16l3-3.5 2.5 2L17 9"/><circle cx="17" cy="9" r="1.2" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-gex" viewBox="0 0 24 24"><path d="M3 20h18" /><rect x="5" y="11" width="3" height="9" rx="1" fill="currentColor" fill-opacity=".14"/><rect x="10.5" y="6" width="3" height="14" rx="1" fill="currentColor" fill-opacity=".14"/><rect x="16" y="13" width="3" height="7" rx="1" fill="currentColor" fill-opacity=".14"/><path d="M3 9h18" stroke-dasharray="2 2.5" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-backtest" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" /><path d="M3 3.5V8h4.5"/><circle cx="12" cy="12" r="4.5" fill="currentColor" fill-opacity=".14"/><path d="M11 10l3 2-3 2z" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-charts" viewBox="0 0 24 24"><path d="M7 3v4M7 17v4M16 2v3M16 19v3"/><rect x="4.5" y="7" width="5" height="10" rx="1" fill="currentColor" fill-opacity=".14"/><rect x="4.5" y="7" width="5" height="10" rx="1"/><rect x="13.5" y="5" width="5" height="14" rx="1" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-models" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M6 16l4-5 3 3 6-7" /><path d="M6 16l4-5 3 3 6-7V18H6z" fill="currentColor" fill-opacity=".14" stroke="none"/><circle cx="19" cy="7" r="1.3" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-indicator" viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="16" rx="3" fill="currentColor" fill-opacity=".14"/><rect x="2.5" y="4" width="19" height="16" rx="3"/><path d="M5 12h3l2-4 3 8 2-4h4" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity=".14"/><circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5a14 14 0 0 1 0 19M12 2.5a14 14 0 0 0 0 19"/><path d="M5 7.5h14" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-brief" viewBox="0 0 24 24"><path d="M5 20V5a2 2 0 0 1 2-2h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" fill="currentColor" fill-opacity=".14"/><path d="M5 20V5a2 2 0 0 1 2-2h8l4 4v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1zM15 3v4h4"/><path d="M8.5 12h7M8.5 16h4.5" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-calendar" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5" fill="currentColor" fill-opacity=".14"/><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><circle cx="15.5" cy="15" r="1.6" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-map" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="10" rx="1.6" fill="currentColor" fill-opacity=".14"/><rect x="3" y="3" width="8" height="10" rx="1.6"/><rect x="13" y="3" width="8" height="6" rx="1.6"/><rect x="3" y="15" width="8" height="6" rx="1.6"/><rect x="13" y="11" width="8" height="10" rx="1.6" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-bank" viewBox="0 0 24 24"><path d="M2.5 9.5L12 4l9.5 5.5z" fill="currentColor" fill-opacity=".14"/><path d="M2.5 9.5L12 4l9.5 5.5zM3 21h18M4.5 18h15M6.5 18v-6M10 18v-6M14 18v-6M17.5 18v-6"/><circle cx="12" cy="7.3" r=".9" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-floor" viewBox="0 0 24 24"><path d="M9 9V5.5A2.5 2.5 0 0 1 11.5 3h8A2.5 2.5 0 0 1 22 5.5v3A2.5 2.5 0 0 1 19.5 11H15"/><path d="M4.5 9h8A2.5 2.5 0 0 1 15 11.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z" fill="currentColor" fill-opacity=".14"/><path d="M4.5 9h8A2.5 2.5 0 0 1 15 11.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z"/><path d="M6 13.5h5" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-live" viewBox="0 0 24 24"><rect x="2.5" y="6" width="14" height="12" rx="2.5" fill="currentColor" fill-opacity=".14"/><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="M16.5 10.5l5-3v9l-5-3"/><circle cx="7" cy="10.5" r="1.4" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-chat" viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z" fill="currentColor" fill-opacity=".14"/><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/><path d="M8.5 11.5h.01M12.5 11.5h.01M16.5 11.5h.01" style="stroke:var(--amber)" stroke-width="2.4"/></symbol>
+        <symbol id="cci-gift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="4" rx="1" fill="currentColor" fill-opacity=".14"/><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v9H5v-9"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5" fill="currentColor" fill-opacity=".14"/><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-spark" viewBox="0 0 24 24"><path d="M12 3l2 6.5L20.5 12 14 14l-2 7-2-7-6.5-2L10 9.5z" fill="currentColor" fill-opacity=".14"/><path d="M12 3l2 6.5L20.5 12 14 14l-2 7-2-7-6.5-2L10 9.5z"/><path d="M19 3v3M17.5 4.5h3" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-tools" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2" fill="currentColor" fill-opacity=".14"/><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><circle cx="17" cy="17" r="4" style="stroke:var(--amber)"/></symbol>
+        <symbol id="cci-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+        <symbol id="cci-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2" style="stroke:var(--amber)"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+      </defs>
+    </svg>
 
     <div id="dash-brief" hidden></div>
     <div id="dash-map" hidden></div>
     <div id="dash-cal" hidden></div>
     <div id="dash-onboarding" hidden></div>
 
-    <!-- ===== Integrated overview: journal + markets + community ===== -->
-    <div class="dov" id="dov">
-      <div class="panel dov-brief">
-        <div class="dov-brief-head">
-          <span class="dov-brief-star">✦</span><b>DAILY BRIEFING</b>
+    <!-- ===== HERO ===== -->
+    <section class="cc-hero dash-topbar" aria-labelledby="cc-hero-title">
+      <canvas class="cc-aurora" id="cc-aurora" aria-hidden="true"></canvas>
+      <div class="cc-hero-in">
+        <div class="cc-hero-copy">
+          <p class="cc-eyebrow"><svg class="cc-i" aria-hidden="true"><use href="#cci-spark"/></svg><span id="cc-date">Your desk</span></p>
+          <h1 id="cc-hero-title"><span id="dov-greet">Welcome back</span>, <span id="dash-first-name">Trader</span></h1>
+          <p id="dash-subtitle">Loading your progress…</p>
+          <div class="cc-hero-cta">
+            <a href="courses" class="btn btn-primary cc-go" id="dash-resume-btn">Resume</a>
+            <a href="courses" class="cc-link">View curriculum <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+          </div>
+        </div>
+        <div class="cc-ring-wrap">
+          <svg class="cc-ring" viewBox="0 0 120 120" role="img" aria-labelledby="cc-ring-label">
+            <defs><linearGradient id="cc-ring-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--gold-bright)"/><stop offset="1" stop-color="var(--teal)"/></linearGradient></defs>
+            <circle cx="60" cy="60" r="50" class="cc-ring-bg"/>
+            <circle cx="60" cy="60" r="50" class="cc-ring-fg" id="cc-ring-fg" stroke="url(#cc-ring-g)"/>
+          </svg>
+          <div class="cc-ring-txt"><b id="cc-ring-pct">0%</b><span id="cc-ring-label">core path</span></div>
+        </div>
+        <ul class="cc-stats" aria-label="Your stats">
+          <li><svg class="cc-i" aria-hidden="true"><use href="#cci-flame"/></svg><div><b id="stat-streak">0 days</b><span>Study streak</span></div></li>
+          <li><svg class="cc-i" aria-hidden="true"><use href="#cci-book"/></svg><div><b id="stat-chapters">0 / 42</b><span>Chapters done</span></div></li>
+          <li class="cc-clock"><svg class="cc-i" aria-hidden="true"><use href="#cci-clock"/></svg><div><b id="cc-mkt">--</b><span id="cc-mkt-sub">US stock market</span></div></li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="cc-layout">
+      <!-- ===== TODAY column (right on desktop, swipe chips on phones) ===== -->
+      <aside class="cc-today" aria-labelledby="cc-today-h">
+        <div class="cc-today-head">
+          <h2 id="cc-today-h"><svg class="cc-i" aria-hidden="true"><use href="#cci-sun"/></svg>Today</h2>
           <span class="dov-date" id="dov-brief-date"></span>
         </div>
-        <div id="dov-brief-body">
-          <div class="dov-brief-line"><i style="background:#f5c542"></i><span>Pulling today's picture together…</span></div>
-        </div>
-      </div>
-
-      <div class="dov-filter" id="dov-filter" aria-label="Choose which modules to show"></div>
-
-      <div class="dov-grid">
-        <section class="panel dov-mod" data-mod="journal">
-          <div class="panel-head"><h2>Trade journal</h2><a href="trade-journal">Open →</a></div>
-          <div id="dov-journal-body"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:45%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="markets">
-          <div class="panel-head"><h2>Markets</h2><a href="global-monitor">Global Monitor →</a></div>
-          <div id="dov-markets-body"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="floor">
-          <div class="panel-head"><h2>Trading floor</h2><a href="trading-floor">Join in →</a></div>
-          <div id="dov-floor-body"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div><div class="dov-skel" style="width:65%"></div></div>
-        </section>
-        <section class="panel dov-mod" data-mod="gex">
-          <div class="panel-head"><h2>GEX</h2><a href="gex.html">Open →</a></div>
-          <p class="dov-empty">Track gamma walls, zero gamma, value areas and live intraday context from the GEX desk.</p>
-          <a class="btn btn-primary btn-sm" href="gex.html">Launch GEX</a>
-        </section>
-      </div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-chapters">0 / 42</div>
-        <div class="stat-label">Core chapters completed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-streak">0 days</div>
-        <div class="stat-label">Current study streak</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-lessons">0</div>
-        <div class="stat-label">Lessons completed</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-top">
-          <div class="stat-icon amber"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
-        </div>
-        <div class="stat-val" id="stat-member-since">—</div>
-        <div class="stat-label">Member since</div>
-      </div>
-    </div>
-
-    <div class="two-col">
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Continue learning</h2>
-            <a href="courses">View curriculum</a>
+        <div class="cc-chips" tabindex="0" aria-label="Today, swipe for more">
+          <div class="cc-chip panel dov-brief">
+            <div class="cc-chip-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-spark"/></svg>Daily briefing</div>
+            <div id="dov-brief-body"><div class="dov-skel" style="width:85%"></div><div class="dov-skel" style="width:60%"></div></div>
           </div>
-
-          <div id="continue-learning-list">
-            <div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div>
-          </div>
+          <a class="cc-chip panel" href="market-brief.html">
+            <div class="cc-chip-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-brief"/></svg>Pre-market brief</div>
+            <p>Levels and context to read before the open.</p><span class="cc-more">Open brief <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+          </a>
+          <a class="cc-chip panel" href="economic-calendar.html">
+            <div class="cc-chip-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-calendar"/></svg>Economic calendar</div>
+            <p>This week's scheduled releases by currency.</p><span class="cc-more">See events <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+          </a>
+          <a class="cc-chip panel" href="live-sessions.html">
+            <div class="cc-chip-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-live"/></svg>Live sessions</div>
+            <p>Upcoming sessions and replays.</p><span class="cc-more">See schedule <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+          </a>
         </div>
+      </aside>
 
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Achievements</h2>
-            <a href="achievements.html">View all</a>
-          </div>
-          <div class="badge-grid">
-            <div class="badge-item locked" id="badge-first-chapter">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg></div>
-              <span>First Chapter Complete</span>
+      <div class="cc-sections">
+        <!-- ===== LEARN ===== -->
+        <section class="cc-sec cc-reveal" aria-labelledby="cc-learn-h">
+          <header class="cc-sec-head">
+            <span class="cc-sec-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-book"/></svg></span>
+            <div><h2 id="cc-learn-h">Learn</h2><p>Pick up where you left off.</p></div>
+            <a class="cc-see" href="courses">Curriculum <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+          </header>
+          <div class="cc-bento cc-bento-learn">
+            <div class="cc-tile cc-wide">
+              <h3 class="cc-tile-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-play"/></svg>Continue learning</h3>
+              <div id="continue-learning-list">
+                <div class="dov-skel" style="width:80%"></div><div class="dov-skel" style="width:65%"></div><div class="dov-skel" style="width:72%"></div>
+              </div>
             </div>
-            <div class="badge-item locked" id="badge-foundations">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-              <span>Foundations Complete</span>
-            </div>
-            <div class="badge-item locked" id="badge-structure-master">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/></svg></div>
-              <span>Structure Master</span>
-            </div>
-            <div class="badge-item locked" id="badge-smt-certified">
-              <div class="badge-ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div>
-              <span>SMT Certified</span>
+            <div class="cc-tile">
+              <h3 class="cc-tile-k"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-trophy"/></svg>Achievements</h3>
+              <div class="badge-grid cc-badges">
+                <div class="badge-item locked" id="badge-first-chapter" title="First Chapter Complete"><div class="badge-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-spark"/></svg></div><span>First chapter</span></div>
+                <div class="badge-item locked" id="badge-foundations" title="Foundations Complete"><div class="badge-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-book"/></svg></div><span>Foundations</span></div>
+                <div class="badge-item locked" id="badge-structure-master" title="Structure Master"><div class="badge-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-models"/></svg></div><span>Structure</span></div>
+                <div class="badge-item locked" id="badge-smt-certified" title="SMT Certified"><div class="badge-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-trophy"/></svg></div><span>SMT</span></div>
+              </div>
+              <div class="cc-track">
+                <div class="progress-track"><div class="progress-fill" id="track-progress-fill" style="width:0%"></div></div>
+                <p id="track-progress-label">0 of 42 chapters · 0% complete</p>
+              </div>
+              <a class="cc-more" href="achievements.html">All achievements <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
             </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      <div>
-        <div class="panel">
-          <div class="panel-head">
-            <h2>Upcoming live sessions</h2>
+        <!-- ===== TRADE TOOLS ===== -->
+        <section class="cc-sec cc-reveal dov" id="dov" aria-labelledby="cc-tools-h">
+          <header class="cc-sec-head">
+            <span class="cc-sec-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-tools"/></svg></span>
+            <div><h2 id="cc-tools-h">Trade tools</h2><p>Your workspace, one tap away.</p></div>
+            <details class="cc-custom">
+              <summary><svg class="cc-i sm" aria-hidden="true"><use href="#cci-sliders"/></svg><span>Customize</span></summary>
+              <div class="dov-filter" id="dov-filter" aria-label="Choose which modules to show"></div>
+            </details>
+          </header>
+          <div class="cc-bento cc-bento-tools dov-grid">
+            <section class="cc-tile cc-wide cc-tall dov-mod" data-mod="journal">
+              <a class="cc-tile-top" href="trade-journal"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-journal"/></svg></span><span><b>Trade journal</b><small>Log, review, improve</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+              <div id="dov-journal-body" class="cc-mini"><div class="dov-skel" style="width:60%"></div><div class="dov-skel" style="width:80%"></div></div>
+            </section>
+            <section class="cc-tile dov-mod" data-mod="gex">
+              <a class="cc-tile-top" href="gex.html"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-gex"/></svg></span><span><b>GEX</b><small>Gamma levels desk</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+              <p class="cc-mini-txt">Gamma walls, zero gamma and value areas in one view.</p>
+            </section>
+            <a class="cc-tile" href="backtests">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-backtest"/></svg></span><span><b>Backtesting</b><small>Replay your setups</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+            <a class="cc-tile" href="charts.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-charts"/></svg></span><span><b>Charts</b><small>Full-screen charting</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+            <a class="cc-tile" href="models.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-models"/></svg></span><span><b>Trading models</b><small>Rule-based playbooks</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+            <a class="cc-tile" href="indicators">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-indicator"/></svg></span><span><b>Indicators</b><small>Study the toolkit</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
           </div>
-          <div class="event-item">
-            <div class="event-date"><b>19</b>AUG</div>
-            <div class="event-body"><h4>London Killzone Breakdown</h4><span>08:00 GMT · XAUUSD &amp; DXY</span></div>
-          </div>
-          <div class="event-item">
-            <div class="event-date"><b>21</b>AUG</div>
-            <div class="event-body"><h4>SMT Divergence Live Walkthrough</h4><span>13:30 GMT · ES vs. NQ</span></div>
-          </div>
-          <div class="event-item">
-            <div class="event-date"><b>24</b>AUG</div>
-            <div class="event-body"><h4>Weekly Q&amp;A with Mentors</h4><span>17:00 GMT · Open floor</span></div>
-          </div>
-        </div>
+        </section>
 
-        <div class="panel">
-          <div class="panel-head"><h2>Your track</h2></div>
-          <p style="font-size:13px; color:var(--ink-2); margin-bottom:16px;">Self-Paced</p>
-          <div class="progress-track" style="margin-bottom:8px;"><div class="progress-fill" id="track-progress-fill" style="width:0%"></div></div>
-          <p style="font-size:12px; color:var(--ink-3); font-family:var(--font-mono);" id="track-progress-label">0 of 42 chapters · 0% complete</p>
-        </div>
+        <!-- ===== MARKET TODAY ===== -->
+        <section class="cc-sec cc-reveal" aria-labelledby="cc-mkt-h">
+          <header class="cc-sec-head">
+            <span class="cc-sec-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-globe"/></svg></span>
+            <div><h2 id="cc-mkt-h">Market today</h2><p>Context before you look at a chart.</p></div>
+            <a class="cc-see" href="global-monitor">Global Monitor <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+          </header>
+          <div class="cc-bento cc-bento-mkt">
+            <section class="cc-tile cc-wide dov-mod" data-mod="markets">
+              <a class="cc-tile-top" href="global-monitor"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-globe"/></svg></span><span><b>Markets</b><small>Snapshot from the Global Monitor</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+              <div id="dov-markets-body" class="cc-mini"><div class="dov-skel" style="width:70%"></div><div class="dov-skel" style="width:55%"></div><div class="dov-skel" style="width:65%"></div></div>
+            </section>
+            <a class="cc-tile" href="market-map.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-map"/></svg></span><span><b>Market map</b><small>Sectors at a glance</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+            <a class="cc-tile" href="smart-money.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-bank"/></svg></span><span><b>Smart money</b><small>Institutional flow study</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+          </div>
+        </section>
+
+        <!-- ===== COMMUNITY & LIVE ===== -->
+        <section class="cc-sec cc-reveal" aria-labelledby="cc-com-h">
+          <header class="cc-sec-head">
+            <span class="cc-sec-ic"><svg class="cc-i" aria-hidden="true"><use href="#cci-floor"/></svg></span>
+            <div><h2 id="cc-com-h">Community and live</h2><p>Learn alongside other members.</p></div>
+            <a class="cc-see" href="trading-floor">Trading floor <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+          </header>
+          <div class="cc-bento cc-bento-com">
+            <section class="cc-tile cc-wide dov-mod" data-mod="floor">
+              <a class="cc-tile-top" href="trading-floor"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-floor"/></svg></span><span><b>Trading floor</b><small>Latest posts</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></a>
+              <div id="dov-floor-body" class="cc-mini"><div class="dov-skel" style="width:75%"></div><div class="dov-skel" style="width:50%"></div></div>
+            </section>
+            <a class="cc-tile" href="live-sessions.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-live"/></svg></span><span><b>Live sessions</b><small>Schedule and replays</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+            <a class="cc-tile" href="messages.html">
+              <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-chat"/></svg></span><span><b>Messages</b><small>Direct conversations</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
+            </a>
+          </div>
+          <details class="cc-moremenu">
+            <summary>More <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></summary>
+            <div class="cc-morelinks">
+              <a href="referrals.html"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-gift"/></svg>Invite &amp; earn</a>
+              <a href="giveaways.html"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-gift"/></svg>Giveaways</a>
+              <a href="roadmap.html"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-map"/></svg>Roadmap</a>
+              <a href="profile.html"><svg class="cc-i sm" aria-hidden="true"><use href="#cci-spark"/></svg>Profile</a>
+            </div>
+          </details>
+        </section>
+
+        <p class="cc-foot">Member since <span id="stat-member-since">—</span> · <span id="stat-lessons">0</span> lessons completed · Education only. Not financial advice.</p>
       </div>
     </div>
   </main>
@@ -470,6 +538,7 @@
 <script src="assets/dash-overview.js?v=384"></script>
 <script src="assets/dash-nav.js?v=384"></script>
 <script src="assets/market-hours.js?v=384"></script>
+<script src="assets/dash-cc.js?v=384"></script>
 <script src="assets/theme.js?v=384"></script>
 </body>
 </html>

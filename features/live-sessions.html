@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="368">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="When the Stryker desk schedules a session, members see a countdown in their own timezone, the upcoming list and the session room. Education only.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Sessions With the Desk: Countdown, Schedule and Session Room — Stryker Trading Academy">
+<meta property="og:description" content="When the Stryker desk schedules a session, members see a countdown in their own timezone, the upcoming list and the session room. Education only.">
+<meta property="og:url" content="https://strykertrading.com/features/live-sessions">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og/features-live-sessions.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Sessions feature page: a Next session countdown and an Upcoming list of demo sessions, with the Stryker logo">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sessions With the Desk: Countdown, Schedule and Session Room — Stryker Trading Academy">
+<meta name="twitter:description" content="When the Stryker desk schedules a session, members see a countdown in their own timezone, the upcoming list and the session room. Education only.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/features-live-sessions.png">
+<meta name="twitter:image:alt" content="Sessions feature page: a Next session countdown and an Upcoming list of demo sessions, with the Stryker logo">
+<meta name="theme-color" content="#050506">
+<title>Sessions With the Desk: Countdown, Schedule and Session Room — Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/live-sessions">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=368">
+<script src="/assets/sanitize.js?v=368"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=368" defer></script>
+<script src="/assets/version-check.js?v=368" defer></script>
+<script src="/assets/acquisition.js?v=368" defer></script>
+<script src="/assets/focus-mode.js?v=368" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-page.css?v=368">
+</head>
+<body class="fp-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero fp-hero">
+<span class="ft-hero-kicker">Sessions · The desk</span>
+<h1>Sessions with the desk, <em>on your clock</em></h1>
+<figure class="gv-term solo" data-fp-play>
+<div class="gv-term-bar"><span class="gv-dot"></span><b>Sessions · Next session</b></div>
+<div class="gv-term-body">
+<div class="gv-chart"><picture><source media="(max-width:600px)" srcset="/assets/images/live-sessions/hero-390.webp" width="700" height="1122"><img src="/assets/images/live-sessions/hero-1440.webp" width="1366" height="676" fetchpriority="high" decoding="async" alt="The sessions page: a Next session panel with a countdown, and an Upcoming list of three demo sessions with dates, times and instruments."></picture></div>
+</div>
+<figcaption class="fg-cap">The sessions page with demo sessions. Demo data.</figcaption>
+</figure>
+<p class="ft-hero-sub">When the desk schedules a session it appears on the page with a countdown converted to your timezone. When it starts, the session room opens on the same page.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#whats-on-the-page" class="btn btn-ghost">How the page works</a></div>
+<p class="fg-note">Sessions are teaching sessions, not trade signals. Education only. Not financial advice.</p>
+</header>
+<div class="container">
+<section class="ft-section sx" id="whats-on-the-page"><div class="ft-section-head ft-reveal"><h2>How the sessions page works</h2><p>The next session, the upcoming list and past sessions, on one page.</p></div><nav class="sx-index" aria-label="Jump to a feature"><div><a href="#sx-f-countdown" data-fp-ix="countdown"><em>01</em>Countdown</a><a href="#sx-f-schedule" data-fp-ix="schedule"><em>02</em>Upcoming</a><a href="#sx-f-past" data-fp-ix="past"><em>03</em>Past sessions</a><a href="#sx-f-mobile" data-fp-ix="mobile"><em>04</em>Mobile</a></div></nav><div class="sx-rows">
+<article class="sx-row" id="sx-f-countdown" data-fp-row="countdown"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/119;--ar:6.2185"><img src="/assets/images/live-sessions/countdown.webp" width="740" height="119" loading="lazy" decoding="async" alt="The Next session panel: a demo session title, its date, time and instrument, and a countdown in days, hours, minutes and seconds."></div><p class="sx-cap">The next-session countdown. Demo data.</p></div><div class="sx-copy"><span class="sx-n">01 / 04</span><h3>Countdown in your timezone</h3><p class="sx-text">The next scheduled session shows a countdown, with the start time converted to your local clock.</p><details class="sx-how"><summary>How it works</summary><p>Session times are entered by the desk and shown in your own timezone, so there is no converting in your head.</p></details></div></article>
+<article class="sx-row flip" id="sx-f-schedule" data-fp-row="schedule"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/243;--ar:3.0453"><img src="/assets/images/live-sessions/schedule.webp" width="740" height="243" loading="lazy" decoding="async" alt="The Upcoming list: three demo sessions, each with a date, a start time and an instrument."></div><p class="sx-cap">The upcoming list. Demo data.</p></div><div class="sx-copy"><span class="sx-n">02 / 04</span><h3>See what is scheduled</h3><p class="sx-text">Every session the desk has put on the schedule is listed with its date, time and instrument.</p><details class="sx-how"><summary>How it works</summary><p>There is no fixed timetable: sessions appear here when the desk schedules them.</p></details></div></article>
+<article class="sx-row" id="sx-f-past" data-fp-row="past"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/135;--ar:5.4815"><img src="/assets/images/live-sessions/past.webp" width="740" height="135" loading="lazy" decoding="async" alt="The Past sessions list: one demo session with a Watch replay button."></div><p class="sx-cap">Past sessions. Demo data.</p></div><div class="sx-copy"><span class="sx-n">03 / 04</span><h3>Past sessions</h3><p class="sx-text">When a session is over it moves to Past sessions. If the desk has attached the session video, a Watch replay button opens it in the same player.</p><details class="sx-how"><summary>How it works</summary><p>Watching back is part of Pro; the session room with chat is part of Elite. Not every session has a video attached.</p></details></div></article>
+<article class="sx-row flip" id="sx-f-mobile" data-fp-row="mobile"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:700/1122;--ar:0.6239"><img src="/assets/images/live-sessions/mobile.webp" width="700" height="1122" loading="lazy" decoding="async" alt="The sessions page on a phone: the Next session countdown and the Upcoming list."></div><p class="sx-cap">The sessions page on a phone. Demo data.</p></div><div class="sx-copy"><span class="sx-n">04 / 04</span><h3>On any screen</h3><p class="sx-text">The countdown, the schedule and the session room all work on a phone.</p><details class="sx-how"><summary>How it works</summary><p>Same account, same sessions, wherever you are.</p></details></div></article>
+</div></section>
+
+<section class="ft-section" id="how-it-runs">
+<div class="ft-section-head ft-reveal"><h2>How a session runs</h2><p>The page keeps itself up to date as sessions come and go.</p></div>
+<div class="fg-flow ft-reveal" data-fp-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Scheduled</h3><p>The session appears with a countdown in your timezone.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>The room</h3><p>When it starts, the room opens on the page, with chat for Elite.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Past</h3><p>It moves to Past sessions afterwards.</p></div>
+</div>
+</section>
+
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal"><details><summary>When are sessions held?</summary><div class="fg-a"><p>There is no fixed timetable. The desk schedules sessions and they appear on the page with a countdown, in your own timezone.</p></div></details><details><summary>Which plan do I need?</summary><div class="fg-a"><p>The session room with chat is part of Elite. Watching back a past session that has its video attached is part of Pro. Free members can see the schedule.</p></div></details><details><summary>Are sessions trade signals?</summary><div class="fg-a"><p>No. Sessions show how the concepts are applied to a market, to teach the method.</p></div></details></div>
+<div class="ft-cta ft-reveal"><h2>See the next session</h2><p>Create an account to see the schedule, and choose the plan that fits how you want to take part.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create your free account</a><a href="/features" class="btn btn-ghost">All features</a></div>
+<p class="fg-edu">Education only. Not financial advice.</p></div>
+</section>
+</div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=368"></script>
+<script src="/assets/auth.js?v=368"></script>
+<script src="/assets/plan-price.js?v=368"></script>
+<script src="/assets/launch-sale.js?v=368"></script>
+<script src="/assets/progress.js?v=368"></script>
+<script src="/assets/activity-log.js?v=368"></script>
+<script src="/assets/banned-check.js?v=368"></script>
+<script src="/assets/email-verify.js?v=368"></script>
+<script src="/assets/profiles-sync.js?v=368"></script>
+<script src="/assets/branding.js?v=368"></script>
+<script src="/assets/seo.js?v=368"></script>
+<script src="/assets/features.js?v=368"></script>
+<script src="/assets/features-page.js?v=368"></script>
+<script src="/assets/theme.js?v=368"></script>
+</body>
+</html>

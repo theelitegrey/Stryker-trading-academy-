@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="365">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="GEX: Gamma Exposure Levels — Stryker Trading Academy">
+<meta property="og:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta property="og:url" content="https://strykertrading.com/features/gex">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GEX: Gamma Exposure Levels — Stryker Trading Academy">
+<meta name="twitter:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta name="theme-color" content="#050506">
+<title>GEX: Gamma Exposure Levels (section preview S1) — Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/gex">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=365">
+<script src="/assets/sanitize.js?v=365"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=365" defer></script>
+<script src="/assets/version-check.js?v=365" defer></script>
+<script src="/assets/acquisition.js?v=365" defer></script>
+<script src="/assets/focus-mode.js?v=365" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-gex.css?v=365">
+<link rel="stylesheet" href="/assets/features-gex-v.css?v=365">
+<link rel="stylesheet" href="/assets/features-gex-s.css?v=365">
+</head>
+<body class="gv gv-a sx-page sx-p1">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero gv-a-hero">
+<span class="ft-hero-kicker">GEX · Gamma exposure</span>
+<h1>See where options positioning <em>may matter</em> for price</h1>
+
+<div class="gv-ticker" data-gv-play aria-label="Delayed levels from the session of Fri 2 Oct 2026; not current"><div class="gv-ticker-track"><div><span><b>SPX</b> 7,722.72</span><span><b>NET GEX</b> 1.19B</span><span><b>IV30</b> 12.2%</span><span><b>ES</b> 7,777.25</span><span><b>SPX CALL WALL</b> 7,800.00</span><span><b>SPX ZERO GAMMA</b> 7,704.52</span><span><b>SPX PUT WALL</b> 7,545.00</span><span><b>NQ CALL WALL</b> 31,080.25</span><span><b>NQ ZERO GAMMA</b> 30,898.84</span><span><b>NQ PUT WALL</b> 30,874.74</span><span><b>DELAYED DATA</b> MARKET CLOSED · FRI 2 OCT 2026</span></div><div aria-hidden="true"><span><b>SPX</b> 7,722.72</span><span><b>NET GEX</b> 1.19B</span><span><b>IV30</b> 12.2%</span><span><b>ES</b> 7,777.25</span><span><b>SPX CALL WALL</b> 7,800.00</span><span><b>SPX ZERO GAMMA</b> 7,704.52</span><span><b>SPX PUT WALL</b> 7,545.00</span><span><b>NQ CALL WALL</b> 31,080.25</span><span><b>NQ ZERO GAMMA</b> 30,898.84</span><span><b>NQ PUT WALL</b> 30,874.74</span><span><b>DELAYED DATA</b> MARKET CLOSED · FRI 2 OCT 2026</span></div></div></div>
+<figure class="gv-term" data-gv-play>
+<div class="gv-term-bar"><span class="gv-dot"></span><b>QQQ → NQ · 5m · 0DTE</b><span class="gv-term-tag">DELAYED · MARKET CLOSED</span></div>
+<div class="gv-term-body">
+<div class="gv-chart"><picture><source media="(max-width:600px)" srcset="/assets/images/gex-real/chart-mnq-5m-plot.webp" width="740" height="978"><img src="/assets/images/gex-real/chart-nq-5m-plot.webp" width="1212" height="880" fetchpriority="high" decoding="async" alt="Real capture of the Stryker GEX chart: QQQ 0DTE levels converted to Nasdaq futures on a 5-minute candlestick chart, with the call wall, zero gamma and put wall drawn as lines."></picture><i class="gv-hl call" style="--yd:48.9%;--ym:48.7%;--d:0.3s"></i><i class="gv-hl spot" style="--yd:52.3%;--ym:52.2%;--d:0.9s"></i><i class="gv-hl zero" style="--yd:81.4%;--ym:82.2%;--d:1.5s"></i><i class="gv-hl put" style="--yd:85.7%;--ym:86.6%;--d:2.1s"></i><i class="gv-sweep"></i></div>
+<div class="gv-readout"><div class="gv-ro call"><span>Call wall</span><b data-to="31080.25" data-from="30955.93">31080.25</b></div><div class="gv-ro spot"><span>Last</span><b data-to="31061.75" data-from="30937.50">31061.75</b></div><div class="gv-ro zero"><span>Zero gamma</span><b data-to="30898.84" data-from="30775.24">30898.84</b></div><div class="gv-ro put"><span>Put wall</span><b data-to="30874.74" data-from="30751.24">30874.74</b></div><p class="gv-ro-note">Values as printed on the capture. Session of Fri 2 Oct 2026, not current.</p></div>
+</div>
+<figcaption class="fg-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on NQ, 5m chart). Market closed: not current levels.</figcaption>
+</figure>
+<p class="ft-hero-sub">GEX turns the options chain into a handful of price levels: a call wall, a put wall and a zero-gamma line. Stryker draws them on a futures chart so you can read the session’s context before you take a single trade.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#whats-on-the-page" class="btn btn-ghost">How GEX works</a></div>
+<p class="fg-note">Delayed options data. Levels are context, not trade signals. Education only. Not financial advice.</p>
+
+</header>
+<div class="container">
+<section class="ft-section sx sx1" id="whats-on-the-page"><div class="ft-section-head ft-reveal"><h2>What’s on the GEX page</h2><p>Every item below is on the dashboard today. Each card says how the number is built.</p></div><div class="sx-rail" data-sx-rail><div class="sx-tabs" role="tablist" aria-label="GEX page features"><button type="button" role="tab" class="sx-tab" id="sx-t-call" aria-controls="sx-p-call" aria-selected="true" tabindex="0"><em>01</em>Call wall</button><button type="button" role="tab" class="sx-tab" id="sx-t-put" aria-controls="sx-p-put" aria-selected="false" tabindex="-1"><em>02</em>Put wall</button><button type="button" role="tab" class="sx-tab" id="sx-t-flip" aria-controls="sx-p-flip" aria-selected="false" tabindex="-1"><em>03</em>Zero gamma</button><button type="button" role="tab" class="sx-tab" id="sx-t-regime" aria-controls="sx-p-regime" aria-selected="false" tabindex="-1"><em>04</em>Regime</button><button type="button" role="tab" class="sx-tab" id="sx-t-iv" aria-controls="sx-p-iv" aria-selected="false" tabindex="-1"><em>05</em>IV range</button><button type="button" role="tab" class="sx-tab" id="sx-t-ladder" aria-controls="sx-p-ladder" aria-selected="false" tabindex="-1"><em>06</em>Strike ladder</button><button type="button" role="tab" class="sx-tab" id="sx-t-expiry" aria-controls="sx-p-expiry" aria-selected="false" tabindex="-1"><em>07</em>Expiry</button><button type="button" role="tab" class="sx-tab" id="sx-t-futures" aria-controls="sx-p-futures" aria-selected="false" tabindex="-1"><em>08</em>Futures</button><button type="button" role="tab" class="sx-tab" id="sx-t-levels" aria-controls="sx-p-levels" aria-selected="false" tabindex="-1"><em>09</em>VAH · POC · VAL</button><button type="button" role="tab" class="sx-tab" id="sx-t-overnight" aria-controls="sx-p-overnight" aria-selected="false" tabindex="-1"><em>10</em>Overnight</button><button type="button" role="tab" class="sx-tab" id="sx-t-chart" aria-controls="sx-p-chart" aria-selected="false" tabindex="-1"><em>11</em>Chart</button><button type="button" role="tab" class="sx-tab" id="sx-t-zoom" aria-controls="sx-p-zoom" aria-selected="false" tabindex="-1"><em>12</em>Pan & zoom</button></div><div class="sx-bar" aria-hidden="true"><i></i></div><div class="sx-view"><div class="sx-track"><article class="sx-slide-card on" role="tabpanel" id="sx-p-call" aria-labelledby="sx-t-call" aria-roledescription="slide" aria-label="1 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/343"><img src="/assets/images/gex-real/sec-callwall.webp" width="740" height="343" decoding="async" alt="Real capture: the call wall line on the MNQ 5-minute chart, labelled CALL WALL 31080.25, just above the last price 31061.75."><i class="sx-line call" style="--y:69.1%;--w:77%;--n:1"></i><i class="sx-box" style="--x:76.5%;--y:62%;--bw:23%;--bh:14%;--n:1"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels.</p><h3><em>01</em>Call wall</h3><p class="sx-text">The strike above price where call activity is heaviest. Often watched as an upper edge of the day’s range.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Busiest call strike at or above spot and the flip, ranked by today’s volume (open interest breaks ties), within 4% of spot. Falls back to the largest positive net GEX.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-put" aria-labelledby="sx-t-put" aria-roledescription="slide" aria-label="2 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/150"><img src="/assets/images/gex-real/sec-putwall.webp" width="740" height="150" loading="lazy" decoding="async" alt="Real capture: the zero gamma line at 30898.84 and the put wall line at 30874.74 on the MNQ 5-minute chart."><i class="sx-line put" style="--y:80.0%;--w:78%;--n:1"></i><i class="sx-box" style="--x:77.5%;--y:68%;--bw:22%;--bh:25%;--n:1"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels.</p><h3><em>02</em>Put wall</h3><p class="sx-text">The strike below price where put activity is heaviest. Often watched as a lower edge.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Busiest put strike at or below spot and the flip, ranked by today’s volume (open interest breaks ties), within 4% of spot.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-flip" aria-labelledby="sx-t-flip" aria-roledescription="slide" aria-label="3 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/290"><img src="/assets/images/gex-real/sec-flip.webp" width="740" height="290" loading="lazy" decoding="async" alt="Real capture: the ZERO GAMMA line at ES 7759.05 on the ES 5-minute chart."><i class="sx-wash pos" style="--y:58.4%"></i><i class="sx-wash neg" style="--y:58.4%"></i><i class="sx-line zero" style="--y:58.4%;--w:54%;--n:1"></i><i class="sx-box" style="--x:54.5%;--y:49%;--bw:42%;--bh:18%;--n:1"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>03</em>Zero-gamma flip</h3><p class="sx-text">The price where the model’s net gamma changes sign, from positive to negative. Traders read it as where the model’s regime reading changes.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Net GEX is re-computed with Black-Scholes gamma on a grid from −10% to +10% of spot; the zero crossing nearest spot is shown.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-regime" aria-labelledby="sx-t-regime" aria-roledescription="slide" aria-label="4 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/230"><img src="/assets/images/gex-real/sec-regime.webp" width="740" height="230" loading="lazy" decoding="async" alt="Real capture of the GEX regime panel: SPX spot 7,722.72, a POSITIVE GAMMA badge, net GEX 1.19B, IV30 12.2% and ES last 7,777.25."><i class="sx-box" style="--x:35.5%;--y:15%;--bw:36%;--bh:27%;--n:1"></i><i class="sx-box" style="--x:71%;--y:13%;--bw:27%;--bh:36%;--n:2"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>04</em>Regime</h3><p class="sx-text">A positive or negative gamma badge, plus the net GEX figure beside it. It is the headline read of the model.</p><details class="sx-how"><summary>How it’s calculated</summary><p>The sign of summed net GEX across strikes within 6% of spot, for the expiry filter you picked.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-iv" aria-labelledby="sx-t-iv" aria-roledescription="slide" aria-label="5 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/300"><img src="/assets/images/gex-real/sec-iv.webp" width="740" height="300" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes: 68% 7,718.08 to 7,836.42 and 80% 7,701.39 to 7,853.11, in ES points."><i class="sx-box" style="--x:3%;--y:4%;--bw:94%;--bh:42%;--n:1"></i><i class="sx-box" style="--x:3%;--y:55%;--bw:94%;--bh:42%;--n:2"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>05</em>IV expected range · 68% / 80%</h3><p class="sx-text">A one-day range implied by options volatility (IV30: 30-day implied volatility, how much movement options are pricing in). The 68% band is one standard deviation; the 80% band is wider.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Spot ± spot × IV30 × √(1/252) for 68%, and ×1.282 for 80%. It assumes a normal distribution of moves, so it is a statistical estimate of dispersion, not a forecast or a probability that price stays inside.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-ladder" aria-labelledby="sx-t-ladder" aria-roledescription="slide" aria-label="6 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/599"><img src="/assets/images/gex-real/sec-ladder.webp" width="740" height="599" loading="lazy" decoding="async" alt="Real capture of the strike ladder near spot: strike, ES price, net GEX and profile bar per strike."><i class="sx-scan"></i><i class="sx-box" style="--x:61%;--y:8%;--bw:19%;--bh:90%;--n:1"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>06</em>Strike ladder · net GEX / DEX / OI</h3><p class="sx-text">A table down the side of the page: for each strike, its net GEX, net delta exposure (DEX), open interest (contracts still open at that strike) and the matching futures price.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Strikes within 4% of spot. The profile bar scales to the largest net GEX in view.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-expiry" aria-labelledby="sx-t-expiry" aria-roledescription="slide" aria-label="7 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/164"><img src="/assets/images/gex-real/sec-expiry.webp" width="740" height="164" loading="lazy" decoding="async" alt="Real capture of the market buttons SPX, SPY, QQQ, GLD and the expiry buttons 0DTE, 1DTE, 1W and 1M, with SPX and 1DTE selected."><i class="sx-box chip" style="--x:1%;--y:57%;--bw:13%;--bh:37%;--n:1"></i><i class="sx-box chip" style="--x:14.5%;--y:57%;--bw:14%;--bh:37%;--n:2"></i><i class="sx-box chip" style="--x:29.5%;--y:57%;--bw:10%;--bh:37%;--n:3"></i><i class="sx-box chip" style="--x:41%;--y:57%;--bw:10%;--bh:37%;--n:4"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>07</em>Expiry filters</h3><p class="sx-text">Switch between 0DTE, 1DTE, 1W and 1M. The levels re-compute for just those expiries.</p><details class="sx-how"><summary>How it’s calculated</summary><p>0DTE uses the nearest listed expiry on its own and 1DTE uses the next one after it. 1W and 1M include every expiry within 7 or 30 days.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-futures" aria-labelledby="sx-t-futures" aria-roledescription="slide" aria-label="8 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/590"><img src="/assets/images/gex-real/sec-futures.webp" width="740" height="590" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall 7,800.00 shown as ES 7,854.53, spot 7,722.72 as ES 7,777.25, zero gamma 7,704.52 as ES 7,759.05, put wall 7,545.00 as ES 7,599.53."><i class="sx-slide" style="--y:26%;--n:1"></i><i class="sx-slide" style="--y:47.5%;--n:2"></i><i class="sx-slide" style="--y:69%;--n:3"></i><i class="sx-slide" style="--y:90.5%;--n:4"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels.</p><h3><em>08</em>Futures conversion</h3><p class="sx-text">Options levels are calculated on the index or ETF. Stryker converts them to the futures contracts traders chart, so a level reads in futures points. SPY (to ES/MES) is also available.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Index levels shift by the current futures basis; ETF levels use a ratio anchored to the latest futures price. Futures prices are delayed too.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-levels" aria-labelledby="sx-t-levels" aria-roledescription="slide" aria-label="9 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/710"><img src="/assets/images/gex-real/sec-levels.webp" width="740" height="710" loading="lazy" decoding="async" alt="Real capture of the market-generated levels card: prior VAH 7,739.00, prior POC 7,730.00, prior VAL 7,694.00 and the prior RTH, overnight and RTH open levels for ES."><i class="sx-box" style="--x:1.5%;--y:7%;--bw:48.5%;--bh:21%;--n:1"></i><i class="sx-box" style="--x:50.5%;--y:7%;--bw:48.5%;--bh:21%;--n:2"></i><i class="sx-box" style="--x:1.5%;--y:30%;--bw:48.5%;--bh:21%;--n:3"></i><i class="sx-scan"></i></div></div><p class="sx-cap">Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct). Market closed: not current levels.</p><h3><em>09</em>Prior-day VAH · POC · VAL</h3><p class="sx-text">Yesterday’s value area high, point of control and value area low, drawn on the same chart as the gamma levels.</p><details class="sx-how"><summary>How it’s calculated</summary><p>A 70% value area built from the prior regular session’s 5-minute futures candles, volume-weighted when volume is available.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-overnight" aria-labelledby="sx-t-overnight" aria-roledescription="slide" aria-label="10 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/160"><img src="/assets/images/gex-real/sec-overnight.webp" width="740" height="160" loading="lazy" decoding="async" alt="Real capture: the overnight high line, labelled ONH 31223.50, on the MNQ 5-minute chart."><i class="sx-line on" style="--y:39.4%;--w:83%;--n:1"></i><i class="sx-box" style="--x:82.5%;--y:27%;--bw:17%;--bh:25%;--n:1"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels.</p><h3><em>10</em>Overnight high / low</h3><p class="sx-text">The extremes made between the prior close and the next open, a common reference for where the session begins.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Highest and lowest futures price from 16:00 New York time on the prior session to 09:30 today.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-chart" aria-labelledby="sx-t-chart" aria-roledescription="slide" aria-label="11 of 12"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/725"><img src="/assets/images/gex-real/sec-chart.webp" width="740" height="725" loading="lazy" decoding="async" alt="Real capture of the MNQ 5-minute chart with the overnight high, call wall, zero gamma and put wall drawn as labelled lines."><i class="sx-line on" style="--y:8.7%;--w:83%;--n:1"></i><i class="sx-line call" style="--y:44.7%;--w:77%;--n:2"></i><i class="sx-line zero" style="--y:89.9%;--w:76%;--n:3"></i><i class="sx-line put" style="--y:95.9%;--w:78%;--n:4"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels.</p><h3><em>11</em>Chart with levels</h3><p class="sx-text">A TradingView Lightweight Charts candlestick chart for the futures contract, with the walls, the flip, the IV band and the market levels drawn as lines. Switch 1m, 5m, 15m or 1h.</p><details class="sx-how"><summary>How it’s calculated</summary><p>Candles are delayed futures data. Market levels can be switched on and off from the legend.</p></details></article><article class="sx-slide-card" role="tabpanel" id="sx-p-zoom" aria-labelledby="sx-t-zoom" aria-roledescription="slide" aria-label="12 of 12"><div class="sx-frame"><div class="sx-media sx-xf" style="aspect-ratio:740/1200"><img src="/assets/images/gex-real/sec-zoom0.webp" width="740" height="1200" loading="lazy" decoding="async" alt="Two real captures of the same MNQ 5-minute chart card with its 1m/5m/15m/1h, +, − and Reset buttons: zoomed in (71 of 1029 bars in view) and zoomed out (168 of 1029 bars), crossfading."><img class="sx-b" src="/assets/images/gex-real/sec-zoom5.webp" width="740" height="1200" loading="lazy" decoding="async" alt=""><i class="sx-box chip" style="--x:3.4%;--y:11.9%;--bw:9.4%;--bh:4.9%;--n:1"></i><i class="sx-box chip" style="--x:14.4%;--y:11.9%;--bw:9.4%;--bh:4.9%;--n:2"></i><i class="sx-box chip" style="--x:25.5%;--y:11.9%;--bw:15.2%;--bh:4.9%;--n:3"></i><i class="sx-box chip" style="--x:4.6%;--y:94.3%;--bw:68%;--bh:4%;--n:4"></i></div></div><p class="sx-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels.</p><h3><em>12</em>Pan and zoom on mobile</h3><p class="sx-text">Drag to pan, pinch to zoom, or use the +, − and Reset buttons. Built to be used on a phone.</p><details class="sx-how"><summary>How it’s calculated</summary><p>The page shows how many bars are in view, so you always know how far you have panned.</p></details></article></div><button type="button" class="sx-arrow prev" aria-label="Previous feature">‹</button><button type="button" class="sx-arrow next" aria-label="Next feature">›</button></div><p class="sx-hint">Swipe or tap a tab. Auto-plays until you touch it.</p></div></section>
+</div>
+
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=365"></script>
+<script src="/assets/auth.js?v=365"></script>
+<script src="/assets/plan-price.js?v=365"></script>
+<script src="/assets/launch-sale.js?v=365"></script>
+<script src="/assets/progress.js?v=365"></script>
+<script src="/assets/activity-log.js?v=365"></script>
+<script src="/assets/banned-check.js?v=365"></script>
+<script src="/assets/email-verify.js?v=365"></script>
+<script src="/assets/profiles-sync.js?v=365"></script>
+<script src="/assets/branding.js?v=365"></script>
+<script src="/assets/seo.js?v=365"></script>
+<script src="/assets/features.js?v=365"></script>
+<script src="/assets/features-gex.js?v=365"></script>
+<script src="/assets/features-gex-v.js?v=365"></script>
+<script src="/assets/features-gex-s.js?v=365"></script>
+<script src="/assets/theme.js?v=365"></script>
+</body>
+</html>

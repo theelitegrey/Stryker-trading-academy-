@@ -1,0 +1,24 @@
+/* Snake on the cards string: Owner example, /features/models only.
+   Opt-in hook: .sx-rows.sx-snake. Everything else stays in features-page.css.
+   The faint base thread (.sx-rows::before) and the nodes are unchanged; only the
+   travelling light (.sx-pulse) is replaced by the snake drawn by features-snake.js. */
+.sx-rows.sx-snake .sx-pulse{ display:none !important; }
+
+.sx-snake-svg{
+  position:absolute; left:0; top:0; width:var(--fp-gut); height:100%;
+  overflow:hidden;            /* clipped to the gutter: can never reach a card */
+  pointer-events:none; z-index:1;
+  --sn-body:rgb(0,196,140); --sn-head:rgb(120,255,214); --sn-glow:rgba(120,255,214,.22); --sn-eye:#04241b;
+}
+:root[data-theme="light"] .sx-snake-svg{
+  --sn-body:rgb(0,150,105); --sn-head:rgb(0,150,105); --sn-glow:rgba(0,150,105,.18); --sn-eye:#ffffff;
+}
+.sx-sn-seg{ fill:var(--sn-body); }
+.sx-sn-skull{ fill:var(--sn-head); }
+.sx-sn-glow{ fill:var(--sn-glow); }
+.sx-sn-eye{ fill:var(--sn-eye); }
+
+/* the card's dot glows softly while the head rests on it */
+.sx-rows.sx-snake .sx-row::before{ transition:box-shadow .45s ease, opacity .5s ease, transform .5s ease; }
+.sx-rows.sx-snake .sx-row.sx-sn-at::before{ box-shadow:0 0 0 3px rgba(0,196,140,.35), 0 0 18px rgba(120,255,214,.85); }
+:root[data-theme="light"] .sx-rows.sx-snake .sx-row.sx-sn-at::before{ box-shadow:0 0 0 3px rgba(0,150,105,.3), 0 0 14px rgba(0,150,105,.55); }

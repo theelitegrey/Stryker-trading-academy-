@@ -39,3 +39,18 @@
 @media (prefers-reduced-motion:reduce){
   .dragon-bg{ transition:none; }
 }
+/* Feature cards + string on top of the dragon (build 369 layout).
+   The dragon canvases stay at z-index:-1, under .sx-rows (z-index:0), so the
+   cards, the thread and its travelling pulse always paint above it. Each card
+   gets a soft page-coloured halo so the dragon dims around the card edges and
+   the card reads crisp; the thread glow is lifted a touch so it stays visible
+   when the dragon passes behind it. Only loaded on features/models.html. */
+.sx-rows{ isolation:isolate; }
+.sx-rows .sx-row{
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.25), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent);
+}
+@media (hover:hover) and (pointer:fine){
+  .sx-rows .sx-row:hover{ box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent); }
+}
+.sx-rows .sx-row:focus-within, .sx-rows .sx-row.is-tilt{ box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45), 0 0 34px 14px color-mix(in srgb, var(--bg-1) 70%, transparent); }
+.sx-rows::before{ box-shadow:0 0 10px rgba(0,196,140,.5), 0 0 3px rgba(0,196,140,.6); }

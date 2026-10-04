@@ -285,10 +285,6 @@
       </defs>
     </svg>
 
-    <div id="dash-brief" hidden></div>
-    <div id="dash-map" hidden></div>
-    <div id="dash-cal" hidden></div>
-    <div id="dash-onboarding" hidden></div>
 
     <!-- ===== HERO ===== -->
     <section class="cc-hero dash-topbar" aria-labelledby="cc-hero-title">
@@ -431,6 +427,14 @@
               <span class="cc-tile-top"><span class="cc-ic-badge"><svg class="cc-i" aria-hidden="true"><use href="#cci-bank"/></svg></span><span><b>Smart money</b><small>Institutional flow study</small></span><svg class="cc-i sm cc-go-ic" aria-hidden="true"><use href="#cci-arrow"/></svg></span>
             </a>
           </div>
+          <details class="cc-moremenu cc-deep">
+            <summary>Pre-market brief, market map and calendar <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></summary>
+            <div class="cc-deep-body">
+              <div id="dash-brief" hidden></div>
+              <div id="dash-map" hidden></div>
+              <div id="dash-cal" hidden></div>
+            </div>
+          </details>
         </section>
 
         <!-- ===== COMMUNITY & LIVE ===== -->
@@ -463,6 +467,10 @@
           </details>
         </section>
 
+        <details class="cc-moremenu cc-setup-wrap">
+          <summary>Setup checklist <svg class="cc-i sm" aria-hidden="true"><use href="#cci-arrow"/></svg></summary>
+          <div id="dash-onboarding" class="cc-onb" hidden></div>
+        </details>
         <p class="cc-foot">Member since <span id="stat-member-since">—</span> · <span id="stat-lessons">0</span> lessons completed · Education only. Not financial advice.</p>
       </div>
     </div>

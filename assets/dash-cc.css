@@ -77,7 +77,14 @@
 .cc-chips:focus-visible{ box-shadow:0 0 0 2px var(--gold); border-radius:16px; }
 
 /* ---------- SECTIONS ---------- */
-.cc-sec{ margin:0 0 30px; }
+.cc section{ padding:0; }
+.cc .cc-tile{ padding:16px; }
+.cc-sec{ margin:0 0 34px; padding:0; }
+.cc-onb:not([hidden]){ margin:12px 0 0; }
+.cc-setup-wrap{ margin-top:18px; }
+.cc-setup-wrap:not([open]) .cc-onb{ display:none; }
+.cc-deep-body{ display:flex; flex-direction:column; gap:14px; margin-top:12px; min-width:0; }
+.cc-deep-body > *{ margin:0; }
 .cc-sec-head{ display:flex; align-items:center; gap:14px; margin:0 0 14px; }
 .cc-sec-head > div{ flex:1; min-width:0; }
 .cc-sec-head h2{ font-size:19px; margin:0; letter-spacing:-.01em; }

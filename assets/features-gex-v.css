@@ -27,7 +27,7 @@
 .gv .fg-tile .fg-glyph{ display:none; }
 
 /* ---------- level line highlight (tiles) --------------------------------- */
-.gv-line{ left:0; right:17%; top:var(--y); height:3px; margin-top:-1.5px; border-radius:2px;
+.gv-line{ left:0; right:31%; top:var(--y); height:3px; margin-top:-1.5px; border-radius:2px;
   transform-origin:left center; opacity:.55; }
 .gv-line.call{ background:var(--gv-call); box-shadow:0 0 12px 2px rgba(239,68,68,.65); }
 .gv-line.put{ background:var(--gv-put); box-shadow:0 0 12px 2px rgba(34,197,94,.65); right:43%; }
@@ -42,8 +42,8 @@ html.gv-anim .gv-tile:hover .gv-line, html.gv-anim .gv-tile.is-tap .gv-line{ ani
 @keyframes gv-draw2{ from{ transform:scaleX(0); opacity:1; } 70%{ opacity:1; } to{ transform:scaleX(1); opacity:.55; } }
 
 /* ---------- hero level lines (chart crops, desktop vs phone crop) -------- */
-.gv-hl{ left:0; right:16.5%; top:var(--yd); height:3px; margin-top:-1.5px; transform-origin:left center; opacity:.6; border-radius:2px; }
-@media (max-width:600px){ .gv-hl{ top:var(--ym); right:24.3%; } }
+.gv-hl{ left:0; right:31%; top:var(--yd); height:3px; margin-top:-1.5px; transform-origin:left center; opacity:.6; border-radius:2px; }
+@media (max-width:600px){ .gv-hl{ top:var(--ym); right:46%; } }
 .gv-hl.call{ background:var(--gv-call); box-shadow:0 0 14px 3px rgba(239,68,68,.6); }
 .gv-hl.spot{ background:var(--gv-acc); box-shadow:0 0 10px 2px rgba(3,201,136,.55); opacity:.35; height:2px; }
 .gv-hl.zero{ background:var(--gv-zero); box-shadow:0 0 14px 3px rgba(245,158,11,.6); }
@@ -107,8 +107,8 @@ html.gv-anim .is-playing .gv-ring.b{ animation-delay:.8s; } html.gv-anim .is-pla
 /* zero-gamma colour wash: green above the flip (positive), red below (negative) */
 .gv-wash{ left:0; right:0; --y:var(--yd); }
 @media (max-width:600px){ .gv-wash{ --y:var(--ym); } }
-.gv-wash.pos{ top:0; height:var(--y); background:linear-gradient(180deg, rgba(34,197,94,0), rgba(34,197,94,.22)); }
-.gv-wash.neg{ top:var(--y); bottom:0; background:linear-gradient(180deg, rgba(239,68,68,.28), rgba(239,68,68,0)); }
+.gv-wash.pos{ top:0; height:var(--y); background:linear-gradient(180deg, rgba(34,197,94,.04), rgba(34,197,94,.34)); }
+.gv-wash.neg{ top:var(--y); bottom:0; background:linear-gradient(180deg, rgba(239,68,68,.42), rgba(239,68,68,.08)); }
 .gv-k-flip .gv-wash{ opacity:.8; }
 html.gv-anim .gv-k-flip.is-playing .gv-wash.pos{ animation:gv-wash 3.6s ease-in-out infinite; }
 html.gv-anim .gv-k-flip.is-playing .gv-wash.neg{ animation:gv-wash 3.6s ease-in-out 1.8s infinite; }
@@ -166,7 +166,7 @@ html.gv-anim .gv-scroll-cue span{ animation:gv-cue 1.8s ease-in-out infinite; }
 @keyframes gv-cue{ 0%,100%{ transform:translateY(0); opacity:.4; } 50%{ transform:translateY(8px); opacity:1; } }
 .gv-story-grid{ display:grid; gap:0; }
 @media (min-width:900px){ .gv-story-grid{ grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:40px; } }
-.gv-stage{ position:sticky; top:64px; z-index:2; margin:0; }
+.gv-stage{ position:sticky; top:82px; z-index:2; margin:0; background:var(--bg-1); padding-bottom:4px; box-shadow:0 -24px 0 var(--bg-1); }
 .gv-vp{ position:relative; height:46vh; max-height:440px; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:#07080a; container-type:size; }
 @media (min-width:900px){ .gv-vp{ height:min(72vh, 520px); max-height:none; } .gv-stage{ top:90px; align-self:start; } }
 .gv-zoom{ position:relative; transform-origin:0 0; --s:1; --fx:0%; --fy:0%;
@@ -243,3 +243,7 @@ html.gv-anim .gv-stage[data-step="4"] .gv-spot{ animation:gv-ping 1.6s ease-out 
 @media (prefers-reduced-motion:reduce){
   .gv *, .gv *::after{ animation:none !important; transition:none !important; }
 }
+
+/* hero order: kicker, headline, the real chart, then copy and buttons */
+.gv-a-hero .ft-hero-sub, .gv-b-hero .ft-hero-sub, .gv-c-hero .ft-hero-sub{ margin-top:22px; }
+.gv .fg-hero > h1{ margin-bottom:0; }

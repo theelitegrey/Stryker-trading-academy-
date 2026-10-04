@@ -11,8 +11,27 @@ until the functions below are deployed, because the client shows the trial
 only when the `trialEligibility` callable says yes, and treats any error as "no
 trial".
 
-Do these steps in order, from the deploy machine (the one that holds
-`functions/.env`). Never deploy from the team server: it has no `.env`.
+Do these steps in order. Since 2026-10-05 (Owner's choice, CoS-approved) the
+team server deploys functions too. The live env is held OUTSIDE every repo at
+/root/.hermes/profiles/chief-of-staff/scripts/functions.env (chmod 600; never
+print, grep values from, copy into a repo or commit it). Deploy from a staging
+folder outside the repo:
+
+    S=/root/deploy/fn-stage; rm -rf $S; mkdir -p $S/functions
+    git archive HEAD functions-src | tar -x -C /tmp/x && cp -r /tmp/x/functions-src/. $S/functions/
+    echo '{"projects":{"default":"strykertrades-e0cd8"}}' > $S/.firebaserc
+    echo '{"functions":{"source":"functions"}}'          > $S/firebase.json
+    install -m 600 /root/.hermes/profiles/chief-of-staff/scripts/functions.env $S/functions/.env
+    (cd $S/functions && npm ci)
+    (cd $S && firebase deploy --project strykertrades-e0cd8 --only functions:NAME1,functions:NAME2)
+    shred -u $S/functions/.env
+
+BROKER_SYNC_SECRET in that env must never change (it would make every stored
+broker credential unreadable).
+
+Done 2026-10-05 04:36 IST from commit 0c70bf77 (build 391): steps 1-4 below.
+The Stripe event and the Razorpay event were added over the API. The switch
+`settings/commerce.trialEnabled` stays off until the CoS says go.
 
 ## 0. Prerequisites (already in place for Stripe and Razorpay)
 

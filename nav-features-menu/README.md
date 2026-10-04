@@ -5,7 +5,7 @@ Owner ask: hovering "Features" in the public nav opens a large visual menu with 
 ## Files
 - `assets/nav-features.js`: holds the one data array (`FEATURES`: name, url, line, thumb, icon). It finds the "Features" link in `.nav-links`, injects the panel and wires the events. The variant comes from `<html data-navfx="a|b|c">`, or from `data-navfx` on the script tag; the default is `a`.
 - `assets/nav-features.css`: styles for all three variants plus the burger accordion. It uses only existing theme variables, so day and night both work.
-- `assets/images/navfx/`: 20 WebP thumbs (360w and 720w for 10 features), 172 KB in total, cut from real captures already on the site. Live Sessions has no capture on main, so it shows its icon instead.
+- `assets/images/navfx/`: 22 WebP thumbs (360w and 720w for all 11 features), 185 KB in total, cut from real captures already on the site (Live Sessions from assets/images/live-sessions/hero-1440.webp).
 - `nav-preview-a.html`, `nav-preview-b.html`, `nav-preview-c.html`: copies of index.html, marked noindex,nofollow with no canonical tag, that load the shared files. They are not in the sitemap.
 
 ## Variants
@@ -24,12 +24,12 @@ Owner ask: hovering "Features" in the public nav opens a large visual menu with 
 | 5 | Trade Journal | /features/journal | features.html hub card (main) |
 | 6 | Trading Models | /features/models | features.html hub card (main) |
 | 7 | Private Indicators | /features/indicators | features.html hub card (main) |
-| 8 | Backtesting | /features (page not live) | features.html hub card on hermes/features-release-369 (main's card says "get honest stats"; I used the 369 wording) |
-| 9 | Community | /features (page not live) | features.html hub card on hermes/features-release-369 ("Community & Tools" card) |
-| 10 | Charts | /features (page not live) | features.html hub card (main, "Charts Workspace") |
-| 11 | Live Sessions | /features (page not live) | features.html hub card (main) |
+| 8 | Backtesting | /features/backtesting | features.html hub card on hermes/features-release-369 (main's card says "get honest stats"; I used the 369 wording) |
+| 9 | Community | /features/community | features.html hub card on hermes/features-release-369 ("Community & Tools" card) |
+| 10 | Charts | /features/charts | features.html hub card (main, "Charts Workspace") |
+| 11 | Live Sessions | /features/live-sessions | features.html hub card (main) |
 
-Thumb sources: gex-real/chart-nq-5m-plot, smart-money-desk/overview, curriculum/hero-1440, global-monitor/hero-1440, journal/calendar, models/hero-1440, indicators/hero-1440 (all on main). Backtesting/hero and community/hero-1440 come from hermes/features-release-369; charts/hero comes from hermes/features-batch2-e1. Live Sessions has none.
+Thumb sources: gex-real/chart-nq-5m-plot, smart-money-desk/overview, curriculum/hero-1440, global-monitor/hero-1440, journal/calendar, models/hero-1440, indicators/hero-1440 (all on main). Backtesting/hero and community/hero-1440 come from hermes/features-release-369; charts/hero comes from hermes/features-batch2-e1. Live Sessions: live-sessions/hero-1440 (main).
 
 When a page goes live, change its `url` in the array. That is a one-line edit.
 
@@ -43,3 +43,9 @@ When a page goes live, change its `url` in the array. That is a one-line edit.
 ## Known limits
 - JS is 12.0 KB unminified with comments: 2.2 KB data and about 9.8 KB logic. That is over the 6 KB target because one file carries three variants plus the burger accordion. Shipping a single variant and stripping comments brings the logic to about 5-6 KB.
 - The test blocks third-party analytics. Firebase loads normally.
+
+
+## Update 2026-10-04 (web-temp-5)
+- Rebased onto main build 375; previews regenerated from the current index.html (new hero, cards, string, dragon), still self-contained and noindex.
+- All 11 hub features now link to their live /features/<name> pages (the hub on main lists exactly these 11; Backtesting, Community, Charts and Live Sessions are live). The Backtesting line now matches main's hub card verbatim ("practise with simulated orders").
+- Scrolling regions inside the panel and the burger list use the thin rounded scrollbar style (Owner rule).

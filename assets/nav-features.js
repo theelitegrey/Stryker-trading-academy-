@@ -25,13 +25,13 @@
       line: 'Complete rule-based models: context, trigger, invalidation and management.' },
     { id: 'ind', name: 'Private Indicators', url: '/features/indicators', icon: '📊', thumb: 'indicators',
       line: 'Five invite-only TradingView scripts, licensed to your username.' },
-    { id: 'bt', name: 'Backtesting', url: '/features', icon: '⏯️', thumb: 'backtesting',
-      line: 'Replay NQ, ES, gold, forex or crypto bar by bar with the future hidden, trade it with simulated orders, and review every practice session.' },
-    { id: 'com', name: 'Community', url: '/features', icon: '🤝', thumb: 'community',
+    { id: 'bt', name: 'Backtesting', url: '/features/backtesting', icon: '⏯️', thumb: 'backtesting',
+      line: 'Replay NQ, ES, gold, forex or crypto bar by bar with the future hidden, practise with simulated orders, and review every practice session.' },
+    { id: 'com', name: 'Community', url: '/features/community', icon: '🤝', thumb: 'community',
       line: 'The Trading Floor, achievements and your own invite link.' },
-    { id: 'ch', name: 'Charts', url: '/features', icon: '📉', thumb: 'charts',
+    { id: 'ch', name: 'Charts', url: '/features/charts', icon: '📉', thumb: 'charts',
       line: 'A full interactive charting desk with crypto market data, inside the academy.' },
-    { id: 'ls', name: 'Live Sessions', url: '/features', icon: '🔴', thumb: null,
+    { id: 'ls', name: 'Live Sessions', url: '/features/live-sessions', icon: '🔴', thumb: 'live-sessions',
       line: 'Scheduled sessions with the desk, with a countdown in your timezone.' }
   ];
   var BIG = { gex: 1, jr: 1, mdl: 1 };       // variant C hero tiles

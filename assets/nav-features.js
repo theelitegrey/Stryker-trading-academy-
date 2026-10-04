@@ -99,9 +99,10 @@
       if (!desk.matches) return;
       if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); var f = panel.querySelector('a'); if (f) f.focus(); }
       else if (e.key === 'Enter' && !open) { e.preventDefault(); setOpen(true); }   // open; Enter again navigates
-      else if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false, true); }
     });
-    panel.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); setOpen(false, true); } });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && open) { e.preventDefault(); setOpen(false, panel.contains(document.activeElement)); }
+    });
     panel.addEventListener('focusout', function (e) { var to = e.relatedTarget; if (to && !panel.contains(to) && to !== link) setOpen(false); });
     link.addEventListener('blur', function (e) { var to = e.relatedTarget; if (to && !panel.contains(to)) setOpen(false); });
     document.addEventListener('pointerdown', function (e) { if (open && !panel.contains(e.target) && !row.contains(e.target)) setOpen(false); }, true);

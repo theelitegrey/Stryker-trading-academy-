@@ -8,11 +8,12 @@
   // count-up: only values already printed on the capture (data-to)
   function countUp(b) {
     if (reduce || b._done) return; b._done = 1;
-    var to = b.getAttribute('data-to'), dec = (to.split('.')[1] || '').length, end = parseFloat(to);
+    var to = b.getAttribute('data-to'), dec = (to.split('.')[1] || '').length, end = parseFloat(to.replace(/,/g, '')), commas = to.indexOf(',') > -1;
+    function fmt(v) { return commas ? v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }) : v.toFixed(dec); }
     var start = end * 0.985, t0 = null;
     function step(t) {
       if (!t0) t0 = t; var k = Math.min(1, (t - t0) / 1100); k = 1 - Math.pow(1 - k, 3);
-      b.textContent = (start + (end - start) * k).toFixed(dec);
+      b.textContent = fmt(start + (end - start) * k);
       if (k < 1) requestAnimationFrame(step); else b.textContent = to;
     }
     requestAnimationFrame(step);

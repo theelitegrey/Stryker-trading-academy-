@@ -296,6 +296,8 @@ Drop the frame instead.
 **TradingView automation violates TradingView's terms of service.** The owner
 has been told and accepted the risk. Do not expand it without being asked.
 
+**Scrollbars:** all scrollable regions use the shared thin scrollbar style (the global SCROLLBARS block in `assets/style.css`); never ship default scrollbars. Don't set `scrollbar-width`/`scrollbar-color` on a component (in Chrome 121+ that switches the styled bar off and brings back the arrows). Use `.scroll-x` / `.scroll-y` for new scroll areas. Headless screenshots hide scrollbars by default, so check with `--hide-scrollbars` removed.
+
 ---
 
 ## 9. Network reality in the cloud container

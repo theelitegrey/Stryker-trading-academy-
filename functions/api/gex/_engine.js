@@ -198,7 +198,15 @@ function ivRange(spot, iv30, days = 1) {
   return { '68%': [spot * (1 - s), spot * (1 + s)], '80%': [spot * (1 - 1.282 * s), spot * (1 + 1.282 * s)] };
 }
 
+// Futures and index quotes: a 1-day window is empty over weekends and holidays, which left
+// the futures conversion and the chart blank whenever the market was shut. Fall back to 5 days
+// so the last real print (with its true age) is used instead.
 async function quoteLast(symbol, interval = '5m', range = '1d') {
+  try { return await quoteLastRange(symbol, interval, range); }
+  catch (e) { if (range === '1d') return quoteLastRange(symbol, interval, '5d'); throw e; }
+}
+
+async function quoteLastRange(symbol, interval, range) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
   const data = await fetchJson(url);
   const r = data.chart?.result?.[0];

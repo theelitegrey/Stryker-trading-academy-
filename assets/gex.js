@@ -2,6 +2,7 @@
 // Depends on: Cloudflare Pages Functions under /api/gex/* and a canvas element.
 (function(){
   var MKTS = ['SPX', 'SPY', 'QQQ', 'GLD'];
+  var MARKET_LABELS = { SPX:'SPX · ES/MES', SPY:'SPY · ES/MES', QQQ:'QQQ · NQ/MNQ', GLD:'GLD · GC/MGC' };
   var DTES = [{v:0,l:'0DTE'}, {v:1,l:'1DTE'}, {v:7,l:'1W'}, {v:30,l:'1M'}];
   var IVS = ['1m', '5m', '15m', '1h'];
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
@@ -15,15 +16,16 @@
   function bfmt(n){ if(n == null || !isFinite(n)) return '—'; return (n/1e9).toFixed(2) + 'B'; }
   function money(n){ if(n == null || !isFinite(n)) return '—'; return '$' + Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
   function cls(on){ return on ? ' is-on' : ''; }
+  function mlabel(m){ return MARKET_LABELS[m] || m; }
 
   function wireTabs(){
-    $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'">'+m+'</button>'; }).join('');
+    $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+m+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
     $('gex-dtes').innerHTML = DTES.map(function(d){ return '<button class="gex-dte'+cls(d.v === curDte)+'" data-d="'+d.v+'">'+d.l+'</button>'; }).join('');
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
-    $('gex-tabs').addEventListener('click', function(e){ var m=e.target.dataset.m; if(!m) return; cur=m; curFut=null; paintButtons(); loadLevels(); });
-    $('gex-dtes').addEventListener('click', function(e){ var d=e.target.dataset.d; if(d == null) return; curDte=Number(d); paintButtons(); loadLevels(); });
-    $('gex-ivs').addEventListener('click', function(e){ var i=e.target.dataset.i; if(!i) return; curIv=i; paintButtons(); loadChart(); });
-    $('gex-futs').addEventListener('click', function(e){ var f=e.target.dataset.f; if(!f || !DATA) return; curFut=f; render(DATA); loadChart(); });
+    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
+    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
+    $('gex-ivs').addEventListener('click', function(e){ var btn=e.target.closest('[data-i]'); var i=btn && btn.dataset.i; if(!i) return; curIv=i; paintButtons(); resetChartData('Loading '+curFut+' '+i+'…'); loadChart(); });
+    $('gex-futs').addEventListener('click', function(e){ var btn=e.target.closest('[data-f]'); var f=btn && btn.dataset.f; if(!f || !DATA || f===curFut) return; curFut=f; resetChartData('Loading '+f+'…'); render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
     function bindZoom(id, fn){ var b=$(id); if(b){ b.onclick = fn; } }
     bindZoom('gex-zoom-in', function(e){ if(e) e.preventDefault(); tvZoom(0.72); });
@@ -48,7 +50,7 @@
   }
 
   async function loadLevels(){
-    $('gex-status-text').innerHTML = '<b>Loading '+esc(cur)+'…</b><span> Building gamma walls, futures conversion and market-generated levels on strykertrading.com.</span>';
+    $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on strykertrading.com.</span>';
     try{
       var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + '&t=' + Date.now());
       DATA = d;
@@ -68,7 +70,7 @@
     var futs = Object.keys(d.futures || {}).filter(function(k){ return !(d.futures[k] || {}).error; });
     var F = curFut ? d.futures[curFut] : null;
     $('gex-status-text').innerHTML = '<b>'+esc(d.underlying)+' → '+esc(futs.join(' / ') || d.fut)+'</b><span> '+esc(String(d.contracts))+' contracts · '+esc(dteLabel)+(d.expiry?' · exp '+esc(d.expiry):'')+' · Cboe delayed '+esc(d.asof || '')+'</span>';
-    $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'">'+f+'</button>'; }).join('') : '<span class="gex-empty">futures feed unavailable</span>';
+    $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ var sub = ({ES:'S&P futures',MES:'Micro ES',NQ:'Nasdaq futures',MNQ:'Micro NQ',GC:'Gold futures',MGC:'Micro gold'})[f] || 'Futures'; return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'"><span>'+f+'</span><small>'+sub+'</small></button>'; }).join('') : '<span class="gex-empty">futures feed unavailable</span>';
     $('gex-hero').innerHTML = '<div class="gex-spot"><small>SPOT '+esc(d.underlying)+'</small>'+fmt(d.spot,2)+'</div>'+
       '<div class="gex-badge '+(pos?'pos':'neg')+'">'+esc(d.regime)+' GAMMA</div>'+
       '<div class="gex-kv">NET GEX<b style="color:'+(pos?'var(--bull)':'var(--bear)')+'">'+bfmt(d.net_gex)+'</b></div>'+
@@ -143,18 +145,7 @@
     $('gex-ladder').innerHTML = html + '</table></div>';
   }
 
-  async function loadChart(){
-    if(!curFut) return;
-    $('gex-chart-title').textContent = curFut + ' · ' + curIv + ' · GAMMA LEVELS';
-    try{
-      var d = await getJson('/api/gex/candles/' + encodeURIComponent(curFut) + '?interval=' + encodeURIComponent(curIv) + '&t=' + Date.now());
-      CANDLES = d.candles || [];
-      drawChart();
-    }catch(e){
-      CANDLES = [];
-      drawChart(e.message);
-    }
-  }
+
 
   function ensureTradingViewChart(){
     var host = $('gex-chart');
@@ -164,7 +155,7 @@
       autoSize: true,
       layout: { background: { color: '#050608' }, textColor: '#8b949e', fontFamily: 'ui-monospace,SFMono-Regular,Menlo,monospace' },
       grid: { vertLines: { color: 'rgba(255,255,255,.045)' }, horzLines: { color: 'rgba(255,255,255,.055)' } },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,.10)', scaleMargins: { top: .12, bottom: .15 } },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,.10)', scaleMargins: { top: .12, bottom: .15 }, autoScale: true },
       timeScale: { borderColor: 'rgba(255,255,255,.10)', timeVisible: true, secondsVisible: false, rightOffset: 8, barSpacing: 7, minBarSpacing: 2 },
       crosshair: {
         mode: LightweightCharts.CrosshairMode.Normal,
@@ -212,8 +203,6 @@
 
   function clampIdx(i){ return Math.max(0, Math.min(CANDLES.length - 1, Math.round(i))); }
 
-  function clampIdx(i){ return Math.max(0, Math.min(CANDLES.length - 1, Math.round(i))); }
-
   function ensureView(){
     if(!CANDLES.length) return;
     if(viewTo <= viewFrom || viewTo >= CANDLES.length){
@@ -227,6 +216,7 @@
     ensureView();
     tvSeries.setData(CANDLES.slice(viewFrom, viewTo + 1));
     renderPriceLines();
+    try{ tvChart.priceScale('right').applyOptions({ autoScale: true }); }catch(e){}
     tvChart.timeScale().fitContent();
     updateChartRangeLabel();
   }
@@ -261,9 +251,30 @@
     applyView();
   }
 
+  function resetChartData(msg){
+    CANDLES = [];
+    viewFrom = 0;
+    viewTo = 0;
+    var host = $('gex-chart');
+    if(host){
+      host.dataset.visibleBars = '0';
+      host.dataset.totalBars = '0';
+      host.dataset.viewFrom = '0';
+      host.dataset.viewTo = '0';
+    }
+    if(tvSeries){
+      tvPriceLines.forEach(function(line){ try{ tvSeries.removePriceLine(line); }catch(e){} });
+      tvPriceLines = [];
+      try{ tvSeries.setData([]); }catch(e){}
+      try{ tvChart.priceScale('right').applyOptions({ autoScale: true }); }catch(e){}
+    }
+    var label = $('gex-chart-range');
+    if(label) label.textContent = msg || 'Loading chart…';
+  }
+
   async function loadChart(){
     if(!curFut) return;
-    $('gex-chart-title').textContent = curFut + ' · ' + curIv + ' · TRADINGVIEW CHART';
+    $('gex-chart-title').textContent = cur + ' → ' + curFut + ' · ' + curIv + ' · TRADINGVIEW CHART';
     ensureTradingViewChart();
     if(!tvSeries) return;
     try{
@@ -272,7 +283,8 @@
       viewFrom = 0; viewTo = 0;
       drawChart();
     }catch(e){
-      $('gex-chart').innerHTML = '<div class="gex-chart-fallback">chart: '+esc(e.message)+'</div>';
+      resetChartData('Chart unavailable');
+      $('gex-chart').insertAdjacentHTML('beforeend', '<div class="gex-chart-fallback">chart: '+esc(e.message)+'</div>');
     }
   }
 

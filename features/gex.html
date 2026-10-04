@@ -182,7 +182,7 @@
 <div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-fit" src="/assets/images/gex-real/tile-regime.webp" width="720" height="178" loading="lazy" decoding="async" alt="Real capture of the GEX regime panel: SPX spot, a POSITIVE GAMMA badge, net GEX and IV30."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>Regime</h3><p>A positive or negative gamma badge, plus the net GEX figure beside it. It is the headline read of the model.</p><div class="fg-how">The sign of summed net GEX across strikes within 6% of spot, for the expiry filter you picked.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-fit" src="/assets/images/gex-real/tile-iv.webp" width="720" height="107" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes, 68% and 80%, in ES points."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-iv-crop" src="/assets/images/gex-real/tile-iv.webp" width="720" height="107" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes, 68% and 80%, in ES points."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>IV expected range · 68% / 80%</h3><p>A one-day range implied by options volatility (IV30: 30-day implied volatility, how much movement options are pricing in). The 68% band is one standard deviation; the 80% band is wider.</p><div class="fg-how">Spot ± spot × IV30 × √(1/252) for 68%, and ×1.282 for 80%. It assumes a normal distribution of moves, so it is a statistical estimate of dispersion, not a forecast or a probability that price stays inside.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-ladder.webp" width="520" height="373" loading="lazy" decoding="async" alt="Real capture of the strike ladder near spot: net GEX profile bars, net DEX and open interest per strike."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
@@ -191,7 +191,7 @@
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips g-seq"><span class="fg-chip">0DTE</span><span class="fg-chip">1DTE</span><span class="fg-chip">1W</span><span class="fg-chip">1M</span></div></div>
 <h3>Expiry filters</h3><p>Switch between 0DTE, 1DTE, 1W and 1M. The levels re-compute for just those expiries.</p><div class="fg-how">0DTE uses the nearest listed expiry on its own and 1DTE uses the next one after it. 1W and 1M include every expiry within 7 or 30 days.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/walls-spx-1dte.webp" width="720" height="588" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall, spot, zero gamma and put wall for SPX, each converted to an ES futures price."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img class="fg-walls-crop" src="/assets/images/gex-real/walls-spx-1dte.webp" width="720" height="588" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall, spot, zero gamma and put wall for SPX, each converted to an ES futures price."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>Futures conversion</h3><p>Options levels are calculated on the index or ETF. Stryker converts them to the futures contracts traders chart, so a level reads in futures points. SPY (to ES/MES) is also available.</p><div class="fg-how">Index levels shift by the current futures basis; ETF levels use a ratio anchored to the latest futures price. Futures prices are delayed too.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-market-levels.webp" width="720" height="437" loading="lazy" decoding="async" alt="Real capture of the market-generated levels card: prior value area, prior RTH range, overnight high and low, RTH open, high and low for ES."><span class="fg-crop-cap">Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct).</span></div>
@@ -252,10 +252,10 @@
 <span class="fg-pin" style="--xd:77.6%;--yd:20.9%;--xm:56%;--ym:14.2%;--d:.6s" aria-hidden="true">2</span>
 <span class="fg-pin" style="--xd:56.8%;--yd:28.4%;--xm:95%;--ym:22.3%;--d:.9s" aria-hidden="true">3</span>
 <span class="fg-pin" style="--xd:37%;--yd:79%;--xm:50%;--ym:60.8%;--d:1.2s" aria-hidden="true">4</span>
-<span class="fg-pin" style="--xd:61%;--yd:37.8%;--xm:30%;--ym:81.3%;--d:1.5s" aria-hidden="true">5</span>
+<span class="fg-pin" style="--xd:61%;--yd:37.8%;--xm:52%;--ym:76%;--d:1.5s" aria-hidden="true">5</span>
 </div>
 </div>
-<ol class="fg-pin-key"><li><b>Market</b> SPX, SPY, QQQ or GLD</li><li><b>Expiry</b> 0DTE, 1DTE, 1W or 1M</li><li><b>Data age</b> Cboe timestamp and market status</li><li><b>Levels on the chart</b> here, the zero-gamma line</li><li><span class="fg-d"><b>Strike ladder</b> net GEX, DEX and OI by strike</span><span class="fg-m"><b>Regime and walls</b> spot, regime badge, call wall</span></li></ol>
+<ol class="fg-pin-key"><li><b>Market</b> SPX, SPY, QQQ or GLD</li><li><b>Expiry</b> 0DTE, 1DTE, 1W or 1M</li><li><b>Data age</b> Cboe timestamp and market status</li><li><b>Levels on the chart</b> here, the zero-gamma line</li><li><span class="fg-d"><b>Strike ladder</b> net GEX, DEX and OI by strike</span><span class="fg-m"><b>Market levels</b> switch the extra chart lines on or off</span></li></ol>
 <figcaption class="fg-cap"><span class="fg-tag real">Real capture</span> Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX, 1DTE). Captured while the market was closed; not current levels. <button type="button" id="fg-replay">Replay labels</button></figcaption>
 </figure>
 </section>

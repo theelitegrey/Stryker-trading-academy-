@@ -348,6 +348,9 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
   .fg-pin-key .fg-d{ display:none; } .fg-pin-key .fg-m{ display:inline; }
   /* the full phone capture is tall: show its top two-thirds, scroll inside is not needed */
   .fg-layout-shot .fg-shot-frame{ max-width:360px; margin:0 auto; }
+  /* phone capture is 740x2600; show only its top 79% (selectors, status, chart, legend) */
+  .fg-layout-shot .fg-shot-stage{ aspect-ratio:740/2054; overflow:hidden; }
+  .fg-layout-shot .fg-pin{ top:calc(var(--ym) * 2600 / 2054); }
 }
 
 /* real-capture crops inside feature tiles */
@@ -357,6 +360,8 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
 .fg-tile .fg-glyph > svg, .fg-tile .fg-glyph > .fg-chips, .fg-tile .fg-glyph > .fg-fut{ height:132px; flex:none; }
 .fg-tile .fg-glyph > .fg-chips{ display:flex; align-items:center; justify-content:center; }
 .fg-crop img{ display:block; width:100%; height:132px; object-fit:cover; object-position:left top; }
+.fg-crop img.fg-iv-crop{ object-position:left center; }
+.fg-crop img.fg-walls-crop{ object-position:left 72%; }
 .fg-crop img.fg-fit{ object-fit:contain; object-position:center; }
 .fg-crop-cap{ display:block; padding:5px 8px 6px; font-size:10px; line-height:1.4; color:var(--ink-3); border-top:1px solid var(--line); background:var(--bg-1); }
 

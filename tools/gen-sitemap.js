@@ -45,6 +45,7 @@ const PAGES = [
   ['/features/global-monitor', '0.6', 'monthly'],
   ['/features/journal',    '0.6', 'monthly'],
   ['/features/backtesting',    '0.6', 'monthly'],
+  ['/features/charts',    '0.6', 'monthly'],
   ['/features/models',     '0.6', 'monthly'],
   ['/features/indicators', '0.6', 'monthly'],
   ['/features-live',        '0.6', 'monthly'],

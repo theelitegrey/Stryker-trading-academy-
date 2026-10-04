@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="365">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Events map, headline wire, markets, risk and prediction markets on one screen: the context check before every session. Education only.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Global Monitor: Market Context on One Screen — Stryker Trading Academy">
+<meta property="og:description" content="Events map, headline wire, markets, risk and prediction markets on one screen: the context check before every session. Education only.">
+<meta property="og:url" content="https://strykertrading.com/features/global-monitor">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Global Monitor: Market Context on One Screen — Stryker Trading Academy">
+<meta name="twitter:description" content="Events map, headline wire, markets, risk and prediction markets on one screen: the context check before every session. Education only.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta name="theme-color" content="#050506">
+<title>Global Monitor: Market Context on One Screen — Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/global-monitor">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=365">
+<script src="/assets/sanitize.js?v=365"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=365" defer></script>
+<script src="/assets/version-check.js?v=365" defer></script>
+<script src="/assets/acquisition.js?v=365" defer></script>
+<script src="/assets/focus-mode.js?v=365" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-page.css?v=365">
+</head>
+<body class="fp-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero fp-hero">
+<span class="ft-hero-kicker">Global Monitor · Market context</span>
+<h1>The market’s weather report, <em>on one screen</em></h1>
+<figure class="gv-term solo" data-fp-play>
+<div class="gv-term-bar"><span class="gv-dot"></span><b>Global Monitor · Map</b></div>
+<div class="gv-term-body">
+<div class="gv-chart"><picture><source media="(max-width:600px)" srcset="/assets/images/global-monitor/hero-390.webp" width="740" height="1000"><img src="/assets/images/global-monitor/hero-1440.webp" width="1400" height="867" fetchpriority="high" decoding="async" alt="The Global Monitor map tab: world map with event markers, event categories, an events list, the most active places and the tension index."></picture></div>
+</div>
+<figcaption class="fg-cap">The events map, with most active places and the tension index.</figcaption>
+</figure>
+<p class="ft-hero-sub">Before you pick a trade you need the context: what is moving, where the risk tone sits, what is on the calendar. The Global Monitor is the one-screen check before every session.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#whats-on-the-page" class="btn btn-ghost">What’s on the monitor</a></div>
+<p class="fg-note">Third-party data, for context only. Education only. Not financial advice.</p>
+</header>
+<div class="container">
+<section class="ft-section sx" id="whats-on-the-page"><div class="ft-section-head ft-reveal"><h2>What’s on the Global Monitor</h2><p>Six tabs on one screen: Markets, Map, Wire, Risk, Briefing and Streams.</p></div><nav class="sx-index" aria-label="Jump to a feature"><div><a href="#sx-f-wire" data-fp-ix="wire"><em>01</em>The Wire</a><a href="#sx-f-markets" data-fp-ix="markets"><em>02</em>Markets</a><a href="#sx-f-finmap" data-fp-ix="finmap"><em>03</em>Financial map</a><a href="#sx-f-risk" data-fp-ix="risk"><em>04</em>Risk</a><a href="#sx-f-predict" data-fp-ix="predict"><em>05</em>Prediction markets</a></div></nav><div class="sx-rows">
+<article class="sx-row" id="sx-f-wire" data-fp-row="wire"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/556;--ar:1.3309"><img src="/assets/images/global-monitor/wire.webp" width="740" height="556" loading="lazy" decoding="async" alt="The Wire: a search box, severity filter chips and a list of headlines with country tags and sources."><i class="sx-box" style="--x:1.7%;--y:6.1%;--bw:96.6%;--bh:4.9%;--n:1"></i><i class="sx-box chip" style="--x:1.7%;--y:12.2%;--bw:39.2%;--bh:3.8%;--n:2"></i></div><p class="sx-cap">The Wire headline feed.</p></div><div class="sx-copy"><span class="sx-n">01 / 05</span><h3>The Wire</h3><p class="sx-text">Curated headlines on one feed, searchable by headline, country and source, so the context reaches you without twelve open tabs.</p><details class="sx-how"><summary>How it works</summary><p>Chips filter the feed by severity; the search box matches headlines, countries and sources.</p></details></div></article>
+<article class="sx-row flip" id="sx-f-markets" data-fp-row="markets"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/585;--ar:1.2650"><img src="/assets/images/global-monitor/markets.webp" width="740" height="585" loading="lazy" decoding="async" alt="Markets tab: risk tone, sector breadth, rotation leader, curve and volatility cards, then indices, futures, safe havens, forex, energy, defense stocks and crypto tables."><i class="sx-box" style="--x:1.7%;--y:5.8%;--bw:96.6%;--bh:17.2%;--n:1"></i></div><p class="sx-cap">Market signals and asset tables.</p></div><div class="sx-copy"><span class="sx-n">02 / 05</span><h3>Markets</h3><p class="sx-text">Market signals, then the instruments that set the tone, grouped on one screen.</p><details class="sx-how"><summary>How it works</summary><p>Risk tone, sector breadth, rotation leader, curve and volatility at the top; indices, futures, safe havens, FX, energy, defense stocks and crypto below. Sector rotation and movers follow.</p></details></div></article>
+<article class="sx-row" id="sx-f-finmap" data-fp-row="finmap"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/393;--ar:1.8830"><img src="/assets/images/global-monitor/finmap.webp" width="740" height="393" loading="lazy" decoding="async" alt="Financial map: a world map with gold rings on central banks and dots for market-stress stories."><i class="sx-scan"></i></div><p class="sx-cap">Financial map.</p></div><div class="sx-copy"><span class="sx-n">03 / 05</span><h3>Financial map</h3><p class="sx-text">Monetary policy and market-stress stories by country, with central banks marked, plus a financial newswire filtered by severity.</p><details class="sx-how"><summary>How it works</summary><p>Hover a central bank for its next high-impact release; hover a dot for the stories behind it.</p></details></div></article>
+<article class="sx-row flip" id="sx-f-risk" data-fp-row="risk"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/479;--ar:1.5449"><img src="/assets/images/global-monitor/risk.webp" width="740" height="479" loading="lazy" decoding="async" alt="Risk tab: DEFCON status with its five levels and a disease outbreaks list."><i class="sx-box" style="--x:1.7%;--y:59.2%;--bw:45.9%;--bh:9.8%;--n:1"></i></div><p class="sx-cap">DEFCON status and disease outbreaks.</p></div><div class="sx-copy"><span class="sx-n">04 / 05</span><h3>Risk</h3><p class="sx-text">DEFCON status, labelled on the page as a third-party estimate, beside disease outbreaks ranked by severity from WHO Disease Outbreak News.</p><details class="sx-how"><summary>How it works</summary><p>The page names the source under each panel.</p></details></div></article>
+<article class="sx-row" id="sx-f-predict" data-fp-row="predict"><div class="sx-frame"><div class="sx-media" style="aspect-ratio:740/979;--ar:0.7559"><img src="/assets/images/global-monitor/predict.webp" width="740" height="979" loading="lazy" decoding="async" alt="Trending prediction markets with a search box, each market listing its outcomes."><i class="sx-box" style="--x:3.4%;--y:10.8%;--bw:93.2%;--bh:5.6%;--n:1"></i></div><p class="sx-cap">Prediction markets.</p></div><div class="sx-copy"><span class="sx-n">05 / 05</span><h3>Prediction markets</h3><p class="sx-text">Trending prediction markets, searchable, as another read on what the crowd is weighing.</p><details class="sx-how"><summary>How it works</summary><p>Ranked by 24h volume, via Polymarket. Shown for context only; not a forecast.</p></details></div></article>
+</div></section>
+
+<section class="ft-section" id="routine">
+<div class="ft-section-head ft-reveal"><h2>The two-minute pre-market routine</h2><p>Professionals start with context, not entries. The monitor turns that habit into a short routine before every session.</p></div>
+<div class="fg-flow ft-reveal" data-fp-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Open the monitor</h3><p>What moved overnight?</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>Frame the day</h3><p>Risk-on or risk-off?</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Then trade</h3><p>Context first, entries second.</p></div>
+</div>
+</section>
+
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal"><details><summary>What is the Global Monitor for?</summary><div class="fg-a"><p>It is the one-screen context check before a session: events, headlines, markets, risk and the calendar in one place.</p></div></details><details><summary>Where does the data come from?</summary><div class="fg-a"><p>Third-party sources, named on each panel (for example Polymarket, the Forex Factory feed and WHO Disease Outbreak News), collected into one page. For context only.</p></div></details><details><summary>Is it part of the Terminal?</summary><div class="fg-a"><p>Yes. It sits beside Charts and the Smart Money desk in the Terminal section of your dashboard.</p></div></details></div>
+<div class="ft-cta ft-reveal"><h2>Start every day framed</h2><p>Create your account and make the two-minute context check part of your routine.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create your free account</a><a href="/features" class="btn btn-ghost">All features</a></div>
+<p class="fg-edu">Education only. Not financial advice.</p></div>
+</section>
+</div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=365"></script>
+<script src="/assets/auth.js?v=365"></script>
+<script src="/assets/plan-price.js?v=365"></script>
+<script src="/assets/launch-sale.js?v=365"></script>
+<script src="/assets/progress.js?v=365"></script>
+<script src="/assets/activity-log.js?v=365"></script>
+<script src="/assets/banned-check.js?v=365"></script>
+<script src="/assets/email-verify.js?v=365"></script>
+<script src="/assets/profiles-sync.js?v=365"></script>
+<script src="/assets/branding.js?v=365"></script>
+<script src="/assets/seo.js?v=365"></script>
+<script src="/assets/features.js?v=365"></script>
+<script src="/assets/features-page.js?v=365"></script>
+<script src="/assets/theme.js?v=365"></script>
+</body>
+</html>

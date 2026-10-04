@@ -275,7 +275,8 @@ html.fp-anim .sx-pulse{ display:block; }
 html.fp-anim .sx-rows.is-live .sx-pulse::after{ animation:sx-travel 3.4s cubic-bezier(.45,0,.55,1) infinite; }
 @keyframes sx-travel{ 0%{ transform:translateY(-140px); opacity:0; } 8%{ opacity:1; } 90%{ opacity:1; } 100%{ transform:translateY(100%); opacity:0; } }
 
-.sx-row{ position:relative; background:var(--bg-2); border:1px solid var(--line); border-radius:18px; padding:6px 6px 14px;
+.sx-rows{ --fp-card-bg:var(--bg-2); }
+.sx-row{ position:relative; background:var(--fp-card-bg); border:1px solid var(--line); border-radius:18px; padding:6px 6px 14px;
   box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.25);
   transition:transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .35s ease; }
 .sx-row .sx-copy{ padding:0 6px; }
@@ -321,3 +322,38 @@ html.fp-anim .sx-row.fp-in::before{ animation:sx-node 1s ease-out .2s 1; }
   .sx-row, .sx-row:hover, .sx-row.is-tilt, .sx-row:active{ transform:none !important; }
   .sx-pulse{ display:none !important; }
 }
+
+/* ==== IMAGE FRAMES (Improvement 2) ====
+   Every screenshot on a /features page sits inside a .fp-pad frame: a card-coloured
+   surface with real padding, so no captured text or UI meets the frame edge.
+   - Row frames: .sx-frame.fp-pad wraps .sx-media (the image box) + .sx-cap.
+   - Hero frames: .gv-term-body.fp-pad wraps .gv-chart (the image box).
+   Overlays (.sx-box/.sx-line/.gv-hl ...) stay children of the IMAGE box
+   (.sx-media / .gv-chart), so the padding never shifts them off their pixels.
+   --fp-card-bg comes from the card rules (Improvement 1); the fallback is the
+   site card surface. tools/check.py fails an <img> in features/*.html that is
+   not inside .fp-pad (logos/icons opt out with data-fp-nopad). */
+.fp-pad{
+  --fp-pad:clamp(14px, calc(10px + 1.2vw), 26px);
+  --fp-r:18px;
+  padding:var(--fp-pad);
+  background:var(--fp-card-bg, var(--bg-2, #131316));
+  border:1px solid var(--line);
+  border-radius:var(--fp-r);
+  box-sizing:border-box;
+}
+.fp-pad .sx-media,
+.fp-pad.gv-term-body .gv-chart{
+  border-radius:max(6px, calc(var(--fp-r) - var(--fp-pad)));
+  border:1px solid rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.fp-pad .sx-media > img,
+.fp-pad .gv-chart img{ border-radius:0; }
+.fp-pad .sx-cap{ margin:12px 2px 0; }
+/* hero: the title bar stays on top, the padded body is the frame below it */
+.gv-term-body.fp-pad{ border-top:0; border-radius:0 0 var(--fp-r) var(--fp-r); gap:var(--fp-pad); }
+.gv-term .gv-term-bar{ border-radius:var(--fp-r) var(--fp-r) 0 0; }
+:root[data-theme="light"] .fp-pad{ border-color:rgba(0,0,0,.12); }
+:root[data-theme="light"] .fp-pad .sx-media,
+:root[data-theme="light"] .fp-pad.gv-term-body .gv-chart{ border-color:rgba(0,0,0,.14); }

@@ -285,6 +285,46 @@ def check_feature_share_images():
                 fail(f'{rel}: og:image:width/height must be 1200/630')
 
 
+def check_feature_image_frames():
+    """Every screenshot <img> on a /features page sits inside a .fp-pad frame
+    (Improvement 2: padding between the capture and the frame border). Logos
+    and icons opt out with data-fp-nopad. Walks the tag tree with the stdlib
+    HTML parser, so a class anywhere up the ancestor chain counts."""
+    from html.parser import HTMLParser
+    VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+            'meta', 'source', 'track', 'wbr'}
+
+    class Walk(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.stack, self.bad = [], []
+
+        def handle_starttag(self, tag, attrs):
+            a = dict(attrs)
+            if tag == 'img':
+                if 'data-fp-nopad' in a:
+                    return
+                if not any('fp-pad' in c.split() for _, c in self.stack):
+                    self.bad.append((self.getpos()[0], a.get('src', '?')))
+                return
+            if tag not in VOID:
+                self.stack.append((tag, a.get('class') or ''))
+
+        def handle_endtag(self, tag):
+            for i in range(len(self.stack) - 1, -1, -1):
+                if self.stack[i][0] == tag:
+                    del self.stack[i:]
+                    break
+
+    for path in sorted(glob.glob(os.path.join(ROOT, 'features', '*.html'))):
+        w = Walk()
+        w.feed(open(path, encoding='utf-8').read())
+        for line, src in w.bad:
+            fail(f'{os.path.relpath(path, ROOT)}:{line}: <img src="{src}"> is not '
+                 f'inside a .fp-pad image frame (add class fp-pad to its frame, or '
+                 f'data-fp-nopad on a logo/icon)')
+
+
 def main():
     check_merge_markers()
     check_unversioned_assets()
@@ -297,6 +337,7 @@ def main():
     check_mobile_width_guards()
     check_assets_changed_without_bump()
     check_feature_share_images()
+    check_feature_image_frames()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

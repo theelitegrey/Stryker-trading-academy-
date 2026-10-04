@@ -111,31 +111,20 @@
 <p class="ft-hero-sub">GEX turns the options chain into a handful of price levels: a call wall, a put wall and a zero-gamma line. Stryker draws them on a futures chart so you can read the session’s context before you take a single trade.</p>
 <div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#what-is-gex" class="btn btn-ghost">How GEX works</a></div>
 <p class="fg-note">Delayed options data. Levels are context, not trade signals.</p>
-<div class="ft-scene" aria-hidden="true" data-fg-play>
-<svg class="fg-svg" viewBox="0 0 560 300" fill="none" role="img">
-  <!-- price ladder -->
-  <g class="fg-grid-line">
-    <line x1="52" y1="30" x2="548" y2="30"/><line x1="52" y1="80" x2="548" y2="80"/><line x1="52" y1="130" x2="548" y2="130"/>
-    <line x1="52" y1="180" x2="548" y2="180"/><line x1="52" y1="230" x2="548" y2="230"/><line x1="52" y1="280" x2="548" y2="280"/>
-  </g>
-  <g class="fg-lbl">
-    <text x="4" y="34">+2%</text><text x="4" y="84">+1%</text><text x="4" y="134">spot</text><text x="4" y="184">−1%</text><text x="4" y="234">−2%</text>
-  </g>
-  <!-- expected range band -->
-  <rect class="fg-fade" style="--delay:.2s" x="52" y="78" width="496" height="104" fill="#8b7cf6" fill-opacity=".07"/>
-  <!-- walls -->
-  <line class="fg-call fg-draw" style="--len:496;--dur:1s;--delay:.4s" x1="52" y1="60" x2="548" y2="60" stroke-width="2"/>
-  <line class="fg-zero fg-draw" style="--len:496;--dur:1s;--delay:.9s" x1="52" y1="158" x2="548" y2="158" stroke-width="2" stroke-dasharray="7 6"/>
-  <line class="fg-put fg-draw" style="--len:496;--dur:1s;--delay:1.4s" x1="52" y1="246" x2="548" y2="246" stroke-width="2"/>
-  <text class="fg-t-call fg-fade" style="--delay:.9s" x="548" y="52" text-anchor="end" font-size="11" font-weight="700">CALL WALL</text>
-  <text class="fg-t-zero fg-fade" style="--delay:1.4s" x="548" y="150" text-anchor="end" font-size="11" font-weight="700">ZERO GAMMA</text>
-  <text class="fg-t-put fg-fade" style="--delay:1.9s" x="548" y="264" text-anchor="end" font-size="11" font-weight="700">PUT WALL</text>
-  <!-- illustrative price path -->
-  <path class="fg-path fg-draw" style="--len:620;--dur:2.4s;--delay:1.8s" d="M60 140 C100 112 120 100 150 118 S200 170 235 150 S300 90 335 104 S395 186 430 170 S490 118 540 128"/>
-  <circle class="fg-spot fg-pop fg-pulse" style="--delay:4.1s" cx="540" cy="128" r="5"/>
-</svg>
-<p class="fg-note" style="margin-top:8px"><span class="fg-tag warn">Illustration</span> Shape only. Not a chart of any real market.</p>
+<figure class="fg-shot fg-hero-shot ft-scene" data-fg-play>
+<div class="fg-shot-frame">
+<div class="fg-shot-stage">
+<picture>
+<source media="(max-width:600px)" srcset="/assets/images/gex-real/hero-mnq-0dte-390.webp" width="740" height="1240">
+<img src="/assets/images/gex-real/hero-nq-0dte-1440.webp" width="1100" height="1125" fetchpriority="high" decoding="async" alt="Real capture of the Stryker GEX chart: QQQ 0DTE levels converted to Nasdaq futures on a 1-hour candlestick chart, with the call wall, zero gamma and put wall drawn as lines.">
+</picture>
+<span class="fg-co fg-co-call up" style="--yd:36.7%;--ym:41%;--d:.5s"><i></i><b>Call wall</b><small>heaviest call strike above price</small></span>
+<span class="fg-co fg-co-zero up" style="--yd:47.7%;--ym:53.6%;--d:1.1s"><i></i><b>Zero gamma</b><small>where the regime reading flips</small></span>
+<span class="fg-co fg-co-put" style="--yd:49.2%;--ym:55.3%;--d:1.7s"><i></i><b>Put wall</b><small>heaviest put strike below price</small></span>
 </div>
+</div>
+<figcaption class="fg-cap"><span class="fg-tag real">Real capture</span> Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE, shown in Nasdaq futures). Captured with the market closed; these are that session’s levels, not today’s.</figcaption>
+</figure>
 </header>
 
 <div class="container">
@@ -190,28 +179,28 @@
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><path class="fg-path fg-draw" style="--len:260;--dur:1.4s" d="M8 52 C50 50 80 40 100 32 S150 14 192 12" stroke-width="2"/><line class="fg-zero" x1="8" y1="32" x2="192" y2="32" stroke-width="1.5" stroke-dasharray="5 5"/><circle class="g-flip" cx="100" cy="32" r="4" fill="#f59e0b"/></svg></div>
 <h3>Zero-gamma flip</h3><p>The price where the model’s net gamma changes sign, from positive to negative. Traders read it as where the model’s regime reading changes.</p><div class="fg-how">Net GEX is re-computed with Black-Scholes gamma on a grid from −10% to +10% of spot; the zero crossing nearest spot is shown.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips"><span class="fg-badge pos g-flip">POSITIVE</span><span class="fg-badge neg g-flip b">NEGATIVE</span></div></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-regime.webp" width="720" height="178" loading="lazy" decoding="async" alt="Real capture of the GEX regime panel: SPX spot, a POSITIVE GAMMA badge, net GEX and IV30."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>Regime</h3><p>A positive or negative gamma badge, plus the net GEX figure beside it. It is the headline read of the model.</p><div class="fg-how">The sign of summed net GEX across strikes within 6% of spot, for the expiry filter you picked.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><rect class="g-band" style="--delay:.1s" x="30" y="14" width="140" height="36" fill="#8b7cf6" fill-opacity=".16"/><rect class="g-band" style="--delay:.3s" x="62" y="22" width="76" height="20" fill="#8b7cf6" fill-opacity=".3"/><line x1="100" y1="6" x2="100" y2="58" stroke="var(--ink-3)" stroke-dasharray="3 4"/></svg></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-iv.webp" width="720" height="107" loading="lazy" decoding="async" alt="Real capture of the IV expected range boxes, 68% and 80%, in ES points."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>IV expected range · 68% / 80%</h3><p>A one-day range implied by options volatility (IV30: 30-day implied volatility, how much movement options are pricing in). The 68% band is one standard deviation; the 80% band is wider.</p><div class="fg-how">Spot ± spot × IV30 × √(1/252) for 68%, and ×1.282 for 80%. It assumes a normal distribution of moves, so it is a statistical estimate of dispersion, not a forecast or a probability that price stays inside.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line x1="100" y1="4" x2="100" y2="60" stroke="var(--line)"/><rect class="g-bar" style="--delay:.1s" x="100" y="6" width="62" height="8" fill="#03c988" fill-opacity=".7"/><rect class="g-bar" style="--delay:.2s" x="100" y="18" width="38" height="8" fill="#03c988" fill-opacity=".5"/><rect class="g-bar" style="--delay:.3s" x="62" y="30" width="38" height="8" fill="#e5484d" fill-opacity=".55" transform-origin="right"/><rect class="g-bar" style="--delay:.4s" x="40" y="42" width="60" height="8" fill="#e5484d" fill-opacity=".75"/></svg></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-ladder.webp" width="520" height="373" loading="lazy" decoding="async" alt="Real capture of the strike ladder near spot: net GEX profile bars, net DEX and open interest per strike."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>Strike ladder · net GEX / DEX / OI</h3><p>A table down the side of the page: for each strike, its net GEX, net delta exposure (DEX), open interest (contracts still open at that strike) and the matching futures price.</p><div class="fg-how">Strikes within 4% of spot. The profile bar scales to the largest net GEX in view.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips g-seq"><span class="fg-chip">0DTE</span><span class="fg-chip">1DTE</span><span class="fg-chip">1W</span><span class="fg-chip">1M</span></div></div>
 <h3>Expiry filters</h3><p>Switch between 0DTE, 1DTE, 1W and 1M. The levels re-compute for just those expiries.</p><div class="fg-how">0DTE uses the nearest listed expiry on its own and 1DTE uses the next one after it. 1W and 1M include every expiry within 7 or 30 days.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-fut"><div><b>SPX</b><i>→</i>ES · MES</div><div><b>QQQ</b><i>→</i>NQ · MNQ</div><div><b>GLD</b><i>→</i>GC · MGC</div></div></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/walls-spx-1dte.webp" width="720" height="588" loading="lazy" decoding="async" alt="Real capture of the walls panel: call wall, spot, zero gamma and put wall for SPX, each converted to an ES futures price."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE).</span></div>
 <h3>Futures conversion</h3><p>Options levels are calculated on the index or ETF. Stryker converts them to the futures contracts traders chart, so a level reads in futures points. SPY (to ES/MES) is also available.</p><div class="fg-how">Index levels shift by the current futures basis; ETF levels use a ratio anchored to the latest futures price. Futures prices are delayed too.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><rect class="g-band" style="--delay:.1s" x="20" y="16" width="160" height="30" fill="#38bdf8" fill-opacity=".14"/><line class="fg-va" x1="20" y1="16" x2="180" y2="16" stroke-width="1.5" stroke-dasharray="4 4"/><line class="fg-va" x1="20" y1="31" x2="180" y2="31" stroke-width="2.5"/><line class="fg-va" x1="20" y1="46" x2="180" y2="46" stroke-width="1.5" stroke-dasharray="4 4"/><text class="fg-lbl" x="186" y="19" font-size="8">VAH</text><text class="fg-lbl" x="186" y="34" font-size="8">POC</text><text class="fg-lbl" x="186" y="49" font-size="8">VAL</text></svg></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-market-levels.webp" width="720" height="437" loading="lazy" decoding="async" alt="Real capture of the market-generated levels card: prior value area, prior RTH range, overnight high and low, RTH open, high and low for ES."><span class="fg-crop-cap">Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct).</span></div>
 <h3>Prior-day VAH · POC · VAL</h3><p>Yesterday’s value area high, point of control and value area low, drawn on the same chart as the gamma levels.</p><div class="fg-how">A 70% value area built from the prior regular session’s 5-minute futures candles, volume-weighted when volume is available.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-on" x1="14" y1="14" x2="186" y2="14" stroke-width="2" stroke-dasharray="6 5"/><line class="fg-on" x1="14" y1="50" x2="186" y2="50" stroke-width="2" stroke-dasharray="6 5"/><path class="fg-path fg-draw" style="--len:200;--dur:1.4s" d="M14 38 C44 20 70 46 98 30 S150 22 186 34" stroke-width="2"/></svg></div>
 <h3>Overnight high / low</h3><p>The extremes made between the prior close and the next open, a common reference for where the session begins.</p><div class="fg-how">Highest and lowest futures price from 16:00 New York time on the prior session to 09:30 today.</div></div>
 
-<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-call" x1="8" y1="16" x2="192" y2="16" stroke-width="1.5"/><line class="fg-zero" x1="8" y1="34" x2="192" y2="34" stroke-width="1.5" stroke-dasharray="5 5"/><line class="fg-put" x1="8" y1="50" x2="192" y2="50" stroke-width="1.5"/><g class="g-cross"><rect x="40" y="26" width="5" height="14" fill="#03c988"/><rect x="62" y="22" width="5" height="12" fill="#e5484d"/><rect x="84" y="28" width="5" height="16" fill="#03c988"/><rect x="106" y="20" width="5" height="12" fill="#03c988"/><rect x="128" y="26" width="5" height="14" fill="#e5484d"/><rect x="150" y="22" width="5" height="12" fill="#03c988"/></g></svg></div>
+<div class="fg-tile ft-reveal"><div class="fg-glyph fg-crop"><img src="/assets/images/gex-real/tile-chart.webp" width="720" height="511" loading="lazy" decoding="async" alt="Real capture of the GEX futures chart, SPX 1W levels on ES 1-hour candles, with IV band, overnight high, zero gamma, prior value area and put wall drawn as labelled lines."><span class="fg-crop-cap">Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1W on ES, 1h).</span></div>
 <h3>Chart with levels</h3><p>A TradingView Lightweight Charts candlestick chart for the futures contract, with the walls, the flip, the IV band and the market levels drawn as lines. Switch 1m, 5m, 15m or 1h.</p><div class="fg-how">Candles are delayed futures data. Market levels can be switched on and off from the legend.</div></div>
 
 <div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><circle class="g-pinch l" cx="78" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><circle class="g-pinch r" cx="122" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><path d="M66 32h-18M134 32h18M56 26l-8 6 8 6M144 26l8 6-8 6" stroke="var(--ink-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -251,80 +240,24 @@
 
 <!-- 6 · FAITHFUL MOCK -->
 <section class="ft-section" id="dashboard-preview">
-<div class="ft-section-head ft-reveal"><h2>The dashboard layout</h2><p>A walk-through of how the page is laid out. It is an illustration with placeholder values, not a screenshot and not data.</p></div>
-<div class="fg-mock ft-reveal" data-fg-mock data-fg-play role="img" aria-label="Illustration of the GEX dashboard layout with placeholder values. Not real data.">
-  <div class="fg-mock-ribbon"><span>Sample · Illustration · Placeholder values</span><button type="button" id="fg-replay">Replay</button></div>
-  <div class="fg-mock-body" aria-hidden="true">
-    <div class="fg-mock-wm">SAMPLE</div>
-    <div class="fg-m-head">
-      <div><div class="fg-m-kick">Gamma exposure desk</div><div class="fg-m-title">GEX</div></div>
-      <div class="fg-m-btns">
-        <span class="fg-m-btn on">SPX<small>ES/MES</small></span><span class="fg-m-btn">SPY<small>ES/MES</small></span><span class="fg-m-btn">QQQ<small>NQ/MNQ</small></span><span class="fg-m-btn">GLD<small>GC/MGC</small></span>
-      </div>
-      <div class="fg-m-btns"><span class="fg-m-btn">0DTE</span><span class="fg-m-btn on">1DTE</span><span class="fg-m-btn">1W</span><span class="fg-m-btn">1M</span></div>
-    </div>
-    <div class="fg-m-status"><i class="fg-m-dot"></i><span><b>Delayed options data</b> · timestamp and age appear here</span></div>
-    <div class="fg-m-grid">
-      <div>
-        <div class="fg-m-card">
-          <h4>Futures chart · levels drawn on top</h4>
-          <div class="fg-m-chart">
-            <svg class="fg-svg" viewBox="0 0 560 230" fill="none">
-              <g class="fg-grid-line"><line x1="0" y1="40" x2="560" y2="40"/><line x1="0" y1="90" x2="560" y2="90"/><line x1="0" y1="140" x2="560" y2="140"/><line x1="0" y1="190" x2="560" y2="190"/></g>
-              <g><g class="fg-candle" style="--i:0"><line x1="13.5" y1="123.0" x2="13.5" y2="135.0" stroke="#e5484d" stroke-width="1.2"/><rect x="10.0" y="128.0" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:1"><line x1="26.1" y1="120.0" x2="26.1" y2="146.8" stroke="#e5484d" stroke-width="1.2"/><rect x="22.6" y="128.0" width="7" height="10.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:2"><line x1="38.7" y1="132.8" x2="38.7" y2="157.2" stroke="#e5484d" stroke-width="1.2"/><rect x="35.2" y="138.8" width="7" height="9.4" fill="#e5484d"/></g><g class="fg-candle" style="--i:3"><line x1="51.3" y1="139.2" x2="51.3" y2="165.3" stroke="#e5484d" stroke-width="1.2"/><rect x="47.8" y="148.2" width="7" height="7.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:4"><line x1="63.9" y1="148.3" x2="63.9" y2="166.3" stroke="#e5484d" stroke-width="1.2"/><rect x="60.4" y="155.3" width="7" height="4.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:5"><line x1="76.5" y1="154.3" x2="76.5" y2="168.2" stroke="#e5484d" stroke-width="1.2"/><rect x="73.0" y="159.3" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:6"><line x1="89.1" y1="150.5" x2="89.1" y2="169.2" stroke="#03c988" stroke-width="1.2"/><rect x="85.6" y="158.5" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:7"><line x1="101.7" y1="149.1" x2="101.7" y2="168.5" stroke="#03c988" stroke-width="1.2"/><rect x="98.2" y="155.1" width="7" height="3.4" fill="#03c988"/></g><g class="fg-candle" style="--i:8"><line x1="114.3" y1="142.2" x2="114.3" y2="162.1" stroke="#03c988" stroke-width="1.2"/><rect x="110.8" y="151.2" width="7" height="4.0" fill="#03c988"/></g><g class="fg-candle" style="--i:9"><line x1="126.9" y1="140.6" x2="126.9" y2="159.2" stroke="#03c988" stroke-width="1.2"/><rect x="123.4" y="147.6" width="7" height="3.6" fill="#03c988"/></g><g class="fg-candle" style="--i:10"><line x1="139.5" y1="140.2" x2="139.5" y2="156.6" stroke="#03c988" stroke-width="1.2"/><rect x="136.0" y="145.2" width="7" height="2.4" fill="#03c988"/></g><g class="fg-candle" style="--i:11"><line x1="152.1" y1="136.1" x2="152.1" y2="155.2" stroke="#03c988" stroke-width="1.2"/><rect x="148.6" y="144.1" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:12"><line x1="164.7" y1="138.1" x2="164.7" y2="151.3" stroke="#e5484d" stroke-width="1.2"/><rect x="161.2" y="144.1" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:13"><line x1="177.3" y1="135.3" x2="177.3" y2="152.9" stroke="#e5484d" stroke-width="1.2"/><rect x="173.8" y="144.3" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:14"><line x1="189.9" y1="137.9" x2="189.9" y2="154.1" stroke="#e5484d" stroke-width="1.2"/><rect x="186.4" y="144.9" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:15"><line x1="202.5" y1="139.0" x2="202.5" y2="155.1" stroke="#03c988" stroke-width="1.2"/><rect x="199.0" y="144.0" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:16"><line x1="215.1" y1="132.6" x2="215.1" y2="151.0" stroke="#03c988" stroke-width="1.2"/><rect x="211.6" y="140.6" width="7" height="3.3" fill="#03c988"/></g><g class="fg-candle" style="--i:17"><line x1="227.7" y1="128.9" x2="227.7" y2="148.6" stroke="#03c988" stroke-width="1.2"/><rect x="224.2" y="134.9" width="7" height="5.8" fill="#03c988"/></g><g class="fg-candle" style="--i:18"><line x1="240.3" y1="117.9" x2="240.3" y2="143.9" stroke="#03c988" stroke-width="1.2"/><rect x="236.8" y="126.9" width="7" height="8.0" fill="#03c988"/></g><g class="fg-candle" style="--i:19"><line x1="252.9" y1="110.3" x2="252.9" y2="136.9" stroke="#03c988" stroke-width="1.2"/><rect x="249.4" y="117.3" width="7" height="9.5" fill="#03c988"/></g><g class="fg-candle" style="--i:20"><line x1="265.5" y1="102.5" x2="265.5" y2="124.3" stroke="#03c988" stroke-width="1.2"/><rect x="262.0" y="107.5" width="7" height="9.9" fill="#03c988"/></g><g class="fg-candle" style="--i:21"><line x1="278.1" y1="90.6" x2="278.1" y2="115.5" stroke="#03c988" stroke-width="1.2"/><rect x="274.6" y="98.6" width="7" height="8.9" fill="#03c988"/></g><g class="fg-candle" style="--i:22"><line x1="290.7" y1="85.9" x2="290.7" y2="107.6" stroke="#03c988" stroke-width="1.2"/><rect x="287.2" y="91.9" width="7" height="6.7" fill="#03c988"/></g><g class="fg-candle" style="--i:23"><line x1="303.3" y1="79.3" x2="303.3" y2="101.9" stroke="#03c988" stroke-width="1.2"/><rect x="299.8" y="88.3" width="7" height="3.6" fill="#03c988"/></g><g class="fg-candle" style="--i:24"><line x1="315.9" y1="81.2" x2="315.9" y2="95.3" stroke="#03c988" stroke-width="1.2"/><rect x="312.4" y="88.2" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:25"><line x1="328.5" y1="83.2" x2="328.5" y2="99.4" stroke="#e5484d" stroke-width="1.2"/><rect x="325.0" y="88.2" width="7" height="3.2" fill="#e5484d"/></g><g class="fg-candle" style="--i:26"><line x1="341.1" y1="83.4" x2="341.1" y2="106.2" stroke="#e5484d" stroke-width="1.2"/><rect x="337.6" y="91.4" width="7" height="5.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:27"><line x1="353.7" y1="91.2" x2="353.7" y2="114.5" stroke="#e5484d" stroke-width="1.2"/><rect x="350.2" y="97.2" width="7" height="7.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:28"><line x1="366.3" y1="95.5" x2="366.3" y2="119.2" stroke="#e5484d" stroke-width="1.2"/><rect x="362.8" y="104.5" width="7" height="7.6" fill="#e5484d"/></g><g class="fg-candle" style="--i:29"><line x1="378.9" y1="105.2" x2="378.9" y2="126.9" stroke="#e5484d" stroke-width="1.2"/><rect x="375.4" y="112.2" width="7" height="6.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:30"><line x1="391.5" y1="113.9" x2="391.5" y2="133.1" stroke="#e5484d" stroke-width="1.2"/><rect x="388.0" y="118.9" width="7" height="5.2" fill="#e5484d"/></g><g class="fg-candle" style="--i:31"><line x1="404.1" y1="116.1" x2="404.1" y2="137.4" stroke="#e5484d" stroke-width="1.2"/><rect x="400.6" y="124.1" width="7" height="3.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:32"><line x1="416.7" y1="121.4" x2="416.7" y2="136.1" stroke="#e5484d" stroke-width="1.2"/><rect x="413.2" y="127.4" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:33"><line x1="429.3" y1="120.1" x2="429.3" y2="137.8" stroke="#e5484d" stroke-width="1.2"/><rect x="425.8" y="129.1" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:34"><line x1="441.9" y1="122.8" x2="441.9" y2="139.5" stroke="#e5484d" stroke-width="1.2"/><rect x="438.4" y="129.8" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:35"><line x1="454.5" y1="125.5" x2="454.5" y2="142.0" stroke="#e5484d" stroke-width="1.2"/><rect x="451.0" y="130.5" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:36"><line x1="467.1" y1="124.0" x2="467.1" y2="142.0" stroke="#e5484d" stroke-width="1.2"/><rect x="463.6" y="132.0" width="7" height="3.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:37"><line x1="479.7" y1="129.0" x2="479.7" y2="147.8" stroke="#e5484d" stroke-width="1.2"/><rect x="476.2" y="135.0" width="7" height="4.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:38"><line x1="492.3" y1="130.8" x2="492.3" y2="155.1" stroke="#e5484d" stroke-width="1.2"/><rect x="488.8" y="139.8" width="7" height="6.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:39"><line x1="504.9" y1="139.1" x2="504.9" y2="163.1" stroke="#e5484d" stroke-width="1.2"/><rect x="501.4" y="146.1" width="7" height="7.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:40"><line x1="517.5" y1="148.1" x2="517.5" y2="166.8" stroke="#e5484d" stroke-width="1.2"/><rect x="514.0" y="153.1" width="7" height="6.7" fill="#e5484d"/></g><g class="fg-candle" style="--i:41"><line x1="530.1" y1="151.8" x2="530.1" y2="172.9" stroke="#e5484d" stroke-width="1.2"/><rect x="526.6" y="159.8" width="7" height="5.1" fill="#e5484d"/></g><g class="fg-candle" style="--i:42"><line x1="542.7" y1="158.9" x2="542.7" y2="176.3" stroke="#e5484d" stroke-width="1.2"/><rect x="539.2" y="164.9" width="7" height="2.4" fill="#e5484d"/></g><g class="fg-candle" style="--i:43"><line x1="555.3" y1="157.4" x2="555.3" y2="177.3" stroke="#03c988" stroke-width="1.2"/><rect x="551.8" y="166.4" width="7" height="2.0" fill="#03c988"/></g></g>
-              <line class="fg-call" x1="0" y1="34" x2="560" y2="34" stroke-width="1.6"/>
-              <line class="fg-zero" x1="0" y1="112" x2="560" y2="112" stroke-width="1.6" stroke-dasharray="6 5"/>
-              <line class="fg-put" x1="0" y1="196" x2="560" y2="196" stroke-width="1.6"/>
-              <line class="fg-iv" x1="0" y1="62" x2="560" y2="62" stroke-width="1" stroke-dasharray="3 4"/>
-              <line class="fg-iv" x1="0" y1="164" x2="560" y2="164" stroke-width="1" stroke-dasharray="3 4"/>
-              <line class="fg-va" x1="0" y1="86" x2="560" y2="86" stroke-width="1" stroke-dasharray="3 4"/>
-              <line class="fg-va" x1="0" y1="128" x2="560" y2="128" stroke-width="1.2"/>
-              <line class="fg-on" x1="0" y1="52" x2="560" y2="52" stroke-width="1" stroke-dasharray="3 4"/>
-              <text class="fg-t-call" x="556" y="29" text-anchor="end" font-size="9" font-weight="700">CALL WALL</text>
-              <text class="fg-t-zero" x="556" y="107" text-anchor="end" font-size="9" font-weight="700">ZERO GAMMA</text>
-              <text class="fg-t-put" x="556" y="190" text-anchor="end" font-size="9" font-weight="700">PUT WALL</text>
-            </svg>
-          </div>
-          <div class="fg-m-legend"><span><i style="background:#ef4444"></i>Call wall</span><span><i style="background:#f59e0b"></i>Zero gamma</span><span><i style="background:#22c55e"></i>Put wall</span><span><i style="background:#8b7cf6"></i>IV 68%</span><span><i style="background:#38bdf8"></i>Prior VAH/POC/VAL</span><span><i style="background:#64748b"></i>ON hi/lo</span></div>
-        </div>
-        <div class="fg-m-card">
-          <div class="fg-m-hero">
-            <div class="fg-m-spot"><small>SPOT</small>SAMPLE</div>
-            <span class="fg-badge pos">POSITIVE GAMMA</span>
-            <div class="fg-m-kv">NET GEX<b>sample</b></div>
-            <div class="fg-m-kv">IV30<b>sample</b></div>
-          </div>
-          <div class="fg-m-levels">
-            <div class="fg-m-level call fg-row-a" style="--i:0"><span class="nm">CALL WALL</span><span class="px">level</span><span class="ds">+1.2%</span></div>
-            <div class="fg-m-level zero fg-row-a" style="--i:1"><span class="nm">ZERO GAMMA</span><span class="px">level</span><span class="ds">+0.3%</span></div>
-            <div class="fg-m-level spot fg-row-a" style="--i:2"><span class="nm">◆ SPOT</span><span class="px">level</span><span class="ds">0.0%</span></div>
-            <div class="fg-m-level put fg-row-a" style="--i:3"><span class="nm">PUT WALL</span><span class="px">level</span><span class="ds">−1.4%</span></div>
-          </div>
-        </div>
-        <div class="fg-m-card">
-          <h4>Market-generated levels</h4>
-          <div class="fg-m-mk">
-            <div class="fg-m-mkc"><span>PRIOR VAH</span><b>level</b></div><div class="fg-m-mkc"><span>PRIOR POC</span><b>level</b></div><div class="fg-m-mkc"><span>PRIOR VAL</span><b>level</b></div>
-            <div class="fg-m-mkc"><span>OVERNIGHT HIGH</span><b>level</b></div><div class="fg-m-mkc"><span>OVERNIGHT LOW</span><b>level</b></div><div class="fg-m-mkc"><span>RTH OPEN</span><b>level</b></div>
-          </div>
-        </div>
-      </div>
-      <aside>
-        <div class="fg-m-card">
-          <h4>Strike profile · net GEX / DEX / OI</h4>
-          <table class="fg-m-tbl"><tr><th>STRIKE</th><th>NET GEX</th><th>PROFILE</th></tr>
-            <tr class="fg-row-a" style="--i:0"><td>+2%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:0;width:70%;background:#03c988"></div></td></tr>
-            <tr class="fg-row-a" style="--i:1"><td>+1%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:1;width:92%;background:#03c988"></div></td></tr>
-            <tr class="here fg-row-a" style="--i:2"><td>spot</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:2;width:34%;background:#03c988"></div></td></tr>
-            <tr class="fg-row-a" style="--i:3"><td>−1%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:3;width:58%;background:#e5484d"></div></td></tr>
-            <tr class="fg-row-a" style="--i:4"><td>−2%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:4;width:80%;background:#e5484d"></div></td></tr>
-          </table>
-          <p style="font-size:10.5px;color:var(--ink-3);margin:10px 0 0;line-height:1.5">The real table also lists the futures price, net DEX and open interest for each strike.</p>
-        </div>
-      </aside>
-    </div>
-  </div>
+<div class="ft-section-head ft-reveal"><h2>The dashboard layout</h2><p>This is the real GEX page, captured from the live tool. The numbers are from the session of Friday 2 October 2026 and are not current.</p></div>
+<figure class="fg-shot fg-layout-shot ft-reveal" data-fg-mock data-fg-play>
+<div class="fg-shot-frame">
+<div class="fg-shot-stage">
+<picture>
+<source media="(max-width:600px)" srcset="/assets/images/gex-real/layout-spx-1dte-390.webp" width="740" height="2600">
+<img src="/assets/images/gex-real/layout-spx-1dte-1440.webp" width="1600" height="1399" loading="lazy" decoding="async" alt="Real capture of the Stryker GEX page for SPX, 1DTE expiry: market and expiry selectors, the delayed-data status with a market-closed badge, the futures chart with the zero-gamma line, and the strike ladder.">
+</picture>
+<span class="fg-pin" style="--xd:38.5%;--yd:20.9%;--xm:95%;--ym:11%;--d:.3s" aria-hidden="true">1</span>
+<span class="fg-pin" style="--xd:77.6%;--yd:20.9%;--xm:56%;--ym:14.2%;--d:.6s" aria-hidden="true">2</span>
+<span class="fg-pin" style="--xd:56.8%;--yd:28.4%;--xm:95%;--ym:22.3%;--d:.9s" aria-hidden="true">3</span>
+<span class="fg-pin" style="--xd:37%;--yd:79%;--xm:50%;--ym:60.8%;--d:1.2s" aria-hidden="true">4</span>
+<span class="fg-pin" style="--xd:61%;--yd:37.8%;--xm:30%;--ym:81.3%;--d:1.5s" aria-hidden="true">5</span>
 </div>
+</div>
+<ol class="fg-pin-key"><li><b>Market</b> SPX, SPY, QQQ or GLD</li><li><b>Expiry</b> 0DTE, 1DTE, 1W or 1M</li><li><b>Data age</b> Cboe timestamp and market status</li><li><b>Levels on the chart</b> here, the zero-gamma line</li><li><span class="fg-d"><b>Strike ladder</b> net GEX, DEX and OI by strike</span><span class="fg-m"><b>Regime and walls</b> spot, regime badge, call wall</span></li></ol>
+<figcaption class="fg-cap"><span class="fg-tag real">Real capture</span> Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX, 1DTE). Captured while the market was closed; not current levels. <button type="button" id="fg-replay">Replay labels</button></figcaption>
+</figure>
 </section>
 
 <!-- 7 · FAQ -->

@@ -298,3 +298,74 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
   .fg-tl-step .fg-bar{ animation:none !important; }
   .fg-tl-step .fg-bar{ display:none; }
 }
+
+/* ---- real captures (build 365): real pixels underneath, motion only on the overlay ----
+   The <img> is never edited; callouts, pins and the slow pan sit on top of it. Default
+   (no JS / reduced motion) = finished: every callout and pin visible, no transform. */
+.fg-shot{ margin:38px auto 0; max-width:760px; }
+.fg-hero .fg-shot{ max-width:760px; }
+.fg-shot-frame{ border-radius:18px; border:1px solid var(--line); background:#07080a; overflow:hidden; box-shadow:0 30px 80px -40px rgba(3,201,136,.25); }
+.fg-shot-stage{ position:relative; }
+.fg-shot-stage img{ display:block; width:100%; height:auto; transform-origin:70% 40%; }
+.fg-layout-shot{ max-width:1080px; margin-top:0; }
+.fg-cap{ font-size:12px; line-height:1.6; color:var(--ink-2); margin:10px auto 0; max-width:760px; text-align:center; }
+.fg-cap button{ font:inherit; font-size:11px; margin-left:6px; padding:2px 10px; border-radius:999px; cursor:pointer; color:var(--ink-1); background:var(--bg-2); border:1px solid var(--line); }
+.fg-cap button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.fg-tag.real{ color:var(--gold); border-color:rgba(3,201,136,.45); background:rgba(3,201,136,.08); margin-right:4px; }
+
+/* hero callouts: anchored on the left at the line's height (y from the capture's pixels) */
+.fg-co{
+  position:absolute; left:3%; top:var(--yd); z-index:2; display:flex; flex-direction:column; gap:1px;
+  max-width:46%; padding:6px 10px 6px 12px; border-radius:9px; text-align:left;
+  background:rgba(7,8,10,.86); border:1px solid rgba(255,255,255,.12); border-left:3px solid var(--c);
+  font-family:var(--font-mono, ui-monospace, monospace); transform:translateY(8px);
+}
+.fg-co.up{ transform:translateY(calc(-100% - 8px)); }
+.fg-co b{ font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--c); }
+.fg-co small{ font-size:10.5px; color:#c9ced6; }
+.fg-co i{ position:absolute; left:-3px; width:3px; height:8px; background:var(--c); }
+.fg-co.up i{ bottom:-8px; } .fg-co:not(.up) i{ top:-8px; }
+.fg-co-call{ --c:#ef4444; } .fg-co-zero{ --c:#f59e0b; } .fg-co-put{ --c:#22c55e; }
+
+/* layout pins: numbered dots beside each area; the numbered key below explains them */
+.fg-pin{
+  position:absolute; left:var(--xd); top:var(--yd); z-index:2; width:24px; height:24px; margin:-12px 0 0 -12px;
+  display:grid; place-items:center; border-radius:50%; font:700 12px/1 var(--font-mono, ui-monospace, monospace);
+  color:#04110c; background:var(--gold); box-shadow:0 0 0 4px rgba(3,201,136,.25);
+}
+.fg-pin-key{ list-style:none; counter-reset:k; display:flex; flex-wrap:wrap; justify-content:center; gap:8px 18px; margin:14px auto 0; padding:0; max-width:1080px; font-size:12.5px; color:var(--ink-2); }
+.fg-pin-key li{ counter-increment:k; display:flex; gap:6px; align-items:baseline; }
+.fg-pin-key li::before{ content:counter(k); flex:none; width:18px; height:18px; border-radius:50%; display:inline-grid; place-items:center; font:700 10.5px/1 var(--font-mono, ui-monospace, monospace); color:#04110c; background:var(--gold); }
+.fg-pin-key b{ color:var(--ink-0); font-weight:600; margin-right:2px; }
+.fg-pin-key .fg-m{ display:none; }
+
+@media (max-width:600px){
+  .fg-co{ top:var(--ym); max-width:58%; padding:5px 8px 5px 10px; }
+  .fg-co b{ font-size:10.5px; } .fg-co small{ font-size:9.5px; }
+  .fg-pin{ left:var(--xm); top:var(--ym); width:22px; height:22px; margin:-11px 0 0 -11px; font-size:11px; }
+  .fg-pin-key{ flex-direction:column; align-items:flex-start; max-width:340px; }
+  .fg-pin-key .fg-d{ display:none; } .fg-pin-key .fg-m{ display:inline; }
+  /* the full phone capture is tall: show its top two-thirds, scroll inside is not needed */
+  .fg-layout-shot .fg-shot-frame{ max-width:360px; margin:0 auto; }
+}
+
+/* real-capture crops inside feature tiles */
+.fg-glyph.fg-crop{ height:auto; background:#07080a; }
+.fg-crop img{ display:block; width:100%; height:auto; }
+.fg-crop-cap{ display:block; padding:5px 8px 6px; font-size:10px; line-height:1.4; color:var(--ink-3); border-top:1px solid var(--line); background:var(--bg-1); }
+
+/* motion (only under html.fg-anim, so reduced motion / no JS = finished state) */
+html.fg-anim .fg-shot .fg-co, html.fg-anim .fg-shot .fg-pin{ opacity:0; }
+html.fg-anim .fg-shot.is-playing .fg-co{ animation:fg-co-in .6s cubic-bezier(.2,.8,.2,1) var(--d,0s) forwards; }
+html.fg-anim .fg-shot.is-playing .fg-pin{ animation:fg-pin-in .5s cubic-bezier(.2,.8,.2,1) var(--d,0s) forwards, fg-pin-pulse 2.6s ease-in-out calc(var(--d,0s) + .6s) infinite; }
+html.fg-anim .fg-shot.is-playing .fg-shot-stage img{ animation:fg-kenburns 18s ease-in-out infinite alternate; }
+@keyframes fg-co-in{ from{ opacity:0; translate:-14px 0; } to{ opacity:1; translate:0 0; } }
+@keyframes fg-pin-in{ from{ opacity:0; scale:.3; } to{ opacity:1; scale:1; } }
+@keyframes fg-pin-pulse{ 0%,100%{ box-shadow:0 0 0 4px rgba(3,201,136,.25); } 50%{ box-shadow:0 0 0 9px rgba(3,201,136,.08); } }
+@keyframes fg-kenburns{ from{ transform:scale(1); } to{ transform:scale(1.045) translate(-1%,-.6%); } }
+html.fg-anim .fg-tile.is-in .fg-crop img{ animation:fg-crop-in .9s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes fg-crop-in{ from{ opacity:0; transform:scale(1.04); } to{ opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce){
+  html.fg-anim .fg-shot .fg-co, html.fg-anim .fg-shot .fg-pin{ opacity:1; animation:none !important; }
+  html.fg-anim .fg-shot .fg-shot-stage img, html.fg-anim .fg-crop img{ animation:none !important; transform:none; opacity:1; }
+}

@@ -133,5 +133,5 @@
 
 @media (prefers-reduced-motion: reduce){
   .cb-card *, .cb-card *::before{ animation:none !important; transition:none !important; }
-  .cb-step.is-on .cb-bar-t i{ transform:scaleX(1); }
+  .cb-step.is-on .cb-bar-t i{ transform:scaleX(1) !important; }
 }

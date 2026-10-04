@@ -346,6 +346,8 @@ h1,h2,h3,h4{
 .hero-actions{ display:flex; gap:14px; flex-wrap:wrap; margin-bottom:36px; }
 
 .hero-stats{ display:flex; gap:36px; flex-wrap:wrap; }
+/* Keep the four-topic hero eyebrow on one line on phones. */
+@media (max-width:480px){ .hero-copy .eyebrow{ font-size:11px; letter-spacing:0.06em; gap:8px; } }
 .hero-stat b{ display:block; font-family:var(--font-mono); font-size:22px; color:var(--ink-0); }
 .hero-stat span{ font-size:12.5px; color:var(--ink-3); }
 

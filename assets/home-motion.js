@@ -80,6 +80,10 @@
       if (start === null) start = t;
       var k = Math.min(1, (t - start) / dur);
       var eased = 1 - Math.pow(1 - k, 3);
+      // A live value that arrived mid-animation (main.js sets data-live on
+      // the enrolled stat) wins over the baseline the animation started from.
+      var live = parseFloat(el.getAttribute('data-live'));
+      if (!isNaN(live)) target = live;
       var v = target * eased;
       el.textContent = (decimals ? v.toFixed(decimals)
                                  : Math.round(v).toLocaleString('en-US')) + (suffix || '');

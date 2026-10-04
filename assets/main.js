@@ -11,7 +11,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const enrolledStatEl = document.getElementById('hero-enrolled-count');
   if (enrolledStatEl && typeof db !== 'undefined' && db) {
     db.collection('publicStats').doc('enrollment').get()
-      .then((doc) => { if (doc.exists) enrolledStatEl.textContent = (doc.data().count || 0).toLocaleString(); })
+      // The HTML ships a real baseline (the student-account count when the page
+      // was last edited) so the stat never sits on a dash; the live doc only
+      // replaces it with a valid positive number.
+      .then((doc) => {
+        const n = doc.exists ? Number(doc.data().count) : NaN;
+        if (Number.isFinite(n) && n > 0) {
+          enrolledStatEl.setAttribute('data-live', String(Math.round(n)));
+          enrolledStatEl.textContent = Math.round(n).toLocaleString();
+        }
+      })
       .catch((err) => { console.error('Stryker: failed to load enrolled count', err); });
   }
 

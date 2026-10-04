@@ -305,7 +305,7 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
 .fg-shot{ margin:38px auto 0; max-width:760px; }
 .fg-hero .fg-shot{ max-width:760px; }
 .fg-shot-frame{ border-radius:18px; border:1px solid var(--line); background:#07080a; overflow:hidden; box-shadow:0 30px 80px -40px rgba(3,201,136,.25); }
-.fg-shot-stage{ position:relative; }
+.fg-shot-stage{ position:relative; transform-origin:60% 40%; }
 .fg-shot-stage img{ display:block; width:100%; height:auto; transform-origin:70% 40%; }
 .fg-layout-shot{ max-width:1080px; margin-top:0; }
 .fg-cap{ font-size:12px; line-height:1.6; color:var(--ink-2); margin:10px auto 0; max-width:760px; text-align:center; }
@@ -358,7 +358,7 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
 html.fg-anim .fg-shot .fg-co, html.fg-anim .fg-shot .fg-pin{ opacity:0; }
 html.fg-anim .fg-shot.is-playing .fg-co{ animation:fg-co-in .6s cubic-bezier(.2,.8,.2,1) var(--d,0s) forwards; }
 html.fg-anim .fg-shot.is-playing .fg-pin{ animation:fg-pin-in .5s cubic-bezier(.2,.8,.2,1) var(--d,0s) forwards, fg-pin-pulse 2.6s ease-in-out calc(var(--d,0s) + .6s) infinite; }
-html.fg-anim .fg-shot.is-playing .fg-shot-stage img{ animation:fg-kenburns 18s ease-in-out infinite alternate; }
+html.fg-anim .fg-shot.is-playing .fg-shot-stage{ animation:fg-kenburns 18s ease-in-out infinite alternate; }
 @keyframes fg-co-in{ from{ opacity:0; translate:-14px 0; } to{ opacity:1; translate:0 0; } }
 @keyframes fg-pin-in{ from{ opacity:0; scale:.3; } to{ opacity:1; scale:1; } }
 @keyframes fg-pin-pulse{ 0%,100%{ box-shadow:0 0 0 4px rgba(3,201,136,.25); } 50%{ box-shadow:0 0 0 9px rgba(3,201,136,.08); } }
@@ -367,5 +367,5 @@ html.fg-anim .fg-tile.is-in .fg-crop img{ animation:fg-crop-in .9s cubic-bezier(
 @keyframes fg-crop-in{ from{ opacity:0; transform:scale(1.04); } to{ opacity:1; transform:none; } }
 @media (prefers-reduced-motion:reduce){
   html.fg-anim .fg-shot .fg-co, html.fg-anim .fg-shot .fg-pin{ opacity:1; animation:none !important; }
-  html.fg-anim .fg-shot .fg-shot-stage img, html.fg-anim .fg-crop img{ animation:none !important; transform:none; opacity:1; }
+  html.fg-anim .fg-shot .fg-shot-stage, html.fg-anim .fg-crop img{ animation:none !important; transform:none; opacity:1; }
 }

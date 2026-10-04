@@ -551,7 +551,7 @@ function renderShowcaseAdmin(){
             (live && it.tvUrl ? escapeIndicatorsAdminText(it.tvUrl) : 'no link yet') + '</span>' +
         '</div>' +
       '</div>' +
-      '<div style="display:flex; gap:7px; align-items:center; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end;">' +
+      '<div style="display:flex; gap:7px; align-items:center; min-width:0; flex-wrap:wrap; justify-content:flex-end;">' +
         '<span class="ind-dev' + (live ? ' ind-live' : '') + '"><i></i>' + (live ? 'LIVE' : 'IN DEVELOPMENT') + '</span>' +
         '<button class="btn btn-ghost btn-sm" data-sc-act="toggle" data-sc-id="' + escapeIndicatorsAdminText(it.id) + '">' + (live ? 'Mark in development' : 'Mark live') + '</button>' +
         '<button class="btn btn-ghost btn-sm" data-sc-act="edit" data-sc-id="' + escapeIndicatorsAdminText(it.id) + '">Edit</button>' +

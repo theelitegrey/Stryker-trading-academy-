@@ -60,6 +60,7 @@ html.fp-anim .is-playing .gv-dot{ animation:gv-dot 2s ease-out infinite; }
 @keyframes gv-dot{ 0%{ box-shadow:0 0 0 0 rgba(245,158,11,.6); } 100%{ box-shadow:0 0 0 9px rgba(245,158,11,0); } }
 .gv-term-body{ display:grid; gap:0; border:1px solid var(--line); border-radius:0 0 14px 14px; overflow:hidden; background:#07080a; }
 .gv-term-body .gv-chart{ border:0; border-radius:0; }
+.gv-term.solo .gv-term-body{ grid-template-columns:1fr !important; }
 @media (min-width:900px){ .gv-term-body{ grid-template-columns:minmax(0,1fr) 230px; } }
 .gv-sweep{ inset:0; background:linear-gradient(90deg, transparent 0 94%, rgba(3,201,136,.0) 94%, rgba(3,201,136,.22) 99.4%, rgba(3,201,136,.6) 100%); opacity:0; right:16.5%; }
 @media (max-width:600px){ .gv-sweep{ right:24.3%; } }

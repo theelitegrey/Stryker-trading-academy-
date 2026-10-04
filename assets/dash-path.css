@@ -48,7 +48,7 @@
 .gp-path-wrap::before, .gp-path-wrap::after{ content:""; position:absolute; top:0; bottom:0; width:34px; z-index:2; pointer-events:none; }
 .gp-path-wrap::before{ left:0; background:linear-gradient(90deg, var(--bg-2), transparent); }
 .gp-path-wrap::after{ right:0; background:linear-gradient(-90deg, var(--bg-2), transparent); }
-.gp-path-scroll{ overflow-x:auto; overflow-y:hidden; padding:30px 26px 6px; scroll-behavior:smooth; outline:none; }
+.gp-path-scroll{ overflow-x:auto; overflow-y:hidden; padding:30px 36px 6px; scroll-padding-inline:36px; scroll-behavior:smooth; outline:none; }
 .gp-path-scroll:focus-visible{ box-shadow:inset 0 0 0 2px var(--gold); border-radius:12px; }
 .gp-path{ --gp-fill:0; position:relative; display:flex; gap:0; list-style:none; margin:0; padding:0; width:max-content; }
 .gp-path::before, .gp-path::after{ content:""; position:absolute; top:21px; height:4px; border-radius:4px; left:44px; }
@@ -197,7 +197,7 @@
 @media (max-width:640px){
   .gp-hero{ padding:18px 16px 16px; border-radius:20px; margin-bottom:18px; }
   .gp-path-wrap{ margin:14px -16px 2px; }
-  .gp-path-scroll{ padding:30px 16px 4px; }
+  .gp-path-scroll{ padding:30px 36px 4px; }
   .gp-mkt{ width:100%; }
   .gp-hero-bottom{ grid-template-columns:auto 1fr; gap:14px; }
   .gp-chips{ grid-column:1 / -1; }
@@ -214,6 +214,11 @@
   /* lighter motion on phones: two aurora blobs, less blur */
   .gp-aurora i{ filter:blur(28px); }
   .gp-aurora i:nth-child(3){ display:none; }
+}
+
+/* one clock on phones: the app header already shows the US market clock */
+@media (max-width:600px){
+  .gp-mkt{ display:none; }
 }
 
 @media (prefers-reduced-motion: reduce){

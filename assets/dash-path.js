@@ -67,8 +67,24 @@
     var sc = $('gp-path-scroll');
     var cur = list.children[curIdx];
     if (sc && cur) {
+      // Snap to a whole node so no half-cut node is left at the left edge:
+      // node k starts at padLeft + k*step inside the scroller, so
+      // scrollLeft = padLeft + k*step puts node k at the edge and node k-1
+      // out of view. Chapters near the start stay at 0, where
+      // node 1 sits inside the left padding, fully visible.
+      var step = cur.offsetWidth || 88;
+      var padL = parseFloat(getComputedStyle(sc).paddingLeft) || 0;
+      var maxS = Math.max(0, sc.scrollWidth - sc.clientWidth);
       var target = cur.offsetLeft - (sc.clientWidth - cur.offsetWidth) / 2;
-      sc.scrollLeft = Math.max(0, Math.min(target, sc.scrollWidth - sc.clientWidth));
+      var k = Math.round(target / step); // target is in list coordinates (offsetLeft)
+      var kMax = Math.floor((maxS - padL) / step);
+      // 4px inset: the link/label box spans 4..84px of each 88px node, so
+      // node k-1 (dot and label) is fully out of view and node k is whole.
+      var left = (k < 1 || kMax < 1) ? 0 : Math.max(0, padL + Math.min(k, kMax) * step - 4);
+      var prevB = sc.style.scrollBehavior;
+      sc.style.scrollBehavior = 'auto';
+      sc.scrollLeft = left;
+      sc.style.scrollBehavior = prevB;
     }
 
     // Up-next title + ring

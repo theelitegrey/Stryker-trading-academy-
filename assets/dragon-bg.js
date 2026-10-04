@@ -348,7 +348,7 @@
 
     var W = 0, H = 0, dprN = 1, dprF = 0.5, theme, sprites = {};
     var main = new Dragon({ fx: 1, fy: 2, px: 0.4, py: 1.9, ampY: 0.34, cy: 0.5, speed: 0.085,
-            lenK: mobile ? 1.0 : 0.95, rK: mobile ? 0.03 : 0.024, ampX: mobile ? 0.54 : 0.62, segs: mobile ? 48 : 84, u0: 2.2, fxPearl: 1 });
+            lenK: mobile ? 1.0 : 0.95, rK: mobile ? 0.03 : 0.024, ampX: mobile ? 0.54 : 0.62, segs: mobile ? 48 : 84, u0: 5.35, fxPearl: 1 });
     var ghost = new Dragon({ fx: 0.8, fy: 1.6, px: 2.6, py: 0.3, ampX: 0.7, ampY: 0.3, cy: 0.42, speed: 0.06,
       lenK: 0.7, rK: mobile ? 0.022 : 0.016, segs: mobile ? 26 : 44, u0: 5.1, farStyle: true, noPearl: true, noLegs: mobile, fxPearl: 1 });
     var motesNear, motesFar, light;

@@ -198,8 +198,8 @@
     $('gex-ranges').innerHTML = '<div class="gex-range"><span>IV EXPECTED RANGE 68% '+esc(curFut || '')+'</span>'+(FL?fmt(FL.iv68_lo,2)+' – '+fmt(FL.iv68_hi,2):fmt(r68[0],2)+' – '+fmt(r68[1],2))+'</div>'+
       '<div class="gex-range"><span>80% '+esc(curFut || '')+'</span>'+(FL?fmt(FL.iv80_lo,2)+' – '+fmt(FL.iv80_hi,2):fmt(r80[0],2)+' – '+fmt(r80[1],2))+'</div>';
     $('gex-play').innerHTML = d.regime === 'POSITIVE'
-      ? '<b>Positive regime playbook.</b> Dealers are long gamma: expect mean reversion and pinning between the major walls. Fade extremes first; treat loss of zero gamma as the regime flip.'
-      : '<b>Negative regime playbook.</b> Dealers are short gamma: hedging can amplify direction. Trade momentum through levels, widen stops, and size down until zero gamma is reclaimed.';
+      ? '<b>Positive gamma regime.</b> Under the model\'s assumption that dealers are long the calls and short the puts, dealers are estimated to be long gamma here. In that state their hedging tends to lean against moves, which the model reads as mean reversion and pinning between the major walls. A move below zero gamma marks where the model\'s regime would flip. Education only. Not financial advice.'
+      : '<b>Negative gamma regime.</b> Under the model\'s assumption that dealers are long the calls and short the puts, dealers are estimated to be short gamma here. In that state their hedging tends to move with price, which the model reads as larger, more directional swings through levels. A move back above zero gamma marks where the model\'s regime would flip. Education only. Not financial advice.';
   }
 
   function renderMarket(d, F){

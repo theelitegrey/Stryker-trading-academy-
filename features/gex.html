@@ -1,0 +1,412 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="364">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="GEX: Gamma Exposure Levels — Stryker Trading Academy">
+<meta property="og:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta property="og:url" content="https://strykertrading.com/features/gex">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="GEX: Gamma Exposure Levels — Stryker Trading Academy">
+<meta name="twitter:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Delayed data, education only.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og-image.png">
+<meta name="theme-color" content="#050506">
+<title>GEX: Gamma Exposure Levels — Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/gex">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=364">
+<script src="/assets/sanitize.js?v=364"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=364" defer></script>
+<script src="/assets/version-check.js?v=364" defer></script>
+<script src="/assets/acquisition.js?v=364" defer></script>
+<script src="/assets/focus-mode.js?v=364" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-gex.css?v=364">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+
+<header class="ft-hero fg-hero">
+<span class="ft-hero-kicker">GEX · Gamma exposure</span>
+<h1>See where options positioning <em>may matter</em> for price</h1>
+<p class="ft-hero-sub">GEX turns the options chain into a handful of price levels: a call wall, a put wall and a zero-gamma line. Stryker draws them on a futures chart so you can read the session’s context before you take a single trade.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#what-is-gex" class="btn btn-ghost">How GEX works</a></div>
+<p class="fg-note">Delayed options data. Levels are context, not trade signals.</p>
+<div class="ft-scene" aria-hidden="true" data-fg-play>
+<svg class="fg-svg" viewBox="0 0 560 300" fill="none" role="img">
+  <!-- price ladder -->
+  <g class="fg-grid-line">
+    <line x1="52" y1="30" x2="548" y2="30"/><line x1="52" y1="80" x2="548" y2="80"/><line x1="52" y1="130" x2="548" y2="130"/>
+    <line x1="52" y1="180" x2="548" y2="180"/><line x1="52" y1="230" x2="548" y2="230"/><line x1="52" y1="280" x2="548" y2="280"/>
+  </g>
+  <g class="fg-lbl">
+    <text x="4" y="34">+2%</text><text x="4" y="84">+1%</text><text x="4" y="134">spot</text><text x="4" y="184">−1%</text><text x="4" y="234">−2%</text>
+  </g>
+  <!-- expected range band -->
+  <rect class="fg-fade" style="--delay:.2s" x="52" y="78" width="496" height="104" fill="#8b7cf6" fill-opacity=".07"/>
+  <!-- walls -->
+  <line class="fg-call fg-draw" style="--len:496;--dur:1s;--delay:.4s" x1="52" y1="60" x2="548" y2="60" stroke-width="2"/>
+  <line class="fg-zero fg-draw" style="--len:496;--dur:1s;--delay:.9s" x1="52" y1="158" x2="548" y2="158" stroke-width="2" stroke-dasharray="7 6"/>
+  <line class="fg-put fg-draw" style="--len:496;--dur:1s;--delay:1.4s" x1="52" y1="246" x2="548" y2="246" stroke-width="2"/>
+  <text class="fg-t-call fg-fade" style="--delay:.9s" x="548" y="52" text-anchor="end" font-size="11" font-weight="700">CALL WALL</text>
+  <text class="fg-t-zero fg-fade" style="--delay:1.4s" x="548" y="150" text-anchor="end" font-size="11" font-weight="700">ZERO GAMMA</text>
+  <text class="fg-t-put fg-fade" style="--delay:1.9s" x="548" y="264" text-anchor="end" font-size="11" font-weight="700">PUT WALL</text>
+  <!-- illustrative price path -->
+  <path class="fg-path fg-draw" style="--len:620;--dur:2.4s;--delay:1.8s" d="M60 140 C100 112 120 100 150 118 S200 170 235 150 S300 90 335 104 S395 186 430 170 S490 118 540 128"/>
+  <circle class="fg-spot fg-pop fg-pulse" style="--delay:4.1s" cx="540" cy="128" r="5"/>
+</svg>
+<p class="fg-note" style="margin-top:8px"><span class="fg-tag warn">Illustration</span> Shape only. Not a chart of any real market.</p>
+</div>
+</header>
+
+<div class="container">
+
+<!-- 2 · WHAT IS GEX -->
+<section class="ft-section" id="what-is-gex">
+<div class="ft-section-head ft-reveal"><h2>What is GEX, in plain English?</h2><p>Options dealers hedge the contracts they sell. That hedging buys and sells the underlying market, and how much depends on gamma, which is how fast an option’s delta (its sensitivity to price) changes as price moves.</p></div>
+
+<div class="fg-flow ft-reveal" data-fg-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Dealers hold options risk</h3><p>When traders buy and sell options, dealers end up on the other side and carry the risk.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>They hedge as price moves</h3><p>To stay balanced they trade futures or shares. The size of each hedge depends on gamma at that strike (the price an option is written at).</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Hedging can steady or stretch</h3><p>Net long gamma tends to dampen moves. Net short gamma can add to them. That is the regime.</p></div>
+</div>
+
+<div class="fg-regimes">
+  <div class="fg-regime ft-reveal" data-fg-play>
+    <h3><span class="fg-badge pos">POSITIVE GAMMA</span> Pinning</h3>
+    <svg class="fg-svg" viewBox="0 0 300 90" fill="none" aria-hidden="true">
+      <line class="fg-call" x1="0" y1="14" x2="300" y2="14" stroke-width="1.5" opacity=".6"/>
+      <line class="fg-put" x1="0" y1="76" x2="300" y2="76" stroke-width="1.5" opacity=".6"/>
+      <path class="fg-path fg-draw" style="--len:420;--dur:2s;--delay:.2s" d="M4 45 C24 24 44 70 66 28 S100 62 124 34 S156 56 176 40 S206 52 224 43 S256 48 296 45"/>
+    </svg>
+    <p>Under the model’s assumption, dealers hedge against the move: they sell into rallies and buy dips. That can act as a brake, so some traders watch for price <b>staying between</b> the big strikes.</p>
+  </div>
+  <div class="fg-regime ft-reveal" data-fg-play>
+    <h3><span class="fg-badge neg">NEGATIVE GAMMA</span> Amplifying</h3>
+    <svg class="fg-svg" viewBox="0 0 300 90" fill="none" aria-hidden="true">
+      <line class="fg-call" x1="0" y1="14" x2="300" y2="14" stroke-width="1.5" opacity=".6"/>
+      <line class="fg-put" x1="0" y1="76" x2="300" y2="76" stroke-width="1.5" opacity=".6"/>
+      <path class="fg-path fg-draw" style="--len:440;--dur:2s;--delay:.2s" d="M4 45 C24 40 44 52 66 38 S100 62 124 28 S156 74 180 18 S228 84 262 10 S284 70 296 62"/>
+    </svg>
+    <p>Under the same assumption, dealers hedge <i>with</i> the move: they buy into strength and sell into weakness. That can let moves <b>run further than usual</b>.</p>
+  </div>
+</div>
+
+<div class="fg-assume ft-reveal"><b>An assumption, stated plainly.</b> Public data shows how many contracts are open at each strike, not who holds them. GEX therefore <em>assumes</em> dealers are long the calls and short the puts. That is a modelling convention, and it will not describe every day. Read the levels as a map of where the assumption puts the pressure, not as fact about what dealers are doing.</div>
+</section>
+
+<!-- 3 · TILES -->
+<section class="ft-section" id="whats-on-the-page">
+<div class="ft-section-head ft-reveal"><h2>What’s on the GEX page</h2><p>Every item below is on the dashboard today. Each card says how the number is built.</p></div>
+<div class="fg-tiles">
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-call" x1="8" y1="16" x2="192" y2="16" stroke-width="2.5"/><rect class="g-up" style="--delay:.1s" x="30" y="16" width="10" height="38" fill="#ef4444" fill-opacity=".35"/><rect class="g-up" style="--delay:.2s" x="60" y="16" width="10" height="22" fill="#ef4444" fill-opacity=".25"/><rect class="g-up" style="--delay:.3s" x="90" y="16" width="10" height="46" fill="#ef4444" fill-opacity=".5"/><rect class="g-up" style="--delay:.4s" x="120" y="16" width="10" height="14" fill="#ef4444" fill-opacity=".2"/></svg></div>
+<h3>Call wall</h3><p>The strike above price where call activity is heaviest. Often watched as an upper edge of the day’s range.</p><div class="fg-how">Busiest call strike at or above spot and the flip, ranked by today’s volume (open interest breaks ties), within 4% of spot. Falls back to the largest positive net GEX.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-put" x1="8" y1="48" x2="192" y2="48" stroke-width="2.5"/><rect class="g-up" style="--delay:.1s" x="30" y="10" width="10" height="38" fill="#22c55e" fill-opacity=".3"/><rect class="g-up" style="--delay:.2s" x="60" y="26" width="10" height="22" fill="#22c55e" fill-opacity=".5"/><rect class="g-up" style="--delay:.3s" x="90" y="2" width="10" height="46" fill="#22c55e" fill-opacity=".35"/><rect class="g-up" style="--delay:.4s" x="120" y="34" width="10" height="14" fill="#22c55e" fill-opacity=".25"/></svg></div>
+<h3>Put wall</h3><p>The strike below price where put activity is heaviest. Often watched as a lower edge.</p><div class="fg-how">Busiest put strike at or below spot and the flip, ranked by today’s volume (open interest breaks ties), within 4% of spot.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><path class="fg-path fg-draw" style="--len:260;--dur:1.4s" d="M8 52 C50 50 80 40 100 32 S150 14 192 12" stroke-width="2"/><line class="fg-zero" x1="8" y1="32" x2="192" y2="32" stroke-width="1.5" stroke-dasharray="5 5"/><circle class="g-flip" cx="100" cy="32" r="4" fill="#f59e0b"/></svg></div>
+<h3>Zero-gamma flip</h3><p>The price where the model’s net gamma changes sign, from positive to negative. Traders read it as where the model’s regime reading changes.</p><div class="fg-how">Net GEX is re-computed with Black-Scholes gamma on a grid from −10% to +10% of spot; the zero crossing nearest spot is shown.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips"><span class="fg-badge pos g-flip">POSITIVE</span><span class="fg-badge neg g-flip b">NEGATIVE</span></div></div>
+<h3>Regime</h3><p>A positive or negative gamma badge, plus the net GEX figure beside it. It is the headline read of the model.</p><div class="fg-how">The sign of summed net GEX across strikes within 6% of spot, for the expiry filter you picked.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><rect class="g-band" style="--delay:.1s" x="30" y="14" width="140" height="36" fill="#8b7cf6" fill-opacity=".16"/><rect class="g-band" style="--delay:.3s" x="62" y="22" width="76" height="20" fill="#8b7cf6" fill-opacity=".3"/><line x1="100" y1="6" x2="100" y2="58" stroke="var(--ink-3)" stroke-dasharray="3 4"/></svg></div>
+<h3>IV expected range · 68% / 80%</h3><p>A one-day range implied by options volatility (IV30: 30-day implied volatility, how much movement options are pricing in). The 68% band is one standard deviation; the 80% band is wider.</p><div class="fg-how">Spot ± spot × IV30 × √(1/252) for 68%, and ×1.282 for 80%. It assumes a normal distribution of moves, so it is a statistical estimate of dispersion, not a forecast or a probability that price stays inside.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line x1="100" y1="4" x2="100" y2="60" stroke="var(--line)"/><rect class="g-bar" style="--delay:.1s" x="100" y="6" width="62" height="8" fill="#03c988" fill-opacity=".7"/><rect class="g-bar" style="--delay:.2s" x="100" y="18" width="38" height="8" fill="#03c988" fill-opacity=".5"/><rect class="g-bar" style="--delay:.3s" x="62" y="30" width="38" height="8" fill="#e5484d" fill-opacity=".55" transform-origin="right"/><rect class="g-bar" style="--delay:.4s" x="40" y="42" width="60" height="8" fill="#e5484d" fill-opacity=".75"/></svg></div>
+<h3>Strike ladder · net GEX / DEX / OI</h3><p>A table down the side of the page: for each strike, its net GEX, net delta exposure (DEX), open interest (contracts still open at that strike) and the matching futures price.</p><div class="fg-how">Strikes within 4% of spot. The profile bar scales to the largest net GEX in view.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-chips g-seq"><span class="fg-chip">0DTE</span><span class="fg-chip">1DTE</span><span class="fg-chip">1W</span><span class="fg-chip">1M</span></div></div>
+<h3>Expiry filters</h3><p>Switch between 0DTE, 1DTE, 1W and 1M. The levels re-compute for just those expiries.</p><div class="fg-how">0DTE uses the nearest listed expiry on its own and 1DTE uses the next one after it. 1W and 1M include every expiry within 7 or 30 days.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><div class="fg-fut"><div><b>SPX</b><i>→</i>ES · MES</div><div><b>QQQ</b><i>→</i>NQ · MNQ</div><div><b>GLD</b><i>→</i>GC · MGC</div></div></div>
+<h3>Futures conversion</h3><p>Options levels are calculated on the index or ETF. Stryker converts them to the futures contracts traders chart, so a level reads in futures points. SPY (to ES/MES) is also available.</p><div class="fg-how">Index levels shift by the current futures basis; ETF levels use a ratio anchored to the latest futures price. Futures prices are delayed too.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><rect class="g-band" style="--delay:.1s" x="20" y="16" width="160" height="30" fill="#38bdf8" fill-opacity=".14"/><line class="fg-va" x1="20" y1="16" x2="180" y2="16" stroke-width="1.5" stroke-dasharray="4 4"/><line class="fg-va" x1="20" y1="31" x2="180" y2="31" stroke-width="2.5"/><line class="fg-va" x1="20" y1="46" x2="180" y2="46" stroke-width="1.5" stroke-dasharray="4 4"/><text class="fg-lbl" x="186" y="19" font-size="8">VAH</text><text class="fg-lbl" x="186" y="34" font-size="8">POC</text><text class="fg-lbl" x="186" y="49" font-size="8">VAL</text></svg></div>
+<h3>Prior-day VAH · POC · VAL</h3><p>Yesterday’s value area high, point of control and value area low, drawn on the same chart as the gamma levels.</p><div class="fg-how">A 70% value area built from the prior regular session’s 5-minute futures candles, volume-weighted when volume is available.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-on" x1="14" y1="14" x2="186" y2="14" stroke-width="2" stroke-dasharray="6 5"/><line class="fg-on" x1="14" y1="50" x2="186" y2="50" stroke-width="2" stroke-dasharray="6 5"/><path class="fg-path fg-draw" style="--len:200;--dur:1.4s" d="M14 38 C44 20 70 46 98 30 S150 22 186 34" stroke-width="2"/></svg></div>
+<h3>Overnight high / low</h3><p>The extremes made between the prior close and the next open, a common reference for where the session begins.</p><div class="fg-how">Highest and lowest futures price from 16:00 New York time on the prior session to 09:30 today.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><line class="fg-call" x1="8" y1="16" x2="192" y2="16" stroke-width="1.5"/><line class="fg-zero" x1="8" y1="34" x2="192" y2="34" stroke-width="1.5" stroke-dasharray="5 5"/><line class="fg-put" x1="8" y1="50" x2="192" y2="50" stroke-width="1.5"/><g class="g-cross"><rect x="40" y="26" width="5" height="14" fill="#03c988"/><rect x="62" y="22" width="5" height="12" fill="#e5484d"/><rect x="84" y="28" width="5" height="16" fill="#03c988"/><rect x="106" y="20" width="5" height="12" fill="#03c988"/><rect x="128" y="26" width="5" height="14" fill="#e5484d"/><rect x="150" y="22" width="5" height="12" fill="#03c988"/></g></svg></div>
+<h3>Chart with levels</h3><p>A TradingView Lightweight Charts candlestick chart for the futures contract, with the walls, the flip, the IV band and the market levels drawn as lines. Switch 1m, 5m, 15m or 1h.</p><div class="fg-how">Candles are delayed futures data. Market levels can be switched on and off from the legend.</div></div>
+
+<div class="fg-tile ft-reveal"><div class="fg-glyph"><svg viewBox="0 0 200 64" fill="none" aria-hidden="true"><circle class="g-pinch l" cx="78" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><circle class="g-pinch r" cx="122" cy="32" r="7" fill="var(--ink-2)" opacity=".5"/><path d="M66 32h-18M134 32h18M56 26l-8 6 8 6M144 26l8 6-8 6" stroke="var(--ink-2)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+<h3>Pan and zoom on mobile</h3><p>Drag to pan, pinch to zoom, or use the +, − and Reset buttons. Built to be used on a phone.</p><div class="fg-how">The page shows how many bars are in view, so you always know how far you have panned.</div></div>
+
+</div>
+</section>
+
+<!-- 4 · HOW TRADERS USE IT -->
+<section class="ft-section" id="how-traders-use-it">
+<div class="ft-section-head ft-reveal"><h2>How traders frame a session with it</h2><p>One common way to read the page, from before the open to a regime change. Tap a step, or let it play. This is education about reading the tool, not instruction to trade.</p></div>
+<div class="fg-tl ft-reveal" data-fg-tl data-fg-play>
+  <button type="button" class="fg-tl-step is-active" aria-pressed="true"><span class="fg-when">Before the open</span><h3>Read the map</h3><p>Open GEX and note the regime, the walls and the flip. Check where the overnight range and prior value area sit against them.</p><ul><li>Is the regime positive or negative?</li><li>How far apart are the call and put walls?</li><li>Do market levels cluster near a wall?</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">At the open</span><h3>Compare price to the levels</h3><p>See where price opens relative to zero gamma and the walls. Levels give context for how far a move has travelled, nothing more.</p><ul><li>Above or below zero gamma?</li><li>Inside or outside the IV range?</li><li>Switch expiry filters to see how the walls shift</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">If the regime flips</span><h3>Notice the change</h3><p>When price crosses the zero-gamma line, the model’s regime reading changes with it. Traders note it as a change in conditions and revisit their plan.</p><ul><li>Re-read the page after the data refreshes</li><li>Remember the data is delayed</li><li>Keep your own risk rules in charge</li></ul><i class="fg-bar"></i></button>
+</div>
+<p class="fg-tl-note ft-reveal">Levels are not signals. They do not say what price will do, and no level works every time.</p>
+</section>
+
+<!-- 5 · HOW IT WORKS / DATA -->
+<section class="ft-section" id="how-it-works">
+<div class="ft-section-head ft-reveal"><h2>Where the data comes from</h2><p>The page reads Cboe’s <b>delayed</b> options chain and rebuilds the levels on every refresh. It is not a live feed.</p></div>
+<div class="fg-pipe ft-reveal" data-fg-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Cboe delayed chain</h3><p>Open interest, volume, gamma, delta and implied volatility for every listed contract on the underlying.</p></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>Net GEX by strike</h3><p>Calls count positive and puts negative, per the dealer assumption above, then are summed by strike.</p></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Levels and conversion</h3><p>Walls, flip, regime and IV range are derived, then converted to futures points.</p></div>
+  <div class="fg-node"><span class="fg-step">4</span><h3>Shown on the page</h3><p>The chart, level list and strike ladder update from the same response.</p></div>
+</div>
+<div class="fg-delay ft-reveal">
+  <div><b>Options data</b><span>Cboe’s delayed quotes feed. The chain’s own timestamp is shown on the page with its age, for example “42m old”.</span></div>
+  <div><b>Page refresh</b><span>The page re-requests levels and candles every 60 seconds while it is open. Responses are cached for about 45 seconds, and a slightly older copy can be served while a fresh one loads, so a refresh does not always change the numbers.</span></div>
+  <div><b>Freshness badge</b><span>If the chain’s timestamp is within 30 minutes the page reads “Market session active”. Beyond that it reads “Market closed” and shows the frozen session’s age.</span></div>
+  <div><b>Futures prices and candles</b><span>Delayed quotes from Yahoo Finance for the futures contracts, used for the conversion, the chart and the prior-day and overnight levels.</span></div>
+  <div><b>Outside market hours</b><span>The options chain stops updating between sessions, so the levels reflect the last session until the next one starts.</span></div>
+</div>
+</section>
+
+<!-- 6 · FAITHFUL MOCK -->
+<section class="ft-section" id="dashboard-preview">
+<div class="ft-section-head ft-reveal"><h2>The dashboard layout</h2><p>A walk-through of how the page is laid out. It is an illustration with placeholder values, not a screenshot and not data.</p></div>
+<div class="fg-mock ft-reveal" data-fg-mock data-fg-play role="img" aria-label="Illustration of the GEX dashboard layout with placeholder values. Not real data.">
+  <div class="fg-mock-ribbon"><span>Sample · Illustration · Placeholder values</span><button type="button" id="fg-replay">Replay</button></div>
+  <div class="fg-mock-body" aria-hidden="true">
+    <div class="fg-mock-wm">SAMPLE</div>
+    <div class="fg-m-head">
+      <div><div class="fg-m-kick">Gamma exposure desk</div><div class="fg-m-title">GEX</div></div>
+      <div class="fg-m-btns">
+        <span class="fg-m-btn on">SPX<small>ES/MES</small></span><span class="fg-m-btn">SPY<small>ES/MES</small></span><span class="fg-m-btn">QQQ<small>NQ/MNQ</small></span><span class="fg-m-btn">GLD<small>GC/MGC</small></span>
+      </div>
+      <div class="fg-m-btns"><span class="fg-m-btn">0DTE</span><span class="fg-m-btn on">1DTE</span><span class="fg-m-btn">1W</span><span class="fg-m-btn">1M</span></div>
+    </div>
+    <div class="fg-m-status"><i class="fg-m-dot"></i><span><b>Delayed options data</b> · timestamp and age appear here</span></div>
+    <div class="fg-m-grid">
+      <div>
+        <div class="fg-m-card">
+          <h4>Futures chart · levels drawn on top</h4>
+          <div class="fg-m-chart">
+            <svg class="fg-svg" viewBox="0 0 560 230" fill="none">
+              <g class="fg-grid-line"><line x1="0" y1="40" x2="560" y2="40"/><line x1="0" y1="90" x2="560" y2="90"/><line x1="0" y1="140" x2="560" y2="140"/><line x1="0" y1="190" x2="560" y2="190"/></g>
+              <g><g class="fg-candle" style="--i:0"><line x1="13.5" y1="123.0" x2="13.5" y2="135.0" stroke="#e5484d" stroke-width="1.2"/><rect x="10.0" y="128.0" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:1"><line x1="26.1" y1="120.0" x2="26.1" y2="146.8" stroke="#e5484d" stroke-width="1.2"/><rect x="22.6" y="128.0" width="7" height="10.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:2"><line x1="38.7" y1="132.8" x2="38.7" y2="157.2" stroke="#e5484d" stroke-width="1.2"/><rect x="35.2" y="138.8" width="7" height="9.4" fill="#e5484d"/></g><g class="fg-candle" style="--i:3"><line x1="51.3" y1="139.2" x2="51.3" y2="165.3" stroke="#e5484d" stroke-width="1.2"/><rect x="47.8" y="148.2" width="7" height="7.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:4"><line x1="63.9" y1="148.3" x2="63.9" y2="166.3" stroke="#e5484d" stroke-width="1.2"/><rect x="60.4" y="155.3" width="7" height="4.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:5"><line x1="76.5" y1="154.3" x2="76.5" y2="168.2" stroke="#e5484d" stroke-width="1.2"/><rect x="73.0" y="159.3" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:6"><line x1="89.1" y1="150.5" x2="89.1" y2="169.2" stroke="#03c988" stroke-width="1.2"/><rect x="85.6" y="158.5" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:7"><line x1="101.7" y1="149.1" x2="101.7" y2="168.5" stroke="#03c988" stroke-width="1.2"/><rect x="98.2" y="155.1" width="7" height="3.4" fill="#03c988"/></g><g class="fg-candle" style="--i:8"><line x1="114.3" y1="142.2" x2="114.3" y2="162.1" stroke="#03c988" stroke-width="1.2"/><rect x="110.8" y="151.2" width="7" height="4.0" fill="#03c988"/></g><g class="fg-candle" style="--i:9"><line x1="126.9" y1="140.6" x2="126.9" y2="159.2" stroke="#03c988" stroke-width="1.2"/><rect x="123.4" y="147.6" width="7" height="3.6" fill="#03c988"/></g><g class="fg-candle" style="--i:10"><line x1="139.5" y1="140.2" x2="139.5" y2="156.6" stroke="#03c988" stroke-width="1.2"/><rect x="136.0" y="145.2" width="7" height="2.4" fill="#03c988"/></g><g class="fg-candle" style="--i:11"><line x1="152.1" y1="136.1" x2="152.1" y2="155.2" stroke="#03c988" stroke-width="1.2"/><rect x="148.6" y="144.1" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:12"><line x1="164.7" y1="138.1" x2="164.7" y2="151.3" stroke="#e5484d" stroke-width="1.2"/><rect x="161.2" y="144.1" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:13"><line x1="177.3" y1="135.3" x2="177.3" y2="152.9" stroke="#e5484d" stroke-width="1.2"/><rect x="173.8" y="144.3" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:14"><line x1="189.9" y1="137.9" x2="189.9" y2="154.1" stroke="#e5484d" stroke-width="1.2"/><rect x="186.4" y="144.9" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:15"><line x1="202.5" y1="139.0" x2="202.5" y2="155.1" stroke="#03c988" stroke-width="1.2"/><rect x="199.0" y="144.0" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:16"><line x1="215.1" y1="132.6" x2="215.1" y2="151.0" stroke="#03c988" stroke-width="1.2"/><rect x="211.6" y="140.6" width="7" height="3.3" fill="#03c988"/></g><g class="fg-candle" style="--i:17"><line x1="227.7" y1="128.9" x2="227.7" y2="148.6" stroke="#03c988" stroke-width="1.2"/><rect x="224.2" y="134.9" width="7" height="5.8" fill="#03c988"/></g><g class="fg-candle" style="--i:18"><line x1="240.3" y1="117.9" x2="240.3" y2="143.9" stroke="#03c988" stroke-width="1.2"/><rect x="236.8" y="126.9" width="7" height="8.0" fill="#03c988"/></g><g class="fg-candle" style="--i:19"><line x1="252.9" y1="110.3" x2="252.9" y2="136.9" stroke="#03c988" stroke-width="1.2"/><rect x="249.4" y="117.3" width="7" height="9.5" fill="#03c988"/></g><g class="fg-candle" style="--i:20"><line x1="265.5" y1="102.5" x2="265.5" y2="124.3" stroke="#03c988" stroke-width="1.2"/><rect x="262.0" y="107.5" width="7" height="9.9" fill="#03c988"/></g><g class="fg-candle" style="--i:21"><line x1="278.1" y1="90.6" x2="278.1" y2="115.5" stroke="#03c988" stroke-width="1.2"/><rect x="274.6" y="98.6" width="7" height="8.9" fill="#03c988"/></g><g class="fg-candle" style="--i:22"><line x1="290.7" y1="85.9" x2="290.7" y2="107.6" stroke="#03c988" stroke-width="1.2"/><rect x="287.2" y="91.9" width="7" height="6.7" fill="#03c988"/></g><g class="fg-candle" style="--i:23"><line x1="303.3" y1="79.3" x2="303.3" y2="101.9" stroke="#03c988" stroke-width="1.2"/><rect x="299.8" y="88.3" width="7" height="3.6" fill="#03c988"/></g><g class="fg-candle" style="--i:24"><line x1="315.9" y1="81.2" x2="315.9" y2="95.3" stroke="#03c988" stroke-width="1.2"/><rect x="312.4" y="88.2" width="7" height="2.0" fill="#03c988"/></g><g class="fg-candle" style="--i:25"><line x1="328.5" y1="83.2" x2="328.5" y2="99.4" stroke="#e5484d" stroke-width="1.2"/><rect x="325.0" y="88.2" width="7" height="3.2" fill="#e5484d"/></g><g class="fg-candle" style="--i:26"><line x1="341.1" y1="83.4" x2="341.1" y2="106.2" stroke="#e5484d" stroke-width="1.2"/><rect x="337.6" y="91.4" width="7" height="5.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:27"><line x1="353.7" y1="91.2" x2="353.7" y2="114.5" stroke="#e5484d" stroke-width="1.2"/><rect x="350.2" y="97.2" width="7" height="7.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:28"><line x1="366.3" y1="95.5" x2="366.3" y2="119.2" stroke="#e5484d" stroke-width="1.2"/><rect x="362.8" y="104.5" width="7" height="7.6" fill="#e5484d"/></g><g class="fg-candle" style="--i:29"><line x1="378.9" y1="105.2" x2="378.9" y2="126.9" stroke="#e5484d" stroke-width="1.2"/><rect x="375.4" y="112.2" width="7" height="6.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:30"><line x1="391.5" y1="113.9" x2="391.5" y2="133.1" stroke="#e5484d" stroke-width="1.2"/><rect x="388.0" y="118.9" width="7" height="5.2" fill="#e5484d"/></g><g class="fg-candle" style="--i:31"><line x1="404.1" y1="116.1" x2="404.1" y2="137.4" stroke="#e5484d" stroke-width="1.2"/><rect x="400.6" y="124.1" width="7" height="3.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:32"><line x1="416.7" y1="121.4" x2="416.7" y2="136.1" stroke="#e5484d" stroke-width="1.2"/><rect x="413.2" y="127.4" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:33"><line x1="429.3" y1="120.1" x2="429.3" y2="137.8" stroke="#e5484d" stroke-width="1.2"/><rect x="425.8" y="129.1" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:34"><line x1="441.9" y1="122.8" x2="441.9" y2="139.5" stroke="#e5484d" stroke-width="1.2"/><rect x="438.4" y="129.8" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:35"><line x1="454.5" y1="125.5" x2="454.5" y2="142.0" stroke="#e5484d" stroke-width="1.2"/><rect x="451.0" y="130.5" width="7" height="2.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:36"><line x1="467.1" y1="124.0" x2="467.1" y2="142.0" stroke="#e5484d" stroke-width="1.2"/><rect x="463.6" y="132.0" width="7" height="3.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:37"><line x1="479.7" y1="129.0" x2="479.7" y2="147.8" stroke="#e5484d" stroke-width="1.2"/><rect x="476.2" y="135.0" width="7" height="4.8" fill="#e5484d"/></g><g class="fg-candle" style="--i:38"><line x1="492.3" y1="130.8" x2="492.3" y2="155.1" stroke="#e5484d" stroke-width="1.2"/><rect x="488.8" y="139.8" width="7" height="6.3" fill="#e5484d"/></g><g class="fg-candle" style="--i:39"><line x1="504.9" y1="139.1" x2="504.9" y2="163.1" stroke="#e5484d" stroke-width="1.2"/><rect x="501.4" y="146.1" width="7" height="7.0" fill="#e5484d"/></g><g class="fg-candle" style="--i:40"><line x1="517.5" y1="148.1" x2="517.5" y2="166.8" stroke="#e5484d" stroke-width="1.2"/><rect x="514.0" y="153.1" width="7" height="6.7" fill="#e5484d"/></g><g class="fg-candle" style="--i:41"><line x1="530.1" y1="151.8" x2="530.1" y2="172.9" stroke="#e5484d" stroke-width="1.2"/><rect x="526.6" y="159.8" width="7" height="5.1" fill="#e5484d"/></g><g class="fg-candle" style="--i:42"><line x1="542.7" y1="158.9" x2="542.7" y2="176.3" stroke="#e5484d" stroke-width="1.2"/><rect x="539.2" y="164.9" width="7" height="2.4" fill="#e5484d"/></g><g class="fg-candle" style="--i:43"><line x1="555.3" y1="157.4" x2="555.3" y2="177.3" stroke="#03c988" stroke-width="1.2"/><rect x="551.8" y="166.4" width="7" height="2.0" fill="#03c988"/></g></g>
+              <line class="fg-call" x1="0" y1="34" x2="560" y2="34" stroke-width="1.6"/>
+              <line class="fg-zero" x1="0" y1="112" x2="560" y2="112" stroke-width="1.6" stroke-dasharray="6 5"/>
+              <line class="fg-put" x1="0" y1="196" x2="560" y2="196" stroke-width="1.6"/>
+              <line class="fg-iv" x1="0" y1="62" x2="560" y2="62" stroke-width="1" stroke-dasharray="3 4"/>
+              <line class="fg-iv" x1="0" y1="164" x2="560" y2="164" stroke-width="1" stroke-dasharray="3 4"/>
+              <line class="fg-va" x1="0" y1="86" x2="560" y2="86" stroke-width="1" stroke-dasharray="3 4"/>
+              <line class="fg-va" x1="0" y1="128" x2="560" y2="128" stroke-width="1.2"/>
+              <line class="fg-on" x1="0" y1="52" x2="560" y2="52" stroke-width="1" stroke-dasharray="3 4"/>
+              <text class="fg-t-call" x="556" y="29" text-anchor="end" font-size="9" font-weight="700">CALL WALL</text>
+              <text class="fg-t-zero" x="556" y="107" text-anchor="end" font-size="9" font-weight="700">ZERO GAMMA</text>
+              <text class="fg-t-put" x="556" y="190" text-anchor="end" font-size="9" font-weight="700">PUT WALL</text>
+            </svg>
+          </div>
+          <div class="fg-m-legend"><span><i style="background:#ef4444"></i>Call wall</span><span><i style="background:#f59e0b"></i>Zero gamma</span><span><i style="background:#22c55e"></i>Put wall</span><span><i style="background:#8b7cf6"></i>IV 68%</span><span><i style="background:#38bdf8"></i>Prior VAH/POC/VAL</span><span><i style="background:#64748b"></i>ON hi/lo</span></div>
+        </div>
+        <div class="fg-m-card">
+          <div class="fg-m-hero">
+            <div class="fg-m-spot"><small>SPOT</small>SAMPLE</div>
+            <span class="fg-badge pos">POSITIVE GAMMA</span>
+            <div class="fg-m-kv">NET GEX<b>sample</b></div>
+            <div class="fg-m-kv">IV30<b>sample</b></div>
+          </div>
+          <div class="fg-m-levels">
+            <div class="fg-m-level call fg-row-a" style="--i:0"><span class="nm">CALL WALL</span><span class="px">level</span><span class="ds">+1.2%</span></div>
+            <div class="fg-m-level zero fg-row-a" style="--i:1"><span class="nm">ZERO GAMMA</span><span class="px">level</span><span class="ds">+0.3%</span></div>
+            <div class="fg-m-level spot fg-row-a" style="--i:2"><span class="nm">◆ SPOT</span><span class="px">level</span><span class="ds">0.0%</span></div>
+            <div class="fg-m-level put fg-row-a" style="--i:3"><span class="nm">PUT WALL</span><span class="px">level</span><span class="ds">−1.4%</span></div>
+          </div>
+        </div>
+        <div class="fg-m-card">
+          <h4>Market-generated levels</h4>
+          <div class="fg-m-mk">
+            <div class="fg-m-mkc"><span>PRIOR VAH</span><b>level</b></div><div class="fg-m-mkc"><span>PRIOR POC</span><b>level</b></div><div class="fg-m-mkc"><span>PRIOR VAL</span><b>level</b></div>
+            <div class="fg-m-mkc"><span>OVERNIGHT HIGH</span><b>level</b></div><div class="fg-m-mkc"><span>OVERNIGHT LOW</span><b>level</b></div><div class="fg-m-mkc"><span>RTH OPEN</span><b>level</b></div>
+          </div>
+        </div>
+      </div>
+      <aside>
+        <div class="fg-m-card">
+          <h4>Strike profile · net GEX / DEX / OI</h4>
+          <table class="fg-m-tbl"><tr><th>STRIKE</th><th>NET GEX</th><th>PROFILE</th></tr>
+            <tr class="fg-row-a" style="--i:0"><td>+2%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:0;width:70%;background:#03c988"></div></td></tr>
+            <tr class="fg-row-a" style="--i:1"><td>+1%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:1;width:92%;background:#03c988"></div></td></tr>
+            <tr class="here fg-row-a" style="--i:2"><td>spot</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:2;width:34%;background:#03c988"></div></td></tr>
+            <tr class="fg-row-a" style="--i:3"><td>−1%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:3;width:58%;background:#e5484d"></div></td></tr>
+            <tr class="fg-row-a" style="--i:4"><td>−2%</td><td>sample</td><td class="fg-m-pcell"><div class="fg-m-pbar fg-pbar-a" style="--i:4;width:80%;background:#e5484d"></div></td></tr>
+          </table>
+          <p style="font-size:10.5px;color:var(--ink-3);margin:10px 0 0;line-height:1.5">The real table also lists the futures price, net DEX and open interest for each strike.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- 7 · FAQ -->
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal">
+<details><summary>Is the GEX data live?</summary><div class="fg-a"><p>No. The options chain comes from Cboe’s delayed quotes, and the futures prices are delayed too. The page shows the chain’s timestamp and its age so you can see exactly how old the numbers are.</p></div></details>
+<details><summary>Does GEX predict where price will go?</summary><div class="fg-a"><p>No. It describes how options positioning <em>could</em> influence hedging flows, under a stated assumption. Levels are context for reading a session, not a forecast and not a trade signal.</p></div></details>
+<details><summary>Why does it assume dealers are long calls and short puts?</summary><div class="fg-a"><p>Open interest data does not say who holds each contract. Treating calls as dealer-long and puts as dealer-short is a common modelling convention. It will be wrong on some days, so treat every level as an estimate.</p></div></details>
+<details><summary>Which markets does it cover?</summary><div class="fg-a"><p>SPX, SPY, QQQ and GLD. They convert to ES/MES, NQ/MNQ and GC/MGC futures levels (SPY maps to ES/MES).</p></div></details>
+<details><summary>What do 0DTE, 1DTE, 1W and 1M mean?</summary><div class="fg-a"><p>They filter which expiries feed the numbers: the nearest listed expiry (0DTE), the one after it (1DTE), everything within a week (1W) or within a month (1M). Each setting recalculates the walls, the flip and the ladder.</p></div></details>
+<details><summary>What is the IV expected range?</summary><div class="fg-a"><p>A one-day range derived from 30-day implied volatility: one standard deviation for the 68% band and a wider band for 80%. It estimates how much the market is pricing in, under a normal-distribution assumption. It is not where price will finish, and price can and does move outside it.</p></div></details>
+<details><summary>Can I use it on my phone?</summary><div class="fg-a"><p>Yes. The chart supports drag to pan and pinch to zoom, with +, − and Reset buttons as well.</p></div></details>
+<details><summary>How do I open it?</summary><div class="fg-a"><p>Create a free account and sign in. GEX sits in your dashboard’s sidebar.</p></div></details>
+</div>
+
+<div class="ft-cta ft-reveal"><h2>Read the options map before the open</h2><p>Create a free account and open GEX from your dashboard.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create your free account</a><a href="/features" class="btn btn-ghost">All features</a></div>
+<p class="fg-edu">Education only. Not financial advice.</p></div>
+</section>
+</div>
+
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=364"></script>
+<script src="/assets/auth.js?v=364"></script>
+<script src="/assets/plan-price.js?v=364"></script>
+<script src="/assets/launch-sale.js?v=364"></script>
+<script src="/assets/progress.js?v=364"></script>
+<script src="/assets/activity-log.js?v=364"></script>
+<script src="/assets/banned-check.js?v=364"></script>
+<script src="/assets/email-verify.js?v=364"></script>
+<script src="/assets/profiles-sync.js?v=364"></script>
+<script src="/assets/branding.js?v=364"></script>
+<script src="/assets/seo.js?v=364"></script>
+<script src="/assets/features.js?v=364"></script>
+<script src="/assets/features-gex.js?v=364"></script>
+<script src="/assets/theme.js?v=364"></script>
+</body>
+</html>

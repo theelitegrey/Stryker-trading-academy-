@@ -48,7 +48,7 @@
     var mine = pageBuild();
     if (mine === null) return;
 
-    fetch('assets/version.json?t=' + Date.now(), { cache: 'no-store' })
+    fetch('/assets/version.json?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || typeof data.build !== 'number') return;

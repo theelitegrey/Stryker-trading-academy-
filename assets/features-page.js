@@ -83,6 +83,14 @@
     var plays = all('[data-fp-play]');
     var rows = all('[data-fp-row]');
 
+    // ---- cards + string: one empty pulse element per rows container --------
+    var lists = all('.sx-rows');
+    lists.forEach(function (l) {
+      var i = document.createElement('i');
+      i.className = 'sx-pulse'; i.setAttribute('aria-hidden', 'true');
+      l.insertBefore(i, l.firstChild);
+    });
+
     // ---- reduced motion / no observer: finished static state -------------
     if (reduced || !hasIO) {
       plays.forEach(function (el) { el.classList.add('is-playing'); });
@@ -137,6 +145,47 @@
         ents.forEach(function (en) { if (en.isIntersecting) mark(en.target.getAttribute('data-fp-row')); });
       }, { rootMargin: '-45% 0px -50% 0px' });
       rows.forEach(function (r) { rio.observe(r); mio.observe(r); });
+    }
+
+    // ---- string pulse runs only while the rows are on screen --------------
+    if (lists.length) {
+      var lio = new IntersectionObserver(function (ents) {
+        ents.forEach(function (en) { en.target.classList.toggle('is-live', en.isIntersecting); });
+      });
+      lists.forEach(function (l) { lio.observe(l); });
+    }
+
+    // ---- 3D tilt: fine pointers only, rAF-throttled, max 6deg -------------
+    var fine = false;
+    try { fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) {}
+    if (fine) {
+      rows.forEach(function (r) {
+        var box = null, px = 0, py = 0, raf = 0;
+        function apply() {
+          raf = 0; if (!box) return;
+          if (r._fpStale) { r._fpStale = 0; box = r.getBoundingClientRect(); }
+          var x = (px - box.left) / box.width - 0.5, y = (py - box.top) / box.height - 0.5;
+          r.style.setProperty('--fp-ry', (x * 12).toFixed(2) + 'deg');   // ±6
+          r.style.setProperty('--fp-rx', (-y * 12).toFixed(2) + 'deg');
+        }
+        r.addEventListener('pointerenter', function (e) {
+          if (e.pointerType !== 'mouse') return;
+          box = r.getBoundingClientRect(); r.classList.add('is-tilt');
+        });
+        r.addEventListener('pointermove', function (e) {
+          if (!box) return; px = e.clientX; py = e.clientY;
+          if (!raf) raf = requestAnimationFrame(apply);
+        });
+        r.addEventListener('pointerleave', function () {
+          box = null; if (raf) { cancelAnimationFrame(raf); raf = 0; }
+          r.classList.remove('is-tilt');
+          r.style.removeProperty('--fp-rx'); r.style.removeProperty('--fp-ry');
+        });
+      });
+      // the cached box goes stale when the page scrolls under a still pointer
+      window.addEventListener('scroll', function () {
+        rows.forEach(function (r) { if (r.classList.contains('is-tilt')) r._fpStale = 1; });
+      }, { passive: true });
     }
   });
 })();

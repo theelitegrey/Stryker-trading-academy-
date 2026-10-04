@@ -251,3 +251,73 @@ html.fp-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
   .sx-xf .sx-b{ display:none; }
   .fg-tl-step .fg-bar{ display:none; }
 }
+
+/* ================= showcase cards + string (Owner "Improvement no 1") =================
+   Hooks: the existing .sx-rows container and its .sx-row[data-fp-row] children.
+   No markup or copy changes are needed on a page; any number of rows works.
+   - Card: every .sx-row is a bordered surface. 3D tilt toward the pointer
+     (max 6deg) only on fine-pointer hover devices, via --fp-rx / --fp-ry set by
+     features-page.js; keyboard focus gets the same glow without tilt; touch gets
+     a press state and a one-time lift on entry.
+   - String: .sx-rows::before is the static thread in a left gutter; each row's
+     ::before is its node and ::after the short tick from the node to the card.
+     features-page.js adds one empty <i class="sx-pulse"> whose ::after is the
+     travelling light (transform only), running only while the rows are on screen.
+   - Default = finished/static. Motion only under html.fp-anim; reduced motion
+     and no-JS show card, thread and lit nodes with nothing moving. */
+.sx-rows{ --fp-gut:16px; --fp-tx:5px; --fp-ny:30px; position:relative; z-index:0; margin-left:-16px; margin-right:-12px; padding-left:var(--fp-gut); gap:40px; }
+.sx-rows::before{ content:""; position:absolute; left:calc(var(--fp-tx) - 1px); top:calc(var(--fp-ny) + 6px); bottom:24px; width:2px; border-radius:2px; pointer-events:none;
+  background:linear-gradient(to bottom, rgba(0,196,140,.55), rgba(0,196,140,.38) 92%, rgba(0,196,140,0)); box-shadow:0 0 8px rgba(0,196,140,.35); }
+.sx-pulse{ position:absolute; left:calc(var(--fp-tx) - 4px); top:calc(var(--fp-ny) + 6px); bottom:24px; width:8px; overflow:hidden; pointer-events:none; display:none; }
+.sx-pulse::after{ content:""; position:absolute; left:0; right:0; top:0; height:100%; transform:translateY(-140px);
+  background:linear-gradient(to bottom, rgba(0,196,140,0) 0, rgba(120,255,214,.95) 70px, rgba(0,196,140,0) 140px, rgba(0,196,140,0) 100%); filter:blur(.4px); }
+html.fp-anim .sx-pulse{ display:block; }
+html.fp-anim .sx-rows.is-live .sx-pulse::after{ animation:sx-travel 3.4s cubic-bezier(.45,0,.55,1) infinite; }
+@keyframes sx-travel{ 0%{ transform:translateY(-140px); opacity:0; } 8%{ opacity:1; } 90%{ opacity:1; } 100%{ transform:translateY(100%); opacity:0; } }
+
+.sx-row{ position:relative; background:var(--bg-2); border:1px solid var(--line); border-radius:18px; padding:6px 6px 14px;
+  box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 6px 18px rgba(0,0,0,.25);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .35s ease; }
+.sx-row .sx-copy{ padding:0 6px; }
+.sx-row .sx-frame{ margin-bottom:14px; }
+/* node on the thread + tick to the card edge */
+.sx-row::before{ content:""; position:absolute; left:calc(var(--fp-tx) - var(--fp-gut) - 6px); top:var(--fp-ny); width:12px; height:12px; border-radius:50%;
+  background:var(--fp-acc); border:2px solid var(--bg-1); box-shadow:0 0 0 2px rgba(0,196,140,.45), 0 0 12px rgba(0,196,140,.75); pointer-events:none;
+  transition:opacity .5s ease, box-shadow .5s ease, transform .5s ease; }
+.sx-row::after{ content:""; position:absolute; left:calc(var(--fp-tx) - var(--fp-gut) + 6px); top:calc(var(--fp-ny) + 5px); width:calc(var(--fp-gut) - var(--fp-tx) - 7px); height:2px;
+  background:rgba(0,196,140,.6); pointer-events:none; transition:opacity .5s ease; }
+html.fp-anim .sx-row:not(.fp-in)::before{ opacity:.35; box-shadow:0 0 0 2px rgba(0,196,140,.2); transform:scale(.8); }
+html.fp-anim .sx-row:not(.fp-in)::after{ opacity:.3; }
+html.fp-anim .sx-row.fp-in::before{ animation:sx-node 1s ease-out .2s 1; }
+@keyframes sx-node{ 0%{ box-shadow:0 0 0 2px rgba(0,196,140,.45), 0 0 12px rgba(0,196,140,.75);} 40%{ box-shadow:0 0 0 7px rgba(0,196,140,.22), 0 0 22px rgba(0,196,140,.95);} 100%{ box-shadow:0 0 0 2px rgba(0,196,140,.45), 0 0 12px rgba(0,196,140,.75);} }
+
+/* highlight: hover (fine pointer) and keyboard focus */
+.sx-row:focus-within, .sx-row.is-tilt{ border-color:rgba(0,196,140,.55); box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45); }
+@media (hover:hover) and (pointer:fine){
+  .sx-row:hover{ border-color:rgba(0,196,140,.55); box-shadow:0 0 0 1px rgba(0,196,140,.35), 0 0 26px rgba(0,196,140,.18), 0 18px 40px rgba(0,0,0,.45); }
+  html.fp-anim .sx-row:hover{ transform:perspective(1100px) rotateX(var(--fp-rx,0deg)) rotateY(var(--fp-ry,0deg)) translateY(-4px); }
+  html.fp-anim .sx-row.is-tilt{ will-change:transform; transition:transform .12s linear, box-shadow .35s ease, border-color .35s ease; }
+}
+/* touch: press state + one-time lift as the card arrives */
+@media (hover:none), (pointer:coarse){
+  html.fp-anim .sx-row{ transform:translateY(14px); }
+  html.fp-anim .sx-row.fp-in{ transform:none; }
+  html.fp-anim .sx-row.fp-in:active{ transform:scale(.985); transition-duration:.12s; border-color:rgba(0,196,140,.55); }
+}
+@media (min-width:900px){
+  .sx-rows{ --fp-gut:44px; --fp-tx:14px; --fp-ny:40px; margin-left:-12px; margin-right:0; gap:56px; }
+  .sx-row{ padding:24px; gap:36px; }
+  .sx-row .sx-frame{ margin-bottom:0; }
+  .sx-row .sx-copy{ padding:0; }
+}
+@media (min-width:1300px){ .sx-rows{ --fp-gut:48px; --fp-tx:16px; margin-left:-56px; margin-right:-8px; } }
+:root[data-theme="light"] .sx-row{ box-shadow:0 1px 2px rgba(15,23,42,.06), 0 8px 22px rgba(15,23,42,.07); }
+:root[data-theme="light"] .sx-row:focus-within, :root[data-theme="light"] .sx-row.is-tilt{ box-shadow:0 0 0 1px rgba(0,160,114,.45), 0 0 22px rgba(0,196,140,.2), 0 18px 36px rgba(15,23,42,.14); }
+@media (hover:hover) and (pointer:fine){ :root[data-theme="light"] .sx-row:hover{ box-shadow:0 0 0 1px rgba(0,160,114,.45), 0 0 22px rgba(0,196,140,.2), 0 18px 36px rgba(15,23,42,.14); } }
+:root[data-theme="light"] .sx-rows::before{ background:linear-gradient(to bottom, rgba(0,160,114,.7), rgba(0,160,114,.5) 92%, rgba(0,160,114,0)); box-shadow:0 0 6px rgba(0,160,114,.3); }
+:root[data-theme="light"] .sx-pulse::after{ background:linear-gradient(to bottom, rgba(0,196,140,0) 0, rgba(0,150,105,.95) 70px, rgba(0,196,140,0) 140px, rgba(0,196,140,0) 100%); }
+:root[data-theme="light"] .sx-row::before{ border-color:var(--bg-1); }
+@media (prefers-reduced-motion:reduce){
+  .sx-row, .sx-row:hover, .sx-row.is-tilt, .sx-row:active{ transform:none !important; }
+  .sx-pulse{ display:none !important; }
+}

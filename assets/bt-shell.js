@@ -27,8 +27,8 @@
       '<span class="bta-spacer"></span><a class="bta-item bta-exit" href="dashboard-user.html" title="Back to the academy"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg><span>Academy</span></a>';
     main.insertBefore(rail, main.firstChild);
     paint(rail); window.addEventListener('hashchange', () => paint(rail));
-    // the site hamburger opens the regular sidebar as a drawer on every width
-    const toggle = document.getElementById('dash-menu-toggle'), sidebar = document.querySelector('.sidebar'), backdrop = document.getElementById('dash-sidebar-backdrop');
-    if (toggle && sidebar && backdrop) { toggle.addEventListener('click', () => { const open = sidebar.classList.contains('mobile-open'); if (!open) { sidebar.classList.add('mobile-open'); backdrop.classList.add('visible'); } }); backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('visible'); }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('visible'); } }); }
+    // The site hamburger and its drawer are driven by assets/dash-nav.js on
+    // every app page now (no second handler here: it used to close the drawer
+    // on Escape without releasing dash-nav's body scroll lock).
   });
 })();

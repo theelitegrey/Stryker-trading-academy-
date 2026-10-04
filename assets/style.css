@@ -8153,3 +8153,129 @@ section.ec-strip { padding: 18px 20px; }
 .launch-strip .ls-dot{ margin:0 7px; color:var(--ink-3); }
 .launch-strip .ls-go{ margin-left:10px; }
 @media (max-width:600px){ .launch-strip{ flex-wrap:nowrap; font-size:12px; padding:8px 10px; } .launch-strip .ls-long{ display:none; } }
+
+/* ==========================================================================
+   APP MENU IN THE HEADER (Owner order 2026-10-04, build 380)
+   The permanent sidebar column is gone on every app page and every width.
+   The page's own <aside class="sidebar"> is now a slide-in drawer opened by
+   the hamburger in the header (#dash-menu-toggle); assets/dash-nav.js drives
+   it. The drawer opens BELOW the header so the hamburger stays visible and
+   turns into its close button. Selectors carry `html .dash-shell >` so they
+   outrank the older width/device/backtest rules above without !important.
+   ========================================================================== */
+html .dash-shell,
+html[data-device] .dash-shell,
+body.bt-app .dash-shell{ grid-template-columns:minmax(0,1fr); min-height:calc(100vh - var(--topbar-h)); }
+html .dash-shell > .sidebar{
+  position:fixed; left:0; top:var(--dash-head-h, var(--topbar-h)); bottom:0;
+  width:300px; max-width:86vw; height:auto; min-height:0;
+  z-index:730; display:flex; flex-direction:column;
+  padding:14px 16px calc(18px + env(safe-area-inset-bottom));
+  background:var(--bg-0); border-right:1px solid var(--line);
+  box-shadow:24px 0 48px -24px rgba(0,0,0,.7);
+  overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+  transform:translateX(-104%); visibility:hidden;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1), visibility 0s linear .28s;
+}
+html .dash-shell > .sidebar.mobile-open{
+  transform:translateX(0); visibility:visible;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1), visibility 0s;
+}
+html .dash-shell > .sidebar > .brand{ display:none; }
+html .dash-shell > .sidebar .side-section,
+html .dash-shell > .sidebar .sidebar-foot{ flex-shrink:0; }
+html .dash-shell > .sidebar .side-link:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+/* Scrim: fades instead of popping; starts under the header so the
+   hamburger (close) and bell stay usable. */
+html .sidebar-backdrop,
+html[data-device] .sidebar-backdrop{
+  display:block !important; position:fixed; inset:var(--dash-head-h, var(--topbar-h)) 0 0 0; z-index:725;
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .25s ease, visibility 0s linear .25s;
+}
+html .sidebar-backdrop.visible,
+html[data-device] .sidebar-backdrop.visible{
+  opacity:1; visibility:visible; pointer-events:auto; transition:opacity .25s ease, visibility 0s;
+}
+html.sidebar-locked, body.sidebar-locked{ overflow:hidden; }
+/* Header above the drawer layer (and the phone dock) while it is open. */
+body.sidebar-locked .mobile-topnav{ z-index:740; }
+/* Hamburger shown at every width and device; morphs to an X while open. */
+#dash-menu-toggle{ display:inline-flex !important; align-items:center; justify-content:center; }
+#dash-menu-toggle path{ transition:transform .25s ease, opacity .2s ease; transform-box:fill-box; transform-origin:center; }
+#dash-menu-toggle.is-open path:nth-child(1){ transform:translateY(5px) rotate(45deg); }
+#dash-menu-toggle.is-open path:nth-child(2){ opacity:0; }
+#dash-menu-toggle.is-open path:nth-child(3){ transform:translateY(-5px) rotate(-45deg); }
+/* Content takes the full width the column used to occupy. */
+.dash-main{ max-width:1440px; }
+@media (prefers-reduced-motion: reduce){
+  html .dash-shell > .sidebar, html .dash-shell > .sidebar.mobile-open,
+  html .sidebar-backdrop, html .sidebar-backdrop.visible,
+  #dash-menu-toggle path{ transition:none; }
+}
+
+/* ==========================================================================
+   MARKET CLOCK in the app header (assets/market-hours.js, build 380)
+   US stock market regular session state + New York and local clocks. A
+   clock only: no market data. Fixed-width mono digits so the header never
+   shifts as the seconds tick.
+   ========================================================================== */
+.mclock{ position:relative; margin-left:auto; margin-right:12px; min-width:0; flex:0 1 auto; }
+.mclock-pill{
+  display:flex; align-items:center; gap:10px; height:34px; padding:0 12px;
+  border:1px solid var(--line); border-radius:999px; background:var(--bg-2);
+  color:var(--ink-1); font:12px/1 var(--font-mono); font-variant-numeric:tabular-nums;
+  white-space:nowrap; cursor:pointer; transition:border-color .15s ease;
+}
+.mclock-pill:hover, .mclock-pill[aria-expanded="true"]{ border-color:var(--teal-dim, var(--teal)); }
+.mclock-pill:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+.mclock-dot{ width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex-shrink:0; }
+.mclock.is-open .mclock-dot{ background:var(--bull); box-shadow:0 0 0 3px rgba(3,201,136,.18); }
+.mclock-state{ color:var(--ink-0); font-weight:600; min-width:22ch; }
+.mclock.is-open .mclock-state, .mclock.is-open .mclock-short{ color:var(--bull); }
+.mclock-sep{ width:1px; height:16px; background:var(--line); }
+.mclock-t b{ font-weight:600; color:var(--ink-3); margin-right:2px; }
+.mclock-t i{ font-style:normal; color:var(--ink-3); font-size:11px; }
+.mclock-nym, .mclock-short, .mclock.same-tz .mclock-loc{ display:none; }
+.mclock-pop{
+  position:absolute; right:0; top:calc(100% + 8px); width:300px; z-index:760;
+  background:var(--bg-1); border:1px solid var(--line); border-radius:12px;
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.6); padding:12px 14px;
+  font-size:13px; color:var(--ink-2);
+}
+.mclock-pop[hidden]{ display:none; }
+.mclock-row{ display:flex; justify-content:space-between; gap:12px; padding:5px 0; }
+.mclock-row b{ color:var(--ink-0); font:600 12.5px var(--font-mono); font-variant-numeric:tabular-nums; text-align:right; }
+.mclock-row i{ font-style:normal; color:var(--ink-3); font-weight:500; }
+.mclock.is-open .mclock-pstate{ color:var(--bull); }
+.mclock-note{ margin:8px 0 0; padding-top:8px; border-top:1px solid var(--line-soft); font-size:11.5px; line-height:1.5; color:var(--ink-3); }
+/* Mid widths: drop the local clock from the pill (it stays in the popover). */
+@media (max-width:1180px){ .mclock-loc, .mclock-pill .mclock-sep{ display:none; } }
+/* Phones: the header row has no room left (hamburger, logo, globe, messages,
+   bell, avatar), so the clock becomes a slim full-width strip as the
+   header's second row: "● Opens in 3h 12m · NY 06:18 EDT · IST 15:48",
+   minutes only. Tap it for the popover with seconds and the notes.
+   --topbar-h grows by the strip's height so the full-height layouts
+   (messages) that subtract the header still fit the screen. */
+@media (max-width:900px){
+  :root:has(#mclock){ --topbar-h:93px; }
+  .mobile-topnav{ flex-wrap:wrap; row-gap:8px; }
+  .mclock{ position:static; order:3; flex:1 0 100%; margin:0; }
+  .mclock-pill{ width:100%; justify-content:center; height:26px; gap:8px; padding:0 10px; font-size:11px; border-radius:8px; }
+  .mclock-state{ min-width:0; }
+  .mclock-nyt, .mclock-loc{ display:none; }
+  .mclock-nym, .mclock-locm{ display:inline; }
+  .mclock-pill .mclock-sep{ display:inline-block; height:12px; }
+  .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
+}
+html[data-device="mobile"]:has(#mclock){ --topbar-h:93px; }
+html[data-device="mobile"] .mobile-topnav{ flex-wrap:wrap; row-gap:8px; }
+html[data-device="mobile"] .mclock{ position:static; order:3; flex:1 0 100%; margin:0; }
+html[data-device="mobile"] .mclock-pill{ width:100%; justify-content:center; height:26px; gap:8px; padding:0 10px; font-size:11px; border-radius:8px; }
+html[data-device="mobile"] .mclock-state{ min-width:0; }
+html[data-device="mobile"] .mclock-nyt, html[data-device="mobile"] .mclock-loc{ display:none; }
+html[data-device="mobile"] .mclock-nym, html[data-device="mobile"] .mclock-locm{ display:inline; }
+html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
+.mclock.same-tz .mclock-locm{ display:none !important; }
+:root[data-theme="light"] .mclock-pill{ background:#fff; }
+:root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }

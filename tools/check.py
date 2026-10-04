@@ -23,6 +23,7 @@ import re
 import subprocess
 import sys
 
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 FAILURES = []
 
 
@@ -199,6 +200,91 @@ def check_assets_changed_without_bump():
         pass   # never let a diagnostic break the deploy check
 
 
+def _meta(html, attr, key):
+    """Content of <meta property|name="key" content="...">, either attribute order."""
+    m = re.search(r'<meta\s+%s="%s"\s+content="([^"]*)"' % (attr, re.escape(key)), html) or \
+        re.search(r'<meta\s+content="([^"]*)"\s+%s="%s"' % (attr, re.escape(key)), html)
+    return m.group(1) if m else None
+
+
+def _image_info(path):
+    """(kind, width, height) from PNG/JPEG header bytes, stdlib only."""
+    with open(path, 'rb') as fh:
+        data = fh.read()
+    if data[:8] == b'\x89PNG\r\n\x1a\n' and data[12:16] == b'IHDR':
+        return 'png', int.from_bytes(data[16:20], 'big'), int.from_bytes(data[20:24], 'big')
+    if data[:2] == b'\xff\xd8':
+        i = 2
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                i += 1
+                continue
+            marker = data[i + 1]
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            seg = int.from_bytes(data[i + 2:i + 4], 'big')
+            if marker in (0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF):
+                return 'jpeg', int.from_bytes(data[i + 7:i + 9], 'big'), int.from_bytes(data[i + 5:i + 7], 'big')
+            i += 2 + seg
+        return 'jpeg', 0, 0
+    return 'other', 0, 0
+
+
+def check_feature_share_images():
+    """Every /features page and the hub carry their OWN 1200x630 PNG/JPEG share
+    image with the full og/twitter tag set (chat apps show og:image on paste)."""
+    site = 'https://strykertrading.com/'
+    pages = sorted(glob.glob(os.path.join(ROOT, 'features', '*.html')))
+    hub = os.path.join(ROOT, 'features.html')
+    if os.path.exists(hub):
+        pages.append(hub)
+    for page in pages:
+        rel = os.path.relpath(page, ROOT)
+        with open(page, encoding='utf-8') as fh:
+            html = fh.read()
+        og = _meta(html, 'property', 'og:image')
+        tw = _meta(html, 'name', 'twitter:image')
+        required = {
+            'og:image': og, 'twitter:image': tw,
+            'og:image:width': _meta(html, 'property', 'og:image:width'),
+            'og:image:height': _meta(html, 'property', 'og:image:height'),
+            'og:image:alt': _meta(html, 'property', 'og:image:alt'),
+            'og:image:type': _meta(html, 'property', 'og:image:type'),
+            'twitter:image:alt': _meta(html, 'name', 'twitter:image:alt'),
+        }
+        for key, val in required.items():
+            if not val:
+                fail(f'{rel}: missing {key}')
+        if _meta(html, 'name', 'twitter:card') != 'summary_large_image':
+            fail(f'{rel}: twitter:card is not summary_large_image')
+        if not og:
+            continue
+        for key, val in (('og:image', og), ('twitter:image', tw)):
+            if val and val.rsplit('/', 1)[-1] == 'og-image.png':
+                fail(f'{rel}: {key} is the default og-image.png; give the page its own share image (tools/og/make_feature_og.py)')
+        if tw and og != tw:
+            fail(f'{rel}: og:image and twitter:image differ')
+        if not og.startswith(site):
+            fail(f'{rel}: og:image must be an absolute {site} URL')
+            continue
+        img = os.path.join(ROOT, og[len(site):].split('?')[0])
+        if not os.path.isfile(img):
+            fail(f'{rel}: og:image file not in repo: {og[len(site):]}')
+            continue
+        kind, w, h = _image_info(img)
+        if kind not in ('png', 'jpeg'):
+            fail(f'{rel}: share image is not PNG/JPEG: {og[len(site):]}')
+        elif (w, h) != (1200, 630):
+            fail(f'{rel}: share image is {w}x{h}, needs 1200x630: {og[len(site):]}')
+        else:
+            want = 'image/png' if kind == 'png' else 'image/jpeg'
+            if required['og:image:type'] and required['og:image:type'] != want:
+                fail(f'{rel}: og:image:type {required["og:image:type"]} does not match the file ({want})')
+            if (required['og:image:width'], required['og:image:height']) != ('1200', '630'):
+                fail(f'{rel}: og:image:width/height must be 1200/630')
+
+
 def main():
     check_merge_markers()
     check_unversioned_assets()
@@ -210,6 +296,7 @@ def main():
     check_build_markers()
     check_mobile_width_guards()
     check_assets_changed_without_bump()
+    check_feature_share_images()
 
     if FAILURES:
         print(f'FAILED — {len(FAILURES)} problem(s):\n')

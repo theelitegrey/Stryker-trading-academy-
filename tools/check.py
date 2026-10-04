@@ -26,6 +26,15 @@ import sys
 FAILURES = []
 
 
+def html_files():
+    """Every shipped HTML page: the root pages plus the /features/<name> pages.
+
+    The features/ subfolder pages load assets by root-absolute path
+    (/assets/...), so the asset patterns below accept an optional leading
+    slash. Before this, features/*.html was never scanned at all."""
+    return sorted(glob.glob('*.html') + glob.glob('features/*.html'))
+
+
 def fail(msg):
     FAILURES.append(msg)
 
@@ -33,7 +42,7 @@ def fail(msg):
 def check_merge_markers():
     """Unresolved git conflict markers in any shipped text file."""
     pat = re.compile(r'^(<{7} |={7}$|>{7} )', re.M)
-    files = glob.glob('*.html') + glob.glob('assets/*.js') + glob.glob('assets/*.css') + ['_headers', 'robots.txt']
+    files = html_files() + glob.glob('assets/*.js') + glob.glob('assets/*.css') + ['_headers', 'robots.txt']
     for f in files:
         if os.path.exists(f) and pat.search(open(f, encoding='utf-8', errors='replace').read()):
             fail(f'{f}: unresolved merge conflict markers')
@@ -41,8 +50,8 @@ def check_merge_markers():
 
 def check_unversioned_assets():
     """Every local css/js reference must carry ?v= or it can never be busted."""
-    pattern = re.compile(r'(?:href|src)="(assets/[^"?]+\.(?:css|js))"')
-    for path in sorted(glob.glob('*.html')):
+    pattern = re.compile(r'(?:href|src)="(/?assets/[^"?]+\.(?:css|js))"')
+    for path in html_files():
         html = open(path).read()
         for match in pattern.finditer(html):
             fail(f'{path}: {match.group(1)} has no ?v= — it will never cache-bust')
@@ -52,7 +61,7 @@ def check_version_consistency():
     """All ?v= values across the site should match, except the v341 prop firm PDF."""
     versions = set()
     exception = 'assets/downloads/stryker-prop-firm-cheat-sheet.pdf?v=341'
-    for path in sorted(glob.glob('*.html')):
+    for path in html_files():
         text = open(path).read()
         for match in re.finditer(r"([^\"'<> ]+)\?v=(\d+)", text):
             url, version = match.group(1), match.group(2)
@@ -74,7 +83,7 @@ def check_js_syntax():
 
 
 def check_html_structure():
-    for path in sorted(glob.glob('*.html')):
+    for path in html_files():
         html = open(path).read()
         if html.count('<html') != 1 or html.count('</html>') != 1:
             fail(f'{path}: unbalanced <html> tags')
@@ -85,15 +94,16 @@ def check_html_structure():
 
 
 def check_css_braces():
-    css = open('assets/style.css').read()
-    if css.count('{') != css.count('}'):
-        fail(f"style.css: {css.count('{')} {{ vs {css.count('}')} }}")
+    for path in sorted(glob.glob('assets/*.css')):
+        css = open(path).read()
+        if css.count('{') != css.count('}'):
+            fail(f"{path}: {css.count('{')} {{ vs {css.count('}')} }}")
 
 
 def check_referenced_assets_exist():
     """A typo'd filename 404s silently in the browser."""
-    pattern = re.compile(r'(?:href|src)="(assets/[^"?]+)(?:\?v=\d+)?"')
-    for path in sorted(glob.glob('*.html')):
+    pattern = re.compile(r'(?:href|src)="/?(assets/[^"?]+)(?:\?v=\d+)?"')
+    for path in html_files():
         for match in pattern.finditer(open(path).read()):
             target = match.group(1)
             if not os.path.exists(target):
@@ -140,7 +150,7 @@ def check_build_markers():
         fail(f'assets/version.json unreadable: {exc}')
         return
 
-    for path in sorted(glob.glob('*.html')):
+    for path in html_files():
         html = open(path).read()
         found = re.findall(r'<meta name="stryker-build" content="(\d+)">', html)
         if len(found) != 1:
@@ -207,7 +217,7 @@ def main():
             print('  •', f)
         sys.exit(1)
 
-    print(f'All checks passed. {len(glob.glob("*.html"))} HTML, '
+    print(f'All checks passed. {len(html_files())} HTML, '
           f'{len(glob.glob("assets/*.js"))} JS, cache v={version}.')
 
 

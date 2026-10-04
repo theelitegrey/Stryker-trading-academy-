@@ -28,10 +28,11 @@
   }
   function dataFreshness(asof){
     var t = asof ? Date.parse(asof) : NaN;
-    if(!isFinite(t)) return {state:'stale', age:'unknown age', label:'Data age unknown'};
+    if(!isFinite(t)) return {state:'stale', age:'unknown age', title:'Data age unknown', reason:'No Cboe timestamp was returned.'};
     var age = Date.now() - t;
     var state = age <= 30*60000 ? 'fresh' : 'stale';
-    return {state:state, age:ageLabel(age), label:(state === 'fresh' ? 'Updating' : 'Stale') + ' · ' + ageLabel(age)};
+    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Updating', reason:'Cboe options chain updated '+ageLabel(age)+'.'};
+    return {state:state, age:ageLabel(age), title:'Stale data', reason:'Cboe delayed options chain is '+ageLabel(age)+' — levels may lag.'};
   }
   function setFreshnessStatus(d){
     var f = dataFreshness(d && d.asof);
@@ -42,7 +43,9 @@
       status.setAttribute('data-freshness', f.state);
     }
     var txt = $('gex-freshness-text');
-    if(txt) txt.textContent = f.label;
+    if(txt) txt.innerHTML = '<b>'+esc(f.title)+'</b><span>'+esc(f.reason)+'</span>';
+    var badge = document.querySelector('.gex-freshness');
+    if(badge) badge.setAttribute('title', f.reason);
   }
 
   function wireTabs(){
@@ -89,7 +92,7 @@
     }catch(e){
       $('gex-status-text').innerHTML = '<b class="gex-error">GEX API error</b><span> '+esc(e.message)+'</span>';
       var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh'); status.classList.add('is-stale'); }
-      var freshText = $('gex-freshness-text'); if(freshText) freshText.textContent = 'Data connection error';
+      var freshText = $('gex-freshness-text'); if(freshText) freshText.innerHTML = '<b>Connection issue</b><span>GEX API did not return fresh data.</span>';
       $('gex-levels').innerHTML = '<p class="gex-error">'+esc(e.message)+'</p>';
     }
   }

@@ -74,3 +74,13 @@
   .gex-chart-range{font-size:9px;left:8px;bottom:6px;max-width:calc(100% - 16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 }
 @media(max-width:380px){.gex-market-grid{grid-template-columns:1fr}.gex-chart-wrap{height:55vh;min-height:340px}.gex-table{min-width:500px}}
+
+/* Closed-market disclaimer + chart corner tag (shown when data is not from a live session) */
+.gex-closed-note{display:grid;gap:3px;margin:0 0 12px;padding:10px 12px;border:1px solid rgba(245,158,11,.38);border-left:4px solid #f59e0b;border-radius:12px;background:rgba(245,158,11,.10);color:#f3ead8;font-size:12.5px;line-height:1.45;}
+.gex-closed-note[hidden]{display:none;}
+.gex-closed-note b{color:#f59e0b;font:800 11px/1.2 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;}
+.gex-closed-note span{color:#f3ead8;}
+.gex-closed-note small{color:var(--ink-2);font-size:11px;}
+.gex-chart-tag{position:absolute;top:8px;left:10px;z-index:3;pointer-events:none;color:#f59e0b;font:800 10px/1 var(--font-mono);letter-spacing:.04em;text-transform:uppercase;background:rgba(5,6,8,.82);border:1px solid rgba(245,158,11,.45);border-radius:999px;padding:5px 8px;max-width:calc(100% - 20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.gex-chart-tag[hidden]{display:none;}
+.gex-edu{margin:10px 0 0;color:#9aa4b2;font-size:11.5px;}

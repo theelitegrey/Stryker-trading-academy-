@@ -214,7 +214,7 @@ async function quoteLastRange(symbol, interval, range) {
   const ts = r?.timestamp || [];
   const close = q?.close || [];
   for (let i = close.length - 1; i >= 0; i--) {
-    if (close[i] != null) return { price: Number(close[i]), age: Math.max(0, Date.now() / 1000 - ts[i]) };
+    if (close[i] != null) return { price: Number(close[i]), age: Math.max(0, Date.now() / 1000 - ts[i]), ts: ts[i] };
   }
   throw new Error(`no data for ${symbol}`);
 }
@@ -255,7 +255,7 @@ async function convertLevels(name, spot, rawLevels) {
       res[fut] = {
         mode, ratio: round(ratio, 4), basis: round(basis, 2), basis_source: basisSource,
         basis_age_min: round(q.age / 60, 1), k_source: kSource, futures_price: round(q.price, 2),
-        futures_age_min: round(q.age / 60, 1), point_value: pointValue, tick, tick_value: tickValue,
+        futures_age_min: round(q.age / 60, 1), futures_ts: q.ts, point_value: pointValue, tick, tick_value: tickValue,
         levels: Object.fromEntries(Object.entries(rawLevels).map(([kk, v]) => [kk, conv(v)]))
       };
     } catch (e) {
@@ -280,7 +280,17 @@ async function yahooCandles(fut, interval = '5m') {
   const periods = { '1m': '2d', '2m': '5d', '5m': '5d', '15m': '1mo', '30m': '1mo', '1h': '3mo', '1d': '1y' };
   if (!periods[interval]) interval = '5m';
   const [yh] = FUTURES[fut];
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yh)}?range=${periods[interval]}&interval=${interval}`;
+  // A short window can be empty after a long weekend or holiday; widen it once so the last
+  // session still draws instead of a blank chart.
+  const wider = { '1m': '5d', '2m': '1mo', '5m': '1mo' };
+  let out = await candleRows(yh, periods[interval], interval);
+  if (!out.length && wider[interval]) out = await candleRows(yh, wider[interval], interval);
+  if (!out.length) throw new Error(`no candle data for ${fut} ${interval}`);
+  return { symbol: fut, interval, candles: out, last: out[out.length - 1].close, count: out.length };
+}
+
+async function candleRows(yh, range, interval) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yh)}?range=${range}&interval=${interval}`;
   const data = await fetchJson(url);
   const r = data.chart?.result?.[0];
   const q = r?.indicators?.quote?.[0];
@@ -290,8 +300,7 @@ async function yahooCandles(fut, interval = '5m') {
     if ([q?.open?.[i], q?.high?.[i], q?.low?.[i], q?.close?.[i]].some(v => v == null)) continue;
     out.push({ time: ts[i], open: round(q.open[i], 2), high: round(q.high[i], 2), low: round(q.low[i], 2), close: round(q.close[i], 2), volume: Math.round(q.volume?.[i] || 0) });
   }
-  if (!out.length) throw new Error(`no candle data for ${fut} ${interval}`);
-  return { symbol: fut, interval, candles: out, last: out[out.length - 1].close, count: out.length };
+  return out;
 }
 
 function volumeProfile(rows, tick, valueArea = 0.70) {
@@ -346,6 +355,89 @@ async function sessionLevels(fut) {
   };
 }
 
+// ---- Market status (display only; never feeds any level calculation) ----
+// CME equity/metal futures: Sunday 18:00 ET to Friday 17:00 ET, daily break 17:00-18:00 ET.
+// Cboe delayed options chain: weekdays 09:30-16:15 ET. Holidays are not in a table: they are
+// detected from the data itself (no futures prints for a long time inside scheduled hours, or an
+// options chain from a previous day during cash hours).
+const FRESH_SEC = 30 * 60;      // same 30-minute freshness limit the page already used
+const GONE_SEC = 90 * 60;       // no futures print for this long inside scheduled hours = closed (holiday/halt)
+const PRIOR_DAY_SEC = 18 * 3600; // options chain this old during cash hours = cash holiday
+
+function etClock(tsSec) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', weekday: 'short', hour12: false
+  }).formatToParts(new Date(tsSec * 1000));
+  const get = t => parts.find(p => p.type === t)?.value;
+  const hour = Number(get('hour')) % 24;
+  return {
+    y: Number(get('year')), mo: Number(get('month')), d: Number(get('day')),
+    h: hour, mi: Number(get('minute')), s: Number(get('second')),
+    dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(get('weekday')),
+    min: hour * 60 + Number(get('minute'))
+  };
+}
+
+// Cboe returns last_trade_time as New York wall time without a zone, e.g. "2026-10-02T16:14:59".
+function etEpoch(str) {
+  if (!str) return null;
+  if (/[zZ]|[+-]\d{2}:?\d{2}$/.test(str)) { const t = Date.parse(str); return Number.isFinite(t) ? t / 1000 : null; }
+  const m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/.exec(str);
+  if (!m) return null;
+  const wall = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)) / 1000;
+  let ts = wall;
+  for (let i = 0; i < 2; i++) {
+    const c = etClock(ts);
+    const shown = Date.UTC(c.y, c.mo - 1, c.d, c.h, c.mi, c.s) / 1000;
+    ts += wall - shown;
+  }
+  return ts;
+}
+
+function futuresScheduleOpen(tsSec) {
+  const c = etClock(tsSec);
+  if (c.dow === 6) return false;
+  if (c.dow === 0) return c.min >= 18 * 60;
+  if (c.dow === 5) return c.min < 17 * 60;
+  return !(c.min >= 17 * 60 && c.min < 18 * 60);
+}
+
+function cashScheduleOpen(tsSec) {
+  const c = etClock(tsSec);
+  return c.dow >= 1 && c.dow <= 5 && c.min >= RTH_OPEN && c.min < RTH_CLOSE + 15;
+}
+
+// state: open | stale | cash_closed (futures trading, options chain from the last cash session) | closed | nodata
+function marketStatus({ now, futTs, optTs }) {
+  now = now == null ? Date.now() / 1000 : now;
+  const futAge = futTs ? now - futTs : null;
+  const optAge = optTs ? now - optTs : null;
+  let futures;
+  if (!futTs) futures = 'nodata';
+  else if (!futuresScheduleOpen(now) || futAge > GONE_SEC) futures = 'closed';
+  else if (futAge > FRESH_SEC) futures = 'stale';
+  else futures = 'open';
+  let options;
+  if (!optTs) options = 'nodata';
+  else if (!cashScheduleOpen(now) || futures === 'closed' || optAge > PRIOR_DAY_SEC) options = 'closed';
+  else if (optAge > FRESH_SEC) options = 'stale';
+  else options = 'open';
+  let state;
+  if (futures === 'nodata' && options === 'nodata') state = 'nodata';
+  else if (futures === 'closed' || futures === 'nodata') state = 'closed';
+  else if (futures === 'stale' || options === 'stale') state = 'stale';
+  else if (options === 'closed' || options === 'nodata') state = 'cash_closed';
+  else state = 'open';
+  return {
+    state, futures, options, now,
+    futures_ts: futTs || null, options_ts: optTs || null,
+    futures_age_min: futAge == null ? null : round(futAge / 60, 1),
+    options_age_min: optAge == null ? null : round(optAge / 60, 1),
+    data_ts: futTs || optTs || null
+  };
+}
+
 function migrationStub(name, dte) {
   return { underlying: name, dte, samples: 1, msg: 'Migration history starts from live website requests.' };
 }
@@ -387,7 +479,9 @@ async function buildLevels(name, dteMax = 1) {
   data.migration = migrationStub(name, dteMax);
   data.warnings = warnings(data);
   data.fetched_at = Date.now() / 1000;
+  const futTs = Object.values(data.futures).map(f => f && f.futures_ts).filter(Boolean).sort((a, b) => b - a)[0] || null;
+  data.market = marketStatus({ now: data.fetched_at, futTs, optTs: etEpoch(data.asof) });
   return data;
 }
 
-export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING };
+export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen };

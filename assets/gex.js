@@ -34,18 +34,71 @@
     if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Cboe delayed options chain updated '+ageLabel(age)+'.'};
     return {state:state, age:ageLabel(age), title:'Market closed', reason:'Options chain is frozen from the last Cboe session · '+ageLabel(age)+'.'};
   }
+  // ---- Market status: closed-market disclaimer + chart tag (display only) ----
+  // The API sends d.market = {state, futures_ts, options_ts, ...}; state is computed server-side
+  // from the data timestamps and the CME/Cboe session calendar, not from the viewer's clock.
+  function tsLocal(sec){
+    if(!sec) return '';
+    var dt = new Date(sec * 1000);
+    var local = dt.toLocaleString(undefined, {weekday:'short', day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit', timeZoneName:'short'});
+    var etz = dt.toLocaleString('en-US', {timeZone:'America/New_York', weekday:'short', hour:'numeric', minute:'2-digit'});
+    return local + ' (' + etz + ' ET)';
+  }
+  // Session date is the exchange (New York) trading date, so a Friday session never reads as Saturday.
+  function tsDay(sec){
+    if(!sec) return '—';
+    return new Date(sec * 1000).toLocaleDateString(undefined, {timeZone:'America/New_York', weekday:'short', day:'numeric', month:'short', year:'numeric'}) + ' (ET)';
+  }
+  function marketInfo(d){
+    var m = d && d.market;
+    if(!m || !m.state) return null;
+    var futAge = m.futures_age_min != null ? ageLabel(m.futures_age_min * 60000) : null;
+    var optAge = m.options_age_min != null ? ageLabel(m.options_age_min * 60000) : null;
+    if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Cboe delayed options chain updated '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'stale') return {state:'stale', title:'Data delayed', reason:'Feed is behind: futures '+(futAge || 'unknown age')+', options chain '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'cash_closed') return {state:'stale', closed:'cash', title:'Cash session closed',
+      reason:'Options levels are from the last Cboe session · '+(optAge || 'unknown age')+'.',
+      note:'Cash market closed. GEX levels are built from the last options chain received at '+tsLocal(m.options_ts)+'. Futures candles keep updating with the overnight session (delayed). Levels are not recent.',
+      tag:'Levels from: '+tsDay(m.options_ts)};
+    if(m.state === 'nodata') return {state:'stale', closed:'nodata', title:'No data available',
+      reason:'No futures or options data was returned.',
+      note:'No market data is available right now. Nothing is shown rather than an old or made-up chart.', tag:''};
+    var at = m.data_ts || m.futures_ts || m.options_ts;
+    return {state:'stale', closed:'market', title:'Market closed',
+      reason:'Showing the last received data · '+tsLocal(at)+' · not live or recent.',
+      note:'Market closed. Showing the last received data from '+tsLocal(at)+'. This is not live or recent.',
+      tag:'Last session: '+tsDay(at)};
+  }
+  function dataFreshnessLegacy(asof){
+    var t = asof ? Date.parse(asof) : NaN;
+    if(!isFinite(t)) return {state:'stale', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
+    var age = Date.now() - t;
+    if(age <= 30*60000) return {state:'fresh', title:'Market session active', reason:'Cboe delayed options chain updated '+ageLabel(age)+'.'};
+    return {state:'stale', title:'Data not recent', reason:'Options chain is from the last Cboe session · '+ageLabel(age)+'.'};
+  }
   function setFreshnessStatus(d){
-    var f = dataFreshness(d && d.asof);
+    var f = marketInfo(d) || dataFreshnessLegacy(d && d.asof);
     var status = document.querySelector('.gex-status');
     if(status){
       status.classList.remove('is-fresh','is-stale');
       status.classList.add(f.state === 'fresh' ? 'is-fresh' : 'is-stale');
       status.setAttribute('data-freshness', f.state);
+      status.setAttribute('data-market', (d && d.market && d.market.state) || 'unknown');
     }
     var txt = $('gex-freshness-text');
     if(txt) txt.innerHTML = '<b>'+esc(f.title)+'</b><span>'+esc(f.reason)+'</span>';
     var badge = document.querySelector('.gex-freshness');
     if(badge) badge.setAttribute('title', f.reason);
+    var note = $('gex-closed-note');
+    if(note){
+      if(f.note){ note.hidden = false; note.setAttribute('data-kind', f.closed); note.innerHTML = '<b>'+esc(f.title)+'</b><span>'+esc(f.note)+'</span>'; }
+      else { note.hidden = true; note.innerHTML = ''; }
+    }
+    var tag = $('gex-chart-tag');
+    if(tag){
+      if(f.tag){ tag.hidden = false; tag.textContent = f.tag; }
+      else { tag.hidden = true; tag.textContent = ''; }
+    }
   }
 
   function wireTabs(){
@@ -89,6 +142,7 @@
       if(!curFut || futs.indexOf(curFut) === -1) curFut = futs[0] || null;
       render(d);
       if(curFut) loadChart();
+      else resetChartData('No futures data available');
     }catch(e){
       $('gex-status-text').innerHTML = '<b class="gex-error">GEX API error</b><span> '+esc(e.message)+'</span>';
       var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh'); status.classList.add('is-stale'); }
@@ -104,7 +158,7 @@
     var F = curFut ? d.futures[curFut] : null;
     setFreshnessStatus(d);
     $('gex-status-text').innerHTML = '<b>'+esc(d.underlying)+' → '+esc(futs.join(' / ') || d.fut)+'</b><span> '+esc(String(d.contracts))+' contracts · '+esc(dteLabel)+(d.expiry?' · exp '+esc(d.expiry):'')+' · Cboe delayed '+esc(d.asof || '')+'</span>';
-    $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ var sub = ({ES:'S&P futures',MES:'Micro ES',NQ:'Nasdaq futures',MNQ:'Micro NQ',GC:'Gold futures',MGC:'Micro gold'})[f] || 'Futures'; return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'"><span>'+f+'</span><small>'+sub+'</small></button>'; }).join('') : '<span class="gex-empty">futures feed unavailable</span>';
+    $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ var sub = ({ES:'S&P futures',MES:'Micro ES',NQ:'Nasdaq futures',MNQ:'Micro NQ',GC:'Gold futures',MGC:'Micro gold'})[f] || 'Futures'; return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'"><span>'+f+'</span><small>'+sub+'</small></button>'; }).join('') : '<span class="gex-empty">'+(d.market && d.market.state === 'nodata' ? 'No futures data available' : 'Futures data unavailable')+'</span>';
     $('gex-hero').innerHTML = '<div class="gex-spot"><small>SPOT '+esc(d.underlying)+'</small>'+fmt(d.spot,2)+'</div>'+
       '<div class="gex-badge '+(pos?'pos':'neg')+'">'+esc(d.regime)+' GAMMA</div>'+
       '<div class="gex-kv">NET GEX<b style="color:'+(pos?'var(--bull)':'var(--bear)')+'">'+bfmt(d.net_gex)+'</b></div>'+

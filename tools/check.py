@@ -325,7 +325,43 @@ def check_feature_image_frames():
                  f'data-fp-nopad on a logo/icon)')
 
 
+def check_nav_features_menu():
+    """The Features hero menu ships on every page with the marketing nav.
+
+    - Any page with .nav-links (marketing nav) must include nav-features.css
+      and nav-features.js exactly once each. Fix a new page with
+      `python3 tools/add-nav-features.py`.
+    - The FEATURES list in assets/nav-features.js must match the live
+      feature pages (features/*.html) one to one, each with its two thumbs."""
+    for path in html_files():
+        html = open(path, encoding='utf-8').read()
+        if 'class="nav-links' not in html:
+            continue
+        for asset in ('nav-features.css', 'nav-features.js'):
+            n = len(re.findall(r'(?:href|src)="/?assets/' + re.escape(asset) + r'\?v=', html))
+            if n != 1:
+                fail(f'{path}: marketing nav page includes assets/{asset} {n} times (need exactly 1; '
+                     f'run python3 tools/add-nav-features.py)')
+    js_path = os.path.join(ROOT, 'assets', 'nav-features.js')
+    if not os.path.exists(js_path):
+        fail('assets/nav-features.js missing')
+        return
+    js = open(js_path, encoding='utf-8').read()
+    items = re.findall(r"\{ id: '([a-z0-9-]+)', name: '[^']+', url: '([^']+)'", js)
+    ids = [i for i, _ in items]
+    pages = sorted(os.path.basename(p)[:-5] for p in glob.glob(os.path.join(ROOT, 'features', '*.html')))
+    if sorted(ids) != pages or len(set(ids)) != len(ids):
+        fail(f'assets/nav-features.js FEATURES {sorted(ids)} does not match features/*.html {pages}')
+    for fid, url in items:
+        if url != '/features/' + fid:
+            fail(f'assets/nav-features.js: {fid} links to {url}, expected /features/{fid}')
+        for w in (360, 720) if re.search(r"id: '" + fid + r"'[^}]*big: 1", js) else (360,):
+            if not os.path.exists(os.path.join(ROOT, 'assets', 'images', 'navfx', f'{fid}-{w}.webp')):
+                fail(f'assets/images/navfx/{fid}-{w}.webp missing (Features menu thumb)')
+
+
 def main():
+    check_nav_features_menu()
     check_merge_markers()
     check_unversioned_assets()
     version = check_version_consistency()

@@ -75,11 +75,13 @@
     this.o = o;            // config: fx, fy, px, py, ampX, ampY, cy, speed, lenK, rK, segs, farStyle
     this.pts = []; this.u = o.u0 || 0;
   }
+  // Smooth 1:2 Lissajous (a lazy figure-eight) whose phase drifts slowly, so each pass
+  // takes a different route. Sweeps past the left/right edges, so the dragon exits and re-enters.
   Dragon.prototype.path = function(u, W, H){
-    var o = this.o;
+    var o = this.o, ph = o.py + u * 0.11;
     return [
-      W * (0.5 + o.ampX * Math.sin(u * o.fx + o.px) + 0.10 * Math.sin(u * o.fx * 2.3 + 1.1)),
-      H * (o.cy + o.ampY * Math.sin(u * o.fy + o.py) + 0.07 * Math.sin(u * 2.9 + o.px))
+      W * (0.5 + o.ampX * Math.sin(u * o.fx + o.px)),
+      H * (o.cy + o.ampY * Math.sin(u * o.fy + ph) + 0.05 * Math.sin(u * 0.7 + o.px))
     ];
   };
   // Spine resampled to equal arc length, walking backwards along the path from the head.
@@ -132,10 +134,12 @@
     g.lineCap = 'round'; g.lineJoin = 'round';
 
     // 1. soft aura (single polygon, no overlap), breathing with the pulse
-    g.beginPath();
-    for (i = 0; i < N; i++){ p = pts[i]; g.lineTo(p.x + p.nx * p.r * 2.3, p.y + p.ny * p.r * 2.3); }
-    for (i = N - 1; i >= 0; i--){ p = pts[i]; g.lineTo(p.x - p.nx * p.r * 2.3, p.y - p.ny * p.r * 2.3); }
-    g.closePath(); g.fillStyle = rgb(glowC, 0.10 + 0.12 * pulse); g.fill();
+    [[2.9, 0.05, 0.07], [1.75, 0.08, 0.12]].forEach(function(b){
+      g.beginPath();
+      for (i = 0; i < N; i++){ p = pts[i]; g.lineTo(p.x + p.nx * p.r * b[0], p.y + p.ny * p.r * b[0]); }
+      for (i = N - 1; i >= 0; i--){ p = pts[i]; g.lineTo(p.x - p.nx * p.r * b[0], p.y - p.ny * p.r * b[0]); }
+      g.closePath(); g.fillStyle = rgb(glowC, b[1] + b[2] * pulse); g.fill();
+    });
 
     // 2. legs (under the body): two pairs, slow paddling
     if (!o.noLegs){
@@ -227,71 +231,79 @@
     var h0 = pts[0], h1 = pts[2] || pts[1];
     var ang = Math.atan2(h0.y - h1.y, h0.x - h1.x);
     g.save(); g.translate(h0.x, h0.y); g.rotate(ang);
-    var hr = R * 1.05, wv = Math.sin(T * 1.3);
-    // whiskers (long, trailing, gently waving)
-    g.strokeStyle = rgb(P.gold, 0.75); g.lineWidth = Math.max(0.8, hr * 0.07);
+    var hr = R * 1.5, wv = Math.sin(T * 1.3);
+    // whiskers: from the snout, curling out then trailing far back, waving slowly
+    g.lineWidth = Math.max(0.9, hr * 0.06);
     for (var s2 = -1; s2 <= 1; s2 += 2){
-      g.beginPath(); g.moveTo(hr * 2.0, s2 * hr * 0.42);
-      g.bezierCurveTo(hr * 2.8, s2 * hr * 1.7, hr * 0.4, s2 * hr * (2.6 + wv * 0.5), -hr * 2.8, s2 * hr * (2.2 - wv * 0.6));
+      g.strokeStyle = rgb(P.gold, 0.8);
+      g.beginPath(); g.moveTo(hr * 2.05, s2 * hr * 0.38);
+      g.bezierCurveTo(hr * 2.7, s2 * hr * 1.3, hr * 1.2, s2 * hr * (2.0 + wv * 0.35), -hr * 0.6, s2 * hr * (1.9 - wv * 0.3));
+      g.stroke();
+      g.strokeStyle = rgb(P.gold, 0.4);
+      g.beginPath(); g.moveTo(-hr * 0.6, s2 * hr * (1.9 - wv * 0.3));
+      g.quadraticCurveTo(-hr * 1.8, s2 * hr * (1.8 - wv * 0.5), -hr * 2.9, s2 * hr * (2.3 + wv * 0.3));
       g.stroke();
     }
-    // mane: swept-back flame spikes
-    g.fillStyle = rgb(o.farStyle ? stops[1] : ramp(stops, 0.35));
+    // mane: soft swept-back flame tufts behind the jaw
+    g.fillStyle = rgb(o.farStyle ? stops[1] : ramp(stops, 0.3), 0.9);
     g.beginPath();
     for (s2 = -1; s2 <= 1; s2 += 2){
       for (var m = 0; m < 3; m++){
-        var mx = -hr * (0.1 + m * 0.45), mw = Math.sin(T * 2 + m) * 0.15;
-        g.moveTo(mx + hr * 0.3, s2 * hr * 0.75);
-        g.quadraticCurveTo(mx - hr * 0.4, s2 * hr * (1.5 + mw), mx - hr * 1.1, s2 * hr * (1.25 + m * 0.12 + mw));
-        g.quadraticCurveTo(mx - hr * 0.3, s2 * hr * 0.9, mx - hr * 0.2, s2 * hr * 0.5);
+        var mx = -hr * (0.15 + m * 0.42), mw = Math.sin(T * 1.6 + m * 1.3) * 0.12;
+        g.moveTo(mx + hr * 0.35, s2 * hr * 0.6);
+        g.quadraticCurveTo(mx - hr * 0.2, s2 * hr * (1.15 + mw), mx - hr * 0.85, s2 * hr * (1.05 + m * 0.1 + mw));
+        g.quadraticCurveTo(mx - hr * 0.25, s2 * hr * 0.75, mx - hr * 0.3, s2 * hr * 0.35);
       }
     }
     g.fill();
-    // skull and snout
-    var headCol = ramp(stops, 0.04);
-    g.fillStyle = rgb(headCol);
-    g.beginPath();
-    g.moveTo(-hr * 0.7, -hr * 0.85);
-    g.quadraticCurveTo(hr * 0.2, -hr * 1.25, hr * 0.9, -hr * 0.85);
-    g.quadraticCurveTo(hr * 1.6, -hr * 0.62, hr * 2.15, -hr * 0.5);
-    g.quadraticCurveTo(hr * 2.7, -hr * 0.3, hr * 2.7, 0);
-    g.quadraticCurveTo(hr * 2.7, hr * 0.3, hr * 2.15, hr * 0.5);
-    g.quadraticCurveTo(hr * 1.6, hr * 0.62, hr * 0.9, hr * 0.85);
-    g.quadraticCurveTo(hr * 0.2, hr * 1.25, -hr * 0.7, hr * 0.85);
-    g.closePath(); g.fill();
-    // brow ridge + snout bridge
-    g.strokeStyle = rgb(P.shade, 0.6); g.lineWidth = Math.max(1, hr * 0.1);
-    g.beginPath();
-    g.moveTo(hr * 0.35, -hr * 0.85); g.quadraticCurveTo(hr * 1.1, -hr * 0.35, hr * 2.4, -hr * 0.12);
-    g.moveTo(hr * 0.35, hr * 0.85);  g.quadraticCurveTo(hr * 1.1, hr * 0.35, hr * 2.4, hr * 0.12);
-    g.stroke();
-    // horns: two antler sweeps in gold
-    g.strokeStyle = rgb(P.gold); g.lineWidth = Math.max(1.2, hr * 0.2);
-    g.beginPath();
+    // horns: two tapered antlers swept back, filled (crisper than strokes at small size)
+    g.fillStyle = rgb(P.gold);
     for (s2 = -1; s2 <= 1; s2 += 2){
-      g.moveTo(hr * 0.1, s2 * hr * 0.55);
-      g.quadraticCurveTo(-hr * 1.0, s2 * hr * 0.75, -hr * 2.1, s2 * hr * 1.35);
-      g.moveTo(-hr * 1.05, s2 * hr * 0.85);
-      g.lineTo(-hr * 1.35, s2 * hr * 1.45);
+      g.beginPath();
+      g.moveTo(hr * 0.35, s2 * hr * 0.42);
+      g.quadraticCurveTo(-hr * 0.6, s2 * hr * 0.55, -hr * 1.9, s2 * hr * 1.05);
+      g.quadraticCurveTo(-hr * 0.55, s2 * hr * 0.78, hr * 0.15, s2 * hr * 0.66);
+      g.closePath(); g.fill();
+      g.beginPath();
+      g.moveTo(-hr * 0.7, s2 * hr * 0.66);
+      g.quadraticCurveTo(-hr * 0.95, s2 * hr * 0.95, -hr * 1.05, s2 * hr * 1.3);
+      g.quadraticCurveTo(-hr * 0.8, s2 * hr * 0.95, -hr * 0.45, s2 * hr * 0.7);
+      g.closePath(); g.fill();
     }
+    // skull and long snout (top-down)
+    g.fillStyle = rgb(ramp(stops, 0.03));
+    g.beginPath();
+    g.moveTo(-hr * 0.55, 0);
+    g.bezierCurveTo(-hr * 0.55, -hr * 0.7, hr * 0.15, -hr * 0.9, hr * 0.8, -hr * 0.72);
+    g.bezierCurveTo(hr * 1.3, -hr * 0.6, hr * 1.55, -hr * 0.4, hr * 2.0, -hr * 0.42);
+    g.bezierCurveTo(hr * 2.45, -hr * 0.44, hr * 2.6, -hr * 0.2, hr * 2.6, 0);
+    g.bezierCurveTo(hr * 2.6, hr * 0.2, hr * 2.45, hr * 0.44, hr * 2.0, hr * 0.42);
+    g.bezierCurveTo(hr * 1.55, hr * 0.4, hr * 1.3, hr * 0.6, hr * 0.8, hr * 0.72);
+    g.bezierCurveTo(hr * 0.15, hr * 0.9, -hr * 0.55, hr * 0.7, -hr * 0.55, 0);
+    g.closePath(); g.fill();
+    // brows and snout ridge
+    g.strokeStyle = rgb(P.shade, 0.55); g.lineWidth = Math.max(0.9, hr * 0.07);
+    g.beginPath();
+    g.moveTo(hr * 0.3, -hr * 0.62); g.quadraticCurveTo(hr * 1.0, -hr * 0.62, hr * 1.35, -hr * 0.3);
+    g.moveTo(hr * 0.3, hr * 0.62);  g.quadraticCurveTo(hr * 1.0, hr * 0.62, hr * 1.35, hr * 0.3);
+    g.moveTo(hr * 1.45, 0); g.lineTo(hr * 2.35, 0);
     g.stroke();
     // nostrils
-    g.fillStyle = rgb(P.shade, 0.8);
-    g.beginPath(); g.arc(hr * 2.4, -hr * 0.2, hr * 0.08, 0, TAU); g.arc(hr * 2.4, hr * 0.2, hr * 0.08, 0, TAU); g.fill();
-    g.restore();
-    // eyes: glowing, brighter on the pulse (drawn unrotated sprites for cheap glow)
-    var ca = Math.cos(ang), sa = Math.sin(ang);
+    g.fillStyle = rgb(P.shade, 0.85);
+    g.beginPath(); g.ellipse(hr * 2.35, -hr * 0.2, hr * 0.09, hr * 0.05, 0.4, 0, TAU);
+    g.ellipse(hr * 2.35, hr * 0.2, hr * 0.09, hr * 0.05, -0.4, 0, TAU); g.fill();
+    // eyes: glow sprite (brighter on the pulse), almond eye, slit pupil
     for (s2 = -1; s2 <= 1; s2 += 2){
-      var ex = h0.x + ca * hr * 0.95 - sa * s2 * hr * 0.6, ey = h0.y + sa * hr * 0.95 + ca * s2 * hr * 0.6;
-      var es = hr * (1.7 + 0.5 * pulse);
-      g.globalAlpha = 0.55 + 0.4 * pulse;
+      var ex = hr * 0.95, ey = s2 * hr * 0.5, es = hr * (1.5 + 0.6 * pulse);
+      g.globalAlpha = 0.5 + 0.45 * pulse;
       g.drawImage(dr.eyeSprite, ex - es / 2, ey - es / 2, es, es);
       g.globalAlpha = 1;
       g.fillStyle = rgb(P.eye);
-      g.beginPath(); g.ellipse(ex, ey, hr * 0.2, hr * 0.13, ang, 0, TAU); g.fill();
-      g.fillStyle = 'rgba(10,20,20,0.9)';
-      g.beginPath(); g.ellipse(ex, ey, hr * 0.05, hr * 0.11, ang, 0, TAU); g.fill();
+      g.beginPath(); g.ellipse(ex, ey, hr * 0.24, hr * 0.12, s2 * 0.25, 0, TAU); g.fill();
+      g.fillStyle = 'rgba(8,24,22,0.95)';
+      g.beginPath(); g.ellipse(ex + hr * 0.03, ey, hr * 0.045, hr * 0.1, 0, 0, TAU); g.fill();
     }
+    g.restore();
     // the pearl the dragon chases, just ahead of the head
     if (!o.noPearl){
       var pp = dr.path(dr.u + 0.16 * o.fxPearl, W, H), ps = R * (3.2 + 0.8 * pulse);
@@ -335,9 +347,9 @@
     if (!gf || !gn) return;
 
     var W = 0, H = 0, dprN = 1, dprF = 0.5, theme, sprites = {};
-    var main = new Dragon({ fx: 1, fy: 1.37, px: 0.4, py: 1.9, ampX: 0.62, ampY: 0.36, cy: 0.5, speed: 0.085,
-      lenK: mobile ? 1.05 : 0.95, rK: mobile ? 0.034 : 0.026, segs: mobile ? 48 : 84, u0: 2.2, fxPearl: 1 });
-    var ghost = new Dragon({ fx: 0.8, fy: 1.13, px: 2.6, py: 0.3, ampX: 0.7, ampY: 0.34, cy: 0.42, speed: 0.06,
+    var main = new Dragon({ fx: 1, fy: 2, px: 0.4, py: 1.9, ampY: 0.34, cy: 0.5, speed: 0.085,
+            lenK: mobile ? 1.0 : 0.95, rK: mobile ? 0.03 : 0.024, ampX: mobile ? 0.54 : 0.62, segs: mobile ? 48 : 84, u0: 2.2, fxPearl: 1 });
+    var ghost = new Dragon({ fx: 0.8, fy: 1.6, px: 2.6, py: 0.3, ampX: 0.7, ampY: 0.3, cy: 0.42, speed: 0.06,
       lenK: 0.7, rK: mobile ? 0.022 : 0.016, segs: mobile ? 26 : 44, u0: 5.1, farStyle: true, noPearl: true, noLegs: mobile, fxPearl: 1 });
     var motesNear, motesFar, light;
 
@@ -360,8 +372,8 @@
       // On phones the URL bar resizes the viewport on scroll: only grow, never shrink, unless the width changed.
       if (w === W && h <= H) return false;
       W = w; H = h;
-      var cap = mobile ? 1.5 : 1.75, dpr = Math.min(window.devicePixelRatio || 1, cap);
-      dprN = dpr; dprF = Math.min(dpr, 1) * 0.5;
+      var cap = mobile ? 1.25 : 1.5, dpr = Math.min(window.devicePixelRatio || 1, cap);
+      dprN = dpr; dprF = mobile ? 0.6 : 0.5;
       near.width = Math.round(W * dprN); near.height = Math.round(H * dprN);
       far.width = Math.round(W * dprF); far.height = Math.round(H * dprF);
       motesNear = makeMotes(mobile ? 12 : 26, W, H, 7);

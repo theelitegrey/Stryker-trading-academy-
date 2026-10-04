@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="370">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="An interactive charting workspace inside the academy: crypto candles from public exchange feeds, 70+ built-in indicators, drawing tools, and a layout saved in your browser.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Charts Workspace | Stryker Trading Academy">
+<meta property="og:description" content="An interactive charting workspace inside the academy: crypto candles from public exchange feeds, 70+ built-in indicators, drawing tools, and a layout saved in your browser.">
+<meta property="og:url" content="https://strykertrading.com/features/charts">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og/features-charts.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Stryker charts workspace: a BTC/USDT candlestick chart with Bollinger Bands, under the title Charts Workspace.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Charts Workspace | Stryker Trading Academy">
+<meta name="twitter:description" content="An interactive charting workspace inside the academy: crypto candles from public exchange feeds, 70+ built-in indicators, drawing tools, and a layout saved in your browser.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/features-charts.png">
+<meta name="twitter:image:alt" content="Stryker charts workspace: a BTC/USDT candlestick chart with Bollinger Bands, under the title Charts Workspace.">
+<meta name="theme-color" content="#050506">
+<title>Charts Workspace | Stryker Trading Academy</title>
+<link rel="canonical" href="https://strykertrading.com/features/charts">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=370">
+<script src="/assets/sanitize.js?v=370"></script>
+<script>
+// Stryker Trading Academy — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=370" defer></script>
+<script src="/assets/version-check.js?v=370" defer></script>
+<script src="/assets/acquisition.js?v=370" defer></script>
+<script src="/assets/focus-mode.js?v=370" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/icon-192.png">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-page.css?v=370">
+</head>
+<body class="fp-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <img class="brand-mark" data-fp-nopad src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero fp-hero">
+<span class="ft-hero-kicker">Charts Workspace</span>
+<h1>A full charting desk, <em>inside the academy</em></h1>
+<figure class="gv-term solo" data-fp-play>
+<div class="gv-term-bar"><span class="gv-dot"></span><b>CHARTS · BTC/USDT · 1H</b></div>
+<div class="gv-term-body fp-pad">
+<div class="gv-chart"><picture><source media="(max-width:600px)" srcset="/assets/images/charts/hero-m.webp" width="700" height="757"><img src="/assets/images/charts/hero.webp" width="1000" height="799" fetchpriority="high" decoding="async" alt="The Stryker charts workspace: a BTC/USDT one-hour candlestick chart with Bollinger Bands and volume, a symbol and timeframe bar on top and drawing tools on the left."></picture></div>
+</div>
+<figcaption class="fg-cap">Screenshot of the workspace on BTC/USDT, one-hour candles.</figcaption>
+</figure>
+<p class="ft-hero-sub">Open a chart without leaving the site. Pick a crypto market and a timeframe, add indicators, draw your levels, and practise reading structure next to the lessons that taught it.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create a free account</a><a href="#whats-on-the-page" class="btn btn-ghost">See what’s inside</a></div>
+<p class="fg-note">Charts are for practice and study. Education only. Not financial advice.</p>
+</header>
+<div class="container">
+<section class="ft-section sx" id="whats-on-the-page"><div class="ft-section-head ft-reveal"><h2>What’s in the charts workspace</h2><p>Real screens from the workspace. Scroll through, or jump to one.</p></div><nav class="sx-index" aria-label="Jump to a feature"><div><a href="#sx-f-chart" data-fp-ix="chart"><em>01</em>Chart</a><a href="#sx-f-markets" data-fp-ix="markets"><em>02</em>Markets</a><a href="#sx-f-timeframes" data-fp-ix="timeframes"><em>03</em>Timeframes</a><a href="#sx-f-indicators" data-fp-ix="indicators"><em>04</em>Indicators</a><a href="#sx-f-drawings" data-fp-ix="drawings"><em>05</em>Drawings</a><a href="#sx-f-mobile" data-fp-ix="mobile"><em>06</em>Phone</a></div></nav><div class="sx-rows"><article class="sx-row" id="sx-f-chart" data-fp-row="chart"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:1000/799;--ar:1.2516"><img src="/assets/images/charts/hero.webp" width="1000" height="799" loading="lazy" decoding="async" alt="Charts workspace: BTC/USDT one-hour candles with a volume histogram, a price scale on the right and a date range bar along the bottom."></div><p class="sx-cap">BTC/USDT, one-hour candles.</p></div><div class="sx-copy"><span class="sx-n">01 / 06</span><h3>Candles, volume and price scale</h3><p class="sx-text">A candlestick chart with volume, a price scale you can switch to logarithmic, and quick ranges from one day to all available history.</p><details class="sx-how"><summary>How it works</summary><p>Switch the chart style between candles, bars, line, area, baseline and Heikin Ashi, set the time zone, and zoom or pan with the mouse, trackpad or touch.</p></details></div></article><article class="sx-row flip" id="sx-f-markets" data-fp-row="markets"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:700/819;--ar:0.8547"><img src="/assets/images/charts/symbols.webp" width="700" height="819" loading="lazy" decoding="async" alt="Symbol search dialog listing crypto pairs such as BTC/USDT, ETH/USDT, SOL/USDT and XRP/USDT, each tagged with its exchange."></div><p class="sx-cap">The symbol search on the crypto tab.</p></div><div class="sx-copy"><span class="sx-n">02 / 06</span><h3>Crypto markets</h3><p class="sx-text">Search for a crypto pair and open it on the chart. Each pair shows the exchange it comes from.</p><details class="sx-how"><summary>How it works</summary><p>Market data comes from public Binance, Coinbase and Hyperliquid feeds and loads straight into your browser. These are crypto markets; the academy’s futures and forex practice runs in the replay tool instead.</p></details></div></article><article class="sx-row" id="sx-f-timeframes" data-fp-row="timeframes"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:1000/445;--ar:2.2472"><img src="/assets/images/charts/timeframes.webp" width="1000" height="445" loading="lazy" decoding="async" alt="Timeframe menu open over the chart, listing 1m, 5m, 15m, 30m, 1h, 4h, 1D, 1W and 1M."></div><p class="sx-cap">The timeframe menu.</p></div><div class="sx-copy"><span class="sx-n">03 / 06</span><h3>Timeframes</h3><p class="sx-text">Nine timeframes from one minute to one month, so you can move from the higher-timeframe picture down to an entry timeframe on the same market.</p><details class="sx-how"><summary>How it works</summary><p>The chart remembers the market and timeframe you last used.</p></details></div></article><article class="sx-row flip" id="sx-f-indicators" data-fp-row="indicators"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:560/838;--ar:0.6683"><img src="/assets/images/charts/indicators.webp" width="560" height="838" loading="lazy" decoding="async" alt="Indicators dialog with a search box, the indicators already on the chart, and an alphabetical list starting with 52 Week High/Low, Accumulation/Distribution and Aroon."></div><p class="sx-cap">The indicators dialog.</p></div><div class="sx-copy"><span class="sx-n">04 / 06</span><h3>70+ built-in indicators</h3><p class="sx-text">Search and add from more than 70 built-in indicators, from moving averages, VWAP and Bollinger Bands to RSI, MACD and volume profile.</p><details class="sx-how"><summary>How it works</summary><p>Each indicator can be configured, hidden, moved to its own pane or removed. Indicators run on the candles in your browser.</p></details></div></article><article class="sx-row" id="sx-f-drawings" data-fp-row="drawings"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:1000/799;--ar:1.2516"><img src="/assets/images/charts/drawings.webp" width="1000" height="799" loading="lazy" decoding="async" alt="Chart with a trend line and a Fibonacci retracement drawn on it, plus Bollinger Bands, with the drawing toolbar on the left."></div><p class="sx-cap">A trend line and a Fibonacci retracement drawn on the chart.</p></div><div class="sx-copy"><span class="sx-n">05 / 06</span><h3>Drawing tools</h3><p class="sx-text">Lines, Fibonacci tools, patterns, measurements, shapes, text and icons, with a magnet that snaps to candle prices.</p><details class="sx-how"><summary>How it works</summary><p>Drawings stay on the chart for that market. Use the object tree to find, hide or delete them, or the eraser to clear several at once.</p></details></div></article><article class="sx-row flip" id="sx-f-mobile" data-fp-row="mobile"><div class="sx-frame fp-pad"><div class="sx-media" style="aspect-ratio:560/837;--ar:0.6691"><img src="/assets/images/charts/mobile.webp" width="560" height="837" loading="lazy" decoding="async" alt="The charts workspace on a phone: BTC/USDT candles with Bollinger Bands filling the screen."></div><p class="sx-cap">The same chart on a phone.</p></div><div class="sx-copy"><span class="sx-n">06 / 06</span><h3>Works on a phone</h3><p class="sx-text">Pinch to zoom and drag to pan. The chart fills the screen, with the tools a tap away.</p><details class="sx-how"><summary>How it works</summary><p>On a small screen the toolbars collapse so the chart keeps the space.</p></details></div></article></div></section>
+
+<section class="ft-section" id="how-it-works">
+<div class="ft-section-head ft-reveal"><h2>How it works</h2><p>Nothing to install and no broker account needed.</p></div>
+<div class="fg-flow ft-reveal" data-fp-play>
+  <div class="fg-node"><span class="fg-step">1</span><h3>Open Charts</h3><p>Charts sits in the Terminal section of the member area, next to the other tools.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>Pick a market</h3><p>Search a crypto pair and choose a timeframe. Candles load from public exchange feeds.</p></div>
+  <div class="fg-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>Make it yours</h3><p>Add indicators and drawings. Your layout, drawings and indicators are saved in this browser.</p></div>
+</div>
+</section>
+
+<section class="ft-section" id="how-to-use">
+<div class="ft-section-head ft-reveal"><h2>One way to use it with the lessons</h2><p>A simple routine for practising what a chapter teaches. Tap a step, or let it play.</p></div>
+<div class="fg-tl ft-reveal" data-fp-tl>
+  <button type="button" class="fg-tl-step is-active" aria-pressed="true"><span class="fg-when">Read</span><h3>Finish a chapter</h3><p>Pick one idea from the lesson, for example a swing high and swing low.</p><ul><li>Note the rule in one line</li><li>Pick one market</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">Mark</span><h3>Mark it on a chart</h3><p>Find examples on a higher timeframe, then drop to a lower one.</p><ul><li>Draw the levels</li><li>Label what you see</li></ul><i class="fg-bar"></i></button>
+  <button type="button" class="fg-tl-step" aria-pressed="false"><span class="fg-when">Review</span><h3>Check your marks</h3><p>Compare your marks with the lesson’s examples and adjust.</p><ul><li>What did you miss?</li><li>What would you mark differently?</li></ul><i class="fg-bar"></i></button>
+</div>
+<p class="fg-tl-note ft-reveal">Marking a chart is practice. It is not a signal to trade. Education only. Not financial advice.</p>
+</section>
+
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal">
+<details><summary>Where does the data come from?</summary><div class="fg-a"><p>Crypto candles load from public Binance, Coinbase and Hyperliquid feeds, straight into your browser.</p></div></details>
+<details><summary>Can I trade from the chart?</summary><div class="fg-a"><p>No. The workspace is for charting and study. It is not connected to any broker and places no orders.</p></div></details>
+<details><summary>Which markets are there?</summary><div class="fg-a"><p>Crypto pairs from those exchanges, such as BTC/USDT and ETH/USDT. To practise futures and forex on past charts, use the replay tool.</p></div></details>
+<details><summary>Are my drawings saved?</summary><div class="fg-a"><p>Yes, in the browser you use. Another device or a cleared browser starts with a fresh layout.</p></div></details>
+<details><summary>Whose charting engine is it?</summary><div class="fg-a"><p>The workspace is built on Vela, an open-source charting library released under the Apache-2.0 licence.</p></div></details>
+<details><summary>Which plan includes it?</summary><div class="fg-a"><p>Charts is part of the member area. Sign in to open it.</p></div></details>
+</div>
+<div class="ft-cta ft-reveal"><h2>Open a chart next to your lessons</h2><p>Create your account, then open Charts from the member area.</p>
+<div class="ft-hero-cta"><a href="/signup" class="btn btn-primary">Create your free account</a><a href="/features" class="btn btn-ghost">All features</a></div>
+<p class="fg-edu">Education only. Not financial advice.</p></div>
+</section>
+</div>
+
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <img class="brand-mark" data-fp-nopad src="/assets/images/logo-header.webp" alt="Stryker Trading Academy" width="243" height="160" onerror="this.onerror=null;this.src='/assets/images/logo-header.png';">
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About Stryker</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Stryker Trading, operating as Stryker Trading Academy. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. Stryker Trading Academy is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/main.js?v=370"></script>
+<script src="/assets/auth.js?v=370"></script>
+<script src="/assets/plan-price.js?v=370"></script>
+<script src="/assets/launch-sale.js?v=370"></script>
+<script src="/assets/progress.js?v=370"></script>
+<script src="/assets/activity-log.js?v=370"></script>
+<script src="/assets/banned-check.js?v=370"></script>
+<script src="/assets/email-verify.js?v=370"></script>
+<script src="/assets/profiles-sync.js?v=370"></script>
+<script src="/assets/branding.js?v=370"></script>
+<script src="/assets/seo.js?v=370"></script>
+<script src="/assets/features.js?v=370"></script>
+<script src="/assets/features-page.js?v=370"></script>
+<script src="/assets/theme.js?v=370"></script>
+</body>
+</html>

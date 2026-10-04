@@ -159,3 +159,13 @@
 @supports not selector(::-webkit-scrollbar){
   .nfx-inner, .nav-links.nfx-has{ scrollbar-width:thin; scrollbar-color:rgba(3,201,136,.35) transparent; }
 }
+
+/* polish (web-temp-5): A's featured GEX tile fills its full height (image
+   grows, no dead area under the text); C's "See all features" is a plain
+   link, not a boxed tile. */
+.nfx-a a.nfx-feat{ display:flex; flex-direction:column; }
+.nfx-a .nfx-feat .nfx-img{ flex:1 1 auto; min-height:0; height:0; aspect-ratio:auto; object-fit:cover; object-position:78% center; }
+.nfx-a .nfx-feat .nfx-ft-txt{ flex:0 0 auto; }
+.nfx-c .nfx-strip a.nfx-all{ border:0; background:none; overflow:visible; box-shadow:none; }
+.nfx-c .nfx-strip a.nfx-all::after{ display:none; }
+.nfx-c.is-open .nfx-strip a.nfx-all:hover{ transform:none; box-shadow:none; }

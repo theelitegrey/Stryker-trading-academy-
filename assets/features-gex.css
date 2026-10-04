@@ -340,8 +340,9 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
 .fg-pin-key .fg-m{ display:none; }
 
 @media (max-width:600px){
-  .fg-co{ top:var(--ym); max-width:58%; padding:5px 8px 5px 10px; }
-  .fg-co b{ font-size:10.5px; } .fg-co small{ font-size:9.5px; }
+  .fg-co{ top:var(--ym); max-width:40%; padding:4px 8px 4px 9px; }
+  .fg-co b{ font-size:10.5px; } .fg-co small{ display:none; }
+  .fg-tile .fg-glyph > svg, .fg-tile .fg-glyph > .fg-chips, .fg-crop img{ height:112px; }
   .fg-pin{ left:var(--xm); top:var(--ym); width:22px; height:22px; margin:-11px 0 0 -11px; font-size:11px; }
   .fg-pin-key{ flex-direction:column; align-items:flex-start; max-width:340px; }
   .fg-pin-key .fg-d{ display:none; } .fg-pin-key .fg-m{ display:inline; }
@@ -350,8 +351,13 @@ html.fg-anim .fg-faq details[open] .fg-a{ animation:fg-open .3s ease both; }
 }
 
 /* real-capture crops inside feature tiles */
-.fg-glyph.fg-crop{ height:auto; background:#07080a; }
-.fg-crop img{ display:block; width:100%; height:auto; }
+/* one frame size for every tile, real crop or drawn glyph, so the grid reads as one set
+   and the 390px stack stays short: crops fill a fixed window from their top-left */
+.fg-tile .fg-glyph{ height:auto; background:#07080a; display:flex; flex-direction:column; }
+.fg-tile .fg-glyph > svg, .fg-tile .fg-glyph > .fg-chips, .fg-tile .fg-glyph > .fg-fut{ height:132px; flex:none; }
+.fg-tile .fg-glyph > .fg-chips{ display:flex; align-items:center; justify-content:center; }
+.fg-crop img{ display:block; width:100%; height:132px; object-fit:cover; object-position:left top; }
+.fg-crop img.fg-fit{ object-fit:contain; object-position:center; }
 .fg-crop-cap{ display:block; padding:5px 8px 6px; font-size:10px; line-height:1.4; color:var(--ink-3); border-top:1px solid var(--line); background:var(--bg-1); }
 
 /* motion (only under html.fg-anim, so reduced motion / no JS = finished state) */

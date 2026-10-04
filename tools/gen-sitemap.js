@@ -40,6 +40,12 @@ const PAGES = [
   ['/features-charts',      '0.6', 'monthly'],
   ['/features-monitor',     '0.6', 'monthly'],
   ['/features/gex',         '0.6', 'monthly'],
+  ['/features/smart-money-desk', '0.6', 'monthly'],
+  ['/features/curriculum', '0.6', 'monthly'],
+  ['/features/global-monitor', '0.6', 'monthly'],
+  ['/features/journal',    '0.6', 'monthly'],
+  ['/features/models',     '0.6', 'monthly'],
+  ['/features/indicators', '0.6', 'monthly'],
   ['/features-live',        '0.6', 'monthly'],
   ['/features-community',   '0.6', 'monthly'],
   ['/login',                '0.5', 'monthly'],
@@ -52,12 +58,17 @@ const PAGES = [
   ['/refund-policy',        '0.3', 'yearly']
 ];
 
-// Guard: every root page that is indexable (no noindex) and canonical to
-// itself must be listed above, so a new public page can't be forgotten.
+// Guard: every indexable page (no noindex) with a canonical URL must be
+// listed above, so a new public page can't be forgotten. Scans the root pages
+// AND the /features/<name> pages in features/; before the subfolder was
+// scanned, the deploy rewrote the sitemap without the new /features pages.
 {
   const root = path.join(__dirname, '..');
   const listed = new Set(PAGES.map(([p]) => p));
-  const missing = fs.readdirSync(root).filter((f) => f.endsWith('.html')).filter((f) => {
+  const featDir = path.join(root, 'features');
+  const files = fs.readdirSync(root).filter((f) => f.endsWith('.html'))
+    .concat(fs.existsSync(featDir) ? fs.readdirSync(featDir).filter((f) => f.endsWith('.html')).map((f) => 'features/' + f) : []);
+  const missing = files.filter((f) => {
     const h = fs.readFileSync(path.join(root, f), 'utf8');
     if (/name="robots"[^>]*noindex/i.test(h)) return false;
     const c = (h.match(/rel="canonical" href="https:\/\/strykertrading\.com([^"]*)"/) || [])[1];

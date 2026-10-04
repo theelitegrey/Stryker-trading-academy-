@@ -219,11 +219,15 @@ async function quoteLast(symbol, interval = '5m', range = '1d') {
 
 async function quoteLastRange(symbol, interval, range) {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
-  let data = quoteMemo.get(url);
-  if (!data) {
+  // Same 60 s TTL as candleMemo: a warm Worker must not serve an old spot quote.
+  const memo = quoteMemo.get(url);
+  let data;
+  if (memo && Date.now() - memo.ts < 60000) {
+    data = memo.data;
+  } else {
     data = await fetchJson(url);
     if (quoteMemo.size > 40) quoteMemo.clear();
-    quoteMemo.set(url, data);
+    quoteMemo.set(url, { ts: Date.now(), data });
   }
   const r = data.chart?.result?.[0];
   const q = r?.indicators?.quote?.[0];

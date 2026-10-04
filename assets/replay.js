@@ -496,7 +496,7 @@
     const q = new URLSearchParams(location.search); if (q.get('session')) resumeSession(q.get('session')); else if (q.get('new')) openSetup();
   }
 
-  function planNameForRank(minRank) { const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : []; const m = plans.find((p) => (p.rank ?? 0) >= minRank); return m ? m.name : null; }
+  function planNameForRank(minRank) { const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : []; const m = plans.find((p) => (p.rank ?? 0) >= minRank); return m ? (m.displayName || m.name) : null; }
   function showLocked() { $('rp-app').style.display = 'none'; const name = planNameForRank(RP_MIN_RANK); const btn = $('rp-locked-btn'); if (btn) { btn.textContent = name ? 'Go ' + name + ' to unlock' : 'Upgrade to unlock'; btn.dataset.upgradeReason = (name ? name + ' members' : 'Members') + ' can backtest any market bar by bar with simulated orders, stops and targets.'; } $('rp-locked').style.display = ''; }
   function showApp() { $('rp-locked').style.display = 'none'; $('rp-app').style.display = ''; wire(); $('rp-play').innerHTML = ICON_PLAY; }
 

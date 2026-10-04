@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
           student.createdAt.toDate().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
       }
       const planEl = document.getElementById('settings-plan-name');
-      if (planEl) planEl.textContent = (student && student.plan) ? student.plan : 'Self-Paced';
+      if (planEl) planEl.textContent = (student && student.plan) ? ((typeof labelOf === 'function') ? labelOf(student.plan) : student.plan) : 'Self-Paced';
 
       // Subscription line: when the plan expires, how healthy it is, and a
       // renew shortcut. Founding members and non-expiring plans show their

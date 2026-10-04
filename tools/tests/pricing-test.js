@@ -100,7 +100,8 @@ async function page(b, mode, path, opt) {
 }
 const shot = async (p, name, full) => { if (SHOTS) await p.screenshot({ path: SHOTS + '/' + name + '.png', fullPage: !!full }); };
 
-(async () => {
+module.exports = { stubFor };
+if (require.main === module) (async () => {
   const b = await launch();
   try {
     // 1. homepage cards, USD and INR

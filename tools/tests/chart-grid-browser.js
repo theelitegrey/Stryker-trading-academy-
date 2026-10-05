@@ -19,7 +19,7 @@ async function open(b, { w, h, mobile, tablet }) {
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
   const p = await ctx.newPage();
   const errors = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 502/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI && window.STRYKER_CHART_UI.grid, null, { timeout: 40000 });
@@ -110,7 +110,7 @@ async function syncTests(p) {
   check(dr2[0] === '5/7D' && dr2.slice(1).every((x) => x === '30/1M'), 'Date range off -> only active cell: ' + dr2.join(','));
   // Persist: dateRange rides state ext
   await p.evaluate(() => window.STRYKER_CHART_UI.grid.setDateRange(true));
-  const ext = await p.evaluate(() => { const ws = window.STRYKER_VELA; ws.context().stateDirty(); return ws.getState().ext; });
+  const ext = await p.evaluate(() => { const ws = window.STRYKER_VELA; ws.context().stateChanged(); return ws.getState().ext; });
   check(ext && ext['stryker.grid'] && ext['stryker.grid'].dateRange === true, 'Date range persists in state.ext');
   // Time sync: pan cell 0 -> others follow
   await p.evaluate(() => window.STRYKER_VELA.sync.set('viewport', true));

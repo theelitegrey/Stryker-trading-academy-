@@ -59,6 +59,7 @@ const SYNCS = [
 
 let dateRange = false;
 let rangeBusy = false;
+let rangeToken = 0;
 let getWs = () => null;
 let onSync = () => {};
 
@@ -151,10 +152,15 @@ export function installGrid(W, Core, wsGetter){
         if (!dateRange || rangeBusy) return;
         const ws = getWs();
         if (!ws) return;
-        rangeBusy = true;
-        try {
-          ws.cells().forEach((c) => { if (c !== this && c.id !== this.id) { try { orig.call(c, preset); } catch (e) {} } });
-        } finally { rangeBusy = false; }
+        // One reload per chart, staggered ~150 ms so 8 charts don't all refetch at once.
+        // A newer pick cancels the rest of an older fan-out.
+        const token = ++rangeToken;
+        const others = ws.cells().filter((c) => c !== this && c.id !== this.id);
+        others.forEach((c, i) => setTimeout(() => {
+          if (token !== rangeToken || c.destroyed) return;
+          rangeBusy = true;
+          try { orig.call(c, preset); } catch (e) {} finally { rangeBusy = false; }
+        }, 150 * (i + 1)));
       };
       proto.__stkRange = true;
     }
@@ -193,7 +199,7 @@ export function mountGrid(ws, opts){
     const row = el('div', { class: 'stkg-row', 'data-n': String(n) }, [el('span', { class: 'stkg-n', text: String(n) })]);
     list.forEach(([id, label]) => {
       const b = el('button', { type: 'button', class: 'stkg-ic', 'data-layout': id, 'aria-pressed': 'false', 'aria-label': label, title: label, html: iconSvg(id),
-        onclick: () => { if (b.getAttribute('aria-disabled') === 'true') return; setLayout(id); } });
+        onclick: () => { if (b.getAttribute('aria-disabled') === 'true') return; setLayout(id); setOpen(false); } });
       items[id] = b; row.appendChild(b);
     });
     gridBox.appendChild(row);
@@ -215,7 +221,7 @@ export function mountGrid(ws, opts){
   SYNCS.forEach(([kind, label, tip]) => {
     const cb = el('input', { type: 'checkbox', role: 'switch', class: 'stkg-sw', 'data-sync': kind });
     cb.addEventListener('change', () => {
-      if (kind === 'dateRange') { dateRange = cb.checked; try { ws.context().stateDirty(); } catch (e) {} }
+      if (kind === 'dateRange') { dateRange = cb.checked; try { ws.context().stateChanged(); } catch (e) {} }
       else { try { ws.sync.set(kind, cb.checked ? true : false); } catch (e) { console.warn(e); } }
       refresh();
     });
@@ -282,7 +288,7 @@ export function mountGrid(ws, opts){
     // The layout id to SAVE: the member's own one, not a device-capped stand-in.
     capFrom: () => capFromId,
     syncState: () => { let st = {}; try { st = ws.sync.state() || {}; } catch (e) {} return Object.assign({}, st, { dateRange }); },
-    setDateRange: (on) => { dateRange = !!on; refresh(); }
+    setDateRange: (on) => { const v = !!on; if (v !== dateRange) { dateRange = v; try { ws.context().stateChanged(); } catch (e) {} } refresh(); }
   };
 }
 

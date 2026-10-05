@@ -17,6 +17,10 @@
     if(typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
   }
   var tvChart = null, tvSeries = null, tvPriceLines = [], tvBarSpacing = 7;
+  // Locked price range {min,max}. Set by the fit on load / Reset / timeframe
+  // change, then kept while the member pans or zooms in time, so the price
+  // axis stays put and candles only slide left/right.
+  var priceLock = null, chartKey = '';
 
   function $(id){ return document.getElementById(id); }
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -280,7 +284,12 @@
       // The series only holds the visible slice (applyView), so the built-in
       // last-value label would follow the last VISIBLE bar while panning back.
       // renderPriceLines() draws the current-price line from the full CANDLES.
-      lastValueVisible: false, priceLineVisible: false
+      lastValueVisible: false, priceLineVisible: false,
+      autoscaleInfoProvider: function(orig){
+        if(!priceLock) return orig();
+        var r = orig() || {};
+        return { priceRange: { minValue: priceLock.min, maxValue: priceLock.max }, margins: r.margins };
+      }
     });
     tvChart.timeScale().subscribeVisibleLogicalRangeChange(updateChartRangeLabel);
     lockChartTouchGestures(host);
@@ -327,11 +336,39 @@
   function applyView(){
     if(!tvSeries || !CANDLES.length) return;
     ensureView();
-    tvSeries.setData(CANDLES.slice(viewFrom, viewTo + 1));
+    var slice = CANDLES.slice(viewFrom, viewTo + 1);
+    if(!priceLock) priceLock = fitPriceRange(slice);
+    else keepCurrentPriceInLock();
+    tvSeries.setData(slice);
     renderPriceLines();
-    try{ tvChart.priceScale('right').applyOptions({ autoScale: true }); }catch(e){}
     tvChart.timeScale().fitContent();
     updateChartRangeLabel();
+  }
+
+  // Fit used at rest: the visible candles, the current price and the key
+  // levels that sit near it (walls only when close).
+  function fitPriceRange(slice){
+    var lo = Infinity, hi = -Infinity;
+    slice.forEach(function(c){ if(c.low < lo) lo = c.low; if(c.high > hi) hi = c.high; });
+    var last = CANDLES[CANDLES.length - 1];
+    if(last && isFinite(last.close)){ lo = Math.min(lo, last.close); hi = Math.max(hi, last.close); }
+    if(!isFinite(lo) || !isFinite(hi)) return null;
+    var ref = last ? last.close : (lo + hi) / 2;
+    var band = Math.max(hi - lo, Math.abs(ref) * 0.002);
+    collectLines().forEach(function(l){
+      if(l.price == null || !isFinite(l.price)) return;
+      if(Math.abs(l.price - ref) <= band){ lo = Math.min(lo, l.price); hi = Math.max(hi, l.price); }
+    });
+    if(hi - lo < 1e-9){ lo -= 1; hi += 1; }
+    return { min: lo, max: hi };
+  }
+
+  // The latest price must always be inside the locked range.
+  function keepCurrentPriceInLock(){
+    var last = CANDLES[CANDLES.length - 1];
+    if(!priceLock || !last || !isFinite(last.close)) return;
+    if(last.close < priceLock.min) priceLock.min = last.close;
+    if(last.close > priceLock.max) priceLock.max = last.close;
   }
 
   function tvZoom(factor){
@@ -361,11 +398,15 @@
     if(!tvChart || !CANDLES.length) return;
     viewTo = CANDLES.length - 1;
     viewFrom = Math.max(0, viewTo - 70);
+    priceLock = null;
+    try{ tvChart.priceScale('right').applyOptions({ autoScale: true }); }catch(e){}
     applyView();
   }
 
   function resetChartData(msg){
     CANDLES = [];
+    priceLock = null;
+    chartKey = '';
     viewFrom = 0;
     viewTo = 0;
     var host = $('gex-chart');
@@ -392,9 +433,21 @@
     if(!tvSeries) return;
     try{
       var d = await getJson('/api/gex/candles/' + encodeURIComponent(curFut) + '?interval=' + encodeURIComponent(curIv) + '&t=' + Date.now());
+      var key = curFut + '|' + curIv;
+      var oldLen = CANDLES.length, hadView = oldLen && viewTo > viewFrom && key === chartKey;
+      var fromEnd = hadView ? (oldLen - 1 - viewTo) : 0, span = hadView ? (viewTo - viewFrom) : 0;
       CANDLES = (d.candles || []).map(function(c){ return { time:c.time, open:c.open, high:c.high, low:c.low, close:c.close }; });
-      viewFrom = 0; viewTo = 0;
-      drawChart();
+      chartKey = key;
+      if(hadView && CANDLES.length){
+        // 60 s refresh of the same chart: keep the member's place in time
+        // and the locked price range instead of snapping back.
+        viewTo = Math.max(0, CANDLES.length - 1 - fromEnd);
+        viewFrom = Math.max(0, viewTo - span);
+        applyView();
+      } else {
+        viewFrom = 0; viewTo = 0;
+        drawChart();
+      }
     }catch(e){
       resetChartData('Chart unavailable');
       $('gex-chart').insertAdjacentHTML('beforeend', '<div class="gex-chart-fallback">chart: '+esc(e.message)+'</div>');
@@ -404,6 +457,8 @@
   function drawChart(){
     ensureTradingViewChart();
     if(!tvSeries || !CANDLES.length) return;
+    // Levels refresh or market-levels toggle: keep the current view.
+    if(viewTo > viewFrom && viewTo < CANDLES.length){ applyView(); return; }
     tvReset();
   }
 

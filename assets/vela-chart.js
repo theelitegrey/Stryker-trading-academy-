@@ -178,14 +178,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=421'),
+      import('./chart-futures-provider.js?v=422'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=421'),
-      import('./chart-orderflow.js?v=421'),
-      import('./chart-settings.js?v=421'),
+      import('./chart-pine.js?v=422'),
+      import('./chart-orderflow.js?v=422'),
+      import('./chart-settings.js?v=422'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=421'),
-      import('./chart-alerts.js?v=421')
+      import('./chart-grid.js?v=422'),
+      import('./chart-alerts.js?v=422')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -250,7 +250,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=421')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=422')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {
@@ -318,7 +318,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=421')
+  import('./chart-data-dot.js?v=422')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
   window.__stkFlow = Flow;
@@ -328,7 +328,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=421')
+  import('./chart-indicator-window.js?v=422')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 
@@ -429,7 +429,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=421')
+    import('./chart-layouts.js?v=422')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('Stryker: layout menu', e));
   }

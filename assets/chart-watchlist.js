@@ -164,8 +164,9 @@ export function normalizeSymbol(raw, feed){
   const idx = symIndex(feed);
   const tryOne = (v, tk) => { const d = idx.get(v + ':' + tk); return d ? v + ':' + d.ticker : null; };
   if (!feed || !/^[A-Z0-9._\-/]{1,30}$/.test(t)) return null;
-  const cands = [t];
-  if (!/(USDT|USDC|USD|EUR|PERP|-)/.test(t)) cands.push(t + 'USDT');   // "BTC" → BTCUSDT
+  // A bare coin ("ETH") means the main USDT pair (BTCUSDT, ETHUSDT) before any venue's bare ticker.
+  const cands = !pre && !/(USDT|USDC|USD|EUR|PERP|-)/.test(t) ? [t + 'USDT', t] : [t];
+  if (pre && !/(USDT|USDC|USD|EUR|PERP|-)/.test(t)) cands.push(t + 'USDT');
   for (const tk of cands) {
     if (pre) { const s = tryOne(pre, tk); if (s) return s; continue; }
     for (const v of venues) { const s = tryOne(v, tk); if (s) return s; }
@@ -1062,6 +1063,7 @@ export function mountWatchlist(ws, o){
     if (!viewing) setCur(lists.find((l) => l.id === want) || lists[0]);
   }
   let lastUid = undefined;
+  const sharedTried = new Set();   // one attempt per link per page load (no duplicate toasts)
   const onAuth = async () => {
     const u = user(); const id = u ? u.uid : null;
     if (id === lastUid) return;
@@ -1069,7 +1071,7 @@ export function mountWatchlist(ws, o){
     await loadAll();
     let sid = null;
     try { sid = new URL(location.href).searchParams.get('watchlist'); } catch (e) {}
-    if (sid && u) openShared(sid);
+    if (sid && u && !sharedTried.has(sid)) { sharedTried.add(sid); openShared(sid); }
   };
   try { firebase.auth().onAuthStateChanged(onAuth); } catch (e) { onAuth(); }
   if (!isPhone() && lsGet(K.open, false)) setOpen(true, { noSave: true });

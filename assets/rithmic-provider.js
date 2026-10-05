@@ -14,7 +14,7 @@
 // served by the normal provider: an automatic fallback. assets/rithmic-ui.js reloads the
 // chart cells when the source flips, so the visible bars always match the chip.
 
-import { BAR_TYPE } from './rithmic-client.js?v=407';
+import { BAR_TYPE } from './rithmic-client.js?v=413';
 
 // Rithmic exchange codes for our roots.
 export const EXCHANGE = {
@@ -165,4 +165,29 @@ export class RithmicFuturesProvider {
     })();
     return () => { stopped = true; if (unsub) unsub(); };
   }
+}
+
+// Real-trade source for the order-flow tools (assets/chart-orderflow.js registerTradeSource):
+// every LastTrade of the front-month contract with its aggressor side (BUY 1 / SELL 2). There is
+// no tick-history replay here, so the footprint builds from the moment the chart subscribes; the
+// first, partly seen candle is skipped. Trades without an aggressor side are ignored.
+export function rithmicTradeSource(client) {
+  return (ticker, onTrade, onStatus) => {
+    const root = rootOf(ticker);
+    if (!root) { onStatus('error', 'This symbol has no Rithmic contract.'); return () => {}; }
+    let stopped = false, unsub = null;
+    onStatus('waiting');
+    (async () => {
+      try {
+        const sym = await client.frontMonth(root, EXCHANGE[root]);
+        if (stopped) return;
+        unsub = client.subscribeMarket(sym, EXCHANGE[root], (ev) => {
+          if (ev.kind !== 'trade' || ev.snapshot || !ev.side || !(ev.size > 0)) return;
+          onTrade([{ time: ev.time, price: ev.price, size: ev.size, side: ev.side }], false);
+        });
+        if (stopped && unsub) unsub();
+      } catch (e) { onStatus('error', 'Could not subscribe to Rithmic trades.'); }
+    })();
+    return () => { stopped = true; if (unsub) unsub(); };
+  };
 }

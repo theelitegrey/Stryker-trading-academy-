@@ -24,7 +24,7 @@
 //   6. RequestLogout (12) before closing. ForcedLogout (77) from Rithmic ends the session
 //      without reconnecting.
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=407';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=413';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];
@@ -369,7 +369,8 @@ export class RithmicClient {
       update_bits: UPDATE_BITS.LAST_TRADE | UPDATE_BITS.BBO }, T.MD_UPDATE_R);
   }
 
-  // fn receives { kind: 'trade', price, size, time } or { kind: 'bbo', bid, ask, time } (time = epoch ms).
+  // fn receives { kind: 'trade', price, size, time, side } or { kind: 'bbo', bid, ask, time } (time = epoch ms).
+  // side = the aggressor from LastTrade field 112003 (TransactionType BUY = 1, SELL = 2): 'buy' | 'sell' | null.
   subscribeMarket(symbol, exchange, fn) {
     const key = symbol + '|' + exchange;
     let set = this.marketSubs.get(key);
@@ -395,7 +396,8 @@ export class RithmicClient {
     const time = secs ? secs * 1000 + Math.floor(us / 1000) : Date.now();
     let ev = null;
     if (m.template_id === T.LAST_TRADE && m.trade_price != null && !m.is_snapshot) {
-      ev = { kind: 'trade', price: m.trade_price, size: m.trade_size || 0, time };
+      ev = { kind: 'trade', price: m.trade_price, size: m.trade_size || 0, time,
+        side: m.aggressor === 1 ? 'buy' : m.aggressor === 2 ? 'sell' : null };
     } else if (m.template_id === T.LAST_TRADE && m.trade_price != null) {
       ev = { kind: 'trade', price: m.trade_price, size: 0, time, snapshot: true };
     } else if (m.template_id === T.BBO) {

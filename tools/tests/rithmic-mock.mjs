@@ -98,7 +98,7 @@ function onMessage(c, m) {
         for (const k of c.subs) {
           const [symbol, exchange] = k.split('|');
           const p = px(symbol, now / 1000) + (Math.random() < 0.5 ? -0.25 : 0.25);
-          c.send({ template_id: T.LAST_TRADE, symbol, exchange, presence_bits: 1, trade_price: p, trade_size: 1 + Math.floor(Math.random() * 4), aggressor: 1, ssboe: s, usecs: us, source_ssboe: s, source_usecs: us });
+          c.send({ template_id: T.LAST_TRADE, symbol, exchange, presence_bits: 1, trade_price: p, trade_size: 1 + Math.floor(Math.random() * 4), aggressor: Math.random() < 0.5 ? 1 : 2, ssboe: s, usecs: us, source_ssboe: s, source_usecs: us });
           c.send({ template_id: T.BBO, symbol, exchange, presence_bits: 3, bid_price: p - 0.25, bid_size: 5, ask_price: p, ask_size: 6, ssboe: s, usecs: us });
         }
       }, 200);

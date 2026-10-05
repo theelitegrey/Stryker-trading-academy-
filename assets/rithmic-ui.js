@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=407';
-import { RithmicFuturesProvider } from './rithmic-provider.js?v=407';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=413';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=413';
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
@@ -255,6 +255,12 @@ export function createRithmic(cfg) {
       if (live !== prevLive && (ev.state === 'connected' || ev.state === 'reconnecting' || ev.state === 'idle' || ev.state === 'error')) {
         prevLive = live;
         reloadCells();
+        // Order-flow tools (footprint / delta / CVD) light up on futures only while connected.
+        // Handed over by event (no module import here, so the build-stamped ?v= URLs never split
+        // chart-orderflow.js into two copies); window.__stkTradeSources covers a late load.
+        const reg = window.__stkTradeSources || (window.__stkTradeSources = {});
+        reg.futures = live ? rithmicTradeSource(client) : null;
+        window.dispatchEvent(new CustomEvent('stryker:tradesource', { detail: { provider: 'futures', fn: reg.futures } }));
       }
     });
     window.addEventListener('pagehide', () => { client.disconnect(true); });

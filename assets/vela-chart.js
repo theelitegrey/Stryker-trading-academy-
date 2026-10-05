@@ -46,7 +46,7 @@ function velaFail(){
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=397')
+      import('./chart-futures-provider.js?v=399')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);

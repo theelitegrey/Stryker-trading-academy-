@@ -186,7 +186,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
       import('./chart-grid.js?v=429'),
       import('./chart-alerts.js?v=429'),
-      import('./chart-events.js?v=429')
+      import('./chart-events.js?v=429'),
+      import('./chart-intervals.js?v=429')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -207,6 +208,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Grid = mods[10];
   const Alerts = mods[11];
   const Events = mods[12];
+  const Iv = mods[13];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
@@ -279,10 +281,12 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       live: true,
       theme: day ? 'light' : 'dark',
       providers: {
-        futures: rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(),
-        binance: () => new BinanceProvider(),
-        coinbase: () => new CoinbaseProvider(),
-        hyperliquid: () => new HyperliquidProvider()
+        // Iv.wrapFactory (assets/chart-intervals.js) builds the intervals a source does not
+        // serve natively (futures 2m/3m/10m/45m/3h, 3M/6M/12M everywhere) from a smaller one.
+        futures: Iv.wrapFactory(rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(), 'futures'),
+        binance: Iv.wrapFactory(() => new BinanceProvider(), 'binance'),
+        coinbase: Iv.wrapFactory(() => new CoinbaseProvider(), 'coinbase'),
+        hyperliquid: Iv.wrapFactory(() => new HyperliquidProvider(), 'hyperliquid')
       },
       persist: true
     });
@@ -341,6 +345,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
   import('./chart-plus.js?v=429').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('Stryker: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
+  // TradingView-style interval row + menu (assets/chart-intervals.js).
+  try { Iv.mountIntervals(ws, { toast }); } catch (e) { console.warn('Stryker: intervals', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
   import('./chart-indicator-window.js?v=429')
@@ -357,7 +363,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   function tfLabel(tf){
     tf = String(tf || '');
     if (/^\d+$/.test(tf)) { const n = +tf; return n % 60 === 0 && n >= 60 ? (n / 60) + 'h' : n + 'm'; }
-    return tf;
+    try { return Iv.ivShort(tf); } catch (e) { return tf; }
   }
 
   // Phone: one chart at a time — maximize the active cell; chips switch it.

@@ -74,6 +74,39 @@ def check_version_consistency():
     return versions.pop() if len(versions) == 1 else None
 
 
+def check_module_import_versions():
+    """Every ES-module import of our own assets must carry ?v=<build> from version.json.
+
+    A module imported under two different URLs (e.g. chart-alerts.js?v=425 in one file
+    and ?v=427 in another) loads TWICE as two separate instances with separate state.
+    Build 427 shipped exactly that: the "+" menu opened the never-mounted copy of the
+    alerts panel, so its Create button threw and did nothing. A stale ?v= on a module
+    import also skips cache-busting for that module forever.
+    """
+    import json
+    try:
+        build = str(json.load(open(os.path.join(ROOT, 'assets', 'version.json')))['build'])
+    except Exception as e:
+        fail(f'assets/version.json unreadable: {e}')
+        return
+    spec = re.compile(r"""(?:\bimport\s*\(\s*|\bfrom\s*|\bimport\s+)['"](\./[\w./-]+\.m?js)(?:\?v=(\d+))?['"]""")
+    seen = {}
+    for path in sorted(glob.glob(os.path.join(ROOT, 'assets', '*.js'))):
+        rel = os.path.relpath(path, ROOT)
+        for n, line in enumerate(open(path, encoding='utf-8'), 1):
+            for m in spec.finditer(line):
+                mod, v = m.group(1), m.group(2)
+                if v is None:
+                    fail(f'{rel}:{n}: import of {mod} has no ?v= (it can never cache-bust)')
+                elif v != build:
+                    fail(f'{rel}:{n}: import of {mod}?v={v}, but the build is {build} '
+                         f'(stale ?v= = a second module instance / stale cache)')
+                seen.setdefault(mod, set()).add(v)
+    for mod, vs in seen.items():
+        if len(vs) > 1:
+            fail(f'{mod} is imported with different query strings {sorted(x or "none" for x in vs)}')
+
+
 def check_js_syntax():
     for path in sorted(glob.glob('assets/*.js')):
         result = subprocess.run(['node', '--check', path],
@@ -403,6 +436,7 @@ def main():
     check_merge_markers()
     check_unversioned_assets()
     version = check_version_consistency()
+    check_module_import_versions()
     check_js_syntax()
     check_html_structure()
     check_css_braces()

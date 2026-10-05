@@ -317,6 +317,8 @@ function build(){
     const a = so ? cleanInd(base) : clean(base);
     if (!a.symbol || !Number.isFinite(a.price)) { toastFn('Enter a symbol and a price.'); return; }
     try {
+      if (!backend) await reload();   // never mounted / auth not resolved yet: build the store first
+      if (!storeOf(a)) throw new Error('no alert store');
       const old = editing ? alerts.find((x) => x.id === editing) : null;
       if (old && !!old.src === !!a.src) { await storeOf(a).update(editing, a); for (const k of Object.keys(old)) if (k !== 'id') delete old[k]; Object.assign(old, a); armed.delete(editing); lastInd.delete(editing); }
       else {

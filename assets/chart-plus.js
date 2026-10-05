@@ -19,7 +19,11 @@
 // Owner order 2026-10-06: no buying or selling on the site, so this menu carries no trade items.
 // Education only. Not financial advice.
 
-import { openAlerts, chartPlots } from './chart-alerts.js?v=425';
+// chart-alerts.js is NOT imported here: a second import URL (e.g. a stale ?v=) makes a second,
+// never-mounted module instance whose Create button has no backend (build 427 bug). The one
+// mounted instance is handed in by vela-chart.js: mountChartPlus(ws, { openAlerts, chartPlots }).
+let openAlerts = (p) => { const A = window.__stkAlerts; if (A && A.open) A.open(p); };
+let chartPlots = () => [];
 
 const BTN = 18;                    // button size (px)
 let WS = null;
@@ -274,8 +278,10 @@ const CSS = `
 @media (max-width:560px){ .stkp-menu{ min-width:0; width:calc(100vw - 16px); } .stkp-it{ white-space:normal; } .stkp-kb{ margin-left:10px; } }
 `;
 
-export function mountChartPlus(ws){
+export function mountChartPlus(ws, deps){
   WS = ws;
+  if (deps && typeof deps.openAlerts === 'function') openAlerts = deps.openAlerts;
+  if (deps && typeof deps.chartPlots === 'function') chartPlots = deps.chartPlots;
   if (!document.getElementById('stkp-css')) { const s = document.createElement('style'); s.id = 'stkp-css'; s.textContent = CSS; document.head.appendChild(s); }
   wireAll();
   try { ws.on('layout:changed', () => { closeMenu(); setTimeout(wireAll, 0); }); } catch (e) {}

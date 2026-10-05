@@ -88,7 +88,7 @@ async function openPicker(p) {
       check(pdv && JSON.stringify(pdv).includes('"priceLines":3'), 'prev-day indicator draws 3 price lines (pPOC/pVAH/pVAL) ' + JSON.stringify(pdv).slice(0, 160));
       // compare with the GEX-style calc done independently in the page from the same bars
       const lv = await p.evaluate(async () => {
-        const m = await import('./assets/chart-orderflow.js?v=410');
+        const m = await import('./assets/chart-orderflow.js?v=411');
         const c = window.STRYKER_VELA.context().cells[0].chart;
         const r = m.priorDayLevels(c.orchestrator.rawBars, { futures: true, tick: 0.25, tf: 15 }, 4, 0.7);
         const lines = (c.inspect().priceLines || []).filter((l) => /^p(POC|VAH|VAL)$/.test(l.title)).map((l) => [l.title, l.price]);
@@ -125,7 +125,9 @@ async function openPicker(p) {
       const est = (await inspect(p)).indicators.find((x) => /Estimated/.test(JSON.stringify(x)));
       check(est && /"tables":1/.test(JSON.stringify(est)), 'estimated CVD shows its "Estimated from candles" label table ' + JSON.stringify(est).slice(0, 160));
       const badges = await p.evaluate(() => { window.STRYKER_VELA.indicatorPicker.open(); return [...document.querySelectorAll('.vela-ip-oncard .vela-ip-row')].map((r) => r.textContent); });
-      check(badges.some((x) => /Session Volume Profile.*stryker/i.test(x)) && !badges.some((x) => /Session Volume Profile.*vela/i.test(x)), 'picker: our tools carry no VELA badge: ' + badges.join(' / '));
+      check(badges.some((x) => /Session Volume Profile.*stryker/i.test(x)) && !badges.some((x) => /vela/i.test(x)), 'picker: no VELA badge on any on-chart row: ' + badges.join(' / '));
+      const anyVela = await p.evaluate(() => /vela|luxalgo/i.test(document.querySelector('.vela-ip-list').textContent));
+      check(!anyVela, 'picker: no Vela/LuxAlgo text anywhere in the list');
       await p.keyboard.press('Escape');
       await shot(p, 'of-volume2-1440-dark.png');
       check(!errors.length, 'no page errors (volume, dark) ' + errors.join(' | '));

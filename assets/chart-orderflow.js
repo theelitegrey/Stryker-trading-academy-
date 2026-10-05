@@ -671,11 +671,15 @@ export function mountOrderflow(ws, opts) {
     PSEUDO.forEach((p) => rows.push({ r: { name: p.name, category: GROUP, pseudo: p.id }, pseudo: p.id }));
     return rows.concat(rest);
   }
-  proto.libraryRows = function () { return plan(this).map((x) => x.r); };
-  // On-chart rows: Vela badges every native "vela"; ours carry no Vela badge ("stryker").
+  // Owner order 2026-10-05: no Vela/LuxAlgo wording in view (the licence credit stays in the
+  // (i) Credits popover). The library's built-in studies are grouped as "Studies" instead of
+  // "Vela", and no row carries the "vela" badge: ours say "stryker", built-ins show none.
+  proto.libraryRows = function () {
+    return plan(this).map((x) => (x.r.category === 'Vela' ? Object.assign({}, x.r, { category: 'Studies' }) : x.r));
+  };
   const origOn = proto.onChartRows;
   proto.onChartRows = function () {
-    return origOn.call(this).map((r) => (r.native && OUR_TYPES.includes(r.nativeType) ? Object.assign({}, r, { native: false, language: 'stryker' }) : r));
+    return origOn.call(this).map((r) => (r.native ? Object.assign({}, r, { native: false, language: OUR_TYPES.includes(r.nativeType) ? 'stryker' : undefined }) : r));
   };
   proto.addFromLibrary = function (index) {
     const x = plan(this)[index];

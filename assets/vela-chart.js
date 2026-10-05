@@ -6,7 +6,10 @@
 // global script bundle carries only the headless core), so this imports
 // dist/workspace.js and the three data providers from jsDelivr, pinned to an
 // exact version. Vela's providers stream free public crypto data from
-// Binance, Coinbase and Hyperliquid — no API keys.
+// Binance, Coinbase and Hyperliquid — no API keys. CME-group futures (NQ, ES,
+// CL, GC ...) come from our own provider, assets/chart-futures-provider.js,
+// backed by /api/chart/bars (continuous front-month bars from Yahoo Finance,
+// edge-cached; polled, not streamed — never describe it as live/real-time).
 //
 // SRI (P3-4 audit): these load via dynamic import(), which has no
 // integrity="" attribute to set (that only exists on <script> tags and on
@@ -18,6 +21,9 @@
 // page credits it in the footer line. Per its NOTICE terms the watermark must
 // stay unless equivalent visible attribution exists — we keep both, so never
 // call renderer.set('attribution', false) here.
+//
+// New visitors open on NQ 15m. persist:true restores a saved layout first, so
+// members who already have one keep their own symbol.
 //
 // persist:true keeps the student's symbol, drawings, indicators and layout in
 // localStorage, so the workspace reopens the way they left it.
@@ -39,7 +45,8 @@ function velaFail(){
       import(VELA_BASE + 'workspace.js'),
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
-      import(VELA_BASE + 'providers/hyperliquid.js')
+      import(VELA_BASE + 'providers/hyperliquid.js'),
+      import('./chart-futures-provider.js?v=397')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -51,6 +58,7 @@ function velaFail(){
   const BinanceProvider = mods[1].BinanceProvider;
   const CoinbaseProvider = mods[2].CoinbaseProvider;
   const HyperliquidProvider = mods[3].HyperliquidProvider;
+  const FuturesProvider = mods[4].FuturesProvider;
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -74,11 +82,12 @@ function velaFail(){
   try {
     window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
       layout: false,                 // one chart; the workspace UI can split it
-      symbol: 'binance:BTCUSDT',
-      timeframe: '60',
+      symbol: 'futures:NQ1!',
+      timeframe: '15',
       live: true,
       theme: day ? 'light' : 'dark',
       providers: {
+        futures: () => new FuturesProvider(),
         binance: () => new BinanceProvider(),
         coinbase: () => new CoinbaseProvider(),
         hyperliquid: () => new HyperliquidProvider()

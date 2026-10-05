@@ -24,7 +24,7 @@
 //   6. RequestLogout (12) before closing. ForcedLogout (77) from Rithmic ends the session
 //      without reconnecting.
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=430';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=431';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];

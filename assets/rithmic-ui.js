@@ -82,12 +82,14 @@ export function createRithmic(cfg) {
     get gateway() { return cfg.gateway; },
     get appName() { return cfg.appName; },
     get appVersion() { return cfg.appVersion; },
+    get lastSource() { return lastSource; },
     disconnect: () => client.disconnect(),
     reloadCharts: () => reloadCells()
   };
 
   const providerFactory = (FuturesProvider) => () => new RithmicFuturesProvider(client, new FuturesProvider(), cfg, {
     onSource: (src) => { lastSource = src; },
+    onFallback: () => { lastSource = 'standard'; },
     onError: (e) => { console.warn('Stryker Rithmic:', e && e.message); }
   });
 

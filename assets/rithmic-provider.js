@@ -86,7 +86,10 @@ export class RithmicFuturesProvider {
 
   async getBars(ticker, timeframe, range = {}) {
     const root = rootOf(ticker), tf = normTf(timeframe);
-    if (!this.live || !root || !tf) return this.fallback.getBars(ticker, timeframe, range);
+    if (!this.live || !root || !tf) {
+      if (root && this.hooks.onFallback) this.hooks.onFallback(root);
+      return this.fallback.getBars(ticker, timeframe, range);
+    }
     try {
       const bars = await this.rithmicBars(root, tf, range);
       if (this.hooks.onSource) this.hooks.onSource('rithmic', root);

@@ -168,7 +168,28 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts']); }
+
+      // Charts page price alerts (assets/chart-alerts.js, 2026-10-06). Owner only (not even
+      // admins read them). Validated shape; the 200-per-member cap is enforced in the client.
+      match /chartAlerts/{aid} {
+        function validAlert(d) {
+          return d.keys().hasOnly(['symbol', 'cond', 'price', 'message', 'freq', 'active', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['symbol', 'cond', 'price', 'freq', 'active', 'updatedAt'])
+            && d.symbol is string && d.symbol.size() > 0 && d.symbol.size() <= 40
+            && d.cond in ['crossing', 'crossing_up', 'crossing_down', 'greater', 'less']
+            && (d.price is int || d.price is float)
+            && (!('message' in d) || (d.message is string && d.message.size() <= 140))
+            && d.freq in ['once', 'every']
+            && d.active is bool
+            && d.updatedAt is timestamp
+            && (!('createdAt' in d) || d.createdAt is timestamp);
+        }
+        allow read, delete: if isSelf(uid);
+        allow create: if isSelf(uid) && aid.size() <= 40 && validAlert(request.resource.data);
+        allow update: if isSelf(uid) && validAlert(request.resource.data)
+          && request.resource.data.createdAt == resource.data.createdAt;
+      }
 
       // Charts page indicator favourites (assets/chart-indicator-window.js, 2026-10-06).
       // Owner only (not even admins read them). One small doc per starred item.

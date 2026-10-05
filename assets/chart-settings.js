@@ -253,7 +253,7 @@ function ourSections(id){
       { kind: 'select', label: 'Bottom margin %', id: 'margin-bottom', options: MARGINS, get: g('marginBottom'), set: st('marginBottom') },
       { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') }
     ] }
-  ];
+  ].concat(...(window.__stkExtraSections || []).map((f) => { try { return f(id) || []; } catch (e) { return []; } }));
 }
 
 // ---------------------------------------------------------------------------------------

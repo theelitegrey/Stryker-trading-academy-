@@ -422,7 +422,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
 
   window.STRYKER_CHART_UI = { applyStarter, applySaved, STARTERS, setLayout, refreshLayoutUi, grid };
 
-  if (!T) { tplWrap.hidden = true; return; }
+  // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
+  // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
+  function mountLayoutMenu(){
+    import('./chart-layouts.js?v=417')
+      .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
+      .catch((e) => console.warn('Stryker: layout menu', e));
+  }
+  if (!T) { tplWrap.hidden = true; mountLayoutMenu(); return; }
 
   let editing = null;   // id of the template being renamed
   let saving = false;
@@ -523,4 +530,5 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       }
     } catch (e) { /* no default: keep the stock chart */ }
   }
+  mountLayoutMenu();
 })();

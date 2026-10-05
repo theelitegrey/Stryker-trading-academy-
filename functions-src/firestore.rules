@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts']); }
 
       // Charts page indicator favourites (assets/chart-indicator-window.js, 2026-10-06).
       // Owner only (not even admins read them). One small doc per starred item.
@@ -197,6 +197,25 @@ service cloud.firestore {
         }
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && validTpl(request.resource.data);
+      }
+
+      // Charts page saved LAYOUTS (assets/chart-layouts.js, 2026-10-06): whole saved
+      // charts. Owner only. name 1-60, state = Vela workspace JSON <= 200000 chars,
+      // symbol <= 80, interval <= 10, shared bool, updatedAt = server time.
+      // 50-per-member cap is client-side. Carved out of the wildcard above.
+      match /chartLayouts/{lid} {
+        function validLayout(d) {
+          return d.keys().hasOnly(['name', 'state', 'symbol', 'interval', 'shared', 'updatedAt'])
+            && d.keys().hasAll(['name', 'state', 'shared', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.state is string && d.state.size() <= 200000
+            && (!('symbol' in d) || (d.symbol is string && d.symbol.size() <= 80))
+            && (!('interval' in d) || (d.interval is string && d.interval.size() <= 10))
+            && d.shared is bool
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && lid.size() <= 40 && validLayout(request.resource.data);
       }
 
       // Charts page saved Pine scripts (assets/chart-pine-scripts.js, 2026-10-05).
@@ -593,6 +612,33 @@ service cloud.firestore {
           && request.resource.data.at == request.time
           && getAfter(libPath()).data.reportCount == get(libPath()).data.reportCount + 1;
       }
+    }
+
+    // ---------------------------------------------------------------------
+    // Charts: read-only SHARED layout snapshots (assets/chart-layouts.js, 2026-10-06).
+    // Doc id = the owner's own chartLayouts id (random 20 chars) and only exists while
+    // Share is on; turning Share off deletes it, so the link stops working.
+    // Any signed-in member may GET one by id; nobody may LIST them. Only the owner
+    // writes, and only for a layout that exists in their own chartLayouts.
+    // ---------------------------------------------------------------------
+    match /chartShared/{id} {
+      function validShared(d) {
+        return d.keys().hasOnly(['ownerUid', 'name', 'state', 'updatedAt'])
+          && d.keys().hasAll(['ownerUid', 'name', 'state', 'updatedAt'])
+          && d.ownerUid == request.auth.uid
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.state is string && d.state.size() <= 200000
+          && d.updatedAt == request.time;
+      }
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && id.size() >= 20 && id.size() <= 40
+        && validShared(request.resource.data)
+        && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && validShared(request.resource.data)
+        && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
     // ---------------------------------------------------------------------

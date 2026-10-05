@@ -41,6 +41,10 @@
 // PINE SCRIPT (phase 3): assets/chart-pine.js wires LuxAlgo's AGPL vela-pinets engine
 // (loaded unmodified from jsDelivr, lazily) and draws the Pine editor; Pine indicators
 // ride the workspace document under ext 'stryker.pine', so persist and templates keep them.
+//
+// VOLUME & ORDER FLOW: assets/chart-orderflow.js registers the volume-profile / VWAP /
+// relative-volume / order-flow natives and puts them in a "Volume & Order flow" group at the
+// top of the Indicators picker; their settings ride the document under ext 'stryker.volume'.
 
 // CANDLE LOOK (Owner order 2026-10-05: "same aesthetics as TradingView"):
 // Vela is self-hosted from assets/vendor/vela-0.6.17-s1/ — the unmodified
@@ -184,7 +188,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=407')
+      import('./chart-pine.js?v=407'),
+      import('./chart-orderflow.js?v=410')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -200,6 +205,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const FuturesProvider = mods[4].FuturesProvider;
   const Core = mods[5];
   const Pine = mods[6];
+  const Flow = mods[7];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
@@ -216,6 +222,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // before the workspace restores a saved session. The engine itself loads lazily.
   let ws;
   try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('Stryker: Pine install', e); }
+  // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
+  // saved session or template that carries them restores.
+  try { Flow.installOrderflow(Core); } catch (e) { console.warn('Stryker: volume tools install', e); }
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -326,6 +335,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-data-dot.js?v=409')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
+  try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
 
   function refreshLayoutUi(){
     let id = '1';

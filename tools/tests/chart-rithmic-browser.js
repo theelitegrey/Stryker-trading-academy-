@@ -101,6 +101,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected' && !document.getElementById('stkr-chip').hidden), 'connect: state connected and chip visible');
     check(await p.evaluate(() => document.getElementById('stkr-chip').textContent === 'Rithmic · connected'), 'chip reads "Rithmic · connected"');
     check(await p.evaluate(() => document.getElementById('stkr-pass').value === ''), 'password field cleared after connect');
+    check(await p.evaluate(() => /your own Rithmic connection \(Rithmic Test\)/.test(document.querySelector('.stkchart-credit').textContent)), 'source line under the chart names Rithmic while connected');
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && x.close > 10500 && x.close < 11800; }, null, 20000), 'history: NQ chart reloaded from Rithmic time-bar replay');
     const s1 = await stats();
     check(s1.replays > before.replays && s1.subscribes > before.subscribes, 'mock saw replay + market-data subscribe (' + (s1.replays - before.replays) + ' replays)');
@@ -133,6 +134,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     await p.click('#stkr-off');
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'idle' && document.getElementById('stkr-chip').hidden), 'disconnect: idle, chip hidden');
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && !(x.close > 10500 && x.close < 11800); }, null, 30000), 'disconnect: NQ chart falls back to the normal data');
+    check(await p.evaluate(() => /Yahoo Finance/.test(document.querySelector('.stkchart-credit').textContent)), 'source line back to the standard text after disconnect');
     const s3 = await stats();
     check(s3.logouts > s2.logouts, 'disconnect sent RequestLogout');
 

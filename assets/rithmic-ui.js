@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=404';
-import { RithmicFuturesProvider } from './rithmic-provider.js?v=404';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=406';
+import { RithmicFuturesProvider } from './rithmic-provider.js?v=406';
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
@@ -235,6 +235,14 @@ export function createRithmic(cfg) {
       chip.appendChild(document.createTextNode(st === 'connected' ? 'Rithmic · connected' : 'Rithmic · reconnecting'));
       btn.querySelector('.stkc-btn-l').textContent = on ? 'Broker' : 'Connect broker';
       btn.title = on ? 'Broker connection' : 'Connect broker';
+      // The source line under the chart names the data source: keep it truthful.
+      const credit = document.querySelector('.stkchart-credit');
+      if (credit) {
+        if (!credit.dataset.std) credit.dataset.std = credit.textContent;
+        credit.textContent = st === 'connected'
+          ? 'Futures: live from your own Rithmic connection (' + (client.systemName || 'Rithmic') + ') · crypto: public Binance, Coinbase and Hyperliquid feeds · Education only. Not financial advice.'
+          : credit.dataset.std;
+      }
     }
 
     let prevLive = false;

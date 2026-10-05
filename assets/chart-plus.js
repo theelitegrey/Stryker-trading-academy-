@@ -19,7 +19,7 @@
 // Owner order 2026-10-06: no buying or selling on the site, so this menu carries no trade items.
 // Education only. Not financial advice.
 
-import { openAlerts, chartPlots } from './chart-alerts.js?v=424';
+import { openAlerts, chartPlots } from './chart-alerts.js?v=425';
 
 const BTN = 18;                    // button size (px)
 let WS = null;

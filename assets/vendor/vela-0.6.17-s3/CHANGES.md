@@ -18,7 +18,7 @@ unmodified except **chunk-YCD72KGK.js** (search "Stryker patch"):
   system stack (`STRYKER_TV_FONT`).
 
 Credit stays in the Charts toolbar (i) Credits popover ("Vela by LuxAlgo").
-Any further patch goes into a new folder (vela-0.6.17-s3) because these
+Any further patch goes into a new folder (vela-0.6.17-s4) because these
 module files are imported without ?v= cache-busters.
 
 ## s2 (2026-10-06, web-temp-5, Charts settings window)
@@ -34,3 +34,10 @@ off / unchanged unless the host sets `scene.stk` (assets/chart-settings.js does)
   bars (WebGL emit path and Canvas2D path) use close >= previous close when
   `scene.stk.prevClose`, else close >= open as before. Aggregated (far zoomed-out)
   columns keep open/close colouring.
+
+## s3 (2026-10-06, web-temp-5, Charts smoothness)
+Everything from s2, plus (chunk-YCD72KGK.js, search "Stryker patch (s3)"):
+- `tzOffsetMs()` caches one `Intl.DateTimeFormat` per zone and the offset per 15-minute
+  bucket (computed at the bucket start). Upstream built a new formatter on every call
+  (crosshair time chip, time axis, grid), which cost ~200 ms of script per crosshair/pan
+  sweep on any non-UTC chart timezone (the Settings window lets users pick one).

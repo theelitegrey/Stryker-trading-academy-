@@ -51,7 +51,7 @@
 // top of the Indicators picker; their settings ride the document under ext 'stryker.volume'.
 
 // CANDLE LOOK (Owner order 2026-10-05: "same aesthetics as TradingView"):
-// Vela is self-hosted from assets/vendor/vela-0.6.17-s2/ — the unmodified
+// Vela is self-hosted from assets/vendor/vela-0.6.17-s3/ — the unmodified
 // 0.6.17 ESM build (Apache-2.0, LICENSE + NOTICE in that folder) with ONE
 // patched file, chunk-YCD72KGK.js, marked "Stryker patch": 1-device-px wicks
 // (Vela drew 1.5 px) and TradingView's body-width curve (~80% of the bar
@@ -63,7 +63,7 @@
 // goes in a NEW folder (-s3) and
 // the charts.html import map ("@luxalgo/vela/plugin") must move with it, or
 // the Pine engine gets a second copy of Vela's registries.
-const VELA_BASE = './vendor/vela-0.6.17-s2/';
+const VELA_BASE = './vendor/vela-0.6.17-s3/';
 // One-time migration for members whose saved workspace still carries the old
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';

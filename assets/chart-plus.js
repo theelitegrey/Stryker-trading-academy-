@@ -91,7 +91,7 @@ function item(icon, label, opts){
 }
 function sep(){ const d = document.createElement('div'); d.className = 'stkp-sep'; d.setAttribute('role', 'separator'); return d; }
 function closeMenu(){
-  if (menu) { menu.remove(); menu = null; }
+  if (menu) { const m = menu; menu = null; m.remove(); try { if (m.__onClose) m.__onClose(); } catch (e) {} }
   if (menuSub) { menuSub.remove(); menuSub = null; }
   document.removeEventListener('pointerdown', outside, true);
   document.removeEventListener('keydown', onMenuKey, true);
@@ -172,46 +172,104 @@ function wire(cell){
   btn.setAttribute('aria-label', 'Chart actions at this price');
   btn.innerHTML = '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><circle cx="9" cy="9" r="7.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M9 5.5v7M5.5 9h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>';
   host.appendChild(btn);
-  const st = { price: null, time: null, y: 0, hideT: 0, touch: false, over: false };
+  const st = { price: null, time: null, y: 0, x: null, hideT: 0, touch: false, over: false, pinned: false, shown: false, ty: NaN, tx: NaN };
+  // GEOMETRY CACHE (smoothness): reading getBoundingClientRect() on every crosshair move
+  // forced a synchronous layout per frame (build 424-428). The canvas offset inside the host
+  // and its size only change on resize / layout / scroll, so they are measured once and
+  // re-measured only after a ResizeObserver report, a window resize or a scroll.
+  let G = null;
+  const dirty = () => { G = null; };
   const geo = () => {
+    if (G) return G;
     const cv = R.input && R.input.el; if (!cv) return null;
     const hr = host.getBoundingClientRect(), cr = cv.getBoundingClientRect();
-    return { ox: cr.left - hr.left, oy: cr.top - hr.top, cr, plotW: R.coords.width, fullW: cr.width };
+    G = { ox: cr.left - hr.left, oy: cr.top - hr.top, left: cr.left, top: cr.top, fullW: cr.width };
+    return G;
   };
+  let ro = null;
+  try { ro = new ResizeObserver(dirty); ro.observe(host); if (R.input && R.input.el) ro.observe(R.input.el); } catch (e) {}
+  window.addEventListener('resize', dirty, { passive: true });
+  window.addEventListener('scroll', dirty, { passive: true, capture: true });
+  // the button moves with a compositor-only transform, written only when the rounded spot changes
+  const place = (yPlot) => {
+    const g = geo(); if (!g) return false;
+    const tx = Math.round(g.ox + R.coords.width - BTN - 3), ty = Math.round(g.oy + yPlot - BTN / 2);
+    if (tx !== st.tx || ty !== st.ty) { st.tx = tx; st.ty = ty; btn.style.transform = 'translate3d(' + tx + 'px,' + ty + 'px,0)'; }
+    if (!st.shown) { st.shown = true; btn.hidden = false; }
+    return true;
+  };
+  const hideBtn = () => { if (st.shown) { st.shown = false; btn.hidden = true; } };
   const show = (yPlot, price, time) => {
-    const g = geo(); if (!g) return;
     clearTimeout(st.hideT);
     st.price = price; st.time = time; st.y = yPlot;
-    btn.style.left = Math.round(g.ox + g.plotW - BTN - 3) + 'px';
-    btn.style.top = Math.round(g.oy + yPlot - BTN / 2) + 'px';
-    btn.hidden = false;
+    place(yPlot);
   };
-  const hideSoon = (ms) => { clearTimeout(st.hideT); st.hideT = setTimeout(() => { if (!st.over && !(menu && menu.__host === host)) btn.hidden = true; }, ms); };
+  // PINNED CROSSHAIR: the "+" is a DOM button over the canvas, so moving onto it fires Vela's
+  // pointerleave and Vela clears its crosshair and the price-axis label. TradingView keeps
+  // both frozen at that price while the "+" is hovered and while its menu is open, so we
+  // re-feed Vela the last crosshair point (its own handlePointerMove: same line, same axis
+  // chip, same price the menu uses) and release it when the "+" and the menu are gone.
+  // The pinned row is snapped to the tick-rounded price, so the axis label reads exactly the
+  // price the menu uses (Vela's own chip prints the raw cursor price, e.g. 31146.71 vs .75).
+  const snapY = () => {
+    try {
+      const p = pricePane(st.y); if (!p) return st.y;
+      const rp = roundTo(st.price, tickOf(R, st.price));
+      const y = R.coords.priceToY(rp, p.scale, p.bounds);
+      return Number.isFinite(y) && Math.abs(y - st.y) < 12 ? y : st.y;
+    } catch (e) { return st.y; }
+  };
+  const pin = () => {
+    if (st.price == null) return;
+    const x = st.x != null ? Math.min(st.x, R.coords.width) : R.coords.width;
+    st.pinned = true;
+    try { R.handlePointerMove(x, snapY()); } catch (e) {}
+  };
+  const unpin = () => {
+    if (!st.pinned) return;
+    st.pinned = false;
+    try { R.handlePointerMove(null, null); } catch (e) {}
+  };
+  const menuOpenHere = () => !!(menu && menu.__host === host);
+  const hideSoon = (ms) => {
+    clearTimeout(st.hideT);
+    st.hideT = setTimeout(() => { if (!st.over && !menuOpenHere()) { hideBtn(); unpin(); } }, ms);
+  };
   const pricePane = (y) => { try { const p = R.paneNodeAtY(y); return p && p.kind === 'price' ? p : null; } catch (e) { return null; } };
   // plot area: Vela's crosshair (mouse hover, and the touch long-press crosshair)
   const off = R.onCrosshairMove((e) => {
     const ch = R.scene && R.scene.crosshair;
-    if (e && e.price != null && e.paneKind === 'price' && ch) { show(ch.y, e.price, e.time); return; }
+    if (e && e.price != null && e.paneKind === 'price' && ch) {
+      if (!st.pinned) st.x = ch.x;
+      show(ch.y, e.price, e.time); return;
+    }
+    if (menuOpenHere() && st.menuAt) {                               // menu open: keep its price on the axis
+      const m = st.menuAt; queueMicrotask(() => { if (menuOpenHere()) { st.pinned = true; try { R.handlePointerMove(m.x, m.y); } catch (e2) {} } });
+      return;
+    }
+    if (st.over) return;                                             // Vela's leave while on the "+": keep it
     if (e && e.price != null && ch) { hideSoon(0); return; }        // a sub-pane: no "+"
     hideSoon(st.touch ? 4000 : 160);                                  // left the plot (axis hover may re-show)
   });
-  // price axis strip: Vela draws no crosshair there, so we read the price ourselves
+  // price axis strip: Vela draws no crosshair there, so we pin one at the axis row ourselves
+  // (horizontal line + the price label on the axis), like TradingView.
   const onMove = (e) => {
-    if (e.pointerType === 'touch') return;
+    if (e.pointerType === 'touch' || e.target === btn || btn.contains(e.target)) return;
     st.touch = false;
     const g = geo(); if (!g) return;
-    const x = e.clientX - g.cr.left, y = e.clientY - g.cr.top;
-    if (x <= g.plotW || x > g.fullW) return;
-    const p = pricePane(y); if (!p) { hideSoon(160); return; }
-    try { show(y, R.coords.yToPrice(y, p.scale, p.bounds), lastTime(R)); } catch (e2) {}
+    const plotW = R.coords.width;
+    const x = e.clientX - g.left, y = e.clientY - g.top;
+    if (x <= plotW || x > g.fullW) { if (x <= plotW && st.pinned && !menuOpenHere()) st.pinned = false; return; }
+    const p = pricePane(y); if (!p) { hideSoon(160); unpin(); return; }
+    try { show(y, R.coords.yToPrice(y, p.scale, p.bounds), lastTime(R)); pin(); } catch (e2) {}
   };
   const onDown = (e) => { st.touch = e.pointerType === 'touch'; };
-  const onLeave = () => { if (!st.touch) hideSoon(160); };
-  host.addEventListener('pointermove', onMove);
+  const onLeave = () => { if (!st.touch && !st.over && !menuOpenHere()) hideSoon(160); };
+  host.addEventListener('pointermove', onMove, { passive: true });
   host.addEventListener('pointerdown', onDown, true);
   host.addEventListener('pointerleave', onLeave);
-  btn.addEventListener('pointerenter', () => { st.over = true; clearTimeout(st.hideT); });
-  btn.addEventListener('pointerleave', () => { st.over = false; if (!st.touch) hideSoon(220); });
+  btn.addEventListener('pointerenter', (e) => { if (e.pointerType === 'touch') return; st.over = true; clearTimeout(st.hideT); pin(); });
+  btn.addEventListener('pointerleave', () => { st.over = false; if (!st.touch && !menuOpenHere()) hideSoon(220); });
   btn.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
   btn.addEventListener('click', (e) => {
     e.preventDefault(); e.stopPropagation();
@@ -220,10 +278,15 @@ function wire(cell){
     c.time = st.time;
     const r = btn.getBoundingClientRect();
     openMenu(c, r.left - 4, r.top);
-    if (menu) { menu.__host = host; }
+    if (menu) {
+      menu.__host = host;
+      st.menuAt = { x: st.x != null ? Math.min(st.x, R.coords.width) : R.coords.width, y: snapY() };
+      pin();                                    // label stays on the axis while the menu is open
+      menu.__onClose = () => { st.menuAt = null; if (!st.over) { unpin(); hideSoon(st.touch ? 1500 : 160); } };
+    }
     clearTimeout(st.hideT);
   });
-  wired.set(host, { btn, off, st });
+  wired.set(host, { btn, off, st, ro });
 }
 function wireAll(){
   if (!WS) return;
@@ -252,7 +315,7 @@ function keys(){
 }
 
 const CSS = `
-.stkp-plus{ position:absolute; z-index:6; width:${BTN}px; height:${BTN}px; padding:0; margin:0; border:0; border-radius:4px; display:flex; align-items:center; justify-content:center;
+.stkp-plus{ position:absolute; left:0; top:0; z-index:6; will-change:transform; width:${BTN}px; height:${BTN}px; padding:0; margin:0; border:0; border-radius:4px; display:flex; align-items:center; justify-content:center;
   background:#2a2e39; color:#d1d4dc; cursor:pointer; box-shadow:0 0 0 1px rgba(0,0,0,.25); }
 .stkp-plus[hidden]{ display:none; }
 .stkp-plus:hover,.stkp-plus:focus-visible{ background:#363a45; color:#fff; outline:none; }

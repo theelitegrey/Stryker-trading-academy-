@@ -9347,10 +9347,28 @@ var DrawingSceneRenderer = class {
 };
 
 // src/renderers/native/chrome/tz.ts
+// Stryker patch (s3): one cached Intl.DateTimeFormat per zone + a per-hour offset cache.
+// Upstream built a new formatter on EVERY call (crosshair chip, time axis, grid), which made
+// any non-UTC chart timezone cost ~200 ms of script per crosshair/pan sweep.
+var stkTzDtf = /* @__PURE__ */ new Map();
+var stkTzOff = /* @__PURE__ */ new Map();
 function tzOffsetMs(ms, timeZone) {
   if (!timeZone || timeZone === "UTC") return 0;
+  const q = Math.floor(ms / 9e5);
+  const hk = timeZone + "|" + q;
+  const hit = stkTzOff.get(hk);
+  if (hit !== void 0) return hit;
+  // computed at the 15-minute boundary (every real zone offset changes only on those, and
+  // a whole-second instant keeps the result exact; upstream's sub-second skew is gone too)
+  const v = stkTzOffsetCalc(q * 9e5, timeZone);
+  if (stkTzOff.size > 5e4) stkTzOff.clear();
+  stkTzOff.set(hk, v);
+  return v;
+}
+function stkTzOffsetCalc(ms, timeZone) {
   try {
-    const dtf = new Intl.DateTimeFormat("en-US", {
+    let dtf = stkTzDtf.get(timeZone);
+    if (!dtf) { dtf = new Intl.DateTimeFormat("en-US", {
       timeZone,
       hourCycle: "h23",
       year: "numeric",
@@ -9359,7 +9377,7 @@ function tzOffsetMs(ms, timeZone) {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit"
-    });
+    }); stkTzDtf.set(timeZone, dtf); }
     const parts = dtf.formatToParts(new Date(ms));
     const get = (t) => Number(parts.find((p) => p.type === t)?.value);
     const asUTC = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour") % 24, get("minute"), get("second"));

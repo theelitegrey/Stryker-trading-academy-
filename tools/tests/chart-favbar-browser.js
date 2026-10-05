@@ -42,7 +42,7 @@ async function starViaFlyout(p, type) {
   return p.evaluate(async (type) => {
     const tb = document.querySelector('.vela-dtb');
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    if (!window.__labels || !window.__labels[type]) { const m = await import('./assets/vendor/vela-0.6.17-s2/index.js'); window.__labels = window.__labels || {}; window.__labels[type] = m.getDrawingType(type).label; }
+    if (!window.__labels || !window.__labels[type]) { const m = await import('./assets/vendor/vela-0.6.17-s3/index.js'); window.__labels = window.__labels || {}; window.__labels[type] = m.getDrawingType(type).label; }
     for (const a of [...tb.querySelectorAll('.vela-dtb-arrow')]) {
       a.click(); await wait(100);
       const fly = document.querySelector('.vela-dtb-flyout');
@@ -88,7 +88,7 @@ const shot = async (p, n) => { await p.screenshot({ path: OUT + '/' + n + '.png'
       await p.evaluate(() => { window.__labels = {}; });
       // labels from the registry via the bar's own meta: arm a dummy render
       await p.evaluate(async () => {
-        const m = await import('./assets/vendor/vela-0.6.17-s2/index.js');
+        const m = await import('./assets/vendor/vela-0.6.17-s3/index.js');
         for (const t of ['fibretracement', 'box', 'position', 'trendline', 'hline']) window.__labels[t] = m.getDrawingType(t).label;
       });
       let i0 = await barInfo(p);

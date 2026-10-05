@@ -229,11 +229,16 @@ function showToast(title, sub){
 // ---------------------------------------------------------------------------------------
 // alert lines (renderer layer; data per cell via setNativeData)
 // ---------------------------------------------------------------------------------------
+const lineSig = new WeakMap();   // renderer -> last pushed lines signature
 function pushLines(){
   if (!WS) return;
   for (const c of WS.context().cells || []) {
     const cell = cellOf(c.id); const R = inner(cell); if (!R || !R.setNativeData) continue;
     const lines = prefs.lines ? alerts.filter((a) => a.symbol === cell.symbol && (!a.src || a.src.vs !== 'close') && (a.active || !prefs.onlyActive)).map((a) => ({ price: a.price, active: a.active })) : [];
+    // only push when something changed: every setNativeData repaints the whole chart
+    const sig = JSON.stringify(lines) + prefs.lineColor;
+    if (lineSig.get(R) === sig) continue;
+    lineSig.set(R, sig);
     try { R.setNativeData(LAYER, { lines, color: prefs.lineColor }); } catch (e) {}
   }
 }

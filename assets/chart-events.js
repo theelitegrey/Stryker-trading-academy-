@@ -69,16 +69,24 @@ function visibleEvents(){
   const lv = prefs.level === 'High + medium' ? ['high', 'medium'] : ['high'];
   return events.filter((e) => e.cur === 'USD' && lv.includes(e.impact) && (prefs.future || e.t <= now));
 }
+const pushed = new WeakMap();   // renderer -> signatures of the last pushed data
 function push(){
   if (!WS) return;
   const evs = prefs.events ? visibleEvents() : [];
+  const evsSig = evs.map((e) => e.t + e.impact + e.title).join('|') + (evs.length ? '' : '-');
   for (const c of WS.context().cells || []) {
     const cell = cellOf(c.id); const R = inner(cell); if (!R || !R.setNativeData) continue;
     const market = marketOf(cell.symbol);
     const isFut = !!market;
+    // only push when something changed: every setNativeData repaints the whole chart, and
+    // push() also runs on a 5 s timer and on every workspace state change
+    const sess = { breaks: prefs.breaks, futures: isFut, rth: prefs.rthShade && market ? RTH[market] : null, color: prefs.rthColor };
+    const last = pushed.get(R) || {};
     try {
-      R.setNativeData('stk_events', { evs });
-      R.setNativeData('stk_sess', { breaks: prefs.breaks, futures: isFut, rth: prefs.rthShade && market ? RTH[market] : null, color: prefs.rthColor });
+      if (last.evs !== evsSig) R.setNativeData('stk_events', { evs });
+      const ss = JSON.stringify(sess);
+      if (last.sess !== ss) R.setNativeData('stk_sess', sess);
+      pushed.set(R, { evs: evsSig, sess: ss });
     } catch (e) {}
   }
 }
@@ -180,6 +188,8 @@ const fmtIST = new Intl.DateTimeFormat('en-GB', { timeZone: IST, weekday: 'short
 function onMove(e){
   let found = null, rect = null;
   for (const cv of document.querySelectorAll('canvas[data-stk-events]')) {
+    const bx = hitBoxes.get(cv);
+    if (!bx || !bx.length) continue;               // no markers on this chart: no layout read
     const r = cv.getBoundingClientRect();
     const x = e.clientX - r.left, y = e.clientY - r.top;
     if (x < 0 || y < 0 || x > r.width || y > r.height) continue;

@@ -178,15 +178,15 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=425'),
+      import('./chart-futures-provider.js?v=427'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=425'),
-      import('./chart-orderflow.js?v=425'),
-      import('./chart-settings.js?v=425'),
+      import('./chart-pine.js?v=427'),
+      import('./chart-orderflow.js?v=427'),
+      import('./chart-settings.js?v=427'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=425'),
-      import('./chart-alerts.js?v=425'),
-      import('./chart-events.js?v=425')
+      import('./chart-grid.js?v=427'),
+      import('./chart-alerts.js?v=427'),
+      import('./chart-events.js?v=427')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -253,7 +253,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=425')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=427')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {
@@ -321,20 +321,24 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=425')
+  import('./chart-data-dot.js?v=427')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
+  // Floating Favorites drawing toolbar (starred tools, draggable): assets/chart-fav-toolbar.js.
+  import('./chart-fav-toolbar.js?v=427')
+    .then((m) => m.mountFavToolbar(ws, Core, { toast }))
+    .catch((e) => console.warn('Stryker: favorites toolbar', e));
   window.__stkFlow = Flow;
   try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
-  import('./chart-plus.js?v=425').then((m) => m.mountChartPlus(ws)).catch((e) => console.warn('Stryker: + menu', e));
+  import('./chart-plus.js?v=427').then((m) => m.mountChartPlus(ws)).catch((e) => console.warn('Stryker: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=425')
+  import('./chart-indicator-window.js?v=427')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 
@@ -435,7 +439,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=425')
+    import('./chart-layouts.js?v=427')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('Stryker: layout menu', e));
   }

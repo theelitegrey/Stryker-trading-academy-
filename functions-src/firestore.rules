@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs']); }
 
       // Charts page price alerts (assets/chart-alerts.js, 2026-10-06). Owner only (not even
       // admins read them). Validated shape; the 200-per-member cap is enforced in the client.
@@ -201,6 +201,23 @@ service cloud.firestore {
           && request.resource.data.key is string && request.resource.data.key.size() > 0 && request.resource.data.key.size() <= 90
           && request.resource.data.name is string && request.resource.data.name.size() <= 80
           && request.resource.data.at == request.time;
+      }
+
+      // Charts page floating Favorites drawing toolbar (assets/chart-fav-toolbar.js, 2026-10-06).
+      // Owner only (not even admins read it). One doc, favToolbar: starred tool types (<= 40),
+      // bar position as fractions 0..1 of the chart grid, visible flag, server timestamp.
+      match /chartPrefs/{pid} {
+        function validFavBar(d) {
+          return d.keys().hasOnly(['tools', 'x', 'y', 'visible', 'updatedAt'])
+            && d.keys().hasAll(['tools', 'visible', 'updatedAt'])
+            && d.tools is list && d.tools.size() <= 40
+            && (!('x' in d) || ((d.x is int || d.x is float) && d.x >= 0 && d.x <= 1))
+            && (!('y' in d) || ((d.y is int || d.y is float) && d.y >= 0 && d.y <= 1))
+            && d.visible is bool
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid) && pid == 'favToolbar';
+        allow create, update: if isSelf(uid) && pid == 'favToolbar' && validFavBar(request.resource.data);
       }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).

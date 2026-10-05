@@ -239,6 +239,12 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   measureFrame();
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
+  // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
+  // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
+  let rith = null;
+  try { rith = await (await import('./rithmic-config.js?v=404')).loadRithmicIfEnabled(); }
+  catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
+
   try {
     ws = window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
       layout: '1',
@@ -257,7 +263,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       live: true,
       theme: day ? 'light' : 'dark',
       providers: {
-        futures: () => new FuturesProvider(),
+        futures: rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(),
         binance: () => new BinanceProvider(),
         coinbase: () => new CoinbaseProvider(),
         hyperliquid: () => new HyperliquidProvider()
@@ -314,6 +320,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(tplWrap);
   try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('Stryker: Pine editor', e); }
   barL.appendChild(cellSw);
+  if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
 
   function refreshLayoutUi(){
     let id = '1';

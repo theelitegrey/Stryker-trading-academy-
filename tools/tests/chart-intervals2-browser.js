@@ -65,7 +65,8 @@ async function shot(p, name) { await sleep(500); await p.screenshot({ path: OUT 
       await p.evaluate(() => window.__stkIntervals.apply('7')); await bars(p); await sleep(1500);
       const r7 = await raw(p);
       const step7 = Math.min(...r7.slice(1).map((x, i) => x.t - r7[i].t).filter((d) => d > 0));
-      check(r7.length > 20 && step7 === 7 * 60000, 'NQ 7m built: ' + r7.length + ' bars, step ' + step7 / 60000 + 'm');
+      const odd7 = r7.slice(1).map((x, i) => [i + 1, (x.t - r7[i].t) / 60000, new Date(x.t).toISOString().slice(5, 16)]).filter((x) => x[1] < 7);
+      check(r7.length > 20 && step7 === 7 * 60000, 'NQ 7m built: ' + r7.length + ' bars, step ' + step7 / 60000 + 'm ' + JSON.stringify(odd7.slice(0, 6)) + ' of ' + odd7.length);
       await p.evaluate(() => window.__stkIntervals.open()); await sleep(300);
       check(await p.evaluate(() => !!document.querySelector('.stk-iv-r[data-iv="7"] .stk-iv-x')), 'custom row in Minutes with a remove button');
       await shot(p, 'iv2-menu-custom-1440-dark.png');

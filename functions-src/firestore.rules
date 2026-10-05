@@ -238,6 +238,21 @@ service cloud.firestore {
         allow read, delete: if isSelf(uid) && pid == 'favToolbar';
         allow create, update: if isSelf(uid) && pid == 'favToolbar' && validFavBar(request.resource.data);
       }
+      // Charts: interval prefs (assets/chart-intervals.js, 2026-10-06). Owner only. favs = starred
+      // interval ids <= 40, custom = member-added interval ids <= 20, collapsed = menu section ids
+      // <= 5, server time. A sibling of the favToolbar block above (same subcollection, own doc id).
+      match /chartPrefs/intervals {
+        function validIvPrefs(d) {
+          return d.keys().hasOnly(['favs', 'custom', 'collapsed', 'updatedAt'])
+            && d.keys().hasAll(['favs', 'updatedAt'])
+            && d.favs is list && d.favs.size() <= 40
+            && (!('custom' in d) || (d.custom is list && d.custom.size() <= 20))
+            && (!('collapsed' in d) || (d.collapsed is list && d.collapsed.size() <= 5))
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validIvPrefs(request.resource.data);
+      }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
       // Owner only. name 1-60 chars, state = Vela workspace JSON <= 200000

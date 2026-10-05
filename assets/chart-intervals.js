@@ -9,7 +9,10 @@
 //     plus the caret (no sideways scroll). Vela's own chips and caret are hidden, not removed.
 //   - Menu: sections Ticks / Seconds / Minutes / Hours / Days, each collapsible (state remembered),
 //     a star per row to add or remove it from the top row, the active row as a white pill.
-//   - Favourites and collapse state live in localStorage for every member (stage 1).
+//   - Favourites, custom intervals and collapsed sections: localStorage for guests; signed-in members
+//     sync them to students/{uid}/chartPrefs/intervals (owner-only, shape-checked rules block
+//     "Charts: interval prefs"; the sibling favToolbar doc is assets/chart-fav-toolbar.js). The first
+//     sign-in with no cloud doc copies this browser's lists up; after that the account wins.
 // DATA (honest about each source, never fake bars):
 //   - Minutes / hours / days work everywhere. wrapProvider() builds intervals a source does not
 //     serve natively by aggregating the nearest smaller native interval: futures 2m 3m 10m 45m 3h
@@ -492,6 +495,53 @@ function readLs(key, fallback) {
 function writeLs(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
 const providerOf = (sym) => { const m = /^([a-z]+):/i.exec(String(sym || '')); return m ? m[1].toLowerCase() : ''; };
 
+// ---------------- account sync ----------------
+const DOC_ID = 'intervals';
+const MAX_FAVS = 40;
+const clean = (list, max, ok) => (Array.isArray(list) ? list : []).filter((x, i, a) => typeof x === 'string' && x.length <= 12 && ok(x) && a.indexOf(x) === i).slice(0, max);
+export function prefsDoc(p) {
+  return {
+    favs: clean(p.favs, MAX_FAVS, (x) => !!parseIv(x)),
+    custom: clean(p.custom, MAX_CUSTOM, (x) => !!parseIv(x)),
+    collapsed: clean(p.collapsed, 5, (x) => SECTIONS.some((sec) => sec.id === x))
+  };
+}
+function prefRef(uid) { return firebase.firestore().collection('students').doc(uid).collection('chartPrefs').doc(DOC_ID); }
+function startCloudSync(api) {
+  let uid = null, timer = 0, ready = false;
+  const push = (p) => {
+    if (!uid || !ready) return;
+    clearTimeout(timer);
+    const u = uid;
+    timer = setTimeout(() => {
+      const d = prefsDoc(p);
+      d.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+      prefRef(u).set(d).catch((e) => console.warn('Stryker: interval prefs save', e));
+    }, 600);
+  };
+  const onAuth = async (u) => {
+    uid = u ? u.uid : null; ready = false;
+    if (!uid) return;
+    try {
+      const snap = await prefRef(uid).get();
+      if (uid !== (u && u.uid)) return;
+      if (snap.exists) {
+        const d = snap.data() || {};
+        api.setPrefs({ favs: d.favs, custom: d.custom, collapsed: d.collapsed });
+        ready = true;
+      } else {
+        ready = true;
+        push({ favs: api.favs(), custom: api.custom(), collapsed: api.collapsed() }); // first sign-in: copy local up
+      }
+    } catch (e) { console.warn('Stryker: interval prefs load', e); ready = false; }
+  };
+  const hook = () => {
+    try { if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return false; firebase.auth().onAuthStateChanged(onAuth); return true; } catch (e) { return false; }
+  };
+  if (!hook()) { let n = 0; const t = setInterval(() => { if (hook() || ++n > 40) clearInterval(t); }, 250); }
+  return push;
+}
+
 export function mountIntervals(ws, opts) {
   opts = opts || {};
   const toast = opts.toast || (() => {});
@@ -502,6 +552,7 @@ export function mountIntervals(ws, opts) {
   let collapsed = readLs(LS_COLLAPSED, []).filter((s) => typeof s === 'string');
   let custom = readLs(LS_CUSTOM, []).filter((t) => typeof t === 'string' && parseIv(t) && !known.has(t)).slice(0, MAX_CUSTOM);
   const tickerOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '');
+  let cloudPush = null;
   const isPhone = () => window.innerWidth <= PHONE_MAX;
   const activeCell = () => { try { return ws.active; } catch (e) { return null; } };
   const activeTf = () => { const c = activeCell(); return c ? String(c.timeframe || '') : ''; };
@@ -568,7 +619,7 @@ export function mountIntervals(ws, opts) {
     note.textContent = text;
     note.title = !h.history ? 'No tick history on this connection: bars are built from the live trades since you opened this chart.' : 'History is limited to the most recent trades the exchange returns; new bars build live.';
   }
-  function saved() { writeLs(LS_FAVS, favs); writeLs(LS_COLLAPSED, collapsed); writeLs(LS_CUSTOM, custom); if (opts.onPrefs) { try { opts.onPrefs({ favs, collapsed, custom }); } catch (e) {} } }
+  function saved() { writeLs(LS_FAVS, favs); writeLs(LS_COLLAPSED, collapsed); writeLs(LS_CUSTOM, custom); if (cloudPush) { try { cloudPush({ favs, collapsed, custom }); } catch (e) {} } }
   function toggleFav(tf) {
     favs = favs.includes(tf) ? favs.filter((f) => f !== tf) : favs.concat(tf);
     saved();
@@ -896,5 +947,6 @@ export function mountIntervals(ws, opts) {
   setTimeout(guardCells, 1500);
   const api = { open: () => setOpen(true), close: () => setOpen(false), favs: () => favs.slice(), custom: () => custom.slice(), collapsed: () => collapsed.slice(), toggleFav, addCustom, removeCustom, openCustom, openQuick, setPrefs, apply, known };
   window.__stkIntervals = api;
+  try { cloudPush = startCloudSync(api); } catch (e) { console.warn('Stryker: interval prefs sync', e); }
   return api;
 }

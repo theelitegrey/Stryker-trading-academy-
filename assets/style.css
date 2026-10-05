@@ -8518,3 +8518,42 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
   background: rgba(3,201,136,.06); color: var(--ink-1); font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
 .trial-strip b { color: var(--ink-0); }
 .trial-strip a { color: var(--teal); text-decoration: underline; white-space: nowrap; }
+
+/* Publish Pine script dialog (assets/chart-publish-dialog.js) */
+.stkc-dialog{ position:fixed; left:0; right:0; top:0; bottom:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.5); z-index:10000; }
+.stkc-dialog > :first-child{ background:var(--bg-0); border:1px solid var(--line); border-radius:12px; box-shadow:0 20px 25px -5px rgba(0,0,0,.1); display:flex; flex-direction:column; max-height:90vh; max-width:500px; width:90%; overflow:hidden; }
+.stkc-dhead{ display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line); }
+.stkc-dhead h3{ margin:0; font-size:16px; font-weight:600; color:var(--ink-0); }
+.stkc-dclose{ display:flex; align-items:center; justify-content:center; width:32px; height:32px; font-size:20px; line-height:1; color:var(--ink-2); border:none; background:none; cursor:pointer; padding:0; }
+.stkc-dclose:hover{ color:var(--ink-0); }
+.stkc-dbody{ flex:1 1 auto; overflow-y:auto; padding:18px 20px; }
+.stkc-dfooter{ display:flex; gap:12px; padding:16px 20px; border-top:1px solid var(--line); }
+.stkc-dfooter .stkc-btn{ flex:1; }
+.stkc-dfooter .stkc-btn-cancel{ background:var(--bg-2); color:var(--ink-0); border-color:var(--line); }
+.stkc-dfooter .stkc-btn-cancel:hover{ background:var(--bg-1); }
+.stkc-form{ display:flex; flex-direction:column; gap:18px; }
+.stkc-fgroup{ display:flex; flex-direction:column; gap:6px; }
+.stkc-fgroup > label:first-child{ font-size:13px; font-weight:600; color:var(--ink-0); }
+.stkc-fgroup .stkc-note{ font-size:12px; color:var(--ink-2); line-height:1.4; margin:2px 0 0; }
+.stkc-fgroup .stkc-in{ border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:14px; background:var(--bg-1); color:var(--ink-0); }
+.stkc-fgroup .stkc-ta{ resize:vertical; min-height:80px; }
+.stkc-fgroup .stkc-checkbox{ display:flex; gap:10px; align-items:flex-start; cursor:pointer; user-select:none; }
+.stkc-fgroup .stkc-checkbox input[type="checkbox"]{ margin-top:2px; accent-color:var(--teal); }
+.stkc-fgroup .stkc-checkbox span{ flex:1; font-size:13px; line-height:1.5; color:var(--ink-1); }
+.stkc-fgroup .stkc-checkbox strong{ color:var(--ink-0); }
+.stkc-fgroup .stkc-checkbox em{ color:var(--ink-2); }
+.stkc-tags{ display:flex; flex-wrap:wrap; gap:8px; }
+.stkc-tag-check{ display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg-1); font-size:12px; cursor:pointer; user-select:none; }
+.stkc-tag-check input[type="checkbox"]{ accent-color:var(--teal); }
+.stkc-tag-check:hover{ border-color:var(--ink-1); }
+.stkc-radio-group{ display:flex; flex-direction:column; gap:10px; }
+.stkc-radio-check{ display:flex; gap:10px; align-items:flex-start; cursor:pointer; user-select:none; }
+.stkc-radio-check input[type="radio"]{ margin-top:2px; accent-color:var(--teal); }
+.stkc-radio-check span{ font-size:13px; line-height:1.5; color:var(--ink-1); }
+.stkc-form-error{ margin:0; padding:10px 12px; border-radius:6px; background:rgba(230,100,80,.1); color:#e66450; font-size:13px; line-height:1.4; }
+.stkc-progress{ margin-top:12px; padding:10px 12px; border-radius:6px; background:var(--bg-1); }
+.stkc-progress-msg{ font-size:13px; line-height:1.4; text-align:center; }
+.stkc-progress-msg.stkc-working{ color:var(--ink-1); }
+.stkc-progress-msg.stkc-ok{ color:#03c988; }
+.stkc-progress-msg.stkc-fail{ color:#e66450; }
+

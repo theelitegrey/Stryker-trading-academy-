@@ -434,6 +434,10 @@ export function mountPine(ws, barL, opts){
         try { await S.rename(t.id, v); if (editingId === t.id) nameIn.value = v.trim(); } catch (e) { showErr('Could not rename.'); }
         renderLists();
       }),
+      ib('Publish ' + t.name + ' to Community', '<path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 5l3 1v3.5h-6V8l3-1z"/>', () => {
+        if (window.StrykerPublishDialog) window.StrykerPublishDialog.open(t.id, t.name, t.source);
+        else showErr('Publish is not available.');
+      }),
       ib('Delete ' + t.name, ICON_DEL, async () => {
         if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return;
         try { await S.remove(t.id); if (editingId === t.id) editingId = null; } catch (e) { showErr('Could not delete.'); }

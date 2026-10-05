@@ -25,6 +25,8 @@
   function money(n){ if(n == null || !isFinite(n)) return '—'; return '$' + Math.abs(n).toLocaleString(undefined,{maximumFractionDigits:0}); }
   function cls(on){ return on ? ' is-on' : ''; }
   function mlabel(m){ return MARKET_LABELS[m] || m; }
+  // "18m old" -> "18 min ago" for the "updated ..." status lines
+  function agoText(label){ return String(label || 'unknown age').replace(/(\d+)m old$/, '$1 min ago').replace(/ old$/, ' ago'); }
   function ageLabel(ms){
     if(ms == null || !isFinite(ms)) return 'unknown age';
     var mins = Math.max(0, Math.round(ms / 60000));
@@ -39,7 +41,7 @@
     if(!isFinite(t)) return {state:'stale', age:'unknown age', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
     var age = Date.now() - t;
     var state = age <= 30*60000 ? 'fresh' : 'stale';
-    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Options chain updated '+ageLabel(age)+'.'};
+    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Options chain updated '+agoText(ageLabel(age))+'.'};
     return {state:state, age:ageLabel(age), title:'Market closed', reason:'Options chain is frozen from the last Cboe session · '+ageLabel(age)+'.'};
   }
   // ---- Market status: closed-market disclaimer + chart tag (display only) ----
@@ -62,8 +64,8 @@
     if(!m || !m.state) return null;
     var futAge = m.futures_age_min != null ? ageLabel(m.futures_age_min * 60000) : null;
     var optAge = m.options_age_min != null ? ageLabel(m.options_age_min * 60000) : null;
-    if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Options chain updated '+(optAge || 'unknown age')+'.'};
-    if(m.state === 'stale') return {state:'stale', title:'Data behind', reason:'Feed is behind: futures '+(futAge || 'unknown age')+', options chain '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Options chain updated '+agoText(optAge)+'.'};
+    if(m.state === 'stale') return {state:'stale', title:'Waiting for the next update', reason:'Options chain updated '+agoText(optAge)+' · futures '+agoText(futAge)+'.'};
     if(m.state === 'opening'){
       var prior = m.options_ts ? new Date(m.options_ts * 1000).toLocaleDateString('en-US', {timeZone:'America/New_York', weekday:'long'}) : 'the last session';
       return {state:'stale', closed:'opening', title:'Market just opened',
@@ -88,7 +90,7 @@
     var t = asof ? Date.parse(asof) : NaN;
     if(!isFinite(t)) return {state:'stale', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
     var age = Date.now() - t;
-    if(age <= 30*60000) return {state:'fresh', title:'Market session active', reason:'Options chain updated '+ageLabel(age)+'.'};
+    if(age <= 30*60000) return {state:'fresh', title:'Market session active', reason:'Options chain updated '+agoText(ageLabel(age))+'.'};
     return {state:'stale', title:'Data not recent', reason:'Options chain is from the last Cboe session · '+ageLabel(age)+'.'};
   }
   function setFreshnessStatus(d){

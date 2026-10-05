@@ -37,8 +37,14 @@ const DEFAULTS = Object.freeze({
   nav: 'Visible on mouse over',  // Always visible / Visible on mouse over / Always invisible
   paneBtns: 'Visible on mouse over',
   precision: 'Default',
-  rightBars: '6'
+  rightBars: '6',
+  prevClose: false,        // s2 patch: colour bars on previous close
+  marginTop: '10',         // s2 patch: % of the pane height (TradingView default 10 / 8)
+  marginBottom: '8',
+  h12: false,              // s2 patch: 12-hour clock on the time axis + crosshair
+  dow: true                // s2 patch: weekday in the crosshair date
 });
+const MARGINS = ['0', '2', '4', '6', '8', '10', '12', '15', '20', '25', '30'];
 const VIS = ['Always visible', 'Visible on mouse over', 'Always invisible'];
 const PRECISIONS = ['Default', '1', '0.1', '0.01', '0.001', '0.0001', '0.25 (quarter tick)', '0.5'];
 const RIGHT_BARS = ['0', '2', '4', '6', '10', '15', '20', '30', '50'];
@@ -46,7 +52,6 @@ const RIGHT_BARS = ['0', '2', '4', '6', '10', '15', '20', '30', '50'];
 // Rows that need the stage-2 Vela patch (or a data feed we don't have). Shown, not active.
 const SOON = 'Coming in the next Charts update';
 const DISABLED = {
-  'Color bars based on previous close': SOON,
   'Hollow candles': SOON,
   'Adjust for contract changes': 'Not available on this data feed yet',
   'Volume value': SOON,
@@ -54,11 +59,7 @@ const DISABLED = {
   'Previous day close line': SOON,
   'High and low price labels': SOON,
   'Indicator labels on the price scale': SOON,
-  'Currency and unit label': SOON,
-  'Day of week on the time axis': SOON,
-  '12-hour time': SOON,
-  'Top margin %': SOON,
-  'Bottom margin %': SOON
+  'Currency and unit label': SOON
 };
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
@@ -83,6 +84,8 @@ function sanitize(p){
   if (!VIS.includes(out.paneBtns)) out.paneBtns = DEFAULTS.paneBtns;
   if (!PRECISIONS.includes(out.precision)) out.precision = 'Default';
   if (!RIGHT_BARS.includes(out.rightBars)) out.rightBars = DEFAULTS.rightBars;
+  if (!MARGINS.includes(out.marginTop)) out.marginTop = DEFAULTS.marginTop;
+  if (!MARGINS.includes(out.marginBottom)) out.marginBottom = DEFAULTS.marginBottom;
   return out;
 }
 const isDefault = (s) => Object.keys(DEFAULTS).every((k) => s[k] === DEFAULTS[k]);
@@ -190,6 +193,17 @@ function applyCell(id){
     cell.host.dataset.stkPane = s.paneBtns === VIS[0] ? 'always' : s.paneBtns === VIS[2] ? 'never' : 'hover';
   }
   applyRight(cell);
+  applyStk(cell);
+}
+// s2 Vela patch options live on the renderer's scene as scene.stk.
+// Margins: TradingView gives % of the pane height; Vela pads by a fraction of the data span.
+// With top t and bottom b (as fractions of the pane), span fractions are t/(1-t-b) and b/(1-t-b).
+function applyStk(cell){
+  const R = inner(cell); if (!R || !R.scene) return;
+  const s = S(cell.id);
+  const t = Number(s.marginTop) / 100, b = Number(s.marginBottom) / 100, rest = Math.max(0.2, 1 - t - b);
+  R.scene.stk = { prevClose: !!s.prevClose, h12: !!s.h12, noDow: !s.dow, marginTop: t / rest, marginBottom: b / rest };
+  try { R.scheduler && R.scheduler.invalidate(4); } catch (e) {}
 }
 function setVal(id, key, v){
   S(id)[key] = v;
@@ -206,7 +220,9 @@ function ourSections(id){
   const off = (label) => ({ kind: 'toggle', label, get: () => false, set: () => {}, id: 'stk-off-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
   return [
     { title: 'Symbol' + MARK, id: 'stk-symbol', placement: 'end', rows: [
-      { kind: 'heading', label: 'Candles' }, off('Color bars based on previous close'), off('Hollow candles'),
+      { kind: 'heading', label: 'Candles' },
+      { kind: 'toggle', label: 'Color bars based on previous close', id: 'prev-close', get: g('prevClose'), set: st('prevClose') },
+      off('Hollow candles'),
       { kind: 'heading', label: 'Data modification' }, off('Adjust for contract changes'),
       { kind: 'select', label: 'Precision', id: 'precision', options: PRECISIONS, get: g('precision'), set: st('precision') },
       { kind: 'heading', label: 'Watermark' },
@@ -221,7 +237,9 @@ function ourSections(id){
     { title: 'Scales and lines' + MARK, id: 'stk-scales', placement: 'end', rows: [
       { kind: 'heading', label: 'More' }, off('Price scale on the left'), off('Previous day close line'), off('High and low price labels'),
       off('Indicator labels on the price scale'), off('Currency and unit label'),
-      { kind: 'heading', label: 'Time scale' }, off('Day of week on the time axis'), off('12-hour time')
+      { kind: 'heading', label: 'Time scale' },
+      { kind: 'toggle', label: 'Day of week on labels', id: 'dow', get: g('dow'), set: st('dow') },
+      { kind: 'toggle', label: '12-hour time (am/pm)', id: 'h12', get: g('h12'), set: st('h12') }
     ] },
     { title: 'Canvas' + MARK, id: 'stk-canvas', placement: 'end', rows: [
       { kind: 'heading', label: 'Background style' },
@@ -230,7 +248,9 @@ function ourSections(id){
       { kind: 'heading', label: 'Buttons' },
       { kind: 'select', label: 'Navigation', id: 'nav', options: VIS, get: g('nav'), set: st('nav') },
       { kind: 'select', label: 'Pane buttons', id: 'pane-btns', options: VIS, get: g('paneBtns'), set: st('paneBtns') },
-      { kind: 'heading', label: 'Margins' }, off('Top margin %'), off('Bottom margin %'),
+      { kind: 'heading', label: 'Margins' }, 
+      { kind: 'select', label: 'Top margin %', id: 'margin-top', options: MARGINS, get: g('marginTop'), set: st('marginTop') },
+      { kind: 'select', label: 'Bottom margin %', id: 'margin-bottom', options: MARGINS, get: g('marginBottom'), set: st('marginBottom') },
       { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') }
     ] }
   ];

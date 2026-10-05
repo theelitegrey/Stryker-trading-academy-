@@ -165,7 +165,27 @@ service cloud.firestore {
       // bare {sub=**} also matches students/{uid} ITSELF, which let a student
       // write plan/paidThroughMillis on their own doc and bypass
       // touchesPrivileged() (audit 2026-09-23, SEV-2).
-      match /{sub}/{rest=**} { allow read, write: if isSelf(uid) || isAdmin(); }
+      // chartTemplates has its own validated block below, so it is carved out
+      // of this wildcard (rules are OR'd: the wildcard would otherwise let any
+      // shape or size through).
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && sub != 'chartTemplates'; }
+
+      // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
+      // Owner only. name 1-60 chars, state = Vela workspace JSON <= 200000
+      // chars, isDefault bool, server timestamps. 20-per-member cap is client-side.
+      match /chartTemplates/{tid} {
+        function validTpl(d) {
+          return d.keys().hasOnly(['name', 'state', 'isDefault', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['name', 'state', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.state is string && d.state.size() <= 200000
+            && (!('isDefault' in d) || d.isDefault is bool)
+            && (!('createdAt' in d) || d.createdAt is timestamp)
+            && d.updatedAt is timestamp;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validTpl(request.resource.data);
+      }
     }
 
     // The public mirror the Trading Floor and leaderboards read. Same rule:

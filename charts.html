@@ -86,7 +86,7 @@
 }}
 </script>
 </head>
-<body>
+<body class="charts-page">
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="home" href="dashboard-user"><span class="appnav-dkbar"></span><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span class="appnav-dkl">Home</span></a>
@@ -259,10 +259,19 @@
   </aside>
 
   <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1>Charts</h1>
-        <p>A full interactive charting workspace: CME, CBOT, NYMEX and COMEX futures (NQ, ES, CL, GC and more) plus crypto, 70+ built-in indicators, drawing tools. Your layout, drawings and indicators are saved in this browser.</p>
+    <h1 class="sr-only">Charts</h1>
+
+    <div class="stkc-bar" id="stkc-bar" role="toolbar" aria-label="Chart workspace">
+      <div class="stkc-bar-l" id="stkc-bar-l"></div>
+      <div class="stkc-bar-r">
+        <button type="button" class="stkc-ib" id="stkc-credits-btn" aria-label="Credits" title="Credits" aria-expanded="false" aria-controls="stkc-credits">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><path d="M12 7.5h.01"/></svg>
+        </button>
+        <div class="stkc-pop stkc-credits" id="stkc-credits" role="dialog" aria-label="Credits" hidden>
+          <p class="stkc-pop-h">Credits</p>
+          <p>Charting engine: <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">Vela</a> (Apache-2.0) by LuxAlgo, <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">luxalgo.com/vela</a></p>
+          <p class="stkc-pop-s"><a href="assets/vendor/VELA-NOTICE.txt" target="_blank" rel="noopener">NOTICE</a> · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a></p>
+        </div>
       </div>
     </div>
 
@@ -274,7 +283,7 @@
       </div>
     </div>
 
-    <p class="stkchart-credit">Charts by <a href="https://github.com/LuxAlgo/Vela" target="_blank" rel="noopener">Vela™</a> (Apache-2.0) · futures: continuous front-month bars from Yahoo Finance, refreshed about every 20 seconds · crypto: public Binance, Coinbase and Hyperliquid feeds · Education only. Not financial advice.</p>
+    <p class="stkchart-credit">Futures: continuous front-month bars from Yahoo Finance, refreshed about every 20 seconds · crypto: public Binance, Coinbase and Hyperliquid feeds · Education only. Not financial advice.</p>
   </main>
 </div>
 
@@ -309,6 +318,7 @@
 <script src="assets/branding.js?v=399"></script>
 <script src="assets/dash-nav.js?v=399"></script>
 <script src="assets/market-hours.js?v=399"></script>
+<script src="assets/chart-templates.js?v=399"></script>
 <script type="module" src="assets/vela-chart.js?v=399"></script>
 <script src="assets/theme.js?v=399"></script>
 </body>

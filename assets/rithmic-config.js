@@ -82,6 +82,6 @@ export async function loadRithmicIfEnabled() {
   const dev = devOverride();
   const cfg = { ...RITHMIC_CONFIG, appVersion: appVersion() };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=429');
+  const ui = await import('./rithmic-ui.js?v=430');
   return ui.createRithmic(cfg);
 }

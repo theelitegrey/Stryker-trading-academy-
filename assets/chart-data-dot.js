@@ -1,19 +1,22 @@
 // Stryker Trading Academy — Charts data-status dot (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (window.STRYKER_VELA) and its
-// statusline DOM (.vela-cell[data-cell-id] .vela-statusline .vela-sl-symbol; the dot lives inside it); optional Rithmic
+// statusline DOM (.vela-cell[data-cell-id] .vela-statusline; the dot + tag go after .vela-sl-meta); optional Rithmic
 // module from assets/rithmic-config.js (rith.client: state + on()); assets/chart-futures-provider.js
 // (FuturesProvider, used only to read the newest 1-minute bar for the lag measurement).
 // Styles: .stkc-dd* in assets/style.css.
 //
 // Owner order 2026-10-05: "Add small yellow/green dot like tradingview to indicator live data
-// or delayed data". One ~8 px dot right after the symbol name in every chart cell's legend:
+// or delayed data". One 10 px dot (2 px ring) after the venue/interval in every chart cell's legend:
 //   green  #089981  real-time: crypto (Binance / Coinbase / Hyperliquid public streams), and
 //                   futures while the member's own Rithmic connection is up (flag-gated).
 //   amber  #F5A623  delayed: futures from our Yahoo-based /api/chart/bars. The lag is MEASURED
 //                   (now minus the close of the newest 1-minute bar), never hard-coded.
 //   grey   #787B86  futures outside CME Globex hours (Sun 18:00 to Fri 17:00 New York, daily
 //                   17:00-18:00 break; no exchange-holiday calendar), with the next open in IST.
-// Hover (desktop) or tap (phone) shows a short plain tooltip. The word "delayed" is allowed
+// A short text tag follows the dot (Owner 2026-10-06: the bare dot was not noticed):
+// "Real-time" / "Delayed 10m" / "Closed". Hover (desktop) or tap (phone) shows the full line.
+// Re-attached by a MutationObserver, so symbol switches, layout and template loads (applyState)
+// and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
 const H = 3600;
@@ -90,18 +93,18 @@ export function installDataDot(ws, opts = {}) {
 
   function statusOf(sym) {
     sym = String(sym || '');
-    if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data' };
+    if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     if (!FUT.test(sym) && !/^[A-Z0-9]+1!$/i.test(sym)) return null;
     const now = Date.now();
     if (!globexOpen(now)) {
       const n = nextOpen(now);
-      return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : '') };
+      return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
     }
-    if (rithLive()) return { s: 'rt', text: 'Real-time data' };
+    if (rithLive()) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     const root = rootOf(sym);
     measure(root);
     const m = lag.get(root);
-    return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : '') };
+    return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
   }
 
   function showTip(dot) {
@@ -124,6 +127,9 @@ export function installDataDot(ws, opts = {}) {
     d.type = 'button';
     d.className = 'stkc-dd';
     d.setAttribute('aria-describedby', 'stkc-dd-tip');
+    const dotI = document.createElement('i'); dotI.className = 'stkc-dd-dot'; dotI.setAttribute('aria-hidden', 'true');
+    const txt = document.createElement('span'); txt.className = 'stkc-dd-t';
+    d.append(dotI, txt);
     d.addEventListener('mouseenter', () => showTip(d));
     d.addEventListener('mouseleave', () => { if (tipFor === d && !d.dataset.pinned) hideTip(); });
     d.addEventListener('focus', () => showTip(d));
@@ -146,20 +152,30 @@ export function installDataDot(ws, opts = {}) {
     cells.forEach((c) => { bySym[c.id] = c.symbol; });
     document.querySelectorAll('#vela-chart .vela-cell[data-cell-id]').forEach((cell) => {
       const sl = cell.querySelector('.vela-statusline');
-      const symEl = sl && sl.querySelector('.vela-sl-symbol');
+      const meta = sl && sl.querySelector('.vela-sl-meta');
+      const market = sl && sl.querySelector('.vela-sl-market');
       let dot = sl && sl.querySelector('.stkc-dd');
-      const st = symEl ? statusOf(bySym[cell.getAttribute('data-cell-id')]) : null;
-      if (!st) { if (dot) dot.remove(); return; }
+      const st = meta ? statusOf(bySym[cell.getAttribute('data-cell-id')]) : null;
+      if (!st) {
+        if (dot) dot.remove();
+        if (sl) sl.classList.remove('stkc-has-dd');
+        return;
+      }
       if (!dot) dot = makeDot();
-      // Inside the ticker span (Vela's setSymbol rewrites its text, the observer re-adds the dot),
-      // so Vela's own layout (mobile grid, multi-chart fit) measures the dot with the ticker.
-      if (dot.parentNode !== symEl || symEl.lastChild !== dot) symEl.appendChild(dot);
+      // After the venue/interval ("NQ1! · CME · 15m  ● Delayed 10m"), clear of the symbol logo.
+      // Vela's own session badge (.vela-sl-market, a sun icon = "Market Open") is hidden by CSS
+      // while our dot is there, so the two can never disagree; ours takes its slot.
+      if (dot.previousElementSibling !== meta) meta.after(dot);
+      if (!sl.classList.contains('stkc-has-dd')) sl.classList.add('stkc-has-dd');
       if (dot.dataset.s !== st.s) dot.dataset.s = st.s;
+      const t = dot.querySelector('.stkc-dd-t');
+      if (t && t.textContent !== st.tag) t.textContent = st.tag;
       if (dot.dataset.tip !== st.text) {
         dot.dataset.tip = st.text;
         dot.setAttribute('aria-label', st.text);
         if (tipFor === dot) showTip(dot);
       }
+      void market;
     });
     if (tipFor && !tipFor.isConnected) hideTip();
   }

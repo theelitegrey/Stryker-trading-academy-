@@ -178,7 +178,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=407'),
+      import('./chart-futures-provider.js?v=421'),
       import(VELA_BASE + 'index.js'),
       import('./chart-pine.js?v=421'),
       import('./chart-orderflow.js?v=421'),
@@ -318,7 +318,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=409')
+  import('./chart-data-dot.js?v=421')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
   window.__stkFlow = Flow;

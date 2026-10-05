@@ -27,10 +27,16 @@ async function open(b, { w, h, mobile, theme, fixedTime }) {
 const dots = (p) => p.evaluate(() => [...document.querySelectorAll('#vela-chart .vela-cell[data-cell-id]')].map((c) => {
   const d = c.querySelector('.stkc-dd');
   const sym = c.querySelector('.vela-sl-symbol');
+  const meta = c.querySelector('.vela-sl-meta');
+  const mk = c.querySelector('.vela-sl-market');
+  const i = d && d.querySelector('.stkc-dd-dot');
   const r = d && d.getBoundingClientRect();
-  const before = d && getComputedStyle(d);
-  return { cell: c.getAttribute('data-cell-id'), sym: sym && sym.textContent, s: d && d.dataset.s, tip: d && d.dataset.tip,
-    after: !!(d && d.parentNode === sym && sym.lastChild === d), symH: sym && Math.round(sym.getBoundingClientRect().height), symTxt: sym && sym.textContent, color: before && before.backgroundColor, dw: before && before.width, vis: !!(r && r.width && r.height) };
+  const sl = c.querySelector('.vela-statusline').getBoundingClientRect();
+  const cs = i && getComputedStyle(i);
+  return { cell: c.getAttribute('data-cell-id'), sym: sym && sym.textContent, s: d && d.dataset.s, tip: d && d.dataset.tip, tag: d && d.querySelector('.stkc-dd-t').textContent,
+    after: !!(d && d.previousElementSibling === meta), color: cs && cs.backgroundColor, dw: cs && cs.width, ring: cs && cs.boxShadow,
+    vis: !!(r && r.width && r.height && r.right <= sl.right + 1 && r.top >= sl.top - 1 && r.bottom <= sl.bottom + 1), oneRow: sl.height <= 30,
+    velaBadge: !!(mk && mk.getClientRects().length) };
 }));
 async function waitLag(p) {
   await p.waitForFunction(() => [...document.querySelectorAll('.stkc-dd[data-s="delayed"]')].every((d) => /about \d+ min/.test(d.dataset.tip || '')), null, { timeout: 20000 }).catch(() => {});
@@ -55,7 +61,7 @@ async function setSyms(p, layout, syms) {
     await setSyms(p, '1', ['futures:NQ1!']);
     await waitLag(p);
     let d = await dots(p);
-    check(d.length === 1 && d[0].s === 'delayed' && d[0].color === AMBER && d[0].after && d[0].dw === '8px', `${theme} 1440 NQ amber dot after symbol ${JSON.stringify(d)}`);
+    check(d.length === 1 && d[0].s === 'delayed' && d[0].color === AMBER && d[0].after && d[0].dw === '10px' && /2px/.test(d[0].ring) && /^Delayed \d+m$/.test(d[0].tag) && d[0].vis && !d[0].velaBadge, `${theme} 1440 NQ amber dot after symbol ${JSON.stringify(d)}`);
     check(/^Delayed data · about \d+ min$/.test(d[0].tip), `${theme} NQ tooltip "${d[0].tip}"`);
     await p.hover('.stkc-dd');
     await p.waitForTimeout(300);
@@ -66,7 +72,7 @@ async function setSyms(p, layout, syms) {
 
     await setSyms(p, '1', ['binance:BTCUSDT']);
     d = await dots(p);
-    check(d[0].s === 'rt' && d[0].color === GREEN && d[0].tip === 'Real-time data', `${theme} BTC green ${JSON.stringify(d[0])}`);
+    check(d[0].s === 'rt' && d[0].color === GREEN && d[0].tip === 'Real-time data' && d[0].tag === 'Real-time' && d[0].vis, `${theme} BTC green ${JSON.stringify(d[0])}`);
     await p.hover('.stkc-dd'); await p.waitForTimeout(300);
     await p.screenshot({ path: `${OUT}/dd-${theme}-1440-btc.png` });
     await p.mouse.move(700, 500);
@@ -74,8 +80,15 @@ async function setSyms(p, layout, syms) {
     await setSyms(p, '4', ['futures:NQ1!', 'binance:BTCUSDT', 'futures:ES1!', 'coinbase:ETH-USD']);
     await waitLag(p);
     d = await dots(p);
-    check(d.length === 4 && d.map((x) => x.s).join(',') === 'delayed,rt,delayed,rt' && d.every((x) => x.after && x.vis && x.symH <= 24), `${theme} 2x2 mix ${JSON.stringify(d.map((x) => [x.sym, x.s, x.tip]))}`);
+    check(d.length === 4 && d.map((x) => x.s).join(',') === 'delayed,rt,delayed,rt' && d.every((x) => x.after && x.vis && x.oneRow && !x.velaBadge && /^(Real-time|Delayed \d+m)$/.test(x.tag)), `${theme} 2x2 mix ${JSON.stringify(d.map((x) => [x.sym, x.s, x.tip]))}`);
     await p.screenshot({ path: `${OUT}/dd-${theme}-1440-2x2.png` });
+    // Layout / shared-link path: chart-layouts.js loads both through ui.applySaved -> ws.applyState.
+    const saved = await p.evaluate(() => JSON.stringify(window.STRYKER_VELA.getState()));
+    await setSyms(p, '1', ['futures:GC1!']);
+    await p.evaluate((s) => window.STRYKER_CHART_UI.applySaved({ state: s }), saved);
+    await p.waitForTimeout(5000);
+    d = await dots(p);
+    check(d.length === 4 && d.every((x) => x.s && x.after && x.vis), `${theme} after applySaved (layout/shared link) 4 dots ${JSON.stringify(d.map((x) => [x.sym, x.s, x.tag]))}`);
     // Pine still works
     if (theme === 'dark') {
       const pine = await p.evaluate(() => !!document.querySelector('#stkc-bar-l') && [...document.querySelectorAll('#stkc-bar-l .stkc-btn')].map((x) => x.textContent.trim()));
@@ -84,7 +97,7 @@ async function setSyms(p, layout, syms) {
       await p.evaluate(() => { const U = window.STRYKER_CHART_UI; U.applyStarter(U.STARTERS.find((x) => x.id === 'starter:quad')); });
       await p.waitForTimeout(5000);
       d = await dots(p);
-      check(d.length === 4 && d.every((x) => x.s === 'delayed'), `starter quad -> 4 amber dots ${JSON.stringify(d.map((x) => [x.sym, x.s]))}`);
+      check(d.length === 4 && d.every((x) => x.s === 'delayed' && x.vis), `starter quad -> 4 amber dots ${JSON.stringify(d.map((x) => [x.sym, x.s]))}`);
     }
     await setSyms(p, '1', ['futures:NQ1!']);
     const foot = await p.evaluate(() => document.querySelector('.stkchart-credit').textContent);
@@ -97,7 +110,7 @@ async function setSyms(p, layout, syms) {
     await setSyms(p, '1', ['futures:NQ1!']);
     await waitLag(p);
     d = await dots(p);
-    check(d[0].s === 'delayed' && d[0].vis, `${theme} 390 NQ amber ${JSON.stringify(d[0])}`);
+    check(d[0].s === 'delayed' && d[0].vis && /^Delayed \d+m$/.test(d[0].tag), `${theme} 390 NQ amber + tag ${JSON.stringify(d[0])}`);
     await p.tap('.stkc-dd');
     await p.waitForTimeout(300);
     const pt = await p.evaluate(() => { const t = document.getElementById('stkc-dd-tip'); const r = t.getBoundingClientRect(); return { vis: !t.hidden, txt: t.textContent, l: r.left, r: r.right, sh: t.scrollHeight, ch: t.clientHeight, sw: document.documentElement.scrollWidth }; });
@@ -118,7 +131,7 @@ async function setSyms(p, layout, syms) {
     const { ctx, p } = await open(b, { w, h, mobile, theme: 'dark', fixedTime: '2026-10-10T12:00:00Z' });
     await setSyms(p, '1', ['futures:NQ1!']);
     const d = await dots(p);
-    check(d[0].s === 'closed' && d[0].color === GREY && /^Market closed · opens Mon 03:30 IST$/.test(d[0].tip), `${w} closed (Sat) grey ${JSON.stringify(d[0])}`);
+    check(d[0].s === 'closed' && d[0].color === GREY && /^Market closed · opens Mon 03:30 IST$/.test(d[0].tip) && d[0].tag === 'Closed' && d[0].vis, `${w} closed (Sat) grey ${JSON.stringify(d[0])}`);
     if (mobile) await p.tap('.stkc-dd'); else await p.hover('.stkc-dd');
     await p.waitForTimeout(300);
     await p.screenshot({ path: `${OUT}/dd-dark-${w}-nq-closed.png` });

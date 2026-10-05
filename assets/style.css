@@ -6128,23 +6128,25 @@ body.charts-page .stkchart-credit{
 .stkc-pop-h:first-child{ margin-top:2px !important; }
 .stkc-pop-s{ font-size:11.5px; color:var(--ink-3); }
 .stkc-credits{ width:290px; padding:10px 12px; }
-/* Charts data-status dot (assets/chart-data-dot.js): TradingView colours, fixed size so a
-   status change never shifts the legend. The dot takes 8 px of layout; ::after widens the
-   hit area to 20-24 px without pushing the rest of the legend. */
+/* Charts data-status dot + tag (assets/chart-data-dot.js): TradingView colours. Sits after
+   "· CME · 15m" and takes Vela's session-badge slot (that badge is hidden while ours shows). */
 .stkc-dd{
-  position:relative; display:inline-block; flex:0 0 auto; width:8px; height:8px; margin:0 0 0 5px; padding:0;
-  border:0; border-radius:50%; background:#787B86; cursor:pointer; vertical-align:middle;
-  pointer-events:auto; -webkit-tap-highlight-color:transparent;
+  position:relative; display:inline-flex; align-items:center; gap:5px; flex:0 0 auto; margin:0 0 0 8px;
+  padding:0 2px; border:0; background:transparent; cursor:pointer; white-space:nowrap; line-height:1;
+  font-family:inherit; font-size:12px; font-weight:600; color:#787B86; pointer-events:auto;
+  -webkit-tap-highlight-color:transparent; align-self:center;
 }
-.stkc-dd::after{ content:""; position:absolute; inset:-6px; border-radius:50%; }
-.stkc-dd[data-s="rt"]{ background:#089981; box-shadow:0 0 0 2px rgba(8,153,129,.18); }
-.stkc-dd[data-s="delayed"]{ background:#F5A623; box-shadow:0 0 0 2px rgba(245,166,35,.18); }
-.stkc-dd[data-s="closed"]{ background:#787B86; }
-.stkc-dd:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
-@media (pointer:coarse){ .stkc-dd::after{ inset:-8px; } }
-.vela-sl-symbol:has(> .stkc-dd){ white-space:nowrap; }
-/* The dot adds ~13 px to the legend: keep each legend piece on one line, as before it. */
-.vela-statusline:has(.stkc-dd) .vela-sl-meta, .vela-statusline:has(.stkc-dd) .vela-sl-ohlc > *, .vela-statusline:has(.stkc-dd) .vela-sl-change{ white-space:nowrap; }
+.stkc-dd::after{ content:""; position:absolute; inset:-6px -4px; }
+.stkc-dd-dot{ display:block; flex:0 0 auto; width:10px; height:10px; border-radius:50%; background:#787B86; box-shadow:0 0 0 2px rgba(120,123,134,.25); }
+.stkc-dd[data-s="rt"]{ color:#089981; }
+.stkc-dd[data-s="rt"] .stkc-dd-dot{ background:#089981; box-shadow:0 0 0 2px rgba(8,153,129,.25); }
+.stkc-dd[data-s="delayed"]{ color:#E8940C; }
+.stkc-dd[data-s="delayed"] .stkc-dd-dot{ background:#F5A623; box-shadow:0 0 0 2px rgba(245,166,35,.25); }
+:root:not([data-theme="light"]) .stkc-dd[data-s="delayed"]{ color:#F5A623; }
+.stkc-dd:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; border-radius:4px; }
+.vela-statusline.stkc-has-dd .vela-sl-market{ display:none !important; }
+.vela-statusline.stkc-has-dd .vela-sl-symbol, .vela-statusline.stkc-has-dd .vela-sl-meta, .vela-statusline.stkc-has-dd .vela-sl-ohlc > *, .vela-statusline.stkc-has-dd .vela-sl-change{ white-space:nowrap; }
+[data-layout="mobile"] .vela-statusline.stkc-has-dd .stkc-dd{ margin-left:6px; font-size:11px; gap:4px; }
 .stkc-dd-tip{
   position:fixed; z-index:200; max-width:min(260px, calc(100vw - 16px)); padding:6px 9px;
   border:1px solid var(--line); border-radius:7px; background:var(--bg-2); color:var(--ink-0);

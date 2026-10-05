@@ -46,6 +46,22 @@ const pineOn = (p, i) => p.evaluate((i) => {
 }, i);
 const legend = (p) => p.evaluate(() => [...document.querySelectorAll('#vela-chart *')].filter((e) => e.children.length === 0 && e.getClientRects().length).map((e) => e.textContent.trim()).filter((t) => /EMA 9\/21|RSI with|Bollinger|Session VWAP|Previous day/.test(t)).slice(0, 12));
 
+
+const fitCheck = async (p, tag) => {
+  const g = await p.evaluate(() => {
+    const pn = document.getElementById('stkc-pine').getBoundingClientRect();
+    const host = document.querySelector('.stkchart-panel').getBoundingClientRect();
+    const acts = document.querySelector('.stkc-pine-acts').getBoundingClientRect();
+    const btns = [...document.querySelectorAll('.stkc-pine-acts button')].map((b) => b.getBoundingClientRect());
+    const ed = document.querySelector('.stkc-pine-ed').getBoundingClientRect();
+    const hd = document.querySelector('.stkc-pine-hd').getBoundingClientRect();
+    return { pt: Math.round(pn.top), pb: Math.round(pn.bottom), ht: Math.round(host.top), ab: Math.round(acts.bottom), bb: Math.round(Math.max(...btns.map((b) => b.bottom))), bh: Math.round(Math.min(...btns.map((b) => b.height))), edh: Math.round(ed.height), hdt: Math.round(hd.top), vh: innerHeight, docH: document.documentElement.scrollHeight };
+  });
+  check(g.bb <= g.pb && g.ab <= g.pb + 1 && g.bh >= 30 && g.bb <= g.vh, tag + ': buttons fully inside the panel ' + JSON.stringify(g));
+  check(g.hdt - g.pt <= 2, tag + ': no gap above the title');
+  check(g.edh >= 120 && g.docH <= g.vh + 1, tag + ': editor fills, no page scroll');
+  return g;
+};
 (async () => {
   const b = await launch();
   try {
@@ -54,6 +70,8 @@ const legend = (p) => p.evaluate(() => [...document.querySelectorAll('#vela-char
     await p.click('#stkc-pine-btn');
     await p.waitForTimeout(500);
     const ui = await p.evaluate(() => ({ open: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('.stkc-pine-lib .stkc-tname')].map((x) => x.textContent) }));
+    const g1440 = await fitCheck(p, '1440');
+    check(Math.abs(g1440.pt - g1440.ht) <= 1, '1440: panel top = chart top');
     check(ui.open && ['EMA 9/21 cross', 'Session VWAP', 'Previous day high/low'].every((n) => ui.ex.includes(n)), 'editor opens with the 3 examples: ' + ui.ex.join(', '));
     const loaded = await p.evaluate(() => [...document.scripts].length && performance.getEntriesByType('resource').some((r) => /vela-pinets/.test(r.name)));
     check(true, 'engine requested only after the editor opened: ' + loaded);
@@ -79,6 +97,9 @@ const legend = (p) => p.evaluate(() => [...document.querySelectorAll('#vela-char
     check(/Syntax error/.test(r.err) && /^Line \d+/.test(r.err) && r.bad.length === 1, 'syntax error shown with line: ' + r.err + ' gutter ' + r.bad);
     await p.screenshot({ path: `${OUT}/pine-1440-error.png` });
     r = await addSrc(p, S('broken-undef.pine'));
+    await p.waitForTimeout(700);
+    const pill = await p.evaluate(() => [...document.querySelectorAll('.vela-toast[data-open]')].map((t) => t.textContent));
+    check(!pill.some((x) => /myAverage|RPAREN/.test(x)), 'no Vela error pill left after a failed run: ' + JSON.stringify(pill));
     check(/not a known/.test(r.err) && /^Line 3/.test(r.err), 'undefined name shown with line: ' + r.err);
     r = await addSrc(p, S('loop.pine'));
     check(/too many times|too long/.test(r.err), 'runaway loop stopped: ' + r.err);
@@ -142,12 +163,19 @@ const legend = (p) => p.evaluate(() => [...document.querySelectorAll('#vela-char
     await p.waitForTimeout(600);
     const sheet = await p.evaluate(() => { const r = document.getElementById('stkc-pine').getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, sw: document.documentElement.scrollWidth }; });
     check(sheet.l === 0 && sheet.r === 390 && sheet.sw <= 391, 'phone: full-width sheet ' + JSON.stringify(sheet));
+    await fitCheck(p, '390');
     await p.screenshot({ path: `${OUT}/pine-390-editor.png` });
     r = await addSrc(p, S('ema.pine'));
     check(!r.err, 'phone: EMA added ' + (r.err || ''));
     await p.waitForTimeout(1500);
     await p.screenshot({ path: `${OUT}/pine-390-chart.png` });
     check(!errors.length, 'phone console errors: ' + (errors.slice(0, 3).join(' | ') || 'none'));
+    await ctx.close();
+    ({ ctx, p, errors } = await open(b, { w: 360, h: 740, mobile: true }));
+    await p.click('#stkc-pine-btn');
+    await p.waitForTimeout(600);
+    await fitCheck(p, '360x740');
+    await p.screenshot({ path: `${OUT}/pine-360-editor.png` });
     await ctx.close();
   } finally {
     await b.close();

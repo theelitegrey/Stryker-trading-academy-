@@ -128,6 +128,14 @@ function explain(err, source){
   return { msg, line };
 }
 
+// Vela also flashes its own "[cell] message" error toast on the chart for a failed run.
+// The editor shows the error (with its line), so close that pill: the failed instance
+// itself is already removed by runIndicator.
+function hideVelaErrorToast(){
+  const kill = () => document.querySelectorAll('.vela-toast[data-type="error"][data-open]').forEach((t) => { delete t.dataset.open; });
+  kill(); setTimeout(kill, 60); setTimeout(kill, 400);
+}
+
 async function runOnChart(chart, source, inputs){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
@@ -141,6 +149,7 @@ async function runOnChart(chart, source, inputs){
     return { ok: false, msg: 'Script stopped: took too long (over ' + (RUN_LIMIT_MS / 1000) + ' seconds).' };
   }
   if (!res || !res.ok) {
+    hideVelaErrorToast();
     const ex = explain(res && res.error, source);
     return { ok: false, msg: ex.msg, line: ex.line };
   }
@@ -207,7 +216,9 @@ export function mountPine(ws, barL, opts){
     html: icon('<path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/>') + '<span class="stkc-btn-l">Pine</span>' });
   barL.appendChild(btn);
 
-  const panel = el('section', { class: 'stkc-pine', id: 'stkc-pine', role: 'dialog', 'aria-label': 'Pine Script editor', hidden: '' });
+  // A div, not a <section>: the site's global `section{padding:96px 0}` would push the
+  // panel down and clip its footer.
+  const panel = el('div', { class: 'stkc-pine', id: 'stkc-pine', role: 'dialog', 'aria-label': 'Pine Script editor', hidden: '' });
   const target = el('span', { class: 'stkc-pine-target' });
   const closeBtn = el('button', { type: 'button', class: 'stkc-ib', 'aria-label': 'Close the Pine editor', title: 'Close', html: icon('<path d="M6 6l12 12M18 6L6 18"/>') });
   const nameIn = el('input', { type: 'text', class: 'stkc-in', maxlength: '60', placeholder: 'Script name', 'aria-label': 'Script name' });
@@ -222,7 +233,8 @@ export function mountPine(ws, barL, opts){
   const mine = el('ul', { class: 'stkc-tlist' });
   const examples = el('ul', { class: 'stkc-tlist' });
   const listNote = el('p', { class: 'stkc-empty' });
-  const libBody = el('div', { class: 'stkc-pine-lib' }, [
+  const libBody = el('details', { class: 'stkc-pine-lib' }, [
+    el('summary', { text: 'Scripts and examples' }),
     el('p', { class: 'stkc-pop-h', text: 'On this chart' }), onChart,
     el('p', { class: 'stkc-pop-h', text: 'My scripts' }), listNote, mine,
     el('p', { class: 'stkc-pop-h', text: 'Examples' }), examples,
@@ -231,12 +243,14 @@ export function mountPine(ws, barL, opts){
   panel.appendChild(el('header', { class: 'stkc-pine-hd' }, [
     el('div', {}, [el('h2', { text: 'Pine Script' }), target]), closeBtn
   ]));
+  // Layout: header / body (name, editor that flexes, error, collapsible library) /
+  // footer with the buttons pinned at the bottom, so they always fit the sheet.
   panel.appendChild(el('div', { class: 'stkc-pine-body' }, [
     el('div', { class: 'stkc-saverow' }, [nameIn]),
-    editor, errBox,
-    el('div', { class: 'stkc-pine-acts' }, [addBtn, saveBtn, newBtn]),
-    libBody
+    editor, errBox, libBody
   ]));
+  panel.appendChild(el('div', { class: 'stkc-pine-acts' }, [addBtn, saveBtn, newBtn]));
+  libBody.open = !window.matchMedia('(max-width:700px)').matches;
   const host = document.querySelector('.stkchart-panel') || document.body;
   host.appendChild(panel);
 

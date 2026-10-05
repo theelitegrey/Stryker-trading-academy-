@@ -131,7 +131,7 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=399'),
+      import('./chart-futures-provider.js?v=400'),
       import(VELA_BASE + 'index.js')
     ]);
   } catch (err) {

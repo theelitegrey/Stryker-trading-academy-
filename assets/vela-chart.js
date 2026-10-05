@@ -10,7 +10,8 @@
 // Binance, Coinbase and Hyperliquid — no API keys. CME-group futures (NQ, ES,
 // CL, GC ...) come from our own provider, assets/chart-futures-provider.js,
 // backed by /api/chart/bars (continuous front-month bars from Yahoo Finance,
-// edge-cached; polled, not streamed — never describe it as live/real-time).
+// edge-cached; polled, not streamed — never describe it as live/real-time; the
+// legend's amber data dot, assets/chart-data-dot.js, says "Delayed data").
 //
 // SRI (P3-4 audit): these load via dynamic import(), which has no
 // integrity="" attribute to set (that only exists on <script> tags and on
@@ -321,6 +322,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('Stryker: Pine editor', e); }
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
+  // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
+  import('./chart-data-dot.js?v=407')
+    .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
+    .catch((e) => console.warn('Stryker: data dot', e));
 
   function refreshLayoutUi(){
     let id = '1';

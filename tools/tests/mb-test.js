@@ -159,7 +159,7 @@ const stale = (extra) => Object.assign({}, BRIEF, { generatedAt: new Date(Date.n
   await page.goto(BASE + '/dashboard-user.html', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(900);
   r = await page.evaluate(() => ({ hidden: document.getElementById('dash-brief').hidden,
-                                   dash: !!document.querySelector('.dash-topbar') }));
+                                   dash: !!document.querySelector('.dash-topbar, #gp-hello') }));
   ok('missing brief hides the card silently', r.hidden);
   ok('rest of the dashboard still renders', r.dash);
   await page.close();

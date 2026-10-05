@@ -168,7 +168,7 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && sub != 'chartTemplates'; }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts']); }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
       // Owner only. name 1-60 chars, state = Vela workspace JSON <= 200000
@@ -185,6 +185,22 @@ service cloud.firestore {
         }
         allow read, delete: if isSelf(uid);
         allow create, update: if isSelf(uid) && validTpl(request.resource.data);
+      }
+
+      // Charts page saved Pine scripts (assets/chart-pine-scripts.js, 2026-10-05).
+      // Owner only. name 1-60 chars, source 1-65536 chars, server timestamps.
+      // 50-per-member cap is client-side. Carved out of the wildcard above.
+      match /pineScripts/{sid} {
+        function validPine(d) {
+          return d.keys().hasOnly(['name', 'source', 'createdAt', 'updatedAt'])
+            && d.keys().hasAll(['name', 'source', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.source is string && d.source.size() > 0 && d.source.size() <= 65536
+            && (!('createdAt' in d) || d.createdAt is timestamp)
+            && d.updatedAt is timestamp;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && validPine(request.resource.data);
       }
     }
 

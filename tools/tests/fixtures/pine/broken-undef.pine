@@ -1,0 +1,3 @@
+//@version=5
+indicator("Broken 2")
+plot(myAverage(close, 20))

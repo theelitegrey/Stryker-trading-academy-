@@ -1,0 +1,17 @@
+//@version=5
+indicator("Previous day high/low", overlay=true)
+newDay = ta.change(time("D")) != 0
+var float dayHigh = na
+var float dayLow = na
+var float prevHigh = na
+var float prevLow = na
+if newDay
+    prevHigh := dayHigh
+    prevLow := dayLow
+    dayHigh := high
+    dayLow := low
+else
+    dayHigh := na(dayHigh) ? high : math.max(dayHigh, high)
+    dayLow := na(dayLow) ? low : math.min(dayLow, low)
+plot(prevHigh, "Prev day high", color=color.green, style=plot.style_stepline, linewidth=2)
+plot(prevLow, "Prev day low", color=color.red, style=plot.style_stepline, linewidth=2)

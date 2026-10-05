@@ -6183,6 +6183,64 @@ body.charts-page .stkchart-credit{
 :root[data-theme="light"] .stkc-sbtn{ color:#fff; background:var(--gold-dim, #9a7a2a); }
 @media (prefers-reduced-motion: reduce){ .stkc-pop, .stkc-btn, .stkc-ib{ transition:none; } }
 
+/* ---- Charts phase 3: Pine Script editor (assets/chart-pine.js) ----
+   Desktop/tablet: a panel docked over the right edge of the chart area.
+   Phone (700px and under): a full-screen sheet above the dock.
+   The scroll regions (textarea, library) use the shared scrollbar style. */
+body.charts-page .stkchart-panel{ position:relative; }
+.stkc-pine{
+  position:absolute; top:0; right:0; bottom:0; z-index:50; width:min(440px, 100%);
+  display:flex; flex-direction:column; background:var(--bg-1);
+  border-left:1px solid var(--line); box-shadow:-18px 0 40px -20px rgba(0,0,0,.6);
+  font-size:12.5px; color:var(--ink-1);
+}
+.stkc-pine[hidden]{ display:none; }
+.stkc-pine-hd{ flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; padding:10px 10px 8px 14px; border-bottom:1px solid var(--line-soft); }
+.stkc-pine-hd h2{ margin:0; font-size:14px; font-weight:700; color:var(--ink-0); }
+.stkc-pine-target{ display:block; margin-top:2px; font-size:11.5px; color:var(--ink-3); }
+.stkc-pine-body{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:8px; padding:10px 12px 12px; overflow-y:auto; overscroll-behavior:contain; }
+.stkc-pine-body .stkc-saverow{ padding:0; }
+.stkc-pine-body .stkc-saverow .stkc-in{ flex:1 1 auto; min-width:0; }
+.stkc-pine-ed{
+  flex:none; display:flex; height:min(46vh, 380px); min-height:180px;
+  border:1px solid var(--line); border-radius:8px; background:var(--bg-0); overflow:hidden;
+}
+.stkc-pine-ed:focus-within{ border-color:var(--gold); }
+.stkc-pine-gutter{
+  flex:none; width:36px; padding:8px 6px 8px 0; overflow:hidden; text-align:right; user-select:none;
+  font:12px/18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:var(--ink-3);
+  border-right:1px solid var(--line-soft); background:var(--bg-1);
+}
+.stkc-pine-gutter span{ display:block; }
+.stkc-pine-gutter span.bad{ color:#fff; background:var(--red, #e5484d); border-radius:0 3px 3px 0; }
+.stkc-pine-code{
+  flex:1 1 auto; min-width:0; margin:0; padding:8px 10px; border:0; outline:none; resize:none;
+  background:transparent; color:var(--ink-0); white-space:pre; overflow:auto; tab-size:4;
+  font:12px/18px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.stkc-pine-err{
+  padding:7px 9px; border:1px solid rgba(229,72,77,.45); border-radius:7px; background:rgba(229,72,77,.1);
+  color:var(--ink-0); font:12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space:pre-wrap; word-break:break-word;
+}
+.stkc-pine-err[hidden]{ display:none; }
+.stkc-pine-acts{ display:flex; gap:6px; flex-wrap:wrap; }
+.stkc-pine-acts .stkc-sbtn{ height:30px; padding:0 14px; }
+.stkc-pine-lib .stkc-pop-h{ margin-left:0 !important; }
+.stkc-pine-lib .stkc-empty{ margin:0 0 4px; }
+.stkc-pine-lib li.stkc-empty{ list-style:none; padding:2px 4px; }
+.stkc-pine-lib .stkc-note{ margin-top:10px; }
+@media (max-width:700px){
+  .stkc-pine{
+    position:fixed; left:0; right:0; width:auto; top:var(--stkc-top, 56px); bottom:var(--stkc-dock, 0px);
+    z-index:1200; border-left:0; box-shadow:none;
+  }
+  .stkc-pine-ed{ height:42vh; }
+  .stkc-pine-code, .stkc-pine-body .stkc-in{ font-size:16px; line-height:22px; }
+  .stkc-pine-gutter{ font-size:13px; line-height:22px; }
+}
+:root[data-theme="light"] .stkc-pine{ box-shadow:-18px 0 40px -24px rgba(0,0,0,.25); }
+:root[data-theme="light"] .stkc-pine-gutter span.bad{ color:#fff; }
+
 /* ==========================================================================
    PUBLIC FEATURE PAGES (features*.html, build 277)
    Shared layout for the per-module marketing pages; each page adds its own

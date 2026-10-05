@@ -1,0 +1,6 @@
+//@version=5
+indicator("Loop")
+var float s = 0
+while true
+    s += 1
+plot(s)

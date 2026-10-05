@@ -36,6 +36,10 @@
 // localStorage, so the workspace reopens the way they left it. A DEFAULT
 // template only applies when there was no saved session at page load (or when
 // the member picks it from the Templates menu).
+//
+// PINE SCRIPT (phase 3): assets/chart-pine.js wires LuxAlgo's AGPL vela-pinets engine
+// (loaded unmodified from jsDelivr, lazily) and draws the Pine editor; Pine indicators
+// ride the workspace document under ext 'stryker.pine', so persist and templates keep them.
 
 const VELA_BASE = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela@0.6.17/dist/';
 const PERSIST_KEY = 'vela-workspace';
@@ -118,7 +122,8 @@ const SYNCS = [
   ['crosshair', 'Crosshair'], ['viewport', 'Time (scroll and zoom)'], ['symbol', 'Symbol'], ['timeframe', 'Interval']
 ];
 const icon = (inner) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
-const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch (e) {} };
+// toast.js signature is showToast(type, message).
+const toast = (m, type) => { try { if (window.showToast) window.showToast(type || 'success', m); } catch (e) {} };
 
 (async () => {
   const host = document.getElementById('vela-chart');
@@ -132,7 +137,8 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=400'),
-      import(VELA_BASE + 'index.js')
+      import(VELA_BASE + 'index.js'),
+      import('./chart-pine.js?v=400')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -147,6 +153,7 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
   const HyperliquidProvider = mods[3].HyperliquidProvider;
   const FuturesProvider = mods[4].FuturesProvider;
   const Core = mods[5];
+  const Pine = mods[6];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
@@ -158,6 +165,11 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
     W.registerLayout({ id: '3l', label: '1 big + 2', cols: [2, 1], rows: [1, 1], areas: ['main a', 'main b'],
       cells: [{ id: 'c1', area: 'main' }, { id: 'c2', area: 'a' }, { id: 'c3', area: 'b' }] });
   } catch (e) { console.warn('Stryker: layout register', e); }
+
+  // Pine Script (assets/chart-pine.js): its persistence handler must be registered
+  // before the workspace restores a saved session. The engine itself loads lazily.
+  let ws;
+  try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('Stryker: Pine install', e); }
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -181,7 +193,6 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
   measureFrame();
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  let ws;
   try {
     ws = window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
       layout: '1',
@@ -255,6 +266,7 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
 
   barL.appendChild(layWrap);
   barL.appendChild(tplWrap);
+  try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('Stryker: Pine editor', e); }
   barL.appendChild(cellSw);
 
   function refreshLayoutUi(){
@@ -338,6 +350,7 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
 
   function applyStarter(s){
     try { ws.maximizeCell(null); } catch (e) {}
+    try { Pine.clearAllPine(); } catch (e) {}
     SYNCS.forEach(([k]) => { try { ws.sync.set(k, false); } catch (e) {} });
     ws.setLayout(s.layout);
     const cells = liveCells();
@@ -352,8 +365,9 @@ const toast = (m) => { try { if (window.showToast) window.showToast(m); } catch 
   function applySaved(t){
     let doc = t.state;
     if (typeof doc === 'string') { try { doc = JSON.parse(doc); } catch (e) { doc = null; } }
-    if (!doc) { toast('That template could not be read.'); return; }
+    if (!doc) { toast('That template could not be read.', 'error'); return; }
     try { ws.maximizeCell(null); } catch (e) {}
+    try { Pine.clearAllPine(); } catch (e) {}
     ws.applyState(doc);
     afterStructural();
   }

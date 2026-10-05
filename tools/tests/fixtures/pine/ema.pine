@@ -1,0 +1,10 @@
+//@version=5
+indicator("EMA 9/21 cross", overlay=true)
+fastLen = input.int(9, "Fast EMA", minval=1)
+slowLen = input.int(21, "Slow EMA", minval=1)
+fast = ta.ema(close, fastLen)
+slow = ta.ema(close, slowLen)
+plot(fast, "Fast EMA", color=color.teal, linewidth=2)
+plot(slow, "Slow EMA", color=color.orange, linewidth=2)
+plotshape(ta.crossover(fast, slow), "Cross up", style=shape.triangleup, location=location.belowbar, color=color.teal, size=size.small)
+plotshape(ta.crossunder(fast, slow), "Cross down", style=shape.triangledown, location=location.abovebar, color=color.orange, size=size.small)

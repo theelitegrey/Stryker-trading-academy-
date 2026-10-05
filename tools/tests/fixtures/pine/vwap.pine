@@ -1,0 +1,12 @@
+//@version=5
+indicator("Session VWAP", overlay=true)
+src = input.source(hlc3, "Source")
+newDay = ta.change(time("D")) != 0
+var float sumPV = 0.0
+var float sumV = 0.0
+if newDay
+    sumPV := 0.0
+    sumV := 0.0
+sumPV += src * volume
+sumV += volume
+plot(sumV > 0 ? sumPV / sumV : na, "VWAP", color=color.yellow, linewidth=2)

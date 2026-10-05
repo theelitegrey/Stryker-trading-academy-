@@ -74,6 +74,10 @@
      proposal isn't shipped), and these are resolved by the module loader,
      not a <script> tag, so an integrity="" attribute has nowhere to go.
      Left pinned-only, as the brief allows. -->
+<!-- Pine Script (assets/chart-pine.js): @luxalgo/vela-pinets@0.2.11 imports the two bare
+     names below. "@luxalgo/vela/plugin" MUST resolve to the exact same URL vela-chart.js
+     loads (one module instance = one set of Vela registries). pinets is AGPL-3.0 and is
+     loaded unmodified, only when the Pine editor or a Pine indicator is used. -->
 <script type="importmap">
 {"imports":{
   "@zag-js/vanilla":"https://cdn.jsdelivr.net/npm/@zag-js/vanilla@1.42.0/+esm",
@@ -82,7 +86,9 @@
   "@zag-js/tooltip":"https://cdn.jsdelivr.net/npm/@zag-js/tooltip@1.42.0/+esm",
   "@zag-js/core":"https://cdn.jsdelivr.net/npm/@zag-js/core@1.42.0/+esm",
   "@zag-js/dom-query":"https://cdn.jsdelivr.net/npm/@zag-js/dom-query@1.42.0/+esm",
-  "@zag-js/types":"https://cdn.jsdelivr.net/npm/@zag-js/types@1.42.0/+esm"
+  "@zag-js/types":"https://cdn.jsdelivr.net/npm/@zag-js/types@1.42.0/+esm",
+  "@luxalgo/vela/plugin":"https://cdn.jsdelivr.net/npm/@luxalgo/vela@0.6.17/dist/plugin.js",
+  "pinets":"https://cdn.jsdelivr.net/npm/pinets@0.9.33/dist/pinets.min.browser.es.js"
 }}
 </script>
 </head>
@@ -271,6 +277,8 @@
           <p class="stkc-pop-h">Credits</p>
           <p>Charting engine: <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">Vela</a> (Apache-2.0) by LuxAlgo, <a href="https://luxalgo.com/vela" target="_blank" rel="noopener">luxalgo.com/vela</a></p>
           <p class="stkc-pop-s"><a href="assets/vendor/VELA-NOTICE.txt" target="_blank" rel="noopener">NOTICE</a> · <a href="https://www.apache.org/licenses/LICENSE-2.0" target="_blank" rel="noopener">Apache License 2.0</a></p>
+          <p>Pine Script support: <a href="https://github.com/LuxAlgo/PineTS" target="_blank" rel="noopener">PineTS</a> and <a href="https://github.com/LuxAlgo/Vela-pinets" target="_blank" rel="noopener">vela-pinets</a> (AGPL-3.0) by LuxAlgo, loaded unmodified.</p>
+          <p class="stkc-pop-s"><a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener">GNU AGPL v3</a> · Our glue code: <a href="https://github.com/theelitegrey/Stryker-trading-academy-/blob/main/assets/chart-pine.js" target="_blank" rel="noopener">chart-pine.js</a> (<a href="assets/chart-pine.js?v=400" target="_blank" rel="noopener">as served</a>)</p>
         </div>
       </div>
     </div>
@@ -319,6 +327,7 @@
 <script src="assets/dash-nav.js?v=400"></script>
 <script src="assets/market-hours.js?v=400"></script>
 <script src="assets/chart-templates.js?v=400"></script>
+<script src="assets/chart-pine-scripts.js?v=400"></script>
 <script type="module" src="assets/vela-chart.js?v=400"></script>
 <script src="assets/theme.js?v=400"></script>
 </body>

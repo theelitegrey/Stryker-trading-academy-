@@ -136,9 +136,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=402'),
+      import('./chart-futures-provider.js?v=403'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=402')
+      import('./chart-pine.js?v=403')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);

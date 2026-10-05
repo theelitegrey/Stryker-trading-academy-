@@ -91,10 +91,9 @@
 
   function user() { var f = fb(); try { return f && f.auth().currentUser; } catch (e) { return null; } }
   function signedIn() { return !!user(); }
-  // STAGE 1 (build 401): the cloud path stays OFF until the validated Firestore rules
-  // block for students/{uid}/pineScripts is released (stage 2). Until then scripts are
-  // saved in this browser only (localStorage). Flip to true with that release.
-  var CLOUD = false;
+  // Cloud saving ON since build 403: the validated rules block for
+  // students/{uid}/pineScripts was released 2026-10-05 (ruleset 3b35b1ab).
+  var CLOUD = true;
   function useCloud() { return CLOUD && signedIn(); }
   function who() { var u = user(); return u ? u.uid : 'guest'; }
   function col() { return fb().firestore().collection('students').doc(user().uid).collection('pineScripts'); }

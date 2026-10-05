@@ -413,6 +413,119 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // Charts: published Pine scripts (assets/chart-pine-library.js, 2026-10-05).
+    // visibility 'public' = listed in Community for every signed-in member;
+    // 'invite' = readable by id only (a share link), never listable.
+    // Private scripts stay in students/{uid}/pineScripts.
+    // The author writes only the content fields. addCount / reportCount move
+    // by exactly +1, once per member, paired with an adds/{uid} or
+    // reports/{uid} doc in the same batch. The 3rd report sets status
+    // 'hidden' (off the public list, link stops working for others) until an
+    // admin restores it. Only admins write status otherwise.
+    // ---------------------------------------------------------------------
+    match /pineLibrary/{id} {
+      function libKeys() {
+        return ['ownerUid', 'authorName', 'name', 'description', 'tags', 'visibility',
+                'openSource', 'source', 'version', 'createdAt', 'updatedAt',
+                'addCount', 'reportCount', 'status'];
+      }
+      function okTag(t) { return t is string && t.size() > 0 && t.size() <= 20; }
+      function okTags(t) {
+        return t is list && t.size() <= 5
+          && (t.size() < 1 || okTag(t[0])) && (t.size() < 2 || okTag(t[1]))
+          && (t.size() < 3 || okTag(t[2])) && (t.size() < 4 || okTag(t[3]))
+          && (t.size() < 5 || okTag(t[4]));
+      }
+      // Author name = the member's public profile name, or 'Member'.
+      function okAuthor(n) {
+        return n is string && n.size() > 0 && n.size() <= 60
+          && (n == 'Member'
+              || (exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+                  && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('displayName', '') == n));
+      }
+      function validLib(d) {
+        return d.keys().hasOnly(libKeys()) && d.keys().hasAll(libKeys())
+          && d.ownerUid == request.auth.uid
+          && okAuthor(d.authorName)
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.description is string && d.description.size() <= 280
+          && okTags(d.tags)
+          && d.visibility in ['public', 'invite']
+          && d.openSource is bool
+          && d.source is string && d.source.size() > 0 && d.source.size() <= 65536
+          && d.version is int && d.version >= 1
+          && d.createdAt is timestamp
+          && d.updatedAt == request.time;
+      }
+      function isOwner() { return signedIn() && resource.data.ownerUid == request.auth.uid; }
+      function libPath() { return /databases/$(database)/documents/pineLibrary/$(id); }
+      function onlyKeys(k) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(k); }
+
+      allow get:  if isAdmin() || isOwner() || (signedIn() && resource.data.status == 'ok');
+      allow list: if isAdmin() || isOwner()
+                  || (signedIn() && resource.data.visibility == 'public' && resource.data.status == 'ok');
+      allow create: if signedIn() && id.size() >= 20
+                    && validLib(request.resource.data)
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.version == 1
+                    && request.resource.data.addCount == 0
+                    && request.resource.data.reportCount == 0
+                    && request.resource.data.status == 'ok';
+      allow update: if
+          // author: content only; version stays or goes up by one
+          (isOwner() && validLib(request.resource.data)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                  .hasAny(['ownerUid', 'createdAt', 'addCount', 'reportCount', 'status'])
+            && (request.resource.data.version == resource.data.version
+                || request.resource.data.version == resource.data.version + 1))
+          // any member: first add to a chart counts once
+          || (signedIn() && resource.data.status == 'ok' && onlyKeys(['addCount'])
+            && request.resource.data.addCount == resource.data.addCount + 1
+            && !exists(/databases/$(database)/documents/pineLibrary/$(id)/adds/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/pineLibrary/$(id)/adds/$(request.auth.uid)))
+          // any member but the author: one report each; the 3rd hides it
+          || (signedIn() && resource.data.ownerUid != request.auth.uid
+            && onlyKeys(['reportCount', 'status'])
+            && request.resource.data.reportCount == resource.data.reportCount + 1
+            && request.resource.data.status == (request.resource.data.reportCount >= 3 ? 'hidden' : resource.data.status)
+            && !exists(/databases/$(database)/documents/pineLibrary/$(id)/reports/$(request.auth.uid))
+            && existsAfter(/databases/$(database)/documents/pineLibrary/$(id)/reports/$(request.auth.uid)))
+          // admin: moderation only
+          || (isAdmin() && onlyKeys(['status', 'reportCount'])
+            && request.resource.data.status in ['ok', 'hidden']
+            && request.resource.data.reportCount is int && request.resource.data.reportCount >= 0);
+      allow delete: if isOwner() || isAdmin();
+
+      // Last versions of the code, author only (the client keeps 5).
+      match /versions/{v} {
+        function libOwner() { return signedIn() && get(libPath()).data.ownerUid == request.auth.uid; }
+        allow read, delete: if libOwner() || isAdmin();
+        allow create: if libOwner()
+          && request.resource.data.keys().hasOnly(['version', 'source', 'savedAt'])
+          && request.resource.data.version is int
+          && request.resource.data.source is string && request.resource.data.source.size() <= 65536
+          && request.resource.data.savedAt == request.time;
+      }
+      // One "added to a chart" marker per member (makes addCount +1 once).
+      match /adds/{uid} {
+        allow get: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
+          && getAfter(libPath()).data.addCount == get(libPath()).data.addCount + 1;
+      }
+      // One report per member; reasons are fixed.
+      match /reports/{uid} {
+        allow get: if isSelf(uid) || isAdmin();
+        allow list, delete: if isAdmin();
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['reason', 'at'])
+          && request.resource.data.reason in ['broken', 'harmful', 'copied', 'spam']
+          && request.resource.data.at == request.time
+          && getAfter(libPath()).data.reportCount == get(libPath()).data.reportCount + 1;
+      }
+    }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

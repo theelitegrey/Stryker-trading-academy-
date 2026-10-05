@@ -181,9 +181,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=406'),
+      import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=406')
+      import('./chart-pine.js?v=407')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -242,7 +242,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=406')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=407')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {

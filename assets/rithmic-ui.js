@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=406';
-import { RithmicFuturesProvider } from './rithmic-provider.js?v=406';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=407';
+import { RithmicFuturesProvider } from './rithmic-provider.js?v=407';
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';

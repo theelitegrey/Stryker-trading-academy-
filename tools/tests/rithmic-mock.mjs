@@ -82,7 +82,9 @@ function onMessage(c, m) {
     case T.LOGOUT: stats.logouts++; c.send({ template_id: T.LOGOUT_R, user_msg: um, rp_code: ['0'] }); break;
     case T.FRONT_MONTH: {
       const sym = FRONT[m.symbol];
-      if (!sym) c.send({ template_id: T.FRONT_MONTH_R, user_msg: um, rp_code: ['7', 'no data'] });
+      // Like the real Rithmic Test on 2026-10-05: NQ gets rp_code 7 "no data", so the client's
+      // calendar fallback is exercised. Other roots answer normally.
+      if (!sym || m.symbol === 'NQ') c.send({ template_id: T.FRONT_MONTH_R, user_msg: um, rp_code: ['7', 'no data'] });
       else c.send({ template_id: T.FRONT_MONTH_R, user_msg: um, rp_code: ['0'], symbol: m.symbol, exchange: m.exchange, is_front_month_symbol: true, symbol_name: sym, trading_symbol: sym, trading_exchange: m.exchange });
       break;
     }

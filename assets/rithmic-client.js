@@ -24,7 +24,7 @@
 //   6. RequestLogout (12) before closing. ForcedLogout (77) from Rithmic ends the session
 //      without reconnecting.
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=406';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=407';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];
@@ -93,7 +93,7 @@ class Plant {
     ws.onclose = () => this.onClose();
     const res = await this.request({
       template_id: T.LOGIN,
-      template_version: this.owner.cfg.templateVersion || '3.9',
+      template_version: this.owner.cfg.templateVersion || '5.55',
       user: creds.user,
       password: creds.password,
       app_name: this.owner.cfg.appName,
@@ -203,6 +203,50 @@ class Plant {
   }
 }
 
+// Calendar fallback for the front-month contract, used when RequestFrontMonthContract has no
+// answer (Rithmic Test answered rp_code ["7","no data"] for every root on 2026-10-05, and
+// async_rithmic notes the same during maintenance windows). Rithmic's symbol format is
+// ROOT + month code + ONE year digit (NQZ6, ESZ6: confirmed by replay on Rithmic Test).
+// Roll dates are approximate (the usual volume roll a few days before expiry), and this only
+// matters when Rithmic itself can't say.
+const MONTH_CODES = 'FGHJKMNQUVXZ';
+const CYCLES = {
+  quarterly: [3, 6, 9, 12],          // equity index, 6E, treasuries
+  gold: [2, 4, 6, 8, 10, 12],        // GC, MGC
+  silver: [3, 5, 7, 9, 12],          // SI
+  monthly: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+};
+const ROOT_RULE = {
+  NQ: 'index', MNQ: 'index', ES: 'index', MES: 'index', YM: 'index', MYM: 'index', RTY: 'index', M2K: 'index',
+  '6E': 'index', ZN: 'bond', ZB: 'bond', GC: 'metal', MGC: 'metal', SI: 'metal', CL: 'crude', MCL: 'crude', NG: 'gas'
+};
+function thirdFriday(y, m) { // m 1-12, UTC day number
+  const dow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay();
+  return 1 + ((5 - dow + 7) % 7) + 14;
+}
+export function guessFrontMonth(root, nowMs = Date.now()) {
+  const rule = ROOT_RULE[root];
+  if (!rule) return null;
+  const d = new Date(nowMs);
+  let y = d.getUTCFullYear(), m = d.getUTCMonth() + 1;
+  const day = d.getUTCDate();
+  const cycle = root === 'SI' ? CYCLES.silver : rule === 'metal' ? CYCLES.gold
+    : (rule === 'crude' || rule === 'gas') ? CYCLES.monthly : CYCLES.quarterly;
+  // First month that is still "front" today.
+  let minM = m, minY = y;
+  if (rule === 'index' && cycle.includes(m) && day >= thirdFriday(y, m) - 8) minM++;      // rolls ~8 days before expiry
+  else if (rule === 'bond' || rule === 'metal') { minM++; if (day >= 24) minM++; }        // rolls before first notice day
+  else if (rule === 'crude') { minM++; if (day >= 15) minM++; }                             // expires ~20th of prior month
+  else if (rule === 'gas') { minM++; if (day >= 22) minM++; }                               // expires ~3 days before month start
+  while (minM > 12) { minM -= 12; minY++; }
+  for (let i = 0; i < 24; i++) {
+    const mm = ((minM - 1 + i) % 12) + 1;
+    const yy = minY + Math.floor((minM - 1 + i) / 12);
+    if (cycle.includes(mm)) return root + MONTH_CODES[mm - 1] + String(yy % 10);
+  }
+  return null;
+}
+
 // state: 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error'
 export class RithmicClient {
   #creds = null;
@@ -308,9 +352,13 @@ export class RithmicClient {
     const hit = this.frontCache.get(key);
     if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.symbol;
     if (!this.ticker) throw new Error('Not connected to Rithmic');
-    const r = await this.ticker.request({ template_id: T.FRONT_MONTH, symbol: root, exchange, need_updates: false }, T.FRONT_MONTH_R);
-    const sym = r.trading_symbol || r.symbol;
-    if (!sym || sym === root) throw new Error('No front-month contract for ' + root);
+    let sym = null;
+    try {
+      const r = await this.ticker.request({ template_id: T.FRONT_MONTH, symbol: root, exchange, need_updates: false }, T.FRONT_MONTH_R);
+      sym = r.trading_symbol || null;
+    } catch (e) { /* rp_code 7 "no data": use the calendar below */ }
+    if (!sym || sym === root) sym = guessFrontMonth(root);
+    if (!sym) throw new Error('No front-month contract for ' + root);
     this.frontCache.set(key, { at: Date.now(), symbol: sym });
     return sym;
   }

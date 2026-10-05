@@ -30,10 +30,12 @@ export const RITHMIC_CONFIG = {
   // PLACEHOLDER. Rithmic assigns the real app_name (a prefix they register for us) when the
   // product is approved. Logins with an unregistered app_name are refused by production.
   appName: 'STRK_Stryker',
-  // R|Protocol template version the protos were taken from (async_rithmic 1.6.6 sends 3.9).
-  templateVersion: '3.9',
+  // R|Protocol template version the official kit (R|Protocol API 0.90.0.0) samples send;
+  // Rithmic Test answered with 5.56 and accepted the login (2026-10-05).
+  templateVersion: '5.55',
   // Bar `marker` from a time-bar replay is the bar's END (close) time in epoch seconds
-  // (async_rithmic exposes it as bar_end_datetime). Verify on Rithmic Test before go-live.
+  // (async_rithmic exposes it as bar_end_datetime). Confirmed on Rithmic Test 2026-10-05: a
+  // replay at 17:12:59 UTC returned a newest 1-minute ES bar with marker 17:13:00.
   markerIsBarEnd: true
 };
 
@@ -80,6 +82,6 @@ export async function loadRithmicIfEnabled() {
   const dev = devOverride();
   const cfg = { ...RITHMIC_CONFIG, appVersion: appVersion() };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=406');
+  const ui = await import('./rithmic-ui.js?v=407');
   return ui.createRithmic(cfg);
 }

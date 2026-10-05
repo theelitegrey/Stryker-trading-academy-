@@ -14,7 +14,7 @@
 // served by the normal provider: an automatic fallback. assets/rithmic-ui.js reloads the
 // chart cells when the source flips, so the visible bars always match the chip.
 
-import { BAR_TYPE } from './rithmic-client.js?v=406';
+import { BAR_TYPE } from './rithmic-client.js?v=407';
 
 // Rithmic exchange codes for our roots.
 export const EXCHANGE = {
@@ -44,7 +44,10 @@ export function rootOf(ticker) {
 export function rowToBar(row, tf, markerIsBarEnd) {
   const [type, , secs] = TF[tf];
   let open = row.marker || 0;
-  if (type === BAR_TYPE.MINUTE_BAR) { if (markerIsBarEnd) open -= secs; }
+  // marker = the bar's END time for closed bars, but the newest (forming) bar carries its
+  // last-update time instead (Rithmic Test 2026-10-05: a 15m ES replay at 17:15 UTC ended
+  // with marker 17:14). Aligning to the period gives the right open time for both.
+  if (type === BAR_TYPE.MINUTE_BAR) open = Math.floor((markerIsBarEnd ? open - 1 : open) / secs) * secs;
   else open = Math.floor(open / DAY) * DAY; // daily/weekly: the trading date
   return { time: open * 1000, open: row.open_price, high: row.high_price, low: row.low_price, close: row.close_price, volume: row.volume || 0 };
 }

@@ -391,6 +391,7 @@ async function sessionLevels(fut) {
 const FRESH_SEC = 30 * 60;      // same 30-minute freshness limit the page already used
 const GONE_SEC = 90 * 60;       // no futures print for this long inside scheduled hours = closed (holiday/halt)
 const PRIOR_DAY_SEC = 18 * 3600; // options chain this old during cash hours = cash holiday
+const OPENING_GAP_MIN = 45;       // after 09:30 ET a prior-session chain is the Cboe delay, not a holiday, for this long
 
 function etClock(tsSec) {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -436,7 +437,25 @@ function cashScheduleOpen(tsSec) {
   return c.dow >= 1 && c.dow <= 5 && c.min >= RTH_OPEN && c.min < RTH_CLOSE + 15;
 }
 
-// state: open | stale | cash_closed (futures trading, options chain from the last cash session) | closed | nodata
+// Seconds until the cash session next opens by schedule, looked ahead up to maxSec (minute steps).
+// Used to stop a long closed-market cache entry from outliving 09:30 ET.
+function secsToCashOpen(tsSec, maxSec) {
+  for (let t = 60; t <= maxSec; t += 60) if (cashScheduleOpen(tsSec + t)) return t;
+  return Infinity;
+}
+
+// True when the cash session is open by schedule, inside its first OPENING_GAP_MIN minutes, and the
+// options chain is still from an earlier session (Cboe's delayed feed has not printed today yet).
+function openingGap(now, optTs) {
+  if (!optTs || !cashScheduleOpen(now)) return false;
+  const c = etClock(now), o = etClock(optTs);
+  const sinceOpen = c.min - RTH_OPEN;
+  const priorSession = o.y !== c.y || o.mo !== c.mo || o.d !== c.d || o.min < RTH_OPEN;
+  return priorSession && sinceOpen >= 0 && sinceOpen < OPENING_GAP_MIN;
+}
+
+// state: open | opening (cash just opened, delayed chain still from the prior session) | stale |
+//        cash_closed (futures trading, options chain from the last cash session) | closed | nodata
 function marketStatus({ now, futTs, optTs }) {
   now = now == null ? Date.now() / 1000 : now;
   const futAge = futTs ? now - futTs : null;
@@ -454,11 +473,12 @@ function marketStatus({ now, futTs, optTs }) {
   let state;
   if (futures === 'nodata' && options === 'nodata') state = 'nodata';
   else if (futures === 'closed' || futures === 'nodata') state = 'closed';
+  else if (futures !== 'stale' && openingGap(now, optTs)) state = 'opening';
   else if (futures === 'stale' || options === 'stale') state = 'stale';
   else if (options === 'closed' || options === 'nodata') state = 'cash_closed';
   else state = 'open';
   return {
-    state, futures, options, now,
+    state, futures, options, now, cash_schedule_open: cashScheduleOpen(now),
     futures_ts: futTs || null, options_ts: optTs || null,
     futures_age_min: futAge == null ? null : round(futAge / 60, 1),
     options_age_min: optAge == null ? null : round(optAge / 60, 1),
@@ -512,4 +532,4 @@ async function buildLevels(name, dteMax = 1) {
   return data;
 }
 
-export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen };
+export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

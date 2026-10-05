@@ -64,6 +64,13 @@
     var optAge = m.options_age_min != null ? ageLabel(m.options_age_min * 60000) : null;
     if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Cboe delayed options chain updated '+(optAge || 'unknown age')+'.'};
     if(m.state === 'stale') return {state:'stale', title:'Data delayed', reason:'Feed is behind: futures '+(futAge || 'unknown age')+', options chain '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'opening'){
+      var prior = m.options_ts ? new Date(m.options_ts * 1000).toLocaleDateString('en-US', {timeZone:'America/New_York', weekday:'long'}) : 'the last session';
+      return {state:'stale', closed:'opening', title:'Cash market just opened',
+        reason:'Options data is delayed about 15 minutes · showing '+prior+'\'s close until today\'s chain arrives.',
+        note:'Cash market just opened. Options data is delayed about 15 minutes; today\'s levels appear shortly. Showing '+prior+'\'s close until then (chain from '+tsLocal(m.options_ts)+'). This page refreshes every 60 seconds.',
+        tag:'Levels from: '+tsDay(m.options_ts)};
+    }
     if(m.state === 'cash_closed') return {state:'stale', closed:'cash', title:'Cash session closed',
       reason:'Options levels are from the last Cboe session · '+(optAge || 'unknown age')+'.',
       note:'Cash market closed. GEX levels are built from the last options chain received at '+tsLocal(m.options_ts)+'. Futures candles keep updating with the overnight session (delayed). Levels are not recent.',

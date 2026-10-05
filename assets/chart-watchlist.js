@@ -272,7 +272,8 @@ export function mountWatchlist(ws, o){
   panelHost.classList.add('stkw-host');
   // Phone: a Watchlist button on the chart bar opens the sheet.
   const phoneBtn = el('button', { type: 'button', class: 'stkc-btn stkw-phonebtn', title: 'Watchlist', 'aria-label': 'Watchlist', html: I.list + '<span class="stkc-btn-l">Watchlist</span>' });
-  if (barL) barL.appendChild(phoneBtn);
+  const barR = document.querySelector('.stkc-bar-r');
+  if (barR) barR.insertBefore(phoneBtn, barR.firstChild); else if (barL) barL.appendChild(phoneBtn);
 
   // ---- popover menus (our own: they sit inside the panel) ----
   const menus = [];
@@ -355,7 +356,7 @@ export function mountWatchlist(ws, o){
   // COLUMNS MENU (ref 2)
   menu(colBtn, (pop) => {
     const v = view();
-    const setV = (k, val) => { if (!cur || viewing) { tmpView[k] = val; render(); return; } cur.view = Object.assign({}, v, { [k]: val }); render(); dirty(); if (k === 'ext' && val) refresh(true); };
+    const setV = (k, val) => { if (!cur || viewing) { tmpView[k] = val; render(); return; } cur.view = Object.assign({}, view(), { [k]: val }); render(); dirty(); if (k === 'ext' && val) refresh(true); };
     pop.appendChild(swRow('Table view', v.table, false, (on) => setV('table', on)));
     pop.appendChild(hr());
     pop.appendChild(el('p', { class: 'stkw-mh', text: 'CUSTOMIZE COLUMNS' }));
@@ -385,7 +386,9 @@ export function mountWatchlist(ws, o){
   let open = false;
   function applyWidth(px){
     px = Math.max(W_MIN, Math.min(W_MAX, Math.round(px) || W_DEF));
-    panelHost.style.setProperty('--stkw-w', px + 'px');
+    // Volume / Extended Hours columns need room: each column past three adds 60 px.
+    const extra = typeof cols === 'function' ? Math.max(0, cols().length - 3) * 60 : 0;
+    panelHost.style.setProperty('--stkw-w', Math.min(W_MAX + 120, px + extra) + 'px');
     return px;
   }
   let width = applyWidth(lsGet(K.width, W_DEF));
@@ -505,7 +508,13 @@ export function mountWatchlist(ws, o){
     };
     await Promise.all([worker(), worker(), worker(), worker()]);
     refreshing = false;
+    // A failed fetch (the data source sometimes answers 502 for a moment) is retried soon,
+    // not at the next 25 s poll; at most twice in a row per symbol.
+    const failed = todo.filter((s) => { const q = quotes.get(s); return q && q.err && !Number.isFinite(q.last); });
+    if (failed.length && (retryN++ < 2)) setTimeout(() => { failed.forEach((s) => quotes.delete(s)); refresh(false); }, 3000);
+    else if (!failed.length) retryN = 0;
   }
+  let retryN = 0;
   function schedulePoll(){
     clearTimeout(pollTimer);
     if (!open) return;
@@ -536,6 +545,7 @@ export function mountWatchlist(ws, o){
     addBtn.disabled = !!viewing;
     panel.classList.toggle('stkw-compact', !v.table);
     panel.style.setProperty('--stkw-cols', String(cols().length));
+    applyWidth(width);
     const C = cols();
     thead.innerHTML = '';
     thead.hidden = !v.table;

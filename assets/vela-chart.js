@@ -178,14 +178,15 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=422'),
+      import('./chart-futures-provider.js?v=423'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=422'),
-      import('./chart-orderflow.js?v=422'),
-      import('./chart-settings.js?v=422'),
+      import('./chart-pine.js?v=423'),
+      import('./chart-orderflow.js?v=423'),
+      import('./chart-settings.js?v=423'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=422'),
-      import('./chart-alerts.js?v=422')
+      import('./chart-grid.js?v=423'),
+      import('./chart-alerts.js?v=423'),
+      import('./chart-events.js?v=423')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -205,6 +206,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Settings = mods[8];
   const Grid = mods[10];
   const Alerts = mods[11];
+  const Events = mods[12];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
@@ -222,6 +224,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Flow.installOrderflow(Core); } catch (e) { console.warn('Stryker: volume tools install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('Stryker: alerts install', e); }
+  try { Events.installChartEvents(Core); } catch (e) { console.warn('Stryker: events install', e); }
   try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('Stryker: settings install', e); }
 
   let day = false;
@@ -250,7 +253,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=422')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=423')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {
@@ -318,7 +321,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=422')
+  import('./chart-data-dot.js?v=423')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
   window.__stkFlow = Flow;
@@ -326,9 +329,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
+  try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=422')
+  import('./chart-indicator-window.js?v=423')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 
@@ -429,7 +433,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=422')
+    import('./chart-layouts.js?v=423')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('Stryker: layout menu', e));
   }

@@ -180,10 +180,11 @@ function linesLayer(){
     mount(c){ canvas = c; },
     render(a){
       if (!canvas) return;
-      const co = a.coords, dpr = co.dpr || window.devicePixelRatio || 1;
-      const W = co.width, H = co.height;
-      if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) { canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr); }
-      const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
+      // Vela sizes layer canvases itself; only clear + scale for the DPR.
+      const co = a.coords, dpr = co.dpr || 1;
+      const W = co.width;
+      const g = canvas.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height); g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const d = a.data; if (!d || !d.lines || !d.lines.length) return;
       const top = a.bounds.top, bot = top + a.bounds.height;
       g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();

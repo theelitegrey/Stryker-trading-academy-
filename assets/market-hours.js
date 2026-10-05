@@ -1,20 +1,30 @@
-// Stryker Trading Academy — US stock market session clock (pure logic + header widget)
+// Stryker Trading Academy — trading session clock + US stock market hours (pure logic + header widget)
 //
-// Purpose: answers "is the US stock market's regular session open, and when
-// does it next open/close?" and renders the small clock in the app header
-// (.mobile-topnav) of every dash-shell page: a status pill plus New York time
-// and the visitor's local time. It is a CLOCK computed from the calendar
-// below; it reads no market data and must never be worded as live data.
+// Purpose: renders the "Trading session clock" in the app header
+// (.mobile-topnav) of every dash-shell page: which forex/futures trading
+// session is open now (Asia, London, New York), a per-second countdown to the
+// next session that is not open, plus New York time and the visitor's local
+// time. It is a CLOCK computed from the calendar below; it reads no market
+// data and must never be worded as live or real-time data.
 //
-// Market definition: NYSE/Nasdaq regular session, 09:30-16:00 America/New_York,
-// Monday-Friday, closed on NYSE holidays, 13:00 close on the standard early-
-// close days (Jul 3 when Jul 4 is Tue-Fri, the day after Thanksgiving, Dec 24
-// when Dec 25 is Tue-Fri). One-off closures (national days of mourning) cannot
-// be predicted and are not included.
+// Session definitions (standard trader convention, each in its own city's
+// local time so every DST switch is handled by the browser's tz database):
+//   Asia      09:00-18:00 Asia/Tokyo
+//   London    08:00-17:00 Europe/London
+//   New York  08:00-17:00 America/New_York
+// Each session runs Monday-Friday in its own city's calendar. Weekend = no
+// session open between Fri 17:00 New York and the Monday Asia open (Tokyo).
+// Bank holidays are not modelled for the sessions.
 //
-// Time zones: every NY wall-clock value comes from Intl.DateTimeFormat with
-// timeZone 'America/New_York', so DST is handled by the browser's tz database
-// and half-hour zones (IST, UTC+5:30) need no special case.
+// The module ALSO still exports the US stock market regular-session logic
+// (status/label: NYSE/Nasdaq 09:30-16:00 America/New_York, Mon-Fri, NYSE
+// holidays, 13:00 early closes on Jul 3 when Jul 4 is Tue-Fri, the day after
+// Thanksgiving and Dec 24 when Dec 25 is Tue-Fri). dash-path.js uses it for
+// the dashboard market chip. One-off closures cannot be predicted.
+//
+// Time zones: every wall-clock value comes from Intl.DateTimeFormat with an
+// explicit timeZone, so DST is handled by the browser and half-hour zones
+// (IST, UTC+5:30) need no special case.
 //
 // Depends on: nothing. Loaded after dash-nav.js on the app pages; also
 // require()-able from Node for tools/tests/market-hours-test.js.
@@ -149,7 +159,113 @@
       : { open: false, text: 'Opens in ' + left, short: 'Opens ' + left };
   }
 
-  var api = { status: status, label: label, fmtLeft: fmtLeft, sessionFor: sessionFor, nyParts: nyParts, nyToUtc: nyToUtc };
+  // ---- trading sessions -----------------------------------------------------
+  var SESSIONS = [
+    { name: 'Asia', short: 'Asia', tz: 'Asia/Tokyo', open: 9, close: 18 },
+    { name: 'London', short: 'London', tz: 'Europe/London', open: 8, close: 17 },
+    { name: 'New York', short: 'NY', tz: NY, open: 8, close: 17 }
+  ];
+  var tzFmts = {};
+  function tzParts(tz, ms) {
+    if (tz === NY) return nyParts(ms);
+    if (!tzFmts[tz]) {
+      tzFmts[tz] = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: 'numeric', minute: 'numeric', second: 'numeric', weekday: 'short'
+      });
+    }
+    var o = {};
+    tzFmts[tz].formatToParts(new Date(ms)).forEach(function (p) { o[p.type] = p.value; });
+    var wd = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[o.weekday];
+    return { y: +o.year, m: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second, wd: wd };
+  }
+  // Wall clock in tz -> UTC ms (session hours never fall inside a DST gap).
+  function tzToUtc(tz, y, m, d, h, mi) {
+    var guess = Date.UTC(y, m - 1, d, h, mi);
+    for (var i = 0; i < 2; i++) {
+      var p = tzParts(tz, guess);
+      guess += Date.UTC(y, m - 1, d, h, mi) - Date.UTC(p.y, p.m - 1, p.d, p.h, p.mi, p.s);
+    }
+    return guess;
+  }
+  // Weekday intervals of one session around nowMs: [{start, end}], ascending.
+  function sessionIntervals(sess, nowMs) {
+    var p = tzParts(sess.tz, nowMs), out = [];
+    for (var k = -1; k <= 9; k++) {
+      var t = addDays(p.y, p.m, p.d, k), w = dow(t[0], t[1], t[2]);
+      if (w === 0 || w === 6) continue;
+      out.push({ start: tzToUtc(sess.tz, t[0], t[1], t[2], sess.open, 0), end: tzToUtc(sess.tz, t[0], t[1], t[2], sess.close, 0) });
+    }
+    return out;
+  }
+
+  // HH:MM:SS countdown; "1d 05:33:25" once it is 24 h or more.
+  function fmtClock(ms) {
+    var t = Math.max(0, Math.floor(ms / 1000));
+    var dd = Math.floor(t / 86400), hh = Math.floor((t % 86400) / 3600), mm = Math.floor((t % 3600) / 60), ss = t % 60;
+    function z(n) { return (n < 10 ? '0' : '') + n; }
+    return (dd > 0 ? dd + 'd ' : '') + z(hh) + ':' + z(mm) + ':' + z(ss);
+  }
+  function joinNames(a) {
+    return a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' & ' + a[a.length - 1];
+  }
+
+  // { open:[{name, short, start, end}], next:{name, short, at}, weekend:bool }
+  function sessionStatus(nowMs) {
+    var open = [], next = null;
+    SESSIONS.forEach(function (s) {
+      var iv = sessionIntervals(s, nowMs), cur = null, nx = null;
+      for (var i = 0; i < iv.length; i++) {
+        if (iv[i].start <= nowMs && nowMs < iv[i].end) cur = iv[i];
+        else if (iv[i].start > nowMs && !nx) nx = iv[i];
+      }
+      if (cur) open.push({ name: s.name, short: s.short, start: cur.start, end: cur.end });
+      else if (nx && (!next || nx.start < next.at)) next = { name: s.name, short: s.short, at: nx.start };
+    });
+    open.sort(function (a, b) { return a.start - b.start; });
+    var weekend = false;
+    if (!open.length) {
+      var p = nyParts(nowMs);
+      weekend = p.wd === 6 || p.wd === 0 || (p.wd === 5 && p.h >= 17);
+    }
+    return { open: open, next: next, weekend: weekend };
+  }
+
+  // Display strings for the header pill.
+  function sessionLabel(nowMs) {
+    var st = sessionStatus(nowMs);
+    var names = st.open.map(function (o) { return o.name; });
+    var shorts = st.open.map(function (o) { return o.short; });
+    var head, shortHead;
+    if (names.length === 1) { head = names[0] + ' Session is Open'; shortHead = shorts[0] + ' open'; }
+    else if (names.length > 1) { head = joinNames(names) + ' Sessions are Open'; shortHead = joinNames(shorts) + ' open'; }
+    else if (st.weekend) { head = 'Markets closed (weekend)'; shortHead = 'Weekend'; }
+    else { head = 'No session open'; shortHead = 'Closed'; }
+    var left = st.next ? fmtClock(st.next.at - nowMs) : '';
+    var tail = st.next ? 'Next Session: ' + st.next.name + ' opens in ' + left : '';
+    var shortTail = st.next ? st.next.short + ' in ' + left : '';
+    return {
+      open: names.length > 0, weekend: st.weekend, sessions: names, next: st.next,
+      head: head, tail: tail, text: head + (tail ? ' \u00b7 ' + tail : ''),
+      shortHead: shortHead, shortTail: shortTail, short: shortHead + (shortTail ? ' \u00b7 ' + shortTail : '')
+    };
+  }
+
+  // Session hours in another zone (the visitor's), for the tooltip:
+  // "Asia 05:30–14:30 · London 12:30–21:30 · New York 17:30–02:30".
+  // Uses each session's current interval, else its next one, so the hours
+  // shown are the ones that apply around now (DST-correct).
+  function sessionHours(nowMs, tz) {
+    var f = new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+    return SESSIONS.map(function (s) {
+      var iv = sessionIntervals(s, nowMs), use = null;
+      for (var i = 0; i < iv.length && !use; i++) if (iv[i].end > nowMs) use = iv[i];
+      return s.name + ' ' + f.format(use.start) + '\u2013' + f.format(use.end);
+    }).join(' \u00b7 ');
+  }
+
+  var api = { status: status, label: label, fmtLeft: fmtLeft, sessionFor: sessionFor, nyParts: nyParts, nyToUtc: nyToUtc,
+    SESSIONS: SESSIONS, sessionStatus: sessionStatus, sessionLabel: sessionLabel, sessionHours: sessionHours, fmtClock: fmtClock, tzToUtc: tzToUtc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   root.StrykerMarketHours = api;
@@ -188,20 +304,23 @@
     w.className = 'mclock';
     w.id = 'mclock';
     w.innerHTML =
-      '<button type="button" class="mclock-pill" aria-expanded="false" aria-controls="mclock-pop" title="US stock market hours (clock, not market data)">' +
+      '<button type="button" class="mclock-pill" aria-label="Trading session clock" aria-expanded="false" aria-controls="mclock-pop">' +
         '<span class="mclock-dot" aria-hidden="true"></span>' +
-        '<span class="mclock-state"></span><span class="mclock-short"></span>' +
+        '<span class="mclock-state"><b class="mclock-head"></b> <span class="mclock-tail"></span></span>' +
+        '<span class="mclock-short"><b class="mclock-shead"></b> <span class="mclock-stail"></span></span>' +
         '<span class="mclock-sep" aria-hidden="true"></span>' +
         '<span class="mclock-t mclock-nyt"><b>NY</b> <span class="mclock-ny"></span> <i class="mclock-nyz"></i></span>' +
         '<span class="mclock-t mclock-nym"><b>NY</b> <span class="mclock-nyhm"></span> <i class="mclock-nyz"></i></span>' +
         '<span class="mclock-t mclock-locm"><i class="mclock-ltz"></i> <span class="mclock-lthm"></span></span>' +
         '<span class="mclock-t mclock-loc"><b>Local</b> <span class="mclock-lt"></span> <i class="mclock-ltz"></i></span>' +
       '</button>' +
-      '<div class="mclock-pop" id="mclock-pop" hidden>' +
-        '<div class="mclock-row"><span>US stocks (NYSE)</span><b class="mclock-pstate"></b></div>' +
+      '<div class="mclock-pop" id="mclock-pop" role="region" aria-label="Trading session hours" hidden>' +
+        '<div class="mclock-row mclock-prow"><span>Now</span><b class="mclock-pstate"></b></div>' +
+        '<div class="mclock-row"><span>Next</span><b class="mclock-pnext"></b></div>' +
+        '<div class="mclock-hours"></div>' +
         '<div class="mclock-row"><span>New York</span><b><span class="mclock-ny"></span> <i class="mclock-nyz"></i></b></div>' +
         '<div class="mclock-row"><span>Your time</span><b><span class="mclock-lt"></span> <i class="mclock-ltz"></i></b></div>' +
-        '<p class="mclock-note">Regular session 09:30-16:00 ET, Mon-Fri, NYSE holidays and early closes included. CME index futures (Globex) trade Sun 18:00 to Fri 17:00 ET with a daily break 17:00-18:00 ET.</p>' +
+        '<p class="mclock-note">Session hours in your time zone. Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. A clock from the calendar, not market data. Bank holidays not included.</p>' +
       '</div>';
     var right = host.querySelector('.topnav-right');
     host.insertBefore(w, right || null);
@@ -215,16 +334,44 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); pill.focus(); } });
 
     var q = function (sel) { return w.querySelectorAll(sel); };
-    var lastAbbr = 0, nyz = '', ltz = '';
+    var lastAbbr = 0, lastHours = 0, nyz = '', ltz = '';
     function setAll(sel, txt) { q(sel).forEach(function (el) { if (el.textContent !== txt) el.textContent = txt; }); }
+    // Fit the pill to the header without wrapping or sideways scroll:
+    // level 1 drops the local clock, 2 switches to the short session text,
+    // 3 drops the NY clock too. Re-run when the text length or width changes.
+    var fitKey = '';
+    function overflowing() { return pill.scrollWidth > pill.clientWidth + 1; }
+    function fit() {
+      w.classList.remove('fit-1', 'fit-2', 'fit-3');
+      for (var lv = 1; lv <= 3 && overflowing(); lv++) w.classList.add('fit-' + lv);
+    }
+    window.addEventListener('resize', function () { fitKey = ''; });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(); });
     function tick() {
       var now = Date.now();
       if (now - lastAbbr > 60000) { nyz = tzAbbr(NY); ltz = tzAbbr(localTz); lastAbbr = now; }
-      var l = label(now);
+      var l = sessionLabel(now);
       w.classList.toggle('is-open', l.open);
-      setAll('.mclock-state', l.text + (l.early ? ' (early close)' : ''));
-      setAll('.mclock-pstate', l.text + (l.early ? ' (early close)' : ''));
-      setAll('.mclock-short', l.short);
+      setAll('.mclock-head', l.head);
+      setAll('.mclock-tail', l.tail ? '\u00b7 ' + l.tail : '');
+      setAll('.mclock-shead', l.shortHead);
+      setAll('.mclock-stail', l.shortTail ? '\u00b7 ' + l.shortTail : '');
+      setAll('.mclock-pstate', l.head);
+      setAll('.mclock-pnext', l.next ? l.next.name + ' in ' + fmtClock(l.next.at - now) : '');
+      if (now - lastHours > 30000) {
+        lastHours = now;
+        var hrs = sessionHours(now, localTz);
+        pill.title = hrs + ' (your time)';
+        var hb = w.querySelector('.mclock-hours');
+        hb.innerHTML = '';
+        hrs.split(' \u00b7 ').forEach(function (seg) {
+          var sp = seg.lastIndexOf(' '), row = document.createElement('div');
+          row.className = 'mclock-row';
+          var a = document.createElement('span'); a.textContent = seg.slice(0, sp);
+          var b = document.createElement('b'); b.textContent = seg.slice(sp + 1);
+          row.appendChild(a); row.appendChild(b); hb.appendChild(row);
+        });
+      }
       setAll('.mclock-ny', nyF.format(now));
       setAll('.mclock-nyhm', nyHmF.format(now));
       setAll('.mclock-lthm', locHmF.format(now));
@@ -232,6 +379,8 @@
       setAll('.mclock-nyz', nyz);
       setAll('.mclock-ltz', ltz);
       w.classList.toggle('same-tz', !!localTz && localTz === NY);
+      var fk = l.text.length + '|' + l.short.length + '|' + (window.innerWidth || 0);
+      if (fk !== fitKey) { fitKey = fk; fit(); }
     }
     var timer = null;
     function start() {

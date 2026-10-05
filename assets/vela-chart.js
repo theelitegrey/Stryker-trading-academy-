@@ -189,7 +189,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
       import('./chart-pine.js?v=414'),
-      import('./chart-orderflow.js?v=413')
+      import('./chart-orderflow.js?v=413'),
+      import('./chart-settings.js?v=414'),
+      import(VELA_BASE + 'chunk-YCD72KGK.js')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -206,6 +208,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Core = mods[5];
   const Pine = mods[6];
   const Flow = mods[7];
+  const Settings = mods[8];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
@@ -225,6 +228,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
   // saved session or template that carries them restores.
   try { Flow.installOrderflow(Core); } catch (e) { console.warn('Stryker: volume tools install', e); }
+  // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
+  try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('Stryker: settings install', e); }
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -338,6 +343,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   window.__stkFlow = Flow;
   try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
+  try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
 
   function refreshLayoutUi(){
     let id = '1';

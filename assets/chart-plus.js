@@ -21,7 +21,7 @@
 //     never inside inputs. Every cell of a multi-chart layout gets its own "+".
 // Education only. Not financial advice.
 
-import { openAlerts, chartPlots } from './chart-alerts.js?v=423';
+import { openAlerts, chartPlots } from './chart-alerts.js?v=424';
 
 const BTN = 18;                    // button size (px)
 let WS = null;

@@ -178,7 +178,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=416'),
+      import('./chart-pine.js?v=417'),
       import('./chart-orderflow.js?v=413'),
       import('./chart-settings.js?v=416'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
@@ -322,7 +322,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=416')
+  import('./chart-indicator-window.js?v=417')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 

@@ -75,7 +75,7 @@ async function shot(p, name) { await sleep(500); await p.screenshot({ path: OUT 
     await p.evaluate(() => window.STRYKER_VELA.active.setSymbol('binance:BTCUSDT')); await sleep(1500); await bars(p);
     await p.evaluate(() => window.__stkIntervals.open()); await sleep(300);
     const btc = await p.evaluate(() => ({ tag: !!document.querySelector('.stk-iv-r[data-iv="15S"] .tag'), title: document.querySelector('.stk-iv-r[data-iv="15S"]').title }));
-    check(!btc.tag && /next update/.test(btc.title), 'BTC seconds: no Rithmic tag, says next update');
+    check(!btc.tag && !btc.title, 'BTC seconds: available (no Rithmic tag, no blocked note)');
     await p.keyboard.press('Escape');
     const nb = await setTf(p, '45');
     check(nb > 20, 'BTC 45m loads ' + nb + ' bars');

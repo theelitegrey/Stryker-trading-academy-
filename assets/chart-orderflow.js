@@ -598,13 +598,25 @@ const NEED_RITHMIC = 'Needs real trade data. Connect Rithmic (coming soon)';
 const tradeSources = new Map();    // provider -> (ticker, onTrade, onStatus) => unsubscribe
 
 const liveFlow = new Set();        // running FlowNative instances (re-attached when a source comes or goes)
-export function registerTradeSource(provider, fn) { tradeSources.set(provider, fn); refreshFlow(); }
+export function registerTradeSource(provider, fn) { tradeSources.set(provider, fn); refreshFlow(); tellTradeListeners(); }
 export function unregisterTradeSource(provider) {
   if (!tradeSources.delete(provider)) return;
   feeds.forEach((f, k) => { if (k.startsWith(provider + '|')) { try { f.stop(); } catch (e) {} feeds.delete(k); } });
   refreshFlow();
+  tellTradeListeners();
 }
 export function refreshFlow() { liveFlow.forEach((n) => { try { n.attach(); } catch (e) {} }); }
+// Raw trade access for assets/chart-intervals.js (tick bars, and seconds bars on venues without
+// 1-second candles). openTradeSource returns an unsubscribe function, or null when there is none.
+// The futures source exists only while the member's Rithmic connection is up (flag-gated).
+const tradeSourceListeners = new Set();
+const tellTradeListeners = () => tradeSourceListeners.forEach((cb) => { try { cb(); } catch (e) {} });
+export function hasTradeSource(provider) { return tradeSources.has(provider); }
+export function openTradeSource(provider, ticker, onTrade, onStatus) {
+  const fn = tradeSources.get(provider);
+  return fn ? fn(ticker, onTrade, onStatus || (() => {})) : null;
+}
+export function onTradeSourcesChanged(cb) { tradeSourceListeners.add(cb); return () => tradeSourceListeners.delete(cb); }
 
 function binanceSource(ticker, onTrade, onStatus) {
   const perp = /\.P$/i.test(ticker);
@@ -612,7 +624,8 @@ function binanceSource(ticker, onTrade, onStatus) {
   const rest = perp ? ['https://fapi.binance.com/fapi/v1'] : ['https://api.binance.com/api/v3', 'https://data-api.binance.vision/api/v3'];
   const wsBase = perp ? ['wss://fstream.binance.com/ws/'] : ['wss://stream.binance.com:9443/ws/', 'wss://data-stream.binance.vision/ws/'];
   let stopped = false, ws = null, retry = 0, tm = 0;
-  const conv = (t) => ({ time: t.T, price: +t.p, size: +t.q, side: t.m ? 'sell' : 'buy', id: t.a });
+  // n = exchange trades folded into this aggregate trade (tick bars count real trades).
+  const conv = (t) => ({ time: t.T, price: +t.p, size: +t.q, side: t.m ? 'sell' : 'buy', id: t.a, n: t.l >= t.f ? t.l - t.f + 1 : 1 });
   async function get(qs) {
     let err;
     for (const b of rest) {

@@ -209,6 +209,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Alerts = mods[11];
   const Events = mods[12];
   const Iv = mods[13];
+  // Tick bars (and seconds where a venue has no 1-second candles) are built from the same trade
+  // sources the order-flow tools use.
+  try { Iv.useTrades(Flow); } catch (e) { console.warn('Stryker: interval trades', e); }
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }

@@ -176,9 +176,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'index.js'),
       import('./chart-pine.js?v=414'),
       import('./chart-orderflow.js?v=413'),
-      import('./chart-settings.js?v=415'),
+      import('./chart-settings.js?v=416'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=415')
+      import('./chart-grid.js?v=416')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);

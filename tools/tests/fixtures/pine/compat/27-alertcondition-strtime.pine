@@ -1,0 +1,7 @@
+//@version=5
+indicator("alerts and str", overlay=true)
+alertcondition(ta.crossover(close, ta.sma(close, 20)), "Cross", "Price crossed SMA")
+var label l = na
+if barstate.islast
+    l := label.new(bar_index, high, str.format_time(time, "HH:mm", "America/New_York"))
+plot(close)

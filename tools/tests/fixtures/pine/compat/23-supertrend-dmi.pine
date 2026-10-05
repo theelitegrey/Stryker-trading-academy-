@@ -1,0 +1,6 @@
+//@version=5
+indicator("Supertrend DMI", overlay=true)
+[st, dir] = ta.supertrend(3, 10)
+[dp, dm, adx] = ta.dmi(14, 14)
+plot(st, "ST")
+plot(adx + close * 0, "ADX", display=display.data_window)

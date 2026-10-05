@@ -1,0 +1,8 @@
+//@version=5
+indicator("polyline", overlay=true)
+if barstate.islast
+    pts = array.new<chart.point>()
+    array.push(pts, chart.point.from_index(bar_index - 10, low))
+    array.push(pts, chart.point.from_index(bar_index, high))
+    polyline.new(pts, line_color=color.orange)
+plot(close)

@@ -1,0 +1,3 @@
+//@version=5
+indicator("ES on NQ", overlay=false)
+plot(request.security("futures:ES1!", timeframe.period, close), "ES close")

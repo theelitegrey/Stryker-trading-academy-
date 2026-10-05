@@ -1,0 +1,4 @@
+//@version=5
+indicator("Higher timeframe close", overlay=true)
+htf = request.security(syminfo.tickerid, "60", close)
+plot(htf, "1h close", color=color.yellow, style=plot.style_stepline)

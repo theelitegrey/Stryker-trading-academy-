@@ -1,0 +1,8 @@
+//@version=5
+indicator("bgcolor fill hline", overlay=false)
+r = ta.rsi(close, 14)
+p1 = plot(r, "RSI")
+h1 = hline(70, "Up")
+h2 = hline(30, "Down")
+fill(h1, h2, color=color.new(color.purple, 90))
+bgcolor(r > 70 ? color.new(color.red, 85) : na)

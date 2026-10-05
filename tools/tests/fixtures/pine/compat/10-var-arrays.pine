@@ -1,0 +1,12 @@
+//@version=5
+indicator("var varip arrays", overlay=false)
+var int n = 0
+varip int ticks = 0
+n += 1
+ticks += 1
+var a = array.new_float(0)
+array.push(a, close)
+if array.size(a) > 20
+    array.shift(a)
+plot(array.avg(a), "Avg of last 20")
+plot(n % 100, "Counter")

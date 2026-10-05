@@ -1,0 +1,5 @@
+//@version=5
+indicator("Session and time", overlay=true)
+inSess = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+bgcolor(inSess ? color.new(color.green, 92) : na)
+plot(hour(time, "America/New_York") == 9 ? high : na, "9am high", style=plot.style_circles)

@@ -1,0 +1,4 @@
+//@version=5
+indicator("Heikin Ashi ticker", overlay=true)
+ha = ticker.heikinashi(syminfo.tickerid)
+plot(request.security(ha, timeframe.period, close), "HA close")

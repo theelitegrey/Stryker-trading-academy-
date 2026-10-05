@@ -1,0 +1,5 @@
+//@version=5
+indicator("log", overlay=true)
+if barstate.islast
+    log.info("last close {0}", close)
+plot(close)

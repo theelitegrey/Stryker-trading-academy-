@@ -16,10 +16,17 @@
 // Never vendor, patch or minify-in their code; if a fix is needed, pin another version.
 //
 // VERSIONS: Vela is 0.6.17. vela-pinets 0.2.11 is the newest release whose peer range
-// accepts it (^0.6.11 || ^0.7.0); 0.2.12+ need Vela 0.7.x/0.8.x. pinets 0.9.33 is the
+// accepts it (^0.6.11 || ^0.7.0); 0.2.12+ need Vela 0.7.x/0.8.x. pinets (import map, used by the in-process fallback engine) is pinned in charts.html; 0.9.33 was the
 // newest runtime published before vela-pinets 0.2.11 (it was built against ^0.9.32).
 // The worker engine inlines its own PineTS copy, so the main-thread pinets is only used
 // for module resolution.
+//
+// FALLBACK (build 404): the worker inlines its own PineTS from vela-pinets' build (0.9.3x),
+// which lacks newer built-ins such as `scale.*`. A script the worker rejects with
+// "X is not defined" is retried once on the in-process PineEngine, which runs the newer
+// pinets pinned in charts.html' import map; such scripts are recorded as engine:'main'.
+// The in-process engine runs on the page thread, so the 20 s cap can't interrupt it
+// mid-run; PineTS' own loop guard still applies.
 //
 // HOW IT RUNS: PineWorkerEngine — each chart cell gets its own Web Worker, so a heavy
 // script never blocks the page. A first run that takes longer than RUN_LIMIT_MS is
@@ -42,13 +49,19 @@ let enginePromise = null;   // resolves to the vela-pinets module
 let Core = null;
 let getWs = () => null;
 const engines = new WeakMap(); // chart -> PineWorkerEngine
+const mainEngines = new WeakMap(); // chart -> in-process PineEngine (fallback)
+const onMain = new WeakSet();      // handles running on the in-process engine
+// Language ids. LANG_MAIN is our own registry key for the in-process engine.
+const LANG = 'pine';
+const LANG_MAIN = 'pine-main';
 
 function loadPine(){
   if (!enginePromise) {
     enginePromise = import(PINE_PKG).then((m) => {
       if (!m || !m.PineWorkerEngine) throw new Error('Pine engine did not load');
       // Cells created from now on (layout widened) get an engine automatically.
-      try { Core.registerDefaultEngine('pine', () => new m.PineWorkerEngine({ props: 'strategy' })); } catch (e) {}
+      try { Core.registerDefaultEngine(LANG, () => new m.PineWorkerEngine({ props: 'strategy' })); } catch (e) {}
+      try { Core.registerDefaultEngine(LANG_MAIN, () => new m.PineEngine({ props: 'strategy' })); } catch (e) {}
       return m;
     }).catch((e) => { enginePromise = null; throw e; });
   }
@@ -59,10 +72,22 @@ async function ensureEngine(chart){
   const m = await loadPine();
   if (!engines.has(chart)) {
     const eng = new m.PineWorkerEngine({ props: 'strategy' });
-    chart.registerEngine('pine', eng);
+    chart.registerEngine(LANG, eng);
     engines.set(chart, eng);
   }
+  if (!mainEngines.has(chart)) {
+    const e2 = new m.PineEngine({ props: 'strategy' });
+    chart.registerEngine(LANG_MAIN, e2);
+    mainEngines.set(chart, e2);
+  }
   return engines.get(chart);
+}
+
+// Add a restored/kept script on the engine it ran on before.
+function addOn(chart, x){
+  const h = chart.addIndicator(x.source, { language: x.engine === 'main' ? LANG_MAIN : LANG, inputs: x.inputs || {} });
+  if (x.engine === 'main' && h) onMain.add(h);
+  return h;
 }
 
 // Pine indicators on a chart = script handles (natives carry nativeType, no source).
@@ -77,7 +102,9 @@ function titleOf(h){
 function snapshot(h){
   let inputs = {};
   try { inputs = h.inputValues() || {}; } catch (e) {}
-  return { name: titleOf(h), source: h.source, inputs };
+  const o = { name: titleOf(h), source: h.source, inputs };
+  if (onMain.has(h)) o.engine = 'main';
+  return o;
 }
 function cleanEntry(x){
   if (!x || typeof x !== 'object' || typeof x.source !== 'string' || !x.source.trim() || x.source.length > SRC_MAX) return null;
@@ -88,7 +115,9 @@ function cleanEntry(x){
       if (['string', 'number', 'boolean'].includes(typeof v)) inputs[k] = v;
     });
   }
-  return { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Pine script', source: x.source, inputs };
+  const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Pine script', source: x.source, inputs };
+  if (x.engine === 'main') o.engine = 'main';
+  return o;
 }
 
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
@@ -100,9 +129,20 @@ async function resetCell(chart, keep){
   try { if (old && old.terminate) old.terminate(); } catch (e) {}
   engines.delete(chart);
   await ensureEngine(chart);
-  keep.forEach((k) => { try { chart.addIndicator(k.source, { language: 'pine', inputs: k.inputs }); } catch (e) {} });
+  keep.forEach((k) => { try { addOn(chart, k); } catch (e) {} });
   changed();
 }
+
+// Real Pine built-in namespaces and functions (TradingView reference). A name on this
+// list that the runtime doesn't know is a GAP in our engine, not a typo by the member.
+const PINE_BUILTINS = new Set(('ta math str array matrix map color input request strategy label line box table polyline '
+  + 'linefill chart syminfo timeframe barstate session ticker plot shape location size position hline display format '
+  + 'scale xloc yloc extend text font order currency dayofweek alert alertcondition runtime log adjustment backadjustment '
+  + 'dividends earnings splits settlement_as_close barmerge footprint volume_row '
+  + 'plotshape plotchar plotarrow plotbar plotcandle bgcolor barcolor fill indicator library max_bars_back '
+  + 'fixnan nz na time time_close timestamp year month weekofyear dayofmonth hour minute second '
+  + 'last_bar_index last_bar_time bar_index').split(' '));
+function isPineBuiltin(name){ return PINE_BUILTINS.has(String(name).split('.')[0]); }
 
 // Turn engine errors into something a member can act on.
 function explain(err, source){
@@ -112,14 +152,16 @@ function explain(err, source){
   let m = /\bat (?:line )?(\d+):(\d+)/.exec(msg) || /line (\d+)(?:, col(?:umn)? (\d+))?/i.exec(msg);
   if (m) line = +m[1];
   if (!line) {
-    const nd = /^([A-Za-z_][\w.]*) is not defined/.exec(msg);
+    const nd = /^([A-Za-z_][\w.]*) is not defined/.exec(msg) || /^(?:\w+\.)?((?:ta|math|str|array|matrix|map|request|strategy|label|line|box|table|polyline|chart|ticker|input|color|timeframe|syminfo|log|runtime)\.[A-Za-z_]\w*) is not a function/.exec(msg);
     if (nd) {
       const name = nd[1];
       const lines = String(source).split('\n');
       const re = new RegExp('(^|[^\\w.])' + name.replace(/\./g, '\\.') + '\\b');
       const i = lines.findIndex((l) => !/^\s*\/\//.test(l) && re.test(l));
       if (i >= 0) line = i + 1;
-      msg = '"' + name + '" is not a known variable or function.';
+      msg = isPineBuiltin(name)
+        ? '"' + name + '" isn\'t supported on our charts yet.'
+        : '"' + name + '" is not a known variable or function.';
     }
   }
   msg = msg.replace(/^Failed to transpile Pine Script version \d+:\s*/, 'Syntax error: ');
@@ -142,7 +184,16 @@ async function runOnChart(chart, source, inputs){
   const keep = pineHandles(chart).map(snapshot);
   let timer;
   const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
-  const res = await Promise.race([chart.runIndicator(source, { language: 'pine', inputs: inputs || {} }), timeout]);
+  let res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]);
+  let main = false;
+  // The worker's built-in PineTS is older than the page's (vela-pinets 0.2.11 inlines
+  // its own copy). When it doesn't know a name (e.g. `scale.right`), retry once on the
+  // in-process engine, which runs the newer pinets pinned in charts.html.
+  if (res && !res.timedOut && !res.ok && /is not defined/.test(String(res.error && res.error.message))) {
+    hideVelaErrorToast();
+    res = await Promise.race([chart.runIndicator(source, { language: LANG_MAIN, inputs: inputs || {} }), timeout]);
+    main = true;
+  }
   clearTimeout(timer);
   if (res && res.timedOut) {
     await resetCell(chart, keep);
@@ -153,8 +204,9 @@ async function runOnChart(chart, source, inputs){
     const ex = explain(res && res.error, source);
     return { ok: false, msg: ex.msg, line: ex.line };
   }
+  if (main && res.handle) onMain.add(res.handle);
   changed();
-  return { ok: true, handle: res.handle };
+  return { ok: true, handle: res.handle, engine: main ? 'main' : 'worker' };
 }
 
 // Called by vela-chart.js BEFORE the workspace is constructed.
@@ -177,7 +229,7 @@ export function installPine(core, wsGetter){
         pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });
         if (!list.length) return;
         ensureEngine(chart).then(() => {
-          list.forEach((x) => { try { chart.addIndicator(x.source, { language: 'pine', inputs: x.inputs }); } catch (e) { console.warn('Stryker: Pine restore', e); } });
+          list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('Stryker: Pine restore', e); } });
         }).catch((e) => { console.warn('Stryker: Pine engine failed to load', e); });
       }
     });
@@ -409,6 +461,6 @@ export function mountPine(ws, barL, opts){
   try { ws.on('cell:active', () => { if (!panel.hidden) setTimeout(renderLists, 0); }); } catch (e) {}
   try { ws.on('state:changed', () => { if (!panel.hidden) renderTarget(); }); } catch (e) {}
 
-  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, runOnChart, pineHandles, titleOf, renderLists, RUN_LIMIT_MS };
+  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, runOnChart, pineHandles, titleOf, explain, renderLists, RUN_LIMIT_MS };
   return { setOpen };
 }

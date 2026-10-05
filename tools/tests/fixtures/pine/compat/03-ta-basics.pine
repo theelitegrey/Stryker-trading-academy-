@@ -1,0 +1,6 @@
+//@version=5
+indicator("TA basics", overlay=true)
+plot(ta.ema(close, 9), "EMA")
+plot(ta.sma(close, 50), "SMA")
+plot(ta.vwap(hlc3), "VWAP")
+plot(ta.atr(14) + close, "ATR band")

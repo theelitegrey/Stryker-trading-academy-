@@ -1,0 +1,7 @@
+//@version=5
+indicator("Table and math", overlay=true)
+var t = table.new(position.top_right, 2, 1)
+if barstate.islast
+    table.cell(t, 0, 0, "Close")
+    table.cell(t, 1, 0, str.tostring(math.round(close, 2)))
+plot(math.max(open, close), "Body top")

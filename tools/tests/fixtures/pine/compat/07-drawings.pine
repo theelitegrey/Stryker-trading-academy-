@@ -1,0 +1,6 @@
+//@version=5
+indicator("Label line box", overlay=true, max_labels_count=50)
+if barstate.islast
+    label.new(bar_index, high, "Last", style=label.style_label_down, color=color.teal)
+    line.new(bar_index - 20, low, bar_index, high, color=color.orange, width=2)
+    box.new(bar_index - 30, high, bar_index - 10, low, border_color=color.blue, bgcolor=color.new(color.blue, 85))

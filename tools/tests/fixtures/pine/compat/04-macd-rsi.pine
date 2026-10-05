@@ -1,0 +1,7 @@
+//@version=5
+indicator("MACD + RSI", overlay=false)
+[m, s, h] = ta.macd(close, 12, 26, 9)
+plot(m, "MACD", color=color.blue)
+plot(s, "Signal", color=color.orange)
+plot(h, "Hist", style=plot.style_histogram, color=h >= 0 ? color.green : color.red)
+plot(ta.rsi(close, 14) / 10, "RSI/10")

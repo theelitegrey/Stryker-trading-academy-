@@ -1,0 +1,3 @@
+//@version=5
+indicator("Scale right", overlay=true, scale=scale.right)
+plot(ta.sma(close, 20), "SMA")

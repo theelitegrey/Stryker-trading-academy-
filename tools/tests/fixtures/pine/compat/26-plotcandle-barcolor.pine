@@ -1,0 +1,4 @@
+//@version=5
+indicator("plotcandle barcolor", overlay=false)
+plotcandle(open, high, low, close, "C", color=close > open ? color.green : color.red)
+barcolor(close > open ? color.teal : na)

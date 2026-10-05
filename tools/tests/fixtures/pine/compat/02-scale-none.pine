@@ -1,0 +1,3 @@
+//@version=5
+indicator("Scale none", overlay=true, scale=scale.none)
+plot(volume, "Vol", color=color.gray)

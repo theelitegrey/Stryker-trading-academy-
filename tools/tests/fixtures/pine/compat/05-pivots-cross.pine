@@ -1,0 +1,7 @@
+//@version=5
+indicator("Pivots and crosses", overlay=true)
+ph = ta.pivothigh(high, 5, 5)
+pl = ta.pivotlow(low, 5, 5)
+plotshape(not na(ph), "PH", shape.triangledown, location.abovebar, color.red, offset=-5)
+plotshape(not na(pl), "PL", shape.triangleup, location.belowbar, color.green, offset=-5)
+plotchar(ta.crossover(close, ta.ema(close, 20)), "X", "▲", location.belowbar, color.teal)

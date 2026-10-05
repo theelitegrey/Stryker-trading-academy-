@@ -190,7 +190,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'index.js'),
       import('./chart-pine.js?v=414'),
       import('./chart-orderflow.js?v=413'),
-      import('./chart-settings.js?v=414'),
+      import('./chart-settings.js?v=415'),
       import(VELA_BASE + 'chunk-YCD72KGK.js')
     ]);
   } catch (err) {

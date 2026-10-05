@@ -180,11 +180,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=419'),
-      import('./chart-orderflow.js?v=413'),
-      import('./chart-settings.js?v=419'),
+      import('./chart-pine.js?v=420'),
+      import('./chart-orderflow.js?v=420'),
+      import('./chart-settings.js?v=420'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=416')
+      import('./chart-grid.js?v=420')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -247,7 +247,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=413')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=420')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {
@@ -324,7 +324,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=419')
+  import('./chart-indicator-window.js?v=420')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 
@@ -425,7 +425,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=417')
+    import('./chart-layouts.js?v=420')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('Stryker: layout menu', e));
   }

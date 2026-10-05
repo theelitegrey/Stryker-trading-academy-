@@ -39,7 +39,7 @@
     if(!isFinite(t)) return {state:'stale', age:'unknown age', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
     var age = Date.now() - t;
     var state = age <= 30*60000 ? 'fresh' : 'stale';
-    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Cboe delayed options chain updated '+ageLabel(age)+'.'};
+    if(state === 'fresh') return {state:state, age:ageLabel(age), title:'Market session active', reason:'Options chain updated '+ageLabel(age)+'.'};
     return {state:state, age:ageLabel(age), title:'Market closed', reason:'Options chain is frozen from the last Cboe session · '+ageLabel(age)+'.'};
   }
   // ---- Market status: closed-market disclaimer + chart tag (display only) ----
@@ -62,18 +62,18 @@
     if(!m || !m.state) return null;
     var futAge = m.futures_age_min != null ? ageLabel(m.futures_age_min * 60000) : null;
     var optAge = m.options_age_min != null ? ageLabel(m.options_age_min * 60000) : null;
-    if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Cboe delayed options chain updated '+(optAge || 'unknown age')+'.'};
-    if(m.state === 'stale') return {state:'stale', title:'Data delayed', reason:'Feed is behind: futures '+(futAge || 'unknown age')+', options chain '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'open') return {state:'fresh', title:'Market session active', reason:'Options chain updated '+(optAge || 'unknown age')+'.'};
+    if(m.state === 'stale') return {state:'stale', title:'Data behind', reason:'Feed is behind: futures '+(futAge || 'unknown age')+', options chain '+(optAge || 'unknown age')+'.'};
     if(m.state === 'opening'){
       var prior = m.options_ts ? new Date(m.options_ts * 1000).toLocaleDateString('en-US', {timeZone:'America/New_York', weekday:'long'}) : 'the last session';
-      return {state:'stale', closed:'opening', title:'Cash market just opened',
-        reason:'Options data is delayed about 15 minutes · showing '+prior+'\'s close until today\'s chain arrives.',
-        note:'Cash market just opened. Options data is delayed about 15 minutes; today\'s levels appear shortly. Showing '+prior+'\'s close until then (chain from '+tsLocal(m.options_ts)+'). This page refreshes every 60 seconds.',
+      return {state:'stale', closed:'opening', title:'Market just opened',
+        reason:'Today\'s options levels appear in a few minutes · showing '+prior+'\'s close until then.',
+        note:'Market just opened. Today\'s options levels appear in a few minutes. Showing '+prior+'\'s close until then.',
         tag:'Levels from: '+tsDay(m.options_ts)};
     }
     if(m.state === 'cash_closed') return {state:'stale', closed:'cash', title:'Cash session closed',
       reason:'Options levels are from the last Cboe session · '+(optAge || 'unknown age')+'.',
-      note:'Cash market closed. GEX levels are built from the last options chain received at '+tsLocal(m.options_ts)+'. Futures candles keep updating with the overnight session (delayed). Levels are not recent.',
+      note:'Cash market closed. GEX levels are built from the last options chain received at '+tsLocal(m.options_ts)+'. Futures candles keep updating with the overnight session. Levels are not recent.',
       tag:'Levels from: '+tsDay(m.options_ts)};
     if(m.state === 'nodata') return {state:'stale', closed:'nodata', title:'No data available',
       reason:'No futures or options data was returned.',
@@ -88,7 +88,7 @@
     var t = asof ? Date.parse(asof) : NaN;
     if(!isFinite(t)) return {state:'stale', title:'Session data unavailable', reason:'No Cboe timestamp was returned for this options session.'};
     var age = Date.now() - t;
-    if(age <= 30*60000) return {state:'fresh', title:'Market session active', reason:'Cboe delayed options chain updated '+ageLabel(age)+'.'};
+    if(age <= 30*60000) return {state:'fresh', title:'Market session active', reason:'Options chain updated '+ageLabel(age)+'.'};
     return {state:'stale', title:'Data not recent', reason:'Options chain is from the last Cboe session · '+ageLabel(age)+'.'};
   }
   function setFreshnessStatus(d){
@@ -172,7 +172,7 @@
     var futs = Object.keys(d.futures || {}).filter(function(k){ return !(d.futures[k] || {}).error; });
     var F = curFut ? d.futures[curFut] : null;
     setFreshnessStatus(d);
-    $('gex-status-text').innerHTML = '<b>'+esc(d.underlying)+' → '+esc(futs.join(' / ') || d.fut)+'</b><span> '+esc(String(d.contracts))+' contracts · '+esc(dteLabel)+(d.expiry?' · exp '+esc(d.expiry):'')+' · Cboe delayed '+esc(d.asof || '')+'</span>';
+    $('gex-status-text').innerHTML = '<b>'+esc(d.underlying)+' → '+esc(futs.join(' / ') || d.fut)+'</b><span> '+esc(String(d.contracts))+' contracts · '+esc(dteLabel)+(d.expiry?' · exp '+esc(d.expiry):'')+' · Cboe '+esc(d.asof || '')+'</span>';
     $('gex-futs').innerHTML = futs.length ? futs.map(function(f){ var sub = ({ES:'S&P futures',MES:'Micro ES',NQ:'Nasdaq futures',MNQ:'Micro NQ',GC:'Gold futures',MGC:'Micro gold'})[f] || 'Futures'; return '<button class="gex-fut'+cls(f === curFut)+'" data-f="'+f+'"><span>'+f+'</span><small>'+sub+'</small></button>'; }).join('') : '<span class="gex-empty">'+(d.market && d.market.state === 'nodata' ? 'No futures data available' : 'Futures data unavailable')+'</span>';
     $('gex-hero').innerHTML = '<div class="gex-spot"><small>SPOT '+esc(d.underlying)+'</small>'+fmt(d.spot,2)+'</div>'+
       '<div class="gex-badge '+(pos?'pos':'neg')+'">'+esc(d.regime)+' GAMMA</div>'+

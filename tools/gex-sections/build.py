@@ -17,9 +17,9 @@ hero = SRC[SRC.index("<header class=\"ft-hero"):SRC.index("</header>") + len("</
 hero = hero.replace('href="#what-is-gex"', 'href="#whats-on-the-page"')
 foot = SRC[SRC.index("<footer>"):]
 
-CAP_NQ = "Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels."
-CAP_SPX = "Real capture, delayed Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels."
-CAP_LV = "Real capture, delayed futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct). Market closed: not current levels."
+CAP_NQ = "Real capture, Cboe data, Fri 2 Oct 2026, 16:00 ET (QQQ 0DTE on MNQ, 5m chart). Market closed: not current levels."
+CAP_SPX = "Real capture, Cboe data, Fri 2 Oct 2026, 16:15 ET (SPX 1DTE on ES, 5m chart). Market closed: these are that session’s levels, not current levels."
+CAP_LV = "Real capture, futures data, ES session of Fri 2 Oct 2026 (prior session 1 Oct). Market closed: not current levels."
 
 # copy pulled from gex-a.html tiles, verbatim
 tiles = re.findall(r'<h3>(.*?)</h3><p>(.*?)</p><div class="fg-how">(.*?)</div>', SRC[SRC.index('id="whats-on-the-page"'):])

@@ -188,7 +188,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=407'),
+      import('./chart-pine.js?v=414'),
       import('./chart-orderflow.js?v=413')
     ]);
   } catch (err) {

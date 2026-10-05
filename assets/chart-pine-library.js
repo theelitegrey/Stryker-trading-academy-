@@ -10,6 +10,11 @@
 //   versions/{v}  last 5 older sources (author only)
 //   adds/{uid}    one marker per member who added it (addCount +1 once)
 //   reports/{uid} one report per member { reason, at }; the 3rd report hides it
+//   boosts/{uid}  one boost per member { at, day } (not the author); boostCount +/-1
+// Build 415 (indicator window): optional counters boostCount, boostRing, addRing and the
+// admin-only Editors' pick flag picked / pickedAt. A "ring" is 8 day slots
+// { s<day%8>: { d: <UTC day number>, n: <count> } } so "last 7 days" (Trending) needs no
+// query; the rules check every slot write (+1 on today's slot, or a fresh {d: today, n: 1}).
 // Owner 2026-10-05: Private or Public only (no invite links). Private = not published:
 // the script stays in My scripts (students/{uid}/pineScripts) only.
 //
@@ -45,7 +50,25 @@
       description: x.description || '', tags: Array.isArray(x.tags) ? x.tags : [], visibility: x.visibility,
       openSource: x.openSource !== false, source: x.source || '', version: x.version || 1,
       createdAt: ms(x.createdAt), updatedAt: ms(x.updatedAt), addCount: x.addCount || 0,
-      reportCount: x.reportCount || 0, status: x.status || 'ok' };
+      reportCount: x.reportCount || 0, status: x.status || 'ok',
+      boostCount: x.boostCount || 0, boostRing: x.boostRing || {}, addRing: x.addRing || {},
+      picked: x.picked === true, pickedAt: ms(x.pickedAt) };
+  }
+  function today() { return Math.floor(Date.now() / 86400000); }
+  // Field updates that put +1 on today's ring slot (d = UTC day number).
+  function ringInc(field, ring, d) {
+    var k = 's' + (d % 8), slot = (ring || {})[k], o = {};
+    if (slot && slot.d === d) o[field + '.' + k + '.n'] = firebase.firestore.FieldValue.increment(1);
+    else o[field + '.' + k] = { d: d, n: 1 };
+    return o;
+  }
+  // Retry a write once with the neighbouring UTC day (client clock vs server time at midnight).
+  async function withDay(fn) {
+    var d = today(), tries = [d, d + 1, d - 1], last;
+    for (var i = 0; i < tries.length; i++) {
+      try { return await fn(tries[i]); } catch (e) { last = e; if (!e || e.code !== 'permission-denied') throw e; }
+    }
+    throw last;
   }
 
   var adminP = null;
@@ -144,11 +167,51 @@
       if ((await mk.get()).exists) return;
       var cur = await get(s.id);
       if (!cur) return;
-      var b = db().batch();
-      b.update(ref, { addCount: cur.addCount + 1 });
-      b.set(mk, { at: ts() });
-      await b.commit();
+      await withDay(function (d) {
+        var b = db().batch();
+        b.update(ref, Object.assign({ addCount: cur.addCount + 1 }, ringInc('addRing', cur.addRing, d)));
+        b.set(mk, { at: ts() });
+        return b.commit();
+      });
     } catch (e) { console.warn('Stryker: add count', e); }
+  }
+  // Boosts: one per member per script, never the author's own. Returns { on, count, ring }.
+  function myBoost(id) {
+    var u = user();
+    if (!u) return Promise.resolve(false);
+    return col().doc(id).collection('boosts').doc(u.uid).get().then(function (d) { return d.exists; }).catch(function () { return false; });
+  }
+  async function boost(s, on) {
+    var u = user();
+    if (!u) throw err('Sign in to boost scripts.');
+    if (s.ownerUid === u.uid) throw err('You can\'t boost your own script.');
+    var ref = col().doc(s.id), mk = ref.collection('boosts').doc(u.uid);
+    var had = (await mk.get()).exists;
+    var cur = await get(s.id);
+    if (!cur || cur.status !== 'ok') throw err('This script is no longer published.');
+    if (had === on) return { on: on, count: cur.boostCount, ring: cur.boostRing };
+    if (on) {
+      await withDay(function (d) {
+        var b = db().batch();
+        b.update(ref, Object.assign({ boostCount: firebase.firestore.FieldValue.increment(1) }, ringInc('boostRing', cur.boostRing, d)));
+        b.set(mk, { at: ts(), day: d });
+        return b.commit();
+      });
+    } else {
+      // Taking a boost back also takes it off the day slot it was counted in (if still there).
+      var md = ((await mk.get()).data() || {}).day, o = { boostCount: firebase.firestore.FieldValue.increment(-1) };
+      var k = 's' + (md % 8), slot = cur.boostRing[k];
+      if (typeof md === 'number' && slot && slot.d === md && slot.n > 0) o['boostRing.' + k + '.n'] = firebase.firestore.FieldValue.increment(-1);
+      var b = db().batch();
+      b.update(ref, o);
+      b.delete(mk);
+      await b.commit();
+    }
+    var after = await get(s.id);
+    return { on: on, count: after ? after.boostCount : cur.boostCount + (on ? 1 : -1), ring: after ? after.boostRing : cur.boostRing };
+  }
+  function setPicked(id, on) {
+    return col().doc(id).update({ picked: !!on, pickedAt: ts() });
   }
   async function report(s, reason) {
     var u = user();
@@ -298,6 +361,7 @@
     var badges = h('div', { class: 'stkc-cbadges' }, [
       h('span', { class: 'stkc-badge ' + (s.openSource ? 'is-open' : 'is-hidden'), text: s.openSource ? 'Open source' : 'Code hidden' }),
       h('span', { class: 'stkc-badge', text: 'v' + s.version }),
+      s.picked ? h('span', { class: 'stkc-badge is-open', text: 'Editors\u2019 pick' }) : null,
       s.status === 'hidden' ? h('span', { class: 'stkc-badge is-warn', text: 'Hidden' + (s.reportCount ? ' (' + s.reportCount + ' reports)' : '') }) : null
     ].concat(s.tags.map(function (t) { return h('span', { class: 'stkc-badge is-tag', text: t }); })));
     var acts = h('div', { class: 'stkc-cacts' });
@@ -328,15 +392,49 @@
     } else if (me) {
       btn('Report', function () { openReport(s, box); });
     }
+    if (ctx && ctx.admin && s.status === 'ok') {
+      btn(s.picked ? 'Remove Editors\u2019 pick (admin)' : 'Editors\u2019 pick (admin)', async function (b) {
+        b.disabled = true;
+        try { await setPicked(s.id, !s.picked); s.picked = !s.picked; b.textContent = s.picked ? 'Remove Editors\u2019 pick (admin)' : 'Editors\u2019 pick (admin)'; toast(s.picked ? 'Marked as an Editors\u2019 pick' : 'Removed from Editors\u2019 picks'); }
+        catch (e) { say(box, 'Failed.', true); }
+        b.disabled = false;
+      });
+    }
     if (ctx && ctx.admin) {
       if (s.status === 'hidden') btn('Restore (admin)', async function (b) { b.disabled = true; try { await setStatus(s.id, 'ok', true); ctx.refresh(); } catch (e) { say(box, 'Failed.', true); b.disabled = false; } });
       else if (!mineFlag) btn('Hide (admin)', async function (b) { b.disabled = true; try { await setStatus(s.id, 'hidden'); ctx.refresh(); } catch (e) { say(box, 'Failed.', true); b.disabled = false; } });
     }
+    var bst = boostButton(s, box);
     return h('li', { class: 'stkc-ccard' }, [
-      h('div', { class: 'stkc-chead' }, [h('b', { text: s.name }), h('span', { class: 'stkc-note', text: 'by ' + s.authorName + ' \u00b7 ' + s.addCount + ' added \u00b7 updated ' + rel(s.updatedAt) })]),
+      h('div', { class: 'stkc-chead stkc-chead-row' }, [h('div', { class: 'stkc-chead' }, [h('b', { text: s.name }), h('span', { class: 'stkc-note', text: 'by ' + s.authorName + ' \u00b7 ' + s.addCount + ' added \u00b7 updated ' + rel(s.updatedAt) })]), bst]),
       s.description ? h('p', { class: 'stkc-cdesc', text: s.description }) : null,
       badges, acts, box
     ]);
+  }
+  function fmtCount(n) {
+    n = Number(n) || 0;
+    if (n < 1000) return String(n);
+    if (n < 1e6) { var k = n / 1000; return (k < 100 ? k.toFixed(1).replace(/\.0$/, '') : Math.round(k)) + 'K'; }
+    var m = n / 1e6; return (m < 100 ? m.toFixed(1).replace(/\.0$/, '') : Math.round(m)) + 'M';
+  }
+  // Rocket button with the count, TradingView-style. The author sees the count only.
+  function boostButton(s, box) {
+    var u = user(), own = u && s.ownerUid === u.uid;
+    var num = h('span', { class: 'stkiw-bn', text: fmtCount(s.boostCount) });
+    var b = h('button', { type: 'button', class: 'stkiw-boost stkc-cboost', 'aria-pressed': 'false', title: own ? 'Boosts (you can\u2019t boost your own script)' : 'Boost' },
+      [h('span', { class: 'stkiw-rk', 'aria-hidden': 'true', text: '\uD83D\uDE80' }), num, h('span', { class: 'stkiw-bl', text: ' Boost' })]);
+    var on = false;
+    function paint() { b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); num.textContent = fmtCount(s.boostCount); b.setAttribute('aria-label', fmtCount(s.boostCount) + ' boosts' + (own ? '' : on ? ', boosted' : ', boost ' + s.name)); }
+    paint();
+    if (own || !u || s.status !== 'ok') { b.disabled = true; b.classList.add('is-own'); return b; }
+    myBoost(s.id).then(function (x) { on = x; paint(); });
+    b.addEventListener('click', async function () {
+      b.disabled = true;
+      try { var r = await boost(s, !on); on = r.on; s.boostCount = r.count; s.boostRing = r.ring; }
+      catch (e) { say(box, (e && e.userMessage) || 'Could not save the boost.', true); }
+      b.disabled = false; paint();
+    });
+    return b;
   }
   function openReport(s, outBox) {
     var radios = REASONS.map(function (r, i) {
@@ -370,7 +468,7 @@
     return r;
   }
 
-  async function openCommunity(tab) {
+  async function openCommunity(tab, query) {
     if (!user()) {
       sheet('Community scripts', h('p', { text: 'Sign in to browse and share Pine scripts with other members.' }), [h('a', { class: 'stkc-sbtn', href: 'login.html?next=' + encodeURIComponent(location.pathname), text: 'Sign in' })]);
       return;
@@ -405,6 +503,7 @@
       catch (e) { console.warn('Stryker: community list', e); data = []; note.textContent = 'Could not load scripts. Check your connection.'; return; }
       render();
     }
+    if (query) q.value = String(query);
     q.addEventListener('input', render);
     q.addEventListener('keydown', function (e) { e.stopPropagation(); });
     sort.addEventListener('change', render);
@@ -416,5 +515,6 @@
 
   window.StrykerPineLibrary = { TAGS: TAGS, get: get, listPublic: listPublic, listMine: listMine, publish: publish, update: update,
     unpublish: unpublish, versions: versions, report: report, setStatus: setStatus, isAdmin: isAdmin,
+    myBoost: myBoost, boost: boost, setPicked: setPicked, addItem: addToChart, fmtCount: fmtCount,
     openPublish: openPublish, openCommunity: openCommunity, close: closeSheet };
 })();

@@ -42,6 +42,10 @@
 // (loaded unmodified from jsDelivr, lazily) and draws the Pine editor; Pine indicators
 // ride the workspace document under ext 'stryker.pine', so persist and templates keep them.
 //
+// INDICATOR WINDOW: assets/chart-indicator-window.js takes over ws.indicatorPicker (the
+// topbar Indicators button and "/") with the TradingView-style window: Favorites, My scripts,
+// Technicals by category, Editors' picks / Top / Trending, boosts, stars.
+//
 // VOLUME & ORDER FLOW: assets/chart-orderflow.js registers the volume-profile / VWAP /
 // relative-volume / order-flow natives and puts them in a "Volume & Order flow" group at the
 // top of the Indicators picker; their settings ride the document under ext 'stryker.volume'.
@@ -174,7 +178,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/hyperliquid.js'),
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=414'),
+      import('./chart-pine.js?v=416'),
       import('./chart-orderflow.js?v=413'),
       import('./chart-settings.js?v=416'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
@@ -316,6 +320,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
+  // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
+  // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
+  import('./chart-indicator-window.js?v=416')
+    .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
+    .catch((e) => console.warn('Stryker: indicator window', e));
 
   function refreshLayoutUi(){
     grid.refresh();

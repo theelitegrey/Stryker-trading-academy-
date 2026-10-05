@@ -168,7 +168,19 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites']); }
+
+      // Charts page indicator favourites (assets/chart-indicator-window.js, 2026-10-06).
+      // Owner only (not even admins read them). One small doc per starred item.
+      match /chartFavorites/{fid} {
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && fid.size() <= 100
+          && request.resource.data.keys().hasOnly(['key', 'name', 'at'])
+          && request.resource.data.keys().hasAll(['key', 'name', 'at'])
+          && request.resource.data.key is string && request.resource.data.key.size() > 0 && request.resource.data.key.size() <= 90
+          && request.resource.data.name is string && request.resource.data.name.size() <= 80
+          && request.resource.data.at == request.time;
+      }
 
       // Charts page saved templates (assets/chart-templates.js, 2026-10-05).
       // Owner only. name 1-60 chars, state = Vela workspace JSON <= 200000
@@ -429,6 +441,8 @@ service cloud.firestore {
                 'openSource', 'source', 'version', 'createdAt', 'updatedAt',
                 'addCount', 'reportCount', 'status'];
       }
+      // Build 415 optional fields: boost/add counters, 8-slot day rings, Editors' pick.
+      function optKeys() { return ['boostCount', 'boostRing', 'addRing', 'picked', 'pickedAt']; }
       function okTag(t) { return t is string && t.size() > 0 && t.size() <= 20; }
       function okTags(t) {
         return t is list && t.size() <= 5
@@ -444,7 +458,7 @@ service cloud.firestore {
                   && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('displayName', '') == n));
       }
       function validLib(d) {
-        return d.keys().hasOnly(libKeys()) && d.keys().hasAll(libKeys())
+        return d.keys().hasOnly(libKeys().concat(optKeys())) && d.keys().hasAll(libKeys())
           && d.ownerUid == request.auth.uid
           && okAuthor(d.authorName)
           && d.name is string && d.name.size() > 0 && d.name.size() <= 60
@@ -460,12 +474,39 @@ service cloud.firestore {
       function isOwner() { return signedIn() && resource.data.ownerUid == request.auth.uid; }
       function libPath() { return /databases/$(database)/documents/pineLibrary/$(id); }
       function onlyKeys(k) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(k); }
+      // Day ring: { s<day%8>: { d: <UTC day>, n } }. A +1 touches only today's slot:
+      // n+1 if the slot already holds today, else a fresh {d: today, n: 1}.
+      function today() { return int(request.time.toMillis() / 86400000); }
+      function ringInc(f) {
+        let k = 's' + string(today() % 8);
+        let nw = request.resource.data.get(f, {});
+        let od = resource.data.get(f, {});
+        let o = od.get(k, {'d': -1, 'n': 0});
+        return nw.diff(od).affectedKeys().hasOnly([k])
+          && nw.get(k, {}).keys().hasOnly(['d', 'n'])
+          && nw.get(k, {}).get('d', -2) == today()
+          && nw.get(k, {}).get('n', -2) == (o.get('d', -1) == today() ? o.get('n', 0) + 1 : 1);
+      }
+      // Taking a boost back: the ring stays, or the slot of the boost's own day drops by one.
+      function ringDec(f, day) {
+        let k = 's' + string(day % 8);
+        let nw = request.resource.data.get(f, {});
+        let od = resource.data.get(f, {});
+        return !(f in request.resource.data.diff(resource.data).affectedKeys())
+          || (nw.diff(od).affectedKeys().hasOnly([k])
+              && nw.get(k, {}).keys().hasOnly(['d', 'n'])
+              && nw.get(k, {}).get('d', -2) == day && od.get(k, {}).get('d', -3) == day
+              && nw.get(k, {}).get('n', -2) == od.get(k, {}).get('n', 0) - 1
+              && nw.get(k, {}).get('n', -2) >= 0);
+      }
+      function boostPath() { return /databases/$(database)/documents/pineLibrary/$(id)/boosts/$(request.auth.uid); }
 
       allow get:  if isAdmin() || isOwner() || (signedIn() && resource.data.status == 'ok');
       allow list: if isAdmin() || isOwner()
                   || (signedIn() && resource.data.visibility == 'public' && resource.data.status == 'ok');
       allow create: if signedIn() && id.size() >= 20
                     && validLib(request.resource.data)
+                    && !request.resource.data.keys().hasAny(optKeys())
                     && request.resource.data.createdAt == request.time
                     && request.resource.data.version == 1
                     && request.resource.data.addCount == 0
@@ -475,12 +516,13 @@ service cloud.firestore {
           // author: content only; version stays or goes up by one
           (isOwner() && validLib(request.resource.data)
             && !request.resource.data.diff(resource.data).affectedKeys()
-                  .hasAny(['ownerUid', 'createdAt', 'addCount', 'reportCount', 'status'])
+                  .hasAny(['ownerUid', 'createdAt', 'addCount', 'reportCount', 'status', 'boostCount', 'boostRing', 'addRing', 'picked', 'pickedAt'])
             && (request.resource.data.version == resource.data.version
                 || request.resource.data.version == resource.data.version + 1))
           // any member: first add to a chart counts once
-          || (signedIn() && resource.data.status == 'ok' && onlyKeys(['addCount'])
+          || (signedIn() && resource.data.status == 'ok' && onlyKeys(['addCount', 'addRing'])
             && request.resource.data.addCount == resource.data.addCount + 1
+            && (!('addRing' in request.resource.data.diff(resource.data).affectedKeys()) || ringInc('addRing'))
             && !exists(/databases/$(database)/documents/pineLibrary/$(id)/adds/$(request.auth.uid))
             && existsAfter(/databases/$(database)/documents/pineLibrary/$(id)/adds/$(request.auth.uid)))
           // any member but the author: one report each; the 3rd hides it
@@ -490,6 +532,21 @@ service cloud.firestore {
             && request.resource.data.status == (request.resource.data.reportCount >= 3 ? 'hidden' : resource.data.status)
             && !exists(/databases/$(database)/documents/pineLibrary/$(id)/reports/$(request.auth.uid))
             && existsAfter(/databases/$(database)/documents/pineLibrary/$(id)/reports/$(request.auth.uid)))
+          // any member but the author: one boost each (boosts/{uid} marker), +1 on today's ring slot
+          || (signedIn() && resource.data.ownerUid != request.auth.uid && resource.data.status == 'ok'
+            && onlyKeys(['boostCount', 'boostRing'])
+            && request.resource.data.boostCount == resource.data.get('boostCount', 0) + 1
+            && ringInc('boostRing')
+            && !exists(boostPath()) && existsAfter(boostPath()))
+          // ... and can take it back once (marker deleted in the same batch)
+          || (signedIn() && resource.data.ownerUid != request.auth.uid
+            && onlyKeys(['boostCount', 'boostRing'])
+            && request.resource.data.boostCount == resource.data.get('boostCount', 0) - 1
+            && exists(boostPath()) && !existsAfter(boostPath())
+            && ringDec('boostRing', get(boostPath()).data.day))
+          // admin: Editors' pick flag
+          || (isAdmin() && onlyKeys(['picked', 'pickedAt'])
+            && request.resource.data.picked is bool && request.resource.data.pickedAt == request.time)
           // admin: moderation only
           || (isAdmin() && onlyKeys(['status', 'reportCount'])
             && request.resource.data.status in ['ok', 'hidden']
@@ -512,6 +569,19 @@ service cloud.firestore {
         allow create: if isSelf(uid)
           && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time
           && getAfter(libPath()).data.addCount == get(libPath()).data.addCount + 1;
+      }
+      // One boost per member, never the author's own; boostCount moves with it.
+      match /boosts/{uid} {
+        allow get: if isSelf(uid);
+        allow create: if isSelf(uid)
+          && get(libPath()).data.ownerUid != uid
+          && request.resource.data.keys().hasOnly(['at', 'day'])
+          && request.resource.data.at == request.time
+          && request.resource.data.day == int(request.time.toMillis() / 86400000)
+          && getAfter(libPath()).data.get('boostCount', 0) == get(libPath()).data.get('boostCount', 0) + 1;
+        allow delete: if (isSelf(uid)
+            && getAfter(libPath()).data.get('boostCount', 0) == get(libPath()).data.get('boostCount', 0) - 1)
+          || isAdmin();
       }
       // One report per member; reasons are fixed.
       match /reports/{uid} {

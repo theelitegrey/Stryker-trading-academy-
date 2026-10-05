@@ -546,6 +546,26 @@ export function mountPine(ws, barL, opts){
     }
   }
 
-  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
+  // Run a Pine source (Stryker example or one of My scripts) on the active chart, the same
+  // engine path as the editor's Add to chart, without opening the editor. Used by the
+  // Indicators window (assets/chart-indicator-window.js).
+  async function addSource(name, source){
+    const a = activeCell();
+    if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };
+    if (!source || !String(source).trim()) return { ok: false, msg: 'The script is empty.' };
+    if (source.length > SRC_MAX) return { ok: false, msg: 'This script is longer than 64 KB.' };
+    try {
+      const r = await runOnChart(a.cell.chart, source);
+      if (!r.ok) return { ok: false, msg: (r.line ? 'Line ' + r.line + ': ' : '') + r.msg };
+      toast('Added ' + (name || titleOf(r.handle)) + ' to the chart');
+      if (!panel.hidden) renderLists();
+      return { ok: true };
+    } catch (e) {
+      console.warn('Stryker: Pine run', e);
+      return { ok: false, msg: "The Pine engine didn't load. Check your connection." };
+    }
+  }
+
+  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
   return { setOpen };
 }

@@ -91,6 +91,11 @@
 
   function user() { var f = fb(); try { return f && f.auth().currentUser; } catch (e) { return null; } }
   function signedIn() { return !!user(); }
+  // STAGE 1 (build 401): the cloud path stays OFF until the validated Firestore rules
+  // block for students/{uid}/pineScripts is released (stage 2). Until then scripts are
+  // saved in this browser only (localStorage). Flip to true with that release.
+  var CLOUD = false;
+  function useCloud() { return CLOUD && signedIn(); }
   function who() { var u = user(); return u ? u.uid : 'guest'; }
   function col() { return fb().firestore().collection('students').doc(user().uid).collection('pineScripts'); }
 
@@ -119,7 +124,7 @@
 
   async function list() {
     await authReady;
-    if (!signedIn()) return { items: sortItems(lsAll()), where: 'local' };
+    if (!useCloud()) return { items: sortItems(lsAll()), where: 'local' };
     try {
       var snap = await col().get();
       var items = [];
@@ -141,7 +146,7 @@
     name = cleanName(name);
     source = cleanSource(source);
     var ts;
-    if (id && !isLocalId(id) && signedIn()) {
+    if (id && !isLocalId(id) && useCloud()) {
       ts = firebase.firestore.FieldValue.serverTimestamp();
       await col().doc(id).update({ name: name, source: source, updatedAt: ts });
       return id;
@@ -152,7 +157,7 @@
       lsPut(a0);
       return id;
     }
-    if (signedIn()) {
+    if (useCloud()) {
       var r = await list();
       if (r.where === 'cloud') {
         if (r.items.length >= MAX_COUNT) throw err('You have ' + MAX_COUNT + ' scripts. Delete one to save another.');
@@ -177,7 +182,7 @@
   async function rename(id, name) {
     await authReady;
     name = cleanName(name);
-    if (signedIn() && !isLocalId(id)) {
+    if (useCloud() && !isLocalId(id)) {
       await col().doc(id).update({ name: name, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
       return;
     }
@@ -188,12 +193,12 @@
 
   async function remove(id) {
     await authReady;
-    if (signedIn() && !isLocalId(id)) await col().doc(id).delete();
+    if (useCloud() && !isLocalId(id)) await col().doc(id).delete();
     else lsPut(lsAll().filter(function (t) { return t.id !== id; }));
   }
 
   window.StrykerPineScripts = {
     NAME_MAX: NAME_MAX, SOURCE_MAX: SOURCE_MAX, MAX_COUNT: MAX_COUNT, EXAMPLES: EXAMPLES,
-    list: list, save: save, rename: rename, remove: remove, signedIn: signedIn, ready: authReady
+    list: list, save: save, rename: rename, remove: remove, signedIn: signedIn, cloud: function () { return CLOUD; }, ready: authReady
   };
 })();

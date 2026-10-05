@@ -35,4 +35,4 @@ http.createServer(async (req, res) => {
   if (!fs.existsSync(p)) { res.writeHead(404); res.end('nf'); return; }
   res.writeHead(200, { 'content-type': TYPES[path.extname(p)] || 'application/octet-stream' });
   fs.createReadStream(p).pipe(res);
-}).listen(PORT, () => console.log('chart dev server on', PORT));
+}).listen(PORT, '127.0.0.1', () => console.log('chart dev server on', PORT));

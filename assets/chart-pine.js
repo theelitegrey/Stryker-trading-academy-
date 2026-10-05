@@ -358,7 +358,7 @@ export function mountPine(ws, barL, opts){
     let r = { items: [] };
     try { r = await S.list(); } catch (e) { r = { items: [], note: 'Could not load your scripts.' }; }
     mine.innerHTML = '';
-    listNote.textContent = r.note || (r.items.length ? '' : (S.signedIn() ? 'None saved yet.' : 'None saved yet. Sign in to keep them on your account.'));
+    listNote.textContent = r.note || (r.items.length ? '' : (S.cloud && S.cloud() && S.signedIn() ? 'None saved yet.' : 'None saved yet. Scripts are saved in this browser for now.'));
     listNote.hidden = !listNote.textContent;
     r.items.forEach((t) => mine.appendChild(row(t.name, [
       ib('Add ' + t.name + ' to the chart', ICON_ADD, () => { load(t.name, t.source, t.id); addToChart(); }),

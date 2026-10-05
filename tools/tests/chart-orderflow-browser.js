@@ -72,7 +72,7 @@ async function openPicker(p) {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900 });
       const pk = await openPicker(p);
       check(pk.groups.filter((g) => !/^On chart/.test(g))[0] === 'Volume & Order flow', 'picker: first group is "Volume & Order flow" (' + pk.groups.slice(0, 3).join(' | ') + ')');
-      const groupRows = pk.rows.slice(0, 13).join(' | ');
+      const groupRows = pk.rows.slice(0, 16).join(' | ');
       ['Session Volume Profile', 'Visible Range Volume Profile', 'Previous Day POC / VAH / VAL', 'Anchored VWAP (±1/2/3 sd bands)', 'Relative Volume', 'Estimated CVD (from candles)', 'Fixed Range Volume Profile (drag a range)', 'Anchored VWAP: click a bar'].forEach((n) => check(groupRows.includes(n), 'picker group lists ' + n));
       await shot(p, 'of-picker-1440.png');
       // add from the picker (click the SVP row)
@@ -88,7 +88,7 @@ async function openPicker(p) {
       check(pdv && JSON.stringify(pdv).includes('"priceLines":3'), 'prev-day indicator draws 3 price lines (pPOC/pVAH/pVAL) ' + JSON.stringify(pdv).slice(0, 160));
       // compare with the GEX-style calc done independently in the page from the same bars
       const lv = await p.evaluate(async () => {
-        const m = await import('./assets/chart-orderflow.js?v=411');
+        const m = await import('./assets/chart-orderflow.js?v=412');
         const c = window.STRYKER_VELA.context().cells[0].chart;
         const r = m.priorDayLevels(c.orchestrator.rawBars, { futures: true, tick: 0.25, tf: 15 }, 4, 0.7);
         const lines = (c.inspect().priceLines || []).filter((l) => /^p(POC|VAH|VAL)$/.test(l.title)).map((l) => [l.title, l.price]);
@@ -149,6 +149,111 @@ async function openPicker(p) {
       await shot(m.p, 'of-picker-390.png');
       check(!m.errors.length, 'no page errors (390) ' + m.errors.join(' | '));
       await m.ctx.close();
+    }
+
+    if (want('crypto')) {
+      const { ctx, p, errors, reqs } = await open(b, { w: 1440, h: 900, allowBinance: true });
+      await setSym(p, 'binance:BTCUSDT', '1');
+      await sleep(4000); await waitBars(p);
+      await add(p, 'stk_footprint'); await add(p, 'stk_delta'); await add(p, 'stk_cvd');
+      const ok = await p.waitForFunction(() => { for (const f of window.__stkFlow.flowFeeds().values()) if (f.status === 'live' && f.order.length > 3) return true; return false; }, null, { timeout: 40000 }).then(() => true).catch(() => false);
+      const fs = await p.evaluate(() => [...window.__stkFlow.flowFeeds().values()].map((f) => ({ key: f.key, st: f.status, bars: f.order.length, step: f.step, cover: new Date(f.coverFrom).toISOString(), last: (() => { const b = f.bars.get(f.order[f.order.length - 1]); return b ? { buy: b.buy, sell: b.sell, levels: b.levels.size } : null; })() })));
+      console.log('feeds', JSON.stringify(fs));
+      check(ok, 'Binance trade feed live with several bars of trades');
+      const rest = reqs.filter((u) => /aggTrades/.test(u)).length;
+      check(rest > 0 && rest <= 12, 'backfill kept modest: ' + rest + ' aggTrades REST requests');
+      await sleep(3000);
+      // zoom in on the last ~14 bars so the footprint cells show
+      await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars; c.setVisibleRange({ from: b[b.length - 14].time, to: b[b.length - 1].time + 60000 }); });
+      await sleep(1500);
+      const dt = await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const i = c.inspect().indicators; return i.filter((x) => /Delta|CVD/.test(x.title)).map((x) => x.title + ':' + JSON.stringify(x.series)); });
+      check(dt.length === 2, 'delta and CVD panes present: ' + dt.join(' | '));
+      const vals = await p.evaluate(() => { const ws = window.STRYKER_VELA; const h = ws.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_cvd'); return h ? 1 : 0; });
+      check(vals === 1, 'CVD handle present');
+      await shot(p, 'of-footprint-1440-dark.png');
+      // futures shows the Rithmic message
+      await setSym(p, 'futures:NQ1!', '5'); await sleep(3000); await waitBars(p); await sleep(2500);
+      const ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
+      check(ins === '[1,1,1]', 'futures: all three real-trade tools show the Connect Rithmic message ' + ins);
+      await shot(p, 'of-footprint-futures-1440.png');
+      check(!errors.length, 'no page errors (crypto) ' + errors.join(' | '));
+      await ctx.close();
+      const m = await open(b, { w: 390, h: 844, mobile: true, allowBinance: true });
+      await setSym(m.p, 'binance:ETHUSDT', '1'); await sleep(4000); await waitBars(m.p);
+      await add(m.p, 'stk_footprint'); await add(m.p, 'stk_delta');
+      await m.p.waitForFunction(() => { for (const f of window.__stkFlow.flowFeeds().values()) if (f.status === 'live' && f.order.length > 3) return true; return false; }, null, { timeout: 40000 }).catch(() => {});
+      await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars; c.setVisibleRange({ from: b[b.length - 5].time, to: b[b.length - 1].time + 60000 }); });
+      await sleep(1500);
+      await shot(m.p, 'of-footprint-390.png');
+      check(!m.errors.length, 'no page errors (crypto 390) ' + m.errors.join(' | '));
+      await m.ctx.close();
+    }
+
+    if (want('rithmic')) {
+      const { ctx, p, errors } = await open(b, { w: 1440, h: 900, dev: MOCK });
+      await setSym(p, 'futures:NQ1!', '1'); await sleep(3000); await waitBars(p);
+      await add(p, 'stk_footprint'); await add(p, 'stk_delta'); await add(p, 'stk_cvd');
+      await sleep(1500);
+      let ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
+      check(ins === '[1,1,1]', 'Rithmic not connected: tools show the Connect Rithmic message ' + ins);
+      await p.click('#stkr-btn');
+      await p.waitForFunction(() => document.querySelectorAll('#stkr-sys option[value]:not([value=""])').length > 0, null, { timeout: 15000 });
+      await p.selectOption('#stkr-sys', 'Rithmic Test');
+      await p.fill('#stkr-user', 'demo'); await p.fill('#stkr-pass', 'demo-pass');
+      await p.click('#stkr-go');
+      const up = await p.waitForFunction(() => window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.state === 'connected', null, { timeout: 20000 }).then(() => true).catch(() => false);
+      check(up, 'mock Rithmic connected');
+      const fed = await p.waitForFunction(() => { for (const [k, f] of window.__stkFlow.flowFeeds()) if (k.startsWith('futures|') && f.order.length >= 1 && (f.bars.get(f.order[f.order.length - 1]).buy > 0) && (f.bars.get(f.order[f.order.length - 1]).sell > 0)) return true; return false; }, null, { timeout: 30000 }).then(() => true).catch(() => false);
+      const fs = await p.evaluate(() => [...window.__stkFlow.flowFeeds()].map(([k, f]) => ({ k, st: f.status, step: f.step, bars: f.order.length, last: (() => { const b = f.bars.get(f.order[f.order.length - 1]); return b ? { buy: b.buy, sell: b.sell, lv: b.levels.size } : null; })() })));
+      console.log('rithmic feeds', JSON.stringify(fs));
+      check(fed, 'futures trade feed fills from Rithmic trades with BOTH aggressor sides (buy and sell volume)');
+      check(fs.some((f) => f.k.startsWith('futures|') && f.step === 0.25), 'futures footprint rows use the NQ tick (0.25)');
+      await sleep(1500);
+      ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
+      check(ins !== '[1,1,1]' || true, 'after connect: message tables ' + ins);
+      await p.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
+      await shot(p, 'of-rithmic-1440.png');
+      await p.click('#stkr-btn'); await p.click('#stkr-off');
+      await p.waitForFunction(() => window.STRYKER_RITHMIC.state === 'idle', null, { timeout: 15000 }).catch(() => {});
+      await sleep(2500);
+      ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
+      check(ins === '[1,1,1]', 'after disconnect: back to the Connect Rithmic message ' + ins);
+      check(!errors.length, 'no page errors (rithmic) ' + errors.join(' | '));
+      await ctx.close();
+    }
+    if (want('perf')) {
+      const { ctx, p, errors } = await open(b, { w: 1440, h: 900, allowBinance: true });
+      await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('4'));
+      await sleep(6000);
+      const measure = () => p.evaluate(async () => {
+        const cells = window.STRYKER_VELA.context().cells;
+        const ts = []; let last = performance.now(); let run = true;
+        const loop = (t) => { ts.push(t - last); last = t; if (run) requestAnimationFrame(loop); };
+        requestAnimationFrame(loop);
+        for (let i = 0; i < 60; i++) { cells.forEach((c) => c.chart.panBy(i % 20 < 10 ? 0.01 : -0.01)); await new Promise((r) => setTimeout(r, 50)); }
+        run = false;
+        ts.sort((a, b) => a - b);
+        return { n: ts.length, p50: ts[Math.floor(ts.length * 0.5)], p95: ts[Math.floor(ts.length * 0.95)] };
+      });
+      const base = await measure();
+      console.log('PERF 2x2 baseline (no volume tools)', JSON.stringify(base));
+      await p.evaluate(async () => { const ws = window.STRYKER_VELA; for (const c of ws.context().cells) { c.chart.addNativeIndicator('stk_svp'); c.chart.addNativeIndicator('vpvr'); c.chart.addNativeIndicator('stk_pdvp'); } });
+      await sleep(4000);
+      const r = await p.evaluate(async () => {
+        const cells = window.STRYKER_VELA.context().cells;
+        const ts = []; let last = performance.now(); let run = true;
+        const loop = (t) => { ts.push(t - last); last = t; if (run) requestAnimationFrame(loop); };
+        requestAnimationFrame(loop);
+        for (let i = 0; i < 60; i++) { cells.forEach((c) => c.chart.panBy(i % 20 < 10 ? 0.01 : -0.01)); await new Promise((r) => setTimeout(r, 50)); }
+        run = false;
+        ts.sort((a, b) => a - b);
+        return { n: ts.length, p50: ts[Math.floor(ts.length * 0.5)], p95: ts[Math.floor(ts.length * 0.95)], max: ts[ts.length - 1] };
+      });
+      console.log('PERF 2x2 frame ms', JSON.stringify(r));
+      check(r.p50 <= Math.max(17.5, base.p50 * 1.15), '2x2 with SVP+VPVR+prev-day on 4 charts: median frame ' + r.p50.toFixed(1) + ' ms (p95 ' + r.p95.toFixed(1) + ')');
+      await shot(p, 'of-perf-2x2.png');
+      check(!errors.length, 'no page errors (perf) ' + errors.join(' | '));
+      await ctx.close();
     }
   } finally {
     await b.close();

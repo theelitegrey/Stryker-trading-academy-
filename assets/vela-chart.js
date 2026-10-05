@@ -189,7 +189,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-futures-provider.js?v=407'),
       import(VELA_BASE + 'index.js'),
       import('./chart-pine.js?v=407'),
-      import('./chart-orderflow.js?v=411')
+      import('./chart-orderflow.js?v=412')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -335,6 +335,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-data-dot.js?v=409')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
+  window.__stkFlow = Flow;
   try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
 
   function refreshLayoutUi(){

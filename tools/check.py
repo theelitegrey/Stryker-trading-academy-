@@ -78,7 +78,7 @@ def check_module_import_versions():
     """Every ES-module import of our own assets must carry ?v=<build> from version.json.
 
     A module imported under two different URLs (e.g. chart-alerts.js?v=425 in one file
-    and ?v=427 in another) loads TWICE as two separate instances with separate state.
+    and ?v=428 in another) loads TWICE as two separate instances with separate state.
     Build 427 shipped exactly that: the "+" menu opened the never-mounted copy of the
     alerts panel, so its Create button threw and did nothing. A stale ?v= on a module
     import also skips cache-busting for that module forever.

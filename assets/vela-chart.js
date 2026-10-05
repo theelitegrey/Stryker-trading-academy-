@@ -337,6 +337,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     .catch((e) => console.warn('Stryker: data dot', e));
   window.__stkFlow = Flow;
   try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
+  try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
 
   function refreshLayoutUi(){
     let id = '1';

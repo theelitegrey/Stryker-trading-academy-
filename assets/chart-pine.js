@@ -51,6 +51,11 @@ let getWs = () => null;
 const engines = new WeakMap(); // chart -> PineWorkerEngine
 const mainEngines = new WeakMap(); // chart -> in-process PineEngine (fallback)
 const onMain = new WeakSet();      // handles running on the in-process engine
+// Community / invite-link scripts on a chart: handle -> { id, version, openSource, ownerUid, name }.
+// They always run on the Web Worker engine (never the in-page fallback) and are checked by
+// StrykerPineGuard first; see assets/chart-pine-guard.js for why.
+const libOf = new WeakMap();
+const guardOk = (src) => { try { return !!(window.StrykerPineGuard && window.StrykerPineGuard.check(src).ok); } catch (e) { return false; } };
 // Language ids. LANG_MAIN is our own registry key for the in-process engine.
 const LANG = 'pine';
 const LANG_MAIN = 'pine-main';
@@ -85,8 +90,11 @@ async function ensureEngine(chart){
 
 // Add a restored/kept script on the engine it ran on before.
 function addOn(chart, x){
-  const h = chart.addIndicator(x.source, { language: x.engine === 'main' ? LANG_MAIN : LANG, inputs: x.inputs || {} });
-  if (x.engine === 'main' && h) onMain.add(h);
+  if (x.lib && !guardOk(x.source)) { console.warn('Stryker: shared Pine script failed the safety check, not restored'); return null; }
+  const main = x.engine === 'main' && !x.lib;
+  const h = chart.addIndicator(x.source, { language: main ? LANG_MAIN : LANG, inputs: x.inputs || {} });
+  if (main && h) onMain.add(h);
+  if (x.lib && h) libOf.set(h, x.lib);
   return h;
 }
 
@@ -104,6 +112,7 @@ function snapshot(h){
   try { inputs = h.inputValues() || {}; } catch (e) {}
   const o = { name: titleOf(h), source: h.source, inputs };
   if (onMain.has(h)) o.engine = 'main';
+  if (libOf.has(h)) o.lib = libOf.get(h);
   return o;
 }
 function cleanEntry(x){
@@ -116,7 +125,10 @@ function cleanEntry(x){
     });
   }
   const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Pine script', source: x.source, inputs };
-  if (x.engine === 'main') o.engine = 'main';
+  const L = x.lib;
+  if (L && typeof L === 'object' && /^[A-Za-z0-9]{20,40}$/.test(String(L.id || ''))) {
+    o.lib = { id: L.id, version: +L.version || 1, openSource: L.openSource !== false, ownerUid: String(L.ownerUid || '').slice(0, 128), name: String(L.name || '').slice(0, 60) };
+  } else if (x.engine === 'main') o.engine = 'main';
   return o;
 }
 
@@ -178,7 +190,7 @@ function hideVelaErrorToast(){
   kill(); setTimeout(kill, 60); setTimeout(kill, 400);
 }
 
-async function runOnChart(chart, source, inputs){
+async function runOnChart(chart, source, inputs, shared){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
   const keep = pineHandles(chart).map(snapshot);
@@ -189,7 +201,7 @@ async function runOnChart(chart, source, inputs){
   // The worker's built-in PineTS is older than the page's (vela-pinets 0.2.11 inlines
   // its own copy). When it doesn't know a name (e.g. `scale.right`), retry once on the
   // in-process engine, which runs the newer pinets pinned in charts.html.
-  if (res && !res.timedOut && !res.ok && /is not defined/.test(String(res.error && res.error.message))) {
+  if (!shared && res && !res.timedOut && !res.ok && /is not defined/.test(String(res.error && res.error.message))) {
     hideVelaErrorToast();
     res = await Promise.race([chart.runIndicator(source, { language: LANG_MAIN, inputs: inputs || {} }), timeout]);
     main = true;
@@ -243,6 +255,17 @@ export function clearAllPine(){
   try { ws.context().cells.forEach((c) => pineHandles(c.chart).forEach((h) => { try { h.remove(); } catch (e) {} })); } catch (e) {}
 }
 
+// Published state of a Community script on a chart: 'gone' (unpublished / hidden),
+// the current version number, or null when unknown. Cached per page load.
+const libCache = new Map();
+function libStatus(L){
+  if (!libCache.has(L.id)) {
+    const p = window.StrykerPineLibrary ? window.StrykerPineLibrary.get(L.id).then((x) => (x && x.status === 'ok' ? x.version : 'gone')).catch(() => null) : Promise.resolve(null);
+    libCache.set(L.id, p);
+  }
+  return libCache.get(L.id);
+}
+
 // ---------------- editor UI ----------------
 const icon = (inner) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
 function el(tag, attrs, kids){
@@ -257,6 +280,29 @@ function el(tag, attrs, kids){
   return n;
 }
 const NEW_SRC = '//@version=5\nindicator("My script", overlay=true)\nplot(ta.sma(close, 20), "SMA 20", color=color.teal)\n';
+
+// "Community scripts" row at the top of Vela's Indicators picker. Called by vela-chart.js
+// AFTER mountOrderflow, so it wraps the order-flow grouping: our row is index 0 and every
+// other index moves down by one.
+export function mountCommunityPicker(ws){
+  let cell;
+  try { cell = ws.active; } catch (e) { return; }
+  const proto = cell && Object.getPrototypeOf(cell);
+  if (!proto || proto.__stkCommunity || typeof proto.libraryRows !== 'function') return;
+  proto.__stkCommunity = true;
+  const rows = proto.libraryRows, add = proto.addFromLibrary;
+  proto.libraryRows = function () {
+    return [{ name: 'Community scripts: browse, add, publish', category: 'Community', language: 'pine' }].concat(rows.call(this));
+  };
+  proto.addFromLibrary = function (index) {
+    if (index === 0) {
+      try { if (ws.indicatorPicker) ws.indicatorPicker.close(); } catch (e) {}
+      if (window.StrykerPineLibrary) window.StrykerPineLibrary.openCommunity();
+      return;
+    }
+    return add.call(this, index - 1);
+  };
+}
 
 // Called by vela-chart.js after the workspace exists. barL = our toolbar's left group.
 export function mountPine(ws, barL, opts){
@@ -290,6 +336,8 @@ export function mountPine(ws, barL, opts){
     el('p', { class: 'stkc-pop-h', text: 'On this chart' }), onChart,
     el('p', { class: 'stkc-pop-h', text: 'My scripts' }), listNote, mine,
     el('p', { class: 'stkc-pop-h', text: 'Examples' }), examples,
+    el('p', { class: 'stkc-pop-h', text: 'Community' }),
+    el('button', { type: 'button', class: 'stkc-btn stkc-comm-btn', text: 'Browse community scripts', onclick: () => { if (window.StrykerPineLibrary) window.StrykerPineLibrary.openCommunity(); } }),
     el('p', { class: 'stkc-note', text: 'Scripts run in your browser on the chart\'s bars. Pine Script support is partial: some built-ins may not work yet. Education only. Not financial advice.' })
   ]);
   panel.appendChild(el('header', { class: 'stkc-pine-hd' }, [
@@ -403,6 +451,7 @@ export function mountPine(ws, barL, opts){
   const ICON_DEL = '<path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/>';
   const ICON_REN = '<path d="M4 20h4L19 9l-4-4L4 16z"/>';
   const ICON_ADD = '<path d="M12 5v14M5 12h14"/>';
+  const ICON_SHARE = '<circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.8l7.6-4.4M8.2 13.2l7.6 4.4"/>';
 
   async function renderLists(){
     renderTarget();
@@ -411,9 +460,21 @@ export function mountPine(ws, barL, opts){
     const a = activeCell();
     const hs = a.cell ? pineHandles(a.cell.chart) : [];
     if (!hs.length) onChart.appendChild(el('li', { class: 'stkc-empty', text: 'No Pine scripts on this chart.' }));
-    hs.forEach((h) => onChart.appendChild(row(titleOf(h), [
-      ib('Remove ' + titleOf(h) + ' from the chart', ICON_DEL, () => { try { h.remove(); } catch (e) {} changed(); renderLists(); }, 'stkc-del')
-    ], () => load(titleOf(h), h.source, null), 'Open its code in the editor')));
+    const me = (() => { try { return firebase.auth().currentUser.uid; } catch (e) { return null; } })();
+    hs.forEach((h) => {
+      const L = libOf.get(h);
+      const hidden = L && !L.openSource && L.ownerUid !== me;
+      const li = row((L ? L.name || titleOf(h) : titleOf(h)), [
+        ib('Remove ' + titleOf(h) + ' from the chart', ICON_DEL, () => { try { h.remove(); } catch (e) {} changed(); renderLists(); }, 'stkc-del')
+      ], () => { if (hidden) showErr('Code hidden in the editor: the author shares this script without its source.'); else load(L ? L.name : titleOf(h), h.source, null); },
+      hidden ? 'Code hidden in the editor' : 'Open its code in the editor');
+      if (L) {
+        const tag = el('span', { class: 'stkc-badge', text: 'Community v' + L.version + (hidden ? ' \u00b7 code hidden' : '') });
+        li.querySelector('.stkc-tname').appendChild(tag);
+        libStatus(L).then((st) => { if (st === 'gone') { tag.textContent = 'No longer published'; tag.classList.add('is-warn'); } else if (st > L.version) tag.textContent += ' \u00b7 v' + st + ' available'; });
+      }
+      onChart.appendChild(li);
+    });
     // Examples
     examples.innerHTML = '';
     (S ? S.EXAMPLES : []).forEach((x) => examples.appendChild(row(x.name, [
@@ -434,9 +495,9 @@ export function mountPine(ws, barL, opts){
         try { await S.rename(t.id, v); if (editingId === t.id) nameIn.value = v.trim(); } catch (e) { showErr('Could not rename.'); }
         renderLists();
       }),
-      ib('Publish ' + t.name + ' to Community', '<path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 5l3 1v3.5h-6V8l3-1z"/>', () => {
-        if (window.StrykerPublishDialog) window.StrykerPublishDialog.open(t.id, t.name, t.source);
-        else showErr('Publish is not available.');
+      ib('Publish or share ' + t.name, ICON_SHARE, () => {
+        if (window.StrykerPineLibrary) window.StrykerPineLibrary.openPublish({ name: t.name, source: t.source });
+        else showErr('Publishing is unavailable.');
       }),
       ib('Delete ' + t.name, ICON_DEL, async () => {
         if (!window.confirm('Delete the script "' + t.name + '"? It stays on any chart it is already on.')) return;
@@ -465,6 +526,26 @@ export function mountPine(ws, barL, opts){
   try { ws.on('cell:active', () => { if (!panel.hidden) setTimeout(renderLists, 0); }); } catch (e) {}
   try { ws.on('state:changed', () => { if (!panel.hidden) renderTarget(); }); } catch (e) {}
 
-  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, runOnChart, pineHandles, titleOf, explain, renderLists, RUN_LIMIT_MS };
+  // Add a Community / invite script (s = pineLibrary item) to the active chart: safety
+  // check, Web Worker engine only, and its library id rides the chart state.
+  async function addShared(s){
+    if (!guardOk(s.source)) return { ok: false, msg: 'This script failed the safety check, so it won\'t run.' };
+    const a = activeCell();
+    if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };
+    try {
+      const r = await runOnChart(a.cell.chart, s.source, {}, true);
+      if (!r.ok) return { ok: false, msg: r.msg };
+      libOf.set(r.handle, { id: s.id, version: s.version, openSource: s.openSource, ownerUid: s.ownerUid, name: s.name });
+      changed();
+      toast('Added ' + s.name + ' to the chart');
+      if (!panel.hidden) renderLists();
+      return { ok: true };
+    } catch (e) {
+      console.warn('Stryker: shared Pine run', e);
+      return { ok: false, msg: "The Pine engine didn't load. Check your connection." };
+    }
+  }
+
+  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
   return { setOpen };
 }

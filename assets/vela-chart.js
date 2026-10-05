@@ -329,6 +329,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
+  // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
+  import('./chart-plus.js?v=423').then((m) => m.mountChartPlus(ws)).catch((e) => console.warn('Stryker: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.

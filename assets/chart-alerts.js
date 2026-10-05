@@ -15,6 +15,11 @@
 //   - Alert lines: dashed horizontal line per alert on charts of that symbol (renderer layer).
 //   - Alerts tab in the Settings window: Alert lines on/off + colour, Only active alerts,
 //     Alert volume, Automatically hide toasts (kept per browser).
+//   - INDICATOR ALERTS (2026-10-06, the chart "+" menu, assets/chart-plus.js): the condition
+//     source can be an indicator's plot on the chart (by indicator title + plot index), crossing
+//     a value or crossing the candle close. Uses the plot values the chart already computed;
+//     checked only while a chart of that symbol carries that indicator. These are kept in this
+//     browser (localStorage) for everyone: the Firestore alert shape is price-only.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
 const LAYER = 'stk_alerts';
@@ -25,6 +30,7 @@ const CONDS = [
   ['greater', 'Greater than'], ['less', 'Less than']
 ];
 const CONDL = Object.fromEntries(CONDS);
+const IND_KEY = 'stryker_chart_alerts_ind';
 const PREF_DEFAULTS = { lines: true, lineColor: '#f7a600', onlyActive: false, volume: 60, autoHide: true };
 
 let WS = null, toastFn = () => {};
@@ -54,6 +60,23 @@ function clean(a){
     active: a.active !== false
   };
 }
+// Indicator-plot alerts: always local (the Firestore rules validate a price-only shape).
+function cleanInd(a){
+  const c = clean(a); const s = a.src || {};
+  c.src = { title: String(s.title || '').slice(0, 80), plot: Math.max(0, Math.min(20, parseInt(s.plot, 10) || 0)), plotTitle: String(s.plotTitle || '').slice(0, 40), vs: s.vs === 'close' ? 'close' : 'value' };
+  if (c.src.vs === 'close') c.price = 0;
+  return c;
+}
+const indAll = () => { try { const v = JSON.parse(localStorage.getItem(IND_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+const indPut = (v) => localStorage.setItem(IND_KEY, JSON.stringify(v));
+const indStore = {
+  kind: 'local',
+  async list(){ return indAll(); },
+  async add(a){ const id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); indPut(indAll().concat([Object.assign(cleanInd(a), { id })])); return id; },
+  async update(id, a){ indPut(indAll().map((x) => x.id === id ? Object.assign(cleanInd(a), { id }) : x)); },
+  async remove(id){ indPut(indAll().filter((x) => x.id !== id)); }
+};
+const storeOf = (a) => (a && a.src) ? indStore : backend;
 function makeBackend(){
   const u = user();
   if (u) {
@@ -82,6 +105,7 @@ async function reload(){
   backend = makeBackend();
   try { alerts = (await backend.list()).filter((a) => a && Number.isFinite(Number(a.price))).map((a) => Object.assign({ id: a.id }, clean(a))); }
   catch (e) { console.warn('Stryker alerts: load', e); alerts = []; }
+  try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanInd(a)))); } catch (e) {}
   pushLines(); renderList();
 }
 
@@ -98,6 +122,44 @@ function priceOf(sym){
   }
   return null;
 }
+// Indicator plots on a chart (renderer scene), line-like series only (what the crosshair reads).
+function plotSeries(model){ return (model.series || []).filter((s) => s.kind !== 'candle' && s.kind !== 'bar' && s.kind !== 'markers' && s.points && s.points.length); }
+export function chartPlots(R){
+  const out = [];
+  try {
+    for (const m of R.scene.indicators.values()) {
+      const ser = plotSeries(m); if (!ser.length || !m.title) continue;
+      out.push({ title: m.title, plots: ser.map((s, i) => ({ index: i, title: s.title || ('Plot ' + (i + 1)) })) });
+    }
+  } catch (e) {}
+  return out;
+}
+function plotValueOf(sym, src){
+  for (const c of cellsOf(sym)) {
+    const R = inner(c); if (!R || !R.scene) continue;
+    for (const m of R.scene.indicators.values()) {
+      if (m.title !== src.title) continue;
+      const s = plotSeries(m)[src.plot || 0]; if (!s) continue;
+      for (let i = s.points.length - 1; i >= 0 && i >= s.points.length - 3; i--) { const v = s.points[i] && s.points[i].value; if (Number.isFinite(v)) return v; }
+    }
+  }
+  return null;
+}
+const lastInd = new Map();             // indicator alert id -> last (plot - reference) seen
+function tickInd(a){
+  const v = plotValueOf(a.symbol, a.src); if (v == null) return;
+  const ref = a.src.vs === 'close' ? priceOf(a.symbol) : a.price; if (!Number.isFinite(ref)) return;
+  const d = v - ref; const prev = lastInd.has(a.id) ? lastInd.get(a.id) : null; lastInd.set(a.id, d);
+  const h = hit({ cond: a.cond, price: 0 }, prev, d);
+  if (!h) { armed.delete(a.id); return; }
+  if (armed.get(a.id) === false) return;
+  armed.set(a.id, false);
+  fire(a, +v.toFixed(6));
+}
+function describe(a){
+  if (a.src) return a.symbol + ' ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond].toLowerCase() + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price));
+  return a.symbol + ' ' + CONDL[a.cond].toLowerCase() + ' ' + a.price;
+}
 function hit(a, prev, p){
   const x = a.price;
   switch (a.cond) {
@@ -113,7 +175,7 @@ function tick(sym, p){
   const prev = last.has(sym) ? last.get(sym) : null;
   last.set(sym, p);
   for (const a of alerts) {
-    if (!a.active || a.symbol !== sym) continue;
+    if (!a.active || a.symbol !== sym || a.src) continue;
     const h = hit(a, prev, p);
     if (!h) { armed.delete(a.id); continue; }
     if (armed.get(a.id) === false) continue;          // still true since the last fire: wait for a reset
@@ -122,17 +184,18 @@ function tick(sym, p){
   }
 }
 function poll(){
-  const syms = new Set(alerts.filter((a) => a.active).map((a) => a.symbol));
+  const syms = new Set(alerts.filter((a) => a.active && !a.src).map((a) => a.symbol));
   for (const s of syms) { const p = priceOf(s); if (p != null) tick(s, p); }
+  for (const a of alerts) if (a.active && a.src) tickInd(a);
 }
 function fire(a, p){
-  const text = a.message || (a.symbol + ' ' + CONDL[a.cond].toLowerCase() + ' ' + a.price);
-  showToast('Alert: ' + text, 'Price ' + p + ' · ' + new Date().toLocaleTimeString());
+  const text = a.message || describe(a);
+  showToast('Alert: ' + text, (a.src ? 'Value ' : 'Price ') + p + ' · ' + new Date().toLocaleTimeString());
   beep();
   try { if (window.Notification && Notification.permission === 'granted') new Notification('Stryker chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
   if (a.freq === 'once') {
     a.active = false;
-    backend && backend.update(a.id, a).catch((e) => console.warn('Stryker alerts: update', e));
+    const st = storeOf(a); st && st.update(a.id, a).catch((e) => console.warn('Stryker alerts: update', e));
     pushLines(); renderList();
   }
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
@@ -170,7 +233,7 @@ function pushLines(){
   if (!WS) return;
   for (const c of WS.context().cells || []) {
     const cell = cellOf(c.id); const R = inner(cell); if (!R || !R.setNativeData) continue;
-    const lines = prefs.lines ? alerts.filter((a) => a.symbol === cell.symbol && (a.active || !prefs.onlyActive)).map((a) => ({ price: a.price, active: a.active })) : [];
+    const lines = prefs.lines ? alerts.filter((a) => a.symbol === cell.symbol && (!a.src || a.src.vs !== 'close') && (a.active || !prefs.onlyActive)).map((a) => ({ price: a.price, active: a.active })) : [];
     try { R.setNativeData(LAYER, { lines, color: prefs.lineColor }); } catch (e) {}
   }
 }
@@ -230,8 +293,10 @@ function build(){
     <p class="stk-al-note">Alerts work while the Charts page is open, for symbols on a chart here. Education only. Not financial advice.</p>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
+      <label class="stk-al-wide">Source<select name="src"></select></label>
       <label>Condition<select name="cond">${CONDS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
-      <label>Price<input name="price" type="number" step="any" required></label>
+      <label class="stk-al-vsw" hidden>Against<select name="vs"><option value="value">Value</option><option value="close">Candle close</option></select></label>
+      <label class="stk-al-pw">Price<input name="price" type="number" step="any"></label>
       <label class="stk-al-wide">Message<input name="message" maxlength="140" placeholder="Optional"></label>
       <label>Trigger<select name="freq"><option value="once">Only once</option><option value="every">Every time</option></select></label>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
@@ -246,24 +311,57 @@ function build(){
   panel.querySelector('.stk-al-cancel').onclick = () => { panel.querySelector('.stk-al-form').hidden = true; editing = null; };
   panel.querySelector('.stk-al-form').onsubmit = async (e) => {
     e.preventDefault();
-    const f = e.target; const a = clean({ symbol: f.symbol.value.trim(), cond: f.cond.value, price: parseFloat(f.price.value), message: f.message.value.trim(), freq: f.freq.value, active: true });
+    const f = e.target; const base = { symbol: f.symbol.value.trim(), cond: f.cond.value, price: parseFloat(f.price.value), message: f.message.value.trim(), freq: f.freq.value, active: true };
+    const so = f.src.value ? srcOpts[Number(f.src.value)] : null;
+    if (so) { base.src = { title: so.title, plot: so.plot, plotTitle: so.plotTitle, vs: f.vs.value }; if (base.src.vs === 'close') base.price = 0; }
+    const a = so ? cleanInd(base) : clean(base);
     if (!a.symbol || !Number.isFinite(a.price)) { toastFn('Enter a symbol and a price.'); return; }
     try {
-      if (editing) { await backend.update(editing, a); Object.assign(alerts.find((x) => x.id === editing) || {}, a); armed.delete(editing); }
+      const old = editing ? alerts.find((x) => x.id === editing) : null;
+      if (old && !!old.src === !!a.src) { await storeOf(a).update(editing, a); for (const k of Object.keys(old)) if (k !== 'id') delete old[k]; Object.assign(old, a); armed.delete(editing); lastInd.delete(editing); }
       else {
-        if (alerts.length >= MAX_ALERTS) { toastFn('You have ' + MAX_ALERTS + ' alerts, the most we keep. Delete one first.'); return; }
-        const id = await backend.add(a); alerts.push(Object.assign({ id }, a));
+        if (!old && alerts.length >= MAX_ALERTS) { toastFn('You have ' + MAX_ALERTS + ' alerts, the most we keep. Delete one first.'); return; }
+        if (old) { await storeOf(old).remove(old.id); alerts = alerts.filter((x) => x !== old); }
+        const id = await storeOf(a).add(a); alerts.push(Object.assign({ id }, a));
       }
       try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e2) {}
       f.hidden = true; editing = null; pushLines(); renderList();
     } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
   };
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !panel.hidden) closePanel(); });
+  const f = panel.querySelector('.stk-al-form');
+  f.src.onchange = () => syncSrc(f);
+  f.vs.onchange = () => syncSrc(f);
+}
+// Source list: "Price" + every plot of every indicator on the active chart (+ the alert's own
+// source when editing one whose indicator isn't on this chart).
+let srcOpts = [];
+function fillSrc(f, a){
+  const R = inner(activeCell());
+  srcOpts = [];
+  for (const ind of (R ? chartPlots(R) : [])) for (const pl of ind.plots) srcOpts.push({ title: ind.title, plot: pl.index, plotTitle: ind.plots.length > 1 ? pl.title : '' });
+  if (a && a.src && !srcOpts.some((o) => o.title === a.src.title && o.plot === a.src.plot)) srcOpts.push({ title: a.src.title, plot: a.src.plot, plotTitle: a.src.plotTitle || '' });
+  f.src.textContent = '';
+  const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Price'; f.src.appendChild(o0);
+  srcOpts.forEach((o, i) => { const op = document.createElement('option'); op.value = String(i); op.textContent = o.title + (o.plotTitle ? ' · ' + o.plotTitle : ''); f.src.appendChild(op); });
+  const idx = a && a.src ? srcOpts.findIndex((o) => o.title === a.src.title && o.plot === a.src.plot) : -1;
+  f.src.value = idx >= 0 ? String(idx) : '';
+  f.vs.value = a && a.src && a.src.vs === 'close' ? 'close' : 'value';
+  syncSrc(f);
+}
+function syncSrc(f){
+  const ind = !!f.src.value;
+  f.querySelector('.stk-al-vsw').hidden = !ind;
+  const needPrice = !ind || f.vs.value !== 'close';
+  f.querySelector('.stk-al-pw').hidden = !needPrice;
+  f.price.required = needPrice;
 }
 function openForm(a){
   const f = panel.querySelector('.stk-al-form'); f.hidden = false;
   f.symbol.value = a.symbol || ''; f.cond.value = a.cond || 'crossing'; f.price.value = fmt(Number(a.price));
   f.message.value = a.message || ''; f.freq.value = a.freq || 'once';
+  fillSrc(f, a);
+  if (a.src && a.src.vs === 'close') f.price.value = '';
   editing = a.id || null;
   f.querySelector('.stk-al-save').textContent = editing ? 'Save' : 'Create';
   f.price.focus();
@@ -276,12 +374,12 @@ function renderList(){
   for (const a of alerts) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
-    row.querySelector('b').textContent = a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price);
-    row.querySelector('span').textContent = (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.active ? '' : ' · stopped');
+    row.querySelector('b').textContent = a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
+    row.querySelector('span').textContent = (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.active ? '' : ' · stopped') + (a.src ? ' · this browser' : '');
     row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : 'Resume';
-    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; armed.delete(a.id); try { await backend.update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
+    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; armed.delete(a.id); try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);
-    row.querySelector('[data-k=del]').onclick = async () => { try { await backend.remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
+    row.querySelector('[data-k=del]').onclick = async () => { try { await storeOf(a).remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
     list.appendChild(row);
   }
 }
@@ -309,7 +407,7 @@ const CSS = `
 .stk-al-x{ background:none; border:0; color:inherit; font-size:22px; cursor:pointer; }
 .stk-al-note{ margin:6px 0 12px; font-size:12.5px; opacity:.75; }
 .stk-al-form{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
-.stk-al-form[hidden]{ display:none; }
+.stk-al-form[hidden],.stk-al-form label[hidden]{ display:none; }
 .stk-al-form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; opacity:.9; }
 .stk-al-form .stk-al-wide{ grid-column:1/-1; }
 .stk-al-form input,.stk-al-form select{ background:transparent; color:inherit; border:1px solid #3a3d45; border-radius:6px; padding:7px 8px; font:inherit; }
@@ -351,6 +449,7 @@ export function mountChartAlerts(ws, opts){
     bar.insertBefore(b, bar.firstChild);
   }
   document.addEventListener('keydown', (e) => {
+    if (window.__stkPlusKeys) return;   // assets/chart-plus.js owns Alt+A (crosshair price, tick-rounded)
     if (!e.altKey || (e.key !== 'a' && e.key !== 'A' && e.code !== 'KeyA')) return;
     const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     e.preventDefault(); const c = activeCell(); openAlerts({ symbol: c ? c.symbol : '', price: crossPrice() });
@@ -359,5 +458,5 @@ export function mountChartAlerts(ws, opts){
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
   setInterval(poll, 1000);
   setInterval(pushLines, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, open: openAlerts, get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
+  window.__stkAlerts = { tick, poll, open: openAlerts, get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
 }

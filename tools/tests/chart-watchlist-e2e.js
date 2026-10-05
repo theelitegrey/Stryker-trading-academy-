@@ -67,7 +67,7 @@ const toastText = (p) => p.evaluate(() => [...document.querySelectorAll('.stkc-t
     t('B: reading A\'s private lists is denied', rd === 'permission-denied', rd);
     await B.p.click('.stkw-banner .stkw-bb');
     await B.p.click('.stkw-dlg .stkw-pbtn');
-    await B.p.waitForTimeout(2000);
+    await B.p.waitForFunction(() => !window.STRYKER_WATCHLIST.viewing, null, { timeout: 3000 }).catch(() => {});
     s = await B.p.evaluate(() => ({ v: !!window.STRYKER_WATCHLIST.viewing, name: window.STRYKER_WATCHLIST.current.name, n: window.STRYKER_WATCHLIST.lists.length, items: window.STRYKER_WATCHLIST.current.items }));
     t('B: Make a copy -> own editable list', !s.v && /copy/.test(s.name) && s.n === 2 && s.items.includes('futures:SI1!'), s);
 
@@ -78,9 +78,11 @@ const toastText = (p) => p.evaluate(() => [...document.querySelectorAll('.stkc-t
     t('A: Share list off', await A.p.evaluate(() => window.STRYKER_WATCHLIST.current.shared === false));
     await B.p.goto(BASE + '/charts?watchlist=' + id, { waitUntil: 'load' });
     await B.p.waitForFunction(() => window.STRYKER_WATCHLIST && window.STRYKER_WATCHLIST.store === 'cloud', null, { timeout: 40000 });
-    await B.p.waitForTimeout(3500);
+    await B.p.waitForFunction(() => !/watchlist=/.test(location.search), null, { timeout: 20000 }).catch(() => {});
+    await B.p.waitForTimeout(500);
     s = await B.p.evaluate(() => ({ v: !!window.STRYKER_WATCHLIST.viewing, name: window.STRYKER_WATCHLIST.current && window.STRYKER_WATCHLIST.current.name, url: location.search }));
     const tx = await toastText(B.p);
+    t('B: the copy survived a reload (saved in B\'s account)', await B.p.evaluate(() => window.STRYKER_WATCHLIST.lists.some((l) => /\(copy\)/.test(l.name))));
     t('B: link no longer works after share off', !s.v && !/watchlist=/.test(s.url), { s, tx });
     await B.p.screenshot({ path: OUT + 'e2e-B-link-off.png' });
     t('no page errors (B)', B.p.errs.length === 0, B.p.errs);

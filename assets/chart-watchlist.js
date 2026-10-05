@@ -825,8 +825,22 @@ export function mountWatchlist(ws, o){
     const src = cur;
     if (!src) return;
     if (!user() && viewing) { toast('Sign in to copy a shared list.', 'error'); return; }
+    if (viewing) {
+      // From a shared (read-only) list: leave the read-only view at once and show the copy;
+      // the first cloud write can take a few seconds, so it saves in the background.
+      if (lists.length >= MAX_LISTS) { toast('You have ' + MAX_LISTS + ' lists. Delete one to make another.', 'error'); return; }
+      const d = { id: rid(), name: String(name).slice(0, NAME_MAX), items: src.items.slice(0, MAX_ITEMS), collapsed: (src.collapsed || []).slice(), view: Object.assign({}, view()), shared: false, updatedAt: Date.now() };
+      stash = null; lists.push(d); endViewing(); setCur(d);
+      try { const sv = await store.save(d); d.updatedAt = sv.updatedAt || d.updatedAt; toast('Saved as "' + d.name + '"'); }
+      catch (e) {
+        console.warn('Stryker watchlist: copy', e);
+        lists = lists.filter((l) => l !== d); setCur(lists[0] || null);
+        toast('Could not save the copy. Check your connection.', 'error');
+      }
+      return;
+    }
     const d = await newDoc(name, src.items, { collapsed: (src.collapsed || []).slice() });
-    if (d) { if (viewing) endViewing(); setCur(d); toast('Saved as "' + d.name + '"'); }
+    if (d) { setCur(d); toast('Saved as "' + d.name + '"'); }
   }
   async function renameCur(name){
     if (!cur) return;

@@ -27,11 +27,11 @@
 // NOTICE copy in assets/vendor/VELA-NOTICE.txt. Never remove that popover
 // without turning the mark back on.
 //
-// MULTI-CHART (phase 2): layouts 1 / 2 side by side / 2 stacked / 3 (1 big +
-// 2) / 4 (2x2) from our own picker; Vela's built-in picker (which goes up to
-// 4x4) is dropped from its topbar, and maxWebglCells keeps every cell on
-// WebGL only up to 4. Phones show one chart at a time (the cell switcher
-// maximizes the active cell over the grid).
+// MULTI-CHART: TradingView-style grid picker + "Sync in layout" switches live in
+// assets/chart-grid.js (1 to 8 charts on desktop, 4 on tablets/phones); Vela's
+// built-in picker (which goes up to 4x4) is dropped from its topbar, and
+// maxWebglCells keeps every cell on WebGL only up to 4. Phones show one chart at a
+// time (the cell switcher maximizes the active cell over the grid).
 //
 // persist:true keeps the student's symbol, drawings, indicators and layout in
 // localStorage, so the workspace reopens the way they left it. A DEFAULT
@@ -127,20 +127,6 @@ function el(tag, attrs, kids){
   return n;
 }
 
-// Layout icons: tiny SVG grids (static strings, no user data).
-const LAYOUT_ICON = {
-  '1':  '<rect x="3" y="4" width="18" height="16" rx="1.5"/>',
-  '2h': '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16"/>',
-  '2v': '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M3 12h18"/>',
-  '3l': '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M14 4v16M14 12h7"/>',
-  '4':  '<rect x="3" y="4" width="18" height="16" rx="1.5"/><path d="M12 4v16M3 12h18"/>'
-};
-const LAYOUTS = [
-  ['1', '1 chart'], ['2h', '2 side by side'], ['2v', '2 stacked'], ['3l', '3: one big + two'], ['4', '4: 2x2 grid']
-];
-const SYNCS = [
-  ['crosshair', 'Crosshair'], ['viewport', 'Time (scroll and zoom)'], ['symbol', 'Symbol'], ['timeframe', 'Interval']
-];
 const icon = (inner) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
 // Saved workspaces snapshot every cosmetic value, so the new TV-like theme
 // defaults would never reach a returning member. Once (versioned flag), swap
@@ -191,7 +177,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-pine.js?v=414'),
       import('./chart-orderflow.js?v=413'),
       import('./chart-settings.js?v=415'),
-      import(VELA_BASE + 'chunk-YCD72KGK.js')
+      import(VELA_BASE + 'chunk-YCD72KGK.js'),
+      import('./chart-grid.js?v=415')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -209,21 +196,18 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Pine = mods[6];
   const Flow = mods[7];
   const Settings = mods[8];
+  const Grid = mods[10];
 
   // Logomark off — the Credits popover carries the attribution (see header).
   try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
 
-  // "3" = one big chart left + two stacked right. Registered before boot so a
-  // persisted / template state that uses it resolves.
-  try {
-    W.registerBuiltinLayouts();
-    W.registerLayout({ id: '3l', label: '1 big + 2', cols: [2, 1], rows: [1, 1], areas: ['main a', 'main b'],
-      cells: [{ id: 'c1', area: 'main' }, { id: 'c2', area: 'a' }, { id: 'c3', area: 'b' }] });
-  } catch (e) { console.warn('Stryker: layout register', e); }
+  // Grid shapes (1 to 8 charts, assets/chart-grid.js) are registered before boot so a
+  // persisted / template / saved-layout state that uses one resolves.
+  let ws;
+  try { W.registerBuiltinLayouts(); Grid.installGrid(W, Core, () => ws); } catch (e) { console.warn('Stryker: layout register', e); }
 
   // Pine Script (assets/chart-pine.js): its persistence handler must be registered
   // before the workspace restores a saved session. The engine itself loads lazily.
-  let ws;
   try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('Stryker: Pine install', e); }
   // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
   // saved session or template that carries them restores.
@@ -270,10 +254,15 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
         A: { symbol: 'futures:NQ1!', timeframe: '15' },
         B: { symbol: 'futures:ES1!', timeframe: '15' },
         C: { symbol: 'futures:GC1!', timeframe: '15' },
-        D: { symbol: 'futures:CL1!', timeframe: '15' }
+        D: { symbol: 'futures:CL1!', timeframe: '15' },
+        E: { symbol: 'futures:YM1!', timeframe: '15' },
+        F: { symbol: 'futures:RTY1!', timeframe: '15' },
+        G: { symbol: 'futures:SI1!', timeframe: '15' },
+        H: { symbol: 'binance:BTCUSDT', timeframe: '15' }
       },
       maxWebglCells: 4,
-      // Vela's own layout dropdown offers grids up to 4x4; ours caps at 4.
+      // Vela's own layout dropdown offers grids up to 4x4; ours (assets/chart-grid.js)
+      // caps at 8 on desktop and 4 on tablets / phones.
       topbar: { left: ['symbol', 'timeframes', 'style', 'indicators', 'actions', 'undo-redo'], right: ['actions', 'alerts', 'panels', 'screenshot'] },
       live: true,
       theme: day ? 'light' : 'dark',
@@ -299,27 +288,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const barL = document.getElementById('stkc-bar-l');
   const isPhone = () => window.innerWidth <= PHONE_MAX;
 
-  // Layout picker
-  const layBtn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkc-layout-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Layout' });
-  const layPop = el('div', { class: 'stkc-pop', id: 'stkc-layout-pop', role: 'menu', hidden: '' });
-  const layItems = {};
-  LAYOUTS.forEach(([id, label]) => {
-    const b = el('button', { type: 'button', class: 'stkc-item', role: 'menuitemradio', 'data-layout': id,
-      html: icon(LAYOUT_ICON[id]) + '<span>' + label + '</span>',
-      onclick: () => { setLayout(id); setLay(false); } });
-    layItems[id] = b; layPop.appendChild(b);
-  });
-  const syncHead = el('p', { class: 'stkc-pop-h', text: 'Sync charts' });
-  layPop.appendChild(syncHead);
-  const syncBoxes = {};
-  SYNCS.forEach(([kind, label]) => {
-    const cb = el('input', { type: 'checkbox', 'data-sync': kind });
-    cb.addEventListener('change', () => { try { ws.sync.set(kind, cb.checked ? true : false); } catch (e) { console.warn(e); } });
-    syncBoxes[kind] = cb;
-    layPop.appendChild(el('label', { class: 'stkc-check' }, [cb, el('span', { text: label })]));
-  });
-  const layWrap = el('div', { class: 'stkc-menu' }, [layBtn, layPop]);
-  const setLay = bindPopover(layBtn, layPop, refreshLayoutUi);
+  // Grid picker + Sync in layout (assets/chart-grid.js)
+  const grid = Grid.mountGrid(ws, { bindPopover, onStructural: () => afterStructural() });
+  const layWrap = grid.el;
+  const SYNCS = [['crosshair'], ['viewport'], ['symbol'], ['timeframe']];
 
   // Phone cell switcher
   const cellSw = el('div', { class: 'stkc-cells', role: 'tablist', 'aria-label': 'Charts in this layout' });
@@ -346,24 +318,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
 
   function refreshLayoutUi(){
-    let id = '1';
-    try { id = ws.layout.id; } catch (e) {}
-    const def = LAYOUTS.find((l) => l[0] === id);
-    layBtn.innerHTML = icon(LAYOUT_ICON[id] || LAYOUT_ICON['4']) + '<span class="stkc-btn-l">' + (def ? def[1].split(':')[0] : 'Layout') + '</span>';
-    Object.keys(layItems).forEach((k) => layItems[k].setAttribute('aria-checked', k === id ? 'true' : 'false'));
-    let st = {};
-    try { st = ws.sync.state() || {}; } catch (e) {}
-    const multi = cellCount() > 1;
-    Object.keys(syncBoxes).forEach((k) => { syncBoxes[k].checked = !!st[k]; syncBoxes[k].disabled = !multi; });
-    syncHead.textContent = multi ? 'Sync charts' : 'Sync charts (needs 2+ charts)';
+    grid.refresh();
     renderCellSwitcher();
   }
 
-  function setLayout(id){
-    try { ws.maximizeCell(null); } catch (e) {}
-    try { ws.setLayout(id); } catch (e) { console.warn('Stryker: setLayout', e); }
-    afterStructural();
-  }
+  function setLayout(id){ grid.setLayout(id); }
 
   function tfLabel(tf){
     tf = String(tf || '');
@@ -400,7 +359,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   }
 
   function afterStructural(){
-    if (cellCount() > 4) { try { ws.setLayout('4'); } catch (e) {} }
+    grid.enforceCap();
     try { ws.setTheme(currentTheme()); } catch (e) {}
     refreshLayoutUi();
   }
@@ -410,8 +369,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { ws.on('state:changed', () => { if (isPhone()) renderCellSwitcher(); }); } catch (e) {}
   let lastPhone = isPhone();
   window.addEventListener('resize', () => { if (isPhone() !== lastPhone) { lastPhone = isPhone(); swKey = ''; renderCellSwitcher(); } }, { passive: true });
-  // Never let a grid wider than 4 survive (an old persisted document).
-  if (cellCount() > 4) afterStructural();
+  // A grid wider than this device allows (8 on desktop, 4 on tablets/phones) drops to 4.
+  if (cellCount() > Grid.maxCells()) afterStructural();
   refreshLayoutUi();
 
   // ---------------- templates ----------------
@@ -428,6 +387,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     try { ws.maximizeCell(null); } catch (e) {}
     try { Pine.clearAllPine(); } catch (e) {}
     SYNCS.forEach(([k]) => { try { ws.sync.set(k, false); } catch (e) {} });
+    grid.setDateRange(false);
     ws.setLayout(s.layout);
     const cells = liveCells();
     s.cells.forEach(([sym, tf], i) => {
@@ -449,7 +409,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   }
   function applyAny(t){ if (t.starter) applyStarter(t); else applySaved(t); }
 
-  window.STRYKER_CHART_UI = { applyStarter, applySaved, STARTERS, setLayout, refreshLayoutUi };
+  window.STRYKER_CHART_UI = { applyStarter, applySaved, STARTERS, setLayout, refreshLayoutUi, grid };
 
   if (!T) { tplWrap.hidden = true; return; }
 

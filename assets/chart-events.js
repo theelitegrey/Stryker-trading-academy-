@@ -10,7 +10,7 @@
 //   - Regular trading hours (OUR map, below): bars outside each market's regular hours are
 //     shaded with the "Electronic trading hours background" colour. The Yahoo continuous
 //     series carries the full Globex tape, so this shades; it does not remove bars.
-//   - Settings window: an "Events" tab and a "Trading" tab (one line: no trading from the chart).
+//   - Settings window: an "Events" tab.
 // Prefs are kept per browser (localStorage). Education only. Not financial advice.
 
 const PREFS_KEY = 'stryker_chart_events_prefs';
@@ -204,7 +204,6 @@ const CSS = `
 #stk-ev-tip[hidden]{ display:none; }
 #stk-ev-tip span,#stk-ev-tip em{ opacity:.75; font-style:normal; }
 :root[data-theme="light"] #stk-ev-tip{ background:#fff; color:#131722; border-color:#e0e3eb; }
-.vela-dialog--settings .stk-sd-trading-note{ padding:4px 0; opacity:.85; }
 `;
 
 function sections(){
@@ -219,9 +218,6 @@ function sections(){
       { kind: 'toggle', label: 'Session breaks', id: 'ev-breaks', get: g('breaks'), set: s('breaks') },
       { kind: 'toggle', label: 'Shade outside regular trading hours (futures)', id: 'ev-rth', get: g('rthShade'), set: s('rthShade') },
       { kind: 'color', label: 'Electronic trading hours background', id: 'ev-rth-color', get: g('rthColor'), set: s('rthColor') }
-    ] },
-    { title: 'Trading', id: 'stk-trading', placement: 'end', rows: [
-      { kind: 'heading', label: "Trading from the chart isn't available on Stryker." }
     ] }
   ];
 }

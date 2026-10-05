@@ -12,13 +12,11 @@
 //       Add alert on <SYMBOL> at <price>        Alt+A  → alert dialog, Crossing, that price
 //       Add alert on <first indicator>                → alert dialog, source = its main plot
 //         (+ "More indicators…" submenu when there are several)
-//       Buy / Sell 1 <SYMBOL> @ <price> limit|stop, Add order…  → SHOWN DISABLED:
-//         "Connect your broker to trade (coming soon)". There is NO order code here at all:
-//         we do not route orders (Owner decision; Rithmic routing needs their approval).
 //       Draw horizontal line at <price>         Alt+H  → Vela's own hline drawing (editable,
 //         saved with the workspace, layouts and templates)
 //   - Alt+A / Alt+H go through Vela's keymap, so they only fire while the chart has focus and
 //     never inside inputs. Every cell of a multi-chart layout gets its own "+".
+// Owner order 2026-10-06: no buying or selling on the site, so this menu carries no trade items.
 // Education only. Not financial advice.
 
 import { openAlerts, chartPlots } from './chart-alerts.js?v=424';
@@ -53,7 +51,7 @@ function priceCtx(cell, rawPrice){
   const R = R_of(cell); if (!R || !Number.isFinite(rawPrice)) return null;
   const t = tickOf(R, rawPrice);
   const price = roundTo(rawPrice, t);
-  return { cell, R, t, price, label: fmtP(price, t), sym: cell.symbol, name: showSym(cell.symbol), last: lastClose(R) };
+  return { cell, R, t, price, label: fmtP(price, t), sym: cell.symbol, name: showSym(cell.symbol) };
 }
 function addPriceAlert(c){ openAlerts({ symbol: c.sym, cond: 'crossing', price: c.price }); }
 function addIndAlert(c, ind){
@@ -73,9 +71,6 @@ function addHLine(c, time){
 // ---------------------------------------------------------------------------------------
 const ICON = {
   alert: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="6.5"/><path d="M11 9.5V13l2 1.6M4.5 5 2.5 7M17.5 5l2 2M18 15.5v5M15.5 18h5"/></svg>',
-  buy: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14.5 12 9l6 5.5"/></svg>',
-  sell: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.5 12 15l6-5.5"/></svg>',
-  order: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="14" height="14" rx="2"/><path d="m6.5 14 3-3 2 2 3.5-4M19 15v6M16 18h6"/></svg>',
   hline: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 12h6.5M15 12h6.5"/><circle cx="12" cy="12" r="2.5"/></svg>',
   more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 9 11l4 3 7-8"/></svg>',
   chev: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
@@ -87,7 +82,6 @@ function item(icon, label, opts){
   b.querySelector('.stkp-lb').textContent = label;
   b.querySelector('.stkp-kb').innerHTML = o.chev ? ICON.chev : '';
   if (o.kb) b.querySelector('.stkp-kb').textContent = o.kb;
-  if (o.disabled) { b.disabled = true; b.setAttribute('aria-disabled', 'true'); b.title = 'Connect your broker to trade (coming soon)'; }
   if (o.run) b.addEventListener('click', (e) => { e.stopPropagation(); closeMenu(); o.run(); });
   return b;
 }
@@ -104,7 +98,7 @@ function onMenuKey(e){
   if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMenu(); return; }
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
     const root = (menuSub && menuSub.contains(document.activeElement)) ? menuSub : menu; if (!root) return;
-    const its = [...root.querySelectorAll('.stkp-it:not([disabled])')]; if (!its.length) return;
+    const its = [...root.querySelectorAll('.stkp-it')]; if (!its.length) return;
     const i = its.indexOf(document.activeElement);
     const n = e.key === 'ArrowDown' ? (i + 1) % its.length : (i - 1 + its.length) % its.length;
     e.preventDefault(); its[n].focus();
@@ -150,12 +144,6 @@ export function openMenu(c, x, y){
     }
   }
   menu.appendChild(sep());
-  const above = c.last != null && c.price > c.last;
-  menu.appendChild(item('buy', 'Buy 1 ' + c.name + ' @ ' + c.label + (above ? ' stop' : ' limit'), { disabled: true }));
-  menu.appendChild(item('sell', 'Sell 1 ' + c.name + ' @ ' + c.label + (above ? ' limit' : ' stop'), { disabled: true }));
-  menu.appendChild(item('order', 'Add order on ' + c.name + ' at ' + c.label + '\u2026', { disabled: true }));
-  const hint = document.createElement('div'); hint.className = 'stkp-hint'; hint.textContent = 'Connect your broker to trade (coming soon)'; menu.appendChild(hint);
-  menu.appendChild(sep());
   menu.appendChild(item('hline', 'Draw horizontal line at ' + c.label, { kb: 'Alt + H', run: () => addHLine(c, c.time) }));
   menu.addEventListener('mouseover', (e) => { const it = e.target.closest && e.target.closest('.stkp-it'); if (it && !it.classList.contains('stkp-more') && menuSub) { menuSub.remove(); menuSub = null; } });
   document.body.appendChild(menu);
@@ -166,7 +154,7 @@ export function openMenu(c, x, y){
     document.addEventListener('keydown', onMenuKey, true);
     window.addEventListener('resize', closeMenu);
   }, 0);
-  const first = menu.querySelector('.stkp-it:not([disabled])'); if (first && matchMedia('(hover:hover)').matches) first.focus({ preventScroll: true });
+  const first = menu.querySelector('.stkp-it'); if (first && matchMedia('(hover:hover)').matches) first.focus({ preventScroll: true });
 }
 
 // ---------------------------------------------------------------------------------------
@@ -270,15 +258,13 @@ const CSS = `
   box-shadow:0 2px 4px rgba(0,0,0,.2),0 8px 24px rgba(0,0,0,.45); font:14px/1.3 -apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Ubuntu,sans-serif; }
 :root[data-theme="light"] .stkp-menu{ background:#fff; color:#131722; box-shadow:0 2px 4px rgba(0,0,0,.08),0 8px 24px rgba(0,0,0,.18); }
 .stkp-it{ display:flex; align-items:center; gap:12px; width:100%; min-height:36px; padding:0 14px 0 12px; background:none; border:0; color:inherit; font:inherit; text-align:left; cursor:pointer; white-space:nowrap; }
-.stkp-it:hover:not([disabled]),.stkp-it:focus-visible{ background:#2a2e39; outline:none; }
-:root[data-theme="light"] .stkp-it:hover:not([disabled]),:root[data-theme="light"] .stkp-it:focus-visible{ background:#f0f3fa; }
-.stkp-it[disabled]{ cursor:not-allowed; opacity:.45; }
+.stkp-it:hover,.stkp-it:focus-visible{ background:#2a2e39; outline:none; }
+:root[data-theme="light"] .stkp-it:hover,:root[data-theme="light"] .stkp-it:focus-visible{ background:#f0f3fa; }
 .stkp-ic{ display:flex; width:20px; justify-content:center; flex:none; }
 .stkp-lb{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
 .stkp-kb{ display:flex; margin-left:24px; color:#787b86; font-size:12.5px; flex:none; }
 .stkp-sep{ height:1px; margin:6px 0; background:#363a45; }
 :root[data-theme="light"] .stkp-sep{ background:#e0e3eb; }
-.stkp-hint{ padding:2px 14px 4px 44px; font-size:12px; color:#787b86; white-space:normal; }
 @media (pointer:coarse){
   .stkp-plus{ width:28px; height:28px; border-radius:6px; }
   .stkp-plus svg{ width:20px; height:20px; }

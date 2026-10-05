@@ -310,8 +310,9 @@ export function mountPine(ws, barL, opts){
   const toast = (opts && opts.toast) || (() => {});
   const tfLabel = (opts && opts.tfLabel) || ((t) => t);
 
-  const btn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkc-pine-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'stkc-pine', title: 'Pine Script editor',
-    html: icon('<path d="M8 6l-6 6 6 6M16 6l6 6-6 6"/>') + '<span class="stkc-btn-l">Pine</span>' });
+  // Icon only (Owner order 2026-10-06): pine-tree outline, same build as the Alerts icon button.
+  const btn = el('button', { type: 'button', class: 'stkc-btn stkc-icon', id: 'stkc-pine-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-controls': 'stkc-pine', title: 'Pine Script editor', 'aria-label': 'Pine Script editor',
+    html: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 7.5 8.5h2.5L6 13.5h3L5 18.5h14l-4-5h3l-4-5h2.5z"/><path d="M12 18.5v3"/></svg>' });
   barL.appendChild(btn);
 
   // A div, not a <section>: the site's global `section{padding:96px 0}` would push the

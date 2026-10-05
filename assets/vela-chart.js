@@ -41,7 +41,22 @@
 // (loaded unmodified from jsDelivr, lazily) and draws the Pine editor; Pine indicators
 // ride the workspace document under ext 'stryker.pine', so persist and templates keep them.
 
-const VELA_BASE = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela@0.6.17/dist/';
+// CANDLE LOOK (Owner order 2026-10-05: "same aesthetics as TradingView"):
+// Vela is self-hosted from assets/vendor/vela-0.6.17-s1/ — the unmodified
+// 0.6.17 ESM build (Apache-2.0, LICENSE + NOTICE in that folder) with ONE
+// patched file, chunk-YCD72KGK.js, marked "Stryker patch": 1-device-px wicks
+// (Vela drew 1.5 px) and TradingView's body-width curve (~80% of the bar
+// spacing, 3 px floor, collapsing to a 1 px stick when zoomed far out), plus
+// TV-like dark/light theme defaults (#0f0f0f / white, faint grid, TV font
+// stack). Candle colours were already TV's (#089981 / #F23645). The chunk
+// files carry no ?v=, so any further patch goes in a NEW folder (-s2) and
+// the charts.html import map ("@luxalgo/vela/plugin") must move with it, or
+// the Pine engine gets a second copy of Vela's registries.
+const VELA_BASE = './vendor/vela-0.6.17-s1/';
+// One-time migration for members whose saved workspace still carries the old
+// Vela theme defaults (see migrateTvLook below).
+const TV_LOOK_KEY = 'stryker_chart_tv_look';
+const TV_LOOK_VER = '1';
 const PERSIST_KEY = 'vela-workspace';
 const PHONE_MAX = 700;
 
@@ -122,6 +137,36 @@ const SYNCS = [
   ['crosshair', 'Crosshair'], ['viewport', 'Time (scroll and zoom)'], ['symbol', 'Symbol'], ['timeframe', 'Interval']
 ];
 const icon = (inner) => '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+// Saved workspaces snapshot every cosmetic value, so the new TV-like theme
+// defaults would never reach a returning member. Once (versioned flag), swap
+// ONLY values that still equal Vela's old stock defaults; anything a member
+// picked themselves is left alone, and later changes are never touched again.
+function migrateTvLook(){
+  try {
+    if (localStorage.getItem(TV_LOOK_KEY) === TV_LOOK_VER) return;
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (raw) {
+      const st = JSON.parse(raw);
+      const FONT = '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
+      const swap = (obj, key, map) => { if (obj && typeof obj[key] === 'string' && Object.prototype.hasOwnProperty.call(map, obj[key].toLowerCase())) obj[key] = map[obj[key].toLowerCase()]; };
+      (st.charts || []).forEach((c) => {
+        const rc = c && c.rendererConfig;
+        if (!rc) return;
+        const dark = !rc.layout || String(rc.layout.background).toLowerCase() !== '#ffffff';
+        swap(rc.layout, 'background', { '#151619': '#0f0f0f' });
+        swap(rc.layout, 'fontFamily', { 'sans-serif': FONT });
+        const grid = dark ? { '#20222c': '#1c1c1c' } : { '#cccccc': '#f0f3fa' };
+        const border = dark ? { '#2a2b30': '#2a2a2a' } : { '#d4dae3': '#e0e3eb' };
+        if (rc.grid) { swap(rc.grid.vertLines, 'color', grid); swap(rc.grid.horzLines, 'color', grid); }
+        swap(rc.priceScale, 'borderColor', border);
+        swap(rc.panes, 'separatorColor', border);
+      });
+      localStorage.setItem(PERSIST_KEY, JSON.stringify(st));
+    }
+    localStorage.setItem(TV_LOOK_KEY, TV_LOOK_VER);
+  } catch (e) { console.warn('Stryker: chart look migration', e); }
+}
+
 // toast.js signature is showToast(type, message).
 const toast = (m, type) => { try { if (window.showToast) window.showToast(type || 'success', m); } catch (e) {} };
 
@@ -173,6 +218,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
+  migrateTvLook();
   let hadSession = false;
   try { hadSession = !!localStorage.getItem(PERSIST_KEY); } catch (e) {}
 

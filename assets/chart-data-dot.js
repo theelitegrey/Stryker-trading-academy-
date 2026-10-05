@@ -1,12 +1,12 @@
 // Stryker Trading Academy — Charts data-status dot (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (window.STRYKER_VELA) and its
-// statusline DOM (.vela-cell[data-cell-id] .vela-statusline .vela-sl-symbol); optional Rithmic
+// statusline DOM (.vela-cell[data-cell-id] .vela-statusline .vela-sl-symbol; the dot lives inside it); optional Rithmic
 // module from assets/rithmic-config.js (rith.client: state + on()); assets/chart-futures-provider.js
 // (FuturesProvider, used only to read the newest 1-minute bar for the lag measurement).
 // Styles: .stkc-dd* in assets/style.css.
 //
 // Owner order 2026-10-05: "Add small yellow/green dot like tradingview to indicator live data
-// or delayed data". One ~8 px dot after the symbol name in every chart cell's legend:
+// or delayed data". One ~8 px dot right after the symbol name in every chart cell's legend:
 //   green  #089981  real-time: crypto (Binance / Coinbase / Hyperliquid public streams), and
 //                   futures while the member's own Rithmic connection is up (flag-gated).
 //   amber  #F5A623  delayed: futures from our Yahoo-based /api/chart/bars. The lag is MEASURED
@@ -151,7 +151,9 @@ export function installDataDot(ws, opts = {}) {
       const st = symEl ? statusOf(bySym[cell.getAttribute('data-cell-id')]) : null;
       if (!st) { if (dot) dot.remove(); return; }
       if (!dot) dot = makeDot();
-      if (dot.previousElementSibling !== symEl) symEl.after(dot);
+      // Inside the ticker span (Vela's setSymbol rewrites its text, the observer re-adds the dot),
+      // so Vela's own layout (mobile grid, multi-chart fit) measures the dot with the ticker.
+      if (dot.parentNode !== symEl || symEl.lastChild !== dot) symEl.appendChild(dot);
       if (dot.dataset.s !== st.s) dot.dataset.s = st.s;
       if (dot.dataset.tip !== st.text) {
         dot.dataset.tip = st.text;

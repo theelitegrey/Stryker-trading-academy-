@@ -276,7 +276,11 @@
       localization: { locale: 'en-US' }
     });
     tvSeries = tvChart.addCandlestickSeries({
-      upColor: '#03c988', downColor: '#e5484d', borderUpColor: '#03c988', borderDownColor: '#e5484d', wickUpColor: '#03c988', wickDownColor: '#e5484d'
+      upColor: '#03c988', downColor: '#e5484d', borderUpColor: '#03c988', borderDownColor: '#e5484d', wickUpColor: '#03c988', wickDownColor: '#e5484d',
+      // The series only holds the visible slice (applyView), so the built-in
+      // last-value label would follow the last VISIBLE bar while panning back.
+      // renderPriceLines() draws the current-price line from the full CANDLES.
+      lastValueVisible: false, priceLineVisible: false
     });
     tvChart.timeScale().subscribeVisibleLogicalRangeChange(updateChartRangeLabel);
     lockChartTouchGestures(host);
@@ -407,6 +411,18 @@
     if(!tvSeries) return;
     tvPriceLines.forEach(function(line){ try{ tvSeries.removePriceLine(line); }catch(e){} });
     tvPriceLines = [];
+    // Current price = latest candle close, whatever range is on screen.
+    var last = CANDLES.length ? CANDLES[CANDLES.length - 1] : null;
+    if(last && isFinite(last.close)){
+      tvPriceLines.push(tvSeries.createPriceLine({
+        price: last.close,
+        color: last.close >= last.open ? '#03c988' : '#e5484d',
+        lineWidth: 1,
+        lineStyle: LightweightCharts.LineStyle.Dotted,
+        axisLabelVisible: true,
+        title: ''
+      }));
+    }
     collectLines().forEach(function(l){
       tvPriceLines.push(tvSeries.createPriceLine({
         price: l.price,

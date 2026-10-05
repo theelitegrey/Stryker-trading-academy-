@@ -108,3 +108,9 @@
   .gex-chart-card .gex-chart-wrap{height:62vh;min-height:400px;max-height:600px;margin:0;border-radius:12px;}
 }
 @media(max-width:380px){.gex-chart-card .gex-chart-wrap{height:58vh;min-height:360px}}
+
+/* Current price outside the visible price range: pinned at the axis edge */
+.gex-edge-tag{position:absolute;right:2px;z-index:3;pointer-events:none;color:#050608;font:800 11px/1 var(--font-mono);border-radius:4px;padding:4px 6px;white-space:nowrap;}
+.gex-edge-tag[data-dir="up"]{top:6px;}
+.gex-edge-tag[data-dir="down"]{bottom:34px;}
+.gex-edge-tag[hidden]{display:none;}

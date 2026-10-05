@@ -269,11 +269,7 @@
       grid: { vertLines: { color: 'rgba(255,255,255,.045)' }, horzLines: { color: 'rgba(255,255,255,.055)' } },
       rightPriceScale: { borderColor: 'rgba(255,255,255,.10)', scaleMargins: { top: .12, bottom: .15 }, autoScale: true },
       timeScale: { borderColor: 'rgba(255,255,255,.10)', timeVisible: true, secondsVisible: false, rightOffset: 8, barSpacing: 7, minBarSpacing: 2 },
-      crosshair: {
-        mode: LightweightCharts.CrosshairMode.Normal,
-        vertLine: { color: '#03c988', labelBackgroundColor: '#03c988' },
-        horzLine: { color: '#03c988', labelBackgroundColor: '#03c988' }
-      },
+      crosshair: crosshairOptions(),
       // Touch drag / pinch are handled by lockChartTouchGestures (tvPan/tvZoom).
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: false, vertTouchDrag: false },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: false },
@@ -289,7 +285,21 @@
     // logical range and the price axis auto-fits the candles in view.
     tvChart.timeScale().subscribeVisibleLogicalRangeChange(function(r){ syncViewFromChart(r); updateChartRangeLabel(); updateEdgeTag(); });
     tvChart.subscribeCrosshairMove(function(){ updateEdgeTag(); });
+    window.addEventListener('stryker:theme', function(){ if(tvChart) tvChart.applyOptions({ crosshair: crosshairOptions() }); });
     lockChartTouchGestures(host);
+  }
+
+  // Crosshair axis labels in neutral grey, so they never look like the green
+  // current-price tag. Lines stay subtle.
+  function crosshairOptions(){
+    var day = document.documentElement.getAttribute('data-theme') === 'light';
+    var bg = day ? '#E0E3EB' : '#2A2E39';
+    var line = 'rgba(149,152,161,.55)';
+    return {
+      mode: LightweightCharts.CrosshairMode.Normal,
+      vertLine: { color: line, width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: bg },
+      horzLine: { color: line, width: 1, style: LightweightCharts.LineStyle.Dashed, labelBackgroundColor: bg }
+    };
   }
 
   function lockChartTouchGestures(host){
@@ -432,11 +442,33 @@
       dir = last.close > mid ? 'up' : 'down';
     } else if(y < 6){ dir = 'up'; }
     else if(y > h - 6){ dir = 'down'; }
-    if(!dir){ tag.hidden = true; return; }
+    if(!dir){ tag.hidden = true; avoidEdgeTag(null); return; }
     tag.hidden = false;
     tag.setAttribute('data-dir', dir);
     tag.style.background = last.close >= last.open ? '#03c988' : '#e5484d';
     tag.textContent = (dir === 'up' ? '▲ ' : '▼ ') + fmt(last.close, 2);
+    avoidEdgeTag(tag);
+  }
+
+  // Hide a level's axis label while it would sit under the edge marker (the
+  // level line itself stays). tvPriceLines[0] is the current-price line.
+  function avoidEdgeTag(tag){
+    var host = $('gex-chart');
+    var band = null;
+    if(tag && host){
+      var hb = host.getBoundingClientRect(), tb = tag.getBoundingClientRect();
+      band = { top: tb.top - hb.top - 3, bottom: tb.bottom - hb.top + 3 };
+    }
+    for(var i = 1; i < tvPriceLines.length; i++){
+      var line = tvPriceLines[i], o = line.options();
+      var hide = false;
+      if(band){
+        var y = tvSeries.priceToCoordinate(o.price);
+        // axis labels are ~18 px tall, centred on the line
+        hide = y != null && isFinite(y) && y + 10 > band.top && y - 10 < band.bottom;
+      }
+      if(o.axisLabelVisible === hide) line.applyOptions({ axisLabelVisible: !hide });
+    }
   }
 
   function resetChartData(msg){

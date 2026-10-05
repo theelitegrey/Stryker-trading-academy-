@@ -333,6 +333,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
+  // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
+  // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
+  Promise.all([import('./chart-watchlist.js?v=424'), import(VELA_BASE + 'widget.js')])
+    .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
+    .catch((e) => console.warn('Stryker: watchlist', e));
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
   import('./chart-plus.js?v=428').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('Stryker: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }

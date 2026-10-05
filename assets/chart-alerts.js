@@ -436,6 +436,17 @@ const CSS = `
 `;
 
 // ---------------------------------------------------------------------------------------
+// Programmatic create (assets/chart-watchlist.js "Add alert on the list…"): same store, cap and lines.
+export async function addAlert(a){
+  if (!backend) { const e = new Error('not ready'); throw e; }
+  if (alerts.length >= MAX_ALERTS) { const e = new Error('full'); e.full = true; toastFn('You have ' + MAX_ALERTS + ' alerts, the most we keep. Delete one first.'); throw e; }
+  const c = clean(a);
+  if (!c.symbol || !Number.isFinite(c.price)) throw new Error('bad alert');
+  const id = await backend.add(c); alerts.push(Object.assign({ id }, c));
+  pushLines(); renderList();
+  return id;
+}
+
 export function installChartAlerts(Core){
   try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: linesLayer }); } catch (e) { console.warn('Stryker alerts: layer', e); }
   window.__stkExtraSections = (window.__stkExtraSections || []).concat([alertsSection]);
@@ -460,5 +471,5 @@ export function mountChartAlerts(ws, opts){
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
   setInterval(poll, 1000);
   setInterval(pushLines, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, poll, open: openAlerts, get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
+  window.__stkAlerts = { tick, poll, open: openAlerts, add: addAlert, get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
 }

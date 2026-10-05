@@ -168,7 +168,26 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs', 'watchlists']); }
+
+      // Charts page WATCHLISTS (assets/chart-watchlist.js, 2026-10-06). Owner only (not even
+      // admins read them). name 1-60, items = flat list (symbols + '###SECTION' markers) <= 260,
+      // collapsed section names <= 50, view = column/display prefs map, shared bool, server time.
+      // 20 lists x 200 symbols per member is enforced in the client. Carved out of the wildcard above.
+      match /watchlists/{wid} {
+        function validWatchlist(d) {
+          return d.keys().hasOnly(['name', 'items', 'collapsed', 'view', 'shared', 'updatedAt'])
+            && d.keys().hasAll(['name', 'items', 'shared', 'updatedAt'])
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+            && d.items is list && d.items.size() <= 260
+            && (!('collapsed' in d) || (d.collapsed is list && d.collapsed.size() <= 50))
+            && (!('view' in d) || (d.view is map && d.view.size() <= 12))
+            && d.shared is bool
+            && d.updatedAt == request.time;
+        }
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isSelf(uid) && wid.size() >= 20 && wid.size() <= 40 && validWatchlist(request.resource.data);
+      }
 
       // Charts page price alerts (assets/chart-alerts.js, 2026-10-06). Owner only (not even
       // admins read them). Validated shape; the 200-per-member cap is enforced in the client.
@@ -676,6 +695,33 @@ service cloud.firestore {
       allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
         && validShared(request.resource.data)
         && exists(/databases/$(database)/documents/students/$(request.auth.uid)/chartLayouts/$(id));
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------------
+    // Charts: read-only SHARED watchlists (assets/chart-watchlist.js, 2026-10-06).
+    // Doc id = the owner's own watchlists id and only exists while Share is on; Share off
+    // deletes it, so the link (charts?watchlist=<id>) stops working. Any signed-in member may
+    // GET one by id; nobody may LIST them. Only the owner writes, and only for a list that
+    // exists in their own watchlists. Same approach as chartShared.
+    // ---------------------------------------------------------------------
+    match /watchlistShared/{id} {
+      function validSharedWl(d) {
+        return d.keys().hasOnly(['ownerUid', 'name', 'items', 'updatedAt'])
+          && d.keys().hasAll(['ownerUid', 'name', 'items', 'updatedAt'])
+          && d.ownerUid == request.auth.uid
+          && d.name is string && d.name.size() > 0 && d.name.size() <= 60
+          && d.items is list && d.items.size() <= 260
+          && d.updatedAt == request.time;
+      }
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && id.size() >= 20 && id.size() <= 40
+        && validSharedWl(request.resource.data)
+        && exists(/databases/$(database)/documents/students/$(request.auth.uid)/watchlists/$(id));
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && validSharedWl(request.resource.data)
+        && exists(/databases/$(database)/documents/students/$(request.auth.uid)/watchlists/$(id));
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 

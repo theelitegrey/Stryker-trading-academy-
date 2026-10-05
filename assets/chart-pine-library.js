@@ -1,16 +1,17 @@
-// Stryker Trading Academy — Charts: Community Pine scripts (publish, browse, invite links,
-// report, admin hide). Plain script, loaded by charts.html after chart-pine-scripts.js
+// Stryker Trading Academy — Charts: Community Pine scripts (publish, browse, report, admin
+// hide). Plain script, loaded by charts.html after chart-pine-scripts.js
 // and chart-pine-guard.js. Uses window.STRYKER_PINE (assets/chart-pine.js) to put a
 // script on the chart; never runs Pine itself.
 //
 // DATA: pineLibrary/{id} (id = 24 random chars). Rules: functions-src/firestore.rules,
 // "Charts: published Pine scripts" block (released 2026-10-05, ruleset 0ff10a1e).
-//   { ownerUid, authorName, name, description, tags[], visibility 'public'|'invite',
+//   { ownerUid, authorName, name, description, tags[], visibility 'public',
 //     openSource, source, version, createdAt, updatedAt, addCount, reportCount, status }
 //   versions/{v}  last 5 older sources (author only)
 //   adds/{uid}    one marker per member who added it (addCount +1 once)
 //   reports/{uid} one report per member { reason, at }; the 3rd report hides it
-// Private = not published (the script stays in My scripts only).
+// Owner 2026-10-05: Private or Public only (no invite links). Private = not published:
+// the script stays in My scripts (students/{uid}/pineScripts) only.
 //
 // SAFETY: other members' scripts are checked by StrykerPineGuard before they are
 // offered, and chart-pine.js runs them on the Web Worker engine only (shared:true).
@@ -90,10 +91,9 @@
     if (src.length > 65536) throw err('The script is longer than 64 KB.');
     var g = window.StrykerPineGuard ? window.StrykerPineGuard.check(src) : { ok: false, msg: 'Safety check unavailable.' };
     if (!g.ok) throw err('Can\'t publish: ' + (g.line ? 'line ' + g.line + ': ' : '') + g.msg);
-    if (f.visibility !== 'public' && f.visibility !== 'invite') throw err('Pick who can use it.');
     var tags = (f.tags || []).filter(function (t) { return TAGS.indexOf(t) >= 0; }).slice(0, 5);
     return { name: name, description: String(f.description || '').trim().slice(0, DESC_MAX), tags: tags,
-      visibility: f.visibility, openSource: !!f.openSource, source: src };
+      visibility: 'public', openSource: !!f.openSource, source: src };
   }
   async function publish(f) {
     var u = user();
@@ -207,7 +207,6 @@
     var d = Math.round((Date.now() - t) / 86400000);
     return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d < 30 ? d + ' days ago' : new Date(t).toLocaleDateString();
   }
-  function shareLink(id) { return location.origin + location.pathname + '?script=' + id; }
 
   // ---------------- Publish / edit sheet ----------------
   // opts: { name, source } for a new listing from My scripts, or { item } to edit one.
@@ -227,12 +226,6 @@
       c.checked = !!(item && item.tags.indexOf(t) >= 0);
       return h('label', { class: 'stkc-tag-check' }, [c, ' ' + t]);
     });
-    var vis = item ? item.visibility : 'invite';
-    function radio(v, title, sub) {
-      var r = h('input', { type: 'radio', name: 'stkc-vis', value: v });
-      r.checked = v === vis;
-      return h('label', { class: 'stkc-radio-check' }, [r, h('span', {}, [h('strong', { text: title }), ' ' + sub])]);
-    }
     var target = null;
     if (!item && mine.length) {
       target = h('select', { class: 'stkc-in' }, [h('option', { value: '', text: 'Publish as a new script' })].concat(mine.map(function (m) {
@@ -241,6 +234,9 @@
       var same = mine.filter(function (m) { return m.name === opts.name; })[0];
       if (same) target.value = same.id;
     }
+    var pubR = h('input', { type: 'radio', name: 'stkc-vis', value: 'public' });
+    var privR = h('input', { type: 'radio', name: 'stkc-vis', value: 'private' });
+    pubR.checked = true;
     var openC = h('input', { type: 'radio', name: 'stkc-code', value: 'open' });
     var hideC = h('input', { type: 'radio', name: 'stkc-code', value: 'hide' });
     openC.checked = !item || item.openSource; hideC.checked = !openC.checked;
@@ -252,9 +248,8 @@
       h('div', { class: 'stkc-fgroup' }, [h('label', { text: 'Short description' }), descIn, count]),
       h('div', { class: 'stkc-fgroup' }, [h('label', { text: 'Tags (optional, up to 5)' }), h('div', { class: 'stkc-tags' }, tagBoxes)]),
       h('div', { class: 'stkc-fgroup' }, [h('label', { text: 'Who can use it' }), h('div', { class: 'stkc-radio-group' }, [
-        h('p', { class: 'stkc-note', text: 'Private (only you): don\'t publish; it stays in My scripts.' }),
-        radio('invite', 'Invite only:', 'anyone you send the link to. Not listed anywhere.'),
-        radio('public', 'Public:', 'listed in Community scripts for every signed-in member.')
+        h('label', { class: 'stkc-radio-check' }, [pubR, h('span', {}, [h('strong', { text: 'Public:' }), ' listed in Community scripts for every signed-in member.'])]),
+        h('label', { class: 'stkc-radio-check' }, [privR, h('span', {}, [h('strong', { text: 'Private:' }), ' only you. ' + (item ? 'Unpublishes it; your copy stays in My scripts.' : 'It stays in My scripts, nothing is shared.')])])
       ])]),
       h('div', { class: 'stkc-fgroup' }, [h('label', { text: 'Code' }), h('div', { class: 'stkc-radio-group' }, [
         h('label', { class: 'stkc-radio-check' }, [openC, h('span', {}, [h('strong', { text: 'Open source:' }), ' others can see the code and save a copy.'])]),
@@ -267,9 +262,15 @@
     var go = h('button', { type: 'button', class: 'stkc-sbtn', text: item ? 'Save changes' : 'Publish' });
     var card = sheet(item ? 'Edit published script' : 'Publish script', body, [h('button', { type: 'button', class: 'stkc-btn', text: 'Cancel', onclick: closeSheet }), go]);
     go.addEventListener('click', async function () {
+      if (privR.checked) {
+        if (!item) { closeSheet(); toast('Kept private in My scripts'); return; }
+        if (!window.confirm('Make "' + item.name + '" private? It leaves Community; members who added it keep their copy, marked "No longer published".')) return;
+        go.disabled = true;
+        try { await unpublish(item.id); closeSheet(); toast('Now private: unpublished'); } catch (e) { say(box, 'Could not unpublish.', true); go.disabled = false; }
+        return;
+      }
       if (!rights.checked) { say(box, 'Tick "I wrote this script or have the right to share it" first.', true); return; }
-      var v = card.querySelector('input[name="stkc-vis"]:checked');
-      var f = { name: nameIn.value, description: descIn.value, source: src, visibility: v ? v.value : '',
+      var f = { name: nameIn.value, description: descIn.value, source: src, visibility: 'public',
         openSource: openC.checked, tags: tagBoxes.map(function (l) { return l.firstChild; }).filter(function (c) { return c.checked; }).map(function (c) { return c.value; }) };
       go.disabled = true; say(box, 'Publishing\u2026');
       try {
@@ -284,16 +285,11 @@
     });
   }
   function showDone(id, f, ver) {
-    var link = shareLink(id);
-    var inp = h('input', { type: 'text', class: 'stkc-in', readonly: true, value: link });
-    var copy = h('button', { type: 'button', class: 'stkc-btn', text: 'Copy link', onclick: function () {
-      try { navigator.clipboard.writeText(link).then(function () { copy.textContent = 'Copied'; }); } catch (e) { inp.select(); }
-    } });
     sheet('Published', h('div', { class: 'stkc-form' }, [
-      h('p', { text: '"' + f.name + '" v' + ver + ' is ' + (f.visibility === 'public' ? 'listed in Community scripts.' : 'shared by link only.') }),
-      h('div', { class: 'stkc-fgroup' }, [h('label', { text: 'Share link' }), h('div', { class: 'stkc-saverow' }, [inp, copy])]),
-      h('p', { class: 'stkc-note', text: 'Edit, change who can use it, or unpublish any time from Community scripts \u2192 Published by me.' })
-    ]), [h('button', { type: 'button', class: 'stkc-sbtn', text: 'Done', onclick: closeSheet })]);
+      h('p', { text: '"' + f.name + '" v' + ver + ' is listed in Community scripts.' }),
+      h('p', { class: 'stkc-note', text: 'Edit it, make it private again, or unpublish any time from Community scripts \u2192 Published by me.' })
+    ]), [h('button', { type: 'button', class: 'stkc-btn', text: 'See it', onclick: function () { openCommunity('mine'); } }),
+         h('button', { type: 'button', class: 'stkc-sbtn', text: 'Done', onclick: closeSheet })]);
   }
 
   // ---------------- Community sheet ----------------
@@ -302,7 +298,6 @@
     var badges = h('div', { class: 'stkc-cbadges' }, [
       h('span', { class: 'stkc-badge ' + (s.openSource ? 'is-open' : 'is-hidden'), text: s.openSource ? 'Open source' : 'Code hidden' }),
       h('span', { class: 'stkc-badge', text: 'v' + s.version }),
-      s.visibility === 'invite' ? h('span', { class: 'stkc-badge', text: 'Invite only' }) : null,
       s.status === 'hidden' ? h('span', { class: 'stkc-badge is-warn', text: 'Hidden' + (s.reportCount ? ' (' + s.reportCount + ' reports)' : '') }) : null
     ].concat(s.tags.map(function (t) { return h('span', { class: 'stkc-badge is-tag', text: t }); })));
     var acts = h('div', { class: 'stkc-cacts' });
@@ -325,7 +320,6 @@
     }
     if (mineFlag) {
       btn('Edit', function () { openPublish({ item: s }); });
-      btn('Copy link', function (b) { try { navigator.clipboard.writeText(shareLink(s.id)).then(function () { b.textContent = 'Copied'; }); } catch (e) {} });
       btn('Unpublish', async function (b) {
         if (!window.confirm('Unpublish "' + s.name + '"? Members who added it keep their copy, marked "No longer published".')) return;
         b.disabled = true;
@@ -420,26 +414,7 @@
     load();
   }
 
-  async function openInvite(id) {
-    await (window.StrykerPineScripts ? window.StrykerPineScripts.ready : Promise.resolve());
-    if (!user()) { sheet('Shared Pine script', h('p', { text: 'Sign in to open this shared script.' }), [h('a', { class: 'stkc-sbtn', href: 'login.html?next=' + encodeURIComponent(location.pathname + location.search), text: 'Sign in' })]); return; }
-    var s = null;
-    try { s = await get(id); } catch (e) {}
-    if (!s) { sheet('Shared Pine script', h('p', { text: 'This script is no longer published, or the link is wrong.' }), [h('button', { type: 'button', class: 'stkc-btn', text: 'Close', onclick: closeSheet })]); return; }
-    var admin = await isAdmin();
-    sheet('Shared Pine script', h('ul', { class: 'stkc-clist' }, [card(s, { admin: admin, refresh: function () { openInvite(id); } })]), null);
-  }
-
-  // Invite links: charts.html?script=<id>
-  function boot() {
-    var m = /[?&]script=([A-Za-z0-9]{20,40})/.exec(location.search);
-    if (!m) return;
-    var go = function () { openInvite(m[1]); };
-    if (document.readyState === 'complete') setTimeout(go, 800); else window.addEventListener('load', function () { setTimeout(go, 800); });
-  }
-  boot();
-
   window.StrykerPineLibrary = { TAGS: TAGS, get: get, listPublic: listPublic, listMine: listMine, publish: publish, update: update,
     unpublish: unpublish, versions: versions, report: report, setStatus: setStatus, isAdmin: isAdmin,
-    openPublish: openPublish, openCommunity: openCommunity, openInvite: openInvite, close: closeSheet };
+    openPublish: openPublish, openCommunity: openCommunity, close: closeSheet };
 })();

@@ -1,5 +1,5 @@
 // Stryker Trading Academy — Charts: safety check for Pine scripts written by OTHER members
-// (Community / invite-link scripts). Plain script; also loads in Node for tests
+// (Community scripts). Plain script; also loads in Node for tests
 // (tools/tests/chart-pine-guard.test.js).
 //
 // WHY: PineTS (the Pine engine) transpiles Pine to JavaScript and runs it with new
@@ -7,8 +7,8 @@
 // call any JavaScript global it names (eval, Function, fetch, globalThis...) and reach
 // Function through `x.constructor.constructor(...)`. So a shared script is checked here
 // BEFORE it is ever run, and only runs on the Web Worker engine (never the in-page
-// fallback). This check is a strict allowlist, but it is defence in depth, not a proof:
-// public listing also needs an admin review (pineLibrary status 'pending').
+// fallback). This check is a strict allowlist; it is defence in depth, not a proof.
+// Members can report a script (3 reports hide it) and admins can hide it.
 //
 // Rules (any failure rejects the whole script):
 //  - only ASCII outside comments; no backtick, `$`, `\` or `@` in code

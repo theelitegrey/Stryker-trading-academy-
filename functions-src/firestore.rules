@@ -414,8 +414,8 @@ service cloud.firestore {
 
     // ---------------------------------------------------------------------
     // Charts: published Pine scripts (assets/chart-pine-library.js, 2026-10-05).
-    // visibility 'public' = listed in Community for every signed-in member;
-    // 'invite' = readable by id only (a share link), never listable.
+    // visibility is always 'public' = listed in Community for every signed-in
+    // member (Owner 2026-10-05: public or private only, no invite links).
     // Private scripts stay in students/{uid}/pineScripts.
     // The author writes only the content fields. addCount / reportCount move
     // by exactly +1, once per member, paired with an adds/{uid} or
@@ -450,7 +450,7 @@ service cloud.firestore {
           && d.name is string && d.name.size() > 0 && d.name.size() <= 60
           && d.description is string && d.description.size() <= 280
           && okTags(d.tags)
-          && d.visibility in ['public', 'invite']
+          && d.visibility == 'public'
           && d.openSource is bool
           && d.source is string && d.source.size() > 0 && d.source.size() <= 65536
           && d.version is int && d.version >= 1

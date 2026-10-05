@@ -51,7 +51,7 @@ let getWs = () => null;
 const engines = new WeakMap(); // chart -> PineWorkerEngine
 const mainEngines = new WeakMap(); // chart -> in-process PineEngine (fallback)
 const onMain = new WeakSet();      // handles running on the in-process engine
-// Community / invite-link scripts on a chart: handle -> { id, version, openSource, ownerUid, name }.
+// Community scripts on a chart: handle -> { id, version, openSource, ownerUid, name }.
 // They always run on the Web Worker engine (never the in-page fallback) and are checked by
 // StrykerPineGuard first; see assets/chart-pine-guard.js for why.
 const libOf = new WeakMap();
@@ -526,7 +526,7 @@ export function mountPine(ws, barL, opts){
   try { ws.on('cell:active', () => { if (!panel.hidden) setTimeout(renderLists, 0); }); } catch (e) {}
   try { ws.on('state:changed', () => { if (!panel.hidden) renderTarget(); }); } catch (e) {}
 
-  // Add a Community / invite script (s = pineLibrary item) to the active chart: safety
+  // Add a Community script (s = pineLibrary item) to the active chart: safety
   // check, Web Worker engine only, and its library id rides the chart state.
   async function addShared(s){
     if (!guardOk(s.source)) return { ok: false, msg: 'This script failed the safety check, so it won\'t run.' };

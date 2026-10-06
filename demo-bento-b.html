@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="440">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO PAGE, variation B "Trading terminal bento" (Owner order 2026-10-06). Unlisted: noindex, not in nav or sitemap. -->
+<meta name="robots" content="noindex,nofollow">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:title" content="Stryker Trading Academy: the terminal (demo)">
+<meta property="og:description" content="A terminal-style bento preview of Stryker: 64 chapters, free SPX GEX, charts, journal, replay and the session clock. Education only.">
+<meta property="og:url" content="https://strykertrading.com/demo-bento-b">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og/demo-bento-b.png?v=440">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Stryker demo homepage share card: a black trading-terminal grid with amber and green panes">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Stryker Trading Academy: the terminal (demo)">
+<meta name="twitter:description" content="A terminal-style bento preview of Stryker: 64 chapters, free SPX GEX, charts, journal, replay and the session clock. Education only.">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/demo-bento-b.png?v=440">
+<meta name="twitter:image:alt" content="Stryker demo homepage share card: a black trading-terminal grid with amber and green panes">
+<meta name="theme-color" content="#000000">
+<title>Stryker Trading Academy · Terminal demo</title>
+<meta name="description" content="Demo homepage B: Stryker Trading Academy as a trading terminal. 64 chapters, free SPX GEX, charts, journal, replay. Education only.">
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=440">
+<link rel="stylesheet" href="assets/demo-bento-b.css?v=440">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<script src="assets/version-check.js?v=440" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/apple-touch-icon.png">
+</head>
+<body class="tx-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="tx-crt" aria-hidden="true"></div>
+
+<!-- status bar -->
+<header class="tx-bar">
+  <a href="/" class="tx-brand" aria-label="Stryker Trading Academy home"><img src="assets/images/logo-header.webp" alt="Stryker Trading Academy" width="122" height="80"></a>
+  <span class="tx-bar-name">STRYKER<span class="tx-dim">://</span><span class="tx-t2">TERMINAL</span></span>
+  <span class="tx-tag">DEMO</span>
+  <span class="tx-bar-clock" aria-label="New York time"><span class="tx-dim">NY</span> <b id="tx-ny">--:--:--</b></span>
+  <span class="tx-bar-clock tx-hide-s" aria-label="Your local time"><span class="tx-dim">LOCAL</span> <b id="tx-lc">--:--:--</b></span>
+  <span class="tx-bar-acts">
+    <button type="button" class="tx-key-btn tx-hide-s" id="tx-help-btn" aria-label="Show keyboard shortcuts"><kbd>?</kbd> keys</button>
+    <button type="button" class="tx-key-btn" id="tx-theme" aria-label="Switch day or night theme"><kbd>T</kbd> <span id="tx-theme-l">night</span></button>
+    <a href="login" class="tx-key-btn">log in</a>
+  </span>
+</header>
+
+<!-- ticker tape -->
+<div class="tx-tape" id="tx-tape" aria-label="Ticker tape: last daily price snapshot from our chart feed, loaded with the page">
+  <div class="tx-tape-run" id="tx-tape-run">
+    <div class="tx-tape-set" id="tx-tape-set">
+      <span class="tx-chip" data-sym="NQ"><b>NQ</b><i>…</i><em></em></span>
+      <span class="tx-chip" data-sym="ES"><b>ES</b><i>…</i><em></em></span>
+      <span class="tx-chip" data-sym="GC"><b>GC</b><i>…</i><em></em></span>
+      <span class="tx-chip" data-sym="CL"><b>CL</b><i>…</i><em></em></span>
+      <span class="tx-chip" data-sym="BTC"><b>BTC</b><i>…</i><em></em></span>
+      <span class="tx-chip tx-chip-gex"><b>SPX GEX</b><i id="tx-tape-gex">call wall … · put wall …</i></span>
+      <span class="tx-chip tx-chip-sess"><b>SESSION</b><i id="tx-tape-sess">…</i></span>
+      <span class="tx-chip tx-chip-note"><b>NOTE</b><i>prices: snapshot at page load (futures from our chart feed, BTC from Binance spot), not streaming</i></span>
+    </div>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+<section class="tx-grid" aria-label="Stryker terminal panes">
+
+  <!-- HERO / COMMAND LINE -->
+  <article class="tx-pane tx-hero" id="p-term" data-key="h" tabindex="-1" aria-labelledby="tx-h1">
+    <div class="tx-tb"><span class="tx-lights" aria-hidden="true"><i></i><i></i><i></i></span><span class="tx-tb-t">TERM</span><span class="tx-tb-path">~/stryker</span><kbd class="tx-tb-k">H</kbd></div>
+    <div class="tx-body tx-hero-body">
+      <div class="tx-log" id="tx-log" aria-hidden="true">
+        <p><span class="tx-ps">guest@stryker:~$</span> stryker --whoami</p>
+        <p class="tx-out">ICT · SMT · Volume Profile · GEX. A trading education desk.</p>
+        <p><span class="tx-ps">guest@stryker:~$</span> stryker ls --modules</p>
+        <p class="tx-out tx-cols"><span>learn/</span><span>gex/</span><span>charts/</span><span>journal/</span><span>replay/</span><span>calendar/</span></p>
+      </div>
+      <h1 id="tx-h1">Learn it. Chart it.<br><span class="tx-amber">Practise it.</span> One terminal.</h1>
+      <p class="tx-lead">64 chapters of ICT, SMT and Volume Profile, taught the way a trading desk trains analysts. Free SPX GEX, charts, a journal and replay run right next to the lessons.</p>
+      <div class="tx-cmds">
+        <a href="signup" class="tx-cmd tx-cmd-main"><span class="tx-ps">&gt;</span> stryker --start-free<span class="tx-caret" aria-hidden="true"></span><span class="tx-sr"> (Start free)</span></a>
+        <a href="charts" class="tx-cmd"><span class="tx-ps">&gt;</span> open charts<span class="tx-sr"> (Open Charts)</span></a>
+      </div>
+      <p class="tx-fine">Chapters 1–10 free with a free account. No card required. Education only. Not financial advice.</p>
+      <nav class="tx-keys" aria-label="Jump to a pane">
+        <a href="#p-gex" data-jump="g"><kbd>G</kbd>GEX</a>
+        <a href="#p-charts" data-jump="c"><kbd>C</kbd>CHARTS</a>
+        <a href="#p-journal" data-jump="j"><kbd>J</kbd>JOURNAL</a>
+        <a href="#p-replay" data-jump="r"><kbd>R</kbd>REPLAY</a>
+        <a href="#p-learn" data-jump="l"><kbd>L</kbd>LEARN</a>
+        <a href="#p-cal" data-jump="e"><kbd>E</kbd>CALENDAR</a>
+        <a href="#p-sess" data-jump="s"><kbd>S</kbd>SESSION</a>
+        <a href="#p-plans" data-jump="p"><kbd>P</kbd>PLANS</a>
+      </nav>
+    </div>
+  </article>
+
+  <!-- SESSION -->
+  <article class="tx-pane tx-sess" id="p-sess" data-key="s" tabindex="-1" aria-labelledby="tx-sess-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-sess-t">SESSION</span><span class="tx-tb-path">clock</span><kbd class="tx-tb-k">S</kbd></div>
+    <div class="tx-body">
+      <p class="tx-sess-head"><span class="tx-led" id="tx-sess-led"></span><b id="tx-sess-head">Session clock</b></p>
+      <p class="tx-sess-tail tx-green" id="tx-sess-tail">&nbsp;</p>
+      <div class="tx-sess-rows" id="tx-sess-rows">
+        <div class="tx-srow" data-s="Asia"><span>ASIA</span><div class="tx-sbar"><i></i></div><em>TYO 09–18</em></div>
+        <div class="tx-srow" data-s="London"><span>LDN</span><div class="tx-sbar"><i></i></div><em>LDN 08–17</em></div>
+        <div class="tx-srow" data-s="New York"><span>NY</span><div class="tx-sbar"><i></i></div><em>NY 08–17</em></div>
+      </div>
+      <p class="tx-dim tx-small">Bar = how far through today's window each session is. A clock, not market data.</p>
+    </div>
+  </article>
+
+  <!-- GEX -->
+  <article class="tx-pane tx-gex" id="p-gex" data-key="g" tabindex="-1" aria-labelledby="tx-gex-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-gex-t">GEX</span><span class="tx-tb-path">SPX · 0DTE</span><span class="tx-pill">FREE PLAN</span><kbd class="tx-tb-k">G</kbd></div>
+    <div class="tx-body">
+      <table class="tx-lv" aria-label="SPX GEX levels">
+        <tbody>
+          <tr class="lv-call"><th>CALL WALL</th><td id="lv-call">----.--</td></tr>
+          <tr class="lv-spot"><th>SPOT</th><td id="lv-spot">----.--</td></tr>
+          <tr class="lv-zero"><th>ZERO γ</th><td id="lv-zero">----.--</td></tr>
+          <tr class="lv-put"><th>PUT WALL</th><td id="lv-put">----.--</td></tr>
+          <tr class="lv-reg"><th>REGIME</th><td id="lv-reg">--</td></tr>
+        </tbody>
+      </table>
+      <div class="tx-ladder" id="tx-ladder" aria-hidden="true"></div>
+      <p class="tx-meta" id="tx-gex-meta">loading SPX levels…</p>
+      <a href="gex" class="tx-link">&gt; open gex</a>
+    </div>
+  </article>
+
+  <!-- CHARTS -->
+  <article class="tx-pane tx-charts" id="p-charts" data-key="c" tabindex="-1" aria-labelledby="tx-ch-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-ch-t">CHARTS</span><span class="tx-tb-path" id="tx-ch-path">NQ · 15m</span><kbd class="tx-tb-k">C</kbd></div>
+    <div class="tx-body tx-ch-body">
+      <div class="tx-ch-tf" aria-hidden="true"><span>1m</span><span>5m</span><span class="on">15m</span><span>1h</span><span>4h</span><span>D</span><span class="tx-dim">|</span><span>VP</span><span>FVG</span><span>70+ ind</span></div>
+      <div class="tx-cv-wrap"><canvas class="tx-cv" id="tx-ch-cv" aria-label="Candlestick chart of recent NQ bars from our chart feed"></canvas><span class="tx-cv-px" id="tx-ch-px" aria-hidden="true"></span></div>
+      <div class="tx-foot"><span class="tx-meta" id="tx-ch-meta">loading bars…</span><a href="charts" class="tx-link">&gt; open charts</a></div>
+    </div>
+  </article>
+
+  <!-- LEARN -->
+  <article class="tx-pane tx-learn" id="p-learn" data-key="l" tabindex="-1" aria-labelledby="tx-le-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-le-t">LEARN</span><span class="tx-tb-path">~/chapters</span><kbd class="tx-tb-k">L</kbd></div>
+    <div class="tx-body">
+      <pre class="tx-tree" aria-label="64 chapters: 42 core, 12 Volume Profile, 10 Prop Firm">chapters/
+├── core/            <b class="tx-n" data-to="42">42</b>
+├── volume-profile/  <b class="tx-n" data-to="12">12</b>
+└── prop-firm/       <b class="tx-n" data-to="10">10</b>
+                    ───
+total               <b class="tx-n tx-amber" data-to="64">64</b></pre>
+      <p class="tx-cat"><span class="tx-ps">$</span> cat <span id="tx-cat-id">ch01</span>.md</p>
+      <p class="tx-cat-out" id="tx-cat-out">Candles, Charts &amp; the Language of Price</p>
+      <a href="courses" class="tx-link">&gt; ls all 64</a>
+    </div>
+  </article>
+
+  <!-- JOURNAL -->
+  <article class="tx-pane tx-journal" id="p-journal" data-key="j" tabindex="-1" aria-labelledby="tx-jo-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-jo-t">JOURNAL</span><span class="tx-tb-path">trades.log</span><span class="tx-pill tx-pill-s">SAMPLE</span><kbd class="tx-tb-k">J</kbd></div>
+    <div class="tx-body">
+      <div class="tx-jl" aria-label="Sample journal entries">
+        <p><span class="tx-dim">09:41</span> NQ  <span class="tx-amber">FVG retest</span>    <span class="tx-green">plan ✓</span></p>
+        <p><span class="tx-dim">10:12</span> ES  <span class="tx-amber">SMT divergence</span> <span class="tx-green">plan ✓</span></p>
+        <p><span class="tx-dim">11:58</span> NQ  <span class="tx-amber">late entry</span>     <span class="tx-red">outside killzone</span></p>
+        <p><span class="tx-dim">14:05</span> GC  <span class="tx-amber">OB tap</span>         <span class="tx-green">plan ✓</span></p>
+      </div>
+      <div class="tx-heat" id="tx-heat" aria-hidden="true"></div>
+      <p class="tx-coach"><span class="tx-pill">AI COACH</span> <span id="tx-coach">checks each trade against your own rules</span></p>
+      <a href="trade-journal" class="tx-link">&gt; open journal</a>
+    </div>
+  </article>
+
+  <!-- REPLAY -->
+  <article class="tx-pane tx-replay" id="p-replay" data-key="r" tabindex="-1" aria-labelledby="tx-re-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-re-t">REPLAY</span><span class="tx-tb-path">bar-by-bar</span><span class="tx-pill tx-pill-s">ILLUSTRATIVE</span><kbd class="tx-tb-k">R</kbd></div>
+    <div class="tx-body">
+      <div class="tx-cv-wrap tx-cv-short"><canvas class="tx-cv" id="tx-re-cv" aria-label="Illustrative candles replaying one bar at a time"></canvas></div>
+      <div class="tx-re-ctl">
+        <button type="button" class="tx-key-btn" id="tx-re-play" aria-pressed="true" aria-label="Pause replay">❚❚</button>
+        <span class="tx-re-n">BAR <b id="tx-re-n">001</b>/<span id="tx-re-of">120</span></span>
+        <span class="tx-re-sp" role="group" aria-label="Replay speed">
+          <button type="button" class="tx-key-btn on" data-sp="1">1×</button><button type="button" class="tx-key-btn" data-sp="2">2×</button><button type="button" class="tx-key-btn" data-sp="4">4×</button>
+        </span>
+      </div>
+      <a href="replay" class="tx-link">&gt; open replay</a>
+    </div>
+  </article>
+
+  <!-- CALENDAR -->
+  <article class="tx-pane tx-cal" id="p-cal" data-key="e" tabindex="-1" aria-labelledby="tx-ca-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-ca-t">CALENDAR</span><span class="tx-tb-path">high impact · your time</span><kbd class="tx-tb-k">E</kbd></div>
+    <div class="tx-body">
+      <ul class="tx-ev" id="tx-ev"><li class="tx-dim">loading calendar…</li></ul>
+      <a href="economic-calendar" class="tx-link">&gt; open calendar</a>
+    </div>
+  </article>
+
+  <!-- PLANS -->
+  <article class="tx-pane tx-plans" id="p-plans" data-key="p" tabindex="-1" aria-labelledby="tx-pl-t">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-pl-t">PLANS</span><span class="tx-tb-path">diff free pro</span><kbd class="tx-tb-k">P</kbd></div>
+    <div class="tx-body">
+      <div class="tx-diff">
+        <div class="tx-diff-col">
+          <p class="tx-diff-h">--- FREE</p>
+          <p>- Chapters 1–10</p>
+          <p>- SPX GEX, same-day (0DTE)</p>
+          <p>- Journal: 20 new trades / month</p>
+          <p>- Replay: 3 sessions / week</p>
+          <p>- Community: read everything</p>
+          <a href="signup" class="tx-link">&gt; start free</a>
+        </div>
+        <div class="tx-diff-col tx-diff-pro">
+          <p class="tx-diff-h">+++ PRO</p>
+          <p>+ All 64 chapters</p>
+          <p>+ GEX: every symbol and expiry</p>
+          <p>+ Unlimited journal, analytics, AI coach</p>
+          <p>+ Unlimited replay</p>
+          <p>+ Post and send direct messages</p>
+          <a href="/#pricing" class="tx-link">&gt; see pro</a>
+        </div>
+      </div>
+    </div>
+  </article>
+
+  <!-- STATS strip -->
+  <article class="tx-pane tx-stats" aria-label="Counts">
+    <div class="tx-stat"><b class="tx-n" data-to="64">64</b><span>chapters</span></div>
+    <div class="tx-stat"><b class="tx-n" data-to="70" data-suf="+">70+</b><span>chart indicators</span></div>
+    <div class="tx-stat"><b class="tx-n" data-to="8">8</b><span>charts per layout</span></div>
+    <div class="tx-stat"><b class="tx-n" data-to="4">4</b><span>GEX markets</span></div>
+    <div class="tx-stat"><b id="tx-up">00:00:00</b><span>your session here</span></div>
+  </article>
+
+  <!-- CLOSE -->
+  <article class="tx-pane tx-close" aria-label="Start">
+    <div class="tx-body tx-close-body">
+      <p class="tx-close-l"><span class="tx-ps">guest@stryker:~$</span> <span id="tx-type"></span><span class="tx-caret" aria-hidden="true"></span></p>
+      <a href="signup" class="tx-cmd tx-cmd-main">Start free →</a>
+    </div>
+  </article>
+
+</section>
+<p class="tx-disc">Demo layout. Education only. Not financial advice. Tape prices are a snapshot taken when the page loads (futures from our chart feed, BTC from Binance spot), not a stream. Journal and replay panes show sample or illustrative data. GEX levels come from our SPX endpoint when it answers.</p>
+</main>
+
+<!-- shortcut help -->
+<div class="tx-help" id="tx-help" hidden>
+  <div class="tx-help-box" role="dialog" aria-modal="true" aria-labelledby="tx-help-t" tabindex="-1">
+    <div class="tx-tb"><span class="tx-tb-t" id="tx-help-t">KEYS</span><button type="button" class="tx-key-btn" data-close aria-label="Close">esc</button></div>
+    <dl class="tx-help-l">
+      <dt>G</dt><dd>GEX pane</dd><dt>C</dt><dd>Charts pane</dd><dt>J</dt><dd>Journal pane</dd><dt>R</dt><dd>Replay pane</dd>
+      <dt>L</dt><dd>Learn pane</dd><dt>E</dt><dd>Calendar pane</dd><dt>S</dt><dd>Session pane</dd><dt>P</dt><dd>Plans pane</dd>
+      <dt>H</dt><dd>Back to the top</dd><dt>Space</dt><dd>Pause / play replay (when focused)</dd><dt>T</dt><dd>Day / night theme</dd><dt>?</dt><dd>This list</dd>
+    </dl>
+  </div>
+</div>
+
+<script src="assets/market-hours.js?v=440"></script>
+<script src="assets/demo-bento-b.js?v=440" defer></script>
+</body>
+</html>

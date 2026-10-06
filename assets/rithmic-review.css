@@ -1,0 +1,112 @@
+/* Stryker Trading Academy — /rithmic-review (temporary, unlisted). Page-only styles on top of
+   assets/style.css tokens. Phone-first; two columns from 960px. */
+.rr-page{ background:var(--bg-0); color:var(--ink-1); font-family:var(--font-body); min-height:100vh; }
+.rr-wrap{ width:100%; max-width:1120px; margin:0 auto; padding:0 18px; }
+
+.rr-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  max-width:1120px; margin:0 auto; padding:14px 18px; }
+.rr-brand img{ display:block; height:34px; width:auto; }
+.rr-tag{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);
+  border:1px solid var(--line); border-radius:999px; padding:5px 10px; }
+
+.rr-hero{ position:relative; overflow:hidden; padding:18px 0 40px; }
+.rr-hero::before{ content:''; position:absolute; inset:-30% -20% auto -20%; height:760px; pointer-events:none;
+  background:
+    radial-gradient(520px 320px at 18% 30%, rgba(0,51,124,.55), transparent 70%),
+    radial-gradient(460px 300px at 82% 20%, rgba(19,0,90,.55), transparent 70%),
+    radial-gradient(380px 240px at 60% 75%, rgba(3,201,136,.14), transparent 70%); }
+.rr-hero::after{ content:''; position:absolute; inset:0; pointer-events:none; opacity:.35;
+  background-image:linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:44px 44px; -webkit-mask-image:linear-gradient(#000, transparent 85%); mask-image:linear-gradient(#000, transparent 85%); }
+.rr-hero-grid{ position:relative; z-index:1; display:grid; gap:26px; }
+.rr-hero h1{ font-family:var(--font-display); font-size:clamp(34px, 9vw, 60px); line-height:1.02; letter-spacing:-.02em;
+  color:var(--ink-0); margin:12px 0 14px; font-weight:800; }
+.rr-x{ color:var(--gold); font-weight:500; margin:0 .08em; }
+.rr-lede{ font-size:16px; line-height:1.6; color:var(--ink-1); margin:0 0 18px; max-width:560px; }
+.rr-lede b{ color:var(--ink-0); }
+.rr-facts{ list-style:none; margin:0 0 22px; padding:0; display:grid; gap:10px; max-width:560px; }
+.rr-facts li{ position:relative; padding:0 0 0 22px; font-size:14px; line-height:1.55; color:var(--ink-2); }
+.rr-facts li::before{ content:''; position:absolute; left:2px; top:.55em; width:9px; height:9px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 0 4px rgba(3,201,136,.15); }
+.rr-facts b{ color:var(--ink-0); font-weight:600; }
+
+.rr-art{ display:flex; align-items:center; flex-wrap:wrap; gap:14px 22px; }
+.rr-art img{ display:block; width:auto; }
+.rr-art-hero img{ height:26px; }
+.rr-art .day{ display:none; }
+:root[data-theme="light"] .rr-art .day{ display:block; }
+:root[data-theme="light"] .rr-art .dark{ display:none; }
+
+.rr-card{ position:relative; background:linear-gradient(180deg, rgba(19,19,22,.92), rgba(11,11,13,.96));
+  border:1px solid var(--line); border-radius:18px; padding:22px 18px; box-shadow:0 30px 70px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.02) inset;
+  backdrop-filter:blur(6px); }
+.rr-card::before{ content:''; position:absolute; left:18px; right:18px; top:-1px; height:2px; border-radius:2px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent); opacity:.8; }
+.rr-card h2{ font-family:var(--font-display); font-size:22px; color:var(--ink-0); margin:0 0 4px; }
+.rr-card-sub{ font-size:13.5px; color:var(--ink-2); margin:0 0 16px; }
+.rr-card .auth-error{ display:none; margin:0 0 12px; padding:10px 12px; border-radius:8px; font-size:13px;
+  background:rgba(229,72,77,.1); border:1px solid rgba(229,72,77,.35); color:#ff9a9d; }
+.rr-card .field input{ font-size:16px; }
+.rr-google{ width:100%; min-height:44px; }
+.rr-check{ display:flex; gap:9px; align-items:flex-start; font-size:13px; line-height:1.5; color:var(--ink-2); margin:2px 0 16px; cursor:pointer; }
+.rr-check input{ margin-top:3px; accent-color:var(--gold); width:16px; height:16px; flex:none; }
+.rr-check a, .rr-fine a{ color:var(--gold); }
+.rr-card .btn-primary{ min-height:46px; }
+.rr-fine{ font-size:12.5px; color:var(--ink-3); text-align:center; margin:14px 0 0; }
+.rr-signed{ margin:0 0 16px; padding:12px; border:1px solid rgba(3,201,136,.3); border-radius:10px; background:rgba(3,201,136,.06); }
+.rr-signed p{ font-size:13px; color:var(--ink-1); margin:0 0 10px; }
+
+.rr-sec{ padding:34px 0; border-top:1px solid var(--line-soft); }
+.rr-h{ font-family:var(--font-display); font-size:clamp(22px, 5vw, 30px); color:var(--ink-0); margin:0 0 18px; letter-spacing:-.01em; }
+.rr-grid3{ display:grid; gap:12px; }
+.rr-tile{ border:1px solid var(--line); border-radius:14px; padding:18px; background:var(--bg-1); }
+.rr-tile h3{ font-size:16px; color:var(--ink-0); margin:10px 0 6px; }
+.rr-tile p{ font-size:14px; line-height:1.6; color:var(--ink-2); margin:0; }
+.rr-tile b{ color:var(--ink-1); }
+.rr-ico{ display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:10px;
+  color:var(--gold); background:rgba(3,201,136,.08); border:1px solid rgba(3,201,136,.25); }
+
+.rr-steps{ list-style:none; margin:0; padding:0; display:grid; gap:12px; counter-reset:none; }
+.rr-steps li{ display:flex; gap:14px; align-items:flex-start; border:1px solid var(--line); border-radius:14px; padding:16px; background:var(--bg-1); }
+.rr-n{ flex:none; width:32px; height:32px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+  font-family:var(--font-mono); font-weight:700; font-size:14px; color:var(--bg-0); background:var(--gold); }
+.rr-steps h3{ font-size:15.5px; color:var(--ink-0); margin:4px 0 4px; }
+.rr-steps p{ font-size:14px; line-height:1.6; color:var(--ink-2); margin:0; }
+.rr-steps b{ color:var(--ink-1); }
+.rr-note{ margin:16px 0 0; font-size:13px; line-height:1.6; color:var(--amber); }
+
+.rr-legal-card{ border:1px solid var(--line); border-radius:14px; padding:18px; background:var(--bg-1); }
+.rr-legal-card .rr-art img{ height:22px; }
+.rr-notices{ list-style:none; margin:14px 0 0; padding:14px 0 0; border-top:1px solid var(--line-soft); display:grid; gap:6px; }
+.rr-notices li{ font-size:12.5px; line-height:1.55; color:var(--ink-2); }
+.rr-contact{ font-size:14px; color:var(--ink-2); margin:16px 0 0; }
+.rr-contact a{ color:var(--gold); }
+
+.rr-foot{ border-top:1px solid var(--line-soft); padding:20px 0 28px; }
+.rr-foot .rr-wrap{ display:flex; flex-wrap:wrap; gap:10px 20px; justify-content:space-between; font-size:12px; color:var(--ink-3); }
+.rr-foot-links{ display:flex; gap:16px; flex-wrap:wrap; }
+.rr-foot a{ color:var(--ink-2); }
+.rr-foot a:hover{ color:var(--gold); }
+
+@media (min-width:720px){
+  .rr-grid3{ grid-template-columns:repeat(3, 1fr); }
+  .rr-steps{ grid-template-columns:repeat(2, 1fr); }
+  .rr-card{ padding:26px 24px; }
+}
+@media (min-width:960px){
+  .rr-hero{ padding:34px 0 64px; }
+  .rr-hero-grid{ grid-template-columns:minmax(0, 1.15fr) minmax(0, .85fr); gap:48px; align-items:center; }
+  .rr-brand img{ height:40px; }
+  .rr-sec{ padding:48px 0; }
+}
+
+:root[data-theme="light"] .rr-page{ background:var(--bg-0); }
+:root[data-theme="light"] .rr-hero::before{
+  background:
+    radial-gradient(520px 320px at 18% 30%, rgba(0,51,124,.12), transparent 70%),
+    radial-gradient(460px 300px at 82% 20%, rgba(19,0,90,.08), transparent 70%),
+    radial-gradient(380px 240px at 60% 75%, rgba(3,201,136,.12), transparent 70%); }
+:root[data-theme="light"] .rr-hero::after{ opacity:.6; background-image:linear-gradient(rgba(0,0,0,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,.04) 1px, transparent 1px); }
+:root[data-theme="light"] .rr-card{ background:var(--bg-1); box-shadow:0 24px 50px -28px rgba(0,0,0,.25); }
+:root[data-theme="light"] .rr-n{ color:#fff; }
+:root[data-theme="light"] .rr-note{ color:var(--amber-dim); }

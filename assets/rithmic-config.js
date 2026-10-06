@@ -76,14 +76,30 @@ function devOverride() {
   return null;
 }
 
-export function rithmicEnabledFor(uid) {
+// Access = the feature flag AND either (a) the uid is in allowUids (the Owner) or (b) the
+// member's own students/{uid} doc carries rithmicBeta === true. (b) is how the Rithmic
+// conformance reviewers get in without a redeploy: they sign up on /rithmic-review, which files
+// rithmicReview/{uid}; an admin approves by setting rithmicBeta with the Admin SDK. The rules make
+// rithmicBeta a privileged field, so a member can never set it on themselves.
+export function rithmicEnabledFor(uid, beta) {
   if (devOverride()) return true;
   if (!RITHMIC_FLAG.enabled) return false;
-  return !!uid && RITHMIC_FLAG.allowUids.includes(uid);
+  return !!uid && (RITHMIC_FLAG.allowUids.includes(uid) || beta === true);
+}
+
+// Reads the signed-in member's own docs (rules: self-read only). Never throws.
+async function readOwn(coll, uid) {
+  try {
+    // eslint-disable-next-line no-undef
+    const d = typeof db !== 'undefined' ? db : null;
+    if (!d || !uid) return null;
+    const snap = await d.collection(coll).doc(uid).get();
+    return snap.exists ? (snap.data() || {}) : null;
+  } catch (e) { return null; }
 }
 
 // Called by vela-chart.js after the login gate. Returns the Rithmic module (provider + UI)
-// for allowlisted members, or null (flag off: nothing else loads).
+// for members with access, or null (nothing else loads).
 export async function loadRithmicIfEnabled() {
   let uid = null;
   try {
@@ -91,12 +107,24 @@ export async function loadRithmicIfEnabled() {
     const a = typeof auth !== 'undefined' ? auth : null;
     uid = (a && a.currentUser && a.currentUser.uid) || null;
   } catch (e) {}
-  if (!rithmicEnabledFor(uid)) return null;
+  let beta = false;
+  if (RITHMIC_FLAG.enabled && uid && !RITHMIC_FLAG.allowUids.includes(uid) && !devOverride()) {
+    const st = await readOwn('students', uid);
+    beta = !!(st && st.rithmicBeta === true);
+    if (!beta) {
+      // A reviewer who signed up on /rithmic-review and is waiting for approval: say so once.
+      const req = await readOwn('rithmicReview', uid);
+      if (req) {
+        try { if (window.showToast) window.showToast('info', 'Rithmic review access requested. Connect broker appears here once we switch it on for your account; reload this page then.'); } catch (e) {}
+      }
+    }
+  }
+  if (!rithmicEnabledFor(uid, beta)) return null;
   const dev = devOverride();
   const app = RITHMIC_CONFIG.gateway === GATEWAYS.production ? APPS.production : APPS.test;
   const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
     isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=437');
+  const ui = await import('./rithmic-ui.js?v=438');
   return ui.createRithmic(cfg);
 }

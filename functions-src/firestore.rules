@@ -51,7 +51,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'];
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta'];
     }
     function touchesPrivileged() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -60,7 +60,7 @@ service cloud.firestore {
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
         'lapsedFromPlan', 'lapsedAtMillis',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta'
       ]);
     }
     function createsPrivileged() {
@@ -69,7 +69,7 @@ service cloud.firestore {
         'foundingMember', 'foundingCoupon', 'referralPoints', 'tradingViewAccessGranted',
         'tradingViewGrantedUsername', 'tradingViewGrantedAt', 'role', 'banned',
         'stripeCustomerId', 'stripeSubscriptionId', 'billingProvider',
-        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt'
+        'trialUsedAt', 'trialEndsAt', 'trialProvider', 'trialCancelledAt', 'rithmicBeta'
       ]);
     }
 
@@ -738,6 +738,27 @@ service cloud.firestore {
         && validSharedWl(request.resource.data)
         && exists(/databases/$(database)/documents/students/$(request.auth.uid)/watchlists/$(id));
       allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------------------
+    // Rithmic conformance review (2026-10-06). A reviewer who signs up on
+    // /rithmic-review files ONE request doc under their own uid. It grants
+    // nothing: access is students/{uid}.rithmicBeta, a privileged field only
+    // the Admin SDK / an admin sets. The member can create the request once
+    // and read it back; never edit or delete it.
+    // ---------------------------------------------------------------------
+    match /rithmicReview/{uid} {
+      allow get:    if isSelf(uid) || isAdmin();
+      allow list:   if isAdmin();
+      allow create: if isSelf(uid)
+                    && request.resource.data.keys().hasOnly(['email', 'name', 'createdAt', 'source'])
+                    && request.resource.data.keys().hasAll(['email', 'createdAt', 'source'])
+                    && request.resource.data.email == request.auth.token.email
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.source == 'rithmic-review'
+                    && (!('name' in request.resource.data)
+                        || (request.resource.data.name is string && request.resource.data.name.size() <= 80));
+      allow update, delete: if isAdmin();
     }
 
     // ---------------------------------------------------------------------

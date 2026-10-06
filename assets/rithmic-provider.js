@@ -14,7 +14,7 @@
 // served by the normal provider: an automatic fallback. assets/rithmic-ui.js reloads the
 // chart cells when the source flips, so the visible bars always match the chip.
 
-import { BAR_TYPE } from './rithmic-client.js?v=437';
+import { BAR_TYPE } from './rithmic-client.js?v=438';
 
 // Rithmic exchange codes for our roots.
 export const EXCHANGE = {

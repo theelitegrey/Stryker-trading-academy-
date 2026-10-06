@@ -78,6 +78,13 @@
 /
   Cache-Control: public, max-age=0, must-revalidate
 
+# Temporary unlisted page for Rithmic's conformance reviewers: never indexed.
+/rithmic-review
+  X-Robots-Tag: noindex, nofollow
+
+/rithmic-review.html
+  X-Robots-Tag: noindex, nofollow
+
 /manifest.json
   Cache-Control: public, max-age=0, must-revalidate
 

@@ -14,6 +14,22 @@ const PASS = 'demo-pass';
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const NOTICES = [
+  'The R | Protocol API\u2122 software is Copyright \u00a9 2026 by Rithmic, LLC. All rights reserved.',
+  'Trading Platform by Rithmic\u2122 is a trademark of Rithmic, LLC. All rights reserved.',
+  'The OMNE\u2122 software is Copyright \u00a9 2026 by Omnesys, LLC and Omnesys Technologies, Inc. All rights reserved.',
+  'Powered by OMNE\u2122 is a trademark of Omnesys, LLC and Omnesys Technologies, Inc. All rights reserved.'
+];
+// Attribution strip state: visible?, inside the viewport, below the chart (never over candles/axis),
+// the logos for the current theme loaded and shown.
+const attrState = (p) => p.evaluate(() => {
+  const a = document.getElementById('stkr-attr');
+  if (!a) return { exists: false };
+  const r = a.getBoundingClientRect(), c = document.getElementById('vela-chart').getBoundingClientRect();
+  const shown = [...a.querySelectorAll('.stkr-logos img')].filter((i) => i.offsetWidth > 0);
+  return { exists: true, vis: !a.hidden && r.height > 0, top: Math.round(r.top), chartBottom: Math.round(c.bottom), right: Math.round(r.right), vw: innerWidth,
+    docW: document.documentElement.scrollWidth, logos: shown.map((i) => i.src.split('/').pop().split('?')[0]), loaded: shown.every((i) => i.complete && i.naturalWidth > 0) };
+});
 const stats = async () => (await fetch(MOCK_HTTP + '/__stats')).json();
 
 async function open(b, { w, h, mobile, dev }) {
@@ -89,6 +105,14 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(/Test server: prices may differ from the live market\./.test(sheet.note), 'test-server note shown');
     check(/straight from your browser to Rithmic\. Stryker never sees or stores your password/.test(sheet.note), 'privacy note shown');
     check(sheet.formAction === null, 'form has no action (never submits to a server)');
+    const sys2 = await p.evaluate(() => [...document.querySelectorAll('#stkr-sys option')].map((o) => ({ t: o.textContent, d: o.disabled })));
+    check(['Rithmic 01', 'Rithmic 04 Colo'].every((n) => sys2.some((o) => o.d && o.t === n + ' (available after approval)')) && sys2.some((o) => !o.d && o.t === 'Rithmic Test'),
+      'system picker: Rithmic Test selectable, Rithmic 01 / 04 Colo greyed "available after approval": ' + sys2.map((o) => o.t + (o.d ? '[x]' : '')).join(' / '));
+    const sl = await p.evaluate(() => { const d = document.getElementById('stkr-sheet-legal'); return { items: [...d.querySelectorAll('li')].map((l) => l.textContent), logos: [...d.querySelectorAll('img')].filter((i) => i.offsetWidth > 0 && i.naturalWidth > 0).map((i) => i.alt) }; });
+    check(JSON.stringify(sl.items) === JSON.stringify(NOTICES), 'sheet: the 4 Rithmic/OMNE notices, verbatim');
+    check(sl.logos.join('|') === 'Trading Platform by Rithmic|Powered by OMNE', 'sheet: both logos shown (dark variants) ' + sl.logos.join('|'));
+    const a0 = await attrState(p);
+    check(a0.exists && !a0.vis, 'disconnected: attribution strip NOT shown');
     // wrong password first
     await p.selectOption('#stkr-sys', 'Rithmic Test');
     await p.fill('#stkr-user', 'demo');
@@ -102,6 +126,9 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected' && !document.getElementById('stkr-chip').hidden), 'connect: state connected and chip visible');
     check(await p.evaluate(() => document.getElementById('stkr-chip').textContent === 'Rithmic · connected'), 'chip reads "Rithmic · connected"');
     check(await p.evaluate(() => document.getElementById('stkr-pass').value === ''), 'password field cleared after connect');
+    const a1 = await attrState(p);
+    check(a1.vis && a1.top >= a1.chartBottom - 1 && a1.right <= a1.vw && a1.loaded && a1.logos.join('|') === 'trading-platform-by-rithmic-gray.png|powered-by-omne-white.png',
+      'connected (dark): attribution strip shown below the chart, dark logos loaded ' + JSON.stringify(a1));
     check(await p.evaluate(() => /your own Rithmic connection \(Rithmic Test\)/.test(document.querySelector('.stkchart-credit').textContent)), 'source line under the chart names Rithmic while connected');
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && x.close > 10500 && x.close < 11800; }, null, 20000), 'history: NQ chart reloaded from Rithmic time-bar replay');
     const s1 = await stats();
@@ -121,6 +148,22 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(ticks > 1, 'live candle moves with streamed ticks (' + ticks + ' distinct closes in 3 s)');
     await p.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
     await p.screenshot({ path: OUT + '/rithmic-1440-connected.png' });
+    await p.click('#stkr-i');
+    const lp = await p.evaluate(() => { const x = document.getElementById('stkr-legal-pop'); const r = x.getBoundingClientRect(); return { vis: !x.hidden && r.height > 0, items: [...x.querySelectorAll('li')].map((l) => l.textContent), top: r.top, l: r.left, r: r.right, vw: innerWidth }; });
+    check(lp.vis && JSON.stringify(lp.items) === JSON.stringify(NOTICES) && lp.top >= 0 && lp.r <= lp.vw, '(i) opens the notice with the 4 lines verbatim');
+    await p.screenshot({ path: OUT + '/rithmic-1440-notice.png' });
+    await p.keyboard.press('Escape');
+    check(await p.evaluate(() => document.getElementById('stkr-legal-pop').hidden), 'Escape closes the notice');
+    await p.evaluate(() => window.setStrykerTheme('day'));
+    await sleep(800);
+    const ad = await attrState(p);
+    check(ad.vis && ad.loaded && ad.logos.join('|') === 'trading-platform-by-rithmic-black.png|powered-by-omne-blue.png', 'connected (day theme): day logos shown ' + ad.logos.join('|'));
+    await p.screenshot({ path: OUT + '/rithmic-1440-day-connected.png' });
+    await p.click('#stkr-i');
+    await p.screenshot({ path: OUT + '/rithmic-1440-day-notice.png' });
+    await p.keyboard.press('Escape');
+    await p.evaluate(() => window.setStrykerTheme('night'));
+    await sleep(500);
 
     // drop every socket: reconnect, fallback while away, back on Rithmic after
     await fetch(MOCK_HTTP + '/__drop');
@@ -135,6 +178,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     await p.screenshot({ path: OUT + '/rithmic-1440-connected-sheet.png' });
     await p.click('#stkr-off');
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'idle' && document.getElementById('stkr-chip').hidden), 'disconnect: idle, chip hidden');
+    check(await waitFor(p, () => document.getElementById('stkr-attr').hidden), 'disconnected again: attribution strip hidden');
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && !(x.close > 10500 && x.close < 11800); }, null, 30000), 'disconnect: NQ chart falls back to the normal data');
     check(await p.evaluate(() => /Yahoo Finance/.test(document.querySelector('.stkchart-credit').textContent)), 'source line back to the standard text after disconnect');
     const s3 = await stats();
@@ -173,8 +217,15 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && x.close > 10500 && x.close < 11800; }, null, 20000);
     const chip = await p.evaluate(() => { const r = document.getElementById('stkr-chip').getBoundingClientRect(); return { vis: r.width > 0, r: Math.round(r.right), vw: innerWidth, docW: document.documentElement.scrollWidth }; });
     check(chip.vis && chip.r <= chip.vw && chip.docW <= chip.vw, '390: chip visible inside the toolbar ' + JSON.stringify(chip));
+    const a3 = await attrState(p);
+    check(a3.vis && a3.loaded && a3.right <= a3.vw && a3.docW <= a3.vw && a3.top >= a3.chartBottom - 1, '390: attribution strip fits below the chart ' + JSON.stringify(a3));
     await p.screenshot({ path: OUT + '/rithmic-390-connected.png' });
+    await p.click('#stkr-i');
+    const lp3 = await p.evaluate(() => { const r = document.getElementById('stkr-legal-pop').getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, vw: innerWidth }; });
+    check(lp3.l >= 0 && lp3.r <= lp3.vw && lp3.t >= 0, '390: notice fits the screen ' + JSON.stringify(lp3));
+    await p.screenshot({ path: OUT + '/rithmic-390-notice.png' });
     await p.evaluate(() => window.STRYKER_RITHMIC.disconnect());
+    check(await waitFor(p, () => document.getElementById('stkr-attr').hidden), '390: strip hidden after disconnect');
     check(!errors.length, '390: no page errors ' + errors.join(' | '));
     await ctx.close();
   } catch (e) {

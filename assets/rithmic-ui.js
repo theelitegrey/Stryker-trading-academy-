@@ -10,8 +10,22 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=436';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=436';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=437';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=437';
+
+// Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
+// R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
+// (strip under the chart) and in the Connect sheet; the same text is in the site footer.
+export const RITHMIC_NOTICES = [
+  'The R | Protocol API\u2122 software is Copyright \u00a9 2026 by Rithmic, LLC. All rights reserved.',
+  'Trading Platform by Rithmic\u2122 is a trademark of Rithmic, LLC. All rights reserved.',
+  'The OMNE\u2122 software is Copyright \u00a9 2026 by Omnesys, LLC and Omnesys Technologies, Inc. All rights reserved.',
+  'Powered by OMNE\u2122 is a trademark of Omnesys, LLC and Omnesys Technologies, Inc. All rights reserved.'
+];
+// Official Rithmic artwork: grey/white variants on the dark theme, black/blue on the day theme.
+const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).href;
+// Systems Rithmic told us to list before approval: shown greyed, not selectable.
+const PENDING_SYSTEMS = ['Rithmic 01', 'Rithmic 04 Colo', 'Rithmic Paper Trading'];
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
@@ -42,6 +56,30 @@ const CSS = `
 .stkr-note{ margin:10px 0 0 !important; padding-top:10px; border-top:1px solid var(--line-soft, var(--line));
   font-size:11.5px; line-height:1.5; color:var(--ink-2); }
 .stkr-note.stkr-test{ border-top:0; padding-top:0; color:var(--amber, #e8b04a); }
+.stkr-logos{ display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.stkr-logos img{ display:block; width:auto; }
+.stkr-logos .stkr-l-rith{ height:18px; }
+.stkr-logos .stkr-l-omne{ height:18px; }
+.stkr-logos .day{ display:none; }
+:root[data-theme="light"] .stkr-logos .day{ display:block; }
+:root[data-theme="light"] .stkr-logos .dark{ display:none; }
+.stkr-attr{ flex:none; position:relative; display:flex; align-items:center; gap:8px; padding:3px 12px;
+  border-top:1px solid var(--line-soft, var(--line)); background:var(--bg-1); min-height:26px; }
+.stkr-attr[hidden]{ display:none; }
+.stkr-i{ flex:none; width:18px; height:18px; padding:0; border-radius:50%; border:1px solid var(--line); background:transparent;
+  color:var(--ink-2); font:700 10.5px/16px Georgia, serif; font-style:italic; cursor:pointer; }
+.stkr-i:hover, .stkr-i[aria-expanded="true"]{ color:var(--ink-0); border-color:var(--ink-3); }
+.stkr-legal-pop{ position:absolute; left:8px; bottom:calc(100% + 6px); z-index:60; width:min(420px, calc(100vw - 16px));
+  padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg-2);
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.6); }
+.stkr-legal-pop[hidden]{ display:none; }
+.stkr-legal{ margin:0; padding:0; list-style:none; font-size:11px; line-height:1.5; color:var(--ink-2); }
+.stkr-legal li{ margin:0 0 4px; }
+.stkr-legal li:last-child{ margin:0; }
+.stkr-sheet-legal{ margin:10px 0 0; padding-top:10px; border-top:1px solid var(--line-soft, var(--line)); }
+.stkr-sheet-legal .stkr-logos{ margin:0 0 6px; }
+.stkr-sheet-legal .stkr-legal{ font-size:10.5px; color:var(--ink-3); }
+@media (max-width:480px){ .stkr-attr{ padding:3px 8px; gap:6px; } .stkr-attr .stkr-l-rith, .stkr-attr .stkr-l-omne{ height:16px; } }
 .stkr-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
 .stkr-err[hidden]{ display:none; }
 .stkr-on p{ font-size:12.5px; color:var(--ink-1); }
@@ -70,6 +108,17 @@ function el(tag, attrs, kids) {
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
 const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} };
 const toast = (m, type) => { try { if (window.showToast) window.showToast(type || 'success', m); } catch (e) {} };
+
+function logos() {
+  const img = (n, cls, alt) => el('img', { src: ART(n), class: cls, alt, decoding: 'async' });
+  return el('span', { class: 'stkr-logos' }, [
+    img('trading-platform-by-rithmic-gray', 'stkr-l-rith dark', 'Trading Platform by Rithmic'),
+    img('trading-platform-by-rithmic-black', 'stkr-l-rith day', 'Trading Platform by Rithmic'),
+    img('powered-by-omne-white', 'stkr-l-omne dark', 'Powered by OMNE'),
+    img('powered-by-omne-blue', 'stkr-l-omne day', 'Powered by OMNE')
+  ]);
+}
+const noticeList = () => el('ul', { class: 'stkr-legal' }, RITHMIC_NOTICES.map((t) => el('li', { text: t })));
 
 export function createRithmic(cfg) {
   const client = new RithmicClient(cfg);
@@ -129,6 +178,18 @@ export function createRithmic(cfg) {
     barR.insertBefore(wrap, barR.firstChild);
     barR.insertBefore(chip, wrap);
 
+    // ---- attribution strip: under the chart, only while a Rithmic connection is active ----
+    const legalPop = el('div', { class: 'stkr-legal-pop', id: 'stkr-legal-pop', role: 'dialog', 'aria-label': 'Rithmic and OMNE notices', hidden: true }, [noticeList()]);
+    const info = el('button', { type: 'button', class: 'stkr-i', id: 'stkr-i', 'aria-label': 'Rithmic and OMNE notices', 'aria-expanded': 'false', 'aria-controls': 'stkr-legal-pop', text: 'i' });
+    const attr = el('div', { class: 'stkr-attr', id: 'stkr-attr', hidden: true }, [logos(), info, legalPop]);
+    const setLegal = (open) => { legalPop.hidden = !open; info.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    info.addEventListener('click', (e) => { e.stopPropagation(); setLegal(legalPop.hidden); });
+    document.addEventListener('click', (e) => { if (!legalPop.hidden && !attr.contains(e.target)) setLegal(false); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !legalPop.hidden) { setLegal(false); info.focus(); } });
+    const creditEl = document.querySelector('.stkchart-credit');
+    if (creditEl && creditEl.parentNode) creditEl.parentNode.insertBefore(attr, creditEl);
+    else document.body.appendChild(attr);
+
     // ---- the sheet ----
     const err = el('p', { class: 'stkr-err', role: 'alert', hidden: true });
     const brokerR = el('button', { type: 'button', class: 'stkr-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
@@ -147,12 +208,14 @@ export function createRithmic(cfg) {
       el('div', { class: 'stkr-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
       cfg.isTest ? el('p', { class: 'stkr-note stkr-test', text: 'Test server: prices may differ from the live market.' }) : null,
-      el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. Stryker never sees or stores your password. Live prices come from your own Rithmic data subscription.' })
+      el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. Stryker never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
+      el('div', { class: 'stkr-sheet-legal', id: 'stkr-sheet-legal' }, [logos(), noticeList()])
     ]);
     const onInfo = el('p', {});
     const off = el('button', { type: 'button', class: 'stkr-off', id: 'stkr-off', text: 'Disconnect' });
     const onView = el('div', { class: 'stkr-on', hidden: true }, [el('h3', { text: 'Rithmic' }), onInfo, off,
-      el('p', { class: 'stkr-note', text: 'Futures charts (NQ, ES, GC, CL ...) now use your Rithmic data. Disconnect to go back to the standard data.' })]);
+      el('p', { class: 'stkr-note', text: 'Futures charts (NQ, ES, GC, CL ...) now use your Rithmic data. Disconnect to go back to the standard data.' }),
+      el('div', { class: 'stkr-sheet-legal' }, [logos(), noticeList()])]);
     pop.appendChild(form);
     pop.appendChild(onView);
     form.addEventListener('submit', (e) => { e.preventDefault(); e.stopPropagation(); doConnect(); });
@@ -173,6 +236,9 @@ export function createRithmic(cfg) {
         const want = lsGet(LS_SYS);
         names.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
         if (names.length === 1) sys.value = names[0];
+        // Production systems Rithmic asked us to show: greyed until our app is approved.
+        PENDING_SYSTEMS.filter((n) => !names.includes(n)).forEach((n) =>
+          sys.appendChild(el('option', { value: '', text: n + ' (available after approval)', disabled: true, 'data-pending': '1' })));
       } catch (e) {
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Could not load systems' }));
@@ -231,6 +297,8 @@ export function createRithmic(cfg) {
       onInfo.appendChild(el('b', { text: client.systemName || 'Rithmic' }));
       onInfo.appendChild(document.createTextNode('.'));
       chip.hidden = !on;
+      attr.hidden = !on;  // Rithmic data stays on the chart while reconnecting
+      if (attr.hidden) setLegal(false);
       chip.className = 'stkr-chip' + (st === 'reconnecting' ? ' warn' : '');
       chip.innerHTML = '';
       chip.appendChild(el('i', { 'aria-hidden': 'true' }));

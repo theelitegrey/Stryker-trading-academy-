@@ -656,6 +656,9 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .footer-grid a{ display:block; font-size:14px; color:var(--ink-2); margin-bottom:10px; transition:color .15s ease; }
 .footer-grid a:hover{ color:var(--gold); }
 .footer-bottom{ display:flex; justify-content:space-between; align-items:center; padding-top:28px; border-top:1px solid var(--line-soft); font-size:13px; color:var(--ink-3); flex-wrap:wrap; gap:12px; }
+.third-party-notices{ margin-top:18px; max-width:640px; font-size:11.5px; line-height:1.6; color:var(--ink-3); scroll-margin-top:90px; }
+.third-party-notices p{ margin:0 0 2px; }
+.third-party-notices .tpn-h{ font-weight:700; color:var(--ink-2); margin-bottom:4px; }
 .risk-disclaimer{ font-size:12px; color:var(--ink-3); max-width:640px; line-height:1.7; margin-top:18px; }
 
 /* ==========================================================================

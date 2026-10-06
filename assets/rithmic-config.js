@@ -30,6 +30,10 @@ export const GATEWAYS = {
 // - production: PLACEHOLDER. Rithmic assigns the real app_name (a prefix they register for us)
 //   when the product is approved; production refuses unregistered names, so it stays unreachable.
 //   Its app_version is the site build (appVersion() below).
+// The product name we asked Rithmic to register. UNUSED until Rithmic assigns the final
+// app_name for production; then it replaces the STRK_Stryker placeholder below.
+export const APP_NAME_PRODUCT = 'Stryker Charts';
+
 export const APPS = {
   test: { appName: 'SampleMD.js', appVersion: '0.3.0.0' },
   production: { appName: 'STRK_Stryker', appVersion: null }
@@ -93,6 +97,6 @@ export async function loadRithmicIfEnabled() {
   const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
     isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=436');
+  const ui = await import('./rithmic-ui.js?v=437');
   return ui.createRithmic(cfg);
 }

@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-10-05T05:58:00Z",
+  "generatedAt": "2026-10-06T05:58:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-10-06T05:30:00Z",
+  "goodUntil": "2026-10-07T05:30:00Z",
   "defaultCurrency": "USD",
-  "rangeStart": "2026-09-28",
-  "rangeEnd": "2026-10-26",
+  "rangeStart": "2026-09-29",
+  "rangeEnd": "2026-10-27",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. After a 29,000 payrolls print with a 60,000 downward revision, futures price 28 Oct at about 22%, down from 64% a week earlier; December is the favoured date and roughly two more moves are priced for the first half of 2027. Logan says half a point more is needed, Goolsbee says every option is open and Williams and Jefferson want more data; the minutes on 7 October and CPI on the 14th come first",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. After last week's soft payrolls and a 3.0% core PCE, futures price 28 Oct at about 20–22%, with December favoured and two more moves priced for the first half of 2027. Monday's ISM services prices-paid reading of 74.0 and a ten-year at 5.35%, a 24-year high, are the counterweight; the minutes on 7 October and CPI on the 14th come first",
       "bias": "up"
     },
     {
@@ -63,7 +63,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep. September's flash HICP printed 3.8% against 3.6–3.7% expected, a three-year high, with core steady at 2.5%; the euro sits near its lowest since May 2025 on France's budget and fiscal worries. Standard Chartered expects the ECB to wait for December's projections; the meeting on 29 October is where it is tested, and the accounts of the last one are due on 8 October",
+      "expect": "Second hike of 2026 on 10 Sep. September's flash HICP printed 3.8%, a three-year high, but French bond stress, Spain's snap election and Lane's warning that higher long-term rates slow growth have taken about 30bp out of the ECB path since late September, against 13bp for the Fed, according to ING. UOB expects a pause on 29 October and a final 25bp hike in December",
       "bias": "up"
     },
     {
@@ -71,15 +71,15 @@
       "bank": "Bank of England",
       "rate": "3.75%",
       "next": null,
-      "expect": "Held 6–3 on 17 Sep. Gilt yields reached a 28-year high on 1 October in the global sell-off and Bailey has said high energy prices make the hold harder to maintain; about 80% priced for a November hike, with labour data on 20 October and CPI on the 21st before it",
+      "expect": "Held 6–3 on 17 Sep. Gilt yields hit a 28-year high on 1 October and Catherine Mann said a hike is needed because financial conditions are not tight enough; markets discount about 30bp by the end of the year and roughly 90bp through 2027, with labour data on 20 October and CPI on the 21st before the November meeting",
       "bias": "up"
     },
     {
       "cur": "JPY",
       "bank": "Bank of Japan",
       "rate": "1.25%",
-      "next": null,
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Tokyo core CPI printed 2.7% against 2.3–2.4% expected with the core-core measure at 3.0%; some economists now expect another move in October, but most investors still look to December and USD/JPY is back near 158, with Tokyo and Washington's currency warnings still in the background",
+      "next": "2026-10-30",
+      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Sources say the Bank may judge underlying inflation to have reached 2% in its outlook report on 29–30 October, while a sideways Tankan on corporate inflation takes pressure off a back-to-back hike; Ueda speaks today. USD/JPY is near 158 and the ten-year JGB yield about 3.1%",
       "bias": "up"
     },
     {
@@ -108,36 +108,6 @@
     }
   ],
   "events": [
-    {
-      "at": "2026-09-28T14:30:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US Dallas Fed manufacturing (Sep)",
-      "note": "The only US release of the day. The regional surveys have run hot since the flash PMI printed 57.0; Dallas is the oil-patch one."
-    },
-    {
-      "at": "2026-09-28T16:00:00Z",
-      "cur": "GBP",
-      "impact": "medium",
-      "event": "BoE's Ramsden speaks",
-      "note": "On quantitative tightening, three days after Bailey said high energy prices make the hold harder to maintain. About 80% is priced for a November hike."
-    },
-    {
-      "at": "2026-09-28T17:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Barkin speaks",
-      "note": "Richmond. Said last week that inflation pressures may persist for a while; the first Fed voice since Friday's Michigan expectations print and the weekend's oil move."
-    },
-    {
-      "at": "2026-09-28T20:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Jefferies Q3 earnings",
-      "kind": "earnings",
-      "ticker": "JEF",
-      "note": "The first look at trading and banking revenue through the quarter the Fed turned."
-    },
     {
       "at": "2026-09-29T04:30:00Z",
       "cur": "AUD",
@@ -671,7 +641,9 @@
       "impact": "medium",
       "event": "US S&P Global composite PMI, final (Sep)",
       "forecast": "58.4",
-      "previous": "58.4"
+      "previous": "58.4",
+      "actual": "58.4",
+      "note": "Composite 58.4 as expected; the services index was revised to 58.8 from a 58.7 flash, the fastest expansion in more than five years, and S&P Global's survey also pointed to inflation pressure."
     },
     {
       "at": "2026-10-05T14:00:00Z",
@@ -679,8 +651,9 @@
       "impact": "high",
       "event": "US ISM services PMI (Sep)",
       "previous": "55.4",
-      "note": "55.4 last month, seen 55.2–55.7. Manufacturing ISM prices paid jumped to 77.9 on 1 October, so the services prices-paid line below is the one the front end will read first, on the first full session after payrolls.",
-      "forecast": "55.7"
+      "note": "54.9 against 55.0 expected and 55.4 before, a 27th month of expansion. Business activity fell to 56.5 from 61.7 and new orders to 59.8 from 60.9, but employment rose to 50.1 from 47.8, back above 50 for the first time in three months, and export orders fell into contraction at 46.9. The headline was soft; the prices line, below, was not.",
+      "forecast": "55.0",
+      "actual": "54.9"
     },
     {
       "at": "2026-10-05T14:00:00Z",
@@ -688,7 +661,16 @@
       "impact": "medium",
       "event": "US ISM services prices paid (Sep)",
       "previous": "72.6",
-      "note": "72.6 last month. The services side is where energy shows up second, through transport and utilities; a reading near the manufacturing jump would keep the inflation argument alive against a soft payrolls print."
+      "note": "74.0 against 73.3 expected and 72.6 before, the highest since July 2022. Fuel, shipping and interest costs were the most-cited pressures. The ten-year touched 5.349% within hours, its highest since 2002, and closed near 5.31%. Together with manufacturing prices paid at 77.9 last Thursday, both ISM surveys are pointing the same way.",
+      "actual": "74.0",
+      "forecast": "73.3"
+    },
+    {
+      "at": "2026-10-06T06:35:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "BoJ Governor Ueda speaks",
+      "note": "Speaks after the Tokyo close. Sources say the Bank may judge that underlying inflation has reached its 2% goal in the outlook report for its 29–30 October meeting, though the Tankan showed corporate inflation moving sideways, which takes pressure off a back-to-back hike. The yen is near 158, the ten-year JGB yield about 3.1%, and the 10-year auction earlier today drew firmer demand than last month's."
     },
     {
       "at": "2026-10-06T09:00:00Z",
@@ -696,14 +678,16 @@
       "impact": "high",
       "event": "Euro area retail sales (Aug, y/y)",
       "previous": "0.6%",
-      "note": "The consumption side of a euro area the ECB has now hiked twice this year. July grew 0.6% year on year, which is the sort of number that lets a central bank keep tightening without being accused of breaking anything."
+      "note": "The consumption side of a euro area the ECB has now hiked twice this year. July grew 0.6% year on year, which is the sort of number that lets a central bank keep tightening without being accused of breaking anything.",
+      "forecast": "1.0%"
     },
     {
       "at": "2026-10-06T12:30:00Z",
       "cur": "USD",
       "impact": "low",
       "event": "US trade balance (Aug)",
-      "previous": "-$88.6bn"
+      "previous": "-$88.6bn",
+      "forecast": "-$102.0bn"
     },
     {
       "at": "2026-10-06T13:00:00Z",
@@ -731,12 +715,26 @@
       "event": "Fed's Bowman speaks"
     },
     {
+      "at": "2026-10-06T14:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Musalem speaks",
+      "note": "A non-voter in 2026 who said last week that policy is still slightly accommodative after the September hike. He speaks again on Thursday."
+    },
+    {
       "at": "2026-10-06T17:00:00Z",
       "cur": "USD",
       "impact": "low",
       "event": "US 3-year note auction",
       "previous": "4.474%",
-      "note": "The first auction of the October cycle. Last month's stop was 4.474%; the two-year sells today at a front end that has moved 50bp in a month."
+      "note": "$58 billion, the first coupon auction since the ten-year touched 5.349%. The last three-year cleared at 4.474%; the two-year is 4.84% today. Monday's three-month bill went at 4.050% against 4.110% the week before."
+    },
+    {
+      "at": "2026-10-06T17:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Schmid speaks",
+      "note": "Kansas City, on a panel. A 2026 voter who spoke last Thursday alongside Barkin and Collins."
     },
     {
       "at": "2026-10-07T12:00:00Z",
@@ -750,20 +748,26 @@
       "impact": "low",
       "event": "US 10-year note auction",
       "previous": "4.834%",
-      "note": "The first coupon supply since the ten-year touched 5.344%, its highest since 2002, on 1 October. The last auction cleared at 4.834%; this one will not."
+      "note": "$39 billion, the week's test of term premium: the last ten-year cleared at 4.834% and the benchmark is about 47bp higher. Strategists at BMO Asset Management have called a thirty-year yield above 6% 'inevitable' this month."
     },
     {
       "at": "2026-10-07T18:00:00Z",
       "cur": "USD",
       "impact": "high",
       "event": "FOMC minutes (16 Sep meeting)",
-      "note": "The record of the 12–0 hike. The market wants to know how many of the twelve wanted a faster path, and whether 'no need for urgency' — Williams on Tuesday, Jefferson on Thursday — was already the committee's centre on 16 September or became it afterwards."
+      "note": "The record of the 12–0 hike. Williams and Jefferson have since said there is time to wait for data, Logan says half a point more is needed, and the minutes will show how many of the twelve wanted a faster path. October's hike is about 20–22% priced; the market is also listening for how the committee discussed the energy shock."
     },
     {
       "at": "2026-10-07T21:00:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Levi Strauss Q3 earnings"
+    },
+    {
+      "at": "2026-10-08T08:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Fed's Waller speaks"
     },
     {
       "at": "2026-10-08T11:30:00Z",
@@ -783,7 +787,7 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US initial jobless claims",
-      "forecast": "195k"
+      "forecast": "200k"
     },
     {
       "at": "2026-10-08T17:00:00Z",
@@ -791,7 +795,7 @@
       "impact": "low",
       "event": "US 30-year bond auction",
       "previous": "5.308%",
-      "note": "The long bond touched 5.642% on 30 September, its highest since 2002, and Barclays talks about 6%. The last auction cleared at 5.308%. Demand at the tail of the curve is the week's cleanest read on term premium."
+      "note": "$22 billion, a week after the long bond touched 5.70% intraday and closed near 5.66%, its highest since 2002. The last auction cleared at 5.308%. Japan's thirty-year follows the same week."
     },
     {
       "at": "2026-10-08T17:40:00Z",
@@ -822,7 +826,7 @@
       "impact": "high",
       "event": "Michigan sentiment, preliminary (Oct)",
       "note": "The first October survey. September's preliminary was 47.8 with one-year inflation expectations at 4.6%; the expectations line is the one the Fed reads.",
-      "forecast": "48.1"
+      "forecast": "47.6"
     },
     {
       "at": "2026-10-12T05:00:00Z",
@@ -990,25 +994,10 @@
     },
     {
       "at": "2026-10-16T02:00:00Z",
-      "cur": "CNY",
+      "cur": "GBP",
       "impact": "high",
-      "event": "China GDP (Q3, y/y)",
-      "previous": "4.3%",
-      "note": "4.3% in the second quarter. The one large economy still not fighting inflation reports the morning after a fortnight of holiday-thinned data."
-    },
-    {
-      "at": "2026-10-16T02:00:00Z",
-      "cur": "CNY",
-      "impact": "medium",
-      "event": "China industrial production (Sep, y/y)",
-      "previous": "5.2%"
-    },
-    {
-      "at": "2026-10-16T02:00:00Z",
-      "cur": "CNY",
-      "impact": "medium",
-      "event": "China retail sales (Sep, y/y)",
-      "previous": "0.4%"
+      "event": "BoE Governor Bailey speaks",
+      "note": "At the IMF meetings. Bailey has said high energy prices make a hold harder to maintain; Catherine Mann says a hike is needed and markets discount about 30bp of tightening by the end of the year."
     },
     {
       "at": "2026-10-16T12:30:00Z",
@@ -1023,6 +1012,28 @@
       "impact": "medium",
       "event": "US industrial production (Sep, m/m)",
       "previous": "0.0%"
+    },
+    {
+      "at": "2026-10-19T02:00:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China GDP (Q3, y/y)",
+      "previous": "4.3%",
+      "note": "4.3% in the second quarter. The one large economy still not fighting inflation reports the morning after a fortnight of holiday-thinned data."
+    },
+    {
+      "at": "2026-10-19T02:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China industrial production (Sep, y/y)",
+      "previous": "5.2%"
+    },
+    {
+      "at": "2026-10-19T02:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China retail sales (Sep, y/y)",
+      "previous": "0.4%"
     },
     {
       "at": "2026-10-19T12:30:00Z",
@@ -1048,6 +1059,13 @@
       "previous": "1.275m"
     },
     {
+      "at": "2026-10-20T14:00:00Z",
+      "cur": "USD",
+      "impact": "low",
+      "event": "US pending home sales (Sep, m/m)",
+      "previous": "0.3%"
+    },
+    {
       "at": "2026-10-21T06:00:00Z",
       "cur": "GBP",
       "impact": "high",
@@ -1060,13 +1078,6 @@
       "cur": "USD",
       "impact": "medium",
       "event": "US initial jobless claims"
-    },
-    {
-      "at": "2026-10-22T14:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US pending home sales (Sep, m/m)",
-      "previous": "0.3%"
     },
     {
       "at": "2026-10-23T06:00:00Z",
@@ -1101,6 +1112,28 @@
       "cur": "USD",
       "impact": "medium",
       "event": "Michigan sentiment, final (Oct)"
+    },
+    {
+      "at": "2026-10-27T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "ECB bank lending survey (Q3)",
+      "note": "Two days before the ECB meets. With French yields near 5% and the euro at a 17-month low, the survey's read on credit standards is the one hard data point on whether the bond sell-off has reached lending."
+    },
+    {
+      "at": "2026-10-27T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US durable goods orders (Sep)",
+      "previous": "0.0%"
+    },
+    {
+      "at": "2026-10-27T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US consumer confidence (Oct)",
+      "previous": "81.9",
+      "note": "September's 81.9 was the lowest since 2014. The day before the FOMC decision begins."
     }
   ],
   "howToRead": [

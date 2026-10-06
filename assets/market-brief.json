@@ -1,126 +1,126 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-10-05T05:58:00Z",
-  "sessionDate": "2026-10-05",
+  "generatedAt": "2026-10-06T05:58:00Z",
+  "sessionDate": "2026-10-06",
   "staleAfterHours": 30,
-  "goodUntil": "2026-10-06T05:30:00Z",
-  "headline": "Payrolls 29,000. Yields rose anyway.",
-  "standfirst": "Friday's September jobs report did what a week of Fed speeches had already half done: payrolls rose 29,000 against about 90,000 expected, July and August were cut by a net 60,000, unemployment rose to 4.2% and hourly earnings rose 0.1% on the month, 3.0% on the year, the slowest since May 2021. October's hike went to about 22% priced from 64% a week earlier, and the Nasdaq touched a record, with the Nasdaq Composite up 1.19% to 27,190.86, the S&P 500 up 0.73% to 7,722.72 and the Dow up 0.49% to 51,176.96. Treasuries did not join in: the ten-year closed near 5.27%, about 3bp higher, after Dallas Fed President Logan said rates need to rise another half point, and it ended the week about 11bp higher, a few basis points below Thursday's 5.344% high, the highest since 2002. Crude eased on a G7 stock release, unchanged OPEC+ quotas and Gulf exports above pre-war levels, but Iran says Hormuz stays closed until its plan is accepted and a third US carrier group is heading for the region. Euro-area inflation printed 3.8%, the euro is near its lowest since May 2025, and Tokyo core CPI printed 2.7%. Asia is higher, the Nikkei about 2% near 69,700 and Taiwan 2.5%, with mainland China and Korea shut. Today: ISM services at 10:00 ET. This week: Williams and Bowman, three coupon auctions and the FOMC minutes.",
+  "goodUntil": "2026-10-07T05:30:00Z",
+  "headline": "Nasdaq record. Ten-year at a 24-year high.",
+  "standfirst": "Monday ran three stories at once. In Brazil, right-wing Senator Flavio Bolsonaro finished the presidential first round ahead of President Lula, 47.0% to 45.2%, against polls that had Lula leading, and the Ibovespa jumped 7.7% to a record 206,921, its biggest one-day gain since March 2020, as the dollar fell about 4% to R$5.00 and the Brazil ETF rose 12.5%; the runoff is on 25 October. On Wall Street the Nasdaq Composite rose 1.05% to a record 27,477.31 on Nvidia's third straight record, the S&P 500 gained 0.66% to 7,773.95, within 0.3% of its summer high, and the Dow 0.18% to 51,267.90. And bonds sold off: ISM services prices paid rose to 74.0, the highest since July 2022, and the ten-year touched 5.349%, the highest since 2002, before closing near 5.31%, with October's Fed hike still about 20–22% priced. Brent fell about 2% to $100.3 on a G7 stock release and Gulf exports at pre-war levels, though tankers were attacked again and Iran's president called talks meaningless. The euro touched $1.116, its lowest since May 2025, on French and Spanish politics. Asia is higher, the Nikkei near 70,700 and Hong Kong up 0.7%, with Korea down about 1% on its reopening and mainland China shut until 8 October. Today: the BoJ's Ueda, the trade balance, Williams, Musalem, Bowman and Schmid, and the first of three Treasury auctions.",
   "bullets": [
     {
-      "title": "Jobs: a 29,000 print, a 60,000 downward revision, October hike at about 22% — and a Fed that did not call it over",
-      "text": "Nonfarm payrolls rose 29,000 against 90,000 in the Bloomberg survey and 84,000 in others; August was revised to 133,000 from 162,000 and July to a loss of 10,000 from a gain of 21,000, a net 60,000 fewer jobs, and the three-month average is near 51,000. Private payrolls rose 46,000 against about 81,000 expected, led by health care at 23,000 and leisure and hospitality at 10,000. The unemployment rate rose to 4.2% from 4.1% with participation up to 61.8% from 61.6% and the labour force larger, so part of the rise is entrants rather than layoffs; U6 slipped to 7.6%. Average hourly earnings rose 0.1% against 0.3% expected and 3.0% on the year, the slowest since May 2021. Factory orders rose 0.1% as expected. Futures put an October hike at about 22%, from 64% a week earlier and a brief 13% low on Friday; December is the favoured date and roughly two more moves are priced for the first half of 2027. Jefferies' Thomas Simons called it the nail in the coffin for October. The Fed speakers did not: Logan said the range needs another 50bp while noting higher yields are doing some of the tightening, Goolsbee that every option is on the table and inflation is the larger concern, Hammack and Mester that there is time before the 27–28 October meeting, and Fifth Third's Bill Adams that September CPI, PPI, oil and geopolitics are likelier to decide it than this report. CPI is on 14 October."
+      "title": "Rates: services growth slowed, services prices hit a four-year high, and the ten-year touched its highest since 2002",
+      "text": "The ISM services index fell to 54.9 from 55.4 against 55.0 expected, with business activity down to 56.5 from 61.7, new orders 59.8 and export orders in contraction at 46.9, but the prices index rose to 74.0 from 72.6 against 73.3 expected, its highest since July 2022, and employment rose back above 50 to 50.1. S&P Global's services index was revised to 58.8, the fastest expansion in more than five years. The ten-year touched 5.349% and closed near 5.31%, up about 3bp; the thirty-year touched 5.703% and closed near 5.66%, up about 3bp; the two-year held near 4.84%. The long Treasury ETF fell 0.48% and is down 6.2% over a month. October's Fed hike is priced at about 20–22%, a hold at 76–80%, with a hike by December fully priced in swaps; Jefferies' Thomas Simons says the survey comments cite fuel, shipping and interest costs, and BMO Asset Management's head of bonds says a thirty-year yield above 6% is inevitable this month. A very large crude carrier now costs about $1.6 million a day to charter, 24 times the 2025 rate, according to Clarksons. Supply is the test this week: $58 billion of three-year notes today at 13:00 ET, $39 billion of ten-year notes tomorrow and $22 billion of thirty-year bonds on Thursday, with the minutes of the 16 September meeting tomorrow at 14:00 ET. Japan's ten-year auction drew firmer demand than last month's, with the yield near 3.1%."
     },
     {
-      "title": "Rates and the dollar: yields fell for minutes, then closed higher; the dollar is at a 17-month high",
-      "text": "Treasury yields dropped on the report and reversed within hours as Logan spoke. The ten-year closed near 5.27%, about 3bp higher on the day and 11bp higher on the week, and the two-year near 4.82%, up about 3bp on the day and down about 3bp on the week; early Monday they are near 5.26% and 4.81%. The ten-year touched 5.344% on Thursday, its highest since 2002, and the thirty-year 5.642% on Wednesday. Standard Chartered's Cedric Lam says forced selling by hedge funds and property trusts is delaying a move lower, mortgage rates are reported near 7.5%, and the long Treasury ETF fell 0.30% on Friday and is down 5.75% over a month. The dollar index is about 102, a third straight weekly gain and the highest in 17 months. The euro is near $1.12, its lowest since May 2025 after four weekly declines: France's public debt is reported at 119% of output, its 2027 budget needs 54 billion euros of savings from a parliament with no majority for them, and its ten-year yield touched the highest since 2002 last week. Friday's euro-area flash inflation of 3.8%, a three-year high with energy at 18.8% and core 2.5%, was above the 3.6–3.7% expected, and Standard Chartered still expects the ECB to wait for December's projections on 29 October. Tokyo core CPI printed 2.7% against 2.3–2.4% expected with the core-core measure at 3.0%; some economists, among them Sompo's Koike, now expect the Bank of Japan to move in October, while most investors look to December. USD/JPY is 158.0."
+      "title": "Equities: a record Nasdaq led by Nvidia, a small gain in the broad index, and Asia and Europe following",
+      "text": "The Nasdaq Composite closed at a record 27,477.31, up 1.05% after touching 27,544 intraday, and the Nasdaq 100 rose 0.87% to a record 31,076; the S&P 500 rose 0.66% to 7,773.95, the Dow 0.18% to 51,267.90 and the Russell 2000 0.50% to 2,847.14, and the VIX closed at 15.52. Nvidia rose 2.1% to a record $238.90, its third straight, with a market value above $5.7 trillion that options traders see crossing $6 trillion by the end of the month; Microsoft gained 1.5%, Meta 1.9% and Tesla 2.2%, SpaceX 7.6% and Micron fell 1.3%. Materials rose 1.31%, communication services 1.17%, energy 1.00% and financials 0.73%, while real estate fell 0.34%; the equal-weight S&P 500 fund is down about 3.6% over a month against a 0.7% gain for the cap-weighted index. Europe was mixed on Monday: the Stoxx 600 rose 0.4%, the DAX 0.1%, the FTSE 100 and Swiss index 0.3% each, while the CAC 40 fell 0.8% on French budget worries; the euro-area composite PMI rose to 53.1, the fastest in about three and a half years. In Asia the Nikkei is up about 1% near 70,700 after Monday's 2.4% jump to 69,947, Hong Kong up 0.7%, Taiwan 0.2% and Australia 0.6%, and Korea is down about 1% on its first session after the holiday; mainland China is shut until 8 October. Earnings season starts quietly: Constellation Brands and Levi Strauss tomorrow, PepsiCo on Thursday, Delta on Friday, the banks on the 13th."
     },
     {
-      "title": "Equities: a Nasdaq record on a weak jobs report, a bounce in Europe, and Asia chasing it with China and Korea shut",
-      "text": "Friday's gains were broad: every sector but health care rose, led by consumer discretionary at 1.13% and technology at 1.01%, the Philadelphia semiconductor index gained 2.40% and 3.69% on the week, Nvidia touched a record $237.88, ON Semiconductor rose about 6.5% on a revised Synaptics deal, and the Russell 2000 gained 0.94%, its best day in nearly a month. Western Digital and Seagate fell about 10% after a report that Toshiba will double hard-drive capacity; Nike fell about 10% premarket after Thursday's guidance cut and pared much of it. The VIX closed at 15.31. For the week the Nasdaq Composite rose 0.5%, a third straight gain, while the S&P 500 fell 0.3% and the Dow 1.3%; the S&P 500 is up about 13% this year and about 1% below its mid-August record. Europe rebounded 0.75% on the Stoxx 600 to 631.35, a day after a four-month low, and is 1.1% lower on the week; Germany is reported to be raising its 2026 growth forecast to 1.3% from 0.5%. In Asia the Nikkei is up about 2% near 69,700 after trading above 70,000, Taiwan up about 2.5% and Hong Kong flat after Friday's 2.6% fall, its biggest since 23 March; mainland China is closed until 8 October and Korea today. The fourth-quarter earnings season opens with PepsiCo on Thursday and Delta on Friday, then the banks on the 13th."
+      "title": "Brazil: a first-round upset, a 7.7% day and the biggest currency move in four years",
+      "text": "Sunday's presidential first round put Flavio Bolsonaro at 47.03% of valid votes, 56.1 million, against Lula's 45.16%, 53.9 million, where polls had Lula ahead by about three points; neither cleared 50%, so the runoff is on 25 October. His allies also gained in Congress, which analysts say would make a tighter-spending, privatisation and tax-cut agenda easier to pass if he wins. The Ibovespa closed at a record 206,921, up 7.71% and its largest one-day gain since 24 March 2020; the dollar fell 4.12% to R$5.001, the real's best day since 2022. The Brazil ETF rose 12.5% in New York, Itau Unibanco about 15%, Bradesco 19%, Nu Holdings 14%, Petrobras 12% and MercadoLibre 8%, while B3 rose more than 20% and the pulp exporter Suzano fell as much as 8.5% on the stronger currency. Argentina's ETF rose 5.9%, Chile's 2.4% and Mexico's 1.1%. Brazil's deficit was close to 10% of GDP in June, according to CNBC. In 2022 a better-than-expected first round for the elder Bolsonaro produced a 5.5% equity gain and a currency gain of more than 4% the next day; Societe Generale had forecast R$5.10 by the end of 2026 before Monday's move."
     },
     {
-      "title": "Oil and Iran: a stock release and rising exports against a closed strait, a third carrier group and attacks on Saudi sites",
-      "text": "December Brent is $101.73 and WTI $90.07, down 0.51% and 1.14%; Friday's settlements were about $91.55 for WTI, down 1.4%, and about $102.6–102.8 for Brent. The G7 agreed on Friday to release 100 million barrels of crude and diesel from emergency stocks through the IEA and to avoid export restrictions after pressure from Washington; the top OPEC+ producers left November production targets unchanged; and Kpler counts Middle East crude exports above their pre-war average of about 18 million barrels a day on several days in late September, with a seven-day average of 18.5 million on 1 October and refined-product shipments still near half of pre-war. Against that, Iran's chief negotiator Ghalibaf said on Sunday that Hormuz stays closed until the US accepts Tehran's seven-day plan, the UK maritime agency reports at least one attack a day in the strait or the Gulf of Aden since 2 October, the Houthis claimed missile and drone strikes on Aramco sites near Riyadh that started a large fire, Saudi Arabia is reported to be planning an offensive against them, Iran's oil minister resigned amid fuel queues, and the US is moving the Theodore Roosevelt carrier group and the Makin Island amphibious group, about 9,000 people, towards the region for arrival around the end of October, which would make three carriers. The US also pulled bombers from RAF Fairford after the UK linked a terror plot to Iran, and Trump said Iran would have to choose the easy way or the hard way. Brent's weekly and monthly columns still straddle Wednesday's November expiry. Gold is $4,162, down 7% over a month; sugar rose 5.23% and cocoa 5.37% on Friday."
+      "title": "Oil and Iran: a stock release and recovering exports against a shipping war that has not stopped",
+      "text": "December Brent settled near $100.3, down about 1.9%, and WTI near $89.4, down 1.8%; this morning Brent is near $100.3–100.7 and WTI $89.3–89.6. The G7 agreed on Friday to release 100 million barrels of crude and diesel from emergency stocks and avoid export restrictions; the top OPEC+ producers left November production targets unchanged; JPMorgan puts Middle East crude exports at 17.5 million barrels a day, 98% of pre-war, and products at 3 million, 58%. Against that, at least 11 tankers have been attacked in and around the Strait of Hormuz since last Monday, five incidents were reported on Monday alone, a tanker turned back after an IRGC warning, and US Central Command says it has redirected 130 vessels since resuming its blockade of Iranian ports on 14 July and destroyed 13 it says violated it. Iran's president called talks with Washington meaningless; Foreign Minister Araghchi says Qatar will relay a final US response, expected today; Washington has not struck Iran since 1 September. Yemen's Saudi-backed government announced a military campaign against the Houthis, who claimed three operations against Saudi airports, an oil facility and military sites after a fire at an Aramco site near Riyadh; a US carrier group and an amphibious group are heading for the region, which would bring the US to three carriers by the end of October. Rabobank warns that the shuttle system through the strait is fragile; Standard Chartered says flows are far from normal. API stocks are due tonight."
     },
     {
-      "title": "Today and the week: ISM services, Williams, three auctions, the FOMC minutes, then Michigan",
-      "text": "Monday: ISM services at 10:00 ET seen 55.2–55.7 after 55.4 with prices paid after 72.6, alongside the final S&P Global US composite PMI at 09:45, seen 58.4; euro-area, UK and German services PMIs earlier; mainland China closed until 8 October and Korea today. Tuesday: euro-area retail sales at 05:00 ET; Williams at 09:05 ET and Bowman at 10:45; the three-year note auction at 13:00; Lamb Weston and RPM. Wednesday: Constellation Brands before the open; the ten-year note auction at 13:00 ET; the minutes of the 16 September meeting at 14:00, which should show how many of the twelve wanted a faster path; Levi Strauss after the close. Thursday: the ECB's account of its 10 September meeting at 07:30 ET; jobless claims at 08:30 seen 195,000; PepsiCo before the open; the thirty-year bond auction at 13:00; Musalem at 13:40. Friday: Canada's jobs report at 08:30 ET seen 6.5% unemployment; Michigan sentiment, preliminary, at 10:00, seen 48.1 with one-year inflation expectations last at 4.6%; Delta reports. The bond market is shut on Monday 12 October for Columbus Day, with Hammack speaking that afternoon. Then the RBA minutes and German final inflation on the 13th with JPMorgan, Goldman Sachs, Wells Fargo and Citigroup reporting, China CPI, US CPI and the Beige Book on the 14th, US retail sales and PPI on the 15th, China's third-quarter GDP on the 16th, UK labour data on the 20th, UK CPI on the 21st and the flash PMIs on the 23rd, with the FOMC on 27–28 October."
+      "title": "The euro, the yen and the week: French spreads, Ueda today, then the minutes and CPI",
+      "text": "The euro touched about $1.116 on Monday, its lowest since May 2025, and is near $1.12 this morning, down 3.4% over a month; the French ten-year yield traded near 4.92–5.0%, the premium over Germany reached about 141bp, the widest since 2012, before narrowing to about 137bp, the government conceded a 5.4% deficit this year against a 5% target, and Prime Minister Sanchez called a snap election in Spain. ING says about 30bp has come out of expected ECB tightening since late September against 13bp for the Fed; UOB expects a pause on 29 October and a final hike in December; Lane said rising long-term rates will slow growth and spill over to inflation. September's euro-area inflation was 3.8%, a three-year high. The dollar index is about 102.1. USD/JPY is 158.1: the BoJ's Ueda speaks at 02:35 ET after the Tokyo close, and sources say the Bank may judge underlying inflation to have reached its 2% goal in the outlook report for its 29–30 October meeting, though the Tankan's corporate-inflation readings moved sideways, which takes pressure off a back-to-back hike. Today: euro-area retail sales at 05:00 ET, the trade balance at 08:30 seen at a $102 billion deficit, Williams at 09:05, Musalem and Bowman at 10:45, Schmid at 13:15 and the three-year auction at 13:00. Wednesday: the ten-year auction at 13:00 and the FOMC minutes at 14:00. Thursday: the ECB's meeting accounts at 07:30, claims at 08:30 seen 200,000, Waller at 04:30, the thirty-year auction at 13:00 and Musalem at 13:40. Friday: Canada's jobs report and Michigan sentiment at 10:00 seen 47.6. CPI is on the 14th."
     }
   ],
   "calendar": [
     {
-      "time": "Mon 10:00 ET",
-      "event": "ISM services (September); S&P Global composite PMI, final 09:45",
-      "note": "Seen 55.2–55.7 after 55.4, with prices paid after 72.6. Manufacturing prices paid jumped to 77.9 last Thursday; services is where the energy shock shows up second. The first full session after payrolls."
+      "time": "Tue 02:35 ET",
+      "event": "BoJ Governor Ueda speaks",
+      "note": "After the Tokyo close. Sources say the Bank may judge underlying inflation to have reached 2% in its 29–30 October outlook report; the Tankan showed corporate inflation moving sideways. USD/JPY is 158.1 and the ten-year JGB yield about 3.1%."
+    },
+    {
+      "time": "Tue 08:30 ET",
+      "event": "US trade balance (August)",
+      "note": "Seen at a $102 billion deficit after $88.6 billion, which would be the first above $100 billion since March of last year. The week's other data are light before the minutes."
     },
     {
       "time": "Tue 09:05 ET",
-      "event": "Fed's Williams; Bowman 10:45",
-      "note": "Williams' 'no need for urgency' on 29 September began the October repricing and he expects one more hike this year. Bowman is a voter; neither has spoken since payrolls."
+      "event": "Fed's Williams; Musalem and Bowman 10:45; Schmid 13:15",
+      "note": "Williams' 'no need for urgency' on 29 September began the October repricing. With ISM prices at 74.0 and the ten-year at 5.31%, the question is whether any of the four lean the other way."
     },
     {
       "time": "Tue 13:00 ET",
-      "event": "3-year note auction",
-      "note": "The first coupon supply since the ten-year touched 5.344%. The last three-year cleared at 4.474%; the two-year is 4.83% now."
+      "event": "3-year note auction ($58 billion)",
+      "note": "The first coupon auction since the ten-year touched 5.349%. The last three-year cleared at 4.474%; the two-year is 4.84% now."
     },
     {
       "time": "Wed 13:00 ET",
-      "event": "10-year note auction",
-      "note": "The week's test of term premium: the last ten-year cleared at 4.834%, and the benchmark is about 45bp higher. Supply, not the Fed, has been what moved the long end."
+      "event": "10-year note auction ($39 billion)",
+      "note": "The week's test of term premium: the last ten-year cleared at 4.834%, and the benchmark is about 47bp higher. BMO Asset Management calls a thirty-year yield above 6% inevitable this month."
     },
     {
       "time": "Wed 14:00 ET",
       "event": "FOMC minutes (16 September)",
-      "note": "The record of the 12–0 hike. Watch how many wanted a faster path and whether 'no need for urgency' was already the centre of the committee, now that October is about 22% priced."
+      "note": "The record of the 12–0 hike. How many of the twelve wanted a faster path, and how the committee discussed the energy shock, with October about 20–22% priced and Logan wanting half a point more."
     },
     {
       "time": "Thu 07:30 ET",
-      "event": "ECB meeting accounts; claims 08:30; Musalem 13:40",
-      "note": "The accounts of 10 September land after euro-area inflation printed 3.8% and before the 29 October meeting. Claims are seen near 195,000 after 197,000."
-    },
-    {
-      "time": "Thu 13:00 ET",
-      "event": "30-year bond auction; PepsiCo before the open",
-      "note": "The long bond touched 5.642% last Wednesday, its highest since 2002, and Barclays talks about 6%. The last auction cleared at 5.308%. PepsiCo is the first big staples report of the quarter."
+      "event": "ECB accounts; claims 08:30; 30-year auction ($22 billion) 13:00",
+      "note": "The accounts of 10 September land after inflation printed 3.8% and French yields neared 5%. Claims seen 200,000 after 197,000; Waller speaks at 04:30 and Musalem at 13:40. PepsiCo reports before the open."
     },
     {
       "time": "Fri 10:00 ET",
       "event": "Michigan sentiment, preliminary (October)",
-      "note": "Seen 48.1, the series low last month, with one-year inflation expectations at 4.6%. Canada's jobs report is at 08:30 ET and Delta reports. The bond market is shut on Monday 12th."
+      "note": "Seen 47.6 after 48.1, the series low; one-year inflation expectations were 4.6%. Canada's jobs report is at 08:30 ET (unemployment seen 6.5%), and Delta reports. The bond market is shut on Monday 12th."
     }
   ],
-  "sessionNote": "A normal Monday after an abnormal Friday. Asia has rallied on the Nasdaq record while mainland China and Korea are shut, so the moves in Tokyo and Taipei are thin-liquidity moves. Europe opens with the euro near $1.12, French spreads and the 3.8% inflation print to digest, and the ECB's October meeting back in question. The US session has one scheduled catalyst before the afternoon: ISM services at 10:00 ET, read through its prices-paid line, with Williams and Bowman tomorrow and the three-year auction at 13:00. The pattern Friday set is the one to watch: the front end priced the soft data at 08:30 ET, the ten-year gave it back by lunchtime on a Fed speaker, and the close was higher in yield. A repeat on ISM prices would say the market is pricing supply and inflation, not the October meeting. Oil is the weekend's other signal: December Brent near $101.7 with Hormuz, Fairford and a third carrier group in the headlines, and the G7 release and Gulf exports pulling the other way. The brief, the map and the calendar hold until tomorrow's refresh.",
-  "watchOut": "Reading Friday as the end of the hiking cycle. October is about 22% priced, not zero; December is the favoured date, two more moves are priced for the first half of 2027, Logan wants half a point and the ten-year closed higher on payrolls day. The report itself is softer in the detail than the headline: 60,000 of the miss is revisions to earlier months, unemployment rose partly because participation rose, and the Fed has said that wage growth is not what it is worried about. September CPI on 14 October, with energy running at 18.8% inflation in the euro area and manufacturing prices paid at 77.9, is the print that decides whether payrolls mattered. Second, thin Asia: with mainland China and Korea closed, a 2% Nikkei is a lighter signal than it looks. Third, the Brent columns: five-day and one-month changes still straddle the November expiry, and Friday's Brent 'week' compares the new contract with the old. Size for a two-way ISM at 10:00 ET and a Fed-speaker reversal, and read the auctions, not the headline, for the long end.",
+  "sessionNote": "Tuesday opens with Asia and Europe leaning on a Nasdaq record and a ten-year at a 24-year high, which is the same divergence Monday showed: the growth trade is priced on a Fed that has paused, while the long end is priced on supply, energy and term premium. The US session has no scheduled catalyst before 08:30 ET except Ueda's speech at 02:35 ET, then four Fed speakers between 09:05 and 13:15 and the three-year auction at 13:00, which is the first read of demand at these yields. Brent is $100–101 with exports recovering and tankers still being hit; the Qatar-relayed US response is expected today. The real and Brazilian assets hold Monday's move into the runoff on 25 October, and the euro and French spread hold Monday's lows into the 7–8 October auctions. A day to read the auction tail and the two-year, not the headline index.",
+  "watchOut": "Reading a record Nasdaq as a verdict on the bond market. Monday's index gain came on one stock, Nvidia, a day when the equal-weight S&P 500 fund is down about 3.6% over a month against a 0.7% gain for the cap-weighted index; the ten-year closed near 5.31% on the same day, and the ISM prices line says the inflation argument is intact. Second, Brazil: a 7.7% equity day and a 4% currency day are the largest in years, and the first-round figure is not a result; a runoff in under three weeks means the same assets can move again in either direction. Third, Brent's five-day column: the table still compares December with a day when November was the front month, and Friday's 'Brent rose on the week' headlines have the same roll in them. Fourth, thin Asia: mainland China is shut until 8 October and the Nikkei near 70,700 is trading on the Nasdaq. Size for the three-year auction at 13:00 ET and four Fed speakers, not for the index.",
   "sources": [
     {
       "name": "MT Newswires",
-      "note": "the jobs report detail and revisions, the daily US economic roundup, Friday's equity, Treasury and oil closes, sector updates, Nike's guidance and Asian opens"
+      "note": "Monday's US data roundup, the ISM services detail, the equity and Treasury moves, European closes and Asian opens"
     },
     {
-      "name": "Reuters, via US News, Kansas City Star, Business Times, Yahoo and Channel NewsAsia",
-      "note": "the dollar's 17-month high and the euro, oil's Monday moves, the G7 stock release and Kpler's export data"
+      "name": "Reuters, via US News, Yahoo, AOL, Straits Times and Kansas City Star",
+      "note": "the Brazilian election and market reaction, the dollar and euro, Tuesday's oil prices, the BoJ sources story and the Asian session"
     },
     {
-      "name": "Yahoo Finance and Benzinga",
-      "note": "Friday's market wrap, the weekly index tallies, the Nasdaq 100 and Nvidia records, and the October-odds pricing"
+      "name": "Associated Press and AFP, via Yahoo Finance and France 24",
+      "note": "Monday's index levels and the Nasdaq record"
     },
     {
-      "name": "Alliance News, Morningstar (Dow Jones) and Finwire",
-      "note": "Monday's pre-market briefings, the Fed schedule for the week, the Nike results, the euro-area flash inflation, and the German growth forecast"
+      "name": "CNBC",
+      "note": "the Brazil rally, Nvidia's value and options pricing, and the consumer and tanker-cost context"
     },
     {
-      "name": "CNBC and CNBC Pro",
-      "note": "the euro-area inflation reaction, the consumer picture and mortgage rates"
+      "name": "Poder360, Infobae and Tech Times",
+      "note": "Brazil's close, the dollar's fall against the real and the vote count"
     },
     {
-      "name": "Wallstreetcn, Chinatimes and Eastmoney",
-      "note": "Friday's closing levels and weekly changes, the Treasury closes, Hang Seng and semiconductor moves and Fed officials' Friday remarks"
+      "name": "Alliance News, Benzinga and FXStreet",
+      "note": "the ISM services detail and consensus, Treasury yields, the Fed hike odds and the euro and yen"
     },
     {
-      "name": "FXStreet",
-      "note": "the dollar, euro, yen and Australian dollar, Standard Chartered's ECB view, the CME odds and the Tokyo CPI reaction"
+      "name": "Financial News (Korea) and Flush Financial",
+      "note": "Nvidia's and the Nasdaq's closes, the Treasury intraday highs and the minutes preview"
     },
     {
-      "name": "Jin10 Data, WAM and Al Jazeera",
-      "note": "weekend oil, OPEC+, Gulf export and Houthi reports and Friday's futures settlements"
+      "name": "Jin10 Data, WAM, gCaptain and CENTCOM, via MSN",
+      "note": "Monday's oil settlements, the Hormuz incident count and the blockade statistics"
     },
     {
-      "name": "Associated Press, via KRQE-TV and other outlets",
-      "note": "Monday's Asian session, the euro and yen, and the Pentagon carrier deployment"
+      "name": "CNN and Standard Chartered, via Yahoo Finance",
+      "note": "Hormuz shipping costs and flows"
     },
     {
-      "name": "Sina Finance and Kabutan",
-      "note": "the Bank of Japan October expectations and the Nikkei"
+      "name": "Nikkei Japan, Jiji, MINKABU and Kabutan",
+      "note": "the Bank of Japan's October outlook report, the yen, the JGB auction and the Tokyo session"
     },
     {
-      "name": "Business Standard and BQ Prime",
-      "note": "Asia and India pre-market indications"
+      "name": "Livemint, BQ Prime and Sina Finance",
+      "note": "Asian and Indian session summaries and the auction sizes"
     },
     {
       "name": "Bigdata.com economic and corporate calendars",
-      "note": "release times, consensus and previous readings, Friday's actuals and this week's earnings schedule"
+      "note": "release times, consensus and previous readings, Monday's actuals and this week's earnings schedule"
     },
     {
       "name": "Financial Modeling Prep, via Bigdata.com",
@@ -130,6 +130,11 @@
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-10-05",
+      "headline": "Payrolls 29,000. Yields rose anyway.",
+      "summary": "September payrolls rose 29,000 against about 90,000 expected with a net 60,000 downward revision, unemployment 4.2% and wages +0.1%; October's Fed hike went to about 22% priced and the Nasdaq touched a record, but the ten-year closed about 3bp higher after Logan said half a point more is needed. The G7 agreed a 100 million barrel stock release, euro-area inflation printed 3.8%, Tokyo core CPI 2.7% and the dollar index reached a 17-month high."
+    },
     {
       "date": "2026-10-05",
       "headline": "Payrolls 29,000. Yields rose anyway.",
@@ -159,11 +164,6 @@
       "date": "2026-09-28",
       "headline": "Trump said no. Oil is back above $107.",
       "summary": "Trump rejected Iran's seven-day Hormuz offer over the weekend and Brent recovered Friday's fall before New York opened; gold fell to its lowest since early August, the Kospi lost 2.5% and the dollar hit a two-month high. The front end eased with October's hike odds while the long end kept rising, into a week of PCE, ISM and payrolls."
-    },
-    {
-      "date": "2026-09-25",
-      "headline": "The week the Treasury market stopped waiting for the Fed",
-      "summary": "Weekend edition. The ten-year went from 4.95% to 5.21% in a week on a 58.4 flash PMI, three auctions at two-decade highs and eight Fed speakers, and every Treasury from two years out cleared 5%. Equities held on Meta and AMD while the Dow fell for a fourth week, Brent round-tripped $100–$99–$106 on Iran, and October was 71% priced for a second hike."
     }
   ]
 }

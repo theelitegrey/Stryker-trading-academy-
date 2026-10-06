@@ -22,7 +22,8 @@
 # connect-src lists what the app actually talks to: Firebase (Auth, Firestore,
 # Storage, Installations), our own Cloud Functions, the monitor data branch on
 # raw.githubusercontent.com, and the keyless market/news feeds behind the
-# Global Monitor and the charts.
+# Global Monitor and the charts, plus Rithmic's R|Protocol gateways (wss://*.rithmic.com)
+# for the allowlisted Charts "Connect Rithmic" trial.
 /*
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Frame-Options: DENY
@@ -30,7 +31,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(self "https://checkout.razorpay.com"), usb=()
   Cross-Origin-Opener-Policy: same-origin-allow-popups
-  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.razorpay.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://checkout.razorpay.com https://s3.tradingview.com https://www.tradingview.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net https://raw.githubusercontent.com https://api.dicebear.com https://api.binance.com https://fapi.binance.com https://data-api.binance.vision wss://stream.binance.com:9443 wss://fstream.binance.com wss://data-stream.binance.vision https://api.binance.us https://data-api.binance.vision https://api.gdeltproject.org https://gamma-api.polymarket.com https://s3.tradingview.com https://checkout.razorpay.com https://lumberjack.razorpay.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://s3.tradingview.com https://www.tradingview.com https://api.razorpay.com https://checkout.razorpay.com https://*.firebaseapp.com; worker-src 'self' blob:
+  Content-Security-Policy-Report-Only: default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://checkout.razorpay.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://checkout.razorpay.com https://s3.tradingview.com https://www.tradingview.com https://www.youtube.com https://s.ytimg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' https: blob:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com https://*.cloudfunctions.net https://raw.githubusercontent.com https://api.dicebear.com https://api.binance.com https://fapi.binance.com https://data-api.binance.vision wss://stream.binance.com:9443 wss://fstream.binance.com wss://data-stream.binance.vision https://api.binance.us https://data-api.binance.vision https://api.gdeltproject.org https://gamma-api.polymarket.com https://s3.tradingview.com https://checkout.razorpay.com https://lumberjack.razorpay.com wss://*.rithmic.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://s3.tradingview.com https://www.tradingview.com https://api.razorpay.com https://checkout.razorpay.com https://*.firebaseapp.com; worker-src 'self' blob:
 
 # Cloudflare Pages headers (ignored by GitHub Pages, which serves this as a
 # plain file — harmless there).

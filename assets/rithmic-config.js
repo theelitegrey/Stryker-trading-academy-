@@ -14,7 +14,7 @@
 //   1. Rithmic issues our real app_name prefix  -> set APP_NAME.
 //   2. Conformance passed on Rithmic Test        -> add allowlisted uids, test with them.
 //   3. Production approval for that app_name     -> GATEWAY = GATEWAYS.production, then
-//      flip RITHMIC_FLAG.enabled (and add wss://*.rithmic.com to connect-src in _headers).
+//      add member uids to RITHMIC_FLAG.allowUids (wss://*.rithmic.com is already in connect-src).
 
 export const GATEWAYS = {
   // Rithmic Test ("Rithmic Test" is the only system there). Answers RequestRithmicSystemInfo
@@ -25,11 +25,19 @@ export const GATEWAYS = {
   production: 'wss://rprotocol.rithmic.com:443'
 };
 
+// app_name / app_version per gateway.
+// - test: the official kit sample name; Rithmic Test accepted exactly this login on 2026-10-05.
+// - production: PLACEHOLDER. Rithmic assigns the real app_name (a prefix they register for us)
+//   when the product is approved; production refuses unregistered names, so it stays unreachable.
+//   Its app_version is the site build (appVersion() below).
+export const APPS = {
+  test: { appName: 'SampleMD.js', appVersion: '0.3.0.0' },
+  production: { appName: 'STRK_Stryker', appVersion: null }
+};
+
 export const RITHMIC_CONFIG = {
+  // Owner-only trial (2026-10-06): Rithmic Test, market data plants only (ticker + history).
   gateway: GATEWAYS.test,
-  // PLACEHOLDER. Rithmic assigns the real app_name (a prefix they register for us) when the
-  // product is approved. Logins with an unregistered app_name are refused by production.
-  appName: 'STRK_Stryker',
   // R|Protocol template version the official kit (R|Protocol API 0.90.0.0) samples send;
   // Rithmic Test answered with 5.56 and accepted the login (2026-10-05).
   templateVersion: '5.55',
@@ -39,8 +47,9 @@ export const RITHMIC_CONFIG = {
   markerIsBarEnd: true
 };
 
-// OFF for everyone. `allowUids` is the private-beta list (Firebase uids), empty for now.
-export const RITHMIC_FLAG = { enabled: false, allowUids: [] };
+// ON, but ONLY for the uids in `allowUids` (Firebase uids). Everyone else gets nothing:
+// no button, and no Rithmic file is downloaded. 2026-10-06: the Owner's account only.
+export const RITHMIC_FLAG = { enabled: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
 
 // app_version = the site build (the page's stryker-build meta mirrors assets/version.json).
 export function appVersion() {
@@ -80,8 +89,10 @@ export async function loadRithmicIfEnabled() {
   } catch (e) {}
   if (!rithmicEnabledFor(uid)) return null;
   const dev = devOverride();
-  const cfg = { ...RITHMIC_CONFIG, appVersion: appVersion() };
+  const app = RITHMIC_CONFIG.gateway === GATEWAYS.production ? APPS.production : APPS.test;
+  const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
+    isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=435');
+  const ui = await import('./rithmic-ui.js?v=436');
   return ui.createRithmic(cfg);
 }

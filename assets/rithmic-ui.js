@@ -10,15 +10,16 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=435';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=435';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=436';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=436';
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
 
 const CSS = `
 .stkr-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
-  border:1px solid rgba(3,201,136,.45); color:var(--gold); font:600 11.5px/1 inherit; font-family:inherit; white-space:nowrap; }
+  border:1px solid rgba(3,201,136,.45); color:var(--gold); font-family:inherit; font-weight:600; font-size:11.5px; line-height:1; white-space:nowrap; flex:none; }
+@media (max-width:480px){ .stkr-chip{ padding:0 7px; font-size:11px; gap:5px; } }
 .stkr-chip[hidden]{ display:none; }
 .stkr-chip i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(3,201,136,.18); }
 .stkr-chip.warn{ color:var(--amber, #e8b04a); border-color:rgba(232,176,74,.45); }
@@ -40,6 +41,7 @@ const CSS = `
 .stkr-go{ width:100%; height:36px; }
 .stkr-note{ margin:10px 0 0 !important; padding-top:10px; border-top:1px solid var(--line-soft, var(--line));
   font-size:11.5px; line-height:1.5; color:var(--ink-2); }
+.stkr-note.stkr-test{ border-top:0; padding-top:0; color:var(--amber, #e8b04a); }
 .stkr-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
 .stkr-err[hidden]{ display:none; }
 .stkr-on p{ font-size:12.5px; color:var(--ink-1); }
@@ -130,7 +132,6 @@ export function createRithmic(cfg) {
     // ---- the sheet ----
     const err = el('p', { class: 'stkr-err', role: 'alert', hidden: true });
     const brokerR = el('button', { type: 'button', class: 'stkr-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
-    const brokerT = el('button', { type: 'button', class: 'stkr-broker', role: 'radio', 'aria-checked': 'false', disabled: true, html: 'Tradovate<small>Coming soon</small>' });
     const sys = el('select', { class: 'stkc-in', id: 'stkr-sys', required: true, 'aria-label': 'Rithmic system' });
     const user = el('input', { class: 'stkc-in', id: 'stkr-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
     const pass = el('input', { class: 'stkc-in', id: 'stkr-pass', type: 'password', autocomplete: 'current-password', required: true });
@@ -138,13 +139,14 @@ export function createRithmic(cfg) {
     const go = el('button', { type: 'submit', class: 'stkc-sbtn stkr-go', id: 'stkr-go', text: 'Connect' });
     const form = el('form', { class: 'stkr-form', id: 'stkr-form', novalidate: true }, [
       el('h3', { text: 'Connect broker' }),
-      el('div', { class: 'stkr-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR, brokerT]),
+      el('div', { class: 'stkr-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
       err,
       el('label', { class: 'stkr-f' }, [el('span', { text: 'System' }), sys]),
       el('label', { class: 'stkr-f' }, [el('span', { text: 'Rithmic username' }), user]),
       el('label', { class: 'stkr-f' }, [el('span', { text: 'Password' }), pass]),
       el('div', { class: 'stkr-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
+      cfg.isTest ? el('p', { class: 'stkr-note stkr-test', text: 'Test server: prices may differ from the live market.' }) : null,
       el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. Stryker never sees or stores your password. Live prices come from your own Rithmic data subscription.' })
     ]);
     const onInfo = el('p', {});

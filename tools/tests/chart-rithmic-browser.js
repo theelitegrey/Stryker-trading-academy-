@@ -82,10 +82,11 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     const sheet = await p.evaluate(() => ({
       systems: [...document.querySelectorAll('#stkr-sys option')].map((o) => o.textContent),
       tradovate: [...document.querySelectorAll('.stkr-broker')].map((x) => x.textContent + (x.disabled ? ' [disabled]' : '')),
-      note: document.querySelector('.stkr-note').textContent,
+      note: [...document.querySelectorAll('.stkr-form .stkr-note')].map((x) => x.textContent).join(' | '),
       formAction: document.getElementById('stkr-form').getAttribute('action')
     }));
-    check(sheet.tradovate.some((t) => /Tradovate.*Coming soon.*\[disabled\]/.test(t)), 'Tradovate shown greyed "Coming soon": ' + sheet.tradovate.join(' / '));
+    check(sheet.tradovate.length === 1 && /^Rithmic/.test(sheet.tradovate[0]) && !sheet.tradovate.some((t) => /Tradovate/.test(t)), 'Rithmic only, no Tradovate row: ' + sheet.tradovate.join(' / '));
+    check(/Test server: prices may differ from the live market\./.test(sheet.note), 'test-server note shown');
     check(/straight from your browser to Rithmic\. Stryker never sees or stores your password/.test(sheet.note), 'privacy note shown');
     check(sheet.formAction === null, 'form has no action (never submits to a server)');
     // wrong password first
@@ -105,7 +106,8 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && x.close > 10500 && x.close < 11800; }, null, 20000), 'history: NQ chart reloaded from Rithmic time-bar replay');
     const s1 = await stats();
     check(s1.replays > before.replays && s1.subscribes > before.subscribes, 'mock saw replay + market-data subscribe (' + (s1.replays - before.replays) + ' replays)');
-    check(s1.lastApp && s1.lastApp.app_name === 'STRK_Stryker' && /^\d+$/.test(s1.lastApp.app_version), 'login carried app_name STRK_Stryker + app_version ' + (s1.lastApp && s1.lastApp.app_version));
+    check(s1.lastApp && s1.lastApp.app_name === 'SampleMD.js' && s1.lastApp.app_version === '0.3.0.0', 'test gateway: login carried the kit sample app_name SampleMD.js + app_version ' + (s1.lastApp && s1.lastApp.app_version));
+    check(Object.keys(s1.loginsByInfra).every((k) => k === '1' || k === '3'), 'market data plants only (ticker 1 / history 3), never order/PnL: ' + JSON.stringify(s1.loginsByInfra));
     const r1 = await lastBar(p);
     await sleep(2500);
     const r2 = await lastBar(p);

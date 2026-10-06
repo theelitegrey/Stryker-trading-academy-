@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects.
+# The Features bento preview went live as /features on 2026-10-06 (build 446).
+/features-bento /features 301
+/features-bento.html /features 301

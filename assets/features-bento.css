@@ -1,4 +1,5 @@
-/* Stryker Trading Academy: Features hub as a neon bento page (features-bento.html only).
+/* Stryker Trading Academy: Features hub as a neon bento page (features.html, live since build 446;
+   the /features-bento preview now 301s to /features).
    Owner order 2026-10-06: "Create new feature page with this bento grids, make it beautiful
    and crazy, add big hero bento style CTA etc." Unlisted preview; features.html is untouched.
    Builds on demo D (3D neon bento) and demo A/C (giant stats, real screenshots in device frames).
@@ -25,7 +26,7 @@
   --fb-ink0:#f3f1ff;
   --fb-ink1:#cfcaf2;
   --fb-ink2:#9a95c4;
-  --fb-head-h:60px;
+  --fb-head-h:85px; /* the site .nav height; features-bento.js sets the measured value */
   --fb-chip-h:52px;
   background:var(--fb-bg);
   color:var(--fb-ink1);
@@ -532,3 +533,10 @@ a.fb-ht:hover .fb-skin{ border-color:var(--fb-line-hi); }
   .fb-page *, .fb-page *::before, .fb-page *::after{ animation:none !important; transition:none !important; }
 }
 @media (max-width:719px){ .ht-s4 [data-clock-next]{ display:none; } .ht-s4 .fb-in{ justify-content:flex-start; gap:8px; } }
+
+/* ---------------------------------------------------------------- site nav on this page */
+@media (max-width:640px){ .fb-page{ --fb-head-h:75px; } }
+.fb-page .nav{ background:rgba(6,5,26,.9); }
+:root[data-theme="light"] .fb-page .nav{ background:rgba(242,240,255,.94); }
+.fb-page .nav .fb-progress{ z-index:1; }
+.fb-page > footer{ position:relative; z-index:1; }

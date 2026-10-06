@@ -1,4 +1,5 @@
-// Stryker Trading Academy: Features hub as a neon bento page (features-bento.html only).
+// Stryker Trading Academy: Features hub as a neon bento page (features.html; went live 2026-10-06,
+// first previewed at /features-bento, which now 301s to /features).
 // Owner order 2026-10-06: "Create new feature page with this bento grids, make it beautiful and
 // crazy, add big hero bento style CTA etc." Unlisted preview (noindex, not in nav/sitemap/pages.json);
 // the live features.html is untouched until the Owner approves a swap.
@@ -44,24 +45,27 @@
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
   }
-  var NS = 'http://www.w3.org/2000/svg';
+  // The site nav (.nav, sticky) sets where the hero and chip row pin: publish its height.
+  (function () {
+    var nav = $('#site-nav') || $('.fb-top'); if (!nav) return;
+    function set() { root.style.setProperty('--fb-head-h', nav.offsetHeight + 'px'); }
+    set(); addEventListener('resize', set);
+  })();
 
   // ------------------------------------------------------------ sample visuals (seeded, illustrative)
   // GEX tile: a price path that ranges between the put wall and the call wall; drawn twice so the
   // CSS tape scroll (translateX -400) loops seamlessly.
   (function gexPath() {
     var p = $('#fb-gpath'); if (!p) return;
-    var r = rng(5), pts = [], y = 120, n = 20;
-    for (var i = 0; i <= n; i++) {
-      if (i === 0 || i === n) y = 120;
-      else { y += (r() - 0.5) * 34; if (y < 40) y = 40 + (40 - y); if (y > 156) y = 156 - (y - 156); }
-      pts.push(y);
+    // 21 points per 400px loop, kept between the walls, smoothed with quadratic midpoints.
+    var pts = [124, 116, 121, 104, 96, 82, 88, 64, 70, 46, 40, 52, 47, 68, 80, 74, 96, 104, 99, 116, 124], n = pts.length - 1, step = 400 / n, xy = [];
+    for (var k = 0; k < 2; k++) for (var j = (k ? 1 : 0); j <= n; j++) xy.push([k * 400 + j * step, pts[j]]);
+    var d = 'M' + xy[0][0].toFixed(1) + ' ' + xy[0][1];
+    for (var i = 1; i < xy.length - 1; i++) {
+      var mx = (xy[i][0] + xy[i + 1][0]) / 2, my = (xy[i][1] + xy[i + 1][1]) / 2;
+      d += ' Q' + xy[i][0].toFixed(1) + ' ' + xy[i][1] + ' ' + mx.toFixed(1) + ' ' + my.toFixed(1);
     }
-    pts[6] = 58; pts[7] = 37; pts[8] = 62; pts[13] = 60; pts[14] = 38; pts[15] = 66; // two taps of the call wall
-    var d = '';
-    for (var k = 0; k < 2; k++) for (var j = 0; j <= n; j++) {
-      d += (k === 0 && j === 0 ? 'M' : 'L') + (k * 400 + j * 20) + ' ' + pts[j].toFixed(1) + ' ';
-    }
+    d += ' L' + xy[xy.length - 1][0].toFixed(1) + ' ' + xy[xy.length - 1][1];
     p.setAttribute('d', d);
   })();
 

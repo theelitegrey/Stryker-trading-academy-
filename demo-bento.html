@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="stryker-build" content="440">
+<meta name="stryker-build" content="441">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- DEMO PAGE (Owner order 2026-10-06 "bento grid homepage, go crazy"). Unlisted: noindex, not in nav or sitemap. -->
 <meta name="robots" content="noindex,nofollow">
@@ -11,7 +11,7 @@
 <meta property="og:title" content="Stryker Trading Academy: the whole desk on one screen (demo)">
 <meta property="og:description" content="A bento-grid preview of Stryker: 64 chapters, free SPX GEX, charts, journal, replay and the session clock. Education only.">
 <meta property="og:url" content="https://strykertrading.com/demo-bento">
-<meta property="og:image" content="https://strykertrading.com/assets/images/og/demo-bento.png?v=440">
+<meta property="og:image" content="https://strykertrading.com/assets/images/og/demo-bento.png?v=441">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:type" content="image/png">
@@ -19,17 +19,17 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Stryker Trading Academy: the whole desk on one screen (demo)">
 <meta name="twitter:description" content="A bento-grid preview of Stryker: 64 chapters, free SPX GEX, charts, journal, replay and the session clock. Education only.">
-<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/demo-bento.png?v=440">
+<meta name="twitter:image" content="https://strykertrading.com/assets/images/og/demo-bento.png?v=441">
 <meta name="twitter:image:alt" content="Stryker demo homepage share card: a bento grid of GEX, charts, journal and learning tiles">
 <meta name="theme-color" content="#050506">
 <title>Stryker Trading Academy · Demo</title>
 <meta name="description" content="Demo homepage: Stryker Trading Academy as a bento grid. 64 chapters, free SPX GEX, charts, journal, replay. Education only.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/style.css?v=440">
-<link rel="stylesheet" href="assets/demo-bento.css?v=440">
+<link rel="stylesheet" href="assets/style.css?v=441">
+<link rel="stylesheet" href="assets/demo-bento.css?v=441">
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
-<script src="assets/version-check.js?v=440" defer></script>
+<script src="assets/version-check.js?v=441" defer></script>
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
@@ -53,14 +53,24 @@
 <main id="main" tabindex="-1">
 <section class="bx-grid" aria-label="What is inside Stryker">
 
-  <!-- HERO -->
+  <!-- HERO: copy + the glossy hero object (neon candles, light trail off a CALL WALL) -->
   <article class="bx-tile bx-hero" data-tile="hero">
-    <canvas class="bx-hero-cv" aria-hidden="true"></canvas>
     <div class="bx-mesh" aria-hidden="true"><i></i><i></i><i></i></div>
     <div class="bx-hero-gridlines" aria-hidden="true"></div>
+    <div class="bx-obj" aria-hidden="true">
+      <i class="bx-bloom b1"></i><i class="bx-bloom b2"></i><i class="bx-bloom b3"></i>
+      <div class="bx-wall"><span>CALL WALL</span></div>
+      <canvas class="bx-trail-cv"></canvas>
+      <div class="bx-candles">
+        <div class="bx-c3 c-up s1"><i class="wick"></i><i class="body"></i></div>
+        <div class="bx-c3 c-dn s2"><i class="wick"></i><i class="body"></i></div>
+        <div class="bx-c3 c-up s3"><i class="wick"></i><i class="body"></i></div>
+      </div>
+      <div class="bx-floor"></div>
+    </div>
     <div class="bx-hero-copy">
       <span class="eyebrow">ICT · SMT · Volume Profile · GEX</span>
-      <h1>Learn it. Chart it.<br><em>Practise it.</em> One desk.</h1>
+      <h1>Learn it. Chart it.<br><em>Practise it.</em></h1>
       <p>64 chapters of ICT, SMT and Volume Profile, taught the way a trading desk trains analysts. Free SPX GEX, charts, a journal and replay sit right next to the lessons.</p>
       <div class="bx-hero-cta">
         <a href="signup" class="btn btn-primary">Start free <span aria-hidden="true">→</span></a>
@@ -70,28 +80,24 @@
     </div>
   </article>
 
-  <!-- SESSION CLOCK -->
+  <!-- SESSION CLOCK (digital) -->
   <article class="bx-tile bx-clock" data-tile="clock">
-    <div class="bx-k"><span class="bx-dot" id="bx-clock-dot"></span>Session clock</div>
-    <svg class="bx-ring24" viewBox="0 0 120 120" aria-hidden="true">
-      <circle cx="60" cy="60" r="50" class="r-track"/>
-      <path class="r-arc r-asia" id="bx-arc-asia"/>
-      <path class="r-arc r-lon" id="bx-arc-lon"/>
-      <path class="r-arc r-ny" id="bx-arc-ny"/>
-      <line x1="60" y1="60" x2="60" y2="16" class="r-hand" id="bx-hand"/>
-      <circle cx="60" cy="60" r="3.5" class="r-pin"/>
-    </svg>
-    <div class="bx-clock-txt">
-      <b id="bx-clock-head">Session clock</b>
-      <span id="bx-clock-tail" class="bx-mono"></span>
-      <small id="bx-clock-local" class="bx-muted"></small>
-    </div>
-    <div class="bx-legend" aria-hidden="true"><span class="lg-asia">Asia</span><span class="lg-lon">London</span><span class="lg-ny">New York</span></div>
+    <div class="bx-k"><span class="bx-dot" id="bx-clock-dot"></span><span id="bx-clock-head">Session clock</span></div>
+    <div class="bx-digital" aria-live="off"><span id="bx-clock-big">--:--:--</span></div>
+    <div class="bx-micro" id="bx-clock-tail">&nbsp;</div>
+    <div class="bx-sess" id="bx-sess" aria-hidden="true"><span data-s="Asia">Asia</span><span data-s="London">London</span><span data-s="New York">New York</span></div>
+    <small id="bx-clock-local" class="bx-muted"></small>
   </article>
 
-  <!-- MINI COUNTERS (true counts only) -->
-  <article class="bx-tile bx-mini bx-m1" data-tile="mini"><b class="bx-num" data-count="10">10</b><span>chapters free to start, no card</span></article>
-  <article class="bx-tile bx-mini bx-m2" data-tile="mini"><b class="bx-num" data-count="70" data-suffix="+">70+</b><span>built-in chart indicators</span></article>
+  <article class="bx-tile bx-stat bx-s64 bx-vivid-mint" data-tile="stat"><b class="bx-giant bx-num" data-count="64">64</b><span class="bx-micro">chapters</span></article>
+  <article class="bx-tile bx-stat bx-sfree" data-tile="stat"><b class="bx-giant">Free</b><span class="bx-micro">SPX GEX · 0DTE</span></article>
+
+  <!-- SYMBOL / INTEGRATION CHIPS -->
+  <article class="bx-tile bx-chipsrow" data-tile="chips">
+    <div class="bx-marquee"><div class="bx-mq-track">
+      <span class="bx-chip"><b>NQ</b>Nasdaq futures</span><span class="bx-chip"><b>ES</b>S&amp;P futures</span><span class="bx-chip"><b>GC</b>Gold</span><span class="bx-chip"><b>CL</b>Crude oil</span><span class="bx-chip"><b>BTC</b>Bitcoin</span><span class="bx-chip bx-chip-pine"><b>//@version=5</b>Pine Script</span><span class="bx-chip bx-chip-rith"><b>R</b>Connect your Rithmic login</span>
+    </div></div>
+  </article>
 
   <!-- GEX -->
   <article class="bx-tile bx-gex bx-expandable" data-tile="gex" data-expand="gex">
@@ -190,21 +196,57 @@
     <ul class="bx-ev" id="bx-ev"><li class="bx-muted">Loading the calendar…</li></ul>
   </article>
 
-  <!-- MINI COUNTERS -->
-  <article class="bx-tile bx-mini bx-m3" data-tile="mini"><b class="bx-num" data-count="8">8</b><span>charts on one screen, Layouts 1–8</span></article>
-  <article class="bx-tile bx-mini bx-m4" data-tile="mini"><b class="bx-num" data-count="4">4</b><span>GEX markets: SPX, SPY, QQQ, GLD</span></article>
-
-  <!-- COMMUNITY SCRIPTS -->
-  <article class="bx-tile bx-community" data-tile="community">
-    <div class="bx-k">Community scripts</div>
-    <h2>Pine scripts, shared by members</h2>
-    <div class="bx-scripts" aria-hidden="true">
-      <div class="bx-script"><code>EMA 9/21 cross</code><span>Example</span></div>
-      <div class="bx-script"><code>Session VWAP</code><span>Example</span></div>
-      <div class="bx-script"><code>Previous day high/low</code><span>Example</span></div>
-    </div>
-    <a href="trading-floor" class="bx-link">Trading Floor →</a>
+  <!-- GRADIENT HEADLINE -->
+  <article class="bx-tile bx-grad" data-tile="grad">
+    <div class="bx-k">The method</div>
+    <h2 class="bx-gradtext">Read the tape.</h2>
+    <p class="bx-muted">Liquidity, structure, gamma and volume. One method, taught chapter by chapter, practised on the same screen.</p>
   </article>
+
+  <!-- ALERT SNIPPET + TOGGLE -->
+  <article class="bx-tile bx-alert" data-tile="alert">
+    <div class="bx-head"><div><div class="bx-k">Alerts</div><h2>Know when price gets there</h2></div><span class="bx-sample">Example</span></div>
+    <div class="bx-alert-stack" aria-hidden="true">
+      <div class="bx-al bx-al-back"><span class="bx-al-ic">!</span><div><b>Price alert · GC1!</b><small>Crossing up · 1 min</small></div></div>
+      <div class="bx-al bx-al-front"><span class="bx-al-ic">!</span><div><b>Price alert · NQ1!</b><small>Crossing · your level · 5 min</small></div><time>now</time></div>
+    </div>
+    <div class="bx-toggle-row" aria-hidden="true"><span>Browser notification</span><span class="bx-toggle" id="bx-toggle"><i></i></span></div>
+  </article>
+
+  <!-- WATCHLIST (cropped off the edge) -->
+  <article class="bx-tile bx-watch" data-tile="watch">
+    <div class="bx-k">Watchlist</div>
+    <h2>Futures and crypto, one list</h2>
+    <small class="bx-micro bx-wl-note">Default list · lines illustrative</small>
+    <div class="bx-wl" aria-hidden="true">
+      <div class="bx-wl-h">FUTURES</div>
+      <div class="bx-wl-r"><b>NQ1!</b><span>Nasdaq 100</span><svg viewBox="0 0 60 18"><path d="M0 12 L8 10 L16 13 L24 7 L32 9 L40 5 L48 6 L60 2"/></svg></div>
+      <div class="bx-wl-r"><b>ES1!</b><span>S&amp;P 500</span><svg viewBox="0 0 60 18"><path d="M0 11 L10 12 L18 8 L26 9 L34 6 L44 7 L52 4 L60 5"/></svg></div>
+      <div class="bx-wl-r"><b>YM1!</b><span>Dow 30</span><svg viewBox="0 0 60 18"><path d="M0 8 L9 9 L17 7 L25 11 L33 10 L41 13 L50 12 L60 14"/></svg></div>
+      <div class="bx-wl-r"><b>RTY1!</b><span>Russell 2000</span><svg viewBox="0 0 60 18"><path d="M0 13 L8 11 L16 12 L25 9 L33 10 L42 6 L50 8 L60 7"/></svg></div>
+      <div class="bx-wl-r"><b>GC1!</b><span>Gold</span><svg viewBox="0 0 60 18"><path d="M0 14 L9 12 L18 12 L26 8 L34 9 L42 5 L51 6 L60 3"/></svg></div>
+      <div class="bx-wl-r"><b>CL1!</b><span>Crude oil</span><svg viewBox="0 0 60 18"><path d="M0 6 L8 8 L16 7 L25 10 L33 9 L41 12 L50 10 L60 13"/></svg></div>
+      <div class="bx-wl-h">CRYPTO</div>
+      <div class="bx-wl-r"><b>BTCUSDT</b><span>Bitcoin</span><svg viewBox="0 0 60 18"><path d="M0 12 L7 9 L15 11 L24 6 L32 8 L40 4 L49 7 L60 3"/></svg></div>
+      <div class="bx-wl-r"><b>ETHUSDT</b><span>Ether</span><svg viewBox="0 0 60 18"><path d="M0 10 L9 11 L17 8 L26 10 L34 7 L42 9 L51 6 L60 8"/></svg></div>
+    </div>
+  </article>
+
+  <!-- PINE CODE SNIPPET (cropped) -->
+  <article class="bx-tile bx-pine" data-tile="pine">
+    <div class="bx-head"><div><div class="bx-k">Pine scripts</div><h2>Write it, run it on the chart</h2></div><a href="trading-floor" class="bx-link">Community →</a></div>
+    <pre class="bx-code" aria-label="Pine Script example: EMA 9/21 cross"><code><span class="c">//@version=5</span>
+<span class="f">indicator</span>(<span class="s">"EMA 9/21 cross"</span>, overlay=<span class="k">true</span>)
+fastLen = <span class="f">input.int</span>(<span class="n">9</span>, <span class="s">"Fast EMA"</span>, minval=<span class="n">1</span>)
+slowLen = <span class="f">input.int</span>(<span class="n">21</span>, <span class="s">"Slow EMA"</span>, minval=<span class="n">1</span>)
+fast = <span class="f">ta.ema</span>(close, fastLen)
+slow = <span class="f">ta.ema</span>(close, slowLen)
+<span class="f">plot</span>(fast, <span class="s">"Fast EMA"</span>, color=color.teal)
+<span class="f">plot</span>(slow, <span class="s">"Slow EMA"</span>, color=color.orange)<span class="bx-caret"></span></code></pre>
+  </article>
+
+  <article class="bx-tile bx-stat bx-s8 bx-vivid-violet" data-tile="stat"><b class="bx-giant bx-num" data-count="8">8</b><span class="bx-micro">charts per layout</span></article>
+  <article class="bx-tile bx-stat bx-s70" data-tile="stat"><b class="bx-giant bx-num" data-count="70" data-suffix="+">70+</b><span class="bx-micro">built-in indicators</span></article>
 
   <!-- PHONE -->
   <article class="bx-tile bx-phone" data-tile="phone">
@@ -215,7 +257,7 @@
     </div>
     <div class="bx-device" aria-hidden="true">
       <div class="bx-device-notch"></div>
-      <img src="assets/images/charts/mobile.webp?v=440" alt="" width="560" height="837" loading="lazy" decoding="async">
+      <img src="assets/images/charts/mobile.webp?v=441" alt="" width="560" height="837" loading="lazy" decoding="async">
     </div>
   </article>
 
@@ -273,7 +315,7 @@
   </div>
 </div>
 
-<script src="assets/market-hours.js?v=440"></script>
-<script src="assets/demo-bento.js?v=440" defer></script>
+<script src="assets/market-hours.js?v=441"></script>
+<script src="assets/demo-bento.js?v=441" defer></script>
 </body>
 </html>

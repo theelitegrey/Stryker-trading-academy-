@@ -18,7 +18,12 @@
 //     answer, the tile draws unlabelled illustrative levels and says so.
 //   - Market desk tile: assets/econ-calendar.json (next high-impact releases),
 //     times in the visitor's own clock.
-//   - Charts, replay, journal and hero candles are generated, illustrative motion
+//   - v2 (Owner add-on "take inspiration from bentogrids.com"): glossy CSS neon
+//     candles + canvas light trail bouncing off a neon CALL WALL as the hero
+//     object, giant stat tiles (true counts only), alert/toggle/watchlist/Pine
+//     snippets (the default watchlist symbols and our real Pine example), and a
+//     symbol/integration chip marquee ("Connect your Rithmic login", no claims).
+//   - Charts, replay, journal and the hero object are generated, illustrative motion
 //     (the journal tile carries a "Sample" tag). No P&L, balances or win rates.
 //
 // Depends on: assets/market-hours.js (window.StrykerMarketHours), style.css tokens.
@@ -189,86 +194,84 @@
     };
   }
 
-  // ------------------------------------------------------------ hero candle stream
+  // ------------------------------------------------------------ hero object: light trail bouncing off the CALL WALL
+  // The glossy candles and blooms are CSS; this canvas draws the light-trail price
+  // line (additive blending, purple -> blue -> green) that rises, touches the neon
+  // wall and turns back down. Pure decoration, no data.
   (function () {
-    var cv = $('.bx-hero-cv'); if (!cv) return;
-    var s = surface(cv), data = candles(400, 7, 100, 1.1), speed = 0.018;
-    register($('.bx-hero'), function (t) {
+    var cv = $('.bx-trail-cv'); if (!cv) return;
+    var s = surface(cv), wall = $('.bx-wall'), obj = $('.bx-obj');
+    var N = 90;
+    function yAt(u, ph, H, wy) {
+      // u: 0..1 along the line; ph: phase. Climb to the wall, bounce, sag, climb again.
+      var x = (u * 1.6 + ph) % 2;            // two "legs" per cycle
+      var leg = x < 1 ? x : 2 - x;           // 0 -> 1 -> 0
+      var bounce = Math.pow(leg, 1.6);
+      var base = H * 0.84, top = wy + 4;
+      var wob = Math.sin(u * 23 + ph * 9) * H * 0.018 + Math.sin(u * 61 + ph * 4) * H * 0.008;
+      return base - (base - top) * bounce + wob * (1 - bounce * 0.9);
+    }
+    register(obj, function (t) {
       var ctx = s.ctx, W = s.w, H = s.h; ctx.clearRect(0, 0, W, H);
-      var step = W < 600 ? 11 : 14, cw = step * 0.55, n = Math.ceil(W / step) + 2;
-      var off = (t * speed) % (data.length * step), i0 = Math.floor(off / step), frac = off / step - i0;
-      var vis = [];
-      for (var k = 0; k < n; k++) vis.push(data[(i0 + k) % data.length]);
-      var lo = Infinity, hi = -Infinity;
-      vis.forEach(function (c) { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
-      var top = H * (W < 600 ? 0.05 : 0.10), bot = H * (W < 600 ? 0.26 : 0.62);
-      var y = function (v) { return bot - (v - lo) / (hi - lo || 1) * (bot - top); };
-      var x0 = W - (n - 1) * step;
-      for (var j = 0; j < n; j++) {
-        var c = vis[j], x = x0 + (j - frac) * step;
-        // fade in from the left so the copy side stays calm
-        var a = W < 600 ? clamp(x / (W * 0.5), 0, 1) * 0.5 : clamp((x - W * 0.25) / (W * 0.45), 0, 1) * 0.55;
-        if (a <= 0.01) continue;
-        drawCandle(ctx, x, cw, y(c.o), y(c.h), y(c.l), y(c.c), c.c >= c.o, a);
-      }
-      // a glowing "last price" line
-      var lc = vis[n - 1], ly = y(lc.c);
-      ctx.strokeStyle = alpha(COL['--gold'], 0.35); ctx.setLineDash([3, 5]); ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(W < 600 ? 0 : W * 0.35, ly); ctx.lineTo(W, ly); ctx.stroke(); ctx.setLineDash([]);
+      var wy = wall ? wall.offsetTop : H * 0.2;
+      var ph = REDUCE ? 0.35 : (t / 5200) % 2;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      var pts = [];
+      for (var i = 0; i <= N; i++) { var u = i / N; pts.push([W * 0.02 + u * W * 0.96, yAt(u, ph, H, wy)]); }
+      var g = ctx.createLinearGradient(0, 0, W, 0);
+      g.addColorStop(0, 'rgba(139,92,246,0)'); g.addColorStop(0.35, 'rgba(139,92,246,.9)');
+      g.addColorStop(0.7, 'rgba(56,130,255,.95)'); g.addColorStop(1, 'rgba(3,201,136,1)');
+      [[14, 0.10], [7, 0.22], [3, 0.55], [1.4, 1]].forEach(function (pass) {
+        ctx.globalAlpha = pass[1]; ctx.lineWidth = pass[0]; ctx.strokeStyle = g; ctx.beginPath();
+        pts.forEach(function (p, k) { k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); }); ctx.stroke();
+      });
+      // the head: a hot dot, flares when it is touching the wall
+      var hd = pts[pts.length - 1], near = clamp(1 - (hd[1] - wy) / (H * 0.25), 0, 1);
+      ctx.globalAlpha = 1;
+      var rg = ctx.createRadialGradient(hd[0], hd[1], 0, hd[0], hd[1], 26 + near * 30);
+      rg.addColorStop(0, 'rgba(180,255,225,.95)'); rg.addColorStop(0.25, 'rgba(3,201,136,.55)'); rg.addColorStop(1, 'rgba(3,201,136,0)');
+      ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(hd[0], hd[1], 26 + near * 30, 0, 7); ctx.fill();
+      ctx.restore();
+      if (wall) wall.style.setProperty('--hit', near.toFixed(3));
     }, s);
   })();
 
-  // ------------------------------------------------------------ session clock
+  // ------------------------------------------------------------ session clock (digital)
   (function () {
     var MH = window.StrykerMarketHours; if (!MH) return;
-    var head = $('#bx-clock-head'), tail = $('#bx-clock-tail'), loc = $('#bx-clock-local'), dot = $('#bx-clock-dot'), hand = $('#bx-hand');
+    var head = $('#bx-clock-head'), tail = $('#bx-clock-tail'), loc = $('#bx-clock-local'), dot = $('#bx-clock-dot'), big = $('#bx-clock-big');
+    var chips = $$('#bx-sess span');
     var tz = ''; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
     var abbr = '';
     try {
-      var parts = new Intl.DateTimeFormat(navigator.language || 'en-US', { timeZoneName: 'short' }).formatToParts(new Date());
-      parts.forEach(function (p) { if (p.type === 'timeZoneName') abbr = p.value; });
-      if (/^GMT\+5:30$/.test(abbr) || tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta') abbr = 'IST';
+      new Intl.DateTimeFormat(navigator.language || 'en-US', { timeZoneName: 'short' }).formatToParts(new Date())
+        .forEach(function (p) { if (p.type === 'timeZoneName') abbr = p.value; });
+      if (tz === 'Asia/Kolkata' || tz === 'Asia/Calcutta' || /^GMT\+5:30$/.test(abbr)) abbr = 'IST';
     } catch (e) {}
     var hms = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
     var nyHm = new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
-    function ymd(tzName, ms) {
-      var o = {};
-      new Intl.DateTimeFormat('en-US', { timeZone: tzName, year: 'numeric', month: 'numeric', day: 'numeric' }).formatToParts(new Date(ms))
-        .forEach(function (p) { o[p.type] = +p.value; });
-      return o;
-    }
-    function localMin(ms) { var d = new Date(ms); return d.getHours() * 60 + d.getMinutes(); }
-    function arc(r, a0, a1) {
-      var cx = 60, cy = 60, rad = function (a) { return (a - 90) * Math.PI / 180; };
-      if (a1 < a0) a1 += 360;
-      var large = a1 - a0 > 180 ? 1 : 0;
-      return 'M' + (cx + r * Math.cos(rad(a0))).toFixed(2) + ' ' + (cy + r * Math.sin(rad(a0))).toFixed(2) +
-        ' A' + r + ' ' + r + ' 0 ' + large + ' 1 ' + (cx + r * Math.cos(rad(a1))).toFixed(2) + ' ' + (cy + r * Math.sin(rad(a1))).toFixed(2);
-    }
-    var ids = { 'Asia': '#bx-arc-asia', 'London': '#bx-arc-lon', 'New York': '#bx-arc-ny' };
-    var lastDay = '';
-    function arcs(now) {
-      var key = new Date(now).toDateString(); if (key === lastDay) return; lastDay = key;
-      MH.SESSIONS.forEach(function (s) {
-        var d = ymd(s.tz, now);
-        var a = MH.tzToUtc(s.tz, d.year, d.month, d.day, s.open, 0), b = MH.tzToUtc(s.tz, d.year, d.month, d.day, s.close, 0);
-        var el = $(ids[s.name]); if (!el) return;
-        el.setAttribute('d', arc(50, localMin(a) / 4, localMin(b) / 4));
-      });
-    }
     function tick() {
       var now = Date.now(), L = MH.sessionLabel(now);
       head.textContent = L.head;
+      big.textContent = hms.format(now);
       tail.textContent = L.next ? 'Next: ' + L.next.name + ' opens in ' + MH.fmtClock(L.next.at - now) : '';
-      loc.textContent = 'Your time ' + hms.format(now) + (abbr ? ' ' + abbr : '') + ' · New York ' + nyHm.format(now);
+      loc.textContent = 'Your time' + (abbr ? ' (' + abbr + ')' : '') + ' · New York ' + nyHm.format(now);
       dot.classList.toggle('is-on', !!L.open);
-      $$('.r-arc').forEach(function (el) { el.style.opacity = L.weekend ? '.3' : ''; });
-      arcs(now);
-      var d = new Date(now), deg = (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 240;
-      hand.setAttribute('transform', 'rotate(' + deg.toFixed(2) + ' 60 60)');
+      chips.forEach(function (c) { c.classList.toggle('is-on', L.sessions.indexOf(c.getAttribute('data-s')) >= 0); });
     }
     tick();
     (function loop() { setTimeout(function () { if (!doc.hidden) tick(); loop(); }, 1000 - (Date.now() % 1000) + 5); })();
+  })();
+
+  // ------------------------------------------------------------ alert card + toggle snippet
+  (function () {
+    var tile = $('.bx-alert'), tg = $('#bx-toggle'); if (!tile || REDUCE) { if (tg) tg.classList.add('is-on'); return; }
+    var on = false;
+    setInterval(function () {
+      if (doc.hidden) return;
+      on = !on; tg.classList.toggle('is-on', on);
+      if (on) { tile.classList.remove('is-ring'); void tile.offsetWidth; tile.classList.add('is-ring'); }
+    }, 2600);
   })();
 
   // ------------------------------------------------------------ GEX tile
@@ -566,7 +569,7 @@
       var v = V[key]; if (!v) return;
       opener = doc.activeElement;
       $('#bx-ov-k').textContent = v.k; $('#bx-ov-title').textContent = v.t; $('#bx-ov-p').textContent = v.p;
-      var img = $('#bx-ov-img'); img.src = v.img + '?v=440'; img.alt = v.t;
+      var img = $('#bx-ov-img'); img.src = v.img + '?v=441'; img.alt = v.t;
       var go = $('#bx-ov-go'); go.href = v.go; go.textContent = v.b + ' →';
       var r = tile.getBoundingClientRect();
       ov.hidden = false; doc.body.classList.add('bx-locked');
@@ -609,6 +612,12 @@
       readColors();
       if (REDUCE) tiles.forEach(function (t) { t.draw(4000, 0); });
     });
+  })();
+
+  // chip marquee: a second copy of the chips makes the -50% loop seamless
+  (function () {
+    var tr = $('.bx-mq-track'); if (!tr) return;
+    $$('.bx-chip', tr).forEach(function (c) { var d = c.cloneNode(true); d.setAttribute('aria-hidden', 'true'); d.setAttribute('data-dup', ''); tr.appendChild(d); });
   })();
 
   readColors();

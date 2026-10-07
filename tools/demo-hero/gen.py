@@ -43,10 +43,10 @@ head = head.replace('<meta name="viewport" content="width=device-width, initial-
                     '     tools/demo-hero/body.html; edit those, not this file. -->\n'
                     '<meta name="robots" content="noindex,nofollow">')
 T = 'Stryker Trading Academy: four homepage hero variations (demo)'
-D = ('Four previews of the Stryker homepage hero: giant type, a session-clock pill and a proof strip. '
+D = ('Four previews of the Stryker homepage hero: an animated GEX chart card, a full-bleed chart, the dragon emblem and a desk-card stack. '
      '64 chapters, free SPX GEX, 70+ indicators, chapters 1–10 free. Education only. Not financial advice.')
 img = 'https://strykertrading.com/assets/images/og/demo-hero.png?v=%s' % build
-alt = 'Stryker demo share card: the headline Read the levels. Trade the plan. in giant white and mint type on a black grid'
+alt = 'Stryker demo share card: a bold white headline with one phrase in Stryker green over falling candles and a GEX chart card'
 meta = f'''<meta name="description" content="{html.escape(D)}">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Stryker Trading Academy">
@@ -88,15 +88,10 @@ def nav_copy(i):
         return nav.replace('<nav class="nav"', '<nav class="nav xh-nav"')
     return nav.replace('<nav class="nav" id="site-nav">', '<nav class="nav xh-nav xh-nav-copy" aria-label="Site header (copy)">')
 
-TICK = ''.join(f'<span class="{c}">{t}</span><s>//</s>' for c, t in [
-    ('', '64 chapters'), ('xh-hot', 'Free SPX GEX'), ('', '8-chart desk'), ('', '70+ indicators'),
-    ('', 'Chapters <b class="xh-freeN">1–10</b> free'), ('', 'ICT · SMT · Volume Profile'), ('', 'Education only')])
-
 body = open(BODY, encoding='utf-8').read()
 parts = body.split('@@NAV@@')
 assert len(parts) == 5, 'body.html needs four @@NAV@@ slots'
 body = parts[0] + ''.join(nav_copy(i) + parts[i + 1] for i in range(4))
-body = body.replace('@@TICK@@', TICK)
 
 out = (head + '</head>\n<body class="xh-page">\n<a class="skip-link" href="#main">Skip to content</a>\n'
        '<main id="main" tabindex="-1">\n' + body + '\n</main>\n' + footer + '\n' + scripts + '</body>\n</html>\n')

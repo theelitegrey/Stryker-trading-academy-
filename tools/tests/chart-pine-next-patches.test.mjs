@@ -72,4 +72,21 @@ check(P([1, 5, 5, 2, 1], 4, 2, 2, true) === 5, 'pivotAt: equal LEFT neighbour st
 check(P([1, 2, 5, 5, 1], 4, 2, 2, true) !== 5, 'pivotAt: equal right neighbour fails (>=)');
 check(P([5, 4, 1, 4, 5], 4, 2, 2, false) === 1, 'pivotAt: clear low');
 check(Number.isNaN(P([1, 2, 5], 2, 2, 2, true)), 'pivotAt: not enough bars');
+// rewriteSource: `var table t = cond ? table.new(...) : na` keeps its cells
+const R = patches.rewriteSource;
+const TB = `//@version=6
+indicator("t", overlay=true)
+show = input.bool(true, "s")
+var table t = show ? table.new(position.top_right, 2, 2, bgcolor = color.new(color.red, 10)) : na  // c
+if show and barstate.islast
+    t.cell(0, 0, "A")
+plot(close)`;
+const rw = R(TB);
+check(/var table t = na\n if|var table t = na\nif \(show\) and na\(t\)\n    t := table\.new\(position\.top_right, 2, 2, bgcolor = color\.new\(color\.red, 10\)\)/.test(rw), 'rewriteSource: ternary var drawing rewritten');
+check(R('var table t = table.new(position.top_right, 2, 2)') === 'var table t = table.new(position.top_right, 2, 2)', 'rewriteSource: plain var untouched');
+check(R('x = a ? b : na') === 'x = a ? b : na', 'rewriteSource: non-drawing ternary untouched');
+check(R('    var box b = c ? box.new(1, 2, 3, 4) : na').startsWith('    var box b = na\n    if (c) and na(b)\n        b := box.new('), 'rewriteSource: keeps indentation');
+const cellText = async (src) => { const r = await new pt.PineTS(bars(60, 5), 'X', '5').run(src); const t = r.plots.__tables__.data.slice(-1)[0].value[0]; return t && t.cells[0][0] && t.cells[0][0].text; };
+check((await cellText(rw)) === 'A', 'rewritten script: table cell text present ("A")');
+console.log('INFO unrewritten pinets cell:', JSON.stringify(await cellText(TB)));
 process.exit(fails ? 1 : 0);

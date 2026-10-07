@@ -1,0 +1,598 @@
+//@version=6
+// Stryker built-in copy of "Stoic Edge Compass" (source: pastebin N80raw2B, Owner order 2026-10-07).
+// Stryker edits, kept minimal and marked "Stryker edit": the status panel FOCUS row and two alert
+// messages say BULLISH BIAS / BEARISH BIAS / WAIT (site rule: no trade-direction wording); the four
+// MTF request.security calls use the chart timeframe while the MTF table is off (the browser engine
+// evaluates them even inside `if i_showMtf`, which cost several seconds of extra downloads).
+// Nothing else changed. Education only. Not financial advice.
+indicator("Stoic Edge Compass", shorttitle = "Stoic Edge Compass", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 5000)
+
+const string G_STR = "Market Structure"
+const string G_RNG = "Range Filter"
+const string G_TRD = "Trend Ribbon & 200 EMA"
+const string G_DOT = "Context Dots & Momentum Candles"
+const string G_LVL = "Structure Levels"
+const string G_SBS = "SBS Triangles"
+const string G_SR  = "Dynamic Support/Resistance"
+const string G_PNL = "Status Panel"
+const string G_MTF = "Multi-Timeframe Alignment"
+const string G_CAP = "Chart Captions"
+const string G_COL = "Colors"
+
+i_primaryLen = input.int(2, "Primary Swing Length", minval = 1, maxval = 50, group = G_STR, tooltip = "Causal swing length defining the PRIMARY (outer) structure on the selected chart.")
+i_localLen   = input.int(1, "Local Swing Length", minval = 1, maxval = 20, group = G_STR, tooltip = "Causal swing length defining the LOCAL (nearest internal) structure.")
+i_acceptBars = input.int(1, "Accepted Break Closes", minval = 1, maxval = 10, group = G_STR, tooltip = "Consecutive closes beyond Structure Fail required before the PRIMARY hypothesis is rejected.")
+i_pbDepth    = input.float(0.618, "Orderly Pullback Max Depth", minval = 0.1, maxval = 1.0, step = 0.01, group = G_STR, tooltip = "Maximum retracement of the active leg that still qualifies as an orderly PULLBACK.")
+i_turnBreaks = input.int(2, "Turn Watch Counter Breaks", minval = 1, maxval = 5, group = G_STR, tooltip = "Consecutive LOCAL breaks against PRIMARY treated as failure evidence (TURN WATCH).")
+i_useStd     = input.bool(true, "Use Standard OHLC on Heikin Ashi Charts", group = G_STR)
+
+i_rngLen     = input.int(30, "Range Lookback", minval = 10, maxval = 200, group = G_RNG)
+i_rngFlips   = input.int(4, "Local Flips to Establish Range", minval = 2, maxval = 20, group = G_RNG)
+i_rngWidth   = input.float(3.5, "Max Range Width (ATR)", minval = 0.5, maxval = 20.0, step = 0.1, group = G_RNG)
+i_rngExit    = input.int(2, "Closes Outside to Exit Range", minval = 1, maxval = 10, group = G_RNG)
+
+i_showRibbon = input.bool(true, "Show Trend Ribbon", group = G_TRD)
+i_ribFastLen = input.int(8, "Ribbon Fast", minval = 1, inline = "rib", group = G_TRD)
+i_ribSlowLen = input.int(21, "Slow", minval = 2, inline = "rib", group = G_TRD)
+i_showEma    = input.bool(true, "Show 200 EMA", group = G_TRD)
+i_emaLen     = input.int(200, "EMA Length", minval = 1, group = G_TRD)
+i_emaWidth   = input.int(3, "EMA Width", minval = 1, maxval = 4, group = G_TRD)
+
+i_showDots   = input.bool(true, "Show Context Dots", group = G_DOT)
+i_momCandles = input.bool(true, "Momentum Candles", group = G_DOT)
+i_exhRsiLen  = input.int(14, "Exhaustion RSI Length", minval = 2, group = G_DOT)
+i_exhOB      = input.float(75.0, "Exhaustion RSI Upper", minval = 50, maxval = 100, group = G_DOT)
+i_exhOS      = input.float(25.0, "Exhaustion RSI Lower", minval = 0, maxval = 50, group = G_DOT)
+i_exhStretch = input.float(2.0, "Exhaustion Stretch (ATR from Ribbon)", minval = 0.1, step = 0.1, group = G_DOT)
+
+i_showTrail  = input.bool(false, "Show Structure Fail (Grey Trailing Line)", group = G_LVL)
+i_showNext   = input.bool(false, "Show Next Test (Dashed Orange Line)", group = G_LVL)
+i_showLvlLbl = input.bool(true, "Show Level Labels", group = G_LVL)
+
+i_showSbs    = input.bool(true, "Show SBS Triangles", group = G_SBS)
+i_sbsLen     = input.int(5, "Liquidity Swing Length", minval = 1, maxval = 30, group = G_SBS)
+i_sbsMax     = input.int(10, "Max Remembered Levels", minval = 1, maxval = 50, group = G_SBS)
+i_sbsAge     = input.int(300, "Max Level Age (Bars)", minval = 10, maxval = 5000, group = G_SBS)
+i_sbsWick    = input.float(0.3, "Min Rejection Wick (% of Range)", minval = 0.0, maxval = 1.0, step = 0.05, group = G_SBS)
+
+i_showSr     = input.bool(true, "Show Dynamic Support/Resistance", group = G_SR)
+i_srLen      = input.int(15, "Pivot Strength", minval = 2, maxval = 100, group = G_SR)
+i_srMax      = input.int(3, "Max Zones", minval = 1, maxval = 20, group = G_SR)
+i_srHeight   = input.float(0.25, "Zone Height (ATR)", minval = 0.05, step = 0.05, group = G_SR)
+i_srMerge    = input.float(0.5, "Merge Distance (ATR)", minval = 0.05, step = 0.05, group = G_SR)
+
+i_showPanel  = input.bool(true, "Show Status Panel", group = G_PNL)
+i_panelPos   = input.string("Top Right", "Position", options = ["Top Right", "Top Left", "Top Center", "Middle Right", "Bottom Right", "Bottom Left"], group = G_PNL)
+i_panelSize  = input.string("Small", "Text Size", options = ["Tiny", "Small", "Normal"], group = G_PNL)
+
+i_showMtf    = input.bool(false, "Show Multi-Timeframe Table", group = G_MTF)
+i_mtfPos     = input.string("Bottom Right", "Position", options = ["Top Right", "Top Left", "Top Center", "Middle Right", "Bottom Right", "Bottom Left"], group = G_MTF)
+i_tf1        = input.timeframe("5", "Timeframe 1", group = G_MTF)
+i_tf2        = input.timeframe("15", "Timeframe 2", group = G_MTF)
+i_tf3        = input.timeframe("60", "Timeframe 3", group = G_MTF)
+i_tf4        = input.timeframe("240", "Timeframe 4", group = G_MTF)
+
+i_showCaps   = input.bool(false, "Show Chart Captions (Follow the Trend / Stay Out of the Chop)", group = G_CAP)
+
+i_colBull    = input.color(#12B76A, "Bullish", inline = "c1", group = G_COL)
+i_colBear    = input.color(#E5404F, "Bearish", inline = "c1", group = G_COL)
+i_colWait    = input.color(#F7A531, "Wait / Caution", inline = "c2", group = G_COL)
+i_colNeutral = input.color(#9598A1, "Neutral", inline = "c2", group = G_COL)
+i_colSr      = input.color(#E2703A, "Support/Resistance", inline = "c3", group = G_COL)
+i_colNext    = input.color(#F7931A, "Next Test", inline = "c3", group = G_COL)
+i_colTrail   = input.color(#8C8C8C, "Structure Fail", inline = "c4", group = G_COL)
+i_colPanelBg = input.color(#131722, "Panel Background", inline = "c4", group = G_COL)
+
+const int PH_ALIGNED  = 1
+const int PH_PULLBACK = 2
+const int PH_ROTATION = 3
+const int PH_TURN     = 4
+const int PH_BUILDING = 5
+
+type Zone
+    box   bx
+    float mid
+    int   touches
+
+f_pos(string p) =>
+    switch p
+        "Top Left"     => position.top_left
+        "Top Center"   => position.top_center
+        "Middle Right" => position.middle_right
+        "Bottom Right" => position.bottom_right
+        "Bottom Left"  => position.bottom_left
+        => position.top_right
+
+f_size(string s) =>
+    switch s
+        "Tiny"   => size.tiny
+        "Normal" => size.normal
+        => size.small
+
+f_biasTxt(int b) =>
+    b == 1 ? "BULLISH" : b == -1 ? "BEARISH" : "NEUTRAL"
+
+f_biasCol(int b, color bu, color be, color ne) =>
+    b == 1 ? bu : b == -1 ? be : ne
+
+f_phaseTxt(int p) =>
+    switch p
+        PH_ALIGNED  => "ALIGNED"
+        PH_PULLBACK => "PULLBACK"
+        PH_ROTATION => "ROTATION"
+        PH_TURN     => "TURN WATCH"
+        => "BUILDING"
+
+f_structBias(int len) =>
+    var int   b  = 0
+    var float sh = na
+    var float sl = na
+    float phv = ta.pivothigh(high, len, len)
+    float plv = ta.pivotlow(low, len, len)
+    if not na(phv)
+        sh := phv
+    if not na(plv)
+        sl := plv
+    if not na(sh) and close > sh
+        b  := 1
+        sh := na
+    else if not na(sl) and close < sl
+        b  := -1
+        sl := na
+    b
+
+f_mtf(int len, int emaLen) =>
+    int   b  = f_structBias(len)
+    float e  = ta.ema(close, emaLen)
+    int   et = close > e ? 1 : -1
+    [b[1], et[1]]
+
+f_addZone(array<Zone> zs, float level, int leftBar, float atrv, float mergeAtr, float heightAtr, int maxZones, color col) =>
+    bool  merged = false
+    float half   = heightAtr * atrv * 0.5
+    if zs.size() > 0
+        for z in zs
+            if not merged and math.abs(level - z.mid) <= mergeAtr * atrv
+                z.mid     := (z.mid * z.touches + level) / (z.touches + 1)
+                z.touches := z.touches + 1
+                z.bx.set_top(z.mid + half)
+                z.bx.set_bottom(z.mid - half)
+                merged := true
+                break
+    if not merged
+        box bxNew = box.new(leftBar, level + half, bar_index, level - half, border_color = color.new(col, 20), border_width = 1, bgcolor = color.new(col, 88), extend = extend.both)
+        zs.push(Zone.new(bxNew, level, 1))
+        if zs.size() > maxZones
+            Zone old = zs.shift()
+            old.bx.delete()
+    merged
+
+string stdTicker = ticker.standard(syminfo.tickerid)
+bool  useStdData = i_useStd and chart.is_heikinashi
+[stdO, stdH, stdL, stdC] = if useStdData
+    request.security(stdTicker, timeframe.period, [open, high, low, close], lookahead = barmerge.lookahead_off)
+else
+    [float(na), float(na), float(na), float(na)]
+float o = useStdData ? nz(stdO, open)  : open
+float h = useStdData ? nz(stdH, high)  : high
+float l = useStdData ? nz(stdL, low)   : low
+float c = useStdData ? nz(stdC, close) : close
+
+float trueRng = math.max(h - l, math.abs(h - nz(c[1], c)), math.abs(l - nz(c[1], c)))
+float atr     = nz(ta.rma(trueRng, 14), h - l)
+
+float ribFast = ta.ema(c, i_ribFastLen)
+float ribSlow = ta.ema(c, i_ribSlowLen)
+float ema200  = ta.ema(c, i_emaLen)
+float rsi     = ta.rsi(c, i_exhRsiLen)
+bool  conf    = barstate.isconfirmed
+
+float lPH = ta.pivothigh(h, i_localLen, i_localLen)
+float lPL = ta.pivotlow(l, i_localLen, i_localLen)
+
+var int   lBias = 0
+var float lHigh = na
+var float lLow  = na
+bool localBullBreak = false
+bool localBearBreak = false
+
+if not na(lPH)
+    lHigh := lPH
+if not na(lPL)
+    lLow := lPL
+if not na(lHigh) and c > lHigh
+    localBullBreak := true
+    lBias := 1
+    lHigh := na
+else if not na(lLow) and c < lLow
+    localBearBreak := true
+    lBias := -1
+    lLow  := na
+
+int  prevLBias = nz(lBias[1])
+bool localFlip = lBias != prevLBias and prevLBias != 0
+
+float pPH            = ta.pivothigh(h, i_primaryLen, i_primaryLen)
+float pPL            = ta.pivotlow(l, i_primaryLen, i_primaryLen)
+float lowAfterPivot  = ta.lowest(l, i_primaryLen)
+float highAfterPivot = ta.highest(h, i_primaryLen)
+
+var int   pBias             = 0
+var bool  pEstablished      = false
+var float swingHigh         = na
+var float swingLow          = na
+var float lowSinceSwingHigh = na
+var float highSinceSwingLow = na
+var float failLevel         = na
+var float legHigh           = na
+var float legLow            = na
+var int   breakCount        = 0
+var bool  monitoring        = false
+
+bool primaryBullBos  = false
+bool primaryBearBos  = false
+bool primaryFlipBull = false
+bool primaryFlipBear = false
+bool monitorStart    = false
+
+lowSinceSwingHigh := na(lowSinceSwingHigh) ? l : math.min(lowSinceSwingHigh, l)
+highSinceSwingLow := na(highSinceSwingLow) ? h : math.max(highSinceSwingLow, h)
+legHigh           := na(legHigh) ? h : math.max(legHigh, h)
+legLow            := na(legLow)  ? l : math.min(legLow, l)
+
+if not na(pPH)
+    swingHigh         := pPH
+    lowSinceSwingHigh := lowAfterPivot
+if not na(pPL)
+    swingLow          := pPL
+    highSinceSwingLow := highAfterPivot
+
+if pBias == 0
+    if not na(swingHigh) and c > swingHigh
+        pBias           := 1
+        pEstablished    := false
+        failLevel       := nz(swingLow, legLow)
+        legHigh         := h
+        swingHigh       := na
+        primaryFlipBull := true
+    else if not na(swingLow) and c < swingLow
+        pBias           := -1
+        pEstablished    := false
+        failLevel       := nz(swingHigh, legHigh)
+        legLow          := l
+        swingLow        := na
+        primaryFlipBear := true
+else if pBias == 1
+    if not na(swingHigh) and c > swingHigh
+        primaryBullBos := true
+        failLevel      := lowSinceSwingHigh
+        swingHigh      := na
+        breakCount     := 0
+        monitoring     := false
+        pEstablished := true
+    if not na(failLevel) and c < failLevel
+        if not monitoring
+            monitorStart := true
+        monitoring := true
+        breakCount += 1
+        if breakCount >= i_acceptBars
+            pBias           := -1
+            pEstablished    := false
+            failLevel       := legHigh
+            legLow          := l
+            breakCount      := 0
+            monitoring      := false
+            primaryFlipBear := true
+            swingLow        := not na(swingLow) and swingLow < c ? swingLow : na
+    else if monitoring
+        monitoring := false
+        breakCount := 0
+else
+    if not na(swingLow) and c < swingLow
+        primaryBearBos := true
+        failLevel      := highSinceSwingLow
+        swingLow       := na
+        breakCount     := 0
+        monitoring     := false
+        pEstablished := true
+    if not na(failLevel) and c > failLevel
+        if not monitoring
+            monitorStart := true
+        monitoring := true
+        breakCount += 1
+        if breakCount >= i_acceptBars
+            pBias           := 1
+            pEstablished    := false
+            failLevel       := legLow
+            legHigh         := h
+            breakCount      := 0
+            monitoring      := false
+            primaryFlipBull := true
+            swingHigh       := not na(swingHigh) and swingHigh > c ? swingHigh : na
+    else if monitoring
+        monitoring := false
+        breakCount := 0
+
+float nextTest = pBias == 1 ? swingHigh : pBias == -1 ? swingLow : na
+
+var int counterBreaks = 0
+if primaryFlipBull or primaryFlipBear
+    counterBreaks := 0
+if pBias == 1
+    if localBearBreak
+        counterBreaks += 1
+    else if localBullBreak
+        counterBreaks := 0
+else if pBias == -1
+    if localBullBreak
+        counterBreaks += 1
+    else if localBearBreak
+        counterBreaks := 0
+
+float flipCount  = math.sum(localFlip ? 1.0 : 0.0, i_rngLen)
+float rngHi      = ta.highest(h, i_rngLen)
+float rngLo      = ta.lowest(l, i_rngLen)
+bool  compressed = rngHi - rngLo <= i_rngWidth * atr
+bool  rangeCond  = bar_index >= i_rngLen and (nz(flipCount) >= i_rngFlips or compressed)
+
+var bool  inRange      = false
+var float rangeTop     = na
+var float rangeBot     = na
+var int   outsideCount = 0
+var int   rangeExitBar = -100000
+bool rangeEstablished  = false
+
+if not inRange
+    if rangeCond and bar_index - rangeExitBar >= math.round(i_rngLen / 2)
+        inRange          := true
+        rangeTop         := rngHi
+        rangeBot         := rngLo
+        outsideCount     := 0
+        rangeEstablished := true
+else
+    if c > rangeTop or c < rangeBot
+        outsideCount += 1
+        if outsideCount >= i_rngExit
+            inRange      := false
+            outsideCount := 0
+            rangeExitBar := bar_index
+    else
+        outsideCount := 0
+
+float legRange = pBias == 1 ? legHigh - failLevel : pBias == -1 ? failLevel - legLow : na
+float retrace  = 0.0
+if not na(legRange) and legRange > 0
+    retrace := pBias == 1 ? (legHigh - c) / legRange : (c - legLow) / legRange
+
+int phaseId = PH_BUILDING
+if pBias == 0 or not pEstablished
+    phaseId := PH_BUILDING
+else if monitoring or counterBreaks >= i_turnBreaks
+    phaseId := PH_TURN
+else if inRange
+    phaseId := PH_ROTATION
+else if lBias == pBias
+    phaseId := PH_ALIGNED
+else if retrace <= i_pbDepth
+    phaseId := PH_PULLBACK
+else
+    phaseId := PH_ROTATION
+
+int focus     = pEstablished and pBias != 0 and not inRange and (phaseId == PH_ALIGNED or phaseId == PH_PULLBACK) ? pBias : 0
+int prevFocus = nz(focus[1])
+
+bool exhUp           = nz(rsi) > i_exhOB and c - ribSlow > i_exhStretch * atr
+bool exhDn           = nz(rsi, 50) < i_exhOS and ribSlow - c > i_exhStretch * atr
+bool exhaustion      = exhUp or exhDn
+bool  exhaustionStart = exhaustion and not exhaustion[1]
+
+bool focusBuyStart  = focus == 1 and prevFocus != 1
+bool focusSellStart = focus == -1 and prevFocus != -1
+bool focusToWait    = focus == 0 and prevFocus != 0
+
+bool greenEvent  = focus == 1 and (focusBuyStart or primaryBullBos or (localBullBreak and prevLBias != 1))
+bool redEvent    = focus == -1 and (focusSellStart or primaryBearBos or (localBearBreak and prevLBias != -1))
+bool yellowEvent = (focusToWait or rangeEstablished or exhaustionStart or monitorStart) and not greenEvent and not redEvent
+
+bool greenDot  = greenEvent and conf
+bool redDot    = redEvent and conf
+bool yellowDot = yellowEvent and conf
+
+float greenY  = math.min(l, ribSlow)
+float redY    = math.max(h, ribSlow)
+float yellowY = exhUp ? h + atr * 0.3 : exhDn ? l - atr * 0.3 : c >= ribSlow ? h + atr * 0.3 : l - atr * 0.3
+
+color candleCol = na
+if i_momCandles
+    if exhaustion
+        candleCol := i_colWait
+    else if focus == 1 and c > o
+        candleCol := i_colBull
+    else if focus == -1 and c < o
+        candleCol := i_colBear
+    else
+        candleCol := i_colNeutral
+
+color ribCol = focus == 1 ? color.new(i_colBull, 70) : focus == -1 ? color.new(i_colBear, 70) : inRange ? color.new(i_colNeutral, 80) : lBias == 1 ? color.new(i_colBull, 85) : lBias == -1 ? color.new(i_colBear, 85) : color.new(i_colNeutral, 85)
+
+float sPH = ta.pivothigh(h, i_sbsLen, i_sbsLen)
+float sPL = ta.pivotlow(l, i_sbsLen, i_sbsLen)
+
+var array<float> liqHighs    = array.new<float>()
+var array<int>   liqHighBars = array.new<int>()
+var array<float> liqLows     = array.new<float>()
+var array<int>   liqLowBars  = array.new<int>()
+
+if not na(sPH)
+    liqHighs.push(sPH)
+    liqHighBars.push(bar_index - i_sbsLen)
+    if liqHighs.size() > i_sbsMax
+        liqHighs.shift()
+        liqHighBars.shift()
+if not na(sPL)
+    liqLows.push(sPL)
+    liqLowBars.push(bar_index - i_sbsLen)
+    if liqLows.size() > i_sbsMax
+        liqLows.shift()
+        liqLowBars.shift()
+
+float barRng   = h - l
+bool  bullWick = barRng > 0 and math.min(o, c) - l >= i_sbsWick * barRng
+bool  bearWick = barRng > 0 and h - math.max(o, c) >= i_sbsWick * barRng
+bool  sbsBull  = false
+bool  sbsBear  = false
+
+if liqLows.size() > 0
+    for i = liqLows.size() - 1 to 0
+        float lvl     = liqLows.get(i)
+        int   age     = bar_index - liqLowBars.get(i)
+        bool  swept   = age > i_sbsLen and l < lvl and c > lvl and c > o and bullWick
+        bool  invalid = c < lvl
+        if swept
+            sbsBull := true
+        if swept or invalid or age > i_sbsAge
+            liqLows.remove(i)
+            liqLowBars.remove(i)
+
+if liqHighs.size() > 0
+    for i = liqHighs.size() - 1 to 0
+        float lvl     = liqHighs.get(i)
+        int   age     = bar_index - liqHighBars.get(i)
+        bool  swept   = age > i_sbsLen and h > lvl and c < lvl and c < o and bearWick
+        bool  invalid = c > lvl
+        if swept
+            sbsBear := true
+        if swept or invalid or age > i_sbsAge
+            liqHighs.remove(i)
+            liqHighBars.remove(i)
+
+bool sbsBullSig = sbsBull and conf
+bool sbsBearSig = sbsBear and conf
+
+float srPH = ta.pivothigh(h, i_srLen, i_srLen)
+float srPL = ta.pivotlow(l, i_srLen, i_srLen)
+var array<Zone> zones = array.new<Zone>()
+
+if i_showSr
+    if not na(srPH)
+        f_addZone(zones, srPH, bar_index - i_srLen, atr, i_srMerge, i_srHeight, i_srMax, i_colSr)
+    if not na(srPL)
+        f_addZone(zones, srPL, bar_index - i_srLen, atr, i_srMerge, i_srHeight, i_srMax, i_colSr)
+
+pRibFast = plot(i_showRibbon ? ribFast : na, "Ribbon Fast", color.new(color.black, 100), editable = false, display = display.pane)
+pRibSlow = plot(i_showRibbon ? ribSlow : na, "Ribbon Slow", color.new(color.black, 100), editable = false, display = display.pane)
+fill(pRibFast, pRibSlow, color = i_showRibbon ? ribCol : na, title = "Trend Ribbon", editable = false)
+
+plot(i_showEma ? ema200 : na, "200 EMA", c > ema200 ? i_colBull : i_colBear, linewidth = i_emaWidth)
+
+float trailVal = failLevel == failLevel[1] ? failLevel : na
+plot(i_showTrail ? trailVal : na, "Structure Fail", i_colTrail, 1, plot.style_linebr, editable = false)
+
+var line ntLine = na
+if i_showNext
+    if na(nextTest)
+        ntLine := na
+    else if na(nextTest[1]) or nextTest != nextTest[1] or na(ntLine)
+        ntLine := line.new(bar_index, nextTest, bar_index + 1, nextTest, color = i_colNext, style = line.style_dashed, width = 1)
+    else
+        ntLine.set_x2(bar_index)
+
+var label failLbl = na
+var label nextLbl = na
+if barstate.islast
+    label.delete(failLbl)
+    label.delete(nextLbl)
+    if i_showLvlLbl and i_showTrail and not na(failLevel)
+        failLbl := label.new(bar_index + 2, failLevel, "Structure Fail", style = label.style_label_left, color = color.new(color.white, 100), textcolor = i_colTrail, size = size.small)
+    if i_showLvlLbl and i_showNext and not na(nextTest)
+        nextLbl := label.new(bar_index + 2, nextTest, "Next Test", style = label.style_label_left, color = color.new(color.white, 100), textcolor = i_colNext, size = size.small)
+
+plot(i_showDots and greenDot ? greenY : na, "Bullish Dot", i_colBull, 5, plot.style_circles, editable = false)
+plot(i_showDots and redDot ? redY : na, "Bearish Dot", i_colBear, 5, plot.style_circles, editable = false)
+plot(i_showDots and yellowDot ? yellowY : na, "Wait Dot", i_colWait, 5, plot.style_circles, editable = false)
+
+plotshape(i_showSbs and sbsBullSig, "SBS Bullish", shape.triangleup, location.belowbar, i_colBull, size = size.tiny, editable = false)
+plotshape(i_showSbs and sbsBearSig, "SBS Bearish", shape.triangledown, location.abovebar, i_colBear, size = size.tiny, editable = false)
+
+barcolor(i_momCandles ? candleCol : na, title = "Momentum Candles", editable = false)
+
+if i_showCaps and conf
+    if rangeEstablished
+        label.new(bar_index, h + atr * 1.2, "Stay Out of the Chop", style = label.style_none, textcolor = i_colNeutral, size = size.normal)
+    if focusBuyStart
+        label.new(bar_index, l - atr * 1.2, "Follow the Trend", style = label.style_none, textcolor = i_colBull, size = size.normal)
+    if focusSellStart
+        label.new(bar_index, h + atr * 1.2, "Follow the Trend", style = label.style_none, textcolor = i_colBear, size = size.normal)
+
+var table panel = i_showPanel ? table.new(f_pos(i_panelPos), 2, 4, bgcolor = color.new(i_colPanelBg, 10), frame_color = color.new(i_colNeutral, 60), frame_width = 1, border_color = color.new(i_colNeutral, 80), border_width = 1) : na
+
+if i_showPanel and barstate.islast
+    string szP     = f_size(i_panelSize)
+    string focusTx = focus == 1 ? "BULLISH BIAS" : focus == -1 ? "BEARISH BIAS" : "WAIT"  // Stryker edit: wording
+    color  focusCl = focus == 1 ? i_colBull : focus == -1 ? i_colBear : i_colWait
+    string primTx  = pBias == 0 ? "BUILDING" : f_biasTxt(pBias) + (pEstablished ? "" : " (PROVISIONAL)")
+    color  primCl  = pBias == 0 or not pEstablished ? i_colNeutral : f_biasCol(pBias, i_colBull, i_colBear, i_colNeutral)
+    color  dirCl   = pBias == 1 ? i_colBull : i_colBear
+    color  phaseCl = phaseId == PH_ALIGNED ? dirCl : phaseId == PH_PULLBACK ? color.new(dirCl, 30) : phaseId == PH_TURN ? i_colWait : i_colNeutral
+    panel.cell(0, 0, "FOCUS", text_color = color.white, text_size = szP, text_halign = text.align_left)
+    panel.cell(1, 0, focusTx, text_color = color.white, bgcolor = focusCl, text_size = szP)
+    panel.cell(0, 1, "PRIMARY", text_color = color.white, text_size = szP, text_halign = text.align_left)
+    panel.cell(1, 1, primTx, text_color = primCl, text_size = szP)
+    panel.cell(0, 2, "LOCAL", text_color = color.white, text_size = szP, text_halign = text.align_left)
+    panel.cell(1, 2, f_biasTxt(lBias), text_color = f_biasCol(lBias, i_colBull, i_colBear, i_colNeutral), text_size = szP)
+    panel.cell(0, 3, "PHASE", text_color = color.white, text_size = szP, text_halign = text.align_left)
+    panel.cell(1, 3, f_phaseTxt(phaseId), text_color = phaseCl, text_size = szP)
+
+[mb1, me1] = if i_showMtf
+    request.security(stdTicker, i_showMtf ? i_tf1 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+else
+    [int(na), int(na)]
+[mb2, me2] = if i_showMtf
+    request.security(stdTicker, i_showMtf ? i_tf2 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+else
+    [int(na), int(na)]
+[mb3, me3] = if i_showMtf
+    request.security(stdTicker, i_showMtf ? i_tf3 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+else
+    [int(na), int(na)]
+[mb4, me4] = if i_showMtf
+    request.security(stdTicker, i_showMtf ? i_tf4 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+else
+    [int(na), int(na)]
+
+var table mtf = i_showMtf ? table.new(f_pos(i_mtfPos), 4, 7, bgcolor = color.new(i_colPanelBg, 10), frame_color = color.new(i_colNeutral, 60), frame_width = 1, border_color = color.new(i_colNeutral, 80), border_width = 1) : na
+
+if i_showMtf and barstate.islast
+    string szM = f_size(i_panelSize)
+    array<string> tfs = array.from("Chart", i_tf1, i_tf2, i_tf3, i_tf4)
+    array<int>    bs  = array.from(pBias, nz(mb1), nz(mb2), nz(mb3), nz(mb4))
+    array<int>    es  = array.from(c > ema200 ? 1 : -1, nz(me1), nz(me2), nz(me3), nz(me4))
+    mtf.cell(0, 0, "TF", text_color = color.white, text_size = szM)
+    mtf.cell(1, 0, "STRUCTURE", text_color = color.white, text_size = szM)
+    mtf.cell(2, 0, "200 EMA", text_color = color.white, text_size = szM)
+    mtf.cell(3, 0, "ALIGN", text_color = color.white, text_size = szM)
+    int bullCount = 0
+    int bearCount = 0
+    for i = 0 to 4
+        int  bv = bs.get(i)
+        int  ev = es.get(i)
+        bullCount += bv == 1 ? 1 : 0
+        bearCount += bv == -1 ? 1 : 0
+        bool aligned = bv != 0 and bv == ev
+        mtf.cell(0, i + 1, tfs.get(i), text_color = color.white, text_size = szM)
+        mtf.cell(1, i + 1, f_biasTxt(bv), text_color = f_biasCol(bv, i_colBull, i_colBear, i_colNeutral), text_size = szM)
+        mtf.cell(2, i + 1, ev == 1 ? "ABOVE" : ev == -1 ? "BELOW" : "-", text_color = f_biasCol(ev, i_colBull, i_colBear, i_colNeutral), text_size = szM)
+        mtf.cell(3, i + 1, aligned ? "ALIGNED" : "MIXED", text_color = aligned ? f_biasCol(bv, i_colBull, i_colBear, i_colNeutral) : i_colWait, text_size = szM)
+    string sumTx = bullCount >= 4 ? "BULLISH ALIGNMENT" : bearCount >= 4 ? "BEARISH ALIGNMENT" : "NO ALIGNMENT"
+    color  sumCl = bullCount >= 4 ? i_colBull : bearCount >= 4 ? i_colBear : i_colWait
+    mtf.cell(0, 6, sumTx, text_color = color.white, bgcolor = sumCl, text_size = szM)
+    mtf.merge_cells(0, 6, 3, 6)
+
+alertcondition(greenDot, "Stoic Edge Compass - Green", "Stoic Edge Compass: Green dot - FOCUS BULLISH BIAS on {{ticker}} {{interval}}")
+alertcondition(redDot, "Stoic Edge Compass - Red", "Stoic Edge Compass: Red dot - FOCUS BEARISH BIAS on {{ticker}} {{interval}}")
+alertcondition(exhaustionStart and conf, "Stoic Edge Compass - Exhaustion Yellow", "Stoic Edge Compass: Yellow exhaustion warning on {{ticker}} {{interval}}")
+alertcondition(rangeEstablished and conf, "Stoic Edge Compass - Range Established", "Stoic Edge Compass: Range established - WAIT on {{ticker}} {{interval}}")
+alertcondition(yellowDot, "Stoic Edge Compass - Wait", "Stoic Edge Compass: Yellow Wait dot on {{ticker}} {{interval}}")
+alertcondition(focus != prevFocus and conf, "Stoic Edge Compass - Focus Change", "Stoic Edge Compass: FOCUS changed on {{ticker}} {{interval}}")
+alertcondition(sbsBullSig, "Stoic Edge Compass - SBS Bullish", "Stoic Edge Compass: Bullish SBS liquidity sweep on {{ticker}} {{interval}}")
+alertcondition(sbsBearSig, "Stoic Edge Compass - SBS Bearish", "Stoic Edge Compass: Bearish SBS liquidity sweep on {{ticker}} {{interval}}")

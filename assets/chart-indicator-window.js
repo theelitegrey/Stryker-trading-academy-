@@ -30,6 +30,8 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
+import { BUILTIN_PINE, builtinSource } from './chart-pine-builtins.js?v=455';
+
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
 const GROUP_FLOW = 'Volume & Order flow';
@@ -180,6 +182,8 @@ export function mountIndicatorWindow(ws, opts){
     });
     const ex = (S() && S().EXAMPLES) || [];
     ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'Stryker', cat: catOf(x.name), kind: 'example', source: x.source }));
+    // Stryker Pine built-ins (assets/chart-pine-builtins.js): "Stryker" group, next-gen engine.
+    BUILTIN_PINE.forEach((b) => out.push({ key: 'x:' + b.id, name: b.name, author: 'Stryker', cat: GROUP_STRYKER, kind: 'example', builtinId: b.id, desc: b.desc }));
     return out;
   }
   function mineItems(){
@@ -220,7 +224,12 @@ export function mountIndicatorWindow(ws, opts){
         if (!pseudo) toast('Added ' + it.name + ' to the chart');
       } else if (it.kind === 'example' || it.kind === 'mine') {
         if (!P() || !P().addSource) { toast('The chart is still loading. Try again in a moment.', 'error'); return; }
-        const r = await P().addSource(it.name, it.source);
+        let src = it.source, opts;
+        if (it.builtinId) {
+          try { src = await builtinSource(it.builtinId); } catch (e) { toast('Could not load ' + it.name + '. Check your connection.', 'error'); return; }
+          opts = { engine: 'next' };
+        }
+        const r = await P().addSource(it.name, src, opts);
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');
       } else if (it.kind === 'community') {
         if (!L() || !L().addItem) return;

@@ -18,6 +18,43 @@
 // and marker fixes. We wrap it once and swap the two functions on each new context.
 // pinets' code itself is not modified (AGPL: loaded unmodified from jsDelivr).
 
+// SOURCE REWRITE (pinets 0.11.0 bug): `var table t = cond ? table.new(...) : na` creates the
+// object but every later `t.cell(...)` / `t.set_*` is lost (pinets re-evaluates the var
+// initialiser as a thunk and the drawing ends up empty; seen on the Stoic Edge Compass
+// status panel). The equivalent Pine form below works, so we rewrite it before compiling:
+//   var table t = na
+//   if (cond) and na(t)
+//       t := table.new(...)
+// Only this exact single-line shape (var + drawing type + `cond ? T.new(...) : na`) is
+// touched; anything else passes through unchanged.
+const DRAW_TYPES = 'table|box|line|label|linefill|polyline';
+const VAR_TERNARY = new RegExp('^(\\s*)var\\s+(' + DRAW_TYPES + ')\\s+([A-Za-z_]\\w*)\\s*=\\s*(.+?)\\s*\\?\\s*((?:' + DRAW_TYPES + ')\\.new\\(.*\\))\\s*:\\s*na\\s*(//.*)?$');
+function balanced(str){
+  let d = 0, q = null;
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (q) { if (c === '\\') i++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(') d++;
+    else if (c === ')') { d--; if (d < 0) return false; }
+  }
+  return d === 0 && !q;
+}
+export function rewriteSource(src){
+  if (typeof src !== 'string' || src.indexOf('.new(') < 0) return src;
+  const nl = src.indexOf('\r\n') >= 0 ? '\r\n' : '\n';
+  return src.split(/\r?\n/).map((line) => {
+    const m = VAR_TERNARY.exec(line);
+    if (!m) return line;
+    const [, ind, type, name, cond, ctor] = m;
+    // the condition must be a whole expression and the constructor one whole call
+    if (!balanced(cond) || !balanced(ctor) || /\?/.test(cond) || ctor.indexOf(type + '.new(') !== 0) return line;
+    return ind + 'var ' + type + ' ' + name + ' = na' + nl +
+      ind + 'if (' + cond + ') and na(' + name + ')' + nl +
+      ind + '    ' + name + ' := ' + ctor;
+  }).join(nl);
+}
+
 function lastOf(v){
   if (v != null && typeof v === 'object') {
     if (typeof v.get === 'function') return v.get(0);

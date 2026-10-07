@@ -38,7 +38,11 @@ const sessions = new Map();
 const fetchWaits = new Map();
 let fetchId = 0;
 
+let rewrite = (src) => src;
 const ready = (async () => {
+  // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
+  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=455')]);
+  try { patches.install(pinets.Context); rewrite = patches.rewriteSource; } catch (e) { console.warn('Stryker: pine-next patches', e); }
   const res = await fetch(VELA_PINETS);
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');
   const text = (await res.text())
@@ -90,7 +94,7 @@ self.addEventListener('message', async (ev) => {
     case 'prepare': {
       try {
         const eng = await engineFor(msg);
-        post({ kind: 'prepared', reqId: msg.reqId, prepared: await eng.prepare(msg.source, msg.instanceId) });
+        post({ kind: 'prepared', reqId: msg.reqId, prepared: await eng.prepare(rewrite(msg.source), msg.instanceId) });
       } catch (e) {
         post({ kind: 'prepared', reqId: msg.reqId, error: String(e && e.message || e) });
       }
@@ -115,6 +119,9 @@ self.addEventListener('message', async (ev) => {
         onError: (e) => { post({ kind: 'error', sessionId: id, message: String(e && e.message || e) }); if (!s.live) landed(s); },
         onDone: () => { post({ kind: 'done', sessionId: id }); if (!s.live) landed(s); }
       });
+      // A backfill that never reports 'complete' (feed at its history limit, live ticks only)
+      // must not leave the script waiting forever: run on what is loaded after 4 s.
+      if (deferred) setTimeout(() => { if (s.deferred && !s.stopped) { s.deferred = false; kick(s, () => s.handle.notifyBars('complete')); } }, 4000);
       return;
     }
     case 'update': {

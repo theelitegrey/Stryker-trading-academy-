@@ -1,12 +1,12 @@
 {
   "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-10-06T05:58:00Z",
+  "generatedAt": "2026-10-07T05:58:00Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-10-07T05:30:00Z",
+  "goodUntil": "2026-10-08T05:30:00Z",
   "defaultCurrency": "USD",
-  "rangeStart": "2026-09-29",
-  "rangeEnd": "2026-10-27",
+  "rangeStart": "2026-09-30",
+  "rangeEnd": "2026-10-28",
   "currencies": [
     {
       "code": "USD",
@@ -55,7 +55,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, 12–0. After last week's soft payrolls and a 3.0% core PCE, futures price 28 Oct at about 20–22%, with December favoured and two more moves priced for the first half of 2027. Monday's ISM services prices-paid reading of 74.0 and a ten-year at 5.35%, a 24-year high, are the counterweight; the minutes on 7 October and CPI on the 14th come first",
+      "expect": "Hiked 25bp on 16 Sep, 12–0. After soft payrolls and PCE, futures price the 28 Oct meeting at about 19–20%, down from about 51% a week ago, with December about 85% and two more moves priced for the first half of 2027. Daly and Schmid both said more hikes may be needed, and Tuesday's three-year auction cleared at 4.932%, the highest since 2006, against a ten-year at 5.27–5.31%; the minutes today and CPI on the 14th come first",
       "bias": "up"
     },
     {
@@ -63,7 +63,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep. September's flash HICP printed 3.8%, a three-year high, but French bond stress, Spain's snap election and Lane's warning that higher long-term rates slow growth have taken about 30bp out of the ECB path since late September, against 13bp for the Fed, according to ING. UOB expects a pause on 29 October and a final 25bp hike in December",
+      "expect": "Second hike of 2026 on 10 Sep. September's flash HICP printed 3.8%, a three-year high, but French bond stress, Spain's snap election and Lane's warning that higher long-term rates slow growth have cut the ECB path from about three and a half further hikes at the end of September to about two and a half, per one estimate. UOB expects a pause on 29 October and a final 25bp hike in December; the accounts of 10 September are out on Thursday",
       "bias": "up"
     },
     {
@@ -79,15 +79,15 @@
       "bank": "Bank of Japan",
       "rate": "1.25%",
       "next": "2026-10-30",
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Sources say the Bank may judge underlying inflation to have reached 2% in its outlook report on 29–30 October, while a sideways Tankan on corporate inflation takes pressure off a back-to-back hike; Ueda speaks today. USD/JPY is near 158 and the ten-year JGB yield about 3.1%",
+      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Sources say the Bank may judge underlying inflation to have reached 2% in its outlook report on 29–30 October, while a sideways Tankan takes pressure off a back-to-back hike; board member Sato said on Wednesday she favours gradual hikes. USD/JPY is near 158.4 and August real cash earnings rose 1.5%, an eighth straight gain",
       "bias": "up"
     },
     {
       "cur": "CAD",
       "bank": "Bank of Canada",
       "rate": "2.25%",
-      "next": null,
-      "expect": "Held for a seventh meeting. Minutes flag oil pass-through; about 59% priced for an October hike",
+      "next": "2026-10-28",
+      "expect": "Held for a seventh meeting. Minutes flag oil pass-through; about 59% priced for an October hike. The 28 October decision comes with a policy report and a press conference",
       "bias": "up"
     },
     {
@@ -108,117 +108,6 @@
     }
   ],
   "events": [
-    {
-      "at": "2026-09-29T04:30:00Z",
-      "cur": "AUD",
-      "impact": "high",
-      "event": "RBA decision",
-      "previous": "4.35%",
-      "note": "Hiked 25bp to 4.60%, unanimous — the fourth rise of 2026, a full point this year and the highest cash rate since 2011. The statement said upside risks to inflation are materialising and further tightening may be needed. AUD barely moved at $0.702; markets price another hike by February.",
-      "forecast": "4.60%",
-      "actual": "4.60%"
-    },
-    {
-      "at": "2026-09-29T05:30:00Z",
-      "cur": "AUD",
-      "impact": "high",
-      "event": "RBA press conference",
-      "note": "Bullock said the board discussed holding before voting unanimously to hike, which the currency read as a softer signal than the statement. AUD/USD slipped and fell through $0.70 the next morning on the CPI."
-    },
-    {
-      "at": "2026-09-29T11:00:00Z",
-      "cur": "EUR",
-      "impact": "medium",
-      "event": "ECB President Lagarde speaks",
-      "note": "Second appearance in two days. On Monday she signalled measured steps against inflation and the euro fell to a three-month low near $1.137; Friday's flash HICP is seen 3.6%."
-    },
-    {
-      "at": "2026-09-29T12:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "CarMax Q2 earnings",
-      "kind": "earnings",
-      "ticker": "KMX"
-    },
-    {
-      "at": "2026-09-29T13:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US FHFA house price index (Jul, m/m)",
-      "forecast": "0.1%",
-      "previous": "0.0%",
-      "actual": "0.3%"
-    },
-    {
-      "at": "2026-09-29T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US JOLTS job openings (Aug)",
-      "previous": "7.271m",
-      "forecast": "7.23m",
-      "note": "7.079 million against 7.23 million expected, the lowest since March, with July revised up to 7.335 million. Openings per unemployed worker fell to 1.01 from 1.06; hires rose to 5.19 million and layoffs fell. Softer demand, not firing.",
-      "actual": "7.079m"
-    },
-    {
-      "at": "2026-09-29T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US consumer confidence (Sep)",
-      "forecast": "89.0",
-      "previous": "89.4",
-      "note": "81.9 against 89.0 expected and 88.6 in August — the lowest since 2014. Present situation fell 7.9 points, expectations a third straight month, and write-ins about fuel prices hit a record. With Williams' 'no need for urgency' the same day, October went from about 70% to about 50% priced.",
-      "actual": "81.9"
-    },
-    {
-      "at": "2026-09-29T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Carnival Q3 earnings",
-      "kind": "earnings",
-      "ticker": "CCL"
-    },
-    {
-      "at": "2026-09-29T15:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "Fed's Bowman speaks",
-      "note": "Banking supervision, not policy. Listed so the six-speaker day reads in order."
-    },
-    {
-      "at": "2026-09-29T16:40:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Barr speaks",
-      "note": "Repeated that further hikes may be necessary and policy needs recalibrating; the baseline is more adjustment."
-    },
-    {
-      "at": "2026-09-29T17:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Goolsbee speaks",
-      "note": "A 2027 voter. Warsh has stopped giving forward guidance, so between meetings the speeches are the only read on the path."
-    },
-    {
-      "at": "2026-09-29T17:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Musalem speaks",
-      "note": "Said policy is still slightly accommodative even after the September hike."
-    },
-    {
-      "at": "2026-09-29T18:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Williams speaks",
-      "note": "Said another hike this year is likely if the economy meets expectations but there is 'no need for urgency' after September's move. The two-year fell 6bp and October's hike odds roughly halved on the remark."
-    },
-    {
-      "at": "2026-09-29T19:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "Fed's Waller speaks",
-      "note": "Payment systems. The sixth and last Fed speaker of the day."
-    },
     {
       "at": "2026-09-30T01:30:00Z",
       "cur": "AUD",
@@ -678,8 +567,9 @@
       "impact": "high",
       "event": "Euro area retail sales (Aug, y/y)",
       "previous": "0.6%",
-      "note": "The consumption side of a euro area the ECB has now hiked twice this year. July grew 0.6% year on year, which is the sort of number that lets a central bank keep tightening without being accused of breaking anything.",
-      "forecast": "1.0%"
+      "note": "0.8% against 1.0% expected, and July was revised down to 0.4% from 0.6%. Volumes rose 0.1% on the month against 0.2% expected, with automotive fuel down 1.9% as pump prices rose. German factory orders fell 10.6% in August, the most in seven months, the same morning; the euro still closed higher on French bond relief.",
+      "forecast": "1.0%",
+      "actual": "0.8%"
     },
     {
       "at": "2026-10-06T12:30:00Z",
@@ -687,7 +577,9 @@
       "impact": "low",
       "event": "US trade balance (Aug)",
       "previous": "-$88.6bn",
-      "forecast": "-$102.0bn"
+      "forecast": "-$102.0bn",
+      "actual": "-$105.6bn",
+      "note": "A $105.6 billion deficit against $102 billion expected, the widest since March 2025; July was revised to $92.8 billion from $88.6 billion. Imports rose 4.3% to a record $420.8 billion on crude oil, capital goods tied to the AI build-out and nonmonetary gold, while exports rose 1.4% to $315.2 billion. Capital Economics says third-quarter GDP growth will now come in well below its 4.0% forecast, closer to 2.5%."
     },
     {
       "at": "2026-10-06T13:00:00Z",
@@ -727,14 +619,15 @@
       "impact": "low",
       "event": "US 3-year note auction",
       "previous": "4.474%",
-      "note": "$58 billion, the first coupon auction since the ten-year touched 5.349%. The last three-year cleared at 4.474%; the two-year is 4.84% today. Monday's three-month bill went at 4.050% against 4.110% the week before."
+      "note": "$58 billion at 4.932%, the highest since 4.995% in May 2006 and up from 4.474% last month. The bid-to-cover was 2.62 against a 2.64 average of the last ten and 2.72 last time, and indirect bidders took 57.6% against a 63% twelve-month average; it did clear at about the 4.934% when-issued yield. The ten-year closed near 5.27%, down about 4bp, on a day oil dipped and Treasuries found buyers.",
+      "actual": "4.932%"
     },
     {
-      "at": "2026-10-06T17:15:00Z",
+      "at": "2026-10-06T17:30:00Z",
       "cur": "USD",
       "impact": "medium",
       "event": "Fed's Schmid speaks",
-      "note": "Kansas City, on a panel. A 2026 voter who spoke last Thursday alongside Barkin and Collins."
+      "note": "Kansas City. Said inflation is 'frustrating' and must be fixed, that AI is now one of the largest drivers of it, and that the policy rate still has to rise even though higher long-term yields are weighing on parts of the economy. San Francisco's Daly said the same day that inflation may last longer than expected and that more hikes may be needed; Williams had said last week there was no urgency."
     },
     {
       "at": "2026-10-07T12:00:00Z",
@@ -748,14 +641,14 @@
       "impact": "low",
       "event": "US 10-year note auction",
       "previous": "4.834%",
-      "note": "$39 billion, the week's test of term premium: the last ten-year cleared at 4.834% and the benchmark is about 47bp higher. Strategists at BMO Asset Management have called a thirty-year yield above 6% 'inevitable' this month."
+      "note": "$39 billion, the week's test of term premium: the last ten-year cleared at 4.834% and the benchmark is about 45bp higher at 5.27–5.31%. Tuesday's three-year went at the highest yield since 2006 with indirect bidders below average. Strategists at BMO Asset Management have called a thirty-year yield above 6% 'inevitable' this month."
     },
     {
       "at": "2026-10-07T18:00:00Z",
       "cur": "USD",
       "impact": "high",
       "event": "FOMC minutes (16 Sep meeting)",
-      "note": "The record of the 12–0 hike. Williams and Jefferson have since said there is time to wait for data, Logan says half a point more is needed, and the minutes will show how many of the twelve wanted a faster path. October's hike is about 20–22% priced; the market is also listening for how the committee discussed the energy shock."
+      "note": "The record of the 12–0 hike. Daly and Schmid both said on Tuesday that more hikes may be needed, while Williams and others have said there is time to wait for data after soft payrolls and PCE. October's hike is priced at about 19–20%, down from about 51% a week ago, with December about 85%; the market is listening for how many of the twelve wanted a faster path and how the committee discussed the energy shock."
     },
     {
       "at": "2026-10-07T21:00:00Z",
@@ -767,7 +660,8 @@
       "at": "2026-10-08T08:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Fed's Waller speaks"
+      "event": "Fed's Waller speaks",
+      "note": "The calendar still has Waller early Thursday; a Reuters note lists him, Kashkari and Musalem for Wednesday, so the time is worth checking before relying on it."
     },
     {
       "at": "2026-10-08T11:30:00Z",
@@ -795,7 +689,7 @@
       "impact": "low",
       "event": "US 30-year bond auction",
       "previous": "5.308%",
-      "note": "$22 billion, a week after the long bond touched 5.70% intraday and closed near 5.66%, its highest since 2002. The last auction cleared at 5.308%. Japan's thirty-year follows the same week."
+      "note": "$22 billion, the day after the ten-year, with the long bond near 5.64% and a 24-year high of about 5.70% on Monday. The last auction cleared at 5.308%. Japan's thirty-year follows the same week."
     },
     {
       "at": "2026-10-08T17:40:00Z",
@@ -1134,6 +1028,62 @@
       "event": "US consumer confidence (Oct)",
       "previous": "81.9",
       "note": "September's 81.9 was the lowest since 2014. The day before the FOMC decision begins."
+    },
+    {
+      "at": "2026-10-28T00:30:00Z",
+      "cur": "AUD",
+      "impact": "high",
+      "event": "Australia CPI (y/y)",
+      "previous": "4.0%",
+      "note": "The last print before the RBA's November meeting, after a 25bp hike on 29 September that took the cash rate to 4.60%. August was 4.0%; the trimmed mean below is the part the Board watches."
+    },
+    {
+      "at": "2026-10-28T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia trimmed mean CPI (y/y)",
+      "previous": "3.6%"
+    },
+    {
+      "at": "2026-10-28T13:45:00Z",
+      "cur": "CAD",
+      "impact": "high",
+      "event": "BoC interest rate decision",
+      "previous": "2.25%",
+      "note": "The Bank of Canada has held at 2.25% for seven meetings; it publishes a policy report with this decision. Its minutes flag oil pass-through, and an October hike has been priced at about 59%."
+    },
+    {
+      "at": "2026-10-28T14:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "BoC monetary policy report and statement"
+    },
+    {
+      "at": "2026-10-28T14:30:00Z",
+      "cur": "CAD",
+      "impact": "high",
+      "event": "BoC press conference"
+    },
+    {
+      "at": "2026-10-28T18:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "FOMC statement",
+      "note": "Released with the decision. The vote count and any change to the language on further firming are the read; September's vote was 12–0."
+    },
+    {
+      "at": "2026-10-28T18:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Fed interest rate decision",
+      "previous": "4.00%",
+      "note": "The first meeting since the 25bp hike to 3.75–4.00% on 16 September. After soft payrolls and PCE a second move is priced at about 19–20%, with December about 85%; the 24-year high in the ten-year and Tuesday's 4.932% three-year auction are the counterweights."
+    },
+    {
+      "at": "2026-10-28T18:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "Fed Chair press conference"
     }
   ],
   "howToRead": [

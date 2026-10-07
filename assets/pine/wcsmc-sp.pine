@@ -1,0 +1,1008 @@
+//@version=6
+// Stryker built-in copy of "WCSMC + SP v3.0 [WinWorld]" (source: pastebin mXhKkyAU, Owner order 2026-10-07).
+// Stryker edits (each line marked "Stryker edit"), site rules: no trade signals, no performance claims.
+//  - Removed: OB-based entry labels, TP/SL boxes and group, the performance dashboard (wins/losses,
+//    win rate, PnL), the entry/TP/SL alerts, and the entry-only Gate / Signal Behavior settings.
+//  - MTF dashboard says Bullish / Bearish; its timeframes are capped at 1D.
+//  - SMT auto pairing: NQ1! <-> ES1! for our futures feed (crypto/FX/metals pairing unchanged).
+// Everything else is the original. Education only. Not financial advice.
+indicator("WCSMC + SP v3.0 [WinWorld]", shorttitle = "WCSMC + SP v3.0 [WinWorld]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 2000)
+
+string G_MAIN = "WCSMC | Main Settings"
+string drawFromMode  = input.string("Whole history", "Draw structure...", options = ["Whole history", "From date"], group = G_MAIN, tooltip = "Draw structure across the whole price history, or only from a chosen start date.")
+int    drawFromTime  = input.time(timestamp("01 Jan 2026 00:00 +0000"), "Start date", group = G_MAIN)
+string idmMode       = input.string("ext-idm", "IDM Mode", options = ["ext-idm", "in-idm"], group = G_MAIN, tooltip = "ext-idm: external inducement, higher-quality liquidity, better reversal odds.\nin-idm: last valid pullback regardless of internal/external - more frequent IDMs.")
+bool   showSecIdm    = input.bool(false, "Show Secondary IDM", group = G_MAIN, tooltip = "Shows the other IDM definition in angle brackets, e.g. < in-IDM >, for confluence.")
+int    swingLen      = input.int(5, "External swing length", minval = 2, maxval = 50, group = G_MAIN)
+bool   showMtfStruct = input.bool(true, "Show MTF structure", group = G_MAIN, inline = "mtf")
+string mtfStructTf   = input.timeframe("60", "", group = G_MAIN, inline = "mtf")
+int    mtfSwingLen   = input.int(3, "MTF swing length", minval = 2, maxval = 20, group = G_MAIN)
+bool   showInner     = input.bool(false, "Show inner structure", group = G_MAIN, tooltip = "Plots the structure inside the current swing (i-IDM, i-BoS, i-ChoCh, internal OBs). Dense - off by default.")
+int    innerLen      = input.int(2, "Inner swing length", minval = 1, maxval = 20, group = G_MAIN)
+
+string G_LEG = "Legacy Features"
+bool   legacyInner   = input.bool(false, "Legacy internal structure (v2)", group = G_LEG, tooltip = "Builds internal structure with a fixed 2-bar swing like WCSMC v2.")
+bool   legacyInnerOb = input.bool(false, "Legacy internal OB detection (v2)", group = G_LEG, tooltip = "Internal orderblocks are taken from the inducement extreme (v2) instead of the extreme candle of the leg (v3).")
+
+string G_VIS = "WCSMC | Visual Controls"
+string colourMode  = input.string("Structure-related", "Colour Mode", options = ["Structure-related", "Monochrome"], group = G_VIS)
+color  monoColor   = input.color(color.new(#b2b5be, 0), "Monochrome colour", group = G_VIS)
+string textSizeOpt = input.string("Small", "Text Size", options = ["Tiny", "Small", "Normal", "Large"], group = G_VIS)
+int    spTransp    = input.int(70, "Structure Points Transparency", minval = 0, maxval = 100, group = G_VIS)
+
+string G_CH = "WCSMC | Charts Controls"
+bool   showPoints     = input.bool(false, "Structure Points", group = G_CH, inline = "c1")
+bool   showIdm        = input.bool(true, "IDM", group = G_CH, inline = "c1")
+bool   showBos        = input.bool(true, "BoS", group = G_CH, inline = "c2")
+bool   showChoch      = input.bool(true, "ChoCh", group = G_CH, inline = "c2")
+bool   showSweeps     = input.bool(true, "Sweeps", group = G_CH, inline = "c2")
+bool   showObIdm      = input.bool(true, "OB-IDM", group = G_CH, inline = "c3")
+bool   showObExt      = input.bool(true, "OB-EXT", group = G_CH, inline = "c3")
+bool   showPrevObExt  = input.bool(true, "Previous OB-EXT", group = G_CH, inline = "c3")
+bool   showSmt        = input.bool(true, "SMT", group = G_CH, inline = "c4")
+string smtSymbolIn    = input.symbol("", "SMT symbol", group = G_CH, inline = "c4", tooltip = "Correlated instrument used for Smart Money Trap detection. Leave empty for automatic pairing (BTC/ETH, XAU/XAG, EUR/GBP, AUD/NZD, USD pairs/DXY).")
+bool   showObFvg      = input.bool(true, "OB FVG", group = G_CH, inline = "c5")
+bool   showLiveStruct = input.bool(true, "Live Structure", group = G_CH, inline = "c6")
+bool   showLiveIdm    = input.bool(true, "Live IDM", group = G_CH, inline = "c6")
+bool   showTrendDots  = input.bool(false, "Trend dots", group = G_CH, inline = "c7")
+bool   showBgTrend    = input.bool(false, "Background by structure", group = G_CH, inline = "c7")
+int    maxZones       = input.int(20, "Max OBs kept per type set", minval = 4, maxval = 80, group = G_CH)
+
+string G_CS = "WCSMC Structure — Colours"
+color  cBull  = input.color(#089981, "Bullish", group = G_CS, inline = "s1")
+color  cBear  = input.color(#f23645, "Bearish", group = G_CS, inline = "s1")
+color  cIdm   = input.color(#787b86, "IDM", group = G_CS, inline = "s2")
+color  cSweep = input.color(#b2b5be, "Sweep", group = G_CS, inline = "s2")
+
+string G_CO = "WCSMC Orderblocks — Colours"
+color  cObExtBull = input.color(color.new(#089981, 80), "OB-EXT Bull", group = G_CO, inline = "o1")
+color  cObExtBear = input.color(color.new(#f23645, 75), "OB-EXT Bear", group = G_CO, inline = "o1")
+color  cObIdm     = input.color(color.new(#787b86, 80), "OB-IDM", group = G_CO, inline = "o2")
+color  cSmtCol    = input.color(color.new(#787b86, 80), "SMT", group = G_CO, inline = "o2")
+color  cFvg       = input.color(color.new(#ff9800, 70), "FVG", group = G_CO, inline = "o3")
+color  cObText    = input.color(color.new(#9598a1, 0), "OB text", group = G_CO, inline = "o3")
+
+string G_CT = "WCSMC Trend — Colours"
+color  cTrendBull = input.color(#089981, "Trend Bull", group = G_CT, inline = "t1")
+color  cTrendBear = input.color(#f23645, "Trend Bear", group = G_CT, inline = "t1")
+int    bgTransp   = input.int(94, "Background transparency", minval = 0, maxval = 100, group = G_CT)
+
+string G_FIB = "WCSMC | Fibo Levels"
+bool   showFibo    = input.bool(false, "Show Fibo", group = G_FIB)
+bool   showFiboLbl = input.bool(true, "Show price labels", group = G_FIB)
+bool   fibOn1 = input.bool(true, "", group = G_FIB, inline = "f1")
+float  fibLv1 = input.float(0.236, "", step = 0.001, group = G_FIB, inline = "f1")
+color  fibC1  = input.color(#787b86, "", group = G_FIB, inline = "f1")
+bool   fibOn2 = input.bool(true, "", group = G_FIB, inline = "f2")
+float  fibLv2 = input.float(0.382, "", step = 0.001, group = G_FIB, inline = "f2")
+color  fibC2  = input.color(#f23645, "", group = G_FIB, inline = "f2")
+bool   fibOn3 = input.bool(true, "", group = G_FIB, inline = "f3")
+float  fibLv3 = input.float(0.500, "", step = 0.001, group = G_FIB, inline = "f3")
+color  fibC3  = input.color(#ff9800, "", group = G_FIB, inline = "f3")
+bool   fibOn4 = input.bool(true, "", group = G_FIB, inline = "f4")
+float  fibLv4 = input.float(0.618, "", step = 0.001, group = G_FIB, inline = "f4")
+color  fibC4  = input.color(#089981, "", group = G_FIB, inline = "f4")
+bool   fibOn5 = input.bool(true, "", group = G_FIB, inline = "f5")
+float  fibLv5 = input.float(0.786, "", step = 0.001, group = G_FIB, inline = "f5")
+color  fibC5  = input.color(#2962ff, "", group = G_FIB, inline = "f5")
+
+string G_MOD = "Smart Point | Modules"
+bool   modVelocity = input.bool(true, "Velocity bars", group = G_MOD)
+bool   modSmc      = input.bool(true, "SMC bars", group = G_MOD)
+bool   modOb       = false  // Stryker edit: OB entry labels / TP-SL / trade stats removed (site rules)
+int    velLen      = input.int(14, "Velocity length", minval = 2, group = G_MOD)
+int    velSigLen   = input.int(5, "Velocity signal length", minval = 1, group = G_MOD)
+int    bbLen       = input.int(20, "BB length (SMC)", minval = 2, group = G_MOD)
+float  bbMult      = input.float(2.0, "BB multiplier (SMC)", minval = 0.1, step = 0.1, group = G_MOD)
+float  rangeMult   = input.float(0.8, "Candle range quality (x ATR)", minval = 0.0, step = 0.1, group = G_MOD)
+
+string G_DISP = "Smart Point | Display Mode"
+string dispMode = input.string("Bar Color", "Display Mode", options = ["Bar Color", "Box Border"], group = G_DISP)
+int    borderW  = input.int(2, "Box border width", minval = 1, maxval = 5, group = G_DISP)
+color  cVelBull = input.color(#2962ff, "Velocity Bullish", group = G_DISP, inline = "v")
+color  cVelBear = input.color(#9c27b0, "Velocity Bearish", group = G_DISP, inline = "v")
+color  cSmcBull = input.color(#00e676, "SMC Bullish", group = G_DISP, inline = "sm")
+color  cSmcBear = input.color(#ff1744, "SMC Bearish", group = G_DISP, inline = "sm")
+
+string G_FIL = "Smart Point | Filters"
+bool   lqdSweep = input.bool(false, "LQD Sweep (SMC bars only)", group = G_FIL, tooltip = "SMC bars must additionally sweep a nearby liquidity pool to qualify. Cuts frequency, raises selectivity. Recommended on higher timeframes; often better off on 1m-5m.")
+int    lqdLen   = input.int(10, "LQD lookback", minval = 2, group = G_FIL)
+
+string G_GATE = "Smart Point | OB Gate"
+bool gateObIdm = true  // Stryker edit: entry-only setting, hidden
+bool gateObExt = true  // Stryker edit: entry-only setting, hidden
+bool gateSmt = true  // Stryker edit: entry-only setting, hidden
+bool gatePrevExt = true  // Stryker edit: entry-only setting, hidden
+bool gateInternal = true  // Stryker edit: entry-only setting, hidden
+bool showGateLine = true  // Stryker edit: entry-only setting, hidden
+
+string G_SB = "Smart Point | Signal Behavior"
+bool allowMulti = true  // Stryker edit: entry-only setting, hidden
+color  cLongLbl   = #089981  // Stryker edit (entry labels removed)
+color  cShortLbl  = #f23645  // Stryker edit
+
+string G_TPSL = "Smart Point | Targets"  // Stryker edit: unused
+bool   trackTpSl  = false  // Stryker edit: TP/SL group removed
+float  rrRatio    = 2.0  // Stryker edit
+color  cTp        = #089981  // Stryker edit
+color  cSl        = #f23645  // Stryker edit
+int    tpslTransp = 80  // Stryker edit
+
+string G_PERF = "Smart Point | Performance Dashboard"
+bool   showPerf      = false  // Stryker edit: performance dashboard removed (site rules)
+bool   useTrackFrom  = false  // Stryker edit
+int    trackFromTime = 0  // Stryker edit
+string perfPosV      = "Middle"  // Stryker edit
+string perfPosH      = "Right"  // Stryker edit
+
+string G_MTF = "MTF Dashboard"
+string perfSizeOpt   = input.string("Normal", "Table size", options = ["Tiny", "Small", "Normal", "Large"], group = G_MTF)  // Stryker edit: kept for the MTF table
+bool   showMtfDash = input.bool(true, "Show MTF Dashboard", group = G_MTF)
+int    mtfDashLen  = input.int(5, "MTF trend swing length", minval = 2, maxval = 20, group = G_MTF)
+string mtfPosV     = input.string("Bottom", "Position", options = ["Top", "Middle", "Bottom"], group = G_MTF, inline = "mp")
+string mtfPosH     = input.string("Right", "", options = ["Left", "Center", "Right"], group = G_MTF, inline = "mp")
+
+string G_AF = "Alerts — Frequency"
+string alertFreqOpt = input.string("Once Per Bar Close", "Alert frequency", options = ["Once Per Bar", "Once Per Bar Close"], group = G_AF, tooltip = "Use Once Per Bar Close for webhook automation.")
+
+string G_AE = "Alerts — External"
+bool   aBos     = input.bool(true, "BoS", group = G_AE, inline = "ae1")
+bool   aBosSw   = input.bool(false, "BoS sweep", group = G_AE, inline = "ae1")
+bool   aChoch   = input.bool(true, "ChoCh", group = G_AE, inline = "ae2")
+bool   aChochSw = input.bool(false, "ChoCh sweep", group = G_AE, inline = "ae2")
+bool   aIdm     = input.bool(false, "IDM", group = G_AE, inline = "ae3")
+bool   aIdmSw   = input.bool(false, "IDM sweep", group = G_AE, inline = "ae3")
+bool   aObIdm   = input.bool(false, "OB-IDM reached", group = G_AE, inline = "ae4")
+bool   aObExt   = input.bool(false, "OB-EXT reached", group = G_AE, inline = "ae4")
+bool   aPrevExt = input.bool(false, "Previous OB-EXT reached", group = G_AE, inline = "ae5")
+bool   aSmt     = input.bool(false, "SMT formed", group = G_AE, inline = "ae5")
+
+string G_AI = "Alerts — Internal"
+bool   aiBos     = input.bool(false, "i-BoS", group = G_AI, inline = "ai1")
+bool   aiBosSw   = input.bool(false, "i-BoS sweep", group = G_AI, inline = "ai1")
+bool   aiChoch   = input.bool(false, "i-ChoCh", group = G_AI, inline = "ai2")
+bool   aiChochSw = input.bool(false, "i-ChoCh sweep", group = G_AI, inline = "ai2")
+bool   aiIdm     = input.bool(false, "i-IDM", group = G_AI, inline = "ai3")
+bool   aiIdmSw   = input.bool(false, "i-IDM sweep", group = G_AI, inline = "ai3")
+bool   aiObIdm   = input.bool(false, "i-OB-IDM", group = G_AI, inline = "ai4")
+bool   aiObExt   = input.bool(false, "i-OB-EXT", group = G_AI, inline = "ai4")
+bool   aiPrevExt = input.bool(false, "i-Previous OB-EXT", group = G_AI, inline = "ai5")
+bool   aiSmt     = input.bool(false, "i-SMT", group = G_AI, inline = "ai5")
+
+string G_AO = "Alerts — Other"
+bool   aFibo = input.bool(false, "Fibo midpoint cross", group = G_AO)
+
+string G_AS = "Alerts — Smart Point"
+bool   aVelBull  = input.bool(false, "Velocity Bullish bar", group = G_AS, inline = "as1")
+bool   aVelBear  = input.bool(false, "Velocity Bearish bar", group = G_AS, inline = "as1")
+bool   aSmcBull  = input.bool(false, "SMC Bullish bar", group = G_AS, inline = "as2")
+bool   aSmcBear  = input.bool(false, "SMC Bearish bar", group = G_AS, inline = "as2")
+bool   aObLong   = false  // Stryker edit: entry/TP/SL alerts removed
+bool   aObShort  = false  // Stryker edit
+bool   aTp       = false  // Stryker edit
+bool   aSl       = false  // Stryker edit
+
+string K_OBIDM   = "OB-IDM"
+string K_OBEXT   = "OB-EXT"
+string K_PREVEXT = "Previous OB-EXT"
+string K_SMT     = "SMT"
+
+color C_TBL_HDR   = color.new(#2a2e39, 0)
+color C_TBL_HDR2  = color.new(#0e4a3f, 0)
+color C_TBL_CELL  = color.new(#1e222d, 0)
+color C_TBL_POS   = color.new(#0f3b33, 0)
+color C_TBL_NEG   = color.new(#4a1d22, 0)
+color C_TBL_SINCE = color.new(#4a3214, 0)
+color C_TXT       = color.new(#d1d4dc, 0)
+color C_TXT_DIM   = color.new(#787b86, 0)
+color C_ORANGE    = color.new(#ff9800, 0)
+color C_GOOD      = color.new(#26a69a, 0)
+color C_BAD       = color.new(#f23645, 0)
+color C_CLEAR     = color.new(color.black, 100)
+
+string alertFreq = alertFreqOpt == "Once Per Bar" ? alert.freq_once_per_bar : alert.freq_once_per_bar_close
+
+type Trade
+    int   dir
+    float entry
+    float sl
+    float tp
+    int   bar
+    int   t
+    box   tpBox
+    box   slBox
+    line  gateLine
+    label sigLbl
+    bool  live = true
+
+type Zone
+    float  top
+    float  bottom
+    int    dir
+    string kind
+    int    left
+    bool   isInt
+    box    bx
+    box    fvg
+    bool   active  = true
+    bool   gateOn  = true
+    bool   reached = false
+    int    signals = 0
+    Trade  lastTrade
+
+type Engine
+    int    len
+    bool   isInt
+    string pre
+    int    trend    = 0
+    float  hiLvl
+    int    hiBar
+    float  loLvl
+    int    loBar
+    float  runHi
+    int    runHiBar
+    float  runLo
+    int    runLoBar
+    float  pbLvl
+    int    pbBar
+    float  hlLvl
+    int    hlBar
+    float  idmIn
+    int    idmInBar
+    float  idmExt
+    int    idmExtBar
+    bool   idmTaken = false
+    bool   secTaken = false
+    float  swHiLvl
+    float  swLoLvl
+    float  prevPL
+    float  prevPLCmp
+    float  prevPH
+    float  prevPHCmp
+    bool   evBosUp = false
+    bool   evBosDn = false
+    bool   evChUp  = false
+    bool   evChDn  = false
+    bool   evBosSw = false
+    bool   evChSw  = false
+    bool   evIdm   = false
+    bool   evIdmSw = false
+    bool   evSmt   = false
+    line   liveHi
+    line   liveLo
+    line   liveIdm
+    label  liveHiLbl
+    label  liveLoLbl
+    label  liveIdmLbl
+
+var array<Zone>  zones  = array.new<Zone>()
+var array<Trade> trades = array.new<Trade>()
+var array<bool>  obReachFlags = array.new<bool>(8, false)
+
+f_size(string s) =>
+    s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Large" ? size.large : size.normal
+
+f_pos(string v, string h) =>
+    v == "Top" ? (h == "Left" ? position.top_left : h == "Center" ? position.top_center : position.top_right) :
+     v == "Middle" ? (h == "Left" ? position.middle_left : h == "Center" ? position.middle_center : position.middle_right) :
+     (h == "Left" ? position.bottom_left : h == "Center" ? position.bottom_center : position.bottom_right)
+
+f_col(color c) =>
+    colourMode == "Monochrome" ? monoColor : c
+
+f_tfLabel(string tf) =>
+    float s = timeframe.in_seconds(tf)
+    string r = ""
+    if s < 3600
+        r := str.tostring(math.round(s / 60)) + "m"
+    else if s < 86400
+        r := str.tostring(math.round(s / 3600)) + "h"
+    else if s < 604800
+        r := s == 86400 ? "D" : str.tostring(math.round(s / 86400)) + "D"
+    else if s < 2592000
+        r := s == 604800 ? "W" : str.tostring(math.round(s / 604800)) + "W"
+    else
+        int m = math.round(s / 2629800)
+        r := m <= 1 ? "M" : str.tostring(m) + "M"
+    r
+
+f_mid(int a, int b) =>
+    int(math.round((a + b) / 2.0))
+
+f_smtAuto() =>
+    string base = syminfo.basecurrency
+    string r = syminfo.tickerid
+    if str.contains(r, "NQ1!")  // Stryker edit: futures pairing for our data feed
+        r := "futures:ES1!"
+    else if str.contains(r, "ES1!")
+        r := "futures:NQ1!"
+    else if syminfo.type == "crypto"
+        r := base == "BTC" ? "BINANCE:ETHUSDT" : "BINANCE:BTCUSDT"
+    else if base == "XAU"
+        r := "OANDA:XAGUSD"
+    else if base == "XAG"
+        r := "OANDA:XAUUSD"
+    else if base == "EUR"
+        r := "OANDA:GBPUSD"
+    else if base == "GBP"
+        r := "OANDA:EURUSD"
+    else if base == "AUD"
+        r := "OANDA:NZDUSD"
+    else if base == "NZD"
+        r := "OANDA:AUDUSD"
+    else if base == "USD"
+        r := "TVC:DXY"
+    r
+
+f_htfState(int len) =>
+    var int   t  = 0
+    var float sh = na
+    var float sl = na
+    float ph = ta.pivothigh(high, len, len)
+    float pl = ta.pivotlow(low, len, len)
+    if not na(ph)
+        sh := ph
+    if not na(pl)
+        sl := pl
+    int   ev  = 0
+    float lvl = na
+    if not na(sh) and close > sh
+        ev  := t == 1 ? 1 : 2
+        lvl := sh
+        t   := 1
+        sh  := na
+    else if not na(sl) and close < sl
+        ev  := t == -1 ? -1 : -2
+        lvl := sl
+        t   := -1
+        sl  := na
+    [t[1], ev[1], lvl[1]]
+
+f_zoneColor(string kind, int dir) =>
+    kind == K_OBIDM ? cObIdm : kind == K_SMT ? cSmtCol : (dir == 1 ? cObExtBull : cObExtBear)
+
+f_kindVisible(string kind) =>
+    kind == K_OBIDM ? showObIdm : kind == K_OBEXT ? showObExt : kind == K_PREVEXT ? showPrevObExt : kind == K_SMT ? showSmt : true
+
+f_boxRight(box b, int x) =>
+    if not na(b)
+        b.set_right(x)
+
+bool   allowDraw   = drawFromMode == "Whole history" or time >= drawFromTime
+string txtSize     = f_size(textSizeOpt)
+float  atr14       = ta.atr(14)
+int    effInnerLen = legacyInner ? 2 : innerLen
+
+float phExt = ta.pivothigh(high, swingLen, swingLen)
+float plExt = ta.pivotlow(low, swingLen, swingLen)
+float phInt = ta.pivothigh(high, effInnerLen, effInnerLen)
+float plInt = ta.pivotlow(low, effInnerLen, effInnerLen)
+
+string smtSym     = smtSymbolIn != "" ? smtSymbolIn : f_smtAuto()
+bool   smtEnabled = showSmt and smtSym != syminfo.tickerid
+[cmpHigh, cmpLow] = request.security(smtSym, timeframe.period, [high, low], lookahead = barmerge.lookahead_off)
+
+float velBase  = ta.ema(close, velLen)
+float velAtr   = ta.atr(velLen)
+float velocity = velAtr > 0 ? (close - velBase) / velAtr : 0.0
+float velSig   = ta.ema(velocity, velSigLen)
+bool  velBullX = ta.crossover(velocity, velSig)
+bool  velBearX = ta.crossunder(velocity, velSig)
+
+[bbMid, bbUp, bbLo] = ta.bb(close, bbLen, bbMult)
+bool  rangeOk   = (high - low) >= atr14 * rangeMult
+float lqdLow    = ta.lowest(low, lqdLen)[1]
+float lqdHigh   = ta.highest(high, lqdLen)[1]
+bool  lqdBullOk = not lqdSweep or (low < lqdLow and close > lqdLow)
+bool  lqdBearOk = not lqdSweep or (high > lqdHigh and close < lqdHigh)
+
+bool smcBull = modSmc and velBullX and close > bbMid and close > open and rangeOk and lqdBullOk
+bool smcBear = modSmc and velBearX and close < bbMid and close < open and rangeOk and lqdBearOk
+bool velBull = modVelocity and velBullX and not smcBull
+bool velBear = modVelocity and velBearX and not smcBear
+bool spBull  = smcBull or velBull
+bool spBear  = smcBear or velBear
+
+f_createZone(int dir, string kind, int barIdx, bool isInt) =>
+    Zone z = na
+    int  off = bar_index - barIdx
+    bool layerOk = not isInt or showInner
+    if layerOk and allowDraw and off >= 0 and off < 1500
+        float  zt  = high[off]
+        float  zb  = low[off]
+        string pre = isInt ? "i-" : ""
+        color  zc  = f_zoneColor(kind, dir)
+        z := Zone.new(zt, zb, dir, kind, barIdx, isInt)
+        if f_kindVisible(kind)
+            z.bx := box.new(barIdx, zt, bar_index, zb, border_color = color.new(zc, 100), bgcolor = zc, text = pre + kind, text_size = txtSize, text_color = (kind == K_OBIDM or kind == K_SMT) ? cObText : color.new(zc, 0), text_halign = text.align_center, text_valign = text.align_center)
+            if showObFvg and off >= 1 and off + 1 < 1500
+                bool bullGap = dir == 1 and low[off - 1] > high[off + 1]
+                bool bearGap = dir == -1 and high[off - 1] < low[off + 1]
+                if bullGap
+                    z.fvg := box.new(barIdx, low[off - 1], bar_index, high[off + 1], border_color = color.new(cFvg, 100), bgcolor = cFvg, text = "FVG", text_size = txtSize, text_color = color.new(cFvg, 0))
+                else if bearGap
+                    z.fvg := box.new(barIdx, low[off + 1], bar_index, high[off - 1], border_color = color.new(cFvg, 100), bgcolor = cFvg, text = "FVG", text_size = txtSize, text_color = color.new(cFvg, 0))
+        if kind == K_OBEXT and zones.size() > 0
+            for i = zones.size() - 1 to 0
+                Zone o = zones.get(i)
+                if o.kind == K_OBEXT and o.isInt == isInt and o.dir == dir
+                    o.kind := K_PREVEXT
+                    if not na(o.bx)
+                        if showPrevObExt
+                            o.bx.set_text(pre + K_PREVEXT)
+                        else
+                            o.bx.delete()
+                            o.bx := na
+                            if not na(o.fvg)
+                                o.fvg.delete()
+                                o.fvg := na
+                    break
+        zones.push(z)
+        if zones.size() > maxZones * 4
+            Zone old = zones.shift()
+            if not na(old.bx)
+                old.bx.delete()
+            if not na(old.fvg)
+                old.fvg.delete()
+    z
+
+f_line(int x1, float y, int x2, color c, string st, string txt, bool below) =>
+    line.new(x1, y, x2, y, color = c, style = st, width = 1)
+    label.new(f_mid(x1, x2), y, txt, color = C_CLEAR, textcolor = c, size = txtSize, style = below ? label.style_label_up : label.style_label_down)
+
+f_point(int x, float y, color c) =>
+    if showPoints
+        label.new(x, y, "", color = color.new(c, spTransp), style = label.style_circle, size = size.tiny)
+
+f_sweepMark(float y, bool below) =>
+    label.new(bar_index, y, "x", color = C_CLEAR, textcolor = f_col(cSweep), size = size.tiny, style = below ? label.style_label_up : label.style_label_down)
+
+method process(Engine e, float ph, float pl) =>
+    e.evBosUp := false
+    e.evBosDn := false
+    e.evChUp  := false
+    e.evChDn  := false
+    e.evBosSw := false
+    e.evChSw  := false
+    e.evIdm   := false
+    e.evIdmSw := false
+    e.evSmt   := false
+    bool   vis   = allowDraw and (not e.isInt or showInner)
+    int    pvBar = bar_index - e.len
+    string pre   = e.pre
+
+    if na(e.runHi) or high > e.runHi
+        e.runHi := high
+        e.runHiBar := bar_index
+    if na(e.runLo) or low < e.runLo
+        e.runLo := low
+        e.runLoBar := bar_index
+    if e.trend == 1 and not na(e.hiLvl)
+        if na(e.pbLvl) or low < e.pbLvl
+            e.pbLvl := low
+            e.pbBar := bar_index
+    if e.trend == -1 and not na(e.loLvl)
+        if na(e.pbLvl) or high > e.pbLvl
+            e.pbLvl := high
+            e.pbBar := bar_index
+
+    if not na(ph)
+        if e.trend == 0
+            e.hiLvl := ph
+            e.hiBar := pvBar
+        else if e.trend == 1 and na(e.hiLvl)
+            e.hiLvl := e.runHi
+            e.hiBar := e.runHiBar
+            e.pbLvl := na
+            e.hlLvl := na
+            e.idmIn := na
+            e.idmExt := na
+            e.idmTaken := false
+            e.secTaken := false
+            for k = 0 to math.min(bar_index - e.runHiBar, 1499)
+                if na(e.pbLvl) or low[k] < e.pbLvl
+                    e.pbLvl := low[k]
+                    e.pbBar := bar_index - k
+            if vis
+                f_point(e.hiBar, e.hiLvl, f_col(cBull))
+        else if e.trend == -1 and not na(e.loLvl) and pvBar > e.loBar
+            e.idmIn := ph
+            e.idmInBar := pvBar
+            if na(e.idmExt) or ph > e.idmExt
+                e.idmExt := ph
+                e.idmExtBar := pvBar
+            e.hlLvl := ph
+            e.hlBar := pvBar
+        if smtEnabled and bar_index > e.len
+            float cmpAt = cmpHigh[e.len]
+            if not na(e.prevPH) and not na(e.prevPHCmp) and not na(cmpAt)
+                if (ph > e.prevPH and cmpAt < e.prevPHCmp) or (ph < e.prevPH and cmpAt > e.prevPHCmp)
+                    f_createZone(-1, K_SMT, pvBar, e.isInt)
+                    e.evSmt := true
+            e.prevPH := ph
+            e.prevPHCmp := cmpAt
+
+    if not na(pl)
+        if e.trend == 0
+            e.loLvl := pl
+            e.loBar := pvBar
+        else if e.trend == -1 and na(e.loLvl)
+            e.loLvl := e.runLo
+            e.loBar := e.runLoBar
+            e.pbLvl := na
+            e.hlLvl := na
+            e.idmIn := na
+            e.idmExt := na
+            e.idmTaken := false
+            e.secTaken := false
+            for k = 0 to math.min(bar_index - e.runLoBar, 1499)
+                if na(e.pbLvl) or high[k] > e.pbLvl
+                    e.pbLvl := high[k]
+                    e.pbBar := bar_index - k
+            if vis
+                f_point(e.loBar, e.loLvl, f_col(cBear))
+        else if e.trend == 1 and not na(e.hiLvl) and pvBar > e.hiBar
+            e.idmIn := pl
+            e.idmInBar := pvBar
+            if na(e.idmExt) or pl < e.idmExt
+                e.idmExt := pl
+                e.idmExtBar := pvBar
+            e.hlLvl := pl
+            e.hlBar := pvBar
+        if smtEnabled and bar_index > e.len
+            float cmpAtL = cmpLow[e.len]
+            if not na(e.prevPL) and not na(e.prevPLCmp) and not na(cmpAtL)
+                if (pl < e.prevPL and cmpAtL > e.prevPLCmp) or (pl > e.prevPL and cmpAtL < e.prevPLCmp)
+                    f_createZone(1, K_SMT, pvBar, e.isInt)
+                    e.evSmt := true
+            e.prevPL := pl
+            e.prevPLCmp := cmpAtL
+
+    bool  extMode = idmMode == "ext-idm"
+    float idmP    = extMode ? e.idmExt : e.idmIn
+    int   idmPBar = extMode ? e.idmExtBar : e.idmInBar
+    float idmS    = extMode ? e.idmIn : e.idmExt
+    int   idmSBar = extMode ? e.idmInBar : e.idmExtBar
+    string secTxt = "< " + pre + (extMode ? "in-IDM" : "ext-IDM") + " >"
+    if e.trend == 1 and not na(e.hiLvl)
+        if not e.idmTaken and not na(idmP) and low < idmP
+            e.idmTaken := true
+            e.evIdm := true
+            e.evIdmSw := close >= idmP
+            if vis and showIdm
+                f_line(idmPBar, idmP, bar_index, f_col(cIdm), line.style_dotted, pre + "IDM", true)
+        if showSecIdm and not e.secTaken and not na(idmS) and idmS != idmP and low < idmS
+            e.secTaken := true
+            if vis and showIdm
+                f_line(idmSBar, idmS, bar_index, f_col(cIdm), line.style_dotted, secTxt, true)
+    if e.trend == -1 and not na(e.loLvl)
+        if not e.idmTaken and not na(idmP) and high > idmP
+            e.idmTaken := true
+            e.evIdm := true
+            e.evIdmSw := close <= idmP
+            if vis and showIdm
+                f_line(idmPBar, idmP, bar_index, f_col(cIdm), line.style_dotted, pre + "IDM", false)
+        if showSecIdm and not e.secTaken and not na(idmS) and idmS != idmP and high > idmS
+            e.secTaken := true
+            if vis and showIdm
+                f_line(idmSBar, idmS, bar_index, f_col(cIdm), line.style_dotted, secTxt, false)
+
+    bool idmOk = e.idmTaken or na(idmP)
+    if e.trend == 0
+        if not na(e.hiLvl) and close > e.hiLvl
+            e.trend := 1
+            e.loLvl := e.runLo
+            e.loBar := e.runLoBar
+            e.hiLvl := na
+            e.runHi := high
+            e.runHiBar := bar_index
+        else if not na(e.loLvl) and close < e.loLvl
+            e.trend := -1
+            e.hiLvl := e.runHi
+            e.hiBar := e.runHiBar
+            e.loLvl := na
+            e.runLo := low
+            e.runLoBar := bar_index
+    else if e.trend == 1
+        if not na(e.loLvl) and close < e.loLvl
+            if vis and showChoch
+                f_line(e.loBar, e.loLvl, bar_index, f_col(cBear), line.style_solid, pre + "ChoCh", true)
+            float pHi  = na(e.hiLvl) ? e.runHi : e.hiLvl
+            int   pHiB = na(e.hiLvl) ? e.runHiBar : e.hiBar
+            f_createZone(-1, K_OBEXT, pHiB, e.isInt)
+            if not na(e.hlLvl) and e.hlBar > pHiB and e.hlBar < bar_index
+                f_createZone(-1, K_OBIDM, e.hlBar, e.isInt)
+            e.trend := -1
+            e.evChDn := true
+            e.hiLvl := pHi
+            e.hiBar := pHiB
+            e.loLvl := na
+            e.runLo := low
+            e.runLoBar := bar_index
+            e.pbLvl := na
+            e.hlLvl := na
+            e.idmIn := na
+            e.idmExt := na
+            e.idmTaken := false
+            e.secTaken := false
+        else if not na(e.loLvl) and low < e.loLvl and close >= e.loLvl
+            e.evChSw := true
+            if vis and showSweeps and (na(e.swLoLvl) or e.swLoLvl != e.loLvl)
+                f_sweepMark(low, true)
+                e.swLoLvl := e.loLvl
+        else if not na(e.hiLvl) and close > e.hiLvl
+            if idmOk
+                if vis and showBos
+                    f_line(e.hiBar, e.hiLvl, bar_index, f_col(cBull), line.style_solid, pre + "BoS", false)
+                int obBar = (e.isInt and legacyInnerOb) ? (na(e.idmExtBar) ? e.pbBar : e.idmExtBar) : e.pbBar
+                if not na(e.pbLvl)
+                    f_createZone(1, K_OBEXT, obBar, e.isInt)
+                    if not na(e.hlLvl) and e.hlBar > e.pbBar and e.hlBar < bar_index
+                        f_createZone(1, K_OBIDM, e.hlBar, e.isInt)
+                    e.loLvl := e.pbLvl
+                    e.loBar := e.pbBar
+                e.evBosUp := true
+            e.hiLvl := na
+            e.runHi := high
+            e.runHiBar := bar_index
+            e.pbLvl := na
+            e.hlLvl := na
+            if idmOk
+                e.idmIn := na
+                e.idmExt := na
+                e.idmTaken := false
+                e.secTaken := false
+        else if not na(e.hiLvl) and high > e.hiLvl and close <= e.hiLvl
+            e.evBosSw := true
+            if vis and showSweeps and (na(e.swHiLvl) or e.swHiLvl != e.hiLvl)
+                f_sweepMark(high, false)
+                e.swHiLvl := e.hiLvl
+    else if e.trend == -1
+        if not na(e.hiLvl) and close > e.hiLvl
+            if vis and showChoch
+                f_line(e.hiBar, e.hiLvl, bar_index, f_col(cBull), line.style_solid, pre + "ChoCh", false)
+            float pLo  = na(e.loLvl) ? e.runLo : e.loLvl
+            int   pLoB = na(e.loLvl) ? e.runLoBar : e.loBar
+            f_createZone(1, K_OBEXT, pLoB, e.isInt)
+            if not na(e.hlLvl) and e.hlBar > pLoB and e.hlBar < bar_index
+                f_createZone(1, K_OBIDM, e.hlBar, e.isInt)
+            e.trend := 1
+            e.evChUp := true
+            e.loLvl := pLo
+            e.loBar := pLoB
+            e.hiLvl := na
+            e.runHi := high
+            e.runHiBar := bar_index
+            e.pbLvl := na
+            e.hlLvl := na
+            e.idmIn := na
+            e.idmExt := na
+            e.idmTaken := false
+            e.secTaken := false
+        else if not na(e.hiLvl) and high > e.hiLvl and close <= e.hiLvl
+            e.evChSw := true
+            if vis and showSweeps and (na(e.swHiLvl) or e.swHiLvl != e.hiLvl)
+                f_sweepMark(high, false)
+                e.swHiLvl := e.hiLvl
+        else if not na(e.loLvl) and close < e.loLvl
+            if idmOk
+                if vis and showBos
+                    f_line(e.loBar, e.loLvl, bar_index, f_col(cBear), line.style_solid, pre + "BoS", true)
+                int obBarD = (e.isInt and legacyInnerOb) ? (na(e.idmExtBar) ? e.pbBar : e.idmExtBar) : e.pbBar
+                if not na(e.pbLvl)
+                    f_createZone(-1, K_OBEXT, obBarD, e.isInt)
+                    if not na(e.hlLvl) and e.hlBar > e.pbBar and e.hlBar < bar_index
+                        f_createZone(-1, K_OBIDM, e.hlBar, e.isInt)
+                    e.hiLvl := e.pbLvl
+                    e.hiBar := e.pbBar
+                e.evBosDn := true
+            e.loLvl := na
+            e.runLo := low
+            e.runLoBar := bar_index
+            e.pbLvl := na
+            e.hlLvl := na
+            if idmOk
+                e.idmIn := na
+                e.idmExt := na
+                e.idmTaken := false
+                e.secTaken := false
+        else if not na(e.loLvl) and low < e.loLvl and close >= e.loLvl
+            e.evBosSw := true
+            if vis and showSweeps and (na(e.swLoLvl) or e.swLoLvl != e.loLvl)
+                f_sweepMark(low, true)
+                e.swLoLvl := e.loLvl
+    e
+
+method drawLive(Engine e) =>
+    e.liveHi.delete()
+    e.liveLo.delete()
+    e.liveIdm.delete()
+    e.liveHiLbl.delete()
+    e.liveLoLbl.delete()
+    e.liveIdmLbl.delete()
+    bool vis = not e.isInt or showInner
+    if vis and showLiveStruct
+        if not na(e.hiLvl)
+            string t1 = e.trend == 1 ? "BoS" : "ChoCh"
+            e.liveHi := line.new(e.hiBar, e.hiLvl, bar_index + 10, e.hiLvl, color = f_col(cBull), style = line.style_dashed)
+            e.liveHiLbl := label.new(bar_index + 10, e.hiLvl, e.pre + t1, color = C_CLEAR, textcolor = f_col(cBull), size = txtSize, style = label.style_label_left)
+        if not na(e.loLvl)
+            string t2 = e.trend == -1 ? "BoS" : "ChoCh"
+            e.liveLo := line.new(e.loBar, e.loLvl, bar_index + 10, e.loLvl, color = f_col(cBear), style = line.style_dashed)
+            e.liveLoLbl := label.new(bar_index + 10, e.loLvl, e.pre + t2, color = C_CLEAR, textcolor = f_col(cBear), size = txtSize, style = label.style_label_left)
+    if vis and showLiveIdm and not e.idmTaken
+        float lv = idmMode == "ext-idm" ? e.idmExt : e.idmIn
+        int   lb = idmMode == "ext-idm" ? e.idmExtBar : e.idmInBar
+        if not na(lv)
+            e.liveIdm := line.new(lb, lv, bar_index + 10, lv, color = f_col(cIdm), style = line.style_dotted)
+            e.liveIdmLbl := label.new(bar_index + 10, lv, e.pre + idmMode, color = C_CLEAR, textcolor = f_col(cIdm), size = txtSize, style = label.style_label_left)
+
+var Engine extE = Engine.new(swingLen, false, "")
+var Engine intE = Engine.new(effInnerLen, true, "i-")
+
+var int   stClosed = 0
+var int   stWins   = 0
+var int   stLosses = 0
+var float stRR     = 0.0
+var float stPips   = 0.0
+
+bool  evTp    = false
+bool  evSl    = false
+float pipSize = syminfo.mintick > 0 ? syminfo.mintick : 1.0
+
+f_kindAllowed(Zone z) =>
+    bool k = z.kind == K_OBIDM ? gateObIdm : z.kind == K_OBEXT ? gateObExt : z.kind == K_PREVEXT ? gatePrevExt : gateSmt
+    k and (not z.isInt or gateInternal)
+
+bool sigLong  = false
+bool sigShort = false
+
+if barstate.isconfirmed
+    if trades.size() > 0
+        for i = trades.size() - 1 to 0
+            Trade tr = trades.get(i)
+            if tr.live and bar_index > tr.bar
+                bool hitSl = tr.dir == 1 ? low <= tr.sl : high >= tr.sl
+                bool hitTp = tr.dir == 1 ? high >= tr.tp : low <= tr.tp
+                if hitSl or hitTp
+                    bool  win   = hitTp and not hitSl
+                    float hitPx = win ? tr.tp : tr.sl
+                    tr.live := false
+                    f_boxRight(tr.tpBox, bar_index)
+                    f_boxRight(tr.slBox, bar_index)
+                    if win
+                        tr.tpBox.set_border_color(cTp)
+                        tr.tpBox.set_border_width(1)
+                        label.new(bar_index, hitPx, "✓", color = cTp, textcolor = color.white, size = size.small, style = label.style_label_left)
+                        evTp := true
+                    else
+                        tr.slBox.set_border_color(cSl)
+                        tr.slBox.set_border_width(1)
+                        label.new(bar_index, hitPx, "X", color = cSl, textcolor = color.white, size = size.small, style = label.style_label_left)
+                        evSl := true
+                    line.new(tr.bar, tr.entry, bar_index, hitPx, color = win ? cTp : cSl, style = line.style_dashed, width = 1)
+                    if not useTrackFrom or tr.t >= trackFromTime
+                        float risk = math.abs(tr.entry - tr.sl)
+                        stClosed += 1
+                        if win
+                            stWins += 1
+                            stRR   += rrRatio
+                            stPips += math.abs(tr.tp - tr.entry) / pipSize
+                        else
+                            stLosses += 1
+                            stRR     -= 1.0
+                            stPips   -= risk / pipSize
+                else
+                    f_boxRight(tr.tpBox, bar_index + 1)
+                    f_boxRight(tr.slBox, bar_index + 1)
+            if not tr.live and bar_index - tr.bar > 3000
+                trades.remove(i)
+
+    if zones.size() > 0
+        for i = 0 to zones.size() - 1
+            Zone z = zones.get(i)
+            if z.active and bar_index > z.left
+                bool touch = z.dir == 1 ? low <= z.top : high >= z.bottom
+                if touch and not z.reached and bar_index > z.left + 1
+                    z.reached := true
+                    int k = (z.isInt ? 4 : 0) + (z.kind == K_OBIDM ? 0 : z.kind == K_OBEXT ? 1 : z.kind == K_PREVEXT ? 2 : 3)
+                    obReachFlags.set(k, true)
+                bool broken = z.dir == 1 ? close < z.bottom : close > z.top
+                f_boxRight(z.bx, bar_index)
+                f_boxRight(z.fvg, bar_index)
+                if broken
+                    z.active := false
+                    z.gateOn := false
+                    if not na(z.lastTrade)
+                        if z.lastTrade.live
+                            z.lastTrade.live := false
+                            if not na(z.lastTrade.tpBox)
+                                z.lastTrade.tpBox.delete()
+                            if not na(z.lastTrade.slBox)
+                                z.lastTrade.slBox.delete()
+
+    extE.process(phExt, plExt)
+    intE.process(phInt, plInt)
+
+    if modOb and allowDraw and (spBull or spBear) and zones.size() > 0
+        int   bestIdx  = -1
+        float bestDist = na
+        for i = 0 to zones.size() - 1
+            Zone z = zones.get(i)
+            if z.active and z.gateOn and z.reached and f_kindAllowed(z) and (allowMulti or z.signals == 0)
+                bool ok = (z.dir == 1 and spBull and open < z.top and close > z.top) or (z.dir == -1 and spBear and open > z.bottom and close < z.bottom)
+                if ok
+                    float d = z.dir == 1 ? math.abs(close - z.top) : math.abs(close - z.bottom)
+                    if na(bestDist) or d < bestDist
+                        bestDist := d
+                        bestIdx  := i
+        if bestIdx >= 0
+            Zone zb    = zones.get(bestIdx)
+            float entry = close
+            float slv   = zb.dir == 1 ? zb.bottom : zb.top
+            float risk  = math.abs(entry - slv)
+            if risk > 0
+                float tpv = zb.dir == 1 ? entry + risk * rrRatio : entry - risk * rrRatio
+                if not na(zb.lastTrade)
+                    if zb.lastTrade.live
+                        zb.lastTrade.live := false
+                        if not na(zb.lastTrade.tpBox)
+                            zb.lastTrade.tpBox.delete()
+                        if not na(zb.lastTrade.slBox)
+                            zb.lastTrade.slBox.delete()
+                Trade nt = Trade.new(zb.dir, entry, slv, tpv, bar_index, time)
+                nt.sigLbl := zb.dir == 1 ? label.new(bar_index, low, "Bullish", color = cLongLbl, textcolor = color.white, size = size.small, style = label.style_label_up) : label.new(bar_index, high, "Bearish", color = cShortLbl, textcolor = color.white, size = size.small, style = label.style_label_down)  // Stryker edit: wording (unreachable, module off)
+                if trackTpSl
+                    nt.tpBox := box.new(bar_index, math.max(entry, tpv), bar_index + 1, math.min(entry, tpv), border_color = color.new(cTp, 100), bgcolor = color.new(cTp, tpslTransp))
+                    nt.slBox := box.new(bar_index, math.max(entry, slv), bar_index + 1, math.min(entry, slv), border_color = color.new(cSl, 100), bgcolor = color.new(cSl, tpslTransp))
+                else
+                    nt.live := false
+                if showGateLine
+                    nt.gateLine := line.new(zb.left, open, bar_index, open, color = color.new(#b2b5be, 30), style = line.style_solid, width = 1)
+                trades.push(nt)
+                zb.lastTrade := nt
+                zb.signals += 1
+                if not allowMulti
+                    zb.gateOn := false
+                sigLong  := zb.dir == 1
+                sigShort := zb.dir == -1
+
+color sigColor = not barstate.isconfirmed ? na : smcBull ? cSmcBull : smcBear ? cSmcBear : velBull ? cVelBull : velBear ? cVelBear : na
+barcolor(dispMode == "Bar Color" ? sigColor : na, title = "Smart Point bar colour")
+if dispMode == "Box Border" and not na(sigColor)
+    box.new(bar_index, math.max(open, close), bar_index, math.min(open, close), border_color = sigColor, border_width = borderW, bgcolor = color.new(sigColor, 100))
+
+plotshape(showTrendDots, "External trend", shape.circle, location.bottom, extE.trend == 1 ? cTrendBull : extE.trend == -1 ? cTrendBear : color.gray, size = size.tiny)
+plotshape(showTrendDots and showInner, "Internal trend", shape.circle, location.bottom, intE.trend == 1 ? cTrendBull : intE.trend == -1 ? cTrendBear : color.gray, size = size.small)
+bgcolor(showBgTrend ? (extE.trend == 1 ? color.new(cTrendBull, bgTransp) : extE.trend == -1 ? color.new(cTrendBear, bgTransp) : na) : na, title = "Background by structure")
+
+[mtfTr, mtfEv, mtfLvl] = request.security(syminfo.tickerid, mtfStructTf, f_htfState(mtfSwingLen), lookahead = barmerge.lookahead_on)
+bool mtfNew = timeframe.change(mtfStructTf) and mtfEv != 0 and not na(mtfLvl)
+if showMtfStruct and mtfNew and allowDraw and timeframe.in_seconds(mtfStructTf) > timeframe.in_seconds()
+    int startB = bar_index - 1
+    int lim    = math.min(500, bar_index)
+    for i = 1 to lim
+        if (mtfEv > 0 and math.abs(high[i] - mtfLvl) <= syminfo.mintick) or (mtfEv < 0 and math.abs(low[i] - mtfLvl) <= syminfo.mintick)
+            startB := bar_index - i
+            break
+    string tag = "[" + f_tfLabel(mtfStructTf) + "]"
+    string nm  = math.abs(mtfEv) == 1 ? "BoS" : "ChoCh"
+    color  mc  = f_col(mtfEv > 0 ? cBull : cBear)
+    line.new(startB, mtfLvl, bar_index, mtfLvl, color = mc, style = line.style_dashed, width = 1)
+    label.new(f_mid(startB, bar_index), mtfLvl, nm + tag, color = C_CLEAR, textcolor = mc, size = txtSize, style = mtfEv > 0 ? label.style_label_down : label.style_label_up)
+
+float fibHi  = extE.trend == 1 ? (na(extE.hiLvl) ? extE.runHi : extE.hiLvl) : extE.hiLvl
+float fibLo  = extE.trend == -1 ? (na(extE.loLvl) ? extE.runLo : extE.loLvl) : extE.loLvl
+float fibMid = not na(fibHi) and not na(fibLo) ? fibLo + (fibHi - fibLo) * 0.5 : na
+bool  fibCross = not na(fibMid) and not na(fibMid[1]) and ((close > fibMid and close[1] <= fibMid[1]) or (close < fibMid and close[1] >= fibMid[1]))
+
+var array<line>  fibLines  = array.new<line>()
+var array<label> fibLabels = array.new<label>()
+
+f_fib(bool on, float lv, color c, int x1) =>
+    if on and not na(fibHi) and not na(fibLo)
+        float y = extE.trend == 1 ? fibHi - (fibHi - fibLo) * lv : fibLo + (fibHi - fibLo) * lv
+        fibLines.push(line.new(x1, y, bar_index + 15, y, color = c, style = line.style_dashed))
+        fibLabels.push(label.new(bar_index + 15, y, str.tostring(lv) + (showFiboLbl ? " (" + str.tostring(y, format.mintick) + ")" : ""), color = C_CLEAR, textcolor = c, size = txtSize, style = label.style_label_left))
+
+if barstate.islast
+    extE.drawLive()
+    intE.drawLive()
+    for l in fibLines
+        l.delete()
+    for lb in fibLabels
+        lb.delete()
+    fibLines.clear()
+    fibLabels.clear()
+    if showFibo
+        int fx = math.min(nz(extE.hiBar, bar_index), nz(extE.loBar, bar_index))
+        f_fib(fibOn1, fibLv1, fibC1, fx)
+        f_fib(fibOn2, fibLv2, fibC2, fx)
+        f_fib(fibOn3, fibLv3, fibC3, fx)
+        f_fib(fibOn4, fibLv4, fibC4, fx)
+        f_fib(fibOn5, fibLv5, fibC5, fx)
+
+float  tfSec = timeframe.in_seconds()
+string tfA0 = tfSec <= 300 ? "15" : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : tfSec <= 14400 ? "D" : "W"
+string tfA = timeframe.in_seconds(tfA0) > 86400 ? "D" : tfA0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
+string tfB0 = tfSec <= 300 ? "30" : tfSec <= 900 ? "120" : tfSec <= 3600 ? "480" : tfSec <= 14400 ? "3D" : "M"
+string tfB = timeframe.in_seconds(tfB0) > 86400 ? "D" : tfB0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
+string tfC0 = tfSec <= 300 ? "60" : tfSec <= 900 ? "240" : tfSec <= 3600 ? "D" : tfSec <= 14400 ? "W" : "3M"
+string tfC = timeframe.in_seconds(tfC0) > 86400 ? "D" : tfC0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
+
+[tA, eA, lA] = request.security(syminfo.tickerid, tfA, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tB, eB, lB] = request.security(syminfo.tickerid, tfB, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tC, eC, lC] = request.security(syminfo.tickerid, tfC, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+
+// Stryker edit: performance table removed
+var table mtfTbl  = table.new(f_pos(mtfPosV, mtfPosH), 2, 3, border_width = 1, border_color = color.new(#131722, 0))
+
+f_mtfRow(int r, string tf, int t) =>
+    color  bgTf = t == 1 ? color.new(#089981, 20) : t == -1 ? color.new(#f23645, 40) : C_TBL_CELL
+    color  bgSt = t == 1 ? color.new(#089981, 75) : t == -1 ? color.new(#f23645, 75) : C_TBL_CELL
+    color  txSt = t == 1 ? C_GOOD : t == -1 ? C_BAD : C_TXT_DIM
+    string st   = t == 1 ? "⮝ Bullish" : t == -1 ? "⮟ Bearish" : "None"  // Stryker edit: wording
+    table.cell(mtfTbl, 0, r, f_tfLabel(tf), bgcolor = bgTf, text_color = color.white, text_size = f_size(perfSizeOpt))
+    table.cell(mtfTbl, 1, r, st, bgcolor = bgSt, text_color = txSt, text_size = f_size(perfSizeOpt))
+
+if barstate.islast
+    string ps = f_size(perfSizeOpt)
+    if showMtfDash
+        f_mtfRow(0, tfA, tA)
+        f_mtfRow(1, tfB, tB)
+        f_mtfRow(2, tfC, tC)
+
+string tk = syminfo.ticker + " [" + timeframe.period + "] "
+if barstate.isconfirmed
+    if aBos and (extE.evBosUp or extE.evBosDn)
+        alert(tk + (extE.evBosUp ? "Bullish" : "Bearish") + " BoS", alertFreq)
+    if aBosSw and extE.evBosSw
+        alert(tk + "BoS sweep", alertFreq)
+    if aChoch and (extE.evChUp or extE.evChDn)
+        alert(tk + (extE.evChUp ? "Bullish" : "Bearish") + " ChoCh", alertFreq)
+    if aChochSw and extE.evChSw
+        alert(tk + "ChoCh sweep", alertFreq)
+    if aIdm and extE.evIdm
+        alert(tk + "IDM taken", alertFreq)
+    if aIdmSw and extE.evIdmSw
+        alert(tk + "IDM sweep", alertFreq)
+    if aObIdm and obReachFlags.get(0)
+        alert(tk + "OB-IDM reached", alertFreq)
+    if aObExt and obReachFlags.get(1)
+        alert(tk + "OB-EXT reached", alertFreq)
+    if aPrevExt and obReachFlags.get(2)
+        alert(tk + "Previous OB-EXT reached", alertFreq)
+    if aSmt and extE.evSmt
+        alert(tk + "SMT formed", alertFreq)
+    if aiBos and (intE.evBosUp or intE.evBosDn)
+        alert(tk + (intE.evBosUp ? "Bullish" : "Bearish") + " i-BoS", alertFreq)
+    if aiBosSw and intE.evBosSw
+        alert(tk + "i-BoS sweep", alertFreq)
+    if aiChoch and (intE.evChUp or intE.evChDn)
+        alert(tk + (intE.evChUp ? "Bullish" : "Bearish") + " i-ChoCh", alertFreq)
+    if aiChochSw and intE.evChSw
+        alert(tk + "i-ChoCh sweep", alertFreq)
+    if aiIdm and intE.evIdm
+        alert(tk + "i-IDM taken", alertFreq)
+    if aiIdmSw and intE.evIdmSw
+        alert(tk + "i-IDM sweep", alertFreq)
+    if aiObIdm and obReachFlags.get(4)
+        alert(tk + "i-OB-IDM reached", alertFreq)
+    if aiObExt and obReachFlags.get(5)
+        alert(tk + "i-OB-EXT reached", alertFreq)
+    if aiPrevExt and obReachFlags.get(6)
+        alert(tk + "i-Previous OB-EXT reached", alertFreq)
+    if aiSmt and intE.evSmt
+        alert(tk + "i-SMT formed", alertFreq)
+    if aFibo and fibCross
+        alert(tk + "Price crossed Fibo midpoint", alertFreq)
+    if aVelBull and velBull
+        alert(tk + "Velocity Bullish bar", alertFreq)
+    if aVelBear and velBear
+        alert(tk + "Velocity Bearish bar", alertFreq)
+    if aSmcBull and smcBull
+        alert(tk + "SMC Bullish bar", alertFreq)
+    if aSmcBear and smcBear
+        alert(tk + "SMC Bearish bar", alertFreq)
+    for i = 0 to 7
+        obReachFlags.set(i, false)

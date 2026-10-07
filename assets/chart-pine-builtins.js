@@ -34,6 +34,8 @@ export const PICKER_SCRIPTS = [
   // Community batch B (Owner 2026-10-08 "Add all these indicators in community"): third-party,
   // byte-identical to the files the Owner sent (CRLF line endings kept).
   { id: 'ict-pro-plus-timmynq', name: 'ICT Pro+ | TimmyNQ [TakingProphets]', author: 'TimmyNQ (TakingProphets)', section: 'community', source: 'pine/ict-pro-plus-timmynq.pine?v=470', desc: 'ICT toolkit: higher-timeframe candles and levels, liquidity, FVGs, sessions and SMT vs a compare symbol' },
+  // Community batch A (same Owner order; web-temp-6): third-party, byte-identical, CRLF kept.
+  { id: 'manipulation-model-fb', name: 'Manipulation Model [FB]', author: 'FB', section: 'community', source: 'pine/manipulation-model-fb.pine?v=470', desc: 'Session manipulation candles, traps, key levels, higher-timeframe FVGs and a stats dashboard' },
   // The Owner's own indicators ("add this indicator, its strykers", 2026-10-08): Editors' picks,
   // author Stryker, byte-identical to the Owner's sources.
   { id: 'smt-pro-stryker', name: 'SMT Divergence Pro [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/smt-pro-stryker.pine?v=470', desc: 'SMT divergence vs correlated futures (auto-paired: NQ vs ES), chart TF + higher TFs' },

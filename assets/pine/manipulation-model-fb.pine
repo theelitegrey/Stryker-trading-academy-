@@ -1,0 +1,900 @@
+//@version=6
+indicator("Manipulation Model [FB]", shorttitle = "Manipulation Model [FB]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 500)
+
+
+GRP_GEN  = "General Configuration"
+GRP_SU   = "Sessions Used"
+GRP_KLU  = "Key Levels Used"
+GRP_TRAP = "Trap Confirmation"
+GRP_FVG  = "Higher Timeframe FVG Settings"
+GRP_SES  = "Sessions"
+GRP_KL   = "Key Levels"
+GRP_STY  = "Style Customization"
+GRP_DB   = "Dashboard"
+GRP_AL   = "Alerts"
+
+candleTypeInput  = input.string("Both", "Candle Type", options = ["Manipulation Candle (MC)", "Almost Manipulation Candle (AMC)", "Both"], group = GRP_GEN, tooltip = "Choose which candle type is used to generate signals: Manipulation Candles only, Almost Manipulation Candles only, or Both.", display = display.none)
+entryMethodInput = input.string("Both", "Entry Method", options = ["Key Levels", "Fair Value Gaps", "Both"], group = GRP_GEN, tooltip = "Determines whether signals are generated from Key Levels, Higher Timeframe Fair Value Gaps, or Both.", display = display.none)
+longSetupsInput  = input.bool(true, "Long Setups", group = GRP_GEN, inline = "setA")
+shortSetupsInput = input.bool(true, "Short Setups", group = GRP_GEN, inline = "setA")
+bulltrapInput    = input.bool(true, "Bulltrap Setups", group = GRP_GEN, inline = "setB")
+beartrapInput    = input.bool(true, "Beartrap Setups", group = GRP_GEN, inline = "setB")
+slMultInput      = input.float(1.0, "SL Multiplier", minval = 0.1, step = 0.1, group = GRP_GEN, tooltip = "Extends or contracts the stop loss distance measured from the entry.", display = display.none)
+tpMultInput      = input.float(1.0, "TP Multiplier", minval = 0.1, step = 0.1, group = GRP_GEN, tooltip = "Take profit distance = (Entry - Stop Loss distance) x TP Multiplier.", display = display.none)
+biasTfInput      = input.timeframe("60", "HTF Bias EMA", group = GRP_GEN, inline = "bias", display = display.none)
+biasLenInput     = input.int(50, "Length", minval = 1, group = GRP_GEN, inline = "bias", tooltip = "Higher timeframe EMA bias filter. Above the EMA only bullish setups are allowed, below the EMA only bearish setups are allowed.", display = display.none)
+
+useAsiaInput = input.bool(true, "Asia", group = GRP_SU, inline = "su1")
+sigAsiaInput = input.session("2000-0000", "", group = GRP_SU, inline = "su1", display = display.none)
+useLonInput  = input.bool(true, "London", group = GRP_SU, inline = "su2")
+sigLonInput  = input.session("0200-0500", "", group = GRP_SU, inline = "su2", display = display.none)
+useNyamInput = input.bool(true, "NY AM", group = GRP_SU, inline = "su3")
+sigNyamInput = input.session("0800-0930", "", group = GRP_SU, inline = "su3", display = display.none)
+useNyseInput = input.bool(true, "NYSE", group = GRP_SU, inline = "su4")
+sigNyseInput = input.session("0930-1000", "", group = GRP_SU, inline = "su4", display = display.none)
+useLcInput   = input.bool(true, "London Close", group = GRP_SU, inline = "su5")
+sigLcInput   = input.session("1000-1100", "", group = GRP_SU, inline = "su5", display = display.none)
+useNypmInput = input.bool(true, "NY PM", group = GRP_SU, inline = "su6")
+sigNypmInput = input.session("1100-1400", "", group = GRP_SU, inline = "su6", tooltip = "Only sessions enabled here produce signals. Signals can not be detected outside of these session windows.", display = display.none)
+
+useDOLvlInput   = input.bool(true, "Daily Open", group = GRP_KLU)
+usePDLvlInput   = input.bool(true, "Previous Day High/Low", group = GRP_KLU)
+useWOLvlInput   = input.bool(true, "Weekly Open", group = GRP_KLU)
+usePWLvlInput   = input.bool(true, "Previous Week High/Low", group = GRP_KLU)
+useMOLvlInput   = input.bool(true, "Monthly Open", group = GRP_KLU)
+usePMLvlInput   = input.bool(true, "Previous Month High/Low", group = GRP_KLU)
+useAsiaLvlInput = input.bool(true, "Asia Session H/L", group = GRP_KLU)
+useLonLvlInput  = input.bool(true, "London Session H/L", group = GRP_KLU)
+useNyamLvlInput = input.bool(true, "NY AM Session H/L", group = GRP_KLU)
+useNyseLvlInput = input.bool(true, "NYSE Session H/L", group = GRP_KLU)
+useNypmLvlInput = input.bool(true, "NY PM Session H/L", group = GRP_KLU)
+useLcLvlInput   = input.bool(true, "London Close Session H/L", group = GRP_KLU)
+useMidLvlInput  = input.bool(true, "Midnight Open", group = GRP_KLU, tooltip = "Only the levels enabled here are used to confirm Long, Short, Bulltrap and Beartrap setups.")
+
+trapBarsInput   = input.int(5, "Candles Between Confirmation", minval = 1, maxval = 100, group = GRP_TRAP, tooltip = "Maximum number of candles allowed between the initial (Almost) Manipulation Candle and the confirmation candle.")
+trapRatioInput  = input.float(0.5, "Trap Wick-to-Body Ratio", minval = 0.0, step = 0.05, group = GRP_TRAP, tooltip = "Total wick size divided by body size of the confirmation candle. The confirmation candle is valid when its ratio is less than or equal to this value.", display = display.none)
+chopFilterInput = input.bool(true, "Choppy Market Filter", group = GRP_TRAP, inline = "chop")
+chopAtrInput    = input.float(0.5, "Min Range (x ATR)", minval = 0.0, step = 0.05, group = GRP_TRAP, inline = "chop", tooltip = "Extra confirmation: the (Almost) Manipulation Candle range must be at least this multiple of ATR(14). Reduces signals during choppy market conditions.", display = display.none)
+
+fvgShow1Input   = input.bool(true, "Timeframe 1", group = GRP_FVG, inline = "tf1")
+fvgTf1Input     = input.timeframe("60", "", group = GRP_FVG, inline = "tf1", display = display.none)
+fvgBull1Input   = input.color(color.new(#089981, 80), "", group = GRP_FVG, inline = "tf1")
+fvgBear1Input   = input.color(color.new(#f23645, 80), "", group = GRP_FVG, inline = "tf1")
+fvgShow2Input   = input.bool(true, "Timeframe 2", group = GRP_FVG, inline = "tf2")
+fvgTf2Input     = input.timeframe("240", "", group = GRP_FVG, inline = "tf2", display = display.none)
+fvgBull2Input   = input.color(color.new(#00bfa5, 82), "", group = GRP_FVG, inline = "tf2")
+fvgBear2Input   = input.color(color.new(#ff5252, 82), "", group = GRP_FVG, inline = "tf2")
+fvgShow3Input   = input.bool(true, "Timeframe 3", group = GRP_FVG, inline = "tf3")
+fvgTf3Input     = input.timeframe("D", "", group = GRP_FVG, inline = "tf3", display = display.none)
+fvgBull3Input   = input.color(color.new(#4caf50, 84), "", group = GRP_FVG, inline = "tf3")
+fvgBear3Input   = input.color(color.new(#e91e63, 84), "", group = GRP_FVG, inline = "tf3", tooltip = "Disabling a timeframe only removes it visually. All selected timeframes are always used for signal generation.")
+fvgCombineInput = input.bool(true, "Combine Zones", group = GRP_FVG, tooltip = "Merge overlapping FVGs of the same type on the same higher timeframe into a single zone.")
+fvgMidlineInput = input.bool(true, "Midline", group = GRP_FVG, inline = "fmid")
+fvgMidColInput  = input.color(color.new(color.white, 35), "", group = GRP_FVG, inline = "fmid")
+fvgLabelsInput  = input.bool(true, "Labels", group = GRP_FVG, inline = "flbl")
+fvgLblColInput  = input.color(color.white, "", group = GRP_FVG, inline = "flbl")
+fvgLblSizeInput = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large", "Huge"], group = GRP_FVG, inline = "flbl", display = display.none)
+fvgLimitInput   = input.int(3, "FVG Display Limit", minval = 1, maxval = 20, group = GRP_FVG, tooltip = "Only the nearest X active higher timeframe FVGs to current price are displayed.", display = display.none)
+
+showAsiaInput     = input.bool(true, "Asia", group = GRP_SES, inline = "s1")
+asiaSesInput      = input.session("2000-0000", "", group = GRP_SES, inline = "s1", display = display.none)
+asiaColInput      = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s1")
+showLonInput      = input.bool(true, "London", group = GRP_SES, inline = "s2")
+lonSesInput       = input.session("0200-0500", "", group = GRP_SES, inline = "s2", display = display.none)
+lonColInput       = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s2")
+showNyamInput     = input.bool(true, "NY AM", group = GRP_SES, inline = "s3")
+nyamSesInput      = input.session("0800-0930", "", group = GRP_SES, inline = "s3", display = display.none)
+nyamColInput      = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s3")
+showNyseInput     = input.bool(true, "NYSE", group = GRP_SES, inline = "s4")
+nyseSesInput      = input.session("0930-1000", "", group = GRP_SES, inline = "s4", display = display.none)
+nyseColInput      = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s4")
+showLcInput       = input.bool(true, "London Close", group = GRP_SES, inline = "s5")
+lcSesInput        = input.session("1000-1100", "", group = GRP_SES, inline = "s5", display = display.none)
+lcColInput        = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s5")
+showNypmInput     = input.bool(true, "NY PM", group = GRP_SES, inline = "s6")
+nypmSesInput      = input.session("1100-1400", "", group = GRP_SES, inline = "s6", display = display.none)
+nypmColInput      = input.color(color.new(#2962ff, 88), "", group = GRP_SES, inline = "s6")
+sesTzInput        = input.string("America/New_York", "Timezone", options = ["America/New_York", "America/Chicago", "America/Los_Angeles", "Europe/London", "Europe/Berlin", "Asia/Tokyo", "Asia/Hong_Kong", "Australia/Sydney", "Etc/UTC"], group = GRP_SES, display = display.none)
+showSesBoxInput   = input.bool(true, "Session Boxes", group = GRP_SES)
+showSesHLInput    = input.bool(true, "Session Highs/Lows", group = GRP_SES, inline = "shl")
+sesHLStyleInput   = input.string("Dashed", "", options = ["Solid", "Dashed", "Dotted"], group = GRP_SES, inline = "shl", display = display.none)
+showSesLblInput   = input.bool(true, "Labels", group = GRP_SES, inline = "slb")
+sesLblColInput    = input.color(#d1d4dc, "", group = GRP_SES, inline = "slb")
+sesLblSizeInput   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large", "Huge"], group = GRP_SES, inline = "slb", display = display.none)
+showSesPriceInput = input.bool(false, "Show Price", group = GRP_SES, inline = "slb")
+sesExtendInput    = input.bool(true, "Extend Levels", group = GRP_SES, inline = "sext")
+sesExtBarsInput   = input.int(10, "", minval = 1, maxval = 450, group = GRP_SES, inline = "sext", tooltip = "Extend unbroken session highs/lows forward by the set number of bars.", display = display.none)
+showSesTitleInput = input.bool(true, "Session Titles", group = GRP_SES)
+sesShowLastInput  = input.int(1, "Show Last", minval = 1, maxval = 10, group = GRP_SES, tooltip = "Number of recent sessions of each type displayed on the chart.", display = display.none)
+
+showDOInput     = input.bool(true, "Daily Open", group = GRP_KL, inline = "kd")
+showPDInput     = input.bool(true, "PDH/PDL", group = GRP_KL, inline = "kd")
+dailyColInput   = input.color(color.white, "", group = GRP_KL, inline = "kd")
+showWOInput     = input.bool(false, "Weekly Open", group = GRP_KL, inline = "kw")
+showPWInput     = input.bool(false, "PWH/PWL", group = GRP_KL, inline = "kw")
+weeklyColInput  = input.color(#ffb74d, "", group = GRP_KL, inline = "kw")
+showMOInput     = input.bool(false, "Monthly Open", group = GRP_KL, inline = "km")
+showPMInput     = input.bool(false, "PMH/PML", group = GRP_KL, inline = "km")
+monthlyColInput = input.color(#26c6da, "", group = GRP_KL, inline = "km")
+klStyleInput    = input.string("Solid", "Line Style", options = ["Solid", "Dashed", "Dotted"], group = GRP_KL, display = display.none)
+showMidInput    = input.bool(false, "Midnight Open", group = GRP_KL, inline = "kmo")
+midColInput     = input.color(#b2b5be, "", group = GRP_KL, inline = "kmo")
+midStyleInput   = input.string("Dotted", "", options = ["Solid", "Dashed", "Dotted"], group = GRP_KL, inline = "kmo", display = display.none)
+showKLLblInput  = input.bool(true, "Show Labels", group = GRP_KL, inline = "kll")
+klLblColInput   = input.color(#d1d4dc, "", group = GRP_KL, inline = "kll")
+
+colorMCInput        = input.bool(true, "Manipulation Candlestick", group = GRP_STY, inline = "mc")
+mcColInput          = input.color(#cc7a00, "", group = GRP_STY, inline = "mc")
+colorAMCInput       = input.bool(true, "Almost Manipulation Candlestick", group = GRP_STY, inline = "amc")
+amcColInput         = input.color(#ffeb3b, "", group = GRP_STY, inline = "amc")
+longLblColInput     = input.color(#4caf50, "Long / Beartrap Label", group = GRP_STY)
+shortLblColInput    = input.color(#f23645, "Short / Bulltrap Label", group = GRP_STY)
+lblTextColInput     = input.color(color.white, "Label Text", group = GRP_STY)
+showSLLblInput      = input.bool(true, "SL Labels", group = GRP_STY, inline = "sll")
+slLblColInput       = input.color(#f23645, "", group = GRP_STY, inline = "sll")
+showTPLblInput      = input.bool(true, "TP Labels", group = GRP_STY, inline = "tpl")
+tpLblColInput       = input.color(#4caf50, "", group = GRP_STY, inline = "tpl")
+showEntryLnInput    = input.bool(false, "Entry Line", group = GRP_STY, inline = "eln")
+showEntryLnLblInput = input.bool(true, "Label", group = GRP_STY, inline = "eln")
+entryLnColInput     = input.color(#b2b5be, "", group = GRP_STY, inline = "eln")
+showSLLnInput       = input.bool(false, "Stop Loss Line", group = GRP_STY, inline = "sln")
+showSLLnLblInput    = input.bool(true, "Label", group = GRP_STY, inline = "sln")
+slLnColInput        = input.color(#f23645, "", group = GRP_STY, inline = "sln")
+showTPLnInput       = input.bool(false, "Take Profit Line", group = GRP_STY, inline = "tln")
+showTPLnLblInput    = input.bool(true, "Label", group = GRP_STY, inline = "tln")
+tpLnColInput        = input.color(#4caf50, "", group = GRP_STY, inline = "tln")
+
+showDashInput   = input.bool(true, "Show Dashboard", group = GRP_DB)
+dashLookInput   = input.int(5000, "Lookback (Bars)", minval = 50, group = GRP_DB, tooltip = "Number of bars used to calculate the win rates.", display = display.none)
+dashBgInput     = input.color(color.white, "Background Color", group = GRP_DB)
+dashFrameInput  = input.color(#363a45, "Frame Color", group = GRP_DB)
+dashBorderInput = input.color(#363a45, "Border Color", group = GRP_DB)
+dashTextInput   = input.color(color.black, "Text Color", group = GRP_DB)
+
+alLongInput     = input.bool(true, "Long Setup", group = GRP_AL)
+alShortInput    = input.bool(true, "Short Setup", group = GRP_AL)
+alBulltrapInput = input.bool(true, "Bulltrap Setup", group = GRP_AL)
+alBeartrapInput = input.bool(true, "Beartrap Setup", group = GRP_AL)
+alMCInput       = input.bool(false, "Manipulation Candle", group = GRP_AL)
+alAMCInput      = input.bool(false, "Almost Manipulation Candle", group = GRP_AL)
+alPDInput       = input.bool(false, "Previous Day High/Low Break", group = GRP_AL)
+alDOInput       = input.bool(false, "Current Day Open Break", group = GRP_AL)
+alPWInput       = input.bool(false, "Previous Week High/Low Break", group = GRP_AL)
+alWOInput       = input.bool(false, "Current Week Open Break", group = GRP_AL)
+alPMInput       = input.bool(false, "Previous Month High/Low Break", group = GRP_AL)
+alMOInput       = input.bool(false, "Current Month Open Break", group = GRP_AL)
+alAsiaInput     = input.bool(false, "Asia Session High/Low Break", group = GRP_AL)
+alLonInput      = input.bool(false, "London Session High/Low Break", group = GRP_AL)
+alNyamInput     = input.bool(false, "NY AM Session High/Low Break", group = GRP_AL)
+alNyseInput     = input.bool(false, "NYSE Session High/Low Break", group = GRP_AL)
+alLcInput       = input.bool(false, "London Close Session High/Low Break", group = GRP_AL)
+alNypmInput     = input.bool(false, "NY PM Session High/Low Break", group = GRP_AL)
+alMidInput      = input.bool(false, "Midnight Open Break", group = GRP_AL, tooltip = "Create a TradingView alert with the 'Any alert() function call' condition to receive all selected alerts.")
+
+int    MAX_SIGNAL_LABELS = 180
+int    MAX_TRADE_VISUALS = 50
+int    MAX_FVG_STORE     = 300
+int    MAX_TRADE_AGE     = 5000
+int    FVG_EXTEND_BARS   = 10
+int    KL_EXTEND_BARS    = 10
+string SES_DAYS          = ":1234567"
+int    TF_MS             = timeframe.in_seconds() * 1000
+int    CHART_SECS        = timeframe.in_seconds()
+color  CLEAR             = color.new(color.black, 100)
+
+var array<string> KIND_NAMES = array.from("Long", "Short", "Bulltrap", "Beartrap")
+
+type FVG
+    int    tfIdx
+    string tfLbl
+    bool   isBull = true
+    float  top
+    float  bottom
+    int    startTime
+
+type SessionDraw
+    box    bx
+    line   hiLine
+    line   loLine
+    label  hiLbl
+    label  loLbl
+    float  hi
+    float  lo
+    int    endTime
+    bool   ended    = false
+    bool   hiBroken = false
+    bool   loBroken = false
+
+type SessionState
+    string             name
+    float              runHi
+    float              runLo
+    int                lastInTime
+    bool               wasIn = false
+    float              lastHi
+    float              lastLo
+    SessionDraw        cur
+    array<SessionDraw> draws
+
+type PeriodTracker
+    float hiRun
+    float loRun
+    int   hiTimeRun
+    int   loTimeRun
+    int   openTime
+    int   prevHiTime
+    int   prevLoTime
+
+type Trade
+    int   kindIdx
+    bool  isLong = true
+    float entry
+    float sl
+    float tp
+    int   entryBar
+    bool  counted = false
+    line  eLine
+    line  sLine
+    line  tLine
+    label eLbl
+    label sLbl
+    label tLbl
+
+var array<FVG>          fvgs         = array.new<FVG>()
+var array<SessionState> sesStates    = array.new<SessionState>()
+var array<Trade>        openTrades   = array.new<Trade>()
+var array<Trade>        tradeVisuals = array.new<Trade>()
+var array<label>        signalLabels = array.new<label>()
+var array<int>          winsArr      = array.from(0, 0, 0, 0)
+var array<int>          lossArr      = array.from(0, 0, 0, 0)
+var array<box>          fvgBoxes     = array.new<box>()
+var array<line>         fvgMids      = array.new<line>()
+var array<label>        fvgLbls      = array.new<label>()
+var array<line>         klLines      = array.new<line>()
+var array<label>        klLbls       = array.new<label>()
+
+lineStyleOf(string s) =>
+    s == "Dashed" ? line.style_dashed : s == "Dotted" ? line.style_dotted : line.style_solid
+
+sizeOf(string s) =>
+    switch s
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        => size.small
+
+solidColor(color c) =>
+    color.rgb(color.r(c), color.g(c), color.b(c), 0)
+
+tfToLabel(simple string tf) =>
+    int secs = timeframe.in_seconds(tf)
+    string result = ""
+    if secs < 60
+        result := str.tostring(secs) + "s"
+    else if secs < 3600
+        result := str.tostring(math.round(secs / 60.0)) + "m"
+    else if secs < 86400
+        result := str.tostring(math.round(secs / 3600.0)) + "H"
+    else if secs < 604800
+        result := str.tostring(math.round(secs / 86400.0)) + "D"
+    else if secs < 2419200
+        result := str.tostring(math.round(secs / 604800.0)) + "W"
+    else
+        result := str.tostring(math.round(secs / 2628000.0)) + "M"
+    result
+
+inSession(string sess) =>
+    not na(time(timeframe.period, sess + SES_DAYS, sesTzInput))
+
+wickBodyRatio() =>
+    float body = math.abs(close - open)
+    float wick = (high - math.max(open, close)) + (math.min(open, close) - low)
+    body > 0 ? wick / body : 1e10
+
+sesLabelText(string nm, bool isHigh, float price) =>
+    string base = nm + (isHigh ? " High" : " Low")
+    showSesPriceInput ? base + " (" + str.tostring(price, format.mintick) + ")" : base
+
+alertMsg(string s) =>
+    syminfo.ticker + " (" + timeframe.period + ") | Manipulation Model [FB] | " + s
+
+crossUp(float lvl, float prevC) =>
+    not na(lvl) and not na(prevC) and close > lvl and prevC <= lvl
+
+crossDn(float lvl, float prevC) =>
+    not na(lvl) and not na(prevC) and close < lvl and prevC >= lvl
+
+pushLevel(array<float> arr, bool use, float v) =>
+    if use and not na(v)
+        arr.push(v)
+    true
+
+touchLevels(array<float> lvls, int mode) =>
+    bool hit = false
+    for lv in lvls
+        bool touched = high >= lv and low <= lv
+        bool closeOK = mode == 1 ? close > lv : mode == -1 ? close < lv : true
+        if touched and closeOK
+            hit := true
+            break
+    hit
+
+touchFVG(int mode) =>
+    bool hit = false
+    for fz in fvgs
+        bool typeOK = mode == 0 or (mode == 1 and fz.isBull) or (mode == -1 and not fz.isBull)
+        if typeOK and high >= fz.bottom and low <= fz.top
+            hit := true
+            break
+    hit
+
+method deleteAll(SessionDraw this) =>
+    box.delete(this.bx)
+    line.delete(this.hiLine)
+    line.delete(this.loLine)
+    label.delete(this.hiLbl)
+    label.delete(this.loLbl)
+    true
+
+method update(PeriodTracker this, bool isNew) =>
+    if isNew
+        this.prevHiTime := this.hiTimeRun
+        this.prevLoTime := this.loTimeRun
+        this.openTime   := time
+        this.hiRun      := high
+        this.loRun      := low
+        this.hiTimeRun  := time
+        this.loTimeRun  := time
+    else
+        if na(this.hiRun) or high > this.hiRun
+            this.hiRun     := high
+            this.hiTimeRun := time
+        if na(this.loRun) or low < this.loRun
+            this.loRun     := low
+            this.loTimeRun := time
+    this
+
+method setEnd(Trade this, int t) =>
+    if not na(this.eLine)
+        this.eLine.set_x2(t)
+    if not na(this.sLine)
+        this.sLine.set_x2(t)
+    if not na(this.tLine)
+        this.tLine.set_x2(t)
+    if not na(this.eLbl)
+        this.eLbl.set_x(t)
+    if not na(this.sLbl)
+        this.sLbl.set_x(t)
+    if not na(this.tLbl)
+        this.tLbl.set_x(t)
+    this
+
+method clearVisuals(Trade this) =>
+    line.delete(this.eLine)
+    line.delete(this.sLine)
+    line.delete(this.tLine)
+    label.delete(this.eLbl)
+    label.delete(this.sLbl)
+    label.delete(this.tLbl)
+    this.eLine := na
+    this.sLine := na
+    this.tLine := na
+    this.eLbl  := na
+    this.sLbl  := na
+    this.tLbl  := na
+    this
+
+pushSignalLabel(label lb) =>
+    signalLabels.push(lb)
+    if signalLabels.size() > MAX_SIGNAL_LABELS
+        label.delete(signalLabels.shift())
+    true
+
+tradeText(Trade t) =>
+    "Entry: " + str.tostring(t.entry, format.mintick) + " | SL: " + str.tostring(t.sl, format.mintick) + " | TP: " + str.tostring(t.tp, format.mintick)
+
+processFVG(int tfIdx, string tfLbl, bool valid, bool isNew, float h1, float l1, float h3, float l3, float c2, float o2, int t3, float c1) =>
+    if valid and isNew and not na(h3) and not na(l3) and not na(c1)
+        int n = fvgs.size()
+        if n > 0
+            for i = n - 1 to 0
+                FVG fm = fvgs.get(i)
+                if fm.tfIdx == tfIdx and ((fm.isBull and c1 < fm.bottom) or (not fm.isBull and c1 > fm.top))
+                    fvgs.remove(i)
+        bool bullGap = l1 > h3 and c2 > o2
+        bool bearGap = h1 < l3 and c2 < o2
+        if bullGap or bearGap
+            float gTop   = bullGap ? l1 : l3
+            float gBot   = bullGap ? h3 : h1
+            bool  merged = false
+            if fvgCombineInput
+                for fc in fvgs
+                    if fc.tfIdx == tfIdx and fc.isBull == bullGap and gTop >= fc.bottom and gBot <= fc.top
+                        fc.top       := math.max(fc.top, gTop)
+                        fc.bottom    := math.min(fc.bottom, gBot)
+                        fc.startTime := math.min(fc.startTime, t3)
+                        merged       := true
+                        break
+            if not merged
+                fvgs.push(FVG.new(tfIdx = tfIdx, tfLbl = tfLbl, isBull = bullGap, top = gTop, bottom = gBot, startTime = t3))
+                if fvgs.size() > MAX_FVG_STORE
+                    fvgs.shift()
+    true
+
+openTrade(int kindIdx, bool isLong, float entry, float stopRef) =>
+    Trade t = na
+    float risk = math.abs(entry - stopRef) * slMultInput
+    if not na(risk) and risk > 0
+        float  sl  = isLong ? entry - risk : entry + risk
+        float  tp  = isLong ? entry + risk * tpMultInput : entry - risk * tpMultInput
+        string nm  = KIND_NAMES.get(kindIdx)
+        color  lc  = isLong ? longLblColInput : shortLblColInput
+        string tip = nm + " Setup\nEntry: " + str.tostring(entry, format.mintick) + "\nStop Loss: " + str.tostring(sl, format.mintick) + "\nTake Profit: " + str.tostring(tp, format.mintick)
+        pushSignalLabel(label.new(bar_index, isLong ? low : high, nm, xloc = xloc.bar_index, yloc = isLong ? yloc.belowbar : yloc.abovebar, color = lc, style = isLong ? label.style_label_up : label.style_label_down, textcolor = lblTextColInput, size = size.small, tooltip = tip))
+        t := Trade.new(kindIdx = kindIdx, isLong = isLong, entry = entry, sl = sl, tp = tp, entryBar = bar_index, counted = bar_index >= last_bar_index - dashLookInput)
+        bool hasVis = false
+        if showEntryLnInput
+            t.eLine := line.new(time, entry, time, entry, xloc = xloc.bar_time, color = entryLnColInput, style = line.style_solid, width = 1)
+            if showEntryLnLblInput
+                t.eLbl := label.new(time, entry, "Entry", xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = entryLnColInput, size = size.tiny)
+            hasVis := true
+        if showSLLnInput
+            t.sLine := line.new(time, sl, time, sl, xloc = xloc.bar_time, color = slLnColInput, style = line.style_solid, width = 1)
+            if showSLLnLblInput
+                t.sLbl := label.new(time, sl, "SL", xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = slLnColInput, size = size.tiny)
+            hasVis := true
+        if showTPLnInput
+            t.tLine := line.new(time, tp, time, tp, xloc = xloc.bar_time, color = tpLnColInput, style = line.style_solid, width = 1)
+            if showTPLnLblInput
+                t.tLbl := label.new(time, tp, "TP", xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = tpLnColInput, size = size.tiny)
+            hasVis := true
+        openTrades.push(t)
+        if hasVis
+            tradeVisuals.push(t)
+            if tradeVisuals.size() > MAX_TRADE_VISUALS
+                Trade oldT = tradeVisuals.shift()
+                oldT.clearVisuals()
+    t
+
+drawKeyLevel(bool show, float price, int x1, int x2, string txt, color col, string sty, array<float> lblPrices, array<string> lblTexts) =>
+    if show and not na(price) and not na(x1)
+        klLines.push(line.new(x1, price, x2, price, xloc = xloc.bar_time, color = col, style = sty, width = 1))
+        int found = -1
+        for [j, p] in lblPrices
+            if math.abs(p - price) < syminfo.mintick * 0.5
+                found := j
+                break
+        if found >= 0
+            lblTexts.set(found, lblTexts.get(found) + " / " + txt)
+        else
+            lblPrices.push(price)
+            lblTexts.push(txt)
+    true
+
+if sesStates.size() == 0
+    for nm in array.from("Asia", "London", "NY AM", "NYSE", "London Close", "NY PM")
+        sesStates.push(SessionState.new(name = nm, draws = array.new<SessionDraw>()))
+
+float prevClose = close[1]
+
+float htfEma = request.security(syminfo.tickerid, biasTfInput, ta.ema(close, biasLenInput)[1], lookahead = barmerge.lookahead_on)
+
+[dOpen, pdh, pdl] = request.security(syminfo.tickerid, "D", [open, high[1], low[1]], lookahead = barmerge.lookahead_on)
+[wOpen, pwh, pwl] = request.security(syminfo.tickerid, "W", [open, high[1], low[1]], lookahead = barmerge.lookahead_on)
+[mOpen, pmh, pml] = request.security(syminfo.tickerid, "M", [open, high[1], low[1]], lookahead = barmerge.lookahead_on)
+
+[f1H1, f1L1, f1H3, f1L3, f1C2, f1O2, f1T3, f1C1, f1T1] = request.security(syminfo.tickerid, fvgTf1Input, [high[1], low[1], high[3], low[3], close[2], open[2], time[3], close[1], time[1]], lookahead = barmerge.lookahead_on)
+[f2H1, f2L1, f2H3, f2L3, f2C2, f2O2, f2T3, f2C1, f2T1] = request.security(syminfo.tickerid, fvgTf2Input, [high[1], low[1], high[3], low[3], close[2], open[2], time[3], close[1], time[1]], lookahead = barmerge.lookahead_on)
+[f3H1, f3L1, f3H3, f3L3, f3C2, f3O2, f3T3, f3C1, f3T1] = request.security(syminfo.tickerid, fvgTf3Input, [high[1], low[1], high[3], low[3], close[2], open[2], time[3], close[1], time[1]], lookahead = barmerge.lookahead_on)
+
+bool fvgNew1 = not na(f1T1) and (na(f1T1[1]) or f1T1 != f1T1[1])
+bool fvgNew2 = not na(f2T1) and (na(f2T1[1]) or f2T1 != f2T1[1])
+bool fvgNew3 = not na(f3T1) and (na(f3T1[1]) or f3T1 != f3T1[1])
+
+bool fvgValid1 = timeframe.in_seconds(fvgTf1Input) > CHART_SECS
+bool fvgValid2 = timeframe.in_seconds(fvgTf2Input) > CHART_SECS
+bool fvgValid3 = timeframe.in_seconds(fvgTf3Input) > CHART_SECS
+
+string FVG_LBL1 = tfToLabel(fvgTf1Input)
+string FVG_LBL2 = tfToLabel(fvgTf2Input)
+string FVG_LBL3 = tfToLabel(fvgTf3Input)
+
+processFVG(1, FVG_LBL1, fvgValid1, fvgNew1, f1H1, f1L1, f1H3, f1L3, f1C2, f1O2, f1T3, f1C1)
+processFVG(2, FVG_LBL2, fvgValid2, fvgNew2, f2H1, f2L1, f2H3, f2L3, f2C2, f2O2, f2T3, f2C1)
+processFVG(3, FVG_LBL3, fvgValid3, fvgNew3, f3H1, f3L1, f3H3, f3L3, f3C2, f3O2, f3T3, f3C1)
+
+var PeriodTracker dTrk = PeriodTracker.new()
+var PeriodTracker wTrk = PeriodTracker.new()
+var PeriodTracker mTrk = PeriodTracker.new()
+dTrk.update(timeframe.change("D"))
+wTrk.update(timeframe.change("W"))
+mTrk.update(timeframe.change("M"))
+
+int nyDom = dayofmonth(time, sesTzInput)
+var float midnightOpen = na
+var int   midnightTime = na
+if bar_index > 0 and nyDom != nyDom[1]
+    midnightOpen := open
+    midnightTime := time
+
+bool vAsia = inSession(asiaSesInput)
+bool vLon  = inSession(lonSesInput)
+bool vNyam = inSession(nyamSesInput)
+bool vNyse = inSession(nyseSesInput)
+bool vLc   = inSession(lcSesInput)
+bool vNypm = inSession(nypmSesInput)
+array<bool> visIn = array.from(vAsia, vLon, vNyam, vNyse, vLc, vNypm)
+
+bool inSignalSession = (useAsiaInput and inSession(sigAsiaInput)) or (useLonInput and inSession(sigLonInput)) or (useNyamInput and inSession(sigNyamInput)) or (useNyseInput and inSession(sigNyseInput)) or (useLcInput and inSession(sigLcInput)) or (useNypmInput and inSession(sigNypmInput))
+
+var array<bool>  sesShowArr   = array.from(showAsiaInput, showLonInput, showNyamInput, showNyseInput, showLcInput, showNypmInput)
+var array<color> sesColArr    = array.from(asiaColInput, lonColInput, nyamColInput, nyseColInput, lcColInput, nypmColInput)
+var array<bool>  sesLvlUseArr = array.from(useAsiaLvlInput, useLonLvlInput, useNyamLvlInput, useNyseLvlInput, useLcLvlInput, useNypmLvlInput)
+var array<bool>  sesAlertArr  = array.from(alAsiaInput, alLonInput, alNyamInput, alNyseInput, alLcInput, alNypmInput)
+
+string sesLnStyle  = lineStyleOf(sesHLStyleInput)
+string sesLblSize  = sizeOf(sesLblSizeInput)
+int    sesExtTime  = time + sesExtBarsInput * TF_MS
+array<bool>   sesBreakArr = array.new<bool>(6, false)
+array<string> sesBreakTxt = array.new<string>(6, "")
+
+for i = 0 to 5
+    SessionState st = sesStates.get(i)
+    bool  inS     = visIn.get(i)
+    bool  showS   = sesShowArr.get(i)
+    color cBox    = sesColArr.get(i)
+    color cLine   = solidColor(cBox)
+    bool  started = inS and not st.wasIn
+    bool  ended   = not inS and st.wasIn
+
+    if ended
+        st.lastHi := st.runHi
+        st.lastLo := st.runLo
+        if not na(st.cur)
+            SessionDraw sdEnd = st.cur
+            sdEnd.ended   := true
+            sdEnd.endTime := st.lastInTime
+            if not na(sdEnd.hiLine)
+                sdEnd.hiLine.set_x2(sdEnd.endTime)
+            if not na(sdEnd.loLine)
+                sdEnd.loLine.set_x2(sdEnd.endTime)
+            if not na(sdEnd.hiLbl)
+                sdEnd.hiLbl.set_x(sdEnd.endTime)
+            if not na(sdEnd.loLbl)
+                sdEnd.loLbl.set_x(sdEnd.endTime)
+            st.cur := na
+
+    if started
+        st.runHi := high
+        st.runLo := low
+        if showS and (showSesBoxInput or showSesTitleInput or showSesHLInput)
+            SessionDraw sdNew = SessionDraw.new(hi = high, lo = low)
+            if showSesBoxInput or showSesTitleInput
+                sdNew.bx := box.new(time, high, time, low, xloc = xloc.bar_time, bgcolor = showSesBoxInput ? cBox : CLEAR, border_color = CLEAR, border_width = 1, text = showSesTitleInput ? st.name : "", text_color = cLine, text_size = size.small, text_halign = text.align_left, text_valign = text.align_bottom)
+            if showSesHLInput
+                sdNew.hiLine := line.new(time, high, time, high, xloc = xloc.bar_time, color = cLine, style = sesLnStyle, width = 1)
+                sdNew.loLine := line.new(time, low, time, low, xloc = xloc.bar_time, color = cLine, style = sesLnStyle, width = 1)
+                if showSesLblInput
+                    sdNew.hiLbl := label.new(time, high, sesLabelText(st.name, true, high), xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = sesLblColInput, size = sesLblSize)
+                    sdNew.loLbl := label.new(time, low, sesLabelText(st.name, false, low), xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = sesLblColInput, size = sesLblSize)
+            st.cur := sdNew
+            st.draws.push(sdNew)
+            if st.draws.size() > sesShowLastInput
+                SessionDraw sdOld = st.draws.shift()
+                sdOld.deleteAll()
+    else if inS
+        st.runHi := math.max(st.runHi, high)
+        st.runLo := math.min(st.runLo, low)
+
+    if inS
+        st.lastInTime := time
+        if not na(st.cur)
+            SessionDraw sdCur = st.cur
+            sdCur.hi := st.runHi
+            sdCur.lo := st.runLo
+            if not na(sdCur.bx)
+                sdCur.bx.set_top(sdCur.hi)
+                sdCur.bx.set_bottom(sdCur.lo)
+                sdCur.bx.set_right(time)
+            if not na(sdCur.hiLine)
+                sdCur.hiLine.set_y1(sdCur.hi)
+                sdCur.hiLine.set_y2(sdCur.hi)
+                sdCur.hiLine.set_x2(time)
+            if not na(sdCur.loLine)
+                sdCur.loLine.set_y1(sdCur.lo)
+                sdCur.loLine.set_y2(sdCur.lo)
+                sdCur.loLine.set_x2(time)
+            if not na(sdCur.hiLbl)
+                sdCur.hiLbl.set_xy(time, sdCur.hi)
+                sdCur.hiLbl.set_text(sesLabelText(st.name, true, sdCur.hi))
+            if not na(sdCur.loLbl)
+                sdCur.loLbl.set_xy(time, sdCur.lo)
+                sdCur.loLbl.set_text(sesLabelText(st.name, false, sdCur.lo))
+
+    for dr in st.draws
+        if dr.ended
+            if not dr.hiBroken and close > dr.hi
+                dr.hiBroken := true
+                if sesExtendInput
+                    if not na(dr.hiLine)
+                        dr.hiLine.set_x2(time)
+                    label.delete(dr.hiLbl)
+                    dr.hiLbl := na
+            if not dr.loBroken and close < dr.lo
+                dr.loBroken := true
+                if sesExtendInput
+                    if not na(dr.loLine)
+                        dr.loLine.set_x2(time)
+                    label.delete(dr.loLbl)
+                    dr.loLbl := na
+            if sesExtendInput
+                if not dr.hiBroken
+                    if not na(dr.hiLine)
+                        dr.hiLine.set_x2(sesExtTime)
+                    if not na(dr.hiLbl)
+                        dr.hiLbl.set_x(sesExtTime)
+                if not dr.loBroken
+                    if not na(dr.loLine)
+                        dr.loLine.set_x2(sesExtTime)
+                    if not na(dr.loLbl)
+                        dr.loLbl.set_x(sesExtTime)
+
+    if not na(st.lastHi) and not na(st.lastLo)
+        if crossUp(st.lastHi, prevClose)
+            sesBreakArr.set(i, true)
+            sesBreakTxt.set(i, st.name + " Session High Break")
+        else if crossDn(st.lastLo, prevClose)
+            sesBreakArr.set(i, true)
+            sesBreakTxt.set(i, st.name + " Session Low Break")
+
+    st.wasIn := inS
+
+float upperWick  = high - math.max(open, close)
+float lowerWick  = math.min(open, close) - low
+bool  sweepBoth  = bar_index > 0 and high > high[1] and low < low[1]
+bool  insidePrev = close <= high[1] and close >= low[1]
+
+bool bullMC  = sweepBoth and close > high[1] and (high - close) < (open - low)
+bool bearMC  = sweepBoth and close < low[1] and (close - low) < (high - open)
+bool bullAMC = sweepBoth and insidePrev and lowerWick > upperWick and close > open
+bool bearAMC = sweepBoth and insidePrev and upperWick > lowerWick and close < open
+
+array<float> keyLvls = array.new<float>()
+if sweepBoth
+    pushLevel(keyLvls, useDOLvlInput, dOpen)
+    pushLevel(keyLvls, usePDLvlInput, pdh)
+    pushLevel(keyLvls, usePDLvlInput, pdl)
+    pushLevel(keyLvls, useWOLvlInput, wOpen)
+    pushLevel(keyLvls, usePWLvlInput, pwh)
+    pushLevel(keyLvls, usePWLvlInput, pwl)
+    pushLevel(keyLvls, useMOLvlInput, mOpen)
+    pushLevel(keyLvls, usePMLvlInput, pmh)
+    pushLevel(keyLvls, usePMLvlInput, pml)
+    for i = 0 to 5
+        SessionState stL = sesStates.get(i)
+        pushLevel(keyLvls, sesLvlUseArr.get(i), stL.lastHi)
+        pushLevel(keyLvls, sesLvlUseArr.get(i), stL.lastLo)
+    pushLevel(keyLvls, useMidLvlInput, midnightOpen)
+
+bool useMC  = candleTypeInput != "Almost Manipulation Candle (AMC)"
+bool useAMC = candleTypeInput != "Manipulation Candle (MC)"
+bool useKL  = entryMethodInput != "Fair Value Gaps"
+bool useFVG = entryMethodInput != "Key Levels"
+
+bool bullCandle = (useMC and bullMC) or (useAMC and bullAMC)
+bool bearCandle = (useMC and bearMC) or (useAMC and bearAMC)
+
+float atrVal = ta.atr(14)
+bool  chopOK = not chopFilterInput or na(atrVal) or (high - low) >= chopAtrInput * atrVal
+
+bool biasBull = not na(htfEma) and close > htfEma
+bool biasBear = not na(htfEma) and close < htfEma
+
+int nOpen = openTrades.size()
+if nOpen > 0
+    for i = nOpen - 1 to 0
+        Trade tr = openTrades.get(i)
+        if bar_index > tr.entryBar
+            bool hitSL = tr.isLong ? low <= tr.sl : high >= tr.sl
+            bool hitTP = tr.isLong ? high >= tr.tp : low <= tr.tp
+            if hitSL or hitTP
+                bool win = hitTP and not hitSL
+                if tr.counted
+                    if win
+                        winsArr.set(tr.kindIdx, winsArr.get(tr.kindIdx) + 1)
+                    else
+                        lossArr.set(tr.kindIdx, lossArr.get(tr.kindIdx) + 1)
+                if win and showTPLblInput
+                    pushSignalLabel(label.new(bar_index, tr.isLong ? high : low, "TP", xloc = xloc.bar_index, yloc = tr.isLong ? yloc.abovebar : yloc.belowbar, color = tpLblColInput, style = tr.isLong ? label.style_label_down : label.style_label_up, textcolor = lblTextColInput, size = size.small, tooltip = KIND_NAMES.get(tr.kindIdx) + " Take Profit: " + str.tostring(tr.tp, format.mintick)))
+                if not win and showSLLblInput
+                    pushSignalLabel(label.new(bar_index, tr.isLong ? low : high, "SL", xloc = xloc.bar_index, yloc = tr.isLong ? yloc.belowbar : yloc.abovebar, color = slLblColInput, style = tr.isLong ? label.style_label_up : label.style_label_down, textcolor = lblTextColInput, size = size.small, tooltip = KIND_NAMES.get(tr.kindIdx) + " Stop Loss: " + str.tostring(tr.sl, format.mintick)))
+                tr.setEnd(time)
+                openTrades.remove(i)
+            else
+                tr.setEnd(time)
+                if bar_index - tr.entryBar > MAX_TRADE_AGE
+                    openTrades.remove(i)
+
+var float bearTrapHigh = na
+var int   bearTrapBar  = na
+var float bullTrapLow  = na
+var int   bullTrapBar  = na
+
+bool longSignal     = false
+bool shortSignal    = false
+bool bulltrapSignal = false
+bool beartrapSignal = false
+
+if barstate.isconfirmed
+    float wbRatio = wickBodyRatio()
+
+    if not na(bearTrapBar)
+        int distBear = bar_index - bearTrapBar
+        if distBear > trapBarsInput
+            bearTrapBar  := na
+            bearTrapHigh := na
+        else if close > bearTrapHigh and close > open and wbRatio <= trapRatioInput and inSignalSession and biasBull and beartrapInput
+            beartrapSignal := true
+            bearTrapBar    := na
+            bearTrapHigh   := na
+
+    if not na(bullTrapBar)
+        int distBull = bar_index - bullTrapBar
+        if distBull > trapBarsInput
+            bullTrapBar := na
+            bullTrapLow := na
+        else if close < bullTrapLow and close < open and wbRatio <= trapRatioInput and inSignalSession and biasBear and bulltrapInput
+            bulltrapSignal := true
+            bullTrapBar    := na
+            bullTrapLow    := na
+
+    longSignal  := not beartrapSignal and longSetupsInput and bullCandle and chopOK and inSignalSession and biasBull and ((useKL and touchLevels(keyLvls, 1)) or (useFVG and touchFVG(1)))
+    shortSignal := not bulltrapSignal and shortSetupsInput and bearCandle and chopOK and inSignalSession and biasBear and ((useKL and touchLevels(keyLvls, -1)) or (useFVG and touchFVG(-1)))
+
+    if bearCandle and chopOK and ((useKL and touchLevels(keyLvls, 0)) or (useFVG and touchFVG(0)))
+        bearTrapBar  := bar_index
+        bearTrapHigh := high
+    if bullCandle and chopOK and ((useKL and touchLevels(keyLvls, 0)) or (useFVG and touchFVG(0)))
+        bullTrapBar := bar_index
+        bullTrapLow := low
+
+    if longSignal
+        Trade tL = openTrade(0, true, close, low)
+        if not na(tL) and alLongInput
+            alert(alertMsg("Long Setup | " + tradeText(tL)), alert.freq_once_per_bar_close)
+    if shortSignal
+        Trade tS = openTrade(1, false, close, high)
+        if not na(tS) and alShortInput
+            alert(alertMsg("Short Setup | " + tradeText(tS)), alert.freq_once_per_bar_close)
+    if bulltrapSignal
+        Trade tBu = openTrade(2, false, close, high)
+        if not na(tBu) and alBulltrapInput
+            alert(alertMsg("Bulltrap Setup | " + tradeText(tBu)), alert.freq_once_per_bar_close)
+    if beartrapSignal
+        Trade tBe = openTrade(3, true, close, low)
+        if not na(tBe) and alBeartrapInput
+            alert(alertMsg("Beartrap Setup | " + tradeText(tBe)), alert.freq_once_per_bar_close)
+
+color candleColor = colorMCInput and (bullMC or bearMC) ? mcColInput : colorAMCInput and (bullAMC or bearAMC) ? amcColInput : na
+barcolor(candleColor, title = "Manipulation Candles", editable = false)
+
+if barstate.islast
+    for ln in klLines
+        line.delete(ln)
+    klLines.clear()
+    for lb in klLbls
+        label.delete(lb)
+    klLbls.clear()
+
+    int    klX2   = time + KL_EXTEND_BARS * TF_MS
+    string klSty  = lineStyleOf(klStyleInput)
+    string midSty = lineStyleOf(midStyleInput)
+    array<float>  lblPrices = array.new<float>()
+    array<string> lblTexts  = array.new<string>()
+
+    drawKeyLevel(showDOInput, dOpen, dTrk.openTime, klX2, "Daily Open", dailyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPDInput, pdh, nz(dTrk.prevHiTime, dTrk.openTime), klX2, "PDH", dailyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPDInput, pdl, nz(dTrk.prevLoTime, dTrk.openTime), klX2, "PDL", dailyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showWOInput, wOpen, wTrk.openTime, klX2, "Weekly Open", weeklyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPWInput, pwh, nz(wTrk.prevHiTime, wTrk.openTime), klX2, "PWH", weeklyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPWInput, pwl, nz(wTrk.prevLoTime, wTrk.openTime), klX2, "PWL", weeklyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showMOInput, mOpen, mTrk.openTime, klX2, "Monthly Open", monthlyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPMInput, pmh, nz(mTrk.prevHiTime, mTrk.openTime), klX2, "PMH", monthlyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showPMInput, pml, nz(mTrk.prevLoTime, mTrk.openTime), klX2, "PML", monthlyColInput, klSty, lblPrices, lblTexts)
+    drawKeyLevel(showMidInput, midnightOpen, midnightTime, klX2, "Midnight Open", midColInput, midSty, lblPrices, lblTexts)
+
+    if showKLLblInput
+        for [j, p] in lblPrices
+            klLbls.push(label.new(klX2, p, lblTexts.get(j), xloc = xloc.bar_time, style = label.style_label_left, color = CLEAR, textcolor = klLblColInput, size = size.small))
+
+    for bx in fvgBoxes
+        box.delete(bx)
+    fvgBoxes.clear()
+    for ln in fvgMids
+        line.delete(ln)
+    fvgMids.clear()
+    for lb in fvgLbls
+        label.delete(lb)
+    fvgLbls.clear()
+
+    array<float> fvgDist = array.new<float>()
+    array<int>   fvgIdx  = array.new<int>()
+    for [i, fz] in fvgs
+        bool visTf = (fz.tfIdx == 1 and fvgShow1Input) or (fz.tfIdx == 2 and fvgShow2Input) or (fz.tfIdx == 3 and fvgShow3Input)
+        if visTf
+            float d = close > fz.top ? close - fz.top : close < fz.bottom ? fz.bottom - close : 0.0
+            fvgDist.push(d)
+            fvgIdx.push(i)
+
+    if fvgDist.size() > 0
+        array<int> sortedIdx = fvgDist.sort_indices(order.ascending)
+        int    cnt    = math.min(fvgLimitInput, sortedIdx.size())
+        int    fvgX2  = time + FVG_EXTEND_BARS * TF_MS
+        string fvgLSz = sizeOf(fvgLblSizeInput)
+        for k = 0 to cnt - 1
+            FVG fd = fvgs.get(fvgIdx.get(sortedIdx.get(k)))
+            color bg = fd.tfIdx == 1 ? (fd.isBull ? fvgBull1Input : fvgBear1Input) : fd.tfIdx == 2 ? (fd.isBull ? fvgBull2Input : fvgBear2Input) : (fd.isBull ? fvgBull3Input : fvgBear3Input)
+            fvgBoxes.push(box.new(fd.startTime, fd.top, fvgX2, fd.bottom, xloc = xloc.bar_time, bgcolor = bg, border_color = CLEAR, border_width = 1))
+            float mid = (fd.top + fd.bottom) / 2.0
+            if fvgMidlineInput
+                fvgMids.push(line.new(fd.startTime, mid, fvgX2, mid, xloc = xloc.bar_time, color = fvgMidColInput, style = line.style_dashed, width = 1))
+            if fvgLabelsInput
+                fvgLbls.push(label.new(fvgX2, mid, fd.tfLbl + (fd.isBull ? " Bullish FVG" : " Bearish FVG"), xloc = xloc.bar_time, style = label.style_label_right, color = CLEAR, textcolor = fvgLblColInput, size = fvgLSz))
+
+var table dash = showDashInput ? table.new(position.top_right, 2, 5, bgcolor = dashBgInput, frame_color = dashFrameInput, frame_width = 1, border_color = dashBorderInput, border_width = 1) : na
+
+if barstate.islast and showDashInput and not na(dash)
+    array<bool> enabledArr = array.from(longSetupsInput, shortSetupsInput, bulltrapInput, beartrapInput)
+    int row         = 0
+    int totalTrades = 0
+    for k = 0 to 3
+        if enabledArr.get(k)
+            int   w   = winsArr.get(k)
+            int   l   = lossArr.get(k)
+            int   tot = w + l
+            float wr  = tot > 0 ? 100.0 * w / tot : 0.0
+            totalTrades += tot
+            table.cell(dash, 0, row, KIND_NAMES.get(k) + " Winrate", text_color = dashTextInput, text_size = size.small, bgcolor = dashBgInput, text_halign = text.align_center)
+            table.cell(dash, 1, row, str.tostring(wr, "0.00") + "%", text_color = dashTextInput, text_size = size.small, bgcolor = dashBgInput, text_halign = text.align_center)
+            row += 1
+    table.cell(dash, 0, row, "Total Trades", text_color = dashTextInput, text_size = size.small, bgcolor = dashBgInput, text_halign = text.align_center)
+    table.cell(dash, 1, row, str.tostring(totalTrades), text_color = dashTextInput, text_size = size.small, bgcolor = dashBgInput, text_halign = text.align_center)
+
+if barstate.isconfirmed
+    if alMCInput and (bullMC or bearMC)
+        alert(alertMsg((bullMC ? "Bullish" : "Bearish") + " Manipulation Candle"), alert.freq_once_per_bar_close)
+    if alAMCInput and (bullAMC or bearAMC)
+        alert(alertMsg((bullAMC ? "Bullish" : "Bearish") + " Almost Manipulation Candle"), alert.freq_once_per_bar_close)
+
+    if alPDInput
+        if crossUp(pdh, prevClose)
+            alert(alertMsg("Previous Day High Break"), alert.freq_once_per_bar_close)
+        if crossDn(pdl, prevClose)
+            alert(alertMsg("Previous Day Low Break"), alert.freq_once_per_bar_close)
+    if alDOInput and (crossUp(dOpen, prevClose) or crossDn(dOpen, prevClose))
+        alert(alertMsg("Current Day Open Break"), alert.freq_once_per_bar_close)
+
+    if alPWInput
+        if crossUp(pwh, prevClose)
+            alert(alertMsg("Previous Week High Break"), alert.freq_once_per_bar_close)
+        if crossDn(pwl, prevClose)
+            alert(alertMsg("Previous Week Low Break"), alert.freq_once_per_bar_close)
+    if alWOInput and (crossUp(wOpen, prevClose) or crossDn(wOpen, prevClose))
+        alert(alertMsg("Current Week Open Break"), alert.freq_once_per_bar_close)
+
+    if alPMInput
+        if crossUp(pmh, prevClose)
+            alert(alertMsg("Previous Month High Break"), alert.freq_once_per_bar_close)
+        if crossDn(pml, prevClose)
+            alert(alertMsg("Previous Month Low Break"), alert.freq_once_per_bar_close)
+    if alMOInput and (crossUp(mOpen, prevClose) or crossDn(mOpen, prevClose))
+        alert(alertMsg("Current Month Open Break"), alert.freq_once_per_bar_close)
+
+    for i = 0 to 5
+        if sesAlertArr.get(i) and sesBreakArr.get(i)
+            alert(alertMsg(sesBreakTxt.get(i)), alert.freq_once_per_bar_close)
+
+    if alMidInput and (crossUp(midnightOpen, prevClose) or crossDn(midnightOpen, prevClose))
+        alert(alertMsg("Midnight Open Break"), alert.freq_once_per_bar_close)

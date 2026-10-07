@@ -1,0 +1,447 @@
+//@version=6
+indicator("London Intraday Protraction° [Pro+]", shorttitle = "London Intraday Protraction° [Pro+]", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+string G_TIME  = "Time Parameters (ICT)"
+string G_PRICE = "Price Parameters (pips)"
+string G_DEV   = "CBDR Standard Deviations"
+string G_SIG   = "Protraction Signals"
+string G_COL   = "Colors"
+string G_TBL   = "Statistics Table"
+string G_DISP  = "Display"
+
+string i_tz       = input.string("America/New_York", "Timezone", options = ["America/New_York", "UTC", "Europe/London", "Exchange"], group = G_TIME, tooltip = "ICT Time parameters are referenced to New York local time.")
+string i_cbdrSess = input.session("1400-2000", "Central Bank Dealers Range (CBDR)", group = G_TIME)
+string i_arSess   = input.session("2000-0000", "Asian Range (AR)", group = G_TIME)
+string i_protSess = input.session("0000-0200", "Normal Protraction Window", group = G_TIME, tooltip = "Window of Time in which the Normal Protraction is expected. If no Protraction prints here, the Normal profile is negated (invalid Time parameter).")
+string i_lonSess  = input.session("0200-0500", "London Session", group = G_TIME, tooltip = "London window of Time opportunity used by the Delayed and Negated profiles.")
+
+float i_cbdrMin  = input.float(0.0,  "CBDR Size     Min", minval = 0.0, step = 0.5, inline = "cbdr", group = G_PRICE)
+float i_cbdrMax  = input.float(40.0, "Max", minval = 0.5, step = 0.5, inline = "cbdr", group = G_PRICE, tooltip = "ICT: an ideal CBDR is below 40 pips.")
+float i_arMin    = input.float(20.0, "AR Size         Min", minval = 0.0, step = 0.5, inline = "ar", group = G_PRICE)
+float i_arMax    = input.float(30.0, "Max", minval = 0.5, step = 0.5, inline = "ar", group = G_PRICE, tooltip = "ICT: an ideal Asian Range is between 20 and 30 pips.")
+int   i_confBars = input.int(2, "Protraction Confirmation (bars)", minval = 1, maxval = 10, group = G_PRICE, tooltip = "Bars the Protraction extreme must hold, with price closing back inside the range, before it is confirmed.")
+
+bool i_showDev  = input.bool(true, "Show CBDR Deviations", inline = "dev", group = G_DEV)
+int  i_devCount = input.int(3, "", minval = 1, maxval = 3, inline = "dev", group = G_DEV, tooltip = "Number of CBDR standard deviations projected above and below the range (up to three).")
+
+bool   i_showPips  = input.bool(true, "Show Range Size Labels (pips)", group = G_SIG)
+bool   i_showMarks = input.bool(true, "Show Protraction Markers", group = G_SIG)
+bool   i_showText  = input.bool(true, "Show Signal Text", group = G_SIG)
+string i_lblSize   = input.string("Small", "Label Size", options = ["Tiny", "Small", "Normal"], group = G_SIG)
+int    i_extBars   = input.int(8, "Protraction Level Length (bars)", minval = 1, maxval = 100, group = G_SIG)
+
+bool  i_autoCol      = input.bool(true, "Auto-Adapting Colors", group = G_COL, tooltip = "Valid lines, signals, text and tables automatically adapt to the chart background (light or dark).")
+color i_cbdrCol      = input.color(color.new(#5B8DEF, 65), "CBDR", inline = "c1", group = G_COL)
+color i_arValidCol   = input.color(color.new(#4CAF50, 65), "AR Valid", inline = "c1", group = G_COL)
+color i_arInvalidCol = input.color(color.new(#F0A04B, 62), "AR Invalid", inline = "c1", group = G_COL)
+color i_validCol     = input.color(#000000, "Valid", inline = "c2", group = G_COL)
+color i_invalidCol   = input.color(#F23645, "Invalid", inline = "c2", group = G_COL)
+color i_textCol      = input.color(#000000, "Text", inline = "c2", group = G_COL)
+
+bool   i_showTbl = input.bool(true, "Show Statistics", group = G_TBL)
+string i_tblY    = input.string("Bottom", "Position", options = ["Top", "Middle", "Bottom"], inline = "tp", group = G_TBL)
+string i_tblX    = input.string("Center", "", options = ["Left", "Center", "Right"], inline = "tp", group = G_TBL)
+string i_tblSize = input.string("Small", "Size", options = ["Tiny", "Small", "Normal", "Large"], group = G_TBL)
+
+bool i_showInfo   = input.bool(true, "Show Timeframe Panel", group = G_DISP)
+bool i_showTicker = input.bool(true, "Show Symbol in Panel", group = G_DISP)
+bool i_showTitle  = input.bool(true, "Show Title Banner", group = G_DISP)
+int  i_maxDays    = input.int(5, "Historical Sessions to Show", minval = 1, maxval = 55, group = G_DISP, tooltip = "Number of past sessions kept on the chart. Statistics still count every session.")
+
+int    P_NONE    = 0
+int    P_NORMAL  = 1
+int    P_DELAYED = 2
+int    P_NEGATED = 3
+int    GAP_MS    = 7200000
+string IND_NAME  = "London Intraday Protraction° [Pro+]"
+color  TRANSP    = color.new(color.black, 100)
+
+type DayDrawings
+    array<box>   boxes
+    array<line>  lines
+    array<label> labels
+
+type Cycle
+    int         startBar
+    float       cbdrH
+    float       cbdrL
+    float       cbdrPips
+    bool        cbdrOk     = false
+    bool        cbdrDone   = false
+    int         arBar
+    float       arH
+    float       arL
+    float       arPips
+    bool        arOk       = false
+    bool        arDone     = false
+    int         profile    = 0
+    float       refH
+    float       refL
+    int         pwBar
+    bool        lonStarted = false
+    bool        lonDone    = false
+    bool        extending  = false
+    bool        winActive  = false
+    int         protDir    = 0
+    int         trigBar
+    float       protExt
+    int         protExtBar
+    bool        confirmed  = false
+    bool        failed     = false
+    box         cbdrBox
+    box         arBox
+    box         devBox
+    box         winBox
+    label       cbdrLbl
+    label       arLbl
+    label       trigMark
+    label       trigText
+    array<line> devLines
+    DayDrawings draw
+
+method addBox(DayDrawings d, box b) =>
+    d.boxes.push(b)
+    b
+
+method addLine(DayDrawings d, line l) =>
+    d.lines.push(l)
+    l
+
+method addLabel(DayDrawings d, label lb) =>
+    d.labels.push(lb)
+    lb
+
+method clearAll(DayDrawings d) =>
+    for b in d.boxes
+        b.delete()
+    for l in d.lines
+        l.delete()
+    for lb in d.labels
+        lb.delete()
+    d.boxes.clear()
+    d.lines.clear()
+    d.labels.clear()
+
+f_size(string s) =>
+    switch s
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        => size.large
+
+f_tablePos(string y, string x) =>
+    switch y
+        "Top"    => x == "Left" ? position.top_left : x == "Center" ? position.top_center : position.top_right
+        "Middle" => x == "Left" ? position.middle_left : x == "Center" ? position.middle_center : position.middle_right
+        => x == "Left" ? position.bottom_left : x == "Center" ? position.bottom_center : position.bottom_right
+
+f_pipSize() =>
+    float tick = syminfo.mintick
+    int   dec  = int(math.round(-math.log10(tick)))
+    dec % 2 == 1 ? tick * 10.0 : tick
+
+float PIP = f_pipSize()
+
+f_pips(float rng) =>
+    PIP > 0 ? rng / PIP : 0.0
+
+f_fmt(float p) =>
+    str.tostring(math.round(p, 1), "#.#")
+
+f_inSess(string sess, string tz) =>
+    not na(time(timeframe.period, sess, tz))
+
+f_devTop(Cycle c) =>
+    c.cbdrH + i_devCount * (c.cbdrH - c.cbdrL)
+
+f_devBot(Cycle c) =>
+    c.cbdrL - i_devCount * (c.cbdrH - c.cbdrL)
+
+f_buildDeviations(Cycle c, color col) =>
+    float rng = c.cbdrH - c.cbdrL
+    c.devBox := c.draw.addBox(box.new(c.startBar, f_devTop(c), bar_index, f_devBot(c), border_color = col, border_width = 1, border_style = line.style_dotted, bgcolor = TRANSP))
+    if i_devCount > 1
+        for i = 1 to i_devCount - 1
+            float up = c.cbdrH + i * rng
+            float dn = c.cbdrL - i * rng
+            c.devLines.push(c.draw.addLine(line.new(c.startBar, up, bar_index, up, color = col, style = line.style_dotted, width = 1)))
+            c.devLines.push(c.draw.addLine(line.new(c.startBar, dn, bar_index, dn, color = col, style = line.style_dotted, width = 1)))
+
+f_paintDev(Cycle c, color col) =>
+    if not na(c.devBox)
+        c.devBox.set_border_color(col)
+    for ln in c.devLines
+        ln.set_color(col)
+
+f_extendDev(Cycle c, int x) =>
+    if not na(c.devBox)
+        c.devBox.set_right(x)
+    for ln in c.devLines
+        ln.set_x2(x)
+
+f_tfLabel() =>
+    int    secs = timeframe.in_seconds()
+    string res  = timeframe.period
+    if timeframe.isseconds
+        res := str.tostring(secs) + "s"
+    else if timeframe.isminutes
+        res := secs >= 3600 and secs % 3600 == 0 ? str.tostring(int(secs / 3600)) + "h" : str.tostring(int(secs / 60)) + "m"
+    res + " TIMEFRAME"
+
+string tzStr     = i_tz == "Exchange" ? syminfo.timezone : i_tz
+bool   isAllowed = syminfo.type == "forex" and timeframe.isintraday and timeframe.in_seconds() <= 900
+
+color  cValid   = i_autoCol ? chart.fg_color : i_validCol
+color  cText    = i_autoCol ? chart.fg_color : i_textCol
+color  cInvalid = i_invalidCol
+string sigSize  = f_size(i_lblSize)
+
+bool inCBDR = f_inSess(i_cbdrSess, tzStr)
+bool inAR   = f_inSess(i_arSess, tzStr)
+bool inPW   = f_inSess(i_protSess, tzStr)
+bool inLon  = f_inSess(i_lonSess, tzStr)
+
+bool sessionGap = bar_index > 0 and time - nz(time[1], time) > GAP_MS
+bool cbdrStart  = inCBDR and bar_index > 0 and (not inCBDR[1] or sessionGap)
+bool arStart    = inAR and not inAR[1]
+bool arEnd      = not inAR and inAR[1]
+bool lonStart   = inLon and not inLon[1]
+bool lonEnd     = not inLon and inLon[1]
+
+var Cycle              cyc        = na
+var array<DayDrawings> dayHistory = array.new<DayDrawings>()
+
+var int statTotal       = 0
+var int statNormal      = 0
+var int statNormalConf  = 0
+var int statDelayed     = 0
+var int statDelayedConf = 0
+
+bool evProfile = false
+bool evProt    = false
+bool evConf    = false
+bool evNoProt  = false
+
+if isAllowed and cbdrStart and not na(cyc)
+    if cyc.profile != P_NONE
+        bool held = cyc.confirmed and not cyc.failed
+        statTotal += 1
+        if cyc.profile == P_NORMAL
+            statNormal     += 1
+            statNormalConf += held ? 1 : 0
+        else
+            statDelayed     += 1
+            statDelayedConf += held ? 1 : 0
+    else
+        cyc.draw.clearAll()
+        if dayHistory.size() > 0
+            dayHistory.pop()
+
+if isAllowed and cbdrStart
+    DayDrawings dd = DayDrawings.new(array.new<box>(), array.new<line>(), array.new<label>())
+    dayHistory.push(dd)
+    if dayHistory.size() > i_maxDays
+        DayDrawings oldest = dayHistory.shift()
+        oldest.clearAll()
+    cyc := Cycle.new(startBar = bar_index, cbdrH = high, cbdrL = low, devLines = array.new<line>(), draw = dd)
+    cyc.cbdrBox := dd.addBox(box.new(bar_index, high, bar_index, low, border_color = TRANSP, border_width = 1, bgcolor = i_cbdrCol))
+    if i_showPips
+        cyc.cbdrLbl := dd.addLabel(label.new(bar_index, high, "", style = label.style_label_down, color = TRANSP, textcolor = cText, size = sigSize))
+
+if isAllowed and not na(cyc)
+
+    if inCBDR and not cyc.cbdrDone
+        cyc.cbdrH    := math.max(cyc.cbdrH, high)
+        cyc.cbdrL    := math.min(cyc.cbdrL, low)
+        cyc.cbdrPips := f_pips(cyc.cbdrH - cyc.cbdrL)
+        cyc.cbdrOk   := cyc.cbdrPips >= i_cbdrMin and cyc.cbdrPips <= i_cbdrMax
+        cyc.cbdrBox.set_top(cyc.cbdrH)
+        cyc.cbdrBox.set_bottom(cyc.cbdrL)
+        cyc.cbdrBox.set_right(bar_index)
+        if not na(cyc.cbdrLbl)
+            cyc.cbdrLbl.set_xy(math.round((cyc.startBar + bar_index) / 2), cyc.cbdrH)
+            cyc.cbdrLbl.set_text(f_fmt(cyc.cbdrPips))
+            cyc.cbdrLbl.set_textcolor(cyc.cbdrOk ? cText : cInvalid)
+
+    if arStart and not cyc.cbdrDone and not na(cyc.cbdrH)
+        cyc.cbdrDone := true
+        cyc.arBar    := bar_index
+        cyc.arH      := high
+        cyc.arL      := low
+        cyc.arBox    := cyc.draw.addBox(box.new(bar_index, high, bar_index, low, border_color = TRANSP, border_width = 1, bgcolor = i_arValidCol))
+        if i_showPips
+            cyc.arLbl := cyc.draw.addLabel(label.new(bar_index, high, "", style = label.style_label_down, color = TRANSP, textcolor = cText, size = sigSize))
+        if i_showDev
+            f_buildDeviations(cyc, cyc.cbdrOk ? cValid : cInvalid)
+        cyc.extending := true
+
+    if inAR and cyc.cbdrDone and not cyc.arDone and not na(cyc.arH)
+        cyc.arH    := math.max(cyc.arH, high)
+        cyc.arL    := math.min(cyc.arL, low)
+        cyc.arPips := f_pips(cyc.arH - cyc.arL)
+        bool arOver = cyc.arPips > i_arMax
+        cyc.arBox.set_top(cyc.arH)
+        cyc.arBox.set_bottom(cyc.arL)
+        cyc.arBox.set_right(bar_index)
+        cyc.arBox.set_bgcolor(arOver ? i_arInvalidCol : i_arValidCol)
+        if not na(cyc.arLbl)
+            cyc.arLbl.set_xy(math.round((cyc.arBar + bar_index) / 2), cyc.arH)
+            cyc.arLbl.set_text(f_fmt(cyc.arPips))
+            cyc.arLbl.set_textcolor(arOver ? cInvalid : cText)
+        f_paintDev(cyc, cyc.cbdrOk and not arOver ? cValid : cInvalid)
+
+    if arEnd and cyc.cbdrDone and not cyc.arDone and not na(cyc.arH)
+        cyc.arDone  := true
+        cyc.arPips  := f_pips(cyc.arH - cyc.arL)
+        cyc.arOk    := cyc.arPips >= i_arMin and cyc.arPips <= i_arMax
+        cyc.profile := cyc.cbdrOk and cyc.arOk ? P_NORMAL : P_DELAYED
+        cyc.refH    := cyc.arH
+        cyc.refL    := cyc.arL
+        cyc.pwBar   := bar_index
+        cyc.arBox.set_bgcolor(cyc.arOk ? i_arValidCol : i_arInvalidCol)
+        if not na(cyc.arLbl)
+            cyc.arLbl.set_textcolor(cyc.arOk ? cText : cInvalid)
+        if not na(cyc.cbdrLbl)
+            cyc.cbdrLbl.set_textcolor(cyc.cbdrOk ? cText : cInvalid)
+        f_paintDev(cyc, cyc.profile == P_NORMAL ? cValid : cInvalid)
+        evProfile := true
+
+    if cyc.arDone and cyc.profile == P_DELAYED and not cyc.lonStarted and not inLon
+        cyc.refH := math.max(cyc.refH, high)
+        cyc.refL := math.min(cyc.refL, low)
+
+    if lonStart and cyc.arDone and not cyc.lonStarted
+        cyc.lonStarted := true
+        if not (cyc.profile == P_NORMAL and cyc.protDir != 0)
+            if cyc.profile == P_NORMAL
+                cyc.profile := P_NEGATED
+                evNoProt    := true
+                if i_showText
+                    int midX = math.round((cyc.pwBar + bar_index) / 2)
+                    cyc.draw.addLabel(label.new(midX, cyc.arH, "No Protraction", style = label.style_label_down, color = TRANSP, textcolor = cText, size = sigSize, text_formatting = text.format_bold))
+                    cyc.draw.addLabel(label.new(midX, cyc.arH, "◷", style = label.style_label_up, color = TRANSP, textcolor = cInvalid, size = size.normal))
+            f_extendDev(cyc, bar_index)
+            cyc.extending := false
+            color winCol = cyc.profile == P_DELAYED ? cValid : cInvalid
+            cyc.winBox := cyc.draw.addBox(box.new(bar_index, math.max(f_devTop(cyc), high), bar_index, math.min(f_devBot(cyc), low), border_color = winCol, border_width = 1, border_style = line.style_dotted, bgcolor = TRANSP))
+            cyc.winActive := true
+
+    if lonEnd and cyc.lonStarted and not cyc.lonDone
+        cyc.lonDone := true
+        if cyc.extending
+            f_extendDev(cyc, bar_index)
+            cyc.extending := false
+        if cyc.winActive
+            cyc.winBox.set_right(bar_index)
+            cyc.winActive := false
+
+    if cyc.arDone and cyc.protDir == 0
+        bool lookNormal = cyc.profile == P_NORMAL and inPW and not cyc.lonStarted
+        bool lookLondon = (cyc.profile == P_DELAYED or cyc.profile == P_NEGATED) and inLon and cyc.lonStarted and not cyc.lonDone
+        if lookNormal or lookLondon
+            bool brokeUp = high > cyc.refH
+            bool brokeDn = low < cyc.refL
+            if brokeUp or brokeDn
+                int dir = brokeUp and brokeDn ? (high - cyc.refH >= cyc.refL - low ? 1 : -1) : brokeUp ? 1 : -1
+                cyc.protDir    := dir
+                cyc.trigBar    := bar_index
+                cyc.protExt    := dir == 1 ? high : low
+                cyc.protExtBar := bar_index
+                evProt         := true
+                color  mCol = lookLondon ? cInvalid : cText
+                string yl   = dir == 1 ? yloc.abovebar : yloc.belowbar
+                if i_showMarks
+                    cyc.trigMark := cyc.draw.addLabel(label.new(bar_index, cyc.protExt, "", yloc = yl, style = dir == 1 ? label.style_triangleup : label.style_triangledown, color = mCol, size = size.tiny))
+                if i_showText
+                    cyc.trigText := cyc.draw.addLabel(label.new(bar_index, cyc.protExt, "Protraction", yloc = yl, style = label.style_label_right, color = TRANSP, textcolor = cText, size = sigSize, text_formatting = text.format_bold))
+                if lookLondon
+                    float lvl = dir == 1 ? cyc.refH : cyc.refL
+                    cyc.draw.addLine(line.new(bar_index, lvl, bar_index + i_extBars, lvl, color = cInvalid, width = 1))
+
+    if cyc.protDir != 0 and not cyc.confirmed and not cyc.lonDone
+        if cyc.protDir == 1 and high > cyc.protExt
+            cyc.protExt    := high
+            cyc.protExtBar := bar_index
+        else if cyc.protDir == -1 and low < cyc.protExt
+            cyc.protExt    := low
+            cyc.protExtBar := bar_index
+        bool backInside = cyc.protDir == 1 ? close < cyc.refH : close > cyc.refL
+        if bar_index - cyc.protExtBar >= i_confBars and backInside
+            cyc.confirmed := true
+            evConf        := true
+            bool   london = cyc.profile != P_NORMAL
+            string yl     = cyc.protDir == 1 ? yloc.abovebar : yloc.belowbar
+            if cyc.protExtBar == cyc.trigBar
+                if not na(cyc.trigMark)
+                    cyc.trigMark.delete()
+                if not na(cyc.trigText)
+                    cyc.trigText.delete()
+            if i_showMarks
+                if london
+                    cyc.draw.addLabel(label.new(cyc.protExtBar, cyc.protExt, "◉", yloc = yl, style = cyc.protDir == 1 ? label.style_label_down : label.style_label_up, color = TRANSP, textcolor = cInvalid, size = size.normal))
+                else
+                    cyc.draw.addLabel(label.new(cyc.protExtBar, cyc.protExt, "", yloc = yl, style = cyc.protDir == 1 ? label.style_triangledown : label.style_triangleup, color = cText, size = size.tiny))
+            if i_showText
+                cyc.draw.addLabel(label.new(cyc.protExtBar, cyc.protExt, "Confirmed Protraction", yloc = yl, style = label.style_label_right, color = TRANSP, textcolor = cText, size = sigSize, text_formatting = text.format_bold))
+            if london
+                cyc.draw.addLine(line.new(cyc.protExtBar, cyc.protExt, bar_index + i_extBars, cyc.protExt, color = cInvalid, width = 1))
+
+    if cyc.confirmed and not cyc.failed
+        if (cyc.protDir == 1 and high > cyc.protExt) or (cyc.protDir == -1 and low < cyc.protExt)
+            cyc.failed := true
+
+if isAllowed and not na(cyc)
+    if cyc.extending
+        f_extendDev(cyc, bar_index)
+    if cyc.winActive and inLon and not na(cyc.winBox)
+        cyc.winBox.set_right(bar_index)
+        cyc.winBox.set_top(math.max(cyc.winBox.get_top(), high))
+        cyc.winBox.set_bottom(math.min(cyc.winBox.get_bottom(), low))
+
+var table tblStats = i_showTbl ? table.new(f_tablePos(i_tblY, i_tblX), 3, 3, frame_color = cText, frame_width = 1, border_color = cText, border_width = 1) : na
+var table tblInfo  = i_showInfo ? table.new(position.top_right, 1, 2, frame_color = cText, frame_width = 1) : na
+var table tblTitle = i_showTitle ? table.new(position.top_center, 1, 1, frame_color = cText, frame_width = 1) : na
+var table tblWarn  = table.new(position.middle_center, 1, 1, frame_color = cInvalid, frame_width = 1)
+
+f_cell(table t, int c, int r, string txt, string sz) =>
+    table.cell(t, c, r, txt, text_color = cText, text_size = sz, text_halign = text.align_center, text_valign = text.align_center, bgcolor = TRANSP, text_font_family = font.family_monospace)
+
+if barstate.islast
+    if not isAllowed
+        table.cell(tblWarn, 0, 0, IND_NAME + "\nDesigned for Forex markets on the 15 minute timeframe or below.", text_color = cInvalid, text_size = size.normal, bgcolor = color.new(cInvalid, 90))
+    else
+        if not na(tblStats)
+            string tSz  = f_size(i_tblSize)
+            string nPct = statNormal > 0 ? str.tostring(math.round(100.0 * statNormalConf / statNormal)) + "%" : "0%"
+            string dPct = statDelayed > 0 ? str.tostring(math.round(100.0 * statDelayedConf / statDelayed)) + "%" : "0%"
+            f_cell(tblStats, 0, 0, "Total Days\n" + str.tostring(statTotal), tSz)
+            f_cell(tblStats, 1, 0, "Predicted Profiles", tSz)
+            f_cell(tblStats, 2, 0, "Confirmed Profiles", tSz)
+            f_cell(tblStats, 0, 1, "Normal", tSz)
+            f_cell(tblStats, 1, 1, str.tostring(statNormal), tSz)
+            f_cell(tblStats, 2, 1, nPct, tSz)
+            f_cell(tblStats, 0, 2, "Delayed", tSz)
+            f_cell(tblStats, 1, 2, str.tostring(statDelayed), tSz)
+            f_cell(tblStats, 2, 2, dPct, tSz)
+        if not na(tblInfo)
+            if i_showTicker
+                table.cell(tblInfo, 0, 0, syminfo.ticker, text_color = cText, text_size = size.normal, bgcolor = TRANSP)
+                table.cell(tblInfo, 0, 1, f_tfLabel(), text_color = cText, text_size = size.tiny, bgcolor = TRANSP)
+            else
+                table.cell(tblInfo, 0, 0, f_tfLabel(), text_color = cText, text_size = size.tiny, bgcolor = TRANSP)
+        if not na(tblTitle)
+            table.cell(tblTitle, 0, 0, IND_NAME, text_color = cText, text_size = size.normal, bgcolor = TRANSP)
+
+if evProfile and not na(cyc)
+    alert(IND_NAME + " | " + syminfo.ticker + " | Profile: " + (cyc.profile == P_NORMAL ? "Normal Protraction" : "Delayed Protraction") + " | CBDR " + f_fmt(cyc.cbdrPips) + " pips | AR " + f_fmt(cyc.arPips) + " pips", alert.freq_once_per_bar_close)
+if evNoProt
+    alert(IND_NAME + " | " + syminfo.ticker + " | No Protraction: Normal Protraction Negated, look for a Protraction in the London window of Time", alert.freq_once_per_bar_close)
+if evProt and not na(cyc)
+    alert(IND_NAME + " | " + syminfo.ticker + " | Protraction " + (cyc.protDir == 1 ? "UP" : "DOWN"), alert.freq_once_per_bar_close)
+if evConf and not na(cyc)
+    alert(IND_NAME + " | " + syminfo.ticker + " | Confirmed Protraction " + (cyc.protDir == 1 ? "High" : "Low"), alert.freq_once_per_bar_close)
+
+alertcondition(evProfile, "Profile Assigned", "London Intraday Protraction° [Pro+] | {{ticker}} | Asian Range closed: London profile assigned")
+alertcondition(evProt, "Protraction", "London Intraday Protraction° [Pro+] | {{ticker}} | Protraction detected")
+alertcondition(evConf, "Confirmed Protraction", "London Intraday Protraction° [Pro+] | {{ticker}} | Confirmed Protraction")
+alertcondition(evNoProt, "No Protraction", "London Intraday Protraction° [Pro+] | {{ticker}} | No Protraction: Normal Protraction Negated")

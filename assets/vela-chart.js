@@ -338,6 +338,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-data-dot.js?v=465')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
+  // Price-axis countdown to bar close: current wall-clock bar, hidden while CME is closed,
+  // timers paused on hidden tabs: assets/chart-countdown.js.
+  import('./chart-countdown.js?v=463')
+    .then((m) => m.installCountdown(ws))
+    .catch((e) => console.warn('Stryker: countdown', e));
   // Floating Favorites drawing toolbar (starred tools, draggable): assets/chart-fav-toolbar.js.
   import('./chart-fav-toolbar.js?v=465')
     .then((m) => m.mountFavToolbar(ws, Core, { toast }))

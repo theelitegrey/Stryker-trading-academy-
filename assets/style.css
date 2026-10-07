@@ -8521,15 +8521,16 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 
 /* ==========================================================================
    TRADING SESSION CLOCK in the app header (assets/market-hours.js; build 380,
-   sessions since build 425). Which session is open (Asia / London / New York)
-   plus a countdown to the next one, then New York and local clocks. A clock
-   only: no market data. Fixed-width mono digits so the header never shifts
-   as the seconds tick. Never wraps or scrolls: market-hours.js adds fit-1..3
-   (drop local clock, short text, drop NY clock) until the pill fits.
+   sessions since build 425, Owner layout build 466). Pulsing dot (green =
+   session open, amber = futures market open but no session, red = market
+   closed) + "<session> · Market Closes in hh:mm:ss · Next Session: ...".
+   A clock only: no market data. Tabular digits so the header never shifts as
+   the seconds tick. Never wraps or scrolls: market-hours.js adds fit-1 (short
+   text) when the full text would overflow.
    ========================================================================== */
 .mclock{ position:relative; margin-left:auto; margin-right:12px; min-width:0; flex:0 1 auto; }
 .mclock-pill{
-  display:flex; align-items:center; gap:10px; height:34px; padding:0 12px; max-width:100%; overflow:hidden;
+  display:flex; align-items:center; gap:10px; height:34px; padding:0 14px 0 12px; max-width:100%; overflow:hidden;
   border:1px solid var(--line); border-radius:999px; background:var(--bg-2);
   color:var(--ink-1); font:12px/1 var(--font-mono); font-variant-numeric:tabular-nums;
   white-space:nowrap; cursor:pointer; transition:border-color .15s ease;
@@ -8537,14 +8538,16 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 .mclock-pill > *{ flex-shrink:0; }
 .mclock-pill:hover, .mclock-pill[aria-expanded="true"]{ border-color:var(--teal-dim, var(--teal)); }
 .mclock-pill:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
-.mclock-dot{ width:7px; height:7px; border-radius:50%; background:var(--ink-3); flex-shrink:0; }
-.mclock.is-open .mclock-dot{ background:var(--bull); box-shadow:0 0 0 3px rgba(3,201,136,.18); }
+.mclock-dot{ --mc-dot:var(--ink-3); --mc-ring:rgba(140,150,165,.55); position:relative; width:8px; height:8px; margin:0 2px; border-radius:50%; background:var(--mc-dot); flex-shrink:0; }
+.mclock-dot::after{ content:""; position:absolute; inset:0; border-radius:50%; background:var(--mc-ring); animation:mclock-pulse 1.6s ease-out infinite; }
+.mclock.is-open .mclock-dot{ --mc-dot:var(--bull, #03c988); --mc-ring:rgba(3,201,136,.6); }
+.mclock.is-nosess .mclock-dot{ --mc-dot:var(--amber, #f5c542); --mc-ring:rgba(245,197,66,.6); }
+.mclock.is-closed .mclock-dot{ --mc-dot:var(--bear, #f23645); --mc-ring:rgba(242,54,69,.6); }
+@keyframes mclock-pulse{ 0%{ transform:scale(1); opacity:.9; } 80%,100%{ transform:scale(2.8); opacity:0; } }
+@media (prefers-reduced-motion: reduce){ .mclock-dot::after{ animation:none; display:none; } }
 .mclock-state b, .mclock-short b{ color:var(--ink-0); font-weight:700; }
 .mclock-tail, .mclock-stail{ color:var(--ink-2); }
-.mclock-sep{ width:1px; height:16px; background:var(--line); }
-.mclock-t b{ font-weight:600; color:var(--ink-3); margin-right:2px; }
-.mclock-t i{ font-style:normal; color:var(--ink-3); font-size:11px; }
-.mclock-nym, .mclock-locm, .mclock-short, .mclock.same-tz .mclock-loc{ display:none; }
+.mclock-short{ display:none; }
 .mclock-pop{
   position:absolute; right:0; top:calc(100% + 8px); width:320px; z-index:760;
   background:var(--bg-1); border:1px solid var(--line); border-radius:12px;
@@ -8556,38 +8559,36 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 .mclock-row b{ color:var(--ink-0); font:600 12.5px var(--font-mono); font-variant-numeric:tabular-nums; text-align:right; }
 .mclock-row i{ font-style:normal; color:var(--ink-3); font-weight:500; }
 .mclock.is-open .mclock-pstate{ color:var(--bull); }
+.mclock.is-closed .mclock-pstate{ color:var(--bear, #f23645); }
 .mclock-hours{ margin:4px 0; padding:4px 0; border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft); }
 .mclock-note{ margin:8px 0 0; padding-top:8px; border-top:1px solid var(--line-soft); font-size:11.5px; line-height:1.5; color:var(--ink-3); }
-/* Fit levels (set by JS when the pill would overflow). */
-.mclock.fit-1 .mclock-loc, .mclock.fit-1 .mclock-locm{ display:none; }
-.mclock.fit-2 .mclock-state{ display:none; }
-.mclock.fit-2 .mclock-short{ display:inline; }
-.mclock.fit-3 .mclock-t, .mclock.fit-3 .mclock-sep{ display:none !important; }
+/* Fit levels (set by JS when the pill would overflow): 1 = short text,
+   2 = tighter type and spacing (narrowest phones). */
+.mclock.fit-1 .mclock-state{ display:none; }
+.mclock.fit-1 .mclock-short{ display:inline; }
+.mclock.fit-2 .mclock-pill{ font-size:10px; gap:5px; padding:0 6px; letter-spacing:-.02em; }
 /* Phones: the header row has no room left (hamburger, logo, globe, messages,
    bell, avatar), so the clock becomes a slim full-width strip as the
-   header's second row: "● Asia open · London in 05:33:25 | NY 16:03 EDT | IST 01:33",
-   short text and minute clocks. Tap it for the popover with every session's
-   hours in the visitor's time. --topbar-h grows by the strip's height so the
+   header's second row with the short text: "● NY Open · Closes 01:04:19 ·
+   Asia in 04:04:18". Tap it for the popover with every session's hours in
+   the visitor's time. --topbar-h grows by the strip's height so the
    full-height layouts (messages) that subtract the header still fit. */
 @media (max-width:900px){
   :root:has(#mclock){ --topbar-h:93px; }
   .mobile-topnav{ flex-wrap:wrap; row-gap:8px; }
   .mclock{ position:static; order:3; flex:1 0 100%; margin:0; }
   .mclock-pill{ width:100%; justify-content:center; height:26px; gap:8px; padding:0 10px; font-size:11px; border-radius:8px; }
-  .mclock-state, .mclock-nyt, .mclock-loc{ display:none; }
-  .mclock-short, .mclock-nym, .mclock-locm{ display:inline; }
-  .mclock-pill .mclock-sep{ display:inline-block; height:12px; }
+  .mclock-state{ display:none; }
+  .mclock-short{ display:inline; }
   .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
 }
 html[data-device="mobile"]:has(#mclock){ --topbar-h:93px; }
 html[data-device="mobile"] .mobile-topnav{ flex-wrap:wrap; row-gap:8px; }
 html[data-device="mobile"] .mclock{ position:static; order:3; flex:1 0 100%; margin:0; }
 html[data-device="mobile"] .mclock-pill{ width:100%; justify-content:center; height:26px; gap:8px; padding:0 10px; font-size:11px; border-radius:8px; }
-html[data-device="mobile"] .mclock-state, html[data-device="mobile"] .mclock-nyt, html[data-device="mobile"] .mclock-loc{ display:none; }
-html[data-device="mobile"] .mclock-short, html[data-device="mobile"] .mclock-nym, html[data-device="mobile"] .mclock-locm{ display:inline; }
+html[data-device="mobile"] .mclock-state{ display:none; }
+html[data-device="mobile"] .mclock-short{ display:inline; }
 html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:calc(100% + 4px); }
-.mclock.fit-1 .mclock-locm, .mclock.fit-1 .mclock-loc{ display:none !important; }
-.mclock.same-tz .mclock-locm{ display:none !important; }
 :root[data-theme="light"] .mclock-pill{ background:#fff; }
 :root[data-theme="light"] .mclock-pop{ background:#fff; box-shadow:0 18px 40px -16px rgba(14,22,33,.28); }
 

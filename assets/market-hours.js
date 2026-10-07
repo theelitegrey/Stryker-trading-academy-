@@ -3,8 +3,8 @@
 // Purpose: renders the "Trading session clock" in the app header
 // (.mobile-topnav) of every dash-shell page: which forex/futures trading
 // session is open now (Asia, London, New York), a per-second countdown to the
-// next session that is not open, plus New York time and the visitor's local
-// time. It is a CLOCK computed from the calendar below; it reads no market
+// next session that is not open, and the CME equity-index futures close /
+// reopen countdown when it comes first (futuresStatus). It is a CLOCK computed from the calendar below; it reads no market
 // data and must never be worded as live or real-time data.
 //
 // Session definitions (standard trader convention, each in its own city's
@@ -231,21 +231,58 @@
     return { open: open, next: next, weekend: weekend };
   }
 
-  // Display strings for the header pill.
+  // ---- futures market (CME equity-index futures: NQ / ES) -------------------
+  // Open Sun 18:00 ET -> Fri 17:00 ET with a daily break 17:00-18:00 ET
+  // Mon-Thu. America/New_York wall clock, so DST is handled by Intl. CME
+  // holiday schedules are not modelled (a clock, not an exchange feed).
+  // { open:bool, until:ms (next close if open, next reopen if closed), weekend:bool }
+  function futuresStatus(nowMs) {
+    var p = nyParts(nowMs), wd = p.wd, h = p.h, t;
+    var open = (wd === 0 && h >= 18) || (wd >= 1 && wd <= 4 && h !== 17) || (wd === 5 && h < 17);
+    if (open) {
+      // close is today 17:00 if before 17:00, else tomorrow 17:00 (Sun/Mon-Thu evening)
+      t = h < 17 ? [p.y, p.m, p.d] : addDays(p.y, p.m, p.d, 1);
+      return { open: true, until: nyToUtc(t[0], t[1], t[2], 17, 0), weekend: false };
+    }
+    if (wd >= 1 && wd <= 4) return { open: false, until: nyToUtc(p.y, p.m, p.d, 18, 0), weekend: false };
+    // Fri >= 17:00, Sat, Sun < 18:00 -> Sunday 18:00
+    t = addDays(p.y, p.m, p.d, (7 - wd) % 7);
+    return { open: false, until: nyToUtc(t[0], t[1], t[2], 18, 0), weekend: true };
+  }
+
+  // Display strings for the header pill (Owner wording, build 466):
+  //   "New York Session is Open · Market Closes in 01:04:19 · Next Session: Asia opens in 04:04:18"
+  //   "Asia Session is Open · Next Session: London opens in 04:02:32"
+  //   "Market is Closed · Market Opens in 00:42:10 · Next Session: Asia opens in 02:42:10"
+  //   "No Session Open · Next Session: Asia opens in 01:12:05"
+  // The market close (or reopen) is shown only when it comes before the next
+  // session opens. state: 'session' | 'nosession' | 'closed' (drives the dot colour).
   function sessionLabel(nowMs) {
-    var st = sessionStatus(nowMs);
-    var names = st.open.map(function (o) { return o.name; });
-    var shorts = st.open.map(function (o) { return o.short; });
+    var st = sessionStatus(nowMs), mk = futuresStatus(nowMs);
+    var open = mk.open ? st.open : [];
+    var names = open.map(function (o) { return o.name; });
+    var shorts = open.map(function (o) { return o.short; });
+    var state = !mk.open ? 'closed' : (names.length ? 'session' : 'nosession');
     var head, shortHead;
-    if (names.length === 1) { head = names[0] + ' Session is Open'; shortHead = shorts[0] + ' open'; }
-    else if (names.length > 1) { head = joinNames(names) + ' Sessions are Open'; shortHead = joinNames(shorts) + ' open'; }
-    else if (st.weekend) { head = 'Markets closed (weekend)'; shortHead = 'Weekend'; }
-    else { head = 'No session open'; shortHead = 'Closed'; }
-    var left = st.next ? fmtClock(st.next.at - nowMs) : '';
-    var tail = st.next ? 'Next Session: ' + st.next.name + ' opens in ' + left : '';
-    var shortTail = st.next ? st.next.short + ' in ' + left : '';
+    if (state === 'closed') { head = 'Market is Closed'; shortHead = 'Closed'; }
+    else if (names.length === 1) { head = names[0] + ' Session is Open'; shortHead = shorts[0] + ' Open'; }
+    else if (names.length > 1) { head = joinNames(names) + ' Sessions are Open'; shortHead = joinNames(shorts) + ' Open'; }
+    else { head = 'No Session Open'; shortHead = 'No Session'; }
+    var parts = [], sparts = [];
+    var mkLeft = fmtClock(mk.until - nowMs);
+    if (!st.next || mk.until < st.next.at) {
+      parts.push((mk.open ? 'Market Closes in ' : 'Market Opens in ') + mkLeft);
+      sparts.push((mk.open ? 'Closes ' : 'Opens ') + mkLeft);
+    }
+    if (st.next) {
+      var left = fmtClock(st.next.at - nowMs);
+      parts.push('Next Session: ' + st.next.name + ' opens in ' + left);
+      sparts.push(st.next.short + ' in ' + left);
+    }
+    var tail = parts.join(' \u00b7 '), shortTail = sparts.join(' \u00b7 ');
     return {
-      open: names.length > 0, weekend: st.weekend, sessions: names, next: st.next,
+      state: state, open: names.length > 0, marketOpen: mk.open, market: mk, weekend: mk.weekend,
+      sessions: names, next: st.next,
       head: head, tail: tail, text: head + (tail ? ' \u00b7 ' + tail : ''),
       shortHead: shortHead, shortTail: shortTail, short: shortHead + (shortTail ? ' \u00b7 ' + shortTail : '')
     };
@@ -265,40 +302,21 @@
   }
 
   var api = { status: status, label: label, fmtLeft: fmtLeft, sessionFor: sessionFor, nyParts: nyParts, nyToUtc: nyToUtc,
-    SESSIONS: SESSIONS, sessionStatus: sessionStatus, sessionLabel: sessionLabel, sessionHours: sessionHours, fmtClock: fmtClock, tzToUtc: tzToUtc };
+    SESSIONS: SESSIONS, sessionStatus: sessionStatus, sessionLabel: sessionLabel, futuresStatus: futuresStatus, sessionHours: sessionHours, fmtClock: fmtClock, tzToUtc: tzToUtc };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   root.StrykerMarketHours = api;
 
   // ---- header widget --------------------------------------------------------
-  function tzAbbr(tz) {
-    try {
-      var o = {};
-      new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date())
-        .forEach(function (p) { o[p.type] = p.value; });
-      var a = o.timeZoneName || '';
-      // en-US only has letters for US zones; try the visitor's locale (en-IN gives IST)
-      if (/^GMT/.test(a) && typeof navigator !== 'undefined') {
-        var o2 = {};
-        new Intl.DateTimeFormat(navigator.language || 'en-US', { timeZone: tz, timeZoneName: 'short' }).formatToParts(new Date())
-          .forEach(function (p) { o2[p.type] = p.value; });
-        if (o2.timeZoneName && /^[A-Z]{2,5}$/.test(o2.timeZoneName)) a = o2.timeZoneName;
-      }
-      return a;
-    } catch (e) { return ''; }
-  }
-
+  // Pill: pulsing dot (green = session open, amber = market open with no
+  // session, red = market closed) + the label text. No NY/local clocks
+  // (Owner, build 466). Tap for the popover with each session's hours in the
+  // visitor's time zone.
   function mount() {
     var host = document.querySelector('.mobile-topnav');
     if (!host || document.getElementById('mclock')) return;
     var localTz = '';
     try { localTz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
-    var timeFmt = function (tz) {
-      return new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
-    };
-    var nyF = timeFmt(NY), locF = timeFmt(localTz);
-    var hmFmt = function (tz) { return new Intl.DateTimeFormat('en-GB', { timeZone: tz || undefined, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }); };
-    var nyHmF = hmFmt(NY), locHmF = hmFmt(localTz);
 
     var w = document.createElement('div');
     w.className = 'mclock';
@@ -308,19 +326,13 @@
         '<span class="mclock-dot" aria-hidden="true"></span>' +
         '<span class="mclock-state"><b class="mclock-head"></b> <span class="mclock-tail"></span></span>' +
         '<span class="mclock-short"><b class="mclock-shead"></b> <span class="mclock-stail"></span></span>' +
-        '<span class="mclock-sep" aria-hidden="true"></span>' +
-        '<span class="mclock-t mclock-nyt"><b>NY</b> <span class="mclock-ny"></span> <i class="mclock-nyz"></i></span>' +
-        '<span class="mclock-t mclock-nym"><b>NY</b> <span class="mclock-nyhm"></span> <i class="mclock-nyz"></i></span>' +
-        '<span class="mclock-t mclock-locm"><i class="mclock-ltz"></i> <span class="mclock-lthm"></span></span>' +
-        '<span class="mclock-t mclock-loc"><b>Local</b> <span class="mclock-lt"></span> <i class="mclock-ltz"></i></span>' +
       '</button>' +
       '<div class="mclock-pop" id="mclock-pop" role="region" aria-label="Trading session hours" hidden>' +
         '<div class="mclock-row mclock-prow"><span>Now</span><b class="mclock-pstate"></b></div>' +
+        '<div class="mclock-row"><span class="mclock-pmkl">Market</span><b class="mclock-pmk"></b></div>' +
         '<div class="mclock-row"><span>Next</span><b class="mclock-pnext"></b></div>' +
         '<div class="mclock-hours"></div>' +
-        '<div class="mclock-row"><span>New York</span><b><span class="mclock-ny"></span> <i class="mclock-nyz"></i></b></div>' +
-        '<div class="mclock-row"><span>Your time</span><b><span class="mclock-lt"></span> <i class="mclock-ltz"></i></b></div>' +
-        '<p class="mclock-note">Session hours in your time zone. Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. A clock from the calendar, not market data. Bank holidays not included.</p>' +
+        '<p class="mclock-note">Session hours in your time zone. Asia 09:00-18:00 Tokyo, London 08:00-17:00 London, New York 08:00-17:00 New York, Mon-Fri; each follows its own city\'s daylight saving. Market = CME equity-index futures (NQ/ES): Sun 18:00 to Fri 17:00 New York time, daily break 17:00-18:00. A clock from the calendar, not market data. Holidays not included.</p>' +
       '</div>';
     var right = host.querySelector('.topnav-right');
     host.insertBefore(w, right || null);
@@ -334,29 +346,31 @@
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !pop.hidden) { setOpen(false); pill.focus(); } });
 
     var q = function (sel) { return w.querySelectorAll(sel); };
-    var lastAbbr = 0, lastHours = 0, nyz = '', ltz = '';
+    var lastHours = 0;
     function setAll(sel, txt) { q(sel).forEach(function (el) { if (el.textContent !== txt) el.textContent = txt; }); }
     // Fit the pill to the header without wrapping or sideways scroll:
-    // level 1 drops the local clock, 2 switches to the short session text,
-    // 3 drops the NY clock too. Re-run when the text length or width changes.
+    // fit-1 switches to the short text, fit-2 tightens type and spacing.
+    // Re-run when text length or width changes.
     var fitKey = '';
     function overflowing() { return pill.scrollWidth > pill.clientWidth + 1; }
     function fit() {
-      w.classList.remove('fit-1', 'fit-2', 'fit-3');
-      for (var lv = 1; lv <= 3 && overflowing(); lv++) w.classList.add('fit-' + lv);
+      w.classList.remove('fit-1', 'fit-2');
+      for (var lv = 1; lv <= 2 && overflowing(); lv++) w.classList.add('fit-' + lv);
     }
     window.addEventListener('resize', function () { fitKey = ''; });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(); });
     function tick() {
       var now = Date.now();
-      if (now - lastAbbr > 60000) { nyz = tzAbbr(NY); ltz = tzAbbr(localTz); lastAbbr = now; }
       var l = sessionLabel(now);
-      w.classList.toggle('is-open', l.open);
+      w.classList.toggle('is-open', l.state === 'session');
+      w.classList.toggle('is-nosess', l.state === 'nosession');
+      w.classList.toggle('is-closed', l.state === 'closed');
       setAll('.mclock-head', l.head);
       setAll('.mclock-tail', l.tail ? '\u00b7 ' + l.tail : '');
       setAll('.mclock-shead', l.shortHead);
       setAll('.mclock-stail', l.shortTail ? '\u00b7 ' + l.shortTail : '');
       setAll('.mclock-pstate', l.head);
+      setAll('.mclock-pmk', (l.marketOpen ? 'Closes in ' : 'Opens in ') + fmtClock(l.market.until - now));
       setAll('.mclock-pnext', l.next ? l.next.name + ' in ' + fmtClock(l.next.at - now) : '');
       if (now - lastHours > 30000) {
         lastHours = now;
@@ -372,13 +386,6 @@
           row.appendChild(a); row.appendChild(b); hb.appendChild(row);
         });
       }
-      setAll('.mclock-ny', nyF.format(now));
-      setAll('.mclock-nyhm', nyHmF.format(now));
-      setAll('.mclock-lthm', locHmF.format(now));
-      setAll('.mclock-lt', locF.format(now));
-      setAll('.mclock-nyz', nyz);
-      setAll('.mclock-ltz', ltz);
-      w.classList.toggle('same-tz', !!localTz && localTz === NY);
       var fk = l.text.length + '|' + l.short.length + '|' + (window.innerWidth || 0);
       if (fk !== fitKey) { fitKey = fk; fit(); }
     }

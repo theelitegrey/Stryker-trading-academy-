@@ -95,46 +95,71 @@ t('fmtLeft formats', () => {
 // 2026: US DST Mar 8 -> Nov 1, UK BST Mar 29 -> Oct 25. Tokyo has no DST.
 const L = (iso) => MH.sessionLabel(U(iso));
 const IST = 'Asia/Kolkata';
-t('sessions: Asia only (Owner example) -> London opens in 05:33:25', () => {
-  const l = L('2026-10-06T01:26:35Z'); // Tue 10:26:35 Tokyo, 06:56:35 IST
-  assert.strictEqual(l.text, 'Asia Session is Open \u00b7 Next Session: London opens in 05:33:25');
-  assert.strictEqual(l.short, 'Asia open \u00b7 London in 05:33:25');
-  assert.strictEqual(l.open, true);
+const DOT = ' \u00b7 ';
+const J = (...a) => a.join(DOT);
+t('sessions: Asia only (Owner example) -> London opens in 05:33:25, no market close', () => {
+  const l = L('2026-10-06T01:26:35Z'); // Tue 10:26:35 Tokyo; futures close Tue 17:00 EDT comes after London
+  assert.strictEqual(l.text, J('Asia Session is Open', 'Next Session: London opens in 05:33:25'));
+  assert.strictEqual(l.short, J('Asia Open', 'London in 05:33:25'));
+  assert.strictEqual(l.open, true); assert.strictEqual(l.state, 'session');
 });
 t('sessions: London only -> New York opens in 02:00:00', () => {
-  assert.strictEqual(L('2026-10-06T10:00:00Z').text, 'London Session is Open \u00b7 Next Session: New York opens in 02:00:00');
-  assert.strictEqual(L('2026-10-06T10:00:00Z').short, 'London open \u00b7 NY in 02:00:00');
+  assert.strictEqual(L('2026-10-06T10:00:00Z').text, J('London Session is Open', 'Next Session: New York opens in 02:00:00'));
+  assert.strictEqual(L('2026-10-06T10:00:00Z').short, J('London Open', 'NY in 02:00:00'));
 });
-t('sessions: London & New York overlap -> next is Asia (not open now)', () => {
+t('sessions: London & New York overlap -> market close before Asia', () => {
   const l = L('2026-10-06T13:49:55Z');
-  assert.strictEqual(l.text, 'London & New York Sessions are Open \u00b7 Next Session: Asia opens in 10:10:05');
-  assert.strictEqual(l.short, 'London & NY open \u00b7 Asia in 10:10:05');
+  assert.strictEqual(l.text, J('London & New York Sessions are Open', 'Market Closes in 07:10:05', 'Next Session: Asia opens in 10:10:05'));
+  assert.strictEqual(l.short, J('London & NY Open', 'Closes 07:10:05', 'Asia in 10:10:05'));
 });
-t('sessions: New York only after London close', () => {
-  assert.strictEqual(L('2026-10-06T18:00:00Z').text, 'New York Session is Open \u00b7 Next Session: Asia opens in 06:00:00');
+t('sessions: New York open (Owner example, Wed 15:55:42 EDT)', () => {
+  const l = L('2026-10-07T19:55:42Z');
+  assert.strictEqual(l.text, J('New York Session is Open', 'Market Closes in 01:04:18', 'Next Session: Asia opens in 04:04:18'));
+  assert.strictEqual(l.short, J('NY Open', 'Closes 01:04:18', 'Asia in 04:04:18'));
+  assert.strictEqual(l.state, 'session');
 });
 t('sessions: boundaries are [open, close)', () => {
   assert.deepStrictEqual(L('2026-10-06T07:00:00Z').sessions, ['Asia', 'London']); // London opens 08:00 BST
   assert.deepStrictEqual(L('2026-10-06T09:00:00Z').sessions, ['London']);         // Asia closes 18:00 Tokyo
   assert.deepStrictEqual(L('2026-10-06T21:00:00Z').sessions, []);                 // NY closes 17:00 EDT
 });
-t('sessions: weekday gap -> No session open, Asia countdown', () => {
-  const l = L('2026-10-06T22:47:20Z');
-  assert.strictEqual(l.open, false); assert.strictEqual(l.weekend, false);
-  assert.strictEqual(l.text, 'No session open \u00b7 Next Session: Asia opens in 01:12:40');
-  assert.strictEqual(l.short, 'Closed \u00b7 Asia in 01:12:40');
+t('market: daily break 17:00-18:00 ET Mon-Thu -> Market is Closed, reopen first', () => {
+  const l = L('2026-10-06T21:30:00Z'); // Tue 17:30 EDT
+  assert.strictEqual(l.state, 'closed'); assert.strictEqual(l.marketOpen, false); assert.strictEqual(l.weekend, false);
+  assert.strictEqual(l.text, J('Market is Closed', 'Market Opens in 00:30:00', 'Next Session: Asia opens in 02:30:00'));
+  assert.strictEqual(l.short, J('Closed', 'Opens 00:30:00', 'Asia in 02:30:00'));
+  assert.strictEqual(L('2026-10-06T21:00:00Z').state, 'closed');   // 17:00:00 exactly
+  assert.strictEqual(L('2026-10-06T21:59:59Z').state, 'closed');
+  assert.strictEqual(L('2026-10-06T22:00:00Z').state, 'nosession'); // 18:00 reopen
 });
-t('sessions: weekend from Fri 17:00 New York until Monday Asia open', () => {
-  assert.deepStrictEqual(L('2026-10-09T20:59:59Z').sessions, ['New York']);
+t('market: open, no session (18:00-20:00 ET) -> No Session Open', () => {
+  const l = L('2026-10-06T22:47:20Z');
+  assert.strictEqual(l.open, false); assert.strictEqual(l.state, 'nosession'); assert.strictEqual(l.marketOpen, true);
+  assert.strictEqual(l.text, J('No Session Open', 'Next Session: Asia opens in 01:12:40'));
+  assert.strictEqual(l.short, J('No Session', 'Asia in 01:12:40'));
+});
+t('market: Friday 17:00 ET close -> weekend until Sunday 18:00 ET', () => {
+  const nyFri = L('2026-10-09T20:59:59Z'); // Fri 16:59:59 EDT
+  assert.deepStrictEqual(nyFri.sessions, ['New York']);
+  assert.strictEqual(nyFri.text, J('New York Session is Open', 'Market Closes in 00:00:01', 'Next Session: Asia opens in 2d 03:00:01'));
   const fri = L('2026-10-09T21:00:00Z'); // Fri 17:00 EDT
-  assert.strictEqual(fri.weekend, true);
-  assert.strictEqual(fri.text, 'Markets closed (weekend) \u00b7 Next Session: Asia opens in 2d 03:00:00');
-  assert.strictEqual(L('2026-10-10T12:00:00Z').text, 'Markets closed (weekend) \u00b7 Next Session: Asia opens in 1d 12:00:00');
-  assert.strictEqual(L('2026-10-11T23:59:00Z').text, 'Markets closed (weekend) \u00b7 Next Session: Asia opens in 00:01:00');
-  assert.strictEqual(L('2026-10-11T23:59:00Z').short, 'Weekend \u00b7 Asia in 00:01:00');
-  assert.strictEqual(L('2026-10-12T00:00:00Z').text, 'Asia Session is Open \u00b7 Next Session: London opens in 07:00:00');
+  assert.strictEqual(fri.weekend, true); assert.strictEqual(fri.state, 'closed');
+  assert.strictEqual(fri.text, J('Market is Closed', 'Market Opens in 2d 01:00:00', 'Next Session: Asia opens in 2d 03:00:00'));
+  assert.strictEqual(L('2026-10-10T12:00:00Z').text, J('Market is Closed', 'Market Opens in 1d 10:00:00', 'Next Session: Asia opens in 1d 12:00:00'));
+  assert.strictEqual(L('2026-10-11T21:59:59Z').state, 'closed'); // Sun 17:59:59 EDT
+  const sun = L('2026-10-11T22:00:00Z'); // Sun 18:00 EDT reopen
+  assert.strictEqual(sun.state, 'nosession'); assert.strictEqual(sun.weekend, false);
+  assert.strictEqual(sun.text, J('No Session Open', 'Next Session: Asia opens in 02:00:00'));
+  assert.strictEqual(L('2026-10-12T00:00:00Z').text, J('Asia Session is Open', 'Next Session: London opens in 07:00:00'));
   // Saturday morning Tokyo (Fri evening UTC) is not an Asia session
   assert.deepStrictEqual(L('2026-10-10T01:00:00Z').sessions, []);
+});
+t('futuresStatus: open/close times', () => {
+  assert.deepStrictEqual(MH.futuresStatus(U('2026-10-07T19:55:42Z')), { open: true, until: U('2026-10-07T21:00:00Z'), weekend: false });
+  assert.deepStrictEqual(MH.futuresStatus(U('2026-10-07T23:00:00Z')), { open: true, until: U('2026-10-08T21:00:00Z'), weekend: false }); // Wed 19:00 -> Thu 17:00
+  assert.deepStrictEqual(MH.futuresStatus(U('2026-10-11T23:00:00Z')), { open: true, until: U('2026-10-12T21:00:00Z'), weekend: false }); // Sun 19:00 -> Mon 17:00
+  assert.deepStrictEqual(MH.futuresStatus(U('2026-10-10T12:00:00Z')), { open: false, until: U('2026-10-11T22:00:00Z'), weekend: true });
+  assert.deepStrictEqual(MH.futuresStatus(U('2026-10-11T10:00:00Z')), { open: false, until: U('2026-10-11T22:00:00Z'), weekend: true }); // Sun morning
 });
 t('sessions: IST tooltip hours (Owner example)', () => {
   assert.strictEqual(MH.sessionHours(U('2026-10-06T03:00:00Z'), IST),
@@ -157,7 +182,12 @@ t('sessions: spring DST weeks (US Mar 8, UK Mar 29 2026), IST hours', () => {
   assert.strictEqual(L('2026-03-30T06:00:00Z').next.at, U('2026-03-30T07:00:00Z'));
   // US switch weekend: weekend starts Fri 17:00 EST = 22:00Z
   assert.deepStrictEqual(L('2026-03-06T21:30:00Z').sessions, ['New York']);
-  assert.strictEqual(L('2026-03-06T22:00:00Z').text, 'Markets closed (weekend) \u00b7 Next Session: Asia opens in 2d 02:00:00');
+  // Fri 17:00 EST = 22:00Z; reopen Sun 18:00 EDT = 22:00Z (clocks jump Sun 02:00)
+  assert.strictEqual(L('2026-03-06T22:00:00Z').text, J('Market is Closed', 'Market Opens in 2d 00:00:00', 'Next Session: Asia opens in 2d 02:00:00'));
+  assert.strictEqual(L('2026-03-08T21:59:59Z').state, 'closed');
+  assert.strictEqual(L('2026-03-08T22:00:00Z').state, 'nosession');
+  // UK still GMT, US on EDT: overlap from 12:00Z, futures close 21:00Z before Asia 00:00Z
+  assert.strictEqual(L('2026-03-10T12:00:00Z').text, J('London & New York Sessions are Open', 'Market Closes in 09:00:00', 'Next Session: Asia opens in 12:00:00'));
 });
 t('sessions: autumn DST weeks (UK Oct 25, US Nov 1 2026), IST hours', () => {
   // gap week: GMT + EDT
@@ -169,6 +199,12 @@ t('sessions: autumn DST weeks (UK Oct 25, US Nov 1 2026), IST hours', () => {
     'Asia 05:30\u201314:30 \u00b7 London 13:30\u201322:30 \u00b7 New York 18:30\u201303:30');
   assert.deepStrictEqual(L('2026-11-02T21:30:00Z').sessions, ['New York']); // 16:30 EST
   assert.strictEqual(L('2026-10-30T21:00:00Z').weekend, true); // Fri 17:00 EDT
+  // reopen Sun Nov 1 18:00 EST = 23:00Z (clocks fell back Sun 02:00)
+  assert.strictEqual(L('2026-10-30T21:00:00Z').text, J('Market is Closed', 'Market Opens in 2d 02:00:00', 'Next Session: Asia opens in 2d 03:00:00'));
+  assert.strictEqual(L('2026-11-01T22:30:00Z').state, 'closed'); // Sun 17:30 EST
+  assert.strictEqual(L('2026-11-01T23:00:00Z').state, 'nosession');
+  assert.strictEqual(L('2026-11-02T21:30:00Z').text, J('New York Session is Open', 'Market Closes in 00:30:00', 'Next Session: Asia opens in 02:30:00'));
+  assert.strictEqual(L('2026-11-02T22:00:00Z').state, 'closed'); // 17:00 EST daily break
   assert.strictEqual(L('2026-11-06T21:30:00Z').weekend, false); // Fri 16:30 EST: NY still open
 });
 t('fmtClock formats', () => {

@@ -15,7 +15,7 @@
 // Kept in its own module so the picker file can change without losing the notice: it only
 // watches the window's DOM and never edits it beyond inserting its own .stkcd-* nodes.
 
-import { BUILTIN_PINE } from './chart-pine-builtins.js?v=467';
+import { BUILTIN_PINE } from './chart-pine-builtins.js?v=468';
 
 const ACK_LS = 'stryker_community_disclaimer_ack_v1';
 const COMMUNITY_TABS = new Set(['community', 'picks', 'top', 'trending']);

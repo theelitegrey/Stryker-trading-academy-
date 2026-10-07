@@ -569,7 +569,7 @@
       var v = V[key]; if (!v) return;
       opener = doc.activeElement;
       $('#bx-ov-k').textContent = v.k; $('#bx-ov-title').textContent = v.t; $('#bx-ov-p').textContent = v.p;
-      var img = $('#bx-ov-img'); img.src = v.img + '?v=467'; img.alt = v.t;
+      var img = $('#bx-ov-img'); img.src = v.img + '?v=468'; img.alt = v.t;
       var go = $('#bx-ov-go'); go.href = v.go; go.textContent = v.b + ' →';
       var r = tile.getBoundingClientRect();
       ov.hidden = false; doc.body.classList.add('bx-locked');

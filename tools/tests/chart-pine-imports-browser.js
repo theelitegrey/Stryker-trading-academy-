@@ -36,6 +36,9 @@ const FAV_PATCH = () => { try { localStorage.setItem('stryker_chart_favs', JSON.
 async function page(b, w, h, extra){
   const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500 });
   await ctx.addInitScript(stub);
+  // The Community disclaimer (assets/chart-community-disclaimer.js) is covered by its own test;
+  // here it is pre-accepted so adding the third-party scripts is not held by its dialog.
+  await ctx.addInitScript(() => { try { localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); } catch (e) {} });
   if (extra) await ctx.addInitScript(extra);
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance|data-api\.binance|fapi\.binance|stream\.binance|data-stream\.binance)/, (r) => r.abort());
   const p = await ctx.newPage();

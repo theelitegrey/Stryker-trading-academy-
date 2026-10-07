@@ -1,0 +1,107 @@
+/* Stryker Trading Academy: homepage Curriculum section, stat + preview bento (build 454)
+ *
+ * Owner order 2026-10-07: "use D for curriculum on home page". Ported from
+ * /demo-curriculum variation D (assets/demo-curriculum.css, .cd-*), renamed
+ * to .hcb-* so nothing collides with the demo page or the old curriculum
+ * chart/cards styles (.cp-*, .cur-*) still in home-motion.css. Same tile
+ * family as the Platform bento above it (home-platform-bento.css).
+ * Behaviour: assets/home-curriculum-bento.js.
+ *
+ * Palette: site tokens only (style.css). Motion: transforms/opacity only;
+ * the one CSS loop (phone float) pauses off-screen (.hcb-off) and is dropped
+ * under prefers-reduced-motion. No scroll regions in this section.
+ */
+
+/* tile base (same family as .hpb-tile) */
+.hcb-tile{ position:relative; overflow:hidden; border-radius:22px; min-width:0;
+  background:linear-gradient(180deg, var(--bg-2), var(--bg-1)); border:1px solid var(--line);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04); transition:border-color .3s; }
+:root[data-theme="light"] .hcb-tile{ background:var(--bg-2); box-shadow:var(--shadow-card); }
+.hcb-tile::after{ content:""; position:absolute; inset:0; pointer-events:none; border-radius:inherit; opacity:0; transition:opacity .3s;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%), rgba(3,201,136,.10), transparent 60%); }
+.hcb-tile:hover::after{ opacity:1; }
+.hcb-tile:hover{ border-color:var(--gold-dim); }
+
+/* shared bits */
+.hcb-k{ font:600 11px/1.3 var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--gold); }
+.hcb-cap{ margin:8px 0 0; font:500 11.5px/1.4 var(--font-mono); color:var(--ink-3); }
+.hcb-chrome{ display:flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-bottom:1px solid var(--line); background:var(--bg-2); }
+.hcb-chrome i{ width:8px; height:8px; border-radius:50%; background:var(--line); flex:none; }
+.hcb-chrome span{ margin-left:8px; font:500 11px/1 var(--font-mono); color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
+.hcb-chrome b{ color:var(--ink-1); font-weight:600; }
+.hcb-cta{ display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px; margin:34px auto 0; text-align:center; }
+.hcb-note{ flex-basis:100%; margin:4px 0 0; font-size:13px; color:var(--ink-2); }
+
+/* grid */
+.hcb-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px;
+  grid-template-areas:"pv pv s1 s2" "pv pv s3 s4" "pv pv ln ln" "c1 go ln ln"; }
+.hcb-tile{ padding:20px 22px; margin:0; }
+.hcb-s1{ grid-area:s1; } .hcb-s2{ grid-area:s2; } .hcb-s3{ grid-area:s3; } .hcb-s4{ grid-area:s4; }
+.hcb-preview{ grid-area:pv; } .hcb-learn{ grid-area:ln; } .hcb-ch1{ grid-area:c1; } .hcb-go{ grid-area:go; }
+.hcb-stat{ display:flex; flex-direction:column; justify-content:space-between; gap:10px; min-height:150px; }
+.hcb-stat b{ font:900 clamp(56px, 5.4vw, 80px)/.85 var(--font-display); letter-spacing:-.05em; color:var(--ink-0); }
+.hcb-stat b i{ font-style:normal; color:var(--ink-3); margin:0 .04em; }
+.hcb-stat span{ font:600 12px/1.35 var(--font-mono); color:var(--ink-2); text-transform:uppercase; letter-spacing:.06em; }
+.hcb-s1{ background:radial-gradient(120% 120% at 100% 0%, rgba(0,51,124,.4), transparent 60%), linear-gradient(180deg, var(--bg-2), var(--bg-1)); }
+.hcb-s2{ background:linear-gradient(140deg, var(--gold-bright), var(--gold) 55%, var(--teal)) !important; border-color:transparent; }
+.hcb-s2 b, .hcb-s2 span{ color:#04120c; }
+.hcb-s3 b{ background:linear-gradient(120deg, var(--ink-0), var(--teal)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+:root[data-theme="light"] .hcb-s1{ background:var(--bg-2); }
+.hcb-preview{ display:flex; flex-direction:column; gap:14px; padding-bottom:0;
+  background:radial-gradient(90% 70% at 70% 100%, rgba(3,201,136,.14), transparent 70%), radial-gradient(80% 60% at 0% 0%, rgba(19,0,90,.5), transparent 70%), linear-gradient(180deg, var(--bg-2), var(--bg-1)); }
+:root[data-theme="light"] .hcb-preview{ background:radial-gradient(90% 70% at 70% 100%, rgba(7,153,106,.10), transparent 70%), var(--bg-2); }
+.hcb-pv-h{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; }
+.hcb-pv-h .hcb-cap{ margin:0; }
+.hcb-laptop{ position:relative; margin:4px -60px 0 0; border-radius:14px 14px 0 0; overflow:hidden; border:1px solid var(--line); border-bottom:0;
+  box-shadow:0 40px 80px -30px rgba(0,0,0,.8); transform:rotate(-1deg); transform-origin:left top; transition:transform .5s cubic-bezier(.2,.7,.2,1); }
+:root[data-theme="light"] .hcb-laptop{ box-shadow:0 24px 50px -28px rgba(20,30,50,.35); }
+.hcb-preview:hover .hcb-laptop{ transform:translateY(-6px) rotate(0); }
+.hcb-laptop .hcb-scr{ aspect-ratio:740 / 560; overflow:hidden; background:#0b0b0d; }
+.hcb-scr img{ width:100%; height:auto; display:block; }
+.hcb-phone{ position:absolute; right:18px; bottom:-40px; width:30%; max-width:170px; border-radius:24px; padding:6px; background:#050506;
+  border:1px solid var(--line); box-shadow:0 30px 60px -20px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.03); animation:hcbFloat 6s ease-in-out infinite; }
+.hcb-phone .hcb-scr{ border-radius:18px; overflow:hidden; aspect-ratio:9 / 16; }
+@keyframes hcbFloat{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-10px); } }
+.hcb-learn ul{ margin:14px 0 0; padding:0; list-style:none; display:grid; gap:9px; }
+.hcb-learn li{ display:flex; align-items:center; gap:10px; font-size:14.5px; line-height:1.35; color:var(--ink-1); }
+.hcb-learn li svg{ flex:none; color:var(--ink-3); }
+.hcb-learn li.is-free svg{ color:var(--gold); }
+.hcb-learn li span{ flex:1; min-width:0; }
+.hcb-learn li b{ flex:none; font:600 11px/1 var(--font-mono); color:var(--ink-3); }
+.hcb-ch1 ol{ margin:12px 0 0; padding:0; list-style:none; display:grid; gap:7px; }
+.hcb-ch1 li{ display:flex; gap:9px; font-size:13px; line-height:1.35; color:var(--ink-1); }
+.hcb-ch1 li span{ flex:none; width:18px; height:18px; border-radius:6px; display:grid; place-items:center; font:700 10px/1 var(--font-mono); background:var(--bg-3); color:var(--gold); }
+.hcb-go{ display:flex; flex-direction:column; gap:10px; justify-content:space-between;
+  background:radial-gradient(100% 100% at 100% 100%, rgba(3,201,136,.3), transparent 70%), linear-gradient(180deg, var(--bg-2), var(--bg-1)); }
+:root[data-theme="light"] .hcb-go{ background:radial-gradient(100% 100% at 100% 100%, rgba(7,153,106,.14), transparent 70%), var(--bg-2); }
+.hcb-go h3{ margin:0; font:800 21px/1.2 var(--font-display); color:var(--ink-0); }
+.hcb-go-btn{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 16px; border-radius:14px; background:var(--gold); color:#04120c;
+  font-weight:800; font-size:15px; transition:transform .25s, box-shadow .25s; box-shadow:0 14px 30px -14px rgba(3,201,136,.7); }
+:root[data-theme="light"] .hcb-go-btn{ color:#fff; }
+.hcb-go-btn i{ font-style:normal; transition:transform .25s; }
+.hcb-go-btn:hover{ transform:translateY(-2px); }
+.hcb-go-btn:hover i{ transform:translateX(4px); }
+
+.hcb-off .hcb-phone{ animation-play-state:paused; }
+
+@media (max-width:899px){
+  .hcb-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px;
+    grid-template-areas:"s1 s2" "s3 s4" "pv pv" "go go" "ln ln" "c1 c1"; }
+  .hcb-tile{ padding:16px; border-radius:20px; }
+  .hcb-stat{ min-height:124px; }
+  .hcb-stat b{ font-size:56px; }
+  .hcb-stat span{ font-size:11px; }
+  .hcb-laptop{ margin-right:-70px; }
+  .hcb-phone{ width:34%; right:12px; bottom:-30px; border-radius:18px; padding:4px; }
+  .hcb-phone .hcb-scr{ border-radius:14px; }
+  .hcb-learn li{ font-size:14px; }
+}
+@media (max-width:360px){
+  .hcb-stat b{ font-size:46px; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .hcb-grid *, .hcb-grid *::before, .hcb-grid *::after, .hcb-tile::after{ animation:none !important; transition:none !important; }
+  .hcb-preview:hover .hcb-laptop{ transform:rotate(-1deg); }
+  .hcb-go-btn:hover, .hcb-go-btn:hover i{ transform:none; }
+}

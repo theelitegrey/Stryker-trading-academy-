@@ -63,6 +63,19 @@
     return m ? 'chapters ' + m[1] + '–' + m[2] : 'the first chapters';
   }
 
+  // Other homepage spots that state the free chapter range (hero stat
+  // [data-free-ch-count], curriculum bento [data-free-ch-range]) ship the
+  // current value in the HTML and are re-set here from the same plans read,
+  // so a change to the Free plan's chapterAccess shows up without an edit.
+  function syncFreeChapters(free) {
+    var m = String(free.chapterAccess || '').match(/^(\d+)\s*-\s*(\d+)$/);
+    if (!m) return;
+    var count = (+m[2]) - (+m[1]) + 1;
+    if (!(count > 0)) return;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-free-ch-count]'), function (el) { el.textContent = String(count); });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-free-ch-range]'), function (el) { el.textContent = (+m[1]) + '–' + (+m[2]); });
+  }
+
   // ---------------------------------------------------------------- comparison (B)
   var GROUPS = [
     ['Learn', [
@@ -240,6 +253,7 @@
     var fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
     Promise.all([strykerLoadPlans(), fx]).then(function (res) {
       var P = pick(res[0] || []);
+      if (P.free) syncFreeChapters(P.free);
       if (!P.free || !P.pro) return; // keep the static fallback cards
       root.classList.add('pv-live');
       render(root, P);

@@ -158,8 +158,104 @@ function patchTimeClose(ctx){
   tc.__stkTc = true;
 }
 
+
+// SESSION STRINGS (pinets 0.11.0): Pine's time(tf, session, tz) with a string that is not a
+// session spec (e.g. time("D", "America/New_York"), where the second argument is the time
+// zone) makes pinets throw "Invalid session specification" and the whole script stops. We
+// treat a non-session string as "no session filter" (the bar is in session), so the call
+// returns the period time as it does without a session argument. Valid sessions are
+// unchanged (pinets' own check runs first).
+function patchSessions(ctx){
+  for (const k of ['time', 'time_close']) {
+    const fn = ctx.pine && ctx.pine[k];
+    if (!fn || typeof fn._isInSession !== 'function' || fn.__stkSess) continue;
+    const orig = fn._isInSession;
+    fn._isInSession = function (t, spec, tz) {
+      try { return orig.call(this, t, spec, tz); }
+      catch (e) { if (/Invalid session specification/.test(String(e && e.message))) return true; throw e; }
+    };
+    fn.__stkSess = true;
+  }
+}
+
+// request.security INSIDE A USER FUNCTION (pinets 0.11.0 bug): pinets cuts the script after
+// each request.security call ("LTF slices", keyed by the call's param id, e.g. 'p3') so the
+// secondary timeframe runs only the code it needs. For a call inside a function the runtime id
+// is per call site ($$.id + 'p3'), but the slice is cut after the function's FIRST call, so the
+// second call site (reqFvg("60") after reqFvg("15")) finds no value and the script dies with
+// "Cannot read properties of undefined". We drop just those slices (the ones whose key is
+// built from $$.id); those calls then run the whole script on the secondary timeframe, which
+// is what pinets does without slicing. Top-level calls keep their slices.
+export function pruneSlices(slices){
+  if (!slices || typeof slices !== 'object') return slices;
+  let kept = 0;
+  for (const k of Object.keys(slices)) {
+    let txt = '';
+    try { txt = String(slices[k]); } catch (e) {}
+    if (txt.indexOf("$$.id + '" + k + "'") >= 0 || txt.indexOf('$$.id + "' + k + '"') >= 0) delete slices[k];
+    else kept++;
+  }
+  return kept ? slices : undefined;
+}
+function patchIndicator(Indicator){
+  const proto = Indicator && Indicator.prototype;
+  if (!proto || proto.__stkSlices || typeof proto.prepare !== 'function') return;
+  const prep = proto.prepare;
+  proto.prepare = function (...args) {
+    const r = prep.apply(this, args);
+    try {
+      if (r && r.ltfSlices && !r.__stkPruned) {
+        r.__stkPruned = true;
+        const kept = pruneSlices(r.ltfSlices);
+        if (!kept) { try { delete r.fn._ltfSlices; } catch (e) {} }
+        // the prepared object exposes ltfSlices as a plain field
+        try { r.ltfSlices = kept; } catch (e) {}
+      }
+    } catch (e) {}
+    return r;
+  };
+  proto.__stkSlices = true;
+}
+
+// SPEED: pinets formats every bar's time in the script's time zone with
+// `new Intl.DateTimeFormat(...)` built on EVERY call (hour(time, tz), session checks, ...).
+// Building the formatter is the expensive part (most of a 5,000-bar run for scripts with
+// session / killzone logic). In the Pine worker only, the constructor is memoised by
+// (locale, options): same formatter object, same output, built once.
+// The same bar time is formatted many times per bar (every hour()/minute()/session call), so
+// each cached formatter also remembers its last few formatToParts results (by timestamp).
+// pinets only reads the returned parts.
+function remember(f){
+  const fp = f.formatToParts.bind(f), last = new Map();
+  f.formatToParts = function (d) {
+    const t = d == null ? Date.now() : +d;
+    let r = last.get(t);
+    if (!r) { if (last.size > 64) last.clear(); r = fp(d); last.set(t, r); }
+    return r;
+  };
+  return f;
+}
+export function cacheDateTimeFormat(scope){
+  const I = scope && scope.Intl;
+  if (!I || !I.DateTimeFormat || I.DateTimeFormat.__stkCached) return false;
+  const Orig = I.DateTimeFormat, memo = new Map();
+  function Cached(locales, options){
+    let key;
+    try { key = JSON.stringify([locales, options]); } catch (e) { return new Orig(locales, options); }
+    let f = memo.get(key);
+    if (!f) { if (memo.size > 500) memo.clear(); f = remember(new Orig(locales, options)); memo.set(key, f); }
+    return f;
+  }
+  Cached.prototype = Orig.prototype;
+  Cached.supportedLocalesOf = Orig.supportedLocalesOf.bind(Orig);
+  Cached.__stkCached = true;
+  I.DateTimeFormat = Cached;
+  return true;
+}
+
 export function patchContext(ctx){
   try { patchTimeClose(ctx); } catch (e) {}
+  try { patchSessions(ctx); } catch (e) {}
   const ta = ctx && ctx.pine && ctx.pine.ta;
   if (!ta || ta.__stkPivot) return false;
   if (typeof ta.pivothigh === 'function') ta.pivothigh = makePivot(ctx, ta.pivothigh, true);
@@ -168,7 +264,11 @@ export function patchContext(ctx){
   return true;
 }
 
-export function install(Context){
+// pinets = the pinets module (optional): adds the Indicator fix. scope = the worker global
+// (optional): adds the formatter cache.
+export function install(Context, pinets, scope){
+  try { if (pinets && pinets.Indicator) patchIndicator(pinets.Indicator); } catch (e) {}
+  try { if (scope) cacheDateTimeFormat(scope); } catch (e) {}
   const proto = Context && Context.prototype;
   if (!proto || proto.__stkNextPatched || typeof proto.bindContextObject !== 'function') return false;
   const bind = proto.bindContextObject;

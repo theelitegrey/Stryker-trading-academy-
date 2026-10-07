@@ -6,10 +6,13 @@
 // assets/plan-limits.js (window.strykerPlanTier, optional).
 //
 // WHAT IT DOES (Owner order 2026-10-07: "one indicator for charts module, when selected shows
-// GEX levels"): draws the GEX page's call wall, put wall and zero gamma (flip) as labelled
-// horizontal lines with price tags at the right edge of the plot, in the GEX page's colours
-// (assets/gex.css .gex-level.call/.zero/.put). Optional: the 68% expected-move band and the
-// next 3 biggest-|GEX| strikes from the API's ladder.
+// GEX levels"; parity order build 461: "the gex page has more stuff like Value area high/low"):
+// draws every line the GEX page chart draws (assets/gex.js collectLines, read only) with the
+// same names, colours and line styles: CALL WALL, ZERO GAMMA, PUT WALL, IV +68% / IV -68%, and
+// the market levels pVAH, pPOC, pVAL, ONH, ONL (on by default, as on the GEX page). Optional
+// extras: the GEX page's text-panel levels (IV ±80%, prior RTH high/low, prior close, RTH
+// open/high/low), a shaded 68% band, and the next 3 biggest-|GEX| strikes from the ladder.
+// Labels of levels within a few px of each other merge into one tag ("pPOC · ZERO GAMMA").
 //
 // SYMBOL MAPPING
 //   SPX, SPY (index/ETF symbols)   -> that market's own levels, as published.
@@ -36,24 +39,65 @@ const API = '/api/gex/levels/';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
 const PRICING = '/#pricing';
-export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#38bdf8' };
+export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#8b7cf6',
+  iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6' };
 
+// Every level the GEX page (assets/gex.js) can show, read-only parity list (build 461):
+//   chart lines (collectLines): CALL WALL, ZERO GAMMA, PUT WALL, IV +68% / IV -68%, and with
+//   "Market levels: ON" pVAH, pPOC, pVAL, ONH, ONL (DATA.session[fut]).
+//   text panels only (renderLevels / renderMarket): IV 80% range, PRIOR RTH HIGH/LOW,
+//   PRIOR CLOSE, RTH OPEN, RTH HIGH, RTH LOW (and SPOT, which the candles already show).
+// The chart ones are on by default with the GEX page's names, colours and line styles; the
+// text-panel ones are optional extras (off). Session levels exist for futures charts only
+// (the API computes them for ES/MES/NQ/MNQ).
+// src: 'lv' = GEX level (futures-converted on futures charts), 'ses' = DATA.session[fut].
+export const LEVEL_DEFS = [
+  { id: 'call', on: 'showCall', col: 'callColor', label: 'CALL WALL', f: 'call_wall', src: 'lv', dash: 'solid', w: 2 },
+  { id: 'zero', on: 'showZero', col: 'zeroColor', label: 'ZERO GAMMA', f: 'zero_gamma', src: 'lv', dash: 'dashed', w: 2 },
+  { id: 'put', on: 'showPut', col: 'putColor', label: 'PUT WALL', f: 'put_wall', src: 'lv', dash: 'solid', w: 2 },
+  { id: 'ivhi', on: 'showIv', col: 'ivColor', label: 'IV +68%', f: 'iv68_hi', src: 'lv', dash: 'dashed', w: 1 },
+  { id: 'ivlo', on: 'showIv', col: 'ivColor', label: 'IV -68%', f: 'iv68_lo', src: 'lv', dash: 'dashed', w: 1 },
+  { id: 'iv80hi', on: 'showIv80', col: 'ivColor', label: 'IV +80%', f: 'iv80_hi', src: 'lv', dash: 'dotted', w: 1 },
+  { id: 'iv80lo', on: 'showIv80', col: 'ivColor', label: 'IV -80%', f: 'iv80_lo', src: 'lv', dash: 'dotted', w: 1 },
+  { id: 'vah', on: 'showVah', col: 'vahColor', label: 'pVAH', f: 'prior_vah', src: 'ses', dash: 'dashed', w: 1 },
+  { id: 'poc', on: 'showPoc', col: 'pocColor', label: 'pPOC', f: 'prior_poc', src: 'ses', dash: 'solid', w: 1 },
+  { id: 'val', on: 'showVal', col: 'valColor', label: 'pVAL', f: 'prior_val', src: 'ses', dash: 'dashed', w: 1 },
+  { id: 'onh', on: 'showOnh', col: 'onhColor', label: 'ONH', f: 'overnight_high', src: 'ses', dash: 'dashed', w: 1 },
+  { id: 'onl', on: 'showOnl', col: 'onlColor', label: 'ONL', f: 'overnight_low', src: 'ses', dash: 'dashed', w: 1 },
+  { id: 'prth_hi', on: 'showPrth', col: 'rthColor', label: 'PRIOR RTH HIGH', f: 'prior_rth_high', src: 'ses', dash: 'dotted', w: 1 },
+  { id: 'prth_lo', on: 'showPrth', col: 'rthColor', label: 'PRIOR RTH LOW', f: 'prior_rth_low', src: 'ses', dash: 'dotted', w: 1 },
+  { id: 'pclose', on: 'showPclose', col: 'rthColor', label: 'PRIOR CLOSE', f: 'prior_close', src: 'ses', dash: 'dotted', w: 1 },
+  { id: 'rth_open', on: 'showRthOpen', col: 'rthColor', label: 'RTH OPEN', f: 'rth_open', src: 'ses', dash: 'dotted', w: 1 },
+  { id: 'rth_hi', on: 'showRth', col: 'rthColor', label: 'RTH HIGH', f: 'rth_high', src: 'ses', dash: 'dotted', w: 1 },
+  { id: 'rth_lo', on: 'showRth', col: 'rthColor', label: 'RTH LOW', f: 'rth_low', src: 'ses', dash: 'dotted', w: 1 }
+];
+
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style';
+const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
+const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 const SCHEMA = [
   { key: 'dte', title: 'Expiry (Pro: all)', type: 'string', defval: '0', options: ['0', '1', '7', '30'],
     tooltip: '0 = same day (0DTE), 1 = next day, 7 = one week, 30 = one month. The Free plan covers 0DTE.' },
-  { key: 'showCall', title: 'Call wall', type: 'bool', defval: true },
-  { key: 'showPut', title: 'Put wall', type: 'bool', defval: true },
-  { key: 'showZero', title: 'Zero gamma (flip)', type: 'bool', defval: true },
-  { key: 'showEm', title: 'Expected move band (68%)', type: 'bool', defval: false },
-  { key: 'showStrikes', title: 'Next 3 big strikes (Pro)', type: 'bool', defval: false },
-  { key: 'labels', title: 'Labels and price tags', type: 'bool', defval: true },
-  { key: 'lineStyle', title: 'Line style', type: 'string', defval: 'solid', options: ['solid', 'dashed', 'dotted'] },
-  { key: 'width', title: 'Line width', type: 'int', defval: 1, min: 1, max: 4, step: 1 },
-  { key: 'callColor', title: 'Call wall colour', type: 'color', defval: GEX_COLORS.call },
-  { key: 'putColor', title: 'Put wall colour', type: 'color', defval: GEX_COLORS.put },
-  { key: 'zeroColor', title: 'Zero gamma colour', type: 'color', defval: GEX_COLORS.zero },
-  { key: 'emColor', title: 'Expected move colour', type: 'color', defval: GEX_COLORS.em },
-  { key: 'strikeColor', title: 'Strike colour', type: 'color', defval: GEX_COLORS.strike }
+  tog('showCall', 'Call wall', true, G1, 'call'), col('callColor', GEX_COLORS.call, G1, 'call'),
+  tog('showZero', 'Zero gamma (flip)', true, G1, 'zero'), col('zeroColor', GEX_COLORS.zero, G1, 'zero'),
+  tog('showPut', 'Put wall', true, G1, 'put'), col('putColor', GEX_COLORS.put, G1, 'put'),
+  tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
+  tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
+  tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
+  tog('showVah', 'pVAH', true, G2, 'vah'), col('vahColor', GEX_COLORS.va, G2, 'vah'),
+  tog('showPoc', 'pPOC', true, G2, 'poc'), col('pocColor', GEX_COLORS.va, G2, 'poc'),
+  tog('showVal', 'pVAL', true, G2, 'val'), col('valColor', GEX_COLORS.va, G2, 'val'),
+  tog('showOnh', 'ONH', true, G2, 'onh'), col('onhColor', GEX_COLORS.on, G2, 'onh'),
+  tog('showOnl', 'ONL', true, G2, 'onl'), col('onlColor', GEX_COLORS.on, G2, 'onl'),
+  tog('showIv80', 'IV ±80%', false, G3),
+  tog('showPrth', 'Prior RTH high / low', false, G3),
+  tog('showPclose', 'Prior close', false, G3),
+  tog('showRthOpen', 'RTH open', false, G3),
+  tog('showRth', 'RTH high / low', false, G3),
+  { key: 'rthColor', title: 'Session level colour', type: 'color', defval: GEX_COLORS.rth, group: G3 },
+  { key: 'labels', title: 'Labels and price tags', type: 'bool', defval: true, group: G4 },
+  { key: 'lineStyle', title: 'Line style', type: 'string', defval: 'as GEX page', options: ['as GEX page', 'solid', 'dashed', 'dotted'], group: G4 },
+  { key: 'width', title: 'Line width (0 = as GEX page)', type: 'int', defval: 0, min: 0, max: 4, step: 1, group: G4 }
 ];
 
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
@@ -81,38 +125,49 @@ export function fmtLevel(v) {
   if (!isNum(v)) return '';
   return Math.abs(v - Math.round(v)) < 1e-9 ? String(Math.round(v)) : v.toFixed(2);
 }
-// Pure: the levels to draw for one source, from one API response. Futures prices come from
-// the API's own conversion (futures[fut].levels); ladder strikes use its ratio + basis.
+// Pure: the levels to draw for one source, from one API response. opts = the indicator's inputs
+// (show* keys; a missing key falls back to its schema default). Futures prices come from the
+// API's own conversion (futures[fut].levels); ladder strikes use its ratio + basis; session
+// levels come from data.session[fut] (already in futures prices).
+const DEF_ON = Object.fromEntries(SCHEMA.filter((x) => x.type === 'bool').map((x) => [x.key, x.defval]));
 export function buildLevels(data, src, opts) {
   opts = opts || {};
+  const on = (k) => (typeof opts[k] === 'boolean' ? opts[k] : DEF_ON[k]);
   if (!data || data.error) return { err: 'GEX levels are not available right now.' };
-  let conv = (v) => v, L = data;
+  let conv = (v) => v, L, S = null;
   if (src.fut) {
     const f = data.futures && data.futures[src.fut];
     if (!f || f.error || !f.levels) return { err: 'No ' + src.fut + ' conversion in the GEX data right now.' };
     const ratio = num(f.ratio, null), basis = num(f.basis, 0);
-    L = { call_wall: f.levels.call_wall, put_wall: f.levels.put_wall, zero_gamma: f.levels.zero_gamma,
-      iv68_lo: f.levels.iv68_lo, iv68_hi: f.levels.iv68_hi };
+    L = f.levels;
     conv = (v) => (ratio == null ? null : v * ratio + basis);
+    const ses = data.session && data.session[src.fut];
+    if (ses && !ses.error) S = ses;
   } else {
-    const e = data.expected && data.expected['68%'];
-    L = { call_wall: data.call_wall, put_wall: data.put_wall, zero_gamma: data.zero_gamma, iv68_lo: e && e[0], iv68_hi: e && e[1] };
+    const e = data.expected || {}, e68 = e['68%'] || [], e80 = e['80%'] || [];
+    L = { call_wall: data.call_wall, put_wall: data.put_wall, zero_gamma: data.zero_gamma,
+      iv68_lo: e68[0], iv68_hi: e68[1], iv80_lo: e80[0], iv80_hi: e80[1] };
   }
   // API values are shown as published (2 dp), the same numbers the GEX page prints.
   const r = (v) => (isNum(v) ? Math.round(v * 100) / 100 : null);
-  const out = { lines: [], band: null };
+  const out = { lines: [], band: null, noSession: false };
   const srcNote = (raw) => (src.fut && isNum(raw) ? ' (' + src.api + ' ' + fmtLevel(Math.round(raw * 100) / 100) + ')' : '');
-  if (opts.call !== false && isNum(L.call_wall)) out.lines.push({ id: 'call', label: 'Call wall', price: r(L.call_wall), note: srcNote(data.call_wall) });
-  if (opts.zero !== false && isNum(L.zero_gamma)) out.lines.push({ id: 'zero', label: 'Zero gamma', price: r(L.zero_gamma), note: srcNote(data.zero_gamma) });
-  if (opts.put !== false && isNum(L.put_wall)) out.lines.push({ id: 'put', label: 'Put wall', price: r(L.put_wall), note: srcNote(data.put_wall) });
-  if (opts.em && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
-  if (opts.strikes && Array.isArray(data.ladder)) {
+  for (const d of LEVEL_DEFS) {
+    if (!on(d.on)) continue;
+    if (d.src === 'ses') { if (!S) { out.noSession = true; continue; } }
+    const v = d.src === 'ses' ? S[d.f] : L[d.f];
+    if (!isNum(v)) continue;
+    const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : '';
+    out.lines.push({ id: d.id, label: d.label, price: r(v), note, col: d.col, dash: d.dash, w: d.w });
+  }
+  if (on('showEm') && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
+  if (on('showStrikes') && Array.isArray(data.ladder)) {
     const skip = new Set([data.call_wall, data.put_wall].filter(isNum));
     data.ladder.filter((x) => x && isNum(x.strike) && isNum(x.gex) && x.gex !== 0 && !skip.has(x.strike))
       .sort((a, b) => Math.abs(b.gex) - Math.abs(a.gex)).slice(0, 3)
       .forEach((x, i) => {
         const p = conv(x.strike);
-        if (isNum(p)) out.lines.push({ id: 'strike' + i, label: 'GEX strike', price: r(p), note: src.fut ? ' (' + src.api + ' ' + fmtLevel(x.strike) + ')' : '' });
+        if (isNum(p)) out.lines.push({ id: 'strike' + i, label: 'GEX strike', price: r(p), note: src.fut ? ' (' + src.api + ' ' + fmtLevel(x.strike) + ')' : '', col: 'strikeColor', dash: 'dotted', w: 1 });
       });
   }
   return out;
@@ -245,16 +300,20 @@ class GexNative {
       const data = gexCached(src.api, dte);
       if (!data) payload = { note: 'Loading GEX levels…' };
       else {
-        const lv = buildLevels(data, src, { call: i.showCall !== false, put: i.showPut !== false, zero: i.showZero !== false,
-          em: i.showEm === true, strikes: i.showStrikes === true && !(this.tier && this.tier.free) });
+        const opts = Object.assign({}, i);
+        if (this.tier && this.tier.free) opts.showStrikes = false;
+        const lv = buildLevels(data, src, opts);
         if (lv.err) payload = { note: lv.err };
         else {
-          const col = { call: str(i.callColor, GEX_COLORS.call), put: str(i.putColor, GEX_COLORS.put), zero: str(i.zeroColor, GEX_COLORS.zero), strike: str(i.strikeColor, GEX_COLORS.strike) };
+          const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
+          const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
           payload = {
-            lines: lv.lines.map((l) => ({ price: l.price, color: col[l.id] || col.strike, text: l.label + ' ' + fmtLevel(l.price) + (l.note || ''), dash: l.id.startsWith('strike') ? 'dotted' : str(i.lineStyle, 'solid') })),
-            band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: str(i.emColor, GEX_COLORS.em) } : null,
-            labels: i.labels !== false, width: Math.min(4, Math.max(1, Math.round(num(i.width, 1)))),
-            status: agoText(dataTime(data)) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : dte + 'DTE') + (data.stale ? ' · last saved copy' : '')
+            lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: l.label + ' ' + fmtLevel(l.price) + (l.note || ''),
+              dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
+              w: wd >= 1 ? Math.min(4, wd) : l.w })),
+            band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
+            labels: i.labels !== false,
+            status: agoText(dataTime(data)) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : dte + 'DTE') + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
       }
@@ -273,8 +332,35 @@ function hexA(hex, a) {
   const n = parseInt(m[1], 16);
   return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
 }
+const TAG_H = 16, MERGE_PX = 6;
+// Pure: tags [{y, l}] sorted by y -> groups whose lines sit within MERGE_PX share one label.
+export function mergeTags(tags) {
+  const out = [];
+  [...tags].sort((p, q) => p.y - q.y).forEach((t) => {
+    const g = out[out.length - 1];
+    if (g && t.y - g.y0 <= MERGE_PX) { g.items.push(t); return; }
+    out.push({ y0: t.y, items: [t] });
+  });
+  return out.map((g) => {
+    const it = g.items, l0 = it[0].l;
+    const names = it.map((x) => x.l.name || x.l.text);
+    const prices = [...new Set(it.map((x) => fmtLevel(x.l.price)))];
+    const text = it.length === 1 ? l0.text : names.join(' · ') + ' ' + prices.join(' / ');
+    const y = it.reduce((s2, x) => s2 + x.y, 0) / it.length;
+    return { y, yc: y, axisY: it[0].y, axisText: fmtLevel(l0.price), text, color: l0.color, ids: it.map((x) => x.l.id) };
+  });
+}
+// Pure: push stacked tags apart so no two boxes overlap, inside [top, bot].
+export function layoutTags(groups, top, bot) {
+  let prev = -Infinity;
+  for (const t of groups) { t.yc = Math.max(t.y, prev + TAG_H + 1, top + TAG_H / 2); prev = t.yc; }
+  // pushed past the bottom: walk back up
+  let next = Infinity;
+  for (let i = groups.length - 1; i >= 0; i--) { const t = groups[i]; t.yc = Math.min(t.yc, next - TAG_H - 1, bot - TAG_H / 2); next = t.yc; }
+  return groups;
+}
 function gexLayer() {
-  let canvas = null, chip = null, last = '';
+  let canvas = null, chip = null, last = '', lastTags = [];
   function ensureChip() {
     if (chip || !canvas || !canvas.parentElement) return chip;
     chip = document.createElement('div');
@@ -335,26 +421,27 @@ function gexLayer() {
       for (const l of d.lines) {
         const y = Math.round(Y(l.price)) + 0.5;
         if (!(y >= top && y <= bot)) continue;
-        g.strokeStyle = l.color; g.lineWidth = d.width || 1;
+        g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
         g.setLineDash(l.dash === 'dashed' ? [6, 4] : l.dash === 'dotted' ? [2, 3] : []);
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
         if (d.labels) tags.push({ y, l });
       }
       g.setLineDash([]);
-      // Right-edge tags; nudged apart so close levels stay readable.
-      tags.sort((p, q) => p.y - q.y);
-      let prev = -Infinity;
-      for (const t of tags) {
-        const h = 16, w = Math.ceil(g.measureText(t.l.text).width) + 10;
-        let yc = Math.max(t.y, prev + h + 1);
-        yc = Math.min(yc, bot - h / 2);
-        prev = yc;
+      // Right-edge tags. Levels within MERGE_PX of each other share ONE tag ("pPOC · ZERO GAMMA
+      // 7881"), so labels never draw on top of each other; the rest are nudged apart (stacked).
+      const groups = mergeTags(tags);
+      layoutTags(groups, top, bot);
+      for (const t of groups) {
+        const w = Math.ceil(g.measureText(t.text).width) + 10;
         const x = Math.max(2, W - w - 2);
-        g.fillStyle = t.l.color;
-        g.fillRect(x, yc - h / 2, w, h);
+        t.box = { x, y: t.yc - TAG_H / 2, w, h: TAG_H };
+        g.fillStyle = t.color;
+        g.fillRect(x, t.yc - TAG_H / 2, w, TAG_H);
         g.fillStyle = '#0b0b0b';
-        g.fillText(t.l.text, x + 5, yc + 0.5);
+        g.fillText(t.text, x + 5, t.yc + 0.5);
       }
+      lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
+      canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
       g.restore();
       // Price tags on the right price axis (outside the plot clip), at the exact line price.
       const axW = fullW - W;
@@ -362,16 +449,18 @@ function gexLayer() {
         g.save();
         g.beginPath(); g.rect(W, top, axW, a.bounds.height); g.clip();
         g.font = font; g.textBaseline = 'middle';
-        for (const t of tags) {
-          g.fillStyle = t.l.color;
-          g.fillRect(W + 1, t.y - 8, axW - 2, 16);
+        for (const t of groups) {
+          g.fillStyle = t.color;
+          g.fillRect(W + 1, t.axisY - 8, axW - 2, 16);
           g.fillStyle = '#0b0b0b';
-          g.fillText(fmtLevel(t.l.price), W + 6, t.y + 0.5);
+          g.fillText(t.axisText, W + 6, t.axisY + 0.5);
         }
         g.restore();
       }
     },
-    destroy() { if (chip) chip.remove(); chip = null; canvas = null; }
+    destroy() { if (chip) chip.remove(); chip = null; canvas = null; },
+    // Test hook: the label boxes painted last frame.
+    tags() { return lastTags; }
   };
 }
 
@@ -403,6 +492,9 @@ export function installGexLevels(Core) {
       payload.slice(0, 4).forEach((vals, i) => {
         if (!hs[i] || !vals || typeof vals !== 'object') return;
         const clean = {};
+        // Settings saved before build 461 (no market-level keys) carry the old defaults
+        // solid / width 1, which would flatten the GEX page's line styles: drop those two.
+        if (!('showVah' in vals)) { if (vals.lineStyle === 'solid') delete vals.lineStyle; if (vals.width === 1) delete vals.width; }
         SCHEMA.forEach((s) => { const v = vals[s.key]; if (['string', 'number', 'boolean'].includes(typeof v)) clean[s.key] = v; });
         try { hs[i].setInputs(clean); } catch (e) {}
       });
@@ -410,4 +502,4 @@ export function installGexLevels(Core) {
   });
 }
 export const GEX_TYPE = TYPE;
-export const GEX_DESC = 'Call wall, put wall and zero gamma from the GEX page, drawn on SPX, ES and NQ charts.';
+export const GEX_DESC = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH, pPOC, pVAL, ONH, ONL) from the GEX page, on SPX, ES and NQ charts.';

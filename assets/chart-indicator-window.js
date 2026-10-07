@@ -30,7 +30,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { BUILTIN_PINE, builtinSource } from './chart-pine-builtins.js?v=460';
+import { BUILTIN_PINE, builtinSource } from './chart-pine-builtins.js?v=461';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -177,7 +177,7 @@ export function mountIndicatorWindow(ws, opts){
       else { key = 'o:' + String(r.name).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60); cat = catOf(r.name); author = 'Stryker'; }
       // Stryker GEX Levels (assets/chart-gex-levels.js) heads its own "Stryker" group.
       let desc = '';
-      if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall and zero gamma from the GEX page (SPX, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, ES, NQ)'; }
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
     });
     const ex = (S() && S().EXAMPLES) || [];

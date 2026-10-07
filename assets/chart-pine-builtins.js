@@ -15,13 +15,13 @@ export const BUILTIN_PINE = [
     id: 'stoic-edge-compass',
     name: 'Stoic Edge Compass',
     desc: 'Structure bias, range filter, trend ribbon + 200 EMA, context dots, S/R zones, status panel',
-    url: 'pine/stoic-edge-compass.pine?v=460'
+    url: 'pine/stoic-edge-compass.pine?v=461'
   },
   {
     id: 'wcsmc-sp',
     name: 'WCSMC + SP v3.0 [WinWorld]',
     desc: 'Smart-money structure: BoS / ChoCh, IDM, order blocks, FVGs, MTF structure, SMT vs a compare symbol, MTF dashboard',
-    url: 'pine/wcsmc-sp.pine?v=460'
+    url: 'pine/wcsmc-sp.pine?v=461'
   }
 ];
 

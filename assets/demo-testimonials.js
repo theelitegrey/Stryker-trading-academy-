@@ -3,7 +3,7 @@
 // Owner order 2026-10-07: "create 4 variations of these testimonials for
 // hmepage section". Four layouts rendered from ONE data file,
 // assets/testimonials-data.json ({ reviews: [{ name, initials, avatar?, role?,
-// when (ISO), text, source?, sample? }] }). Nothing review-related is typed
+// when? (ISO), text, source?, hidden? }] }). Nothing review-related is typed
 // into the HTML, so the chosen layout drops into index.html as-is:
 //
 //   <div data-testi="grid|marquee|bento|carousel"
@@ -15,14 +15,15 @@
 //             content duplicated once, the copy aria-hidden). Pauses on hover, on
 //             touch (tap toggles), and while off screen (.tm-off). Static under
 //             prefers-reduced-motion.
-//   bento     C: first review (or one with featured:true) as a big quote tile,
+//   bento     C: first shown review (or one with featured:true) as a big quote tile,
 //             the rest in mixed-size tiles; pointer glow like the homepage bentos.
 //   carousel  D: scroll-snap track with hidden scrollbar, prev/next arrows (desktop)
 //             and dots. Sets scrollLeft on the track itself (never scrollIntoView).
 //
-// Truth rules: avatars are initials circles unless a review carries the member's
-// own photo URL (never stock or AI faces). "2h ago" is computed from `when` and
-// refreshed each minute. sample:true adds a visible SAMPLE tag to the card.
+// Truth rules: reviews are real member reviews shown word for word. Avatar = the
+// member's own photo (`avatar`), else an initials circle. Relative time ("2d ago")
+// only when a review has a real `when` date; otherwise no time at all.
+// hidden:true reviews are skipped (kept in the file with a reason).
 //
 // Depends on: nothing (vanilla). The page glue at the bottom (theme button,
 // A/B/C/D switcher) only runs when its elements exist.
@@ -45,7 +46,7 @@
         return r.json();
       }).then(function (j) {
         var list = Array.isArray(j) ? j : (j && j.reviews) || [];
-        return list.filter(function (r) { return r && r.name && r.text; });
+        return list.filter(function (r) { return r && r.name && r.text && !r.hidden; });
       });
     }
     return cache[src];
@@ -89,16 +90,16 @@
   }
   function meta(r) {
     var bits = [];
+    // `when` is optional: no date, no time line (we never show an invented "2h ago")
     if (r.when) bits.push('<time data-ago datetime="' + esc(r.when) + '">' + esc(ago(r.when)) + '</time>');
     if (r.role) bits.push(esc(r.role));
     if (r.source) bits.push('via ' + esc(r.source));
-    return bits.join('<i aria-hidden="true"> · </i>');
+    return bits.length ? '<span>' + bits.join('<i aria-hidden="true"> · </i>') + '</span>' : '';
   }
   function card(r, cls, hidden) {
     return '<article class="tm-card' + (cls ? ' ' + cls : '') + '"' + (hidden ? ' aria-hidden="true"' : '') + '>' +
       '<header class="tm-who">' + avatar(r) +
       '<div class="tm-id"><b>' + esc(r.name) + '</b><span>' + meta(r) + '</span></div>' +
-      (r.sample ? '<span class="tm-sample" title="Sample text for layout only">Sample</span>' : '') +
       '</header><p>' + esc(r.text) + '</p></article>';
   }
 
@@ -119,13 +120,18 @@
   // ------------------------------------------------------------ B: marquee
   function renderMarquee(el, list) {
     var n = Math.max(1, Math.min(3, parseInt(el.getAttribute('data-rows'), 10) || 3));
+    n = Math.max(1, Math.min(n, Math.floor(list.length / 3)));   // at least 3 different reviews per row
     var rows = [];
     for (var i = 0; i < n; i++) rows.push([]);
     list.forEach(function (r, i) { rows[i % n].push(r); });
+    // each half of the loop must be wider than a wide screen, or a gap shows
+    // before it wraps: repeat a short row's reviews until it has 6+ cards
+    var uniq = rows.map(function (row) { return row.length; });
+    rows = rows.map(function (row) { var out = row.slice(); while (out.length < 6) out = out.concat(row); return out; });
     el.innerHTML = '<div class="tm-wall">' + rows.map(function (row, i) {
-      var a = row.map(function (r) { return card(r, 'tm-mq'); }).join('');
+      var a = row.map(function (r, j) { return card(r, 'tm-mq', j >= uniq[i]); }).join('');   // repeats aria-hidden
       var b = row.map(function (r) { return card(r, 'tm-mq', true); }).join('');
-      var dur = Math.max(30, row.length * 11);
+      var dur = Math.max(30, row.length * 9);
       return '<div class="tm-row tm-row-' + i + (i % 2 ? ' tm-rev' : '') + '">' +
         '<div class="tm-track" style="--dur:' + dur + 's"><div class="tm-set">' + a + '</div><div class="tm-set" aria-hidden="true">' + b + '</div></div></div>';
     }).join('') + '</div>';
@@ -152,7 +158,7 @@
       '<figure class="tm-tile tm-feat"><span class="tm-qm" aria-hidden="true">&ldquo;</span>' +
       '<blockquote><p>' + esc(f.text) + '</p></blockquote>' +
       '<figcaption class="tm-who">' + avatar(f) + '<div class="tm-id"><b>' + esc(f.name) + '</b><span>' + meta(f) + '</span></div>' +
-      (f.sample ? '<span class="tm-sample" title="Sample text for layout only">Sample</span>' : '') + '</figcaption></figure>' +
+      '</figcaption></figure>' +
       rest.map(function (r, i) { return card(r, 'tm-tile tm-b-' + slots[i]); }).join('') + '</div>';
     if (!reduced) {
       el.addEventListener('pointermove', function (e) {

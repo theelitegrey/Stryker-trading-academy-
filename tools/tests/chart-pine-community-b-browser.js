@@ -58,7 +58,7 @@ const clearPine = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.contex
 async function addViaWindow(p, id, name){
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
   await p.waitForSelector('.stkiw-row', { timeout: 20000 });
-  await p.evaluate(() => { const t = document.querySelector('.stkiw-tab[data-k="community"]'); if (t) t.click(); });
+  await p.evaluate(() => { const t = document.querySelector('.stkiw-tab[data-k="top"]'); if (t) t.click(); });
   await p.waitForTimeout(400);
   const row = await p.evaluate((id) => {
     const r = document.querySelector('.stkiw-list .stkiw-row[data-key="x:' + id + '"]');

@@ -1,0 +1,29 @@
+{
+  "_readme": "Homepage testimonials data. ONE source for every testimonials layout (assets/demo-testimonials.js reads it). Each review: name, initials, avatar (optional photo URL, a real member's own photo only; never stock or AI faces), role (optional), when (ISO date the review was given; shown as relative time), text, source (optional: Discord, email, X), sample (true = layout placeholder, shows a SAMPLE tag). The 12 entries below are SAMPLE text for layout only: replace them with real member reviews (with permission) and drop sample:true before the section goes live. No results, payouts, profits, win rates or prices in any review without the Owner's sign-off.",
+  "reviews": [
+    { "name": "Marcus T.", "initials": "MT", "when": "2026-10-07T14:30:00Z", "source": "Discord", "sample": true,
+      "text": "Just finished the first level with Stryker. The models and risk management framework make everything so much easier to follow. Solid community as well. Highly recommend." },
+    { "name": "Chris L.", "initials": "CL", "when": "2026-10-07T11:30:00Z", "source": "X", "sample": true,
+      "text": "The indicators alone are worth it. Clean, accurate and save me so much time. The lessons actually explain the why, not just random setups." },
+    { "name": "Emily R.", "initials": "ER", "when": "2026-10-06T16:00:00Z", "source": "email", "sample": true,
+      "text": "Been trading for a while and this is the first place that actually teaches everything in a structured way. The journal and backtesting tool are game changers. Really happy I joined." },
+    { "name": "Daniel K.", "initials": "DK", "when": "2026-10-07T13:30:00Z", "source": "Discord", "sample": true,
+      "text": "Preparing for my first prop firm challenge with the Stryker models. The live sessions help a lot, and the community is super supportive. Thanks for building this!" },
+    { "name": "Maya S.", "initials": "MS", "when": "2026-10-07T10:30:00Z", "source": "Discord", "sample": true,
+      "text": "The live sessions are next level. So much value just watching and asking questions. Everything is explained clearly and in a simple way. Highly recommend Stryker!" },
+    { "name": "Ethan W.", "initials": "EW", "when": "2026-10-06T15:00:00Z", "source": "X", "sample": true,
+      "text": "Finally have a routine after joining Stryker. The structure, models and backtests made a huge difference. Wish I had this earlier." },
+    { "name": "Sarah M.", "initials": "SM", "when": "2026-10-07T12:30:00Z", "source": "email", "sample": true,
+      "text": "Amazing community and support. The live sessions really help put everything together. The education, indicators and journal are top tier." },
+    { "name": "Liam C.", "initials": "LC", "when": "2026-10-05T16:00:00Z", "source": "Discord", "sample": true,
+      "text": "Practised the IFVG model in the backtesting tool today and marked the setups exactly like in the lessons. Replaying it bar by bar also helps me stay disciplined." },
+    { "name": "Kevin T.", "initials": "KT", "when": "2026-10-04T16:00:00Z", "source": "X", "sample": true,
+      "text": "The content is super detailed but still easy to understand. The charts, examples and models make it simple to apply. Stryker is legit." },
+    { "name": "Isabella N.", "initials": "IN", "when": "2026-10-07T13:30:00Z", "source": "email", "sample": true,
+      "text": "I've tried a lot of trading education but this is different. Everything is well organized and actually useful. The backtesting app is a huge plus. Highly recommend!" },
+    { "name": "Riley J.", "initials": "RJ", "when": "2026-10-06T16:00:00Z", "source": "Discord", "sample": true,
+      "text": "Just finished Chapter 4 and it finally clicked. The way it's explained is so much better than anything else I've tried. The community here is solid too." },
+    { "name": "Jordan P.", "initials": "JP", "when": "2026-10-05T16:00:00Z", "source": "Discord", "sample": true,
+      "text": "Great models, clean indicators and real examples. The live sessions and community keep me accountable. Easily the best trading education I've found." }
+  ]
+}

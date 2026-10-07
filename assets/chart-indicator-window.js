@@ -10,7 +10,7 @@
 // that replaces Vela's small picker. It takes over ws.indicatorPicker.open/close/sync, so
 // the topbar "Indicators" button and the "/" shortcut open this window instead.
 //   PERSONAL   Favorites (starred items from every source), My scripts, On this chart
-//   BUILT-IN   Technicals, grouped: Moving averages, Oscillators, Volatility,
+//   BUILT-IN   Technicals, grouped: Stryker (GEX Levels), Moving averages, Oscillators, Volatility,
 //              Volume & Order flow, Trend, Levels (Vela built-ins + our order-flow tools
 //              + the Stryker Pine examples)
 //   COMMUNITY  Editors' picks, Top (boosts, all time), Trending (boosts + adds, 7 days)
@@ -33,7 +33,8 @@
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
 const GROUP_FLOW = 'Volume & Order flow';
-const CATS = ['Moving averages', 'Oscillators', 'Volatility', GROUP_FLOW, 'Trend', 'Levels'];
+const GROUP_STRYKER = 'Stryker';
+const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
   ['BUILT-IN', [['tech', 'Technicals']]],
@@ -172,7 +173,10 @@ export function mountIndicatorWindow(ws, opts){
       if (r.pseudo) { key = 'p:' + r.pseudo; author = 'Stryker'; cat = GROUP_FLOW; }
       else if (r.native) { key = 'b:' + r.nativeType; if (/^stk_/.test(r.nativeType)) author = 'Stryker'; cat = r.category === GROUP_FLOW ? GROUP_FLOW : catOf(r.name); }
       else { key = 'o:' + String(r.name).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60); cat = catOf(r.name); author = 'Stryker'; }
-      out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta });
+      // Stryker GEX Levels (assets/chart-gex-levels.js) heads its own "Stryker" group.
+      let desc = '';
+      if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall and zero gamma from the GEX page (SPX, ES, NQ)'; }
+      out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
     });
     const ex = (S() && S().EXAMPLES) || [];
     ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'Stryker', cat: catOf(x.name), kind: 'example', source: x.source }));
@@ -319,6 +323,7 @@ export function mountIndicatorWindow(ws, opts){
     });
     const name = h('button', { type: 'button', class: 'stkiw-name', title: it.gone ? 'No longer published' : 'Add to chart' }, [
       h('span', { class: 'stkiw-nm', text: it.name }),
+      it.desc ? h('span', { class: 'stkiw-desc', text: it.desc }) : null,
       it.locked ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
@@ -455,7 +460,7 @@ export function mountIndicatorWindow(ws, opts){
       CATS.forEach((c) => {
         const a = view.items.filter((x) => x.cat === c);
         if (!a.length) return;
-        if (c !== GROUP_FLOW) a.sort((x, y) => x.name.localeCompare(y.name));
+        if (c !== GROUP_FLOW && c !== GROUP_STRYKER) a.sort((x, y) => x.name.localeCompare(y.name));
         list.appendChild(h('p', { class: 'stkiw-grp', text: c }));
         a.forEach((x) => list.appendChild(row(x)));
       });

@@ -46,6 +46,9 @@
 // topbar Indicators button and "/") with the TradingView-style window: Favorites, My scripts,
 // Technicals by category, Editors' picks / Top / Trending, boosts, stars.
 //
+// GEX LEVELS: assets/chart-gex-levels.js registers the "Stryker GEX Levels" native (call wall,
+// put wall, zero gamma from /api/gex/levels) at the top of the indicator window's Stryker group.
+//
 // VOLUME & ORDER FLOW: assets/chart-orderflow.js registers the volume-profile / VWAP /
 // relative-volume / order-flow natives and puts them in a "Volume & Order flow" group at the
 // top of the Indicators picker; their settings ride the document under ext 'stryker.volume'.
@@ -178,16 +181,17 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=450'),
+      import('./chart-futures-provider.js?v=451'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=450'),
-      import('./chart-orderflow.js?v=450'),
-      import('./chart-settings.js?v=450'),
+      import('./chart-pine.js?v=451'),
+      import('./chart-orderflow.js?v=451'),
+      import('./chart-settings.js?v=451'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=450'),
-      import('./chart-alerts.js?v=450'),
-      import('./chart-events.js?v=450'),
-      import('./chart-intervals.js?v=450')
+      import('./chart-grid.js?v=451'),
+      import('./chart-alerts.js?v=451'),
+      import('./chart-events.js?v=451'),
+      import('./chart-intervals.js?v=451'),
+      import('./chart-gex-levels.js?v=451')
     ]);
   } catch (err) {
     console.error('Stryker: Vela modules failed to load', err);
@@ -209,6 +213,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Alerts = mods[11];
   const Events = mods[12];
   const Iv = mods[13];
+  const Gex = mods[14];
   // Tick bars (and seconds where a venue has no 1-second candles) are built from the same trade
   // sources the order-flow tools use.
   try { Iv.useTrades(Flow); } catch (e) { console.warn('Stryker: interval trades', e); }
@@ -227,6 +232,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
   // saved session or template that carries them restores.
   try { Flow.installOrderflow(Core); } catch (e) { console.warn('Stryker: volume tools install', e); }
+  // Stryker GEX Levels (assets/chart-gex-levels.js): registered before boot so a saved session restores it.
+  try { Gex.installGexLevels(Core); } catch (e) { console.warn('Stryker: GEX levels install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('Stryker: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('Stryker: events install', e); }
@@ -258,7 +265,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=450')).loadRithmicIfEnabled(); }
+  try { rith = await (await import('./rithmic-config.js?v=451')).loadRithmicIfEnabled(); }
   catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
 
   try {
@@ -328,11 +335,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(cellSw);
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=450')
+  import('./chart-data-dot.js?v=451')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider }))
     .catch((e) => console.warn('Stryker: data dot', e));
   // Floating Favorites drawing toolbar (starred tools, draggable): assets/chart-fav-toolbar.js.
-  import('./chart-fav-toolbar.js?v=450')
+  import('./chart-fav-toolbar.js?v=451')
     .then((m) => m.mountFavToolbar(ws, Core, { toast }))
     .catch((e) => console.warn('Stryker: favorites toolbar', e));
   window.__stkFlow = Flow;
@@ -342,17 +349,17 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
-  Promise.all([import('./chart-watchlist.js?v=450'), import(VELA_BASE + 'widget.js')])
+  Promise.all([import('./chart-watchlist.js?v=451'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
     .catch((e) => console.warn('Stryker: watchlist', e));
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
-  import('./chart-plus.js?v=450').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('Stryker: + menu', e));
+  import('./chart-plus.js?v=451').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('Stryker: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
   // TradingView-style interval row + menu (assets/chart-intervals.js).
   try { Iv.mountIntervals(ws, { toast }); } catch (e) { console.warn('Stryker: intervals', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=450')
+  import('./chart-indicator-window.js?v=451')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('Stryker: indicator window', e));
 
@@ -453,7 +460,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=450')
+    import('./chart-layouts.js?v=451')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
       .catch((e) => console.warn('Stryker: layout menu', e));
   }

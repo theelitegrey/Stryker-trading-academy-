@@ -1,0 +1,521 @@
+//@version=6
+// Stryker built-in copy, Owner order 2026-10-08 ("add this indicator, its strykers"): runs unmodified.
+// TradingView comparison tickers (CME_MINI:ES1! etc.) resolve to our futures feed (ES/NQ/YM/RTY).
+// ═════════════════════════════════════════════════════════════════════════════
+//   SMT DIVERGENCE PRO [Stryker]
+//   © Stryker Trading  ·  strykertrading.com
+//   Version 3.0  ·  Pine Script v6
+//
+//   Smart money technique divergence between correlated instruments.
+//   When one instrument prints a new swing and a correlated one fails to,
+//   the two swing points are joined by a line on the chart. Bullish SMT is
+//   read from swing lows, bearish from swing highs.
+//
+//   · Chart timeframe plus up to three higher timeframes, each with its own
+//     pivot strength.
+//   · Up to three comparison symbols, auto-paired or manual.
+//   · Swings are detected on BOTH symbols independently, so a divergence is
+//     caught whichever instrument prints the pivot.
+//   · Higher timeframe candles are aggregated from chart bars, so every line
+//     is anchored to the exact chart bar that made the swing — not to the
+//     higher timeframe candle's open.
+//   · Real time on every timeframe: a provisional dotted line is drawn while
+//     the swing is still forming and replaced on confirmation.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("SMT Divergence Pro [Stryker]", "SMT Pro [Stryker]", overlay = true, max_lines_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_SYM = "Stryker · Comparison Symbols"
+const string G_DET = "Stryker · Detection"
+const string G_T0  = "Stryker · Timeframe 1 (chart)"
+const string G_T1  = "Stryker · Timeframe 2"
+const string G_T2  = "Stryker · Timeframe 3"
+const string G_T3  = "Stryker · Timeframe 4"
+const string G_SES = "Stryker · Session Filter"
+const string G_VIS = "Stryker · Display"
+
+autoSym = input.bool(true, "Auto-pair from the chart symbol", tooltip = "NQ pairs with ES, ES with NQ, YM and RTY with ES. Manual symbols below are used when this is off.", group = G_SYM)
+useS1   = input.bool(true,  "", inline = "s1", group = G_SYM)
+symS1   = input.symbol("CME_MINI:ES1!", "Symbol 1", inline = "s1", group = G_SYM)
+useS2   = input.bool(false, "", inline = "s2", group = G_SYM)
+symS2   = input.symbol("CBOT_MINI:YM1!", "Symbol 2", inline = "s2", group = G_SYM)
+useS3   = input.bool(false, "", inline = "s3", group = G_SYM)
+symS3   = input.symbol("CME_MINI:RTY1!", "Symbol 3", inline = "s3", group = G_SYM)
+
+dirSel   = input.string("Both", "Direction", options = ["Both", "Bullish", "Bearish"], group = G_DET)
+failSide = input.string("Either", "Which symbol must fail to make the new swing", options = ["Either", "Chart symbol", "Comparison symbol"], group = G_DET)
+onePer   = input.bool(true, "Single SMT per pivot", tooltip = "Once a swing has produced an SMT, it is not reused.", group = G_DET)
+realtime = input.bool(true, "Real-time detection", tooltip = "A provisional dotted line is drawn while the swing is still forming, on every timeframe. It is replaced by the confirmed line, or removed if the pivot fails to confirm.", group = G_DET)
+invMode  = input.string("Remove", "When price trades through the divergence swing", options = ["Remove", "Keep, dimmed", "Keep as is"], group = G_DET)
+
+on0   = input.bool(true, "Enabled", group = G_T0)
+pre0  = input.string("Weak", "Pivot strength", options = ["Weak", "Medium", "Strong", "Custom"], inline = "p0", group = G_T0)
+cus0  = input.int(3, "", minval = 1, maxval = 50, inline = "p0", group = G_T0)
+bull0 = input.color(#26A69A, "Bullish", inline = "c0", group = G_T0)
+bear0 = input.color(#EF5350, "Bearish", inline = "c0", group = G_T0)
+sty0  = input.string("Solid", "", options = ["Solid", "Dashed", "Dotted"], inline = "l0", group = G_T0)
+wid0  = input.int(1, "", minval = 1, maxval = 4, inline = "l0", group = G_T0)
+keep0 = input.int(20, "Historical SMTs kept", minval = 1, maxval = 100, group = G_T0)
+
+on1   = input.bool(true, "", inline = "t1", group = G_T1)
+tfi1  = input.timeframe("15", "", inline = "t1", group = G_T1)
+auto1 = input.bool(true, "Auto (next above chart)", group = G_T1)
+pre1  = input.string("Weak", "Pivot strength", options = ["Weak", "Medium", "Strong", "Custom"], inline = "p1", group = G_T1)
+cus1  = input.int(3, "", minval = 1, maxval = 50, inline = "p1", group = G_T1)
+bull1 = input.color(#00897B, "Bullish", inline = "c1", group = G_T1)
+bear1 = input.color(#C62828, "Bearish", inline = "c1", group = G_T1)
+sty1  = input.string("Solid", "", options = ["Solid", "Dashed", "Dotted"], inline = "l1", group = G_T1)
+wid1  = input.int(1, "", minval = 1, maxval = 4, inline = "l1", group = G_T1)
+keep1 = input.int(20, "Historical SMTs kept", minval = 1, maxval = 100, group = G_T1)
+
+on2   = input.bool(false, "", inline = "t2", group = G_T2)
+tfi2  = input.timeframe("60", "", inline = "t2", group = G_T2)
+auto2 = input.bool(true, "Auto (two above chart)", group = G_T2)
+pre2  = input.string("Weak", "Pivot strength", options = ["Weak", "Medium", "Strong", "Custom"], inline = "p2", group = G_T2)
+cus2  = input.int(3, "", minval = 1, maxval = 50, inline = "p2", group = G_T2)
+bull2 = input.color(#004D40, "Bullish", inline = "c2", group = G_T2)
+bear2 = input.color(#7F0000, "Bearish", inline = "c2", group = G_T2)
+sty2  = input.string("Solid", "", options = ["Solid", "Dashed", "Dotted"], inline = "l2", group = G_T2)
+wid2  = input.int(1, "", minval = 1, maxval = 4, inline = "l2", group = G_T2)
+keep2 = input.int(20, "Historical SMTs kept", minval = 1, maxval = 100, group = G_T2)
+
+on3   = input.bool(false, "", inline = "t3", group = G_T3)
+tfi3  = input.timeframe("240", "", inline = "t3", group = G_T3)
+auto3 = input.bool(true, "Auto (three above chart)", group = G_T3)
+pre3  = input.string("Weak", "Pivot strength", options = ["Weak", "Medium", "Strong", "Custom"], inline = "p3", group = G_T3)
+cus3  = input.int(3, "", minval = 1, maxval = 50, inline = "p3", group = G_T3)
+bull3 = input.color(#1B5E20, "Bullish", inline = "c3", group = G_T3)
+bear3 = input.color(#B71C1C, "Bearish", inline = "c3", group = G_T3)
+sty3  = input.string("Solid", "", options = ["Solid", "Dashed", "Dotted"], inline = "l3", group = G_T3)
+wid3  = input.int(1, "", minval = 1, maxval = 4, inline = "l3", group = G_T3)
+keep3 = input.int(20, "Historical SMTs kept", minval = 1, maxval = 100, group = G_T3)
+
+sessOn = input.bool(false, "Session filter", group = G_SES)
+sesA   = input.session("0930-1200", "Window 1", group = G_SES)
+sesB   = input.session("1330-1545", "Window 2", group = G_SES)
+sesBon = input.bool(false, "Use window 2", group = G_SES)
+sessTz = input.string("America/New_York", "Timezone", options = ["America/New_York", "America/Chicago", "Europe/London", "Asia/Tokyo", "UTC"], group = G_SES)
+
+showMk   = input.bool(true, "▲ / ▼ marker at the divergence", group = G_VIS)
+showTx   = input.bool(false, "Text (symbol · timeframe)", group = G_VIS)
+mkSize   = input.string("Small", "Size", options = ["Tiny", "Small", "Normal", "Large"], group = G_VIS)
+showMark = input.bool(true, "Watermark", inline = "w", group = G_VIS)
+markPos  = input.string("Bottom right", "", options = ["Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right"], inline = "w", group = G_VIS)
+markCol  = input.color(color.new(#B2B5BE, 35), "Watermark colour", group = G_VIS)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+f_L(pre, cus) => pre == "Weak" ? 2 : pre == "Medium" ? 5 : pre == "Strong" ? 10 : cus
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SYMBOLS
+// ─────────────────────────────────────────────────────────────────────────────
+root  = str.upper(syminfo.root)
+isNQ  = str.contains(root, "NQ")
+isES  = str.contains(root, "ES")
+isYM  = str.contains(root, "YM")
+isRTY = str.contains(root, "RTY") or str.contains(root, "M2K")
+
+autoA = isNQ ? "CME_MINI:ES1!" : isES ? "CME_MINI:NQ1!" : isYM ? "CME_MINI:ES1!" : isRTY ? "CME_MINI:ES1!" : symS1
+autoB = isNQ or isES ? "CBOT_MINI:YM1!" : "CME_MINI:NQ1!"
+autoC = "CME_MINI:RTY1!"
+
+c1 = autoSym ? autoA : symS1
+c2 = autoSym ? autoB : symS2
+c3 = autoSym ? autoC : symS3
+u1 = autoSym ? true  : useS1
+u2 = autoSym ? false : useS2
+u3 = autoSym ? false : useS3
+
+f_short(s) =>
+    string r = s
+    if str.contains(s, ":")
+        array<string> p = str.split(s, ":")
+        r := array.get(p, array.size(p) - 1)
+    str.replace_all(r, "1!", "")
+
+n1 = f_short(c1)
+n2 = f_short(c2)
+n3 = f_short(c3)
+
+// the only external data: comparison symbols on the chart timeframe
+[x1L, x1H] = request.security(c1, timeframe.period, [low, high])
+[x2L, x2H] = request.security(c2, timeframe.period, [low, high])
+[x3L, x3H] = request.security(c3, timeframe.period, [low, high])
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TIMEFRAMES
+// ─────────────────────────────────────────────────────────────────────────────
+chartSec = timeframe.in_seconds()
+f_next(sec) => sec < 300 ? "5" : sec < 900 ? "15" : sec < 1800 ? "30" : sec < 3600 ? "60" : sec < 14400 ? "240" : sec < 86400 ? "D" : "W"
+htf1 = auto1 ? f_next(chartSec) : tfi1
+htf2 = auto2 ? f_next(timeframe.in_seconds(htf1)) : tfi2
+htf3 = auto3 ? f_next(timeframe.in_seconds(htf2)) : tfi3
+ok0  = on0
+ok1  = on1 and timeframe.in_seconds(htf1) > chartSec
+ok2  = on2 and timeframe.in_seconds(htf2) > chartSec and htf2 != htf1
+ok3  = on3 and timeframe.in_seconds(htf3) > chartSec and htf3 != htf2 and htf3 != htf1
+
+L0 = f_L(pre0, cus0)
+L1 = f_L(pre1, cus1)
+L2 = f_L(pre2, cus2)
+L3 = f_L(pre3, cus3)
+
+tt0 = time
+tt1 = time(htf1)
+tt2 = time(htf2)
+tt3 = time(htf3)
+new0 = true
+new1 = not na(tt1[1]) and tt1 != tt1[1]
+new2 = not na(tt2[1]) and tt2 != tt2[1]
+new3 = not na(tt3[1]) and tt3 != tt3[1]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  AGGREGATION — one Sym per (timeframe, symbol); symbol 0 is the chart
+// ─────────────────────────────────────────────────────────────────────────────
+type Sym
+    float lH  = na          // live candle high / low and the exact bar time of each
+    float lL  = na
+    int   lHt = na
+    int   lLt = na
+    array<float> H          // completed candles, capped at 2L+1
+    array<float> L
+    array<int>   HT
+    array<int>   LT
+
+type Pair
+    // chart-anchored swings
+    float lowA  = na
+    float lowB  = na
+    int   lowT  = na
+    bool  lowUsed = false
+    float highA = na
+    float highB = na
+    int   highT = na
+    bool  highUsed = false
+    // comparison-anchored swings
+    float qLowB  = na
+    float qLowA  = na
+    int   qLowT  = na
+    bool  qLowUsed = false
+    float qHighB = na
+    float qHighA = na
+    int   qHighT = na
+    bool  qHighUsed = false
+    int   lastT  = na
+    line  pL = na
+    label pM = na
+
+type SMT
+    int   tf   = 0
+    int   dir  = 0
+    float lvl  = na
+    int   t2   = na
+    bool  dead = false
+    line  l    = na
+    label lb   = na
+
+var array<Sym>  syms  = array.new<Sym>()     // index = tf * 4 + symbol (0 chart, 1..3 comps)
+var array<Pair> pairs = array.new<Pair>()    // index = tf * 3 + comp (0..2)
+var array<SMT>  smts  = array.new<SMT>()
+
+if barstate.isfirst
+    for i = 0 to 15
+        Sym s = Sym.new()
+        s.H  := array.new<float>()
+        s.L  := array.new<float>()
+        s.HT := array.new<int>()
+        s.LT := array.new<int>()
+        array.push(syms, s)
+    for i = 0 to 11
+        array.push(pairs, Pair.new())
+
+inSess = not sessOn or not na(time(timeframe.period, sesA, sessTz)) or (sesBon and not na(time(timeframe.period, sesB, sessTz)))
+
+bool evBull = false
+bool evBear = false
+
+f_col(tf, dir) => tf == 0 ? (dir == 1 ? bull0 : bear0) : tf == 1 ? (dir == 1 ? bull1 : bear1) : tf == 2 ? (dir == 1 ? bull2 : bear2) : (dir == 1 ? bull3 : bear3)
+f_sty(tf)  => f_style(tf == 0 ? sty0 : tf == 1 ? sty1 : tf == 2 ? sty2 : sty3)
+f_wid(tf)  => tf == 0 ? wid0 : tf == 1 ? wid1 : tf == 2 ? wid2 : wid3
+f_keep(tf) => tf == 0 ? keep0 : tf == 1 ? keep1 : tf == 2 ? keep2 : keep3
+f_tfTx(tf) => tf == 0 ? timeframe.period : tf == 1 ? htf1 : tf == 2 ? htf2 : htf3
+
+// feed one symbol's chart-bar high/low into its HTF candle; returns true when a candle completed
+f_agg(tf, j, isNew, hi, lo, L) =>
+    Sym s = array.get(syms, tf * 4 + j)
+    bool completed = false
+    if na(s.lH)
+        s.lH  := hi
+        s.lL  := lo
+        s.lHt := time
+        s.lLt := time
+    else if isNew
+        array.push(s.H, s.lH)
+        array.push(s.L, s.lL)
+        array.push(s.HT, s.lHt)
+        array.push(s.LT, s.lLt)
+        int cap = L * 2 + 1
+        while array.size(s.H) > cap
+            array.shift(s.H)
+            array.shift(s.L)
+            array.shift(s.HT)
+            array.shift(s.LT)
+        completed := true
+        s.lH  := hi
+        s.lL  := lo
+        s.lHt := time
+        s.lLt := time
+    else
+        if hi > s.lH
+            s.lH  := hi
+            s.lHt := time
+        if lo < s.lL
+            s.lL  := lo
+            s.lLt := time
+    completed
+
+// pivot test on the completed window: middle candle is a swing if it is the extreme of the window
+f_pivLow(s, L) =>
+    bool ok = array.size(s.L) == L * 2 + 1
+    if ok
+        float m = array.get(s.L, L)
+        for i = 0 to L * 2
+            if i != L and array.get(s.L, i) <= m
+                ok := false
+    ok
+
+f_pivHigh(s, L) =>
+    bool ok = array.size(s.H) == L * 2 + 1
+    if ok
+        float m = array.get(s.H, L)
+        for i = 0 to L * 2
+            if i != L and array.get(s.H, i) >= m
+                ok := false
+    ok
+
+// forming swing on the live candle: beyond every completed candle in the window
+f_formLow(s, L) =>
+    bool ok = array.size(s.L) >= L and not na(s.lL)
+    if ok
+        int n = array.size(s.L)
+        for i = math.max(n - L, 0) to n - 1
+            if array.get(s.L, i) <= s.lL
+                ok := false
+    ok
+
+f_formHigh(s, L) =>
+    bool ok = array.size(s.H) >= L and not na(s.lH)
+    if ok
+        int n = array.size(s.H)
+        for i = math.max(n - L, 0) to n - 1
+            if array.get(s.H, i) >= s.lH
+                ok := false
+    ok
+
+f_diverge(aPrev, aNow, bPrev, bNow, dir) =>
+    bool aBroke = dir == 1 ? aNow < aPrev : aNow > aPrev
+    bool bBroke = dir == 1 ? bNow < bPrev : bNow > bPrev
+    bool aHeld  = dir == 1 ? aNow > aPrev : aNow < aPrev
+    bool bHeld  = dir == 1 ? bNow > bPrev : bNow < bPrev
+    bool chartFails = aHeld and bBroke
+    bool compFails  = aBroke and bHeld
+    failSide == "Either" ? (chartFails or compFails) : failSide == "Chart symbol" ? chartFails : compFails
+
+f_kill(s) =>
+    if not na(s.l)
+        line.delete(s.l)
+    if not na(s.lb)
+        label.delete(s.lb)
+
+f_trim(tf) =>
+    int n = 0
+    if array.size(smts) > 0
+        for i = array.size(smts) - 1 to 0
+            SMT s = array.get(smts, i)
+            if s.tf == tf
+                n += 1
+                if n > f_keep(tf)
+                    f_kill(s)
+                    array.remove(smts, i)
+
+f_draw(tf, dir, y1, t1, y2, t2, compName) =>
+    SMT s = SMT.new()
+    s.tf  := tf
+    s.dir := dir
+    s.lvl := dir == 1 ? math.min(y1, y2) : math.max(y1, y2)
+    s.t2  := t2
+    s.l := line.new(t1, y1, t2, y2, xloc = xloc.bar_time, color = f_col(tf, dir), style = f_sty(tf), width = f_wid(tf))
+    if showMk or showTx
+        s.lb := label.new(t2, y2, (showMk ? (dir == 1 ? "▲" : "▼") : "") + (showTx ? " SMT · " + compName + " · " + f_tfTx(tf) : ""), xloc = xloc.bar_time,
+             style = dir == 1 ? label.style_label_up : label.style_label_down, color = color.new(color.black, 100), textcolor = f_col(tf, dir), size = f_size(mkSize))
+    array.push(smts, s)
+    f_trim(tf)
+
+// ── one (timeframe, comparison) pair: confirmed swings on both symbols + live provisional ──
+f_pair(tf, k, compName, L, completed) =>
+    Pair p = array.get(pairs, tf * 3 + k)
+    Sym a = array.get(syms, tf * 4)          // chart
+    Sym b = array.get(syms, tf * 4 + k + 1)  // comparison
+    bool gotBull = false
+    bool gotBear = false
+
+    if completed and array.size(a.L) == L * 2 + 1 and array.size(b.L) == L * 2 + 1
+        // values on the middle (candidate pivot) candle, with exact times
+        float aLow  = array.get(a.L, L)
+        float aHigh = array.get(a.H, L)
+        int   aLowT = array.get(a.LT, L)
+        int   aHighT = array.get(a.HT, L)
+        float bLow  = array.get(b.L, L)
+        float bHigh = array.get(b.H, L)
+        int   pivT  = aLowT
+
+        // chart symbol swing
+        if f_pivLow(a, L)
+            if not na(p.lowA) and not (onePer and p.lowUsed) and dirSel != "Bearish" and inSess and nz(p.lastT, -1) != aLowT and f_diverge(p.lowA, aLow, p.lowB, bLow, 1)
+                f_draw(tf, 1, p.lowA, p.lowT, aLow, aLowT, compName)
+                p.lowUsed := true
+                p.lastT := aLowT
+                gotBull := true
+            p.lowA := aLow
+            p.lowB := bLow
+            p.lowT := aLowT
+            if not gotBull
+                p.lowUsed := false
+        if f_pivHigh(a, L)
+            if not na(p.highA) and not (onePer and p.highUsed) and dirSel != "Bullish" and inSess and nz(p.lastT, -1) != aHighT and f_diverge(p.highA, aHigh, p.highB, bHigh, -1)
+                f_draw(tf, -1, p.highA, p.highT, aHigh, aHighT, compName)
+                p.highUsed := true
+                p.lastT := aHighT
+                gotBear := true
+            p.highA := aHigh
+            p.highB := bHigh
+            p.highT := aHighT
+            if not gotBear
+                p.highUsed := false
+
+        // comparison symbol swing — chart may not have pivoted; use the chart's candle extreme and its exact time
+        if f_pivLow(b, L)
+            if not na(p.qLowB) and not (onePer and p.qLowUsed) and dirSel != "Bearish" and inSess and nz(p.lastT, -1) != aLowT and f_diverge(p.qLowA, aLow, p.qLowB, bLow, 1)
+                f_draw(tf, 1, p.qLowA, p.qLowT, aLow, aLowT, compName)
+                p.qLowUsed := true
+                p.lastT := aLowT
+                gotBull := true
+            p.qLowB := bLow
+            p.qLowA := aLow
+            p.qLowT := aLowT
+            if not gotBull
+                p.qLowUsed := false
+        if f_pivHigh(b, L)
+            if not na(p.qHighB) and not (onePer and p.qHighUsed) and dirSel != "Bullish" and inSess and nz(p.lastT, -1) != aHighT and f_diverge(p.qHighA, aHigh, p.qHighB, bHigh, -1)
+                f_draw(tf, -1, p.qHighA, p.qHighT, aHigh, aHighT, compName)
+                p.qHighUsed := true
+                p.lastT := aHighT
+                gotBear := true
+            p.qHighB := bHigh
+            p.qHighA := aHigh
+            p.qHighT := aHighT
+            if not gotBear
+                p.qHighUsed := false
+
+    // ── live provisional line ──
+    if not na(p.pL)
+        line.delete(p.pL)
+        p.pL := na
+    if not na(p.pM)
+        label.delete(p.pM)
+        p.pM := na
+    if realtime and inSess and not na(a.lL) and not na(b.lL)
+        bool bullA = f_formLow(a, L)  and not na(p.lowA)  and not (onePer and p.lowUsed)  and f_diverge(p.lowA,  a.lL, p.lowB,  b.lL, 1)
+        bool bullB = f_formLow(b, L)  and not na(p.qLowB) and not (onePer and p.qLowUsed) and f_diverge(p.qLowA, a.lL, p.qLowB, b.lL, 1)
+        bool bearA = f_formHigh(a, L) and not na(p.highA)  and not (onePer and p.highUsed)  and f_diverge(p.highA,  a.lH, p.highB,  b.lH, -1)
+        bool bearB = f_formHigh(b, L) and not na(p.qHighB) and not (onePer and p.qHighUsed) and f_diverge(p.qHighA, a.lH, p.qHighB, b.lH, -1)
+        if dirSel != "Bearish" and (bullA or bullB)
+            float y1 = bullA ? p.lowA : p.qLowA
+            int   t1 = bullA ? p.lowT : p.qLowT
+            p.pL := line.new(t1, y1, a.lLt, a.lL, xloc = xloc.bar_time, color = color.new(f_col(tf, 1), 45), style = line.style_dotted, width = f_wid(tf))
+            if showMk
+                p.pM := label.new(a.lLt, a.lL, "▲", xloc = xloc.bar_time, style = label.style_label_up, color = color.new(color.black, 100), textcolor = color.new(f_col(tf, 1), 45), size = f_size(mkSize))
+        else if dirSel != "Bullish" and (bearA or bearB)
+            float y1 = bearA ? p.highA : p.qHighA
+            int   t1 = bearA ? p.highT : p.qHighT
+            p.pL := line.new(t1, y1, a.lHt, a.lH, xloc = xloc.bar_time, color = color.new(f_col(tf, -1), 45), style = line.style_dotted, width = f_wid(tf))
+            if showMk
+                p.pM := label.new(a.lHt, a.lH, "▼", xloc = xloc.bar_time, style = label.style_label_down, color = color.new(color.black, 100), textcolor = color.new(f_col(tf, -1), 45), size = f_size(mkSize))
+    [gotBull, gotBear]
+
+// ── run one timeframe: aggregate all four symbols, then evaluate the active pairs ──
+f_tf(tf, isOn, isNew, L) =>
+    bool eb = false
+    bool es = false
+    if isOn
+        bool done = f_agg(tf, 0, isNew, high, low, L)
+        f_agg(tf, 1, isNew, x1H, x1L, L)
+        f_agg(tf, 2, isNew, x2H, x2L, L)
+        f_agg(tf, 3, isNew, x3H, x3L, L)
+        bool sync = barstate.isconfirmed or tf > 0
+        if u1
+            [b, s] = f_pair(tf, 0, n1, L, done and sync)
+            eb := eb or b
+            es := es or s
+        if u2
+            [b, s] = f_pair(tf, 1, n2, L, done and sync)
+            eb := eb or b
+            es := es or s
+        if u3
+            [b, s] = f_pair(tf, 2, n3, L, done and sync)
+            eb := eb or b
+            es := es or s
+    [eb, es]
+
+[b0, s0] = f_tf(0, ok0, new0, L0)
+[b1, s1] = f_tf(1, ok1, new1, L1)
+[b2, s2] = f_tf(2, ok2, new2, L2)
+[b3, s3] = f_tf(3, ok3, new3, L3)
+evBull := b0 or b1 or b2 or b3
+evBear := s0 or s1 or s2 or s3
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INVALIDATION — price trades through the divergence swing
+// ─────────────────────────────────────────────────────────────────────────────
+if invMode != "Keep as is" and array.size(smts) > 0
+    for i = array.size(smts) - 1 to 0
+        SMT s = array.get(smts, i)
+        if not s.dead and time > s.t2
+            bool through = s.dir == 1 ? low < s.lvl : high > s.lvl
+            if through
+                s.dead := true
+                if invMode == "Remove"
+                    f_kill(s)
+                    array.remove(smts, i)
+                else
+                    line.set_color(s.l, color.new(f_col(s.tf, s.dir), 80))
+                    line.set_style(s.l, line.style_dotted)
+                    if not na(s.lb)
+                        label.set_textcolor(s.lb, color.new(f_col(s.tf, s.dir), 80))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  WATERMARK
+// ─────────────────────────────────────────────────────────────────────────────
+wmPos = markPos == "Top left" ? position.top_left : markPos == "Top center" ? position.top_center : markPos == "Top right" ? position.top_right : markPos == "Bottom left" ? position.bottom_left : markPos == "Bottom center" ? position.bottom_center : position.bottom_right
+wmAlign = markPos == "Top center" or markPos == "Bottom center" ? text.align_center : markPos == "Top left" or markPos == "Bottom left" ? text.align_left : text.align_right
+var table wm = table.new(wmPos, 1, 2, border_width = 0)
+if barstate.islast and showMark
+    string symsTx = (u1 ? n1 : "") + (u2 ? " · " + n2 : "") + (u3 ? " · " + n3 : "")
+    string tfs = (ok0 ? timeframe.period + " (" + str.tostring(L0) + ")" : "") + (ok1 ? " · " + htf1 + " (" + str.tostring(L1) + ")" : "") + (ok2 ? " · " + htf2 + " (" + str.tostring(L2) + ")" : "") + (ok3 ? " · " + htf3 + " (" + str.tostring(L3) + ")" : "")
+    table.cell(wm, 0, 0, "SMT Divergence Pro [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 1, f_short(syminfo.tickerid) + "  vs  " + symsTx + "    ·    " + tfs, text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ALERTS
+// ─────────────────────────────────────────────────────────────────────────────
+if evBull
+    alert("SMT Pro [Stryker] · bullish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
+if evBear
+    alert("SMT Pro [Stryker] · bearish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
+alertcondition(evBull, "SMT Pro [Stryker] — Bullish SMT", "Bullish smart money divergence confirmed")
+alertcondition(evBear, "SMT Pro [Stryker] — Bearish SMT", "Bearish smart money divergence confirmed")
+alertcondition(evBull or evBear, "SMT Pro [Stryker] — Any SMT", "Smart money divergence confirmed")

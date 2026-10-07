@@ -13,7 +13,10 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8061';
 const OUT = process.env.OUT || require('path').join(require('os').tmpdir(), 'pine-imports');
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
-const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+// The Owner's own scripts: listed under Editors' picks (or the Stryker group before the picker
+// sections landed), author Stryker.
+const PICKS = new Set(['SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]']);
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 const BAD = /\b(buy|buys|sell|sells|long|short)\b|look for/i;
@@ -54,7 +57,7 @@ async function addViaWindow(p, name){
     while ((el = el.previousElementSibling)) { if (!el.classList.contains('stkiw-row')) { head = el.textContent.trim(); break; } }
     return { found: true, head, gex: rows.some((r) => /GEX Levels/.test(r.textContent)) };
   }, name);
-  check(inGroup.found && /^Stryker/.test(inGroup.head || ''), name + ': listed under "' + inGroup.head + '" in the Indicators window');
+  check(inGroup.found && (PICKS.has(name) ? /^(Editors|Stryker)/ : /^(Stryker|Community)/).test(inGroup.head || ''), name + ': listed under "' + inGroup.head + '" in the Indicators window');
   const before = await p.evaluate(() => window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.context().cells[0].chart).length);
   const t0 = Date.now();
   await p.evaluate((name) => [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-nm') || {}).textContent === name).querySelector('.stkiw-name').click(), name);
@@ -130,10 +133,10 @@ async function counts(p){
         // the legend row's "Indicator settings" menu entry calls this
         let gearInfo = '';
         try { chart.renderer.openIndicatorSettings(h.id); await new Promise((r) => setTimeout(r, 900)); } catch (e) { gearInfo = e.message; }
-        const dlg = [...document.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="modal"]')].find((x) => x.offsetParent && /Stoic|WCSMC/.test(x.textContent));
+        const dlg = [...document.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="modal"]')].find((x) => x.offsetParent && /Stoic|WCSMC|SMT|IFVG|PO3/.test(x.textContent));
         opened = !!dlg;
         const dialogInputs = dlg ? dlg.querySelectorAll('input, select, button[role="switch"], [role="checkbox"]').length : 0;
-        const key = ['i_showPanel', 'showSmt'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
+        const key = ['i_showPanel', 'showSmt', 'on1'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
         const before = JSON.stringify(chart.inspect().indicators.find((x) => x.id === h.id));
         const v0 = inputs[key];
         h.setInputs ? h.setInputs({ [key]: !v0 }) : h.update({ [key]: !v0 });

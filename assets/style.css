@@ -8521,7 +8521,7 @@ body.sidebar-locked .mobile-topnav{ z-index:740; }
 
 /* ==========================================================================
    TRADING SESSION CLOCK in the app header (assets/market-hours.js; build 380,
-   sessions since build 425, Owner layout build 466). Pulsing dot (green =
+   sessions since build 425, Owner layout build 467). Pulsing dot (green =
    session open, amber = futures market open but no session, red = market
    closed) + "<session> · Market Closes in hh:mm:ss · Next Session: ...".
    A clock only: no market data. Tabular digits so the header never shifts as

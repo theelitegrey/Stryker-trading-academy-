@@ -250,7 +250,7 @@
     return { open: false, until: nyToUtc(t[0], t[1], t[2], 18, 0), weekend: true };
   }
 
-  // Display strings for the header pill (Owner wording, build 466):
+  // Display strings for the header pill (Owner wording, build 467):
   //   "New York Session is Open · Market Closes in 01:04:19 · Next Session: Asia opens in 04:04:18"
   //   "Asia Session is Open · Next Session: London opens in 04:02:32"
   //   "Market is Closed · Market Opens in 00:42:10 · Next Session: Asia opens in 02:42:10"
@@ -310,7 +310,7 @@
   // ---- header widget --------------------------------------------------------
   // Pill: pulsing dot (green = session open, amber = market open with no
   // session, red = market closed) + the label text. No NY/local clocks
-  // (Owner, build 466). Tap for the popover with each session's hours in the
+  // (Owner, build 467). Tap for the popover with each session's hours in the
   // visitor's time zone.
   function mount() {
     var host = document.querySelector('.mobile-topnav');

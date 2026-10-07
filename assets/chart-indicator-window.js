@@ -13,7 +13,10 @@
 //   BUILT-IN   Technicals, grouped: Stryker (GEX Levels), Moving averages, Oscillators, Volatility,
 //              Volume & Order flow, Trend, Levels (Vela built-ins + our order-flow tools
 //              + the Stryker Pine examples)
-//   COMMUNITY  Editors' picks, Top (boosts, all time), Trending (boosts + adds, 7 days)
+//   COMMUNITY  Editors' picks (the Owner's own Stryker indicators first, then admin-picked
+//              community scripts), Community indicators (third-party scripts the Owner sent,
+//              from chart-pine-builtins.js PICKER_SCRIPTS section 'community', credited to
+//              their author), Top (boosts, all time), Trending (boosts + adds, 7 days)
 // Columns NAME · AUTHOR · BOOSTS, a star on every row, a lock on code-hidden scripts.
 // Search covers every source at once. Phone: full-screen sheet, sidebar becomes tabs.
 //
@@ -30,7 +33,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { BUILTIN_PINE, builtinSource } from './chart-pine-builtins.js?v=467';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=467';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -40,7 +43,7 @@ const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GRO
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
   ['BUILT-IN', [['tech', 'Technicals']]],
-  ['COMMUNITY', [['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
+  ['COMMUNITY', [['picks', "Editors' picks"], ['community', 'Community indicators'], ['top', 'Top'], ['trending', 'Trending']]]
 ];
 
 function catOf(name){
@@ -182,8 +185,14 @@ export function mountIndicatorWindow(ws, opts){
     });
     const ex = (S() && S().EXAMPLES) || [];
     ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'Stryker', cat: catOf(x.name), kind: 'example', source: x.source }));
-    // Stryker Pine built-ins (assets/chart-pine-builtins.js): "Stryker" group, next-gen engine.
-    BUILTIN_PINE.forEach((b) => out.push({ key: 'x:' + b.id, name: b.name, author: 'Stryker', cat: GROUP_STRYKER, kind: 'example', builtinId: b.id, desc: b.desc }));
+    // Pine scripts from assets/chart-pine-builtins.js (next-gen engine). section 'picks' = the
+    // Owner's own (Stryker group); 'community' = third-party, listed under COMMUNITY >
+    // "Community indicators" with the script's own author, never as Stryker.
+    PICKER_SCRIPTS.forEach((b) => {
+      const third = b.section !== 'picks';
+      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'Stryker', cat: third ? null : GROUP_STRYKER,
+        kind: 'example', builtinId: b.id, desc: b.desc, third });
+    });
     return out;
   }
   function mineItems(){
@@ -336,6 +345,7 @@ export function mountIndicatorWindow(ws, opts){
       it.locked ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
+      it.third ? h('span', { class: 'stkiw-pick is-third', text: 'Community \u00b7 third-party' }) : null,
       it.gone ? h('span', { class: 'stkiw-pick is-warn', text: 'No longer published' }) : null,
       h('span', { class: 'stkiw-sub', text: it.author || '' })
     ]);
@@ -431,13 +441,20 @@ export function mountIndicatorWindow(ws, opts){
       case 'fav': return { title: 'Favorites', items: favItems(all), empty: 'Star any indicator or script to keep it here.' };
       case 'mine': return { title: 'My scripts', items: all.filter((x) => x.kind === 'mine'), empty: S() && S().signedIn() ? 'No saved scripts yet. Write one in the Pine editor and press Save.' : 'Sign in to keep scripts on your account.' };
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
-      case 'picks': return { title: "Editors' picks", items: comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0)), empty: 'No picks yet.' + (isAdmin ? ' Admins: open a script\u2019s details and press "Editors\u2019 pick".' : '') };
+      case 'picks': {
+        // The Owner's own (Stryker-made) indicators first, then admin-picked community scripts.
+        const by = new Map(all.map((x) => [x.key, x]));
+        const own = STRYKER_PICKS.map((k) => by.get(k)).filter(Boolean)
+          .concat(PICKER_SCRIPTS.filter((b) => b.section === 'picks').map((b) => by.get('x:' + b.id)).filter(Boolean));
+        return { title: "Editors' picks", note: 'Stryker indicators', items: own.concat(comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0))), empty: 'No picks yet.' };
+      }
+      case 'community': return { title: 'Community indicators', note: 'third-party scripts, credited to their authors', items: all.filter((x) => x.third), empty: 'No community indicators yet.' };
       case 'top': return { title: 'Top', items: comm.slice().sort((a, b) => (b.boosts - a.boosts) || (b.s.addCount - a.s.addCount)), empty: 'No community scripts yet.' };
       case 'trending': {
         const sc = (x) => week(x.s.boostRing) + week(x.s.addRing);
         return { title: 'Trending', note: 'Boosts and adds in the last 7 days', items: comm.filter((x) => sc(x) > 0).sort((a, b) => (sc(b) - sc(a)) || (b.boosts - a.boosts)), empty: 'Nothing trending this week.' };
       }
-      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => x.kind === 'builtin' || x.kind === 'example') };
+      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third) };
     }
   }
 
@@ -451,7 +468,8 @@ export function mountIndicatorWindow(ws, opts){
     let view;
     if (q) {
       const hit = (x) => x.name.toLowerCase().includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
-      const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && hit(x))],
+      const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && hit(x))],
+        ['Community indicators', all.filter((x) => x.third && hit(x))],
         ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)]];
       els.title.textContent = 'Results for \u201c' + els.search.value.trim() + '\u201d';
       let n = 0;
@@ -463,8 +481,8 @@ export function mountIndicatorWindow(ws, opts){
     els.title.textContent = view.title;
     if (view.note) els.title.appendChild(h('small', { text: ' \u00b7 ' + view.note }));
     if (authorFilter) els.title.appendChild(h('button', { type: 'button', class: 'stkiw-link', text: 'Clear', onclick: () => { authorFilter = null; render(); } }));
-    if (['picks', 'top', 'trending'].includes(section) && !authorFilter && communityErr) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Could not load community scripts. Check your connection.' })); return; }
-    if (['picks', 'top', 'trending'].includes(section) && !fbUser()) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Sign in to see community scripts.' })); return; }
+    if (['top', 'trending'].includes(section) && !authorFilter && communityErr) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Could not load community scripts. Check your connection.' })); return; }
+    if (['top', 'trending'].includes(section) && !fbUser()) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Sign in to see community scripts.' })); return; }
     if (view.grouped) {
       CATS.forEach((c) => {
         const a = view.items.filter((x) => x.cat === c);

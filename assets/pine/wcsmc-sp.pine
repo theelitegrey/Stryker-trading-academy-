@@ -1,12 +1,4 @@
 //@version=6
-// Stryker built-in copy of "WCSMC + SP v3.0 [WinWorld]" (source: pastebin mXhKkyAU, Owner order 2026-10-07).
-// Stryker edits (each line marked "Stryker edit"), site rules: no trade signals, no performance claims.
-//  - Removed: OB-based entry labels, TP/SL boxes and group, the performance dashboard (wins/losses,
-//    win rate, PnL), the entry/TP/SL alerts, and the entry-only Gate / Signal Behavior settings.
-//  - MTF dashboard says Bullish / Bearish; its timeframes are capped at 1D. The MTF / SMT
-//    request.security calls fall back to the chart symbol/timeframe while that feature is off.
-//  - SMT auto pairing: NQ1! <-> ES1! for our futures feed (crypto/FX/metals pairing unchanged).
-// Everything else is the original. Education only. Not financial advice.
 indicator("WCSMC + SP v3.0 [WinWorld]", shorttitle = "WCSMC + SP v3.0 [WinWorld]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 2000)
 
 string G_MAIN = "WCSMC | Main Settings"
@@ -90,7 +82,7 @@ color  fibC5  = input.color(#2962ff, "", group = G_FIB, inline = "f5")
 string G_MOD = "Smart Point | Modules"
 bool   modVelocity = input.bool(true, "Velocity bars", group = G_MOD)
 bool   modSmc      = input.bool(true, "SMC bars", group = G_MOD)
-bool   modOb       = false  // Stryker edit: OB entry labels / TP-SL / trade stats removed (site rules)
+bool   modOb       = input.bool(true, "OB-based entry labels", group = G_MOD)
 int    velLen      = input.int(14, "Velocity length", minval = 2, group = G_MOD)
 int    velSigLen   = input.int(5, "Velocity signal length", minval = 1, group = G_MOD)
 int    bbLen       = input.int(20, "BB length (SMC)", minval = 2, group = G_MOD)
@@ -110,34 +102,34 @@ bool   lqdSweep = input.bool(false, "LQD Sweep (SMC bars only)", group = G_FIL, 
 int    lqdLen   = input.int(10, "LQD lookback", minval = 2, group = G_FIL)
 
 string G_GATE = "Smart Point | OB Gate"
-bool gateObIdm = true  // Stryker edit: entry-only setting, hidden
-bool gateObExt = true  // Stryker edit: entry-only setting, hidden
-bool gateSmt = true  // Stryker edit: entry-only setting, hidden
-bool gatePrevExt = true  // Stryker edit: entry-only setting, hidden
-bool gateInternal = true  // Stryker edit: entry-only setting, hidden
-bool showGateLine = true  // Stryker edit: entry-only setting, hidden
+bool   gateObIdm    = input.bool(true, "OB-IDM", group = G_GATE, inline = "g1")
+bool   gateObExt    = input.bool(true, "OB-EXT", group = G_GATE, inline = "g1")
+bool   gateSmt      = input.bool(true, "SMT", group = G_GATE, inline = "g2")
+bool   gatePrevExt  = input.bool(true, "Previous OB-EXT", group = G_GATE, inline = "g2")
+bool   gateInternal = input.bool(true, "Internal OBs", group = G_GATE, inline = "g3")
+bool   showGateLine = input.bool(true, "Connect signal to gate OB", group = G_GATE)
 
 string G_SB = "Smart Point | Signal Behavior"
-bool allowMulti = true  // Stryker edit: entry-only setting, hidden
-color  cLongLbl   = #089981  // Stryker edit (entry labels removed)
-color  cShortLbl  = #f23645  // Stryker edit
+bool   allowMulti = input.bool(true, "Allow multiple signals from one OB", group = G_SB, tooltip = "ON: one OB can emit several entries over consecutive bars until invalidated.\nOFF: each OB emits at most one signal, then gets removed from tracking.")
+color  cLongLbl   = input.color(#089981, "Long label", group = G_SB, inline = "l")
+color  cShortLbl  = input.color(#f23645, "Short label", group = G_SB, inline = "l")
 
-string G_TPSL = "Smart Point | Targets"  // Stryker edit: unused
-bool   trackTpSl  = false  // Stryker edit: TP/SL group removed
-float  rrRatio    = 2.0  // Stryker edit
-color  cTp        = #089981  // Stryker edit
-color  cSl        = #f23645  // Stryker edit
-int    tpslTransp = 80  // Stryker edit
+string G_TPSL = "Smart Point | TP/SL"
+bool   trackTpSl  = input.bool(true, "Track TP/SL", group = G_TPSL)
+float  rrRatio    = input.float(2.0, "Risk/Reward Ratio", minval = 0.1, step = 0.1, group = G_TPSL)
+color  cTp        = input.color(#089981, "TP colour", group = G_TPSL, inline = "tp")
+color  cSl        = input.color(#f23645, "SL colour", group = G_TPSL, inline = "tp")
+int    tpslTransp = input.int(80, "TP/SL Box Transparency", minval = 0, maxval = 100, group = G_TPSL)
 
 string G_PERF = "Smart Point | Performance Dashboard"
-bool   showPerf      = false  // Stryker edit: performance dashboard removed (site rules)
-bool   useTrackFrom  = false  // Stryker edit
-int    trackFromTime = 0  // Stryker edit
-string perfPosV      = "Middle"  // Stryker edit
-string perfPosH      = "Right"  // Stryker edit
+bool   showPerf      = input.bool(true, "Show Performance Dashboard", group = G_PERF)
+bool   useTrackFrom  = input.bool(false, "Track from", group = G_PERF, inline = "tf", tooltip = "Only trades after the specified date are counted.")
+int    trackFromTime = input.time(timestamp("01 Jan 2026 00:00 +0000"), "", group = G_PERF, inline = "tf")
+string perfPosV      = input.string("Middle", "Position", options = ["Top", "Middle", "Bottom"], group = G_PERF, inline = "pp")
+string perfPosH      = input.string("Right", "", options = ["Left", "Center", "Right"], group = G_PERF, inline = "pp")
+string perfSizeOpt   = input.string("Normal", "Table size", options = ["Tiny", "Small", "Normal", "Large"], group = G_PERF)
 
 string G_MTF = "MTF Dashboard"
-string perfSizeOpt   = input.string("Normal", "Table size", options = ["Tiny", "Small", "Normal", "Large"], group = G_MTF)  // Stryker edit: kept for the MTF table
 bool   showMtfDash = input.bool(true, "Show MTF Dashboard", group = G_MTF)
 int    mtfDashLen  = input.int(5, "MTF trend swing length", minval = 2, maxval = 20, group = G_MTF)
 string mtfPosV     = input.string("Bottom", "Position", options = ["Top", "Middle", "Bottom"], group = G_MTF, inline = "mp")
@@ -178,10 +170,10 @@ bool   aVelBull  = input.bool(false, "Velocity Bullish bar", group = G_AS, inlin
 bool   aVelBear  = input.bool(false, "Velocity Bearish bar", group = G_AS, inline = "as1")
 bool   aSmcBull  = input.bool(false, "SMC Bullish bar", group = G_AS, inline = "as2")
 bool   aSmcBear  = input.bool(false, "SMC Bearish bar", group = G_AS, inline = "as2")
-bool   aObLong   = false  // Stryker edit: entry/TP/SL alerts removed
-bool   aObShort  = false  // Stryker edit
-bool   aTp       = false  // Stryker edit
-bool   aSl       = false  // Stryker edit
+bool   aObLong   = input.bool(true, "OB Long signal", group = G_AS, inline = "as3")
+bool   aObShort  = input.bool(true, "OB Short signal", group = G_AS, inline = "as3")
+bool   aTp       = input.bool(true, "TP hit", group = G_AS, inline = "as4")
+bool   aSl       = input.bool(true, "SL hit", group = G_AS, inline = "as4")
 
 string K_OBIDM   = "OB-IDM"
 string K_OBEXT   = "OB-EXT"
@@ -313,11 +305,7 @@ f_mid(int a, int b) =>
 f_smtAuto() =>
     string base = syminfo.basecurrency
     string r = syminfo.tickerid
-    if str.contains(r, "NQ1!")  // Stryker edit: futures pairing for our data feed
-        r := "futures:ES1!"
-    else if str.contains(r, "ES1!")
-        r := "futures:NQ1!"
-    else if syminfo.type == "crypto"
+    if syminfo.type == "crypto"
         r := base == "BTC" ? "BINANCE:ETHUSDT" : "BINANCE:BTCUSDT"
     else if base == "XAU"
         r := "OANDA:XAGUSD"
@@ -381,7 +369,7 @@ float plInt = ta.pivotlow(low, effInnerLen, effInnerLen)
 
 string smtSym     = smtSymbolIn != "" ? smtSymbolIn : f_smtAuto()
 bool   smtEnabled = showSmt and smtSym != syminfo.tickerid
-[cmpHigh, cmpLow] = request.security(smtEnabled ? smtSym : syminfo.tickerid, timeframe.period, [high, low], lookahead = barmerge.lookahead_off)  // Stryker edit: no fetch while SMT is off
+[cmpHigh, cmpLow] = request.security(smtSym, timeframe.period, [high, low], lookahead = barmerge.lookahead_off)
 
 float velBase  = ta.ema(close, velLen)
 float velAtr   = ta.atr(velLen)
@@ -852,7 +840,7 @@ if barstate.isconfirmed
                         if not na(zb.lastTrade.slBox)
                             zb.lastTrade.slBox.delete()
                 Trade nt = Trade.new(zb.dir, entry, slv, tpv, bar_index, time)
-                nt.sigLbl := zb.dir == 1 ? label.new(bar_index, low, "Bullish", color = cLongLbl, textcolor = color.white, size = size.small, style = label.style_label_up) : label.new(bar_index, high, "Bearish", color = cShortLbl, textcolor = color.white, size = size.small, style = label.style_label_down)  // Stryker edit: wording (unreachable, module off)
+                nt.sigLbl := zb.dir == 1 ? label.new(bar_index, low, "Long", color = cLongLbl, textcolor = color.white, size = size.small, style = label.style_label_up) : label.new(bar_index, high, "Short", color = cShortLbl, textcolor = color.white, size = size.small, style = label.style_label_down)
                 if trackTpSl
                     nt.tpBox := box.new(bar_index, math.max(entry, tpv), bar_index + 1, math.min(entry, tpv), border_color = color.new(cTp, 100), bgcolor = color.new(cTp, tpslTransp))
                     nt.slBox := box.new(bar_index, math.max(entry, slv), bar_index + 1, math.min(entry, slv), border_color = color.new(cSl, 100), bgcolor = color.new(cSl, tpslTransp))
@@ -877,7 +865,7 @@ plotshape(showTrendDots, "External trend", shape.circle, location.bottom, extE.t
 plotshape(showTrendDots and showInner, "Internal trend", shape.circle, location.bottom, intE.trend == 1 ? cTrendBull : intE.trend == -1 ? cTrendBear : color.gray, size = size.small)
 bgcolor(showBgTrend ? (extE.trend == 1 ? color.new(cTrendBull, bgTransp) : extE.trend == -1 ? color.new(cTrendBear, bgTransp) : na) : na, title = "Background by structure")
 
-[mtfTr, mtfEv, mtfLvl] = request.security(syminfo.tickerid, showMtfStruct ? mtfStructTf : timeframe.period, f_htfState(mtfSwingLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while off
+[mtfTr, mtfEv, mtfLvl] = request.security(syminfo.tickerid, mtfStructTf, f_htfState(mtfSwingLen), lookahead = barmerge.lookahead_on)
 bool mtfNew = timeframe.change(mtfStructTf) and mtfEv != 0 and not na(mtfLvl)
 if showMtfStruct and mtfNew and allowDraw and timeframe.in_seconds(mtfStructTf) > timeframe.in_seconds()
     int startB = bar_index - 1
@@ -924,27 +912,66 @@ if barstate.islast
         f_fib(fibOn5, fibLv5, fibC5, fx)
 
 float  tfSec = timeframe.in_seconds()
-string tfA = tfSec <= 300 ? "15" : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : "D"  // Stryker edit: capped at 1D (was ... "D" : "W")
-string tfB = tfSec <= 300 ? "30" : tfSec <= 900 ? "120" : tfSec <= 3600 ? "480" : "D"  // Stryker edit: capped at 1D (was "3D" / "M")
-string tfC = tfSec <= 300 ? "60" : tfSec <= 900 ? "240" : "D"  // Stryker edit: capped at 1D (was "W" / "3M")
+string tfA = tfSec <= 300 ? "15" : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : tfSec <= 14400 ? "D" : "W"
+string tfB = tfSec <= 300 ? "30" : tfSec <= 900 ? "120" : tfSec <= 3600 ? "480" : tfSec <= 14400 ? "3D" : "M"
+string tfC = tfSec <= 300 ? "60" : tfSec <= 900 ? "240" : tfSec <= 3600 ? "D" : tfSec <= 14400 ? "W" : "3M"
 
-[tA, eA, lA] = request.security(syminfo.tickerid, showMtfDash ? tfA : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
-[tB, eB, lB] = request.security(syminfo.tickerid, showMtfDash ? tfB : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
-[tC, eC, lC] = request.security(syminfo.tickerid, showMtfDash ? tfC : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tA, eA, lA] = request.security(syminfo.tickerid, tfA, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tB, eB, lB] = request.security(syminfo.tickerid, tfB, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tC, eC, lC] = request.security(syminfo.tickerid, tfC, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
 
-// Stryker edit: performance table removed
+var table perfTbl = table.new(f_pos(perfPosV, perfPosH), 2, 8, border_width = 1, border_color = color.new(#131722, 0))
 var table mtfTbl  = table.new(f_pos(mtfPosV, mtfPosH), 2, 3, border_width = 1, border_color = color.new(#131722, 0))
 
 f_mtfRow(int r, string tf, int t) =>
     color  bgTf = t == 1 ? color.new(#089981, 20) : t == -1 ? color.new(#f23645, 40) : C_TBL_CELL
     color  bgSt = t == 1 ? color.new(#089981, 75) : t == -1 ? color.new(#f23645, 75) : C_TBL_CELL
     color  txSt = t == 1 ? C_GOOD : t == -1 ? C_BAD : C_TXT_DIM
-    string st   = t == 1 ? "⮝ Bullish" : t == -1 ? "⮟ Bearish" : "None"  // Stryker edit: wording
+    string st   = t == 1 ? "⮝ Long" : t == -1 ? "⮟ Short" : "None"
     table.cell(mtfTbl, 0, r, f_tfLabel(tf), bgcolor = bgTf, text_color = color.white, text_size = f_size(perfSizeOpt))
     table.cell(mtfTbl, 1, r, st, bgcolor = bgSt, text_color = txSt, text_size = f_size(perfSizeOpt))
 
 if barstate.islast
     string ps = f_size(perfSizeOpt)
+    if showPerf
+        bool anyLive = false
+        if trades.size() > 0
+            for tr in trades
+                if tr.live
+                    anyLive := true
+        float wr  = stClosed > 0 ? stWins / stClosed * 100.0 : 0.0
+        float avg = stClosed > 0 ? stRR / stClosed : 0.0
+        bool  pos = stRR >= 0
+        color vBg = pos ? C_TBL_POS : C_TBL_NEG
+        color vTx = pos ? C_GOOD : C_BAD
+        int   r   = 0
+        table.cell(perfTbl, 0, r, "SP", bgcolor = C_TBL_HDR, text_color = color.white, text_size = ps)
+        table.cell(perfTbl, 1, r, "Performance", bgcolor = C_TBL_HDR2, text_color = color.white, text_size = ps)
+        r += 1
+        if useTrackFrom
+            table.cell(perfTbl, 0, r, "Since", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+            table.cell(perfTbl, 1, r, str.format_time(trackFromTime, "MMM dd, yyyy", syminfo.timezone), bgcolor = C_TBL_SINCE, text_color = C_ORANGE, text_size = ps)
+            r += 1
+        table.cell(perfTbl, 0, r, "Closed", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, str.tostring(stClosed), bgcolor = C_TBL_CELL, text_color = color.white, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "Wins / Losses", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, str.tostring(stWins) + " / " + str.tostring(stLosses), bgcolor = C_TBL_CELL, text_color = stWins >= stLosses ? C_GOOD : C_BAD, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "Win Rate", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, str.tostring(wr, "#.##") + "%", bgcolor = vBg, text_color = vTx, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "PnL (RR)", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, (pos ? "+" : "") + str.tostring(stRR, "#.##") + "R", bgcolor = vBg, text_color = vTx, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "PnL (pips)", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, (stPips >= 0 ? "+" : "") + str.tostring(math.round(stPips)) + " pips", bgcolor = stPips >= 0 ? C_TBL_POS : C_TBL_NEG, text_color = stPips >= 0 ? C_GOOD : C_BAD, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "Avg / Trade", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, (avg >= 0 ? "+" : "") + str.tostring(avg, "#.##") + "R", bgcolor = vBg, text_color = vTx, text_size = ps)
+        r += 1
+        table.cell(perfTbl, 0, r, "Active", bgcolor = C_TBL_CELL, text_color = C_TXT, text_size = ps)
+        table.cell(perfTbl, 1, r, anyLive ? "Live" : "None", bgcolor = C_TBL_CELL, text_color = anyLive ? C_GOOD : C_TXT_DIM, text_size = ps)
     if showMtfDash
         f_mtfRow(0, tfA, tA)
         f_mtfRow(1, tfB, tB)
@@ -1002,5 +1029,13 @@ if barstate.isconfirmed
         alert(tk + "SMC Bullish bar", alertFreq)
     if aSmcBear and smcBear
         alert(tk + "SMC Bearish bar", alertFreq)
+    if aObLong and sigLong
+        alert(tk + "OB Long signal @ " + str.tostring(close, format.mintick), alertFreq)
+    if aObShort and sigShort
+        alert(tk + "OB Short signal @ " + str.tostring(close, format.mintick), alertFreq)
+    if aTp and evTp
+        alert(tk + "TP hit", alertFreq)
+    if aSl and evSl
+        alert(tk + "SL hit", alertFreq)
     for i = 0 to 7
         obReachFlags.set(i, false)

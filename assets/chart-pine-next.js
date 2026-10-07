@@ -24,9 +24,17 @@ export function clampRange(range, timeframe, bars){
   if (!(first > 0) || !(last > first)) return range;
   const tfMs = tfToMs(timeframe);
   const warm = Math.max((last - first) / 4, tfMs ? tfMs * 300 : 0);
-  const minFrom = first - warm;
+  let minFrom = first - warm;
+  // A request for a timeframe LOWER than the chart's (e.g. a script's default "60" structure
+  // timeframe on a daily chart) would download that small timeframe across the whole chart span
+  // (seen: 39 x 1h pages on NQ 1D, 22 on BTCUSDT 1D, pushing a run past the 20 s cap). Fetch at
+  // most LOWER_TF_MAX_BARS of it, ending at the chart's last bar. The script is not changed; older
+  // chart bars just see na from that request.
+  const chartMs = (last - first) / (bars.length - 1);
+  if (tfMs && chartMs && tfMs < chartMs * 0.99) minFrom = Math.max(minFrom, last - tfMs * LOWER_TF_MAX_BARS);
   return range.from < minFrom ? Object.assign({}, range, { from: minFrom }) : range;
 }
+export const LOWER_TF_MAX_BARS = 3000;
 function tfToMs(tf){
   const m = /^(\d*)([SDWM]?)$/i.exec(String(tf || '').trim());
   if (!m) return 0;

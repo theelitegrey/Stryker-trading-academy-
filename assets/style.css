@@ -8719,6 +8719,8 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
 .stkiw-lock{ display:inline-flex; color:var(--ink-2); flex:0 0 auto; }
 .stkiw-pick{ flex:0 0 auto; padding:1px 7px; border:1px solid rgba(3,201,136,.45); border-radius:999px; font-size:10.5px; color:#03c988; white-space:nowrap; }
 .stkiw-pick.is-warn{ border-color:rgba(242,54,69,.5); color:#f26b75; }
+.stkiw-pick.is-third{ border-color:rgba(148,163,184,.45); color:#94a3b8; }
+:root[data-theme="light"] .stkiw-pick.is-third{ border-color:rgba(71,85,105,.4); color:#475569; }
 .stkiw-auth{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; color:var(--ink-2); text-align:left; }
 .stkiw-auth.is-link{ border:0; background:none; padding:4px 0; font:inherit; font-size:13px; color:var(--ink-1); cursor:pointer; }
 .stkiw-auth.is-link:hover{ color:var(--teal); text-decoration:underline; }

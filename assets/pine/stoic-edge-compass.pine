@@ -1,10 +1,4 @@
 //@version=6
-// Stryker built-in copy of "Stoic Edge Compass" (source: pastebin N80raw2B, Owner order 2026-10-07).
-// Stryker edits, kept minimal and marked "Stryker edit": the status panel FOCUS row and two alert
-// messages say BULLISH BIAS / BEARISH BIAS / WAIT (site rule: no trade-direction wording); the four
-// MTF request.security calls use the chart timeframe while the MTF table is off (the browser engine
-// evaluates them even inside `if i_showMtf`, which cost several seconds of extra downloads).
-// Nothing else changed. Education only. Not financial advice.
 indicator("Stoic Edge Compass", shorttitle = "Stoic Edge Compass", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 5000)
 
 const string G_STR = "Market Structure"
@@ -528,7 +522,7 @@ var table panel = i_showPanel ? table.new(f_pos(i_panelPos), 2, 4, bgcolor = col
 
 if i_showPanel and barstate.islast
     string szP     = f_size(i_panelSize)
-    string focusTx = focus == 1 ? "BULLISH BIAS" : focus == -1 ? "BEARISH BIAS" : "WAIT"  // Stryker edit: wording
+    string focusTx = focus == 1 ? "LOOK FOR BUYS" : focus == -1 ? "LOOK FOR SELLS" : "WAIT"
     color  focusCl = focus == 1 ? i_colBull : focus == -1 ? i_colBear : i_colWait
     string primTx  = pBias == 0 ? "BUILDING" : f_biasTxt(pBias) + (pEstablished ? "" : " (PROVISIONAL)")
     color  primCl  = pBias == 0 or not pEstablished ? i_colNeutral : f_biasCol(pBias, i_colBull, i_colBear, i_colNeutral)
@@ -544,19 +538,19 @@ if i_showPanel and barstate.islast
     panel.cell(1, 3, f_phaseTxt(phaseId), text_color = phaseCl, text_size = szP)
 
 [mb1, me1] = if i_showMtf
-    request.security(stdTicker, i_showMtf ? i_tf1 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+    request.security(stdTicker, i_tf1, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)
 else
     [int(na), int(na)]
 [mb2, me2] = if i_showMtf
-    request.security(stdTicker, i_showMtf ? i_tf2 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+    request.security(stdTicker, i_tf2, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)
 else
     [int(na), int(na)]
 [mb3, me3] = if i_showMtf
-    request.security(stdTicker, i_showMtf ? i_tf3 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+    request.security(stdTicker, i_tf3, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)
 else
     [int(na), int(na)]
 [mb4, me4] = if i_showMtf
-    request.security(stdTicker, i_showMtf ? i_tf4 : timeframe.period, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while the MTF table is off
+    request.security(stdTicker, i_tf4, f_mtf(i_primaryLen, i_emaLen), lookahead = barmerge.lookahead_on)
 else
     [int(na), int(na)]
 
@@ -588,8 +582,8 @@ if i_showMtf and barstate.islast
     mtf.cell(0, 6, sumTx, text_color = color.white, bgcolor = sumCl, text_size = szM)
     mtf.merge_cells(0, 6, 3, 6)
 
-alertcondition(greenDot, "Stoic Edge Compass - Green", "Stoic Edge Compass: Green dot - FOCUS BULLISH BIAS on {{ticker}} {{interval}}")
-alertcondition(redDot, "Stoic Edge Compass - Red", "Stoic Edge Compass: Red dot - FOCUS BEARISH BIAS on {{ticker}} {{interval}}")
+alertcondition(greenDot, "Stoic Edge Compass - Green", "Stoic Edge Compass: Green dot - FOCUS LOOK FOR BUYS on {{ticker}} {{interval}}")
+alertcondition(redDot, "Stoic Edge Compass - Red", "Stoic Edge Compass: Red dot - FOCUS LOOK FOR SELLS on {{ticker}} {{interval}}")
 alertcondition(exhaustionStart and conf, "Stoic Edge Compass - Exhaustion Yellow", "Stoic Edge Compass: Yellow exhaustion warning on {{ticker}} {{interval}}")
 alertcondition(rangeEstablished and conf, "Stoic Edge Compass - Range Established", "Stoic Edge Compass: Range established - WAIT on {{ticker}} {{interval}}")
 alertcondition(yellowDot, "Stoic Edge Compass - Wait", "Stoic Edge Compass: Yellow Wait dot on {{ticker}} {{interval}}")

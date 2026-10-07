@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
-const { clampRange } = await import(pathToFileURL(path.join(here, '..', '..', 'assets', 'chart-pine-next.js')).href);
+const { clampRange, LOWER_TF_MAX_BARS } = await import(pathToFileURL(path.join(here, '..', '..', 'assets', 'chart-pine-next.js')).href);
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 const M = 6e4, first = 1.79e12;
@@ -19,4 +19,10 @@ check(r3.from === first - 300 * 36e5, '1h request: keeps 300 hourly bars of warm
 const r4 = clampRange({ from: first - 3e10, to: 1 }, 'D', []);
 check(r4.from === first - 3e10, 'no chart bars: untouched');
 check(clampRange(null, '1', bars) === null, 'no range: untouched');
+// lower timeframe than the chart (daily chart asking for 1h): at most LOWER_TF_MAX_BARS of it
+const D = 864e5, dbars = Array.from({ length: 500 }, (_, i) => ({ openTime: first + i * D })), dlast = first + 499 * D;
+const r5 = clampRange({ from: first - 300 * D, to: dlast + D }, '60', dbars);
+check(r5.from === dlast - LOWER_TF_MAX_BARS * 36e5 && r5.to === dlast + D, 'daily chart, 1h request: last ' + LOWER_TF_MAX_BARS + ' hourly bars only');
+const r6 = clampRange({ from: first - 300 * D, to: dlast + D }, 'W', dbars);
+check(r6.from === first - 300 * D, 'daily chart, weekly request: higher timeframe untouched');
 process.exit(fails ? 1 : 0);

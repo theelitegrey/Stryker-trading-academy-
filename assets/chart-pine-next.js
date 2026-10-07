@@ -13,6 +13,27 @@
 
 const WORKER_URL = new URL('./chart-pine-next-worker.js?v=459', import.meta.url);
 
+// request.security ranges: the engine asks for a long warm-up before the chart's first bar
+// (seen: 33 days of 1m bars, 48k bars / 15 s of downloads, for a 3.5-day 1m chart). Keep a
+// warm-up of 300 bars of the requested timeframe (at least a quarter of the chart's span)
+// before the chart's first bar. Exported for tests.
+export function clampRange(range, timeframe, bars){
+  if (!range || !(range.from > 0) || !bars || bars.length < 2) return range;
+  const first = Number(bars[0].openTime != null ? bars[0].openTime : bars[0].time);
+  const last = Number(bars[bars.length - 1].openTime != null ? bars[bars.length - 1].openTime : bars[bars.length - 1].time);
+  if (!(first > 0) || !(last > first)) return range;
+  const tfMs = tfToMs(timeframe);
+  const warm = Math.max((last - first) / 4, tfMs ? tfMs * 300 : 0);
+  const minFrom = first - warm;
+  return range.from < minFrom ? Object.assign({}, range, { from: minFrom }) : range;
+}
+function tfToMs(tf){
+  const m = /^(\d*)([SDWM]?)$/i.exec(String(tf || '').trim());
+  if (!m) return 0;
+  const n = Number(m[1] || 1), u = (m[2] || '').toUpperCase();
+  return n * (u === 'S' ? 1e3 : u === 'D' ? 864e5 : u === 'W' ? 6048e5 : u === 'M' ? 2592e6 : 6e4);
+}
+
 export class PineNextEngine {
   constructor(opts = {}){
     this.language = 'pine-next';
@@ -38,6 +59,12 @@ export class PineNextEngine {
     return this.worker;
   }
   post(m){ this.w().postMessage(m); }
+  retire(){
+    const w = this.worker; if (!w) return;
+    this.worker = null;
+    this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
+    try { w.terminate(); } catch (e) {}
+  }
   prepare(source, instanceId){
     const reqId = ++this.reqId;
     return new Promise((resolve, reject) => {
@@ -64,7 +91,14 @@ export class PineNextEngine {
         this.ctxWaits.set(reqId, resolve);
         this.post({ kind: 'getContext', sessionId, reqId, select });
       }),
-      stop: () => { this.post({ kind: 'stop', sessionId }); this.sessions.delete(sessionId); },
+      stop: () => {
+        this.post({ kind: 'stop', sessionId }); this.sessions.delete(sessionId);
+        // A run already in progress cannot be interrupted inside the worker; it would finish
+        // in the background and delay the next script on this chart (a 5k-bar WCSMC run left
+        // behind pushed the next add past the time limit). With no scripts left, drop the
+        // worker; the next add starts a fresh one (pinets comes from the HTTP cache).
+        if (!this.sessions.size && !this.prepares.size) this.retire();
+      },
       update: (inputs, props) => this.post({ kind: 'update', sessionId, inputs: Object.assign({}, inputs || {}), props: props ? Object.assign({}, props) : undefined }),
       setVisibleRange: (range) => this.post({ kind: 'setVisibleRange', sessionId, range }),
       notifyBars: (reason) => {
@@ -99,7 +133,7 @@ export class PineNextEngine {
   async serveFetch(m){
     const s = [...this.sessions.values()].find((x) => x.req.fetchSeries);
     if (!s) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: [] }); return; }
-    try { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: await s.req.fetchSeries(m.symbol, m.timeframe, m.range) }); }
+    try { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, bars: await s.req.fetchSeries(m.symbol, m.timeframe, clampRange(m.range, m.timeframe, s.barsOf())) }); }
     catch (e) { this.post({ kind: 'fetchSeriesResult', reqId: m.reqId, error: String((e && e.message) || e) }); }
   }
 }

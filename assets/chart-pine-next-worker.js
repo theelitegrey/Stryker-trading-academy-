@@ -72,6 +72,7 @@ function fetchSeries(symbol, timeframe, range){
 // One run request for a static session; coalesces while busy.
 function kick(s, fn){
   if (s.stopped) return;
+  if (!s.deferred && !s.busy) s.runStart = Date.now();
   // Still waiting for history: the engine only records the change and won't run (so no
   // done/error will come back); never mark the session busy for it.
   if (s.deferred) { if (fn) fn(); return; }
@@ -81,11 +82,23 @@ function kick(s, fn){
 }
 function landed(s){
   s.busy = false;
+  if (s.runStart) { s.runMs = Date.now() - s.runStart; s.doneAt = Date.now(); }
   if (s.dirty && !s.stopped) {
     s.dirty = false;
     const fn = s.pending; s.pending = null;
     kick(s, fn);
   }
+}
+
+// Live ticks on a static (full re-run) session: a heavy script re-running on every tick would
+// keep this worker busy and starve the other scripts sharing it. Re-run at most once per
+// max(2 s, 3x the last run time) after the previous run ended; ticks in between coalesce.
+function tick(s){
+  if (s.tickTimer || s.stopped) return;
+  const gap = Math.max(2000, 3 * (s.runMs || 0));
+  const wait = s.doneAt ? Math.max(0, s.doneAt + gap - Date.now()) : 0;
+  const go = () => { s.tickTimer = null; kick(s, () => s.handle.notifyBars()); };
+  if (!wait) go(); else s.tickTimer = setTimeout(go, wait);
 }
 
 self.addEventListener('message', async (ev) => {
@@ -143,6 +156,7 @@ self.addEventListener('message', async (ev) => {
       if (s.live) { s.handle.notifyBars(msg.reason); return; }
       const reason = msg.reason;
       if (reason === 'complete') s.deferred = false;
+      if (!reason) { tick(s); return; }
       kick(s, () => s.handle.notifyBars(reason));
       return;
     }
@@ -156,7 +170,7 @@ self.addEventListener('message', async (ev) => {
     }
     case 'stop': {
       const s = sessions.get(msg.sessionId);
-      if (s) { s.stopped = true; try { if (s.handle) s.handle.stop(); } catch (e) {} }
+      if (s) { s.stopped = true; clearTimeout(s.tickTimer); try { if (s.handle) s.handle.stop(); } catch (e) {} }
       sessions.delete(msg.sessionId);
       return;
     }

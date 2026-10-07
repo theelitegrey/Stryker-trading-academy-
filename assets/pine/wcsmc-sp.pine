@@ -3,7 +3,8 @@
 // Stryker edits (each line marked "Stryker edit"), site rules: no trade signals, no performance claims.
 //  - Removed: OB-based entry labels, TP/SL boxes and group, the performance dashboard (wins/losses,
 //    win rate, PnL), the entry/TP/SL alerts, and the entry-only Gate / Signal Behavior settings.
-//  - MTF dashboard says Bullish / Bearish; its timeframes are capped at 1D.
+//  - MTF dashboard says Bullish / Bearish; its timeframes are capped at 1D. The MTF / SMT
+//    request.security calls fall back to the chart symbol/timeframe while that feature is off.
 //  - SMT auto pairing: NQ1! <-> ES1! for our futures feed (crypto/FX/metals pairing unchanged).
 // Everything else is the original. Education only. Not financial advice.
 indicator("WCSMC + SP v3.0 [WinWorld]", shorttitle = "WCSMC + SP v3.0 [WinWorld]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500, max_bars_back = 2000)
@@ -380,7 +381,7 @@ float plInt = ta.pivotlow(low, effInnerLen, effInnerLen)
 
 string smtSym     = smtSymbolIn != "" ? smtSymbolIn : f_smtAuto()
 bool   smtEnabled = showSmt and smtSym != syminfo.tickerid
-[cmpHigh, cmpLow] = request.security(smtSym, timeframe.period, [high, low], lookahead = barmerge.lookahead_off)
+[cmpHigh, cmpLow] = request.security(smtEnabled ? smtSym : syminfo.tickerid, timeframe.period, [high, low], lookahead = barmerge.lookahead_off)  // Stryker edit: no fetch while SMT is off
 
 float velBase  = ta.ema(close, velLen)
 float velAtr   = ta.atr(velLen)
@@ -876,7 +877,7 @@ plotshape(showTrendDots, "External trend", shape.circle, location.bottom, extE.t
 plotshape(showTrendDots and showInner, "Internal trend", shape.circle, location.bottom, intE.trend == 1 ? cTrendBull : intE.trend == -1 ? cTrendBear : color.gray, size = size.small)
 bgcolor(showBgTrend ? (extE.trend == 1 ? color.new(cTrendBull, bgTransp) : extE.trend == -1 ? color.new(cTrendBear, bgTransp) : na) : na, title = "Background by structure")
 
-[mtfTr, mtfEv, mtfLvl] = request.security(syminfo.tickerid, mtfStructTf, f_htfState(mtfSwingLen), lookahead = barmerge.lookahead_on)
+[mtfTr, mtfEv, mtfLvl] = request.security(syminfo.tickerid, showMtfStruct ? mtfStructTf : timeframe.period, f_htfState(mtfSwingLen), lookahead = barmerge.lookahead_on)  // Stryker edit: no fetch while off
 bool mtfNew = timeframe.change(mtfStructTf) and mtfEv != 0 and not na(mtfLvl)
 if showMtfStruct and mtfNew and allowDraw and timeframe.in_seconds(mtfStructTf) > timeframe.in_seconds()
     int startB = bar_index - 1
@@ -923,16 +924,13 @@ if barstate.islast
         f_fib(fibOn5, fibLv5, fibC5, fx)
 
 float  tfSec = timeframe.in_seconds()
-string tfA0 = tfSec <= 300 ? "15" : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : tfSec <= 14400 ? "D" : "W"
-string tfA = timeframe.in_seconds(tfA0) > 86400 ? "D" : tfA0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
-string tfB0 = tfSec <= 300 ? "30" : tfSec <= 900 ? "120" : tfSec <= 3600 ? "480" : tfSec <= 14400 ? "3D" : "M"
-string tfB = timeframe.in_seconds(tfB0) > 86400 ? "D" : tfB0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
-string tfC0 = tfSec <= 300 ? "60" : tfSec <= 900 ? "240" : tfSec <= 3600 ? "D" : tfSec <= 14400 ? "W" : "3M"
-string tfC = timeframe.in_seconds(tfC0) > 86400 ? "D" : tfC0  // Stryker edit: capped at 1D (multi-day requests are slow in the browser)
+string tfA = tfSec <= 300 ? "15" : tfSec <= 900 ? "60" : tfSec <= 3600 ? "240" : "D"  // Stryker edit: capped at 1D (was ... "D" : "W")
+string tfB = tfSec <= 300 ? "30" : tfSec <= 900 ? "120" : tfSec <= 3600 ? "480" : "D"  // Stryker edit: capped at 1D (was "3D" / "M")
+string tfC = tfSec <= 300 ? "60" : tfSec <= 900 ? "240" : "D"  // Stryker edit: capped at 1D (was "W" / "3M")
 
-[tA, eA, lA] = request.security(syminfo.tickerid, tfA, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
-[tB, eB, lB] = request.security(syminfo.tickerid, tfB, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
-[tC, eC, lC] = request.security(syminfo.tickerid, tfC, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tA, eA, lA] = request.security(syminfo.tickerid, showMtfDash ? tfA : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tB, eB, lB] = request.security(syminfo.tickerid, showMtfDash ? tfB : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
+[tC, eC, lC] = request.security(syminfo.tickerid, showMtfDash ? tfC : timeframe.period, f_htfState(mtfDashLen), lookahead = barmerge.lookahead_on)
 
 // Stryker edit: performance table removed
 var table mtfTbl  = table.new(f_pos(mtfPosV, mtfPosH), 2, 3, border_width = 1, border_color = color.new(#131722, 0))

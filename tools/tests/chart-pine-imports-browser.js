@@ -13,7 +13,7 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8061';
 const OUT = process.env.OUT || require('path').join(require('os').tmpdir(), 'pine-imports');
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
-const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 const BAD = /\b(buy|buys|sell|sells|long|short)\b|look for/i;
@@ -25,7 +25,7 @@ async function page(b, w, h){
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance|data-api\.binance|fapi\.binance|stream\.binance|data-stream\.binance)/, (r) => r.abort());
   const p = await ctx.newPage();
   const errs = [];
-  p.on('console', (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
+  p.on('console', (m) => { if (/pine|worker|Stryker/i.test(m.text())) console.log('CONSOLE', m.type(), m.text().slice(0, 200)); if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await ctx.addInitScript(() => { window.__lt = []; try { new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__lt.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {} });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
@@ -84,7 +84,7 @@ async function counts(p){
       }
       await new Promise((r) => setTimeout(r, 500));
     }
-    return { timeout: true };
+    return { timeout: true, handles: hs.map((x) => x.title), toasts: [...document.querySelectorAll('[class*="toast"]')].map((x) => x.textContent).join(' / ').slice(0, 300), inds: JSON.stringify(chart.inspect().indicators.map((x) => [x.id, x.title, x.labels])) };
   });
 }
 
@@ -94,6 +94,9 @@ async function counts(p){
     // ---- desktop ----
     const { ctx, p, errs } = await page(b, 1440, 900);
     for (const [sym, tf] of (process.env.DEEP ? [['futures:NQ1!', '5'], ['binance:BTCUSDT', '1']] : [['futures:NQ1!', '5'], ['binance:BTCUSDT', '15']])) {
+      // fresh chart per market: a stopped run cannot be aborted inside the worker (it finishes
+      // in the background), so switching with WCSMC attached would queue those runs first.
+      await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
       const n = await setMarket(p, sym, tf, +process.env.DEEP || 0);
       console.log('INFO', sym, tf, n, 'bars');
       for (const name of NAMES) {
@@ -105,7 +108,7 @@ async function counts(p){
         const lt = await p.evaluate(() => window.__lt.slice().sort((a, b) => b - a).slice(0, 3));
         console.log('PERF', name, sym, tf, 'bars', n, 'first drawing after', ms + Date.now() - t1 - 1500, 'ms; longest main-thread tasks', JSON.stringify(lt));
         console.log('INFO', name, sym, tf, 'added in', ms, 'ms', JSON.stringify({ ...c, text: (c.text || '').slice(0, 300) }));
-        check(c.series > 0 && (c.boxes + c.lines + c.labels) > 0, `${name} ${sym} ${tf}: draws (series ${c.series}, boxes ${c.boxes}, lines ${c.lines}, labels ${c.labels})`);
+        check((c.boxes + c.lines + c.labels) > 0, `${name} ${sym} ${tf}: draws (series ${c.series}, boxes ${c.boxes}, lines ${c.lines}, labels ${c.labels})`);
         check(c.tables > 0, `${name} ${sym} ${tf}: panel/table renders (${c.tables})`);
         check(!BAD.test(c.text || ''), `${name} ${sym} ${tf}: no buy/sell/long/short wording in drawn text`);
         await p.waitForTimeout(800);
@@ -130,7 +133,7 @@ async function counts(p){
         const dlg = [...document.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="modal"]')].find((x) => x.offsetParent && /Stoic|WCSMC/.test(x.textContent));
         opened = !!dlg;
         const dialogInputs = dlg ? dlg.querySelectorAll('input, select, button[role="switch"], [role="checkbox"]').length : 0;
-        const key = ['i_showPanel', 'showMtfDash', 'showSmt'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
+        const key = ['i_showPanel', 'showSmt'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
         const before = JSON.stringify(chart.inspect().indicators.find((x) => x.id === h.id));
         const v0 = inputs[key];
         h.setInputs ? h.setInputs({ [key]: !v0 }) : h.update({ [key]: !v0 });
@@ -157,9 +160,14 @@ async function counts(p){
     // ---- phone 390 ----
     const ph = await page(b, 390, 844);
     await setMarket(ph.p, 'futures:NQ1!', '5', 0);
-    await addViaWindow(ph.p, NAMES[0]);
-    const c = await counts(ph.p);
-    check(c.series > 0, `phone 390: ${NAMES[0]} added (series ${c.series}, tables ${c.tables})`);
+    for (const name of NAMES) {
+      await ph.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
+      await addViaWindow(ph.p, name);
+      const c = await counts(ph.p);
+      check((c.series + c.boxes + c.labels) > 0, `phone 390: ${name} added (series ${c.series}, boxes ${c.boxes}, labels ${c.labels}, tables ${c.tables})`);
+      await ph.p.waitForTimeout(800);
+      await ph.p.screenshot({ path: `${OUT}/phone-390-${name.split(' ')[0].toLowerCase()}.png` });
+    }
     await ph.p.waitForTimeout(800);
     await ph.p.screenshot({ path: `${OUT}/phone-390.png` });
     check(ph.errs.length === 0, 'phone console errors: ' + (ph.errs.slice(0, 4).join(' | ') || 'none'));

@@ -11,7 +11,10 @@
 //                   futures while the member's own Rithmic connection is up (flag-gated).
 //   amber  #F5A623  delayed: futures from our Yahoo-based /api/chart/bars. The lag is MEASURED
 //                   (now minus the close of the newest 1-minute bar), never hard-coded.
-//   grey   #787B86  futures outside CME Globex hours (Sun 18:00 to Fri 17:00 New York, daily
+//                   Spot forex (the "fx" provider, same Yahoo endpoint) is amber too, measured
+//                   the same way.
+//   grey   #787B86  forex from Friday 17:00 to Sunday 17:00 New York (no daily break);
+//                   futures outside CME Globex hours (Sun 18:00 to Fri 17:00 New York, daily
 //                   17:00-18:00 break; no exchange-holiday calendar), with the next open in IST.
 // A short text tag follows the dot (Owner 2026-10-06: the bare dot was not noticed):
 // "Real-time" / "Delayed 10m" / "Closed". Hover (desktop) or tap (phone) shows the full line.
@@ -24,6 +27,7 @@ const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a 
 const TICK_MS = 30000;           // re-check open/closed and lag
 const CRYPTO = /^(binance|coinbase|hyperliquid):/i;
 const FUT = /^futures:/i;
+const FX = /^fx:/i;
 
 let nyFmt = null;
 function nyParts(ms) {
@@ -40,10 +44,20 @@ export function globexOpen(ms) {
   if (dow === 5) return min < 17 * 60;
   return !(min >= 17 * 60 && min < 18 * 60);
 }
-// Next open, epoch ms. Every Globex open is at 18:00 New York, so 15-minute steps land on it.
-export function nextOpen(ms) {
+// Spot forex: Sunday 17:00 to Friday 17:00 New York, no daily break (mirrors fxOpen in _bars.js).
+export function fxOpen(ms) {
+  const { dow, min } = nyParts(ms);
+  if (dow === 6) return false;
+  if (dow === 0) return min >= 17 * 60;
+  if (dow === 5) return min < 17 * 60;
+  return true;
+}
+// Next open, epoch ms. Every Globex open is at 18:00 New York (forex 17:00), so 15-minute
+// steps land on it.
+export function nextOpen(ms, fx) {
+  const open = fx ? fxOpen : globexOpen;
   let t = Math.ceil(ms / 900000) * 900000;
-  for (let i = 0; i < 400; i++, t += 900000) if (globexOpen(t)) return t;
+  for (let i = 0; i < 400; i++, t += 900000) if (open(t)) return t;
   return null;
 }
 let istFmt = null;
@@ -60,6 +74,8 @@ export function installDataDot(ws, opts = {}) {
   const rith = opts.rith || null;
   const Futures = opts.FuturesProvider;
   const probe = Futures ? new Futures() : null;
+  const Fx = opts.FxProvider;
+  const fxProbe = Fx ? new Fx() : null;
   const lag = new Map();           // root -> { at, min }  (min null = could not measure)
   const pending = new Set();
 
@@ -72,14 +88,17 @@ export function installDataDot(ws, opts = {}) {
   let tipFor = null;
 
   const rootOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '').toUpperCase();
+  const isFx = (root) => !!root && root.startsWith('FX:');
   const rithLive = () => { try { return !!(rith && rith.client && rith.client.state === 'connected'); } catch (e) { return false; } };
 
+  // root: a futures root ("NQ") or "FX:EURUSD" for a forex pair.
   function measure(root) {
-    if (!probe || pending.has(root)) return;
+    const p = isFx(root) ? fxProbe : probe;
+    if (!p || pending.has(root)) return;
     const hit = lag.get(root);
     if (hit && Date.now() - hit.at < LAG_TTL_MS) return;
     pending.add(root);
-    probe.getBars(root + '1!', '1', { limit: 1 }).then((bars) => {
+    p.getBars(isFx(root) ? root.slice(3) : root + '1!', '1', { limit: 1 }).then((bars) => {
       const b = bars && bars[bars.length - 1];
       let min = null;
       if (b && b.time) {
@@ -94,6 +113,17 @@ export function installDataDot(ws, opts = {}) {
   function statusOf(sym) {
     sym = String(sym || '');
     if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
+    if (FX.test(sym)) {
+      const now = Date.now();
+      if (!fxOpen(now)) {
+        const n = nextOpen(now, true);
+        return { s: 'closed', text: 'Forex market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
+      }
+      const key = 'FX:' + rootOf(sym);
+      measure(key);
+      const m = lag.get(key);
+      return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
+    }
     if (!FUT.test(sym) && !/^[A-Z0-9]+1!$/i.test(sym)) return null;
     const now = Date.now();
     if (!globexOpen(now)) {
@@ -196,7 +226,7 @@ export function installDataDot(ws, opts = {}) {
   window.addEventListener('resize', hideTip, { passive: true });
   sync();
 
-  const api = { sync, statusOf, lag, globexOpen, nextOpen };
+  const api = { sync, statusOf, lag, globexOpen, fxOpen, nextOpen };
   window.STRYKER_DATA_DOT = api;
   return api;
 }

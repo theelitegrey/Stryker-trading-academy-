@@ -1,7 +1,10 @@
 // Chart bars for the Charts page futures provider (assets/chart-futures-provider.js).
 // Used by functions/api/chart/bars/[sym].js. Pure module, no Pages context.
 //
-// Source: Yahoo Finance v8 chart, continuous front month (=F). Not a live feed.
+// Source: Yahoo Finance v8 chart, continuous front month (=F) futures and spot forex (=X).
+// Not a live feed. Forex rows (market 'forex') are served to assets/chart-futures-provider.js
+// FxProvider; they trade Sun 17:00 to Fri 17:00 New York with no daily break, and their
+// 2h/4h bars are anchored to 17:00 New York instead of the 18:00 Globex open.
 // Bars are served in FIXED, epoch-aligned PAGES per timeframe, so every request
 // for the same page hits the same edge-cache entry: closed pages never change
 // and cache for a day, only the page holding "now" refreshes.
@@ -30,8 +33,31 @@ export const SYMBOLS = {
   NG:  ['NG=F',  'Natural Gas futures',              'NYMEX', 'energy', 0.001,      10000],
   ZN:  ['ZN=F',  '10-Year T-Note futures',           'CBOT',  'rates',  0.015625,   1000],
   ZB:  ['ZB=F',  'U.S. Treasury Bond futures',       'CBOT',  'rates',  0.03125,    1000],
-  '6E':['6E=F',  'Euro FX futures',                  'CME',   'fx',     0.00005,    125000]
+  '6E':['6E=F',  'Euro FX futures',                  'CME',   'fx',     0.00005,    125000],
+  HG:  ['HG=F',  'Copper futures',                   'COMEX', 'metals', 0.0005,     25000],
+  MHG: ['MHG=F', 'Micro Copper futures',             'COMEX', 'metals', 0.0005,     2500],
+  SIL: ['SIL=F', 'Micro Silver futures',             'COMEX', 'metals', 0.005,      1000],
+  // Spot forex (OTC, no exchange; Yahoo volume is always 0). Point value 1 = price units.
+  EURUSD: ['EURUSD=X', 'Euro / U.S. Dollar',              'FX', 'forex', 0.00001, 1],
+  GBPUSD: ['GBPUSD=X', 'British Pound / U.S. Dollar',     'FX', 'forex', 0.00001, 1],
+  USDJPY: ['USDJPY=X', 'U.S. Dollar / Japanese Yen',      'FX', 'forex', 0.001,   1],
+  AUDUSD: ['AUDUSD=X', 'Australian Dollar / U.S. Dollar', 'FX', 'forex', 0.00001, 1],
+  USDCAD: ['USDCAD=X', 'U.S. Dollar / Canadian Dollar',   'FX', 'forex', 0.00001, 1],
+  USDCHF: ['USDCHF=X', 'U.S. Dollar / Swiss Franc',       'FX', 'forex', 0.00001, 1],
+  NZDUSD: ['NZDUSD=X', 'New Zealand Dollar / U.S. Dollar','FX', 'forex', 0.00001, 1],
+  EURGBP: ['EURGBP=X', 'Euro / British Pound',            'FX', 'forex', 0.00001, 1],
+  EURJPY: ['EURJPY=X', 'Euro / Japanese Yen',             'FX', 'forex', 0.001,   1],
+  GBPJPY: ['GBPJPY=X', 'British Pound / Japanese Yen',    'FX', 'forex', 0.001,   1],
+  EURCHF: ['EURCHF=X', 'Euro / Swiss Franc',              'FX', 'forex', 0.00001, 1],
+  EURAUD: ['EURAUD=X', 'Euro / Australian Dollar',        'FX', 'forex', 0.00001, 1],
+  EURCAD: ['EURCAD=X', 'Euro / Canadian Dollar',          'FX', 'forex', 0.00001, 1],
+  AUDJPY: ['AUDJPY=X', 'Australian Dollar / Japanese Yen','FX', 'forex', 0.001,   1],
+  CADJPY: ['CADJPY=X', 'Canadian Dollar / Japanese Yen',  'FX', 'forex', 0.001,   1],
+  CHFJPY: ['CHFJPY=X', 'Swiss Franc / Japanese Yen',      'FX', 'forex', 0.001,   1],
+  GBPCHF: ['GBPCHF=X', 'British Pound / Swiss Franc',     'FX', 'forex', 0.00001, 1],
+  AUDNZD: ['AUDNZD=X', 'Australian Dollar / New Zealand Dollar', 'FX', 'forex', 0.00001, 1]
 };
+export const isForex = (sym) => !!SYMBOLS[sym] && SYMBOLS[sym][3] === 'forex';
 
 const H = 3600, D = 86400;
 // tf -> { yahoo interval, step seconds (0 = calendar), page seconds, depth seconds, agg hours }
@@ -86,6 +112,16 @@ export function globexOpen(t) {
   if (dow === 5) return min < 17 * 60;
   return !(min >= 17 * 60 && min < 18 * 60);
 }
+// Spot forex weekly schedule (Sun 17:00 ET - Fri 17:00 ET, no daily break).
+export function fxOpen(t) {
+  const local = t + nyOffset(t);
+  const dow = (Math.floor(local / D) + 4) % 7;
+  const min = Math.floor((local % D) / 60);
+  if (dow === 6) return false;
+  if (dow === 0) return min >= 17 * 60;
+  if (dow === 5) return min < 17 * 60;
+  return true;
+}
 
 // Price rounding to the instrument's tick precision (Yahoo returns float32 noise like 89.760002).
 function decimalsOf(tick) { const s = String(tick); return s.includes('.') ? Math.min(s.split('.')[1].length, 6) : 0; }
@@ -94,7 +130,7 @@ function rounder(dec) { const f = Math.pow(10, dec); return (n) => Math.round(n 
 // Yahoo chart JSON -> compact rows [t, o, h, l, c, v] (t epoch seconds, ascending, de-duplicated).
 // Yahoo appends a trailing "latest tick" point stamped with the current second; it is folded into
 // the bar it belongs to rather than shown as an extra candle.
-export function parseYahoo(data, tf, dec = 6) {
+export function parseYahoo(data, tf, dec = 6, anchor = 18) {
   const cfg = TIMEFRAMES[tf];
   const r6 = rounder(dec);
   const r = data?.chart?.result?.[0];
@@ -119,16 +155,17 @@ export function parseYahoo(data, tf, dec = 6) {
     }
     out.push([t, r6(o), r6(h), r6(l), r6(c), v]);
   }
-  return cfg.agg ? aggregateHours(out, cfg.agg) : out;
+  return cfg.agg ? aggregateHours(out, cfg.agg, anchor) : out;
 }
 
-// N-hour bars aligned to the 18:00 ET Globex open (4h: 18, 22, 02, 06, 10, 14 ET).
-export function aggregateHours(rows, n) {
+// N-hour bars aligned to the 18:00 ET Globex open (4h: 18, 22, 02, 06, 10, 14 ET);
+// forex passes anchor 17 (4h: 17, 21, 01, 05, 09, 13 ET).
+export function aggregateHours(rows, n, anchor = 18) {
   const out = [];
   const size = n * H;
   for (const r of rows) {
     const off = nyOffset(r[0]);
-    const shift = off + 6 * H; // 18:00 ET -> a multiple of `size` in shifted time (n divides 24)
+    const shift = off + (24 - anchor) * H; // anchor ET -> a multiple of `size` in shifted time (n divides 24)
     const key = Math.floor((r[0] + shift) / size) * size - shift;
     const prev = out[out.length - 1];
     if (prev && prev[0] === key) {
@@ -170,7 +207,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
     // 422 = "data not available for startTime/endTime" (outside Yahoo's window), 404 = no data.
     if (res.status === 422 || res.status === 404) throw new OutOfRange(`upstream ${res.status}`);
     if (!res.ok) throw new Error(`upstream ${res.status}`);
-    const rows = parseYahoo(await res.json(), tf, decimalsOf(SYMBOLS[sym][4]));
+    const rows = parseYahoo(await res.json(), tf, decimalsOf(SYMBOLS[sym][4]), isForex(sym) ? 17 : 18);
     if (!cfg.page) return rows;
     const [p1, p2] = pageBounds(tf, page);
     return rows.filter((r) => r[0] >= p1 && r[0] < p2);
@@ -181,12 +218,12 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
 
 // Cache lifetime (seconds) for a page: the page holding "now" refreshes quickly while Globex
 // is open; closed pages are effectively immutable.
-export function ttlFor(tf, page, now) {
+export function ttlFor(tf, page, now, sym) {
   const cfg = TIMEFRAMES[tf];
   const end = cfg.page ? pageBounds(tf, page)[1] : Infinity;
   const current = end > now - 2 * H; // still may change (late prints, the forming bar)
   if (!current) return 86400;
-  if (!globexOpen(now)) return 300;
+  if (!(sym && isForex(sym) ? fxOpen(now) : globexOpen(now))) return 300;
   if (cfg.step && cfg.step <= 900) return 15;
   return cfg.page ? 30 : 60;
 }

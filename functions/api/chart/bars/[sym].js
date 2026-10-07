@@ -1,5 +1,5 @@
 // GET /api/chart/bars/:sym?tf=15&page=N
-// Futures bars for the Charts page (assets/chart-futures-provider.js). Allow-listed symbols only.
+// Futures and spot forex bars for the Charts page (assets/chart-futures-provider.js). Allow-listed symbols only.
 // Response: { s, tf, page, bars: [[t, o, h, l, c, v], ...] } (t = bar open, epoch seconds).
 // `page` is an epoch-aligned window index (see _bars.js); omitted = the page holding now.
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
@@ -51,7 +51,7 @@ export async function onRequestGet(ctx) {
       inflight.set(k, p);
     }
     const bars = await p;
-    const ttl = ttlFor(tf, page, now);
+    const ttl = ttlFor(tf, page, now, sym);
     const body = { s: sym, tf, page, bars };
     if (cache) {
       const writes = [cache.put(freshKey, reply(body, 200, ttl))];

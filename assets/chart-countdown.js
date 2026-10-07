@@ -18,6 +18,9 @@
 //   1D         crypto: next bar boundary (00:00 UTC); futures: next 17:00 New York.
 //   1W         crypto: next bar boundary; futures: Friday 17:00 New York.
 //   1M         first day of next month (UTC); futures: 17:00 New York on the last weekday.
+// Spot forex ("fx:" symbols) runs Sunday 17:00 to Friday 17:00 New York with NO daily break:
+// intraday bars are not cut at 17:00, 1D closes at the next 17:00, 1W on Friday 17:00, and the
+// countdown hides only over the weekend.
 // While CME Globex is closed (weekend, daily 17:00-18:00 New York break) the countdown is not
 // drawn at all (the price tag stays). Format (like TradingView): mm:ss under an hour,
 // h:mm:ss under a day, "2d 5h" beyond that.
@@ -28,9 +31,10 @@
 // ("Countdown to bar close" in the chart settings dialog) still decides: when it is off
 // nothing is drawn and Vela's timer is stopped, as before.
 
-import { globexOpen } from './chart-data-dot.js?v=471';
+import { globexOpen, fxOpen } from './chart-data-dot.js?v=472';
 
 const FUT = /^futures:|^[A-Z0-9]+1!$/i;
+const FX = /^fx:/i;
 const MIN = 60000, HOUR = 3600000, DAY = 86400000;
 
 let nyFmt = null;
@@ -59,6 +63,7 @@ function next1700(now) {
 }
 
 /** Close time (epoch ms) of the bar forming at `now`, or null when unknown. */
+// futures: true (CME), 'fx' (spot forex: 17:00 New York day, no intraday cut) or false (crypto).
 export function barCloseMs(now, lastTime, intervalMs, futures) {
   if (!(intervalMs > 0) || !Number.isFinite(lastTime)) return null;
   if (intervalMs >= 27 * DAY) {                       // monthly
@@ -77,7 +82,7 @@ export function barCloseMs(now, lastTime, intervalMs, futures) {
   if (futures && intervalMs >= DAY) return next1700(now);
   let close = lastTime + intervalMs;
   if (close <= now) close = lastTime + Math.floor((now - lastTime) / intervalMs + 1) * intervalMs;
-  if (futures) close = Math.min(close, next1700(now));
+  if (futures && futures !== 'fx') close = Math.min(close, next1700(now));
   return close;
 }
 
@@ -100,7 +105,7 @@ function velaFmt(ms) {
 
 /** What the chip should show for this scene now: { text } or null (draw no countdown). */
 export function countdownFor(now, lastTime, intervalMs, futures) {
-  if (futures && !globexOpen(now)) return null;
+  if (futures === 'fx' ? !fxOpen(now) : (futures && !globexOpen(now))) return null;
   const close = barCloseMs(now, lastTime, intervalMs, futures);
   if (close == null || close <= now) return null;
   return { close, left: close - now, text: fmtCountdown(close - now) };
@@ -116,7 +121,7 @@ function patchChrome(chrome) {
     if (!scene || !scene.showCountdown || !n || !(coords.barInterval > 0)) return orig.apply(this, arguments);
     const last = scene.bars[n - 1];
     const now = Date.now();
-    const cd = countdownFor(now, last.time, coords.barInterval, !!scene.__stkCdFut);
+    const cd = countdownFor(now, last.time, coords.barInterval, scene.__stkCdFut || false);
     scene.__stkCdText = cd ? cd.text : '';          // read by tools/tests/chart-countdown-browser.js
     if (!cd) {                                      // market closed / unknown: price tag only
       scene.showCountdown = false;
@@ -155,7 +160,8 @@ export function installCountdown(ws) {
       const R = cell && inner(cell);
       if (!R || !R.scene) return;
       if (R.chrome) patchChrome(R.chrome);
-      R.scene.__stkCdFut = FUT.test(String(c.symbol || ''));
+      const sym = String(c.symbol || '');
+      R.scene.__stkCdFut = FX.test(sym) ? 'fx' : FUT.test(sym);
     });
   };
   sweep();

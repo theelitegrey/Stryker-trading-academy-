@@ -137,8 +137,9 @@ function nyOffsetMs(t) {
 }
 // Bucket key: N-minute bars anchored to 18:00 New York (the Globex open), so for any size that
 // divides 24 h every session starts a fresh bar (45m: 18:00, 18:45 ... ; 3h: 18, 21, 00 ...).
-export function sessionKey(t, sizeMs) {
-  const shift = nyOffsetMs(t) + 6 * H;
+// Spot forex passes anchor 17 (its trading day opens 17:00 New York).
+export function sessionKey(t, sizeMs, anchor = 18) {
+  const shift = nyOffsetMs(t) + (24 - anchor) * H;
   const open = Math.floor((t + shift) / 864e5) * 864e5 - shift; // latest 18:00 New York at or before t
   return open + Math.floor((t - open) / sizeMs) * sizeMs;
 }
@@ -176,11 +177,12 @@ export function planFor(provider, tf) {
   if (p.kind === 'month' && p.n > 1) return { base: 'M', ratio: p.n, key: (t) => monthKey(t, p.n) };
   if (p.kind === 'day' && p.n > 1) return { base: 'D', ratio: p.n, key: (t) => Math.floor(Math.floor((t + 12 * H) / 864e5) / p.n) };
   if (p.kind === 'week' && p.n > 1) return { base: 'W', ratio: p.n, key: (t) => Math.floor(Math.floor((t + 3.5 * 864e5) / 6048e5) / p.n) };
-  if (provider !== 'futures' || p.kind !== 'min' || NATIVE_FUT_MIN.includes(p.n)) return null;
+  if ((provider !== 'futures' && provider !== 'fx') || p.kind !== 'min' || NATIVE_FUT_MIN.includes(p.n)) return null;
   if (p.n >= 1440) return null;
   const base = NATIVE_FUT_MIN.filter((m) => m < p.n && p.n % m === 0).pop() || 1;
   const size = p.n * MIN;
-  return { base: String(base), ratio: p.n / base, key: (t) => sessionKey(t, size) };
+  const anchor = provider === 'fx' ? 17 : 18;
+  return { base: String(base), ratio: p.n / base, key: (t) => sessionKey(t, size, anchor) };
 }
 
 // ---------------- seconds + ticks ----------------
@@ -395,7 +397,7 @@ export function wrapProvider(inner, name, pollMs) {
     }
   });
 }
-export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' ? 20000 : 5000));
+export const wrapFactory = (factory, name, pollMs) => () => wrapProvider(factory(), name, pollMs || (name === 'futures' || name === 'fx' ? 20000 : 5000));
 
 // ---------------- UI ----------------
 const CSS = `

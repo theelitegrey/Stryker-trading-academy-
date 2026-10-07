@@ -1,6 +1,7 @@
 // Stryker Trading Academy — Charts futures data provider (ES module)
 // Depends on: /api/chart/bars/:sym (functions/api/chart/bars/[sym].js + functions/api/chart/_bars.js).
-// Imported by assets/vela-chart.js and registered with Vela as the "futures" provider.
+// Imported by assets/vela-chart.js and registered with Vela as the "futures" provider, and
+// (FxProvider, same paging code) as the "fx" provider for spot forex pairs.
 //
 // Implements Vela's DataProvider port (@luxalgo/vela 0.6.17, dist/DataProvider-*.d.ts):
 //   getBars, listSymbols, getSymbolInfo, getCalendar, resolveSymbolIcon, subscribe, info.
@@ -41,8 +42,37 @@ const SYMBOLS = {
   NG:  ['Natural Gas futures',               'NYMEX', 'energy', 0.001,    10000],
   ZN:  ['10-Year T-Note futures',            'CBOT',  'rates',  0.015625, 1000],
   ZB:  ['U.S. Treasury Bond futures',        'CBOT',  'rates',  0.03125,  1000],
-  '6E':['Euro FX futures',                   'CME',   'fx',     0.00005,  125000]
+  '6E':['Euro FX futures',                   'CME',   'fx',     0.00005,  125000],
+  HG:  ['Copper futures',                    'COMEX', 'metals', 0.0005,   25000],
+  MHG: ['Micro Copper futures',              'COMEX', 'metals', 0.0005,   2500],
+  SIL: ['Micro Silver futures',              'COMEX', 'metals', 0.005,    1000]
 };
+// Spot forex (Yahoo "=X" pairs, same endpoint). pair: [description, tick]. Mirrors the forex rows
+// of SYMBOLS in functions/api/chart/_bars.js. 5 decimals, 3 for JPY pairs. No spot gold/silver:
+// Yahoo has no XAUUSD/XAGUSD series, so metals stay on the COMEX futures (GC, MGC, SI, SIL).
+export const FX_PAIRS = {
+  EURUSD: ['Euro / U.S. Dollar', 0.00001],
+  GBPUSD: ['British Pound / U.S. Dollar', 0.00001],
+  USDJPY: ['U.S. Dollar / Japanese Yen', 0.001],
+  AUDUSD: ['Australian Dollar / U.S. Dollar', 0.00001],
+  USDCAD: ['U.S. Dollar / Canadian Dollar', 0.00001],
+  USDCHF: ['U.S. Dollar / Swiss Franc', 0.00001],
+  NZDUSD: ['New Zealand Dollar / U.S. Dollar', 0.00001],
+  EURGBP: ['Euro / British Pound', 0.00001],
+  EURJPY: ['Euro / Japanese Yen', 0.001],
+  GBPJPY: ['British Pound / Japanese Yen', 0.001],
+  EURCHF: ['Euro / Swiss Franc', 0.00001],
+  EURAUD: ['Euro / Australian Dollar', 0.00001],
+  EURCAD: ['Euro / Canadian Dollar', 0.00001],
+  AUDJPY: ['Australian Dollar / Japanese Yen', 0.001],
+  CADJPY: ['Canadian Dollar / Japanese Yen', 0.001],
+  CHFJPY: ['Swiss Franc / Japanese Yen', 0.001],
+  GBPCHF: ['British Pound / Swiss Franc', 0.00001],
+  AUDNZD: ['Australian Dollar / New Zealand Dollar', 0.00001]
+};
+export const FX_MAJORS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD'];
+// Futures roots the symbol search also lists under its "Commodities" tab.
+export const COMMODITY_ROOTS = ['GC', 'MGC', 'SI', 'SIL', 'HG', 'MHG', 'CL', 'MCL', 'NG'];
 
 function normTf(tf) {
   tf = String(tf || '');
@@ -134,7 +164,7 @@ export class FuturesProvider {
   // Open Globex windows over [from, to) (epoch ms). No exchange-holiday calendar: holiday
   // closures are not modelled. 'regular' and 'extended' are the same tape here.
   async getCalendar(ticker, range) {
-    if (!rootOf(ticker)) return [];
+    if (!this.keyOf(ticker)) return [];
     const out = [];
     let day = Math.floor(range.from / 1000 / D) * D - D;
     const end = range.to / 1000 + D;
@@ -175,8 +205,10 @@ export class FuturesProvider {
     return p;
   }
 
+  keyOf(ticker) { return rootOf(ticker); }
+
   async getBars(ticker, timeframe, range = {}) {
-    const root = rootOf(ticker);
+    const root = this.keyOf(ticker);
     const tf = normTf(timeframe);
     if (!root || !tf) return [];
     const now = Math.floor(Date.now() / 1000);
@@ -247,5 +279,81 @@ export class FuturesProvider {
       if (timer) clearTimeout(timer);
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
     };
+  }
+}
+
+// ---- spot forex --------------------------------------------------------------------------
+function pairOf(ticker) {
+  const r = String(ticker || '').trim().toUpperCase().replace(/^[A-Z_]+:/, '').replace(/[\/_\s]/g, '');
+  return Object.prototype.hasOwnProperty.call(FX_PAIRS, r) ? r : null;
+}
+
+// Spot forex from the same endpoint (Yahoo "=X" series, edge-cached, polled, not a live feed).
+// OTC market: Sunday 17:00 to Friday 17:00 New York, no daily break; volume is always 0.
+export class FxProvider extends FuturesProvider {
+  info() {
+    return {
+      name: 'fx',
+      displayName: 'Forex',
+      requiresApiKey: false,
+      supportedTimeframes: SUPPORTED,
+      capabilities: { enumerate: true, stream: false, symbolInfo: true }
+    };
+  }
+
+  keyOf(ticker) { return pairOf(ticker); }
+
+  async listSymbols() {
+    return Object.entries(FX_PAIRS).map(([pair, s]) => ({
+      ticker: pair,
+      description: s[0],
+      type: 'forex',
+      prefix: 'FX',
+      market: 'forex',
+      exchange: 'FX',
+      mintick: s[1],
+      pointvalue: 1
+    }));
+  }
+
+  async getSymbolInfo(ticker) {
+    const pair = pairOf(ticker);
+    if (!pair) return undefined;
+    const [description, tick] = FX_PAIRS[pair];
+    const dec = decimalsOf(tick);
+    return {
+      ticker: pair,
+      tickerid: `FX:${pair}`,
+      prefix: 'FX',
+      description,
+      type: 'forex',
+      market: 'forex',
+      currency: pair.slice(3),
+      basecurrency: pair.slice(0, 3),
+      mintick: tick,
+      pricescale: Math.round(Math.pow(10, dec)),
+      minmove: 1,
+      pointvalue: 1,
+      timezone: 'America/New_York',
+      session: '1700-1700',
+      session_extended: '1700-1700'
+    };
+  }
+
+  // One open window per trading day, 17:00 New York to 17:00 the next day, Sunday to Thursday
+  // evenings. No holiday calendar.
+  async getCalendar(ticker, range) {
+    if (!pairOf(ticker)) return [];
+    const out = [];
+    let day = Math.floor(range.from / 1000 / D) * D - D;
+    const end = range.to / 1000 + D;
+    for (; day < end; day += D) {
+      const dow = new Date(day * 1000).getUTCDay();
+      if (dow === 5 || dow === 6) continue;
+      const s = nyWall(day, 17) * 1000;
+      const e = nyWall(day + D, 17) * 1000;
+      if (e > range.from && s < range.to) out.push([Math.max(s, range.from), Math.min(e, range.to)]);
+    }
+    return out;
   }
 }

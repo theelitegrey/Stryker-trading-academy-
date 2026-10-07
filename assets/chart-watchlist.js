@@ -42,14 +42,17 @@ const W_MIN = 260, W_MAX = 560, W_DEF = 340;
 const PHONE_MAX = 700;
 const SEC = '###';
 const DEFAULT_ITEMS = ['###FUTURES', 'futures:NQ1!', 'futures:ES1!', 'futures:YM1!', 'futures:RTY1!', 'futures:GC1!', 'futures:CL1!',
-  '###CRYPTO', 'binance:BTCUSDT', 'binance:ETHUSDT'];
+  '###FOREX', 'fx:EURUSD', 'fx:GBPUSD', 'fx:USDJPY', '###CRYPTO', 'binance:BTCUSDT', 'binance:ETHUSDT'];
 const VIEW_DEF = { table: true, last: true, chg: true, chgp: true, vol: false, ext: false, logo: true, disp: 'symbol' };
-const FUT_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'GC', 'MGC', 'SI', 'CL', 'MCL', 'NG', 'ZN', 'ZB', '6E'];
+const FUT_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'YM', 'MYM', 'RTY', 'M2K', 'GC', 'MGC', 'SI', 'SIL', 'HG', 'MHG', 'CL', 'MCL', 'NG', 'ZN', 'ZB', '6E'];
+// Spot forex pairs (the "fx" provider, mirrors FX_PAIRS in assets/chart-futures-provider.js).
+const FX_PAIRS = ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPJPY', 'EURCHF',
+  'EURAUD', 'EURCAD', 'AUDJPY', 'CADJPY', 'CHFJPY', 'GBPCHF', 'AUDNZD'];
 const RTH = {   // mirrors assets/chart-events.js RTH (New York minutes)
   index: [570, 960], metals: [500, 810], energy: [540, 870], rates: [500, 900], fx: [500, 900]
 };
 const ROOT_MARKET = { NQ: 'index', MNQ: 'index', ES: 'index', MES: 'index', YM: 'index', MYM: 'index', RTY: 'index', M2K: 'index',
-  GC: 'metals', MGC: 'metals', SI: 'metals', CL: 'energy', MCL: 'energy', NG: 'energy', ZN: 'rates', ZB: 'rates', '6E': 'fx' };
+  GC: 'metals', MGC: 'metals', SI: 'metals', SIL: 'metals', HG: 'metals', MHG: 'metals', CL: 'energy', MCL: 'energy', NG: 'energy', ZN: 'rates', ZB: 'rates', '6E': 'fx' };
 
 // ---------------------------------------------------------------- helpers
 const fbOk = () => (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length);
@@ -110,8 +113,9 @@ function fmtNum(v, dec){
 }
 function decFor(sym, price){
   const r = rootOf(sym);
-  const tick = { NQ: 2, MNQ: 2, ES: 2, MES: 2, YM: 0, MYM: 0, RTY: 1, M2K: 1, GC: 1, MGC: 1, SI: 3, CL: 2, MCL: 2, NG: 3, ZN: 4, ZB: 4, '6E': 5 };
+  const tick = { NQ: 2, MNQ: 2, ES: 2, MES: 2, YM: 0, MYM: 0, RTY: 1, M2K: 1, GC: 1, MGC: 1, SI: 3, SIL: 3, HG: 4, MHG: 4, CL: 2, MCL: 2, NG: 3, ZN: 4, ZB: 4, '6E': 5 };
   if (isFut(sym) && tick[r] != null) return tick[r];
+  if (provOf(sym) === 'fx') return /JPY$/.test(r) ? 3 : 5;
   if (!Number.isFinite(price)) return 2;
   const a = Math.abs(price);
   return a >= 1000 ? 2 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6;
@@ -156,6 +160,12 @@ export function normalizeSymbol(raw, feed){
     const r = t.replace(/1!$/, '');
     if (FUT_ROOTS.includes(r)) return 'futures:' + r + '1!';
     if (pre === 'futures') return null;
+  }
+  // Spot forex: "EURUSD", "EUR/USD", "FX:EURUSD", "FX_IDC:EURUSD", "OANDA:EURUSD", "fx:EURUSD".
+  if (!pre || /^(fx|fx_idc|oanda|forexcom|fxcm|saxo|pepperstone|icmarkets)$/.test(pre)) {
+    const p = t.replace(/[\/_\s]/g, '');
+    if (FX_PAIRS.includes(p)) return 'fx:' + p;
+    if (pre && pre.startsWith('fx')) return null;
   }
   const venues = ['binance', 'coinbase', 'hyperliquid'];
   if (pre && !venues.includes(pre)) pre = '';
@@ -433,7 +443,7 @@ export function mountWatchlist(ws, o){
   function nameOf(sym){
     const d = meta(sym);
     let n = d && d.description;
-    if (!n && !isFut(sym)) { const t = tickerOf(sym); n = t.replace(/(USDT|USDC|USD)$/i, ' / $1'); }
+    if (!n && !isFut(sym) && provOf(sym) !== 'fx') { const t = tickerOf(sym); n = t.replace(/(USDT|USDC|USD)$/i, ' / $1'); }
     return n || tickerOf(sym);
   }
   function logo(sym){
@@ -897,7 +907,7 @@ export function mountWatchlist(ws, o){
     if (!snap || !snap.exists) { toast('This shared watchlist is no longer available.', 'error'); dropParam(); return; }
     const x = snap.data() || {};
     if (x.ownerUid === user().uid) { dropParam(); return openList(id); }
-    const items = (Array.isArray(x.items) ? x.items : []).filter((s) => typeof s === 'string' && (isSec(s) || /^(futures|binance|coinbase|hyperliquid):[A-Za-z0-9!._\-/]{1,30}$/.test(s))).slice(0, MAX_ITEMS);
+    const items = (Array.isArray(x.items) ? x.items : []).filter((s) => typeof s === 'string' && (isSec(s) || /^(futures|fx|binance|coinbase|hyperliquid):[A-Za-z0-9!._\-/]{1,30}$/.test(s))).slice(0, MAX_ITEMS);
     stash = cur;
     viewing = { id, name: String(x.name || 'Shared list').slice(0, NAME_MAX), ownerUid: x.ownerUid };
     cur = { id, name: viewing.name, items, collapsed: [], view: Object.assign({}, stash ? stash.view : VIEW_DEF), shared: false };
@@ -970,7 +980,7 @@ export function mountWatchlist(ws, o){
   }
   function uploadDialog(){
     const file = el('input', { type: 'file', accept: '.txt,.csv,text/plain,text/csv', class: 'stkw-file', 'aria-label': 'Choose a .txt or .csv file' });
-    const info = el('p', { class: 'stkw-note', text: 'A .txt or .csv of symbols, separated by commas or new lines (TradingView exports work). "###NAME" starts a section. Futures we carry: ' + FUT_ROOTS.join(', ') + '; crypto pairs from our exchange feeds.' });
+    const info = el('p', { class: 'stkw-note', text: 'A .txt or .csv of symbols, separated by commas or new lines (TradingView exports work). "###NAME" starts a section. Futures we carry: ' + FUT_ROOTS.join(', ') + '; forex pairs: ' + FX_PAIRS.join(', ') + '; crypto pairs from our exchange feeds.' });
     const out = el('div', { class: 'stkw-upout' });
     const nameIn = el('input', { type: 'text', class: 'stkw-in', maxlength: String(NAME_MAX), 'aria-label': 'New list name', placeholder: 'New list name' });
     const ok = el('button', { type: 'button', class: 'stkw-pbtn', text: 'Create list', disabled: true });

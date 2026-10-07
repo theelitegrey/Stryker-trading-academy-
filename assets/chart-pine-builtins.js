@@ -15,13 +15,13 @@ export const BUILTIN_PINE = [
     id: 'stoic-edge-compass',
     name: 'Stoic Edge Compass',
     desc: 'Structure bias, range filter, trend ribbon + 200 EMA, context dots, S/R zones, status panel',
-    url: 'pine/stoic-edge-compass.pine?v=462'
+    url: 'pine/stoic-edge-compass.pine?v=463'
   },
   {
     id: 'wcsmc-sp',
     name: 'WCSMC + SP v3.0 [WinWorld]',
     desc: 'Smart-money structure: BoS / ChoCh, IDM, order blocks, FVGs, MTF structure, SMT vs a compare symbol, MTF dashboard',
-    url: 'pine/wcsmc-sp.pine?v=462'
+    url: 'pine/wcsmc-sp.pine?v=463'
   },
   // The Owner's own indicators ("add this indicator, its strykers", 2026-10-08): Editors' picks,
   // author Stryker. `source` = same path as `url` (the field name of the picker-sections array).
@@ -31,8 +31,17 @@ export const BUILTIN_PINE = [
     author: 'Stryker',
     section: 'picks',
     desc: 'SMT divergence vs correlated futures (auto-paired: NQ vs ES), chart TF + higher TFs',
-    url: 'pine/smt-pro-stryker.pine?v=462',
-    source: 'pine/smt-pro-stryker.pine?v=462'
+    url: 'pine/smt-pro-stryker.pine?v=463',
+    source: 'pine/smt-pro-stryker.pine?v=463'
+  },
+  {
+    id: 'ifvg-pro-stryker',
+    name: 'IFVG Pro+ [Stryker]',
+    author: 'Stryker',
+    section: 'picks',
+    desc: 'Liquidity (BSL / SSL from higher-TF swings and candles), sweep, candidate FVG and inversion (IFVG) boxes',
+    url: 'pine/ifvg-pro-stryker.pine?v=463',
+    source: 'pine/ifvg-pro-stryker.pine?v=463'
   }
 ];
 

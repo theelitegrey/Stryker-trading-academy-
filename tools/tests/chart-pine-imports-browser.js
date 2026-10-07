@@ -13,7 +13,7 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8061';
 const OUT = process.env.OUT || require('path').join(require('os').tmpdir(), 'pine-imports');
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
-const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
 // The Owner's own scripts: listed under Editors' picks (or the Stryker group before the picker
 // sections landed), author Stryker.
 const PICKS = new Set(['SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]']);
@@ -114,6 +114,13 @@ async function counts(p){
         check((c.boxes + c.lines + c.labels) > 0, `${name} ${sym} ${tf}: draws (series ${c.series}, boxes ${c.boxes}, lines ${c.lines}, labels ${c.labels})`);
         check(c.tables > 0, `${name} ${sym} ${tf}: panel/table renders (${c.tables})`);
         check(!BAD.test(c.text || ''), `${name} ${sym} ${tf}: no buy/sell/long/short wording in drawn text`);
+        // Owner scripts: no entry / stop / target wording anywhere (site rule)
+        if (PICKS.has(name)) check(!/\b(SL|TP|entry|stop loss|take profit)\b|R target|failed/i.test(c.text || ''), `${name} ${sym} ${tf}: no SL / TP / R target / failed text`);
+        if (/^SMT/.test(name)) check(/[▲▼]/.test(c.text || '') && /SMT Divergence Pro/.test(c.text || ''), `${name} ${sym} ${tf}: SMT markers + watermark`);
+        if (/^IFVG/.test(name)) {
+          const liq = ((c.text || '').match(/\b(BSL|SSL) (5m|15m|30m|1h|4h|D)\b/g) || []).length;
+          check(liq > 0 && c.boxes > 0 && /IFVG Pro\+ \[Stryker\]/.test(c.text || ''), `${name} ${sym} ${tf}: ${liq} BSL/SSL labels, ${c.boxes} IFVG/candidate boxes, watermark`);
+        }
         await p.waitForTimeout(800);
         await p.screenshot({ path: `${OUT}/${name.split(' ')[0].toLowerCase()}-${sym.split(':')[1].replace('!', '')}-${tf}-1440.png` });
       }

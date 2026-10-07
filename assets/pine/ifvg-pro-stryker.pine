@@ -1,0 +1,527 @@
+//@version=6
+// ═════════════════════════════════════════════════════════════════════════════
+//   IFVG PRO+ [Stryker]
+//   © Stryker Trading  ·  strykertrading.com
+//   Version 1.0  ·  Pine Script v6
+//
+//   Inverse fair value gaps, taken only after liquidity has been swept.
+//
+//     1. Buyside and sellside liquidity is drawn from swing points and/or
+//        candle highs and lows on the timeframes you choose (5m → daily).
+//     2. A level is swept when a chart candle CLOSES through it.
+//     3. The most recent chart-timeframe FVG inside the sweep leg becomes the
+//        candidate gap.
+//     4. When price closes back through that gap, it inverts — IFVG.
+//     5. Stryker edit: the risk/reward box is removed on strykertrading.com.
+//
+//   Higher timeframe candles are aggregated from completed chart bars —
+//   no request.security(), no lookahead, no restatement of history.
+//
+//   Stryker built-in copy (Owner order 2026-10-08, "add this indicator, its strykers").
+//   Stryker edits (site rules, each marked "Stryker edit"): the Risk / Reward group and its
+//   boxes and SL / TP / R text are removed; failed setups are always hidden (the internal
+//   1R pass/fail check is kept only for that); BSL / SSL default colours are a grey that
+//   shows on dark and light charts. Education only. Not financial advice.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("IFVG Pro+ [Stryker]", "IFVG Pro+ [Stryker]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_LIQ = "Stryker · Liquidity Source"
+const string G_LST = "Stryker · Liquidity Style"
+const string G_QUA = "Stryker · Setup Quality"
+const string G_IFV = "Stryker · IFVG"
+const string G_MSC = "Stryker · Other"
+
+liqMode  = input.string("Both", "Liquidity from", options = ["Swing highs / lows", "Candle highs / lows", "Both"], group = G_LIQ)
+autoTF   = input.bool(true, "Auto-select timeframes", tooltip = "Uses the two timeframes directly above your chart. Turn off to pick manually.", group = G_LIQ)
+tf5      = input.bool(false, "5m",  inline = "t", group = G_LIQ)
+tf15     = input.bool(true,  "15m", inline = "t", group = G_LIQ)
+tf30     = input.bool(false, "30m", inline = "t", group = G_LIQ)
+tf60     = input.bool(true,  "1h",  inline = "t", group = G_LIQ)
+tf240    = input.bool(false, "4h",  inline = "t", group = G_LIQ)
+tfD      = input.bool(false, "D",   inline = "t", group = G_LIQ)
+swLen    = input.int(2, "Swing strength (candles either side)", minval = 1, maxval = 10, group = G_LIQ)
+liqKeep  = input.int(10, "Levels kept each side", minval = 2, maxval = 40, group = G_LIQ)
+
+bslCol   = input.color(#9598A1,  // Stryker edit: was #000000 (invisible on a dark chart)
+      "BSL", inline = "b", group = G_LST)
+bslStyle = input.string("Dotted", "", options = ["Solid", "Dashed", "Dotted"], inline = "b", group = G_LST)
+bslWidth = input.int(1, "", minval = 1, maxval = 4, inline = "b", group = G_LST)
+sslCol   = input.color(#9598A1,  // Stryker edit: was #000000 (invisible on a dark chart)
+      "SSL", inline = "s", group = G_LST)
+sslStyle = input.string("Dotted", "", options = ["Solid", "Dashed", "Dotted"], inline = "s", group = G_LST)
+sslWidth = input.int(1, "", minval = 1, maxval = 4, inline = "s", group = G_LST)
+liqLbl   = input.bool(true, "Labels (BSL 15m etc.)", group = G_LST)
+keepSwpt = input.bool(true, "Keep swept lines, dimmed", group = G_LST)
+
+qualOn   = input.bool(true, "Leg-extreme liquidity only", tooltip = "Only sweeps of the high or low that ends a price leg qualify. Lower highs inside a down leg (or higher lows inside an up leg) are internal structure — sweeping them is continuation, not reversal, and those setups fail.", group = G_QUA)
+legLook  = input.int(120, "Leg lookback (chart bars)", minval = 20, maxval = 500, tooltip = "A level is a leg extreme if nothing in this window is beyond it when it forms.", group = G_QUA)
+minLeg   = input.float(1.0, "Minimum leg into the level (× ATR)", minval = 0, step = 0.25, tooltip = "The move from the opposite extreme up into a BSL (or down into an SSL) must be at least this many ATRs. Filters shallow pokes.", group = G_QUA)
+atrLen   = input.int(14, "ATR length", minval = 2, group = G_QUA)
+showInt  = input.bool(false, "Draw internal liquidity (dimmed, never traded)", group = G_QUA)
+bias     = input.string("Both", "Bias", options = ["Both", "Bullish only", "Bearish only"], tooltip = "Bullish shows only bullish IFVGs (SSL swept, bearish gap inverted). Bearish shows only bearish IFVGs.", group = G_QUA)
+sessOn   = input.bool(false, "Session filter", tooltip = "Only setups whose inversion prints inside a selected session are shown.", group = G_QUA)
+sAsia    = input.bool(false, "Asia",     inline = "ss", group = G_QUA)
+sLdn     = input.bool(true,  "London",   inline = "ss", group = G_QUA)
+sNY      = input.bool(true,  "New York", inline = "ss", group = G_QUA)
+sAsiaTx  = input.session("2000-0000", "Asia", inline = "s1", group = G_QUA)
+sLdnTx   = input.session("0200-0500", "London", inline = "s1", group = G_QUA)
+sNYTx    = input.session("0830-1200", "New York", inline = "s1", group = G_QUA)
+sessTz   = input.string("America/New_York", "Session timezone", options = ["America/New_York", "America/Chicago", "Europe/London", "Asia/Tokyo", "UTC"], group = G_QUA)
+
+sweepMode = input.string("Wick through, close back inside", "Sweep definition", options = ["Wick through, close back inside", "Close through the level", "Either"], tooltip = "Classic raid: the candle trades beyond the level and closes back inside it. That is the sweep that traps traders and sets up the inversion.", group = G_IFV)
+lookback = input.int(150, "Max bars to search back for the leg's FVG", minval = 5, maxval = 500, tooltip = "The search runs from the start of the leg (the opposite extreme) to the sweep. This is only a ceiling.", group = G_IFV)
+maxWait  = input.int(40, "Bars to wait for the inversion", minval = 5, maxval = 300, group = G_IFV)
+minGapT  = input.float(0, "Minimum gap size (ticks, 0 = off)", minval = 0, step = 1, group = G_IFV)
+cBullBg  = input.color(color.new(#787B86, 80), "Bullish IFVG   fill", inline = "ib", group = G_IFV)
+cBullBd  = input.color(#787B86, "border", inline = "ib", group = G_IFV)
+cBearBg  = input.color(color.new(#787B86, 80), "Bearish IFVG   fill", inline = "ir", group = G_IFV)
+cBearBd  = input.color(#787B86, "border", inline = "ir", group = G_IFV)
+ifvgBw   = input.int(0, "IFVG border width", minval = 0, maxval = 4, group = G_IFV)
+cCandBg  = input.color(color.new(#787B86, 90), "Candidate gap fill", group = G_IFV)
+extBars  = input.int(20, "Extend IFVG box (bars)", minval = 1, maxval = 300, group = G_IFV)
+lblSize  = input.string("Small", "Label size", options = ["Tiny", "Small", "Normal", "Large"], group = G_IFV)
+lblBull  = input.color(#26A69A, "Label   bullish", inline = "lb", group = G_IFV)
+lblBear  = input.color(#EF5350, "bearish", inline = "lb", group = G_IFV)
+maxSetups = input.int(5, "Setups kept on screen (most recent)", minval = 1, maxval = 50, group = G_IFV)
+hideFail  = true   // Stryker edit: failed setups are always hidden (input removed)
+
+// Stryker edit: Risk / Reward inputs removed (showRR, rrSel, rrCust, rrBars, rrText, colours).
+rrBars   = 30   // Stryker edit: setup tracking window (bars), the removed input's default
+
+showMark = input.bool(true, "Watermark", inline = "w", group = G_MSC)
+markPos  = input.string("Bottom right", "", options = ["Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right"], inline = "w", group = G_MSC)
+markCol  = input.color(color.new(#B2B5BE, 35), "Watermark colour", group = G_MSC)
+aIFVG    = input.bool(true, "Alert on IFVG", group = G_MSC)
+aSweep   = input.bool(false, "Alert on liquidity sweep", group = G_MSC)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+f_tfName(k) => k == 0 ? "5m" : k == 1 ? "15m" : k == 2 ? "30m" : k == 3 ? "1h" : k == 4 ? "4h" : "D"
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TIMEFRAME SELECTION
+// ─────────────────────────────────────────────────────────────────────────────
+chartSec = timeframe.in_seconds()
+sec0 = 300
+sec1 = 900
+sec2 = 1800
+sec3 = 3600
+sec4 = 14400
+sec5 = 86400
+
+// auto: the two timeframes directly above the chart
+firstAbove = chartSec < sec0 ? 0 : chartSec < sec1 ? 1 : chartSec < sec2 ? 2 : chartSec < sec3 ? 3 : chartSec < sec4 ? 4 : chartSec < sec5 ? 5 : 6
+f_on(k, manual, sec) => (autoTF ? (k == firstAbove or k == firstAbove + 1) : manual) and chartSec < sec
+on0 = f_on(0, tf5,   sec0)
+on1 = f_on(1, tf15,  sec1)
+on2 = f_on(2, tf30,  sec2)
+on3 = f_on(3, tf60,  sec3)
+on4 = f_on(4, tf240, sec4)
+on5 = f_on(5, tfD,   sec5)
+
+t0 = time("5")
+t1 = time("15")
+t2 = time("30")
+t3 = time("60")
+t4 = time("240")
+t5 = time("D")
+new0 = on0 and not na(t0[1]) and t0 != t0[1]
+new1 = on1 and not na(t1[1]) and t1 != t1[1]
+new2 = on2 and not na(t2[1]) and t2 != t2[1]
+new3 = on3 and not na(t3[1]) and t3 != t3[1]
+new4 = on4 and not na(t4[1]) and t4 != t4[1]
+new5 = on5 and not na(t5[1]) and t5 != t5[1]
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+type TF
+    array<float> wH
+    array<float> wL
+    array<int>   wB
+    float lH  = na
+    float lL  = na
+    int   lB  = na
+    int   lHb = na
+    int   lLb = na
+
+type Liq
+    float px   = na
+    int   bar  = na
+    int   dir  = 0          // 1 BSL (a high), -1 SSL (a low)
+    int   tf   = 0
+    string kind = ""
+    line  l    = na
+    label lb   = na
+    bool  swept = false
+    bool  ext   = true       // leg extreme (external) vs internal structure
+    float opp   = na         // opposite extreme since the level formed
+    int   oppBar = na        // bar of that extreme — where the leg into the level starts
+
+type Gap
+    int   dir = 0           // 1 bullish, -1 bearish
+    float top = na
+    float bot = na
+    int   bar = na
+
+type Setup
+    int   dir      = 0
+    int   bar      = na
+    float entry    = na
+    float stop     = na
+    float t1       = na       // 1R — the pass / fail line
+    bool  hit1R    = false
+    bool  resolved = false
+    box   gapBox   = na
+    label lb       = na
+
+var array<TF>    tfs    = array.new<TF>()
+var array<Liq>   liqs   = array.new<Liq>()
+var array<Gap>   gaps   = array.new<Gap>()
+var array<Setup> setups = array.new<Setup>()
+
+f_killSetup(st) =>
+    if not na(st.gapBox)
+        box.delete(st.gapBox)
+    if not na(st.lb)
+        label.delete(st.lb)
+
+if barstate.isfirst
+    for k = 0 to 5
+        TF t = TF.new()
+        t.wH := array.new<float>()
+        t.wL := array.new<float>()
+        t.wB := array.new<int>()
+        array.push(tfs, t)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  LIQUIDITY HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+legHH = ta.highest(high, legLook)
+legLL = ta.lowest(low, legLook)
+atrV  = ta.atr(atrLen)
+
+f_addLiq(px, bar, dir, k, kind) =>
+    bool ext = dir == 1 ? px >= legHH : px <= legLL
+    bool dup = false
+    if array.size(liqs) > 0
+        for i = 0 to array.size(liqs) - 1
+            Liq q = array.get(liqs, i)
+            if not q.swept and q.dir == dir and math.abs(q.px - px) < syminfo.mintick
+                dup := true
+    if not dup and (ext or showInt or not qualOn)
+        Liq q = Liq.new()
+        q.px   := px
+        q.bar  := bar
+        q.dir  := dir
+        q.tf   := k
+        q.kind := kind
+        q.ext  := ext or not qualOn
+        q.opp  := dir == 1 ? low : high
+        q.oppBar := bar_index
+        color col = q.ext ? (dir == 1 ? bslCol : sslCol) : color.new(dir == 1 ? bslCol : sslCol, 75)
+        q.l := line.new(bar, px, bar_index, px, color = col, style = f_style(dir == 1 ? bslStyle : sslStyle), width = q.ext ? (dir == 1 ? bslWidth : sslWidth) : 1)
+        if liqLbl and q.ext
+            q.lb := label.new(bar_index, px, (dir == 1 ? "BSL " : "SSL ") + f_tfName(k), style = label.style_label_left,
+                 color = color.new(color.black, 100), textcolor = col, size = size.tiny)
+        array.push(liqs, q)
+        // trim: drop the oldest unswept of the same side beyond the cap
+        int cnt = 0
+        if array.size(liqs) > 0
+            for i = array.size(liqs) - 1 to 0
+                Liq o = array.get(liqs, i)
+                if o.dir == dir and not o.swept
+                    cnt += 1
+                    if cnt > liqKeep
+                        if not na(o.l)
+                            line.delete(o.l)
+                        if not na(o.lb)
+                            label.delete(o.lb)
+                        array.remove(liqs, i)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PER-TIMEFRAME AGGREGATION → liquidity from candles and swings
+// ─────────────────────────────────────────────────────────────────────────────
+f_run(k, isNew, isOn) =>
+    if isOn
+        TF t = array.get(tfs, k)
+        if na(t.lH)
+            t.lH  := high
+            t.lL  := low
+            t.lB  := bar_index
+            t.lHb := bar_index
+            t.lLb := bar_index
+        if isNew
+            // candle just completed
+            float cH = t.lH
+            float cL = t.lL
+            int   cHb = t.lHb
+            int   cLb = t.lLb
+            if liqMode != "Swing highs / lows"
+                f_addLiq(cH, cHb, 1, k, "candle")
+                f_addLiq(cL, cLb, -1, k, "candle")
+            if liqMode != "Candle highs / lows"
+                array.push(t.wH, cH)
+                array.push(t.wL, cL)
+                array.push(t.wB, t.lB)
+                int need = swLen * 2 + 1
+                if array.size(t.wH) > need
+                    array.shift(t.wH)
+                    array.shift(t.wL)
+                    array.shift(t.wB)
+                if array.size(t.wH) == need
+                    int c = swLen
+                    float ch = array.get(t.wH, c)
+                    float cl = array.get(t.wL, c)
+                    bool isHi = true
+                    bool isLo = true
+                    for j = 0 to need - 1
+                        if j != c
+                            if array.get(t.wH, j) >= ch
+                                isHi := false
+                            if array.get(t.wL, j) <= cl
+                                isLo := false
+                    if isHi
+                        f_addLiq(ch, array.get(t.wB, c), 1, k, "swing")
+                    if isLo
+                        f_addLiq(cl, array.get(t.wB, c), -1, k, "swing")
+            t.lH  := high
+            t.lL  := low
+            t.lB  := bar_index
+            t.lHb := bar_index
+            t.lLb := bar_index
+        else
+            if high > t.lH
+                t.lH  := high
+                t.lHb := bar_index
+            if low < t.lL
+                t.lL  := low
+                t.lLb := bar_index
+
+f_run(0, new0, on0)
+f_run(1, new1, on1)
+f_run(2, new2, on2)
+f_run(3, new3, on3)
+f_run(4, new4, on4)
+f_run(5, new5, on5)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CHART-TIMEFRAME FVG LIBRARY
+// ─────────────────────────────────────────────────────────────────────────────
+if barstate.isconfirmed and bar_index > 2
+    bool gUp = low > high[2] and close[1] > open[1]
+    bool gDn = high < low[2] and close[1] < open[1]
+    if (gUp or gDn)
+        float gt = gUp ? low : low[2]
+        float gb = gUp ? high[2] : high
+        if gt - gb >= minGapT * syminfo.mintick
+            Gap g = Gap.new()
+            g.dir := gUp ? 1 : -1
+            g.top := gt
+            g.bot := gb
+            g.bar := bar_index
+            array.push(gaps, g)
+            if array.size(gaps) > 60
+                array.shift(gaps)
+
+f_findGap(dir, sinceBar) =>
+    // most recent gap of that direction formed at or after sinceBar
+    Gap best = na
+    if array.size(gaps) > 0
+        for i = array.size(gaps) - 1 to 0
+            Gap g = array.get(gaps, i)
+            if na(best) and g.dir == dir and g.bar >= sinceBar
+                best := g
+    best
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SWEEP → CANDIDATE GAP → INVERSION
+// ─────────────────────────────────────────────────────────────────────────────
+// pending setup
+var int   pDir     = 0       // direction of the leg that swept: 1 = swept BSL (up leg), -1 = swept SSL
+var int   pBar     = na
+var float pExt     = na      // wick extreme since the sweep
+var float gTop     = na
+var float gBot     = na
+var int   gBar     = na
+var box   candBox  = na
+var string pTfTx   = ""
+
+bool evSweep = false
+bool evIFVG  = false
+int  ifvgDir = 0
+
+inSess = not sessOn or (sAsia and not na(time(timeframe.period, sAsiaTx, sessTz))) or (sLdn and not na(time(timeframe.period, sLdnTx, sessTz))) or (sNY and not na(time(timeframe.period, sNYTx, sessTz)))
+
+// extend live liquidity lines and detect sweeps on close
+if barstate.isconfirmed and array.size(liqs) > 0
+    for i = array.size(liqs) - 1 to 0
+        Liq q = array.get(liqs, i)
+        if not q.swept
+            bool wickSw  = q.dir == 1 ? (high > q.px and close <= q.px) : (low < q.px and close >= q.px)
+            bool closeSw = q.dir == 1 ? close > q.px : close < q.px
+            bool sw = sweepMode == "Wick through, close back inside" ? wickSw : sweepMode == "Close through the level" ? closeSw : (wickSw or closeSw)
+            if sw
+                q.swept := true
+                evSweep := true
+                if not na(q.lb)
+                    label.delete(q.lb)
+                    q.lb := na
+                if keepSwpt
+                    line.set_x2(q.l, bar_index)
+                    line.set_color(q.l, color.new(q.dir == 1 ? bslCol : sslCol, 70))
+                else
+                    line.delete(q.l)
+                    array.remove(liqs, i)
+                // quality gate: leg extreme, with a real leg into it
+                float legSz = q.dir == 1 ? q.px - q.opp : q.opp - q.px
+                bool  legOK = not qualOn or na(atrV) or legSz >= atrV * minLeg
+                bool  qualifies = q.ext and legOK
+                if qualifies
+                    // arm a new setup on the freshest qualifying sweep
+                    if not na(candBox)
+                        box.delete(candBox)
+                    pDir  := q.dir
+                    pBar  := bar_index
+                    pExt  := q.dir == 1 ? high : low
+                    pTfTx := f_tfName(q.tf)
+                    int legStart = math.max(nz(q.oppBar, bar_index - lookback), bar_index - lookback)
+                    Gap g = f_findGap(q.dir, legStart)
+                    if not na(g)
+                        gTop := g.top
+                        gBot := g.bot
+                        gBar := g.bar
+                        candBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
+                    else
+                        gTop := na
+                        gBot := na
+                        gBar := na
+            else
+                if q.dir == 1 and low < q.opp
+                    q.opp := low
+                    q.oppBar := bar_index
+                if q.dir == -1 and high > q.opp
+                    q.opp := high
+                    q.oppBar := bar_index
+                if not na(q.l)
+                    line.set_x2(q.l, bar_index)
+                if not na(q.lb)
+                    label.set_x(q.lb, bar_index)
+
+// while waiting: track the wick extreme, adopt a nearer gap if one forms, look for the inversion
+if pDir != 0 and barstate.isconfirmed
+    pExt := pDir == 1 ? math.max(pExt, high) : math.min(pExt, low)
+
+    // a newer same-direction gap is nearer to price — take it
+    Gap g = f_findGap(pDir, pBar)
+    if not na(g) and (na(gBar) or g.bar > gBar)
+        gTop := g.top
+        gBot := g.bot
+        gBar := g.bar
+        if not na(candBox)
+            box.delete(candBox)
+        candBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = color.new(#787B86, 50), bgcolor = cCandBg)
+
+    if not na(candBox)
+        box.set_right(candBox, bar_index)
+
+    bool inverted = na(gTop) ? false : pDir == 1 ? close < gBot : close > gTop
+    bool timeout  = bar_index - pBar > maxWait
+    int  wouldBe  = -pDir
+    bool biasOK   = bias == "Both" or (bias == "Bullish only" and wouldBe == 1) or (bias == "Bearish only" and wouldBe == -1)
+
+    if inverted and (not biasOK or not inSess)
+        // the inversion happened but is filtered out — drop it silently
+        if not na(candBox)
+            box.delete(candBox)
+        candBox := na
+        pDir := 0
+    else if inverted
+        ifvgDir := -pDir                       // BSL sweep + bullish gap inverted → bearish IFVG
+        evIFVG  := true
+        bool bull = ifvgDir == 1
+        color bg = bull ? cBullBg : cBearBg
+        color bd = bull ? cBullBd : cBearBd
+        if not na(candBox)
+            box.delete(candBox)
+
+        Setup st = Setup.new()
+        st.dir   := ifvgDir
+        st.bar   := bar_index
+        st.entry := close
+        st.stop  := pExt
+        float risk = math.abs(st.entry - st.stop)
+        st.t1 := bull ? st.entry + risk : st.entry - risk
+
+        st.gapBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = ifvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(ifvgBw, 1), bgcolor = bg)
+        st.lb := label.new(bar_index + 1, (gTop + gBot) / 2, bull ? "▲ +IFVG" : "▼ −IFVG", style = label.style_label_left,
+             color = color.new(color.black, 100), textcolor = bull ? lblBull : lblBear, size = f_size(lblSize))
+
+        // Stryker edit: risk / reward boxes removed
+
+        array.push(setups, st)
+        while array.size(setups) > maxSetups
+            f_killSetup(array.shift(setups))
+
+        pDir := 0
+        candBox := na
+    else if timeout
+        if not na(candBox)
+            box.delete(candBox)
+        candBox := na
+        pDir := 0
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SETUP TRACKING — extend drawings; internal pass / fail check at 1R hides failed setups (Stryker edit)
+// ─────────────────────────────────────────────────────────────────────────────
+if array.size(setups) > 0
+    for i = array.size(setups) - 1 to 0
+        Setup st = array.get(setups, i)
+        bool bull = st.dir == 1
+        int age = bar_index - st.bar
+        if not na(st.gapBox) and age <= extBars
+            box.set_right(st.gapBox, bar_index)
+            if not na(st.lb)
+                label.set_x(st.lb, bar_index + 1)
+        if not st.resolved and bar_index > st.bar
+            bool hitSL = bull ? low <= st.stop : high >= st.stop
+            bool hit1  = bull ? high >= st.t1  : low <= st.t1
+            if hit1
+                st.hit1R := true
+            if hitSL and not st.hit1R
+                // failed: never reached 1R (Stryker edit: always hidden, no "failed" text)
+                st.resolved := true
+                f_killSetup(st)
+                array.remove(setups, i)
+            else if st.hit1R or hitSL or age >= rrBars
+                st.resolved := true
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  WATERMARK
+// ─────────────────────────────────────────────────────────────────────────────
+wmPos = markPos == "Top left" ? position.top_left : markPos == "Top center" ? position.top_center : markPos == "Top right" ? position.top_right : markPos == "Bottom left" ? position.bottom_left : markPos == "Bottom center" ? position.bottom_center : position.bottom_right
+wmAlign = markPos == "Top center" or markPos == "Bottom center" ? text.align_center : markPos == "Top left" or markPos == "Bottom left" ? text.align_left : text.align_right
+var table wm = table.new(wmPos, 1, 3, border_width = 0)
+if barstate.islast and showMark
+    string tfTx = (on0 ? "5m · " : "") + (on1 ? "15m · " : "") + (on2 ? "30m · " : "") + (on3 ? "1h · " : "") + (on4 ? "4h · " : "") + (on5 ? "D · " : "")
+    if str.length(tfTx) > 3
+        tfTx := str.substring(tfTx, 0, str.length(tfTx) - 3)
+    string srcTx = liqMode == "Both" ? "swings + candles" : liqMode == "Swing highs / lows" ? "swings" : "candles"
+    table.cell(wm, 0, 0, "IFVG Pro+ [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 1, (str.length(tfTx) > 0 ? tfTx : "no timeframe above chart") + "  liquidity  ·  " + srcTx, text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 2, timeframe.period + "  chart" + (qualOn ? "  ·  leg extremes only" : "") + (bias != "Both" ? "  ·  " + str.lower(bias) : "") + (sessOn ? "  ·  " + (sAsia ? "Asia " : "") + (sLdn ? "London " : "") + (sNY ? "NY" : "") : "") + (pDir != 0 ? "  ·  waiting for inversion" : ""), text_color = color.new(markCol, 30), text_size = size.tiny, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ALERTS
+// ─────────────────────────────────────────────────────────────────────────────
+if aSweep and evSweep
+    alert("IFVG Pro+ [Stryker] · liquidity swept · " + syminfo.ticker, alert.freq_once_per_bar_close)
+if aIFVG and evIFVG
+    alert("IFVG Pro+ [Stryker] · " + (ifvgDir == 1 ? "bullish" : "bearish") + " IFVG @ " + str.tostring(close, format.mintick) + " · " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+alertcondition(evSweep, "IFVG Pro+ [Stryker] — Liquidity swept", "A BSL or SSL level was closed through")
+alertcondition(evIFVG,  "IFVG Pro+ [Stryker] — IFVG",            "Price closed through the candidate gap — inversion confirmed")

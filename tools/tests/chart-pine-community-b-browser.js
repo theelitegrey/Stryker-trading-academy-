@@ -53,7 +53,7 @@ async function setMarket(p, sym, tf, deep){
   }, [sym, deep]);
 }
 const clearPine = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
-// Open the window on COMMUNITY > Community indicators, find the row, click it, wait for the
+// Open the window on COMMUNITY > Top (third-party built-ins, since 2026-10-08), find the row, click it, wait for the
 // first drawing. Returns { listed, sub, auth, ms, c }.
 async function addViaWindow(p, id, name){
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
@@ -106,7 +106,7 @@ async function addViaWindow(p, id, name){
         const [name, author] = ALL[id];
         await clearPine(p);
         const r = await addViaWindow(p, id, name);
-        check(r.listed, `${name}: listed in COMMUNITY > Community indicators`);
+        check(r.listed, `${name}: listed in COMMUNITY > Top`);
         if (!r.listed) continue;
         check(r.row.name === name && r.row.sub === author && !/stryker/i.test(r.row.sub + r.row.auth), `${name}: row "${r.row.name}" by "${r.row.sub}" tag "${r.row.tag}"`);
         const c = r.c;

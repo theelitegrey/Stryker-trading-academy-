@@ -8954,3 +8954,31 @@ select.stkw-in option{ color:#131722; background:#fff; }
   .stkw-back{ padding-top:6vh; }
   .stkw-pin{ flex-basis:110px; width:110px; }
 }
+
+/* Community Indicators Disclaimer (assets/chart-community-disclaimer.js, build 464).
+   Notice at the top of the Community section of the Indicators window + the one-time
+   "I understand" dialog. Mint (--gold) / teal accents on the true-black card; the dialog's
+   text scrolls with the shared global scrollbar (no per-component scrollbar rules). */
+.stkcd-note{ margin:8px 6px 6px; padding:10px 12px; border:1px solid rgba(3,201,136,.28); border-left:3px solid var(--gold); border-radius:8px; background:rgba(3,201,136,.06); font-size:12.5px; line-height:1.45; color:var(--ink-1); }
+.stkcd-line{ margin:0; }
+.stkcd-more{ border:0; background:none; padding:0; font:inherit; color:var(--teal); cursor:pointer; text-decoration:underline; text-underline-offset:2px; white-space:nowrap; }
+.stkcd-more:hover{ color:var(--gold); }
+.stkcd-body{ margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+.stkcd-t{ margin:0 0 6px; font-weight:600; color:var(--ink-0); }
+.stkcd-full p{ margin:0 0 8px; color:var(--ink-2); }
+.stkcd-full p:last-child{ margin-bottom:0; }
+.stkcd-ov{ z-index:10010; }
+.stkcd-card{ display:flex; flex-direction:column; width:100%; max-width:520px; max-height:min(620px, 88vh); background:var(--bg-0); color:var(--ink-1); border:1px solid var(--line); border-top:3px solid var(--gold); border-radius:12px; box-shadow:0 24px 60px rgba(0,0,0,.6); overflow:hidden; }
+.stkcd-card h2{ margin:0; padding:16px 18px 8px; font-size:17px; font-weight:600; color:var(--ink-0); }
+.stkcd-scroll{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:0 18px 4px; font-size:13.5px; line-height:1.55; }
+.stkcd-acts{ display:flex; justify-content:flex-end; gap:10px; padding:12px 18px 16px; border-top:1px solid var(--line); }
+.stkcd-cancel, .stkcd-ok{ min-height:40px; padding:0 16px; border-radius:8px; font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+.stkcd-cancel{ border:1px solid var(--line); background:none; color:var(--ink-1); }
+.stkcd-cancel:hover{ color:var(--ink-0); background:var(--bg-2); }
+.stkcd-ok{ border:0; background:var(--gold); color:#000; }
+.stkcd-ok:hover{ filter:brightness(1.08); }
+.stkcd-ok:focus-visible, .stkcd-cancel:focus-visible, .stkcd-more:focus-visible{ outline:2px solid var(--teal); outline-offset:2px; }
+@media (max-width:700px){
+  .stkcd-card{ max-width:none; max-height:88dvh; border-radius:14px 14px 0 0; border-left:0; border-right:0; border-bottom:0; }
+  .stkcd-acts .stkcd-cancel, .stkcd-acts .stkcd-ok{ flex:1 1 0; }
+}

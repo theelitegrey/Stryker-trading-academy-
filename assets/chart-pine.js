@@ -28,6 +28,12 @@
 // The in-process engine runs on the page thread, so the 20 s cap can't interrupt it
 // mid-run; PineTS' own loop guard still applies.
 //
+// NEXT ENGINE (build 456): assets/chart-pine-next.js + chart-pine-next-worker.js run the
+// newer pinets (0.11.0, same as the import map) inside a module Web Worker, language id
+// 'pine-next'. A script the old worker rejects is retried there first (off the page thread);
+// the in-process engine is now only the last resort when module workers are unavailable.
+// The built-in Stryker Pine indicators (chart-pine-builtins.js) run on it directly.
+//
 // HOW IT RUNS: PineWorkerEngine — each chart cell gets its own Web Worker, so a heavy
 // script never blocks the page. A first run that takes longer than RUN_LIMIT_MS is
 // stopped: the indicator is removed, that cell's worker is terminated and replaced,
@@ -59,6 +65,23 @@ const guardOk = (src) => { try { return !!(window.StrykerPineGuard && window.Str
 // Language ids. LANG_MAIN is our own registry key for the in-process engine.
 const LANG = 'pine';
 const LANG_MAIN = 'pine-main';
+const LANG_NEXT = 'pine-next';
+const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a module worker)
+const onNext = new WeakSet();      // handles running on the next engine
+let NextMod = null;
+function loadNext(){
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=455').catch((e) => { NextMod = null; throw e; });
+  return NextMod;
+}
+async function ensureNext(chart){
+  const m = await loadNext();
+  if (!nextEngines.has(chart)) {
+    const e = new m.PineNextEngine({ props: 'strategy' });
+    chart.registerEngine(LANG_NEXT, e);
+    nextEngines.set(chart, e);
+  }
+  return nextEngines.get(chart);
+}
 
 function loadPine(){
   if (!enginePromise) {
@@ -92,8 +115,10 @@ async function ensureEngine(chart){
 function addOn(chart, x){
   if (x.lib && !guardOk(x.source)) { console.warn('Stryker: shared Pine script failed the safety check, not restored'); return null; }
   const main = x.engine === 'main' && !x.lib;
-  const h = chart.addIndicator(x.source, { language: main ? LANG_MAIN : LANG, inputs: x.inputs || {} });
+  const next = x.engine === 'next' && !x.lib && nextEngines.has(chart);
+  const h = chart.addIndicator(x.source, { language: next ? LANG_NEXT : main ? LANG_MAIN : LANG, inputs: x.inputs || {} });
   if (main && h) onMain.add(h);
+  if (next && h) onNext.add(h);
   if (x.lib && h) libOf.set(h, x.lib);
   return h;
 }
@@ -112,6 +137,7 @@ function snapshot(h){
   try { inputs = h.inputValues() || {}; } catch (e) {}
   const o = { name: titleOf(h), source: h.source, inputs };
   if (onMain.has(h)) o.engine = 'main';
+  if (onNext.has(h)) o.engine = 'next';
   if (libOf.has(h)) o.lib = libOf.get(h);
   return o;
 }
@@ -128,7 +154,7 @@ function cleanEntry(x){
   const L = x.lib;
   if (L && typeof L === 'object' && /^[A-Za-z0-9]{20,40}$/.test(String(L.id || ''))) {
     o.lib = { id: L.id, version: +L.version || 1, openSource: L.openSource !== false, ownerUid: String(L.ownerUid || '').slice(0, 128), name: String(L.name || '').slice(0, 60) };
-  } else if (x.engine === 'main') o.engine = 'main';
+  } else if (x.engine === 'main' || x.engine === 'next') o.engine = x.engine;
   return o;
 }
 
@@ -140,6 +166,8 @@ async function resetCell(chart, keep){
   pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });
   try { if (old && old.terminate) old.terminate(); } catch (e) {}
   engines.delete(chart);
+  const nx = nextEngines.get(chart);
+  if (nx) { try { nx.terminate(); } catch (e) {} }   // its worker respawns on the next run
   await ensureEngine(chart);
   keep.forEach((k) => { try { addOn(chart, k); } catch (e) {} });
   changed();
@@ -190,21 +218,33 @@ function hideVelaErrorToast(){
   kill(); setTimeout(kill, 60); setTimeout(kill, 400);
 }
 
-async function runOnChart(chart, source, inputs, shared){
+// opts.engine === 'next': run straight on the next engine (built-in Stryker indicators).
+async function runOnChart(chart, source, inputs, shared, opts){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
   const keep = pineHandles(chart).map(snapshot);
   let timer;
   const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
-  let res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]);
-  let main = false;
+  const runNext = async () => {
+    try { await ensureNext(chart); } catch (e) { console.warn('Stryker: Pine next engine', e); return null; }
+    return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
+  };
+  let res = null, engine = 'worker';
+  if (opts && opts.engine === 'next' && !shared) { res = await runNext(); engine = 'next'; }
+  if (!res) { res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]); engine = 'worker'; }
   // The worker's built-in PineTS is older than the page's (vela-pinets 0.2.11 inlines
-  // its own copy). When it doesn't know a name (e.g. `scale.right`), retry once on the
-  // in-process engine, which runs the newer pinets pinned in charts.html.
-  if (!shared && res && !res.timedOut && !res.ok && /is not defined/.test(String(res.error && res.error.message))) {
+  // its own copy): it lacks names such as `scale.right` and fails at run time on some
+  // newer constructs (e.g. a box held in a user-defined type). Retry once on the next
+  // engine (newer pinets, still off the page thread); only if module workers can't start,
+  // on the in-process engine.
+  if (!shared && engine === 'worker' && res && !res.timedOut && !res.ok && !/^Failed to transpile/.test(String(res.error && res.error.message))) {
     hideVelaErrorToast();
-    res = await Promise.race([chart.runIndicator(source, { language: LANG_MAIN, inputs: inputs || {} }), timeout]);
-    main = true;
+    const r2 = await runNext();
+    if (r2) { res = r2; engine = 'next'; }
+    else if (/is not defined/.test(String(res.error && res.error.message))) {
+      res = await Promise.race([chart.runIndicator(source, { language: LANG_MAIN, inputs: inputs || {} }), timeout]);
+      engine = 'main';
+    }
   }
   clearTimeout(timer);
   if (res && res.timedOut) {
@@ -216,9 +256,10 @@ async function runOnChart(chart, source, inputs, shared){
     const ex = explain(res && res.error, source);
     return { ok: false, msg: ex.msg, line: ex.line };
   }
-  if (main && res.handle) onMain.add(res.handle);
+  if (engine === 'main' && res.handle) onMain.add(res.handle);
+  if (engine === 'next' && res.handle) onNext.add(res.handle);
   changed();
-  return { ok: true, handle: res.handle, engine: main ? 'main' : 'worker' };
+  return { ok: true, handle: res.handle, engine };
 }
 
 // Called by vela-chart.js BEFORE the workspace is constructed.
@@ -240,7 +281,8 @@ export function installPine(core, wsGetter){
         // A template applied over a cell that already runs Pine: replace, never stack.
         pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });
         if (!list.length) return;
-        ensureEngine(chart).then(() => {
+        const needNext = list.some((x) => x.engine === 'next' && !x.lib);
+        ensureEngine(chart).then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
           list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('Stryker: Pine restore', e); } });
         }).catch((e) => { console.warn('Stryker: Pine engine failed to load', e); });
       }

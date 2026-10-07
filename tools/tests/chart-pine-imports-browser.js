@@ -13,10 +13,12 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8061';
 const OUT = process.env.OUT || require('path').join(require('os').tmpdir(), 'pine-imports');
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
-const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]', 'FVG Relay [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
 // The Owner's own scripts: listed under Editors' picks (or the Stryker group before the picker
 // sections landed), author Stryker.
-const PICKS = new Set(['SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]']);
+// Owner order 2026-10-08: they run EXACTLY as written (no wording edits), so the buy/sell
+// drawn-text check is skipped for them.
+const PICKS = new Set(['SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]', 'FVG Relay [Stryker]']);
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 const BAD = /\b(buy|buys|sell|sells|long|short)\b|look for/i;
@@ -76,14 +78,15 @@ async function counts(p){
       if (ind && (Object.keys(ind.series || {}).length || ind.boxes || ind.labels)) {
         await new Promise((r) => setTimeout(r, 1500));
         const s2 = (chart.inspect().indicators || []).find((x) => x.id === h.id);
-        let txt = '';
+        let txt = '', rightBoxes = 0, maxX = 0, lastIdx = chart.orchestrator.rawBars.length - 1;
         try {
           const rec = [...chart.orchestrator.registry.all()].find((r) => r.model && r.model.id === h.id);
           const m = rec.model;
+          (m.boxes || []).forEach((b) => { if (b.xloc === 'bar_index' && b.left > lastIdx) rightBoxes++; if (b.xloc === 'bar_index') maxX = Math.max(maxX, b.right); });
           txt = [].concat((m.labels || []).map((l) => l.text || ''), (m.boxes || []).map((b) => b.text || ''),
             ...(m.tables || []).map((t) => JSON.stringify(t).match(/"text":"[^"]*"/g) || [])).join(' | ');
         } catch (e) { txt = '(text n/a ' + e.message + ')'; }
-        return { series: Object.values(s2.series).reduce((a, b) => a + b, 0), lines: s2.lines, boxes: s2.boxes, labels: s2.labels, tables: s2.tables, text: txt };
+        return { rightBoxes, maxX, lastIdx, series: Object.values(s2.series).reduce((a, b) => a + b, 0), lines: s2.lines, boxes: s2.boxes, labels: s2.labels, tables: s2.tables, text: txt };
       }
       await new Promise((r) => setTimeout(r, 500));
     }
@@ -96,13 +99,13 @@ async function counts(p){
   try {
     // ---- desktop ----
     const { ctx, p, errs } = await page(b, 1440, 900);
-    for (const [sym, tf] of (process.env.DEEP ? [['futures:NQ1!', '5'], ['binance:BTCUSDT', '1']] : [['futures:NQ1!', '5'], ['binance:BTCUSDT', '15']])) {
+    for (const [sym, tf] of (process.env.DEEP ? [['futures:NQ1!', '5'], ['binance:BTCUSDT', '1']] : [['futures:NQ1!', '5'], ['binance:BTCUSDT', '15'], ['futures:NQ1!', '1']])) {
       // fresh chart per market: a stopped run cannot be aborted inside the worker (it finishes
       // in the background), so switching with WCSMC attached would queue those runs first.
       await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
       const n = await setMarket(p, sym, tf, +process.env.DEEP || 0);
       console.log('INFO', sym, tf, n, 'bars');
-      for (const name of NAMES) {
+      for (const name of NAMES.filter((n) => (sym === 'futures:NQ1!' && tf === '1') ? /^FVG Relay/.test(n) : !(/^FVG Relay/.test(n) && +tf >= 15))) {
         await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
         const ms = await addViaWindow(p, name);
         await p.evaluate(() => { window.__lt = []; });
@@ -113,10 +116,17 @@ async function counts(p){
         console.log('INFO', name, sym, tf, 'added in', ms, 'ms', JSON.stringify({ ...c, text: (c.text || '').slice(0, 300) }));
         check((c.boxes + c.lines + c.labels) > 0, `${name} ${sym} ${tf}: draws (series ${c.series}, boxes ${c.boxes}, lines ${c.lines}, labels ${c.labels})`);
         check(c.tables > 0, `${name} ${sym} ${tf}: panel/table renders (${c.tables})`);
-        check(!BAD.test(c.text || ''), `${name} ${sym} ${tf}: no buy/sell/long/short wording in drawn text`);
-        // Owner scripts: no entry / stop / target wording anywhere (site rule)
-        if (PICKS.has(name)) check(!/\b(SL|TP|entry|stop loss|take profit)\b|R target|failed/i.test(c.text || ''), `${name} ${sym} ${tf}: no SL / TP / R target / failed text`);
+        if (!PICKS.has(name)) check(!BAD.test(c.text || ''), `${name} ${sym} ${tf}: no buy/sell/long/short wording in drawn text`);
         if (/^SMT/.test(name)) check(/[▲▼]/.test(c.text || '') && /SMT Divergence Pro/.test(c.text || ''), `${name} ${sym} ${tf}: SMT markers + watermark`);
+        if (/^HTF PO3/.test(name)) {
+          // candle stack right of the last bar, TF labels with a countdown ("15m\n12m 3s")
+          const cd = ((c.text || '').match(/\b(15m|1H|4H)\n\d+[hms]/g) || []).length;
+          check(c.rightBoxes > 0 && c.maxX > c.lastIdx && cd >= (tf === "5" ? 3 : 2), `${name} ${sym} ${tf}: ${c.rightBoxes} boxes right of the last bar (max x ${c.maxX} > ${c.lastIdx}), ${cd} TF labels with countdown`);
+        }
+        if (/^FVG Relay/.test(name) && tf === '1') {
+          const g = ((c.text || '').match(/\b15m\b/g) || []).length;
+          check(g > 0 && c.boxes > 0 && c.lines > 0 && c.tables > 0, `${name} ${sym} ${tf}: ${c.boxes} gap boxes, ${g} "15m" labels, ${c.lines} lines, dashboard`);
+        }
         if (/^IFVG/.test(name)) {
           const liq = ((c.text || '').match(/\b(BSL|SSL) (5m|15m|30m|1h|4h|D)\b/g) || []).length;
           check(liq > 0 && c.boxes > 0 && /IFVG Pro\+ \[Stryker\]/.test(c.text || ''), `${name} ${sym} ${tf}: ${liq} BSL/SSL labels, ${c.boxes} IFVG/candidate boxes, watermark`);
@@ -140,10 +150,10 @@ async function counts(p){
         // the legend row's "Indicator settings" menu entry calls this
         let gearInfo = '';
         try { chart.renderer.openIndicatorSettings(h.id); await new Promise((r) => setTimeout(r, 900)); } catch (e) { gearInfo = e.message; }
-        const dlg = [...document.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="modal"]')].find((x) => x.offsetParent && /Stoic|WCSMC|SMT|IFVG|PO3/.test(x.textContent));
+        const dlg = [...document.querySelectorAll('[role="dialog"], [class*="dialog"], [class*="modal"]')].find((x) => x.offsetParent && /Stoic|WCSMC|SMT|FVG|PO3/.test(x.textContent));
         opened = !!dlg;
         const dialogInputs = dlg ? dlg.querySelectorAll('input, select, button[role="switch"], [role="checkbox"]').length : 0;
-        const key = ['i_showPanel', 'showSmt', 'on1'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
+        const key = ['i_showPanel', 'showSmt', 'on1', 'showFVG', 'showLiq'].find((k) => typeof inputs[k] === 'boolean') || keys.find((k) => typeof inputs[k] === 'boolean');
         const before = JSON.stringify(chart.inspect().indicators.find((x) => x.id === h.id));
         const v0 = inputs[key];
         h.setInputs ? h.setInputs({ [key]: !v0 }) : h.update({ [key]: !v0 });

@@ -12,16 +12,11 @@
 //     3. The most recent chart-timeframe FVG inside the sweep leg becomes the
 //        candidate gap.
 //     4. When price closes back through that gap, it inverts — IFVG.
-//     5. Stryker edit: the risk/reward box is removed on strykertrading.com.
+//     5. Optional risk/reward box: stop at the sweep wick extreme, reward at
+//        the R multiple you set.
 //
 //   Higher timeframe candles are aggregated from completed chart bars —
 //   no request.security(), no lookahead, no restatement of history.
-//
-//   Stryker built-in copy (Owner order 2026-10-08, "add this indicator, its strykers").
-//   Stryker edits (site rules, each marked "Stryker edit"): the Risk / Reward group and its
-//   boxes and SL / TP / R text are removed; failed setups are always hidden (the internal
-//   1R pass/fail check is kept only for that); BSL / SSL default colours are a grey that
-//   shows on dark and light charts. Education only. Not financial advice.
 // ═════════════════════════════════════════════════════════════════════════════
 
 indicator("IFVG Pro+ [Stryker]", "IFVG Pro+ [Stryker]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
@@ -33,6 +28,7 @@ const string G_LIQ = "Stryker · Liquidity Source"
 const string G_LST = "Stryker · Liquidity Style"
 const string G_QUA = "Stryker · Setup Quality"
 const string G_IFV = "Stryker · IFVG"
+const string G_RR  = "Stryker · Risk / Reward"
 const string G_MSC = "Stryker · Other"
 
 liqMode  = input.string("Both", "Liquidity from", options = ["Swing highs / lows", "Candle highs / lows", "Both"], group = G_LIQ)
@@ -46,12 +42,10 @@ tfD      = input.bool(false, "D",   inline = "t", group = G_LIQ)
 swLen    = input.int(2, "Swing strength (candles either side)", minval = 1, maxval = 10, group = G_LIQ)
 liqKeep  = input.int(10, "Levels kept each side", minval = 2, maxval = 40, group = G_LIQ)
 
-bslCol   = input.color(#9598A1,  // Stryker edit: was #000000 (invisible on a dark chart)
-      "BSL", inline = "b", group = G_LST)
+bslCol   = input.color(#000000, "BSL", inline = "b", group = G_LST)
 bslStyle = input.string("Dotted", "", options = ["Solid", "Dashed", "Dotted"], inline = "b", group = G_LST)
 bslWidth = input.int(1, "", minval = 1, maxval = 4, inline = "b", group = G_LST)
-sslCol   = input.color(#9598A1,  // Stryker edit: was #000000 (invisible on a dark chart)
-      "SSL", inline = "s", group = G_LST)
+sslCol   = input.color(#000000, "SSL", inline = "s", group = G_LST)
 sslStyle = input.string("Dotted", "", options = ["Solid", "Dashed", "Dotted"], inline = "s", group = G_LST)
 sslWidth = input.int(1, "", minval = 1, maxval = 4, inline = "s", group = G_LST)
 liqLbl   = input.bool(true, "Labels (BSL 15m etc.)", group = G_LST)
@@ -87,10 +81,15 @@ lblSize  = input.string("Small", "Label size", options = ["Tiny", "Small", "Norm
 lblBull  = input.color(#26A69A, "Label   bullish", inline = "lb", group = G_IFV)
 lblBear  = input.color(#EF5350, "bearish", inline = "lb", group = G_IFV)
 maxSetups = input.int(5, "Setups kept on screen (most recent)", minval = 1, maxval = 50, group = G_IFV)
-hideFail  = true   // Stryker edit: failed setups are always hidden (input removed)
+hideFail  = input.bool(true, "Hide failed setups", tooltip = "A setup that hits its stop before reaching 1R is failed and removed from the chart.", group = G_IFV)
 
-// Stryker edit: Risk / Reward inputs removed (showRR, rrSel, rrCust, rrBars, rrText, colours).
-rrBars   = 30   // Stryker edit: setup tracking window (bars), the removed input's default
+showRR   = input.bool(true, "Risk / reward box", group = G_RR)
+rrSel    = input.string("1:2", "Reward", options = ["1:1", "1:2", "1:3", "Custom"], group = G_RR)
+rrCust   = input.float(2.5, "Custom R", minval = 0.25, step = 0.25, group = G_RR)
+rrBars   = input.int(30, "Box length (bars) — ends early on TP or SL", minval = 5, maxval = 300, group = G_RR)
+rrText   = input.bool(true, "Show SL / TP prices on the boxes", group = G_RR)
+rrRisk   = input.color(color.new(#EF5350, 80), "Risk", inline = "rr", group = G_RR)
+rrRew    = input.color(color.new(#26A69A, 80), "Reward", inline = "rr", group = G_RR)
 
 showMark = input.bool(true, "Watermark", inline = "w", group = G_MSC)
 markPos  = input.string("Bottom right", "", options = ["Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right"], inline = "w", group = G_MSC)
@@ -101,6 +100,7 @@ aSweep   = input.bool(false, "Alert on liquidity sweep", group = G_MSC)
 f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
 f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
 f_tfName(k) => k == 0 ? "5m" : k == 1 ? "15m" : k == 2 ? "30m" : k == 3 ? "1h" : k == 4 ? "4h" : "D"
+rrMult = rrSel == "1:1" ? 1.0 : rrSel == "1:2" ? 2.0 : rrSel == "1:3" ? 3.0 : rrCust
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  TIMEFRAME SELECTION
@@ -174,9 +174,12 @@ type Setup
     float entry    = na
     float stop     = na
     float t1       = na       // 1R — the pass / fail line
+    float tp       = na
     bool  hit1R    = false
     bool  resolved = false
     box   gapBox   = na
+    box   riskBox  = na
+    box   rewBox   = na
     label lb       = na
 
 var array<TF>    tfs    = array.new<TF>()
@@ -187,6 +190,10 @@ var array<Setup> setups = array.new<Setup>()
 f_killSetup(st) =>
     if not na(st.gapBox)
         box.delete(st.gapBox)
+    if not na(st.riskBox)
+        box.delete(st.riskBox)
+    if not na(st.rewBox)
+        box.delete(st.rewBox)
     if not na(st.lb)
         label.delete(st.lb)
 
@@ -344,7 +351,7 @@ f_findGap(dir, sinceBar) =>
 // pending setup
 var int   pDir     = 0       // direction of the leg that swept: 1 = swept BSL (up leg), -1 = swept SSL
 var int   pBar     = na
-var float pExt     = na      // wick extreme since the sweep
+var float pExt     = na      // wick extreme since the sweep — the stop
 var float gTop     = na
 var float gBot     = na
 var int   gBar     = na
@@ -456,12 +463,17 @@ if pDir != 0 and barstate.isconfirmed
         st.stop  := pExt
         float risk = math.abs(st.entry - st.stop)
         st.t1 := bull ? st.entry + risk : st.entry - risk
+        st.tp := bull ? st.entry + risk * rrMult : st.entry - risk * rrMult
 
         st.gapBox := box.new(gBar - 2, gTop, bar_index, gBot, border_color = ifvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(ifvgBw, 1), bgcolor = bg)
         st.lb := label.new(bar_index + 1, (gTop + gBot) / 2, bull ? "▲ +IFVG" : "▼ −IFVG", style = label.style_label_left,
              color = color.new(color.black, 100), textcolor = bull ? lblBull : lblBear, size = f_size(lblSize))
 
-        // Stryker edit: risk / reward boxes removed
+        if showRR and risk > 0
+            st.riskBox := box.new(bar_index, bull ? st.entry : st.stop, bar_index, bull ? st.stop : st.entry, border_color = color.new(rrRisk, 100), bgcolor = rrRisk,
+                 text = rrText ? "SL " + str.tostring(st.stop, format.mintick) : "", text_color = color.new(rrRisk, 0), text_size = size.tiny, text_halign = text.align_right, text_valign = bull ? text.align_bottom : text.align_top)
+            st.rewBox := box.new(bar_index, bull ? st.tp : st.entry, bar_index, bull ? st.entry : st.tp, border_color = color.new(rrRew, 100), bgcolor = rrRew,
+                 text = rrText ? "TP " + str.tostring(st.tp, format.mintick) + "  (" + str.tostring(rrMult, "#.##") + "R)" : "", text_color = color.new(rrRew, 0), text_size = size.tiny, text_halign = text.align_right, text_valign = bull ? text.align_top : text.align_bottom)
 
         array.push(setups, st)
         while array.size(setups) > maxSetups
@@ -476,7 +488,7 @@ if pDir != 0 and barstate.isconfirmed
         pDir := 0
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  SETUP TRACKING — extend drawings; internal pass / fail check at 1R hides failed setups (Stryker edit)
+//  SETUP TRACKING — extend drawings, pass / fail at 1R, resolve at TP or SL
 // ─────────────────────────────────────────────────────────────────────────────
 if array.size(setups) > 0
     for i = array.size(setups) - 1 to 0
@@ -490,15 +502,33 @@ if array.size(setups) > 0
         if not st.resolved and bar_index > st.bar
             bool hitSL = bull ? low <= st.stop : high >= st.stop
             bool hit1  = bull ? high >= st.t1  : low <= st.t1
+            bool hitTP = bull ? high >= st.tp  : low <= st.tp
             if hit1
                 st.hit1R := true
             if hitSL and not st.hit1R
-                // failed: never reached 1R (Stryker edit: always hidden, no "failed" text)
+                // failed: never reached 1R
                 st.resolved := true
-                f_killSetup(st)
-                array.remove(setups, i)
-            else if st.hit1R or hitSL or age >= rrBars
+                if hideFail
+                    f_killSetup(st)
+                    array.remove(setups, i)
+                else
+                    if not na(st.rewBox)
+                        box.set_right(st.rewBox, bar_index)
+                    if not na(st.riskBox)
+                        box.set_right(st.riskBox, bar_index)
+                    if not na(st.lb)
+                        label.set_text(st.lb, (bull ? "▲ +IFVG" : "▼ −IFVG") + " · failed")
+            else if hitTP or hitSL or age >= rrBars
                 st.resolved := true
+                if not na(st.rewBox)
+                    box.set_right(st.rewBox, bar_index)
+                if not na(st.riskBox)
+                    box.set_right(st.riskBox, bar_index)
+            else
+                if not na(st.rewBox)
+                    box.set_right(st.rewBox, bar_index)
+                if not na(st.riskBox)
+                    box.set_right(st.riskBox, bar_index)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  WATERMARK
@@ -513,7 +543,7 @@ if barstate.islast and showMark
     string srcTx = liqMode == "Both" ? "swings + candles" : liqMode == "Swing highs / lows" ? "swings" : "candles"
     table.cell(wm, 0, 0, "IFVG Pro+ [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
     table.cell(wm, 0, 1, (str.length(tfTx) > 0 ? tfTx : "no timeframe above chart") + "  liquidity  ·  " + srcTx, text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
-    table.cell(wm, 0, 2, timeframe.period + "  chart" + (qualOn ? "  ·  leg extremes only" : "") + (bias != "Both" ? "  ·  " + str.lower(bias) : "") + (sessOn ? "  ·  " + (sAsia ? "Asia " : "") + (sLdn ? "London " : "") + (sNY ? "NY" : "") : "") + (pDir != 0 ? "  ·  waiting for inversion" : ""), text_color = color.new(markCol, 30), text_size = size.tiny, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 2, timeframe.period + "  chart  ·  " + str.tostring(rrMult, "#.##") + "R target" + (qualOn ? "  ·  leg extremes only" : "") + (bias != "Both" ? "  ·  " + str.lower(bias) : "") + (sessOn ? "  ·  " + (sAsia ? "Asia " : "") + (sLdn ? "London " : "") + (sNY ? "NY" : "") : "") + (pDir != 0 ? "  ·  waiting for inversion" : ""), text_color = color.new(markCol, 30), text_size = size.tiny, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  ALERTS

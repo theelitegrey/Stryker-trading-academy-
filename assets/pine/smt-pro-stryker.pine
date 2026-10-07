@@ -1,6 +1,4 @@
 //@version=6
-// Stryker built-in copy, Owner order 2026-10-08 ("add this indicator, its strykers"): runs unmodified.
-// TradingView comparison tickers (CME_MINI:ES1! etc.) resolve to our futures feed (ES/NQ/YM/RTY).
 // ═════════════════════════════════════════════════════════════════════════════
 //   SMT DIVERGENCE PRO [Stryker]
 //   © Stryker Trading  ·  strykertrading.com

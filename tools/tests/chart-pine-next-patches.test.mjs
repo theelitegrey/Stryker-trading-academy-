@@ -89,4 +89,25 @@ check(R('    var box b = c ? box.new(1, 2, 3, 4) : na').startsWith('    var box 
 const cellText = async (src) => { const r = await new pt.PineTS(bars(60, 5), 'X', '5').run(src); const t = r.plots.__tables__.data.slice(-1)[0].value[0]; return t && t.cells[0][0] && t.cells[0][0].text; };
 check((await cellText(rw)) === 'A', 'rewritten script: table cell text present ("A")');
 console.log('INFO unrewritten pinets cell:', JSON.stringify(await cellText(TB)));
+// time_close(tf): the CLOSE of the higher-timeframe period (pinets returned its open)
+{
+  const T0 = Date.UTC(2026, 9, 7);
+  const tb = Array.from({ length: 300 }, (_, i) => ({ openTime: T0 + i * 3e5, closeTime: T0 + (i + 1) * 3e5, open: 1, high: 2, low: 0, close: 1, volume: 1 }));
+  const r = await new pt.PineTS(tb, 'X', '5').run(`//@version=6
+indicator("tc", overlay=true)
+plot(time_close("15"), "tc15")
+plot(time_close("60"), "tc60")
+plot(time_close("D"), "tcD")
+plot(time_close(), "tc")
+plot(time_close("5"), "tc5")
+plot(time_close("15", "0930-1000", "UTC"), "tcs")
+`);
+  const v = (k) => r.plots[k].data[7].value; // bar 00:35 UTC
+  check(v('tc15') === Date.UTC(2026, 9, 7, 0, 45), 'time_close("15") = close of the 15m period');
+  check(v('tc60') === Date.UTC(2026, 9, 7, 1), 'time_close("60") = close of the hour');
+  check(v('tcD') === Date.UTC(2026, 9, 8), 'time_close("D") = end of the day');
+  check(v('tc') === tb[7].closeTime && v('tc5') === tb[7].closeTime, 'time_close() / chart TF unchanged (bar close)');
+  check(Number.isNaN(v('tcs')), 'time_close with a session outside the bar stays na');
+  check(patches.periodClose(Date.UTC(2026, 0, 31), '1M') === Date.UTC(2026, 1, 1), 'periodClose: month');
+}
 process.exit(fails ? 1 : 0);

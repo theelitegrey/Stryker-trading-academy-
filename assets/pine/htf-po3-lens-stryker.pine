@@ -1,0 +1,326 @@
+//@version=6
+// ═════════════════════════════════════════════════════════════════════════════
+//   HTF PO3 LENS [Stryker]
+//   © Stryker Trading  ·  strykertrading.com
+//   Version 1.0  ·  Pine Script v6
+//
+//   Power of Three, read from the timeframe you trade.
+//   Up to five higher timeframes are redrawn to the right of the chart as
+//   live candles, price-aligned with the chart, with the fair value gaps
+//   that form between them and the liquidity sweeps they print. Each stack
+//   carries its timeframe and a countdown to the candle close.
+//
+//   Higher timeframe candles are aggregated from completed chart bars.
+//   No request.security(), no lookahead.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("HTF PO3 Lens [Stryker]", "HTF PO3 Lens [Stryker]", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_TF  = "Stryker · Timeframes"
+const string G_LAY = "Stryker · Layout"
+const string G_CDL = "Stryker · Candles"
+const string G_FVG = "Stryker · Fair Value Gaps"
+const string G_SWP = "Stryker · Sweeps"
+const string G_MSC = "Stryker · Other"
+
+on1 = input.bool(true,  "", inline = "1", group = G_TF)
+tf1 = input.timeframe("15", "", inline = "1", group = G_TF)
+on2 = input.bool(true,  "", inline = "2", group = G_TF)
+tf2 = input.timeframe("60", "", inline = "2", group = G_TF)
+on3 = input.bool(true,  "", inline = "3", group = G_TF)
+tf3 = input.timeframe("240", "", inline = "3", group = G_TF)
+on4 = input.bool(false, "", inline = "4", group = G_TF)
+tf4 = input.timeframe("D", "", inline = "4", group = G_TF)
+on5 = input.bool(false, "", inline = "5", group = G_TF)
+tf5 = input.timeframe("W", "", inline = "5", group = G_TF)
+nCdl = input.int(2, "Candles per timeframe", minval = 1, maxval = 6, group = G_TF)
+
+offsetB = input.int(15, "Distance from last bar (bars)", minval = 3, maxval = 200, group = G_LAY)
+cdlW    = input.int(2, "Candle half-width (bars)", minval = 1, maxval = 6, group = G_LAY)
+cdlGap  = input.int(1, "Gap between candles (bars)", minval = 0, maxval = 10, group = G_LAY)
+tfGap   = input.int(3, "Gap between timeframes (bars)", minval = 1, maxval = 40, group = G_LAY)
+showPx  = input.bool(true, "Current price line across the panel", group = G_LAY)
+pxCol   = input.color(color.new(#787B86, 40), "", inline = "px", group = G_LAY)
+
+cUpBody = input.color(#26A69A, "Bull body", inline = "cb", group = G_CDL)
+cUpBdr  = input.color(#1B5E20, "border", inline = "cb", group = G_CDL)
+cUpWick = input.color(#26A69A, "wick", inline = "cb", group = G_CDL)
+cDnBody = input.color(#434651, "Bear body", inline = "cr", group = G_CDL)
+cDnBdr  = input.color(#131722, "border", inline = "cr", group = G_CDL)
+cDnWick = input.color(#434651, "wick", inline = "cr", group = G_CDL)
+bdW     = input.int(1, "Border width", minval = 0, maxval = 3, group = G_CDL)
+lblCol  = input.color(#787B86, "Timeframe text", inline = "lb", group = G_CDL)
+lblSize = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "lb", group = G_CDL)
+showCnt = input.bool(true, "Countdown to close", group = G_CDL)
+
+showFVG = input.bool(true, "Show HTF fair value gaps", group = G_FVG)
+fvgUp   = input.color(color.new(#26A69A, 78), "Bullish", inline = "f", group = G_FVG)
+fvgDn   = input.color(color.new(#EF5350, 78), "Bearish", inline = "f", group = G_FVG)
+fvgExt  = input.bool(true, "Extend gap to the end of the stack", group = G_FVG)
+
+showSwp = input.bool(true, "Mark sweeps on the HTF candles", tooltip = "A short line at the swept level, from the candle that set it across the wick that took it.", group = G_SWP)
+swpN    = input.int(1, "Sweeps shown per stack (most recent first)", minval = 1, maxval = 6, tooltip = "Capped by the number of candles in the stack — there can never be more sweeps than candles.", group = G_SWP)
+swpCol  = input.color(#131722, "Marker", inline = "s", group = G_SWP)
+swpW    = input.int(2, "", minval = 1, maxval = 4, inline = "s", group = G_SWP)
+swpText = input.bool(false, "BSL / SSL text beside the marker", group = G_SWP)
+liqLines = input.bool(false, "Liquidity lines across the chart", tooltip = "Extends each swept level as a dashed line back over the live candles and out to the stack.", group = G_SWP)
+liqStyle = input.string("Dashed", "", options = ["Solid", "Dashed", "Dotted"], inline = "q", group = G_SWP)
+liqW    = input.int(1, "", minval = 1, maxval = 3, inline = "q", group = G_SWP)
+liqBack = input.int(40, "Extend back (bars)", minval = 5, maxval = 500, group = G_SWP)
+
+showMark = input.bool(true, "Watermark", inline = "w", group = G_MSC)
+markPos  = input.string("Bottom right", "", options = ["Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right"], inline = "w", group = G_MSC)
+markCol  = input.color(color.new(#B2B5BE, 35), "Watermark colour", group = G_MSC)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+
+f_tfName(tf) =>
+    string r = tf
+    if str.contains(tf, "D") or str.contains(tf, "W") or str.contains(tf, "M")
+        r := tf
+    else
+        float n = str.tonumber(tf)
+        r := na(n) ? tf : n >= 60 and n % 60 == 0 ? str.tostring(n / 60, "#") + "H" : str.tostring(n, "#") + "m"
+    r
+
+f_countdown(tf) =>
+    int remain = math.max(time_close(tf) - timenow, 0)
+    int sec = int(math.floor(remain / 1000.0))
+    int h   = int(math.floor(sec / 3600.0))
+    int m   = int(math.floor((sec % 3600) / 60.0))
+    int sc  = sec % 60
+    string out = ""
+    if h >= 1
+        out := str.tostring(h) + "h " + str.tostring(m) + "m"
+    else if m >= 1
+        out := str.tostring(m) + "m " + str.tostring(sc) + "s"
+    else
+        out := str.tostring(sc) + "s"
+    out
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  AGGREGATION STATE
+// ─────────────────────────────────────────────────────────────────────────────
+type HTF
+    array<float> o
+    array<float> h
+    array<float> l
+    array<float> c
+    float lo = na
+    float lh = na
+    float ll = na
+    bool  ok = false
+
+var array<HTF> stacks = array.new<HTF>()
+if barstate.isfirst
+    for k = 0 to 4
+        HTF s = HTF.new()
+        s.o := array.new<float>()
+        s.h := array.new<float>()
+        s.l := array.new<float>()
+        s.c := array.new<float>()
+        array.push(stacks, s)
+
+chartSec = timeframe.in_seconds()
+t1 = time(tf1)
+t2 = time(tf2)
+t3 = time(tf3)
+t4 = time(tf4)
+t5 = time(tf5)
+
+f_run(k, isOn, tf, t) =>
+    HTF s = array.get(stacks, k)
+    s.ok := isOn and timeframe.in_seconds(tf) > chartSec
+    if s.ok
+        bool isNew = not na(t[1]) and t != t[1]
+        if na(s.lo)
+            s.lo := open
+            s.lh := high
+            s.ll := low
+        if isNew
+            array.push(s.o, s.lo)
+            array.push(s.h, s.lh)
+            array.push(s.l, s.ll)
+            array.push(s.c, close[1])
+            while array.size(s.o) > nCdl + 2
+                array.shift(s.o)
+                array.shift(s.h)
+                array.shift(s.l)
+                array.shift(s.c)
+            s.lo := open
+            s.lh := high
+            s.ll := low
+        else
+            s.lh := math.max(s.lh, high)
+            s.ll := math.min(s.ll, low)
+
+f_run(0, on1, tf1, t1)
+f_run(1, on2, tf2, t2)
+f_run(2, on3, tf3, t3)
+f_run(3, on4, tf4, t4)
+f_run(4, on5, tf5, t5)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DRAWING
+// ─────────────────────────────────────────────────────────────────────────────
+var array<box>   dB = array.new<box>()
+var array<line>  dL = array.new<line>()
+var array<label> dT = array.new<label>()
+
+f_clear() =>
+    while array.size(dB) > 0
+        box.delete(array.pop(dB))
+    while array.size(dL) > 0
+        line.delete(array.pop(dL))
+    while array.size(dT) > 0
+        label.delete(array.pop(dT))
+
+f_candle(x, o, h, l, c) =>
+    bool up = c >= o
+    array.push(dL, line.new(x, h, x, l, color = up ? cUpWick : cDnWick, width = 1))
+    float bt = math.max(o, c)
+    float bb = math.min(o, c)
+    if bt == bb
+        bt += syminfo.mintick / 2
+        bb -= syminfo.mintick / 2
+    array.push(dB, box.new(x - cdlW, bt, x + cdlW, bb, border_color = bdW == 0 ? color.new(up ? cUpBdr : cDnBdr, 100) : (up ? cUpBdr : cDnBdr), border_width = math.max(bdW, 1), bgcolor = up ? cUpBody : cDnBody))
+
+// draw one timeframe stack starting at x0; returns the x after the stack
+f_stack(k, tf, x0) =>
+    HTF s = array.get(stacks, k)
+    int step = cdlW * 2 + cdlGap + 1
+    int used = 0
+    if s.ok
+        // assemble the candles to show: last (nCdl-1) completed + live
+        array<float> O = array.new<float>()
+        array<float> H = array.new<float>()
+        array<float> L = array.new<float>()
+        array<float> C = array.new<float>()
+        int n = array.size(s.o)
+        int take = math.min(nCdl - 1, n)
+        if take > 0
+            for i = n - take to n - 1
+                array.push(O, array.get(s.o, i))
+                array.push(H, array.get(s.h, i))
+                array.push(L, array.get(s.l, i))
+                array.push(C, array.get(s.c, i))
+        array.push(O, s.lo)
+        array.push(H, s.lh)
+        array.push(L, s.ll)
+        array.push(C, close)
+
+        // include one extra completed candle behind the display for gap / sweep context
+        float pH = n > take ? array.get(s.h, n - take - 1) : na
+        float pL = n > take ? array.get(s.l, n - take - 1) : na
+
+        int cnt = array.size(O)
+        int xEnd = x0 + (cnt - 1) * step
+        float topAll = array.max(H)
+
+        // candles
+        for i = 0 to cnt - 1
+            f_candle(x0 + i * step, array.get(O, i), array.get(H, i), array.get(L, i), array.get(C, i))
+
+        // fair value gaps between displayed candles (and one behind)
+        if showFVG and cnt >= 2
+            for i = 0 to cnt - 1
+                float h1 = i >= 2 ? array.get(H, i - 2) : i == 1 ? pH : na
+                float l1 = i >= 2 ? array.get(L, i - 2) : i == 1 ? pL : na
+                if not na(h1) and i >= 1
+                    float l3 = array.get(L, i)
+                    float h3 = array.get(H, i)
+                    int xa = i >= 2 ? x0 + (i - 2) * step : x0 - step
+                    int xb = fvgExt ? xEnd + cdlW : x0 + i * step
+                    if l3 > h1
+                        array.push(dB, box.new(math.max(xa, x0 - cdlW), l3, xb, h1, border_color = color.new(fvgUp, 100), bgcolor = fvgUp))
+                    if h3 < l1
+                        array.push(dB, box.new(math.max(xa, x0 - cdlW), l1, xb, h3, border_color = color.new(fvgDn, 100), bgcolor = fvgDn))
+
+        // sweeps: candle trades beyond the previous candle's extreme and closes back inside.
+        // The most recent N sweeps in the stack are drawn, N capped by the candle count.
+        if showSwp or liqLines
+            array<bool>  sBsl  = array.new<bool>()
+            array<float> sLv   = array.new<float>()
+            array<int>   sPrev = array.new<int>()
+            array<int>   sThis = array.new<int>()
+            for i = 0 to cnt - 1
+                float ph = i >= 1 ? array.get(H, i - 1) : pH
+                float pl = i >= 1 ? array.get(L, i - 1) : pL
+                if not na(ph)
+                    float hh = array.get(H, i)
+                    float ll = array.get(L, i)
+                    float cc = array.get(C, i)
+                    bool bsl = hh > ph and cc <= ph
+                    bool ssl = ll < pl and cc >= pl
+                    if bsl
+                        array.push(sBsl, true)
+                        array.push(sLv, ph)
+                        array.push(sPrev, i >= 1 ? x0 + (i - 1) * step : x0 - step)
+                        array.push(sThis, x0 + i * step)
+                    if ssl
+                        array.push(sBsl, false)
+                        array.push(sLv, pl)
+                        array.push(sPrev, i >= 1 ? x0 + (i - 1) * step : x0 - step)
+                        array.push(sThis, x0 + i * step)
+            int total = array.size(sBsl)
+            int keep  = math.min(math.min(swpN, cnt), total)
+            if keep > 0
+                for j = total - keep to total - 1
+                    bool  fBsl  = array.get(sBsl, j)
+                    float fLv   = array.get(sLv, j)
+                    int   fPrev = array.get(sPrev, j)
+                    int   fThis = array.get(sThis, j)
+                    if showSwp
+                        int xEndSw = fThis + step / 2
+                        array.push(dL, line.new(math.max(fPrev, x0 - cdlW), fLv, xEndSw, fLv, color = swpCol, style = line.style_solid, width = swpW))
+                        if swpText
+                            array.push(dT, label.new(xEndSw, fLv, fBsl ? "BSL" : "SSL", style = label.style_label_left, color = color.new(color.black, 100), textcolor = swpCol, size = size.tiny))
+                    if liqLines
+                        array.push(dL, line.new(bar_index - liqBack, fLv, xEnd + cdlW + 1, fLv, color = swpCol, style = f_style(liqStyle), width = liqW))
+                        array.push(dT, label.new(xEnd + cdlW + 1, fLv, fBsl ? "▶ BSL" : "▶ SSL", style = label.style_label_left, color = color.new(color.black, 100), textcolor = swpCol, size = size.tiny))
+
+        // timeframe + countdown above the stack
+        string txt = f_tfName(tf) + (showCnt ? "\n" + f_countdown(tf) : "")
+        array.push(dT, label.new(x0 + (cnt - 1) * step / 2, topAll, txt, style = label.style_label_down, color = color.new(color.black, 100), textcolor = lblCol, size = f_size(lblSize)))
+
+        used := cnt * step + tfGap
+    x0 + used
+
+if barstate.islast
+    f_clear()
+    int x = bar_index + offsetB
+    int xStart = x
+    x := f_stack(0, tf1, x)
+    x := f_stack(1, tf2, x)
+    x := f_stack(2, tf3, x)
+    x := f_stack(3, tf4, x)
+    x := f_stack(4, tf5, x)
+    if showPx and x > xStart
+        array.push(dL, line.new(xStart - cdlW - 2, close, x - tfGap + cdlW + 1, close, color = pxCol, style = line.style_dotted, width = 1))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  WATERMARK
+// ─────────────────────────────────────────────────────────────────────────────
+wmPos = markPos == "Top left" ? position.top_left : markPos == "Top center" ? position.top_center : markPos == "Top right" ? position.top_right : markPos == "Bottom left" ? position.bottom_left : markPos == "Bottom center" ? position.bottom_center : position.bottom_right
+wmAlign = markPos == "Top center" or markPos == "Bottom center" ? text.align_center : markPos == "Top left" or markPos == "Bottom left" ? text.align_left : text.align_right
+var table wm = table.new(wmPos, 1, 2, border_width = 0)
+if barstate.islast and showMark
+    string tfs = ""
+    if array.get(stacks, 0).ok
+        tfs += f_tfName(tf1) + " · "
+    if array.get(stacks, 1).ok
+        tfs += f_tfName(tf2) + " · "
+    if array.get(stacks, 2).ok
+        tfs += f_tfName(tf3) + " · "
+    if array.get(stacks, 3).ok
+        tfs += f_tfName(tf4) + " · "
+    if array.get(stacks, 4).ok
+        tfs += f_tfName(tf5) + " · "
+    if str.length(tfs) > 3
+        tfs := str.substring(tfs, 0, str.length(tfs) - 3)
+    table.cell(wm, 0, 0, "HTF PO3 Lens [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 1, (str.length(tfs) > 0 ? tfs : "no timeframe above chart") + "  ·  " + timeframe.period + " chart", text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)

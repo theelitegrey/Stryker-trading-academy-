@@ -1,0 +1,571 @@
+//@version=6
+// ═════════════════════════════════════════════════════════════════════════════
+//   FVG RELAY [Stryker]
+//   © Stryker Trading  ·  strykertrading.com
+//   Version 2.0  ·  Pine Script v6
+//
+//   Higher timeframe fair value gaps are drawn on the chart you trade from.
+//   When price taps a gap and closes back in the direction of the trend, that
+//   gap becomes RELAY 1 and sets the bias. Each subsequent gap that is tapped
+//   and respected extends the chain — Relay 2, Relay 3 — until a higher
+//   timeframe candle closes through the far side of a relay gap, at which
+//   point the whole chain is erased and the chart starts clean.
+//
+//   Several gap timeframes can run at once. Where a lower timeframe gap
+//   overlaps a higher timeframe gap, only the higher timeframe gap is shown.
+//
+//   All higher timeframe candles are aggregated from completed chart bars.
+//   No request.security(), no lookahead, no restatement of history.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("FVG Relay [Stryker]", "FVG Relay [Stryker]", overlay = true,
+     max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_TF  = "Stryker · Gap Timeframes"
+const string G_FVG = "Stryker · FVG Style"
+const string G_LBL = "Stryker · FVG Labels"
+const string G_LIQ = "Stryker · Liquidity"
+const string G_REL = "Stryker · Relay"
+const string G_VIS = "Stryker · Dashboard"
+const string G_ALR = "Stryker · Alerts"
+
+useAll  = input.bool(false, "Use every timeframe at once", tooltip = "Overrides the individual switches below. Where gaps overlap, only the highest timeframe gap is drawn.", group = G_TF)
+use5    = input.bool(false, "5m",  inline = "tf", group = G_TF)
+use15   = input.bool(true,  "15m", inline = "tf", group = G_TF)
+use60   = input.bool(false, "1h",  inline = "tf", group = G_TF)
+use240  = input.bool(false, "4h",  inline = "tf", group = G_TF)
+maxOpen = input.int(8, "Max open gaps drawn", minval = 1, maxval = 40, group = G_TF)
+minGapT = input.float(0, "Minimum gap size (ticks, 0 = off)", minval = 0, step = 1, group = G_TF)
+
+bullBg    = input.color(color.new(#4CAF50, 86), "Bullish   fill", inline = "b1", group = G_FVG)
+bullBd    = input.color(color.new(#4CAF50, 45), "border",         inline = "b1", group = G_FVG)
+bullAct   = input.color(color.new(#4CAF50, 66), "active fill",    inline = "b2", group = G_FVG)
+bearBg    = input.color(color.new(#EF5350, 86), "Bearish   fill", inline = "r1", group = G_FVG)
+bearBd    = input.color(color.new(#EF5350, 45), "border",         inline = "r1", group = G_FVG)
+bearAct   = input.color(color.new(#EF5350, 66), "active fill",    inline = "r2", group = G_FVG)
+bdWidth   = input.int(1, "Border width", minval = 0, maxval = 4, inline = "bd", group = G_FVG)
+bdStyle   = input.string("Solid", "style", options = ["Solid", "Dashed", "Dotted"], inline = "bd", group = G_FVG)
+showMid   = input.bool(true, "Midline", inline = "md", group = G_FVG)
+midCol    = input.color(color.new(#9598A1, 40), "", inline = "md", group = G_FVG)
+midStyle  = input.string("Dashed", "", options = ["Solid", "Dashed", "Dotted"], inline = "md", group = G_FVG)
+midWidth  = input.int(1, "", minval = 1, maxval = 4, inline = "md", group = G_FVG)
+
+showGapLb = input.bool(true, "Timeframe label", inline = "l1", group = G_LBL)
+gapLbBull = input.color(#4CAF50, "bull", inline = "l1", group = G_LBL)
+gapLbBear = input.color(#EF5350, "bear", inline = "l1", group = G_LBL)
+gapLbSize = input.string("Tiny", "Label size", options = ["Tiny", "Small", "Normal", "Large"], group = G_LBL)
+lbShowTf  = input.bool(true, "Include the timeframe on relay labels", group = G_LBL)
+
+showLiq   = input.bool(true, "Show resting liquidity", inline = "q1", group = G_LIQ)
+liqCol    = input.color(color.new(#FFB74D, 25), "", inline = "q1", group = G_LIQ)
+liqStyle  = input.string("Dotted", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "q2", group = G_LIQ)
+liqWidth  = input.int(1, "Width", minval = 1, maxval = 4, inline = "q2", group = G_LIQ)
+liqTFsel  = input.string("5m", "Swing timeframe", options = ["5m", "15m", "1h", "4h"], tooltip = "Liquidity is read from swings on this timeframe, never from raw chart bars.", group = G_LIQ)
+pivLen    = input.int(2, "Swing strength (in those candles)", minval = 1, maxval = 10, group = G_LIQ)
+liqMax    = input.int(12, "Levels kept each side", minval = 2, maxval = 50, group = G_LIQ)
+
+bounceMode = input.string("Close back through the near edge", "Bounce confirmation", options = ["Close back through the near edge", "Close beyond the tap candle's extreme"], group = G_REL)
+relayCol   = input.color(#FFFFFF, "Relay label", inline = "rl", group = G_REL)
+relaySize  = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "rl", group = G_REL)
+tgtStyle   = input.string("Dashed", "Target line", options = ["Solid", "Dashed", "Dotted"], inline = "tg", group = G_REL)
+tgtWidth   = input.int(1, "", minval = 1, maxval = 4, inline = "tg", group = G_REL)
+showBrk    = input.bool(false, "Mark where a chain broke", group = G_REL)
+
+showDash = input.bool(true, "Dashboard", group = G_VIS)
+showMark = input.bool(true, "Stryker Trading watermark", group = G_VIS)
+
+aRelay  = input.bool(true,  "Relay confirmed", group = G_ALR)
+aBreak  = input.bool(true,  "Chain broken", group = G_ALR)
+aTarget = input.bool(false, "Liquidity reached", group = G_ALR)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TIMEFRAME SET  (index 0 lowest → 3 highest)
+// ─────────────────────────────────────────────────────────────────────────────
+chartSec = timeframe.in_seconds()
+
+on0 = (useAll or use5)   and chartSec < 300
+on1 = (useAll or use15)  and chartSec < 900
+on2 = (useAll or use60)  and chartSec < 3600
+on3 = (useAll or use240) and chartSec < 14400
+anyTF = on0 or on1 or on2 or on3
+
+t0 = time("5")
+t1 = time("15")
+t2 = time("60")
+t3 = time("240")
+
+raw0 = not na(t0[1]) and t0 != t0[1]
+raw1 = not na(t1[1]) and t1 != t1[1]
+raw2 = not na(t2[1]) and t2 != t2[1]
+raw3 = not na(t3[1]) and t3 != t3[1]
+
+new0 = on0 and not na(t0[1]) and t0 != t0[1]
+new1 = on1 and not na(t1[1]) and t1 != t1[1]
+new2 = on2 and not na(t2[1]) and t2 != t2[1]
+new3 = on3 and not na(t3[1]) and t3 != t3[1]
+
+f_tfName(k) => k == 0 ? "5m" : k == 1 ? "15m" : k == 2 ? "1h" : "4h"
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PER-TIMEFRAME AGGREGATION STATE
+// ─────────────────────────────────────────────────────────────────────────────
+var array<float> aLH  = array.new<float>(4, na)
+var array<float> aLL  = array.new<float>(4, na)
+var array<int>   aLB  = array.new<int>(4, na)
+var array<float> a1H  = array.new<float>(4, na)
+var array<float> a1L  = array.new<float>(4, na)
+var array<float> a2H  = array.new<float>(4, na)
+var array<float> a2L  = array.new<float>(4, na)
+var array<float> a3H  = array.new<float>(4, na)
+var array<float> a3L  = array.new<float>(4, na)
+var array<float> a3C  = array.new<float>(4, na)
+var array<int>   aN   = array.new<int>(4, 0)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TYPES & STATE
+// ─────────────────────────────────────────────────────────────────────────────
+type Gap
+    int   tf       = 0
+    int   dir      = 0
+    float top      = na
+    float bot      = na
+    int   startBar = na
+    bool  tapped   = false
+    float tapExt   = na
+    bool  relay    = false
+    int   relayNo  = 0
+    float target   = na
+    bool  tgtHit   = false
+    box   b        = na
+    line  mid      = na
+    line  tl       = na
+    label lab      = na
+    label tgtLab   = na
+
+type Liq
+    float level = na
+    int   bar   = na
+    int   dir   = 0
+    line  l     = na
+
+var array<Gap> gaps = array.new<Gap>()
+var array<Liq> liqs = array.new<Liq>()
+
+var int trend      = 0
+var int chainLen   = 0
+var int chainStart = na
+var Gap lastRelay  = na
+
+var int chains    = 0
+var int bestChain = 0
+var int tgtHits   = 0
+var int tgtTotal  = 0
+
+bool evRelay  = false
+bool evBreak  = false
+bool evTarget = false
+int  evNo     = 0
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  RESTING LIQUIDITY — swing highs and lows on the 5m candle or higher
+// ─────────────────────────────────────────────────────────────────────────────
+liqIdx = liqTFsel == "5m" ? 0 : liqTFsel == "15m" ? 1 : liqTFsel == "1h" ? 2 : 3
+liqSec = liqIdx == 0 ? 300 : liqIdx == 1 ? 900 : liqIdx == 2 ? 3600 : 14400
+newLiq = (liqIdx == 0 ? raw0 : liqIdx == 1 ? raw1 : liqIdx == 2 ? raw2 : raw3) and chartSec < liqSec
+
+// rolling window of completed swing-timeframe candles
+var array<float> qH = array.new<float>()
+var array<float> qL = array.new<float>()
+var array<int>   qB = array.new<int>()
+var float qLiveH = na
+var float qLiveL = na
+var int   qLiveB = na
+
+if na(qLiveH)
+    qLiveH := high
+    qLiveL := low
+    qLiveB := bar_index
+
+if newLiq
+    array.push(qH, qLiveH)
+    array.push(qL, qLiveL)
+    array.push(qB, qLiveB)
+    int need = pivLen * 2 + 1
+    if array.size(qH) > need
+        array.shift(qH)
+        array.shift(qL)
+        array.shift(qB)
+    if array.size(qH) == need
+        int c = pivLen
+        float ch = array.get(qH, c)
+        float cl = array.get(qL, c)
+        bool isHi = true
+        bool isLo = true
+        for j = 0 to need - 1
+            if j != c
+                if array.get(qH, j) >= ch
+                    isHi := false
+                if array.get(qL, j) <= cl
+                    isLo := false
+        if isHi
+            Liq q = Liq.new()
+            q.level := ch
+            q.bar   := array.get(qB, c)
+            q.dir   := 1
+            if showLiq
+                q.l := line.new(q.bar, q.level, bar_index, q.level, color = liqCol, style = f_style(liqStyle), width = liqWidth)
+            array.push(liqs, q)
+        if isLo
+            Liq q = Liq.new()
+            q.level := cl
+            q.bar   := array.get(qB, c)
+            q.dir   := -1
+            if showLiq
+                q.l := line.new(q.bar, q.level, bar_index, q.level, color = liqCol, style = f_style(liqStyle), width = liqWidth)
+            array.push(liqs, q)
+    qLiveH := high
+    qLiveL := low
+    qLiveB := bar_index
+else
+    qLiveH := math.max(qLiveH, high)
+    qLiveL := math.min(qLiveL, low)
+
+// sweep and extend
+if array.size(liqs) > 0
+    for i = array.size(liqs) - 1 to 0
+        Liq q = array.get(liqs, i)
+        bool swept = q.dir == 1 ? high > q.level : low < q.level
+        if swept
+            if not na(q.l)
+                line.delete(q.l)
+            array.remove(liqs, i)
+        else if not na(q.l)
+            line.set_x2(q.l, bar_index)
+
+// trim to the most recent levels each side
+if array.size(liqs) > liqMax * 2
+    Liq old = array.shift(liqs)
+    if not na(old.l)
+        line.delete(old.l)
+
+f_nextLiq(dir, px) =>
+    float best = na
+    if array.size(liqs) > 0
+        for i = 0 to array.size(liqs) - 1
+            Liq q = array.get(liqs, i)
+            if q.dir == dir
+                bool ahead = dir == 1 ? q.level > px : q.level < px
+                if ahead and (na(best) or (dir == 1 ? q.level < best : q.level > best))
+                    best := q.level
+    best
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DRAWING HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+f_kill(g) =>
+    if not na(g.b)
+        box.delete(g.b)
+    if not na(g.mid)
+        line.delete(g.mid)
+    if not na(g.tl)
+        line.delete(g.tl)
+    if not na(g.lab)
+        label.delete(g.lab)
+    if not na(g.tgtLab)
+        label.delete(g.tgtLab)
+
+f_clearTarget(g) =>
+    if not na(g.tl)
+        line.delete(g.tl)
+        g.tl := na
+    if not na(g.tgtLab)
+        label.delete(g.tgtLab)
+        g.tgtLab := na
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  HTF AGGREGATION + GAP CREATION, ONE TIMEFRAME AT A TIME
+// ─────────────────────────────────────────────────────────────────────────────
+var array<int> aB2 = array.new<int>(4, na)
+var array<int> aB3 = array.new<int>(4, na)
+
+f_agg(k, isNew, isOn) =>
+    if isOn
+        if na(array.get(aLH, k))
+            array.set(aLH, k, high)
+            array.set(aLL, k, low)
+            array.set(aLB, k, bar_index)
+        if isNew
+            // the candle that just completed becomes candle 3; shift the rest down
+            array.set(aB2, k, array.get(aB3, k))
+            array.set(aB3, k, array.get(aLB, k))
+            array.set(a1H, k, array.get(a2H, k))
+            array.set(a1L, k, array.get(a2L, k))
+            array.set(a2H, k, array.get(a3H, k))
+            array.set(a2L, k, array.get(a3L, k))
+            array.set(a3H, k, array.get(aLH, k))
+            array.set(a3L, k, array.get(aLL, k))
+            array.set(a3C, k, close[1])
+            array.set(aN,  k, array.get(aN, k) + 1)
+            array.set(aLH, k, high)
+            array.set(aLL, k, low)
+            array.set(aLB, k, bar_index)
+        else
+            array.set(aLH, k, math.max(array.get(aLH, k), high))
+            array.set(aLL, k, math.min(array.get(aLL, k), low))
+
+f_overlap(top1, bot1, top2, bot2) => not (bot1 > top2 or top1 < bot2)
+
+f_newGap(k, isNew, isOn) =>
+    if isOn and isNew and array.get(aN, k) >= 3 and not na(array.get(a1H, k))
+        float g1h = array.get(a1H, k)
+        float g1l = array.get(a1L, k)
+        float g3h = array.get(a3H, k)
+        float g3l = array.get(a3L, k)
+        bool bull = g3l > g1h
+        bool bear = g3h < g1l
+        if bull or bear
+            float gt = bull ? g3l : g1l
+            float gb = bull ? g1h : g3h
+            if gt - gb >= minGapT * syminfo.mintick
+                // a higher timeframe gap already covering this area wins
+                bool blocked = false
+                if array.size(gaps) > 0
+                    for i = 0 to array.size(gaps) - 1
+                        Gap o = array.get(gaps, i)
+                        if o.tf > k and f_overlap(gt, gb, o.top, o.bot)
+                            blocked := true
+                if not blocked
+                    // this gap outranks any overlapping lower timeframe gap
+                    if array.size(gaps) > 0
+                        for i = array.size(gaps) - 1 to 0
+                            Gap o = array.get(gaps, i)
+                            if o.tf < k and not o.relay and f_overlap(gt, gb, o.top, o.bot)
+                                f_kill(o)
+                                array.remove(gaps, i)
+
+                    Gap g = Gap.new()
+                    g.tf       := k
+                    g.dir      := bull ? 1 : -1
+                    g.top      := gt
+                    g.bot      := gb
+                    g.startBar := nz(array.get(aB2, k), bar_index)
+                    color bg = bull ? bullBg : bearBg
+                    color bd = bull ? bullBd : bearBd
+                    g.b := box.new(g.startBar, gt, bar_index, gb, border_color = bd, border_width = bdWidth, border_style = f_style(bdStyle), bgcolor = bg)
+                    if showMid
+                        g.mid := line.new(g.startBar, (gt + gb) / 2, bar_index, (gt + gb) / 2, color = midCol, style = f_style(midStyle), width = midWidth)
+                    if showGapLb
+                        g.lab := label.new(bar_index, (gt + gb) / 2, f_tfName(k), style = label.style_label_left,
+                             color = color.new(color.black, 100), textcolor = bull ? gapLbBull : gapLbBear, size = f_size(gapLbSize))
+                    array.push(gaps, g)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  RUN THE FOUR TIMEFRAMES
+// ─────────────────────────────────────────────────────────────────────────────
+f_agg(0, new0, on0)
+f_agg(1, new1, on1)
+f_agg(2, new2, on2)
+f_agg(3, new3, on3)
+
+// ── an HTF close through the far side of a relay ends the chain ──
+f_checkBreak(k, isNew, isOn) =>
+    bool broke = false
+    if isOn and isNew and array.size(gaps) > 0
+        float cc = array.get(a3C, k)
+        if not na(cc)
+            for i = array.size(gaps) - 1 to 0
+                Gap g = array.get(gaps, i)
+                if g.tf == k
+                    bool through = g.dir == 1 ? cc < g.bot : cc > g.top
+                    if through
+                        if g.relay
+                            broke := true
+                        f_kill(g)
+                        array.remove(gaps, i)
+    broke
+
+bool brk = false
+brk := f_checkBreak(0, new0, on0) or brk
+brk := f_checkBreak(1, new1, on1) or brk
+brk := f_checkBreak(2, new2, on2) or brk
+brk := f_checkBreak(3, new3, on3) or brk
+
+if brk
+    evBreak := true
+    if array.size(gaps) > 0
+        for i = array.size(gaps) - 1 to 0
+            Gap g = array.get(gaps, i)
+            if g.relay
+                f_kill(g)
+                array.remove(gaps, i)
+    if showBrk
+        label.new(bar_index, trend == 1 ? high : low, "✕",
+             style = trend == 1 ? label.style_label_down : label.style_label_up,
+             color = color.new(color.black, 100), textcolor = #B2B5BE, size = size.tiny)
+    trend      := 0
+    chainLen   := 0
+    chainStart := na
+    lastRelay  := na
+
+f_newGap(3, new3, on3)
+f_newGap(2, new2, on2)
+f_newGap(1, new1, on1)
+f_newGap(0, new0, on0)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TAP → BOUNCE → RELAY
+// ─────────────────────────────────────────────────────────────────────────────
+if anyTF and array.size(gaps) > 0
+    for i = 0 to array.size(gaps) - 1
+        Gap g = array.get(gaps, i)
+        bool bull = g.dir == 1
+        box.set_right(g.b, bar_index)
+        if not na(g.mid)
+            line.set_x2(g.mid, bar_index)
+        if not na(g.lab)
+            label.set_x(g.lab, bar_index)
+            label.set_y(g.lab, (g.top + g.bot) / 2)
+
+        if not g.relay
+            bool eligible = trend == 0 or trend == g.dir
+            bool inZone   = low <= g.top and high >= g.bot
+
+            if eligible and not g.tapped and inZone and barstate.isconfirmed
+                g.tapped := true
+                g.tapExt := bull ? high : low
+                box.set_bgcolor(g.b, bull ? bullAct : bearAct)
+
+            if eligible and g.tapped and barstate.isconfirmed
+                bool edgeMode = bounceMode == "Close back through the near edge"
+                bool bounced  = edgeMode ? (bull ? close > g.top : close < g.bot) : (bull ? close > g.tapExt : close < g.tapExt)
+                if bounced
+                    if trend == 0
+                        trend      := g.dir
+                        chains     += 1
+                        chainStart := g.startBar
+                    if not na(lastRelay)
+                        f_clearTarget(lastRelay)
+                    lastRelay := g
+                    chainLen  += 1
+                    g.relay   := true
+                    g.relayNo := chainLen
+                    bestChain := math.max(bestChain, chainLen)
+                    evRelay   := true
+                    evNo      := chainLen
+
+                    string rtx = "Relay " + str.tostring(chainLen) + (lbShowTf ? "  ·  " + f_tfName(g.tf) : "")
+                    if not na(g.lab)
+                        label.set_text(g.lab, rtx)
+                        label.set_textcolor(g.lab, relayCol)
+                        label.set_size(g.lab, f_size(relaySize))
+                    else
+                        g.lab := label.new(bar_index, (g.top + g.bot) / 2, rtx, style = label.style_label_left,
+                             color = color.new(color.black, 100), textcolor = relayCol, size = f_size(relaySize))
+
+                    float liq = f_nextLiq(g.dir, close)
+                    if not na(liq)
+                        g.target := liq
+                        tgtTotal += 1
+                        g.tl := line.new(bar_index, liq, bar_index, liq, color = bull ? bullBd : bearBd, style = f_style(tgtStyle), width = tgtWidth)
+                        g.tgtLab := label.new(bar_index, liq, "Target", style = bull ? label.style_label_down : label.style_label_up,
+                             color = color.new(color.black, 100), textcolor = bull ? gapLbBull : gapLbBear, size = f_size(gapLbSize))
+        else
+            if not na(g.tl) and not g.tgtHit
+                bool hit = bull ? high >= g.target : low <= g.target
+                line.set_x2(g.tl, bar_index)
+                if not na(g.tgtLab)
+                    label.set_x(g.tgtLab, bar_index)
+                if hit
+                    g.tgtHit := true
+                    tgtHits  += 1
+                    evTarget := true
+                    line.set_style(g.tl, line.style_solid)
+
+// ── forget open gaps that pre-date the current chain ──
+if anyTF and not na(chainStart) and array.size(gaps) > 0
+    for i = array.size(gaps) - 1 to 0
+        Gap g = array.get(gaps, i)
+        if not g.relay and g.startBar < chainStart
+            f_kill(g)
+            array.remove(gaps, i)
+
+// ── cap how many open gaps are drawn ──
+if anyTF and array.size(gaps) > 0
+    int open = 0
+    for i = array.size(gaps) - 1 to 0
+        Gap g = array.get(gaps, i)
+        if not g.relay
+            open += 1
+            if open > maxOpen
+                f_kill(g)
+                array.remove(gaps, i)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+var table dash = table.new(position.top_right, 2, 7, border_width = 1)
+
+if barstate.islast and (showDash or showMark)
+    array<string> ks = array.new<string>()
+    array<string> vs = array.new<string>()
+    array<color>  cs = array.new<color>()
+
+    string tfTxt = (on0 ? "5m " : "") + (on1 ? "15m " : "") + (on2 ? "1h " : "") + (on3 ? "4h" : "")
+
+    if showMark
+        array.push(ks, "STRYKER TRADING")
+        array.push(vs, "FVG Relay")
+        array.push(cs, color.new(color.gray, 20))
+
+    if showDash
+        array.push(ks, "Timeframes")
+        array.push(vs, anyTF ? tfTxt : "none below chart TF")
+        array.push(cs, anyTF ? color.silver : bearBd)
+
+        array.push(ks, "Trend")
+        array.push(vs, trend == 1 ? "Bullish" : trend == -1 ? "Bearish" : "None")
+        array.push(cs, trend == 1 ? gapLbBull : trend == -1 ? gapLbBear : color.silver)
+
+        array.push(ks, "Relays in chain")
+        array.push(vs, str.tostring(chainLen))
+        array.push(cs, chainLen > 0 ? (trend == 1 ? gapLbBull : gapLbBear) : color.silver)
+
+        array.push(ks, "Open gaps")
+        array.push(vs, str.tostring(array.size(gaps) - chainLen))
+        array.push(cs, color.silver)
+
+        array.push(ks, "Chains · best")
+        array.push(vs, str.tostring(chains) + " · " + str.tostring(bestChain))
+        array.push(cs, color.silver)
+
+        array.push(ks, "Targets reached")
+        array.push(vs, tgtTotal > 0 ? str.tostring(tgtHits) + " / " + str.tostring(tgtTotal) : "—")
+        array.push(cs, color.silver)
+
+    table.clear(dash, 0, 0, 1, 6)
+    for i = 0 to array.size(ks) - 1
+        bool mark = showMark and i == 0
+        table.cell(dash, 0, i, array.get(ks, i), text_color = color.new(color.gray, 15), text_size = mark ? size.small : size.tiny, bgcolor = color.new(color.black, 88), text_halign = text.align_left)
+        table.cell(dash, 1, i, array.get(vs, i), text_color = array.get(cs, i), text_size = mark ? size.small : size.tiny, bgcolor = color.new(color.black, 88), text_halign = text.align_right)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ALERTS
+// ─────────────────────────────────────────────────────────────────────────────
+string dirTx = trend == 1 ? "bullish" : "bearish"
+
+if aRelay and evRelay
+    alert("Stryker FVG Relay · " + dirTx + " Relay " + str.tostring(evNo) + " confirmed · " + syminfo.ticker, alert.freq_once_per_bar_close)
+if aBreak and evBreak
+    alert("Stryker FVG Relay · chain broken · " + syminfo.ticker, alert.freq_once_per_bar_close)
+if aTarget and evTarget
+    alert("Stryker FVG Relay · liquidity target reached · " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+alertcondition(evRelay,  "Stryker Relay — Relay confirmed", "Stryker FVG Relay: a higher timeframe gap was tapped and respected")
+alertcondition(evBreak,  "Stryker Relay — Chain broken",    "Stryker FVG Relay: an HTF candle closed through a relay gap")
+alertcondition(evTarget, "Stryker Relay — Liquidity hit",   "Stryker FVG Relay: liquidity target reached")

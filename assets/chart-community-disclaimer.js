@@ -18,7 +18,9 @@
 import { BUILTIN_PINE } from './chart-pine-builtins.js?v=469';
 
 const ACK_LS = 'stryker_community_disclaimer_ack_v1';
-const COMMUNITY_TABS = new Set(['community', 'picks', 'top', 'trending']);
+// Owner order 2026-10-08: only Top and Trending carry third-party scripts; Editors' picks and
+// BUILT-IN > Stryker list Stryker's own scripts, so no notice there.
+const COMMUNITY_TABS = new Set(['top', 'trending']);
 const SHORT = 'Community indicators are made by third-party members, not by Stryker. Education only. Not financial advice.';
 const TITLE = 'Community Indicators Disclaimer';
 const FULL = [

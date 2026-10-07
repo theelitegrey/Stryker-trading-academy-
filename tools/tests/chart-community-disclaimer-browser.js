@@ -1,7 +1,7 @@
 // Browser test: Community Indicators Disclaimer (assets/chart-community-disclaimer.js).
 //   CHART_BASE=http://127.0.0.1:8061 OUT=<dir> node tools/tests/chart-community-disclaimer-browser.js
 // Run under `flock /tmp/stryker-chrome.lock`.
-// Checks (1440 and 390): the notice line sits at the top of the Community sections and above
+// Checks (1440 and 390): the notice line sits at the top of Top and Trending only and above
 // the "Community" heading in search results; "Read full disclaimer" expands the exact full text;
 // the first community add asks "I understand" once (Cancel = not added, I understand = stored
 // per uid in localStorage); the second add does not ask again; no console errors.
@@ -29,11 +29,13 @@ async function run(b, w, h){
   const tag = w + 'px';
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
   await p.waitForSelector('.stkiw-tab[data-k="top"]', { timeout: 20000 });
-  for (const k of ['picks', 'top', 'trending']) {
+  for (const k of ['picks', 'stryker', 'top', 'trending']) {
     await p.click('.stkiw-tab[data-k="' + k + '"]');
     await p.waitForTimeout(400);
-    const r = await p.evaluate(() => { const l = document.querySelector('.stkiw-list'); const n = l.querySelector(':scope > .stkcd-note'); return { first: l.firstElementChild === n, text: n ? n.querySelector('.stkcd-line span').textContent.trim() : '' }; });
-    check(r.first && r.text === SHORT, tag + ' ' + k + ': notice is the first thing in the Community section');
+    const r = await p.evaluate(() => { const l = document.querySelector('.stkiw-list'); const n = l.querySelector(':scope > .stkcd-note'); return { has: !!n, first: l.firstElementChild === n, text: n ? n.querySelector('.stkcd-line span').textContent.trim() : '' }; });
+    // Owner order 2026-10-08: the notice only on Top and Trending (third-party lists).
+    if (k === 'top' || k === 'trending') check(r.first && r.text === SHORT, tag + ' ' + k + ': notice is the first thing in the list');
+    else check(!r.has, tag + ' ' + k + ': no notice (Stryker-only list)');
   }
   await p.click('.stkcd-more');
   await p.waitForTimeout(200);

@@ -8691,9 +8691,9 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
 .stkiw-main{ flex:1 1 auto; min-width:0; min-height:0; display:flex; flex-direction:column; }
 .stkiw-sect{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:0; padding:14px 20px 6px; font-size:15px; font-weight:600; color:var(--ink-0); }
 .stkiw-sect small{ font-size:12px; font-weight:400; color:var(--ink-2); }
-.stkiw-cols, .stkiw-row{ display:grid; grid-template-columns:28px minmax(0,1fr) 170px 86px 34px; align-items:center; gap:6px; }
+.stkiw-cols, .stkiw-row{ display:grid; grid-template-columns:28px minmax(0,1fr) 170px 34px; align-items:center; gap:6px; }
 .stkiw-cols{ padding:4px 16px 6px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); border-bottom:1px solid var(--line); }
-.stkiw-c-name{ grid-column:2; } .stkiw-c-auth{ grid-column:3; } .stkiw-c-boost{ grid-column:4; text-align:right; padding-right:6px; }
+.stkiw-c-name{ grid-column:2; } .stkiw-c-auth{ grid-column:3; }
 .stkiw-list{ flex:1 1 auto; min-height:0; overflow-y:auto; padding:4px 8px 12px; }
 .stkiw-grp{ margin:12px 8px 4px; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
 .stkiw-row{ padding:0 8px; min-height:38px; border-radius:8px; }
@@ -8767,14 +8767,13 @@ body.stkiw-open{ overflow:hidden; }
   .stkiw-tab[aria-selected="true"]{ box-shadow:none; border-color:var(--gold); }
   .stkiw-sect{ padding:10px 14px 4px; }
   .stkiw-cols{ display:none; }
-  .stkiw-cols, .stkiw-row{ grid-template-columns:30px minmax(0,1fr) auto 30px; }
+  .stkiw-cols, .stkiw-row{ grid-template-columns:30px minmax(0,1fr) 30px; }
   /* Two lines per row: name on top, author (still tappable) under it. */
   .stkiw-row{ grid-template-rows:auto auto; column-gap:6px; row-gap:0; min-height:52px; padding:4px 4px; }
   .stkiw-row > .stkiw-star{ grid-column:1; grid-row:1 / 3; }
   .stkiw-row > .stkiw-name{ grid-column:2; grid-row:1; padding:4px 0 1px; }
   .stkiw-row > .stkiw-auth{ grid-column:2; grid-row:2; justify-self:start; max-width:100%; padding:0 0 4px; font-size:12px; }
-  .stkiw-row > .stkiw-boost{ grid-column:3; grid-row:1 / 3; }
-  .stkiw-row > .stkiw-x2{ grid-column:4; grid-row:1 / 3; }
+  .stkiw-row > .stkiw-x2{ grid-column:3; grid-row:1 / 3; }
   .stkiw-list{ padding:2px 8px 16px; }
   .stkiw-star{ opacity:1; }
   .stkiw-foot{ padding:8px 14px calc(8px + env(safe-area-inset-bottom)); }

@@ -12,12 +12,15 @@
 //   PERSONAL   Favorites (starred items from every source), My scripts, On this chart
 //   BUILT-IN   Technicals, grouped: Stryker (GEX Levels), Moving averages, Oscillators, Volatility,
 //              Volume & Order flow, Trend, Levels (Vela built-ins + our order-flow tools
-//              + the Stryker Pine examples)
-//   COMMUNITY  Editors' picks (the Owner's own Stryker indicators first, then admin-picked
-//              community scripts), Community indicators (third-party scripts the Owner sent,
-//              from chart-pine-builtins.js PICKER_SCRIPTS section 'community', credited to
-//              their author), Top (boosts, all time), Trending (boosts + adds, 7 days)
-// Columns NAME · AUTHOR · BOOSTS, a star on every row, a lock on code-hidden scripts.
+//              + the Stryker Pine examples); Stryker (every Stryker script, derived from
+//              STRYKER_PICKS + PICKER_SCRIPTS section 'picks', so new ones appear by themselves)
+//   COMMUNITY  Editors' picks (default: every Stryker script, then admin-picked community
+//              scripts), Top and Trending (member-published public scripts plus every
+//              third-party built-in, PICKER_SCRIPTS section 'community', credited to its
+//              author; built-ins without stats follow, alphabetical). Owner order 2026-10-08:
+//              no separate "Community indicators" tab, and no boost counts or "Boosts" text
+//              in this window (the stats still order Top/Trending silently).
+// Columns NAME · AUTHOR, a star on every row, a lock on code-hidden scripts.
 // Search covers every source at once. Phone: full-screen sheet, sidebar becomes tabs.
 //
 // ADD-TO-CHART is unchanged: built-ins go through the active cell's addFromLibrary(i)
@@ -42,8 +45,8 @@ const GROUP_STRYKER = 'Stryker';
 const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
-  ['BUILT-IN', [['tech', 'Technicals']]],
-  ['COMMUNITY', [['picks', "Editors' picks"], ['community', 'Community indicators'], ['top', 'Top'], ['trending', 'Trending']]]
+  ['BUILT-IN', [['tech', 'Technicals'], ['stryker', 'Stryker']]],
+  ['COMMUNITY', [['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
 ];
 
 function catOf(name){
@@ -146,7 +149,6 @@ export function mountIndicatorWindow(ws, opts){
 
   let ov = null, els = null, section = 'tech', authorFilter = null, isAdmin = false;
   let community = null, communityErr = false, mine = null;
-  const boosted = new Map();   // community id -> true/false (mine)
   const isPhone = () => window.innerWidth <= PHONE_MAX;
   const L = () => window.StrykerPineLibrary;
   const S = () => window.StrykerPineScripts;
@@ -186,8 +188,8 @@ export function mountIndicatorWindow(ws, opts){
     const ex = (S() && S().EXAMPLES) || [];
     ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'Stryker', cat: catOf(x.name), kind: 'example', source: x.source }));
     // Pine scripts from assets/chart-pine-builtins.js (next-gen engine). section 'picks' = the
-    // Owner's own (Stryker group); 'community' = third-party, listed under COMMUNITY >
-    // "Community indicators" with the script's own author, never as Stryker.
+    // Owner's own (Stryker group + BUILT-IN > Stryker); 'community' = third-party, listed in
+    // COMMUNITY > Top and Trending with the script's own author, never as Stryker.
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
       out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'Stryker', cat: third ? null : GROUP_STRYKER,
@@ -260,7 +262,7 @@ export function mountIndicatorWindow(ws, opts){
     const search = h('input', { type: 'search', class: 'stkiw-search', placeholder: 'Search', 'aria-label': 'Search indicators, metrics and strategies', autocomplete: 'off', spellcheck: 'false' });
     const side = h('nav', { class: 'stkiw-side stkc-scroll', 'aria-label': 'Indicator groups' });
     const list = h('div', { class: 'stkiw-list stkc-scroll', role: 'list' });
-    const head = h('div', { class: 'stkiw-cols', 'aria-hidden': 'true' }, [h('span', { class: 'stkiw-c-name', text: 'Script name' }), h('span', { class: 'stkiw-c-auth', text: 'Author' }), h('span', { class: 'stkiw-c-boost', text: 'Boosts' })]);
+    const head = h('div', { class: 'stkiw-cols', 'aria-hidden': 'true' }, [h('span', { class: 'stkiw-c-name', text: 'Script name' }), h('span', { class: 'stkiw-c-auth', text: 'Author' })]);
     const title = h('h2', { class: 'stkiw-sect' });
     const target = h('span', { class: 'stkiw-target' });
     const foot = h('div', { class: 'stkiw-foot' }, [
@@ -358,9 +360,6 @@ export function mountIndicatorWindow(ws, opts){
       auth = h('button', { type: 'button', class: 'stkiw-auth is-link', text: it.author, title: 'Public scripts by ' + it.author,
         onclick: (e) => { e.stopPropagation(); authorFilter = { uid: it.authorUid, name: it.author }; els.search.value = ''; render(); } });
     } else auth = h('span', { class: 'stkiw-auth', text: it.author || '' });
-    let boost;
-    if (it.kind === 'community' && it.s) boost = boostBtn(it.s);
-    else boost = h('span', { class: 'stkiw-boost is-none', text: '' });
     const extra = h('span', { class: 'stkiw-x2' });
     if (it.kind === 'community' && it.s) extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib', 'aria-label': 'Details for ' + it.name, title: 'Details, code, report',
       html: SVG(I_INFO, 15), onclick: (e) => { e.stopPropagation(); close(); L().openCommunity('all', it.name); } }));
@@ -368,39 +367,8 @@ export function mountIndicatorWindow(ws, opts){
       extra.appendChild(h('button', { type: 'button', class: 'stkiw-ib stkc-del', 'aria-label': 'Remove ' + it.name + ' from the chart', title: 'Remove from the chart', html: SVG(I_TRASH, 15),
         onclick: (e) => { e.stopPropagation(); try { if (it.handle) it.handle.remove(); else ws.active.removeFromChart(it.index); } catch (err) {} try { ws.context().stateChanged(); } catch (err) {} render(); } }));
     }
-    [star, name, auth, boost, extra].forEach((n) => li.appendChild(n));
+    [star, name, auth, extra].forEach((n) => li.appendChild(n));
     return li;
-  }
-
-  function boostBtn(s){
-    const own = s.ownerUid === me();
-    const b = h('button', { type: 'button', class: 'stkiw-boost', title: own ? 'Boosts (you can\u2019t boost your own script)' : 'Boost', 'aria-pressed': 'false' }, [
-      h('span', { class: 'stkiw-rk', 'aria-hidden': 'true', text: '\uD83D\uDE80' }), h('span', { class: 'stkiw-bn', text: fmtCount(s.boostCount || 0) })
-    ]);
-    b.setAttribute('aria-label', fmtCount(s.boostCount || 0) + ' boosts' + (own ? '' : ', boost ' + s.name));
-    const paintB = () => {
-      const on = boosted.get(s.id) === true;
-      b.classList.toggle('on', on);
-      b.setAttribute('aria-pressed', on ? 'true' : 'false');
-      b.querySelector('.stkiw-bn').textContent = fmtCount(s.boostCount || 0);
-      if (!own) b.title = on ? 'Boosted. Click to take it back' : 'Boost';
-    };
-    if (own || !me()) { b.disabled = true; b.classList.add('is-own'); return b; }
-    if (!boosted.has(s.id) && L() && L().myBoost) L().myBoost(s.id).then((on) => { boosted.set(s.id, on); paintB(); }).catch(() => {});
-    else paintB();
-    b.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      b.disabled = true;
-      const want = boosted.get(s.id) !== true;
-      try {
-        const r = await L().boost(s, want);
-        boosted.set(s.id, r.on); s.boostCount = r.count;
-        if (r.ring) s.boostRing = r.ring;
-      } catch (err) { console.warn('Stryker: boost', err); toast((err && err.userMessage) || 'Could not save the boost.', 'error'); }
-      b.disabled = false;
-      paintB();
-    });
-    return b;
   }
 
   // Built-ins from Vela's on-chart list, plus Pine scripts (added through the public
@@ -434,6 +402,17 @@ export function mountIndicatorWindow(ws, opts){
   const day = () => Math.floor(Date.now() / 86400000);
   function week(ring){ const t = day(); let n = 0; if (ring && typeof ring === 'object') Object.keys(ring).forEach((k) => { const v = ring[k]; if (v && v.d > t - 7 && v.d <= t + 1) n += Number(v.n) || 0; }); return n; }
 
+  // Every Stryker-made script: the natives/examples named in STRYKER_PICKS, then every
+  // PICKER_SCRIPTS entry with section 'picks'. Future entries appear with no extra wiring.
+  function strykerItems(all){
+    const by = new Map(all.map((x) => [x.key, x])), seen = new Set();
+    return STRYKER_PICKS.concat(PICKER_SCRIPTS.filter((b) => b.section === 'picks').map((b) => 'x:' + b.id))
+      .filter((k) => !seen.has(k) && seen.add(k)).map((k) => by.get(k)).filter(Boolean);
+  }
+  // Third-party built-ins (PICKER_SCRIPTS section 'community'): no usage stats, so they
+  // follow the member scripts in Top and Trending, alphabetical.
+  function thirdItems(all){ return all.filter((x) => x.third).sort((a, b) => a.name.localeCompare(b.name)); }
+
   function sectionItems(all){
     const comm = all.filter((x) => x.kind === 'community');
     if (authorFilter) return { title: 'Scripts by ' + authorFilter.name, items: comm.filter((x) => x.authorUid === authorFilter.uid).sort((a, b) => b.boosts - a.boosts) };
@@ -441,18 +420,16 @@ export function mountIndicatorWindow(ws, opts){
       case 'fav': return { title: 'Favorites', items: favItems(all), empty: 'Star any indicator or script to keep it here.' };
       case 'mine': return { title: 'My scripts', items: all.filter((x) => x.kind === 'mine'), empty: S() && S().signedIn() ? 'No saved scripts yet. Write one in the Pine editor and press Save.' : 'Sign in to keep scripts on your account.' };
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
+      case 'stryker': return { title: 'Stryker', note: 'every Stryker indicator', items: strykerItems(all), empty: 'No Stryker indicators yet.' };
       case 'picks': {
-        // The Owner's own (Stryker-made) indicators first, then admin-picked community scripts.
-        const by = new Map(all.map((x) => [x.key, x]));
-        const own = STRYKER_PICKS.map((k) => by.get(k)).filter(Boolean)
-          .concat(PICKER_SCRIPTS.filter((b) => b.section === 'picks').map((b) => by.get('x:' + b.id)).filter(Boolean));
-        return { title: "Editors' picks", note: 'Stryker indicators', items: own.concat(comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0))), empty: 'No picks yet.' };
+        // Default: every Stryker script (same derived list as the Stryker tab), then
+        // admin-picked community scripts. Curate later by changing strykerItems' source.
+        return { title: "Editors' picks", note: 'Stryker indicators', items: strykerItems(all).concat(comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0))), empty: 'No picks yet.' };
       }
-      case 'community': return { title: 'Community indicators', note: 'third-party scripts, credited to their authors', items: all.filter((x) => x.third), empty: 'No community indicators yet.' };
-      case 'top': return { title: 'Top', items: comm.slice().sort((a, b) => (b.boosts - a.boosts) || (b.s.addCount - a.s.addCount)), empty: 'No community scripts yet.' };
+      case 'top': return { title: 'Top', note: 'community and third-party scripts', items: comm.slice().sort((a, b) => (b.boosts - a.boosts) || (b.s.addCount - a.s.addCount)).concat(thirdItems(all)), empty: 'No community scripts yet.' };
       case 'trending': {
         const sc = (x) => week(x.s.boostRing) + week(x.s.addRing);
-        return { title: 'Trending', note: 'Boosts and adds in the last 7 days', items: comm.filter((x) => sc(x) > 0).sort((a, b) => (sc(b) - sc(a)) || (b.boosts - a.boosts)), empty: 'Nothing trending this week.' };
+        return { title: 'Trending', note: 'last 7 days', items: comm.filter((x) => sc(x) > 0).sort((a, b) => (sc(b) - sc(a)) || (b.boosts - a.boosts)).concat(thirdItems(all)), empty: 'Nothing trending this week.' };
       }
       default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third) };
     }
@@ -469,7 +446,7 @@ export function mountIndicatorWindow(ws, opts){
     if (q) {
       const hit = (x) => x.name.toLowerCase().includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
       const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && hit(x))],
-        ['Community indicators', all.filter((x) => x.third && hit(x))],
+        ['Community \u00b7 third-party', all.filter((x) => x.third && hit(x))],
         ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)]];
       els.title.textContent = 'Results for \u201c' + els.search.value.trim() + '\u201d';
       let n = 0;
@@ -481,8 +458,9 @@ export function mountIndicatorWindow(ws, opts){
     els.title.textContent = view.title;
     if (view.note) els.title.appendChild(h('small', { text: ' \u00b7 ' + view.note }));
     if (authorFilter) els.title.appendChild(h('button', { type: 'button', class: 'stkiw-link', text: 'Clear', onclick: () => { authorFilter = null; render(); } }));
-    if (['top', 'trending'].includes(section) && !authorFilter && communityErr) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Could not load community scripts. Check your connection.' })); return; }
-    if (['top', 'trending'].includes(section) && !fbUser()) { list.appendChild(h('p', { class: 'stkiw-empty', text: 'Sign in to see community scripts.' })); return; }
+    // Top/Trending: third-party built-ins always list; member scripts need sign-in + the library.
+    if (['top', 'trending'].includes(section) && !authorFilter && communityErr) list.appendChild(h('p', { class: 'stkiw-empty', text: 'Could not load member scripts. Check your connection.' }));
+    else if (['top', 'trending'].includes(section) && !authorFilter && !fbUser()) list.appendChild(h('p', { class: 'stkiw-empty', text: 'Sign in to see member-published scripts too.' }));
     if (view.grouped) {
       CATS.forEach((c) => {
         const a = view.items.filter((x) => x.cat === c);

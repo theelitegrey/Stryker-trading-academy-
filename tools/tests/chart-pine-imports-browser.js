@@ -59,12 +59,12 @@ async function setMarket(p, sym, tf, deep){
     return chart.orchestrator.rawBars.length;
   }, [sym, deep]);
 }
-// Open the Indicators window on COMMUNITY > "Community indicators" (third-party) or "Editors' picks"
+// Open the Indicators window on COMMUNITY > "Top" (third-party, since 2026-10-08) or "Editors' picks"
 // (the Owner's own), find the row, click it.
 async function addViaWindow(p, name){
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
   await p.waitForSelector('.stkiw-row', { timeout: 20000 });
-  await p.evaluate((k) => document.querySelector('.stkiw-tab[data-k="' + k + '"]').click(), PICKS.has(name) ? 'picks' : 'community');
+  await p.evaluate((k) => document.querySelector('.stkiw-tab[data-k="' + k + '"]').click(), PICKS.has(name) ? 'picks' : 'top');
   await p.waitForTimeout(300);
   const inGroup = await p.evaluate((name) => {
     const rows = [...document.querySelectorAll('.stkiw-row')];
@@ -72,7 +72,7 @@ async function addViaWindow(p, name){
     if (!row) return { found: false };
     return { found: true, head: (document.querySelector('.stkiw-sect') || {}).textContent };
   }, name);
-  check(inGroup.found && (PICKS.has(name) ? /^Editors' picks/ : /^Community indicators/).test(inGroup.head || ''), name + ': listed under "' + inGroup.head + '" in the Indicators window');
+  check(inGroup.found && (PICKS.has(name) ? /^Editors' picks/ : /^Top/).test(inGroup.head || ''), name + ': listed under "' + inGroup.head + '" in the Indicators window');
   const before = await p.evaluate(() => window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.context().cells[0].chart).length);
   const t0 = Date.now();
   await p.evaluate((name) => [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-nm') || {}).textContent === name).querySelector('.stkiw-name').click(), name);
@@ -120,7 +120,7 @@ async function counts(p){
       check(served === orig, `${name}: served source is byte-identical to the original (${served.length} / ${orig.length} chars)`);
       check(!/Stryker edit/.test(served), `${name}: no "Stryker edit" lines`);
     }
-    // ---- picker sections (stage 2): Editors' picks = Stryker-made, Community indicators = third-party ----
+    // ---- picker sections: Editors' picks = Stryker-made, third-party in Top/Trending (2026-10-08) ----
     {
       // an old favourite saved before the move (same ids) must still resolve
       await setMarket(p, 'futures:NQ1!', '5', 0);
@@ -129,17 +129,17 @@ async function counts(p){
       const rowsOf = () => p.evaluate(() => [...document.querySelectorAll('.stkiw-list .stkiw-row')].map((r) => ({ key: r.dataset.key, name: (r.querySelector('.stkiw-nm') || {}).textContent, sub: (r.querySelector('.stkiw-sub') || {}).textContent, auth: (r.querySelector('.stkiw-auth') || {}).textContent, tag: [...r.querySelectorAll('.stkiw-pick')].map((x) => x.textContent).join(',') })));
       const tab = async (k) => { await p.evaluate((k) => document.querySelector('.stkiw-tab[data-k="' + k + '"]').click(), k); await p.waitForTimeout(300); };
       const tabs = await p.evaluate(() => [...document.querySelectorAll('.stkiw-tab')].map((x) => x.textContent));
-      check(tabs.includes("Editors' picks") && tabs.includes('Community indicators'), 'COMMUNITY tabs: ' + tabs.join(' | '));
+      check(tabs.includes("Editors' picks") && tabs.includes('Stryker') && !tabs.includes('Community indicators'), 'tabs: ' + tabs.join(' | '));
       await tab('picks');
       let r = await rowsOf();
       const pk = r.map((x) => x.key);
       check(['b:stk_gex', 'x:ema-cross', 'x:session-vwap', 'x:pdhl'].every((k) => pk.includes(k)) && r.filter((x) => pk.indexOf(x.key) < 4).every((x) => x.sub === 'Stryker'), "Editors' picks lists the Stryker ones: " + r.map((x) => x.name + ' (' + x.sub + ')').join(', '));
       check(!pk.includes('x:wcsmc-sp') && !pk.includes('x:stoic-edge-compass'), "Editors' picks has no third-party script");
       await p.screenshot({ path: `${OUT}/picker-picks-1440.png` });
-      await tab('community');
-      r = await rowsOf();
+      await tab('top');
+      r = (await rowsOf()).filter((x) => /third-party/.test(x.tag));
       const w = r.find((x) => x.key === 'x:wcsmc-sp'), s = r.find((x) => x.key === 'x:stoic-edge-compass');
-      check(r.length === 2 && w && w.sub === 'WinWorld' && s && s.sub === 'Community', 'Community indicators: ' + r.map((x) => x.name + ' by ' + x.sub).join(', '));
+      check(r.length >= 2 && w && w.sub === 'WinWorld' && s && s.sub === 'Community', 'Top (third-party): ' + r.map((x) => x.name + ' by ' + x.sub).join(', '));
       check(r.every((x) => /Community · third-party/.test(x.tag) && x.sub !== 'Stryker' && x.auth !== 'Stryker'), 'third-party tag shown, never "Stryker" (' + r.map((x) => x.tag + '/' + x.auth).join(', ') + ')');
       await p.screenshot({ path: `${OUT}/picker-community-1440.png` });
       await tab('tech');

@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=458';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=458';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=459';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=459';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected

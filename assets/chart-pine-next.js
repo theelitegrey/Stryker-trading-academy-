@@ -11,7 +11,7 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
-const WORKER_URL = new URL('./chart-pine-next-worker.js?v=455', import.meta.url);
+const WORKER_URL = new URL('./chart-pine-next-worker.js?v=459', import.meta.url);
 
 export class PineNextEngine {
   constructor(opts = {}){

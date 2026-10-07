@@ -15,7 +15,7 @@ export const BUILTIN_PINE = [
     id: 'stoic-edge-compass',
     name: 'Stoic Edge Compass',
     desc: 'Structure bias, range filter, trend ribbon + 200 EMA, context dots, S/R zones, status panel',
-    url: 'pine/stoic-edge-compass.pine?v=455'
+    url: 'pine/stoic-edge-compass.pine?v=459'
   }
 ];
 

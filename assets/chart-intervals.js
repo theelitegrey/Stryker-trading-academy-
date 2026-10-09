@@ -556,7 +556,13 @@ function writeLs(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); }
 const providerOf = (sym) => {
   const s = String(sym || '');
   const m = /^([a-z]+):/i.exec(s);
-  if (m) return m[1].toLowerCase();
+  if (m) {
+    const p = m[1].toLowerCase();
+    // Vela may expose futures as the exchange prefix (CME:NQ1!, CBOT:YM1!, COMEX:GC1!, NYMEX:CL1!)
+    // instead of the Stryker provider prefix (futures:NQ1!). Treat those as futures.
+    if (/^(cme|cme_mini|cbot|comex|nymex)$/i.test(p)) return 'futures';
+    return p;
+  }
   // Vela sometimes gives the active cell as the bare ticker shown in the phone bar (NQ1!, ES1!),
   // not the provider-prefixed symbol (futures:NQ1!). Treat continuous futures tickers as futures
   // so seconds intervals use the InsightSentry bridge instead of falling through to the Binance rule.

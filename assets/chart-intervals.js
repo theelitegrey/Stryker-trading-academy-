@@ -199,7 +199,10 @@ const isPerp = (ticker) => /\.P$/i.test(ticker);
 export function secTickBlock(tf, provider, ticker) {
   const p = parseIv(tf);
   if (!p || (p.kind !== 'sec' && p.kind !== 'tick')) return '';
-  if (provider === 'futures') return hasTrades('futures') ? '' : NEED_RITHMIC;
+  if (provider === 'futures') {
+    if (p.kind === 'sec') return '';
+    return hasTrades('futures') ? '' : 'Tick charts need a connected trade stream.';
+  }
   if (provider === 'binance') return (p.kind === 'tick' || isPerp(ticker || '')) && !hasTrades('binance') ? 'Live trades are not available right now.' : '';
   return (p.kind === 'sec' ? 'Seconds' : 'Tick') + ' charts need Binance data. Pick a Binance symbol for this interval.';
 }
@@ -248,6 +251,59 @@ export async function binanceSeconds(ticker, n, range = {}) {
   if (n > 1 && out.length && sub.length && out[0].time < sub[0].time) out = out.slice(1);
   if (range.limit != null && out.length > range.limit) out = out.slice(-range.limit);
   return out;
+}
+
+function futuresSeconds(ticker, n, range = {}) {
+  if (typeof WebSocket !== 'function' || typeof location === 'undefined') return Promise.resolve([]);
+  const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
+  if (!root) return Promise.resolve([]);
+  return new Promise((resolve) => {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const url = `${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(n + 'S')}`;
+    const out = [];
+    let ws;
+    const done = () => {
+      try { if (ws) ws.close(); } catch (e) {}
+      let bars = out.sort((a, b) => a.time - b.time);
+      if (range.to != null) bars = bars.filter((x) => x.time <= range.to);
+      if (range.from != null) bars = bars.filter((x) => x.time >= range.from);
+      if (range.limit != null && bars.length > range.limit) bars = bars.slice(-range.limit);
+      resolve(bars);
+    };
+    const timer = setTimeout(done, 5000);
+    try {
+      ws = new WebSocket(url);
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) {
+            out.push({ time: msg.bar[0] * 1000, open: msg.bar[1], high: msg.bar[2], low: msg.bar[3], close: msg.bar[4], volume: msg.bar[5] });
+            if (out.length >= (range.limit || 500)) { clearTimeout(timer); done(); }
+          }
+        } catch (e) {}
+      };
+      ws.onerror = () => { clearTimeout(timer); done(); };
+      ws.onclose = () => { clearTimeout(timer); done(); };
+    } catch (e) { clearTimeout(timer); done(); }
+  });
+}
+
+function futuresSecondsSubscribe(ticker, n, onBar) {
+  if (typeof WebSocket !== 'function' || typeof location === 'undefined') return () => {};
+  const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
+  let ws = null, stopped = false;
+  try {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(n + 'S')}`);
+    ws.onmessage = (ev) => {
+      if (stopped) return;
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) onBar({ time: msg.bar[0] * 1000, open: msg.bar[1], high: msg.bar[2], low: msg.bar[3], close: msg.bar[4], volume: msg.bar[5] });
+      } catch (e) {}
+    };
+  } catch (e) {}
+  return () => { stopped = true; try { if (ws) ws.close(); } catch (e) {} };
 }
 
 // Bars built from a live trade stream: mode 'tick' (n trades per bar) or 'time' (n-second buckets).
@@ -326,6 +382,7 @@ export function tradeHistoryState(provider, ticker, tf) {
 }
 function secTickGetBars(provider, ticker, p, range) {
   if (provider === 'binance' && p.kind === 'sec' && !isPerp(ticker)) return binanceSeconds(ticker, p.n, range);
+  if (provider === 'futures' && p.kind === 'sec') return futuresSeconds(ticker, p.n, range);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
   b.use();
   return b.ready.then(() => {
@@ -351,6 +408,7 @@ function secTickSubscribe(provider, ticker, p, onBar) {
     timer = setTimeout(tick, 1000);
     return () => { stopped = true; if (timer) clearTimeout(timer); };
   }
+  if (provider === 'futures' && p.kind === 'sec') return futuresSecondsSubscribe(ticker, p.n, onBar);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
   b.use();
   b.listeners.add(onBar);

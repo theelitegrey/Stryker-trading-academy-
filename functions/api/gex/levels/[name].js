@@ -5,7 +5,7 @@ const inflight = new Map();
 function cacheAvailable() { return typeof caches !== 'undefined' && caches.default; }
 function cacheKey(request, name, dte, kind = 'fresh') {
   const u = new URL(request.url);
-  u.search = `dte=${dte}&gexcache=${kind}&v=394`;
+  u.search = `dte=${dte}&gexcache=${kind}&v=483`;
   return new Request(u.toString(), { method: 'GET' });
 }
 // Edge TTL (s-maxage) and stale-while-revalidate, in seconds.
@@ -56,7 +56,7 @@ async function staleResponse(request, name, dte, error) {
 
 export { cacheTtl, cacheHeaders };
 
-export async function onRequestGet({ request, params }) {
+export async function onRequestGet({ request, params, env }) {
   const name = String(params.name || '').toUpperCase();
   if (!MARKETS[name]) return json({ error: 'unknown market' }, { status: 404, cache: 'no-store' });
   const url = new URL(request.url);
@@ -68,7 +68,7 @@ export async function onRequestGet({ request, params }) {
     const key = `${name}:${safeDte}`;
     let p = inflight.get(key);
     if (!p) {
-      p = buildLevels(name, safeDte).finally(() => inflight.delete(key));
+      p = buildLevels(name, safeDte, env || {}).finally(() => inflight.delete(key));
       inflight.set(key, p);
     }
     const data = await p;

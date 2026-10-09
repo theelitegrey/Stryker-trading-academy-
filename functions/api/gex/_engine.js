@@ -1,4 +1,5 @@
 const CBOE = 'https://cdn.cboe.com/api/global/delayed_quotes/options/';
+const INSIGHTSENTRY_REST = 'https://api.insightsentry.com/v3';
 const FETCH_TIMEOUT_MS = 4500;
 const quoteMemo = new Map();
 const candleMemo = new Map();
@@ -8,6 +9,13 @@ const MARKETS = {
   SPY: { cboe: 'SPY', fut: 'ES', mult: 10.0 },
   QQQ: { cboe: 'QQQ', fut: 'NQ', mult: 41.0 },
   GLD: { cboe: 'GLD', fut: 'GC', mult: 10.9 }
+};
+
+const INSIGHTSENTRY_OPTIONS = {
+  SPX: 'CBOE:SPX',
+  SPY: 'AMEX:SPY',
+  QQQ: 'NASDAQ:QQQ',
+  GLD: 'AMEX:GLD'
 };
 
 const FUTURES = {
@@ -38,20 +46,106 @@ function json(data, init = {}) {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
-async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS) {
+async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS, extraHeaders = {}) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort('timeout'), timeoutMs);
   try {
     const res = await fetch(url, {
       signal: ctrl.signal,
       redirect: 'follow',
-      headers: { 'user-agent': 'Mozilla/5.0 StrykerGEX/1.0', 'accept': 'application/json' }
+      headers: { 'user-agent': 'Mozilla/5.0 StrykerGEX/1.0', 'accept': 'application/json', ...extraHeaders }
     });
     if (!res.ok) throw new Error(`fetch ${res.status} ${url}`);
     return res.json();
   } finally {
     clearTimeout(timer);
   }
+}
+
+
+function dateFromYmd(n) {
+  const s = String(n || '');
+  if (!/^\d{8}$/.test(s)) return null;
+  return new Date(Date.UTC(Number(s.slice(0, 4)), Number(s.slice(4, 6)) - 1, Number(s.slice(6, 8))));
+}
+
+function insightRangeForDte(dteMax) {
+  if (dteMax === 0 || dteMax === 1) return 8;
+  if (dteMax === 7) return 12;
+  return 35;
+}
+
+async function fetchInsightOptions(name, dteMax, env = {}) {
+  const apiKey = env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY;
+  const code = INSIGHTSENTRY_OPTIONS[name];
+  if (!apiKey || !code) throw new Error('InsightSentry options not configured');
+  const qs = new URLSearchParams({ code, range: String(insightRangeForDte(dteMax)) });
+  const headers = { authorization: `Bearer ${apiKey}` };
+  const [quotes, contracts] = await Promise.all([
+    fetchJson(`${INSIGHTSENTRY_REST}/options/quotes?${qs}`, 12000, headers),
+    fetchJson(`${INSIGHTSENTRY_REST}/options/contracts?${qs}`, 12000, headers).catch(() => ({ data: [] }))
+  ]);
+  const byCode = new Map((contracts.data || []).map(o => [String(o.code || o.option || ''), o]));
+  const rows = [];
+  const expiries = new Map();
+  for (const o of quotes.data || []) {
+    const exp = dateFromYmd(o.expiration);
+    if (!exp) continue;
+    const days = dte(exp);
+    if (days < 0) continue;
+    const joined = byCode.get(String(o.code || '')) || {};
+    const type = String(o.type || joined.type || '').toUpperCase();
+    const cp = type.startsWith('C') ? 'C' : (type.startsWith('P') ? 'P' : null);
+    const oi = Number(o.open_interest ?? joined.open_interest ?? joined.openInterest ?? 0);
+    const gamma = Number(o.gamma ?? joined.gamma ?? 0);
+    if (!cp || !Number.isFinite(oi) || oi <= 0 || !Number.isFinite(gamma) || gamma <= 0) continue;
+    rows.push({
+      strike: Number(o.strike_price ?? joined.strike_price ?? joined.strike),
+      cp,
+      dte: days,
+      exp,
+      oi,
+      vol: Number(o.volume ?? joined.volume ?? 0),
+      gamma,
+      delta: Number(o.delta ?? joined.delta ?? 0),
+      iv: Number(o.implied_volatility ?? o.iv ?? joined.implied_volatility ?? joined.iv ?? 0)
+    });
+    expiries.set(isoDate(exp), exp);
+  }
+  const spot = Number(quotes.last_price || quotes.underlying_price || quotes.current_price || 0);
+  if (!Number.isFinite(spot) || spot <= 0) throw new Error('InsightSentry options missing spot');
+  let contractsOut;
+  if (dteMax === 0 || dteMax === 1) {
+    const exps = [...expiries.values()].sort((a, b) => a - b);
+    if (!exps.length) contractsOut = [];
+    else {
+      // InsightSentry's quotes are fresh for many expiries, but OI is currently usable only
+      // on the closest listed expiry for some underlyings. Prefer the requested expiry, then
+      // fall back to the nearest expiry that has enough OI-backed contracts so the GEX levels
+      // remain updated instead of silently reverting to the older source.
+      const requested = exps[Math.min(dteMax, exps.length - 1)];
+      contractsOut = rows.filter(r => isoDate(r.exp) === isoDate(requested));
+      if (contractsOut.length < 20) {
+        for (const exp of exps) {
+          const group = rows.filter(r => isoDate(r.exp) === isoDate(exp));
+          if (group.length >= 20) { contractsOut = group; break; }
+        }
+      }
+    }
+  } else {
+    contractsOut = rows.filter(r => r.dte <= dteMax);
+    if (contractsOut.length < 20) contractsOut = rows;
+  }
+  if (contractsOut.length < 20) throw new Error(`InsightSentry options thin chain (${contractsOut.length})`);
+  const tsMs = Number(quotes.last_update || quotes.updated_at || 0);
+  const asof = tsMs ? new Date(tsMs).toISOString() : new Date().toISOString();
+  const ivs = contractsOut.map(r => r.iv).filter(v => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
+  const iv30 = ivs.length ? ivs[Math.floor(ivs.length / 2)] * (ivs[Math.floor(ivs.length / 2)] > 3 ? 1 : 100) : 0;
+  return { current_price: spot, options: contractsOut, iv30, last_trade_time: asof, options_ts: tsMs ? tsMs / 1000 : Date.now() / 1000, source: 'insightsentry_options' };
+}
+
+function parsedRowsToSource(rows, spot, iv30, asof) {
+  return { current_price: spot, options: rows, iv30, last_trade_time: asof };
 }
 
 function todayUtc() {
@@ -69,6 +163,7 @@ function round(n, d = 2) { return n == null || !Number.isFinite(n) ? null : Numb
 
 function parseOptions(data, dteMax) {
   const spot = Number(data.current_price);
+  if (data.source === 'insightsentry_options') return { spot, contracts: data.options || [] };
   const raw = [];
   const expiries = new Map();
   for (const o of data.options || []) {
@@ -497,21 +592,29 @@ function warnings(data) {
   return out;
 }
 
-async function buildLevels(name, dteMax = 1) {
+async function buildLevels(name, dteMax = 1, env = {}) {
   name = String(name || '').toUpperCase();
   if (!MARKETS[name]) throw new Error('unknown market');
   if (![0, 1, 7, 30].includes(dteMax)) dteMax = 1;
   const cfg = MARKETS[name];
-  const cboe = await fetchJson(CBOE + encodeURIComponent(cfg.cboe) + '.json');
-  const { spot, contracts } = parseOptions(cboe.data || cboe, dteMax);
+  let source = 'cboe';
+  let optData;
+  try {
+    optData = await fetchInsightOptions(name, dteMax, env);
+    source = 'insightsentry_options';
+  } catch (_) {
+    const cboe = await fetchJson(CBOE + encodeURIComponent(cfg.cboe) + '.json');
+    optData = cboe.data || cboe;
+  }
+  const { spot, contracts } = parseOptions(optData, dteMax);
   const p = profile(spot, contracts);
   const lv = levels(spot, p.gex, contracts);
   const expiries = [...new Set(contracts.map(c => isoDate(c.exp)))].sort();
   const data = {
     ...lv,
-    underlying: name, spot, iv30: Number((cboe.data || cboe).iv30 || 0), contracts: contracts.length,
-    fut: cfg.fut, mult: cfg.mult, expected: ivRange(spot, Number((cboe.data || cboe).iv30 || 0)),
-    asof: (cboe.data || cboe).last_trade_time || null,
+    underlying: name, spot, iv30: Number(optData.iv30 || 0), contracts: contracts.length, source,
+    fut: cfg.fut, mult: cfg.mult, expected: ivRange(spot, Number(optData.iv30 || 0)),
+    asof: optData.last_trade_time || null,
     expiry: expiries.length === 1 ? expiries[0] : (expiries.length ? `${expiries[0]}–${expiries[expiries.length - 1]}` : null),
     expiry_dte: contracts.length && expiries.length === 1 ? contracts[0].dte : null,
     ladder: [...p.gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.04).sort((a, b) => b - a).map(k => ({ strike: k, gex: p.gex.get(k), dex: p.dex.get(k) || 0, oi: p.oi.get(k) || 0 }))
@@ -528,7 +631,7 @@ async function buildLevels(name, dteMax = 1) {
   data.warnings = warnings(data);
   data.fetched_at = Date.now() / 1000;
   const futTs = Object.values(data.futures).map(f => f && f.futures_ts).filter(Boolean).sort((a, b) => b - a)[0] || null;
-  data.market = marketStatus({ now: data.fetched_at, futTs, optTs: etEpoch(data.asof) });
+  data.market = marketStatus({ now: data.fetched_at, futTs, optTs: optData.options_ts || etEpoch(data.asof) });
   return data;
 }
 

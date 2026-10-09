@@ -15,6 +15,7 @@
 //   - Anchored VWAP with ±1/2/3 standard-deviation bands (ours; click a bar to anchor).
 //   - Fixed Range Volume Profile: Vela's own drawing tool (the picker row arms it).
 //   - Relative Volume (ours): bar volume / average volume at the same time of day.
+//   - Volume Bubble / Big Prints (ours): bubbles on high-volume bars, built from the chart feed volume.
 //   - Estimated CVD (from candles) (ours, off by default): NOT real order flow. Each candle's
 //     volume is split by where it closed in its range. Always labelled "Estimated".
 // Everything above is computed from OHLCV bars, so it is honest on every feed. Real order-flow
@@ -531,6 +532,94 @@ class RvolNative {
 }
 
 // ---------------------------------------------------------------------------------------
+// Volume Bubble / Big Prints — high-volume bubbles from chart-feed volume
+// ---------------------------------------------------------------------------------------
+const VB_SCHEMA = [
+  { key: 'lookback', title: 'Average lookback', type: 'int', defval: 50, min: 5, max: 500, step: 1 },
+  { key: 'threshold', title: 'Show above (x avg volume)', type: 'float', defval: 2, min: 1, max: 20, step: 0.1 },
+  { key: 'maxBubbles', title: 'Max bubbles on screen', type: 'int', defval: 80, min: 10, max: 300, step: 5 },
+  { key: 'minSize', title: 'Min bubble size', type: 'int', defval: 8, min: 3, max: 40, step: 1 },
+  { key: 'maxSize', title: 'Max bubble size', type: 'int', defval: 42, min: 8, max: 120, step: 1 },
+  { key: 'showLabels', title: 'Show size labels', type: 'bool', defval: true },
+  { key: 'buyColor', title: 'Up candle colour', type: 'color', defval: '#22c55e' },
+  { key: 'sellColor', title: 'Down candle colour', type: 'color', defval: '#ef4444' }
+];
+function vbConfig(inputs) {
+  const minSize = clamp(Math.round(num(inputs.minSize, 8)), 3, 40);
+  return {
+    lookback: clamp(Math.round(num(inputs.lookback, 50)), 5, 500),
+    threshold: clamp(num(inputs.threshold, 2), 1, 20),
+    maxBubbles: clamp(Math.round(num(inputs.maxBubbles, 80)), 10, 300),
+    minSize,
+    maxSize: Math.max(minSize + 2, clamp(Math.round(num(inputs.maxSize, 42)), 8, 120)),
+    showLabels: inputs.showLabels !== false,
+    buy: str(inputs.buyColor, '#22c55e'),
+    sell: str(inputs.sellColor, '#ef4444')
+  };
+}
+function volumeBubbleLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = beginFrame(canvas, a.coords);
+      if (!g || !a.data || a.data.off || !a.bars.length) return;
+      const cfg = a.data, co = a.coords;
+      const vr = co.visibleLogicalRange();
+      const i0 = Math.max(0, Math.floor(vr.from) - cfg.lookback - 2);
+      const i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to) + 2);
+      const pts = [];
+      for (let i = i0; i <= i1; i++) {
+        const b = a.bars[i];
+        const v = Number(b.volume || 0);
+        if (!(v > 0) || i < cfg.lookback) continue;
+        let sum = 0, n = 0;
+        for (let k = Math.max(0, i - cfg.lookback); k < i; k++) { const x = Number(a.bars[k].volume || 0); if (x > 0) { sum += x; n++; } }
+        const avg = n ? sum / n : 0;
+        if (!(avg > 0)) continue;
+        const ratio = v / avg;
+        if (ratio < cfg.threshold) continue;
+        pts.push({ i, b, v, ratio });
+      }
+      pts.sort((x, y) => y.ratio - x.ratio);
+      const keep = new Set(pts.slice(0, cfg.maxBubbles).map(x => x.i));
+      const draw = pts.filter(x => keep.has(x.i)).sort((x, y) => x.i - y.i);
+      const light = themeIsLight(a.theme);
+      const top = a.bounds.top, bot = top + a.bounds.height;
+      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      for (const x of draw) {
+        const b = x.b;
+        const cx = co.logicalToX(x.i);
+        const price = b.close >= b.open ? b.high : b.low;
+        const cy = co.priceToY(price, a.scale, a.bounds);
+        if (!Number.isFinite(cx) || !Number.isFinite(cy) || cy < top - 80 || cy > bot + 80) continue;
+        const t = Math.min(1, Math.log(x.ratio / cfg.threshold + 1) / Math.log(6));
+        const r = cfg.minSize + (cfg.maxSize - cfg.minSize) * t;
+        const col = b.close >= b.open ? cfg.buy : cfg.sell;
+        g.fillStyle = alpha(col, light ? 0.24 : 0.32);
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = alpha(col, light ? 0.82 : 0.95); g.lineWidth = Math.max(1, Math.min(3, r / 12));
+        g.stroke();
+        if (cfg.showLabels && r >= 10) {
+          g.font = 'bold ' + clamp(Math.round(r * 0.42), 8, 14) + 'px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif');
+          g.fillStyle = light ? '#0f172a' : '#f8fafc';
+          const label = x.ratio >= 10 ? x.ratio.toFixed(0) + 'x' : x.ratio.toFixed(1) + 'x';
+          g.fillText(label, cx, cy);
+        }
+      }
+      g.restore();
+    },
+    destroy() { canvas = null; }
+  };
+}
+function vbBuild(inputs, mk, ctx) {
+  const bars = ctx.bars();
+  if (!bars.some(b => (b.volume || 0) > 0)) return { data: { off: true }, emit: { tables: [message('stk_vb-msg', 'Volume Bubble needs bars with volume.', pageIsDay())] } };
+  return { data: vbConfig(inputs), emit: {} };
+}
+
+// ---------------------------------------------------------------------------------------
 // Estimated CVD (from candles) — NOT real order flow
 // ---------------------------------------------------------------------------------------
 const EST_SCHEMA = [
@@ -937,7 +1026,7 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol',
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble',
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -958,6 +1047,9 @@ export function installOrderflow(Core) {
     inputsSchema: () => AV_SCHEMA, create: () => new AvwapNative() });
   reg(Core, { type: 'stk_rvol', title: 'Relative Volume', shortTitle: 'RVOL', paneHint: 'new', overlay: false,
     inputsSchema: () => RV_SCHEMA, create: () => new RvolNative() });
+  Core.registerRendererLayer({ id: 'stk_vbubble', placement: 'above-data', create: volumeBubbleLayer });
+  reg(Core, { type: 'stk_vbubble', title: 'Volume Bubble / Big Prints', shortTitle: 'Volume Bubble', paneHint: 'price', overlay: true,
+    inputsSchema: () => VB_SCHEMA, create: () => new LayerNative(vbBuild) });
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
   reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask, real trades)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
     inputsSchema: () => FP_SCHEMA, create: () => new FlowNative('footprint') });

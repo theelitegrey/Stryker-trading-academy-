@@ -29,20 +29,20 @@
 // scripts' own inputs (the indicator settings dialog).
 
 export const PICKER_SCRIPTS = [
-  { id: 'stoic-edge-compass', name: 'Stoic Edge Compass', author: 'Community', section: 'community', source: 'pine/stoic-edge-compass.pine?v=474', desc: 'Structure bias, range filter, trend ribbon + 200 EMA, context dots, S/R zones, status panel' },
-  { id: 'wcsmc-sp', name: 'WCSMC + SP v3.0 [WinWorld]', author: 'WinWorld', section: 'community', source: 'pine/wcsmc-sp.pine?v=474', desc: 'Smart-money structure: BoS / ChoCh, IDM, order blocks, FVGs, MTF structure, SMT vs a compare symbol, MTF dashboard' },
+  { id: 'stoic-edge-compass', name: 'Stoic Edge Compass', author: 'Community', section: 'community', source: 'pine/stoic-edge-compass.pine?v=475', desc: 'Structure bias, range filter, trend ribbon + 200 EMA, context dots, S/R zones, status panel' },
+  { id: 'wcsmc-sp', name: 'WCSMC + SP v3.0 [WinWorld]', author: 'WinWorld', section: 'community', source: 'pine/wcsmc-sp.pine?v=475', desc: 'Smart-money structure: BoS / ChoCh, IDM, order blocks, FVGs, MTF structure, SMT vs a compare symbol, MTF dashboard' },
   // Community batch B (Owner 2026-10-08 "Add all these indicators in community"): third-party,
   // byte-identical to the files the Owner sent (CRLF line endings kept).
-  { id: 'ict-pro-plus-timmynq', name: 'ICT Pro+ | TimmyNQ [TakingProphets]', author: 'TimmyNQ (TakingProphets)', section: 'community', source: 'pine/ict-pro-plus-timmynq.pine?v=474', desc: 'ICT toolkit: higher-timeframe candles and levels, liquidity, FVGs, sessions and SMT vs a compare symbol' },
+  { id: 'ict-pro-plus-timmynq', name: 'ICT Pro+ | TimmyNQ [TakingProphets]', author: 'TimmyNQ (TakingProphets)', section: 'community', source: 'pine/ict-pro-plus-timmynq.pine?v=475', desc: 'ICT toolkit: higher-timeframe candles and levels, liquidity, FVGs, sessions and SMT vs a compare symbol' },
   // Community batch A (same Owner order; web-temp-6): third-party, byte-identical, CRLF kept.
-  { id: 'manipulation-model-fb', name: 'Manipulation Model [FB]', author: 'FB', section: 'community', source: 'pine/manipulation-model-fb.pine?v=474', desc: 'Session manipulation candles, traps, key levels, higher-timeframe FVGs and a stats dashboard' },
-  { id: 'london-intraday-protraction', name: 'London Intraday Protraction° [Pro+]', author: 'Community', section: 'community', source: 'pine/london-intraday-protraction.pine?v=474', desc: 'London/CBDR session ranges, protraction markers, deviations and statistics table' },
+  { id: 'manipulation-model-fb', name: 'Manipulation Model [FB]', author: 'FB', section: 'community', source: 'pine/manipulation-model-fb.pine?v=475', desc: 'Session manipulation candles, traps, key levels, higher-timeframe FVGs and a stats dashboard' },
+  { id: 'london-intraday-protraction', name: 'London Intraday Protraction° [Pro+]', author: 'Community', section: 'community', source: 'pine/london-intraday-protraction.pine?v=475', desc: 'London/CBDR session ranges, protraction markers, deviations and statistics table' },
   // The Owner's own indicators ("add this indicator, its strykers", 2026-10-08): Editors' picks,
   // author Stryker, byte-identical to the Owner's sources.
-  { id: 'smt-pro-stryker', name: 'SMT Divergence Pro [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/smt-pro-stryker.pine?v=474', desc: 'SMT divergence vs correlated futures (auto-paired: NQ vs ES), chart TF + higher TFs' },
-  { id: 'ifvg-pro-stryker', name: 'IFVG Pro+ [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/ifvg-pro-stryker.pine?v=474', desc: 'Liquidity (BSL / SSL from higher-TF swings and candles), sweep, candidate FVG and inversion (IFVG) boxes, risk / reward box' },
-  { id: 'htf-po3-lens-stryker', name: 'HTF PO3 Lens [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/htf-po3-lens-stryker.pine?v=474', desc: 'Up to five higher-timeframe candles drawn right of the last bar, with HTF FVGs, sweeps and a countdown to the close' },
-  { id: 'fvg-relay-stryker', name: 'FVG Relay [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/fvg-relay-stryker.pine?v=474', desc: 'Higher-timeframe FVGs on your chart; tapped and respected gaps chain as Relay 1, 2, 3; liquidity and dashboard' }
+  { id: 'smt-pro-stryker', name: 'SMT Divergence Pro [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/smt-pro-stryker.pine?v=475', desc: 'SMT divergence vs correlated futures (auto-paired: NQ vs ES), chart TF + higher TFs' },
+  { id: 'ifvg-pro-stryker', name: 'IFVG Pro+ [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/ifvg-pro-stryker.pine?v=475', desc: 'Liquidity (BSL / SSL from higher-TF swings and candles), sweep, candidate FVG and inversion (IFVG) boxes, risk / reward box' },
+  { id: 'htf-po3-lens-stryker', name: 'HTF PO3 Lens [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/htf-po3-lens-stryker.pine?v=475', desc: 'Up to five higher-timeframe candles drawn right of the last bar, with HTF FVGs, sweeps and a countdown to the close' },
+  { id: 'fvg-relay-stryker', name: 'FVG Relay [Stryker]', author: 'Stryker', section: 'picks', source: 'pine/fvg-relay-stryker.pine?v=475', desc: 'Higher-timeframe FVGs on your chart; tapped and respected gaps chain as Relay 1, 2, 3; liquidity and dashboard' }
 ];
 
 // Indicators-window keys of Stryker-made indicators defined elsewhere (Editors' picks order).

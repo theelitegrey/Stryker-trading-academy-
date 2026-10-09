@@ -474,7 +474,16 @@ export function installGexLevels(Core) {
   Core.registerNativeIndicator({
     type: TYPE, title: 'Stryker GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
-    create: () => new GexNative()
+    create: () => new GexNative(),
+    // Short text after "GEX Levels" in the chart legend (assets/chart-legend-rows.js).
+    // Symbol first: "SPX 0DTE · updated 12 min ago" (the status chip reads "GEX updated … · SPX 0DTE").
+    legendNote: (d) => {
+      if (!d) return '';
+      if (d.pill || d.note) return d.pill || d.note;
+      const p = String(d.status || '').replace(/^GEX /, '').split(' · ').filter(Boolean);
+      // Status chip stores time first ("GEX updated … · SPX 0DTE"); legend reads symbol first.
+      return p.length > 1 ? [p[1], p[0]].concat(p.slice(2)).join(' · ') : p[0];
+    }
   });
   // Vela persists which natives are on a chart but not their settings: keep them in the
   // workspace document (session + templates), like the volume tools do.

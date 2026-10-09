@@ -8716,6 +8716,9 @@ html[data-device="mobile"] .mclock-pop{ left:12px; right:12px; width:auto; top:c
 .stk-gex-pill{ pointer-events:auto; color:#03c988; text-decoration:none; }
 .stk-gex-pill:hover{ text-decoration:underline; }
 :root[data-theme="light"] .stk-gex-chip{ background:rgba(255,255,255,.92); border-color:rgba(15,23,42,.12); color:#334155; }
+/* Charts legend: short status after an indicator title (assets/chart-legend-rows.js), e.g. GEX Levels "SPX 0DTE · updated 12 min ago". */
+.stk-leg-note{ margin-left:6px; color:var(--vela-fg-muted, #8a8f98); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:260px; flex:0 1 auto; min-width:0; }
+[data-layout="mobile"] .stk-leg-note{ max-width:150px; }
 .stkiw-lock{ display:inline-flex; color:var(--ink-2); flex:0 0 auto; }
 .stkiw-pick{ flex:0 0 auto; padding:1px 7px; border:1px solid rgba(3,201,136,.45); border-radius:999px; font-size:10.5px; color:#03c988; white-space:nowrap; }
 .stkiw-pick.is-warn{ border-color:rgba(242,54,69,.5); color:#f26b75; }

@@ -49,7 +49,7 @@ i_sbsMax     = input.int(10, "Max Remembered Levels", minval = 1, maxval = 50, g
 i_sbsAge     = input.int(300, "Max Level Age (Bars)", minval = 10, maxval = 5000, group = G_SBS)
 i_sbsWick    = input.float(0.3, "Min Rejection Wick (% of Range)", minval = 0.0, maxval = 1.0, step = 0.05, group = G_SBS)
 
-i_showSr     = input.bool(false, "Show Dynamic Support/Resistance", group = G_SR)
+i_showSr     = input.bool(true, "Show Dynamic Support/Resistance", group = G_SR)
 i_srLen      = input.int(15, "Pivot Strength", minval = 2, maxval = 100, group = G_SR)
 i_srMax      = input.int(3, "Max Zones", minval = 1, maxval = 20, group = G_SR)
 i_srHeight   = input.float(0.25, "Zone Height (ATR)", minval = 0.05, step = 0.05, group = G_SR)
@@ -146,7 +146,7 @@ f_addZone(array<Zone> zs, float level, int leftBar, float atrv, float mergeAtr, 
     float half   = heightAtr * atrv * 0.5
     if zs.size() > 0
         for z in zs
-            if not merged and math.abs(level - z.mid) <= mergeAtr * atrv and not na(z.bx)
+            if not merged and math.abs(level - z.mid) <= mergeAtr * atrv
                 z.mid     := (z.mid * z.touches + level) / (z.touches + 1)
                 z.touches := z.touches + 1
                 z.bx.set_top(z.mid + half)
@@ -155,12 +155,10 @@ f_addZone(array<Zone> zs, float level, int leftBar, float atrv, float mergeAtr, 
                 break
     if not merged
         box bxNew = box.new(leftBar, level + half, bar_index, level - half, border_color = color.new(col, 20), border_width = 1, bgcolor = color.new(col, 88), extend = extend.both)
-        if not na(bxNew)
-            zs.push(Zone.new(bxNew, level, 1))
-            if zs.size() > maxZones
-                Zone old = zs.shift()
-                if not na(old.bx)
-                    old.bx.delete()
+        zs.push(Zone.new(bxNew, level, 1))
+        if zs.size() > maxZones
+            Zone old = zs.shift()
+            old.bx.delete()
     merged
 
 string stdTicker = ticker.standard(syminfo.tickerid)

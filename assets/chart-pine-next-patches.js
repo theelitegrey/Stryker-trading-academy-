@@ -40,10 +40,76 @@ function balanced(str){
   }
   return d === 0 && !q;
 }
+function splitArgs(str){
+  const out = [];
+  let d = 0, q = null, start = 0;
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (q) { if (c === '\\') i++; else if (c === q) q = null; continue; }
+    if (c === '"' || c === "'") q = c;
+    else if (c === '(' || c === '[' || c === '{') d++;
+    else if (c === ')' || c === ']' || c === '}') d--;
+    else if (c === ',' && d === 0) { out.push(str.slice(start, i).trim()); start = i + 1; }
+  }
+  out.push(str.slice(start).trim());
+  return out;
+}
+function replaceCalls(line, name, body, params){
+  let out = '', pos = 0;
+  const needle = name + '(';
+  for (;;) {
+    const i = line.indexOf(needle, pos);
+    if (i < 0) return out + line.slice(pos);
+    const before = i > 0 ? line[i - 1] : '';
+    if (/[A-Za-z0-9_]/.test(before)) { out += line.slice(pos, i + needle.length); pos = i + needle.length; continue; }
+    let j = i + needle.length, d = 1, q = null;
+    for (; j < line.length; j++) {
+      const c = line[j];
+      if (q) { if (c === '\\') j++; else if (c === q) q = null; continue; }
+      if (c === '"' || c === "'") q = c;
+      else if (c === '(') d++;
+      else if (c === ')' && --d === 0) break;
+    }
+    if (d !== 0) return out + line.slice(pos);
+    const args = splitArgs(line.slice(i + needle.length, j));
+    if (args.length !== params.length || args.some((a) => !balanced(a))) { out += line.slice(pos, j + 1); pos = j + 1; continue; }
+    let repl = body;
+    params.forEach((p, n) => { repl = repl.replace(new RegExp('(^|[^A-Za-z0-9_])' + p + '(?=$|[^A-Za-z0-9_])', 'g'), '$1' + args[n]); });
+    out += line.slice(pos, i) + repl;
+    pos = j + 1;
+  }
+}
+function rewriteSecurityWrappers(src, nl){
+  const lines = src.split(/\r?\n/);
+  const wrappers = [];
+  const re = /^(\s*)([A-Za-z_]\w*)\(([^)]*)\)\s*=>\s*$/;
+  for (let i = 0; i < lines.length - 1; i++) {
+    const m = re.exec(lines[i]);
+    if (!m) continue;
+    const next = lines[i + 1];
+    const body = next.trim();
+    if (!/^request\.security\(/.test(body) || !balanced(body)) continue;
+    const params = m[3].split(',').map((x) => x.trim()).filter(Boolean);
+    if (!params.length || params.some((p) => !/^_?[A-Za-z_]\w*$/.test(p))) continue;
+    wrappers.push({ def: i, body: i + 1, ind: m[1], name: m[2], params, expr: body });
+  }
+  if (!wrappers.length) return src;
+  for (const w of wrappers) {
+    lines[w.def] = w.ind + '// ' + w.name + ' inlined by Stryker pine-next: request.security wrapper';
+    lines[w.body] = '';
+  }
+  for (let i = 0; i < lines.length; i++) {
+    if (wrappers.some((w) => w.def === i || w.body === i)) continue;
+    for (const w of wrappers) lines[i] = replaceCalls(lines[i], w.name, w.expr, w.params);
+  }
+  return lines.join(nl);
+}
 export function rewriteSource(src){
-  if (typeof src !== 'string' || src.indexOf('.new(') < 0) return src;
+  if (typeof src !== 'string') return src;
   const nl = src.indexOf('\r\n') >= 0 ? '\r\n' : '\n';
-  return src.split(/\r?\n/).map((line) => {
+  let out = rewriteSecurityWrappers(src, nl);
+  if (out.indexOf('.new(') < 0) return out;
+  return out.split(/\r?\n/).map((line) => {
     const m = VAR_TERNARY.exec(line);
     if (!m) return line;
     const [, ind, type, name, cond, ctor] = m;

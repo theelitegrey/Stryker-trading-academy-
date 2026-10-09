@@ -41,6 +41,17 @@ if (!PINETS) { console.log('SKIP engine checks: set PINETS=<path to node_modules
 const pt = await import(pathToFileURL(path.join(PINETS, 'dist', 'pinets.min.es.js')).href);
 const patches = await import(pathToFileURL(path.join(root, 'assets', 'chart-pine-next-patches.js')).href);
 
+const INLINE_SECURITY = `//@version=5
+indicator("inline")
+f_secReq(_tf, _src) =>
+    request.security(syminfo.tickerid, _tf, _src, gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+a = f_secReq("15", high)
+b = f_secReq("60", low)
+plot(a)
+plot(b)`;
+const inlined = patches.rewriteSource(INLINE_SECURITY);
+check(!/f_secReq\("15"/.test(inlined) && /request\.security\(syminfo\.tickerid, "15", high/.test(inlined) && /request\.security\(syminfo\.tickerid, "60", low/.test(inlined), 'rewriteSource inlines simple request.security wrapper calls');
+
 const bars = Array.from({ length: 600 }, (_, i) => {
   const o = 100 + Math.sin(i / 17) * 5, c = 100 + Math.sin((i + 1) / 17) * 5;
   return { openTime: 1.7e12 + i * 3e5, closeTime: 1.7e12 + (i + 1) * 3e5, open: o, high: Math.max(o, c) + 0.5, low: Math.min(o, c) - 0.5, close: c, volume: 1 };

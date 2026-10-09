@@ -1,122 +1,118 @@
 {
   "_comment": "Pre-market brief. Regenerated on a schedule and committed; the site only renders it. See tools/market-brief.md for how it is produced and what each field must contain. Everything here is written in our own words from sourced reporting — do not paste licensed article text into this file.",
   "schema": 1,
-  "generatedAt": "2026-10-08T05:58:00Z",
-  "sessionDate": "2026-10-08",
+  "generatedAt": "2026-10-09T05:58:00Z",
+  "sessionDate": "2026-10-09",
   "staleAfterHours": 30,
-  "goodUntil": "2026-10-09T05:30:00Z",
-  "headline": "Ten-year hit 5.365%. Minutes point to another hike.",
-  "standfirst": "Wednesday took back a little of Tuesday's records. The S&P 500 fell 0.22% to 7,801.77, the Dow 0.66% to 51,179.87 and the Nasdaq Composite 0.22% to 27,538.69, ending four- and five-day winning streaks, while the Russell 2000 fell 1.31% and industrials were the weakest sector, down 2.18%. The ten-year yield touched 5.365%, its highest since 2002, before a $39 billion auction cleared at 5.300% with firm demand, and it closed near 5.28%. The minutes of the September meeting showed all 19 participants backed the hike and most expect another by year-end, with no date; October is priced as a hold at about 83%. European stocks lost about 1%, with Italy down 2.5% as French bonds sold off again, gold touched a two-month low and Bitcoin fell. This morning Asia is lower, the Kospi down 1.4% and Singapore 3.1%, and Brent is $102.61, up 2.4%, on reports that Washington is weighing renewed strikes on Iran, Houthi attacks on Saudi Arabia and a Gulf storm. Today: claims, the thirty-year auction at 13:00 ET, Musalem, and Waller on the calendar.",
+  "goodUntil": "2026-10-12T11:00:00Z",
+  "headline": "The week the ten-year touched 5.365% and returned",
+  "standfirst": "Weekend edition. The week in rates was a round trip: the ten-year touched 5.349% on Monday and 5.365% on Wednesday, its highest since 2002, then closed Thursday at 5.22% against 5.24% a week earlier, and the two-year at 4.75% against 4.78%. Each of the week's three auctions cleared at the highest yield in years, 4.932% for the three-year, 5.300% for the ten-year and 5.618% for the thirty-year, and each drew enough demand to pull yields back; the minutes said most Fed officials see another hike as likely appropriate by year-end, and futures price October as a hold at about 80% and December as a hike at about 70%. The S&P 500 gained 0.55% on the week and the Nasdaq Composite was flat, with records on Tuesday, while the Russell 2000 lost 1.37%; on Thursday the Nasdaq fell 1.25%, its biggest fall since mid-August, after a Financial Times report that OpenAI's annualised revenue is about $20 billion below what investors were told. Brent rose about 4% on Thursday and fell 1.4% this morning after the president said the US will not strike Iran before the 3 November midterms. Korea's Kospi lost 5.4% on the week and is shut today with Taiwan. Ahead: Michigan sentiment today, the banks on Tuesday, CPI on Wednesday and the Fed on 28 October.",
   "bullets": [
     {
-      "title": "Rates: the ten-year touched 5.365%, the auction cleared at 5.300%, and the minutes point to another hike",
-      "text": "The ten-year yield touched 5.365%, the highest since 2002, and the thirty-year about 5.73% during Wednesday's session, then eased after $39 billion of ten-year notes cleared at 5.300% with a bid-to-cover of 2.77 against 2.71 last time and a 2.52 average, and indirect bidders taking about 80% of the notes. The ten-year closed near 5.28%, up about 1bp, the thirty-year near 5.67% and the two-year near 4.77%. The long Treasury fund fell 0.17% and is down 6.15% over a month. The minutes of the 16 September meeting showed all 19 participants supported the hike and that most judged another increase likely appropriate by year-end, though they stressed they approach each meeting with an open mind; many called a higher path prudent insurance against persistent inflation, and inflation risks were seen as tilted up on energy prices and AI-related investment. Futures price the 28 October meeting as a hold at about 83%, with about three more quarter-point hikes priced by June, according to Morningstar. The New York Fed's survey showed one-year inflation expectations at their highest in more than three years. Today brings $22 billion of thirty-year bonds at 13:00 ET, against 5.308% last month."
+      "title": "Rates: the ten-year touched 5.365% and ended 2bp lower than it began, through three auctions",
+      "text": "The two-year closed Thursday at 4.75%, the ten-year at 5.22% and the thirty-year at 5.60%, against 4.78%, 5.24% and 5.61% a week earlier. The ten-year touched 5.349% on Monday after the ISM services prices-paid reading of 74.0 and 5.365% on Wednesday, and the thirty-year about 5.73%. The $58 billion three-year went at 4.932% on Tuesday, the highest since 2006, with a bid-to-cover of 2.62 and indirect bidders below average; the $39 billion ten-year at 5.300% on Wednesday, the highest since 2000, with 2.77 and indirect bidders taking about 80%; and the $22 billion thirty-year at 5.618% on Thursday, with 2.54 against a recent average near 2.4. Thursday's rally was led by the long end, with the 20-year-plus Treasury fund up 0.94% on the day and still down 4.72% over a month. The minutes of the September meeting showed all 19 participants backed the hike and most see another as likely appropriate by year-end; Waller said more hikes are needed but need not come immediately, and Jefferson has said more time may be needed. The Treasury market is shut on Monday for Columbus Day; CPI is on Wednesday."
     },
     {
-      "title": "Equities: a small fall in the indexes, led by industrials, chips and small caps, and health care up",
-      "text": "The S&P 500 fell 0.22% to 7,801.77, a day after its record, the Dow 0.66% to 51,179.87 and the Nasdaq Composite 0.22% to 27,538.69; the Russell 2000 fell 1.31% to 2,793.20 and the VIX closed at 15.08. Health care rose 1.03% and was the only sector fund higher, while industrials fell 2.18%, materials 1.51% and real estate 1.29%; technology slipped 0.30% but is still up 7.20% over a month. Chip stocks led the weakness, with Microchip and NXP down more than 3% and Analog Devices, Arm, Qualcomm and Texas Instruments more than 2%, and crypto-linked shares such as Strategy fell more than 5% as Bitcoin dropped; the broker-dealer index fell 2.6%. SpaceX was reported to be seeking about $40 billion of financing to buy Nvidia chips. PepsiCo reports before the open today and Delta tomorrow; the banks begin on 13 October. Futures were mixed overnight."
+      "title": "Equities: records on Tuesday, a Nasdaq fall of 1.25% on Thursday, and a week that ended flat",
+      "text": "The S&P 500 gained 0.55% on the week to 7,765.36, the Nasdaq Composite was flat at 27,193.34, the Dow gained 0.11% to 51,231.64 and the Russell 2000 lost 1.37%; the Nasdaq closed at records on Monday and Tuesday and the S&P 500 on Tuesday. On Thursday the Nasdaq lost 1.25%, its biggest fall since mid-August, after the Financial Times reported that OpenAI's annualised revenue was approaching $50 billion at the end of September against $70 billion reported by investors; Oracle fell about 5.5%, Nvidia 2.9% and AMD 3.9%, and the Philadelphia Semiconductor index about 3.8% in the afternoon. The damage was narrow: more than two-thirds of S&P 500 members rose, energy gained 2.97% and consumer staples 2.11%, and technology fell 1.79%. Over the week energy gained 3.85%, staples 3.59% and utilities 3.11%, while technology lost 1.02% and industrials 0.91%. The third-quarter earnings season starts today with Delta, and JPMorgan, Citigroup and Wells Fargo report on Tuesday; consensus has S&P 500 earnings up about 29.5% on the year, according to FactSet via AJ Bell."
     },
     {
-      "title": "Oil: Brent $102.61 on reports of renewed US strikes on Iran, Houthi attacks and a Gulf storm",
-      "text": "December Brent is $102.61, up 2.41%, and WTI $90.20, up 2.17%, after both settled lower on Wednesday, Brent at $100.20 and WTI at $88.28, when the International Energy Agency agreed to speed the release of stocks and prioritise diesel. Overnight NBC reported that President Trump and his national security team have discussed restarting large-scale US military operations in Iran in the coming weeks, and The Atlantic reported that the Pentagon was asked for strike options before the November midterms. The Houthis' recent attacks on Saudi airports, Iran's attacks on tankers near Hormuz, and a tropical storm forecast to become a hurricane and reach the northern Gulf coast by the weekend add to it, against a surprise draw in US crude inventories and shipping through Hormuz briefly at pre-war highs. Heating oil is $4.71, up 1.14%, and natural gas is up 7.15% on the week. Brent's 1M column still straddles the 30 September roll to December."
+      "title": "Oil and Iran: Brent rose 4% on Thursday, then fell after a pledge of no strikes before the midterms",
+      "text": "December Brent is $102.83, down 1.39% this morning and up 0.57% on the week, and WTI $90.29, down 1.31% and 0.90% lower on the week. Brent settled near $104.3 on Thursday, up about 4%, after reports that the Pentagon had prepared plans for three days of strikes on Iranian targets, nine tanker attacks near Hormuz in a week, and a hurricane that led Gulf of Mexico producers to shut in about 1.3 million barrels a day, according to FXStreet. It fell this morning after the president said the US would not attack Iran before the 3 November midterm elections and that talks were productive, while keeping the naval blockade of Iranian ports; Vice President Vance said Iran must cut its enrichment capacity, and Iran's atomic energy chief rejected giving it up. Heating oil is up 7.00% on the week. The Brent 1M column still straddles the 30 September roll to December."
     },
     {
-      "title": "Europe and Asia: Italy down 2.5% and French bonds sold off again; Asia lower, Singapore down 3.1%",
-      "text": "European stocks closed sharply lower: the Stoxx 600 fell about 1.1%, the DAX 1.4% to 25,091, the CAC 40 1.22% to 7,769.21, the FTSE 100 0.79% to 10,458.50, Italy's FTSE MIB 2.51% and Spain's Ibex 1.8%, with banks down about 3.4% as French ten-year yields touched 4.92% and protests and the IMF's call for fiscal tightening revived Tuesday's worries. The euro fell 0.63% to about $1.119 and is $1.12 this morning; German industrial production rose 2.0% in August, ahead of expectations. Futures point to a flat open in London and Frankfurt and a small gain in Paris. In Asia the Nikkei is down 0.84% near 69,446, the Kospi down 1.42% near 6,707 despite Samsung Electronics guiding to a record third-quarter operating profit of 107.4 trillion won, Hong Kong down 0.69%, Taiwan 0.84% and Singapore 3.13%; Shanghai reopened after a week closed and is down 0.27%. South Korea is shut on Friday for a holiday. The ECB's accounts of its 10 September hike are out at 07:30 ET."
+      "title": "Europe, Asia and the dollar: France and Korea led the declines, and the dollar heads for a fourth weekly gain",
+      "text": "The Stoxx 600 closed Thursday at 625.51, down 0.93% on the week, the DAX 1.7% lower, the CAC 40 2.1% and Italy's FTSE MIB 2.4%. French ten-year yields touched 4.92% in the week; euro-area finance ministers and the ECB told France to pass a 2027 budget, and Bloomberg reported that Lagarde told ministers the ECB can counter disorderly moves if certain criteria are met. The euro is $1.12, up 0.64% on the week after a 16-month low near $1.116 on Monday, and the dollar is on course for a fourth straight weekly gain, according to Investing.com. The Kospi lost 5.39% on the week, with Samsung Electronics guiding to a record third-quarter profit but foreign investors selling, and is shut today with Taiwan; the Nikkei is down 0.24% this morning, Hong Kong up 1.09% and Shanghai down 1.21% on reopening. India's central bank hiked to 5.5% on Wednesday; Brazil's Bovespa gained 7.34% on the week."
     },
     {
-      "title": "Gold, crypto and the Americas: gold touched $4,066, Bitcoin is $82,834, and Canada fell 2.1%",
-      "text": "Spot gold fell about 1.2% to near $4,114 on Wednesday, touching $4,066, a two-month low, with the minutes and higher yields cited; futures settled at $4,140.70 and are $4,155.70 this morning, up 0.36%, but still down 6.38% over a month. Silver is $60.12, platinum up 1.66% and copper up 1.04%. Bitcoin fell more than 2% on Wednesday and is $82,834, with Ether down 4.41% and Litecoin down 8.28% on the week. The Canada ETF fell 2.10% and the TSX 1.70%, the Brazil ETF 1.47% and the Bovespa 0.74% to 204,302, and the Chile ETF 2.30%; the Brazil ETF is still up 10.95% on the week after last Monday's election-driven surge. The dollar moved little: the yen is 158.27, the euro $1.12, and India's rupee 96.74 after the central bank's hike to 5.5% on Wednesday. Coffee fell 3.86% and cocoa 2.07% this morning; sugar is up 15.08% over a month."
+      "title": "Gold, crypto and what is on today: gold at a weekly high, Bitcoin down 4.7% on the week, Michigan at 10:00 ET",
+      "text": "Gold is $4,222.80, up 1.58% this morning and 1.45% on the week, after touching a two-month low near $4,066 on Wednesday; silver is up 2.32% and platinum 2.45%. Bitcoin is $82,437, up 0.91% this morning and down 4.71% on the week, Ether down 8.54% and Solana 9.06%. Today brings Canada's unemployment rate at 08:30 ET, seen 6.5% after 6.4%, and the preliminary Michigan sentiment survey at 10:00 ET, seen 47.6 after 48.1, with September's one-year inflation expectations at 4.6% and five-year at 3.4%; the New York Fed's survey this week showed one-year expectations at the highest in more than three years. Delta reports this morning, and Reuters lists ECB speakers Cipollone and Schnabel and Brazil's September inflation. Korea and Taiwan are shut."
     }
   ],
   "calendar": [
     {
-      "time": "Thu 04:30 ET",
-      "event": "Fed's Waller speaks",
-      "note": "The calendar has Waller early Thursday; a Reuters note had placed him, Kashkari and Musalem on Wednesday, and no remarks from him were found overnight, so check the time before relying on it."
-    },
-    {
-      "time": "Thu 07:30 ET",
-      "event": "ECB accounts; claims 08:30 ET; PepsiCo 08:15 ET",
-      "note": "The accounts of the 10 September hike land after euro-area inflation printed 3.8%, French ten-year yields neared 5% and the market cut its ECB path. Claims are seen at 200,000 after 197,000."
-    },
-    {
-      "time": "Thu 13:00 ET",
-      "event": "30-year bond auction ($22 billion); Musalem 13:40 ET",
-      "note": "The last of the week's three auctions. The long bond touched 5.73% on Wednesday and closed near 5.67%; the last auction cleared at 5.308%, and the ten-year drew firm demand at 5.300%."
-    },
-    {
       "time": "Fri 08:30 ET",
       "event": "Canada unemployment rate (September)",
-      "note": "Seen 6.5% after 6.4%. The Bank of Canada is at 2.25% with its decision, policy report and press conference on 28 October; oil pass-through argues for a hike and a rising jobless rate against."
+      "note": "Seen 6.5% after 6.4%. The Bank of Canada is at 2.25% and decides on 28 October with a policy report and press conference; oil pass-through argues for a hike and a rising jobless rate against."
     },
     {
       "time": "Fri 10:00 ET",
       "event": "Michigan sentiment, preliminary (October)",
-      "note": "Seen 47.6 after 48.1; one-year inflation expectations were 4.6% and five-year 3.4%. Delta reports before the open."
+      "note": "Seen 47.6 after 48.1. One-year inflation expectations were 4.6% and five-year 3.4%, and the expectations line is the one the Fed will read. Delta reports this morning."
     },
     {
       "time": "Mon 12 Oct",
       "event": "Columbus Day: US bond market closed; Hammack 12:50 ET",
-      "note": "Equities trade; Treasuries and the banks do not. The IMF and World Bank meetings run in Washington through the week."
+      "note": "Equities trade; Treasuries and the banks do not. The IMF and World Bank meetings run in Washington through the week. The RBA's minutes follow at 20:30 ET."
+    },
+    {
+      "time": "Tue 13 Oct 08:30 ET",
+      "event": "JPMorgan, Goldman, Wells Fargo and Citigroup report",
+      "note": "JPMorgan at 08:30, Goldman at 09:30, Wells Fargo at 10:00 and Citigroup at 11:00 ET, the start of the banks. UBS expects JPMorgan, Goldman and Citigroup, among others, to miss estimates in a rising-yield environment. German final HICP is at 02:00 ET."
     },
     {
       "time": "Wed 14 Oct 08:30 ET",
       "event": "US CPI (September)",
-      "note": "The first CPI after the September hike: August was 3.4% on the year with the monthly at +0.4%, and core +0.3% on the month. Fourteen days before the 28 October decision."
+      "note": "The first CPI after the September hike: August was 3.4% on the year with the monthly at +0.4%, and core +0.3% on the month. Bank of America and Morgan Stanley report; the Beige Book is at 14:00 ET."
     },
     {
       "time": "Thu 15 Oct 08:30 ET",
-      "event": "US retail sales and PPI (September)",
-      "note": "Retail sales rose 1.2% in August with the control group at +1.4%; core PPI was 4.6% on the year. Claims and the Philadelphia Fed survey print the same morning."
+      "event": "US retail sales, PPI, claims and the Philadelphia Fed",
+      "note": "Retail sales rose 1.2% in August with the control group at +1.4%; core PPI was 4.6% on the year. Hammack speaks at 16:30 ET and Australia's jobs report is out overnight on Wednesday."
+    },
+    {
+      "time": "Fri 16 Oct 08:30 ET",
+      "event": "Empire State survey; industrial production 09:15 ET; Bailey speaks",
+      "note": "The Bank of England's Bailey speaks at the IMF meetings (02:00 UTC, the evening before in New York). China's GDP, retail sales and industrial production follow on the 19th."
+    },
+    {
+      "time": "Wed 28 Oct 14:00 ET",
+      "event": "Fed decision; Bank of Canada 09:45 ET",
+      "note": "The first Fed meeting since the September hike, with the press conference at 14:30 ET. The Bank of Canada decides at 09:45 ET with a policy report; Australia's CPI is out at 20:30 ET the evening before and the ECB decides on the 29th."
     }
   ],
-  "sessionNote": "Thursday opens with Asia and Europe leaning lower after a Wednesday in which yields touched their highest since 2002 and then came back, and with oil up 2% on reports that Washington is weighing renewed strikes on Iran. The week's three Treasury auctions end today at 13:00 ET with $22 billion of thirty-year bonds, after a three-year at the highest yield since 2006 with below-average indirect demand and a ten-year at 5.300% with strong demand. The minutes gave no date for the next hike, so the 28 October meeting rests on CPI on 14 October; futures price October as a hold at about 83% and December as the likelier move. Brent is $102.61, the euro $1.12 and gold near $4,155 after Wednesday's two-month low. Korea is shut tomorrow and the Kospi is down 1.4%; mainland China has reopened after a week. A day to read the long-bond auction and claims, and to treat the Iran headlines as unconfirmed reports.",
-  "watchOut": "Reading the ten-year's retreat from 5.365% as relief. It closed up 1bp at about 5.28% after an auction at 5.300% that had firm indirect demand, and the minutes say most officials expect another hike; the thirty-year auction at 13:00 ET is the longest-maturity test and the yield can reopen. Second, the Iran headlines: NBC and The Atlantic reported discussion of renewed strikes citing sources, and no decision has been announced; Brent has moved 2% on the reports and can reverse as quickly. Third, the map's Brent 1M column, which still straddles the 30 September roll and shows a gain next to WTI's fall. Fourth, thin Asia and a US-heavy day: South Korea is shut on Friday and Singapore's 3.1% fall has no stated cause in the reports found. Fifth, the Waller time on the calendar is unconfirmed. Size for the 13:00 ET auction, not for the index.",
+  "sessionNote": "The weekend edition covers a week in which very little ended far from where it began: the ten-year, the two-year and the S&P 500 finished within a few basis points or half a percent of last Friday, yet each had a sharp move in between. The market's open questions are the ones the week did not settle: the minutes say most officials see another hike by year-end without a date, futures lean to a hold on 28 October and a hike in December, and CPI on Wednesday is the first hard data. Thursday's AI shock was narrow, but it came with the earnings season due to start today. The oil and Iran reports have swung twice this week, and the president's pledge applies only until 3 November. Korea and Taiwan reopen Monday; the US bond market is shut Monday for Columbus Day while equities trade.",
+  "watchOut": "Reading a flat week as a calm one. The ten-year touched 5.365% and ended 2bp lower than it began, the Nasdaq made a record and its worst day since August within three sessions, and Brent has moved 4% in a day on headlines that reversed within a day; the closing numbers hide ranges that were wide. Second, the OpenAI report: it is a Financial Times report of documents shared with backers, not a company statement, and Thursday's move was concentrated in AI infrastructure names while two-thirds of the S&P 500 rose. Third, Monday: with the bond market shut, Treasury yields do not trade on the day, so the first cash read after the weekend is Tuesday, with the banks reporting. Fourth, the Brent 1M column still straddles the 30 September roll. Fifth, the pledge of no strikes on Iran before 3 November is a statement by one official, made the day after reports of strike planning. Size for CPI on Wednesday, not for the weekend.",
   "sources": [
     {
       "name": "MT Newswires",
-      "note": "Wednesday's US close, the ten-year auction result, European closes and the Fed minutes summary"
+      "note": "Thursday's US close, the thirty-year auction detail, the OpenAI report and the Fed commentary"
     },
     {
       "name": "Reuters, via US News, Business Standard and Yahoo Finance",
-      "note": "Thursday's oil prices and the Asian session"
+      "note": "Friday's oil prices, the Asian session and the day-ahead summary"
     },
     {
-      "name": "Associated Press, via The Globe and Mail and WKYC",
-      "note": "Thursday's Asian session, the Iran reports and oil prices"
+      "name": "Associated Press, via The Globe and Mail",
+      "note": "Thursday's market swings, the thirty-year auction and Friday's Asian session"
     },
     {
-      "name": "CNBC and NBC News",
-      "note": "the minutes summary, the ten-year auction and the Iran report"
+      "name": "CNBC and The Washington Post",
+      "note": "the Nasdaq close, the Treasury moves and the president's statement on Iran"
     },
     {
-      "name": "Alliance News, Finwire and Infobae",
-      "note": "index closes, the minutes text, the ten-year auction detail and European closes"
+      "name": "Alliance News, Finwire and Livemint",
+      "note": "index closes and the weekly table, the thirty-year auction and the Treasury recovery"
     },
     {
-      "name": "RTTNews, via Nasdaq",
-      "note": "sector and market moves, bond yields and the auction bid-to-cover average"
+      "name": "Morningstar and Nasdaq (RTTNews)",
+      "note": "the thirty-year auction demand and the Treasury recovery"
     },
     {
-      "name": "Morningstar and MarketWatch",
-      "note": "the minutes read-across and the oil update"
+      "name": "FXStreet, Investing.com and Benzinga",
+      "note": "oil, gold, the dollar and the euro, and the Gulf hurricane"
     },
     {
-      "name": "FXStreet and Benzinga",
-      "note": "gold, the euro, WTI and crypto-linked stocks"
+      "name": "Nikkei Japan, Financial News (Korea), IDX Channel and The Standard",
+      "note": "the Tokyo, Seoul and Hong Kong sessions"
     },
     {
-      "name": "Nikkei Japan, Financial News (Korea) and the Economic Times",
-      "note": "the Tokyo and Seoul sessions and Samsung's third-quarter guidance"
-    },
-    {
-      "name": "InfoMoney and EconoTimes",
-      "note": "European closes and the oil and gold settlements"
+      "name": "AJ Bell, Zacks and UBS, via PubT, Nasdaq and MT Newswires",
+      "note": "the earnings-season preview and the bank estimates"
     },
     {
       "name": "Bigdata.com economic and corporate calendars",
-      "note": "release times, consensus and previous readings, and this week's earnings schedule"
+      "note": "release times, consensus and previous readings, Thursday's actuals and the weeks ahead"
     },
     {
       "name": "Financial Modeling Prep, via Bigdata.com",
@@ -126,6 +122,16 @@
   "attribution": "Compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice or a recommendation. Prices and expectations move; always confirm against your own data before acting.",
   "archive": [
+    {
+      "date": "2026-10-09",
+      "headline": "The week the ten-year touched 5.365% and returned",
+      "summary": "Wednesday's ten-year touched 5.365%, its highest since 2002, before a $39 billion auction cleared at 5.300% with firm demand and the yield closed near 5.28%. The Dow and S&P 500 fell 0.66% and 0.22% and the Russell 2000 1.31%, ending winning streaks. The Fed minutes showed all 19 participants backed the September hike and most expect another by year-end, with October priced as a hold at about 83%. Gold hit a two-month low, European stocks lost about 1%, and Brent rose 2.4% on reports that Washington was weighing renewed strikes on Iran."
+    },
+    {
+      "date": "2026-10-08",
+      "headline": "Ten-year hit 5.365%. Minutes point to another hike.",
+      "summary": "Wednesday's ten-year touched 5.365%, its highest since 2002, before a $39 billion auction cleared at 5.300% with firm demand and the yield closed near 5.28%. The Dow and S&P 500 fell 0.66% and 0.22% and the Russell 2000 1.31%, ending winning streaks. The Fed minutes showed all 19 participants backed the September hike and most expect another by year-end, with October priced as a hold at about 83%. Gold hit a two-month low, European stocks lost about 1%, and Brent rose 2.4% on reports that Washington was weighing renewed strikes on Iran."
+    },
     {
       "date": "2026-10-08",
       "headline": "Ten-year hit 5.365%. Minutes point to another hike.",
@@ -150,16 +156,6 @@
       "date": "2026-10-05",
       "headline": "Payrolls 29,000. Yields rose anyway.",
       "summary": "Weekend edition. October's Fed hike went from more than 70% priced on Monday to about 25% by Thursday on Williams, a 3.0% core PCE and Jefferson, while the long end set 2002 highs on a 2.2% GDP revision, a 58.8 Chicago PMI and ISM prices paid at 77.9; the ten-year touched 5.344% and closed 5.233%. Brent rose 4.4% on China's fuel-export halt and a third US carrier group, Nike cut its guidance, the euro hit a 16-month low on France's budget and Tokyo core CPI printed 2.7%."
-    },
-    {
-      "date": "2026-10-02",
-      "headline": "The week October went from 70% to 25%",
-      "summary": "Weekend edition. October's Fed hike went from more than 70% priced on Monday to about 25% by Thursday on Williams, a 3.0% core PCE and Jefferson, while the long end set 2002 highs on a 2.2% GDP revision, a 58.8 Chicago PMI and ISM prices paid at 77.9; the ten-year touched 5.344% and closed 5.233%. Brent rose 4.4% on China's fuel-export halt and a third US carrier group, Nike cut its guidance, the euro hit a 16-month low on France's budget and Tokyo core CPI printed 2.7%."
-    },
-    {
-      "date": "2026-10-01",
-      "headline": "Core PCE 3.0%. Bonds' worst month since 2022.",
-      "summary": "Core PCE printed 3.0% against 3.3% after the BEA's annual revision rewrote July, ADP beat at 90,000, final Q2 GDP was revised up to 2.2% and Chicago PMI jumped to 58.8; October's hike odds slid to 35–40% while the ten-year and thirty-year rose again to close a September in which the ten-year added about 50bp, its worst month since 2022. Micron beat and guided above consensus; the November Brent contract expired at $103.53; the Nikkei rose 3.24%."
     }
   ]
 }

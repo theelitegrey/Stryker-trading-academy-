@@ -9,16 +9,23 @@ function decOf(tick) { const s = String(tick); return s.includes('.') ? Math.min
 function rounder(dec) { const f = Math.pow(10, dec); return (n) => Math.round(n * f) / f; }
 function normStreamTf(raw) {
   const s = String(raw || '1').trim().toUpperCase();
-  const m = /^(\d+)S$/.exec(s);
+  let m = /^(\d+)S$/.exec(s);
   if (m) {
     const n = Number(m[1]);
     return n >= 1 && n <= 59 ? s : null;
   }
+  m = /^(\d+)T$/.exec(s);
+  if (m) {
+    const n = Number(m[1]);
+    return n >= 1 && n <= 100000 ? s : null;
+  }
   return normTf(s);
 }
 function specFor(tf) {
-  const sm = /^(\d+)S$/.exec(String(tf || '').toUpperCase());
+  let sm = /^(\d+)S$/.exec(String(tf || '').toUpperCase());
   if (sm) return { bar_type: 'second', bar_interval: Number(sm[1]), agg: 1 };
+  sm = /^(\d+)T$/.exec(String(tf || '').toUpperCase());
+  if (sm) return { bar_type: 'tick', bar_interval: Number(sm[1]), agg: 1 };
   const cfg = TIMEFRAMES[tf];
   if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 3600) return null;
   if (cfg.agg) return { bar_type: 'hour', bar_interval: 1, agg: cfg.agg };

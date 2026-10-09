@@ -199,10 +199,7 @@ const isPerp = (ticker) => /\.P$/i.test(ticker);
 export function secTickBlock(tf, provider, ticker) {
   const p = parseIv(tf);
   if (!p || (p.kind !== 'sec' && p.kind !== 'tick')) return '';
-  if (provider === 'futures') {
-    if (p.kind === 'sec') return '';
-    return hasTrades('futures') ? '' : 'Tick charts need a connected trade stream.';
-  }
+  if (provider === 'futures') return '';
   if (provider === 'binance') return (p.kind === 'tick' || isPerp(ticker || '')) && !hasTrades('binance') ? 'Live trades are not available right now.' : '';
   return (p.kind === 'sec' ? 'Seconds' : 'Tick') + ' charts need Binance data. Pick a Binance symbol for this interval.';
 }
@@ -253,13 +250,13 @@ export async function binanceSeconds(ticker, n, range = {}) {
   return out;
 }
 
-function futuresSeconds(ticker, n, range = {}) {
+function futuresStreamBars(ticker, tf, range = {}) {
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return Promise.resolve([]);
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   if (!root) return Promise.resolve([]);
   return new Promise((resolve) => {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(n + 'S')}`;
+    const url = `${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`;
     const out = [];
     let ws;
     const done = () => {
@@ -288,13 +285,13 @@ function futuresSeconds(ticker, n, range = {}) {
   });
 }
 
-function futuresSecondsSubscribe(ticker, n, onBar) {
+function futuresStreamSubscribe(ticker, tf, onBar) {
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return () => {};
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   let ws = null, stopped = false;
   try {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(n + 'S')}`);
+    ws = new WebSocket(`${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
     ws.onmessage = (ev) => {
       if (stopped) return;
       try {
@@ -382,7 +379,7 @@ export function tradeHistoryState(provider, ticker, tf) {
 }
 function secTickGetBars(provider, ticker, p, range) {
   if (provider === 'binance' && p.kind === 'sec' && !isPerp(ticker)) return binanceSeconds(ticker, p.n, range);
-  if (provider === 'futures' && p.kind === 'sec') return futuresSeconds(ticker, p.n, range);
+  if (provider === 'futures') return futuresStreamBars(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), range);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
   b.use();
   return b.ready.then(() => {
@@ -408,7 +405,7 @@ function secTickSubscribe(provider, ticker, p, onBar) {
     timer = setTimeout(tick, 1000);
     return () => { stopped = true; if (timer) clearTimeout(timer); };
   }
-  if (provider === 'futures' && p.kind === 'sec') return futuresSecondsSubscribe(ticker, p.n, onBar);
+  if (provider === 'futures') return futuresStreamSubscribe(ticker, p.n + (p.kind === 'tick' ? 'T' : 'S'), onBar);
   const b = builderFor(provider, ticker, p.kind === 'tick' ? 'tick' : 'time', p.n);
   b.use();
   b.listeners.add(onBar);
@@ -560,7 +557,7 @@ const providerOf = (sym) => {
     const p = m[1].toLowerCase();
     // Vela may expose futures as the exchange prefix (CME:NQ1!, CBOT:YM1!, COMEX:GC1!, NYMEX:CL1!)
     // instead of the Stryker provider prefix (futures:NQ1!). Treat those as futures.
-    if (/^(cme|cme_mini|cbot|comex|nymex)$/i.test(p)) return 'futures';
+    if (/^(cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/i.test(p)) return 'futures';
     return p;
   }
   // Vela sometimes gives the active cell as the bare ticker shown in the phone bar (NQ1!, ES1!),

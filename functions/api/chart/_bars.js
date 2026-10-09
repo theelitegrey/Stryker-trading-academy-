@@ -21,7 +21,15 @@ export const INSIGHTSENTRY_CODES = {
   MNQ: 'CME_MINI:MNQ1!',
   ES: 'CME_MINI:ES1!',
   MES: 'CME_MINI:MES1!',
-  RTY: 'CME_MINI:RTY1!'
+  RTY: 'CME_MINI:RTY1!',
+  YM: 'CBOT_MINI:YM1!',
+  MYM: 'CBOT_MINI:MYM1!',
+  GC: 'COMEX:GC1!',
+  MGC: 'COMEX_MINI:MGC1!',
+  SI: 'COMEX:SI1!',
+  SIL: 'COMEX_MINI:SIL1!',
+  CL: 'NYMEX:CL1!',
+  MCL: 'NYMEX:MCL1!'
 };
 
 // Allow-list. root -> [yahoo, description, exchange prefix, market, tick, point value]

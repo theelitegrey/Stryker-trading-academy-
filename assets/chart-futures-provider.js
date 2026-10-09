@@ -17,7 +17,7 @@ const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
 const POLL_MS = 20000;
 const CONCURRENCY = 4;
-export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY'];
+export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
 
 const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 * D, '120': 40 * D, '240': 60 * D, D: 730 * D, W: 0, M: 0 };

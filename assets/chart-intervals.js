@@ -553,7 +553,16 @@ function readLs(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return Array.isArray(v) ? v : fallback; } catch (e) { return fallback; }
 }
 function writeLs(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
-const providerOf = (sym) => { const m = /^([a-z]+):/i.exec(String(sym || '')); return m ? m[1].toLowerCase() : ''; };
+const providerOf = (sym) => {
+  const s = String(sym || '');
+  const m = /^([a-z]+):/i.exec(s);
+  if (m) return m[1].toLowerCase();
+  // Vela sometimes gives the active cell as the bare ticker shown in the phone bar (NQ1!, ES1!),
+  // not the provider-prefixed symbol (futures:NQ1!). Treat continuous futures tickers as futures
+  // so seconds intervals use the InsightSentry bridge instead of falling through to the Binance rule.
+  if (/^[A-Z0-9]+1!$/i.test(s)) return 'futures';
+  return '';
+};
 
 // ---------------- account sync ----------------
 const DOC_ID = 'intervals';

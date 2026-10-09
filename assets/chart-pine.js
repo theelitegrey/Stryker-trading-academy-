@@ -71,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=480').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=481').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){

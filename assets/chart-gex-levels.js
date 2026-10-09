@@ -95,7 +95,10 @@ const SCHEMA = [
   tog('showRthOpen', 'RTH open', false, G3),
   tog('showRth', 'RTH high / low', false, G3),
   { key: 'rthColor', title: 'Session level colour', type: 'color', defval: GEX_COLORS.rth, group: G3 },
-  { key: 'labels', title: 'Labels and price tags', type: 'bool', defval: true, group: G4 },
+  { key: 'labels', title: 'Level text labels', type: 'bool', defval: true, group: G4 },
+  { key: 'labelMode', title: 'Label text', type: 'string', defval: 'name + chart price + option level', options: ['name only', 'name + chart price', 'name + chart price + option level'], group: G4 },
+  { key: 'priceTags', title: 'Right price tags', type: 'bool', defval: true, group: G4 },
+  { key: 'showStatus', title: 'Bottom updated text', type: 'bool', defval: true, group: G4 },
   { key: 'lineStyle', title: 'Line style', type: 'string', defval: 'as GEX page', options: ['as GEX page', 'solid', 'dashed', 'dotted'], group: G4 },
   { key: 'width', title: 'Line width (0 = as GEX page)', type: 'int', defval: 0, min: 0, max: 4, step: 1, group: G4 }
 ];
@@ -172,6 +175,13 @@ export function buildLevels(data, src, opts) {
   }
   return out;
 }
+export function formatLabel(l, mode) {
+  mode = str(mode, 'name + chart price + option level');
+  if (mode === 'name only') return l.label;
+  if (mode === 'name + chart price') return l.label + ' ' + fmtLevel(l.price);
+  return l.label + ' ' + fmtLevel(l.price) + (l.note || '');
+}
+
 // Data time in epoch seconds: the market block's newest data stamp, else fetched_at.
 export function dataTime(data) {
   if (!data) return null;
@@ -308,11 +318,13 @@ class GexNative {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
           const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
           payload = {
-            lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: l.label + ' ' + fmtLevel(l.price) + (l.note || ''),
+            lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
               dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
               w: wd >= 1 ? Math.min(4, wd) : l.w })),
             band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
             labels: i.labels !== false,
+            priceTags: i.priceTags !== false,
+            showStatus: i.showStatus !== false,
             status: agoText(dataTime(data)) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : dte + 'DTE') + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
@@ -372,10 +384,10 @@ function gexLayer() {
   function paintChip(d, rightPx, bottomPx) {
     const c = ensureChip();
     if (!c) return;
-    const k = d ? JSON.stringify([d.note, d.pill, d.status, rightPx, bottomPx]) : '';
+    const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, rightPx, bottomPx]) : '';
     if (k === last) return;
     last = k;
-    if (!d || !(d.note || d.pill || d.status)) { c.hidden = true; return; }
+    if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
     c.hidden = false;
     c.style.right = rightPx + 'px';
     c.style.bottom = bottomPx + 'px';
@@ -386,7 +398,7 @@ function gexLayer() {
       c.appendChild(a);
     } else {
       c.classList.toggle('is-note', !!d.note);
-      c.appendChild(document.createTextNode(d.note || d.status));
+      c.appendChild(document.createTextNode(d.note || (d.showStatus === false ? '' : d.status)));
     }
   }
   return {
@@ -445,7 +457,7 @@ function gexLayer() {
       g.restore();
       // Price tags on the right price axis (outside the plot clip), at the exact line price.
       const axW = fullW - W;
-      if (axW > 24) {
+      if (axW > 24 && d.priceTags !== false) {
         g.save();
         g.beginPath(); g.rect(W, top, axW, a.bounds.height); g.clip();
         g.font = font; g.textBaseline = 'middle';

@@ -1,10 +1,11 @@
 // Chart bars for the Charts page futures provider (assets/chart-futures-provider.js).
 // Used by functions/api/chart/bars/[sym].js. Pure module, no Pages context.
 //
-// Source: Yahoo Finance v8 chart, continuous front month (=F) futures and spot forex (=X).
-// Not a live feed. Forex rows (market 'forex') are served to assets/chart-futures-provider.js
-// FxProvider; they trade Sun 17:00 to Fri 17:00 New York with no daily break, and their
-// 2h/4h bars are anchored to 17:00 New York instead of the 18:00 Globex open.
+// Source: InsightSentry WebSocket for current futures pages when INSIGHTSENTRY_WEBSOCKET_API_KEY
+// is configured server-side; Yahoo Finance remains the fallback/backfill source and still serves
+// spot forex (=X). The key never goes to the browser. Forex rows (market 'forex') are served to
+// assets/chart-futures-provider.js FxProvider; they trade Sun 17:00 to Fri 17:00 New York with no
+// daily break, and their 2h/4h bars are anchored to 17:00 New York instead of the 18:00 Globex open.
 // Bars are served in FIXED, epoch-aligned PAGES per timeframe, so every request
 // for the same page hits the same edge-cache entry: closed pages never change
 // and cache for a day, only the page holding "now" refreshes.
@@ -14,6 +15,14 @@
 // Intl/Date formatting per row (the New York offset is computed arithmetically).
 
 export const FETCH_TIMEOUT_MS = 4500;
+export const INSIGHTSENTRY_WS = 'wss://realtime.insightsentry.com/live';
+export const INSIGHTSENTRY_CODES = {
+  NQ: 'CME_MINI:NQ1!',
+  MNQ: 'CME_MINI:MNQ1!',
+  ES: 'CME_MINI:ES1!',
+  MES: 'CME_MINI:MES1!',
+  RTY: 'CME_MINI:RTY1!'
+};
 
 // Allow-list. root -> [yahoo, description, exchange prefix, market, tick, point value]
 export const SYMBOLS = {
@@ -186,11 +195,93 @@ export function yahooUrl(sym, tf, page, now) {
   return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yh)}?period1=${p1}&period2=${p2}&interval=${cfg.iv}`;
 }
 
+function insightSpec(tf) {
+  const cfg = TIMEFRAMES[tf];
+  if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 3600) return null;
+  if (cfg.agg) return { bar_type: 'hour', bar_interval: 1, agg: cfg.agg };
+  if (cfg.step < 3600) return { bar_type: 'minute', bar_interval: Math.max(1, cfg.step / 60), agg: 1 };
+  return { bar_type: 'hour', bar_interval: 1, agg: 1 };
+}
+
+function parseInsightRow(x, dec) {
+  const t = Number(x?.time ?? x?.t ?? x?.timestamp ?? x?.bar_time ?? x?.start);
+  const sec = t > 1e12 ? Math.floor(t / 1000) : t;
+  const o = Number(x?.open ?? x?.o), h = Number(x?.high ?? x?.h), l = Number(x?.low ?? x?.l), c = Number(x?.close ?? x?.c);
+  if (!Number.isFinite(sec) || !Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(c)) return null;
+  const r = rounder(dec);
+  return [Math.floor(sec), r(o), r(h), r(l), r(c), Math.round(Number(x?.volume ?? x?.v ?? 0) || 0)];
+}
+
+function insightRowsFromMessage(msg, dec) {
+  const pools = [msg?.data, msg?.bars, msg?.series, msg?.bar, msg];
+  const out = [];
+  for (const p of pools) {
+    if (Array.isArray(p)) for (const x of p) { const r = parseInsightRow(x, dec); if (r) out.push(r); }
+    else { const r = parseInsightRow(p, dec); if (r) out.push(r); }
+  }
+  return out;
+}
+
+function insightConnect(url) {
+  if (typeof WebSocket === 'function') return new WebSocket(url);
+  throw new Error('WebSocket unavailable');
+}
+
+async function fetchInsightPage(sym, tf, page, now, env) {
+  const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
+  const code = INSIGHTSENTRY_CODES[sym];
+  const spec = insightSpec(tf);
+  if (!key || !code || !spec || isForex(sym)) throw new OutOfRange('InsightSentry not configured for symbol/timeframe');
+  const cfg = TIMEFRAMES[tf];
+  if (!cfg.page) throw new OutOfRange('InsightSentry page unsupported');
+  const current = pageOf(tf, now);
+  // Use InsightSentry only for the current/recent page. Older history/backfill stays on Yahoo.
+  if (page < current - 1 || page > current) throw new OutOfRange('InsightSentry historical page skipped');
+  const [p1, p2] = pageBounds(tf, page);
+  const dp = Math.min(1000, Math.max(100, Math.ceil((Math.min(now + 60, p2) - p1) / (spec.bar_interval * (spec.bar_type === 'hour' ? H : 60))) + 20));
+  const ws = insightConnect(INSIGHTSENTRY_WS);
+  const rows = [];
+  const dec = decimalsOf(SYMBOLS[sym][4]);
+  await new Promise((resolve, reject) => {
+    const done = (err) => { clearTimeout(timer); try { ws.close(); } catch (e) {} err ? reject(err) : resolve(); };
+    const timer = setTimeout(() => done(new Error('InsightSentry timeout')), FETCH_TIMEOUT_MS);
+    ws.onopen = () => ws.send(JSON.stringify({
+      api_key: key,
+      slow_consumer_policy: 'adaptive',
+      subscriptions: [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }]
+    }));
+    ws.onerror = () => done(new Error('InsightSentry websocket error'));
+    ws.onmessage = (ev) => {
+      let msg;
+      try { msg = JSON.parse(ev.data); } catch (e) { return; }
+      const text = JSON.stringify(msg).toLowerCase();
+      if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return done(new Error('InsightSentry rejected request'));
+      const got = insightRowsFromMessage(msg, dec);
+      if (got.length) {
+        rows.push(...got);
+        return done();
+      }
+      if (msg?.event === 'subscription_status' && /active|subscribed|ok/.test(String(msg?.status || '').toLowerCase())) return;
+    };
+  });
+  rows.sort((a, b) => a[0] - b[0]);
+  const uniq = [];
+  for (const r of rows) if (r[0] >= p1 && r[0] < p2 && (!uniq.length || uniq[uniq.length - 1][0] !== r[0])) uniq.push(r);
+  const finalRows = spec.agg && spec.agg > 1 ? aggregateHours(uniq, spec.agg, 18) : uniq;
+  return finalRows.filter((r) => r[0] >= p1 && r[0] < p2);
+}
+
 export class OutOfRange extends Error {}
 
 // One upstream page. Throws OutOfRange for a page Yahoo cannot serve (empty is a valid answer),
 // any other error for an upstream failure (caller falls back to last-good).
-export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch) {
+export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch, env = {}) {
+  try {
+    return await fetchInsightPage(sym, tf, page, now, env);
+  } catch (e) {
+    // If the realtime feed is not configured, not available for this symbol/timeframe, or times
+    // out, keep the chart working on the existing backfill source. Do not leak vendor details.
+  }
   const cfg = TIMEFRAMES[tf];
   if (cfg.page) {
     const [p1, p2] = pageBounds(tf, page);

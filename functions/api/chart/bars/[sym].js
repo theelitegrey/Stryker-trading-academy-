@@ -47,7 +47,7 @@ export async function onRequestGet(ctx) {
     const k = `${sym}:${tf}:${page}`;
     let p = inflight.get(k);
     if (!p) {
-      p = fetchPage(sym, tf, page, now).finally(() => inflight.delete(k));
+      p = fetchPage(sym, tf, page, now, fetch, ctx.env || {}).finally(() => inflight.delete(k));
       inflight.set(k, p);
     }
     const bars = await p;

@@ -142,6 +142,18 @@ jobs:
       - name: Minify CSS in the deploy copy
         run: python3 tools/min-css.py /tmp/site
 
+      - name: Sync Pages runtime secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CF_ACCOUNT }}
+          INSIGHTSENTRY_WEBSOCKET_API_KEY: ${{ secrets.INSIGHTSENTRY_WEBSOCKET_API_KEY }}
+        run: |
+          if [ -n "$INSIGHTSENTRY_WEBSOCKET_API_KEY" ]; then
+            printf '%s' "$INSIGHTSENTRY_WEBSOCKET_API_KEY" | npx --yes wrangler@4.138.0 pages secret put INSIGHTSENTRY_WEBSOCKET_API_KEY --project-name "${{ steps.proj.outputs.name }}"
+          else
+            echo "INSIGHTSENTRY_WEBSOCKET_API_KEY repo secret not set; realtime futures bridge will stay disabled."
+          fi
+
       - name: Deploy to production
         env:
           CLOUDFLARE_API_TOKEN: ${{ env.CF_TOKEN }}

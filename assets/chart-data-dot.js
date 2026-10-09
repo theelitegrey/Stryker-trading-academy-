@@ -90,6 +90,10 @@ export function installDataDot(ws, opts = {}) {
   const rootOf = (sym) => String(sym || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '').toUpperCase();
   const isFx = (root) => !!root && root.startsWith('FX:');
   const rithLive = () => { try { return !!(rith && rith.client && rith.client.state === 'connected'); } catch (e) { return false; } };
+  const insightRealtime = (root) => {
+    try { return !!(Futures && Array.isArray(Futures.INSIGHTSENTRY_ROOTS) && Futures.INSIGHTSENTRY_ROOTS.includes(root)); }
+    catch (e) { return false; }
+  };
 
   // root: a futures root ("NQ") or "FX:EURUSD" for a forex pair.
   function measure(root) {
@@ -130,8 +134,8 @@ export function installDataDot(ws, opts = {}) {
       const n = nextOpen(now);
       return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
     }
-    if (rithLive()) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     const root = rootOf(sym);
+    if (rithLive() || insightRealtime(root)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };

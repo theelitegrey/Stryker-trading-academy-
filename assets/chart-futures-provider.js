@@ -14,8 +14,10 @@
 // keep the two in step.
 
 const API = '/api/chart/bars/';
+const STREAM_API = '/api/chart/stream/';
 const POLL_MS = 20000;
 const CONCURRENCY = 4;
+export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY'];
 const H = 3600, D = 86400;
 
 const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 * D, '120': 40 * D, '240': 60 * D, D: 730 * D, W: 0, M: 0 };
@@ -254,8 +256,47 @@ export class FuturesProvider {
     return bars;
   }
 
-  // Forming-bar refresh by polling (no streaming source). Pauses while the tab is hidden.
+  // Realtime futures updates through our server-side InsightSentry bridge. The browser never gets
+  // the vendor key. If the bridge is closed/unavailable, fall back to the old safe polling path.
   subscribe(ticker, timeframe, onBar) {
+    const root = this.keyOf(ticker);
+    const tf = normTf(timeframe);
+    if (root && tf && INSIGHTSENTRY_ROOTS.includes(root) && typeof WebSocket === 'function' && typeof location !== 'undefined') {
+      let stopped = false;
+      let pollStop = null;
+      let opened = false;
+      let ws = null;
+      let fallbackTimer = null;
+      const fallback = () => {
+        if (stopped || pollStop) return;
+        pollStop = this.pollSubscribe(ticker, timeframe, onBar);
+      };
+      try {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        ws = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
+        fallbackTimer = setTimeout(() => { if (!opened) fallback(); }, 5000);
+        ws.onopen = () => { opened = true; if (fallbackTimer) clearTimeout(fallbackTimer); };
+        ws.onmessage = (ev) => {
+          try {
+            const msg = JSON.parse(ev.data);
+            if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) onBar(toBar(msg.bar));
+          } catch (e) {}
+        };
+        ws.onerror = fallback;
+        ws.onclose = fallback;
+        return () => {
+          stopped = true;
+          if (fallbackTimer) clearTimeout(fallbackTimer);
+          if (pollStop) pollStop();
+          try { if (ws) ws.close(); } catch (e) {}
+        };
+      } catch (e) { fallback(); return () => { stopped = true; if (pollStop) pollStop(); }; }
+    }
+    return this.pollSubscribe(ticker, timeframe, onBar);
+  }
+
+  // Forming-bar refresh by polling (fallback path). Pauses while the tab is hidden.
+  pollSubscribe(ticker, timeframe, onBar) {
     let stopped = false;
     let timer = null;
     const tick = async () => {
@@ -281,6 +322,7 @@ export class FuturesProvider {
     };
   }
 }
+FuturesProvider.INSIGHTSENTRY_ROOTS = INSIGHTSENTRY_ROOTS;
 
 // ---- spot forex --------------------------------------------------------------------------
 function pairOf(ticker) {

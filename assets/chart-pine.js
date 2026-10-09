@@ -49,6 +49,7 @@ const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/
 const RUN_LIMIT_MS = 20000;
 const MAX_PER_CELL = 8;
 const SRC_MAX = 65536;
+const BUILTIN_SRC_MAX = 131072;
 const EXT_KEY = 'stryker.pine';
 
 let enginePromise = null;   // resolves to the vela-pinets module
@@ -70,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=475').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=476').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){
@@ -596,7 +597,8 @@ export function mountPine(ws, barL, opts){
     const a = activeCell();
     if (!a.cell) return { ok: false, msg: 'No chart to add it to.' };
     if (!source || !String(source).trim()) return { ok: false, msg: 'The script is empty.' };
-    if (source.length > SRC_MAX) return { ok: false, msg: 'This script is longer than 64 KB.' };
+    const max = opts && opts.builtin ? BUILTIN_SRC_MAX : SRC_MAX;
+    if (source.length > max) return { ok: false, msg: 'This script is longer than ' + Math.round(max / 1024) + ' KB.' };
     try {
       const r = await runOnChart(a.cell.chart, source, undefined, false, opts);
       if (!r.ok) return { ok: false, msg: (r.line ? 'Line ' + r.line + ': ' : '') + r.msg };

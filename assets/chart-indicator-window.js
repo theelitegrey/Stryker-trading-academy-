@@ -36,7 +36,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=475';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=476';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -238,7 +238,7 @@ export function mountIndicatorWindow(ws, opts){
         let src = it.source, opts;
         if (it.builtinId) {
           try { src = await builtinSource(it.builtinId); } catch (e) { toast('Could not load ' + it.name + '. Check your connection.', 'error'); return; }
-          opts = { engine: 'next' };
+          opts = { engine: 'next', builtin: true };
         }
         const r = await P().addSource(it.name, src, opts);
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');

@@ -1131,7 +1131,7 @@ const DOM_SCHEMA = [
   { key: 'style', title: 'Heatmap style', type: 'string', defval: 'liquidity heatmap', options: ['liquidity heatmap', 'right ladder'] },
   { key: 'historyMin', title: 'History window (minutes)', type: 'int', defval: 90, min: 5, max: 360, step: 5 },
   { key: 'widthPct', title: 'Right ladder width %', type: 'int', defval: 36, min: 10, max: 95, step: 1 },
-  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 70, min: 5, max: 95, step: 1 },
+  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 32, min: 5, max: 75, step: 1 },
   { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: true },
   { key: 'showScale', title: 'Liquidity colour scale', type: 'bool', defval: true },
   { key: 'bidColor', title: 'Bid colour', type: 'color', defval: '#03c988' },
@@ -1144,7 +1144,7 @@ function domConfig(inputs) {
     style: inputs.style === 'right ladder' ? 'ladder' : 'heatmap',
     historyMin: clamp(Math.round(num(inputs.historyMin, 90)), 5, 360),
     widthPct: clamp(num(inputs.widthPct, 36), 10, 95) / 100,
-    opacity: clamp(num(inputs.opacity, 70), 5, 95) / 100,
+    opacity: clamp(num(inputs.opacity, 32), 5, 75) / 100,
     showBest: inputs.showBest !== false,
     showScale: inputs.showScale !== false,
     bid: str(inputs.bidColor, '#03c988'),
@@ -1328,17 +1328,20 @@ function cryptoDomLayer() {
         const toTs = Date.now();
         const xOf = (ts) => co.width * ((ts - fromTs) / Math.max(1, toTs - fromTs));
         const liveX = co.width;
-        // Fill the visible area with the current book so the chart immediately looks like a
-        // liquidity map; real historical columns then replace it as depth snapshots arrive.
-        for (const r of currentBuckets) {
-          const rel = r.size / max;
-          if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
-          const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
-          if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-          const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
-          if (y > bot || y + h < top) continue;
-          g.fillStyle = liquidityColor(rel, cfg.opacity * 0.56);
-          g.fillRect(0, y, co.width, h);
+        // Do not flood the whole chart with the current book. Until enough real history builds,
+        // show only a slim live-liquidity strip on the right edge so candles remain readable.
+        if (allBuckets.length < 4) {
+          const stripW = Math.max(18, Math.min(42, co.width * 0.08));
+          for (const r of currentBuckets) {
+            const rel = r.size / max;
+            if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
+            const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
+            if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+            const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
+            if (y > bot || y + h < top) continue;
+            g.fillStyle = liquidityColor(rel, cfg.opacity * 0.75);
+            g.fillRect(co.width - stripW - 6, y, stripW, h);
+          }
         }
         for (let i = 0; i < allBuckets.length; i++) {
           const hst = allBuckets[i];
@@ -1357,7 +1360,7 @@ function cryptoDomLayer() {
           }
         }
         if (cfg.showScale) {
-          const sx = 16, sy = Math.max(top + 12, 18), sw = 14, sh = Math.min(190, a.bounds.height - 24);
+          const sx = 14, sy = Math.max(top + 12, 18), sw = 10, sh = Math.min(110, a.bounds.height - 24);
           const grd = g.createLinearGradient(0, sy + sh, 0, sy);
           grd.addColorStop(0, 'rgba(72,0,86,.95)'); grd.addColorStop(.28, 'rgba(48,74,141,.95)');
           grd.addColorStop(.52, 'rgba(32,145,140,.95)'); grd.addColorStop(.76, 'rgba(70,205,85,.95)'); grd.addColorStop(1, 'rgba(245,230,20,.95)');

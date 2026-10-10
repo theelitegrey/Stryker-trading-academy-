@@ -16,6 +16,7 @@
 //   - Fixed Range Volume Profile: Vela's own drawing tool (the picker row arms it).
 //   - Relative Volume (ours): bar volume / average volume at the same time of day.
 //   - Volume Bubble / Big Prints (ours): bubbles on high-volume bars, built from the chart feed volume.
+//   - Volume Heatmap (ours): high-volume bars shaded behind price so intensity jumps are obvious.
 //   - Estimated CVD (from candles) (ours, off by default): NOT real order flow. Each candle's
 //     volume is split by where it closed in its range. Always labelled "Estimated".
 // Everything above is computed from OHLCV bars, so it is honest on every feed. Real order-flow
@@ -620,6 +621,84 @@ function vbBuild(inputs, mk, ctx) {
 }
 
 // ---------------------------------------------------------------------------------------
+// Volume Heatmap — relative-volume intensity shaded behind price
+// ---------------------------------------------------------------------------------------
+const VH_SCHEMA = [
+  { key: 'lookback', title: 'Average lookback', type: 'int', defval: 50, min: 5, max: 500, step: 1 },
+  { key: 'threshold', title: 'Start heat above (x avg volume)', type: 'float', defval: 1.5, min: 0.5, max: 20, step: 0.1 },
+  { key: 'maxRatio', title: 'Max heat at (x avg volume)', type: 'float', defval: 5, min: 1, max: 50, step: 0.5 },
+  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 42, min: 5, max: 85, step: 1 },
+  { key: 'mode', title: 'Colour mode', type: 'string', defval: 'candle direction', options: ['candle direction', 'single colour'] },
+  { key: 'upColor', title: 'Up heat colour', type: 'color', defval: '#03c988' },
+  { key: 'downColor', title: 'Down heat colour', type: 'color', defval: '#e5484d' },
+  { key: 'heatColor', title: 'Single heat colour', type: 'color', defval: '#38bdf8' }
+];
+function vhConfig(inputs) {
+  const threshold = clamp(num(inputs.threshold, 1.5), 0.5, 20);
+  return {
+    lookback: clamp(Math.round(num(inputs.lookback, 50)), 5, 500),
+    threshold,
+    maxRatio: Math.max(threshold + 0.1, clamp(num(inputs.maxRatio, 5), 1, 50)),
+    opacity: clamp(num(inputs.opacity, 42), 5, 85) / 100,
+    mode: inputs.mode === 'single colour' ? 'single' : 'direction',
+    up: str(inputs.upColor, '#03c988'),
+    down: str(inputs.downColor, '#e5484d'),
+    heat: str(inputs.heatColor, '#38bdf8')
+  };
+}
+function volumeHeatmapLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = beginFrame(canvas, a.coords);
+      if (!g || !a.data || a.data.off || !a.bars.length) return;
+      const cfg = a.data, co = a.coords;
+      const vr = co.visibleLogicalRange();
+      const i0 = Math.max(0, Math.floor(vr.from) - cfg.lookback - 2);
+      const i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to) + 2);
+      const bw = co.pxPerBar();
+      const top = a.bounds.top, h = a.bounds.height;
+      g.save();
+      g.beginPath(); g.rect(0, top, co.width, h); g.clip();
+      for (let i = i0; i <= i1; i++) {
+        const b = a.bars[i];
+        const v = Number(b.volume || 0);
+        if (!(v > 0) || i < cfg.lookback) continue;
+        let sum = 0, n = 0;
+        for (let k = Math.max(0, i - cfg.lookback); k < i; k++) { const x = Number(a.bars[k].volume || 0); if (x > 0) { sum += x; n++; } }
+        const avg = n ? sum / n : 0;
+        if (!(avg > 0)) continue;
+        const ratio = v / avg;
+        if (ratio < cfg.threshold) continue;
+        const t = clamp((ratio - cfg.threshold) / (cfg.maxRatio - cfg.threshold), 0, 1);
+        const col = cfg.mode === 'single' ? cfg.heat : (b.close >= b.open ? cfg.up : cfg.down);
+        const x = co.logicalToX(i);
+        if (!Number.isFinite(x)) continue;
+        const w = Math.max(2, bw * 0.94);
+        g.fillStyle = alpha(col, 0.08 + cfg.opacity * (0.25 + 0.75 * t));
+        g.fillRect(x - w / 2, top, w, h);
+        // A brighter core around the candle body helps the heat read at phone size.
+        const yA = co.priceToY(Math.max(b.open, b.close), a.scale, a.bounds);
+        const yB = co.priceToY(Math.min(b.open, b.close), a.scale, a.bounds);
+        if (Number.isFinite(yA) && Number.isFinite(yB)) {
+          const yy = Math.min(yA, yB), hh = Math.max(10, Math.abs(yB - yA));
+          g.fillStyle = alpha(col, 0.12 + cfg.opacity * (0.35 + 0.65 * t));
+          g.fillRect(x - w / 2, yy - 8, w, hh + 16);
+        }
+      }
+      g.restore();
+    },
+    destroy() { canvas = null; }
+  };
+}
+function vhBuild(inputs, mk, ctx) {
+  const bars = ctx.bars();
+  if (!bars.some(b => (b.volume || 0) > 0)) return { data: { off: true }, emit: { tables: [message('stk_vh-msg', 'Volume Heatmap needs bars with volume.', pageIsDay())] } };
+  return { data: vhConfig(inputs), emit: {} };
+}
+
+// ---------------------------------------------------------------------------------------
 // Estimated CVD (from candles) — NOT real order flow
 // ---------------------------------------------------------------------------------------
 const EST_SCHEMA = [
@@ -1026,7 +1105,7 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble',
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap',
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -1050,6 +1129,9 @@ export function installOrderflow(Core) {
   Core.registerRendererLayer({ id: 'stk_vbubble', placement: 'above-data', create: volumeBubbleLayer });
   reg(Core, { type: 'stk_vbubble', title: 'Volume Bubble / Big Prints', shortTitle: 'Volume Bubble', paneHint: 'price', overlay: true,
     inputsSchema: () => VB_SCHEMA, create: () => new LayerNative(vbBuild) });
+  Core.registerRendererLayer({ id: 'stk_vheatmap', placement: 'below-data', create: volumeHeatmapLayer });
+  reg(Core, { type: 'stk_vheatmap', title: 'Volume Heatmap', shortTitle: 'Volume Heatmap', paneHint: 'price', overlay: true,
+    inputsSchema: () => VH_SCHEMA, create: () => new LayerNative(vhBuild) });
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
   reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask, real trades)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
     inputsSchema: () => FP_SCHEMA, create: () => new FlowNative('footprint') });

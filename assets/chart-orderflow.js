@@ -1229,31 +1229,49 @@ function cryptoDomLayer() {
       if (!f || !f.book) return;
       const cfg = a.data.cfg, co = a.coords, top = a.bounds.top, bot = top + a.bounds.height;
       const book = f.book;
-      const rows = [];
-      book.bids.forEach((size, price) => rows.push({ side: 'bid', price, size }));
-      book.asks.forEach((size, price) => rows.push({ side: 'ask', price, size }));
-      rows.sort((a, b) => Math.abs(a.price - ((book.bestBid || book.bestAsk || a.price))) - Math.abs(b.price - ((book.bestBid || book.bestAsk || b.price))));
-      const use = rows.slice(0, cfg.levels).filter(r => r.size > 0);
+      const centre = ((book.bestBid || 0) + (book.bestAsk || 0)) / 2 || book.bestBid || book.bestAsk || 0;
+      const span = Math.max(1e-12, a.scale.max - a.scale.min);
+      // Binance book prices often sit far tighter than the visible chart range. If we draw every
+      // raw tick, phone scale collapses most rows into the best bid/ask line. Merge them into
+      // visible price buckets so the heatmap shows several horizontal levels.
+      let step = niceStep(span / 90);
+      const midP = (a.scale.min + a.scale.max) / 2;
+      const pxStep = Math.abs(co.priceToY(midP + step, a.scale, a.bounds) - co.priceToY(midP, a.scale, a.bounds));
+      if (pxStep < 5) step *= Math.ceil(5 / Math.max(pxStep, 0.01));
+      const buckets = new Map();
+      const add = (side, price, size) => {
+        if (!(size > 0) || !(price > 0)) return;
+        // Keep only nearby visible rows. Very far book levels waste the level budget.
+        if (price < a.scale.min - span * 0.15 || price > a.scale.max + span * 0.15) return;
+        const rowPrice = Math.round(Math.round(price / step) * step * 1e8) / 1e8;
+        const key = side + '|' + rowPrice;
+        const r = buckets.get(key) || { side, price: rowPrice, size: 0, nearest: Math.abs(rowPrice - centre) };
+        r.size += size;
+        buckets.set(key, r);
+      };
+      book.bids.forEach((size, price) => add('bid', price, size));
+      book.asks.forEach((size, price) => add('ask', price, size));
+      let use = [...buckets.values()].filter(r => r.size > 0);
+      use.sort((a, b) => a.nearest - b.nearest);
+      use = use.slice(0, cfg.levels);
       let max = 0; use.forEach(r => { if (r.size > max) max = r.size; });
       if (!(max > 0)) return;
-      const midP = (a.scale.min + a.scale.max) / 2;
-      let step = niceStep(Math.max(1e-12, (a.scale.max - a.scale.min) / 140));
-      const pxStep = Math.abs(co.priceToY(midP + step, a.scale, a.bounds) - co.priceToY(midP, a.scale, a.bounds));
-      if (pxStep < 2) step *= Math.ceil(2 / Math.max(pxStep, 0.01));
       const maxW = co.width * cfg.widthPct;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       for (const r of use) {
         const rel = r.size / max;
-        if (rel < cfg.minPct) continue;
+        // Do not let one huge best-bid/ask row hide the rest of the book. Keep a faint floor.
+        if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
         const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
         if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-        const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
+        const y = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA) - 1);
         if (y > bot || y + h < top) continue;
         const col = r.side === 'bid' ? cfg.bid : cfg.ask;
-        const w = Math.max(6, maxW * Math.sqrt(rel));
-        g.fillStyle = alpha(col, 0.05 + cfg.opacity * rel);
+        const strength = Math.max(0.12, Math.sqrt(rel));
+        const w = Math.max(10, maxW * strength);
+        g.fillStyle = alpha(col, 0.045 + cfg.opacity * Math.min(1, strength) * 0.78);
         g.fillRect(co.width - w - 8, y, w, h);
-        if (rel > 0.7) { g.fillStyle = alpha(col, 0.08 + cfg.opacity * 0.5); g.fillRect(0, y, co.width, h); }
+        if (rel > 0.55) { g.fillStyle = alpha(col, 0.055 + cfg.opacity * 0.30); g.fillRect(0, y, co.width, h); }
       }
       if (cfg.showBest) {
         const lineAt = (price, col, label) => {

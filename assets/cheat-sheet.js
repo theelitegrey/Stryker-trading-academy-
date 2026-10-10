@@ -47,7 +47,7 @@
         dl.setAttribute('href', PDF_PATH);
         // The href can carry a ?v= cache-buster; strip any query string and
         // directory so the browser always offers a clean, real filename
-        // instead of something like "stryker-prop-firm-cheat-sheet.pdf?v=487".
+        // instead of something like "stryker-prop-firm-cheat-sheet.pdf?v=488".
         var fname = PDF_PATH.split('?')[0].split('/').pop();
         if (fname) dl.setAttribute('download', fname);
       }

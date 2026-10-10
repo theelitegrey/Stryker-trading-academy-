@@ -4,7 +4,7 @@ const inflight = new Map();
 function cacheAvailable() { return typeof caches !== 'undefined' && caches.default; }
 function cacheKey(request, fut, interval, kind = 'fresh') {
   const u = new URL(request.url);
-  u.search = `interval=${encodeURIComponent(interval)}&gexcache=${kind}&v=487`;
+  u.search = `interval=${encodeURIComponent(interval)}&gexcache=${kind}&v=488`;
   return new Request(u.toString(), { method: 'GET' });
 }
 function headers(ttl, stale = 300) { return { 'cache-control': `public, max-age=${ttl}, s-maxage=${ttl}, stale-while-revalidate=${stale}` }; }

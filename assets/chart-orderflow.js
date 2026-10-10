@@ -1126,24 +1126,47 @@ const BOOK_MAX_LEVELS = 1000;
 const bookFeeds = new Map();
 const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
 const DOM_SCHEMA = [
-  { key: 'levels', title: 'Book levels', type: 'int', defval: 80, min: 10, max: 500, step: 10 },
-  { key: 'minPct', title: 'Show above (% of max size)', type: 'float', defval: 2, min: 0, max: 50, step: 0.5 },
-  { key: 'widthPct', title: 'Width % of chart', type: 'int', defval: 36, min: 10, max: 95, step: 1 },
-  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 55, min: 5, max: 95, step: 1 },
+  { key: 'levels', title: 'Book levels', type: 'int', defval: 160, min: 20, max: 500, step: 10 },
+  { key: 'minPct', title: 'Show above (% of max liquidity)', type: 'float', defval: 0.5, min: 0, max: 50, step: 0.5 },
+  { key: 'style', title: 'Heatmap style', type: 'string', defval: 'liquidity heatmap', options: ['liquidity heatmap', 'right ladder'] },
+  { key: 'historyMin', title: 'History window (minutes)', type: 'int', defval: 90, min: 5, max: 360, step: 5 },
+  { key: 'widthPct', title: 'Right ladder width %', type: 'int', defval: 36, min: 10, max: 95, step: 1 },
+  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 70, min: 5, max: 95, step: 1 },
   { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: true },
+  { key: 'showScale', title: 'Liquidity colour scale', type: 'bool', defval: true },
   { key: 'bidColor', title: 'Bid colour', type: 'color', defval: '#03c988' },
   { key: 'askColor', title: 'Ask colour', type: 'color', defval: '#e5484d' }
 ];
 function domConfig(inputs) {
   return {
-    levels: clamp(Math.round(num(inputs.levels, 80)), 10, 500),
-    minPct: clamp(num(inputs.minPct, 2), 0, 50) / 100,
+    levels: clamp(Math.round(num(inputs.levels, 160)), 20, 500),
+    minPct: clamp(num(inputs.minPct, 0.5), 0, 50) / 100,
+    style: inputs.style === 'right ladder' ? 'ladder' : 'heatmap',
+    historyMin: clamp(Math.round(num(inputs.historyMin, 90)), 5, 360),
     widthPct: clamp(num(inputs.widthPct, 36), 10, 95) / 100,
-    opacity: clamp(num(inputs.opacity, 55), 5, 95) / 100,
+    opacity: clamp(num(inputs.opacity, 70), 5, 95) / 100,
     showBest: inputs.showBest !== false,
+    showScale: inputs.showScale !== false,
     bid: str(inputs.bidColor, '#03c988'),
     ask: str(inputs.askColor, '#e5484d')
   };
+}
+function liquidityColor(t, maxAlpha) {
+  t = clamp(t, 0, 1);
+  const stops = [
+    [0.00, [72, 0, 86]],
+    [0.28, [48, 74, 141]],
+    [0.52, [32, 145, 140]],
+    [0.76, [70, 205, 85]],
+    [1.00, [245, 230, 20]]
+  ];
+  let a = stops[0], b = stops[stops.length - 1];
+  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { a = stops[i - 1]; b = stops[i]; break; }
+  const f = (t - a[0]) / Math.max(1e-9, b[0] - a[0]);
+  const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * f);
+  const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * f);
+  const bl = Math.round(a[1][2] + (b[1][2] - a[1][2]) * f);
+  return 'rgba(' + r + ',' + g + ',' + bl + ',' + (0.05 + maxAlpha * (0.18 + 0.82 * Math.sqrt(t))).toFixed(3) + ')';
 }
 function bookKey(provider, ticker) { return provider + '|' + String(ticker || '').toUpperCase(); }
 function binanceBookSource(ticker, onBook, onStatus) {
@@ -1203,7 +1226,22 @@ class BookFeed {
     this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
     this.status = 'loading'; this.err = ''; this.version = 0; this.refs = 0; this.listeners = new Set(); this.closeTm = 0;
     this.book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
-    this.stop = binanceBookSource(ticker, (book) => { this.book = book; this.bump(); }, (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
+    this.history = []; this.lastSample = 0;
+    this.stop = binanceBookSource(ticker, (book) => { this.book = book; this.sample(); this.bump(); }, (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
+  }
+  sample() {
+    const now = Date.now();
+    if (now - this.lastSample < 750) return;
+    this.lastSample = now;
+    const rows = [];
+    const add = (side, m) => m.forEach((size, price) => { if (size > 0 && price > 0) rows.push({ side, price, size }); });
+    add('bid', this.book.bids); add('ask', this.book.asks);
+    if (!rows.length) return;
+    const centre = ((this.book.bestBid || 0) + (this.book.bestAsk || 0)) / 2 || this.book.bestBid || this.book.bestAsk || 0;
+    rows.sort((a, b) => Math.abs(a.price - centre) - Math.abs(b.price - centre));
+    this.history.push({ ts: now, rows: rows.slice(0, 420), bestBid: this.book.bestBid, bestAsk: this.book.bestAsk });
+    const cutoff = now - 6 * 60 * 60 * 1000;
+    while (this.history.length > 900 || (this.history[0] && this.history[0].ts < cutoff)) this.history.shift();
   }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
 }
@@ -1231,47 +1269,102 @@ function cryptoDomLayer() {
       const book = f.book;
       const centre = ((book.bestBid || 0) + (book.bestAsk || 0)) / 2 || book.bestBid || book.bestAsk || 0;
       const span = Math.max(1e-12, a.scale.max - a.scale.min);
-      // Binance book prices often sit far tighter than the visible chart range. If we draw every
-      // raw tick, phone scale collapses most rows into the best bid/ask line. Merge them into
-      // visible price buckets so the heatmap shows several horizontal levels.
-      let step = niceStep(span / 90);
+      // Binance book prices are very tight around the last price. Bucket by visible pixels so many
+      // liquidity rows show on phones, then draw either a CoinAnk-style full heatmap or a right ladder.
+      let step = niceStep(span / 120);
       const midP = (a.scale.min + a.scale.max) / 2;
       const pxStep = Math.abs(co.priceToY(midP + step, a.scale, a.bounds) - co.priceToY(midP, a.scale, a.bounds));
-      if (pxStep < 5) step *= Math.ceil(5 / Math.max(pxStep, 0.01));
-      const buckets = new Map();
-      const add = (side, price, size) => {
-        if (!(size > 0) || !(price > 0)) return;
-        // Keep only nearby visible rows. Very far book levels waste the level budget.
-        if (price < a.scale.min - span * 0.15 || price > a.scale.max + span * 0.15) return;
-        const rowPrice = Math.round(Math.round(price / step) * step * 1e8) / 1e8;
-        const key = side + '|' + rowPrice;
-        const r = buckets.get(key) || { side, price: rowPrice, size: 0, nearest: Math.abs(rowPrice - centre) };
-        r.size += size;
-        buckets.set(key, r);
+      if (pxStep < 3) step *= Math.ceil(3 / Math.max(pxStep, 0.01));
+      const makeBuckets = (rows) => {
+        const buckets = new Map();
+        const add = (side, price, size) => {
+          if (!(size > 0) || !(price > 0)) return;
+          if (price < a.scale.min - span * 0.18 || price > a.scale.max + span * 0.18) return;
+          const rowPrice = Math.round(Math.round(price / step) * step * 1e8) / 1e8;
+          const key = rowPrice;
+          const r = buckets.get(key) || { price: rowPrice, size: 0, bid: 0, ask: 0, nearest: Math.abs(rowPrice - centre) };
+          r.size += size;
+          if (side === 'bid') r.bid += size; else r.ask += size;
+          buckets.set(key, r);
+        };
+        rows.forEach(r => add(r.side, r.price, r.size));
+        let use = [...buckets.values()].filter(r => r.size > 0);
+        use.sort((a, b) => a.nearest - b.nearest);
+        return use.slice(0, cfg.levels);
       };
-      book.bids.forEach((size, price) => add('bid', price, size));
-      book.asks.forEach((size, price) => add('ask', price, size));
-      let use = [...buckets.values()].filter(r => r.size > 0);
-      use.sort((a, b) => a.nearest - b.nearest);
-      use = use.slice(0, cfg.levels);
-      let max = 0; use.forEach(r => { if (r.size > max) max = r.size; });
+      const currentRows = [];
+      book.bids.forEach((size, price) => currentRows.push({ side: 'bid', price, size }));
+      book.asks.forEach((size, price) => currentRows.push({ side: 'ask', price, size }));
+      const currentBuckets = makeBuckets(currentRows);
+      const recent = (f.history || []).filter(h => Date.now() - h.ts <= cfg.historyMin * 60000);
+      let max = 0;
+      const allBuckets = [];
+      currentBuckets.forEach(r => { if (r.size > max) max = r.size; });
+      recent.forEach(h => {
+        const rows = makeBuckets(h.rows || []);
+        allBuckets.push({ ts: h.ts, rows });
+        rows.forEach(r => { if (r.size > max) max = r.size; });
+      });
       if (!(max > 0)) return;
-      const maxW = co.width * cfg.widthPct;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
-      for (const r of use) {
-        const rel = r.size / max;
-        // Do not let one huge best-bid/ask row hide the rest of the book. Keep a faint floor.
-        if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
-        const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
-        if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-        const y = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA) - 1);
-        if (y > bot || y + h < top) continue;
-        const col = r.side === 'bid' ? cfg.bid : cfg.ask;
-        const strength = Math.max(0.12, Math.sqrt(rel));
-        const w = Math.max(10, maxW * strength);
-        g.fillStyle = alpha(col, 0.045 + cfg.opacity * Math.min(1, strength) * 0.78);
-        g.fillRect(co.width - w - 8, y, w, h);
-        if (rel > 0.55) { g.fillStyle = alpha(col, 0.055 + cfg.opacity * 0.30); g.fillRect(0, y, co.width, h); }
+      if (cfg.style === 'ladder') {
+        const maxW = co.width * cfg.widthPct;
+        for (const r of currentBuckets) {
+          const rel = r.size / max;
+          if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
+          const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
+          if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+          const y = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA) - 1);
+          if (y > bot || y + h < top) continue;
+          const col = r.bid >= r.ask ? cfg.bid : cfg.ask;
+          const strength = Math.max(0.10, Math.sqrt(rel));
+          const w = Math.max(10, maxW * strength);
+          g.fillStyle = alpha(col, 0.045 + cfg.opacity * Math.min(1, strength) * 0.78);
+          g.fillRect(co.width - w - 8, y, w, h);
+          if (rel > 0.55) { g.fillStyle = alpha(col, 0.055 + cfg.opacity * 0.30); g.fillRect(0, y, co.width, h); }
+        }
+      } else {
+        const fromTs = recent[0] ? recent[0].ts : Date.now() - cfg.historyMin * 60000;
+        const toTs = Date.now();
+        const xOf = (ts) => co.width * ((ts - fromTs) / Math.max(1, toTs - fromTs));
+        const liveX = co.width;
+        // Fill the visible area with the current book so the chart immediately looks like a
+        // liquidity map; real historical columns then replace it as depth snapshots arrive.
+        for (const r of currentBuckets) {
+          const rel = r.size / max;
+          if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
+          const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
+          if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+          const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
+          if (y > bot || y + h < top) continue;
+          g.fillStyle = liquidityColor(rel, cfg.opacity * 0.56);
+          g.fillRect(0, y, co.width, h);
+        }
+        for (let i = 0; i < allBuckets.length; i++) {
+          const hst = allBuckets[i];
+          const x0 = Math.max(0, xOf(hst.ts));
+          const x1 = Math.min(co.width, i + 1 < allBuckets.length ? xOf(allBuckets[i + 1].ts) : liveX);
+          const w = Math.max(2, x1 - x0 + 1);
+          for (const r of hst.rows) {
+            const rel = r.size / max;
+            if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
+            const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
+            if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+            const y = Math.min(yA, yB), rh = Math.max(2, Math.abs(yB - yA));
+            if (y > bot || y + rh < top) continue;
+            g.fillStyle = liquidityColor(rel, cfg.opacity);
+            g.fillRect(x0, y, w, rh);
+          }
+        }
+        if (cfg.showScale) {
+          const sx = 16, sy = Math.max(top + 12, 18), sw = 14, sh = Math.min(190, a.bounds.height - 24);
+          const grd = g.createLinearGradient(0, sy + sh, 0, sy);
+          grd.addColorStop(0, 'rgba(72,0,86,.95)'); grd.addColorStop(.28, 'rgba(48,74,141,.95)');
+          grd.addColorStop(.52, 'rgba(32,145,140,.95)'); grd.addColorStop(.76, 'rgba(70,205,85,.95)'); grd.addColorStop(1, 'rgba(245,230,20,.95)');
+          g.fillStyle = grd; g.fillRect(sx, sy, sw, sh);
+          g.fillStyle = alpha('#eeeeee', .80); g.font = 'bold 11px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif');
+          g.textAlign = 'left'; g.fillText('MAX', sx + sw + 7, sy + 11); g.fillText('0', sx + sw + 7, sy + sh);
+        }
       }
       if (cfg.showBest) {
         const lineAt = (price, col, label) => {

@@ -88,7 +88,7 @@ async function openPicker(p) {
       check(pdv && JSON.stringify(pdv).includes('"priceLines":3'), 'prev-day indicator draws 3 price lines (pPOC/pVAH/pVAL) ' + JSON.stringify(pdv).slice(0, 160));
       // compare with the GEX-style calc done independently in the page from the same bars
       const lv = await p.evaluate(async () => {
-        const m = await import('./assets/chart-orderflow.js?v=488');
+        const m = await import('./assets/chart-orderflow.js?v=489');
         const c = window.STRYKER_VELA.context().cells[0].chart;
         const r = m.priorDayLevels(c.orchestrator.rawBars, { futures: true, tick: 0.25, tf: 15 }, 4, 0.7);
         const lines = (c.inspect().priceLines || []).filter((l) => /^p(POC|VAH|VAL)$/.test(l.title)).map((l) => [l.title, l.price]);

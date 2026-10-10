@@ -5,7 +5,7 @@ const inflight = new Map();
 function cacheAvailable() { return typeof caches !== 'undefined' && caches.default; }
 function cacheKey(request, name, dte, kind = 'fresh') {
   const u = new URL(request.url);
-  u.search = `dte=${dte}&gexcache=${kind}&v=486`;
+  u.search = `dte=${dte}&gexcache=${kind}&v=487`;
   return new Request(u.toString(), { method: 'GET' });
 }
 // Edge TTL (s-maxage) and stale-while-revalidate, in seconds.

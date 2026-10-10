@@ -17,6 +17,7 @@
 //   - Relative Volume (ours): bar volume / average volume at the same time of day.
 //   - Volume Bubble / Big Prints (ours): bubbles on high-volume bars, built from the chart feed volume.
 //   - Volume Heatmap (ours): horizontal price-level heatmap from volume-at-price, like resting-order zones.
+//   - Crypto DOM Heatmap (ours): live Binance order-book depth ladder for crypto symbols.
 //   - Estimated CVD (from candles) (ours, off by default): NOT real order flow. Each candle's
 //     volume is split by where it closed in its range. Always labelled "Estimated".
 // Everything above is computed from OHLCV bars, so it is honest on every feed. Real order-flow
@@ -1118,6 +1119,195 @@ function footprintLayer() {
   };
 }
 
+// =======================================================================================
+// CRYPTO DOM / ORDER BOOK (Binance public depth, no key)
+// =======================================================================================
+const BOOK_MAX_LEVELS = 1000;
+const bookFeeds = new Map();
+const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
+const DOM_SCHEMA = [
+  { key: 'levels', title: 'Book levels', type: 'int', defval: 80, min: 10, max: 500, step: 10 },
+  { key: 'minPct', title: 'Show above (% of max size)', type: 'float', defval: 2, min: 0, max: 50, step: 0.5 },
+  { key: 'widthPct', title: 'Width % of chart', type: 'int', defval: 36, min: 10, max: 95, step: 1 },
+  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 55, min: 5, max: 95, step: 1 },
+  { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: true },
+  { key: 'bidColor', title: 'Bid colour', type: 'color', defval: '#03c988' },
+  { key: 'askColor', title: 'Ask colour', type: 'color', defval: '#e5484d' }
+];
+function domConfig(inputs) {
+  return {
+    levels: clamp(Math.round(num(inputs.levels, 80)), 10, 500),
+    minPct: clamp(num(inputs.minPct, 2), 0, 50) / 100,
+    widthPct: clamp(num(inputs.widthPct, 36), 10, 95) / 100,
+    opacity: clamp(num(inputs.opacity, 55), 5, 95) / 100,
+    showBest: inputs.showBest !== false,
+    bid: str(inputs.bidColor, '#03c988'),
+    ask: str(inputs.askColor, '#e5484d')
+  };
+}
+function bookKey(provider, ticker) { return provider + '|' + String(ticker || '').toUpperCase(); }
+function binanceBookSource(ticker, onBook, onStatus) {
+  const perp = /\.P$/i.test(ticker);
+  const sym = ticker.replace(/\.P$/i, '').toUpperCase();
+  const rest = perp ? 'https://fapi.binance.com/fapi/v1' : 'https://api.binance.com/api/v3';
+  const wsBase = perp ? 'wss://fstream.binance.com/ws/' : 'wss://stream.binance.com:9443/ws/';
+  let stopped = false, ws = null, tm = 0, retry = 0, refresh = 0;
+  let bids = new Map(), asks = new Map();
+  const emit = () => {
+    let bestBid = null, bestAsk = null;
+    bids.forEach((q, p) => { if (q > 0 && (bestBid == null || p > bestBid)) bestBid = p; });
+    asks.forEach((q, p) => { if (q > 0 && (bestAsk == null || p < bestAsk)) bestAsk = p; });
+    onBook({ bids, asks, bestBid, bestAsk, ts: Date.now() });
+  };
+  const apply = (side, arr) => {
+    const m = side === 'b' ? bids : asks;
+    for (const row of arr || []) {
+      const p = Number(row[0]), q = Number(row[1]);
+      if (!Number.isFinite(p) || !Number.isFinite(q)) continue;
+      if (q <= 0) m.delete(p); else m.set(p, q);
+    }
+    if (m.size > BOOK_MAX_LEVELS * 2) {
+      const sorted = [...m.keys()].sort((a, b) => side === 'b' ? b - a : a - b).slice(BOOK_MAX_LEVELS);
+      sorted.forEach(p => m.delete(p));
+    }
+  };
+  async function snapshot() {
+    try {
+      onStatus('loading');
+      const r = await fetch(rest + '/depth?symbol=' + encodeURIComponent(sym) + '&limit=' + BOOK_MAX_LEVELS);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      bids = new Map(); asks = new Map();
+      apply('b', d.bids); apply('a', d.asks);
+      emit(); onStatus('live');
+    } catch (e) {
+      onStatus('error', 'Could not load Binance order book.');
+    }
+  }
+  function open() {
+    if (stopped) return;
+    try {
+      ws = new WebSocket(wsBase + sym.toLowerCase() + '@depth@100ms');
+      ws.onopen = () => { retry = 0; onStatus('live'); };
+      ws.onmessage = (e) => { try { const d = JSON.parse(e.data); apply('b', d.b); apply('a', d.a); emit(); } catch (x) {} };
+      ws.onclose = () => { if (stopped) return; onStatus('reconnecting'); tm = setTimeout(open, Math.min(15000, 1000 * Math.pow(2, ++retry))); };
+      ws.onerror = () => { try { ws.close(); } catch (e) {} };
+    } catch (e) { onStatus('error', 'Could not open Binance depth stream.'); }
+  }
+  snapshot(); open();
+  refresh = setInterval(snapshot, 30000);
+  return () => { stopped = true; clearTimeout(tm); clearInterval(refresh); try { if (ws) ws.close(); } catch (e) {} };
+}
+class BookFeed {
+  constructor(provider, ticker) {
+    this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
+    this.status = 'loading'; this.err = ''; this.version = 0; this.refs = 0; this.listeners = new Set(); this.closeTm = 0;
+    this.book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
+    this.stop = binanceBookSource(ticker, (book) => { this.book = book; this.bump(); }, (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
+  }
+  bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
+}
+function acquireBookFeed(provider, ticker, fn) {
+  const key = bookKey(provider, ticker);
+  let f = bookFeeds.get(key);
+  if (!f) { f = new BookFeed(provider, ticker); bookFeeds.set(key, f); }
+  clearTimeout(f.closeTm); f.refs++; f.listeners.add(fn);
+  return { feed: f, release() {
+    f.listeners.delete(fn);
+    if (--f.refs > 0) return;
+    f.closeTm = setTimeout(() => { if (f.refs <= 0) { try { f.stop(); } catch (e) {} bookFeeds.delete(key); } }, 10000);
+  } };
+}
+function cryptoDomLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = beginFrame(canvas, a.coords);
+      if (!g || !a.data || a.data.off || !a.bars.length) return;
+      const f = bookFeeds.get(a.data.feed);
+      if (!f || !f.book) return;
+      const cfg = a.data.cfg, co = a.coords, top = a.bounds.top, bot = top + a.bounds.height;
+      const book = f.book;
+      const rows = [];
+      book.bids.forEach((size, price) => rows.push({ side: 'bid', price, size }));
+      book.asks.forEach((size, price) => rows.push({ side: 'ask', price, size }));
+      rows.sort((a, b) => Math.abs(a.price - ((book.bestBid || book.bestAsk || a.price))) - Math.abs(b.price - ((book.bestBid || book.bestAsk || b.price))));
+      const use = rows.slice(0, cfg.levels).filter(r => r.size > 0);
+      let max = 0; use.forEach(r => { if (r.size > max) max = r.size; });
+      if (!(max > 0)) return;
+      const midP = (a.scale.min + a.scale.max) / 2;
+      let step = niceStep(Math.max(1e-12, (a.scale.max - a.scale.min) / 140));
+      const pxStep = Math.abs(co.priceToY(midP + step, a.scale, a.bounds) - co.priceToY(midP, a.scale, a.bounds));
+      if (pxStep < 2) step *= Math.ceil(2 / Math.max(pxStep, 0.01));
+      const maxW = co.width * cfg.widthPct;
+      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
+      for (const r of use) {
+        const rel = r.size / max;
+        if (rel < cfg.minPct) continue;
+        const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
+        if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+        const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
+        if (y > bot || y + h < top) continue;
+        const col = r.side === 'bid' ? cfg.bid : cfg.ask;
+        const w = Math.max(6, maxW * Math.sqrt(rel));
+        g.fillStyle = alpha(col, 0.05 + cfg.opacity * rel);
+        g.fillRect(co.width - w - 8, y, w, h);
+        if (rel > 0.7) { g.fillStyle = alpha(col, 0.08 + cfg.opacity * 0.5); g.fillRect(0, y, co.width, h); }
+      }
+      if (cfg.showBest) {
+        const lineAt = (price, col, label) => {
+          if (!(price > 0)) return;
+          const y = Math.round(co.priceToY(price, a.scale, a.bounds)) + 0.5;
+          if (y < top || y > bot) return;
+          g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(0, y); g.lineTo(co.width, y); g.stroke();
+          g.setLineDash([]); g.fillStyle = col; g.font = 'bold 11px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif'); g.fillText(label, Math.max(35, co.width - maxW - 60), y - 5);
+        };
+        lineAt(book.bestBid, cfg.bid, 'best bid');
+        lineAt(book.bestAsk, cfg.ask, 'best ask');
+      }
+      g.restore();
+    },
+    destroy() { canvas = null; }
+  };
+}
+class CryptoDomNative {
+  constructor() { this.inputs = {}; this.h = null; this.tm = 0; this.onTheme = () => this.render(); }
+  start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; window.addEventListener('stryker:theme', this.onTheme); this.attach(); }
+  attach() {
+    if (!this.ctx) return;
+    this.detach();
+    const mk = marketOf(this.ctx);
+    this.block = mk.provider === 'binance' ? '' : BOOK_NEEDS_BINANCE;
+    if (!this.block) this.h = acquireBookFeed('binance', mk.ticker, () => this.later());
+    this.render();
+  }
+  detach() { if (this.h) { this.h.release(); this.h = null; } clearTimeout(this.tm); this.tm = 0; }
+  later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 120); }
+  onBars() {}
+  onViewport() {}
+  setInputs(i) { this.inputs = i; this.render(); }
+  suspend() { this.detach(); }
+  resume() { this.attach(); }
+  stop() { this.detach(); window.removeEventListener('stryker:theme', this.onTheme); }
+  note() {
+    if (this.block) return this.block;
+    const f = this.h && this.h.feed;
+    if (!f || f.status === 'loading') return 'Loading Binance order book…';
+    if (f.status === 'error') return f.err || 'Order book unavailable.';
+    if (f.status === 'reconnecting') return 'Reconnecting to Binance order book…';
+    return '';
+  }
+  render() {
+    if (!this.ctx) return;
+    const msg = this.note();
+    const f = this.h && this.h.feed;
+    this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');
+    this.ctx.emit({ tables: msg ? [message('stk_dom-msg', msg, pageIsDay(), 'top_right')] : [] });
+    this.ctx.pushData(f && !this.block ? { feed: f.key, v: f.version, cfg: domConfig(this.inputs) } : { off: true });
+  }
+}
+
 // ---------------------------------------------------------------------------------------
 // registration + picker group + persistence
 // ---------------------------------------------------------------------------------------
@@ -1129,7 +1319,7 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap',
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap', 'stk_crypto_dom',
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -1156,6 +1346,9 @@ export function installOrderflow(Core) {
   Core.registerRendererLayer({ id: 'stk_vheatmap', placement: 'below-data', create: volumeHeatmapLayer });
   reg(Core, { type: 'stk_vheatmap', title: 'Volume Heatmap', shortTitle: 'Volume Heatmap', paneHint: 'price', overlay: true,
     inputsSchema: () => VH_SCHEMA, create: () => new LayerNative(vhBuild) });
+  Core.registerRendererLayer({ id: 'stk_crypto_dom', placement: 'below-data', create: cryptoDomLayer });
+  reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
+    inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
   reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask, real trades)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
     inputsSchema: () => FP_SCHEMA, create: () => new FlowNative('footprint') });

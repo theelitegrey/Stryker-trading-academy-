@@ -17,6 +17,7 @@
 //   - Relative Volume (ours): bar volume / average volume at the same time of day.
 //   - Volume Bubble / Big Prints (ours): bubbles on high-volume bars, built from the chart feed volume.
 //   - Volume Heatmap (ours): horizontal price-level heatmap from volume-at-price, like resting-order zones.
+//   - Liquidity Trend Heatmap (ours): 26-row volume-at-price heat zones, POC and trend baseline.
 //   - Crypto DOM Heatmap (ours): live Binance order-book depth ladder for crypto symbols.
 //   - Estimated CVD (from candles) (ours, off by default): NOT real order flow. Each candle's
 //     volume is split by where it closed in its range. Always labelled "Estimated".
@@ -721,6 +722,155 @@ function vhBuild(inputs, mk, ctx) {
   const cfg = vhConfig(inputs);
   cfg.tick = mk.tick || null;
   return { data: cfg, emit: {} };
+}
+
+
+// ---------------------------------------------------------------------------------------
+// Liquidity Trend Heatmap — BigBeluga-inspired clean volume-at-price zones + POC + trend
+// ---------------------------------------------------------------------------------------
+const LTH_SCHEMA = [
+  { key: 'lookback', title: 'Lookback bars', type: 'int', defval: 180, min: 30, max: 800, step: 10 },
+  { key: 'levels', title: 'Price levels', type: 'int', defval: 26, min: 10, max: 80, step: 1 },
+  { key: 'threshold', title: 'Show above (% of POC volume)', type: 'float', defval: 8, min: 0, max: 80, step: 1 },
+  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 48, min: 5, max: 85, step: 1 },
+  { key: 'extendPct', title: 'Zone extension % of chart', type: 'int', defval: 42, min: 10, max: 100, step: 1 },
+  { key: 'nodeSize', title: 'Node size', type: 'int', defval: 18, min: 4, max: 46, step: 1 },
+  { key: 'showPoc', title: 'Show POC', type: 'bool', defval: true },
+  { key: 'showTrend', title: 'Show trend baseline', type: 'bool', defval: true },
+  { key: 'trendLen', title: 'Trend length', type: 'int', defval: 55, min: 5, max: 300, step: 5 },
+  { key: 'heatMode', title: 'Heat style', type: 'string', defval: 'blocks + nodes', options: ['blocks + nodes', 'blocks only', 'nodes only'] },
+  { key: 'pocColor', title: 'POC colour', type: 'color', defval: '#f5c542' },
+  { key: 'trendColor', title: 'Trend colour', type: 'color', defval: '#eeeeee' }
+];
+function lthConfig(inputs) {
+  return {
+    lookback: clamp(Math.round(num(inputs.lookback, 180)), 30, 800),
+    levels: clamp(Math.round(num(inputs.levels, 26)), 10, 80),
+    threshold: clamp(num(inputs.threshold, 8), 0, 80) / 100,
+    opacity: clamp(num(inputs.opacity, 48), 5, 85) / 100,
+    extendPct: clamp(num(inputs.extendPct, 42), 10, 100) / 100,
+    nodeSize: clamp(Math.round(num(inputs.nodeSize, 18)), 4, 46),
+    showPoc: inputs.showPoc !== false,
+    showTrend: inputs.showTrend !== false,
+    trendLen: clamp(Math.round(num(inputs.trendLen, 55)), 5, 300),
+    heatMode: ['blocks only', 'nodes only'].includes(inputs.heatMode) ? inputs.heatMode : 'blocks + nodes',
+    poc: str(inputs.pocColor, '#f5c542'),
+    trend: str(inputs.trendColor, '#eeeeee')
+  };
+}
+function liquidityTrendHeatmapLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = beginFrame(canvas, a.coords);
+      if (!g || !a.data || a.data.off || !a.bars.length) return;
+      const cfg = a.data, co = a.coords;
+      const vr = co.visibleLogicalRange();
+      const i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to) + 1);
+      const i0 = Math.max(0, i1 - cfg.lookback + 1, Math.floor(vr.from) - 5);
+      if (i1 <= i0) return;
+      const top = a.bounds.top, bot = top + a.bounds.height;
+      let lo = Infinity, hi = -Infinity, volOk = false;
+      for (let i = i0; i <= i1; i++) {
+        const b = a.bars[i];
+        if (!b) continue;
+        if (b.low < lo) lo = b.low;
+        if (b.high > hi) hi = b.high;
+        if ((b.volume || 0) > 0) volOk = true;
+      }
+      if (!volOk || !(hi > lo)) return;
+      const step = (hi - lo) / cfg.levels;
+      const rows = Array.from({ length: cfg.levels }, (_, k) => ({ k, price: lo + step * (k + 0.5), vol: 0, delta: 0 }));
+      for (let i = i0; i <= i1; i++) {
+        const b = a.bars[i];
+        const v = Number(b.volume || 0);
+        if (!(v > 0)) continue;
+        const bl = Math.max(lo, Math.min(b.low, b.high));
+        const bh = Math.min(hi, Math.max(b.low, b.high));
+        const a0 = clamp(Math.floor((bl - lo) / step), 0, cfg.levels - 1);
+        const a1 = clamp(Math.floor((bh - lo) / step), 0, cfg.levels - 1);
+        const n = Math.max(1, a1 - a0 + 1);
+        const share = v / n;
+        const dir = b.close >= b.open ? 1 : -1;
+        for (let k = a0; k <= a1; k++) { rows[k].vol += share; rows[k].delta += share * dir; }
+      }
+      let max = 0, poc = rows[0];
+      rows.forEach(r => { if (r.vol > max) { max = r.vol; poc = r; } });
+      if (!(max > 0)) return;
+      const xRight = Math.min(co.width - 6, co.logicalToX(i1) + co.pxPerBar() * 1.5 || co.width - 6);
+      const xLeft = Math.max(0, xRight - co.width * cfg.extendPct);
+      const fullW = Math.max(40, xRight - xLeft);
+      const light = themeIsLight(a.theme);
+      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
+      g.textBaseline = 'middle';
+      for (const r of rows) {
+        const rel = r.vol / max;
+        if (rel < cfg.threshold) continue;
+        const yA = co.priceToY(lo + step * (r.k + 1), a.scale, a.bounds);
+        const yB = co.priceToY(lo + step * r.k, a.scale, a.bounds);
+        if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
+        const y = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA) - 1);
+        if (y > bot || y + h < top) continue;
+        const col = liquidityColor(rel, cfg.opacity);
+        const w = Math.max(18, fullW * (0.16 + 0.84 * Math.sqrt(rel)));
+        if (cfg.heatMode !== 'nodes only') {
+          g.fillStyle = col;
+          const rx = xRight - w;
+          if (g.roundRect) { g.beginPath(); g.roundRect(rx, y, w, h, Math.min(7, h / 2)); g.fill(); }
+          else g.fillRect(rx, y, w, h);
+        }
+        if (cfg.heatMode !== 'blocks only') {
+          const n = Math.max(1, Math.round(1 + rel * 5));
+          const size = Math.max(3, cfg.nodeSize * (0.35 + 0.85 * rel));
+          for (let j = 0; j < n; j++) {
+            const nx = xRight - 12 - j * (size * 0.95);
+            const ny = y + h / 2;
+            if (nx < xLeft) break;
+            g.fillStyle = liquidityColor(rel, cfg.opacity * 1.15);
+            g.beginPath(); g.arc(nx, ny, size / 2, 0, Math.PI * 2); g.fill();
+          }
+        }
+      }
+      if (cfg.showPoc && poc) {
+        const y = Math.round(co.priceToY(poc.price, a.scale, a.bounds)) + 0.5;
+        if (y >= top && y <= bot) {
+          g.strokeStyle = cfg.poc; g.lineWidth = 1.5; g.setLineDash([7, 4]);
+          g.beginPath(); g.moveTo(xLeft, y); g.lineTo(co.width, y); g.stroke(); g.setLineDash([]);
+          g.fillStyle = alpha(cfg.poc, light ? 0.95 : 0.90);
+          g.font = 'bold 11px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif');
+          g.fillText('POC ' + fmtPrice(poc.price), Math.max(12, xLeft + 8), y - 10);
+        }
+      }
+      if (cfg.showTrend) {
+        const vals = [];
+        let sum = 0;
+        for (let i = 0; i < a.bars.length; i++) {
+          const c = Number(a.bars[i].close);
+          sum += c;
+          if (i >= cfg.trendLen) sum -= Number(a.bars[i - cfg.trendLen].close);
+          vals[i] = i >= cfg.trendLen - 1 ? sum / cfg.trendLen : null;
+        }
+        g.strokeStyle = alpha(cfg.trend, light ? 0.65 : 0.55); g.lineWidth = 1.25; g.setLineDash([]);
+        let open = false;
+        for (let i = Math.max(0, Math.floor(vr.from) - 2); i <= Math.min(a.bars.length - 1, Math.ceil(vr.to) + 2); i++) {
+          const v = vals[i];
+          if (v == null) { if (open) { g.stroke(); open = false; } continue; }
+          const x = co.logicalToX(i), y = co.priceToY(v, a.scale, a.bounds);
+          if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+          if (!open) { g.beginPath(); g.moveTo(x, y); open = true; } else g.lineTo(x, y);
+        }
+        if (open) g.stroke();
+      }
+      g.restore();
+    },
+    destroy() { canvas = null; }
+  };
+}
+function lthBuild(inputs, mk, ctx) {
+  const bars = ctx.bars();
+  if (!bars.some(b => (b.volume || 0) > 0)) return { data: { off: true }, emit: { tables: [message('stk_lth-msg', 'Liquidity Trend Heatmap needs bars with volume.', pageIsDay())] } };
+  return { data: lthConfig(inputs), emit: {} };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -1433,7 +1583,7 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap', 'stk_crypto_dom',
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap', 'stk_lth', 'stk_crypto_dom',
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -1460,6 +1610,9 @@ export function installOrderflow(Core) {
   Core.registerRendererLayer({ id: 'stk_vheatmap', placement: 'below-data', create: volumeHeatmapLayer });
   reg(Core, { type: 'stk_vheatmap', title: 'Volume Heatmap', shortTitle: 'Volume Heatmap', paneHint: 'price', overlay: true,
     inputsSchema: () => VH_SCHEMA, create: () => new LayerNative(vhBuild) });
+  Core.registerRendererLayer({ id: 'stk_lth', placement: 'below-data', create: liquidityTrendHeatmapLayer });
+  reg(Core, { type: 'stk_lth', title: 'Liquidity Trend Heatmap', shortTitle: 'Liquidity Heatmap', paneHint: 'price', overlay: true,
+    inputsSchema: () => LTH_SCHEMA, create: () => new LayerNative(lthBuild) });
   Core.registerRendererLayer({ id: 'stk_crypto_dom', placement: 'below-data', create: cryptoDomLayer });
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });

@@ -5,3 +5,4 @@ graphify-out/
 node_modules
 tools/email-previews/
 __pycache__/
+.wrangler/

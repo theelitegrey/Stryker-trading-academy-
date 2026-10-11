@@ -19,10 +19,10 @@
 // without access never gets even a brief flash of the real page before the
 // paywall applies. Every code path below — allowed, denied, admin-exempt,
 // or an error — must end by calling revealPageContent(), or the page would
-// stay stuck hidden forever. The one deliberate exception is "not signed
-// in": that's left showing the loading state, since the page's own auth
-// check redirects to login shortly after anyway, and that's a better look
-// than briefly flashing dashboard content right before the redirect fires.
+// stay stuck hidden forever. "Not signed in" keeps the loading state for a
+// short grace period so a page's own auth check can redirect to login first;
+// if none does, the guard shows the sign-in prompt itself (see
+// settleSignedOut below) instead of leaving the spinner to gate-timeout.js.
 //
 // Depends on: assets/auth.js (`auth`), assets/progress.js (`db`),
 // assets/roles.js (hasRoleAccess, loadPlansForRoles, loadPageAccess, labelOf).
@@ -106,9 +106,59 @@
     });
   }
 
-  let handled = false;
+  // ---- signed-out visitors ------------------------------------------------
+  // Pages with their own auth check (journal, settings, trading floor, ...)
+  // send a signed-out visitor to login 1500 ms after auth resolves. Ten pages
+  // that load this guard have no such check (charts, gex, models, indicators,
+  // global-monitor, economic-calendar, market-brief, market-map, giveaways,
+  // roadmap), so their shell stayed hidden until gate-timeout.js gave up after
+  // 8 s and revealed it under "This page took too long to confirm your
+  // access". Now the guard settles a signed-out visit itself, after a short
+  // grace so a page's own login redirect still wins, using the same rules it
+  // applies to a signed-in student:
+  //   - the page already shows its own guest prompt (models, indicators):
+  //     reveal behind it, as those pages intend;
+  //   - ungated page (no data-page-access): reveal, exactly as for a student
+  //     with no plan ("nothing to check");
+  //   - gated page: a "Sign in to use this page" prompt in the content column.
+  // Nothing is unlocked that was not already shown; the Firestore rules remain
+  // the real access boundary.
+  function settleSignedOut(){
+    const own = document.getElementById('guest-paywall-overlay');
+    const ownShowing = own && own.style.display === 'flex';
+    if (ownShowing || !document.body.getAttribute('data-page-access')) { revealPageContent(); return; }
+    showPlanPaywall(null);
+    const heading = document.getElementById('paywall-heading');
+    const body = document.getElementById('paywall-body');
+    const actions = document.getElementById('paywall-actions');
+    if (heading) heading.textContent = 'Sign in to use this page';
+    if (body) body.textContent = 'Create a free account or log in to continue.';
+    if (actions) {
+      actions.innerHTML = '<a href="login.html" class="btn btn-primary" data-pg-login>Log in</a><a href="signup.html" class="btn btn-ghost">Create free account</a>';
+      const login = actions.querySelector('[data-pg-login]');
+      if (login && typeof goToLoginPreservingReturn === 'function') {
+        login.addEventListener('click', (e) => { e.preventDefault(); goToLoginPreservingReturn(); });
+      }
+    }
+  }
+
+  // A page's own login redirect may already be under way; don't paint over it.
+  let leaving = false;
+  window.addEventListener('beforeunload', () => { leaving = true; });
+
+  let handled = false, guestTimer = 0;
   auth.onAuthStateChanged((user) => {
-    if (handled || !user) return; // the page's own guard handles "not signed in"
+    if (handled) return;
+    if (!user) {
+      clearTimeout(guestTimer);
+      guestTimer = setTimeout(() => {
+        if (handled || leaving) return;
+        if (!document.querySelector('.dash-shell.gate-pending')) return; // something already settled it
+        settleSignedOut();
+      }, 2000);
+      return;
+    }
+    clearTimeout(guestTimer);
     handled = true;
 
     const pageKey = document.body.getAttribute('data-page-access');

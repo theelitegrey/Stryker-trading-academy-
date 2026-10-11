@@ -16,6 +16,16 @@
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
+// Bridge failure backoff. functions/api/chart/stream/[sym].js accepts the socket (101) BEFORE it
+// reaches InsightSentry, so a down or rejecting upstream looks like open -> close 1011 a moment
+// later. A socket only counts as healthy once its first 'bar' arrives (or it stayed open 30 s);
+// open-then-close without a bar is a failure: retry after 5 s doubling to a 3 min cap and poll
+// REST meanwhile. The state is shared per root|tf, so a re-subscription (chart-live-resume.js on
+// return to the tab or a quiet feed) waits out the same backoff instead of starting over.
+// 10 min of a failing bridge = 8 attempts (was 352: every retry 1 s after the 'open').
+const STREAM_HEALTHY_MS = 30000;
+const STREAM_FAIL_BASE_MS = 5000, STREAM_FAIL_MAX_MS = 180000;
+const streamFails = new Map(); // root|tf -> { n: failures in a row, nextAt: no attempt before }
 const POLL_MS = 20000;
 const CONCURRENCY = 4;
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
@@ -274,8 +284,8 @@ export class FuturesProvider {
   // chart's newest streamed bar and Vela dropped it as out of order: the candles froze until a
   // reload (Owner bug 2026-10-12). Now a socket that has worked is RE-OPENED with backoff
   // (1 s doubling to 30 s; while the tab is hidden it waits for the tab to come back). Polling is
-  // only the answer when the stream never opens (bridge unavailable), and stops again as soon as
-  // a socket opens. On connect the bridge replays the recent bars, which fills the gap.
+  // the answer while the bridge fails (never opens, or opens and closes before a bar: see
+  // STREAM_FAIL_* above, backed off to 3 min), and stops again at the first streamed bar. On connect the bridge replays the recent bars, which fills the gap.
   // assets/chart-live-resume.js (via chart-intervals.js wrapProvider) additionally re-opens the
   // whole subscription on return to the tab and when the feed goes quiet.
   streamSubscribe(root, ticker, timeframe, tf, onBar) {
@@ -283,49 +293,72 @@ export class FuturesProvider {
     let pollStop = null;
     let everOpened = false;
     let ws = null;
-    let openTimer = null, retryTimer = null;
+    let openTimer = null, retryTimer = null, healthyTimer = null;
     let retry = 0;
+    const fkey = root + '|' + tf;
+    const fs = streamFails.get(fkey) || { n: 0, nextAt: 0 };
+    streamFails.set(fkey, fs);
     const startPoll = () => { if (!stopped && !pollStop) pollStop = this.pollSubscribe(ticker, timeframe, onBar); };
     const stopPoll = () => { if (pollStop) { const p = pollStop; pollStop = null; p(); } };
     const onVis = () => { if (!stopped && !document.hidden && !ws && !retryTimer) connect(); };
-    const schedule = () => {
+    // wait: after a healthy socket closes, 1 s doubling to 30 s; after a failure, the shared backoff
+    const schedule = (wait) => {
       if (stopped || retryTimer) return;
       if (typeof document !== 'undefined' && document.hidden) return; // onVis reconnects
-      const wait = Math.min(30000, 1000 * Math.pow(2, retry++));
       retryTimer = setTimeout(() => { retryTimer = null; connect(); }, wait);
+    };
+    const failed = () => {
+      fs.n++;
+      fs.nextAt = Date.now() + Math.min(STREAM_FAIL_MAX_MS, STREAM_FAIL_BASE_MS * Math.pow(2, fs.n - 1));
+      startPoll();
+      schedule(fs.nextAt - Date.now());
+    };
+    const healthy = () => {
+      if (healthyTimer) { clearTimeout(healthyTimer); healthyTimer = null; }
+      fs.n = 0; fs.nextAt = 0; retry = 0;
+      stopPoll();
     };
     function connect() {
       if (stopped || ws) return;
+      // still inside a failure backoff (also across re-subscriptions): poll and wait it out
+      if (Date.now() < fs.nextAt) { startPoll(); schedule(fs.nextAt - Date.now()); return; }
       let sock;
       try {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
-      } catch (e) { startPoll(); schedule(); return; }
+      } catch (e) { failed(); return; }
       ws = sock;
-      let opened = false;
+      let opened = false, gotBar = false;
       if (openTimer) clearTimeout(openTimer);
       // No open within 5 s: show polled bars meanwhile (the old behaviour for a missing bridge).
       openTimer = setTimeout(() => { openTimer = null; if (!opened && !everOpened) startPoll(); }, 5000);
+      // 'open' only means the bridge accepted; it has not reached the upstream yet.
       sock.onopen = () => {
         if (ws !== sock) return;
-        opened = everOpened = true; retry = 0;
+        opened = everOpened = true;
         if (openTimer) { clearTimeout(openTimer); openTimer = null; }
-        stopPoll();
+        if (healthyTimer) clearTimeout(healthyTimer);
+        healthyTimer = setTimeout(() => { healthyTimer = null; if (ws === sock && !gotBar) { gotBar = true; healthy(); } }, STREAM_HEALTHY_MS);
       };
       sock.onmessage = (ev) => {
         if (stopped || ws !== sock) return;
         try {
           const msg = JSON.parse(ev.data);
-          if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) onBar(toBar(msg.bar));
+          if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) {
+            if (!gotBar) { gotBar = true; healthy(); }
+            onBar(toBar(msg.bar));
+          }
         } catch (e) {}
       };
       sock.onerror = () => { try { sock.close(); } catch (e) {} };
       sock.onclose = () => {
         if (ws !== sock) return;
         ws = null;
+        if (healthyTimer) { clearTimeout(healthyTimer); healthyTimer = null; }
         if (stopped) return;
-        if (!everOpened) startPoll();  // bridge unavailable: polled bars, and keep trying
-        schedule();
+        // never delivered a bar (refused, or accepted then closed 1011): a failure, backed off
+        if (!gotBar) { failed(); return; }
+        schedule(Math.min(30000, 1000 * Math.pow(2, retry++)));  // a working stream dropped
       };
     }
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
@@ -334,6 +367,7 @@ export class FuturesProvider {
       stopped = true;
       if (openTimer) clearTimeout(openTimer);
       if (retryTimer) clearTimeout(retryTimer);
+      if (healthyTimer) clearTimeout(healthyTimer);
       if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
       stopPoll();
       const s = ws; ws = null;

@@ -19,7 +19,11 @@
 // price keeps ticking, and there is exactly one open feed socket and no extra setInterval timers.
 //
 //   flock /tmp/stryker-chrome.lock node tools/tests/chart-resume-browser.js [shotsDir]
-// Starts and stops its own static server on 127.0.0.1. Env: RECOVER_MS, ONLY=futures|binance.
+//   bridge-1011  (futures, own page) the stream bridge accepts every socket, then closes 1011
+//                50 ms later with no bar (InsightSentry down / key rejected): over 10 virtual
+//                minutes at most MAX_BRIDGE_ATTEMPTS (10) sockets, REST polling keeps the chart
+//                filled, and once the bridge works again the stream takes over.
+// Starts and stops its own static server on 127.0.0.1. Env: RECOVER_MS, ONLY=futures|binance|bridge.
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -81,6 +85,7 @@ const NQ_BASE = 21000, BTC_BASE = 64000;
 const net = { offline: false };
 const socks = { futures: [], binance: [] }; // { ws, mode: 'live'|'zombie'|'closed', timer }
 let feedState = 'keep';                      // what happens to sockets while "hidden"
+const bridge = { fail: false, attempts: 0 };  // bridge-1011 case: accept, then close 1011 after 50 ms
 
 function wireFeed(kind, ws, send) {
   const s = { ws, mode: 'live', timer: null };
@@ -108,7 +113,9 @@ async function mockRoutes(ctx) {
   });
   // futures stream bridge: connected, a snapshot burst of the last 200 bars, then the forming bar every second
   await ctx.routeWebSocket(/\/api\/chart\/stream\//, (ws) => {
+    bridge.attempts++;
     if (net.offline) { ws.close({ code: 1006 }); return; }
+    if (bridge.fail) { setTimeout(() => { try { ws.close({ code: 1011, reason: 'upstream rejected' }); } catch (e) {} }, 50); return; }
     const tf = new URL(ws.url()).searchParams.get('tf') || '1';
     const step = (TF_MIN[tf] || 1) * MIN;
     const row = (b) => [b.t / 1000, r2(b.o), r2(b.h), r2(b.l), r2(b.c), b.v];
@@ -287,6 +294,51 @@ async function scenario(p, cdp, ctx, kind, { name, hideMs, mode, offline }) {
       await p.screenshot({ path: shot });
       console.log('screenshot', shot);
       check(errors.length === 0, `${kind}: console errors: ${errors.length ? errors.slice(0, 4).join(' | ') : 'none'}`);
+      await ctx.close();
+    }
+    // ---- bridge-1011: accepted, then closed 1011 with no bar, for 10 virtual minutes ----
+    if (!ONLY || ONLY === 'futures' || ONLY === 'bridge') {
+      const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+      await ctx.addInitScript(stub);
+      await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|api\.binance\.com|data-api\.binance\.vision|api\.binance\.us)/, (r) => r.abort());
+      await mockRoutes(ctx);
+      let rest = 0;
+      ctx.on('request', (r) => { if (/\/api\/chart\/bars\//.test(r.url())) rest++; });
+      const p = await ctx.newPage();
+      offset = T0 - Date.now();
+      await p.clock.install({ time: new Date(T0) });
+      await p.addInitScript(INSTRUMENT);
+      const errors = [];
+      p.on('pageerror', (e) => errors.push(String(e)));
+      await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
+      await sleep(3000);
+      await setMarket(p, 'futures:NQ1!', '1');
+      offset = (await p.evaluate(() => Date.now())) - Date.now();
+      // the healthy stream is up; now the upstream goes down: drop the live socket
+      bridge.fail = true;
+      socks.futures.forEach((s) => { if (s.mode === 'live') { s.mode = 'closed'; clearInterval(s.timer); try { s.ws.close({ code: 1011 }); } catch (e) {} } });
+      await sleep(1500);
+      bridge.attempts = 0; const rest0 = rest;
+      const MAX_BRIDGE_ATTEMPTS = Number(process.env.MAX_BRIDGE_ATTEMPTS || 10);
+      const marks = [];
+      for (let s = 0; s < 120; s++) {          // 120 x 5 s = 10 virtual minutes
+        offset += 5000; await p.clock.fastForward(5000); await sleep(120);
+        if ((s + 1) % 12 === 0) marks.push(bridge.attempts);
+      }
+      const st = await chartState(p);
+      console.log('bridge-1011 attempts per virtual minute (cumulative)', JSON.stringify(marks), 'REST page requests', rest - rest0);
+      check(bridge.attempts >= 3 && bridge.attempts <= MAX_BRIDGE_ATTEMPTS, `bridge-1011: ${bridge.attempts} stream attempts in 10 virtual minutes (<= ${MAX_BRIDGE_ATTEMPTS}; was 352 when every 'open' reset the backoff)`);
+      check(rest - rest0 >= 10, `bridge-1011: REST polling meanwhile (${rest - rest0} bar requests)`);
+      check(st.n > 50 && st.last >= Math.floor(st.now / MIN) * MIN - REST_DELAY_MS - MIN, `bridge-1011: chart still filled from REST (last ${new Date(st.last).toISOString()}, ${st.n} bars)`);
+      // the bridge recovers: within the 3 min cap the stream is back and the chart is current again
+      bridge.fail = false;
+      for (let s = 0; s < 40; s++) { offset += 5000; await p.clock.fastForward(5000); await sleep(120); }
+      await sleep(1500);
+      const st2 = await chartState(p);
+      const open = await p.evaluate((re) => window.__openSockets(re).length, feedRe('futures'));
+      check(st2.last === Math.floor(st2.now / MIN) * MIN && open === 1, `bridge-1011: bridge back -> streaming at the current minute again within 3 min 20 s (open sockets ${open}, last ${new Date(st2.last).toISOString()})`);
+      check(errors.length === 0, 'bridge-1011: page errors: ' + (errors.join(' | ') || 'none'));
       await ctx.close();
     }
   } finally {

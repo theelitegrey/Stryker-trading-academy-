@@ -1,0 +1,72 @@
+name: One-time setup tradezoro.com domain
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-domain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Attach tradezoro.com to Cloudflare Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          NEW_DOMAIN: tradezoro.com
+        run: |
+          set -euo pipefail
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          [ -z "$ACCOUNT" ] && ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
+          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then echo "Missing Cloudflare secrets"; exit 1; fi
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$ACCOUNT"
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' "$@"; }
+          projects=$(api "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects")
+          if [ "$(echo "$projects" | jq -r '.success')" != "true" ]; then echo "$projects" | jq -c '.errors'; exit 1; fi
+          PROJECT=$(echo "$projects" | jq -r '.result[] | select(((.domains // []) | map(test("strykertrading|tradezoro"; "i")) | any) or (.name|test("stryker";"i"))) | .name' | head -1)
+          [ -z "$PROJECT" ] && PROJECT=$(echo "$projects" | jq -r '.result[0].name // empty')
+          if [ -z "$PROJECT" ]; then echo "No Pages project found"; exit 1; fi
+          TARGET="$PROJECT.pages.dev"
+          echo "Pages project: $PROJECT"
+          echo "DNS target: $TARGET"
+          domains=$(api "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects/$PROJECT/domains")
+          for host in "$NEW_DOMAIN" "www.$NEW_DOMAIN"; do
+            if echo "$domains" | jq -e --arg h "$host" '.result[]? | select(.name==$h)' >/dev/null; then
+              echo "$host already attached to Pages"
+            else
+              resp=$(api -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects/$PROJECT/domains" --data "{\"name\":\"$host\"}")
+              ok=$(echo "$resp" | jq -r '.success')
+              if [ "$ok" = "true" ]; then echo "Attached $host to Pages"; else echo "Could not attach $host:"; echo "$resp" | jq -c '.errors'; fi
+            fi
+          done
+          zone=$(api "https://api.cloudflare.com/client/v4/zones?name=$NEW_DOMAIN&per_page=1")
+          ZONE_ID=$(echo "$zone" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then
+            echo "tradezoro.com is not in this Cloudflare account as a DNS zone."
+            echo "Set DNS manually at the registrar:"
+            echo "  @    CNAME    $TARGET"
+            echo "  www  CNAME    $TARGET"
+            echo "Then rerun this workflow or wait for Pages verification."
+            exit 0
+          fi
+          echo "Cloudflare DNS zone found. Creating/updating DNS records."
+          upsert_record() {
+            local name="$1" content="$2"
+            existing=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records?type=CNAME&name=$name")
+            id=$(echo "$existing" | jq -r '.result[0].id // empty')
+            payload="{\"type\":\"CNAME\",\"name\":\"$name\",\"content\":\"$content\",\"ttl\":1,\"proxied\":true}"
+            if [ -n "$id" ]; then
+              resp=$(api -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$id" --data "$payload")
+            else
+              resp=$(api -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" --data "$payload")
+            fi
+            if [ "$(echo "$resp" | jq -r '.success')" = "true" ]; then echo "DNS OK: $name -> $content"; else echo "$resp" | jq -c '.errors'; fi
+          }
+          upsert_record "$NEW_DOMAIN" "$TARGET"
+          upsert_record "www.$NEW_DOMAIN" "$TARGET"

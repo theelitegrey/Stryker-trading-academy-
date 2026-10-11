@@ -18,7 +18,8 @@
 //   - Volume Bubble / Big Prints (ours): bubbles on high-volume bars, built from the chart feed volume.
 //   - Volume Heatmap (ours): horizontal price-level heatmap from volume-at-price, like resting-order zones.
 //   - Liquidity Trend Heatmap (ours): 26-row volume-at-price heat zones, POC and trend baseline.
-//   - Crypto DOM Heatmap (ours): live Binance order-book depth ladder for crypto symbols.
+//   - Crypto DOM Heatmap (ours): resting Binance order-book liquidity at price levels for crypto
+//     symbols (Style: Combined heatmap + depth bars + walls, Heatmap only, Depth bars only, Walls only).
 //   - Estimated CVD (from candles) (ours, off by default): NOT real order flow. Each candle's
 //     volume is split by where it closed in its range. Always labelled "Estimated".
 // Everything above is computed from OHLCV bars, so it is honest on every feed. Real order-flow
@@ -1270,53 +1271,94 @@ function footprintLayer() {
 }
 
 // =======================================================================================
-// CRYPTO DOM / ORDER BOOK (Binance public depth, no key)
+// CRYPTO DOM / RESTING LIQUIDITY (Binance public depth, no key)
 // =======================================================================================
+// Resting limit orders at each price level, from Binance's public order book (REST snapshot
+// + diff stream, see binanceBookSource). The feed samples the book once a second; the layer
+// buckets every sample into price levels and draws, per the "Style" setting:
+//   Combined (default): two-colour heatmap over time (bucket coloured by the side holding more
+//     size; mint = bids, red = asks), depth bars of the CURRENT book on the right edge, and the
+//     biggest persistent levels ("walls") as thick lines with their size in base-asset units.
+//   Heatmap only: one-colour intensity ramp (Bookmap-like). Depth bars only. Walls only.
+// The 1 bucket either side of the mid is skipped (best bid / ask churn). Thin levels below the
+// chosen percentile of all sizes in view are hidden. Indicator only: it describes resting
+// orders, it predicts nothing and offers nothing to trade.
 const BOOK_MAX_LEVELS = 1000;
+const BOOK_SAMPLE_MS = 1000;
+const BOOK_HISTORY_MAX = 2400;
 const bookFeeds = new Map();
 const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
+const DOM_VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 const DOM_SCHEMA = [
-  { key: 'levels', title: 'Book levels', type: 'int', defval: 160, min: 20, max: 500, step: 10 },
-  { key: 'minPct', title: 'Show above (% of max liquidity)', type: 'float', defval: 0.5, min: 0, max: 50, step: 0.5 },
-  { key: 'style', title: 'Heatmap style', type: 'string', defval: 'liquidity heatmap', options: ['liquidity heatmap', 'right ladder'] },
+  { key: 'style', title: 'Style', type: 'string', defval: DOM_VIEWS[0], options: DOM_VIEWS },
+  { key: 'showHeat', title: 'Show heatmap (Combined)', type: 'bool', defval: true },
+  { key: 'showDepth', title: 'Show depth bars (Combined)', type: 'bool', defval: true },
+  { key: 'showWalls', title: 'Show walls (Combined)', type: 'bool', defval: true },
+  { key: 'wallTopPct', title: 'Wall threshold (top % of sizes)', type: 'float', defval: 2.5, min: 0.5, max: 20, step: 0.5 },
+  { key: 'wallMinSec', title: 'Wall min lifetime (seconds)', type: 'int', defval: 12, min: 0, max: 600, step: 1 },
+  { key: 'showWallSizes', title: 'Show wall sizes', type: 'bool', defval: true },
+  { key: 'hidePct', title: 'Hide thin levels below (percentile)', type: 'int', defval: 60, min: 0, max: 95, step: 5 },
+  { key: 'bucketUsd', title: 'Price bucket size (0 = auto)', type: 'float', defval: 0, min: 0, max: 100000, step: 0.5 },
   { key: 'historyMin', title: 'History window (minutes)', type: 'int', defval: 90, min: 5, max: 360, step: 5 },
-  { key: 'widthPct', title: 'Right ladder width %', type: 'int', defval: 36, min: 10, max: 95, step: 1 },
-  { key: 'opacity', title: 'Max opacity %', type: 'int', defval: 32, min: 5, max: 75, step: 1 },
-  { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: true },
-  { key: 'showScale', title: 'Liquidity colour scale', type: 'bool', defval: true },
+  { key: 'depthWidthPct', title: 'Depth bars width %', type: 'int', defval: 15, min: 5, max: 40, step: 1 },
+  { key: 'maxOpacity', title: 'Max opacity %', type: 'int', defval: 85, min: 5, max: 100, step: 1 },
+  { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: false },
+  { key: 'showScale', title: 'Colour scale (Heatmap only)', type: 'bool', defval: true },
   { key: 'bidColor', title: 'Bid colour', type: 'color', defval: '#03c988' },
   { key: 'askColor', title: 'Ask colour', type: 'color', defval: '#e5484d' }
 ];
+// Old saved charts (before build 503) carry style 'liquidity heatmap' -> Combined, or
+// 'right ladder' -> Depth bars only. Their old keys (levels, minPct, widthPct, opacity) are
+// ignored, so an old 32% opacity / 36% ladder width does not carry over to the new look.
 function domConfig(inputs) {
+  const i = inputs || {};
+  const vi = i.style === 'right ladder' ? 2 : DOM_VIEWS.indexOf(i.style);
+  const view = ['combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
+  const combined = view === 'combined';
   return {
-    levels: clamp(Math.round(num(inputs.levels, 160)), 20, 500),
-    minPct: clamp(num(inputs.minPct, 0.5), 0, 50) / 100,
-    style: inputs.style === 'right ladder' ? 'ladder' : 'heatmap',
-    historyMin: clamp(Math.round(num(inputs.historyMin, 90)), 5, 360),
-    widthPct: clamp(num(inputs.widthPct, 36), 10, 95) / 100,
-    opacity: clamp(num(inputs.opacity, 32), 5, 75) / 100,
-    showBest: inputs.showBest !== false,
-    showScale: inputs.showScale !== false,
-    bid: str(inputs.bidColor, '#03c988'),
-    ask: str(inputs.askColor, '#e5484d')
+    view,
+    heat: view === 'heat' || (combined && i.showHeat !== false),
+    depth: view === 'depth' || (combined && i.showDepth !== false),
+    walls: view === 'walls' || (combined && i.showWalls !== false),
+    twoTone: view !== 'heat',
+    wallTop: clamp(num(i.wallTopPct, 2.5), 0.5, 20) / 100,
+    wallMinMs: clamp(Math.round(num(i.wallMinSec, 12)), 0, 600) * 1000,
+    wallSizes: i.showWallSizes !== false,
+    hide: clamp(num(i.hidePct, 60), 0, 95) / 100,
+    bucket: Math.max(0, num(i.bucketUsd, 0)),
+    historyMin: clamp(Math.round(num(i.historyMin, 90)), 5, 360),
+    widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
+    opacity: clamp(num(i.maxOpacity, 85), 5, 100) / 100,
+    showBest: i.showBest === true,
+    showScale: i.showScale !== false,
+    bid: str(i.bidColor, '#03c988'),
+    ask: str(i.askColor, '#e5484d')
   };
 }
-function liquidityColor(t, maxAlpha) {
-  t = clamp(t, 0, 1);
-  const stops = [
-    [0.00, [72, 0, 86]],
-    [0.28, [48, 74, 141]],
-    [0.52, [32, 145, 140]],
-    [0.76, [70, 205, 85]],
-    [1.00, [245, 230, 20]]
-  ];
-  let a = stops[0], b = stops[stops.length - 1];
-  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { a = stops[i - 1]; b = stops[i]; break; }
-  const f = (t - a[0]) / Math.max(1e-9, b[0] - a[0]);
-  const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * f);
-  const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * f);
-  const bl = Math.round(a[1][2] + (b[1][2] - a[1][2]) * f);
-  return 'rgba(' + r + ',' + g + ',' + bl + ',' + (0.05 + maxAlpha * (0.18 + 0.82 * Math.sqrt(t))).toFixed(3) + ')';
+// "Heatmap only" intensity ramp (the reference prototype's): dark -> teal -> mint -> amber -> white.
+const DOM_RAMP = [[11, 11, 13], [0, 60, 70], [0, 173, 181], [3, 201, 136], [245, 197, 66], [255, 255, 255]];
+function domRamp(v) {
+  v = clamp(v, 0, 1);
+  const x = v * (DOM_RAMP.length - 1), i = Math.min(DOM_RAMP.length - 2, Math.floor(x)), f = x - i;
+  return DOM_RAMP[i].map((c, k) => Math.round(c + (DOM_RAMP[i + 1][k] - c) * f));
+}
+function rgbOf(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
+  if (!m) return [128, 128, 128];
+  const n = parseInt(m[1], 16);
+  return [n >> 16 & 255, n >> 8 & 255, n & 255];
+}
+// Base asset of a Binance ticker: BTCUSDT / BTCUSDT.P -> BTC.
+function baseAsset(ticker) {
+  const s = String(ticker || '').toUpperCase().replace(/\.P$/, '').replace(/^[A-Z]+:/, '');
+  const m = /^(.+?)(USDT|USDC|FDUSD|BUSD|TUSD|USD|DAI|EUR|TRY|BRL|JPY|BTC|ETH|BNB)$/.exec(s);
+  return m ? m[1] : s;
+}
+function fmtSize(v) {
+  if (v >= 1000) return fmtVol(v);
+  if (v >= 100) return v.toFixed(0);
+  if (v >= 1) return v.toFixed(1);
+  return v.toFixed(2);
 }
 function bookKey(provider, ticker) { return provider + '|' + String(ticker || '').toUpperCase(); }
 function binanceBookSource(ticker, onBook, onStatus) {
@@ -1371,9 +1413,20 @@ function binanceBookSource(ticker, onBook, onStatus) {
   refresh = setInterval(snapshot, 30000);
   return () => { stopped = true; clearTimeout(tm); clearInterval(refresh); try { if (ws) ws.close(); } catch (e) {} };
 }
+// One sample = the book at a moment, packed: prices + signed sizes (+ bid, - ask).
+function packBook(book) {
+  const n = book.bids.size + book.asks.size;
+  const p = new Float64Array(n), q = new Float32Array(n);
+  let k = 0;
+  book.bids.forEach((size, price) => { if (size > 0 && price > 0) { p[k] = price; q[k++] = size; } });
+  book.asks.forEach((size, price) => { if (size > 0 && price > 0) { p[k] = price; q[k++] = -size; } });
+  const mid = book.bestBid > 0 && book.bestAsk > 0 ? (book.bestBid + book.bestAsk) / 2 : (book.bestBid || book.bestAsk || 0);
+  return { p: k < n ? p.slice(0, k) : p, q: k < n ? q.slice(0, k) : q, mid };
+}
 class BookFeed {
   constructor(provider, ticker) {
     this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
+    this.base = baseAsset(ticker);
     this.status = 'loading'; this.err = ''; this.version = 0; this.refs = 0; this.listeners = new Set(); this.closeTm = 0;
     this.book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
     this.history = []; this.lastSample = 0;
@@ -1381,17 +1434,19 @@ class BookFeed {
   }
   sample() {
     const now = Date.now();
-    if (now - this.lastSample < 750) return;
+    if (now - this.lastSample < BOOK_SAMPLE_MS) return;
     this.lastSample = now;
-    const rows = [];
-    const add = (side, m) => m.forEach((size, price) => { if (size > 0 && price > 0) rows.push({ side, price, size }); });
-    add('bid', this.book.bids); add('ask', this.book.asks);
-    if (!rows.length) return;
-    const centre = ((this.book.bestBid || 0) + (this.book.bestAsk || 0)) / 2 || this.book.bestBid || this.book.bestAsk || 0;
-    rows.sort((a, b) => Math.abs(a.price - centre) - Math.abs(b.price - centre));
-    this.history.push({ ts: now, rows: rows.slice(0, 420), bestBid: this.book.bestBid, bestAsk: this.book.bestAsk });
+    const s = packBook(this.book);
+    if (!s.p.length) return;
+    s.ts = now; s.bestBid = this.book.bestBid; s.bestAsk = this.book.bestAsk; s.bins = null;
+    this.history.push(s);
     const cutoff = now - 6 * 60 * 60 * 1000;
-    while (this.history.length > 900 || (this.history[0] && this.history[0].ts < cutoff)) this.history.shift();
+    while (this.history[0] && this.history[0].ts < cutoff) this.history.shift();
+    // Over the cap: thin the oldest half to every other sample (recent detail stays at 1 s).
+    if (this.history.length > BOOK_HISTORY_MAX) {
+      const half = Math.floor(this.history.length / 2);
+      this.history = this.history.slice(0, half).filter((x, i) => i % 2 === 0).concat(this.history.slice(half));
+    }
   }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
 }
@@ -1406,6 +1461,29 @@ function acquireBookFeed(provider, ticker, fn) {
     f.closeTm = setTimeout(() => { if (f.refs <= 0) { try { f.stop(); } catch (e) {} bookFeeds.delete(key); } }, 10000);
   } };
 }
+// Bucket one sample by price step: Map bucketIndex -> signed size of the side holding more
+// (+ bid, - ask). The touch (1 bucket either side of the mid) is skipped. Cached per step.
+function binSample(s, step) {
+  if (s.bins && s.bins.step === step) return s.bins.m;
+  const bq = new Map(), aq = new Map();
+  for (let k = 0; k < s.p.length; k++) {
+    const i = Math.floor(s.p[k] / step + 1e-9), v = s.q[k];
+    if (v > 0) bq.set(i, (bq.get(i) || 0) + v); else aq.set(i, (aq.get(i) || 0) - v);
+  }
+  const mi = Math.floor(s.mid / step + 1e-9);
+  const m = new Map();
+  const put = (i) => {
+    if (m.has(i) || Math.abs(i - mi) <= 1) return;
+    const b = bq.get(i) || 0, a = aq.get(i) || 0;
+    if (b >= a && b > 0) m.set(i, b); else if (a > 0) m.set(i, -a);
+  };
+  bq.forEach((v, i) => put(i)); aq.forEach((v, i) => put(i));
+  s.bins = { step, m };
+  return m;
+}
+const quant = (sorted, f) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * f)))] : 0;
+let domLast = null; // last frame summary, for the browser test (window.__stkFlow.domDebug())
+export function domDebug() { return domLast; }
 function cryptoDomLayer() {
   let canvas = null;
   return {
@@ -1416,121 +1494,194 @@ function cryptoDomLayer() {
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
       const cfg = a.data.cfg, co = a.coords, top = a.bounds.top, bot = top + a.bounds.height;
-      const book = f.book;
-      const centre = ((book.bestBid || 0) + (book.bestAsk || 0)) / 2 || book.bestBid || book.bestAsk || 0;
+      const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
+      const light = themeIsLight(a.theme) || pageIsDay();
+      const W = co.width;
       const span = Math.max(1e-12, a.scale.max - a.scale.min);
-      // Binance book prices are very tight around the last price. Bucket by visible pixels so many
-      // liquidity rows show on phones, then draw either a CoinAnk-style full heatmap or a right ladder.
-      let step = niceStep(span / 120);
-      const midP = (a.scale.min + a.scale.max) / 2;
-      const pxStep = Math.abs(co.priceToY(midP + step, a.scale, a.bounds) - co.priceToY(midP, a.scale, a.bounds));
-      if (pxStep < 3) step *= Math.ceil(3 / Math.max(pxStep, 0.01));
-      const makeBuckets = (rows) => {
-        const buckets = new Map();
-        const add = (side, price, size) => {
-          if (!(size > 0) || !(price > 0)) return;
-          if (price < a.scale.min - span * 0.18 || price > a.scale.max + span * 0.18) return;
-          const rowPrice = Math.round(Math.round(price / step) * step * 1e8) / 1e8;
-          const key = rowPrice;
-          const r = buckets.get(key) || { price: rowPrice, size: 0, bid: 0, ask: 0, nearest: Math.abs(rowPrice - centre) };
-          r.size += size;
-          if (side === 'bid') r.bid += size; else r.ask += size;
-          buckets.set(key, r);
-        };
-        rows.forEach(r => add(r.side, r.price, r.size));
-        let use = [...buckets.values()].filter(r => r.size > 0);
-        use.sort((a, b) => a.nearest - b.nearest);
-        return use.slice(0, cfg.levels);
-      };
-      const currentRows = [];
-      book.bids.forEach((size, price) => currentRows.push({ side: 'bid', price, size }));
-      book.asks.forEach((size, price) => currentRows.push({ side: 'ask', price, size }));
-      const currentBuckets = makeBuckets(currentRows);
-      const recent = (f.history || []).filter(h => Date.now() - h.ts <= cfg.historyMin * 60000);
-      let max = 0;
-      const allBuckets = [];
-      currentBuckets.forEach(r => { if (r.size > max) max = r.size; });
-      recent.forEach(h => {
-        const rows = makeBuckets(h.rows || []);
-        allBuckets.push({ ts: h.ts, rows });
-        rows.forEach(r => { if (r.size > max) max = r.size; });
-      });
-      if (!(max > 0)) return;
-      g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
-      if (cfg.style === 'ladder') {
-        const maxW = co.width * cfg.widthPct;
-        for (const r of currentBuckets) {
-          const rel = r.size / max;
-          if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
-          const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
-          if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-          const y = Math.min(yA, yB), h = Math.max(3, Math.abs(yB - yA) - 1);
-          if (y > bot || y + h < top) continue;
-          const col = r.bid >= r.ask ? cfg.bid : cfg.ask;
-          const strength = Math.max(0.10, Math.sqrt(rel));
-          const w = Math.max(10, maxW * strength);
-          g.fillStyle = alpha(col, 0.045 + cfg.opacity * Math.min(1, strength) * 0.78);
-          g.fillRect(co.width - w - 8, y, w, h);
-          if (rel > 0.55) { g.fillStyle = alpha(col, 0.055 + cfg.opacity * 0.30); g.fillRect(0, y, co.width, h); }
-        }
-      } else {
-        const fromTs = recent[0] ? recent[0].ts : Date.now() - cfg.historyMin * 60000;
-        const toTs = Date.now();
-        const xOf = (ts) => co.width * ((ts - fromTs) / Math.max(1, toTs - fromTs));
-        const liveX = co.width;
-        // Do not flood the whole chart with the current book. Until enough real history builds,
-        // show only a slim live-liquidity strip on the right edge so candles remain readable.
-        if (allBuckets.length < 4) {
-          const stripW = Math.max(18, Math.min(42, co.width * 0.08));
-          for (const r of currentBuckets) {
-            const rel = r.size / max;
-            if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
-            const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
-            if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-            const y = Math.min(yA, yB), h = Math.max(2, Math.abs(yB - yA));
-            if (y > bot || y + h < top) continue;
-            g.fillStyle = liquidityColor(rel, cfg.opacity * 0.75);
-            g.fillRect(co.width - stripW - 6, y, stripW, h);
-          }
-        }
-        for (let i = 0; i < allBuckets.length; i++) {
-          const hst = allBuckets[i];
-          const x0 = Math.max(0, xOf(hst.ts));
-          const x1 = Math.min(co.width, i + 1 < allBuckets.length ? xOf(allBuckets[i + 1].ts) : liveX);
-          const w = Math.max(2, x1 - x0 + 1);
-          for (const r of hst.rows) {
-            const rel = r.size / max;
-            if (rel < cfg.minPct && r.nearest > span * 0.02) continue;
-            const yA = co.priceToY(r.price + step, a.scale, a.bounds), yB = co.priceToY(r.price, a.scale, a.bounds);
-            if (!Number.isFinite(yA) || !Number.isFinite(yB)) continue;
-            const y = Math.min(yA, yB), rh = Math.max(2, Math.abs(yB - yA));
-            if (y > bot || y + rh < top) continue;
-            g.fillStyle = liquidityColor(rel, cfg.opacity);
-            g.fillRect(x0, y, w, rh);
-          }
-        }
-        if (cfg.showScale) {
-          const sx = 14, sy = Math.max(top + 12, 18), sw = 10, sh = Math.min(110, a.bounds.height - 24);
-          const grd = g.createLinearGradient(0, sy + sh, 0, sy);
-          grd.addColorStop(0, 'rgba(72,0,86,.95)'); grd.addColorStop(.28, 'rgba(48,74,141,.95)');
-          grd.addColorStop(.52, 'rgba(32,145,140,.95)'); grd.addColorStop(.76, 'rgba(70,205,85,.95)'); grd.addColorStop(1, 'rgba(245,230,20,.95)');
-          g.fillStyle = grd; g.fillRect(sx, sy, sw, sh);
-          g.fillStyle = alpha('#eeeeee', .80); g.font = 'bold 11px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif');
-          g.textAlign = 'left'; g.fillText('MAX', sx + sw + 7, sy + 11); g.fillText('0', sx + sw + 7, sy + sh);
+      const yOf = (p) => co.priceToY(p, a.scale, a.bounds);
+      // Price bucket: manual size, or "auto" = a nice step of ~1/120 of the visible range, at
+      // least 3 px tall so phones still get readable rows.
+      let step = cfg.bucket;
+      if (!(step > 0)) {
+        step = niceStep(span / 120);
+        const midP = (a.scale.min + a.scale.max) / 2;
+        const pxStep = Math.abs(yOf(midP + step) - yOf(midP));
+        if (pxStep < 3) step = niceStep(step * 3 / Math.max(pxStep, 0.01));
+      }
+      if (Math.abs(yOf(a.scale.min) - yOf(a.scale.min + step)) < 1) step = niceStep(span / 300);
+      const iLo = Math.floor(a.scale.min / step) - 1, iHi = Math.ceil(a.scale.max / step) + 1;
+      const rowY = (i) => { const y0 = yOf((i + 1) * step), y1 = yOf(i * step); return [Math.min(y0, y1), Math.abs(y1 - y0)]; };
+      // Depth bars: ~widthPct of the chart, in the empty space right of "now" when the chart
+      // has one (so they never sit on the newest candles), else against the price scale.
+      // The heatmap and walls end where the depth bars start.
+      let depthW = cfg.depth ? Math.max(36, Math.round(W * cfg.widthPct)) : 0;
+      let depthX = W - depthW;
+      if (cfg.depth) {
+        const xNow = co.timeToX(Date.now()) + Math.max(3, co.pxPerBar ? co.pxPerBar() / 2 : 3) + 4;
+        if (Number.isFinite(xNow) && xNow > depthX && xNow < W - 36) { depthX = xNow; depthW = W - xNow; }
+      }
+      const right = cfg.depth ? depthX - 2 : W;
+      const bidRgb = rgbOf(cfg.bid).join(','), askRgb = rgbOf(cfg.ask).join(',');
+      const stat = { view: cfg.view, step, samples: 0, columns: 0, cells: 0, depthBars: 0, walls: [], base: f.base, width: W };
+
+      // ---- history -> pixel columns (>= 2 px wide), x from the chart's own time axis ----
+      const now = Date.now();
+      const hist = (f.history || []).filter(h => now - h.ts <= cfg.historyMin * 60000);
+      stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0;
+      const cols = [];
+      if (cfg.heat || cfg.walls) {
+        for (let k = 0; k < hist.length; k++) {
+          const s = hist[k];
+          const x0 = co.timeToX(s.ts);
+          const x1 = k + 1 < hist.length ? co.timeToX(hist[k + 1].ts) : co.timeToX(s.ts + BOOK_SAMPLE_MS);
+          if (!Number.isFinite(x0) || x1 < 0 || x0 > right) continue;
+          const last = cols[cols.length - 1];
+          if (last && x0 - last.x0 < 2) { last.x1 = x1; last.s = s; last.ts1 = s.ts; continue; }
+          cols.push({ x0, x1, s, ts0: s.ts, ts1: s.ts });
         }
       }
+      // visible values (all columns + the current book) -> percentiles
+      const curBins = binSample(packBook(f.book), step);
+      const vals = [];
+      const colBins = cols.map(c => {
+        const m = binSample(c.s, step), out = [];
+        m.forEach((v, i) => { if (i >= iLo && i <= iHi) { out.push(i, v); vals.push(Math.abs(v)); } });
+        return out;
+      });
+      const curRows = [];
+      curBins.forEach((v, i) => { if (i >= iLo && i <= iHi) curRows.push([i, v]); });
+      if (!vals.length) curRows.forEach(r => vals.push(Math.abs(r[1])));
+      vals.sort((x, y) => x - y);
+      const qLo = quant(vals, cfg.hide), cap = Math.max(qLo * 1.0001, quant(vals, 0.985));
+      stat.columns = cols.length; stat.heatX0 = cols.length ? Math.round(Math.max(0, cols[0].x0)) : null;
+
+      g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
+
+      // ---- heatmap: run-length merged cells per bucket ----
+      if (cfg.heat && cols.length) {
+        g.save(); g.beginPath(); g.rect(0, top, Math.max(0, right), a.bounds.height); g.clip();
+        const open = new Map(); // bucket -> { x0, x1, key, style }
+        const flush = (i, r) => {
+          const [y, h] = rowY(i);
+          if (y > bot || y + h < top) return;
+          g.fillStyle = r.style; g.fillRect(r.x0, y, Math.max(1, r.x1 - r.x0 + 0.5), h + 0.5); stat.cells++;
+        };
+        const styleOf = (v) => {
+          const n = Math.pow(Math.max(0, (Math.abs(v) - qLo) / (cap - qLo)), 0.75);
+          if (n < 0.04) return null;
+          if (cfg.twoTone) { const al = Math.round(cfg.opacity * Math.min(1, n * 1.3) * 20) / 20; return al > 0 ? 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')' : null; }
+          const nq = Math.round(n * 24) / 24; const c = domRamp(nq);
+          return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * Math.min(1, 0.25 + nq)).toFixed(2) + ')';
+        };
+        for (let c = 0; c < cols.length; c++) {
+          const col = cols[c], arr = colBins[c], seen = new Set();
+          for (let k = 0; k < arr.length; k += 2) {
+            const i = arr[k], v = arr[k + 1];
+            if (Math.abs(v) < qLo) continue;
+            const st = styleOf(v);
+            if (!st) continue;
+            seen.add(i);
+            const r = open.get(i);
+            if (r && r.style === st && col.x0 - r.x1 < 1.5) { r.x1 = col.x1; continue; }
+            if (r) flush(i, r);
+            open.set(i, { x0: col.x0, x1: col.x1, style: st });
+          }
+          open.forEach((r, i) => { if (!seen.has(i)) { flush(i, r); open.delete(i); } });
+        }
+        open.forEach((r, i) => flush(i, r));
+        g.restore();
+        if (cfg.view === 'heat' && cfg.showScale) {
+          // top-right corner (the chart legend owns the top-left), on a small backing box
+          g.font = '10px ' + font; g.textAlign = 'left';
+          const sw = 8, sh = Math.min(72, a.bounds.height - 40), bw = sw + 10 + g.measureText('More').width;
+          const bx = W - bw - 8, sx = bx + 4, sy = top + 10;
+          g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(bx, sy - 4, bw + 4, sh + 8);
+          const grd = g.createLinearGradient(0, sy + sh, 0, sy);
+          DOM_RAMP.forEach((c, k) => grd.addColorStop(k / (DOM_RAMP.length - 1), 'rgb(' + c.join(',') + ')'));
+          g.fillStyle = grd; g.fillRect(sx, sy, sw, sh);
+          g.fillStyle = light ? 'rgba(30,41,59,.9)' : 'rgba(226,232,240,.9)';
+          g.fillText('More', sx + sw + 4, sy + 8); g.fillText('Less', sx + sw + 4, sy + sh);
+        }
+      }
+
+      // ---- walls: top sizes that persisted, tracked per (bucket, side) ----
+      if (cfg.walls && cols.length) {
+        const thr = Math.max(qLo, quant(vals, 1 - cfg.wallTop));
+        const seen = new Map();
+        for (let c = 0; c < cols.length; c++) {
+          const arr = colBins[c], col = cols[c];
+          for (let k = 0; k < arr.length; k += 2) {
+            const v = arr[k + 1];
+            if (Math.abs(v) < thr) continue;
+            const side = v > 0 ? 1 : -1, key = arr[k] * 2 + (side > 0 ? 1 : 0);
+            let w = seen.get(key);
+            if (!w) { w = { i: arr[k], side, t0: col.ts0, t1: col.ts1, x0: col.x0, x1: col.x1, max: 0 }; seen.set(key, w); }
+            w.t1 = col.ts1; w.x1 = col.x1; w.max = Math.max(w.max, Math.abs(v));
+          }
+        }
+        const list = [...seen.values()].filter(w => w.t1 - w.t0 >= cfg.wallMinMs).sort((x, y) => y.max - x.max).slice(0, 12);
+        const mxv = list.length ? list[0].max : 1;
+        const used = [];
+        const fs = 11, maxLabels = W < 500 ? 6 : 12; // phones: fewer labels, biggest first
+        g.font = 'bold ' + fs + 'px ' + font;
+        g.textAlign = 'left'; g.textBaseline = 'middle';
+        for (const w of list) {
+          const y = Math.round(yOf((w.i + 0.5) * step)) + 0.5;
+          if (y < top || y > bot) continue;
+          const rgb = w.side > 0 ? bidRgb : askRgb;
+          g.strokeStyle = 'rgba(' + rgb + ',' + (cfg.heat ? 0.95 : 0.85) + ')';
+          g.lineWidth = 1.5 + 4 * (w.max / mxv);
+          g.beginPath(); g.moveTo(Math.max(0, w.x0), y); g.lineTo(Math.min(right, w.x1), y); g.stroke();
+          const lab = fmtSize(w.max) + ' ' + f.base;
+          const rec = { label: lab, side: w.side > 0 ? 'bid' : 'ask', price: (w.i + 0.5) * step, drawn: false };
+          stat.walls.push(rec);
+          if (!cfg.wallSizes || used.length >= maxLabels || y < top + 10 || y > bot - 8 || used.some(u => Math.abs(u - y) < 15)) continue;
+          used.push(y);
+          const tw = g.measureText(lab).width, tx = right - tw - 8;
+          if (tx < 4) continue;
+          g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)';
+          g.fillRect(tx - 3, y - 8, tw + 6, 16);
+          g.fillStyle = 'rgb(' + rgb + ')';
+          g.fillText(lab, tx, y + 0.5);
+          rec.drawn = true;
+        }
+        g.textBaseline = 'alphabetic';
+      }
+
+      // ---- depth bars: the CURRENT book only, sqrt(size / max) ----
+      if (cfg.depth && curRows.length) {
+        let mx = 0;
+        curRows.forEach(r => { if (Math.abs(r[1]) > mx) mx = Math.abs(r[1]); });
+        const x0 = depthX, wmax = depthW - 4;
+        for (const [i, v] of curRows) {
+          const [y, h] = rowY(i);
+          if (y > bot || y + h < top) continue;
+          const w = Math.max(1, Math.sqrt(Math.abs(v) / mx) * wmax);
+          g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',0.75)';
+          g.fillRect(x0, y + (h > 3 ? 0.5 : 0), w, Math.max(1, h - (h > 3 ? 1 : 0)));
+          stat.depthBars++;
+        }
+        if (depthW >= 64) {
+          g.font = '10px ' + font; g.textAlign = 'left';
+          const tw = g.measureText('RESTING').width;
+          g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(x0, top + 2, tw + 6, 14);
+          g.fillStyle = light ? 'rgba(71,85,105,.95)' : 'rgba(139,147,160,.95)'; g.fillText('RESTING', x0 + 3, top + 12);
+        }
+      }
+
       if (cfg.showBest) {
         const lineAt = (price, col, label) => {
           if (!(price > 0)) return;
-          const y = Math.round(co.priceToY(price, a.scale, a.bounds)) + 0.5;
+          const y = Math.round(yOf(price)) + 0.5;
           if (y < top || y > bot) return;
-          g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(0, y); g.lineTo(co.width, y); g.stroke();
-          g.setLineDash([]); g.fillStyle = col; g.font = 'bold 11px ' + ((a.theme && a.theme.fontFamily) || 'sans-serif'); g.fillText(label, Math.max(35, co.width - maxW - 60), y - 5);
+          g.strokeStyle = col; g.lineWidth = 1; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(0, y); g.lineTo(right, y); g.stroke();
+          g.setLineDash([]); g.fillStyle = col; g.font = 'bold 10px ' + font; g.textAlign = 'left'; g.fillText(label, 8, y - 4);
         };
-        lineAt(book.bestBid, cfg.bid, 'best bid');
-        lineAt(book.bestAsk, cfg.ask, 'best ask');
+        lineAt(f.book.bestBid, cfg.bid, 'best bid');
+        lineAt(f.book.bestAsk, cfg.ask, 'best ask');
       }
       g.restore();
+      domLast = stat;
     },
     destroy() { canvas = null; }
   };
@@ -1547,7 +1698,7 @@ class CryptoDomNative {
     this.render();
   }
   detach() { if (this.h) { this.h.release(); this.h = null; } clearTimeout(this.tm); this.tm = 0; }
-  later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 120); }
+  later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() {}
   onViewport() {}
   setInputs(i) { this.inputs = i; this.render(); }
@@ -1560,6 +1711,8 @@ class CryptoDomNative {
     if (!f || f.status === 'loading') return 'Loading Binance order book…';
     if (f.status === 'error') return f.err || 'Order book unavailable.';
     if (f.status === 'reconnecting') return 'Reconnecting to Binance order book…';
+    const cfg = domConfig(this.inputs);
+    if ((cfg.heat || cfg.walls) && f.history.length < 15) return 'Building order book history…';
     return '';
   }
   render() {

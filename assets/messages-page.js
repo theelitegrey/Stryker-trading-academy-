@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Messages page (messages.html)
+// TradeZoro — Messages page (messages.html)
 // Depends on: assets/messages.js, assets/auth.js, assets/progress.js,
 //             assets/avatars.js, assets/roles.js
 //
@@ -148,7 +148,7 @@ function openConversation(convId, otherUid, otherName, otherInfo){
       renderMessages(msgs);
       markConversationRead(convId, MSG_UID);
     }, function (err) {
-      console.error('Stryker: message listener failed', err);
+      console.error('TradeZoro: message listener failed', err);
       document.getElementById('msg-bubbles').innerHTML =
         '<div class="msg-empty"><p>Could not load this conversation.</p><span>' + escapeMsgText(err.message || err) + '</span></div>';
     });
@@ -218,7 +218,7 @@ function watchThreadList(){
       renderThreadList(convs);
       watchPresenceFor(convs);
     }, function (err) {
-      console.error('Stryker: conversation list failed', err);
+      console.error('TradeZoro: conversation list failed', err);
       document.getElementById('msg-thread-list').innerHTML =
         '<div class="msg-empty"><p>Could not load conversations.</p><span>' + escapeMsgText(err.message || err) + '</span></div>';
     });
@@ -247,7 +247,7 @@ function watchPresenceFor(convs){
       if (MSG_LAST_CONVS) renderThreadList(MSG_LAST_CONVS);
       updatePeerPresence();
     }, function (err) {
-      console.warn('Stryker: presence unavailable', err);
+      console.warn('TradeZoro: presence unavailable', err);
     });
 }
 
@@ -348,7 +348,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
       }).catch(function (err) {
         if (typeof showToast === 'function') showToast('error', 'Could not open that conversation.');
-        console.error('Stryker: could not start conversation', err);
+        console.error('TradeZoro: could not start conversation', err);
       });
     }
   });

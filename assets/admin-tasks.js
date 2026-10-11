@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared admin task sources
+// TradeZoro — shared admin task sources
 // Depends on: assets/progress.js (db)
 //
 // Single definition of "work waiting on an admin", used by two consumers:
@@ -112,7 +112,7 @@ function loadAdminTaskCounts(){
         return { key: src.key, count: count, src: src };
       })
       .catch(function (err) {
-        console.error('Stryker: admin task source failed: ' + src.key, err);
+        console.error('TradeZoro: admin task source failed: ' + src.key, err);
         return { key: src.key, count: 0, src: src };
       });
   }));

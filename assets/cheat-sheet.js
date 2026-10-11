@@ -47,7 +47,7 @@
         dl.setAttribute('href', PDF_PATH);
         // The href can carry a ?v= cache-buster; strip any query string and
         // directory so the browser always offers a clean, real filename
-        // instead of something like "stryker-prop-firm-cheat-sheet.pdf?v=497".
+        // instead of something like "stryker-prop-firm-cheat-sheet.pdf?v=498".
         var fname = PDF_PATH.split('?')[0].split('/').pop();
         if (fname) dl.setAttribute('download', fname);
       }
@@ -67,7 +67,7 @@
     // acquisition record and any referral are saved even if they never go
     // further than this page.
     if (typeof ensureStudentDoc === 'function') {
-      ensureStudentDoc(user).catch(function (err) { console.warn('Stryker: student doc not created', err && err.code); });
+      ensureStudentDoc(user).catch(function (err) { console.warn('TradeZoro: student doc not created', err && err.code); });
     }
   }
 

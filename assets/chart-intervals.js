@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts interval picker (ES module)
+// TradeZoro — Charts interval picker (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (ws: active cell, setActiveTimeframe,
 // on('cell:active' | 'state:changed'), its topbar .vela-widget-tf-group and the phone bar
 // .vela-mb-tf); assets/toast.js through opts.toast. Styles are injected here (#stk-iv-css).
@@ -556,7 +556,7 @@ const providerOf = (sym) => {
   if (m) {
     const p = m[1].toLowerCase();
     // Vela may expose futures as the exchange prefix (CME:NQ1!, CBOT:YM1!, COMEX:GC1!, NYMEX:CL1!)
-    // instead of the Stryker provider prefix (futures:NQ1!). Treat those as futures.
+    // instead of the TradeZoro provider prefix (futures:NQ1!). Treat those as futures.
     if (/^(cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/i.test(p)) return 'futures';
     return p;
   }
@@ -588,7 +588,7 @@ function startCloudSync(api) {
     timer = setTimeout(() => {
       const d = prefsDoc(p);
       d.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      prefRef(u).set(d).catch((e) => console.warn('Stryker: interval prefs save', e));
+      prefRef(u).set(d).catch((e) => console.warn('TradeZoro: interval prefs save', e));
     }, 600);
   };
   const onAuth = async (u) => {
@@ -605,7 +605,7 @@ function startCloudSync(api) {
         ready = true;
         push({ favs: api.favs(), custom: api.custom(), collapsed: api.collapsed() }); // first sign-in: copy local up
       }
-    } catch (e) { console.warn('Stryker: interval prefs load', e); ready = false; }
+    } catch (e) { console.warn('TradeZoro: interval prefs load', e); ready = false; }
   };
   const hook = () => {
     try { if (typeof firebase === 'undefined' || !firebase.apps || !firebase.apps.length) return false; firebase.auth().onAuthStateChanged(onAuth); return true; } catch (e) { return false; }
@@ -639,7 +639,7 @@ export function mountIntervals(ws, opts) {
     if (!parseIv(tf)) { toast('That is not an interval.', 'error'); return false; }
     const why = blocked(tf);
     if (why) { toast(why, 'info'); return false; }
-    try { ws.setActiveTimeframe(tf); } catch (e) { console.warn('Stryker: interval', e); toast('That interval could not be opened on this chart.', 'error'); return false; }
+    try { ws.setActiveTimeframe(tf); } catch (e) { console.warn('TradeZoro: interval', e); toast('That interval could not be opened on this chart.', 'error'); return false; }
     setTimeout(render, 0);
     let id = null; try { id = ws.active.id; } catch (e) {}
     if (id) watchCell(id, tf);
@@ -1019,6 +1019,6 @@ export function mountIntervals(ws, opts) {
   setTimeout(guardCells, 1500);
   const api = { open: () => setOpen(true), close: () => setOpen(false), favs: () => favs.slice(), custom: () => custom.slice(), collapsed: () => collapsed.slice(), toggleFav, addCustom, removeCustom, openCustom, openQuick, setPrefs, apply, known };
   window.__stkIntervals = api;
-  try { cloudPush = startCloudSync(api); } catch (e) { console.warn('Stryker: interval prefs sync', e); }
+  try { cloudPush = startCloudSync(api); } catch (e) { console.warn('TradeZoro: interval prefs sync', e); }
   return api;
 }

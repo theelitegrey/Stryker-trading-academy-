@@ -1,4 +1,4 @@
-// Stryker Trading Academy — trading models listing (models.html)
+// TradeZoro — trading models listing (models.html)
 //
 // The page used to be a flat list of link rows. Each model now gets a card
 // with its animated vignette (assets/models-showcase.js), the category, the

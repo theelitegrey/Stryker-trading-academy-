@@ -1,4 +1,4 @@
-# Stryker social automation
+# TradeZoro social automation
 
 A separate service that turns the academy's own content into short videos,
 image cards and text posts, and publishes them to **YouTube Shorts,

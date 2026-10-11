@@ -1,4 +1,4 @@
-// Stryker Trading Academy — app menu drawer (every dash-shell page, every width)
+// TradeZoro — app menu drawer (every dash-shell page, every width)
 //
 // The whole app menu lives behind the hamburger (#dash-menu-toggle) in the
 // header (.mobile-topnav). There is no permanent sidebar column any more

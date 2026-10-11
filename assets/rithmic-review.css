@@ -1,4 +1,4 @@
-/* Stryker Trading Academy — /rithmic-review (temporary, unlisted). Page-only styles on top of
+/* TradeZoro — /rithmic-review (temporary, unlisted). Page-only styles on top of
    assets/style.css tokens. Phone-first; two columns from 960px. */
 .rr-page{ background:var(--bg-0); color:var(--ink-1); font-family:var(--font-body); min-height:100vh; }
 .rr-wrap{ width:100%; max-width:1120px; margin:0 auto; padding:0 18px; }

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — notification system
+// TradeZoro — notification system
 // Depends on: assets/progress.js (`db`, `auth`), assets/avatars.js is NOT
 // required here. assets/achievements-data.js (ACHIEVEMENTS array) is only
 // needed by checkAndNotifyNewAchievements — pages that call it must load
@@ -26,7 +26,7 @@ function createNotification(recipientUid, type, message, link){
     link: link || null,
     read: false,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch((err) => console.error('Stryker: failed to create notification', err));
+  }).catch((err) => console.error('TradeZoro: failed to create notification', err));
 }
 
 // Compares currently-earned achievements against what's already been
@@ -66,7 +66,7 @@ function checkAndNotifyNewAchievements(uid, student, chapters, extra){
 
   return Promise.all(notifyWrites).then(() =>
     db.collection('students').doc(uid).set({ notifiedAchievements: updatedNotified }, { merge: true })
-  ).catch((err) => console.error('Stryker: failed to record notified achievements', err));
+  ).catch((err) => console.error('TradeZoro: failed to record notified achievements', err));
 }
 
 // General-purpose entry point — fetches fresh student data and the extra
@@ -124,7 +124,7 @@ function checkAndNotifyNewAchievementsFor(uid, isSelf){
       }
     }
     return checkAndNotifyNewAchievements(uid, student, null, extra);
-  }).catch((err) => console.error('Stryker: failed to check achievements', err));
+  }).catch((err) => console.error('TradeZoro: failed to check achievements', err));
 }
 
 function timeAgoShort(date){
@@ -220,7 +220,7 @@ function markAllNotificationsRead(){
       snap.forEach((doc) => batch.update(doc.ref, { read: true }));
       return batch.commit();
     })
-    .catch((err) => console.error('Stryker: failed to mark notifications read', err));
+    .catch((err) => console.error('TradeZoro: failed to mark notifications read', err));
 }
 
 // Real-time — a notification bell that only updates on the next page load
@@ -243,7 +243,7 @@ function initNotificationBell(uid){
       const unread = docs.filter((d) => !d.data().read).length;
       updateNotifBadge(unread);
       renderNotifList(docs);
-    }, (err) => console.error('Stryker: notification listener failed', err));
+    }, (err) => console.error('TradeZoro: notification listener failed', err));
 }
 
 document.addEventListener('DOMContentLoaded', () => {

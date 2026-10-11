@@ -1,7 +1,7 @@
 //@version=6
 // ═════════════════════════════════════════════════════════════════════════════
-//   IFVG PRO+ [Stryker]
-//   © Stryker Trading  ·  strykertrading.com
+//   IFVG PRO+ [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
 //   Version 1.0  ·  Pine Script v6
 //
 //   Inverse fair value gaps, taken only after liquidity has been swept.
@@ -19,17 +19,17 @@
 //   no request.security(), no lookahead, no restatement of history.
 // ═════════════════════════════════════════════════════════════════════════════
 
-indicator("IFVG Pro+ [Stryker]", "IFVG Pro+ [Stryker]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
+indicator("IFVG Pro+ [TradeZoro]", "IFVG Pro+ [TradeZoro]", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  INPUTS
 // ─────────────────────────────────────────────────────────────────────────────
-const string G_LIQ = "Stryker · Liquidity Source"
-const string G_LST = "Stryker · Liquidity Style"
-const string G_QUA = "Stryker · Setup Quality"
-const string G_IFV = "Stryker · IFVG"
-const string G_RR  = "Stryker · Risk / Reward"
-const string G_MSC = "Stryker · Other"
+const string G_LIQ = "TradeZoro · Liquidity Source"
+const string G_LST = "TradeZoro · Liquidity Style"
+const string G_QUA = "TradeZoro · Setup Quality"
+const string G_IFV = "TradeZoro · IFVG"
+const string G_RR  = "TradeZoro · Risk / Reward"
+const string G_MSC = "TradeZoro · Other"
 
 liqMode  = input.string("Both", "Liquidity from", options = ["Swing highs / lows", "Candle highs / lows", "Both"], group = G_LIQ)
 autoTF   = input.bool(true, "Auto-select timeframes", tooltip = "Uses the two timeframes directly above your chart. Turn off to pick manually.", group = G_LIQ)
@@ -541,7 +541,7 @@ if barstate.islast and showMark
     if str.length(tfTx) > 3
         tfTx := str.substring(tfTx, 0, str.length(tfTx) - 3)
     string srcTx = liqMode == "Both" ? "swings + candles" : liqMode == "Swing highs / lows" ? "swings" : "candles"
-    table.cell(wm, 0, 0, "IFVG Pro+ [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 0, "IFVG Pro+ [TradeZoro]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
     table.cell(wm, 0, 1, (str.length(tfTx) > 0 ? tfTx : "no timeframe above chart") + "  liquidity  ·  " + srcTx, text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
     table.cell(wm, 0, 2, timeframe.period + "  chart  ·  " + str.tostring(rrMult, "#.##") + "R target" + (qualOn ? "  ·  leg extremes only" : "") + (bias != "Both" ? "  ·  " + str.lower(bias) : "") + (sessOn ? "  ·  " + (sAsia ? "Asia " : "") + (sLdn ? "London " : "") + (sNY ? "NY" : "") : "") + (pDir != 0 ? "  ·  waiting for inversion" : ""), text_color = color.new(markCol, 30), text_size = size.tiny, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
 
@@ -549,9 +549,9 @@ if barstate.islast and showMark
 //  ALERTS
 // ─────────────────────────────────────────────────────────────────────────────
 if aSweep and evSweep
-    alert("IFVG Pro+ [Stryker] · liquidity swept · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("IFVG Pro+ [TradeZoro] · liquidity swept · " + syminfo.ticker, alert.freq_once_per_bar_close)
 if aIFVG and evIFVG
-    alert("IFVG Pro+ [Stryker] · " + (ifvgDir == 1 ? "bullish" : "bearish") + " IFVG @ " + str.tostring(close, format.mintick) + " · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("IFVG Pro+ [TradeZoro] · " + (ifvgDir == 1 ? "bullish" : "bearish") + " IFVG @ " + str.tostring(close, format.mintick) + " · " + syminfo.ticker, alert.freq_once_per_bar_close)
 
-alertcondition(evSweep, "IFVG Pro+ [Stryker] — Liquidity swept", "A BSL or SSL level was closed through")
-alertcondition(evIFVG,  "IFVG Pro+ [Stryker] — IFVG",            "Price closed through the candidate gap — inversion confirmed")
+alertcondition(evSweep, "IFVG Pro+ [TradeZoro] — Liquidity swept", "A BSL or SSL level was closed through")
+alertcondition(evIFVG,  "IFVG Pro+ [TradeZoro] — IFVG",            "Price closed through the candidate gap — inversion confirmed")

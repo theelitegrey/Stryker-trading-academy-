@@ -1,4 +1,4 @@
-// Stryker Trading Academy — trading session clock + US stock market hours (pure logic + header widget)
+// TradeZoro — trading session clock + US stock market hours (pure logic + header widget)
 //
 // Purpose: renders the "Trading session clock" in the app header
 // (.mobile-topnav) of every dash-shell page: which forex/futures trading

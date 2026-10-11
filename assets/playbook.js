@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: Playbook tab
+// TradeZoro — Trade Journal: Playbook tab
 // Depends on: playbook-data.js, playbook-analytics.js, journal-calc.js
 // (currency formatting), and the JOURNAL_* globals from journal-main.js.
 //
@@ -61,7 +61,7 @@ function pbTradesFor(id) {
 function pbPersist() {
   return savePlaybooks(JOURNAL_UID, PB_DATA)
     .catch((err) => {
-      console.error('Stryker: could not save playbooks', err);
+      console.error('TradeZoro: could not save playbooks', err);
       showToast('error', 'Could not save your playbook. Check your connection and try again.');
       throw err;
     });

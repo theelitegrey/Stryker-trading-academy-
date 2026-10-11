@@ -1,4 +1,4 @@
-// Stryker Trading Academy: DEMO homepage, variation C "light editorial bento"
+// TradeZoro: DEMO homepage, variation C "light editorial bento"
 // (demo-bento-c.html only). Owner order 2026-10-06. Unlisted demo page.
 //
 // What it does:

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — live Trading Models store
+// TradeZoro — live Trading Models store
 // Depends on: assets/progress.js (for `db`), and assets/models-data.js
 // (for the MODELS_SEED fallback/import source) if that script is also
 // loaded on the page.
@@ -32,7 +32,7 @@ function loadModels(forceRefresh){
       return MODELS;
     })
     .catch((err) => {
-      console.error('Stryker: failed to load trading models from Firestore', err);
+      console.error('TradeZoro: failed to load trading models from Firestore', err);
       if (typeof MODELS_SEED !== 'undefined') {
         MODELS = MODELS_SEED;
       }

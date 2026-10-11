@@ -1,4 +1,4 @@
-// Stryker Trading Academy — prop firm rule engine
+// TradeZoro — prop firm rule engine
 //
 // Pure. No DOM, no Firestore, no globals beyond the one it exports. Everything
 // here is arithmetic over a list of closed trades, which means it is testable

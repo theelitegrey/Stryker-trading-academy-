@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts multi-chart GRID PICKER + SYNC IN LAYOUT (charts.html)
+// TradeZoro — Charts multi-chart GRID PICKER + SYNC IN LAYOUT (charts.html)
 // ES module, imported by assets/vela-chart.js. Depends on: the self-hosted Vela
 // workspace build (passed in as W = workspace.js, Core = index.js); style.css (.stkg-*).
 //
@@ -132,7 +132,7 @@ export function installGrid(W, Core, wsGetter){
       const def = { id: d.id, label: d.label, cols: d.cols, rows: d.rows, cells: cellsOf(d) };
       if (d.areas) def.areas = d.areas;
       W.registerLayout(def);
-    } catch (e) { console.warn('Stryker: grid layout', d.id, e); }
+    } catch (e) { console.warn('TradeZoro: grid layout', d.id, e); }
   });
   // Date-range sync rides the workspace document, so layouts/templates keep it.
   try {
@@ -141,7 +141,7 @@ export function installGrid(W, Core, wsGetter){
       serialize(){ return dateRange ? { dateRange: true } : undefined; },
       restore(v){ dateRange = !!(v && v.dateRange); onSync(); }
     });
-  } catch (e) { console.warn('Stryker: grid persistence', e); }
+  } catch (e) { console.warn('TradeZoro: grid persistence', e); }
   // A range chip applies to the ACTIVE cell only (Vela). With Date range on, fan it out.
   try {
     const proto = W.ChartCell && W.ChartCell.prototype;
@@ -164,7 +164,7 @@ export function installGrid(W, Core, wsGetter){
       };
       proto.__stkRange = true;
     }
-  } catch (e) { console.warn('Stryker: date-range sync', e); }
+  } catch (e) { console.warn('TradeZoro: date-range sync', e); }
 }
 
 // ---------------------------------------------------------------- picker UI
@@ -234,7 +234,7 @@ export function mountGrid(ws, opts){
   function setLayout(id){
     capFromId = null;
     try { ws.maximizeCell(null); } catch (e) {}
-    try { ws.setLayout(id); } catch (e) { console.warn('Stryker: setLayout', e); }
+    try { ws.setLayout(id); } catch (e) { console.warn('TradeZoro: setLayout', e); }
     if (opts.onStructural) opts.onStructural();
     refresh();
   }

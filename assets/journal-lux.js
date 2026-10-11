@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: LuxAlgo engine glue
+// TradeZoro — Trade Journal: LuxAlgo engine glue
 // Depends on: assets/vendor/luxalgo-journal.min.js (window.LuxJournal),
 // assets/journal-calc.js (journalComputeDerived), the JOURNAL_* globals.
 //
@@ -100,12 +100,12 @@ function luxTryAutoImport(text, fileName){
       parsed = LuxJournal.parseAuto(text, { timeZone: tz, fileName: fileName || undefined, symbol: sym.trim().toUpperCase() });
     }
   } catch (e) {
-    console.error('Stryker: statement auto-parse failed, falling back to mapper', e);
+    console.error('TradeZoro: statement auto-parse failed, falling back to mapper', e);
     return null;
   }
   if (!parsed || !parsed.executions || !parsed.executions.length) return null;
   if (parsed.errors && parsed.errors.length) {
-    console.warn('Stryker: parser reported blocking errors', parsed.errors);
+    console.warn('TradeZoro: parser reported blocking errors', parsed.errors);
     return null;
   }
 
@@ -114,7 +114,7 @@ function luxTryAutoImport(text, fileName){
   try {
     trips = LuxJournal.buildRoundTrips(execs, { method: 'fifo', multipliers: luxMultipliersFor(execs) });
   } catch (e) {
-    console.error('Stryker: round-trip build failed, falling back to mapper', e);
+    console.error('TradeZoro: round-trip build failed, falling back to mapper', e);
     return null;
   }
   const closed = trips.filter((t) => t.status !== 'open');
@@ -194,7 +194,7 @@ function jzRenderEdge(trades, currency){
     });
     edge = LuxJournal.computeEdgeScore(metrics);
   } catch (e) {
-    console.error('Stryker: edge score failed', e);
+    console.error('TradeZoro: edge score failed', e);
     host.style.display = 'none';
     return;
   }

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: broker sync panel
+// TradeZoro — Trade Journal: broker sync panel
 // Depends on: Firebase compat SDK incl. firebase-functions-compat, auth,
 // Firestore; the brokerSync Cloud Functions (functions-src/brokerSync.js).
 //

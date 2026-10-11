@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: action queue (dashboard-admin.html)
+// TradeZoro — Admin: action queue (dashboard-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (db), assets/admin-guard.js
 //
 // WHY TASKS ARE DERIVED, NOT WRITTEN

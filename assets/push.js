@@ -1,4 +1,4 @@
-// Stryker Trading Academy — push notification registration
+// TradeZoro — push notification registration
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
 // Mirrors in-site notifications to the device. The Cloud Function
@@ -83,7 +83,7 @@ function enablePush(){
         });
       });
   }).catch(function (err) {
-    console.error('Stryker: push registration failed', err);
+    console.error('TradeZoro: push registration failed', err);
     return 'error';
   });
 }
@@ -117,7 +117,7 @@ function disablePush(){
     return db.collection('pushTokens').doc(token).delete()
       .then(function () { return firebase.messaging().deleteToken(); });
   }).catch(function (err) {
-    console.warn('Stryker: could not fully disable push', err);
+    console.warn('TradeZoro: could not fully disable push', err);
   });
 }
 
@@ -152,7 +152,7 @@ function currentPushToken(){
         });
       });
   }).catch(function (err) {
-    console.warn('Stryker: could not read push token', err);
+    console.warn('TradeZoro: could not read push token', err);
     return null;
   });
 }
@@ -189,12 +189,12 @@ document.addEventListener('DOMContentLoaded', function () {
       firebase.messaging().onMessage(function (payload) {
         var d = payload.data || {};
         if (typeof showToast === 'function') {
-          showToast('info', d.body || 'You have a new notification', { title: d.title || 'Stryker' });
+          showToast('info', d.body || 'You have a new notification', { title: d.title || 'TradeZoro' });
         }
         if (typeof loadNotifications === 'function') loadNotifications();
       });
     } catch (err) {
-      console.warn('Stryker: foreground push listener failed', err);
+      console.warn('TradeZoro: foreground push listener failed', err);
     }
   });
 });

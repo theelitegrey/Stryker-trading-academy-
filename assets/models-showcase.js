@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trading Models showcase pieces
+// TradeZoro — Trading Models showcase pieces
 //
 // Same idea as assets/indicators-showcase.js: every model gets a hand-drawn
 // SVG vignette that plays its core idea on a 7-second loop, so the models

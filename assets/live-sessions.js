@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Live Sessions (live-sessions.html)
+// TradeZoro — Live Sessions (live-sessions.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 //
 // Sessions are created from the admin dashboard into the `liveSessions`
@@ -504,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         snap.forEach((doc) => LS_SESSIONS.push(Object.assign({ id: doc.id }, doc.data())));
         lsRenderLists();
       }, (err) => {
-        console.error('Stryker: failed to load live sessions', err);
+        console.error('TradeZoro: failed to load live sessions', err);
         document.getElementById('live-upcoming-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load sessions: ' + (err.message || err) + '</p>';
         document.getElementById('live-past-list').innerHTML = '';

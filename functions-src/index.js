@@ -1,4 +1,4 @@
-// Stryker Trading Academy — getTwitterFeed Cloud Function
+// TradeZoro — getTwitterFeed Cloud Function
 //
 // Purpose: securely proxies requests to twitterapi.io so the API key never
 // reaches the browser. The static site (deployed via GitHub Pages) has no

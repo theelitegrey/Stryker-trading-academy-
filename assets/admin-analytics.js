@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin dashboard analytics bento (real data only)
+// TradeZoro — Admin dashboard analytics bento (real data only)
 // Depends on: assets/auth.js, assets/progress.js (db), assets/presence.js
 //             (PRESENCE_ONLINE_MS), assets/admin-guard.js. Loaded after both.
 //
@@ -153,7 +153,7 @@ function aaLoadStats(){
       aaRenderStats();
     })
     .catch(function (err) {
-      console.error('Stryker: adminStats/current read failed', err);
+      console.error('TradeZoro: adminStats/current read failed', err);
       AA_STATE.stats = undefined;
       aaRenderStats();
     });
@@ -213,7 +213,7 @@ function aaRefreshOnlineNow(){
     if (n === null) aaSetOnline('No data yet', false);
     else aaSetOnline(n.toLocaleString(), true);
   }).catch(function (err) {
-    console.error('Stryker: online-now aggregation failed', err);
+    console.error('TradeZoro: online-now aggregation failed', err);
     aaSetOnline('Unavailable', false);
   });
 }
@@ -255,7 +255,7 @@ function aaLoadRecentSignups(){
       return out;
     })
     .catch(function (err) {
-      console.error('Stryker: recent signups query failed', err);
+      console.error('TradeZoro: recent signups query failed', err);
       aaRenderRecentSignups(null);
       return null;
     });
@@ -289,7 +289,7 @@ function aaLoadRecentActivity(){
       return out;
     })
     .catch(function (err) {
-      console.error('Stryker: recent activity query failed', err);
+      console.error('TradeZoro: recent activity query failed', err);
       aaRenderRecentActivity(null);
       return null;
     });
@@ -343,7 +343,7 @@ function aaLoadVisits(range){
   }).catch(function (err) {
     // A stale request that rejects late must not flip a newer answer to
     // "Unavailable"; still log it, so a real outage stays visible.
-    console.error('Stryker: visits read failed', err);
+    console.error('TradeZoro: visits read failed', err);
     if (my !== aaVisitsSeq) return;
     if (wrap) wrap.innerHTML = '<div class="v aa-v-text">Unavailable</div><div class="l">Visits (site-wide day totals)</div>';
   });
@@ -412,7 +412,7 @@ function aaWireRefreshButton(){
         setTimeout(function () { btn.textContent = original; btn.disabled = false; }, 2000);
       })
       .catch(function (err) {
-        console.error('Stryker: adminStatsRefresh failed', err);
+        console.error('TradeZoro: adminStatsRefresh failed', err);
         btn.textContent = 'Refresh failed';
         setTimeout(function () { btn.textContent = original; btn.disabled = false; }, 2500);
       });

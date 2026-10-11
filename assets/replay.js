@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Backtest replay page controller
+ * TradeZoro — Backtest replay page controller
  *
  * FX-Replay-style bar-by-bar backtesting on a TradingView Lightweight Charts
  * canvas: pick a market and a start date, the chart shows history up to that

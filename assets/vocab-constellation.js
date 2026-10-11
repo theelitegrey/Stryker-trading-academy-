@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Core Vocabulary "Constellation" (homepage #concepts)
+// TradeZoro — Core Vocabulary "Constellation" (homepage #concepts)
 //
 // Purpose: animates the vocabulary network that tools/gen-vocab.js writes into
 // index.html. The markup already holds every term, its chapter and its detail

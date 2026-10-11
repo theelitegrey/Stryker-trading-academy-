@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Avatars module
+// TradeZoro — Avatars module
 // Depends on: nothing (pure functions), but callers typically already have
 // `initials()` from community.js loaded for the fallback path.
 //

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — news blackout guard
+// TradeZoro — news blackout guard
 //
 // Pure. Turns the economic calendar's high-impact releases into the restricted
 // windows most prop firms enforce, and checks journal trades against them.

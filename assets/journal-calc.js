@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: calculations & defaults
+// TradeZoro — Trade Journal: calculations & defaults
 // Pure functions, no DOM/Firestore dependency — safe to unit-reason-about
 // and reused by every journal tab (dashboard, form, history, analytics).
 

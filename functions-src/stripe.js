@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy: Stripe subscriptions (every non-INR buyer).
+ * TradeZoro: Stripe subscriptions (every non-INR buyer).
  *
  * Razorpay stays the INR / India path, unchanged (razorpay.js, razorpaySubs.js).
  * Stripe takes everyone else: real recurring subscriptions in USD, monthly or
@@ -223,7 +223,7 @@ async function ensureProduct(plan, planId) {
   const snap = await ref.get();
   if (snap.exists && snap.data().productId && cacheModeOk(snap.data())) return snap.data().productId;
   const product = await stripe('POST', 'products', {
-    name: (plan.name || planId) + ' (Stryker Trading Academy)',
+    name: (plan.name || planId) + ' (TradeZoro)',
     metadata: { sitePlanId: planId }
   }, modeTag() + 'product_' + planId);
   await ref.set({ productId: product.id, sitePlanId: planId, live: !isTestKey(), createdAt: admin.firestore.FieldValue.serverTimestamp() });

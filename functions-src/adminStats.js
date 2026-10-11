@@ -1,4 +1,4 @@
-// Stryker Trading Academy — admin analytics snapshot
+// TradeZoro — admin analytics snapshot
 //
 // WHY THIS EXISTS
 // The admin overview used to call db.collection('students').get() in the

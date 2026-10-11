@@ -1,4 +1,4 @@
-// Stryker Trading Academy — X autopost admin
+// TradeZoro — X autopost admin
 // Depends on: assets/auth.js, assets/progress.js (db), firebase-functions-compat
 //
 // The page is a window onto two things the server owns:
@@ -432,7 +432,7 @@ function submitComposer() {
     title: text.split('\n')[0].slice(0, 80),
     sourceLabel: 'Written by ' + ((auth.currentUser && auth.currentUser.email) || 'admin'),
     parts: [text], link: link || null,
-    cardTitle: cardTitle || null, eyebrow: cardTitle ? 'Stryker Trading Academy' : null,
+    cardTitle: cardTitle || null, eyebrow: cardTitle ? 'TradeZoro' : null,
     scheduledForMs: 0, expiresAtMs: Date.now() + 7 * 86400000,
     createdAtMs: Date.now(),
     createdAt: firebase.firestore.FieldValue.serverTimestamp(),

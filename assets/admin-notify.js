@@ -1,4 +1,4 @@
-// Stryker Trading Academy — admin tasks in the notification bell
+// TradeZoro — admin tasks in the notification bell
 // Depends on: assets/admin-tasks.js, assets/notifications.js, assets/auth.js
 //
 // The action queue only existed on the dashboard, so an admin working in
@@ -96,7 +96,7 @@
             });
         })
         .catch(function (err) {
-          console.warn('Stryker: admin task notifications unavailable', err);
+          console.warn('TradeZoro: admin task notifications unavailable', err);
         });
     });
   });

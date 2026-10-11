@@ -84,7 +84,7 @@ async function speak(text, { voice } = {}) {
 
 /** Connection test for the admin page. */
 async function test(engine) {
-  const r = await synth(engine, 'Stryker Trading Academy. Voice check.');
+  const r = await synth(engine, 'TradeZoro. Voice check.');
   return { ok: true, seconds: Math.round(r.dur * 10) / 10 };
 }
 

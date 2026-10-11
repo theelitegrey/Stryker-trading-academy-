@@ -1,10 +1,10 @@
-# Stryker changes to @luxalgo/vela 0.6.17 (Apache-2.0)
+# TradeZoro changes to @luxalgo/vela 0.6.17 (Apache-2.0)
 
 Upstream: https://github.com/LuxAlgo/Vela, npm @luxalgo/vela@0.6.17, dist/ folder.
 LICENSE and NOTICE in this folder are the upstream files. Everything here is
-unmodified except **chunk-YCD72KGK.js** (search "Stryker patch"):
+unmodified except **chunk-YCD72KGK.js** (search "TradeZoro patch"):
 
-- Stryker change: 1-device-pixel crisp wicks. `CANDLE_WICK_W` 1.5 -> 1;
+- TradeZoro change: 1-device-pixel crisp wicks. `CANDLE_WICK_W` 1.5 -> 1;
   `wickWidth()` returns 1; `candleGeometry()` uses floor(dpr) device px for the
   wick and snaps it to the pixel grid (was round(1.5*dpr)).
 - Body width: new `strykerTvBodyDev()` (TradingView's curve, same formula as

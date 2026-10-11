@@ -1,4 +1,4 @@
-// Stryker Trading Academy — "Guided Path" dashboard layer (dashboard-user.html)
+// TradeZoro — "Guided Path" dashboard layer (dashboard-user.html)
 //
 // Purpose: the presentation layer for the journey-style dashboard. It does NOT
 // load member data itself, except the upcoming live-sessions list; it listens
@@ -117,7 +117,7 @@
     var orig = window.renderDashboard;
     window.renderDashboard = function (student) {
       var r = orig.apply(this, arguments);
-      try { drawPath(student || {}); } catch (e) { console.error('Stryker: path render failed', e); }
+      try { drawPath(student || {}); } catch (e) { console.error('TradeZoro: path render failed', e); }
       return r;
     };
   }

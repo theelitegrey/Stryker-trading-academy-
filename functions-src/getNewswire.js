@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — newswire reader
+ * TradeZoro — newswire reader
  *
  * Reads ONLY the Firestore cache written by refreshWorldData; it never calls
  * GDELT. See getWorldEvents for the reasoning — in short, GDELT took 58.9

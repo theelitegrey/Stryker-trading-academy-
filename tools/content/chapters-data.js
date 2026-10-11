@@ -1,4 +1,4 @@
-// Stryker Trading Academy — bundled chapter seed data
+// TradeZoro — bundled chapter seed data
 // This is the ORIGINAL content, used once to seed Firestore's `chapters`
 // collection from the admin Content editor. After that one-time import,
 // the live site reads chapters from Firestore (assets/chapters-store.js),

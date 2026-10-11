@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Site Page editor (page-editor.html?key=...)
+// TradeZoro — Admin: Site Page editor (page-editor.html?key=...)
 // Depends on: assets/admin-guard.js, assets/site-pages.js
 
 let PE_KEY = null;

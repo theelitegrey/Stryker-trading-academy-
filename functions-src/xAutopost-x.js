@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — X (Twitter) API client for the autopost function
+ * TradeZoro — X (Twitter) API client for the autopost function
  *
  * Posts tweets, threads and images to the academy's own X account using the
  * official X API v2 with OAuth 1.0a user context. Nothing here reads X; the

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — stale-page detector
+// TradeZoro — stale-page detector
 //
 // THE PROBLEM THIS SOLVES
 // The ?v= scheme versions everything the HTML references, but not the HTML

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared motion primitives
+// TradeZoro — shared motion primitives
 //
 // One place for the four kinds of movement the terminal modules need, so they
 // all obey the same rules and the same off switch.

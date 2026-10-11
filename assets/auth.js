@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Firebase Authentication
+// TradeZoro — Firebase Authentication
 // Loaded on: login.html, signup.html, dashboard-user.html, dashboard-admin.html
 // Requires firebase-app-compat.js + firebase-auth-compat.js to be loaded first.
 
@@ -28,14 +28,14 @@ try {
   try {
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((err) => {
       window.__strykerPersistenceFailed = true;
-      console.warn('Stryker: could not set LOCAL auth persistence', err);
+      console.warn('TradeZoro: could not set LOCAL auth persistence', err);
     });
   } catch (err) {
     window.__strykerPersistenceFailed = true;
-    console.warn('Stryker: setPersistence threw synchronously', err);
+    console.warn('TradeZoro: setPersistence threw synchronously', err);
   }
 } catch (err) {
-  console.error('Stryker: Firebase failed to initialize', err);
+  console.error('TradeZoro: Firebase failed to initialize', err);
   document.addEventListener('DOMContentLoaded', () => {
     const box = document.querySelector('.auth-box') || document.querySelector('.dash-main');
     if (box) {
@@ -113,11 +113,11 @@ function applyChosenPersistence(){
       // Don't block the login — an in-memory session still works for this
       // page. The dashboard reports the dropped session if it doesn't stick.
       window.__strykerPersistenceFailed = true;
-      console.warn('Stryker: could not apply chosen persistence', err);
+      console.warn('TradeZoro: could not apply chosen persistence', err);
     });
   } catch (err) {
     window.__strykerPersistenceFailed = true;
-    console.warn('Stryker: setPersistence threw synchronously', err);
+    console.warn('TradeZoro: setPersistence threw synchronously', err);
     return Promise.resolve();
   }
 }
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // them with a half-created account and an error.
           if (cred && cred.user && !cred.user.emailVerified) {
             return cred.user.sendEmailVerification()
-              .catch((err) => console.warn('Stryker: verification email failed to send', err));
+              .catch((err) => console.warn('TradeZoro: verification email failed to send', err));
           }
         })
         .then(() => {

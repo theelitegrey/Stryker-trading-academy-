@@ -1,4 +1,4 @@
-// Stryker Trading Academy — live chapters store
+// TradeZoro — live chapters store
 // Depends on: assets/progress.js (for `db`), and assets/chapters-index.js
 // (the catalog-only CHAPTERS_SEED fallback) if that script is also loaded.
 //
@@ -71,7 +71,7 @@ function loadChapters(forceRefresh){
         return CHAPTERS;
       })
       .catch((err) => {
-        console.error('Stryker: failed to load chapters from Firestore', err);
+        console.error('TradeZoro: failed to load chapters from Firestore', err);
         if (typeof CHAPTERS_SEED !== 'undefined') {
           CHAPTERS = splitChapters(CHAPTERS_SEED);
         }

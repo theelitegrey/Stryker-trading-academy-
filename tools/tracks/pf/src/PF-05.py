@@ -72,7 +72,7 @@ body = [
     '<p>This chapter puts the main U.S. futures prop firms side by side, using their own help pages. It is a <strong>snapshot as of %s</strong>. '
     'Firms change their rules and prices often, sometimes monthly, so treat every number as a starting point and check the linked page before you buy.</p>' % AS_OF,
     '<p>We compare the $50K evaluation, because it is the most common starting size and every firm offers one. We don\'t rank the firms. The right one depends on how you trade, '
-    'and PF-03 gave you the scorecard to decide. Stryker is not paid by any firm mentioned here.</p>',
+    'and PF-03 gave you the scorecard to decide. TradeZoro is not paid by any firm mentioned here.</p>',
 
     callout('Key takeaways', '<ul>'
             '<li>At $50K, every plan here has a $3,000 profit target, and every page that states a loss limit gives $2,000: the target is 1.5 times the limit.</li>'

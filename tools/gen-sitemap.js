@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — sitemap generator
+// TradeZoro — sitemap generator
 //
 // Emits sitemap.xml for the public, indexable pages. Run by the deploy
 // workflow on every publish (so <lastmod> is always the current deploy) and

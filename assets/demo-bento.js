@@ -1,4 +1,4 @@
-// Stryker Trading Academy: DEMO bento-grid homepage (demo-bento.html only)
+// TradeZoro: DEMO bento-grid homepage (demo-bento.html only)
 //
 // Owner order 2026-10-06: "Do you know bento grids, can u create a demo homepage
 // using them. Go crazy." Unlisted demo page (noindex, not in nav or sitemap).
@@ -569,7 +569,7 @@
       var v = V[key]; if (!v) return;
       opener = doc.activeElement;
       $('#bx-ov-k').textContent = v.k; $('#bx-ov-title').textContent = v.t; $('#bx-ov-p').textContent = v.p;
-      var img = $('#bx-ov-img'); img.src = v.img + '?v=497'; img.alt = v.t;
+      var img = $('#bx-ov-img'); img.src = v.img + '?v=498'; img.alt = v.t;
       var go = $('#bx-ov-go'); go.href = v.go; go.textContent = v.b + ' →';
       var r = tile.getBoundingClientRect();
       ov.hidden = false; doc.body.classList.add('bx-locked');

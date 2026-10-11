@@ -1,7 +1,7 @@
 //@version=6
 // ═════════════════════════════════════════════════════════════════════════════
-//   SMT DIVERGENCE PRO [Stryker]
-//   © Stryker Trading  ·  strykertrading.com
+//   SMT DIVERGENCE PRO [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
 //   Version 3.0  ·  Pine Script v6
 //
 //   Smart money technique divergence between correlated instruments.
@@ -21,19 +21,19 @@
 //     the swing is still forming and replaced on confirmation.
 // ═════════════════════════════════════════════════════════════════════════════
 
-indicator("SMT Divergence Pro [Stryker]", "SMT Pro [Stryker]", overlay = true, max_lines_count = 500, max_labels_count = 500)
+indicator("SMT Divergence Pro [TradeZoro]", "SMT Pro [TradeZoro]", overlay = true, max_lines_count = 500, max_labels_count = 500)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  INPUTS
 // ─────────────────────────────────────────────────────────────────────────────
-const string G_SYM = "Stryker · Comparison Symbols"
-const string G_DET = "Stryker · Detection"
-const string G_T0  = "Stryker · Timeframe 1 (chart)"
-const string G_T1  = "Stryker · Timeframe 2"
-const string G_T2  = "Stryker · Timeframe 3"
-const string G_T3  = "Stryker · Timeframe 4"
-const string G_SES = "Stryker · Session Filter"
-const string G_VIS = "Stryker · Display"
+const string G_SYM = "TradeZoro · Comparison Symbols"
+const string G_DET = "TradeZoro · Detection"
+const string G_T0  = "TradeZoro · Timeframe 1 (chart)"
+const string G_T1  = "TradeZoro · Timeframe 2"
+const string G_T2  = "TradeZoro · Timeframe 3"
+const string G_T3  = "TradeZoro · Timeframe 4"
+const string G_SES = "TradeZoro · Session Filter"
+const string G_VIS = "TradeZoro · Display"
 
 autoSym = input.bool(true, "Auto-pair from the chart symbol", tooltip = "NQ pairs with ES, ES with NQ, YM and RTY with ES. Manual symbols below are used when this is off.", group = G_SYM)
 useS1   = input.bool(true,  "", inline = "s1", group = G_SYM)
@@ -504,16 +504,16 @@ var table wm = table.new(wmPos, 1, 2, border_width = 0)
 if barstate.islast and showMark
     string symsTx = (u1 ? n1 : "") + (u2 ? " · " + n2 : "") + (u3 ? " · " + n3 : "")
     string tfs = (ok0 ? timeframe.period + " (" + str.tostring(L0) + ")" : "") + (ok1 ? " · " + htf1 + " (" + str.tostring(L1) + ")" : "") + (ok2 ? " · " + htf2 + " (" + str.tostring(L2) + ")" : "") + (ok3 ? " · " + htf3 + " (" + str.tostring(L3) + ")" : "")
-    table.cell(wm, 0, 0, "SMT Divergence Pro [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 0, "SMT Divergence Pro [TradeZoro]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
     table.cell(wm, 0, 1, f_short(syminfo.tickerid) + "  vs  " + symsTx + "    ·    " + tfs, text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  ALERTS
 // ─────────────────────────────────────────────────────────────────────────────
 if evBull
-    alert("SMT Pro [Stryker] · bullish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("SMT Pro [TradeZoro] · bullish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
 if evBear
-    alert("SMT Pro [Stryker] · bearish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
-alertcondition(evBull, "SMT Pro [Stryker] — Bullish SMT", "Bullish smart money divergence confirmed")
-alertcondition(evBear, "SMT Pro [Stryker] — Bearish SMT", "Bearish smart money divergence confirmed")
-alertcondition(evBull or evBear, "SMT Pro [Stryker] — Any SMT", "Smart money divergence confirmed")
+    alert("SMT Pro [TradeZoro] · bearish SMT · " + syminfo.ticker, alert.freq_once_per_bar_close)
+alertcondition(evBull, "SMT Pro [TradeZoro] — Bullish SMT", "Bullish smart money divergence confirmed")
+alertcondition(evBear, "SMT Pro [TradeZoro] — Bearish SMT", "Bearish smart money divergence confirmed")
+alertcondition(evBull or evBear, "SMT Pro [TradeZoro] — Any SMT", "Smart money divergence confirmed")

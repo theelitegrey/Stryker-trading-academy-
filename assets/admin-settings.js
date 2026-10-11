@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin Settings (settings-admin.html)
+// TradeZoro — Admin Settings (settings-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-team.js
 
 function showAdminSettingsMsg(elId, message){
@@ -65,12 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('notify-new-student').checked = !!data.notifyNewStudent;
       document.getElementById('notify-chapter-complete').checked = !!data.notifyChapterComplete;
       document.getElementById('notify-community-flag').checked = !!data.notifyCommunityFlag;
-    }).catch((err) => console.error('Stryker: failed to load notification prefs', err));
+    }).catch((err) => console.error('TradeZoro: failed to load notification prefs', err));
 
     // Team members list
     loadAdminList().then(() => renderTeamList(user.uid))
       .catch((err) => {
-        console.error('Stryker: failed to load team list', err);
+        console.error('TradeZoro: failed to load team list', err);
         document.getElementById('team-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load team members: ' + (err.message || err) + '</p>';
       });
@@ -78,12 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Site maintenance mode
     db.collection('settings').doc('site').get().then((doc) => {
       document.getElementById('maintenance-toggle').checked = !!(doc.exists && doc.data().maintenanceMode);
-    }).catch((err) => console.error('Stryker: failed to load maintenance status', err));
+    }).catch((err) => console.error('TradeZoro: failed to load maintenance status', err));
 
     // Homepage "traders enrolled" stat — admin-adjustable baseline
     db.collection('publicStats').doc('enrollment').get().then((doc) => {
       document.getElementById('enrollcount-input').value = doc.exists ? (doc.data().count || 0) : 0;
-    }).catch((err) => console.error('Stryker: failed to load enrolled count', err));
+    }).catch((err) => console.error('TradeZoro: failed to load enrolled count', err));
   });
 
   document.getElementById('settings-save-name').addEventListener('click', () => {

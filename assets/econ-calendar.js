@@ -1,4 +1,4 @@
-// Stryker Trading Academy — economic calendar
+// TradeZoro — economic calendar
 //
 // Renders assets/econ-calendar.json on economic-calendar.html (#ec-page) and a
 // compact "next release" strip on the dashboard (#dash-cal) and the brief.
@@ -656,7 +656,7 @@
       if (page) renderPage(page);
       strips.forEach(renderStrip);
     }).catch((err) => {
-      console.error('Stryker: economic calendar could not be loaded', err);
+      console.error('TradeZoro: economic calendar could not be loaded', err);
       if (page) page.innerHTML = '<div class="ec-stale"><b>The calendar could not be loaded.</b> ' +
         'Refresh in a moment.</div>';
       strips.forEach((m) => { m.hidden = true; m.innerHTML = ''; });

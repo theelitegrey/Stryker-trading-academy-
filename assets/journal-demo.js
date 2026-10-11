@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: demo data
+// TradeZoro — Trade Journal: demo data
 // One-click sample data so a student can explore every journal feature —
 // dashboard, calendar, analytics, AI coach, prop-firm tracker, share card —
 // before logging a single real trade. Everything written here is stamped
@@ -210,7 +210,7 @@ function jdLoadDemo(){
     showToast('success', 'Demo journal loaded: ' + trades.length + ' trades + 3 prop-firm accounts.');
     return reloadJournalData();
   }).catch((err) => {
-    console.error('Stryker: demo load failed', err);
+    console.error('TradeZoro: demo load failed', err);
     showToast('error', 'Could not load demo data — check your connection.');
   }).finally(() => {
     btn.disabled = false;
@@ -250,7 +250,7 @@ function jdRemoveDemo(){
     showToast('success', 'Demo data removed. Your real entries are untouched.');
     return reloadJournalData();
   }).catch((err) => {
-    console.error('Stryker: demo removal failed', err);
+    console.error('TradeZoro: demo removal failed', err);
     showToast('error', 'Could not remove demo data — check your connection.');
   }).finally(() => {
     btn.disabled = false;

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: safety check for Pine scripts written by OTHER members
+// TradeZoro — Charts: safety check for Pine scripts written by OTHER members
 // (Community scripts). Plain script; also loads in Node for tests
 // (tools/tests/chart-pine-guard.test.js).
 //

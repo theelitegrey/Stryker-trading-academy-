@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Roles & Access (access-admin.html)
+// TradeZoro — Admin: Roles & Access (access-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
 // assets/roles.js (GATEABLE_PAGES, loadPlansForRoles, loadPageAccess)
 
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPageAccessList(plans, pageAccess);
       })
       .catch((err) => {
-        console.error('Stryker: failed to load roles & access admin page', err);
+        console.error('TradeZoro: failed to load roles & access admin page', err);
         document.getElementById('roles-summary-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });

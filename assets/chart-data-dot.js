@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts data-status dot (ES module)
+// TradeZoro — Charts data-status dot (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (window.STRYKER_VELA) and its
 // statusline DOM (.vela-cell[data-cell-id] .vela-statusline; the dot + tag go after .vela-sl-meta); optional Rithmic
 // module from assets/rithmic-config.js (rith.client: state + on()); assets/chart-futures-provider.js

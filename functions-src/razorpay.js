@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Razorpay Standard Checkout
+ * TradeZoro — Razorpay Standard Checkout
  *
  * Two callables driving card/UPI payment for plan purchases:
  *

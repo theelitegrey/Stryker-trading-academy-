@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — referral point crediting, server side
+ * TradeZoro — referral point crediting, server side
  *
  * WHY THIS EXISTS
  *

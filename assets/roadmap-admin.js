@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Roadmap editor (roadmap-admin.html)
+ * TradeZoro — Roadmap editor (roadmap-admin.html)
  * Edits settings/roadmap (shape in roadmap-data.js). Starts from the built-in
  * defaults when the document does not exist yet.
  */

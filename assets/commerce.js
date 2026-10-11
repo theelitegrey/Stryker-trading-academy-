@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared commerce helpers
+// TradeZoro — shared commerce helpers
 // Depends on: assets/progress.js (`db`)
 //
 // Data model:

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: History + Calendar tabs
+// TradeZoro — Trade Journal: History + Calendar tabs
 // Depends on: assets/journal-calc.js, and the global JOURNAL_TRADES /
 // JOURNAL_SETTINGS / JOURNAL_UID state set up by assets/journal-main.js
 

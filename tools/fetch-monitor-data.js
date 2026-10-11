@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stryker Trading Academy — Global Monitor data pipeline
+ * TradeZoro — Global Monitor data pipeline
  *
  * Run by .github/workflows/monitor-data.yml every ~20 minutes on a GitHub
  * Actions runner. Fetches every upstream the Global Monitor page needs and

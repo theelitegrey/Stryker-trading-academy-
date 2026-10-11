@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — roadmap data (shared by the dashboard strip,
+ * TradeZoro — roadmap data (shared by the dashboard strip,
  * the Roadmap page and the admin editor)
  *
  * Source of truth is Firestore settings/roadmap:
@@ -15,7 +15,7 @@
 (function (root) {
   'use strict';
   const DEFAULT = {
-    heading: "What's next at Stryker",
+    heading: "What's next at TradeZoro",
     note: 'Built in the open. Members see new modules the day they ship.',
     items: [
       { id: 'backtesting-full', title: 'Full backtesting module', desc: 'In-depth analytics, strategy testing and Pine Script integration.', status: 'progress', when: 'In progress', progress: 45, sub: ['In-depth analytics', 'Strategy testing', 'Pine Script integration', 'Portfolio-level stats'],

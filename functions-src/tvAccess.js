@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — TradingView invite-only access management
+ * TradeZoro — TradingView invite-only access management
  *
  * Admin-only callables that grant / revoke / verify access to the academy's
  * invite-only Pine scripts, driven from the Trading Indicators admin page.
@@ -50,7 +50,7 @@ const URLS = {
 };
 
 // The same client identity the reference implementation presents.
-const UA = 'TWAPI/3.0 (Linux; production; Stryker)';
+const UA = 'TWAPI/3.0 (Linux; production; TradeZoro)';
 
 function baseHeaders(sessionid){
   const h = {

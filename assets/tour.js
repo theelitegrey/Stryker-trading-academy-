@@ -1,4 +1,4 @@
-// Stryker Trading Academy — guided feature walkthrough (dashboard-user.html)
+// TradeZoro — guided feature walkthrough (dashboard-user.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/sanitize.js.
 // Runs after the first-run setup wizard in assets/onboarding.js, never with it.
 //
@@ -133,7 +133,7 @@
   function trSave(patch) {
     if (!TR_UID) return Promise.resolve();
     return trRef(TR_UID).set({ tour: patch }, { merge: true })
-      .catch((e) => console.error('Stryker: tour state not saved', e));
+      .catch((e) => console.error('TradeZoro: tour state not saved', e));
   }
 
   // ---- geometry ------------------------------------------------------------
@@ -356,7 +356,7 @@
         // A beat after the dashboard settles, so the tour does not fight the
         // page's own load animation for attention.
         setTimeout(() => { if (!TR_ACTIVE) start((d.tour && d.tour.step) || 0); }, 900);
-      }).catch((e) => console.error('Stryker: tour state could not be read', e));
+      }).catch((e) => console.error('TradeZoro: tour state could not be read', e));
     });
   });
 

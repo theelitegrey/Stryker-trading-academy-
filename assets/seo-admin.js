@@ -1,4 +1,4 @@
-// Stryker Trading Academy — SEO admin module (seo-admin.html)
+// TradeZoro — SEO admin module (seo-admin.html)
 // Depends on: assets/admin-guard.js, assets/progress.js (db), assets/toast.js
 //
 // Four tabs:
@@ -330,7 +330,7 @@ function downloadText(filename, text, mime){
 
 function loadSettingsTab(){
   var g = SEO_SETTINGS || {};
-  document.getElementById('seo-s-sitename').value = g.siteName || 'Stryker Trading Academy';
+  document.getElementById('seo-s-sitename').value = g.siteName || 'TradeZoro';
   document.getElementById('seo-s-template').value = g.titleTemplate || '%page% — %site%';
   document.getElementById('seo-s-ogimage').value = g.ogImage || '';
   document.getElementById('seo-s-social').value = (g.socialProfiles || []).join('\n');

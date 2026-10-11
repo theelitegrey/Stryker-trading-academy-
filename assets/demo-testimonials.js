@@ -1,4 +1,4 @@
-// Stryker Trading Academy: testimonials section components (+ /demo-testimonials page glue)
+// TradeZoro: testimonials section components (+ /demo-testimonials page glue)
 //
 // Owner order 2026-10-07: "create 4 variations of these testimonials for
 // hmepage section". Four layouts rendered from ONE data file,

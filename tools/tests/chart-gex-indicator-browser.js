@@ -1,4 +1,4 @@
-// Charts "Stryker GEX Levels" browser test (assets/chart-gex-levels.js).
+// Charts "TradeZoro GEX Levels" browser test (assets/chart-gex-levels.js).
 //   node tools/tests/chart-dev-server.mjs 8031     (site + /api/chart/bars, binds 127.0.0.1)
 //   flock /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-gex-indicator-browser.js [shotsDir]
 // /api/gex/levels/* is answered from tools/tests/fixtures/gex/*.json (real API responses,
@@ -94,8 +94,8 @@ async function addFromWindow(p) {
     const { ctx, p, errors, gexHits } = await open(b, { w: 1440, h: 900 });
     await setSym(p, 'futures:ES1!', '5');
     const info = await addFromWindow(p);
-    check(info.grps[0] === 'Stryker' && info.first === 'b:stk_gex', 'window: "Stryker" group first, GEX Levels first row (' + info.grps.join(' | ') + ')');
-    check(/Stryker GEX Levels/.test(info.text || '') && /Call wall, put wall, zero gamma, IV ±68% and market levels/.test(info.text || ''), 'window row has name + short description: ' + info.text);
+    check(info.grps[0] === 'TradeZoro' && info.first === 'b:stk_gex', 'window: "TradeZoro" group first, GEX Levels first row (' + info.grps.join(' | ') + ')');
+    check(/TradeZoro GEX Levels/.test(info.text || '') && /Call wall, put wall, zero gamma, IV ±68% and market levels/.test(info.text || ''), 'window row has name + short description: ' + info.text);
     check(!info.vela, 'window: no Vela/LuxAlgo text');
     await shot(p, 'gex-window-1440.png');
     await p.keyboard.press('Escape'); await sleep(2500);

@@ -82,7 +82,7 @@ body = [
         ['Typical rule style', 'Dollar loss limits, contract limits, often end-of-day trailing', 'Percentage daily and total loss limits'],
         ['Examples named in this track', 'Topstep, Apex, Tradeify, MFFU, Lucid', 'FTMO, Blue Guardian (and, historically, My Forex Funds)'],
     ]),
-    '<p>Stryker\'s core curriculum covers forex, gold and indices. On a futures firm you trade the <strong>futures</strong> versions: E-mini and Micro E-mini '
+    '<p>TradeZoro\'s core curriculum covers forex, gold and indices. On a futures firm you trade the <strong>futures</strong> versions: E-mini and Micro E-mini '
     'index contracts, gold (GC/MGC), crude (CL/MCL) and currency futures like Euro FX (6E). If you learned a setup on spot EUR/USD, the concept carries over to 6E, '
     'but the prices, hours and tick values are different. VP-10 in the Volume Profile track covers these differences in detail.</p>',
 

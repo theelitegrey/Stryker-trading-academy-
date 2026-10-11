@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — daily USD→INR market rate
+ * TradeZoro — daily USD→INR market rate
  *
  * Replaces the manually-set conversion rate: once a day this fetches the
  * live USDINR rate and writes it to settings/commerce.usdInr — the one doc
@@ -30,7 +30,7 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 const BOUNDS = { min: 40, max: 200 };
-const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://tradezoro.com)' };
+const UA = { 'User-Agent': 'TradeZoro/1.0 (+https://tradezoro.com)' };
 
 function sane(n){
   return typeof n === 'number' && isFinite(n) && n >= BOUNDS.min && n <= BOUNDS.max;

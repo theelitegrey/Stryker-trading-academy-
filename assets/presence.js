@@ -1,4 +1,4 @@
-// Stryker Trading Academy — online presence
+// TradeZoro — online presence
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
 // presence/{uid}: { lastSeen, name }
@@ -41,7 +41,7 @@ function writePresence(){
     lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
     name: u.displayName || (u.email ? u.email.split('@')[0] : 'Trader')
   }).catch(function (err) {
-    console.warn('Stryker: presence write failed', err);
+    console.warn('TradeZoro: presence write failed', err);
   });
 }
 

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — admin-only full account deletion
+// TradeZoro — admin-only full account deletion
 //
 // WHY THIS EXISTS
 // The browser Firebase SDK can only delete the Auth record of the user who is
@@ -269,7 +269,7 @@ exports.onNotificationCreated = onDocumentCreated({
     // charge of what is shown.
     const message = {
       data: {
-        title: 'Stryker Trading Academy',
+        title: 'TradeZoro',
         body: String(n.message || 'You have a new notification').slice(0, 240),
         link: '/' + String(n.link || 'dashboard-user.html'),
         type: String(n.type || 'stryker')

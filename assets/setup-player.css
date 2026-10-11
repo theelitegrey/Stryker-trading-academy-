@@ -1,4 +1,4 @@
-/* Stryker Trading Academy — interactive setup player (assets/setup-player.js)
+/* TradeZoro — interactive setup player (assets/setup-player.js)
    Theme: every colour is a CSS variable, so day/night follows :root[data-theme].
    Motion: transforms and opacity only. Under prefers-reduced-motion (and the
    .sp-still class the script adds) nothing tweens; steps render instantly. */

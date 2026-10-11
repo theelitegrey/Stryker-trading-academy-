@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy: 7-day free trial of a paid, renewing plan (Pro).
+ * TradeZoro: 7-day free trial of a paid, renewing plan (Pro).
  *
  * Owner order 2026-10-05: "Add 7 day free trial but they have to add card
  * while subscribing to free trial. Like most website do". So a trial is a

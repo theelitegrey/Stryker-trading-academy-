@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared page interactions (all pages)
+// TradeZoro — shared page interactions (all pages)
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
           enrolledStatEl.textContent = Math.round(n).toLocaleString();
         }
       })
-      .catch((err) => { console.error('Stryker: failed to load enrolled count', err); });
+      .catch((err) => { console.error('TradeZoro: failed to load enrolled count', err); });
   }
 
   // Mobile nav toggle (marketing pages: index.html, courses.html)

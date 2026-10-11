@@ -127,7 +127,7 @@ off in `x-admin.html`, or both will post.
 2. Left menu **APIs & Services → Library**, search *YouTube Data API v3*,
    **Enable**.
 3. **APIs & Services → OAuth consent screen** (Google may call it *Google
-   Auth Platform*): **Get started**. App name `Stryker Social`, your email,
+   Auth Platform*): **Get started**. App name `TradeZoro Social`, your email,
    audience **External**, contact email, agree, **Create**.
    Then **Audience → Test users → Add users**: the channel's Google account.
 4. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
@@ -138,7 +138,7 @@ off in `x-admin.html`, or both will post.
 5. On the admin page under **YouTube**, paste both, **Save keys**, press
    **Connect YouTube**, choose the channel's account, tick the boxes, allow.
    Google shows a "this app isn't verified" warning because it is your own
-   private app: click *Advanced → Go to Stryker Social*.
+   private app: click *Advanced → Go to TradeZoro Social*.
 6. **The wait**: until Google audits the project, every upload is set to
    *private* automatically. Fill in the form at
    <https://support.google.com/youtube/contact/yt_api_form> once
@@ -159,7 +159,7 @@ Threads must be signed in with the same Instagram account.
 
 1. Go to <https://developers.facebook.com>, sign in with the Facebook account
    that admins that Page. **My Apps → Create App**. Use case: **Other** →
-   App type: **Business** → name `Stryker Social` → Create.
+   App type: **Business** → name `TradeZoro Social` → Create.
 2. Left menu **App settings → Basic**: copy **App ID** and **App secret**
    (press *Show*). On the admin page under **Instagram**, paste them,
    **Save keys**.

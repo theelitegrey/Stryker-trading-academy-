@@ -70,7 +70,7 @@ plat = cards(['Platform', 'Footprint / order flow', 'Volume profile / TPO', 'Not
 body = [
     '<p>Everything in this track depends on the <strong>data</strong>. A volume profile is only as good as the volume it counts, and a footprint '
     'only as good as its record of who was the aggressor. This chapter explains where real volume comes from, why spot forex doesn\'t have it, '
-    'what tick volume is and isn\'t, and what the main platforms say about how they build their order-flow tools. It stays neutral: Stryker has no '
+    'what tick volume is and isn\'t, and what the main platforms say about how they build their order-flow tools. It stays neutral: TradeZoro has no '
     'affiliate relationship with any platform named here, and nothing below is a recommendation to buy one.</p>',
 
     '<h3>Why futures have real volume</h3>',

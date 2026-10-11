@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Giveaways teaser (giveaways.html)
+// TradeZoro — Giveaways teaser (giveaways.html)
 // The whole animation is CSS inside the page — this file only lets the admin
 // override the headline and message via settings/giveaways (a world-readable
 // settings doc, edited in the Giveaways admin module). Missing doc or fields

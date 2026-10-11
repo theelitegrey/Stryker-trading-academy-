@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — homepage Core Vocabulary generator ("Constellation")
+// TradeZoro — homepage Core Vocabulary generator ("Constellation")
 //
 // Writes the #concepts section body on index.html: 14 term nodes, the links
 // between them, and one detail panel per term (name, definition, mini chart,

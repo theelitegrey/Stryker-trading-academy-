@@ -1,4 +1,4 @@
-// Stryker Trading Academy — deleted-account lockout
+// TradeZoro — deleted-account lockout
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
 // When an admin deletes a user, their Firestore data is wiped — but the
@@ -26,7 +26,7 @@
         '<div style="max-width:420px; text-align:center;">' +
         '<h1 style="font-size:20px; margin:0 0 12px;">This account is no longer active</h1>' +
         '<p style="font-size:14px; line-height:1.6; color:#8b93a0; margin:0 0 20px;">' +
-        'Your access to Stryker Trading Academy has been removed. If you think this is a mistake, ' +
+        'Your access to TradeZoro has been removed. If you think this is a mistake, ' +
         'get in touch through the contact page.</p>' +
         '<a href="contact.html" style="display:inline-block; padding:10px 18px; border-radius:8px; ' +
         'background:#00adb5; color:#050506; font-weight:700; text-decoration:none; font-size:14px;">Contact support</a>' +
@@ -35,7 +35,7 @@
 
     if (typeof auth !== 'undefined' && auth) {
       auth.signOut().catch(function (err) {
-        console.warn('Stryker: sign-out after lockout failed', err);
+        console.warn('TradeZoro: sign-out after lockout failed', err);
       });
     }
   }
@@ -59,7 +59,7 @@
           // student — the security rules are the real boundary, so the worst
           // case here is a deleted user briefly seeing a broken page whose
           // every write is rejected.
-          console.warn('Stryker: lockout check failed', err);
+          console.warn('TradeZoro: lockout check failed', err);
         });
     });
   });

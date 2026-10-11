@@ -1,11 +1,11 @@
-// Stryker Trading Academy — Rithmic R|Protocol browser client (ES module)
+// TradeZoro — Rithmic R|Protocol browser client (ES module)
 // Depends on: assets/rithmic-proto.js (hand-rolled protobuf codec + template ids).
 // Imported by assets/rithmic-provider.js and assets/rithmic-ui.js; never loaded unless the
 // `rithmicEnabled` flag is on for the member (assets/rithmic-config.js).
 //
 // The member's browser opens WebSockets straight to Rithmic's gateway: one TICKER_PLANT
 // session (live trades + best bid/offer, front-month lookup) and one HISTORY_PLANT session
-// (time-bar replay). Nothing goes through Stryker's servers.
+// (time-bar replay). Nothing goes through TradeZoro's servers.
 //
 // CREDENTIALS: the username and password are held in this object's private fields, in
 // memory only, for as long as the member stays connected (they are needed to log back in
@@ -24,7 +24,7 @@
 //   6. RequestLogout (12) before closing. ForcedLogout (77) from Rithmic ends the session
 //      without reconnecting.
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=497';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=498';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];

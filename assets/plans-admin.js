@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Billing & Plans (billing-admin.html)
+// TradeZoro — Admin: Billing & Plans (billing-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 //
 // Plans live in Firestore's `plans` collection. Reads are public (the
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     loadFxStatus();
     loadPlans().catch((err) => {
-      console.error('Stryker: failed to load plans', err);
+      console.error('TradeZoro: failed to load plans', err);
       document.getElementById('plans-grid').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load plans: ' + (err.message || err) + '</p>';
     });

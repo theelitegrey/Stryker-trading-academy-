@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Roadmap page (roadmap.html)
+ * TradeZoro — Roadmap page (roadmap.html)
  *
  * The in-depth view of settings/roadmap (see roadmap-data.js): what is being
  * built with its milestones and progress, what is planned, and a shipped

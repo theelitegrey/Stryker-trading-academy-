@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Backtest analytics (pure computation)
+ * TradeZoro — Backtest analytics (pure computation)
  *
  * Everything the Backtesting dashboard and its Analytics view compute from a
  * list of closed trades: filters, the overview block (P&L, win rate, realised

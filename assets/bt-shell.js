@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Backtesting app shell
+ * TradeZoro — Backtesting app shell
  *
  * Turns a dashboard-shell page into the backtesting "app window": the site
  * header stays (with its hamburger, which now opens the regular sidebar as a

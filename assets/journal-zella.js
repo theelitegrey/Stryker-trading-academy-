@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: Zella-style dashboard widgets
+// TradeZoro — Trade Journal: Zella-style dashboard widgets
 // Depends on: journal-calc.js, Chart.js, the JOURNAL_* globals, and
 // jCountUp (journal-propfirms.js). Called by renderDashboardTab.
 //
@@ -37,7 +37,7 @@ function jzRangeTrades(trades){
 }
 
 // ---- metrics ----------------------------------------------------------------
-// Six axes, each normalized to 0-100. The composite "Stryker Score" is their
+// Six axes, each normalized to 0-100. The composite "TradeZoro Score" is their
 // mean. Normalisation caps are the conventional "excellent" thresholds:
 // profit factor 3, avg win/loss 2.5, recovery factor 3.
 function jzComputeMetrics(trades){

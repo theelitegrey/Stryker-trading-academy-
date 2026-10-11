@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Replay coach (rule-based, no model, no API)
+ * TradeZoro — Replay coach (rule-based, no model, no API)
  *
  * Three jobs, all computed from the session's own trades on the device:
  *   report(trades, equity, ctx)  → post-session findings with suggestions

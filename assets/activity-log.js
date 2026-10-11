@@ -1,4 +1,4 @@
-// Stryker Trading Academy — activity logging
+// TradeZoro — activity logging
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
 // One helper, logActivity(), called from every place that changes state.
@@ -70,10 +70,10 @@ function logActivity(action, summary, meta){
       }
       return db.collection('activityLog').add(entry);
     }).catch(function (err) {
-      console.warn('Stryker: activity log write failed', err);
+      console.warn('TradeZoro: activity log write failed', err);
     });
   } catch (err) {
-    console.warn('Stryker: activity log threw', err);
+    console.warn('TradeZoro: activity log threw', err);
     return Promise.resolve();
   }
 }

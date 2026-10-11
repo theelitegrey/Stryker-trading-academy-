@@ -1,4 +1,4 @@
-// Stryker Trading Academy — email verification gate
+// TradeZoro — email verification gate
 // Depends on: assets/auth.js (auth)
 //
 // Firebase Auth has no email OTP — only phone. What it does have is
@@ -221,7 +221,7 @@
           else buildGate(u);
         })
         .catch(function (err) {
-          console.warn('Stryker: could not refresh verification state', err);
+          console.warn('TradeZoro: could not refresh verification state', err);
           // Fall back to the softer of the two — an unreachable check should
           // never be what locks a legitimate student out.
           if (isGrandfathered(user)) buildBanner(user);

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Site page renderer (about.html, support.html,
+// TradeZoro — Site page renderer (about.html, support.html,
 // terms.html, privacy.html, cookies.html, gdpr.html, contact.html,
 // refund-policy.html). Depends on: assets/progress.js (`db`), assets/site-pages.js
 //
@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (page && page.title && titleEl) {
       titleEl.textContent = page.title;
-      document.title = page.title + ' — Stryker Trading Academy';
+      document.title = page.title + ' — TradeZoro';
     }
     if (page && page.updatedAt && typeof page.updatedAt.toDate === 'function' && updatedEl) {
       updatedEl.textContent = 'Last updated ' + page.updatedAt.toDate().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         : '<p style="color:var(--ink-3);">This page hasn\'t been published yet. Please check back soon.</p>';
     }
   }).catch((err) => {
-    console.error('Stryker: failed to load site page', key, err);
+    console.error('TradeZoro: failed to load site page', key, err);
     const bodyEl = document.getElementById('site-page-body');
     if (bodyEl) bodyEl.innerHTML = '<p style="color:var(--ink-3);">This page could not be loaded right now — please try again shortly.</p>';
   });

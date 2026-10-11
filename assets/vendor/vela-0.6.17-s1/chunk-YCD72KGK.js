@@ -357,7 +357,7 @@ function timeframeToMs(timeframe) {
 }
 
 // src/core/theme.ts
-// Stryker patch (2026-10-05): TradingView-like theme defaults + font stack.
+// TradeZoro patch (2026-10-05): TradingView-like theme defaults + font stack.
 var STRYKER_TV_FONT = '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
 var DARK_THEME = {
   background: "#0f0f0f",
@@ -5092,7 +5092,7 @@ function supportsWebGL2() {
 }
 
 // src/renderers/native/backend/candle-lod.ts
-// Stryker patch (2026-10-05): 1 device-px wicks and TradingView body-width curve
+// TradeZoro patch (2026-10-05): 1 device-px wicks and TradingView body-width curve
 // (same formula as lightweight-charts optimalCandlestickWidth). Was: wick 1.5, body 0.7x.
 var CANDLE_BODY_MIN_SPACING = 2.5;
 var CANDLE_WICK_W = 1;

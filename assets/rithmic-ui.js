@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts "Connect broker" sheet + Rithmic status chip (ES module)
+// TradeZoro — Charts "Connect broker" sheet + Rithmic status chip (ES module)
 // Depends on: assets/rithmic-client.js (RithmicClient, listSystems), assets/rithmic-provider.js
 // (RithmicFuturesProvider). Loaded ONLY by assets/rithmic-config.js when the Rithmic flag is
 // on for this member; with the flag off (everyone today) this file is never downloaded.
@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=497';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=497';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=498';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=498';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -141,7 +141,7 @@ export function createRithmic(cfg) {
   const providerFactory = (FuturesProvider) => () => new RithmicFuturesProvider(client, new FuturesProvider(), cfg, {
     onSource: (src) => { lastSource = src; },
     onFallback: () => { lastSource = 'standard'; },
-    onError: (e) => { console.warn('Stryker Rithmic:', e && e.message); }
+    onError: (e) => { console.warn('TradeZoro Rithmic:', e && e.message); }
   });
 
   // Make every chart re-read its bars from the source that is current now.
@@ -159,7 +159,7 @@ export function createRithmic(cfg) {
         // The first switch is superseded at once (Vela resolves it silently).
         c.chart.setMarket({ timeframe: alt }).catch(() => {});
         await c.chart.setMarket({ timeframe: tf });
-      } catch (e) { console.warn('Stryker Rithmic: reload', e); }
+      } catch (e) { console.warn('TradeZoro Rithmic: reload', e); }
     }
   }
 
@@ -208,7 +208,7 @@ export function createRithmic(cfg) {
       el('div', { class: 'stkr-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
       cfg.isTest ? el('p', { class: 'stkr-note stkr-test', text: 'Test server: prices may differ from the live market.' }) : null,
-      el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. Stryker never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
+      el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
       el('div', { class: 'stkr-sheet-legal', id: 'stkr-sheet-legal' }, [logos(), noticeList()])
     ]);
     const onInfo = el('p', {});

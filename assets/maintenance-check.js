@@ -1,4 +1,4 @@
-// Stryker Trading Academy — sitewide maintenance mode gate
+// TradeZoro — sitewide maintenance mode gate
 // Depends on: assets/progress.js (`db`), assets/auth.js (`auth`)
 //
 // Intentionally only included on public/student-facing pages — never on
@@ -28,6 +28,6 @@
       goToMaintenance();
     }
   }).catch((err) => {
-    console.error('Stryker: maintenance mode check failed', err);
+    console.error('TradeZoro: maintenance mode check failed', err);
   });
 })();

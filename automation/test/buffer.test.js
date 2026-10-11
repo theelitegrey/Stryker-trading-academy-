@@ -19,11 +19,11 @@ global.fetch = async (url, opts) => {
   calls.push({ auth: opts.headers.authorization, body });
   const q = body.query;
   const reply = (data) => new Response(JSON.stringify({ data }), { status: 200, headers: { 'content-type': 'application/json' } });
-  if (/organizations/.test(q) && !/channels/.test(q)) return reply({ account: { email: 'a@b.c', organizations: [{ id: 'org1', name: 'Stryker' }] } });
+  if (/organizations/.test(q) && !/channels/.test(q)) return reply({ account: { email: 'a@b.c', organizations: [{ id: 'org1', name: 'TradeZoro' }] } });
   if (/channels\(/.test(q)) return reply({ channels: [
-    { id: 'chx', name: 'Stryker', service: 'twitter', displayName: '@stryker', isDisconnected: false },
+    { id: 'chx', name: 'TradeZoro', service: 'twitter', displayName: '@stryker', isDisconnected: false },
     { id: 'chig', name: 'stryker', service: 'instagram', displayName: 'stryker', isDisconnected: false },
-    { id: 'chyt', name: 'Stryker', service: 'youtube', displayName: 'Stryker', isDisconnected: false }
+    { id: 'chyt', name: 'TradeZoro', service: 'youtube', displayName: 'TradeZoro', isDisconnected: false }
   ] });
   if (/createPost/.test(q)) {
     if (body.variables.input.text === 'REJECT') return reply({ createPost: { message: 'Text too long' } });

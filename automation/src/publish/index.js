@@ -65,13 +65,13 @@ async function publish(platform, post, s) {
     if (platform === 'x') { parts = (d.x || []).slice(); if (!parts.length) throw new Error('No X text'); if (xWantsLink(post, s)) parts[parts.length - 1] += '\n\n' + link('x'); }
     else if (platform === 'threads') { let t = d.threads || (d.x || [])[0] || ''; const l = link('threads'); if (l && t.length + l.length + 2 <= 500) t += '\n\n' + l; parts = [t]; }
     else if (platform === 'instagram') { parts = [d.instagram || d.threads || '']; if (!video && !cardJpg) throw new Error('Instagram needs a video or a card'); }
-    else if (platform === 'youtube') { if (!video) throw new Error('YouTube needs a video'); const y = d.youtube || {}; parts = [[y.description || '', link('youtube') || '', '', 'Stryker Trading Academy — ICT and smart-money trading education.', 'Not financial advice.'].join('\n')]; }
+    else if (platform === 'youtube') { if (!video) throw new Error('YouTube needs a video'); const y = d.youtube || {}; parts = [[y.description || '', link('youtube') || '', '', 'TradeZoro — ICT and smart-money trading education.', 'Not financial advice.'].join('\n')]; }
     else throw new Error('Unknown platform ' + platform);
     const y = d.youtube || {};
     return Buffer_.createPost({ channel, platform, parts, media: {
       videoUrl: video ? mediaUrl(video) : null,
       imageUrl: !video && s.cards && cardJpg ? mediaUrl(cardJpg) : null,
-      altText: d.altText || post.title, title: platform === 'youtube' ? ((y.title || post.title || 'Stryker Trading Academy').slice(0, 90) + ' #Shorts') : null
+      altText: d.altText || post.title, title: platform === 'youtube' ? ((y.title || post.title || 'TradeZoro').slice(0, 90) + ' #Shorts') : null
     } });
   }
 
@@ -105,9 +105,9 @@ async function publish(platform, post, s) {
   if (platform === 'youtube') {
     if (!video) throw new Error('YouTube needs a video');
     const y = d.youtube || {};
-    const title = ((y.title || post.title || 'Stryker Trading Academy').slice(0, 90) + ' #Shorts');
-    const desc = [y.description || '', link('youtube') || '', '', 'Stryker Trading Academy — ICT and smart-money trading education.', 'Not financial advice.'].filter((x) => x !== null).join('\n');
-    return YT.upload({ file: mediaPath(video), title, description: desc, tags: (y.tags || []).concat(['trading', 'Stryker Trading Academy']) });
+    const title = ((y.title || post.title || 'TradeZoro').slice(0, 90) + ' #Shorts');
+    const desc = [y.description || '', link('youtube') || '', '', 'TradeZoro — ICT and smart-money trading education.', 'Not financial advice.'].filter((x) => x !== null).join('\n');
+    return YT.upload({ file: mediaPath(video), title, description: desc, tags: (y.tags || []).concat(['trading', 'TradeZoro']) });
   }
   throw new Error('Unknown platform ' + platform);
 }

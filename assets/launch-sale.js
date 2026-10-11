@@ -1,4 +1,4 @@
-// Stryker Trading Academy: launch sale banner (build 319)
+// TradeZoro: launch sale banner (build 319)
 //
 // Reads the REAL seat count from settings/commerce.launchSale
 // ({ active, limit, taken }), which only the launchSaleOnOrder function

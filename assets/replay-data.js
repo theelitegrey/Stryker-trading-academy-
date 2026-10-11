@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Replay data layer
+ * TradeZoro — Replay data layer
  *
  * Where historical candles come from, and where sessions are kept:
  *   - Crypto: Binance's public klines endpoint, straight from the browser

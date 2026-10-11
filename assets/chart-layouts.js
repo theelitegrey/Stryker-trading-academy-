@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts LAYOUT MENU (charts.html) — ES module
+// TradeZoro — Charts LAYOUT MENU (charts.html) — ES module
 // Depends on: firebase compat SDKs (app/auth/firestore) + assets/auth.js; the Vela
 // workspace (window.STRYKER_VELA) and helpers handed in by assets/vela-chart.js
 // (bindPopover, toast, ui = window.STRYKER_CHART_UI, grid, Pine); assets/chart-pine-guard.js
@@ -265,7 +265,7 @@ export function mountLayouts(ws, o){
       if (cur && cur.id === id) { dirty = false; cur.updatedAt = Date.now(); touchRecent({ id, name, symbol: p.symbol, interval: p.interval }); paintBtn(); }
       if (manual) toast('Layout saved');
     } catch (e) {
-      console.warn('Stryker: layout save', e);
+      console.warn('TradeZoro: layout save', e);
       toast('Could not save the layout. Check your connection.', 'error');
     } finally { saving = null; }
   }
@@ -283,7 +283,7 @@ export function mountLayouts(ws, o){
       if (viewing) endViewing();
       setCur({ id: ref.id, name, shared: false, symbol: p.symbol, interval: p.interval });
       toast('Saved as "' + name + '"');
-    } catch (e) { console.warn('Stryker: layout save as', e); toast('Could not save the layout.', 'error'); }
+    } catch (e) { console.warn('TradeZoro: layout save as', e); toast('Could not save the layout.', 'error'); }
   }
 
   async function renameCur(name){
@@ -293,7 +293,7 @@ export function mountLayouts(ws, o){
       if (cur.shared) await sharedDoc(cur.id).update({ name, updatedAt: ts() });
       cur.name = name; cache = null; setCur(Object.assign({}, cur));
       toast('Renamed');
-    } catch (e) { console.warn('Stryker: layout rename', e); toast('Could not rename.', 'error'); }
+    } catch (e) { console.warn('TradeZoro: layout rename', e); toast('Could not rename.', 'error'); }
   }
 
   async function createNew(name){
@@ -322,7 +322,7 @@ export function mountLayouts(ws, o){
       if (!doc) { toast('That layout could not be read.', 'error'); return; }
       apply(doc);
       setCur({ id, name: x.name, shared: !!x.shared, symbol: x.symbol, interval: x.interval, updatedAt: tsMs(x.updatedAt) });
-    } catch (e) { console.warn('Stryker: layout open', e); toast('Could not open the layout.', 'error'); }
+    } catch (e) { console.warn('TradeZoro: layout open', e); toast('Could not open the layout.', 'error'); }
   }
   function dropRecent(id){ lsSet(K.recent(), lsGet(K.recent(), []).filter((x) => x && x.id !== id)); }
 
@@ -336,7 +336,7 @@ export function mountLayouts(ws, o){
       if (cur && cur.id === id) setCur(null);
       toast('Layout deleted');
       return true;
-    } catch (e) { console.warn('Stryker: layout delete', e); toast('Could not delete.', 'error'); return false; }
+    } catch (e) { console.warn('TradeZoro: layout delete', e); toast('Could not delete.', 'error'); return false; }
   }
 
   async function setShared(on, cb){
@@ -356,7 +356,7 @@ export function mountLayouts(ws, o){
       if (on) copyLink(true);
       renderMenu();
     } catch (e) {
-      console.warn('Stryker: layout share', e);
+      console.warn('TradeZoro: layout share', e);
       if (cb) cb.checked = !on;
       toast(e.userMessage || 'Could not change sharing.', 'error');
     }

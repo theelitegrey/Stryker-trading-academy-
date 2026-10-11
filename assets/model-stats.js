@@ -1,4 +1,4 @@
-// Stryker Trading Academy — model page stats card (model.html)
+// TradeZoro — model page stats card (model.html)
 // Mounts into #model-stats-slot, right after the article body. Renders
 // ONLY when the model carries Owner-approved stats; otherwise the slot
 // stays completely empty (no box, no heading, no "coming soon").
@@ -295,7 +295,7 @@
           if (gen !== renderGen || !fixture || fixture.approved !== true) return;
           buildCard(slot, fixture, true);
         })
-        .catch(function (e) { console.error('Stryker: stats demo fixture failed', e); });
+        .catch(function (e) { console.error('TradeZoro: stats demo fixture failed', e); });
       return;
     }
 
@@ -306,7 +306,7 @@
 
   document.addEventListener('stryker:model-rendered', function (e) {
     try { renderFromModel(e.detail && e.detail.model); }
-    catch (err) { console.error('Stryker: model-stats render failed', err); }
+    catch (err) { console.error('TradeZoro: model-stats render failed', err); }
   });
 
 })();

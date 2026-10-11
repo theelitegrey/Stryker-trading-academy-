@@ -88,7 +88,7 @@
     var inc = { visits: firebase.firestore.FieldValue.increment(1) };
     ids.forEach(function (id) {
       col.doc(id).set(inc, { merge: true })
-        .catch(function (err) { console.warn('Stryker: visit count skipped', err && err.code); });
+        .catch(function (err) { console.warn('TradeZoro: visit count skipped', err && err.code); });
     });
   }
 

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Giveaways (giveaways-admin.html)
+// TradeZoro — Admin: Giveaways (giveaways-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 //
 // For now the module edits the teaser shown on the student Giveaways page

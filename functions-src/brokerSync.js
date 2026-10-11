@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — broker sync
+ * TradeZoro — broker sync
  *
  * Multi-tenant broker synchronization for the trade journal, built on the
  * MIT-licensed LuxAlgo packages:

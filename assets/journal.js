@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal (trade-journal.html)
+// TradeZoro — Trade Journal (trade-journal.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 // Entries live at students/{uid}/journal/{entryId} — private to the account,
 // matching the same security-rule pattern as the rest of the student's data.
@@ -55,7 +55,7 @@ function loadJournalEntries(){
       renderJournalEntries(entries);
     })
     .catch((err) => {
-      console.error('Stryker: failed to load journal entries', err);
+      console.error('TradeZoro: failed to load journal entries', err);
       document.getElementById('journal-list').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load entries: ' + (err.message || err) + '</p>';
     });

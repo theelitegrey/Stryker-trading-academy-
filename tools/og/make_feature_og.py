@@ -8,7 +8,7 @@ Make the 1200x630 share image (og:image / twitter:image) for a /features page.
 
 Writes assets/images/og/features-<slug>.png (or .jpg when the PNG would be over
 300 KB) and prints the path, size and the head tags to paste. Layout: dark brand
-background, a title band with the feature name and the Stryker emblem, and the
+background, a title band with the feature name and the TradeZoro emblem, and the
 page's real hero capture filling the rest (about 70% of the card). Nothing else
 goes on the card: no taglines, no claims, no numbers, no timing words.
 
@@ -81,7 +81,7 @@ def base(title):
     card.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
     d = ImageDraw.Draw(card)
     f = font(FONT_SIZE)
-    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=497')).convert('RGBA')
+    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png')).convert('RGBA')
     ls = 88
     logo = logo.resize((ls, ls), Image.LANCZOS)
     max_w = W - 2 * PAD - ls - 30
@@ -119,7 +119,7 @@ def save(card, stem):
     with open(path, 'wb') as fh:
         fh.write(data)
     rel = os.path.relpath(path, ROOT)
-    url = 'https://strykertrading.com/' + rel
+    url = 'https://tradezoro.com/' + rel
     print(f'{rel}  {W}x{H}  {len(data) // 1024} KB  {mime}')
     print('Head tags (write your own alt text: describe the image, no market-state words):')
     print(f'<meta property="og:image" content="{url}">')

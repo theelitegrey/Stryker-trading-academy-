@@ -1,4 +1,4 @@
-// Stryker Trading Academy — app-style nav (pill rail + mobile dock)
+// TradeZoro — app-style nav (pill rail + mobile dock)
 //
 // Desktop: icon+label pills in a rounded rail with a solid gold capsule that
 // slides behind the active one. Mobile (<=820px): the pills fold away and a

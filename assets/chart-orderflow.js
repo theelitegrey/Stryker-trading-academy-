@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: volume and order-flow tools (charts.html) — ES module
+// TradeZoro — Charts: volume and order-flow tools (charts.html) — ES module
 // Depends on: assets/vela-chart.js (calls installOrderflow(Core) BEFORE the workspace is
 // built, so persisted sessions can restore these indicators, and mountOrderflow(ws, ...)
 // after); Vela 0.6.17's plugin SDK (registerNativeIndicator, registerRendererLayer,
@@ -1725,7 +1725,7 @@ export function mountOrderflow(ws, opts) {
       setTimeout(() => {
         done();
         if (t == null) { toast('No bar under the pointer. Pick the row again and click a candle.', 'error'); return; }
-        try { chart.addNativeIndicator('stk_avwap', { inputs: { anchor: t } }); } catch (e) { console.warn('Stryker: AVWAP', e); }
+        try { chart.addNativeIndicator('stk_avwap', { inputs: { anchor: t } }); } catch (e) { console.warn('TradeZoro: AVWAP', e); }
         try { c.refreshNativeCatalog(); } catch (e) {}
         try { ws.context().stateChanged(); } catch (e) {}
       }, 30);

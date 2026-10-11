@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: "Stryker GEX Levels" indicator (charts.html) — ES module
+// TradeZoro — Charts: "TradeZoro GEX Levels" indicator (charts.html) — ES module
 // Depends on: assets/vela-chart.js (calls installGexLevels(Core) BEFORE the workspace is built,
 // so a persisted session can restore it); Vela 0.6.17's plugin SDK (registerNativeIndicator,
 // registerRendererLayer, registerStatePersistence), passed in as `Core`; the public, read-only
@@ -484,7 +484,7 @@ export function installGexLevels(Core) {
   installed = true;
   Core.registerRendererLayer({ id: TYPE, placement: 'above-data', create: gexLayer });
   Core.registerNativeIndicator({
-    type: TYPE, title: 'Stryker GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
+    type: TYPE, title: 'TradeZoro GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),
     create: () => new GexNative(),
     // Short text after "GEX Levels" in the chart legend (assets/chart-legend-rows.js).

@@ -1,4 +1,4 @@
-/* Stryker Trading Academy — model page stats card (model.html)
+/* TradeZoro — model page stats card (model.html)
    Styles for assets/model-stats.js. Renders nothing unless the mounting
    script decides to; this file only styles what exists. CSS variables only,
    so it matches both night (default) and day (html[data-theme="light"]). */

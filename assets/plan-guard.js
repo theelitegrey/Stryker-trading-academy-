@@ -1,4 +1,4 @@
-// Stryker Trading Academy — page access guard, role-rank aware.
+// TradeZoro — page access guard, role-rank aware.
 // Admins are always exempt. Only loaded on pages that should be gated —
 // never on checkout.html, index.html, or any admin page.
 //
@@ -140,7 +140,7 @@
         // means the student doc hasn't been healed yet — usually because this
         // read raced ensureStudentDoc's write — and paywalling an ungated page
         // over a field that is simply late is a lockout, not a gate.
-        if (!plan) console.warn('Stryker: no plan resolved for this student; revealing ungated page anyway');
+        if (!plan) console.warn('TradeZoro: no plan resolved for this student; revealing ungated page anyway');
         revealPageContent();
         return;
       }
@@ -164,6 +164,6 @@
       } else {
         revealPageContent();
       }
-    }).catch((err) => { console.error('Stryker: plan check failed', err); revealPageContent(); });
+    }).catch((err) => { console.error('TradeZoro: plan check failed', err); revealPageContent(); });
   });
 })();

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — push notification prompt
+// TradeZoro — push notification prompt
 // Depends on: assets/push.js, assets/auth.js
 //
 // Sits at the top of the dashboard for anyone who hasn't turned push on.

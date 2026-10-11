@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin dashboard: AI ops brief
+// TradeZoro — Admin dashboard: AI ops brief
 // A deterministic operations digest across the whole site: outstanding admin
 // work, urgent team notes, site build/version health, and the Global Monitor
 // data pipeline's freshness — composed into one prioritised readout so the

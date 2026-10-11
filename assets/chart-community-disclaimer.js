@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: Community Indicators Disclaimer (ES module)
+// TradeZoro — Charts: Community Indicators Disclaimer (ES module)
 // Depends on: assets/chart-pine-builtins.js (BUILTIN_PINE: entries with section 'community'
 // are third-party scripts); assets/chart-pine.js (window.STRYKER_PINE.addShared / addSource,
 // wrapped here); assets/chart-indicator-window.js (the Indicators window: .stkiw-list,
@@ -15,19 +15,19 @@
 // Kept in its own module so the picker file can change without losing the notice: it only
 // watches the window's DOM and never edits it beyond inserting its own .stkcd-* nodes.
 
-import { BUILTIN_PINE } from './chart-pine-builtins.js?v=497';
+import { BUILTIN_PINE } from './chart-pine-builtins.js?v=498';
 
 const ACK_LS = 'stryker_community_disclaimer_ack_v1';
 // Owner order 2026-10-08: only Top and Trending carry third-party scripts; Editors' picks and
-// BUILT-IN > Stryker list Stryker's own scripts, so no notice there.
+// BUILT-IN > TradeZoro list TradeZoro's own scripts, so no notice there.
 const COMMUNITY_TABS = new Set(['top', 'trending']);
-const SHORT = 'Community indicators are made by third-party members, not by Stryker. Education only. Not financial advice.';
+const SHORT = 'Community indicators are made by third-party members, not by TradeZoro. Education only. Not financial advice.';
 const TITLE = 'Community Indicators Disclaimer';
 const FULL = [
-  'Indicators listed in the Community Indicators section are created and uploaded by independent third-party members of the community and are not developed, verified, endorsed, or guaranteed by Stryker Trading Academy.',
-  'Stryker Trading Academy does not guarantee the accuracy, reliability, performance, security, or profitability of any community-submitted indicator. These tools are provided for educational and informational purposes only and should not be considered financial, investment, or trading advice.',
+  'Indicators listed in the Community Indicators section are created and uploaded by independent third-party members of the community and are not developed, verified, endorsed, or guaranteed by TradeZoro.',
+  'TradeZoro does not guarantee the accuracy, reliability, performance, security, or profitability of any community-submitted indicator. These tools are provided for educational and informational purposes only and should not be considered financial, investment, or trading advice.',
   'Users are responsible for independently reviewing, testing, and evaluating any indicator before using it. Trading involves substantial risk, and past or simulated performance does not guarantee future results.',
-  'By downloading, installing, or using a community indicator, you acknowledge that you do so at your own risk. Stryker Trading Academy is not responsible for any trading losses, damages, technical issues, data loss, or other consequences arising from the use of any community indicator.'
+  'By downloading, installing, or using a community indicator, you acknowledge that you do so at your own risk. TradeZoro is not responsible for any trading losses, damages, technical issues, data loss, or other consequences arising from the use of any community indicator.'
 ];
 
 function h(tag, attrs, kids){

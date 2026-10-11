@@ -2,7 +2,7 @@
   "name": "stryker-social-automation",
   "version": "0.1.0",
   "private": true,
-  "description": "Stryker Trading Academy social automation: generates short videos and cards from the site's own content and posts them to YouTube Shorts, Instagram Reels, Threads and X.",
+  "description": "TradeZoro social automation: generates short videos and cards from the site's own content and posts them to YouTube Shorts, Instagram Reels, Threads and X.",
   "main": "src/index.js",
   "engines": { "node": ">=22" },
   "scripts": {

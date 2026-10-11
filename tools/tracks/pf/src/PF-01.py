@@ -63,7 +63,7 @@ body = [
     '<p>A <strong>prop firm</strong> (short for proprietary trading firm) is a company that trades with its own money instead of its customers\' money. '
     'Traditional prop firms hire traders, give them the firm\'s capital and share the profits. The firms most retail traders now mean by "prop firm" '
     'work differently: you pay a fee to take a trading test, and if you pass under their rules, you trade a firm account and can request a share of the profits.</p>',
-    '<p>This track is about that second kind: the <strong>evaluation-model</strong> prop firm, and mainly the U.S. futures firms that Stryker members use most. '
+    '<p>This track is about that second kind: the <strong>evaluation-model</strong> prop firm, and mainly the U.S. futures firms that TradeZoro members use most. '
     'This chapter explains what you are actually buying, how the accounts are set up, and how these firms make money. That last part matters, because '
     'it explains almost every rule you will meet in the rest of the track.</p>',
     '<p>Firm rules change often. Every rule in this track is quoted from the firm\'s own help pages <strong>as of %s</strong>, with a link. '
@@ -128,7 +128,7 @@ body = [
     '(for example, Topstep offers Level 2 depth-of-market data as a paid upgrade, as of %s). Its costs include payouts to traders, platform and data fees, staff and marketing.</p>' % AS_OF,
     '<p>What the firms don\'t publish is the balance between these lines: how many evaluations are sold, how many pass, and how much is paid out. '
     'You will see pass rates and payout rates quoted online. Unless a number links to audited or official data, treat it as a guess. '
-    'Stryker\'s rule for this track is simple: if we can\'t open the source, we don\'t print the number.</p>',
+    'TradeZoro\'s rule for this track is simple: if we can\'t open the source, we don\'t print the number.</p>',
     '<h3>Why the model shapes the rules</h3>',
     '<p>Because most of a firm\'s traders are on simulated accounts, the firm\'s real risk isn\'t market losses. It is <strong>paying out</strong> to traders whose '
     'results came from luck, oversizing or rule gaming, not repeatable skill. That is why you will see:</p>',
@@ -163,7 +163,7 @@ body = [
     '</ul>',
     '<p>You are <strong>not</strong> buying capital, a salary, or any promise of income. Topstep\'s own consistency page makes the design goal plain: '
     '"big spike days don\'t build funded traders. Sustainable habits do." Firms want steady, rule-following traders. That is the trader this track is built to help you become.</p>',
-    '<p>This chapter builds on core <a href="chapter.html?ch=41">chapter 41, Prop Firm &amp; Funded Account Considerations</a>, which covers the basics of using a firm with the Stryker framework. '
+    '<p>This chapter builds on core <a href="chapter.html?ch=41">chapter 41, Prop Firm &amp; Funded Account Considerations</a>, which covers the basics of using a firm with the TradeZoro framework. '
     'This track goes deeper into the rules, costs and habits.</p>',
 
     '<h2>Common mistakes</h2>',

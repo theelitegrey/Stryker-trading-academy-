@@ -1,4 +1,4 @@
-// Stryker Trading Academy — pre-market brief
+// TradeZoro — pre-market brief
 // Renders assets/market-brief.json in two places: a compact card on the user
 // dashboard (#dash-brief) and the full page (market-brief.html, #mb-page).
 // Depends on: assets/sanitize.js for stkEsc.
@@ -212,7 +212,7 @@
       if (card) renderCard(card, brief);
       if (page) renderPage(page, brief);
     }).catch((err) => {
-      console.error('Stryker: market brief could not be loaded', err);
+      console.error('TradeZoro: market brief could not be loaded', err);
       fail(card, false);
       fail(page, true);
     });

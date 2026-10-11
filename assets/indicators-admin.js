@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Trading Indicators list (indicators-admin.html)
+// TradeZoro — Admin: Trading Indicators list (indicators-admin.html)
 // Mirrors assets/models-admin.js, without the bulk "Update all" import since
 // there's no seed array for indicators.
 
@@ -48,7 +48,7 @@ function loadTvConfig(){
     if (ids) ids.value = TV_CFG.pineIds.join('\n');
     if (dur) dur.value = TV_CFG.duration;
     renderTvConfigStatus();
-  }).catch((err) => console.error('Stryker: could not load TradingView settings', err));
+  }).catch((err) => console.error('TradeZoro: could not load TradingView settings', err));
 }
 
 // ---- manual grants ----------------------------------------------------------
@@ -294,7 +294,7 @@ function loadTvRequests(){
     snap.forEach((doc) => TV_STUDENTS.push(Object.assign({ uid: doc.id }, doc.data())));
     renderTvRequestsPanel(TV_STUDENTS);
     renderTvApprovedPanel();
-  }).catch((err) => console.error('Stryker: failed to load TradingView requests', err));
+  }).catch((err) => console.error('TradeZoro: failed to load TradingView requests', err));
 }
 
 // ---------------------------------------------------------------------------
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadIndicators()
       .then(() => renderIndicatorList())
       .catch((err) => {
-        console.error('Stryker: failed to load trading indicators admin page', err);
+        console.error('TradeZoro: failed to load trading indicators admin page', err);
         document.getElementById('indicator-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });

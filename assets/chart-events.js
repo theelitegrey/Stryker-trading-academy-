@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: economic events, session breaks, regular-hours shading
+// TradeZoro — Charts: economic events, session breaks, regular-hours shading
 // (ES module, charts.html only). Owner order 2026-10-06 ("Build all", Settings window stage 4).
 //
 //   - Economic events: USD rows from assets/econ-calendar.json (the same file the Economic
@@ -236,7 +236,7 @@ export function installChartEvents(Core){
   try {
     Core.registerRendererLayer({ id: 'stk_sess', placement: 'below-data', create: sessLayer });
     Core.registerRendererLayer({ id: 'stk_events', placement: 'above-data', create: eventsLayer });
-  } catch (e) { console.warn('Stryker events: layers', e); }
+  } catch (e) { console.warn('TradeZoro events: layers', e); }
   window.__stkExtraSections = (window.__stkExtraSections || []).concat([sections]);
 }
 export function mountChartEvents(ws){
@@ -246,7 +246,7 @@ export function mountChartEvents(ws){
     const list = j && Array.isArray(j.events) ? j.events : [];
     events = list.map((e) => ({ t: Date.parse(e.at), cur: e.cur, impact: e.impact, title: String(e.event || '') })).filter((e) => Number.isFinite(e.t) && e.title);
     push();
-  }).catch((e) => console.warn('Stryker events: calendar', e));
+  }).catch((e) => console.warn('TradeZoro events: calendar', e));
   // capture phase: the chart stops pointer events from bubbling
   document.addEventListener('mousemove', onMove, { passive: true, capture: true });
   try { ws.on('state:changed', () => setTimeout(push, 0)); } catch (e) {}

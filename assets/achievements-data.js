@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared achievement/badge definitions
+// TradeZoro — shared achievement/badge definitions
 // Used by: achievements.js (renders the full badge grid, grouped by
 // category) and notifications.js (detects newly-earned badges to notify
 // about) and profile.js (shows a public-safe subset).
@@ -158,7 +158,7 @@ const ACHIEVEMENTS = [
   { id: 'tv-access', title: 'Terminal Linked', desc: 'Get your TradingView indicator access granted.', category: 'Profile', color: '#2dd4bf',
     icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
     check: (s) => !!s.tradingViewAccessGranted },
-  { id: 'early-adopter', title: 'Early Adopter', desc: 'Joined while Stryker Trading Academy was still in beta.', category: 'Profile', color: '#38bdf8',
+  { id: 'early-adopter', title: 'Early Adopter', desc: 'Joined while TradeZoro was still in beta.', category: 'Profile', color: '#38bdf8',
     icon: '<path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>',
     check: () => true },
   { id: 'welcome', title: 'Welcome to the Desk', desc: 'Create your account.', category: 'Profile', color: '#38bdf8',

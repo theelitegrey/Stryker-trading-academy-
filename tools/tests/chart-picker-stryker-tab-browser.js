@@ -2,7 +2,7 @@
 // (assets/chart-indicator-window.js + assets/chart-community-disclaimer.js).
 //   CHART_BASE=http://127.0.0.1:8061 OUT=<dir> node tools/tests/chart-picker-stryker-tab-browser.js
 // Run under `flock /tmp/stryker-chrome.lock`.
-// Checks (1440 and 390): BUILT-IN > Stryker sits right under Technicals and lists every Stryker
+// Checks (1440 and 390): BUILT-IN > TradeZoro sits right under Technicals and lists every TradeZoro
 // script (STRYKER_PICKS + every PICKER_SCRIPTS 'picks' entry); Editors' picks lists the same;
 // no "Community indicators" tab; Top and Trending both list every PICKER_SCRIPTS 'community'
 // entry with its own author + third-party tag; no /boost/i text anywhere in the window; the
@@ -37,7 +37,7 @@ async function run(b, w, h){
   await p.waitForSelector('.stkiw-tab[data-k="stryker"]', { timeout: 20000 });
   const tabs = await p.evaluate(() => [...document.querySelectorAll('.stkiw-tab')].map((x) => x.dataset.k + '=' + x.textContent));
   const ti = tabs.indexOf('tech=Technicals');
-  check(ti >= 0 && tabs[ti + 1] === 'stryker=Stryker', tag + ': Stryker tab right under Technicals (' + tabs.join(' | ') + ')');
+  check(ti >= 0 && tabs[ti + 1] === 'stryker=TradeZoro', tag + ': TradeZoro tab right under Technicals (' + tabs.join(' | ') + ')');
   check(!tabs.some((t) => /Community indicators/.test(t)), tag + ': no "Community indicators" tab');
   const rowsOf = () => p.evaluate(() => [...document.querySelectorAll('.stkiw-list .stkiw-row')].map((r) => ({ key: r.dataset.key, sub: (r.querySelector('.stkiw-sub') || {}).textContent, tag: [...r.querySelectorAll('.stkiw-pick')].map((x) => x.textContent).join(',') })));
   const tab = async (k) => { await p.click('.stkiw-tab[data-k="' + k + '"]'); await p.waitForTimeout(400); };
@@ -45,7 +45,7 @@ async function run(b, w, h){
   for (const k of ['stryker', 'picks']) {
     await tab(k);
     const r = await rowsOf(); const keys = r.map((x) => x.key);
-    check(data.picks.every((x) => keys.includes(x)) && r.every((x) => x.sub === 'Stryker' || !data.third.some((t) => t.key === x.key)), tag + ' ' + k + ': all ' + data.picks.length + ' Stryker scripts listed (' + keys.join(', ') + ')');
+    check(data.picks.every((x) => keys.includes(x)) && r.every((x) => x.sub === 'TradeZoro' || !data.third.some((t) => t.key === x.key)), tag + ' ' + k + ': all ' + data.picks.length + ' TradeZoro scripts listed (' + keys.join(', ') + ')');
     check(!data.third.some((t) => keys.includes(t.key)), tag + ' ' + k + ': no third-party script');
     const s = await state();
     check(!s.note, tag + ' ' + k + ': no disclaimer notice');

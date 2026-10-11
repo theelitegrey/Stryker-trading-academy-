@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — small SVG chart kit for the Backtesting views
+ * TradeZoro — small SVG chart kit for the Backtesting views
  *
  * Responsive SVG charts with a shared hover tooltip: line/area with crosshair,
  * donut, lollipop, horizontal pos/neg bars, gauge, histogram and a percentile

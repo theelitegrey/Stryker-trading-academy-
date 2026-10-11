@@ -1,4 +1,4 @@
-// Stryker Trading Academy — public profile sync
+// TradeZoro — public profile sync
 // Depends on: assets/progress.js (`db`)
 //
 // Writes a deliberately narrow, public-safe subset of a student's data to
@@ -27,18 +27,18 @@ function syncPublicProfile(uid, fields){
   const write = () => db.collection('profiles').doc(uid).set(fields, { merge: true });
   return write().catch((err) => {
     if (!err || err.code !== 'permission-denied') {
-      console.error('Stryker: failed to sync public profile', err);
+      console.error('TradeZoro: failed to sync public profile', err);
       return;
     }
     const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
     if (!user || user.uid !== uid) {
-      console.error('Stryker: failed to sync public profile', err);
+      console.error('TradeZoro: failed to sync public profile', err);
       return;
     }
     return new Promise((r) => setTimeout(r, 400))
       .then(() => (user.getIdToken) ? user.getIdToken(true) : null)
       .catch(() => null)
       .then(write)
-      .catch((err2) => console.error('Stryker: failed to sync public profile', err2));
+      .catch((err2) => console.error('TradeZoro: failed to sync public profile', err2));
   });
 }

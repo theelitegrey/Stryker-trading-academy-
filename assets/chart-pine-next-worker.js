@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: Pine "next" engine, Web Worker side (module worker)
+// TradeZoro — Charts: Pine "next" engine, Web Worker side (module worker)
 // Started by assets/chart-pine-next.js (PineNextEngine). Not loaded by any page directly.
 //
 // WHY: the Web Worker that ships inside @luxalgo/vela-pinets 0.2.11 inlines an older PineTS
@@ -41,8 +41,8 @@ let fetchId = 0;
 let rewrite = (src) => src;
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
-  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=497')]);
-  try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('Stryker: pine-next patches', e); }
+  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=498')]);
+  try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('TradeZoro: pine-next patches', e); }
   const res = await fetch(VELA_PINETS);
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');
   const text = (await res.text())

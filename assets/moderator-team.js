@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Moderator team management
+// TradeZoro — Moderator team management
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 //
 // Mirrors assets/admin-team.js exactly, for a separate moderators/{uid}

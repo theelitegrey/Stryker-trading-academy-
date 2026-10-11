@@ -99,10 +99,10 @@ async function pageRun(b, pg, signedIn, width, utm) {
       desc: document.querySelector('meta[name=description]').content, bullets: document.querySelectorAll('.cs-points li').length,
       legal: document.querySelector('.cs-legal').textContent, cap: document.querySelector('.cs-preview figcaption').textContent }));
     ok(`${tag}: approved copy (title/H1/meta/3 bullets/legal/caption)`,
-      c.title === 'Free Prop Firm Cheat Sheet — Stryker Trading Academy' && c.h1 === 'Prop Firm Cheat Sheet' &&
+      c.title === 'Free Prop Firm Cheat Sheet — TradeZoro' && c.h1 === 'Prop Firm Cheat Sheet' &&
       c.desc.startsWith('A free four-page prop firm cheat sheet:') && c.bullets === 3 &&
       c.legal.startsWith('Education only. Not financial advice. Most traders fail evaluations.') &&
-      c.cap === '4 pages · PDF · The rules, sizing, the IFVG model and everything inside Stryker', JSON.stringify(c).slice(0, 200));
+      c.cap === '4 pages · PDF · The rules, sizing, the IFVG model and everything inside TradeZoro', JSON.stringify(c).slice(0, 200));
   }
   if (SHOTS && !utm && (width === 390 || width === 1440)) await p.screenshot({ path: `${SHOTS}/${pg.name}-${signedIn ? 'signedin' : 'signedout'}-${width}.png` });
   if (!signedIn) {

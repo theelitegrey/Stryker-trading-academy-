@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Bots admin
+// TradeZoro — Bots admin
 // Depends on: assets/auth.js, assets/progress.js (db), assets/team-identity.js
 //
 // bots/{botId}: {
@@ -18,13 +18,13 @@
 // validation branch. Hand-writing a form per type is how admin panels become
 // the thing nobody wants to touch.
 //
-// Bots write as Stryker Team, so this page is admin-only in the rules as well
+// Bots write as TradeZoro Team, so this page is admin-only in the rules as well
 // as in the UI. Anything here can publish to every student's feed.
 
 var BOT_TYPES = {
   'twitter-mirror': {
     label: 'X / Twitter mirror',
-    blurb: 'Publishes new posts from an X account to the Trading Floor as Stryker Team.',
+    blurb: 'Publishes new posts from an X account to the Trading Floor as TradeZoro Team.',
     icon: 'M18 4l-5.5 7L18 20h-3.2l-4-5.4L6 20H4l5.9-7.4L4.3 4h3.3l3.6 5 3.9-5H18z',
     fields: [
       { key: 'screenName', label: 'X account', type: 'text', required: true,
@@ -188,7 +188,7 @@ function renderBots() {
     host.innerHTML =
       '<div class="empty-state">' +
       '<h3>No bots yet</h3>' +
-      '<p>Bots publish to the Trading Floor as Stryker Team. Add one to get started.</p>' +
+      '<p>Bots publish to the Trading Floor as TradeZoro Team. Add one to get started.</p>' +
       '</div>';
     return;
   }
@@ -399,7 +399,7 @@ function saveBot() {
       db.collection('profiles').doc(botUid(id))
         .set(botProfile({ id: id, name: name, config: res.config }), { merge: true })
         .catch(function (err) {
-          console.error('Stryker: could not write the bot profile', err);
+          console.error('TradeZoro: could not write the bot profile', err);
         });
     }
     if (typeof logActivity === 'function') {

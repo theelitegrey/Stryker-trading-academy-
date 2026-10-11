@@ -1,6 +1,6 @@
 <!doctype html>
 <!--
-  Stryker cheat-sheet template: A4 portrait, two pages, one PDF.
+  TradeZoro cheat-sheet template: A4 portrait, two pages, one PDF.
   Same look as the FVG & Order Block sheet (social-posts/src/cheatsheet.html):
   dark page, mint accent, Space Grotesk + JetBrains Mono, chart-grid texture.
 
@@ -14,7 +14,7 @@
   FVG sheet) and zoomed to A4 (794 x 1123 px) for print.
 -->
 <html lang="en"><head><meta charset="utf-8">
-<title>Stryker cheat sheet</title>
+<title>TradeZoro cheat sheet</title>
 <style>
   /* Static weight instances (not the variable fonts): Chrome embeds variable
      fonts in PDFs as Type3 bitmaps-of-outlines; static TTFs embed as TrueType. */
@@ -238,7 +238,7 @@
   const page = (p, i) => `<div class="page">
     ${S.placeholder ? `<div class="placeholder-mark">PLACEHOLDER TEXT, NOT FOR RELEASE</div>` : ""}
     <div class="hd"><div class="brand"><div class="logo"><img src="__LOGO__" alt=""></div>
-      <div class="wm">STRYKER<small>TRADING ACADEMY</small></div></div>
+      <div class="wm">TRADEZORO</div></div>
       <div style="display:flex;align-items:center;gap:16px"><div class="doctag">${fmt(p.tag || S.tag || "Cheat Sheet")}</div><div class="pagenum">${i + 1} / ${total}</div></div></div>
     <div>${p.eyebrow ? `<div class="eyebrow">${fmt(p.eyebrow)}</div>` : ""}<h1 class="h1">${fmt(p.title)}</h1></div>
     ${(p.blocks || []).map(block).join("\n")}

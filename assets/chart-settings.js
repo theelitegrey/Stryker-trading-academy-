@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts settings window (ES module, charts.html only)
+// TradeZoro — Charts settings window (ES module, charts.html only)
 // Depends on: the self-hosted Vela 0.6.17 build (passed in as `Core` = index.js and `VelaChunk` =
 // the main chunk, for its TIMEZONES list), and the live workspace from assets/vela-chart.js.
 //
@@ -11,7 +11,7 @@
 //   - it adds our extra rows through Vela's host-settings seam (renderer.setSettingsSections),
 //     then moves them into the matching Vela tab when the dialog opens;
 //   - it adds the TradingView footer: Template ⌄ (Save as default / Apply defaults / Reset to
-//     Stryker defaults), Apply to all, Cancel (restores the snapshot taken when the dialog
+//     TradeZoro defaults), Apply to all, Cancel (restores the snapshot taken when the dialog
 //     opened), Ok;
 //   - it adds a gear button to our top bar;
 //   - our own values live per chart cell in the workspace document under
@@ -98,7 +98,7 @@ export function installChartSettings(Core, VelaChunk){
     const tz = VelaChunk && VelaChunk.TIMEZONES;
     const k = tz && tz.find((t) => t.value === 'Asia/Kolkata');
     if (k) k.label = 'Kolkata';
-  } catch (e) { console.warn('Stryker settings: tz label', e); }
+  } catch (e) { console.warn('TradeZoro settings: tz label', e); }
   Core.registerStatePersistence({
     key: EXT_KEY, scope: 'cell',
     serialize(ctx){ const s = store.get(ctx.cellId); return s && !isDefault(s) ? Object.assign({}, s) : undefined; },
@@ -356,7 +356,7 @@ function footer(dlg){
     if (!d) { toastFn('No saved default yet. Use "Save as default" first.', 'info'); return; }
     restore(dlgCell, d); reopen();
   });
-  item('Reset to Stryker defaults', () => { restore(dlgCell, stykerDefaults(dlgCell), { tz: true }); reopen(); });
+  item('Reset to TradeZoro defaults', () => { restore(dlgCell, stykerDefaults(dlgCell), { tz: true }); reopen(); });
   tplWrap.appendChild(tplBtn); tplWrap.appendChild(menu);
   const allBtn = mk('Apply to all', '', () => {
     const s = snapshot(dlgCell); if (!s) return;

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Commerce overview (commerce-admin.html)
+// TradeZoro — Admin: Commerce overview (commerce-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 
 function renderRecentOrders(orders){
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRecentOrders(orders);
       renderTopCoupons(coupons);
     }).catch((err) => {
-      console.error('Stryker: failed to load commerce overview', err);
+      console.error('TradeZoro: failed to load commerce overview', err);
       document.getElementById('commerce-recent-orders').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
     });

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — chapter reader (chapter.html)
+// TradeZoro — chapter reader (chapter.html)
 // Depends on: assets/chapters-data.js, assets/auth.js (firebase init + `auth`),
 // assets/progress.js (Firestore helpers).
 //
@@ -51,7 +51,7 @@ function persistProgress(){
           }, (typeof CHAPTERS !== 'undefined') ? CHAPTERS : null);
         }
       })
-      .catch(err => console.error('Stryker: failed to save progress to Firestore', err));
+      .catch(err => console.error('TradeZoro: failed to save progress to Firestore', err));
   } else {
     saveLocalProgress(completedLessonsSet, completedChaptersSet);
   }
@@ -129,7 +129,7 @@ function checkChapterRoleAccess(ch, uid, student){
       // Says exactly which of the two checks refused and on what values.
       // Without this, "why is this locked" means reading three files and
       // guessing, which is how the last one took so long to find.
-      console.warn('Stryker: chapter ' + ch.num + ' blocked —',
+      console.warn('TradeZoro: chapter ' + ch.num + ' blocked —',
         'plan:', plan,
         '| chapter minRole:', ch.minRole || '(none)',
         '| passes minRole:', passesMinRole,
@@ -138,7 +138,7 @@ function checkChapterRoleAccess(ch, uid, student){
     }
     return passesMinRole && passesChapterLimit;
   }).catch((err) => {
-    console.error('Stryker: chapter role check failed', err);
+    console.error('TradeZoro: chapter role check failed', err);
     return true; // fail open rather than lock students out on a transient error
   });
 }
@@ -293,7 +293,7 @@ function renderReader(){
   const ch = currentChapter();
   if (!ch) return;
 
-  document.title = 'Chapter ' + ch.num + ' — ' + ch.title + ' | Stryker Trading Academy';
+  document.title = 'Chapter ' + ch.num + ' — ' + ch.title + ' | TradeZoro';
   document.getElementById('reader-crumb-title').textContent = 'Chapter ' + ch.num;
   document.getElementById('reader-title').textContent = ch.title;
 
@@ -658,7 +658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           });
         }).catch((err) => {
-          console.error('Stryker: failed to load the chapter', err);
+          console.error('TradeZoro: failed to load the chapter', err);
           showReaderLoadError();
           revealReaderContent();
         });

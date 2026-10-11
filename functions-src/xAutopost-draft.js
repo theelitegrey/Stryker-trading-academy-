@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — post drafting for the X autopost function
+ * TradeZoro — post drafting for the X autopost function
  *
  * Turns a source (the brief JSON, a calendar event, a monitor signal, a page,
  * a new chapter) into the text of an X post or thread, via the Claude API.
@@ -37,7 +37,7 @@ const { weightedLength } = require('./xAutopost-x');
 const MODEL = 'claude-opus-5';
 const LIMIT = 280;
 
-const VOICE = `You write the X (Twitter) posts for Stryker Trading Academy, an education
+const VOICE = `You write the X (Twitter) posts for TradeZoro, an education
 platform teaching ICT and smart-money trading. The account is read by retail
 traders before the London and New York sessions.
 

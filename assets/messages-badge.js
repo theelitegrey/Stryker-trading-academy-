@@ -1,4 +1,4 @@
-// Stryker Trading Academy — header messages icon
+// TradeZoro — header messages icon
 // Depends on: assets/messages.js, assets/auth.js, assets/progress.js
 //
 // Injected rather than added to 33 pages of markup, for the same reason as the
@@ -68,7 +68,7 @@
         }, function (err) {
           // Silent: an unreadable badge is not worth an error toast on every
           // page, and the messages page itself reports properly.
-          console.warn('Stryker: unread message count unavailable', err);
+          console.warn('TradeZoro: unread message count unavailable', err);
         });
     });
   });

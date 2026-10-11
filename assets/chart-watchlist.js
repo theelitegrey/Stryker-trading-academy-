@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts WATCHLIST panel (charts.html only) — ES module
+// TradeZoro — Charts WATCHLIST panel (charts.html only) — ES module
 // Depends on: the Vela workspace (window.STRYKER_VELA: ws.feed, ws.active, ws.on) and helpers
 // handed in by assets/vela-chart.js (toast, Core = Vela index.js for categoricalColor, the
 // SymbolPicker class from Vela's widget build, rith); assets/chart-data-dot.js
@@ -638,7 +638,7 @@ export function mountWatchlist(ws, o){
       if (a >= 0 && b >= 0) { selSet = new Set(syms.slice(Math.min(a, b), Math.max(a, b) + 1)); markSel(); return; }
     }
     selSet = new Set(); sel = sym; markSel();
-    try { ws.active.setSymbol(sym); } catch (err) { console.warn('Stryker watchlist: load', err); }
+    try { ws.active.setSymbol(sym); } catch (err) { console.warn('TradeZoro watchlist: load', err); }
     setTimeout(markActive, 50);
     body.focus({ preventScroll: true });
     if (isPhone()) setOpen(false);
@@ -751,7 +751,7 @@ export function mountWatchlist(ws, o){
     clearTimeout(saveTimer);
     if (viewing || !cur) return;
     try { const d = await store.save(cur); cur.updatedAt = d.updatedAt; }
-    catch (e) { console.warn('Stryker watchlist: save', e); toast('Could not save the watchlist. Check your connection.', 'error'); }
+    catch (e) { console.warn('TradeZoro watchlist: save', e); toast('Could not save the watchlist. Check your connection.', 'error'); }
   }
   function addSymbol(sym){
     if (!cur || viewing) return;
@@ -824,7 +824,7 @@ export function mountWatchlist(ws, o){
     if (lists.length >= MAX_LISTS) { toast('You have ' + MAX_LISTS + ' lists. Delete one to make another.', 'error'); return null; }
     const d = Object.assign({ id: rid(), name: String(name).slice(0, NAME_MAX), items: items.slice(0, MAX_ITEMS), collapsed: [], view: Object.assign({}, view()), shared: false }, extra || {});
     try { const s = await store.save(d); lists.push(s); return s; }
-    catch (e) { console.warn('Stryker watchlist: create', e); toast('Could not create the list.', 'error'); return null; }
+    catch (e) { console.warn('TradeZoro watchlist: create', e); toast('Could not create the list.', 'error'); return null; }
   }
   async function createList(name){
     await saveNow();
@@ -843,7 +843,7 @@ export function mountWatchlist(ws, o){
       stash = null; lists.push(d); endViewing(); setCur(d);
       try { const sv = await store.save(d); d.updatedAt = sv.updatedAt || d.updatedAt; toast('Saved as "' + d.name + '"'); }
       catch (e) {
-        console.warn('Stryker watchlist: copy', e);
+        console.warn('TradeZoro watchlist: copy', e);
         lists = lists.filter((l) => l !== d); setCur(lists[0] || null);
         toast('Could not save the copy. Check your connection.', 'error');
       }
@@ -893,7 +893,7 @@ export function mountWatchlist(ws, o){
       if (on) copyLink();
       listMenu.set(false);
     } catch (e) {
-      console.warn('Stryker watchlist: share', e);
+      console.warn('TradeZoro watchlist: share', e);
       cur.shared = !on; if (cb) cb.checked = !on;
       toast('Could not change sharing.', 'error');
     }
@@ -1077,7 +1077,7 @@ export function mountWatchlist(ws, o){
     loading = true; render();
     store = user() ? cloudStore() : localStore();
     try { lists = await store.list(); }
-    catch (e) { console.warn('Stryker watchlist: load', e); lists = []; toast('Could not load your watchlists.', 'error'); }
+    catch (e) { console.warn('TradeZoro watchlist: load', e); lists = []; toast('Could not load your watchlists.', 'error'); }
     loading = false;
     if (!lists.length) {
       const d = await newDoc('Watchlist', DEFAULT_ITEMS);

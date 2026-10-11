@@ -1,4 +1,4 @@
-// Stryker Trading Academy — dynamic branding (logo + favicon)
+// TradeZoro — dynamic branding (logo + favicon)
 // Depends on: assets/progress.js (`db`)
 //
 // An admin can upload a custom logo/favicon in appearance-admin.html; those are
@@ -24,13 +24,13 @@
 //      paint, which is the best achievable without inlining the image into
 //      every page.
 //
-// The real elimination is to replace assets/images/tradezoro-logo-header-494.png?v=497 with the
+// The real elimination is to replace assets/images/tradezoro-logo-header-494.png?v=498 with the
 // current logo so the bundled default and the upload agree — then there is
 // nothing to swap. This file makes the mismatch cheap, not correct.
 
 var BRAND_LOGO_KEY = 'tradezoro_brand_logo_v2';
 var BRAND_FAVICON_KEY = 'tradezoro_brand_favicon_v2';
-// Drop the old Stryker-era cached logo/favicon from every device.
+// Drop the old TradeZoro-era cached logo/favicon from every device.
 try { localStorage.removeItem('stryker_brand_logo'); localStorage.removeItem('stryker_brand_favicon'); } catch (e) {}
 
 function brandRead(key) {
@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function () {
       brandWrite(BRAND_LOGO_KEY, null);
     }
   }).catch(function (err) {
-    console.error('Stryker: failed to load custom logo, using default', err);
+    console.error('TradeZoro: failed to load custom logo, using default', err);
   });
 
   db.collection('settings').doc('favicon').get().then(function (doc) {
@@ -96,6 +96,6 @@ document.addEventListener('DOMContentLoaded', function () {
       brandWrite(BRAND_FAVICON_KEY, null);
     }
   }).catch(function (err) {
-    console.error('Stryker: failed to load custom favicon, using default', err);
+    console.error('TradeZoro: failed to load custom favicon, using default', err);
   });
 });

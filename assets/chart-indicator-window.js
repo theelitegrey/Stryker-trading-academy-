@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: "Indicators, metrics, and strategies" window (ES module)
+// TradeZoro — Charts: "Indicators, metrics, and strategies" window (ES module)
 // Depends on: assets/vela-chart.js (calls mountIndicatorWindow(ws, opts) after the
 // order-flow group and the Community row are installed); assets/chart-pine.js
 // (window.STRYKER_PINE.addSource: runs a Pine source on the active cell);
@@ -10,11 +10,11 @@
 // that replaces Vela's small picker. It takes over ws.indicatorPicker.open/close/sync, so
 // the topbar "Indicators" button and the "/" shortcut open this window instead.
 //   PERSONAL   Favorites (starred items from every source), My scripts, On this chart
-//   BUILT-IN   Technicals, grouped: Stryker (GEX Levels), Moving averages, Oscillators, Volatility,
+//   BUILT-IN   Technicals, grouped: TradeZoro (GEX Levels), Moving averages, Oscillators, Volatility,
 //              Volume & Order flow, Trend, Levels (Vela built-ins + our order-flow tools
-//              + the Stryker Pine examples); Stryker (every Stryker script, derived from
+//              + the TradeZoro Pine examples); TradeZoro (every TradeZoro script, derived from
 //              STRYKER_PICKS + PICKER_SCRIPTS section 'picks', so new ones appear by themselves)
-//   COMMUNITY  Editors' picks (default: every Stryker script, then admin-picked community
+//   COMMUNITY  Editors' picks (default: every TradeZoro script, then admin-picked community
 //              scripts), Top and Trending (member-published public scripts plus every
 //              third-party built-in, PICKER_SCRIPTS section 'community', credited to its
 //              author; built-ins without stats follow, alphabetical). Owner order 2026-10-08:
@@ -32,20 +32,20 @@
 // FAVOURITES: students/{uid}/chartFavorites/{key with ':' -> '_'} = { key, name, at }.
 // Private to the member (rules block "Charts: indicator favourites"). Signed out:
 // localStorage only. Keys: b:<nativeType> built-in, p:<id> drawing-tool row,
-// x:<id> Stryker example, m:<id> My script, c:<id> Community script, o:<name> other.
+// x:<id> TradeZoro example, m:<id> My script, c:<id> Community script, o:<name> other.
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=497';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=498';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
 const GROUP_FLOW = 'Volume & Order flow';
-const GROUP_STRYKER = 'Stryker';
+const GROUP_STRYKER = 'TradeZoro';
 const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
-  ['BUILT-IN', [['tech', 'Technicals'], ['stryker', 'Stryker']]],
+  ['BUILT-IN', [['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
   ['COMMUNITY', [['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
 ];
 
@@ -108,7 +108,7 @@ const Favs = {
         try {
           const s = await favCol(u).limit(300).get();
           s.forEach((d) => { const x = d.data() || {}; if (x.key) m.set(x.key, x.name || x.key); });
-        } catch (e) { console.warn('Stryker: favourites', e); }
+        } catch (e) { console.warn('TradeZoro: favourites', e); }
       } else {
         try { (JSON.parse(localStorage.getItem(FAV_LS) || '[]') || []).forEach((x) => { if (x && x.key) m.set(x.key, x.name || x.key); }); } catch (e) {}
       }
@@ -177,22 +177,22 @@ export function mountIndicatorWindow(ws, opts){
     rows.forEach((r, i) => {
       if (!r || r.category === 'Community') return;
       let key, author = 'Built-in', cat;
-      if (r.pseudo) { key = 'p:' + r.pseudo; author = 'Stryker'; cat = GROUP_FLOW; }
-      else if (r.native) { key = 'b:' + r.nativeType; if (/^stk_/.test(r.nativeType)) author = 'Stryker'; cat = r.category === GROUP_FLOW ? GROUP_FLOW : catOf(r.name); }
-      else { key = 'o:' + String(r.name).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60); cat = catOf(r.name); author = 'Stryker'; }
-      // Stryker GEX Levels (assets/chart-gex-levels.js) heads its own "Stryker" group.
+      if (r.pseudo) { key = 'p:' + r.pseudo; author = 'TradeZoro'; cat = GROUP_FLOW; }
+      else if (r.native) { key = 'b:' + r.nativeType; if (/^stk_/.test(r.nativeType)) author = 'TradeZoro'; cat = r.category === GROUP_FLOW ? GROUP_FLOW : catOf(r.name); }
+      else { key = 'o:' + String(r.name).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60); cat = catOf(r.name); author = 'TradeZoro'; }
+      // TradeZoro GEX Levels (assets/chart-gex-levels.js) heads its own "TradeZoro" group.
       let desc = '';
       if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, ES, NQ)'; }
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
     });
     const ex = (S() && S().EXAMPLES) || [];
-    ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'Stryker', cat: catOf(x.name), kind: 'example', source: x.source }));
+    ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'TradeZoro', cat: catOf(x.name), kind: 'example', source: x.source }));
     // Pine scripts from assets/chart-pine-builtins.js (next-gen engine). section 'picks' = the
-    // Owner's own (Stryker group + BUILT-IN > Stryker); 'community' = third-party, listed in
-    // COMMUNITY > Top and Trending with the script's own author, never as Stryker.
+    // Owner's own (TradeZoro group + BUILT-IN > TradeZoro); 'community' = third-party, listed in
+    // COMMUNITY > Top and Trending with the script's own author, never as TradeZoro.
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
-      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'Stryker', cat: third ? null : GROUP_STRYKER,
+      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? null : GROUP_STRYKER,
         kind: 'example', builtinId: b.id, desc: b.desc, third });
     });
     return out;
@@ -210,7 +210,7 @@ export function mountIndicatorWindow(ws, opts){
     const tasks = [Favs.load()];
     if (S()) tasks.push(S().list().then((r) => { mine = r.items || []; }).catch(() => { mine = []; }));
     if (L() && fbUser()) {
-      tasks.push(L().listPublic().then((a) => { community = a; communityErr = false; }).catch((e) => { console.warn('Stryker: community list', e); community = []; communityErr = true; }));
+      tasks.push(L().listPublic().then((a) => { community = a; communityErr = false; }).catch((e) => { console.warn('TradeZoro: community list', e); community = []; communityErr = true; }));
       tasks.push(L().isAdmin().then((a) => { isAdmin = a; }));
     } else { community = []; }
     await Promise.all(tasks);
@@ -248,7 +248,7 @@ export function mountIndicatorWindow(ws, opts){
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');
       }
     } catch (e) {
-      console.warn('Stryker: add from window', e);
+      console.warn('TradeZoro: add from window', e);
       toast('Could not add it to the chart.', 'error');
     } finally {
       if (rowEl) rowEl.classList.remove('is-busy');
@@ -338,7 +338,7 @@ export function mountIndicatorWindow(ws, opts){
         star.classList.toggle('on', on); star.setAttribute('aria-pressed', on ? 'true' : 'false');
         star.title = on ? 'Remove from favorites' : 'Add to favorites';
         if (section === 'fav' && !on && !els.search.value.trim()) render();
-      } catch (err) { console.warn('Stryker: favourite', err); toast('Could not save the favourite.', 'error'); }
+      } catch (err) { console.warn('TradeZoro: favourite', err); toast('Could not save the favourite.', 'error'); }
       star.disabled = false;
     });
     const name = h('button', { type: 'button', class: 'stkiw-name', title: it.gone ? 'No longer published' : 'Add to chart' }, [
@@ -376,7 +376,7 @@ export function mountIndicatorWindow(ws, opts){
   function onChartItems(){
     let rows = [];
     try { rows = ws.active.onChartRows(); } catch (e) {}
-    const out = rows.map((r, i) => ({ key: 'z:' + i, name: r.name, author: r.native ? (r.language === 'stryker' ? 'Stryker' : 'Built-in') : 'Script', kind: 'onchart', index: i }));
+    const out = rows.map((r, i) => ({ key: 'z:' + i, name: r.name, author: r.native ? (r.language === 'stryker' ? 'TradeZoro' : 'Built-in') : 'Script', kind: 'onchart', index: i }));
     const a = activeCell();
     const pine = P();
     if (a.cell && pine && pine.pineHandles) {
@@ -402,7 +402,7 @@ export function mountIndicatorWindow(ws, opts){
   const day = () => Math.floor(Date.now() / 86400000);
   function week(ring){ const t = day(); let n = 0; if (ring && typeof ring === 'object') Object.keys(ring).forEach((k) => { const v = ring[k]; if (v && v.d > t - 7 && v.d <= t + 1) n += Number(v.n) || 0; }); return n; }
 
-  // Every Stryker-made script: the natives/examples named in STRYKER_PICKS, then every
+  // Every TradeZoro-made script: the natives/examples named in STRYKER_PICKS, then every
   // PICKER_SCRIPTS entry with section 'picks'. Future entries appear with no extra wiring.
   function strykerItems(all){
     const by = new Map(all.map((x) => [x.key, x])), seen = new Set();
@@ -420,11 +420,11 @@ export function mountIndicatorWindow(ws, opts){
       case 'fav': return { title: 'Favorites', items: favItems(all), empty: 'Star any indicator or script to keep it here.' };
       case 'mine': return { title: 'My scripts', items: all.filter((x) => x.kind === 'mine'), empty: S() && S().signedIn() ? 'No saved scripts yet. Write one in the Pine editor and press Save.' : 'Sign in to keep scripts on your account.' };
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
-      case 'stryker': return { title: 'Stryker', note: 'every Stryker indicator', items: strykerItems(all), empty: 'No Stryker indicators yet.' };
+      case 'stryker': return { title: 'TradeZoro', note: 'every TradeZoro indicator', items: strykerItems(all), empty: 'No TradeZoro indicators yet.' };
       case 'picks': {
-        // Default: every Stryker script (same derived list as the Stryker tab), then
+        // Default: every TradeZoro script (same derived list as the TradeZoro tab), then
         // admin-picked community scripts. Curate later by changing strykerItems' source.
-        return { title: "Editors' picks", note: 'Stryker indicators', items: strykerItems(all).concat(comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0))), empty: 'No picks yet.' };
+        return { title: "Editors' picks", note: 'TradeZoro indicators', items: strykerItems(all).concat(comm.filter((x) => x.s.picked).sort((a, b) => (b.s.pickedAt || 0) - (a.s.pickedAt || 0))), empty: 'No picks yet.' };
       }
       case 'top': return { title: 'Top', note: 'community and third-party scripts', items: comm.slice().sort((a, b) => (b.boosts - a.boosts) || (b.s.addCount - a.s.addCount)).concat(thirdItems(all)), empty: 'No community scripts yet.' };
       case 'trending': {

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — public feature pages (features*.html)
+// TradeZoro — public feature pages (features*.html)
 // Scroll-reveal: elements with .ft-reveal fade/rise in as they enter the
 // viewport. Reduced-motion users (and browsers without IntersectionObserver)
 // just see everything immediately — content never depends on the animation.

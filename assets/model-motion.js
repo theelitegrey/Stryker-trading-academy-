@@ -1,4 +1,4 @@
-// Stryker Trading Academy — model page motion polish (model.html)
+// TradeZoro — model page motion polish (model.html)
 // Scroll-reveal for the article body + steps panel, per-step entrance
 // animation, and a sticky step-progress pill while the Steps & criteria
 // panel is on screen. Transforms and opacity only. Never touches
@@ -188,7 +188,7 @@
   }
 
   document.addEventListener('stryker:model-rendered', function () {
-    try { mount(); } catch (e) { console.error('Stryker: model-motion failed', e); }
+    try { mount(); } catch (e) { console.error('TradeZoro: model-motion failed', e); }
   });
 
 })();

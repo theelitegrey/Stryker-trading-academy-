@@ -5,7 +5,7 @@
 // Optional DEEP=5000: load that many bars first and time the run (20 s cap). OUT=<dir> screenshots.
 // SYMS=futures:NQ1!@5,binance:BTCUSDT@1 picks the markets (default NQ1! 5m).
 // Checks per script: the served source is byte-identical to the file the Owner sent; it is
-// listed under COMMUNITY > "Community indicators" with its own author (never Stryker); adding
+// listed under COMMUNITY > "Community indicators" with its own author (never TradeZoro); adding
 // it from the window draws (lines/boxes/labels/tables/series > 0) within the cap; no console
 // errors; phone 390 adds it too. Third-party scripts run AS SENT: no wording checks.
 const { launch } = require('./lib.js');

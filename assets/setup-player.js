@@ -1,4 +1,4 @@
-// Stryker Trading Academy — interactive setup player (model.html)
+// TradeZoro — interactive setup player (model.html)
 //
 // Plays a trading model's setup as a step-through chart animation: candles
 // arrive, then the annotations the model cares about (liquidity, the sweep,
@@ -610,7 +610,7 @@
       slot.__sp = new Player(slot, sb, model && model.name);
       return slot.__sp;
     } catch (e) {
-      console.error('Stryker: setup player could not start', e);
+      console.error('TradeZoro: setup player could not start', e);
       if (slot.__sp) { try { slot.__sp.destroy(); } catch (e2) {} }
       slot.__sp = null; slot.innerHTML = ''; slot.hidden = true;
       return null;

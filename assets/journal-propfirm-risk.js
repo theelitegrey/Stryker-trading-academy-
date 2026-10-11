@@ -1,4 +1,4 @@
-// Stryker Trading Academy — prop firm risk panel
+// TradeZoro — prop firm risk panel
 //
 // The UI over assets/propfirm-rules.js. All arithmetic lives in that file and
 // is unit-tested in node; this file only renders it and reads the form back.
@@ -55,7 +55,7 @@ function pfState(firm) {
   try {
     return PF_RULES.evaluate(firm, pfTrades(), {});
   } catch (err) {
-    console.error('Stryker: prop firm rule evaluation failed', err);
+    console.error('TradeZoro: prop firm rule evaluation failed', err);
     return null;
   }
 }
@@ -427,7 +427,7 @@ function pfRunSim(firm, card) {
       if (study.ok) PF_SIM[firm.id] = study;
       else delete PF_SIM[firm.id];
     } catch (err) {
-      console.error('Stryker: simulation failed', err);
+      console.error('TradeZoro: simulation failed', err);
       delete PF_SIM[firm.id];
       if (typeof showToast === 'function') showToast('error', 'The simulation could not run.');
     }
@@ -450,7 +450,7 @@ function pfLoadCalendar() {
     .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then((d) => { PF_CAL = d; renderPropFirmsTab(); return d; })
     .catch((err) => {
-      console.error('Stryker: economic calendar could not be loaded for the news guard', err);
+      console.error('TradeZoro: economic calendar could not be loaded for the news guard', err);
       PF_CAL = false;
       return false;
     });

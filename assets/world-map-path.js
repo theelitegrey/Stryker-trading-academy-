@@ -1,4 +1,4 @@
-// Stryker Trading Academy — world map geometry
+// TradeZoro — world map geometry
 //
 // Generated from world-atlas land-110m TopoJSON by tools/build-world-map.js.
 // Equirectangular projection, latitude window 80N to 56S, viewBox 0 0 1000 460.

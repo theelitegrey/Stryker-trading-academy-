@@ -1,4 +1,4 @@
-// Stryker Trading Academy — homepage motion layer (PREVIEW)
+// TradeZoro — homepage motion layer (PREVIEW)
 //
 // Loaded only by index-motion.html. The live homepage is untouched until this
 // is approved.

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: data layer
+// TradeZoro — Trade Journal: data layer
 // Depends on: assets/progress.js (`db`), assets/journal-calc.js
 //
 // Storage: students/{uid}/journal/{entryId} — the EXACT existing collection
@@ -29,7 +29,7 @@ function loadJournalSettings(uid){
       return journalCollectionRef(uid).doc(JOURNAL_SETTINGS_DOC_ID).set(defaults).then(() => defaults);
     })
     .catch((err) => {
-      console.error('Stryker: failed to load journal settings, using in-memory defaults', err);
+      console.error('TradeZoro: failed to load journal settings, using in-memory defaults', err);
       return journalDefaultSettings();
     });
 }
@@ -79,7 +79,7 @@ function saveTrade(uid, rawTrade, accountBalance, existingId){
     if (Object.keys(counterUpdate).length) {
       db.collection('students').doc(uid).set(counterUpdate, { merge: true }).then(() => {
         if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(uid);
-      }).catch((err) => console.error('Stryker: failed to update journal counters', err));
+      }).catch((err) => console.error('TradeZoro: failed to update journal counters', err));
     }
     return ref.id;
   });

@@ -1,4 +1,4 @@
-// Stryker Trading Academy: 7-day free trial, client side (labels and small print only)
+// TradeZoro: 7-day free trial, client side (labels and small print only)
 // Depends on: assets/progress.js (`db`), assets/auth.js (`auth`, firebase app),
 //             assets/plan-price.js (planSaleInfo, planListPrice, planMoneyDisplay,
 //             stkPeriodKind, strykerCurrency, strykerFxReady)

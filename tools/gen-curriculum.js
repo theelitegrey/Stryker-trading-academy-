@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — homepage curriculum generator
+// TradeZoro — homepage curriculum generator
 //
 // Writes the #curriculum "price path" block on index.html from
 // tools/content/chapters-data.js, so the chapter numbers, titles, level counts and

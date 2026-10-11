@@ -1,7 +1,7 @@
 //@version=6
 // ═════════════════════════════════════════════════════════════════════════════
-//   FVG RELAY [Stryker]
-//   © Stryker Trading  ·  strykertrading.com
+//   FVG RELAY [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
 //   Version 2.0  ·  Pine Script v6
 //
 //   Higher timeframe fair value gaps are drawn on the chart you trade from.
@@ -18,19 +18,19 @@
 //   No request.security(), no lookahead, no restatement of history.
 // ═════════════════════════════════════════════════════════════════════════════
 
-indicator("FVG Relay [Stryker]", "FVG Relay [Stryker]", overlay = true,
+indicator("FVG Relay [TradeZoro]", "FVG Relay [TradeZoro]", overlay = true,
      max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  INPUTS
 // ─────────────────────────────────────────────────────────────────────────────
-const string G_TF  = "Stryker · Gap Timeframes"
-const string G_FVG = "Stryker · FVG Style"
-const string G_LBL = "Stryker · FVG Labels"
-const string G_LIQ = "Stryker · Liquidity"
-const string G_REL = "Stryker · Relay"
-const string G_VIS = "Stryker · Dashboard"
-const string G_ALR = "Stryker · Alerts"
+const string G_TF  = "TradeZoro · Gap Timeframes"
+const string G_FVG = "TradeZoro · FVG Style"
+const string G_LBL = "TradeZoro · FVG Labels"
+const string G_LIQ = "TradeZoro · Liquidity"
+const string G_REL = "TradeZoro · Relay"
+const string G_VIS = "TradeZoro · Dashboard"
+const string G_ALR = "TradeZoro · Alerts"
 
 useAll  = input.bool(false, "Use every timeframe at once", tooltip = "Overrides the individual switches below. Where gaps overlap, only the highest timeframe gap is drawn.", group = G_TF)
 use5    = input.bool(false, "5m",  inline = "tf", group = G_TF)
@@ -75,7 +75,7 @@ tgtWidth   = input.int(1, "", minval = 1, maxval = 4, inline = "tg", group = G_R
 showBrk    = input.bool(false, "Mark where a chain broke", group = G_REL)
 
 showDash = input.bool(true, "Dashboard", group = G_VIS)
-showMark = input.bool(true, "Stryker Trading watermark", group = G_VIS)
+showMark = input.bool(true, "TradeZoro watermark", group = G_VIS)
 
 aRelay  = input.bool(true,  "Relay confirmed", group = G_ALR)
 aBreak  = input.bool(true,  "Chain broken", group = G_ALR)
@@ -519,7 +519,7 @@ if barstate.islast and (showDash or showMark)
     string tfTxt = (on0 ? "5m " : "") + (on1 ? "15m " : "") + (on2 ? "1h " : "") + (on3 ? "4h" : "")
 
     if showMark
-        array.push(ks, "STRYKER TRADING")
+        array.push(ks, "TRADEZORO")
         array.push(vs, "FVG Relay")
         array.push(cs, color.new(color.gray, 20))
 
@@ -560,12 +560,12 @@ if barstate.islast and (showDash or showMark)
 string dirTx = trend == 1 ? "bullish" : "bearish"
 
 if aRelay and evRelay
-    alert("Stryker FVG Relay · " + dirTx + " Relay " + str.tostring(evNo) + " confirmed · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("TradeZoro FVG Relay · " + dirTx + " Relay " + str.tostring(evNo) + " confirmed · " + syminfo.ticker, alert.freq_once_per_bar_close)
 if aBreak and evBreak
-    alert("Stryker FVG Relay · chain broken · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("TradeZoro FVG Relay · chain broken · " + syminfo.ticker, alert.freq_once_per_bar_close)
 if aTarget and evTarget
-    alert("Stryker FVG Relay · liquidity target reached · " + syminfo.ticker, alert.freq_once_per_bar_close)
+    alert("TradeZoro FVG Relay · liquidity target reached · " + syminfo.ticker, alert.freq_once_per_bar_close)
 
-alertcondition(evRelay,  "Stryker Relay — Relay confirmed", "Stryker FVG Relay: a higher timeframe gap was tapped and respected")
-alertcondition(evBreak,  "Stryker Relay — Chain broken",    "Stryker FVG Relay: an HTF candle closed through a relay gap")
-alertcondition(evTarget, "Stryker Relay — Liquidity hit",   "Stryker FVG Relay: liquidity target reached")
+alertcondition(evRelay,  "TradeZoro Relay — Relay confirmed", "TradeZoro FVG Relay: a higher timeframe gap was tapped and respected")
+alertcondition(evBreak,  "TradeZoro Relay — Chain broken",    "TradeZoro FVG Relay: an HTF candle closed through a relay gap")
+alertcondition(evTarget, "TradeZoro Relay — Liquidity hit",   "TradeZoro FVG Relay: liquidity target reached")

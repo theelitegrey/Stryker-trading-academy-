@@ -1,4 +1,4 @@
-# Stryker Trading Academy — session rules
+# TradeZoro — session rules
 
 ## Reply style: caveman, always
 

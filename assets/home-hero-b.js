@@ -1,4 +1,4 @@
-/* Stryker Trading Academy — homepage hero chart, "story loop".
+/* TradeZoro — homepage hero chart, "story loop".
    Loaded by index.html (after home-motion.js). Depends on: assets/home-hero-b.css. Drives the 4-state loop
    (GEX -> Volume Profile -> ICT -> Confluence). The progress bar is a CSS
    animation; its animationend advances the loop, so pausing is just

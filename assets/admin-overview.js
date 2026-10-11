@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin overview: recent students, stat cards,
+// TradeZoro — Admin overview: recent students, stat cards,
 // chapter engagement.
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
 //
@@ -126,13 +126,13 @@ document.addEventListener('DOMContentLoaded', () => {
     Promise.all([
       db.collection('students').orderBy('createdAt', 'desc').limit(5).get()
         .then((snap) => { const out = []; snap.forEach((doc) => out.push(Object.assign({ uid: doc.id }, doc.data()))); return out; })
-        .catch((err) => { console.error('Stryker: recent students query failed', err); return null; }),
+        .catch((err) => { console.error('TradeZoro: recent students query failed', err); return null; }),
       db.collection('adminStats').doc('current').get()
         .then((doc) => (doc.exists ? doc.data() : null))
-        .catch((err) => { console.error('Stryker: adminStats/current read failed', err); return undefined; }),
+        .catch((err) => { console.error('TradeZoro: adminStats/current read failed', err); return undefined; }),
       db.collection('liveSessions').get()
         .then((snap) => { const out = []; snap.forEach((doc) => out.push(doc.data())); return out; })
-        .catch((err) => { console.error('Stryker: liveSessions read failed', err); return undefined; })
+        .catch((err) => { console.error('TradeZoro: liveSessions read failed', err); return undefined; })
     ]).then(([students, stats, sessions]) => {
       renderRecentStudents(students);
       renderAdminStats(stats, sessions);

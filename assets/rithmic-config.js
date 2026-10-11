@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts "Connect broker" (Rithmic) config + feature flag (ES module)
+// TradeZoro — Charts "Connect broker" (Rithmic) config + feature flag (ES module)
 // Depends on: the global `auth` from assets/auth.js (a top-level `let`, so it is a global
 // lexical binding, NOT window.auth; read only, to get the member uid).
 // Imported by assets/vela-chart.js on every Charts load. It is deliberately tiny: when the
@@ -8,7 +8,7 @@
 // WHAT THIS FEATURE IS: a member connects THEIR OWN Rithmic login (e.g. through their prop
 // firm: Apex, TradeSea, Tradeify ...) and the Charts page streams futures from Rithmic under
 // THEIR data entitlement. The browser talks to Rithmic's R|Protocol gateway directly over a
-// WebSocket. Stryker never relays data and never sees, sends or stores the password.
+// WebSocket. TradeZoro never relays data and never sees, sends or stores the password.
 //
 // TO GO LIVE (needs Rithmic first, see reports/workers/t3-rithmic.md):
 //   1. Rithmic issues our real app_name prefix  -> set APP_NAME.
@@ -32,7 +32,7 @@ export const GATEWAYS = {
 //   Its app_version is the site build (appVersion() below).
 // The product name we asked Rithmic to register. UNUSED until Rithmic assigns the final
 // app_name for production; then it replaces the STRK_Stryker placeholder below.
-export const APP_NAME_PRODUCT = 'Stryker Charts';
+export const APP_NAME_PRODUCT = 'TradeZoro Charts';
 
 export const APPS = {
   test: { appName: 'SampleMD.js', appVersion: '0.3.0.0' },
@@ -125,6 +125,6 @@ export async function loadRithmicIfEnabled() {
   const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
     isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=497');
+  const ui = await import('./rithmic-ui.js?v=498');
   return ui.createRithmic(cfg);
 }

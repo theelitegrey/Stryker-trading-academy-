@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: Add/Edit Trade form + Settings tab
+// TradeZoro — Trade Journal: Add/Edit Trade form + Settings tab
 // Depends on: assets/journal-calc.js, assets/journal-data.js, assets/avatars.js
 // (reuses resizeAvatarToDataUrl for the screenshot upload — it's a generic
 // image-resize helper despite the name), and the global JOURNAL_UID /

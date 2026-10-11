@@ -1,7 +1,7 @@
 //@version=6
 // ═════════════════════════════════════════════════════════════════════════════
-//   HTF PO3 LENS [Stryker]
-//   © Stryker Trading  ·  strykertrading.com
+//   HTF PO3 LENS [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
 //   Version 1.0  ·  Pine Script v6
 //
 //   Power of Three, read from the timeframe you trade.
@@ -14,17 +14,17 @@
 //   No request.security(), no lookahead.
 // ═════════════════════════════════════════════════════════════════════════════
 
-indicator("HTF PO3 Lens [Stryker]", "HTF PO3 Lens [Stryker]", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+indicator("HTF PO3 Lens [TradeZoro]", "HTF PO3 Lens [TradeZoro]", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  INPUTS
 // ─────────────────────────────────────────────────────────────────────────────
-const string G_TF  = "Stryker · Timeframes"
-const string G_LAY = "Stryker · Layout"
-const string G_CDL = "Stryker · Candles"
-const string G_FVG = "Stryker · Fair Value Gaps"
-const string G_SWP = "Stryker · Sweeps"
-const string G_MSC = "Stryker · Other"
+const string G_TF  = "TradeZoro · Timeframes"
+const string G_LAY = "TradeZoro · Layout"
+const string G_CDL = "TradeZoro · Candles"
+const string G_FVG = "TradeZoro · Fair Value Gaps"
+const string G_SWP = "TradeZoro · Sweeps"
+const string G_MSC = "TradeZoro · Other"
 
 on1 = input.bool(true,  "", inline = "1", group = G_TF)
 tf1 = input.timeframe("15", "", inline = "1", group = G_TF)
@@ -322,5 +322,5 @@ if barstate.islast and showMark
         tfs += f_tfName(tf5) + " · "
     if str.length(tfs) > 3
         tfs := str.substring(tfs, 0, str.length(tfs) - 3)
-    table.cell(wm, 0, 0, "HTF PO3 Lens [Stryker]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 0, "HTF PO3 Lens [TradeZoro]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
     table.cell(wm, 0, 1, (str.length(tfs) > 0 ? tfs : "no timeframe above chart") + "  ·  " + timeframe.period + " chart", text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)

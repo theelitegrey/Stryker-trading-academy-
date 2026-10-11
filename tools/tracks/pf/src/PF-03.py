@@ -59,7 +59,7 @@ body = [
     '<p>There are dozens of prop firms, and new ones launch all the time. Some last; some change rules overnight; a few close. Choosing well won\'t make you a better trader, '
     'but choosing badly can cost you fees, time and payouts you thought you had earned. This chapter gives you a repeatable way to <strong>vet</strong> a firm, meaning to check it '
     'properly before you pay, using only what the firm publishes and what regulators let you look up.</p>',
-    '<p>We use real examples from firm help pages, quoted <strong>as of %s</strong>. They are examples of what to look for, not recommendations. Stryker is not paid by any firm '
+    '<p>We use real examples from firm help pages, quoted <strong>as of %s</strong>. They are examples of what to look for, not recommendations. TradeZoro is not paid by any firm '
     'mentioned in this track.</p>' % AS_OF,
 
     callout('Key takeaways', '<ul>'
@@ -136,7 +136,7 @@ body = [
         ['Review sites, Discord, social posts', 'Low', 'Unverified, and often paid through affiliate codes.'],
         ['Payout screenshots and "pass rates"', 'Very low', 'Unverifiable and chosen to impress.'],
     ]),
-    '<p>The payout certificates on Stryker\'s own site are real, but the same rule applies: they show that past payouts happened. They are not a promise that you will receive one.</p>',
+    '<p>The payout certificates on TradeZoro\'s own site are real, but the same rule applies: they show that past payouts happened. They are not a promise that you will receive one.</p>',
 
     '<h2>Worked example: vetting one plan in 30 minutes</h2>',
     '<p>Illustrative walkthrough using the scorecard on a 50K futures evaluation.</p>',

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Checkout (checkout.html)
+// TradeZoro — Checkout (checkout.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/commerce.js
 //
 // No payment gateway exists yet, so completing an order requires a valid
@@ -445,9 +445,9 @@ function launchRazorpay(btn, errEl){
       order_id: o.orderId,
       amount: o.amount,
       currency: o.currency,
-      name: 'Stryker Trading Academy',
+      name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=497',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=498',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -516,9 +516,9 @@ function launchRazorpaySubscription(btn, errEl){
     const rzp = new Razorpay({
       key: o.keyId,
       subscription_id: o.subscriptionId,
-      name: 'Stryker Trading Academy',
+      name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=497',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=498',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',

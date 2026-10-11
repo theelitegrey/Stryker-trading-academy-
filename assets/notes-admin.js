@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Notes (notes-admin.html + dashboard panel
+// TradeZoro — Admin: Notes (notes-admin.html + dashboard panel
 // + the quick-notes drawer available from every admin page's sidebar)
 // A shared scratchpad for the admin team: quick notes with a priority level,
 // done-tracking, and a dashboard digest of what's still open. Completed notes

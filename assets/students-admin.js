@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Students (students-admin.html)
+// TradeZoro — Admin: Students (students-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
 // Read-only. Access is gated by guardAdminPage() plus Firestore security
 // rules, which restrict reads across all student docs to accounts with a
@@ -273,7 +273,7 @@ function deleteStudentCompletely(uid, email, name){
         if (err && (err.code === 'permission-denied' || err.code === 'failed-precondition' || err.code === 'unauthenticated')) {
           throw new Error(err.message);
         }
-        console.warn('Stryker: deleteUserAccount unavailable, falling back to client-side wipe', err);
+        console.warn('TradeZoro: deleteUserAccount unavailable, falling back to client-side wipe', err);
         return deleteStudentClientSide(uid, email, name).then((report) => {
           report.push('');
           report.push('⚠ The Cloud Function is not deployed, so the Firebase Auth login could NOT be removed.');
@@ -304,7 +304,7 @@ function deleteStudentClientSide(uid, email, name){
       }
       return Promise.all(batches).then(() => { report.push('• ' + docs.length + ' ' + label); });
     }).catch((err) => {
-      console.error('Stryker: failed deleting ' + label, err);
+      console.error('TradeZoro: failed deleting ' + label, err);
       report.push('• ' + label + ' — FAILED (' + (err.code || err.message) + ')');
     });
   }
@@ -372,7 +372,7 @@ function loadStudents(){
       }
     })
     .catch((err) => {
-      console.error('Stryker: failed to load students', err);
+      console.error('TradeZoro: failed to load students', err);
       document.getElementById('students-table-body').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px; padding:16px;">Could not load students: ' + (err.message || err) + '</p>';
       document.getElementById('students-count').textContent = 'Error loading students';
@@ -422,7 +422,7 @@ function backfillAllProfiles(){
     btn.disabled = false;
     btn.textContent = 'Backfill all profiles';
     showToast('error', 'Done — ' + (writes.length - failed) + ' of ' + writes.length + ' profiles created/updated' + (failed ? ('. ' + failed + ' failed, check the console.') : '.'));
-    if (failed) results.forEach((r) => { if (r.status === 'rejected') console.error('Stryker: profile backfill failed for one student', r.reason); });
+    if (failed) results.forEach((r) => { if (r.status === 'rejected') console.error('TradeZoro: profile backfill failed for one student', r.reason); });
   });
 }
 

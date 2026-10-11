@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Playbook: data layer
+// TradeZoro — Playbook: data layer
 // Depends on: assets/progress.js (`db`), assets/models-store.js (loadModels)
 //
 // Storage: students/{uid}/journal/_playbooks — one reserved document in the
@@ -114,7 +114,7 @@ function loadPlaybooks(uid) {
       return { playbooks: Array.isArray(d.playbooks) ? d.playbooks : [] };
     })
     .catch((err) => {
-      console.error('Stryker: could not load playbooks', err);
+      console.error('TradeZoro: could not load playbooks', err);
       return pbDefault();
     });
 }
@@ -152,7 +152,7 @@ function pbLoadAdoptableModels() {
       .then(() => (typeof MODELS !== 'undefined' && Array.isArray(MODELS) ? MODELS : []))
       .catch(() => (typeof MODELS_SEED !== 'undefined' && Array.isArray(MODELS_SEED) ? MODELS_SEED : []));
   } catch (e) {
-    console.error('Stryker: could not load the academy models for the playbook picker', e);
+    console.error('TradeZoro: could not load the academy models for the playbook picker', e);
     return Promise.resolve(typeof MODELS_SEED !== 'undefined' && Array.isArray(MODELS_SEED) ? MODELS_SEED : []);
   }
 }

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — first-run onboarding (dashboard-user.html)
+// TradeZoro — first-run onboarding (dashboard-user.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/journal-calc.js
 // (journalDefaultSettings), assets/playbook-data.js (pbFromModel, savePlaybooks),
 // assets/models-store.js (loadModels), assets/sanitize.js (stkEsc).
@@ -255,7 +255,7 @@
 
     const work = [
       obJournalRef(OB_UID).doc('_settings').set(settings, { merge: true })
-        .catch((e) => console.error('Stryker: onboarding could not save journal settings', e))
+        .catch((e) => console.error('TradeZoro: onboarding could not save journal settings', e))
     ];
 
     const model = OB_MODELS.find((m) => m.id === OB_DRAFT.modelId);
@@ -273,14 +273,14 @@
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           })
-          .catch((e) => console.error('Stryker: onboarding could not save the playbook', e))
+          .catch((e) => console.error('TradeZoro: onboarding could not save the playbook', e))
       );
     }
 
     work.push(
       obStudentRef(OB_UID).set({
         onboarding: { seen: true, completedAt: firebase.firestore.FieldValue.serverTimestamp() }
-      }, { merge: true }).catch((e) => console.error('Stryker: onboarding flag not saved', e))
+      }, { merge: true }).catch((e) => console.error('TradeZoro: onboarding flag not saved', e))
     );
 
     return Promise.all(work);
@@ -314,7 +314,7 @@
         if (OB_STEP === 2) obRenderWizard(OB_STATE);
       });
     }
-    if (restart) console.log('Stryker: onboarding restarted by the member');
+    if (restart) console.log('TradeZoro: onboarding restarted by the member');
   }
 
   function obFinish(skipped) {
@@ -398,7 +398,7 @@
             obOpenWizard(false);
           }
         }
-      }).catch((err) => console.error('Stryker: onboarding state could not be read', err));
+      }).catch((err) => console.error('TradeZoro: onboarding state could not be read', err));
     });
   });
 

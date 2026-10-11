@@ -1,4 +1,4 @@
-// Stryker Trading Academy — prop firm challenge simulator
+// TradeZoro — prop firm challenge simulator
 //
 // Pure. Node-testable, seeded, deterministic. Answers one question with the
 // member's OWN numbers: what are the odds this account survives to a payout,

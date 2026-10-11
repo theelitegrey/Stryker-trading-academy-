@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: price-axis "countdown to bar close" fix (ES module)
+// TradeZoro — Charts: price-axis "countdown to bar close" fix (ES module)
 // Depends on: the Vela workspace from assets/vela-chart.js (ws), its per-cell renderer
 // (cell.chart.renderer.renderer: .chrome = Vela's ChromeRenderer, .scene, .coords,
 // .countdownTimer / .syncCountdownTimer) and globexOpen() from assets/chart-data-dot.js.
@@ -31,7 +31,7 @@
 // ("Countdown to bar close" in the chart settings dialog) still decides: when it is off
 // nothing is drawn and Vela's timer is stopped, as before.
 
-import { globexOpen, fxOpen } from './chart-data-dot.js?v=497';
+import { globexOpen, fxOpen } from './chart-data-dot.js?v=498';
 
 const FUT = /^futures:|^[A-Z0-9]+1!$/i;
 const FX = /^fx:/i;

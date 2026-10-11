@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — market analysis engine
+ * TradeZoro — market analysis engine
  *
  * Pure functions: candles in, readings out. No network, no firebase, no
  * globals — so this file can be unit-tested on its own and reused by anything

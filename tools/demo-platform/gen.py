@@ -36,7 +36,7 @@ SOFTEN = [
 # captions those pages use. One per tool, matched by tool number.
 SHOTS = {
     '01': ('/assets/images/journal/calendar.webp', 1000, 634, 'Demo data. The journal P&L calendar.',
-           'A month calendar from the Stryker trade journal filled with demo data.'),
+           'A month calendar from the TradeZoro trade journal filled with demo data.'),
     '02': ('/assets/images/journal/prop.webp', 1000, 540, 'Demo data. Prop-firm account cards.',
            'Prop-firm account cards from the journal with demo data: fees spent, payouts and net per account.'),
     '03': ('/assets/images/journal/coach.webp', 1000, 764, 'Demo data. The journal coach tab.',
@@ -173,7 +173,7 @@ def var_b(hd, tools):
     return '''<div class="vb-wrap">
   <div class="vb-stick">
     <div class="vb-device">
-      <div class="dp-chrome" aria-hidden="true"><i></i><i></i><i></i><span class="vb-url">strykertrading.com / <b id="vb-path">%s</b></span></div>
+      <div class="dp-chrome" aria-hidden="true"><i></i><i></i><i></i><span class="vb-url">tradezoro.com / <b id="vb-path">%s</b></span></div>
       <div class="vb-screens">
 %s
       </div>

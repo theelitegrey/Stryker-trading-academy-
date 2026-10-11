@@ -37,10 +37,10 @@ function cardFor(post, drafts, styles) {
 function eyebrowFor(post) {
   const d = new Date(post.scheduledForMs || post.createdAtMs || Date.now()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
   return ({ brief: 'Pre-market brief · ' + d, calendar: 'Economic calendar', monitor: 'Global Monitor · ' + d, announce: 'New at the academy',
-    feature: 'Stryker Trading Academy', promo: 'Stryker Trading Academy', lesson: 'From the curriculum', manual: 'Stryker Trading Academy' })[post.kind] || 'Stryker Trading Academy';
+    feature: 'TradeZoro', promo: 'TradeZoro', lesson: 'From the curriculum', manual: 'TradeZoro' })[post.kind] || 'TradeZoro';
 }
 function labelFor(post) {
-  return ({ brief: 'BRIEF', calendar: 'HIGH IMPACT', monitor: 'SIGNAL', announce: 'NEW', feature: 'FEATURE', promo: 'FEATURE', lesson: 'LESSON', manual: 'STRYKER' })[post.kind] || 'STRYKER';
+  return ({ brief: 'BRIEF', calendar: 'HIGH IMPACT', monitor: 'SIGNAL', announce: 'NEW', feature: 'FEATURE', promo: 'FEATURE', lesson: 'LESSON', manual: 'TRADEZORO' })[post.kind] || 'TRADEZORO';
 }
 
 /**

@@ -1,4 +1,4 @@
-// Stryker Trading Academy: DEMO homepage, variation D "3D scroll-assemble neon bento"
+// TradeZoro: DEMO homepage, variation D "3D scroll-assemble neon bento"
 // (demo-bento-d.html only). Owner order 2026-10-06: "bento grid homepage, go crazy",
 // "give me 3 more variations". Unlisted demo page (noindex, not in nav or sitemap).
 //

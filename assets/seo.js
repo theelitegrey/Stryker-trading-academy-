@@ -1,4 +1,4 @@
-// Stryker Trading Academy — SEO runtime (public pages)
+// TradeZoro — SEO runtime (public pages)
 // Depends on: assets/progress.js (`db`)
 //
 // Applies what the SEO admin module stores in Firestore over the baked-in
@@ -40,7 +40,7 @@
 
     var title = p.title ||
       (p.titleBase && g.titleTemplate
-        ? g.titleTemplate.replace('%page%', p.titleBase).replace('%site%', g.siteName || 'Stryker Trading Academy')
+        ? g.titleTemplate.replace('%page%', p.titleBase).replace('%site%', g.siteName || 'TradeZoro')
         : null);
     if (title) {
       document.title = title;
@@ -74,7 +74,7 @@
         '@context': 'https://schema.org',
         '@type': 'Organization',
         '@id': 'https://tradezoro.com/#org-social',
-        name: g.siteName || 'Stryker Trading Academy',
+        name: g.siteName || 'TradeZoro',
         url: 'https://tradezoro.com/',
         sameAs: social
       });

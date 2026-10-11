@@ -12,7 +12,7 @@ Written 22 September 2026, at build 305, deploy run 140.
 
 ## 1. What the project is
 
-**Stryker Trading Academy** — `tradezoro.com` — a paid ICT/SMT trading
+**TradeZoro** — `tradezoro.com` — a paid ICT/SMT trading
 education site. Members pay for models and strategies, TradingView indicators,
 a chaptered curriculum, a trading journal, backtesting, a global market
 monitor, live sessions and a set of market-data "terminal" modules.
@@ -123,7 +123,7 @@ A fresh container has no git identity; set it before the first commit:
 
 ```bash
 git config user.email "theelitegrey@gmail.com"
-git config user.name "Stryker"
+git config user.name "TradeZoro"
 ```
 
 ---
@@ -383,7 +383,7 @@ The owner can switch with `/caveman lite|ultra|off` or by saying "normal mode".
 ```bash
 cd /path/to/Stryker-trading-academy-
 git config user.email "theelitegrey@gmail.com"
-git config user.name  "Stryker"
+git config user.name  "TradeZoro"
 git fetch origin main && git status
 cat assets/version.json
 python3 tools/check.py

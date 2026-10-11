@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: CSV import & export
+// TradeZoro — Trade Journal: CSV import & export
 // Depends on: journal-calc.js, journal-data.js (journalCollectionRef),
 // the JOURNAL_* globals, Firebase compat SDK.
 //
@@ -381,7 +381,7 @@ function jiRunImport(){
     document.getElementById('ji-file').value = '';
     return reloadJournalData();
   }).catch((err) => {
-    console.error('Stryker: import failed', err);
+    console.error('TradeZoro: import failed', err);
     showToast('error', 'Import failed: ' + (err.message || err));
   }).finally(() => {
     btn.disabled = false;
@@ -535,7 +535,7 @@ function jiImportLedger(rows, mode){
       (bad ? ' · ' + bad + ' rows unreadable' : '') + '.');
     return reloadJournalData();
   }).catch((err) => {
-    console.error('Stryker: ledger import failed', err);
+    console.error('TradeZoro: ledger import failed', err);
     showToast('error', 'Import failed: ' + (err.message || err));
   });
 }

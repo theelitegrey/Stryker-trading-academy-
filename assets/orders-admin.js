@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Orders (orders-admin.html)
+// TradeZoro — Admin: Orders (orders-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 
 let ALL_ORDERS = [];
@@ -56,7 +56,7 @@ function loadOrders(){
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     loadOrders().catch((err) => {
-      console.error('Stryker: failed to load orders', err);
+      console.error('TradeZoro: failed to load orders', err);
       document.getElementById('orders-list').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load orders: ' + (err.message || err) + '</p>';
       document.getElementById('orders-count').textContent = 'Error loading orders';

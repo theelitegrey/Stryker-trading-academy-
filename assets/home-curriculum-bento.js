@@ -1,4 +1,4 @@
-// Stryker Trading Academy: homepage Curriculum section, stat + preview bento (build 454)
+// TradeZoro: homepage Curriculum section, stat + preview bento (build 454)
 //
 // Ported from /demo-curriculum variation D (assets/demo-curriculum.js, "D stats").
 //   - the stat numbers count up once when first seen ([data-count])

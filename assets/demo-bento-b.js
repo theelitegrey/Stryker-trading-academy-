@@ -1,4 +1,4 @@
-// Stryker Trading Academy: DEMO homepage, variation B "Trading terminal bento"
+// TradeZoro: DEMO homepage, variation B "Trading terminal bento"
 // (demo-bento-b.html only). Owner order 2026-10-06: bento demo homepages.
 //
 // What runs here:

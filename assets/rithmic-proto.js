@@ -1,4 +1,4 @@
-// Stryker Trading Academy — minimal R|Protocol (Rithmic) protobuf codec (ES module)
+// TradeZoro — minimal R|Protocol (Rithmic) protobuf codec (ES module)
 // Depends on: nothing. Imported by assets/rithmic-client.js (browser) and
 // tools/tests/rithmic-mock.mjs (Node test mock), so it must stay runtime-neutral.
 //

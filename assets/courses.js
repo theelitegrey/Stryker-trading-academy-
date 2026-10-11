@@ -1,4 +1,4 @@
-// Stryker Trading Academy — curriculum listing (courses.html)
+// TradeZoro — curriculum listing (courses.html)
 // Depends on: assets/progress.js (for `db`), assets/chapters-store.js
 // (loadChapters/CHAPTERS).
 

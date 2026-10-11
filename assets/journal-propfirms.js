@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: Prop firm tracker
+// TradeZoro — Trade Journal: Prop firm tracker
 // Depends on: assets/progress.js (`db`), assets/journal-calc.js (currency
 // formatting), Chart.js, and the JOURNAL_* globals from journal-main.js.
 //
@@ -43,7 +43,7 @@ function loadPropFirms(uid){
     .then((doc) => (doc.exists ? (doc.data() || {}) : {}))
     .then((d) => ({ firms: Array.isArray(d.firms) ? d.firms : [] }))
     .catch((err) => {
-      console.error('Stryker: failed to load prop firms', err);
+      console.error('TradeZoro: failed to load prop firms', err);
       return { firms: [] };
     });
 }
@@ -53,7 +53,7 @@ function savePropFirms(uid){
     firms: PF_DATA.firms,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch((err) => {
-    console.error('Stryker: failed to save prop firms', err);
+    console.error('TradeZoro: failed to save prop firms', err);
     if (typeof showToast === 'function') showToast('error', 'Could not save — check your connection.');
   });
 }

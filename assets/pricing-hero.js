@@ -1,4 +1,4 @@
-// Stryker Trading Academy: homepage pricing section, "Hero Pro" layout (index.html #pricing)
+// TradeZoro: homepage pricing section, "Hero Pro" layout (index.html #pricing)
 // Depends on: assets/progress.js (`db`), assets/plan-price.js (strykerLoadPlans,
 //             strykerFxReady, planSaleInfo, planMoneyDisplay, planDisplayName,
 //             planIsArchived, planEscape, strykerCurrencyNoteHtml),
@@ -263,7 +263,7 @@
       if (reduce()) root.classList.add('pv-ready');
       else requestAnimationFrame(function () { root.classList.add('pv-ready'); });
     }).catch(function (e) {
-      console.error('Stryker: pricing plans failed to load, showing static fallback', e);
+      console.error('TradeZoro: pricing plans failed to load, showing static fallback', e);
     });
   });
 })();

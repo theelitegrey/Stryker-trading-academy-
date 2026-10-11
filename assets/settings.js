@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Settings page (settings.html)
+// TradeZoro — Settings page (settings.html)
 // Depends on: assets/auth.js, assets/progress.js
 
 function showSettingsMsg(elId, message){
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (unEl && !unEl.value && typeof ensureUsername === 'function') {
         ensureUsername(currentUser).then((name) => { if (name && !unEl.value) unEl.value = name; });
       }
-    }).catch((err) => console.error('Stryker: failed to load account info', err));
+    }).catch((err) => console.error('TradeZoro: failed to load account info', err));
   });
 
   function renderAvatarPreview(studentData){

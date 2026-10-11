@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: AI Coach
+// TradeZoro — Trade Journal: AI Coach
 // Depends on: assets/journal-calc.js, Chart.js, journal-main.js globals,
 // jCountUp from journal-propfirms.js.
 //

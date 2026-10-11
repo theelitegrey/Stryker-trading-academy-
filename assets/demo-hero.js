@@ -1,4 +1,4 @@
-// Stryker Trading Academy: /demo-hero (unlisted preview page), round 2
+// TradeZoro: /demo-hero (unlisted preview page), round 2
 //
 // Behaviour for the four hero variations on demo-hero.html (markup generated
 // by tools/demo-hero/gen.py from tools/demo-hero/body.html).

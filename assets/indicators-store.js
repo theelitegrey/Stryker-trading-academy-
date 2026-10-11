@@ -1,4 +1,4 @@
-// Stryker Trading Academy — live Trading Indicators store
+// TradeZoro — live Trading Indicators store
 // Depends on: assets/progress.js (for `db`)
 // Mirrors assets/models-store.js, with no seed fallback — this collection
 // starts empty and is filled in entirely through the admin editor.
@@ -24,7 +24,7 @@ function loadIndicators(forceRefresh){
       return INDICATORS;
     })
     .catch((err) => {
-      console.error('Stryker: failed to load trading indicators from Firestore', err);
+      console.error('TradeZoro: failed to load trading indicators from Firestore', err);
       return INDICATORS;
     });
 

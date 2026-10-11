@@ -1,4 +1,4 @@
-// Stryker Trading Academy — homepage platform desk (index.html#platform)
+// TradeZoro — homepage platform desk (index.html#platform)
 //
 // Drives the tabbed "desk" that replaced the Ferris wheel: six tool tabs on
 // the left, one stage on the right. Only one tool is visible at a time, so

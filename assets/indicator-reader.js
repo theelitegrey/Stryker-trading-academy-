@@ -1,4 +1,4 @@
-// Stryker Trading Academy — single Trading Indicator reader (indicator.html)
+// TradeZoro — single Trading Indicator reader (indicator.html)
 // Mirrors assets/model-reader.js, simplified: indicators are title +
 // summary + rich body only, no video/steps structure.
 
@@ -64,7 +64,7 @@ function checkIndicatorRoleAccess(ind, uid){
     // This specific indicator's own minRole, if the admin set one directly on it.
     return ind.minRole ? hasRoleAccess(plan, ind.minRole) : true;
   }).catch((err) => {
-    console.error('Stryker: indicator role check failed', err);
+    console.error('TradeZoro: indicator role check failed', err);
     return true;
   });
 }

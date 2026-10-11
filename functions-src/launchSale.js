@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy: launch sale (build 319).
+ * TradeZoro: launch sale (build 319).
  *
  *   PRICES   plans may carry fixed rupee prices (priceInr / salePriceInr).
  *            inrEffective(plan) is the rupee twin of effectivePlanPrice():

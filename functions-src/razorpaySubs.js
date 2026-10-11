@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Razorpay Subscriptions (auto-debit)
+ * TradeZoro — Razorpay Subscriptions (auto-debit)
  *
  * True recurring billing for Indian customers on top of the stage-1
  * foundation (subscriptions.js): the first checkout sets up a UPI AutoPay /
@@ -156,7 +156,7 @@ async function ensureRazorpayPlan(sitePlan, sitePlanId, amountMinor, kind){
     period: kind === 'year' ? 'yearly' : 'monthly',
     interval: 1,
     item: {
-      name: (sitePlan.name || sitePlanId) + ' — Stryker Trading Academy',
+      name: (sitePlan.name || sitePlanId) + ' — TradeZoro',
       amount: amountMinor,
       currency: 'INR'
     }

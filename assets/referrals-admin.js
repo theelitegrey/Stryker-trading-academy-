@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Referrals (referrals-admin.html)
+// TradeZoro — Admin: Referrals (referrals-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
 // assets/referrals.js (loadReferralConfig, loadReferralLeaderboard)
 
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
     loadReferralStats().catch((err) => {
-      console.error('Stryker: failed to load referral stats', err);
+      console.error('TradeZoro: failed to load referral stats', err);
       document.getElementById('ref-admin-error').textContent = 'Could not load referral stats: ' + (err.message || err);
       document.getElementById('ref-admin-error').style.display = 'block';
     });

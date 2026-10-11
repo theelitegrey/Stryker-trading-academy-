@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — world events reader
+ * TradeZoro — world events reader
  *
  * Reads ONLY the Firestore cache written by refreshWorldData. It never calls
  * GDELT.

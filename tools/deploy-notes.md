@@ -10,7 +10,7 @@
        python3 tools/check.py
 4. Set git identity (fresh containers have none; the commit fails silently otherwise):
        git config user.email "theelitegrey@gmail.com"
-       git config user.name "Stryker"
+       git config user.name "TradeZoro"
 5. Commit and push:
        git add -A && git commit -F /tmp/msg.txt && git push origin main
    Use -F with a message file. Inline -m breaks on quotes and backticks.

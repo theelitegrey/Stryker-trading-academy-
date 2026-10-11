@@ -1,4 +1,4 @@
-// Stryker Trading Academy — day / night theme
+// TradeZoro — day / night theme
 //
 // Night is the site's native look and stays byte-for-byte what it was; day is
 // a real light palette built by overriding the design tokens in style.css

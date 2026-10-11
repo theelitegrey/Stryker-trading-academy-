@@ -1,4 +1,4 @@
-// Stryker Trading Academy — header Global Monitor icon
+// TradeZoro — header Global Monitor icon
 // Depends on: nothing. Pure markup and CSS.
 //
 // Injected into .topnav-right rather than added to 30-odd pages of markup, the

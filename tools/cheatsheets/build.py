@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a Stryker cheat-sheet PDF plus its web preview and OG images.
+"""Build a TradeZoro cheat-sheet PDF plus its web preview and OG images.
 
     python3 tools/cheatsheets/build.py prop-firm
 
@@ -80,7 +80,7 @@ def main():
     cfg = json.load(open(os.path.join(HERE, sheet, "content.json"), encoding="utf-8"))
     tpl = open(os.path.join(HERE, "cheatsheet.html"), encoding="utf-8").read()
     tpl = tpl.replace("__FONTS__", "file://" + os.path.join(HERE, "fonts"))
-    tpl = tpl.replace("__LOGO__", "file://" + os.path.join(ROOT, "assets/images/tradezoro-logo-emblem-sm-494.png?v=497"))
+    tpl = tpl.replace("__LOGO__", "file://" + os.path.join(ROOT, "assets/images/tradezoro-logo-emblem-sm-494.png"))
     a, b = tpl.index("/*DATA*/"), tpl.index("/*END*/") + len("/*END*/")
     html = tpl[:a] + json.dumps(cfg, ensure_ascii=False).replace("</", "<\\/") + tpl[b:]
 
@@ -121,7 +121,7 @@ def main():
             raise RuntimeError(f"page {i + 1} is {w_mm:.0f}x{h_mm:.0f} mm, not A4")
         if len(pg.get_text().strip()) < 200:
             raise RuntimeError(f"page {i + 1} has no selectable text")
-    doc.set_metadata({"title": cfg.get("pdfTitle", "Stryker cheat sheet"), "author": "Stryker Trading Academy",
+    doc.set_metadata({"title": cfg.get("pdfTitle", "TradeZoro cheat sheet"), "author": "TradeZoro",
                       "subject": "Education only. Not financial advice.", "creator": "tools/cheatsheets/build.py", "producer": ""})
     out_pdf = os.path.join(ROOT, cfg["pdf"])
     os.makedirs(os.path.dirname(out_pdf), exist_ok=True)

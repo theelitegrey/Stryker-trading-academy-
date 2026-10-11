@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Staff role management
+// TradeZoro — Staff role management
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 //
 // Mirrors assets/moderator-team.js for a separate staff/{uid} collection.
@@ -27,7 +27,7 @@ function loadStaffList(){
     return CURRENT_STAFF_UIDS;
   }).catch((err) => {
     // Non-fatal: a failed read should cost a badge, not the page.
-    console.error('Stryker: could not load the staff list', err);
+    console.error('TradeZoro: could not load the staff list', err);
     return CURRENT_STAFF_UIDS;
   });
 }
@@ -53,7 +53,7 @@ function isStaffUid(uid){
 // drift apart — three hand-written copies of the same SVG is how a badge ends
 // up looking different depending on where you see it.
 function staffBadgeHtml(label){
-  var text = label || 'Stryker staff';
+  var text = label || 'TradeZoro staff';
   return '<span class="floor-staff-badge" title="' + text + '" ' +
          'role="img" aria-label="' + text + '">' +
     // Drawn FOR 15px rather than shrunk to it, which drives every decision

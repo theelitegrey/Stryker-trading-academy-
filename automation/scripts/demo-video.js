@@ -10,7 +10,7 @@ const video = require('../src/render/video');
 const script = {
   title: 'Swing points: pick one timeframe',
   scenes: [
-    { type: 'title', heading: 'Why your swing points keep moving', text: 'A one-minute lesson from the Stryker curriculum', narration: 'If two passes over the same chart give you different swing points, the chart is not the problem. Here is the usual cause.', stat: '' },
+    { type: 'title', heading: 'Why your swing points keep moving', text: 'A one-minute lesson from the TradeZoro curriculum', narration: 'If two passes over the same chart give you different swing points, the chart is not the problem. Here is the usual cause.', stat: '' },
     { type: 'point', heading: 'Pick one timeframe first', text: 'Switching mid-exercise is the most common reason marks disagree.', narration: 'Pick one timeframe before you mark anything, and do not change it halfway through. Switching timeframes is the single most common reason two passes disagree.', stat: '' },
     { type: 'point', heading: 'A swing is a rule, not a feeling', text: 'A high with lower highs either side. A low with higher lows either side.', narration: 'Define a swing high as a candle with lower highs on both sides, and a swing low the same way. Then mark only what fits the rule.', stat: '' },
     { type: 'stat', heading: 'Candles each side', text: 'Fix the count before you start. Three is a common choice.', narration: 'Decide how many candles each side you require. Three is a common choice. Whatever you pick, keep it for the whole exercise.', stat: '3' },

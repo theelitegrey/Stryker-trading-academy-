@@ -1,4 +1,4 @@
-// Stryker Trading Academy — trading indicators listing (indicators.html)
+// TradeZoro — trading indicators listing (indicators.html)
 // Mirrors assets/models-list.js, with a proper "Coming soon" empty state
 // instead of a plain one-line message, since this module is intentionally
 // launching with no content yet.
@@ -131,7 +131,7 @@ function initTvAccessPanel(uid){
             createNotification(doc.id, 'tv_access_granted',
               who + ' submitted a TradingView username for approval.', 'indicators-admin.html');
           });
-        }).catch((err) => console.error('Stryker: could not notify admins of TradingView request', err));
+        }).catch((err) => console.error('TradeZoro: could not notify admins of TradingView request', err));
       }
     }).catch((err) => {
       errEl.textContent = err.message || 'Could not save.';
@@ -141,7 +141,7 @@ function initTvAccessPanel(uid){
 
   db.collection('students').doc(uid).get().then((doc) => {
     renderFromData(doc.exists ? doc.data() : {});
-  }).catch((err) => console.error('Stryker: failed to load TradingView access status', err));
+  }).catch((err) => console.error('TradeZoro: failed to load TradingView access status', err));
 
   document.getElementById('tv-access-save').addEventListener('click', () => {
     saveUsername(usernameInput.value.trim());

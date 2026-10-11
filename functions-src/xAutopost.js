@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — X autopost
+ * TradeZoro — X autopost
  *
  * Publishes the site's own content to the academy's X account:
  *
@@ -104,13 +104,13 @@ const FEATURES = [
   { page: 'features-charts.html', title: 'Charts Workspace',
     blurb: 'A full interactive charting workspace inside the academy — live crypto data, 70+ indicators, drawing tools, and layouts that save themselves.' },
   { page: 'features-models.html', title: 'Trading Models',
-    blurb: 'Complete, rule-based trading models — context, entry, invalidation and management — documented step by step in the Stryker model library.' },
+    blurb: 'Complete, rule-based trading models — context, entry, invalidation and management — documented step by step in the TradeZoro model library.' },
   { page: 'features-indicators.html', title: 'Private Indicators',
     blurb: 'Invite-only TradingView indicators — Liquidity Master, SMT Divergence Pro, IFVG Pro, FVG Relay and HTF PO3 Lens — with licensed access granted to your TradingView username.' },
   { page: 'features-live.html', title: 'Live Sessions',
     blurb: 'Live trading sessions with real-time chat, session replays with recap stats, and a next-session countdown shown in your own timezone.' },
   { page: 'features-monitor.html', title: 'Global Monitor',
-    blurb: 'A single screen for global market context — the monitor every Stryker student checks before the session starts.' },
+    blurb: 'A single screen for global market context — the monitor every TradeZoro student checks before the session starts.' },
   { page: 'features-smart-money.html', title: 'Smart Money Desk',
     blurb: 'What Congress and corporate insiders are actually trading — congressional disclosures and SEC insider filings, refreshed daily, every row linked to the official document.' },
   { page: 'features-community.html', title: 'Community & Tools',
@@ -571,7 +571,7 @@ async function postOne(cfg, state, t) {
     // Manual posts carry only a card title; the SVG is built here so the
     // composer never has to duplicate the renderer.
     const svg = p.cardSvg || (p.cardTitle
-      ? Cards.cardSvg({ kind: 'manual', eyebrow: p.eyebrow || 'Stryker Trading Academy', title: p.cardTitle, body: p.cardBody || '', label: 'STRYKER' },
+      ? Cards.cardSvg({ kind: 'manual', eyebrow: p.eyebrow || 'TradeZoro', title: p.cardTitle, body: p.cardBody || '', label: 'TRADEZORO' },
                       Cards.styleFor('manual', cfg.cardStyles))
       : null);
     if (cfg.cards && svg) {

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Support inbox (support-admin.html)
+// TradeZoro — Admin: Support inbox (support-admin.html)
 // Contact-form submissions with handled tracking. Marking a message handled
 // drops it out of the status=='new' count that both the dashboard's
 // "Needs your attention" queue and the notification bell are built on, so
@@ -54,7 +54,7 @@ function supRenderList(){
       '</div>' +
       '<div style="display:flex; flex-direction:column; gap:8px; flex-shrink:0;">' +
         (m.email ? '<a class="btn btn-ghost btn-sm" href="mailto:' + supEsc(m.email) +
-          '?subject=' + encodeURIComponent('Re: your message to Stryker Trading Academy') + '">Reply</a>' : '') +
+          '?subject=' + encodeURIComponent('Re: your message to TradeZoro') + '">Reply</a>' : '') +
         (st === 'handled'
           ? '<button type="button" class="btn btn-ghost btn-sm" data-sup-act="reopen" data-id="' + m.id + '">Reopen</button>'
           : '<button type="button" class="btn btn-primary btn-sm" data-sup-act="handle" data-id="' + m.id + '">✓ Mark handled</button>') +

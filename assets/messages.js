@@ -1,4 +1,4 @@
-// Stryker Trading Academy — direct messaging core
+// TradeZoro — direct messaging core
 // Depends on: assets/progress.js (db), assets/auth.js (auth)
 //
 // DATA MODEL
@@ -85,7 +85,7 @@ function markConversationRead(convId, myUid){
   var update = {};
   update['unread.' + myUid] = 0;
   return db.collection('conversations').doc(convId).update(update)
-    .catch(function (err) { console.warn('Stryker: could not clear unread', err); });
+    .catch(function (err) { console.warn('TradeZoro: could not clear unread', err); });
 }
 
 // Total unread across every thread, for the header badge.

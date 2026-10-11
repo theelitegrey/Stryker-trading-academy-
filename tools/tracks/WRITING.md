@@ -29,7 +29,7 @@ The validator must show no "!" lines for your chapter. It checks:
 
 ## Who reads it
 
-A paying student of Stryker Trading Academy (tradezoro.com), which teaches
+A paying student of TradeZoro (tradezoro.com), which teaches
 ICT and smart money concepts: market structure, liquidity, order blocks, fair
 value gaps, SMT divergence, killzones. Assume they know candlesticks and basic
 SMC, but nothing about auction theory, volume profile or order flow. Write

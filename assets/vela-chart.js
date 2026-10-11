@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts (charts.html) — loaded as <script type="module">
+// TradeZoro — Charts (charts.html) — loaded as <script type="module">
 // Depends on: the shared page shell (login gate); assets/chart-templates.js
 // (saved templates store, window.StrykerChartTemplates); assets/toast.js.
 //
@@ -46,8 +46,8 @@
 // topbar Indicators button and "/") with the TradingView-style window: Favorites, My scripts,
 // Technicals by category, Editors' picks / Top / Trending, boosts, stars.
 //
-// GEX LEVELS: assets/chart-gex-levels.js registers the "Stryker GEX Levels" native (call wall,
-// put wall, zero gamma from /api/gex/levels) at the top of the indicator window's Stryker group.
+// GEX LEVELS: assets/chart-gex-levels.js registers the "TradeZoro GEX Levels" native (call wall,
+// put wall, zero gamma from /api/gex/levels) at the top of the indicator window's TradeZoro group.
 //
 // VOLUME & ORDER FLOW: assets/chart-orderflow.js registers the volume-profile / VWAP /
 // relative-volume / order-flow natives and puts them in a "Volume & Order flow" group at the
@@ -56,7 +56,7 @@
 // CANDLE LOOK (Owner order 2026-10-05: "same aesthetics as TradingView"):
 // Vela is self-hosted from assets/vendor/vela-0.6.17-s3/ — the unmodified
 // 0.6.17 ESM build (Apache-2.0, LICENSE + NOTICE in that folder) with ONE
-// patched file, chunk-YCD72KGK.js, marked "Stryker patch": 1-device-px wicks
+// patched file, chunk-YCD72KGK.js, marked "TradeZoro patch": 1-device-px wicks
 // (Vela drew 1.5 px) and TradingView's body-width curve (~80% of the bar
 // spacing, 3 px floor, collapsing to a 1 px stick when zoomed far out), plus
 // TV-like dark/light theme defaults (#0f0f0f / white, faint grid, TV font
@@ -164,7 +164,7 @@ function migrateTvLook(){
       localStorage.setItem(PERSIST_KEY, JSON.stringify(st));
     }
     localStorage.setItem(TV_LOOK_KEY, TV_LOOK_VER);
-  } catch (e) { console.warn('Stryker: chart look migration', e); }
+  } catch (e) { console.warn('TradeZoro: chart look migration', e); }
 }
 
 // toast.js signature is showToast(type, message).
@@ -181,21 +181,21 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import(VELA_BASE + 'providers/binance.js'),
       import(VELA_BASE + 'providers/coinbase.js'),
       import(VELA_BASE + 'providers/hyperliquid.js'),
-      import('./chart-futures-provider.js?v=497'),
+      import('./chart-futures-provider.js?v=498'),
       import(VELA_BASE + 'index.js'),
-      import('./chart-pine.js?v=497'),
-      import('./chart-orderflow.js?v=497'),
-      import('./chart-settings.js?v=497'),
+      import('./chart-pine.js?v=498'),
+      import('./chart-orderflow.js?v=498'),
+      import('./chart-settings.js?v=498'),
       import(VELA_BASE + 'chunk-YCD72KGK.js'),
-      import('./chart-grid.js?v=497'),
-      import('./chart-alerts.js?v=497'),
-      import('./chart-events.js?v=497'),
-      import('./chart-intervals.js?v=497'),
-      import('./chart-gex-levels.js?v=497'),
-      import('./chart-legend-rows.js?v=497')
+      import('./chart-grid.js?v=498'),
+      import('./chart-alerts.js?v=498'),
+      import('./chart-events.js?v=498'),
+      import('./chart-intervals.js?v=498'),
+      import('./chart-gex-levels.js?v=498'),
+      import('./chart-legend-rows.js?v=498')
     ]);
   } catch (err) {
-    console.error('Stryker: Vela modules failed to load', err);
+    console.error('TradeZoro: Vela modules failed to load', err);
     velaFail();
     return;
   }
@@ -217,33 +217,33 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const Events = mods[12];
   const Iv = mods[13];
   const Gex = mods[14];
-  // Every Stryker overlay/native that lacks its own emitted model gets a legend row (eye / cog / ×)
+  // Every TradeZoro overlay/native that lacks its own emitted model gets a legend row (eye / cog / ×)
   // through one path (assets/chart-legend-rows.js). Keep order-flow on raw Core to avoid repaint risk.
   const LCore = mods[15].legendCore(Core, () => ws);
   // Tick bars (and seconds where a venue has no 1-second candles) are built from the same trade
   // sources the order-flow tools use.
-  try { Iv.useTrades(Flow); } catch (e) { console.warn('Stryker: interval trades', e); }
+  try { Iv.useTrades(Flow); } catch (e) { console.warn('TradeZoro: interval trades', e); }
 
   // Logomark off — the Credits popover carries the attribution (see header).
-  try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('Stryker: attribution default', e); }
+  try { Core.registerRendererDefaults({ attribution: false }); } catch (e) { console.warn('TradeZoro: attribution default', e); }
 
   // Grid shapes (1 to 8 charts, assets/chart-grid.js) are registered before boot so a
   // persisted / template / saved-layout state that uses one resolves.
   let ws;
-  try { W.registerBuiltinLayouts(); Grid.installGrid(W, Core, () => ws); } catch (e) { console.warn('Stryker: layout register', e); }
+  try { W.registerBuiltinLayouts(); Grid.installGrid(W, Core, () => ws); } catch (e) { console.warn('TradeZoro: layout register', e); }
 
   // Pine Script (assets/chart-pine.js): its persistence handler must be registered
   // before the workspace restores a saved session. The engine itself loads lazily.
-  try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('Stryker: Pine install', e); }
+  try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('TradeZoro: Pine install', e); }
   // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
   // saved session or template that carries them restores.
-  try { Flow.installOrderflow(Core); } catch (e) { console.warn('Stryker: volume tools install', e); }
-  // Stryker GEX Levels (assets/chart-gex-levels.js): registered before boot so a saved session restores it.
-  try { Gex.installGexLevels(LCore); } catch (e) { console.warn('Stryker: GEX levels install', e); }
+  try { Flow.installOrderflow(Core); } catch (e) { console.warn('TradeZoro: volume tools install', e); }
+  // TradeZoro GEX Levels (assets/chart-gex-levels.js): registered before boot so a saved session restores it.
+  try { Gex.installGexLevels(LCore); } catch (e) { console.warn('TradeZoro: GEX levels install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
-  try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('Stryker: alerts install', e); }
-  try { Events.installChartEvents(Core); } catch (e) { console.warn('Stryker: events install', e); }
-  try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('Stryker: settings install', e); }
+  try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
+  try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
+  try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('TradeZoro: settings install', e); }
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -271,8 +271,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
   // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
   let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=497')).loadRithmicIfEnabled(); }
-  catch (e) { console.warn('Stryker: Rithmic module', e); rith = null; }
+  try { rith = await (await import('./rithmic-config.js?v=498')).loadRithmicIfEnabled(); }
+  catch (e) { console.warn('TradeZoro: Rithmic module', e); rith = null; }
 
   try {
     ws = window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
@@ -309,7 +309,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       persist: true
     });
   } catch (err) {
-    console.error('Stryker: Vela failed to start', err);
+    console.error('TradeZoro: Vela failed to start', err);
     velaFail();
     return;
   }
@@ -328,7 +328,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
         return sp.activeTab === 'Commodities' ? pool.map((d) => (isCmd(d) ? Object.assign({}, d, { type: 'commodity' }) : d)) : pool;
       };
     }
-  } catch (e) { console.warn('Stryker: commodities tab', e); }
+  } catch (e) { console.warn('TradeZoro: commodities tab', e); }
 
   const cellCount = () => { try { return ws.layout.cells.length; } catch (e) { return 1; } };
   const currentTheme = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
@@ -355,42 +355,42 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
 
   barL.appendChild(layWrap);
   barL.appendChild(tplWrap);
-  try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('Stryker: Pine editor', e); }
+  try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('TradeZoro: Pine editor', e); }
   barL.appendChild(cellSw);
-  if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('Stryker: Rithmic UI', e); } }
+  if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('TradeZoro: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
-  import('./chart-data-dot.js?v=497')
+  import('./chart-data-dot.js?v=498')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider, FxProvider }))
-    .catch((e) => console.warn('Stryker: data dot', e));
+    .catch((e) => console.warn('TradeZoro: data dot', e));
   // Price-axis countdown to bar close: current wall-clock bar, hidden while CME is closed,
   // timers paused on hidden tabs: assets/chart-countdown.js.
-  import('./chart-countdown.js?v=497')
+  import('./chart-countdown.js?v=498')
     .then((m) => m.installCountdown(ws))
-    .catch((e) => console.warn('Stryker: countdown', e));
+    .catch((e) => console.warn('TradeZoro: countdown', e));
   // Floating Favorites drawing toolbar (starred tools, draggable): assets/chart-fav-toolbar.js.
-  import('./chart-fav-toolbar.js?v=497')
+  import('./chart-fav-toolbar.js?v=498')
     .then((m) => m.mountFavToolbar(ws, Core, { toast }))
-    .catch((e) => console.warn('Stryker: favorites toolbar', e));
+    .catch((e) => console.warn('TradeZoro: favorites toolbar', e));
   window.__stkFlow = Flow;
-  try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('Stryker: volume tools', e); }
-  try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('Stryker: community picker', e); }
-  try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: settings window', e); }
-  try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('Stryker: alerts', e); }
+  try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('TradeZoro: volume tools', e); }
+  try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
+  try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
+  try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
-  Promise.all([import('./chart-watchlist.js?v=497'), import(VELA_BASE + 'widget.js')])
+  Promise.all([import('./chart-watchlist.js?v=498'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
-    .catch((e) => console.warn('Stryker: watchlist', e));
+    .catch((e) => console.warn('TradeZoro: watchlist', e));
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
-  import('./chart-plus.js?v=497').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('Stryker: + menu', e));
-  try { Events.mountChartEvents(ws); } catch (e) { console.warn('Stryker: events', e); }
+  import('./chart-plus.js?v=498').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
+  try { Events.mountChartEvents(ws); } catch (e) { console.warn('TradeZoro: events', e); }
   // TradingView-style interval row + menu (assets/chart-intervals.js).
-  try { Iv.mountIntervals(ws, { toast }); } catch (e) { console.warn('Stryker: intervals', e); }
+  try { Iv.mountIntervals(ws, { toast }); } catch (e) { console.warn('TradeZoro: intervals', e); }
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
-  import('./chart-indicator-window.js?v=497')
+  import('./chart-indicator-window.js?v=498')
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
-    .catch((e) => console.warn('Stryker: indicator window', e));
+    .catch((e) => console.warn('TradeZoro: indicator window', e));
 
   function refreshLayoutUi(){
     grid.refresh();
@@ -468,7 +468,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     s.cells.forEach(([sym, tf], i) => {
       const c = cells[i] && ws.cell(cells[i].id);
       if (!c) return;
-      try { c.setSymbol(sym); c.setTimeframe(tf); } catch (e) { console.warn('Stryker: starter cell', e); }
+      try { c.setSymbol(sym); c.setTimeframe(tf); } catch (e) { console.warn('TradeZoro: starter cell', e); }
     });
     SYNCS.forEach(([k]) => { if (s.sync[k]) { try { ws.sync.set(k, true); } catch (e) {} } });
     afterStructural();
@@ -489,9 +489,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Layout menu (assets/chart-layouts.js): mounted after the default template has had its
   // chance to apply, so a shared-layout link (?layout=) is never overwritten by it.
   function mountLayoutMenu(){
-    import('./chart-layouts.js?v=497')
+    import('./chart-layouts.js?v=498')
       .then((m) => m.mountLayouts(ws, { barL, bindPopover, toast, ui: window.STRYKER_CHART_UI, grid, Pine }))
-      .catch((e) => console.warn('Stryker: layout menu', e));
+      .catch((e) => console.warn('TradeZoro: layout menu', e));
   }
   if (!T) { tplWrap.hidden = true; mountLayoutMenu(); return; }
 
@@ -515,7 +515,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       if (saving) return;
       saving = true; saveBtn.disabled = true; lastErr = '';
       try { await T.save(name, ws.getState()); toast('Template saved'); }
-      catch (e) { lastErr = (e && e.userMessage) || 'Could not save the template.'; console.warn('Stryker: template save', e); }
+      catch (e) { lastErr = (e && e.userMessage) || 'Could not save the template.'; console.warn('TradeZoro: template save', e); }
       saving = false; renderTemplates();
     };
     saveBtn.addEventListener('click', doSave);

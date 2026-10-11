@@ -1,4 +1,4 @@
-// Stryker Trading Academy — dedicated Trading Indicator Editor (indicator-editor.html)
+// TradeZoro — dedicated Trading Indicator Editor (indicator-editor.html)
 // Mirrors assets/model-editor.js, simplified: no category/video/steps fields
 // (indicators are id, name, summary, minRole, bodyHtml only), and no
 // "reset from bundled content" since there's no seed array for indicators.

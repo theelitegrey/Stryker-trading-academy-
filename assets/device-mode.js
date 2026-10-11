@@ -1,4 +1,4 @@
-// Stryker Trading Academy — device detection for forced views
+// TradeZoro — device detection for forced views
 //
 // Loaded synchronously in <head>, before first paint, so the layout never
 // flashes from one mode to another. Stamps <html data-device="mobile|

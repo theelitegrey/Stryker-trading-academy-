@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — "Learn" article generator
+// TradeZoro — "Learn" article generator
 //
 // Builds the public, crawlable Learn section from tools/learn/<slug>.html
 // (article body only) and the ARTICLES list below:
@@ -128,7 +128,7 @@ function faqs(body) {
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const V = (p) => `${p}?v=${BUILD}`;
-const LOGO = `${ORIGIN}/assets/images/tradezoro-logo-header-494.png?v=497`;
+const LOGO = `${ORIGIN}/assets/images/tradezoro-logo-header-494.png?v=498`;
 // Share images come from tools/og/pages.json (rendered by tools/og/gen_og.py).
 const OG_TABLE = JSON.parse(fs.readFileSync(path.join(__dirname, 'og', 'pages.json'), 'utf8')).pages;
 function ogFor(key) {
@@ -155,7 +155,7 @@ function head({ title, description, url, ogType, jsonld, key }) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="${esc(description)}">
 <meta property="og:type" content="${ogType}">
-<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:site_name" content="TradeZoro">
 <meta property="og:title" content="${esc(og.title || title)}">
 <meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${url}">
@@ -170,7 +170,7 @@ function head({ title, description, url, ogType, jsonld, key }) {
 <meta name="twitter:image" content="${og.url}">
 <meta name="twitter:image:alt" content="${esc(og.alt)}">
 <meta name="theme-color" content="#050506">
-<title>${esc(title)} | Stryker Trading Academy</title>
+<title>${esc(title)} | TradeZoro</title>
 <link rel="canonical" href="${url}">
 ${HEAD_ASSETS}
 <script type="application/ld+json">
@@ -217,7 +217,7 @@ ${SCRIPTS}
 `;
 }
 
-const PUBLISHER = { '@type': 'Organization', name: 'Stryker Trading Academy', url: ORIGIN + '/',
+const PUBLISHER = { '@type': 'Organization', name: 'TradeZoro', url: ORIGIN + '/',
   logo: { '@type': 'ImageObject', url: LOGO } };
 
 function articlePage(a) {
@@ -251,7 +251,7 @@ function articlePage(a) {
 <header class="lx-head">
 <h1>${esc(a.short)}</h1>
 <p class="lx-dek">${esc(a.dek)}</p>
-<p class="lx-meta">Stryker Trading Academy · Updated <time datetime="${a.modified}">${d}</time> · ${Math.max(1, Math.round(n / 220))} min read</p>
+<p class="lx-meta">TradeZoro · Updated <time datetime="${a.modified}">${d}</time> · ${Math.max(1, Math.round(n / 220))} min read</p>
 </header>
 <div class="lx-body">
 ${body}

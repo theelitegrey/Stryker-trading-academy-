@@ -39,7 +39,7 @@ globalThis.fetch = async (url) => {
 };
 
 const call = async (path) => {
-  const url = new URL('https://strykertrading.com' + path);
+  const url = new URL('https://tradezoro.com' + path);
   const sym = decodeURIComponent(url.pathname.split('/').pop());
   const res = await onRequestGet({ request: new Request(url), params: { sym } });
   return { status: res.status, body: await res.json(), cc: res.headers.get('cache-control') };

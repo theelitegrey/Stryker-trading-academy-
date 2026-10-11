@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — "What's next" roadmap strip (user dashboard)
+ * TradeZoro — "What's next" roadmap strip (user dashboard)
  *
  * An animated timeline at the top of dashboard-user.html showing what has
  * just shipped, what is being built now, and what is planned. Content comes

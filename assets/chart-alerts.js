@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts price alerts (ES module, charts.html only)
+// TradeZoro — Charts price alerts (ES module, charts.html only)
 // Owner order 2026-10-06 ("Build all", Settings window → Alerts tab + basic price alerts).
 //
 // WHAT IT DOES
@@ -104,7 +104,7 @@ function makeBackend(){
 async function reload(){
   backend = makeBackend();
   try { alerts = (await backend.list()).filter((a) => a && Number.isFinite(Number(a.price))).map((a) => Object.assign({ id: a.id }, clean(a))); }
-  catch (e) { console.warn('Stryker alerts: load', e); alerts = []; }
+  catch (e) { console.warn('TradeZoro alerts: load', e); alerts = []; }
   try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanInd(a)))); } catch (e) {}
   pushLines(); renderList();
 }
@@ -192,10 +192,10 @@ function fire(a, p){
   const text = a.message || describe(a);
   showToast('Alert: ' + text, (a.src ? 'Value ' : 'Price ') + p + ' · ' + new Date().toLocaleTimeString());
   beep();
-  try { if (window.Notification && Notification.permission === 'granted') new Notification('Stryker chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
+  try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
   if (a.freq === 'once') {
     a.active = false;
-    const st = storeOf(a); st && st.update(a.id, a).catch((e) => console.warn('Stryker alerts: update', e));
+    const st = storeOf(a); st && st.update(a.id, a).catch((e) => console.warn('TradeZoro alerts: update', e));
     pushLines(); renderList();
   }
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
@@ -453,7 +453,7 @@ export async function addAlert(a){
 }
 
 export function installChartAlerts(Core){
-  try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: linesLayer }); } catch (e) { console.warn('Stryker alerts: layer', e); }
+  try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: linesLayer }); } catch (e) { console.warn('TradeZoro alerts: layer', e); }
   window.__stkExtraSections = (window.__stkExtraSections || []).concat([alertsSection]);
 }
 export function mountChartAlerts(ws, opts){

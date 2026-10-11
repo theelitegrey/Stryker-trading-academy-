@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts "futures" provider with a Rithmic source (ES module)
+// TradeZoro — Charts "futures" provider with a Rithmic source (ES module)
 // Depends on: assets/rithmic-client.js (RithmicClient, BAR_TYPE). Wraps the existing
 // assets/chart-futures-provider.js FuturesProvider (passed in, not imported).
 // Created by assets/rithmic-ui.js; only ever loaded when the Rithmic flag is on.
@@ -14,7 +14,7 @@
 // served by the normal provider: an automatic fallback. assets/rithmic-ui.js reloads the
 // chart cells when the source flips, so the visible bars always match the chip.
 
-import { BAR_TYPE } from './rithmic-client.js?v=497';
+import { BAR_TYPE } from './rithmic-client.js?v=498';
 
 // Rithmic exchange codes for our roots.
 export const EXCHANGE = {

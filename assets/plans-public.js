@@ -1,4 +1,4 @@
-// Stryker Trading Academy — public pricing section (index.html)
+// TradeZoro — public pricing section (index.html)
 // Depends on: assets/progress.js (`db`)
 // Reads Firestore's `plans` collection (public read). If it's empty — i.e.
 // no admin has created plans yet — the original static cards already in
@@ -128,6 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
   }).catch((err) => {
-    console.error('Stryker: failed to load live plans, showing static fallback', err);
+    console.error('TradeZoro: failed to load live plans, showing static fallback', err);
   });
 });

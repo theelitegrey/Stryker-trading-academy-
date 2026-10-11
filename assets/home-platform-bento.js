@@ -1,4 +1,4 @@
-// Stryker Trading Academy: homepage Platform section, bento grid (build 450)
+// TradeZoro: homepage Platform section, bento grid (build 450)
 //
 // Ported from /demo-platform variation A (assets/demo-platform.js, "A bento").
 //   - tile tilt + spotlight on fine pointers (rAF-throttled, transforms only)

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — plan pricing with sales / offer prices
+// TradeZoro — plan pricing with sales / offer prices
 //
 // A plan can carry a sale (set in Billing & plans admin):
 //   onSale:     true

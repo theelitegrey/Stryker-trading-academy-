@@ -301,7 +301,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
   try {
     const res = await fetchImpl(yahooUrl(sym, tf, page, now), {
       signal: ctrl.signal,
-      headers: { 'user-agent': 'Mozilla/5.0 StrykerCharts/1.0', 'accept': 'application/json' }
+      headers: { 'user-agent': 'Mozilla/5.0 TradeZoroCharts/1.0', 'accept': 'application/json' }
     });
     // 422 = "data not available for startTime/endTime" (outside Yahoo's window), 404 = no data.
     if (res.status === 422 || res.status === 404) throw new OutOfRange(`upstream ${res.status}`);

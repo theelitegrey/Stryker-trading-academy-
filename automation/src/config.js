@@ -1,5 +1,5 @@
 /**
- * Stryker social automation — configuration
+ * TradeZoro social automation — configuration
  *
  * Two layers:
  *   env       secrets and server facts, read once from process.env (and a

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: floating FAVORITES drawing toolbar (ES module)
+// TradeZoro — Charts: floating FAVORITES drawing toolbar (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (passed in as ws, plus Core
 // for getDrawingType: tool labels + icons); Vela's left drawing toolbar (.vela-dtb, whose
 // flyout rows already carry the ☆/★ favourite star: chart.drawings.setFavorite); the global
@@ -95,7 +95,7 @@ export function mountFavToolbar(ws, Core, opts){
   function pushToVela(list){
     applying = true;
     try { const d = activeDrawings(); if (d && !sameSet(d.favorites(), list)) d.setFavorites(list); }
-    catch (e) { console.warn('Stryker: favorites push', e); }
+    catch (e) { console.warn('TradeZoro: favorites push', e); }
     applying = false;
   }
 
@@ -114,7 +114,7 @@ export function mountFavToolbar(ws, Core, opts){
       const doc = { tools: st.tools.slice(0, MAX_TOOLS), visible: !!st.visible, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
       if (st.x != null) doc.x = st.x;
       if (st.y != null) doc.y = st.y;
-      prefRef(u).set(doc).catch((e) => console.warn('Stryker: favorites toolbar save', e));
+      prefRef(u).set(doc).catch((e) => console.warn('TradeZoro: favorites toolbar save', e));
     }, 600);
   }
   function adopt(d){
@@ -137,7 +137,7 @@ export function mountFavToolbar(ws, Core, opts){
       if (uid !== u.uid) return;
       if (snap.exists) { adopt(snap.data()); writeLocal(); pushToVela(st.tools); render(); }
       else if (st.tools.length) save();      // first sign-in: copy this browser's favourites up
-    } catch (e) { console.warn('Stryker: favorites toolbar load', e); }
+    } catch (e) { console.warn('TradeZoro: favorites toolbar load', e); }
   }
   try { if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length) firebase.auth().onAuthStateChanged(onAuth); } catch (e) {}
 
@@ -235,7 +235,7 @@ export function mountFavToolbar(ws, Core, opts){
       const d = activeDrawings(); if (!d) return;
       d.setTool(d.getTool() === type ? null : type);
       try { ws.refocusActive(); } catch (e) {}
-    } catch (e) { console.warn('Stryker: favorites arm', e); }
+    } catch (e) { console.warn('TradeZoro: favorites arm', e); }
     readActive(); paintActive();
   }
 

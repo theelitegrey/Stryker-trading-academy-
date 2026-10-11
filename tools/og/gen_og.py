@@ -9,7 +9,7 @@ write the matching head tags. One data table drives it: tools/og/pages.json.
 
 Card layout (same look as the first /features share cards): dark brand
 background with a soft mint glow, the page's descriptive title top-left with a
-mint underline, the Stryker dragon emblem top-right, and a real capture of the
+mint underline, the TradeZoro dragon emblem top-right, and a real capture of the
 page (or the logo wordmark for brand-only pages) in a rounded frame below.
 The bottom-left corner of the frame is kept free of anything important because
 X draws the og:title over it.
@@ -35,7 +35,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 TABLE = os.path.join(ROOT, 'tools', 'og', 'pages.json')
 OUT_REL = 'assets/images/og/share'
-SITE = 'https://strykertrading.com/'
+SITE = 'https://tradezoro.com/'
 W, H = 1200, 630
 BG = (10, 10, 12)
 FRAME = (44, 44, 50)
@@ -109,7 +109,7 @@ def base(title):
     ImageDraw.Draw(glow).ellipse((-200, -260, 700, 260), fill=ACCENT + (40,))
     card.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
     d = ImageDraw.Draw(card)
-    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=497')).convert('RGBA')
+    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png')).convert('RGBA')
     ls = 88
     logo = logo.resize((ls, ls), Image.LANCZOS)
     max_w = W - 2 * PAD - ls - 30
@@ -150,12 +150,12 @@ def render(entry):
         ImageDraw.Draw(g).ellipse((bw // 2 - 360, bh // 2 - 170, bw // 2 + 360, bh // 2 + 170), fill=ACCENT + (34,))
         panel = panel.convert('RGBA')
         panel.alpha_composite(g.filter(ImageFilter.GaussianBlur(70)))
-        mark = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-full-494.png?v=497')).convert('RGBA')
+        mark = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-full-494.png')).convert('RGBA')
         mh = 250
         mark = mark.resize((round(mark.width * mh / mark.height), mh), Image.LANCZOS)
         panel.alpha_composite(mark, ((bw - mark.width) // 2, (bh - mh) // 2 - 22))
         pd = ImageDraw.Draw(panel)
-        url = 'strykertrading.com/' + ('' if entry['page'] == 'index.html' else entry['page'][:-5])
+        url = 'tradezoro.com/' + ('' if entry['page'] == 'index.html' else entry['page'][:-5])
         fm = font(26, mono=True)
         tw = pd.textlength(url, font=fm)
         pd.text(((bw - tw) // 2, (bh + mh) // 2 + 2), url, font=fm, fill=(150, 152, 160))
@@ -285,7 +285,7 @@ def write_tags(entry, ver):
             new = new[:anchor.end()] + '\n' + line + new[anchor.end():]
         prev = key
     # JSON-LD image follows the share image.
-    new = new.replace('"https://strykertrading.com/assets/images/og-image.png"', f'"{vals["og:image"]}"')
+    new = new.replace('"https://tradezoro.com/assets/images/og-image.png"', f'"{vals["og:image"]}"')
     if new != src:
         with open(path, 'w', encoding='utf-8') as fh:
             fh.write(new)

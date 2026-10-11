@@ -53,7 +53,7 @@ async function fetchJson(url, timeoutMs = FETCH_TIMEOUT_MS, extraHeaders = {}) {
     const res = await fetch(url, {
       signal: ctrl.signal,
       redirect: 'follow',
-      headers: { 'user-agent': 'Mozilla/5.0 StrykerGEX/1.0', 'accept': 'application/json', ...extraHeaders }
+      headers: { 'user-agent': 'Mozilla/5.0 TradeZoroGEX/1.0', 'accept': 'application/json', ...extraHeaders }
     });
     if (!res.ok) throw new Error(`fetch ${res.status} ${url}`);
     return res.json();

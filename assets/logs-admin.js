@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Activity log (logs-admin.html)
+// TradeZoro — Admin: Activity log (logs-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (db), assets/admin-guard.js,
 //             assets/activity-log.js (ACTIVITY_ACTIONS)
 

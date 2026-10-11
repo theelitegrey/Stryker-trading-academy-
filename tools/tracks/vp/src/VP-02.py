@@ -130,7 +130,7 @@ body = [
     'showed up decisively. Many profile traders expect the market to revisit such a level later. Sierra Chart\'s TPO study can extend poor '
     'highs and lows forward on the chart so you can track them.</p>',
     fig_poor,
-    '<p>This is one of the places where Market Profile and Stryker\'s liquidity framework say the same thing in different words. A flat top '
+    '<p>This is one of the places where Market Profile and TradeZoro\'s liquidity framework say the same thing in different words. A flat top '
     'with several touches is also a set of <strong>equal highs</strong>, and the core course treats those as resting buy-side liquidity '
     '(<a href="chapter.html?ch=07">chapter 07</a>, <a href="chapter.html?ch=12">chapter 12</a>). Two methods pointing at the same level is '
     'worth noting. It is still not a guarantee that price will return there.</p>',

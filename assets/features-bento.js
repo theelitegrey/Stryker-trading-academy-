@@ -1,4 +1,4 @@
-// Stryker Trading Academy: Features hub as a neon bento page (features.html; went live 2026-10-06,
+// TradeZoro: Features hub as a neon bento page (features.html; went live 2026-10-06,
 // first previewed at /features-bento, which now 301s to /features).
 // Owner order 2026-10-06: "Create new feature page with this bento grids, make it beautiful and
 // crazy, add big hero bento style CTA etc." Unlisted preview (noindex, not in nav/sitemap/pages.json);

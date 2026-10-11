@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin team management
+// TradeZoro — Admin team management
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 //
 // Real functionality: granting/revoking admin access writes/deletes a

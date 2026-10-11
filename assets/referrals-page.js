@@ -1,4 +1,4 @@
-// Stryker Trading Academy — student Invite & Earn page (referrals.html)
+// TradeZoro — student Invite & Earn page (referrals.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/referrals.js
 
 let REFERRAL_UID = null;
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('referral-total-points').textContent = myPoints;
       return myPoints;
     }).catch((err) => {
-      console.error('Stryker: failed to load referral points', err);
+      console.error('TradeZoro: failed to load referral points', err);
       document.getElementById('referral-total-points').textContent = '0';
       return 0;
     });
@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderInviteList(invites);
       })
       .catch((err) => {
-        console.error('Stryker: failed to load invites', err);
+        console.error('TradeZoro: failed to load invites', err);
         document.getElementById('referral-invite-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load your invites right now — try refreshing.</p>';
       });

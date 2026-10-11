@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Live Sessions management (dashboard-admin.html)
+// TradeZoro — Admin: Live Sessions management (dashboard-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
 //
 // Real admin access control: writes to `liveSessions` are restricted by
@@ -254,7 +254,7 @@ function loadAdminSessions(){
       sessions.forEach((s) => list.appendChild(renderAdminSessionRow(s)));
     })
     .catch((err) => {
-      console.error('Stryker: failed to load sessions', err);
+      console.error('TradeZoro: failed to load sessions', err);
       document.getElementById('admin-session-list').innerHTML =
         '<p style="color:var(--ink-3); font-size:13.5px;">Could not load sessions: ' + (err.message || err) + '</p>';
     });

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: Community Pine scripts (publish, browse, report, admin
+// TradeZoro — Charts: Community Pine scripts (publish, browse, report, admin
 // hide). Plain script, loaded by charts.html after chart-pine-scripts.js
 // and chart-pine-guard.js. Uses window.STRYKER_PINE (assets/chart-pine.js) to put a
 // script on the chart; never runs Pine itself.
@@ -173,7 +173,7 @@
         b.set(mk, { at: ts() });
         return b.commit();
       });
-    } catch (e) { console.warn('Stryker: add count', e); }
+    } catch (e) { console.warn('TradeZoro: add count', e); }
   }
   // Boosts: one per member per script, never the author's own. Returns { on, count, ring }.
   function myBoost(id) {
@@ -341,7 +341,7 @@
         if (id) ver = await update(id, f); else { id = await publish(f); ver = 1; }
         showDone(id, f, ver);
       } catch (e) {
-        console.warn('Stryker: publish', e);
+        console.warn('TradeZoro: publish', e);
         say(box, (e && e.userMessage) || 'Could not publish. Try again.', true);
         go.disabled = false;
       }
@@ -500,7 +500,7 @@
     async function load() {
       note.hidden = false; note.textContent = 'Loading\u2026'; list.innerHTML = '';
       try { data = await (cur === 'mine' ? listMine() : cur === 'hidden' ? listHidden() : listPublic()); }
-      catch (e) { console.warn('Stryker: community list', e); data = []; note.textContent = 'Could not load scripts. Check your connection.'; return; }
+      catch (e) { console.warn('TradeZoro: community list', e); data = []; note.textContent = 'Could not load scripts. Check your connection.'; return; }
       render();
     }
     if (query) q.value = String(query);
@@ -509,7 +509,7 @@
     sort.addEventListener('change', render);
     paintTabs();
     sheet('Community scripts', h('div', { class: 'stkc-form' }, [tabRow, h('div', { class: 'stkc-saverow' }, [q, sort]), note, list,
-      h('p', { class: 'stkc-note', text: 'Scripts are written by members, not by Stryker. They run on your chart in your browser, in a sandbox. Education only. Not financial advice.' })]), null).classList.add('is-wide');
+      h('p', { class: 'stkc-note', text: 'Scripts are written by members, not by TradeZoro. They run on your chart in your browser, in a sandbox. Education only. Not financial advice.' })]), null).classList.add('is-wide');
     load();
   }
 

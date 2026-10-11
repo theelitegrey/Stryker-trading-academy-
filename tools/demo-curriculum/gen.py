@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stryker Trading Academy: generator for the unlisted /demo-curriculum page.
+"""TradeZoro: generator for the unlisted /demo-curriculum page.
 
 Owner order 2026-10-07: "now create bento design inspired for curriculum
 section on homepage, show me 4 variations". Four bento layouts of the
@@ -350,7 +350,7 @@ def var_d():
   <div class="cd-tile cd-stat cd-s4"><b>3<i>+</i>2</b><span>levels + specialist tracks</span></div>
   <figure class="cd-tile cd-preview">
     <div class="cd-pv-h"><span class="dp-k">Lesson preview · Chapter 01</span><span class="dp-cap">Screen capture of the reader</span></div>
-    <div class="cd-laptop"><div class="dp-chrome" aria-hidden="true"><i></i><i></i><i></i><span>strykertrading.com/<b>chapter?ch=01</b></span></div>
+    <div class="cd-laptop"><div class="dp-chrome" aria-hidden="true"><i></i><i></i><i></i><span>tradezoro.com/<b>chapter?ch=01</b></span></div>
       <div class="cd-scr"><img src="/assets/images/curriculum/reader.webp?v={BUILD}" width="740" height="774" loading="lazy" decoding="async" alt="The chapter reader showing Chapter 01, Candles, Charts and the Language of Price, with a candle anatomy diagram."></div></div>
     <div class="cd-phone" aria-hidden="true"><div class="cd-scr"><img src="/assets/images/curriculum/mobile.webp?v={BUILD}" width="740" height="1000" loading="lazy" decoding="async" alt=""></div></div>
   </figure>

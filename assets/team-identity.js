@@ -1,4 +1,4 @@
-// Stryker Trading Academy — the Stryker Team identity
+// TradeZoro — the TradeZoro Team identity
 //
 // A first-class posting identity that is NOT a Firebase Auth account.
 //
@@ -6,7 +6,7 @@
 // normal user and sign in as it. That means a shared password, credentials sat
 // in a Cloud Function for the bot to use, and a real session that could be
 // hijacked into full read access over every student record. A synthetic
-// identity carries none of that: nobody can log in as Stryker Team, because
+// identity carries none of that: nobody can log in as TradeZoro Team, because
 // there is nothing to log in to. Authority to post under it comes from being an
 // admin, checked server-side in the security rules.
 //
@@ -20,7 +20,7 @@
 // person-shaped and a brand account has no business in them.
 
 var STRYKER_TEAM_UID = 'stryker-team';
-var STRYKER_TEAM_NAME = 'Stryker Team';
+var STRYKER_TEAM_NAME = 'TradeZoro Team';
 
 // Rendered in place of a plan badge. Reusing a plan tag would put the brand
 // account into the same visual class as students, which is exactly the
@@ -43,7 +43,7 @@ function strykerTeamProfile() {
     // No plan field. A brand account with a tier would show up in plan
     // filters, upgrade prompts and revenue counts as though it were a paying
     // student, quietly corrupting every one of those numbers.
-    avatarUrl: 'assets/images/tradezoro-logo-emblem-sm-494.png?v=497',
+    avatarUrl: 'assets/images/tradezoro-logo-emblem-sm-494.png?v=498',
     createdAt: null
   };
 }
@@ -51,7 +51,7 @@ function strykerTeamProfile() {
 
 // ---- Per-bot identities ----------------------------------------------------
 //
-// Each bot posts under its OWN name and avatar, not as Stryker Team.
+// Each bot posts under its OWN name and avatar, not as TradeZoro Team.
 //
 // The first version had every bot post as the shared team account, which
 // collapsed a real distinction: three mirrors of three different X accounts

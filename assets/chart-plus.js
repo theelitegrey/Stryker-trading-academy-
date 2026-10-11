@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts "+" price-axis menu (ES module, charts.html only)
+// TradeZoro — Charts "+" price-axis menu (ES module, charts.html only)
 // Owner order 2026-10-06 ("plus button along the price, and when clicked these options").
 // Depends on: assets/chart-alerts.js (openAlerts, chartPlots); the Vela workspace (ws) built by
 // assets/vela-chart.js. Does NOT touch the GEX files.
@@ -67,7 +67,7 @@ function addHLine(c, time){
     if (!d || d.supported === false) return;
     d.add('hline', { anchors: [{ time: time != null ? time : lastTime(c.R), price: c.price }] });
     try { WS.markStateDirty(); } catch (e) {}
-  } catch (e) { console.warn('Stryker +: hline', e); }
+  } catch (e) { console.warn('TradeZoro +: hline', e); }
 }
 
 // ---------------------------------------------------------------------------------------

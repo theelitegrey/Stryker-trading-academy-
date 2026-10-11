@@ -1,10 +1,10 @@
-# Stryker changes to @luxalgo/vela 0.6.17 (Apache-2.0)
+# TradeZoro changes to @luxalgo/vela 0.6.17 (Apache-2.0)
 
 Upstream: https://github.com/LuxAlgo/Vela, npm @luxalgo/vela@0.6.17, dist/ folder.
 LICENSE and NOTICE in this folder are the upstream files. Everything here is
-unmodified except **chunk-YCD72KGK.js** (search "Stryker patch"):
+unmodified except **chunk-YCD72KGK.js** (search "TradeZoro patch"):
 
-- Stryker change: 1-device-pixel crisp wicks. `CANDLE_WICK_W` 1.5 -> 1;
+- TradeZoro change: 1-device-pixel crisp wicks. `CANDLE_WICK_W` 1.5 -> 1;
   `wickWidth()` returns 1; `candleGeometry()` uses floor(dpr) device px for the
   wick and snaps it to the pixel grid (was round(1.5*dpr)).
 - Body width: new `strykerTvBodyDev()` (TradingView's curve, same formula as
@@ -22,7 +22,7 @@ Any further patch goes into a new folder (vela-0.6.17-s4) because these
 module files are imported without ?v= cache-busters.
 
 ## s2 (2026-10-06, web-temp-5, Charts settings window)
-Everything from s1, plus (chunk-YCD72KGK.js, search "Stryker patch (s2)"). All are
+Everything from s1, plus (chunk-YCD72KGK.js, search "TradeZoro patch (s2)"). All are
 off / unchanged unless the host sets `scene.stk` (assets/chart-settings.js does):
 - Autoscale margins: `computePaneScale` takes an optional `stk` ({marginTop, marginBottom}
   as fractions of the data span) for the price pane; the old constants are now
@@ -36,7 +36,7 @@ off / unchanged unless the host sets `scene.stk` (assets/chart-settings.js does)
   columns keep open/close colouring.
 
 ## s3 (2026-10-06, web-temp-5, Charts smoothness)
-Everything from s2, plus (chunk-YCD72KGK.js, search "Stryker patch (s3)"):
+Everything from s2, plus (chunk-YCD72KGK.js, search "TradeZoro patch (s3)"):
 - `tzOffsetMs()` caches one `Intl.DateTimeFormat` per zone and the offset per 15-minute
   bucket (computed at the bucket start). Upstream built a new formatter on every call
   (crosshair time chip, time axis, grid), which cost ~200 ms of script per crosshair/pan

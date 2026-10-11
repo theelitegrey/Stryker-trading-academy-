@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — subscription lifecycle
+ * TradeZoro — subscription lifecycle
  *
  * Turns the one-time plan purchases into real subscriptions. Every paid
  * purchase stamps students/{uid}.paidThroughMillis one billing period out

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared admin-page guard
+// TradeZoro — shared admin-page guard
 // Depends on: assets/auth.js, assets/progress.js (for `db`)
 //
 // Firestore security rules are the actual security boundary (see rules —
@@ -30,7 +30,7 @@ function guardAdminPage(onAuthorized){
         }
       })
       .catch((err) => {
-        console.error('Stryker: admin check failed', err);
+        console.error('TradeZoro: admin check failed', err);
         showToast('error', "Couldn't verify admin access. Sending you to your student dashboard.", { hold: true })
           .then(function () { window.location.href = 'dashboard-user.html'; });
         setTimeout(function () { window.location.href = 'dashboard-user.html'; }, 4000);

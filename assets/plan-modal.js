@@ -1,4 +1,4 @@
-// Stryker Trading Academy — in-dashboard plan upgrade modal
+// TradeZoro — in-dashboard plan upgrade modal
 // Depends on: assets/progress.js (db), assets/auth.js (auth),
 //             assets/roles.js (loadPlansForRoles, rankOf, getCachedPlansForRoles)
 //

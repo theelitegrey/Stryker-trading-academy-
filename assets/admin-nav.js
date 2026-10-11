@@ -1,4 +1,4 @@
-// Stryker Trading Academy — admin sidebar accordion
+// TradeZoro — admin sidebar accordion
 // Loaded on admin pages only.
 //
 // The Manage section had grown to thirteen links, which on a phone meant the

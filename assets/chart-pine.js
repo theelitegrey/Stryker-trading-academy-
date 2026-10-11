@@ -1,10 +1,10 @@
-// Stryker Trading Academy — Charts: Pine Script glue (charts.html) — ES module
+// TradeZoro — Charts: Pine Script glue (charts.html) — ES module
 // Depends on: assets/vela-chart.js (calls installPine before the workspace is built and
 // mountPine after); assets/chart-pine-scripts.js (window.StrykerPineScripts: saved scripts
 // + the three example scripts); the import map in charts.html ("pinets",
 // "@luxalgo/vela/plugin").
 //
-// WHAT THIS FILE IS: the only Stryker code that touches the Pine Script engine. It wires
+// WHAT THIS FILE IS: the only TradeZoro code that touches the Pine Script engine. It wires
 // the engine into the Vela chart cells and draws the editor panel. Nothing else.
 //
 // LICENCE (AGPL-3.0): Pine Script support comes from two LuxAlgo packages that are
@@ -32,7 +32,7 @@
 // newer pinets (0.11.0, same as the import map) inside a module Web Worker, language id
 // 'pine-next'. A script the old worker rejects is retried there first (off the page thread);
 // the in-process engine is now only the last resort when module workers are unavailable.
-// The built-in Stryker Pine indicators (chart-pine-builtins.js) run on it directly.
+// The built-in TradeZoro Pine indicators (chart-pine-builtins.js) run on it directly.
 //
 // HOW IT RUNS: PineWorkerEngine — each chart cell gets its own Web Worker, so a heavy
 // script never blocks the page. A first run that takes longer than RUN_LIMIT_MS is
@@ -71,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=497').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=498').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){
@@ -114,7 +114,7 @@ async function ensureEngine(chart){
 
 // Add a restored/kept script on the engine it ran on before.
 function addOn(chart, x){
-  if (x.lib && !guardOk(x.source)) { console.warn('Stryker: shared Pine script failed the safety check, not restored'); return null; }
+  if (x.lib && !guardOk(x.source)) { console.warn('TradeZoro: shared Pine script failed the safety check, not restored'); return null; }
   const main = x.engine === 'main' && !x.lib;
   const next = x.engine === 'next' && !x.lib && nextEngines.has(chart);
   const h = chart.addIndicator(x.source, { language: next ? LANG_NEXT : main ? LANG_MAIN : LANG, inputs: x.inputs || {} });
@@ -219,7 +219,7 @@ function hideVelaErrorToast(){
   kill(); setTimeout(kill, 60); setTimeout(kill, 400);
 }
 
-// opts.engine === 'next': run straight on the next engine (built-in Stryker indicators).
+// opts.engine === 'next': run straight on the next engine (built-in TradeZoro indicators).
 async function runOnChart(chart, source, inputs, shared, opts){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
@@ -227,7 +227,7 @@ async function runOnChart(chart, source, inputs, shared, opts){
   let timer;
   const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
   const runNext = async () => {
-    try { await ensureNext(chart); } catch (e) { console.warn('Stryker: Pine next engine', e); return null; }
+    try { await ensureNext(chart); } catch (e) { console.warn('TradeZoro: Pine next engine', e); return null; }
     return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
   };
   let res = null, engine = 'worker';
@@ -284,11 +284,11 @@ export function installPine(core, wsGetter){
         if (!list.length) return;
         const needNext = list.some((x) => x.engine === 'next' && !x.lib);
         ensureEngine(chart).then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
-          list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('Stryker: Pine restore', e); } });
-        }).catch((e) => { console.warn('Stryker: Pine engine failed to load', e); });
+          list.forEach((x) => { try { addOn(chart, x); } catch (e) { console.warn('TradeZoro: Pine restore', e); } });
+        }).catch((e) => { console.warn('TradeZoro: Pine engine failed to load', e); });
       }
     });
-  } catch (e) { console.warn('Stryker: Pine persistence', e); }
+  } catch (e) { console.warn('TradeZoro: Pine persistence', e); }
 }
 
 // Remove Pine indicators from every cell (before a template without Pine is applied).
@@ -463,7 +463,7 @@ export function mountPine(ws, barL, opts){
       if (r.ok) { toast('Added ' + titleOf(r.handle) + ' to the chart'); if (isPhone()) setOpen(false); }
       else showErr(r.msg, r.line);
     } catch (e) {
-      console.warn('Stryker: Pine run', e);
+      console.warn('TradeZoro: Pine run', e);
       showErr("The Pine engine didn't load. Check your connection; an ad-blocker may be blocking cdn.jsdelivr.net.");
     }
     busy = false; addBtn.disabled = false; addBtn.textContent = 'Add to chart';
@@ -478,7 +478,7 @@ export function mountPine(ws, barL, opts){
     if (!name) { nameIn.focus(); showErr('Give the script a name first.'); return; }
     saveBtn.disabled = true;
     try { editingId = await S.save(name, ta.value, editingId); toast('Script saved'); showErr(''); }
-    catch (e) { showErr((e && e.userMessage) || 'Could not save the script.'); console.warn('Stryker: Pine save', e); }
+    catch (e) { showErr((e && e.userMessage) || 'Could not save the script.'); console.warn('TradeZoro: Pine save', e); }
     saveBtn.disabled = false;
     renderLists();
   });
@@ -585,12 +585,12 @@ export function mountPine(ws, barL, opts){
       if (!panel.hidden) renderLists();
       return { ok: true };
     } catch (e) {
-      console.warn('Stryker: shared Pine run', e);
+      console.warn('TradeZoro: shared Pine run', e);
       return { ok: false, msg: "The Pine engine didn't load. Check your connection." };
     }
   }
 
-  // Run a Pine source (Stryker example or one of My scripts) on the active chart, the same
+  // Run a Pine source (TradeZoro example or one of My scripts) on the active chart, the same
   // engine path as the editor's Add to chart, without opening the editor. Used by the
   // Indicators window (assets/chart-indicator-window.js).
   async function addSource(name, source, opts){
@@ -606,7 +606,7 @@ export function mountPine(ws, barL, opts){
       if (!panel.hidden) renderLists();
       return { ok: true };
     } catch (e) {
-      console.warn('Stryker: Pine run', e);
+      console.warn('TradeZoro: Pine run', e);
       return { ok: false, msg: "The Pine engine didn't load. Check your connection." };
     }
   }

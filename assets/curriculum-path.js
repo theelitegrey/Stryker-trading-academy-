@@ -1,4 +1,4 @@
-// Stryker Trading Academy — homepage curriculum "price path" (#curriculum)
+// TradeZoro — homepage curriculum "price path" (#curriculum)
 //
 // Purpose: animates the curriculum block that tools/gen-curriculum.js writes
 // into index.html. The markup already holds every level card, chapter title

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Firebase Cloud Messaging service worker
+// TradeZoro — Firebase Cloud Messaging service worker
 //
 // MUST live at the site root. A service worker can only control pages at or
 // below its own path, so at /assets/ it would never receive a push for
@@ -30,12 +30,12 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function (payload) {
   const data = payload.data || {};
-  const title = data.title || 'Stryker Trading Academy';
+  const title = data.title || 'TradeZoro';
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=497',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=497',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=498',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=498',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     tag: data.type || 'stryker',

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — model skeleton generator (Models v2 drop-in tooling)
+// TradeZoro — model skeleton generator (Models v2 drop-in tooling)
 //
 // Usage:
 //   node tools/storyboards/new-model.mjs <id>

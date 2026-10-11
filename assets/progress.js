@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Firestore-backed student progress
+// TradeZoro — Firestore-backed student progress
 // Requires firebase-app-compat.js, firebase-auth-compat.js, firebase-firestore-compat.js,
 // and assets/auth.js (initializes the Firebase app + `auth`) to be loaded first.
 
@@ -10,7 +10,7 @@ let db = null;
 try {
   db = firebase.firestore();
 } catch (err) {
-  console.error('Stryker: Firestore failed to initialize', err);
+  console.error('TradeZoro: Firestore failed to initialize', err);
 }
 
 function todayStr(){
@@ -49,7 +49,7 @@ function saveAcquisitionIfMissing(uid){
   return ref.get().then(snap => {
     if (!snap.exists || snap.data().acquisition) return false;
     return ref.update({ acquisition: acq }).then(() => true);
-  }).catch(err => { console.warn('Stryker: acquisition not saved', err && err.code); return false; });
+  }).catch(err => { console.warn('TradeZoro: acquisition not saved', err && err.code); return false; });
 }
 
 function ensureStudentDoc(user){
@@ -103,7 +103,7 @@ function ensureStudentDoc(user){
         // against the students collection itself — see main.js for why.
         db.collection('publicStats').doc('enrollment')
           .set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true })
-          .catch((err) => console.error('Stryker: failed to update enrolled count', err));
+          .catch((err) => console.error('TradeZoro: failed to update enrolled count', err));
         // Non-blocking: seed this student's public profile doc (see
         // assets/profiles-sync.js for why this is a separate collection).
         if (typeof syncPublicProfile === 'function') {

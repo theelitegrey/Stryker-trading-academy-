@@ -1,4 +1,4 @@
-// Stryker Trading Academy — "Admin dashboard" entry point on student pages
+// TradeZoro — "Admin dashboard" entry point on student pages
 // Depends on: assets/auth.js (auth), assets/progress.js (db)
 //
 // The login page no longer asks who you are — everyone signs in as a student
@@ -77,7 +77,7 @@
           // A failed lookup simply means no link. Students massively outnumber
           // admins, so failing closed here is both safer and less confusing
           // than showing an entry point that would bounce them straight back.
-          console.warn('Stryker: admin link check failed', err);
+          console.warn('TradeZoro: admin link check failed', err);
         });
     });
   });

@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Replay chart on TradingView Lightweight Charts
+ * TradeZoro — Replay chart on TradingView Lightweight Charts
  *
  * Wraps lightweight-charts v5 (window.LightweightCharts, Apache-2.0) with
  * everything the backtester needs on top of the stock candlestick chart:

@@ -162,7 +162,7 @@ body = [
     '<li><strong>Where value is</strong> (VP-02 to VP-06): TPO letters, volume profiles, shapes, day types, composites and VWAP all measure it.</li>'
     '<li><strong>How trades happen</strong> (VP-07 to VP-09): orders, the book, matching, and the footprint patterns that record them.</li>'
     '<li><strong>Whether the data is real</strong> (VP-10): futures volume versus tick volume, and how your platform classifies trades.</li>'
-    '<li><strong>How it fits Stryker\'s framework</strong> (VP-11 and this chapter): liquidity, structure and imbalance, checked against value and order flow.</li>'
+    '<li><strong>How it fits TradeZoro\'s framework</strong> (VP-11 and this chapter): liquidity, structure and imbalance, checked against value and order flow.</li>'
     '</ol>',
     '<p>If a part feels shaky, go back to its chapter and redo the practice exercises on fresh sessions. The exercises matter more than the reading.</p>',
     '<h3>Common mistakes</h3>',

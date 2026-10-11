@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared Roles & Access helper
+// TradeZoro — shared Roles & Access helper
 // Depends on: assets/progress.js (`db`)
 //
 // "Roles" ARE the existing Plans (Starter/Pro/Elite) — this module doesn't
@@ -36,7 +36,7 @@ function loadPlansForRoles(forceRefresh){
       return list;
     })
     .catch((err) => {
-      console.error('Stryker: failed to load plans for role access', err);
+      console.error('TradeZoro: failed to load plans for role access', err);
       _rolesPlansCache = [];
       return [];
     });
@@ -146,7 +146,7 @@ function hasChapterNumberAccess(studentPlanNameOrId, chapterNum){
   // Infinity anyway; being explicit stops a future edit turning a lookup miss
   // into a lockout.
   if (!findPlan(studentPlanNameOrId)) {
-    console.warn('Stryker: plan "' + studentPlanNameOrId + '" not found in the plans collection — allowing access');
+    console.warn('TradeZoro: plan "' + studentPlanNameOrId + '" not found in the plans collection — allowing access');
     return true;
   }
 
@@ -229,7 +229,7 @@ function loadPageAccess(){
       return _pageAccessCache;
     })
     .catch((err) => {
-      console.error('Stryker: failed to load page access settings', err);
+      console.error('TradeZoro: failed to load page access settings', err);
       _pageAccessCache = {};
       return _pageAccessCache;
     });

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: one legend-row path for every Stryker native indicator (ES module)
+// TradeZoro — Charts: one legend-row path for every TradeZoro native indicator (ES module)
 // Depends on: assets/vela-chart.js (wraps Core with legendCore() and hands the result to the
 // installers that call registerNativeIndicator: chart-gex-levels.js; order-flow stays on raw Core);
 // Vela 0.6.17's orchestrator (vendor, NOT edited): a native gets its legend row (title, eye,

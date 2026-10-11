@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: Pine "next" engine, page side (ES module)
+// TradeZoro — Charts: Pine "next" engine, page side (ES module)
 // Imported by assets/chart-pine.js. The worker half is assets/chart-pine-next-worker.js;
 // read its header for why this exists (newer pinets OFF the page thread).
 //
@@ -11,7 +11,7 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
-const WORKER_URL = new URL('./chart-pine-next-worker.js?v=497', import.meta.url);
+const WORKER_URL = new URL('./chart-pine-next-worker.js?v=498', import.meta.url);
 
 // request.security ranges: the engine asks for a long warm-up before the chart's first bar
 // (seen: 33 days of 1m bars, 48k bars / 15 s of downloads, for a 3.5-day 1m chart). Keep a

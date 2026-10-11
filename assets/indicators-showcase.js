@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trading Indicators showcase
+// TradeZoro — Trading Indicators showcase
 //
 // The suite shown at the top of the Trading Indicators page. Content lives in
 // Firestore (showcaseIndicators/{id}, public read / admin write) so the
@@ -137,7 +137,7 @@ var SHOWCASE_SEED = [
 
     host.innerHTML =
       '<div class="ind-sc-head">' +
-        '<h2>The Stryker indicator suite</h2>' +
+        '<h2>The TradeZoro indicator suite</h2>' +
         '<p>' + blurb + '</p>' +
       '</div>' +
       '<div class="ind-sc-grid">' + items.map(cardHtml).join('') + '</div>';

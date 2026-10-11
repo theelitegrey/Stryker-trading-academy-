@@ -1,8 +1,8 @@
 /**
- * Stryker Trading Academy — tweet mirror bot
+ * TradeZoro — tweet mirror bot
  *
  * Scheduled Cloud Function. Polls a configured X/Twitter account and publishes
- * new posts to the Trading Floor under the Stryker Team identity.
+ * new posts to the Trading Floor under the TradeZoro Team identity.
  *
  * DEPLOY (must name every function, or the others get deleted):
  *   firebase deploy --only functions:deleteUserAccount,functions:onNotificationCreated,
@@ -41,7 +41,7 @@ const { defineSecret } = require('firebase-functions/params');
 const TWITTERAPI_KEY = defineSecret('TWITTERAPI_KEY');
 
 const TEAM_UID = 'stryker-team';
-const TEAM_NAME = 'Stryker Team';
+const TEAM_NAME = 'TradeZoro Team';
 
 /**
  * Why a per-tweet document rather than "posts newer than the last timestamp":

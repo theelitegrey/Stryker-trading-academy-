@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Playbook analytics (pure, no DOM, no Firebase)
+// TradeZoro — Playbook analytics (pure, no DOM, no Firebase)
 //
 // WHAT THIS IS FOR
 //

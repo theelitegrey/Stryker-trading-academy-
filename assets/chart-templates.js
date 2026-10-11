@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts saved templates store (charts.html)
+// TradeZoro — Charts saved templates store (charts.html)
 // Depends on: firebase compat SDKs (app/auth/firestore) + assets/auth.js
 // (initialises the app). Works without them: falls back to localStorage.
 //
@@ -94,7 +94,7 @@
       lastRemote = items;
       return { items: sortItems(items), defaultId: def || lsDefault(), where: 'cloud' };
     } catch (e) {
-      console.warn('Stryker: chart templates read failed, using this browser', e);
+      console.warn('TradeZoro: chart templates read failed, using this browser', e);
       var l2 = lsAll();
       return { items: sortItems(l2), defaultId: lsDefault(), where: 'local', note: "Couldn't reach your account; showing templates saved in this browser." };
     }
@@ -113,7 +113,7 @@
           var ref = await col().add({ name: name, state: s, isDefault: false, createdAt: ts, updatedAt: ts });
           return ref.id;
         } catch (e) {
-          console.warn('Stryker: chart template cloud save failed, saving in this browser', e);
+          console.warn('TradeZoro: chart template cloud save failed, saving in this browser', e);
         }
       }
     }

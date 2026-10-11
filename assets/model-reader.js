@@ -1,4 +1,4 @@
-// Stryker Trading Academy — single Trading Model reader (model.html)
+// TradeZoro — single Trading Model reader (model.html)
 // Mirrors assets/reader.js, simplified: models don't track per-step
 // completion the way chapters track per-lesson completion.
 
@@ -67,7 +67,7 @@ function checkModelRoleAccess(m, uid){
     // This specific model's own minRole, if the admin set one directly on it.
     return m.minRole ? hasRoleAccess(plan, m.minRole) : true;
   }).catch((err) => {
-    console.error('Stryker: model role check failed', err);
+    console.error('TradeZoro: model role check failed', err);
     return true;
   });
 }
@@ -278,10 +278,10 @@ function renderModel(m){
   //   m.stats      -> stats card    (assets/model-stats.js, approved only)
   // Each add-on is wrapped so a failure in one can never break the article.
   try { if (typeof mountSetupPlayer === 'function') mountSetupPlayer(document.getElementById('model-player-slot'), m); }
-  catch (e) { console.error('Stryker: setup player failed', e); }
+  catch (e) { console.error('TradeZoro: setup player failed', e); }
   try {
     document.dispatchEvent(new CustomEvent('stryker:model-rendered', { detail: { model: m } }));
-  } catch (e) { console.error('Stryker: model-rendered listeners failed', e); }
+  } catch (e) { console.error('TradeZoro: model-rendered listeners failed', e); }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

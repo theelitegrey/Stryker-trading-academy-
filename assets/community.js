@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trading Floor (trading-floor.html)
+// TradeZoro — Trading Floor (trading-floor.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`)
 //
 // Data model:
@@ -350,7 +350,7 @@ function renderPostCard(post){
         // a brand account with an ELITE badge would read as a customer.
         ((isTeamPost || isBotAuthor)
           ? (typeof staffBadgeHtml === 'function'
-              ? staffBadgeHtml(isBotAuthor ? 'Stryker staff' : 'Stryker Team') : '')
+              ? staffBadgeHtml(isBotAuthor ? 'TradeZoro staff' : 'TradeZoro Team') : '')
           : (isAuthorStaff && typeof staffBadgeHtml === 'function' ? staffBadgeHtml() : roleTag)) +
         (isBotAuthor ? botBadgeHtml() : '') +
         shieldBadge + '</div>' +
@@ -469,7 +469,7 @@ function toggleReaction(post, field){
       floorLikesReceived: firebase.firestore.FieldValue.increment(delta)
     }, { merge: true }).then(() => {
       if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(post.authorUid, false);
-    }).catch((err) => console.error('Stryker: failed to update likes-received count', err));
+    }).catch((err) => console.error('TradeZoro: failed to update likes-received count', err));
     // Only notify on a genuine new like (not un-liking), and never for
     // liking your own post.
     if (!has && post.authorUid !== FLOOR_UID && typeof createNotification === 'function') {
@@ -573,7 +573,7 @@ function sendReply(post, inputEl, cardEl){
         floorReplyCount: firebase.firestore.FieldValue.increment(1)
       }, { merge: true }).then(() => {
         if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
-      }).catch((err) => console.error('Stryker: failed to update reply count', err));
+      }).catch((err) => console.error('TradeZoro: failed to update reply count', err));
       inputEl.value = '';
       loadPosts().then(() => {
         const newCardWrap = document.getElementById('replies-' + post.id);
@@ -656,7 +656,7 @@ function submitModeration(){
             createNotification(doc.id, 'moderation_review', FLOOR_NAME + ' sent a post for review. Reason: ' + reason, 'moderation-admin.html');
           }
         });
-      }).catch((err) => console.error('Stryker: failed to notify admins of moderated post', err));
+      }).catch((err) => console.error('TradeZoro: failed to notify admins of moderated post', err));
     }
     closeModerateModal();
     loadPosts();
@@ -671,7 +671,7 @@ function loadPosts(){
     snap.forEach((doc) => ALL_POSTS.push(Object.assign({ id: doc.id }, doc.data())));
     renderFeed();
   }).catch((err) => {
-    console.error('Stryker: failed to load posts', err);
+    console.error('TradeZoro: failed to load posts', err);
     document.getElementById('floor-list').innerHTML =
       '<p style="color:var(--ink-3); font-size:13.5px;">Could not load posts: ' + (err.message || err) + '</p>';
   });
@@ -726,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // redundant single-doc query for the same information.
       FLOOR_IS_MODERATOR = (typeof CURRENT_MODERATOR_UIDS !== 'undefined') && CURRENT_MODERATOR_UIDS.has(user.uid);
       if (typeof loadStaffList === 'function') loadStaffList().then(() => renderFeed());
-      loadBookmarks().then(loadPosts).catch((err) => console.error('Stryker: init failed', err));
+      loadBookmarks().then(loadPosts).catch((err) => console.error('TradeZoro: init failed', err));
       renderFloorLeaderboardWidget(user.uid);
     });
   });
@@ -960,7 +960,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ? db.collection('profiles').doc(STRYKER_TEAM_UID)
           .set(strykerTeamProfile(), { merge: true })
           .catch(function (err) {
-            console.error('Stryker: could not upsert the team profile', err);
+            console.error('TradeZoro: could not upsert the team profile', err);
           })
       : Promise.resolve();
 
@@ -984,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
       notifyMentions(rawHtml.replace(/<[^>]*>/g, ' '), 'in a post on the Trading Floor');
       if (typeof logActivity === 'function') logActivity(
         asTeam ? 'post.created.team' : 'post.created',
-        asTeam ? 'Posted on the Trading Floor as Stryker Team' : 'Posted on the Trading Floor',
+        asTeam ? 'Posted on the Trading Floor as TradeZoro Team' : 'Posted on the Trading Floor',
         { detail: CURRENT_CATEGORY === 'propfirm' ? 'Prop firm feed' : 'Posts' });
       // Self-incrementing counter — this is the poster updating their own
       // doc, no cross-user permission needed. Powers the post-count
@@ -997,7 +997,7 @@ document.addEventListener('DOMContentLoaded', () => {
           floorPostCount: firebase.firestore.FieldValue.increment(1)
         }, { merge: true }).then(() => {
           if (typeof checkAndNotifyNewAchievementsFor === 'function') checkAndNotifyNewAchievementsFor(FLOOR_UID, true);
-        }).catch((err) => console.error('Stryker: failed to update post count', err));
+        }).catch((err) => console.error('TradeZoro: failed to update post count', err));
       }
       resetComposerAfterSave();
       resetPostAs();
@@ -1038,7 +1038,7 @@ function renderFloorLeaderboardWidget(myUid){
       wrap.appendChild(row);
     });
   }).catch((err) => {
-    console.error('Stryker: floor leaderboard widget failed to load', err);
+    console.error('TradeZoro: floor leaderboard widget failed to load', err);
     wrap.innerHTML = '<p style="color:var(--ink-3); font-size:12.5px;">Could not load leaderboard.</p>';
   });
 }

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Smart Money (smart-money.html)
+// TradeZoro — Smart Money (smart-money.html)
 // Depends on: assets/auth.js, assets/progress.js (db), assets/roles.js,
 //             assets/plan-modal.js (openPlanUpgradeModal)
 //

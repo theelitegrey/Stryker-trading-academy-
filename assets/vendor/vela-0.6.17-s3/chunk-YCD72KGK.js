@@ -357,7 +357,7 @@ function timeframeToMs(timeframe) {
 }
 
 // src/core/theme.ts
-// Stryker patch (2026-10-05): TradingView-like theme defaults + font stack.
+// TradeZoro patch (2026-10-05): TradingView-like theme defaults + font stack.
 var STRYKER_TV_FONT = '-apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
 var DARK_THEME = {
   background: "#0f0f0f",
@@ -5092,7 +5092,7 @@ function supportsWebGL2() {
 }
 
 // src/renderers/native/backend/candle-lod.ts
-// Stryker patch (2026-10-05): 1 device-px wicks and TradingView body-width curve
+// TradeZoro patch (2026-10-05): 1 device-px wicks and TradingView body-width curve
 // (same formula as lightweight-charts optimalCandlestickWidth). Was: wick 1.5, body 0.7x.
 var CANDLE_BODY_MIN_SPACING = 2.5;
 var CANDLE_WICK_W = 1;
@@ -9347,7 +9347,7 @@ var DrawingSceneRenderer = class {
 };
 
 // src/renderers/native/chrome/tz.ts
-// Stryker patch (s3): one cached Intl.DateTimeFormat per zone + a per-hour offset cache.
+// TradeZoro patch (s3): one cached Intl.DateTimeFormat per zone + a per-hour offset cache.
 // Upstream built a new formatter on EVERY call (crosshair chip, time axis, grid), which made
 // any non-UTC chart timezone cost ~200 ms of script per crosshair/pan sweep.
 var stkTzDtf = /* @__PURE__ */ new Map();
@@ -9539,13 +9539,13 @@ var STEP_LADDER = [
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 var pad2 = (n) => n < 10 ? `0${n}` : String(n);
-// Stryker patch (s2): "Color bars based on previous close" (TradingView): up = close >= previous close.
+// TradeZoro patch (s2): "Color bars based on previous close" (TradingView): up = close >= previous close.
 function stkIsUp(bars, i, prev) {
   const bar = bars[i];
   if (prev && i > 0 && bars[i - 1]) return bar.close >= bars[i - 1].close;
   return bar.close >= bar.open;
 }
-// Stryker patch (s2): optional 12-hour clock and weekday on/off (scene.stk.h12 / scene.stk.noDow).
+// TradeZoro patch (s2): optional 12-hour clock and weekday on/off (scene.stk.h12 / scene.stk.noDow).
 function stkClock(h, m, h12) {
   if (!h12) return `${pad2(h)}:${pad2(m)}`;
   const hh = h % 12 === 0 ? 12 : h % 12;
@@ -15792,7 +15792,7 @@ function createProjector(coords, paneOf, paneIdAtY, barsInRange, seriesInRange) 
 var MARGIN_TOP_DEFAULT = 2 / 7;
 var MARGIN_BOTTOM_DEFAULT = 1 / 7;
 function computePaneScale(models, bars, includeCandles, i0, i1, drawings, log = false, offsetOf = () => 0, stk = null) {
-  // Stryker patch (s2): per-chart top/bottom margins (fractions of the data span), else Vela's 2/7 + 1/7.
+  // TradeZoro patch (s2): per-chart top/bottom margins (fractions of the data span), else Vela's 2/7 + 1/7.
   const MARGIN_TOP = stk && stk.marginTop != null ? stk.marginTop : MARGIN_TOP_DEFAULT;
   const MARGIN_BOTTOM = stk && stk.marginBottom != null ? stk.marginBottom : MARGIN_BOTTOM_DEFAULT;
   let min = Infinity;

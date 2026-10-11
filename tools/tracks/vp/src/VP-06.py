@@ -114,7 +114,7 @@ body = [
     'everyone who has traded since that low. If price pulls back to it and holds, the average buyer since the low is still at break-even or '
     'better. If price breaks below it and builds volume there, that group is now under water on average. Practitioners use the level as dynamic '
     'support or resistance on exactly that reasoning.</p>',
-    '<p>AVWAP fits Stryker\'s framework neatly. Anchor it to the start of the displacement leg that broke structure (<a href="chapter.html?ch=08">chapter 08</a>), '
+    '<p>AVWAP fits TradeZoro\'s framework neatly. Anchor it to the start of the displacement leg that broke structure (<a href="chapter.html?ch=08">chapter 08</a>), '
     'and you have a line that tracks the average entry of that move. A pullback into a fair value gap or order block (<a href="chapter.html?ch=10">chapter 10</a>, '
     '<a href="chapter.html?ch=09">chapter 09</a>) that also meets the AVWAP is two separate methods pointing at the same area.</p>',
 

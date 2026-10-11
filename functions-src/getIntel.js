@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Intel feed
+ * TradeZoro — Intel feed
  *
  * Replaces the WorldMonitor proxy. Every source here is free, keyless, and
  * usable commercially, so there is nothing to sign up for and no credential to
@@ -36,7 +36,7 @@ dns.setDefaultResultOrder('ipv4first');
 
 
 const CACHE_PREFIX = 'cache/intel_';
-const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (terminal intel)' };
+const UA = { 'User-Agent': 'TradeZoro/1.0 (terminal intel)' };
 
 /**
  * Cache lifetimes reflect how fast each number actually moves, not one global

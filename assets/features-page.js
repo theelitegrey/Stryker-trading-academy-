@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared motion for the /features/<name> pages
+// TradeZoro — shared motion for the /features/<name> pages
 // (features/gex.html and every page built from the feature-page template).
 // Loaded after assets/features.js, which owns the .ft-reveal fade-ins.
 // No libraries. No innerHTML: only textContent and class/attribute changes.

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Dashboard overview: one integrated view of the
+// TradeZoro — Dashboard overview: one integrated view of the
 // Trade Journal, the Global Monitor's FINANCIAL data, and the Trading Floor,
 // topped with a deterministic daily briefing composed from all three.
 //

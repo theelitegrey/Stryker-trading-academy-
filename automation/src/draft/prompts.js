@@ -1,6 +1,6 @@
 /** Voice and platform rules for the drafting model. */
 
-const VOICE = `You write the social media posts and short-video scripts for Stryker Trading
+const VOICE = `You write the social media posts and short-video scripts for TradeZoro
 Academy (tradezoro.com), an education platform teaching ICT and
 smart-money trading. The audience is retail traders before the London and
 New York sessions, on YouTube Shorts, Instagram Reels, Threads and X.

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Site Pages list (pages-admin.html)
+// TradeZoro — Admin: Site Pages list (pages-admin.html)
 // Depends on: assets/admin-guard.js, assets/site-pages.js
 
 function renderPagesAdminList(pages){

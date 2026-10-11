@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Backtest replay engine (pure logic, no DOM)
+ * TradeZoro — Backtest replay engine (pure logic, no DOM)
  *
  * Everything the replay page needs that is NOT drawing pixels: timeframe
  * resampling with a forming last candle, an order simulator (market / limit /

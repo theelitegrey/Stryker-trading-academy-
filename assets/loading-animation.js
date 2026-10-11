@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared loading animation
+// TradeZoro — shared loading animation
 //
 // The loader is a brand-built candlestick pulse: five candles breathing in
 // sequence under a scanning price line — pure CSS/SVG, no library, themed to

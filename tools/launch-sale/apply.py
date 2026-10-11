@@ -49,10 +49,10 @@ PRO_FEATURE_FIXES = {
         'Trading floor community \u2014 post, DM, share trades'),
 }
 ELITE_FEATURE_FIXES = {
-    1: ('Live killzone sessions : trade the open with Stryker, live chat included',
-        'Live killzone sessions \u2014 trade the open with Stryker, live chat included'),
+    1: ('Live killzone sessions : trade the open with TradeZoro, live chat included',
+        'Live killzone sessions \u2014 trade the open with TradeZoro, live chat included'),
     3: ('Exclusive stryker indicator suite',
-        'Exclusive Stryker indicator suite'),
+        'Exclusive TradeZoro indicator suite'),
 }
 
 

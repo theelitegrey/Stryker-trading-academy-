@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Global Monitor (geopolitics & markets terminal)
+// TradeZoro — Global Monitor (geopolitics & markets terminal)
 // Depends on: assets/world-map-path.js (WORLD_MAP_PATH, WORLD_MAP_VIEWBOX),
 //             assets/country-shapes.js (COUNTRY_SHAPES)
 //
@@ -1526,7 +1526,7 @@ function gmRenderBrief(brief) {
   }
   var html = '';
   html += '<div class="gm-brief-head">' +
-    '<span class="gm-onair"><i></i>STRYKER AI</span>' +
+    '<span class="gm-onair"><i></i>TRADEZORO AI</span>' +
     '<span class="gm-brief-time">SITREP · ' + (brief.at ? gmTimeAgo(brief.at) + ' ago' : 'live') + '</span>' +
   '</div>';
 

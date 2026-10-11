@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts futures data provider (ES module)
+// TradeZoro — Charts futures data provider (ES module)
 // Depends on: /api/chart/bars/:sym (functions/api/chart/bars/[sym].js + functions/api/chart/_bars.js).
 // Imported by assets/vela-chart.js and registered with Vela as the "futures" provider, and
 // (FxProvider, same paging code) as the "fx" provider for spot forex pairs.

@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — free / fully-discounted checkout, server side
+ * TradeZoro — free / fully-discounted checkout, server side
  *
  * WHY THIS EXISTS
  *

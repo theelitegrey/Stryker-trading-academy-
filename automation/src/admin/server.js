@@ -93,7 +93,7 @@ async function api(req, res, url) {
       if (target === 'chatterbox' || target === 'kokoro') return send(res, 200, { ok: true, result: await TTS.test(target) });
       if (target === 'claude') {
         const Draft = require('../draft/claude');
-        const r = await Draft.draftCaptions({ kind: 'manual', title: 'Test', source: 'Stryker Trading Academy teaches ICT and smart-money trading.', instructions: 'Write a one-line hello from the academy.' }, {});
+        const r = await Draft.draftCaptions({ kind: 'manual', title: 'Test', source: 'TradeZoro teaches ICT and smart-money trading.', instructions: 'Write a one-line hello from the academy.' }, {});
         return send(res, 200, { ok: true, result: { x: r.x[0], model: r.model } });
       }
       return send(res, 200, { ok: true, result: await Publish.test(target) });
@@ -162,7 +162,7 @@ function start() {
         db.kvSet('notice', { at: Date.now(), text: msg });
         res.writeHead(302, { location: '/' }); return res.end();
       }
-      if (!authed(req)) { res.writeHead(401, { 'www-authenticate': 'Basic realm="Stryker social"' }); return res.end('Sign in'); }
+      if (!authed(req)) { res.writeHead(401, { 'www-authenticate': 'Basic realm="TradeZoro social"' }); return res.end('Sign in'); }
       if (url.pathname.startsWith('/api/')) return await api(req, res, url);
       if (oa && oa[2] === 'start') {
         try { res.writeHead(302, { location: await oauth.FLOWS[oa[1]].start() }); return res.end(); }

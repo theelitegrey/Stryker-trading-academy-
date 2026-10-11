@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: main orchestrator (trade-journal.html)
+// TradeZoro — Trade Journal: main orchestrator (trade-journal.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/journal-calc.js,
 // assets/journal-data.js, and the render functions from journal-charts.js /
 // journal-history-calendar.js / journal-form-settings.js
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switchJournalTab('dashboard');
       })
       .catch((err) => {
-        console.error('Stryker: failed to load journal data', err);
+        console.error('TradeZoro: failed to load journal data', err);
         document.getElementById('journal-global-error').textContent = 'Could not load your journal: ' + (err.message || err);
         document.getElementById('journal-global-error').style.display = 'block';
       });

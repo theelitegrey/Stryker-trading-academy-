@@ -1,4 +1,4 @@
-// Stryker Trading Academy — native GEX dashboard
+// TradeZoro — native GEX dashboard
 // Depends on: Cloudflare Pages Functions under /api/gex/* and a canvas element.
 (function(){
   var MKTS = ['SPX', 'SPY', 'QQQ', 'GLD'];

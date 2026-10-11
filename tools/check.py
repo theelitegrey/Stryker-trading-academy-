@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Pre-deploy validation for Stryker Trading Academy.
+Pre-deploy validation for TradeZoro.
 Run from the repo root:  python3 tools/check.py
 
 Why the unversioned-asset check exists

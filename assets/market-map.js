@@ -1,4 +1,4 @@
-// Stryker Trading Academy — cross-asset market map
+// TradeZoro — cross-asset market map
 // Renders assets/market-map.json in three places:
 //   #mm-page   the full map (market-map.html)
 //   #mm-strip  a leaders-and-laggards strip (market-brief.html)
@@ -537,7 +537,7 @@
       if (page) renderPage(page);
       strips.forEach((m) => renderStrip(m, { period: PERIOD, count: 5 }));
     }).catch((err) => {
-      console.error('Stryker: market map could not be loaded', err);
+      console.error('TradeZoro: market map could not be loaded', err);
       fail(page, true);
       strips.forEach((m) => fail(m, false));
     });

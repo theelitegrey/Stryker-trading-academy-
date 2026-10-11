@@ -1,4 +1,4 @@
-// Stryker Trading Academy — @usernames
+// TradeZoro — @usernames
 // Depends on: assets/progress.js (`db`, `auth`)
 //
 // Every student gets a handle: shown on their profile, editable in Settings,
@@ -75,7 +75,7 @@ function claimUsername(uid, name, oldName){
     if (String(err && err.message).indexOf('taken') !== -1) {
       return { ok: false, error: '@' + n + ' is already taken.' };
     }
-    console.error('Stryker: username claim failed', err);
+    console.error('TradeZoro: username claim failed', err);
     return { ok: false, error: 'Could not save the username. Try again.' };
   });
 }

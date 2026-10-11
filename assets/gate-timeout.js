@@ -1,4 +1,4 @@
-// Stryker Trading Academy — last-resort safety net for gated pages
+// TradeZoro — last-resort safety net for gated pages
 //
 // Every gated page starts with .dash-shell.gate-pending (visibility:hidden)
 // behind #access-gate-overlay, so nobody sees a flash of real content before
@@ -57,7 +57,7 @@
       '<br><a href="login.html" class="btn btn-primary btn-sm" style="margin-top:10px; display:inline-flex;">Go to login</a></p>';
 
     host.insertBefore(el, host.firstChild);
-    console.warn('Stryker: access gate never resolved — revealed by gate-timeout.js after ' + TIMEOUT_MS + 'ms');
+    console.warn('TradeZoro: access gate never resolved — revealed by gate-timeout.js after ' + TIMEOUT_MS + 'ms');
   }
 
   document.addEventListener('DOMContentLoaded', function(){

@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Backtesting app (backtests.html)
+ * TradeZoro — Backtesting app (backtests.html)
  *
  * Four views on one page, routed by hash: Dashboard (#dashboard), Sessions
  * (#sessions), Trades (#trades), Analytics (#analytics with Performance /

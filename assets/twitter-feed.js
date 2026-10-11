@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Twitter/X feed, used in two places on
+// TradeZoro — Twitter/X feed, used in two places on
 // trading-floor.html: the sidebar "Live from X" panel, and a paginated
 // section inside the "Prop firm feed" tab.
 //
@@ -75,7 +75,7 @@ function fetchTwitterFeedData(){
   TWITTER_FEED_PROMISE = fetch(TWITTER_FEED_FUNCTION_URL)
     .then((res) => res.json())
     .catch((err) => {
-      console.error('Stryker: failed to load Twitter feed', err);
+      console.error('TradeZoro: failed to load Twitter feed', err);
       return { tweets: [], error: true };
     });
   return TWITTER_FEED_PROMISE;

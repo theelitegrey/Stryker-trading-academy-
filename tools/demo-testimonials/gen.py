@@ -43,17 +43,17 @@ head = head.replace('<meta name="viewport" content="width=device-width, initial-
                     '     tools/demo-testimonials/gen.py from tools/demo-testimonials/body.html; edit those.\n'
                     '     Reviews come from assets/testimonials-data.json (real member reviews, Owner-confirmed). -->\n'
                     '<meta name="robots" content="noindex,nofollow">')
-T = 'Stryker Trading Academy: four testimonials section layouts (demo)'
-D = ('Four layout previews for the Stryker homepage testimonials section: card grid, marquee wall, '
+T = 'TradeZoro: four testimonials section layouts (demo)'
+D = ('Four layout previews for the TradeZoro homepage testimonials section: card grid, marquee wall, '
      'bento spotlight and carousel, with real member reviews. Education only. Not financial advice.')
-img = 'https://strykertrading.com/assets/images/og/demo-testimonials.png?v=%s' % build
-alt = 'Stryker demo share card: Testimonials layouts, A B C D, on a black grid with mint accents'
+img = 'https://tradezoro.com/assets/images/og/demo-testimonials.png?v=%s' % build
+alt = 'TradeZoro demo share card: Testimonials layouts, A B C D, on a black grid with mint accents'
 meta = f'''<meta name="description" content="{html.escape(D)}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Stryker Trading Academy">
+<meta property="og:site_name" content="TradeZoro">
 <meta property="og:title" content="{html.escape(T)}">
 <meta property="og:description" content="{html.escape(D)}">
-<meta property="og:url" content="https://strykertrading.com/demo-testimonials">
+<meta property="og:url" content="https://tradezoro.com/demo-testimonials">
 <meta property="og:image" content="{img}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -64,7 +64,7 @@ meta = f'''<meta name="description" content="{html.escape(D)}">
 <meta name="twitter:description" content="{html.escape(D)}">
 <meta name="twitter:image" content="{img}">
 <meta name="twitter:image:alt" content="{html.escape(alt)}">
-<title>Stryker Trading Academy · Testimonials layouts demo</title>
+<title>TradeZoro · Testimonials layouts demo</title>
 '''
 head = head.replace('<meta name="theme-color"', meta + '<meta name="theme-color"')
 assert '<title>' in head

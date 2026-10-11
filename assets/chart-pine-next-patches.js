@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts: runtime extensions for the Pine "next" engine (ES module)
+// TradeZoro — Charts: runtime extensions for the Pine "next" engine (ES module)
 // Loaded by assets/chart-pine-next-worker.js. No imports: install(Context) receives pinets'
 // exported Context class, so this file can be unit-tested in Node against any pinets copy
 // (tools/tests/chart-pine-next-patches.test.mjs).
@@ -6,7 +6,7 @@
 // WHAT: pinets 0.11.0 computes ta.pivothigh / ta.pivotlow by scanning the WHOLE series on
 // every bar (new Array(n) + a loop over all n bars, then reads one element), so a script
 // that calls them is O(n^2): about 1 s of a 1,500-bar run and most of a 5,000-bar run for
-// the Stryker structure indicators. The replacement below evaluates the same rule for the
+// the TradeZoro structure indicators. The replacement below evaluates the same rule for the
 // current bar only (O(left + right) per bar), with identical semantics: the candidate is
 // the bar `right` bars back; it must be strictly above (below) the `left` bars before it
 // and strictly above (below) or equal-excluded vs the `right` bars after it, exactly as

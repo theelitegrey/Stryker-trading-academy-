@@ -14,7 +14,7 @@ fs.mkdirSync(OUT, { recursive: true });
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 const IGNORE = /ERR_FAILED|WebGL|GroupMarker|GPU stall|favicon|firebase|Failed to load resource/i;
-const SHORT = 'Community indicators are made by third-party members, not by Stryker. Education only. Not financial advice.';
+const SHORT = 'Community indicators are made by third-party members, not by TradeZoro. Education only. Not financial advice.';
 
 async function run(b, w, h){
   const ctx = await b.newContext({ viewport: { width: w, height: h }, isMobile: w < 500, hasTouch: w < 500, deviceScaleFactor: w < 500 ? 2 : 1 });
@@ -35,7 +35,7 @@ async function run(b, w, h){
     const r = await p.evaluate(() => { const l = document.querySelector('.stkiw-list'); const n = l.querySelector(':scope > .stkcd-note'); return { has: !!n, first: l.firstElementChild === n, text: n ? n.querySelector('.stkcd-line span').textContent.trim() : '' }; });
     // Owner order 2026-10-08: the notice only on Top and Trending (third-party lists).
     if (k === 'top' || k === 'trending') check(r.first && r.text === SHORT, tag + ' ' + k + ': notice is the first thing in the list');
-    else check(!r.has, tag + ' ' + k + ': no notice (Stryker-only list)');
+    else check(!r.has, tag + ' ' + k + ': no notice (TradeZoro-only list)');
   }
   await p.click('.stkcd-more');
   await p.waitForTimeout(200);

@@ -1,8 +1,8 @@
-// Browser test: Stryker Pine built-ins (assets/chart-pine-builtins.js) on the Charts page.
+// Browser test: TradeZoro Pine built-ins (assets/chart-pine-builtins.js) on the Charts page.
 //   CHART_BASE=http://127.0.0.1:8061 node tools/tests/chart-pine-imports-browser.js
 // Run under `flock /tmp/stryker-chrome.lock`. Optional DEEP=5000 loads that many bars first
 // and prints run times (perf check). OUT=<dir> for screenshots.
-// Checks: each built-in is in the Indicators window under "Stryker"; adding it on NQ1! 5m and
+// Checks: each built-in is in the Indicators window under "TradeZoro"; adding it on NQ1! 5m and
 // BTCUSDT 15m draws (boxes/lines/labels/tables > 0); the settings dialog opens and a changed
 // input re-renders; no console errors; no buy/sell wording in the DOM or the drawn text;
 // phone 390 opens the window and adds it.
@@ -13,12 +13,12 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8061';
 const OUT = process.env.OUT || require('path').join(require('os').tmpdir(), 'pine-imports');
 fs.mkdirSync(OUT, { recursive: true });
 const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
-const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]', 'FVG Relay [Stryker]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
-// The Owner's own scripts: listed under Editors' picks (or the Stryker group before the picker
-// sections landed), author Stryker.
+const NAMES = ['Stoic Edge Compass', 'WCSMC + SP v3.0 [WinWorld]', 'SMT Divergence Pro [TradeZoro]', 'IFVG Pro+ [TradeZoro]', 'HTF PO3 Lens [TradeZoro]', 'FVG Relay [TradeZoro]'].filter((n) => !ONLY.length || ONLY.some((o) => n.startsWith(o)));
+// The Owner's own scripts: listed under Editors' picks (or the TradeZoro group before the picker
+// sections landed), author TradeZoro.
 // Owner order 2026-10-08: they run EXACTLY as written (no wording edits), so the buy/sell
 // drawn-text check is skipped for them.
-const PICKS = new Set(['SMT Divergence Pro [Stryker]', 'IFVG Pro+ [Stryker]', 'HTF PO3 Lens [Stryker]', 'FVG Relay [Stryker]']);
+const PICKS = new Set(['SMT Divergence Pro [TradeZoro]', 'IFVG Pro+ [TradeZoro]', 'HTF PO3 Lens [TradeZoro]', 'FVG Relay [TradeZoro]']);
 let fails = 0;
 const check = (ok, msg) => { console.log((ok ? 'PASS ' : 'FAIL ') + msg); if (!ok) fails++; };
 // Third-party scripts run AS SENT, byte for byte (Owner order 2026-10-08: "create indicators as
@@ -43,7 +43,7 @@ async function page(b, w, h, extra){
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance|data-api\.binance|fapi\.binance|stream\.binance|data-stream\.binance)/, (r) => r.abort());
   const p = await ctx.newPage();
   const errs = [];
-  p.on('console', (m) => { if (/pine|worker|Stryker/i.test(m.text())) console.log('CONSOLE', m.type(), m.text().slice(0, 200)); if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
+  p.on('console', (m) => { if (/pine|worker|TradeZoro/i.test(m.text())) console.log('CONSOLE', m.type(), m.text().slice(0, 200)); if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await ctx.addInitScript(() => { window.__lt = []; try { new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__lt.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {} });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
@@ -118,9 +118,9 @@ async function counts(p){
       const orig = fs.readFileSync(file, 'utf8');
       const served = await p.evaluate(async (id) => { const m = await import('/assets/chart-pine-builtins.js?v=' + document.querySelector('meta[name=stryker-build]').content); return m.builtinSource(id); }, id);
       check(served === orig, `${name}: served source is byte-identical to the original (${served.length} / ${orig.length} chars)`);
-      check(!/Stryker edit/.test(served), `${name}: no "Stryker edit" lines`);
+      check(!/TradeZoro edit/.test(served), `${name}: no "TradeZoro edit" lines`);
     }
-    // ---- picker sections: Editors' picks = Stryker-made, third-party in Top/Trending (2026-10-08) ----
+    // ---- picker sections: Editors' picks = TradeZoro-made, third-party in Top/Trending (2026-10-08) ----
     {
       // an old favourite saved before the move (same ids) must still resolve
       await setMarket(p, 'futures:NQ1!', '5', 0);
@@ -129,22 +129,22 @@ async function counts(p){
       const rowsOf = () => p.evaluate(() => [...document.querySelectorAll('.stkiw-list .stkiw-row')].map((r) => ({ key: r.dataset.key, name: (r.querySelector('.stkiw-nm') || {}).textContent, sub: (r.querySelector('.stkiw-sub') || {}).textContent, auth: (r.querySelector('.stkiw-auth') || {}).textContent, tag: [...r.querySelectorAll('.stkiw-pick')].map((x) => x.textContent).join(',') })));
       const tab = async (k) => { await p.evaluate((k) => document.querySelector('.stkiw-tab[data-k="' + k + '"]').click(), k); await p.waitForTimeout(300); };
       const tabs = await p.evaluate(() => [...document.querySelectorAll('.stkiw-tab')].map((x) => x.textContent));
-      check(tabs.includes("Editors' picks") && tabs.includes('Stryker') && !tabs.includes('Community indicators'), 'tabs: ' + tabs.join(' | '));
+      check(tabs.includes("Editors' picks") && tabs.includes('TradeZoro') && !tabs.includes('Community indicators'), 'tabs: ' + tabs.join(' | '));
       await tab('picks');
       let r = await rowsOf();
       const pk = r.map((x) => x.key);
-      check(['b:stk_gex', 'x:ema-cross', 'x:session-vwap', 'x:pdhl'].every((k) => pk.includes(k)) && r.filter((x) => pk.indexOf(x.key) < 4).every((x) => x.sub === 'Stryker'), "Editors' picks lists the Stryker ones: " + r.map((x) => x.name + ' (' + x.sub + ')').join(', '));
+      check(['b:stk_gex', 'x:ema-cross', 'x:session-vwap', 'x:pdhl'].every((k) => pk.includes(k)) && r.filter((x) => pk.indexOf(x.key) < 4).every((x) => x.sub === 'TradeZoro'), "Editors' picks lists the TradeZoro ones: " + r.map((x) => x.name + ' (' + x.sub + ')').join(', '));
       check(!pk.includes('x:wcsmc-sp') && !pk.includes('x:stoic-edge-compass'), "Editors' picks has no third-party script");
       await p.screenshot({ path: `${OUT}/picker-picks-1440.png` });
       await tab('top');
       r = (await rowsOf()).filter((x) => /third-party/.test(x.tag));
       const w = r.find((x) => x.key === 'x:wcsmc-sp'), s = r.find((x) => x.key === 'x:stoic-edge-compass');
       check(r.length >= 2 && w && w.sub === 'WinWorld' && s && s.sub === 'Community', 'Top (third-party): ' + r.map((x) => x.name + ' by ' + x.sub).join(', '));
-      check(r.every((x) => /Community · third-party/.test(x.tag) && x.sub !== 'Stryker' && x.auth !== 'Stryker'), 'third-party tag shown, never "Stryker" (' + r.map((x) => x.tag + '/' + x.auth).join(', ') + ')');
+      check(r.every((x) => /Community · third-party/.test(x.tag) && x.sub !== 'TradeZoro' && x.auth !== 'TradeZoro'), 'third-party tag shown, never "TradeZoro" (' + r.map((x) => x.tag + '/' + x.auth).join(', ') + ')');
       await p.screenshot({ path: `${OUT}/picker-community-1440.png` });
       await tab('tech');
       r = await rowsOf();
-      check(!r.some((x) => /WCSMC|Stoic/.test(x.name)) && r.some((x) => x.key === 'b:stk_gex'), 'Technicals > Stryker group no longer holds the third-party scripts');
+      check(!r.some((x) => /WCSMC|Stoic/.test(x.name)) && r.some((x) => x.key === 'b:stk_gex'), 'Technicals > TradeZoro group no longer holds the third-party scripts');
       for (const q of ['wcsmc', 'stoic', 'winworld']) {
         await p.fill('input.stkiw-search', q);
         await p.waitForTimeout(350);
@@ -200,7 +200,7 @@ async function counts(p){
         }
         if (/^IFVG/.test(name)) {
           const liq = ((c.text || '').match(/\b(BSL|SSL) (5m|15m|30m|1h|4h|D)\b/g) || []).length;
-          check(liq > 0 && c.boxes > 0 && /IFVG Pro\+ \[Stryker\]/.test(c.text || ''), `${name} ${sym} ${tf}: ${liq} BSL/SSL labels, ${c.boxes} IFVG/candidate boxes, watermark`);
+          check(liq > 0 && c.boxes > 0 && /IFVG Pro\+ \[TradeZoro\]/.test(c.text || ''), `${name} ${sym} ${tf}: ${liq} BSL/SSL labels, ${c.boxes} IFVG/candidate boxes, watermark`);
         }
         await p.waitForTimeout(800);
         await p.screenshot({ path: `${OUT}/${name.split(' ')[0].toLowerCase()}-${sym.split(':')[1].replace('!', '')}-${tf}-1440.png` });
@@ -243,7 +243,7 @@ async function counts(p){
       await p.screenshot({ path: `${OUT}/${name.split(' ')[0].toLowerCase()}-settings-1440.png` });
       await p.keyboard.press('Escape');
     }
-    // page-text wording check covers Stryker scripts only: take the third-party ones off first
+    // page-text wording check covers TradeZoro scripts only: take the third-party ones off first
     await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; window.STRYKER_PINE.pineHandles(c).forEach((h) => h.remove()); });
     await p.waitForTimeout(800);
     const dom = await p.evaluate(() => document.body.innerText);

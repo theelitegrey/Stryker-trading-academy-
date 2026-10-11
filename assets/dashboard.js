@@ -1,4 +1,4 @@
-// Stryker Trading Academy — student dashboard (dashboard-user.html)
+// TradeZoro — student dashboard (dashboard-user.html)
 // Depends on: assets/auth.js, assets/progress.js, assets/chapters-data.js
 
 function pct(n, d){ return d ? Math.round((n / d) * 100) : 0; }
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
       Promise.all([ensureStudentDoc(user), loadChapters()])
         .then(([student]) => { if (student) renderDashboard(student); })
         .catch((err) => {
-          console.error('Stryker: failed to load dashboard data', err);
+          console.error('TradeZoro: failed to load dashboard data', err);
           showSessionNotice(
             "Signed in, but couldn't load your data.",
             'This usually means Firestore isn\'t set up yet, or its security rules aren\'t published. Error: ' + (err && err.message ? err.message : String(err)),

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — public profile page (profile.html?uid=...)
+// TradeZoro — public profile page (profile.html?uid=...)
 // Depends on: assets/progress.js (`db`, `auth`), assets/avatars.js
 // (avatarImgHtml), assets/roles.js (roleTagHtml, findPlan, loadPlansForRoles).
 //
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           return posts;
         })
-        .catch((err) => { console.error('Stryker: failed to load posts', err); return []; });
+        .catch((err) => { console.error('TradeZoro: failed to load posts', err); return []; });
 
       Promise.all([profileCheck, postsCheck, (typeof loadPlansForRoles === 'function') ? loadPlansForRoles() : Promise.resolve()])
         .then(([profileDoc, posts]) => {
@@ -255,11 +255,11 @@ document.addEventListener('DOMContentLoaded', () => {
           renderRecentPosts(posts.slice(0, PROFILE_RECENT_POSTS_LIMIT));
         })
         .catch((err) => {
-          console.error('Stryker: failed to load profile', err);
+          console.error('TradeZoro: failed to load profile', err);
           renderProfileNotFound();
         });
     }).catch((err) => {
-      console.error('Stryker: failed to prepare profile', err);
+      console.error('TradeZoro: failed to prepare profile', err);
       renderProfileNotFound();
     });
     });   // uidStep.then

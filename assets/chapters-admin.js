@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Chapters & Content overview (chapters-admin.html)
+// TradeZoro — Admin: Chapters & Content overview (chapters-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
 // assets/chapters-data.js (CHAPTERS_SEED, LEVEL_LABEL), assets/chapters-store.js
 // (CHAPTERS, loadChapters)
@@ -185,7 +185,7 @@ function importBundledChapters(triggerBtn){
           + failed.map((f) => f.num).join(', ') + '. First error: ' + failed[0].error
           + '. The other ' + succeeded.length + ' chapters updated successfully.';
         if (errEl) { errEl.textContent = msg; errEl.style.display = 'block'; } else { showToast('success', msg); }
-        console.error('Stryker: chapter update failures', failed);
+        console.error('TradeZoro: chapter update failures', failed);
       }
     })
     .finally(() => {
@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       db.collection('adminStats').doc('current').get()
         .then(function (doc) { return doc.exists ? doc.data() : null; })
         .catch(function (err) {
-          console.error('Stryker: adminStats/current read failed', err);
+          console.error('TradeZoro: adminStats/current read failed', err);
           return null;
         }),
       loadChapters(),
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderChapterList();
       })
       .catch((err) => {
-        console.error('Stryker: failed to load chapters/content admin page', err);
+        console.error('TradeZoro: failed to load chapters/content admin page', err);
         document.getElementById('chapter-editor-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });

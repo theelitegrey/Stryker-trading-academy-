@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Charts "My scripts" store for Pine Script (charts.html)
+// TradeZoro — Charts "My scripts" store for Pine Script (charts.html)
 // Depends on: firebase compat SDKs (app/auth/firestore) + assets/auth.js
 // (initialises the app). Works without them: falls back to localStorage.
 //
@@ -10,7 +10,7 @@
 // Signed-out visitors, or a Firestore read/write that fails, use localStorage key
 // stryker_pine_scripts_<uid|guest> instead.
 //
-// Also holds the three built-in EXAMPLE scripts (written for Stryker, read-only).
+// Also holds the three built-in EXAMPLE scripts (written for TradeZoro, read-only).
 // This file is our own code; it never loads the Pine engine (see assets/chart-pine.js).
 //
 // Exposes window.StrykerPineScripts.
@@ -134,7 +134,7 @@
       var local = lsAll();
       return { items: sortItems(items.concat(local)), where: 'cloud' };
     } catch (e) {
-      console.warn('Stryker: Pine scripts read failed, using this browser', e);
+      console.warn('TradeZoro: Pine scripts read failed, using this browser', e);
       return { items: sortItems(lsAll()), where: 'local', note: "Couldn't reach your account; showing scripts saved in this browser." };
     }
   }
@@ -165,7 +165,7 @@
           var ref = await col().add({ name: name, source: source, createdAt: ts, updatedAt: ts });
           return ref.id;
         } catch (e) {
-          console.warn('Stryker: Pine script cloud save failed, saving in this browser', e);
+          console.warn('TradeZoro: Pine script cloud save failed, saving in this browser', e);
         }
       }
     }

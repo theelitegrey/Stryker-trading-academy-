@@ -1,4 +1,4 @@
-// Stryker Trading Academy — header account menu
+// TradeZoro — header account menu
 // Depends on: assets/auth.js (auth), assets/progress.js (db),
 //             assets/avatars.js (avatarImgHtml, resolveAvatarUrl)
 //

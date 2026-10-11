@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Appearance (appearance-admin.html)
+// TradeZoro — Admin: Appearance (appearance-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js
 //
 // No Firebase Storage needed (and no Blaze/paid-plan requirement) — images
@@ -65,7 +65,7 @@ function showAppearanceMsg(elId, message){
 document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     loadCurrentAppearance().catch((err) => {
-      console.error('Stryker: failed to load current appearance', err);
+      console.error('TradeZoro: failed to load current appearance', err);
     });
   });
 
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showAppearanceMsg('appearance-success', 'Logo updated — it will now show across the whole site.');
       })
       .catch((err) => {
-        console.error('Stryker: logo save failed', err);
+        console.error('TradeZoro: logo save failed', err);
         errEl.textContent = 'Could not save logo: ' + (err.message || err);
         errEl.style.display = 'block';
       })
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showAppearanceMsg('appearance-success', 'Favicon updated. Browsers cache favicons aggressively, so it may take a refresh or two to visibly change.');
       })
       .catch((err) => {
-        console.error('Stryker: favicon save failed', err);
+        console.error('TradeZoro: favicon save failed', err);
         errEl.textContent = 'Could not save favicon: ' + (err.message || err);
         errEl.style.display = 'block';
       })
@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
       db.collection('settings').doc('favicon').delete()
     ])
       .then(() => {
-        document.getElementById('logo-preview').src = 'assets/images/tradezoro-logo-header-494.png?v=497';
-        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=497';
+        document.getElementById('logo-preview').src = 'assets/images/tradezoro-logo-header-494.png?v=498';
+        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=498';
         document.getElementById('logo-current-label').textContent = 'Current: bundled default';
         document.getElementById('favicon-current-label').textContent = 'Current: bundled default';
         showAppearanceMsg('appearance-success', 'Reset to bundled defaults.');

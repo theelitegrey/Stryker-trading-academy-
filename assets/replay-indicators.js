@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Replay indicator library (pure computation)
+ * TradeZoro — Replay indicator library (pure computation)
  *
  * Every indicator is a definition { id, name, group, overlay, inputs, plots,
  * compute(bars, params, ctx) } that returns

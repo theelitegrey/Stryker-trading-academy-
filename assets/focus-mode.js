@@ -1,4 +1,4 @@
-// Stryker Trading Academy — keyboard focus mode
+// TradeZoro — keyboard focus mode
 //
 // Puts the class "kbd" on <html> while someone is moving around the page
 // with the keyboard, and takes it off the moment they press a mouse button,

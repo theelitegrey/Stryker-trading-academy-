@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Free plan usage limits (pricing change 2026-10-05)
+// TradeZoro — Free plan usage limits (pricing change 2026-10-05)
 // Depends on: assets/auth.js (auth), assets/progress.js (db), assets/roles.js
 //             (loadPlansForRoles, findPlan, rankOf), assets/plan-modal.js
 //             (openPlanUpgradeModal). Optional page hooks: gex.js

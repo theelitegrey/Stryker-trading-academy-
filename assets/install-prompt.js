@@ -1,4 +1,4 @@
-// Stryker Trading Academy — install-to-home-screen prompt
+// TradeZoro — install-to-home-screen prompt
 //
 // A first-visit bottom sheet on the mobile dashboard inviting the student to
 // install the site, plus installStrykerApp() for the Settings button so it can
@@ -29,7 +29,7 @@
     deferredEvent = null;
     var card = document.getElementById('install-sheet');
     if (card) closeSheet();
-    if (typeof showToast === 'function') showToast('success', 'Stryker is installed — look for the dragon on your home screen.');
+    if (typeof showToast === 'function') showToast('success', 'TradeZoro is installed — look for the TZ icon on your home screen.');
     refreshSettingsCard();
   });
 
@@ -59,7 +59,7 @@
       '<li><span class="install-step-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
         '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg></span>' +
         'Choose <b>Add to Home screen</b> (or <b>Install app</b>)</li>' +
-      '<li class="install-step-note">Already see Stryker there? It is installed — remove the old icon and re-add it to get the new one.</li>' +
+      '<li class="install-step-note">Already see TradeZoro there? It is installed — remove the old icon and re-add it to get the new one.</li>' +
     '</ol>';
   }
 
@@ -101,10 +101,10 @@
     wrap.className = 'install-sheet-wrap';
     wrap.innerHTML =
       '<div class="install-sheet-backdrop" data-install-close></div>' +
-      '<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install Stryker">' +
+      '<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install TradeZoro">' +
         '<span class="install-grab" aria-hidden="true"></span>' +
-        '<img class="install-icon" src="assets/images/tradezoro-icon-192-494.png?v=497" alt="" width="64" height="64">' +
-        '<h3>Put Stryker on your home screen</h3>' +
+        '<img class="install-icon" src="assets/images/tradezoro-icon-192-494.png?v=498" alt="" width="64" height="64">' +
+        '<h3>Put TradeZoro on your home screen</h3>' +
         '<p>The full academy as an app — opens straight to your dashboard, full screen, with your notifications. No app store needed.</p>' +
         '<div id="install-sheet-mid">' + steps + '</div>' +
         '<div class="install-sheet-actions">' +

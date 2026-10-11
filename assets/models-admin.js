@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Trading Models list (models-admin.html)
+// TradeZoro — Admin: Trading Models list (models-admin.html)
 // Mirrors assets/chapters-admin.js.
 
 function renderModelList(){
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadModels()
       .then(() => renderModelList())
       .catch((err) => {
-        console.error('Stryker: failed to load trading models admin page', err);
+        console.error('TradeZoro: failed to load trading models admin page', err);
         document.getElementById('model-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load: ' + (err.message || err) + '</p>';
       });

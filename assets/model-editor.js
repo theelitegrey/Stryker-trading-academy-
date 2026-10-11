@@ -1,4 +1,4 @@
-// Stryker Trading Academy — dedicated Trading Model Editor (model-editor.html)
+// TradeZoro — dedicated Trading Model Editor (model-editor.html)
 // Mirrors assets/chapter-editor.js almost exactly, with model-specific fields
 // (id/slug, category, summary, steps instead of lessons).
 

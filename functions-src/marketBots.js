@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — market bots
+ * TradeZoro — market bots
  *
  * One scheduled Cloud Function driving two bot types, both of which publish to
  * the Trading Floor under their own bot identity:
@@ -36,7 +36,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const A = require('./market-analysis');
 
-const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://tradezoro.com)' };
+const UA = { 'User-Agent': 'TradeZoro/1.0 (+https://tradezoro.com)' };
 
 // Instruments students actually watch on the desk. Used when a bot has no
 // watchlist of its own, so a freshly created bot is useful immediately.

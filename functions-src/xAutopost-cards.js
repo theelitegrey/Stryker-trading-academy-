@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — branded image cards for X posts
+ * TradeZoro — branded image cards for X posts
  *
  * Every automated post carries a 1200×675 PNG card. Each post KIND has its own
  * style, so a follower learns what a card means before reading it: the daily
@@ -122,7 +122,7 @@ function brand(x, y, box, stroke, text, boxStroke) {
   return `<g transform="translate(${x},${y})"><rect width="44" height="44" rx="10" fill="${box}"` +
     `${boxStroke ? ` stroke="${boxStroke}"` : ''}/><path d="M12 30 L20 16 L26 24 L32 12" fill="none" ` +
     `stroke="${stroke}" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>` +
-    `<text x="60" y="30" font-family="${SANS}" font-size="22" font-weight="700" fill="${text}">Stryker Trading Academy</text></g>`;
+    `<text x="60" y="30" font-family="${SANS}" font-size="22" font-weight="700" fill="${text}">TradeZoro</text></g>`;
 }
 
 function foot(ink, ink2, x, y, boldSite) {
@@ -276,7 +276,7 @@ STYLES.editorial = (s) => {
   const bt = 230 + t.length * 68 + 30;
   return svgOpen + `<rect width="${W}" height="${H}" fill="#0e0e11"/>` +
     `<line x1="72" y1="120" x2="${W - 72}" y2="120" stroke="${C.ink3}"/><line x1="72" y1="124" x2="${W - 72}" y2="124" stroke="${C.ink3}"/>` +
-    `<text x="72" y="96" font-family="${SERIF}" font-size="24" font-weight="700" fill="${C.ink0}">Stryker Trading Academy</text>` +
+    `<text x="72" y="96" font-family="${SERIF}" font-size="24" font-weight="700" fill="${C.ink0}">TradeZoro</text>` +
     `<text x="${W - 72}" y="96" text-anchor="end" font-family="${SANS}" font-size="18" fill="${C.mint}" letter-spacing="3">${up(s.eyebrow)}</text>` +
     L(t, 72, 278, 58, 68, C.ink0, 700, { font: SERIF }) +
     `<rect x="72" y="${bt}" width="4" height="${b.length * 36 + 8}" fill="${C.mint}"/>` + L(b, 96, bt + 28, 25, 36, C.ink1) +
@@ -464,7 +464,7 @@ function appleBrand(x, y, dark) {
   const label = dark ? A.label : A.lightLabel;
   return `<g transform="translate(${x},${y})"><rect width="36" height="36" rx="10" fill="${dark ? '#1c1c1e' : '#ffffff'}" stroke="${dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.08)'}"/>` +
     `<path d="M10 24 L16 14 L21 20 L26 10" fill="none" stroke="${A.mint}" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>` +
-    `<text x="48" y="24" font-family="${UI}" font-size="19" font-weight="500" fill="${label}" fill-opacity="0.92">Stryker Trading Academy</text></g>`;
+    `<text x="48" y="24" font-family="${UI}" font-size="19" font-weight="500" fill="${label}" fill-opacity="0.92">TradeZoro</text></g>`;
 }
 
 function appleFoot(dark, y) {

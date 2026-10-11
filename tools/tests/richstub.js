@@ -36,7 +36,7 @@ function build() {
       },
       settings: {
         pageAccess: {},
-        branding: { siteName: 'Stryker Trading Academy' },
+        branding: { siteName: 'TradeZoro' },
         maintenance: { enabled: false },
         seo: {}
       }
@@ -159,9 +159,9 @@ function build() {
         { id: 'b3', uid: UID, name: 'Power of Three — Gold', pair: 'XAUUSD', model: 'Power of Three', trades: 47, wins: 24, winRate: 51, avgR: 2.6, expectancy: 0.59, at: ts(19), createdAt: ts(19) }
       ],
       sessions: [
-        { id: 's1', title: 'London Open Live — Silver Bullet', host: 'Stryker', at: ts(-1), startsAt: ts(-1), status: 'upcoming', minRole: 'pro', durationMin: 90 },
-        { id: 's2', title: 'Weekly Market Review', host: 'Stryker', at: ts(-3), startsAt: ts(-3), status: 'upcoming', minRole: 'starter', durationMin: 60 },
-        { id: 's3', title: 'Prop Firm Risk Clinic', host: 'Stryker', at: ts(4), startsAt: ts(4), status: 'past', minRole: 'elite', durationMin: 75 }
+        { id: 's1', title: 'London Open Live — Silver Bullet', host: 'TradeZoro', at: ts(-1), startsAt: ts(-1), status: 'upcoming', minRole: 'pro', durationMin: 90 },
+        { id: 's2', title: 'Weekly Market Review', host: 'TradeZoro', at: ts(-3), startsAt: ts(-3), status: 'upcoming', minRole: 'starter', durationMin: 60 },
+        { id: 's3', title: 'Prop Firm Risk Clinic', host: 'TradeZoro', at: ts(4), startsAt: ts(4), status: 'past', minRole: 'elite', durationMin: 75 }
       ],
       notifications: [
         { id: 'n1', uid: UID, title: 'New chapter published', body: 'Chapter 12 — Liquidity Runs is live.', at: ts(0), read: false },

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — toast popups
+// TradeZoro — toast popups
 //
 // Replaces two things:
 //   1. Inline status strips wedged into the page (the green "Order complete"

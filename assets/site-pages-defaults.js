@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Default draft content for site pages
+// TradeZoro — Default draft content for site pages
 // Depends on: nothing (pure data)
 //
 // This is DRAFT / TEMPLATE content, not final legal copy. Anywhere you see
@@ -17,13 +17,13 @@ const SITE_PAGES_DEFAULTS = {
   'about': {
     title: 'About Us',
     bodyHtml:
-      '<p>Stryker Trading Academy teaches ICT concepts and Smart Money Technique (SMT) trading from first principles to advanced execution, structured as a chapter-by-chapter curriculum rather than a loose collection of videos.</p>' +
+      '<p>TradeZoro teaches ICT concepts and Smart Money Technique (SMT) trading from first principles to advanced execution, structured as a chapter-by-chapter curriculum rather than a loose collection of videos.</p>' +
       '<h2>What we do</h2>' +
       '<p>We built the curriculum the way a trading desk would train a new analyst: starting with candles, market structure, and liquidity, then building up to order blocks, fair value gaps, and full ICT models like the Judas Swing, ICT 2022, and Candle Range Theory. Every chapter includes worked examples and diagrams, not just theory.</p>' +
       '<h2>What we are — and are not</h2>' +
-      '<p>Stryker Trading Academy is an <strong>educational service</strong>. We teach concepts and frameworks for reading price action; we do not manage money, provide personalized financial advice, or guarantee trading results. Trading involves substantial risk, and nothing in our curriculum should be taken as a recommendation to buy or sell any specific instrument. See our <a href="terms.html">Terms &amp; Risk Disclosure</a> for the full picture.</p>' +
+      '<p>TradeZoro is an <strong>educational service</strong>. We teach concepts and frameworks for reading price action; we do not manage money, provide personalized financial advice, or guarantee trading results. Trading involves substantial risk, and nothing in our curriculum should be taken as a recommendation to buy or sell any specific instrument. See our <a href="terms.html">Terms &amp; Risk Disclosure</a> for the full picture.</p>' +
       '<h2>[Add your story here]</h2>' +
-      '<p>[This is a good place to add why you started Stryker Trading Academy, your background, or what makes your approach different. Edit this from the admin panel.]</p>'
+      '<p>[This is a good place to add why you started TradeZoro, your background, or what makes your approach different. Edit this from the admin panel.]</p>'
   },
 
   'support': {
@@ -45,12 +45,12 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<p><em>This is a draft template. Replace the bracketed placeholders with your actual business details, and have it reviewed by a lawyer before treating it as final.</em></p>' +
       '<h2>1. Acceptance of these terms</h2>' +
-      '<p>Stryker Trading Academy is operated by Stryker Trading ("we", "us", "Stryker Trading"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
+      '<p>TradeZoro is operated by TradeZoro ("we", "us", "TradeZoro"). By creating an account or using the platform, you agree to these Terms &amp; Risk Disclosure. If you do not agree, please do not use the platform.</p>' +
       '<h2>2. Eligibility</h2>' +
-      '<p>You must be at least 18 years old to create an account. Stryker Trading does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
+      '<p>You must be at least 18 years old to create an account. TradeZoro does not offer accounts to anyone under 18, given the financial risk involved in the subject matter taught here.</p>' +
       '<h2>3. Risk disclosure</h2>' +
       '<p><strong>Trading foreign exchange, indices, commodities, and other financial instruments carries a high level of risk and may not be suitable for everyone.</strong> You could lose some or all of your invested capital, and you should not trade with money you cannot afford to lose.</p>' +
-      '<p>Stryker Trading Academy is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, live sessions, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
+      '<p>TradeZoro is an <strong>educational service only</strong>. We do not provide personalized financial, investment, or trading advice, and we do not manage funds on behalf of any student. Nothing in our curriculum, trading models, live sessions, or community content constitutes a recommendation to buy, sell, or hold any specific financial instrument.</p>' +
       '<p>Past performance shown in course materials, including any illustrative charts or worked examples, is not indicative of future results. Any hypothetical or simulated performance results have inherent limitations and do not represent actual trading.</p>' +
       '<h2>4. Your account</h2>' +
       '<p>You\'re responsible for keeping your login credentials secure and for all activity under your account. Let us know immediately if you believe your account has been compromised.</p>' +
@@ -62,13 +62,13 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>7. Community conduct</h2>' +
       '<p>The Trading Floor community is for genuine discussion of trading ideas and setups. We don\'t allow harassment, spam, impersonation, or posting content that violates applicable law. We may remove content or restrict access for violations of this policy.</p>' +
       '<h2>8. Intellectual property</h2>' +
-      '<p>All curriculum content, trading models, diagrams, and materials are the property of Stryker Trading Academy (or its licensors) and are provided for your personal educational use only. Redistributing, reselling, or publicly republishing course content without permission is not allowed.</p>' +
+      '<p>All curriculum content, trading models, diagrams, and materials are the property of TradeZoro (or its licensors) and are provided for your personal educational use only. Redistributing, reselling, or publicly republishing course content without permission is not allowed.</p>' +
       '<h2>9. Termination</h2>' +
       '<p>We may suspend or terminate accounts that violate these terms. You may stop using the platform and close your account at any time via Settings or by contacting us.</p>' +
       '<h2>10. Limitation of liability</h2>' +
-      '<p>To the fullest extent permitted by law, Stryker Trading is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content. <em>This clause in particular should be reviewed by a lawyer — and worth knowing: as a sole proprietorship, Stryker Trading does not have the liability separation an LLC or corporation would have, which is worth discussing with a lawyer or accountant.</em></p>' +
+      '<p>To the fullest extent permitted by law, TradeZoro is not liable for any trading losses, indirect damages, or losses arising from your use of the platform or reliance on educational content. <em>This clause in particular should be reviewed by a lawyer — and worth knowing: as a sole proprietorship, TradeZoro does not have the liability separation an LLC or corporation would have, which is worth discussing with a lawyer or accountant.</em></p>' +
       '<h2>11. Governing law</h2>' +
-      '<p>Stryker Trading has not designated a specific governing jurisdiction for these terms. <em>Note: most businesses name a specific governing law here, since it materially affects how disputes are resolved — this is worth revisiting with a lawyer if that changes.</em></p>' +
+      '<p>TradeZoro has not designated a specific governing jurisdiction for these terms. <em>Note: most businesses name a specific governing law here, since it materially affects how disputes are resolved — this is worth revisiting with a lawyer if that changes.</em></p>' +
       '<h2>12. Changes to these terms</h2>' +
       '<p>We may update these terms from time to time. Continued use of the platform after changes take effect means you accept the updated terms.</p>' +
       '<h2>13. Contact</h2>' +
@@ -82,7 +82,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>1. What we collect</h2>' +
       '<p>When you create an account, we collect your name and email address (via email/password sign-up, or your Google account if you sign in with Google, which may also include a profile photo). As you use the platform, we store your course progress, achievement streak, journal entries, and any content you post to the community.</p>' +
       '<h2>2. Your trade journal is private</h2>' +
-      '<p>Your trade journal entries are visible only to you. No other student, and no one at Stryker Trading Academy, can view your journal data as part of normal platform operation.</p>' +
+      '<p>Your trade journal entries are visible only to you. No other student, and no one at TradeZoro, can view your journal data as part of normal platform operation.</p>' +
       '<h2>3. Community content is visible to other students</h2>' +
       '<p>Posts, replies, and profile information you choose to make public (like your display name and avatar) are visible to other signed-in students on the Trading Floor.</p>' +
       '<h2>4. How we use your data</h2>' +
@@ -98,7 +98,7 @@ const SITE_PAGES_DEFAULTS = {
       '<h2>7. Your rights</h2>' +
       '<p>Depending on your location, you may have rights to access, correct, export, or delete your personal data. See our <a href="gdpr.html">GDPR</a> page for details, or <a href="contact.html">contact us</a> directly.</p>' +
       '<h2>8. Children\'s privacy</h2>' +
-      '<p>Stryker Trading Academy is not intended for anyone under 18, and we do not knowingly collect data from minors.</p>' +
+      '<p>TradeZoro is not intended for anyone under 18, and we do not knowingly collect data from minors.</p>' +
       '<h2>9. Security</h2>' +
       '<p>We use industry-standard practices (including Firebase Authentication and access-controlled databases) to protect your data, but no system is 100% secure. Please use a strong, unique password.</p>' +
       '<h2>10. Changes to this policy</h2>' +
@@ -112,7 +112,7 @@ const SITE_PAGES_DEFAULTS = {
     bodyHtml:
       '<p><em>This is a draft template. Replace the bracketed placeholders with your actual business details, and have it reviewed by a lawyer before treating it as final.</em></p>' +
       '<h2>What we actually use</h2>' +
-      '<p>We keep this simple and honest: Stryker Trading Academy currently uses only the storage that\'s strictly necessary to keep you signed in. We do not currently use advertising cookies, marketing trackers, or third-party analytics.</p>' +
+      '<p>We keep this simple and honest: TradeZoro currently uses only the storage that\'s strictly necessary to keep you signed in. We do not currently use advertising cookies, marketing trackers, or third-party analytics.</p>' +
       '<h2>Strictly necessary storage</h2>' +
       '<p>We use Firebase Authentication, which relies on browser storage (cookies and similar technologies like localStorage) to keep you signed in between visits. Without this, you\'d need to log in again on every page.</p>' +
       '<h2>Third-party embeds</h2>' +
@@ -159,9 +159,9 @@ const SITE_PAGES_DEFAULTS = {
     title: 'Refund Policy',
     bodyHtml:
       '<h2>All sales are final</h2>' +
-      '<p>Stryker Trading does not offer refunds on any purchase. When you complete a purchase, you\'re confirming you understand and accept this before checkout.</p>' +
+      '<p>TradeZoro does not offer refunds on any purchase. When you complete a purchase, you\'re confirming you understand and accept this before checkout.</p>' +
       '<h2>Subscriptions and cancelling</h2><p>Paid plans renew automatically at the end of each billing period (monthly or yearly) at the price shown at checkout, until you cancel. You can cancel online at any time: card subscriptions from Settings &gt; Manage billing, and Indian AutoPay subscriptions from Settings &gt; Cancel auto-renewal. Cancelling stops future charges; you keep access until the end of the period you\'ve already paid for, and that period isn\'t refunded. Card payments get an emailed receipt from Stripe, and every payment is listed in Settings.</p><h2>Discretionary exceptions</h2>' +
-      '<p>Stryker Trading administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a> or by email to <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, but approval is entirely at our discretion.</p>' +
+      '<p>TradeZoro administration may, at its sole discretion, choose to make an exception to this policy on a case-by-case basis. This is not a guarantee or a right — if you believe your situation warrants an exception, you\'re welcome to explain it via the <a href="contact.html">contact form</a> or by email to <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>, but approval is entirely at our discretion.</p>' +
       '<h2>Why we do this</h2>' +
       '<p>Our curriculum, trading models, and community access are digital educational content delivered immediately upon purchase, which is why we don\'t offer a standard refund window.</p>'
   }

@@ -59,7 +59,7 @@ function frame(kind, inner, opts) {
 function brand(accent) {
   return `<g transform="translate(80,150)"><rect width="56" height="56" rx="14" fill="${C.bg2}" stroke="${C.line}"/>
   <path d="M15 38 L25 20 L33 30 L41 15" fill="none" stroke="${accent}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="76" y="39" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink0}">Stryker Trading Academy</text></g>`;
+  <text x="76" y="39" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink0}">TradeZoro</text></g>`;
 }
 function foot() {
   return `<text x="80" y="1610" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink1}">tradezoro.com</text>
@@ -75,13 +75,13 @@ function panel(x, y, w, h) {
   <rect x="${x + 1}" y="${y + 1}" width="${w - 2}" height="2" rx="1" fill="#ffffff" fill-opacity="0.25"/>`;
 }
 
-const EYEBROW = { brief: 'Pre-market brief', calendar: 'Economic calendar', monitor: 'Global Monitor', lesson: 'From the curriculum', promo: 'Inside the academy', feature: 'Inside the academy', announce: 'New at the academy', manual: 'Stryker' };
+const EYEBROW = { brief: 'Pre-market brief', calendar: 'Economic calendar', monitor: 'Global Monitor', lesson: 'From the curriculum', promo: 'Inside the academy', feature: 'Inside the academy', announce: 'New at the academy', manual: 'TradeZoro' };
 
 /** scene: {type, heading, text, stat}; ctx: {kind, eyebrow, index, total} */
 function sceneSvg(scene, ctx) {
   const kind = ctx.kind || 'manual';
   const [a] = ACCENT[kind] || ACCENT.manual;
-  const eyebrow = ctx.eyebrow || EYEBROW[kind] || 'Stryker';
+  const eyebrow = ctx.eyebrow || EYEBROW[kind] || 'TradeZoro';
   const progress = ctx.total > 1
     ? `<g transform="translate(80,1680)">${Array.from({ length: ctx.total }, (_, i) =>
         `<rect x="${i * 30}" y="0" width="22" height="6" rx="3" fill="${i <= ctx.index ? a : C.line}"/>`).join('')}</g>` : '';

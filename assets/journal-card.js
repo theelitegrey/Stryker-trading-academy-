@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: shareable P&L card
+// TradeZoro — Trade Journal: shareable P&L card
 // Depends on: journal-calc.js, JOURNAL_* globals, PF_DATA (journal-propfirms).
 //
 // Renders a branded 1080px-wide card on a <canvas> — period P&L, a

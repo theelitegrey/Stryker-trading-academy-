@@ -109,7 +109,7 @@ Chapter scope:
   - data feeds (aggregated vs MBO);
   - tools described neutrally: ATAS, Sierra Chart, Bookmap, NinjaTrader, TradingView and its up/down-volume limitation.
 - VP-11:
-  - mapping VP/OF onto Stryker's SMC framework;
+  - mapping VP/OF onto TradeZoro's SMC framework;
   - liquidity sweeps into LVNs or through value edges;
   - FVGs vs single prints/LVNs;
   - order blocks at HVN/value edges;

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Achievements page (achievements.html)
+// TradeZoro — Achievements page (achievements.html)
 // Depends on: assets/auth.js, assets/progress.js, assets/chapters-data.js,
 // assets/achievements-data.js (the ACHIEVEMENTS array itself)
 
@@ -111,6 +111,6 @@ document.addEventListener('DOMContentLoaded', () => {
           });
         }
       })
-      .catch((err) => console.error('Stryker: failed to load achievements', err));
+      .catch((err) => console.error('TradeZoro: failed to load achievements', err));
   });
 });

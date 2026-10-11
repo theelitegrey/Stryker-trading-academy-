@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — contact form notifier
+ * TradeZoro — contact form notifier
  *
  * Firestore trigger on contactMessages/{id}. Creates a notification for every
  * admin, which onNotificationCreated then turns into a push.

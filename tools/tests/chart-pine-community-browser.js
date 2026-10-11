@@ -5,7 +5,7 @@
 // Checks per id:
 //  - the served assets/pine/<id>.pine is BYTE-IDENTICAL to the Owner's file (CRLF kept as-is)
 //    in stryker-notes/reports/workers/pine-imports/community/ (SRC_DIR) when that dir exists;
-//  - listed in the Indicators window under COMMUNITY > Top with its own author (never Stryker)
+//  - listed in the Indicators window under COMMUNITY > Top with its own author (never TradeZoro)
 //    and the Community disclaimer notice on top;
 //  - first add asks the one-time "I understand"; after it, the script runs and draws;
 //  - timings at DEEP bars (default 5000) on NQ1! 5m and BTCUSDT 1m (TFS to override);
@@ -91,7 +91,7 @@ async function counts(p){
     const items = list.filter((x) => !IDS.length || IDS.includes(x.id));
     check(items.length > 0, 'community built-ins found: ' + items.map((x) => x.id).join(', '));
     for (const it of items) {
-      check(it.author && !/stryker/i.test(it.author) && !/stryker/i.test(it.name), it.id + ': author "' + it.author + '", no Stryker branding');
+      check(it.author && !/stryker/i.test(it.author) && !/stryker/i.test(it.name), it.id + ': author "' + it.author + '", no TradeZoro branding');
       const served = Buffer.from(await p.evaluate(async (u) => Array.from(new Uint8Array(await (await fetch('/assets/' + u.replace(/\?.*$/, ''))).arrayBuffer())), it.source));
       const repoFile = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', it.source.replace(/\?.*$/, '')));
       check(served.equals(repoFile), it.id + ': served bytes == repo file (' + served.length + ' B)');

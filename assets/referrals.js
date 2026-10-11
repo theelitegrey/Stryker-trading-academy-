@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Referral / Invite tracking module
+// TradeZoro — Referral / Invite tracking module
 // Depends on: assets/progress.js (`db`), assets/auth.js (`auth`)
 //
 // Data model:
@@ -124,7 +124,7 @@ function awardReferralPoints(referrerUid, points){
 function notifyReferrer(referrerUid, type, message){
   if (typeof createNotification !== 'function') return Promise.resolve();
   return createNotification(referrerUid, type, message, 'referrals.html')
-    .catch((err) => console.error('Stryker: referral notification failed', err));
+    .catch((err) => console.error('TradeZoro: referral notification failed', err));
 }
 
 // Called once, right after a brand-new student doc is created (see
@@ -150,7 +150,7 @@ function processPendingReferralForNewStudent(newUid, newDisplayName, newEmail){
   return db.collection('students').doc(newUid).set({
     pendingReferralCode: code
   }, { merge: true }).catch((err) => {
-    console.error('Stryker: could not park pending referral code', err);
+    console.error('TradeZoro: could not park pending referral code', err);
     return null;
   });
 }
@@ -225,7 +225,7 @@ function processPendingReferralIfReady(uid, studentData){
       });
     })
     .catch((err) => {
-      console.error('Stryker: deferred referral processing failed (non-fatal)', err);
+      console.error('TradeZoro: deferred referral processing failed (non-fatal)', err);
       return null;
     });
 }
@@ -305,7 +305,7 @@ function processReferralConversion(purchasingUid, planName){
         });
     });
   }).catch((err) => {
-    console.error('Stryker: referral conversion processing failed (non-fatal)', err);
+    console.error('TradeZoro: referral conversion processing failed (non-fatal)', err);
     return null;
   });
 }
@@ -331,7 +331,7 @@ function loadReferralLeaderboard(limitCount){
       return list;
     })
     .catch((err) => {
-      console.error('Stryker: failed to load referral leaderboard', err);
+      console.error('TradeZoro: failed to load referral leaderboard', err);
       return [];
     });
 }
@@ -397,7 +397,7 @@ function applyReferralCodeAtCheckout(purchasingUid, rawCode){
         });
     });
   }).catch((err) => {
-    console.error('Stryker: checkout-time referral code failed (non-fatal)', err);
+    console.error('TradeZoro: checkout-time referral code failed (non-fatal)', err);
     return null;
   });
 }

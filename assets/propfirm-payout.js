@@ -1,4 +1,4 @@
-// Stryker Trading Academy — payout and scaling planner
+// TradeZoro — payout and scaling planner
 //
 // Pure. Turns the bookkeeping tab from a record of the past into a forward
 // plan: when a payout can be requested, how much can safely be taken, and what

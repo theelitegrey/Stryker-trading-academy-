@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Coupons (coupons-admin.html)
+// TradeZoro — Admin: Coupons (coupons-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
 // assets/commerce.js
 
@@ -44,7 +44,7 @@ function seedWelcomeCoupon(){
       createdAtMillis: Date.now()
     });
   }).catch((err) => {
-    console.error('Stryker: could not seed WELCOME coupon', err);
+    console.error('TradeZoro: could not seed WELCOME coupon', err);
   });
 }
 
@@ -132,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(() => seedWelcomeCoupon())
       .then(() => loadCoupons())
       .catch((err) => {
-        console.error('Stryker: failed to load coupons', err);
+        console.error('TradeZoro: failed to load coupons', err);
         document.getElementById('coupon-list').innerHTML =
           '<p style="color:var(--ink-3); font-size:13.5px;">Could not load coupons: ' + (err.message || err) + '</p>';
       });

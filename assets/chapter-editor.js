@@ -1,4 +1,4 @@
-// Stryker Trading Academy — dedicated Chapter Editor (chapter-editor.html)
+// TradeZoro — dedicated Chapter Editor (chapter-editor.html)
 // Depends on: assets/auth.js, assets/progress.js (`db`), assets/admin-guard.js,
 // assets/chapters-data.js (CHAPTERS_SEED fallback), assets/chapters-store.js
 // (CHAPTERS, loadChapters)

@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Site Pages module (legal/info pages: About,
+// TradeZoro — Site Pages module (legal/info pages: About,
 // Support, Terms & Risk Disclosure, Privacy, Cookies, GDPR, Contact, Refund)
 // Depends on: assets/progress.js (`db`)
 //

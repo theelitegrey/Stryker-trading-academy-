@@ -1,4 +1,4 @@
-// Stryker Trading Academy — bundled Trading Models seed data
+// TradeZoro — bundled Trading Models seed data
 //
 // Mirrors assets/chapters-data.js: this is the fallback/bundled source of
 // truth that ships with the site. Firestore's `models` collection is the

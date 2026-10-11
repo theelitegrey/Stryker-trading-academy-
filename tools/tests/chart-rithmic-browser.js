@@ -103,7 +103,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     }));
     check(sheet.tradovate.length === 1 && /^Rithmic/.test(sheet.tradovate[0]) && !sheet.tradovate.some((t) => /Tradovate/.test(t)), 'Rithmic only, no Tradovate row: ' + sheet.tradovate.join(' / '));
     check(/Test server: prices may differ from the live market\./.test(sheet.note), 'test-server note shown');
-    check(/straight from your browser to Rithmic\. Stryker never sees or stores your password/.test(sheet.note), 'privacy note shown');
+    check(/straight from your browser to Rithmic\. TradeZoro never sees or stores your password/.test(sheet.note), 'privacy note shown');
     check(sheet.formAction === null, 'form has no action (never submits to a server)');
     const sys2 = await p.evaluate(() => [...document.querySelectorAll('#stkr-sys option')].map((o) => ({ t: o.textContent, d: o.disabled })));
     check(['Rithmic 01', 'Rithmic 04 Colo'].every((n) => sys2.some((o) => o.d && o.t === n + ' (available after approval)')) && sys2.some((o) => !o.d && o.t === 'Rithmic Test'),

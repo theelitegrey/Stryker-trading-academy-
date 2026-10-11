@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Admin: Moderation (moderation-admin.html)
+// TradeZoro — Admin: Moderation (moderation-admin.html)
 // Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
 //
 // Shows posts a moderator has hidden (communityPosts where hidden == true),
@@ -124,7 +124,7 @@ function loadModerationQueue(){
     });
     renderModerationQueue(posts);
   }).catch((err) => {
-    console.error('Stryker: failed to load moderation queue', err);
+    console.error('TradeZoro: failed to load moderation queue', err);
     document.getElementById('moderation-list').innerHTML =
       '<p style="color:var(--ink-3); font-size:13.5px;">Could not load the queue: ' + (err.message || err) + '</p>';
   });

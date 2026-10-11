@@ -1,5 +1,5 @@
 /**
- * Stryker Trading Academy — Trade Journal app shell
+ * TradeZoro — Trade Journal app shell
  *
  * Opens the journal as its own module, the same way assets/bt-shell.js opens
  * Backtesting: the site header stays (its hamburger opens the regular sidebar
@@ -39,7 +39,7 @@
     const t = document.getElementById('jr-title'), s = document.getElementById('jr-sub');
     if (t) t.textContent = it[2];
     if (s) s.textContent = it[3];
-    document.title = (it[0] === 'dashboard' ? 'Trade Journal' : it[2] + ' · Trade Journal') + ' — Stryker Trading Academy';
+    document.title = (it[0] === 'dashboard' ? 'Trade Journal' : it[2] + ' · Trade Journal') + ' — TradeZoro';
   }
 
   // Route every tab switch (tab strip, rail, in-page buttons like "Edit" or

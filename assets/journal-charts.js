@@ -1,4 +1,4 @@
-// Stryker Trading Academy — Trade Journal: Dashboard + Analytics tabs
+// TradeZoro — Trade Journal: Dashboard + Analytics tabs
 // Depends on: assets/journal-calc.js, Chart.js (CDN), and the global
 // JOURNAL_TRADES / JOURNAL_SETTINGS state set up by assets/journal-main.js
 

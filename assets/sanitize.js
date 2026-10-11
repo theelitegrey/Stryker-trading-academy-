@@ -1,4 +1,4 @@
-// Stryker Trading Academy — shared output-encoding and sanitising helpers
+// TradeZoro — shared output-encoding and sanitising helpers
 // Depends on: assets/vendor/purify.min.js (DOMPurify), loaded BEFORE this file
 // on any page that renders user-authored HTML.
 //
@@ -131,7 +131,7 @@
     if (!dp || typeof dp.sanitize !== 'function') {
       // Fail closed: show the markup as text rather than run it.
       if (global.console && console.warn) {
-        console.warn('Stryker: DOMPurify is not loaded — rich text is being escaped, not rendered.');
+        console.warn('TradeZoro: DOMPurify is not loaded — rich text is being escaped, not rendered.');
       }
       return stkEsc(value);
     }

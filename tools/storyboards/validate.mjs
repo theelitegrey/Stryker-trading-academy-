@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Stryker Trading Academy — storyboard validator (Models v2 drop-in tooling)
+// TradeZoro — storyboard validator (Models v2 drop-in tooling)
 //
 // Node, no dependencies. Two jobs:
 //   1. Runs the REAL assets/setup-player.js SetupPlayer.validate() against

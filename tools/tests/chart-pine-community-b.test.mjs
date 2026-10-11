@@ -3,7 +3,7 @@
 //   PINETS=/path/to/node_modules/pinets node tools/tests/chart-pine-community-b.test.mjs
 // 1. Every shipped source is BYTE-IDENTICAL to the file the Owner sent (no normalisation:
 //    CRLF line endings are kept as-is) when the saved originals are on this machine.
-// 2. The BUILTIN_PINE entries: section 'community', third-party author, never Stryker.
+// 2. The BUILTIN_PINE entries: section 'community', third-party author, never TradeZoro.
 // 3. Engine fixes (assets/chart-pine-next-patches.js) against real pinets 0.11.0:
 //    request.security in a function called from two call sites, time("D", tz),
 //    the cached Intl.DateTimeFormat giving the same parts.

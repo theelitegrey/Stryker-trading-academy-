@@ -1,4 +1,4 @@
-// Stryker Trading Academy — /rithmic-review (temporary, unlisted page for Rithmic's
+// TradeZoro — /rithmic-review (temporary, unlisted page for Rithmic's
 // conformance reviewers).
 // Depends on: assets/auth.js (`auth`, friendlyAuthError), assets/progress.js (`db`,
 // ensureStudentDoc), assets/activity-log.js (logActivityBeforeNavigating, optional).
@@ -68,7 +68,7 @@
     var boot = (typeof ensureStudentDoc === 'function') ? ensureStudentDoc(user).catch(function () {}) : Promise.resolve();
     return boot
       .then(function () { return fileRequest(user, name); })
-      .catch(function (err) { console.warn('Stryker: review request not filed', err && err.code); })
+      .catch(function (err) { console.warn('TradeZoro: review request not filed', err && err.code); })
       .then(function () {
         if (typeof logActivityBeforeNavigating === 'function') {
           return logActivityBeforeNavigating(isNew ? 'auth.signup' : 'auth.login',
@@ -97,7 +97,7 @@
         return cred.user.updateProfile({ displayName: name }).then(function () { return cred.user; });
       })
       .then(function (user) {
-        user.sendEmailVerification().catch(function (err) { console.warn('Stryker: verification email failed', err); });
+        user.sendEmailVerification().catch(function (err) { console.warn('TradeZoro: verification email failed', err); });
         return finish(user, name, true);
       })
       .catch(function (err) {

@@ -1,4 +1,4 @@
-// Stryker Trading Academy: demo homepage motion (demo-home.html; unlisted, Owner order 2026-10-06).
+// TradeZoro: demo homepage motion (demo-home.html; unlisted, Owner order 2026-10-06).
 //
 // What it does:
 //   - Hero parallax: five layers (glow, chart grid, laptop screen, floating GEX card + phone,

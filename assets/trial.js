@@ -119,10 +119,28 @@ function strykerTrialDecorate(el, plan){
     if (!ok || el.getAttribute('data-trial') === '1') return;
     el.setAttribute('data-trial', '1');
     el.textContent = 'Start ' + STRYKER_TRIAL_DAYS + '-day free trial';
+    // Payment terms sit behind a small info icon instead of a block of text.
+    var wrap = document.createElement('div');
+    wrap.className = 'trial-info';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'trial-info-btn';
+    btn.setAttribute('aria-label', 'Free trial payment details');
+    btn.setAttribute('aria-expanded', 'false');
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v5.5"/><circle cx="12" cy="7.6" r=".6" fill="currentColor"/></svg>';
     var p = document.createElement('p');
     p.className = 'trial-smallprint';
+    p.hidden = true;
     p.innerHTML = strykerTrialSmallPrint(plan);
-    el.insertAdjacentElement('afterend', p);
+    btn.addEventListener('click', function (e){
+      e.preventDefault(); e.stopPropagation();
+      var open = p.hidden;
+      p.hidden = !open;
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    wrap.appendChild(btn);
+    wrap.appendChild(p);
+    el.insertAdjacentElement('afterend', wrap);
   });
 }
 

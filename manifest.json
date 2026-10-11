@@ -6,8 +6,8 @@
   "background_color": "#050506",
   "theme_color": "#050506",
   "icons": [
-    { "src": "/assets/images/tradezoro-icon-192-494.png?v=496", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/assets/images/tradezoro-icon-512-494.png?v=496", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/tradezoro-icon-192-494.png?v=497", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/images/tradezoro-icon-512-494.png?v=497", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "/assets/images/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
     { "src": "/assets/images/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]

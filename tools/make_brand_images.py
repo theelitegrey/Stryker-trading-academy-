@@ -29,7 +29,7 @@ from PIL import Image
 
 SRC = "/mnt/user-data/uploads/14969.png"
 IMAGES = "/home/claude/deploy/assets/images"
-MASTER = os.path.join(IMAGES, "tradezoro-logo-master-494.png?v=496")
+MASTER = os.path.join(IMAGES, "tradezoro-logo-master-494.png?v=497")
 
 # Heights only. The width is derived from the artwork's own aspect ratio.
 #
@@ -41,18 +41,18 @@ MASTER = os.path.join(IMAGES, "tradezoro-logo-master-494.png?v=496")
 # file is exactly the artwork, and the CSS height rule produces the size it
 # claims to.
 WORDMARK_HEIGHTS = [
-    ("tradezoro-logo-header-494.png?v=496", 160),
-    ("tradezoro-logo-full-494.png?v=496",   608),
+    ("tradezoro-logo-header-494.png?v=497", 160),
+    ("tradezoro-logo-full-494.png?v=497",   608),
 ]
 EMBLEM = [
-    ("tradezoro-logo-emblem-494.png?v=496",      1124, 0.06),
-    ("tradezoro-logo-emblem-sm-494.png?v=496",    200, 0.06),
-    ("tradezoro-icon-512-494.png?v=496",          512, 0.10),
-    ("tradezoro-icon-192-494.png?v=496",          192, 0.10),
-    ("tradezoro-apple-touch-icon-494.png?v=496",  180, 0.10),
+    ("tradezoro-logo-emblem-494.png?v=497",      1124, 0.06),
+    ("tradezoro-logo-emblem-sm-494.png?v=497",    200, 0.06),
+    ("tradezoro-icon-512-494.png?v=497",          512, 0.10),
+    ("tradezoro-icon-192-494.png?v=497",          192, 0.10),
+    ("tradezoro-apple-touch-icon-494.png?v=497",  180, 0.10),
     ("favicon-48.png",         48, 0.04),
-    ("tradezoro-favicon-32-494.png?v=496",         32, 0.02),
-    ("tradezoro-favicon-16-494.png?v=496",         16, 0.00),
+    ("tradezoro-favicon-32-494.png?v=497",         32, 0.02),
+    ("tradezoro-favicon-16-494.png?v=497",         16, 0.00),
 ]
 
 # Below this a pixel is compression noise, not faint glow. Without a floor the
@@ -134,9 +134,9 @@ def main():
         fit(em, size, size, pad=pad).save(os.path.join(IMAGES, name))
         print("  emblem  ", name, size)
 
-    fit(em, 256, 256, pad=0.04).save(os.path.join(IMAGES, "tradezoro-favicon-32-494.png?v=496"),
+    fit(em, 256, 256, pad=0.04).save(os.path.join(IMAGES, "tradezoro-favicon-32-494.png?v=497"),
                                      sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
-    print("  tradezoro-favicon-32-494.png?v=496 (multi-size)")
+    print("  tradezoro-favicon-32-494.png?v=497 (multi-size)")
 
 
 if __name__ == "__main__":

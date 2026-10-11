@@ -81,7 +81,7 @@ def base(title):
     card.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
     d = ImageDraw.Draw(card)
     f = font(FONT_SIZE)
-    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=496')).convert('RGBA')
+    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=497')).convert('RGBA')
     ls = 88
     logo = logo.resize((ls, ls), Image.LANCZOS)
     max_w = W - 2 * PAD - ls - 30

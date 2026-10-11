@@ -137,16 +137,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // gone — but without this the admin who just reset it would keep seeing
     // the old logo and reasonably conclude the reset had failed.
     try {
-      localStorage.removeItem('stryker_brand_logo');
-      localStorage.removeItem('stryker_brand_favicon');
+      localStorage.removeItem('tradezoro_brand_logo_v2');
+      localStorage.removeItem('tradezoro_brand_favicon_v2');
     } catch (e) {}
     Promise.all([
       db.collection('settings').doc('logo').delete(),
       db.collection('settings').doc('favicon').delete()
     ])
       .then(() => {
-        document.getElementById('logo-preview').src = 'assets/images/tradezoro-logo-header-494.png?v=494';
-        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=494';
+        document.getElementById('logo-preview').src = 'assets/images/tradezoro-logo-header-494.png?v=495';
+        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=495';
         document.getElementById('logo-current-label').textContent = 'Current: bundled default';
         document.getElementById('favicon-current-label').textContent = 'Current: bundled default';
         showAppearanceMsg('appearance-success', 'Reset to bundled defaults.');

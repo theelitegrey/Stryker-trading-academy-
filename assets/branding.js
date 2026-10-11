@@ -24,12 +24,14 @@
 //      paint, which is the best achievable without inlining the image into
 //      every page.
 //
-// The real elimination is to replace assets/images/tradezoro-logo-header-494.png?v=494 with the
+// The real elimination is to replace assets/images/tradezoro-logo-header-494.png?v=495 with the
 // current logo so the bundled default and the upload agree — then there is
 // nothing to swap. This file makes the mismatch cheap, not correct.
 
-var BRAND_LOGO_KEY = 'stryker_brand_logo';
-var BRAND_FAVICON_KEY = 'stryker_brand_favicon';
+var BRAND_LOGO_KEY = 'tradezoro_brand_logo_v2';
+var BRAND_FAVICON_KEY = 'tradezoro_brand_favicon_v2';
+// Drop the old Stryker-era cached logo/favicon from every device.
+try { localStorage.removeItem('stryker_brand_logo'); localStorage.removeItem('stryker_brand_favicon'); } catch (e) {}
 
 function brandRead(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }

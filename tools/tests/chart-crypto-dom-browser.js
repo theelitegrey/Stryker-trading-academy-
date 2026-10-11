@@ -7,6 +7,9 @@
 // wall labels are in base-asset units ("BTC"); old saved charts ('right ladder') still load;
 // a non-Binance symbol shows the "needs a Binance crypto symbol" message; phone 390 has no
 // horizontal overflow and every on-chart text is free of "live" / "real-time".
+// Phone budget (build 503 fix): a full-cap history (BOOK_HISTORY_MAX samples pushed through
+// __stkFlow.domDebugFill) adds <= 25 MB of JS heap, and at 390 px with the CPU throttled 4x the
+// redraw after a zoom that changes the price bucket takes <= 250 ms (MEM_MB / REBIN_MS override).
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
@@ -17,6 +20,7 @@ const BASE_ASSET = /BTC/.test(SYM) ? 'BTC' : SYM.replace(/^.*:/, '').replace(/US
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MEM_MB = Number(process.env.MEM_MB || 25), REBIN_MS = Number(process.env.REBIN_MS || 250);
 const VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 
 async function open(b, { w, h, mobile }) {
@@ -53,16 +57,32 @@ const dbg = (p) => p.evaluate(() => window.__stkFlow.domDebug && window.__stkFlo
 const tables = (p) => p.evaluate(() => { const i = window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.find((x) => /Crypto DOM/.test(x.title)); return i ? i.tables : -1; });
 // The last n 1m bars plus `pad` empty bars on the right, where the depth bars sit.
 const zoom = (p, bars, pad) => p.evaluate(([n, pad]) => { const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars; c.setVisibleRange({ from: b[Math.max(0, b.length - n)].time, to: b[b.length - 1].time + pad * 60000 }); }, [bars, pad]);
+// Time a zoom to the last n bars: setVisibleRange, then two animation frames (the redraw).
+const zoomFrame = (p, n) => p.evaluate(async (n) => {
+  const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars;
+  const t0 = performance.now();
+  c.setVisibleRange({ from: b[Math.max(0, b.length - n)].time, to: b[b.length - 1].time + 60000 });
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return Math.round(performance.now() - t0);
+}, n);
+const ZOOMS = [12, 45, 8, 30];
 async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await sleep(900); await p.screenshot({ path: OUT + '/' + name }); console.log('SHOT ' + OUT + '/' + name); }
 
 (async () => {
-  const b = await launch();
+  // precise heap numbers + window.gc() for the phone memory budget check
+  const b = await launch({ args: ['--enable-precise-memory-info', '--js-flags=--expose-gc'] });
   try {
     // desktop + phone run side by side so both build the same few minutes of book history
     const d = await open(b, { w: 1280, h: 800 });
     const m = await open(b, { w: 390, h: 844, mobile: true });
     for (const s of [d, m]) { await setSym(s.p, SYM, '1'); }
     await sleep(3000); await waitBars(d.p); await waitBars(m.p);
+    // baseline: the same throttled zooms on the phone chart WITHOUT the indicator
+    const cdp = await m.ctx.newCDPSession(m.p);
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const base = []; for (const n of ZOOMS) { base.push(await zoomFrame(m.p, n)); await sleep(400); }
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    console.log('baseline zoom redraw without the indicator (390 px, CPU x4) ms', JSON.stringify(base));
     await addDom(d.p); await addDom(m.p);
     const msg0 = await tables(d.p);
     check(msg0 === 1, 'status note shown while the book loads / history builds (' + msg0 + ')');
@@ -130,6 +150,44 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
     // the note is drawn on the canvas; its text is BOOK_NEEDS_BINANCE ("Crypto DOM needs a Binance crypto symbol.")
     check(nm === 1, 'non-Binance symbol shows the note (' + nm + ' table)');
     await shot(d.p, 'non-binance-NQ-1280.png');
+
+    // ---- phone budget: memory at the full history cap, and the step-change redraw time ----
+    await setDom(m.p, { style: VIEWS[0], showWalls: true, bucketUsd: 0 }); await sleep(800);
+    const heap = () => m.p.evaluate(async () => { for (let k = 0; k < 3; k++) { window.gc(); await new Promise((r) => setTimeout(r, 50)); } return performance.memory.usedJSHeapSize; });
+    // show ~45 min so the filled history is on screen and every drawn column holds its bins
+    await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars; c.setVisibleRange({ from: b[Math.max(0, b.length - 45)].time, to: b[b.length - 1].time + 60000 }); });
+    const h0 = await heap();
+    // Fill to the cap and cache bins on the newest 640 samples (a 1280 px desktop chart draws at
+    // most 640 two-pixel columns; a 390 px phone ~160), then gc and read the heap in the SAME task:
+    // the next 1 s live sample would push the history over the cap and thin it to ~1800.
+    const step0 = (await dbg(m.p)).step;
+    const r = await m.p.evaluate((st) => {
+      const F = window.__stkFlow; const fill = F.domDebugFill(0, 640, st);
+      const store = F.domDebugBytes(); window.gc(); window.gc();
+      return { fill, store, heap: performance.memory.usedJSHeapSize };
+    }, step0);
+    const memMb = (r.heap - h0) / 1048576;
+    console.log('fill', JSON.stringify(r.fill), 'store', JSON.stringify(r.store), 'heap delta ' + memMb.toFixed(1) + ' MB');
+    check(r.store.samples >= 2400, 'full-cap history built: ' + r.store.samples + ' samples, ' + r.store.avgLevels + ' levels each');
+    check(memMb <= MEM_MB, 'phone: full-cap book history adds ' + memMb.toFixed(1) + ' MB of heap (<= ' + MEM_MB + ' MB)');
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    const times = [];
+    for (const n of ZOOMS) {
+      const before = await dbg(m.p);
+      const t = await zoomFrame(m.p, n);
+      await sleep(400);
+      const after = await dbg(m.p);
+      if (after.step !== before.step) times.push({ bars: n, from: before.step, to: after.step, frameMs: t, layerMs: after.rebinMs, cols: after.rebinCols, binned: after.binned });
+    }
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+    console.log('step-change redraws with the indicator (390 px, CPU x4)', JSON.stringify(times));
+    check(times.length >= 2, 'zoom changed the price bucket ' + times.length + ' times');
+    // The budget is this indicator's redraw (re-bin of every drawn column + paint), timed inside
+    // its render(). The whole frame also holds the chart's own redraw, printed above as baseline.
+    const worst = times.reduce((x, r) => Math.max(x, r.layerMs), 0);
+    const worstFrame = times.reduce((x, r) => Math.max(x, r.frameMs), 0);
+    check(times.length && worst <= REBIN_MS, 'phone CPU x4: Crypto DOM redraw after a step-changing zoom ' + worst + ' ms (<= ' + REBIN_MS + ' ms); whole frame ' + worstFrame + ' ms vs ' + Math.max(...base) + ' ms without the indicator');
+    await shot(m.p, 'E-fullcap-390.png');
 
     check(!d.errors.length, 'no console errors (desktop) ' + d.errors.join(' | '));
     check(!m.errors.length, 'no console errors (phone) ' + m.errors.join(' | '));

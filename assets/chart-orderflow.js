@@ -1413,15 +1413,65 @@ function binanceBookSource(ticker, onBook, onStatus) {
   refresh = setInterval(snapshot, 30000);
   return () => { stopped = true; clearTimeout(tm); clearInterval(refresh); try { if (ws) ws.close(); } catch (e) {} };
 }
-// One sample = the book at a moment, packed: prices + signed sizes (+ bid, - ask).
+// One sample = the book at a moment, packed small (phones keep up to BOOK_HISTORY_MAX of them):
+// only a band around the mid (the nearest BOOK_BAND_LEVELS per side or +-BOOK_BAND_PCT of the
+// mid, whichever is fewer levels), prices as Float32 offsets from the mid (o = p - mid), signed
+// sizes (+ bid, - ask). Order: nb bids from the mid outward (o falling), then the asks from the
+// mid outward (o rising), so binning is one linear pass with no Map and no sort.
+// ~6.4 KB per sample at 800 levels, vs ~36 KB for the full Float64 book + a cached bins Map.
+const BOOK_BAND_LEVELS = 400;
+const BOOK_BAND_PCT = 0.03;
+function bookMid(bestBid, bestAsk) {
+  return bestBid > 0 && bestAsk > 0 ? (bestBid + bestAsk) / 2 : (bestBid || bestAsk || 0);
+}
+// The book's price grid: the fewest decimals d that every listed price has (Binance prices are
+// decimal strings, so this is the tick or finer). Float32 offsets are exact to ~6e-8 of their
+// size, far inside half of 10^-d, so mid + offset rounded to this grid gives the price back.
+function bookTick(bp, ap) {
+  const ps = [];
+  for (const s of [bp, ap]) for (let k = 0; k < Math.min(s.length, 48); k++) ps.push(s[k]);
+  if (!ps.length) return 0;
+  for (let d = 0; d <= 8; d++) {
+    const m = Math.pow(10, d);
+    if (ps.every(p => Math.abs(p * m - Math.round(p * m)) < 1e-6 * Math.max(1, p * m * 1e-9))) return 1 / m;
+  }
+  return 0;
+}
+// bp/bq: bid prices/sizes sorted by price DESC; ap/aq: asks sorted ASC (any array-likes).
+function packSides(bp, bq, ap, aq, mid, tick) {
+  const lo = mid * (1 - BOOK_BAND_PCT), hi = mid * (1 + BOOK_BAND_PCT);
+  let nb = 0, na = 0;
+  while (nb < bp.length && nb < BOOK_BAND_LEVELS && bp[nb] >= lo) nb++;
+  while (na < ap.length && na < BOOK_BAND_LEVELS && ap[na] <= hi) na++;
+  const o = new Float32Array(nb + na), q = new Float32Array(nb + na);
+  for (let k = 0; k < nb; k++) { o[k] = bp[k] - mid; q[k] = bq[k]; }
+  for (let k = 0; k < na; k++) { o[nb + k] = ap[k] - mid; q[nb + k] = -aq[k]; }
+  return { o, q, nb, mid, tick: tick || 0, bins: null, binStep: 0, binFrame: 0 };
+}
+function bookSides(book) {
+  const b = [], a = [];
+  book.bids.forEach((size, price) => { if (size > 0 && price > 0) b.push(price); });
+  book.asks.forEach((size, price) => { if (size > 0 && price > 0) a.push(price); });
+  b.sort((x, y) => y - x); a.sort((x, y) => x - y);
+  return { bp: b, bq: b.map(p => book.bids.get(p)), ap: a, aq: a.map(p => book.asks.get(p)) };
+}
 function packBook(book) {
-  const n = book.bids.size + book.asks.size;
-  const p = new Float64Array(n), q = new Float32Array(n);
-  let k = 0;
-  book.bids.forEach((size, price) => { if (size > 0 && price > 0) { p[k] = price; q[k++] = size; } });
-  book.asks.forEach((size, price) => { if (size > 0 && price > 0) { p[k] = price; q[k++] = -size; } });
-  const mid = book.bestBid > 0 && book.bestAsk > 0 ? (book.bestBid + book.bestAsk) / 2 : (book.bestBid || book.bestAsk || 0);
-  return { p: k < n ? p.slice(0, k) : p, q: k < n ? q.slice(0, k) : q, mid };
+  const mid = bookMid(book.bestBid, book.bestAsk);
+  if (!(mid > 0)) return packSides([], [], [], [], 0, 0);
+  const s = bookSides(book);
+  return packSides(s.bp, s.bq, s.ap, s.aq, mid, bookTick(s.bp, s.ap));
+}
+// Append one sample: 6 h max age, then over the cap the oldest half is thinned to every other
+// sample (recent detail stays at 1 s).
+function pushBookSample(history, s) {
+  history.push(s);
+  const cutoff = s.ts - 6 * 60 * 60 * 1000;
+  while (history[0] && history[0].ts < cutoff) history.shift();
+  if (history.length > BOOK_HISTORY_MAX) {
+    const half = Math.floor(history.length / 2);
+    return history.slice(0, half).filter((x, i) => i % 2 === 0).concat(history.slice(half));
+  }
+  return history;
 }
 class BookFeed {
   constructor(provider, ticker) {
@@ -1437,16 +1487,9 @@ class BookFeed {
     if (now - this.lastSample < BOOK_SAMPLE_MS) return;
     this.lastSample = now;
     const s = packBook(this.book);
-    if (!s.p.length) return;
-    s.ts = now; s.bestBid = this.book.bestBid; s.bestAsk = this.book.bestAsk; s.bins = null;
-    this.history.push(s);
-    const cutoff = now - 6 * 60 * 60 * 1000;
-    while (this.history[0] && this.history[0].ts < cutoff) this.history.shift();
-    // Over the cap: thin the oldest half to every other sample (recent detail stays at 1 s).
-    if (this.history.length > BOOK_HISTORY_MAX) {
-      const half = Math.floor(this.history.length / 2);
-      this.history = this.history.slice(0, half).filter((x, i) => i % 2 === 0).concat(this.history.slice(half));
-    }
+    if (!s.o.length) return;
+    s.ts = now; s.bestBid = this.book.bestBid; s.bestAsk = this.book.bestAsk;
+    this.history = pushBookSample(this.history, s);
   }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
 }
@@ -1461,29 +1504,74 @@ function acquireBookFeed(provider, ticker, fn) {
     f.closeTm = setTimeout(() => { if (f.refs <= 0) { try { f.stop(); } catch (e) {} bookFeeds.delete(key); } }, 10000);
   } };
 }
-// Bucket one sample by price step: Map bucketIndex -> signed size of the side holding more
-// (+ bid, - ask). The touch (1 bucket either side of the mid) is skipped. Cached per step.
+// Bucket one sample by price step -> { i: Int32Array bucket indices, v: Float32Array signed size
+// (+ bid, - ask) }. Bids only fall in buckets <= the mid's bucket and asks in buckets >= it, and
+// the touch (1 bucket either side of the mid) is skipped, so a bucket never holds both sides.
+// The levels are already sorted outward from the mid, so this is one linear pass. Only ONE step
+// is cached per sample, and the renderer drops the cache of samples it no longer draws
+// (binFrame), so at most the drawn columns hold bins at any time.
 function binSample(s, step) {
-  if (s.bins && s.bins.step === step) return s.bins.m;
-  const bq = new Map(), aq = new Map();
-  for (let k = 0; k < s.p.length; k++) {
-    const i = Math.floor(s.p[k] / step + 1e-9), v = s.q[k];
-    if (v > 0) bq.set(i, (bq.get(i) || 0) + v); else aq.set(i, (aq.get(i) || 0) - v);
+  if (s.bins && s.binStep === step) return s.bins;
+  const o = s.o, q = s.q, nb = s.nb, n = o.length, mid = s.mid, tk = s.tick;
+  const mi = Math.floor(mid / step + 1e-9);
+  const ii = new Int32Array(n), vv = new Float32Array(n);
+  let m = 0, cur = 0, acc = 0, has = false;
+  const flush = () => { if (has && Math.abs(cur - mi) > 1 && acc !== 0) { ii[m] = cur; vv[m++] = acc; } };
+  for (let k = 0; k < n; k++) {
+    if (k === nb) { flush(); has = false; acc = 0; }
+    const p = tk > 0 ? Math.round((mid + o[k]) / tk) * tk : mid + o[k];
+    const i = Math.floor(p / step + 1e-9);
+    if (!has || i !== cur) { flush(); cur = i; acc = 0; has = true; }
+    acc += q[k];
   }
-  const mi = Math.floor(s.mid / step + 1e-9);
-  const m = new Map();
-  const put = (i) => {
-    if (m.has(i) || Math.abs(i - mi) <= 1) return;
-    const b = bq.get(i) || 0, a = aq.get(i) || 0;
-    if (b >= a && b > 0) m.set(i, b); else if (a > 0) m.set(i, -a);
-  };
-  bq.forEach((v, i) => put(i)); aq.forEach((v, i) => put(i));
-  s.bins = { step, m };
-  return m;
+  flush();
+  s.bins = { i: m < n ? ii.slice(0, m) : ii, v: m < n ? vv.slice(0, m) : vv };
+  s.binStep = step;
+  return s.bins;
 }
+let domFrame = 0, domStep = 0, domRebinMs = null, domRebinCols = 0;
+const domBinned = new Set(); // samples currently holding a bins cache
 const quant = (sorted, f) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * f)))] : 0;
 let domLast = null; // last frame summary, for the browser test (window.__stkFlow.domDebug())
 export function domDebug() { return domLast; }
+// Test hook: fill every open book feed's history to BOOK_HISTORY_MAX samples (1 s apart,
+// ending at the oldest real sample) built from its current book with a small random walk, so
+// the real indicator draws a full-cap history. binLast: also bin the newest binLast samples at
+// binStep (what the renderer caches for its drawn columns), to measure the worst case
+// synchronously. Returns the feed's sample count and bytes.
+export function domDebugFill(n, binLast, binStep) {
+  const out = [];
+  bookFeeds.forEach((f) => {
+    const mid0 = bookMid(f.book.bestBid, f.book.bestAsk);
+    if (!(mid0 > 0)) return;
+    const sd = bookSides(f.book), tick = bookTick(sd.bp, sd.ap) || mid0 * 1e-6;
+    const want = Math.min(BOOK_HISTORY_MAX, n || BOOK_HISTORY_MAX) - f.history.length;
+    const t0 = f.history.length ? f.history[0].ts : Date.now();
+    const syn = [];
+    let shift = 0;
+    for (let k = want; k >= 1; k--) {
+      shift += Math.round((Math.random() - 0.5) * mid0 * 0.0002 / tick) * tick;
+      const bp = sd.bp.map(p => p + shift), ap = sd.ap.map(p => p + shift);
+      const bq = sd.bq.map(x => x * (0.6 + Math.random() * 0.8)), aq = sd.aq.map(x => x * (0.6 + Math.random() * 0.8));
+      const s = packSides(bp, bq, ap, aq, mid0 + shift, tick);
+      s.ts = t0 - k * BOOK_SAMPLE_MS; s.bestBid = bp[0]; s.bestAsk = ap[0];
+      syn.push(s);
+    }
+    f.history = syn.concat(f.history);
+    if (binLast > 0 && binStep > 0) f.history.slice(-binLast).forEach((s) => { binSample(s, binStep); s.binFrame = domFrame; domBinned.add(s); });
+    f.bump();
+    out.push(Object.assign({ key: f.key, levelsInBook: sd.bp.length + sd.ap.length }, domDebugBytes(f)));
+  });
+  return out;
+}
+export function domDebugBytes(f) {
+  let samples = 0, bytes = 0, levels = 0, bins = 0;
+  (f ? [f] : [...bookFeeds.values()]).forEach((x) => x.history.forEach((s) => {
+    samples++; levels += s.o.length; bytes += s.o.byteLength + s.q.byteLength + 96;
+    if (s.bins) { bins++; bytes += s.bins.i.byteLength + s.bins.v.byteLength + 48; }
+  }));
+  return { samples, avgLevels: samples ? Math.round(levels / samples) : 0, binned: bins, bytes };
+}
 function cryptoDomLayer() {
   let canvas = null;
   return {
@@ -1493,6 +1581,7 @@ function cryptoDomLayer() {
       if (!g || !a.data || a.data.off || !a.bars.length) return;
       const f = bookFeeds.get(a.data.feed);
       if (!f || !f.book) return;
+      const tStart = performance.now();
       const cfg = a.data.cfg, co = a.coords, top = a.bounds.top, bot = top + a.bounds.height;
       const font = (a.theme && a.theme.fontFamily) || 'sans-serif';
       const light = themeIsLight(a.theme) || pageIsDay();
@@ -1543,13 +1632,17 @@ function cryptoDomLayer() {
       // visible values (all columns + the current book) -> percentiles
       const curBins = binSample(packBook(f.book), step);
       const vals = [];
+      const frame = ++domFrame;
       const colBins = cols.map(c => {
-        const m = binSample(c.s, step), out = [];
-        m.forEach((v, i) => { if (i >= iLo && i <= iHi) { out.push(i, v); vals.push(Math.abs(v)); } });
+        const bn = binSample(c.s, step), out = [];
+        c.s.binFrame = frame; domBinned.add(c.s);
+        for (let k = 0; k < bn.i.length; k++) { const i = bn.i[k]; if (i >= iLo && i <= iHi) { const v = bn.v[k]; out.push(i, v); vals.push(Math.abs(v)); } }
         return out;
       });
+      // free the bins of every sample not drawn in this frame (scrolled away, thinned, or other step)
+      domBinned.forEach(s => { if (s.binFrame !== frame) { s.bins = null; s.binStep = 0; domBinned.delete(s); } });
       const curRows = [];
-      curBins.forEach((v, i) => { if (i >= iLo && i <= iHi) curRows.push([i, v]); });
+      for (let k = 0; k < curBins.i.length; k++) { const i = curBins.i[k]; if (i >= iLo && i <= iHi) curRows.push([i, curBins.v[k]]); }
       if (!vals.length) curRows.forEach(r => vals.push(Math.abs(r[1])));
       vals.sort((x, y) => x - y);
       const qLo = quant(vals, cfg.hide), cap = Math.max(qLo * 1.0001, quant(vals, 0.985));
@@ -1681,6 +1774,10 @@ function cryptoDomLayer() {
         lineAt(f.book.bestAsk, cfg.ask, 'best ask');
       }
       g.restore();
+      // timing of the frame where the bucket step changed (zoom / pan re-bins every drawn column)
+      const ms = performance.now() - tStart;
+      if (step !== domStep) { domStep = step; domRebinMs = Math.round(ms * 10) / 10; domRebinCols = cols.length; }
+      stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = domBinned.size;
       domLast = stat;
     },
     destroy() { canvas = null; }

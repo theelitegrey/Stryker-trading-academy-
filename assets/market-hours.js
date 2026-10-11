@@ -254,7 +254,7 @@
   //   "New York Session is Open · Market Closes in 01:04:19 · Next Session: Asia opens in 04:04:18"
   //   "Asia Session is Open · Next Session: London opens in 04:02:32"
   //   "Market is Closed · Market Opens in 00:42:10 · Next Session: Asia opens in 02:42:10"
-  //   "No Session Open · Next Session: Asia opens in 01:12:05"
+  //   "Futures Open · No Session · Next Session: Asia opens in 01:12:05"
   // The market close (or reopen) is shown only when it comes before the next
   // session opens. state: 'session' | 'nosession' | 'closed' (drives the dot colour).
   function sessionLabel(nowMs) {
@@ -267,7 +267,7 @@
     if (state === 'closed') { head = 'Market is Closed'; shortHead = 'Closed'; }
     else if (names.length === 1) { head = names[0] + ' Session is Open'; shortHead = shorts[0] + ' Open'; }
     else if (names.length > 1) { head = joinNames(names) + ' Sessions are Open'; shortHead = joinNames(shorts) + ' Open'; }
-    else { head = 'No Session Open'; shortHead = 'No Session'; }
+    else { head = 'Futures Open \u00b7 No Session'; shortHead = 'Futures Open'; }
     var parts = [], sparts = [];
     var mkLeft = fmtClock(mk.until - nowMs);
     if (!st.next || mk.until < st.next.at) {

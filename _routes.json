@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "description": "Pages Functions run only where needed: the legacy-domain 301 (functions/_middleware.js) for HTML pages, and /api/*. Static files skip the Worker entirely; they are identical on every hostname, so they need no redirect.",
+  "include": ["/*"],
+  "exclude": [
+    "/assets/*",
+    "/manifest.json",
+    "/firebase-messaging-sw.js"
+  ]
+}

@@ -104,7 +104,15 @@
 
   // Deferred scripts run before DOMContentLoaded but Firebase is initialised
   // by main.js (not deferred), so it is ready by load at the latest.
+  // The counter is a Firestore Write (~1 s round trip on a phone) that nobody
+  // waits for, so it runs after load AND when the browser is idle (or 4 s
+  // after load at the latest), never competing with first paint or the
+  // page's own Firestore reads.
   function run() { countVisit(); cfBeacon(); }
-  if (document.readyState === 'complete') run();
-  else window.addEventListener('load', run);
+  function later() {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(run, { timeout: 4000 });
+    else setTimeout(run, 2000);
+  }
+  if (document.readyState === 'complete') later();
+  else window.addEventListener('load', later);
 })();

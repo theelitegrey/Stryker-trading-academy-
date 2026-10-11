@@ -53,7 +53,7 @@ export const PICKER_SCRIPTS = [
   { id: 'smt-pro-stryker', name: 'SMT Divergence Pro [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/smt-pro-stryker.pine?v=512', desc: 'SMT divergence vs correlated futures (auto-paired: NQ vs ES), chart TF + higher TFs' },
   { id: 'ifvg-pro-stryker', name: 'IFVG Pro+ [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/ifvg-pro-stryker.pine?v=512', desc: 'Liquidity (BSL / SSL from higher-TF swings and candles), sweep, candidate FVG and inversion (IFVG) boxes, risk / reward box' },
   { id: 'htf-po3-lens-stryker', name: 'HTF PO3 Lens [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/htf-po3-lens-stryker.pine?v=512', desc: 'Up to five higher-timeframe candles drawn right of the last bar, with HTF FVGs, sweeps and a countdown to the close' },
-  { id: 'fvg-relay-stryker', name: 'FVG Relay [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/fvg-relay-stryker.pine?v=512', desc: 'Higher-timeframe FVGs on your chart; tapped and respected gaps chain as Relay 1, 2, 3; liquidity and dashboard' }
+  { id: 'fvg-relay-stryker', name: 'FVG Relay [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/fvg-relay-stryker.pine?v=512', desc: 'Higher-timeframe FVGs on your chart; tapped and respected gaps chain as Relay 1, 2, 3; liquidity and dashboard' },
   { id: 'tz-fractal-model', name: 'TZ Fractal Model [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/tz-fractal-model.pine?v=512', desc: 'Fractal HTF sweep model with right-side candles, CISD confirmation, projections and dashboard', rightOffset: 24 },
 ];
 

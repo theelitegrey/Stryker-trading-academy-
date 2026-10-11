@@ -121,6 +121,7 @@ function addOn(chart, x){
   if (main && h) onMain.add(h);
   if (next && h) onNext.add(h);
   if (x.lib && h) libOf.set(h, x.lib);
+  if (h && x.rightOffset) trackRightOffset(chart, h, x.rightOffset); // saved layouts keep the HTF space
   return h;
 }
 
@@ -140,6 +141,7 @@ function snapshot(h){
   if (onMain.has(h)) o.engine = 'main';
   if (onNext.has(h)) o.engine = 'next';
   if (libOf.has(h)) o.lib = libOf.get(h);
+  if (offsetHandles.has(h)) o.rightOffset = offsetHandles.get(h);
   return o;
 }
 function cleanEntry(x){
@@ -156,12 +158,15 @@ function cleanEntry(x){
   if (L && typeof L === 'object' && /^[A-Za-z0-9]{20,40}$/.test(String(L.id || ''))) {
     o.lib = { id: L.id, version: +L.version || 1, openSource: L.openSource !== false, ownerUid: String(L.ownerUid || '').slice(0, 128), name: String(L.name || '').slice(0, 60) };
   } else if (x.engine === 'main' || x.engine === 'next') o.engine = x.engine;
+  const ro = requestedRightOffset(x);
+  if (ro) o.rightOffset = ro;
   return o;
 }
 
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
 
 const offsetHandles = new WeakMap(); // handle -> requested chart right offset
+const offsetCharts = new WeakSet();  // charts whose right offset was raised by an indicator
 function requestedRightOffset(opts){
   const n = Number(opts && opts.rightOffset);
   return Number.isFinite(n) && n > 6 ? Math.min(80, n) : null;
@@ -170,6 +175,9 @@ function applyRightOffset(chart){
   const hs = pineHandles(chart);
   let ro = 6;
   hs.forEach((h) => { const n = offsetHandles.get(h); if (n) ro = Math.max(ro, n); });
+  // Only touch the viewport on charts where an indicator asked for an offset: a chart that never
+  // had one keeps the user's scroll position exactly as on main (clear / template / reset).
+  if (ro === 6) { if (!offsetCharts.has(chart)) return; offsetCharts.delete(chart); } else offsetCharts.add(chart);
   try { if (chart.renderer && chart.renderer.supports && chart.renderer.supports('rightOffset')) chart.renderer.set('rightOffset', ro); } catch (e) {}
 }
 function trackRightOffset(chart, handle, ro){

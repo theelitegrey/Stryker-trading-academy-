@@ -56,7 +56,7 @@ labelCol = input.color(#787B86, "Valid label", inline = "b", group = G_STYLE)
 failCol = input.color(#E5484D, "Failed label", inline = "b", group = G_STYLE)
 warnCol = input.color(#F59F00, "No-fail label", inline = "b", group = G_STYLE)
 
-posIn = input.string("Middle right", "Position", options = ["Top left", "Top center", "Top right", "Middle right", "Bottom left", "Bottom center", "Bottom right"], inline = "tbl", group = G_TABLE)
+posIn = input.string("Bottom right", "Position", options = ["Top left", "Top center", "Top right", "Middle right", "Bottom left", "Bottom center", "Bottom right"], inline = "tbl", group = G_TABLE)
 sizeIn = input.string("Small", "Size", options = ["Tiny", "Small", "Normal", "Large"], inline = "tbl", group = G_TABLE)
 
 // ─────────────────────────────────────────────────────────────────────────────

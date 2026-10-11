@@ -1,0 +1,97 @@
+name: One-time setup TradeZoro email routing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup-email:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure Cloudflare Email Routing
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DOMAIN: tradezoro.com
+          SUPPORT_ADDRESS: support@tradezoro.com
+          DESTINATION_ADDRESS: theelitegrey@gmail.com
+        run: |
+          set -euo pipefail
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          [ -z "$ACCOUNT" ] && ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
+          if [ -z "$TOKEN" ]; then echo "Missing Cloudflare API token"; exit 1; fi
+          echo "::add-mask::$TOKEN"
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' "$@"; }
+          if ! printf '%s' "$ACCOUNT" | grep -qE '^[0-9a-f]{32}$'; then
+            accts=$(api "https://api.cloudflare.com/client/v4/accounts?per_page=25")
+            found=""
+            for id in $(echo "$accts" | jq -r '.result[].id // empty'); do
+              probe=$(api "https://api.cloudflare.com/client/v4/accounts/$id/pages/projects")
+              if [ "$(echo "$probe" | jq -r '.success')" = "true" ] && [ "$(echo "$probe" | jq '.result | length')" -gt 0 ]; then found="$id"; break; fi
+            done
+            ACCOUNT="$found"
+          fi
+          if [ -z "$ACCOUNT" ]; then echo "Could not find Cloudflare account"; exit 1; fi
+          echo "::add-mask::$ACCOUNT"
+          zone=$(api "https://api.cloudflare.com/client/v4/zones?name=$DOMAIN&per_page=1")
+          ZONE_ID=$(echo "$zone" | jq -r '.result[0].id // empty')
+          if [ -z "$ZONE_ID" ]; then echo "No Cloudflare zone found for $DOMAIN"; exit 1; fi
+          echo "Zone found for $DOMAIN"
+
+          settings=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/email/routing")
+          echo "Email routing status: $(echo "$settings" | jq -r '.result.status // .result.enabled // "unknown"')"
+
+          dns_resp=$(api -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/email/routing/dns" --data '{}')
+          if [ "$(echo "$dns_resp" | jq -r '.success')" = "true" ]; then
+            echo "Email Routing DNS enabled."
+          else
+            echo "Email Routing DNS enable returned:"
+            echo "$dns_resp" | jq -c '.errors'
+          fi
+
+          addr_list=$(api "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/email/routing/addresses")
+          ADDR_ID=$(echo "$addr_list" | jq -r --arg e "$DESTINATION_ADDRESS" '.result[]? | select(.email==$e) | .id' | head -1)
+          if [ -z "$ADDR_ID" ]; then
+            addr_create=$(api -X POST "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/email/routing/addresses" --data "{\"email\":\"$DESTINATION_ADDRESS\"}")
+            if [ "$(echo "$addr_create" | jq -r '.success')" = "true" ]; then
+              ADDR_ID=$(echo "$addr_create" | jq -r '.result.id')
+              echo "Destination address added. Verification email sent to $DESTINATION_ADDRESS."
+            else
+              echo "Could not add destination address:"
+              echo "$addr_create" | jq -c '.errors'
+            fi
+          else
+            echo "Destination address already exists."
+          fi
+
+          addr_list=$(api "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/email/routing/addresses")
+          VERIFIED=$(echo "$addr_list" | jq -r --arg e "$DESTINATION_ADDRESS" '.result[]? | select(.email==$e) | (.verified // false)')
+          echo "Destination verified: $VERIFIED"
+          if [ "$VERIFIED" != "true" ]; then
+            echo "Action needed: open the verification email sent to $DESTINATION_ADDRESS, then rerun this workflow."
+            exit 0
+          fi
+
+          rules=$(api "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/email/routing/rules")
+          RULE_ID=$(echo "$rules" | jq -r --arg s "$SUPPORT_ADDRESS" '.result[]? | select((.matchers // [])[]?.value==$s) | .id' | head -1)
+          payload=$(jq -n --arg s "$SUPPORT_ADDRESS" --arg d "$DESTINATION_ADDRESS" '{name:"support@tradezoro.com", enabled:true, matchers:[{type:"literal", field:"to", value:$s}], actions:[{type:"forward", value:[$d]}]}')
+          if [ -n "$RULE_ID" ]; then
+            rule_resp=$(api -X PUT "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/email/routing/rules/$RULE_ID" --data "$payload")
+            verb="updated"
+          else
+            rule_resp=$(api -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/email/routing/rules" --data "$payload")
+            verb="created"
+          fi
+          if [ "$(echo "$rule_resp" | jq -r '.success')" = "true" ]; then
+            echo "Routing rule $verb: $SUPPORT_ADDRESS -> $DESTINATION_ADDRESS"
+          else
+            echo "Could not create/update routing rule:"
+            echo "$rule_resp" | jq -c '.errors'
+            exit 1
+          fi

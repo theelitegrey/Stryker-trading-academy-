@@ -145,8 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
       db.collection('settings').doc('favicon').delete()
     ])
       .then(() => {
-        document.getElementById('logo-preview').src = 'assets/images/logo-header.png';
-        document.getElementById('favicon-preview').src = 'assets/images/favicon-32.png';
+        document.getElementById('logo-preview').src = 'assets/images/logo-header.png?v=493';
+        document.getElementById('favicon-preview').src = 'assets/images/favicon-32.png?v=493';
         document.getElementById('logo-current-label').textContent = 'Current: bundled default';
         document.getElementById('favicon-current-label').textContent = 'Current: bundled default';
         showAppearanceMsg('appearance-success', 'Reset to bundled defaults.');

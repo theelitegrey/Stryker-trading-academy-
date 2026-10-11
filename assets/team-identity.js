@@ -43,7 +43,7 @@ function strykerTeamProfile() {
     // No plan field. A brand account with a tier would show up in plan
     // filters, upgrade prompts and revenue counts as though it were a paying
     // student, quietly corrupting every one of those numbers.
-    avatarUrl: 'assets/images/logo-emblem-sm.png',
+    avatarUrl: 'assets/images/logo-emblem-sm.png?v=493',
     createdAt: null
   };
 }

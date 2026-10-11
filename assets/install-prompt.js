@@ -103,7 +103,7 @@
       '<div class="install-sheet-backdrop" data-install-close></div>' +
       '<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install Stryker">' +
         '<span class="install-grab" aria-hidden="true"></span>' +
-        '<img class="install-icon" src="assets/images/icon-192.png" alt="" width="64" height="64">' +
+        '<img class="install-icon" src="assets/images/icon-192.png?v=493" alt="" width="64" height="64">' +
         '<h3>Put Stryker on your home screen</h3>' +
         '<p>The full academy as an app — opens straight to your dashboard, full screen, with your notifications. No app store needed.</p>' +
         '<div id="install-sheet-mid">' + steps + '</div>' +

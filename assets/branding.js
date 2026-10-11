@@ -24,7 +24,7 @@
 //      paint, which is the best achievable without inlining the image into
 //      every page.
 //
-// The real elimination is to replace assets/images/logo-header.png with the
+// The real elimination is to replace assets/images/logo-header.png?v=493 with the
 // current logo so the bundled default and the upload agree — then there is
 // nothing to swap. This file makes the mismatch cheap, not correct.
 

@@ -34,8 +34,8 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/icon-192.png',
-    badge: '/assets/images/favicon-32.png',
+    icon: '/assets/images/icon-192.png?v=493',
+    badge: '/assets/images/favicon-32.png?v=493',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     tag: data.type || 'stryker',

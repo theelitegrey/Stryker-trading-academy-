@@ -195,7 +195,7 @@
 .xd-cols{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:48px; align-items:center; }
 .xd .xh-h{ font-size:clamp(48px, 6.2vw, 92px); }
 .xd-kicker{ margin:0 0 22px; display:flex; align-items:center; gap:10px; font:600 12px/1 var(--font-mono); letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
-.xd-mark{ width:22px; height:22px; border-radius:6px; background:url(images/tradezoro-logo-emblem-sm-494.png?v=499) center/cover; box-shadow:0 0 14px rgba(0,173,181,.5); }
+.xd-mark{ width:22px; height:22px; border-radius:6px; background:url(images/tradezoro-logo-emblem-sm-494.png?v=500) center/cover; box-shadow:0 0 14px rgba(0,173,181,.5); }
 .xd-stack{ position:relative; height:560px; --f:0; }
 .xd-card{ position:absolute; left:50%; top:50%; width:min(320px, 78%); padding:18px 18px 16px; border-radius:16px;
   border:1px solid var(--line); background:linear-gradient(180deg, rgba(30,30,34,.96), rgba(13,13,16,.98));

@@ -642,3 +642,56 @@
    that margin is now 0 so the space below it matches the rest. */
 #main > section.container{ padding-block:72px; }
 @media (max-width:640px){ #main > section.container{ padding-block:52px; } }
+
+/* ===== Method (AMD) section ===== */
+.mz{ position:relative; padding:96px 0 88px; overflow:hidden; border-top:1px solid rgba(255,255,255,.05); border-bottom:1px solid rgba(255,255,255,.05); background:#050506; }
+.mz-bg{ position:absolute; inset:0; pointer-events:none; background:
+  radial-gradient(600px 300px at 15% 10%, rgba(0,173,181,.10), transparent 70%),
+  radial-gradient(700px 360px at 90% 90%, rgba(3,201,136,.10), transparent 70%),
+  linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px) 0 0/100% 44px; }
+.mz-inner{ position:relative; z-index:1; }
+.mz-head{ text-align:center; max-width:780px; margin:0 auto; }
+.mz-head .eyebrow{ justify-content:center; }
+.mz-head h2{ font-size:clamp(28px,4.2vw,46px); line-height:1.12; margin:16px 0 18px; letter-spacing:-.02em; }
+.mz-grad{ background:linear-gradient(90deg,#4fe3ac,#03c988 45%,#00adb5); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.mz-head p{ color:var(--ink-2); font-size:16.5px; max-width:620px; margin:0 auto; }
+.mz-chart{ margin:44px auto 0; max-width:920px; border:1px solid rgba(255,255,255,.08); border-radius:18px; background:linear-gradient(180deg,#0b0b0d,#08080a); box-shadow:0 30px 80px -30px rgba(3,201,136,.25), inset 0 1px 0 rgba(255,255,255,.04); padding:14px 14px 10px; }
+.mz-chart-top{ display:flex; align-items:center; gap:8px; font:12px/1 'JetBrains Mono',monospace; color:var(--ink-3,#8b93a0); padding:2px 4px 12px; flex-wrap:wrap; }
+.mz-chart-top b{ color:#eee; }
+.mz-dot{ width:7px; height:7px; border-radius:50%; background:#03c988; box-shadow:0 0 8px #03c988; }
+.mz-legend{ margin-left:auto; display:flex; align-items:center; gap:6px; }
+.mz-legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; margin-left:6px; }
+.mz-legend .l1{ background:#8b93a0; } .mz-legend .l2{ background:#e5484d; } .mz-legend .l3{ background:#03c988; }
+.mz-svg{ display:block; width:100%; height:auto; }
+.mz-tag{ font:600 10px 'JetBrains Mono',monospace; letter-spacing:.08em; }
+.mz-steps{ list-style:none; padding:0; margin:28px auto 0; max-width:920px; display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+.mz-step{ position:relative; padding:20px 18px 18px; border-radius:16px; background:linear-gradient(180deg,#131316,#0e0e11); border:1px solid rgba(255,255,255,.07); overflow:hidden; }
+.mz-step::before{ content:""; position:absolute; left:0; top:0; right:0; height:2px; background:var(--c); box-shadow:0 0 18px var(--c); }
+.mz-step.s1{ --c:#8b93a0; } .mz-step.s2{ --c:#e5484d; } .mz-step.s3{ --c:#03c988; }
+.mz-n{ font:700 12px 'JetBrains Mono',monospace; color:var(--c); letter-spacing:.1em; }
+.mz-step h3{ font-size:19px; margin:8px 0 8px; }
+.mz-step p{ color:var(--ink-2); font-size:14.5px; line-height:1.55; margin:0 0 12px; }
+.mz-look{ display:block; font-size:13px; color:#c9cdd3; padding-top:10px; border-top:1px dashed rgba(255,255,255,.09); }
+.mz-cta{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:32px; }
+.mz-cta span{ font-size:12px; color:var(--ink-3,#8b93a0); }
+/* animation: candles print left to right, zones and labels follow */
+.mz-c{ opacity:0; animation:mzC 12s ease-out infinite; animation-delay:calc(var(--i) * .14s); }
+@keyframes mzC{ 0%{opacity:0; transform:translateY(4px)} 3%{opacity:1; transform:none} 88%{opacity:1} 96%,100%{opacity:0} }
+.mz-zone{ opacity:0; animation:mzZ 12s ease infinite; }
+.mz-z1{ animation-delay:.4s } .mz-z2{ animation-delay:2.2s } .mz-z3{ animation-delay:3.2s }
+@keyframes mzZ{ 0%{opacity:0} 6%{opacity:1} 86%{opacity:1} 94%,100%{opacity:0} }
+.mz-range,.mz-liq{ opacity:0; animation:mzZ 12s ease infinite; animation-delay:1.8s; }
+.mz-sweep{ opacity:0; animation:mzZ 12s ease infinite; animation-delay:2.7s; }
+.mz-sweep circle{ transform-box:fill-box; transform-origin:center; animation:mzPulse 1.6s ease-in-out infinite; }
+@keyframes mzPulse{ 50%{ transform:scale(1.35); opacity:.5 } }
+.mz-arrow{ opacity:0; animation:mzZ 12s ease infinite; animation-delay:3.6s; }
+@media (max-width:760px){
+  .mz{ padding:72px 0 64px; }
+  .mz-steps{ grid-template-columns:1fr; gap:10px; }
+  .mz-chart{ padding:10px 6px 6px; border-radius:14px; }
+  .mz-legend{ margin-left:0; width:100%; }
+  .mz-tag{ font-size:12px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .mz-c,.mz-zone,.mz-range,.mz-liq,.mz-sweep,.mz-arrow,.mz-sweep circle{ animation:none; opacity:1; transform:none; }
+}

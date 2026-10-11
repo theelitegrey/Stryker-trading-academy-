@@ -2,7 +2,7 @@
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
 import { INSIGHTSENTRY_WS, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
-const ALLOWED_ORIGINS = new Set(['https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
+const ALLOWED_ORIGINS = new Set(['https://strykertrading.com', 'https://www.strykertrading.com', 'https://tradezoro.com', 'https://www.tradezoro.com', 'http://localhost:8000']);
 const H = 3600;
 
 function decOf(tick) { const s = String(tick); return s.includes('.') ? Math.min(s.split('.')[1].length, 6) : 0; }

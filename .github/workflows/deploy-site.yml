@@ -112,7 +112,7 @@ jobs:
           echo "$resp" | jq -r '.result[] | "  - " + .name + "  domains: " + ((.domains // []) | join(", "))'
 
           # The right project is the one that OWNS the custom domain.
-          name=$(echo "$resp" | jq -r '.result[] | select((.domains // []) | map(test("strykertrading"; "i")) | any) | .name' | head -1)
+          name=$(echo "$resp" | jq -r '.result[] | select((.domains // []) | map(test("strykertrading|tradezoro"; "i")) | any) | .name' | head -1)
           if [ -n "$name" ]; then
             echo "Selected by custom domain: $name"
           else

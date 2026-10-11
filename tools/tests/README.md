@@ -51,6 +51,7 @@ is found. Do not run `playwright install` in the cloud container.
 | `plan-pct-unit.js` | node only: "% OFF" = floor of the discount in the visitor's currency (USD 39/109 and INR 3,772/10,544 -> 64), Free/Pro display names |
 | `pct-names-test.js` | home Pro price row "$39 / month  $109  64% OFF" at 390/1280 USD+INR, upgrade modal badge + mint pill, admin Recent signups and Users list Free / Pro / Pro (legacy). `PCT_SHOTS=<dir>` |
 | `chart-crypto-dom-browser.js` | Charts Crypto DOM (resting liquidity) on BTCUSDT: Style switch, BTC wall labels, old settings load, no console errors, 390 px; book rows span +-1% of the price, hidden indicator keeps recording, reload keeps history (IndexedDB), Binance footer, 6 h full-cap memory <= 25 MB. Needs `chart-dev-server.mjs 8031` + Binance; ~4 min (`WAIT_MIN`) |
+| `chart-resume-browser.js` | Charts recover after leaving the tab (Owner bug 2026-10-12): NQ1! 1m and BTCUSDT 1m, hidden 30 s (socket kept), 5 min (socket closed), 35 min (half-open dead socket) and a 20 s network drop, with a fake clock and CDP lifecycle frozen -> active. Asserts current-minute bar + back-filled gap within 3 s, ticks resume, one feed socket, no extra intervals. Offline (all feeds mocked), own server; run under `flock /tmp/stryker-chrome.lock`; ~2 min |
 
 The three data suites read the live JSON under `assets/` and rebase its
 timestamps to "now", so they test the file that is about to ship, not a

@@ -1,7 +1,8 @@
 // TradeZoro — Charts interval picker (ES module)
 // Depends on: the Vela workspace built in assets/vela-chart.js (ws: active cell, setActiveTimeframe,
 // on('cell:active' | 'state:changed'), its topbar .vela-widget-tf-group and the phone bar
-// .vela-mb-tf); assets/toast.js through opts.toast. Styles are injected here (#stk-iv-css).
+// .vela-mb-tf); assets/toast.js through opts.toast; assets/chart-live-resume.js (resume/reconnect of
+// every live subscription made through wrapProvider). Styles are injected here (#stk-iv-css).
 //
 // Owner order 2026-10-06: "add timeframe and interval feature like this" (TradingView's picker).
 //   - Top bar: a row of the member's STARRED intervals in time order, the active one as a grey pill,
@@ -35,6 +36,7 @@
 // button, starred on add. TYPED INTERVALS: a digit or "," on the chart opens a small box ("5",
 // "4h", "1D", "15s", "100t") and Enter applies it; keys inside inputs are never taken.
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
+import { liveSubscribe } from './chart-live-resume.js?v=509';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -426,7 +428,14 @@ export function wrapProvider(inner, name, pollMs) {
     if (range.limit != null && out.length > range.limit) out = out.slice(-range.limit);
     return out;
   };
-  const subscribe = (ticker, timeframe, onBar, opts) => {
+  // Every live subscription goes through liveSubscribe (assets/chart-live-resume.js): re-opened and
+  // back-filled when the member returns to the tab, the page is restored, the network comes back,
+  // or the feed goes quiet (Owner bug 2026-10-12: candles froze after switching tabs).
+  const subscribe = (ticker, timeframe, onBar, opts) => liveSubscribe(
+    (cb) => openSub(ticker, timeframe, cb, opts),
+    (range) => getBars(ticker, timeframe, range),
+    timeframe, onBar);
+  const openSub = (ticker, timeframe, onBar, opts) => {
     const sp = parseIv(timeframe);
     if (sp && (sp.kind === 'sec' || sp.kind === 'tick')) return secTickBlock(timeframe, name, ticker) ? () => {} : secTickSubscribe(name, ticker, sp, onBar);
     if (!planFor(name, timeframe)) return inner.subscribe ? inner.subscribe(ticker, timeframe, onBar, opts) : () => {};

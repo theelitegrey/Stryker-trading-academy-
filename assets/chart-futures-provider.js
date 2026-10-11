@@ -6,8 +6,9 @@
 // Implements Vela's DataProvider port (@luxalgo/vela 0.6.17, dist/DataProvider-*.d.ts):
 //   getBars, listSymbols, getSymbolInfo, getCalendar, resolveSymbolIcon, subscribe, info.
 // Data: continuous front-month futures bars from Yahoo Finance via our own edge-cached
-// endpoint. It is NOT a live feed: subscribe() re-reads the newest page every POLL_MS
-// (paused while the tab is hidden) so the forming bar moves, nothing more.
+// endpoint. The InsightSentry roots stream through /api/chart/stream (streamSubscribe, which
+// reconnects after a close); everything else polls: subscribe() re-reads the newest page every
+// POLL_MS (paused while the tab is hidden) so the forming bar moves, nothing more.
 //
 // The API serves bars in fixed epoch-aligned PAGES per timeframe (identical URLs -> shared
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
@@ -262,37 +263,82 @@ export class FuturesProvider {
     const root = this.keyOf(ticker);
     const tf = normTf(timeframe);
     if (root && tf && INSIGHTSENTRY_ROOTS.includes(root) && typeof WebSocket === 'function' && typeof location !== 'undefined') {
-      let stopped = false;
-      let pollStop = null;
-      let opened = false;
-      let ws = null;
-      let fallbackTimer = null;
-      const fallback = () => {
-        if (stopped || pollStop) return;
-        pollStop = this.pollSubscribe(ticker, timeframe, onBar);
-      };
-      try {
-        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        ws = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
-        fallbackTimer = setTimeout(() => { if (!opened) fallback(); }, 5000);
-        ws.onopen = () => { opened = true; if (fallbackTimer) clearTimeout(fallbackTimer); };
-        ws.onmessage = (ev) => {
-          try {
-            const msg = JSON.parse(ev.data);
-            if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) onBar(toBar(msg.bar));
-          } catch (e) {}
-        };
-        ws.onerror = fallback;
-        ws.onclose = fallback;
-        return () => {
-          stopped = true;
-          if (fallbackTimer) clearTimeout(fallbackTimer);
-          if (pollStop) pollStop();
-          try { if (ws) ws.close(); } catch (e) {}
-        };
-      } catch (e) { fallback(); return () => { stopped = true; if (pollStop) pollStop(); }; }
+      return this.streamSubscribe(root, ticker, timeframe, tf, onBar);
     }
     return this.pollSubscribe(ticker, timeframe, onBar);
+  }
+
+  // The stream bridge, kept alive. Build 509 and earlier switched to REST polling for good on the
+  // FIRST close of this socket (a phone tab in the background, the bridge recycling, a network
+  // change). REST pages run ~10 min behind the stream, so every polled bar was older than the
+  // chart's newest streamed bar and Vela dropped it as out of order: the candles froze until a
+  // reload (Owner bug 2026-10-12). Now a socket that has worked is RE-OPENED with backoff
+  // (1 s doubling to 30 s; while the tab is hidden it waits for the tab to come back). Polling is
+  // only the answer when the stream never opens (bridge unavailable), and stops again as soon as
+  // a socket opens. On connect the bridge replays the recent bars, which fills the gap.
+  // assets/chart-live-resume.js (via chart-intervals.js wrapProvider) additionally re-opens the
+  // whole subscription on return to the tab and when the feed goes quiet.
+  streamSubscribe(root, ticker, timeframe, tf, onBar) {
+    let stopped = false;
+    let pollStop = null;
+    let everOpened = false;
+    let ws = null;
+    let openTimer = null, retryTimer = null;
+    let retry = 0;
+    const startPoll = () => { if (!stopped && !pollStop) pollStop = this.pollSubscribe(ticker, timeframe, onBar); };
+    const stopPoll = () => { if (pollStop) { const p = pollStop; pollStop = null; p(); } };
+    const onVis = () => { if (!stopped && !document.hidden && !ws && !retryTimer) connect(); };
+    const schedule = () => {
+      if (stopped || retryTimer) return;
+      if (typeof document !== 'undefined' && document.hidden) return; // onVis reconnects
+      const wait = Math.min(30000, 1000 * Math.pow(2, retry++));
+      retryTimer = setTimeout(() => { retryTimer = null; connect(); }, wait);
+    };
+    function connect() {
+      if (stopped || ws) return;
+      let sock;
+      try {
+        const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
+      } catch (e) { startPoll(); schedule(); return; }
+      ws = sock;
+      let opened = false;
+      if (openTimer) clearTimeout(openTimer);
+      // No open within 5 s: show polled bars meanwhile (the old behaviour for a missing bridge).
+      openTimer = setTimeout(() => { openTimer = null; if (!opened && !everOpened) startPoll(); }, 5000);
+      sock.onopen = () => {
+        if (ws !== sock) return;
+        opened = everOpened = true; retry = 0;
+        if (openTimer) { clearTimeout(openTimer); openTimer = null; }
+        stopPoll();
+      };
+      sock.onmessage = (ev) => {
+        if (stopped || ws !== sock) return;
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) onBar(toBar(msg.bar));
+        } catch (e) {}
+      };
+      sock.onerror = () => { try { sock.close(); } catch (e) {} };
+      sock.onclose = () => {
+        if (ws !== sock) return;
+        ws = null;
+        if (stopped) return;
+        if (!everOpened) startPoll();  // bridge unavailable: polled bars, and keep trying
+        schedule();
+      };
+    }
+    if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    connect();
+    return () => {
+      stopped = true;
+      if (openTimer) clearTimeout(openTimer);
+      if (retryTimer) clearTimeout(retryTimer);
+      if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVis);
+      stopPoll();
+      const s = ws; ws = null;
+      try { if (s) s.close(); } catch (e) {}
+    };
   }
 
   // Forming-bar refresh by polling (fallback path). Pauses while the tab is hidden.

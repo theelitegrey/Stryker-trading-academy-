@@ -80,7 +80,7 @@ def main():
     cfg = json.load(open(os.path.join(HERE, sheet, "content.json"), encoding="utf-8"))
     tpl = open(os.path.join(HERE, "cheatsheet.html"), encoding="utf-8").read()
     tpl = tpl.replace("__FONTS__", "file://" + os.path.join(HERE, "fonts"))
-    tpl = tpl.replace("__LOGO__", "file://" + os.path.join(ROOT, "assets/images/tradezoro-logo-emblem-sm-494.png?v=495"))
+    tpl = tpl.replace("__LOGO__", "file://" + os.path.join(ROOT, "assets/images/tradezoro-logo-emblem-sm-494.png?v=496"))
     a, b = tpl.index("/*DATA*/"), tpl.index("/*END*/") + len("/*END*/")
     html = tpl[:a] + json.dumps(cfg, ensure_ascii=False).replace("</", "<\\/") + tpl[b:]
 

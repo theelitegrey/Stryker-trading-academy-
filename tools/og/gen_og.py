@@ -109,7 +109,7 @@ def base(title):
     ImageDraw.Draw(glow).ellipse((-200, -260, 700, 260), fill=ACCENT + (40,))
     card.alpha_composite(glow.filter(ImageFilter.GaussianBlur(90)))
     d = ImageDraw.Draw(card)
-    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=495')).convert('RGBA')
+    logo = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-emblem-494.png?v=496')).convert('RGBA')
     ls = 88
     logo = logo.resize((ls, ls), Image.LANCZOS)
     max_w = W - 2 * PAD - ls - 30
@@ -150,7 +150,7 @@ def render(entry):
         ImageDraw.Draw(g).ellipse((bw // 2 - 360, bh // 2 - 170, bw // 2 + 360, bh // 2 + 170), fill=ACCENT + (34,))
         panel = panel.convert('RGBA')
         panel.alpha_composite(g.filter(ImageFilter.GaussianBlur(70)))
-        mark = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-full-494.png?v=495')).convert('RGBA')
+        mark = Image.open(os.path.join(ROOT, 'assets', 'images', 'tradezoro-logo-full-494.png?v=496')).convert('RGBA')
         mh = 250
         mark = mark.resize((round(mark.width * mh / mark.height), mh), Image.LANCZOS)
         panel.alpha_composite(mark, ((bw - mark.width) // 2, (bh - mh) // 2 - 22))

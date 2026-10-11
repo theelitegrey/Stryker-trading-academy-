@@ -23,10 +23,21 @@ jobs:
           [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
           ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
           [ -z "$ACCOUNT" ] && ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')
-          if [ -z "$TOKEN" ] || [ -z "$ACCOUNT" ]; then echo "Missing Cloudflare secrets"; exit 1; fi
+          if [ -z "$TOKEN" ]; then echo "Missing Cloudflare API token"; exit 1; fi
           echo "::add-mask::$TOKEN"
-          echo "::add-mask::$ACCOUNT"
           api() { curl -sS -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' "$@"; }
+          if ! printf '%s' "$ACCOUNT" | grep -qE '^[0-9a-f]{32}$'; then
+            echo "Cloudflare account id is not clean; auto-discovering account with Pages projects."
+            accts=$(api "https://api.cloudflare.com/client/v4/accounts?per_page=25")
+            found=""
+            for id in $(echo "$accts" | jq -r '.result[].id // empty'); do
+              probe=$(api "https://api.cloudflare.com/client/v4/accounts/$id/pages/projects")
+              if [ "$(echo "$probe" | jq -r '.success')" = "true" ] && [ "$(echo "$probe" | jq '.result | length')" -gt 0 ]; then found="$id"; break; fi
+            done
+            ACCOUNT="$found"
+          fi
+          if [ -z "$ACCOUNT" ]; then echo "Could not find Cloudflare account with Pages projects"; exit 1; fi
+          echo "::add-mask::$ACCOUNT"
           projects=$(api "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/pages/projects")
           if [ "$(echo "$projects" | jq -r '.success')" != "true" ]; then echo "$projects" | jq -c '.errors'; exit 1; fi
           PROJECT=$(echo "$projects" | jq -r '.result[] | select(((.domains // []) | map(test("strykertrading|tradezoro"; "i")) | any) or (.name|test("stryker";"i"))) | .name' | head -1)

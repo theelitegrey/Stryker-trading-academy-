@@ -208,8 +208,8 @@ function planSaleInfo(plan){
 }
 
 // Percent off, worked out on the amounts the visitor actually sees (whole
-// rupees for INR viewers, dollars otherwise) and rounded DOWN, so it never
-// claims a bigger discount than the two printed prices show:
+// rupees for INR viewers, dollars otherwise) and rounded DOWN, so the badge
+// never claims a bigger discount than the two printed prices show:
 // $39 / $109 = 64.2% -> 64; Rs 3,772 / Rs 10,544 = 64.2% -> 64. The tiny
 // epsilon stops float noise (e.g. 28.999999) from dropping a whole point.
 function planPctOff(full, sale){
@@ -221,8 +221,54 @@ function planPctOff(full, sale){
   return Math.max(0, Math.floor(((full - sale) / full) * 100 + 1e-9));
 }
 
+// The "64% OFF" pill that sits beside the struck-through price. Empty when
+// there is no live sale or the rounded-down discount is 0.
+function planPctBadgeHtml(plan){
+  var s = planSaleInfo(plan);
+  if (!s.active || !(s.pct > 0)) return '';
+  return '<span class="pp-pct">' + s.pct + '% OFF</span>';
+}
+
 // The number to actually charge / store on the order.
 function planEffectivePrice(plan){ return planSaleInfo(plan).price; }
+
+// ---- Yearly as a monthly price (pricing upgrades, 2026-10-12) ---------------
+// "or $29/mo billed yearly ($349) · save 25%". Every figure is worked out on
+// the amounts the visitor actually sees (whole rupees for INR, the same
+// Math.round(usd x rate) the payment functions charge; dollars otherwise),
+// and both the per-month figure and the % are rounded DOWN, so the line never
+// makes yearly look cheaper than the two real prices show:
+//   per month = floor(yearly / 12)                         349 / 12 = 29.08 -> 29
+//   save      = floor((12 x monthly - yearly) / (12 x monthly))   (468-349)/468 = 25.4% -> 25
+// Returns null when there is no priced yearly twin.
+function planShownAmount(usd){
+  return strykerCurrency() === 'INR' ? Math.round(usd * STRYKER_USD_INR) : usd;
+}
+function planShownMoney(n){
+  return strykerCurrency() === 'INR' ? '₹' + Math.round(n).toLocaleString('en-IN') : '$' + planMoney(n);
+}
+function planYearlyDeal(monthlyPlan, yearlyPlan){
+  if (!yearlyPlan) return null;
+  var y = planShownAmount(planSaleInfo(yearlyPlan).price);
+  if (!(y > 0)) return null;
+  var m = monthlyPlan ? planShownAmount(planSaleInfo(monthlyPlan).price) : 0;
+  var twelve = m * 12;
+  var pct = (twelve > 0 && y < twelve) ? Math.max(0, Math.floor(((twelve - y) / twelve) * 100 + 1e-9)) : 0;
+  return {
+    perMonth: planShownMoney(Math.floor(y / 12 + 1e-9)),
+    total: planShownMoney(y),
+    pct: pct,
+    text: 'or ' + planShownMoney(Math.floor(y / 12 + 1e-9)) + '/mo billed yearly (' + planShownMoney(y) + ')' +
+      (pct > 0 ? ' · save ' + pct + '%' : '')
+  };
+}
+// The clickable line itself, linking to checkout for the yearly twin.
+function planYearlyDealHtml(monthlyPlan, yearlyPlan, href){
+  var d = planYearlyDeal(monthlyPlan, yearlyPlan);
+  if (!d) return '';
+  var url = href || ('checkout.html?plan=' + encodeURIComponent(yearlyPlan.id));
+  return '<a class="plan-yearly" href="' + planEscape(url) + '">' + planEscape(d.text) + '\u00a0→</a>';
+}
 
 function planMoney(n){
   return (Math.round(n * 100) / 100).toFixed(2).replace(/\.00$/, '');
@@ -283,6 +329,7 @@ function planPriceHtml(plan, size){
         '</span>' +
         '<span class="pp-was-grp">' +
           '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
+          planPctBadgeHtml(plan) +
         '</span>' +
       '</div>' +
       '<div class="pp-tags">' +

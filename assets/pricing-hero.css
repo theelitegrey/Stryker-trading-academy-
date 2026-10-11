@@ -164,7 +164,7 @@
 .pv-compare[hidden]{ display:none; }
 .pv-compare-inner{ padding-top:16px; }
 .pv-was{ font-size:.5em; color:var(--ink-3); margin-left:6px; font-family:var(--font-body); }
-/* Pro spotlight on sale: "$39 / month" | struck "$109". Each half is
+/* Pro spotlight on sale: "$39 / month" | "$109 64% OFF". Each half is
    no-wrap; on a narrow card the second half drops below as one unit. */
 .pv-price-xl.is-sale{ flex-wrap:wrap; column-gap:12px; row-gap:6px; }
 .pv-main{ display:inline-flex; align-items:baseline; gap:8px; white-space:nowrap; }

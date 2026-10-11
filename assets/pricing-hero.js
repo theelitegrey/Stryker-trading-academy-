@@ -41,12 +41,11 @@
     return { free: free, pro: pro, yearly: yearly };
   }
 
-  // "save about 25%": yearly vs twelve monthly payments, from the live prices.
-  function yearlySavingPct(pro, yearly) {
-    if (!pro || !yearly) return 0;
-    var m = priceOf(pro) * 12, y = priceOf(yearly);
-    if (!(m > 0) || !(y > 0) || y >= m) return 0;
-    return Math.round((1 - y / m) * 100);
+  // Yearly line: "or $29/mo billed yearly ($349) · save 25%" from the live
+  // prices in the visitor's currency, rounded down (planYearlyDeal in
+  // plan-price.js; the same helper the upgrade modal and checkout use).
+  function yearlyLine(P) {
+    return (P.yearly && typeof planYearlyDealHtml === 'function') ? planYearlyDealHtml(P.pro, P.yearly, checkoutHref(P.yearly)) : '';
   }
   function checkoutHref(plan) { return 'checkout.html?plan=' + encodeURIComponent(plan.id); }
   function ctaLabel(plan, fallback) { return esc((plan.ctaLabel || '').trim() || fallback); }
@@ -56,13 +55,14 @@
     return money(priceOf(plan)) + (f ? ' <s class="pv-was">' + money(f) + '</s>' : '');
   }
   // The Pro spotlight price row: "$39 / month" stays together, then the
-  // struck list price (only while a sale is really on) as a second group that
-  // wraps as one unit. No "% OFF" pill (CoS, 2026-10-11).
+  // struck list price with the "64% OFF" pill (planPctBadgeHtml, rounded down
+  // in the visitor's own currency) as a second group that wraps as one unit.
   function heroPriceHtml(plan) {
     var f = fullOf(plan);
+    var badge = (typeof planPctBadgeHtml === 'function') ? planPctBadgeHtml(plan) : '';
     return '<div class="pv-price pv-price-xl' + (f ? ' is-sale' : '') + '">' +
       '<span class="pv-main"><span class="pv-amt">' + money(priceOf(plan)) + '</span><span class="pv-per">/ ' + per(plan) + '</span></span>' +
-      (f ? '<span class="pv-was-grp"><s class="pv-was">' + money(f) + '</s></span>' : '') +
+      (f ? '<span class="pv-was-grp"><s class="pv-was">' + money(f) + '</s>' + badge + '</span>' : '') +
       '</div>';
   }
 
@@ -122,7 +122,7 @@
     return '<span class="pv-lim">' + esc(v) + '</span>';
   }
   function compareHtml(P) {
-    var save = yearlySavingPct(P.pro, P.yearly);
+    var deal = (P.yearly && typeof planYearlyDeal === 'function') ? planYearlyDeal(P.pro, P.yearly) : null;
     var rows = GROUPS.map(function (g) {
       return '<div class="pv-grp" role="rowgroup"><div class="pv-grp-h" role="row"><span role="rowheader">' + esc(g[0]) + '</span><span class="pv-c-free" aria-hidden="true"></span><span class="pv-c-pro" aria-hidden="true"></span></div>' +
         g[1].map(function (r) {
@@ -138,7 +138,7 @@
       '<div class="pv-table" data-col="pro" role="table" aria-label="Free and Pro compared">' +
         '<div class="pv-thead" role="row">' +
           '<span class="pv-feat pv-th-label" role="columnheader">' +
-            (P.yearly ? '<span class="pv-th-note">' + esc(planDisplayName(P.pro)) + ' yearly: ' + money(priceOf(P.yearly)) + (save ? ', save about ' + save + '%' : '') + '</span>' : '') +
+            (deal ? '<span class="pv-th-note">' + esc(planDisplayName(P.pro)) + ' yearly: ' + esc(deal.perMonth) + '/mo billed yearly (' + esc(deal.total) + ')' + (deal.pct ? ' · save ' + deal.pct + '%' : '') + '</span>' : '') +
           '</span>' +
           '<div class="pv-c pv-c-free pv-th" role="columnheader">' +
             '<b>' + esc(planDisplayName(P.free)) + '</b>' +
@@ -152,7 +152,7 @@
           '</div>' +
         '</div>' +
         rows +
-        (P.yearly ? '<div class="pv-tfoot"><a href="' + checkoutHref(P.yearly) + '" class="plan-yearly">or ' + money(priceOf(P.yearly)) + '/year →</a></div>' : '') +
+        (P.yearly ? '<div class="pv-tfoot">' + yearlyLine(P) + '</div>' : '') +
       '</div>';
   }
 
@@ -221,7 +221,6 @@
     return '<details class="pv-q"><summary><span>' + esc(q) + '</span><i aria-hidden="true"></i></summary><div class="pv-a"><p>' + esc(a) + '</p></div></details>';
   }
   function render(root, P) {
-    var save = yearlySavingPct(P.pro, P.yearly);
     var feats = (P.pro.features || []).slice(0, 6).map(function (f, i) {
       return '<li>' + icon(ICON_ORDER[i] || 'learn') + '<span>' + f + '</span></li>';
     }).join('');
@@ -232,7 +231,7 @@
           '<span class="pv-pill">Most popular</span>' +
           '<h3>' + esc(proName) + '</h3>' +
           heroPriceHtml(P.pro) +
-          (P.yearly ? '<a class="plan-yearly" href="' + checkoutHref(P.yearly) + '">or ' + money(priceOf(P.yearly)) + '/year' + (save ? ', save about ' + save + '%' : '') + ' →</a>' : '') +
+          yearlyLine(P) +
           '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
           '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime.</p>' +
         '</div>' +

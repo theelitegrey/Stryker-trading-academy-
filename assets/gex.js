@@ -16,6 +16,26 @@
   function gexUpgrade(why){
     if(typeof window.openPlanUpgradeModal === 'function') window.openPlanUpgradeModal(why);
   }
+  // A Free member tapping a locked market or expiry gets the shared Pro lock
+  // card (assets/plan-lock.js) right under the selectors; the modal is only
+  // the fallback if that file is missing.
+  function gexLock(where, why){
+    if(!window.strykerPlanLock){ gexUpgrade(why); return; }
+    var slot = $('gex-lock-slot');
+    if(!slot){
+      slot = document.createElement('div');
+      slot.id = 'gex-lock-slot';
+      var after = $('gex-free-note') || document.querySelector('.gex-head');
+      if(!after){ gexUpgrade(why); return; }
+      after.parentNode.insertBefore(slot, after.nextSibling);
+    }
+    var old = slot.querySelector('.plan-lock');
+    if(old && old.getAttribute('data-lock-where') === where) return;
+    slot.innerHTML = '';
+    slot.appendChild(window.strykerPlanLock.card('gex', where, { closable: true }));
+    var r = slot.getBoundingClientRect();
+    if(r.top < 60 || r.bottom > window.innerHeight) window.scrollTo({ top: Math.max(0, window.scrollY + r.top - 90), behavior: 'smooth' });
+  }
   var tvChart = null, tvSeries = null, tvPriceLines = [], tvBarSpacing = 7;
   // chartKey = market|interval of the candles in the series, so the 60 s
   // refresh of the same chart can keep the member's place in time.
@@ -125,8 +145,8 @@
     $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+m+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
     $('gex-dtes').innerHTML = DTES.map(function(d){ return '<button class="gex-dte'+cls(d.v === curDte)+'" data-d="'+d.v+'">'+d.l+'</button>'; }).join('');
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
-    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexUpgrade('Pro unlocks GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
-    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexUpgrade('Pro unlocks every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
+    $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexLock('gex-market', 'Pro unlocks GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
+    $('gex-dtes').addEventListener('click', function(e){ var btn=e.target.closest('[data-d]'); var d=btn && btn.dataset.d; if(d == null) return; if(LIMIT && LIMIT.dtes.indexOf(Number(d)) < 0){ gexLock('gex-expiry', 'Pro unlocks every expiry view. The Free plan covers SPX, 0DTE.'); return; } curDte=Number(d); resetChartData('Refreshing '+mlabel(cur)+'…'); paintButtons(); loadLevels(); });
     $('gex-ivs').addEventListener('click', function(e){ var btn=e.target.closest('[data-i]'); var i=btn && btn.dataset.i; if(!i) return; curIv=i; paintButtons(); resetChartData('Loading '+curFut+' '+i+'…'); loadChart(); });
     $('gex-futs').addEventListener('click', function(e){ var btn=e.target.closest('[data-f]'); var f=btn && btn.dataset.f; if(!f || !DATA || f===curFut) return; curFut=f; resetChartData('Loading '+f+'…'); render(DATA); loadChart(); });
     $('gex-toggle-market').addEventListener('click', function(){ showMkt = !showMkt; $('gex-toggle-market').textContent = 'Market levels: ' + (showMkt ? 'ON' : 'OFF'); drawChart(); });
@@ -241,6 +261,10 @@
 
   function renderLadder(d, F){
     if(LIMIT && LIMIT.noLadder){
+      // Same shared lock card as the market/expiry taps (assets/plan-lock.js).
+      // Built once: the 60 s refresh must not rebuild it (or re-count a view).
+      if($('gex-ladder').querySelector('.plan-lock')) return;
+      if(window.strykerPlanLock){ $('gex-ladder').innerHTML = ''; $('gex-ladder').appendChild(window.strykerPlanLock.card('gex', 'gex-strikes')); return; }
       $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Strike table is part of Pro</b><p>Pro shows net GEX, DEX and open interest strike by strike, for every symbol and expiry.</p><button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro unlocks the full GEX strike table for every symbol and expiry.">See Pro</button></div>';
       return;
     }

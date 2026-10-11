@@ -159,7 +159,35 @@ function renderPlanSummary(plan){
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'sm')
       : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
+    '<div id="checkout-yearly-line"></div>' +
     '<ul style="margin:0; padding:0; list-style:none;">' + featuresHtml + '</ul>';
+  renderCheckoutYearlyLine(plan);
+}
+
+// Monthly <-> yearly switch in the plan summary, from the live plans:
+//   on the monthly plan: "or $29/mo billed yearly ($349) · save 25%" -> yearly checkout
+//   on the yearly twin:  "$29/mo billed yearly ($349) · save 25%" + "or pay monthly"
+// plan-price.js planYearlyDeal does the maths (visitor's currency, rounded down).
+// Any coupon in the URL is carried over to the other checkout.
+function renderCheckoutYearlyLine(plan){
+  if (typeof planYearlyDeal !== 'function' || typeof strykerLoadPlans !== 'function') return;
+  strykerLoadPlans().then((all) => {
+    const host = document.getElementById('checkout-yearly-line');
+    if (!host) return;
+    const coupon = getCouponFromQuery();
+    const href = (p) => 'checkout.html?plan=' + encodeURIComponent(p.id) + (coupon ? '&coupon=' + encodeURIComponent(coupon) : '');
+    const yearly = plan.yearlyPlanId ? all.find((p) => p.id === plan.yearlyPlanId) : null;
+    if (yearly) {
+      host.innerHTML = '<p class="co-yearly">' + planYearlyDealHtml(plan, yearly, href(yearly)) + '</p>';
+      return;
+    }
+    const monthly = all.find((p) => p.yearlyPlanId && p.yearlyPlanId === plan.id);
+    const d = monthly ? planYearlyDeal(monthly, plan) : null;
+    if (d) {
+      host.innerHTML = '<p class="co-yearly"><span>' + stkEsc(d.text.replace(/^or /, '')) + '</span> ' +
+        '<a class="plan-yearly" href="' + stkEsc(href(monthly)) + '">or pay monthly\u00a0→</a></p>';
+    }
+  }).catch(() => {});
 }
 
 // All plan math stays in USD (the stored base); only the final display step
@@ -447,7 +475,7 @@ function launchRazorpay(btn, errEl){
       currency: o.currency,
       name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=508',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=509',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -518,7 +546,7 @@ function launchRazorpaySubscription(btn, errEl){
       subscription_id: o.subscriptionId,
       name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=508',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=509',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',

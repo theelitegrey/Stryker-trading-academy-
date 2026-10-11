@@ -61,13 +61,10 @@ let _plansById = {};
 function planYearlyLineHtml(plan){
   const y = plan.yearlyPlanId && _plansById[plan.yearlyPlanId];
   if (!y) return '';
-  // INR viewers see the yearly twin converted at the live rate, the same
-  // Math.round(usd * rate) the payment functions charge (no fixed rupee
-  // prices since 2026-10-05).
-  const s = planSaleInfo(y);
-  return '<a class="plan-yearly" href="checkout.html?plan=' + encodeURIComponent(y.id) + '">or ' +
-    planMoneyDisplay(s.price) + '/year' +
-    (s.active ? ' <s>' + planMoneyDisplay(s.full) + '</s>' : '') + ' →</a>';
+  // "or $29/mo billed yearly ($349) · save 25%" (plan-price.js
+  // planYearlyDeal: visitor's currency, the same Math.round(usd * rate) the
+  // payment functions charge, rounded down).
+  return planYearlyDealHtml(plan, y);
 }
 
 function renderPublicPlanCard(plan, offer){

@@ -48,8 +48,8 @@ is found. Do not run `playwright install` in the cloud container.
 | `video-test.js`  | chapters with no recording show no player                            |
 | `width-check.js` | 20 gated pages lay out at 390px with no document overflow            |
 | `cheatsheet-test.js` | both cheat-sheet pages signed out/in, return path, PDF, download log, UTM, links |
-| `plan-pct-unit.js` | node only: sale maths (floor of the discount in the visitor's currency, USD and INR -> 64), NO "% OFF" badge in the price row, no struck price when the sale is off, Free/Pro display names |
-| `pct-names-test.js` | home Pro price row "$39 / month  $109" with NO "% OFF" pill at 390/1280 USD+INR, upgrade modal without "% OFF" + mint pill, admin Recent signups and Users list Free / Pro / Pro (legacy). `PCT_SHOTS=<dir>` |
+| `plan-pct-unit.js` | node only: "% OFF" = floor of the discount in the visitor's currency (USD 39/109 and INR 3,772/10,544 -> 64), Free/Pro display names |
+| `pct-names-test.js` | home Pro price row "$39 / month  $109  64% OFF" at 390/1280 USD+INR, upgrade modal badge + mint pill, admin Recent signups and Users list Free / Pro / Pro (legacy). `PCT_SHOTS=<dir>` |
 | `chart-crypto-dom-browser.js` | Charts Crypto DOM (resting liquidity) on BTCUSDT: Style switch, BTC wall labels, old settings load, no console errors, 390 px; book rows span +-1% of the price, hidden indicator keeps recording, reload keeps history (IndexedDB), Binance footer, 6 h full-cap memory <= 25 MB. Needs `chart-dev-server.mjs 8031` + Binance; ~4 min (`WAIT_MIN`) |
 
 The three data suites read the live JSON under `assets/` and rebase its

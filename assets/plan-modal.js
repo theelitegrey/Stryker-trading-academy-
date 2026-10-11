@@ -61,6 +61,14 @@
     return overlay;
   }
 
+  // "or $29/mo billed yearly ($349) · save 25%" under a monthly plan that has
+  // a hidden yearly twin (plan-price.js planYearlyDealHtml, live prices).
+  function yearlyHtml(plan, plans){
+    if (!plan.yearlyPlanId || typeof planYearlyDealHtml !== 'function') return '';
+    var y = plans.find(function (p) { return p.id === plan.yearlyPlanId; });
+    return y ? '<div class="plan-modal-yearly">' + planYearlyDealHtml(plan, y) + '</div>' : '';
+  }
+
   function renderPlans(plans){
     var grid = document.getElementById('plan-modal-grid');
     if (!grid) return;
@@ -105,6 +113,7 @@
           ? planPriceHtml(plan, 'md')
           : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
             '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
+        yearlyHtml(plan, plans) +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
           (plan.ctaLabel && String(plan.ctaLabel).trim()

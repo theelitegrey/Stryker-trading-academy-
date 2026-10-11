@@ -1,10 +1,10 @@
-// Free/Pro plan names, and NO "% OFF" badge (CoS ruling 2026-10-11).
+// "% OFF" badge + Free/Pro plan names (Owner, 2026-10-12).
 // Stubs the live plan state (Pro 109 on sale at 39, colour #ff0000; Starter
 // displayName Free; Elite archived) and checks:
-//   - home #pricing Pro spotlight: $39, struck $109, no "% OFF" pill
+//   - home #pricing Pro spotlight: $39, struck $109, "64% OFF" on one row
 //     with "/ month" (no overlap, no wrap inside a group) at 390 and 1280
-//   - INR visitor: ₹3,772, struck ₹10,544, no "% OFF"
-//   - upgrade modal: no "% OFF" in the price row, mint pill (not red), name Pro
+//   - INR visitor: ₹3,772, struck ₹10,544, 64% OFF
+//   - upgrade modal: badge in the price row, mint pill (not red), name Pro
 //   - admin Recent signups: Starter -> Free, Elite -> Pro (legacy)
 //   PCT_SHOTS=<dir> node pct-names-test.js     (needs http.server on 8000)
 const { BASE, launch } = require('./lib.js');
@@ -126,8 +126,10 @@ const rect = (el) => { const r = el.getBoundingClientRect(); return { l: r.left,
         ok(`${label}: price row rendered`, !!r);
         if (r) {
           const want = cur === 'USD' ? ['$39', '$109'] : ['₹3,772', '₹10,544'];
-          ok(`${label}: ${want[0]} + struck ${want[1]}, no "% OFF"`, r.text.includes(want[0]) && r.text.includes(want[1]) && !r.pct && !/% OFF/i.test(r.text), r.text);
-          ok(`${label}: struck price never overlaps "/ month"`, !r.ovPer);
+          ok(`${label}: ${want[0]} + struck ${want[1]} + 64% OFF`, r.text.includes(want[0]) && r.text.includes(want[1]) && r.pct === '64% OFF', r.text);
+          ok(`${label}: badge is mint #03c988`, r.pctBg === 'rgb(3, 201, 136)', r.pctBg);
+          ok(`${label}: badge never overlaps "/ month"`, !r.ovPer);
+          ok(`${label}: badge on one line beside struck price`, r.pctOneLine && r.wasPctSameLine);
           ok(`${label}: "$39 / month" together`, r.amtPerSameLine);
           ok(`${label}: MOST POPULAR kept`, r.popular);
           ok(`${label}: no limited/ends wording`, !r.banned);
@@ -156,7 +158,7 @@ const rect = (el) => { const r = el.getBoundingClientRect(); return { l: r.left,
       });
       ok(`modal ${w}: rendered`, !!m);
       if (m) {
-        ok(`modal ${w}: no "% OFF" in the price row or card`, !m.pct && !/% OFF/i.test(m.text), m.text.slice(0, 120));
+        ok(`modal ${w}: 64% OFF inside the price row`, m.pct === '64% OFF', m.text.slice(0, 120));
         ok(`modal ${w}: $39 and $109`, /\$39/.test(m.text) && /\$109/.test(m.text));
         ok(`modal ${w}: pill says Pro, mint not red`, m.pill === 'Pro' && m.pillColor === 'rgb(3, 201, 136)', m.pill + ' ' + m.pillColor);
         ok(`modal ${w}: no corner flag, no Elite/Starter`, !m.flag && !/Elite|Starter/.test(m.all));

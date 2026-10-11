@@ -84,6 +84,19 @@ function setPaywallMessage(reason, requiredRoleName){
   const body = document.getElementById('paywall-body');
   const actions = document.getElementById('paywall-actions');
   if (!heading || !body || !actions) return;
+  // Chapters past the plan's limit (Free: 11+) get the shared Pro lock card
+  // (assets/plan-lock.js) in place of the generic paywall text.
+  const overlay = document.getElementById('guest-paywall-overlay');
+  const pwCard = overlay && overlay.querySelector('.paywall-card');
+  const oldLock = overlay && overlay.querySelector('.plan-lock');
+  if (oldLock) oldLock.remove();
+  if (pwCard) pwCard.style.display = '';
+  if (reason === 'role' && window.strykerPlanLock && overlay && pwCard) {
+    pwCard.style.display = 'none';
+    overlay.appendChild(window.strykerPlanLock.card('chapters', 'chapter-locked',
+      { back: { href: 'courses.html', label: 'Back to all chapters' } }));
+    return;
+  }
   if (reason === 'role') {
     heading.textContent = 'Upgrade to unlock this chapter';
     body.textContent = requiredRoleName
@@ -722,10 +735,35 @@ function lockReaderForPlan(){
   if (body) body.innerHTML = '<p>' + stkEsc((ch && ch.preview) || '') + '</p>';
 }
 
+// End of the last chapter a Free plan covers (chapter 10): the same Pro lock
+// card sits above the prev/next buttons, so the moment the free part ends is
+// clear before the member taps into a locked chapter. Uses the plan's own
+// chapterAccess (roles.js hasChapterNumberAccess); admins never see it.
+function showChapterEndLock(ch, student){
+  const old = document.getElementById('reader-end-lock');
+  if (old) old.remove();
+  const next = CHAPTERS[CURRENT_INDEX + 1];
+  if (!next || !window.strykerPlanLock || typeof hasChapterNumberAccess !== 'function') return;
+  const plan = student ? student.plan : null;
+  if (hasChapterNumberAccess(plan, next.num)) return;
+  const nav = document.querySelector('.reader-nav');
+  if (!nav) return;
+  const wrap = document.createElement('div');
+  wrap.id = 'reader-end-lock';
+  wrap.className = 'reader-end-lock';
+  wrap.appendChild(window.strykerPlanLock.card('chapters', 'chapter-end'));
+  nav.parentNode.insertBefore(wrap, nav);
+}
+
 function applyChapterRoleGate(uid, student){
   const ch = CHAPTERS[CURRENT_INDEX];
   if (!ch) { revealReaderContent(); return; }
   checkChapterRoleAccess(ch, uid, student).then((allowed) => {
+    if (allowed && uid && typeof db !== 'undefined' && db) {
+      db.collection('admins').doc(uid).get()
+        .then((a) => { if (!a.exists) showChapterEndLock(ch, student); })
+        .catch(() => {});
+    }
     if (!allowed) {
       // The specific chapter's own minRole (if set) is the most precise
       // thing to name in the message; otherwise this was blocked by the

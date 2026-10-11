@@ -32,7 +32,7 @@ function build() {
       plans: {
         starter: { name: 'Starter', rank: 0, color: '#8b93a7', price: 2999, chapterLimit: 6 },
         pro: { name: 'Pro', rank: 1, color: '#5ac8fa', price: 6999, chapterLimit: 20 },
-        elite: { name: 'Elite', rank: 2, color: '#f5c542', price: 12999, chapterLimit: 0 }
+        elite: { name: 'Elite', rank: 2, color: '#f5c542', price: 12999, chapterLimit: 0, archived: true }
       },
       settings: {
         pageAccess: {},

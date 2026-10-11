@@ -29,8 +29,8 @@ if (!admin.apps.length) admin.initializeApp();
 // Origins allowed to call this from a browser. The wildcard this replaces let
 // anyone embed the endpoint in their own page and spend our Yahoo quota.
 const ALLOWED_ORIGINS = [
-  'https://strykertrading.com',
-  'https://www.strykertrading.com',
+  'https://tradezoro.com',
+  'https://www.tradezoro.com',
   'http://localhost:8000'
 ];
 
@@ -52,7 +52,7 @@ async function callerUid(req) {
   }
 }
 
-const UA = { 'User-Agent': 'Mozilla/5.0 (StrykerTradingAcademy replay; +https://strykertrading.com)' };
+const UA = { 'User-Agent': 'Mozilla/5.0 (StrykerTradingAcademy replay; +https://tradezoro.com)' };
 const INTERVALS = { '1m': 60, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600, '1d': 86400 };
 const CHUNK_DAYS = { '1m': 7, '5m': 59, '15m': 59, '30m': 59, '1h': 729, '1d': 36500 };
 const MAX_DAYS = { '1m': 31, '5m': 61, '15m': 61, '30m': 61, '1h': 731, '1d': 36500 };

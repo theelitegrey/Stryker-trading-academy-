@@ -127,7 +127,7 @@ function brand(x, y, box, stroke, text, boxStroke) {
 
 function foot(ink, ink2, x, y, boldSite) {
   x = x || 72; y = y || (H - 44);
-  return `<text x="${x}" y="${y}" font-family="${SANS}" font-size="20"${boldSite ? ' font-weight="700"' : ''} fill="${ink}">strykertrading.com</text>` +
+  return `<text x="${x}" y="${y}" font-family="${SANS}" font-size="20"${boldSite ? ' font-weight="700"' : ''} fill="${ink}">tradezoro.com</text>` +
     `<text x="${W - x}" y="${y}" text-anchor="end" font-family="${SANS}" font-size="20" fill="${ink2}">Not financial advice</text>`;
 }
 
@@ -318,7 +318,7 @@ STYLES.glass = (s) => {
     brand(112, 160, C.bg2, C.mintBright, C.ink0, C.line) +
     `<text x="112" y="234" font-family="${SANS}" font-size="18" font-weight="600" fill="${C.mintBright}" letter-spacing="3">${up(s.eyebrow)}</text>` +
     L(t, 112, 290, 48, 57, '#fff', 700) + L(b, 112, bt + 24, 24, 34, '#d7dbe2') +
-    `<text x="112" y="548" font-family="${SANS}" font-size="18" fill="#a9b0bc">strykertrading.com</text><text x="1088" y="548" text-anchor="end" font-family="${SANS}" font-size="18" fill="#8b93a0">Not financial advice</text></svg>`;
+    `<text x="112" y="548" font-family="${SANS}" font-size="18" fill="#a9b0bc">tradezoro.com</text><text x="1088" y="548" text-anchor="end" font-family="${SANS}" font-size="18" fill="#8b93a0">Not financial advice</text></svg>`;
 };
 
 STYLES.poster = (s) => {
@@ -328,7 +328,7 @@ STYLES.poster = (s) => {
     `<text x="${W - 72}" y="102" text-anchor="end" font-family="${SANS}" font-size="18" font-weight="700" fill="${C.bg0}" letter-spacing="3">${up(s.eyebrow)}</text>` +
     L(t, 72, 278, 60, 70, C.bg0, 700) + L(b, 72, bt + 26, 26, 37, '#0b2a1f') +
     `<line x1="72" y1="${H - 84}" x2="${W - 72}" y2="${H - 84}" stroke="${C.bg0}" stroke-opacity="0.35"/>` +
-    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="600" fill="${C.bg0}">strykertrading.com</text><text x="${W - 72}" y="${H - 44}" text-anchor="end" font-family="${SANS}" font-size="20" fill="#0b2a1f">Not financial advice</text></svg>`;
+    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="600" fill="${C.bg0}">tradezoro.com</text><text x="${W - 72}" y="${H - 44}" text-anchor="end" font-family="${SANS}" font-size="20" fill="#0b2a1f">Not financial advice</text></svg>`;
 };
 
 STYLES.neon = (s) => {
@@ -357,7 +357,7 @@ STYLES.alert = (s) => {
     (hasStat ? ILLUS.clock(985, 300, 120, C.red, '#fff', s.stat.value) +
       `<text x="985" y="478" text-anchor="middle" font-family="${SANS}" font-size="64" font-weight="700" fill="${C.red}">${esc(s.stat.value)}</text>` +
       `<text x="985" y="512" text-anchor="middle" font-family="${SANS}" font-size="18" fill="#ff9da0" letter-spacing="3">${up(s.stat.label)}</text>` : '') +
-    `<text x="100" y="${H - 64}" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com</text><text x="${W - 100}" y="${H - 64}" text-anchor="end" font-family="${SANS}" font-size="20" fill="${C.ink2}">Not financial advice</text></svg>`;
+    `<text x="100" y="${H - 64}" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">tradezoro.com</text><text x="${W - 100}" y="${H - 64}" text-anchor="end" font-family="${SANS}" font-size="20" fill="${C.ink2}">Not financial advice</text></svg>`;
 };
 
 STYLES.electric = (s) => {
@@ -373,7 +373,7 @@ STYLES.electric = (s) => {
     brand(72, 78, '#fff', C.magenta, '#fff') +
     `<text x="72" y="152" font-family="${SANS}" font-size="20" font-weight="700" fill="#ffd6e6" letter-spacing="4">${up(s.eyebrow)}</text>` +
     L(t, 72, 292, 50, 59, '#fff', 700, { extra: ' filter="url(#sh)"' }) + L(b, 72, bt + 24, 24, 35, '#f1e8ff') +
-    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com</text><text x="${W - 72}" y="${H - 44}" text-anchor="end" font-family="${SANS}" font-size="20" fill="#e9ddff">Not financial advice</text></svg>`;
+    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">tradezoro.com</text><text x="${W - 72}" y="${H - 44}" text-anchor="end" font-family="${SANS}" font-size="20" fill="#e9ddff">Not financial advice</text></svg>`;
 };
 
 STYLES.gold = (s) => {
@@ -399,7 +399,7 @@ STYLES.splitcolor = (s) => {
     brand(72, 78, C.bg0, C.cyan, C.bg0) +
     `<text x="72" y="152" font-family="${SANS}" font-size="19" font-weight="700" fill="#053b42" letter-spacing="4">${up(s.eyebrow)}</text>` +
     L(t, 72, 276, 54, 63, C.bg0, 700) + L(b, 72, bt + 23, 23, 33, '#0b3a41') +
-    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="700" fill="${C.bg0}">strykertrading.com</text>` +
+    `<text x="72" y="${H - 44}" font-family="${SANS}" font-size="20" font-weight="700" fill="${C.bg0}">tradezoro.com</text>` +
     (hasStat ? `<text x="${W - 72}" y="${H - 44}" text-anchor="end" font-family="${SANS}" font-size="20" fill="#ffe0ea">Not financial advice</text>` : '') + '</svg>';
 };
 
@@ -420,7 +420,7 @@ STYLES.breaking = (s) => {
     L(t, 72, 320, hasStat ? 54 : 60, hasStat ? 64 : 70, '#fff', 700) +
     `<rect x="72" y="${bt - 6}" width="6" height="${b.length * 36 + 10}" fill="${C.amber}"/>` + L(b, 96, bt + 25, 25, 36, '#d9dee6') +
     `<rect y="${H - 70}" width="${W}" height="70" fill="${C.red}"/>` + brand(72, H - 57, '#000', '#fff', '#fff') +
-    `<text x="${W - 72}" y="${H - 28}" text-anchor="end" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">strykertrading.com · not financial advice</text></svg>`;
+    `<text x="${W - 72}" y="${H - 28}" text-anchor="end" font-family="${SANS}" font-size="20" font-weight="700" fill="#fff">tradezoro.com · not financial advice</text></svg>`;
 };
 
 
@@ -469,7 +469,7 @@ function appleBrand(x, y, dark) {
 
 function appleFoot(dark, y) {
   const c = dark ? A.tertiary : A.lightSecondary;
-  return `<text x="72" y="${y || H - 46}" font-family="${UI}" font-size="17" font-weight="400" fill="${c}">strykertrading.com</text>` +
+  return `<text x="72" y="${y || H - 46}" font-family="${UI}" font-size="17" font-weight="400" fill="${c}">tradezoro.com</text>` +
     `<text x="${W - 72}" y="${y || H - 46}" text-anchor="end" font-family="${UI}" font-size="17" fill="${c}">Not financial advice</text>`;
 }
 
@@ -629,7 +629,7 @@ STYLES.sheet = (s) => {
       : capsule(W - 104 - Math.round(textWidth(s.eyebrow, 15, { inter: true, bold: true }) + 32), 98, s.eyebrow, accent, false)) +
     (live ? ILLUS.broadcast(950, 330) : ILLUS.glassCards(820, 236)) +
     headline(t, 104, 232 + 44, 54, A.lightLabel) + bodyText(b, 104, 232 + t.length * 58 + 28, 23, A.lightSecondary) +
-    `<text x="104" y="${H - 82}" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">strykertrading.com</text>` +
+    `<text x="104" y="${H - 82}" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">tradezoro.com</text>` +
     `<text x="${W - 104}" y="${H - 82}" text-anchor="end" font-family="${UI}" font-size="17" fill="${A.lightSecondary}">Not financial advice</text></svg>`;
 };
 
@@ -652,7 +652,7 @@ STYLES.spotlight = (s) => {
     `<g filter="url(#spsh)"><rect x="72" y="${ctaY}" width="${ctaW}" height="52" rx="26" fill="${A.mint}"/></g>` +
     `<text x="${72 + 30}" y="${ctaY + 33}" font-family="${UI}" font-size="19" font-weight="700" fill="#03150e">${esc(ctaText)}</text>` +
     `<path d="M${72 + ctaW - 50} ${ctaY + 26} h18 m-7 -7 l7 7 l-7 7" fill="none" stroke="#03150e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>` +
-    `<text x="72" y="${H - 46}" font-family="${UI}" font-size="17" fill="#fff" fill-opacity="0.7">strykertrading.com</text>` +
+    `<text x="72" y="${H - 46}" font-family="${UI}" font-size="17" fill="#fff" fill-opacity="0.7">tradezoro.com</text>` +
     `<text x="${W - 72}" y="${H - 46}" text-anchor="end" font-family="${UI}" font-size="17" fill="#fff" fill-opacity="0.7">Not financial advice</text></svg>`;
 };
 

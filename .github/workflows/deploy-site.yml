@@ -166,7 +166,7 @@ jobs:
             --commit-dirty=false
 
       # Trust nothing until the DOMAIN serves it: a deploy has gone green
-      # before while strykertrading.com kept serving old content (two Pages
+      # before while tradezoro.com kept serving old content (two Pages
       # projects, run 5), and wrangler's "already uploaded" dedupe count is
       # useless as a signal. version.json is Cache-Control: no-store, so what
       # this reads is what every visitor's stale-page check reads.
@@ -182,8 +182,8 @@ jobs:
           for i in 1 2 3 4 5 6 7 8; do
             sleep 10
             t=$(date +%s)
-            got=$(curl -sfL "https://strykertrading.com/assets/version.json?t=$t" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).build||0)}catch(e){console.log(0)}})" 2>/dev/null || echo 0)
-            meta=$(curl -sfL "https://strykertrading.com/?t=$t" | grep -o 'name="stryker-build" content="[0-9]*"' | grep -o '[0-9]*"$' | tr -d '"' || true)
+            got=$(curl -sfL "https://tradezoro.com/assets/version.json?t=$t" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{console.log(JSON.parse(s).build||0)}catch(e){console.log(0)}})" 2>/dev/null || echo 0)
+            meta=$(curl -sfL "https://tradezoro.com/?t=$t" | grep -o 'name="stryker-build" content="[0-9]*"' | grep -o '[0-9]*"$' | tr -d '"' || true)
             meta=${meta:-0}
             echo "attempt $i: version.json $got, homepage meta $meta (want $want)"
             if [ "$got" = "$want" ] && [ "$meta" = "$want" ]; then
@@ -191,7 +191,7 @@ jobs:
               exit 0
             fi
           done
-          echo "::error::strykertrading.com serves version.json $got / homepage meta $meta after deploying build $want — production is not picking up the new deployment (check which deployment is live in the Pages dashboard)."
+          echo "::error::tradezoro.com serves version.json $got / homepage meta $meta after deploying build $want — production is not picking up the new deployment (check which deployment is live in the Pages dashboard)."
           exit 1
 
       # Every deploy doubles as a watchdog for the Global Monitor relay:

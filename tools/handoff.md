@@ -12,7 +12,7 @@ Written 22 September 2026, at build 305, deploy run 140.
 
 ## 1. What the project is
 
-**Stryker Trading Academy** — `strykertrading.com` — a paid ICT/SMT trading
+**Stryker Trading Academy** — `tradezoro.com` — a paid ICT/SMT trading
 education site. Members pay for models and strategies, TradingView indicators,
 a chaptered curriculum, a trading journal, backtesting, a global market
 monitor, live sessions and a set of market-data "terminal" modules.
@@ -136,7 +136,7 @@ serves the new build number before going green.
 
 This is the important part: **a green run is the proof, not the push.** The
 workflow's `Verify the live domain serves this build` step polls
-`https://strykertrading.com/assets/version.json` up to six times and prints
+`https://tradezoro.com/assets/version.json` up to six times and prints
 `attempt N: live build X (want Y)`. It exists because a deploy once went green
 while the domain kept serving old content (two Pages projects, the custom
 domain on the other one).
@@ -304,7 +304,7 @@ has been told and accepted the risk. Do not expand it without being asked.
 
 Outbound access is restricted by org policy. Concretely:
 
-- **Blocked**, for both `curl` and WebFetch: `strykertrading.com`,
+- **Blocked**, for both `curl` and WebFetch: `tradezoro.com`,
   `cdn.jsdelivr.net`, `api.binance.com`, `www.gstatic.com`.
 - `raw.githubusercontent.com` is reachable from GitHub Actions runners but
   **not** from this container.

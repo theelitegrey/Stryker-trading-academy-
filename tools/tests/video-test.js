@@ -89,13 +89,13 @@ const shown = (sel) => `(() => { const el = document.querySelector(${JSON.string
     blank: chapterVideoUrl({ video: '' }),
     missing: chapterVideoUrl({}),
     spaces: chapterVideoUrl({ video: '   ' }),
-    real: chapterVideoUrl({ video: 'https://cdn.strykertrading.com/ch01.mp4' })
+    real: chapterVideoUrl({ video: 'https://cdn.tradezoro.com/ch01.mp4' })
   })`);
   ok('the sample clip reads as no video', r.placeholder === '', JSON.stringify(r.placeholder));
   ok('an empty field reads as no video', r.blank === '');
   ok('a missing field reads as no video', r.missing === '');
   ok('whitespace reads as no video', r.spaces === '');
-  ok('a real URL survives', r.real === 'https://cdn.strykertrading.com/ch01.mp4', r.real);
+  ok('a real URL survives', r.real === 'https://cdn.tradezoro.com/ch01.mp4', r.real);
   // ---- 5b. the runtime goes with the recording --------------------------
   r = await p.evaluate(`(() => {
     const cells = Array.from(document.querySelectorAll('#reader-meta span')).map(s => s.textContent.trim());

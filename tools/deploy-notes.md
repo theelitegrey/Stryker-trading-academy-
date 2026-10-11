@@ -14,7 +14,7 @@
 5. Commit and push:
        git add -A && git commit -F /tmp/msg.txt && git push origin main
    Use -F with a message file. Inline -m breaks on quotes and backticks.
-6. Poll the build (curl against strykertrading.com always 403s — bot blocking,
+6. Poll the build (curl against tradezoro.com always 403s — bot blocking,
    never use it to verify a deploy):
        curl -s -H "Authorization: Bearer $GH_TOKEN" \
          -H "Accept: application/vnd.github+json" \

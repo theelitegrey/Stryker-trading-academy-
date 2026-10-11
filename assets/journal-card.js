@@ -238,7 +238,7 @@ function jcardRender(){
   ctx.textAlign = 'center';
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.font = '600 24px "JetBrains Mono", monospace';
-  ctx.fillText('strykertrading.com', JCARD_W / 2, H - 78);
+  ctx.fillText('tradezoro.com', JCARD_W / 2, H - 78);
 }
 
 function jcardDrawCalendar(ctx, top, currency){

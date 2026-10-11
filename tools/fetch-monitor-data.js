@@ -37,7 +37,7 @@ const os = require('os');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
-const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; StrykerMonitor/1.0; +https://strykertrading.com)' };
+const UA = { 'User-Agent': 'Mozilla/5.0 (compatible; StrykerMonitor/1.0; +https://tradezoro.com)' };
 
 const previousPath = process.argv[2];
 const outPath = process.argv[3] || 'monitor-data.json';

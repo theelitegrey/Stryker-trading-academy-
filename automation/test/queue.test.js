@@ -60,7 +60,7 @@ test('wav header duration', () => {
   assert.strictEqual(wavDuration(Buffer.concat([h, data])), 2);
 });
 test('utm links and X weighted length', () => {
-  const u = utmLink('https://strykertrading.com', '/chapter.html?ch=03', 'youtube', 'lesson-x');
+  const u = utmLink('https://tradezoro.com', '/chapter.html?ch=03', 'youtube', 'lesson-x');
   assert.ok(u.includes('utm_source=youtube') && u.includes('ch=03'));
   assert.strictEqual(X.weightedLength('hello https://example.com/very/long/path/that/goes/on'), 6 + 23);
 });

@@ -276,7 +276,7 @@ exports.onNotificationCreated = onDocumentCreated({
       },
       webpush: {
         headers: { Urgency: 'high', TTL: '86400' },
-        fcmOptions: { link: 'https://strykertrading.com/' + String(n.link || 'dashboard-user.html') }
+        fcmOptions: { link: 'https://tradezoro.com/' + String(n.link || 'dashboard-user.html') }
       }
     };
 

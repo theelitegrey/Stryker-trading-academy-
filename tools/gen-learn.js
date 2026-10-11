@@ -23,7 +23,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const ORIGIN = 'https://strykertrading.com';
+const ORIGIN = 'https://tradezoro.com';
 const BUILD = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/version.json'), 'utf8')).build;
 
 const ARTICLES = [

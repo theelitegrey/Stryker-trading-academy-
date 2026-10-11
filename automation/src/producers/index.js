@@ -176,7 +176,7 @@ async function produceLesson(s, state, t) {
     source, scheduledForMs: t, expiresAtMs: t + 36 * 3600000,
     instructions: 'Teach ONE concept from this lesson to a retail trader in under a minute, in the academy\'s voice. ' +
       'Open with the mistake or the question, then the idea, then how to check it on a chart. ' +
-      'End by saying the full chapter is on strykertrading.com. Everything must come from the lesson text; add nothing.'
+      'End by saying the full chapter is on tradezoro.com. Everything must come from the lesson text; add nothing.'
   });
   db.patchState({ lessonCursor: pick.next });
   log.info('producer: lesson enqueued', id, pick.lesson.title);
@@ -194,7 +194,7 @@ async function producePromo(s, state, t) {
   db.enqueue({
     id, kind: 'promo', title: f.title, video: !!c.video, platforms: platformsFor('promo', c.video, s),
     priority: PRIORITY.promo, linkPath: '/signup.html', campaign: 'promo-' + slug(f.title),
-    source: { feature: f.title, page: f.page, description: f.blurb, offer: 'Free account at strykertrading.com' },
+    source: { feature: f.title, page: f.page, description: f.blurb, offer: 'Free account at tradezoro.com' },
     scheduledForMs: t, expiresAtMs: t + 36 * 3600000,
     instructions: 'A short promo for this feature of the academy, based only on the description: what it is, one concrete ' +
       'detail, who it is for, and an invitation to create a free account. No superlatives, no "game-changer", no promises of profit.'

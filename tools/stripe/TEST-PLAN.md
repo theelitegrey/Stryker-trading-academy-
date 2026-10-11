@@ -18,7 +18,7 @@ Branch hermes/dev-stripe. Stripe is for every non-INR buyer; Razorpay (INR) is u
 1. functions/.env gets:
    - STRIPE_SECRET_KEY (test)
    - STRIPE_WEBHOOK_SECRET (from step 2)
-   - SITE_ORIGIN=https://strykertrading.com
+   - SITE_ORIGIN=https://tradezoro.com
 2. Create the webhook endpoint with the API:
    - URL: https://us-central1-strykertrades-e0cd8.cloudfunctions.net/stripeWebhook
    - Events: checkout.session.completed, checkout.session.async_payment_succeeded, invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted

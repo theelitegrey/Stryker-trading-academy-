@@ -34,7 +34,7 @@ var SEO_PAGES = [
   { key: 'refund-policy', label: 'Refund policy',  path: '/refund-policy' }
 ];
 
-var SEO_ORIGIN = 'https://strykertrading.com';
+var SEO_ORIGIN = 'https://tradezoro.com';
 var SEO_CACHE = {};        // pageKey -> parsed page facts
 var SEO_OVERRIDES = {};    // pageKey -> stored seoPages doc
 var SEO_SETTINGS = {};     // settings/seo doc
@@ -64,7 +64,7 @@ function fetchPageFacts(page){
       var links = [].slice.call(doc.querySelectorAll('a[href]'));
       var internal = links.filter(function (a) {
         var h = a.getAttribute('href') || '';
-        return h && !/^https?:\/\//.test(h) || h.indexOf('strykertrading.com') !== -1;
+        return h && !/^https?:\/\//.test(h) || h.indexOf('tradezoro.com') !== -1;
       });
 
       var metaDesc = doc.querySelector('meta[name="description"]');

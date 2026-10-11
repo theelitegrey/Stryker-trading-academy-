@@ -61,7 +61,7 @@
  *   STRIPE_SECRET_KEY       sk_test_… / rk_live_… (restricted key: see DEPLOY.md)
  *   STRIPE_WEBHOOK_SECRET   whsec_… of the endpoint pointing at stripeWebhook
  *   STRIPE_PORTAL_CONFIG    optional bpc_… Billing Portal configuration id
- *   SITE_ORIGIN             optional, default https://strykertrading.com
+ *   SITE_ORIGIN             optional, default https://tradezoro.com
  *
  * DEPLOY (name every function or the others get deleted):
  *   firebase deploy --only functions:stripeCreateCheckout,functions:stripeWebhook,functions:stripePortal,functions:stripeStatus
@@ -134,7 +134,7 @@ async function testModeGate(uid, context) {
   throw new functions.https.HttpsError('failed-precondition', 'Card payments are not open yet.');
 }
 
-const siteOrigin = () => (process.env.SITE_ORIGIN || 'https://strykertrading.com').replace(/\/$/, '');
+const siteOrigin = () => (process.env.SITE_ORIGIN || 'https://tradezoro.com').replace(/\/$/, '');
 
 function requireAuth(context) {
   if (!context.auth || !context.auth.uid) {

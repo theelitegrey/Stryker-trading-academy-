@@ -26,8 +26,8 @@ docker compose up -d --build    # first build pulls the voice models: 10–20 mi
 ```
 
 DNS: an `A` record for the hostname in `Caddyfile` (e.g.
-`social.strykertrading.com`) pointing at the VPS. Caddy gets the certificate
-itself. The admin page is then at `https://social.strykertrading.com`, user
+`social.tradezoro.com`) pointing at the VPS. Caddy gets the certificate
+itself. The admin page is then at `https://social.tradezoro.com`, user
 `admin`, password from `.env`.
 
 **Why a public hostname is required:** Instagram and Threads do not accept

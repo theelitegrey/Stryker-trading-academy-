@@ -62,7 +62,7 @@ function brand(accent) {
   <text x="76" y="39" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink0}">Stryker Trading Academy</text></g>`;
 }
 function foot() {
-  return `<text x="80" y="1610" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink1}">strykertrading.com</text>
+  return `<text x="80" y="1610" font-family="${UI}" font-size="30" font-weight="600" fill="${C.ink1}">tradezoro.com</text>
   <text x="${W - 80}" y="1610" text-anchor="end" font-family="${UI}" font-size="26" fill="${C.ink2}">Not financial advice</text>`;
 }
 function capsule(x, y, text, accent) {
@@ -104,7 +104,7 @@ function sceneSvg(scene, ctx) {
     inner += lines(hl, 80, 520, 84, 96, C.ink0, 700, DISPLAY, ' letter-spacing="-2.5"');
     inner += lines(wrap(scene.text, 40, 900, 3, { inter: true }), 80, 540 + hl.length * 96 + 30, 40, 54, C.ink1, 400, UI);
     inner += `<rect x="80" y="1080" width="640" height="112" rx="56" fill="${a}"/>
-      <text x="400" y="1152" text-anchor="middle" font-family="${UI}" font-size="40" font-weight="700" fill="#08110d">strykertrading.com</text>
+      <text x="400" y="1152" text-anchor="middle" font-family="${UI}" font-size="40" font-weight="700" fill="#08110d">tradezoro.com</text>
       <text x="80" y="1260" font-family="${UI}" font-size="32" fill="${C.ink2}">Free account · full curriculum · live sessions</text>`;
   } else {
     const hl = wrap(scene.heading, 76, 920, 3, { display: true });

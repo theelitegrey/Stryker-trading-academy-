@@ -30,7 +30,7 @@ const admin = require('firebase-admin');
 const dns = require('dns');
 dns.setDefaultResultOrder('ipv4first');
 
-const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://strykertrading.com)' };
+const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://tradezoro.com)' };
 
 const EVENTS_QUERY = '(market OR economy OR "central bank" OR inflation OR ' +
                      'conflict OR election OR sanctions OR protest OR tariff)';

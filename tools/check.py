@@ -270,7 +270,7 @@ def check_share_images():
     (the table tools/og/gen_og.py renders from). No two pages share an image,
     the default og-image.png is never used, and og:title contains the card title."""
     import json
-    site = 'https://strykertrading.com/'
+    site = 'https://tradezoro.com/'
     table_path = os.path.join(ROOT, 'tools', 'og', 'pages.json')
     with open(table_path, encoding='utf-8') as fh:
         table = {e['page']: e for e in json.load(fh)['pages']}

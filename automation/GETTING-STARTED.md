@@ -106,7 +106,7 @@ its "via Buffer" box; the rest keep going through Buffer.
    - Type of App: **Web App, Automated App or Bot**
    - Callback URI: copy it from the admin page (it is shown under *X* in
      the Setup box, and looks like `https://…sslip.io/oauth/x/callback`)
-   - Website URL: `https://strykertrading.com`
+   - Website URL: `https://tradezoro.com`
    - Save.
 4. **Keys and tokens** → under *Consumer Keys*, press **Regenerate** and
    copy the **API Key** and **API Key Secret**.

@@ -73,9 +73,9 @@
       ld.textContent = JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'Organization',
-        '@id': 'https://strykertrading.com/#org-social',
+        '@id': 'https://tradezoro.com/#org-social',
         name: g.siteName || 'Stryker Trading Academy',
-        url: 'https://strykertrading.com/',
+        url: 'https://tradezoro.com/',
         sameAs: social
       });
       document.head.appendChild(ld);

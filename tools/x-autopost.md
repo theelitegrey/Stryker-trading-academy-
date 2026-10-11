@@ -63,7 +63,7 @@ admin page.
    never does.
 3. In the app's **User authentication settings**, turn authentication on with
    **Read and write** permissions. Type of app: *Web App, Automated App or
-   Bot*. Callback and website URL can both be `https://strykertrading.com`.
+   Bot*. Callback and website URL can both be `https://tradezoro.com`.
    Save.
 4. Under **Keys and tokens**:
    - copy the **API Key and Secret** (also called consumer key and secret);

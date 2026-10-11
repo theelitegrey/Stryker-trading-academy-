@@ -182,7 +182,7 @@ function buildTOC(activeIndex){
 // A chapter with no recording of its own shows no player at all — not an
 // empty black box, and not the sample clip the seed data used to carry (see
 // chapterVideoUrl in chapters-store.js). The frame, the speed pills and the
-// "watch on strykertrading.com" note all go together: each one on its own is
+// "watch on tradezoro.com" note all go together: each one on its own is
 // a promise of a video that is not there.
 //
 // This runs on every chapter render, so it has to undo itself as well as

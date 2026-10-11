@@ -4,7 +4,7 @@ A separate service that turns the academy's own content into short videos,
 image cards and text posts, and publishes them to **YouTube Shorts,
 Instagram Reels, Threads and X**, on a schedule, with no one at the keyboard.
 The goal is reach: every post carries a UTM-tagged link back to
-strykertrading.com and the videos end on a free-account call to action.
+tradezoro.com and the videos end on a free-account call to action.
 
 It is the successor of the X-only Cloud Function in `functions-src/xAutopost.js`
 and keeps its rules: every number comes from the source, links are appended by

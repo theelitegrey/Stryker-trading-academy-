@@ -34,7 +34,7 @@ const env = {
   port: Number(e('PORT', 8787)),
   adminPassword: e('ADMIN_PASSWORD', ''),
   dataDir: path.resolve(ROOT, e('DATA_DIR', './data')),
-  siteUrl: String(e('SITE_URL', 'https://strykertrading.com')).replace(/\/$/, ''),
+  siteUrl: String(e('SITE_URL', 'https://tradezoro.com')).replace(/\/$/, ''),
   monitorUrl: e('MONITOR_URL', 'https://raw.githubusercontent.com/theelitegrey/Stryker-trading-academy-/data/monitor-data.json'),
   firebaseServiceAccount: e('FIREBASE_SERVICE_ACCOUNT', ''),
   anthropicApiKey: e('ANTHROPIC_API_KEY', ''),

@@ -104,7 +104,7 @@ Cloudflare. The plan records from step 3 can stay: the old site renders
 ------------------------------------------------------------------------------
 ## 5. Live checks (signed-out + one test account, NO real charges)
 
-- [ ] strykertrading.com/#pricing in USD: Pro $19 (was $49) 61% OFF, MOST POPULAR,
+- [ ] tradezoro.com/#pricing in USD: Pro $19 (was $49) 61% OFF, MOST POPULAR,
       "or $149/year"; Elite $49 (was $129) 62% OFF; banner "up to 62% OFF · 100 spots left".
 - [ ] Same page with the ₹ switch: Pro ₹699 (was ₹2,499) 72% OFF, "or ₹5,499/year";
       Elite ₹1,999 (was ₹5,999) 67% OFF; banner "up to 72% OFF".

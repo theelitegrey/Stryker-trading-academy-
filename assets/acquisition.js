@@ -37,7 +37,7 @@
   var get = function (k) { return params ? params.get(k) : null; };
 
   // Only a referrer from another site is interesting; internal navigation
-  // (strykertrading.com -> strykertrading.com) is not a source.
+  // (tradezoro.com -> tradezoro.com) is not a source.
   var ref = '';
   try {
     if (document.referrer) {

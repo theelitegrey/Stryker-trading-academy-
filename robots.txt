@@ -34,4 +34,4 @@ Disallow: /model-editor
 Disallow: /page-editor
 Disallow: /checkout
 
-Sitemap: https://strykertrading.com/sitemap.xml
+Sitemap: https://tradezoro.com/sitemap.xml

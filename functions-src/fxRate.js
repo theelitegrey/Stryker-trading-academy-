@@ -30,7 +30,7 @@ if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
 
 const BOUNDS = { min: 40, max: 200 };
-const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://strykertrading.com)' };
+const UA = { 'User-Agent': 'StrykerTradingAcademy/1.0 (+https://tradezoro.com)' };
 
 function sane(n){
   return typeof n === 'number' && isFinite(n) && n >= BOUNDS.min && n <= BOUNDS.max;

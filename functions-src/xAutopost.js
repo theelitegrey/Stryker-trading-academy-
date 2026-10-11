@@ -73,7 +73,7 @@ const X_ACCESS_SECRET = defineSecret('X_ACCESS_SECRET');
 const ANTHROPIC_API_KEY = defineSecret('ANTHROPIC_API_KEY');
 const SECRETS = [X_API_KEY, X_API_SECRET, X_ACCESS_TOKEN, X_ACCESS_SECRET, ANTHROPIC_API_KEY];
 
-const SITE = 'https://strykertrading.com';
+const SITE = 'https://tradezoro.com';
 const BRIEF_URL = SITE + '/assets/market-brief.json';
 const MAP_URL = SITE + '/assets/market-map.json';
 const CALENDAR_URL = SITE + '/assets/econ-calendar.json';

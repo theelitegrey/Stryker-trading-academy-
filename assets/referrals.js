@@ -59,7 +59,7 @@ function ensureReferralCode(uid, displayName, email){
 
 function referralLinkForCode(code){
   if (!code) return '';
-  const origin = window.location.origin || 'https://strykertrading.com';
+  const origin = window.location.origin || 'https://tradezoro.com';
   return origin + '/signup.html?ref=' + encodeURIComponent(code);
 }
 

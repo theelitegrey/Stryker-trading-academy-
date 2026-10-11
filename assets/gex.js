@@ -153,7 +153,7 @@
   }
 
   async function loadLevels(){
-    $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on strykertrading.com.</span>';
+    $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on tradezoro.com.</span>';
     var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale'); }
     try{
       var d = await getJson('/api/gex/levels/' + encodeURIComponent(cur) + '?dte=' + curDte + '&t=' + Date.now());

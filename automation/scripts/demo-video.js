@@ -15,7 +15,7 @@ const script = {
     { type: 'point', heading: 'A swing is a rule, not a feeling', text: 'A high with lower highs either side. A low with higher lows either side.', narration: 'Define a swing high as a candle with lower highs on both sides, and a swing low the same way. Then mark only what fits the rule.', stat: '' },
     { type: 'stat', heading: 'Candles each side', text: 'Fix the count before you start. Three is a common choice.', narration: 'Decide how many candles each side you require. Three is a common choice. Whatever you pick, keep it for the whole exercise.', stat: '3' },
     { type: 'point', heading: 'Check it on the chart', text: 'Mark ten swings, close the chart, reopen it tomorrow, mark again.', narration: 'Mark ten swings today, close the chart, and mark the same stretch again tomorrow. If they match, your rule is doing the work.', stat: '' },
-    { type: 'cta', heading: 'The full chapter is free', text: 'Trend, range and swing points, with exercises.', narration: 'The full chapter on trend, range and swing points is on strykertrading.com. A free account gets you the whole curriculum.', stat: '' }
+    { type: 'cta', heading: 'The full chapter is free', text: 'Trend, range and swing points, with exercises.', narration: 'The full chapter on trend, range and swing points is on tradezoro.com. A free account gets you the whole curriculum.', stat: '' }
   ]
 };
 

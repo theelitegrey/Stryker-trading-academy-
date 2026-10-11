@@ -181,7 +181,7 @@
     } else {
       state.textContent = isMobile()
         ? 'Not installed on this device.'
-        : 'Best on a phone — open strykertrading.com there to install.';
+        : 'Best on a phone — open tradezoro.com there to install.';
       btn.style.display = 'inline-flex';
     }
   }

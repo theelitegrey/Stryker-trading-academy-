@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const ORIGIN = 'https://strykertrading.com';
+const ORIGIN = 'https://tradezoro.com';
 
 // path (extensionless), priority, changefreq. The homepage and signup carry
 // the weight; legal pages exist to be findable, not to rank.

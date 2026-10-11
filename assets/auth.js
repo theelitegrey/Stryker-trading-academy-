@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
       warn.id = 'persistence-warning';
       warn.className = 'auth-error';
       warn.style.display = 'block';
-      warn.textContent = "Your browser is blocking the storage this site needs to keep you signed in. Logging in may appear to work but then stall on the next page. If you're in a private/incognito window, try a normal window; otherwise allow site data for strykertrading.com.";
+      warn.textContent = "Your browser is blocking the storage this site needs to keep you signed in. Logging in may appear to work but then stall on the next page. If you're in a private/incognito window, try a normal window; otherwise allow site data for tradezoro.com.";
       authBox.insertBefore(warn, authBox.firstChild);
     }, 1200);
   }

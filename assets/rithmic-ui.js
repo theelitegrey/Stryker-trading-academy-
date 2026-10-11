@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=505';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=505';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=506';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=506';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -309,9 +309,12 @@ export function createRithmic(cfg) {
       const credit = document.querySelector('.stkchart-credit');
       if (credit) {
         if (!credit.dataset.std) credit.dataset.std = credit.textContent;
-        credit.textContent = st === 'connected'
+        const fut = st === 'connected'
           ? 'Futures: live from your own Rithmic connection (' + (client.systemName || 'Rithmic') + ') · crypto: public Binance, Coinbase and Hyperliquid feeds · Education only. Not financial advice.'
           : credit.dataset.std;
+        credit.dataset.fut = fut;
+        // a crypto chart shows its own venue line (assets/chart-data-dot.js syncCredit)
+        if (!credit.dataset.crypto) credit.textContent = fut;
       }
     }
 

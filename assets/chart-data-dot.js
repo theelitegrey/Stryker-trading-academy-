@@ -212,6 +212,34 @@ export function installDataDot(ws, opts = {}) {
       void market;
     });
     if (tipFor && !tipFor.isConnected) hideTip();
+    syncCredit();
+  }
+
+  // The source line under the chart follows the ACTIVE chart's symbol (Owner 2026-10-12: the
+  // futures "Yahoo Finance, delayed" line showed on BTCUSDT). Crypto symbols get their own venue
+  // line; anything else gets the standard line, or the Rithmic line while connected
+  // (assets/rithmic-ui.js writes that one to dataset.fut and leaves the text alone on crypto).
+  const VENUE = { binance: 'Binance', coinbase: 'Coinbase', hyperliquid: 'Hyperliquid' };
+  function creditFor(sym) {
+    const m = /^(binance|coinbase|hyperliquid):/i.exec(String(sym || ''));
+    if (!m) return '';
+    const v = VENUE[m[1].toLowerCase()];
+    return 'Crypto: ' + v + ' public market data (candles, trades' + (v === 'Binance' ? ', order book' : '') + ') · Education only. Not financial advice.';
+  }
+  function syncCredit() {
+    const el = document.querySelector('.stkchart-credit');
+    if (!el) return;
+    if (!el.dataset.std) el.dataset.std = el.textContent;
+    let sym = '';
+    try { sym = ws.active ? ws.active.symbol : ''; } catch (e) {}
+    const c = creditFor(sym);
+    if (c) {
+      el.dataset.crypto = '1';
+      if (el.textContent !== c) el.textContent = c;
+    } else if (el.dataset.crypto) {
+      delete el.dataset.crypto;
+      el.textContent = el.dataset.fut || el.dataset.std;
+    }
   }
 
   let raf = 0;
@@ -230,7 +258,7 @@ export function installDataDot(ws, opts = {}) {
   window.addEventListener('resize', hideTip, { passive: true });
   sync();
 
-  const api = { sync, statusOf, lag, globexOpen, fxOpen, nextOpen };
+  const api = { sync, statusOf, lag, globexOpen, fxOpen, nextOpen, creditFor };
   window.STRYKER_DATA_DOT = api;
   return api;
 }

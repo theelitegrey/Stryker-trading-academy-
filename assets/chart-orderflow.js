@@ -1283,9 +1283,23 @@ function footprintLayer() {
 // The 1 bucket either side of the mid is skipped (best bid / ask churn). Thin levels below the
 // chosen percentile of all sizes in view are hidden. Indicator only: it describes resting
 // orders, it predicts nothing and offers nothing to trade.
-const BOOK_MAX_LEVELS = 1000;
+// Book feed: the REST snapshot asks for Binance's deepest book (5000 levels a side on spot,
+// 1000 on USD-M perps), then the @depth@100ms diff stream keeps it current. The diff stream
+// also reports levels beyond the snapshot, so the in-memory book keeps up to BOOK_MAX_LEVELS
+// a side (nearest the mid) and a refresh snapshot only replaces the price span it covers.
+const BOOK_SNAPSHOT_SPOT = 5000, BOOK_SNAPSHOT_PERP = 1000;
+const BOOK_MAX_LEVELS = 10000;
+const BOOK_REFRESH_MS = 120000;     // 5000-level snapshot ~320 KB: every 2 min, not 30 s (phone data)
 const BOOK_SAMPLE_MS = 1000;
-const BOOK_HISTORY_MAX = 2400;
+const BOOK_KEEP_MS = 6 * 60 * 60 * 1000;   // history cap: 6 h, oldest dropped
+const BOOK_FINE_MS = 30 * 60 * 1000;       // the newest 30 min keep 1 sample a second...
+const BOOK_THIN_MS = 5000;                 // ...older samples keep 1 per 5 s
+const BOOK_HISTORY_MAX = Math.ceil(BOOK_FINE_MS / BOOK_SAMPLE_MS) + Math.ceil((BOOK_KEEP_MS - BOOK_FINE_MS) / BOOK_THIN_MS);
+const BOOK_ROWS_SIDE_MAX = 400;            // a finer manual bucket is coarsened to stay under this
+const BOOK_AUTO_ROW = 0.0005;              // auto row = the nice step at or below 0.05% of the price
+// Fine layer for close zooms: rows near 0.003% of the price (BTC: $2.50) over +-0.5% of the mid,
+// kept for the newest 30 min only (older samples drop it when thinned, coarse rows stay).
+const BOOK_FINE_ROW = 0.00003, BOOK_FINE_RANGE = 0.005;
 const bookFeeds = new Map();
 const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
 const DOM_VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
@@ -1299,7 +1313,8 @@ const DOM_SCHEMA = [
   { key: 'showWallSizes', title: 'Show wall sizes', type: 'bool', defval: true },
   { key: 'hidePct', title: 'Hide thin levels below (percentile)', type: 'int', defval: 60, min: 0, max: 95, step: 5 },
   { key: 'bucketUsd', title: 'Price bucket size (0 = auto)', type: 'float', defval: 0, min: 0, max: 100000, step: 0.5 },
-  { key: 'historyMin', title: 'History window (minutes)', type: 'int', defval: 90, min: 5, max: 360, step: 5 },
+  { key: 'bookRangePct', title: 'Book range %', type: 'float', defval: 2, min: 0.5, max: 5, step: 0.5 },
+  { key: 'historyMins', title: 'History window (minutes)', type: 'int', defval: 360, min: 5, max: 360, step: 5 },
   { key: 'depthWidthPct', title: 'Depth bars width %', type: 'int', defval: 15, min: 5, max: 40, step: 1 },
   { key: 'maxOpacity', title: 'Max opacity %', type: 'int', defval: 85, min: 5, max: 100, step: 1 },
   { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: false },
@@ -1310,6 +1325,8 @@ const DOM_SCHEMA = [
 // Old saved charts (before build 503) carry style 'liquidity heatmap' -> Combined, or
 // 'right ladder' -> Depth bars only. Their old keys (levels, minPct, widthPct, opacity) are
 // ignored, so an old 32% opacity / 36% ladder width does not carry over to the new look.
+// Build 505: the history window key is 'historyMins' (default 6 h, the whole recorded
+// history); the old 'historyMin' (default 90 min) of earlier saved charts is ignored.
 function domConfig(inputs) {
   const i = inputs || {};
   const vi = i.style === 'right ladder' ? 2 : DOM_VIEWS.indexOf(i.style);
@@ -1326,7 +1343,8 @@ function domConfig(inputs) {
     wallSizes: i.showWallSizes !== false,
     hide: clamp(num(i.hidePct, 60), 0, 95) / 100,
     bucket: Math.max(0, num(i.bucketUsd, 0)),
-    historyMin: clamp(Math.round(num(i.historyMin, 90)), 5, 360),
+    range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
+    historyMin: clamp(Math.round(num(i.historyMins, 360)), 5, 360),
     widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: clamp(num(i.maxOpacity, 85), 5, 100) / 100,
     showBest: i.showBest === true,
@@ -1360,218 +1378,469 @@ function fmtSize(v) {
   if (v >= 1) return v.toFixed(1);
   return v.toFixed(2);
 }
+// The largest nice step (1 / 2 / 2.5 / 5 x 10^n) at or below raw: BTC at $84k, 0.05% = $42 -> $25.
+function nearNiceStep(raw) {
+  if (!(raw > 0)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(raw)));
+  let best = p;
+  for (const m of [1, 2, 2.5, 5, 10]) if (m * p <= raw * 1.0001) best = m * p;
+  return best;
+}
 function bookKey(provider, ticker) { return provider + '|' + String(ticker || '').toUpperCase(); }
 function binanceBookSource(ticker, onBook, onStatus) {
   const perp = /\.P$/i.test(ticker);
   const sym = ticker.replace(/\.P$/i, '').toUpperCase();
   const rest = perp ? 'https://fapi.binance.com/fapi/v1' : 'https://api.binance.com/api/v3';
   const wsBase = perp ? 'wss://fstream.binance.com/ws/' : 'wss://stream.binance.com:9443/ws/';
-  let stopped = false, ws = null, tm = 0, retry = 0, refresh = 0;
-  let bids = new Map(), asks = new Map();
-  const emit = () => {
-    let bestBid = null, bestAsk = null;
+  const limit = perp ? BOOK_SNAPSHOT_PERP : BOOK_SNAPSHOT_SPOT;
+  let stopped = false, ws = null, tm = 0, retry = 0, refresh = 0, ready = false, lastSnap = 0;
+  const bids = new Map(), asks = new Map();
+  let bestBid = null, bestAsk = null;
+  const best = () => {
+    bestBid = null; bestAsk = null;
     bids.forEach((q, p) => { if (q > 0 && (bestBid == null || p > bestBid)) bestBid = p; });
     asks.forEach((q, p) => { if (q > 0 && (bestAsk == null || p < bestAsk)) bestAsk = p; });
-    onBook({ bids, asks, bestBid, bestAsk, ts: Date.now() });
   };
+  const emit = () => { if (ready) onBook({ bids, asks, bestBid, bestAsk, ts: Date.now() }); };
+  const trim = (m, side) => {
+    if (m.size <= BOOK_MAX_LEVELS * 1.2) return;
+    const sorted = [...m.keys()].sort((a, b) => side === 'b' ? b - a : a - b).slice(BOOK_MAX_LEVELS);
+    sorted.forEach(p => m.delete(p));
+  };
+  // Diff rows: keep best bid / ask up to date without a full scan per message.
   const apply = (side, arr) => {
     const m = side === 'b' ? bids : asks;
+    let rescan = false;
     for (const row of arr || []) {
       const p = Number(row[0]), q = Number(row[1]);
       if (!Number.isFinite(p) || !Number.isFinite(q)) continue;
-      if (q <= 0) m.delete(p); else m.set(p, q);
+      if (q <= 0) {
+        m.delete(p);
+        if (p === (side === 'b' ? bestBid : bestAsk)) rescan = true;
+      } else {
+        m.set(p, q);
+        if (side === 'b') { if (bestBid == null || p > bestBid) bestBid = p; }
+        else if (bestAsk == null || p < bestAsk) bestAsk = p;
+      }
     }
-    if (m.size > BOOK_MAX_LEVELS * 2) {
-      const sorted = [...m.keys()].sort((a, b) => side === 'b' ? b - a : a - b).slice(BOOK_MAX_LEVELS);
-      sorted.forEach(p => m.delete(p));
-    }
+    return rescan;
   };
   async function snapshot() {
+    lastSnap = Date.now();
     try {
-      onStatus('loading');
-      const r = await fetch(rest + '/depth?symbol=' + encodeURIComponent(sym) + '&limit=' + BOOK_MAX_LEVELS);
+      if (!ready) onStatus('loading');
+      const r = await fetch(rest + '/depth?symbol=' + encodeURIComponent(sym) + '&limit=' + limit);
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const d = await r.json();
-      bids = new Map(); asks = new Map();
-      apply('b', d.bids); apply('a', d.asks);
+      if (stopped) return;
+      // Replace the span the snapshot covers; keep the farther levels the diff stream reported.
+      const span = (rows, m, side) => {
+        if (!rows || !rows.length) return;
+        const far = Number(rows[rows.length - 1][0]);
+        m.forEach((q, p) => { if (side === 'b' ? p >= far : p <= far) m.delete(p); });
+        apply(side, rows);
+      };
+      span(d.bids, bids, 'b'); span(d.asks, asks, 'a');
+      trim(bids, 'b'); trim(asks, 'a');
+      best();
+      ready = true;
       emit(); onStatus('live');
     } catch (e) {
-      onStatus('error', 'Could not load Binance order book.');
+      if (!ready) onStatus('error', 'Could not load Binance order book.');
     }
   }
   function open() {
     if (stopped) return;
     try {
       ws = new WebSocket(wsBase + sym.toLowerCase() + '@depth@100ms');
-      ws.onopen = () => { retry = 0; onStatus('live'); };
-      ws.onmessage = (e) => { try { const d = JSON.parse(e.data); apply('b', d.b); apply('a', d.a); emit(); } catch (x) {} };
-      ws.onclose = () => { if (stopped) return; onStatus('reconnecting'); tm = setTimeout(open, Math.min(15000, 1000 * Math.pow(2, ++retry))); };
+      ws.onopen = () => { retry = 0; if (ready) onStatus('live'); };
+      ws.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          const r1 = apply('b', d.b), r2 = apply('a', d.a);
+          trim(bids, 'b'); trim(asks, 'a');
+          if (r1 || r2) best();
+          emit();
+        } catch (x) {}
+      };
+      ws.onclose = () => { if (stopped) return; onStatus('reconnecting'); tm = setTimeout(() => { open(); snapshot(); }, Math.min(15000, 1000 * Math.pow(2, ++retry))); };
       ws.onerror = () => { try { ws.close(); } catch (e) {} };
     } catch (e) { onStatus('error', 'Could not open Binance depth stream.'); }
   }
+  // The ~320 KB snapshot only runs while the page is visible (a backgrounded phone tab would
+  // keep pulling it every 2 min). Back on screen: one snapshot if the last is older than the
+  // refresh period. The diff stream keeps running while hidden, so the book stays current.
+  const tickSnap = () => { if (!stopped && !document.hidden) snapshot(); };
+  const onVis = () => { if (!stopped && !document.hidden && Date.now() - lastSnap >= BOOK_REFRESH_MS) snapshot(); };
+  document.addEventListener('visibilitychange', onVis);
   snapshot(); open();
-  refresh = setInterval(snapshot, 30000);
-  return () => { stopped = true; clearTimeout(tm); clearInterval(refresh); try { if (ws) ws.close(); } catch (e) {} };
+  refresh = setInterval(tickSnap, BOOK_REFRESH_MS);
+  const stop = () => { stopped = true; clearTimeout(tm); clearInterval(refresh); document.removeEventListener('visibilitychange', onVis); try { if (ws) ws.close(); } catch (e) {} };
+  stop.tick = tickSnap; // test hooks: run one refresh-interval tick now; age the last snapshot
+  stop.age = (ms) => { lastSnap -= ms; };
+  return stop;
 }
-// One sample = the book at a moment, packed small (phones keep up to BOOK_HISTORY_MAX of them):
-// only a band around the mid (the nearest BOOK_BAND_LEVELS per side or +-BOOK_BAND_PCT of the
-// mid, whichever is fewer levels), prices as Float32 offsets from the mid (o = p - mid), signed
-// sizes (+ bid, - ask). Order: nb bids from the mid outward (o falling), then the asks from the
-// mid outward (o rising), so binning is one linear pass with no Map and no sort.
-// ~6.4 KB per sample at 800 levels, vs ~36 KB for the full Float64 book + a cached bins Map.
-const BOOK_BAND_LEVELS = 400;
-const BOOK_BAND_PCT = 0.03;
+// ONE SAMPLE = the book bucketed AT STORE TIME into price rows of `step`, over +-range of the
+// mid: { ts, mid, bb, ba, step, i0, v } where v is a dense Float32Array, row k = price bucket
+// i0 + k ([ (i0+k)*step, (i0+k+1)*step )), value = summed size, + bids / - asks. The mid's
+// own row is left empty (it would hold both sides), bids only sit below it and asks above.
+// Leading / trailing empty rows are trimmed. BTC at $84k, $25 rows, +-2%: <= 136 rows ~ 540 B.
+// Recent samples also carry a fine layer { fs, fi0, fv } (same layout; BTC: $2.50 rows over
+// +-0.5%, <= 336 rows ~ 1.3 KB), dropped once the sample is older than 30 min.
 function bookMid(bestBid, bestAsk) {
   return bestBid > 0 && bestAsk > 0 ? (bestBid + bestAsk) / 2 : (bestBid || bestAsk || 0);
 }
-// The book's price grid: the fewest decimals d that every listed price has (Binance prices are
-// decimal strings, so this is the tick or finer). Float32 offsets are exact to ~6e-8 of their
-// size, far inside half of 10^-d, so mid + offset rounded to this grid gives the price back.
-function bookTick(bp, ap) {
-  const ps = [];
-  for (const s of [bp, ap]) for (let k = 0; k < Math.min(s.length, 48); k++) ps.push(s[k]);
-  if (!ps.length) return 0;
-  for (let d = 0; d <= 8; d++) {
-    const m = Math.pow(10, d);
-    if (ps.every(p => Math.abs(p * m - Math.round(p * m)) < 1e-6 * Math.max(1, p * m * 1e-9))) return 1 / m;
-  }
-  return 0;
-}
-// bp/bq: bid prices/sizes sorted by price DESC; ap/aq: asks sorted ASC (any array-likes).
-function packSides(bp, bq, ap, aq, mid, tick) {
-  const lo = mid * (1 - BOOK_BAND_PCT), hi = mid * (1 + BOOK_BAND_PCT);
-  let nb = 0, na = 0;
-  while (nb < bp.length && nb < BOOK_BAND_LEVELS && bp[nb] >= lo) nb++;
-  while (na < ap.length && na < BOOK_BAND_LEVELS && ap[na] <= hi) na++;
-  const o = new Float32Array(nb + na), q = new Float32Array(nb + na);
-  for (let k = 0; k < nb; k++) { o[k] = bp[k] - mid; q[k] = bq[k]; }
-  for (let k = 0; k < na; k++) { o[nb + k] = ap[k] - mid; q[nb + k] = -aq[k]; }
-  return { o, q, nb, mid, tick: tick || 0, bins: null, binStep: 0, binFrame: 0 };
-}
-function bookSides(book) {
-  const b = [], a = [];
-  book.bids.forEach((size, price) => { if (size > 0 && price > 0) b.push(price); });
-  book.asks.forEach((size, price) => { if (size > 0 && price > 0) a.push(price); });
-  b.sort((x, y) => y - x); a.sort((x, y) => x - y);
-  return { bp: b, bq: b.map(p => book.bids.get(p)), ap: a, aq: a.map(p => book.asks.get(p)) };
-}
-function packBook(book) {
+const rowOf = (p, step) => Math.floor(p / step + 1e-9);
+function bucketBook(book, step, range) {
   const mid = bookMid(book.bestBid, book.bestAsk);
-  if (!(mid > 0)) return packSides([], [], [], [], 0, 0);
-  const s = bookSides(book);
-  return packSides(s.bp, s.bq, s.ap, s.aq, mid, bookTick(s.bp, s.ap));
+  if (!(mid > 0) || !(step > 0)) return null;
+  const mi = rowOf(mid, step), lo = rowOf(mid * (1 - range), step), hi = rowOf(mid * (1 + range), step);
+  const v = new Float32Array(hi - lo + 1);
+  book.bids.forEach((q, p) => { if (q > 0) { const i = rowOf(p, step); if (i < mi && i >= lo) v[i - lo] += q; } });
+  book.asks.forEach((q, p) => { if (q > 0) { const i = rowOf(p, step); if (i > mi && i <= hi) v[i - lo] -= q; } });
+  let a = 0, b = v.length - 1;
+  while (a <= b && v[a] === 0) a++;
+  while (b >= a && v[b] === 0) b--;
+  return { ts: book.ts || Date.now(), mid, bb: book.bestBid, ba: book.bestAsk, step, i0: lo + a, v: a > b ? new Float32Array(0) : (a > 0 || b < v.length - 1 ? v.slice(a, b + 1) : v) };
 }
-// Append one sample: 6 h max age, then over the cap the oldest half is thinned to every other
-// sample (recent detail stays at 1 s).
+// Append one sample; drop samples older than 6 h; every 60 samples thin everything older than
+// 30 min to one sample per 5 s (recent detail stays at 1 s).
 function pushBookSample(history, s) {
   history.push(s);
-  const cutoff = s.ts - 6 * 60 * 60 * 1000;
-  while (history[0] && history[0].ts < cutoff) history.shift();
-  if (history.length > BOOK_HISTORY_MAX) {
-    const half = Math.floor(history.length / 2);
-    return history.slice(0, half).filter((x, i) => i % 2 === 0).concat(history.slice(half));
-  }
+  const cutoff = s.ts - BOOK_KEEP_MS;
+  let k = 0;
+  while (k < history.length && history[k].ts < cutoff) k++;
+  if (k) history.splice(0, k);
+  if (history.length % 60 === 0 || history.length > BOOK_HISTORY_MAX) return thinHistory(history, s.ts);
   return history;
 }
+function thinHistory(history, now) {
+  const edge = now - BOOK_FINE_MS, out = [];
+  let last = -Infinity;
+  for (const h of history) {
+    if (h.ts >= edge) { out.push(h); continue; }
+    if (h.fv) { h.fv = null; h.fs = 0; h.fi0 = 0; }
+    if (h.ts - last >= BOOK_THIN_MS - 50) { out.push(h); last = h.ts; }
+  }
+  return out;
+}
+
+// ---- persistence: bucketed history per symbol in IndexedDB (6 h cap, oldest dropped) ----
+// Chunks of up to 30 samples, written every 30 s, when the tab hides and on pagehide. A reload
+// or a later visit loads the chunks of the last 6 h and prepends them to the feed's history.
+const DOM_DB = 'stryker_dom', DOM_STORE = 'chunks', DOM_FLUSH_MS = 30000;
+let domDbP = null;
+function domDb() {
+  if (domDbP) return domDbP;
+  domDbP = new Promise((resolve) => {
+    try {
+      if (!window.indexedDB) { resolve(null); return; }
+      const req = window.indexedDB.open(DOM_DB, 1);
+      req.onupgradeneeded = () => {
+        const st = req.result.createObjectStore(DOM_STORE, { keyPath: 'id' });
+        st.createIndex('key', 'key');
+      };
+      req.onsuccess = () => { domPruneAll(req.result); resolve(req.result); };
+      req.onerror = () => resolve(null);
+      req.onblocked = () => resolve(null);
+    } catch (e) { resolve(null); }
+  });
+  return domDbP;
+}
+// Once per page load (the db opens once): drop every chunk that ended more than 6 h ago, for
+// ALL symbols. domSave only prunes the symbol it writes, so a symbol never reopened would keep
+// its chunks forever. One cursor pass; a chunk is ~15-40 KB, a 6 h symbol ~720 chunks at most.
+let domPruneP = null;
+function domPruneAll(db) {
+  if (domPruneP) return domPruneP;
+  domPruneP = new Promise((resolve) => {
+    let n = 0;
+    try {
+      const tx = db.transaction(DOM_STORE, 'readwrite'), old = Date.now() - BOOK_KEEP_MS;
+      tx.objectStore(DOM_STORE).openCursor().onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        if (!(cur.value.t1 >= old)) { cur.delete(); n++; }
+        cur.continue();
+      };
+      tx.oncomplete = () => resolve(n); tx.onerror = () => resolve(n); tx.onabort = () => resolve(n);
+    } catch (e) { resolve(n); }
+  });
+  return domPruneP;
+}
+// Test hook: fire every book feed's 2-min snapshot ticker once (as if the interval elapsed).
+export function domDebugSnapTick(ageMs) { let n = 0; bookFeeds.forEach((f) => { if (f.stop && f.stop.tick) { if (ageMs) f.stop.age(ageMs); f.stop.tick(); n++; } }); return n; }
+// Test hook: open the db (which runs the page-load prune) and resolve with the deleted count.
+export function domPruned() { return domDb().then((db) => (db ? domPruneAll(db) : 0)); }
+function packChunk(key, list) {
+  const n = list.length;
+  let len = 0, flen = 0; list.forEach(s => { len += s.v.length; flen += s.fv ? s.fv.length : 0; });
+  const ts = new Float64Array(n), mid = new Float64Array(n), bb = new Float64Array(n), ba = new Float64Array(n), step = new Float64Array(n);
+  const i0 = new Int32Array(n), cnt = new Int32Array(n), v = new Float32Array(len);
+  const fs = new Float64Array(n), fi0 = new Int32Array(n), fcnt = new Int32Array(n), fv = new Float32Array(flen);
+  let o = 0, fo = 0;
+  list.forEach((s, k) => {
+    ts[k] = s.ts; mid[k] = s.mid; bb[k] = s.bb || 0; ba[k] = s.ba || 0; step[k] = s.step; i0[k] = s.i0; cnt[k] = s.v.length; v.set(s.v, o); o += s.v.length;
+    if (s.fv) { fs[k] = s.fs; fi0[k] = s.fi0; fcnt[k] = s.fv.length; fv.set(s.fv, fo); fo += s.fv.length; }
+  });
+  const c = { id: key + '|' + list[0].ts, key, t0: list[0].ts, t1: list[n - 1].ts, ts, mid, bb, ba, step, i0, cnt, v };
+  if (flen) Object.assign(c, { fs, fi0, fcnt, fv });
+  return c;
+}
+function unpackChunk(c) {
+  const out = [], fine = c.fv && c.t1 >= Date.now() - BOOK_FINE_MS;
+  let o = 0, fo = 0;
+  for (let k = 0; k < c.ts.length; k++) {
+    const n = c.cnt[k];
+    const s = { ts: c.ts[k], mid: c.mid[k], bb: c.bb[k] || null, ba: c.ba[k] || null, step: c.step[k], i0: c.i0[k], v: c.v.slice(o, o + n) };
+    o += n;
+    if (c.fv) {
+      const fn = c.fcnt[k];
+      if (fine && fn) { s.fs = c.fs[k]; s.fi0 = c.fi0[k]; s.fv = c.fv.slice(fo, fo + fn); }
+      fo += fn;
+    }
+    out.push(s);
+  }
+  return out;
+}
+async function domSave(f) {
+  if (!f.pending.length) return;
+  const list = f.pending; f.pending = [];
+  const db = await domDb();
+  if (!db) return;
+  await new Promise((resolve) => {
+    try {
+      const tx = db.transaction(DOM_STORE, 'readwrite'), st = tx.objectStore(DOM_STORE);
+      st.put(packChunk(f.key, list));
+      // drop this symbol's chunks that ended more than 6 h ago
+      // and strip the fine layer from chunks older than 30 min (the coarse rows stay)
+      const old = Date.now() - BOOK_KEEP_MS, fineOld = Date.now() - BOOK_FINE_MS;
+      st.index('key').openCursor(IDBKeyRange.only(f.key)).onsuccess = (e) => {
+        const cur = e.target.result;
+        if (!cur) return;
+        const c = cur.value;
+        if (c.t1 < old) cur.delete();
+        else if (c.fv && c.t1 < fineOld) { delete c.fs; delete c.fi0; delete c.fcnt; delete c.fv; cur.update(c); }
+        cur.continue();
+      };
+      tx.oncomplete = resolve; tx.onerror = resolve; tx.onabort = resolve;
+    } catch (e) { resolve(); }
+  });
+}
+async function domLoad(f) {
+  const db = await domDb();
+  if (!db) return [];
+  const rows = await new Promise((resolve) => {
+    try {
+      const req = db.transaction(DOM_STORE, 'readonly').objectStore(DOM_STORE).index('key').getAll(IDBKeyRange.only(f.key));
+      req.onsuccess = () => resolve(req.result || []); req.onerror = () => resolve([]);
+    } catch (e) { resolve([]); }
+  });
+  const cutoff = Date.now() - BOOK_KEEP_MS, out = [];
+  rows.filter(c => c.t1 >= cutoff).sort((a, b) => a.t0 - b.t0).forEach(c => unpackChunk(c).forEach(s => { if (s.ts >= cutoff) out.push(s); }));
+  out.sort((a, b) => a.ts - b.ts);
+  // two tabs on one symbol both write: keep one sample per ~second
+  return out.filter((s, k) => k === 0 || s.ts - out[k - 1].ts >= 500);
+}
+// Test hook: write every feed's pending samples now (a reload test awaits this).
+export function domFlush() { return Promise.all([...bookFeeds.values()].map(f => domSave(f))); }
+let domPageHooks = false, domTzSeen = '';
+function domHookPage() {
+  if (domPageHooks) return;
+  domPageHooks = true;
+  domDb(); // opens the db now, which runs the all-symbol prune once per page load
+  domTzSeen = chartTz();
+  try {
+    window.STRYKER_VELA.on('state:changed', () => {
+      const tz = chartTz();
+      if (tz !== domTzSeen) { domTzSeen = tz; bookFeeds.forEach((f) => f.bump()); }
+    });
+  } catch (e) {}
+  const all = () => { bookFeeds.forEach(f => { domSave(f); }); };
+  window.addEventListener('pagehide', all);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) all(); });
+}
+
 class BookFeed {
   constructor(provider, ticker) {
     this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
     this.base = baseAsset(ticker);
     this.status = 'loading'; this.err = ''; this.version = 0; this.refs = 0; this.listeners = new Set(); this.closeTm = 0;
     this.book = { bids: new Map(), asks: new Map(), bestBid: null, bestAsk: null, ts: 0 };
-    this.history = []; this.lastSample = 0;
+    this.history = []; this.lastSample = 0; this.pending = [];
+    this.wants = new Map(); // listener -> { bucket, range }: what each indicator on this symbol asks for
+    this.autoStep = 0;
+    this.loaded = false;
+    domHookPage();
+    domLoad(this).then((old) => {
+      const first = this.history.length ? this.history[0].ts : Infinity;
+      const pre = old.filter(s => s.ts < first - 500);
+      if (pre.length) { this.history = thinHistory(pre.concat(this.history), Date.now()); }
+      this.loaded = true; this.bump();
+    });
+    this.flushTm = setInterval(() => domSave(this), DOM_FLUSH_MS);
     this.stop = binanceBookSource(ticker, (book) => { this.book = book; this.sample(); this.bump(); }, (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
   }
+  // Storage step + band for new samples: the finest manual bucket any indicator on this symbol
+  // asks for (else auto ~0.05% of the price), the widest range; never more than
+  // BOOK_ROWS_SIDE_MAX rows a side.
+  store(mid) {
+    if (!this.autoStep || Math.abs(Math.log(this.autoStep / (mid * BOOK_AUTO_ROW))) > 1.1) this.autoStep = nearNiceStep(mid * BOOK_AUTO_ROW);
+    let step = this.autoStep, range = 0;
+    this.wants.forEach((w) => { if (w.bucket > 0 && w.bucket < step) step = w.bucket; if (w.range > range) range = w.range; });
+    if (!(range > 0)) range = 0.02;
+    const floor = mid * range / BOOK_ROWS_SIDE_MAX;
+    if (step < floor) step = niceStep(floor);
+    return { step, range };
+  }
+  fineStep(mid) { return nearNiceStep(mid * BOOK_FINE_ROW); }
+  addFine(s, step, mid) {
+    const fs = this.fineStep(mid);
+    if (!(fs < step / 1.5)) return;
+    const fb = bucketBook(this.book, fs, BOOK_FINE_RANGE);
+    if (fb && fb.v.length) { s.fs = fs; s.fi0 = fb.i0; s.fv = fb.v; }
+  }
+  storeStep() { const m = bookMid(this.book.bestBid, this.book.bestAsk); return m > 0 ? this.store(m).step : 0; }
   sample() {
     const now = Date.now();
     if (now - this.lastSample < BOOK_SAMPLE_MS) return;
+    const mid = bookMid(this.book.bestBid, this.book.bestAsk);
+    if (!(mid > 0)) return;
     this.lastSample = now;
-    const s = packBook(this.book);
-    if (!s.o.length) return;
-    s.ts = now; s.bestBid = this.book.bestBid; s.bestAsk = this.book.bestAsk;
+    const { step, range } = this.store(mid);
+    const s = bucketBook(this.book, step, range);
+    if (!s || !s.v.length) return;
+    s.ts = now;
+    this.addFine(s, step, mid);
     this.history = pushBookSample(this.history, s);
+    this.pending.push(s);
   }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
+  close() { try { this.stop(); } catch (e) {} clearInterval(this.flushTm); domSave(this); }
 }
 function acquireBookFeed(provider, ticker, fn) {
   const key = bookKey(provider, ticker);
   let f = bookFeeds.get(key);
   if (!f) { f = new BookFeed(provider, ticker); bookFeeds.set(key, f); }
   clearTimeout(f.closeTm); f.refs++; f.listeners.add(fn);
-  return { feed: f, release() {
-    f.listeners.delete(fn);
-    if (--f.refs > 0) return;
-    f.closeTm = setTimeout(() => { if (f.refs <= 0) { try { f.stop(); } catch (e) {} bookFeeds.delete(key); } }, 10000);
-  } };
+  return { feed: f,
+    want(w) { f.wants.set(fn, w); },
+    release() {
+      f.listeners.delete(fn); f.wants.delete(fn);
+      if (--f.refs > 0) return;
+      f.closeTm = setTimeout(() => { if (f.refs <= 0) { f.close(); bookFeeds.delete(key); } }, 10000);
+    } };
 }
-// Bucket one sample by price step -> { i: Int32Array bucket indices, v: Float32Array signed size
-// (+ bid, - ask) }. Bids only fall in buckets <= the mid's bucket and asks in buckets >= it, and
-// the touch (1 bucket either side of the mid) is skipped, so a bucket never holds both sides.
-// The levels are already sorted outward from the mid, so this is one linear pass. Only ONE step
-// is cached per sample, and the renderer drops the cache of samples it no longer draws
-// (binFrame), so at most the drawn columns hold bins at any time.
-function binSample(s, step) {
-  if (s.bins && s.binStep === step) return s.bins;
-  const o = s.o, q = s.q, nb = s.nb, n = o.length, mid = s.mid, tk = s.tick;
-  const mi = Math.floor(mid / step + 1e-9);
-  const ii = new Int32Array(n), vv = new Float32Array(n);
-  let m = 0, cur = 0, acc = 0, has = false;
-  const flush = () => { if (has && Math.abs(cur - mi) > 1 && acc !== 0) { ii[m] = cur; vv[m++] = acc; } };
-  for (let k = 0; k < n; k++) {
-    if (k === nb) { flush(); has = false; acc = 0; }
-    const p = tk > 0 ? Math.round((mid + o[k]) / tk) * tk : mid + o[k];
-    const i = Math.floor(p / step + 1e-9);
-    if (!has || i !== cur) { flush(); cur = i; acc = 0; has = true; }
-    acc += q[k];
+// One sample's rows at the frame step -> flat [bucket, value, ...] within [iLo, iHi]. Same step:
+// read straight off. A coarser frame step (an integer multiple, see render) sums rows; a sample
+// stored coarser than the frame (recorded before a finer manual bucket) spreads each row evenly
+// over the frame rows it covers. The frame's mid row is skipped (it would mix both sides).
+function rowsAt(s, step, iLo, iHi, out) {
+  const v = s.v, n = v.length, ss = s.step, mi = rowOf(s.mid, step);
+  if (Math.abs(ss - step) < 1e-9 * step) {
+    for (let k = 0; k < n; k++) { const i = s.i0 + k, x = v[k]; if (x !== 0 && i >= iLo && i <= iHi && i !== mi) out.push(i, x); }
+    return out;
   }
-  flush();
-  s.bins = { i: m < n ? ii.slice(0, m) : ii, v: m < n ? vv.slice(0, m) : vv };
-  s.binStep = step;
-  return s.bins;
+  if (ss < step) {
+    let cur = 0, acc = 0, has = false;
+    const flush = () => { if (has && acc !== 0 && cur >= iLo && cur <= iHi && cur !== mi) out.push(cur, acc); };
+    for (let k = 0; k < n; k++) {
+      if (v[k] === 0) continue;
+      const i = Math.floor((s.i0 + k + 0.5) * ss / step);
+      if (has && i !== cur) { flush(); acc = 0; }
+      if (has && acc !== 0 && Math.sign(acc) !== Math.sign(v[k])) { flush(); acc = 0; }
+      cur = i; has = true; acc += v[k];
+    }
+    flush();
+    return out;
+  }
+  const per = Math.max(1, Math.round(ss / step));
+  for (let k = 0; k < n; k++) {
+    const x = v[k];
+    if (x === 0) continue;
+    const j0 = rowOf((s.i0 + k) * ss, step);
+    for (let j = j0; j < j0 + per; j++) if (j >= iLo && j <= iHi && j !== mi) out.push(j, x / per);
+  }
+  return out;
 }
-let domFrame = 0, domStep = 0, domRebinMs = null, domRebinCols = 0;
-const domBinned = new Set(); // samples currently holding a bins cache
+// A sample's rows at the frame step, fine layer first: when the frame step is finer than the
+// coarse rows and the sample has a fine layer, rows inside the fine band come from it and the
+// rest from the coarse rows (spread evenly), so close zooms are sharp near the price and the
+// far levels still show.
+function sampleRows(s, step, iLo, iHi, out) {
+  if (!s.fv || !(step < s.step) || s.fs > step * 1.0001) return rowsAt(s, step, iLo, iHi, out);
+  const fLo = rowOf(s.fi0 * s.fs + s.fs * 0.5, step), fHi = rowOf((s.fi0 + s.fv.length) * s.fs - s.fs * 0.5, step);
+  rowsAt({ mid: s.mid, step: s.fs, i0: s.fi0, v: s.fv }, step, Math.max(iLo, fLo), Math.min(iHi, fHi), out);
+  if (iLo < fLo) rowsAt(s, step, iLo, fLo - 1, out);
+  if (iHi > fHi) rowsAt(s, step, fHi + 1, iHi, out);
+  return out;
+}
+let domStep = 0, domRebinMs = null, domRebinCols = 0;
 const quant = (sorted, f) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * f)))] : 0;
 let domLast = null; // last frame summary, for the browser test (window.__stkFlow.domDebug())
 export function domDebug() { return domLast; }
-// Test hook: fill every open book feed's history to BOOK_HISTORY_MAX samples (1 s apart,
-// ending at the oldest real sample) built from its current book with a small random walk, so
-// the real indicator draws a full-cap history. binLast: also bin the newest binLast samples at
-// binStep (what the renderer caches for its drawn columns), to measure the worst case
-// synchronously. Returns the feed's sample count and bytes.
-export function domDebugFill(n, binLast, binStep) {
+// Test hook: fill every open book feed's history to the full 6 h cap (1 s samples for the newest
+// 30 min, 5 s before that, ending at the oldest real sample), bucketed from its current book
+// with a small random walk, so the real indicator draws a full-cap history. Returns the feed's
+// sample count and bytes. (binLast / binStep are accepted for older callers and ignored: rows
+// are bucketed at store time, nothing is cached per frame.)
+export function domDebugFill() {
   const out = [];
   bookFeeds.forEach((f) => {
     const mid0 = bookMid(f.book.bestBid, f.book.bestAsk);
     if (!(mid0 > 0)) return;
-    const sd = bookSides(f.book), tick = bookTick(sd.bp, sd.ap) || mid0 * 1e-6;
-    const want = Math.min(BOOK_HISTORY_MAX, n || BOOK_HISTORY_MAX) - f.history.length;
+    const { step, range } = f.store(mid0);
+    const base = bucketBook(f.book, step, range);
+    if (!base) return;
+    const fs = f.fineStep(mid0), fb = fs < step / 1.5 ? bucketBook(f.book, fs, BOOK_FINE_RANGE) : null;
     const t0 = f.history.length ? f.history[0].ts : Date.now();
     const syn = [];
-    let shift = 0;
-    for (let k = want; k >= 1; k--) {
-      shift += Math.round((Math.random() - 0.5) * mid0 * 0.0002 / tick) * tick;
-      const bp = sd.bp.map(p => p + shift), ap = sd.ap.map(p => p + shift);
-      const bq = sd.bq.map(x => x * (0.6 + Math.random() * 0.8)), aq = sd.aq.map(x => x * (0.6 + Math.random() * 0.8));
-      const s = packSides(bp, bq, ap, aq, mid0 + shift, tick);
-      s.ts = t0 - k * BOOK_SAMPLE_MS; s.bestBid = bp[0]; s.bestAsk = ap[0];
+    let t = t0, shift = 0;
+    const fineEdge = Date.now() - BOOK_FINE_MS;
+    for (let k = 0; k < BOOK_HISTORY_MAX * 2 && t > Date.now() - BOOK_KEEP_MS + BOOK_THIN_MS; k++) {
+      t -= t > fineEdge ? BOOK_SAMPLE_MS : BOOK_THIN_MS;
+      shift += Math.round((Math.random() - 0.5) * 2) * step;
+      const v = new Float32Array(base.v.length);
+      for (let j = 0; j < v.length; j++) v[j] = base.v[j] * (0.6 + Math.random() * 0.8);
+      const s = { ts: t, mid: mid0 + shift, bb: base.bb + shift, ba: base.ba + shift, step, i0: base.i0 + Math.round(shift / step), v };
+      if (fb && t > fineEdge) { const w = new Float32Array(fb.v.length); for (let j = 0; j < w.length; j++) w[j] = fb.v[j] * (0.6 + Math.random() * 0.8); s.fs = fs; s.fi0 = fb.i0 + Math.round(shift / fs); s.fv = w; }
       syn.push(s);
     }
+    syn.reverse();
     f.history = syn.concat(f.history);
-    if (binLast > 0 && binStep > 0) f.history.slice(-binLast).forEach((s) => { binSample(s, binStep); s.binFrame = domFrame; domBinned.add(s); });
     f.bump();
-    out.push(Object.assign({ key: f.key, levelsInBook: sd.bp.length + sd.ap.length }, domDebugBytes(f)));
+    out.push(Object.assign({ key: f.key, levelsInBook: f.book.bids.size + f.book.asks.size, step, rows: base.v.length }, domDebugBytes(f)));
   });
   return out;
 }
+// Bytes the history holds: row data + ~140 B per sample (object, Float32Array header, numbers).
 export function domDebugBytes(f) {
-  let samples = 0, bytes = 0, levels = 0, bins = 0;
+  let samples = 0, bytes = 0, rows = 0;
   (f ? [f] : [...bookFeeds.values()]).forEach((x) => x.history.forEach((s) => {
-    samples++; levels += s.o.length; bytes += s.o.byteLength + s.q.byteLength + 96;
-    if (s.bins) { bins++; bytes += s.bins.i.byteLength + s.bins.v.byteLength + 48; }
+    samples++; rows += s.v.length; bytes += s.v.byteLength + 140 + (s.fv ? s.fv.byteLength + 80 : 0);
   }));
-  return { samples, avgLevels: samples ? Math.round(levels / samples) : 0, binned: bins, bytes };
+  return { samples, avgLevels: samples ? Math.round(rows / samples) : 0, avgRows: samples ? Math.round(rows / samples) : 0, binned: 0, bytes };
 }
+// "recording since HH:MM" in the CHART's timezone (the one its time axis and clock use: the
+// workspace's timezone, WS.getState().timezone; default Etc/UTC), not the browser's.
+function chartTz() {
+  let tz = '';
+  try { const w = window.STRYKER_VELA; tz = (w && w.timezone) || (w && w.getState && w.getState().timezone) || ''; } catch (e) {}
+  return !tz || tz === 'UTC' ? 'Etc/UTC' : tz;
+}
+const tzFmt = new Map();
+function hhmm(ms, tz) {
+  let f = tzFmt.get(tz);
+  if (!f) {
+    try { f = new Intl.DateTimeFormat('en-GB', { timeZone: tz, hourCycle: 'h23', hour: '2-digit', minute: '2-digit' }); }
+    catch (e) { f = new Intl.DateTimeFormat('en-GB', { timeZone: 'Etc/UTC', hourCycle: 'h23', hour: '2-digit', minute: '2-digit' }); }
+    tzFmt.set(tz, f);
+  }
+  const p = f.formatToParts(new Date(ms));
+  const g = (k) => (p.find((x) => x.type === k) || {}).value || '00';
+  return g('hour') + ':' + g('minute');
+}
+const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 function cryptoDomLayer() {
   let canvas = null;
   return {
@@ -1588,8 +1857,10 @@ function cryptoDomLayer() {
       const W = co.width;
       const span = Math.max(1e-12, a.scale.max - a.scale.min);
       const yOf = (p) => co.priceToY(p, a.scale, a.bounds);
-      // Price bucket: manual size, or "auto" = a nice step of ~1/120 of the visible range, at
-      // least 3 px tall so phones still get readable rows.
+      // Price row: manual size, or "auto" = a nice step of ~1/120 of the visible range, at least
+      // 3 px tall. Never finer than the rows the history is stored in; a coarser frame step is a
+      // whole multiple of the stored step, so stored rows sum exactly.
+      const sst = f.storeStep() || (f.history.length ? f.history[f.history.length - 1].step : 0);
       let step = cfg.bucket;
       if (!(step > 0)) {
         step = niceStep(span / 120);
@@ -1597,7 +1868,12 @@ function cryptoDomLayer() {
         const pxStep = Math.abs(yOf(midP + step) - yOf(midP));
         if (pxStep < 3) step = niceStep(step * 3 / Math.max(pxStep, 0.01));
       }
-      if (Math.abs(yOf(a.scale.min) - yOf(a.scale.min + step)) < 1) step = niceStep(span / 300);
+      // Frame step: a whole multiple of the stored rows (coarse, or the fine layer when the frame
+      // is finer than the coarse rows), so stored rows sum exactly.
+      const mid0 = bookMid(f.book.bestBid, f.book.bestAsk);
+      const fst = mid0 > 0 ? f.fineStep(mid0) : 0;
+      const unit = sst > 0 && step < sst * 0.999 && fst > 0 && fst < sst / 1.5 ? fst : sst;
+      if (unit > 0) step = step <= unit * 1.0001 ? unit : unit * Math.max(1, Math.round(step / unit));
       const iLo = Math.floor(a.scale.min / step) - 1, iHi = Math.ceil(a.scale.max / step) + 1;
       const rowY = (i) => { const y0 = yOf((i + 1) * step), y1 = yOf(i * step); return [Math.min(y0, y1), Math.abs(y1 - y0)]; };
       // Depth bars: ~widthPct of the chart, in the empty space right of "now" when the chart
@@ -1611,38 +1887,43 @@ function cryptoDomLayer() {
       }
       const right = cfg.depth ? depthX - 2 : W;
       const bidRgb = rgbOf(cfg.bid).join(','), askRgb = rgbOf(cfg.ask).join(',');
-      const stat = { view: cfg.view, step, samples: 0, columns: 0, cells: 0, depthBars: 0, walls: [], base: f.base, width: W };
+      const stat = { view: cfg.view, step, storeStep: sst, fineStep: fst, samples: 0, columns: 0, cells: 0, depthBars: 0, walls: [], base: f.base, width: W,
+        scaleMin: a.scale.min, scaleMax: a.scale.max };
 
       // ---- history -> pixel columns (>= 2 px wide), x from the chart's own time axis ----
       const now = Date.now();
       const hist = (f.history || []).filter(h => now - h.ts <= cfg.historyMin * 60000);
-      stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0;
+      stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
+      const newest = f.history[f.history.length - 1];
+      if (newest) { stat.rowLo = newest.i0 * newest.step; stat.rowHi = (newest.i0 + newest.v.length) * newest.step; stat.mid = newest.mid; stat.rows = newest.v.length; }
       const cols = [];
       if (cfg.heat || cfg.walls) {
         for (let k = 0; k < hist.length; k++) {
           const s = hist[k];
           const x0 = co.timeToX(s.ts);
-          const x1 = k + 1 < hist.length ? co.timeToX(hist[k + 1].ts) : co.timeToX(s.ts + BOOK_SAMPLE_MS);
+          // a column never stretches over a gap (page closed / thinned): at most 10 s wide
+          const tEnd = k + 1 < hist.length ? Math.min(hist[k + 1].ts, s.ts + 10000) : s.ts + BOOK_SAMPLE_MS;
+          const x1 = co.timeToX(tEnd);
           if (!Number.isFinite(x0) || x1 < 0 || x0 > right) continue;
           const last = cols[cols.length - 1];
-          if (last && x0 - last.x0 < 2) { last.x1 = x1; last.s = s; last.ts1 = s.ts; continue; }
+          if (last && x0 - last.x0 < 2 && s.ts - last.ts1 < 10000) { last.x1 = x1; last.s = s; last.ts1 = s.ts; continue; }
           cols.push({ x0, x1, s, ts0: s.ts, ts1: s.ts });
         }
       }
       // visible values (all columns + the current book) -> percentiles
-      const curBins = binSample(packBook(f.book), step);
+      const range = cfg.range;
+      const curS = bucketBook(f.book, step, range);
+      const curFlat = curS ? rowsAt(curS, step, iLo, iHi, []) : [];
       const vals = [];
-      const frame = ++domFrame;
+      let rLo = Infinity, rHi = -Infinity;
       const colBins = cols.map(c => {
-        const bn = binSample(c.s, step), out = [];
-        c.s.binFrame = frame; domBinned.add(c.s);
-        for (let k = 0; k < bn.i.length; k++) { const i = bn.i[k]; if (i >= iLo && i <= iHi) { const v = bn.v[k]; out.push(i, v); vals.push(Math.abs(v)); } }
+        const out = sampleRows(c.s, step, iLo, iHi, []);
+        for (let k = 0; k < out.length; k += 2) { vals.push(Math.abs(out[k + 1])); if (out[k] < rLo) rLo = out[k]; if (out[k] > rHi) rHi = out[k]; }
         return out;
       });
-      // free the bins of every sample not drawn in this frame (scrolled away, thinned, or other step)
-      domBinned.forEach(s => { if (s.binFrame !== frame) { s.bins = null; s.binStep = 0; domBinned.delete(s); } });
+      if (rHi >= rLo) { stat.dataLo = rLo * step; stat.dataHi = (rHi + 1) * step; }
       const curRows = [];
-      for (let k = 0; k < curBins.i.length; k++) { const i = curBins.i[k]; if (i >= iLo && i <= iHi) curRows.push([i, curBins.v[k]]); }
+      for (let k = 0; k < curFlat.length; k += 2) curRows.push([curFlat[k], curFlat[k + 1]]);
       if (!vals.length) curRows.forEach(r => vals.push(Math.abs(r[1])));
       vals.sort((x, y) => x - y);
       const qLo = quant(vals, cfg.hide), cap = Math.max(qLo * 1.0001, quant(vals, 0.985));
@@ -1653,11 +1934,13 @@ function cryptoDomLayer() {
       // ---- heatmap: run-length merged cells per bucket ----
       if (cfg.heat && cols.length) {
         g.save(); g.beginPath(); g.rect(0, top, Math.max(0, right), a.bounds.height); g.clip();
-        const open = new Map(); // bucket -> { x0, x1, key, style }
+        const open = new Map(); // bucket -> { x0, x1, style }
+        let hLo = Infinity, hHi = -Infinity;
         const flush = (i, r) => {
           const [y, h] = rowY(i);
           if (y > bot || y + h < top) return;
           g.fillStyle = r.style; g.fillRect(r.x0, y, Math.max(1, r.x1 - r.x0 + 0.5), h + 0.5); stat.cells++;
+          if (i < hLo) hLo = i; if (i > hHi) hHi = i;
         };
         const styleOf = (v) => {
           const n = Math.pow(Math.max(0, (Math.abs(v) - qLo) / (cap - qLo)), 0.75);
@@ -1683,6 +1966,7 @@ function cryptoDomLayer() {
         }
         open.forEach((r, i) => flush(i, r));
         g.restore();
+        if (hHi >= hLo) { stat.heatLo = hLo * step; stat.heatHi = (hHi + 1) * step; }
         if (cfg.view === 'heat' && cfg.showScale) {
           // top-right corner (the chart legend owns the top-left), on a small backing box
           g.font = '10px ' + font; g.textAlign = 'left';
@@ -1746,6 +2030,7 @@ function cryptoDomLayer() {
         let mx = 0;
         curRows.forEach(r => { if (Math.abs(r[1]) > mx) mx = Math.abs(r[1]); });
         const x0 = depthX, wmax = depthW - 4;
+        let dLo = Infinity, dHi = -Infinity;
         for (const [i, v] of curRows) {
           const [y, h] = rowY(i);
           if (y > bot || y + h < top) continue;
@@ -1753,13 +2038,32 @@ function cryptoDomLayer() {
           g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',0.75)';
           g.fillRect(x0, y + (h > 3 ? 0.5 : 0), w, Math.max(1, h - (h > 3 ? 1 : 0)));
           stat.depthBars++;
+          if (i < dLo) dLo = i; if (i > dHi) dHi = i;
         }
+        if (dHi >= dLo) { stat.depthLo = dLo * step; stat.depthHi = (dHi + 1) * step; }
         if (depthW >= 64) {
           g.font = '10px ' + font; g.textAlign = 'left';
           const tw = g.measureText('RESTING').width;
           g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(x0, top + 2, tw + 6, 14);
           g.fillStyle = light ? 'rgba(71,85,105,.95)' : 'rgba(139,147,160,.95)'; g.fillText('RESTING', x0 + 3, top + 12);
         }
+      }
+
+      // ---- "recording since HH:MM" by the heatmap's first column, so older candles with no
+      // heatmap are explained (history exists only from when this page started recording) ----
+      if ((cfg.heat || cfg.walls) && cols.length && cols[0].x0 > 2) {
+        const tz = chartTz();
+        const lab = 'recording since ' + hhmm(cols[0].ts0, tz);
+        g.font = '10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle';
+        const tw = g.measureText(lab).width, x = cols[0].x0;
+        const tx = x - tw - 8 >= 2 ? x - tw - 6 : Math.min(x + 6, Math.max(2, right - tw - 4));
+        const y = bot - 12;
+        g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(tx - 3, y - 7, tw + 6, 14);
+        g.fillStyle = light ? 'rgba(71,85,105,.95)' : 'rgba(139,147,160,.95)'; g.fillText(lab, tx, y + 0.5);
+        g.strokeStyle = light ? 'rgba(71,85,105,.5)' : 'rgba(139,147,160,.45)'; g.lineWidth = 1; g.setLineDash([2, 3]);
+        g.beginPath(); g.moveTo(Math.round(x) + 0.5, top); g.lineTo(Math.round(x) + 0.5, bot); g.stroke(); g.setLineDash([]);
+        g.textBaseline = 'alphabetic';
+        stat.since = lab; stat.sinceX = Math.round(tx); stat.sinceTs = cols[0].ts0; stat.sinceTz = tz;
       }
 
       if (cfg.showBest) {
@@ -1777,30 +2081,35 @@ function cryptoDomLayer() {
       // timing of the frame where the bucket step changed (zoom / pan re-bins every drawn column)
       const ms = performance.now() - tStart;
       if (step !== domStep) { domStep = step; domRebinMs = Math.round(ms * 10) / 10; domRebinCols = cols.length; }
-      stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = domBinned.size;
+      stat.ms = Math.round(ms * 10) / 10; stat.rebinMs = domRebinMs; stat.rebinCols = domRebinCols; stat.binned = 0;
       domLast = stat;
     },
     destroy() { canvas = null; }
   };
 }
+// Hiding the indicator (eye) keeps the feed open, so the page keeps recording; only removing
+// it, switching symbol or leaving the page stops recording for that symbol.
 class CryptoDomNative {
-  constructor() { this.inputs = {}; this.h = null; this.tm = 0; this.onTheme = () => this.render(); }
+  constructor() { this.inputs = {}; this.h = null; this.tm = 0; this.hidden = false; this.onTheme = () => this.render(); }
   start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; window.addEventListener('stryker:theme', this.onTheme); this.attach(); }
   attach() {
     if (!this.ctx) return;
-    this.detach();
     const mk = marketOf(this.ctx);
-    this.block = mk.provider === 'binance' ? '' : BOOK_NEEDS_BINANCE;
-    if (!this.block) this.h = acquireBookFeed('binance', mk.ticker, () => this.later());
+    const want = mk.provider === 'binance' ? bookKey('binance', mk.ticker) : '';
+    if (this.h && this.h.feed.key === want) { this.wantNow(); this.render(); return; }
+    this.detach();
+    this.block = want ? '' : BOOK_NEEDS_BINANCE;
+    if (!this.block) { this.h = acquireBookFeed('binance', mk.ticker, () => this.later()); this.wantNow(); }
     this.render();
   }
+  wantNow() { if (this.h) { const c = domConfig(this.inputs); this.h.want({ bucket: c.bucket, range: c.range }); } }
   detach() { if (this.h) { this.h.release(); this.h = null; } clearTimeout(this.tm); this.tm = 0; }
-  later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
+  later() { if (!this.tm && !this.hidden) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() {}
   onViewport() {}
-  setInputs(i) { this.inputs = i; this.render(); }
-  suspend() { this.detach(); }
-  resume() { this.attach(); }
+  setInputs(i) { this.inputs = i; this.wantNow(); this.render(); }
+  suspend() { this.hidden = true; clearTimeout(this.tm); this.tm = 0; }
+  resume() { this.hidden = false; this.attach(); }
   stop() { this.detach(); window.removeEventListener('stryker:theme', this.onTheme); }
   note() {
     if (this.block) return this.block;
@@ -1813,7 +2122,7 @@ class CryptoDomNative {
     return '';
   }
   render() {
-    if (!this.ctx) return;
+    if (!this.ctx || this.hidden) return;
     const msg = this.note();
     const f = this.h && this.h.feed;
     this.ctx.setStatus(!f || this.block ? 'idle' : f.status === 'live' ? 'live' : f.status === 'error' ? 'idle' : 'loading');

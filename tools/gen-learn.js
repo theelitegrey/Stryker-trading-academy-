@@ -128,7 +128,7 @@ function faqs(body) {
 
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const V = (p) => `${p}?v=${BUILD}`;
-const LOGO = `${ORIGIN}/assets/images/tradezoro-logo-header-494.png?v=505`;
+const LOGO = `${ORIGIN}/assets/images/tradezoro-logo-header-494.png?v=506`;
 // Share images come from tools/og/pages.json (rendered by tools/og/gen_og.py).
 const OG_TABLE = JSON.parse(fs.readFileSync(path.join(__dirname, 'og', 'pages.json'), 'utf8')).pages;
 function ogFor(key) {

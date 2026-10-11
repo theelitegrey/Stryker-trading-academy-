@@ -55,6 +55,16 @@
     var f = fullOf(plan);
     return money(priceOf(plan)) + (f ? ' <s class="pv-was">' + money(f) + '</s>' : '');
   }
+  // The Pro spotlight price row: "$39 / month" stays together, then the
+  // struck list price (only while a sale is really on) as a second group that
+  // wraps as one unit. No "% OFF" pill (CoS, 2026-10-11).
+  function heroPriceHtml(plan) {
+    var f = fullOf(plan);
+    return '<div class="pv-price pv-price-xl' + (f ? ' is-sale' : '') + '">' +
+      '<span class="pv-main"><span class="pv-amt">' + money(priceOf(plan)) + '</span><span class="pv-per">/ ' + per(plan) + '</span></span>' +
+      (f ? '<span class="pv-was-grp"><s class="pv-was">' + money(f) + '</s></span>' : '') +
+      '</div>';
+  }
 
   // "chapters 1–10" from the Free plan's chapterAccess ("1-10"), so the strip
   // follows the plan record rather than a typed number.
@@ -107,7 +117,7 @@
     if (v === false) return DASH;
     if (v === '@free-ch') {
       var m = String(P.free.chapterAccess || '').match(/^(\d+)\s*-\s*(\d+)$/);
-      v = m ? 'Chapters ' + m[1] + '–' + m[2] : 'Starter chapters';
+      v = m ? 'Chapters ' + m[1] + '–' + m[2] : 'First chapters';
     }
     return '<span class="pv-lim">' + esc(v) + '</span>';
   }
@@ -221,7 +231,7 @@
         '<div class="pv-hero-l">' +
           '<span class="pv-pill">Most popular</span>' +
           '<h3>' + esc(proName) + '</h3>' +
-          '<div class="pv-price pv-price-xl"><span class="pv-amt">' + priceHtml(P.pro) + '</span><span class="pv-per">/ ' + per(P.pro) + '</span></div>' +
+          heroPriceHtml(P.pro) +
           (P.yearly ? '<a class="plan-yearly" href="' + checkoutHref(P.yearly) + '">or ' + money(priceOf(P.yearly)) + '/year' + (save ? ', save about ' + save + '%' : '') + ' →</a>' : '') +
           '<a href="' + checkoutHref(P.pro) + '" class="btn btn-primary pv-cta-xl" data-pro-cta>' + ctaLabel(P.pro, 'Join Pro') + '</a>' +
           '<p class="pv-sub">Billed ' + (per(P.pro) === 'year' ? 'yearly' : 'monthly') + '. Cancel anytime.</p>' +

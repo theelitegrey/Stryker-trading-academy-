@@ -111,8 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (trialing) cancelBtn.textContent = 'Cancel free trial';
             cancelBtn.addEventListener('click', () => {
               if (!confirm(trialing
-                ? 'Cancel your free trial?\n\nYou won\'t be charged. Your ' + (student.plan || 'plan') + ' access continues until ' + dateLabel + '.'
-                : 'Switch off auto-renewal?\n\nYour ' + (student.plan || 'plan') +
+                ? 'Cancel your free trial?\n\nYou won\'t be charged. Your ' + (student.plan ? (typeof labelOf === 'function' ? labelOf(student.plan) : student.plan) : 'plan') + ' access continues until ' + dateLabel + '.'
+                : 'Switch off auto-renewal?\n\nYour ' + (student.plan ? (typeof labelOf === 'function' ? labelOf(student.plan) : student.plan) : 'plan') +
                            ' access continues until ' + dateLabel + ' — after that you can renew manually.')) return;
               cancelBtn.disabled = true; cancelBtn.textContent = 'Cancelling…';
               let fns = null;

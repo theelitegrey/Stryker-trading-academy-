@@ -7,17 +7,17 @@ let CURRENT_PAGE_ACCESS = {};
 function renderRolesSummary(plans){
   const container = document.getElementById('roles-summary-list');
   if (!plans.length) {
-    container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No plans exist yet — <a href="billing-admin.html" style="color:var(--teal);">create your Starter/Pro/Elite plans first</a>, then come back here to set page and content access.</p>';
+    container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No plans exist yet — <a href="billing-admin.html" style="color:var(--teal);">create your Free and Pro plans first</a>, then come back here to set page and content access.</p>';
     return;
   }
   container.innerHTML = plans.map((p) => {
-    const color = p.color || '#8b93a0';
+    const color = (typeof planPillColor === 'function') ? planPillColor(p) : (p.color || '#8b93a0');
     return (
       '<div class="record-card" style="align-items:center;">' +
         '<div style="display:flex; align-items:center; gap:12px; flex:1;">' +
           '<span style="width:14px; height:14px; border-radius:50%; background:' + color + '; flex-shrink:0; display:inline-block;"></span>' +
           '<div>' +
-            '<span class="cell-name">' + stkEsc(p.name || 'Untitled plan') + '</span>' +
+            '<span class="cell-name">' + stkEsc(p.name ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name) : 'Untitled plan') + '</span>' +
             '<div style="font-family:var(--font-mono); font-size:11.5px; color:var(--ink-3); margin-top:3px;">rank ' + (p.rank ?? 0) + ' · $' + (p.price || '0') + '/' + (p.period || 'month') + ' · chapters: ' + (p.chapterAccess || 'all') + '</div>' +
           '</div>' +
         '</div>' +

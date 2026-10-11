@@ -6,7 +6,8 @@
 //   rank:  integer, higher = more access (0 = lowest tier). Used for
 //          hierarchical comparison — Elite (rank 2) can see anything
 //          gated to Pro (rank 1) or Starter (rank 0).
-//   color: hex string, used for the role tag shown next to a user's name.
+//   color: hex string kept on the doc; the UI no longer paints with it (see
+//          planPillColor below).
 //
 // Content items (chapters, models) store a `minRole` field holding the
 // REQUIRED PLAN'S ID. Pages store their requirement centrally in
@@ -88,14 +89,45 @@ function rankOf(idOrName){
   return plan ? (plan.rank ?? 0) : 0;
 }
 
+// Plan pills use the site palette, not the raw plan.color primaries stored
+// in Firestore (Pro's is #ff0000): paid plans are mint, the free entry plan
+// is neutral grey (Owner, 2026-10-12).
+const PLAN_PILL_PAID = '#03c988';
+const PLAN_PILL_FREE = '#8b93a0';
+function planPillColor(plan){
+  if (!plan) return PLAN_PILL_FREE;
+  return (plan.rank ?? 0) > 0 || plan.archived === true ? PLAN_PILL_PAID : PLAN_PILL_FREE;
+}
+
 function colorOf(idOrName){
+  return planPillColor(findPlan(idOrName));
+}
+
+// Only Free and Pro exist for members (Owner, 2026-10-12). Stored keys stay
+// as they are ('Starter' is pinned by the Firestore rules; 'Elite' is held
+// by legacy members), only the shown name changes:
+//   labelOf()       member-facing: Starter -> Free, archived Elite -> Pro
+//   adminPlanLabel() admin pages:  Starter -> Free, archived Elite -> Pro (legacy)
+// Both also map the two old keys when the plans list has not loaded (or a
+// stored name no longer matches a plan), so a raw key never leaks through.
+const LEGACY_PLAN_LABELS = { starter: ['Free', 'Free'], elite: ['Pro', 'Pro (legacy)'] };
+function planLabelFor(idOrName, admin){
   const plan = findPlan(idOrName);
-  return plan && plan.color ? plan.color : '#8b93a0';
+  if (plan) {
+    if (plan.archived === true) return admin ? 'Pro (legacy)' : 'Pro';
+    return String(plan.displayName || plan.name || '');
+  }
+  const legacy = LEGACY_PLAN_LABELS[String(idOrName || '').trim().toLowerCase()];
+  if (legacy) return legacy[admin ? 1 : 0];
+  return String(idOrName || '');
 }
 
 function labelOf(idOrName){
-  const plan = findPlan(idOrName);
-  return plan ? (plan.displayName || plan.name) : String(idOrName || '');
+  return planLabelFor(idOrName, false);
+}
+
+function adminPlanLabel(idOrName){
+  return planLabelFor(idOrName, true);
 }
 
 // Parses a plan's `chapterAccess` field into a numeric ceiling.
@@ -195,7 +227,8 @@ function roleTagHtml(planNameOrId, opts){
   if (!planNameOrId) return '';
   const plan = findPlan(planNameOrId);
   if (!plan) return '';
-  const color = plan.color || '#8b93a0';
+  const color = planPillColor(plan);
+  const label = (opts && opts.admin) ? adminPlanLabel(planNameOrId) : labelOf(planNameOrId);
   const size = (opts && opts.size) || 'normal';
   const fontSize = size === 'small' ? '9.5px' : '10.5px';
   const pad = size === 'small' ? '1px 6px' : '2px 8px';
@@ -209,7 +242,7 @@ function roleTagHtml(planNameOrId, opts){
     '--plan-c:' + color + '; --shine-dur:' + (2.6 + Math.random() * 2.6).toFixed(2) + 's; ' +
     '--shine-delay:-' + (Math.random() * 8).toFixed(2) + 's; ' +
     'background:' + color + '1a; border:1px solid ' + color + '55; vertical-align:middle;">' +
-    escapeRoleTagText(plan.displayName || plan.name) + '</span>'
+    escapeRoleTagText(label) + '</span>'
   );
 }
 

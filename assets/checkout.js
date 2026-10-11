@@ -382,12 +382,12 @@ function handleStripeReturn(uid){
     if (!((s.paidThroughMillis || 0) > started - 60000)) return;
     done = true; setTimeout(() => unsub(), 0);
     okEl.innerHTML = (isTrial || s.subscriptionStatus === 'trialing')
-      ? '<b>Your free trial has started.</b> ' + stkEsc(s.plan || 'Your plan') + ' is unlocked until ' +
+      ? '<b>Your free trial has started.</b> ' + stkEsc(s.plan ? (typeof labelOf === 'function' ? labelOf(s.plan) : s.plan) : 'Your plan') + ' is unlocked until ' +
         stkEsc(new Date(s.paidThroughMillis).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })) +
         '. Taking you to your dashboard…'
-      : '<b>You\'re in.</b> Your ' + stkEsc(s.plan || 'plan') + ' access is active. Taking you to your dashboard…';
+      : '<b>You\'re in.</b> Your ' + stkEsc(s.plan ? (typeof labelOf === 'function' ? labelOf(s.plan) : s.plan) : 'plan') + ' access is active. Taking you to your dashboard…';
     // TODO(meta-pixel): Purchase fires here (event_id = the order id) once that branch lands.
-    if (typeof showToast === 'function') showToast('success', 'Payment confirmed: you now have ' + (s.plan || 'your plan') + '.', { title: 'Welcome aboard', duration: 2600 });
+    if (typeof showToast === 'function') showToast('success', 'Payment confirmed: you now have ' + (s.plan ? (typeof labelOf === 'function' ? labelOf(s.plan) : s.plan) : 'your plan') + '.', { title: 'Welcome aboard', duration: 2600 });
     clean();
     setTimeout(() => { window.location.href = 'dashboard-user.html'; }, 2200);
   }, () => {});
@@ -447,7 +447,7 @@ function launchRazorpay(btn, errEl){
       currency: o.currency,
       name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=506',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=507',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -518,7 +518,7 @@ function launchRazorpaySubscription(btn, errEl){
       subscription_id: o.subscriptionId,
       name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=506',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=507',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',

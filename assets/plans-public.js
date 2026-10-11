@@ -82,7 +82,6 @@ function renderPublicPlanCard(plan, offer){
   const el = document.createElement('div');
   el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
-    (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
     '<h3>' + stkEsc(planDisplayName(plan)) + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')

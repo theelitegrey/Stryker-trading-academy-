@@ -10,7 +10,7 @@ function renderTopReferrers(list){
   }
   wrap.innerHTML = '';
   list.forEach((entry, i) => {
-    const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small' }) : '';
+    const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(entry.plan, { size: 'small', admin: true }) : '';
     const avatarHtml = (typeof avatarImgHtml === 'function') ? avatarImgHtml(entry.uid, entry.name, entry, 32) : '';
     const row = document.createElement('div');
     row.className = 'record-card';

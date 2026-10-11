@@ -17,7 +17,7 @@ function loadPlansIntoCouponSelect(){
     ALL_PLANS_FOR_COUPON.forEach((plan) => {
       const opt = document.createElement('option');
       opt.value = plan.id;
-      opt.textContent = plan.name;
+      opt.textContent = (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name);
       opt.setAttribute('data-plan-option', '1');
       select.appendChild(opt);
     });
@@ -50,7 +50,7 @@ function seedWelcomeCoupon(){
 
 function planNameById(planId){
   const plan = ALL_PLANS_FOR_COUPON.find(p => p.id === planId);
-  return plan ? plan.name : (planId === 'all' ? 'Any plan' : planId);
+  return plan ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name) : (planId === 'all' ? 'Any plan' : planId);
 }
 
 function renderCouponRow(coupon){

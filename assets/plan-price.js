@@ -201,10 +201,24 @@ function planSaleInfo(plan){
   out.price = sale;
   out.sale = sale;
   out.save = full - sale;
-  out.pct = Math.round(((full - sale) / full) * 100);
-  out.label = (plan.saleLabel || '').trim() || 'Limited offer';
+  out.pct = planPctOff(full, sale);
+  out.label = (plan.saleLabel || '').trim() || 'Sale';
   out.endsMs = endsMs;
   return out;
+}
+
+// Percent off, worked out on the amounts the visitor actually sees (whole
+// rupees for INR viewers, dollars otherwise) and rounded DOWN, so it never
+// claims a bigger discount than the two printed prices show:
+// $39 / $109 = 64.2% -> 64; Rs 3,772 / Rs 10,544 = 64.2% -> 64. The tiny
+// epsilon stops float noise (e.g. 28.999999) from dropping a whole point.
+function planPctOff(full, sale){
+  if (strykerCurrency() === 'INR') {
+    full = Math.round(full * STRYKER_USD_INR);
+    sale = Math.round(sale * STRYKER_USD_INR);
+  }
+  if (!(full > 0) || !(sale >= 0) || sale >= full) return 0;
+  return Math.max(0, Math.floor(((full - sale) / full) * 100 + 1e-9));
 }
 
 // The number to actually charge / store on the order.
@@ -218,8 +232,12 @@ function planMoney(n){
 // Firestore rules pin new accounts to 'Starter'), so a rename on the public
 // side goes in `displayName` instead: plans/WuvUQyHX82ZzHP2sKLms has name
 // 'Starter', displayName 'Free' (pricing change 2026-10-05).
+// Only Free and Pro are sold (Owner, 2026-10-12): an archived plan (Elite,
+// still held by legacy members) reads as 'Pro' to members; admin pages use
+// adminPlanLabel() in roles.js for 'Pro (legacy)'.
 function planDisplayName(plan){
   if (!plan) return '';
+  if (plan.archived === true) return 'Pro';
   return String(plan.displayName || plan.name || 'Plan');
 }
 
@@ -263,7 +281,9 @@ function planPriceHtml(plan, size){
           '<span class="pp-now">' + planMoneyDisplay(s.sale) + '</span>' +
           '<span class="pp-per">/ ' + period + '</span>' +
         '</span>' +
-        '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
+        '<span class="pp-was-grp">' +
+          '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
+        '</span>' +
       '</div>' +
       '<div class="pp-tags">' +
         '<span class="pp-off"><i></i>' + planEscape(s.label) + '</span>' +

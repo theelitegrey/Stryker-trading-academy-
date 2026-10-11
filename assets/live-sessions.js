@@ -49,7 +49,7 @@ function lsCanWatch(mode){
 function lsPlanNameForRank(minRank){
   const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : [];
   const match = plans.find((p) => (p.rank ?? 0) >= minRank); // list is rank-ascending
-  return match ? match.name : null;
+  return match ? (typeof planDisplayName === 'function' ? planDisplayName(match) : (match.displayName || match.name)) : null;
 }
 
 function lsPromptUpgrade(mode){

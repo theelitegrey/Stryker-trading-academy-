@@ -85,7 +85,9 @@
 
     grid.innerHTML = '';
     upgrades.forEach(function (plan) {
-      var color = plan.color || '#00adb5';
+      // Site palette, not the raw plan.color primary (Pro's is #ff0000).
+      var color = '#03c988';
+      var shownName = (typeof planDisplayName === 'function') ? planDisplayName(plan) : (plan.displayName || plan.name || 'Plan');
       var features = (plan.features || []).slice(0, 5).map(function (f) {
         return '<li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
                'stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>' + esc(f) + '</li>';
@@ -96,9 +98,9 @@
       card.className = 'plan-modal-card' + (sale.active ? ' on-sale' : '');
       card.style.borderColor = color + '55';
       card.innerHTML =
-        (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
+        // The % off sits in the price row (planPriceHtml), not a corner flag.
         '<span class="plan-modal-pill" style="color:' + color + '; background:' + color + '1a; border-color:' + color + '55;">' +
-          esc(plan.displayName || plan.name || 'Plan') + '</span>' +
+          esc(shownName) + '</span>' +
         (typeof planPriceHtml === 'function'
           ? planPriceHtml(plan, 'md')
           : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
@@ -107,7 +109,7 @@
         '<button type="button" class="btn btn-primary plan-modal-pick">' +
           (plan.ctaLabel && String(plan.ctaLabel).trim()
             ? esc(String(plan.ctaLabel).trim())
-            : (sale.active ? 'Claim the ' + esc(plan.name || 'plan') + ' offer' : 'Choose ' + esc(plan.name || 'plan'))) +
+            : (sale.active ? 'Claim the ' + esc(shownName) + ' offer' : 'Choose ' + esc(shownName))) +
         '</button>';
 
       card.querySelector('.plan-modal-pick').addEventListener('click', function () {

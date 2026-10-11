@@ -160,7 +160,7 @@ function _trialBanner(){
       el.id = 'trial-strip';
       el.className = 'trial-strip';
       el.setAttribute('role', 'status');
-      var plan = String(s.plan || 'Pro').replace(/[<>&"]/g, '');
+      var plan = String(s.plan ? (typeof labelOf === 'function' ? labelOf(s.plan) : s.plan) : 'Pro').replace(/[<>&"]/g, '');
       el.innerHTML = s.subscriptionAutopay
         ? '<b>Free trial: ' + left + ' day' + (left === 1 ? '' : 's') + ' left.</b> ' + plan +
           ' is unlocked. Your first charge is on ' + date + ' unless you cancel before then. ' +

@@ -18,7 +18,7 @@ function planOptionsForStudent(currentPlanName){
   let opts = '<option value=""' + (!currentPlanName ? ' selected' : '') + '>Self-Paced (no plan)</option>';
   plans.forEach((p) => {
     const sel = p.name === currentPlanName ? ' selected' : '';
-    opts += '<option value="' + escapeStudentText(p.name) + '"' + sel + '>' + escapeStudentText(p.name) + '</option>';
+    opts += '<option value="' + escapeStudentText(p.name) + '"' + sel + '>' + escapeStudentText((typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name)) + '</option>';
   });
   return opts;
 }
@@ -46,7 +46,7 @@ function renderStudentsTable(students){
     const isAdminUser = CURRENT_ADMIN_UIDS.has(s.uid);
     const isModeratorUser = CURRENT_MODERATOR_UIDS.has(s.uid);
     const isStaffUser = (typeof CURRENT_STAFF_UIDS !== 'undefined') && CURRENT_STAFF_UIDS.has(s.uid);
-    const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small' }) : '';
+    const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small', admin: true }) : '';
     const card = document.createElement('div');
     // Collapsed by default. Every student's full detail was previously
     // expanded at once, so a list of twenty filled several screens and the

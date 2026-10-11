@@ -72,7 +72,7 @@ function aaFormatPlanSplit(stats){
   if (!keys.length || !total) return '';
   return keys.map(function (k) {
     var n = stats.byPlan[k] || 0;
-    return k + ' ' + Math.round((n / total) * 100) + '%';
+    return (typeof adminPlanLabel === 'function' ? adminPlanLabel(k) : k) + ' ' + Math.round((n / total) * 100) + '%';
   }).join(' · ');
 }
 
@@ -236,7 +236,7 @@ function aaRenderRecentSignups(students){
   if (!students.length) { wrap.innerHTML = '<p class="aa-empty">No data yet</p>'; return; }
   wrap.innerHTML = students.map(function (s) {
     var name = s.displayName || (s.email ? s.email.split('@')[0] : 'Unnamed');
-    var plan = s.plan || 'Free';
+    var plan = s.plan ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(s.plan) : s.plan) : 'Free';
     var ms = (s.createdAt && s.createdAt.toMillis) ? s.createdAt.toMillis() : null;
     var rel = aaRelativeTime(ms) || '\u2014';
     return '<div class="feed-row"><span class="feed-dot"></span><div><div>' +

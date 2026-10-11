@@ -256,7 +256,7 @@ function hideSessionNotice(){
           const strip = document.createElement('a');
           strip.className = 'dash-renew-strip';
           strip.href = 'checkout.html?plan=' + encodeURIComponent(s.planId || '');
-          const planName = String(s.plan || 'plan').replace(/</g, '&lt;');
+          const planName = String(s.plan ? (typeof labelOf === 'function' ? labelOf(s.plan) : s.plan) : 'plan').replace(/</g, '&lt;');
           if (msLeft <= 0) {
             strip.innerHTML = '<b>⚠ Your ' + stkEsc(planName) + ' payment is due — access pauses in a few days.</b>' +
               '<span class="renew-cta">RENEW NOW →</span>';

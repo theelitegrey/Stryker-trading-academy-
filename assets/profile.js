@@ -88,7 +88,7 @@ function renderProfileNotFound(){
 }
 
 function bannerGradientFor(plan){
-  const color = (plan && plan.color) ? plan.color : '#00adb5';
+  const color = (typeof planPillColor === 'function') ? planPillColor(plan) : '#03c988';
   return 'linear-gradient(120deg, ' + color + '33, ' + color + '08 60%, transparent)';
 }
 

@@ -19,15 +19,14 @@ function renderPlanCard(plan){
   const el = document.createElement('div');
   el.className = 'price-card' + (plan.featured ? ' featured' : '') +
     ((typeof planSaleInfo === 'function' && planSaleInfo(plan).active) ? ' on-sale' : '');
-  var ribbon = (typeof planSaleRibbonHtml === 'function') ? planSaleRibbonHtml(plan) : '';
   const featuresHtml = (plan.features || []).map(f =>
     '<li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>' + f + '</li>'
   ).join('');
-  const color = plan.color || '#8b93a0';
-  const rankBadge = '<span style="display:inline-block; margin-bottom:8px; padding:2px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; background:' + color + '1a; border:1px solid ' + color + '55;">' + (plan.name || 'role') + ' \u00b7 rank ' + (plan.rank ?? 0) + '</span>';
+  const color = (typeof planPillColor === 'function') ? planPillColor(plan) : (plan.color || '#8b93a0');
+  const rankBadge = '<span style="display:inline-block; margin-bottom:8px; padding:2px 8px; border-radius:999px; font-family:var(--font-mono); font-size:10.5px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:' + color + '; background:' + color + '1a; border:1px solid ' + color + '55;">rank ' + (plan.rank ?? 0) + '</span>';
   el.innerHTML =
     rankBadge +
-    ribbon + '<h3>' + stkEsc(plan.name || 'Untitled plan') + '</h3>' +
+    '<h3>' + stkEsc(plan.name ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name) : 'Untitled plan') + '</h3>' +
     (typeof planPriceHtml === 'function'
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
@@ -65,7 +64,7 @@ function loadPlans(){
 
 function openPlanEditor(plan){
   EDITING_PLAN_ID = plan ? plan.id : null;
-  document.getElementById('plan-edit-heading').textContent = plan ? ('Edit: ' + plan.name) : 'New plan';
+  document.getElementById('plan-edit-heading').textContent = plan ? ('Edit: ' + (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name)) : 'New plan';
   document.getElementById('plan-name').value = plan ? (plan.name || '') : '';
   document.getElementById('plan-price').value = plan ? (plan.price || '') : '';
   document.getElementById('plan-period').value = plan ? (plan.period || '') : 'month';

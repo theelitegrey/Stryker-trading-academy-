@@ -370,7 +370,7 @@ function smRenderInsider(){
 function smPlanNameForRank(minRank){
   const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : [];
   const match = plans.find((p) => (p.rank ?? 0) >= minRank);
-  return match ? match.name : null;
+  return match ? (typeof planDisplayName === 'function' ? planDisplayName(match) : (match.displayName || match.name)) : null;
 }
 
 function smShowLocked(){

@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
       plans.forEach((p) => {
         const opt = document.createElement('option');
         opt.value = p.id;
-        opt.textContent = p.name + ' (rank ' + (p.rank ?? 0) + ')';
+        opt.textContent = (typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name) + ' (rank ' + (p.rank ?? 0) + ')';
         roleSelect.appendChild(opt);
       });
 

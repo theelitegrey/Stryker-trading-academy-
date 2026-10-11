@@ -328,7 +328,7 @@ function renderTvApprovedPanel(){
   const plans = Array.from(new Set(approved.map((s) => s.plan).filter(Boolean))).sort();
   const current = filterEl.value || 'all';
   filterEl.innerHTML = '<option value="all">All plans</option>' +
-    plans.map((p) => '<option value="' + escapeIndicatorsAdminText(p) + '">' + escapeIndicatorsAdminText(p) + '</option>').join('') +
+    plans.map((p) => '<option value="' + escapeIndicatorsAdminText(p) + '">' + escapeIndicatorsAdminText((typeof adminPlanLabel === 'function' ? adminPlanLabel(p) : p)) + '</option>').join('') +
     '<option value="__founding">★ Founding members</option>';
   filterEl.value = Array.from(filterEl.options).some((o) => o.value === current) ? current : 'all';
 
@@ -368,7 +368,7 @@ function renderTvApprovedPanel(){
   list.innerHTML = '';
   rows.forEach((s) => {
     const name = s.displayName || s.name || (s.email ? s.email.split('@')[0] : 'Trader');
-    const planTag = (typeof roleTagHtml === 'function' && s.plan) ? roleTagHtml(s.plan, { size: 'small' }) : '';
+    const planTag = (typeof roleTagHtml === 'function' && s.plan) ? roleTagHtml(s.plan, { size: 'small', admin: true }) : '';
     const row = document.createElement('div');
     row.className = 'record-card';
     row.innerHTML =

@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!plan || typeof findPlan !== 'function') return;
       const p = findPlan(plan);
       if (!p || !p.name) return;
-      const color = p.color || '#8b93a0';
+      const color = (typeof planPillColor === 'function') ? planPillColor(p) : '#03c988';
       document.querySelectorAll('.sidebar > .brand, .mobile-topnav .brand').forEach((brand) => {
         let badge = brand.querySelector('.brand-plan');
         if (!badge) {
@@ -392,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         badge.style.setProperty('--plan-c', color);
         badge.style.setProperty('--shine-dur', (2.6 + Math.random() * 2.6).toFixed(2) + 's');
         badge.style.setProperty('--shine-delay', '-' + (Math.random() * 8).toFixed(2) + 's');
-        badge.textContent = p.displayName || p.name;
+        badge.textContent = (typeof labelOf === 'function') ? labelOf(plan) : (p.displayName || p.name);
       });
     }
 

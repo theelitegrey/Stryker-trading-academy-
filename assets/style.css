@@ -5048,6 +5048,8 @@ body.nav-authed .appnav-acts{ display:flex; }
 @keyframes ppSheen{ 0%,55%{ transform:translateX(-120%) } 85%,100%{ transform:translateX(120%) } }
 
 .pp-save{ font-family:var(--font-mono); font-size:11px; color:var(--gold); }
+/* The struck price keeps its own no-wrap group in the price row. */
+.pp-was-grp{ display:inline-flex; align-items:center; gap:8px; white-space:nowrap; align-self:center; }
 .pp-ends{
   font-family:var(--font-mono); font-size:10.5px; color:var(--amber);
   border:1px solid rgba(245,197,66,.32); background:rgba(245,197,66,.08);

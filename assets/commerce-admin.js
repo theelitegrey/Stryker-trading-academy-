@@ -14,7 +14,7 @@ function renderRecentOrders(orders){
     const row = document.createElement('div');
     row.className = 'event-item';
     row.innerHTML =
-      '<div class="event-body"><h4>' + stkEsc(order.studentName || 'Unknown') + ' — ' + stkEsc(order.planName || 'Plan') + '</h4>' +
+      '<div class="event-body"><h4>' + stkEsc(order.studentName || 'Unknown') + ' — ' + stkEsc(order.planName ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(order.planName) : order.planName) : 'Plan') + '</h4>' +
       '<span>' + (order.provider === 'stripe' || order.gateway === 'stripe' ? 'Stripe · ' : (String(order.gateway || '').indexOf('razorpay') === 0 ? 'Razorpay · ' : '')) +
       (order.couponCode ? 'Coupon ' + stkEsc(order.couponCode) : 'No coupon') + (createdDate ? ' · ' + createdDate.toLocaleDateString() : '') + '</span></div>';
     wrap.appendChild(row);
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
       orders.forEach((o) => { planCounts[o.planName] = (planCounts[o.planName] || 0) + 1; });
       let topPlan = '—', topCount = -1;
       Object.keys(planCounts).forEach((name) => { if (planCounts[name] > topCount) { topCount = planCounts[name]; topPlan = name; } });
-      document.getElementById('cstat-top-plan').textContent = topPlan;
+      document.getElementById('cstat-top-plan').textContent = topPlan === '—' ? topPlan : (typeof adminPlanLabel === 'function' ? adminPlanLabel(topPlan) : topPlan);
 
       renderRecentOrders(orders);
       renderTopCoupons(coupons);

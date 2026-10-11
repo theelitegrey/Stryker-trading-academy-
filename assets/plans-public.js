@@ -79,13 +79,17 @@ function renderPublicPlanCard(plan, offer){
   const hasOffer = offerAppliesToCard(offer, plan);
   const checkoutHref = 'checkout.html?plan=' + encodeURIComponent(plan.id) +
     (hasOffer ? '&coupon=' + encodeURIComponent(offer.code) : '');
+  // Launch offer banner with the live countdown (plan-price.js); it replaces
+  // the corner ribbon and the small countdown chip on that card.
+  const banner = (typeof planLaunchBannerHtml === 'function') ? planLaunchBannerHtml(plan) : '';
   const el = document.createElement('div');
   el.className = 'price-card reveal in' + (plan.featured ? ' featured' : '') + (sale.active ? ' on-sale' : '');
   el.innerHTML =
-    (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
+    (banner ? '' : (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '')) +
+    banner +
     '<h3>' + stkEsc(planDisplayName(plan)) + '</h3>' +
     (typeof planPriceHtml === 'function'
-      ? planPriceHtml(plan, 'lg')
+      ? planPriceHtml(plan, 'lg', { noEnds: !!banner })
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     (hasOffer
       ? '<div class="founding-note">🎟 First 50 join <b>FREE</b> — code <b>' + offer.code + '</b><span class="fn-seats">Limited seats</span></div>'
@@ -114,6 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // hidden plans (the yearly twin) are sold from their parent card only
     const plans = all.filter((p) => !p.hidden && !planIsArchived(p));
     sortPlansAscending(plans);
+    const paint = () => {
     grid.innerHTML = '';
     plans.forEach((plan) => {
       const card = renderPublicPlanCard(plan, offer);
@@ -126,7 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
         strykerTrialDecorate(cta, plan);
       }
     });
+    const seats = document.getElementById('launch-banner');
+    if (seats && grid.querySelector('.plan-launch-banner')) { seats.hidden = true; seats.dataset.suppressed = '1'; }
     if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
+    };
+    paint();
+    // the launch price ran out with the page open: redraw at the normal price
+    document.addEventListener('stryker:sale-ended', paint);
   }).catch((err) => {
     console.error('TradeZoro: failed to load live plans, showing static fallback', err);
   });

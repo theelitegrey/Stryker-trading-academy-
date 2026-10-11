@@ -106,7 +106,19 @@ function strykerPreviewMode(){
 }
 function strykerLoadPlans(){
   if (strykerPreviewMode()) {
-    return fetch('tools/launch-sale/plans.preview.json').then(function (r){ return r.json(); });
+    // &saleEnd=14d | 65s | 3h | none | <ISO date> rewrites saleEndsAt on every
+    // on-sale preview plan, so the launch timer and its expiry can be watched
+    // locally. Preview only: live plans always use their stored saleEndsAt.
+    var se = new URLSearchParams(location.search).get('saleEnd');
+    return fetch('tools/launch-sale/plans.preview.json').then(function (r){ return r.json(); })
+      .then(function (list){
+        if (!se) return list;
+        var m = /^(\d+)([smhd])$/.exec(se);
+        var unit = { s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
+        var at = se === 'none' ? '' : m ? new Date(Date.now() + (+m[1]) * unit[m[2]]).toISOString() : se;
+        list.forEach(function (p){ if (p.onSale) p.saleEndsAt = at; });
+        return list;
+      });
   }
   return db.collection('plans').get().then(function (snap){
     var list = [];
@@ -247,10 +259,13 @@ function saleCountdownText(endsMs){
 
 // The price block itself. `size` picks the scale: 'lg' for the homepage
 // cards, 'md' for the upgrade modal, 'sm' for the checkout summary.
-function planPriceHtml(plan, size){
+// opts.noEnds drops the small "3d 4h left" chip, for cards that already carry
+// the launch banner with its own live countdown.
+function planPriceHtml(plan, size, opts){
   var s = planSaleInfo(plan);
   var period = planEscape(plan.period || 'month');
   var cls = 'plan-price plan-price-' + (size || 'lg');
+  var noEnds = !!(opts && opts.noEnds);
 
   if (!s.active) {
     return '<div class="' + cls + '"><span class="pp-main"><span class="pp-now">' + planMoneyDisplay(s.full) +
@@ -266,9 +281,9 @@ function planPriceHtml(plan, size){
         '<span class="pp-was"><s>' + planMoneyDisplay(s.full) + '</s></span>' +
       '</div>' +
       '<div class="pp-tags">' +
-        '<span class="pp-off"><i></i>' + planEscape(s.label) + '</span>' +
+        (noEnds ? '' : '<span class="pp-off"><i></i>' + planEscape(s.label) + '</span>') +
         '<span class="pp-save">You save ' + planMoneyDisplay(s.save) + '</span>' +
-        (s.endsMs ? '<span class="pp-ends" data-sale-countdown="' + s.endsMs + '">' +
+        (s.endsMs && !noEnds ? '<span class="pp-ends" data-sale-countdown="' + s.endsMs + '">' +
           saleCountdownText(s.endsMs) + '</span>' : '') +
       '</div>' +
     '</div>';
@@ -281,26 +296,109 @@ function planSaleRibbonHtml(plan){
   return '<span class="plan-sale-flag"><b>' + s.pct + '% OFF</b></span>';
 }
 
-// Countdown chips tick themselves. One interval for the whole page, started
-// on demand and stopped again once nothing is counting.
-var _saleTimer = null;
-function startSaleCountdowns(){
-  if (_saleTimer) return;
-  _saleTimer = setInterval(function (){
-    var els = document.querySelectorAll('[data-sale-countdown]');
-    if (!els.length) { clearInterval(_saleTimer); _saleTimer = null; return; }
-    els.forEach(function (el){
-      var ends = parseInt(el.dataset.saleCountdown, 10);
-      var next = saleCountdownText(ends);
-      if (next !== el.textContent) {
-        el.textContent = next;
-        el.classList.remove('tick');
-        void el.offsetWidth;          // restart the flash
-        el.classList.add('tick');
-      }
-      if (ends <= Date.now()) el.classList.add('done');
-    });
-  }, 1000);
+// ---- Launch offer banner (Owner order 2026-10-12) ---------------------------
+// A slim banner at the top of a plan card on sale: "LAUNCH OFFER · <label>",
+// and, when the plan has a saleEndsAt, a live "Ends in 14d 03:12:45" plus the
+// exact end in the viewer's own timezone. The deadline is the plan record's
+// saleEndsAt and nothing else (the same instant planSaleInfo and the payment
+// functions use), so it is never per-visitor, never rolling and never resets
+// on reload. Without a saleEndsAt it is a label only, with no timer.
+function planSaleTimerText(endsMs){
+  var t = Math.max(0, Math.floor((endsMs - Date.now()) / 1000));
+  var d = Math.floor(t / 86400), h = Math.floor((t % 86400) / 3600);
+  var m = Math.floor((t % 3600) / 60), x = t % 60;
+  var p = function (n){ return (n < 10 ? '0' : '') + n; };
+  return d + 'd ' + p(h) + ':' + p(m) + ':' + p(x);
 }
 
+// "26 Oct 2026, 11:59 PM IST" in the viewer's timezone (an India viewer sees
+// IST, a New York viewer sees the same instant in EDT).
+function planSaleEndLabel(endsMs){
+  var d = new Date(endsMs);
+  try {
+    var date = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+    var time = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).format(d);
+    var tz = '';
+    var tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    var loc = /^Asia\/(Kolkata|Calcutta)$/.test(tzName) ? 'en-IN' : undefined;
+    new Intl.DateTimeFormat(loc, { timeZoneName: 'short' }).formatToParts(d).forEach(function (pt){
+      if (pt.type === 'timeZoneName') tz = pt.value;
+    });
+    return date + ', ' + time + (tz ? ' ' + tz : '');
+  } catch (e) {
+    return d.toString();
+  }
+}
+
+function planLaunchBannerHtml(plan){
+  var s = planSaleInfo(plan);
+  if (!s.active) return '';
+  var label = String(s.label || '').trim();
+  var head = '<div class="plb-head"><i aria-hidden="true"></i><span>LAUNCH OFFER</span>' +
+    (label && label.toLowerCase() !== 'launch offer'
+      ? '<span class="plb-sep" aria-hidden="true">·</span><span class="plb-label">' + planEscape(label) + '</span>' : '') +
+    '</div>';
+  if (!s.endsMs) return '<div class="plan-launch-banner plb-no-timer">' + head + '</div>';
+  return '<div class="plan-launch-banner" data-sale-timer="' + s.endsMs + '">' + head +
+    '<div class="plb-timer">Ends in <b class="plb-clock" role="timer" data-sale-clock>' + planSaleTimerText(s.endsMs) + '</b></div>' +
+    '<div class="plb-fine">Launch price ends ' + planEscape(planSaleEndLabel(s.endsMs)) + '</div>' +
+  '</div>';
+}
+
+// Countdowns tick themselves: ONE interval for the whole page, aligned to the
+// wall-clock second, started on demand, stopped once nothing is counting and
+// paused while the tab is hidden. Every value is recomputed from Date.now()
+// and the stored end, so a pause can never make a timer drift.
+// When a launch timer passes its end, 'stryker:sale-ended' fires once on
+// document; the card renderers listen and redraw, and planSaleInfo then
+// returns the normal price (no banner, no strike-through).
+var _saleTimer = null, _saleAlign = null, _saleEnded = {};
+function _saleTick(){
+  var chips = document.querySelectorAll('[data-sale-countdown]');
+  var timers = document.querySelectorAll('[data-sale-timer]');
+  if (!chips.length && !timers.length) { stopSaleCountdowns(); return; }
+  chips.forEach(function (el){
+    var ends = parseInt(el.dataset.saleCountdown, 10);
+    var next = saleCountdownText(ends);
+    if (next !== el.textContent) {
+      el.textContent = next;
+      el.classList.remove('tick');
+      void el.offsetWidth;          // restart the flash
+      el.classList.add('tick');
+    }
+    if (ends <= Date.now()) el.classList.add('done');
+  });
+  var now = Date.now();
+  timers.forEach(function (el){
+    var ends = parseInt(el.dataset.saleTimer, 10);
+    var clock = el.querySelector('[data-sale-clock]');
+    var txt = planSaleTimerText(ends);
+    if (clock && clock.textContent !== txt) clock.textContent = txt;
+    if (ends <= now && !_saleEnded[ends]) {
+      _saleEnded[ends] = true;
+      // a beat past the end, so planSaleInfo's "ends < now" test is already true
+      setTimeout(function (){
+        document.dispatchEvent(new CustomEvent('stryker:sale-ended', { detail: { endsMs: ends } }));
+      }, 60);
+    }
+  });
+}
+function stopSaleCountdowns(){
+  if (_saleAlign) { clearTimeout(_saleAlign); _saleAlign = null; }
+  if (_saleTimer) { clearInterval(_saleTimer); _saleTimer = null; }
+}
+function startSaleCountdowns(){
+  if (_saleTimer || _saleAlign || document.hidden) return;
+  _saleTick();
+  if (!document.querySelector('[data-sale-countdown],[data-sale-timer]')) return;
+  _saleAlign = setTimeout(function (){
+    _saleAlign = null;
+    _saleTick();
+    if (document.querySelector('[data-sale-countdown],[data-sale-timer]')) _saleTimer = setInterval(_saleTick, 1000);
+  }, 1005 - (Date.now() % 1000));
+}
+
+document.addEventListener('visibilitychange', function (){
+  if (document.hidden) stopSaleCountdowns(); else startSaleCountdowns();
+});
 document.addEventListener('DOMContentLoaded', startSaleCountdowns);

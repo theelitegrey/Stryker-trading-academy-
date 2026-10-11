@@ -61,6 +61,13 @@
     return overlay;
   }
 
+  // The launch price ran out with the modal open: redraw at the normal price.
+  var _lastPlans = null;
+  document.addEventListener('stryker:sale-ended', function () {
+    var overlay = document.getElementById(MODAL_ID);
+    if (_lastPlans && overlay && overlay.classList.contains('open')) renderPlans(_lastPlans);
+  });
+
   function renderPlans(plans){
     var grid = document.getElementById('plan-modal-grid');
     if (!grid) return;
@@ -95,12 +102,16 @@
       var card = document.createElement('div');
       card.className = 'plan-modal-card' + (sale.active ? ' on-sale' : '');
       card.style.borderColor = color + '55';
+      // Launch offer banner + live countdown (plan-price.js) replaces the
+      // corner ribbon and the small countdown chip on a card on sale.
+      var banner = (typeof planLaunchBannerHtml === 'function') ? planLaunchBannerHtml(plan) : '';
       card.innerHTML =
-        (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '') +
+        (banner ? '' : (typeof planSaleRibbonHtml === 'function' ? planSaleRibbonHtml(plan) : '')) +
+        banner +
         '<span class="plan-modal-pill" style="color:' + color + '; background:' + color + '1a; border-color:' + color + '55;">' +
           esc(plan.displayName || plan.name || 'Plan') + '</span>' +
         (typeof planPriceHtml === 'function'
-          ? planPriceHtml(plan, 'md')
+          ? planPriceHtml(plan, 'md', { noEnds: !!banner })
           : '<div class="plan-modal-price">$' + esc(plan.price || '0') +
             '<span>/ ' + esc(plan.period || 'month') + '</span></div>') +
         (features ? '<ul class="plan-modal-features">' + features + '</ul>' : '') +
@@ -136,7 +147,8 @@
     // from the first frame of the modal.
     var fx = (typeof strykerFxReady === 'function') ? strykerFxReady() : Promise.resolve();
     Promise.all([load, fx]).then(function (results) {
-      renderPlans(results[0] || []);
+      _lastPlans = results[0] || [];
+      renderPlans(_lastPlans);
     }).catch(function (err) {
       var grid = document.getElementById('plan-modal-grid');
       if (grid) {

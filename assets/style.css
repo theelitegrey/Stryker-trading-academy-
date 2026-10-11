@@ -8991,3 +8991,42 @@ select.stkw-in option{ color:#131722; background:#fff; }
   .stkcd-card{ max-width:none; max-height:88dvh; border-radius:14px 14px 0 0; border-left:0; border-right:0; border-bottom:0; }
   .stkcd-acts .stkcd-cancel, .stkcd-acts .stkcd-ok{ flex:1 1 0; }
 }
+
+/* ==========================================================================
+   LAUNCH OFFER BANNER + COUNTDOWN in the plan card (Owner order 2026-10-12).
+   Built by planLaunchBannerHtml() in plan-price.js. The deadline is the plan's
+   saleEndsAt only. tabular-nums + fixed-width clock: no layout shift per tick.
+   ========================================================================== */
+.plan-launch-banner{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:4px 14px;
+  margin:0 0 18px; padding:10px 14px; border-radius:12px;
+  background:linear-gradient(135deg, rgba(3,201,136,.16), rgba(3,201,136,.05));
+  border:1px solid rgba(3,201,136,.35);
+  font-family:var(--font-mono); line-height:1.3;
+}
+.plb-head{ display:flex; align-items:center; gap:7px; min-width:0; font-size:11px; font-weight:700; letter-spacing:.1em; color:var(--gold); }
+.plb-head i{ width:6px; height:6px; border-radius:50%; background:var(--gold); flex-shrink:0; box-shadow:0 0 0 0 rgba(3,201,136,.5); animation:plbDot 2s ease-in-out infinite; }
+.plb-sep{ color:var(--ink-3); font-weight:400; }
+.plb-label{ letter-spacing:.06em; color:var(--ink-1); font-weight:600; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.plb-timer{ font-size:12px; color:var(--ink-2); white-space:nowrap; }
+.plb-clock{
+  display:inline-block; min-width:12ch; text-align:right; margin-left:4px;
+  font-weight:700; color:var(--gold-bright); font-variant-numeric:tabular-nums; font-feature-settings:"tnum" 1;
+}
+.plb-fine{ flex-basis:100%; font-family:var(--font-body); font-size:11.5px; color:var(--ink-3); }
+@keyframes plbDot{ 0%,100%{ box-shadow:0 0 0 0 rgba(3,201,136,.5); } 50%{ box-shadow:0 0 0 5px rgba(3,201,136,0); } }
+@media (prefers-reduced-motion: reduce){ .plb-head i{ animation:none; } }
+:root[data-theme="light"] .plb-head, :root[data-theme="light"] .plb-head i{ color:#06694a; }
+:root[data-theme="light"] .plb-head i{ background:#06694a; }
+:root[data-theme="light"] .plb-clock{ color:#06694a; }
+/* homepage Pro hero: the banner spans both columns, the "Most popular" pill
+   stacks under it in the left column */
+.pv-hero > .plan-launch-banner{ grid-column:1 / -1; margin:0 0 -14px; }
+/* plan cards with the "MOST POPULAR" ::before tag on the top border: leave
+   room so the tag never overlaps the banner */
+.price-card.featured > .plan-launch-banner{ margin-top:4px; }
+.plan-modal-card > .plan-launch-banner{ margin-bottom:12px; }
+@media (max-width:560px){
+  .plan-launch-banner{ padding:10px 12px; }
+  .pv-hero > .plan-launch-banner{ margin-bottom:-8px; }
+}

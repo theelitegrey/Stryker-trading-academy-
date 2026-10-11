@@ -38,6 +38,9 @@
   }
 
   function renderBanner(el, s, off) {
+    // The plan card already shows the launch offer banner (plan-price.js):
+    // show that one only, never two offer banners on one pricing section.
+    if (el.dataset.suppressed || document.querySelector('.plan-launch-banner')) return;
     var left = s.limit - s.taken;
     var pct = Math.min(100, Math.round((s.taken / s.limit) * 100));
     el.innerHTML =

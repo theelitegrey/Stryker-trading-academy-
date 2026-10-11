@@ -216,8 +216,12 @@
       return '<li>' + icon(ICON_ORDER[i] || 'learn') + '<span>' + f + '</span></li>';
     }).join('');
     var freeName = planDisplayName(P.free), proName = planDisplayName(P.pro);
+    // Launch offer banner + live countdown (plan-price.js), driven only by the
+    // Pro plan's saleEndsAt. Empty when Pro is not on sale.
+    var banner = (typeof planLaunchBannerHtml === 'function') ? planLaunchBannerHtml(P.pro) : '';
     root.innerHTML =
-      '<div class="pv-hero">' +
+      '<div class="pv-hero' + (banner ? ' pv-has-banner' : '') + '">' +
+        banner +
         '<div class="pv-hero-l">' +
           '<span class="pv-pill">Most popular</span>' +
           '<h3>' + esc(proName) + '</h3>' +
@@ -247,6 +251,18 @@
     wireCompare(root, P);
   }
 
+  function paint(root, P) {
+    render(root, P);
+    if (typeof strykerCurrencyNoteHtml === 'function') root.insertAdjacentHTML('beforeend', strykerCurrencyNoteHtml());
+    var cta = root.querySelector('.pv-hero [data-pro-cta]');
+    if (cta && typeof strykerTrialDecorate === 'function') strykerTrialDecorate(cta, P.pro);
+    // One offer banner only: with the in-card banner showing, the seat-count
+    // banner above the section (launch-sale.js) stays hidden.
+    var seats = document.getElementById('launch-banner');
+    if (seats && root.querySelector('.plan-launch-banner')) { seats.hidden = true; seats.dataset.suppressed = '1'; }
+    if (typeof startSaleCountdowns === 'function') startSaleCountdowns();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     var root = document.getElementById('pricing-root');
     if (!root || typeof db === 'undefined') return;
@@ -256,10 +272,10 @@
       if (P.free) syncFreeChapters(P.free);
       if (!P.free || !P.pro) return; // keep the static fallback cards
       root.classList.add('pv-live');
-      render(root, P);
-      if (typeof strykerCurrencyNoteHtml === 'function') root.insertAdjacentHTML('beforeend', strykerCurrencyNoteHtml());
-      var cta = root.querySelector('.pv-hero [data-pro-cta]');
-      if (cta && typeof strykerTrialDecorate === 'function') strykerTrialDecorate(cta, P.pro);
+      paint(root, P);
+      // When the launch price runs out while the page is open, redraw: the
+      // banner and strike-through go and the card shows the normal price.
+      document.addEventListener('stryker:sale-ended', function () { paint(root, P); });
       if (reduce()) root.classList.add('pv-ready');
       else requestAnimationFrame(function () { root.classList.add('pv-ready'); });
     }).catch(function (e) {

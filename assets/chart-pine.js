@@ -71,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=511').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=512').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){
@@ -161,10 +161,35 @@ function cleanEntry(x){
 
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
 
+const offsetHandles = new WeakMap(); // handle -> requested chart right offset
+function requestedRightOffset(opts){
+  const n = Number(opts && opts.rightOffset);
+  return Number.isFinite(n) && n > 6 ? Math.min(80, n) : null;
+}
+function applyRightOffset(chart){
+  const hs = pineHandles(chart);
+  let ro = 6;
+  hs.forEach((h) => { const n = offsetHandles.get(h); if (n) ro = Math.max(ro, n); });
+  try { if (chart.renderer && chart.renderer.supports && chart.renderer.supports('rightOffset')) chart.renderer.set('rightOffset', ro); } catch (e) {}
+}
+function trackRightOffset(chart, handle, ro){
+  if (!chart || !handle || !ro) return;
+  offsetHandles.set(handle, ro);
+  const rm = handle.remove;
+  if (typeof rm === 'function' && !handle.__stkOffsetRemove) {
+    handle.__stkOffsetRemove = true;
+    handle.remove = function(){
+      try { return rm.apply(this, arguments); }
+      finally { offsetHandles.delete(handle); setTimeout(() => applyRightOffset(chart), 0); }
+    };
+  }
+  applyRightOffset(chart);
+}
+
 // Restart a cell's worker (after a run went over the time limit) and re-add the others.
 async function resetCell(chart, keep){
   const old = engines.get(chart);
-  pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });
+  pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} }); applyRightOffset(chart);
   try { if (old && old.terminate) old.terminate(); } catch (e) {}
   engines.delete(chart);
   const nx = nextEngines.get(chart);
@@ -285,6 +310,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   }
   if (engine === 'main' && res.handle) onMain.add(res.handle);
   if (engine === 'next' && res.handle) onNext.add(res.handle);
+  trackRightOffset(chart, res.handle, requestedRightOffset(opts));
   changed();
   return { ok: true, handle: res.handle, engine };
 }
@@ -306,7 +332,7 @@ export function installPine(core, wsGetter){
         const list = payload.map(cleanEntry).filter(Boolean).slice(0, MAX_PER_CELL);
         const chart = ctx.chart;
         // A template applied over a cell that already runs Pine: replace, never stack.
-        pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} });
+        pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} }); applyRightOffset(chart);
         if (!list.length) return;
         const needNext = list.some((x) => x.engine === 'next' && !x.lib);
         ensureEngine(chart).then(() => (needNext ? ensureNext(chart).catch(() => {}) : null)).then(() => {
@@ -321,7 +347,7 @@ export function installPine(core, wsGetter){
 export function clearAllPine(){
   const ws = getWs();
   if (!ws) return;
-  try { ws.context().cells.forEach((c) => pineHandles(c.chart).forEach((h) => { try { h.remove(); } catch (e) {} })); } catch (e) {}
+  try { ws.context().cells.forEach((c) => { pineHandles(c.chart).forEach((h) => { try { h.remove(); } catch (e) {} }); applyRightOffset(c.chart); }); } catch (e) {}
 }
 
 // Published state of a Community script on a chart: 'gone' (unpublished / hidden),

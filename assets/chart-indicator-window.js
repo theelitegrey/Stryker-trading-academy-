@@ -36,7 +36,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=511';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=512';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -193,7 +193,7 @@ export function mountIndicatorWindow(ws, opts){
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
       out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? null : GROUP_STRYKER,
-        kind: 'example', builtinId: b.id, desc: b.desc, third });
+        kind: 'example', builtinId: b.id, desc: b.desc, third, rightOffset: b.rightOffset });
     });
     return out;
   }
@@ -238,7 +238,7 @@ export function mountIndicatorWindow(ws, opts){
         let src = it.source, opts;
         if (it.builtinId) {
           try { src = await builtinSource(it.builtinId); } catch (e) { toast('Could not load ' + it.name + '. Check your connection.', 'error'); return; }
-          opts = { engine: 'next', builtin: true };
+          opts = { engine: 'next', builtin: true, rightOffset: it.rightOffset };
         }
         const r = await P().addSource(it.name, src, opts);
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');

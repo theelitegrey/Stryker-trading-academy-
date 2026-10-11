@@ -16789,7 +16789,7 @@ var NativeRenderer = class {
     this.moveIndicatorCbs = /* @__PURE__ */ new Set();
     this.priceStyleCbs = /* @__PURE__ */ new Set();
     this.name = "native";
-    this.features = ["logScale", "currentPriceLine", "priceLabel", "countdown", "upColor", "downColor", "glow", "animZoom", "animPan", "animLiveBar", "intro", "zoomAnchor", "axisDrag", "paneResize", "candleZOrder", "candleVisible", "seriesOrder", "highlights", "sessionZones", "gridlines", "axisLabels", "scaleMode", "invertScale", "paneScales", "autoScale", "timezone", "keyboard", "historyChords", "priceStyle", "priceBaseline", "baselinePrice", "settings", "attribution", "dialogHost", "tradeMarkers", "indicatorTitles", "indicatorValues"];
+    this.features = ["logScale", "currentPriceLine", "priceLabel", "countdown", "upColor", "downColor", "glow", "animZoom", "animPan", "animLiveBar", "intro", "zoomAnchor", "axisDrag", "paneResize", "candleZOrder", "candleVisible", "seriesOrder", "highlights", "sessionZones", "gridlines", "axisLabels", "scaleMode", "invertScale", "paneScales", "autoScale", "timezone", "keyboard", "historyChords", "priceStyle", "priceBaseline", "baselinePrice", "rightOffset", "settings", "attribution", "dialogHost", "tradeMarkers", "indicatorTitles", "indicatorValues"];
     /** Track cursor proximity to the scroll button on the plot (bubbles from the button too,
      *  so moving onto the button doesn't count as leaving). */
     this.onScrollProximityMove = (e) => {
@@ -16988,6 +16988,14 @@ var NativeRenderer = class {
         this.inputsUI?.setDialogHost(this.dialogHost);
         return;
       // own DOM, no repaint needed
+      case "rightOffset": {
+        const current = this.coords.getViewport();
+        const ro = Number(value);
+        this.coords.setViewport(this.clampViewport(current.barSpacing, Number.isFinite(ro) ? ro : current.rightOffset));
+        this.targetBarSpacing = this.coords.getViewport().barSpacing;
+        this.scheduler?.invalidate(4 /* Full */);
+        return;
+      }
       default:
         return;
     }
@@ -17057,6 +17065,8 @@ var NativeRenderer = class {
         const price = this.scene.panes.get(PRICE_PANE_ID);
         return price ? this.scene.baselinePriceFor(price.scale) : this.scene.baselineValue;
       }
+      case "rightOffset":
+        return this.coords.getViewport().rightOffset;
       case "tradeMarkers":
         return { ...this.scene.tradeMarkers, colors: { ...this.scene.tradeMarkers.colors } };
       case "keyboard":

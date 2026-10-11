@@ -1,0 +1,435 @@
+//@version=6
+// TZ Fractal Model [TradeZoro]
+// Clean-room TradeZoro implementation from the internal behaviour spec only.
+// Indicator only. Education only. Not financial advice.
+
+indicator("TZ Fractal Model [TradeZoro]", "TZ Fractal Model", overlay = true, max_boxes_count = 500, max_lines_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inputs
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_PAIR = "TradeZoro · Pairing"
+const string G_LOGIC = "TradeZoro · Model"
+const string G_WINDOWS = "TradeZoro · Time Windows (New York)"
+const string G_SHOW = "TradeZoro · Elements"
+const string G_STYLE = "TradeZoro · Colours"
+const string G_HTF = "TradeZoro · HTF Candles"
+const string G_TABLE = "TradeZoro · Table"
+
+pairMode = input.string("Automatic", "Timeframe pairing", options = ["Automatic", "1m-15m", "3m-30m", "5m-1H", "15m-4H", "1H-1D", "4H-1W"], group = G_PAIR)
+biasMode = input.string("Neutral", "Bias", options = ["Neutral", "Bullish", "Bearish"], group = G_LOGIC)
+historyN = input.int(3, "History setups", minval = 0, maxval = 40, group = G_LOGIC)
+projText = input.string("-1, -2, -2.5, -4, -4.5", "Projection list", tooltip = "Comma-separated leg multiples. Negative values project in the setup direction.", group = G_LOGIC)
+
+win1On = input.bool(false, "Window 1", inline = "w1", group = G_WINDOWS)
+win1 = input.session("0930-1100", "", inline = "w1", group = G_WINDOWS)
+win2On = input.bool(false, "Window 2", inline = "w2", group = G_WINDOWS)
+win2 = input.session("1330-1500", "", inline = "w2", group = G_WINDOWS)
+win3On = input.bool(false, "Window 3", inline = "w3", group = G_WINDOWS)
+win3 = input.session("0000-2359", "", inline = "w3", group = G_WINDOWS)
+
+showHtf = input.bool(true, "HTF candles", group = G_SHOW)
+showOpenLines = input.bool(true, "HTF open dotted lines", group = G_SHOW)
+showLabels = input.bool(true, "C2/C3/C4 labels", group = G_SHOW)
+showCisd = input.bool(true, "CISD line", group = G_SHOW)
+showProj = input.bool(true, "Projections", group = G_SHOW)
+showEq = input.bool(true, "HTF EQ line", group = G_SHOW)
+showTspot = input.bool(true, "T-spot box", group = G_SHOW)
+showC1 = input.bool(true, "C1 liquidity ray", group = G_SHOW)
+showFormLiq = input.bool(true, "Formation liquidity", group = G_SHOW)
+showTable = input.bool(true, "Info table", group = G_SHOW)
+
+nCdl = input.int(4, "Candles shown", minval = 1, maxval = 8, group = G_HTF)
+offsetB = input.int(4, "Distance from last bar", minval = 2, maxval = 200, group = G_HTF)
+cdlW = input.int(2, "Candle half-width", minval = 1, maxval = 8, group = G_HTF)
+cdlGap = input.int(1, "Candle gap", minval = 0, maxval = 10, group = G_HTF)
+
+bullBody = input.color(#26A69A, "Bull body", inline = "cdl1", group = G_STYLE)
+bearBody = input.color(#2D313B, "Bear body", inline = "cdl1", group = G_STYLE)
+wickCol = input.color(#B2B5BE, "Wick", inline = "cdl2", group = G_STYLE)
+cisdCol = input.color(#4F8CFF, "CISD", inline = "a", group = G_STYLE)
+projCol = input.color(#B2B5BE, "Projections", inline = "a", group = G_STYLE)
+eqCol = input.color(#F5C542, "EQ", inline = "c", group = G_STYLE)
+tspotCol = input.color(color.new(#787B86, 82), "T-spot", inline = "c", group = G_STYLE)
+liqCol = input.color(#8B93A0, "Liquidity", inline = "d", group = G_STYLE)
+labelCol = input.color(#787B86, "Valid label", inline = "b", group = G_STYLE)
+failCol = input.color(#E5484D, "Failed label", inline = "b", group = G_STYLE)
+warnCol = input.color(#F59F00, "No-fail label", inline = "b", group = G_STYLE)
+
+posIn = input.string("Middle right", "Position", options = ["Top left", "Top center", "Top right", "Middle right", "Bottom left", "Bottom center", "Bottom right"], inline = "tbl", group = G_TABLE)
+sizeIn = input.string("Small", "Size", options = ["Tiny", "Small", "Normal", "Large"], inline = "tbl", group = G_TABLE)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
+f_tfName(tf) =>
+    string r = tf
+    if str.contains(tf, "D") or str.contains(tf, "W") or str.contains(tf, "M")
+        r := tf
+    else
+        float n = str.tonumber(tf)
+        r := na(n) ? tf : n >= 60 and n % 60 == 0 ? str.tostring(n / 60, "#") + "H" : str.tostring(n, "#") + "m"
+    r
+
+f_size(s) => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+f_pos(s) => s == "Top left" ? position.top_left : s == "Top center" ? position.top_center : s == "Top right" ? position.top_right : s == "Middle right" ? position.middle_right : s == "Bottom left" ? position.bottom_left : s == "Bottom center" ? position.bottom_center : position.bottom_right
+
+f_pair_ltf() =>
+    int sec = timeframe.in_seconds()
+    string out = "5"
+    if pairMode == "1m-15m"
+        out := "1"
+    else if pairMode == "3m-30m"
+        out := "3"
+    else if pairMode == "5m-1H"
+        out := "5"
+    else if pairMode == "15m-4H"
+        out := "15"
+    else if pairMode == "1H-1D"
+        out := "60"
+    else if pairMode == "4H-1W"
+        out := "240"
+    else
+        out := sec <= 60 ? "1" : sec <= 180 ? "3" : sec <= 300 ? "5" : sec <= 900 ? "15" : sec <= 3600 ? "60" : "240"
+    out
+
+f_pair_htf() =>
+    string l = f_pair_ltf()
+    l == "1" ? "15" : l == "3" ? "30" : l == "5" ? "60" : l == "15" ? "240" : l == "60" ? "D" : "W"
+
+ltf = f_pair_ltf()
+htf = f_pair_htf()
+chartSec = timeframe.in_seconds()
+ltfSec = timeframe.in_seconds(ltf)
+htfSec = timeframe.in_seconds(htf)
+canModel = chartSec <= ltfSec
+modelName = f_tfName(ltf) + "-" + f_tfName(htf) + " Model"
+
+f_in_win(sess, on) => on and not na(time(timeframe.period, sess, "America/New_York"))
+timeFilterOn = win1On or win2On or win3On
+inWindow = not timeFilterOn or f_in_win(win1, win1On) or f_in_win(win2, win2On) or f_in_win(win3, win3On)
+
+f_countdown(tf) =>
+    // Delayed-feed-safe countdown: when the newest data bar is behind wall clock,
+    // count to the next wall-clock HTF boundary instead of sitting at 00:00.
+    int tfMs = timeframe.in_seconds(tf) * 1000
+    int openMs = time(tf)
+    int closeMs = openMs + tfMs
+    if closeMs <= timenow and tfMs > 0
+        closeMs := openMs + (int(math.floor((timenow - openMs) / tfMs)) + 1) * tfMs
+    int remain = math.max(closeMs - timenow, 0)
+    int sec = int(math.ceil(remain / 1000.0))
+    int h = int(math.floor(sec / 3600.0))
+    int m = int(math.floor((sec % 3600) / 60.0))
+    int sc = sec % 60
+    string padM = m < 10 ? "0" + str.tostring(m) : str.tostring(m)
+    string padS = sc < 10 ? "0" + str.tostring(sc) : str.tostring(sc)
+    h > 0 ? str.tostring(h) + ":" + padM + ":" + padS : padM + ":" + padS
+
+f_parse_proj(txt) =>
+    array<float> out = array.new<float>()
+    array<string> parts = str.split(txt, ",")
+    for i = 0 to array.size(parts) - 1
+        float v = str.tonumber(str.trim(array.get(parts, i)))
+        if not na(v)
+            array.push(out, v)
+    if array.size(out) == 0
+        array.push(out, -1.0)
+        array.push(out, -2.0)
+        array.push(out, -2.5)
+        array.push(out, -4.0)
+        array.push(out, -4.5)
+    out
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HTF aggregation. Uses chart bars only; no lookahead.
+// ─────────────────────────────────────────────────────────────────────────────
+tHtf = time(htf)
+isNewHtf = not na(tHtf[1]) and tHtf != tHtf[1]
+
+var array<float> hO = array.new<float>()
+var array<float> hH = array.new<float>()
+var array<float> hL = array.new<float>()
+var array<float> hC = array.new<float>()
+var array<int> hStart = array.new<int>()
+var array<int> hEnd = array.new<int>()
+var array<int> hNo = array.new<int>()
+var int htfNo = 0
+
+var float curO = na
+var float curH = na
+var float curL = na
+var int curStart = na
+
+// CISD candidates inside the current HTF candle.
+var bool downRun = false
+var float downFirstOpen = na
+var int downFirstBar = na
+var float bullCisdLevel = na
+var int bullCisdStart = na
+var bool upRun = false
+var float upFirstOpen = na
+var int upFirstBar = na
+var float bearCisdLevel = na
+var int bearCisdStart = na
+
+if na(curO)
+    curO := open
+    curH := high
+    curL := low
+    curStart := bar_index
+
+if close < open
+    if not downRun
+        downFirstOpen := open
+        downFirstBar := bar_index
+    downRun := true
+else
+    downRun := false
+if close > open
+    if not upRun
+        upFirstOpen := open
+        upFirstBar := bar_index
+    upRun := true
+else
+    upRun := false
+
+if low <= nz(curL, low)
+    bullCisdLevel := downRun ? downFirstOpen : open
+    bullCisdStart := downRun ? downFirstBar : bar_index
+if high >= nz(curH, high)
+    bearCisdLevel := upRun ? upFirstOpen : open
+    bearCisdStart := upRun ? upFirstBar : bar_index
+
+if isNewHtf
+    htfNo += 1
+    array.push(hO, curO)
+    array.push(hH, curH)
+    array.push(hL, curL)
+    array.push(hC, close[1])
+    array.push(hStart, curStart)
+    array.push(hEnd, bar_index - 1)
+    array.push(hNo, htfNo)
+    while array.size(hO) > math.max(nCdl + historyN + 16, 96)
+        array.shift(hO), array.shift(hH), array.shift(hL), array.shift(hC), array.shift(hStart), array.shift(hEnd), array.shift(hNo)
+    curO := open
+    curH := high
+    curL := low
+    curStart := bar_index
+    downRun := close < open
+    downFirstOpen := open
+    downFirstBar := bar_index
+    bullCisdLevel := close < open ? open : na
+    bullCisdStart := bar_index
+    upRun := close > open
+    upFirstOpen := open
+    upFirstBar := bar_index
+    bearCisdLevel := close > open ? open : na
+    bearCisdStart := bar_index
+else
+    curH := math.max(curH, high)
+    curL := math.min(curL, low)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Setup detection
+// ─────────────────────────────────────────────────────────────────────────────
+type Setup
+    int dir
+    int c2x
+    int c1x
+    int c2No
+    float extreme
+    float swept
+    float cisd
+    int cisdStart
+    float c2O
+    float c2H
+    float c2L
+    float c2C
+    bool confirmed = false
+    int confirmX = na
+    bool failed = false
+    bool stale = false
+
+var array<Setup> setups = array.new<Setup>()
+var Setup pending = na
+
+if isNewHtf and canModel and inWindow and array.size(hO) >= 2
+    int n = array.size(hO)
+    float o2 = array.get(hO, n - 1)
+    float h2 = array.get(hH, n - 1)
+    float l2 = array.get(hL, n - 1)
+    float c2 = array.get(hC, n - 1)
+    float ph = array.get(hH, n - 2)
+    float pl = array.get(hL, n - 2)
+    int x2 = array.get(hEnd, n - 1)
+    int x1 = array.get(hEnd, n - 2)
+    int no2 = array.get(hNo, n - 1)
+    bool bullOk = (biasMode != "Bearish") and l2 < pl and c2 > pl and not na(bullCisdLevel[1])
+    bool bearOk = (biasMode != "Bullish") and h2 > ph and c2 < ph and not na(bearCisdLevel[1])
+    if bullOk
+        pending := Setup.new(1, x2, x1, no2, l2, pl, bullCisdLevel[1], bullCisdStart[1], o2, h2, l2, c2, false, na, false, false)
+    if bearOk
+        pending := Setup.new(-1, x2, x1, no2, h2, ph, bearCisdLevel[1], bearCisdStart[1], o2, h2, l2, c2, false, na, false, false)
+
+if canModel and not na(pending) and not pending.confirmed
+    bool failEarly = pending.dir == 1 ? low < pending.extreme : high > pending.extreme
+    bool noFailNext = htfNo > pending.c2No + 1
+    bool hit = pending.dir == 1 ? close > pending.cisd : close < pending.cisd
+    if failEarly
+        pending.failed := true
+        array.push(setups, pending)
+        pending := na
+    else if hit
+        pending.confirmed := true
+        pending.confirmX := bar_index
+        pending.stale := noFailNext
+        array.push(setups, pending)
+        pending := na
+
+// Failed after confirmation: price returns beyond C2 extreme. That setup keeps only red labels.
+int snFail = array.size(setups)
+if snFail > 0
+    for i = 0 to snFail - 1
+        Setup s = array.get(setups, i)
+        if s.confirmed and not s.failed
+            if s.dir == 1 ? low < s.extreme : high > s.extreme
+                s.failed := true
+                array.set(setups, i, s)
+            else if htfNo > s.c2No + 1 and not s.stale
+                s.stale := true
+                array.set(setups, i, s)
+
+while array.size(setups) > historyN + 1
+    array.shift(setups)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Drawing
+// ─────────────────────────────────────────────────────────────────────────────
+var array<box> dB = array.new<box>()
+var array<line> dL = array.new<line>()
+var array<label> dLbl = array.new<label>()
+
+f_clear() =>
+    while array.size(dB) > 0
+        box.delete(array.pop(dB))
+    while array.size(dL) > 0
+        line.delete(array.pop(dL))
+    while array.size(dLbl) > 0
+        label.delete(array.pop(dLbl))
+
+f_candle(x, o, h, l, c) =>
+    // Right-edge HTF candle: wide body plus wick, placed in opt-in chart padding.
+    bool up = c >= o
+    array.push(dL, line.new(x, h, x, l, xloc = xloc.bar_index, extend = extend.none, color = wickCol, width = 1))
+    float top = math.max(o, c)
+    float bot = math.min(o, c)
+    if top == bot
+        top += syminfo.mintick / 2
+        bot -= syminfo.mintick / 2
+    array.push(dB, box.new(x - cdlW, top, x + cdlW, bot, xloc = xloc.bar_index, border_color = up ? bullBody : bearBody, bgcolor = up ? color.new(bullBody, 10) : color.new(bearBody, 8), border_width = 1))
+
+f_idx_by_no(no) =>
+    int out = -1
+    for i = 0 to array.size(hNo) - 1
+        if array.get(hNo, i) == no
+            out := i
+    out
+
+f_label_at(no, txt, dir, col) =>
+    int idx = f_idx_by_no(no)
+    if idx >= 0
+        float y = dir == 1 ? array.get(hL, idx) : array.get(hH, idx)
+        int x = array.get(hEnd, idx)
+        array.push(dLbl, label.new(x, y, txt, style = dir == 1 ? label.style_label_up : label.style_label_down, color = col, textcolor = color.white, size = size.tiny))
+
+f_draw_setup(s, full) =>
+    color stateCol = s.failed ? failCol : s.stale ? warnCol : labelCol
+    if showLabels
+        f_label_at(s.c2No, "C2", s.dir, stateCol)
+        f_label_at(s.c2No + 1, "C3", s.dir, stateCol)
+        f_label_at(s.c2No + 2, "C4", s.dir, stateCol)
+    if s.confirmed and not s.failed
+        int shortEnd = math.min(bar_index, s.confirmX + 20)
+        int projEnd = full ? bar_index + offsetB + nCdl * (cdlW * 2 + cdlGap + 1) : shortEnd
+        float eq = (s.c2H + s.c2L) / 2.0
+        float leg = math.max(math.abs(s.cisd - s.extreme), syminfo.mintick)
+        if showCisd
+            array.push(dL, line.new(s.cisdStart, s.cisd, math.min(s.confirmX + 8, shortEnd), s.cisd, color = cisdCol, width = 2))
+            array.push(dLbl, label.new(s.confirmX, s.cisd, "CISD", style = s.dir == 1 ? label.style_label_up : label.style_label_down, color = cisdCol, textcolor = color.white, size = size.tiny))
+        if full and showEq
+            array.push(dL, line.new(s.c2x, eq, projEnd, eq, color = eqCol, style = line.style_dotted, width = 1))
+            array.push(dLbl, label.new(projEnd, eq, "EQ", style = label.style_label_left, color = color.new(color.black, 100), textcolor = eqCol, size = size.tiny))
+        if full and showTspot
+            float bodyEdge = s.dir == 1 ? math.min(s.c2O, s.c2C) : math.max(s.c2O, s.c2C)
+            float inner = s.dir == 1 ? math.min(bodyEdge, eq) : math.max(bodyEdge, eq)
+            float top = s.dir == 1 ? inner : s.extreme
+            float bot = s.dir == 1 ? s.extreme : inner
+            array.push(dB, box.new(s.c2x, top, projEnd, bot, border_color = color.new(liqCol, 45), bgcolor = tspotCol, border_width = 1))
+        if showC1
+            array.push(dL, line.new(s.c1x, s.swept, shortEnd, s.swept, color = liqCol, style = line.style_dashed, width = 1))
+            array.push(dLbl, label.new(shortEnd, s.swept, "C1 liq", style = label.style_label_left, color = color.new(color.black, 100), textcolor = liqCol, size = size.tiny))
+        if full and showFormLiq
+            for k = s.c2No - 2 to s.c2No - 1
+                int idx = f_idx_by_no(k)
+                if idx >= 0
+                    float yh = array.get(hH, idx)
+                    float yl = array.get(hL, idx)
+                    int xs = array.get(hEnd, idx)
+                    array.push(dL, line.new(xs, yh, math.min(xs + 20, projEnd), yh, color = color.new(liqCol, 25), style = line.style_dotted, width = 1))
+                    array.push(dL, line.new(xs, yl, math.min(xs + 20, projEnd), yl, color = color.new(liqCol, 25), style = line.style_dotted, width = 1))
+        if full and showProj
+            array<float> ps = f_parse_proj(projText)
+            for i = 0 to array.size(ps) - 1
+                float mult = math.abs(array.get(ps, i))
+                float y = s.dir == 1 ? s.cisd + leg * mult : s.cisd - leg * mult
+                array.push(dL, line.new(s.confirmX, y, projEnd, y, color = projCol, style = line.style_dashed, width = 1))
+                array.push(dLbl, label.new(projEnd, y, "-" + str.tostring(mult), style = label.style_label_left, color = color.new(color.black, 100), textcolor = projCol, size = size.tiny))
+
+if barstate.islast
+    f_clear()
+    if showOpenLines
+        int hn = array.size(hStart)
+        int back = math.min(hn, nCdl + 8)
+        for i = hn - back to hn - 1
+            if i >= 0
+                int x = array.get(hStart, i)
+                array.push(dL, line.new(x, low, x, high, extend = extend.both, color = color.new(wickCol, 65), style = line.style_dotted, width = 1))
+    if showHtf
+        int step = cdlW * 2 + cdlGap
+        int x0 = bar_index + offsetB + cdlW
+        int hn = array.size(hO)
+        int take = math.min(nCdl - 1, hn)
+        if take > 0
+            for j = 0 to take - 1
+                int idx = hn - take + j
+                f_candle(x0 + j * step, array.get(hO, idx), array.get(hH, idx), array.get(hL, idx), array.get(hC, idx))
+        f_candle(x0 + take * step, curO, curH, curL, close)
+        array.push(dLbl, label.new(x0 + take * step / 2, math.max(curH, high), f_tfName(htf), style = label.style_label_down, color = color.new(color.black, 100), textcolor = wickCol, size = size.small))
+    int sn = array.size(setups)
+    int newestValid = -1
+    if sn > 0
+        for j = 0 to sn - 1
+            Setup sj = array.get(setups, j)
+            if sj.confirmed and not sj.failed
+                newestValid := j
+    int sTake = math.min(historyN, sn)
+    if sTake > 0
+        for i = sn - sTake to sn - 1
+            f_draw_setup(array.get(setups, i), i == newestValid)
+    if not na(pending) and showLabels
+        color pc = htfNo > pending.c2No + 1 ? warnCol : labelCol
+        f_label_at(pending.c2No, "C2", pending.dir, pc)
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Info table
+// ─────────────────────────────────────────────────────────────────────────────
+var table info = table.new(f_pos(posIn), 1, 5, border_width = 1, border_color = color.new(#787B86, 45))
+if barstate.islast and showTable
+    tSize = f_size(sizeIn)
+    bg = color.new(#11151C, 8)
+    table.cell(info, 0, 0, modelName, text_color = color.white, text_size = tSize, bgcolor = bg)
+    table.cell(info, 0, 1, "HTF close  " + f_countdown(htf), text_color = #B2B5BE, text_size = tSize, bgcolor = bg)
+    table.cell(info, 0, 2, "Bias  " + biasMode, text_color = biasMode == "Bullish" ? bullBody : biasMode == "Bearish" ? #EF5350 : #B2B5BE, text_size = tSize, bgcolor = bg)
+    table.cell(info, 0, 3, "Time filter  " + (timeFilterOn ? "On" : "Off"), text_color = timeFilterOn ? warnCol : #B2B5BE, text_size = tSize, bgcolor = bg)
+    table.cell(info, 0, 4, canModel ? "Education only. Not financial advice." : "Chart TF above pair LTF: HTF candles only.", text_color = canModel ? color.new(#B2B5BE, 5) : warnCol, text_size = size.tiny, bgcolor = bg)

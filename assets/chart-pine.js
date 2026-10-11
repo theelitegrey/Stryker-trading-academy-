@@ -71,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=507').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=508').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){
@@ -220,7 +220,33 @@ function hideVelaErrorToast(){
 }
 
 // opts.engine === 'next': run straight on the next engine (built-in TradeZoro indicators).
+
+// While a Pine run computes, pause the page's looping decorative CSS animations (the header
+// plan badge's glow/sheen/shine, live dots). They animate box-shadow / background-position /
+// left, which repaint every frame on the page's main thread and compositor; on a 2-core
+// machine with software rendering that took most of the CPU the Pine worker needed (a heavy
+// script ran ~4x slower on the desktop layout than on the phone layout, which has no badge).
+// Nothing is removed or restyled: animation-play-state is paused for the run, then resumed.
+// Exported for tests.
+let busyRuns = 0;
+export function pageBusy(on){
+  const root = document.documentElement;
+  if (!document.getElementById('stk-pine-busy-css')) {
+    const st = document.createElement('style');
+    st.id = 'stk-pine-busy-css';
+    st.textContent = 'html.pine-busy *,html.pine-busy *::before,html.pine-busy *::after{animation-play-state:paused!important}';
+    document.head.appendChild(st);
+  }
+  busyRuns = Math.max(0, busyRuns + (on ? 1 : -1));
+  root.classList.toggle('pine-busy', busyRuns > 0);
+}
+
 async function runOnChart(chart, source, inputs, shared, opts){
+  pageBusy(true);
+  try { return await runOnChartInner(chart, source, inputs, shared, opts); }
+  finally { pageBusy(false); }
+}
+async function runOnChartInner(chart, source, inputs, shared, opts){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
   const keep = pineHandles(chart).map(snapshot);

@@ -1,0 +1,1181 @@
+//@version=6
+indicator("Smart Signals Assistant", shorttitle = "AlgoAlpha - 🧠 Smart Signals 2.0", overlay = true, max_labels_count = 500, max_lines_count = 500, max_boxes_count = 500)
+
+string G_DASH = "Master Dashboard"
+string G_SS   = "Smart Signals"
+string G_OPT  = "Smart Signals Optimization Engine"
+string G_FVT  = "Fair Value Trail"
+string G_SP   = "Trend Spine"
+string G_TB   = "Trend Bias"
+string G_FC   = "Firmament Clouds"
+string G_TRC  = "Trend-Range Classifier"
+string G_TPSL = "Take-Profit / Stop-Loss"
+string G_APP  = "Appearance"
+string G_TBL  = "Component Table"
+string G_ALR  = "Alerts"
+string G_SEQ  = "Alert Sequence"
+string G_FLT  = "Alert State Filters"
+string G_EXT  = "External Sources"
+
+string H_SHORT  = "Short Term"
+string H_MEDIUM = "Medium Term"
+string H_LONG   = "Long Term"
+
+string P_TR = "Top Right"
+string P_TC = "Top Center"
+string P_TL = "Top Left"
+string P_MR = "Middle Right"
+string P_MC = "Middle Center"
+string P_ML = "Middle Left"
+string P_BR = "Bottom Right"
+string P_BC = "Bottom Center"
+string P_BL = "Bottom Left"
+
+string C_NONE = "None"
+string T01 = "Smart Signals Bullish Signal [Trigger]"
+string T02 = "Smart Signals Bearish Signal [Trigger]"
+string T03 = "Smart Signals Normal Bullish Signal [Trigger]"
+string T04 = "Smart Signals Normal Bearish Signal [Trigger]"
+string T05 = "Smart Signals Strong Bullish Signal [Trigger]"
+string T06 = "Smart Signals Strong Bearish Signal [Trigger]"
+string T07 = "Bullish Exit Signal [Trigger]"
+string T08 = "Bearish Exit Signal [Trigger]"
+string T09 = "Take-Profit 1 Hit [Trigger]"
+string T10 = "Take-Profit 2 Hit [Trigger]"
+string T11 = "Take-Profit 3 Hit [Trigger]"
+string T12 = "Take-Profit 4 Hit [Trigger]"
+string T13 = "Take-Profit 5 Hit [Trigger]"
+string T14 = "Stop-Loss Hit [Trigger]"
+string T15 = "FVT Turns Bullish [Trigger]"
+string T16 = "FVT Turns Bearish [Trigger]"
+string T17 = "Optimal Bullish Entry [Trigger]"
+string T18 = "Optimal Bearish Entry [Trigger]"
+string T19 = "Trend Spine Turns Bullish [Trigger]"
+string T20 = "Trend Spine Turns Bearish [Trigger]"
+string T21 = "Trend Bias Turns Bullish [Trigger]"
+string T22 = "Trend Bias Turns Bearish [Trigger]"
+string T23 = "Trend Bias Strengthens [Trigger]"
+string T24 = "Trend Bias Weakens [Trigger]"
+string T25 = "Price Enters Upper Cloud [Trigger]"
+string T26 = "Price Enters Lower Cloud [Trigger]"
+string T27 = "Price Exits Clouds [Trigger]"
+string T28 = "Market Starts Trending [Trigger]"
+string T29 = "Market Starts Ranging [Trigger]"
+string T30 = "External Source 1 Signal [Trigger]"
+string T31 = "External Source 2 Signal [Trigger]"
+string T32 = "External Source 3 Signal [Trigger]"
+string T33 = "External Source 4 Signal [Trigger]"
+string T34 = "External Source 5 Signal [Trigger]"
+
+string S01 = "Smart Signals In Bullish Trend [State]"
+string S02 = "Smart Signals In Bearish Trend [State]"
+string S03 = "FVT In Bullish Trend [State]"
+string S04 = "FVT In Bearish Trend [State]"
+string S05 = "Trend Spine Bullish [State]"
+string S06 = "Trend Spine Bearish [State]"
+string S07 = "Trend Bias Bullish [State]"
+string S08 = "Trend Bias Bearish [State]"
+string S09 = "Trend Bias Strong [State]"
+string S10 = "Trend Bias Weak [State]"
+string S11 = "Price In Upper Cloud [State]"
+string S12 = "Price In Lower Cloud [State]"
+string S13 = "Price Between Clouds [State]"
+string S14 = "Market Is Trending [State]"
+string S15 = "Market Is Ranging [State]"
+string S16 = "External Source 1 Active [State]"
+string S17 = "External Source 2 Active [State]"
+string S18 = "External Source 3 Active [State]"
+string S19 = "External Source 4 Active [State]"
+string S20 = "External Source 5 Active [State]"
+
+int   OPT_N      = 8
+int   OPT_BASE   = 3
+int   N_TRIG     = 34
+float SWING_MULT = 1.3
+float SCALP_MULT = 3.0
+float STRONG_OSC = 1.75
+float FVT_MULT   = 1.5
+float SPINE_ER   = 0.15
+float TB_BAND    = 0.30
+float FC_INNER   = 2.0
+float FC_OUTER   = 3.0
+int   ML_TRAIN   = 100
+int   ML_ITER    = 2
+int   TRC_K      = 8
+float TRC_THR    = 0.30
+int   TPSL_EXT   = 20
+int   EXIT_COOL  = 3
+float EXIT_OB    = 70.0
+float EXIT_OS    = 30.0
+
+color TBL_BG     = #131722
+color TBL_HEAD   = #1e222d
+color TBL_BORDER = #363a45
+color TXT_MAIN   = #d1d4dc
+color TXT_DIM    = #4a4e5a
+color TXT_DARK   = #0b0e14
+
+bool showSS     = input.bool(true,  "Smart Signals",          inline = "d1", group = G_DASH)
+bool showFVT    = input.bool(true,  "Fair Value Trail",       inline = "d1", group = G_DASH)
+bool showSpine  = input.bool(false, "Trend Spine",            inline = "d2", group = G_DASH)
+bool showBias   = input.bool(false, "Trend Bias",             inline = "d2", group = G_DASH)
+bool showClouds = input.bool(false, "Firmament Clouds",       inline = "d3", group = G_DASH)
+bool showTRC    = input.bool(false, "Trend-Range Classifier", inline = "d3", group = G_DASH)
+bool showTP     = input.bool(false, "Take-Profit Levels",     inline = "d4", group = G_DASH)
+bool showSL     = input.bool(false, "Stop-Loss Level",        inline = "d4", group = G_DASH)
+bool showExit   = input.bool(true,  "Exit Signals",           inline = "d5", group = G_DASH)
+bool showOpt    = input.bool(true,  "Optimal Entry Signals",  inline = "d5", group = G_DASH)
+bool showTable  = input.bool(true,  "Component Table",        inline = "d6", group = G_DASH)
+
+string ssMode    = input.string("Swing", "Smart Signals Mode", options = ["Swing", "Scalping"], group = G_SS, tooltip = "Swing: proprietary model analysing price stability and volatility to identify stable, longer-term trends.\nScalping: responsive machine-learning trend system that adapts its parameters to learned market states.")
+string sigMode   = input.string("Trend", "Signal Mode", options = ["Trend", "Reversal"], group = G_SS, tooltip = "Trend: trend-following signals.\nReversal: potential counter-trend reversal signals.")
+string ssHorizon = input.string(H_MEDIUM, "Time Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_SS, tooltip = "Controls the base length of the Smart Signals engine.")
+
+bool   autoOpt      = input.bool(false, "Auto-Optimize Length", group = G_OPT, tooltip = "When enabled, the engine continuously tests 8 candidate lengths and uses the best performing one (walk-forward, no lookahead).")
+string optMetric    = input.string("Net Profit", "Optimize By", options = ["Win Rate", "Net Profit", "Balanced"], group = G_OPT)
+int    optMinTrades = input.int(5, "Minimum Trades", minval = 1, group = G_OPT, tooltip = "Minimum closed trades a candidate needs before it can be selected.")
+bool   showOptTbl   = input.bool(false, "Show Performance Table", group = G_OPT)
+string optTblPos    = input.string(P_TR, "Performance Table Position", options = [P_TR, P_TC, P_TL, P_MR, P_MC, P_ML, P_BR, P_BC, P_BL], group = G_OPT)
+
+string fvtHorizon = input.string(H_MEDIUM, "Time Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_FVT)
+float  fvtWidth   = input.float(1.0, "Trail Width", minval = 0.1, maxval = 5.0, step = 0.1, group = G_FVT, tooltip = "Thickness of the Fair Value Trail cloud (volatility multiple).")
+
+string spHorizon = input.string(H_MEDIUM, "Time Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_SP)
+
+string tbHorizon = input.string(H_MEDIUM, "Time Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_TB)
+
+string fcHorizon = input.string(H_MEDIUM, "Time Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_FC)
+
+string trcHorizon = input.string(H_MEDIUM, "Classification Horizon", options = [H_SHORT, H_MEDIUM, H_LONG], group = G_TRC)
+int    trcMem     = input.int(200, "Classification Memory", minval = 50, maxval = 2000, step = 50, group = G_TRC, tooltip = "Number of past samples the classifier keeps in memory. Higher = more robust but slower to compile.")
+
+string tpslMode  = input.string("Volatility", "TP/SL Distance Mode", options = ["Volatility", "Percentage"], group = G_TPSL)
+int    tpTargets = input.int(3, "Take-Profit Targets", minval = 1, maxval = 5, group = G_TPSL)
+float  tpMult    = input.float(2.0, "TP Multiplier", minval = 0.1, step = 0.1, inline = "tpv", group = G_TPSL)
+float  slMult    = input.float(1.5, "SL Multiplier", minval = 0.1, step = 0.1, inline = "tpv", group = G_TPSL)
+float  tpPct     = input.float(1.0, "TP Distance %", minval = 0.01, step = 0.05, inline = "tpp", group = G_TPSL)
+float  slPct     = input.float(0.75, "SL Distance %", minval = 0.01, step = 0.05, inline = "tpp", group = G_TPSL)
+
+string candleMode  = input.string("Trend", "Candle Coloring", options = ["Trend", "Trend Gradient", "Volume Gradient", "None"], group = G_APP)
+bool   detectRange = input.bool(true, "Detect Ranging Candles", group = G_APP, tooltip = "Colors candles neutral when the market is ranging (uses the Trend-Range Classifier when enabled).")
+color  bullCol     = input.color(#00ffbb, "Bullish", inline = "c1", group = G_APP)
+color  bearCol     = input.color(#ff1100, "Bearish", inline = "c1", group = G_APP)
+color  neutCol     = input.color(#787b86, "Neutral", inline = "c1", group = G_APP)
+color  exitCol     = input.color(#ff9800, "Exit Signals", inline = "c2", group = G_APP)
+color  alertCol    = input.color(#ffd600, "Historical Alerts", inline = "c2", group = G_APP)
+
+string tblPos  = input.string(P_BR, "Table Position", options = [P_TR, P_TC, P_TL, P_MR, P_MC, P_ML, P_BR, P_BC, P_BL], group = G_TBL)
+string tblSize = input.string("Small", "Table Size", options = ["Tiny", "Small", "Normal", "Large", "Huge"], group = G_TBL)
+
+bool   showHistAlerts  = input.bool(false, "Show Historical Alerts", group = G_ALR, tooltip = "Marks every bar where the custom alert sequence would have fired and shows the Alert Logic table.")
+string alertFreqIn     = input.string("Once Per Bar Close", "Alert Frequency", options = ["Once Per Bar", "Once Per Bar Close", "All"], group = G_ALR)
+string alertMsgIn      = input.text_area("Smart Signals Alert: {{event}} | {{ticker}} ({{interval}}) @ {{close}}", "Custom Alert Message", group = G_ALR, tooltip = "Supported tags: {{event}}, {{ticker}}, {{exchange}}, {{interval}}, {{open}}, {{high}}, {{low}}, {{close}}, {{volume}}, {{time}}")
+int    stepTimeout     = input.int(50, "Max Bars Between Steps", minval = 0, group = G_ALR, tooltip = "Resets the sequence if the next step does not occur within this many bars. 0 = no limit.")
+bool   universalAlerts = input.bool(false, "Enable Universal Alerts", group = G_ALR, tooltip = "Fires one alert() call per bar listing every built-in trigger that occurred. Create the alert with 'Any alert() function call'.")
+
+string a1c1 = input.string(C_NONE, "Step 1", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a1op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a1", group = G_SEQ)
+string a1c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a1", group = G_SEQ)
+string a2c1 = input.string(C_NONE, "Step 2", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a2op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a2", group = G_SEQ)
+string a2c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a2", group = G_SEQ)
+string a3c1 = input.string(C_NONE, "Step 3", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a3op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a3", group = G_SEQ)
+string a3c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a3", group = G_SEQ)
+string a4c1 = input.string(C_NONE, "Step 4", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a4op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a4", group = G_SEQ)
+string a4c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a4", group = G_SEQ)
+string a5c1 = input.string(C_NONE, "Step 5", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a5op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a5", group = G_SEQ)
+string a5c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a5", group = G_SEQ)
+string a6c1 = input.string(C_NONE, "Step 6", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a6op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a6", group = G_SEQ)
+string a6c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a6", group = G_SEQ)
+string a7c1 = input.string(C_NONE, "Step 7", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_SEQ)
+string a7op = input.string("AND", "    Logic", options = ["AND", "OR"], inline = "a7", group = G_SEQ)
+string a7c2 = input.string(C_NONE, "", options = [C_NONE, T01, T02, T03, T04, T05, T06, T07, T08, T09, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], inline = "a7", group = G_SEQ)
+
+string f1c = input.string(C_NONE, "State Filter 1", options = [C_NONE, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_FLT)
+string f2c = input.string(C_NONE, "State Filter 2", options = [C_NONE, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_FLT)
+string f3c = input.string(C_NONE, "State Filter 3", options = [C_NONE, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_FLT)
+string f4c = input.string(C_NONE, "State Filter 4", options = [C_NONE, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_FLT)
+string f5c = input.string(C_NONE, "State Filter 5", options = [C_NONE, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15, S16, S17, S18, S19, S20], group = G_FLT)
+
+float ext1 = input.source(close, "External Source 1", group = G_EXT)
+float ext2 = input.source(close, "External Source 2", group = G_EXT)
+float ext3 = input.source(close, "External Source 3", group = G_EXT)
+float ext4 = input.source(close, "External Source 4", group = G_EXT)
+float ext5 = input.source(close, "External Source 5", group = G_EXT)
+
+int ssBaseLen = ssMode == "Swing" ? (ssHorizon == H_SHORT ? 60 : ssHorizon == H_MEDIUM ? 120 : 200) : (ssHorizon == H_SHORT ? 6 : ssHorizon == H_MEDIUM ? 10 : 16)
+int L0 = math.max(2, math.round(ssBaseLen * 0.50))
+int L1 = math.max(2, math.round(ssBaseLen * 0.65))
+int L2 = math.max(2, math.round(ssBaseLen * 0.80))
+int L3 = math.max(2, ssBaseLen)
+int L4 = math.max(2, math.round(ssBaseLen * 1.20))
+int L5 = math.max(2, math.round(ssBaseLen * 1.45))
+int L6 = math.max(2, math.round(ssBaseLen * 1.70))
+int L7 = math.max(2, math.round(ssBaseLen * 2.00))
+int fvtLen = fvtHorizon == H_SHORT ? 20 : fvtHorizon == H_MEDIUM ? 50 : 100
+int spLen  = spHorizon == H_SHORT ? 20 : spHorizon == H_MEDIUM ? 50 : 100
+int tbLen  = tbHorizon == H_SHORT ? 20 : tbHorizon == H_MEDIUM ? 50 : 100
+int fcLen  = fcHorizon == H_SHORT ? 50 : fcHorizon == H_MEDIUM ? 100 : 200
+int trcH   = trcHorizon == H_SHORT ? 10 : trcHorizon == H_MEDIUM ? 20 : 40
+
+type DurationTracker
+    int   lastState     = 0
+    int   lastChangeBar = na
+    bool  started       = false
+    float sumDur        = 0.0
+    int   count         = 0
+
+method update(DurationTracker this, int state) =>
+    if na(this.lastChangeBar)
+        this.lastChangeBar := bar_index
+        this.lastState     := state
+    else if state != this.lastState
+        if this.started
+            this.sumDur := this.sumDur + (bar_index - this.lastChangeBar)
+            this.count  := this.count + 1
+        this.started       := true
+        this.lastChangeBar := bar_index
+        this.lastState     := state
+    this
+
+method avgDur(DurationTracker this) =>
+    this.count > 0 ? this.sumDur / this.count : na
+
+method curDur(DurationTracker this) =>
+    na(this.lastChangeBar) ? na : bar_index - this.lastChangeBar
+
+type PerfTracker
+    int   length    = 0
+    int   pos       = 0
+    float entry     = na
+    int   trades    = 0
+    int   wins      = 0
+    float netProfit = 0.0
+    float grossWin  = 0.0
+    float grossLoss = 0.0
+
+method onSignal(PerfTracker this, int dir, float price) =>
+    if dir != this.pos
+        if this.pos != 0 and not na(this.entry) and this.entry > 0
+            float pnl = this.pos == 1 ? (price - this.entry) / this.entry * 100.0 : (this.entry - price) / this.entry * 100.0
+            this.trades    := this.trades + 1
+            this.netProfit := this.netProfit + pnl
+            if pnl > 0
+                this.wins     := this.wins + 1
+                this.grossWin := this.grossWin + pnl
+            else
+                this.grossLoss := this.grossLoss + math.abs(pnl)
+        this.pos   := dir
+        this.entry := price
+    this
+
+method feed(PerfTracker this, bool bullSig, bool bearSig) =>
+    if bullSig
+        this.onSignal(1, close)
+    else if bearSig
+        this.onSignal(-1, close)
+    this
+
+method winRate(PerfTracker this) =>
+    this.trades > 0 ? float(this.wins) / this.trades * 100.0 : 0.0
+
+method profitFactor(PerfTracker this) =>
+    this.grossLoss > 0 ? this.grossWin / this.grossLoss : na
+
+f_er(float src, int len) =>
+    float chg   = math.abs(src - src[len])
+    float noise = math.sum(math.abs(ta.change(src)), len)
+    noise > 0 ? chg / noise : 0.0
+
+f_trail(float src, float vol, float mult) =>
+    float up = src - mult * vol
+    float dn = src + mult * vol
+    var float upT = na
+    var float dnT = na
+    var int   dir = 1
+    float prevUp = nz(upT, up)
+    float prevDn = nz(dnT, dn)
+    upT := close[1] > prevUp ? math.max(up, prevUp) : up
+    dnT := close[1] < prevDn ? math.min(dn, prevDn) : dn
+    if dir == 1 and close < prevUp
+        dir := -1
+    else if dir == -1 and close > prevDn
+        dir := 1
+    float lineOut = dir == 1 ? upT : dnT
+    [lineOut, dir, upT, dnT]
+
+f_engine(simple int len, float stateRatio) =>
+    int   halfLen  = math.max(2, int(len / 2))
+    float rng      = math.max(high - low, syminfo.mintick)
+    float w        = 1.0 / rng
+    float sumW     = math.sum(w, len)
+    float sumCW    = math.sum(close * w, len)
+    float swBase   = sumW > 0 ? sumCW / sumW : close
+    float atrLen   = ta.atr(len)
+    [swLine, swDir, swUp, swDn] = f_trail(swBase, atrLen, SWING_MULT)
+    float scVol    = atrLen * stateRatio
+    [scLine, scDir, scUp, scDn] = f_trail(hl2, scVol, SCALP_MULT)
+    float scBase   = ta.ema(hl2, len)
+    bool  isSwing  = ssMode == "Swing"
+    int   tDir     = isSwing ? swDir : scDir
+    float base     = isSwing ? swBase : scBase
+    float vol      = isSwing ? atrLen : scVol
+    float mult     = isSwing ? SWING_MULT : SCALP_MULT
+    int   tDirPrev = nz(tDir[1], tDir)
+    bool  tBull    = tDir == 1 and tDirPrev == -1
+    bool  tBear    = tDir == -1 and tDirPrev == 1
+    float osc      = vol > 0 ? (close - base) / (vol * mult) : 0.0
+    bool  rBull    = ta.crossover(osc, -1.0)
+    bool  rBear    = ta.crossunder(osc, 1.0)
+    float oscLo    = ta.lowest(osc, halfLen)
+    float oscHi    = ta.highest(osc, halfLen)
+    float longBase = ta.ema(close, len * 2)
+    float avgVol   = ta.sma(volume, len)
+    float relVol   = avgVol > 0 ? volume / avgVol : 1.0
+    float erv      = f_er(close, halfLen)
+    float mom      = close - close[halfLen]
+    int   bullScore = (close > longBase ? 1 : 0) + (nz(relVol, 1.0) > 1.0 ? 1 : 0) + (mom > 0 and nz(erv) > 0.2 ? 1 : 0)
+    int   bearScore = (close < longBase ? 1 : 0) + (nz(relVol, 1.0) > 1.0 ? 1 : 0) + (mom < 0 and nz(erv) > 0.2 ? 1 : 0)
+    bool  isTrendMode = sigMode == "Trend"
+    bool  bullSig  = isTrendMode ? tBull : rBull
+    bool  bearSig  = isTrendMode ? tBear : rBear
+    bool  strongBull = bullSig and (isTrendMode ? bullScore >= 2 : oscLo <= -STRONG_OSC)
+    bool  strongBear = bearSig and (isTrendMode ? bearScore >= 2 : oscHi >= STRONG_OSC)
+    var int revState = 0
+    revState := bullSig ? 1 : bearSig ? -1 : revState
+    int   state    = isTrendMode ? tDir : revState
+    [state, bullSig, bearSig, strongBull, strongBear]
+
+f_pickI(int i, int a0, int a1, int a2, int a3, int a4, int a5, int a6, int a7) =>
+    switch i
+        0 => a0
+        1 => a1
+        2 => a2
+        3 => a3
+        4 => a4
+        5 => a5
+        6 => a6
+        => a7
+
+f_pickB(int i, bool a0, bool a1, bool a2, bool a3, bool a4, bool a5, bool a6, bool a7) =>
+    switch i
+        0 => a0
+        1 => a1
+        2 => a2
+        3 => a3
+        4 => a4
+        5 => a5
+        6 => a6
+        => a7
+
+f_pos(string p) =>
+    switch p
+        "Top Right"     => position.top_right
+        "Top Center"    => position.top_center
+        "Top Left"      => position.top_left
+        "Middle Right"  => position.middle_right
+        "Middle Center" => position.middle_center
+        "Middle Left"   => position.middle_left
+        "Bottom Right"  => position.bottom_right
+        "Bottom Center" => position.bottom_center
+        => position.bottom_left
+
+f_size(string s) =>
+    switch s
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        => size.huge
+
+f_cond(array<string> names, array<bool> vals, string c) =>
+    int  idx = names.indexof(c)
+    bool r   = false
+    if idx >= 0
+        r := vals.get(idx)
+    r
+
+f_step(array<string> names, array<bool> vals, string c1, string op, string c2) =>
+    bool r = false
+    if c1 != C_NONE
+        bool r1 = f_cond(names, vals, c1)
+        if c2 == C_NONE
+            r := r1
+        else
+            bool r2 = f_cond(names, vals, c2)
+            r := op == "AND" ? r1 and r2 : r1 or r2
+    r
+
+f_condCol(string c) =>
+    color col = TXT_MAIN
+    if str.contains(c, "Bearish") or str.contains(c, "Stop-Loss")
+        col := bearCol
+    else if str.contains(c, "Bullish") or str.contains(c, "Take-Profit") or str.contains(c, "Trending") or str.contains(c, "Strong") or str.contains(c, "Strengthens") or str.contains(c, "Upper")
+        col := bullCol
+    else if str.contains(c, "Ranging") or str.contains(c, "Weak") or str.contains(c, "Lower")
+        col := bearCol
+    col
+
+f_fmt(string m, string evt) =>
+    string r = m
+    r := str.replace_all(r, "{{ticker}}",   syminfo.ticker)
+    r := str.replace_all(r, "{{exchange}}", syminfo.prefix)
+    r := str.replace_all(r, "{{interval}}", timeframe.period)
+    r := str.replace_all(r, "{{open}}",     str.tostring(open,  format.mintick))
+    r := str.replace_all(r, "{{high}}",     str.tostring(high,  format.mintick))
+    r := str.replace_all(r, "{{low}}",      str.tostring(low,   format.mintick))
+    r := str.replace_all(r, "{{close}}",    str.tostring(close, format.mintick))
+    r := str.replace_all(r, "{{volume}}",   str.tostring(volume))
+    r := str.replace_all(r, "{{time}}",     str.format_time(time, "yyyy-MM-dd HH:mm", syminfo.timezone))
+    r := str.replace_all(r, "{{event}}",    evt)
+    r
+
+f_lvl(array<float> a, int i) =>
+    float r = na
+    if i < a.size()
+        r := a.get(i)
+    r
+
+f_compRow(table t, int row, string name, bool enabled, int state, float avgD, int curD, bool isTRC, string sz) =>
+    color  nameCol = enabled ? TXT_MAIN : TXT_DIM
+    string sigTxt  = ""
+    color  sigBg   = TBL_BG
+    if enabled
+        if isTRC
+            sigTxt := state == 1 ? "📈" : "⚖️"
+            sigBg  := state == 1 ? color.new(bullCol, 20) : neutCol
+        else
+            sigTxt := state == 1 ? "▲" : state == -1 ? "▼" : ""
+            sigBg  := state == 1 ? bullCol : state == -1 ? bearCol : TBL_BG
+    table.cell(t, 0, row, name, text_color = nameCol, text_size = sz, bgcolor = TBL_BG)
+    table.cell(t, 1, row, sigTxt, text_color = color.white, text_size = sz, bgcolor = sigBg)
+    table.cell(t, 2, row, enabled ? str.tostring(avgD, "#.0") : "NaN", text_color = nameCol, text_size = sz, bgcolor = TBL_BG)
+    table.cell(t, 3, row, enabled ? str.tostring(curD) : "NaN", text_color = nameCol, text_size = sz, bgcolor = TBL_BG)
+
+float atr14 = ta.atr(14)
+float atr50 = ta.atr(50)
+float rsi14 = ta.rsi(close, 14)
+
+float mlVol = ta.atr(10)
+var array<float> mlWin = array.new_float()
+var float cLow  = na
+var float cMid  = na
+var float cHigh = na
+float stateRatio = 1.0
+int   mlState    = 1
+if not na(mlVol)
+    mlWin.push(mlVol)
+    if mlWin.size() > ML_TRAIN
+        mlWin.shift()
+if mlWin.size() >= 20 and not na(mlVol) and mlVol > 0
+    if na(cLow)
+        cLow  := mlWin.percentile_linear_interpolation(25)
+        cMid  := mlWin.percentile_linear_interpolation(50)
+        cHigh := mlWin.percentile_linear_interpolation(75)
+    for iter = 1 to ML_ITER
+        float s0 = 0.0
+        float s1 = 0.0
+        float s2 = 0.0
+        int   n0 = 0
+        int   n1 = 0
+        int   n2 = 0
+        for v in mlWin
+            float d0 = math.abs(v - cLow)
+            float d1 = math.abs(v - cMid)
+            float d2 = math.abs(v - cHigh)
+            if d0 <= d1 and d0 <= d2
+                s0 += v
+                n0 += 1
+            else if d1 <= d2
+                s1 += v
+                n1 += 1
+            else
+                s2 += v
+                n2 += 1
+        cLow  := n0 > 0 ? s0 / n0 : cLow
+        cMid  := n1 > 0 ? s1 / n1 : cMid
+        cHigh := n2 > 0 ? s2 / n2 : cHigh
+    float e0 = math.abs(mlVol - cLow)
+    float e1 = math.abs(mlVol - cMid)
+    float e2 = math.abs(mlVol - cHigh)
+    mlState := e0 <= e1 and e0 <= e2 ? 0 : e1 <= e2 ? 1 : 2
+    float centroid = mlState == 0 ? cLow : mlState == 1 ? cMid : cHigh
+    stateRatio := math.max(0.5, math.min(2.0, centroid / mlVol))
+
+[st0, bs0, br0, sb0, sr0] = f_engine(L0, stateRatio)
+[st1, bs1, br1, sb1, sr1] = f_engine(L1, stateRatio)
+[st2, bs2, br2, sb2, sr2] = f_engine(L2, stateRatio)
+[st3, bs3, br3, sb3, sr3] = f_engine(L3, stateRatio)
+[st4, bs4, br4, sb4, sr4] = f_engine(L4, stateRatio)
+[st5, bs5, br5, sb5, sr5] = f_engine(L5, stateRatio)
+[st6, bs6, br6, sb6, sr6] = f_engine(L6, stateRatio)
+[st7, bs7, br7, sb7, sr7] = f_engine(L7, stateRatio)
+
+float fvtAvgVol = ta.sma(volume, fvtLen)
+bool  fvtSigVol = na(volume) or na(fvtAvgVol) or fvtAvgVol <= 0 or volume > fvtAvgVol
+float fvtAlpha  = 2.0 / (fvtLen * 0.25 + 1.0)
+var float fvLevel = na
+fvLevel := na(fvLevel) ? hlc3 : fvtSigVol ? fvLevel + fvtAlpha * (hlc3 - fvLevel) : fvLevel
+float fvtAtr = ta.atr(fvtLen)
+[fvtLine, fvtDir, fvtUpT, fvtDnT] = f_trail(fvLevel, fvtAtr, FVT_MULT)
+float fvtBand    = nz(fvtAtr) * fvtWidth
+int   fvtDirPrev = nz(fvtDir[1], fvtDir)
+float fvtBullL   = showFVT and fvtDir == 1  ? fvtLine                  : na
+float fvtBullM   = showFVT and fvtDir == 1  ? fvtLine + fvtBand * 0.5  : na
+float fvtBullO   = showFVT and fvtDir == 1  ? fvtLine + fvtBand        : na
+float fvtBearL   = showFVT and fvtDir == -1 ? fvtLine                  : na
+float fvtBearM   = showFVT and fvtDir == -1 ? fvtLine - fvtBand * 0.5  : na
+float fvtBearO   = showFVT and fvtDir == -1 ? fvtLine - fvtBand        : na
+
+float spEr   = nz(f_er(close, spLen))
+float spFast = 2.0 / 3.0
+float spSlow = 2.0 / (spLen + 1.0)
+float spSc   = math.pow(spEr * (spFast - spSlow) + spSlow, 2)
+var float spine = na
+spine := na(spine) ? close : spEr >= SPINE_ER ? spine + spSc * (close - spine) : spine
+float spinePrev = nz(spine[1], spine)
+var int spDir = 0
+spDir := spine > spinePrev ? 1 : spine < spinePrev ? -1 : spDir
+int spDirPrev = nz(spDir[1], spDir)
+
+float tbCenter = ta.ema(close, tbLen)
+float tbAtr    = ta.atr(tbLen)
+float tbHalf   = nz(tbAtr) * TB_BAND
+int   tbMomLen = math.max(2, int(tbLen / 4))
+float tbMom    = ta.ema(close - tbCenter, tbMomLen)
+float tbAvg    = ta.sma(math.abs(tbMom), tbLen * 2)
+var int tbDir  = 0
+tbDir := tbMom > 0 ? 1 : tbMom < 0 ? -1 : tbDir
+bool tbStrong     = math.abs(nz(tbMom)) > nz(tbAvg)
+bool tbStrongPrev = tbStrong[1]
+int  tbDirPrev    = nz(tbDir[1], tbDir)
+
+float fcBasis  = ta.ema(hlc3, fcLen)
+float fcDevRaw = ta.stdev(close, fcLen)
+int   fcSmLen  = math.max(2, int(fcLen / 5))
+float fcDev    = ta.ema(fcDevRaw, fcSmLen)
+float fcUI     = fcBasis + fcDev * FC_INNER
+float fcUO     = fcBasis + fcDev * FC_OUTER
+float fcLI     = fcBasis - fcDev * FC_INNER
+float fcLO     = fcBasis - fcDev * FC_OUTER
+int   fcState  = close > fcUI ? 1 : close < fcLI ? -1 : 0
+int   fcStatePrev = nz(fcState[1], fcState)
+
+[diPlus, diMinus, adxVal] = ta.dmi(14, 14)
+float trSum14 = math.sum(ta.tr(true), 14)
+float hh14    = ta.highest(high, 14)
+float ll14    = ta.lowest(low, 14)
+float rng14   = hh14 - ll14
+float chop    = rng14 > 0 ? 100.0 * math.log10(trSum14 / rng14) / math.log10(14.0) : 50.0
+float er14    = f_er(close, 14)
+float tf1     = math.min(nz(adxVal) / 50.0, 2.0)
+float tf2     = nz(chop, 50.0) / 100.0
+float tf3     = nz(er14)
+float tf4     = atr50 > 0 ? math.min(atr14 / atr50, 3.0) / 2.0 : 0.5
+float tf5     = math.abs(nz(rsi14, 50.0) - 50.0) / 50.0
+float tf1Lag  = nz(tf1[trcH])
+float tf2Lag  = nz(tf2[trcH], 0.5)
+float tf3Lag  = nz(tf3[trcH])
+float tf4Lag  = nz(tf4[trcH], 0.5)
+float tf5Lag  = nz(tf5[trcH])
+float trcLabelEr = nz(f_er(close, trcH))
+float trcLabel   = trcLabelEr > TRC_THR ? 1.0 : 0.0
+
+var array<float> trcF1  = array.new_float()
+var array<float> trcF2  = array.new_float()
+var array<float> trcF3  = array.new_float()
+var array<float> trcF4  = array.new_float()
+var array<float> trcF5  = array.new_float()
+var array<float> trcLab = array.new_float()
+float trcProb = na
+if showTRC and bar_index > trcH + 60
+    trcF1.push(tf1Lag)
+    trcF2.push(tf2Lag)
+    trcF3.push(tf3Lag)
+    trcF4.push(tf4Lag)
+    trcF5.push(tf5Lag)
+    trcLab.push(trcLabel)
+    if trcLab.size() > trcMem
+        trcF1.shift()
+        trcF2.shift()
+        trcF3.shift()
+        trcF4.shift()
+        trcF5.shift()
+        trcLab.shift()
+    int nMem = trcLab.size()
+    if nMem >= TRC_K
+        array<float> dists = array.new_float(nMem, 0.0)
+        for i = 0 to nMem - 1
+            float d = math.log(1.0 + math.abs(tf1 - trcF1.get(i))) + math.log(1.0 + math.abs(tf2 - trcF2.get(i))) + math.log(1.0 + math.abs(tf3 - trcF3.get(i))) + math.log(1.0 + math.abs(tf4 - trcF4.get(i))) + math.log(1.0 + math.abs(tf5 - trcF5.get(i)))
+            dists.set(i, d)
+        array<int> knnIdx = dists.sort_indices(order.ascending)
+        float votes = 0.0
+        for j = 0 to TRC_K - 1
+            votes += trcLab.get(knnIdx.get(j))
+        trcProb := votes / TRC_K
+float trcProbS = ta.ema(nz(trcProb, 0.5), 3)
+var int trcState = 1
+if showTRC and not na(trcProb)
+    trcState := trcProbS >= 0.55 ? 1 : trcProbS <= 0.45 ? 0 : trcState
+int  trcStatePrev = nz(trcState[1], trcState)
+bool isRanging    = showTRC ? trcState == 0 : nz(chop) > 61.8
+
+bool rsiXDn = ta.crossunder(rsi14, EXIT_OB)
+bool rsiXUp = ta.crossover(rsi14, EXIT_OS)
+
+float candleAvgVol = ta.sma(volume, 20)
+
+var int activeIdx = OPT_BASE
+int  useIdx       = autoOpt ? activeIdx : OPT_BASE
+int  ssState      = f_pickI(useIdx, st0, st1, st2, st3, st4, st5, st6, st7)
+bool ssBullRaw    = f_pickB(useIdx, bs0, bs1, bs2, bs3, bs4, bs5, bs6, bs7)
+bool ssBearRaw    = f_pickB(useIdx, br0, br1, br2, br3, br4, br5, br6, br7)
+bool ssStrongBull = f_pickB(useIdx, sb0, sb1, sb2, sb3, sb4, sb5, sb6, sb7)
+bool ssStrongBear = f_pickB(useIdx, sr0, sr1, sr2, sr3, sr4, sr5, sr6, sr7)
+int  ssActiveLen  = f_pickI(useIdx, L0, L1, L2, L3, L4, L5, L6, L7)
+bool ssNormalBull = ssBullRaw and not ssStrongBull
+bool ssNormalBear = ssBearRaw and not ssStrongBear
+
+var int lastExitBar = -1000
+bool bullExit = ssState == 1 and rsiXDn and bar_index - lastExitBar > EXIT_COOL
+bool bearExit = ssState == -1 and rsiXUp and bar_index - lastExitBar > EXIT_COOL
+if bullExit or bearExit
+    lastExitBar := bar_index
+
+bool optBull = fvtDir == 1 and fvtDirPrev == 1 and low <= fvtLine + fvtBand and close > fvtLine
+bool optBear = fvtDir == -1 and fvtDirPrev == -1 and high >= fvtLine - fvtBand and close < fvtLine
+
+bool fvtTurnBull  = fvtDir == 1 and fvtDirPrev == -1
+bool fvtTurnBear  = fvtDir == -1 and fvtDirPrev == 1
+bool spTurnBull   = spDir == 1 and spDirPrev == -1
+bool spTurnBear   = spDir == -1 and spDirPrev == 1
+bool tbTurnBull   = tbDir == 1 and tbDirPrev == -1
+bool tbTurnBear   = tbDir == -1 and tbDirPrev == 1
+bool tbStrengthen = tbStrong and not tbStrongPrev
+bool tbWeaken     = not tbStrong and tbStrongPrev
+bool fcEnterUpper = fcState == 1 and fcStatePrev != 1
+bool fcEnterLower = fcState == -1 and fcStatePrev != -1
+bool fcExit       = fcState == 0 and fcStatePrev != 0
+bool trcTurnTrend = showTRC and trcState == 1 and trcStatePrev == 0
+bool trcTurnRange = showTRC and trcState == 0 and trcStatePrev == 1
+
+bool extTrig1  = ext1 > 0 and nz(ext1[1]) <= 0
+bool extTrig2  = ext2 > 0 and nz(ext2[1]) <= 0
+bool extTrig3  = ext3 > 0 and nz(ext3[1]) <= 0
+bool extTrig4  = ext4 > 0 and nz(ext4[1]) <= 0
+bool extTrig5  = ext5 > 0 and nz(ext5[1]) <= 0
+bool extState1 = ext1 > 0
+bool extState2 = ext2 > 0
+bool extState3 = ext3 > 0
+bool extState4 = ext4 > 0
+bool extState5 = ext5 > 0
+
+var line         entryLn  = na
+var label        entryLb  = na
+var line         slLn     = na
+var label        slLb     = na
+var box          rewardBx = na
+var box          riskBx   = na
+var array<line>  tpLns    = array.new<line>()
+var array<label> tpLbs    = array.new<label>()
+var array<float> tpLvls   = array.new<float>()
+var array<bool>  tpHit    = array.new<bool>()
+var int          trDir    = 0
+var float        trEntry  = na
+var float        trSL     = na
+var bool         trSLHit  = false
+var int          trStart  = 0
+var int          tpCount  = 0
+array<bool> tpNow = array.new_bool(5, false)
+bool slNow = false
+
+if trDir != 0 and not trSLHit and tpCount < tpLvls.size() and bar_index > trStart
+    int nT = tpLvls.size()
+    for i = 0 to nT - 1
+        if not tpHit.get(i)
+            float lvl = tpLvls.get(i)
+            bool  hit = trDir == 1 ? high >= lvl : low <= lvl
+            if hit
+                tpHit.set(i, true)
+                tpNow.set(i, true)
+                tpCount += 1
+    bool slTouch = trDir == 1 ? low <= trSL : high >= trSL
+    if slTouch
+        trSLHit := true
+        slNow   := true
+bool tpAnyNow = tpNow.includes(true)
+
+bool newLong  = showSS and ssBullRaw
+bool newShort = showSS and ssBearRaw
+if newLong or newShort
+    line.delete(entryLn)
+    label.delete(entryLb)
+    line.delete(slLn)
+    label.delete(slLb)
+    box.delete(rewardBx)
+    box.delete(riskBx)
+    entryLn  := na
+    entryLb  := na
+    slLn     := na
+    slLb     := na
+    rewardBx := na
+    riskBx   := na
+    for l in tpLns
+        line.delete(l)
+    for lb in tpLbs
+        label.delete(lb)
+    tpLns.clear()
+    tpLbs.clear()
+    tpLvls.clear()
+    tpHit.clear()
+    trDir   := newLong ? 1 : -1
+    trEntry := close
+    float tpStep = tpslMode == "Volatility" ? nz(atr14) * tpMult : close * tpPct / 100.0
+    float slDist = tpslMode == "Volatility" ? nz(atr14) * slMult : close * slPct / 100.0
+    trSL    := close - trDir * slDist
+    trSLHit := false
+    trStart := bar_index
+    tpCount := 0
+    for i = 1 to tpTargets
+        tpLvls.push(close + trDir * tpStep * i)
+        tpHit.push(false)
+    color trCol  = trDir == 1 ? bullCol : bearCol
+    color oppCol = trDir == 1 ? bearCol : bullCol
+    int   x2     = bar_index + TPSL_EXT
+    if showTP or showSL
+        entryLn := line.new(bar_index, close, x2, close, color = trCol, width = 2)
+        entryLb := label.new(x2, close, "Entry: " + str.tostring(close, format.mintick), style = label.style_label_left, color = trCol, textcolor = TXT_DARK, size = size.small)
+    if showTP
+        float farTP = tpLvls.last()
+        rewardBx := box.new(bar_index, math.max(close, farTP), x2, math.min(close, farTP), border_color = color.new(trCol, 100), border_width = 0, bgcolor = color.new(trCol, 93))
+        for i = 0 to tpLvls.size() - 1
+            float lvl = tpLvls.get(i)
+            tpLns.push(line.new(bar_index, lvl, x2, lvl, color = color.new(trCol, 55), width = 1))
+            tpLbs.push(label.new(x2, lvl, "TP" + str.tostring(i + 1) + ": " + str.tostring(lvl, format.mintick), style = label.style_label_left, color = color.new(trCol, 70), textcolor = color.white, size = size.small))
+    if showSL
+        riskBx := box.new(bar_index, math.max(close, trSL), x2, math.min(close, trSL), border_color = color.new(oppCol, 100), border_width = 0, bgcolor = color.new(oppCol, 93))
+        slLn   := line.new(bar_index, trSL, x2, trSL, color = color.new(oppCol, 55), width = 1)
+        slLb   := label.new(x2, trSL, "SL: " + str.tostring(trSL, format.mintick), style = label.style_label_left, color = color.new(oppCol, 70), textcolor = color.white, size = size.small)
+
+int xExt = bar_index + TPSL_EXT
+if not na(entryLn)
+    entryLn.set_x2(xExt)
+if not na(entryLb)
+    entryLb.set_x(xExt)
+if not na(slLn)
+    slLn.set_x2(xExt)
+if not na(slLb)
+    slLb.set_x(xExt)
+if not na(rewardBx)
+    rewardBx.set_right(xExt)
+if not na(riskBx)
+    riskBx.set_right(xExt)
+if tpLns.size() > 0
+    for i = 0 to tpLns.size() - 1
+        tpLns.get(i).set_x2(xExt)
+        tpLbs.get(i).set_x(xExt)
+
+float expEntry = trDir != 0 ? trEntry : na
+float expTP1   = f_lvl(tpLvls, 0)
+float expTP2   = f_lvl(tpLvls, 1)
+float expTP3   = f_lvl(tpLvls, 2)
+float expTP4   = f_lvl(tpLvls, 3)
+float expTP5   = f_lvl(tpLvls, 4)
+float expSL    = trDir != 0 ? trSL : na
+float expTPHit = float(tpCount)
+
+var DurationTracker dtSS    = DurationTracker.new()
+var DurationTracker dtFVT   = DurationTracker.new()
+var DurationTracker dtSpine = DurationTracker.new()
+var DurationTracker dtBias  = DurationTracker.new()
+var DurationTracker dtFC    = DurationTracker.new()
+var DurationTracker dtTRC   = DurationTracker.new()
+
+dtSS.update(ssState)
+dtFVT.update(fvtDir)
+dtSpine.update(spDir)
+dtBias.update(tbDir)
+dtFC.update(fcState)
+if showTRC
+    dtTRC.update(trcState)
+
+var array<PerfTracker> trackers = array.new<PerfTracker>()
+if barstate.isfirst
+    trackers.push(PerfTracker.new(L0))
+    trackers.push(PerfTracker.new(L1))
+    trackers.push(PerfTracker.new(L2))
+    trackers.push(PerfTracker.new(L3))
+    trackers.push(PerfTracker.new(L4))
+    trackers.push(PerfTracker.new(L5))
+    trackers.push(PerfTracker.new(L6))
+    trackers.push(PerfTracker.new(L7))
+
+trackers.get(0).feed(bs0, br0)
+trackers.get(1).feed(bs1, br1)
+trackers.get(2).feed(bs2, br2)
+trackers.get(3).feed(bs3, br3)
+trackers.get(4).feed(bs4, br4)
+trackers.get(5).feed(bs5, br5)
+trackers.get(6).feed(bs6, br6)
+trackers.get(7).feed(bs7, br7)
+
+int bestIdx = OPT_BASE
+float bestScore = -1e9
+for i = 0 to OPT_N - 1
+    PerfTracker pt = trackers.get(i)
+    if pt.trades >= optMinTrades
+        float score = optMetric == "Win Rate" ? pt.winRate() : optMetric == "Net Profit" ? pt.netProfit : (pt.winRate() * 0.5 + pt.netProfit * 0.5)
+        if score > bestScore
+            bestScore := score
+            bestIdx   := i
+
+if autoOpt
+    activeIdx := bestIdx
+
+color cBase = ssState == 1 ? bullCol : bearCol
+float volRatio = candleAvgVol > 0 ? math.min(volume / candleAvgVol, 2.5) / 2.5 : 0.5
+color cVolGrad = color.from_gradient(volRatio, 0.2, 1.0, color.new(cBase, 60), cBase)
+color cTrGrad  = color.from_gradient(math.abs(nz(rsi14, 50.0) - 50.0), 0.0, 30.0, color.new(cBase, 50), cBase)
+
+color barColFinal = cBase
+if candleMode == "Trend Gradient"
+    barColFinal := cTrGrad
+else if candleMode == "Volume Gradient"
+    barColFinal := cVolGrad
+else if candleMode == "None"
+    barColFinal := na
+
+if detectRange and isRanging and candleMode != "None"
+    barColFinal := neutCol
+
+plotcandle(candleMode != "None" ? open : na, candleMode != "None" ? high : na, candleMode != "None" ? low : na, candleMode != "None" ? close : na, "Candles", barColFinal, barColFinal, bordercolor = barColFinal)
+
+p_fvtBullL = plot(fvtBullL, "FVT Bull Line", color = color.new(#00e5ff, 10), linewidth = 2, style = plot.style_linebr)
+p_fvtBearL = plot(fvtBearL, "FVT Bear Line", color = color.new(bearCol, 10), linewidth = 2, style = plot.style_linebr)
+p_fvtBullM = plot(fvtBullM, "FVT Bull Mid",   display = display.none)
+p_fvtBullO = plot(fvtBullO, "FVT Bull Outer", display = display.none)
+p_fvtBearM = plot(fvtBearM, "FVT Bear Mid",   display = display.none)
+p_fvtBearO = plot(fvtBearO, "FVT Bear Outer", display = display.none)
+
+fill(p_fvtBullL, p_fvtBullM, color.new(#00e5ff, 75), "FVT Bull Cloud Inner")
+fill(p_fvtBullM, p_fvtBullO, color.new(#00e5ff, 90), "FVT Bull Cloud Outer")
+fill(p_fvtBearL, p_fvtBearM, color.new(bearCol, 75), "FVT Bear Cloud Inner")
+fill(p_fvtBearM, p_fvtBearO, color.new(bearCol, 90), "FVT Bear Cloud Outer")
+
+color spineCol = spDir == 1 ? bullCol : bearCol
+plot(showSpine ? spine : na, "Trend Spine", color = spineCol, linewidth = 3)
+
+color tbCol = tbDir == 1 ? (tbStrong ? color.new(bullCol, 30) : color.new(bullCol, 70)) : (tbStrong ? color.new(bearCol, 30) : color.new(bearCol, 70))
+p_tbU = plot(showBias ? tbCenter + tbHalf : na, "TB Upper", display = display.none)
+p_tbL = plot(showBias ? tbCenter - tbHalf : na, "TB Lower", display = display.none)
+fill(p_tbU, p_tbL, tbCol, "Trend Bias Band")
+
+p_fcUO = plot(showClouds ? fcUO : na, "FC Upper Outer", color = color.new(bearCol, 60), display = display.none)
+p_fcUI = plot(showClouds ? fcUI : na, "FC Upper Inner", color = color.new(bearCol, 70), display = display.none)
+p_fcLI = plot(showClouds ? fcLI : na, "FC Lower Inner", color = color.new(bullCol, 70), display = display.none)
+p_fcLO = plot(showClouds ? fcLO : na, "FC Lower Outer", color = color.new(bullCol, 60), display = display.none)
+fill(p_fcUO, p_fcUI, color.new(bearCol, 80), "FC Upper Zone")
+fill(p_fcLI, p_fcLO, color.new(bullCol, 80), "FC Lower Zone")
+
+if showSS and ssBullRaw
+    string txt = ssStrongBull ? "+▲" : "▲"
+    color  col = ssStrongBull ? bullCol : color.new(bullCol, 25)
+    label.new(bar_index, low, txt, yloc = yloc.belowbar, color = col, textcolor = TXT_DARK, style = label.style_label_up, size = size.normal)
+
+if showSS and ssBearRaw
+    string txt = ssStrongBear ? "+▼" : "▼"
+    color  col = ssStrongBear ? bearCol : color.new(bearCol, 25)
+    label.new(bar_index, high, txt, yloc = yloc.abovebar, color = col, textcolor = color.white, style = label.style_label_down, size = size.normal)
+
+plotshape(showOpt and optBull, "Optimal Bullish Entry", shape.triangleup,   location.belowbar, bullCol, size = size.tiny)
+plotshape(showOpt and optBear, "Optimal Bearish Entry", shape.triangledown, location.abovebar, bearCol, size = size.tiny)
+plotshape(showExit and bullExit, "Bullish Exit", shape.xcross, location.belowbar, exitCol, size = size.small)
+plotshape(showExit and bearExit, "Bearish Exit", shape.xcross, location.abovebar, exitCol, size = size.small)
+
+var array<string> condNames = array.new_string()
+if barstate.isfirst
+    condNames.push(T01), condNames.push(T02), condNames.push(T03), condNames.push(T04), condNames.push(T05), condNames.push(T06), condNames.push(T07)
+    condNames.push(T08), condNames.push(T09), condNames.push(T10), condNames.push(T11), condNames.push(T12), condNames.push(T13), condNames.push(T14)
+    condNames.push(T15), condNames.push(T16), condNames.push(T17), condNames.push(T18), condNames.push(T19), condNames.push(T20), condNames.push(T21)
+    condNames.push(T22), condNames.push(T23), condNames.push(T24), condNames.push(T25), condNames.push(T26), condNames.push(T27), condNames.push(T28)
+    condNames.push(T29), condNames.push(T30), condNames.push(T31), condNames.push(T32), condNames.push(T33), condNames.push(T34)
+    condNames.push(S01), condNames.push(S02), condNames.push(S03), condNames.push(S04), condNames.push(S05), condNames.push(S06), condNames.push(S07)
+    condNames.push(S08), condNames.push(S09), condNames.push(S10), condNames.push(S11), condNames.push(S12), condNames.push(S13), condNames.push(S14)
+    condNames.push(S15), condNames.push(S16), condNames.push(S17), condNames.push(S18), condNames.push(S19), condNames.push(S20)
+
+array<bool> condVals = array.new_bool()
+condVals.push(ssBullRaw)
+condVals.push(ssBearRaw)
+condVals.push(ssNormalBull)
+condVals.push(ssNormalBear)
+condVals.push(ssStrongBull)
+condVals.push(ssStrongBear)
+condVals.push(bullExit)
+condVals.push(bearExit)
+condVals.push(tpNow.get(0))
+condVals.push(tpNow.get(1))
+condVals.push(tpNow.get(2))
+condVals.push(tpNow.get(3))
+condVals.push(tpNow.get(4))
+condVals.push(slNow)
+condVals.push(fvtTurnBull)
+condVals.push(fvtTurnBear)
+condVals.push(optBull)
+condVals.push(optBear)
+condVals.push(spTurnBull)
+condVals.push(spTurnBear)
+condVals.push(tbTurnBull)
+condVals.push(tbTurnBear)
+condVals.push(tbStrengthen)
+condVals.push(tbWeaken)
+condVals.push(fcEnterUpper)
+condVals.push(fcEnterLower)
+condVals.push(fcExit)
+condVals.push(trcTurnTrend)
+condVals.push(trcTurnRange)
+condVals.push(extTrig1)
+condVals.push(extTrig2)
+condVals.push(extTrig3)
+condVals.push(extTrig4)
+condVals.push(extTrig5)
+condVals.push(ssState == 1)
+condVals.push(ssState == -1)
+condVals.push(fvtDir == 1)
+condVals.push(fvtDir == -1)
+condVals.push(spDir == 1)
+condVals.push(spDir == -1)
+condVals.push(tbDir == 1)
+condVals.push(tbDir == -1)
+condVals.push(tbStrong)
+condVals.push(not tbStrong)
+condVals.push(fcState == 1)
+condVals.push(fcState == -1)
+condVals.push(fcState == 0)
+condVals.push(showTRC ? trcState == 1 : not isRanging)
+condVals.push(isRanging)
+condVals.push(extState1)
+condVals.push(extState2)
+condVals.push(extState3)
+condVals.push(extState4)
+condVals.push(extState5)
+
+bool s1Ok = f_step(condNames, condVals, a1c1, a1op, a1c2)
+bool s2Ok = f_step(condNames, condVals, a2c1, a2op, a2c2)
+bool s3Ok = f_step(condNames, condVals, a3c1, a3op, a3c2)
+bool s4Ok = f_step(condNames, condVals, a4c1, a4op, a4c2)
+bool s5Ok = f_step(condNames, condVals, a5c1, a5op, a5c2)
+bool s6Ok = f_step(condNames, condVals, a6c1, a6op, a6c2)
+bool s7Ok = f_step(condNames, condVals, a7c1, a7op, a7c2)
+
+int seqLen = 0
+if a1c1 != C_NONE
+    seqLen := 1
+    if a2c1 != C_NONE
+        seqLen := 2
+        if a3c1 != C_NONE
+            seqLen := 3
+            if a4c1 != C_NONE
+                seqLen := 4
+                if a5c1 != C_NONE
+                    seqLen := 5
+                    if a6c1 != C_NONE
+                        seqLen := 6
+                        if a7c1 != C_NONE
+                            seqLen := 7
+
+bool f1Ok = f1c == C_NONE or f_cond(condNames, condVals, f1c)
+bool f2Ok = f2c == C_NONE or f_cond(condNames, condVals, f2c)
+bool f3Ok = f3c == C_NONE or f_cond(condNames, condVals, f3c)
+bool f4Ok = f4c == C_NONE or f_cond(condNames, condVals, f4c)
+bool f5Ok = f5c == C_NONE or f_cond(condNames, condVals, f5c)
+bool allFilters = f1Ok and f2Ok and f3Ok and f4Ok and f5Ok
+
+var int  curStep = 0
+var int  lastStepBar = 0
+bool     seqComplete = false
+
+if seqLen > 0
+    if stepTimeout > 0 and curStep > 0 and bar_index - lastStepBar > stepTimeout
+        curStep := 0
+    if curStep == 0 and s1Ok
+        curStep := 1
+        lastStepBar := bar_index
+    if curStep == 1 and seqLen >= 2 and s2Ok
+        curStep := 2
+        lastStepBar := bar_index
+    if curStep == 2 and seqLen >= 3 and s3Ok
+        curStep := 3
+        lastStepBar := bar_index
+    if curStep == 3 and seqLen >= 4 and s4Ok
+        curStep := 4
+        lastStepBar := bar_index
+    if curStep == 4 and seqLen >= 5 and s5Ok
+        curStep := 5
+        lastStepBar := bar_index
+    if curStep == 5 and seqLen >= 6 and s6Ok
+        curStep := 6
+        lastStepBar := bar_index
+    if curStep == 6 and seqLen >= 7 and s7Ok
+        curStep := 7
+        lastStepBar := bar_index
+    if curStep == seqLen and allFilters
+        seqComplete := true
+        curStep     := 0
+
+bool filterOnlyTrigger = seqLen == 0 and allFilters and bar_index > 0 and not allFilters[1]
+bool customAlertFired  = seqComplete or filterOnlyTrigger
+
+plotshape(showHistAlerts and customAlertFired, "Historical Alert", shape.diamond, location.abovebar, alertCol, size = size.small)
+
+if customAlertFired
+    string msg = f_fmt(alertMsgIn, "Sequence Complete")
+    if alertFreqIn == "Once Per Bar"
+        alert(msg, alert.freq_once_per_bar)
+    else if alertFreqIn == "Once Per Bar Close"
+        alert(msg, alert.freq_once_per_bar_close)
+    else
+        alert(msg, alert.freq_all)
+
+if universalAlerts
+    string univEvt = ""
+    for k = 0 to N_TRIG - 1
+        if condVals.get(k)
+            string trigName = str.replace(condNames.get(k), " [Trigger]", "")
+            univEvt := univEvt == "" ? trigName : univEvt + " | " + trigName
+    if univEvt != ""
+        string uMsg = f_fmt(alertMsgIn, univEvt)
+        if alertFreqIn == "Once Per Bar"
+            alert(uMsg, alert.freq_once_per_bar)
+        else if alertFreqIn == "Once Per Bar Close"
+            alert(uMsg, alert.freq_once_per_bar_close)
+        else
+            alert(uMsg, alert.freq_all)
+
+alertcondition(ssBullRaw,         "Smart Signals Bullish Signal",        "Smart Signals: Bullish Signal")
+alertcondition(ssBearRaw,         "Smart Signals Bearish Signal",        "Smart Signals: Bearish Signal")
+alertcondition(ssStrongBull,      "Smart Signals Strong Bullish Signal", "Smart Signals: Strong Bullish Signal")
+alertcondition(ssStrongBear,      "Smart Signals Strong Bearish Signal", "Smart Signals: Strong Bearish Signal")
+alertcondition(bullExit,          "Bullish Exit Signal",                 "Smart Signals: Bullish Exit")
+alertcondition(bearExit,          "Bearish Exit Signal",                 "Smart Signals: Bearish Exit")
+alertcondition(fvtTurnBull,       "Fair Value Trail Turns Bullish",      "FVT: Trend turned Bullish")
+alertcondition(fvtTurnBear,       "Fair Value Trail Turns Bearish",      "FVT: Trend turned Bearish")
+alertcondition(optBull,           "Optimal Bullish Entry",               "FVT: Optimal Bullish Entry")
+alertcondition(optBear,           "Optimal Bearish Entry",               "FVT: Optimal Bearish Entry")
+alertcondition(tpNow.get(0),      "Take-Profit 1 Hit",                   "TP/SL: Take-Profit 1 Hit")
+alertcondition(tpNow.get(1),      "Take-Profit 2 Hit",                   "TP/SL: Take-Profit 2 Hit")
+alertcondition(tpNow.get(2),      "Take-Profit 3 Hit",                   "TP/SL: Take-Profit 3 Hit")
+alertcondition(slNow,             "Stop-Loss Hit",                       "TP/SL: Stop-Loss Hit")
+alertcondition(customAlertFired,  "Custom Alert Sequence Triggered",     "Smart Signals: Custom Alert Sequence Complete")
+
+if barstate.islast
+    string tSz = f_size(tblSize)
+
+    if showTable
+        var table compTbl = table.new(f_pos(tblPos), 4, 7, bgcolor = TBL_BG, frame_color = TBL_BORDER, frame_width = 1, border_color = TBL_BORDER, border_width = 1)
+        table.cell(compTbl, 0, 0, "Component Type",         text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(compTbl, 1, 0, "Signal",                 text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(compTbl, 2, 0, "Avg Signal Duration",    text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(compTbl, 3, 0, "Current Signal Duration",text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+
+        f_compRow(compTbl, 1, "Smart Signals",          showSS,     ssState,  dtSS.avgDur(),    dtSS.curDur(),    false, tSz)
+        f_compRow(compTbl, 2, "Fair Value Trail",       showFVT,    fvtDir,   dtFVT.avgDur(),   dtFVT.curDur(),   false, tSz)
+        f_compRow(compTbl, 3, "Trend Spine",            showSpine,  spDir,    dtSpine.avgDur(), dtSpine.curDur(), false, tSz)
+        f_compRow(compTbl, 4, "Trend Bias",             showBias,   tbDir,    dtBias.avgDur(),  dtBias.curDur(),  false, tSz)
+        f_compRow(compTbl, 5, "Firmament Clouds",       showClouds, fcState,  dtFC.avgDur(),    dtFC.curDur(),    false, tSz)
+        f_compRow(compTbl, 6, "Trend-Range Classifier", showTRC,    trcState, dtTRC.avgDur(),   dtTRC.curDur(),   true,  tSz)
+
+    if showOptTbl
+        var table optTbl = table.new(f_pos(optTblPos), 5, 10, bgcolor = TBL_BG, frame_color = TBL_BORDER, frame_width = 1, border_color = TBL_BORDER, border_width = 1)
+        table.cell(optTbl, 0, 0, "Length",        text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(optTbl, 1, 0, "Trades",        text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(optTbl, 2, 0, "Win Rate",      text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(optTbl, 3, 0, "Net Profit",    text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(optTbl, 4, 0, "Profit Factor", text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+
+        for i = 0 to OPT_N - 1
+            PerfTracker pt = trackers.get(i)
+            bool isBest = (autoOpt ? bestIdx : OPT_BASE) == i
+            color rowBg = isBest ? color.new(bullCol, 85) : TBL_BG
+            string prefix = isBest ? "► " : ""
+            float pf = pt.profitFactor()
+            table.cell(optTbl, 0, i + 1, prefix + str.tostring(pt.length), text_color = isBest ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = rowBg)
+            table.cell(optTbl, 1, i + 1, str.tostring(pt.trades), text_color = TXT_MAIN, text_size = tSz, bgcolor = rowBg)
+            table.cell(optTbl, 2, i + 1, str.tostring(pt.winRate(), "#.1") + "%", text_color = TXT_MAIN, text_size = tSz, bgcolor = rowBg)
+            table.cell(optTbl, 3, i + 1, (pt.netProfit >= 0 ? "+" : "") + str.tostring(pt.netProfit, "#.2") + "%", text_color = pt.netProfit >= 0 ? bullCol : bearCol, text_size = tSz, bgcolor = rowBg)
+            table.cell(optTbl, 4, i + 1, na(pf) ? "NaN" : str.tostring(pf, "#.2"), text_color = TXT_MAIN, text_size = tSz, bgcolor = rowBg)
+
+        string optFoot = "Active: " + str.tostring(ssActiveLen) + " | Metric: " + optMetric + (autoOpt ? " (Auto)" : " (Fixed)")
+        table.cell(optTbl, 0, 9, optFoot, text_color = TXT_DIM, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(optTbl, 1, 9, "", bgcolor = TBL_HEAD)
+        table.cell(optTbl, 2, 9, "", bgcolor = TBL_HEAD)
+        table.cell(optTbl, 3, 9, "", bgcolor = TBL_HEAD)
+        table.cell(optTbl, 4, 9, "", bgcolor = TBL_HEAD)
+
+    if showHistAlerts
+        var table alrTbl = table.new(position.bottom_left, 2, 14, bgcolor = TBL_BG, frame_color = TBL_BORDER, frame_width = 1, border_color = TBL_BORDER, border_width = 1)
+        table.cell(alrTbl, 0, 0, "Alert Step / Filter", text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+        table.cell(alrTbl, 1, 0, "Condition Logic",      text_color = TXT_MAIN, text_size = tSz, bgcolor = TBL_HEAD)
+
+        int rIdx = 1
+        if seqLen == 0 and f1c == C_NONE and f2c == C_NONE and f3c == C_NONE and f4c == C_NONE and f5c == C_NONE
+            table.cell(alrTbl, 0, rIdx, "⚠️ Warning", text_color = alertCol, text_size = tSz, bgcolor = TBL_BG)
+            table.cell(alrTbl, 1, rIdx, "No alert conditions configured in Alert Sequence / Filters", text_color = alertCol, text_size = tSz, bgcolor = TBL_BG)
+        else
+            if a1c1 != C_NONE
+                string txt = a1c1 + (a1c2 != C_NONE ? " " + a1op + " " + a1c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 1" + (curStep >= 1 ? " ✓" : ""), text_color = curStep >= 1 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a1c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a2c1 != C_NONE
+                string txt = a2c1 + (a2c2 != C_NONE ? " " + a2op + " " + a2c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 2" + (curStep >= 2 ? " ✓" : ""), text_color = curStep >= 2 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a2c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a3c1 != C_NONE
+                string txt = a3c1 + (a3c2 != C_NONE ? " " + a3op + " " + a3c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 3" + (curStep >= 3 ? " ✓" : ""), text_color = curStep >= 3 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a3c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a4c1 != C_NONE
+                string txt = a4c1 + (a4c2 != C_NONE ? " " + a4op + " " + a4c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 4" + (curStep >= 4 ? " ✓" : ""), text_color = curStep >= 4 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a4c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a5c1 != C_NONE
+                string txt = a5c1 + (a5c2 != C_NONE ? " " + a5op + " " + a5c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 5" + (curStep >= 5 ? " ✓" : ""), text_color = curStep >= 5 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a5c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a6c1 != C_NONE
+                string txt = a6c1 + (a6c2 != C_NONE ? " " + a6op + " " + a6c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 6" + (curStep >= 6 ? " ✓" : ""), text_color = curStep >= 6 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a6c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if a7c1 != C_NONE
+                string txt = a7c1 + (a7c2 != C_NONE ? " " + a7op + " " + a7c2 : "")
+                table.cell(alrTbl, 0, rIdx, "Step 7" + (curStep >= 7 ? " ✓" : ""), text_color = curStep >= 7 ? bullCol : TXT_MAIN, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, txt, text_color = f_condCol(a7c1), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if f1c != C_NONE
+                table.cell(alrTbl, 0, rIdx, "Filter 1" + (f1Ok ? " ✓" : ""), text_color = f1Ok ? bullCol : bearCol, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, f1c, text_color = f_condCol(f1c), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if f2c != C_NONE
+                table.cell(alrTbl, 0, rIdx, "Filter 2" + (f2Ok ? " ✓" : ""), text_color = f2Ok ? bullCol : bearCol, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, f2c, text_color = f_condCol(f2c), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if f3c != C_NONE
+                table.cell(alrTbl, 0, rIdx, "Filter 3" + (f3Ok ? " ✓" : ""), text_color = f3Ok ? bullCol : bearCol, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, f3c, text_color = f_condCol(f3c), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if f4c != C_NONE
+                table.cell(alrTbl, 0, rIdx, "Filter 4" + (f4Ok ? " ✓" : ""), text_color = f4Ok ? bullCol : bearCol, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, f4c, text_color = f_condCol(f4c), text_size = tSz, bgcolor = TBL_BG)
+                rIdx += 1
+            if f5c != C_NONE
+                table.cell(alrTbl, 0, rIdx, "Filter 5" + (f5Ok ? " ✓" : ""), text_color = f5Ok ? bullCol : bearCol, text_size = tSz, bgcolor = TBL_BG)
+                table.cell(alrTbl, 1, rIdx, f5c, text_color = f_condCol(f5c), text_size = tSz, bgcolor = TBL_BG)

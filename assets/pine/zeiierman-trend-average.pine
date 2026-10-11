@@ -1,0 +1,428 @@
+//@version=6
+indicator("Trend Average (Zeiierman)", shorttitle = "Trend Average (Zeiierman)", overlay = true, max_lines_count = 500, max_labels_count = 500, max_bars_back = 500)
+
+string GRP_TA  = "Trend Average"
+string GRP_SIG = "Signals"
+string GRP_PH  = "Trend Phase Engine"
+string GRP_LF  = "Layered Trend Filters"
+string GRP_EXT = "External Chart Filter"
+string GRP_STY = "Style"
+string GRP_VIS = "Trend Visuals"
+
+string modeInput   = input.string("Intraday", "Signal Mode", options = ["Intraday", "Scalping"], group = GRP_TA, tooltip = "Intraday: cleaner, more confirmed pullback setups with structured continuation logic.\nScalping: faster signal engine acting on less-confirmed pullbacks and enabling the Trend Phase color engine.")
+float  srcInput    = input.source(close, "Source", group = GRP_TA, tooltip = "Price source used by the adaptive Trend Average ribbon.")
+int    lenInput    = input.int(40, "Trend Length", minval = 5, maxval = 500, group = GRP_TA, tooltip = "Base length of the Trend Average (center line). All ribbon bands are derived from this length.")
+float  spreadInput = input.float(0.5, "Ribbon Spread", minval = 0.1, maxval = 3.0, step = 0.05, group = GRP_TA, tooltip = "Controls the distance between the ribbon bands. Higher values create a wider ribbon that expands more during strong trends.")
+float  sensInput   = input.float(1.0, "Adaptive Sensitivity", minval = 0.0, maxval = 3.0, step = 0.1, group = GRP_TA, tooltip = "How strongly the ribbon adapts to market activity. Higher values react faster during strong directional movement and stabilize more during quiet periods. 0 = non-adaptive.")
+int    erLenInput  = input.int(14, "Efficiency Length", minval = 2, maxval = 200, group = GRP_TA, tooltip = "Lookback used to measure directional efficiency (trend strength vs. noise) that drives the adaptive speed.")
+
+bool   showEntryInput = input.bool(true, "Show Entry", group = GRP_SIG, inline = "SIG")
+bool   showConfInput  = input.bool(true, "Show Conf", group = GRP_SIG, inline = "SIG", tooltip = "Entry highlights the pullback opportunity. Conf validates the continuation when price closes beyond the tracked confirmation level.")
+int    confWinInput   = input.int(30, "Confirmation Window", minval = 1, maxval = 500, group = GRP_SIG, tooltip = "Number of bars after an Entry during which price must close beyond the Conf level. Otherwise, or if price closes beyond the Entry level, the setup is invalidated.")
+int    minPbInput     = input.int(2, "Min Pullback Bars", minval = 1, maxval = 50, group = GRP_SIG, tooltip = "Intraday mode: minimum number of counter-trend bars required before an Entry may trigger. Scalping mode always uses 1.")
+int    flowLenInput   = input.int(5, "Event Lookback", minval = 2, maxval = 50, group = GRP_SIG, tooltip = "Number of recent bars whose bullish and bearish price action events are scored to define the directional flow.")
+float  flowThrInput   = input.float(0.5, "Event Threshold", minval = 0.0, maxval = 10.0, step = 0.25, group = GRP_SIG, tooltip = "Net event score required to flip the directional flow. Higher values = fewer flips.")
+int    swingLenInput  = input.int(5, "Swing Length", minval = 1, maxval = 50, group = GRP_SIG, tooltip = "Bars on each side used to detect swing highs and lows for the swing-based events.")
+string lblSizeInput   = input.string("Normal", "Label Size", options = ["Tiny", "Small", "Normal", "Large"], group = GRP_SIG)
+string lineStyleInput = input.string("Dotted", "Level Line", options = ["Dotted", "Dashed", "Solid"], group = GRP_SIG, inline = "LN")
+int    lineWidthInput = input.int(2, "", minval = 1, maxval = 4, group = GRP_SIG, inline = "LN", tooltip = "Style and width of the Entry and Conf level lines.")
+
+int   phaseLenInput = input.int(10, "Phase Lookback", minval = 2, maxval = 100, group = GRP_PH, tooltip = "Scalping mode: number of recent bars used to score bullish and bearish pressure.")
+int   phaseSmInput  = input.int(3, "Phase Smoothing", minval = 1, maxval = 20, group = GRP_PH, tooltip = "Smoothing applied to the normalized phase score.")
+float strongInput   = input.float(0.4, "Strong Phase Threshold", minval = 0.05, maxval = 1.0, step = 0.05, group = GRP_PH, tooltip = "Normalized score (0 to 1) required to classify a phase as Strong. Below it, phases are Early (building) or Weak (fading).")
+
+bool   useL1Input = input.bool(false, "Layer 1: Ribbon Direction", group = GRP_LF, tooltip = "Longs only while the Trend Average is rising, shorts only while it is falling.")
+bool   useL2Input = input.bool(false, "Layer 2: Ribbon Structure", group = GRP_LF, tooltip = "Longs only when the ribbon is stacked bullish (fast > center > slow), shorts only when stacked bearish.")
+bool   useL3Input = input.bool(false, "Layer 3: Higher Timeframe", group = GRP_LF, inline = "L3")
+string htfInput   = input.timeframe("240", "", group = GRP_LF, inline = "L3", tooltip = "Longs only when the Trend Average on this timeframe points up, shorts only when it points down. Uses the last confirmed higher-timeframe bar (no repainting). If lower than the chart timeframe, the chart trend is used.")
+
+bool   useExtInput  = input.bool(false, "Source Filter", group = GRP_EXT, inline = "EXT")
+float  extSrcInput  = input.source(close, "", group = GRP_EXT, inline = "EXT", tooltip = "Select an external chart source such as a Moving Average plot. Entries are only allowed when the close is on the required side of it.")
+string extModeInput = input.string("Long: Above / Short: Below", "Source Condition", options = ["Long: Above / Short: Below", "Long: Below / Short: Above"], group = GRP_EXT)
+bool   useLvlInput  = input.bool(false, "Level Filter", group = GRP_EXT, inline = "LVL")
+float  lvlSrcInput  = input.source(close, "", group = GRP_EXT, inline = "LVL")
+float  lvlInput     = input.float(50.0, "Level", group = GRP_EXT, inline = "LVL", tooltip = "Select a source (e.g. a Stochastic) and a level. Entries are only allowed when the source is on the required side of the level.")
+string lvlModeInput = input.string("Long: Below / Short: Above", "Level Condition", options = ["Long: Below / Short: Above", "Long: Above / Short: Below"], group = GRP_EXT)
+
+bool  showRibbonInput = input.bool(true, "Show Ribbon", group = GRP_STY)
+color bullColInput    = input.color(#22AB94, "Intraday Bull", group = GRP_STY, inline = "ID")
+color bearColInput    = input.color(#F23645, "Bear", group = GRP_STY, inline = "ID")
+color strongBullInput = input.color(#00E676, "Strong Bull", group = GRP_STY, inline = "SB")
+color earlyBullInput  = input.color(#26C6A9, "Early Bull", group = GRP_STY, inline = "SB")
+color weakBullInput   = input.color(#2196F3, "Weak Bull", group = GRP_STY, inline = "SB")
+color strongBearInput = input.color(#FF1744, "Strong Bear", group = GRP_STY, inline = "SS")
+color earlyBearInput  = input.color(#FF6E8A, "Early Bear", group = GRP_STY, inline = "SS")
+color weakBearInput   = input.color(#FF9800, "Weak Bear", group = GRP_STY, inline = "SS")
+int   fillTranspInput = input.int(85, "Ribbon Fill Transparency", minval = 0, maxval = 100, group = GRP_STY)
+
+bool showBgInput      = input.bool(false, "Trend Background Color", group = GRP_VIS)
+bool candleInput      = input.bool(false, "Trend Candle Coloring", group = GRP_VIS)
+bool showTrackerInput = input.bool(false, "Trend Tracker Line", group = GRP_VIS, inline = "TRK")
+int  trackLenInput    = input.int(10, "", minval = 2, maxval = 200, group = GRP_VIS, inline = "TRK", tooltip = "Ratcheting trailing line that follows the extreme of the last N bars in the trend direction.")
+
+int   PH_STRONG_BULL = 3
+int   PH_EARLY_BULL  = 2
+int   PH_WEAK_BULL   = 1
+int   PH_WEAK_BEAR   = -1
+int   PH_EARLY_BEAR  = -2
+int   PH_STRONG_BEAR = -3
+int   ATR_FAST       = 10
+int   ATR_SLOW       = 50
+int   ENTRY_EXT      = 2
+int   MAX_PB_BARS    = 75
+color NO_COLOR       = color.new(color.black, 100)
+bool  IS_SCALP       = modeInput == "Scalping"
+int   MIN_PB_BARS    = IS_SCALP ? 1 : minPbInput
+color LONG_SIG_COL   = IS_SCALP ? strongBullInput : bullColInput
+color SHORT_SIG_COL  = IS_SCALP ? strongBearInput : bearColInput
+
+f_lineStyle(string s) =>
+    switch s
+        "Dashed" => line.style_dashed
+        "Solid"  => line.style_solid
+        => line.style_dotted
+
+f_labelSize(string s) =>
+    switch s
+        "Tiny"  => size.tiny
+        "Small" => size.small
+        "Large" => size.large
+        => size.normal
+
+string LINE_STYLE = f_lineStyle(lineStyleInput)
+string LABEL_SIZE = f_labelSize(lblSizeInput)
+
+f_efficiency(float src, int len) =>
+    float change = math.abs(src - src[len])
+    float noise  = math.sum(math.abs(src - src[1]), len)
+    float er     = noise > 0 ? change / noise : 0.0
+    nz(er)
+
+f_speed(float src, int erLen, float sens) =>
+    float er       = f_efficiency(src, erLen)
+    float atrFast  = ta.atr(ATR_FAST)
+    float atrSlow  = ta.atr(ATR_SLOW)
+    float volRatio = nz(atrSlow) > 0 ? nz(atrFast) / atrSlow : 1.0
+    float volClamp = math.max(0.6, math.min(1.6, volRatio))
+    float volFact  = math.pow(volClamp, 0.5 * sens)
+    float momFact  = 1.0 + sens * (2.2 * er - 0.6)
+    math.max(0.2, math.min(3.0, momFact * volFact))
+
+f_adaptiveMA(float src, float len, float speed) =>
+    var float am = na
+    float alpha = math.max(0.0005, math.min(1.0, 2.0 / (math.max(len, 1.0) + 1.0) * speed))
+    am := na(am) ? src : am + alpha * (src - am)
+    am
+
+f_ribbon(float src, int len, float spread, float speed) =>
+    float fastOuter = f_adaptiveMA(src, len / (1.0 + 2.0 * spread), speed)
+    float fastInner = f_adaptiveMA(src, len / (1.0 + spread), speed)
+    float mid       = f_adaptiveMA(src, len * 1.0, speed)
+    float slowInner = f_adaptiveMA(src, len * (1.0 + spread), speed)
+    float slowOuter = f_adaptiveMA(src, len * (1.0 + 2.0 * spread), speed)
+    [fastOuter, fastInner, mid, slowInner, slowOuter]
+
+f_htfTrendPrev(float src, int len, float spread, int erLen, float sens) =>
+    float spd = f_speed(src, erLen, sens)
+    [fo, fi, md, si, so] = f_ribbon(src, len, spread, spd)
+    var int dir = 0
+    dir := fi > si and md > md[1] ? 1 : fi < si and md < md[1] ? -1 : dir
+    nz(dir[1])
+
+type PullbackSetup
+    int   dir
+    float advExt      = na
+    int   advExtBar   = na
+    bool  inPullback  = false
+    float confCand    = na
+    int   confCandBar = na
+    float pbExt       = na
+    int   pbExtBar    = na
+    int   pbBars      = 0
+    bool  armed       = false
+    float entryLevel  = na
+    float confLevel   = na
+    int   confBar     = na
+    int   expiryBar   = na
+    line  confLine    = na
+
+method favPrice(PullbackSetup this) =>
+    this.dir == 1 ? high : low
+
+method adverse(PullbackSetup this) =>
+    this.dir == 1 ? low : high
+
+method isBeyond(PullbackSetup this, float a, float b) =>
+    this.dir == 1 ? a > b : a < b
+
+method resetAdvance(PullbackSetup this) =>
+    this.advExt     := this.favPrice()
+    this.advExtBar  := bar_index
+    this.inPullback := false
+    this.pbExt      := na
+    this.pbExtBar   := na
+    this.pbBars     := 0
+    this
+
+method trackAdvance(PullbackSetup this) =>
+    float fav = this.favPrice()
+    if na(this.advExt) or this.isBeyond(fav, this.advExt)
+        this.advExt    := fav
+        this.advExtBar := bar_index
+    this
+
+method startPullback(PullbackSetup this) =>
+    this.inPullback  := true
+    this.confCand    := this.advExt
+    this.confCandBar := this.advExtBar
+    this.pbExt       := this.adverse()
+    this.pbExtBar    := bar_index
+    this.pbBars      := 1
+    this
+
+method trackPullback(PullbackSetup this) =>
+    float adv = this.adverse()
+    if na(this.pbExt) or this.isBeyond(this.pbExt, adv)
+        this.pbExt    := adv
+        this.pbExtBar := bar_index
+    this
+
+method abortPullback(PullbackSetup this) =>
+    this.inPullback := false
+    this.pbExt      := na
+    this.pbExtBar   := na
+    this.pbBars     := 0
+    this
+
+method invalidate(PullbackSetup this) =>
+    if not na(this.confLine)
+        this.confLine.delete()
+    this.confLine := na
+    this.armed    := false
+    this
+
+method step(PullbackSetup this, bool trendOk, bool counterMove, bool realign, bool filtersOk, color sigCol) =>
+    bool entryFired = false
+    bool confFired  = false
+    bool invalid    = false
+    if this.armed
+        if not na(this.confLine)
+            this.confLine.set_x2(bar_index)
+        if this.isBeyond(close, this.confLevel)
+            confFired := true
+            if showConfInput
+                int midX = math.round((this.confBar + bar_index) / 2.0)
+                label.new(midX, this.confLevel, "Conf", color = NO_COLOR, style = this.dir == 1 ? label.style_label_down : label.style_label_up, textcolor = sigCol, size = LABEL_SIZE, tooltip = (this.dir == 1 ? "Long" : "Short") + " continuation confirmed\nConf level: " + str.tostring(this.confLevel, format.mintick))
+            this.confLine := na
+            this.armed    := false
+        else if bar_index >= this.expiryBar or this.isBeyond(this.entryLevel, close)
+            invalid := true
+            this.invalidate()
+    if not trendOk
+        this.resetAdvance()
+    else if this.inPullback
+        this.trackPullback()
+        if realign
+            if this.pbBars >= MIN_PB_BARS
+                if not this.armed and filtersOk and not na(this.confCand) and not na(this.pbExt) and this.isBeyond(this.confCand, this.pbExt)
+                    entryFired      := true
+                    this.entryLevel := this.pbExt
+                    this.confLevel  := this.confCand
+                    this.confBar    := this.confCandBar
+                    this.expiryBar  := bar_index + confWinInput
+                    this.armed      := true
+                    if showEntryInput
+                        int x1 = this.pbExtBar
+                        int x2 = bar_index + ENTRY_EXT
+                        line.new(x1, this.pbExt, x2, this.pbExt, color = sigCol, style = LINE_STYLE, width = lineWidthInput)
+                        label.new(math.round((x1 + x2) / 2.0), this.pbExt, "Entry", color = NO_COLOR, style = this.dir == 1 ? label.style_label_up : label.style_label_down, textcolor = sigCol, size = LABEL_SIZE, tooltip = (this.dir == 1 ? "Long" : "Short") + " pullback Entry\nEntry level: " + str.tostring(this.pbExt, format.mintick) + "\nConf level: " + str.tostring(this.confCand, format.mintick))
+                    if showConfInput
+                        this.confLine := line.new(this.confBar, this.confLevel, bar_index, this.confLevel, color = sigCol, style = LINE_STYLE, width = lineWidthInput)
+                this.resetAdvance()
+            else
+                this.abortPullback()
+                this.trackAdvance()
+        else
+            this.pbBars := this.pbBars + 1
+            if this.pbBars > MAX_PB_BARS
+                this.resetAdvance()
+    else
+        this.trackAdvance()
+        if counterMove
+            this.startPullback()
+    [entryFired, confFired, invalid]
+
+float speed = f_speed(srcInput, erLenInput, sensInput)
+[fastOuter, fastInner, center, slowInner, slowOuter] = f_ribbon(srcInput, lenInput, spreadInput, speed)
+
+var int trendDir = 0
+bool ribbonUp = fastInner > slowInner and center > center[1]
+bool ribbonDn = fastInner < slowInner and center < center[1]
+trendDir := ribbonUp ? 1 : ribbonDn ? -1 : trendDir
+
+float pivHigh = ta.pivothigh(high, swingLenInput, swingLenInput)
+float pivLow  = ta.pivotlow(low, swingLenInput, swingLenInput)
+
+var float lastSwingHigh = na
+var float prevSwingHigh = na
+var float lastSwingLow  = na
+var float prevSwingLow  = na
+
+bool newSwingHigh = not na(pivHigh)
+bool newSwingLow  = not na(pivLow)
+if newSwingHigh
+    prevSwingHigh := lastSwingHigh
+    lastSwingHigh := pivHigh
+if newSwingLow
+    prevSwingLow := lastSwingLow
+    lastSwingLow := pivLow
+
+bool higherHigh = newSwingHigh and not na(prevSwingHigh) and lastSwingHigh > prevSwingHigh
+bool lowerHigh  = newSwingHigh and not na(prevSwingHigh) and lastSwingHigh < prevSwingHigh
+bool higherLow  = newSwingLow and not na(prevSwingLow) and lastSwingLow > prevSwingLow
+bool lowerLow   = newSwingLow and not na(prevSwingLow) and lastSwingLow < prevSwingLow
+
+bool evRangeBull   = close > high[1]
+bool evRangeBear   = close < low[1]
+bool evBarBull     = high > high[1] and low > low[1]
+bool evBarBear     = high < high[1] and low < low[1]
+bool evReclaimBull = ta.crossover(close, center)
+bool evReclaimBear = ta.crossunder(close, center)
+bool evSwingBull   = ta.crossover(close, lastSwingHigh)
+bool evSwingBear   = ta.crossunder(close, lastSwingLow)
+bool evStructBull  = higherHigh or higherLow
+bool evStructBear  = lowerHigh or lowerLow
+
+float bullPts = (evRangeBull ? 1.0 : 0.0) + (evBarBull ? 0.5 : 0.0) + (evReclaimBull ? 1.0 : 0.0) + (evSwingBull ? 1.5 : 0.0) + (evStructBull ? 1.0 : 0.0)
+float bearPts = (evRangeBear ? 1.0 : 0.0) + (evBarBear ? 0.5 : 0.0) + (evReclaimBear ? 1.0 : 0.0) + (evSwingBear ? 1.5 : 0.0) + (evStructBear ? 1.0 : 0.0)
+
+float flowNet = nz(math.sum(bullPts - bearPts, flowLenInput))
+var int flowState = 0
+flowState := flowNet > flowThrInput ? 1 : flowNet < -flowThrInput ? -1 : flowState
+
+float bullPress  = nz(math.sum(bullPts, phaseLenInput))
+float bearPress  = nz(math.sum(bearPts, phaseLenInput))
+float pressTotal = bullPress + bearPress
+float rawPhase   = pressTotal > 0 ? (bullPress - bearPress) / pressTotal : 0.0
+float phaseScore = nz(ta.ema(rawPhase, phaseSmInput))
+float phasePrev  = nz(phaseScore[1])
+
+int phase = 0
+if trendDir >= 0
+    phase := phaseScore >= strongInput ? PH_STRONG_BULL : phaseScore > 0 ? (phaseScore >= phasePrev ? PH_EARLY_BULL : PH_WEAK_BULL) : phaseScore > -strongInput ? PH_WEAK_BULL : PH_EARLY_BEAR
+else
+    phase := phaseScore <= -strongInput ? PH_STRONG_BEAR : phaseScore < 0 ? (phaseScore <= phasePrev ? PH_EARLY_BEAR : PH_WEAK_BEAR) : phaseScore < strongInput ? PH_WEAK_BEAR : PH_EARLY_BULL
+
+bool l1Long  = not useL1Input or center > center[1]
+bool l1Short = not useL1Input or center < center[1]
+bool l2Long  = not useL2Input or (fastInner > center and center > slowInner)
+bool l2Short = not useL2Input or (fastInner < center and center < slowInner)
+
+int  htfDirRaw = request.security(syminfo.tickerid, htfInput, f_htfTrendPrev(close, lenInput, spreadInput, erLenInput, sensInput), lookahead = barmerge.lookahead_on)
+bool htfValid  = timeframe.in_seconds(htfInput) >= timeframe.in_seconds(timeframe.period)
+int  htfTrend  = htfValid ? nz(htfDirRaw) : trendDir
+bool l3Long    = not useL3Input or htfTrend == 1
+bool l3Short   = not useL3Input or htfTrend == -1
+
+bool extLongAbove = extModeInput == "Long: Above / Short: Below"
+bool extLongOk    = not useExtInput or (extLongAbove ? close > extSrcInput : close < extSrcInput)
+bool extShortOk   = not useExtInput or (extLongAbove ? close < extSrcInput : close > extSrcInput)
+bool lvlLongBelow = lvlModeInput == "Long: Below / Short: Above"
+bool lvlLongOk    = not useLvlInput or (lvlLongBelow ? lvlSrcInput < lvlInput : lvlSrcInput > lvlInput)
+bool lvlShortOk   = not useLvlInput or (lvlLongBelow ? lvlSrcInput > lvlInput : lvlSrcInput < lvlInput)
+
+bool longFiltersOk  = l1Long and l2Long and l3Long and extLongOk and lvlLongOk
+bool shortFiltersOk = l1Short and l2Short and l3Short and extShortOk and lvlShortOk
+
+bool longCounter  = IS_SCALP ? (close < close[1] and low < low[1]) : flowState == -1
+bool longRealign  = IS_SCALP ? (close > high[1] and close > open) : flowState == 1
+bool shortCounter = IS_SCALP ? (close > close[1] and high > high[1]) : flowState == 1
+bool shortRealign = IS_SCALP ? (close < low[1] and close < open) : flowState == -1
+
+var PullbackSetup longSetup  = PullbackSetup.new(dir = 1)
+var PullbackSetup shortSetup = PullbackSetup.new(dir = -1)
+
+bool longEntry  = false
+bool shortEntry = false
+bool longConf   = false
+bool shortConf  = false
+
+if barstate.isconfirmed
+    [lEntry, lConf, lInvalid] = longSetup.step(trendDir == 1, longCounter, longRealign, longFiltersOk, LONG_SIG_COL)
+    [sEntry, sConf, sInvalid] = shortSetup.step(trendDir == -1, shortCounter, shortRealign, shortFiltersOk, SHORT_SIG_COL)
+    if sEntry and longSetup.armed
+        longSetup.invalidate()
+    if lEntry and shortSetup.armed
+        shortSetup.invalidate()
+    longEntry  := lEntry
+    shortEntry := sEntry
+    longConf   := lConf
+    shortConf  := sConf
+
+color flowColor  = (flowState != 0 ? flowState : trendDir) >= 0 ? bullColInput : bearColInput
+color phaseColor = switch phase
+    PH_STRONG_BULL => strongBullInput
+    PH_EARLY_BULL  => earlyBullInput
+    PH_WEAK_BULL   => weakBullInput
+    PH_STRONG_BEAR => strongBearInput
+    PH_EARLY_BEAR  => earlyBearInput
+    => weakBearInput
+color ribbonColor = IS_SCALP ? phaseColor : flowColor
+color trendColor  = trendDir >= 0 ? LONG_SIG_COL : SHORT_SIG_COL
+
+pFastOuter = plot(showRibbonInput ? fastOuter : na, "Ribbon Fast Outer", color = color.new(ribbonColor, 75), linewidth = 1)
+pFastInner = plot(showRibbonInput ? fastInner : na, "Ribbon Fast Inner", color = color.new(ribbonColor, 55), linewidth = 1)
+plot(showRibbonInput ? center : na, "Trend Average Glow", color = color.new(ribbonColor, 80), linewidth = 5, display = display.pane)
+pCenter    = plot(showRibbonInput ? center : na, "Trend Average", color = ribbonColor, linewidth = 2)
+pSlowInner = plot(showRibbonInput ? slowInner : na, "Ribbon Slow Inner", color = color.new(ribbonColor, 55), linewidth = 1)
+pSlowOuter = plot(showRibbonInput ? slowOuter : na, "Ribbon Slow Outer", color = color.new(ribbonColor, 75), linewidth = 1)
+
+fill(pFastOuter, pFastInner, color = color.new(ribbonColor, math.min(100, fillTranspInput + 6)), title = "Ribbon Fill Fast Outer")
+fill(pFastInner, pCenter, color = color.new(ribbonColor, fillTranspInput), title = "Ribbon Fill Fast Inner")
+fill(pCenter, pSlowInner, color = color.new(ribbonColor, fillTranspInput), title = "Ribbon Fill Slow Inner")
+fill(pSlowInner, pSlowOuter, color = color.new(ribbonColor, math.min(100, fillTranspInput + 6)), title = "Ribbon Fill Slow Outer")
+
+float trkLow  = ta.lowest(low, trackLenInput)
+float trkHigh = ta.highest(high, trackLenInput)
+var float tracker = na
+if trendDir == 1
+    tracker := nz(trendDir[1]) != 1 or na(tracker) ? trkLow : math.max(tracker, trkLow)
+else if trendDir == -1
+    tracker := nz(trendDir[1]) != -1 or na(tracker) ? trkHigh : math.min(tracker, trkHigh)
+bool trackerFlip = trendDir != nz(trendDir[1])
+plot(showTrackerInput and not trackerFlip ? tracker : na, "Trend Tracker", color = trendColor, linewidth = 2, style = plot.style_steplinebr)
+
+bgcolor(showBgInput ? color.new(trendColor, 90) : na, title = "Trend Background")
+barcolor(candleInput ? ribbonColor : na, title = "Trend Candles")
+
+bool bullTrend    = trendDir == 1 and nz(trendDir[1]) == -1
+bool bearTrend    = trendDir == -1 and nz(trendDir[1]) == 1
+bool bullMomentum = phase == PH_STRONG_BULL and nz(phase[1]) != PH_STRONG_BULL
+bool bearMomentum = phase == PH_STRONG_BEAR and nz(phase[1]) != PH_STRONG_BEAR
+
+alertcondition(longEntry, "Long Entry", "Trend Average (Zeiierman): Long Entry on {{ticker}} ({{interval}}) at {{close}}")
+alertcondition(shortEntry, "Short Entry", "Trend Average (Zeiierman): Short Entry on {{ticker}} ({{interval}}) at {{close}}")
+alertcondition(longConf, "Long Conf", "Trend Average (Zeiierman): Long Conf on {{ticker}} ({{interval}}) at {{close}}")
+alertcondition(shortConf, "Short Conf", "Trend Average (Zeiierman): Short Conf on {{ticker}} ({{interval}}) at {{close}}")
+alertcondition(bullTrend, "Bullish Trend", "Trend Average (Zeiierman): Bullish Trend on {{ticker}} ({{interval}})")
+alertcondition(bearTrend, "Bearish Trend", "Trend Average (Zeiierman): Bearish Trend on {{ticker}} ({{interval}})")
+alertcondition(bullMomentum, "Bullish Momentum", "Trend Average (Zeiierman): Strong Bullish Momentum on {{ticker}} ({{interval}})")
+alertcondition(bearMomentum, "Bearish Momentum", "Trend Average (Zeiierman): Strong Bearish Momentum on {{ticker}} ({{interval}})")
+
+string ALERT_TAG = "Trend Average (Zeiierman): "
+if longEntry
+    alert(ALERT_TAG + "Long Entry | " + syminfo.ticker + " | " + timeframe.period + " | " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+if shortEntry
+    alert(ALERT_TAG + "Short Entry | " + syminfo.ticker + " | " + timeframe.period + " | " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+if longConf
+    alert(ALERT_TAG + "Long Conf | " + syminfo.ticker + " | " + timeframe.period + " | " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+if shortConf
+    alert(ALERT_TAG + "Short Conf | " + syminfo.ticker + " | " + timeframe.period + " | " + str.tostring(close, format.mintick), alert.freq_once_per_bar_close)
+if bullTrend
+    alert(ALERT_TAG + "Bullish Trend | " + syminfo.ticker + " | " + timeframe.period, alert.freq_once_per_bar_close)
+if bearTrend
+    alert(ALERT_TAG + "Bearish Trend | " + syminfo.ticker + " | " + timeframe.period, alert.freq_once_per_bar_close)
+if bullMomentum
+    alert(ALERT_TAG + "Strong Bullish Momentum | " + syminfo.ticker + " | " + timeframe.period, alert.freq_once_per_bar_close)
+if bearMomentum
+    alert(ALERT_TAG + "Strong Bearish Momentum | " + syminfo.ticker + " | " + timeframe.period, alert.freq_once_per_bar_close)

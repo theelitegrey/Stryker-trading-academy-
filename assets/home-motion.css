@@ -661,7 +661,7 @@
 .mz-dot{ width:7px; height:7px; border-radius:50%; background:#03c988; box-shadow:0 0 8px #03c988; }
 .mz-legend{ margin-left:auto; display:flex; align-items:center; gap:6px; }
 .mz-legend i{ width:9px; height:9px; border-radius:2px; display:inline-block; margin-left:6px; }
-.mz-legend .l1{ background:#8b93a0; } .mz-legend .l2{ background:#e5484d; } .mz-legend .l3{ background:#03c988; }
+.mz-legend .l1{ background:#8b93a0; } .mz-legend .l2{ background:#e5484d; } .mz-legend .l3{ background:#03c988; } .mz-legend .l4{ background:#f5c542; }
 .mz-svg{ display:block; width:100%; height:auto; }
 .mz-tag{ font:600 10px 'JetBrains Mono',monospace; letter-spacing:.08em; }
 .mz-steps{ list-style:none; padding:0; margin:28px auto 0; max-width:920px; display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
@@ -695,3 +695,20 @@
 @media (prefers-reduced-motion: reduce){
   .mz-c,.mz-zone,.mz-range,.mz-liq,.mz-sweep,.mz-arrow,.mz-sweep circle{ animation:none; opacity:1; transform:none; }
 }
+
+.mz-vp{ opacity:0; animation:mzZ 12s ease infinite; animation-delay:.2s; }
+.mz-gex{ opacity:0; animation:mzZ 12s ease infinite; }
+.mz-gex.g1{ animation-delay:4.2s } .mz-gex.g2{ animation-delay:3.4s } .mz-gex.g3{ animation-delay:1.4s }
+.mz-abs{ opacity:0; animation:mzZ 12s ease infinite; animation-delay:2.8s; }
+.mz-confirm{ max-width:920px; margin:14px auto 0; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.mz-tool{ display:flex; align-items:center; gap:14px; padding:16px 18px; border-radius:16px; text-decoration:none; color:inherit; background:linear-gradient(180deg,#131316,#0e0e11); border:1px solid rgba(255,255,255,.07); transition:border-color .2s, transform .2s, box-shadow .2s; }
+.mz-tool:hover{ border-color:rgba(3,201,136,.45); transform:translateY(-2px); box-shadow:0 14px 40px -18px rgba(3,201,136,.4); }
+.mz-tool-ic{ flex:0 0 44px; height:44px; border-radius:12px; display:grid; place-items:center; }
+.mz-tool-ic.of{ color:#00adb5; background:rgba(0,173,181,.12); }
+.mz-tool-ic.gx{ color:#f5c542; background:rgba(245,197,66,.12); }
+.mz-tool-tx{ display:flex; flex-direction:column; gap:4px; }
+.mz-tool-tx b{ font-size:16px; color:#eee; }
+.mz-tool-tx span{ font-size:13.5px; color:var(--ink-2); line-height:1.5; }
+.mz-tool-go{ margin-left:auto; color:#03c988; font-size:18px; }
+@media (max-width:760px){ .mz-confirm{ grid-template-columns:1fr; gap:10px; } }
+@media (prefers-reduced-motion: reduce){ .mz-vp,.mz-gex,.mz-abs{ animation:none; opacity:1; } }

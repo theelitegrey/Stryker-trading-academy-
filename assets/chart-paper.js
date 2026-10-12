@@ -39,6 +39,7 @@ const UI_KEY = 'stryker_paper_ui';
 const LEADER_KEY = 'stryker_paper_leader';
 const POLL_MS = 250, FEED_MS = 5000, LEADER_MS = 1500, LEADER_STALE = 5000;
 const PHONE_MAX = 700;
+const PANEL_H = 180, PANEL_MIN = 110;   // desktop panel body height (px): default, minimum
 const LABEL = 'Paper trading · demo money · simulated fills';
 const DISCLAIMER = 'Education only. Not financial advice.';
 const TAB_ID = Math.random().toString(36).slice(2, 10);
@@ -68,7 +69,36 @@ function h(tag, attrs, kids){
 }
 const showSym = (s) => String(s || '').replace(/^[a-z]+:/i, '');
 const isPhone = () => window.innerWidth <= PHONE_MAX;
-function loadUi(){ try { return Object.assign({ open: false, tab: 'positions' }, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (e) { return { open: false, tab: 'positions' }; } }
+function loadUi(){
+  let u; try { u = Object.assign({ open: false, tab: 'positions', h: PANEL_H }, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (e) { u = { open: false, tab: 'positions', h: PANEL_H }; }
+  // phone: the sheet always starts as the slim bar; the member opens it when needed
+  if (window.innerWidth <= PHONE_MAX) u.open = false;
+  return u;
+}
+// desktop panel body height: remembered, kept between 110 px and 60% of the chart area
+function panelMax(){ const m = document.querySelector('main.dash-main'); return Math.max(PANEL_MIN + 40, Math.round((m ? m.clientHeight : window.innerHeight) * 0.6)); }
+function applyPanelH(){
+  if (!panel) return;
+  const hpx = Math.min(panelMax(), Math.max(PANEL_MIN, Number(ui.h) || PANEL_H));
+  panel.style.setProperty('--stkpt-h', hpx + 'px');
+}
+function bindResize(grip){
+  grip.addEventListener('pointerdown', (e) => {
+    if (isPhone() || (e.button != null && e.button !== 0)) return;
+    e.preventDefault();
+    const y0 = e.clientY, h0 = panel.querySelector('.stkpt-body').getBoundingClientRect().height;
+    try { grip.setPointerCapture(e.pointerId); } catch (e2) {}
+    panel.classList.add('resizing');
+    let raf = 0;
+    const move = (ev) => { ui.h = Math.round(Math.min(panelMax(), Math.max(PANEL_MIN, h0 + (y0 - ev.clientY)))); if (!raf) raf = requestAnimationFrame(() => { raf = 0; applyPanelH(); window.dispatchEvent(new Event('resize')); }); };
+    const up = () => { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up); panel.classList.remove('resizing'); saveUi(); applyPanelH(); window.dispatchEvent(new Event('resize')); };
+    grip.addEventListener('pointermove', move); grip.addEventListener('pointerup', up); grip.addEventListener('pointercancel', up);
+  });
+  grip.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+    e.preventDefault(); ui.h = Math.min(panelMax(), Math.max(PANEL_MIN, (Number(ui.h) || PANEL_H) + (e.key === 'ArrowUp' ? 20 : -20))); saveUi(); applyPanelH(); window.dispatchEvent(new Event('resize'));
+  });
+}
 function saveUi(){ try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
 function money(n, sign){
   if (!Number.isFinite(n)) return '—';
@@ -81,7 +111,25 @@ function fmtP(sym, p){
   const sp = specOf(sym); const d = sp.ok ? Math.min(8, sp.decimals) : 2;
   return p.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 }
-function toast(msg, type){ try { if (window.showToast) window.showToast(type || 'success', msg); else if (toastFn) toastFn(msg, type); } catch (e) {} }
+// Paper toasts: our own compact stack in the chart's bottom-left corner (never over the price
+// scale), at most 2 visible, each gone after ~4 s (errors 6 s). Click to dismiss.
+const TOAST_MAX = 2, TOAST_MS = 4000;
+const toastLog = [];
+function toast(msg, type){
+  type = type || 'success';
+  toastLog.push({ type, msg: String(msg), at: Date.now() }); if (toastLog.length > 50) toastLog.shift();
+  try {
+    const host = document.querySelector('.stkchart-panel');
+    if (!host) { if (toastFn) toastFn(msg, type); return; }
+    let box = document.getElementById('stkpt-toasts');
+    if (!box || box.parentElement !== host) { if (box) box.remove(); box = h('div', { id: 'stkpt-toasts', 'aria-live': 'polite', role: 'status' }); host.appendChild(box); }
+    const el = h('div', { class: 'stkpt-toast ' + type, title: 'Dismiss' }, [h('i', { 'aria-hidden': 'true' }), h('span', { text: String(msg) })]);
+    el.addEventListener('click', () => el.remove());
+    box.appendChild(el);
+    while (box.children.length > TOAST_MAX) box.firstChild.remove();
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 220); }, type === 'error' ? 6000 : TOAST_MS);
+  } catch (e) {}
+}
 function fbUser(){ try { return window.firebase && firebase.auth && firebase.auth().currentUser; } catch (e) { return null; } }
 function cellOf(id){ try { return WS.cell(id); } catch (e) { return null; } }
 function inner(cell){ try { return cell.chart.renderer.renderer; } catch (e) { return null; } }
@@ -121,8 +169,17 @@ function save(localOnly){
   const json = JSON.stringify(acct.state);
   myRev = TAB_ID + ':' + acct.state.savedAt + ':' + json.length;
   try { localStorage.setItem(lsKey(), json); localStorage.setItem(revKey(), myRev); } catch (e) { console.warn('TradeZoro paper: local save', e); }
-  if (uid && !localOnly) { clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 1200); }
+  saveCount++;
+  // debounce cloud writes by 1.2 s, but never starve them: a steady stream of saves still
+  // reaches Firestore at least every 3 s
+  if (uid && !localOnly) {
+    clearTimeout(cloudT);
+    if (!cloudFirstPending) cloudFirstPending = Date.now();
+    const wait = Math.max(0, Math.min(1200, cloudFirstPending + 3000 - Date.now()));
+    cloudT = setTimeout(() => { cloudFirstPending = 0; pushCloud(); }, wait);
+  }
 }
+let saveCount = 0, cloudFirstPending = 0, cloudPushes = 0;
 // Another Charts tab saved since we last saved/loaded: adopt its copy BEFORE acting or filling,
 // so a tab never works from a stale account (a filled order coming back to life = double fill).
 function syncFromLocal(){
@@ -140,6 +197,7 @@ async function pushCloud(){
   if (!uid || !acct) return;
   if (cloudBusy) { cloudAgain = true; return; }
   cloudBusy = true;
+  cloudPushes++;
   try { await cloudDoc().set({ state: JSON.stringify(acct.state), updatedAt: firebase.firestore.FieldValue.serverTimestamp() }); }
   catch (e) { console.warn('TradeZoro paper: cloud save', e); }
   cloudBusy = false;
@@ -438,10 +496,11 @@ function chipText(sym, l){
   return [(l.kind === 'tp' || l.kind === 'otp') ? 'TP' : 'SL', money(v, true)];
 }
 function layerFactory(){
-  let canvas = null, overlay = null, last = null;
+  let canvas = null, overlay = null, last = null, lastYs = {};
   const inst = {
     get overlay(){ return overlay; },
     get args(){ return last; },
+    get ys(){ return lastYs; },
     mount(c){
       canvas = c;
       overlay = h('div', { class: 'stkpt-ov' });
@@ -461,7 +520,7 @@ function layerFactory(){
       g.save();
       for (const l of lines) {
         const y = Math.round(co.priceToY(l.price, a.scale, a.bounds)) + 0.5;
-        ys[l.id] = y;
+        ys[l.id] = y; lastYs = ys;
         if (y < top || y > bot) continue;
         g.strokeStyle = l.color; g.lineWidth = 1; g.globalAlpha = l.kind === 'pos' ? 1 : 0.9;
         g.setLineDash(l.kind === 'pos' ? [] : l.kind === 'ord' ? [6, 3] : [3, 3]);
@@ -478,13 +537,37 @@ function layerFactory(){
       g.restore();
       // DOM chips follow the lines
       if (overlay) {
-        for (const chip of overlay.querySelectorAll('.stkpt-chip')) {
+        // A line outside the visible price range keeps its chip, pinned to the top or bottom
+        // edge of the price pane with an arrow, so a far TP/SL is never invisible.
+        // Chips whose lines are closer than a chip's height sit side by side (the later one moves
+        // left of the earlier one) instead of on top of each other. Widths are read in one pass
+        // before any write, so this costs one layout per frame at most.
+        let nUp = 0, nDn = 0;
+        const chips = [...overlay.querySelectorAll('.stkpt-chip')];
+        const widths = chips.map((c) => c.offsetWidth);
+        const placed = [];
+        const baseRight = Math.round(fullW - W + 56);
+        chips.forEach((chip, i) => {
           const y = ys[chip.dataset.id];
-          if (y == null || y < top + 6 || y > bot - 6) { chip.style.visibility = 'hidden'; continue; }
+          if (y == null) { chip.style.visibility = 'hidden'; return; }
+          let cy = y - 11, pin = '';
+          if (y < top + 12) { pin = 'up'; cy = top + 4 + 26 * nUp++; }
+          else if (y > bot - 12) { pin = 'down'; cy = bot - 26 - 26 * nDn++; }
+          let right = baseRight;
+          const clash = () => placed.some((p) => Math.abs(p.cy - cy) < 24 && right < p.right + p.w + 4 && p.right < right + widths[i] + 4);
+          for (const p of placed) if (Math.abs(p.cy - cy) < 24 && right < p.right + p.w + 4) right = p.right + p.w + 4;
+          if (right + widths[i] > fullW - 6) {
+            // no room side by side (phone): stack it just above/below instead, at the base column
+            right = baseRight;
+            const dir = y > (top + bot) / 2 ? -1 : 1;
+            for (let k = 0; k < 6 && clash(); k++) cy += dir * 24;
+          }
+          placed.push({ cy, right, w: widths[i] });
+          if (chip.dataset.pin !== pin) chip.dataset.pin = pin;
           chip.style.visibility = '';
-          chip.style.transform = 'translate3d(0,' + Math.round(y - 11) + 'px,0)';
-          chip.style.right = Math.round(fullW - W + 56) + 'px';
-        }
+          chip.style.transform = 'translate3d(0,' + Math.round(cy) + 'px,0)';
+          chip.style.right = right + 'px';
+        });
       }
     },
     destroy(){ if (overlay) overlay.remove(); canvas = null; overlay = null; }
@@ -897,6 +980,7 @@ function buildPanel(){
   const main = document.querySelector('main.dash-main') || document.body;
   panel = h('section', { id: 'stkpt', class: 'stkpt', 'aria-label': 'Paper trading' });
   panel.innerHTML = `
+    <div class="stkpt-grip" role="separator" aria-orientation="horizontal" aria-label="Resize the Paper trading panel" tabindex="0" title="Drag to resize"></div>
     <div class="stkpt-head">
       <button type="button" class="stkpt-toggle" aria-expanded="false" aria-controls="stkpt-body"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg><b>Paper trading</b></button>
       <span class="stkpt-badge" title="${LABEL}">Demo</span>
@@ -919,6 +1003,8 @@ function buildPanel(){
   const chartPanel = main.querySelector('.stkchart-panel');
   if (chartPanel && chartPanel.nextSibling) main.insertBefore(panel, chartPanel.nextSibling); else main.appendChild(panel);
   panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a Charts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
+  bindResize(panel.querySelector('.stkpt-grip'));
+  applyPanelH();
   panel.querySelector('.stkpt-toggle').onclick = togglePanel;
   panel.querySelector('.stkpt-hsum').onclick = () => { if (!ui.open) togglePanel(); };
   panel.querySelector('.stkpt-trade').onclick = () => openTicket();
@@ -931,7 +1017,10 @@ function buildPanel(){
 }
 function renderPanel(){
   if (!panel) return;
+  const wasOpen = panel.classList.contains('open');
   panel.classList.toggle('open', !!ui.open);
+  applyPanelH();
+  if (wasOpen !== !!ui.open) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   panel.querySelector('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
   document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone());
   for (const b of panel.querySelectorAll('[data-tab]')) { const on = b.dataset.tab === ui.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
@@ -959,7 +1048,7 @@ function renderSummaryLive(){
     for (const [k, val, n] of parts) el.appendChild(h('span', { class: n == null ? '' : n > 0 ? 'up' : n < 0 ? 'down' : '' }, [h('em', { text: k }), ' ' + val]));
   }
   if (ui.open && ui.tab === 'positions') {
-    for (const row of panel.querySelectorAll('tr[data-sym]')) {
+    for (const row of panel.querySelectorAll('[data-sym]')) {
       const p = acct.position(row.dataset.sym); if (!p) continue;
       const pnl = acct.openPnl(p), c = row.querySelector('.pnl'), l = row.querySelector('.last');
       const t = money(pnl, true); if (c && c.textContent !== t) { c.textContent = t; c.className = 'pnl ' + (pnl > 0 ? 'up' : pnl < 0 ? 'down' : ''); }
@@ -982,7 +1071,31 @@ function table(head, rows, empty){
 const td = (txt, cls) => h('td', { class: cls || null, text: txt });
 const sideTd = (side) => h('td', { class: side === 'buy' ? 'up' : 'down', text: side === 'buy' ? 'Long' : 'Short' });
 function goSym(sym){ const c = activeCell(); try { if (c && c.symbol !== sym) (WS.cell(c.id) || c).setSymbol(sym); } catch (e) {} }
+// Phone: a two-line card per row instead of a 9-column table (no sideways scroll).
+function card(sym, l1, pnl, l2, acts){
+  return h('div', { class: 'stkpt-card', 'data-sym': sym || null }, [
+    h('div', { class: 'stkpt-card-l1' }, l1), pnl || h('span'),
+    h('div', { class: 'stkpt-card-l2' }, l2), h('div', { class: 'stkpt-acts' }, acts)
+  ]);
+}
+const kv2 = (k, v, cls) => h('span', { class: cls || null }, [k + ' ', h('b', { text: v })]);
+function cards(list, empty){
+  const w = h('div', { class: 'stkpt-cards' });
+  if (!list.length) w.appendChild(h('p', { class: 'stkpt-empty', text: empty }));
+  list.forEach((c) => w.appendChild(c));
+  return w;
+}
 function viewPositions(){
+  if (isPhone()) {
+    return cards(Object.keys(acct.state.positions).map((k) => {
+      const p = acct.state.positions[k], pnl = acct.openPnl(p);
+      return card(k,
+        [h('button', { type: 'button', class: 'stkpt-sym', text: showSym(k), onclick: () => goSym(k) }), h('span', { class: p.side === 'buy' ? 'up' : 'down', text: p.side === 'buy' ? 'Long' : 'Short' }), h('span', { class: 'q', text: p.qty + ' @ ' + fmtP(k, p.avg) })],
+        h('span', { class: 'pnl ' + (pnl > 0 ? 'up' : pnl < 0 ? 'down' : ''), text: money(pnl, true) }),
+        [kv2('TP', p.tp != null ? fmtP(k, p.tp) : '—'), kv2('SL', p.sl != null ? fmtP(k, p.sl) : '—'), h('span', null, ['Last ', h('b', { class: 'last', text: fmtP(k, acct.last[k]) })])],
+        [h('button', { type: 'button', class: 'stkpt-b', text: 'Reverse', onclick: () => reversePos(k) }), h('button', { type: 'button', class: 'stkpt-b', text: 'Close', onclick: () => closePos(k) })]);
+    }), 'No open paper positions. Tap Trade to place one.');
+  }
   const rows = Object.keys(acct.state.positions).map((k) => {
     const p = acct.state.positions[k], pnl = acct.openPnl(p);
     const tr = h('tr', { 'data-sym': k }, [
@@ -1000,6 +1113,13 @@ function viewPositions(){
   return table(['Symbol', 'Side', 'Qty', 'Avg price', 'Last', 'Take profit', 'Stop loss', 'Open P&L', ''], rows, 'No open paper positions. Use Trade, the one-click Buy/Sell on the chart, or right-click the chart.');
 }
 function viewOrders(){
+  if (isPhone()) {
+    return cards(acct.state.orders.slice().sort((a, b) => b.placedAt - a.placedAt).map((o) => card(null,
+      [h('button', { type: 'button', class: 'stkpt-sym', text: showSym(o.symbol), onclick: () => goSym(o.symbol) }), h('span', { class: o.side === 'buy' ? 'up' : 'down', text: (o.side === 'buy' ? 'Buy ' : 'Sell ') + (o.type === 'limit' ? 'limit' : 'stop') }), h('span', { class: 'q', text: o.qty + ' @ ' + fmtP(o.symbol, o.price) })],
+      h('span', { class: 'pnl', text: isOpen(o.symbol, Date.now()) ? 'Working' : 'Waiting' }),
+      [kv2('TP', o.tp != null ? fmtP(o.symbol, o.tp) : '—'), kv2('SL', o.sl != null ? fmtP(o.symbol, o.sl) : '—')],
+      [h('button', { type: 'button', class: 'stkpt-b', text: 'Modify', onclick: () => openTicket({ modify: o }) }), h('button', { type: 'button', class: 'stkpt-b', text: 'Cancel', onclick: () => cancelOrder(o.id) })])), 'No working paper orders.');
+  }
   const rows = acct.state.orders.slice().sort((a, b) => b.placedAt - a.placedAt).map((o) => h('tr', null, [
     h('td', null, [h('button', { type: 'button', class: 'stkpt-sym', text: showSym(o.symbol), onclick: () => goSym(o.symbol) })]),
     h('td', { class: o.side === 'buy' ? 'up' : 'down', text: o.side === 'buy' ? 'Buy' : 'Sell' }),
@@ -1103,7 +1223,29 @@ const CSS = `
 .stkpt-b-pri{ background:#03c988; border-color:#03c988; color:#07110d; }
 .stkpt-b-pri:hover{ background:#05dd97; color:#07110d; }
 .stkpt-b-warn{ border-color:rgba(242,54,69,.55); color:#f23645; }
-.stkpt-body{ display:none; flex-direction:column; height:min(var(--stkpt-h, 240px), 34dvh); min-height:0; border-top:1px solid var(--line-soft); }
+.stkpt-body{ display:none; flex-direction:column; height:var(--stkpt-h, 180px); min-height:0; border-top:1px solid var(--line-soft); }
+.stkpt-grip{ display:none; position:absolute; left:0; right:0; top:-4px; height:8px; cursor:ns-resize; z-index:2; touch-action:none; }
+.stkpt.open .stkpt-grip{ display:block; }
+.stkpt-grip::after{ content:""; position:absolute; left:50%; top:3px; width:36px; height:3px; margin-left:-18px; border-radius:2px; background:var(--line); opacity:0; transition:opacity .15s; }
+.stkpt-grip:hover::after,.stkpt-grip:focus-visible::after,.stkpt.resizing .stkpt-grip::after{ opacity:1; background:#03c988; }
+.stkpt.resizing{ user-select:none; }
+#stkpt-toasts{ position:absolute; left:12px; bottom:34px; z-index:30; display:flex; flex-direction:column; gap:6px; max-width:min(340px, calc(100% - 110px)); pointer-events:none; }
+.stkpt-toast{ pointer-events:auto; display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:8px; background:rgba(19,23,34,.94); color:#d1d4dc; border:1px solid var(--line); font:500 12px/1.35 var(--font-body, sans-serif); box-shadow:0 6px 18px rgba(0,0,0,.4); cursor:pointer; animation:stkpt-in .18s ease; transition:opacity .2s; }
+.stkpt-toast.out{ opacity:0; }
+.stkpt-toast i{ flex:none; width:7px; height:7px; border-radius:50%; background:#03c988; }
+.stkpt-toast.error i{ background:#f23645; } .stkpt-toast.info i{ background:#f7a600; }
+.stkpt-toast span{ min-width:0; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+:root[data-theme="light"] .stkpt-toast{ background:rgba(255,255,255,.96); color:#131722; }
+@keyframes stkpt-in{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:none; } }
+/* phone position / order cards (two lines, no sideways scroll) */
+.stkpt-cards{ display:flex; flex-direction:column; }
+.stkpt-card{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 10px; padding:8px 2px; border-bottom:1px solid var(--line-soft); align-items:center; }
+.stkpt-card-l1{ display:flex; align-items:baseline; gap:6px; min-width:0; white-space:nowrap; overflow:hidden; font-size:12.5px; }
+.stkpt-card-l1 .q{ font-family:var(--font-mono, monospace); font-size:12px; color:var(--ink-2); overflow:hidden; text-overflow:ellipsis; }
+.stkpt-card .pnl{ font:600 13px var(--font-mono, monospace); text-align:right; }
+.stkpt-card-l2{ font:11.5px var(--font-mono, monospace); color:var(--ink-3); min-width:0; display:flex; flex-wrap:wrap; gap:2px 10px; }
+.stkpt-card-l2 b{ font-weight:500; color:var(--ink-1); }
+.stkpt-card .stkpt-acts{ display:flex; gap:6px; justify-content:flex-end; }
 .stkpt.open .stkpt-body{ display:flex; }
 .stkpt-tabs{ flex:none; display:flex; align-items:center; gap:2px; padding:4px 8px; border-bottom:1px solid var(--line-soft); overflow-x:auto; }
 .stkpt-tabs [role=tab]{ border:0; background:none; color:var(--ink-2); font:600 12.5px/1 var(--font-body, sans-serif); padding:8px 10px; border-radius:6px; cursor:pointer; white-space:nowrap; }
@@ -1149,6 +1291,9 @@ const CSS = `
 .stkpt-chip[data-kind="pos"].neg .stkpt-chip-b{ color:#f23645; }
 .stkpt-chip-x{ border:0; border-left:1px solid var(--c); background:none; color:inherit; width:22px; padding:0; cursor:pointer; font-size:14px; line-height:20px; }
 .stkpt-chip-x:hover{ background:var(--c); color:#fff; }
+.stkpt-chip[data-pin=up] .stkpt-chip-a::before{ content:"↑ "; }
+.stkpt-chip[data-pin=down] .stkpt-chip-a::before{ content:"↓ "; }
+.stkpt-chip[data-pin=up],.stkpt-chip[data-pin=down]{ border-style:dashed; opacity:.92; }
 .stkpt-chip.dragging{ box-shadow:0 0 0 2px var(--c); }
 .stkpt-chip[data-kind="new"],.stkpt-chip[data-id="new"]{ opacity:.85; }
 .stkpt-1c{ position:absolute; left:8px; top:30px; display:flex; align-items:stretch; height:36px; pointer-events:auto; border-radius:6px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.35); font-family:-apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,sans-serif; }
@@ -1195,7 +1340,11 @@ const CSS = `
 @media (max-width:980px){ .stkpt-acct{ grid-template-columns:1fr 1fr; } .stkpt-kvs{ grid-column:1/-1; grid-template-columns:repeat(4,minmax(0,1fr)); } }
 /* phone: a thumb-friendly bottom sheet */
 @media (max-width:700px){
-  .stkpt-head{ min-height:44px; gap:8px; }
+  .stkpt-head{ min-height:40px; gap:8px; padding:2px 8px; }
+  .stkpt:not(.open) .stkpt-trade{ height:30px; }
+  #stkc-paper-btn{ display:none; }
+  #stkpt-toasts{ left:8px; top:132px; bottom:auto; max-width:calc(100% - 90px); }
+  .stkpt-toast{ font-size:11.5px; padding:5px 9px; }
   .stkpt-badge{ display:none; }
   .stkpt-hsum{ gap:10px; font-size:11.5px; flex:1 1 auto; }
   .stkpt-hsum span:nth-child(n+2){ display:none; }
@@ -1204,6 +1353,7 @@ const CSS = `
   .stkpt-flat{ padding:0 9px; }
   .stkpt-hsp{ display:none; }
   .stkpt-trade{ height:34px; padding:0 14px; }
+  .stkpt-view{ padding:2px 10px; }
   .stkpt.open{ position:fixed; left:0; right:0; bottom:var(--stkc-dock, 0px); z-index:8800; max-height:72dvh; border-radius:16px 16px 0 0; border:1px solid var(--line); box-shadow:0 -18px 50px rgba(0,0,0,.55); }
   .stkpt.open .stkpt-head::before{ content:""; position:absolute; left:50%; top:5px; width:38px; height:4px; margin-left:-19px; border-radius:2px; background:var(--line); }
   .stkpt-body{ height:min(56dvh, 460px); }
@@ -1253,6 +1403,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get leader(){ return leader; }, get uid(){ return uid; },
     openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, label: LABEL
+    ctxAt, ctxOrder, commitDrag, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

@@ -157,6 +157,22 @@ const RECORDER = () => {
     set: (f) => { st = f; } });
 };
 
+// Every paper line must sit on the MAIN PRICE PANE at priceToY(price) of that pane.
+async function linesOnPricePane(p, label) {
+  await sleep(700);
+  const r = await p.evaluate(() => {
+    const R = window.STRYKER_VELA.chart.renderer.renderer, l = R.extLayers.find((x) => x.def.id === 'stk_paper');
+    const inst = l.instance, a = inst.args, pane = R.scene.panes.get('price');
+    const out = { paneTop: pane.bounds.top, paneH: pane.bounds.height, argTop: a.bounds.top, argH: a.bounds.height, lines: [] };
+    for (const ln of (a.data && a.data.lines) || []) {
+      const want = Math.round(R.coords.priceToY(ln.price, pane.scale, pane.bounds)) + 0.5;
+      out.lines.push({ id: ln.id, price: ln.price, y: inst.ys[ln.id], want, inPane: want >= pane.bounds.top && want <= pane.bounds.top + pane.bounds.height });
+    }
+    return out;
+  });
+  const ok = r.lines.length > 0 && r.argTop === r.paneTop && r.argH === r.paneH && r.lines.every((x) => Math.abs(x.y - x.want) < 1) && r.lines.some((x) => x.id === 'pos' && x.inPane);
+  check(ok, label + ': every paper line at priceToY(price) on the main price pane: ' + r.lines.map((x) => x.id + '@' + x.price + ' y=' + x.y + '/' + x.want + (x.inPane ? '' : '(off)')).join(' | ') + ` pane ${r.paneTop}+${r.paneH} layer ${r.argTop}+${r.argH}`);
+}
 async function setMarket(p, sym, tf) {
   await p.evaluate(async ([sym, tf]) => {
     const ws = window.STRYKER_VELA;
@@ -246,12 +262,13 @@ async function boot(p, BASE) {
       return [...document.querySelectorAll('.stkpt-chip')].map((c) => {
         const line = a.data.lines.find((x) => x.id === c.dataset.id); const y = line ? a.coords.priceToY(line.price, a.scale, a.bounds) : NaN;
         const inside = y > top + 6 && y < bot - 6;
-        return { id: c.dataset.id, txt: c.textContent, ok: !!line && (inside ? c.style.visibility !== 'hidden' : c.style.visibility === 'hidden'), inside };
+        return { id: c.dataset.id, txt: c.textContent, ok: !!line && c.style.visibility !== 'hidden' && (inside ? !c.dataset.pin : !!c.dataset.pin), inside };
       });
     });
-    check(['pos', 'ptp', 'psl'].every((k) => chips.some((c) => c.id === k && c.ok)) && chips.some((c) => c.id === 'pos' && c.inside && /^LONG 2/.test(c.txt)), 'position, TP and SL lines on the chart with qty + P&L: ' + chips.map((c) => c.id + ':' + c.txt + (c.inside ? '' : ' (off-screen)')).join(' | '));
+    check(['pos', 'ptp', 'psl'].every((k) => chips.some((c) => c.id === k && c.ok)) && chips.some((c) => c.id === 'pos' && c.inside && /^LONG 2/.test(c.txt)), 'position, TP and SL lines on the chart with qty + P&L: ' + chips.map((c) => c.id + ':' + c.txt + (c.inside ? '' : ' (off-screen, chip pinned to the pane edge)')).join(' | '));
     const oneClick = await p.evaluate(() => { const o = document.querySelector('.stkpt-1c'); if (!o) return null; const r = o.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, q: o.querySelector('input').value, t: o.textContent }; });
     check(oneClick && oneClick.w > 100 && oneClick.x < 120 && /SELL/.test(oneClick.t) && /BUY/.test(oneClick.t), 'one-click SELL | qty | BUY top-left of the chart ' + JSON.stringify(oneClick));
+    await linesOnPricePane(p, 'NQ1! 1m');
 
     // ---- live P&L moves with the price ----
     const pnlA = await p.evaluate(() => window.__stkPaper.account.openPnl(window.__stkPaper.account.position('futures:NQ1!')));
@@ -294,19 +311,71 @@ async function boot(p, BASE) {
     await setMarket(p, 'binance:BTCUSDT', '1');
     check(await waitFor(p, () => Number.isFinite(window.__stkPaper.account.last['binance:BTCUSDT'])), 'BTCUSDT 1m: paper engine sees the live price');
     const bLast = await p.evaluate(() => window.__stkPaper.account.last['binance:BTCUSDT']);
-    await p.evaluate((l) => window.__stkPaper.placeOrder({ symbol: 'binance:BTCUSDT', side: 'buy', type: 'market', qty: 0.5, tp: l + 500, sl: l - 500 }), bLast);
+    // bracket inside the visible price range so the screenshot shows position + TP + SL on the pane
+    const span = await p.evaluate(() => { const s = window.STRYKER_VELA.chart.renderer.renderer.scene.panes.get('price').scale; return { min: s.min, max: s.max }; });
+    const bTp = +(bLast + Math.max(0.05, (span.max - bLast) * 0.45)).toFixed(2), bSl = +(bLast - Math.max(0.05, (bLast - span.min) * 0.45)).toFixed(2);
+    await p.evaluate(([tp, sl]) => window.__stkPaper.placeOrder({ symbol: 'binance:BTCUSDT', side: 'buy', type: 'market', qty: 0.5, tp, sl }), [bTp, bSl]);
     const bpos = await p.evaluate(() => JSON.parse(JSON.stringify(window.__stkPaper.account.position('binance:BTCUSDT'))));
-    check(bpos && bpos.qty === 0.5 && bpos.tp === +(bLast + 500).toFixed(2), `market BUY 0.5 BTC with bracket @ ${bpos && bpos.avg}`);
+    check(bpos && bpos.qty === 0.5 && bpos.tp === bTp, `market BUY 0.5 BTC with bracket @ ${bpos && bpos.avg}`);
     await p.evaluate(() => window.__stkPaper.openPanel('positions'));
     await sleep(400);
     const rows = await p.evaluate(() => [...document.querySelectorAll('#stkpt tr[data-sym]')].map((r) => r.dataset.sym));
     check(rows.includes('futures:NQ1!') && rows.includes('binance:BTCUSDT'), 'Positions tab lists both symbols after switching: ' + rows.join(', '));
     // desktop screenshot: BTC position + panel
-    await p.evaluate(() => window.__stkPaper.placeOrder({ symbol: 'binance:BTCUSDT', side: 'sell', type: 'limit', qty: 0.5, price: window.__stkPaper.account.last['binance:BTCUSDT'] + 200 }));
+    await p.evaluate(() => window.__stkPaper.placeOrder({ symbol: 'binance:BTCUSDT', side: 'sell', type: 'limit', qty: 0.5, price: +((window.__stkPaper.account.last['binance:BTCUSDT'] + window.__stkPaper.account.position('binance:BTCUSDT').tp) / 2).toFixed(2) }));
     await sleep(900);
+    await linesOnPricePane(p, 'BTCUSDT 1m');
+    {
+      // all of position, TP, SL and the order on screen, each chip level with its line
+      const vis = await p.evaluate(() => {
+        const R = window.STRYKER_VELA.chart.renderer.renderer, inst = R.extLayers.find((x) => x.def.id === 'stk_paper').instance;
+        const ovTop = inst.overlay.getBoundingClientRect().top;
+        return [...inst.overlay.querySelectorAll('.stkpt-chip')].map((c) => ({ id: c.dataset.id, pin: c.dataset.pin || '', dy: Math.abs((c.getBoundingClientRect().top + 11 - ovTop) - inst.ys[c.dataset.id]) }));
+      });
+      check(['pos', 'ptp', 'psl'].every((k) => vis.some((v) => v.id === k && !v.pin && v.dy < 1.5)) && vis.some((v) => v.kind !== 'x' && /^o\d+$/.test(v.id) && !v.pin), 'BTCUSDT: position, TP, SL and order chips on the price pane at their line ' + JSON.stringify(vis));
+    }
+    // ---- panel: ~180 px by default, resizable by its grip, height remembered ----
+    {
+      const g0 = await p.evaluate(() => ({ body: Math.round(document.querySelector('.stkpt-body').getBoundingClientRect().height), chart: Math.round(document.querySelector('.stkchart-panel').getBoundingClientRect().height) }));
+      check(g0.body === 180 && g0.chart >= 420, 'desktop 1280x800: panel body 180 px by default, chart ' + g0.chart + ' px tall ' + JSON.stringify(g0));
+      const grip = await p.evaluate(() => { const r = document.querySelector('.stkpt-grip').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      await p.mouse.move(grip.x, grip.y); await p.mouse.down();
+      for (let i = 1; i <= 6; i++) { await p.mouse.move(grip.x, grip.y - i * 10); await sleep(25); }
+      await p.mouse.up(); await sleep(300);
+      const g1 = await p.evaluate(() => ({ body: Math.round(document.querySelector('.stkpt-body').getBoundingClientRect().height), saved: JSON.parse(localStorage.getItem('stryker_paper_ui')).h }));
+      check(g1.body === 240 && g1.saved === 240, 'drag the grip up 60 px: panel 240 px and remembered ' + JSON.stringify(g1));
+      await p.evaluate(() => { const u = JSON.parse(localStorage.getItem('stryker_paper_ui')); u.h = 180; localStorage.setItem('stryker_paper_ui', JSON.stringify(u)); });
+      await p.mouse.move(grip.x, grip.y - 60); await p.mouse.down();
+      for (let i = 1; i <= 6; i++) { await p.mouse.move(grip.x, grip.y - 60 + i * 10); await sleep(25); }
+      await p.mouse.up(); await sleep(400);
+    }
+    // ---- toasts: our compact stack, max 2, gone after ~4 s, clear of the price scale ----
+    {
+      await p.evaluate(() => { for (let i = 0; i < 5; i++) window.__stkPaper.placeOrder({ symbol: 'binance:BTCUSDT', side: 'buy', type: 'limit', qty: 0.01, price: window.__stkPaper.account.last['binance:BTCUSDT'] - 30 - i }); });
+      await sleep(250);
+      const t0 = await p.evaluate(() => {
+        const R = window.STRYKER_VELA.chart.renderer.renderer, cv = R.input.el.getBoundingClientRect();
+        const axisLeft = cv.left + R.coords.width;
+        const ts = [...document.querySelectorAll('.stkpt-toast')].map((e) => e.getBoundingClientRect());
+        return { n: ts.length, maxRight: Math.max(...ts.map((r) => r.right)), axisLeft, h: Math.max(...ts.map((r) => r.height)), siteToasts: document.querySelectorAll('#stryker-toast-host .toast').length };
+      });
+      check(t0.n === 2 && t0.maxRight < t0.axisLeft && t0.h <= 40 && t0.siteToasts === 0, '5 quick paper toasts -> 2 visible, small, left of the price scale ' + JSON.stringify(t0));
+      // measured on the PAGE clock (the test installs a fake clock that can lag real time under load)
+      await waitFor(p, () => document.querySelectorAll('.stkpt-toast').length === 0, null, 20000);
+      const t1 = await p.evaluate(() => { const last = window.__stkPaper.toasts.slice(-1)[0]; return { n: document.querySelectorAll('.stkpt-toast').length, sinceLast: Date.now() - last.at }; });
+      check(t1.n === 0 && t1.sinceLast >= 4000 && t1.sinceLast < 6500, 'paper toasts auto-hide after ~4 s (page time) ' + JSON.stringify(t1));
+      await p.evaluate(() => window.__stkPaper.account.state.orders.filter((o) => o.qty === 0.01).forEach((o) => window.__stkPaper.cancelOrder(o.id)));
+      await sleep(4600);   // let the cancel toasts go before the screenshot
+    }
     const shotD = `${OUT}/chart-paper-1280.png`;
     await p.screenshot({ path: shotD }); console.log('screenshot', shotD);
-    px.binance = bLast + 250;
+    await p.evaluate(() => window.__stkPaper.openTicket({ symbol: 'binance:BTCUSDT', side: 'buy', type: 'limit' }));
+    await p.check('#stkpt-tk input[name=tpon]'); await p.check('#stkpt-tk input[name=slon]');
+    await sleep(300);
+    const shotDT = `${OUT}/chart-paper-1280-ticket.png`;
+    await p.screenshot({ path: shotDT }); console.log('screenshot', shotDT);
+    await p.keyboard.press('Escape');
+    px.binance = await p.evaluate(() => window.__stkPaper.account.state.orders.find((o) => o.symbol === 'binance:BTCUSDT' && o.side === 'sell').price + 0.5);
     const bFill = await waitFor(p, () => !window.__stkPaper.account.position('binance:BTCUSDT') && window.__stkPaper.account.state.orders.length === 0, null, 6000);
     const bTrade = await p.evaluate(() => window.__stkPaper.account.state.trades.slice(-1)[0]);
     check(bFill && bTrade && bTrade.symbol === 'binance:BTCUSDT' && bTrade.pnl === +((bTrade.exit - bTrade.entry) * 0.5).toFixed(2) && bTrade.pnl > 0, `sell limit filled above the price and closed the BTC long: P&L ${bTrade && bTrade.pnl} (per unit)`);
@@ -339,9 +408,9 @@ async function boot(p, BASE) {
     const closed = await p.evaluate(() => {
       const MH = window.StrykerMarketHours, orig = MH.futuresStatus;
       MH.futuresStatus = () => ({ open: false, until: Date.now() + 3600e3 });
-      window.__toasts.length = 0;
+      const n0 = window.__stkPaper.toasts.length;
       const r1 = window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 });
-      const msg = (window.__toasts.find((x) => x.type === 'error') || {}).msg || '';
+      const msg = (window.__stkPaper.toasts.slice(n0).find((x) => x.type === 'error') || {}).msg || '';
       const l = window.__stkPaper.account.last['futures:NQ1!'];
       const r2 = window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: l - 3 });
       return { r1, msg, r2: !!(r2 && r2.order), id: r2 && r2.order && r2.order.id, lim: l - 3, restore: (MH.__orig = orig, true) };
@@ -359,7 +428,10 @@ async function boot(p, BASE) {
     await p.evaluate(() => { const l = window.__stkPaper.account.last['futures:NQ1!']; window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'sell', type: 'market', qty: 1, sl: l + 8 }); window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'sell', type: 'limit', qty: 2, price: l + 20 }); });
     await sleep(1800);   // debounced cloud save
     const before = await p.evaluate(() => { const s = window.__stkPaper.account.summary(); const a = window.__stkPaper.account.state; return { bal: s.balance, trades: a.trades.length, orders: a.orders.length, pos: Object.keys(a.positions).join(','), j: a.trades.filter((x) => x.journaled).length }; });
+    await waitFor(p, () => { const c = JSON.parse(localStorage.getItem('__test_cloud_paper') || 'null'); return c && JSON.parse(c.state).savedAt === window.__stkPaper.account.state.savedAt; }, null, 6000);
     const cloud = await p.evaluate(() => JSON.parse(localStorage.getItem('__test_cloud_paper') || 'null'));
+    const sv = await p.evaluate(() => ({ s: window.__stkPaper.saves, local: window.__stkPaper.account.state.savedAt, cloud: JSON.parse(JSON.parse(localStorage.getItem('__test_cloud_paper')).state).savedAt }));
+    console.log('save stats', JSON.stringify(sv));
     check(cloud && cloud.keys.join(',') === 'state,updatedAt' && typeof cloud.state === 'string' && cloud.state.length < 400000, 'cloud doc students/u1/paperTrading/account = { state (JSON string), updatedAt } (matches the new rules block)');
 
     // ---- reload: persisted (local copy) ----
@@ -378,7 +450,8 @@ async function boot(p, BASE) {
     // ---- TWO Charts tabs (same browser): exactly one fills, both end on the same account ----
     {
       const p2 = await ctx.newPage();
-      await p2.clock.install({ time: new Date(T0) });
+      // same clock as tab 1 (real tabs share one clock; two fake clocks drift apart)
+      await p2.clock.install({ time: new Date(await p.evaluate(() => Date.now())) });
       p2.on('pageerror', (e) => errors.push('tab2: ' + e));
       await boot(p2, BASE);
       await setMarket(p2, 'futures:NQ1!', '1');
@@ -391,7 +464,12 @@ async function boot(p, BASE) {
       const oid = await placer.evaluate((lim) => { const r = window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: lim }); return r && r.order && r.order.id; }, l2 - 4);
       await sleep(800);
       px.futures = l2 - 6;
-      await sleep(2500);
+      // wait for the fill (page clock can lag real time under load), then let the mirror catch up
+      const filledIn = async (pg) => waitFor(pg, (id) => window.__stkPaper.account.state.history.some((h) => h.kind === 'fill' && h.orderId === id), oid, 12000);
+      await filledIn(p); await filledIn(p2);
+      const dbg = async (pg) => pg.evaluate((id) => { const P = window.__stkPaper; return { leader: P.leader, last: P.account.last['futures:NQ1!'], ord: P.account.state.orders.find((o) => o.id === id), sym: window.STRYKER_VELA.chart.market.symbol, open: window.StrykerMarketHours.futuresStatus(Date.now()).open, now: Date.now(), hidden: document.hidden }; }, oid);
+      if (!(await p.evaluate((id) => window.__stkPaper.account.state.history.some((h) => h.kind === 'fill' && h.orderId === id), oid))) console.log('two-tab debug', JSON.stringify({ l2, px: px.futures, p: await dbg(p), p2: await dbg(p2) }));
+      await sleep(1500);
       const view = (pg) => pg.evaluate((id) => { const a = window.__stkPaper.account.state; return { fills: a.history.filter((h) => h.kind === 'fill' && h.orderId === id).length, working: a.orders.some((o) => o.id === id), savedAt: a.savedAt }; }, oid);
       const v1 = await view(p), v2 = await view(p2);
       check(oid && v1.fills === 1 && v2.fills === 1 && !v1.working && !v2.working, 'two tabs: order placed in the follower filled ONCE and both tabs agree ' + JSON.stringify({ oid, v1, v2 }));
@@ -437,12 +515,44 @@ async function boot(p, BASE) {
     await waitFor(ph.p, () => Number.isFinite(window.__stkPaper.account.last['futures:NQ1!']));
     await ph.p.evaluate(() => { const l = window.__stkPaper.account.last['futures:NQ1!']; window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1, tp: l + 15, sl: l - 8 }); window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: l - 4 }); });
     await sleep(1200);
+    await linesOnPricePane(ph.p, 'phone NQ1! 1m');
+    const tvs1c = await ph.p.evaluate(() => { const o = document.querySelector('.stkpt-1c').getBoundingClientRect(); return [...document.querySelectorAll('.stkpt-toast')].filter((t) => { const r = t.getBoundingClientRect(); return r.top < o.bottom && o.top < r.bottom && r.left < o.right && o.left < r.right; }).length; });
+    check(tvs1c === 0, 'phone: toasts do not cover the one-click buttons (' + tvs1c + ')');
+    const overl = await ph.p.evaluate(() => {
+      const cs = [...document.querySelectorAll('.stkpt-chip')].filter((c) => c.style.visibility !== 'hidden').map((c) => ({ id: c.dataset.id, r: c.getBoundingClientRect() }));
+      const hits = [];
+      for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++) { const a = cs[i].r, b = cs[j].r; if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) hits.push(cs[i].id + ' x ' + cs[j].id); }
+      const ov = document.querySelector('.stkpt-ov').getBoundingClientRect();
+      const clipped = cs.filter((c) => c.r.left < ov.left || c.r.right > ov.right).map((c) => c.id);
+      return { n: cs.length, hits, clipped };
+    });
+    check(overl.hits.length === 0 && overl.clipped.length === 0, 'phone: no two paper chips overlap, none cut off at the edge ' + JSON.stringify(overl));
+    const slim = await ph.p.evaluate(() => { const r = document.getElementById('stkpt').getBoundingClientRect(); return { open: document.getElementById('stkpt').classList.contains('open'), h: Math.round(r.height) }; });
+    check(!slim.open && slim.h <= 46, 'phone: the sheet starts collapsed as a slim bar ' + JSON.stringify(slim));
+    const tbCheck = async () => {
+    await waitFor(ph.p, () => !!document.getElementById('stkl-btn') && !!document.getElementById('stkc-layout-btn'), null, 15000);
+    const tb = await ph.p.evaluate(() => {
+      const bs = [...document.querySelectorAll('#stkc-bar > div > *')].filter((e) => e.getBoundingClientRect().width > 0).map((e) => ({ id: e.id || e.className, r: e.getBoundingClientRect() }));
+      const hits = [];
+      for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) { const a = bs[i].r, b = bs[j].r; if (a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1) hits.push(bs[i].id + ' x ' + bs[j].id); }
+      const lb = document.getElementById('stkl-btn'), gb = document.getElementById('stkc-layout-btn');
+      if (!lb || !gb) return { hits, missing: !lb ? 'stkl-btn' : 'stkc-layout-btn', layoutRight: 0, gridLeft: 1 };
+      return { hits, layoutRight: Math.round(lb.getBoundingClientRect().right), gridLeft: Math.round(gb.getBoundingClientRect().left) };
+    });
+    check(!tb.missing && tb.hits.length === 0 && tb.layoutRight <= tb.gridLeft, 'phone toolbar: no overlapping buttons (layout menu vs grid) ' + JSON.stringify(tb));
+    };
     const shotC = `${OUT}/chart-paper-390-chart.png`;
     await ph.p.screenshot({ path: shotC }); console.log('screenshot', shotC);
     await ph.p.click('#stkpt .stkpt-toggle');
     await sleep(500);
+    const cardsOk = await ph.p.evaluate(() => {
+      const v = document.querySelector('#stkpt .stkpt-view'), c = document.querySelector('#stkpt .stkpt-card');
+      return { cards: document.querySelectorAll('#stkpt .stkpt-card').length, table: !!document.querySelector('#stkpt table'), sideScroll: v.scrollWidth > v.clientWidth + 1, tp: c ? /TP \d/.test(c.textContent) && /SL \d/.test(c.textContent) : false, h: c ? Math.round(c.getBoundingClientRect().height) : 0 };
+    });
+    check(cardsOk.cards === 1 && !cardsOk.table && !cardsOk.sideScroll && cardsOk.tp, 'phone positions: compact two-line card with TP + SL, no sideways scroll ' + JSON.stringify(cardsOk));
     const sheet = await ph.p.evaluate(() => { const r = document.getElementById('stkpt').getBoundingClientRect(); const docW = document.documentElement.scrollWidth; const btns = [...document.querySelectorAll('#stkpt .stkpt-b, #stkpt [role=tab]')].map((x) => x.getBoundingClientRect().height); return { top: r.top, h: r.height, w: r.width, docW, minBtn: Math.min(...btns), pos: getComputedStyle(document.getElementById('stkpt')).position }; });
     check(sheet.pos === 'fixed' && sheet.w <= 390 && sheet.docW <= 390 && sheet.minBtn >= 34 && sheet.h < 844 * 0.75, 'phone: Paper trading opens as a bottom sheet, no overflow, thumb-size buttons ' + JSON.stringify(sheet));
+    await tbCheck();
     const shotS = `${OUT}/chart-paper-390-sheet.png`;
     await ph.p.screenshot({ path: shotS }); console.log('screenshot', shotS);
     await ph.p.click('#stkpt .stkpt-trade');

@@ -6303,6 +6303,11 @@ body.charts-page .stkchart-credit{
 .stkl-row small{ grid-area:s; color:var(--ink-3); font-size:11.5px; }
 .stkl-when{ grid-area:w; align-self:center; color:var(--ink-3); font-size:11.5px; white-space:nowrap; }
 @media (max-width:700px){ .stkl-btn{ max-width:130px; } .stkl-back{ padding-top:8vh; } }
+/* A narrow toolbar shrinks the layout menu's wrapper; the button must shrink with it (ellipsis)
+   instead of overflowing onto the grid button (phone 390, 2026-10-12). */
+.stkl-menu{ min-width:0; }
+.stkl-menu > .stkl-btn{ max-width:min(220px, 100%); }
+@media (max-width:700px){ .stkl-menu > .stkl-btn{ max-width:min(130px, 100%); } }
 :root[data-theme="light"] .stkl-back{ background:rgba(0,0,0,.3); }
 
 /* ---- Charts phase 3: Pine Script editor (assets/chart-pine.js) ----

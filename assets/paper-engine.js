@@ -209,7 +209,11 @@
       const type = o.type === 'limit' || o.type === 'stop' ? o.type : 'market';
       const qty = this._qty(spec, o.qty);
       const dir = side === 'buy' ? 1 : -1;
-      if (this.state.balance <= 0) throw new Error('This paper account has no balance left. Reset it to keep practising.');
+      // A blown account can still close / reduce what it holds (and its brackets still fill);
+      // only orders that open or add exposure are refused.
+      const held = this.state.positions[symbol];
+      const reducing = type === 'market' && held && held.side !== side && qty <= held.qty;
+      if (this.state.balance <= 0 && !reducing) throw new Error('This paper account has no balance left. Reset it to keep practising.');
       const last = this.last[symbol];
       if (!(last > 0)) throw new Error('No price yet for ' + this._name(symbol) + '. Open it on a chart and wait for the price.');
       if (type === 'market' && !this.deps.isOpen(symbol, now)) {

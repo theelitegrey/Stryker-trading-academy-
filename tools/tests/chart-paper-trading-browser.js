@@ -374,6 +374,59 @@ async function boot(p, BASE) {
     await sleep(500);
     const after2 = await p.evaluate(() => { const s = window.__stkPaper.account.summary(); const a = window.__stkPaper.account.state; return { bal: s.balance, trades: a.trades.length, orders: a.orders.length, pos: Object.keys(a.positions).join(','), j: a.trades.filter((x) => x.journaled).length }; });
     check(JSON.stringify(after2) === JSON.stringify(before), 'reload with no local copy loads the cloud copy: ' + JSON.stringify(after2));
+
+    // ---- TWO Charts tabs (same browser): exactly one fills, both end on the same account ----
+    {
+      const p2 = await ctx.newPage();
+      await p2.clock.install({ time: new Date(T0) });
+      p2.on('pageerror', (e) => errors.push('tab2: ' + e));
+      await boot(p2, BASE);
+      await setMarket(p2, 'futures:NQ1!', '1');
+      await sleep(3500);   // two leader ticks + confirm
+      const leaders = [await p.evaluate(() => window.__stkPaper.leader), await p2.evaluate(() => window.__stkPaper.leader)];
+      check(leaders.filter(Boolean).length === 1, 'two tabs: exactly one fill leader ' + JSON.stringify(leaders));
+      const l2 = await p2.evaluate(() => window.__stkPaper.account.last['futures:NQ1!']);
+      // the order is placed in the tab that is NOT the leader, so the fill must come from the other one
+      const placer = leaders[0] ? p2 : p;
+      const oid = await placer.evaluate((lim) => { const r = window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: lim }); return r && r.order && r.order.id; }, l2 - 4);
+      await sleep(800);
+      px.futures = l2 - 6;
+      await sleep(2500);
+      const view = (pg) => pg.evaluate((id) => { const a = window.__stkPaper.account.state; return { fills: a.history.filter((h) => h.kind === 'fill' && h.orderId === id).length, working: a.orders.some((o) => o.id === id), savedAt: a.savedAt }; }, oid);
+      const v1 = await view(p), v2 = await view(p2);
+      check(oid && v1.fills === 1 && v2.fills === 1 && !v1.working && !v2.working, 'two tabs: order placed in the follower filled ONCE and both tabs agree ' + JSON.stringify({ oid, v1, v2 }));
+      // and a hand-made race: both tabs see the same price move while the leader key is free
+      await p.evaluate(() => localStorage.removeItem('stryker_paper_leader'));
+      await p2.evaluate(() => localStorage.removeItem('stryker_paper_leader'));
+      await sleep(2500);
+      const leaders2 = [await p.evaluate(() => window.__stkPaper.leader), await p2.evaluate(() => window.__stkPaper.leader)];
+      check(leaders2.filter(Boolean).length === 1, 'two tabs: after the leader slot is freed, one leader again ' + JSON.stringify(leaders2));
+      await p2.close();
+      px.futures = l2 - 6;
+    }
+
+    // ---- optional soak: PAPER_SOAK_S=600 (10 min) with a position, a bracket and a working order ----
+    const SOAK = Number(process.env.PAPER_SOAK_S || 0);
+    if (SOAK > 0) {
+      const cdp = await ctx.newCDPSession(p);
+      const probe = async () => {
+        await cdp.send('HeapProfiler.collectGarbage');
+        const hu = await cdp.send('Runtime.getHeapUsage');
+        const m = await p.evaluate(() => ({ nodes: document.getElementsByTagName('*').length, chips: document.querySelectorAll('.stkpt-chip').length, oneclick: document.querySelectorAll('.stkpt-1c').length, offers: document.querySelectorAll('.stkpt-offer').length }));
+        const { result } = await cdp.send('Runtime.evaluate', { expression: 'window', objectGroup: 'soak' });
+        const ls = await cdp.send('DOMDebugger.getEventListeners', { objectId: result.objectId, depth: -1 }).catch(() => ({ listeners: [] }));
+        await cdp.send('Runtime.releaseObjectGroup', { objectGroup: 'soak' });
+        m.listeners = ls.listeners.length; m.heap = hu.usedSize;
+        return m;
+      };
+      const t0 = await probe();
+      const end = Date.now() + SOAK * 1000;
+      let k = 0;
+      while (Date.now() < end) { px.futures += (k++ % 20 < 10 ? 0.25 : -0.25); await sleep(1000); }
+      const t1 = await probe();
+      console.log('soak', SOAK + 's', JSON.stringify({ start: t0, end: t1 }));
+      check(t1.chips <= t0.chips + 2 && t1.oneclick === t0.oneclick && t1.nodes < t0.nodes * 1.05 + 200 && t1.listeners <= t0.listeners + 20 && t1.heap < t0.heap * 1.3 + 8e6, `soak ${SOAK}s: no growth in chips/one-click/nodes/listeners/heap`);
+    }
     check(errors.length === 0, 'desktop console errors: ' + (errors.slice(0, 4).join(' | ') || 'none'));
     await ctx.close();
 

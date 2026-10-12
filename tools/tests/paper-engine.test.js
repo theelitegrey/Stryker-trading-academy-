@@ -218,5 +218,96 @@ t('the engine has no network or broker surface', () => {
   assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|sendBeacon|rithmic|tradovate|import\(/i.test(src));
 });
 
+// ---- edge cases added in the Website Manager review (2026-10-12) ----
+t('P&L per point for all 12 brief contracts, long and short, after a 1-point move', () => {
+  const want = { NQ: 20, MNQ: 2, ES: 50, MES: 5, YM: 5, MYM: 0.5, GC: 100, MGC: 10, SI: 5000, SIL: 1000, CL: 1000, MCL: 100 };
+  for (const r of Object.keys(want)) {
+    const sym = 'futures:' + r + '1!';
+    for (const side of ['buy', 'sell']) {
+      const a = acct(); a.setLast(sym, 100);
+      a.placeOrder({ symbol: sym, side, type: 'market', qty: 1 });
+      a.setLast(sym, 101);
+      const ev = a.closePosition(sym);
+      assert.strictEqual(ev[0].trade.pnl, (side === 'buy' ? 1 : -1) * want[r], r + ' ' + side);
+    }
+  }
+});
+
+t('tick rounding has no float drift (SI 0.005, CL 0.01, MYM 1, GC 0.1)', () => {
+  const r = PE.roundTick;
+  assert.strictEqual(r(30.1234, 0.005), 30.125); assert.strictEqual(r(70.123, 0.01), 70.12);
+  assert.strictEqual(r(42010.6, 1), 42011); assert.strictEqual(r(2400.37, 0.1), 2400.4);
+  const a = acct(); a.setLast('futures:SI1!', 30.1);
+  a.placeOrder({ symbol: 'futures:SI1!', side: 'buy', type: 'market', qty: 3 });
+  a.setLast('futures:SI1!', 30.115);
+  assert.strictEqual(a.closePosition('futures:SI1!')[0].trade.pnl, 225);   // 0.015 x 3 x 5000
+});
+
+t('sell limit gap UP fills at the (better) open; sell stop gap DOWN fills at the (worse) open', () => {
+  const a = acct(); a.setLast('futures:ES1!', 5000);
+  a.placeOrder({ symbol: 'futures:ES1!', side: 'sell', type: 'limit', qty: 1, price: 5010 });
+  assert.strictEqual(a.onSegment('futures:ES1!', seg(5015, 5016, 5012, 5013))[0].price, 5015);
+  const b = acct(); b.setLast('futures:ES1!', 5000);
+  b.placeOrder({ symbol: 'futures:ES1!', side: 'sell', type: 'stop', qty: 1, price: 4990 });
+  assert.strictEqual(b.onSegment('futures:ES1!', seg(4985, 4986, 4980, 4982))[0].price, 4985);
+});
+
+t('short bracket: TP below fills, gap down through TP fills at the (better) open, OCO leg gone', () => {
+  const a = acct(); a.setLast('futures:NQ1!', 21000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'sell', type: 'market', qty: 1, tp: 20980, sl: 21010 });
+  const ev = a.onSegment('futures:NQ1!', seg(20975, 20977, 20970, 20972));
+  assert.strictEqual(ev[0].type, 'tp'); assert.strictEqual(ev[0].price, 20975); assert.strictEqual(ev[0].trade.pnl, 25 * 20);
+  assert.strictEqual(a.onSegment('futures:NQ1!', seg(21000, 21020, 20999, 21015)).length, 0);
+});
+
+t('commission on partial reduce and flip: fees split pro rata, balance == start + realized', () => {
+  const a = acct(); a.setSettings({ commission: 2 }); a.setLast('futures:MES1!', 5000);
+  a.placeOrder({ symbol: 'futures:MES1!', side: 'buy', type: 'market', qty: 4 });       // fee 8
+  a.setLast('futures:MES1!', 5010);
+  const r = a.placeOrder({ symbol: 'futures:MES1!', side: 'sell', type: 'market', qty: 1 }).events;   // in 2 + out 2
+  assert.strictEqual(r[0].trade.fees, 4); assert.strictEqual(r[0].trade.pnl, 10 * 5 - 4);
+  a.setLast('futures:MES1!', 5020);
+  const f = a.placeOrder({ symbol: 'futures:MES1!', side: 'sell', type: 'market', qty: 5 }).events;   // close 3 (in 6 + out 6), open 2 short (fee 4)
+  assert.deepStrictEqual(f.map((e) => e.type), ['close', 'open']);
+  assert.strictEqual(f[0].trade.fees, 12); assert.strictEqual(f[0].trade.pnl, 20 * 3 * 5 - 12);
+  a.setLast('futures:MES1!', 5020); a.closePosition('futures:MES1!');                // short 2 flat: in 4 + out 4
+  const s = a.summary();
+  assert.strictEqual(s.balance, PE.round2(100000 + s.realized));
+  assert.strictEqual(s.fees, 8 + 2 + 10 + 4);
+});
+
+t('a blown account refuses new exposure but can still close what it holds', () => {
+  const a = acct(1000); a.setLast('futures:NQ1!', 21000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 2 });
+  a.setLast('futures:NQ1!', 20940);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'sell', type: 'market', qty: 1 });     // -60 x 20 = -1200
+  assert.ok(a.summary().balance <= 0, 'balance blown: ' + a.summary().balance);
+  assert.throws(() => a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 }), /no balance left/);
+  assert.throws(() => a.placeOrder({ symbol: 'futures:NQ1!', side: 'sell', type: 'limit', qty: 1, price: 21500 }), /no balance left/);
+  assert.throws(() => a.reversePosition('futures:NQ1!'), /no balance left/);
+  const ev = a.closePosition('futures:NQ1!');                                       // closing is always allowed
+  assert.strictEqual(ev[0].type, 'close'); assert.strictEqual(a.position('futures:NQ1!'), null);
+});
+
+t('closed market: a working stop that would have triggered fills at the reopen open, not the old price', () => {
+  const a = acct(); a.setLast('futures:CL1!', 70);
+  a.placeOrder({ symbol: 'futures:CL1!', side: 'buy', type: 'market', qty: 1, sl: 69.5 });
+  open = false;
+  assert.strictEqual(a.onSegment('futures:CL1!', seg(69, 69.1, 68.8, 69)).length, 0, 'no stop-out while closed');
+  assert.throws(() => a.closePosition('futures:CL1!'), /Market closed/);
+  open = true;
+  const ev = a.onSegment('futures:CL1!', seg(68.9, 69.2, 68.7, 69.1));
+  assert.strictEqual(ev[0].type, 'sl'); assert.strictEqual(ev[0].price, 68.9); assert.strictEqual(ev[0].trade.pnl, -1100);
+});
+
+t('journal hook maths: trade record carries the point value and the point-value P&L', () => {
+  const a = acct(); a.setLast('futures:GC1!', 2400);
+  a.placeOrder({ symbol: 'futures:GC1!', side: 'sell', type: 'market', qty: 2, sl: 2405 });
+  a.setLast('futures:GC1!', 2396.3);
+  const t1 = a.closePosition('futures:GC1!')[0].trade;
+  assert.strictEqual(t1.pointValue, 100); assert.strictEqual(t1.pnl, 740);           // 3.7 x 2 x 100
+  assert.strictEqual(PE.round2((t1.entry - t1.exit) * t1.qty * t1.pointValue), t1.pnl);
+});
+
 console.log(`\n${n - fail}/${n} passed`);
 process.exit(fail ? 1 : 0);

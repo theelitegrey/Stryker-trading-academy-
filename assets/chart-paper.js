@@ -111,14 +111,30 @@ function sound(kind){
 
 // ------------------------------------------------------------------ storage
 const lsKey = () => 'stryker_paper_' + (uid || 'guest');
+const revKey = () => lsKey() + ':rev';      // tiny "who saved last" stamp, cheap to read every tick
 function cloudDoc(){ return firebase.firestore().collection('students').doc(uid).collection('paperTrading').doc('account'); }
 let cloudT = 0, cloudBusy = false, cloudAgain = false;
-function save(){
+let myRev = '';
+function save(localOnly){
   if (!acct) return;
   acct.state.savedAt = Date.now();
   const json = JSON.stringify(acct.state);
-  try { localStorage.setItem(lsKey(), json); } catch (e) { console.warn('TradeZoro paper: local save', e); }
-  if (uid) { clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 1200); }
+  myRev = TAB_ID + ':' + acct.state.savedAt + ':' + json.length;
+  try { localStorage.setItem(lsKey(), json); localStorage.setItem(revKey(), myRev); } catch (e) { console.warn('TradeZoro paper: local save', e); }
+  if (uid && !localOnly) { clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 1200); }
+}
+// Another Charts tab saved since we last saved/loaded: adopt its copy BEFORE acting or filling,
+// so a tab never works from a stale account (a filled order coming back to life = double fill).
+function syncFromLocal(){
+  if (!acct) return;
+  let rev = null; try { rev = localStorage.getItem(revKey()); } catch (e) {}
+  if (!rev || rev === myRev) return;
+  const st = parse(localStorage.getItem(lsKey()));
+  myRev = rev;
+  if (!st) return;
+  const last = acct.last;
+  acct = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
+  acct.last = last;
 }
 async function pushCloud(){
   if (!uid || !acct) return;
@@ -144,13 +160,17 @@ async function load(){
   const last = acct ? acct.last : {};
   acct = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
   acct.last = last;
+  try { myRev = localStorage.getItem(revKey()) || ''; } catch (e) {}
   ready = true;
-  if (!st) save();
+  // a brand-new account stays local until the member actually does something: opening Charts
+  // must not cost a Firestore write for members who never use paper trading
+  if (!st) save(true);
   renderAll();
 }
 window.addEventListener('storage', (e) => {
   if (!acct || e.key !== lsKey() || !e.newValue) return;
   const st = parse(e.newValue); if (!st) return;
+  try { myRev = localStorage.getItem(revKey()) || myRev; } catch (e2) {}
   const last = acct.last;
   acct = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
   acct.last = last;
@@ -161,10 +181,19 @@ window.addEventListener('storage', (e) => {
 function leaderTick(){
   let cur = null; try { cur = JSON.parse(localStorage.getItem(LEADER_KEY) || 'null'); } catch (e) {}
   const now = Date.now();
-  if (!cur || cur.id === TAB_ID || now - (cur.at || 0) > LEADER_STALE) {
+  // Two-phase: a free/stale slot is CLAIMED on one tick and only LED on the next tick if the
+  // claim is still ours. Two tabs that start together both claim, the last write wins, and both
+  // read the same winner before either fills (one-phase "write = lead" let both fill for a tick).
+  if (cur && cur.id === TAB_ID) {
     try { localStorage.setItem(LEADER_KEY, JSON.stringify({ id: TAB_ID, at: now })); } catch (e) {}
     leader = true;
-  } else leader = false;
+  } else {
+    leader = false;
+    if (!cur || now - (cur.at || 0) > LEADER_STALE) {
+      try { localStorage.setItem(LEADER_KEY, JSON.stringify({ id: TAB_ID, at: now })); } catch (e) {}
+      setTimeout(leaderTick, 300);          // confirm soon, not a whole LEADER_MS later
+    }
+  }
 }
 window.addEventListener('pagehide', () => {
   try { const cur = JSON.parse(localStorage.getItem(LEADER_KEY) || 'null'); if (cur && cur.id === TAB_ID) localStorage.removeItem(LEADER_KEY); } catch (e) {}
@@ -209,6 +238,7 @@ function feedSymbol(sym, segs){
 }
 function poll(){
   if (!acct || !ready) return;
+  syncFromLocal();
   let events = [];
   const seen = new Set();
   for (const c of cells()) {
@@ -226,6 +256,7 @@ function poll(){
 let feedBusy = false;
 async function feedOffChart(){
   if (!acct || !leader || feedBusy || document.hidden) return;
+  syncFromLocal();
   const onChart = new Set(cells().map((c) => c.symbol));
   const need = new Set(Object.keys(acct.state.positions).concat(acct.state.orders.map((o) => o.symbol)).filter((s) => !onChart.has(s)));
   if (!need.size) return;
@@ -274,6 +305,7 @@ function onEvents(events){
 // derived fields from the journal's own journalComputeDerived (assets/journal-calc.js, lazy-loaded)
 // and the paper P&L written over pnl. Tagged 'paper', account 'Paper'.
 let journalLoad = null;
+const journalBusy = new Set();     // trade ids being sent (a double click must not write two docs)
 function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); }); }
 function journalReady(){
   if (typeof window.journalComputeDerived === 'function') return Promise.resolve(true);
@@ -288,6 +320,11 @@ async function sendToJournal(tradeId){
   if (!t) return;
   if (t.journaled) { toast('That paper trade is already in your journal.', 'info'); return; }
   if (!uid) { toast('Sign in to send paper trades to your Trade journal.', 'info'); return; }
+  if (journalBusy.has(tradeId)) return;
+  journalBusy.add(tradeId);
+  try { await sendToJournalOnce(t); } finally { journalBusy.delete(tradeId); }
+}
+async function sendToJournalOnce(t){
   if (!(await journalReady()) || typeof window.journalComputeDerived !== 'function') { toast('The journal is not available right now.', 'error'); return; }
   const d = new Date(t.entryAt);
   const z = (n) => String(n).padStart(2, '0');
@@ -312,7 +349,7 @@ async function sendToJournal(tradeId){
     if (derived.riskAmount) { derived.riskAmount = derived.riskAmount * pv; derived.rMultiple = t.pnl / derived.riskAmount; derived.riskPercent = derived.riskAmount / acct.state.startBalance * 100; }
     const ts = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection('students').doc(uid).collection('journal').doc().set(Object.assign({}, raw, derived, { createdAt: ts, updatedAt: ts }));
-    acct.markJournaled(t.id); save(); renderAll();
+    syncFromLocal(); acct.markJournaled(t.id); save(); renderAll();
     toast('Paper trade sent to your Trade journal.', 'success');
   } catch (e) { console.warn('TradeZoro paper: journal', e); toast('Could not send it to the journal. Try again from History.', 'error'); }
 }
@@ -333,6 +370,7 @@ function offerJournal(trade){
 // ------------------------------------------------------------------ actions (UI -> engine)
 function act(fn, okMsg){
   if (!acct) { toast('Paper trading is still loading.', 'info'); return null; }
+  syncFromLocal();
   try {
     const r = fn();
     if (r && r.events && r.events.length) onEvents(r.events);
@@ -598,7 +636,7 @@ function oneClickAll(){
       oc.querySelector('.stkpt-1c-s').onclick = () => oneClick(oc, 'sell');
       oc.querySelector('.stkpt-1c-b').onclick = () => oneClick(oc, 'buy');
       const q = oc.querySelector('input');
-      q.addEventListener('change', () => { const sym = oc.dataset.sym; if (acct && sym) { acct.setQty(sym, q.value); save(); q.value = acct.qtyFor(sym); } });
+      q.addEventListener('change', () => { const sym = oc.dataset.sym; if (acct && sym) { syncFromLocal(); acct.setQty(sym, q.value); save(); q.value = acct.qtyFor(sym); } });
       q.addEventListener('keydown', (e) => e.stopPropagation());
       inst.overlay.appendChild(oc);
     }
@@ -616,6 +654,12 @@ function refreshOneClick(oc, cell){
 // Under the legend's first row (symbol · interval · OHLC), like TradingView. Measured every 2 s
 // (oneClickAll), not per tick, so the 250 ms price refresh never forces a layout.
 function placeOneClick(oc, cell, ov){
+  // Re-measure only when the cell size or its legend rows change: the full scan below forces a
+  // layout, and running it every 2 s on every chart was a cost even with paper trading unused.
+  let sig = '';
+  try { sig = ov.clientWidth + 'x' + ov.clientHeight + ':' + cell.host.querySelectorAll('.vela-statusline ~ *, .vela-ind-fold *').length + ':' + (cell.symbol || ''); } catch (e) {}
+  if (sig && oc.dataset.psig === sig) return;
+  oc.dataset.psig = sig;
   let top = 30;
   try {
     const or = ov.getBoundingClientRect();
@@ -804,7 +848,7 @@ function submitTicket(){
   }
   const o = { symbol: tk.sym, side: tk.side, type: tk.type, qty: parseFloat(f.qty.value), price: parseFloat(f.price.value), tp, sl };
   const r = placeOrder(o);
-  if (r) { acct.setQty(tk.sym, o.qty); save(); closeTicket(); }
+  if (r) { syncFromLocal(); acct.setQty(tk.sym, o.qty); save(); closeTicket(); }
 }
 
 // ------------------------------------------------------------------ right-click on the chart -> limit/stop at that price
@@ -1018,7 +1062,7 @@ function viewAccount(){
   fillAccount(a, s);
   for (const inp of a.querySelectorAll('[data-s]')) {
     inp.addEventListener('change', () => {
-      const k = inp.dataset.s; acct.setSettings({ [k]: inp.type === 'checkbox' ? inp.checked : inp.value });
+      const k = inp.dataset.s; syncFromLocal(); acct.setSettings({ [k]: inp.type === 'checkbox' ? inp.checked : inp.value });
       save(); pushLines(true); renderPanel();
     });
   }
@@ -1026,7 +1070,7 @@ function viewAccount(){
     const bal = parseFloat(a.querySelector('[data-k=bal]').value);
     if (!(bal >= PE.MIN_BALANCE && bal <= PE.MAX_BALANCE)) { toast('Pick a starting balance between $' + PE.MIN_BALANCE.toLocaleString() + ' and $' + PE.MAX_BALANCE.toLocaleString() + '.', 'error'); return; }
     if (!window.confirm('Reset the paper account to ' + money(bal) + '? Positions, orders and history are wiped.')) return;
-    acct.reset(bal); tracks.clear(); save(); renderAll(); toast('Paper account reset to ' + money(bal), 'success');
+    syncFromLocal(); acct.reset(bal); tracks.clear(); save(); renderAll(); toast('Paper account reset to ' + money(bal), 'success');
   };
   return a;
 }

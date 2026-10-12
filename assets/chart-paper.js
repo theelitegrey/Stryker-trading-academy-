@@ -31,6 +31,14 @@
 // (owner-only, validated in firestore.rules — a NEW rules block, flagged for deploy) + a local
 // copy; signed out → localStorage only. The newer copy (state.savedAt) wins at load.
 //
+// BAR REPLAY (assets/chart-bar-replay.js, Owner order 2026-10-12): while replay is on, setReplay()
+// swaps in a SEPARATE "Replay account" (own balance + history, localStorage only, never the cloud
+// doc) whose clock is the replay clock; the live account stays in memory untouched and its orders
+// do not fill in this tab (leadership is released). The replay module feeds one price segment per
+// revealed bar of the update interval (replayFeed), so fills use only revealed prices, with the
+// same conservative rules (gaps fill at the open, stop loss first when one bar touches both).
+// Exit restores the live account and its lines.
+//
 // Education only. Not financial advice.
 
 const PE = window.PaperEngine;
@@ -46,6 +54,8 @@ const TAB_ID = Math.random().toString(36).slice(2, 10);
 
 let WS = null, CORE = null, acct = null, uid = null, toastFn = null;
 let leader = false, ready = false;
+let replay = null, liveAcct = null;   // replay: { now(), key } while bar replay is on
+const clockNow = () => (replay ? replay.now() : Date.now());
 const tracks = new Map();          // key -> { t, h, l, c } last bar seen per cell / feed
 let ui = loadUi();
 let panel = null, ticket = null;
@@ -153,10 +163,10 @@ function isOpen(sym, t){
   }
   return true;                    // crypto trades 24/7
 }
-function dayStart(){ const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function dayStart(){ const d = new Date(clockNow()); d.setHours(0, 0, 0, 0); return d.getTime(); }
 function sound(kind){
   if (!acct || !acct.settings.sounds) return;
-  try { window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, { source: 'paper' }); } catch (e) {}
+  try { window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, { source: 'paper', replay: !!replay }); } catch (e) {}
 }
 
 // ------------------------------------------------------------------ storage
@@ -167,6 +177,11 @@ let cloudT = 0, cloudBusy = false, cloudAgain = false;
 let myRev = '';
 function save(localOnly){
   if (!acct) return;
+  if (replay) {                       // replay account: this browser only, never the cloud doc
+    acct.state.savedAt = Date.now();
+    try { localStorage.setItem(replay.key, JSON.stringify(acct.state)); } catch (e) { console.warn('TradeZoro paper: replay save', e); }
+    return;
+  }
   acct.state.savedAt = Date.now();
   const json = JSON.stringify(acct.state);
   myRev = TAB_ID + ':' + acct.state.savedAt + ':' + json.length;
@@ -185,7 +200,7 @@ let saveCount = 0, cloudFirstPending = 0, cloudPushes = 0;
 // Another Charts tab saved since we last saved/loaded: adopt its copy BEFORE acting or filling,
 // so a tab never works from a stale account (a filled order coming back to life = double fill).
 function syncFromLocal(){
-  if (!acct) return;
+  if (!acct || replay) return;
   let rev = null; try { rev = localStorage.getItem(revKey()); } catch (e) {}
   if (!rev || rev === myRev) return;
   const st = parse(localStorage.getItem(lsKey()));
@@ -217,18 +232,19 @@ async function load(){
       if (c && (!st || (Number(c.savedAt) || 0) >= (Number(st.savedAt) || 0))) st = c;
     } catch (e) { console.warn('TradeZoro paper: cloud load', e); }
   }
-  const last = acct ? acct.last : {};
-  acct = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
-  acct.last = last;
+  const prev = replay ? liveAcct : acct;
+  const fresh = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
+  fresh.last = prev ? prev.last : {};
+  if (replay) liveAcct = fresh; else acct = fresh;
   try { myRev = localStorage.getItem(revKey()) || ''; } catch (e) {}
   ready = true;
   // a brand-new account stays local until the member actually does something: opening Charts
   // must not cost a Firestore write for members who never use paper trading
-  if (!st) save(true);
+  if (!st && !replay) save(true);
   renderAll();
 }
 window.addEventListener('storage', (e) => {
-  if (!acct || e.key !== lsKey() || !e.newValue) return;
+  if (!acct || replay || e.key !== lsKey() || !e.newValue) return;
   const st = parse(e.newValue); if (!st) return;
   try { myRev = localStorage.getItem(revKey()) || myRev; } catch (e2) {}
   const last = acct.last;
@@ -239,6 +255,11 @@ window.addEventListener('storage', (e) => {
 
 // ------------------------------------------------------------------ leader election (fills in one tab)
 function leaderTick(){
+  if (replay) {                       // a tab in bar replay never fills the live account
+    leader = false;
+    try { const c = JSON.parse(localStorage.getItem(LEADER_KEY) || 'null'); if (c && c.id === TAB_ID) localStorage.removeItem(LEADER_KEY); } catch (e) {}
+    return;
+  }
   let cur = null; try { cur = JSON.parse(localStorage.getItem(LEADER_KEY) || 'null'); } catch (e) {}
   const now = Date.now();
   // Two-phase: a free/stale slot is CLAIMED on one tick and only LED on the next tick if the
@@ -288,6 +309,40 @@ function segmentsFrom(key, bars){
   tracks.set(key, { t: T(b), h: b.high, l: b.low, c: b.close });
   return segs;
 }
+// ------------------------------------------------------------------ bar replay (assets/chart-bar-replay.js)
+// on: { now(): replay clock ms } -> swap in the Replay account; null -> back to the live account.
+const replayKey = () => 'stryker_paper_replay_' + (uid || 'guest');
+export function setReplay(on){
+  if (on && !replay) {
+    replay = { now: on.now, key: replayKey() };
+    liveAcct = acct;
+    let st = null; try { st = parse(localStorage.getItem(replay.key)); } catch (e) {}
+    acct = new PE.PaperAccount(st, { now: () => replay.now(), isOpen, tickOf: tickHint });
+    if (!st) { acct.state = PE.freshState(PE.DEFAULT_BALANCE, liveAcct ? Object.assign({}, liveAcct.state.settings, { qty: {} }) : null, replay.now()); save(); }
+    leader = false; leaderTick(); tracks.clear();
+  } else if (!on && replay) {
+    save();
+    replay = null;
+    acct = liveAcct; liveAcct = null; tracks.clear();
+    syncFromLocal();                  // another tab may have filled live orders meanwhile
+    leaderTick();
+  }
+  if (panel) panel.classList.toggle('is-replay', !!replay);
+  const bd = panel && panel.querySelector('.stkpt-badge'); if (bd) bd.textContent = replay ? 'Replay account' : 'Demo';
+  pushLines(true); renderAll();
+}
+// The replay clock moved: one segment per newly revealed bar of the update interval (in order).
+// seed = a jump (select bar, back step, symbol switch): just learn the price, never fill.
+export function replayFeed(sym, segs, seed){
+  if (!replay || !acct || !segs || !segs.length) return;
+  let events = [];
+  for (const s of segs) { if (seed) acct.setLast(sym, s.c); else events = events.concat(acct.onSegment(sym, s)); }
+  if (events.length) onEvents(events); else { save(); livePnl(); }
+}
+export function resetReplayAccount(balance){
+  if (!replay || !acct) return;
+  acct.reset(balance || acct.state.startBalance); save(); renderAll();
+}
 function feedSymbol(sym, segs){
   let events = [];
   for (const s of segs) {
@@ -298,6 +353,7 @@ function feedSymbol(sym, segs){
 }
 function poll(){
   if (!acct || !ready) return;
+  if (replay) { livePnl(); return; }  // replay fills come from replayFeed(), one segment per revealed bar
   syncFromLocal();
   let events = [];
   const seen = new Set();
@@ -315,7 +371,7 @@ function poll(){
 // Symbols with paper positions/orders but no chart open: 1-minute bars from the same provider.
 let feedBusy = false;
 async function feedOffChart(){
-  if (!acct || !leader || feedBusy || document.hidden) return;
+  if (!acct || !leader || replay || feedBusy || document.hidden) return;
   syncFromLocal();
   const onChart = new Set(cells().map((c) => canonSym(c.symbol)));
   const need = new Set(Object.keys(acct.state.positions).concat(acct.state.orders.map((o) => o.symbol)).filter((s) => !onChart.has(s)));
@@ -414,7 +470,7 @@ async function sendToJournalOnce(t){
   } catch (e) { console.warn('TradeZoro paper: journal', e); toast('Could not send it to the journal. Try again from History.', 'error'); }
 }
 function offerJournal(trade){
-  if (!acct.settings.askJournal || !uid) return;
+  if (!acct.settings.askJournal || !uid || replay) return;
   let box = document.getElementById('stkpt-offers');
   if (!box) { box = h('div', { id: 'stkpt-offers', 'aria-live': 'polite' }); document.body.appendChild(box); }
   while (box.children.length >= 2) box.firstChild.remove();
@@ -915,7 +971,7 @@ function renderTicket(retarget){
     rew != null ? 'Reward ' + money(rew) : null,
     risk && rew ? 'R:R 1:' + (rew / risk).toFixed(2) : null
   ].filter(Boolean).join(' · ');
-  const open = isOpen(sym, Date.now());
+  const open = isOpen(sym, clockNow());
   const mk = ticket.querySelector('.stkpt-mk');
   mk.textContent = !Number.isFinite(last) ? 'Waiting for a price for ' + showSym(sym) + '…' : !open ? 'Market closed: market orders are rejected until it reopens; limit and stop orders wait and fill after the open.' : '';
   mk.hidden = !mk.textContent;
@@ -1119,7 +1175,7 @@ function viewOrders(){
   if (isPhone()) {
     return cards(acct.state.orders.slice().sort((a, b) => b.placedAt - a.placedAt).map((o) => card(null,
       [h('button', { type: 'button', class: 'stkpt-sym', text: showSym(o.symbol), onclick: () => goSym(o.symbol) }), h('span', { class: o.side === 'buy' ? 'up' : 'down', text: (o.side === 'buy' ? 'Buy ' : 'Sell ') + (o.type === 'limit' ? 'limit' : 'stop') }), h('span', { class: 'q', text: o.qty + ' @ ' + fmtP(o.symbol, o.price) })],
-      h('span', { class: 'pnl', text: isOpen(o.symbol, Date.now()) ? 'Working' : 'Waiting' }),
+      h('span', { class: 'pnl', text: isOpen(o.symbol, clockNow()) ? 'Working' : 'Waiting' }),
       [kv2('TP', o.tp != null ? fmtP(o.symbol, o.tp) : '—'), kv2('SL', o.sl != null ? fmtP(o.symbol, o.sl) : '—')],
       [h('button', { type: 'button', class: 'stkpt-b', text: 'Modify', onclick: () => openTicket({ modify: o }) }), h('button', { type: 'button', class: 'stkpt-b', text: 'Cancel', onclick: () => cancelOrder(o.id) })])), 'No working paper orders.');
   }
@@ -1128,7 +1184,7 @@ function viewOrders(){
     h('td', { class: o.side === 'buy' ? 'up' : 'down', text: o.side === 'buy' ? 'Buy' : 'Sell' }),
     td(o.type === 'limit' ? 'Limit' : 'Stop'), td(String(o.qty)), td(fmtP(o.symbol, o.price)),
     td(o.tp != null ? fmtP(o.symbol, o.tp) : '—'), td(o.sl != null ? fmtP(o.symbol, o.sl) : '—'),
-    td(isOpen(o.symbol, Date.now()) ? 'Working' : 'Waiting (market closed)'),
+    td(isOpen(o.symbol, clockNow()) ? 'Working' : 'Waiting (market closed)'),
     h('td', { class: 'stkpt-acts' }, [
       h('button', { type: 'button', class: 'stkpt-b', text: 'Modify', onclick: () => openTicket({ modify: o }) }),
       h('button', { type: 'button', class: 'stkpt-b', text: 'Cancel', onclick: () => cancelOrder(o.id) })
@@ -1179,7 +1235,7 @@ function viewAccount(){
       h('h3', { class: 'stkpt-h3', text: 'Reset account' }),
       h('label', { class: 'stkpt-f' }, ['Starting balance (USD)', h('input', { type: 'number', min: String(PE.MIN_BALANCE), max: String(PE.MAX_BALANCE), step: '1000', 'data-k': 'bal', value: String(acct.state.startBalance) })]),
       h('button', { type: 'button', class: 'stkpt-b stkpt-b-warn', 'data-k': 'reset', text: 'Reset account' }),
-      h('p', { class: 'stkpt-note', text: 'Reset closes nothing at the market: it wipes positions, orders and history and starts again at this balance. ' + (uid ? 'Saved to your account.' : 'Saved in this browser. Sign in to keep it on your account.') })
+      h('p', { class: 'stkpt-note', text: 'Reset closes nothing at the market: it wipes positions, orders and history and starts again at this balance. ' + (replay ? 'This is the Replay account: separate from your live paper account, saved in this browser.' : uid ? 'Saved to your account.' : 'Saved in this browser. Sign in to keep it on your account.') })
     ])
   ]);
   fillAccount(a, s);
@@ -1404,7 +1460,7 @@ export function mountPaper(ws, opts){
   try { firebase.auth().onAuthStateChanged(() => { started = true; load(); }); } catch (e) { start(); }
   setTimeout(start, 4000);                    // no auth answer: run as a guest
   window.__stkPaper = {
-    get account(){ return acct; }, get leader(){ return leader; }, get uid(){ return uid; },
+    get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
     ctxAt, ctxOrder, commitDrag, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };

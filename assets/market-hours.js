@@ -360,8 +360,11 @@
     window.addEventListener('resize', function () { fitKey = ''; });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { fit(); });
     function tick() {
-      var now = Date.now();
+      var rp = root.__stkReplay && root.__stkReplay.on;   // Charts bar replay: the pill follows the replay clock
+      var now = rp ? root.__stkReplay.E : Date.now();
       var l = sessionLabel(now);
+      w.classList.toggle('is-replay', !!rp);
+      if (rp) { l = Object.assign({}, l, { head: 'Replay \u00b7 ' + l.head, shortHead: 'Replay' }); }
       w.classList.toggle('is-open', l.state === 'session');
       w.classList.toggle('is-nosess', l.state === 'nosession');
       w.classList.toggle('is-closed', l.state === 'closed');

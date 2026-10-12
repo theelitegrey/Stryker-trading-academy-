@@ -203,6 +203,7 @@ const cache = new Map();      // key -> { data, at, p }
 const subs = new Set();       // natives to nudge when data lands
 function key(api, dte) { return api + ':' + dte; }
 export function gexFetch(api, dte, force) {
+  if (window.__stkReplay && window.__stkReplay.on) return Promise.resolve(null);   // bar replay: no live GEX
   const k = key(api, dte);
   const e = cache.get(k) || {};
   if (e.p) return e.p;
@@ -219,7 +220,7 @@ export function gexFetch(api, dte, force) {
   cache.set(k, Object.assign({}, e, { p }));
   return p;
 }
-export function gexCached(api, dte) { const e = cache.get(key(api, dte)); return e ? e.data : null; }
+export function gexCached(api, dte) { if (window.__stkReplay && window.__stkReplay.on) return null; const e = cache.get(key(api, dte)); return e ? e.data : null; }
 
 let timer = 0;
 function wantedKeys() {

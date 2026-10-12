@@ -958,6 +958,7 @@ const tellTradeListeners = () => tradeSourceListeners.forEach((cb) => { try { cb
 export function hasTradeSource(provider) { return tradeSources.has(provider); }
 export function openTradeSource(provider, ticker, onTrade, onStatus) {
   const fn = tradeSources.get(provider);
+  if (window.__stkReplay && window.__stkReplay.on) return null;   // bar replay: no live trades
   return fn ? fn(ticker, onTrade, onStatus || (() => {})) : null;
 }
 export function onTradeSourcesChanged(cb) { tradeSourceListeners.add(cb); return () => tradeSourceListeners.delete(cb); }
@@ -1034,6 +1035,7 @@ class TradeFeed {
     this.key = key; this.tfMs = tfMs; this.fixedStep = step || 0; this.bars = new Map(); this.order = [];
     this.coverFrom = Infinity; this.status = 'loading'; this.err = ''; this.version = 0;
     this.listeners = new Set(); this.refs = 0; this.step = 0; this.closeTm = 0;
+    if (window.__stkReplay && window.__stkReplay.on) { this.status = 'replay'; this.err = 'Order flow needs live trades: not available in bar replay.'; this.stop = () => {}; return; }   // bar replay
     this.stop = tradeSources.get(provider)(ticker, (ts, backfill) => this.add(ts, backfill), (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
   }
   stepFor(price) {
@@ -1121,7 +1123,7 @@ class FlowNative {
   note() {
     if (this.block) return this.block;
     const f = this.h.feed;
-    if (f.status === 'error') return f.err || 'Trade data unavailable.';
+    if (f.status === 'error' || f.status === 'replay') return f.err || 'Trade data unavailable.';
     if (f.status === 'loading') return 'Loading recent trades…';
     if (f.status === 'waiting') return 'Real trades from your Rithmic connection: building from now on.';
     return '';

@@ -190,6 +190,7 @@ function tick(sym, p){
   }
 }
 function poll(){
+  if (window.__stkReplay && window.__stkReplay.on) return;   // bar replay: alerts watch live prices only
   const syms = new Set(alerts.filter((a) => a.active && !a.src).map((a) => a.symbol));
   for (const s of syms) { const p = priceOf(s); if (p != null) tick(s, p); }
   for (const a of alerts) if (a.active && a.src) tickInd(a);

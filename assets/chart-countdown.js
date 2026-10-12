@@ -119,6 +119,11 @@ function patchChrome(chrome) {
   proto.drawPriceLineAndCountdown = function (ctx, scene, coords, theme, dataW, pricePane) {
     const n = scene && scene.bars ? scene.bars.length : 0;
     if (!scene || !scene.showCountdown || !n || !(coords.barInterval > 0)) return orig.apply(this, arguments);
+    if (window.__stkReplay && window.__stkReplay.on) {   // bar replay: no wall-clock countdown
+      scene.__stkCdText = '';
+      scene.showCountdown = false;
+      try { return orig.apply(this, arguments); } finally { scene.showCountdown = true; }
+    }
     const last = scene.bars[n - 1];
     const now = Date.now();
     const cd = countdownFor(now, last.time, coords.barInterval, scene.__stkCdFut || false);

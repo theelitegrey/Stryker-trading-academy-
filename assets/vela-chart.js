@@ -193,7 +193,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-intervals.js?v=520'),
       import('./chart-gex-levels.js?v=520'),
       import('./chart-legend-rows.js?v=520'),
-      import('./chart-paper.js?v=520')
+      import('./chart-paper.js?v=520'),
+      import('./chart-bar-replay.js?v=520')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -222,6 +223,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // through one path (assets/chart-legend-rows.js). Keep order-flow on raw Core to avoid repaint risk.
   const LCore = mods[15].legendCore(Core, () => ws);
   const Paper = mods[16];
+  // BAR REPLAY (Owner order 2026-10-12): the outermost provider wrapper + toolbar + control bar
+  // (assets/chart-bar-replay.js). A pass-through while replay is off.
+  const Replay = mods[17];
   // Tick bars (and seconds where a venue has no 1-second candles) are built from the same trade
   // sources the order-flow tools use.
   try { Iv.useTrades(Flow); } catch (e) { console.warn('TradeZoro: interval trades', e); }
@@ -303,12 +307,12 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       providers: {
         // Iv.wrapFactory (assets/chart-intervals.js) builds the intervals a source does not
         // serve natively (futures 2m/3m/10m/45m/3h, 3M/6M/12M everywhere) from a smaller one.
-        futures: Iv.wrapFactory(rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(), 'futures'),
-        binance: Iv.wrapFactory(() => new BinanceProvider(), 'binance'),
-        coinbase: Iv.wrapFactory(() => new CoinbaseProvider(), 'coinbase'),
-        hyperliquid: Iv.wrapFactory(() => new HyperliquidProvider(), 'hyperliquid'),
+        futures: Replay.wrapFactory(Iv.wrapFactory(rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(), 'futures'), 'futures'),
+        binance: Replay.wrapFactory(Iv.wrapFactory(() => new BinanceProvider(), 'binance'), 'binance'),
+        coinbase: Replay.wrapFactory(Iv.wrapFactory(() => new CoinbaseProvider(), 'coinbase'), 'coinbase'),
+        hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => new HyperliquidProvider(), 'hyperliquid'), 'hyperliquid'),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
-        fx: Iv.wrapFactory(() => new FxProvider(), 'fx')
+        fx: Replay.wrapFactory(Iv.wrapFactory(() => new FxProvider(), 'fx'), 'fx')
       },
       persist: true
     });
@@ -383,6 +387,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // PAPER TRADING (Owner order 2026-10-12): demo money, simulated fills, no broker. Trade button,
   // order ticket, on-chart lines, one-click Buy/Sell, bottom panel: assets/chart-paper.js.
   try { Paper.mountPaper(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: paper trading', e); }
+  try { Replay.mountBarReplay(ws, { toast, Paper, store: mods[9].sharedBarStore }); } catch (e) { console.warn('TradeZoro: bar replay', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
   Promise.all([import('./chart-watchlist.js?v=520'), import(VELA_BASE + 'widget.js')])

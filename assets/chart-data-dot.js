@@ -116,6 +116,7 @@ export function installDataDot(ws, opts = {}) {
 
   function statusOf(sym) {
     sym = String(sym || '');
+    if (window.__stkReplay && window.__stkReplay.on) return { s: 'replay', text: 'Bar replay: historical bars, not live data', tag: 'Replay' };
     if (CRYPTO.test(sym)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
     if (FX.test(sym)) {
       const now = Date.now();

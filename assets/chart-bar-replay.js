@@ -479,8 +479,10 @@ const ui = (() => {
     document.addEventListener('click', (e) => { if (!pop.hidden && !wrap.contains(e.target)) close(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { close(); btn.focus(); } });
     badge = el('span', { class: 'stkr-badge', role: 'status', 'aria-live': 'polite', hidden: '' });
-    barL.appendChild(wrap);
-    barL.appendChild(badge);
+    // right-hand toolbar group, first (the left group is full on phones: Owner layout rule, the
+    // saved-layout menu must not be squeezed)
+    barL.insertBefore(wrap, barL.firstChild);
+    barL.insertBefore(badge, wrap);
   }
   function open() {
     pop.hidden = false; btn.setAttribute('aria-expanded', 'true');
@@ -584,8 +586,8 @@ const ui = (() => {
 // ------------------------------------------------------------------ mount
 export function mountBarReplay(ws, opts) {
   WS = ws; OPT = opts || {};
-  const barL = document.getElementById('stkc-bar-l');
-  if (barL) ui.mountButton(barL);
+  const barR = document.querySelector('#stkc-bar .stkc-bar-r');
+  if (barR) ui.mountButton(barR);
   ui.mountBar();
   // timeframe / symbol switch during replay: keep the clock, refresh the active series + steps
   const onChange = () => {

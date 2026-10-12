@@ -117,13 +117,11 @@ function addOn(chart, x){
   if (x.lib && !guardOk(x.source)) { console.warn('TradeZoro: shared Pine script failed the safety check, not restored'); return null; }
   const main = x.engine === 'main' && !x.lib;
   const next = x.engine === 'next' && !x.lib && nextEngines.has(chart);
-  if (next && x.maxBars) { try { nextEngines.get(chart).setBarLimit(x.source, x.maxBars); } catch (e) {} }
   const h = chart.addIndicator(x.source, { language: next ? LANG_NEXT : main ? LANG_MAIN : LANG, inputs: x.inputs || {} });
   if (main && h) onMain.add(h);
   if (next && h) onNext.add(h);
   if (x.lib && h) libOf.set(h, x.lib);
   if (h && x.rightOffset) trackRightOffset(chart, h, x.rightOffset); // saved layouts keep the HTF space
-  if (h && x.maxBars) barHandles.set(h, x.maxBars);
   return h;
 }
 
@@ -144,7 +142,6 @@ function snapshot(h){
   if (onNext.has(h)) o.engine = 'next';
   if (libOf.has(h)) o.lib = libOf.get(h);
   if (offsetHandles.has(h)) o.rightOffset = offsetHandles.get(h);
-  if (barHandles.has(h)) o.maxBars = barHandles.get(h);
   return o;
 }
 function cleanEntry(x){
@@ -163,19 +160,11 @@ function cleanEntry(x){
   } else if (x.engine === 'main' || x.engine === 'next') o.engine = x.engine;
   const ro = requestedRightOffset(x);
   if (ro) o.rightOffset = ro;
-  const mb = requestedMaxBars(x);
-  if (mb && o.engine === 'next') o.maxBars = mb;
   return o;
 }
 
 function changed(){ try { const ws = getWs(); if (ws) ws.context().stateChanged(); } catch (e) {} }
 
-// Per-built-in history cap on the next engine (PICKER_SCRIPTS maxBars; chart-pine-next.js).
-const barHandles = new WeakMap(); // handle -> max bars the script runs on
-function requestedMaxBars(opts){
-  const n = Math.floor(Number(opts && opts.maxBars));
-  return Number.isFinite(n) && n >= 100 ? Math.min(20000, n) : null;
-}
 const offsetHandles = new WeakMap(); // handle -> requested chart right offset
 const offsetCharts = new WeakSet();  // charts whose right offset was raised by an indicator
 function requestedRightOffset(opts){
@@ -298,8 +287,6 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
   const runNext = async () => {
     try { await ensureNext(chart); } catch (e) { console.warn('TradeZoro: Pine next engine', e); return null; }
-    const mb = requestedMaxBars(opts);
-    if (mb) { try { nextEngines.get(chart).setBarLimit(source, mb); } catch (e) {} }
     return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
   };
   let res = null, engine = 'worker';
@@ -330,7 +317,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
     return { ok: false, msg: ex.msg, line: ex.line };
   }
   if (engine === 'main' && res.handle) onMain.add(res.handle);
-  if (engine === 'next' && res.handle) { onNext.add(res.handle); const mb = requestedMaxBars(opts); if (mb) barHandles.set(res.handle, mb); }
+  if (engine === 'next' && res.handle) onNext.add(res.handle);
   trackRightOffset(chart, res.handle, requestedRightOffset(opts));
   changed();
   return { ok: true, handle: res.handle, engine };

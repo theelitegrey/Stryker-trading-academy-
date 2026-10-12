@@ -193,7 +193,7 @@ export function mountIndicatorWindow(ws, opts){
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
       out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? null : GROUP_STRYKER,
-        kind: 'example', builtinId: b.id, desc: b.desc, third, rightOffset: b.rightOffset, maxBars: b.maxBars });
+        kind: 'example', builtinId: b.id, desc: b.desc, third, rightOffset: b.rightOffset });
     });
     return out;
   }
@@ -238,7 +238,7 @@ export function mountIndicatorWindow(ws, opts){
         let src = it.source, opts;
         if (it.builtinId) {
           try { src = await builtinSource(it.builtinId); } catch (e) { toast('Could not load ' + it.name + '. Check your connection.', 'error'); return; }
-          opts = { engine: 'next', builtin: true, rightOffset: it.rightOffset, maxBars: it.maxBars };
+          opts = { engine: 'next', builtin: true, rightOffset: it.rightOffset };
         }
         const r = await P().addSource(it.name, src, opts);
         if (!r.ok) toast(r.msg || 'Could not add the script.', 'error');

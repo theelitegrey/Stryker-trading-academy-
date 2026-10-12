@@ -15,9 +15,7 @@
 //                            tagged "Community · third-party", never shown as by TradeZoro.
 //      section 'picks'     = the OWNER'S OWN (TradeZoro-made) script -> COMMUNITY > "Editors'
 //                            picks", author TradeZoro.
-//      Optional: desc (one short line for the list); rightOffset (bars of empty space kept right
-//      of the last bar while it is on); maxBars (run on only the newest N chart bars, for a heavy
-//      script on deep 1m history; the chart itself keeps every bar).
+//      Optional: desc (one short line for the list).
 //   3. Bump the build as usual (the ?v= on source rides the build number).
 // The id is permanent: favourites (key 'x:<id>') and saved chart layouts refer to it, so never
 // rename or reuse an id. Moving an entry between sections is safe.
@@ -59,7 +57,7 @@ export const PICKER_SCRIPTS = [
   { id: 'tz-fractal-model', name: 'TZ Fractal Model [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/tz-fractal-model.pine?v=513', desc: 'Fractal HTF sweep model with right-side candles, CISD confirmation, projections and dashboard', rightOffset: 24 },
   // Owner 2026-10-12 "add this indicator": the Owner's own script; only the 4 brand lines changed
   // ([Stryker] -> [TradeZoro], header credit), logic byte-identical to the Owner's file.
-  { id: 'liquidity-master-tradezoro', name: 'Liquidity Master [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/liquidity-master-tradezoro.pine?v=513', desc: 'Session, previous day / week / month, swing and candle liquidity per timeframe, HTF FVGs, REQH / REQL and draw-on-liquidity tables', maxBars: 1500 },
+  { id: 'liquidity-master-tradezoro', name: 'Liquidity Master [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/liquidity-master-tradezoro.pine?v=513', desc: 'Session, previous day / week / month, swing and candle liquidity per timeframe, HTF FVGs, REQH / REQL and draw-on-liquidity tables' },
 ];
 
 // Indicators-window keys of TradeZoro-made indicators defined elsewhere (Editors' picks order).

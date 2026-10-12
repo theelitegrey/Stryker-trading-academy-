@@ -1,6 +1,6 @@
 // Liquidity Master [TradeZoro] (Owner 2026-10-12 "add this indicator"): smoke + perf on the
 // real Charts page. Listed in Editors' picks as TradeZoro, adds from the picker, first draw
-// under 10 s (maxBars 1,500; the cap is 20 s) with 5,000 bars on NQ1! 5m, NQ1! 1m and BTCUSDT 1m, draws its session /
+// under the 20 s cap with 5,000 bars on NQ1! 5m, NQ1! 1m and BTCUSDT 1m, draws its session /
 // period / FVG / REQ levels, the two draw-on-liquidity tables and the watermark, no console errors.
 // Screenshots at 1280 and 390 go to OUT.
 //   node tools/tests/chart-dev-server.mjs 8061 &
@@ -67,9 +67,7 @@ async function model(p){
         const lineCols = {}; (m.lines||[]).forEach(l => { const c = String(l.color || l.line_color || ''); lineCols[c] = (lineCols[c]||0)+1; });
         return { boxes:(m.boxes||[]).length, lines:(m.lines||[]).length, labels:(m.labels||[]).length, polylines:(m.polylines||[]).length,
           tables:(m.tables||[]).map(t => ({ pos:t.position, text:cellTexts(t).join(' ').slice(0, 600) })),
-          labelText:[...new Set((m.labels||[]).map(l => l.text||''))].join(' | '), lineCols, title:h.title,
-          anchorOk: m.anchorTime == null || m.anchorTime === chart.orchestrator.rawBars[Math.max(0, chart.orchestrator.rawBars.length - 1500)].time,
-          anchorTime: m.anchorTime, firstBar: chart.orchestrator.rawBars[0].time };
+          labelText:[...new Set((m.labels||[]).map(l => l.text||''))].join(' | '), lineCols, title:h.title };
       }
       await new Promise(r=>setTimeout(r,500));
     }
@@ -92,14 +90,13 @@ async function model(p){
       report.push({ sym, tf, w, bars, totalMs, ...c });
       const tag = `${sym} ${tf} @${w}`;
       check(!c.timeout, `${tag}: model arrived`);
-      check(totalMs < 10000, `${tag}: first draw under 10s (${totalMs}ms, ${bars} bars)`);
+      check(totalMs < 20000, `${tag}: first draw under the 20s cap (${totalMs}ms, ${bars} bars)`);
       const tt = (c.tables||[]).map(t => t.text).join(' ');
       check(/DRAW ON LIQUIDITY  ·  ABOVE/.test(tt) && /DRAW ON LIQUIDITY  ·  BELOW/.test(tt), `${tag}: both draw-on-liquidity tables`);
       check((c.tables||[]).some(t => t.pos === 'top_right' && /ABOVE/.test(t.text)) && (c.tables||[]).some(t => t.pos === 'bottom_right' && /BELOW/.test(t.text)), `${tag}: tables top-right / bottom-right`);
       check(/Liquidity Master \[TradeZoro\]/.test(tt) && !/Stryker/i.test(tt + c.labelText), `${tag}: TradeZoro watermark, no Stryker text`);
       check(c.lines > 0 && c.boxes > 0 && c.labels > 0, `${tag}: draws lines/boxes/labels (${c.lines}/${c.boxes}/${c.labels})`);
       check(/FVG/.test(c.labelText), `${tag}: FVG labels`);
-      check(c.anchorOk, `${tag}: script runs on the newest 1,500 bars (maxBars), drawings anchored there (${c.anchorTime} vs first chart bar ${c.firstBar})`);
       check(c.lines <= 500 && c.boxes <= 500 && c.labels <= 500, `${tag}: within 500 lines/boxes/labels`);
       // Session / period / REQ names depend on the live bars in view: report them.
       for (const k of ['Asia High', 'Asia Low', 'London High', 'London Low', 'NY High', 'NY Low', 'PDH', 'PDL', 'PWH', 'PWL', 'REQH', 'REQL', 'Open'])

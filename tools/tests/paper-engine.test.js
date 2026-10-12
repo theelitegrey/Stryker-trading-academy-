@@ -31,6 +31,40 @@ t('point values per the brief', () => {
   assert.strictEqual(PE.specOf('binance:ETHBTC').ok, false);
 });
 
+
+
+t('futures ids normalise to one canonical paper symbol', () => {
+  const ids = ['futures:NQ1!', 'futures:NQ2!', 'rithmic:NQ1!', 'CME:NQ1!', 'CME_MINI:NQ1!', 'CBOT:YM1!', 'CBOT_MINI:YM1!', 'COMEX:GC1!', 'COMEX_MINI:MGC1!', 'NYMEX:CL1!', 'NYMEX_MINI:CL1!', 'NQ1!', 'NQ2!', 'NQ'];
+  for (const id of ids) {
+    const sp = PE.specOf(id);
+    assert.strictEqual(sp.ok, true, id);
+    assert.strictEqual(sp.kind, 'futures', id);
+    assert.ok(/^futures:[A-Z0-9]+1!$/.test(sp.symbol), id + ' -> ' + sp.symbol);
+  }
+  assert.strictEqual(PE.specOf('CME_MINI:NQ1!').symbol, 'futures:NQ1!');
+  assert.strictEqual(PE.specOf('rithmic:NQ2!').symbol, 'futures:NQ1!');
+  assert.strictEqual(PE.specOf('CBOT_MINI:YM1!').symbol, 'futures:YM1!');
+});
+
+t('exchange-prefixed futures share one canonical net position', () => {
+  const a = acct();
+  a.setLast('CME_MINI:NQ1!', 21000);
+  a.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'market', qty: 1 });
+  assert.strictEqual(a.position('futures:NQ1!').qty, 1);
+  a.setLast('NQ1!', 21010);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 });
+  assert.strictEqual(Object.keys(a.state.positions).join(','), 'futures:NQ1!');
+  assert.strictEqual(a.position('rithmic:NQ1!').qty, 2);
+  assert.strictEqual(a.summary().unrealized, ((21010 - 21005) * 2 * 20));
+});
+
+t('unknown futures root names the root clearly', () => {
+  const sp = PE.specOf('CME_MINI:ABC1!');
+  assert.strictEqual(sp.ok, false);
+  assert.match(sp.reason, /futures root ABC/);
+  assert.doesNotMatch(sp.reason, /covers futures and crypto/);
+});
+
 t('market buy fills at last price, P&L uses NQ $20/point', () => {
   const a = acct();
   a.setLast('futures:NQ1!', 21000);
@@ -215,7 +249,7 @@ t('day P&L counts trades closed since the day start', () => {
 
 t('the engine has no network or broker surface', () => {
   const src = require('fs').readFileSync(path.join(__dirname, '..', '..', 'assets', 'paper-engine.js'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
-  assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|sendBeacon|rithmic|tradovate|import\(/i.test(src));
+  assert.ok(!/fetch\(|XMLHttpRequest|WebSocket|sendBeacon|tradovate|import\(/i.test(src));
 });
 
 // ---- edge cases added in the Website Manager review (2026-10-12) ----

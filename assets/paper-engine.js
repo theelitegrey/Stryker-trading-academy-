@@ -65,35 +65,48 @@
     ZN: [0.015625, 1000], ZB: [0.03125, 1000], '6E': [0.00005, 125000]
   };
   const CRYPTO_PROVIDERS = ['binance', 'coinbase', 'hyperliquid'];
+  const FUTURES_PREFIXES = ['futures', 'rithmic', 'cme', 'cme_mini', 'cbot', 'cbot_mini', 'comex', 'comex_mini', 'nymex', 'nymex_mini'];
 
   function round2(n) { return Math.round(n * 100) / 100; }
   function decimalsOf(t) { const s = String(t); if (/e-/.test(s)) return Number(s.split('e-')[1]); const i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; }
   function num(v) { if (v === null || v === undefined || v === '') return null; const n = Number(v); return Number.isFinite(n) ? n : null; }
 
+  function splitSymbol(symbol) {
+    const raw = String(symbol || '').trim();
+    const i = raw.lastIndexOf(':');
+    if (i > 0) return { raw, prefix: raw.slice(0, i).toLowerCase(), ticker: raw.slice(i + 1).toUpperCase() };
+    return { raw, prefix: '', ticker: raw.toUpperCase() };
+  }
+  function futuresRootOf(ticker) {
+    return String(ticker || '').toUpperCase().replace(/(?:[12]!)$/, '');
+  }
+  function futuresSpec(root, source) {
+    const r = futuresRootOf(root);
+    const f = FUTURES[r];
+    if (!f) return { ok: false, reason: 'Paper trading does not cover futures root ' + (r || String(source || root).toUpperCase()) + ' yet.' };
+    return { ok: true, symbol: 'futures:' + r + '1!', kind: 'futures', root: r, tick: f[0], pointValue: f[1], qtyStep: 1, minQty: 1, maxQty: 500, decimals: decimalsOf(f[0]) };
+  }
+
   /**
-   * Contract spec for a chart symbol ("futures:NQ1!", "binance:BTCUSDT").
-   * Returns { ok, symbol, kind, root, tick, pointValue, qtyStep, minQty, maxQty, decimals } or
-   * { ok:false, reason }. tickHint = the chart's own minimum tick (crypto).
+   * Contract spec for a chart symbol ("futures:NQ1!", "CME_MINI:NQ1!", "NQ1!", "binance:BTCUSDT").
+   * Futures are canonicalised to "futures:ROOT1!" so positions/orders from exchange-prefixed,
+   * Rithmic-style or bare ids share one paper position. tickHint = chart minimum tick (crypto).
    */
   function specOf(symbol, tickHint) {
-    const s = String(symbol || '');
-    const m = /^([a-z]+):(.+)$/i.exec(s);
-    if (!m) return { ok: false, reason: 'Pick a symbol on the chart first.' };
-    const prov = m[1].toLowerCase(), ticker = m[2].toUpperCase();
-    if (prov === 'futures') {
-      const r = ticker.replace(/1!$/, '');
-      const f = FUTURES[r];
-      if (!f) return { ok: false, reason: 'Paper trading does not cover ' + ticker + ' yet.' };
-      return { ok: true, symbol: s, kind: 'futures', root: r, tick: f[0], pointValue: f[1], qtyStep: 1, minQty: 1, maxQty: 500, decimals: decimalsOf(f[0]) };
+    const parts = splitSymbol(symbol);
+    if (!parts.raw) return { ok: false, reason: 'Pick a symbol on the chart first.' };
+    const prov = parts.prefix, ticker = parts.ticker;
+    if ((!prov && /^[A-Z0-9]+(?:[12]!)?$/.test(ticker)) || FUTURES_PREFIXES.indexOf(prov) >= 0) {
+      return futuresSpec(ticker, ticker);
     }
     if (CRYPTO_PROVIDERS.indexOf(prov) >= 0) {
       // P&L is in the quote currency, so only USD-quoted pairs (USDT / USDC / USD) are allowed.
       const usd = /(USDT|USDC|USD|FDUSD)$/.test(ticker.replace(/[-_/]/g, '')) || prov === 'hyperliquid';
       if (!usd) return { ok: false, reason: 'Paper trading covers USD-quoted crypto pairs only (P&L is in USD).' };
       const tick = Number(tickHint) > 0 ? Number(tickHint) : 0.01;
-      return { ok: true, symbol: s, kind: 'crypto', root: ticker, tick, pointValue: 1, qtyStep: 0.0001, minQty: 0.0001, maxQty: 1000000, decimals: decimalsOf(tick) };
+      return { ok: true, symbol: prov + ':' + ticker, kind: 'crypto', root: ticker, tick, pointValue: 1, qtyStep: 0.0001, minQty: 0.0001, maxQty: 1000000, decimals: decimalsOf(tick) };
     }
-    return { ok: false, reason: 'Paper trading covers futures and crypto. ' + ticker + ' is not supported.' };
+    return { ok: false, reason: 'Paper trading covers futures and USD-quoted crypto. ' + (ticker || parts.raw) + ' is not supported.' };
   }
 
   function defaultSettings() {
@@ -129,16 +142,18 @@
     const side = (v) => (v === 'sell' ? 'sell' : 'buy');
     if (raw.positions && typeof raw.positions === 'object') {
       for (const k of Object.keys(raw.positions).slice(0, 100)) {
-        const p = raw.positions[k]; if (!p || !specOf(k).ok) continue;
+        const p = raw.positions[k]; const sp = specOf(k); if (!p || !sp.ok) continue;
         const qty = num(p.qty), avg = num(p.avg); if (!(qty > 0) || !(avg > 0)) continue;
-        st.positions[k] = { symbol: k, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0 };
+        const sym = sp.symbol;
+        st.positions[sym] = { symbol: sym, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0 };
       }
     }
     if (Array.isArray(raw.orders)) {
       for (const o of raw.orders.slice(0, MAX_ORDERS)) {
-        if (!o || !specOf(o.symbol).ok || (o.type !== 'limit' && o.type !== 'stop')) continue;
+        const sp = specOf(o && o.symbol);
+        if (!o || !sp.ok || (o.type !== 'limit' && o.type !== 'stop')) continue;
         const qty = num(o.qty), price = num(o.price); if (!(qty > 0) || !(price > 0)) continue;
-        st.orders.push({ id: num(o.id) || 0, symbol: String(o.symbol), side: side(o.side), type: o.type, qty, price, sl: num(o.sl), tp: num(o.tp), placedAt: num(o.placedAt) || now });
+        st.orders.push({ id: num(o.id) || 0, symbol: sp.symbol, side: side(o.side), type: o.type, qty, price, sl: num(o.sl), tp: num(o.tp), placedAt: num(o.placedAt) || now });
       }
     }
     if (Array.isArray(raw.trades)) st.trades = raw.trades.filter((t) => t && typeof t === 'object' && num(t.pnl) != null).slice(-MAX_TRADES);
@@ -164,8 +179,13 @@
     toJSON() { return this.state; }
     get settings() { return this.state.settings; }
     spec(symbol) { return specOf(symbol, this.deps.tickOf(symbol)); }
-    setLast(symbol, price) { if (Number(price) > 0) this.last[symbol] = Number(price); }
-    position(symbol) { return this.state.positions[symbol] || null; }
+    setLast(symbol, price) {
+      if (!(Number(price) > 0)) return;
+      const raw = String(symbol || ''), sp = this.spec(raw), px = Number(price);
+      this.last[raw] = px;
+      if (sp.ok) this.last[sp.symbol] = px;
+    }
+    position(symbol) { const sp = this.spec(symbol); return this.state.positions[sp.ok ? sp.symbol : symbol] || null; }
 
     // ---- money ----
     openPnl(p, price) {
@@ -202,9 +222,10 @@
      */
     placeOrder(o) {
       const now = this.deps.now();
-      const symbol = String(o.symbol || '');
+      let symbol = String(o.symbol || '');
       const spec = this.spec(symbol);
       if (!spec.ok) throw new Error(spec.reason);
+      symbol = spec.symbol;
       const side = o.side === 'sell' ? 'sell' : 'buy';
       const type = o.type === 'limit' || o.type === 'stop' ? o.type : 'market';
       const qty = this._qty(spec, o.qty);
@@ -214,7 +235,7 @@
       const held = this.state.positions[symbol];
       const reducing = type === 'market' && held && held.side !== side && qty <= held.qty;
       if (this.state.balance <= 0 && !reducing) throw new Error('This paper account has no balance left. Reset it to keep practising.');
-      const last = this.last[symbol];
+      const last = this.last[symbol] || this.last[spec.symbol];
       if (!(last > 0)) throw new Error('No price yet for ' + this._name(symbol) + '. Open it on a chart and wait for the price.');
       if (type === 'market' && !this.deps.isOpen(symbol, now)) {
         this._hist({ kind: 'reject', symbol, side, type, qty, note: 'Market closed' });
@@ -269,10 +290,11 @@
       return o;
     }
     modifyPosition(symbol, ch) {
-      const p = this.state.positions[symbol];
+      const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
+      const p = this.state.positions[sym];
       if (!p) throw new Error('That position is closed.');
-      const spec = this.spec(symbol), dir = p.side === 'buy' ? 1 : -1;
-      const last = this.last[symbol] || p.avg;
+      const dir = p.side === 'buy' ? 1 : -1;
+      const last = this.last[sym] || this.last[symbol] || p.avg;
       let sl = p.sl, tp = p.tp;
       if ('sl' in ch) sl = num(ch.sl) != null ? roundTick(num(ch.sl), spec.tick) : null;
       if ('tp' in ch) tp = num(ch.tp) != null ? roundTick(num(ch.tp), spec.tick) : null;
@@ -283,16 +305,18 @@
     }
     /** Close all (or qty) of a position at market. */
     closePosition(symbol, qty) {
-      const p = this.state.positions[symbol];
+      const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
+      const p = this.state.positions[sym];
       if (!p) throw new Error('That position is already closed.');
       const q = num(qty) > 0 && num(qty) < p.qty ? num(qty) : p.qty;
-      return this.placeOrder({ symbol, side: p.side === 'buy' ? 'sell' : 'buy', type: 'market', qty: q, _close: true }).events;
+      return this.placeOrder({ symbol: sym, side: p.side === 'buy' ? 'sell' : 'buy', type: 'market', qty: q, _close: true }).events;
     }
     /** Flip a position: one market order for twice the size. */
     reversePosition(symbol) {
-      const p = this.state.positions[symbol];
+      const spec = this.spec(symbol), sym = spec.ok ? spec.symbol : symbol;
+      const p = this.state.positions[sym];
       if (!p) throw new Error('That position is already closed.');
-      return this.placeOrder({ symbol, side: p.side === 'buy' ? 'sell' : 'buy', type: 'market', qty: p.qty * 2 }).events;
+      return this.placeOrder({ symbol: sym, side: p.side === 'buy' ? 'sell' : 'buy', type: 'market', qty: p.qty * 2 }).events;
     }
     /** Close every position (markets that are open) and cancel every working order. */
     flattenAll() {
@@ -315,8 +339,8 @@
       for (const k of ['oneClick', 'lines', 'sounds', 'askJournal']) if (k in ch) s[k] = !!ch[k];
       return s;
     }
-    setQty(symbol, qty) { const spec = this.spec(symbol); if (!spec.ok) return; try { this.state.settings.qty[symbol] = this._qty(spec, qty); } catch (e) {} }
-    qtyFor(symbol) { const spec = this.spec(symbol); const q = this.state.settings.qty[symbol]; return q > 0 ? q : (spec.ok ? spec.minQty * (spec.kind === 'crypto' ? 100 : 1) : 1); }
+    setQty(symbol, qty) { const spec = this.spec(symbol); if (!spec.ok) return; try { this.state.settings.qty[spec.symbol] = this._qty(spec, qty); } catch (e) {} }
+    qtyFor(symbol) { const spec = this.spec(symbol); const q = this.state.settings.qty[spec.ok ? spec.symbol : symbol]; return q > 0 ? q : (spec.ok ? spec.minQty * (spec.kind === 'crypto' ? 100 : 1) : 1); }
     markJournaled(tradeId) { const t = this.state.trades.find((x) => x.id === tradeId); if (t) t.journaled = true; return t; }
 
     // ---- live feed ----
@@ -328,9 +352,10 @@
       if (!seg || !(seg.c > 0)) return [];
       const events = [];
       const now = this.deps.now();
-      if (!this.deps.isOpen(symbol, seg.t != null ? seg.t : now) && !this.deps.isOpen(symbol, now)) { this.setLast(symbol, seg.c); return events; }
-      const spec = this.spec(symbol);
+      const raw = String(symbol || ''), spec = this.spec(raw);
       if (!spec.ok) return events;
+      symbol = spec.symbol;
+      if (!this.deps.isOpen(symbol, seg.t != null ? seg.t : now) && !this.deps.isOpen(symbol, now)) { this.setLast(raw, seg.c); return events; }
       const slip = this.state.settings.slippage * spec.tick;
       for (const o of this.state.orders.slice()) {
         if (o.symbol !== symbol) continue;
@@ -354,7 +379,7 @@
     }
 
     // ---- internals ----
-    _name(symbol) { return String(symbol).replace(/^[a-z]+:/i, ''); }
+    _name(symbol) { return String(symbol).replace(/^[^:]+:/, ''); }
     _qty(spec, v) {
       const q = Number(v);
       if (!(q > 0)) throw new Error('Quantity must be greater than zero.');

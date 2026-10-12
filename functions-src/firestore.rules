@@ -168,7 +168,21 @@ service cloud.firestore {
       // chartTemplates has its own validated block below, so it is carved out
       // of this wildcard (rules are OR'd: the wildcard would otherwise let any
       // shape or size through).
-      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs', 'watchlists']); }
+      match /{sub}/{rest=**} { allow read, write: if (isSelf(uid) || isAdmin()) && !(sub in ['chartTemplates', 'pineScripts', 'chartFavorites', 'chartLayouts', 'chartAlerts', 'chartPrefs', 'watchlists', 'paperTrading']); }
+
+      // Charts PAPER TRADING account (assets/chart-paper.js, 2026-10-12). Demo money only: the
+      // whole simulated account (balance, positions, orders, history) is one JSON string the
+      // client re-validates on load (assets/paper-engine.js sanitize). Owner only (not even
+      // admins write it). One doc, id 'account'. state <= 400000 chars, updatedAt = server time.
+      // Carved out of the wildcard above.
+      match /paperTrading/{pid} {
+        allow read, delete: if isSelf(uid) && pid == 'account';
+        allow create, update: if isSelf(uid) && pid == 'account'
+          && request.resource.data.keys().hasOnly(['state', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['state', 'updatedAt'])
+          && request.resource.data.state is string && request.resource.data.state.size() <= 400000
+          && request.resource.data.updatedAt == request.time;
+      }
 
       // Charts page WATCHLISTS (assets/chart-watchlist.js, 2026-10-06). Owner only (not even
       // admins read them). name 1-60, items = flat list (symbols + '###SECTION' markers) <= 260,

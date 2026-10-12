@@ -192,7 +192,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-events.js?v=515'),
       import('./chart-intervals.js?v=515'),
       import('./chart-gex-levels.js?v=515'),
-      import('./chart-legend-rows.js?v=515')
+      import('./chart-legend-rows.js?v=515'),
+      import('./chart-paper.js?v=515')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -220,6 +221,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Every TradeZoro overlay/native that lacks its own emitted model gets a legend row (eye / cog / ×)
   // through one path (assets/chart-legend-rows.js). Keep order-flow on raw Core to avoid repaint risk.
   const LCore = mods[15].legendCore(Core, () => ws);
+  const Paper = mods[16];
   // Tick bars (and seconds where a venue has no 1-second candles) are built from the same trade
   // sources the order-flow tools use.
   try { Iv.useTrades(Flow); } catch (e) { console.warn('TradeZoro: interval trades', e); }
@@ -244,6 +246,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
   try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('TradeZoro: settings install', e); }
+  // Paper trading (assets/chart-paper.js): its on-chart line layer + right-click items register before boot.
+  try { Paper.installPaper(Core); } catch (e) { console.warn('TradeZoro: paper install', e); }
 
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
@@ -376,6 +380,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
   try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }
+  // PAPER TRADING (Owner order 2026-10-12): demo money, simulated fills, no broker. Trade button,
+  // order ticket, on-chart lines, one-click Buy/Sell, bottom panel: assets/chart-paper.js.
+  try { Paper.mountPaper(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: paper trading', e); }
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
   Promise.all([import('./chart-watchlist.js?v=515'), import(VELA_BASE + 'widget.js')])

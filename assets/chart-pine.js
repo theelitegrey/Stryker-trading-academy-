@@ -71,7 +71,7 @@ const nextEngines = new WeakMap(); // chart -> PineNextEngine (newer pinets in a
 const onNext = new WeakSet();      // handles running on the next engine
 let NextMod = null;
 function loadNext(){
-  if (!NextMod) NextMod = import('./chart-pine-next.js?v=522').catch((e) => { NextMod = null; throw e; });
+  if (!NextMod) NextMod = import('./chart-pine-next.js?v=523').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
 async function ensureNext(chart){
@@ -304,7 +304,24 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   };
   let res = null, engine = 'worker';
   if (opts && opts.engine === 'next' && !shared) { res = await runNext(); engine = 'next'; }
-  if (!res) { res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]); engine = 'worker'; }
+  // vela logs `[vela] indicator "ind-N" failed: ...` (console.error) when the worker's older
+  // PineTS rejects a script (seen: HTF PO3 Lens "stacks is not defined", ICT Pro+ "ta.max is
+  // not a function"). The retry below then runs it fine on the next engine, so that line is
+  // noise. Hold it during this attempt; print it only if the script really fails in the end.
+  const held = [];
+  let release = () => {};
+  if (!res) {
+    const orig = console.error;
+    const hold = function (...a) {
+      if (typeof a[0] === 'string' && /^\[vela\] indicator ".*" failed:/.test(a[0])) { held.push(a); return; }
+      return orig.apply(this, a);
+    };
+    console.error = hold;
+    release = () => { if (console.error === hold) console.error = orig; release = () => {}; };
+    try { res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]); engine = 'worker'; }
+    finally { release(); }
+  }
+  const flushHeld = () => { held.splice(0).forEach((a) => console.error(...a)); };
   // The worker's built-in PineTS is older than the page's (vela-pinets 0.2.11 inlines
   // its own copy): it lacks names such as `scale.right` and fails at run time on some
   // newer constructs (e.g. a box held in a user-defined type). Retry once on the next
@@ -319,6 +336,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
       engine = 'main';
     }
   }
+  if (engine === 'worker' || !res || !res.ok) flushHeld(); // a real failure keeps vela's line
   clearTimeout(timer);
   if (res && res.timedOut) {
     await resetCell(chart, keep);

@@ -287,6 +287,29 @@ export function pageBusy(on){
   root.classList.toggle('pine-busy', busyRuns > 0);
 }
 
+// One shared console.error hold for every run in flight (runs can overlap: two cells, a quick
+// double add). Each run collects only into its own list; the native console.error comes back
+// when the last run in flight releases, whatever order they finish in.
+const velaHolds = new Set();
+let velaOrig = null, velaHook = null;
+function holdVelaErrors(list){
+  if (!velaHolds.size) {
+    velaOrig = console.error;
+    velaHook = function (...a) {
+      if (typeof a[0] === 'string' && /^\[vela\] indicator ".*" failed:/.test(a[0]) && velaHolds.size) { velaHolds.forEach((l) => l.push(a)); return; }
+      return velaOrig.apply(this, a);
+    };
+    console.error = velaHook;
+  }
+  velaHolds.add(list);
+  let done = false;
+  return () => {
+    if (done) return; done = true;
+    velaHolds.delete(list);
+    if (!velaHolds.size) { if (console.error === velaHook) console.error = velaOrig; velaHook = null; velaOrig = null; }
+  };
+}
+
 async function runOnChart(chart, source, inputs, shared, opts){
   pageBusy(true);
   try { return await runOnChartInner(chart, source, inputs, shared, opts); }
@@ -311,13 +334,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   const held = [];
   let release = () => {};
   if (!res) {
-    const orig = console.error;
-    const hold = function (...a) {
-      if (typeof a[0] === 'string' && /^\[vela\] indicator ".*" failed:/.test(a[0])) { held.push(a); return; }
-      return orig.apply(this, a);
-    };
-    console.error = hold;
-    release = () => { if (console.error === hold) console.error = orig; release = () => {}; };
+    release = holdVelaErrors(held);
     try { res = await Promise.race([chart.runIndicator(source, { language: LANG, inputs: inputs || {} }), timeout]); engine = 'worker'; }
     finally { release(); }
   }

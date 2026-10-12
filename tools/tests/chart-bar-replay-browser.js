@@ -25,6 +25,7 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let offset = 0;
 const vnow = () => Date.now() + offset;
+const vnowNode = vnow;
 const NQ_BASE = 21000, BTC_BASE = 64000;
 // 1m formula bars; higher timeframes are aggregated from them, so a 5m bar == its five 1m bars
 function m1(t, base) {
@@ -61,6 +62,8 @@ function serve() {
 }
 const TF_MIN = { '1': 1, '5': 5, '15': 15, '30': 30, '60': 60, '120': 120, '240': 240, D: 1440 };
 const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 * D, '120': 40 * D, '240': 60 * D, D: 730 * D };
+// history depth per interval, as production serves it (functions/api/chart/_bars.js): 1m ~29 days
+const DEPTH_SECS = { '1': 29 * D, '5': 59 * D, '15': 59 * D, '30': 59 * D, '60': 729 * D, '120': 729 * D, '240': 729 * D, D: 40 * 365 * D };
 const timers = [];
 async function mockRoutes(ctx) {
   await ctx.route(/\/api\/chart\/bars\//, (route) => {
@@ -70,7 +73,7 @@ async function mockRoutes(ctx) {
     const page = Number(u.searchParams.get('page') || 0);
     const ps = PAGE_SECS[tf] || 8 * H;
     const cur = Math.floor(vnow() / step) * step;
-    const from = page * ps * 1000, to = Math.min((page + 1) * ps * 1000, cur + 1);
+    const from = Math.max(page * ps * 1000, vnow() - (DEPTH_SECS[tf] || 40 * 365 * D) * 1000), to = Math.min((page + 1) * ps * 1000, cur + 1);
     const bars = [];
     for (let t = Math.ceil(from / step) * step; t < to; t += step) { const b = hist(t, step, NQ_BASE); bars.push([t / 1000, b.o, b.h, b.l, b.c, b.v]); }
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ s: 'NQ', tf, page, bars }) });
@@ -334,6 +337,79 @@ async function pineCheck(p, label) {
     const live1 = await p.evaluate(() => JSON.stringify({ pos: window.__stkPaper.account.state.positions, bal: window.__stkPaper.account.state.balance, h: window.__stkPaper.account.state.history.length }));
     check(live1 === live0 && await p.evaluate(() => !window.__stkPaper.replay), 'live paper account untouched by replay');
     check(await p.evaluate(() => !localStorage.getItem('stryker_bar_replay_v1') && document.getElementById('stkr-bar').hidden && document.querySelector('.stkr-badge').hidden), 'exit clears the saved session, bar and badge');
+
+    // ---- history depth: 1m only goes back ~29 days (production depth); replay must fall back ----
+    await p.evaluate(() => {
+      window.__toasts = [];
+      const orig = window.showToast;
+      window.showToast = function (type, m) { window.__toasts.push(String(m)); return orig && orig.apply(this, arguments); };
+    });
+    const TFMS = { D: 1440 * MIN, '60': 60 * MIN };
+    for (const [tf, days, want] of [['D', 90, '60'], ['60', 45, '5'], ['60', 10, '1']]) {
+      await setMarket(p, 'futures:NQ1!', tf);
+      await p.evaluate(() => { window.__toasts = []; });
+      const E0 = Math.floor((T0 - days * 86400000) / 86400000) * 86400000 + 15 * 3600000;
+      await p.evaluate(async (E) => { await window.__stkBarReplay.setStepTf('1'); await window.__stkBarReplay.start(E); }, E0);
+      await waitFor(p, () => window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, 30000);
+      await sleep(1200);
+      let s = await p.evaluate(() => window.__stkBarReplay.state);
+      const sel = await p.evaluate(() => { const x = document.querySelector('.stkr-step'); return x ? x.value : null; });
+      check(s.stepTf === '1' && s.effTf === want && sel === want, `depth ${tf} ${days}d back: member picked 1m, replay steps by ${s.effTf} (want ${want}), Step select shows ${sel}`);
+      const res = [], gaps = [];
+      let prevE = s.E, jumpOk = true, hiddenOk = true;
+      for (let k = 0; k < 4; k++) {
+        res.push(await p.evaluate(() => window.__stkBarReplay.stepForward()));
+        s = await p.evaluate(() => window.__stkBarReplay.state);
+        gaps.push((s.E - prevE) / MIN);
+        if (s.E - prevE > TFMS[tf] || s.E <= prevE) jumpOk = false;
+        prevE = s.E;
+      }
+      await sleep(800);
+      const sh = await shown(p);
+      if (!(sh.maxT < s.E)) hiddenOk = false;
+      check(res.every(Boolean), `depth ${tf} ${days}d back: 4 steps all move forward ${JSON.stringify(res)}`);
+      check(jumpOk && hiddenOk, `depth ${tf} ${days}d back: no step jumps past a chart bar (step sizes in minutes ${JSON.stringify(gaps)}), newest shown ${new Date(sh.maxT).toISOString()} < clock ${new Date(s.E).toISOString()}`);
+      const ex = expectedLast(s.E, Number(want) * MIN, NQ_BASE, TFMS[tf]);
+      check(sh.last && sh.last.time === ex.time && near(sh.last.close, ex.close) && near(sh.last.high, ex.high) && near(sh.last.low, ex.low),
+        `depth ${tf} ${days}d back: forming bar rebuilt from ${want}m steps (close ${sh.last && sh.last.close} vs ${ex.close})`);
+      const toasts = await p.evaluate(() => window.__toasts.slice());
+      const note = toasts.filter((m) => /only goes back about a month/.test(m));
+      if (want === '1') check(note.length === 0 && !toasts.some((m) => /newest bar/.test(m)), `depth ${tf} ${days}d back: 1m covers it, no note, no "newest bar" (${JSON.stringify(toasts)})`);
+      else check(note.length === 1 && note[0] === '1m data only goes back about a month here, so replay steps by ' + (want === '60' ? '1h' : want + 'm') + '.' && !toasts.some((m) => /newest bar/.test(m)),
+        `depth ${tf} ${days}d back: told once in plain words: ${JSON.stringify(toasts)}`);
+      await p.evaluate(() => window.__stkBarReplay.exit()); await sleep(2000);
+    }
+    // 1h, 45 days back, played forward into the 1m zone: switches back to 1m without a jump
+    {
+      await setMarket(p, 'futures:NQ1!', '60');
+      const E0 = Math.floor(vnowNode() / (60 * MIN)) * 60 * MIN - 29 * 86400000 - 3 * 60 * MIN;
+      await p.evaluate(async (E) => { await window.__stkBarReplay.setStepTf('1'); await window.__stkBarReplay.start(E); }, E0);
+      await waitFor(p, () => window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, 30000);
+      const seen = new Set(); let prev = (await RS(p)).E, ok = true;
+      for (let k = 0; k < 80; k++) {
+        if (!await p.evaluate(() => window.__stkBarReplay.stepForward())) { ok = false; break; }
+        const s = await p.evaluate(() => window.__stkBarReplay.state);
+        seen.add(s.effTf);
+        if (s.E - prev > 60 * MIN || s.E <= prev) { ok = false; break; }
+        prev = s.E;
+        if (s.effTf === '1' && seen.size > 1) break;
+      }
+      check(ok && seen.has('1') && seen.size > 1, `depth 1h at the 29-day edge: steps through it with no jump, intervals used ${JSON.stringify([...seen])}`);
+      await p.evaluate(() => window.__stkBarReplay.exit()); await sleep(2000);
+    }
+    // "Reached the newest bar" only at the live edge
+    {
+      await setMarket(p, 'futures:NQ1!', '5');
+      await p.evaluate(() => { window.__toasts = []; });
+      const E0 = Math.floor(vnowNode() / (5 * MIN)) * 5 * MIN - 5 * MIN;
+      await p.evaluate(async (E) => { await window.__stkBarReplay.setStepTf('1'); await window.__stkBarReplay.start(E); }, E0);
+      await waitFor(p, () => window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, 30000);
+      let n = 0;
+      while (n < 20 && await p.evaluate(() => window.__stkBarReplay.stepForward())) n++;
+      const s = await RS(p), toasts = await p.evaluate(() => window.__toasts.slice());
+      check(n < 20 && toasts.some((m) => /reached the newest bar/.test(m)) && s.E >= vnowNode() - 2 * MIN, `live edge: ${n} steps, then "newest bar" (${JSON.stringify(toasts)})`);
+      await p.evaluate(() => window.__stkBarReplay.exit()); await sleep(2000);
+    }
 
     // ---- BTCUSDT 1m ----
     await setMarket(p, 'binance:BTCUSDT', '1');

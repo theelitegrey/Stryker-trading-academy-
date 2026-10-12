@@ -33,14 +33,18 @@ const MAX_UNDO = 200;
 // ------------------------------------------------------------------ state
 const S = {
   on: false, E: 0, speed: 1, stepTf: '', playing: false, busy: false, undo: [],
-  sel: false, timer: null
+  sel: false, timer: null,
+  fallTf: '',          // the interval replay actually steps by when stepTf has no data at the clock
+  noted: ''            // "<symbol>|<stepTf>|<fallTf>" the member was already told about
 };
+// The interval replay steps by: the member's choice, or the fallback when that has no data here.
+const effTf = () => S.fallTf || S.stepTf;
 const inners = new Map();     // provider name -> the provider below this wrapper
 const subs = new Set();       // { name, ticker, tf, onBar } replay feeds of the live cells
 const bufs = new Map();       // name|ticker|tf -> { bars, to, end }
 window.__stkReplay = {
   get on(){ return S.on; }, now(){ return S.on ? S.E : Date.now(); },
-  get E(){ return S.E; }, get playing(){ return S.playing; }, get speed(){ return S.speed; }, get stepTf(){ return S.stepTf; }
+  get E(){ return S.E; }, get playing(){ return S.playing; }, get speed(){ return S.speed; }, get stepTf(){ return effTf(); }
 };
 
 // ------------------------------------------------------------------ provider wrapper
@@ -76,10 +80,11 @@ const bkey = (name, ticker, tf) => name + '|' + ticker + '|' + tf;
 function stepFor(name, ticker, tf) {
   // the update interval applies to every series of the active symbol that is coarser than it
   const a = S.active;
-  if (!a || a.name !== name || a.ticker !== ticker || !S.stepTf) return null;
-  const ms = Core.tfMs(tf), sMs = Core.tfMs(S.stepTf);
+  const step = effTf();
+  if (!a || a.name !== name || a.ticker !== ticker || !step) return null;
+  const ms = Core.tfMs(tf), sMs = Core.tfMs(step);
   if (!ms || !sMs || sMs >= ms) return null;
-  const b = bufs.get(bkey(name, ticker, S.stepTf));
+  const b = bufs.get(bkey(name, ticker, step));
   return b ? { bars: b.bars, ms: sMs } : null;
 }
 
@@ -101,7 +106,7 @@ async function revealed(name, ticker, tf, range) {
     // the forming bar must be rebuilt from step bars: make sure they cover it
     let lastT = null;
     for (let i = bars.length - 1; i >= 0; i--) if (bars[i].time < E) { lastT = bars[i].time; break; }
-    await ensure(name, ticker, S.stepTf, E, lastT);
+    await ensure(name, ticker, effTf(), E, lastT);
     const st2 = stepFor(name, ticker, tf);
     return Core.reveal(bars, ms, st2.bars, st2.ms, E, { from: range.from, to: range.to, limit: range.limit });
   }
@@ -139,6 +144,70 @@ async function ensure(name, ticker, tf, target, needFrom) {
     if (cut > 0) { b.bars = b.bars.slice(cut); b.from = b.bars[0].time; }
   }
   return b;
+}
+
+// ------------------------------------------------------------------ data depth
+// History depth differs per interval (futures: 1m ~29 days, 5m-30m ~59 days, 1h ~2 years, see
+// functions/api/chart/_bars.js). A step series "covers" the clock when its first bar that is not
+// complete at E starts inside the next chart bar that is not complete yet. Otherwise stepping by it
+// would skip real chart bars (or find nothing and look like the end of the data).
+async function nextChartBar(a, E) {
+  const ms = Core.tfMs(a.tf);
+  const cb = await ensure(a.name, a.ticker, a.tf, E);
+  if (!cb || !ms) return null;
+  const bars = cb.bars;
+  let i = Core.firstAtOrAfter(bars, E) - 1;
+  if (i < 0 || Core.endAt(bars, i, ms) <= E) i++;
+  if (i >= bars.length) return { none: true, end: cb.end };
+  return { time: bars[i].time, end: Core.endAt(bars, i, ms), edge: cb.end && i === bars.length - 1 };
+}
+// { ok, E1 } for stepping by tf at clock E. nb = nextChartBar().
+async function coverage(a, tf, E, nb) {
+  const sMs = Core.tfMs(tf);
+  const sb = await ensure(a.name, a.ticker, tf, E, nb && !nb.none ? nb.time : undefined);
+  if (!sb || !sMs) return { ok: false, E1: null };
+  const E1 = Core.nextE(sb.bars, sMs, E);
+  if (E1 == null) return { ok: false, E1: null, end: sb.end };
+  if (tf === a.tf || !nb || nb.none) return { ok: true, E1 };
+  const k = Core.firstAtOrAfter(sb.bars, E1) - 1;            // the step bar that ends at E1
+  const st = k >= 0 ? sb.bars[k].time : E1 - sMs;
+  return { ok: st < nb.end, E1 };
+}
+// Candidates finest-first: the member's interval, then every finer-than-chart interval, the chart last.
+function stepCandidates(a) {
+  const ms = Core.tfMs(a.tf), pref = S.stepTf || a.tf, pMs = Core.tfMs(pref);
+  const out = [pref];
+  for (const t of STEP_TFS) {
+    const m = Core.tfMs(t);
+    if (m > pMs && m < ms && validStepTf(a.tf, t)) out.push(t);
+  }
+  if (!out.includes(String(a.tf))) out.push(String(a.tf));
+  return out;
+}
+// Pick the interval to step by at clock E. Returns { tf, E1, nb } (E1 null = nothing ahead).
+async function resolveStep(a, E) {
+  const nb = await nextChartBar(a, E);
+  let pick = null;
+  for (const tf of stepCandidates(a)) {
+    const c = await coverage(a, tf, E, nb);
+    if (c.ok) { pick = { tf, E1: c.E1 }; break; }
+  }
+  const pref = S.stepTf || a.tf;
+  const tf = pick ? pick.tf : effTf() || pref;
+  const fall = tf !== pref ? tf : '';
+  if (fall !== S.fallTf) {
+    S.fallTf = fall;
+    if (fall) {
+      const key = a.ticker + '|' + pref + '|' + fall;
+      if (S.noted !== key) {
+        S.noted = key;
+        toast(pref === '1'
+          ? '1m data only goes back about a month here, so replay steps by ' + Core.tfLabel(fall) + '.'
+          : Core.tfLabel(pref) + ' data does not go back this far here, so replay steps by ' + Core.tfLabel(fall) + '.');
+      }
+    }
+  }
+  return { tf, E1: pick ? pick.E1 : null, nb };
 }
 
 // ------------------------------------------------------------------ chart access
@@ -207,12 +276,14 @@ async function start(E, how) {
   S.on = true; S.E = Math.floor(E); S.active = a;
   if (!validStepTf(a.tf, S.stepTf)) S.stepTf = defaultStepTf(a.tf);
   if (!wasOn) { S.undo = []; bufs.clear(); subs.clear(); }
+  S.fallTf = '';
   if (!wasOn && OPT.Paper && OPT.Paper.setReplay) { try { OPT.Paper.setReplay({ now: () => S.E }); } catch (e) { console.warn('TradeZoro replay: paper', e); } }
   document.documentElement.classList.add('stk-replay');
   ui.show();
   ui.busy(true);
   try {
     await ensure(a.name, a.ticker, S.stepTf || a.tf, S.E);
+    await resolveStep(a, S.E);
     await reloadAll();
   } finally { ui.busy(false); }
   if (!rawBars(activeCell()).length) {
@@ -226,7 +297,7 @@ async function start(E, how) {
 async function exit() {
   stop();
   if (!S.on) return;
-  S.on = false; S.undo = []; S.active = null;
+  S.on = false; S.undo = []; S.active = null; S.fallTf = '';
   bufs.clear(); subs.clear();
   try { localStorage.removeItem(LS_KEY); } catch (e) {}
   if (OPT.Paper && OPT.Paper.setReplay) { try { OPT.Paper.setReplay(null); } catch (e) { console.warn('TradeZoro replay: paper', e); } }
@@ -243,9 +314,10 @@ function seriesFeeds() {
     const cur = by.get(k);
     if (!cur || ms < cur.ms) by.set(k, { name: s.name, ticker: s.ticker, tf: s.tf, ms });
   }
-  if (S.active && S.stepTf) {
-    const k = S.active.name + ':' + S.active.ticker, ms = Core.tfMs(S.stepTf), cur = by.get(k);
-    if (!cur || ms < cur.ms) by.set(k, { name: S.active.name, ticker: S.active.ticker, tf: S.stepTf, ms });
+  const step = effTf();
+  if (S.active && step) {
+    const k = S.active.name + ':' + S.active.ticker, ms = Core.tfMs(step), cur = by.get(k);
+    if (!cur || ms < cur.ms) by.set(k, { name: S.active.name, ticker: S.active.ticker, tf: step, ms });
   }
   return by;
 }
@@ -262,14 +334,17 @@ async function stepForward() {
   const a = S.active; if (!a) return false;
   S.busy = true;
   try {
-    const tf = S.stepTf || a.tf, sMs = Core.tfMs(tf);
-    const sb = await ensure(a.name, a.ticker, tf, S.E);
-    const E1 = sb ? Core.nextE(sb.bars, sMs, S.E) : null;
+    const r = await resolveStep(a, S.E);
+    let E1 = r.E1;
     if (E1 == null) {
       stop(); ui.render();
-      toast('Replay reached the newest bar. Jump to real-time to go back to the live chart.');
+      // only the real live edge is "the newest bar"; anything else is a gap in the data
+      if (r.nb && (r.nb.none ? r.nb.end : r.nb.edge)) toast('Replay reached the newest bar. Jump to real-time to go back to the live chart.');
+      else toast('No more ' + Core.tfLabel(a.tf) + ' data after this point for this symbol.', 'error');
       return false;
     }
+    // hard guard: never move past the end of the next chart bar that is not revealed yet
+    if (r.nb && !r.nb.none && E1 > r.nb.end) E1 = r.nb.end;
     await Promise.all([...subs].map((s) => ensure(s.name, s.ticker, s.tf, E1)));
     await Promise.all([...seriesFeeds().values()].map((f) => ensure(f.name, f.ticker, f.tf, E1)));
     const E0 = S.E;
@@ -511,9 +586,9 @@ const ui = (() => {
     stepS = el('select', { class: 'stkr-sel-in stkr-step', 'aria-label': 'Update interval', title: 'Update interval: the forming candle builds from these bars' });
     stepS.addEventListener('change', async () => {
       stop();
-      S.stepTf = stepS.value; bufs.clear();
+      S.stepTf = stepS.value; S.fallTf = ''; bufs.clear();
       ui.busy(true);
-      try { await reloadAll(); } finally { ui.busy(false); }
+      try { if (S.active) await resolveStep(S.active, S.E); await reloadAll(); } finally { ui.busy(false); }
       save(); render();
     });
     clock = el('span', { class: 'stkr-clock', 'aria-live': 'off' });
@@ -555,7 +630,11 @@ const ui = (() => {
     const opts = STEP_TFS.filter((t) => validStepTf(a.tf, t) && Core.tfMs(t) < ms);
     stepS.appendChild(el('option', { value: String(a.tf), text: 'Step ' + Core.tfLabel(a.tf) }));
     opts.forEach((t) => stepS.appendChild(el('option', { value: t, text: 'Step ' + Core.tfLabel(t) })));
-    stepS.value = S.stepTf && [...stepS.options].some((o) => o.value === S.stepTf) ? S.stepTf : String(a.tf);
+    const cur = effTf();
+    stepS.value = cur && [...stepS.options].some((o) => o.value === cur) ? cur : String(a.tf);
+    stepS.title = S.fallTf
+      ? 'Update interval: ' + Core.tfLabel(S.stepTf || a.tf) + ' has no data this far back, so replay steps by ' + Core.tfLabel(S.fallTf)
+      : 'Update interval: the forming candle builds from these bars';
     stepS.hidden = stepS.options.length < 2;
   }
   function render() {
@@ -598,7 +677,8 @@ export function mountBarReplay(ws, opts) {
     S.active = a;
     if (changed) {
       if (!validStepTf(a.tf, S.stepTf)) S.stepTf = defaultStepTf(a.tf);
-      ensure(a.name, a.ticker, S.stepTf || a.tf, S.E).then(() => { seedPaper(); save(); ui.render(); });
+      S.fallTf = '';
+      resolveStep(a, S.E).then(() => { seedPaper(); save(); ui.render(); });
     }
   };
   try { ws.on('state:changed', () => setTimeout(onChange, 0)); } catch (e) {}
@@ -619,10 +699,10 @@ export function mountBarReplay(ws, opts) {
     setTimeout(wait, 300);
   }
   window.__stkBarReplay = {
-    get state(){ return { on: S.on, E: S.E, speed: S.speed, stepTf: S.stepTf, playing: S.playing, undo: S.undo.length, busy: S.busy, active: S.active }; },
+    get state(){ return { on: S.on, E: S.E, speed: S.speed, stepTf: S.stepTf, effTf: effTf(), fallTf: S.fallTf, playing: S.playing, undo: S.undo.length, busy: S.busy, active: S.active }; },
     start, exit, stepForward, stepBack, play, pause: () => { stop(); ui.render(); }, startAtDate, startRandom, startFirst, selectMode,
     setSpeed: (s) => { S.speed = s; save(); ui.render(); },
-    setStepTf: async (t) => { S.stepTf = t; bufs.clear(); await reloadAll(); save(); ui.render(); },
+    setStepTf: async (t) => { S.stepTf = t; S.fallTf = ''; bufs.clear(); if (S.active) await resolveStep(S.active, S.E); await reloadAll(); save(); ui.render(); },
     buffers: () => [...bufs.entries()].map(([k, b]) => ({ k, n: b.bars.length, end: b.end })),
     subs: () => [...subs].map((s) => ({ name: s.name, ticker: s.ticker, tf: s.tf }))
   };

@@ -142,6 +142,150 @@ export function periodClose(open, tf){
   return NaN;
 }
 function plain(v){ return v != null && typeof v === 'object' && typeof v.get === 'function' ? v.get(0) : v; }
+
+// SESSION-ANCHORED PERIODS (pinets 0.11.0 gap): pinets aligns every higher-timeframe period
+// to UTC (days from 00:00 UTC, intraday periods restart at 00:00 UTC, weeks from Monday 00:00
+// UTC). TradingView aligns them to the symbol's trading session: on CME futures
+// (syminfo.session "1800-1700", America/New_York) the trading day for Tuesday opens Monday
+// 18:00 ET and closes Tuesday 17:00 ET, 4H periods open at 18/22/02/06/10/14 ET, the week opens
+// Sunday 18:00 ET. Without this, time("D") / time("240") / time("W") / time("M") and their
+// time_close() put the day break at 20:00 ET (19:00 in winter), so previous-day / previous-week
+// highs and lows and 4H candles built from them differ from TradingView (and from our own 4H
+// bars, which are anchored to 18:00 ET in functions/api/chart/_bars.js).
+// Scope: ONLY symbols whose session crosses midnight in its time zone (start >= end: futures
+// 1800-1700, FX 1700-1700). 24x7 / "regular" / same-day sessions keep pinets' values.
+// Only periods LONGER than the chart's own timeframe are re-anchored (time(timeframe.period,
+// session, tz) and lower timeframes are unchanged). D, W and M with multiplier 1 and intraday
+// periods that divide a day; anything else keeps pinets' value.
+// The trading date of a bar = its local date, +1 when it is at/after the session start.
+// With a session filter (time("D", "0930-1600", tz)) the BAR's own time is tested, as on
+// TradingView (na when the bar is outside the session).
+// Trading dates run Monday-Friday for the week / month close (no weekend sessions).
+const wallFmt = new Map();
+let wallLast = { t: NaN, tz: '', w: null };
+function wallOf(t, tz){
+  if (wallLast.t === t && wallLast.tz === tz) return wallLast.w;
+  let f = wallFmt.get(tz);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+    wallFmt.set(tz, f);
+  }
+  const o = {};
+  for (const p of f.formatToParts(new Date(t))) if (p.type !== 'literal') o[p.type] = +p.value;
+  if (o.hour === 24) o.hour = 0;
+  wallLast = { t, tz, w: o };
+  return o;
+}
+// Epoch ms of local wall time y-m-d hh:mm in tz (m 1-based; d may overflow, Date.UTC rolls it).
+function localToUtc(y, m, d, hh, mm, tz){
+  const guess = Date.UTC(y, m - 1, d, hh, mm);
+  const off = (t) => { const w = wallOf(t, tz); return Date.UTC(w.year, w.month - 1, w.day, w.hour, w.minute) - Math.floor(t / 6e4) * 6e4; };
+  let t = guess - off(guess);
+  const o2 = off(t);
+  if (guess - o2 !== t) t = guess - o2;
+  return t;
+}
+export function parseOvernightSession(spec){
+  const m = /^\s*(\d{2})(\d{2})-(\d{2})(\d{2})(?::[1-7]+)?\s*$/.exec(String(spec == null ? '' : spec));
+  if (!m) return null;
+  const start = +m[1] * 60 + +m[2], end = +m[3] * 60 + +m[4];
+  if (start >= 1440 || end > 1440 || start < end || start === 0) return null; // same-day session: not handled
+  return { start, end: end % 1440 };
+}
+// Builds the anchoring helpers for one (session, tz); null when the symbol is not overnight.
+export function sessionAnchor(spec, tz){
+  const s = parseOvernightSession(spec);
+  if (!s || !tz) return null;
+  const dayOpenCache = new Map();
+  const civil = (y, m, d) => { const u = new Date(Date.UTC(y, m - 1, d)); return { y: u.getUTCFullYear(), m: u.getUTCMonth() + 1, d: u.getUTCDate(), dow: u.getUTCDay() }; };
+  // open of trading date (y, m, d): the session start on the previous local day
+  const dayOpen = (td) => {
+    const k = td.y * 10000 + td.m * 100 + td.d;
+    let v = dayOpenCache.get(k);
+    if (v === undefined) { if (dayOpenCache.size > 4000) dayOpenCache.clear(); v = localToUtc(td.y, td.m, td.d - 1, Math.floor(s.start / 60), s.start % 60, tz); dayOpenCache.set(k, v); }
+    return v;
+  };
+  // close of trading date td: the session end on that local day (DST-safe, unlike open + length)
+  const dayClose = (td) => localToUtc(td.y, td.m, td.d, Math.floor(s.end / 60), s.end % 60, tz);
+  const tradingDate = (t) => {
+    const w = wallOf(t, tz);
+    return civil(w.year, w.month, w.day + (w.hour * 60 + w.minute >= s.start ? 1 : 0));
+  };
+  const weekday = (td, dir) => { let c = td; while (c.dow === 0 || c.dow === 6) c = civil(c.y, c.m, c.d + dir); return c; };
+  // { open, close } of the period of timeframe p ({unit, n}) holding time t; null = not handled
+  function period(t, p){
+    if (!Number.isFinite(t)) return null;
+    const td = tradingDate(t);
+    if (p.unit === '' && p.n < 1440 && 1440 % p.n === 0) {
+      const d0 = dayOpen(td), ms = p.n * 6e4;
+      const open = d0 + Math.floor((t - d0) / ms) * ms;
+      return { open, close: Math.min(open + ms, dayClose(td)) };
+    }
+    if (p.n !== 1) return null;
+    if (p.unit === 'D') return { open: dayOpen(td), close: dayClose(td) };
+    if (p.unit === 'W') {
+      const mon = civil(td.y, td.m, td.d - ((td.dow + 6) % 7));
+      return { open: dayOpen(mon), close: dayClose(civil(mon.y, mon.m, mon.d + 4)) };
+    }
+    if (p.unit === 'M') {
+      const first = weekday(civil(td.y, td.m, 1), 1), last = weekday(civil(td.y, td.m + 1, 0), -1);
+      return { open: dayOpen(first), close: dayClose(last) };
+    }
+    return null;
+  }
+  return { period };
+}
+// Per-context anchor (syminfo is attached after the context is built, so it is read lazily).
+function anchorOf(ctx){
+  const si = ctx && ctx.pine && ctx.pine.syminfo;
+  const spec = si && si.session, tz = si && si.timezone;
+  const key = spec + '|' + tz;
+  if (ctx.__stkAnchorKey !== key) { ctx.__stkAnchorKey = key; ctx.__stkAnchor = sessionAnchor(spec, tz); }
+  return ctx.__stkAnchor;
+}
+// Splits time()/time_close() args into { tf, session, tz, rawArgs } where rawArgs ask pinets
+// for the bar's own time (chart timeframe, no session) with the same bars_back.
+function splitTimeArgs(ctx, args){
+  const a0 = plain(args[0]);
+  if (a0 != null && typeof a0 === 'object' && !Array.isArray(a0)) {
+    const tf = plain(a0.timeframe), session = plain(a0.session), tz = plain(a0.timezone);
+    return { tf, session, tz, rawArgs: [Object.assign({}, a0, { timeframe: ctx.timeframe, session: '' })] };
+  }
+  const rest = args.slice(1).map(plain);
+  let session, tz;
+  if (typeof rest[0] === 'string') { session = rest[0]; rest[0] = ''; if (typeof rest[1] === 'string') tz = rest[1]; }
+  return { tf: a0, session, tz, rawArgs: [ctx.timeframe, ...rest] };
+}
+// The re-anchored period for a time()/time_close() call, or null to keep pinets' value.
+function anchoredPeriod(ctx, args, tm, origTime){
+  const anchor = anchorOf(ctx);
+  if (!anchor) return null;
+  const sp = splitTimeArgs(ctx, args);
+  if (typeof sp.tf !== 'string' || !sp.tf) return null;
+  const p = tfParse(sp.tf);
+  if (!p || p.unit === 'S' || tfSeconds(p) <= tfSeconds(tfParse(ctx.timeframe))) return null;
+  const raw = origTime.apply(tm, sp.rawArgs);
+  if (!Number.isFinite(raw)) return { open: NaN, close: NaN };
+  const per = anchor.period(raw, p);
+  if (!per) return null;
+  if (typeof sp.session === 'string' && sp.session !== '') {
+    const tz = sp.tz || (ctx.pine.syminfo && ctx.pine.syminfo.timezone) || 'UTC';
+    if (!tm._isInSession(raw, sp.session, tz)) return { open: NaN, close: NaN };
+  }
+  return per;
+}
+function patchSessionPeriods(ctx){
+  const tm = ctx.pine && ctx.pine.time;
+  if (!tm || typeof tm.any !== 'function' || tm.__stkAnchor) return;
+  const orig = tm.any;
+  tm.__stkOrigAny = orig;
+  tm.any = function (...args) {
+    try { const per = anchoredPeriod(ctx, args, tm, orig); if (per) return per.open; } catch (e) {}
+    return orig.apply(this, args);
+  };
+  tm.__stkAnchor = true;
+}
+
 function patchTimeClose(ctx){
   const pine = ctx.pine, tc = pine && pine.time_close, tm = pine && pine.time;
   if (!tc || !tm || typeof tc.any !== 'function' || typeof tm.any !== 'function' || tc.__stkTc) return;
@@ -152,6 +296,8 @@ function patchTimeClose(ctx){
     if (typeof tf !== 'string' || !tf) return orig.apply(this, args);
     const chartSec = tfSeconds(tfParse(ctx.timeframe)), sec = tfSeconds(tfParse(tf));
     if (!sec || sec === chartSec) return orig.apply(this, args);
+    // session-anchored symbols (see patchSessionPeriods): the period's own close
+    try { const per = tm.__stkOrigAny && anchoredPeriod(ctx, args, tm, tm.__stkOrigAny); if (per) return per.close; } catch (e) {}
     const open = tm.any(...args);
     return Number.isFinite(open) ? periodClose(open, tf) : open;
   };
@@ -254,6 +400,7 @@ export function cacheDateTimeFormat(scope){
 }
 
 export function patchContext(ctx){
+  try { patchSessionPeriods(ctx); } catch (e) {}
   try { patchTimeClose(ctx); } catch (e) {}
   try { patchSessions(ctx); } catch (e) {}
   const ta = ctx && ctx.pine && ctx.pine.ta;

@@ -1,0 +1,1176 @@
+//@version=6
+// ═════════════════════════════════════════════════════════════════════════════
+//   LIQUIDITY MASTER [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
+//   Version 1.0  ·  Pine Script v6
+//
+//   Every place liquidity rests, on one chart:
+//     · Fair value gaps from the chart timeframe and any higher timeframes,
+//       with the highest timeframe winning where gaps overlap
+//     · Swing highs and lows per timeframe, 5m to weekly, with a pivot
+//       strength for each
+//     · Completed candle highs and lows per timeframe
+//     · Session highs and lows — Asia, London, New York
+//     · Previous day, week and month highs and lows
+//
+//   Liquidity lines run from the bar that made them until the wick that takes
+//   them, then stop. Session and period lines also stop at their natural
+//   expiry. Fair value gaps are removed when a candle closes through the far
+//   side.
+//
+//   All higher timeframe candles are aggregated from chart bars — no
+//   request.security(), every level anchored to the exact bar that made it.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("Liquidity Master [TradeZoro]", "LiqMaster [TradeZoro]", overlay = true, scale = scale.right, max_bars_back = 500, max_polylines_count = 100, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_FVG = "1 · Fair Value Gaps"
+const string G_SW  = "2 · Swing Liquidity"
+const string G_CD  = "3 · Candle Liquidity"
+const string G_SE  = "4 · Sessions"
+const string G_SA  = "4a · Asia"
+const string G_SL  = "4b · London"
+const string G_SN  = "4c · New York"
+const string G_PD  = "5 · Previous Day"
+const string G_PW  = "6 · Previous Week"
+const string G_PM  = "7 · Previous Month"
+const string G_DOL = "8 · Draw on Liquidity"
+const string G_OP  = "8a · Opening Prices"
+const string G_STR = "9 · Structure (chart timeframe)"
+const string G_VIS = "10 · Display"
+const string G_LQ  = "0 · Liquidity Labels"
+
+// ── 0 · shared ──
+mergeMode = input.string("% of ATR", "Merge labels when levels are within", options = ["Ticks", "% of ATR"], inline = "mg", group = G_LQ)
+mergeTk   = input.int(4, "ticks", minval = 0, maxval = 200, inline = "mg", group = G_LQ)
+mergeAtr  = input.float(40, "% ATR", minval = 1, maxval = 300, step = 5, inline = "mg", group = G_LQ, tooltip = "Two liquidity levels this close together share one label, e.g. NY Low + PDL. ATR mode scales with the instrument and timeframe so labels that would visually overlap are combined.")
+mergeAtrV = ta.atr(14)
+f_mergeTol() => mergeMode == "Ticks" ? mergeTk * syminfo.mintick : nz(mergeAtrV, 0) * mergeAtr / 100.0
+
+// ── 1 · FVG ──
+fC  = input.bool(true,  "Chart", inline = "f1", group = G_FVG)
+f5  = input.bool(false, "5m",  inline = "f1", group = G_FVG)
+f10 = input.bool(false, "10m", inline = "f1", group = G_FVG)
+f15 = input.bool(true,  "15m", inline = "f1", group = G_FVG)
+f30 = input.bool(false, "30m", inline = "f2", group = G_FVG)
+f60 = input.bool(true,  "1h",  inline = "f2", group = G_FVG)
+f4h = input.bool(false, "4h",  inline = "f2", group = G_FVG)
+fD  = input.bool(false, "D",   inline = "f2", group = G_FVG)
+fW  = input.bool(false, "W",   inline = "f2", group = G_FVG)
+fvgTop   = input.bool(true, "Highest timeframe wins where gaps overlap", group = G_FVG)
+fvgMax   = input.int(0, "Gaps kept on chart (0 = unlimited)", minval = 0, maxval = 100, group = G_FVG)
+fvgBullBg = input.color(color.new(#26A69A, 86), "Bullish   fill", inline = "fb", group = G_FVG)
+fvgBullBd = input.color(color.new(#26A69A, 60), "border", inline = "fb", group = G_FVG)
+fvgBearBg = input.color(color.new(#EF5350, 86), "Bearish   fill", inline = "fr", group = G_FVG)
+fvgBearBd = input.color(color.new(#EF5350, 60), "border", inline = "fr", group = G_FVG)
+fvgBw    = input.int(0, "Border width", minval = 0, maxval = 3, group = G_FVG)
+fvgMid   = input.bool(true, "Midline", inline = "fm", group = G_FVG)
+fvgMidC  = input.color(color.new(#9598A1, 40), "", inline = "fm", group = G_FVG)
+fvgMidS  = input.string("Dashed", "", options = ["Solid", "Dashed", "Dotted"], inline = "fm", group = G_FVG)
+fvgLbl   = input.bool(true, "Label", inline = "fl", group = G_FVG)
+fvgLblC  = input.color(#9598A1, "", inline = "fl", group = G_FVG)
+fvgLblS  = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "fl", group = G_FVG)
+fvgBullX = input.string("Middle right", "Bullish label", options = ["Upper left", "Upper right", "Middle left", "Middle right", "Lower left", "Lower right", "Center"], inline = "fp", group = G_FVG)
+fvgBearX = input.string("Middle right", "Bearish label", options = ["Upper left", "Upper right", "Middle left", "Middle right", "Lower left", "Lower right", "Center"], inline = "fp", group = G_FVG)
+liqLast  = input.int(40, "Show last N liquidity lines (0 = all)", minval = 0, maxval = 400, tooltip = "Caps swing and candle liquidity lines across all timeframes to the most recent N, including swept ones still on the chart. Sessions and previous periods are not counted.", group = G_LQ)
+fvgAge   = input.string("Today + yesterday", "Show levels & gaps formed", options = ["Today", "Today + yesterday", "Last N days", "All"], inline = "fa", group = G_LQ, tooltip = "Applies to every drawing: gaps, swing and candle liquidity, sessions, previous periods, structure. Days roll at the trading-day start set under Sessions.")
+fvgDays  = input.int(5, "N", minval = 1, maxval = 60, inline = "fa", group = G_LQ)
+
+// ── 2 · Swings ──  (toggle + strength per timeframe)
+s5  = input.bool(true,  "5m",  inline = "s1", group = G_SW)
+l5  = input.int(3, "", minval = 1, maxval = 20, inline = "s1", group = G_SW)
+s10 = input.bool(false, "10m", inline = "s1", group = G_SW)
+l10 = input.int(3, "", minval = 1, maxval = 20, inline = "s1", group = G_SW)
+s15 = input.bool(true,  "15m", inline = "s2", group = G_SW)
+l15 = input.int(3, "", minval = 1, maxval = 20, inline = "s2", group = G_SW)
+s30 = input.bool(false, "30m", inline = "s2", group = G_SW)
+l30 = input.int(3, "", minval = 1, maxval = 20, inline = "s2", group = G_SW)
+s60 = input.bool(true,  "1h",  inline = "s3", group = G_SW)
+l60 = input.int(2, "", minval = 1, maxval = 20, inline = "s3", group = G_SW)
+s4h = input.bool(false, "4h",  inline = "s3", group = G_SW)
+l4h = input.int(2, "", minval = 1, maxval = 20, inline = "s3", group = G_SW)
+sD  = input.bool(false, "D",   inline = "s4", group = G_SW)
+lD  = input.int(2, "", minval = 1, maxval = 20, inline = "s4", group = G_SW)
+sW  = input.bool(false, "W",   inline = "s4", group = G_SW)
+lW  = input.int(2, "", minval = 1, maxval = 20, inline = "s4", group = G_SW)
+swHiC   = input.color(#000000, "High", inline = "sc", group = G_SW)
+swLoC   = input.color(#000000, "Low", inline = "sc", group = G_SW)
+swSty   = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "ss", group = G_SW)
+swWid   = input.int(1, "Width", minval = 1, maxval = 4, inline = "ss", group = G_SW)
+swLbl   = input.bool(false, "Label", inline = "sl", group = G_SW)
+swLblC  = input.color(#787B86, "", inline = "sl", group = G_SW)
+swLblS  = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "sl", group = G_SW)
+swLblX  = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "sp", group = G_SW)
+swLblY  = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "sp", group = G_SW)
+swKeep  = input.int(0, "Levels kept per timeframe & side (0 = unlimited)", minval = 0, maxval = 50, group = G_SW)
+
+// ── 3 · Candle H/L ──
+c5  = input.bool(false, "5m",  inline = "c1", group = G_CD)
+c10 = input.bool(false, "10m", inline = "c1", group = G_CD)
+c15 = input.bool(false, "15m", inline = "c1", group = G_CD)
+c30 = input.bool(false, "30m", inline = "c1", group = G_CD)
+c60 = input.bool(true,  "1h",  inline = "c2", group = G_CD)
+c4h = input.bool(true,  "4h",  inline = "c2", group = G_CD)
+cD  = input.bool(false, "D",   inline = "c2", group = G_CD)
+cW  = input.bool(false, "W",   inline = "c2", group = G_CD)
+cdHiC   = input.color(#000000, "High", inline = "cc", group = G_CD)
+cdLoC   = input.color(#000000, "Low", inline = "cc", group = G_CD)
+cdSty   = input.string("Dotted", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "cs", group = G_CD)
+cdWid   = input.int(1, "Width", minval = 1, maxval = 4, inline = "cs", group = G_CD)
+cdLbl   = input.bool(false, "Label", inline = "cl", group = G_CD)
+cdLblC  = input.color(#787B86, "", inline = "cl", group = G_CD)
+cdLblS  = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "cl", group = G_CD)
+cdLblX  = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "cp", group = G_CD)
+cdLblY  = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "cp", group = G_CD)
+cdKeep  = input.int(0, "Candles kept per timeframe (0 = unlimited)", minval = 0, maxval = 50, group = G_CD)
+
+// ── 4 · Sessions ──
+seTz    = input.string("America/New_York", "Timezone", options = ["America/New_York", "America/Chicago", "Europe/London", "Asia/Tokyo", "UTC"], group = G_SE)
+dayStartTx = input.string("1800", "Trading day starts at (HHMM)", tooltip = "Futures day rolls at 18:00 ET. This boundary decides what counts as today / yesterday for gaps, and when session lines expire.", group = G_SE)
+
+seAsia  = input.bool(true, "Enabled", inline = "a0", group = G_SA)
+seAsiaT = input.session("2000-0000", "", inline = "a0", group = G_SA)
+aHiC    = input.color(#2962FF, "High", inline = "a1", group = G_SA)
+aLoC    = input.color(#2962FF, "Low", inline = "a1", group = G_SA)
+aSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "a2", group = G_SA)
+aWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "a2", group = G_SA)
+aLbl    = input.bool(true, "Label", inline = "a3", group = G_SA)
+aLblC   = input.color(#2962FF, "", inline = "a3", group = G_SA)
+aLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "a3", group = G_SA)
+aLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "a4", group = G_SA)
+aLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "a4", group = G_SA)
+
+seLdn   = input.bool(true, "Enabled", inline = "b0", group = G_SL)
+seLdnT  = input.session("0200-0500", "", inline = "b0", group = G_SL)
+bHiC    = input.color(#EF5350, "High", inline = "b1", group = G_SL)
+bLoC    = input.color(#EF5350, "Low", inline = "b1", group = G_SL)
+bSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "b2", group = G_SL)
+bWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "b2", group = G_SL)
+bLbl    = input.bool(true, "Label", inline = "b3", group = G_SL)
+bLblC   = input.color(#EF5350, "", inline = "b3", group = G_SL)
+bLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "b3", group = G_SL)
+bLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "b4", group = G_SL)
+bLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "b4", group = G_SL)
+
+seNY    = input.bool(true, "Enabled", inline = "n0", group = G_SN)
+seNYT   = input.session("0930-1600", "", inline = "n0", group = G_SN)
+nHiC    = input.color(#26A69A, "High", inline = "n1", group = G_SN)
+nLoC    = input.color(#26A69A, "Low", inline = "n1", group = G_SN)
+nSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "n2", group = G_SN)
+nWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "n2", group = G_SN)
+nLbl    = input.bool(true, "Label", inline = "n3", group = G_SN)
+nLblC   = input.color(#26A69A, "", inline = "n3", group = G_SN)
+nLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "n3", group = G_SN)
+nLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "n4", group = G_SN)
+nLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "n4", group = G_SN)
+
+// ── 5 / 6 / 7 · Previous periods ──
+peD     = input.bool(true, "Enabled", group = G_PD)
+dHiC    = input.color(#2962FF, "High", inline = "d1", group = G_PD)
+dLoC    = input.color(#2962FF, "Low", inline = "d1", group = G_PD)
+dSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "d2", group = G_PD)
+dWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "d2", group = G_PD)
+dLbl    = input.bool(true, "Label", inline = "d3", group = G_PD)
+dLblC   = input.color(#2962FF, "", inline = "d3", group = G_PD)
+dLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "d3", group = G_PD)
+dLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "d4", group = G_PD)
+dLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "d4", group = G_PD)
+
+peW     = input.bool(true, "Enabled", group = G_PW)
+wHiC    = input.color(#2962FF, "High", inline = "w1", group = G_PW)
+wLoC    = input.color(#2962FF, "Low", inline = "w1", group = G_PW)
+wSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "w2", group = G_PW)
+wWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "w2", group = G_PW)
+wLbl    = input.bool(true, "Label", inline = "w3", group = G_PW)
+wLblC   = input.color(#2962FF, "", inline = "w3", group = G_PW)
+wLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "w3", group = G_PW)
+wLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "w4", group = G_PW)
+wLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "w4", group = G_PW)
+
+peM     = input.bool(false, "Enabled", group = G_PM)
+mHiC    = input.color(#2962FF, "High", inline = "m1", group = G_PM)
+mLoC    = input.color(#2962FF, "Low", inline = "m1", group = G_PM)
+mSty    = input.string("Solid", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "m2", group = G_PM)
+mWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "m2", group = G_PM)
+mLbl    = input.bool(true, "Label", inline = "m3", group = G_PM)
+mLblC   = input.color(#2962FF, "", inline = "m3", group = G_PM)
+mLblS   = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "m3", group = G_PM)
+mLblX   = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "m4", group = G_PM)
+mLblY   = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "m4", group = G_PM)
+
+// ── 8 · Draw on liquidity ──
+dolOn    = input.bool(true, "Show draw-on-liquidity tables", tooltip = "Top right: the major highs above price (sessions, PDH, PWH, PMH). Bottom right: the major lows below. Nearest first, unswept only.", group = G_DOL)
+dolRows  = input.int(6, "Rows per table", minval = 1, maxval = 12, group = G_DOL)
+dolSize  = input.string("Small", "Text size", options = ["Tiny", "Small", "Normal", "Large"], group = G_DOL)
+dolHiC   = input.color(#EF5350, "Highs", inline = "dc", group = G_DOL)
+dolLoC   = input.color(#26A69A, "Lows", inline = "dc", group = G_DOL)
+dolBg    = input.color(color.new(#131722, 10), "Background", inline = "db", group = G_DOL)
+dolFr    = input.color(color.new(#787B86, 40), "Frame", inline = "db", group = G_DOL)
+dolTxt   = input.color(#D1D4DC, "Text", inline = "db", group = G_DOL)
+
+// ── 8a · Opening prices ──  (HHMM in the session timezone; blank = off)
+opOn   = input.bool(true, "Show opening prices", group = G_OP)
+op1    = input.string("0930", "Time 1", inline = "o1", group = G_OP)
+op2    = input.string("1000", "Time 2", inline = "o1", group = G_OP)
+op3    = input.string("", "Time 3", inline = "o2", group = G_OP)
+op4    = input.string("", "Time 4", inline = "o2", group = G_OP)
+op5    = input.string("", "Time 5", inline = "o3", group = G_OP)
+opC    = input.color(#000000, "Colour", inline = "oc", group = G_OP)
+opSty  = input.string("Dotted", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "oc", group = G_OP)
+opWid  = input.int(1, "Width", minval = 1, maxval = 4, inline = "oc", group = G_OP)
+opLbl  = input.bool(true, "Label", inline = "ol", group = G_OP)
+opLblC = input.color(#000000, "", inline = "ol", group = G_OP)
+opLblS = input.string("Small", "", options = ["Tiny", "Small", "Normal", "Large"], inline = "ol", group = G_OP)
+opLblX = input.string("Right", "Label position", options = ["Left", "Center", "Right"], inline = "op", group = G_OP)
+opLblY = input.string("Middle", "", options = ["Above", "Middle", "Below"], inline = "op", group = G_OP)
+opEnd  = input.string("Trading day end", "Line runs until", options = ["Trading day end", "Swept", "Whichever first"], group = G_OP)
+
+// ── 9 · Structure ──
+stL      = input.int(3, "Swing strength (bars either side)", minval = 1, maxval = 20, group = G_STR)
+reqOn    = input.bool(true, "Relative equal highs / lows", inline = "rq", group = G_STR)
+reqTk    = input.int(4, "tolerance (ticks)", minval = 0, maxval = 200, inline = "rq", group = G_STR)
+reqC     = input.color(#FFB74D, "", inline = "rq2", group = G_STR)
+reqSty   = input.string("Dashed", "", options = ["Solid", "Dashed", "Dotted"], inline = "rq2", group = G_STR)
+reqLbl   = input.bool(true, "REQH / REQL label", inline = "rq2", group = G_STR)
+lrOn     = input.bool(true, "Low resistance liquidity legs", tooltip = "A smooth, one-directional leg between two major swings — few pullbacks, few gaps — is low resistance: price moved through that range without leaving anything to defend. Marked with a curve alongside the leg.", group = G_STR)
+lrStr    = input.int(5, "Major swing strength", minval = 2, maxval = 30, inline = "lr", group = G_STR)
+lrMinBar = input.int(12, "min bars", minval = 4, maxval = 300, inline = "lr", group = G_STR)
+lrMinAtr = input.float(2.5, "Min leg size (× ATR)", minval = 0.5, step = 0.5, inline = "lr1", group = G_STR)
+lrEff    = input.float(0.55, "min efficiency", minval = 0.2, maxval = 1.0, step = 0.05, inline = "lr1", group = G_STR, tooltip = "Efficiency = net move ÷ total path travelled. 1.0 is a straight line. Lower it to accept slightly choppier legs.")
+lrPull   = input.float(30, "Max pullback (% of leg)", minval = 5, maxval = 80, step = 5, inline = "lr2", group = G_STR)
+lrC      = input.color(#EF5350, "", inline = "lr2", group = G_STR)
+lrSty    = input.string("Dotted", "Style", options = ["Solid", "Dashed", "Dotted"], inline = "lr3", group = G_STR)
+lrWid    = input.int(2, "Width", minval = 1, maxval = 4, inline = "lr3", group = G_STR)
+lrOff    = input.float(0.8, "Offset from price (× ATR)", minval = 0, step = 0.1, inline = "lr3", group = G_STR)
+lrKeep   = input.int(6, "Legs kept", minval = 1, maxval = 30, inline = "lr4", group = G_STR)
+lrLbl    = input.bool(false, "LRLR label", inline = "lr4", group = G_STR)
+wkOn     = input.bool(false, "News wicks at swings", tooltip = "Marks swing wicks that printed inside the window around a USD release. Pine has no economic calendar, so enter today's release times below (New York time, HHMM, comma-separated).", group = G_STR)
+wkTimes  = input.string("0830, 1000, 1400", "USD release times (HHMM)", group = G_STR)
+wkWin    = input.int(15, "Window after release (minutes)", minval = 1, maxval = 120, inline = "wk", group = G_STR)
+wkC      = input.color(#E040FB, "", inline = "wk", group = G_STR)
+wkAtr    = input.float(0.3, "Min wick × ATR", minval = 0.0, step = 0.1, inline = "wk2", group = G_STR)
+wkPct    = input.float(40, "min % of candle", minval = 0, maxval = 90, step = 5, inline = "wk2", group = G_STR)
+stSize   = input.string("Small", "Label size", options = ["Tiny", "Small", "Normal", "Large"], group = G_STR)
+
+// ── 10 · Display ──
+showMark = input.bool(true, "Watermark", inline = "w", group = G_VIS)
+markPos  = input.string("Bottom left", "", options = ["Top left", "Top center", "Top right", "Bottom left", "Bottom center", "Bottom right"], inline = "w", group = G_VIS)
+markCol  = input.color(color.new(#B2B5BE, 35), "Watermark colour", group = G_VIS)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : s == "Normal" ? size.normal : size.large
+f_tfFmt(tf) =>
+    string r = tf
+    if not (str.contains(tf, "D") or str.contains(tf, "W") or str.contains(tf, "M") or str.contains(tf, "S"))
+        float n = str.tonumber(tf)
+        if not na(n)
+            r := n >= 60 and n % 60 == 0 ? str.tostring(n / 60, "#") + "Hr" : str.tostring(n, "#") + "m"
+    r
+f_tfName(k) => k == 0 ? f_tfFmt(timeframe.period) : k == 1 ? "5m" : k == 2 ? "10m" : k == 3 ? "15m" : k == 4 ? "30m" : k == 5 ? "1Hr" : k == 6 ? "4Hr" : k == 7 ? "D" : "W"
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TIMEFRAME TABLE
+// ─────────────────────────────────────────────────────────────────────────────
+chartSec = timeframe.in_seconds()
+tSec = array.from(chartSec, 300, 600, 900, 1800, 3600, 14400, 86400, 604800)
+fOn  = array.from(fC,  f5,  f10, f15, f30, f60, f4h, fD, fW)
+sOn  = array.from(false, s5, s10, s15, s30, s60, s4h, sD, sW)
+sLen = array.from(1, l5, l10, l15, l30, l60, l4h, lD, lW)
+cOn  = array.from(false, c5, c10, c15, c30, c60, c4h, cD, cW)
+
+t1 = time("5")
+t2 = time("10")
+t3 = time("15")
+t4 = time("30")
+t5 = time("60")
+t6 = time("240")
+t7 = time("D")
+t8 = time("W")
+tM = time("M")
+n0 = true
+n1 = not na(t1[1]) and t1 != t1[1]
+n2 = not na(t2[1]) and t2 != t2[1]
+n3 = not na(t3[1]) and t3 != t3[1]
+n4 = not na(t4[1]) and t4 != t4[1]
+n5 = not na(t5[1]) and t5 != t5[1]
+n6 = not na(t6[1]) and t6 != t6[1]
+n7 = not na(t7[1]) and t7 != t7[1]
+n8 = not na(t8[1]) and t8 != t8[1]
+nM = not na(tM[1]) and tM != tM[1]
+
+f_active(k) => (array.get(fOn, k) or array.get(sOn, k) or array.get(cOn, k)) and (k == 0 or array.get(tSec, k) > chartSec)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+type Cdl
+    float lH  = na
+    float lL  = na
+    int   lHt = na
+    int   lLt = na
+    int   lT  = na
+    array<float> H
+    array<float> L
+    array<float> C
+    array<int>   HT
+    array<int>   LT
+    array<int>   OT
+
+type Lvl
+    float  px    = na
+    int    t1    = na
+    int    dir   = 0        // 1 high, -1 low
+    int    kind  = 0        // 0 swing, 1 candle, 2 session, 3 period
+    int    tf    = 0
+    string tag   = ""        // displayed (possibly merged) text
+    string own   = ""        // this level's own name
+    bool   lblOn = false
+    string lblX  = "Right"
+    color  lblC  = na
+    string lblS  = "Tiny"
+    string lblY  = "Above"
+    int    expiry = na
+    bool   done  = false
+    line   l     = na
+    label  lb    = na
+
+type Gap
+    int   tf  = 0
+    int   dir = 0
+    float top = na
+    float bot = na
+    int   t1  = na
+    box   b   = na
+    line  mid = na
+    label lb  = na
+    string pos = "Upper right"
+
+var array<Cdl> cdls = array.new<Cdl>()
+var array<Lvl> lvls = array.new<Lvl>()
+var array<Gap> gaps = array.new<Gap>()
+
+// finished drawings live here with their origin time; a day roll deletes those past the cutoff
+var array<line>  archL  = array.new<line>()
+var array<int>   archLT = array.new<int>()
+var array<int>   archLK = array.new<int>()
+var array<label> archB  = array.new<label>()
+var array<int>   archBT = array.new<int>()
+
+f_archLine(l, t, kind) =>
+    if not na(l)
+        array.push(archL, l)
+        array.push(archLT, t)
+        array.push(archLK, kind)
+f_archLabel(b, t) =>
+    if not na(b)
+        array.push(archB, b)
+        array.push(archBT, t)
+
+if barstate.isfirst
+    for k = 0 to 8
+        Cdl c = Cdl.new()
+        c.H  := array.new<float>()
+        c.L  := array.new<float>()
+        c.C  := array.new<float>()
+        c.HT := array.new<int>()
+        c.LT := array.new<int>()
+        c.OT := array.new<int>()
+        array.push(cdls, c)
+
+dsNum = nz(str.tonumber(dayStartTx))
+dsH   = int(math.floor(dsNum / 100)) % 24
+dsM   = int(dsNum % 100)
+
+// start of the current trading day (the most recent day-start boundary at or before this bar)
+f_dayStart(t) =>
+    int d = timestamp(seTz, year(t, seTz), month(t, seTz), dayofmonth(t, seTz), dsH, dsM)
+    if t < d
+        d := timestamp(seTz, year(t, seTz), month(t, seTz), dayofmonth(t, seTz) - 1, dsH, dsM)
+    d
+
+f_nextDayStart(t) =>
+    int d = timestamp(seTz, year(t, seTz), month(t, seTz), dayofmonth(t, seTz), dsH, dsM)
+    if t >= d
+        d := timestamp(seTz, year(t, seTz), month(t, seTz), dayofmonth(t, seTz) + 1, dsH, dsM)
+    d
+
+int keepDays = fvgAge == "Today" ? 1 : fvgAge == "Today + yesterday" ? 2 : fvgAge == "Last N days" ? fvgDays : 0
+int gapCutoff = fvgAge == "All" ? 0 : f_dayStart(time) - (keepDays - 1) * 86400000
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  LEVEL HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+f_lblX(pos, x1, x2) =>
+    int r = x2
+    if pos == "Left"
+        r := x1
+    else if pos == "Center"
+        r := math.round((x1 + x2) / 2.0)
+    r
+
+f_lblStyle(pos, yPos) =>
+    string r = label.style_label_down
+    if pos == "Right"
+        r := yPos == "Above" ? label.style_label_lower_left : yPos == "Middle" ? label.style_label_left : label.style_label_upper_left
+    else if pos == "Left"
+        r := yPos == "Above" ? label.style_label_lower_right : yPos == "Middle" ? label.style_label_right : label.style_label_upper_right
+    else
+        r := yPos == "Above" ? label.style_label_down : yPos == "Middle" ? label.style_label_center : label.style_label_up
+    r
+
+f_killLvl(v) =>
+    if not na(v.l)
+        line.delete(v.l)
+    if not na(v.lb)
+        label.delete(v.lb)
+
+f_addLvl2(px, t, dir, kind, tf, tag, expiry, colr, sty, wid, showL, lblC, lblS, lblX, lblY) =>
+    Lvl v = Lvl.new()
+    v.px := px
+    v.t1 := t
+    v.dir := dir
+    v.kind := kind
+    v.tf := tf
+    v.tag := tag
+    v.lblX := lblX
+    v.lblC := lblC
+    v.lblS := lblS
+    v.lblY := lblY
+    v.expiry := expiry
+    v.l := line.new(t, px, time, px, xloc = xloc.bar_time, color = colr, style = f_style(sty), width = wid)
+
+    v.own := tag
+    v.lblOn := showL
+    // a labelled live level at (almost) the same price shares the label: "PDH + NY High".
+    // Levels whose labels are hidden are never merged into anyone's text.
+    if showL and kind != 4
+        Lvl twin = na
+        if array.size(lvls) > 0
+            for i = 0 to array.size(lvls) - 1
+                Lvl o = array.get(lvls, i)
+                if na(twin) and not o.done and o.lblOn and not na(o.lb) and o.dir == dir and math.abs(o.px - px) <= f_mergeTol()
+                    twin := o
+        if not na(twin)
+            string merged = twin.tag + " + " + tag
+            twin.tag := merged
+            v.tag := merged
+            label.set_text(twin.lb, merged)
+        else
+            v.lb := label.new(f_lblX(lblX, t, time), px, tag, xloc = xloc.bar_time, style = f_lblStyle(lblX, lblY), color = color.new(color.black, 100), textcolor = lblC, size = f_size(lblS))
+    else if showL and kind == 4
+        v.lb := label.new(f_lblX(lblX, t, time), px, tag, xloc = xloc.bar_time, style = f_lblStyle(lblX, lblY), color = color.new(color.black, 100), textcolor = lblC, size = f_size(lblS))
+    array.push(lvls, v)
+    while array.size(lvls) > 300
+        Lvl old = array.shift(lvls)
+        f_killLvl(old)
+
+f_addLvl(px, t, dir, kind, tf, tag, expiry, colr, sty, wid, showL, lblC, lblS, lblX, lblY) =>
+    // 1. nothing older than the age window is drawn
+    bool tooOld = t < gapCutoff
+    // opening prices are their own thing: never merged, never yielding
+    // 2. swing / candle liquidity yields to a session or period level at the same price
+    bool yield = false
+    if not tooOld and (kind == 0 or kind == 1) and array.size(lvls) > 0
+        for i = 0 to array.size(lvls) - 1
+            Lvl o = array.get(lvls, i)
+            if (o.kind == 2 or o.kind == 3) and o.dir == dir and math.abs(o.px - px) <= f_mergeTol()
+                yield := true
+    // 3. a new session / period level removes swing / candle liquidity sitting on it
+    if not tooOld and (kind == 2 or kind == 3) and array.size(lvls) > 0
+        for i = array.size(lvls) - 1 to 0
+            Lvl o = array.get(lvls, i)
+            if (o.kind == 0 or o.kind == 1) and o.dir == dir and math.abs(o.px - px) <= f_mergeTol()
+                f_killLvl(o)
+                array.remove(lvls, i)
+    if not tooOld and not yield
+        f_addLvl2(px, t, dir, kind, tf, tag, expiry, colr, sty, wid, showL, lblC, lblS, lblX, lblY)
+
+// global cap on swing + candle liquidity lines, live and swept together, most recent kept
+f_capLiqAll() =>
+    if liqLast > 0
+        int live = 0
+        if array.size(lvls) > 0
+            for i = 0 to array.size(lvls) - 1
+                Lvl v = array.get(lvls, i)
+                if v.kind == 0 or v.kind == 1
+                    live += 1
+        int arch = 0
+        if array.size(archLK) > 0
+            for i = 0 to array.size(archLK) - 1
+                int k = array.get(archLK, i)
+                if k == 0 or k == 1
+                    arch += 1
+        int excess = live + arch - liqLast
+        // oldest archived liquidity lines go first
+        int i = 0
+        while excess > 0 and i < array.size(archLK)
+            int k = array.get(archLK, i)
+            if k == 0 or k == 1
+                line.delete(array.get(archL, i))
+                array.remove(archL, i)
+                array.remove(archLT, i)
+                array.remove(archLK, i)
+                excess -= 1
+            else
+                i += 1
+        // then the oldest live ones
+        i := 0
+        while excess > 0 and i < array.size(lvls)
+            Lvl v = array.get(lvls, i)
+            if v.kind == 0 or v.kind == 1
+                f_killLvl(v)
+                array.remove(lvls, i)
+                excess -= 1
+            else
+                i += 1
+
+// cap per (kind, tf, dir): drop the oldest that are already done first, then oldest overall
+f_capLvl(kind, tf, dir, keep) =>
+    int n = 0
+    if keep > 0 and array.size(lvls) > 0
+        for i = array.size(lvls) - 1 to 0
+            Lvl v = array.get(lvls, i)
+            if v.kind == kind and v.tf == tf and v.dir == dir
+                n += 1
+                if n > keep
+                    f_killLvl(v)
+                    array.remove(lvls, i)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  FVG HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+f_killGap(g) =>
+    if not na(g.b)
+        box.delete(g.b)
+    if not na(g.mid)
+        line.delete(g.mid)
+    if not na(g.lb)
+        label.delete(g.lb)
+
+f_overlap(a1, b1, a2, b2) => not (b1 > a2 or a1 < b2)
+
+f_gapLblX(pos, t1, t2) => pos == "Upper left" or pos == "Lower left" or pos == "Middle left" ? t1 : pos == "Center" ? math.round((t1 + t2) / 2.0) : t2
+f_gapLblY(pos, top, bot) => pos == "Upper left" or pos == "Upper right" ? top : pos == "Lower left" or pos == "Lower right" ? bot : (top + bot) / 2
+f_gapLblStyle(pos) => pos == "Upper left" or pos == "Lower left" or pos == "Middle left" ? label.style_label_right : pos == "Center" ? label.style_label_center : label.style_label_left
+
+f_addGap(tf, dir, top, bot, t1) =>
+    bool blocked = t1 < gapCutoff
+    if fvgTop and array.size(gaps) > 0
+        for i = 0 to array.size(gaps) - 1
+            Gap o = array.get(gaps, i)
+            if o.tf > tf and f_overlap(top, bot, o.top, o.bot)
+                blocked := true
+    if not blocked
+        if fvgTop and array.size(gaps) > 0
+            for i = array.size(gaps) - 1 to 0
+                Gap o = array.get(gaps, i)
+                if o.tf < tf and f_overlap(top, bot, o.top, o.bot)
+                    f_killGap(o)
+                    array.remove(gaps, i)
+        Gap g = Gap.new()
+        g.tf := tf
+        g.dir := dir
+        g.top := top
+        g.bot := bot
+        g.t1 := t1
+        color bg = dir == 1 ? fvgBullBg : fvgBearBg
+        color bd = dir == 1 ? fvgBullBd : fvgBearBd
+        g.b := box.new(t1, top, time, bot, xloc = xloc.bar_time, border_color = fvgBw == 0 ? color.new(bd, 100) : bd, border_width = math.max(fvgBw, 1), bgcolor = bg)
+        if fvgMid
+            g.mid := line.new(t1, (top + bot) / 2, time, (top + bot) / 2, xloc = xloc.bar_time, color = fvgMidC, style = f_style(fvgMidS), width = 1)
+        g.pos := dir == 1 ? fvgBullX : fvgBearX
+        if fvgLbl
+            g.lb := label.new(f_gapLblX(g.pos, t1, time), f_gapLblY(g.pos, top, bot), (dir == 1 ? "▲ " : "▼ ") + f_tfName(tf) + " FVG", xloc = xloc.bar_time, style = f_gapLblStyle(g.pos),
+                 color = color.new(color.black, 100), textcolor = fvgLblC, size = f_size(fvgLblS))
+        array.push(gaps, g)
+        while (fvgMax > 0 and array.size(gaps) > fvgMax) or array.size(gaps) > 150
+            f_killGap(array.shift(gaps))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  AGGREGATION + DETECTION, ONE TIMEFRAME
+// ─────────────────────────────────────────────────────────────────────────────
+f_run(k, isNew) =>
+    if f_active(k)
+        Cdl c = array.get(cdls, k)
+        int L = array.get(sLen, k)
+        int cap = math.max(L * 2 + 1, 3)
+        if na(c.lH)
+            c.lH := high
+            c.lL := low
+            c.lHt := time
+            c.lLt := time
+            c.lT := time
+        else if isNew
+            // candle completed
+            array.push(c.H, c.lH)
+            array.push(c.L, c.lL)
+            array.push(c.C, close[1])
+            array.push(c.HT, c.lHt)
+            array.push(c.LT, c.lLt)
+            array.push(c.OT, c.lT)
+            while array.size(c.H) > cap
+                array.shift(c.H)
+                array.shift(c.L)
+                array.shift(c.C)
+                array.shift(c.HT)
+                array.shift(c.LT)
+                array.shift(c.OT)
+            int n = array.size(c.H)
+
+            // candle high / low liquidity
+            if array.get(cOn, k)
+                f_addLvl(c.lH, c.lHt, 1, 1, k, "▲ " + f_tfName(k) + " High", int(na), cdHiC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
+                f_addLvl(c.lL, c.lLt, -1, 1, k, "▼ " + f_tfName(k) + " Low", int(na), cdLoC, cdSty, cdWid, cdLbl, cdLblC, cdLblS, cdLblX, cdLblY)
+                f_capLvl(1, k, 1, cdKeep)
+                f_capLvl(1, k, -1, cdKeep)
+                f_capLiqAll()
+
+            // fair value gap on the last three completed candles
+            if array.get(fOn, k) and n >= 3
+                float h1 = array.get(c.H, n - 3)
+                float l1 = array.get(c.L, n - 3)
+                float h3 = array.get(c.H, n - 1)
+                float l3 = array.get(c.L, n - 1)
+                int   tg = array.get(c.OT, n - 2)
+                if l3 > h1
+                    f_addGap(k, 1, l3, h1, tg)
+                if h3 < l1
+                    f_addGap(k, -1, l1, h3, tg)
+
+            // swing liquidity on the middle candle of the window
+            if array.get(sOn, k) and k > 0 and n == L * 2 + 1
+                float mh = array.get(c.H, L)
+                float ml = array.get(c.L, L)
+                bool isHi = true
+                bool isLo = true
+                for i = 0 to L * 2
+                    if i != L
+                        if array.get(c.H, i) >= mh
+                            isHi := false
+                        if array.get(c.L, i) <= ml
+                            isLo := false
+                if isHi
+                    f_addLvl(mh, array.get(c.HT, L), 1, 0, k, "▲ " + f_tfName(k) + " Swing High", int(na), swHiC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
+                    f_capLvl(0, k, 1, swKeep)
+                if isLo
+                    f_addLvl(ml, array.get(c.LT, L), -1, 0, k, "▼ " + f_tfName(k) + " Swing Low", int(na), swLoC, swSty, swWid, swLbl, swLblC, swLblS, swLblX, swLblY)
+                    f_capLvl(0, k, -1, swKeep)
+                if isHi or isLo
+                    f_capLiqAll()
+
+            c.lH := high
+            c.lL := low
+            c.lHt := time
+            c.lLt := time
+            c.lT := time
+        else
+            if high > c.lH
+                c.lH := high
+                c.lHt := time
+            if low < c.lL
+                c.lL := low
+                c.lLt := time
+
+f_run(0, n0)
+f_run(1, n1)
+f_run(2, n2)
+f_run(3, n3)
+f_run(4, n4)
+f_run(5, n5)
+f_run(6, n6)
+f_run(7, n7)
+f_run(8, n8)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SESSIONS — high / low extends to the next day start or the sweep
+// ─────────────────────────────────────────────────────────────────────────────
+
+f_session(on, sess, name, hiC, loC, sty, wid, lbl, lblC, lblS, lblX, lblY) =>
+    bool inS = on and not na(time(timeframe.period, sess, seTz))
+    var float sh = na
+    var float sl = na
+    var int sht = na
+    var int slt = na
+    if inS
+        if not inS[1] or na(sh)
+            sh := high
+            sl := low
+            sht := time
+            slt := time
+        else
+            if high > sh
+                sh := high
+                sht := time
+            if low < sl
+                sl := low
+                slt := time
+    if not inS and inS[1] and not na(sh)
+        int exp = f_nextDayStart(time)
+        f_addLvl(sh, sht, 1, 2, 0, name + " High", exp, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+        f_addLvl(sl, slt, -1, 2, 0, name + " Low", exp, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+        sh := na
+        sl := na
+
+f_session(seAsia, seAsiaT, "Asia",   aHiC, aLoC, aSty, aWid, aLbl, aLblC, aLblS, aLblX, aLblY)
+f_session(seLdn,  seLdnT,  "London", bHiC, bLoC, bSty, bWid, bLbl, bLblC, bLblS, bLblX, bLblY)
+f_session(seNY,   seNYT,   "NY",     nHiC, nLoC, nSty, nWid, nLbl, nLblC, nLblS, nLblX, nLblY)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PREVIOUS DAY / WEEK / MONTH — extends to the next period close or the sweep
+// ─────────────────────────────────────────────────────────────────────────────
+f_period(on, isNew, closeT, name, kindTf, hiC, loC, sty, wid, lbl, lblC, lblS, lblX, lblY) =>
+    var float ph = na
+    var float pl = na
+    var int pht = na
+    var int plt = na
+    if na(ph)
+        ph := high
+        pl := low
+        pht := time
+        plt := time
+    else if isNew
+        if on
+            f_addLvl(ph, pht, 1, 3, kindTf, name + "H", closeT, hiC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+            f_addLvl(pl, plt, -1, 3, kindTf, name + "L", closeT, loC, sty, wid, lbl, lblC, lblS, lblX, lblY)
+            f_capLvl(3, kindTf, 1, 2)
+            f_capLvl(3, kindTf, -1, 2)
+        ph := high
+        pl := low
+        pht := time
+        plt := time
+    else
+        if high > ph
+            ph := high
+            pht := time
+        if low < pl
+            pl := low
+            plt := time
+
+f_period(peD, n7, time_close("D"), "PD", 7, dHiC, dLoC, dSty, dWid, dLbl, dLblC, dLblS, dLblX, dLblY)
+f_period(peW, n8, time_close("W"), "PW", 8, wHiC, wLoC, wSty, wWid, wLbl, wLblC, wLblS, wLblX, wLblY)
+f_period(peM, nM, time_close("M"), "PM", 9, mHiC, mLoC, mSty, mWid, mLbl, mLblC, mLblS, mLblX, mLblY)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  OPENING PRICES — the open of the first bar at each listed time, drawn for the day
+// ─────────────────────────────────────────────────────────────────────────────
+f_hhmm(txt) =>
+    float n = str.tonumber(str.trim(txt))
+    na(n) ? -1 : int(math.floor(n / 100)) * 60 + int(n % 100)
+
+barMin  = hour(time, seTz) * 60 + minute(time, seTz)
+prevMin = hour(nz(time[1], time), seTz) * 60 + minute(nz(time[1], time), seTz)
+
+// the first bar whose time is at or past the target, once per day
+f_opens(target, nm) =>
+    if opOn and target >= 0
+        // first bar at or past the target time today (the clock wrapping past midnight resets it)
+        bool fire = barMin >= target and (prevMin < target or prevMin > barMin)
+        if fire
+            int exp = opEnd == "Swept" ? int(na) : f_nextDayStart(time)
+            f_addLvl(open, time, 0, 4, 0, nm + " Open", exp, opC, opSty, opWid, opLbl, opLblC, opLblS, opLblX, opLblY)
+
+f_opens(f_hhmm(op1), str.trim(op1))
+f_opens(f_hhmm(op2), str.trim(op2))
+f_opens(f_hhmm(op3), str.trim(op3))
+f_opens(f_hhmm(op4), str.trim(op4))
+f_opens(f_hhmm(op5), str.trim(op5))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  MAINTENANCE — extend, sweep, expire, mitigate
+// ─────────────────────────────────────────────────────────────────────────────
+// Live levels only are kept in the array. A level that is swept or expired has its
+// drawing frozen and is removed from the working set — the line stays on the chart,
+// the script stops iterating over it. This is what keeps the script fast on long histories.
+if array.size(lvls) > 0
+    for i = array.size(lvls) - 1 to 0
+        Lvl v = array.get(lvls, i)
+        bool swept   = v.kind == 4 ? (opEnd != "Trading day end" and high > v.px and low < v.px and bar_index > 0 and time > v.t1) : (v.dir == 1 ? high > v.px : low < v.px)
+        bool expired = not na(v.expiry) and time >= v.expiry
+        line.set_x2(v.l, time)
+        if not na(v.lb)
+            label.set_x(v.lb, f_lblX(v.lblX, v.t1, time))
+        if swept or expired
+            v.done := true
+            // a shared label moves to a still-live twin so it keeps riding the right end of the line
+            if not na(v.lb)
+                Lvl heir = na
+                for j = 0 to array.size(lvls) - 1
+                    Lvl o = array.get(lvls, j)
+                    if j != i and na(heir) and not o.done and o.lblOn and na(o.lb) and o.dir == v.dir and math.abs(o.px - v.px) <= f_mergeTol()
+                        heir := o
+                if not na(heir)
+                    heir.lb := v.lb
+                    heir.tag := v.tag
+                    v.lb := na
+            f_archLine(v.l, v.t1, v.kind)
+            f_archLabel(v.lb, v.t1)
+            array.remove(lvls, i)
+
+
+// merge pass: any two labelled live levels on the same side within tolerance share one label
+if barstate.isconfirmed and array.size(lvls) > 1
+    for i = 0 to array.size(lvls) - 2
+        Lvl a = array.get(lvls, i)
+        if a.lblOn and not na(a.lb) and a.kind != 4
+            for j = i + 1 to array.size(lvls) - 1
+                Lvl b = array.get(lvls, j)
+                if b.kind != 4 and b.lblOn and not na(b.lb) and b.dir == a.dir and math.abs(b.px - a.px) <= f_mergeTol()
+                    a.tag := a.tag + " + " + b.tag
+                    label.set_text(a.lb, a.tag)
+                    label.delete(b.lb)
+                    b.lb := na
+                    b.tag := a.tag
+
+if array.size(gaps) > 0
+    for i = array.size(gaps) - 1 to 0
+        Gap g = array.get(gaps, i)
+        bool mitigated = barstate.isconfirmed and (g.dir == 1 ? close < g.bot : close > g.top)
+        bool tooOld = g.t1 < gapCutoff
+        if mitigated or tooOld
+            f_killGap(g)
+            array.remove(gaps, i)
+        else
+            box.set_right(g.b, time)
+            if not na(g.mid)
+                line.set_x2(g.mid, time)
+            if not na(g.lb)
+                label.set_x(g.lb, f_gapLblX(g.pos, g.t1, time))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  STRUCTURE — relative equal highs/lows, low resistance runs, raid wicks
+// ─────────────────────────────────────────────────────────────────────────────
+type Swing
+    float px   = na
+    int   t    = na
+    int   bar  = na
+    bool  swept = false
+    bool  paired = false
+
+type Req
+    float px  = na
+    int   dir = 0
+    line  l   = na
+    label lb  = na
+    bool  done = false
+
+var array<Swing> swHi = array.new<Swing>()
+var array<Swing> swLo = array.new<Swing>()
+var array<Req>   reqs = array.new<Req>()
+
+stAtr = ta.atr(14)
+stPH  = ta.pivothigh(high, stL, stL)
+stPL  = ta.pivotlow(low, stL, stL)
+
+// mark swept swings so REQ pairs only form on live liquidity
+if array.size(swHi) > 0
+    for i = 0 to array.size(swHi) - 1
+        Swing w = array.get(swHi, i)
+        if not w.swept and high > w.px and bar_index > w.bar + stL
+            w.swept := true
+if array.size(swLo) > 0
+    for i = 0 to array.size(swLo) - 1
+        Swing w = array.get(swLo, i)
+        if not w.swept and low < w.px and bar_index > w.bar + stL
+            w.swept := true
+
+f_pushSwing(arr, px, t, bar) =>
+    Swing w = Swing.new()
+    w.px := px
+    w.t := t
+    w.bar := bar
+    array.push(arr, w)
+    if array.size(arr) > 30
+        array.shift(arr)
+    w
+
+// relative equal: the new swing sits within tolerance of an earlier live swing
+f_req(arr, w, dir) =>
+    if reqOn and array.size(arr) > 1
+        Swing mate = na
+        for i = array.size(arr) - 2 to 0
+            Swing o = array.get(arr, i)
+            if na(mate) and not o.swept and not o.paired and math.abs(o.px - w.px) <= reqTk * syminfo.mintick
+                mate := o
+        if not na(mate)
+            mate.paired := true
+            w.paired := true
+            Req r = Req.new()
+            r.px := dir == 1 ? math.max(mate.px, w.px) : math.min(mate.px, w.px)
+            r.dir := dir
+            r.l := line.new(mate.t, r.px, w.t, r.px, xloc = xloc.bar_time, color = reqC, style = f_style(reqSty), width = 1)
+            if reqLbl
+                r.lb := label.new(w.t, r.px, dir == 1 ? "REQH" : "REQL", xloc = xloc.bar_time, style = dir == 1 ? label.style_label_lower_left : label.style_label_upper_left,
+                     color = color.new(color.black, 100), textcolor = reqC, size = f_size(stSize))
+            array.push(reqs, r)
+            if array.size(reqs) > 40
+                Req old = array.shift(reqs)
+                if not na(old.l)
+                    line.delete(old.l)
+                if not na(old.lb)
+                    label.delete(old.lb)
+
+// news wick: the swing candle printed inside the window after a listed USD release, with a real wick
+var array<int> newsMin = array.new<int>()
+if barstate.isfirst
+    array<string> toks = str.split(str.replace_all(wkTimes, " ", ""), ",")
+    if array.size(toks) > 0
+        for i = 0 to array.size(toks) - 1
+            float v = str.tonumber(array.get(toks, i))
+            if not na(v)
+                int hh = int(math.floor(v / 100))
+                int mm = int(v % 100)
+                array.push(newsMin, hh * 60 + mm)
+
+f_isNews(t) =>
+    bool hit = false
+    int m = hour(t, "America/New_York") * 60 + minute(t, "America/New_York")
+    if array.size(newsMin) > 0
+        for i = 0 to array.size(newsMin) - 1
+            int r = array.get(newsMin, i)
+            if m >= r and m <= r + wkWin
+                hit := true
+    hit
+
+f_raid(dir, px, t, hiP, loP, opP, clP) =>
+    if wkOn and f_isNews(t)
+        float rng  = hiP - loP
+        float wick = dir == 1 ? hiP - math.max(opP, clP) : math.min(opP, clP) - loP
+        bool sized = rng > 0 and (na(stAtr) or wick >= stAtr * wkAtr) and wick / rng * 100 >= wkPct
+        if sized
+            label.new(t, px, dir == 1 ? "news ▼" : "news ▲", xloc = xloc.bar_time, style = dir == 1 ? label.style_label_down : label.style_label_up,
+                 color = color.new(color.black, 100), textcolor = wkC, size = f_size(stSize))
+
+if not na(stPH)
+    Swing w = f_pushSwing(swHi, stPH, time[stL], bar_index - stL)
+    f_req(swHi, w, 1)
+    f_raid(1, stPH, time[stL], high[stL], low[stL], open[stL], close[stL])
+
+if not na(stPL)
+    Swing w = f_pushSwing(swLo, stPL, time[stL], bar_index - stL)
+    f_req(swLo, w, -1)
+    f_raid(-1, stPL, time[stL], high[stL], low[stL], open[stL], close[stL])
+
+// ── low resistance liquidity legs ──
+// A leg runs from one major swing to the next opposite major swing. It qualifies when the
+// move is large, direct (net move ÷ path travelled), and never pulled back far. The mark is a
+// smoothed curve drawn alongside the candles, offset to the pullback side of the leg.
+lrPH  = ta.pivothigh(high, lrStr, lrStr)
+lrPL  = ta.pivotlow(low, lrStr, lrStr)
+lrSm  = ta.sma(hl2, 5)
+lrStep = math.abs(close - close[1])
+
+var float lrLastPx  = na
+var int   lrLastBar = na
+var int   lrLastDir = 0            //  1 = last major swing was a high, -1 = a low
+var array<polyline> lrLines = array.new<polyline>()
+var array<label> lrLbls  = array.new<label>()
+var array<int>   lrLegId = array.new<int>()
+var array<int>   lrCnt   = array.from(0)          // [0] = legs currently drawn
+
+f_lrTrim() =>
+    while array.get(lrCnt, 0) > lrKeep and array.size(lrLegId) > 0
+        int oldest = array.get(lrLegId, 0)
+        while array.size(lrLegId) > 0 and array.get(lrLegId, 0) == oldest
+            polyline.delete(array.get(lrLines, 0))
+            array.shift(lrLines)
+            array.shift(lrLegId)
+        if array.size(lrLbls) > 0
+            label.delete(array.shift(lrLbls))
+        array.set(lrCnt, 0, array.get(lrCnt, 0) - 1)
+
+f_lrLeg(fire, b1, p1, b2, p2, dir) =>
+    // dir 1 = up leg (low → high), -1 = down leg (high → low). Bars b1..b2 on the chart.
+    int len = fire ? b2 - b1 : 0
+    float legSz = fire ? math.abs(p2 - p1) : 0.0
+    bool ok = fire and lrOn and len >= lrMinBar and len <= 450 and not na(stAtr) and legSz >= stAtr * lrMinAtr
+    if ok
+        float path = 0.0
+        float runExt = dir == 1 ? low[bar_index - b1] : high[bar_index - b1]
+        float maxPull = 0.0
+        for b = b1 + 1 to b2
+            int o = bar_index - b
+            path += lrStep[o]
+            if dir == 1
+                runExt := math.max(runExt, high[o])
+                maxPull := math.max(maxPull, runExt - low[o])
+            else
+                runExt := math.min(runExt, low[o])
+                maxPull := math.max(maxPull, high[o] - runExt)
+        float eff = path > 0 ? legSz / path : 0.0
+        ok := eff >= lrEff and maxPull <= legSz * lrPull / 100.0
+        if ok
+            // one straight line from leg start to leg end, offset to the pullback side of price
+            float off = stAtr * lrOff * (dir == 1 ? -1 : 1)
+            array.set(lrCnt, 0, array.get(lrCnt, 0) + 1)
+            int legNo = array.get(lrCnt, 0)
+            array<chart.point> pts = array.new<chart.point>()
+            array.push(pts, chart.point.from_index(b1, p1 + off))
+            array.push(pts, chart.point.from_index(b2, p2 + off))
+            array.push(lrLines, polyline.new(pts, curved = false, closed = false, xloc = xloc.bar_index, line_color = lrC, line_style = f_style(lrSty), line_width = lrWid))
+            array.push(lrLegId, legNo)
+            if lrLbl
+                int mid = b1 + int(len / 2)
+                array.push(lrLbls, label.new(mid, lrSm[bar_index - mid] + off * 1.6, "LRLR", style = label.style_none, textcolor = lrC, size = f_size(stSize)))
+            f_lrTrim()
+
+// a new major high completes an up leg from the last major low; a new major low completes a down leg.
+// Both calls run every bar (with a fire flag) so the history references inside stay consistent.
+int  lrB2   = bar_index - lrStr
+bool fireUp = not na(lrPH) and lrLastDir == -1 and not na(lrLastBar) and lrB2 > lrLastBar
+bool fireDn = not na(lrPL) and lrLastDir == 1  and not na(lrLastBar) and lrB2 > lrLastBar
+f_lrLeg(fireUp, nz(lrLastBar, lrB2), nz(lrLastPx, close), lrB2, nz(lrPH, close), 1)
+f_lrLeg(fireDn, nz(lrLastBar, lrB2), nz(lrLastPx, close), lrB2, nz(lrPL, close), -1)
+if not na(lrPH)
+    if lrLastDir != 1 or lrPH > lrLastPx
+        lrLastPx := lrPH
+        lrLastBar := lrB2
+        lrLastDir := 1
+if not na(lrPL)
+    if lrLastDir != -1 or lrPL < lrLastPx
+        lrLastPx := lrPL
+        lrLastBar := lrB2
+        lrLastDir := -1
+
+// REQ lines extend right until the level is run, then leave the working set
+if array.size(reqs) > 0
+    for i = array.size(reqs) - 1 to 0
+        Req r = array.get(reqs, i)
+        bool run = r.dir == 1 ? high > r.px : low < r.px
+        line.set_x2(r.l, time)
+        if not na(r.lb)
+            label.set_x(r.lb, time)
+        if run
+            r.done := true
+            f_archLine(r.l, line.get_x1(r.l), 9)
+            f_archLabel(r.lb, line.get_x1(r.l))
+            array.remove(reqs, i)
+
+// ── age roll: once a day, retire finished drawings that fell out of the window ──
+bool dayRoll = f_dayStart(time) != f_dayStart(nz(time[1], time))
+if dayRoll and fvgAge != "All"
+    if array.size(archL) > 0
+        for i = array.size(archL) - 1 to 0
+            if array.get(archLT, i) < gapCutoff
+                line.delete(array.get(archL, i))
+                array.remove(archL, i)
+                array.remove(archLT, i)
+                array.remove(archLK, i)
+    if array.size(archB) > 0
+        for i = array.size(archB) - 1 to 0
+            if array.get(archBT, i) < gapCutoff
+                label.delete(array.get(archB, i))
+                array.remove(archB, i)
+                array.remove(archBT, i)
+    // live levels that started before the window also go
+    if array.size(lvls) > 0
+        for i = array.size(lvls) - 1 to 0
+            Lvl v = array.get(lvls, i)
+            if v.t1 < gapCutoff
+                f_killLvl(v)
+                array.remove(lvls, i)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  DRAW ON LIQUIDITY — major highs above / lows below, nearest first
+// ─────────────────────────────────────────────────────────────────────────────
+var table dolHi = table.new(position.top_right, 3, 14, frame_color = dolFr, frame_width = 1, border_color = dolFr, border_width = 1)
+var table dolLo = table.new(position.bottom_right, 3, 14, frame_color = dolFr, frame_width = 1, border_color = dolFr, border_width = 1)
+
+f_dolHeader(tbl, row, txt, col) =>
+    table.cell(tbl, 0, row, txt, text_color = col, text_size = f_size(dolSize), bgcolor = dolBg, text_halign = text.align_left)
+    table.cell(tbl, 1, row, "", bgcolor = dolBg)
+    table.cell(tbl, 2, row, "", bgcolor = dolBg)
+    table.merge_cells(tbl, 0, row, 2, row)
+
+f_dolRow(tbl, row, name, px, dist, col) =>
+    table.cell(tbl, 0, row, name, text_color = dolTxt, text_size = f_size(dolSize), bgcolor = dolBg, text_halign = text.align_left)
+    table.cell(tbl, 1, row, na(px) ? "" : str.tostring(px, format.mintick), text_color = col, text_size = f_size(dolSize), bgcolor = dolBg, text_halign = text.align_right)
+    table.cell(tbl, 2, row, na(px) ? "" : (dist >= 0 ? "+" : "") + str.tostring(dist, "#.##"), text_color = color.new(dolTxt, 40), text_size = f_size(dolSize), bgcolor = dolBg, text_halign = text.align_right)
+
+if barstate.islast and dolOn
+    array<string> hN = array.new<string>()
+    array<float>  hP = array.new<float>()
+    array<string> lN = array.new<string>()
+    array<float>  lP = array.new<float>()
+    // major liquidity only: sessions and previous day / week / month, clustered by price
+    array<int> usedIdx = array.new<int>()
+    if array.size(lvls) > 0
+        for i = 0 to array.size(lvls) - 1
+            Lvl v = array.get(lvls, i)
+            bool major = not v.done and (v.kind == 2 or v.kind == 3)
+            bool ahead = v.dir == 1 ? v.px > close : v.px < close
+            if major and ahead and array.indexof(usedIdx, i) < 0
+                string nm = v.own
+                array.push(usedIdx, i)
+                if i < array.size(lvls) - 1
+                    for j = i + 1 to array.size(lvls) - 1
+                        Lvl o = array.get(lvls, j)
+                        if not o.done and (o.kind == 2 or o.kind == 3) and o.dir == v.dir and array.indexof(usedIdx, j) < 0 and math.abs(o.px - v.px) <= f_mergeTol()
+                            nm += " + " + o.own
+                            array.push(usedIdx, j)
+                if v.dir == 1
+                    array.push(hN, nm)
+                    array.push(hP, v.px)
+                else
+                    array.push(lN, nm)
+                    array.push(lP, v.px)
+    if array.size(hP) > 1
+        for i = 0 to array.size(hP) - 2
+            for j = i + 1 to array.size(hP) - 1
+                if array.get(hP, j) < array.get(hP, i)
+                    float tp = array.get(hP, i)
+                    string tn = array.get(hN, i)
+                    array.set(hP, i, array.get(hP, j))
+                    array.set(hN, i, array.get(hN, j))
+                    array.set(hP, j, tp)
+                    array.set(hN, j, tn)
+    if array.size(lP) > 1
+        for i = 0 to array.size(lP) - 2
+            for j = i + 1 to array.size(lP) - 1
+                if array.get(lP, j) > array.get(lP, i)
+                    float tp = array.get(lP, i)
+                    string tn = array.get(lN, i)
+                    array.set(lP, i, array.get(lP, j))
+                    array.set(lN, i, array.get(lN, j))
+                    array.set(lP, j, tp)
+                    array.set(lN, j, tn)
+
+    table.clear(dolHi, 0, 0, 2, 13)
+    table.clear(dolLo, 0, 0, 2, 13)
+
+    // highs: header on top, nearest level first
+    f_dolHeader(dolHi, 0, "DRAW ON LIQUIDITY  ·  ABOVE", dolHiC)
+    int nH = math.min(array.size(hN), dolRows)
+    if nH > 0
+        for i = 0 to nH - 1
+            f_dolRow(dolHi, i + 1, array.get(hN, i), array.get(hP, i), array.get(hP, i) - close, dolHiC)
+    else
+        f_dolRow(dolHi, 1, "no major highs above", float(na), 0.0, color.new(dolTxt, 60))
+
+    // lows: nearest level at the top so the list reads away from price, header at the bottom
+    int nL = math.min(array.size(lN), dolRows)
+    if nL > 0
+        for i = 0 to nL - 1
+            f_dolRow(dolLo, i, array.get(lN, i), array.get(lP, i), array.get(lP, i) - close, dolLoC)
+    else
+        f_dolRow(dolLo, 0, "no major lows below", float(na), 0.0, color.new(dolTxt, 60))
+    f_dolHeader(dolLo, math.max(nL, 1), "DRAW ON LIQUIDITY  ·  BELOW", dolLoC)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  WATERMARK
+// ─────────────────────────────────────────────────────────────────────────────
+wmPos = markPos == "Top left" ? position.top_left : markPos == "Top center" ? position.top_center : markPos == "Top right" ? position.top_right : markPos == "Bottom left" ? position.bottom_left : markPos == "Bottom center" ? position.bottom_center : position.bottom_right
+wmAlign = markPos == "Top center" or markPos == "Bottom center" ? text.align_center : markPos == "Top left" or markPos == "Bottom left" ? text.align_left : text.align_right
+var table wm = table.new(wmPos, 1, 2, border_width = 0)
+if barstate.islast and showMark
+    string tfs = ""
+    for k = 0 to 8
+        if f_active(k)
+            tfs += f_tfName(k) + " · "
+    if str.length(tfs) > 3
+        tfs := str.substring(tfs, 0, str.length(tfs) - 3)
+    string parts = (seAsia or seLdn or seNY ? "sessions" : "") + (peD or peW or peM ? (seAsia or seLdn or seNY ? " · " : "") + "PD/PW/PM" : "")
+    table.cell(wm, 0, 0, "Liquidity Master [TradeZoro]", text_color = markCol, text_size = size.large, bgcolor = color.new(color.black, 100), text_halign = wmAlign)
+    table.cell(wm, 0, 1, tfs + (str.length(parts) > 0 ? "    ·    " + parts : ""), text_color = color.new(markCol, 15), text_size = size.small, bgcolor = color.new(color.black, 100), text_halign = wmAlign)

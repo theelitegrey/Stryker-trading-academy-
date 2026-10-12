@@ -11,7 +11,7 @@
 // non-backfill bar notification ships a fresh snapshot (same as vela-pinets' own worker).
 // Bursts are coalesced on the worker side (one re-run after the in-flight one lands).
 
-const WORKER_URL = new URL('./chart-pine-next-worker.js?v=512', import.meta.url);
+const WORKER_URL = new URL('./chart-pine-next-worker.js?v=513', import.meta.url);
 
 // request.security ranges: the engine asks for a long warm-up before the chart's first bar
 // (seen: 33 days of 1m bars, 48k bars / 15 s of downloads, for a 3.5-day 1m chart). Keep a
@@ -41,6 +41,20 @@ function tfToMs(tf){
   const n = Number(m[1] || 1), u = (m[2] || '').toUpperCase();
   return n * (u === 'S' ? 1e3 : u === 'D' ? 864e5 : u === 'W' ? 6048e5 : u === 'M' ? 2592e6 : 6e4);
 }
+
+// PER-SCRIPT HISTORY CAP (build 513): a built-in may ask to run on only its last N chart bars
+// (PICKER_SCRIPTS maxBars, e.g. Liquidity Master: 1,500). The chart keeps all its bars; the
+// script just sees the newest N (bar_index 0 = the first of those), so a heavy script draws
+// in about half the time on a deep 1m chart. Keyed by source text (set before the run and on
+// layout restore), then by the prepared object Vela hands back to execute().
+const barLimits = new Map();      // source -> max bars
+const preparedLimits = new WeakMap(); // prepared object -> max bars
+export function setBarLimit(source, n){
+  n = Math.floor(Number(n));
+  if (typeof source !== 'string') return;
+  if (n >= 100) barLimits.set(source, n); else barLimits.delete(source);
+}
+export function capBars(bars, n){ return n && bars && bars.length > n ? bars.slice(bars.length - n) : bars; }
 
 export class PineNextEngine {
   constructor(opts = {}){
@@ -73,16 +87,19 @@ export class PineNextEngine {
     this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
     try { w.terminate(); } catch (e) {}
   }
+  setBarLimit(source, n){ setBarLimit(source, n); }
   prepare(source, instanceId){
     const reqId = ++this.reqId;
+    const lim = barLimits.get(source);
     return new Promise((resolve, reject) => {
-      this.prepares.set(reqId, { resolve, reject });
+      this.prepares.set(reqId, { resolve: (p) => { if (lim && p && typeof p === 'object') preparedLimits.set(p, lim); resolve(p); }, reject });
       this.post({ kind: 'prepare', reqId, source, instanceId, defaultProps: this.opts.defaultProps, propsVisibility: this.opts.props || 'strategy' });
     });
   }
   execute(req, handlers){
     const sessionId = ++this.sessionId;
-    const barsOf = () => (req.getBars ? req.getBars() : req.bars) || [];
+    const lim = req.prepared && typeof req.prepared === 'object' ? preparedLimits.get(req.prepared) : 0;
+    const barsOf = () => capBars((req.getBars ? req.getBars() : req.bars) || [], lim);
     const s = { req, handlers, barsOf, live: req.mode === 'live', lastTime: 0 };
     this.sessions.set(sessionId, s);
     const bars = barsOf();

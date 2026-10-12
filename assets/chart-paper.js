@@ -67,7 +67,7 @@ function h(tag, attrs, kids){
   (kids || []).forEach((c) => { if (c != null && c !== false) n.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
   return n;
 }
-const showSym = (s) => String(s || '').replace(/^[a-z]+:/i, '');
+const showSym = (s) => String(s || '').replace(/^[^:]+:/, '');
 const isPhone = () => window.innerWidth <= PHONE_MAX;
 function loadUi(){
   let u; try { u = Object.assign({ open: false, tab: 'positions', h: PANEL_H }, JSON.parse(localStorage.getItem(UI_KEY) || '{}')); } catch (e) { u = { open: false, tab: 'positions', h: PANEL_H }; }
@@ -106,6 +106,8 @@ function money(n, sign){
   return (n < 0 ? '-' : (sign && n > 0 ? '+' : '')) + '$' + s;
 }
 function specOf(sym){ return acct ? acct.spec(sym) : PE.specOf(sym); }
+// canonical paper key ("CME_MINI:NQ1!", "rithmic:NQ1!", "NQ1!" -> "futures:NQ1!"); raw symbol when unsupported
+function canonSym(sym){ const sp = specOf(sym); return sp.ok ? sp.symbol : String(sym || ''); }
 function fmtP(sym, p){
   if (!Number.isFinite(p)) return '—';
   const sp = specOf(sym); const d = sp.ok ? Math.min(8, sp.decimals) : 2;
@@ -303,7 +305,7 @@ function poll(){
     const sym = c.symbol; if (!sym) continue;
     const bars = barsOf(c); if (!bars) continue;
     // one cell per symbol is enough (several cells of the same symbol carry the same trades)
-    if (seen.has(sym)) continue; seen.add(sym);
+    const ck = canonSym(sym); if (seen.has(ck)) continue; seen.add(ck);
     const key = 'cell:' + sym + ':' + (c.timeframe || '');
     events = events.concat(feedSymbol(sym, segmentsFrom(key, bars)));
   }
@@ -315,7 +317,7 @@ let feedBusy = false;
 async function feedOffChart(){
   if (!acct || !leader || feedBusy || document.hidden) return;
   syncFromLocal();
-  const onChart = new Set(cells().map((c) => c.symbol));
+  const onChart = new Set(cells().map((c) => canonSym(c.symbol)));
   const need = new Set(Object.keys(acct.state.positions).concat(acct.state.orders.map((o) => o.symbol)).filter((s) => !onChart.has(s)));
   if (!need.size) return;
   feedBusy = true;
@@ -469,8 +471,9 @@ function linesFor(sym){
     if (p.tp != null) out.push({ id: 'ptp', kind: 'tp', price: p.tp, side: p.side, ref: p.avg, qty: p.qty });
     if (p.sl != null) out.push({ id: 'psl', kind: 'sl', price: p.sl, side: p.side, ref: p.avg, qty: p.qty });
   }
+  const key = canonSym(sym);
   for (const o of acct.state.orders) {
-    if (o.symbol !== sym) continue;
+    if (o.symbol !== key) continue;
     out.push({ id: 'o' + o.id, kind: 'ord', oid: o.id, price: o.price, side: o.side, type: o.type, qty: o.qty });
     if (o.tp != null) out.push({ id: 'o' + o.id + 'tp', kind: 'otp', oid: o.id, price: o.tp, side: o.side, ref: o.price, qty: o.qty });
     if (o.sl != null) out.push({ id: 'o' + o.id + 'sl', kind: 'osl', oid: o.id, price: o.sl, side: o.side, ref: o.price, qty: o.qty });
@@ -1070,7 +1073,7 @@ function table(head, rows, empty){
 }
 const td = (txt, cls) => h('td', { class: cls || null, text: txt });
 const sideTd = (side) => h('td', { class: side === 'buy' ? 'up' : 'down', text: side === 'buy' ? 'Long' : 'Short' });
-function goSym(sym){ const c = activeCell(); try { if (c && c.symbol !== sym) (WS.cell(c.id) || c).setSymbol(sym); } catch (e) {} }
+function goSym(sym){ const c = activeCell(); try { if (c && canonSym(c.symbol) !== canonSym(sym)) (WS.cell(c.id) || c).setSymbol(sym); } catch (e) {} }
 // Phone: a two-line card per row instead of a 9-column table (no sideways scroll).
 function card(sym, l1, pnl, l2, acts){
   return h('div', { class: 'stkpt-card', 'data-sym': sym || null }, [

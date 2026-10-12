@@ -41,6 +41,12 @@ async function runCase(browser, tag, viewport, mobile) {
   t(tag + ': ticket opens, no unsupported toast/message', r.visible && !r.unsupported, r);
   t(tag + ': spec canonicalises to futures:NQ1!', r.ok && r.canonical === 'futures:NQ1!', r);
   t(tag + ': ticket shows NQ quantity defaults', /NQ1!/.test(r.title) && r.qty === '1', r);
+  // working order placed under the canonical key must draw on the CME_MINI:NQ1! chart (build 519 follow-up)
+  await p.keyboard.press('Escape').catch(() => {});
+  const ord = await p.evaluate(() => { try { const a = window.__stkPaper.account; a.setLast('CME_MINI:NQ1!', 21000); return a.placeOrder({ symbol: 'CME_MINI:NQ1!', side: 'buy', type: 'limit', qty: 1, price: 20990 }).order.symbol; } catch (e) { return 'ERR ' + e.message; } });
+  t(tag + ': limit order stored under futures:NQ1!', ord === 'futures:NQ1!', ord);
+  const chip = await p.waitForFunction(() => document.querySelector('.stkpt-chip[data-kind="ord"]'), null, { timeout: 8000 }).then(() => true, () => false);
+  t(tag + ': working order line drawn on the CME_MINI:NQ1! chart', chip);
   await p.waitForTimeout(6500); // let unrelated provider-load toast fade before screenshot proof
   await p.screenshot({ path: OUT + 'paper-symbol-' + tag + '.png', fullPage: true });
   t(tag + ': no page errors', errs.length === 0, errs);

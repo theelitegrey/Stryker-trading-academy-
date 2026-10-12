@@ -381,6 +381,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   Promise.all([import('./chart-watchlist.js?v=514'), import(VELA_BASE + 'widget.js')])
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
     .catch((e) => console.warn('TradeZoro: watchlist', e));
+  // Indicator Settings → Inputs: every input.symbol opens the same symbol search
+  // (assets/chart-symbol-input.js).
+  Promise.all([import('./chart-symbol-input.js?v=514'), import(VELA_BASE + 'widget.js')])
+    .then(([m, Wd]) => m.mountSymbolInputPicker(ws, { toast, SymbolPicker: Wd.SymbolPicker, COMMODITY_ROOTS }))
+    .catch((e) => console.warn('TradeZoro: symbol inputs', e));
   // "+" on the price axis (alerts / disabled trade items / horizontal line): assets/chart-plus.js
   import('./chart-plus.js?v=514').then((m) => m.mountChartPlus(ws, { openAlerts: Alerts.openAlerts, chartPlots: Alerts.chartPlots })).catch((e) => console.warn('TradeZoro: + menu', e));
   try { Events.mountChartEvents(ws); } catch (e) { console.warn('TradeZoro: events', e); }

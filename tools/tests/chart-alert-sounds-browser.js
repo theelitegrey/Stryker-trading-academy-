@@ -1,6 +1,8 @@
 // Charts alert sounds browser test.
 //   CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-alert-sounds-browser.js [shotsDir]
-const { launch } = require('./lib.js');
+const fs = require('fs');
+const path = require('path');
+const { launch, ROOT } = require('./lib.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
 const OUT = process.argv[2] || '/tmp';
@@ -15,15 +17,77 @@ async function open(b, w, h, mobile) {
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
+  // Console errors, except generic resource-load lines: the harness aborts Firebase/Google
+  // routes and has no favicon/data stubs. Sound files are checked by URL below instead. The static server has no
+  // /api/chart data feed, so its WebSocket handshake 404s are ignored too.
+  p.on('console', (m) => { const t = m.text(); if ((m.type() === 'error' && !/^Failed to load resource|^WebSocket connection to .*\/api\/chart\//.test(t)) || (m.type() === 'warning' && /alert sound/i.test(t))) errors.push('console: ' + t); });
+  p.on('requestfailed', (r) => { if (/\/assets\/sounds\//.test(r.url())) errors.push('sound request failed: ' + r.url()); });
+  p.on('response', (r) => { if (/\/assets\/sounds\//.test(r.url()) && r.status() >= 400) errors.push('sound ' + r.status() + ': ' + r.url()); else if (r.status() === 404) p.__404 = (p.__404 || []).concat(r.url()); });
+  p.__soundReqs = [];
+  p.on('request', (r) => { if (/\/assets\/sounds\//.test(r.url())) p.__soundReqs.push(r.url()); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.__stkAlerts && window.StrykerChartSounds, null, { timeout: 45000 });
   await p.waitForTimeout(1200);
   return { ctx, p, errors };
 }
 
+const TZ = [1, 2, 3, 4, 5, 6];
+const CAP = 40 * 1024;
+
 (async () => {
+  // Recorded TradeZoro sounds: both formats exist and are under the size cap.
+  for (const n of TZ) for (const ext of ['ogg', 'mp3']) {
+    const f = path.join(ROOT, 'assets', 'sounds', `tradezoro-${n}.${ext}`);
+    const size = fs.existsSync(f) ? fs.statSync(f).size : -1;
+    check(size > 1000 && size < CAP, `tradezoro-${n}.${ext} exists and is under 40 KB`, size);
+  }
   const b = await launch();
   let { ctx, p, errors } = await open(b, 1280, 900, false);
+
+  check(p.__soundReqs.length === 0, 'recorded sounds are not fetched on page load (lazy)', p.__soundReqs);
+  const order = await p.evaluate(() => window.StrykerChartSounds.SOUNDS.map((s) => s[1]));
+  check(order.slice(0, 12).join('|') === 'Off|TradeZoro 1|TradeZoro 2|TradeZoro 3|TradeZoro 4|TradeZoro 5|TradeZoro 6|Chime|Bell|Ping|Cash register|Alarm', 'TradeZoro 1-6 listed above the synth sounds', order);
+  const defaults = await p.evaluate(() => window.StrykerChartSounds.DEFAULT_MAP);
+  check(JSON.stringify(defaults) === JSON.stringify({ price: 'chime', tp: 'cash', sl: 'alarm', long: 'bell', short: 'ping', closed: 'chime', indicator: 'ping' }), 'event defaults unchanged', defaults);
+  const tz = await p.evaluate(async (ns) => {
+    const S = window.StrykerChartSounds, out = [];
+    for (const n of ns) {
+      const k = 'tz' + n;
+      window.__stkAlertBeeps = 0;
+      const ok = await S.preview(k, 'price');
+      const buf = await S.loadFile(k);
+      const again = await S.loadFile(k);
+      // Decode the MP3 fallback too, as Safari would.
+      const c = new AudioContext();
+      const mp3 = await fetch('assets/sounds/tradezoro-' + n + '.mp3').then((r) => r.arrayBuffer()).then((ab) => c.decodeAudioData(ab));
+      let peak = 0; const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) peak = Math.max(peak, Math.abs(d[i]));
+      out.push({ n, ok, beeps: window.__stkAlertBeeps, dur: +buf.duration.toFixed(2), ch: buf.numberOfChannels, fmt: buf.__stkFormat, cached: buf === again, mp3dur: +mp3.duration.toFixed(2), peakDb: +(20 * Math.log10(peak)).toFixed(1) });
+      c.close();
+    }
+    return out;
+  }, TZ);
+  for (const r of tz) {
+    check(r.ok === true && r.beeps === 1 && r.dur > 0.3 && r.dur < 3.5 && r.ch === 1 && r.cached && r.mp3dur > 0.3, `TradeZoro ${r.n} loads, decodes, plays (ogg + mp3), buffer cached`, r);
+    check(r.peakDb <= -3, `TradeZoro ${r.n} peak at or below -3 dB`, r.peakDb);
+  }
+  const reqsAfter = p.__soundReqs.length;
+  await p.evaluate(() => window.StrykerChartSounds.preview('tz1', 'price'));
+  check(p.__soundReqs.length === reqsAfter, 'second preview reuses cached buffer (no refetch)', p.__soundReqs.length - reqsAfter);
+  const rate = await p.evaluate(async () => {
+    const S = window.StrykerChartSounds;
+    S.setEventSound('closed', 'tz3');
+    await new Promise((r) => setTimeout(r, 2100));
+    window.__stkAlertBeeps = 0;
+    const a = await S.play('closed'); const b2 = await S.play('closed');
+    const p0 = S.prefs(); const vol = p0.volume; p0.volume = 0; S.save(p0);
+    await new Promise((r) => setTimeout(r, 2100));
+    const muted = await S.play('closed');
+    p0.volume = vol; S.save(p0);
+    S.setEventSound('closed', 'chime');
+    await new Promise((r) => setTimeout(r, 2100));
+    return { a, b2, muted, beeps: window.__stkAlertBeeps };
+  });
+  check(rate.a === true && rate.b2 === false && rate.muted === false && rate.beeps === 1, 'TradeZoro event sound respects 2 s rate limit and volume 0', rate);
 
   const pure = await p.evaluate(async () => {
     const S = window.StrykerChartSounds;
@@ -87,6 +151,7 @@ async function open(b, w, h, mobile) {
   await p.evaluate(() => { window.__stkAlerts.openSounds(); });
   await p.waitForSelector('#stk-snd:not([hidden])');
   await p.screenshot({ path: `${OUT}/alert-sounds-1280.png`, fullPage: false });
+  if (p.__404) console.log('info: 404s (not sound files):', JSON.stringify(p.__404).slice(0, 300));
   check(!errors.length, 'no page errors (1280)', errors);
   await ctx.close();
 
@@ -102,6 +167,10 @@ async function open(b, w, h, mobile) {
       playW: Math.round(play.width), sameLine: Math.abs((play.top + play.height / 2) - (sel.top + sel.height / 2)) < 4,
       helper: document.querySelector('#stk-snd .stk-snd-preview p').textContent };
   });
+  const opts = await p.evaluate(() => [...document.querySelectorAll('#stk-snd .stk-snd-row select')].map((s) => [...s.options].slice(1, 8).map((o) => o.textContent).join('|')));
+  check(opts.length === 7 && opts.every((o) => o === 'TradeZoro 1|TradeZoro 2|TradeZoro 3|TradeZoro 4|TradeZoro 5|TradeZoro 6|Chime'), 'every event dropdown lists TradeZoro 1-6 above Chime', opts);
+  const pillsTz = await p.evaluate(() => [...document.querySelectorAll('#stk-snd .stk-snd-pill')].filter((b) => /TradeZoro/.test(b.textContent)).length);
+  check(pillsTz === 6, 'preview pills include TradeZoro 1-6', pillsTz);
   check(mobile.removeShown === 0, 'Remove hidden when no custom sound is uploaded', mobile);
   check(mobile.playW <= 40 && mobile.sameLine, 'play is a compact icon button next to the dropdown', mobile);
   check(mobile.helper === 'Tap a sound to hear it.', 'helper text', mobile.helper);

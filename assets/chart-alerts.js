@@ -32,8 +32,8 @@ const CONDS = [
 const CONDL = Object.fromEntries(CONDS);
 const IND_KEY = 'stryker_chart_alerts_ind';
 const SOUND_EVENTS = [['price', 'Price alert'], ['tp', 'Take profit hit'], ['sl', 'Stop loss hit'], ['long', 'Long opened'], ['short', 'Short opened'], ['closed', 'Position closed'], ['indicator', 'Indicator signal (other)']];
-const SOUND_OPTIONS = ['off', 'chime', 'bell', 'ping', 'cash', 'alarm', 'custom'];
-const SOUND_LABELS = { off: 'Off', chime: 'Chime', bell: 'Bell', ping: 'Ping', cash: 'Cash register', alarm: 'Alarm', custom: 'Custom' };
+const SOUND_OPTIONS = ['off', 'tz1', 'tz2', 'tz3', 'tz4', 'tz5', 'tz6', 'chime', 'bell', 'ping', 'cash', 'alarm', 'custom'];
+const SOUND_LABELS = { off: 'Off', tz1: 'TradeZoro 1', tz2: 'TradeZoro 2', tz3: 'TradeZoro 3', tz4: 'TradeZoro 4', tz5: 'TradeZoro 5', tz6: 'TradeZoro 6', chime: 'Chime', bell: 'Bell', ping: 'Ping', cash: 'Cash register', alarm: 'Alarm', custom: 'Custom' };
 const SOUND_LABEL_OPTIONS = SOUND_OPTIONS.map((k) => SOUND_LABELS[k]);
 const SOUND_DEFAULTS = { price: 'chime', tp: 'cash', sl: 'alarm', long: 'bell', short: 'ping', closed: 'chime', indicator: 'ping' };
 const PREF_DEFAULTS = { lines: true, lineColor: '#f7a600', onlyActive: false, volume: 60, autoHide: true, sounds: Object.assign({}, SOUND_DEFAULTS) };

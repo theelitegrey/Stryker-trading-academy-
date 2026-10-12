@@ -231,9 +231,17 @@ const ms = (r) => (r.ms === null ? 'NOT within ' + LIMIT_MS + ' ms' : r.ms + ' m
       await openSettings(p, x.id); await setField(p, x.id, 'fC', 'sw'); await dialogButton(p, '^ok$');
       let r = await waitModel(p, LM, 'fC', !x.inputs.fC, LIMIT_MS);
       check(r.ms !== null, `B: Liquidity Master session toggle redrawn (${ms(r)})`);
+      // Let the toggle's restart land first, so the colour change is timed on its own.
+      for (let i = 0; i < 30; i++) { const d = await runs(p); if (d && d.sessions.every(s => !s.restarting && !s.queued)) break; await p.waitForTimeout(500); }
       const col = '#FF00FF33';
       await p.evaluate(([id, col]) => window.STRYKER_VELA.context().cells[0].chart.indicators().find(i => i.id === id).setInputs({ fvgBearBg: col }), [x.id, col]);
       r = await waitModel(p, LM, 'fvgBearBg', col, LIMIT_MS);
+      if (r.ms === null) {
+        // Missed the limit: tell "slow" (busy 4 GB server) apart from "lost" (the bug this guards).
+        const late = await waitModel(p, LM, 'fvgBearBg', col, 30000);
+        console.log('INFO B: colour ' + (late.ms === null ? 'LOST (not drawn after a further 30 s)' : 'late, drawn ' + (LIMIT_MS + late.ms) + ' ms after the change'));
+        r = Object.assign({}, r, { s: late.s });
+      }
       const used = r.s.by[LM].boxes.some(c => /FF00FF/i.test(c.replace(/\s/g, '')) || /rgba\(255,0,255/i.test(c.replace(/\s/g, '')));
       check(r.ms !== null, 'B: colour input applied (' + ms(r) + ')');
       check(used, 'B: FVG boxes drawn in the new colour' + (used ? '' : ' (box colours: ' + [...new Set(r.s.by[LM].boxes)].slice(0, 6).join(' ') + ')'));

@@ -93,7 +93,18 @@ async function open(b, w, h, mobile) {
   ({ ctx, p, errors } = await open(b, 390, 844, true));
   await p.evaluate(() => { window.__stkAlerts.openSounds(); });
   await p.waitForSelector('#stk-snd:not([hidden])');
-  const mobile = await p.evaluate(() => ({ w: document.documentElement.scrollWidth, vw: innerWidth, rows: document.querySelectorAll('.stk-snd-row').length }));
+  await p.waitForTimeout(300);
+  const mobile = await p.evaluate(() => {
+    const row = document.querySelector('#stk-snd .stk-snd-row');
+    const play = row.querySelector('[data-k=play]').getBoundingClientRect(), sel = row.querySelector('select').getBoundingClientRect();
+    return { w: document.documentElement.scrollWidth, vw: innerWidth, rows: document.querySelectorAll('.stk-snd-row').length,
+      removeShown: [...document.querySelectorAll('#stk-snd [data-k=remove]')].filter((x) => !x.hidden && x.offsetParent).length,
+      playW: Math.round(play.width), sameLine: Math.abs((play.top + play.height / 2) - (sel.top + sel.height / 2)) < 4,
+      helper: document.querySelector('#stk-snd .stk-snd-preview p').textContent };
+  });
+  check(mobile.removeShown === 0, 'Remove hidden when no custom sound is uploaded', mobile);
+  check(mobile.playW <= 40 && mobile.sameLine, 'play is a compact icon button next to the dropdown', mobile);
+  check(mobile.helper === 'Tap a sound to hear it.', 'helper text', mobile.helper);
   await p.screenshot({ path: `${OUT}/alert-sounds-390.png`, fullPage: false });
   check(mobile.rows >= 7 && mobile.w <= mobile.vw + 2, '390 sound settings fit without horizontal overflow', mobile);
   check(!errors.length, 'no page errors (390)', errors);

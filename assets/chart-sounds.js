@@ -125,7 +125,7 @@
     return 'indicator';
   }
   function toast(title, body){
-    try { if (typeof root.showToast === 'function') return root.showToast(title, body || '', 'info'); } catch (e) {}
+    try { if (typeof root.showToast === 'function') return root.showToast('info', body || title, { title }); } catch (e) {}
     try { root.dispatchEvent(new CustomEvent('stryker:chart-sound-toast', { detail: { title, body } })); } catch (e) {}
   }
   function indicatorAlert(message, meta){

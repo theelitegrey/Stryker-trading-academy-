@@ -436,7 +436,7 @@ function renderSoundControls(host, opts){
   prefs = loadPrefs();
   const volume = Math.max(0, Math.min(100, Number(prefs.volume)));
   host.classList.add('stk-snd-ui');
-  host.innerHTML = '<div class="stk-snd-card stk-snd-preview"><div><h3>Preview sounds</h3><p>Five built-in WebAudio tones. No third-party audio files.</p></div><div class="stk-snd-pills"></div></div><label class="stk-snd-vol"><span>Volume</span><input type="range" min="0" max="100" step="1"><b></b></label><div class="stk-snd-card"><h3>Event sounds</h3><div class="stk-snd-events"></div></div>';
+  host.innerHTML = '<div class="stk-snd-card stk-snd-preview"><div><h3>Preview sounds</h3><p>Tap a sound to hear it.</p></div><div class="stk-snd-pills"></div></div><label class="stk-snd-vol"><span>Volume</span><input type="range" min="0" max="100" step="1"><b></b></label><div class="stk-snd-card"><h3>Event sounds</h3><div class="stk-snd-events"></div></div>';
   const pills = host.querySelector('.stk-snd-pills');
   SOUND_OPTIONS.filter((x) => x !== 'custom').forEach((k) => {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'stk-snd-pill'; b.dataset.preview = k; b.textContent = k === 'off' ? 'Off' : '▶ ' + soundName(k);
@@ -450,15 +450,15 @@ function renderSoundControls(host, opts){
   const ev = host.querySelector('.stk-snd-events');
   for (const [event, label] of SOUND_EVENTS) {
     const row = document.createElement('div'); row.className = 'stk-snd-row';
-    row.innerHTML = '<div class="stk-snd-event"><strong></strong><em></em></div><select aria-label="Sound"></select><button type="button" class="stk-snd-mini" data-k="play">▶</button><input type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg" hidden><button type="button" class="stk-snd-mini" data-k="upload">Custom</button><button type="button" class="stk-snd-mini" data-k="remove">Remove</button><small></small>';
+    row.innerHTML = '<div class="stk-snd-event"><strong></strong><em></em></div><div class="stk-snd-pick"><select aria-label="Sound"></select><button type="button" class="stk-snd-mini stk-snd-play" data-k="play" aria-label="Play sound" title="Play sound">▶</button></div><input type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg" hidden><button type="button" class="stk-snd-mini" data-k="upload">Custom</button><button type="button" class="stk-snd-mini" data-k="remove" hidden>Remove</button><small></small>';
     row.querySelector('strong').textContent = label;
     const sel = row.querySelector('select');
     for (const k of SOUND_OPTIONS) { const op = document.createElement('option'); op.value = k; op.textContent = soundName(k); sel.appendChild(op); }
     sel.value = (prefs.sounds || {})[event] || SOUND_DEFAULTS[event];
     sel.onchange = () => { sel.value = saveSound(event, sel.value); };
     row.querySelector('[data-k=play]').onclick = () => { if (S && S.play) S.play(event, { preview: true, noRateLimit: true }); else beep(); };
-    const file = row.querySelector('input[type=file]'), msg = row.querySelector('small'), sub = row.querySelector('em');
-    const setSub = async () => { try { const rec = S && S.getCustom ? await S.getCustom(event) : null; sub.textContent = rec ? ('Custom: ' + rec.name) : 'Default: ' + soundName(SOUND_DEFAULTS[event]); } catch (e) { sub.textContent = 'Default: ' + soundName(SOUND_DEFAULTS[event]); } };
+    const file = row.querySelector('input[type=file]'), msg = row.querySelector('small'), sub = row.querySelector('em'), rm = row.querySelector('[data-k=remove]');
+    const setSub = async () => { try { const rec = S && S.getCustom ? await S.getCustom(event) : null; sub.textContent = rec ? ('Custom: ' + rec.name) : 'Default: ' + soundName(SOUND_DEFAULTS[event]); rm.hidden = !rec; } catch (e) { sub.textContent = 'Default: ' + soundName(SOUND_DEFAULTS[event]); rm.hidden = true; } };
     setSub();
     row.querySelector('[data-k=upload]').onclick = () => file.click();
     file.onchange = async () => {
@@ -570,7 +570,7 @@ const CSS = `
 .stk-snd-events::-webkit-scrollbar-thumb,.stk-al-list::-webkit-scrollbar-thumb{ background:rgba(3,201,136,.42); border-radius:999px; }
 .stk-snd-events::-webkit-scrollbar-thumb:hover,.stk-al-list::-webkit-scrollbar-thumb:hover{ background:rgba(3,201,136,.72); }
 .stk-snd-events::-webkit-scrollbar-track,.stk-al-list::-webkit-scrollbar-track{ background:rgba(255,255,255,.04); border-radius:999px; }
-.stk-snd-row{ display:grid; grid-template-columns:minmax(128px,1fr) minmax(132px,160px) auto auto auto; gap:8px; align-items:center; padding:11px 0; border-top:1px solid rgba(238,238,238,.08); }
+.stk-snd-row{ display:grid; grid-template-columns:minmax(128px,1fr) minmax(176px,208px) auto auto; gap:8px; align-items:center; padding:11px 0; border-top:1px solid rgba(238,238,238,.08); }
 .stk-snd-row:first-child{ border-top:0; }
 .stk-snd-event{ min-width:0; display:flex; flex-direction:column; gap:2px; }
 .stk-snd-event strong{ font-size:13px; }
@@ -579,6 +579,10 @@ const CSS = `
 .stk-snd-row select{ width:100%; min-height:36px; background:#0b0b0d; color:#eeeeee; border:1px solid rgba(238,238,238,.14); border-radius:999px; padding:7px 12px; font:inherit; }
 :root[data-theme="light"] .stk-snd-row select{ background:#fff; color:#131316; border-color:rgba(19,19,22,.14); }
 .stk-snd-mini{ white-space:nowrap; min-height:34px; }
+.stk-snd-mini[hidden]{ display:none; }
+.stk-snd-pick{ display:flex; align-items:center; gap:6px; min-width:0; }
+.stk-snd-pick select{ flex:1 1 auto; min-width:0; }
+.stk-snd-ui .stk-snd-play{ flex:0 0 36px; width:36px; height:36px; min-height:36px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; }
 .stk-snd-row small{ grid-column:1/-1; min-height:16px; color:#03c988; font-size:11px; }
 .stk-al-list{ overflow:auto; min-height:60px; scrollbar-width:thin; scrollbar-color:rgba(3,201,136,.42) rgba(255,255,255,.04); }
 .stk-al-row{ display:flex; align-items:center; gap:6px; padding:8px 0; border-top:1px solid rgba(128,128,128,.18); }
@@ -593,7 +597,7 @@ const CSS = `
 .stk-al-toast button{ position:absolute; top:4px; right:6px; background:none; border:0; color:inherit; font-size:18px; cursor:pointer; }
 .vela-dialog--settings .stk-snd-settings{ padding:2px 0 12px; }
 .vela-dialog--settings .stk-snd-events{ max-height:none; overflow:visible; }
-@media (max-width:700px){ .stk-snd-preview{ grid-template-columns:1fr; } .stk-snd-pills{ justify-content:flex-start; } .stk-snd-row{ grid-template-columns:1fr auto; align-items:end; } .stk-snd-row select{ grid-column:1/-1; } .stk-snd-row small{ grid-column:1/-1; } }
+@media (max-width:700px){ .stk-snd-preview{ grid-template-columns:1fr; } .stk-snd-pills{ justify-content:flex-start; } .stk-snd-row{ grid-template-columns:auto auto 1fr; align-items:center; } .stk-snd-event,.stk-snd-pick{ grid-column:1/-1; } .stk-snd-row small{ grid-column:1/-1; } }
 @media (max-width:600px){ #stk-al,#stk-snd{ padding:0; align-items:stretch; } .stk-al-box,.stk-snd-box{ max-height:none; border-radius:0; width:100%; } .stk-al-row{ flex-wrap:wrap; } .stk-snd-events{ max-height:46vh; } }
 `
 

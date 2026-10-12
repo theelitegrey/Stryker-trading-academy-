@@ -31,7 +31,12 @@ const CONDS = [
 ];
 const CONDL = Object.fromEntries(CONDS);
 const IND_KEY = 'stryker_chart_alerts_ind';
-const PREF_DEFAULTS = { lines: true, lineColor: '#f7a600', onlyActive: false, volume: 60, autoHide: true };
+const SOUND_EVENTS = [['price', 'Price alert'], ['tp', 'Take profit hit'], ['sl', 'Stop loss hit'], ['long', 'Long opened'], ['short', 'Short opened'], ['closed', 'Position closed'], ['indicator', 'Indicator signal (other)']];
+const SOUND_OPTIONS = ['off', 'chime', 'bell', 'ping', 'cash', 'alarm', 'custom'];
+const SOUND_LABELS = { off: 'Off', chime: 'Chime', bell: 'Bell', ping: 'Ping', cash: 'Cash register', alarm: 'Alarm', custom: 'Custom' };
+const SOUND_LABEL_OPTIONS = SOUND_OPTIONS.map((k) => SOUND_LABELS[k]);
+const SOUND_DEFAULTS = { price: 'chime', tp: 'cash', sl: 'alarm', long: 'bell', short: 'ping', closed: 'chime', indicator: 'ping' };
+const PREF_DEFAULTS = { lines: true, lineColor: '#f7a600', onlyActive: false, volume: 60, autoHide: true, sounds: Object.assign({}, SOUND_DEFAULTS) };
 
 let WS = null, toastFn = () => {};
 let alerts = [];                       // [{id, symbol, cond, price, message, freq, active, triggeredAt}]
@@ -41,7 +46,8 @@ let prefs = loadPrefs();
 let backend = null;
 
 function loadPrefs(){
-  try { return Object.assign({}, PREF_DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); } catch (e) { return Object.assign({}, PREF_DEFAULTS); }
+  try { const p = Object.assign({}, PREF_DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); p.sounds = Object.assign({}, SOUND_DEFAULTS, p.sounds || {}); return p; }
+  catch (e) { return Object.assign({}, PREF_DEFAULTS, { sounds: Object.assign({}, SOUND_DEFAULTS) }); }
 }
 function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch (e) {} pushLines(); }
 
@@ -191,7 +197,7 @@ function poll(){
 function fire(a, p){
   const text = a.message || describe(a);
   showToast('Alert: ' + text, (a.src ? 'Value ' : 'Price ') + p + ' · ' + new Date().toLocaleTimeString());
-  beep();
+  playAlertSound(a.src ? 'indicator' : 'price');
   try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
   if (a.freq === 'once') {
     a.active = false;
@@ -201,7 +207,10 @@ function fire(a, p){
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
 }
 let actx = null;
-function beep(){
+function beep(){ playAlertSound('price', { noRateLimit: true }); }
+function playAlertSound(event, opts){
+  const S = window.StrykerChartSounds;
+  if (S && S.play) return S.play(event || 'price', opts || {});
   const vol = Math.max(0, Math.min(100, Number(prefs.volume))) / 100;
   if (!vol) return;
   try {
@@ -306,13 +315,14 @@ function build(){
       <label>Trigger<select name="freq"><option value="once">Only once</option><option value="every">Every time</option></select></label>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><span class="stk-al-count"></span></div>
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds">Sounds</button><span class="stk-al-count"></span></div>
     <div class="stk-al-list"></div>
   </div>`;
   document.body.appendChild(panel);
   panel.addEventListener('click', (e) => { if (e.target === panel) closePanel(); });
   panel.querySelector('.stk-al-x').onclick = closePanel;
   panel.querySelector('.stk-al-new').onclick = () => { const c = activeCell(); openForm({ symbol: c ? c.symbol : '', price: crossPrice() }); };
+  panel.querySelector('.stk-al-sounds').onclick = () => openSoundPanel();
   panel.querySelector('.stk-al-cancel').onclick = () => { panel.querySelector('.stk-al-form').hidden = true; editing = null; };
   panel.querySelector('.stk-al-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -391,23 +401,75 @@ function renderList(){
   }
 }
 
+
+let soundPanel = null;
+function openSoundPanel(){
+  if (!soundPanel) buildSoundPanel();
+  renderSoundPanel();
+  soundPanel.hidden = false;
+}
+function closeSoundPanel(){ if (soundPanel) soundPanel.hidden = true; }
+function buildSoundPanel(){
+  soundPanel = document.createElement('div'); soundPanel.id = 'stk-snd'; soundPanel.hidden = true;
+  soundPanel.innerHTML = '<div class="stk-snd-box" role="dialog" aria-modal="true" aria-labelledby="stk-snd-h"><div class="stk-al-head"><h2 id="stk-snd-h">Sounds</h2><button type="button" class="stk-al-x" aria-label="Close">×</button></div><p class="stk-al-note">Pick alert sounds for chart notifications. Custom files stay in this browser only (MP3/WAV/OGG, max 1 MB and 10 seconds).</p><div class="stk-snd-built"></div><div class="stk-snd-events"></div></div>';
+  document.body.appendChild(soundPanel);
+  soundPanel.addEventListener('click', (e) => { if (e.target === soundPanel) closeSoundPanel(); });
+  soundPanel.querySelector('.stk-al-x').onclick = closeSoundPanel;
+}
+function soundName(k){ const S = window.StrykerChartSounds; return S && S.soundLabel ? S.soundLabel(k) : k; }
+function renderSoundPanel(){
+  if (!soundPanel) return;
+  const S = window.StrykerChartSounds;
+  prefs = loadPrefs();
+  const built = soundPanel.querySelector('.stk-snd-built');
+  built.innerHTML = '<h3>Preview</h3><div class="stk-snd-pills">' + SOUND_OPTIONS.filter((x) => x !== 'custom').map((k) => '<button type="button" data-preview="' + k + '">' + (k === 'off' ? 'Off' : '▶ ' + soundName(k)) + '</button>').join('') + '</div><label class="stk-snd-vol">Volume <input type="range" min="0" max="100" step="1" value="' + Math.max(0, Math.min(100, Number(prefs.volume))) + '"><span>' + Math.max(0, Math.min(100, Number(prefs.volume))) + '%</span></label>';
+  built.querySelectorAll('[data-preview]').forEach((b) => b.onclick = () => { if (S && S.preview) S.preview(b.dataset.preview, 'price'); else beep(); });
+  const vr = built.querySelector('input[type=range]'); vr.oninput = () => { prefs.volume = Number(vr.value); savePrefs(); built.querySelector('span').textContent = prefs.volume + '%'; };
+  vr.onchange = () => beep();
+  const ev = soundPanel.querySelector('.stk-snd-events'); ev.textContent = '';
+  for (const [event, label] of SOUND_EVENTS) {
+    const row = document.createElement('div'); row.className = 'stk-snd-row';
+    row.innerHTML = '<label><span></span><select></select></label><button type="button" data-k="play">▶</button><input type="file" accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg" hidden><button type="button" data-k="upload">Custom</button><button type="button" data-k="remove">Remove</button><small></small>';
+    row.querySelector('span').textContent = label;
+    const sel = row.querySelector('select');
+    for (const k of SOUND_OPTIONS) { const op = document.createElement('option'); op.value = k; op.textContent = soundName(k); sel.appendChild(op); }
+    sel.value = (prefs.sounds || {})[event] || SOUND_DEFAULTS[event];
+    sel.onchange = () => { prefs.sounds = Object.assign({}, SOUND_DEFAULTS, prefs.sounds || {}); prefs.sounds[event] = sel.value; savePrefs(); if (S && S.setEventSound) S.setEventSound(event, sel.value); };
+    row.querySelector('[data-k=play]').onclick = () => { if (S && S.play) S.play(event, { preview: true, noRateLimit: true }); else beep(); };
+    const file = row.querySelector('input[type=file]'), msg = row.querySelector('small');
+    row.querySelector('[data-k=upload]').onclick = () => file.click();
+    file.onchange = async () => { msg.textContent = ''; try { if (!S || !S.putCustom) throw new Error('Custom sounds are not ready yet.'); const rec = await S.putCustom(event, file.files[0]); prefs = loadPrefs(); sel.value = 'custom'; msg.textContent = 'Saved ' + rec.name; } catch (err) { msg.textContent = (err && err.message) || 'Could not save that file.'; } finally { file.value = ''; } };
+    row.querySelector('[data-k=remove]').onclick = async () => { try { if (S && S.removeCustom) await S.removeCustom(event); prefs = loadPrefs(); sel.value = (prefs.sounds || {})[event] || SOUND_DEFAULTS[event]; msg.textContent = 'Custom sound removed.'; } catch (err) { msg.textContent = 'Could not remove it.'; } };
+    ev.appendChild(row);
+  }
+}
+
 // Settings window → Alerts tab (a Vela host section; global prefs, not per chart)
 function alertsSection(){
   const g = (k) => () => prefs[k]; const s = (k) => (v) => { prefs[k] = v; savePrefs(); };
-  return [{ title: 'Alerts', id: 'stk-alerts', placement: 'end', rows: [
-    { kind: 'heading', label: 'Alerts work while the Charts page is open' },
-    { kind: 'toggle', label: 'Alert lines', id: 'al-lines', get: g('lines'), set: s('lines') },
-    { kind: 'color', label: 'Alert line color', id: 'al-color', get: g('lineColor'), set: s('lineColor') },
-    { kind: 'toggle', label: 'Only active alerts', id: 'al-only', get: g('onlyActive'), set: s('onlyActive') },
-    { kind: 'select', label: 'Alert volume', id: 'al-vol', options: ['0', '20', '40', '60', '80', '100'], get: () => String(prefs.volume), set: (v) => { prefs.volume = Number(v); savePrefs(); beep(); } },
-    { kind: 'toggle', label: 'Automatically hide toasts', id: 'al-hide', get: g('autoHide'), set: s('autoHide') }
-  ] }];
+  const setSound = (event) => (v) => { const val = String(v || '').toLowerCase().replace(/ register$/, ''); prefs.sounds = Object.assign({}, SOUND_DEFAULTS, prefs.sounds || {}); prefs.sounds[event] = SOUND_OPTIONS.includes(val) ? val : (SOUND_DEFAULTS[event] || 'chime'); savePrefs(); try { window.StrykerChartSounds && window.StrykerChartSounds.setEventSound(event, prefs.sounds[event]); } catch (e) {} };
+  const soundRows = SOUND_EVENTS.map(([event, label]) => ({ kind: 'select', label, id: 'snd-' + event, options: SOUND_LABEL_OPTIONS, get: () => SOUND_LABELS[String((prefs.sounds || {})[event] || SOUND_DEFAULTS[event])] || 'Chime', set: setSound(event) }));
+  return [
+    { title: 'Alerts', id: 'stk-alerts', placement: 'end', rows: [
+      { kind: 'heading', label: 'Alerts work while the Charts page is open' },
+      { kind: 'toggle', label: 'Alert lines', id: 'al-lines', get: g('lines'), set: s('lines') },
+      { kind: 'color', label: 'Alert line color', id: 'al-color', get: g('lineColor'), set: s('lineColor') },
+      { kind: 'toggle', label: 'Only active alerts', id: 'al-only', get: g('onlyActive'), set: s('onlyActive') },
+      { kind: 'select', label: 'Alert volume', id: 'al-vol', options: ['0', '20', '40', '60', '80', '100'], get: () => String(prefs.volume), set: (v) => { prefs.volume = Number(v); savePrefs(); beep(); } },
+      { kind: 'toggle', label: 'Automatically hide toasts', id: 'al-hide', get: g('autoHide'), set: s('autoHide') }
+    ] },
+    { title: 'Sounds', id: 'stk-sounds', placement: 'end', rows: [
+      { kind: 'heading', label: 'Alert sounds. Use the Alerts panel → Sounds for preview and custom uploads.' },
+      { kind: 'select', label: 'Volume', id: 'snd-vol', options: ['0', '20', '40', '60', '80', '100'], get: () => String(prefs.volume), set: (v) => { prefs.volume = Number(v); savePrefs(); beep(); } },
+      ...soundRows
+    ] }
+  ];
 }
 
 const CSS = `
-#stk-al{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:16px; }
-#stk-al[hidden]{ display:none; }
-.stk-al-box{ width:min(560px,100%); max-height:min(80vh,680px); display:flex; flex-direction:column; background:#1a1b1f; color:#e6e7ea; border:1px solid #2e3036; border-radius:12px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); font:14px/1.4 system-ui,sans-serif; }
+#stk-al,#stk-snd{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; padding:16px; }
+#stk-al[hidden],#stk-snd[hidden]{ display:none; }
+.stk-al-box,.stk-snd-box{ width:min(560px,100%); max-height:min(80vh,680px); display:flex; flex-direction:column; background:#1a1b1f; color:#e6e7ea; border:1px solid #2e3036; border-radius:12px; padding:16px; box-shadow:0 20px 60px rgba(0,0,0,.5); font:14px/1.4 system-ui,sans-serif; }
 :root[data-theme="light"] .stk-al-box{ background:#fff; color:#131722; border-color:#e0e3eb; }
 .stk-al-head{ display:flex; align-items:center; justify-content:space-between; }
 .stk-al-head h2{ margin:0; font-size:18px; }
@@ -421,9 +483,16 @@ const CSS = `
 :root[data-theme="light"] .stk-al-form input,:root[data-theme="light"] .stk-al-form select{ border-color:#d1d4dc; }
 .stk-al-form select option{ color:#131722; }
 .stk-al-fbtn{ grid-column:1/-1; display:flex; justify-content:flex-end; gap:8px; }
-.stk-al-box button{ border-radius:6px; padding:6px 12px; border:1px solid #3a3d45; background:transparent; color:inherit; cursor:pointer; font:inherit; font-size:13px; }
-.stk-al-box .stk-al-save,.stk-al-box .stk-al-new{ background:#2962ff; border-color:#2962ff; color:#fff; }
-.stk-al-tools{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:12px; opacity:.95; }
+.stk-al-box button,.stk-snd-box button{ border-radius:6px; padding:6px 12px; border:1px solid #3a3d45; background:transparent; color:inherit; cursor:pointer; font:inherit; font-size:13px; }
+.stk-al-box .stk-al-save,.stk-al-box .stk-al-new,.stk-al-box .stk-al-sounds{ background:#2962ff; border-color:#2962ff; color:#fff; }
+.stk-al-tools{ display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:12px; opacity:.95; flex-wrap:wrap; }
+.stk-snd-events{ overflow:auto; max-height:42vh; scrollbar-width:thin; scrollbar-color:rgba(140,145,160,.35) transparent; }
+.stk-snd-events::-webkit-scrollbar{ width:8px; } .stk-snd-events::-webkit-scrollbar-thumb{ background:rgba(140,145,160,.35); border-radius:8px; }
+.stk-snd-built h3{ margin:8px 0; font-size:14px; } .stk-snd-pills{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.stk-snd-vol{ display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:12px; } .stk-snd-vol input{ flex:1; }
+.stk-snd-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto auto; gap:8px; align-items:end; padding:10px 0; border-top:1px solid rgba(128,128,128,.18); }
+.stk-snd-row label{ min-width:0; display:flex; flex-direction:column; gap:4px; font-size:12px; } .stk-snd-row select{ background:transparent; color:inherit; border:1px solid #3a3d45; border-radius:6px; padding:7px 8px; }
+.stk-snd-row select option{ color:#131722; } .stk-snd-row small{ grid-column:1/-1; min-height:16px; opacity:.75; }
 .stk-al-list{ overflow:auto; min-height:60px; scrollbar-width:thin; scrollbar-color:rgba(140,145,160,.35) transparent; }
 .stk-al-list::-webkit-scrollbar{ width:8px; } .stk-al-list::-webkit-scrollbar-thumb{ background:rgba(140,145,160,.35); border-radius:8px; }
 .stk-al-list::-webkit-scrollbar-thumb:hover{ background:rgba(140,145,160,.6); } .stk-al-list::-webkit-scrollbar-track{ background:transparent; }
@@ -437,7 +506,7 @@ const CSS = `
 :root[data-theme="light"] .stk-al-toast{ background:#fff; color:#131722; }
 .stk-al-toast span{ font-size:12px; opacity:.75; }
 .stk-al-toast button{ position:absolute; top:4px; right:6px; background:none; border:0; color:inherit; font-size:18px; cursor:pointer; }
-@media (max-width:600px){ #stk-al{ padding:0; align-items:stretch; } .stk-al-box{ max-height:none; border-radius:0; width:100%; } .stk-al-row{ flex-wrap:wrap; } }
+@media (max-width:600px){ #stk-al,#stk-snd{ padding:0; align-items:stretch; } .stk-al-box,.stk-snd-box{ max-height:none; border-radius:0; width:100%; } .stk-al-row{ flex-wrap:wrap; } .stk-snd-row{ grid-template-columns:1fr auto; } }
 `;
 
 // ---------------------------------------------------------------------------------------
@@ -476,5 +545,5 @@ export function mountChartAlerts(ws, opts){
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
   setInterval(poll, 1000);
   setInterval(pushLines, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, poll, open: openAlerts, add: addAlert, get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
+  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
 }

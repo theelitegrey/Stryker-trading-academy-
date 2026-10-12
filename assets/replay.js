@@ -115,7 +115,7 @@
     RP.chart = new window.ReplayChart($('rp-chart-main'), opts);
     RP.chart.onLineDrag = onLineDrag; RP.chart.onDrawingsChange = (d) => { RP.session.drawings = d; }; RP.chart.onSelect = (i) => { $('rp-tool-del').disabled = i == null; };
     RP.chart.onIndicatorAction = (iid, act) => { if (act === 'remove') RP.chart.removeIndicator(iid); else if (act === 'toggle') RP.chart.toggleIndicator(iid); else if (act === 'settings') openIndicatorSettings(iid); saveIndicators(); renderObjects(); };
-    RP.chart.onLineAction = (line, act) => { try { const before = RP.sim.trades.length; if (act === 'close' && line.pos) RP.sim.close(line.pos.id); else if (act === 'cancel' && line.order) RP.sim.cancel(line.order.id); refresh(); if (RP.sim.trades.length > before) onTradesClosed(RP.sim.trades.slice(before)); saveSession(); } catch (err) { toast(err.message, 'error'); } };
+    RP.chart.onLineAction = (line, act) => { try { const before = RP.sim.trades.length; if (act === 'close' && line.pos) RP.sim.close(line.pos.id); else if (act === 'cancel' && line.order) RP.sim.cancel(line.order.id); refresh(); if (RP.sim.trades.length > before) { const nt = RP.sim.trades.slice(before); soundClosedTrades(nt); onTradesClosed(nt); } saveSession(); } catch (err) { toast(err.message, 'error'); } };
     RP.chart.onContextMenu = openContextMenu;
     const _odc = RP.chart.onDrawingsChange; RP.chart.onDrawingsChange = (d) => { _odc(d); renderObjects(); };
     RP.htf = new window.ReplayChart($('rp-chart-htf'), Object.assign({}, opts, { symbol: RP.spec.symbol + ' HTF' })); RP.htf.onLineDrag = onLineDrag;
@@ -155,17 +155,27 @@
     updateTicketMath();
   }
 
+
+  function alertSound(kind, detail) { try { if (window.StrykerChartSounds && window.StrykerChartSounds.simEvent) window.StrykerChartSounds.simEvent(kind, detail || {}); } catch (e) {} }
+  function posIds() { return new Set((RP.sim && RP.sim.positions || []).map((p) => p.id)); }
+  function soundNewPositions(before) {
+    for (const p of (RP.sim && RP.sim.positions || [])) if (!before.has(p.id)) alertSound(p.side === 'buy' ? 'long-opened' : 'short-opened', { position: p });
+  }
+  function soundClosedTrades(trades) {
+    (trades || []).forEach((t) => alertSound(t.reason === 'tp' ? 'take-profit' : t.reason === 'sl' ? 'stop-loss' : 'position-closed', { trade: t }));
+  }
+
   // ---- playback ------------------------------------------------------------------------------
   function advance(n) {
-    const base = RP.series.base; let moved = 0; const before = RP.sim.trades.length;
+    const base = RP.series.base; let moved = 0; const before = RP.sim.trades.length; const beforePos = posIds();
     for (let k = 0; k < n; k++) { if (RP.cursor >= base.length - 1) { pause(); toast('End of the loaded data — start a new session to continue from here.', 'info'); break; } RP.cursor++; RP.sim.onBar(base[RP.cursor], RP.cursor); moved++; }
-    if (moved) { RP.stepsSinceSave += moved; refresh(); if (RP.sim.trades.length > before) onTradesClosed(RP.sim.trades.slice(before)); if (RP.stepsSinceSave >= 120) saveSession(); }
+    if (moved) { RP.stepsSinceSave += moved; refresh(); soundNewPositions(beforePos); if (RP.sim.trades.length > before) { const nt = RP.sim.trades.slice(before); soundClosedTrades(nt); onTradesClosed(nt); } if (RP.stepsSinceSave >= 120) saveSession(); }
   }
   function play() { if (RP.playing) return; RP.playing = true; $('rp-play').classList.add('is-on'); $('rp-play').innerHTML = ICON_PAUSE; schedule(); }
   function schedule() { clearInterval(RP.timer); RP.timer = setInterval(() => advance(1), Math.max(16, 1000 / SPEEDS[RP.speedIdx])); }
   function pause() { if (!RP.playing) return; RP.playing = false; clearInterval(RP.timer); RP.timer = null; $('rp-play').classList.remove('is-on'); $('rp-play').innerHTML = ICON_PLAY; saveSession(); }
   function setSpeed(i) { RP.speedIdx = Math.max(0, Math.min(SPEEDS.length - 1, i)); $('rp-speed').value = String(RP.speedIdx); if (RP.playing) schedule(); }
-  function jumpTo(pred, cap) { pause(); const base = RP.series.base; let steps = 0; const before = RP.sim.trades.length; while (RP.cursor < base.length - 1 && steps < (cap || 20000)) { RP.cursor++; RP.sim.onBar(base[RP.cursor], RP.cursor); steps++; if (pred(base[RP.cursor], base[RP.cursor - 1])) break; } RP.stepsSinceSave += steps; refresh(); if (RP.sim.trades.length > before) onTradesClosed(RP.sim.trades.slice(before)); saveSession(); if (RP.cursor >= base.length - 1) toast('Reached the end of the loaded data.', 'info'); }
+  function jumpTo(pred, cap) { pause(); const base = RP.series.base; let steps = 0; const before = RP.sim.trades.length; const beforePos = posIds(); while (RP.cursor < base.length - 1 && steps < (cap || 20000)) { RP.cursor++; RP.sim.onBar(base[RP.cursor], RP.cursor); steps++; if (pred(base[RP.cursor], base[RP.cursor - 1])) break; } RP.stepsSinceSave += steps; refresh(); soundNewPositions(beforePos); if (RP.sim.trades.length > before) { const nt = RP.sim.trades.slice(before); soundClosedTrades(nt); onTradesClosed(nt); } saveSession(); if (RP.cursor >= base.length - 1) toast('Reached the end of the loaded data.', 'info'); }
   const ny = (t) => COACH.nyMinutes(t);
   function jumpNextNyOpen() { jumpTo((b, prev) => { const p = ny(b.t), q = ny(prev.t); return p.min >= 570 && q.min < 570 && p.wd !== 'Sat' && p.wd !== 'Sun'; }); }
   function jumpNextDay() { jumpTo((b, prev) => new Date(b.t + 0).toISOString().slice(0, 10) !== new Date(prev.t).toISOString().slice(0, 10) && ny(b.t).min >= 0); }
@@ -228,6 +238,7 @@
   function finalizeOrder(o) {
     try {
       const r = RP.sim.submit(o); $('rp-err').textContent = '';
+      if (o.type === 'market') alertSound(r.side === 'buy' ? 'long-opened' : 'short-opened', { position: r });
       toast(o.type === 'market' ? ('Filled ' + o.side + ' ' + o.size + ' @ ' + RP.chart.fmt(r.entry)) : ('Order placed @ ' + RP.chart.fmt(r.price)), 'success');
       $('rp-sl').value = ''; $('rp-tp').value = ''; refresh(); saveSession();
       if (o.type === 'market') queueSnap(r.id, 'entry');
@@ -272,7 +283,7 @@
     try {
       if (posEl) { const id = Number(posEl.dataset.pos); const p = RP.sim.positions.find((x) => x.id === id); if (!p) return; if (e.target.closest('[data-close]')) RP.sim.close(id); else if (e.target.closest('[data-half]')) RP.sim.close(id, p.size / 2); else if (e.target.closest('[data-be]')) RP.sim.modifyPosition(id, { sl: p.entry }); else if (e.target.closest('[data-rev]')) RP.sim.reverse(id); else return; }
       else if (ordEl && e.target.closest('[data-cancel]')) RP.sim.cancel(Number(ordEl.dataset.order)); else return;
-      refresh(); if (RP.sim.trades.length > before) onTradesClosed(RP.sim.trades.slice(before)); saveSession();
+      refresh(); if (RP.sim.trades.length > before) { const nt = RP.sim.trades.slice(before); soundClosedTrades(nt); onTradesClosed(nt); } saveSession();
     } catch (err) { toast(err.message, 'error'); }
   }
   function onPositionsChange(e) { const inp = e.target.closest('input[data-field]'), posEl = e.target.closest('[data-pos]'); if (!inp || !posEl) return; try { RP.sim.modifyPosition(Number(posEl.dataset.pos), { [inp.dataset.field]: inp.value === '' ? null : Number(inp.value) }); refresh(); saveSession(); } catch (err) { toast(err.message, 'error'); renderPositions(); } }

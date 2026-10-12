@@ -77,11 +77,24 @@ function loadNext(){
 async function ensureNext(chart){
   const m = await loadNext();
   if (!nextEngines.has(chart)) {
-    const e = new m.PineNextEngine({ props: 'strategy' });
+    const e = new m.PineNextEngine({ props: 'strategy', onAlert: (alert, session) => handlePineAlert(chart, alert, session) });
     chart.registerEngine(LANG_NEXT, e);
     nextEngines.set(chart, e);
   }
   return nextEngines.get(chart);
+}
+
+
+function handlePineAlert(chart, alert, session){
+  const msg = typeof alert === 'string' ? alert : (alert && (alert.message || alert.title || alert.text)) || 'Indicator signal';
+  let bars = [];
+  try { bars = session && session.barsOf ? session.barsOf() : []; } catch (e) {}
+  const last = bars && bars.length ? bars[bars.length - 1] : null;
+  const barTime = last && (last.time || last.openTime || last.t);
+  const live = !(session && session.req && session.req.historyState === 'backfill');
+  try {
+    if (window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert) window.StrykerChartSounds.indicatorAlert(msg, { live, barClosed: true, barTime, scriptId: alert && alert.id, freq: alert && alert.freq });
+  } catch (e) {}
 }
 
 function loadPine(){

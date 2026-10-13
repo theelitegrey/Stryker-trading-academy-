@@ -1,0 +1,70 @@
+# Deploys the order-book recorder Worker (workers/book-recorder) with wrangler, using the same
+# Cloudflare secrets as the site deploy. Runs the unit tests first; a failing test stops it.
+# Rollback: see workers/book-recorder/README.md (wrangler rollback, or delete the Worker).
+name: Deploy book recorder Worker
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/book-recorder/**', '.github/workflows/deploy-book-recorder.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: book-recorder-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Unit tests (bucketing parity, wire format, merge)
+        run: node workers/book-recorder/test/parity.test.mjs
+      - name: Deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          INGEST_SECRET: ${{ secrets.BOOK_INGEST_SECRET }}
+        run: |
+          echo "::add-mask::$INGEST_SECRET"
+          # Same clean-up as deploy-site.yml: the secrets were pasted with extra text around them.
+          TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -oE '[A-Za-z0-9_-]{35,}' | tail -1 || true)
+          [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
+          echo "::add-mask::$TOKEN"
+          ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          if [ -z "$ACCOUNT" ]; then
+            ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id // empty')
+          fi
+          echo "::add-mask::$ACCOUNT"
+          [ -z "$ACCOUNT" ] && { echo "::error::no Cloudflare account visible to the token"; exit 1; }
+          SUB=$(curl -s -H "Authorization: Bearer $TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/workers/subdomain" | jq -r '.result.subdomain // empty')
+          echo "workers.dev subdomain: ${SUB:-none}"
+          cd workers/book-recorder
+          CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT" npx --yes wrangler@4.149.0 deploy 2>&1 | tee /tmp/deploy.log
+          test "${PIPESTATUS[0]}" = 0
+          # the feeder's shared secret (GitHub secret BOOK_INGEST_SECRET; the same value lives in
+          # /root/projects/book-feeder/feeder.env on the server). Piped on stdin, never echoed.
+          if [ -n "$INGEST_SECRET" ]; then
+            printf '%s' "$INGEST_SECRET" | CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT" npx --yes wrangler@4.149.0 secret put INGEST_SECRET >/dev/null 2>&1 \
+              && echo "INGEST_SECRET set" || { echo "::error::could not set INGEST_SECRET"; exit 1; }
+          else
+            echo "::error::BOOK_INGEST_SECRET repo secret is missing"; exit 1
+          fi
+      - name: Smoke test
+        run: |
+          URL=$(grep -oE 'https://book-recorder\.[a-z0-9-]+\.workers\.dev' /tmp/deploy.log | head -1)
+          echo "Worker: $URL"
+          curl -s "$URL/status" | jq -c '{last, symbols: (.symbols | map_values({samples, from, to}))}'
+          # /ingest refuses a request without the secret
+          c401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/ingest?symbols=BTCUSDT")
+          echo "ingest without key: HTTP $c401"; test "$c401" = 401
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://tradezoro.com' "$URL/book-history?symbol=BTCUSDT")
+          echo "book-history: HTTP $code"
+          test "$code" = 200

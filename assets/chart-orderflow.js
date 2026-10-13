@@ -1316,7 +1316,7 @@ const DOM_SCHEMA = [
   { key: 'hidePct', title: 'Hide thin levels below (percentile)', type: 'int', defval: 60, min: 0, max: 95, step: 5 },
   { key: 'bucketUsd', title: 'Price bucket size (0 = auto)', type: 'float', defval: 0, min: 0, max: 100000, step: 0.5 },
   { key: 'bookRangePct', title: 'Book range %', type: 'float', defval: 2, min: 0.5, max: 5, step: 0.5 },
-  { key: 'historyMins', title: 'History window (minutes)', type: 'int', defval: 360, min: 5, max: 360, step: 5 },
+  { key: 'historyMinutes', title: 'History window (minutes)', type: 'int', defval: 1440, min: 5, max: 1440, step: 5 },
   { key: 'depthWidthPct', title: 'Depth bars width %', type: 'int', defval: 15, min: 5, max: 40, step: 1 },
   { key: 'maxOpacity', title: 'Max opacity %', type: 'int', defval: 85, min: 5, max: 100, step: 1 },
   { key: 'showBest', title: 'Best bid / ask lines', type: 'bool', defval: false },
@@ -1329,6 +1329,8 @@ const DOM_SCHEMA = [
 // ignored, so an old 32% opacity / 36% ladder width does not carry over to the new look.
 // Build 505: the history window key is 'historyMins' (default 6 h, the whole recorded
 // history); the old 'historyMin' (default 90 min) of earlier saved charts is ignored.
+// Build 525: the key is 'historyMinutes' (default and max 24 h, the book recorder's span); the
+// 6 h 'historyMins' of earlier saved charts is ignored so they pick up the recorder history.
 function domConfig(inputs) {
   const i = inputs || {};
   const vi = i.style === 'right ladder' ? 2 : DOM_VIEWS.indexOf(i.style);
@@ -1346,7 +1348,7 @@ function domConfig(inputs) {
     hide: clamp(num(i.hidePct, 60), 0, 95) / 100,
     bucket: Math.max(0, num(i.bucketUsd, 0)),
     range: clamp(num(i.bookRangePct, 2), 0.5, 5) / 100,
-    historyMin: clamp(Math.round(num(i.historyMins, 360)), 5, 360),
+    historyMin: clamp(Math.round(num(i.historyMinutes, 1440)), 5, 1440),
     widthPct: clamp(num(i.depthWidthPct, 15), 5, 40) / 100,
     opacity: clamp(num(i.maxOpacity, 85), 5, 100) / 100,
     showBest: i.showBest === true,
@@ -1387,6 +1389,17 @@ function nearNiceStep(raw) {
   let best = p;
   for (const m of [1, 2, 2.5, 5, 10]) if (m * p <= raw * 1.0001) best = m * p;
   return best;
+}
+// Storage step + band (pure; the book recorder Worker, workers/book-recorder/src/bucket.js
+// storeRule, applies the same rule with no wants: auto step, +-2%).
+function bookStoreRule(mid, autoStep, wants) {
+  if (!autoStep || Math.abs(Math.log(autoStep / (mid * BOOK_AUTO_ROW))) > 1.1) autoStep = nearNiceStep(mid * BOOK_AUTO_ROW);
+  let step = autoStep, range = 0;
+  if (wants) wants.forEach((w) => { if (w.bucket > 0 && w.bucket < step) step = w.bucket; if (w.range > range) range = w.range; });
+  if (!(range > 0)) range = 0.02;
+  const floor = mid * range / BOOK_ROWS_SIDE_MAX;
+  if (step < floor) step = niceStep(floor);
+  return { step, range, autoStep };
 }
 function bookKey(provider, ticker) { return provider + '|' + String(ticker || '').toUpperCase(); }
 function binanceBookSource(ticker, onBook, onStatus) {
@@ -1644,6 +1657,21 @@ async function domLoad(f) {
   // two tabs on one symbol both write: keep one sample per ~second
   return out.filter((s, k) => k === 0 || s.ts - out[k - 1].ts >= 500);
 }
+// Test hook (parity with the book recorder): a Binance /depth snapshot -> the sample a fresh
+// feed with no manual bucket stores (book Maps built in snapshot order, like binanceBookSource).
+export function domParity(d, ts) {
+  const bids = new Map(), asks = new Map();
+  for (const r of d.bids || []) { const p = Number(r[0]), q = Number(r[1]); if (Number.isFinite(p) && Number.isFinite(q) && q > 0) bids.set(p, q); }
+  for (const r of d.asks || []) { const p = Number(r[0]), q = Number(r[1]); if (Number.isFinite(p) && Number.isFinite(q) && q > 0) asks.set(p, q); }
+  let bestBid = null, bestAsk = null;
+  bids.forEach((q, p) => { if (bestBid == null || p > bestBid) bestBid = p; });
+  asks.forEach((q, p) => { if (bestAsk == null || p < bestAsk) bestAsk = p; });
+  const book = { bids, asks, bestBid, bestAsk, ts };
+  const mid = bookMid(bestBid, bestAsk);
+  if (!(mid > 0)) return null;
+  const { step, range } = bookStoreRule(mid, 0, null);
+  return bucketBook(book, step, range);
+}
 // Test hook: write every feed's pending samples now (a reload test awaits this).
 export function domFlush() { return Promise.all([...bookFeeds.values()].map(f => domSave(f))); }
 let domPageHooks = false, domTzSeen = '';
@@ -1663,6 +1691,62 @@ function domHookPage() {
   document.addEventListener('visibilitychange', () => { if (document.hidden) all(); });
 }
 
+// ---- book recorder: 24 h of server-side history (workers/book-recorder) ----
+// A Cloudflare Worker samples Binance's spot book once a minute per recorded symbol, 24/7, with
+// the same bucketing as bucketBook (parity-tested), so on open the heatmap is filled across the
+// visible chart instead of only from when this page started recording. Spot symbols only (the
+// USD-M perp book is a different book). Any failure (offline, 404 for a symbol it does not
+// record, blocked) is silent: the indicator then behaves exactly as without the recorder.
+const BOOK_RECORDER_URL = 'https://book-recorder.theelitegrey.workers.dev';
+const BOOK_REMOTE_KEEP_MS = 24 * 60 * 60 * 1000;
+const BOOK_REMOTE_SPAN_MS = 60000;      // one recorder sample stands for the minute after it
+const BOOK_REMOTE_ALIGN_MS = 15 * 60000; // 'from' rounded down to 15 min: viewers share the edge cache
+const BOOK_REMOTE_RETRY_MS = 5 * 60000;
+function recorderUrl() {
+  try { if (typeof window !== 'undefined' && window.__STK_BOOK_RECORDER !== undefined) return window.__STK_BOOK_RECORDER; } catch (e) {}
+  return BOOK_RECORDER_URL;
+}
+// Wire format of GET /book-history (little-endian):
+//   'BKR1' | u32 count | per sample: f64 ts, f64 mid, f64 bb, f64 ba, f64 step, i32 i0, u32 n, n x f32
+export function decodeBookHistory(buf) {
+  if (!buf || buf.byteLength < 8) return null;
+  const dv = new DataView(buf);
+  if (dv.getUint32(0, false) !== 0x424B5231) return null;
+  const n = dv.getUint32(4, true), out = [];
+  let o = 8;
+  for (let k = 0; k < n; k++) {
+    if (o + 48 > buf.byteLength) return null;
+    const len = dv.getUint32(o + 44, true);
+    if (o + 48 + len * 4 > buf.byteLength) return null;
+    const s = { ts: dv.getFloat64(o, true), mid: dv.getFloat64(o + 8, true), bb: dv.getFloat64(o + 16, true) || null, ba: dv.getFloat64(o + 24, true) || null,
+      step: dv.getFloat64(o + 32, true), i0: dv.getInt32(o + 40, true), v: new Float32Array(len), span: BOOK_REMOTE_SPAN_MS, remote: true };
+    o += 48;
+    for (let j = 0; j < len; j++, o += 4) s.v[j] = dv.getFloat32(o, true);
+    if (Number.isFinite(s.ts) && s.mid > 0 && s.step > 0) out.push(s);
+  }
+  return out;
+}
+// Recorder samples + this page's own samples (IndexedDB + live), sorted by time. Where both
+// exist the page's own wins: a recorder sample is dropped when any local sample falls inside
+// the minute it stands for (or up to 5 s before it). Both inputs sorted by ts.
+export function mergeBookHistory(remote, local) {
+  if (!remote || !remote.length) return local || [];
+  if (!local || !local.length) return remote;
+  const keep = [];
+  let j = 0;
+  for (const r of remote) {
+    const span = r.span || BOOK_REMOTE_SPAN_MS;
+    while (j < local.length && local[j].ts < r.ts - 5000) j++;
+    if (j < local.length && local[j].ts < r.ts + span) continue;
+    keep.push(r);
+  }
+  if (!keep.length) return local;
+  const out = new Array(keep.length + local.length);
+  let a = 0, b = 0, o = 0;
+  while (a < keep.length || b < local.length) out[o++] = b >= local.length || (a < keep.length && keep[a].ts <= local[b].ts) ? keep[a++] : local[b++];
+  return out;
+}
+
 class BookFeed {
   constructor(provider, ticker) {
     this.provider = provider; this.ticker = ticker; this.key = bookKey(provider, ticker);
@@ -1673,6 +1757,9 @@ class BookFeed {
     this.wants = new Map(); // listener -> { bucket, range }: what each indicator on this symbol asks for
     this.autoStep = 0;
     this.loaded = false;
+    // recorder history (24 h max), the earliest time asked for so far, fetch state
+    this.remote = []; this.remoteFrom = Infinity; this.remoteHeld = 0; this.remoteBusy = false; this.remoteFailAt = 0; this.remoteState = 'none';
+    this.mergedKey = ''; this.merged = [];
     domHookPage();
     domLoad(this).then((old) => {
       const first = this.history.length ? this.history[0].ts : Infinity;
@@ -1687,13 +1774,9 @@ class BookFeed {
   // asks for (else auto ~0.05% of the price), the widest range; never more than
   // BOOK_ROWS_SIDE_MAX rows a side.
   store(mid) {
-    if (!this.autoStep || Math.abs(Math.log(this.autoStep / (mid * BOOK_AUTO_ROW))) > 1.1) this.autoStep = nearNiceStep(mid * BOOK_AUTO_ROW);
-    let step = this.autoStep, range = 0;
-    this.wants.forEach((w) => { if (w.bucket > 0 && w.bucket < step) step = w.bucket; if (w.range > range) range = w.range; });
-    if (!(range > 0)) range = 0.02;
-    const floor = mid * range / BOOK_ROWS_SIDE_MAX;
-    if (step < floor) step = niceStep(floor);
-    return { step, range };
+    const r = bookStoreRule(mid, this.autoStep, this.wants);
+    this.autoStep = r.autoStep;
+    return r;
   }
   fineStep(mid) { return nearNiceStep(mid * BOOK_FINE_ROW); }
   addFine(s, step, mid) {
@@ -1716,6 +1799,39 @@ class BookFeed {
     this.addFine(s, step, mid);
     this.history = pushBookSample(this.history, s);
     this.pending.push(s);
+  }
+  // Ask the recorder for history back to `fromMs` (the left edge of the visible chart). One
+  // request in flight; only the part older than what is held; a failure waits 5 min.
+  needRemote(fromMs) {
+    if (/\.P$/i.test(this.ticker) || this.remoteBusy) return;
+    const base = recorderUrl();
+    if (!base) return;
+    const now = Date.now();
+    if (this.remoteFailAt && now - this.remoteFailAt < BOOK_REMOTE_RETRY_MS) return;
+    const from = Math.max(Math.floor((now - BOOK_REMOTE_KEEP_MS) / 60000) * 60000 + 60000, Math.floor(fromMs / BOOK_REMOTE_ALIGN_MS) * BOOK_REMOTE_ALIGN_MS);
+    if (!(from < this.remoteFrom - 60000)) return;
+    const to = Number.isFinite(this.remoteFrom) ? this.remoteFrom : now;
+    this.remoteBusy = true;
+    const sym = this.ticker.replace(/^[A-Z]+:/i, '').toUpperCase();
+    fetch(base + '/book-history?symbol=' + encodeURIComponent(sym) + '&from=' + from + '&to=' + Math.ceil(to / 60000) * 60000, { credentials: 'omit' })
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); const t = Number(r.headers.get('x-book-from')); if (t > 0) this.remoteHeld = t; return r.arrayBuffer(); })
+      .then((buf) => {
+        const got = decodeBookHistory(buf);
+        if (!got) throw new Error('bad body');
+        const cut = Date.now() - BOOK_REMOTE_KEEP_MS, seen = new Set(this.remote.map((x) => x.ts));
+        this.remote = this.remote.concat(got.filter((x) => !seen.has(x.ts))).filter((x) => x.ts >= cut).sort((x, y) => x.ts - y.ts);
+        this.remoteFrom = from; this.remoteFailAt = 0; this.remoteState = 'ok';
+        this.bump();
+      })
+      .catch(() => { this.remoteFailAt = Date.now(); if (this.remoteState === 'none') this.remoteState = 'failed'; })
+      .then(() => { this.remoteBusy = false; });
+  }
+  // recorder + local history, merged once per change (not per frame)
+  allHistory() {
+    const h = this.history, r = this.remote;
+    const key = r.length + ':' + (r.length ? r[0].ts : 0) + ':' + h.length + ':' + (h.length ? h[0].ts + ':' + h[h.length - 1].ts : 0);
+    if (key !== this.mergedKey) { this.mergedKey = key; this.merged = mergeBookHistory(r, h); }
+    return this.merged;
   }
   bump() { this.version++; this.listeners.forEach(fn => { try { fn(); } catch (e) {} }); }
   close() { try { this.stop(); } catch (e) {} clearInterval(this.flushTm); domSave(this); }
@@ -1823,7 +1939,7 @@ export function domDebugBytes(f) {
   }));
   return { samples, avgLevels: samples ? Math.round(rows / samples) : 0, avgRows: samples ? Math.round(rows / samples) : 0, binned: 0, bytes };
 }
-// "recording since HH:MM" in the CHART's timezone (the one its time axis and clock use: the
+// HH:MM for the book-history note in the CHART's timezone (the one its time axis and clock use: the
 // workspace's timezone, WS.getState().timezone; default Etc/UTC), not the browser's.
 function chartTz() {
   let tz = '';
@@ -1894,8 +2010,15 @@ function cryptoDomLayer() {
 
       // ---- history -> pixel columns (>= 2 px wide), x from the chart's own time axis ----
       const now = Date.now();
-      const hist = (f.history || []).filter(h => now - h.ts <= cfg.historyMin * 60000);
+      // left edge of the visible chart (first bar at x >= 0): the recorder is asked back to it
+      let lo = 0, hi = a.bars.length - 1;
+      while (lo < hi) { const m = (lo + hi) >> 1; if (co.timeToX(a.bars[m].time) < 0) lo = m + 1; else hi = m; }
+      const visFrom = a.bars[lo] ? a.bars[lo].time : now;
+      if (cfg.heat || cfg.walls) f.needRemote(Math.max(visFrom, now - cfg.historyMin * 60000));
+      const all = f.allHistory();
+      const hist = all.filter(h => now - h.ts <= cfg.historyMin * 60000);
       stat.samples = hist.length; stat.histFrom = hist.length ? hist[0].ts : 0; stat.recordedFrom = f.history.length ? f.history[0].ts : 0;
+      stat.remoteSamples = f.remote.length; stat.remoteFrom = f.remote.length ? f.remote[0].ts : 0; stat.remoteState = f.remoteState; stat.visFrom = visFrom;
       const newest = f.history[f.history.length - 1];
       if (newest) { stat.rowLo = newest.i0 * newest.step; stat.rowHi = (newest.i0 + newest.v.length) * newest.step; stat.mid = newest.mid; stat.rows = newest.v.length; }
       const cols = [];
@@ -1903,12 +2026,13 @@ function cryptoDomLayer() {
         for (let k = 0; k < hist.length; k++) {
           const s = hist[k];
           const x0 = co.timeToX(s.ts);
-          // a column never stretches over a gap (page closed / thinned): at most 10 s wide
-          const tEnd = k + 1 < hist.length ? Math.min(hist[k + 1].ts, s.ts + 10000) : s.ts + BOOK_SAMPLE_MS;
+          // a column never stretches over a gap (page closed / thinned): at most 10 s wide, or the
+          // minute a recorder sample stands for
+          const tEnd = k + 1 < hist.length ? Math.min(hist[k + 1].ts, s.ts + (s.span || 10000)) : s.ts + (s.span || BOOK_SAMPLE_MS);
           const x1 = co.timeToX(tEnd);
           if (!Number.isFinite(x0) || x1 < 0 || x0 > right) continue;
           const last = cols[cols.length - 1];
-          if (last && x0 - last.x0 < 2 && s.ts - last.ts1 < 10000) { last.x1 = x1; last.s = s; last.ts1 = s.ts; continue; }
+          if (last && x0 - last.x0 < 2 && s.ts - last.ts1 < Math.max(10000, last.s.span || 0)) { last.x1 = x1; last.s = s; last.ts1 = s.ts; continue; }
           cols.push({ x0, x1, s, ts0: s.ts, ts1: s.ts });
         }
       }
@@ -2051,19 +2175,26 @@ function cryptoDomLayer() {
         }
       }
 
-      // ---- "recording since HH:MM" by the heatmap's first column, so older candles with no
-      // heatmap are explained (history exists only from when this page started recording) ----
-      if ((cfg.heat || cfg.walls) && cols.length && cols[0].x0 > 2) {
+      // ---- coverage note by the heatmap's first column, so older candles with no heatmap are
+      // explained honestly: "book history: 24 h" only when the recorder really holds 24 h
+      // (its oldest sample, header x-book-from), else "book history from HH:MM" = the oldest
+      // book data there is (the recorder's, or this page's own when the recorder is out) ----
+      const remoteFirst = f.remote.length ? f.remote[0].ts : 0;
+      const held = remoteFirst ? Math.min(remoteFirst, f.remoteHeld || remoteFirst) : 0;
+      const full = held > 0 && held <= now - BOOK_REMOTE_KEEP_MS + 15 * 60000;
+      if ((cfg.heat || cfg.walls) && cols.length && (cols[0].x0 > 2 || remoteFirst)) {
         const tz = chartTz();
-        const lab = 'recording since ' + hhmm(cols[0].ts0, tz);
+        const lab = full ? 'book history: 24 h' : 'book history from ' + hhmm(held && held < cols[0].ts0 ? held : cols[0].ts0, tz);
         g.font = '10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle';
-        const tw = g.measureText(lab).width, x = cols[0].x0;
+        const tw = g.measureText(lab).width, x = Math.max(0, cols[0].x0);
         const tx = x - tw - 8 >= 2 ? x - tw - 6 : Math.min(x + 6, Math.max(2, right - tw - 4));
         const y = bot - 12;
         g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(tx - 3, y - 7, tw + 6, 14);
         g.fillStyle = light ? 'rgba(71,85,105,.95)' : 'rgba(139,147,160,.95)'; g.fillText(lab, tx, y + 0.5);
-        g.strokeStyle = light ? 'rgba(71,85,105,.5)' : 'rgba(139,147,160,.45)'; g.lineWidth = 1; g.setLineDash([2, 3]);
-        g.beginPath(); g.moveTo(Math.round(x) + 0.5, top); g.lineTo(Math.round(x) + 0.5, bot); g.stroke(); g.setLineDash([]);
+        if (x > 2) {
+          g.strokeStyle = light ? 'rgba(71,85,105,.5)' : 'rgba(139,147,160,.45)'; g.lineWidth = 1; g.setLineDash([2, 3]);
+          g.beginPath(); g.moveTo(Math.round(x) + 0.5, top); g.lineTo(Math.round(x) + 0.5, bot); g.stroke(); g.setLineDash([]);
+        }
         g.textBaseline = 'alphabetic';
         stat.since = lab; stat.sinceX = Math.round(tx); stat.sinceTs = cols[0].ts0; stat.sinceTz = tz;
       }
@@ -2120,7 +2251,7 @@ class CryptoDomNative {
     if (f.status === 'error') return f.err || 'Order book unavailable.';
     if (f.status === 'reconnecting') return 'Reconnecting to Binance order book…';
     const cfg = domConfig(this.inputs);
-    if ((cfg.heat || cfg.walls) && f.history.length < 15) return 'Building order book history…';
+    if ((cfg.heat || cfg.walls) && f.history.length < 15 && f.remote.length < 2) return 'Building order book history…';
     return '';
   }
   render() {

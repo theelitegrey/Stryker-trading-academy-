@@ -1,0 +1,18 @@
+[Unit]
+Description=TradeZoro book feeder: Binance order book -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/feeder.py
+# one short run a minute; hard stop well inside the period so runs never pile up
+TimeoutStartSec=50
+MemoryMax=96M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=book-feeder

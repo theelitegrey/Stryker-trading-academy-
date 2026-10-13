@@ -133,7 +133,7 @@ jobs:
           mkdir -p /tmp/site
           rsync -a --exclude '.git' --exclude '.github' --exclude 'tools' \
                    --exclude '.claude' --exclude 'graphify-out' \
-                   --exclude 'functions-src' --exclude 'node_modules' ./ /tmp/site/
+                   --exclude 'functions-src' --exclude 'node_modules' --exclude 'workers' ./ /tmp/site/
 
       # First-paint work (build 337): style.css is render-blocking on every
       # page and about a third of it is comments. Ship it minified; the repo

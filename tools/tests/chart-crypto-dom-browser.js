@@ -19,6 +19,15 @@
 // America/New_York; checked against Intl, the chart's clock and the renderer's timezone); no
 // /depth snapshot while the page is hidden and one on return; a stale IndexedDB chunk of
 // another symbol is deleted on the next page load.
+// Build 525 (book recorder, workers/book-recorder): phase R first, with the recorder MOCKED
+// (Playwright route serving 24 h of 1-min samples in the Worker's own binary format, bucketed
+// from a real Binance snapshot by the Worker's own code): on open, BTCUSDT 1m at 390 and 1280,
+// the heatmap covers the whole visible range from the left edge, the note reads
+// "book history: 24 h", the request asks back to the visible left edge. Then the recorder
+// failing (HTTP 503): heat starts only where this page's recording starts, the note is
+// "book history from HH:MM", no console errors. The legacy phases below run with the recorder
+// unreachable (blocked like every non-allowed host), i.e. today's behaviour.
+//   RECORDER_ONLY=1 runs phase R alone (~2 min).
 const { launch } = require('./lib.js');
 const stub = require('./richstub.js');
 const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8031';
@@ -29,10 +38,11 @@ const BASE_ASSET = /BTC/.test(SYM) ? 'BTC' : SYM.replace(/^.*:/, '').replace(/US
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const HIST_RE = /^book history from \d\d:\d\d$/;
 const MEM_MB = Number(process.env.MEM_MB || 25), REBIN_MS = Number(process.env.REBIN_MS || 250);
 const VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 
-async function open(b, { w, h, mobile }) {
+async function open(b, { w, h, mobile, recorder }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(() => {
@@ -43,6 +53,7 @@ async function open(b, { w, h, mobile }) {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {}
   });
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance\.com|fapi\.binance\.com|data-api\.binance\.vision)/, (r) => r.abort());
+  if (recorder) await ctx.route(/book-recorder\.[a-z0-9-]+\.workers\.dev\/book-history/, recorder);
   const p = await ctx.newPage();
   const errors = [];
   // Ignored: the local dev server has no futures stream (ws 404), and Chrome logs "Ping received
@@ -108,7 +119,7 @@ async function tzCheck(p, tz) {
     const clock = document.querySelector('.vela-bb-clock');
     return { since: st && st.since, ts: st && st.sinceTs, tz: st && st.sinceTz, wsTz: window.STRYKER_VELA.getState().timezone, axisTz: c.renderer.get('timezone'), clock: clock ? clock.textContent : '', now: Date.now() };
   });
-  const want = 'recording since ' + hm(r.ts, tz);
+  const want = 'book history from ' + hm(r.ts, tz);
   console.log('tz ' + tz, JSON.stringify(r), 'want "' + want + '"');
   check(r.since === want, tz + ': note "' + r.since + '" = HH:MM of the first column in ' + tz + ' ("' + want + '")');
   check(r.tz === tz && r.wsTz === tz && r.axisTz === tz, tz + ': note, workspace and time axis use one timezone (' + r.tz + ' / ' + r.wsTz + ' / ' + r.axisTz + ')');
@@ -119,10 +130,75 @@ async function tzCheck(p, tz) {
 }
 async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await sleep(900); await p.screenshot({ path: OUT + '/' + name }); console.log('SHOT ' + OUT + '/' + name); }
 
+// ---- phase R: mocked book recorder ----
+async function recorderPhase(b) {
+  const { bucketSnapshot, encodeSamples } = await import('../../workers/book-recorder/src/bucket.js');
+  const sym = SYM.replace(/^.*:/, '');
+  const snap = await (await fetch('https://api.binance.com/api/v3/depth?symbol=' + sym + '&limit=5000')).json();
+  const now = Date.now(), base = bucketSnapshot(snap, now);
+  // 24 h of 1-min samples ending 1 min ago: the real rows with a small random walk
+  const all = [];
+  let shift = 0;
+  for (let t = Math.floor(now / 60000) * 60000 - 60000; t > now - 24 * 3600000 + 60000; t -= 60000) {
+    shift += Math.round((Math.random() - 0.5) * 2);
+    const v = Float32Array.from(base.v, (x) => x * (0.6 + Math.random() * 0.8));
+    all.push({ ts: t, mid: base.mid + shift * base.step, bb: base.bb + shift * base.step, ba: base.ba + shift * base.step, step: base.step, i0: base.i0 + shift, v });
+  }
+  all.reverse();
+  const reqs = [];
+  const ok = (route) => {
+    const u = new URL(route.request().url()); reqs.push(u.search);
+    const from = Number(u.searchParams.get('from')), to = Number(u.searchParams.get('to'));
+    const body = Buffer.from(encodeSamples(all.filter((x) => x.ts >= from && x.ts <= to)));
+    route.fulfill({ status: 200, headers: { 'content-type': 'application/octet-stream', 'access-control-allow-origin': '*', 'access-control-expose-headers': 'x-book-from', 'x-book-from': String(all[0].ts) }, body });
+  };
+  const bad = (route) => { reqs.push('FAIL ' + new URL(route.request().url()).search); route.fulfill({ status: 503, body: 'down' }); };
+  for (const [label, handler] of [['recorder', ok], ['recorder failing', bad]]) {
+    for (const vp of [{ w: 390, h: 844, mobile: true }, { w: 1280, h: 800 }]) {
+      reqs.length = 0;
+      const s = await open(b, Object.assign({ recorder: handler }, vp));
+      await s.p.evaluate(() => { window.__STK_BOOK_RECORDER = 'https://book-recorder.theelitegrey.workers.dev'; });
+      await setSym(s.p, SYM, '1'); await sleep(2500); await waitBars(s.p);
+      await zoom(s.p, vp.mobile ? 90 : 150, vp.mobile ? 6 : 10);
+      await addDom(s.p);
+      await sleep(12000);
+      const st = await dbg(s.p);
+      const tag = label + ' ' + vp.w + ': ';
+      console.log(tag + JSON.stringify({ remoteState: st.remoteState, remoteSamples: st.remoteSamples, samples: st.samples, columns: st.columns, cells: st.cells, heatX0: st.heatX0, since: st.since, visFrom: st.visFrom && new Date(st.visFrom).toISOString(), reqs }));
+      const ow = await s.p.evaluate(() => document.documentElement.scrollWidth);
+      check(ow <= vp.w, tag + 'no horizontal overflow (' + ow + ')');
+      if (handler === ok) {
+        check(reqs.length >= 1 && reqs.every((q) => /symbol=BTCUSDT/.test(q) || !/BTC/.test(SYM)), tag + 'asked the recorder for ' + sym + ' (' + reqs.length + ' request(s))');
+        const from0 = reqs.length ? Number(new URLSearchParams(reqs[0]).get('from')) : NaN;
+        check(from0 <= st.visFrom && st.visFrom - from0 <= 15 * 60000, tag + 'request starts at the visible left edge (from ' + new Date(from0).toISOString().slice(11, 16) + ', view from ' + new Date(st.visFrom).toISOString().slice(11, 16) + ')');
+        check(st.remoteState === 'ok' && st.remoteSamples >= 60, tag + 'recorder history merged (' + st.remoteSamples + ' samples)');
+        check(st.heatX0 != null && st.heatX0 <= 4, tag + 'heatmap starts at the left edge of the chart (x0=' + st.heatX0 + ')');
+        check(st.columns >= (vp.mobile ? 40 : 80) && st.cells > 200, tag + 'heat across the visible range: ' + st.columns + ' columns, ' + st.cells + ' cells');
+        check(st.since === 'book history: 24 h', tag + 'note "' + st.since + '"');
+        check(st.samples > st.remoteSamples / 2, tag + 'local live samples kept alongside (' + st.samples + ' total)');
+      } else {
+        check(st.remoteState === 'failed' && st.remoteSamples === 0, tag + 'recorder failed, nothing merged (' + st.remoteState + ')');
+        check(st.heatX0 == null || st.heatX0 > st.width * 0.5, tag + 'heat only where this page recorded (x0=' + st.heatX0 + ' of ' + st.width + ')');
+        check(st.since == null || HIST_RE.test(st.since), tag + 'note "' + st.since + '" (or none until the first column)');
+        const msg = await tables(s.p);
+        check(msg <= 1, tag + 'indicator still works (status tables ' + msg + ', depth bars ' + st.depthBars + ')');
+        check(st.depthBars > 5, tag + 'depth bars drawn from the live book (' + st.depthBars + ')');
+      }
+      const words = await s.p.evaluate(() => { const st = window.__stkFlow.domDebug(); return [st.since || '', document.querySelector('.stkchart-credit') ? document.querySelector('.stkchart-credit').textContent : ''].join(' | '); });
+      check(!/\blive\b|real-time|delayed/i.test(words), tag + 'no "live" / "real-time" / "delayed" in "' + words + '"');
+      await shot(s.p, 'R-' + (handler === ok ? 'recorder' : 'recorder-fail') + '-' + vp.w + '.png');
+      check(!s.errors.length, tag + 'no console errors ' + s.errors.join(' | '));
+      await s.ctx.close();
+    }
+  }
+}
+
 (async () => {
   // precise heap numbers + window.gc() for the phone memory budget check
-  const b = await launch({ args: ['--enable-precise-memory-info', '--js-flags=--expose-gc'] });
+  const b = await launch({ args: ['--enable-precise-memory-info', '--js-flags=--expose-gc --max-old-space-size=768'] });
   try {
+    await recorderPhase(b);
+    if (process.env.RECORDER_ONLY) throw 'done';
     // desktop + phone run side by side so both build the same few minutes of book history
     const d = await open(b, { w: 1280, h: 800 });
     const m = await open(b, { w: 390, h: 844, mobile: true });
@@ -168,7 +244,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
     check(sw.depthLo <= lo1 && sw.depthHi >= hi1, 'phone 390: depth bars span +-1% (' + Math.round(sw.depthLo) + '..' + Math.round(sw.depthHi) + ' around ' + Math.round(sw.mid) + ')');
     // heat rows = recorded rows in view (thin ones are then hidden by the percentile setting)
     check(sw.dataLo <= lo1 && sw.dataHi >= hi1, 'phone 390: heatmap rows span +-1% (' + Math.round(sw.dataLo) + '..' + Math.round(sw.dataHi) + '; drawn after the 60th-percentile filter ' + Math.round(sw.heatLo) + '..' + Math.round(sw.heatHi) + ')');
-    check(/^recording since \d\d:\d\d$/.test(sw.since || ''), 'phone 390: "' + sw.since + '" note by the first heatmap column');
+    check(HIST_RE.test(sw.since || ''), 'phone 390: "' + sw.since + '" note by the first heatmap column');
     await shot(m.p, 'D-wide-390.png');
     // ---- "recording since" in the chart's timezone, and it follows a timezone change ----
     await autoScale(m.p);
@@ -244,7 +320,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
     console.log('phone', JSON.stringify(Object.assign({}, sm, { walls: (sm && sm.walls || []).map((w) => w.label) })));
     check(sm && sm.view === 'combined' && sm.columns > 10 && sm.depthBars > 5, 'phone 390: Combined draws heatmap + depth');
     check(sm && sm.heatX0 != null && sm.heatX0 < sm.width * 0.5, 'phone 390: heatmap starts under the visible candles (x0=' + (sm && sm.heatX0) + ' of ' + (sm && sm.width) + ')');
-    check(/^recording since \d\d:\d\d$/.test(sm.since || ''), 'phone 390: "' + sm.since + '" by the first heatmap column');
+    check(HIST_RE.test(sm.since || ''), 'phone 390: "' + sm.since + '" by the first heatmap column');
     const ow = await m.p.evaluate(() => document.documentElement.scrollWidth);
     check(ow <= 390, 'phone 390: no horizontal overflow (' + ow + ')');
     await shot(m.p, 'D-combined-390.png');
@@ -324,7 +400,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
     await m.p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; const st = window.__stkFlow.domDebug(); const b = c.orchestrator.rawBars; const from = Math.floor(st.recordedFrom / 60000) * 60000 - 4 * 60000; c.setVisibleRange({ from, to: b[b.length - 1].time + 3 * 60000 }); });
     await sleep(1500);
     const sr = await dbg(m.p);
-    check(sr && sr.columns > 10 && /^recording since/.test(sr.since || ''), 'after reload: heatmap drawn from the stored history (' + (sr && sr.columns) + ' columns, "' + (sr && sr.since) + '")');
+    check(sr && sr.columns > 10 && /^book history from/.test(sr.since || ''), 'after reload: heatmap drawn from the stored history (' + (sr && sr.columns) + ' columns, "' + (sr && sr.since) + '")');
     await shot(m.p, 'F-after-reload-390.png');
 
     // ---- phone budget: memory at the full history cap, and the step-change redraw time ----
@@ -376,7 +452,7 @@ async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await s
     check(!d.errors.length, 'no console errors (desktop) ' + d.errors.join(' | '));
     check(!m.errors.length, 'no console errors (phone) ' + m.errors.join(' | '));
     await d.ctx.close(); await m.ctx.close();
-  } catch (e) { fail++; console.log('FAIL exception ' + (e && e.stack || e)); }
+  } catch (e) { if (e !== 'done') { fail++; console.log('FAIL exception ' + (e && e.stack || e)); } }
   await b.close();
   console.log(fail ? fail + ' FAILED' : 'ALL PASS');
   process.exit(fail ? 1 : 0);

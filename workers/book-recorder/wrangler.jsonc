@@ -1,0 +1,16 @@
+{
+  "name": "book-recorder",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "RECORDER", "class_name": "BookRecorder" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BookRecorder"] }],
+  "triggers": { "crons": [] },
+  "ratelimits": [
+    { "name": "RL", "namespace_id": "52401", "simple": { "limit": 60, "period": 60 } }
+  ],
+  "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT" },
+  "observability": { "enabled": true }
+}

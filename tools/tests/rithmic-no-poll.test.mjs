@@ -221,7 +221,9 @@ ok(dataIn('quiet') === 0, 'another 19 min quiet: zero data fetches (' + count((x
 // turn that into a poll. One replay each, then the standard data for FAIL_BACKOFF.
 phase = 'silent';
 for (let i = 0; i < 24; i++) { prov.getBars('GC1!', 'D', { limit: 2 }).catch(() => {}); prov2.getBars('CL1!', '1', { limit: 5 }).catch(() => {}); await advance(12000); }
-ok(count((s) => s.phase === 'silent' && s.tid === T.TIME_BAR_REPLAY && s.plant === 'history') <= 4,
+const gc = await (async () => { const st = { n: 0 }; const un = prov.subscribe('GC1!', '5', () => {}); await advance(25000); st.sub = count((s) => s.phase === 'silent' && s.tid === T.MD_UPDATE && s.request === 1); un(); return st; })();
+ok(gc.sub >= 1, 'no Rithmic history: the market-data subscription is still made (' + gc.sub + ')');
+ok(count((s) => s.phase === 'silent' && s.tid === T.TIME_BAR_REPLAY && s.plant === 'history') <= 3,
   'silent / empty history: no retry loop (' + count((s) => s.phase === 'silent' && s.tid === T.TIME_BAR_REPLAY) + ' replays for 48 reads over ~5 min)');
 
 phase = 'logout';

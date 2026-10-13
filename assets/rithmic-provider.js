@@ -84,10 +84,10 @@ function toMonths(bars) {
 // (its subscription is dropped by the client when no chart needs the contract).
 const SERIES_IDLE_MS = 3 * 60 * 1000;
 // A snapshot that failed (timeout / reject) or came back EMPTY is not retried by the repeating
-// readers for this long: they get the standard data instead (getBars falls back). Without this a
+// readers for this long (in practice: until the member reconnects): they get the standard data. Without this a
 // silent history plant would be asked again on every watchlist / paper / resume read, i.e. polled.
 // A scroll-back page (`to`) or the member reconnecting clears it.
-const FAIL_BACKOFF_MS = 5 * 60 * 1000;
+const FAIL_BACKOFF_MS = 30 * 60 * 1000;
 const MAX_SERIES_BARS = 12000;
 const stores = new WeakMap(); // client -> Map(key -> series): shared by every provider instance
 // Futures trading date: CME sessions open 22:00/23:00 UTC for the next date.
@@ -300,7 +300,7 @@ export class RithmicFuturesProvider {
   subscribe(ticker, timeframe, onBar, opts) {
     const root = rootOf(ticker), tf = normTf(timeframe);
     if (!this.live || !root || !tf) return this.fallback.subscribe(ticker, timeframe, onBar, opts);
-    let stopped = false;
+    let stopped = false, fbUnsub = null;
     const h = this.holder(root, tf);
     h.listeners.add(onBar);
     (async () => {
@@ -309,12 +309,19 @@ export class RithmicFuturesProvider {
         if (!h.bars) await this.latestBars(root, tf, { limit: 2 });
         else await this.ensureFeed(h);
       } catch (e) {
-        if (!stopped && this.hooks.onError) this.hooks.onError(e, root);
+        if (stopped) return;
+        if (this.hooks.onError) this.hooks.onError(e, root);
+        // No Rithmic history for this chart (it shows the standard data): its candles keep coming
+        // from the standard feed, while the ONE Rithmic market-data subscription stays open (quotes,
+        // order-flow trades). Nothing is re-requested from Rithmic.
+        try { fbUnsub = this.fallback.subscribe(ticker, timeframe, onBar, opts); } catch (x) {}
+        this.ensureFeed(h).catch(() => {});
       }
     })();
     return () => {
       if (stopped) return;
       stopped = true;
+      if (fbUnsub) { try { fbUnsub(); } catch (e) {} }
       h.listeners.delete(onBar);
       h.lastUse = Date.now();
       this.armIdle(h);

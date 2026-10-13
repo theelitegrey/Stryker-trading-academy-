@@ -5,7 +5,7 @@ const inflight = new Map();
 function cacheAvailable() { return typeof caches !== 'undefined' && caches.default; }
 function cacheKey(request, name, dte, kind = 'fresh') {
   const u = new URL(request.url);
-  u.search = `dte=${dte}&gexcache=${kind}&v=527`;
+  u.search = `dte=${dte}&gexcache=${kind}&v=528`;
   return new Request(u.toString(), { method: 'GET' });
 }
 // Edge TTL (s-maxage) and stale-while-revalidate, in seconds.
@@ -54,7 +54,19 @@ async function staleResponse(request, name, dte, error) {
   return json(data, { headers: cacheHeaders(30, 300), cache: cacheHeaders(30, 300)['cache-control'] });
 }
 
-export { cacheTtl, cacheHeaders };
+// Session expected-range snapshot store (functions/api/gex/_engine.js buildLevels opts.emStore):
+// the first in-session straddle reading of the day is kept in the edge cache for 14 h, so every
+// later rebuild that day draws the same 68% / 80% bands. Per Cloudflare location (Cache API).
+function emStore(request) {
+  if (!cacheAvailable()) return null;
+  const keyReq = (k) => { const u = new URL(request.url); u.pathname = '/api/gex/__em/' + encodeURIComponent(k); u.search = 'v=528'; return new Request(u.toString(), { method: 'GET' }); };
+  return {
+    async get(k) { const r = await caches.default.match(keyReq(k)); return r ? r.json() : null; },
+    async put(k, v) { await caches.default.put(keyReq(k), new Response(JSON.stringify(v), { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=50400, s-maxage=50400' } })); }
+  };
+}
+
+export { cacheTtl, cacheHeaders, emStore };
 
 export async function onRequestGet({ request, params, env }) {
   const name = String(params.name || '').toUpperCase();
@@ -68,7 +80,7 @@ export async function onRequestGet({ request, params, env }) {
     const key = `${name}:${safeDte}`;
     let p = inflight.get(key);
     if (!p) {
-      p = buildLevels(name, safeDte, env || {}).finally(() => inflight.delete(key));
+      p = buildLevels(name, safeDte, env || {}, { emStore: emStore(request) }).finally(() => inflight.delete(key));
       inflight.set(key, p);
     }
     const data = await p;

@@ -235,7 +235,9 @@
     $('gex-levels').innerHTML = levelRows(d, F);
     var e = d.expected || {}, r68 = e['68%'] || [], r80 = e['80%'] || [];
     var FL = F && F.levels;
-    $('gex-ranges').innerHTML = '<div class="gex-range"><span>IV EXPECTED RANGE 68% '+esc(curFut || '')+'</span>'+(FL?fmt(FL.iv68_lo,2)+' – '+fmt(FL.iv68_hi,2):fmt(r68[0],2)+' – '+fmt(r68[1],2))+'</div>'+
+    var EI = d.expected_info || {};
+    var emTag = EI.phase === 'pre-open' ? ' · PRE-OPEN' : (EI.method === 'atm_straddle' || EI.method === 'atm_iv') ? ' · SESSION' : '';
+    $('gex-ranges').innerHTML = '<div class="gex-range"><span>IV EXPECTED RANGE 68% '+esc(curFut || '')+esc(emTag)+'</span>'+(FL?fmt(FL.iv68_lo,2)+' – '+fmt(FL.iv68_hi,2):fmt(r68[0],2)+' – '+fmt(r68[1],2))+'</div>'+
       '<div class="gex-range"><span>80% '+esc(curFut || '')+'</span>'+(FL?fmt(FL.iv80_lo,2)+' – '+fmt(FL.iv80_hi,2):fmt(r80[0],2)+' – '+fmt(r80[1],2))+'</div>';
     $('gex-play').innerHTML = d.regime === 'POSITIVE'
       ? '<b>Positive gamma regime.</b> Under the model\'s assumption that dealers are long the calls and short the puts, dealers are estimated to be long gamma here. In that state their hedging tends to lean against moves, which the model reads as mean reversion and pinning between the major walls. A move below zero gamma marks where the model\'s regime would flip. Education only. Not financial advice.'

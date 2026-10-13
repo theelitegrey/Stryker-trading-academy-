@@ -182,5 +182,29 @@ console.log(n + ' checks, ALL PASS');
   // InsightSentry down -> pure Cboe
   const d = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => { throw new Error('down'); } });
   ok(d.sources.iv === 'cboe' && d.sources.spot === 'cboe' && d.compare === null && d.spot === FIX.QQQ.data.current_price, 'InsightSentry down: pure Cboe');
+  ok(/InsightSentry options not configured/.test(d.sources.hybrid_skip_reason || '') || d.sources.hybrid_skip_reason === 'down', 'skip reason visible: ' + d.sources.hybrid_skip_reason);
+  // build 531: the live request format (YYYY-MM-DD expiration + range), the key only in a header,
+  // and the live inputs' age driving market.options_ts ("updated X min ago")
+  const { fetchInsightQuotes } = await import('../../functions/api/gex/_engine.js');
+  let seen = null;
+  const KEY = 'k'.repeat(40);
+  globalThis.fetch = async (url, init) => { seen = { url: String(url), auth: init.headers.authorization }; return new Response(JSON.stringify(isPayload('QQQ', 0)), { status: 200 }); };
+  const lq = await fetchInsightQuotes('QQQ', '2026-10-13', { INSIGHTSENTRY_WEBSOCKET_API_KEY: KEY });
+  const su = new URL(seen.url);
+  ok(su.pathname === '/v3/options/quotes' && su.searchParams.get('expiration') === '2026-10-13' && su.searchParams.get('range') === '12' && su.searchParams.get('code') === 'NASDAQ:QQQ' && !seen.url.includes(KEY) && seen.auth === 'Bearer ' + KEY, 'InsightSentry request: expiration=2026-10-13 (YYYY-MM-DD), range=12, key only in the Authorization header');
+  ok(lq.byKey.size > 100, 'reply parsed: ' + lq.byKey.size + ' contracts for the expiry');
+  const dashed = isPayload('QQQ', 0); dashed.data.forEach((r) => { r.expiration = '2026-10-13'; r.strike_price = String(r.strike_price); });
+  ok(insightQuoteMap(dashed, '2026-10-13').byKey.size === lq.byKey.size, 'reply with "2026-10-13" expirations and string strikes parsed the same');
+  const liveTs = etEpoch(FIX.QQQ.data.last_trade_time) + 840;
+  const h3 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async (n2, e) => insightQuoteMap(isPayload('QQQ', 1), e) });
+  ok(h3.sources.hybrid_skip_reason === null && h3.market.options_ts === liveTs && h3.market.chain_ts === etEpoch(FIX.QQQ.data.last_trade_time), 'hybrid on: options_ts = live input time (' + new Date(liveTs * 1000).toISOString() + '), chain_ts kept separately');
+  const e1 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => ({ spot: 742, ts: null, byKey: new Map(), rows: 0 }) });
+  ok(/no rows for 2026-10-13/.test(e1.sources.hybrid_skip_reason) && e1.sources.spot === 'cboe', 'skip reason: ' + e1.sources.hybrid_skip_reason);
+  const bad = insightQuoteMap(isPayload('QQQ', 0), '2026-10-13'); for (const v of bad.byKey.values()) v.iv = 0;
+  const e2 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => bad });
+  ok(/no sane InsightSentry IV/.test(e2.sources.hybrid_skip_reason), 'skip reason: ' + e2.sources.hybrid_skip_reason);
+  globalThis.fetch = async () => new Response('nope', { status: 403 });
+  const e3 = await buildLevels('QQQ', 0, { INSIGHTSENTRY_WEBSOCKET_API_KEY: KEY }, { now: tq, compact: compactFor });
+  ok(/^fetch 403 https:\/\/api\.insightsentry\.com\/v3\/options\/quotes$/.test(e3.sources.hybrid_skip_reason) && !JSON.stringify(e3).includes(KEY), 'skip reason on HTTP error, no query/key leaked: ' + e3.sources.hybrid_skip_reason);
   console.log(n + ' checks incl. hybrid, ALL PASS');
 }

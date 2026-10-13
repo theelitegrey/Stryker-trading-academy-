@@ -83,8 +83,11 @@ async function fetchInsightQuotes(name, expIso, env = {}) {
   const apiKey = env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY;
   const code = INSIGHTSENTRY_OPTIONS[name];
   if (!apiKey || !code) throw new Error('InsightSentry options not configured');
-  const qs = new URLSearchParams({ code, expiration: String(expIso).replace(/-/g, '') });
-  const q = await fetchJson(`${INSIGHTSENTRY_REST}/options/quotes?${qs}`, 9000, { authorization: `Bearer ${apiKey}` });
+  // `expiration` is YYYY-MM-DD (InsightSentry docs, /v3/options/quotes). Build 530 sent YYYYMMDD,
+  // which matched no rows, so the hybrid silently never engaged in production (2026-10-13).
+  // range=12 keeps the reply to strikes within +-12% of spot, the same band as the Cboe feeder's.
+  const qs = new URLSearchParams({ code, expiration: String(expIso), range: '12' });
+  const q = await fetchJson(`${INSIGHTSENTRY_REST}/options/quotes?${qs}`, 6000, { authorization: `Bearer ${apiKey}` });
   return insightQuoteMap(q, expIso);
 }
 function insightQuoteMap(q, expIso) {
@@ -92,7 +95,7 @@ function insightQuoteMap(q, expIso) {
   if (!(spot > 0)) throw new Error('InsightSentry options missing spot');
   const byKey = new Map();
   for (const o of q.data || []) {
-    const exp = dateFromYmd(o.expiration);
+    const exp = dateFromYmd(String(o.expiration || '').replace(/-/g, ''));   // 20261013 or "2026-10-13"
     if (!exp || isoDate(exp) !== expIso) continue;
     const type = String(o.type || '').toUpperCase();
     const cp = type.startsWith('C') ? 'C' : (type.startsWith('P') ? 'P' : null);
@@ -101,7 +104,7 @@ function insightQuoteMap(q, expIso) {
     byKey.set(cp + '|' + k, { iv: Number(o.implied_volatility ?? o.iv ?? 0), bid: Number(o.bid_price ?? o.bid ?? 0), ask: Number(o.ask_price ?? o.ask ?? 0) });
   }
   const tsMs = Number(q.last_update || q.updated_at || 0);
-  return { spot, ts: tsMs ? tsMs / 1000 : null, byKey };
+  return { spot, ts: tsMs ? tsMs / 1000 : null, byKey, rows: (q.data || []).length };
 }
 // A vendor IV is used only when it is sane: 0 < iv < 1.5 (annualised) and the contract has a
 // two-sided quote. Otherwise the contract keeps Cboe's IV.
@@ -821,20 +824,31 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   let spot = parsed.spot, contracts = parsed.contracts;
   const expiries = [...new Set(contracts.map(c => isoDate(c.exp)))].sort();
   let optTs = optData.options_ts || etEpoch(optData.last_trade_time || null);
-  const sources = { fallback_reason: compactNote, chain: source === 'cboe' ? 'cboe' : 'insightsentry', oi: source === 'cboe' ? 'cboe' : 'insightsentry', iv: source === 'cboe' ? 'cboe' : 'insightsentry', spot: source === 'cboe' ? 'cboe' : 'insightsentry', gamma: 'black_scholes' };
+  const sources = { fallback_reason: compactNote, hybrid_skip_reason: null, chain: source === 'cboe' ? 'cboe' : 'insightsentry', oi: source === 'cboe' ? 'cboe' : 'insightsentry', iv: source === 'cboe' ? 'cboe' : 'insightsentry', spot: source === 'cboe' ? 'cboe' : 'insightsentry', gamma: 'black_scholes' };
   let cboeOnly = null;
   if (source === 'cboe' && expiries.length === 1 && opts.hybrid !== false) {
     try {
       const live = await (opts.insightQuotes ? opts.insightQuotes(name, expiries[0]) : fetchInsightQuotes(name, expiries[0], env));
       const m = mergeHybrid(contracts, live);
-      if (m.used > 0) {
+      if (!live.byKey.size) sources.hybrid_skip_reason = `InsightSentry returned no rows for ${expiries[0]} (${live.rows || 0} rows in reply)`;
+      else if (!(m.used > 0)) sources.hybrid_skip_reason = `no sane InsightSentry IV (${live.byKey.size} rows, 0 matched with 0<iv<1.5 and a two-sided quote)`;
+      else if (Math.abs(live.spot / spot - 1) > 0.05) sources.hybrid_skip_reason = `InsightSentry spot ${live.spot} is >5% from Cboe ${spot}`;
+      else {
         cboeOnly = { spot, contracts };
         spot = live.spot; contracts = m.contracts;
-        if (live.ts) optTs = live.ts;
+        // "updated X min ago" = the LIVE inputs' age (market.options_ts); the chain's own time
+        // stays in asof / market.chain_ts.
+        optTs = live.ts || nowSec;
         sources.iv = 'insightsentry'; sources.spot = 'insightsentry';
         sources.iv_contracts = { insightsentry: m.used, cboe: contracts.length - m.used };
+        sources.live_ts = round(optTs, 0);
       }
-    } catch (_) { /* InsightSentry down or not configured: pure Cboe */ }
+    } catch (e) {
+      // InsightSentry down / not configured / timed out: pure Cboe. Never includes the key.
+      sources.hybrid_skip_reason = String(e && e.message || e).replace(/https?:\/\/\S+/g, (u) => u.split('?')[0]).slice(0, 140);
+    }
+  } else if (source === 'cboe') {
+    sources.hybrid_skip_reason = opts.hybrid === false ? 'disabled' : `chain has ${expiries.length} expiries (hybrid runs for 0DTE/1DTE only)`;
   }
   contracts = ownGamma(contracts, spot, nowSec);
   const p = profile(spot, contracts);
@@ -886,6 +900,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   data.fetched_at = Date.now() / 1000;
   const futTs = Object.values(data.futures).map(f => f && f.futures_ts).filter(Boolean).sort((a, b) => b - a)[0] || null;
   data.market = marketStatus({ now: data.fetched_at, futTs, optTs: optTs || etEpoch(data.asof) });
+  data.market.chain_ts = etEpoch(data.asof) || null;
   return data;
 }
 

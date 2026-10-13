@@ -43,7 +43,7 @@ function strykerTeamProfile() {
     // No plan field. A brand account with a tier would show up in plan
     // filters, upgrade prompts and revenue counts as though it were a paying
     // student, quietly corrupting every one of those numbers.
-    avatarUrl: 'assets/images/tradezoro-logo-emblem-sm-494.png?v=530',
+    avatarUrl: 'assets/images/tradezoro-logo-emblem-sm-494.png?v=531',
     createdAt: null
   };
 }

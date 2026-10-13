@@ -1,4 +1,3 @@
-const CBOE = 'https://cdn.cboe.com/api/global/delayed_quotes/options/';
 const INSIGHTSENTRY_REST = 'https://api.insightsentry.com/v3';
 const FETCH_TIMEOUT_MS = 4500;
 const quoteMemo = new Map();
@@ -75,6 +74,105 @@ function insightRangeForDte(dteMax) {
   return 35;
 }
 
+// HYBRID inputs (GEX audit 2026-10-13, CoS/Owner): InsightSentry's chain is current but only
+// carries open interest on ~100 strikes near the money, while Cboe's chain has every strike + OI
+// but is ~15 minutes behind. The hybrid takes the chain + OI from Cboe and the LIVE spot and
+// per-contract IV (and bid/ask for the straddle) from InsightSentry, then computes gamma itself.
+// Returns { spot, ts, byKey: Map('C|745' -> { iv, bid, ask }) } for ONE expiry (YYYY-MM-DD).
+async function fetchInsightQuotes(name, expIso, env = {}) {
+  const apiKey = env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY;
+  const code = INSIGHTSENTRY_OPTIONS[name];
+  if (!apiKey || !code) throw new Error('InsightSentry options not configured');
+  const qs = new URLSearchParams({ code, expiration: String(expIso).replace(/-/g, '') });
+  const q = await fetchJson(`${INSIGHTSENTRY_REST}/options/quotes?${qs}`, 9000, { authorization: `Bearer ${apiKey}` });
+  return insightQuoteMap(q, expIso);
+}
+function insightQuoteMap(q, expIso) {
+  const spot = Number(q.last_price || q.underlying_price || q.current_price || 0);
+  if (!(spot > 0)) throw new Error('InsightSentry options missing spot');
+  const byKey = new Map();
+  for (const o of q.data || []) {
+    const exp = dateFromYmd(o.expiration);
+    if (!exp || isoDate(exp) !== expIso) continue;
+    const type = String(o.type || '').toUpperCase();
+    const cp = type.startsWith('C') ? 'C' : (type.startsWith('P') ? 'P' : null);
+    const k = Number(o.strike_price ?? o.strike);
+    if (!cp || !(k > 0)) continue;
+    byKey.set(cp + '|' + k, { iv: Number(o.implied_volatility ?? o.iv ?? 0), bid: Number(o.bid_price ?? o.bid ?? 0), ask: Number(o.ask_price ?? o.ask ?? 0) });
+  }
+  const tsMs = Number(q.last_update || q.updated_at || 0);
+  return { spot, ts: tsMs ? tsMs / 1000 : null, byKey };
+}
+// A vendor IV is used only when it is sane: 0 < iv < 1.5 (annualised) and the contract has a
+// two-sided quote. Otherwise the contract keeps Cboe's IV.
+function saneIv(x) { return x && x.iv > 0 && x.iv < 1.5 && x.bid > 0 && x.ask >= x.bid; }
+function mergeHybrid(contracts, live) {
+  let used = 0;
+  const out = contracts.map((c) => {
+    const x = live.byKey.get(c.cp + '|' + c.strike);
+    if (saneIv(x)) { used++; return { ...c, iv: x.iv, bid: x.bid, ask: x.ask, ivSrc: 'insightsentry' }; }
+    return { ...c, ivSrc: 'cboe' };
+  });
+  return { contracts: out, used };
+}
+// Our own Black-Scholes gamma for every contract (vendor gamma fields are NOT used), at the given
+// spot and the real time to the expiry's 16:00 ET close.
+function ownGamma(contracts, spot, nowSec) {
+  return contracts.map((c) => {
+    let iv = c.iv; if (iv > 3) iv /= 100;
+    const T = c.exp instanceof Date ? yearsToClose(c.exp, nowSec) : Math.max(c.dte / 252, 1 / (252 * 8));
+    return { ...c, T, gamma: iv > 0 ? bsGamma(spot, c.strike, T, iv) : 0 };
+  });
+}
+
+// ---- Compact Cboe chain (GEX audit 2026-10-13, after the build-528 error 1102) ----
+// workers/book-recorder/gex-feeder/gex_feeder.py on our server downloads the full Cboe chain every
+// 2 min, keeps only what this engine reads and POSTs it gzip'd to the book-recorder Worker; the
+// API reads it back with ONE small fetch (QQQ ~10 KB, SPX ~17 KB for 0/1DTE).
+// Rows: [strike, 'C'|'P', oi, iv, bid, ask, volume, delta]. Part 'near' = first 3 expiries +-12%;
+// part 'term' = expiries up to 31 days, +-10%, OI > 0.
+const GEX_CHAIN_URL = 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
+const COMPACT_MAX_AGE_OPEN = 30 * 60;           // cash session: older than 30 min -> InsightSentry path
+const COMPACT_MAX_AGE_CLOSED = 4 * 86400;       // market shut: the post-close chain stays valid (weekend)
+async function fetchCompact(name, dteMax, env = {}) {
+  const base = env.GEX_CHAIN_URL || GEX_CHAIN_URL;
+  const part = dteMax === 0 || dteMax === 1 ? 'near' : 'term';
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort('timeout'), 4000);
+  try {
+    const res = await fetch(`${base}?sym=${encodeURIComponent(name)}&part=${part}`, { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    if (!res.ok) throw new Error(`compact chain ${res.status}`);
+    const buf = await res.arrayBuffer();
+    const text = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    return JSON.parse(text);
+  } finally { clearTimeout(timer); }
+}
+function compactFresh(d, nowSec) {
+  if (!d || !(d.fetched_at > 0)) return false;
+  const age = nowSec - d.fetched_at;
+  return age >= -120 && age <= (cashScheduleOpen(nowSec) ? COMPACT_MAX_AGE_OPEN : COMPACT_MAX_AGE_CLOSED);
+}
+// Compact chain -> { spot, contracts } with the same selection rules as parseOptions().
+function compactToContracts(d, dteMax, nowSec) {
+  const spot = Number(d.spot);
+  const today = todayUtc(nowSec);
+  const groups = [];
+  for (const e of Object.keys(d.expiries || {}).sort()) {
+    const exp = new Date(e + 'T00:00:00Z');
+    const days = Math.round((exp - today) / 86400000);
+    if (days < 0) continue;
+    groups.push({ exp, days, rows: d.expiries[e] });
+  }
+  let pick;
+  if (dteMax === 0 || dteMax === 1) { const g = groups[Math.min(dteMax, groups.length - 1)]; pick = g ? [g] : []; }
+  else pick = groups.filter(g => g.days <= dteMax);
+  const contracts = [];
+  for (const g of pick) for (const r of g.rows) {
+    contracts.push({ strike: r[0], cp: r[1], dte: g.days, exp: g.exp, oi: r[2], iv: r[3], bid: r[4], ask: r[5], vol: r[6], delta: r[7], gamma: 0 });
+  }
+  return { spot, contracts };
+}
+
 async function fetchInsightOptions(name, dteMax, env = {}) {
   const apiKey = env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY;
   const code = INSIGHTSENTRY_OPTIONS[name];
@@ -98,7 +196,7 @@ async function fetchInsightOptions(name, dteMax, env = {}) {
     const cp = type.startsWith('C') ? 'C' : (type.startsWith('P') ? 'P' : null);
     const oi = Number(o.open_interest ?? joined.open_interest ?? joined.openInterest ?? 0);
     const gamma = Number(o.gamma ?? joined.gamma ?? 0);
-    if (!cp || !Number.isFinite(oi) || oi <= 0 || !Number.isFinite(gamma) || gamma <= 0) continue;
+    if (!cp || !Number.isFinite(oi) || oi <= 0) continue;
     rows.push({
       strike: Number(o.strike_price ?? joined.strike_price ?? joined.strike),
       cp,
@@ -108,7 +206,9 @@ async function fetchInsightOptions(name, dteMax, env = {}) {
       vol: Number(o.volume ?? joined.volume ?? 0),
       gamma,
       delta: Number(o.delta ?? joined.delta ?? 0),
-      iv: Number(o.implied_volatility ?? o.iv ?? joined.implied_volatility ?? joined.iv ?? 0)
+      iv: Number(o.implied_volatility ?? o.iv ?? joined.implied_volatility ?? joined.iv ?? 0),
+      bid: Number(o.bid_price ?? o.bid ?? 0),
+      ask: Number(o.ask_price ?? o.ask ?? 0)
     });
     expiries.set(isoDate(exp), exp);
   }
@@ -170,8 +270,8 @@ function parsedRowsToSource(rows, spot, iv30, asof) {
   return { current_price: spot, options: rows, iv30, last_trade_time: asof };
 }
 
-function todayUtc() {
-  const d = new Date();
+function todayUtc(nowSec) {
+  const d = nowSec ? new Date(nowSec * 1000) : new Date();
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 }
 
@@ -180,10 +280,10 @@ function dateFromOcc(yy, mm, dd) {
 }
 
 function isoDate(d) { return d.toISOString().slice(0, 10); }
-function dte(exp) { return Math.round((exp - todayUtc()) / 86400000); }
+function dte(exp, nowSec) { return Math.round((exp - todayUtc(nowSec)) / 86400000); }
 function round(n, d = 2) { return n == null || !Number.isFinite(n) ? null : Number(n.toFixed(d)); }
 
-function parseOptions(data, dteMax) {
+function parseOptions(data, dteMax, nowSec) {
   const spot = Number(data.current_price);
   if (data.source === 'insightsentry_options') return { spot, contracts: data.options || [] };
   const raw = [];
@@ -193,7 +293,7 @@ function parseOptions(data, dteMax) {
     if (!m) continue;
     const [, , yy, mm, dd, cp, strikeRaw] = m;
     const exp = dateFromOcc(yy, mm, dd);
-    const days = dte(exp);
+    const days = dte(exp, nowSec);
     if (days < 0) continue;
     const row = {
       strike: Number(strikeRaw) / 1000,
@@ -204,7 +304,9 @@ function parseOptions(data, dteMax) {
       vol: Number(o.volume || 0),
       gamma: Number(o.gamma || 0),
       delta: Number(o.delta || 0),
-      iv: Number(o.iv || 0)
+      iv: Number(o.iv || 0),
+      bid: Number(o.bid || 0),
+      ask: Number(o.ask || 0)
     };
     raw.push(row);
     expiries.set(isoDate(exp), exp);
@@ -272,13 +374,24 @@ function bsGamma(S, K, T, sigma, r = 0.045, q = 0.0) {
   return Math.exp(-q * T) * nd1 / (S * v);
 }
 
-function netGexAt(spot, contracts) {
+// Time to expiry in CALENDAR years (the convention Cboe's IVs are quoted in), measured to 16:00 New
+// York on the expiry day, never less than 15 minutes. Before the 2026-10-13 audit a 0DTE contract
+// always used 1/(252*8) of a year (about 49 trading minutes) and multi-day ones dte/252.
+const MIN_T_SEC = 15 * 60;
+const closeMemo = new Map();
+function yearsToClose(exp, nowSec) {
+  const key = isoDate(exp);
+  let close = closeMemo.get(key);
+  if (close === undefined) { close = etEpoch(key + 'T16:00:00'); if (closeMemo.size > 200) closeMemo.clear(); closeMemo.set(key, close); }
+  return Math.max(MIN_T_SEC, (close || 0) - nowSec) / (365 * 86400);
+}
+function netGexAt(spot, contracts, nowSec = Date.now() / 1000) {
   let total = 0;
   for (const c of contracts) {
     let iv = c.iv;
     if (!iv || iv <= 0) continue;
     if (iv > 3) iv /= 100;
-    const T = Math.max(c.dte / 252, 1 / (252 * 8));
+    const T = c.T || (c.exp instanceof Date ? yearsToClose(c.exp, nowSec) : Math.max(c.dte / 252, 1 / (252 * 8)));
     const g = bsGamma(spot, c.strike, T, iv);
     if (!g) continue;
     const expo = g * c.oi * 100 * spot * spot * 0.01;
@@ -287,10 +400,10 @@ function netGexAt(spot, contracts) {
   return total;
 }
 
-function gammaFlip(spot, contracts, loPct = 0.90, hiPct = 1.10, steps = 80) {
+function gammaFlip(spot, contracts, loPct = 0.90, hiPct = 1.10, steps = 80, nowSec = Date.now() / 1000) {
   const lo = spot * loPct, hi = spot * hiPct;
   const xs = Array.from({ length: steps }, (_, i) => lo + (hi - lo) * i / (steps - 1));
-  const ys = xs.map(x => netGexAt(x, contracts));
+  const ys = xs.map(x => netGexAt(x, contracts, nowSec));
   const crosses = [];
   for (let i = 1; i < xs.length; i++) {
     let a = xs[i - 1], b = xs[i], fa = ys[i - 1], fb = ys[i];
@@ -299,7 +412,7 @@ function gammaFlip(spot, contracts, loPct = 0.90, hiPct = 1.10, steps = 80) {
       let m = a;
       for (let j = 0; j < 28; j++) {
         m = a + (b - a) * Math.abs(fa) / (Math.abs(fa) + Math.abs(fb));
-        const fm = netGexAt(m, contracts);
+        const fm = netGexAt(m, contracts, nowSec);
         if (fm === 0) break;
         if (fa * fm < 0) { b = m; fb = fm; } else { a = m; fa = fm; }
         if (Math.abs(b - a) < spot * 1e-6) break;
@@ -330,11 +443,11 @@ function activityWalls(spot, contracts, zeroGamma, band = 0.04) {
 // activity wall (volume, OI breaks ties, split by the flip), then to the net-GEX wall.
 // wall_source: 'gamma' when both walls are gamma walls, else e.g.
 // 'call:gamma,put:activity_fallback' so a fallback is visible in the API.
-function levels(spot, gex, contracts, side) {
+function levels(spot, gex, contracts, side, nowSec = Date.now() / 1000) {
   const near = [...gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.06);
   const pool = near.length ? near : [...gex.keys()];
   const [nwC, nwP] = walls(spot, gex);
-  const zeroGamma = contracts && contracts.length ? gammaFlip(spot, contracts) : null;
+  const zeroGamma = contracts && contracts.length ? gammaFlip(spot, contracts, 0.90, 1.10, 80, nowSec) : null;
   const [gwC, gwP] = gammaWalls(spot, side && side.callGex, side && side.putGex);
   let awC = null, awP = null;
   if (gwC == null || gwP == null) [awC, awP] = activityWalls(spot, contracts || [], zeroGamma);
@@ -345,6 +458,45 @@ function levels(spot, gex, contracts, side) {
   const total = pool.reduce((s, k) => s + (gex.get(k) || 0), 0);
   return { call_wall: callWall, put_wall: putWall, zero_gamma: zeroGamma, net_gex: total, regime: total > 0 ? 'POSITIVE' : 'NEGATIVE', wall_source: wallSource };
 }
+
+// Session expected range (GEXLAB public method, Owner-approved 2026-10-13) for 0DTE / 1DTE:
+// sigma = ATM straddle mid / sqrt(2/pi) (a straddle is worth about 0.798 sigma), from the selected
+// expiry; if no two-sided ATM quote, sigma = ATM IV x sqrt(calendar years to that expiry's 16:00 ET)
+// x spot. 68% = center ± sigma, 80% = center ± 1.2816 sigma. Held for the session by the caller.
+const STRADDLE_TO_SIGMA = Math.sqrt(Math.PI / 2);
+function straddleRange(spot, contracts, nowSec = Date.now() / 1000) {
+  if (!(spot > 0) || !contracts || !contracts.length) return null;
+  const strikes = [...new Set(contracts.map(c => c.strike))].sort((a, b) => Math.abs(a - spot) - Math.abs(b - spot));
+  let sigma = null, method = null, atm = null, straddle = null;
+  for (const k of strikes.slice(0, 3)) {
+    const c = contracts.find(x => x.strike === k && x.cp === 'C'), pt = contracts.find(x => x.strike === k && x.cp === 'P');
+    const mid = o => (o && o.bid > 0 && o.ask >= o.bid ? (o.bid + o.ask) / 2 : null);
+    const mc = mid(c), mp = mid(pt);
+    if (mc != null && mp != null) { atm = k; straddle = mc + mp; sigma = straddle * STRADDLE_TO_SIGMA; method = 'atm_straddle'; break; }
+  }
+  if (sigma == null) {
+    const k = strikes[0];
+    const ivs = contracts.filter(x => x.strike === k && x.iv > 0).map(x => (x.iv > 3 ? x.iv / 100 : x.iv));
+    const exp = contracts.find(x => x.strike === k)?.exp;
+    if (!ivs.length || !(exp instanceof Date)) return null;
+    atm = k;
+    sigma = ivs.reduce((a, b) => a + b, 0) / ivs.length * Math.sqrt(yearsToClose(exp, nowSec)) * spot;
+    method = 'atm_iv';
+  }
+  if (!(sigma > 0)) return null;
+  return { center: spot, sigma, method, atm_strike: atm, straddle: straddle == null ? null : round(straddle, 4), ts: nowSec };
+}
+function bands(em) {
+  return { '68%': [em.center - em.sigma, em.center + em.sigma], '80%': [em.center - 1.2816 * em.sigma, em.center + 1.2816 * em.sigma] };
+}
+// A snapshot may be taken only from a chain printed during today's cash session (09:30-16:00 ET):
+// never from the prior session's chain that Cboe still serves just after the open.
+function snapshotAllowed(optTs, nowSec) {
+  if (!optTs) return false;
+  const o = etClock(optTs), n = etClock(nowSec);
+  return o.y === n.y && o.mo === n.mo && o.d === n.d && o.min >= RTH_OPEN && o.min < RTH_CLOSE && cashScheduleOpen(nowSec);
+}
+function etDay(tsSec) { const c = etClock(tsSec); return `${c.y}-${String(c.mo).padStart(2, '0')}-${String(c.d).padStart(2, '0')}`; }
 
 function ivRange(spot, iv30, days = 1) {
   const s = (iv30 || 0) / 100 * Math.sqrt(days / 252);
@@ -639,28 +791,83 @@ function warnings(data) {
   return out;
 }
 
-async function buildLevels(name, dteMax = 1, env = {}) {
+// Options source (GEX audit round 3, 2026-10-13): Cboe's chain is PRIMARY again, as before build
+// 483. The InsightSentry chain (build 483) moved zero gamma (QQQ 755 vs spot 742) and inflated IV;
+// it is now only the fallback when Cboe fails. opts.emStore = { get(key), put(key, value) } holds
+// the session expected-range snapshot (functions/api/gex/levels/[name].js, edge cache).
+async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   name = String(name || '').toUpperCase();
   if (!MARKETS[name]) throw new Error('unknown market');
   if (![0, 1, 7, 30].includes(dteMax)) dteMax = 1;
   const cfg = MARKETS[name];
+  // Options source: the compact Cboe chain from our feeder (never the 5-13 MB raw Cboe file: that
+  // blew the Function's CPU limit, error 1102, build 528). Missing or stale -> InsightSentry.
+  const nowSec = opts.now || Date.now() / 1000;
   let source = 'cboe';
-  let optData;
+  let optData, parsed, compactNote = null;
   try {
+    const d = opts.compact !== undefined ? (typeof opts.compact === 'function' ? await opts.compact(name, dteMax) : opts.compact) : await fetchCompact(name, dteMax, env);
+    if (!d) throw new Error('compact chain missing');
+    if (!compactFresh(d, nowSec)) throw new Error('compact chain stale (' + Math.round((nowSec - d.fetched_at) / 60) + ' min)');
+    parsed = compactToContracts(d, dteMax, nowSec);
+    if (parsed.contracts.length < 20) throw new Error('compact chain thin');
+    optData = { current_price: d.spot, iv30: d.iv30, last_trade_time: d.chain_time, chain_fetched_at: d.fetched_at };
+  } catch (e) {
+    compactNote = String(e && e.message || e).slice(0, 120);
     optData = await fetchInsightOptions(name, dteMax, env);
     source = 'insightsentry_options';
-  } catch (_) {
-    const cboe = await fetchJson(CBOE + encodeURIComponent(cfg.cboe) + '.json');
-    optData = cboe.data || cboe;
+    parsed = parseOptions(optData, dteMax, nowSec);
   }
-  const { spot, contracts } = parseOptions(optData, dteMax);
-  const p = profile(spot, contracts);
-  const lv = levels(spot, p.gex, contracts, p);
+  let spot = parsed.spot, contracts = parsed.contracts;
   const expiries = [...new Set(contracts.map(c => isoDate(c.exp)))].sort();
+  let optTs = optData.options_ts || etEpoch(optData.last_trade_time || null);
+  const sources = { fallback_reason: compactNote, chain: source === 'cboe' ? 'cboe' : 'insightsentry', oi: source === 'cboe' ? 'cboe' : 'insightsentry', iv: source === 'cboe' ? 'cboe' : 'insightsentry', spot: source === 'cboe' ? 'cboe' : 'insightsentry', gamma: 'black_scholes' };
+  let cboeOnly = null;
+  if (source === 'cboe' && expiries.length === 1 && opts.hybrid !== false) {
+    try {
+      const live = await (opts.insightQuotes ? opts.insightQuotes(name, expiries[0]) : fetchInsightQuotes(name, expiries[0], env));
+      const m = mergeHybrid(contracts, live);
+      if (m.used > 0) {
+        cboeOnly = { spot, contracts };
+        spot = live.spot; contracts = m.contracts;
+        if (live.ts) optTs = live.ts;
+        sources.iv = 'insightsentry'; sources.spot = 'insightsentry';
+        sources.iv_contracts = { insightsentry: m.used, cboe: contracts.length - m.used };
+      }
+    } catch (_) { /* InsightSentry down or not configured: pure Cboe */ }
+  }
+  contracts = ownGamma(contracts, spot, nowSec);
+  const p = profile(spot, contracts);
+  const lv = levels(spot, p.gex, contracts, p, nowSec);
+  // Side-by-side for the audit: the same chain priced with Cboe's spot + IV only.
+  let compare = null;
+  if (cboeOnly) {
+    const cc = ownGamma(cboeOnly.contracts, cboeOnly.spot, nowSec), cp = profile(cboeOnly.spot, cc), cl = levels(cboeOnly.spot, cp.gex, cc, cp, nowSec);
+    compare = { cboe_only: { spot: cboeOnly.spot, call_wall: cl.call_wall, put_wall: cl.put_wall, zero_gamma: cl.zero_gamma == null ? null : round(cl.zero_gamma, 2) } };
+  }
+  let expected = ivRange(spot, Number(optData.iv30 || 0));
+  let expectedInfo = { method: 'iv30_1day', held: false };
+  if ((dteMax === 0 || dteMax === 1) && expiries.length === 1) {
+    const live = straddleRange(spot, contracts, nowSec);
+    if (live) {
+      let em = live, held = false, phase = 'pre-open';
+      const key = `${name}:${dteMax}:${expiries[0]}:${etDay(nowSec)}`;
+      if (opts.emStore) {
+        try {
+          const snap = await opts.emStore.get(key);
+          if (snap && snap.sigma > 0) { em = snap; held = true; phase = 'session'; }
+          else if (snapshotAllowed(optTs, nowSec)) { await opts.emStore.put(key, live); held = true; phase = 'session'; }
+        } catch (_) {}
+      }
+      if (!held && snapshotAllowed(optTs, nowSec)) phase = 'session_unheld';
+      expected = bands(em);
+      expectedInfo = { method: em.method, held, phase, center: round(em.center, 2), sigma: round(em.sigma, 4), atm_strike: em.atm_strike, straddle: em.straddle, snapshot_ts: held ? em.ts : null };
+    }
+  }
   const data = {
     ...lv,
-    underlying: name, spot, iv30: Number(optData.iv30 || 0), contracts: contracts.length, source,
-    fut: cfg.fut, mult: cfg.mult, expected: ivRange(spot, Number(optData.iv30 || 0)),
+    underlying: name, spot, iv30: Number(optData.iv30 || 0), contracts: contracts.length, source, sources, compare,
+    fut: cfg.fut, mult: cfg.mult, expected, expected_info: expectedInfo,
     asof: optData.last_trade_time || null,
     expiry: expiries.length === 1 ? expiries[0] : (expiries.length ? `${expiries[0]}–${expiries[expiries.length - 1]}` : null),
     expiry_dte: contracts.length && expiries.length === 1 ? contracts[0].dte : null,
@@ -678,9 +885,10 @@ async function buildLevels(name, dteMax = 1, env = {}) {
   data.warnings = warnings(data);
   data.fetched_at = Date.now() / 1000;
   const futTs = Object.values(data.futures).map(f => f && f.futures_ts).filter(Boolean).sort((a, b) => b - a)[0] || null;
-  data.market = marketStatus({ now: data.fetched_at, futTs, optTs: optData.options_ts || etEpoch(data.asof) });
+  data.market = marketStatus({ now: data.fetched_at, futTs, optTs: optTs || etEpoch(data.asof) });
   return data;
 }
 
-export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip };
+export { fetchInsightQuotes, insightQuoteMap, mergeHybrid, ownGamma, saneIv, bsGamma, compactToContracts, compactFresh, fetchCompact };
+export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip, parseOptions, straddleRange, bands, snapshotAllowed, yearsToClose, netGexAt };
 export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

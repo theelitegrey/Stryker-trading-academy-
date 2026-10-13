@@ -275,7 +275,7 @@ export function mountWatchlist(ws, o){
   const thead = el('div', { class: 'stkw-th', role: 'row' });
   const body = el('div', { class: 'stkw-body', role: 'grid', 'aria-label': 'Watchlist symbols', tabindex: '0' });
   const banner = el('div', { class: 'stkw-banner', hidden: true });
-  const foot = el('p', { class: 'stkw-foot', text: 'Futures prices are delayed (the dot shows the data status). Education only. Not financial advice.' });
+  const foot = el('p', { class: 'stkw-foot', text: 'Futures: continuous front-month prices (the dot shows the data status). Education only. Not financial advice.' });
   const grip = el('div', { class: 'stkw-grip', title: 'Drag to resize', 'aria-hidden': 'true' });
   const panel = el('aside', { class: 'stkw', id: 'stkw', 'aria-label': 'Watchlist', hidden: true }, [grip, head, banner, thead, body, foot]);
   panelHost.appendChild(panel);

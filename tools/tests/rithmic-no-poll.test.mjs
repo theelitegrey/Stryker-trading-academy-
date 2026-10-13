@@ -71,6 +71,8 @@ class FakeWS {
         break;
       }
       case T.TIME_BAR_REPLAY: {
+        if (m.symbol.startsWith('GC')) break;            // a history plant that never answers (Rithmic Test, 2026-10-13)
+        if (m.symbol.startsWith('CL')) { this.reply({ template_id: T.TIME_BAR_REPLAY_R, user_msg: um, rp_code: ['0'] }); break; } // empty answer
         const step = m.bar_type === 2 ? (m.bar_type_period || 1) * 60 : 86400;
         const end = Math.min(m.finish_index, Math.floor(now / 1000));
         const n = Math.min(m.user_max_count || 10000, Math.floor((end - m.start_index) / step) + 1);
@@ -215,6 +217,13 @@ phase = 'quiet';
 await advance(19 * 60000);
 ok(dataIn('quiet') === 0, 'another 19 min quiet: zero data fetches (' + count((x) => x.phase === 'quiet' && x.tid === T.MD_UPDATE && x.request === 2) + ' unsubscribe for a contract no chart shows any more)');
 
+// A history plant that does not answer (GC) or answers empty (CL): the repeating readers must not
+// turn that into a poll. One replay each, then the standard data for FAIL_BACKOFF.
+phase = 'silent';
+for (let i = 0; i < 24; i++) { prov.getBars('GC1!', 'D', { limit: 2 }).catch(() => {}); prov2.getBars('CL1!', '1', { limit: 5 }).catch(() => {}); await advance(12000); }
+ok(count((s) => s.phase === 'silent' && s.tid === T.TIME_BAR_REPLAY && s.plant === 'history') <= 4,
+  'silent / empty history: no retry loop (' + count((s) => s.phase === 'silent' && s.tid === T.TIME_BAR_REPLAY) + ' replays for 48 reads over ~5 min)');
+
 phase = 'logout';
 const d = client.disconnect(); await advance(3000); await d;
 ok(count((s) => s.phase === 'logout' && s.tid === T.LOGOUT) === 2, 'clean logout on both plants');
@@ -225,7 +234,7 @@ const tally = {};
 for (const s of sent) { const k = s.plant + ' ' + s.tid + (s.tid === T.MD_UPDATE ? (s.request === 2 ? ' unsub' : ' sub') : ''); tally[k] = (tally[k] || 0) + 1; }
 const totalData = count((s) => DATA.has(s.tid));
 console.log('requests over the simulated session:', JSON.stringify(tally));
-ok(totalData <= 16, 'whole session: bounded data requests (' + totalData + ')');
+ok(totalData <= 22, 'whole session: bounded data requests (' + totalData + ')');
 const span = (sent[sent.length - 1].t - sent[0].t) / 60000;
 ok(span >= 30, 'simulated session length ' + Math.round(span) + ' min');
 Date.now = realNow;

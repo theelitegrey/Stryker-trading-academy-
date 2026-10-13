@@ -27,7 +27,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
   const result = { gateway: null, system: login.system, steps: [], wire: {}, wireTimeline: [], errors: [] };
   const step = (name) => { result.steps.push({ name, at: Date.now() }); log(name); };
 
-  const b = await launch();
+  const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
     const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
     await ctx.addInitScript(stub);
@@ -83,12 +83,12 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
       throw new Error('login refused');
     }
     step('connected to ' + login.system);
-    await sleep(8000);
+    await sleep(25000);
     step('NQ1! 1m on Rithmic: ' + JSON.stringify(await cell()) + ' source=' + await p.evaluate(() => window.STRYKER_RITHMIC.lastSource));
 
     await setMarket({ symbol: 'futures:ES1!', timeframe: '5' });
-    await sleep(8000);
-    step('ES1! 5m: ' + JSON.stringify(await cell()));
+    await sleep(25000);
+    step('ES1! 5m: ' + JSON.stringify(await cell()) + ' source=' + await p.evaluate(() => window.STRYKER_RITHMIC.lastSource));
 
     // Scroll back once: drag the plot to the right (older bars) until Vela pages history.
     const n0 = (await cell()).n;
@@ -105,7 +105,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
     step('scroll back: bars ' + n0 + ' -> ' + (await cell()).n);
 
     await setMarket({ timeframe: '15' });
-    await sleep(8000);
+    await sleep(25000);
     step('timeframe change ES1! 5m -> 15m: ' + JSON.stringify(await cell()));
     if (SHOTS) {
       await p.click('#stkrb-btn'); await sleep(500);
@@ -113,8 +113,10 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
       await p.keyboard.press('Escape');
     }
 
+    result.appCountsBeforeIdle = await p.evaluate(() => window.STRYKER_RITHMIC.counts);
     step('idle ' + IDLE_MIN + ' min, receiving updates');
-    const t0 = await p.evaluate(() => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; return b[b.length - 1]; });
+    const lastOf = () => p.evaluate(() => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x ? { time: x.time, close: x.close } : null; });
+    const t0 = await lastOf();
     const changes = await p.evaluate(async (ms) => {
       const o = window.STRYKER_VELA.context().cells[0].chart.orchestrator;
       let n = 0, last = '';
@@ -122,12 +124,13 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
       while (Date.now() < end) {
         await new Promise((r) => setTimeout(r, 1000));
         const b = o.rawBars[o.rawBars.length - 1];
+        if (!b) continue;
         const k = b.time + ':' + b.close + ':' + b.volume;
         if (k !== last) { n++; last = k; }
       }
       return n;
     }, IDLE_MIN * 60000);
-    const t1 = await p.evaluate(() => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; return b[b.length - 1]; });
+    const t1 = await lastOf();
     result.idle = { secondsWithChange: changes, firstBar: t0 && t0.time, lastBar: t1 && t1.time, lastClose: t1 && t1.close };
     step('idle done: forming bar changed in ' + changes + ' of ' + IDLE_MIN * 60 + ' one-second samples');
 

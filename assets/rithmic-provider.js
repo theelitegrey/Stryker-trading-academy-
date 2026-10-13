@@ -83,6 +83,11 @@ function toMonths(bars) {
 // a new trading day (again only the gap). A series nobody has used for SERIES_IDLE_MS is released
 // (its subscription is dropped by the client when no chart needs the contract).
 const SERIES_IDLE_MS = 3 * 60 * 1000;
+// A snapshot that failed (timeout / reject) or came back EMPTY is not retried by the repeating
+// readers for this long: they get the standard data instead (getBars falls back). Without this a
+// silent history plant would be asked again on every watchlist / paper / resume read, i.e. polled.
+// A scroll-back page (`to`) or the member reconnecting clears it.
+const FAIL_BACKOFF_MS = 5 * 60 * 1000;
 const MAX_SERIES_BARS = 12000;
 const stores = new WeakMap(); // client -> Map(key -> series): shared by every provider instance
 // Futures trading date: CME sessions open 22:00/23:00 UTC for the next date.
@@ -110,7 +115,8 @@ export class RithmicFuturesProvider {
       stores.set(client, st);
       // Connection left 'connected' (drop, logout, error): every series has a gap from here on.
       if (client && client.on) client.on((ev) => {
-        if (ev.type !== 'state' || ev.state === 'connected') return;
+        if (ev.type !== 'state') return;
+        if (ev.state === 'connected') { for (const h of st.values()) h.failedAt = 0; return; }
         for (const h of st.values()) {
           if (h.bars && h.bars.length && h.gapFrom == null) h.gapFrom = h.bars[h.bars.length - 1].time;
           if (ev.state === 'idle' || ev.state === 'error') { h.bars = null; h.gapFrom = null; if (h.unsubFeed) { h.unsubFeed(); h.unsubFeed = null; } h.feedPending = null; }
@@ -152,7 +158,7 @@ export class RithmicFuturesProvider {
     const key = root + '|' + tf;
     let h = this.series.get(key);
     if (!h) {
-      h = { key, root, tf, bars: null, complete: false, day: 0, gapFrom: null, listeners: new Set(), unsubFeed: null, feedPending: null, inflight: null, lastUse: 0, idleTm: null };
+      h = { key, root, tf, failedAt: 0, bars: null, complete: false, day: 0, gapFrom: null, listeners: new Set(), unsubFeed: null, feedPending: null, inflight: null, lastUse: 0, idleTm: null };
       this.series.set(key, h);
     }
     h.lastUse = Date.now();
@@ -195,16 +201,21 @@ export class RithmicFuturesProvider {
     if (h.bars && h.bars.length && nonIntraday && h.day !== tradingDay() && h.gapFrom == null) h.gapFrom = h.bars[h.bars.length - 1].time;
     let hit = this.fromMemory(h, range);
     if (hit) return hit;
+    if (h.failedAt && Date.now() - h.failedAt < FAIL_BACKOFF_MS) throw new Error('Rithmic history unavailable for ' + root + ' (retry later)');
     const run = (async () => {
       if (h.bars && h.bars.length && h.gapFrom != null) {
         // Reconnected (or a new trading day): replay only from the newest bar we hold.
-        const gap = await this.rithmicBars(root, tf, { from: h.gapFrom });
+        let gap;
+        try { gap = await this.rithmicBars(root, tf, { from: h.gapFrom }); } catch (e) { h.failedAt = Date.now(); throw e; }
         h.bars = mergeBars(h.bars, gap);
         h.gapFrom = null;
       }
       if (!this.fromMemoryShape(h, range)) {
         const want = range.from != null ? null : (range.limit != null ? range.limit : 500);
-        const bars = await this.rithmicBars(root, tf, range);
+        let bars;
+        try { bars = await this.rithmicBars(root, tf, range); } catch (e) { h.failedAt = Date.now(); throw e; }
+        if (!bars.length && !(h.bars && h.bars.length)) { h.failedAt = Date.now(); throw new Error('Rithmic returned no history for ' + root); }
+        h.failedAt = 0;
         h.complete = want != null ? bars.length < want : true;
         h.bars = mergeBars(h.bars && h.bars.length && bars.length && h.bars[0].time < bars[0].time ? h.bars : null, bars);
         h.gapFrom = null;

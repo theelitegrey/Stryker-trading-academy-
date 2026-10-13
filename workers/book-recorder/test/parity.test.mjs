@@ -15,7 +15,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { bucketSnapshot, encodeSamples, decodeSamples, storeRule } from '../src/bucket.js';
-import { validateIngest } from '../src/index.js';
+import { validateIngest, alignRange } from '../src/index.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..', '..', '..');
@@ -113,6 +113,23 @@ const m2 = client.mergeBookHistory([R(T0)], [L(T0 - 4000)]);
 check(m2.length === 1 && !m2[0].remote, 'local sample 4 s before a recorder sample replaces it');
 const m3 = client.mergeBookHistory([R(T0)], [L(T0 - 30000)]);
 check(m3.length === 2, 'local sample 30 s before does not replace it');
+
+// ---- 4. /book-history range alignment (cache-miss abuse) ----
+{
+  const Q = 15 * 60000, now = Date.parse('2026-10-13T12:07:31Z');
+  const froms = [];
+  for (let k = 0; k < 15; k++) froms.push(alignRange(Date.parse('2026-10-13T06:00:00Z') + k * 60000 + 1234, now, now).from);
+  check(new Set(froms).size === 1 && froms[0] === Date.parse('2026-10-13T06:00:00Z'), 'Worker: 15 different from= minutes in one quarter-hour -> one aligned from (' + new Date(froms[0]).toISOString() + ')');
+  const r = alignRange(Date.parse('2026-10-13T06:14:59Z'), now, now);
+  check(r.from % Q === 0 && r.from === Date.parse('2026-10-13T06:00:00Z'), 'Worker: from aligned DOWN to 15 min');
+  check(r.to === Date.parse('2026-10-13T12:08:00Z'), 'Worker: to = the current minute, rounded up');
+  const old = alignRange(now - 3 * 86400000, null, now);
+  check(old.from === Math.floor((now - 86400000) / 60000) * 60000, 'Worker: from older than 24 h clamped to the keep window');
+  check(alignRange(null, null, now).to > alignRange(null, null, now).from, 'Worker: no query -> a valid 24 h range');
+  // the client asks with the same 15-min grid, so the Worker leaves a client from unchanged
+  const cf = Math.floor(Date.parse('2026-10-13T09:41:00Z') / Q) * Q;
+  check(alignRange(cf, now, now).from === cf, 'Worker keeps the client\'s 15-min-aligned from as it is');
+}
 
 // ---- storage maths (printed for the README) ----
 for (const s of list) {

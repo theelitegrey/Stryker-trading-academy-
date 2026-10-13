@@ -9,7 +9,7 @@
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BookRecorder"] }],
   "triggers": { "crons": [] },
   "ratelimits": [
-    { "name": "RL", "namespace_id": "52401", "simple": { "limit": 60, "period": 60 } }
+    { "name": "RL", "namespace_id": "52401", "simple": { "limit": 20, "period": 60 } }
   ],
   "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT" },
   "observability": { "enabled": true }

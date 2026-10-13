@@ -7,7 +7,7 @@ server can. Run by a systemd timer every 60 s (book-feeder.timer); each run is o
 process (no daemon, a few MB of RAM), logs one line per symbol to the journal and exits.
 
 Per run: for each symbol, GET /api/v3/depth?limit=5000 (api.binance.com, falling back to
-data-api.binance.vision, 15 s timeout each, no retries beyond that one fallback), bucket it with
+data-api.binance.vision, each fetch timeout min(15 s, time left of a 35 s budget), no retries beyond that one fallback), bucket it with
 the SAME rule as the Charts client and the Worker (rows = nice step at or below 0.05% of the
 price, +-2% of the mid, bids/asks summed per row as Float32; parity-tested in
 workers/book-recorder/test/parity.test.mjs), then ONE POST of all symbols to <Worker>/ingest
@@ -37,7 +37,10 @@ FEEDS = (('binance.com', 'https://api.binance.com/api/v3/depth'),
 AUTO_ROW = 0.0005
 RANGE = 0.02
 ROWS_SIDE_MAX = 400
-TIMEOUT = 15
+TIMEOUT = 15          # per depth fetch, capped to what is left of the run budget (fetch_depth)
+RUN_BUDGET = 35       # seconds for all depth fetches; the POST then gets POST_TIMEOUT
+POST_TIMEOUT = 10     # 35 + 10 = 45 s < TimeoutStartSec=50 (book-feeder.service)
+MIN_FETCH = 1.0       # less than this left: skip the fetch instead of starting it
 UA = 'tradezoro-book-feeder/1'
 
 
@@ -133,12 +136,14 @@ def log(msg):
 def fetch_depth(sym, deadline):
     errs = []
     for fid, base in FEEDS:
-        if time.monotonic() > deadline:
+        left = deadline - time.monotonic()
+        if left < MIN_FETCH:
             errs.append(fid + ' skipped (run time budget)')
             break
         try:
             req = urllib.request.Request(base + '?symbol=' + sym + '&limit=5000', headers={'User-Agent': UA})
-            with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+            # min(15 s, time left): a fetch started near the deadline cannot push the run past it
+            with urllib.request.urlopen(req, timeout=min(TIMEOUT, left)) as r:
                 return fid, json.load(r), errs
         except urllib.error.HTTPError as e:
             errs.append('%s HTTP %s' % (fid, e.code))
@@ -154,7 +159,7 @@ def main():
     if not url or len(key) < 32:
         log('config missing: BOOK_RECORDER_URL / BOOK_INGEST_SECRET')
         return 2
-    deadline = time.monotonic() + 35  # leave room for the POST inside the 60 s period
+    deadline = time.monotonic() + RUN_BUDGET  # leave room for the POST inside TimeoutStartSec
     out, got, feeds = [], [], []
     for sym in syms:
         fid, d, errs = fetch_depth(sym, deadline)
@@ -170,7 +175,7 @@ def main():
     req = urllib.request.Request(url + '/ingest?symbols=' + ','.join(got), data=body, method='POST', headers={
         'content-type': 'application/octet-stream', 'x-ingest-key': key, 'x-feed': ','.join(feeds), 'User-Agent': UA})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
             log('ingest HTTP %s %s (%d B)' % (r.status, r.read(200).decode('utf-8', 'replace'), len(body)))
             return 0
     except urllib.error.HTTPError as e:

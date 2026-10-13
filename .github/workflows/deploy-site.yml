@@ -125,6 +125,13 @@ jobs:
           echo "name=$name" >> "$GITHUB_OUTPUT"
           echo "Deploying to Pages project: $name"
 
+      # Same gate as runner-test.yml, before anything ships: build 525 went live while runner-test
+      # was red (learn pages out of date after a missed ?v= bump), because only runner-test ran it.
+      - name: Site checks (check.py + learn pages up to date)
+        run: |
+          python3 tools/check.py
+          node tools/gen-learn.js --check
+
       - name: Refresh the sitemap (lastmod = this deploy)
         run: node tools/gen-sitemap.js
 

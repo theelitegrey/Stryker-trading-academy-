@@ -20,6 +20,9 @@ jobs:
   deploy:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # GitHub environment that only allows the main branch (deployment branch policy "main"), so a
+    # probe branch with a copy of this job can no longer deploy the production Worker.
+    environment: book-recorder-production
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6

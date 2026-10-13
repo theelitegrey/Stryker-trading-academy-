@@ -45,10 +45,15 @@ byte-identical samples from real 5000-level snapshots (fixtures/).
 
 ## API
 
-- `GET /book-history?symbol=BTCUSDT[&from=ms][&to=ms]`: binary samples. The range is rounded to
-  whole minutes and clamped to the last 24 h. Header `x-book-from` = the oldest sample held.
-  Cached at the edge for 30 s. Rate limit: 60 requests/min per IP.
-- `GET /status`: JSON health (samples per symbol, from/to, the last ingest, db size).
+- `GET /book-history?symbol=BTCUSDT[&from=ms][&to=ms]`: binary samples. `from` is rounded DOWN
+  to 15 min (as the client asks), `to` up to the whole minute, both clamped to the last 24 h, so a
+  caller changing `from` on every request still hits the same cache entries (build 526).
+  Header `x-book-from` = the oldest sample held. Cached at the edge for 30 s.
+  Rate limit: 20 requests/min per IP (the client needs about one per open).
+- `GET /status`: JSON health (samples per symbol, from/to, the last ingest, db size). Computed at
+  most once per 30 s in the Durable Object (the counts read every row), plus the 30 s edge cache.
+- Deploys only from main: the deploy job runs in the GitHub environment `book-recorder-production`,
+  whose branch policy allows `main` only.
 - `POST /ingest?symbols=BTCUSDT,ETHUSDT`: feeder only.
   - Auth: header `x-ingest-key`, compared in constant time (SHA-256, then timingSafeEqual).
   - Body: max 64 KB.

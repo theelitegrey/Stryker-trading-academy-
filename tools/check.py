@@ -18,6 +18,7 @@ because the tag had no version to be wrong.
 """
 
 import glob
+import json
 import os
 import re
 import subprocess
@@ -105,6 +106,28 @@ def check_module_import_versions():
     for mod, vs in seen.items():
         if len(vs) > 1:
             fail(f'{mod} is imported with different query strings {sorted(x or "none" for x in vs)}')
+
+
+# Files outside the HTML pages that carry the build's ?v= by hand. Build 525 missed both (the
+# learn-*.html pages generated from gen-learn.js then went out of date and runner-test went red).
+VERSIONED_SOURCES = ['tools/gen-learn.js', 'firebase-messaging-sw.js']
+
+
+def check_versioned_sources():
+    """Every ?v= in tools/gen-learn.js and firebase-messaging-sw.js must match version.json."""
+    try:
+        build = str(json.load(open(os.path.join(ROOT, 'assets', 'version.json')))['build'])
+    except Exception as e:
+        fail(f'assets/version.json unreadable: {e}')
+        return
+    for rel in VERSIONED_SOURCES:
+        path = os.path.join(ROOT, rel)
+        if not os.path.exists(path):
+            continue
+        for n, line in enumerate(open(path), 1):
+            for v in re.findall(r'\?v=(\d+)', line):
+                if v != build:
+                    fail(f'{rel}:{n}: ?v={v} != version.json {build}')
 
 
 def check_js_syntax():
@@ -437,6 +460,7 @@ def main():
     check_unversioned_assets()
     version = check_version_consistency()
     check_module_import_versions()
+    check_versioned_sources()
     check_js_syntax()
     check_html_structure()
     check_css_braces()

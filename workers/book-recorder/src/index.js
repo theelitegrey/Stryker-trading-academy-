@@ -13,13 +13,16 @@
 // stored; 24 h per symbol is kept, older rows deleted on every insert.
 // READ: GET /book-history?symbol=BTCUSDT[&from=ms][&to=ms] -> compact binary (src/bucket.js
 // encodeSamples). GET /status -> JSON health. CORS: tradezoro.com + strykertrading.com only.
-// Edge-cached 30 s, rate-limited per IP. Public market data only: no user data.
+// Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
+// memoised 30 s in the DO). Public market data only: no user data.
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
 const MAX_ROWS = 1000;           // +-2% at ~0.05% rows is <= ~82 rows; anything far bigger is wrong
 const FRESH_MS = 3 * 60000;      // a sample must be stamped within 3 min of the Worker's clock
+const ALIGN_MS = 15 * 60000;     // 'from' rounded down to 15 min, as the client does (assets/chart-orderflow.js BOOK_REMOTE_ALIGN_MS)
+const STATUS_MEMO_MS = 30000;    // /status is computed at most once per 30 s in the DO
 const ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com']);
 
 const symbolsOf = (env) => String(env.SYMBOLS || 'BTCUSDT,ETHUSDT').split(',').map((s) => s.trim().toUpperCase()).filter((s) => /^[A-Z0-9]{3,20}$/.test(s));
@@ -44,6 +47,17 @@ export function validateIngest(syms, list, allowed, now) {
   return '';
 }
 
+// The range a /book-history request is served for. `from` is aligned DOWN to 15 min (not just the
+// minute) so a caller that changes `from` on every request still lands on one of a few cache
+// entries and DO reads; `to` is whole minutes, never past the current minute.
+export function alignRange(fromQ, toQ, now) {
+  const M = 60000;
+  let to = Number(toQ) || now, from = Number(fromQ) || now - KEEP_MS;
+  to = Math.min(Math.ceil(Math.min(to, now) / M) * M, Math.ceil(now / M) * M);
+  from = Math.max(Math.floor(from / ALIGN_MS) * ALIGN_MS, Math.floor((now - KEEP_MS) / M) * M);
+  return { from, to };
+}
+
 async function authorized(req, env) {
   const secret = env.INGEST_SECRET;
   if (!secret || secret.length < 32) return false;
@@ -58,7 +72,7 @@ async function authorized(req, env) {
 
 export class BookRecorder {
   constructor(ctx, env) {
-    this.ctx = ctx; this.env = env; this.sql = ctx.storage.sql; this.cache = new Map(); this.alarmCleared = false;
+    this.ctx = ctx; this.env = env; this.sql = ctx.storage.sql; this.cache = new Map(); this.alarmCleared = false; this.statusMemo = null;
     this.sql.exec(`CREATE TABLE IF NOT EXISTS samples (sym TEXT NOT NULL, ts INTEGER NOT NULL, mid REAL, bb REAL, ba REAL, step REAL, i0 INTEGER, v BLOB, PRIMARY KEY (sym, ts)) WITHOUT ROWID`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT) WITHOUT ROWID`);
   }
@@ -93,12 +107,16 @@ export class BookRecorder {
     return buf;
   }
   status() {
+    // memoised: the COUNT/MIN/MAX/SUM pass reads every row (~2,880), so do it at most every 30 s
+    const m = this.statusMemo;
+    if (m && Date.now() - m.at < STATUS_MEMO_MS) return m.out;
     const out = { symbols: {}, keepHours: 24, source: 'server feeder (Binance spot depth, limit=5000), 1 sample/min', last: JSON.parse(this.meta('last') || 'null') };
     for (const s of symbolsOf(this.env)) {
       const c = this.sql.exec('SELECT COUNT(*) AS n, MIN(ts) AS t0, MAX(ts) AS t1, SUM(LENGTH(v)) AS b FROM samples WHERE sym = ?', s).toArray()[0];
       out.symbols[s] = { samples: c.n, from: c.t0, to: c.t1, rowBytes: c.b, avgRowBytes: c.n ? Math.round(c.b / c.n) : 0 };
     }
     out.dbBytes = this.ctx.storage.sql.databaseSize;
+    this.statusMemo = { at: Date.now(), out };
     return out;
   }
   async fetch(req) {
@@ -165,11 +183,8 @@ export default {
     if (u.pathname !== '/book-history') return new Response('not found', { status: 404, headers: h });
     const sym = String(u.searchParams.get('symbol') || '').toUpperCase();
     if (!symbolsOf(env).includes(sym)) return new Response('symbol not recorded', { status: 404, headers: Object.assign({ 'cache-control': 'public, max-age=300' }, h) });
-    // whole minutes, so every viewer in the same minute shares one cache entry
-    const now = Date.now(), M = 60000;
-    let to = Number(u.searchParams.get('to')) || now, from = Number(u.searchParams.get('from')) || now - KEEP_MS;
-    to = Math.min(Math.ceil(Math.min(to, now) / M) * M, Math.ceil(now / M) * M);
-    from = Math.max(Math.floor(from / M) * M, Math.floor((now - KEEP_MS) / M) * M);
+    // from: 15-min aligned, to: whole minutes, so viewers share cache entries (alignRange)
+    const { from, to } = alignRange(u.searchParams.get('from'), u.searchParams.get('to'), Date.now());
     if (!(to > from)) return new Response('bad range', { status: 400, headers: h });
     const ckey = new Request('https://book-recorder.cache/' + sym + '/' + from + '/' + to);
     const cache = caches.default;

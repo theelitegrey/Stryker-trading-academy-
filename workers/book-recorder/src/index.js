@@ -16,6 +16,7 @@
 // Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
 // memoised 30 s in the DO). Public market data only: no user data.
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
+import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -75,6 +76,8 @@ export class BookRecorder {
     this.ctx = ctx; this.env = env; this.sql = ctx.storage.sql; this.cache = new Map(); this.alarmCleared = false; this.statusMemo = null;
     this.sql.exec(`CREATE TABLE IF NOT EXISTS samples (sym TEXT NOT NULL, ts INTEGER NOT NULL, mid REAL, bb REAL, ba REAL, step REAL, i0 INTEGER, v BLOB, PRIMARY KEY (sym, ts)) WITHOUT ROWID`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT) WITHOUT ROWID`);
+    // GEX compact chains (gex-feeder): one gzip blob per symbol + part, replaced on every ingest
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS gex (sym TEXT NOT NULL, part TEXT NOT NULL, ts INTEGER NOT NULL, body BLOB, PRIMARY KEY (sym, part)) WITHOUT ROWID`);
   }
   meta(k, v) {
     if (v === undefined) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
@@ -110,7 +113,9 @@ export class BookRecorder {
     // memoised: the COUNT/MIN/MAX/SUM pass reads every row (~2,880), so do it at most every 30 s
     const m = this.statusMemo;
     if (m && Date.now() - m.at < STATUS_MEMO_MS) return m.out;
-    const out = { symbols: {}, keepHours: 24, source: 'server feeder (Binance spot depth, limit=5000), 1 sample/min', last: JSON.parse(this.meta('last') || 'null') };
+    const gex = {};
+    for (const r of this.sql.exec('SELECT sym, part, ts, LENGTH(body) AS b FROM gex').toArray()) gex[r.sym + ':' + r.part] = { fetched_at: r.ts, bytes: r.b };
+    const out = { gex, symbols: {}, keepHours: 24, source: 'server feeder (Binance spot depth, limit=5000), 1 sample/min', last: JSON.parse(this.meta('last') || 'null') };
     for (const s of symbolsOf(this.env)) {
       const c = this.sql.exec('SELECT COUNT(*) AS n, MIN(ts) AS t0, MAX(ts) AS t1, SUM(LENGTH(v)) AS b FROM samples WHERE sym = ?', s).toArray()[0];
       out.symbols[s] = { samples: c.n, from: c.t0, to: c.t1, rowBytes: c.b, avgRowBytes: c.n ? Math.round(c.b / c.n) : 0 };
@@ -129,6 +134,16 @@ export class BookRecorder {
       if (bad) return new Response(bad, { status: 400 });
       this.ingest(syms, list, req.headers.get('x-feed'));
       return new Response('stored ' + list.length);
+    }
+    if (u.pathname === '/gex-ingest') {
+      const sym = u.searchParams.get('sym'), part = u.searchParams.get('part'), ts = Number(u.searchParams.get('ts'));
+      this.sql.exec('INSERT OR REPLACE INTO gex (sym, part, ts, body) VALUES (?, ?, ?, ?)', sym, part, Math.round(ts), new Uint8Array(await req.arrayBuffer()));
+      return new Response('stored ' + sym + ' ' + part);
+    }
+    if (u.pathname === '/gex-chain') {
+      const r = this.sql.exec('SELECT ts, body FROM gex WHERE sym = ? AND part = ?', u.searchParams.get('sym'), u.searchParams.get('part')).toArray()[0];
+      if (!r) return new Response('no chain', { status: 404 });
+      return new Response(r.body instanceof ArrayBuffer ? r.body : new Uint8Array(r.body), { headers: { 'content-type': 'application/octet-stream', 'x-gex-fetched-at': String(r.ts) } });
     }
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname === '/history') {
@@ -165,6 +180,34 @@ export default {
       const bad = validateIngest(syms, decodeSamples(buf), symbolsOf(env), Date.now());
       if (bad) return new Response(bad, { status: 400 });
       return stub(env).fetch('https://do/ingest?symbols=' + syms.join(','), { method: 'POST', body: buf, headers: { 'x-feed': req.headers.get('x-feed') || '' } });
+    }
+    if (u.pathname === '/gex-ingest') {
+      // GEX chain feeder (server -> Worker): same shared secret as /ingest, gzip JSON, <= 256 KB
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > GEX_MAX_BODY) return new Response('too large', { status: 413 });
+      const buf = await req.arrayBuffer();
+      const sym = String(u.searchParams.get('sym') || '').toUpperCase(), part = String(u.searchParams.get('part') || '');
+      const v = await validateGexChain(sym, part, buf, Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at, { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/gex-chain') {
+      // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached
+      // 30 s; not rate-limited per IP because the callers are Cloudflare's own Function hosts.
+      const sym = String(u.searchParams.get('sym') || '').toUpperCase(), part = String(u.searchParams.get('part') || 'near');
+      if (req.method !== 'GET') return new Response('GET only', { status: 405 });
+      if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      if (!/^[A-Z]{1,6}$/.test(sym) || !GEX_PARTS.includes(part)) return new Response('bad request', { status: 400 });
+      const ckey = new Request('https://book-recorder.cache/gex/' + sym + '/' + part + '/' + Math.floor(Date.now() / 30000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/gex-chain?sym=' + sym + '&part=' + part);
+        if (d.status !== 200) return new Response('no chain', { status: 404, headers: { 'cache-control': 'no-store' } });
+        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'cache-control': 'public, max-age=30', 'x-gex-fetched-at': d.headers.get('x-gex-fetched-at') || '0' } });
+        ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return r;
     }
     const h = cors(req);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });

@@ -1,4 +1,6 @@
-# Book recorder (Crypto DOM heatmap history)
+# Book recorder (Crypto DOM heatmap history + GEX compact option chains)
+
+> GEX chains (added 2026-10-13, build 530): see "GEX compact chains" at the end.
 
 Keeps 24 h of the Binance spot order book per symbol, one sample a minute, so the Charts
 "Crypto DOM Heatmap" is filled across the whole visible chart the moment it opens. Owner
@@ -139,3 +141,36 @@ only leaves a gap in the history.
     node workers/book-recorder/test/parity.test.mjs     # parity (Worker / feeder / client), wire format, /ingest validation, merge
     CHART_BASE=http://127.0.0.1:8031 RECORDER_ONLY=1 flock /tmp/stryker-chrome.lock \
       node tools/tests/chart-crypto-dom-browser.js <shotsDir>  # mocked recorder at 390 + 1280, and the recorder failing
+
+
+## GEX compact chains
+
+Why: the full Cboe option chain is ~5 MB (QQQ) and ~13 MB (SPX). Downloading and parsing it inside
+the site's `/api/gex/levels` Pages Function exceeded Cloudflare's CPU limit (error 1102, build 528,
+2026-10-13). So the heavy part runs on this server, and the Worker only checks, stores and serves
+the small result.
+
+    this server (gex-feeder.timer, every 2 min, weekdays 09:00-16:20 ET + one run 16:30-16:33 ET)
+    gex-feeder/gex_feeder.py --- GET Cboe chain (QQQ, _SPX, SPY) ---> cdn.cboe.com -> cdn-api.cboe.com
+          | compact: near = first 3 expiries +-12%; term = expiries <= 31 days +-10% with OI > 0
+          | rows [strike, cp, oi, iv, bid, ask, vol, delta], gzip JSON (QQQ ~6-10 KB, SPX ~11-17 KB)
+          +--- POST /gex-ingest?sym=&part= (x-ingest-key) --->  Worker -> DO table `gex` (latest only)
+    site /api/gex/levels (functions/api/gex/_engine.js fetchCompact) -- GET /gex-chain?sym=&part= (edge cache 30 s)
+
+- `/gex-ingest`: same shared secret as `/ingest`; gzip only, <= 256 KB; validated by
+  `src/gex.js validateGexChain` (symbol QQQ/SPX/SPY/GLD, part near|term, fetched_at within 10 min,
+  row shape). Only the latest chain per symbol + part is kept (one row each).
+- `/gex-chain`: server use only (a request with an Origin header gets 403); edge-cached 30 s.
+- The API treats a chain older than 30 min during the cash session as stale and falls back to the
+  InsightSentry chain (API field `sources.fallback_reason`). With the market shut the post-close
+  chain stays valid.
+- Server cost: one ~1 s Python run every 2 min in market hours, ~40 MB RSS peak (MemoryMax=160M),
+  ~19 MB of Cboe download per run. Worker: ~6 POSTs + one DO write each per run, about 1,300
+  requests/day. That is well inside the free plan.
+
+Install / update the feeder (as root): `workers/book-recorder/gex-feeder/install.sh`.
+Logs: `journalctl -u gex-feeder -n 20 -o cat`. Run now: `python3 /root/projects/book-feeder/gex_feeder.py --force`
+(with the env file loaded). Stop: `systemctl disable --now gex-feeder.timer`. Then the API
+falls back to InsightSentry within 30 min.
+Tests: `node workers/book-recorder/test/gex.test.mjs` (also run by the deploy workflow), and
+`node tools/tests/gex-cboe-test.mjs` (compact vs full parity, CPU budget, fallbacks).

@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the TradeZoro GEX chain feeder every 2 min (the script itself only works weekdays 09:00-16:20 ET + one run after the close)
+
+[Timer]
+OnBootSec=60s
+OnCalendar=*:0/2:05
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

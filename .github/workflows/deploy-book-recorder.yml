@@ -30,6 +30,8 @@ jobs:
           node-version: 22
       - name: Unit tests (bucketing parity, wire format, merge)
         run: node workers/book-recorder/test/parity.test.mjs
+      - name: GEX chain ingest tests
+        run: node workers/book-recorder/test/gex.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -71,3 +73,5 @@ jobs:
           code=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://tradezoro.com' "$URL/book-history?symbol=BTCUSDT")
           echo "book-history: HTTP $code"
           test "$code" = 200
+          g401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-ingest?sym=QQQ&part=near")
+          echo "gex-ingest without key: HTTP $g401"; test "$g401" = 401

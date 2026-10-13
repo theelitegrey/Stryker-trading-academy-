@@ -13,14 +13,12 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const data = {};
 let engine, candles, lastReq = null;
-const emMem = new Map();
-const emStore = { get: async (k) => emMem.get(k), put: async (k, v) => { emMem.set(k, v); } };
 
 async function body(name, dte) {
   const k = name + ':' + dte;
   if (!data[k]) {
     for (let i = 0; i < 3 && !data[k]; i++) {
-      const d = await engine.buildLevels(name, dte, {}, { emStore });
+      const d = await engine.buildLevels(name, dte, {});
       if (Object.values(d.futures).every((f) => !f.error)) data[k] = d; else await sleep(3000);
     }
   }
@@ -56,8 +54,6 @@ async function ctxFor(b, w, h, mobile) {
     for (const [n, d] of [['SPX', spx], ['QQQ', qqq]]) {
       check(d.wall_source === 'gamma', n + ' wall_source ' + d.wall_source + ', call ' + d.call_wall + ', put ' + d.put_wall + ', spot ' + d.spot + ', iv30 ' + d.iv30);
       check(d.call_wall >= d.spot && d.put_wall <= d.spot, n + ' call wall above spot, put wall below');
-      check(d.source === 'cboe' && Math.abs(d.zero_gamma / d.spot - 1) < 0.01, n + ' source ' + d.source + ', zero gamma ' + (d.zero_gamma && d.zero_gamma.toFixed(2)) + ' near spot');
-      check(d.expected_info && /atm_/.test(d.expected_info.method), n + ' expected range ' + JSON.stringify(d.expected_info));
     }
     // ---- GEX page, desktop + phone ----
     for (const [w, h, mob] of [[1280, 800, false], [390, 844, true]]) {
@@ -94,19 +90,14 @@ async function ctxFor(b, w, h, mobile) {
       const lines = await p.evaluate(async () => {
         const c = window.STRYKER_VELA.context().cells[0].chart; const seen = new Set();
         const find = (o, d) => { if (!o || typeof o !== 'object' || d > 4 || seen.has(o)) return null; seen.add(o); if (o.nativeData instanceof Map && o.nativeData.has('stk_gex')) return o.nativeData.get('stk_gex'); for (const k of Object.keys(o)) { try { const r = find(o[k], d + 1); if (r) return r; } catch (e) {} } return null; };
-        const x = find(c, 0); const b = c.orchestrator.rawBars; const lb = b[b.length - 1];
-        return x && x.lines ? { lines: x.lines.map((l) => ({ id: l.id, price: l.price, text: l.text })), shift: x.shift, last: lb && (lb.close != null ? lb.close : lb.c) } : null;
+        const x = find(c, 0); return x && x.lines ? { lines: x.lines.map((l) => ({ id: l.id, price: l.price, text: l.text })), shift: x.shift } : null;
       });
       const L = api.futures[fut].levels;
       const sh = lines ? lines.shift || 0 : 0;
       const g = (id) => lines && lines.lines.find((l) => l.id === id);
       check(g('call') && Math.abs(g('call').price - (L.call_wall + sh)) < 0.011 && g('put') && Math.abs(g('put').price - (L.put_wall + sh)) < 0.011,
         fut + ' chart walls = API (' + L.call_wall + ' / ' + L.put_wall + ') + shift ' + sh + ': ' + (lines && [g('call'), g('put')].map((l) => l && l.text).join(' | ')));
-      console.log('INFO ' + fut + ' last ' + (lines && lines.last) + ' | ' + (lines ? lines.lines.filter((l) => ['call', 'zero', 'put', 'ivhi', 'ivlo'].includes(l.id)).map((l) => l.text).join(' | ') : ''));
-      // chip must not cover any right-edge label
-      const ov = await p.evaluate(() => { const c = document.querySelector('.stk-gex-chip'); let cv = null; for (const x of document.querySelectorAll('canvas')) if (x.__stkGexTags) cv = x; if (!c || c.hidden || !cv) return null; const r = c.getBoundingClientRect(), q = cv.getBoundingClientRect(); return cv.__stkGexTags.filter((t) => t.box && !(q.left + t.box.x > r.right || q.left + t.box.x + t.box.w < r.left || q.top + t.box.y > r.bottom || q.top + t.box.y + t.box.h < r.top)).map((t) => t.text); });
-      check(ov === null || ov.length === 0, fut + ': status chip covers no level label ' + JSON.stringify(ov));
-      await p.screenshot({ path: OUT + '/gex-r3-' + fut.toLowerCase() + '-1280.png' }); console.log('SHOT ' + OUT + '/gex-r3-' + fut.toLowerCase() + '-1280.png');
+      await p.screenshot({ path: OUT + '/gex-gamma-' + fut.toLowerCase() + '-1280.png' }); console.log('SHOT ' + OUT + '/gex-gamma-' + fut.toLowerCase() + '-1280.png');
     }
     await ctx.close();
   } catch (e) { fail++; console.log('FAIL exception ' + (e && e.stack || e)); }

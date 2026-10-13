@@ -454,10 +454,7 @@ function gexLayer() {
     last = k;
     if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
     c.hidden = false;
-    // Bottom-LEFT of the plot (GEX audit 2026-10-13): at the bottom-right it covered the lowest
-    // right-edge level label. rightPx is kept in the signature for callers/tests.
-    c.style.right = 'auto';
-    c.style.left = '8px';
+    c.style.right = rightPx + 'px';
     c.style.bottom = bottomPx + 'px';
     c.textContent = '';
     if (d.pill) {

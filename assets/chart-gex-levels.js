@@ -33,12 +33,28 @@
 // layer from the last pushed data only: no network, DOM or layout reads per frame or per
 // mouse move. The status reads "GEX updated X min ago" (from the API's market data time /
 // fetched_at). Never "live" / "real-time". Education only. Not financial advice.
+//
+// BASIS RE-ANCHOR (GEX audit, 2026-10-13): the API converts index/ETF levels to futures with
+// basis = its own futures quote - ratio x spot, but that futures quote is about 10 minutes older
+// than the options chain (futures_age_min 10), so every converted level was off by however far
+// the futures moved in those 10 minutes (measured 1-30 NQ points, 0.5-5 ES points during RTH).
+// While the market is open, the futures-converted levels are shifted by
+//   shift = chart futures price at the options time (close of the last 1-minute bar completed by
+//           then, from /api/chart/bars, the same source the futures chart draws) - the API's
+//           futures price
+// i.e. basis = chart futures at the options time - ratio x spot. Ratio and the index levels are
+// unchanged. Off-hours, or when no 1-minute bar matches the options time, the API's own
+// conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
+// are never shifted.
 
 const TYPE = 'stk_gex';
 const API = '/api/gex/levels/';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
 const PRICING = '/#pricing';
+const BARS_API = '/api/chart/bars/';
+const ANCHOR_GAP_S = 120;     // the 1-minute bar used must have closed within 2 min before the options time
+const ANCHOR_MAX_PCT = 0.03;  // a shift above 3% of price is treated as bad data and ignored
 export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#8b7cf6',
   iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6' };
 
@@ -133,8 +149,9 @@ export function fmtLevel(v) {
 // API's own conversion (futures[fut].levels); ladder strikes use its ratio + basis; session
 // levels come from data.session[fut] (already in futures prices).
 const DEF_ON = Object.fromEntries(SCHEMA.filter((x) => x.type === 'bool').map((x) => [x.key, x.defval]));
-export function buildLevels(data, src, opts) {
+export function buildLevels(data, src, opts, shift) {
   opts = opts || {};
+  const sh = src.fut && isNum(shift) ? shift : 0;
   const on = (k) => (typeof opts[k] === 'boolean' ? opts[k] : DEF_ON[k]);
   if (!data || data.error) return { err: 'GEX levels are not available right now.' };
   let conv = (v) => v, L, S = null;
@@ -142,8 +159,8 @@ export function buildLevels(data, src, opts) {
     const f = data.futures && data.futures[src.fut];
     if (!f || f.error || !f.levels) return { err: 'No ' + src.fut + ' conversion in the GEX data right now.' };
     const ratio = num(f.ratio, null), basis = num(f.basis, 0);
-    L = f.levels;
-    conv = (v) => (ratio == null ? null : v * ratio + basis);
+    L = sh ? Object.fromEntries(Object.entries(f.levels).map(([k, v]) => [k, isNum(v) ? v + sh : v])) : f.levels;
+    conv = (v) => (ratio == null ? null : v * ratio + basis + sh);
     const ses = data.session && data.session[src.fut];
     if (ses && !ses.error) S = ses;
   } else {
@@ -173,7 +190,52 @@ export function buildLevels(data, src, opts) {
         if (isNum(p)) out.lines.push({ id: 'strike' + i, label: 'GEX strike', price: r(p), note: src.fut ? ' (' + src.api + ' ' + fmtLevel(x.strike) + ')' : '', col: 'strikeColor', dash: 'dotted', w: 1 });
       });
   }
+  out.shift = sh;
   return out;
+}
+
+// Pure: the futures shift for one API response. rows = 1-minute bars [[t, o, h, l, c, v], ...]
+// (t = bar open, epoch s) from /api/chart/bars/<FUT>1!?tf=1. Returns the number of points to add
+// to every futures-converted level, or null to keep the API's own conversion.
+export function anchorShift(data, fut, rows) {
+  const f = data && data.futures && data.futures[fut];
+  const m = data && data.market;
+  if (!f || f.error || !f.levels || !m || m.state !== 'open') return null;
+  const apiFut = isNum(f.futures_price) ? f.futures_price : f.levels.spot;
+  const t = num(m.options_ts, null);
+  if (!isNum(apiFut) || !t || !Array.isArray(rows) || !rows.length) return null;
+  // The last 1-minute bar that had CLOSED by the options time (bar open + 60 s <= t): its close is
+  // fixed, so every chart and every refresh gets the same shift for the same API response.
+  let bar = null;
+  for (const r of rows) { if (Array.isArray(r) && r[0] + 60 <= t) bar = r; else if (Array.isArray(r) && r[0] + 60 > t) break; }
+  if (!bar || t - (bar[0] + 60) > ANCHOR_GAP_S || !isNum(bar[4])) return null;
+  const shift = Math.round((bar[4] - apiFut) * 100) / 100;
+  return Math.abs(shift) <= apiFut * ANCHOR_MAX_PCT ? shift : null;
+}
+// Shared per futures root + options time: { shift (number|null), at, p }.
+const anchors = new Map();
+function anchorKey(fut, data) { const f = (data.futures || {})[fut] || {}; return fut + ':' + num(data.market && data.market.options_ts, 0) + ':' + num(f.futures_price, 0); }
+export function gexAnchorState() { return [...anchors.entries()].map(([k, e]) => ({ k, shift: e.shift, at: e.at, pending: !!e.p, why: e.why || '' })); }
+export function gexAnchor(fut, data) {
+  if (!fut || !data || !data.market || data.market.state !== 'open') return null;
+  const k = anchorKey(fut, data);
+  const e = anchors.get(k);
+  if (e && (isNum(e.shift) || e.p || Date.now() - e.at < 60000)) return e.p ? null : e.shift;
+  const t = num(data.market.options_ts, 0);
+  const page = Math.floor(t / (8 * 3600));   // the 1-minute page holding the options time (_bars.js TIMEFRAMES['1'])
+  const p = fetch(BARS_API + encodeURIComponent(fut + '1!') + '?tf=1&page=' + page, { headers: { accept: 'application/json' } })
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null)
+    .then((j) => {
+      const rows = j && j.bars;
+      const shift = anchorShift(data, fut, rows);
+      if (anchors.size > 20) anchors.clear();
+      const why = shift == null ? (rows && rows.length ? 'no closed 1m bar within 2 min of the options time (last bar ' + rows[rows.length - 1][0] + ')' : 'no 1m bars') : '';
+      anchors.set(k, { shift, at: Date.now(), p: null, why });
+      subs.forEach((n) => n.refresh());
+      return shift;
+    });
+  anchors.set(k, { shift: e ? e.shift : null, at: Date.now(), p });
+  return null;
 }
 export function formatLabel(l, mode) {
   mode = str(mode, 'name + chart price + option level');
@@ -313,7 +375,8 @@ class GexNative {
       else {
         const opts = Object.assign({}, i);
         if (this.tier && this.tier.free) opts.showStrikes = false;
-        const lv = buildLevels(data, src, opts);
+        const shift = src.fut ? gexAnchor(src.fut, data) : null;
+        const lv = buildLevels(data, src, opts, shift);
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
@@ -326,6 +389,7 @@ class GexNative {
             labels: i.labels !== false,
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
+            shift: lv.shift || 0,
             status: agoText(dataTime(data)) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : dte + 'DTE') + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
@@ -430,10 +494,11 @@ function gexLayer() {
       }
       const font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       g.font = font; g.textBaseline = 'middle';
-      const tags = [];
+      const tags = [], drawn = [];
       for (const l of d.lines) {
         const y = Math.round(Y(l.price)) + 0.5;
         if (!(y >= top && y <= bot)) continue;
+        drawn.push({ id: l.id, price: l.price, y, yPrice: a.coords.yToPrice ? a.coords.yToPrice(y - 0.5, a.scale, a.bounds) : null, pxPrice: a.coords.yToPrice ? Math.abs(a.coords.yToPrice(top, a.scale, a.bounds) - a.coords.yToPrice(top + 1, a.scale, a.bounds)) : null });
         g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
         g.setLineDash(l.dash === 'dashed' ? [6, 4] : l.dash === 'dotted' ? [2, 3] : []);
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
@@ -455,6 +520,7 @@ function gexLayer() {
       }
       lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
+      canvas.__stkGexLines = drawn;     // test hook: each painted line's price, pixel row and the price at that row
       g.restore();
       // Price tags on the right price axis (outside the plot clip), at the exact line price.
       const axW = fullW - W;

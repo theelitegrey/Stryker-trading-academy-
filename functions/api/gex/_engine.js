@@ -139,9 +139,31 @@ async function fetchInsightOptions(name, dteMax, env = {}) {
   if (contractsOut.length < 20) throw new Error(`InsightSentry options thin chain (${contractsOut.length})`);
   const tsMs = Number(quotes.last_update || quotes.updated_at || 0);
   const asof = tsMs ? new Date(tsMs).toISOString() : new Date().toISOString();
-  const ivs = contractsOut.map(r => r.iv).filter(v => Number.isFinite(v) && v > 0).sort((a, b) => a - b);
-  const iv30 = ivs.length ? ivs[Math.floor(ivs.length / 2)] * (ivs[Math.floor(ivs.length / 2)] > 3 ? 1 : 100) : 0;
+  const iv30 = atmIv(rows, spot);
   return { current_price: spot, options: contractsOut, iv30, last_trade_time: asof, options_ts: tsMs ? tsMs / 1000 : Date.now() / 1000, source: 'insightsentry_options' };
+}
+
+// IV30 for the InsightSentry chain (Cboe publishes its own iv30). Before the 2026-10-13 audit
+// this was the median IV of EVERY contract in the selected expiry; on a 0DTE chain most of those
+// are far out-of-the-money wings priced at 60-150% IV, so QQQ read 44.7% (Cboe iv30 18.3%) and
+// the IV ±68% lines sat ±2.8% away. Now: the at-the-money IV (median of the calls and puts on
+// the 2 listed strikes each side of spot, within 2% of spot) of the expiry nearest 30 days
+// among the contracts fetched. Returned in percent; 0 when nothing qualifies.
+function atmIv(rows, spot) {
+  const pct = v => (v > 3 ? v : v * 100);
+  const ok = (rows || []).filter(r => Number.isFinite(r.iv) && r.iv > 0 && Number.isFinite(r.strike) && Math.abs(r.strike - spot) / spot <= 0.02 && Number.isFinite(r.dte));
+  if (!ok.length || !(spot > 0)) return 0;
+  const dtes = [...new Set(ok.map(r => r.dte))];
+  const best = dtes.reduce((a, b) => (Math.abs(b - 30) < Math.abs(a - 30) || (Math.abs(b - 30) === Math.abs(a - 30) && b > a) ? b : a));
+  const grp = ok.filter(r => r.dte === best);
+  const strikes = [...new Set(grp.map(r => r.strike))];
+  const below = strikes.filter(k => k <= spot).sort((a, b) => b - a).slice(0, 2);
+  const above = strikes.filter(k => k > spot).sort((a, b) => a - b).slice(0, 2);
+  const pick = new Set([...below, ...above]);
+  const ivs = grp.filter(r => pick.has(r.strike)).map(r => pct(r.iv)).sort((a, b) => a - b);
+  if (!ivs.length) return 0;
+  const m = ivs.length >> 1;
+  return round(ivs.length % 2 ? ivs[m] : (ivs[m - 1] + ivs[m]) / 2, 3);
 }
 
 function parsedRowsToSource(rows, spot, iv30, asof) {
@@ -198,15 +220,34 @@ function parseOptions(data, dteMax) {
 
 function profile(spot, contracts) {
   const gex = new Map(), dex = new Map(), oi = new Map();
+  const callGex = new Map(), putGex = new Map();   // per side: calls positive, puts negative
   for (const c of contracts) {
     const sign = c.cp === 'C' ? 1 : -1;
     const g = c.gamma * c.oi * 100 * spot * spot * 0.01;
     const d = c.delta * c.oi * 100 * spot;
     gex.set(c.strike, (gex.get(c.strike) || 0) + sign * g);
+    if (Number.isFinite(g) && g > 0) {
+      const side = c.cp === 'C' ? callGex : putGex;
+      side.set(c.strike, (side.get(c.strike) || 0) + sign * g);
+    }
     dex.set(c.strike, (dex.get(c.strike) || 0) + d);
     oi.set(c.strike, (oi.get(c.strike) || 0) + c.oi);
   }
-  return { gex, dex, oi };
+  return { gex, dex, oi, callGex, putGex };
+}
+
+// Gamma walls (Owner decision 2026-10-13, "Yes gamma ofc"):
+//   call wall = the strike at or above spot with the largest positive CALL gamma exposure,
+//   put wall  = the strike at or below spot with the largest negative PUT gamma exposure,
+// both within the near-spot band (6% of spot, the band net GEX and the old net walls use).
+// Returns [callWall|null, putWall|null]; null when that side has no gamma data in the band.
+function gammaWalls(spot, callGex, putGex, band = 0.06) {
+  const near = k => Math.abs(k - spot) / spot < band;
+  const calls = [...(callGex || new Map()).entries()].filter(([k, g]) => k >= spot && near(k) && g > 0);
+  const puts = [...(putGex || new Map()).entries()].filter(([k, g]) => k <= spot && near(k) && g < 0);
+  const cw = calls.length ? calls.reduce((a, b) => (b[1] > a[1] ? b : a))[0] : null;
+  const pw = puts.length ? puts.reduce((a, b) => (b[1] < a[1] ? b : a))[0] : null;
+  return [cw, pw];
 }
 
 function walls(spot, gex, band = 0.06) {
@@ -285,16 +326,22 @@ function activityWalls(spot, contracts, zeroGamma, band = 0.04) {
   return [cw, pw, callScore, putScore];
 }
 
-function levels(spot, gex, contracts) {
+// Walls: gamma first (gammaWalls). A side with no gamma data falls back to the old
+// activity wall (volume, OI breaks ties, split by the flip), then to the net-GEX wall.
+// wall_source: 'gamma' when both walls are gamma walls, else e.g.
+// 'call:gamma,put:activity_fallback' so a fallback is visible in the API.
+function levels(spot, gex, contracts, side) {
   const near = [...gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.06);
   const pool = near.length ? near : [...gex.keys()];
-  let [callWall, putWall] = walls(spot, gex);
+  const [nwC, nwP] = walls(spot, gex);
   const zeroGamma = contracts && contracts.length ? gammaFlip(spot, contracts) : null;
-  let wallSource = 'net_gex';
-  const [awC, awP] = activityWalls(spot, contracts || [], zeroGamma);
-  if (awC != null && awP != null) {
-    callWall = awC; putWall = awP; wallSource = 'activity_volume_oi_split_by_flip';
-  }
+  const [gwC, gwP] = gammaWalls(spot, side && side.callGex, side && side.putGex);
+  let awC = null, awP = null;
+  if (gwC == null || gwP == null) [awC, awP] = activityWalls(spot, contracts || [], zeroGamma);
+  const pick = (g, a, n) => (g != null ? [g, 'gamma'] : a != null ? [a, 'activity_fallback'] : [n, 'net_gex_fallback']);
+  const [callWall, cSrc] = pick(gwC, awC, nwC);
+  const [putWall, pSrc] = pick(gwP, awP, nwP);
+  const wallSource = cSrc === pSrc ? cSrc : `call:${cSrc},put:${pSrc}`;
   const total = pool.reduce((s, k) => s + (gex.get(k) || 0), 0);
   return { call_wall: callWall, put_wall: putWall, zero_gamma: zeroGamma, net_gex: total, regime: total > 0 ? 'POSITIVE' : 'NEGATIVE', wall_source: wallSource };
 }
@@ -608,7 +655,7 @@ async function buildLevels(name, dteMax = 1, env = {}) {
   }
   const { spot, contracts } = parseOptions(optData, dteMax);
   const p = profile(spot, contracts);
-  const lv = levels(spot, p.gex, contracts);
+  const lv = levels(spot, p.gex, contracts, p);
   const expiries = [...new Set(contracts.map(c => isoDate(c.exp)))].sort();
   const data = {
     ...lv,
@@ -635,4 +682,5 @@ async function buildLevels(name, dteMax = 1, env = {}) {
   return data;
 }
 
+export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip };
 export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

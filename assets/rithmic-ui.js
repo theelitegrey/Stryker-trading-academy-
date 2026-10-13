@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=531';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=531';
+import { RithmicClient, listSystems } from './rithmic-client.js?v=532';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=532';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -31,66 +31,69 @@ const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
 
 const CSS = `
-.stkr-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
+.stkrb-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
   border:1px solid rgba(3,201,136,.45); color:var(--gold); font-family:inherit; font-weight:600; font-size:11.5px; line-height:1; white-space:nowrap; flex:none; }
-@media (max-width:480px){ .stkr-chip{ padding:0 7px; font-size:11px; gap:5px; } }
-.stkr-chip[hidden]{ display:none; }
-.stkr-chip i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(3,201,136,.18); }
-.stkr-chip.warn{ color:var(--amber, #e8b04a); border-color:rgba(232,176,74,.45); }
-.stkr-chip.warn i{ box-shadow:0 0 0 3px rgba(232,176,74,.18); }
-.stkr-pop{ width:340px; padding:12px; }
-.stkr-pop h3{ margin:0 0 10px; font-size:14px; color:var(--ink-0); }
-.stkr-brokers{ display:flex; gap:6px; margin:0 0 10px; }
-.stkr-broker{ flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:8px 10px; border:1px solid var(--line);
+@media (max-width:480px){ .stkrb-chip{ padding:0 7px; font-size:11px; gap:5px; } }
+.stkrb-chip[hidden]{ display:none; }
+.stkrb-chip i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(3,201,136,.18); }
+.stkrb-chip.warn{ color:var(--amber, #e8b04a); border-color:rgba(232,176,74,.45); }
+.stkrb-chip.warn i{ box-shadow:0 0 0 3px rgba(232,176,74,.18); }
+.stkrb-pop{ width:340px; padding:12px; }
+.stkrb-pop h3{ margin:0 0 10px; font-size:14px; color:var(--ink-0); }
+.stkrb-brokers{ display:flex; gap:6px; margin:0 0 10px; }
+.stkrb-broker{ flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:8px 10px; border:1px solid var(--line);
   border-radius:8px; background:transparent; color:var(--ink-1); font:600 12.5px/1.2 inherit; font-family:inherit; text-align:left; cursor:pointer; }
-.stkr-broker[aria-checked="true"]{ border-color:var(--gold); color:var(--ink-0); }
-.stkr-broker:disabled{ opacity:.45; cursor:not-allowed; }
-.stkr-broker small{ font-weight:500; font-size:10.5px; color:var(--ink-3); }
-.stkr-f{ display:block; margin:0 0 9px; }
-.stkr-f > span{ display:block; margin:0 0 4px; font-size:11px; font-weight:600; color:var(--ink-2); }
-.stkr-f .stkc-in{ width:100%; height:34px; box-sizing:border-box; }
-.stkr-f select.stkc-in{ padding-right:6px; }
-.stkr-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 10px; }
-.stkr-row .stkc-check{ padding:0; font-size:12px; color:var(--ink-2); }
-.stkr-go{ width:100%; height:36px; }
-.stkr-note{ margin:10px 0 0 !important; padding-top:10px; border-top:1px solid var(--line-soft, var(--line));
+.stkrb-broker[aria-checked="true"]{ border-color:var(--gold); color:var(--ink-0); }
+.stkrb-broker:disabled{ opacity:.45; cursor:not-allowed; }
+.stkrb-broker small{ font-weight:500; font-size:10.5px; color:var(--ink-3); }
+.stkrb-f{ display:block; margin:0 0 9px; }
+.stkrb-f > span{ display:block; margin:0 0 4px; font-size:11px; font-weight:600; color:var(--ink-2); }
+.stkrb-f .stkc-in{ width:100%; height:34px; box-sizing:border-box; }
+.stkrb-f select.stkc-in{ padding-right:6px; }
+.stkrb-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 10px; }
+.stkrb-row .stkc-check{ padding:0; font-size:12px; color:var(--ink-2); }
+.stkrb-go{ width:100%; height:36px; }
+.stkrb-note{ margin:10px 0 0 !important; padding-top:10px; border-top:1px solid var(--line-soft, var(--line));
   font-size:11.5px; line-height:1.5; color:var(--ink-2); }
-.stkr-note.stkr-test{ border-top:0; padding-top:0; color:var(--amber, #e8b04a); }
-.stkr-logos{ display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap; }
-.stkr-logos img{ display:block; width:auto; }
-.stkr-logos .stkr-l-rith{ height:18px; }
-.stkr-logos .stkr-l-omne{ height:18px; }
-.stkr-logos .day{ display:none; }
-:root[data-theme="light"] .stkr-logos .day{ display:block; }
-:root[data-theme="light"] .stkr-logos .dark{ display:none; }
-.stkr-attr{ flex:none; position:relative; display:flex; align-items:center; gap:8px; padding:3px 12px;
+.stkrb-note.stkrb-test{ border-top:0; padding-top:0; color:var(--amber, #e8b04a); }
+.stkrb-logos{ display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.stkrb-logos img{ display:block; width:auto; }
+.stkrb-logos .stkrb-l-rith{ height:18px; }
+.stkrb-logos .stkrb-l-omne{ height:18px; }
+.stkrb-logos .day{ display:none; }
+:root[data-theme="light"] .stkrb-logos .day{ display:block; }
+:root[data-theme="light"] .stkrb-logos .dark{ display:none; }
+.stkrb-attr{ flex:none; position:relative; display:flex; align-items:center; gap:8px; padding:3px 12px;
   border-top:1px solid var(--line-soft, var(--line)); background:var(--bg-1); min-height:26px; }
-.stkr-attr[hidden]{ display:none; }
-.stkr-i{ flex:none; width:18px; height:18px; padding:0; border-radius:50%; border:1px solid var(--line); background:transparent;
+.stkrb-attr[hidden]{ display:none; }
+.stkrb-i{ flex:none; width:18px; height:18px; padding:0; border-radius:50%; border:1px solid var(--line); background:transparent;
   color:var(--ink-2); font:700 10.5px/16px Georgia, serif; font-style:italic; cursor:pointer; }
-.stkr-i:hover, .stkr-i[aria-expanded="true"]{ color:var(--ink-0); border-color:var(--ink-3); }
-.stkr-legal-pop{ position:absolute; left:8px; bottom:calc(100% + 6px); z-index:60; width:min(420px, calc(100vw - 16px));
+.stkrb-i:hover, .stkrb-i[aria-expanded="true"]{ color:var(--ink-0); border-color:var(--ink-3); }
+.stkrb-legal-pop{ position:absolute; left:8px; bottom:calc(100% + 6px); z-index:60; width:min(420px, calc(100vw - 16px));
   padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg-2);
   box-shadow:0 18px 40px -12px rgba(0,0,0,.6); }
-.stkr-legal-pop[hidden]{ display:none; }
-.stkr-legal{ margin:0; padding:0; list-style:none; font-size:11px; line-height:1.5; color:var(--ink-2); }
-.stkr-legal li{ margin:0 0 4px; }
-.stkr-legal li:last-child{ margin:0; }
-.stkr-sheet-legal{ margin:10px 0 0; padding-top:10px; border-top:1px solid var(--line-soft, var(--line)); }
-.stkr-sheet-legal .stkr-logos{ margin:0 0 6px; }
-.stkr-sheet-legal .stkr-legal{ font-size:10.5px; color:var(--ink-3); }
-@media (max-width:480px){ .stkr-attr{ padding:3px 8px; gap:6px; } .stkr-attr .stkr-l-rith, .stkr-attr .stkr-l-omne{ height:16px; } }
-.stkr-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
-.stkr-err[hidden]{ display:none; }
-.stkr-on p{ font-size:12.5px; color:var(--ink-1); }
-.stkr-on b{ color:var(--ink-0); }
-.stkr-off{ width:100%; height:34px; margin-top:4px; border:1px solid var(--line); border-radius:6px; background:transparent;
+.stkrb-legal-pop[hidden]{ display:none; }
+.stkrb-legal{ margin:0; padding:0; list-style:none; font-size:11px; line-height:1.5; color:var(--ink-2); }
+.stkrb-legal li{ margin:0 0 4px; }
+.stkrb-legal li:last-child{ margin:0; }
+.stkrb-sheet-legal{ margin:10px 0 0; padding-top:10px; border-top:1px solid var(--line-soft, var(--line)); }
+.stkrb-sheet-legal .stkrb-logos{ margin:0 0 6px; }
+.stkrb-sheet-legal .stkrb-legal{ font-size:10.5px; color:var(--ink-3); }
+@media (max-width:480px){ .stkrb-attr{ padding:3px 8px; gap:6px; } .stkrb-attr .stkrb-l-rith, .stkrb-attr .stkrb-l-omne{ height:16px; } }
+.stkrb-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
+.stkrb-err[hidden]{ display:none; }
+.stkrb-on p{ font-size:12.5px; color:var(--ink-1); }
+.stkrb-on b{ color:var(--ink-0); }
+.stkrb-ids{ margin:0 0 8px; font-size:10.5px; line-height:1.5; color:var(--ink-3); overflow-wrap:anywhere; }
+.stkrb-ids span{ display:block; }
+.stkrb-ids code{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:10.5px; color:var(--ink-2); user-select:all; }
+.stkrb-off{ width:100%; height:34px; margin-top:4px; border:1px solid var(--line); border-radius:6px; background:transparent;
   color:var(--ink-0); font:600 12.5px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkr-off:hover{ border-color:var(--red, #e5484d); color:var(--red, #e5484d); }
+.stkrb-off:hover{ border-color:var(--red, #e5484d); color:var(--red, #e5484d); }
 @media (max-width:700px){
-  .stkr-pop{ width:auto; }
-  .stkr-f .stkc-in{ height:40px; font-size:16px; }
-  .stkr-go, .stkr-off{ height:42px; }
+  .stkrb-pop{ width:auto; }
+  .stkrb-f .stkc-in{ height:40px; font-size:16px; }
+  .stkrb-go, .stkrb-off{ height:42px; }
 }
 `;
 
@@ -111,14 +114,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
 
 function logos() {
   const img = (n, cls, alt) => el('img', { src: ART(n), class: cls, alt, decoding: 'async' });
-  return el('span', { class: 'stkr-logos' }, [
-    img('trading-platform-by-rithmic-gray', 'stkr-l-rith dark', 'Trading Platform by Rithmic'),
-    img('trading-platform-by-rithmic-black', 'stkr-l-rith day', 'Trading Platform by Rithmic'),
-    img('powered-by-omne-white', 'stkr-l-omne dark', 'Powered by OMNE'),
-    img('powered-by-omne-blue', 'stkr-l-omne day', 'Powered by OMNE')
+  return el('span', { class: 'stkrb-logos' }, [
+    img('trading-platform-by-rithmic-gray', 'stkrb-l-rith dark', 'Trading Platform by Rithmic'),
+    img('trading-platform-by-rithmic-black', 'stkrb-l-rith day', 'Trading Platform by Rithmic'),
+    img('powered-by-omne-white', 'stkrb-l-omne dark', 'Powered by OMNE'),
+    img('powered-by-omne-blue', 'stkrb-l-omne day', 'Powered by OMNE')
   ]);
 }
-const noticeList = () => el('ul', { class: 'stkr-legal' }, RITHMIC_NOTICES.map((t) => el('li', { text: t })));
+const noticeList = () => el('ul', { class: 'stkrb-legal' }, RITHMIC_NOTICES.map((t) => el('li', { text: t })));
 
 export function createRithmic(cfg) {
   const client = new RithmicClient(cfg);
@@ -134,6 +137,10 @@ export function createRithmic(cfg) {
     get appName() { return cfg.appName; },
     get appVersion() { return cfg.appVersion; },
     get lastSource() { return lastSource; },
+    // Requests sent to Rithmic this page session, per plant (no ids, no credentials).
+    get counts() { return JSON.parse(JSON.stringify(client.counts)); },
+    // This member's own plant sessions (unique_user_id + login/logout epoch ms), current and ended.
+    get sessions() { return client.sessions().concat(client.sessionLog).map((x) => ({ ...x })); },
     disconnect: () => client.disconnect(),
     reloadCharts: () => reloadCells()
   };
@@ -157,8 +164,13 @@ export function createRithmic(cfg) {
         const alt = tf === '1' ? '5' : '1';
         // Vela reloads only on an identity change: flip the timeframe and straight back.
         // The first switch is superseded at once (Vela resolves it silently).
-        c.chart.setMarket({ timeframe: alt }).catch(() => {});
-        await c.chart.setMarket({ timeframe: tf });
+        // The flip's load is thrown away, so the provider answers it empty instead of asking
+        // Rithmic for history nobody will see (client.skipLoads, read by rithmic-provider.js).
+        client.skipLoads.add(alt);
+        try {
+          c.chart.setMarket({ timeframe: alt }).catch(() => {});
+          await c.chart.setMarket({ timeframe: tf });
+        } finally { client.skipLoads.delete(alt); }
       } catch (e) { console.warn('TradeZoro Rithmic: reload', e); }
     }
   }
@@ -166,22 +178,22 @@ export function createRithmic(cfg) {
   function mount(workspace, CoreMod) {
     ws = workspace;
     Core = CoreMod;
-    if (!document.getElementById('stkr-css')) document.head.appendChild(el('style', { id: 'stkr-css', text: CSS }));
+    if (!document.getElementById('stkrb-css')) document.head.appendChild(el('style', { id: 'stkrb-css', text: CSS }));
     const barR = document.querySelector('.stkc-bar-r');
     if (!barR) return;
 
-    const chip = el('span', { class: 'stkr-chip', id: 'stkr-chip', role: 'status', hidden: true });
-    const btn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkr-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Connect broker',
+    const chip = el('span', { class: 'stkrb-chip', id: 'stkrb-chip', role: 'status', hidden: true });
+    const btn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkrb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Connect broker',
       html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg><span class="stkc-btn-l">Connect broker</span>' });
-    const pop = el('div', { class: 'stkc-pop stkr-pop', id: 'stkr-pop', role: 'dialog', 'aria-label': 'Connect broker', hidden: true });
+    const pop = el('div', { class: 'stkc-pop stkrb-pop', id: 'stkrb-pop', role: 'dialog', 'aria-label': 'Connect broker', hidden: true });
     const wrap = el('div', { class: 'stkc-menu' }, [btn, pop]);
     barR.insertBefore(wrap, barR.firstChild);
     barR.insertBefore(chip, wrap);
 
     // ---- attribution strip: under the chart, only while a Rithmic connection is active ----
-    const legalPop = el('div', { class: 'stkr-legal-pop', id: 'stkr-legal-pop', role: 'dialog', 'aria-label': 'Rithmic and OMNE notices', hidden: true }, [noticeList()]);
-    const info = el('button', { type: 'button', class: 'stkr-i', id: 'stkr-i', 'aria-label': 'Rithmic and OMNE notices', 'aria-expanded': 'false', 'aria-controls': 'stkr-legal-pop', text: 'i' });
-    const attr = el('div', { class: 'stkr-attr', id: 'stkr-attr', hidden: true }, [logos(), info, legalPop]);
+    const legalPop = el('div', { class: 'stkrb-legal-pop', id: 'stkrb-legal-pop', role: 'dialog', 'aria-label': 'Rithmic and OMNE notices', hidden: true }, [noticeList()]);
+    const info = el('button', { type: 'button', class: 'stkrb-i', id: 'stkrb-i', 'aria-label': 'Rithmic and OMNE notices', 'aria-expanded': 'false', 'aria-controls': 'stkrb-legal-pop', text: 'i' });
+    const attr = el('div', { class: 'stkrb-attr', id: 'stkrb-attr', hidden: true }, [logos(), info, legalPop]);
     const setLegal = (open) => { legalPop.hidden = !open; info.setAttribute('aria-expanded', open ? 'true' : 'false'); };
     info.addEventListener('click', (e) => { e.stopPropagation(); setLegal(legalPop.hidden); });
     document.addEventListener('click', (e) => { if (!legalPop.hidden && !attr.contains(e.target)) setLegal(false); });
@@ -191,31 +203,34 @@ export function createRithmic(cfg) {
     else document.body.appendChild(attr);
 
     // ---- the sheet ----
-    const err = el('p', { class: 'stkr-err', role: 'alert', hidden: true });
-    const brokerR = el('button', { type: 'button', class: 'stkr-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
-    const sys = el('select', { class: 'stkc-in', id: 'stkr-sys', required: true, 'aria-label': 'Rithmic system' });
-    const user = el('input', { class: 'stkc-in', id: 'stkr-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
-    const pass = el('input', { class: 'stkc-in', id: 'stkr-pass', type: 'password', autocomplete: 'current-password', required: true });
-    const remember = el('input', { type: 'checkbox', id: 'stkr-remember' });
-    const go = el('button', { type: 'submit', class: 'stkc-sbtn stkr-go', id: 'stkr-go', text: 'Connect' });
-    const form = el('form', { class: 'stkr-form', id: 'stkr-form', novalidate: true }, [
+    const err = el('p', { class: 'stkrb-err', role: 'alert', hidden: true });
+    const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
+    const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
+    const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
+    const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
+    const remember = el('input', { type: 'checkbox', id: 'stkrb-remember' });
+    const go = el('button', { type: 'submit', class: 'stkc-sbtn stkrb-go', id: 'stkrb-go', text: 'Connect' });
+    const form = el('form', { class: 'stkrb-form', id: 'stkrb-form', novalidate: true }, [
       el('h3', { text: 'Connect broker' }),
-      el('div', { class: 'stkr-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
+      el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
       err,
-      el('label', { class: 'stkr-f' }, [el('span', { text: 'System' }), sys]),
-      el('label', { class: 'stkr-f' }, [el('span', { text: 'Rithmic username' }), user]),
-      el('label', { class: 'stkr-f' }, [el('span', { text: 'Password' }), pass]),
-      el('div', { class: 'stkr-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
+      el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
-      cfg.isTest ? el('p', { class: 'stkr-note stkr-test', text: 'Test server: prices may differ from the live market.' }) : null,
-      el('p', { class: 'stkr-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
-      el('div', { class: 'stkr-sheet-legal', id: 'stkr-sheet-legal' }, [logos(), noticeList()])
+      cfg.isTest ? el('p', { class: 'stkrb-note stkrb-test', text: 'Test server: prices may differ from the live market.' }) : null,
+      el('p', { class: 'stkrb-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
+      el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
     const onInfo = el('p', {});
-    const off = el('button', { type: 'button', class: 'stkr-off', id: 'stkr-off', text: 'Disconnect' });
-    const onView = el('div', { class: 'stkr-on', hidden: true }, [el('h3', { text: 'Rithmic' }), onInfo, off,
-      el('p', { class: 'stkr-note', text: 'Futures charts (NQ, ES, GC, CL ...) now use your Rithmic data. Disconnect to go back to the standard data.' }),
-      el('div', { class: 'stkr-sheet-legal' }, [logos(), noticeList()])]);
+    // Rithmic's unique_user_id per plant (from the login response), for the member's own reference
+    // (Rithmic support asks for it). In memory only; never sent anywhere.
+    const ids = el('p', { class: 'stkrb-ids', id: 'stkrb-ids' });
+    const off = el('button', { type: 'button', class: 'stkrb-off', id: 'stkrb-off', text: 'Disconnect' });
+    const onView = el('div', { class: 'stkrb-on', hidden: true }, [el('h3', { text: 'Rithmic' }), onInfo, ids, off,
+      el('p', { class: 'stkrb-note', text: 'Futures charts (NQ, ES, GC, CL ...) now use your Rithmic data. Disconnect to go back to the standard data.' }),
+      el('div', { class: 'stkrb-sheet-legal' }, [logos(), noticeList()])]);
     pop.appendChild(form);
     pop.appendChild(onView);
     form.addEventListener('submit', (e) => { e.preventDefault(); e.stopPropagation(); doConnect(); });
@@ -296,10 +311,21 @@ export function createRithmic(cfg) {
       onInfo.appendChild(document.createTextNode(st === 'connected' ? 'Connected to ' : 'Reconnecting to '));
       onInfo.appendChild(el('b', { text: client.systemName || 'Rithmic' }));
       onInfo.appendChild(document.createTextNode('.'));
+      ids.innerHTML = '';
+      const sess = on && client.sessions ? client.sessions() : [];
+      for (const x of sess) {
+        if (!x.uniqueUserId) continue;
+        const line = el('span', {});
+        line.appendChild(document.createTextNode('Session ID (' + x.plant + '): '));
+        line.appendChild(el('code', { text: x.uniqueUserId }));
+        if (x.loginAt) line.title = 'Logged in ' + new Date(x.loginAt).toISOString();
+        ids.appendChild(line);
+      }
+      ids.hidden = !ids.childNodes.length;
       chip.hidden = !on;
       attr.hidden = !on;  // Rithmic data stays on the chart while reconnecting
       if (attr.hidden) setLegal(false);
-      chip.className = 'stkr-chip' + (st === 'reconnecting' ? ' warn' : '');
+      chip.className = 'stkrb-chip' + (st === 'reconnecting' ? ' warn' : '');
       chip.innerHTML = '';
       chip.appendChild(el('i', { 'aria-hidden': 'true' }));
       chip.appendChild(document.createTextNode(st === 'connected' ? 'Rithmic · connected' : 'Rithmic · reconnecting'));

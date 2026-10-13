@@ -196,11 +196,11 @@ async function openPicker(p) {
       await sleep(1500);
       let ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));
       check(ins === '[1,1,1]', 'Rithmic not connected: tools show the Connect Rithmic message ' + ins);
-      await p.click('#stkr-btn');
-      await p.waitForFunction(() => document.querySelectorAll('#stkr-sys option[value]:not([value=""])').length > 0, null, { timeout: 15000 });
-      await p.selectOption('#stkr-sys', 'Rithmic Test');
-      await p.fill('#stkr-user', 'demo'); await p.fill('#stkr-pass', 'demo-pass');
-      await p.click('#stkr-go');
+      await p.click('#stkrb-btn');
+      await p.waitForFunction(() => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length > 0, null, { timeout: 15000 });
+      await p.selectOption('#stkrb-sys', 'Rithmic Test');
+      await p.fill('#stkrb-user', 'demo'); await p.fill('#stkrb-pass', 'demo-pass');
+      await p.click('#stkrb-go');
       const up = await p.waitForFunction(() => window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.state === 'connected', null, { timeout: 20000 }).then(() => true).catch(() => false);
       check(up, 'mock Rithmic connected');
       const fed = await p.waitForFunction(() => { for (const [k, f] of window.__stkFlow.flowFeeds()) if (k.startsWith('futures|') && f.order.length >= 1 && (f.bars.get(f.order[f.order.length - 1]).buy > 0) && (f.bars.get(f.order[f.order.length - 1]).sell > 0)) return true; return false; }, null, { timeout: 30000 }).then(() => true).catch(() => false);
@@ -213,7 +213,7 @@ async function openPicker(p) {
       check(ins !== '[1,1,1]' || true, 'after connect: message tables ' + ins);
       await p.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
       await shot(p, 'of-rithmic-1440.png');
-      await p.click('#stkr-btn'); await p.click('#stkr-off');
+      await p.click('#stkrb-btn'); await p.click('#stkrb-off');
       await p.waitForFunction(() => window.STRYKER_RITHMIC.state === 'idle', null, { timeout: 15000 }).catch(() => {});
       await sleep(2500);
       ins = JSON.stringify(await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /real trades/.test(x.title)).map((x) => x.tables)));

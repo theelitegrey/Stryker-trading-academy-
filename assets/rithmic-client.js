@@ -23,11 +23,29 @@
 //      final 203 carrying rp_code (end of the answer).
 //   6. RequestLogout (12) before closing. ForcedLogout (77) from Rithmic ends the session
 //      without reconnecting.
+//
+// NO POLLING (Rithmic conformance, implementation check 2026-10-13). Rithmic asked that the app
+// "does not poll our system for data, but instead, subscribes for updates and retrieves a single
+// snapshot to which the updates are applied". So:
+//   - live prices: ONE RequestMarketDataUpdate subscribe per contract (Rithmic answers with one
+//     snapshot, then pushes LastTrade / BBO updates). Unsubscribe only when no chart needs it any
+//     more, after a short grace period, so a chart reload does not unsubscribe + re-subscribe.
+//   - front month: RequestFrontMonthContract once per root per session (need_updates false).
+//   - history: RequestTimeBarReplay only when a chart needs bars it does not have (first load of
+//     a symbol/timeframe, scroll-back paging, a gap after a reconnect). The forming candle is built
+//     from the LastTrade updates, never by re-requesting bars (see rithmic-provider.js).
+//   - heartbeats only at the server's heartbeat_interval, and only when nothing else was sent.
+//   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
+// `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=531';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=532';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
-const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000];
+const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];
+const RECONNECT_MAX = 12;            // then stop and say so (the member reconnects by hand)
+const UNSUB_GRACE_MS = 3000;         // keep a subscription this long after its last chart leaves
+const TEMPLATE_NAMES = { 10: 'RequestLogin', 12: 'RequestLogout', 16: 'RequestRithmicSystemInfo', 18: 'RequestHeartbeat',
+  100: 'RequestMarketDataUpdate', 113: 'RequestFrontMonthContract', 202: 'RequestTimeBarReplay' };
 const REQUEST_TIMEOUT = 20000;
 
 let seq = 0;
@@ -83,6 +101,10 @@ class Plant {
     this.lastSend = 0;
     this.pending = new Map(); // user_msg id -> { tid, resolve, reject, rows, timer, onRow }
     this.closing = false;
+    // Session facts for the member (Connect sheet) and Rithmic's conformance check. In memory only.
+    this.uniqueUserId = '';
+    this.loginAt = 0;
+    this.logoutAt = 0;
   }
 
   async open(creds) {
@@ -102,6 +124,8 @@ class Plant {
       infra_type: this.infra,
       os_platform: 'browser'
     }, T.LOGIN_R);
+    this.uniqueUserId = res.unique_user_id || '';
+    this.loginAt = Date.now();
     if (res.heartbeat_interval > 0) this.hbSecs = res.heartbeat_interval;
     this.send({ template_id: T.HEARTBEAT });
     this.startHeartbeat();
@@ -121,6 +145,7 @@ class Plant {
     if (!this.ws || this.ws.readyState !== 1) throw new Error('Not connected to Rithmic');
     this.ws.send(encode(msg));
     this.lastSend = Date.now();
+    this.owner._count(this.infra, msg);
   }
 
   // Single-answer request (the answer echoes our user_msg id).
@@ -185,6 +210,7 @@ class Plant {
   onClose() {
     clearInterval(this.hbTimer);
     this.ws = null;
+    if (this.loginAt && !this.logoutAt) { this.logoutAt = Date.now(); this.owner._sessionEnded(this); }
     this.failPending(new Error('Connection to Rithmic closed'));
     if (!this.closing) this.owner._onPlantDropped(this);
   }
@@ -197,6 +223,8 @@ class Plant {
     if (logout && ws.readyState === 1) {
       try { await Promise.race([this.request({ template_id: T.LOGOUT }, T.LOGOUT_R), new Promise((r) => setTimeout(r, 1500))]); } catch (e) {}
     }
+    if (this.loginAt && !this.logoutAt) this.logoutAt = Date.now();
+    this.owner._sessionEnded(this);
     try { ws.close(1000); } catch (e) {}
     this.ws = null;
     this.failPending(new Error('Disconnected'));
@@ -259,9 +287,31 @@ export class RithmicClient {
     this.history = null;
     this.listeners = new Set();
     this.marketSubs = new Map(); // `${symbol}|${exchange}` -> Set<fn>
-    this.frontCache = new Map(); // `${root}|${exchange}` -> { at, symbol }
+    this.frontCache = new Map(); // `${root}|${exchange}` -> Promise<symbol> (once per root per session)
+    this.unsubTimers = new Map(); // key -> pending delayed unsubscribe
     this.retry = 0;
     this.retryTimer = null;
+    this.counts = { ticker: {}, history: {} }; // requests sent this page session, per plant + template name
+    this.sessionLog = [];
+    this.skipLoads = new Set();               // timeframes whose next load is a throw-away reload flip (rithmic-ui.js)                     // ended plant sessions: { plant, uniqueUserId, loginAt, logoutAt }
+  }
+
+  _count(infra, msg) {
+    const plant = infra === INFRA.TICKER_PLANT ? 'ticker' : infra === INFRA.HISTORY_PLANT ? 'history' : 'other';
+    const c = this.counts[plant] || (this.counts[plant] = {});
+    let name = TEMPLATE_NAMES[msg.template_id] || ('template ' + msg.template_id);
+    if (msg.template_id === T.MD_UPDATE) name += msg.request === MD_REQUEST.UNSUBSCRIBE ? ' (unsubscribe)' : ' (subscribe)';
+    c[name] = (c[name] || 0) + 1;
+  }
+  _sessionEnded(p) {
+    if (!p.loginAt || p.logged) return;
+    p.logged = true;
+    this.sessionLog.push({ plant: p.infra === INFRA.TICKER_PLANT ? 'ticker' : 'history', uniqueUserId: p.uniqueUserId, loginAt: p.loginAt, logoutAt: p.logoutAt || Date.now() });
+  }
+  // The current plant sessions (Connect sheet: "Session ID (ticker): ..."). Never holds credentials.
+  sessions() {
+    const one = (p, plant) => p ? { plant, uniqueUserId: p.uniqueUserId, loginAt: p.loginAt, logoutAt: p.logoutAt || 0 } : null;
+    return [one(this.ticker, 'ticker'), one(this.history, 'history')].filter(Boolean);
   }
 
   on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
@@ -311,6 +361,8 @@ export class RithmicClient {
   async disconnect(silent) {
     clearTimeout(this.retryTimer); this.retryTimer = null;
     const had = !!(this.ticker || this.history);
+    for (const t of this.unsubTimers.values()) clearTimeout(t);
+    this.unsubTimers.clear();
     await this.#closePlants(true);
     this.#creds = null;
     this.frontCache.clear();
@@ -331,6 +383,12 @@ export class RithmicClient {
 
   #scheduleReconnect() {
     clearTimeout(this.retryTimer);
+    if (this.retry >= RECONNECT_MAX) {
+      // Do not keep knocking on Rithmic's door: stop and let the member reconnect by hand.
+      this.#creds = null;
+      this.setState('error', { message: 'Lost the connection to Rithmic. Connect again to resume.' });
+      return;
+    }
     const wait = RECONNECT_STEPS[Math.min(this.retry, RECONNECT_STEPS.length - 1)];
     this.retry++;
     this.retryTimer = setTimeout(async () => {
@@ -347,20 +405,29 @@ export class RithmicClient {
   }
 
   // ---- ticker plant -------------------------------------------------------------------
-  async frontMonth(root, exchange) {
+  // Once per root per session (the contract does not change within a session); concurrent
+  // callers share the one request. need_updates is false: no front-month update stream.
+  frontMonth(root, exchange) {
     const key = root + '|' + exchange;
     const hit = this.frontCache.get(key);
-    if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.symbol;
-    if (!this.ticker) throw new Error('Not connected to Rithmic');
-    let sym = null;
-    try {
-      const r = await this.ticker.request({ template_id: T.FRONT_MONTH, symbol: root, exchange, need_updates: false }, T.FRONT_MONTH_R);
-      sym = r.trading_symbol || null;
-    } catch (e) { /* rp_code 7 "no data": use the calendar below */ }
-    if (!sym || sym === root) sym = guessFrontMonth(root);
-    if (!sym) throw new Error('No front-month contract for ' + root);
-    this.frontCache.set(key, { at: Date.now(), symbol: sym });
-    return sym;
+    if (hit) return hit;
+    if (!this.ticker) return Promise.reject(new Error('Not connected to Rithmic'));
+    const p = (async () => {
+      let sym = null;
+      try {
+        const r = await this.ticker.request({ template_id: T.FRONT_MONTH, symbol: root, exchange, need_updates: false }, T.FRONT_MONTH_R);
+        sym = r.trading_symbol || null;
+      } catch (e) {
+        if (!this.ticker || /closed|Not connected|Disconnected/.test(e && e.message)) { this.frontCache.delete(key); throw e; }
+        /* rp_code 7 "no data": use the calendar below */
+      }
+      if (!sym || sym === root) sym = guessFrontMonth(root);
+      if (!sym) { this.frontCache.delete(key); throw new Error('No front-month contract for ' + root); }
+      return sym;
+    })();
+    this.frontCache.set(key, p);
+    p.catch(() => {});
+    return p;
   }
 
   #mdRequest(symbol, exchange, request) {
@@ -373,6 +440,10 @@ export class RithmicClient {
   // side = the aggressor from LastTrade field 112003 (TransactionType BUY = 1, SELL = 2): 'buy' | 'sell' | null.
   subscribeMarket(symbol, exchange, fn) {
     const key = symbol + '|' + exchange;
+    // A chart that re-opens its feed (reload, timeframe flip) within the grace period keeps the
+    // subscription Rithmic already has: no unsubscribe + subscribe churn.
+    const pend = this.unsubTimers.get(key);
+    if (pend) { clearTimeout(pend); this.unsubTimers.delete(key); }
     let set = this.marketSubs.get(key);
     if (!set) {
       set = new Set();
@@ -380,11 +451,18 @@ export class RithmicClient {
       if (this.connected) this.#mdRequest(symbol, exchange, MD_REQUEST.SUBSCRIBE).catch((e) => this.emit('warn', { message: e.message }));
     }
     set.add(fn);
+    let done = false;
     return () => {
+      if (done) return;
+      done = true;
       set.delete(fn);
-      if (set.size) return;
-      this.marketSubs.delete(key);
-      if (this.connected) this.#mdRequest(symbol, exchange, MD_REQUEST.UNSUBSCRIBE).catch(() => {});
+      if (set.size || this.unsubTimers.has(key)) return;
+      this.unsubTimers.set(key, setTimeout(() => {
+        this.unsubTimers.delete(key);
+        if (set.size || this.marketSubs.get(key) !== set) return;
+        this.marketSubs.delete(key);
+        if (this.connected) this.#mdRequest(symbol, exchange, MD_REQUEST.UNSUBSCRIBE).catch(() => {});
+      }, UNSUB_GRACE_MS));
     };
   }
 

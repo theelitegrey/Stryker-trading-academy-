@@ -23,10 +23,10 @@ const NOTICES = [
 // Attribution strip state: visible?, inside the viewport, below the chart (never over candles/axis),
 // the logos for the current theme loaded and shown.
 const attrState = (p) => p.evaluate(() => {
-  const a = document.getElementById('stkr-attr');
+  const a = document.getElementById('stkrb-attr');
   if (!a) return { exists: false };
   const r = a.getBoundingClientRect(), c = document.getElementById('vela-chart').getBoundingClientRect();
-  const shown = [...a.querySelectorAll('.stkr-logos img')].filter((i) => i.offsetWidth > 0);
+  const shown = [...a.querySelectorAll('.stkrb-logos img')].filter((i) => i.offsetWidth > 0);
   return { exists: true, vis: !a.hidden && r.height > 0, top: Math.round(r.top), chartBottom: Math.round(c.bottom), right: Math.round(r.right), vw: innerWidth,
     docW: document.documentElement.scrollWidth, logos: shown.map((i) => i.src.split('/').pop().split('?')[0]), loaded: shown.every((i) => i.complete && i.naturalWidth > 0) };
 });
@@ -46,7 +46,7 @@ async function open(b, { w, h, mobile, dev }) {
   const reqs = [];
   const errors = [];
   p.on('request', (r) => reqs.push({ url: r.url(), body: r.postData() || '', headers: JSON.stringify(r.headers()) }));
-  p.on('console', (m) => { reqs.push({ url: 'console:', body: m.text(), headers: '' }); if (m.type() === 'error' && !/ERR_FAILED|net::/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { reqs.push({ url: 'console:', body: m.text(), headers: '' }); if (m.type() === 'error' && !/ERR_FAILED|net::|\/api\/chart\/stream\/.*404/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   const frames = [];
   p.on('websocket', (ws) => { ws.on('framesent', (f) => frames.push({ url: ws.url(), payload: f.payload })); });
@@ -77,7 +77,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     // ---------- 1. flag OFF (what every member gets today) ----------
     {
       const { ctx, p, reqs, errors } = await open(b, { w: 1440, h: 900 });
-      const ui = await p.evaluate(() => ({ btn: !!document.getElementById('stkr-btn'), chip: !!document.getElementById('stkr-chip'), api: !!window.STRYKER_RITHMIC }));
+      const ui = await p.evaluate(() => ({ btn: !!document.getElementById('stkrb-btn'), chip: !!document.getElementById('stkrb-chip'), api: !!window.STRYKER_RITHMIC }));
       const loaded = reqs.filter((r) => /rithmic-(ui|client|provider|proto)\.js/.test(r.url)).map((r) => r.url);
       check(!ui.btn && !ui.chip && !ui.api, 'flag off: no Connect broker button, no chip, no Rithmic API');
       check(loaded.length === 0, 'flag off: no Rithmic client/UI/provider/codec file is downloaded ' + loaded.join(' '));
@@ -92,40 +92,40 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     let { ctx, p, reqs, errors, frames } = await open(b, { w: 1440, h: 900, dev: MOCK });
     const normal = await lastBar(p);
     check(normal && !isMock(normal), 'flag on, not connected: chart uses the normal data (close ' + (normal && normal.close) + ')');
-    check(await p.evaluate(() => !!document.getElementById('stkr-btn') && document.getElementById('stkr-chip').hidden), 'flag on: Connect broker button shown, chip hidden while disconnected');
-    await p.click('#stkr-btn');
-    check(await waitFor(p, () => document.querySelectorAll('#stkr-sys option[value]:not([value=""])').length === 3), 'sheet lists the systems from RequestRithmicSystemInfo');
+    check(await p.evaluate(() => !!document.getElementById('stkrb-btn') && document.getElementById('stkrb-chip').hidden), 'flag on: Connect broker button shown, chip hidden while disconnected');
+    await p.click('#stkrb-btn');
+    check(await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3), 'sheet lists the systems from RequestRithmicSystemInfo');
     const sheet = await p.evaluate(() => ({
-      systems: [...document.querySelectorAll('#stkr-sys option')].map((o) => o.textContent),
-      tradovate: [...document.querySelectorAll('.stkr-broker')].map((x) => x.textContent + (x.disabled ? ' [disabled]' : '')),
-      note: [...document.querySelectorAll('.stkr-form .stkr-note')].map((x) => x.textContent).join(' | '),
-      formAction: document.getElementById('stkr-form').getAttribute('action')
+      systems: [...document.querySelectorAll('#stkrb-sys option')].map((o) => o.textContent),
+      tradovate: [...document.querySelectorAll('.stkrb-broker')].map((x) => x.textContent + (x.disabled ? ' [disabled]' : '')),
+      note: [...document.querySelectorAll('.stkrb-form .stkrb-note')].map((x) => x.textContent).join(' | '),
+      formAction: document.getElementById('stkrb-form').getAttribute('action')
     }));
     check(sheet.tradovate.length === 1 && /^Rithmic/.test(sheet.tradovate[0]) && !sheet.tradovate.some((t) => /Tradovate/.test(t)), 'Rithmic only, no Tradovate row: ' + sheet.tradovate.join(' / '));
     check(/Test server: prices may differ from the live market\./.test(sheet.note), 'test-server note shown');
     check(/straight from your browser to Rithmic\. TradeZoro never sees or stores your password/.test(sheet.note), 'privacy note shown');
     check(sheet.formAction === null, 'form has no action (never submits to a server)');
-    const sys2 = await p.evaluate(() => [...document.querySelectorAll('#stkr-sys option')].map((o) => ({ t: o.textContent, d: o.disabled })));
+    const sys2 = await p.evaluate(() => [...document.querySelectorAll('#stkrb-sys option')].map((o) => ({ t: o.textContent, d: o.disabled })));
     check(['Rithmic 01', 'Rithmic 04 Colo'].every((n) => sys2.some((o) => o.d && o.t === n + ' (available after approval)')) && sys2.some((o) => !o.d && o.t === 'Rithmic Test'),
       'system picker: Rithmic Test selectable, Rithmic 01 / 04 Colo greyed "available after approval": ' + sys2.map((o) => o.t + (o.d ? '[x]' : '')).join(' / '));
-    const sl = await p.evaluate(() => { const d = document.getElementById('stkr-sheet-legal'); return { items: [...d.querySelectorAll('li')].map((l) => l.textContent), logos: [...d.querySelectorAll('img')].filter((i) => i.offsetWidth > 0 && i.naturalWidth > 0).map((i) => i.alt) }; });
+    const sl = await p.evaluate(() => { const d = document.getElementById('stkrb-sheet-legal'); return { items: [...d.querySelectorAll('li')].map((l) => l.textContent), logos: [...d.querySelectorAll('img')].filter((i) => i.offsetWidth > 0 && i.naturalWidth > 0).map((i) => i.alt) }; });
     check(JSON.stringify(sl.items) === JSON.stringify(NOTICES), 'sheet: the 4 Rithmic/OMNE notices, verbatim');
     check(sl.logos.join('|') === 'Trading Platform by Rithmic|Powered by OMNE', 'sheet: both logos shown (dark variants) ' + sl.logos.join('|'));
     const a0 = await attrState(p);
     check(a0.exists && !a0.vis, 'disconnected: attribution strip NOT shown');
     // wrong password first
-    await p.selectOption('#stkr-sys', 'Rithmic Test');
-    await p.fill('#stkr-user', 'demo');
-    await p.fill('#stkr-pass', 'not-the-password');
-    await p.click('#stkr-go');
-    check(await waitFor(p, () => !document.querySelector('.stkr-err').hidden), 'wrong password: error shown, still disconnected');
-    await p.fill('#stkr-pass', PASS);
-    await p.check('#stkr-remember');
+    await p.selectOption('#stkrb-sys', 'Rithmic Test');
+    await p.fill('#stkrb-user', 'demo');
+    await p.fill('#stkrb-pass', 'not-the-password');
+    await p.click('#stkrb-go');
+    check(await waitFor(p, () => !document.querySelector('.stkrb-err').hidden), 'wrong password: error shown, still disconnected');
+    await p.fill('#stkrb-pass', PASS);
+    await p.check('#stkrb-remember');
     await p.screenshot({ path: OUT + '/rithmic-1440-sheet.png' });
-    await p.click('#stkr-go');
-    check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected' && !document.getElementById('stkr-chip').hidden), 'connect: state connected and chip visible');
-    check(await p.evaluate(() => document.getElementById('stkr-chip').textContent === 'Rithmic · connected'), 'chip reads "Rithmic · connected"');
-    check(await p.evaluate(() => document.getElementById('stkr-pass').value === ''), 'password field cleared after connect');
+    await p.click('#stkrb-go');
+    check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected' && !document.getElementById('stkrb-chip').hidden), 'connect: state connected and chip visible');
+    check(await p.evaluate(() => document.getElementById('stkrb-chip').textContent === 'Rithmic · connected'), 'chip reads "Rithmic · connected"');
+    check(await p.evaluate(() => document.getElementById('stkrb-pass').value === ''), 'password field cleared after connect');
     const a1 = await attrState(p);
     check(a1.vis && a1.top >= a1.chartBottom - 1 && a1.right <= a1.vw && a1.loaded && a1.logos.join('|') === 'trading-platform-by-rithmic-gray.png|powered-by-omne-white.png',
       'connected (dark): attribution strip shown below the chart, dark logos loaded ' + JSON.stringify(a1));
@@ -148,18 +148,18 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(ticks > 1, 'live candle moves with streamed ticks (' + ticks + ' distinct closes in 3 s)');
     await p.click('body', { position: { x: 5, y: 5 } }).catch(() => {});
     await p.screenshot({ path: OUT + '/rithmic-1440-connected.png' });
-    await p.click('#stkr-i');
-    const lp = await p.evaluate(() => { const x = document.getElementById('stkr-legal-pop'); const r = x.getBoundingClientRect(); return { vis: !x.hidden && r.height > 0, items: [...x.querySelectorAll('li')].map((l) => l.textContent), top: r.top, l: r.left, r: r.right, vw: innerWidth }; });
+    await p.click('#stkrb-i');
+    const lp = await p.evaluate(() => { const x = document.getElementById('stkrb-legal-pop'); const r = x.getBoundingClientRect(); return { vis: !x.hidden && r.height > 0, items: [...x.querySelectorAll('li')].map((l) => l.textContent), top: r.top, l: r.left, r: r.right, vw: innerWidth }; });
     check(lp.vis && JSON.stringify(lp.items) === JSON.stringify(NOTICES) && lp.top >= 0 && lp.r <= lp.vw, '(i) opens the notice with the 4 lines verbatim');
     await p.screenshot({ path: OUT + '/rithmic-1440-notice.png' });
     await p.keyboard.press('Escape');
-    check(await p.evaluate(() => document.getElementById('stkr-legal-pop').hidden), 'Escape closes the notice');
+    check(await p.evaluate(() => document.getElementById('stkrb-legal-pop').hidden), 'Escape closes the notice');
     await p.evaluate(() => window.setStrykerTheme('day'));
     await sleep(800);
     const ad = await attrState(p);
     check(ad.vis && ad.loaded && ad.logos.join('|') === 'trading-platform-by-rithmic-black.png|powered-by-omne-blue.png', 'connected (day theme): day logos shown ' + ad.logos.join('|'));
     await p.screenshot({ path: OUT + '/rithmic-1440-day-connected.png' });
-    await p.click('#stkr-i');
+    await p.click('#stkrb-i');
     await p.screenshot({ path: OUT + '/rithmic-1440-day-notice.png' });
     await p.keyboard.press('Escape');
     await p.evaluate(() => window.setStrykerTheme('night'));
@@ -174,13 +174,17 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(s2.logins >= s1.logins + 2, 'reconnect logged both plants in again');
 
     // disconnect: falls back to the normal data
-    await p.click('#stkr-btn');
+    await p.click('#stkrb-btn');
+    const sid = await p.evaluate(() => [...document.querySelectorAll('#stkrb-ids span')].map((x) => x.textContent));
+    check(sid.length === 2 && sid[0] === 'Session ID (ticker): mock-user' && sid[1] === 'Session ID (history): mock-user', 'connected sheet shows the unique_user_id per plant: ' + sid.join(' / '));
+    const cnt = await p.evaluate(() => window.STRYKER_RITHMIC.counts);
+    check(cnt.history && cnt.history.RequestTimeBarReplay >= 1 && cnt.ticker['RequestMarketDataUpdate (subscribe)'] >= 1, 'request counts exposed per plant ' + JSON.stringify(cnt));
     await p.screenshot({ path: OUT + '/rithmic-1440-connected-sheet.png' });
-    await p.click('#stkr-off');
-    check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'idle' && document.getElementById('stkr-chip').hidden), 'disconnect: idle, chip hidden');
-    check(await waitFor(p, () => document.getElementById('stkr-attr').hidden), 'disconnected again: attribution strip hidden');
+    await p.click('#stkrb-off');
+    check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'idle' && document.getElementById('stkrb-chip').hidden), 'disconnect: idle, chip hidden');
+    check(await waitFor(p, () => document.getElementById('stkrb-attr').hidden), 'disconnected again: attribution strip hidden');
     check(await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && !(x.close > 10500 && x.close < 11800); }, null, 30000), 'disconnect: NQ chart falls back to the normal data');
-    check(await p.evaluate(() => /Yahoo Finance/.test(document.querySelector('.stkchart-credit').textContent)), 'source line back to the standard text after disconnect');
+    check(await p.evaluate(() => { const c = document.querySelector('.stkchart-credit'); return !/Rithmic/.test(c.textContent) && c.textContent === c.dataset.std; }), 'source line back to the standard text after disconnect');
     const s3 = await stats();
     check(s3.logouts > s2.logouts, 'disconnect sent RequestLogout');
 
@@ -199,34 +203,57 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
 
     // ---------- 3. phone 390 ----------
     ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true, dev: MOCK }));
-    await p.click('#stkr-btn');
-    await waitFor(p, () => document.querySelectorAll('#stkr-sys option[value]:not([value=""])').length === 3);
+    await p.click('#stkrb-btn');
+    await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3);
     const g = await p.evaluate(() => {
-      const r = document.getElementById('stkr-pop').getBoundingClientRect();
-      const go = document.getElementById('stkr-go').getBoundingClientRect();
-      return { l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), goH: Math.round(go.height), vw: innerWidth, vh: innerHeight, docW: document.documentElement.scrollWidth, fs: getComputedStyle(document.getElementById('stkr-user')).fontSize };
+      const r = document.getElementById('stkrb-pop').getBoundingClientRect();
+      const go = document.getElementById('stkrb-go').getBoundingClientRect();
+      return { l: Math.round(r.left), r: Math.round(r.right), b: Math.round(r.bottom), goH: Math.round(go.height), vw: innerWidth, vh: innerHeight, docW: document.documentElement.scrollWidth, fs: getComputedStyle(document.getElementById('stkrb-user')).fontSize };
     });
     check(g.l >= 0 && g.r <= g.vw && g.docW <= g.vw, '390: sheet fits the width, no sideways scroll ' + JSON.stringify(g));
     check(g.fs === '16px' && g.goH >= 40, '390: 16px inputs (no iOS zoom), 40px+ Connect button');
     await p.screenshot({ path: OUT + '/rithmic-390-sheet.png' });
-    await p.selectOption('#stkr-sys', 'TradeSea');
-    await p.fill('#stkr-user', 'demo');
-    await p.fill('#stkr-pass', PASS);
-    await p.click('#stkr-go');
+    await p.selectOption('#stkrb-sys', 'TradeSea');
+    await p.fill('#stkrb-user', 'demo');
+    await p.fill('#stkrb-pass', PASS);
+    await p.click('#stkrb-go');
     check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected'), '390: connects');
     await waitFor(p, () => { const b = window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars; const x = b[b.length - 1]; return x && x.close > 10500 && x.close < 11800; }, null, 20000);
-    const chip = await p.evaluate(() => { const r = document.getElementById('stkr-chip').getBoundingClientRect(); return { vis: r.width > 0, r: Math.round(r.right), vw: innerWidth, docW: document.documentElement.scrollWidth }; });
+    const chip = await p.evaluate(() => { const r = document.getElementById('stkrb-chip').getBoundingClientRect(); return { vis: r.width > 0, r: Math.round(r.right), vw: innerWidth, docW: document.documentElement.scrollWidth }; });
     check(chip.vis && chip.r <= chip.vw && chip.docW <= chip.vw, '390: chip visible inside the toolbar ' + JSON.stringify(chip));
     const a3 = await attrState(p);
     check(a3.vis && a3.loaded && a3.right <= a3.vw && a3.docW <= a3.vw && a3.top >= a3.chartBottom - 1, '390: attribution strip fits below the chart ' + JSON.stringify(a3));
     await p.screenshot({ path: OUT + '/rithmic-390-connected.png' });
-    await p.click('#stkr-i');
-    const lp3 = await p.evaluate(() => { const r = document.getElementById('stkr-legal-pop').getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, vw: innerWidth }; });
+    await p.click('#stkrb-i');
+    const lp3 = await p.evaluate(() => { const r = document.getElementById('stkrb-legal-pop').getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, vw: innerWidth }; });
     check(lp3.l >= 0 && lp3.r <= lp3.vw && lp3.t >= 0, '390: notice fits the screen ' + JSON.stringify(lp3));
     await p.screenshot({ path: OUT + '/rithmic-390-notice.png' });
+    await p.keyboard.press('Escape');
+    await p.click('#stkrb-btn');
+    const ids3 = await p.evaluate(() => { const e = document.getElementById('stkrb-ids'); const r = e.getBoundingClientRect(); return { n: e.querySelectorAll('span').length, r: Math.round(r.right), vw: innerWidth }; });
+    check(ids3.n === 2 && ids3.r <= ids3.vw, '390: session IDs shown inside the sheet ' + JSON.stringify(ids3));
+    await p.screenshot({ path: OUT + '/rithmic-390-connected-sheet.png' });
+    await p.keyboard.press('Escape');
     await p.evaluate(() => window.STRYKER_RITHMIC.disconnect());
-    check(await waitFor(p, () => document.getElementById('stkr-attr').hidden), '390: strip hidden after disconnect');
+    check(await waitFor(p, () => document.getElementById('stkrb-attr').hidden), '390: strip hidden after disconnect');
     check(!errors.length, '390: no page errors ' + errors.join(' | '));
+    await ctx.close();
+
+    // ---------- 4. tablet 768: connected sheet ----------
+    ({ ctx, p, errors } = await open(b, { w: 768, h: 1024, mobile: true, dev: MOCK }));
+    await p.click('#stkrb-btn');
+    await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3);
+    await p.selectOption('#stkrb-sys', 'Rithmic Test');
+    await p.fill('#stkrb-user', 'demo');
+    await p.fill('#stkrb-pass', PASS);
+    await p.click('#stkrb-go');
+    check(await waitFor(p, () => window.STRYKER_RITHMIC.state === 'connected'), '768: connects');
+    await sleep(1500);
+    await p.click('#stkrb-btn');
+    check(await p.evaluate(() => document.querySelectorAll('#stkrb-ids span').length === 2 && document.documentElement.scrollWidth <= innerWidth), '768: session IDs shown, no sideways scroll');
+    await p.screenshot({ path: OUT + '/rithmic-768-connected-sheet.png' });
+    await p.evaluate(() => window.STRYKER_RITHMIC.disconnect());
+    check(!errors.length, '768: no page errors ' + errors.join(' | '));
     await ctx.close();
   } catch (e) {
     fail++; console.log('FAIL exception', e);

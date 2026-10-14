@@ -9448,3 +9448,65 @@ button.appnav-dk.on{
   .pr-head .pr-kind{ order:3; }
 }
 .pr-back{ margin:0 0 10px; font-size:12.5px; } .pr-back a{ color:var(--ink-2); text-decoration:none; } .pr-back a:hover{ color:var(--ink-0); }
+
+/* ===== Charts News panel (assets/chart-news.js, news + calendar job 2026-10-14) =====
+   Same slot as the Watchlist (right column next to the icon rail); phones: a full-screen sheet.
+   The list scrolls with the shared thin scrollbar (global block above). */
+.stkchart-panel.stkw-host.stknw-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkw-w)); }
+.stknw{
+  position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkw-w, 340px); z-index:29;
+  display:flex; flex-direction:column; min-width:0;
+  background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); font-size:13px;
+}
+.stknw[hidden]{ display:none; }
+.stknw-railbtn.on{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold) !important; }
+.stknw-hd{ flex:none; display:flex; align-items:center; gap:2px; padding:6px 6px 6px 12px; border-bottom:1px solid var(--line-soft); }
+.stknw-title{ font-size:15px; font-weight:700; color:var(--ink-0); }
+.stknw-sp{ flex:1 1 auto; }
+.stknw-tabs{ flex:none; display:flex; gap:4px; padding:8px 10px 4px; }
+.stknw-tab{
+  flex:0 1 auto; min-width:0; height:28px; padding:0 10px; border:1px solid var(--line-soft); border-radius:999px;
+  background:transparent; color:var(--ink-2); font:inherit; font-size:12px; font-weight:600; cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.stknw-tab:hover:not(:disabled){ color:var(--ink-0); background:var(--bg-2); }
+.stknw-tab.on{ color:#04150e; background:var(--gold); border-color:var(--gold); }
+.stknw-tab:disabled{ opacity:.45; cursor:default; }
+.stknw-search{ flex:none; display:flex; align-items:center; gap:6px; margin:4px 10px 6px; padding:0 8px; height:32px; border:1px solid var(--line-soft); border-radius:8px; background:var(--bg-1); color:var(--ink-3); }
+.stknw-search:focus-within{ border-color:var(--teal); }
+.stknw-qi{ display:inline-flex; }
+.stknw-q{ flex:1 1 auto; min-width:0; border:0; outline:0; background:transparent; color:var(--ink-0); font:inherit; font-size:13px; }
+.stknw-q::-webkit-search-cancel-button{ filter:invert(.6); }
+.stknw-note{ flex:none; margin:0 10px 6px; padding:6px 8px; border-radius:6px; font-size:12px; background:rgba(242,54,69,.10); color:var(--ink-1); }
+.stknw-note.is-replay{ background:rgba(0,173,181,.12); }
+.stknw-note[hidden]{ display:none; }
+.stknw-list{ flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:0 4px 8px; }
+.stknw-row{
+  display:flex; flex-direction:column; gap:3px; width:100%; padding:9px 8px; border:0; border-bottom:1px solid var(--line-soft);
+  background:transparent; color:inherit; font:inherit; text-align:left; text-decoration:none; cursor:pointer; border-radius:0;
+}
+.stknw-row:hover{ background:var(--bg-2); }
+.stknw-row:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+.stknw-meta{ display:flex; align-items:center; gap:6px; min-width:0; font-size:11px; color:var(--ink-3); font-family:'JetBrains Mono', ui-monospace, monospace; }
+.stknw-meta time{ color:var(--teal); flex:none; }
+.stknw-src{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stknw-ext{ display:inline-flex; margin-left:auto; opacity:.6; }
+.stknw-h{ font-size:13px; line-height:1.35; color:var(--ink-0); font-weight:600; overflow-wrap:anywhere; }
+.stknw-m{ font-size:12px; line-height:1.4; color:var(--ink-2); overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.stknw-row.is-open .stknw-m{ -webkit-line-clamp:unset; display:block; }
+.stknw-empty{ padding:24px 12px; text-align:center; color:var(--ink-3); font-size:12.5px; }
+.stknw-foot{ flex:none; margin:0; padding:6px 10px; border-top:1px solid var(--line-soft); font-size:11px; color:var(--ink-3); }
+.stknw-phonebtn{ display:none; }
+.stknw-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
+@media (max-width:700px){
+  .stkchart-panel.stkw-host.stknw-open #vela-chart{ right:0; }
+  .stknw-phonebtn{ display:inline-flex; padding:0 8px; flex:none; }
+  .stknw{
+    position:fixed; inset:0; top:var(--stkc-top, 0px); bottom:var(--stkc-dock, 0px); width:auto; right:0; z-index:8000;
+    border-left:0; font-size:14px;
+  }
+  .stknw-close{ width:40px; height:40px; }
+  .stknw-row{ padding:11px 10px; }
+  .stknw-h{ font-size:14px; }
+  .stknw-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+}

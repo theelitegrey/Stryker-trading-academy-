@@ -32,6 +32,8 @@ jobs:
         run: node workers/book-recorder/test/parity.test.mjs
       - name: GEX chain ingest tests
         run: node workers/book-recorder/test/gex.test.mjs
+      - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)
+        run: node workers/book-recorder/test/gex-history.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -75,3 +77,9 @@ jobs:
           test "$code" = 200
           g401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-ingest?sym=QQQ&part=near")
           echo "gex-ingest without key: HTTP $g401"; test "$g401" = 401
+          s401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-snap")
+          echo "gex-snap without key: HTTP $s401"; test "$s401" = 401
+          h=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
+          echo "gex-history: HTTP $h"; test "$h" = 200
+          ss=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-sessions")
+          echo "gex-sessions: HTTP $ss"; test "$ss" = 200

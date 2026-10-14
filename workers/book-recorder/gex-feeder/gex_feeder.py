@@ -26,7 +26,10 @@ other time. Stdlib only.
 
 Config (env, /root/projects/book-feeder/feeder.env, mode 0600): BOOK_RECORDER_URL,
 BOOK_INGEST_SECRET (never logged), GEX_SYMBOLS (default QQQ,_SPX,SPY).
+Each run also POSTs one history snapshot per underlying (SPX, QQQ, SPY) and expiry mode
+(0DTE, 1DTE) to <Worker>/gex-snap (see snapshot() below and the README, "GEX history").
 Test mode: gex_feeder.py --compact <cboe.json> <now_epoch>  -> prints the compact JSON (near+term).
+           gex_feeder.py --snapshot <near.json> <U> <dte> <now_epoch> -> one history snapshot.
 """
 import gzip
 import json
@@ -51,6 +54,7 @@ NEAR_BAND = 0.12
 TERM_DAYS = 31
 TERM_BAND = 0.10
 MAX_PART = 200 * 1024
+SNAP_SYMBOLS = ('SPX', 'QQQ', 'SPY')
 FETCH_TIMEOUT = 40
 POST_TIMEOUT = 15
 
@@ -119,6 +123,231 @@ def compact(raw, now_epoch):
     return {'near': near, 'term': term}
 
 
+# ---- GEX history snapshots (heatmap + replay, Owner-approved 2026-10-14) ----
+# Each run also computes one small snapshot per underlying and expiry mode (0DTE, 1DTE) from the
+# compact 'near' chain and POSTs them to <Worker>/gex-snap, which keeps 90 days in the Durable
+# Object. The maths is a line-by-line port of functions/api/gex/_engine.js (compactToContracts,
+# ownGamma, profile, levels, gammaFlip, straddleRange) on Cboe's spot + IV (the API's
+# compare.cboe_only); test/gex-history.test.mjs checks it against the JS engine on real chains.
+# Snapshot time `t` = Cboe's chain time (the market state the numbers describe), so a replay that
+# shows the latest snapshot with t <= replay time never looks ahead.
+SNAP_BAND = 0.05
+SQ2PI = math.sqrt(2 * math.pi)
+MIN_T_SEC = 15 * 60
+STRADDLE_TO_SIGMA = math.sqrt(math.pi / 2)
+
+
+def et_epoch(wall):
+    """'2026-10-14T13:32:30' (New York wall time, as Cboe prints it) -> epoch seconds."""
+    m = re.match(r'^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?', str(wall or ''))
+    if not m:
+        return None
+    y, mo, d, h, mi, se = (int(x or 0) for x in m.groups())
+    return datetime(y, mo, d, h, mi, se, tzinfo=ET).timestamp()
+
+
+def years_to_close(exp_iso, now_sec):
+    close = datetime.strptime(exp_iso + ' 16:00', '%Y-%m-%d %H:%M').replace(tzinfo=ET).timestamp()
+    return max(MIN_T_SEC, close - now_sec) / (365 * 86400)
+
+
+def bs_gamma(S, K, T, sigma, r=0.045, q=0.0):
+    if S <= 0 or K <= 0 or T <= 0 or sigma <= 0:
+        return 0.0
+    v = sigma * math.sqrt(T)
+    d1 = (math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / v
+    if not math.isfinite(d1) or abs(d1) > 12:
+        return 0.0
+    nd1 = math.exp(-0.5 * d1 * d1) / SQ2PI
+    return math.exp(-q * T) * nd1 / (S * v)
+
+
+def contracts_for(near, dte, now_sec):
+    """compactToContracts: dte 0 -> first expiry on/after today, 1 -> the second."""
+    today = datetime.fromtimestamp(now_sec, timezone.utc).date()
+    groups = []
+    for e in sorted(near.get('expiries') or {}):
+        days = (datetime.strptime(e, '%Y-%m-%d').date() - today).days
+        if days >= 0:
+            groups.append((e, days, near['expiries'][e]))
+    if not groups:
+        return None, []
+    e, days, rows = groups[min(dte, len(groups) - 1)]
+    out = []
+    for r in rows:
+        iv = r[3] / 100 if r[3] > 3 else r[3]
+        T = years_to_close(e, now_sec)
+        out.append({'strike': r[0], 'cp': r[1], 'oi': r[2], 'iv': r[3], 'bid': r[4], 'ask': r[5], 'vol': r[6],
+                    'exp': e, 'T': T, 'iv_n': iv})
+    return e, out
+
+
+def net_gex_at(x, cs):
+    total = 0.0
+    for c in cs:
+        iv = c['iv']
+        if not iv or iv <= 0:
+            continue
+        if iv > 3:
+            iv /= 100
+        g = bs_gamma(x, c['strike'], c['T'], iv)
+        if not g:
+            continue
+        expo = g * c['oi'] * 100 * x * x * 0.01
+        total += expo if c['cp'] == 'C' else -expo
+    return total
+
+
+def gamma_flip(spot, cs, lo_pct=0.90, hi_pct=1.10, steps=80):
+    lo, hi = spot * lo_pct, spot * hi_pct
+    xs = [lo + (hi - lo) * i / (steps - 1) for i in range(steps)]
+    ys = [net_gex_at(x, cs) for x in xs]
+    crosses = []
+    for i in range(1, len(xs)):
+        a, b, fa, fb = xs[i - 1], xs[i], ys[i - 1], ys[i]
+        if fa == 0:
+            crosses.append(a)
+        elif fa * fb < 0:
+            m = a
+            for _ in range(28):
+                m = a + (b - a) * abs(fa) / (abs(fa) + abs(fb))
+                fm = net_gex_at(m, cs)
+                if fm == 0:
+                    break
+                if fa * fm < 0:
+                    b, fb = m, fm
+                else:
+                    a, fa = m, fm
+                if abs(b - a) < spot * 1e-6:
+                    break
+            crosses.append(m)
+    if not crosses:
+        return None
+    best = crosses[0]
+    for x in crosses[1:]:
+        best = best if abs(best - spot) < abs(x - spot) else x
+    return best
+
+
+def _argbest(keys, val, better):
+    """JS keys.reduce((a, b) => better(val(a), val(b)) ? a : b): ties go to the later key."""
+    best = keys[0]
+    for k in keys[1:]:
+        best = best if better(val(best), val(k)) else k
+    return best
+
+
+def snap_levels(spot, cs):
+    gex, call_g, put_g = {}, {}, {}
+    for c in cs:
+        sign = 1 if c['cp'] == 'C' else -1
+        g = c['gamma'] * c['oi'] * 100 * spot * spot * 0.01
+        gex[c['strike']] = gex.get(c['strike'], 0.0) + sign * g
+        if math.isfinite(g) and g > 0:
+            side = call_g if c['cp'] == 'C' else put_g
+            side[c['strike']] = side.get(c['strike'], 0.0) + sign * g
+    near = lambda k, band=0.06: abs(k - spot) / spot < band
+    # net-GEX walls (fallback of the fallback)
+    strikes = sorted(gex)
+    pool = [k for k in strikes if near(k)] or strikes
+    above = [k for k in pool if k >= spot]
+    below = [k for k in pool if k <= spot]
+    nw_c = _argbest(above, gex.get, lambda a, b: a > b) if above else None
+    nw_p = _argbest(below, gex.get, lambda a, b: a < b) if below else None
+    if nw_c is None and pool:
+        nw_c = _argbest(pool, gex.get, lambda a, b: a > b)
+    if nw_p is None and pool:
+        nw_p = _argbest(pool, gex.get, lambda a, b: a < b)
+    zg = gamma_flip(spot, cs) if cs else None
+    calls = [(k, g) for k, g in call_g.items() if k >= spot and near(k) and g > 0]
+    puts = [(k, g) for k, g in put_g.items() if k <= spot and near(k) and g < 0]
+    gw_c = gw_p = None
+    if calls:
+        best = calls[0]
+        for x in calls[1:]:
+            best = x if x[1] > best[1] else best
+        gw_c = best[0]
+    if puts:
+        best = puts[0]
+        for x in puts[1:]:
+            best = x if x[1] < best[1] else best
+        gw_p = best[0]
+    aw_c = aw_p = None
+    if gw_c is None or gw_p is None:
+        cs_, ps_ = {}, {}
+        floor_, ceil_ = max(spot, zg or spot), min(spot, zg or spot)
+        for c in cs:
+            if abs(c['strike'] - spot) / spot > 0.04:
+                continue
+            score = (c['vol'] or c['oi'] or 0) + 0.001 * (c['oi'] or 0)
+            if c['cp'] == 'C' and c['strike'] >= floor_:
+                cs_[c['strike']] = cs_.get(c['strike'], 0) + score
+            if c['cp'] == 'P' and c['strike'] <= ceil_:
+                ps_[c['strike']] = ps_.get(c['strike'], 0) + score
+        aw_c = _argbest(list(cs_), cs_.get, lambda a, b: a > b) if cs_ else None
+        aw_p = _argbest(list(ps_), ps_.get, lambda a, b: a > b) if ps_ else None
+    cw = gw_c if gw_c is not None else (aw_c if aw_c is not None else nw_c)
+    pw = gw_p if gw_p is not None else (aw_p if aw_p is not None else nw_p)
+    net = sum(gex.get(k, 0.0) for k in pool)
+    return gex, cw, pw, zg, net
+
+
+def straddle_range(spot, cs, now_sec):
+    if not spot > 0 or not cs:
+        return None
+    seen = []
+    for c in cs:
+        if c['strike'] not in seen:
+            seen.append(c['strike'])
+    strikes = sorted(seen, key=lambda k: abs(k - spot))
+    mid = lambda o: (o['bid'] + o['ask']) / 2 if o and o['bid'] > 0 and o['ask'] >= o['bid'] else None
+    for k in strikes[:3]:
+        c = next((x for x in cs if x['strike'] == k and x['cp'] == 'C'), None)
+        p = next((x for x in cs if x['strike'] == k and x['cp'] == 'P'), None)
+        mc, mp = mid(c), mid(p)
+        if mc is not None and mp is not None:
+            return spot, (mc + mp) * STRADDLE_TO_SIGMA
+    k = strikes[0]
+    ivs = [(x['iv'] / 100 if x['iv'] > 3 else x['iv']) for x in cs if x['strike'] == k and x['iv'] > 0]
+    if not ivs:
+        return None
+    sigma = sum(ivs) / len(ivs) * math.sqrt(years_to_close(next(x['exp'] for x in cs if x['strike'] == k), now_sec)) * spot
+    return (spot, sigma) if sigma > 0 else None
+
+
+def num_out(x):
+    return int(x) if x is not None and float(x).is_integer() else x
+
+
+def rnd(x, d):
+    return None if x is None or not math.isfinite(x) else round(x, d)
+
+
+def snapshot(near, dte, u, now_epoch):
+    """One history snapshot from the compact 'near' chain, or None (no chain time / prior day)."""
+    t = et_epoch(near.get('chain_time'))
+    if not t:
+        return None
+    # The feeder trims expired expiries by today's date, so a chain still printed on an earlier
+    # day (09:00-09:30 runs) would be priced against the wrong expiry: skip it.
+    if datetime.fromtimestamp(t, ET).date() != datetime.fromtimestamp(now_epoch, ET).date():
+        return None
+    spot = float(near['spot'])
+    exp, cs = contracts_for(near, dte, t)
+    if len(cs) < 20:
+        return None
+    for c in cs:
+        c['gamma'] = bs_gamma(spot, c['strike'], c['T'], c['iv_n']) if c['iv_n'] > 0 else 0.0
+    gex, cw, pw, zg, net = snap_levels(spot, cs)
+    em = straddle_range(spot, cs, t)
+    ks = sorted(k for k in gex if abs(k - spot) / spot <= SNAP_BAND)
+    kk = [int(k) if float(k).is_integer() else k for k in ks]     # 7325 not 7325.0 (smaller JSON)
+    return {'u': u, 'd': dte, 'day': datetime.fromtimestamp(t, ET).strftime('%Y-%m-%d'), 't': int(round(t)),
+            'fa': int(now_epoch), 'x': exp, 's': rnd(spot, 2), 'cw': num_out(cw), 'pw': num_out(pw), 'zg': rnd(zg, 2), 'n': rnd(net / 1e6, 2),
+            'em': [rnd(em[0], 2), rnd(em[1], 3)] if em else None,
+            'k': kk, 'g': [rnd(gex[k] / 1e6, 2) for k in ks]}
+
+
 def fetch(sym):
     req = urllib.request.Request(CBOE + sym + '.json', headers={'User-Agent': UA, 'Accept': 'application/json'})
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as r:
@@ -137,6 +366,19 @@ def post(url, key, sym, part, body):
         return 'failed ' + type(e).__name__
 
 
+def post_snaps(url, key, snaps):
+    body = gzip.compress(json.dumps({'v': 1, 'snaps': snaps}, separators=(',', ':')).encode(), 6)
+    req = urllib.request.Request(url + '/gex-snap', data=body, method='POST',
+                                 headers={'content-type': 'application/octet-stream', 'x-ingest-key': key, 'User-Agent': UA})
+    try:
+        with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
+            return '%s %s (%d B)' % (r.status, r.read(120).decode('utf-8', 'replace'), len(body))
+    except urllib.error.HTTPError as e:
+        return '%s %s' % (e.code, e.read(120).decode('utf-8', 'replace'))
+    except Exception as e:
+        return 'failed ' + type(e).__name__
+
+
 def main(force=False):
     if not force and not in_window(datetime.now(timezone.utc)):
         return 0
@@ -147,6 +389,7 @@ def main(force=False):
         log('config missing: BOOK_RECORDER_URL / BOOK_INGEST_SECRET')
         return 2
     bad = 0
+    snaps = []
     for sym in syms:
         t0 = time.monotonic()
         try:
@@ -170,10 +413,27 @@ def main(force=False):
             out.append('%s %d exp %d B -> %s' % (part, len(d['expiries']), len(body), res))
         log('%s spot=%s chain=%s src=%d B %.1fs | %s' % (sym, parts['near']['spot'], parts['near']['chain_time'], size,
                                                      time.monotonic() - t0, ' | '.join(out)))
+        u = sym.lstrip('_')
+        if u in SNAP_SYMBOLS:
+            for dte in (0, 1):
+                try:
+                    sn = snapshot(parts['near'], dte, u, time.time())
+                    if sn:
+                        snaps.append(sn)
+                except Exception as e:
+                    log('%s %dDTE snapshot failed: %s %s' % (u, dte, type(e).__name__, str(e)[:80]))
+    if snaps:
+        res = post_snaps(url, key, snaps)
+        bad += 0 if res.startswith('200') else 1
+        log('history: %d snapshots -> %s' % (len(snaps), res))
     return 1 if bad else 0
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 6 and sys.argv[1] == '--snapshot':
+        # test mode: gex_feeder.py --snapshot <near.json> <U> <dte> <now_epoch> -> the snapshot JSON
+        print(json.dumps(snapshot(json.load(open(sys.argv[2])), int(sys.argv[4]), sys.argv[3], float(sys.argv[5])), separators=(',', ':')))
+        sys.exit(0)
     if len(sys.argv) == 4 and sys.argv[1] == '--compact':
         print(json.dumps(compact(open(sys.argv[2], 'rb').read(), float(sys.argv[3])), separators=(',', ':')))
         sys.exit(0)

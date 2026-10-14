@@ -1,6 +1,7 @@
 # Book recorder (Crypto DOM heatmap history + GEX compact option chains)
 
 > GEX chains (added 2026-10-13, build 530): see "GEX compact chains" at the end.
+> GEX history (added 2026-10-14, heatmap + replay): see "GEX history" at the end.
 
 Keeps 24 h of the Binance spot order book per symbol, one sample a minute, so the Charts
 "Crypto DOM Heatmap" is filled across the whole visible chart the moment it opens. Owner
@@ -174,3 +175,72 @@ Logs: `journalctl -u gex-feeder -n 20 -o cat`. Run now: `python3 /root/projects/
 falls back to InsightSentry within 30 min.
 Tests: `node workers/book-recorder/test/gex.test.mjs` (also run by the deploy workflow), and
 `node tools/tests/gex-cboe-test.mjs` (compact vs full parity, CPU budget, fallbacks).
+
+
+## GEX history
+
+What: every feeder run (2 min, market hours) also computes one snapshot per underlying (SPX, QQQ,
+SPY) and expiry mode (0DTE, 1DTE) and POSTs the six together to `/gex-snap`. The Durable Object
+keeps 90 days. The GEX page heatmap, the Charts "GEX Heatmap" indicator and bar replay read it.
+Owner-approved 2026-10-14.
+
+    gex_feeder.py snapshot()  (same compact 'near' chain it already posts)
+          +--- POST /gex-snap (x-ingest-key, gzip JSON, <= 64 KB) --->  DO tables gexsnap + gexday (90 days)
+    site (GEX page / Charts) -- GET /gex-history?u=SPX&dte=0&from=&to=   (edge cache per 2-min bucket)
+                             -- GET /gex-sessions[?u=SPX&dte=0]           (list of recorded days)
+
+Snapshot fields (`src/gex-history.js` has the full comment):
+
+- `t`: Cboe's chain time (epoch s), i.e. the market moment the numbers describe. `fa` is when we
+  fetched it (Cboe's delayed chain runs ~15 min behind).
+- `s` spot, `x` the expiry priced, `cw` call wall, `pw` put wall, `zg` zero gamma, `n` net GEX
+  (+-6%, $M), `em` = [center, sigma] of the session expected range (68% = +-sigma, 80% = +-1.2816 sigma).
+- `k` / `g`: every listed strike within +-5% of spot and its net GEX ($M per 1% move; calls +,
+  puts -).
+
+The maths is a port of `functions/api/gex/_engine.js` on Cboe's own spot + IV (what the API
+reports as `compare.cboe_only`). It is NOT the hybrid InsightSentry IV: the feeder has no
+InsightSentry key, and a history must be reproducible from one source. So a snapshot can differ a
+little from the live API's levels for the same minute. `test/gex-history.test.mjs` checks walls,
+zero gamma, expected range and every strike's GEX against the JS engine on real chains
+(2026-10-14 fixtures).
+
+Rules:
+
+- A chain whose Cboe time is not today (New York) is not snapshotted (09:00-09:30 ET runs still
+  see yesterday's chain). The same chain time twice (Cboe did not reprint) replaces the row.
+- Validation (`validateSnaps`): u in SPX/QQQ/SPY, d 0|1, t not in the future and < 24 h old,
+  finite levels, strikes ascending and within +-5% of spot, <= 400 strikes, <= 12 snapshots per POST.
+- `/gex-history`: `from`/`to` epoch seconds (ms accepted). Default the last 24 h. `from` rounded
+  down to the hour, `to` up to the 2-min bucket; max 8 days per call; CORS for our two sites only
+  (like /book-history), and the same 20/min per-IP rate limit. A range that ended over an hour ago
+  is cached at the edge for a day, else per 2-min bucket. Reply = column arrays over one shared
+  strike axis (`packHistory`; `unpackHistory` is the inverse). Cloudflare compresses it
+  (gzip/brotli) for clients that accept it.
+- `/gex-sessions`: `[{u, d, day, n, t0, t1}]`, newest first, from the per-day summary table.
+- Plan gating (SPX 0DTE free, everything else Pro) is done by the site, as for `/api/gex/levels`.
+- Trim: rows older than 90 days are deleted at most once an hour, by primary key.
+
+### Size and cost (stays on Workers Free; measured on the 2026-10-14 chains)
+
+| | per trading day | free limit |
+|---|---|---|
+| Snapshot JSON: SPX ~1.85 KB (~150 strikes), QQQ ~0.86 KB, SPY ~0.90 KB; x2 modes = ~7.2 KB per run | | |
+| Runs that store (09:30-16:15 ET chain times, every 2 min) | ~205 | |
+| Stored per day: ~7.2 KB x 205 + ~10% SQLite overhead | ~1.6 MB | |
+| Stored for 90 days (~63 trading days) | ~100 MB | 5 GB per account (SQLite DOs) |
+| Rows written: 6 snapshots + 6 day-summary upserts per run (+ hourly trims) | ~2,500 | 100,000/day (the book recorder uses ~7,200) |
+| Requests: one /gex-snap POST per run (Worker + DO) | ~220 | 100,000/day |
+| Rows read: a full SPX session = ~205 rows; sessions list ~1 row a day | ~205 per uncached read | 5M/day |
+
+Reads are edge-cached (2-min buckets; finished ranges a day), so viewers share them. Even
+uncached, 5M rows/day is ~24,000 full-session reads a day. Feeder cost: the snapshot maths adds
+~0.1 s CPU per run (six snapshots), no extra download.
+
+Stop collecting: remove `SNAP_SYMBOLS` handling (or set it to `()`) in gex_feeder.py and re-run
+install.sh; the chains keep flowing. Delete the data: `DROP TABLE gexsnap; DROP TABLE gexday;` via a
+one-off DO route, or delete the Worker (this also deletes the book history).
+
+Tests: `node workers/book-recorder/test/gex-history.test.mjs` (feeder vs engine parity, validation,
+pack/unpack, no-lookahead lookup; CI runs it) and `node workers/book-recorder/test/gex-worker-local.mjs`
+(the Worker routes end to end on node:sqlite).

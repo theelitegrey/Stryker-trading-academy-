@@ -17,6 +17,7 @@
 // memoised 30 s in the DO). Public market data only: no user data.
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
+import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -24,6 +25,8 @@ const MAX_ROWS = 1000;           // +-2% at ~0.05% rows is <= ~82 rows; anything
 const FRESH_MS = 3 * 60000;      // a sample must be stamped within 3 min of the Worker's clock
 const ALIGN_MS = 15 * 60000;     // 'from' rounded down to 15 min, as the client does (assets/chart-orderflow.js BOOK_REMOTE_ALIGN_MS)
 const STATUS_MEMO_MS = 30000;    // /status is computed at most once per 30 s in the DO
+const HIST_MAX_RANGE_S = 8 * 86400;  // one /gex-history reply covers at most 8 days
+const HIST_BUCKET_S = 120;           // edge cache key bucket = the feeder's 2-min cadence
 const ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com']);
 
 const symbolsOf = (env) => String(env.SYMBOLS || 'BTCUSDT,ETHUSDT').split(',').map((s) => s.trim().toUpperCase()).filter((s) => /^[A-Z0-9]{3,20}$/.test(s));
@@ -78,6 +81,47 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT) WITHOUT ROWID`);
     // GEX compact chains (gex-feeder): one gzip blob per symbol + part, replaced on every ingest
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gex (sym TEXT NOT NULL, part TEXT NOT NULL, ts INTEGER NOT NULL, body BLOB, PRIMARY KEY (sym, part)) WITHOUT ROWID`);
+    // GEX history (src/gex-history.js): one row per underlying + 0/1DTE + Cboe chain time, 90 days.
+    // j = the snapshot's other fields as JSON (day, x, s, cw, pw, zg, n, em, k, g).
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
+    // per-day summary so /gex-sessions never scans the snapshots
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS gexday (u TEXT NOT NULL, d INTEGER NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, PRIMARY KEY (u, d, day)) WITHOUT ROWID`);
+  }
+  snapIngest(snaps) {
+    let added = 0;
+    for (const s of snaps) {
+      const { u, d, t, ...rest } = s;
+      const had = this.sql.exec('SELECT 1 AS x FROM gexsnap WHERE u = ? AND d = ? AND t = ?', u, d, t).toArray().length;
+      this.sql.exec('INSERT OR REPLACE INTO gexsnap (u, d, t, j) VALUES (?, ?, ?, ?)', u, d, t, JSON.stringify(rest));
+      // the same Cboe chain time twice (Cboe did not reprint) replaces the row; count it once
+      if (!had) {
+        added++;
+        this.sql.exec(`INSERT INTO gexday (u, d, day, n, t0, t1) VALUES (?, ?, ?, 1, ?, ?)
+          ON CONFLICT (u, d, day) DO UPDATE SET n = n + 1, t0 = MIN(t0, excluded.t0), t1 = MAX(t1, excluded.t1)`, u, d, s.day, t, t);
+      }
+    }
+    // 90-day trim, at most once an hour (by index: PRIMARY KEY (u, d, t))
+    const now = Math.floor(Date.now() / 1000), lastTrim = Number(this.meta('gexTrim') || 0);
+    if (now - lastTrim > 3600) {
+      const cut = now - KEEP_DAYS * 86400;
+      for (const u of HIST_SYMBOLS) for (const d of [0, 1]) {
+        this.sql.exec('DELETE FROM gexsnap WHERE u = ? AND d = ? AND t < ?', u, d, cut);
+        this.sql.exec('DELETE FROM gexday WHERE u = ? AND d = ? AND t1 < ?', u, d, cut);
+      }
+      this.meta('gexTrim', now);
+    }
+    this.meta('gexSnapLast', JSON.stringify({ ts: now, n: snaps.length, added }));
+    return added;
+  }
+  snapHistory(u, d, from, to) {
+    const rows = this.sql.exec('SELECT t, j FROM gexsnap WHERE u = ? AND d = ? AND t >= ? AND t <= ? ORDER BY t', u, d, from, to).toArray()
+      .map((r) => Object.assign({ t: r.t }, JSON.parse(r.j)));
+    return packHistory(u, d, rows);
+  }
+  snapSessions(u, d) {
+    const q = u ? this.sql.exec('SELECT u, d, day, n, t0, t1 FROM gexday WHERE u = ? AND d = ? ORDER BY day DESC', u, d)
+      : this.sql.exec('SELECT u, d, day, n, t0, t1 FROM gexday ORDER BY day DESC, u, d');
+    return q.toArray();
   }
   meta(k, v) {
     if (v === undefined) { const r = this.sql.exec('SELECT v FROM meta WHERE k = ?', k).toArray()[0]; return r ? r.v : null; }
@@ -120,6 +164,8 @@ export class BookRecorder {
       const c = this.sql.exec('SELECT COUNT(*) AS n, MIN(ts) AS t0, MAX(ts) AS t1, SUM(LENGTH(v)) AS b FROM samples WHERE sym = ?', s).toArray()[0];
       out.symbols[s] = { samples: c.n, from: c.t0, to: c.t1, rowBytes: c.b, avgRowBytes: c.n ? Math.round(c.b / c.n) : 0 };
     }
+    out.gexHistory = { keepDays: KEEP_DAYS, last: JSON.parse(this.meta('gexSnapLast') || 'null'),
+      days: this.sql.exec('SELECT u, d, COUNT(*) AS days, SUM(n) AS snaps, MIN(day) AS first, MAX(day) AS lastDay FROM gexday GROUP BY u, d').toArray() };
     out.dbBytes = this.ctx.storage.sql.databaseSize;
     this.statusMemo = { at: Date.now(), out };
     return out;
@@ -145,6 +191,18 @@ export class BookRecorder {
       if (!r) return new Response('no chain', { status: 404 });
       return new Response(r.body instanceof ArrayBuffer ? r.body : new Uint8Array(r.body), { headers: { 'content-type': 'application/octet-stream', 'x-gex-fetched-at': String(r.ts) } });
     }
+    if (u.pathname === '/gex-snap') {
+      const { snaps } = await req.json();
+      return new Response('stored ' + this.snapIngest(snaps) + ' new of ' + snaps.length);
+    }
+    if (u.pathname === '/gex-history') {
+      const p = this.snapHistory(u.searchParams.get('u'), Number(u.searchParams.get('d')), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
+      return Response.json(p);
+    }
+    if (u.pathname === '/gex-sessions') {
+      const uu = u.searchParams.get('u');
+      return Response.json(this.snapSessions(uu, Number(u.searchParams.get('d'))));
+    }
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname === '/history') {
       const sym = u.searchParams.get('symbol');
@@ -164,6 +222,54 @@ function cors(req) {
   return h;
 }
 const stub = (env) => env.RECORDER.get(env.RECORDER.idFromName('main'));
+
+// The range a /gex-history request is served for (epoch seconds). Default: the last 24 h. `from`
+// is rounded DOWN to the hour and `to` UP to the 2-min bucket (never past the current one), so
+// callers share edge-cache entries; at most HIST_MAX_RANGE_S, never older than 90 days.
+export function histRange(fromQ, toQ, nowSec) {
+  const B = HIST_BUCKET_S, nowB = Math.ceil(nowSec / B) * B;
+  let to = Number(toQ) || nowSec, from = Number(fromQ) || to - 86400;
+  if (to > 1e11) to = Math.floor(to / 1000);          // accept ms too
+  if (from > 1e11) from = Math.floor(from / 1000);
+  to = Math.min(Math.ceil(to / B) * B, nowB);
+  from = Math.max(Math.floor(from / 3600) * 3600, to - HIST_MAX_RANGE_S, Math.floor((nowSec - KEEP_DAYS * 86400) / 3600) * 3600);
+  return { from, to, final: to < nowSec - 3600 };
+}
+
+// GET /gex-history?u=SPX&dte=0[&from=][&to=]  and  GET /gex-sessions[?u=SPX&dte=0]
+// Public market data, our two sites' origins only (CORS), edge-cached per 2-min bucket (a range
+// that ended over an hour ago never changes: cached a day). The JSON is gzip/brotli'd by
+// Cloudflare's edge for clients that accept it. Plan gating (SPX 0DTE free, the rest Pro) is done
+// by the site, as for the GEX levels API.
+async function gexHistoryRoute(u, env, ctx, h) {
+  const nowSec = Date.now() / 1000;
+  const uu = String(u.searchParams.get('u') || '').toUpperCase();
+  const d = Number(u.searchParams.get('dte') ?? u.searchParams.get('d') ?? 0);
+  const sessions = u.pathname === '/gex-sessions';
+  if ((uu || !sessions) && (!HIST_SYMBOLS.includes(uu) || (d !== 0 && d !== 1))) return new Response('bad request', { status: 400, headers: h });
+  let doUrl, ckey, maxAge = 60;
+  const bucket = Math.floor(nowSec / HIST_BUCKET_S);
+  if (sessions) {
+    doUrl = 'https://do/gex-sessions?' + (uu ? 'u=' + uu + '&d=' + d : '');
+    ckey = 'https://book-recorder.cache/gex-sessions/' + (uu ? uu + '/' + d : 'all') + '/' + bucket;
+  } else {
+    const r = histRange(u.searchParams.get('from'), u.searchParams.get('to'), nowSec);
+    if (!(r.to > r.from)) return new Response('bad range', { status: 400, headers: h });
+    doUrl = 'https://do/gex-history?u=' + uu + '&d=' + d + '&from=' + r.from + '&to=' + r.to;
+    ckey = 'https://book-recorder.cache/gex-history/' + uu + '/' + d + '/' + r.from + '/' + r.to + (r.final ? '' : '/' + bucket);
+    if (r.final) maxAge = 86400;
+  }
+  const cache = caches.default, key = new Request(ckey);
+  let res = await cache.match(key);
+  if (!res) {
+    const dr = await stub(env).fetch(doUrl);
+    res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + maxAge } });
+    if (dr.status === 200) ctx.waitUntil(cache.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  return out;
+}
 
 export default {
   async fetch(req, env, ctx) {
@@ -192,6 +298,15 @@ export default {
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at, { method: 'POST', body: buf });
     }
+    if (u.pathname === '/gex-snap') {
+      // GEX history snapshots from the feeder: same shared secret, gzip JSON, <= 64 KB
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > SNAP_MAX_BODY) return new Response('too large', { status: 413 });
+      const v = await validateSnaps(await req.arrayBuffer(), Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return stub(env).fetch('https://do/gex-snap', { method: 'POST', body: JSON.stringify({ snaps: v.snaps }) });
+    }
     if (u.pathname === '/gex-chain') {
       // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached
       // 30 s; not rate-limited per IP because the callers are Cloudflare's own Function hosts.
@@ -219,6 +334,7 @@ export default {
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     if (env.RL) { try { const { success } = await env.RL.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
 
+    if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
     if (u.pathname === '/status') {
       const r = await stub(env).fetch('https://do/status');
       return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'public, max-age=30' }, h) });

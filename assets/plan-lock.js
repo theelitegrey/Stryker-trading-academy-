@@ -20,7 +20,7 @@
 //
 // API (global):
 //   strykerPlanLock.card(kind, where, opts) -> HTMLElement
-//     kind  'gex' | 'chapters'
+//     kind  'gex' | 'options' | 'chapters'
 //     where short tag for analytics, e.g. 'gex-market', 'chapter-end'
 //     opts  { closable: bool, onClose: fn, chapterLimit: number,
 //             back: { href, label } (a quiet second link, e.g. back to chapters) }
@@ -45,6 +45,14 @@
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
       reason: 'Pro unlocks GEX for every market and expiry, and the strike table.'
+    },
+    options: {
+      title: function () { return 'QQQ and SPY options analytics are part of Pro'; },
+      bullets: function () {
+        return ['Expected move, IV rank, term structure and skew for QQQ (NQ) and SPY (Free covers SPX)',
+                'Plus futures GEX for every market and expiry'];
+      },
+      reason: 'Pro unlocks options analytics for every market.'
     },
     chapters: {
       title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ are part of Pro' : 'Later chapters are part of Pro'; },

@@ -34,16 +34,18 @@ def C(k, cp, bid, ask, iv=0.2, delta=None):
 
 
 # --- expected move: ATM straddle, interpolated between the strikes around spot
-cs = [C(100, 'C', 2.0, 2.2), C(100, 'P', 1.0, 1.2), C(105, 'C', 0.4, 0.6), C(105, 'P', 4.0, 4.2)]
-st, iv, k = f.atm_straddle(cs, 101.0)
-# straddle(100) = 2.1 + 1.1 = 3.2, straddle(105) = 0.5 + 4.1 = 4.6, w = 0.2 -> 3.48
-ok(close(st, 3.48), 'straddle interpolated at spot 101 = 3.48 (got %s)' % st)
+cs = [C(100, 'C', 2.0, 2.2), C(100, 'P', 1.0, 1.2), C(101, 'C', 0.4, 0.6), C(101, 'P', 4.0, 4.2)]
+st, iv, k = f.atm_straddle(cs, 100.2)
+# straddle(100) = 2.1 + 1.1 = 3.2, straddle(101) = 0.5 + 4.1 = 4.6, w = 0.2 -> 3.48
+ok(close(st, 3.48), 'straddle interpolated at spot 100.2 = 3.48 (got %s)' % st)
 ok(k == 100, 'lower strike 100')
 st, _, _ = f.atm_straddle(cs, 100.0)
 ok(close(st, 3.2), 'spot on a strike -> that straddle')
-st, _, _ = f.atm_straddle(cs, 99.0)
-ok(close(st, 3.2), 'spot below every strike -> nearest straddle')
+st, _, _ = f.atm_straddle(cs, 99.5)
+ok(close(st, 3.2), 'spot just below every strike -> nearest straddle')
 ok(f.atm_straddle([C(100, 'C', 0, 0)], 100)[0] is None, 'no ask -> no straddle')
+ok(f.atm_straddle(cs, 120.0)[0] is None, 'nearest strike > 1% from spot -> None')
+ok(f.atm_straddle([C(90, 'C', 1, 1), C(90, 'P', 1, 1), C(110, 'C', 1, 1), C(110, 'P', 1, 1)], 100.0)[0] is None, 'strikes 20% apart around spot -> None')
 ok(f.mid({'bid': 3, 'ask': 2}) is None, 'crossed quote ignored')
 ok(close(f.mid({'bid': None, 'ask': 0.1}), 0.05), 'missing bid counts as 0')
 
@@ -99,10 +101,37 @@ rows = [{'code': 'OPRA:SPX261016C7700.0', 'expiration': 20261016, 'type': 'CALL'
 ch = f.parse_is_rows(rows, '2026-10-14')
 ok(list(ch) == ['2026-10-16'] and len(ch['2026-10-16']) == 1 and ch['2026-10-16'][0]['root'] == 'SPXW', 'SPXW kept, SPX AM + expired dropped')
 
+# --- one root per expiry, thin expiries dropped
+def Q(code, exp, cp, k, bid=1.0, ask=1.2, iv=0.2):
+    return {'code': code, 'expiration': exp, 'type': cp, 'strike_price': k, 'bid_price': bid, 'ask_price': ask, 'implied_volatility': iv}
+def strip(root, exp, ks, **kw):
+    yy = str(exp)[2:]
+    return [Q('OPRA:%s%sC%s.0' % (root, yy, k), exp, 'CALL', k, **kw) for k in ks] + [Q('OPRA:%s%sP%s.0' % (root, yy, k), exp, 'PUT', k, **kw) for k in ks]
+ks = list(range(7650, 7760, 10))
+rows = strip('SPX', 20261120, ks, iv=0.13) + strip('SPXW', 20261120, ks, iv=0.15) + strip('SPXW', 20261119, ks) + strip('SPX', 20261016, ks, iv=0.13) + strip('SPXW', 20261016, ks, iv=0.16)
+ch = f.parse_is_rows(rows, '2026-10-15', 7700.0)
+ok({c['root'] for c in ch['2026-11-20']} == {'SPX'}, 'third Friday (not 0/1DTE) -> SPX AM root only')
+ok({c['root'] for c in ch['2026-11-19']} == {'SPXW'}, 'daily -> SPXW')
+ok({c['root'] for c in ch['2026-10-16']} == {'SPXW'}, 'monthly that is 1DTE -> SPXW (the AM contract settles at the open)')
+thin = strip('SPXW', 20261119, [7690, 7700, 7710, 7720]) + strip('SPXW', 20261119, [7900, 8000])
+ok('2026-11-19' not in f.parse_is_rows(thin, '2026-10-15', 7700.0), 'fewer than 5 two-sided strikes near ATM -> expiry dropped')
+one_sided = strip('SPXW', 20261119, ks, bid=0)
+ok('2026-11-19' not in f.parse_is_rows(one_sided, '2026-10-15', 7700.0), 'no bids -> not two-sided -> dropped')
+ok(f.is_monthly('2026-11-20') and f.is_monthly('2026-11-19') and not f.is_monthly('2026-11-13'), 'is_monthly (third Friday or the Thursday before)')
+ok(f.years_to('2026-11-20', ts(2026, 11, 20, 9), am=True) < f.years_to('2026-11-20', ts(2026, 11, 20, 9)), 'AM settlement is earlier than PM')
+
+# --- despike: hide a bad far-dated print, keep a high 0DTE
+term = [{'days': d, 'iv': v} for d, v in [(0.1, 0.30), (1, 0.18), (6, 0.13), (8, 0.131), (12, 0.165), (15, 0.133), (20, 0.134), (30, 0.136)]]
+n = f.despike(term)
+ok(n == 1 and term[4]['iv'] is None, 'spike at 12 days hidden (%d hidden)' % n)
+ok(term[0]['iv'] == 0.30 and term[1]['iv'] == 0.18, '0DTE / 1DTE never despiked')
+term = [{'days': d, 'iv': 0.13 + d / 10000} for d in (6, 10, 20, 40, 80, 160)]
+ok(f.despike(term) == 0, 'smooth curve untouched')
+
 # --- analyse end to end on a synthetic chain + futures mapping
 def chain_for_exp(spot, sd):
     out = []
-    for k in range(int(spot) - 20, int(spot) + 21, 5):
+    for k in range(int(spot) - 20, int(spot) + 21, 1):
         c = max(spot - k, 0) + sd * 0.4
         p = max(k - spot, 0) + sd * 0.4
         d = 0.5 - (k - spot) / 40
@@ -114,6 +143,8 @@ e0 = [r for r in a['em'] if r['k'] == '0DTE'][0]
 ok(close(e0['em'], 1.6, 1e-6) and close(e0['lo'], 98.4) and close(e0['hi'], 101.6), '0DTE expected move = straddle 1.6: %s' % e0)
 ok(close(e0['fut']['em'], 1.6 * 1.005, 1e-2) and close(e0['fut']['c'], 100.5), 'ES mapping = straddle x futures/spot ratio')
 ok(len(a['term']) == 2 and a['term'][0][0] == '2026-10-14', 'term structure rows')
+T0 = f.years_to('2026-10-14', now)
+ok(close(a['term'][0][2], round(1.6 * math.sqrt(math.pi / 2) / (100 * math.sqrt(T0)), 4), 1e-4), 'ATM IV implied by the straddle mid')
 
 print('%d failed' % fails if fails else 'ALL PASS')
 sys.exit(1 if fails else 0)

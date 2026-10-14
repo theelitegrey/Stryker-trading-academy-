@@ -58,6 +58,12 @@ IV_INDEX = {'SPX': ('VIX', 'CBOE:VIX'), 'SPY': ('VIX', 'CBOE:VIX'), 'QQQ': ('VXN
 NEAR_DAYS, NEAR_RANGE = 45, 8
 FAR_DAYS, FAR_RANGE = 400, 15
 YEAR_S = 365.0 * 86400
+NEAR_ATM_BAND = 0.02      # 'near ATM' = strikes within +-2% of spot
+MIN_PAIRS = 5             # an expiry needs >= 5 two-sided call+put strikes near ATM to be used
+SPIKE_REL = 0.12          # a term point > 12% off the median of its neighbours is hidden
+SPIKE_MIN_DAYS = 5
+STRADDLE_TO_SIGMA = math.sqrt(math.pi / 2)
+MAX_ATM_GAP = 0.01        # the strikes used for ATM must sit within 1% of spot (2% apart at most)
 FETCH_TIMEOUT = 40
 POST_TIMEOUT = 15
 STATE = os.environ.get('STATE_DIRECTORY', '/var/lib/opt-feeder')
@@ -89,12 +95,42 @@ def rnd(x, n):
 
 
 # ---------------------------------------------------------------- chain parsing
-def parse_is_rows(rows, today):
-    """InsightSentry /v3/options/quotes rows -> {expiry 'YYYY-MM-DD': [contract dicts]}.
-    SPX lists AM monthlies (SPX) and PM weeklies (SPXW) on the same Friday: the PM (SPXW) row wins,
-    because 0DTE / weekly traders hold the PM-settled contract."""
+def is_monthly(exp):
+    """Third Friday of its month, or the Thursday before it (exchange holiday)."""
+    d = date.fromisoformat(exp)
+    tf = third_friday(d.year, d.month)
+    return d == tf or d == tf - timedelta(days=1)
+
+
+def two_sided_pairs(contracts, spot, band=NEAR_ATM_BAND):
+    """Strikes within +-band of spot with BOTH a two-sided call and a two-sided put quote."""
+    by = {}
+    for c in contracts:
+        if abs(c['k'] - spot) <= spot * band and (c.get('bid') or 0) > 0 and (c.get('ask') or 0) > (c.get('bid') or 0) - 1e-9:
+            by.setdefault(c['k'], set()).add(c['cp'])
+    return sum(1 for v in by.values() if len(v) == 2)
+
+
+def choose_root(exp, by_root, spot, today):
+    """ONE option root per expiry, never mixed (CoS 2026-10-14). SPX lists AM-settled monthlies
+    (root SPX) and PM-settled dailies/weeklies (SPXW) on the same days: the monthly expiry uses SPX
+    (unless it is today or tomorrow: the 0DTE/1DTE trader holds SPXW, and the AM contract has
+    already settled at the open), every other expiry uses SPXW. Other underlyings have one root."""
+    if len(by_root) == 1:
+        return next(iter(by_root))
+    near_term = (date.fromisoformat(exp) - date.fromisoformat(today)).days <= 1
+    if 'SPX' in by_root and is_monthly(exp) and not near_term and two_sided_pairs(by_root['SPX'], spot) >= MIN_PAIRS:
+        return 'SPX'
+    if 'SPXW' in by_root:
+        return 'SPXW'
+    return max(by_root, key=lambda r: len(by_root[r]))
+
+
+def parse_is_rows(rows, today, spot=None):
+    """InsightSentry /v3/options/quotes rows -> {expiry 'YYYY-MM-DD': [contract dicts]}, one root
+    per expiry (choose_root). With `spot`, expiries with fewer than MIN_PAIRS two-sided call+put
+    strikes within +-2% of spot are dropped (too thin for an honest ATM / skew value)."""
     out = {}
-    roots = {}
     for r in rows:
         e = r.get('expiration')
         k = fnum(r.get('strike_price'))
@@ -107,14 +143,41 @@ def parse_is_rows(rows, today):
             continue
         m = CODE_RE.match(r.get('code') or '')
         root = m.group(1) if m else ''
-        roots.setdefault(exp, set()).add(root)
-        out.setdefault(exp, []).append({'k': k, 'cp': cp, 'root': root, 'bid': fnum(r.get('bid_price')),
-                                        'ask': fnum(r.get('ask_price')), 'iv': fnum(r.get('implied_volatility')),
-                                        'delta': fnum(r.get('delta'))})
-    for exp, rs in out.items():
-        if 'SPXW' in roots.get(exp, ()) and 'SPX' in roots[exp]:
-            out[exp] = [c for c in rs if c['root'] == 'SPXW']
-    return out
+        out.setdefault(exp, {}).setdefault(root, []).append({'k': k, 'cp': cp, 'root': root, 'bid': fnum(r.get('bid_price')),
+                                                              'ask': fnum(r.get('ask_price')), 'iv': fnum(r.get('implied_volatility')),
+                                                              'delta': fnum(r.get('delta'))})
+    res = {}
+    for exp, by_root in out.items():
+        root = choose_root(exp, by_root, spot or 0, today) if spot else ('SPXW' if 'SPXW' in by_root else next(iter(by_root)))
+        cs = by_root[root]
+        if spot and two_sided_pairs(cs, spot) < MIN_PAIRS:
+            continue
+        res[exp] = cs
+    return res
+
+
+def despike(term, key='iv', rel=SPIKE_REL, min_days=SPIKE_MIN_DAYS):
+    """Hide (set None) term-structure values more than `rel` (relative) away from the median of up
+    to two neighbours on each side, worst first, one at a time (so one bad print cannot get its good
+    neighbours hidden too). Points under min_days are never hidden or used as neighbours: a 0DTE /
+    1DTE IV above the rest of the curve is normal, not a bad print. Returns how many were hidden."""
+    hidden = 0
+    while True:
+        worst, wi = rel, None
+        idx = [i for i, r in enumerate(term) if r.get(key) is not None and r['days'] >= min_days]
+        for p, i in enumerate(idx):
+            nb = sorted(term[j][key] for j in idx[max(0, p - 2):p] + idx[p + 1:p + 3])
+            if len(nb) < 2:
+                continue
+            med = nb[len(nb) // 2] if len(nb) % 2 else (nb[len(nb) // 2 - 1] + nb[len(nb) // 2]) / 2
+            if med > 0:
+                dev = abs(term[i][key] - med) / med
+                if dev > worst:
+                    worst, wi = dev, i
+        if wi is None:
+            return hidden
+        term[wi][key] = None
+        hidden += 1
 
 
 def mid(c):
@@ -157,7 +220,11 @@ def atm_straddle(contracts, spot):
             hi = r
     if lo is None or hi is None:
         r = lo or hi
+        if abs(r[0] - spot) > spot * MAX_ATM_GAP:
+            return None, None, None
         return r[1], r[2], r[0]
+    if hi[0] - lo[0] > spot * 2 * MAX_ATM_GAP:
+        return None, None, None      # sparse far-dated strikes: no honest ATM value
     w = (spot - lo[0]) / (hi[0] - lo[0])
     st = lo[1] + w * (hi[1] - lo[1])
     iv = lo[2] + w * (hi[2] - lo[2]) if lo[2] and hi[2] else (lo[2] or hi[2])
@@ -178,10 +245,11 @@ def iv_at_delta(contracts, cp, target):
     return None
 
 
-def years_to(exp, now_epoch):
-    """Years from now to 16:00 ET on the expiry day (PM settlement), floored at 15 minutes."""
+def years_to(exp, now_epoch, am=False):
+    """Years from now to the settlement on the expiry day (16:00 ET PM, 09:30 ET for AM-settled
+    SPX monthlies), floored at 15 minutes."""
     y, m, d = (int(x) for x in exp.split('-'))
-    t = datetime(y, m, d, 16, 0, tzinfo=ET).timestamp()
+    t = datetime(y, m, d, 9, 30, tzinfo=ET).timestamp() if am else datetime(y, m, d, 16, 0, tzinfo=ET).timestamp()
     return max(t - now_epoch, 900) / YEAR_S
 
 
@@ -290,11 +358,21 @@ def analyse(chains, u, spot, now_epoch, fut=None):
     term = []
     for e in exps:
         cs = chains[e]
-        T = years_to(e, now_epoch)
-        st, iv, k = atm_straddle(cs, spot)
+        T = years_to(e, now_epoch, am=bool(cs) and cs[0].get('root') == 'SPX')
+        st, iv_q, k = atm_straddle(cs, spot)
+        # ATM IV implied by the straddle mid itself (straddle ~= spot * iv * sqrt(T) * sqrt(2/pi)):
+        # the same prices as the expected move, so it is smooth across expiries. The quoted per-strike
+        # IV (iv_q) is only the fallback.
+        iv = st * STRADDLE_TO_SIGMA / (spot * math.sqrt(T)) if st else iv_q
         p25, c25 = iv_at_delta(cs, 'P', 0.25), iv_at_delta(cs, 'C', 0.25)
         term.append({'x': e, 'days': T * 365, 'iv': iv, 'st': st, 'p25': p25, 'c25': c25,
                      'skew': (p25 - c25) if p25 is not None and c25 is not None else None})
+    # hide bad prints: ATM IV and the skew legs, each against its own neighbours
+    for k in ('iv', 'skew'):
+        despike(term, k)
+    for r in term:
+        if r['skew'] is None:
+            r['p25'] = r['c25'] = None
     by = {r['x']: r for r in term}
     ratio = (fut[1] / spot) if fut and fut[1] and spot else None
     em = []
@@ -315,7 +393,8 @@ def analyse(chains, u, spot, now_epoch, fut=None):
     return {
         'u': u, 'spot': rnd(spot, 2), 'em': em,
         'fut': {'root': fut[0], 'p': rnd(fut[1], 2), 'ratio': rnd(ratio, 6)} if ratio else None,
-        'term': [[r['x'], rnd(r['days'], 2), rnd(r['iv'], 4), rnd(r['p25'], 4), rnd(r['c25'], 4)] for r in term if r['iv'] is not None],
+        'term': [[r['x'], rnd(r['days'], 2), rnd(r['iv'], 4), rnd(r['p25'], 4), rnd(r['c25'], 4)] for r in term
+                 if r['iv'] is not None or r['p25'] is not None],
         'atm30': rnd(interp_30d(term, 'iv'), 4),
         'skew30': rnd(interp_30d(term, 'skew'), 4),
     }
@@ -333,7 +412,7 @@ def is_get(path, key, params=None):
     return json.loads(raw)
 
 
-def chain_for(code, key, now_epoch):
+def chain_for(code, key, now_epoch, spot=None):
     today = datetime.fromtimestamp(now_epoch, ET).date()
     out = {}
     calls = 0
@@ -341,7 +420,7 @@ def chain_for(code, key, now_epoch):
         j = is_get('/options/quotes', key, {'code': code, 'range': rng, 'from': (today + timedelta(days=d0)).isoformat(),
                                             'to': (today + timedelta(days=d1)).isoformat()})
         calls += 1
-        for e, cs in parse_is_rows(j.get('data') or [], today.isoformat()).items():
+        for e, cs in parse_is_rows(j.get('data') or [], today.isoformat(), spot or fnum(j.get('last_price'))).items():
             out.setdefault(e, []).extend(cs)
         del j
     return out, calls
@@ -418,7 +497,7 @@ def main(force=False):
             bad += 1
             continue
         try:
-            chains, n = chain_for(code, iskey, now)
+            chains, n = chain_for(code, iskey, now, spot)
             calls += n
             froot, fcode = FUTS[u]
             a = analyse(chains, u, spot, now, (froot, px.get(fcode)))
@@ -456,7 +535,7 @@ if __name__ == '__main__':
     if len(sys.argv) == 6 and sys.argv[1] == '--analyse':
         j = json.load(open(sys.argv[2]))
         now = float(sys.argv[5])
-        ch = parse_is_rows(j.get('data') or [], datetime.fromtimestamp(now, ET).date().isoformat())
+        ch = parse_is_rows(j.get('data') or [], datetime.fromtimestamp(now, ET).date().isoformat(), float(sys.argv[4]))
         print(json.dumps(analyse(ch, sys.argv[3], float(sys.argv[4]), now), separators=(',', ':')))
         sys.exit(0)
     sys.exit(main(force='--force' in sys.argv))

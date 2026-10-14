@@ -172,7 +172,18 @@
     return data;
   }
 
+  // The heatmap tab (assets/gex-heatmap.js) follows the market/expiry picked here.
+  window.strykerGexState = function(){ return { u: cur, dte: curDte, limit: LIMIT }; };
+  var lastSel = '';
+  function announceSelection(){
+    var k = cur + '|' + curDte + '|' + (LIMIT ? 'free' : 'full');
+    if(k === lastSel) return;
+    lastSel = k;
+    try{ window.dispatchEvent(new CustomEvent('stryker:gex-selection', { detail: { u: cur, dte: curDte } })); }catch(e){}
+  }
+
   async function loadLevels(){
+    announceSelection();
     $('gex-status-text').innerHTML = '<b>Loading '+esc(mlabel(cur))+'…</b><span> Building gamma walls, futures conversion and market-generated levels on tradezoro.com.</span>';
     var status = document.querySelector('.gex-status'); if(status){ status.classList.remove('is-fresh','is-stale'); }
     try{
@@ -642,7 +653,7 @@
     var reload = !gexAllowed(cur, curDte);
     if(reload){ cur = LIMIT.markets[0]; curDte = LIMIT.dtes[0]; curFut = null; resetChartData('Loading '+mlabel(cur)+'…'); }
     paintButtons();
-    if(reload) loadLevels(); else if(DATA) render(DATA);
+    if(reload) loadLevels(); else { announceSelection(); if(DATA) render(DATA); }
   };
 
   document.addEventListener('DOMContentLoaded', function(){ wireTabs(); loadLevels(); setInterval(loadLevels, 60000); setInterval(loadChart, 60000); });

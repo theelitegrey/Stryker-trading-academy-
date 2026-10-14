@@ -66,7 +66,7 @@ export function packHistory(u, d, rows) {
   const col = (f) => rows.map(f);
   return {
     v: 1, u, d, k: axis,
-    t: col((r) => r.t), day: col((r) => r.day), x: col((r) => r.x), s: col((r) => r.s),
+    t: col((r) => r.t), fa: col((r) => r.fa), day: col((r) => r.day), x: col((r) => r.x), s: col((r) => r.s),
     cw: col((r) => r.cw), pw: col((r) => r.pw), zg: col((r) => r.zg), n: col((r) => r.n), em: col((r) => r.em),
     // per snapshot: [first axis index, value, value, ...] (strikes are contiguous on the axis; a
     // strike missing inside the run is null)
@@ -86,7 +86,7 @@ export function unpackHistory(p) {
   return p.t.map((t, i) => {
     const row = p.g[i], i0 = row[0], k = [], g = [];
     for (let j = 1; j < row.length; j++) if (row[j] !== null) { k.push(p.k[i0 + j - 1]); g.push(row[j]); }
-    return { u: p.u, d: p.d, t, day: p.day[i], x: p.x[i], s: p.s[i], cw: p.cw[i], pw: p.pw[i], zg: p.zg[i], n: p.n[i], em: p.em[i], k, g };
+    return { u: p.u, d: p.d, t, fa: p.fa ? p.fa[i] : null, day: p.day[i], x: p.x[i], s: p.s[i], cw: p.cw[i], pw: p.pw[i], zg: p.zg[i], n: p.n[i], em: p.em[i], k, g };
   });
 }
 

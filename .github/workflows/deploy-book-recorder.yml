@@ -79,7 +79,11 @@ jobs:
           echo "gex-ingest without key: HTTP $g401"; test "$g401" = 401
           s401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-snap")
           echo "gex-snap without key: HTTP $s401"; test "$s401" = 401
-          h=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
+          # a new Worker version takes a few seconds to reach every edge: retry before failing
+          for i in 1 2 3 4 5 6; do
+            h=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-history?u=SPX&dte=0")
+            [ "$h" = 200 ] && break; sleep 10
+          done
           echo "gex-history: HTTP $h"; test "$h" = 200
           ss=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-sessions")
           echo "gex-sessions: HTTP $ss"; test "$ss" = 200

@@ -36,7 +36,7 @@
 // button, starred on add. TYPED INTERVALS: a digit or "," on the chart opens a small box ("5",
 // "4h", "1D", "15s", "100t") and Enter applies it; keys inside inputs are never taken.
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
-import { liveSubscribe } from './chart-live-resume.js?v=533';
+import { liveSubscribe } from './chart-live-resume.js?v=534';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -771,8 +771,18 @@ export function mountIntervals(ws, opts) {
 
   let topbar = null;
   let ro = null;
+  // Single toolbar (assets/chart-onebar.js): Vela's bar is moved into #stkc-bar as
+  // display:contents (it has no box of its own), and the one-bar fitter decides when the chips
+  // collapse (class stkc-ob-ivn) and fires "stkc:onebar-fit" after each change.
+  const isNarrow = () => {
+    if (isPhone()) return true;
+    const one = document.querySelector('#stkc-bar.stkc-onebar');
+    if (one) return one.classList.contains('stkc-ob-ivn');
+    return topbar ? topbar.getBoundingClientRect().width < NARROW_BAR : false;
+  };
+  document.addEventListener('stkc:onebar-fit', () => { const n = isNarrow(); if (n !== narrow) { narrow = n; render(); } });
   function attach() {
-    const group = document.querySelector('#vela-chart .vela-widget-tf-group');
+    const group = document.querySelector('#vela-chart .vela-widget-tf-group, #stkc-bar .vela-widget-tf-group');
     if (!group) return false;
     if (row.parentElement !== group) group.appendChild(row);
     const tb = group.closest('.vela-widget-topbar');
@@ -780,12 +790,12 @@ export function mountIntervals(ws, opts) {
       topbar = tb;
       if (ro) ro.disconnect();
       ro = new ResizeObserver(() => {
-        const n = isPhone() || topbar.getBoundingClientRect().width < NARROW_BAR;
+        const n = isNarrow();
         if (n !== narrow) { narrow = n; render(); }
       });
       ro.observe(topbar);
     }
-    narrow = isPhone() || (topbar ? topbar.getBoundingClientRect().width < NARROW_BAR : false);
+    narrow = isNarrow();
     render();
     return true;
   }

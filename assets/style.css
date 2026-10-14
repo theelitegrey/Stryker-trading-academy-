@@ -6221,6 +6221,62 @@ body.charts-page .stkchart-credit{
 :root[data-theme="light"] .stkc-pop{ box-shadow:0 18px 40px -16px rgba(0,0,0,.25); }
 :root[data-theme="light"] .stkc-sbtn{ color:#fff; background:var(--gold-dim, #9a7a2a); }
 @media (prefers-reduced-motion: reduce){ .stkc-pop, .stkc-btn, .stkc-ib{ transition:none; } }
+/* ---- Charts: ONE toolbar (assets/chart-onebar.js, Owner order 2026-10-14) ----
+   Desktop-mode chart: Vela's topbar is moved into #stkc-bar. The moved bar and our two halves
+   are display:contents, so every button is a flex item of #stkc-bar and `order` sets the row:
+   Vela's left side (symbol .. undo/redo) 0, our layout group 1, spacer 2, right side 3..30. */
+#stkc-bar .stkc-ob-sp{ display:none; }
+#stkc-bar.stkc-onebar{ justify-content:flex-start; flex-wrap:nowrap; gap:4px; padding:4px 8px; }
+#stkc-bar.stkc-onebar > .vela-widget-topbar,
+#stkc-bar.stkc-onebar .vela-topbar-right,
+#stkc-bar.stkc-onebar > .stkc-bar-l,
+#stkc-bar.stkc-onebar > .stkc-bar-r{ display:contents; }
+#stkc-bar.stkc-onebar > .vela-widget-topbar > *,
+#stkc-bar.stkc-onebar .vela-topbar-right > *,
+#stkc-bar.stkc-onebar > .stkc-bar-l > *,
+#stkc-bar.stkc-onebar > .stkc-bar-r > *{ flex-shrink:0; }
+#stkc-bar.stkc-onebar > .stkc-bar-l > *{ order:1; }
+#stkc-bar.stkc-onebar > .stkc-bar-l::before{ content:""; order:1; flex:none; width:1px; height:22px; margin:0 4px; background:var(--vela-border-strong, var(--line)); }
+#stkc-bar.stkc-onebar .stkc-ob-sp{ display:block; order:2; flex:1 1 0; min-width:4px; }
+#stkc-bar.stkc-onebar > .stkc-bar-r > *{ order:3; }
+#stkc-bar.stkc-onebar .stkr-badge{ order:3; }
+#stkc-bar.stkc-onebar .stkr-menu{ order:4; }
+#stkc-bar.stkc-onebar #stkc-paper-btn{ order:5; }
+#stkc-bar.stkc-onebar #stkrb-chip{ order:6; }
+#stkc-bar.stkc-onebar .stkc-bar-r > .stkc-menu:has(#stkrb-btn){ order:7; }
+#stkc-bar.stkc-onebar #stkc-alerts-btn{ order:8; }
+#stkc-bar.stkc-onebar .vela-topbar-right > *{ order:9; }
+#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-alerts{ order:9; }
+#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-panels{ order:10; }
+#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-screenshot{ order:11; }
+#stkc-bar.stkc-onebar #stkc-settings-btn{ order:12; }
+#stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:13; }
+#stkc-bar.stkc-onebar .stkc-ob-more{ order:30; }
+#stkc-bar.stkc-onebar .vela-widget-actions:empty, #stkc-bar.stkc-onebar .vela-widget-actions-left:empty{ display:none; }
+/* our price-alerts bell and Vela's alert log sit together: one quiet hairline between groups */
+#stkc-bar.stkc-onebar #stkc-alerts-btn{ margin-left:2px; }
+#stkc-bar.stkc-ob-nolabel .stkc-bar-r .stkc-btn-l{ display:none; }
+#stkc-bar.stkc-ob-nolabel .stkc-bar-r .stkc-btn{ padding:0 8px; }
+/* ⋯ More */
+.stkc-ob-more[hidden]{ display:none !important; }
+/* phone row (not merged): the right-hand icons keep their width and the chart-switcher chips
+   (.stkc-cells, a hidden-scrollbar strip) give way, so the fitter does not push buttons into More */
+#stkc-bar:not(.stkc-onebar) > .stkc-bar-r{ flex:none; }
+#stkc-bar:not(.stkc-onebar) .stkc-cells{ flex:1 1 0; min-width:40px; }
+.stkc-ob-pop{
+  position:absolute; top:calc(100% + 6px); right:0; z-index:60; display:flex; flex-wrap:wrap; align-items:center; gap:4px;
+  width:max-content; max-width:min(250px, calc(100vw - 16px)); padding:6px; border:1px solid var(--line); border-radius:10px;
+  background:var(--bg-2); box-shadow:0 18px 40px -12px rgba(0,0,0,.6); font-size:12.5px; color:var(--ink-1);
+}
+.stkc-ob-pop[hidden]{ display:none; }
+.stkc-ob-pop > [data-ob-more="row"]{ flex:1 0 100%; }
+.stkc-ob-pop > [data-ob-more="row"] > .stkc-btn, .stkc-ob-pop > .stkc-btn[data-ob-more="row"]{ width:100%; justify-content:flex-start; }
+.stkc-ob-pop > [data-ob-more="row"] .stkc-btn-l{ display:inline !important; }
+.stkc-ob-pop .stkl-menu > button{ max-width:none !important; }
+.stkc-ob-pop .stkc-pop{ left:auto; right:0; }
+.stkc-ob-pop > #stkc-credits{ position:absolute; right:0; top:calc(100% + 6px); }
+.stkc-ob-pop > #stkc-credits[hidden]{ display:none; }
+:root[data-theme="light"] .stkc-ob-pop{ box-shadow:0 18px 40px -16px rgba(0,0,0,.25); }
 /* ---- Charts: grid picker + Sync in layout (assets/chart-grid.js, 2026-10-06) ---- */
 .stkg-pop{ width:300px; }
 .stkg-btn svg{ flex:none; }

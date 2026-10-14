@@ -1,0 +1,222 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © samet_lezki
+
+//@version=6
+indicator("Real-Time Big Trades Bubbles & Absorbtions & Deep Pressure", shorttitle="BigTrades & Absorption & Presure", overlay=true, max_labels_count=500)
+
+//====================================================
+// INPUTS
+//====================================================
+group_core = "Core"
+lookback   = input.int(2, "Lookback", minval=1, group=group_core)
+sigmaBase  = input.float(1.5, "Base Sigma Threshold", minval=0.5, step=0.1, group=group_core)
+showWeak   = input.bool(true, "Show Weak Signals", group=group_core)
+
+group_vis  = "Visuals"
+buyColor   = input.color(color.new(color.lime, 51), "Buy Bubble", group=group_vis)
+sellColor  = input.color(color.new(color.red, 51), "Sell Bubble", group=group_vis)
+posMode    = input.string("Inside Candle", "Bubble Position", options=["Inside Candle", "Above/Below Candle"], group=group_vis)
+
+group_filter = "Filters"
+minBodyRatio = input.float(0.15, "Min Body/Range Filter", minval=0.0, maxval=1.0, step=0.01, group=group_filter)
+useVolFilter = input.bool(false, "Require Volume > Average", group=group_filter)
+
+group_abs = "Absorption"
+showAbsorption = input.bool(true, "Show Absorption Bars", group=group_abs)
+absBodyMax     = input.float(0.55, "Max Body/Range For Absorption", minval=0.05, maxval=1.0, step=0.01, group=group_abs)
+absBuyColor    = input.color(color.new(color.aqua, 0), "Bull Absorption Color", group=group_abs)
+absSellColor   = input.color(color.new(color.orange, 0), "Bear Absorption Color", group=group_abs)
+
+group_dp = "Deep Pressure"
+showDeepPressure = input.bool(true, "Show Deep Pressure", group=group_dp)
+dpLen            = input.int(10, "Deep Pressure Length", minval=2, maxval=20, group=group_dp)
+dpEmaLen         = input.int(20, "Pressure EMA Length", minval=1, maxval=20, group=group_dp)
+dpBuyColor       = input.color(color.new(color.green, 0), "Deep Buy Color", group=group_dp)
+dpSellColor      = input.color(color.new(color.maroon, 0), "Deep Sell Color", group=group_dp)
+
+//====================================================
+// BASE CALCULATIONS
+//====================================================
+rng  = high - low
+body = math.abs(close - open)
+bodyRatio = rng > 0 ? body / rng : 0.0
+closeLoc = rng > 0 ? (close - low) / rng : 0.5
+
+buyProxy  = rng > 0 ? ((close - low) / rng) * volume : 0.0
+sellProxy = rng > 0 ? ((high - close) / rng) * volume : 0.0
+netPressure = buyProxy - sellProxy
+
+avgBuy = ta.sma(buyProxy, lookback)[1]
+stdBuy = ta.stdev(buyProxy, lookback)[1]
+
+avgSell = ta.sma(sellProxy, lookback)[1]
+stdSell = ta.stdev(sellProxy, lookback)[1]
+
+avgVol = ta.sma(volume, lookback)[1]
+
+buyZ  = (not na(stdBuy) and stdBuy > 0) ? (buyProxy - avgBuy) / stdBuy : 0.0
+sellZ = (not na(stdSell) and stdSell > 0) ? (sellProxy - avgSell) / stdSell : 0.0
+
+buyAnomaly  = buyZ > sigmaBase
+sellAnomaly = sellZ > sigmaBase
+
+buyQuality  = closeLoc > 0.55 and bodyRatio >= minBodyRatio
+sellQuality = closeLoc < 0.45 and bodyRatio >= minBodyRatio
+volPass     = not useVolFilter or volume > avgVol
+
+finalBuy  = buyAnomaly and buyQuality and volPass
+finalSell = sellAnomaly and sellQuality and volPass
+
+buyPlot  = finalBuy and (showWeak or buyZ > sigmaBase + 1.5)
+sellPlot = finalSell and (showWeak or sellZ > sigmaBase + 1.5)
+
+//====================================================
+// POSITIONING
+//====================================================
+atrVal = ta.atr(14)
+buyY   = posMode == "Inside Candle" ? math.avg(low, close)  : low  - atrVal * 0.15
+sellY  = posMode == "Inside Candle" ? math.avg(high, close) : high + atrVal * 0.15
+
+//====================================================
+// SIZE BUCKETS
+//====================================================
+buySmall  = buyPlot  and buyZ  <= sigmaBase + 1.5
+buyMedium = finalBuy and buyZ  >  sigmaBase + 1.5 and buyZ  <= sigmaBase + 3.0
+buyLarge  = finalBuy and buyZ  >  sigmaBase + 3.0
+
+sellSmall  = sellPlot  and sellZ <= sigmaBase + 1.5
+sellMedium = finalSell and sellZ >  sigmaBase + 1.5 and sellZ <= sigmaBase + 3.0
+sellLarge  = finalSell and sellZ >  sigmaBase + 3.0
+
+//====================================================
+// ABSORPTION LOGIC
+//====================================================
+bullAbsorption = showAbsorption and buyAnomaly and volPass and bodyRatio <= absBodyMax and closeLoc < 0.70
+bearAbsorption = showAbsorption and sellAnomaly and volPass and bodyRatio <= absBodyMax and closeLoc > 0.30
+
+absBuyY  = low  - atrVal * 0.08
+absSellY = high + atrVal * 0.08
+
+//====================================================
+// DEEP PRESSURE LOGIC
+//====================================================
+// Simple, low-clutter version:
+// - short-term net pressure should be consistently positive/negative
+// - EMA of pressure should agree
+// - candle closing location should not fight the direction too much
+
+pressureMean = ta.sma(netPressure, dpLen)
+pressureEma  = ta.ema(netPressure, dpEmaLen)
+
+deepBuyPressure  = showDeepPressure and pressureMean > 0 and pressureEma > 0 and closeLoc > 0.45 and not finalSell
+deepSellPressure = showDeepPressure and pressureMean < 0 and pressureEma < 0 and closeLoc < 0.55 and not finalBuy
+
+dpBuyY  = low  - atrVal * 0.03
+dpSellY = high + atrVal * 0.03
+
+//====================================================
+// PLOTS
+//====================================================
+plotshape(
+     buySmall ? buyY : na,
+     title="Big Buy Bubble Small",
+     style=shape.circle,
+     location=location.absolute,
+     color=buyColor,
+     size=size.small
+)
+
+plotshape(
+     buyMedium ? buyY : na,
+     title="Big Buy Bubble Medium",
+     style=shape.circle,
+     location=location.absolute,
+     color=buyColor,
+     size=size.normal
+)
+
+plotshape(
+     buyLarge ? buyY : na,
+     title="Big Buy Bubble Large",
+     style=shape.circle,
+     location=location.absolute,
+     color=buyColor,
+     size=size.large
+)
+
+plotshape(
+     sellSmall ? sellY : na,
+     title="Big Sell Bubble Small",
+     style=shape.circle,
+     location=location.absolute,
+     color=sellColor,
+     size=size.small
+)
+
+plotshape(
+     sellMedium ? sellY : na,
+     title="Big Sell Bubble Medium",
+     style=shape.circle,
+     location=location.absolute,
+     color=sellColor,
+     size=size.normal
+)
+
+plotshape(
+     sellLarge ? sellY : na,
+     title="Big Sell Bubble Large",
+     style=shape.circle,
+     location=location.absolute,
+     color=sellColor,
+     size=size.large
+)
+
+// Absorption markers
+plotshape(
+     bullAbsorption ? absBuyY : na,
+     title="Bull Absorption",
+     style=shape.diamond,
+     location=location.absolute,
+     color=absBuyColor,
+     size=size.tiny
+)
+
+plotshape(
+     bearAbsorption ? absSellY : na,
+     title="Bear Absorption",
+     style=shape.diamond,
+     location=location.absolute,
+     color=absSellColor,
+     size=size.tiny
+)
+
+// Deep Pressure markers (tiny, minimal clutter)
+plotshape(
+     deepBuyPressure ? dpBuyY : na,
+     title="Deep Buy Pressure",
+     style=shape.circle,
+     location=location.absolute,
+     color=dpBuyColor,
+     size=size.tiny
+)
+
+plotshape(
+     deepSellPressure ? dpSellY : na,
+     title="Deep Sell Pressure",
+     style=shape.circle,
+     location=location.absolute,
+     color=dpSellColor,
+     size=size.tiny
+)
+
+//====================================================
+// ALERTS
+//====================================================
+alertcondition(finalBuy, "Big Buy", "Big Buy pressure detected")
+alertcondition(finalSell, "Big Sell", "Big Sell pressure detected")
+alertcondition(bullAbsorption, "Bull Absorption", "Bull absorption detected")
+alertcondition(bearAbsorption, "Bear Absorption", "Bear absorption detected")
+alertcondition(deepBuyPressure, "Deep Buy Pressure", "Deep buy pressure detected")
+alertcondition(deepSellPressure, "Deep Sell Pressure", "Deep sell pressure detected")
+
+plot(close)

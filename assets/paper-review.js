@@ -320,7 +320,7 @@
       if (!compact) {
         const tbl = (title, rows) => {
           const t = h('table', { class: 'pr-t' });
-          t.appendChild(h('thead', null, [h('tr', null, [title, 'Trades', 'Win rate', 'Avg R', 'Expectancy', 'Net'].map((x) => h('th', { text: x })))]));
+          t.appendChild(h('thead', null, [h('tr', null, [title, 'Trades', 'Win', 'Avg R', 'Exp.', 'Net'].map((x) => h('th', { text: x, title: x === 'Exp.' ? 'Expectancy: average P&L per trade' : x === 'Win' ? 'Win rate' : null })))]));
           const tb = h('tbody');
           if (!rows.length) tb.appendChild(h('tr', null, [h('td', { colspan: '6', class: 'pr-empty', text: 'No trades yet.' })]));
           rows.forEach((r) => tb.appendChild(h('tr', null, [h('td', { text: r.key === '(none)' ? 'No ' + title.toLowerCase() + ' tag' : r.key }), h('td', { text: String(r.trades) }),

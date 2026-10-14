@@ -189,3 +189,5 @@ exports.launchSaleOnOrder = require('./launchSale').launchSaleOnOrder;
 // _test helpers for the unit test, which must not be deployed as a group.
 exports.adminStatsScheduled = require('./adminStats').adminStatsScheduled;
 exports.adminStatsRefresh = require('./adminStats').adminStatsRefresh;
+// Paper trading leaderboard (opt-in, demo money only): every 15 min -> leaderboards/paper-{week,month,all}.
+exports.paperLeaderboard = require('./paperLeaderboard').paperLeaderboard;

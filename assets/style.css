@@ -9384,7 +9384,12 @@ button.appnav-dk.on{
 .pr-cv canvas, .pr-snap canvas{ display:block; }
 .pr-grid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
 .pr-tw{ overflow-x:auto; }
-.pr-t{ width:100%; border-collapse:collapse; font-size:12px; }
+.pr-t{ width:100%; min-width:0; border-collapse:collapse; font-size:12px; }
+/* breakdown tables fit their card: fixed layout, label column wider, long text ellipsised (no clipped Expectancy column) */
+.pr-grid .pr-t{ table-layout:fixed; }
+.pr-grid .pr-t th, .pr-grid .pr-t td{ overflow:hidden; text-overflow:ellipsis; }
+.pr-grid .pr-t th:first-child{ width:28%; }
+.pr-grid .pr-t td.pr-empty{ white-space:normal; }
 .pr-t th{ text-align:left; font-weight:600; color:var(--ink-3); font-size:10.5px; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
 .pr-t td{ padding:5px 6px; border-bottom:1px solid var(--line-soft); white-space:nowrap; font-family:var(--font-mono); font-size:11.5px; }
 .pr-t th:not(:first-child), .pr-t td:not(:first-child){ text-align:right; }
@@ -9509,4 +9514,43 @@ button.appnav-dk.on{
   .stknw-row{ padding:11px 10px; }
   .stknw-h{ font-size:14px; }
   .stknw-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+/* =====================================================================
+   PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
+   Opt-in card inside Trade review + the /leaderboard page. Theme tokens only.
+   ===================================================================== */
+.plb-card{ border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:0 0 12px; background:var(--bg-2); }
+.plb-card-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.plb-card-t{ margin:0; font-weight:700; font-size:14px; color:var(--ink-0); display:flex; align-items:center; gap:8px; }
+.plb-card-s{ margin:6px 0 10px; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+.plb-pill{ font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--ink-3); }
+.plb-pill.on{ color:var(--teal); border-color:currentColor; }
+.plb-link{ font-size:12.5px; color:var(--teal); text-decoration:none; }
+.plb-link:hover{ text-decoration:underline; }
+.plb-row{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.plb-in{ flex:1 1 180px; min-width:0; max-width:280px; height:34px; padding:0 10px; border-radius:8px; border:1px solid var(--line); background:var(--bg-1); color:var(--ink-0); font:inherit; font-size:13px; }
+.plb-in:focus{ outline:2px solid var(--teal); outline-offset:1px; }
+.plb-err{ margin:6px 0 0; font-size:12px; color:var(--bear); min-height:0; }
+.plb-err:empty{ display:none; }
+.plb-leave{ color:var(--ink-2); }
+.plb-page{ max-width:980px; margin:0 auto; padding:16px 16px 48px; }
+.plb-rules{ font-size:12.5px; line-height:1.5; color:var(--ink-3); margin:8px 0 12px; }
+.plb-yours{ border:1px solid var(--line); border-left:3px solid var(--teal); border-radius:10px; padding:10px 12px; margin:0 0 12px; font-size:13.5px; color:var(--ink-1); background:var(--bg-2); }
+.plb-yours a{ color:var(--teal); }
+.plb-t{ width:100%; }
+.plb-t td, .plb-t th{ padding:8px 8px; font-size:13px; }
+.plb-t th{ font-size:11px; }
+.plb-t td.plb-rk{ width:34px; color:var(--ink-3); font-family:var(--font-mono); text-align:left; }
+.plb-t td.plb-nm{ text-align:left; color:var(--ink-0); }
+.plb-t th:nth-child(2){ text-align:left; }
+.plb-t tr.plb-me td{ background:color-mix(in srgb, var(--teal) 12%, transparent); }
+.plb-you{ margin-left:6px; font-size:10px; font-weight:700; text-transform:uppercase; padding:1px 6px; border-radius:999px; background:var(--teal); color:var(--bg-0); }
+.plb-flag{ margin-left:6px; font-size:10px; font-weight:700; padding:1px 6px; border-radius:999px; border:1px solid var(--amber); color:var(--amber); white-space:nowrap; }
+.plb-at{ font-size:11.5px; color:var(--ink-3); margin-top:8px; }
+@media (max-width:560px){
+  .plb-t td, .plb-t th{ padding:7px 5px; font-size:12px; }
+  .plb-t th:nth-child(6), .plb-t td:nth-child(6){ display:none; }
+  .plb-flag{ display:inline-block; margin:2px 0 0; }
+  .plb-t td.plb-nm{ white-space:normal; word-break:break-word; }
+  .plb-t td.plb-rk{ width:22px; }
+  .plb-you{ margin-left:4px; }
 }

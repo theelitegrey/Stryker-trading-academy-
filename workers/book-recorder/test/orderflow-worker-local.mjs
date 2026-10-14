@@ -99,8 +99,10 @@ console.log('PASS after a DO restart, from/to 12:00-12:30 -> 31 bars from SQLite
 // past day: cached a day; unknown symbol 404; other origin 403
 Date.now = () => NOW + 86400000 * 2;
 r = await W('/orderflow?sym=NQ&day=2026-10-13');
-assert.match(r.headers.get('cache-control'), /max-age=86400/);
-console.log('PASS a past UTC day is cached for a day');
+assert.match(r.headers.get('cache-control'), /max-age=3600/);
+r = await W('/orderflow?sym=ES&day=2026-10-13', { headers: { origin: 'https://strykertrading.com' } });
+assert.match(r.headers.get('cache-control'), /max-age=60$/);
+console.log('PASS a past UTC day is cached 1 h; an empty one 60 s');
 r = await W('/orderflow?sym=BTC&day=2026-10-13'); assert.equal(r.status, 404);
 r = await W('/orderflow?sym=NQ&day=2026-10-13', { headers: { origin: 'https://evil.example' } }); assert.equal(r.status, 403);
 r = await W('/orderflow?sym=NQ&day=nope'); assert.equal(r.status, 400);

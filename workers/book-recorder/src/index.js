@@ -157,6 +157,7 @@ export class BookRecorder {
   }
   ofRead(sym, from, to) {
     const recs = this.ofRecs(sym, from, to);
+    this.ofLastN = recs.length;
     if (!this.ofFirst.has(sym)) {
       const f = this.sql.exec('SELECT MIN(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
       if (f && f.t) this.ofFirst.set(sym, f.t);
@@ -338,12 +339,13 @@ export class BookRecorder {
     }
     if (u.pathname === '/ticks-read') {
       const sym = u.searchParams.get('sym');
-      return Response.json(ticksJson(sym, this.ofRecs(sym, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')), true)));
+      const j = ticksJson(sym, this.ofRecs(sym, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')), true));
+      return Response.json(j, { headers: { 'x-of-n': String(j.m.length) } });
     }
     if (u.pathname === '/of-read') {
       const buf = this.ofRead(u.searchParams.get('sym'), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
       const gz = await new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
-      return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length) } });
+      return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length), 'x-of-n': String(this.ofLastN || 0) } });
     }
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -443,18 +445,21 @@ async function orderflowRoute(u, env, ctx, h) {
   const now = Date.now(), r = ticks ? ticksRange(u.searchParams, now) : ofRange(u.searchParams, now);
   if (!r) return new Response('bad range', { status: 400, headers: h });
   const bucket = Math.floor(now / 15000);
-  const ckey = new Request('https://book-recorder.cache/' + (ticks ? 't1s/' : 'of/') + sym + '/' + r.from + '/' + r.to + (r.final ? '' : '/' + bucket));
+  // A closed range is cached 1 h, not a day: the backfill and the 00:20 UTC rebuild of the
+  // previous day rewrite closed bars. An empty reply (no data yet) is cached 60 s only.
+  const ttl = (n) => (Number(n) > 0 ? (r.final ? 3600 : 15) : 60);
+  const ckey = new Request('https://book-recorder.cache/v2/' + (ticks ? 't1s/' : 'of/') + sym + '/' + r.from + '/' + r.to + (r.final ? '' : '/' + bucket));
   const cache = caches.default;
   let res = await cache.match(ckey);
   if (!res && ticks) {
     // JSON; Cloudflare's edge gzip/brotli's it for clients that accept it (as /gex-history)
     const d = await stub(env).fetch('https://do/ticks-read?sym=' + sym + '&from=' + r.from + '&to=' + r.to);
-    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + (r.final ? 86400 : 15) } });
+    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + ttl(d.headers.get('x-of-n')) } });
     ctx.waitUntil(cache.put(ckey, res.clone()));
   }
   if (!res) {
     const d = await stub(env).fetch('https://do/of-read?sym=' + sym + '&from=' + r.from + '&to=' + r.to);
-    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'x-of-gzip': '1', 'cache-control': 'public, max-age=' + (r.final ? 86400 : 15) } });
+    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'x-of-gzip': '1', 'cache-control': 'public, max-age=' + ttl(d.headers.get('x-of-n')) } });
     ctx.waitUntil(cache.put(ckey, res.clone()));
   }
   const out = new Response(res.body, res);

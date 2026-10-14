@@ -306,7 +306,7 @@ read 1-minute bars built from InsightSentry tick trades (every print carries its
 - Record: see src/orderflow.js. Big trade = one aggressive order (same millisecond + side, summed)
   >= the 99.5th percentile of the previous UTC day's order sizes (floor 5 lots).
 - The open minute lives only in the DO's memory (no row written every 30 s); the last 26 h are
-  cached in memory, so refreshing "today" reads no rows. Closed ranges are edge-cached a day,
+  cached in memory, so refreshing "today" reads no rows. Closed ranges are edge-cached 1 h (the backfill and the 00:20 rebuild rewrite them; empty replies 60 s),
   ranges holding now 15 s. Rate limit RL_OF: 60/min per IP for /orderflow + /ticks1s.
 - /ticks1s reply: `{ v, sym, tick, prices: 'real', m: [[minuteEpochSec, [[sec 0-59, o, h, l, c, volume], ...]], ...] }`,
   only seconds that traded.

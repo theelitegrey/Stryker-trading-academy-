@@ -156,7 +156,7 @@ export async function validateOfIngest(sym, buf, nowMs) {
 // The range a GET /orderflow request is served for, in minutes since the epoch.
 //   day=YYYY-MM-DD   one UTC day (the client's unit: cacheable, a past day never changes)
 //   from=&to=        seconds or ms; from rounded DOWN to the hour, to UP to the minute; <= 4 days
-// `final` = the range ended over 3 minutes ago (no open bar in it): cached a day at the edge.
+// `final` = the range ended over 3 minutes ago (no open bar in it): cached 1 h at the edge (backfill + the daily rebuild rewrite closed bars).
 export function ofRange(q, nowMs) {
   const nowMin = Math.floor(nowMs / 60000);
   let from, to;

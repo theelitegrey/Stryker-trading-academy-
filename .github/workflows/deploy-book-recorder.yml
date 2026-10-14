@@ -34,6 +34,10 @@ jobs:
         run: node workers/book-recorder/test/gex.test.mjs
       - name: GEX history tests (feeder vs engine parity, validation, no-lookahead lookup)
         run: node workers/book-recorder/test/gex-history.test.mjs
+      - name: Options analytics tests (feeder maths, ingest validation)
+        run: |
+          python3 workers/book-recorder/test/opt_feeder_test.py
+          node workers/book-recorder/test/options.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -87,3 +91,7 @@ jobs:
           echo "gex-history: HTTP $h"; test "$h" = 200
           ss=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/gex-sessions")
           echo "gex-sessions: HTTP $ss"; test "$ss" = 200
+          o401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/opt-ingest")
+          echo "opt-ingest without key: HTTP $o401"; test "$o401" = 401
+          oa=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/opt-analytics?u=SPX")
+          echo "opt-analytics: HTTP $oa (404 = no feeder data yet)"; test "$oa" = 200 -o "$oa" = 404

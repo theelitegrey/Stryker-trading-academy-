@@ -1,0 +1,21 @@
+[Unit]
+Description=TradeZoro options analytics feeder: InsightSentry option chains -> expected move / IV / skew / P/C -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/opt_feeder.py
+# 3 underlyings x 2 chain calls (~2-3 s each) + quotes + 2 cached index series; normally ~25 s
+TimeoutStartSec=240
+MemoryMax=150M
+Nice=10
+StateDirectory=opt-feeder
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=opt-feeder

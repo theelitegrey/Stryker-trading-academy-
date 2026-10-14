@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the TradeZoro options analytics feeder every 5 min (the script itself only works weekdays 09:30-16:15 ET + one run after the close)
+
+[Timer]
+OnBootSec=90s
+OnCalendar=*:0/5:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

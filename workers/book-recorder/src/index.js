@@ -18,6 +18,7 @@
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
+import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -86,6 +87,29 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
     // per-day summary so /gex-sessions never scans the snapshots
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexday (u TEXT NOT NULL, d INTEGER NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, PRIMARY KEY (u, d, day)) WITHOUT ROWID`);
+    // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS optday (u TEXT NOT NULL, day TEXT NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, day)) WITHOUT ROWID`);
+  }
+  optIngest(items) {
+    for (const a of items) {
+      this.sql.exec('INSERT OR REPLACE INTO opt (u, t, j) VALUES (?, ?, ?)', a.u, a.t, JSON.stringify(a));
+      this.sql.exec('INSERT OR REPLACE INTO optday (u, day, j) VALUES (?, ?, ?)', a.u, a.day, JSON.stringify(dayRow(a)));
+    }
+    const now = Math.floor(Date.now() / 1000), lastTrim = Number(this.meta('optTrim') || 0);
+    if (now - lastTrim > 86400) {
+      const cut = new Date((now - OPT_KEEP_DAYS * 86400) * 1000).toISOString().slice(0, 10);
+      for (const u of OPT_SYMBOLS) this.sql.exec('DELETE FROM optday WHERE u = ? AND day < ?', u, cut);
+      this.meta('optTrim', now);
+    }
+    return items.length;
+  }
+  optRead(u) {
+    const r = this.sql.exec('SELECT j FROM opt WHERE u = ?', u).toArray()[0];
+    if (!r) return null;
+    const out = JSON.parse(r.j);
+    out.hist = this.sql.exec('SELECT j FROM optday WHERE u = ? ORDER BY day DESC LIMIT 400', u).toArray().map((x) => JSON.parse(x.j)).reverse();
+    return out;
   }
   snapIngest(snaps) {
     let added = 0;
@@ -203,6 +227,14 @@ export class BookRecorder {
       const uu = u.searchParams.get('u');
       return Response.json(this.snapSessions(uu, Number(u.searchParams.get('d'))));
     }
+    if (u.pathname === '/opt-ingest') {
+      const { items } = await req.json();
+      return new Response('stored ' + this.optIngest(items));
+    }
+    if (u.pathname === '/opt-analytics') {
+      const out = this.optRead(u.searchParams.get('u'));
+      return out ? Response.json(out) : new Response('no data', { status: 404 });
+    }
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname === '/history') {
       const sym = u.searchParams.get('symbol');
@@ -271,6 +303,23 @@ async function gexHistoryRoute(u, env, ctx, h) {
   return out;
 }
 
+// GET /opt-analytics?u=SPX  (options analytics, src/options.js). Edge-cached 60 s per underlying,
+// so every visitor shares one DO read a minute. Plan gating (SPX free, the rest Pro) is the site's.
+async function optRoute(u, env, ctx, h) {
+  const uu = String(u.searchParams.get('u') || '').toUpperCase();
+  if (!OPT_SYMBOLS.includes(uu)) return new Response('bad request', { status: 400, headers: h });
+  const key = new Request('https://book-recorder.cache/opt/' + uu + '/' + Math.floor(Date.now() / 60000));
+  let res = await caches.default.match(key);
+  if (!res) {
+    const dr = await stub(env).fetch('https://do/opt-analytics?u=' + uu);
+    res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': dr.status === 200 ? 'application/json; charset=utf-8' : 'text/plain', 'cache-control': 'public, max-age=60' } });
+    if (dr.status === 200) ctx.waitUntil(caches.default.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  return out;
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -307,6 +356,15 @@ export default {
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-snap', { method: 'POST', body: JSON.stringify({ snaps: v.snaps }) });
     }
+    if (u.pathname === '/opt-ingest') {
+      // options analytics feeder (server -> Worker): same shared secret, gzip JSON, <= 64 KB
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > OPT_MAX_BODY) return new Response('too large', { status: 413 });
+      const v = await validateOpt(await req.arrayBuffer(), Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return stub(env).fetch('https://do/opt-ingest', { method: 'POST', body: JSON.stringify({ items: v.items }) });
+    }
     if (u.pathname === '/gex-chain') {
       // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached
       // 30 s; not rate-limited per IP because the callers are Cloudflare's own Function hosts.
@@ -335,6 +393,7 @@ export default {
     if (env.RL) { try { const { success } = await env.RL.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
 
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
+    if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
     if (u.pathname === '/status') {
       const r = await stub(env).fetch('https://do/status');
       return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'public, max-age=30' }, h) });

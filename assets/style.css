@@ -9242,8 +9242,7 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
 }
 
 
-/* ==========================================================================
-   PHONE DOCK "OPTION B" (Owner 2026-10-14): Charts, GEX, Journal, Learn, More.
+/* ===================================================================   PHONE DOCK "OPTION B" (Owner 2026-10-14): Charts, GEX, Journal, Learn, More.
    More opens a bottom sheet (#appnav-sheet, built by assets/app-nav.js).
    Desktop navigation is untouched: dock + sheet only exist at <=820px.
    ========================================================================== */
@@ -9332,3 +9331,12 @@ button.appnav-dk.on{
 @media (prefers-reduced-motion: reduce){
   .appnav-sheet, .appnav-scrim{ transition:none; }
 }
+
+/* CHARTS IDLE CPU (Owner order 2026-10-14, "optimize chart as much as possible"): on the Charts page
+   the three always-running nav dot animations (Global Monitor live dot = gmLiveFlash, which animates
+   box-shadow + background; the alert dot gmBlink; the session clock ring mclock-pulse) forced a full
+   compositor commit every frame, re-uploading every chart canvas: the page sat at 100% main-thread
+   load while idle (10% with the dots still). Here they are lit but still. Other pages unchanged. */
+.charts-page .gm-live-dot{ animation:none; background:#ff3b2f; box-shadow:0 0 5px rgba(255,36,24,.9), 0 0 10px rgba(255,36,24,.5); }
+.charts-page .gm-alert-dot, .charts-page .gm-live i{ animation:none; }
+.charts-page .mclock-dot::after{ animation:none; display:none; }

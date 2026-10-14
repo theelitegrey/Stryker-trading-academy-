@@ -40,7 +40,7 @@ const SYMS = ['futures:NQ1!', 'futures:ES1!', 'futures:GC1!', 'binance:BTCUSDT',
   const hdr = new Map();
   p.on('response', (r) => { if (r.url().includes('/api/chart/bars/')) hdr.set(r.url(), { cf: r.headers()['cf-cache-status'] || '', xc: r.headers()['x-bars-cache'] || '', cc: r.headers()['cache-control'] || '' }); });
   const tLoad = Date.now();
-  await p.goto(BASE + '/charts', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + (BASE.includes('localhost') || BASE.includes('127.0.0.1') ? '/charts.html' : '/charts'), { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
   const firstChart = Date.now() - tLoad;
   await p.waitForTimeout(4000);

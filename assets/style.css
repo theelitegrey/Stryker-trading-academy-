@@ -274,11 +274,11 @@ h1,h2,h3,h4{
      only 66px — visibly lighter in the header, and too small for the dragon's
      line-art to survive. Height is what the CSS controls, so height is what
      had to change to keep the mark's optical weight. */
-  height:52px; width:auto;
+  height:32px; width:auto;
   object-fit:contain;
   flex-shrink:0;
 }
-@media (max-width:640px){ .brand-mark{ height:42px; } }
+@media (max-width:767px){ .brand-mark{ height:32px; aspect-ratio:1/1; } }
 .brand-name{ font-family:var(--font-display); font-weight:600; font-size:17px; color:var(--ink-0); letter-spacing:-0.01em; }
 .brand-name span{ color:var(--gold); }
 
@@ -877,7 +877,7 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
      nothing sits above it. */
   .sidebar{ padding-top:14px; }
   .mobile-topnav #dash-menu-toggle{ display:none; }
-  .mobile-topnav .brand-mark{ height:40px; }
+  .mobile-topnav .brand-mark{ height:32px; }
   /* The header sits ABOVE .dash-shell in the document, so the sidebar's
      100vh would otherwise run past the bottom of the screen by exactly the
      header's height, and its sticky top:0 would slide underneath it. Both are
@@ -3527,7 +3527,7 @@ a.gm-brief-signal:hover{ color:var(--ink-0); }
   html[data-device="mobile"] .mobile-topnav #dash-menu-toggle{
     display:flex; align-items:center; justify-content:center;
   }
-  html[data-device="mobile"] .mobile-topnav .brand-mark{ height:42px; }
+  html[data-device="mobile"] .mobile-topnav .brand-mark{ height:32px; }
   html[data-device="mobile"] body.sidebar-locked{ overflow:hidden; }
 }
 

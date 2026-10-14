@@ -137,8 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // gone — but without this the admin who just reset it would keep seeing
     // the old logo and reasonably conclude the reset had failed.
     try {
-      localStorage.removeItem('tradezoro_brand_logo_v2');
-      localStorage.removeItem('tradezoro_brand_favicon_v2');
+      localStorage.removeItem('tradezoro_brand_logo_v3');
+      localStorage.removeItem('tradezoro_brand_favicon_v3');
     } catch (e) {}
     Promise.all([
       db.collection('settings').doc('logo').delete(),

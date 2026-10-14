@@ -28,10 +28,10 @@
 // current logo so the bundled default and the upload agree — then there is
 // nothing to swap. This file makes the mismatch cheap, not correct.
 
-var BRAND_LOGO_KEY = 'tradezoro_brand_logo_v2';
-var BRAND_FAVICON_KEY = 'tradezoro_brand_favicon_v2';
+var BRAND_LOGO_KEY = 'tradezoro_brand_logo_v3';
+var BRAND_FAVICON_KEY = 'tradezoro_brand_favicon_v3';
 // Drop the old TradeZoro-era cached logo/favicon from every device.
-try { localStorage.removeItem('stryker_brand_logo'); localStorage.removeItem('stryker_brand_favicon'); } catch (e) {}
+try { localStorage.removeItem('tradezoro_brand_logo_v2'); localStorage.removeItem('tradezoro_brand_favicon_v2'); localStorage.removeItem('stryker_brand_logo'); localStorage.removeItem('stryker_brand_favicon'); } catch (e) {}
 
 function brandRead(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -47,6 +47,8 @@ function brandWrite(key, value) {
 function applyLogo(dataUrl) {
   if (!dataUrl) return;
   document.querySelectorAll('img.brand-mark').forEach(function (img) {
+    // The header/footer logo is a <picture> (wordmark on wide screens, TZ mark on small); never override it.
+    if (img.parentNode && img.parentNode.nodeName === 'PICTURE') return;
     // Reassigning src to its current value still triggers a reload in some
     // browsers, which is its own flicker.
     if (img.src !== dataUrl) img.src = dataUrl;

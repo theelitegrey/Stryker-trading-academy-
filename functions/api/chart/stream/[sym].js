@@ -35,7 +35,9 @@ function specFor(tf) {
 function parseBar(x, dec) {
   const t = Number(x?.time ?? x?.t ?? x?.timestamp ?? x?.bar_time ?? x?.start);
   const sec = t > 1e12 ? Math.floor(t / 1000) : t;
-  const o = Number(x?.open ?? x?.o), h = Number(x?.high ?? x?.h), l = Number(x?.low ?? x?.l), c = Number(x?.close ?? x?.c);
+  const c = Number(x?.close ?? x?.c);
+  // Tick rows (bar_type 'tick', tf=1T) carry only time/close/volume: one trade = a flat bar.
+  const o = Number(x?.open ?? x?.o ?? c), h = Number(x?.high ?? x?.h ?? c), l = Number(x?.low ?? x?.l ?? c);
   if (!Number.isFinite(sec) || !Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(c)) return null;
   const r = rounder(dec);
   return [Math.floor(sec), r(o), r(h), r(l), r(c), Math.round(Number(x?.volume ?? x?.v ?? 0) || 0)];
@@ -70,13 +72,63 @@ export async function onRequestGet(ctx) {
   server.accept();
 
   const dp = 200;
+  // DELIVERY DIAGNOSTICS (Owner 2026-10-14: "if we are getting tick data, why are the candles not
+  // moving fast?"). The browser received ~1.1 bar updates/s on NQ 1m in a busy session with ~0.8 s
+  // gaps, which matches InsightSentry's adaptive slow-consumer conflation (1/2/4 Hz). Its
+  // delivery_status events are now passed on as {event:'delivery', mode, hz, dropped} so the chart
+  // test (tools/tests/chart-tick-rate.js) can see which mode the feed is in, and a 'stats' event
+  // every 10 s says how many upstream messages arrived. No vendor data or key in either.
+  // sc=disconnect (tests only) subscribes WITHOUT adaptive delivery, for an A/B of the two modes.
+  const policy = url.searchParams.get('sc') === 'disconnect' ? 'disconnect' : 'adaptive';
+  let upMsgs = 0, upBars = 0;
+  const statsTimer = setInterval(() => { send({ event: 'stats', up: upMsgs, bars: upBars, policy }); upMsgs = 0; upBars = 0; }, 10000);
   const dec = decOf(SYMBOLS[sym][4]);
+  // TICK MODE (ticks=1): a second leg subscribes InsightSentry's per-trade feed (bar_type 'tick') and
+  // folds every trade into the forming bar of the requested timeframe, so the chart's last candle,
+  // price line and axis label move with the tape instead of with the ~1 Hz series updates. The
+  // series leg still carries the history (dp) and closes bars. Trades are coalesced to at most one
+  // 'bar' message per 100 ms (<= 10/s to the browser). Seconds/tick timeframes do not use it.
+  const tickMode = url.searchParams.get('ticks') === '1' && !!(TIMEFRAMES[tf] && TIMEFRAMES[tf].step);
+  const step = tickMode ? TIMEFRAMES[tf].step : 0;
+  const r = rounder(dec);
+  let forming = null;      // [t, o, h, l, c, v] of the newest bar
+  let lastTickAt = 0;      // ms; while trades flow, a lagging series update cannot move close back
+  let flushTimer = null;
+  const bucketOf = (t) => (spec.agg && spec.agg > 1 ? aggregateHours([[t, 0, 0, 0, 0, 0]], spec.agg, 18)[0][0] : Math.floor(t / step) * step);
+  const flush = () => { flushTimer = null; if (forming) send({ event: 'bar', s: sym, tf, bar: forming.slice() }); };
+  const onTick = (t, price, vol) => {
+    if (!Number.isFinite(t) || !Number.isFinite(price)) return;
+    const b = bucketOf(Math.floor(t));
+    if (!forming || b > forming[0]) {
+      if (forming && b > forming[0]) send({ event: 'bar', s: sym, tf, bar: forming.slice() }); // close out the old one
+      forming = [b, price, price, price, price, 0];
+    } else if (b < forming[0]) return; // late trade for a closed bar: the series leg owns those
+    if (price > forming[2]) forming[2] = price;
+    if (price < forming[3]) forming[3] = price;
+    forming[4] = price;
+    forming[5] += Math.round(vol || 0);
+    lastTickAt = Date.now();
+    upBars++;
+    if (!flushTimer) flushTimer = setTimeout(flush, 100);
+  };
+  const onSeriesRow = (row) => {
+    if (!tickMode) return row;
+    if (!forming || row[0] > forming[0]) { forming = row.slice(); return row; }
+    if (row[0] < forming[0]) return row;
+    // same bar: the series has the exchange's own OHLCV; keep the widest range and, while trades
+    // are flowing, the newest trade price as close
+    const out = [row[0], row[1], Math.max(row[2], forming[2]), Math.min(row[3], forming[3]), Date.now() - lastTickAt < 3000 ? forming[4] : row[4], Math.max(row[5], forming[5])];
+    forming = out.slice();
+    return out;
+  };
   let upstream = null;
   let closed = false;
   const send = (obj) => { try { if (!closed) server.send(JSON.stringify(obj)); } catch (e) {} };
   const close = (code = 1000, reason = 'closed') => {
     if (closed) return;
     closed = true;
+    clearInterval(statsTimer);
+    if (flushTimer) clearTimeout(flushTimer);
     try { upstream && upstream.close(); } catch (e) {}
     try { server.close(code, reason); } catch (e) {}
   };
@@ -84,7 +136,9 @@ export async function onRequestGet(ctx) {
   try {
     upstream = new WebSocket(INSIGHTSENTRY_WS);
     upstream.onopen = () => {
-      upstream.send(JSON.stringify({ api_key: key, slow_consumer_policy: 'adaptive', subscriptions: [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }] }));
+      const subs = [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }];
+      if (tickMode) subs.push({ code, type: 'series', bar_type: 'tick', bar_interval: 1, dp: 1, '24h': true });
+      upstream.send(JSON.stringify({ api_key: key, slow_consumer_policy: policy, subscriptions: subs }));
       send({ event: 'connected', s: sym, tf });
     };
     upstream.onerror = () => close(1011, 'upstream error');
@@ -94,9 +148,17 @@ export async function onRequestGet(ctx) {
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const text = JSON.stringify(msg).toLowerCase();
       if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return close(1011, 'upstream rejected');
+      upMsgs++;
+      if (msg && msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
+      if (tickMode && /T$/i.test(String(msg && msg.bar_type || ''))) {
+        const rowsT = Array.isArray(msg.series) ? msg.series : [];
+        for (const x of rowsT) onTick(Number(x.time), r(Number(x.close)), Number(x.volume));
+        return;
+      }
       let rows = barsFrom(msg, dec);
       if (spec.agg && spec.agg > 1 && rows.length > 1) rows = aggregateHours(rows, spec.agg, 18);
-      for (const row of rows) send({ event: 'bar', s: sym, tf, bar: row });
+      upBars += rows.length;
+      for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
     };
     server.addEventListener('close', () => close());
     server.addEventListener('error', () => close());

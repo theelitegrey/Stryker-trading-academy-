@@ -24,7 +24,14 @@ const STREAM_API = '/api/chart/stream/';
 // return to the tab or a quiet feed) waits out the same backoff instead of starting over.
 // 10 min of a failing bridge = 8 attempts (was 352: every retry 1 s after the 'open').
 const STREAM_HEALTHY_MS = 30000;
-const STREAM_FAIL_BASE_MS = 5000, STREAM_FAIL_MAX_MS = 180000;
+const STREAM_FAIL_BASE_MS = 5000, STREAM_FAIL_MAX_MS = 90000; // was a 3 min cap (2026-10-14: recover sooner, still <= ~10 tries / 10 min)
+// TICKS (Owner 2026-10-14: "if we are getting tick data, why are the candles not moving fast?"): the
+// bridge is asked for ticks=1 on minute/hour timeframes, so the forming candle follows every trade
+// (coalesced server-side to <= 10 updates/s) instead of InsightSentry's ~1 Hz series updates. If a
+// ticks=1 socket fails before its first bar, this page falls back to the plain series socket at once
+// (no backoff) and stays on it.
+let ticksOff = false;
+const TICK_TFS = ['1', '5', '15', '30', '60', '120', '240'];
 const streamFails = new Map(); // root|tf -> { n: failures in a row, nextAt: no attempt before }
 const POLL_MS = 20000;
 const CONCURRENCY = 4;
@@ -326,6 +333,7 @@ export class FuturesProvider {
     let ws = null;
     let openTimer = null, retryTimer = null, healthyTimer = null;
     let retry = 0;
+    let withTicks = false;
     const fkey = root + '|' + tf;
     const fs = streamFails.get(fkey) || { n: 0, nextAt: 0 };
     streamFails.set(fkey, fs);
@@ -356,7 +364,8 @@ export class FuturesProvider {
       let sock;
       try {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
+        withTicks = !ticksOff && TICK_TFS.includes(tf);
+        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}`);
       } catch (e) { failed(); return; }
       ws = sock;
       let opened = false, gotBar = false;
@@ -388,7 +397,10 @@ export class FuturesProvider {
         if (healthyTimer) { clearTimeout(healthyTimer); healthyTimer = null; }
         if (stopped) return;
         // never delivered a bar (refused, or accepted then closed 1011): a failure, backed off
-        if (!gotBar) { failed(); return; }
+        if (!gotBar) {
+          if (withTicks) { ticksOff = true; schedule(250); return; } // retry at once without the tick leg
+          failed(); return;
+        }
         schedule(Math.min(30000, 1000 * Math.pow(2, retry++)));  // a working stream dropped
       };
     }

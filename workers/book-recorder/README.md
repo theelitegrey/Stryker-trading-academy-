@@ -1,6 +1,7 @@
 # Book recorder (Crypto DOM heatmap history + GEX compact option chains)
 
 > GEX chains (added 2026-10-13, build 530): see "GEX compact chains" at the end.
+> Order flow + 1-second path (added 2026-10-15): see "Order flow (futures footprint)" at the end.
 > GEX history (added 2026-10-14, heatmap + replay): see "GEX history" at the end.
 
 Keeps 24 h of the Binance spot order book per symbol, one sample a minute, so the Charts
@@ -283,3 +284,34 @@ Logs: `journalctl -u news-feeder -n 20 -o cat`. Force a calendar pull: run the s
 ExecStart with `--cal`; re-pull 7 days of news: `--backfill`. Stop: `systemctl disable --now news-feeder.timer`
 (the site keeps showing the stored items and falls back to assets/econ-calendar.json for the calendar).
 Tests: `node workers/book-recorder/test/news.test.mjs` (also run by the deploy workflow).
+
+## Order flow (futures footprint)
+
+Owner-approved 2026-10-14. Footprint, delta, CVD, big trades and the trades volume profile on Charts
+read 1-minute bars built from InsightSentry tick trades (every print carries its aggressor side).
+
+    this server: of-feeder.service (long-running, of-feeder/of_feeder.py)
+       2 x wss://realtime.insightsentry.com/live (bar_type tick, 3 symbols each: IS allows 5 per socket)
+       REST /v3/symbols/{contract}/trades?date= (backfill, today's fill at start, daily rebuild 00:20 UTC)
+       -> 1-minute records (of-feeder/ofcodec.py) -- POST /of-ingest (x-ingest-key, gzip, <= 300 bars) every 30 s
+    Worker -> Durable Object table ofbar (sym, t, b = footprint, s = 1-second path), 90 days
+    GET /orderflow?sym=NQ&day=YYYY-MM-DD | &from=&to=   binary footprint (gzip body, header x-of-gzip: 1)
+    GET /ticks1s?sym=NQ&from=<s>&to=<s>  (<= 1 day)     JSON 1-second OHLCV path for tick-by-tick replay
+
+- Symbols: NQ ES YM GC SI CL (minis; the site maps micros to them). The contract is the more
+  active of the two nearest listed months, picked daily (IS's "GC1!" pointed at an idle October
+  contract). A contract change restarts the feeder.
+- History: InsightSentry keeps only today + the previous 6 UTC dates (older dates: HTTP 400), so
+  the backfill reaches 6 days; the 90 days fill up from then on.
+- Record: see src/orderflow.js. Big trade = one aggressive order (same millisecond + side, summed)
+  >= the 99.5th percentile of the previous UTC day's order sizes (floor 5 lots).
+- The open minute lives only in the DO's memory (no row written every 30 s); the last 26 h are
+  cached in memory, so refreshing "today" reads no rows. Closed ranges are edge-cached a day,
+  ranges holding now 15 s. Rate limit RL_OF: 60/min per IP for /orderflow + /ticks1s.
+- /ticks1s reply: `{ v, sym, tick, prices: 'real', m: [[minuteEpochSec, [[sec 0-59, o, h, l, c, volume], ...]], ...] }`,
+  only seconds that traded.
+- Sizes (NQ, 2026-10-13, 364,827 prints): footprint 145 KB raw / 86 KB gzip a day; the 1-second
+  path ~350 KB a day stored. Rows written ~6 x 1,440 a day. All six symbols ~1 MB/day, ~90 MB at
+  90 days: Workers Free.
+- Install / update on the server: `sh workers/book-recorder/of-feeder/install.sh [--backfill]`.
+  Logs: `journalctl -u of-feeder`. Tests: `node test/orderflow.test.mjs` (CI), `node test/orderflow-worker-local.mjs`.

@@ -20,6 +20,7 @@ import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
+import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -28,7 +29,8 @@ const FRESH_MS = 3 * 60000;      // a sample must be stamped within 3 min of the
 const ALIGN_MS = 15 * 60000;     // 'from' rounded down to 15 min, as the client does (assets/chart-orderflow.js BOOK_REMOTE_ALIGN_MS)
 const STATUS_MEMO_MS = 30000;    // /status is computed at most once per 30 s in the DO
 const HIST_MAX_RANGE_S = 8 * 86400;  // one /gex-history reply covers at most 8 days
-const HIST_BUCKET_S = 120;           // edge cache key bucket = the feeder's 2-min cadence
+const HIST_BUCKET_S = 120;
+const OF_MEM_MIN = 26 * 60;          // order-flow minutes kept in the DO's memory (today + the rest of yesterday)           // edge cache key bucket = the feeder's 2-min cadence
 const ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com']);
 
 const symbolsOf = (env) => String(env.SYMBOLS || 'BTCUSDT,ETHUSDT').split(',').map((s) => s.trim().toUpperCase()).filter((s) => /^[A-Z0-9]{3,20}$/.test(s));
@@ -92,6 +94,93 @@ export class BookRecorder {
     // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS optday (u TEXT NOT NULL, day TEXT NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, day)) WITHOUT ROWID`);
+    // Order flow (src/orderflow.js): one closed 1-minute footprint bar per row (b) plus its
+    // 1-second path (s, for tick replay /ticks1s), 90 days. The open
+    // bar is held in memory (ofLive) so the live tail writes no rows.
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS ofbar (sym TEXT NOT NULL, t INTEGER NOT NULL, b BLOB NOT NULL, s BLOB, PRIMARY KEY (sym, t)) WITHOUT ROWID`);
+    this.ofMem = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
+  }
+  // The last OF_MEM_MIN minutes of every symbol are held in memory (loaded from SQLite once per DO
+  // start, then kept current by ingest), so the edge-cache refreshes of "today" read no rows.
+  ofMemFor(sym) {
+    let m = this.ofMem.get(sym);
+    const nowMin = Math.floor(Date.now() / 60000);
+    if (!m) {
+      const from = nowMin - OF_MEM_MIN, map = new Map();
+      for (const r of this.sql.exec('SELECT t, b, s FROM ofbar WHERE sym = ? AND t >= ? ORDER BY t', sym, from).toArray()) map.set(r.t, { fp: new Uint8Array(r.b), path: new Uint8Array(r.s || [0]) });
+      m = { from, map };
+      this.ofMem.set(sym, m);
+    } else if (m.from < nowMin - OF_MEM_MIN - 60) {
+      m.from = nowMin - OF_MEM_MIN;
+      for (const t of m.map.keys()) if (t < m.from) m.map.delete(t);
+    }
+    return m;
+  }
+  ofIngest(sym, header, bars) {
+    const now = Date.now(), nowMin = Math.floor(now / 60000);
+    const mem = this.ofMemFor(sym);
+    let stored = 0, live = 0;
+    for (const { t, fp, path } of bars) {
+      // closed = its minute ended 3 s or more ago (the feeder sends a bar's final state >= 5 s after);
+      // the open bar is memory-only (no row written every 30 s)
+      if ((t + 1) * 60000 + 3000 <= now) {
+        this.sql.exec('INSERT OR REPLACE INTO ofbar (sym, t, b, s) VALUES (?, ?, ?, ?)', sym, t, fp, path);
+        stored++;
+      } else live++;
+      if (t >= mem.from) mem.map.set(t, { fp, path });
+    }
+    // meta row only when the threshold or the contract changes (not on every POST)
+    const prev = JSON.parse(this.meta('of:' + sym) || '{}');
+    const m = { thr: header.thr || prev.thr || 0, src: String(header.src || prev.src || '') };
+    if (m.thr !== prev.thr || m.src !== prev.src) this.meta('of:' + sym, JSON.stringify(m));
+    this.ofAt.set(sym, now);
+    const lastTrim = Number(this.meta('ofTrim') || 0);
+    if (now - lastTrim > 3600000) {
+      const cut = nowMin - OF_KEEP_DAYS * 1440;
+      for (const s of OF_SYMBOLS) this.sql.exec('DELETE FROM ofbar WHERE sym = ? AND t < ?', s, cut);
+      this.meta('ofTrim', now);
+    }
+    return stored + ' stored, ' + live + ' open';
+  }
+  // withPath: the full record (footprint + 1-second path) for /ticks1s; else the footprint only
+  ofRecs(sym, from, to, withPath) {
+    const mem = this.ofMemFor(sym), recs = [];
+    const pick = (fp, path) => (withPath ? joinPath(fp, path) : fp);
+    if (from < mem.from) {
+      const q = withPath ? 'SELECT b, s FROM ofbar' : 'SELECT b FROM ofbar';
+      for (const r of this.sql.exec(q + ' WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, from, Math.min(to, mem.from - 1)).toArray()) recs.push(pick(new Uint8Array(r.b), new Uint8Array(r.s || [0])));
+    }
+    if (to >= mem.from) {
+      for (const t of [...mem.map.keys()].sort((x, y) => x - y)) if (t >= from && t <= to) { const e = mem.map.get(t); recs.push(pick(e.fp, e.path)); }
+    }
+    return recs;
+  }
+  ofRead(sym, from, to) {
+    const recs = this.ofRecs(sym, from, to);
+    if (!this.ofFirst.has(sym)) {
+      const f = this.sql.exec('SELECT MIN(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
+      if (f && f.t) this.ofFirst.set(sym, f.t);
+    }
+    const m = JSON.parse(this.meta('of:' + sym) || '{}');
+    const header = { v: 1, sym, tick: OF_TICK[sym], thr: m.thr || 0, src: m.src || '', from, to, first: this.ofFirst.get(sym) || 0, at: this.ofAt.get(sym) || 0 };
+    return buildPayload(header, recs);
+  }
+  ofStatus() {
+    // MIN/MAX per symbol are index lookups; the full COUNT reads every row, so at most once an hour
+    const now = Date.now();
+    if (!this.ofCount || now - this.ofCount.at > 3600000) {
+      const c = {};
+      for (const r of this.sql.exec('SELECT sym, COUNT(*) AS n, SUM(LENGTH(b)) AS bytes, SUM(LENGTH(s)) AS pathBytes FROM ofbar GROUP BY sym').toArray()) c[r.sym] = { bars: r.n, bytes: r.bytes, pathBytes: r.pathBytes };
+      this.ofCount = { at: now, c };
+    }
+    const out = {};
+    for (const sym of OF_SYMBOLS) {
+      const lo = this.sql.exec('SELECT MIN(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
+      const hi = this.sql.exec('SELECT MAX(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
+      out[sym] = Object.assign({ from: lo && lo.t ? lo.t * 60 : 0, to: hi && hi.t ? hi.t * 60 : 0, meta: JSON.parse(this.meta('of:' + sym) || 'null'), lastIngest: this.ofAt.get(sym) || 0 },
+        this.ofCount.c[sym] || { bars: 0, bytes: 0 }, { countedAt: this.ofCount.at });
+    }
+    return out;
   }
   optIngest(items) {
     for (const a of items) {
@@ -193,6 +282,7 @@ export class BookRecorder {
     out.gexHistory = { keepDays: KEEP_DAYS, last: JSON.parse(this.meta('gexSnapLast') || 'null'),
       days: this.sql.exec('SELECT u, d, COUNT(*) AS days, SUM(n) AS snaps, MIN(day) AS first, MAX(day) AS lastDay FROM gexday GROUP BY u, d').toArray() };
     try { out.news = newsDo.stats(this); } catch (e) { out.news = { error: String(e) }; }
+    out.orderflow = this.ofStatus();
     out.dbBytes = this.ctx.storage.sql.databaseSize;
     this.statusMemo = { at: Date.now(), out };
     return out;
@@ -237,6 +327,23 @@ export class BookRecorder {
     if (u.pathname === '/opt-analytics') {
       const out = this.optRead(u.searchParams.get('u'));
       return out ? Response.json(out) : new Response('no data', { status: 404 });
+    }
+    if (u.pathname === '/of-ingest') {
+      // validated here, not in the Worker: gunzip + decoding ~300 bars is more than the free
+      // plan's 10 ms Worker CPU; a Durable Object request has a much larger CPU budget
+      const sym = u.searchParams.get('sym');
+      const v = await validateOfIngest(sym, await req.arrayBuffer(), Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return new Response(this.ofIngest(sym, v.header, v.bars));
+    }
+    if (u.pathname === '/ticks-read') {
+      const sym = u.searchParams.get('sym');
+      return Response.json(ticksJson(sym, this.ofRecs(sym, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')), true)));
+    }
+    if (u.pathname === '/of-read') {
+      const buf = this.ofRead(u.searchParams.get('sym'), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
+      const gz = await new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
+      return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length) } });
     }
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -324,6 +431,38 @@ async function optRoute(u, env, ctx, h) {
   return out;
 }
 
+// GET /orderflow?sym=NQ&day=YYYY-MM-DD  or  &from=&to=  (see ofRange). Binary payload
+// (src/orderflow.js), gzip'd in the DO and sent as application/octet-stream with x-of-gzip: 1; the
+// client un-gzips with DecompressionStream (a stored gzip body with content-encoding does not
+// survive the Cache API reliably). Edge-cached: a closed range a day, the range holding now 15 s.
+// Micros ask for their mini (the site maps MNQ -> NQ). Plan gating is done by the site.
+async function orderflowRoute(u, env, ctx, h) {
+  const sym = String(u.searchParams.get('sym') || '').toUpperCase();
+  if (!OF_SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404, headers: Object.assign({ 'cache-control': 'public, max-age=300' }, h) });
+  const ticks = u.pathname === '/ticks1s';
+  const now = Date.now(), r = ticks ? ticksRange(u.searchParams, now) : ofRange(u.searchParams, now);
+  if (!r) return new Response('bad range', { status: 400, headers: h });
+  const bucket = Math.floor(now / 15000);
+  const ckey = new Request('https://book-recorder.cache/' + (ticks ? 't1s/' : 'of/') + sym + '/' + r.from + '/' + r.to + (r.final ? '' : '/' + bucket));
+  const cache = caches.default;
+  let res = await cache.match(ckey);
+  if (!res && ticks) {
+    // JSON; Cloudflare's edge gzip/brotli's it for clients that accept it (as /gex-history)
+    const d = await stub(env).fetch('https://do/ticks-read?sym=' + sym + '&from=' + r.from + '&to=' + r.to);
+    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + (r.final ? 86400 : 15) } });
+    ctx.waitUntil(cache.put(ckey, res.clone()));
+  }
+  if (!res) {
+    const d = await stub(env).fetch('https://do/of-read?sym=' + sym + '&from=' + r.from + '&to=' + r.to);
+    res = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'x-of-gzip': '1', 'cache-control': 'public, max-age=' + (r.final ? 86400 : 15) } });
+    ctx.waitUntil(cache.put(ckey, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('access-control-expose-headers', 'x-book-from, x-of-gzip');
+  return out;
+}
+
 export default {
   async fetch(req, env, ctx) {
     const u = new URL(req.url);
@@ -371,6 +510,17 @@ export default {
     }
     if (u.pathname === '/news-ingest') return newsIngestRoute(req, env, authorized, stub);
     if (u.pathname === '/cal-ingest') return calIngestRoute(req, env, u, authorized, stub);
+    if (u.pathname === '/of-ingest') {
+      // order-flow feeder (server -> Worker): same shared secret, gzip binary bars, <= 256 KB
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > OF_MAX_BODY) return new Response('too large', { status: 413 });
+      const sym = String(u.searchParams.get('sym') || '').toUpperCase();
+      if (!OF_SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 400 });
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > OF_MAX_BODY) return new Response('too large', { status: 413 });
+      return stub(env).fetch('https://do/of-ingest?sym=' + sym, { method: 'POST', body: buf });
+    }
     if (u.pathname === '/gex-chain') {
       // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached
       // 30 s; not rate-limited per IP because the callers are Cloudflare's own Function hosts.
@@ -398,10 +548,14 @@ export default {
     // news + calendar reads: their own per-IP limit (search typing), edge-cached (src/news-routes.js)
     if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
-    if (env.RL) { try { const { success } = await env.RL.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
+    // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a
+    // 30 s live poll), so it never starves the heatmap / GEX history readers
+    const rl = u.pathname === '/orderflow' || u.pathname === '/ticks1s' ? env.RL_OF : env.RL;
+    if (rl) { try { const { success } = await rl.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
 
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
     if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
+    if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h);
     if (u.pathname === '/status') {
       const r = await stub(env).fetch('https://do/status');
       return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'public, max-age=30' }, h) });

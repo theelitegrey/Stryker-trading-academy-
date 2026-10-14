@@ -1,0 +1,26 @@
+[Unit]
+Description=TradeZoro order-flow feeder: InsightSentry tick trades -> 1-minute footprint bars -> book recorder Worker (long-running)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+# BOOK_RECORDER_URL + BOOK_INGEST_SECRET, and the InsightSentry key (both files mode 0600, never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/of-feeder/of_feeder.py
+Restart=always
+RestartSec=15
+# one socket + 3 minutes of bars in memory: ~30 MB; the daily REST rebuild streams a 25 MB day (~45 MB peak)
+MemoryMax=150M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/projects/book-feeder
+SyslogIdentifier=of-feeder
+
+[Install]
+WantedBy=multi-user.target

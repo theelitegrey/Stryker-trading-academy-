@@ -10,7 +10,8 @@
   "triggers": { "crons": [] },
   "ratelimits": [
     { "name": "RL", "namespace_id": "52401", "simple": { "limit": 20, "period": 60 } },
-    { "name": "RLN", "namespace_id": "52402", "simple": { "limit": 60, "period": 60 } }
+    { "name": "RLN", "namespace_id": "52402", "simple": { "limit": 60, "period": 60 } },
+    { "name": "RL_OF", "namespace_id": "52403", "simple": { "limit": 60, "period": 60 } }
   ],
   "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT" },
   "observability": { "enabled": true }

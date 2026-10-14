@@ -40,6 +40,8 @@ jobs:
           node workers/book-recorder/test/options.test.mjs
       - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
         run: node workers/book-recorder/test/news.test.mjs
+      - name: Order-flow tests (feeder vs raw ticks, footprint maths, 1-second path, no-lookahead, validation)
+        run: node workers/book-recorder/test/orderflow.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -107,3 +109,9 @@ jobs:
           echo "news: HTTP $nw"; test "$nw" = 200
           cl=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/cal?kind=events")
           echo "cal: HTTP $cl"; test "$cl" = 200
+          f401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/of-ingest?sym=NQ")
+          echo "of-ingest without key: HTTP $f401"; test "$f401" = 401
+          of=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/orderflow?sym=NQ")
+          echo "orderflow: HTTP $of"; test "$of" = 200
+          t1=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/ticks1s?sym=NQ")
+          echo "ticks1s: HTTP $t1"; test "$t1" = 200

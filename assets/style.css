@@ -9514,6 +9514,7 @@ button.appnav-dk.on{
   .stknw-row{ padding:11px 10px; }
   .stknw-h{ font-size:14px; }
   .stknw-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+}
 /* =====================================================================
    PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
    Opt-in card inside Trade review + the /leaderboard page. Theme tokens only.

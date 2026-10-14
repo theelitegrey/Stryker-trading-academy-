@@ -9240,3 +9240,95 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   .stkr-btn{ padding:0 7px; }
   .stkr-badge{ height:20px; padding:0 6px; font-size:10px; gap:4px; }
 }
+
+
+/* ==========================================================================
+   PHONE DOCK "OPTION B" (Owner 2026-10-14): Charts, GEX, Journal, Learn, More.
+   More opens a bottom sheet (#appnav-sheet, built by assets/app-nav.js).
+   Desktop navigation is untouched: dock + sheet only exist at <=820px.
+   ========================================================================== */
+.appnav-dk{ font-family:var(--font-body); }
+button.appnav-dk{
+  appearance:none; -webkit-appearance:none; background:none; border:0; margin:0;
+  font:inherit; font-family:var(--font-body); cursor:pointer; color:var(--ink-3);
+}
+button.appnav-dk.on{
+  background:linear-gradient(180deg, rgba(3,201,136,.16), rgba(3,201,136,0) 78%);
+  color:var(--gold);
+}
+.appnav-dk:focus-visible{ outline:2px solid var(--gold); outline-offset:-2px; }
+.appnav-dki{ position:relative; display:inline-flex; line-height:0; }
+.appnav-dkl{ font-family:var(--font-body); letter-spacing:.01em; }
+.appnav-new{ display:none; }
+.appnav-new.show{
+  display:block; position:absolute; top:-2px; right:-5px; width:8px; height:8px; border-radius:50%;
+  background:var(--gold); box-shadow:0 0 0 2px rgba(11,11,13,.95), 0 0 8px rgba(3,201,136,.8);
+}
+.appnav-more.open{ color:var(--gold); }
+.appnav-more.open .appnav-dkbar{ transform:translateX(-50%) scaleX(1); }
+
+.appnav-scrim, .appnav-sheet{ display:none; }
+@media (max-width:820px){
+  .appnav-scrim{
+    display:block; position:fixed; inset:0; z-index:10020; background:rgba(0,0,0,.55);
+    opacity:0; pointer-events:none; transition:opacity .22s;
+  }
+  .appnav-scrim.open{ opacity:1; pointer-events:auto; }
+  /* the sheet rises from the top edge of the dock (--appnav-dock-h, measured by
+     app-nav.js); the dock stays on top of the scrim so More reads as lit and a
+     second tap on it closes the sheet */
+  html.appnav-sheet-open .appnav-dock{ z-index:10040; }
+  .appnav-sheet{
+    display:flex; flex-direction:column; position:fixed; left:0; right:0; bottom:var(--appnav-dock-h, 0px); z-index:10030;
+    max-height:min(calc(88dvh - var(--appnav-dock-h, 0px)), 680px); background:var(--bg-1); color:var(--ink-1);
+    border:1px solid var(--line); border-bottom:0; border-radius:18px 18px 0 0;
+    box-shadow:0 -18px 50px rgba(0,0,0,.55);
+    font-family:var(--font-body);
+    transform:translateY(105%); transition:transform .25s cubic-bezier(.2,.8,.2,1);
+  }
+  .appnav-sheet[hidden]{ display:none; }
+  .appnav-sheet.open{ transform:translateY(0); }
+  html.appnav-sheet-open, html.appnav-sheet-open body{ overflow:hidden; }
+}
+.appnav-sh-grip{ width:38px; height:4px; border-radius:2px; background:var(--line); margin:8px auto 2px; flex:none; }
+.appnav-sh-head{
+  flex:none; display:flex; align-items:center; justify-content:space-between;
+  padding:4px 10px 6px 18px; font-size:15px; font-weight:700; color:var(--ink-0);
+}
+.appnav-sh-x{
+  width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center;
+  border:0; border-radius:10px; background:transparent; color:var(--ink-2); cursor:pointer;
+}
+.appnav-sh-x:focus-visible{ background:var(--bg-2); color:var(--ink-0); }
+@media (hover:hover){ .appnav-sh-x:hover{ background:var(--bg-2); color:var(--ink-0); } }
+.appnav-sh-body{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overscroll-behavior:contain;
+  padding:0 10px 12px; -webkit-overflow-scrolling:touch;
+}
+.appnav-sh-group{
+  font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-3); padding:12px 8px 6px;
+}
+.appnav-sh-list{ list-style:none; margin:0; padding:0; }
+.appnav-sh-item{
+  display:flex; align-items:center; gap:12px; padding:9px 8px; border-radius:12px;
+  color:var(--ink-1); text-decoration:none; -webkit-tap-highlight-color:transparent;
+}
+.appnav-sh-item:focus-visible{ background:var(--bg-2); outline:none; }
+@media (hover:hover){ .appnav-sh-item:hover{ background:var(--bg-2); } }
+.appnav-sh-item:active{ background:var(--bg-2); }
+.appnav-sh-ic{
+  flex:none; width:36px; height:36px; border-radius:10px; display:inline-flex; align-items:center; justify-content:center;
+  background:var(--bg-2); color:var(--ink-3); border:1px solid var(--line-soft);
+}
+.appnav-sh-tx{ display:flex; flex-direction:column; min-width:0; }
+.appnav-sh-l{ font-size:14px; font-weight:600; color:var(--ink-0); }
+.appnav-sh-d{ font-size:12px; color:var(--ink-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.appnav-sh-item.on{ background:rgba(3,201,136,.10); }
+.appnav-sh-item.on .appnav-sh-ic{ color:var(--gold); border-color:rgba(3,201,136,.45); background:rgba(3,201,136,.08); }
+.appnav-sh-item.on .appnav-sh-l{ color:var(--gold-bright); }
+:root[data-theme="light"] .appnav-sheet{ box-shadow:0 -12px 36px rgba(0,0,0,.18); }
+:root[data-theme="light"] .appnav-new.show{ box-shadow:0 0 0 2px #fff, 0 0 8px rgba(3,201,136,.6); }
+@media (prefers-reduced-motion: reduce){
+  .appnav-sheet, .appnav-scrim{ transition:none; }
+}

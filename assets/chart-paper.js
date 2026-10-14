@@ -53,6 +53,14 @@
 // account follows the same switch (the switch is read from the live account). The page carries
 // <html class="stkpt-on"> while it is ON.
 //
+// REVIEW TAB (Owner order 2026-10-14, "Paper trading leaderboard + trade review"): the panel's
+// "Review" tab mounts the shared Trade review component (assets/paper-review.js, maths in
+// assets/paper-review-stats.js; both classic scripts loaded by charts.html) on the live paper
+// account, with a toggle to the Replay account; notes and tags are written onto the trade in the
+// account state and saved like any other change. The full page is paper-review.html. The engine
+// now records the review fields (first stop, MAE/MFE, run, leverage) and tags Replay-account
+// trades src='replay' (deps.source) so they can never be mixed in.
+//
 // Education only. Not financial advice.
 
 const PE = window.PaperEngine;
@@ -372,7 +380,7 @@ export function setReplay(on){
     replay = { now: on.now, key: replayKey() };
     liveAcct = acct;
     let st = null; try { st = parse(localStorage.getItem(replay.key)); } catch (e) {}
-    acct = new PE.PaperAccount(st, { now: () => replay.now(), isOpen, tickOf: tickHint });
+    acct = new PE.PaperAccount(st, { now: () => replay.now(), isOpen, tickOf: tickHint, source: 'replay' });
     if (!st) { acct.state = PE.freshState(PE.DEFAULT_BALANCE, liveAcct ? Object.assign({}, liveAcct.state.settings, { qty: {} }) : null, replay.now()); save(); }
     leader = false; leaderTick(); tracks.clear();
   } else if (!on && replay) {
@@ -1111,6 +1119,7 @@ function buildPanel(){
         <button type="button" role="tab" data-tab="orders">Orders <i></i></button>
         <button type="button" role="tab" data-tab="history">History</button>
         <button type="button" role="tab" data-tab="account">Account</button>
+        <button type="button" role="tab" data-tab="review">Review</button>
         <span class="stkpt-tabsp"></span>
         <button type="button" class="stkpt-b stkpt-flat" title="Close every paper position and cancel every order">Flatten all</button>
       </div>
@@ -1148,6 +1157,15 @@ function renderPanel(){
   renderSummaryLive();
   if (!ui.open) return;
   const v = panel.querySelector('.stkpt-view');
+  // the Review tab keeps its component (and whatever the member is typing) across re-renders
+  if (ui.tab === 'review') {
+    if (review && v.contains(review.el)) { review.api.update(); return; }
+    v.textContent = '';
+    const host = h('div', { class: 'stkpt-review' }); v.appendChild(host);
+    review = mountReview(host);
+    return;
+  }
+  if (review) { try { review.api.destroy(); } catch (e) {} review = null; }
   v.textContent = '';
   if (ui.tab === 'orders') v.appendChild(viewOrders());
   else if (ui.tab === 'history') v.appendChild(viewHistory());
@@ -1310,6 +1328,45 @@ function viewAccount(){
     syncFromLocal(); acct.reset(bal); tracks.clear(); save(); renderAll(); toast('Paper account reset to ' + money(bal), 'success');
   };
   return a;
+}
+
+// ------------------------------------------------------------------ Review tab (assets/paper-review.js)
+let review = null;   // { el, api } while the Review tab is showing
+function reviewState(kind){
+  if (kind === 'replay') {
+    if (replay && acct) return acct.state;
+    let st = null; try { st = parse(localStorage.getItem(replayKey())); } catch (e) {}
+    return st;
+  }
+  const a = liveOf(); return a ? a.state : null;
+}
+async function reviewSave(kind, tradeId, patch){
+  const PR = window.PaperReview;
+  if (kind === 'replay') {
+    if (replay && acct) { if (!PR.applyPatch(acct.state, tradeId, patch)) throw new Error('That trade is no longer in the Replay account.'); save(); return; }
+    const st = reviewState('replay');
+    if (!st || !PR.applyPatch(st, tradeId, patch)) throw new Error('That trade is no longer in the Replay account.');
+    localStorage.setItem(replayKey(), JSON.stringify(st));
+    return;
+  }
+  withLive(() => {
+    syncFromLocal();
+    if (!PR.applyPatch(acct.state, tradeId, patch)) throw new Error('That trade is no longer in your paper account.');
+    save();
+  });
+}
+async function reviewBars(symbol, tf, from, to){
+  const m = /^([a-z_]+):(.+)$/i.exec(String(symbol || '')); if (!m) return null;
+  let p = null; try { p = WS.feed.providerInstance(m[1].toLowerCase()); } catch (e) {}
+  if (!p || !p.getBars) return null;
+  return p.getBars(m[2], tf, { from, to });
+}
+function mountReview(host){
+  const PR = window.PaperReview;
+  if (!PR) { host.appendChild(h('p', { class: 'stkpt-empty', text: 'Trade review could not load. Reload the page.' })); return { el: host, api: { update(){}, destroy(){} } }; }
+  const api = PR.mount(host, { compact: true, getState: reviewState, save: reviewSave, getBars: reviewBars, fullHref: 'paper-review.html',
+    leaderboard: window.PaperLeaderboardCard ? () => window.PaperLeaderboardCard({ uid }) : null });
+  return { el: host, api };
 }
 
 // ------------------------------------------------------------------ Chart settings → "Paper trading" tab
@@ -1538,7 +1595,7 @@ const CSS = `
   .stkpt.open{ position:fixed; left:0; right:0; bottom:var(--stkc-dock, 0px); z-index:8800; max-height:72dvh; border-radius:16px 16px 0 0; border:1px solid var(--line); box-shadow:0 -18px 50px rgba(0,0,0,.55); }
   .stkpt.open .stkpt-head::before{ content:""; position:absolute; left:50%; top:5px; width:38px; height:4px; margin-left:-19px; border-radius:2px; background:var(--line); }
   .stkpt-body{ height:min(56dvh, 460px); }
-  .stkpt-tabs [role=tab]{ padding:11px 12px; }
+  .stkpt-tabs [role=tab]{ padding:11px 9px; }
   .stkpt-b{ height:36px; padding:0 13px; }
   .stkpt-acct{ grid-template-columns:1fr; }
   .stkpt-kvs{ grid-template-columns:1fr 1fr; }

@@ -32,6 +32,15 @@
  * P&L = (exit - entry) x qty x point value (futures contract point values; crypto per unit).
  * Commission = `commission` dollars per contract (or unit) per side, charged on every fill.
  *
+ * REVIEW FIELDS (Trade review + leaderboard, Owner order 2026-10-14): every position also keeps
+ *   sl0  the FIRST stop loss it had (the risk the trade was taken with; R = pnl / risk at sl0),
+ *   hi / lo  the best and worst price seen while it was open (from the same segments the fills use;
+ *        the exit segment only counts up to the exit price), for MAE / MFE,
+ *   bal0 / maxQty  the balance when it opened and its largest size, for the leverage flag;
+ * and every closed trade carries sl0, mae, mfe (price distance, >= 0), lev (largest notional /
+ * balance at open), run (the account's resetAt: a reset starts a new run) and src ('replay' for
+ * the bar-replay account, set through deps.source). Old trades without them still load.
+ *
  * Education only. Not financial advice.
  */
 (function (root, factory) {
@@ -148,7 +157,8 @@
         const p = raw.positions[k]; const sp = specOf(k); if (!p || !sp.ok) continue;
         const qty = num(p.qty), avg = num(p.avg); if (!(qty > 0) || !(avg > 0)) continue;
         const sym = sp.symbol;
-        st.positions[sym] = { symbol: sym, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0 };
+        st.positions[sym] = { symbol: sym, side: side(p.side), qty, avg, sl: num(p.sl), tp: num(p.tp), openedAt: num(p.openedAt) || now, fees: num(p.fees) || 0,
+          sl0: num(p.sl0) != null ? num(p.sl0) : num(p.sl), hi: num(p.hi) || avg, lo: num(p.lo) || avg, bal0: num(p.bal0), maxQty: Math.max(qty, num(p.maxQty) || 0) };
       }
     }
     if (Array.isArray(raw.orders)) {
@@ -174,7 +184,7 @@
      * deps: { now(): ms, isOpen(symbol, ms): bool, tickOf(symbol): number|undefined }
      */
     constructor(state, deps) {
-      this.deps = Object.assign({ now: () => Date.now(), isOpen: () => true, tickOf: () => undefined }, deps || {});
+      this.deps = Object.assign({ now: () => Date.now(), isOpen: () => true, tickOf: () => undefined, source: '' }, deps || {});
       this.state = sanitize(state, this.deps.now());
       this.last = {};        // symbol -> last price seen (not persisted)
     }
@@ -304,6 +314,7 @@
       if ('sl' in ch && sl != null && !((sl - last) * dir < 0)) throw new Error(p.side === 'buy' ? 'The stop loss must be below the current price.' : 'The stop loss must be above the current price.');
       if ('tp' in ch && tp != null && !((tp - last) * dir > 0)) throw new Error(p.side === 'buy' ? 'The take profit must be above the current price.' : 'The take profit must be below the current price.');
       p.sl = sl; p.tp = tp;
+      if (p.sl0 == null && sl != null) p.sl0 = sl;     // a stop added after the fill is the trade's risk
       return p;
     }
     /** Close all (or qty) of a position at market. */
@@ -360,6 +371,7 @@
       symbol = spec.symbol;
       if (!this.deps.isOpen(symbol, seg.t != null ? seg.t : now) && !this.deps.isOpen(symbol, now)) { this.setLast(raw, seg.c); return events; }
       const slip = this.state.settings.slippage * spec.tick;
+      const before = this.state.positions[symbol];   // only a position open BEFORE this segment saw its whole range
       for (const o of this.state.orders.slice()) {
         if (o.symbol !== symbol) continue;
         let fp = fillPriceOf(o, seg);
@@ -369,14 +381,19 @@
         events.push(...this._fill(o, roundTick(fp, spec.tick), seg.t != null ? seg.t : now));
       }
       const p = this.state.positions[symbol];
+      let exited = false;
       if (p && (p.sl != null || p.tp != null)) {
         const ex = exitOf(p, seg);
         if (ex) {
+          exited = true;
           let px = ex.price;
           if (ex.reason === 'sl') px -= (p.side === 'buy' ? 1 : -1) * slip;
           events.push(...this._fill({ id: this.state.nextId++, symbol, side: p.side === 'buy' ? 'sell' : 'buy', type: ex.reason, qty: p.qty, sl: null, tp: null }, roundTick(px, spec.tick), seg.t != null ? seg.t : now, ex.reason));
         }
       }
+      // excursion: a position still open after this segment saw its whole range
+      const still = this.state.positions[symbol];
+      if (still && !exited && still === p && p === before) { still.hi = Math.max(num(still.hi) || still.avg, seg.h); still.lo = Math.min(num(still.lo) || still.avg, seg.l); }
       this.setLast(symbol, seg.c);
       return events;
     }
@@ -410,7 +427,8 @@
       this._hist({ kind: 'fill', symbol: sym, side: order.side, type: order.type, qty: order.qty, price, orderId: order.id, note: reason ? (reason === 'tp' ? 'Take profit' : 'Stop loss') : '' });
       let p = st.positions[sym];
       if (!p) {
-        p = st.positions[sym] = { symbol: sym, side: order.side, qty: order.qty, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: fee };
+        p = st.positions[sym] = { symbol: sym, side: order.side, qty: order.qty, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: fee,
+          sl0: order.sl != null ? order.sl : null, hi: price, lo: price, bal0: round2(st.balance + fee), maxQty: order.qty };
         events.push({ type: 'open', symbol: sym, side: p.side, qty: p.qty, price, position: p });
         return events;
       }
@@ -418,7 +436,10 @@
         const qty = Number((p.qty + order.qty).toFixed(6));
         p.avg = roundTick((p.avg * p.qty + price * order.qty) / qty, spec.tick / 100);
         p.qty = qty; p.fees = round2(p.fees + fee);
+        p.maxQty = Math.max(num(p.maxQty) || 0, qty);
+        p.hi = Math.max(num(p.hi) || price, price); p.lo = Math.min(num(p.lo) || price, price);
         if (order.sl != null) p.sl = order.sl;
+        if (p.sl0 == null && order.sl != null) p.sl0 = order.sl;
         if (order.tp != null) p.tp = order.tp;
         events.push({ type: 'add', symbol: sym, side: p.side, qty: order.qty, price, position: p });
         return events;
@@ -432,8 +453,14 @@
       const feeOut = round2(st.settings.commission * closeQty);
       const pnl = round2(gross - feeIn - feeOut);
       st.balance = round2(st.balance + gross); st.realized = round2(st.realized + pnl);
+      const hi = Math.max(num(p.hi) || p.avg, p.avg, price), lo = Math.min(num(p.lo) || p.avg, p.avg, price);
+      const mfe = dir > 0 ? hi - p.avg : p.avg - lo, mae = dir > 0 ? p.avg - lo : hi - p.avg;
+      const bal0 = num(p.bal0) > 0 ? p.bal0 : st.startBalance;
       const trade = { id: st.nextId++, symbol: sym, side: p.side, qty: closeQty, entry: p.avg, exit: price, entryAt: p.openedAt, exitAt: t,
-        gross, fees: round2(feeIn + feeOut), pnl, reason: reason || (rest > 0 ? 'reverse' : 'manual'), sl: p.sl, tp: p.tp, pointValue: spec.pointValue, journaled: false };
+        gross, fees: round2(feeIn + feeOut), pnl, reason: reason || (rest > 0 ? 'reverse' : 'manual'), sl: p.sl, tp: p.tp, pointValue: spec.pointValue, journaled: false,
+        sl0: p.sl0 != null ? p.sl0 : (p.sl != null ? p.sl : null), mae: Math.max(0, roundTick(mae, spec.tick / 100)), mfe: Math.max(0, roundTick(mfe, spec.tick / 100)),
+        lev: Math.round(p.avg * (num(p.maxQty) || p.qty) * spec.pointValue / bal0 * 100) / 100, run: st.resetAt };
+      if (this.deps.source) trade.src = this.deps.source;
       st.trades.push(trade);
       if (st.trades.length > MAX_TRADES) st.trades.splice(0, st.trades.length - MAX_TRADES);
       if (closeQty < p.qty) {
@@ -444,7 +471,8 @@
       delete st.positions[sym];
       events.push({ type: reason || 'close', symbol: sym, side: p.side, qty: closeQty, price, trade });
       if (rest > 0) {
-        const np = st.positions[sym] = { symbol: sym, side: order.side, qty: rest, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: round2(st.settings.commission * rest) };
+        const np = st.positions[sym] = { symbol: sym, side: order.side, qty: rest, avg: price, sl: order.sl, tp: order.tp, openedAt: t, fees: round2(st.settings.commission * rest),
+          sl0: order.sl != null ? order.sl : null, hi: price, lo: price, bal0: st.balance, maxQty: rest };
         events.push({ type: 'open', symbol: sym, side: np.side, qty: np.qty, price, position: np, reversed: true });
       }
       return events;

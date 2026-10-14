@@ -239,6 +239,21 @@ t('JSON round trip keeps the account; tampered state is hardened', () => {
   assert.strictEqual(new PE.PaperAccount('garbage', deps()).summary().balance, 100000);
 });
 
+t('"Enable paper trading" switch: off by default (also for accounts saved before it), on survives a round trip and a reset, orders keep filling', () => {
+  assert.strictEqual(acct().settings.enabled, false);
+  const old = JSON.parse(JSON.stringify(acct())); delete old.settings.enabled;           // saved before the switch existed
+  assert.strictEqual(new PE.PaperAccount(old, deps()).settings.enabled, false);
+  assert.strictEqual(new PE.PaperAccount(Object.assign(old, { settings: Object.assign({}, old.settings, { enabled: 'yes' }) }), deps()).settings.enabled, false);
+  const a = acct(); a.setSettings({ enabled: true });
+  assert.strictEqual(new PE.PaperAccount(JSON.parse(JSON.stringify(a)), deps()).settings.enabled, true);
+  a.reset(50000); assert.strictEqual(a.settings.enabled, true);
+  // switch off: the engine is not gated (the chart keeps a working limit filling in the background)
+  a.setSettings({ enabled: false }); a.setLast('futures:NQ1!', 21000);
+  a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: 20990 });
+  a.onSegment('futures:NQ1!', seg(21000, 21001, 20989, 20995));
+  assert.strictEqual(a.position('futures:NQ1!').qty, 1); assert.strictEqual(a.state.orders.length, 0);
+});
+
 t('day P&L counts trades closed since the day start', () => {
   const a = acct(); a.setLast('futures:NQ1!', 21000);
   a.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 });

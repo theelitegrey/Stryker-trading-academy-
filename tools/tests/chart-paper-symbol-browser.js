@@ -20,6 +20,8 @@ async function runCase(browser, tag, viewport, mobile) {
     window.STRYKER_CHART_UI.applySaved({ state: doc });
   });
   await p.waitForFunction(() => window.STRYKER_VELA.active && window.STRYKER_VELA.active.symbol === 'CME_MINI:NQ1!', null, { timeout: 15000 });
+  // paper trading is OFF by default (Chart settings → Paper trading, 2026-10-14): this suite trades
+  await p.evaluate(() => window.__stkPaper.setEnabled(true));
   await p.evaluate(() => window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21000));
   await p.click('.stkpt-trade');
   await p.waitForSelector('#stkpt-tk:not([hidden])', { timeout: 8000 });

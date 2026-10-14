@@ -18,6 +18,12 @@
 //     (cloud copy, students/u1/paperTrading/account)
 //   - NO request to any broker / order endpoint, and no non-GET request at all
 // Phone 390x844: bottom sheet + ticket screenshots.
+// "Enable paper trading" switch (Owner order 2026-10-14, Chart settings → Paper trading): OFF by
+// default -> no one-click buttons, panel, Trade button, lines or right-click paper items; switched
+// ON through the real settings dialog -> everything appears; reload keeps it; switched OFF with an
+// open position + working order -> all hidden again but the account is kept (and the working
+// order still fills silently); Bar replay follows the switch. Screenshots of both states + the
+// settings tab at 1280 and 390.
 //
 //   flock /tmp/stryker-chrome.lock node tools/tests/chart-paper-trading-browser.js [shotsDir]
 const http = require('http');
@@ -182,6 +188,43 @@ async function setMarket(p, sym, tf) {
   }, [sym, tf]);
   await sleep(2000);
 }
+
+// ---- the "Enable paper trading" switch ----
+// What paper trading currently shows on the page.
+const paperUi = (p) => p.evaluate(() => {
+  const vis = (el) => { if (!el) return false; const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden'; };
+  let lines = 0; try { const R = window.STRYKER_VELA.chart.renderer.renderer, l = R.extLayers.find((x) => x.def.id === 'stk_paper'); lines = ((l.instance.args && l.instance.args.data && l.instance.args.data.lines) || []).length; } catch (e) {}
+  return { enabled: window.__stkPaper.enabled, cls: document.documentElement.classList.contains('stkpt-on'), panel: vis(document.getElementById('stkpt')), trade: vis(document.getElementById('stkc-paper-btn')),
+    oneClick: [...document.querySelectorAll('.stkpt-1c')].filter(vis).length, chips: [...document.querySelectorAll('.stkpt-chip')].filter(vis).length, lines };
+});
+const allHidden = (u) => !u.enabled && !u.cls && !u.panel && !u.trade && u.oneClick === 0 && u.chips === 0 && u.lines === 0;
+// Opens Chart settings (top-bar gear; ☰ tab list on a phone) on the "Paper trading" tab.
+async function openPaperTab(p, phone) {
+  await p.click('#stkc-settings-btn');
+  await p.waitForSelector('.vela-dialog--settings .vela-sd-rail', { state: 'attached', timeout: 10000 });
+  await sleep(300);
+  if (phone && await p.$('.vela-dialog--settings .vela-sd-burger')) { await p.click('.vela-dialog--settings .vela-sd-burger'); await sleep(300); }
+  const tab = p.locator('.vela-dialog--settings .vela-sd-tab', { hasText: /^\s*Paper trading\s*$/ });
+  check(await tab.count() === 1, (phone ? 'phone: ' : '') + 'Chart settings has a "Paper trading" tab');
+  await tab.first().click();
+  await p.waitForSelector('.vela-dialog--settings .stkpt-set-ui .stkpt-switch input', { state: 'attached', timeout: 5000 });
+  await sleep(250);
+}
+async function closeSettings(p) {
+  await p.keyboard.press('Escape'); await sleep(250);
+  if (await p.$('.vela-dialog--settings')) { const x = await p.$('.vela-dialog--settings [aria-label="Close"], .vela-dialog--settings .vela-sd-close'); if (x) await x.click().catch(() => {}); await sleep(250); }
+}
+// Flip the switch from the settings tab (a real click on the switch), returns the new state.
+async function flipSwitch(p, phone, shot) {
+  await openPaperTab(p, phone);
+  const before = await p.evaluate(() => document.querySelector('.vela-dialog--settings .stkpt-switch input').checked);
+  await p.click('.vela-dialog--settings .stkpt-switch');
+  await sleep(400);
+  const after = await p.evaluate(() => ({ sw: document.querySelector('.vela-dialog--settings .stkpt-switch input').checked, en: window.__stkPaper.enabled, note: document.querySelector('.vela-dialog--settings .stkpt-set-note').textContent }));
+  if (shot) { await p.screenshot({ path: shot }); console.log('screenshot', shot); }
+  await closeSettings(p);
+  return Object.assign({ before }, after);
+}
 const paper = (p, fn, arg) => p.evaluate(fn, arg);
 async function waitFor(p, fn, arg, ms) {
   const t0 = Date.now();
@@ -235,6 +278,27 @@ async function boot(p, BASE) {
     await boot(p, BASE);
     await setMarket(p, 'futures:NQ1!', '1');
     check(await waitFor(p, () => Number.isFinite(window.__stkPaper.account.last['futures:NQ1!'])), 'NQ1! 1m: paper engine sees the live price');
+    // ---- default OFF: nothing of paper trading on the chart ----
+    {
+      await sleep(2300);   // one 2 s pushLines round
+      const u0 = await paperUi(p);
+      check(allHidden(u0), 'default OFF: no one-click Buy/Sell, no panel / phone bar, no Trade button, no lines ' + JSON.stringify(u0));
+      const box0 = await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer; const r = R.input.el.getBoundingClientRect(); return { x: r.left + R.coords.width * 0.5, y: r.top + r.height * 0.3 }; });
+      await p.mouse.click(box0.x, box0.y, { button: 'right' }); await sleep(500);
+      const m0 = await p.evaluate(() => [...document.querySelectorAll('[role=menuitem], [role=menu] *')].map((e) => e.textContent.trim()).filter((t) => /^Paper /.test(t)));
+      check(m0.length === 0, 'default OFF: right-click menu has no paper items (' + m0.join(' | ') + ')');
+      await p.keyboard.press('Escape');
+      const r0 = await p.evaluate(() => window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 }));
+      check(r0 === null && !(await p.evaluate(() => window.__stkPaper.account.position('futures:NQ1!'))), 'default OFF: a paper order cannot be placed');
+      await p.screenshot({ path: `${OUT}/chart-paper-1280-off.png` }); console.log('screenshot', `${OUT}/chart-paper-1280-off.png`);
+      const f = await flipSwitch(p, false, `${OUT}/chart-paper-1280-settings.png`);
+      check(!f.before && f.sw && f.en, 'settings: "Enable paper trading" switch was off, one click turns it on ' + JSON.stringify(f));
+      await sleep(2300);
+      const u1 = await paperUi(p);
+      check(u1.enabled && u1.cls && u1.panel && u1.trade && u1.oneClick === 1, 'switched ON (no reload): one-click Buy/Sell, panel and Trade button appear ' + JSON.stringify(u1));
+      const cs = await p.evaluate(() => JSON.parse(localStorage.getItem('stryker_paper_u1')).settings.enabled);
+      check(cs === true, 'switch saved in the paper account settings (local copy)');
+    }
     const lbl = await p.evaluate(() => document.querySelector('.stkpt-foot').textContent);
     check(/Paper trading · demo money · simulated fills/.test(lbl) && /Education only\. Not financial advice\./.test(lbl) && /Charts tab is open/.test(lbl), 'panel footer: label, disclaimer, "works while a Charts tab is open"');
     check(await p.evaluate(() => !!document.getElementById('stkc-paper-btn')), 'Trade button in the chart toolbar');
@@ -439,6 +503,7 @@ async function boot(p, BASE) {
     await p.waitForFunction(() => window.__stkPaper && window.__stkPaper.account, null, { timeout: 60000 });
     const after = await p.evaluate(() => { const s = window.__stkPaper.account.summary(); const a = window.__stkPaper.account.state; return { bal: s.balance, trades: a.trades.length, orders: a.orders.length, pos: Object.keys(a.positions).join(','), j: a.trades.filter((x) => x.journaled).length }; });
     check(JSON.stringify(after) === JSON.stringify(before), 'reload keeps the account (local): ' + JSON.stringify(after));
+    check(await waitFor(p, () => window.__stkPaper.enabled && !!document.querySelector('.stkpt-1c') && !document.getElementById('stkpt').hidden, null, 8000), 'reload keeps paper trading switched ON (buttons + panel back)');
     // ---- reload with the local copy gone: cloud copy ----
     await p.evaluate(() => localStorage.removeItem('stryker_paper_u1'));
     await p.reload({ waitUntil: 'domcontentloaded' });
@@ -446,6 +511,7 @@ async function boot(p, BASE) {
     await sleep(500);
     const after2 = await p.evaluate(() => { const s = window.__stkPaper.account.summary(); const a = window.__stkPaper.account.state; return { bal: s.balance, trades: a.trades.length, orders: a.orders.length, pos: Object.keys(a.positions).join(','), j: a.trades.filter((x) => x.journaled).length }; });
     check(JSON.stringify(after2) === JSON.stringify(before), 'reload with no local copy loads the cloud copy: ' + JSON.stringify(after2));
+    check(await p.evaluate(() => window.__stkPaper.enabled && JSON.parse(JSON.parse(localStorage.getItem('__test_cloud_paper')).state).settings.enabled === true), 'switch synced to the cloud paper account doc (enabled: true) and restored from it');
 
     // ---- TWO Charts tabs (same browser): exactly one fills, both end on the same account ----
     {
@@ -483,6 +549,45 @@ async function boot(p, BASE) {
       px.futures = l2 - 6;
     }
 
+    // ---- switch OFF with an open position + a working order: hidden, but kept (and still filling) ----
+    {
+      await setMarket(p, 'futures:NQ1!', '1');
+      const l0 = await p.evaluate(() => window.__stkPaper.account.last['futures:NQ1!']);
+      await p.evaluate(() => { if (!window.__stkPaper.account.position('futures:NQ1!')) window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1 }); });
+      const offOid = await p.evaluate((l) => { const r = window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: l - 2 }); return r && r.order && r.order.id; }, l0);
+      await sleep(800);
+      const k0 = await p.evaluate(() => { const a = window.__stkPaper.account.state; return { pos: JSON.parse(JSON.stringify(a.positions)), orders: a.orders.length, bal: a.balance }; });
+      check(Object.keys(k0.pos).length > 0 && k0.orders > 0 && (await paperUi(p)).chips > 0, 'before switching off: open position + working orders on the chart ' + JSON.stringify({ pos: Object.keys(k0.pos), orders: k0.orders }));
+      const f = await flipSwitch(p, false);
+      check(f.before && !f.sw && !f.en && /kept/.test(f.note), 'settings: switch turned OFF, note says the account is kept: "' + f.note.slice(0, 90) + '…"');
+      await sleep(2300);
+      const u2 = await paperUi(p);
+      check(allHidden(u2), 'switched OFF with an open position: buttons, panel, Trade button and every line hidden ' + JSON.stringify(u2));
+      const k1 = await p.evaluate(() => { const a = window.__stkPaper.account.state; return { pos: JSON.parse(JSON.stringify(a.positions)), orders: a.orders.length }; });
+      check(JSON.stringify(k1.pos) === JSON.stringify(k0.pos) && k1.orders === k0.orders, 'switched OFF: position and working orders KEPT in the account (nothing cancelled)');
+      await p.screenshot({ path: `${OUT}/chart-paper-1280-off-with-position.png` }); console.log('screenshot', `${OUT}/chart-paper-1280-off-with-position.png`);
+      // the working limit still fills in the background, silently
+      const nToast = await p.evaluate(() => document.querySelectorAll('.stkpt-toast').length);
+      px.futures = l0 - 3;
+      const silentFill = await waitFor(p, (id) => window.__stkPaper.account.state.history.some((h) => h.kind === 'fill' && h.orderId === id), offOid, 10000);
+      await sleep(500);
+      const quiet = await p.evaluate(() => ({ toasts: document.querySelectorAll('.stkpt-toast').length, offers: document.querySelectorAll('.stkpt-offer').length }));
+      check(silentFill && quiet.toasts === 0 && nToast === 0 && quiet.offers === 0, 'switched OFF: a working limit still fills (account stays consistent), with no toast or offer ' + JSON.stringify(quiet));
+      // bar replay follows the switch
+      await p.evaluate(() => window.__stkPaper.setReplay({ now: () => Date.now() }));
+      await sleep(2300);
+      const ur = await paperUi(p);
+      check(await p.evaluate(() => window.__stkPaper.replay) && allHidden(ur), 'bar replay while OFF: Replay account shows nothing either ' + JSON.stringify(ur));
+      await p.evaluate(() => window.__stkPaper.setEnabled(true));
+      await sleep(2300);
+      const ur2 = await paperUi(p);
+      check(ur2.enabled && ur2.panel && ur2.oneClick === 1 && await p.evaluate(() => document.querySelector('#stkpt .stkpt-badge').textContent === 'Replay account'), 'bar replay: switching ON shows the Replay account UI ' + JSON.stringify(ur2));
+      await p.evaluate(() => window.__stkPaper.setReplay(null));
+      await sleep(2300);
+      const u3 = await paperUi(p);
+      check(u3.enabled && u3.chips > 0 && u3.oneClick === 1 && await p.evaluate(() => JSON.parse(localStorage.getItem('stryker_paper_u1')).settings.enabled === true), 'replay exit: live account back ON with its lines (switch made in replay saved to the live account) ' + JSON.stringify(u3));
+    }
+
     // ---- optional soak: PAPER_SOAK_S=600 (10 min) with a position, a bracket and a working order ----
     const SOAK = Number(process.env.PAPER_SOAK_S || 0);
     if (SOAK > 0) {
@@ -513,6 +618,17 @@ async function boot(p, BASE) {
     await boot(ph.p, BASE);
     await setMarket(ph.p, 'futures:NQ1!', '1');
     await waitFor(ph.p, () => Number.isFinite(window.__stkPaper.account.last['futures:NQ1!']));
+    {
+      await sleep(2300);
+      const u0 = await paperUi(ph.p);
+      check(allHidden(u0), 'phone default OFF: no one-click buttons, no slim paper bar, no lines ' + JSON.stringify(u0));
+      await ph.p.screenshot({ path: `${OUT}/chart-paper-390-off.png` }); console.log('screenshot', `${OUT}/chart-paper-390-off.png`);
+      const f = await flipSwitch(ph.p, true, `${OUT}/chart-paper-390-settings.png`);
+      check(!f.before && f.sw && f.en, 'phone: Chart settings → ☰ → Paper trading → switch ON ' + JSON.stringify(f));
+      const fit = await ph.p.evaluate(() => document.documentElement.scrollWidth);
+      check(fit <= 390, 'phone: no sideways overflow after the settings dialog (' + fit + ')');
+      await sleep(2300);
+    }
     await ph.p.evaluate(() => { const l = window.__stkPaper.account.last['futures:NQ1!']; window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1, tp: l + 15, sl: l - 8 }); window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'limit', qty: 1, price: l - 4 }); });
     await sleep(1200);
     await linesOnPricePane(ph.p, 'phone NQ1! 1m');

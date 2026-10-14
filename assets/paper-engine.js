@@ -110,7 +110,9 @@
   }
 
   function defaultSettings() {
-    return { commission: 0, slippage: 0, oneClick: true, lines: true, sounds: true, askJournal: true, qty: {} };
+    // enabled: the member's "Enable paper trading" switch (Charts settings). OFF by default, also for
+    // accounts saved before the switch existed (Owner order 2026-10-14): they must switch it on.
+    return { enabled: false, commission: 0, slippage: 0, oneClick: true, lines: true, sounds: true, askJournal: true, qty: {} };
   }
 
   function freshState(balance, settings, now) {
@@ -133,6 +135,7 @@
     st.resetAt = num(raw.resetAt) || st.createdAt; st.savedAt = num(raw.savedAt) || 0;
     const rs = raw.settings || {};
     st.settings = {
+      enabled: rs.enabled === true,
       commission: Math.max(0, Math.min(100, num(rs.commission) || 0)),
       slippage: Math.max(0, Math.min(50, Math.round(num(rs.slippage) || 0))),
       oneClick: rs.oneClick !== false, lines: rs.lines !== false, sounds: rs.sounds !== false, askJournal: rs.askJournal !== false,
@@ -336,7 +339,7 @@
       const s = this.state.settings;
       if (ch.commission != null) s.commission = Math.max(0, Math.min(100, Number(ch.commission) || 0));
       if (ch.slippage != null) s.slippage = Math.max(0, Math.min(50, Math.round(Number(ch.slippage) || 0)));
-      for (const k of ['oneClick', 'lines', 'sounds', 'askJournal']) if (k in ch) s[k] = !!ch[k];
+      for (const k of ['enabled', 'oneClick', 'lines', 'sounds', 'askJournal']) if (k in ch) s[k] = !!ch[k];
       return s;
     }
     setQty(symbol, qty) { const spec = this.spec(symbol); if (!spec.ok) return; try { this.state.settings.qty[spec.symbol] = this._qty(spec, qty); } catch (e) {} }

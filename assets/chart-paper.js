@@ -39,6 +39,20 @@
 // same conservative rules (gaps fill at the open, stop loss first when one bar touches both).
 // Exit restores the live account and its lines.
 //
+// ON/OFF SWITCH (Owner order 2026-10-14: "dont show buy/sell buttons unless paper trading enabled
+// is selected from chart setting"): Chart settings (gear, then the ☰ tab list on a phone) has a
+// "Paper trading" tab with one switch, "Enable paper trading". It is stored in the member's paper
+// account settings (settings.enabled; synced to the cloud doc when signed in, localStorage when
+// signed out) and is OFF by default, also for accounts saved before the switch existed. While it
+// is OFF nothing of paper trading is shown: no one-click Buy/Sell, no right-click paper items, no
+// order/position/TP/SL lines, no bottom panel / phone bar, no toolbar Trade button, no ticket, no
+// paper toasts, sounds or journal offers. The account itself is KEPT as it is (nothing is
+// cancelled) and the fill engine keeps running for orders that were already working, so a resting
+// limit or a position's TP/SL still behaves exactly as it would have and the account stays
+// consistent when the member switches back on; it simply happens silently. Bar replay's Replay
+// account follows the same switch (the switch is read from the live account). The page carries
+// <html class="stkpt-on"> while it is ON.
+//
 // Education only. Not financial advice.
 
 const PE = window.PaperEngine;
@@ -116,6 +130,42 @@ function money(n, sign){
   return (n < 0 ? '-' : (sign && n > 0 ? '+' : '')) + '$' + s;
 }
 function specOf(sym){ return acct ? acct.spec(sym) : PE.specOf(sym); }
+// The member's "Enable paper trading" switch, read from the LIVE account (bar replay follows it).
+function liveOf(){ return replay ? liveAcct : acct; }
+function paperOn(){ const a = liveOf(); return !!(a && a.settings.enabled); }
+// Runs fn with the live account swapped in as `acct` (so save() writes the live copy + cloud doc)
+// even while bar replay has the Replay account in place.
+function withLive(fn){
+  if (!replay) return fn();
+  const r = replay, ra = acct;
+  replay = null; acct = liveAcct;
+  try { return fn(); } finally { liveAcct = acct; acct = ra; replay = r; }
+}
+export function setPaperEnabled(on){
+  on = !!on;
+  if (!liveOf()) { toast('Paper trading is still loading.', 'info'); return false; }
+  withLive(() => { syncFromLocal(); acct.setSettings({ enabled: on }); save(); });
+  if (replay && acct) acct.setSettings({ enabled: on });
+  applyEnabled();
+  return on;
+}
+// Show or hide every paper-trading surface for the current switch state (instant, no reload).
+function applyEnabled(){
+  const on = paperOn();
+  document.documentElement.classList.toggle('stkpt-on', on);
+  if (panel) panel.hidden = !on;
+  const tb = document.getElementById('stkc-paper-btn'); if (tb) tb.hidden = !on;
+  if (!on) {
+    closeTicket();
+    document.documentElement.classList.remove('stkpt-sheet-open');
+    const of = document.getElementById('stkpt-offers'); if (of) of.textContent = '';
+    const tt = document.getElementById('stkpt-toasts'); if (tt) tt.textContent = '';
+  }
+  const was = applyEnabled.last; applyEnabled.last = on;
+  if (was !== undefined && was !== on) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);   // panel height came or went
+  for (const sw of document.querySelectorAll('.stkpt-switch input')) { sw.checked = on; sw.disabled = false; }
+  pushLines(true);
+}
 // canonical paper key ("CME_MINI:NQ1!", "rithmic:NQ1!", "NQ1!" -> "futures:NQ1!"); raw symbol when unsupported
 function canonSym(sym){ const sp = specOf(sym); return sp.ok ? sp.symbol : String(sym || ''); }
 function fmtP(sym, p){
@@ -129,6 +179,7 @@ const TOAST_MAX = 2, TOAST_MS = 4000;
 const toastLog = [];
 function toast(msg, type){
   type = type || 'success';
+  if (acct && !paperOn()) return;        // switched off: paper trading says nothing
   toastLog.push({ type, msg: String(msg), at: Date.now() }); if (toastLog.length > 50) toastLog.shift();
   try {
     const host = document.querySelector('.stkchart-panel');
@@ -165,7 +216,7 @@ function isOpen(sym, t){
 }
 function dayStart(){ const d = new Date(clockNow()); d.setHours(0, 0, 0, 0); return d.getTime(); }
 function sound(kind){
-  if (!acct || !acct.settings.sounds) return;
+  if (!acct || !acct.settings.sounds || !paperOn()) return;
   try { window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, { source: 'paper', replay: !!replay }); } catch (e) {}
 }
 
@@ -224,14 +275,16 @@ function parse(s){ try { return typeof s === 'string' ? JSON.parse(s) : s; } cat
 async function load(){
   const u = fbUser();
   uid = u ? u.uid : null;
-  let st = parse(localStorage.getItem(lsKey()));
+  let c = null;
   if (uid) {
     try {
       const snap = await cloudDoc().get();
-      const c = snap && snap.exists ? parse((snap.data() || {}).state) : null;
-      if (c && (!st || (Number(c.savedAt) || 0) >= (Number(st.savedAt) || 0))) st = c;
+      c = snap && snap.exists ? parse((snap.data() || {}).state) : null;
     } catch (e) { console.warn('TradeZoro paper: cloud load', e); }
   }
+  // the local copy is read AFTER the cloud answer, so a change made meanwhile (e.g. the switch) is kept
+  let st = parse(localStorage.getItem(lsKey()));
+  if (c && (!st || (Number(c.savedAt) || 0) >= (Number(st.savedAt) || 0))) st = c;
   const prev = replay ? liveAcct : acct;
   const fresh = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
   fresh.last = prev ? prev.last : {};
@@ -242,6 +295,7 @@ async function load(){
   // must not cost a Firestore write for members who never use paper trading
   if (!st && !replay) save(true);
   renderAll();
+  applyEnabled();
 }
 window.addEventListener('storage', (e) => {
   if (!acct || replay || e.key !== lsKey() || !e.newValue) return;
@@ -251,6 +305,7 @@ window.addEventListener('storage', (e) => {
   acct = new PE.PaperAccount(st, { now: () => Date.now(), isOpen, tickOf: tickHint });
   acct.last = last;
   renderAll();
+  if (paperOn() !== applyEnabled.last) applyEnabled();   // switched in another Charts tab
 });
 
 // ------------------------------------------------------------------ leader election (fills in one tab)
@@ -329,7 +384,7 @@ export function setReplay(on){
   }
   if (panel) panel.classList.toggle('is-replay', !!replay);
   const bd = panel && panel.querySelector('.stkpt-badge'); if (bd) bd.textContent = replay ? 'Replay account' : 'Demo';
-  pushLines(true); renderAll();
+  pushLines(true); renderAll(); applyEnabled();
 }
 // The replay clock moved: one segment per newly revealed bar of the update interval (in order).
 // seed = a jump (select bar, back step, symbol switch): just learn the price, never fill.
@@ -470,7 +525,7 @@ async function sendToJournalOnce(t){
   } catch (e) { console.warn('TradeZoro paper: journal', e); toast('Could not send it to the journal. Try again from History.', 'error'); }
 }
 function offerJournal(trade){
-  if (!acct.settings.askJournal || !uid || replay) return;
+  if (!acct.settings.askJournal || !uid || replay || !paperOn()) return;
   let box = document.getElementById('stkpt-offers');
   if (!box) { box = h('div', { id: 'stkpt-offers', 'aria-live': 'polite' }); document.body.appendChild(box); }
   while (box.children.length >= 2) box.firstChild.remove();
@@ -486,6 +541,7 @@ function offerJournal(trade){
 // ------------------------------------------------------------------ actions (UI -> engine)
 function act(fn, okMsg){
   if (!acct) { toast('Paper trading is still loading.', 'info'); return null; }
+  if (!paperOn()) return null;          // switched off in Chart settings: no new paper actions
   syncFromLocal();
   try {
     const r = fn();
@@ -519,7 +575,7 @@ function cancelOrder(id){ return act(() => { acct.cancelOrder(id); return []; })
 // ------------------------------------------------------------------ on-chart lines (renderer layer + DOM chips)
 const COL = { buy: '#2962ff', sell: '#f23645', tp: '#089981', sl: '#f23645', pos: '#089981', neg: '#f23645', flat: '#787b86' };
 function linesFor(sym){
-  if (!acct || !acct.settings.lines) return [];
+  if (!acct || !acct.settings.lines || !paperOn()) return [];
   const out = [];
   const p = acct.position(sym);
   if (p) {
@@ -766,7 +822,7 @@ function oneClickAll(){
   for (const cell of cells()) {
     const inst = layerInst(inner(cell)); if (!inst || !inst.overlay) continue;
     let oc = inst.overlay.querySelector('.stkpt-1c');
-    const show = !!acct && acct.settings.oneClick && specOf(cell.symbol).ok;
+    const show = !!acct && paperOn() && acct.settings.oneClick && specOf(cell.symbol).ok;
     if (!show) { if (oc) oc.remove(); continue; }
     if (!oc) {
       oc = h('div', { class: 'stkpt-1c', role: 'group', 'aria-label': 'One-click paper trading' }, [
@@ -838,6 +894,7 @@ const tk = { side: 'buy', type: 'market', sym: '', modify: null, tpOn: false, sl
 export function openTicket(pre){
   pre = pre || {};
   if (!acct) { toast('Paper trading is still loading.', 'info'); return; }
+  if (!paperOn()) return;               // switched off in Chart settings
   const c = activeCell();
   if (pre.modify) {
     const o = pre.modify;
@@ -997,6 +1054,7 @@ function submitTicket(){
 const ctxAt = { cell: null, price: null };
 function captureContext(e){
   ctxAt.cell = null; ctxAt.price = null;
+  if (!paperOn()) return;
   for (const cell of cells()) {
     if (!cell.host || !cell.host.contains(e.target)) continue;
     const inst = layerInst(inner(cell)); const a = inst && inst.args; if (!a) return;
@@ -1023,18 +1081,18 @@ function ctxLabel(side){
 }
 function registerContextActions(){
   if (!CORE || !CORE.registerWidgetAction) return;
-  const when = () => !!(ctxAt.cell && ctxAt.price != null && acct && Number.isFinite(acct.last[ctxAt.cell.symbol]));
+  const when = () => !!(paperOn() && ctxAt.cell && ctxAt.price != null && acct && Number.isFinite(acct.last[ctxAt.cell.symbol]));
   CORE.registerWidgetAction({ id: 'stryker.paper-buy', target: 'context:body', order: 900, get label(){ return ctxLabel('buy'); }, when,
     run: () => { const o = ctxOrder('buy'); if (o) placeOrder(o); } });
   CORE.registerWidgetAction({ id: 'stryker.paper-sell', target: 'context:body', order: 901, get label(){ return ctxLabel('sell'); }, when,
     run: () => { const o = ctxOrder('sell'); if (o) placeOrder(o); } });
-  CORE.registerWidgetAction({ id: 'stryker.paper-ticket', target: 'context:body', order: 902, label: 'Paper order ticket…', when: () => !!ctxAt.cell,
+  CORE.registerWidgetAction({ id: 'stryker.paper-ticket', target: 'context:body', order: 902, label: 'Paper order ticket…', when: () => !!(paperOn() && ctxAt.cell),
     run: () => { const c = ctxAt.cell; openTicket({ symbol: c.symbol, type: 'limit', price: ctxAt.price }); } });
 }
 
 // ------------------------------------------------------------------ bottom panel
-export function openPanel(tab){ ui.open = true; if (tab) ui.tab = tab; saveUi(); renderPanel(); }
-function togglePanel(){ ui.open = !ui.open; saveUi(); renderPanel(); }
+export function openPanel(tab){ if (!paperOn()) return; ui.open = true; if (tab) ui.tab = tab; saveUi(); renderPanel(); }
+function togglePanel(){ if (!paperOn()) return; ui.open = !ui.open; saveUi(); renderPanel(); }
 function buildPanel(){
   const main = document.querySelector('main.dash-main') || document.body;
   panel = h('section', { id: 'stkpt', class: 'stkpt', 'aria-label': 'Paper trading' });
@@ -1081,7 +1139,7 @@ function renderPanel(){
   applyPanelH();
   if (wasOpen !== !!ui.open) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
   panel.querySelector('.stkpt-toggle').setAttribute('aria-expanded', ui.open ? 'true' : 'false');
-  document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone());
+  document.documentElement.classList.toggle('stkpt-sheet-open', !!ui.open && isPhone() && paperOn());
   for (const b of panel.querySelectorAll('[data-tab]')) { const on = b.dataset.tab === ui.tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }
   if (!acct) { panel.querySelector('.stkpt-view').textContent = 'Loading…'; return; }
   const np = Object.keys(acct.state.positions).length, no = acct.state.orders.length;
@@ -1252,6 +1310,70 @@ function viewAccount(){
     syncFromLocal(); acct.reset(bal); tracks.clear(); save(); renderAll(); toast('Paper account reset to ' + money(bal), 'success');
   };
   return a;
+}
+
+// ------------------------------------------------------------------ Chart settings → "Paper trading" tab
+// A Vela host section (assets/chart-settings.js collects window.__stkExtraSections) gives the tab
+// its place in the settings rail (☰ on a phone); when the dialog opens its pane is replaced with
+// our own card, styled like the Sounds tab (assets/chart-alerts.js).
+const TAB_TITLE = 'Paper trading';
+function settingsSection(){
+  return [{ title: TAB_TITLE, id: 'stk-paper', placement: 'end', rows: [
+    { kind: 'heading', label: 'Paper trading · demo money · simulated fills' },
+    { kind: 'toggle', label: 'Enable paper trading', id: 'pt-enabled', get: () => paperOn(), set: (v) => setPaperEnabled(v) }
+  ] }];
+}
+function renderSettingsPane(host){
+  host.textContent = '';
+  host.classList.add('stkpt-set-ui');
+  const a = liveOf();
+  const np = a ? Object.keys(a.state.positions).length : 0, no = a ? a.state.orders.length : 0;
+  const sw = h('label', { class: 'stkpt-switch' }, [
+    h('input', { type: 'checkbox', role: 'switch', 'aria-label': 'Enable paper trading' }),
+    h('span', { class: 'stkpt-switch-t', 'aria-hidden': 'true' })
+  ]);
+  const inp = sw.querySelector('input');
+  inp.checked = paperOn(); inp.disabled = !a;
+  const note = h('p', { class: 'stkpt-set-note' });
+  const setNote = () => {
+    const on = paperOn();
+    note.textContent = !a ? 'Loading your paper account…'
+      : on ? 'On: one-click Buy/Sell, the order ticket, right-click paper orders, chart lines and the Paper trading panel are shown.'
+      : (np || no) ? 'Off. Your paper account is kept as it is (' + np + ' open position' + (np === 1 ? '' : 's') + ', ' + no + ' working order' + (no === 1 ? '' : 's') + '): working orders and TP/SL still fill in the background while a Charts tab is open; nothing is shown until you switch it back on.'
+      : 'Off: no paper-trading buttons, lines or panel on the chart.';
+  };
+  inp.addEventListener('change', () => { setPaperEnabled(inp.checked); inp.checked = paperOn(); setNote(); });
+  setNote();
+  host.appendChild(h('div', { class: 'stkpt-set-card' }, [
+    h('div', { class: 'stkpt-set-row' }, [
+      h('div', { class: 'stkpt-set-txt' }, [h('strong', { text: 'Enable paper trading' }), h('em', { text: 'Practise orders with demo money and simulated fills. ' + (uid ? 'Saved to your account.' : 'Saved in this browser.') })]),
+      sw
+    ]),
+    note
+  ]));
+  host.appendChild(h('p', { class: 'stkpt-set-fine', text: 'No broker, no real orders. Bar replay uses its own Replay account and follows this switch. ' + DISCLAIMER }));
+}
+function wireSettingsDialog(dlg){
+  if (!dlg || dlg.__stkPaperWired) return;
+  dlg.__stkPaperWired = true;
+  const scan = () => {
+    const rail = dlg.querySelector('.vela-sd-rail'), paneHost = dlg.querySelector('.vela-sd-pane');
+    if (!rail || !paneHost) return;
+    const tabs = [...rail.querySelectorAll('.vela-sd-tab')];
+    const i = tabs.findIndex((t) => (t.textContent || '').trim() === TAB_TITLE);
+    const pane = i >= 0 ? paneHost.children[i] : null;
+    if (!pane || pane.querySelector('.stkpt-set-ui')) return;
+    pane.textContent = '';
+    const wrap = h('div'); pane.appendChild(wrap);
+    renderSettingsPane(wrap);
+  };
+  scan();
+  new MutationObserver(scan).observe(dlg, { childList: true, subtree: true });
+}
+function watchSettings(){
+  const scan = () => document.querySelectorAll('.vela-dialog--settings').forEach(wireSettingsDialog);
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+  scan();
 }
 
 // ------------------------------------------------------------------ toolbar button
@@ -1430,7 +1552,35 @@ const CSS = `
   .stkpt-chip{ right:58px; }
   #stkc-paper-btn .stkc-btn-l{ display:none; }
 }
-@media (prefers-reduced-motion:reduce){ .stkpt-toggle svg{ transition:none; } }
+/* switched off (Chart settings → Paper trading): nothing of paper trading on the page */
+.stkpt[hidden],#stkc-paper-btn[hidden]{ display:none !important; }
+html:not(.stkpt-on) .stkpt-1c,html:not(.stkpt-on) .stkpt-chip,html:not(.stkpt-on) #stkpt-offers,html:not(.stkpt-on) #stkpt-toasts,html:not(.stkpt-on) #stkpt-tk{ display:none !important; }
+/* settings tab: same card look as the Sounds tab */
+.stkpt-set-ui{ display:flex; flex-direction:column; gap:12px; padding:2px 0 12px; color:#eeeeee; font-family:Archivo,system-ui,sans-serif; }
+:root[data-theme="light"] .stkpt-set-ui{ color:#131316; }
+.stkpt-set-card{ background:#131316; border:1px solid rgba(238,238,238,.09); border-radius:16px; padding:14px; box-shadow:inset 0 1px 0 rgba(255,255,255,.03); display:flex; flex-direction:column; gap:10px; }
+:root[data-theme="light"] .stkpt-set-card{ background:#f7f8f8; border-color:rgba(19,19,22,.10); }
+.stkpt-set-row{ display:flex; align-items:center; justify-content:space-between; gap:14px; }
+.stkpt-set-txt{ min-width:0; display:flex; flex-direction:column; gap:3px; }
+.stkpt-set-txt strong{ font-size:14px; }
+.stkpt-set-txt em{ font-style:normal; font-size:12px; color:rgba(238,238,238,.62); }
+:root[data-theme="light"] .stkpt-set-txt em{ color:rgba(19,19,22,.62); }
+.stkpt-set-note{ margin:0; padding-top:10px; border-top:1px solid rgba(238,238,238,.08); font-size:12px; color:rgba(238,238,238,.72); }
+:root[data-theme="light"] .stkpt-set-note{ color:rgba(19,19,22,.72); border-top-color:rgba(19,19,22,.08); }
+.stkpt-set-fine{ margin:0; font-size:11.5px; color:rgba(238,238,238,.5); }
+:root[data-theme="light"] .stkpt-set-fine{ color:rgba(19,19,22,.5); }
+.stkpt-switch{ position:relative; flex:none; width:46px; height:26px; cursor:pointer; }
+.stkpt-switch input{ position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:1; }
+.stkpt-switch-t{ position:absolute; inset:0; border-radius:999px; background:rgba(238,238,238,.14); border:1px solid rgba(238,238,238,.16); transition:background .16s ease,border-color .16s ease; }
+.stkpt-switch-t::after{ content:""; position:absolute; top:3px; left:3px; width:18px; height:18px; border-radius:50%; background:#eeeeee; box-shadow:0 1px 3px rgba(0,0,0,.4); transition:transform .16s ease,background .16s ease; }
+.stkpt-switch input:checked + .stkpt-switch-t{ background:#03c988; border-color:#03c988; }
+.stkpt-switch input:checked + .stkpt-switch-t::after{ transform:translateX(20px); background:#050506; }
+.stkpt-switch input:focus-visible + .stkpt-switch-t{ box-shadow:0 0 0 3px rgba(3,201,136,.35); }
+.stkpt-switch input:disabled + .stkpt-switch-t{ opacity:.45; }
+:root[data-theme="light"] .stkpt-switch-t{ background:rgba(19,19,22,.12); border-color:rgba(19,19,22,.16); }
+:root[data-theme="light"] .stkpt-switch-t::after{ background:#fff; }
+:root[data-theme="light"] .stkpt-switch input:checked + .stkpt-switch-t::after{ background:#fff; }
+@media (prefers-reduced-motion:reduce){ .stkpt-toggle svg{ transition:none; } .stkpt-switch-t,.stkpt-switch-t::after{ transition:none; } }
 `;
 
 // ------------------------------------------------------------------ install / mount
@@ -1438,6 +1588,7 @@ export function installPaper(Core){
   CORE = Core;
   try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: layerFactory }); } catch (e) { console.warn('TradeZoro paper: layer', e); }
   try { registerContextActions(); } catch (e) { console.warn('TradeZoro paper: context menu', e); }
+  window.__stkExtraSections = (window.__stkExtraSections || []).concat([settingsSection]);
 }
 export function mountPaper(ws, opts){
   if (!PE) { console.warn('TradeZoro paper: engine missing'); return; }
@@ -1446,6 +1597,8 @@ export function mountPaper(ws, opts){
   buildPanel();
   mountToolbar(opts && opts.bar);
   renderPanel();
+  applyEnabled();                             // hidden until the account says the switch is on
+  try { watchSettings(); } catch (e) { console.warn('TradeZoro paper: settings tab', e); }
   window.addEventListener('contextmenu', captureContext, true);
   window.addEventListener('resize', () => renderPanel(), { passive: true });
   leaderTick();
@@ -1462,6 +1615,6 @@ export function mountPaper(ws, opts){
   window.__stkPaper = {
     get account(){ return acct; }, get liveAccount(){ return replay ? liveAcct : acct; }, get replay(){ return !!replay; }, get leader(){ return leader; }, get uid(){ return uid; }, setReplay, replayFeed, resetReplayAccount,
     openTicket, openPanel, placeOrder, closePos, reversePos, flattenAll, cancelOrder, poll, pushLines, sendToJournal,
-    ctxAt, ctxOrder, commitDrag, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
+    ctxAt, ctxOrder, commitDrag, setEnabled: setPaperEnabled, get enabled(){ return paperOn(); }, label: LABEL, toasts: toastLog, get saves(){ return { saves: saveCount, pushes: cloudPushes, busy: cloudBusy, pending: cloudFirstPending }; }
   };
 }

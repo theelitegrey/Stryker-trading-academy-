@@ -110,7 +110,7 @@ async function desktop(b, w, h, theme, tag) {
   check(L.out.length === 0 && L.barScroll <= 1 && L.sw <= w + 1, `${tag}: nothing clipped / scrolling ${JSON.stringify({ out: L.out, barScroll: L.barScroll, sw: L.sw })}`);
   check(L.hits.length === 0, `${tag}: no overlapping items ${JSON.stringify(L.hits)}`);
   const o = L.order;
-  // TradingView order (build 535): symbol | intervals | style | Indicators | alerts, Replay | undo — layout | grid | settings | Trade, broker | info, More
+  // TradingView order (build 537): symbol | intervals | style | Indicators | alerts, Replay | undo — layout | grid | settings | Trade, broker | info, More
   const seq = [o.sym, o.iv, o.style, o.ind, o.alerts, o.replay, o.undo].filter((v) => v != null);
   check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < alerts < Replay < undo ${JSON.stringify(seq)}`);
   const rseq = [o.lay, o.grid, o.cog, o.trade, o.broker, o.info, o.more].filter((v) => v != null);

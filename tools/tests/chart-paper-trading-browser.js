@@ -200,7 +200,7 @@ const paperUi = (p) => p.evaluate(() => {
 const allHidden = (u) => !u.enabled && !u.cls && !u.panel && !u.trade && u.oneClick === 0 && u.chips === 0 && u.lines === 0;
 // Opens Chart settings (top-bar gear; ☰ tab list on a phone) on the "Paper trading" tab.
 async function openPaperTab(p, phone) {
-  // phone (build 536): the slim TradingView-style row keeps the gear behind ⋯ More
+  // phone (build 537): the slim TradingView-style row keeps the gear behind ⋯ More
   if (!(await p.isVisible('#stkc-settings-btn'))) { await p.click('#stkc-more-btn'); await sleep(200); }
   await p.click('#stkc-settings-btn');
   await p.waitForSelector('.vela-dialog--settings .vela-sd-rail', { state: 'attached', timeout: 10000 });

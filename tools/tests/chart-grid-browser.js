@@ -162,7 +162,7 @@ async function small(b, w, h, mobile, tablet) {
   await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('4l'));
   await settle(p);
   await p.waitForTimeout(800);
-  // phone (build 535): the TradingView-style slim row puts the grid picker behind ⋯ More
+  // phone (build 537): the TradingView-style slim row puts the grid picker behind ⋯ More
   if (!(await p.isVisible('#stkc-layout-btn'))) { await p.click('#stkc-more-btn'); await p.waitForTimeout(200); }
   await p.click('#stkc-layout-btn');
   await p.waitForTimeout(300);

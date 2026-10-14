@@ -40,7 +40,48 @@ function balanced(str){
   }
   return d === 0 && !q;
 }
+// LIBRARY IMPORT (pinets 0.11.0 has no `import`): scripts that `import TradingView/ta/<n> as X` only
+// to call `X.requestVolumeDelta(ltf)` (Volume Bubbles [QuantAlgo]) get the import line dropped and
+// the call replaced by the same rule written with request.security_lower_tf: TradingView's library
+// sums the chart bar's lower-timeframe volume with sign (close > open up, close < open down, else
+// close vs the previous close, else the previous direction) and the last value of that sum is the
+// bar's volume delta. Any other import is left alone (and still fails as before).
+const LIB_IMPORT = /^\s*import\s+TradingView\/ta\/\d+\s+as\s+([A-Za-z_]\w*)\s*(\/\/.*)?$/;
+const LIB_CALL = /\[\s*_\s*,\s*_\s*,\s*_\s*,\s*([A-Za-z_]\w*)\s*\]\s*=\s*([A-Za-z_]\w*)\.requestVolumeDelta\(\s*([A-Za-z_]\w*)\s*\)\s*$/;
+export function rewriteLibraryImports(src){
+  if (typeof src !== 'string' || src.indexOf('requestVolumeDelta') < 0 || src.indexOf('import') < 0) return src;
+  const nl = src.indexOf('\r\n') >= 0 ? '\r\n' : '\n';
+  const lines = src.split(/\r?\n/);
+  const alias = new Set();
+  lines.forEach((l) => { const m = LIB_IMPORT.exec(l); if (m) alias.add(m[1]); });
+  if (!alias.size) return src;
+  const out = [];
+  for (const line of lines) {
+    if (LIB_IMPORT.test(line)) { out.push(''); continue; }
+    const m = LIB_CALL.exec(line);
+    if (m && alias.has(m[2])) {
+      const [, res, , tf] = m;
+      out.push('[stkLtfO, stkLtfC, stkLtfV] = request.security_lower_tf(syminfo.tickerid, ' + tf + ', [open, close, volume], ignore_invalid_symbol = true)');
+      out.push('var float stkPrevC = na');
+      out.push('var bool stkUp = true');
+      out.push('float stkDelta = na');
+      out.push('if array.size(stkLtfV) > 0');
+      out.push('    stkDelta := 0.0');
+      out.push('    for stkI = 0 to array.size(stkLtfV) - 1');
+      out.push('        stkO1 = array.get(stkLtfO, stkI)');
+      out.push('        stkC1 = array.get(stkLtfC, stkI)');
+      out.push('        stkUp := stkC1 > stkO1 ? true : stkC1 < stkO1 ? false : (not na(stkPrevC) and stkC1 > stkPrevC) ? true : (not na(stkPrevC) and stkC1 < stkPrevC) ? false : stkUp');
+      out.push('        stkDelta += stkUp ? array.get(stkLtfV, stkI) : -array.get(stkLtfV, stkI)');
+      out.push('        stkPrevC := stkC1');
+      out.push('float ' + res + ' = stkDelta');
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join(nl);
+}
 export function rewriteSource(src){
+  src = rewriteLibraryImports(src);
   if (typeof src !== 'string' || src.indexOf('.new(') < 0) return src;
   const nl = src.indexOf('\r\n') >= 0 ? '\r\n' : '\n';
   return src.split(/\r?\n/).map((line) => {

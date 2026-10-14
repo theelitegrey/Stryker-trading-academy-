@@ -446,8 +446,12 @@ function pfRunSim(firm, card) {
 function pfLoadCalendar() {
   if (PF_CAL !== null) return Promise.resolve(PF_CAL);
   PF_CAL = false;   // claim it, so a slow fetch does not start a second one
-  return fetch('assets/econ-calendar.json?t=' + Math.floor(Date.now() / 60000))
+  // live copy from the recorder Worker first (server feeder, every 15 min), then the committed file
+  const local = () => fetch('assets/econ-calendar.json?t=' + Math.floor(Date.now() / 60000))
+    .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  return fetch('https://book-recorder.theelitegrey.workers.dev/terminal/econ-calendar.json')
     .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .catch(local)
     .then((d) => { PF_CAL = d; renderPropFirmsTab(); return d; })
     .catch((err) => {
       console.error('TradeZoro: economic calendar could not be loaded for the news guard', err);

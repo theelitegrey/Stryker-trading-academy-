@@ -79,7 +79,8 @@ async function open(b, url, override, viewport, opts) {
      (CAL.banks || []).filter(b => !b.rate || /^[—–-]$/.test(b.rate)).map(b => b.cur).join(','));
   ok('every policy card names its bank and what is priced',
      (CAL.banks || []).every(b => b.bank && b.expect));
-  ok('attribution names Bigdata.com with a link', /Bigdata\.com/.test(CAL.attribution) && /https:\/\/bigdata\.com/.test(CAL.attribution));
+  // the data source changed from Bigdata.com to InsightSentry (server feeder, 2026-10-14); either is credited with a link
+  ok('attribution names the data source with a link', /(Bigdata\.com[^]*https:\/\/bigdata\.com)|(InsightSentry[^]*https:\/\/insightsentry\.com)/.test(CAL.attribution));
   ok('disclaimer says it is not advice', /not trading advice/i.test(CAL.disclaimer));
 
   // ---- 2. the page renders, defaulting to USD --------------------------
@@ -142,7 +143,7 @@ async function open(b, url, override, viewport, opts) {
   ok('renders the policy rates', await p.evaluate(() => document.querySelectorAll('.ec-bank').length) === CAL.banks.length);
   ok('renders the how-to-read notes', await p.evaluate(() => document.querySelectorAll('.ec-how li').length) === CAL.howToRead.length);
   ok('every table has a caption for screen readers', r.caption === r.days);
-  ok('credits the data source', /Bigdata\.com/.test(first.text));
+  ok('credits the data source', /Bigdata\.com|InsightSentry/.test(first.text));
 
   // ---- 3. impact is never colour alone ---------------------------------
   const imp = await p.evaluate(() => {

@@ -65,7 +65,8 @@ function contrast(a,b){const x=L(a),y=L(b);return (Math.max(x,y)+0.05)/(Math.min
   ok('curve has points with yields', MAP.curve.points.length >= 8 && MAP.curve.points.every(p => Number.isFinite(p.yield)));
   ok('curve points are in maturity order', MAP.curve.points.every((p, i, a) => i === 0 || p.years > a[i-1].years));
   ok('the read has points', (MAP.read.points || []).length >= 4);
-  ok('attribution names Bigdata.com with a link', /Bigdata\.com/.test(MAP.attribution) && /https:\/\/bigdata\.com/.test(MAP.attribution));
+  // the data source changed from Bigdata.com to InsightSentry (server feeder, 2026-10-14); either is credited with a link
+  ok('attribution names the data source with a link', /(Bigdata\.com[^]*https:\/\/bigdata\.com)|(InsightSentry[^]*https:\/\/insightsentry\.com)/.test(MAP.attribution));
   ok('disclaimer says it is not advice', /not trading advice/i.test(MAP.disclaimer));
   ok('sources are named', (MAP.sources || []).length > 0);
 
@@ -120,7 +121,7 @@ function contrast(a,b){const x=L(a),y=L(b);return (Math.max(x,y)+0.05)/(Math.min
   ok('every data row has a row header', r.rowHeaders === totalRows);
   ok('column headers are marked as such', r.colHeaders === MAP.groups.length * (MAP.periods.length + 2));
   ok('headline is on the page', r.text.indexOf(MAP.read.headline) !== -1);
-  ok('data source is credited', /Bigdata\.com/.test(r.text));
+  ok('data source is credited', /Bigdata\.com|InsightSentry/.test(r.text));
 
   // ---- 3. colour is never the only encoding ----------------------------
   const enc = await p.evaluate(() => {

@@ -45,6 +45,10 @@ jobs:
           python3 workers/book-recorder/test/info_feeder_test.py
       - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
         run: node workers/book-recorder/test/news.test.mjs
+      - name: Terminal files tests (brief / market map / calendar: validation, health, feeder maths)
+        run: |
+          node workers/book-recorder/test/terminal.test.mjs
+          python3 workers/book-recorder/test/brief_feeder_test.py
       - name: Order-flow tests (feeder vs raw ticks, footprint maths, 1-second path, no-lookahead, validation)
         run: node workers/book-recorder/test/orderflow.test.mjs
       - name: Deploy
@@ -118,5 +122,12 @@ jobs:
           echo "of-ingest without key: HTTP $f401"; test "$f401" = 401
           of=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/orderflow?sym=NQ")
           echo "orderflow: HTTP $of"; test "$of" = 200
+          for i in 1 2 3 4 5 6; do
+            ti=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/terminal-ingest?name=market-map")
+            [ "$ti" = 401 ] && break; sleep 10
+          done
+          echo "terminal-ingest without key: HTTP $ti"; test "$ti" = 401
+          tm=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/terminal/market-map.json")
+          echo "terminal/market-map.json: HTTP $tm (404 = no feeder data yet)"; test "$tm" = 200 -o "$tm" = 404
           t1=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/ticks1s?sym=NQ")
           echo "ticks1s: HTTP $t1"; test "$t1" = 200

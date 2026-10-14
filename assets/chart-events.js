@@ -242,7 +242,9 @@ export function installChartEvents(Core){
 export function mountChartEvents(ws){
   WS = ws;
   if (!document.getElementById('stk-ev-css')) { const st = document.createElement('style'); st.id = 'stk-ev-css'; st.textContent = CSS; document.head.appendChild(st); }
-  fetch(CAL_URL, { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).then((j) => {
+  // live copy from the recorder Worker first (refreshed every 15 min by the server feeder), then the committed file
+  fetch('https://book-recorder.theelitegrey.workers.dev/terminal/econ-calendar.json').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .catch(() => fetch(CAL_URL, { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null)).then((j) => {
     const list = j && Array.isArray(j.events) ? j.events : [];
     events = list.map((e) => ({ t: Date.parse(e.at), cur: e.cur, impact: e.impact, title: String(e.event || '') })).filter((e) => Number.isFinite(e.t) && e.title);
     push();

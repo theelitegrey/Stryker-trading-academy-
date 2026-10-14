@@ -25,6 +25,21 @@
 
   const BRIEF_URL = 'assets/market-brief.json';
 
+  // Live copy first: the server feeder (workers/book-recorder/brief-feeder) publishes a fresh file
+  // to the recorder Worker every 15 min in the US session without a site deploy. The committed
+  // assets/ copy (refreshed once a day) is the fallback when the Worker is slow or unreachable.
+  const TERMINAL_LIVE = 'https://book-recorder.theelitegrey.workers.dev/terminal/';
+  function loadTerminal(name, local) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 5000) : 0;
+    const fallback = () => fetch(local + '?t=' + Math.floor(Date.now() / 60000))
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return fetch(TERMINAL_LIVE + name + '.json', ctl ? { signal: ctl.signal } : {})
+      .then((r) => { clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then((d) => { if (!d || !isFinite(Date.parse(d.generatedAt))) throw new Error('bad file'); return d; })
+      .catch(() => { clearTimeout(timer); return fallback(); });
+  }
+
   // Guarded, like the map's: no motion.js means no movement, never no content.
   const M = () => (window.stkMotion || { reveal: function () {} });
 
@@ -38,8 +53,7 @@
     // Cache-busted because the file changes daily and lives under /assets/,
     // which _headers caches for a year. The header override is there too; this
     // is belt and braces for anything that ignores it.
-    return fetch(BRIEF_URL + '?t=' + Math.floor(Date.now() / 60000))
-      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return loadTerminal('market-brief', BRIEF_URL);
   }
 
   function ageHours(brief) {

@@ -1,12 +1,12 @@
 {
-  "_comment": "Economic calendar. Regenerated on a schedule and committed; the site only renders it. Times are UTC and only UTC — the renderer converts to the reader's own clock. See tools/econ-calendar.md.",
+  "_comment": "Economic calendar. Built on our server by brief-feeder from the InsightSentry calendar (via the recorder Worker) every 15 minutes and served at /terminal/econ-calendar.json; this committed copy is the fallback. Times are UTC and only UTC — the renderer converts to the reader’s clock. See tools/econ-calendar.md.",
   "schema": 1,
-  "generatedAt": "2026-10-09T05:58:00Z",
+  "generatedAt": "2026-10-14T19:25:08Z",
   "staleAfterHours": 30,
-  "goodUntil": "2026-10-12T11:00:00Z",
+  "goodUntil": "2026-10-15T07:00:00Z",
   "defaultCurrency": "USD",
-  "rangeStart": "2026-10-02",
-  "rangeEnd": "2026-10-30",
+  "rangeStart": "2026-10-07",
+  "rangeEnd": "2026-11-04",
   "currencies": [
     {
       "code": "USD",
@@ -42,6 +42,16 @@
       "code": "AUD",
       "name": "Australian dollar",
       "flag": "🇦🇺"
+    },
+    {
+      "code": "CHF",
+      "name": "Swiss franc",
+      "flag": "🇨🇭"
+    },
+    {
+      "code": "NZD",
+      "name": "New Zealand dollar",
+      "flag": "🇳🇿"
     }
   ],
   "banks": [
@@ -50,7 +60,7 @@
       "bank": "Federal Reserve",
       "rate": "3.75–4.00%",
       "next": "2026-10-28",
-      "expect": "Hiked 25bp on 16 Sep, with all 19 participants backing it. The minutes say most see another hike likely by year-end without naming a month; futures price 28 Oct as a hold at about 80%, December as a hike at about 70% and another in March at about 45%. Waller said more hikes are needed but the timing is flexible; Thursday's thirty-year auction cleared at 5.618% and the ten-year closed near 5.23%. CPI on the 14th comes next",
+      "expect": "Next decision Wed 28 Oct at 18:00 UTC. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -58,7 +68,7 @@
       "bank": "European Central Bank",
       "rate": "2.50%",
       "next": "2026-10-29",
-      "expect": "Second hike of 2026 on 10 Sep, to a 2.50% deposit rate. September's flash HICP printed 3.8%, but French bond stress (the spread to Germany recently posted its biggest weekly jump in decades), Spain's snap election and weak retail sales and German orders have cut the ECB path to about two and a half more hikes from three and a half. Lagarde told euro-area finance ministers the ECB has tools to counter disorderly market moves if criteria are met; one house expects a pause on 29 October and a final hike in December",
+      "expect": "Next decision Thu 29 Oct at 13:15 UTC. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -66,7 +76,7 @@
       "bank": "Bank of England",
       "rate": "3.75%",
       "next": null,
-      "expect": "Held 6–3 on 17 Sep. Gilt yields hit a 28-year high on 1 October and Catherine Mann said a hike is needed because financial conditions are not tight enough; markets discount about 30bp by the end of the year and roughly 90bp through 2027, with labour data on 20 October and CPI on the 21st before the November meeting",
+      "expect": "No decision is scheduled in the next three weeks of the calendar. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -74,7 +84,7 @@
       "bank": "Bank of Japan",
       "rate": "1.25%",
       "next": "2026-10-30",
-      "expect": "Hiked to 1.25% on 18 Sep, a 31-year high. Sources say the Bank may judge underlying inflation to have reached 2% in its outlook report on 29–30 October, while a sideways Tankan takes pressure off a back-to-back hike; board member Sato favours gradual hikes. USD/JPY is near 158 and August real cash earnings rose 1.5%, an eighth straight gain",
+      "expect": "Next decision Fri 30 Oct at 03:00 UTC. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -82,7 +92,7 @@
       "bank": "Bank of Canada",
       "rate": "2.25%",
       "next": "2026-10-28",
-      "expect": "Held for a seventh meeting. Minutes flag oil pass-through; about 59% priced for an October hike. The 28 October decision comes with a policy report and a press conference",
+      "expect": "Next decision Wed 28 Oct at 13:45 UTC. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -90,7 +100,7 @@
       "bank": "Reserve Bank of Australia",
       "rate": "4.60%",
       "next": null,
-      "expect": "Hiked 25bp to 4.60% on 29 Sep, unanimous, and said more may be needed — but Bullock disclosed the board discussed holding, and August CPI printed 4.0% with a soft 0.2% monthly trimmed mean. ANZ still calls November; the currency fell through $0.70",
+      "expect": "No decision is scheduled in the next three weeks of the calendar. Last move: a hike.",
       "bias": "up"
     },
     {
@@ -98,182 +108,11 @@
       "bank": "Swiss National Bank",
       "rate": "0.00%",
       "next": null,
-      "expect": "Held at 0% on 24 Sep and nudged the inflation forecast up to 0.7–0.8% on energy. September CPI printed 1.0%, exactly as expected; December's hike odds sit near 31% from 71% a week earlier. A weaker franc is doing what a hike would",
+      "expect": "No decision is scheduled in the next three weeks of the calendar. Last move: a hold.",
       "bias": "hold"
     }
   ],
   "events": [
-    {
-      "at": "2026-10-02T09:00:00Z",
-      "cur": "EUR",
-      "impact": "high",
-      "event": "Euro area HICP, flash (Sep, y/y)",
-      "previous": "3.2%",
-      "note": "3.8% against 3.6–3.7% expected and 3.2% in August, a three-year high; the monthly rate was +0.6%. Energy inflation rose to 18.8% from 14.3% and food and services edged up, but core held at 2.5%, as expected. The ECB meets on 29 October: Standard Chartered still expects the Governing Council to wait for December's projections, while others read the print as making an October move harder to rule out. The euro stayed near its lowest since May 2025.",
-      "forecast": "3.6%",
-      "actual": "3.8%"
-    },
-    {
-      "at": "2026-10-02T09:00:00Z",
-      "cur": "EUR",
-      "impact": "medium",
-      "event": "Euro area core HICP, flash (Sep, y/y)",
-      "forecast": "2.5%",
-      "previous": "2.4%",
-      "actual": "2.5%"
-    },
-    {
-      "at": "2026-10-02T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US average hourly earnings (Sep, y/y)",
-      "previous": "3.1%",
-      "note": "3.0% against 3.2% expected and 3.1% before, the slowest annual pace since May 2021; the monthly gain was +0.1% against +0.3%. The wage channel the Fed worries about most is not the one that is hot, which is part of why October's hike odds fell on the day.",
-      "forecast": "3.2%",
-      "actual": "3.0%"
-    },
-    {
-      "at": "2026-10-02T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US nonfarm payrolls (Sep)",
-      "previous": "133k",
-      "note": "+29,000 against 90,000 in the Bloomberg survey (84,000 in others) and a revised 133,000 in August; August was cut from 162,000 and July turned to a 10,000 loss from a 21,000 gain, a net 60,000 downward revision. Private payrolls rose 46,000 against about 81,000 expected; health care added 23,000 and leisure 10,000. The three-month average is near 51,000. Goldman had flagged the late Labor Day as a drag on September. October's hike went to about 22% priced from 64% a week earlier; December remains the favoured date.",
-      "forecast": "90k",
-      "actual": "29k"
-    },
-    {
-      "at": "2026-10-02T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US unemployment rate (Sep)",
-      "previous": "4.1%",
-      "forecast": "4.1%",
-      "actual": "4.2%",
-      "note": "4.2% against 4.1% expected, with participation up to 61.8% from 61.6% and the labour force larger, so part of the rise is people entering, not people laid off. The broad U6 rate slipped to 7.6%."
-    },
-    {
-      "at": "2026-10-02T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US factory orders (Aug, m/m)",
-      "previous": "0.8%",
-      "note": "+0.1% as expected, with July revised down to +0.8% from +0.9%. Strong electrical-equipment orders were offset by weaker commercial aircraft.",
-      "forecast": "0.1%",
-      "actual": "0.1%"
-    },
-    {
-      "at": "2026-10-02T14:20:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Logan speaks",
-      "note": "After the jobs data, repeated that the funds-rate range needs to rise by another 50 basis points, while saying higher market yields are already doing some of the tightening. Treasury yields, which had fallen on the report, closed higher."
-    },
-    {
-      "at": "2026-10-05T13:45:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US S&P Global composite PMI, final (Sep)",
-      "forecast": "58.4",
-      "previous": "58.4",
-      "actual": "58.4",
-      "note": "Composite 58.4 as expected; the services index was revised to 58.8 from a 58.7 flash, the fastest expansion in more than five years, and S&P Global's survey also pointed to inflation pressure."
-    },
-    {
-      "at": "2026-10-05T14:00:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US ISM services PMI (Sep)",
-      "previous": "55.4",
-      "note": "54.9 against 55.0 expected and 55.4 before, a 27th month of expansion. Business activity fell to 56.5 from 61.7 and new orders to 59.8 from 60.9, but employment rose to 50.1 from 47.8, back above 50 for the first time in three months, and export orders fell into contraction at 46.9. The headline was soft; the prices line, below, was not.",
-      "forecast": "55.0",
-      "actual": "54.9"
-    },
-    {
-      "at": "2026-10-05T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US ISM services prices paid (Sep)",
-      "previous": "72.6",
-      "note": "74.0 against 73.3 expected and 72.6 before, the highest since July 2022. Fuel, shipping and interest costs were the most-cited pressures. The ten-year touched 5.349% within hours, its highest since 2002, and closed near 5.31%. Together with manufacturing prices paid at 77.9 last Thursday, both ISM surveys are pointing the same way.",
-      "actual": "74.0",
-      "forecast": "73.3"
-    },
-    {
-      "at": "2026-10-06T06:35:00Z",
-      "cur": "JPY",
-      "impact": "high",
-      "event": "BoJ Governor Ueda speaks",
-      "note": "Speaks after the Tokyo close. Sources say the Bank may judge that underlying inflation has reached its 2% goal in the outlook report for its 29–30 October meeting, though the Tankan showed corporate inflation moving sideways, which takes pressure off a back-to-back hike. The yen is near 158, the ten-year JGB yield about 3.1%, and the 10-year auction earlier today drew firmer demand than last month's."
-    },
-    {
-      "at": "2026-10-06T09:00:00Z",
-      "cur": "EUR",
-      "impact": "high",
-      "event": "Euro area retail sales (Aug, y/y)",
-      "previous": "0.6%",
-      "note": "0.8% against 1.0% expected, and July was revised down to 0.4% from 0.6%. Volumes rose 0.1% on the month against 0.2% expected, with automotive fuel down 1.9% as pump prices rose. German factory orders fell 10.6% in August, the most in seven months, the same morning; the euro still closed higher on French bond relief.",
-      "forecast": "1.0%",
-      "actual": "0.8%"
-    },
-    {
-      "at": "2026-10-06T12:30:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US trade balance (Aug)",
-      "previous": "-$88.6bn",
-      "forecast": "-$102.0bn",
-      "actual": "-$105.6bn",
-      "note": "A $105.6 billion deficit against $102 billion expected, the widest since March 2025; July was revised to $92.8 billion from $88.6 billion. Imports rose 4.3% to a record $420.8 billion on crude oil, capital goods tied to the AI build-out and nonmonetary gold, while exports rose 1.4% to $315.2 billion. Capital Economics says third-quarter GDP growth will now come in well below its 4.0% forecast, closer to 2.5%."
-    },
-    {
-      "at": "2026-10-06T13:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Lamb Weston Q1 earnings"
-    },
-    {
-      "at": "2026-10-06T13:05:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Williams speaks",
-      "note": "The New York Fed president whose 'no need for urgency' on 29 September began the October repricing, a week on and after the payrolls miss. He has said he expects one more hike this year."
-    },
-    {
-      "at": "2026-10-06T14:00:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "RPM International Q1 earnings"
-    },
-    {
-      "at": "2026-10-06T14:45:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Bowman speaks"
-    },
-    {
-      "at": "2026-10-06T14:45:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Musalem speaks",
-      "note": "A non-voter in 2026 who said last week that policy is still slightly accommodative after the September hike. He speaks again on Thursday."
-    },
-    {
-      "at": "2026-10-06T17:00:00Z",
-      "cur": "USD",
-      "impact": "low",
-      "event": "US 3-year note auction",
-      "previous": "4.474%",
-      "note": "$58 billion at 4.932%, the highest since 4.995% in May 2006 and up from 4.474% last month. The bid-to-cover was 2.62 against a 2.64 average of the last ten and 2.72 last time, and indirect bidders took 57.6% against a 63% twelve-month average; it did clear at about the 4.934% when-issued yield. The ten-year closed near 5.27%, down about 4bp, on a day oil dipped and Treasuries found buyers.",
-      "actual": "4.932%"
-    },
-    {
-      "at": "2026-10-06T17:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "Fed's Schmid speaks",
-      "note": "Kansas City. Said inflation is 'frustrating' and must be fixed, that AI is now one of the largest drivers of it, and that the policy rate still has to rise even though higher long-term yields are weighing on parts of the economy. San Francisco's Daly said the same day that inflation may last longer than expected and that more hikes may be needed; Williams had said last week there was no urgency."
-    },
     {
       "at": "2026-10-07T12:00:00Z",
       "cur": "USD",
@@ -360,18 +199,18 @@
     {
       "at": "2026-10-09T14:00:00Z",
       "cur": "USD",
-      "impact": "medium",
-      "event": "Delta Air Lines Q3 earnings",
-      "note": "The first big airline of the season, reporting into jet fuel that has doubled in a year. Guidance on fuel and demand is the read, not the quarter."
-    },
-    {
-      "at": "2026-10-09T14:00:00Z",
-      "cur": "USD",
       "impact": "high",
       "event": "Michigan sentiment, preliminary (Oct)",
       "note": "The first October survey. September was 48.1 with one-year inflation expectations at 4.6% and five-year at 3.4%; the New York Fed's survey this week put one-year expectations at the highest in more than three years, so the expectations line is the one the Fed will read.",
       "forecast": "47.6",
       "previous": "48.1"
+    },
+    {
+      "at": "2026-10-09T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Delta Air Lines Q3 earnings",
+      "note": "The first big airline of the season, reporting into jet fuel that has doubled in a year. Guidance on fuel and demand is the read, not the quarter."
     },
     {
       "at": "2026-10-12T05:00:00Z",
@@ -390,453 +229,2528 @@
       "at": "2026-10-13T00:30:00Z",
       "cur": "AUD",
       "impact": "high",
-      "event": "RBA minutes (29 Sep meeting)",
-      "note": "The record of the meeting that markets have at about 90% for a hike from 4.35%. How close the vote was, and what August's 4.6% unemployment did to it, is the read."
+      "event": "Australia NAB Business Confidence",
+      "actual": "−13",
+      "previous": "−9",
+      "note": "Printed −13 (no consensus forecast was published); previous −9."
     },
     {
-      "at": "2026-10-13T06:00:00Z",
-      "cur": "EUR",
+      "at": "2026-10-13T00:30:00Z",
+      "cur": "AUD",
       "impact": "high",
-      "event": "Germany HICP, final (Sep, y/y)",
-      "previous": "2.9%",
-      "note": "The final read of the flash due 30 September. Germany sits at 2.9% against a euro-area 3.2%, and the ECB has said no meeting is ruled out."
+      "event": "Australia RBA Meeting Minutes",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
-      "at": "2026-10-13T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "JPMorgan Chase Q3 earnings",
-      "note": "The start of the third-quarter reporting season, with Goldman Sachs, Wells Fargo, Citigroup and BlackRock the same morning. FactSet has S&P 500 earnings growing about 29% for the quarter, a third straight quarter above 25%; the banks report into a curve at 5% and a financials sector that is flat on the year."
-    },
-    {
-      "at": "2026-10-13T12:30:00Z",
+      "at": "2026-10-13T07:45:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Johnson & Johnson and UnitedHealth Q3 earnings"
+      "event": "US Fed Waller Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
-      "at": "2026-10-13T13:30:00Z",
+      "at": "2026-10-13T09:56:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Goldman Sachs Q3 earnings"
+      "event": "UnitedHealth earnings",
+      "kind": "earnings",
+      "ticker": "UNH",
+      "actual": "EPS 4.69",
+      "forecast": "EPS 4.14"
+    },
+    {
+      "at": "2026-10-13T10:20:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Johnson & Johnson earnings",
+      "kind": "earnings",
+      "ticker": "JNJ",
+      "actual": "EPS 2.59",
+      "forecast": "EPS 2.52"
+    },
+    {
+      "at": "2026-10-13T10:33:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Wells Fargo & earnings",
+      "kind": "earnings",
+      "ticker": "WFC",
+      "actual": "EPS 1.87",
+      "forecast": "EPS 1.85"
+    },
+    {
+      "at": "2026-10-13T10:47:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "JP Morgan Chase & Co. earnings",
+      "kind": "earnings",
+      "ticker": "JPM",
+      "actual": "EPS 5.57",
+      "forecast": "EPS 5.93"
+    },
+    {
+      "at": "2026-10-13T11:27:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Goldman Sachs earnings",
+      "kind": "earnings",
+      "ticker": "GS",
+      "actual": "EPS 17.01",
+      "forecast": "EPS 12.86"
+    },
+    {
+      "at": "2026-10-13T12:06:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Citigroup earnings",
+      "kind": "earnings",
+      "ticker": "C",
+      "actual": "EPS 2.85",
+      "forecast": "EPS 2.66"
+    },
+    {
+      "at": "2026-10-13T12:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US ADP Employment Change Weekly",
+      "actual": "24.75",
+      "previous": "23.75",
+      "note": "Printed 24.75 (no consensus forecast was published); previous 23.75."
+    },
+    {
+      "at": "2026-10-13T14:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Existing Home Sales",
+      "actual": "3.99",
+      "forecast": "3.95",
+      "previous": "3.93",
+      "note": "Printed 3.99 against a forecast of 3.95; previous 3.93."
     },
     {
       "at": "2026-10-13T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US existing home sales (Sep)",
-      "previous": "3.98m",
-      "note": "The first full month of sales agreed at mortgage rates above 7%. August fell 2.0%."
+      "event": "US Existing Home Sales MoM",
+      "actual": "1.5%",
+      "previous": "−3.2%",
+      "note": "Printed 1.5% (no consensus forecast was published); previous −3.2%."
     },
     {
-      "at": "2026-10-13T14:00:00Z",
+      "at": "2026-10-13T17:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Wells Fargo Q3 earnings"
+      "event": "US Fed Barkin Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
-      "at": "2026-10-13T15:00:00Z",
+      "at": "2026-10-13T20:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Citigroup Q3 earnings"
+      "event": "US Fed Collins Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-14T01:30:00Z",
       "cur": "CNY",
       "impact": "high",
-      "event": "China CPI (Sep, y/y)",
+      "event": "China Inflation Rate YoY",
+      "actual": "0.9%",
+      "forecast": "1%",
       "previous": "0.8%",
-      "note": "Pushed back a week by the Golden Week holiday. Still under 1% while the US prints 3%-plus; the gap is the whole US–China rates and currency story."
+      "note": "Printed 0.9% against a forecast of 1%; previous 0.8%."
+    },
+    {
+      "at": "2026-10-14T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Inflation Rate MoM",
+      "actual": "0.2%",
+      "forecast": "0.3%",
+      "previous": "0.4%",
+      "note": "Printed 0.2% against a forecast of 0.3%; previous 0.4%."
+    },
+    {
+      "at": "2026-10-14T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China PPI YoY",
+      "actual": "5%",
+      "forecast": "4.5%",
+      "previous": "3.8%",
+      "note": "Printed 5% against a forecast of 4.5%; previous 3.8%."
+    },
+    {
+      "at": "2026-10-14T02:10:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Euro area ECB President Lagarde Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-14T02:30:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China Balance of Trade",
+      "actual": "$133.53",
+      "forecast": "$118.1",
+      "previous": "$119.09",
+      "note": "Printed $133.53 against a forecast of $118.1; previous $119.09."
+    },
+    {
+      "at": "2026-10-14T02:30:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China Exports YoY",
+      "actual": "36.3%",
+      "forecast": "25.5%",
+      "previous": "25%",
+      "note": "Printed 36.3% against a forecast of 25.5%; previous 25%."
+    },
+    {
+      "at": "2026-10-14T02:30:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China Imports YoY",
+      "actual": "31%",
+      "forecast": "24.5%",
+      "previous": "28.2%",
+      "note": "Printed 31% against a forecast of 24.5%; previous 28.2%."
+    },
+    {
+      "at": "2026-10-14T05:30:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK BoE Gov Bailey Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-14T06:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Wholesale Prices MoM",
+      "actual": "1.9%",
+      "forecast": "0.7%",
+      "previous": "0.9%",
+      "note": "Printed 1.9% against a forecast of 0.7%; previous 0.9%."
+    },
+    {
+      "at": "2026-10-14T06:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Wholesale Prices YoY",
+      "actual": "8.7%",
+      "previous": "6.8%",
+      "note": "Printed 8.7% (no consensus forecast was published); previous 6.8%."
+    },
+    {
+      "at": "2026-10-14T06:05:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada BoC Gov Macklem Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-14T08:30:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Euro area ECB President Lagarde Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-14T09:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China New Yuan Loans",
+      "actual": "1080CNY",
+      "forecast": "975CNY",
+      "previous": "60CNY",
+      "note": "Printed 1080CNY against a forecast of 975CNY; previous 60CNY."
+    },
+    {
+      "at": "2026-10-14T09:40:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Fed Bowman Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-14T10:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "BlackRock earnings",
+      "kind": "earnings",
+      "ticker": "BLK",
+      "actual": "EPS 15.93",
+      "forecast": "EPS 14.32"
+    },
+    {
+      "at": "2026-10-14T10:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Bank of America earnings",
+      "kind": "earnings",
+      "ticker": "BAC",
+      "actual": "EPS 0.91",
+      "forecast": "EPS 1.1"
+    },
+    {
+      "at": "2026-10-14T11:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US MBA 30-Year Mortgage Rate",
+      "actual": "7.5%",
+      "previous": "7.49%",
+      "note": "Printed 7.5% (no consensus forecast was published); previous 7.49%."
+    },
+    {
+      "at": "2026-10-14T11:31:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Morgan Stanley earnings",
+      "kind": "earnings",
+      "ticker": "MS",
+      "actual": "EPS 3.03",
+      "forecast": "EPS 2.93"
+    },
+    {
+      "at": "2026-10-14T12:17:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Progressive earnings",
+      "kind": "earnings",
+      "ticker": "PGR",
+      "actual": "EPS 4.662",
+      "forecast": "EPS 4.35"
     },
     {
       "at": "2026-10-14T12:30:00Z",
       "cur": "USD",
       "impact": "high",
-      "event": "US CPI (Sep, y/y)",
-      "previous": "3.4%",
-      "note": "3.4% in August with the monthly at +0.4%. The first CPI after the September hike, two weeks before the 28 October decision."
-    },
-    {
-      "at": "2026-10-14T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US core CPI (Sep, m/m)",
+      "event": "US Core Inflation Rate MoM",
+      "actual": "0.3%",
+      "forecast": "0.2%",
       "previous": "0.3%",
-      "note": "0.3% last month. The Fed is hiking against the risk that energy leaks into core; this is where it would show."
+      "note": "Printed 0.3% against a forecast of 0.2%; previous 0.3%."
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Core Inflation Rate YoY",
+      "actual": "2.6%",
+      "forecast": "2.5%",
+      "previous": "2.4%",
+      "note": "Printed 2.6% against a forecast of 2.5%; previous 2.4%."
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Inflation Rate MoM",
+      "actual": "0.6%",
+      "forecast": "0.6%",
+      "previous": "0.4%",
+      "note": "Printed 0.6% against a forecast of 0.6%; previous 0.4%."
+    },
+    {
+      "at": "2026-10-14T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Inflation Rate YoY",
+      "actual": "3.7%",
+      "forecast": "3.6%",
+      "previous": "3.4%",
+      "note": "Printed 3.7% against a forecast of 3.6%; previous 3.4%."
     },
     {
       "at": "2026-10-14T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Bank of America Q3 earnings",
-      "kind": "earnings",
-      "ticker": "BAC"
+      "event": "US CPI",
+      "actual": "336.94",
+      "forecast": "336.65",
+      "previous": "334.98",
+      "note": "Printed 336.94 against a forecast of 336.65; previous 334.98."
     },
     {
-      "at": "2026-10-14T13:30:00Z",
+      "at": "2026-10-14T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Morgan Stanley Q3 earnings",
-      "kind": "earnings",
-      "ticker": "MS"
+      "event": "US CPI s.a",
+      "actual": "336.3",
+      "previous": "334.13",
+      "note": "Printed 336.3 (no consensus forecast was published); previous 334.13."
+    },
+    {
+      "at": "2026-10-14T17:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Fed Barkin Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-14T18:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Fed's Beige Book",
-      "note": "The anecdotal survey two weeks before the 28 October meeting. The September hike was justified partly on regional reports of pass-through; this is where that gets updated."
+      "event": "US Monthly Budget Statement",
+      "forecast": "−$29",
+      "previous": "−$167",
+      "note": "Forecast −$29; previous −$167. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-14T20:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US API Crude Oil Stock Change",
+      "forecast": "1.9",
+      "previous": "−2.09",
+      "note": "Forecast 1.9; previous −2.09. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-14T23:50:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Machinery Orders MoM",
+      "forecast": "3%",
+      "previous": "−3.7%",
+      "note": "Forecast 3%; previous −3.7%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-14T23:50:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Machinery Orders YoY",
+      "forecast": "15.7%",
+      "previous": "11.2%",
+      "note": "Forecast 15.7%; previous 11.2%. The gap between the print and the forecast is what moves price."
     },
     {
       "at": "2026-10-15T00:30:00Z",
       "cur": "AUD",
-      "impact": "high",
-      "event": "Australia employment change (Sep)",
-      "previous": "+39.5k",
-      "note": "August's +39,500 against 20,000 expected is what tipped the RBA into a September hike. Unemployment was 4.6%; UBS thinks it needs to reach about 5% to bring inflation back."
-    },
-    {
-      "at": "2026-10-15T12:30:00Z",
-      "cur": "USD",
       "impact": "medium",
-      "event": "US PPI (Sep, y/y)",
-      "previous": "5.4%"
+      "event": "Australia Employment Change",
+      "forecast": "20",
+      "previous": "39.5",
+      "note": "Forecast 20; previous 39.5. The gap between the print and the forecast is what moves price."
     },
     {
-      "at": "2026-10-15T12:30:00Z",
-      "cur": "USD",
+      "at": "2026-10-15T00:30:00Z",
+      "cur": "AUD",
       "impact": "medium",
-      "event": "US Philadelphia Fed manufacturing (Oct)",
-      "previous": "37.8"
+      "event": "Australia Full Time Employment Chg",
+      "previous": "−6.3",
+      "note": "No consensus forecast was published; previous −6.3."
     },
     {
-      "at": "2026-10-15T12:30:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "US core PPI (Sep, y/y)",
+      "at": "2026-10-15T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia Unemployment Rate",
+      "forecast": "4.6%",
       "previous": "4.6%",
-      "note": "4.6% last month, headline 5.4%. Pipeline pressure the Fed has been pointing at."
+      "note": "Forecast 4.6%; previous 4.6%. The gap between the print and the forecast is what moves price."
     },
     {
-      "at": "2026-10-15T12:30:00Z",
+      "at": "2026-10-15T01:30:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan BoJ Koeda Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-15T02:55:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US initial jobless claims"
+      "event": "US Fed Bowman Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK GDP MoM",
+      "forecast": "−0.1%",
+      "previous": "0.4%",
+      "note": "Forecast −0.1%; previous 0.4%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK GDP 3-Month Avg",
+      "forecast": "0.5%",
+      "previous": "0.4%",
+      "note": "Forecast 0.5%; previous 0.4%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Goods Trade Balance",
+      "forecast": "−21.8£",
+      "previous": "−20.97£",
+      "note": "Forecast −21.8£; previous −20.97£. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Goods Trade Balance Non-EU",
+      "previous": "−9.66£",
+      "note": "No consensus forecast was published; previous −9.66£."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Industrial Production MoM",
+      "forecast": "−0.1%",
+      "previous": "0.2%",
+      "note": "Forecast −0.1%; previous 0.2%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Manufacturing Production MoM",
+      "forecast": "−0.1%",
+      "previous": "0.9%",
+      "note": "Forecast −0.1%; previous 0.9%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area Industrial Production MoM",
+      "forecast": "0%",
+      "previous": "−0.1%",
+      "note": "Forecast 0%; previous −0.1%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T10:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Consumer Confidence",
+      "previous": "84.1",
+      "note": "No consensus forecast was published; previous 84.1."
+    },
+    {
+      "at": "2026-10-15T11:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Charles Schwab earnings",
+      "kind": "earnings",
+      "ticker": "SCHW",
+      "forecast": "EPS 1.65"
     },
     {
       "at": "2026-10-15T12:30:00Z",
       "cur": "USD",
       "impact": "high",
-      "event": "US retail sales (Sep, m/m)",
+      "event": "US PPI MoM",
+      "forecast": "0.5%",
+      "previous": "0.4%",
+      "note": "Forecast 0.5%; previous 0.4%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Retail Sales MoM",
+      "forecast": "0.3%",
       "previous": "1.2%",
-      "note": "August rose 1.2% with the control group up 1.4%. Nominal sales are being flattered by fuel prices; the control group strips that out."
+      "note": "Forecast 0.3%; previous 1.2%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Core PPI MoM",
+      "forecast": "0.3%",
+      "previous": "0.2%",
+      "note": "Forecast 0.3%; previous 0.2%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Initial Jobless Claims",
+      "forecast": "200",
+      "previous": "197",
+      "note": "Forecast 200; previous 197. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US NY Empire State Manufacturing Index",
+      "forecast": "10.3",
+      "previous": "7.6",
+      "note": "Forecast 10.3; previous 7.6. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Philadelphia Fed Manufacturing Index",
+      "forecast": "28.4",
+      "previous": "37.8",
+      "note": "Forecast 28.4; previous 37.8. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Retail Sales Control Group MoM",
+      "forecast": "0.3%",
+      "previous": "1.4%",
+      "note": "Forecast 0.3%; previous 1.4%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Retail Sales Ex Autos MoM",
+      "forecast": "0.5%",
+      "previous": "1.4%",
+      "note": "Forecast 0.5%; previous 1.4%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Prologis earnings",
+      "kind": "earnings",
+      "ticker": "PLD",
+      "forecast": "EPS 0.78"
+    },
+    {
+      "at": "2026-10-15T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Business Inventories MoM",
+      "forecast": "0.4%",
+      "previous": "0.8%",
+      "note": "Forecast 0.4%; previous 0.8%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "forecast": "3.6%",
+      "previous": "3.6%",
+      "note": "Forecast 3.6%; previous 3.6%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-15T16:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Crude Oil Stocks Change",
+      "previous": "−3.186",
+      "note": "No consensus forecast was published; previous −3.186."
+    },
+    {
+      "at": "2026-10-15T16:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Gasoline Stocks Change",
+      "previous": "0.382",
+      "note": "No consensus forecast was published; previous 0.382."
+    },
+    {
+      "at": "2026-10-15T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Interactive Brokers earnings",
+      "kind": "earnings",
+      "ticker": "IBKR",
+      "forecast": "EPS 0.67"
     },
     {
       "at": "2026-10-15T20:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Fed's Hammack speaks"
+      "event": "US Fed Hammack Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-15T21:30:00Z",
+      "cur": "NZD",
+      "impact": "medium",
+      "event": "New Zealand Business NZ PMI",
+      "previous": "53.1",
+      "note": "No consensus forecast was published; previous 53.1."
     },
     {
       "at": "2026-10-16T02:00:00Z",
       "cur": "GBP",
+      "impact": "medium",
+      "event": "UK BoE Gov Bailey Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-16T03:30:00Z",
+      "cur": "USD",
       "impact": "high",
-      "event": "BoE Governor Bailey speaks",
-      "note": "At the IMF meetings. Bailey has said high energy prices make a hold harder to maintain; Catherine Mann says a hike is needed and markets discount about 30bp of tightening by the end of the year."
+      "event": "US Fed Chair Warsh Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-16T04:15:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada BoC Gov Macklem Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-16T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area Balance of Trade",
+      "previous": "14.2€",
+      "note": "No consensus forecast was published; previous 14.2€."
+    },
+    {
+      "at": "2026-10-16T10:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy Balance of Trade",
+      "forecast": "7.5€",
+      "previous": "8.24€",
+      "note": "Forecast 7.5€; previous 8.24€. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-16T12:15:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Housing Starts",
+      "forecast": "232.5",
+      "previous": "229",
+      "note": "Forecast 232.5; previous 229. The gap between the print and the forecast is what moves price."
     },
     {
       "at": "2026-10-16T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US Empire State manufacturing (Oct)",
-      "previous": "7.6"
+      "event": "US Export Prices MoM",
+      "forecast": "1%",
+      "previous": "0.6%",
+      "note": "Forecast 1%; previous 0.6%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-16T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Import Prices MoM",
+      "forecast": "0.8%",
+      "previous": "0.7%",
+      "note": "Forecast 0.8%; previous 0.7%. The gap between the print and the forecast is what moves price."
     },
     {
       "at": "2026-10-16T13:15:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US industrial production (Sep, m/m)",
-      "previous": "0.0%"
+      "event": "US Industrial Production MoM",
+      "forecast": "0.4%",
+      "previous": "0%",
+      "note": "Forecast 0.4%; previous 0%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-16T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Net Long-term TIC Flows",
+      "forecast": "$125.7",
+      "previous": "−$27.9",
+      "note": "Forecast $125.7; previous −$27.9. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-17T06:45:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK BoE Gov Bailey Speech",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-18T21:45:00Z",
+      "cur": "NZD",
+      "impact": "medium",
+      "event": "New Zealand Balance of Trade",
+      "previous": "−1.349",
+      "note": "No consensus forecast was published; previous −1.349."
+    },
+    {
+      "at": "2026-10-19T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China House Price Index YoY",
+      "previous": "−3",
+      "note": "No consensus forecast was published; previous −3."
     },
     {
       "at": "2026-10-19T02:00:00Z",
       "cur": "CNY",
       "impact": "high",
-      "event": "China GDP (Q3, y/y)",
-      "previous": "4.3%",
-      "note": "4.3% in the second quarter. The one large economy still not fighting inflation reports the morning after a fortnight of holiday-thinned data."
+      "event": "China GDP Growth Rate YoY",
+      "previous": "4.3",
+      "note": "No consensus forecast was published; previous 4.3."
+    },
+    {
+      "at": "2026-10-19T02:00:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China Industrial Production YoY",
+      "previous": "5.2",
+      "note": "No consensus forecast was published; previous 5.2."
+    },
+    {
+      "at": "2026-10-19T02:00:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China Retail Sales YoY",
+      "previous": "0.4",
+      "note": "No consensus forecast was published; previous 0.4."
     },
     {
       "at": "2026-10-19T02:00:00Z",
       "cur": "CNY",
       "impact": "medium",
-      "event": "China industrial production (Sep, y/y)",
-      "previous": "5.2%"
+      "event": "China Fixed Asset Investment (YTD) YoY",
+      "previous": "−7.2",
+      "note": "No consensus forecast was published; previous −7.2."
     },
     {
       "at": "2026-10-19T02:00:00Z",
       "cur": "CNY",
       "impact": "medium",
-      "event": "China retail sales (Sep, y/y)",
-      "previous": "0.4%"
+      "event": "China GDP Growth Rate QoQ",
+      "previous": "0.9",
+      "note": "No consensus forecast was published; previous 0.9."
+    },
+    {
+      "at": "2026-10-19T09:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China FDI (YTD) YoY",
+      "previous": "−5.3%",
+      "note": "No consensus forecast was published; previous −5.3%."
     },
     {
       "at": "2026-10-19T12:30:00Z",
       "cur": "CAD",
       "impact": "high",
-      "event": "Canada CPI (Sep, y/y)",
-      "previous": "3.0%",
-      "note": "3.0% in August against a 2% target with core at 2.4%. The Bank of Canada has held at 2.25% for seven meetings and has an October hike about 59% priced; this lands ten days before it decides."
+      "event": "Canada Inflation Rate YoY",
+      "previous": "3%",
+      "note": "No consensus forecast was published; previous 3%."
+    },
+    {
+      "at": "2026-10-19T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Core Inflation Rate YoY",
+      "previous": "2.4%",
+      "note": "No consensus forecast was published; previous 2.4%."
+    },
+    {
+      "at": "2026-10-19T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Inflation Rate MoM",
+      "previous": "−0.1%",
+      "note": "No consensus forecast was published; previous −0.1%."
+    },
+    {
+      "at": "2026-10-19T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US NAHB Housing Market Index",
+      "previous": "32",
+      "note": "No consensus forecast was published; previous 32."
+    },
+    {
+      "at": "2026-10-19T14:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada BoC Business Outlook Survey",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-19T14:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada BoC Survey of Consumer Expectations",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-20T01:15:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Loan Prime Rate 1Y",
+      "previous": "3%",
+      "note": "No consensus forecast was published; previous 3%."
+    },
+    {
+      "at": "2026-10-20T01:15:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Loan Prime Rate 5Y",
+      "previous": "3.5%",
+      "note": "No consensus forecast was published; previous 3.5%."
     },
     {
       "at": "2026-10-20T06:00:00Z",
       "cur": "GBP",
       "impact": "high",
-      "event": "UK unemployment rate (Aug, 3m)",
-      "previous": "4.9%",
-      "note": "4.9% last time, the highest in years, against a Bank of England that has turned hawkish on energy. The labour market is the argument against a November hike; this is the last read before it."
+      "event": "UK Unemployment Rate",
+      "previous": "4.9",
+      "note": "No consensus forecast was published; previous 4.9."
+    },
+    {
+      "at": "2026-10-20T06:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany PPI YoY",
+      "previous": "4.6%",
+      "note": "No consensus forecast was published; previous 4.6%."
+    },
+    {
+      "at": "2026-10-20T06:00:00Z",
+      "cur": "CHF",
+      "impact": "medium",
+      "event": "Switzerland Balance of Trade",
+      "previous": "5.6",
+      "note": "No consensus forecast was published; previous 5.6."
+    },
+    {
+      "at": "2026-10-20T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Average Earnings incl. Bonus (3Mo/Yr)",
+      "previous": "3.9",
+      "note": "No consensus forecast was published; previous 3.9."
+    },
+    {
+      "at": "2026-10-20T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Employment Change",
+      "previous": "67",
+      "note": "No consensus forecast was published; previous 67."
+    },
+    {
+      "at": "2026-10-20T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany ZEW Economic Sentiment Index",
+      "previous": "34.7",
+      "note": "No consensus forecast was published; previous 34.7."
+    },
+    {
+      "at": "2026-10-20T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area ZEW Economic Sentiment Index",
+      "previous": "25.8",
+      "note": "No consensus forecast was published; previous 25.8."
+    },
+    {
+      "at": "2026-10-20T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Balance of Trade",
+      "previous": "−5.22€",
+      "note": "No consensus forecast was published; previous −5.22€."
+    },
+    {
+      "at": "2026-10-20T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Intuitive Surgical earnings",
+      "kind": "earnings",
+      "ticker": "ISRG",
+      "forecast": "EPS 2.65"
+    },
+    {
+      "at": "2026-10-20T12:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US ADP Employment Change Weekly",
+      "previous": "24.75",
+      "note": "No consensus forecast was published; previous 24.75."
+    },
+    {
+      "at": "2026-10-20T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Building Permits Prel",
+      "previous": "1.403",
+      "note": "No consensus forecast was published; previous 1.403."
+    },
+    {
+      "at": "2026-10-20T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Housing Starts",
+      "previous": "1.275",
+      "note": "No consensus forecast was published; previous 1.275."
     },
     {
       "at": "2026-10-20T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US housing starts (Sep)",
-      "previous": "1.275m"
+      "event": "US Building Permits MoM Prel",
+      "previous": "−2.1%",
+      "note": "No consensus forecast was published; previous −2.1%."
+    },
+    {
+      "at": "2026-10-20T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Housing Starts MoM",
+      "previous": "−2.6%",
+      "note": "No consensus forecast was published; previous −2.6%."
+    },
+    {
+      "at": "2026-10-20T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "GE Aerospace earnings",
+      "kind": "earnings",
+      "ticker": "GE",
+      "forecast": "EPS 2"
+    },
+    {
+      "at": "2026-10-20T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Philip Morris International earnings",
+      "kind": "earnings",
+      "ticker": "PM",
+      "forecast": "EPS 2.29"
+    },
+    {
+      "at": "2026-10-20T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "RTX earnings",
+      "kind": "earnings",
+      "ticker": "RTX",
+      "forecast": "EPS 1.78"
     },
     {
       "at": "2026-10-20T14:00:00Z",
       "cur": "USD",
-      "impact": "low",
-      "event": "US pending home sales (Sep, m/m)",
-      "previous": "0.3%"
+      "impact": "medium",
+      "event": "US Pending Home Sales MoM",
+      "previous": "0.3%",
+      "note": "No consensus forecast was published; previous 0.3%."
+    },
+    {
+      "at": "2026-10-20T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Pending Home Sales YoY",
+      "previous": "−4.7",
+      "note": "No consensus forecast was published; previous −4.7."
+    },
+    {
+      "at": "2026-10-20T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-20T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Chubb Limited earnings",
+      "kind": "earnings",
+      "ticker": "CB",
+      "forecast": "EPS 6.79"
+    },
+    {
+      "at": "2026-10-20T20:01:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Netflix earnings",
+      "kind": "earnings",
+      "ticker": "NFLX",
+      "forecast": "EPS 0.82"
+    },
+    {
+      "at": "2026-10-20T20:05:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Capital One Financial earnings",
+      "kind": "earnings",
+      "ticker": "COF",
+      "forecast": "EPS 5.5"
+    },
+    {
+      "at": "2026-10-20T20:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US API Crude Oil Stock Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-20T23:50:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "Japan Balance of Trade",
+      "previous": "−1105.6",
+      "note": "No consensus forecast was published; previous −1105.6."
+    },
+    {
+      "at": "2026-10-20T23:50:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Exports YoY",
+      "previous": "19.3",
+      "note": "No consensus forecast was published; previous 19.3."
     },
     {
       "at": "2026-10-21T06:00:00Z",
       "cur": "GBP",
       "impact": "high",
-      "event": "UK CPI (Sep, y/y)",
+      "event": "UK Inflation Rate YoY",
       "previous": "3.1%",
-      "note": "3.1% last month with core 2.6%. The last inflation print before the Bank of England's November meeting, which is about 80% priced for a hike; Bailey has said high energy prices make the hold harder to maintain."
+      "note": "No consensus forecast was published; previous 3.1%."
+    },
+    {
+      "at": "2026-10-21T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Core Inflation Rate YoY",
+      "previous": "2.6",
+      "note": "No consensus forecast was published; previous 2.6."
+    },
+    {
+      "at": "2026-10-21T06:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Inflation Rate MoM",
+      "previous": "0.5%",
+      "note": "No consensus forecast was published; previous 0.5%."
+    },
+    {
+      "at": "2026-10-21T10:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Danaher earnings",
+      "kind": "earnings",
+      "ticker": "DHR",
+      "forecast": "EPS 1.92"
+    },
+    {
+      "at": "2026-10-21T10:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Thermo Fisher Scientific earnings",
+      "kind": "earnings",
+      "ticker": "TMO",
+      "forecast": "EPS 6.4"
+    },
+    {
+      "at": "2026-10-21T11:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US MBA 30-Year Mortgage Rate",
+      "previous": "7.5",
+      "note": "No consensus forecast was published; previous 7.5."
+    },
+    {
+      "at": "2026-10-21T11:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Abbott Laboratories earnings",
+      "kind": "earnings",
+      "ticker": "ABT",
+      "forecast": "EPS 1.42"
+    },
+    {
+      "at": "2026-10-21T11:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "NextEra Energy earnings",
+      "kind": "earnings",
+      "ticker": "NEE",
+      "forecast": "EPS 1.18"
+    },
+    {
+      "at": "2026-10-21T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "AT&T earnings",
+      "kind": "earnings",
+      "ticker": "T",
+      "forecast": "EPS 0.6"
+    },
+    {
+      "at": "2026-10-21T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "CME earnings",
+      "kind": "earnings",
+      "ticker": "CME",
+      "forecast": "EPS 2.98"
+    },
+    {
+      "at": "2026-10-21T14:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Crude Oil Stocks Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-21T14:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Gasoline Stocks Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-21T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Tesla earnings",
+      "kind": "earnings",
+      "ticker": "TSLA",
+      "forecast": "EPS 0.46"
+    },
+    {
+      "at": "2026-10-21T20:01:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Meta Platforms earnings",
+      "kind": "earnings",
+      "ticker": "META",
+      "forecast": "EPS 6.76"
+    },
+    {
+      "at": "2026-10-21T20:01:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Texas Instruments earnings",
+      "kind": "earnings",
+      "ticker": "TXN",
+      "forecast": "EPS 2.42"
+    },
+    {
+      "at": "2026-10-21T20:05:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Lam Research earnings",
+      "kind": "earnings",
+      "ticker": "LRCX",
+      "forecast": "EPS 2.18"
+    },
+    {
+      "at": "2026-10-21T20:08:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "International Business Machines earnings",
+      "kind": "earnings",
+      "ticker": "IBM",
+      "forecast": "EPS 2.86"
+    },
+    {
+      "at": "2026-10-21T21:45:00Z",
+      "cur": "NZD",
+      "impact": "medium",
+      "event": "New Zealand Inflation Rate QoQ",
+      "previous": "1.5",
+      "note": "No consensus forecast was published; previous 1.5."
+    },
+    {
+      "at": "2026-10-22T04:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area New Car Registrations YoY",
+      "previous": "4.5%",
+      "note": "No consensus forecast was published; previous 4.5%."
+    },
+    {
+      "at": "2026-10-22T06:45:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France Business Confidence",
+      "previous": "101",
+      "note": "No consensus forecast was published; previous 101."
+    },
+    {
+      "at": "2026-10-22T07:30:00Z",
+      "cur": "CHF",
+      "impact": "medium",
+      "event": "Switzerland SNB Monetary Policy Meeting Minutes",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-22T10:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Spotify Technology S.A. earnings",
+      "kind": "earnings",
+      "ticker": "SPOT",
+      "forecast": "EPS 3.19"
+    },
+    {
+      "at": "2026-10-22T10:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK CBI Business Optimism Index",
+      "previous": "−36",
+      "note": "No consensus forecast was published; previous −36."
+    },
+    {
+      "at": "2026-10-22T10:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK CBI Industrial Trends Orders",
+      "previous": "−9",
+      "note": "No consensus forecast was published; previous −9."
+    },
+    {
+      "at": "2026-10-22T10:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Valero Energy earnings",
+      "kind": "earnings",
+      "ticker": "VLO",
+      "forecast": "EPS 20.9"
+    },
+    {
+      "at": "2026-10-22T11:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Procter & Gamble earnings",
+      "kind": "earnings",
+      "ticker": "PG",
+      "forecast": "EPS 1.88"
+    },
+    {
+      "at": "2026-10-22T11:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Union Pacific earnings",
+      "kind": "earnings",
+      "ticker": "UNP",
+      "forecast": "EPS 3.47"
+    },
+    {
+      "at": "2026-10-22T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Gilead Sciences earnings",
+      "kind": "earnings",
+      "ticker": "GILD",
+      "forecast": "EPS 2.17"
     },
     {
       "at": "2026-10-22T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US initial jobless claims"
+      "event": "US Initial Jobless Claims",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-22T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Blackstone earnings",
+      "kind": "earnings",
+      "ticker": "BX",
+      "forecast": "EPS 1.29"
+    },
+    {
+      "at": "2026-10-22T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Lockheed Martin earnings",
+      "kind": "earnings",
+      "ticker": "LMT",
+      "forecast": "EPS 7.52"
+    },
+    {
+      "at": "2026-10-22T14:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area Consumer Confidence Flash",
+      "previous": "−16.5",
+      "note": "No consensus forecast was published; previous −16.5."
+    },
+    {
+      "at": "2026-10-22T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Western Digital earnings",
+      "kind": "earnings",
+      "ticker": "WDC",
+      "forecast": "EPS 4.08"
+    },
+    {
+      "at": "2026-10-22T20:05:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Newmont earnings",
+      "kind": "earnings",
+      "ticker": "NEM",
+      "forecast": "EPS 2.04"
+    },
+    {
+      "at": "2026-10-22T22:00:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia S&P Global Manufacturing PMI Flash",
+      "previous": "49.6",
+      "note": "No consensus forecast was published; previous 49.6."
+    },
+    {
+      "at": "2026-10-22T22:00:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia S&P Global Services PMI Flash",
+      "previous": "51.9",
+      "note": "No consensus forecast was published; previous 51.9."
+    },
+    {
+      "at": "2026-10-22T23:01:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK GfK Consumer Confidence",
+      "previous": "−13",
+      "note": "No consensus forecast was published; previous −13."
+    },
+    {
+      "at": "2026-10-22T23:30:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "Japan Inflation Rate YoY",
+      "previous": "1.9%",
+      "note": "No consensus forecast was published; previous 1.9%."
+    },
+    {
+      "at": "2026-10-22T23:30:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Core Inflation Rate YoY",
+      "previous": "1.7%",
+      "note": "No consensus forecast was published; previous 1.7%."
+    },
+    {
+      "at": "2026-10-23T00:30:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan S&P Global Manufacturing PMI Flash",
+      "previous": "54.1",
+      "note": "No consensus forecast was published; previous 54.1."
+    },
+    {
+      "at": "2026-10-23T00:30:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan S&P Global Services PMI Flash",
+      "previous": "51.3",
+      "note": "No consensus forecast was published; previous 51.3."
+    },
+    {
+      "at": "2026-10-23T06:00:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK Retail Sales MoM",
+      "previous": "0.5",
+      "note": "No consensus forecast was published; previous 0.5."
     },
     {
       "at": "2026-10-23T06:00:00Z",
       "cur": "GBP",
       "impact": "medium",
-      "event": "UK retail sales (Sep, m/m)",
-      "previous": "0.5%"
+      "event": "UK Retail Sales YoY",
+      "previous": "2.4",
+      "note": "No consensus forecast was published; previous 2.4."
+    },
+    {
+      "at": "2026-10-23T07:15:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France S&P Global Composite PMI Flash",
+      "previous": "51.1",
+      "note": "No consensus forecast was published; previous 51.1."
+    },
+    {
+      "at": "2026-10-23T07:15:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France S&P Global Manufacturing PMI Flash",
+      "previous": "50.6",
+      "note": "No consensus forecast was published; previous 50.6."
+    },
+    {
+      "at": "2026-10-23T07:15:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France S&P Global Services PMI Flash",
+      "previous": "51.2",
+      "note": "No consensus forecast was published; previous 51.2."
+    },
+    {
+      "at": "2026-10-23T07:30:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany S&P Global Manufacturing PMI Flash",
+      "previous": "53.9",
+      "note": "No consensus forecast was published; previous 53.9."
+    },
+    {
+      "at": "2026-10-23T07:30:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany S&P Global Composite PMI Flash",
+      "previous": "53.8",
+      "note": "No consensus forecast was published; previous 53.8."
+    },
+    {
+      "at": "2026-10-23T07:30:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany S&P Global Services PMI Flash",
+      "previous": "52.9",
+      "note": "No consensus forecast was published; previous 52.9."
     },
     {
       "at": "2026-10-23T08:00:00Z",
       "cur": "EUR",
-      "impact": "high",
-      "event": "Euro area HCOB manufacturing PMI, flash (Oct)",
+      "impact": "medium",
+      "event": "Euro area S&P Global Composite PMI Flash",
+      "previous": "53.1",
+      "note": "No consensus forecast was published; previous 53.1."
+    },
+    {
+      "at": "2026-10-23T08:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area S&P Global Manufacturing PMI Flash",
       "previous": "52.9",
-      "note": "The first October survey, the week before the ECB meets on the 29th. September's composite was the strongest in years with the energy bill in the input-price line; October's tells whether the bond sell-off has reached orders."
+      "note": "No consensus forecast was published; previous 52.9."
+    },
+    {
+      "at": "2026-10-23T08:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area S&P Global Services PMI Flash",
+      "previous": "53",
+      "note": "No consensus forecast was published; previous 53."
     },
     {
       "at": "2026-10-23T08:30:00Z",
       "cur": "GBP",
+      "impact": "high",
+      "event": "UK S&P Global Manufacturing PMI Flash",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-23T08:30:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK S&P Global Services PMI Flash",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-23T11:00:00Z",
+      "cur": "USD",
       "impact": "medium",
-      "event": "UK S&P Global composite PMI, flash (Oct)"
+      "event": "American Express earnings",
+      "kind": "earnings",
+      "ticker": "AXP",
+      "forecast": "EPS 4.59"
+    },
+    {
+      "at": "2026-10-23T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "ExxonMobil earnings",
+      "kind": "earnings",
+      "ticker": "XOM",
+      "forecast": "EPS 3.8"
+    },
+    {
+      "at": "2026-10-23T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada New Housing Price Index MoM",
+      "previous": "−0.1",
+      "note": "No consensus forecast was published; previous −0.1."
+    },
+    {
+      "at": "2026-10-23T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Retail Sales Ex Autos MoM",
+      "previous": "−0.7%",
+      "note": "No consensus forecast was published; previous −0.7%."
+    },
+    {
+      "at": "2026-10-23T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Retail Sales MoM Final",
+      "forecast": "1.3%",
+      "previous": "−0.7%",
+      "note": "Forecast 1.3%; previous −0.7%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-23T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada Retail Sales MoM Prel",
+      "previous": "1.3",
+      "note": "No consensus forecast was published; previous 1.3."
     },
     {
       "at": "2026-10-23T13:45:00Z",
       "cur": "USD",
-      "impact": "high",
-      "event": "US S&P Global manufacturing PMI, flash (Oct)",
-      "note": "September's flash at 57.0 moved the ten-year 14.6bp on the day; this is the October read, five days before the FOMC."
+      "impact": "medium",
+      "event": "US S&P Global Composite PMI Flash",
+      "previous": "58.4",
+      "note": "No consensus forecast was published; previous 58.4."
+    },
+    {
+      "at": "2026-10-23T13:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US S&P Global Manufacturing PMI Flash",
+      "previous": "55.9",
+      "note": "No consensus forecast was published; previous 55.9."
+    },
+    {
+      "at": "2026-10-23T13:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US S&P Global Services PMI Flash",
+      "previous": "58.8",
+      "note": "No consensus forecast was published; previous 58.8."
     },
     {
       "at": "2026-10-23T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "Michigan sentiment, final (Oct)"
+      "event": "US Michigan Consumer Sentiment Final",
+      "forecast": "46.3",
+      "previous": "48.1",
+      "note": "Forecast 46.3; previous 48.1. The gap between the print and the forecast is what moves price."
     },
     {
-      "at": "2026-10-27T09:00:00Z",
+      "at": "2026-10-26T00:00:00Z",
+      "cur": "NZD",
+      "impact": "holiday",
+      "event": "Labor Day",
+      "note": "Market holiday in New Zealand: expect thin liquidity or a closed market."
+    },
+    {
+      "at": "2026-10-26T00:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Communist Party Fifth Plenum",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-26T09:00:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "ECB bank lending survey (Q3)",
-      "note": "Two days before the ECB meets. With French yields near 5% and the euro at a 17-month low, the survey's read on credit standards is the one hard data point on whether the bond sell-off has reached lending."
+      "event": "Germany Ifo Business Climate",
+      "previous": "89.9",
+      "note": "No consensus forecast was published; previous 89.9."
+    },
+    {
+      "at": "2026-10-26T11:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK CBI Distributive Trades",
+      "previous": "−55",
+      "note": "No consensus forecast was published; previous −55."
+    },
+    {
+      "at": "2026-10-26T11:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Verizon Communications earnings",
+      "kind": "earnings",
+      "ticker": "VZ",
+      "forecast": "EPS 1.27"
+    },
+    {
+      "at": "2026-10-26T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Chicago Fed National Activity Index",
+      "previous": "−0.04",
+      "note": "No consensus forecast was published; previous −0.04."
+    },
+    {
+      "at": "2026-10-26T14:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Dallas Fed Manufacturing Index",
+      "previous": "9.8",
+      "note": "No consensus forecast was published; previous 9.8."
+    },
+    {
+      "at": "2026-10-26T20:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "Welltower earnings",
+      "kind": "earnings",
+      "ticker": "WELL",
+      "forecast": "EPS 0.65"
+    },
+    {
+      "at": "2026-10-27T00:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Communist Party Fifth Plenum",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-27T06:45:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France Consumer Confidence",
+      "previous": "86",
+      "note": "No consensus forecast was published; previous 86."
+    },
+    {
+      "at": "2026-10-27T07:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Unemployment Rate",
+      "previous": "9.87%",
+      "note": "No consensus forecast was published; previous 9.87%."
+    },
+    {
+      "at": "2026-10-27T12:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Building Permits MoM Final",
+      "previous": "−2.1%",
+      "note": "No consensus forecast was published; previous −2.1%."
+    },
+    {
+      "at": "2026-10-27T12:15:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US ADP Employment Change Weekly",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-27T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Durable Goods Orders MoM",
+      "previous": "0",
+      "note": "No consensus forecast was published; previous 0."
     },
     {
       "at": "2026-10-27T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US durable goods orders (Sep)",
-      "previous": "0.0%"
+      "event": "US Durable Goods Orders Ex Transp MoM",
+      "previous": "0.3%",
+      "note": "No consensus forecast was published; previous 0.3%."
+    },
+    {
+      "at": "2026-10-27T13:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US S&P/Case-Shiller Home Price YoY",
+      "previous": "2.5",
+      "note": "No consensus forecast was published; previous 2.5."
     },
     {
       "at": "2026-10-27T14:00:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US consumer confidence (Oct)",
+      "event": "US CB Consumer Confidence",
       "previous": "81.9",
-      "note": "September's 81.9 was the lowest since 2014. The day before the FOMC decision begins."
+      "note": "No consensus forecast was published; previous 81.9."
     },
     {
-      "at": "2026-10-28T00:30:00Z",
-      "cur": "AUD",
-      "impact": "high",
-      "event": "Australia CPI (y/y)",
-      "previous": "4.0%",
-      "note": "The last print before the RBA's November meeting, after a 25bp hike on 29 September that took the cash rate to 4.60%. August was 4.0%; the trimmed mean below is the part the Board watches."
+      "at": "2026-10-27T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US New Home Sales",
+      "previous": "0.684",
+      "note": "No consensus forecast was published; previous 0.684."
+    },
+    {
+      "at": "2026-10-27T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US New Home Sales MoM",
+      "previous": "6.4",
+      "note": "No consensus forecast was published; previous 6.4."
+    },
+    {
+      "at": "2026-10-27T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-27T20:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US API Crude Oil Stock Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T00:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Communist Party Fifth Plenum",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-28T00:30:00Z",
       "cur": "AUD",
       "impact": "medium",
-      "event": "Australia trimmed mean CPI (y/y)",
-      "previous": "3.6%"
+      "event": "Australia Inflation Rate MoM",
+      "previous": "0.4%",
+      "note": "No consensus forecast was published; previous 0.4%."
+    },
+    {
+      "at": "2026-10-28T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia Inflation Rate YoY",
+      "previous": "4%",
+      "note": "No consensus forecast was published; previous 4%."
+    },
+    {
+      "at": "2026-10-28T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia RBA Trimmed Mean CPI MoM",
+      "previous": "0.2%",
+      "note": "No consensus forecast was published; previous 0.2%."
+    },
+    {
+      "at": "2026-10-28T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia RBA Trimmed Mean CPI YoY",
+      "previous": "3.6%",
+      "note": "No consensus forecast was published; previous 3.6%."
+    },
+    {
+      "at": "2026-10-28T01:00:00Z",
+      "cur": "NZD",
+      "impact": "medium",
+      "event": "New Zealand RBNZ Interest Rate Decision",
+      "previous": "2.75%",
+      "note": "No consensus forecast was published; previous 2.75%."
+    },
+    {
+      "at": "2026-10-28T07:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany GfK Consumer Confidence",
+      "previous": "−30.6",
+      "note": "No consensus forecast was published; previous −30.6."
+    },
+    {
+      "at": "2026-10-28T11:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France Unemployment Benefit Claims",
+      "previous": "−61.3",
+      "note": "No consensus forecast was published; previous −61.3."
+    },
+    {
+      "at": "2026-10-28T11:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US MBA 30-Year Mortgage Rate",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T12:30:00Z",
+      "cur": "GBP",
+      "impact": "high",
+      "event": "UK Autumn Budget 2026",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Goods Trade Balance Adv",
+      "previous": "−$132.1",
+      "note": "No consensus forecast was published; previous −$132.1."
+    },
+    {
+      "at": "2026-10-28T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Retail Inventories Ex Autos MoM Adv",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Wholesale Inventories MoM Adv",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-28T13:45:00Z",
       "cur": "CAD",
       "impact": "high",
-      "event": "BoC interest rate decision",
+      "event": "Canada BoC Interest Rate Decision",
       "previous": "2.25%",
-      "note": "The Bank of Canada has held at 2.25% for seven meetings; it publishes a policy report with this decision. Its minutes flag oil pass-through, and an October hike has been priced at about 59%."
+      "note": "No consensus forecast was published; previous 2.25%."
+    },
+    {
+      "at": "2026-10-28T13:45:00Z",
+      "cur": "CAD",
+      "impact": "high",
+      "event": "Canada BoC Monetary Policy Report",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-28T14:30:00Z",
       "cur": "CAD",
       "impact": "medium",
-      "event": "BoC monetary policy report and statement"
+      "event": "Canada BoC Press Conference",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-28T14:30:00Z",
-      "cur": "CAD",
-      "impact": "high",
-      "event": "BoC press conference"
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Crude Oil Stocks Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T14:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US EIA Gasoline Stocks Change",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-28T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-28T18:00:00Z",
       "cur": "USD",
       "impact": "high",
-      "event": "FOMC statement",
-      "note": "Released with the decision. The vote count and any change to the language on further firming are the read; September's vote was 12–0."
-    },
-    {
-      "at": "2026-10-28T18:00:00Z",
-      "cur": "USD",
-      "impact": "high",
-      "event": "Fed interest rate decision",
-      "previous": "4.00%",
-      "note": "The first meeting since the 25bp hike to 3.75–4.00% on 16 September. After soft payrolls and PCE a second move is priced at about 19–20%, with December about 85%; the 24-year high in the ten-year and Tuesday's 4.932% three-year auction are the counterweights."
+      "event": "US Fed Interest Rate Decision",
+      "previous": "4%",
+      "note": "No consensus forecast was published; previous 4%."
     },
     {
       "at": "2026-10-28T18:30:00Z",
       "cur": "USD",
       "impact": "high",
-      "event": "Fed Chair press conference"
+      "event": "US Fed Press Conference",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-29T00:00:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China Communist Party Fifth Plenum",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-29T00:00:00Z",
+      "cur": "NZD",
+      "impact": "medium",
+      "event": "New Zealand ANZ Business Confidence",
+      "previous": "51.9",
+      "note": "No consensus forecast was published; previous 51.9."
+    },
+    {
+      "at": "2026-10-29T05:00:00Z",
+      "cur": "JPY",
+      "impact": "high",
+      "event": "Japan Consumer Confidence",
+      "previous": "35.4",
+      "note": "No consensus forecast was published; previous 35.4."
+    },
+    {
+      "at": "2026-10-29T09:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy Unemployment Rate",
+      "previous": "6.2%",
+      "note": "No consensus forecast was published; previous 6.2%."
+    },
+    {
+      "at": "2026-10-29T09:30:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK BoE Consumer Credit",
+      "previous": "2.464",
+      "note": "No consensus forecast was published; previous 2.464."
+    },
+    {
+      "at": "2026-10-29T09:30:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Mortgage Approvals",
+      "previous": "54.92",
+      "note": "No consensus forecast was published; previous 54.92."
+    },
+    {
+      "at": "2026-10-29T09:30:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Mortgage Lending",
+      "previous": "4.41",
+      "note": "No consensus forecast was published; previous 4.41."
+    },
+    {
+      "at": "2026-10-29T10:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area Economic Sentiment",
+      "previous": "97.9",
+      "note": "No consensus forecast was published; previous 97.9."
+    },
+    {
+      "at": "2026-10-29T11:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy Business Confidence",
+      "previous": "91.9",
+      "note": "No consensus forecast was published; previous 91.9."
+    },
+    {
+      "at": "2026-10-29T11:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy Consumer Confidence",
+      "previous": "91.2",
+      "note": "No consensus forecast was published; previous 91.2."
+    },
+    {
+      "at": "2026-10-29T11:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Business Confidence",
+      "previous": "−1.6",
+      "note": "No consensus forecast was published; previous −1.6."
     },
     {
       "at": "2026-10-29T12:30:00Z",
       "cur": "USD",
       "impact": "high",
-      "event": "US GDP, Q3 advance (annualized)",
+      "event": "US Core PCE Price Index MoM",
+      "previous": "0.2",
+      "note": "No consensus forecast was published; previous 0.2."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US GDP Growth Rate QoQ Adv",
       "previous": "2.2%",
-      "note": "The first read of the third quarter, a day after the Fed decides. August's record imports have already cut estimates: Capital Economics says growth will come in below its 4.0% forecast, nearer 2.5%."
+      "note": "No consensus forecast was published; previous 2.2%."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Personal Income MoM",
+      "previous": "0.2",
+      "note": "No consensus forecast was published; previous 0.2."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US Personal Spending MoM",
+      "previous": "0.9",
+      "note": "No consensus forecast was published; previous 0.9."
     },
     {
       "at": "2026-10-29T12:30:00Z",
       "cur": "USD",
       "impact": "medium",
-      "event": "US initial jobless claims"
+      "event": "US GDP Price Index QoQ Adv",
+      "previous": "6.1%",
+      "note": "No consensus forecast was published; previous 6.1%."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Initial Jobless Claims",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US PCE Price Index MoM",
+      "previous": "0.3",
+      "note": "No consensus forecast was published; previous 0.3."
+    },
+    {
+      "at": "2026-10-29T12:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US PCE Price Index YoY",
+      "previous": "3.4",
+      "note": "No consensus forecast was published; previous 3.4."
     },
     {
       "at": "2026-10-29T13:15:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "ECB interest rate decision",
-      "previous": "2.50%",
-      "note": "The deposit rate is 2.50% after the 10 September hike. Pricing has moved from three and a half further hikes to about two and a half on French bond stress and slower growth; one house expects a pause in October and a final 25bp hike in December. The accounts out today show how the last hike was argued."
+      "event": "Euro area Deposit Facility Rate",
+      "previous": "2.5%",
+      "note": "No consensus forecast was published; previous 2.5%."
+    },
+    {
+      "at": "2026-10-29T13:15:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Euro area ECB Interest Rate Decision",
+      "previous": "2.65%",
+      "note": "No consensus forecast was published; previous 2.65%."
     },
     {
       "at": "2026-10-29T13:45:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "ECB press conference"
+      "event": "Euro area ECB Press Conference",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-29T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-29T23:30:00Z",
       "cur": "JPY",
-      "impact": "high",
-      "event": "Tokyo CPI (Oct, y/y)",
-      "previous": "2.7%",
-      "note": "Published the morning of the Bank of Japan's decision day. Core excluding food and energy was 3.0% last time; sources say the Bank may judge underlying inflation to have reached 2% in its outlook report."
+      "impact": "medium",
+      "event": "Japan Unemployment Rate",
+      "previous": "2.5",
+      "note": "No consensus forecast was published; previous 2.5."
+    },
+    {
+      "at": "2026-10-29T23:50:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Industrial Production MoM Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-30T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia PPI QoQ",
+      "previous": "1.3%",
+      "note": "No consensus forecast was published; previous 1.3%."
     },
     {
       "at": "2026-10-30T03:00:00Z",
       "cur": "JPY",
       "impact": "high",
-      "event": "BoJ interest rate decision",
+      "event": "Japan BoJ Interest Rate Decision",
       "previous": "1.25%",
-      "note": "Decision day of the 29–30 October meeting, with a new outlook report. Sources say the Bank may judge that underlying inflation has reached its 2% goal; the Tankan's sideways corporate-inflation readings and the yen near 158 are the crosscurrents. Tokyo CPI for October is published an hour or two earlier."
+      "note": "No consensus forecast was published; previous 1.25%."
     },
     {
       "at": "2026-10-30T03:00:00Z",
       "cur": "JPY",
-      "impact": "high",
-      "event": "BoJ monetary policy statement",
-      "note": "Released with the decision, together with the outlook report. The wording on inflation reaching the 2% goal and on the pace of further increases is the read."
+      "impact": "medium",
+      "event": "Japan BoJ Quarterly Outlook Report",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-30T05:00:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Housing Starts YoY",
+      "previous": "6.1",
+      "note": "No consensus forecast was published; previous 6.1."
     },
     {
       "at": "2026-10-30T06:30:00Z",
-      "cur": "JPY",
+      "cur": "EUR",
       "impact": "high",
-      "event": "BoJ press conference"
+      "event": "France GDP Growth Rate QoQ Prel",
+      "previous": "0%",
+      "note": "No consensus forecast was published; previous 0%."
+    },
+    {
+      "at": "2026-10-30T06:30:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "France GDP Growth Rate YoY Prel",
+      "previous": "0.5%",
+      "note": "No consensus forecast was published; previous 0.5%."
     },
     {
       "at": "2026-10-30T07:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Nationwide Housing Prices MoM",
+      "previous": "−0.2",
+      "note": "No consensus forecast was published; previous −0.2."
+    },
+    {
+      "at": "2026-10-30T07:00:00Z",
+      "cur": "GBP",
+      "impact": "medium",
+      "event": "UK Nationwide Housing Prices YoY",
+      "previous": "0.8",
+      "note": "No consensus forecast was published; previous 0.8."
+    },
+    {
+      "at": "2026-10-30T07:30:00Z",
+      "cur": "CHF",
+      "impact": "medium",
+      "event": "Switzerland Retail Sales YoY",
+      "previous": "3.2",
+      "note": "No consensus forecast was published; previous 3.2."
+    },
+    {
+      "at": "2026-10-30T07:45:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "Germany GDP, Q3 flash (q/q)",
+      "event": "France Inflation Rate YoY Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-30T07:45:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "France Inflation Rate MoM Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-30T08:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Spain GDP Growth Rate QoQ Flash",
+      "previous": "0.7%",
+      "note": "No consensus forecast was published; previous 0.7%."
+    },
+    {
+      "at": "2026-10-30T08:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Spain GDP Growth Rate YoY Flash",
+      "previous": "2.6%",
+      "note": "No consensus forecast was published; previous 2.6%."
+    },
+    {
+      "at": "2026-10-30T08:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Inflation Rate MoM Prel",
       "previous": "0.3%",
-      "note": "Germany's first read of the third quarter, hours after the ECB's decision and amid the energy shock; August factory orders fell 10.6% and industrial production rose 2.0%, so the quarter's direction is open."
+      "note": "No consensus forecast was published; previous 0.3%."
+    },
+    {
+      "at": "2026-10-30T08:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain Inflation Rate YoY Prel",
+      "previous": "4.9%",
+      "note": "No consensus forecast was published; previous 4.9%."
+    },
+    {
+      "at": "2026-10-30T08:00:00Z",
+      "cur": "CHF",
+      "impact": "medium",
+      "event": "Switzerland KOF Leading Indicators",
+      "previous": "109.1",
+      "note": "No consensus forecast was published; previous 109.1."
+    },
+    {
+      "at": "2026-10-30T08:55:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Unemployed Persons",
+      "previous": "3.012",
+      "note": "No consensus forecast was published; previous 3.012."
+    },
+    {
+      "at": "2026-10-30T08:55:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Unemployment Change",
+      "previous": "12",
+      "note": "No consensus forecast was published; previous 12."
+    },
+    {
+      "at": "2026-10-30T08:55:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Unemployment Rate",
+      "previous": "6.4%",
+      "note": "No consensus forecast was published; previous 6.4%."
+    },
+    {
+      "at": "2026-10-30T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany GDP Growth Rate QoQ Flash",
+      "previous": "0.3%",
+      "note": "No consensus forecast was published; previous 0.3%."
+    },
+    {
+      "at": "2026-10-30T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Germany GDP Growth Rate YoY Flash",
+      "previous": "1%",
+      "note": "No consensus forecast was published; previous 1%."
+    },
+    {
+      "at": "2026-10-30T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Italy GDP Growth Rate QoQ Adv",
+      "previous": "0.2%",
+      "note": "No consensus forecast was published; previous 0.2%."
+    },
+    {
+      "at": "2026-10-30T09:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Italy GDP Growth Rate YoY Adv",
+      "previous": "1%",
+      "note": "No consensus forecast was published; previous 1%."
     },
     {
       "at": "2026-10-30T10:00:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "Euro-area GDP, Q3 flash (q/q)",
+      "event": "Euro area GDP Growth Rate QoQ Flash",
       "previous": "0.6%",
-      "note": "The flash estimate for the quarter in which inflation printed 3.8% and French borrowing costs rose to multi-year highs; retail sales and German orders were weak in August."
+      "note": "No consensus forecast was published; previous 0.6%."
     },
     {
-      "at": "2026-10-30T12:30:00Z",
-      "cur": "USD",
-      "impact": "medium",
-      "event": "US PCE price index (Sep, y/y)",
-      "previous": "3.4%"
-    },
-    {
-      "at": "2026-10-30T12:30:00Z",
-      "cur": "USD",
+      "at": "2026-10-30T10:00:00Z",
+      "cur": "EUR",
       "impact": "high",
-      "event": "US core PCE (Sep, y/y)",
-      "previous": "3.0%",
-      "note": "The Fed's preferred inflation gauge, two days after the 28 October decision. August's core was cooler than expected, which took the October hike odds down; a hot September would reopen the question for December."
+      "event": "Euro area GDP Growth Rate YoY Flash",
+      "previous": "1.2%",
+      "note": "No consensus forecast was published; previous 1.2%."
+    },
+    {
+      "at": "2026-10-30T10:00:00Z",
+      "cur": "EUR",
+      "impact": "high",
+      "event": "Italy Inflation Rate YoY Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
+    },
+    {
+      "at": "2026-10-30T10:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Euro area Unemployment Rate",
+      "previous": "6.4",
+      "note": "No consensus forecast was published; previous 6.4."
+    },
+    {
+      "at": "2026-10-30T10:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy Inflation Rate MoM Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-30T12:30:00Z",
-      "cur": "USD",
+      "cur": "CAD",
       "impact": "medium",
-      "event": "US employment cost index (Q3)",
-      "previous": "0.9%"
+      "event": "Canada GDP MoM",
+      "forecast": "0.2%",
+      "previous": "0%",
+      "note": "Forecast 0.2%; previous 0%. The gap between the print and the forecast is what moves price."
+    },
+    {
+      "at": "2026-10-30T12:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada GDP MoM Prel",
+      "note": "Scheduled; no forecast or previous reading was published."
     },
     {
       "at": "2026-10-30T13:00:00Z",
       "cur": "EUR",
       "impact": "high",
-      "event": "Germany CPI, Oct flash (y/y)",
-      "note": "The first October inflation read in the euro area's largest economy, after the ECB's 29 October decision. September's final HICP is due on 13 October."
+      "event": "Germany Inflation Rate YoY Prel",
+      "previous": "3.3%",
+      "note": "No consensus forecast was published; previous 3.3%."
+    },
+    {
+      "at": "2026-10-30T13:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Inflation Rate MoM Prel",
+      "previous": "0.6%",
+      "note": "No consensus forecast was published; previous 0.6%."
+    },
+    {
+      "at": "2026-10-30T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Employment Cost - Benefits QoQ",
+      "previous": "1",
+      "note": "No consensus forecast was published; previous 1."
+    },
+    {
+      "at": "2026-10-30T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Employment Cost - Wages QoQ",
+      "previous": "0.9",
+      "note": "No consensus forecast was published; previous 0.9."
+    },
+    {
+      "at": "2026-10-30T13:30:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Employment Cost Index QoQ",
+      "previous": "0.9",
+      "note": "No consensus forecast was published; previous 0.9."
+    },
+    {
+      "at": "2026-10-30T13:45:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Chicago PMI",
+      "previous": "58.8",
+      "note": "No consensus forecast was published; previous 58.8."
+    },
+    {
+      "at": "2026-10-30T23:50:00Z",
+      "cur": "JPY",
+      "impact": "medium",
+      "event": "Japan Retail Sales YoY",
+      "previous": "2.7",
+      "note": "No consensus forecast was published; previous 2.7."
+    },
+    {
+      "at": "2026-10-31T01:30:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China NBS Manufacturing PMI",
+      "previous": "50.1",
+      "note": "No consensus forecast was published; previous 50.1."
+    },
+    {
+      "at": "2026-10-31T01:30:00Z",
+      "cur": "CNY",
+      "impact": "medium",
+      "event": "China NBS Non Manufacturing PMI",
+      "previous": "50.2",
+      "note": "No consensus forecast was published; previous 50.2."
+    },
+    {
+      "at": "2026-11-02T00:30:00Z",
+      "cur": "AUD",
+      "impact": "medium",
+      "event": "Australia Building Permits MoM Prel",
+      "previous": "−6.1%",
+      "note": "No consensus forecast was published; previous −6.1%."
+    },
+    {
+      "at": "2026-11-02T01:45:00Z",
+      "cur": "CNY",
+      "impact": "high",
+      "event": "China RatingDog Manufacturing PMI",
+      "previous": "52.1",
+      "note": "No consensus forecast was published; previous 52.1."
+    },
+    {
+      "at": "2026-11-02T07:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Retail Sales MoM",
+      "previous": "1.3",
+      "note": "No consensus forecast was published; previous 1.3."
+    },
+    {
+      "at": "2026-11-02T07:00:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Germany Retail Sales YoY",
+      "previous": "−0.4",
+      "note": "No consensus forecast was published; previous −0.4."
+    },
+    {
+      "at": "2026-11-02T08:15:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Spain S&P Global Manufacturing PMI",
+      "previous": "51",
+      "note": "No consensus forecast was published; previous 51."
+    },
+    {
+      "at": "2026-11-02T08:30:00Z",
+      "cur": "CHF",
+      "impact": "medium",
+      "event": "Switzerland procure.ch Manufacturing PMI",
+      "previous": "55.3",
+      "note": "No consensus forecast was published; previous 55.3."
+    },
+    {
+      "at": "2026-11-02T08:45:00Z",
+      "cur": "EUR",
+      "impact": "medium",
+      "event": "Italy S&P Global Manufacturing PMI",
+      "previous": "50.4",
+      "note": "No consensus forecast was published; previous 50.4."
+    },
+    {
+      "at": "2026-11-02T13:30:00Z",
+      "cur": "CAD",
+      "impact": "medium",
+      "event": "Canada S&P Global Manufacturing PMI",
+      "previous": "51.5",
+      "note": "No consensus forecast was published; previous 51.5."
+    },
+    {
+      "at": "2026-11-02T14:00:00Z",
+      "cur": "USD",
+      "impact": "high",
+      "event": "US ISM Manufacturing PMI",
+      "previous": "54.5",
+      "note": "No consensus forecast was published; previous 54.5."
+    },
+    {
+      "at": "2026-11-02T14:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US ISM Manufacturing Employment",
+      "previous": "52.7",
+      "note": "No consensus forecast was published; previous 52.7."
+    },
+    {
+      "at": "2026-11-02T15:00:00Z",
+      "cur": "USD",
+      "impact": "medium",
+      "event": "US Atlanta Fed GDPNow",
+      "note": "Scheduled; no forecast or previous reading was published."
     }
   ],
   "howToRead": [
@@ -859,18 +2773,18 @@
   ],
   "sources": [
     {
-      "name": "Bigdata.com economic calendar",
-      "note": "release times in UTC, actuals, consensus forecasts and previous readings"
+      "name": "InsightSentry economic calendar",
+      "note": "release times in UTC, actuals, forecasts and previous readings, refreshed every 15 minutes"
     },
     {
-      "name": "Bigdata.com events calendar",
-      "note": "corporate earnings dates and times"
+      "name": "InsightSentry earnings calendar",
+      "note": "US company earnings, companies over $100 billion"
     },
     {
       "name": "Bigdata.com",
-      "note": "central bank decisions and market pricing, compiled from indexed reporting"
+      "note": "policy rates as last researched by hand, and rows dated before 2026-10-13"
     }
   ],
-  "attribution": "Compiled from reporting and event data indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
+  "attribution": "Event data from InsightSentry (https://insightsentry.com); earlier rows and the policy-rate baseline compiled from reporting indexed by Bigdata.com (https://bigdata.com), summarised in our own words.",
   "disclaimer": "Educational context, not trading advice. Times and forecasts change — confirm against a primary source before trading a release."
 }

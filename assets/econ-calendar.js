@@ -32,6 +32,21 @@
 
   const CAL_URL = 'assets/econ-calendar.json';
 
+  // Live copy first: the server feeder (workers/book-recorder/brief-feeder) publishes a fresh file
+  // to the recorder Worker every 15 min in the US session without a site deploy. The committed
+  // assets/ copy (refreshed once a day) is the fallback when the Worker is slow or unreachable.
+  const TERMINAL_LIVE = 'https://book-recorder.theelitegrey.workers.dev/terminal/';
+  function loadTerminal(name, local) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 5000) : 0;
+    const fallback = () => fetch(local + '?t=' + Math.floor(Date.now() / 60000))
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return fetch(TERMINAL_LIVE + name + '.json', ctl ? { signal: ctl.signal } : {})
+      .then((r) => { clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then((d) => { if (!d || !isFinite(Date.parse(d.generatedAt))) throw new Error('bad file'); return d; })
+      .catch(() => { clearTimeout(timer); return fallback(); });
+  }
+
   const esc = (s) => (typeof stkEsc === 'function'
     ? stkEsc(s)
     : String(s === null || s === undefined ? '' : s)
@@ -637,8 +652,7 @@
   // ---- boot ----------------------------------------------------------------
 
   function load() {
-    return fetch(CAL_URL + '?t=' + Math.floor(Date.now() / 60000))
-      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return loadTerminal('econ-calendar', CAL_URL);
   }
 
   document.addEventListener('DOMContentLoaded', () => {

@@ -40,6 +40,21 @@
 
   const MAP_URL = 'assets/market-map.json';
 
+  // Live copy first: the server feeder (workers/book-recorder/brief-feeder) publishes a fresh file
+  // to the recorder Worker every 15 min in the US session without a site deploy. The committed
+  // assets/ copy (refreshed once a day) is the fallback when the Worker is slow or unreachable.
+  const TERMINAL_LIVE = 'https://book-recorder.theelitegrey.workers.dev/terminal/';
+  function loadTerminal(name, local) {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const timer = ctl ? setTimeout(() => ctl.abort(), 5000) : 0;
+    const fallback = () => fetch(local + '?t=' + Math.floor(Date.now() / 60000))
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return fetch(TERMINAL_LIVE + name + '.json', ctl ? { signal: ctl.signal } : {})
+      .then((r) => { clearTimeout(timer); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then((d) => { if (!d || !isFinite(Date.parse(d.generatedAt))) throw new Error('bad file'); return d; })
+      .catch(() => { clearTimeout(timer); return fallback(); });
+  }
+
   // Every motion call goes through this. If motion.js is missing the module
   // renders exactly as before, just without the movement — a chart nobody can
   // read because an animation library failed is not a trade-off worth making.
@@ -510,8 +525,7 @@
   // ---- boot ----------------------------------------------------------------
 
   function load() {
-    return fetch(MAP_URL + '?t=' + Math.floor(Date.now() / 60000))
-      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+    return loadTerminal('market-map', MAP_URL);
   }
 
   function fail(mount, isPage) {

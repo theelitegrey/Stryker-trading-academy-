@@ -21,6 +21,7 @@ import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } fr
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
+import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
@@ -91,6 +92,7 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
     // per-day summary so /gex-sessions never scans the snapshots
     storeInit(this.sql);   // news + economic calendar (src/news.js)
+    terminalInit(this.sql);   // brief / market map / econ calendar files (src/terminal.js)
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexday (u TEXT NOT NULL, d INTEGER NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, PRIMARY KEY (u, d, day)) WITHOUT ROWID`);
     // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
@@ -365,6 +367,7 @@ export class BookRecorder {
       return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length), 'x-of-n': String(this.ofLastN || 0) } });
     }
     if (u.pathname === '/status') return Response.json(this.status());
+    if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
     if (u.pathname === '/history') {
       const sym = u.searchParams.get('symbol');
@@ -563,6 +566,7 @@ export default {
     }
     if (u.pathname === '/news-ingest') return newsIngestRoute(req, env, authorized, stub);
     if (u.pathname === '/cal-ingest') return calIngestRoute(req, env, u, authorized, stub);
+    if (u.pathname === '/terminal-ingest') return terminalIngestRoute(req, env, u, authorized, stub);
     if (u.pathname === '/of-ingest') {
       // order-flow feeder (server -> Worker): same shared secret, gzip binary bars, <= 256 KB
       if (req.method !== 'POST') return new Response('POST only', { status: 405 });
@@ -599,6 +603,8 @@ export default {
     const o = req.headers.get('origin');
     if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
     // news + calendar reads: their own per-IP limit (search typing), edge-cached (src/news-routes.js)
+    // brief / market map / econ calendar (src/terminal.js): edge-cached 60 s, no per-IP limit needed
+    if (u.pathname.startsWith('/terminal/')) return terminalRoute(u, env, ctx, h, stub);
     if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a

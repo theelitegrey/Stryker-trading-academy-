@@ -1,0 +1,23 @@
+[Unit]
+Description=TradeZoro terminal files feeder: InsightSentry -> market brief / market map / economic calendar -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/brief_feeder.py
+# FULL run: ~125 daily series (~3 min); MAP run: ~13 quote calls (~15 s); CAL run: 2 Worker reads
+TimeoutStartSec=600
+MemoryMax=150M
+Nice=10
+StateDirectory=brief-feeder
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# the once-a-day fallback commit goes through the server's gh login (gh may write its state/cache)
+ReadWritePaths=-/root/.config/gh -/root/.cache
+SyslogIdentifier=brief-feeder

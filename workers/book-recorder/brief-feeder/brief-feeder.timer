@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the TradeZoro terminal files feeder every 15 min (full rebuild weekdays from 05:30 UTC, map numbers in the US session, calendar actuals always)
+
+[Timer]
+OnBootSec=120s
+OnCalendar=*:0/15:40
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

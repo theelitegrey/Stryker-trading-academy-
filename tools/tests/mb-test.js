@@ -43,7 +43,8 @@ const stale = (extra) => Object.assign({}, BRIEF, { generatedAt: new Date(Date.n
   ok('every bullet has a title and text', BRIEF.bullets.every(x => x.title && x.text));
   ok('every calendar row has a time and event', BRIEF.calendar.every(c => c.time && c.event));
   ok('sources are named', (BRIEF.sources || []).length > 0);
-  ok('attribution names Bigdata.com with a link', /Bigdata\.com/.test(BRIEF.attribution) && /https:\/\/bigdata\.com/.test(BRIEF.attribution));
+  // the data source changed from Bigdata.com to InsightSentry (server feeder, 2026-10-14); either is credited with a link
+  ok('attribution names the data source with a link', /(Bigdata\.com[^]*https:\/\/bigdata\.com)|(InsightSentry[^]*https:\/\/insightsentry\.com)/.test(BRIEF.attribution));
   ok('disclaimer says it is not advice', /not trading advice/i.test(BRIEF.disclaimer));
   ok('has a watchOut', !!BRIEF.watchOut);
 

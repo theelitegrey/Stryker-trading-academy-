@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the TradeZoro news + economic calendar feeder every 2 min
+
+[Timer]
+OnBootSec=90s
+OnCalendar=*:1/2:20
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

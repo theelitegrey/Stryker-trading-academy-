@@ -38,6 +38,8 @@ jobs:
         run: |
           python3 workers/book-recorder/test/opt_feeder_test.py
           node workers/book-recorder/test/options.test.mjs
+      - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
+        run: node workers/book-recorder/test/news.test.mjs
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -95,3 +97,9 @@ jobs:
           echo "opt-ingest without key: HTTP $o401"; test "$o401" = 401
           oa=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/opt-analytics?u=SPX")
           echo "opt-analytics: HTTP $oa (404 = no feeder data yet)"; test "$oa" = 200 -o "$oa" = 404
+          n401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/news-ingest")
+          echo "news-ingest without key: HTTP $n401"; test "$n401" = 401
+          nw=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/news?sym=NQ")
+          echo "news: HTTP $nw"; test "$nw" = 200
+          cl=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/cal?kind=events")
+          echo "cal: HTTP $cl"; test "$cl" = 200

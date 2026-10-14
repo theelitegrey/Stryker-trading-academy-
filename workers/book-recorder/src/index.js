@@ -19,6 +19,7 @@ import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
+import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -86,6 +87,7 @@ export class BookRecorder {
     // j = the snapshot's other fields as JSON (day, x, s, cw, pw, zg, n, em, k, g).
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
     // per-day summary so /gex-sessions never scans the snapshots
+    storeInit(this.sql);   // news + economic calendar (src/news.js)
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexday (u TEXT NOT NULL, d INTEGER NOT NULL, day TEXT NOT NULL, n INTEGER NOT NULL, t0 INTEGER NOT NULL, t1 INTEGER NOT NULL, PRIMARY KEY (u, d, day)) WITHOUT ROWID`);
     // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
@@ -190,6 +192,7 @@ export class BookRecorder {
     }
     out.gexHistory = { keepDays: KEEP_DAYS, last: JSON.parse(this.meta('gexSnapLast') || 'null'),
       days: this.sql.exec('SELECT u, d, COUNT(*) AS days, SUM(n) AS snaps, MIN(day) AS first, MAX(day) AS lastDay FROM gexday GROUP BY u, d').toArray() };
+    try { out.news = newsDo.stats(this); } catch (e) { out.news = { error: String(e) }; }
     out.dbBytes = this.ctx.storage.sql.databaseSize;
     this.statusMemo = { at: Date.now(), out };
     return out;
@@ -236,6 +239,7 @@ export class BookRecorder {
       return out ? Response.json(out) : new Response('no data', { status: 404 });
     }
     if (u.pathname === '/status') return Response.json(this.status());
+    if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
     if (u.pathname === '/history') {
       const sym = u.searchParams.get('symbol');
       const buf = this.history(sym, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
@@ -365,6 +369,8 @@ export default {
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/opt-ingest', { method: 'POST', body: JSON.stringify({ items: v.items }) });
     }
+    if (u.pathname === '/news-ingest') return newsIngestRoute(req, env, authorized, stub);
+    if (u.pathname === '/cal-ingest') return calIngestRoute(req, env, u, authorized, stub);
     if (u.pathname === '/gex-chain') {
       // Read by the site's /api/gex/levels Function (server to server, no Origin). Edge-cached
       // 30 s; not rate-limited per IP because the callers are Cloudflare's own Function hosts.
@@ -389,6 +395,8 @@ export default {
     // request from a non-allowed origin is refused outright.
     const o = req.headers.get('origin');
     if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
+    // news + calendar reads: their own per-IP limit (search typing), edge-cached (src/news-routes.js)
+    if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     if (env.RL) { try { const { success } = await env.RL.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
 

@@ -1,0 +1,20 @@
+[Unit]
+Description=TradeZoro news + economic calendar feeder: InsightSentry -> compact items -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/local/bin/node --max-old-space-size=96 /root/projects/book-feeder/news-feeder/news_feeder.mjs
+# every 2 min; normal run ~1-3 s, a calendar run (every 15 min) ~5-10 s
+TimeoutStartSec=100
+MemoryMax=150M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+StateDirectory=news-feeder
+SyslogIdentifier=news-feeder

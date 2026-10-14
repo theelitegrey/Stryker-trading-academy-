@@ -244,3 +244,42 @@ one-off DO route, or delete the Worker (this also deletes the book history).
 Tests: `node workers/book-recorder/test/gex-history.test.mjs` (feeder vs engine parity, validation,
 pack/unpack, no-lookahead lookup; CI runs it) and `node workers/book-recorder/test/gex-worker-local.mjs`
 (the Worker routes end to end on node:sqlite).
+
+
+## News + economic calendar (InsightSentry; added 2026-10-14)
+
+Owner approved 2026-10-14 (InsightSentry commercial licence). The feeder on this server is the
+ONLY thing that talks to InsightSentry; the Worker and the browser never see the IS key.
+
+    this server (news-feeder.timer, every 2 min)
+    news-feeder/news_feeder.mjs --- GET /v3/newsfeed (1 page of 200, more only if we fell behind) ---> InsightSentry
+          |                     --- every 15 min: /v3/calendar/events w=1..3, earnings w=1..2,
+          |                         dividends w=1, ipos w=1..2
+          | compact (src/news.js, the SAME file is installed next to the feeder): id = hash of the
+          | normalised title (dedupe), t, source, title, <= 280-char summary, https link, our tags
+          +--- POST /news-ingest, /cal-ingest?kind= (x-ingest-key, JSON <= 512 KB) --->  Worker -> DO
+    site --- GET /news?sym=NQ&q=&from=&to=   (edge 60 s; `to` = bar-replay cut-off)
+         --- GET /cal?kind=events&from=YYYY-MM-DD&to=YYYY-MM-DD (<= 45 days) | kind=earnings|dividends|ipos (edge 5 min)
+
+- Tags: NQ ES YM GC SI CL BTC ETH from IS related symbols (index, futures, ETF and spot codes;
+  mega-caps count for NQ/ES/YM only when an item names at most 3 symbols; a basket of more than 6
+  related symbols counts as MACRO), plus title keyword rules; extra tags MACRO (Fed, CPI, jobs,
+  yields...), CRYPTO, STOCKS. A symbol's feed = its tag + MACRO (crypto: + CRYPTO; CL: CL only).
+  Rating/press-release noise not about our markets, and untagged items from non-market desks, are
+  dropped at the feeder. Rules + tests: src/news.js, test/news.test.mjs.
+- Storage: news one DO row per UTC hour (7 days, deduped across all of them on every ingest; a
+  duplicate keeps the earliest time and gains a missing link/summary). Calendar events one row
+  per UTC day (a re-fetched day is replaced whole, so a cancelled event disappears; ~13 months
+  kept); earnings/dividends/IPOs latest blob per kind.
+- Rate limit: InsightSentry sends no rate-limit headers; 12 back-to-back newsfeed calls all
+  returned 200 (2026-10-14). We use ~1 call / 2 min + 7 calls / 15 min (~1,400/day). A 429 is
+  logged, the next tick tries again. Reads: per-IP 60/min (binding RLN), edge cache shared by all.
+- Cost: ~720 news ingests + ~380 calendar ingests a day; rows written ~10-30 per ingest; well
+  inside the Workers/DO free tier.
+- Server: one Node run per 2 min, ~45-60 MB RSS for 1-3 s (MemoryMax=150M).
+
+Install / update (as root): `workers/book-recorder/news-feeder/install.sh`.
+Logs: `journalctl -u news-feeder -n 20 -o cat`. Force a calendar pull: run the service's
+ExecStart with `--cal`; re-pull 7 days of news: `--backfill`. Stop: `systemctl disable --now news-feeder.timer`
+(the site keeps showing the stored items and falls back to assets/econ-calendar.json for the calendar).
+Tests: `node workers/book-recorder/test/news.test.mjs` (also run by the deploy workflow).

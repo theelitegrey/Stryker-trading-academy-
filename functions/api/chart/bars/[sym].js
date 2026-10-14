@@ -9,12 +9,17 @@ import { TIMEFRAMES, normSym, normTf, pageOf, fetchPage, ttlFor, OutOfRange } fr
 const VERSION = 1;
 const inflight = new Map();
 
-function reply(data, status, ttl) {
+function reply(data, status, ttl, state) {
   const cc = ttl > 0 ? `public, max-age=${Math.min(ttl, 3600)}, s-maxage=${ttl}` : 'no-store';
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': cc, 'access-control-allow-origin': '*' }
-  });
+  const headers = { 'content-type': 'application/json; charset=utf-8', 'cache-control': cc, 'access-control-allow-origin': '*' };
+  if (state) headers['x-bars-cache'] = state; // HIT / MISS / STALE: read by tools/tests/chart-switch-perf.js
+  return new Response(JSON.stringify(data), { status, headers });
+}
+// A cached copy, marked as a cache hit (the stored response itself carries no x-bars-cache).
+function hitOf(res) {
+  const out = new Response(res.body, res);
+  out.headers.set('x-bars-cache', 'HIT');
+  return out;
 }
 function edge() { return typeof caches !== 'undefined' && caches.default ? caches.default : null; }
 function keyFor(request, sym, tf, page, kind) {
@@ -42,7 +47,7 @@ export async function onRequestGet(ctx) {
   try {
     if (cache) {
       const hit = await cache.match(freshKey);
-      if (hit) return hit;
+      if (hit) return hitOf(hit);
     }
     const k = `${sym}:${tf}:${page}`;
     let p = inflight.get(k);
@@ -59,7 +64,7 @@ export async function onRequestGet(ctx) {
       const w = Promise.all(writes).catch(() => {});
       if (ctx.waitUntil) ctx.waitUntil(w); else await w;
     }
-    return reply(body, 200, ttl);
+    return reply(body, 200, ttl, 'MISS');
   } catch (error) {
     if (error instanceof OutOfRange) {
       const body = { s: sym, tf, page, bars: [] };
@@ -73,7 +78,7 @@ export async function onRequestGet(ctx) {
     if (last) {
       const body = await last.json();
       body.stale = true;
-      return reply(body, 200, 20);
+      return reply(body, 200, 20, 'STALE');
     }
     return reply({ error: 'upstream unavailable' }, 502, 0);
   }

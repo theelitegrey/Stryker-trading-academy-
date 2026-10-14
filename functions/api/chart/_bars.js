@@ -235,7 +235,7 @@ function insightConnect(url) {
   throw new Error('WebSocket unavailable');
 }
 
-async function fetchInsightPage(sym, tf, page, now, env) {
+async function fetchInsightPage(sym, tf, page, now, env, signal) {
   const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
   const code = INSIGHTSENTRY_CODES[sym];
   const spec = insightSpec(tf);
@@ -253,6 +253,10 @@ async function fetchInsightPage(sym, tf, page, now, env) {
   await new Promise((resolve, reject) => {
     const done = (err) => { clearTimeout(timer); try { ws.close(); } catch (e) {} err ? reject(err) : resolve(); };
     const timer = setTimeout(() => done(new Error('InsightSentry timeout')), FETCH_TIMEOUT_MS);
+    if (signal) {
+      if (signal.aborted) return done(new Error('InsightSentry cancelled'));
+      signal.addEventListener('abort', () => done(new Error('InsightSentry cancelled')), { once: true });
+    }
     ws.onopen = () => ws.send(JSON.stringify({
       api_key: key,
       slow_consumer_policy: 'adaptive',
@@ -283,13 +287,37 @@ export class OutOfRange extends Error {}
 
 // One upstream page. Throws OutOfRange for a page Yahoo cannot serve (empty is a valid answer),
 // any other error for an upstream failure (caller falls back to last-good).
+//
+// SPEED (Owner order 2026-10-14, "switching symbols takes 3-5 s"): InsightSentry and Yahoo are
+// asked AT THE SAME TIME. Build 534 and earlier waited for InsightSentry first, and its series
+// history arrives ~5.6 s after the socket opens, so every current-page request sat out the full
+// 4.5 s FETCH_TIMEOUT_MS and then served Yahoo anyway (measured 4.7 s TTFB on every NQ/ES/GC/YM/SI
+// current page, 0.1-0.3 s on symbols without an InsightSentry code). The preference is unchanged:
+// InsightSentry rows win when they are ready by the time Yahoo answers; otherwise Yahoo's page is
+// served right away and the InsightSentry socket is closed. InsightSentry is waited for only when
+// Yahoo fails. The chart's live tail still comes from the /api/chart/stream bridge.
 export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch, env = {}) {
+  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+  let insightRows = null;
+  const insight = fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal)
+    .then((rows) => { insightRows = rows; return rows; });
+  insight.catch(() => {}); // not configured / not this symbol / timeout: Yahoo carries the page
   try {
-    return await fetchInsightPage(sym, tf, page, now, env);
-  } catch (e) {
-    // If the realtime feed is not configured, not available for this symbol/timeframe, or times
-    // out, keep the chart working on the existing backfill source. Do not leak vendor details.
+    const rows = await fetchYahooPage(sym, tf, page, now, fetchImpl);
+    if (insightRows && insightRows.length) return insightRows;
+    return rows;
+  } catch (yErr) {
+    try {
+      const rows = await insight;
+      if (rows && rows.length) return rows;
+    } catch (e) { /* fall through to the Yahoo error */ }
+    throw yErr;
+  } finally {
+    if (ctrl) { try { ctrl.abort(); } catch (e) {} }
   }
+}
+
+async function fetchYahooPage(sym, tf, page, now, fetchImpl) {
   const cfg = TIMEFRAMES[tf];
   if (cfg.page) {
     const [p1, p2] = pageBounds(tf, page);

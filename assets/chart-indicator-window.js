@@ -36,7 +36,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=545';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=546';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -183,6 +183,7 @@ export function mountIndicatorWindow(ws, opts){
       // TradeZoro GEX Levels (assets/chart-gex-levels.js) heads its own "TradeZoro" group.
       let desc = '';
       if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_gexheat') { cat = GROUP_STRYKER; desc = 'Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ)'; }
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
     });
     const ex = (S() && S().EXAMPLES) || [];
@@ -466,6 +467,8 @@ export function mountIndicatorWindow(ws, opts){
         const a = view.items.filter((x) => x.cat === c);
         if (!a.length) return;
         if (c !== GROUP_FLOW && c !== GROUP_STRYKER) a.sort((x, y) => x.name.localeCompare(y.name));
+        // GEX Levels first, the GEX Heatmap right after it (the rest keep their order).
+        if (c === GROUP_STRYKER) { const rk = (x) => (x.key === 'b:stk_gex' ? 0 : x.key === 'b:stk_gexheat' ? 1 : 2); a.sort((x, y) => rk(x) - rk(y)); }
         list.appendChild(h('p', { class: 'stkiw-grp', text: c }));
         a.forEach((x) => list.appendChild(row(x)));
       });

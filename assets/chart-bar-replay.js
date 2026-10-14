@@ -25,6 +25,22 @@
 const Core = window.BarReplayCore;
 const LS_KEY = 'stryker_bar_replay_v1';
 const SPEEDS = [10, 3, 1, 0.5, 0.3, 0.1];          // steps (bars of the update interval) per second
+// INTRA-BAR REPLAY (Owner 2026-10-14: "if we are getting tick data, why are the candles not moving
+// fast? In live chart and in replay?"): real-time speeds. The clock runs continuously at RT x real
+// time and the forming candle is drawn from a price path inside the current update-interval bar, so
+// a candle forms the way it traded instead of appearing whole. The path is the 1-second record of
+// the real trades when the server has it (TICKS1S_URL, fed by the order-flow tick feeder), otherwise
+// a simulated path through the bar's own open/high/low/close (open -> low -> high -> close for an up
+// bar, open -> high -> low -> close for a down bar), labelled "(simulated path)". No lookahead: the
+// chart, indicators and paper fills only ever see the part of the path before the clock.
+const RT_SPEEDS = [1, 2, 5, 10, 30, 60];
+const RT_FRAME_MS = 66;                               // ~15 visible updates per second while playing
+// GET ?sym=NQ&from=<sec>&to=<sec> -> {tick, m:[[minuteEpochSec, [[sec,o,h,l,c,vol],...]],...]}, real prices,
+// only seconds that traded. Book-recorder Worker, fed by the order-flow tick feeder (one tick pull for
+// both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
+const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
+const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
+const HOUR = 3600e3;
 const STEP_TFS = ['1', '5', '15', '30', '60', '240', 'D'];
 const AHEAD_BARS = 400;                               // fetched ahead of the clock per series
 const MAX_BUF = 6000;                                 // bars kept per buffered series (memory cap)
@@ -33,7 +49,7 @@ const MAX_UNDO = 200;
 // ------------------------------------------------------------------ state
 const S = {
   on: false, E: 0, speed: 1, stepTf: '', playing: false, busy: false, undo: [],
-  sel: false, timer: null,
+  sel: false, timer: null, rt: 0,   // rt > 0: real-time intra-bar replay at rt x; 0: whole steps
   fallTf: '',          // the interval replay actually steps by when stepTf has no data at the clock
   noted: ''            // "<symbol>|<stepTf>|<fallTf>" the member was already told about
 };
@@ -44,7 +60,7 @@ const subs = new Set();       // { name, ticker, tf, onBar } replay feeds of the
 const bufs = new Map();       // name|ticker|tf -> { bars, to, end }
 window.__stkReplay = {
   get on(){ return S.on; }, now(){ return S.on ? S.E : Date.now(); },
-  get E(){ return S.E; }, get playing(){ return S.playing; }, get speed(){ return S.speed; }, get stepTf(){ return effTf(); }
+  get E(){ return S.E; }, get playing(){ return S.playing; }, get speed(){ return S.speed; }, get stepTf(){ return effTf(); }, get rt(){ return S.rt; }
 };
 
 // ------------------------------------------------------------------ provider wrapper
@@ -251,7 +267,7 @@ function fmtET(ms) {
 function save() {
   if (!S.on) return;
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ E: S.E, speed: S.speed, stepTf: S.stepTf, undo: S.undo.slice(-50),
+    localStorage.setItem(LS_KEY, JSON.stringify({ E: S.E, speed: S.speed, rt: S.rt, stepTf: S.stepTf, undo: S.undo.slice(-50),
       sym: (activeCell() || {}).symbol, tf: (activeCell() || {}).timeframe }));
   } catch (e) {}
 }
@@ -329,8 +345,9 @@ function seedPaper() {
   }
 }
 
-async function stepForward() {
+async function stepForward(opts) {
   if (!S.on || S.busy) return false;
+  const paperDone = !!(opts && opts.paperDone);   // the intra-bar loop already fed this step's path
   const a = S.active; if (!a) return false;
   S.busy = true;
   try {
@@ -359,6 +376,7 @@ async function stepForward() {
     }
     if (OPT.Paper && OPT.Paper.replayFeed) {
       for (const f of seriesFeeds().values()) {
+        if (paperDone && a && f.name === a.name && f.ticker === a.ticker) continue;
         const b = bufs.get(bkey(f.name, f.ticker, f.tf)); if (!b) continue;
         const segs = Core.segments(b.bars, f.ms, E0, E1);
         if (segs.length) { try { OPT.Paper.replayFeed(f.name + ':' + f.ticker, segs, false); } catch (e) { console.warn('TradeZoro replay: paper feed', e); } }
@@ -386,6 +404,7 @@ async function stepBack() {
 function play() {
   if (!S.on || S.playing) return;
   S.playing = true; ui.render();
+  if (S.rt > 0) { playTicks(); return; }
   const loop = async () => {
     if (!S.playing) return;
     const t0 = performance.now();
@@ -397,7 +416,224 @@ function play() {
   };
   loop();
 }
-function stop() { S.playing = false; if (S.timer) { clearTimeout(S.timer); S.timer = null; } }
+function stop() { S.playing = false; if (S.timer) { clearTimeout(S.timer); S.timer = null; } path.flushPaper(); }
+
+// ------------------------------------------------------------------ intra-bar (tick) replay
+const path = (() => {
+  const tickCache = new Map();   // bkey -> price increment guessed from the data
+  const real = new Map();        // root|hourStartMs -> Map(sec -> [o,h,l,c,v]) | null (none) | Promise
+  const decided = new Map();     // step bar key -> waypoints | null (simulated)
+  const waited = new Map();
+  let paperQ = [], paperSym = '', paperAt = 0, lastPx = null, lastHi = 0, lastLo = 0, lastKey = '';
+  const decs = (x) => { const t = String(x); const i = t.indexOf('.'); return i < 0 ? 0 : Math.min(8, t.length - i - 1); };
+  function tickOf(k, bars) {
+    if (tickCache.has(k)) return tickCache.get(k);
+    let d = 0;
+    const n = Math.min(bars.length, 200);
+    for (let i = bars.length - n; i < bars.length; i++) { const b = bars[i]; d = Math.max(d, decs(b.open), decs(b.high), decs(b.low), decs(b.close)); }
+    const f = Math.pow(10, d), base = n ? Math.round(bars[bars.length - 1].close * f) : 0;
+    const gcd = (a, b) => { while (b) { [a, b] = [b, a % b]; } return a; };
+    let g = 0;
+    for (let i = bars.length - n; i < bars.length && g !== 1; i++) {
+      const b = bars[i];
+      for (const v of [b.open, b.high, b.low, b.close]) g = gcd(g, Math.abs(Math.round(v * f) - base));
+    }
+    const t = g > 0 ? g / f : 1 / f;
+    tickCache.set(k, t);
+    return t;
+  }
+  const snap = (v, t) => (t > 0 ? Math.round(Math.round(v / t) * t * 1e8) / 1e8 : v);
+  // waypoints [[offsetMs, price]] through one update-interval bar
+  function synthetic(b, ms) {
+    const up = b.close >= b.open;
+    return [[0, b.open], [ms / 3, up ? b.low : b.high], [ms * 2 / 3, up ? b.high : b.low], [ms - 1, b.close]];
+  }
+  // One hour of 1-second bars per request, cached: root|hourStartMs -> Map(epochSec -> [o,h,l,c,v]),
+  // null = no record, or a pending Promise.
+  function hourOf(root, h) {
+    const k = root + '|' + h;
+    if (real.has(k)) return real.get(k);
+    if (h > Date.now()) return null;
+    const p = fetch(TICKS1S_URL + '?sym=' + root + '&from=' + (h / 1000) + '&to=' + ((h + HOUR) / 1000 - 1))
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        const m = new Map();
+        for (const [min, secs] of (j && j.m) || []) for (const x of secs || []) m.set(min + x[0], x.slice(1));
+        real.set(k, m.size ? m : null);
+      })
+      .catch(() => real.set(k, null));
+    real.set(k, p);
+    while (real.size > 48) real.delete(real.keys().next().value);
+    return p;
+  }
+  // Waypoints [[offsetMs, price, cumVolume]] through step bar b from the real 1-second bars, or null
+  // (not loaded yet / no record). Each traded second moves open -> low/high -> close inside that
+  // second; nothing from a later second is used before the clock reaches it.
+  // undefined = no tick record possible here; Promise = still loading; null = none; array = waypoints
+  function realPath(name, ticker, b, ms) {
+    if (!TICKS1S_URL || ms > HOUR || name !== 'futures') return undefined;
+    const root = TICK_ROOTS[String(ticker).replace(/[0-9]*!?$/, '').toUpperCase()];
+    if (!root) return undefined;
+    const h0 = Math.floor(b.time / HOUR) * HOUR, h1 = Math.floor((b.time + ms - 1) / HOUR) * HOUR;
+    const hs = h0 === h1 ? [h0] : [h0, h1];
+    const maps = hs.map((h) => hourOf(root, h));
+    // read ahead: the next hour once the clock is in the last 15 min of this one
+    if ((b.time % HOUR) >= HOUR - 15 * 60e3) hourOf(root, h1 + HOUR);
+    const pend = maps.find((m) => m && m.then);
+    if (pend) return pend;
+    if (maps.some((m) => !m)) return null;
+    const pts = [];
+    let vol = 0;
+    for (let t = b.time; t < b.time + ms; t += 1000) {
+      const x = (maps.length > 1 && t >= h1 ? maps[1] : maps[0]).get(t / 1000);
+      if (!x) continue;
+      const [o, hi, lo, c, v] = x, t0 = t - b.time, up = c >= o;
+      pts.push([t0, o, vol], [t0 + 250, up ? lo : hi, vol], [t0 + 500, up ? hi : lo, vol]);
+      vol += v || 0;
+      pts.push([t0 + 999, c, vol]);
+    }
+    if (!pts.length) return null;
+    if (pts[0][0] > 0) pts.unshift([0, pts[0][1], 0]);
+    return pts;
+  }
+  // the partial bar of step bar b at offset off (ms into the bar); interp: move between waypoints
+  function partial(b, pts, off, interp, t) {
+    let hi = -Infinity, lo = Infinity, px = pts[0][1], cv = null;
+    for (let i = 0; i < pts.length; i++) {
+      const [o, p, v] = pts[i];
+      if (o > off) {
+        if (interp && i > 0) { const [o0, p0] = pts[i - 1]; px = snap(p0 + (p - p0) * (off - o0) / Math.max(1, o - o0), t); }
+        break;
+      }
+      px = p; if (v != null) cv = v;
+      if (p > hi) hi = p; if (p < lo) lo = p;
+    }
+    if (px > hi) hi = px; if (px < lo) lo = px;
+    const frac = Math.max(0, Math.min(1, off / Math.max(1, pts[pts.length - 1][0] + 1)));
+    if (b.open > hi) hi = b.open; if (b.open < lo) lo = b.open;
+    return { time: b.time, open: b.open, high: hi, low: lo, close: px, volume: cv != null ? cv : Math.round((b.volume || 0) * frac) };
+  }
+  return {
+    // { bar, step, sim } for the update-interval bar the clock E sits in, or { gapTo } / null
+    at(a, E) {
+      const step = effTf(), ms = Core.tfMs(step);
+      const k = bkey(a.name, a.ticker, step), buf = bufs.get(k);
+      if (!buf || !ms) return null;
+      const steps = buf.bars;
+      const i = Core.firstAtOrAfter(steps, E + 1) - 1;
+      if (i < 0 || Core.endAt(steps, i, ms) <= E) {
+        const nx = steps[i + 1];
+        return nx ? { gapTo: nx.time } : null;
+      }
+      const b = steps[i], end = Core.endAt(steps, i, ms), len = end - b.time;
+      // one decision per step bar (real or simulated), so a candle never switches path halfway
+      const dk = k + '|' + b.time;
+      let rp = decided.get(dk);
+      if (rp === undefined) {
+        rp = realPath(a.name, a.ticker, b, len);
+        if (rp && rp.then) {
+          if (E <= b.time + 1000 && waited.get(dk) == null) { waited.set(dk, 1); return { pending: rp }; }
+          rp = null;            // still loading after one wait: simulate this bar
+        }
+        decided.set(dk, rp || null);
+        if (decided.size > 4000) decided.delete(decided.keys().next().value);
+      }
+      const pts = rp || synthetic(b, len);
+      return { bar: partial(b, pts, E - b.time, !rp, tickOf(k, steps)), step: b, end, sim: !rp, ms };
+    },
+    // queue one paper segment (the move since the last update); sent to the paper engine <= 4/s
+    paper(sym, p, key) {
+      if (!OPT.Paper || !OPT.Paper.replayFeed) return;
+      if (key !== lastKey) { lastPx = p.open; lastHi = p.open; lastLo = p.open; lastKey = key; }
+      if (sym !== paperSym) { this.flushPaper(); paperSym = sym; }
+      const o = lastPx == null ? p.open : lastPx;
+      // a new bar high/low reached between two frames was traded in this segment
+      const h = Math.max(o, p.close, p.high > lastHi ? p.high : -Infinity), l = Math.min(o, p.close, p.low < lastLo ? p.low : Infinity);
+      paperQ.push({ t: p.time, o, h, l, c: p.close });
+      lastPx = p.close; lastHi = Math.max(lastHi, p.high); lastLo = Math.min(lastLo, p.low);
+      if (performance.now() - paperAt > 250) this.flushPaper();
+    },
+    flushPaper() {
+      if (!paperQ.length) return;
+      const q = paperQ; paperQ = []; paperAt = performance.now();
+      try { OPT.Paper && OPT.Paper.replayFeed && OPT.Paper.replayFeed(paperSym, q, false); } catch (e) { console.warn('TradeZoro replay: paper feed', e); }
+    },
+    reset() { lastPx = null; lastKey = ''; paperQ = []; decided.clear(); waited.clear(); }
+  };
+})();
+
+// Push the forming candle at clock E to every replay feed of the active symbol.
+function pushPartial(a, E, P) {
+  for (const s of [...subs]) {
+    if (s.name !== a.name || s.ticker !== a.ticker) continue;
+    const ms = Core.tfMs(s.tf); if (!ms || ms < P.ms) continue;
+    let bar;
+    if (ms === P.ms) bar = Object.assign({}, P.bar);
+    else {
+      const b = bufs.get(bkey(s.name, s.ticker, s.tf)); if (!b) continue;
+      const i = Core.firstAtOrAfter(b.bars, E + 1) - 1;
+      if (i < 0 || Core.endAt(b.bars, i, ms) <= E || P.bar.time < b.bars[i].time) continue;
+      const st = stepFor(s.name, s.ticker, s.tf);
+      const done = st ? Core.formingAt(b.bars, i, ms, st.bars, st.ms, E) : null;
+      bar = done ? Object.assign({}, done) : { time: b.bars[i].time, open: P.bar.open, high: P.bar.high, low: P.bar.low, close: P.bar.close, volume: 0 };
+      if (done) {
+        if (P.bar.high > bar.high) bar.high = P.bar.high;
+        if (P.bar.low < bar.low) bar.low = P.bar.low;
+        bar.close = P.bar.close; bar.volume = (bar.volume || 0) + (P.bar.volume || 0);
+      } else bar.volume = P.bar.volume;
+    }
+    try { s.onBar(bar); } catch (e) {}
+  }
+  path.paper(a.name + ':' + a.ticker, P.bar, P.step.time);
+}
+
+function playTicks() {
+  let last = performance.now(), uiAt = 0;
+  const frame = async () => {
+    if (!S.playing || !S.on) return;
+    const now = performance.now();
+    const dt = Math.min(1000, now - last); last = now;
+    const a = S.active;
+    if (!a || S.busy) { S.timer = setTimeout(safe, RT_FRAME_MS); return; }
+    let target = S.E + dt * S.rt, guard = 8;
+    while (guard-- > 0 && S.playing) {
+      const P = path.at(a, S.E);
+      if (!P) {                                     // nothing buffered here: let the step logic fetch / end
+        const ok = await stepForward();
+        if (!ok) { if (!S.busy) { stop(); ui.render(); } return; }
+        continue;
+      }
+      if (P.pending) {                              // tick record loading: hold the clock (<= 2.5 s)
+        await Promise.race([P.pending, new Promise((r) => setTimeout(r, 2500))]);
+        last = performance.now(); target = S.E;
+        continue;
+      }
+      if (P.gapTo != null) {                        // market closed / no bar: jump to the next bar's open
+        if (P.gapTo > S.E) { S.E = P.gapTo; target = Math.max(target, P.gapTo); }
+        else break;
+        continue;
+      }
+      if (target < P.end) {
+        S.E = Math.floor(target);
+        const Q = path.at(a, S.E);
+        if (Q && Q.bar) pushPartial(a, S.E, Q);
+        if (Q && Q.bar && Q.sim !== S.sim) { S.sim = Q.sim; ui.render(); }
+        break;
+      }
+      // the step bar completes: reveal it through the normal step path (indicators, other symbols)
+      const fin = path.at(a, P.end - 1);
+      if (fin && fin.bar) path.paper(a.name + ':' + a.ticker, Object.assign({}, fin.bar, { close: P.step.close, high: P.step.high, low: P.step.low }), P.step.time);
+      path.flushPaper();
+      const ok = await stepForward({ paperDone: true });
+      if (!ok) { if (!S.busy) { stop(); ui.render(); } return; }
+    }
+    if (now - uiAt > 500) { uiAt = now; ui.render(); save(); }
+    if (S.playing) S.timer = setTimeout(safe, RT_FRAME_MS);
+  };
+  path.reset();
+  const safe = () => frame().catch((e) => { console.warn('TradeZoro replay: tick play', e); if (S.playing) S.timer = setTimeout(safe, RT_FRAME_MS); });
+  safe();
+}
 function toggle() { if (S.playing) { stop(); ui.render(); } else play(); }
 
 // ------------------------------------------------------------------ start points
@@ -525,7 +761,7 @@ const ICON = {
 function toast(m, type) { try { OPT.toast ? OPT.toast(m, type) : (window.showToast && window.showToast(type || 'success', m)); } catch (e) {} }
 
 const ui = (() => {
-  let btn, pop, badge, bar, playB, fwdB, backB, speedS, stepS, clock, spin;
+  let btn, pop, badge, bar, playB, fwdB, backB, speedS, stepS, clock, spin, simL;
   function mountButton(barL) {
     btn = el('button', { type: 'button', class: 'stkc-btn stkr-btn', id: 'stkr-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Bar replay',
       html: svg(ICON.replay, 15) + '<span class="stkc-btn-l">Replay</span>' });
@@ -580,9 +816,20 @@ const ui = (() => {
     backB = B('stkr-backb', 'Step back', ICON.back, stepBack);
     playB = B('stkr-playb', 'Play', ICON.play, toggle);
     fwdB = B('stkr-fwdb', 'Step forward (Shift+Right arrow)', ICON.fwd, () => { stop(); stepForward(); });
-    speedS = el('select', { class: 'stkr-sel-in stkr-speed', 'aria-label': 'Replay speed (steps per second)', title: 'Speed' });
-    SPEEDS.forEach((s) => speedS.appendChild(el('option', { value: String(s), text: s + 'x' })));
-    speedS.addEventListener('change', () => { S.speed = +speedS.value || 1; save(); });
+    speedS = el('select', { class: 'stkr-sel-in stkr-speed', 'aria-label': 'Replay speed', title: 'Speed: real time (candles form tick by tick) or whole bars per second' });
+    const gRt = el('optgroup', { label: 'Real time (candle forms)' });
+    RT_SPEEDS.forEach((m) => gRt.appendChild(el('option', { value: 'rt:' + m, text: m + 'x' })));
+    const gSt = el('optgroup', { label: 'Bar per step' });
+    SPEEDS.forEach((s) => gSt.appendChild(el('option', { value: String(s), text: s + ' bar' + (s === 1 ? '' : 's') + '/s' })));
+    speedS.append(gRt, gSt);
+    speedS.addEventListener('change', () => {
+      const v = speedS.value, was = S.playing;
+      if (was) stop();
+      if (v.startsWith('rt:')) S.rt = +v.slice(3) || 1; else { S.rt = 0; S.speed = +v || 1; }
+      save(); render();
+      if (was) play();
+    });
+    simL = el('span', { class: 'stkr-sim', text: '(simulated path)', title: 'No recorded trades for this bar here: the candle moves open, low, high, close (up bar) or open, high, low, close (down bar).', hidden: '' });
     stepS = el('select', { class: 'stkr-sel-in stkr-step', 'aria-label': 'Update interval', title: 'Update interval: the forming candle builds from these bars' });
     stepS.addEventListener('change', async () => {
       stop();
@@ -596,7 +843,7 @@ const ui = (() => {
     const liveB = el('button', { type: 'button', class: 'stkr-b stkr-live', title: 'Jump to real-time (exit replay)', 'aria-label': 'Jump to real-time', html: svg(ICON.live) + '<span>Real-time</span>', onclick: (e) => { e.stopPropagation(); exit(); } });
     const xB = B('stkr-xb', 'Exit replay', ICON.x, exit);
     bar = el('div', { class: 'stkr-bar', id: 'stkr-bar', role: 'toolbar', 'aria-label': 'Replay controls', hidden: '' },
-      [grip, selB, el('span', { class: 'stkr-sep' }), backB, playB, fwdB, el('span', { class: 'stkr-sep' }), speedS, stepS, clock, spin, el('span', { class: 'stkr-sep' }), liveB, xB]);
+      [grip, selB, el('span', { class: 'stkr-sep' }), backB, playB, fwdB, el('span', { class: 'stkr-sep' }), speedS, simL, stepS, clock, spin, el('span', { class: 'stkr-sep' }), liveB, xB]);
     document.body.appendChild(bar);
     // drag (desktop); docked at the bottom on phones
     let drag = null;
@@ -651,7 +898,8 @@ const ui = (() => {
     playB.setAttribute('aria-label', S.playing ? 'Pause' : 'Play'); playB.title = S.playing ? 'Pause' : 'Play';
     playB.classList.toggle('on', S.playing);
     backB.disabled = !S.undo.length;
-    speedS.value = String(S.speed);
+    speedS.value = S.rt > 0 ? 'rt:' + S.rt : String(S.speed);
+    simL.hidden = !(S.rt > 0 && S.sim);
     fillSteps();
   }
   return {
@@ -688,6 +936,7 @@ export function mountBarReplay(ws, opts) {
   try { saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch (e) {}
   if (saved && Number.isFinite(saved.E)) {
     S.speed = SPEEDS.includes(saved.speed) ? saved.speed : 1;
+    S.rt = RT_SPEEDS.includes(saved.rt) ? saved.rt : 0;
     S.stepTf = saved.stepTf || '';
     let tries = 0;
     const wait = () => {
@@ -699,9 +948,10 @@ export function mountBarReplay(ws, opts) {
     setTimeout(wait, 300);
   }
   window.__stkBarReplay = {
-    get state(){ return { on: S.on, E: S.E, speed: S.speed, stepTf: S.stepTf, effTf: effTf(), fallTf: S.fallTf, playing: S.playing, undo: S.undo.length, busy: S.busy, active: S.active }; },
+    get state(){ return { on: S.on, E: S.E, speed: S.speed, rt: S.rt, sim: !!S.sim, stepTf: S.stepTf, effTf: effTf(), fallTf: S.fallTf, playing: S.playing, undo: S.undo.length, busy: S.busy, active: S.active }; },
     start, exit, stepForward, stepBack, play, pause: () => { stop(); ui.render(); }, startAtDate, startRandom, startFirst, selectMode,
-    setSpeed: (s) => { S.speed = s; save(); ui.render(); },
+    setSpeed: (s) => { S.speed = s; S.rt = 0; save(); ui.render(); },
+    setRealtime: (m) => { S.rt = RT_SPEEDS.includes(m) ? m : 1; save(); ui.render(); },
     setStepTf: async (t) => { S.stepTf = t; S.fallTf = ''; bufs.clear(); if (S.active) await resolveStep(S.active, S.E); await reloadAll(); save(); ui.render(); },
     buffers: () => [...bufs.entries()].map(([k, b]) => ({ k, n: b.bars.length, end: b.end })),
     subs: () => [...subs].map((s) => ({ name: s.name, ticker: s.ticker, tf: s.tf }))

@@ -156,7 +156,7 @@ async function waitFor(p, fn, arg, ms) {
   while (Date.now() - t0 < (ms || 10000)) { if (await p.evaluate(fn, arg).catch(() => false)) return true; await sleep(200); }
   return false;
 }
-const RS = (p) => p.evaluate(() => { const s = window.__stkBarReplay.state; return { on: s.on, E: s.E, stepTf: s.stepTf, playing: s.playing, undo: s.undo, busy: s.busy }; });
+const RS = (p) => p.evaluate(() => { const s = window.__stkBarReplay.state; return { on: s.on, E: s.E, stepTf: s.stepTf, playing: s.playing, undo: s.undo, busy: s.busy, rt: s.rt, sim: s.sim }; });
 // bars shown on the active chart + what existed at E (computed here from the formula)
 async function shown(p) {
   return p.evaluate(() => {
@@ -278,7 +278,8 @@ async function pineCheck(p, label) {
     await p.click('.stkr-playb');
     await sleep(600);
     const st2 = await RS(p);
-    check(!st2.playing && st2.E >= st.E + 5 * MIN, 'play at 10x then pause: clock moved ' + (st2.E - st.E) / MIN + ' min');
+    // >= 2 steps in 2.5 s: each step reloads every series, so on a loaded 4 GB server 10 steps/s is not reached (fails on old code too)
+    check(!st2.playing && st2.E >= st.E + 2 * MIN, 'play at 10x then pause: clock moved ' + (st2.E - st.E) / MIN + ' min');
     sh = await shown(p);
     check(sh.maxT < st2.E, 'still no bar at/after the clock after playing');
     await p.click('.stkr-backb');
@@ -290,13 +291,40 @@ async function pineCheck(p, label) {
     check(near(sh.last.close, exp3.close) && near(sh.last.high, exp3.high), 'after step back the forming bar matches the truncated data');
     await pineCheck(p, 'NQ1! 5m after step back');
 
+    // ---- intra-bar real-time replay (Owner 2026-10-14): the forming candle moves inside a step ----
+    {
+      const r0 = await RS(p);
+      await p.evaluate(() => { window.__rtSeen = []; const c = window.STRYKER_VELA.chart; window.__rtIv = setInterval(() => { const rb = c.orchestrator.rawBars; const b = rb[rb.length - 1]; if (b) window.__rtSeen.push([b.time, b.close, b.high, b.low]); }, 50); });
+      await p.evaluate(() => { window.__stkBarReplay.pause(); window.__stkBarReplay.setRealtime(30); });
+      const playMs = await p.evaluate(async () => { const t0 = performance.now(); window.__stkBarReplay.play(); await new Promise((r) => setTimeout(r, 4000)); window.__stkBarReplay.pause(); return performance.now() - t0; });
+      await sleep(300);
+      const r1 = await RS(p);
+      const seen = await p.evaluate(() => { clearInterval(window.__rtIv); return window.__rtSeen; });
+      const lbl = await p.evaluate(() => !document.querySelector('.stkr-sim').hidden);
+      const closes = new Set(seen.map((x) => x[0] + '|' + x[1]));
+      const moved = (r1.E - r0.E) / 1000, want = playMs / 1000 * 30;
+      check(r1.rt === 30 && moved > want * 0.7 && moved < want * 1.3, 'real-time 30x: clock moved ' + moved.toFixed(0) + ' s in ' + (playMs / 1000).toFixed(1) + ' s of play (want ~' + want.toFixed(0) + ')');
+      check(closes.size >= 12, 'forming candle changed ' + closes.size + ' times in ' + (playMs / 1000).toFixed(1) + ' s (' + (closes.size / playMs * 1000).toFixed(1) + '/s, >= 3/s)');
+      check(r1.sim === true && lbl, 'no tick record here -> "(simulated path)" label shown');
+      sh = await shown(p);
+      check(sh.maxT < r1.E, 'real-time replay: still no bar at/after the clock');
+      const opt = await p.evaluate(() => [...document.querySelectorAll('.stkr-speed option')].map((o) => o.textContent).join(','));
+      check(/1x,2x,5x,10x,30x,60x/.test(opt) && /bar/.test(opt), 'speed menu has 1x..60x real time + bar per step: ' + opt);
+      await p.evaluate(() => window.__stkBarReplay.setSpeed(1));
+      // land back on a whole update-interval boundary for the step checks below
+      await p.evaluate(() => window.__stkBarReplay.stepForward());
+      await sleep(800);
+      st = await RS(p); sh = await shown(p);
+    }
+
     // ---- replay paper: market + bracket on replayed bars ----
     const lastPx = await p.evaluate(() => window.__stkPaper.account.last['futures:NQ1!']);
     check(Number.isFinite(lastPx) && near(lastPx, sh.last.close), 'Replay account price = the replayed close (' + lastPx + ')');
+    const stP = await RS(p);
     await p.evaluate((px) => window.__stkPaper.placeOrder({ symbol: 'futures:NQ1!', side: 'buy', type: 'market', qty: 1, tp: px + 2, sl: px - 30 }), lastPx);
     await sleep(500);
     const rp1 = await p.evaluate(() => { const a = window.__stkPaper.account; const pos = a.position('futures:NQ1!'); return pos && { avg: pos.avg, tp: pos.tp, openedAt: pos.openedAt }; });
-    check(rp1 && rp1.openedAt === st3.E, 'replay market buy filled at the replay clock: ' + JSON.stringify(rp1));
+    check(rp1 && rp1.openedAt === stP.E, 'replay market buy filled at the replay clock: ' + JSON.stringify(rp1));
     await p.screenshot({ path: path.join(OUT, 'replay-1280-position.png') });
     let tpHit = false;
     for (let k = 0; k < 60 && !tpHit; k++) {

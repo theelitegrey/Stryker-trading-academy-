@@ -239,6 +239,17 @@ async function reviewPage(b, BASE, vp, tag) {
     await shot(p, `paper-review-${vp.width}-replay.png`);
     await p.click('.pr-kind button:has-text("Paper account")'); await sleep(300);
   }
+  if (phone) {
+    // phone More sheet (build 538): "Trade review" under Tools, marked current on this page
+    const mb = await p.$('.appnav-dk[data-nav=more], [data-nav=more]');
+    if (mb) { await mb.click(); await sleep(500); }
+    const more = await p.evaluate(() => { const a = document.querySelector('#appnav-sheet a[href*="paper-review"]'); if (!a) return null; const g = a.closest('section, .appnav-sh-group, div'); return { text: a.textContent.trim(), on: a.classList.contains('on'), group: g ? g.textContent.slice(0, 40) : '' }; });
+    check(!!more && /Trade review/.test(more.text) && more.on, tag + ': More sheet has "Trade review" (current page) ' + JSON.stringify(more));
+    await shot(p, `paper-review-${vp.width}-more.png`);
+  } else {
+    const side = await p.evaluate(() => { const a = document.querySelector('.sidebar a[href="paper-review"]'); return a ? { on: a.classList.contains('active'), prev: a.previousElementSibling && a.previousElementSibling.getAttribute('href') } : null; });
+    check(!!side && side.on && side.prev === 'backtests', tag + ': sidebar link "Trade review" after Backtesting, active ' + JSON.stringify(side));
+  }
   check(errors.length === 0, tag + ': no console errors ' + JSON.stringify(errors.slice(0, 3)));
   await ctx.close();
 }

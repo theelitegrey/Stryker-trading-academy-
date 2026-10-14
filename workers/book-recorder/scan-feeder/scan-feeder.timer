@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the TradeZoro market scanner feeder every 3 min (the script itself only works weekdays 04:00-20:15 ET)
+
+[Timer]
+OnBootSec=120s
+OnCalendar=*:0/3:40
+AccuracySec=1s
+Persistent=false
+
+[Install]
+WantedBy=timers.target

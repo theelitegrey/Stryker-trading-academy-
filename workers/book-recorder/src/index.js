@@ -19,6 +19,7 @@ import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
+import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
@@ -94,6 +95,8 @@ export class BookRecorder {
     // Options analytics (src/options.js): latest blob per underlying + one summary row per NY day.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS opt (u TEXT PRIMARY KEY, t INTEGER NOT NULL, j TEXT NOT NULL) WITHOUT ROWID`);
     this.sql.exec(`CREATE TABLE IF NOT EXISTS optday (u TEXT NOT NULL, day TEXT NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, day)) WITHOUT ROWID`);
+    // Market scanner (src/scan.js): the latest gzip part per name, stored as it came.
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS scan (part TEXT PRIMARY KEY, t INTEGER NOT NULL, gz BLOB NOT NULL) WITHOUT ROWID`);
     // Order flow (src/orderflow.js): one closed 1-minute footprint bar per row (b) plus its
     // 1-second path (s, for tick replay /ticks1s), 90 days. The open
     // bar is held in memory (ofLive) so the live tail writes no rows.
@@ -325,6 +328,20 @@ export class BookRecorder {
       const { items } = await req.json();
       return new Response('stored ' + this.optIngest(items));
     }
+    if (u.pathname === '/scan-ingest') {
+      // validated here (gunzip + parse of a ~1 MB table is past the Worker's 10 ms CPU)
+      const part = u.searchParams.get('part');
+      const buf = await req.arrayBuffer();
+      const v = await validateScan(part, buf, Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      this.sql.exec('INSERT OR REPLACE INTO scan (part, t, gz) VALUES (?, ?, ?)', part, v.t, buf);
+      return new Response('stored ' + part);
+    }
+    if (u.pathname === '/scan') {
+      const r = this.sql.exec('SELECT t, gz FROM scan WHERE part = ?', u.searchParams.get('part')).toArray()[0];
+      if (!r) return new Response('no data', { status: 404 });
+      return new Response(r.gz, { headers: { 'content-type': 'application/octet-stream', 'x-scan-t': String(r.t) } });
+    }
     if (u.pathname === '/opt-analytics') {
       const out = this.optRead(u.searchParams.get('u'));
       return out ? Response.json(out) : new Response('no data', { status: 404 });
@@ -433,6 +450,25 @@ async function optRoute(u, env, ctx, h) {
   return out;
 }
 
+// GET /scan?part=presets|stock|etf|crypto  (market scanner, src/scan.js). The stored gzip bytes as
+// application/octet-stream + x-scan-gzip: 1 (the page un-gzips). Edge-cached 60 s per part, so all
+// visitors share one DO read a minute; InsightSentry is only called by the feeder.
+async function scanRoute(u, env, ctx, h) {
+  const part = String(u.searchParams.get('part') || '');
+  if (!SCAN_PARTS.includes(part)) return new Response('bad request', { status: 400, headers: h });
+  const key = new Request('https://book-recorder.cache/scan/' + part + '/' + Math.floor(Date.now() / 60000));
+  let res = await caches.default.match(key);
+  if (!res) {
+    const dr = await stub(env).fetch('https://do/scan?part=' + part);
+    res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': dr.status === 200 ? 'application/octet-stream' : 'text/plain', 'x-scan-gzip': dr.status === 200 ? '1' : '0', 'x-scan-t': dr.headers.get('x-scan-t') || '', 'cache-control': 'public, max-age=60' } });
+    if (dr.status === 200) ctx.waitUntil(caches.default.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  out.headers.set('access-control-expose-headers', 'x-scan-gzip, x-scan-t');
+  return out;
+}
+
 // GET /orderflow?sym=NQ&day=YYYY-MM-DD  or  &from=&to=  (see ofRange). Binary payload
 // (src/orderflow.js), gzip'd in the DO and sent as application/octet-stream with x-of-gzip: 1; the
 // client un-gzips with DecompressionStream (a stored gzip body with content-encoding does not
@@ -513,6 +549,18 @@ export default {
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/opt-ingest', { method: 'POST', body: JSON.stringify({ items: v.items }) });
     }
+    if (u.pathname === '/scan-ingest') {
+      // market scanner feeder (server -> Worker): same shared secret, gzip JSON part, <= 512 KB;
+      // the DO validates (CPU)
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      const part = u.searchParams.get('part');
+      if (!SCAN_PARTS.includes(part)) return new Response('bad part', { status: 400 });
+      if (Number(req.headers.get('content-length') || 0) > SCAN_MAX_BODY) return new Response('too large', { status: 413 });
+      const buf = await req.arrayBuffer();
+      if (buf.byteLength > SCAN_MAX_BODY) return new Response('too large', { status: 413 });
+      return stub(env).fetch('https://do/scan-ingest?part=' + part, { method: 'POST', body: buf });
+    }
     if (u.pathname === '/news-ingest') return newsIngestRoute(req, env, authorized, stub);
     if (u.pathname === '/cal-ingest') return calIngestRoute(req, env, u, authorized, stub);
     if (u.pathname === '/of-ingest') {
@@ -560,6 +608,7 @@ export default {
 
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
     if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
+    if (u.pathname === '/scan') return scanRoute(u, env, ctx, h);
     if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h);
     if (u.pathname === '/status') {
       const r = await stub(env).fetch('https://do/status');

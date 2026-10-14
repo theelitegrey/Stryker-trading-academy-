@@ -61,5 +61,12 @@ if (sqlite) {
   r = await W('/scan?part=etf'); ok(r.status === 404, 'no data -> 404');
   r = await W('/scan?part=bonds'); ok(r.status === 400, 'bad part -> 400');
   r = await W('/scan?part=presets', { headers: { origin: 'https://evil.example' } }); ok(r.status === 403, 'foreign origin -> 403');
+  const info = { v: 1, t: Math.floor(Date.now() / 1000), syms: { NQ: { kind: 'fut', code: 'CME_MINI:NQ1!', roll: [] }, AAPL: { kind: 'stock', code: 'NASDAQ:AAPL', fund: { cap: 1 } } } };
+  r = await W('/scan-ingest?part=syminfo', { method: 'POST', body: gz(info), headers: { 'x-ingest-key': SECRET } });
+  ok(r.status === 200, 'syminfo stored: ' + await r.text());
+  r = await W('/scan-ingest?part=syminfo', { method: 'POST', body: gz({ ...info, syms: { 'bad key': info.syms.NQ } }), headers: { 'x-ingest-key': SECRET } });
+  ok(r.status === 400, 'bad syminfo key -> 400');
+  r = await W('/scan?part=syminfo', { headers: { origin: 'https://strykertrading.com' } });
+  ok(r.status === 200 && JSON.parse(gunzipSync(Buffer.from(await r.arrayBuffer())).toString()).syms.NQ.kind === 'fut', 'read syminfo');
 } else console.log('SKIP routes (no node:sqlite)');
 console.log(n + ' passed');

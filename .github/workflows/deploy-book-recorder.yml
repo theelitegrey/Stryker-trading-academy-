@@ -42,6 +42,7 @@ jobs:
         run: |
           python3 workers/book-recorder/test/scan_feeder_test.py
           node workers/book-recorder/test/scan.test.mjs
+          python3 workers/book-recorder/test/info_feeder_test.py
       - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
         run: node workers/book-recorder/test/news.test.mjs
       - name: Order-flow tests (feeder vs raw ticks, footprint maths, 1-second path, no-lookahead, validation)

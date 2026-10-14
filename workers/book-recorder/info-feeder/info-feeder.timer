@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the TradeZoro symbol info feeder once a day (07:20 UTC, before the US session)
+
+[Timer]
+OnCalendar=*-*-* 07:20:00
+Persistent=true
+RandomizedDelaySec=60
+
+[Install]
+WantedBy=timers.target

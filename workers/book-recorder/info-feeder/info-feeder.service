@@ -1,0 +1,20 @@
+[Unit]
+Description=TradeZoro symbol info feeder: InsightSentry info, contracts, session, fundamentals -> trimmed daily part -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/info_feeder.py
+# ~45 IS calls, 0.4 s apart + one small POST; normally ~40 s
+TimeoutStartSec=240
+MemoryMax=150M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=info-feeder

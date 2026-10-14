@@ -8,7 +8,7 @@
 // gzip bytes as they came; GET /scan?part= serves them as-is (x-scan-gzip: 1; the page un-gzips with
 // DecompressionStream, as /orderflow does), edge-cached 60 s, so InsightSentry is never called per
 // visitor. Plan gating (custom filters = Pro) is the site's.
-export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto'];
+export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo'];
 export const SCAN_MAX_BODY = 512 * 1024;
 export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];
 const FRESH_S = 15 * 60;
@@ -25,11 +25,24 @@ async function gunzipText(buf, max) {
   return text;
 }
 
+// Symbol info part (info-feeder): { v, t, syms: { KEY: { kind: 'fut'|'stock', code, ... } } }. Pure.
+export function validateSymInfo(d) {
+  const ks = Object.keys(d.syms || {});
+  if (ks.length < 1 || ks.length > 200) return 'bad syms';
+  for (const k of ks) {
+    const e = d.syms[k];
+    if (!/^[A-Z0-9]{1,12}$/.test(k) || !e || !['fut', 'stock'].includes(e.kind) || typeof e.code !== 'string' || e.code.length > 40) return 'bad sym ' + k;
+    if (JSON.stringify(e).length > 4000) return 'sym too big ' + k;
+  }
+  return '';
+}
+
 // Parsed part -> '' when valid, else the reason. Pure.
 export function validateScanPart(part, d, nowSec) {
   if (!SCAN_PARTS.includes(part)) return 'bad part';
   if (!d || typeof d !== 'object' || d.v !== 1) return 'bad header';
-  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > FRESH_S) return 'stale or future t';
+  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' ? 3600 : FRESH_S)) return 'stale or future t';
+  if (part === 'syminfo') return validateSymInfo(d);
   if (!Array.isArray(d.cols) || d.cols.join() !== SCAN_COLS.join()) return 'bad cols';
   if (part === 'presets') {
     const ks = Object.keys(d.presets || {});

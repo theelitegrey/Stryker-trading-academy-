@@ -20,7 +20,7 @@
 //
 // API (global):
 //   strykerPlanLock.card(kind, where, opts) -> HTMLElement
-//     kind  'gex' | 'options' | 'chapters'
+//     kind  'gex' | 'options' | 'scanner' | 'chapters'
 //     where short tag for analytics, e.g. 'gex-market', 'chapter-end'
 //     opts  { closable: bool, onClose: fn, chapterLimit: number,
 //             back: { href, label } (a quiet second link, e.g. back to chapters) }
@@ -45,6 +45,14 @@
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
       reason: 'Pro unlocks GEX for every market and expiry, and the strike table.'
+    },
+    scanner: {
+      title: function () { return 'Custom scanner filters are part of Pro'; },
+      bullets: function () {
+        return ['Build your own scans: any column, any value, on US stocks, ETFs and crypto',
+                'Free keeps every preset scan'];
+      },
+      reason: 'Pro unlocks custom scanner filters.'
     },
     options: {
       title: function () { return 'QQQ and SPY options analytics are part of Pro'; },

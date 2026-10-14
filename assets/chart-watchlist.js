@@ -1109,5 +1109,28 @@ export function mountWatchlist(ws, o){
     get store(){ return store.kind; }
   };
   window.STRYKER_WATCHLIST = api;
+  openFromLink();
   return api;
+
+  // charts?symbol=NASDAQ:AAPL (the market scanner's rows link here): open that symbol on the active
+  // chart when it is one of ours (futures, forex, a crypto venue); otherwise say so. The parameter
+  // is removed after use so a reload keeps the member's own chart.
+  function openFromLink(){
+    let raw = null;
+    try { raw = new URL(location.href).searchParams.get('symbol'); } catch (e) {}
+    if (!raw) return;
+    try { const u = new URL(location.href); u.searchParams.delete('symbol'); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+    let tries = 0;
+    const go = () => {
+      const s = normalizeSymbol(raw, ws.feed);
+      if (!s) {
+        // the venue symbol lists may not be in yet
+        if (++tries < 12) { setTimeout(go, 500); return; }
+        toast(String(raw).slice(0, 40) + ' is not on our charts yet', 'info');
+        return;
+      }
+      try { ws.active.setSymbol(s); } catch (e) {}
+    };
+    setTimeout(go, 600);
+  }
 }

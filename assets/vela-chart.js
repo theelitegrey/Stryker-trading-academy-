@@ -218,7 +218,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-paper.js?v=549'),
       import('./chart-bar-replay.js?v=549'),
       import('./chart-tick-boost.js?v=549'),
-      import('./chart-gex-heatmap.js?v=549')
+      import('./chart-gex-heatmap.js?v=549'),
+      import('./chart-expected-move.js?v=549')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -275,6 +276,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Gex.installGexLevels(LCore); } catch (e) { console.warn('TradeZoro: GEX levels install', e); }
   // TradeZoro GEX Heatmap (assets/chart-gex-heatmap.js): net GEX by strike over time, behind the candles.
   try { GexHeat.installGexHeatmap(LCore); } catch (e) { console.warn('TradeZoro: GEX heatmap install', e); }
+  // Expected Move (options ATM straddle range; assets/chart-expected-move.js), same plug-in path as GEX.
+  try { mods[20].installExpectedMove(LCore); } catch (e) { console.warn('TradeZoro: expected move install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }

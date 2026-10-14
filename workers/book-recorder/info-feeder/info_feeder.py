@@ -5,7 +5,7 @@ gzip part -> book recorder Worker (/scan-ingest?part=syminfo). Runs once a day (
 Owner-approved 2026-10-14 (Symbol Info panel on Charts). Futures: contract specs, the roll calendar
 (next settlement dates), trading session. Stocks / ETFs: market cap, EPS, revenue, dividend yield,
 next earnings date, trimmed from the 300 KB fundamentals response. About 1 KB per symbol; ~45 IS calls.
-Env: INSIGHTSENTRY_WEBSOCKET_API_KEY, RECORDER_URL, INGEST_SECRET (never printed).
+Env: INSIGHTSENTRY_WEBSOCKET_API_KEY, BOOK_RECORDER_URL, BOOK_INGEST_SECRET (never printed).
 """
 import gzip, json, os, sys, time, urllib.parse, urllib.request
 from datetime import date, datetime
@@ -123,7 +123,7 @@ def post(url, secret, body):
 
 
 def main():
-    key, url, secret = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY'), os.environ.get('RECORDER_URL'), os.environ.get('INGEST_SECRET')
+    key, url, secret = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY'), os.environ.get('BOOK_RECORDER_URL'), os.environ.get('BOOK_INGEST_SECRET')
     if not key:
         sys.exit('missing key')
     syms, errs = build(key)

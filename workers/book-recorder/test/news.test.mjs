@@ -8,7 +8,7 @@ import {
   compactEvent, validateCal, calRange, SUMMARY_MAX
 } from '../src/news.js';
 import { newsParams } from '../src/news-routes.js';
-import { compactEarning, compactDividend, compactIpo, compactPage } from '../news-feeder/news_feeder.mjs';
+import { compactEarning, compactDividend, compactIpo, compactPage, BACKFILL } from '../news-feeder/news_feeder.mjs';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS', m); };
@@ -128,6 +128,7 @@ const dv = compactDividend({ code: 'NYSE:KO', name: 'Coca-Cola', market_cap: 3e1
 ok(dv.amt === 0.51 && dv.t === Date.UTC(2026, 9, 15), 'dividend: ex-date + amount');
 ok(compactIpo({ code: 'NYSE:NEW', name: 'New Co', offer_time: Date.UTC(2026, 9, 16) / 1000, status: 'Expected' }).st === 'Expected', 'IPO compacted');
 
+ok(BACKFILL.every((k) => !/\s/.test(k) && k.split(',').length <= 10 && k.split(',').every((w) => w.length >= 2 && w.length <= 50)), 'backfill keyword lists: no spaces, <= 10 values (IS limit)');
 console.log('\n' + n + ' checks passed');
 
 // ---- local Worker + DO round trip (node:sqlite) ---------------------------------------------------

@@ -97,7 +97,11 @@ jobs:
           echo "opt-ingest without key: HTTP $o401"; test "$o401" = 401
           oa=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/opt-analytics?u=SPX")
           echo "opt-analytics: HTTP $oa (404 = no feeder data yet)"; test "$oa" = 200 -o "$oa" = 404
-          n401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/news-ingest")
+          # the new version can take a few seconds to reach every edge (the old one answers 405/404)
+          for i in 1 2 3 4 5 6; do
+            n401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary '{}' "$URL/news-ingest")
+            [ "$n401" = 401 ] && break; sleep 10
+          done
           echo "news-ingest without key: HTTP $n401"; test "$n401" = 401
           nw=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/news?sym=NQ")
           echo "news: HTTP $nw"; test "$nw" = 200

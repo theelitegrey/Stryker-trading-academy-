@@ -41,12 +41,13 @@ const args = new Set(process.argv.slice(2));
 const log = (...a) => console.log(...a);
 
 // Keyword groups for the 7-day backfill (each <= 10 values, >= 2 chars, IS `keywords` filter).
+// No spaces: IS splits values on spaces AND commas (10 values max), so a phrase would count twice.
 export const BACKFILL = [
-  'nasdaq,s&p 500,wall street,stock market,dow jones,stock futures',
-  'fed,fomc,powell,inflation,cpi,payrolls,treasury yields,rate cut,jobless claims,gdp',
-  'gold,silver,bullion,precious metals',
-  'crude,oil prices,brent,wti,opec',
-  'bitcoin,ethereum,crypto,ether,btc'
+  'nasdaq,s&p,dow,stocks',
+  'fed,fomc,powell,inflation,cpi,payrolls,yields,jobless,gdp',
+  'gold,silver,bullion',
+  'crude,oil,brent,wti,opec',
+  'bitcoin,ethereum,crypto,ether'
 ];
 
 async function is(pathq) {
@@ -182,8 +183,10 @@ async function main() {
   const nowSec = Math.floor(Date.now() / 1000);
   let failed = false;
   try {
-    if (state.first || args.has('--backfill')) await runBackfill();
-    delete state.first;
+    // a failed backfill must not block the normal pull (it is retried on the next run)
+    if (state.first || args.has('--backfill')) {
+      try { await runBackfill(); delete state.first; } catch (e) { failed = true; console.error('backfill: ' + e.message); }
+    }
     await runNews(state);
   } catch (e) { failed = true; console.error('news: ' + e.message); }
   if (args.has('--cal') || !state.calAt || nowSec - state.calAt >= CAL_EVERY_S - 30) {

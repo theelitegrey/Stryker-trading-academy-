@@ -120,11 +120,33 @@ function nyWall(dayUtc, hh) {
 
 const toBar = (r) => ({ time: r[0] * 1000, open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] });
 
+// SPEED (Owner order 2026-10-14, "switching symbols ... need to be under 1 sec"): the page memo is
+// shared by EVERY provider instance on the page (each chart cell, the grid, prefetch), so a page
+// loaded once is never fetched again by another cell, and switching back to a symbol seen before
+// paints from memory. LRU-capped at PAGE_CACHE_MAX pages (~1-3 KB of rows each).
+// Stale-while-revalidate for the page holding "now": up to swrMs old, the cached rows are answered
+// at once and a refresh runs behind them. swrMs is one bar of the timeframe (60 s on 1m, 5 min on
+// 5m and up): within that the chart can at most miss the forming bar and one new bar, which the
+// stream bridge (it replays the recent bars on connect) or the poll (it re-reads the last 2 bars)
+// fills straight away. The poll itself always reads fresh (range.fresh).
+const PAGE_CACHE_MAX = 600;
+const SHARED_PAGES = new Map();    // `${base}|${root}|${tf}|${page}` -> { at, rows }
+const SHARED_INFLIGHT = new Map();
+const swrMsFor = (tf) => (tf === '1' ? 60000 : 300000);
+function cachePut(key, rows) {
+  SHARED_PAGES.delete(key);
+  SHARED_PAGES.set(key, { at: Date.now(), rows });
+  if (SHARED_PAGES.size > PAGE_CACHE_MAX) {
+    let drop = SHARED_PAGES.size - PAGE_CACHE_MAX + 50;
+    for (const k of SHARED_PAGES.keys()) { if (drop-- <= 0) break; SHARED_PAGES.delete(k); }
+  }
+}
+
 export class FuturesProvider {
   constructor(opts = {}) {
     this.base = opts.base || API;
-    this.pages = new Map(); // `${root}|${tf}|${page}` -> { at, rows } (closed pages only, plus a short-lived current page)
-    this.inflight = new Map();
+    this.pages = SHARED_PAGES; // shared memo, see above
+    this.inflight = SHARED_INFLIGHT;
   }
 
   info() {
@@ -197,11 +219,20 @@ export class FuturesProvider {
 
   pageOf(tf, t) { const p = PAGE_SECS[tf]; return p ? Math.floor(t / p) : 0; }
 
-  async fetchPage(root, tf, page, current) {
-    const key = `${root}|${tf}|${page}`;
+  async fetchPage(root, tf, page, current, swrMs = 0) {
+    const key = `${this.base}|${root}|${tf}|${page}`;
     const hit = this.pages.get(key);
-    // Closed pages never change; the current page is re-read after 10 s at most.
-    if (hit && (page !== current || Date.now() - hit.at < 10000)) return hit.rows;
+    // Closed pages never change; the current page is re-read after 10 s at most, or answered from
+    // memory up to swrMs old while a refresh runs (stale-while-revalidate, see SHARED_PAGES).
+    if (hit) {
+      const age = Date.now() - hit.at;
+      if (page !== current || age < 10000) { cachePut(key, hit.rows); return hit.rows; }
+      if (swrMs && age < swrMs) { this.loadPage(key, root, tf, page).catch(() => {}); return hit.rows; }
+    }
+    return this.loadPage(key, root, tf, page);
+  }
+
+  loadPage(key, root, tf, page) {
     let p = this.inflight.get(key);
     if (!p) {
       p = (async () => {
@@ -209,8 +240,7 @@ export class FuturesProvider {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body = await res.json();
         const rows = Array.isArray(body.bars) ? body.bars : [];
-        if (this.pages.size > 400) this.pages.clear();
-        this.pages.set(key, { at: Date.now(), rows });
+        cachePut(key, rows);
         return rows;
       })().finally(() => this.inflight.delete(key));
       this.inflight.set(key, p);
@@ -229,10 +259,11 @@ export class FuturesProvider {
     const fromS = range.from != null ? Math.floor(range.from / 1000) : null;
     const limit = range.limit != null ? range.limit : (fromS != null ? Infinity : 500);
     const current = this.pageOf(tf, now);
+    const swrMs = range.fresh ? 0 : swrMsFor(tf);
 
     let rows = [];
     if (!PAGE_SECS[tf]) {
-      rows = await this.fetchPage(root, tf, 0, 0);
+      rows = await this.fetchPage(root, tf, 0, 0, swrMs);
     } else {
       const floor = now - DEPTH_SECS[tf];
       let page = Math.min(this.pageOf(tf, toS), current);
@@ -245,7 +276,7 @@ export class FuturesProvider {
       while (page >= stopPage && have < limit + 1 && empty < maxEmpty) {
         const batch = [];
         for (let i = 0; i < CONCURRENCY && page - i >= stopPage; i++) batch.push(page - i);
-        const got = await Promise.all(batch.map((p) => this.fetchPage(root, tf, p, current)));
+        const got = await Promise.all(batch.map((p) => this.fetchPage(root, tf, p, current, swrMs)));
         for (const g of got) {
           chunks.push(g);
           if (g.length) { empty = 0; have += g.length; } else empty += 1;
@@ -384,7 +415,7 @@ export class FuturesProvider {
       if (stopped) return;
       if (typeof document !== 'undefined' && document.hidden) return; // resumed by visibilitychange
       try {
-        const bars = await this.getBars(ticker, timeframe, { limit: 2 });
+        const bars = await this.getBars(ticker, timeframe, { limit: 2, fresh: true });
         if (!stopped) for (const b of bars) onBar(b);
       } catch (e) { /* next poll retries */ }
       if (!stopped) timer = setTimeout(tick, POLL_MS);
@@ -403,6 +434,24 @@ export class FuturesProvider {
   }
 }
 FuturesProvider.INSIGHTSENTRY_ROOTS = INSIGHTSENTRY_ROOTS;
+
+// Warm the shared page memo for a symbol the member is likely to open next (a hovered watchlist or
+// symbol-search row, the Owner's contracts at idle). Same pages and URLs the chart itself reads, so
+// the edge cache is shared too. Futures roots and forex pairs only (crypto venues answer in ~0.3 s
+// on their own). Never throws; at most one prefetch per symbol|tf every 20 s.
+const prefetched = new Map();
+export function prefetchBars(sym, tf) {
+  try {
+    const ticker = String(sym || '').replace(/^[a-z_]+:/i, '');
+    const t = normTf(tf) || '15';
+    const P = rootOf(ticker) ? FuturesProvider : (pairOf(ticker) ? FxProvider : null);
+    if (!P) return Promise.resolve(false);
+    const k = ticker.toUpperCase() + '|' + t;
+    if (Date.now() - (prefetched.get(k) || 0) < 20000) return Promise.resolve(false);
+    prefetched.set(k, Date.now());
+    return new P().getBars(ticker, t, {}).then(() => true, () => false);
+  } catch (e) { return Promise.resolve(false); }
+}
 
 // ---- spot forex --------------------------------------------------------------------------
 function pairOf(ticker) {

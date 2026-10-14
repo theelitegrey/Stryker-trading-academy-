@@ -2277,6 +2277,9 @@ function reg(Core, d) {
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
 const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap', 'stk_lth', 'stk_crypto_dom',
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
+// Order flow from exchange trades (assets/chart-footprint.js): their own group, above this one.
+const OF_GROUP = 'Order Flow';
+const OF_GROUP_TYPES = ['stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_vp', 'stk_of_vwap'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
   { id: 'frvp', name: 'Fixed Range Volume Profile (drag a range)' }
@@ -2367,14 +2370,17 @@ export function mountOrderflow(ws, opts) {
   // Our order: group rows (natives present in the catalog) + pseudo rows, then the rest.
   function plan(self) {
     const base = origRows.call(self);
-    const group = [], rest = [];
+    const group = [], ofg = [], rest = [];
     base.forEach((r, i) => {
+      const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;
-      if (gi >= 0) group.push({ r: Object.assign({}, r, { category: GROUP }), i, gi });
+      if (oi >= 0) ofg.push({ r: Object.assign({}, r, { category: OF_GROUP }), i, gi: oi });
+      else if (gi >= 0) group.push({ r: Object.assign({}, r, { category: GROUP }), i, gi });
       else rest.push({ r, i });
     });
     group.sort((a, b) => a.gi - b.gi);
-    const rows = group.map((g) => ({ r: g.r, i: g.i }));
+    ofg.sort((a, b) => a.gi - b.gi);
+    const rows = ofg.map((g) => ({ r: g.r, i: g.i })).concat(group.map((g) => ({ r: g.r, i: g.i })));
     PSEUDO.forEach((p) => rows.push({ r: { name: p.name, category: GROUP, pseudo: p.id }, pseudo: p.id }));
     return rows.concat(rest);
   }

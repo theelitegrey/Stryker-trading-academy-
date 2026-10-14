@@ -219,7 +219,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-bar-replay.js?v=552'),
       import('./chart-tick-boost.js?v=552'),
       import('./chart-gex-heatmap.js?v=552'),
-      import('./chart-expected-move.js?v=552')
+      import('./chart-expected-move.js?v=552'),
+      import('./chart-footprint.js?v=552')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -272,6 +273,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Volume & order-flow tools (assets/chart-orderflow.js): registered before boot too, so a
   // saved session or template that carries them restores.
   try { Flow.installOrderflow(Core); } catch (e) { console.warn('TradeZoro: volume tools install', e); }
+  // Order flow from exchange trades (assets/chart-footprint.js): the Footprint chart type + the
+  // "Order Flow" indicators. Registered before boot so a saved session or template restores them.
+  try { mods[21].installFootprint(Core, Flow); } catch (e) { console.warn('TradeZoro: order flow install', e); }
   // TradeZoro GEX Levels (assets/chart-gex-levels.js): registered before boot so a saved session restores it.
   try { Gex.installGexLevels(LCore); } catch (e) { console.warn('TradeZoro: GEX levels install', e); }
   // TradeZoro GEX Heatmap (assets/chart-gex-heatmap.js): net GEX by strike over time, behind the candles.

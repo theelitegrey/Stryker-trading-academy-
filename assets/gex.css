@@ -139,6 +139,22 @@
 .gex-heat-tip small{display:block;color:var(--ink-3);font-size:10px;}
 .gex-heat-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:var(--ink-2);font-size:13px;line-height:1.5;}
 .gex-heat-empty[hidden],.gex-heat-tip[hidden]{display:none;}
+.gex-heat-replay{display:flex;align-items:center;gap:10px;margin-top:10px;}
+.gex-heat-replay[hidden]{display:none;}
+.gex-heat-play{min-width:40px;height:32px;padding:0 12px!important;font-size:12px!important;}
+.gex-heat-replay input[type=range]{flex:1;min-width:0;height:22px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer;}
+.gex-heat-replay input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:999px;background:linear-gradient(90deg,#14b8a6 var(--fill,100%),rgba(255,255,255,.12) var(--fill,100%));}
+.gex-heat-replay input[type=range]::-moz-range-track{height:4px;border-radius:999px;background:rgba(255,255,255,.12);}
+.gex-heat-replay input[type=range]::-moz-range-progress{height:4px;border-radius:999px;background:#14b8a6;}
+.gex-heat-replay input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-7px;border-radius:50%;background:#e6fffa;border:3px solid #14b8a6;}
+.gex-heat-replay input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#e6fffa;border:3px solid #14b8a6;}
+.gex-heat-time{min-width:118px;text-align:right;color:var(--ink-1,#d7dbe2);font:700 11px/1 var(--font-mono);white-space:nowrap;}
+.gex-heat-read{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:8px;color:var(--ink-0);font:700 12px/1.3 var(--font-mono);}
+.gex-heat-read span{display:inline-flex;align-items:baseline;gap:6px;}
+.gex-heat-read em{font-style:normal;color:var(--ink-3);font-size:10px;letter-spacing:.06em;text-transform:uppercase;}
+.gex-heat-read .cw{color:#ef4444;}.gex-heat-read .pw{color:#22c55e;}.gex-heat-read .zg{color:#f59e0b;}
+.gex-heat-read .pos{color:#2ee6a6;}.gex-heat-read .neg{color:#ff5c8a;}
+@media (max-width:640px){.gex-heat-time{min-width:0;font-size:10px}.gex-heat-read{gap:6px 12px;font-size:11px}}
 .gex-heat-legend{display:flex;flex-wrap:wrap;gap:10px 14px;margin-top:10px;color:var(--ink-2);font:700 10.5px/1 var(--font-mono);align-items:center;}
 .gex-heat-legend span{display:inline-flex;align-items:center;gap:6px;}
 .gex-heat-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;}

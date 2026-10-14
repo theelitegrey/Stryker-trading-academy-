@@ -34,6 +34,10 @@
 // mouse move. The status reads "GEX updated X min ago" (from the API's market data time /
 // fetched_at). Never "live" / "real-time". Education only. Not financial advice.
 //
+// BAR REPLAY (2026-10-14): levels come from the recorded GEX history as of the replay clock
+// (replayPayload below), never from the API's current levels. Before the history begins:
+// "No GEX history for this time".
+//
 // BASIS RE-ANCHOR (GEX audit, 2026-10-13): the API converts index/ETF levels to futures with
 // basis = its own futures quote - ratio x spot, but that futures quote is about 10 minutes older
 // than the options chain (futures_age_min 10), so every converted level was off by however far
@@ -307,6 +311,68 @@ if (typeof document !== 'undefined') {
   });
 }
 
+// ---- bar replay: levels from the GEX history (no lookahead) -----------------------------------
+// While Charts bar replay is on (window.__stkReplay, assets/chart-bar-replay.js, read only) the
+// API's current levels would be lookahead, so the levels come from the GEX history the recorder
+// keeps (assets/gex-heat-core.js, 2-min snapshots): the latest snapshot with chain time <= the
+// replay clock. Call wall, put wall, zero gamma and the expected range (IV ±68% / ±80%) are
+// recorded; the market levels (pVAH, ONH ...) are not, so they are left out in replay.
+// Futures: ratio 1 for ES/MES (SPX), the API's NQ ratio for NQ/MNQ (last one seen on this device),
+// and basis = this chart's own close at the snapshot time - ratio x spot.
+const REPLAY_MAX_AGE_S = 4 * 86400;     // an older snapshot is "no history for this time"
+const HIST_BLOCK_S = 2 * 3600;          // history asked in 2-hour blocks, 4 days back
+const hist = new Map();                 // api:dte:blockEnd -> { rows, p }
+export function snapAt(rows, ts, maxAge) {
+  let lo = 0, hi = rows.length - 1, best = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (rows[m].t <= ts) { best = m; lo = m + 1; } else hi = m - 1; }
+  if (best < 0) return null;
+  return maxAge != null && ts - rows[best].t > maxAge ? null : rows[best];
+}
+function barCloseAt(bars, tSec, gapS) {
+  let lo = 0, hi = bars.length - 1, best = -1;
+  while (lo <= hi) { const m = (lo + hi) >> 1; if (bars[m].time <= tSec * 1000) { best = m; lo = m + 1; } else hi = m - 1; }
+  if (best < 0 || (tSec * 1000 - bars[best].time) / 1000 > gapS) return null;
+  return isNum(bars[best].close) ? bars[best].close : null;
+}
+// Pure: an API-shaped response from one history snapshot (+ the futures conversion), so
+// buildLevels() draws it exactly like the live levels.
+export function snapData(snap, src, ratio, close) {
+  const em = Array.isArray(snap.em) && isNum(snap.em[0]) && isNum(snap.em[1]) ? snap.em : null;
+  const expected = em ? { '68%': [em[0] - em[1], em[0] + em[1]], '80%': [em[0] - 1.2816 * em[1], em[0] + 1.2816 * em[1]] } : {};
+  const d = { call_wall: snap.cw, put_wall: snap.pw, zero_gamma: snap.zg, expected, ladder: [], market: { state: 'replay' } };
+  if (src.fut) {
+    if (!isNum(close) || !isNum(snap.s) || snap.s <= 0) return null;
+    const k = isNum(ratio) && ratio > 0 ? ratio : close / snap.s;
+    const basis = close - k * snap.s, cv = (v) => (isNum(v) ? v * k + basis : null);
+    const e68 = expected['68%'] || [], e80 = expected['80%'] || [];
+    d.futures = { [src.fut]: { ratio: k, basis, levels: { spot: close, call_wall: cv(snap.cw), put_wall: cv(snap.pw), zero_gamma: cv(snap.zg),
+      iv68_lo: cv(e68[0]), iv68_hi: cv(e68[1]), iv80_lo: cv(e80[0]), iv80_hi: cv(e80[1]) } } };
+  }
+  return d;
+}
+function replayRows(api, dte, E, onLoad) {
+  const core = window.StrykerGexHeat;
+  if (!core) return { err: true };
+  const end = Math.min(Math.ceil(E / HIST_BLOCK_S) * HIST_BLOCK_S, Math.floor(Date.now() / 1000));
+  const k = api + ':' + dte + ':' + end;
+  let e = hist.get(k);
+  if (!e) {
+    if (hist.size > 12) hist.clear();
+    e = { rows: null, p: null };
+    e.p = core.history(api, dte, end - REPLAY_MAX_AGE_S, end).then((rows) => { e.rows = rows || []; }, () => { e.rows = []; e.err = true; })
+      .then(() => { e.p = null; onLoad(); });
+    hist.set(k, e);
+  }
+  return e;
+}
+function replayK(fut) {
+  if (fut === 'ES' || fut === 'MES') return 1;
+  try { const o = JSON.parse(localStorage.getItem('stryker_gex_heat_k') || '{}'); return isNum(o[fut]) ? o[fut] : null; } catch (e) { return null; }
+}
+function etStamp(sec) {
+  try { return new Date(sec * 1000).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET'; } catch (e) { return ''; }
+}
+
 // ---- plan tier ----------------------------------------------------------------------------
 let tierP = null;
 export function gexTier() {
@@ -352,7 +418,13 @@ class GexNative {
     this.refresh();
     if (w && document.visibilityState !== 'hidden') gexFetch(w.api, w.dte).then(() => this.refresh());
   }
-  onBars() { const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); } }
+  onBars() {
+    const s = String(this.ctx && this.ctx.symbol); if (s !== this.lastSym) { this.lastSym = s; this.load(); return; }
+    // bar replay: every step may pass a new GEX snapshot (refresh pushes only when it changed)
+    if (window.__stkReplay && window.__stkReplay.on) this.refresh();
+    else if (this.wasReplay) this.load();
+    this.wasReplay = !!(window.__stkReplay && window.__stkReplay.on);
+  }
   onViewport() {}
   setInputs(i) { this.inputs = i || {}; this.sig = ''; this.load(); }
   suspend() {}
@@ -368,6 +440,7 @@ class GexNative {
     if (!src) payload = { note: 'GEX levels available for SPX, ES, NQ' };
     else if (!this.tier) payload = { note: 'Loading GEX levels…' };
     else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api) + ' GEX with Pro', href: PRICING };
+    else if (window.__stkReplay && window.__stkReplay.on) payload = this.replayPayload(src);
     else {
       const dte = this.dte();
       const data = gexCached(src.api, dte);
@@ -399,6 +472,39 @@ class GexNative {
     if (sig === this.sig) return;
     this.sig = sig;
     try { this.ctx.pushData(payload); } catch (e) {}
+  }
+  // Bar replay: the history snapshot as of the replay clock (see "bar replay" above).
+  replayPayload(src) {
+    const dte = this.dte();
+    if (dte > 1) return { note: 'GEX history covers 0DTE and 1DTE: pick one to see GEX in bar replay' };
+    const E = Math.floor(window.__stkReplay.E / 1000);
+    const e = replayRows(src.api, dte, E, () => this.refresh());
+    if (e.err && !e.rows) return { note: 'GEX history could not load' };
+    if (!e.rows) return { note: 'Loading GEX history…' };
+    const snap = snapAt(e.rows, E, REPLAY_MAX_AGE_S);
+    if (!snap) return { note: 'No GEX history for this time' };
+    let bars = [];
+    try { bars = this.ctx.bars() || []; } catch (err) {}
+    const tfS = (() => { const t = String(this.ctx.timeframe || ''); return /^\d+$/.test(t) ? +t * 60 : /^\d*[HD]$/i.test(t) ? (parseInt(t, 10) || 1) * (/H/i.test(t) ? 3600 : 86400) : 60; })();
+    const close = src.fut ? barCloseAt(bars, snap.t, Math.max(180, tfS + 120)) : null;
+    const data = snapData(snap, src, src.fut ? replayK(src.fut) : null, close);
+    if (!data) return { note: 'No ' + src.fut + ' bar at the GEX snapshot time (' + etStamp(snap.t) + ')' };
+    const i = this.inputs;
+    const opts = Object.assign({}, i);
+    if (this.tier && this.tier.free) opts.showStrikes = false;
+    const lv = buildLevels(data, src, opts, null);
+    if (lv.err) return { note: lv.err };
+    const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
+    const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
+    return {
+      lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
+        dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
+        w: wd >= 1 ? Math.min(4, wd) : l.w })),
+      band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
+      labels: i.labels !== false, priceTags: i.priceTags !== false, showStatus: i.showStatus !== false, shift: 0,
+      snapT: snap.t,
+      status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + ' · bar replay'
+    };
   }
 }
 

@@ -8,6 +8,8 @@
 // Gating: the same as the rest of the GEX page. Free = SPX 0DTE; any other market/expiry is
 // already refused by gex.js before it becomes the selection, and is re-checked here.
 // History exists for 0DTE and 1DTE only (the feeder records those two).
+// GEX replay: a time slider + play step through the day's snapshots; the map, traces, profile and
+// the levels readout stop at the chosen snapshot (no lookahead).
 // Wording: "updated X min ago" only (no "live"/"real-time"/"delayed"). Education only.
 (function () {
   'use strict';
@@ -47,6 +49,12 @@
       '<div class="gex-heat-status" id="gex-heat-status" role="status">Loading GEX history…</div>' +
       '<div class="gex-heat-wrap" id="gex-heat-wrap"><canvas id="gex-heat-canvas" aria-label="GEX heatmap: strikes by time"></canvas>' +
         '<div class="gex-heat-tip" id="gex-heat-tip" hidden></div><div class="gex-heat-empty" id="gex-heat-empty" hidden></div></div>' +
+      '<div class="gex-heat-replay" id="gex-heat-replay">' +
+        '<button type="button" class="gex-iv gex-heat-play" id="gex-heat-play" aria-label="Play the session">▶</button>' +
+        '<input type="range" id="gex-heat-slider" min="0" max="0" value="0" step="1" aria-label="Snapshot time">' +
+        '<span class="gex-heat-time" id="gex-heat-time">—</span>' +
+      '</div>' +
+      '<div class="gex-heat-read" id="gex-heat-read" aria-live="polite"></div>' +
       '<div class="gex-heat-legend">' +
         '<span class="gex-heat-scale"><i class="neg"></i><em>Negative GEX</em><i class="pos"></i><em>Positive GEX</em></span>' +
         '<span><i style="background:' + COL.spot + '"></i>Spot</span><span><i style="background:' + COL.cw + '"></i>Call wall</span>' +
@@ -60,6 +68,8 @@
     $('gex-heat-out').onclick = function () { zoom(1.4); };
     $('gex-heat-reset').onclick = function () { fitView(); paint(); };
     wireGestures($('gex-heat-wrap'));
+    $('gex-heat-slider').addEventListener('input', function () { var v = +this.value; pause(); seek(v); });
+    $('gex-heat-play').onclick = function () { if (st.playing) pause(); else play(); };
     window.addEventListener('resize', function () { if (st.active) paint(); }, { passive: true });
     window.addEventListener('stryker:gex-selection', function () { if (st.active) select(); });
     return true;
@@ -73,7 +83,7 @@
     if (chartCard) chartCard.hidden = heat;
     $('gex-heat-card').hidden = !heat;
     try { history.replaceState(null, '', heat ? '#heatmap' : location.pathname + location.search); } catch (e) {}
-    if (heat) select(); else stopTimer();
+    if (heat) select(); else { stopTimer(); pause(); }
   }
 
   function setStatus(html) { $('gex-heat-status').innerHTML = html; }
@@ -101,7 +111,7 @@
       return;
     }
     if (st.u === s.u && st.dte === s.dte && st.days.length) { loadDay(false); return; }
-    st.u = s.u; st.dte = s.dte; st.day = null; st.days = [];
+    st.u = s.u; st.dte = s.dte; st.day = null; st.days = []; pause(); st.until = null;
     loadSessions();
   }
 
@@ -137,10 +147,14 @@
       rows = rows.filter(function (r) { return r.day === day; });
       st.rows = rows;
       st.heat = rows.length ? H.build(rows, { x0: w.x0, x1: w.x1, until: st.until == null ? undefined : st.until }) : null;
+      if (st.heat && st.until != null) { var full = H.build(rows, { x0: w.x0, x1: w.x1 }); st.heat = H.build(rows, { x0: w.x0, x1: w.x1, until: st.until, vmax: full.vmax }); }
       if (refit || !(st.pHi > st.pLo)) fitView();
       setEmpty(rows.length ? '' : 'No snapshots for this day.');
+      if (refit) { pause(); st.until = null; st.heat = rows.length ? H.build(rows, { x0: w.x0, x1: w.x1 }) : null; }
+      st.vmax = st.heat ? st.heat.vmax : null;
       statusLine();
       paint();
+      replayUi();
       armTimer();
       window.dispatchEvent(new CustomEvent('stryker:gex-heat-loaded', { detail: { u: st.u, dte: st.dte, day: day, n: rows.length } }));
     }).catch(function (e) { if (seq === st.loadSeq) { setStatus(''); setEmpty('GEX history could not be loaded (' + esc(e.message) + ').'); } });
@@ -158,7 +172,7 @@
   // today's session refreshes every 2 min while the tab is open
   function armTimer() {
     stopTimer();
-    if (!st.active || st.day !== H.etDay(Date.now() / 1000)) return;
+    if (!st.active || st.day !== H.etDay(Date.now() / 1000) || st.playing) return;
     st.timer = setTimeout(function () { H._cache.clear(); loadDay(false); }, 120000);
   }
   function stopTimer() { if (st.timer) { clearTimeout(st.timer); st.timer = 0; } }
@@ -223,6 +237,7 @@
     var hours = [];
     for (var hh = 10; hh <= 16; hh++) { var tx = H.etEpoch(st.day, hh, 0); hours.push(tx); var x = Math.round(g.xOf(tx)) + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, g.ph); }
     ctx.stroke();
+    profile(ctx, g);
     // traces (a dark under-stroke keeps them readable over bright cells)
     trace(ctx, g, 'zg', COL.zg, [5, 4]);
     trace(ctx, g, 'pw', COL.pw, null, true);
@@ -248,6 +263,83 @@
     cv.dataset.ms = (performance.now() - t0).toFixed(2);
     cv.dataset.cells = String(st.heat.cols * st.heat.rowsN);
   }
+
+  // the snapshot shown: the one at the slider, else the newest
+  function current() {
+    var r = st.rows;
+    if (!r.length) return null;
+    return st.until == null ? r[r.length - 1] : H.at(r, st.until);
+  }
+  // GEX profile of the current snapshot: horizontal bars at the right edge of the plot (net GEX
+  // per strike, the same colour ramp), so each moment shows its levels AND its profile.
+  function profile(ctx, g) {
+    var c = current();
+    if (!c || !st.heat) return;
+    var W = Math.min(110, Math.max(54, g.pw * 0.16)), x0 = g.pw - W - 4;
+    var mx = 0;
+    c.k.forEach(function (k, j) { if (k >= st.pLo && k <= st.pHi) mx = Math.max(mx, Math.abs(c.g[j])); });
+    if (!(mx > 0)) return;
+    ctx.fillStyle = 'rgba(5,6,8,.72)'; ctx.fillRect(x0 - 4, 0, W + 8, g.ph);
+    var mid = x0 + W / 2;
+    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(Math.round(mid) + 0.5, 0); ctx.lineTo(Math.round(mid) + 0.5, g.ph); ctx.stroke();
+    var rowH = Math.max(1, Math.abs(g.yOf(0) - g.yOf(st.heat.step)) - 1);
+    c.k.forEach(function (k, j) {
+      if (k < st.pLo || k > st.pHi) return;
+      var v = c.g[j], len = Math.abs(v) / mx * (W / 2), y = g.yOf(k);
+      var col = H.color(v, st.heat.vmax, false);
+      ctx.fillStyle = 'rgb(' + Math.max(col[0], 40) + ',' + Math.max(col[1], 40) + ',' + Math.max(col[2], 40) + ')';
+      if (v >= 0) ctx.fillRect(mid, y - rowH / 2, len, rowH); else ctx.fillRect(mid - len, y - rowH / 2, len, rowH);
+    });
+    ctx.fillStyle = 'rgba(201,209,217,.75)'; ctx.font = '9px ui-monospace,SFMono-Regular,Menlo,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText('PROFILE', mid, 4);
+  }
+
+  // ---------- GEX replay: time slider + play (no lookahead: the map stops at the slider) ----------
+  st.playing = false; st.playTm = 0;
+  function replayUi() {
+    var r = st.rows, sl = $('gex-heat-slider'), bar = $('gex-heat-replay');
+    if (!sl) return;
+    bar.hidden = !r.length;
+    var n = Math.max(0, r.length - 1);
+    sl.max = String(n);
+    var i = st.until == null ? n : Math.max(0, r.indexOf(H.at(r, st.until)));
+    sl.value = String(i);
+    sl.style.setProperty('--fill', (n ? i / n * 100 : 100) + '%');
+    var c = current();
+    $('gex-heat-time').textContent = c ? H.etClock(c.t) + ' ET' + (st.until == null ? ' · latest' : ' · ' + (i + 1) + '/' + r.length) : '—';
+    $('gex-heat-play').textContent = st.playing ? '❚❚' : '▶';
+    $('gex-heat-play').setAttribute('aria-label', st.playing ? 'Pause' : 'Play the session');
+    var rd = $('gex-heat-read');
+    if (!c) { rd.innerHTML = ''; return; }
+    var em = Array.isArray(c.em) && c.em[1] != null ? c.em : null;
+    var item = function (lbl, val, cls) { return '<span' + (cls ? ' class="' + cls + '"' : '') + '><em>' + lbl + '</em>' + esc(val) + '</span>'; };
+    rd.innerHTML = item('Spot', fmtP(c.s)) + item('Call wall', fmtK(c.cw), 'cw') + item('Put wall', fmtK(c.pw), 'pw') + item('Zero gamma', fmtK(c.zg), 'zg') +
+      item('Net GEX', H.money(c.n), c.n >= 0 ? 'pos' : 'neg') + (em ? item('Range 68%', fmtK(em[0] - em[1]) + ' – ' + fmtK(em[0] + em[1])) : '');
+  }
+  function seek(i) {
+    var r = st.rows;
+    if (!r.length) return;
+    i = Math.max(0, Math.min(r.length - 1, i | 0));
+    setUntil(i >= r.length - 1 && !st.playing ? null : r[i].t);
+  }
+  function play() {
+    var r = st.rows;
+    if (!r.length) return;
+    st.playing = true; stopTimer();
+    var i = st.until == null ? 0 : r.indexOf(H.at(r, st.until));
+    if (i >= r.length - 1) i = 0;
+    seek(i);
+    var step = function () {
+      if (!st.playing) return;
+      var j = r.indexOf(H.at(r, st.until)) + 1;
+      if (j >= r.length) { pause(); setUntil(null); armTimer(); return; }
+      seek(j);
+      st.playTm = setTimeout(step, 220);
+    };
+    st.playTm = setTimeout(step, 220);
+    replayUi();
+  }
+  function pause() { st.playing = false; if (st.playTm) { clearTimeout(st.playTm); st.playTm = 0; } if ($('gex-heat-play')) replayUi(); }
 
   function trace(ctx, g, key, color, dash, stepped) {
     var pts = [];
@@ -333,11 +425,12 @@
   // replay hook (GEX replay step): show the session only up to `ts` (no lookahead), null = all
   function setUntil(ts) {
     st.until = ts == null ? null : ts;
-    if (st.rows.length) { var w = H.sessionWindow(st.day); st.heat = H.build(st.rows, { x0: w.x0, x1: w.x1, until: st.until == null ? undefined : st.until }); }
+    if (st.rows.length) { var w = H.sessionWindow(st.day); st.heat = H.build(st.rows, { x0: w.x0, x1: w.x1, until: st.until == null ? undefined : st.until, vmax: st.vmax }); }
     paint();
+    replayUi();
   }
 
-  window.strykerGexHeatmap = { show: show, state: st, setUntil: setUntil, paint: paint };
+  window.strykerGexHeatmap = { show: show, state: st, setUntil: setUntil, paint: paint, seek: seek, play: play, pause: pause, current: current };
 
   function boot() { if (mount() && /heatmap/.test(location.hash)) show('heat'); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

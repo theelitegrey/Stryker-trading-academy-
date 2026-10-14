@@ -49,7 +49,7 @@ async function open(b, { w, h, mobile, free }) {
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5/.test(m.text())) errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|opt-analytics/.test(m.text())) errors.push(m.text()); });
   await p.goto(BASE + '/gex.html', { waitUntil: 'domcontentloaded' });
   await sleep(4500);
   return { ctx, p, errors, hits };

@@ -9515,8 +9515,7 @@ button.appnav-dk.on{
   .stknw-h{ font-size:14px; }
   .stknw-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
 }
-/* =====================================================================
-   PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
+/* ==============================================================   PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
    Opt-in card inside Trade review + the /leaderboard page. Theme tokens only.
    ===================================================================== */
 .plb-card{ border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:0 0 12px; background:var(--bg-2); }
@@ -9555,3 +9554,19 @@ button.appnav-dk.on{
   .plb-t td.plb-rk{ width:22px; }
   .plb-you{ margin-left:4px; }
 }
+=======
+
+/* ===== Economic calendar tabs (assets/econ-calendar.js, B1/B3, 2026-10-14) ===== */
+.ec-tabs{ display:flex; gap:6px; margin:0 0 14px; overflow-x:auto; }
+.ec-tab{ flex:none; height:34px; padding:0 14px; border:1px solid var(--line-soft); border-radius:999px; background:transparent; color:var(--ink-2); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.ec-tab:hover{ color:var(--ink-0); background:var(--bg-2); }
+.ec-tab.is-on{ color:#04150e; background:var(--gold); border-color:var(--gold); }
+/* corporate tabs: 5-6 columns (time/ex-date, company, numbers) */
+.ec-corp{ min-width:0; }
+.ec-corp th:nth-child(n), .ec-corp td:nth-child(n){ width:auto; }
+.ec-corp th:nth-child(1), .ec-corp td:nth-child(1){ width:76px; }
+.ec-corp th:nth-child(2), .ec-corp td:nth-child(2){ width:38%; }
+.ec-corp thead th{ text-align:left; }
+.ec-corp thead th.ec-num, .ec-corp td.ec-num{ text-align:right; }
+.ec-corp .ec-name-v{ white-space:normal; overflow-wrap:anywhere; }
+@media (max-width:700px){ .ec-corp th:nth-child(2), .ec-corp td:nth-child(2){ width:34%; } .ec-corp{ font-size:12px; } }

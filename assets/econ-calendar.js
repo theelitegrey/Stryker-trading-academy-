@@ -65,12 +65,18 @@
   let CUR = 'USD';           // selected currency, or 'ALL'
   let MINIMPACT = 'low';     // low = show everything
   let RANGE = 'ahead';       // see RANGES; defaults to today onwards
-  let TZMODE = 'local';      // 'local' | 'ny'
+  let TZMODE = 'local';      // 'local' | 'ny' | 'ist'
+  let TAB = 'econ';          // 'econ' | 'earnings' | 'dividends' | 'ipos'
+  let SCOPE = 'us';          // earnings/dividends/IPO tabs: 'us' | 'all'
+  let CRANGE = 'ahead';      // those tabs: 'ahead' | 'past' | 'all'
+  let IS = null;             // ./econ-calendar-is.js (InsightSentry rows, via the recorder)
+  const CORP = {};           // kind -> items
+  let SRC = 'file';          // where the event rows came from: 'is' | 'file'
   let TICKER = null;         // countdown interval
 
   // ---- time ----------------------------------------------------------------
 
-  function tz() { return TZMODE === 'ny' ? NY_TZ : undefined; }
+  function tz() { return TZMODE === 'ny' ? NY_TZ : (TZMODE === 'ist' ? 'Asia/Kolkata' : undefined); }
 
   function timeLabel(iso) {
     const t = Date.parse(iso);
@@ -168,6 +174,7 @@
   // clock. Ask Intl for the short name instead and get "IST", "BST", "EDT" or
   // "GMT+5:30", which is what people actually say.
   function zoneName() {
+    if (TZMODE === 'ist') return 'IST';
     const zone = TZMODE === 'ny' ? NY_TZ : undefined;
     try {
       const part = new Intl.DateTimeFormat(undefined, { timeZone: zone, timeZoneName: 'short' })
@@ -240,15 +247,17 @@
   }
   function nextUp() {
     const now = Date.now();
-    return (DATA.events || []).filter((e) =>
-        matches(e) && Date.parse(e.at) > now && e.impact !== 'holiday')
-      .sort(byTimeThenImpact)[0] || null;
+    const up = (DATA.events || []).filter((e) =>
+        matches(e) && Date.parse(e.at) > now && e.impact !== 'holiday').sort(byTimeThenImpact);
+    // The countdown is to the next HIGH-impact release when there is one (what moves the tape).
+    return up.find((e) => e.impact === 'high') || up[0] || null;
   }
 
   // Same rule as the brief and the map: the generator knows when the next
   // session opens and may declare an explicit expiry, so a Friday file does
   // not spend the whole weekend claiming to be out of date.
   function isStale() {
+    if (SRC === 'is') return !(Date.now() - (DATA.isUpdated || 0) < 3 * 3600000);
     const until = Date.parse(DATA && DATA.goodUntil);
     if (isFinite(until)) return Date.now() > until;
     const t = Date.parse(DATA && DATA.generatedAt);
@@ -391,7 +400,7 @@
         '<span class="ec-ring-time">' + esc(timeLabel(ev.at)) + '</span>' +
       '</div>' +
       '<div class="ec-next-body">' +
-        '<span class="ec-kicker">Next release</span>' +
+        '<span class="ec-kicker">' + (ev.impact === 'high' ? 'Next high-impact release' : 'Next release') + '</span>' +
         '<h2>' + esc(ev.event) + '</h2>' +
         '<div class="ec-next-meta">' +
           '<span class="ec-flag" aria-hidden="true">' + esc(cur.flag) + '</span>' +
@@ -487,7 +496,7 @@
         }).join('') +
       '</div>' +
       '<div class="ec-ctrl-row" role="group" aria-label="Filter by currency">' +
-        '<span class="ec-ctrl-label">Currency</span>' +
+        '<span class="ec-ctrl-label">Country</span>' +
         '<button type="button" class="ec-chip' + (CUR === 'ALL' ? ' is-on' : '') + '" data-cur="ALL" ' +
           'aria-pressed="' + (CUR === 'ALL') + '">All<span class="ec-chip-n">' +
           allCount + '</span></button>' +
@@ -514,6 +523,8 @@
           'data-tz="local" aria-pressed="' + (TZMODE === 'local') + '">Your clock</button>' +
         '<button type="button" class="ec-chip' + (TZMODE === 'ny' ? ' is-on' : '') + '" ' +
           'data-tz="ny" aria-pressed="' + (TZMODE === 'ny') + '">New York</button>' +
+        '<button type="button" class="ec-chip' + (TZMODE === 'ist' ? ' is-on' : '') + '" ' +
+          'data-tz="ist" aria-pressed="' + (TZMODE === 'ist') + '">IST</button>' +
       '</div>' +
     '</div>';
   }
@@ -534,6 +545,7 @@
         ? '<div class="ec-stale"><b>This calendar has not been refreshed.</b> Times and forecasts ' +
           'move. Confirm against a primary source before trading any release below.</div>'
         : '') +
+      '<div id="ec-tabs-mount"></div>' +
       '<div id="ec-next-mount"></div>' +
       '<div id="ec-controls-mount"></div>' +
       '<div id="ec-days"></div>' +
@@ -556,7 +568,7 @@
     paint(mount, true);
 
     mount.addEventListener('click', (e) => {
-      const chip = e.target.closest('.ec-chip');
+      const chip = e.target.closest('.ec-chip, .ec-tab');
       if (chip) return onChip(mount, chip);
       const row = e.target.closest('.ec-row[data-note]');
       if (row) toggleNote(row);
@@ -583,7 +595,45 @@
     row.classList.toggle('is-open', !open);
   }
 
+  // ---- earnings / dividends / IPO tabs (InsightSentry rows via the recorder) ----
+
+  function renderTabs() {
+    if (!IS) return '';
+    return '<div class="ec-tabs" role="tablist" aria-label="Calendar">' + IS.TABS.map((t) =>
+      '<button type="button" role="tab" class="ec-tab' + (TAB === t[0] ? ' is-on' : '') + '" data-tab="' + t[0] +
+      '" aria-selected="' + (TAB === t[0]) + '">' + esc(t[1]) + '</button>').join('') + '</div>';
+  }
+  function corpControls() {
+    const b = (attr, v, cur, label) => '<button type="button" class="ec-chip' + (cur === v ? ' is-on' : '') + '" ' + attr + '="' + v + '" aria-pressed="' + (cur === v) + '">' + label + '</button>';
+    return '<div class="ec-controls">' +
+      '<div class="ec-ctrl-row"><span class="ec-ctrl-label">Showing</span>' +
+        b('data-crange', 'ahead', CRANGE, 'From today') + b('data-crange', 'past', CRANGE, 'Past week') + b('data-crange', 'all', CRANGE, 'All dates') +
+        '<span class="ec-ctrl-label">Companies</span>' + b('data-scope', 'us', SCOPE, 'US') + b('data-scope', 'all', SCOPE, 'All markets') +
+        '<span class="ec-ctrl-spacer"></span><span class="ec-ctrl-label">Times in</span>' +
+        b('data-tz', 'local', TZMODE, 'Your clock') + b('data-tz', 'ny', TZMODE, 'New York') + b('data-tz', 'ist', TZMODE, 'IST') +
+      '</div></div>';
+  }
+  function paintCorp(mount, days, ctrls, next) {
+    if (next) next.innerHTML = '';
+    if (ctrls) ctrls.innerHTML = corpControls();
+    const items = CORP[TAB];
+    if (!days) return;
+    if (items === undefined) {
+      days.innerHTML = '<div class="ec-empty"><b>Loading…</b></div>';
+      IS.fetchCal(TAB).then((j) => { CORP[TAB] = j && Array.isArray(j.items) ? j.items : null; if (TAB) paint(mount, false); });
+      return;
+    }
+    if (items === null) { days.innerHTML = '<div class="ec-stale"><b>This list could not be loaded.</b> Refresh in a moment.</div>'; return; }
+    days.innerHTML = IS.renderCorp(TAB, items, { scope: SCOPE, range: CRANGE, mode: TZMODE }) +
+      '<p class="ec-note-p">Company data from our market-data provider; dates and estimates change. Education only. Not financial advice.</p>';
+  }
+
   function onChip(mount, chip) {
+    const tabAttr = chip.getAttribute('data-tab');
+    if (tabAttr) { TAB = tabAttr; return paint(mount, false); }
+    const sc = chip.getAttribute('data-scope'), cr = chip.getAttribute('data-crange');
+    if (sc) { SCOPE = sc; return paint(mount, false); }
+    if (cr) { CRANGE = cr; return paint(mount, false); }
     const c = chip.getAttribute('data-cur');
     const i = chip.getAttribute('data-imp');
     const z = chip.getAttribute('data-tz');
@@ -600,6 +650,9 @@
     const days = mount.querySelector('#ec-days');
     const ctrls = mount.querySelector('#ec-controls-mount');
     const next = mount.querySelector('#ec-next-mount');
+    const tabs = mount.querySelector('#ec-tabs-mount');
+    if (tabs) tabs.innerHTML = renderTabs();
+    if (TAB !== 'econ') { paintCorp(mount, days, ctrls, next); return; }
 
     // Re-sorting under a filter change is a FLIP so surviving rows travel to
     // their new place instead of the table simply looking different.
@@ -664,8 +717,22 @@
       '<div class="ec-skel-hero"></div><div class="ec-skel-row"></div>' +
       '<div class="ec-skel-row"></div><div class="ec-skel-row"></div></div>';
 
-    load().then((data) => {
+    const isP = import('./econ-calendar-is.js?v=544')
+      .then((m) => { IS = m; return m.fetchCal('events'); }).catch(() => null);
+    Promise.all([load(), isP]).then((r) => {
+      let data = r[0]; const cal = r[1];
       DATA = data;
+      // InsightSentry rows replace the file's rows when they answer; the file stays the fallback and
+      // keeps its notes, central-bank cards and how-to-read text.
+      if (IS && cal && Array.isArray(cal.items) && cal.items.length > 20) {
+        const ev = IS.mapEvents(cal.items, data.events);
+        const cur = IS.currenciesOf(ev);
+        const names = {}; (data.currencies || []).forEach((c) => { names[c.code] = c; });
+        cur.forEach((c) => { if (names[c.code]) { c.name = names[c.code].name; c.flag = names[c.code].flag || c.flag; } });
+        DATA = Object.assign({}, data, { events: ev, currencies: cur, isUpdated: Number(cal.updated) || Date.now(), rangeStart: cal.from, rangeEnd: cal.to });
+        SRC = 'is';
+      }
+      data = DATA;
       CUR = data.defaultCurrency || 'USD';
       if (page) renderPage(page);
       strips.forEach(renderStrip);

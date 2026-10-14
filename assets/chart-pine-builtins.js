@@ -69,7 +69,7 @@ export const PICKER_SCRIPTS = [
 ];
 
 // Indicators-window keys of TradeZoro-made indicators defined elsewhere (Editors' picks order).
-export const STRYKER_PICKS = ['b:stk_gex', 'b:stk_gexheat', 'b:stk_em', 'x:ema-cross', 'x:session-vwap', 'x:pdhl'];
+export const STRYKER_PICKS = ['b:stk_gex', 'b:stk_gexheat', 'b:stk_em', 'b:stk_econ', 'b:stk_news', 'x:ema-cross', 'x:session-vwap', 'x:pdhl'];
 
 // Back-compat name for older importers.
 export const BUILTIN_PINE = PICKER_SCRIPTS.map((b) => Object.assign({ url: b.source }, b));

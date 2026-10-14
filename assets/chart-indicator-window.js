@@ -185,6 +185,8 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_gexheat') { cat = GROUP_STRYKER; desc = 'Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
+      if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them (Pro)'; }
+      if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip (Pro)'; }
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
     });
     const ex = (S() && S().EXAMPLES) || [];

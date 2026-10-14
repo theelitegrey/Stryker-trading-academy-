@@ -282,6 +282,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { GexHeat.installGexHeatmap(LCore); } catch (e) { console.warn('TradeZoro: GEX heatmap install', e); }
   // Expected Move (options ATM straddle range; assets/chart-expected-move.js), same plug-in path as GEX.
   try { mods[20].installExpectedMove(LCore); } catch (e) { console.warn('TradeZoro: expected move install', e); }
+  // News markers + Economic events natives (assets/chart-news-markers.js, Pro): registered before boot too.
+  try { (await import('./chart-news-markers.js?v=544')).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }

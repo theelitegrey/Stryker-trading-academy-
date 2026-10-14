@@ -162,6 +162,8 @@ async function small(b, w, h, mobile, tablet) {
   await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('4l'));
   await settle(p);
   await p.waitForTimeout(800);
+  // phone (build 535): the TradingView-style slim row puts the grid picker behind ⋯ More
+  if (!(await p.isVisible('#stkc-layout-btn'))) { await p.click('#stkc-more-btn'); await p.waitForTimeout(200); }
   await p.click('#stkc-layout-btn');
   await p.waitForTimeout(300);
   const st = await p.evaluate(() => ({ dis: [...document.querySelectorAll('.stkg-ic[aria-disabled="true"]')].map((e) => e.dataset.layout), note: document.querySelector('.stkg-note').textContent, pop: (() => { const r = document.getElementById('stkc-layout-pop').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; })(), sw: document.documentElement.scrollWidth }));

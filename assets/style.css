@@ -6235,23 +6235,96 @@ body.charts-page .stkchart-credit{
 #stkc-bar.stkc-onebar .vela-topbar-right > *,
 #stkc-bar.stkc-onebar > .stkc-bar-l > *,
 #stkc-bar.stkc-onebar > .stkc-bar-r > *{ flex-shrink:0; }
-#stkc-bar.stkc-onebar > .stkc-bar-l > *{ order:1; }
-#stkc-bar.stkc-onebar > .stkc-bar-l::before{ content:""; order:1; flex:none; width:1px; height:22px; margin:0 4px; background:var(--vela-border-strong, var(--line)); }
-#stkc-bar.stkc-onebar .stkc-ob-sp{ display:block; order:2; flex:1 1 0; min-width:4px; }
-#stkc-bar.stkc-onebar > .stkc-bar-r > *{ order:3; }
-#stkc-bar.stkc-onebar .stkr-badge{ order:3; }
-#stkc-bar.stkc-onebar .stkr-menu{ order:4; }
-#stkc-bar.stkc-onebar #stkc-paper-btn{ order:5; }
-#stkc-bar.stkc-onebar #stkrb-chip{ order:6; }
-#stkc-bar.stkc-onebar .stkc-bar-r > .stkc-menu:has(#stkrb-btn){ order:7; }
-#stkc-bar.stkc-onebar #stkc-alerts-btn{ order:8; }
-#stkc-bar.stkc-onebar .vela-topbar-right > *{ order:9; }
-#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-alerts{ order:9; }
-#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-panels{ order:10; }
-#stkc-bar.stkc-onebar .vela-topbar-right > .vela-widget-screenshot{ order:11; }
-#stkc-bar.stkc-onebar #stkc-settings-btn{ order:12; }
-#stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:13; }
-#stkc-bar.stkc-onebar .stkc-ob-more{ order:30; }
+/* TradingView order (Owner order 2026-10-14 part 2; chart-onebar.js DIVIDERS sit on the even gaps):
+   symbol 0 | intervals 3 | style 5 | Indicators 7, Templates 8, Pine 8 | price alerts 10, Replay 11 |
+   undo/redo 13 — spacer 20 — layout name 22 | grid 24 | settings 26, fullscreen 27, screenshot 28 |
+   Trade 30, Connect broker 31 | info 33, ⋯ 40. Vela's alert log / data window / object tree live in
+   the right icon bar (chart-tv-toolbars.js). */
+#stkc-bar.stkc-onebar .vela-sep{ display:none; }
+#stkc-bar.stkc-onebar > .stkc-bar-l::before{ display:none; }
+#stkc-bar .stkc-tv-div{ display:none; }
+#stkc-bar.stkc-onebar .stkc-tv-div{ display:block; flex:none; width:1px; height:20px; margin:0 3px; background:var(--line); }
+#stkc-bar.stkc-onebar .stkc-tv-div.stkc-tv-off{ display:none; }
+#stkc-bar.stkc-onebar .vela-widget-symbol{ order:0; }
+#stkc-bar.stkc-onebar .vela-widget-tf-group{ order:3; }
+#stkc-bar.stkc-onebar #vela-topbar-style{ order:5; }
+#stkc-bar.stkc-onebar .vela-widget-indicators,
+#stkc-bar.stkc-onebar .vela-widget-actions-left{ order:7; }
+:where(#stkc-bar.stkc-onebar > .stkc-bar-l) > *{ order:8; }
+#stkc-bar.stkc-onebar #stkc-alerts-btn{ order:10; }
+#stkc-bar.stkc-onebar .stkr-badge, #stkc-bar.stkc-onebar .stkr-menu{ order:11; }
+#stkc-bar.stkc-onebar .vela-widget-undo, #stkc-bar.stkc-onebar .vela-widget-redo{ order:13; }
+#stkc-bar.stkc-onebar .stkc-ob-sp{ display:block; order:20; flex:1 1 0; min-width:4px; }
+#stkc-bar.stkc-onebar > .stkc-bar-l > .stkl-menu{ order:22; }
+#stkc-bar.stkc-onebar > .stkc-bar-l > .stkc-menu:has(#stkc-layout-btn){ order:24; }
+:where(#stkc-bar.stkc-onebar > .stkc-bar-r) > *{ order:26; }
+#stkc-bar.stkc-onebar #stkc-settings-btn{ order:26; }
+#stkc-bar.stkc-onebar #stkc-fs-btn{ order:27; }
+#stkc-bar.stkc-onebar .vela-widget-screenshot{ order:28; }
+:where(#stkc-bar.stkc-onebar .vela-topbar-right) > *{ order:28; }
+#stkc-bar.stkc-onebar #stkc-paper-btn{ order:30; }
+#stkc-bar.stkc-onebar #stkrb-chip, #stkc-bar.stkc-onebar .stkc-bar-r > .stkc-menu:has(#stkrb-btn){ order:31; }
+#stkc-bar.stkc-onebar #stkc-credits-btn, #stkc-bar.stkc-onebar #stkc-credits{ order:33; }
+#stkc-bar.stkc-onebar .stkc-ob-more{ order:40; }
+/* menus on the right half open towards the left (TradingView) */
+#stkc-bar.stkc-onebar > .stkc-bar-l > .stkl-menu > .stkc-pop,
+#stkc-bar.stkc-onebar > .stkc-bar-l > .stkc-menu:has(#stkc-layout-btn) > .stkc-pop{ left:auto; right:0; }
+/* TradingView-style quiet buttons: icon buttons 30 px, labelled buttons borderless until hover */
+#stkc-bar.stkc-onebar{ min-height:40px; padding:3px 8px; gap:2px; }
+#stkc-bar.stkc-onebar .stkc-btn{ border-color:transparent; padding:0 8px; }
+#stkc-bar.stkc-onebar .stkc-btn:hover, #stkc-bar.stkc-onebar .stkc-btn[aria-expanded="true"]{ border-color:transparent; background:var(--bg-2); color:var(--ink-0); }
+#stkc-bar.stkc-onebar .stkc-btn.stkc-icon{ width:32px; padding:0; justify-content:center; }
+#stkc-bar.stkc-onebar .stkc-ib{ width:30px; height:30px; }
+#stkc-bar.stkc-onebar #stkc-paper-btn{ border-color:rgba(3,201,136,.45); color:var(--gold); }
+#stkc-bar.stkc-onebar #stkc-paper-btn:hover{ background:rgba(3,201,136,.1); }
+/* Phone (Vela's mobile layout): Vela's bottom bar is the start of this one slim row:
+   symbol, interval, Indicators, the drawing pencil (opens the drawings sheet); the rest folds into ⋯ */
+#stkc-bar.stkc-ob-phone .vela-mobilebar{
+  display:flex; flex:0 1 auto; min-width:0; align-items:center; gap:2px; padding:0; border:0;
+  color:var(--ink-2); background:transparent;
+}
+#stkc-bar.stkc-ob-phone .vela-mb-item{
+  flex:none; min-height:34px; height:34px; min-width:34px; padding:0 7px; box-sizing:border-box;
+  border-radius:7px; color:var(--ink-1); font:600 13px/34px inherit; font-family:inherit; justify-content:center;
+}
+#stkc-bar.stkc-ob-phone .vela-mb-item:active, #stkc-bar.stkc-ob-phone .vela-mb-item:hover{ background:var(--bg-2); color:var(--ink-0); }
+#stkc-bar.stkc-ob-phone .vela-mb-symbol{ flex:0 1 auto; min-width:44px; max-width:96px; color:var(--ink-0); line-height:34px; }
+#stkc-bar.stkc-ob-phone .vela-mb-tf{ color:var(--ink-0); }
+#stkc-bar.stkc-ob-phone .vela-mb-settings{ display:none; }
+#stkc-bar.stkc-ob-phone .vela-mb-drawings{ color:var(--gold); }
+#stkc-bar.stkc-ob-phone > .stkc-bar-l{ flex:1 1 auto; min-width:0; }
+#stkc-bar.stkc-ob-phone .stkc-btn{ border-color:transparent; }
+#stkc-bar.stkc-ob-phone .stkc-btn:hover{ background:var(--bg-2); }
+.stkc-ob-pop .vela-mb-item{ all:unset; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:7px; color:var(--ink-1); cursor:pointer; }
+.stkc-ob-pop .vela-mb-item:hover{ background:var(--bg-2); color:var(--ink-0); }
+.stkc-ob-pop .vela-mb-item .vela-icon{ width:18px; height:18px; font-size:18px; }
+/* ---- Left drawing column (chart-tv-toolbars.js): TradingView grouping, our colours ---- */
+.vela-dtb.stkt-col{ gap:2px; }
+.vela-dtb.stkt-col::-webkit-scrollbar{ width:0; }
+.stkt-div{ width:24px; height:1px; margin:3px auto; flex:none; background:var(--vela-border, var(--line)); }
+.stkt-btn[data-active='1']{ color:var(--gold) !important; }
+.stkt-btn[data-active='1'] .vela-dtb-hit{ background:rgba(3,201,136,.14) !important; }
+.vela-dtb .vela-dtb-cell[data-active='1'] .vela-dtb-icon, .vela-dtb .vela-dtb-btn[data-active='1']{ color:var(--gold); }
+/* the corner ▸ stays faintly visible (TradingView shows a tiny corner arrow on group buttons) */
+.vela-dtb .vela-dtb-arrow{ opacity:.35; pointer-events:auto; }
+.stkt-fly{ position:absolute; z-index:23; display:flex; flex-direction:column; gap:2px; padding:4px; min-width:200px;
+  border-radius:0 8px 8px 0; background:var(--vela-surface-elev, var(--bg-2)); border:1px solid var(--vela-border, var(--line)); border-left:none;
+  box-shadow:0 18px 40px -12px rgba(0,0,0,.6); color:var(--vela-fg, var(--ink-1)); font-size:13px; }
+.stkt-fly-h{ padding:6px 12px 2px 8px; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--vela-fg-muted, var(--ink-3)); }
+.stkt-fly-i{ display:flex; align-items:center; gap:8px; padding:6px 10px 6px 8px; border:0; border-radius:6px; background:transparent; color:inherit; font:inherit; cursor:pointer; white-space:nowrap; text-align:left; }
+.stkt-fly-i:hover:not(:disabled){ background:var(--vela-hover-strong, var(--bg-3)); }
+.stkt-fly-i:disabled{ opacity:.45; cursor:default; }
+.stkt-fly-ic{ width:18px; height:18px; display:flex; align-items:center; justify-content:center; flex:none; }
+.stkt-fly-l{ flex:1 1 auto; }
+.stkt-fly-k{ flex:none; margin-left:14px; font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:var(--vela-fg-muted, var(--ink-3)); }
+/* ---- Right icon bar: watchlist + Vela's alert log, object tree, data window ---- */
+.stkw-rail.stkt-rail .stkt-rdiv{ width:22px; height:1px; margin:2px 0; background:var(--line); flex:none; }
+.stkw-rail.stkt-rail .stkt-rpanels{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+.stkw-rail.stkt-rail .vela-widget-tool{ all:unset; display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:6px; color:var(--ink-2); cursor:pointer; position:relative; font-size:16px; }
+.stkw-rail.stkt-rail .vela-widget-tool:hover{ background:var(--bg-2); color:var(--ink-0); }
+.stkw-rail.stkt-rail .vela-widget-tool[data-active='1']{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold); }
+.stkw-rail.stkt-rail .vela-widget-tool:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+.stkw-railbtn.on{ box-shadow:inset 2px 0 0 var(--gold) !important; }
 #stkc-bar.stkc-onebar .vela-widget-actions:empty, #stkc-bar.stkc-onebar .vela-widget-actions-left:empty{ display:none; }
 /* our price-alerts bell and Vela's alert log sit together: one quiet hairline between groups */
 #stkc-bar.stkc-onebar #stkc-alerts-btn{ margin-left:2px; }

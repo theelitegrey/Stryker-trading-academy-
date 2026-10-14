@@ -105,7 +105,7 @@ async function shot(p, name) { await sleep(500); await p.screenshot({ path: OUT 
     const ph = await p.evaluate(() => ({ sw: document.documentElement.scrollWidth, row: [...document.querySelectorAll('.stk-iv-row .stk-iv-b[data-iv]')].map((b) => b.dataset.iv), mb: !!document.querySelector('.vela-mb-tf') }));
     check(ph.sw <= 390, 'phone: no sideways overflow (' + ph.sw + ')');
     check(ph.row.length <= 1, 'phone topbar row collapsed to the active interval: ' + ph.row.join(','));
-    if (ph.mb) { await p.click('#vela-chart .vela-mb-tf'); } else { await p.click('.stk-iv-caret'); }
+    if (ph.mb) { await p.click('.vela-mb-tf'); } else { await p.click('.stk-iv-caret'); }
     await sleep(400);
     const sh = await p.evaluate(() => { const m = document.getElementById('stk-iv-menu'); const r = m.getBoundingClientRect(); return { open: !m.hidden, sheet: m.classList.contains('sheet'), l: r.left, rr: r.right }; });
     check(sh.open && sh.l >= 0 && sh.rr <= 390, 'phone: menu opens inside the screen (sheet ' + sh.sheet + ')');

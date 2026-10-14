@@ -928,7 +928,7 @@ export function mountIntervals(ws, opts) {
 
   // Phone bar: its interval button opens this menu (as a bottom sheet) instead of Vela's drawer.
   document.addEventListener('click', (e) => {
-    const b = e.target && e.target.closest && e.target.closest('#vela-chart .vela-mb-tf');
+    const b = e.target && e.target.closest && e.target.closest('#vela-chart .vela-mb-tf, #stkc-bar .vela-mb-tf');
     if (!b) return;
     e.preventDefault();
     e.stopImmediatePropagation();

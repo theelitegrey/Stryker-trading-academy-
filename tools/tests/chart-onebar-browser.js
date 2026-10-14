@@ -110,10 +110,11 @@ async function desktop(b, w, h, theme, tag) {
   check(L.out.length === 0 && L.barScroll <= 1 && L.sw <= w + 1, `${tag}: nothing clipped / scrolling ${JSON.stringify({ out: L.out, barScroll: L.barScroll, sw: L.sw })}`);
   check(L.hits.length === 0, `${tag}: no overlapping items ${JSON.stringify(L.hits)}`);
   const o = L.order;
-  const seq = [o.sym, o.iv, o.style, o.ind, o.undo, o.lay ?? o.grid].filter((v) => v != null);
-  check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < undo < layout ${JSON.stringify(seq)}`);
-  const rseq = [o.replay, o.trade, o.broker, o.alerts, o.bell, o.cog, o.info, o.more].filter((v) => v != null);
-  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (o.replay == null || o.replay > (o.undo || 0)), `${tag}: right order Replay < Trade < broker < alerts < bell < settings < info < More ${JSON.stringify(rseq)}`);
+  // TradingView order (build 535): symbol | intervals | style | Indicators | alerts, Replay | undo — layout | grid | settings | Trade, broker | info, More
+  const seq = [o.sym, o.iv, o.style, o.ind, o.alerts, o.replay, o.undo].filter((v) => v != null);
+  check(seq.every((v, i) => i === 0 || v > seq[i - 1]), `${tag}: left order symbol < intervals < style < Indicators < alerts < Replay < undo ${JSON.stringify(seq)}`);
+  const rseq = [o.lay, o.grid, o.cog, o.trade, o.broker, o.info, o.more].filter((v) => v != null);
+  check(rseq.every((v, i) => i === 0 || v > rseq[i - 1]) && (rseq[0] == null || rseq[0] > (o.undo || 0)), `${tag}: right order layout < grid < settings < Trade < broker < info < More ${JSON.stringify(rseq)}`);
   await p.screenshot({ path: `${OUT}/onebar-${tag}.png` });
   console.log('screenshot', `${OUT}/onebar-${tag}.png`);
 
@@ -130,7 +131,7 @@ async function desktop(b, w, h, theme, tag) {
       ['#stkc-settings-btn', () => !![...document.querySelectorAll('[role="dialog"]')].find((d) => d.getClientRects().length && /setting/i.test(d.getAttribute('aria-label') || d.textContent.slice(0, 80)))],
       ['.vela-widget-indicators', () => !!document.querySelector('.stkiw-ov, .stkiw') && !![...document.querySelectorAll('.stkiw-ov, .stkiw')].find((e) => e.getClientRects().length)],
       ['.vela-widget-symbol', () => !![...document.querySelectorAll('.vela-sp, .vela-symbol-picker, [class*="vela-sp"]')].find((e) => e.getClientRects().length && e.getBoundingClientRect().height > 100)],
-      ['.vela-widget-alerts', () => !![...document.querySelectorAll('[role="menu"], .vela-menu')].find((e) => e.getClientRects().length)]
+      ['.stkw-rail .vela-widget-alerts', () => !![...document.querySelectorAll('[role="menu"], .vela-menu')].find((e) => e.getClientRects().length)]
     ];
     for (const [sel, ok] of hooks) {
       const exists = await p.$(sel);
@@ -180,7 +181,7 @@ async function phone(b) {
   const L = await layoutInfo(p);
   const F = await frame(p);
   console.log('390', JSON.stringify({ barH: L.barH, n: L.n, cls: L.cls, inMore: L.inMore }));
-  check(!L.merged && !F.velaBarOwnRow, '390: phone keeps one toolbar row (Vela bar hidden, its bottom bar used)');
+  check(!L.merged && !F.velaBarOwnRow && await p.evaluate(() => !!document.querySelector('#stkc-bar .vela-mobilebar')), '390: phone has one top row (Vela bar hidden, its bottom bar moved into the top row)');
   check(L.rows === 1 && L.out.length === 0 && L.barScroll <= 1 && L.sw <= 391, `390: one line, nothing clipped ${JSON.stringify({ rows: L.rows, out: L.out, barScroll: L.barScroll, sw: L.sw })}`);
   const tb = await p.evaluate(() => {
     const lb = document.getElementById('stkl-btn'), gb = document.getElementById('stkc-layout-btn');

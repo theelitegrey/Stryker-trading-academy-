@@ -409,6 +409,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-onebar.js?v=536')
     .then((m) => m.mountOneBar(ws))
     .catch((e) => console.warn('TradeZoro: one toolbar', e));
+  // TradingView-style left drawing column, right icon bar, fullscreen (assets/chart-tv-toolbars.js).
+  import('./chart-tv-toolbars.js?v=534')
+    .then((m) => m.mountTvToolbars(ws, { toast }))
+    .catch((e) => console.warn('TradeZoro: tv toolbars', e));
   // TradingView-style "Indicators, metrics, and strategies" window replaces Vela's picker
   // (assets/chart-indicator-window.js); loaded after the two picker wrappers above.
   import('./chart-indicator-window.js?v=536')

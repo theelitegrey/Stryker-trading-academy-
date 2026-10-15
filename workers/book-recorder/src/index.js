@@ -146,9 +146,21 @@ export class BookRecorder {
   // withPath: the full record (footprint + 1-second path) for /ticks1s; else the footprint only
   ofRecs(sym, from, to, withPath) {
     const pick = (fp, path) => (withPath ? joinPath(fp, path) : fp);
-    const byT = new Map();
-    const q = withPath ? 'SELECT t, b, s FROM ofbar' : 'SELECT t, b FROM ofbar';
-    for (const r of this.sql.exec(q + ' WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, from, to).toArray()) byT.set(r.t, pick(new Uint8Array(r.b), new Uint8Array(r.s || [0])));
+    // The SQL part is memoised 5 min per (sym, range, withPath): a busy chart refreshes "today"
+    // every 15 s, and re-reading ~1,440 rows each time would burn the free 5 M rows/day. Bars from
+    // the last 30 min are overlaid from ofLive (always current), so the memo cannot serve stale data.
+    const key = sym + '|' + from + '|' + to + '|' + (withPath ? 1 : 0), now = Date.now();
+    if (!this.ofSqlMemo) this.ofSqlMemo = new Map();
+    let hit = this.ofSqlMemo.get(key);
+    if (!hit || now - hit.at > 300000) {
+      const rows = new Map();
+      const q = withPath ? 'SELECT t, b, s FROM ofbar' : 'SELECT t, b FROM ofbar';
+      for (const r of this.sql.exec(q + ' WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, from, to).toArray()) rows.set(r.t, pick(new Uint8Array(r.b), new Uint8Array(r.s || [0])));
+      hit = { at: now, rows };
+      if (this.ofSqlMemo.size > 24) this.ofSqlMemo.clear();
+      this.ofSqlMemo.set(key, hit);
+    }
+    const byT = new Map(hit.rows);
     for (const [t, e] of this.ofLiveFor(sym)) if (t >= from && t <= to) byT.set(t, pick(e.fp, e.path));
     return [...byT.keys()].sort((x, y) => x - y).map((t) => byT.get(t));
   }

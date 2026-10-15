@@ -98,6 +98,37 @@ def log(msg):
     print(msg, flush=True)
 
 
+# Self-alert (2026-10-15 outage: the Worker answered 500 for 11 h and nobody was told). Counts
+# consecutive failed POST rounds; at ALERT_AFTER it logs one "ALERT" line (greppable in journalctl)
+# and writes HEALTH_FILE; repeats every ALERT_EVERY s while it lasts, "RECOVERED" when a post works.
+ALERT_AFTER = 5
+ALERT_EVERY = 900
+HEALTH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'of-health.json')
+_fail = {'n': 0, 'since': 0, 'last_alert': 0, 'code': ''}
+
+
+def note_post(ok, detail=''):
+    now = time.time()
+    if ok:
+        if _fail['n'] >= ALERT_AFTER:
+            log('RECOVERED of-feeder: Worker accepts posts again after %d failed rounds' % _fail['n'])
+        _fail.update(n=0, since=0, last_alert=0, code='')
+    else:
+        if not _fail['n']:
+            _fail['since'] = now
+        _fail['n'] += 1
+        _fail['code'] = str(detail)[:60]
+        if _fail['n'] >= ALERT_AFTER and now - _fail['last_alert'] >= ALERT_EVERY:
+            _fail['last_alert'] = now
+            log('ALERT of-feeder: %d failed posts in a row since %s UTC (last: %s)' % (
+                _fail['n'], time.strftime('%H:%M:%S', time.gmtime(_fail['since'])), _fail['code']))
+    try:
+        with open(HEALTH_FILE, 'w') as f:
+            json.dump({'ok': _fail['n'] < ALERT_AFTER, 'fails': _fail['n'], 'since': _fail['since'], 'last': _fail['code'], 'at': int(now)}, f)
+    except OSError:
+        pass
+
+
 def load_state():
     try:
         with open(STATE) as f:
@@ -379,7 +410,9 @@ def live():
                 thr = agg.thr
             if recs:
                 res = post_recs(url, key, s, recs, {'v': 1, 'sym': s, 'tick': SYMS[s][1], 'thr': thr, 'final': 0})
-                if any(not r.startswith('200') for r in res):
+                bad_res = [r for r in res if not r.startswith('200')]
+                note_post(not bad_res, bad_res[0] if bad_res else '')
+                if bad_res:
                     log('%s post: %s' % (s, ' | '.join(res)))
                     with lock:
                         dirty[s] |= set(tms)       # try again next round

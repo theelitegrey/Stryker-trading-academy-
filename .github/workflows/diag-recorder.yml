@@ -9,11 +9,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-      - name: tail
+      - name: q
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -23,10 +19,5 @@ jobs:
           echo "::add-mask::$TOKEN"
           ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
           echo "::add-mask::$ACCOUNT"
-          cd workers/book-recorder
-          export CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT"
-          (timeout 60 npx --yes wrangler@4.149.0 tail book-recorder --format json > /tmp/tail.log 2>&1 &)
-          sleep 20
-          for p in terminal/health "orderflow?sym=NQ&day=2026-10-15" ticks1s status; do curl -s -m 10 -H 'Origin: https://strykertrading.com' "https://book-recorder.theelitegrey.workers.dev/$p" -o /dev/null -w "$p %{http_code}\n"; done
-          sleep 15
-          head -c 6000 /tmp/tail.log
+          Q='{"query":"query($a:String!){viewer{accounts(filter:{accountTag:$a}){p:durableObjectsPeriodicGroups(limit:100,filter:{datetime_geq:\"2026-10-14T00:00:00Z\",datetime_leq:\"2026-10-15T17:00:00Z\"},orderBy:[datetimeHour_ASC]){dimensions{datetimeHour} sum{rowsRead rowsWritten storedBytes} }  s:durableObjectsStorageGroups(limit:5,filter:{date_geq:\"2026-10-13\"},orderBy:[date_ASC]){dimensions{date} max{storedBytes}} }}}","variables":{"a":"'$ACCOUNT'"}}'
+          curl -s -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' --data "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.errors, (.data.viewer.accounts[0].p[]? | [.dimensions.datetimeHour, .sum.rowsRead, .sum.rowsWritten]), .data.viewer.accounts[0].s' | sed 's/[0-9a-f]\{32\}/X/g'

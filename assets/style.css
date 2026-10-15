@@ -6300,6 +6300,20 @@ body.charts-page .stkchart-credit{
 .stkc-ob-pop .vela-mb-item .vela-icon{ width:18px; height:18px; font-size:18px; }
 /* ---- Left drawing column (chart-tv-toolbars.js): TradingView grouping, our colours ---- */
 .vela-dtb.stkt-col{ gap:2px; }
+.vela-dtb.stkt-col .vela-dtb-btn, .vela-dtb.stkt-col .vela-dtb-cell{ height:36px; }
+/* shared 28-grid tool icons (assets/chart-tool-icons.js) draw at their native 28 px: 1 px strokes stay crisp */
+.vela-dtb.stkt-col .vela-dtb-hit:not(.vela-dtb-hit--arrow){ width:32px; height:32px; border-radius:4px; }
+.vela-dtb.stkt-col .vela-dtb-hit:not(.vela-dtb-hit--arrow) > span{ width:28px !important; height:28px !important; }
+.vela-dtb.stkt-col .vela-dtb-hit svg{ width:100%; height:100%; display:block; }
+.vela-dtb.stkt-col .vela-dtb-arrow{ right:0; }
+.vela-dtb.stkt-col .vela-dtb-icon{ width:32px; height:36px; }
+.stkt-ic{ width:28px; height:28px; display:flex; align-items:center; justify-content:center; }
+.stkt-ic.stkt-ic-s{ width:20px; height:20px; }
+.vela-dtb[data-collapsed='1'] .vela-dtb-collapse .vela-dtb-hit{ width:14px !important; }
+.vela-dtb[data-collapsed='1'] .vela-dtb-collapse .stkt-ic{ width:14px; }
+.vela-dtb-flyout .vela-dtb-item > span:first-child:has(svg){ width:28px !important; height:28px !important; }
+.vela-dtb-flyout .vela-dtb-item{ padding-top:3px !important; padding-bottom:3px !important; }
+.stkt-fly-ic{ width:28px !important; height:28px !important; }
 .vela-dtb.stkt-col::-webkit-scrollbar{ width:0; }
 .stkt-div{ width:24px; height:1px; margin:3px auto; flex:none; background:var(--vela-border, var(--line)); }
 .stkt-btn[data-active='1']{ color:var(--gold) !important; }

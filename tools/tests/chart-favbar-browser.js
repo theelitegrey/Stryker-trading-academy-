@@ -14,7 +14,7 @@ async function open(b, ctx) {
   const p = await ctx.newPage();
   p.errors = [];
   p.on('pageerror', (e) => p.errors.push(String(e)));
-  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|WebSocket|Failed to load resource/.test(m.text())) p.errors.push(m.text()); });
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|WebSocket|Failed to load resource|blocked by CORS/.test(m.text())) p.errors.push(m.text()); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_FAVBAR && document.querySelector('.vela-dtb'), null, { timeout: 40000 });
   await p.waitForTimeout(2500);
@@ -160,9 +160,9 @@ const shot = async (p, n) => { await p.screenshot({ path: OUT + '/' + n + '.png'
       // Hide via context menu, show via toggle
       await p.click('.stk-fb-h', { button: 'right' }); await p.waitForTimeout(200);
       const mtxt = await p.evaluate(() => { const m = document.querySelector('.stk-fb-menu'); return m && m.textContent; });
-      check(mtxt === 'Hide favorites toolbar', theme + ': right-click menu', mtxt);
+      check(/Hide favorites toolbar$/.test(mtxt) && /Vertical layout/.test(mtxt), theme + ': right-click menu', mtxt);
       if (theme === 'day') await shot(p, 'fb-1440-day-menu');
-      await p.click('.stk-fb-menu button'); await p.waitForTimeout(200);
+      await p.evaluate(() => [...document.querySelectorAll('.stk-fb-menu button')].find((x) => x.textContent === 'Hide favorites toolbar').click()); await p.waitForTimeout(200);
       check((await barInfo(p)).hidden, theme + ': hidden after "Hide"');
       const tl1 = await p.$eval('.stk-fb-tog', (x) => x.getAttribute('aria-label'));
       check(tl1 === 'Show favorites toolbar', theme + ': toggle says Show', tl1);

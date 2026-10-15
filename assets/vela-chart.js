@@ -235,7 +235,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-tick-boost.js?v=563'),
       Promise.resolve(null),
       Promise.resolve(null),
-      Promise.resolve(null)
+      Promise.resolve(null),
+      import('./chart-tool-icons.js?v=562'),
+      import(VELA_BASE + 'chunk-IFJJPXSV.js')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -311,6 +313,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
   try { Settings.installChartSettings(Core, mods[9]); } catch (e) { console.warn('TradeZoro: settings install', e); }
+  // ONE icon set for every drawing tool (Owner order 2026-10-14, TradingView look): the column,
+  // its flyouts, the phone sheet, the object tree and the favourites bar all read these; plus
+  // separate Long / Short Position tools (assets/chart-tool-icons.js). Before the workspace is built.
+  const ToolIcons = mods[22];
+  try {
+    const miss = ToolIcons.installToolIcons(Core, mods[23].PositionTool);
+    if (miss.length) console.warn('TradeZoro: drawing tools without an icon', miss);
+  } catch (e) { console.warn('TradeZoro: tool icons', e); }
   // Paper trading (assets/chart-paper.js): its on-chart line layer + right-click items register before boot.
   try { Paper.installPaper(Core); } catch (e) { console.warn('TradeZoro: paper install', e); }
 
@@ -382,6 +392,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     velaFail();
     return;
   }
+
+  try { ToolIcons.addShortToToolbar(ws, Core); } catch (e) { console.warn('TradeZoro: short position tool', e); }
 
   // Symbol search "Commodities" tab: Vela files a row there only when its type is "commodity",
   // and our metals/energy contracts are typed "futures" (so they also stay in the Futures tab).

@@ -22,6 +22,7 @@
 // chart-alerts.js is NOT imported here: a second import URL (e.g. a stale ?v=) makes a second,
 // never-mounted module instance whose Create button has no backend (build 427 bug). The one
 // mounted instance is handed in by vela-chart.js: mountChartPlus(ws, { openAlerts, chartPlots }).
+import { TOOL_ICONS } from './chart-tool-icons.js?v=562';
 let openAlerts = (p) => { const A = window.__stkAlerts; if (A && A.open) A.open(p); };
 let chartPlots = () => [];
 
@@ -75,7 +76,8 @@ function addHLine(c, time){
 // ---------------------------------------------------------------------------------------
 const ICON = {
   alert: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="6.5"/><path d="M11 9.5V13l2 1.6M4.5 5 2.5 7M17.5 5l2 2M18 15.5v5M15.5 18h5"/></svg>',
-  hline: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2.5 12h6.5M15 12h6.5"/><circle cx="12" cy="12" r="2.5"/></svg>',
+  // the Horizontal Line drawing tool: the one shared icon (assets/chart-tool-icons.js)
+  hline: TOOL_ICONS.hline.replace('width="1em" height="1em"', 'width="20" height="20"'),
   more: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17 9 11l4 3 7-8"/></svg>',
   chev: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>'
 };

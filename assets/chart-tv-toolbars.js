@@ -23,26 +23,27 @@
 // Depends on: vela-chart.js (ws = VelaWorkspace: ws.root, ws.cells(), ws.cell(id).chart,
 // ws.active), chart-onebar.js (bar), chart-watchlist.js (.stkw-rail), style.css (.stkt-* block).
 
+import { UI_ICONS } from './chart-tool-icons.js?v=562';
+
 const LS_LOCK = 'stkc_tv_lockall';
 const LS_HIDE = 'stkc_tv_hideall';
 const LONG_MS = 420;
 const NS = 'http://www.w3.org/2000/svg';
 
-// Our own line icons (24-unit grid, stroke = currentColor).
+// Icons: the ONE shared set (assets/chart-tool-icons.js, 28-unit grid, 1px strokes), so the
+// column's own buttons match the drawing-tool icons. Vela's built-in column buttons (cursor,
+// measure, magnet, stay, eraser, sync, collapse) get the same set in restyle() below.
 const IC = {
-  zoomIn: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5M10.5 8v5"/>',
-  zoomOut: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5M8 10.5h5"/>',
-  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
-  unlock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.5-2"/>',
-  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/>',
-  eyeOff: '<path d="M4 4l16 16"/><path d="M9.6 6A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.9 3.6M6.3 7.6A16 16 0 0 0 2.5 12S6 18.5 12 18.5a9 9 0 0 0 4-.9"/>',
-  trash: '<path d="M5 7h14M10 7V4.5h4V7M7 7l1 12.5h8L17 7"/><path d="M10.5 10.5v6M13.5 10.5v6"/>',
+  zoomIn: 'zoomIn', zoomOut: 'zoomOut', lock: 'lock', unlock: 'unlock', eye: 'eye', eyeOff: 'eyeOff', trash: 'trash',
   full: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   fullOff: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
   arrow: '<path d="M9 6l6 6-6 6"/>'
 };
-const svg = (d, s) => '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>';
-const hit = (d) => '<span class="vela-dtb-hit"><span style="width:18px;height:18px;display:flex;align-items:center;justify-content:center;">' + svg(d) + '</span></span>';
+const sized = (markup, s) => markup.replace('width="1em" height="1em"', 'width="' + s + '" height="' + s + '"').replace('<svg ', '<svg aria-hidden="true" ');
+const svg = (d, s) => (UI_ICONS[d] ? sized(UI_ICONS[d], s || 28) : '<svg width="' + (s || 18) + '" height="' + (s || 18) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>');
+const hit = (d) => '<span class="vela-dtb-hit"><span class="stkt-ic">' + svg(d) + '</span></span>';
+// Vela's own column buttons, found by their aria-label -> our icon
+const VELA_BTNS = [[/^Cursor$/, 'cursor'], [/^Measure$/, 'measure'], [/^Eraser/, 'eraser'], [/^Stay in drawing/, 'stay'], [/^Sync drawings/, 'sync'], [/^Collapse toolbar$/, 'chevronsLeft']];
 
 const lsGet = (k) => { try { return localStorage.getItem(k) === '1'; } catch (e) { return false; } };
 const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, '1'); else localStorage.removeItem(k); } catch (e) {} };
@@ -189,7 +190,7 @@ export function mountTvToolbars(ws, opts){
       r.setAttribute('role', 'menuitem');
       r.setAttribute('aria-label', it.label);
       if (it.disabled) r.disabled = true;
-      r.innerHTML = (it.icon ? '<span class="stkt-fly-ic">' + svg(it.icon) + '</span>' : '') + '<span class="stkt-fly-l"></span>' + (it.hint ? '<span class="vela-dtb-hint stkt-fly-k"></span>' : '');
+      r.innerHTML = (it.icon ? '<span class="stkt-fly-ic">' + svg(it.icon, 28) + '</span>' : '') + '<span class="stkt-fly-l"></span>' + (it.hint ? '<span class="vela-dtb-hint stkt-fly-k"></span>' : '');
       r.querySelector('.stkt-fly-l').textContent = it.label;
       if (it.hint) r.querySelector('.stkt-fly-k').textContent = it.hint;
       r.addEventListener('click', (e) => { e.stopPropagation(); closeFly(); it.run(); });
@@ -273,6 +274,7 @@ export function mountTvToolbars(ws, opts){
     try {
       if (!nodes.zoom) { build(); paint(); }
       col.classList.add('stkt-col');
+      restyle();
       const collapse = col.querySelector('.vela-dtb-collapse');
       const measure = byLabel(/^Measure$/);
       const eraser = byLabel(/^Eraser/);
@@ -293,6 +295,20 @@ export function mountTvToolbars(ws, opts){
       want.forEach((n) => frag.appendChild(n));
       col.insertBefore(frag, collapse);
     } finally { arranging = false; }
+  }
+  // Vela's built-in buttons draw its own icon set; give them ours (the shared 28-grid set).
+  function restyle(){
+    if (!col) return;
+    [...col.querySelectorAll('.vela-dtb-btn:not(.stkt-btn):not(.stk-fb-tog)')].forEach((b) => {
+      const l = b.getAttribute('aria-label') || '';
+      const hitEl = b.querySelector('.vela-dtb-hit');
+      const m = VELA_BTNS.find(([re]) => re.test(l));
+      if (!m || !hitEl || hitEl.dataset.stk === m[1]) return;
+      hitEl.dataset.stk = m[1];
+      hitEl.innerHTML = '<span class="stkt-ic' + (m[1] === 'chevronsLeft' ? ' stkt-ic-s' : '') + '">' + svg(m[1]) + '</span>';
+    });
+    const mag = col.querySelector('.vela-dtb-cell:not(.stkt-cell) .vela-dtb-icon[aria-label^="Magnet"] .vela-dtb-hit');
+    if (mag && mag.dataset.stk !== 'magnet') { mag.dataset.stk = 'magnet'; mag.innerHTML = '<span class="stkt-ic">' + svg('magnet') + '</span>'; }
   }
   // Long press on a group button opens its flyout (TradingView's touch/mouse behaviour).
   let lpTimer = 0, lpFired = false, lpX = 0, lpY = 0;

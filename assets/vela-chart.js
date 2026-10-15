@@ -236,7 +236,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       Promise.resolve(null),
       Promise.resolve(null),
       Promise.resolve(null),
-      import('./chart-tool-icons.js?v=562'),
+      import('./chart-tool-icons.js?v=564'),
       import(VELA_BASE + 'chunk-IFJJPXSV.js')
     ]);
   } catch (err) {

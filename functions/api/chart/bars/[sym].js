@@ -29,6 +29,30 @@ function keyFor(request, sym, tf, page, kind) {
   return new Request(u.toString(), { method: 'GET' });
 }
 
+// Live tail: Yahoo's newest bar is ~10 min old, InsightSentry's is current but its series takes ~6 s
+// to arrive, so it is fetched in the background (waitUntil) into a short "tail" cache entry and laid
+// over the page on this and later requests (also on cache hits). Never blocks, never throws.
+async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
+  try {
+    if (!cache || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
+    const k = `${sym}:${tf}:${page}`, tailKey = keyFor(request, sym, tf, page, 'tail');
+    const hitT = await cache.match(tailKey);
+    let tail = null, tailAge = 1e9;
+    if (hitT) { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; }
+    if (tailAge > 12 && !inflight.has('tail:' + k)) {
+      const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
+        if (rows && rows.length) return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 120));
+      }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
+      inflight.set('tail:' + k, w);
+      if (ctx.waitUntil) ctx.waitUntil(w);
+    }
+    if (!tail || !tail.length) return res;
+    const body = await res.clone().json();
+    body.bars = mergeTail(body.bars || [], tail);
+    return reply(body, 200, Math.min(ttlFor(tf, page, now, sym), 15), res.headers.get('x-bars-cache') || 'MISS');
+  } catch (e) { return res; }
+}
+
 export async function onRequestGet(ctx) {
   const { request, params } = ctx;
   const sym = normSym(params.sym);
@@ -47,7 +71,7 @@ export async function onRequestGet(ctx) {
   try {
     if (cache) {
       const hit = await cache.match(freshKey);
-      if (hit) return hitOf(hit);
+      if (hit) return await withTail(hitOf(hit), ctx, request, cache, sym, tf, page, current, now);
     }
     const k = `${sym}:${tf}:${page}`;
     let p = inflight.get(k);
@@ -56,23 +80,6 @@ export async function onRequestGet(ctx) {
       inflight.set(k, p);
     }
     let bars = await p;
-    // Live tail: Yahoo's newest bar is ~10 min old, InsightSentry's is current but its series takes
-    // ~5 s to arrive, so it is fetched in the background (waitUntil) into a 2-min "tail" cache entry
-    // and laid over the page on this and the next requests (staleness <= ~ the page TTL + 20 s).
-    if (cache && page >= current - 1 && INSIGHTSENTRY_CODES[sym] && TIMEFRAMES[tf].page && ttlFor(tf, page, now, sym) <= 60) {
-      const tailKey = keyFor(request, sym, tf, page, 'tail');
-      const hitT = await cache.match(tailKey);
-      let tail = null, tailAge = 1e9;
-      if (hitT) { try { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; } catch (e) {} }
-      if (tailAge > 15 && !inflight.has('tail:' + k)) {
-        const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
-          if (rows && rows.length) return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 120));
-        }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
-        inflight.set('tail:' + k, w);
-        if (ctx.waitUntil) ctx.waitUntil(w);
-      }
-      if (tail && tail.length) bars = mergeTail(bars, tail);
-    }
     const ttl = ttlFor(tf, page, now, sym);
     const body = { s: sym, tf, page, bars };
     if (cache) {
@@ -81,7 +88,8 @@ export async function onRequestGet(ctx) {
       const w = Promise.all(writes).catch(() => {});
       if (ctx.waitUntil) ctx.waitUntil(w); else await w;
     }
-    return reply(body, 200, ttl, 'MISS');
+    const out = reply(body, 200, ttl, 'MISS');
+    return await withTail(out, ctx, request, cache, sym, tf, page, current, now);
   } catch (error) {
     if (error instanceof OutOfRange) {
       const body = { s: sym, tf, page, bars: [] };

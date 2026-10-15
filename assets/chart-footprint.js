@@ -124,7 +124,7 @@ function store(root) {
 async function fetchDay(s, day) {
   let e = s.days.get(day);
   const today = day === utcDay(Date.now());
-  if (e && (e.loading || (!today && e.bars) || (today && e.at && Date.now() - e.at < TODAY_REFRESH_MS - 1000))) return;
+  if (e && (e.loading || (!today && e.bars && !(e.err && Date.now() - e.at > 60000)) || (today && e.at && Date.now() - e.at < TODAY_REFRESH_MS - 1000))) return;
   if (!e) { e = { bars: null, at: 0, loading: false, err: '' }; s.days.set(day, e); }
   e.loading = true;
   try {
@@ -136,7 +136,7 @@ async function fetchDay(s, day) {
     e.bars = p.bars; e.err = '';
     if (p.header) { s.tick = p.header.tick || s.tick; if (p.header.thr) s.thr = p.header.thr; }
   } catch (x) {
-    e.err = 'Order-flow data could not load.';
+    e.err = 'Order-flow history is temporarily unavailable. It retries on its own.';
     if (!e.bars) e.bars = [];
   }
   e.at = Date.now(); e.loading = false; s.v++;

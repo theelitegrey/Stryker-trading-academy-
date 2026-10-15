@@ -284,12 +284,11 @@ function footprintLayer() {
       const cells = bw >= 6 && rowPx >= (compact ? 3.5 : 9);
       const statsH = cfg.stats && cells && !compact ? 30 : 0;
       const pill = (txt) => {
-        g.font = '11px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle';
-        const pw = g.measureText(txt).width + 18, py = top + 84;
-        g.fillStyle = day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.88)';
-        g.beginPath(); if (g.roundRect) g.roundRect(8, py, pw, 22, 11); else g.rect(8, py, pw, 22); g.fill();
-        g.strokeStyle = alpha(CYAN, 0.6); g.lineWidth = 1; g.stroke();
-        g.fillStyle = day ? '#0e7490' : CYAN; g.fillText(txt, 17, py + 11);
+        g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const pw = Math.round(g.measureText(txt).width + 20), px = Math.round((co.width - 56 - pw) / 2), py = Math.round(bot - 66);
+        g.fillStyle = day ? 'rgba(255,255,255,0.94)' : 'rgba(15,15,15,0.88)'; g.strokeStyle = alpha(CYAN, 0.6); g.lineWidth = 1;
+        g.beginPath(); if (g.roundRect) g.roundRect(px + .5, py + .5, pw, 22, 11); else g.rect(px + .5, py + .5, pw, 22); g.fill(); g.stroke();
+        g.fillStyle = day ? '#0e7490' : '#7fe3e8'; g.fillText(txt, px + pw / 2, py + 11.5);
       };
       if (!cells) {
         // zoomed out: candles coloured by the bar's delta (strength = |delta| / volume)

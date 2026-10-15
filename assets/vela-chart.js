@@ -310,7 +310,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   else {
     // The renderer builds its layer canvases once, at construction: a layer registered after the first
     // chart exists never mounts. Footprint is small, so it always registers before boot (rest stays lazy).
-    try { const FpM = await import('./chart-footprint.js?v=567'); FpM.installFootprint(Core, null); mods[21] = FpM; } catch (e) { console.warn('TradeZoro: footprint install', e); }
+    try { const FpM = await import('./chart-footprint.js?v=568'); FpM.installFootprint(Core, null); mods[21] = FpM; } catch (e) { console.warn('TradeZoro: footprint install', e); }
   }
   // News markers + Economic events natives (assets/chart-news-markers.js, Pro): registered before boot too.
   try { (await import('./chart-news-markers.js?v=568')).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }

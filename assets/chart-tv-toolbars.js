@@ -355,7 +355,8 @@ export function mountTvToolbars(ws, opts){
     });
     document.addEventListener('fullscreenchange', paintFs);
     const cog = document.getElementById('stkc-settings-btn');
-    barR.insertBefore(fsBtn, cog ? cog.nextSibling : null);
+    // on a phone the settings button can sit outside barR (in the more sheet): then append
+    barR.insertBefore(fsBtn, cog && cog.parentNode === barR ? cog.nextSibling : null);
   }
 
   // ------------------------------------------------------------------ right icon bar

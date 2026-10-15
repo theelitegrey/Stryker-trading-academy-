@@ -36,7 +36,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=556';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=557';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -196,7 +196,7 @@ export function mountIndicatorWindow(ws, opts){
     // COMMUNITY > Top and Trending with the script's own author, never as TradeZoro.
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
-      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? null : GROUP_STRYKER,
+      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? (b.group === 'flow' ? GROUP_FLOW : null) : GROUP_STRYKER,
         kind: 'example', builtinId: b.id, desc: b.desc, third, rightOffset: b.rightOffset });
     });
     return out;
@@ -435,7 +435,7 @@ export function mountIndicatorWindow(ws, opts){
         const sc = (x) => week(x.s.boostRing) + week(x.s.addRing);
         return { title: 'Trending', note: 'last 7 days', items: comm.filter((x) => sc(x) > 0).sort((a, b) => (sc(b) - sc(a)) || (b.boosts - a.boosts)).concat(thirdItems(all)), empty: 'Nothing trending this week.' };
       }
-      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third) };
+      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && (!x.third || x.cat)) };
     }
   }
 

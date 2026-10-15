@@ -9515,7 +9515,8 @@ button.appnav-dk.on{
   .stknw-h{ font-size:14px; }
   .stknw-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
 }
-/* ==============================================================   PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
+/* =====================================================================
+   PAPER TRADING · LEADERBOARD (assets/paper-leaderboard.js, 2026-10-14)
    Opt-in card inside Trade review + the /leaderboard page. Theme tokens only.
    ===================================================================== */
 .plb-card{ border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin:0 0 12px; background:var(--bg-2); }
@@ -9554,7 +9555,6 @@ button.appnav-dk.on{
   .plb-t td.plb-rk{ width:22px; }
   .plb-you{ margin-left:4px; }
 }
-=======
 
 /* ===== Economic calendar tabs (assets/econ-calendar.js, B1/B3, 2026-10-14) ===== */
 .ec-tabs{ display:flex; gap:6px; margin:0 0 14px; overflow-x:auto; }

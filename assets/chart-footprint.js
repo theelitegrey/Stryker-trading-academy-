@@ -278,10 +278,19 @@ function footprintLayer() {
       const i0 = Math.max(0, Math.floor(vr.from) - 1), i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to) + 1);
       const tickPx = Math.abs(co.priceToY(a.scale.min + tick, a.scale, a.bounds) - co.priceToY(a.scale.min, a.scale, a.bounds));
       let m = cfg.rows || 1;
-      if (!cfg.rows) for (const s of ROW_STEPS) { m = s; if (tickPx * s >= 13) break; }
+      const compact = bw < 30;   // phone zoom: coloured cells per price level, no numbers
+      if (!cfg.rows) for (const s of ROW_STEPS) { m = s; if (tickPx * s >= (compact ? 7 : 13)) break; }
       const rowPx = tickPx * m;
-      const cells = bw >= 30 && rowPx >= 9;
-      const statsH = cfg.stats && cells ? 30 : 0;
+      const cells = bw >= 6 && rowPx >= (compact ? 3.5 : 9);
+      const statsH = cfg.stats && cells && !compact ? 30 : 0;
+      const pill = (txt) => {
+        g.font = '11px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle';
+        const pw = g.measureText(txt).width + 18, py = top + 84;
+        g.fillStyle = day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.88)';
+        g.beginPath(); if (g.roundRect) g.roundRect(8, py, pw, 22, 11); else g.rect(8, py, pw, 22); g.fill();
+        g.strokeStyle = alpha(CYAN, 0.6); g.lineWidth = 1; g.stroke();
+        g.fillStyle = day ? '#0e7490' : CYAN; g.fillText(txt, 17, py + 11);
+      };
       if (!cells) {
         // zoomed out: candles coloured by the bar's delta (strength = |delta| / volume)
         for (let i = i0; i <= i1; i++) {
@@ -293,9 +302,11 @@ function footprintLayer() {
           g.fillStyle = alpha(fb.delta >= 0 ? UP : DN, 0.35 + 0.65 * Math.min(1, Math.abs(r) * 2.5));
           g.fillRect(Math.round(x - w / 2), Math.min(yO, yC), w, Math.max(1, Math.abs(yC - yO)));
         }
+        pill('Zoom in to see footprint');
         g.restore(); lastMs = performance.now() - t0; return;
       }
       on = true;
+      if (compact) pill('Zoom in for numbers');
       const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';
@@ -304,7 +315,7 @@ function footprintLayer() {
         if (!fb) continue;
         const { rs, poc: pk } = rowsOf(fb, m);
         if (!rs.length) continue;
-        const x = co.logicalToX(i), w = Math.max(10, bw * 0.92), xl = x - w / 2;
+        const x = co.logicalToX(i), w = Math.max(5, bw * (compact ? 0.88 : 0.92)), xl = x - w / 2;
         let max = 1;
         for (const r of rs) { const v = r.buy + r.sell; if (v > max) max = v; }
         const imb = imbalances(rs, cfg.imb);
@@ -581,7 +592,7 @@ function vpLayer() {
 // ---------------------------------------------------------------- install
 let installed = false;
 export function installFootprint(Core, flowMod) {
-  if (installed) return;
+  if (installed) { linkFlow(flowMod); return; }
   installed = true;
   Core.registerRendererLayer({ id: FP_TYPE, placement: 'above-data', create: footprintLayer });
   Core.registerChartType({
@@ -606,9 +617,14 @@ export function installFootprint(Core, flowMod) {
     const d = IND[type];
     Core.registerNativeIndicator({ type, title: d.title, shortTitle: d.short, paneHint: d.pane, overlay: d.overlay,
       reactsToViewport: type === 'stk_of_vp', inputsSchema: () => d.schema, defaultInputs: () => defaults(d.schema), create: () => new OfNative(type) });
-    // the picker group + the "stryker" badge + settings persistence (assets/chart-orderflow.js)
-    if (flowMod && Array.isArray(flowMod.OUR_TYPES) && !flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
   }
+  linkFlow(flowMod);
+}
+// the picker group + the "stryker" badge + settings persistence (assets/chart-orderflow.js); that module
+// loads lazily, so this is called again once it is here.
+function linkFlow(flowMod) {
+  if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
+  for (const type of OF_TYPES) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

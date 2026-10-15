@@ -235,7 +235,7 @@ function insightConnect(url) {
   throw new Error('WebSocket unavailable');
 }
 
-async function fetchInsightPage(sym, tf, page, now, env, signal) {
+export async function fetchInsightPage(sym, tf, page, now, env, signal) {
   const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
   const code = INSIGHTSENTRY_CODES[sym];
   const spec = insightSpec(tf);
@@ -353,4 +353,14 @@ export function ttlFor(tf, page, now, sym) {
   if (!(sym && isForex(sym) ? fxOpen(now) : globexOpen(now))) return 300;
   if (cfg.step && cfg.step <= 900) return 15;
   return cfg.page ? 30 : 60;
+}
+
+// Newest rows of a page from InsightSentry laid over the Yahoo rows (2026-10-15: the history ran
+// ~10 min behind the live stream and the dot said "Delayed 10m"). From the first InsightSentry row
+// on, its rows replace Yahoo's, so the seam is one step and the page has no gap to "now".
+export function mergeTail(yahooRows, tailRows) {
+  if (!tailRows || !tailRows.length) return yahooRows;
+  const t0 = tailRows[0][0];
+  const head = yahooRows.filter((r) => r[0] < t0);
+  return head.concat(tailRows);
 }

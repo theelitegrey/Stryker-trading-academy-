@@ -4,7 +4,7 @@
 // `page` is an epoch-aligned window index (see _bars.js); omitted = the page holding now.
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
-import { TIMEFRAMES, normSym, normTf, pageOf, fetchPage, ttlFor, OutOfRange } from '../_bars.js';
+import { TIMEFRAMES, INSIGHTSENTRY_CODES, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -55,7 +55,24 @@ export async function onRequestGet(ctx) {
       p = fetchPage(sym, tf, page, now, fetch, ctx.env || {}).finally(() => inflight.delete(k));
       inflight.set(k, p);
     }
-    const bars = await p;
+    let bars = await p;
+    // Live tail: Yahoo's newest bar is ~10 min old, InsightSentry's is current but its series takes
+    // ~5 s to arrive, so it is fetched in the background (waitUntil) into a 2-min "tail" cache entry
+    // and laid over the page on this and the next requests (staleness <= ~ the page TTL + 20 s).
+    if (cache && page >= current - 1 && INSIGHTSENTRY_CODES[sym] && TIMEFRAMES[tf].page && ttlFor(tf, page, now, sym) <= 60) {
+      const tailKey = keyFor(request, sym, tf, page, 'tail');
+      const hitT = await cache.match(tailKey);
+      let tail = null, tailAge = 1e9;
+      if (hitT) { try { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; } catch (e) {} }
+      if (tailAge > 15 && !inflight.has('tail:' + k)) {
+        const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}).then((rows) => {
+          if (rows && rows.length) return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 120));
+        }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
+        inflight.set('tail:' + k, w);
+        if (ctx.waitUntil) ctx.waitUntil(w);
+      }
+      if (tail && tail.length) bars = mergeTail(bars, tail);
+    }
     const ttl = ttlFor(tf, page, now, sym);
     const body = { s: sym, tf, page, bars };
     if (cache) {

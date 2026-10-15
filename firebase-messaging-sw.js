@@ -34,8 +34,8 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=563',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=563',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=564',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=564',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
     tag: data.type || 'stryker',

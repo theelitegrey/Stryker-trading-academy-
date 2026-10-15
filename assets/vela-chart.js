@@ -466,6 +466,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     .catch((e) => console.warn('TradeZoro: watchlist', e));
   // News panel (right icon bar, phones: a sheet): headlines for the chart's market, replay-safe (assets/chart-news.js).
   import('./chart-news.js?v=557').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
+  // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
+  import('./chart-symbol-info.js?v=557').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).
   Promise.all([import('./chart-symbol-input.js?v=557'), import(VELA_BASE + 'widget.js')])

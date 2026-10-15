@@ -9570,3 +9570,39 @@ button.appnav-dk.on{
 .ec-corp thead th.ec-num, .ec-corp td.ec-num{ text-align:right; }
 .ec-corp .ec-name-v{ white-space:normal; overflow-wrap:anywhere; }
 @media (max-width:700px){ .ec-corp th:nth-child(2), .ec-corp td:nth-child(2){ width:34%; } .ec-corp{ font-size:12px; } }
+/* ===== Charts Symbol info panel (assets/chart-symbol-info.js, IS extras 2026-10-14) =====
+   Same slot as Watchlist / News (right column next to the icon rail); phones: a full-screen sheet.
+   The body scrolls with the shared thin scrollbar (global block above); no per-rule scrollbar styling. */
+.stkchart-panel.stkw-host.stkin-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkw-w)); }
+.stkin{
+  position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkw-w, 340px); z-index:29;
+  display:flex; flex-direction:column; min-width:0;
+  background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); font-size:13px;
+}
+.stkin[hidden]{ display:none; }
+.stkin-hd{ flex:none; display:flex; align-items:center; gap:6px; padding:8px 8px 8px 12px; border-bottom:1px solid var(--line-soft); }
+.stkin-title{ font-weight:700; font-size:13.5px; color:var(--ink-0); }
+.stkin-sp{ flex:1; }
+.stkin-body{ flex:1; min-height:0; overflow:auto; padding:6px 12px 12px; }
+section.stkin-sec{ margin:10px 0 4px; padding:0; }
+.stkin-h{ margin:0 0 6px; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); font-weight:700; }
+.stkin-dl{ margin:0; }
+.stkin-r{ display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--line-soft); }
+.stkin-r dt{ color:var(--ink-3); flex:none; }
+.stkin-r dd{ margin:0; text-align:right; color:var(--ink-0); font-variant-numeric:tabular-nums; overflow-wrap:anywhere; min-width:0; }
+.stkin-cl{ list-style:none; margin:6px 0 0; padding:0; display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.stkin-cl li{ display:flex; flex-direction:column; gap:2px; padding:6px 8px; border-radius:6px; background:var(--bg-2); font-size:12px; }
+.stkin-cl b{ color:var(--ink-0); }
+.stkin-cl span{ color:var(--ink-3); }
+.stkin-note{ padding:18px 4px; color:var(--ink-3); font-size:12.5px; line-height:1.5; }
+.stkin-upd{ margin:12px 0 0; font-size:11.5px; color:var(--ink-3); }
+.stkin-foot{ flex:none; margin:0; padding:6px 10px; border-top:1px solid var(--line-soft); font-size:11px; color:var(--ink-3); }
+.stkin-phonebtn{ display:none; }
+.stkin-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
+@media (max-width:700px){
+  .stkchart-panel.stkw-host.stkin-open #vela-chart{ right:0; }
+  .stkin-phonebtn{ display:inline-flex; padding:0 8px; flex:none; }
+  .stkin{ position:fixed; inset:0; top:var(--stkc-top, 0px); bottom:var(--stkc-dock, 0px); width:auto; right:0; z-index:8000; border-left:0; font-size:14px; }
+  .stkin-close{ width:40px; height:40px; }
+  .stkin-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+}

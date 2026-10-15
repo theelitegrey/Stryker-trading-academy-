@@ -19,7 +19,7 @@ async function open(b, { w, h, mobile }) {
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkCountdown, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkCountdown, null, { timeout: 45000 });
   await p.waitForTimeout(2500);
   return { ctx, p, errors };
 }

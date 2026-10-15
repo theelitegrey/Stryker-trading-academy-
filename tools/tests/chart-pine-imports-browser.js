@@ -47,7 +47,7 @@ async function page(b, w, h, extra){
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await ctx.addInitScript(() => { window.__lt = []; try { new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__lt.push(Math.round(e.duration)))).observe({ type: 'longtask', buffered: true }); } catch (e) {} });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 60000 });
   return { ctx, p, errs };
 }
 async function setMarket(p, sym, tf, deep){
@@ -165,7 +165,7 @@ async function counts(p){
       await p.evaluate(() => window.STRYKER_VELA.context().stateChanged && window.STRYKER_VELA.context().stateChanged());
       await p.waitForTimeout(1500);
       await p.reload({ waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 60000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 60000 });
       const back = await p.waitForFunction(() => window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.context().cells[0].chart).some((h) => /Stoic/.test(window.STRYKER_PINE.titleOf ? window.STRYKER_PINE.titleOf(h) : h.title || '')), null, { timeout: 45000 }).then(() => true).catch(() => false);
       check(back, 'saved layout with Stoic Edge Compass restores after reload');
       if (process.env.SECTIONS_ONLY) { check(errs.length === 0, 'console errors: ' + (errs.slice(0, 4).join(' | ') || 'none')); await ctx.close(); await b.close(); console.log(fails ? `${fails} FAILED` : 'ALL PASSED'); process.exit(fails ? 1 : 0); }

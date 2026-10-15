@@ -60,7 +60,7 @@ function initScript(){
 
 async function boot(p){
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE && window.STRYKER_VELA.context().cells.length, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE && window.STRYKER_VELA.context().cells.length, null, { timeout: 60000 });
 }
 async function newPage(b, vp, errors, tag){
   const ctx = await b.newContext(vp);

@@ -87,7 +87,7 @@ async function open(b) {
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, errors };
 }

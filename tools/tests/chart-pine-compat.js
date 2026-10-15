@@ -19,7 +19,7 @@ const DIR = path.join(__dirname, 'fixtures', 'pine', 'compat');
     await ctx.route(/^https?:\/\/(?!localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
     const p = await ctx.newPage();
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
     await p.evaluate(() => { const c = window.STRYKER_VELA.cell(window.STRYKER_VELA.context().cells[0].id); c.setSymbol('futures:NQ1!'); c.setTimeframe('5'); });
     await p.evaluate(async () => { for (let i = 0; i < 40; i++) { await new Promise((r) => setTimeout(r, 400)); try { if (window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars.length > 50) return; } catch (e) {} } });
     for (const f of files) {

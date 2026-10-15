@@ -22,7 +22,7 @@ async function open(b, { w, h, mobile, tablet }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 502/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI && window.STRYKER_CHART_UI.grid, null, { timeout: 40000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI && window.STRYKER_CHART_UI.grid, null, { timeout: 40000 });
   await p.waitForTimeout(2500);
   return { ctx, p, errors };
 }

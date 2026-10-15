@@ -20,7 +20,7 @@ async function open(b, { w, h, mobile, theme }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
   await p.waitForTimeout(4000);
   return { ctx, p, errors };
 }
@@ -145,7 +145,7 @@ async function desktop(b, w, h, theme, tag) {
   // default applies on a fresh load with no session
   await p.evaluate(() => localStorage.removeItem('vela-workspace'));
   await p.reload({ waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
   await p.waitForTimeout(5000);
   const afterDef = await cells(p);
   check(afterDef.length === 2, `${tag}: default template opens when no session (${afterDef.join(' | ')})`);
@@ -153,7 +153,7 @@ async function desktop(b, w, h, theme, tag) {
   await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('1'));
   await p.waitForTimeout(1500);
   await p.reload({ waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
   await p.waitForTimeout(5000);
   const afterSess = await cells(p);
   check(afterSess.length === 1, `${tag}: saved session wins over default (${afterSess.join(' | ')})`);

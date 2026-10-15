@@ -280,7 +280,7 @@ async function scenario(p, cdp, ctx, kind, { name, hideMs, mode, offline }) {
       const cdp = await ctx.newCDPSession(p);
       await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true });
       await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
       await sleep(3000);
       await setMarket(p, sym, '1');
       offset = (await p.evaluate(() => Date.now())) - Date.now(); // re-sync the mocks with the page clock
@@ -311,7 +311,7 @@ async function scenario(p, cdp, ctx, kind, { name, hideMs, mode, offline }) {
       const errors = [];
       p.on('pageerror', (e) => errors.push(String(e)));
       await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart, null, { timeout: 60000 });
       await sleep(3000);
       await setMarket(p, 'futures:NQ1!', '1');
       offset = (await p.evaluate(() => Date.now())) - Date.now();

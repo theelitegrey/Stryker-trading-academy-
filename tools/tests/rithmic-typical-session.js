@@ -60,7 +60,7 @@ const log = (m) => console.log(new Date().toISOString().slice(11, 19) + ' ' + m)
     });
 
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_RITHMIC, null, { timeout: 60000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_RITHMIC, null, { timeout: 60000 });
     const cell = () => p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0]; return { symbol: c.symbol, tf: c.timeframe, n: c.chart.orchestrator.rawBars.length }; });
     const setMarket = (m) => p.evaluate((m) => window.STRYKER_VELA.context().cells[0].chart.setMarket(m), m);
     await setMarket({ symbol: 'futures:NQ1!', timeframe: '1' });

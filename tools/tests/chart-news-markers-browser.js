@@ -43,7 +43,7 @@ async function open(b, { w, h, mobile, free }) {
   p.on('pageerror', (e) => errors.push(String(e)));
   p.on('crash', () => console.log('PAGE CRASHED (renderer died: memory?)'));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkNewsMarkers && window.STRYKER_VELA.context().cells[0].chart.bars && window.STRYKER_VELA.context().cells[0].chart.bars().length > 50, null, { timeout: 60000 }).catch(() => {});
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkNewsMarkers && window.STRYKER_VELA.context().cells[0].chart.bars && window.STRYKER_VELA.context().cells[0].chart.bars().length > 50, null, { timeout: 60000 }).catch(() => {});
   await p.waitForTimeout(2500);
   anchorMs = await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; let bs = []; try { bs = c.bars(); } catch (e) {} return bs.length ? bs[bs.length - 1].time : Date.now(); });
   return { ctx, p, errors };

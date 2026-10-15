@@ -62,7 +62,7 @@ async function open(b, { w, h, mobile, recorder }) {
   p.on('console', (m) => { if (m.type() === 'error' && !IGNORE.some((re) => re.test(m.text()))) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkFlow, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkFlow, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, errors };
 }
@@ -379,7 +379,7 @@ async function recorderPhase(b) {
     check(seeded, 'stale + fresh IndexedDB chunks written for binance|ZZTESTUSDT');
     const before = await m.p.evaluate(async () => { await window.__stkFlow.domFlush(); const st = window.__stkFlow.domDebug(); return { from: st.recordedFrom, n: window.__stkFlow.domDebugBytes().samples }; });
     await m.p.reload({ waitUntil: 'domcontentloaded' });
-    await m.p.waitForFunction(() => window.STRYKER_VELA && window.__stkFlow, null, { timeout: 45000 });
+    await m.p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkFlow, null, { timeout: 45000 });
     await waitBars(m.p);
     const symNow = await m.p.evaluate(() => window.STRYKER_VELA.context().cells[0].symbol);
     if (!/BTCUSDT/i.test(symNow)) { await setSym(m.p, SYM, '1'); await sleep(3000); await waitBars(m.p); }

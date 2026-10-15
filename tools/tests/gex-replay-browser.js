@@ -92,7 +92,7 @@ async function shot(p, name) { await sleep(500); await p.screenshot({ path: OUT 
 
     // ================= (2) Charts bar replay sync =================
     const { ctx, p, errors, hits } = await open(b, { w: 1440, h: 900, page: 'charts.html' });
-    await p.waitForFunction(() => window.STRYKER_VELA && window.__stkBarReplay, null, { timeout: 45000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkBarReplay, null, { timeout: 45000 });
     await sleep(3000);
     for (const [sym, api, fut] of [['futures:NQ1!', 'QQQ', 'NQ'], ['futures:ES1!', 'SPX', 'ES']]) {
       await p.evaluate((s) => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); c.setSymbol(s); c.setTimeframe('5'); }, sym);

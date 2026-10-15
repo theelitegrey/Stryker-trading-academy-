@@ -35,7 +35,7 @@ async function page(b, w, h){
   p.on('console', (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE && window.StrykerIndicatorWindow && window.StrykerCommunityDisclaimer && window.STRYKER_PINE.__stkcdWrapped, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE && window.StrykerIndicatorWindow && window.StrykerCommunityDisclaimer && window.STRYKER_PINE.__stkcdWrapped, null, { timeout: 60000 });
   return { ctx, p, errs };
 }
 async function setMarket(p, sym, tf, deep){

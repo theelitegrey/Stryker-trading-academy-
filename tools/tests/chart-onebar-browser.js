@@ -29,7 +29,7 @@ async function open(b, base, { w, h, mobile, theme }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(base + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 30000 });
   await p.waitForFunction(() => !!document.getElementById('stkl-btn') && !!document.getElementById('stkc-paper-btn'), null, { timeout: 20000 }).catch(() => {});
   await p.waitForTimeout(3500);
   return { ctx, p, errors };

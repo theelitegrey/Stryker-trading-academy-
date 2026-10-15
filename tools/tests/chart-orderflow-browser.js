@@ -34,7 +34,7 @@ async function open(b, { w, h, mobile, theme, dev, allowBinance, seed }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, errors, reqs };
 }
@@ -103,7 +103,7 @@ async function openPicker(p) {
       const st = await p.evaluate(() => JSON.stringify(window.STRYKER_VELA.getState()));
       check(/stryker\.volume/.test(st) && /"valueAreaPct":68/.test(st), 'workspace state carries the volume tools settings (ext stryker.volume)');
       await p.reload({ waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
       await waitBars(p); await sleep(2500);
       n = await natives(p);
       const svp = n.find((x) => x.type === 'stk_svp');

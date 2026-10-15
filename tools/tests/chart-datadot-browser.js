@@ -20,7 +20,7 @@ async function open(b, { w, h, mobile, theme, fixedTime }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|^WebSocket connection to/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_DATA_DOT, null, { timeout: 40000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_DATA_DOT, null, { timeout: 40000 });
   await p.waitForTimeout(3000);
   return { ctx, p, errors };
 }

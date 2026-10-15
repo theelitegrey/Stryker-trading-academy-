@@ -21,7 +21,7 @@ async function run(b, { w, h, mobile, theme, tag, full }) {
   const api = [];
   p.on('response', (r) => { if (r.url().includes('/api/chart/bars/')) api.push(r.status()); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 30000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 30000 });
   await p.waitForTimeout(6000);
   const state = () => p.evaluate(() => {
     const ws = window.STRYKER_VELA;

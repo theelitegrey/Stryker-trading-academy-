@@ -14,7 +14,7 @@ const PHONE = process.argv.includes('--phone');
   const t0 = Date.now();
   await p.goto(BASE + (BASE.includes('localhost') ? '/charts.html' : '/charts'), { waitUntil: 'domcontentloaded' });
   const dcl = Date.now() - t0;
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
   const chart = Date.now() - t0;
   await p.waitForTimeout(5000);
   const cov = await p.coverage.stopJSCoverage();

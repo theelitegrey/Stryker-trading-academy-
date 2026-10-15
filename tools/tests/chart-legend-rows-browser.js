@@ -31,7 +31,7 @@ async function open(b, ctx0, { w, h, mobile }) {
   p.on('pageerror', (e) => errors.push(String(e)));
   p.on('crash', () => console.log('PAGE CRASHED (renderer)'));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, errors };
 }
@@ -106,7 +106,7 @@ async function shot(p, name, clip) { await sleep(400); await p.screenshot({ path
     await sleep(2500);
     const e1 = errors.slice();
     await p.reload({ waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
     await waitBars(p);
     await sleep(5000);
     r = await rows(p);
@@ -122,7 +122,7 @@ async function shot(p, name, clip) { await sleep(400); await p.screenshot({ path
     // Pine built-ins get rows. Add from the picker and assert the legend handle appears;
     // do not wait for the heavy scripts to finish drawing, because this suite is about legend rows.
     const pp = await ctx.newPage(); pp.on('crash', () => console.log('CRASH Pine page renderer'));
-    await pp.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await pp.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 45000 }); await waitBars(pp);
+    await pp.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' }); await pp.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 45000 }); await waitBars(pp);
     const pine = await pp.evaluate(async () => {
       window.STRYKER_VELA.indicatorPicker.open();
       await new Promise((r) => setTimeout(r, 500));

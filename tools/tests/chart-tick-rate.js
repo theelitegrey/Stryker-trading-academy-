@@ -40,7 +40,7 @@ const CASES = (process.env.CASES || 'futures:NQ1!@1,futures:NQ1!@5,futures:NQ1!@
   });
   const p = await ctx.newPage();
   await p.goto(BASE + (BASE.includes('localhost') ? '/charts.html' : '/charts'), { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
   // count bars handed to the chart: wrap subscribe on every provider the workspace built
   await p.evaluate(() => {
     const S = window.__tk;

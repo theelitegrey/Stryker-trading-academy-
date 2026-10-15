@@ -85,7 +85,7 @@ async function ctxFor(b, w, h, mobile) {
     const ctx = await ctxFor(b, 1280, 800, false);
     const p = await ctx.newPage();
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
     await sleep(4000);
     await p.evaluate(() => { const ws = window.STRYKER_VELA; ws.cell(ws.context().cells[0].id).setSymbol('futures:ES1!'); ws.context().cells[0].chart.addNativeIndicator('stk_gex', { inputs: { dte: '0' } }); });
     for (const [sym, api, fut] of [['futures:ES1!', spx, 'ES'], ['futures:NQ1!', qqq, 'NQ']]) {

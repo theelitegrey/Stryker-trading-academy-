@@ -24,7 +24,7 @@ async function open(b, { w, h, mobile, keepStorage, ctx: reuse }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|\[vela\] indicator "ind-\d+" failed/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
   await p.evaluate(async () => {
     for (let i = 0; i < 40; i++) {
       await new Promise((r) => setTimeout(r, 400));

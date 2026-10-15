@@ -13,7 +13,7 @@ const SECS = Number(process.argv.filter((a) => /^\d+$/.test(a))[0] || 8);
   await ctx.addInitScript(() => { window.__lt = []; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push([e.startTime, e.duration]); }).observe({ type: 'longtask', buffered: true }); } catch (e) {} });
   const p = await ctx.newPage();
   await p.goto(BASE + '/charts', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0, null, { timeout: 60000 });
   await p.waitForTimeout(5000);
   const cdp = await ctx.newCDPSession(p);
   await cdp.send('Profiler.enable');

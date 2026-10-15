@@ -26,7 +26,7 @@ async function shot(p, name) { await sleep(500); await p.screenshot({ path: OUT 
       p.on('pageerror', (e) => errors.push(String(e)));
       p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5/.test(m.text())) errors.push(m.text()); });
       await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.__stkIntervals, null, { timeout: 45000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkIntervals, null, { timeout: 45000 });
       await bars(p);
       if (theme === 'day') {
         await p.evaluate(() => window.__stkIntervals.openCustom()); await sleep(300);

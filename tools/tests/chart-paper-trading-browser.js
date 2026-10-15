@@ -263,7 +263,7 @@ async function newPage(b, BASE, opts, reqs) {
 }
 async function boot(p, BASE) {
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkPaper, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkPaper, null, { timeout: 60000 });
   await p.waitForFunction(() => window.__stkPaper.account, null, { timeout: 15000 });
   offset = (await p.evaluate(() => Date.now())) - Date.now();
   await sleep(1500);

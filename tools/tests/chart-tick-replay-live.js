@@ -26,7 +26,7 @@ const RT = Number(process.env.RT || 30), SECS = Number(process.env.SECS || 10), 
   let tickReq = 0, tickBytes = 0;
   p.on('response', async (r) => { if (r.url().includes('/ticks1s')) { tickReq++; try { tickBytes += Number(r.headers()['content-length'] || 0); } catch (e) {} } });
   await p.goto(BASE + (BASE.includes('localhost') ? '/charts.html' : '/charts'), { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0 && window.__stkBarReplay, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.STRYKER_VELA.chart.orchestrator.rawBars.length > 0 && window.__stkBarReplay, null, { timeout: 60000 });
   await p.evaluate(() => { const w = window.STRYKER_VELA; w.active.setSymbol('futures:NQ1!'); w.active.setTimeframe('5'); });
   await p.waitForFunction(() => { const c = window.STRYKER_VELA.chart; return c.market.symbol === 'futures:NQ1!' && c.market.timeframe === '5' && c.orchestrator.rawBars.length > 100; }, null, { timeout: 60000 });
   // a past moment inside a trading hour: HOURS back, on the hour + 7 min (Sat/Sun skipped back to Friday)

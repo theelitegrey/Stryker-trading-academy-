@@ -29,7 +29,7 @@ async function page(browser, w, h){
   p.on('console', m => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', e => errs.push('pageerror: ' + e.message));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE && window.STRYKER_SYMBOL_INPUT, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE && window.STRYKER_SYMBOL_INPUT, null, { timeout: 60000 });
   await p.evaluate(() => { const c = window.STRYKER_VELA.cell(window.STRYKER_VELA.context().cells[0].id); c.setSymbol('futures:NQ1!'); c.setTimeframe('5'); });
   await p.evaluate(async () => {
     const chart = window.STRYKER_VELA.context().cells[0].chart;

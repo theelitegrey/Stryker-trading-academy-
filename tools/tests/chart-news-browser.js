@@ -45,7 +45,7 @@ async function open(b, { w, h, mobile }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkNews, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkNews, null, { timeout: 45000 });
   await p.waitForTimeout(3500);
   return { ctx, p, errors };
 }

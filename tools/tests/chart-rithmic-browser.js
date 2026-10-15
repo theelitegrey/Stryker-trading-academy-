@@ -51,7 +51,7 @@ async function open(b, { w, h, mobile, dev }) {
   const frames = [];
   p.on('websocket', (ws) => { ws.on('framesent', (f) => frames.push({ url: ws.url(), payload: f.payload })); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, reqs, errors, frames };
 }

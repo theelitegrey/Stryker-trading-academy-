@@ -14,12 +14,12 @@ async function runCase(browser, tag, viewport, mobile) {
   p.on('pageerror', (e) => { errs.push(e.message); console.log('pageerror', e.message.slice(0, 200)); });
   p.on('dialog', (d) => d.accept());
   await p.goto(BASE + '/charts.html', { waitUntil: 'load' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_CHART_UI && window.__stkPaper && window.__stkPaper.account, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI && window.__stkPaper && window.__stkPaper.account, null, { timeout: 45000 });
   await p.evaluate(() => {
     const doc = { version: 1, layout: '1', charts: [{ id: 'gary-a', symbol: 'CME_MINI:NQ1!', timeframe: '1' }] };
     window.STRYKER_CHART_UI.applySaved({ state: doc });
   });
-  await p.waitForFunction(() => window.STRYKER_VELA.active && window.STRYKER_VELA.active.symbol === 'CME_MINI:NQ1!', null, { timeout: 15000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA.active && window.STRYKER_VELA.active.symbol === 'CME_MINI:NQ1!', null, { timeout: 15000 });
   // paper trading is OFF by default (Chart settings → Paper trading, 2026-10-14): this suite trades
   await p.evaluate(() => window.__stkPaper.setEnabled(true));
   await p.evaluate(() => window.__stkPaper.account.setLast('CME_MINI:NQ1!', 21000));

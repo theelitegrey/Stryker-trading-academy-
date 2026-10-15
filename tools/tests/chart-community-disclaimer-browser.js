@@ -25,7 +25,7 @@ async function run(b, w, h){
   p.on('console', (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE && window.StrykerCommunityDisclaimer && window.STRYKER_PINE.__stkcdWrapped && window.StrykerIndicatorWindow, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE && window.StrykerCommunityDisclaimer && window.STRYKER_PINE.__stkcdWrapped && window.StrykerIndicatorWindow, null, { timeout: 60000 });
   const tag = w + 'px';
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open());
   await p.waitForSelector('.stkiw-tab[data-k="top"]', { timeout: 20000 });

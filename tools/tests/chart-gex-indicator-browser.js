@@ -39,7 +39,7 @@ async function open(b, { w, h, mobile, free }) {
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
   await waitBars(p);
   return { ctx, p, errors, gexHits };
 }
@@ -156,7 +156,7 @@ async function addFromWindow(p) {
     const st = await p.evaluate(() => JSON.stringify(window.STRYKER_VELA.getState()));
     check(/stryker\.gex/.test(st) && /"callColor":"#ff00aa"/.test(st), 'workspace state carries GEX settings (ext stryker.gex)');
     await p.reload({ waitUntil: 'domcontentloaded' });
-    await p.waitForFunction(() => window.STRYKER_VELA, null, { timeout: 45000 });
+    await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA, null, { timeout: 45000 });
     await waitBars(p); await sleep(3000);
     const n = (await natives(p)).find((x) => x.type === 'stk_gex');
     check(n && n.inputs.showEm === true && n.inputs.callColor === '#ff00aa' && n.inputs.lineStyle === 'dashed' && n.inputs.showPoc === false && n.inputs.vahColor === '#00ffaa' && n.inputs.showRth === true, 'reload: GEX Levels back with its settings (incl. market-level toggles/colours)');

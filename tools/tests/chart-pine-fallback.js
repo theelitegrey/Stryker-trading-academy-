@@ -16,7 +16,7 @@ const SRC = '//@version=5\nindicator("Scale right test", overlay=true, scale=sca
       const errs = [];
       p.on('pageerror', (e) => errs.push(String(e)));
       await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout: 40000 });
       await p.waitForTimeout(6000);
       return { p, errs };
     };

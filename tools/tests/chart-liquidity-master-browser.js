@@ -26,7 +26,7 @@ async function page(browser, w, h){
   p.on('console', m => { if (/pine|liquidity|worker/i.test(m.text())) console.log('CONSOLE', m.type(), m.text().slice(0, 240)); if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', e => errs.push('pageerror: ' + e.message));
   await p.goto(BASE + '/charts.html', { waitUntil:'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout:60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_PINE, null, { timeout:60000 });
   return { ctx, p, errs };
 }
 async function setMarket(p, sym, tf, deep){

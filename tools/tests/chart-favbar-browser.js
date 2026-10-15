@@ -16,7 +16,7 @@ async function open(b, ctx) {
   p.on('pageerror', (e) => p.errors.push(String(e)));
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|WebSocket|Failed to load resource/.test(m.text())) p.errors.push(m.text()); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_FAVBAR && document.querySelector('.vela-dtb'), null, { timeout: 40000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_FAVBAR && document.querySelector('.vela-dtb'), null, { timeout: 40000 });
   await p.waitForTimeout(2500);
   return p;
 }
@@ -148,7 +148,7 @@ const shot = async (p, n) => { await p.screenshot({ path: OUT + '/' + n + '.png'
       // Reload -> same tools, order, position
       const before = await barInfo(p);
       await p.reload({ waitUntil: 'domcontentloaded' });
-      await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_FAVBAR, null, { timeout: 40000 });
+      await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_FAVBAR, null, { timeout: 40000 });
       await p.waitForTimeout(2500);
       const after = await barInfo(p);
       check(after.types.join() === before.types.join() && Math.abs(after.r.l - before.r.l) <= 1 && Math.abs(after.r.t - before.r.t) <= 1, theme + ': reload keeps tools, order and position', { before: [before.types, before.r], after: [after.types, after.r] });

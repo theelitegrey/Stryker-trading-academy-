@@ -26,7 +26,7 @@ async function open(b, w, h, mobile) {
   p.__soundReqs = [];
   p.on('request', (r) => { if (/\/assets\/sounds\//.test(r.url())) p.__soundReqs.push(r.url()); });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkAlerts && window.StrykerChartSounds, null, { timeout: 45000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkAlerts && window.StrykerChartSounds, null, { timeout: 45000 });
   await p.waitForTimeout(1200);
   return { ctx, p, errors };
 }

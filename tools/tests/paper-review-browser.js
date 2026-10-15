@@ -258,7 +258,7 @@ async function chartsTab(b, BASE, vp, tag) {
   const phone = vp.width < 500;
   const { ctx, p, errors } = await newPage(b, BASE, phone ? { viewport: vp, deviceScaleFactor: 2, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1' } : { viewport: vp });
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.__stkPaper && window.__stkPaper.account && window.__stkPaper.enabled, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkPaper && window.__stkPaper.account && window.__stkPaper.enabled, null, { timeout: 60000 });
   await sleep(1500);
   await p.evaluate(() => window.__stkPaper.openPanel('review'));
   await p.waitForSelector('#stkpt .pr-compact .pr-kpis', { timeout: 10000 });

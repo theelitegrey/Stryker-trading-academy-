@@ -26,7 +26,7 @@ async function run(b, w, h){
   p.on('console', (m) => { if (m.type() === 'error' && !IGNORE.test(m.text())) errs.push(m.text().slice(0, 300)); });
   p.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
   await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
-  await p.waitForFunction(() => window.STRYKER_VELA && window.StrykerIndicatorWindow && window.StrykerCommunityDisclaimer, null, { timeout: 60000 });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.StrykerIndicatorWindow && window.StrykerCommunityDisclaimer, null, { timeout: 60000 });
   const tag = w + 'px';
   const data = await p.evaluate(async () => {
     const m = await import('/assets/chart-pine-builtins.js?v=' + document.querySelector('meta[name=stryker-build]').content);

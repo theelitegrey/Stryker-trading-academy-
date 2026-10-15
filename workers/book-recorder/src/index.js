@@ -32,7 +32,7 @@ const ALIGN_MS = 15 * 60000;     // 'from' rounded down to 15 min, as the client
 const STATUS_MEMO_MS = 30000;    // /status is computed at most once per 30 s in the DO
 const HIST_MAX_RANGE_S = 8 * 86400;  // one /gex-history reply covers at most 8 days
 const HIST_BUCKET_S = 120;
-const OF_MEM_MIN = 26 * 60;          // order-flow minutes kept in the DO's memory (today + the rest of yesterday)           // edge cache key bucket = the feeder's 2-min cadence
+const OF_MEM_MIN = 26 * 60;  // (unused since the 2026-10-15 quota fix)          // order-flow minutes kept in the DO's memory (today + the rest of yesterday)           // edge cache key bucket = the feeder's 2-min cadence
 const ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com']);
 
 const symbolsOf = (env) => String(env.SYMBOLS || 'BTCUSDT,ETHUSDT').split(',').map((s) => s.trim().toUpperCase()).filter((s) => /^[A-Z0-9]{3,20}$/.test(s));
@@ -103,62 +103,54 @@ export class BookRecorder {
     // 1-second path (s, for tick replay /ticks1s), 90 days. The open
     // bar is held in memory (ofLive) so the live tail writes no rows.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS ofbar (sym TEXT NOT NULL, t INTEGER NOT NULL, b BLOB NOT NULL, s BLOB, PRIMARY KEY (sym, t)) WITHOUT ROWID`);
-    this.ofMem = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
+    this.ofLive = new Map(); this.ofMeta = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
   }
-  // The last OF_MEM_MIN minutes of every symbol are held in memory (loaded from SQLite once per DO
-  // start, then kept current by ingest), so the edge-cache refreshes of "today" read no rows.
-  ofMemFor(sym) {
-    let m = this.ofMem.get(sym);
-    const nowMin = Math.floor(Date.now() / 60000);
-    if (!m) {
-      const from = nowMin - OF_MEM_MIN, map = new Map();
-      for (const r of this.sql.exec('SELECT t, b, s FROM ofbar WHERE sym = ? AND t >= ? ORDER BY t', sym, from).toArray()) map.set(r.t, { fp: new Uint8Array(r.b), path: new Uint8Array(r.s || [0]) });
-      m = { from, map };
-      this.ofMem.set(sym, m);
-    } else if (m.from < nowMin - OF_MEM_MIN - 60) {
-      m.from = nowMin - OF_MEM_MIN;
-      for (const t of m.map.keys()) if (t < m.from) m.map.delete(t);
-    }
+  // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
+  // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols
+  // (~9,400 rows) from SQLite: ~1.1 M rows read/hour, free tier = 5 M rows read/day, exhausted at
+  // 04:58 UTC. Now an ingest reads NO bars: it writes the closed ones and keeps the recent (open)
+  // ones in ofLive; a read queries only the range asked for (edge-cached) and overlays ofLive.
+  ofLiveFor(sym) {
+    let m = this.ofLive.get(sym);
+    if (!m) { m = new Map(); this.ofLive.set(sym, m); }
     return m;
   }
   ofIngest(sym, header, bars) {
     const now = Date.now(), nowMin = Math.floor(now / 60000);
-    const mem = this.ofMemFor(sym);
-    let stored = 0, live = 0;
+    const live = this.ofLiveFor(sym);
+    let stored = 0, open = 0;
     for (const { t, fp, path } of bars) {
       // closed = its minute ended 3 s or more ago (the feeder sends a bar's final state >= 5 s after);
       // the open bar is memory-only (no row written every 30 s)
       if ((t + 1) * 60000 + 3000 <= now) {
         this.sql.exec('INSERT OR REPLACE INTO ofbar (sym, t, b, s) VALUES (?, ?, ?, ?)', sym, t, fp, path);
         stored++;
-      } else live++;
-      if (t >= mem.from) mem.map.set(t, { fp, path });
+      } else open++;
+      if (t >= nowMin - 30) live.set(t, { fp, path });
     }
+    for (const t of live.keys()) if (t < nowMin - 30) live.delete(t);
     // meta row only when the threshold or the contract changes (not on every POST)
-    const prev = JSON.parse(this.meta('of:' + sym) || '{}');
+    const prev = this.ofMeta.get(sym) || JSON.parse(this.meta('of:' + sym) || '{}');
     const m = { thr: header.thr || prev.thr || 0, src: String(header.src || prev.src || '') };
     if (m.thr !== prev.thr || m.src !== prev.src) this.meta('of:' + sym, JSON.stringify(m));
+    this.ofMeta.set(sym, m);
     this.ofAt.set(sym, now);
-    const lastTrim = Number(this.meta('ofTrim') || 0);
-    if (now - lastTrim > 3600000) {
+    const lastTrim = this.ofTrimAt || 0;
+    if (now - lastTrim > 6 * 3600000) {   // 6-hourly, and only once per DO life (not on every cold start)
+      this.ofTrimAt = now;
       const cut = nowMin - OF_KEEP_DAYS * 1440;
       for (const s of OF_SYMBOLS) this.sql.exec('DELETE FROM ofbar WHERE sym = ? AND t < ?', s, cut);
-      this.meta('ofTrim', now);
     }
-    return stored + ' stored, ' + live + ' open';
+    return stored + ' stored, ' + open + ' open';
   }
   // withPath: the full record (footprint + 1-second path) for /ticks1s; else the footprint only
   ofRecs(sym, from, to, withPath) {
-    const mem = this.ofMemFor(sym), recs = [];
     const pick = (fp, path) => (withPath ? joinPath(fp, path) : fp);
-    if (from < mem.from) {
-      const q = withPath ? 'SELECT b, s FROM ofbar' : 'SELECT b FROM ofbar';
-      for (const r of this.sql.exec(q + ' WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, from, Math.min(to, mem.from - 1)).toArray()) recs.push(pick(new Uint8Array(r.b), new Uint8Array(r.s || [0])));
-    }
-    if (to >= mem.from) {
-      for (const t of [...mem.map.keys()].sort((x, y) => x - y)) if (t >= from && t <= to) { const e = mem.map.get(t); recs.push(pick(e.fp, e.path)); }
-    }
-    return recs;
+    const byT = new Map();
+    const q = withPath ? 'SELECT t, b, s FROM ofbar' : 'SELECT t, b FROM ofbar';
+    for (const r of this.sql.exec(q + ' WHERE sym = ? AND t >= ? AND t <= ? ORDER BY t', sym, from, to).toArray()) byT.set(r.t, pick(new Uint8Array(r.b), new Uint8Array(r.s || [0])));
+    for (const [t, e] of this.ofLiveFor(sym)) if (t >= from && t <= to) byT.set(t, pick(e.fp, e.path));
+    return [...byT.keys()].sort((x, y) => x - y).map((t) => byT.get(t));
   }
   ofRead(sym, from, to) {
     const recs = this.ofRecs(sym, from, to);
@@ -167,24 +159,28 @@ export class BookRecorder {
       const f = this.sql.exec('SELECT MIN(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
       if (f && f.t) this.ofFirst.set(sym, f.t);
     }
-    const m = JSON.parse(this.meta('of:' + sym) || '{}');
+    const m = this.ofMeta.get(sym) || JSON.parse(this.meta('of:' + sym) || '{}');
     const header = { v: 1, sym, tick: OF_TICK[sym], thr: m.thr || 0, src: m.src || '', from, to, first: this.ofFirst.get(sym) || 0, at: this.ofAt.get(sym) || 0 };
     return buildPayload(header, recs);
   }
   ofStatus() {
-    // MIN/MAX per symbol are index lookups; the full COUNT reads every row, so at most once an hour
+    // MIN/MAX per symbol are index lookups. The full COUNT/SUM reads every row (up to 90 days x 6
+    // symbols, ~0.5 M rows): it is kept in the meta table and recomputed at most once a day, so a
+    // /status call after a DO restart never scans the table (free tier: 5 M rows read/day).
     const now = Date.now();
-    if (!this.ofCount || now - this.ofCount.at > 3600000) {
+    if (!this.ofCount) { try { this.ofCount = JSON.parse(this.meta('ofCount') || 'null'); } catch (e) { this.ofCount = null; } }
+    if (!this.ofCount || now - this.ofCount.at > 86400000) {
       const c = {};
-      for (const r of this.sql.exec('SELECT sym, COUNT(*) AS n, SUM(LENGTH(b)) AS bytes, SUM(LENGTH(s)) AS pathBytes FROM ofbar GROUP BY sym').toArray()) c[r.sym] = { bars: r.n, bytes: r.bytes, pathBytes: r.pathBytes };
+      for (const r of this.sql.exec('SELECT sym, COUNT(*) AS n FROM ofbar GROUP BY sym').toArray()) c[r.sym] = { bars: r.n };
       this.ofCount = { at: now, c };
+      this.meta('ofCount', JSON.stringify(this.ofCount));
     }
     const out = {};
     for (const sym of OF_SYMBOLS) {
       const lo = this.sql.exec('SELECT MIN(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
       const hi = this.sql.exec('SELECT MAX(t) AS t FROM ofbar WHERE sym = ?', sym).toArray()[0];
       out[sym] = Object.assign({ from: lo && lo.t ? lo.t * 60 : 0, to: hi && hi.t ? hi.t * 60 : 0, meta: JSON.parse(this.meta('of:' + sym) || 'null'), lastIngest: this.ofAt.get(sym) || 0 },
-        this.ofCount.c[sym] || { bars: 0, bytes: 0 }, { countedAt: this.ofCount.at });
+        this.ofCount.c[sym] || { bars: 0 }, { countedAt: this.ofCount.at });
     }
     return out;
   }
@@ -508,7 +504,17 @@ async function orderflowRoute(u, env, ctx, h) {
 }
 
 export default {
+  // A Durable Object failure (free-tier quota, overload) must be a clean 503, not a bare 1101 page
+  // with no CORS headers: the site treats 503 as "no recorded data" and draws its charts without it.
   async fetch(req, env, ctx) {
+    try { return await route(req, env, ctx); } catch (e) {
+      return new Response('recorder unavailable', { status: 503, headers: Object.assign({ 'cache-control': 'no-store', 'retry-after': '60' }, cors(req)) });
+    }
+  }
+};
+
+async function route(req, env, ctx) {
+  {
     const u = new URL(req.url);
     if (u.pathname === '/ingest') {
       // server-to-server only: POST, the shared secret, a small binary body; no CORS headers
@@ -638,4 +644,4 @@ export default {
     Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
     return out;
   }
-};
+}

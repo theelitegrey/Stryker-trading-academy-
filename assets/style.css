@@ -9620,3 +9620,8 @@ section.stkin-sec{ margin:10px 0 4px; padding:0; }
   .stkin-close{ width:40px; height:40px; }
   .stkin-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
 }
+
+/* Build 567: Vela menus/popovers (chart style, interval, layout, drawing flyouts...) are absolutely-positioned layers appended to
+   .vela-workspace BEFORE the later position:relative .vela-ws-main, so with z-index:auto the chart canvas painted AND hit-tested
+   over them: the pointer reached the canvas, the menu lost focus and closed. Give every layer an explicit stacking level. */
+.vela-workspace > .vela-ui-layer:not(.vela-popover):not(.vela-dialog-backdrop):not(.vela-dialog-positioner){ z-index:50; }

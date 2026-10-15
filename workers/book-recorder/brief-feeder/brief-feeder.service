@@ -14,6 +14,7 @@ TimeoutStartSec=600
 MemoryMax=150M
 Nice=10
 StateDirectory=brief-feeder
+Environment=BRIEF_COMMIT=0
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict

@@ -235,7 +235,7 @@ function insightConnect(url) {
   throw new Error('WebSocket unavailable');
 }
 
-export async function fetchInsightPage(sym, tf, page, now, env, signal) {
+export async function fetchInsightPage(sym, tf, page, now, env, signal, timeoutMs = FETCH_TIMEOUT_MS) {
   const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
   const code = INSIGHTSENTRY_CODES[sym];
   const spec = insightSpec(tf);
@@ -252,7 +252,7 @@ export async function fetchInsightPage(sym, tf, page, now, env, signal) {
   const dec = decimalsOf(SYMBOLS[sym][4]);
   await new Promise((resolve, reject) => {
     const done = (err) => { clearTimeout(timer); try { ws.close(); } catch (e) {} err ? reject(err) : resolve(); };
-    const timer = setTimeout(() => done(new Error('InsightSentry timeout')), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => done(new Error('InsightSentry timeout')), timeoutMs);
     if (signal) {
       if (signal.aborted) return done(new Error('InsightSentry cancelled'));
       signal.addEventListener('abort', () => done(new Error('InsightSentry cancelled')), { once: true });

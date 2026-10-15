@@ -65,7 +65,7 @@ export async function onRequestGet(ctx) {
       let tail = null, tailAge = 1e9;
       if (hitT) { try { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; } catch (e) {} }
       if (tailAge > 15 && !inflight.has('tail:' + k)) {
-        const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}).then((rows) => {
+        const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
           if (rows && rows.length) return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 120));
         }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
         inflight.set('tail:' + k, w);

@@ -18,6 +18,7 @@ jobs:
           [ -z "$TOKEN" ] && TOKEN=$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]')
           echo "::add-mask::$TOKEN"
           ACCOUNT=$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | grep -oE '[0-9a-f]{32}' | head -1 || true)
+          [ -z "$ACCOUNT" ] && ACCOUNT=$(curl -s -H "Authorization: Bearer $TOKEN" https://api.cloudflare.com/client/v4/accounts | jq -r '.result[0].id // empty')
           echo "::add-mask::$ACCOUNT"
-          Q='{"query":"query($a:String!){viewer{accounts(filter:{accountTag:$a}){p:durableObjectsPeriodicGroups(limit:100,filter:{datetime_geq:\"2026-10-14T00:00:00Z\",datetime_leq:\"2026-10-15T17:00:00Z\"},orderBy:[datetimeHour_ASC]){dimensions{datetimeHour} sum{rowsRead rowsWritten storedBytes} }  s:durableObjectsStorageGroups(limit:5,filter:{date_geq:\"2026-10-13\"},orderBy:[date_ASC]){dimensions{date} max{storedBytes}} }}}","variables":{"a":"'$ACCOUNT'"}}'
-          curl -s -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' --data "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.errors, (.data.viewer.accounts[0].p[]? | [.dimensions.datetimeHour, .sum.rowsRead, .sum.rowsWritten]), .data.viewer.accounts[0].s' | sed 's/[0-9a-f]\{32\}/X/g'
+          Q='{"query":"query($a:String!){viewer{accounts(filter:{accountTag:$a}){p:durableObjectsPeriodicGroups(limit:100,filter:{datetime_geq:\"2026-10-14T00:00:00Z\",datetime_leq:\"2026-10-15T17:00:00Z\"},orderBy:[datetimeHour_ASC]){dimensions{datetimeHour} sum{rowsRead rowsWritten } }}}","variables":{"a":"'$ACCOUNT'"}}'
+          curl -s -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' --data "$Q" https://api.cloudflare.com/client/v4/graphql | jq -c '.errors, (.data.viewer.accounts[0].p[]? | [.dimensions.datetimeHour, .sum.rowsRead, .sum.rowsWritten]), ' | sed 's/[0-9a-f]\{32\}/X/g'

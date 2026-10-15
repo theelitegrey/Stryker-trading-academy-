@@ -19,14 +19,15 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=569';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=570';
 
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
 const FREE_LOOKBACK_MS = 24 * 3600 * 1000;
 const MAX_DAYS = 14;                 // UTC days fetched for one chart at most
-const TODAY_REFRESH_MS = 30000;
+const TODAY_REFRESH_MS = 300000;   // the whole day, now and then; the live tail is polled every TAIL_MS
+const TAIL_MS = 5000;              // the last minutes of every root in use: forming + just-closed bars
 const MAX_TF_MIN = 240;
 export const FP_TYPE = 'stk_fp';
 export const OF_GROUP = 'Order Flow';
@@ -162,8 +163,45 @@ function minuteBars(root, fromMs, toMs, free) {
   }
   return { bars: free ? out.filter((b) => b.t >= now - FREE_LOOKBACK_MS) : out, s, loading, err };
 }
+// Live tail: the newest ~hour (the Worker rounds `from` down to the hour) is small, so it is polled
+// every few seconds and merged into the day stores. The forming bar's cells grow as trades print and a
+// just-closed bar gets its final cells within seconds.
+let tailBusy = false;
+async function fetchTail(s) {
+  const now = Date.now();
+  const r = await fetch(RECORDER + '/orderflow?sym=' + s.root + '&from=' + Math.floor(now / 1000 - 1200) + '&to=' + Math.ceil(now / 1000));
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  let u8 = new Uint8Array(await r.arrayBuffer());
+  if (r.headers.get('x-of-gzip') === '1') u8 = await gunzipBody(u8);
+  const p = decodeOrderflow(u8);
+  if (!p.bars.length) return;
+  const byDay = new Map();
+  for (const b of p.bars) { const d = utcDay(b.t); if (!byDay.has(d)) byDay.set(d, []); byDay.get(d).push(b); }
+  byDay.forEach((nb, d) => {
+    let e = s.days.get(d);
+    if (!e) { e = { bars: [], at: Date.now(), loading: false, err: '' }; s.days.set(d, e); }
+    if (!e.bars) return;       // the day is still loading: its own fetch covers it
+    const lo = nb[0].t, keep = e.bars.filter((b) => b.t < lo), seen = new Set(nb.map((b) => b.t));
+    e.bars = keep.concat(nb, e.bars.filter((b) => b.t >= lo && !seen.has(b.t) && b.t > nb[nb.length - 1].t));
+    e.err = '';
+  });
+  if (p.header && p.header.tick) s.tick = p.header.tick;
+  s.v++;
+}
+async function pollTails() {
+  if (tailBusy) return;
+  tailBusy = true;
+  try {
+    let any = false;
+    for (const s of stores.values()) {
+      if (!s.days.has(utcDay(Date.now()))) continue;
+      try { await fetchTail(s); any = true; } catch (x) {}
+    }
+    if (any) bump();
+  } finally { tailBusy = false; }
+}
 // Today's day refreshes on a timer while any chart uses order flow (not during replay).
-let refreshTm = 0, users = 0;
+let refreshTm = 0, tailTm = 0, users = 0;
 function startRefresh() {
   if (refreshTm) return;
   refreshTm = setInterval(() => {
@@ -171,8 +209,9 @@ function startRefresh() {
     const day = utcDay(Date.now());
     stores.forEach((s) => { if (s.days.has(day)) void fetchDay(s, day); });
   }, TODAY_REFRESH_MS);
+  tailTm = setInterval(() => { if (replayE() == null && document.visibilityState !== 'hidden') void pollTails(); }, TAIL_MS);
 }
-function stopRefresh() { if (users <= 0 && refreshTm) { clearInterval(refreshTm); refreshTm = 0; } }
+function stopRefresh() { if (users <= 0 && refreshTm) { clearInterval(refreshTm); refreshTm = 0; clearInterval(tailTm); tailTm = 0; } }
 
 // The order-flow bars matching a chart's bars (same timeframe, replay-clipped), keyed by time.
 // Returns { map: Map(time -> bar), tick, thr, note, list } or { note } when the chart cannot show it.

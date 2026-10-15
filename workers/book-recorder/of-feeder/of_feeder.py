@@ -79,7 +79,10 @@ SYMS = {r: ('%s:%s1!' % (v[0], r), v[1]) for r, v in ROOTS.items()}   # replaced
 API = 'https://api.insightsentry.com/v3/symbols/'
 WS = 'wss://realtime.insightsentry.com/live'
 UA = 'tradezoro-of-feeder/1'
-POST_EVERY = 30
+POST_EVERY = 10           # loop tick; NQ and ES post every round (live footprint), the rest every SLOW_EVERY
+SLOW_EVERY = 30
+FAST_SYMS = ('NQ', 'ES')
+last_post = {}
 SUBS_PER_SOCKET = 3
 CLOSE_GRACE = 5           # a bar counts as closed 5 s after its minute ends (socket lag)
 KEEP_LIVE_MIN = 3            # minutes of bars kept in memory (re-sent while they can still change)
@@ -397,6 +400,9 @@ def live():
         time.sleep(POST_EVERY)
         now = time.time()
         for s, agg in aggs.items():
+            if s not in FAST_SYMS and now - last_post.get(s, 0) < SLOW_EVERY - 1:
+                continue
+            last_post[s] = now
             with lock:
                 # the bars that changed, plus every bar that has closed since it was last sent (its
                 # final state), minus a partly covered minute. Encoded under the lock.

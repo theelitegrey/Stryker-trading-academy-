@@ -45,7 +45,7 @@ jobs:
           python3 workers/book-recorder/test/info_feeder_test.py
       - name: News + calendar tests (tagging, dedupe, replay cut-off, validation, local round trip)
         run: node workers/book-recorder/test/news.test.mjs
-      - name: Terminal files tests (brief / market map / calendar: validation, health, feeder maths)
+      - name: Terminal files tests (brief / market map / calendar, validation, health, feeder maths)
         run: |
           node workers/book-recorder/test/terminal.test.mjs
           python3 workers/book-recorder/test/brief_feeder_test.py

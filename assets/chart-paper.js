@@ -420,7 +420,11 @@ function poll(){
   syncFromLocal();
   let events = [];
   const seen = new Set();
-  for (const c of cells()) {
+  // the ACTIVE chart first: when two charts show the same symbol, its price is the one the member
+  // is looking at (the ticket and the fills must track that one, not a background cell)
+  const act0 = activeCell(), all = cells();
+  if (act0) all.sort((a, b) => (b === act0 || b.id === act0.id ? 1 : 0) - (a === act0 || a.id === act0.id ? 1 : 0));
+  for (const c of all) {
     const sym = c.symbol; if (!sym) continue;
     const bars = barsOf(c); if (!bars) continue;
     // one cell per symbol is enough (several cells of the same symbol carry the same trades)
@@ -429,6 +433,14 @@ function poll(){
     events = events.concat(feedSymbol(sym, segmentsFrom(key, bars)));
   }
   if (events.length) onEvents(events);
+  // The ticket / one-click prices ALWAYS follow the chart in view: whatever the segment tracker did,
+  // the last price is the active chart's newest close (the same number as its price-axis label).
+  try {
+    if (act0) {
+      const bars = barsOf(act0), lb = bars && bars[bars.length - 1], sym = act0.symbol;
+      if (lb && sym && Number.isFinite(lb.close) && lb.close > 0 && acct.last[sym] !== lb.close && (!acct.spec(sym).ok || acct.spec(sym).kind !== 'futures' || lb.close === PE.roundTick(lb.close, acct.spec(sym).tick))) acct.setLast(sym, lb.close);
+    }
+  } catch (e) {}
   livePnl();
 }
 // Symbols with paper positions/orders but no chart open: 1-minute bars from the same provider.
@@ -1543,6 +1555,7 @@ const CSS = `
 .stkpt-1c-q{ width:58px; border:0; border-radius:0 !important; text-align:center; background:#1e222d !important; color:#d1d4dc !important; font:600 13px var(--font-mono, monospace) !important; padding:0 4px !important; -moz-appearance:textfield; }
 :root[data-theme="light"] .stkpt-1c-q{ background:#fff !important; color:#131722 !important; }
 .stkpt-1c-q::-webkit-outer-spin-button,.stkpt-1c-q::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+@media (max-width:700px){ .stkpt-1c{ height:30px; } .stkpt-1c button{ min-width:62px; padding:0 6px; } .stkpt-1c small{ font-size:9px; } .stkpt-1c b{ font-size:11px; } .stkpt-1c-q{ width:38px; font-size:12px !important; } }
 /* ticket */
 #stkpt-tk{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:16px; }
 #stkpt-tk[hidden]{ display:none; }

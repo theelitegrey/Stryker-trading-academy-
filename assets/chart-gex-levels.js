@@ -526,7 +526,7 @@ export function mergeTags(tags) {
   });
   return out.map((g) => {
     const it = g.items, l0 = it[0].l;
-    const names = it.map((x) => x.l.name || x.l.text);
+    const names = [...new Set(it.map((x) => x.l.name || x.l.text))];
     const prices = [...new Set(it.map((x) => fmtLevel(x.l.price)))];
     const text = it.length === 1 ? l0.text : names.join(' · ') + ' ' + prices.join(' / ');
     const y = it.reduce((s2, x) => s2 + x.y, 0) / it.length;
@@ -619,6 +619,11 @@ function gexLayer() {
       const groups = mergeTags(tags);
       layoutTags(groups, top, bot);
       for (const t of groups) {
+        // narrow plots (phone): a merged tag must not stretch across the chart over the ticket and the
+        // other lines. Too wide -> prices are dropped (the axis tag keeps the exact price), then cut.
+        if (W < 520 && g.measureText(t.text).width + 10 > W * 0.5 && t.ids.length > 1) t.text = t.text.replace(/\s[\d.,]+( \/ [\d.,]+)*$/, '');
+        const maxTw = W < 520 ? W * 0.5 : W - 8;
+        while (t.text.length > 4 && g.measureText(t.text).width + 10 > maxTw) t.text = t.text.slice(0, -2).replace(/\s+$/, '') + '…';
         const w = Math.ceil(g.measureText(t.text).width) + 10;
         const x = Math.max(2, W - w - 2);
         t.box = { x, y: t.yc - TAG_H / 2, w, h: TAG_H };

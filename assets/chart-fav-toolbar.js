@@ -204,6 +204,9 @@ export function mountFavToolbar(ws, Core, opts){
       const legs = cellEl ? cellEl.querySelectorAll('.vela-statusline, .vela-legend') : [];
       const g = grid().getBoundingClientRect();
       legs.forEach((l) => { const r = l.getBoundingClientRect(); if (r.height && r.bottom - g.top < a.h / 2) top = Math.max(top, r.bottom - g.top + 6); });
+      // the paper one-click Buy/Sell ticket sits under the legend too: the bar goes below it, never over it
+      const tk = cellEl && cellEl.querySelector('.stkpt-1c');
+      if (tk) { const r = tk.getBoundingClientRect(); if (r.height && r.bottom - g.top < a.h / 2) top = Math.max(top, r.bottom - g.top + 6); }
     } catch (e) {}
     return { left: (a.w - reserveR() - bw) / 2, top: Math.min(top, Math.max(0, a.h - 46)) };
   }
@@ -469,6 +472,7 @@ export function mountFavToolbar(ws, Core, opts){
 
   try { new ResizeObserver(() => place()).observe(grid()); } catch (e) { window.addEventListener('resize', place, { passive: true }); }
   window.addEventListener('resize', () => place(), { passive: true });
+  setInterval(() => { if (st.x == null || st.y == null) place(); }, 2500);   // default spot follows the ticket / legend rows as they appear
 
   render();
   const api = { state: st, render, place, setVisible, setVertical, removeFav, get vertical(){ return vertical; }, el: bar };

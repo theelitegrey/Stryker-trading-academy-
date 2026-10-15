@@ -194,7 +194,9 @@
     spec(symbol) { return specOf(symbol, this.deps.tickOf(symbol)); }
     setLast(symbol, price) {
       if (!(Number(price) > 0)) return;
-      const raw = String(symbol || ''), sp = this.spec(raw), px = Number(price);
+      const raw = String(symbol || ''), sp = this.spec(raw);
+      let px = Number(price);
+      if (sp.ok && sp.kind === 'futures' && sp.tick > 0) px = roundTick(px, sp.tick);   // futures only trade on the tick
       this.last[raw] = px;
       if (sp.ok) this.last[sp.symbol] = px;
     }

@@ -125,7 +125,16 @@ function nyWall(dayUtc, hh) {
   return dayUtc + hh * H - nyOffset(guess);
 }
 
-const toBar = (r) => ({ time: r[0] * 1000, open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] });
+// Prices are snapped to the contract's tick (NQ 0.25): the server rounds to 2 decimals, which let
+// 30120.97 through. Applied to every bar that reaches the chart (history, stream, poll, tail rows).
+function snapTick(p, tick) {
+  if (!(tick > 0) || !Number.isFinite(p)) return p;
+  return Number((Math.round(p / tick) * tick).toFixed(Math.min(8, decimalsOf(tick) + 1)));
+}
+function tickOfKey(key) {
+  return SYMBOLS[key] ? SYMBOLS[key][3] : 0;   // futures only; forex keeps its own precision
+}
+const toBar = (r, tick) => ({ time: r[0] * 1000, open: snapTick(r[1], tick), high: snapTick(r[2], tick), low: snapTick(r[3], tick), close: snapTick(r[4], tick), volume: r[5] });
 
 // SPEED (Owner order 2026-10-14, "switching symbols ... need to be under 1 sec"): the page memo is
 // shared by EVERY provider instance on the page (each chart cell, the grid, prefetch), so a page
@@ -298,7 +307,7 @@ export class FuturesProvider {
       if (r[0] <= last) continue;
       if (r[0] > toS) continue;
       if (fromS != null && r[0] < fromS) continue;
-      bars.push(toBar(r));
+      bars.push(toBar(r, tickOfKey(root)));
       last = r[0];
     }
     if (range.limit != null && bars.length > range.limit) bars = bars.slice(-range.limit);
@@ -386,7 +395,7 @@ export class FuturesProvider {
           const msg = JSON.parse(ev.data);
           if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) {
             if (!gotBar) { gotBar = true; healthy(); }
-            onBar(toBar(msg.bar));
+            onBar(toBar(msg.bar, tickOfKey(root)));
           }
         } catch (e) {}
       };

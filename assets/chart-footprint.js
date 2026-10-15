@@ -136,7 +136,7 @@ async function fetchDay(s, day) {
     e.bars = p.bars; e.err = '';
     if (p.header) { s.tick = p.header.tick || s.tick; if (p.header.thr) s.thr = p.header.thr; }
   } catch (x) {
-    e.err = 'Order-flow history is temporarily unavailable. It retries on its own.';
+    e.err = 'Footprint data unavailable right now, retrying';
     if (!e.bars) e.bars = [];
   }
   e.at = Date.now(); e.loading = false; s.v++;
@@ -259,11 +259,17 @@ function footprintLayer() {
       const ink = day ? '#1f2937' : '#d7dbe2', dim = day ? '#64748b' : '#8a90a0';
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       if (f.note) {
-        g.font = '12px ' + MONO; g.textAlign = 'center'; g.textBaseline = 'middle';
-        const w = g.measureText(f.note).width + 20;
-        g.fillStyle = day ? 'rgba(255,255,255,0.92)' : 'rgba(11,11,13,0.9)';
-        g.fillRect(co.width / 2 - w / 2, bot - 58, w, 24);
-        g.fillStyle = f.locked ? CYAN : dim; g.fillText(f.note, co.width / 2, bot - 46);
+        // a small pill like the GEX chip: one short line, sans font, never wider than the plot
+        g.font = '600 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        const maxW = Math.max(60, co.width - 16);
+        let txt = String(f.note);
+        while (txt.length > 8 && g.measureText(txt).width + 20 > maxW) txt = txt.slice(0, -2).replace(/\s+$/, '') + '…';
+        const w = Math.round(g.measureText(txt).width + 20), h = 22, x = Math.round((co.width - 56 - w) / 2), y = Math.round(bot - 66);
+        g.fillStyle = day ? 'rgba(255,255,255,0.94)' : 'rgba(15,15,15,0.88)';
+        g.strokeStyle = day ? 'rgba(15,23,42,0.12)' : 'rgba(255,255,255,0.1)'; g.lineWidth = 1;
+        g.beginPath(); if (g.roundRect) g.roundRect(x + .5, y + .5, w, h, 11); else g.rect(x + .5, y + .5, w, h);
+        g.fill(); g.stroke();
+        g.fillStyle = f.locked ? CYAN : (day ? '#334155' : '#cbd5e1'); g.fillText(txt, x + w / 2, y + h / 2 + .5);
       }
       if (!f.map || !f.map.size) { g.restore(); return; }
       const tick = f.tick;

@@ -22,16 +22,35 @@ const MIN = +arg('--min', 10), OUT = arg('--json', null);
   for (let i = 0; i < 120; i++) { await p.waitForTimeout(250); if (await ready()) break; }
   // an order-flow indicator on the active chart (Session Volume Profile; works from the chart bars)
   const ind = await p.evaluate(async () => {
-    for (let i = 0; i < 60 && !window.__stkHeavyReady && !window.__stkFlow; i++) await new Promise((r) => setTimeout(r, 250));
-    try { const c = window.STRYKER_VELA.active; const r = c.addNativeIndicator ? c.addNativeIndicator('stk_svp') : null; return String(!!r); } catch (e) { return 'err ' + e.message; }
+    for (let i = 0; i < 80 && !window.__stkHeavyReady; i++) await new Promise((r) => setTimeout(r, 250));
+    const out = [];
+    try { const cells = window.STRYKER_VELA.context().cells; cells.slice(0, 4).forEach((c, i) => { const t = ['stk_svp', 'stk_of_cvd', 'stk_gex', 'stk_of_delta'][i]; try { out.push(t + ':' + !!c.chart.addNativeIndicator(t)); } catch (e) { out.push(t + ':ERR ' + e.message); } }); window.STRYKER_VELA.context().stateChanged(); } catch (e) { out.push('err ' + e.message); }
+    return out.join(' ');
   });
   console.log('indicator add:', ind);
+  // synthetic every-tick candles: one onBar per animation frame per cell (what the tick feed does), random walk on the last bar
+  const ticks = await p.evaluate(() => {
+    window.__soakTicks = 0;
+    const step = () => {
+      try {
+        window.STRYKER_VELA.cells().forEach((c) => {
+          const o = c.chart.orchestrator; const lb = o.rawBars[o.rawBars.length - 1]; if (!lb) return;
+          const px = lb.close + (Math.random() - 0.5) * lb.close * 0.0002;
+          o.onBar({ time: lb.time, open: lb.open, high: Math.max(lb.high, px), low: Math.min(lb.low, px), close: px, volume: (lb.volume || 0) + 1 });
+          window.__soakTicks++;
+        });
+      } catch (e) { window.__soakErr = String(e).slice(0, 120); }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step); return 'on';
+  });
+  console.log('synthetic ticks:', ticks);
   const rows = []; const t0 = Date.now();
   const sample = async () => {
     await cdp.send('HeapProfiler.collectGarbage');
     const m = await cdp.send('Performance.getMetrics'); const g = (n) => (m.metrics.find((x) => x.name === n) || {}).value;
-    const extra = await p.evaluate(() => ({ canvases: document.querySelectorAll('canvas').length }));
-    rows.push({ t: Math.round((Date.now() - t0) / 1000), heapMB: +(g('JSHeapUsedSize') / 1048576).toFixed(1), nodes: g('Nodes'), listeners: g('JSEventListeners'), docs: g('Documents'), canvases: extra.canvases });
+    const extra = await p.evaluate(() => ({ canvases: document.querySelectorAll('canvas').length, ticks: window.__soakTicks, tickErr: window.__soakErr || null }));
+    rows.push({ t: Math.round((Date.now() - t0) / 1000), heapMB: +(g('JSHeapUsedSize') / 1048576).toFixed(1), nodes: g('Nodes'), listeners: g('JSEventListeners'), docs: g('Documents'), canvases: extra.canvases, ticks: extra.ticks, tickErr: extra.tickErr });
     console.log(JSON.stringify(rows[rows.length - 1]));
   };
   await sample();

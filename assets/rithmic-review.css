@@ -5,7 +5,7 @@
 
 .rr-top{ position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px;
   max-width:1120px; margin:0 auto; padding:14px 18px; }
-.rr-brand img{ display:block; height:34px; width:auto; }
+.rr-brand img{ display:block; height:32px; width:auto; }
 .rr-tag{ font-family:var(--font-mono); font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-2);
   border:1px solid var(--line); border-radius:999px; padding:5px 10px; }
 
@@ -96,7 +96,7 @@
 @media (min-width:960px){
   .rr-hero{ padding:34px 0 64px; }
   .rr-hero-grid{ grid-template-columns:minmax(0, 1.15fr) minmax(0, .85fr); gap:48px; align-items:center; }
-  .rr-brand img{ height:40px; }
+  .rr-brand img{ height:32px; }
   .rr-sec{ padding:48px 0; }
 }
 

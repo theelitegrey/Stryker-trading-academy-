@@ -14,7 +14,7 @@ const MIN = +arg('--min', 10), OUT = arg('--json', null);
   await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
   const p = await ctx.newPage(); const cdp = await ctx.newCDPSession(p);
   await cdp.send('Performance.enable'); await cdp.send('HeapProfiler.enable');
-  const errs = []; p.on('pageerror', (e) => errs.push(String(e).slice(0, 160)));
+  const errs = []; p.on('pageerror', (e) => errs.push(String(e.stack || e).replace(/\n/g, ' | ').slice(0, 1200)));
   await p.goto(BASE + '/charts', { waitUntil: 'domcontentloaded' });
   const ready = () => p.evaluate(() => { try { return window.STRYKER_VELA.cells().every((c) => c.chart.orchestrator.rawBars.length > 0); } catch (e) { return false; } }).catch(() => false);
   for (let i = 0; i < 200 && !(await ready()); i++) await p.waitForTimeout(100);
@@ -57,7 +57,7 @@ const MIN = +arg('--min', 10), OUT = arg('--json', null);
   while (Date.now() - t0 < MIN * 60000) { await p.waitForTimeout(30000); await sample(); }
   const base = rows.find((r) => r.t >= 120) || rows[0], last = rows[rows.length - 1];
   const res = { min: MIN, rows, growthMB: +(last.heapMB - base.heapMB).toFixed(1), nodeGrowth: last.nodes - base.nodes, listenerGrowth: last.listeners - base.listeners, errs, pass: last.heapMB - base.heapMB < 25 };
-  console.log('RESULT', JSON.stringify({ growthMB: res.growthMB, nodeGrowth: res.nodeGrowth, listenerGrowth: res.listenerGrowth, errs: errs.length, pass: res.pass }));
+  console.log('ERRS', JSON.stringify([...new Set(errs)].slice(0,4))); console.log('RESULT', JSON.stringify({ growthMB: res.growthMB, nodeGrowth: res.nodeGrowth, listenerGrowth: res.listenerGrowth, errs: errs.length, pass: res.pass }));
   if (OUT) require('fs').writeFileSync(OUT, JSON.stringify(res, null, 1));
   await b.close();
 })();

@@ -36,13 +36,14 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=558';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=559';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
 const GROUP_FLOW = 'Volume & Order flow';
+const GROUP_OF = 'Order Flow';   // order flow from exchange trades (chart-footprint.js), above Volume & Order flow
 const GROUP_STRYKER = 'TradeZoro';
-const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_FLOW, 'Trend', 'Levels'];
+const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_OF, GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
   ['BUILT-IN', [['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
@@ -178,7 +179,7 @@ export function mountIndicatorWindow(ws, opts){
       if (!r || r.category === 'Community') return;
       let key, author = 'Built-in', cat;
       if (r.pseudo) { key = 'p:' + r.pseudo; author = 'TradeZoro'; cat = GROUP_FLOW; }
-      else if (r.native) { key = 'b:' + r.nativeType; if (/^stk_/.test(r.nativeType)) author = 'TradeZoro'; cat = r.category === GROUP_FLOW ? GROUP_FLOW : catOf(r.name); }
+      else if (r.native) { key = 'b:' + r.nativeType; if (/^stk_/.test(r.nativeType)) author = 'TradeZoro'; cat = r.category === GROUP_FLOW || r.category === GROUP_OF ? r.category : catOf(r.name); }
       else { key = 'o:' + String(r.name).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 60); cat = catOf(r.name); author = 'TradeZoro'; }
       // TradeZoro GEX Levels (assets/chart-gex-levels.js) heads its own "TradeZoro" group.
       let desc = '';
@@ -196,7 +197,7 @@ export function mountIndicatorWindow(ws, opts){
     // COMMUNITY > Top and Trending with the script's own author, never as TradeZoro.
     PICKER_SCRIPTS.forEach((b) => {
       const third = b.section !== 'picks';
-      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? (b.group === 'flow' ? GROUP_FLOW : null) : GROUP_STRYKER,
+      out.push({ key: 'x:' + b.id, name: b.name, author: third ? (b.author || 'Community') : 'TradeZoro', cat: third ? (b.group === 'flow' ? GROUP_OF : null) : GROUP_STRYKER,
         kind: 'example', builtinId: b.id, desc: b.desc, third, rightOffset: b.rightOffset });
     });
     return out;
@@ -469,7 +470,7 @@ export function mountIndicatorWindow(ws, opts){
       CATS.forEach((c) => {
         const a = view.items.filter((x) => x.cat === c);
         if (!a.length) return;
-        if (c !== GROUP_FLOW && c !== GROUP_STRYKER) a.sort((x, y) => x.name.localeCompare(y.name));
+        if (c !== GROUP_FLOW && c !== GROUP_OF && c !== GROUP_STRYKER) a.sort((x, y) => x.name.localeCompare(y.name));
         // GEX Levels first, the GEX Heatmap right after it (the rest keep their order).
         if (c === GROUP_STRYKER) { const rk = (x) => (x.key === 'b:stk_gex' ? 0 : x.key === 'b:stk_gexheat' ? 1 : 2); a.sort((x, y) => rk(x) - rk(y)); }
         list.appendChild(h('p', { class: 'stkiw-grp', text: c }));

@@ -102,7 +102,12 @@ function insightQuoteMap(q, expIso) {
     const cp = type.startsWith('C') ? 'C' : (type.startsWith('P') ? 'P' : null);
     const k = Number(o.strike_price ?? o.strike);
     if (!cp || !(k > 0)) continue;
-    byKey.set(cp + '|' + k, { iv: Number(o.implied_volatility ?? o.iv ?? 0), bid: Number(o.bid_price ?? o.bid ?? 0), ask: Number(o.ask_price ?? o.ask ?? 0) });
+    // SPX lists the same strike under two roots on monthly days (SPX = AM-settled, SPXW = PM-settled) in a changing order;
+    // last-wins made the result jump from call to call. Prefer the weekly root (code ...:SPXW...) every time (2026-10-16).
+    const weekly = /:[A-Z]+W\d{6}[CP]/.test(String(o.code || ''));
+    const key = cp + '|' + k;
+    if (byKey.has(key) && byKey.get(key).weekly && !weekly) continue;
+    byKey.set(key, { iv: Number(o.implied_volatility ?? o.iv ?? 0), bid: Number(o.bid_price ?? o.bid ?? 0), ask: Number(o.ask_price ?? o.ask ?? 0), weekly });
   }
   const tsMs = Number(q.last_update || q.updated_at || 0);
   return { spot, ts: tsMs ? tsMs / 1000 : null, byKey, rows: (q.data || []).length };
@@ -212,10 +217,12 @@ async function fetchInsightOptions(name, dteMax, env = {}) {
       delta: Number(o.delta ?? joined.delta ?? 0),
       iv: Number(o.implied_volatility ?? o.iv ?? joined.implied_volatility ?? joined.iv ?? 0),
       bid: Number(o.bid_price ?? o.bid ?? 0),
-      ask: Number(o.ask_price ?? o.ask ?? 0)
+      ask: Number(o.ask_price ?? o.ask ?? 0),
+      root: ((/:([A-Z]+)\d{6}[CP]/.exec(String(o.code || ''))) || [])[1]
     });
     expiries.set(isoDate(exp), exp);
   }
+  dedupeRoots(rows);
   const spot = Number(quotes.last_price || quotes.underlying_price || quotes.current_price || 0);
   if (!Number.isFinite(spot) || spot <= 0) throw new Error('InsightSentry options missing spot');
   let contractsOut;
@@ -287,6 +294,17 @@ function isoDate(d) { return d.toISOString().slice(0, 10); }
 function dte(exp, nowSec) { return Math.round((exp - todayUtc(nowSec)) / 86400000); }
 function round(n, d = 2) { return n == null || !Number.isFinite(n) ? null : Number(n.toFixed(d)); }
 
+// Same strike/expiry listed under two roots (SPX and SPXW): keep the weekly root's rows for that expiry, the plain root only for
+// expiries the weekly root does not have (CoS decision 2026-10-16: /api/gex/levels/SPX was jumping between calls).
+function dedupeRoots(rows) {
+  const weeklyExp = new Set(rows.filter(r => r.root && /W$/.test(r.root) && r.root.length > 1).map(r => isoDate(r.exp)));
+  if (!weeklyExp.size) return rows;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const r = rows[i];
+    if (weeklyExp.has(isoDate(r.exp)) && !(r.root && /W$/.test(r.root) && r.root.length > 1)) rows.splice(i, 1);
+  }
+  return rows;
+}
 function parseOptions(data, dteMax, nowSec) {
   const spot = Number(data.current_price);
   if (data.source === 'insightsentry_options') return { spot, contracts: data.options || [] };
@@ -312,9 +330,11 @@ function parseOptions(data, dteMax, nowSec) {
       bid: Number(o.bid || 0),
       ask: Number(o.ask || 0)
     };
+    row.root = m[1];
     raw.push(row);
     expiries.set(isoDate(exp), exp);
   }
+  dedupeRoots(raw);
   if (dteMax === 0 || dteMax === 1) {
     const exps = [...expiries.values()].sort((a, b) => a - b);
     if (!exps.length) return { spot, contracts: [] };
@@ -906,6 +926,6 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   return data;
 }
 
-export { fetchInsightQuotes, insightQuoteMap, mergeHybrid, ownGamma, saneIv, bsGamma, compactToContracts, compactFresh, fetchCompact };
+export { dedupeRoots, fetchInsightQuotes, insightQuoteMap, mergeHybrid, ownGamma, saneIv, bsGamma, compactToContracts, compactFresh, fetchCompact };
 export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip, parseOptions, straddleRange, bands, snapshotAllowed, yearsToClose, netGexAt };
 export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

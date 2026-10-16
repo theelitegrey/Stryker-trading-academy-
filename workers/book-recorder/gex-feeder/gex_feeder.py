@@ -97,6 +97,7 @@ def compact(raw, now_epoch):
         raise ValueError('no spot')
     today = datetime.fromtimestamp(now_epoch, ET).date()
     rows = {}
+    roots = {}                    # expiry -> set of OCC roots seen (SPX / SPXW)
     sym = data.get('symbol') or head.get('symbol')
     for m in OBJ.finditer(raw, i, j):
         o = json.loads(m.group(0))
@@ -113,6 +114,15 @@ def compact(raw, now_epoch):
         rows.setdefault(exp, []).append([k, mm.group(5), int(num(o.get('open_interest'))), r4(num(o.get('iv'))),
                                          r4(num(o.get('bid'))), r4(num(o.get('ask'))), int(num(o.get('volume'))),
                                          r4(num(o.get('delta')))])
+        roots.setdefault(exp, []).append(mm.group(1))
+    # De-duplicate roots (2026-10-16): SPX lists the same strike under SPX (AM-settled monthly) and SPXW (PM-settled weekly/daily)
+    # on monthly expiries; both used to be summed, double counting OI and flipping the net with whichever IV won. Per expiry: if an
+    # SPXW-style root (root + 'W') exists, keep only its rows, else keep the rows as they are (SPX-only expiries).
+    for e in list(rows):
+        rs = roots[e]
+        w = [i for i, r in enumerate(rs) if r.endswith('W') and len(r) > 1]
+        if w and len(w) < len(rs):
+            rows[e] = [rows[e][i] for i in w]
     exps = sorted(rows)
     meta = {'v': 1, 'symbol': sym, 'spot': spot, 'iv30': num(data.get('iv30')),
             'chain_time': data.get('last_trade_time'), 'fetched_at': int(now_epoch),

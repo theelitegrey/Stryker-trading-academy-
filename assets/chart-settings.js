@@ -126,6 +126,7 @@ function hookCell(cell){
   const origSet = rc.setSettingsSections.bind(rc);
   rc.setSettingsSections = (secs) => origSet([...(secs || []), ...ourSections(id)]);
   const R = inner(cell);
+  keepViewOnSwitch(R);
   if (R) {
     // Gradient background: re-applied after Vela paints its solid one.
     const origBg = R.applyBackground.bind(R);
@@ -168,10 +169,41 @@ function paintBg(cell){
 function applyRight(cell){
   const R = inner(cell); if (!R || !R.coords) return;
   const n = Number(S(cell.id).rightBars);
+  // Only when the setting itself changed (or on the first paint): a timeframe switch keeps the
+  // margin the chart already had (see keepViewOnSwitch), including an indicator's wider margin.
+  if (R.__stkRightApplied === n) return;
   try {
     const vp = R.coords.getViewport();
+    if (R.coords.barCount > 0) R.__stkRightApplied = n;
     if (vp && Math.abs(vp.rightOffset - n) > 0.01 && vp.rightOffset >= 0 && vp.rightOffset < 60) R.applyViewport({ barSpacing: vp.barSpacing, rightOffset: n });
   } catch (e) {}
+}
+// TradingView-style: a timeframe / symbol switch keeps the zoom AND the distance between the
+// newest bar and the price axis. Vela's setBars re-anchors at its fixed default (6 bars), which
+// dropped an indicator's wider margin and any margin the user had set. A scrolled-back view
+// (offset < 0 or far out) re-anchors at the default, as TradingView does. Empty clears in between
+// (a symbol switch) keep the remembered view until the new bars land.
+function keepViewOnSwitch(R){
+  if (!R || R.__stkKeepView || typeof R.setBars !== 'function') return;
+  R.__stkKeepView = true;
+  const orig = R.setBars.bind(R);
+  let pending = null;
+  R.setBars = (bars, opts) => {
+    const had = R.didInitialFit === true;
+    if (!pending && had) { try { const v = R.coords.getViewport(); pending = { bs: v.barSpacing, ro: v.rightOffset }; } catch (e) {} }
+    const out = orig(bars, opts);
+    if (bars && bars.length > 0 && pending) {
+      const p = pending; pending = null;
+      try {
+        if (!(opts && opts.preserveView === true) && p.ro >= 0 && p.ro < 60) {
+          const v = R.clampViewport(p.bs, p.ro);
+          R.coords.setViewport(v); R.targetBarSpacing = v.barSpacing;
+          if (R.scheduler) R.scheduler.invalidate(4);
+        }
+      } catch (e) {}
+    }
+    return out;
+  };
 }
 function applyCell(id){
   const cell = cellOf(id); if (!cell) return;

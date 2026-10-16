@@ -108,7 +108,7 @@
   }
 
   function fmtPrice(v) {
-    if (v == null || !isFinite(v)) return '';
+    if (v == null || !isFinite(v)) return '\u2014';
     if (v >= 1000) return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
     if (v >= 10) return v.toFixed(2);
     return v.toFixed(v < 1 ? 4 : 3);

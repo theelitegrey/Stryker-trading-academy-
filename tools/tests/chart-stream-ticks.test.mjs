@@ -15,7 +15,14 @@ globalThis.WebSocketPair = class { constructor() { const server = { accept() {},
 const OrigResponse = globalThis.Response;
 globalThis.Response = class extends OrigResponse { constructor(body, init = {}) { super(body, init.status === 101 ? { status: 200 } : init); } };
 const { onRequestGet } = await import('../../functions/api/chart/stream/[sym].js');
-const req = (q) => onRequestGet({ request: new Request('https://tradezoro.com/api/chart/stream/NQ?' + q, { headers: { upgrade: 'websocket', origin: 'https://tradezoro.com' } }), params: { sym: 'NQ' }, env: { INSIGHTSENTRY_WEBSOCKET_API_KEY: 'k' } });
+// admin stub (real time is admin only, 2026-10-16): throwaway RSA key, faked Google JWKS + admins/{uid}
+const kp = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+const jwk = { ...(await crypto.subtle.exportKey('jwk', kp.publicKey)), kid: 'k1', alg: 'RS256' };
+const b64u = (b) => Buffer.from(b).toString('base64url');
+const hh = b64u(JSON.stringify({ alg: 'RS256', kid: 'k1' })), pp = b64u(JSON.stringify({ iss: 'https://securetoken.google.com/strykertrades-e0cd8', aud: 'strykertrades-e0cd8', sub: 'uid-admin', iat: Math.floor(Date.now() / 1000) - 5, exp: Math.floor(Date.now() / 1000) + 3600 }));
+const TOKEN = hh + '.' + pp + '.' + b64u(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', kp.privateKey, new TextEncoder().encode(hh + '.' + pp)));
+globalThis.fetch = async (u) => String(u).includes('securetoken@system') ? new Response(JSON.stringify({ keys: [jwk] })) : new Response('{}');
+const req = (q) => onRequestGet({ request: new Request('https://tradezoro.com/api/chart/stream/NQ?' + q, { headers: { upgrade: 'websocket', origin: 'https://tradezoro.com', 'sec-websocket-protocol': 'tz-auth, ' + TOKEN } }), params: { sym: 'NQ' }, env: { INSIGHTSENTRY_WEBSOCKET_API_KEY: 'k' } });
 
 {
   await req('tf=1&ticks=1');

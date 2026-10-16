@@ -63,3 +63,5 @@ export async function rtHeadersReady(ms = 4000) {
   if (!st.ready) await Promise.race([readyP, new Promise((r) => setTimeout(r, ms))]);
   return rtHeaders();
 }
+// tests only (node): pretend the auth answer is in
+export function _rtSetForTests(admin, token = 'test-token') { st.ready = true; st.admin = admin; st.token = token; if (readyRes) readyRes(); emit(); }

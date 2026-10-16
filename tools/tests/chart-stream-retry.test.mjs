@@ -21,6 +21,8 @@ globalThis.WebSocket = class {
   close() { this._close(1005); }
 };
 const { FuturesProvider } = await import('../../assets/chart-futures-provider.js');
+const { _rtSetForTests } = await import('../../assets/rt-access.js?v=576');
+_rtSetForTests(true);   // the stream is admin only (2026-10-16)
 const p = new FuturesProvider();
 let polls = 0; p.pollSubscribe = () => { polls++; return () => {}; };
 const got = [];

@@ -34,6 +34,18 @@
 // mouse move. The status reads "GEX updated X min ago" (from the API's market data time /
 // fetched_at). Never "live" / "real-time". Education only. Not financial advice.
 //
+// RANKED STRIKES + PREVIOUS DAYS (Owner order 2026-10-16, assets/chart-gex-ladder-core.js, pure):
+//   "Top 10 ranked" (off by default): the ten biggest |GEX| strikes, each a thin dotted line with a
+//   short tag "<rank> <role> <price>" and a small size bar under the tag; roles Support, Resistance,
+//   Magnet, Accelerant, plus Flip on the zero-gamma line. Roles describe where dealer hedging may
+//   lean; they are not signals. Uses the ladder the API already returned (no extra request).
+//   "Previous days" (on, 2 days, setting 0-5): the two biggest strikes of each of the last N
+//   recorded sessions as faded dotted lines tagged "10/15 · $1.6B", converted with today's
+//   ratio/basis. Sessions come from the GEX history (assets/gex-heat-core.js), cached; a day with
+//   fewer than MIN_SNAPS snapshots is skipped as incomplete. In bar replay only days BEFORE the
+//   replay clock's Eastern-time day are used (no lookahead). Free: SPX / ES only (plan above).
+//   Plan: unchanged, Free = SPX/ES at 0DTE, Pro = every symbol (futures GEX is never free).
+//
 // BAR REPLAY (2026-10-14): levels come from the recorded GEX history as of the replay clock
 // (replayPayload below), never from the API's current levels. Before the history begins:
 // "No GEX history for this time".
@@ -51,7 +63,12 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=574';
+
 const TYPE = 'stk_gex';
+const FLASH = 'stk_gexflash';
+const MIN_SNAPS = 10;          // a recorded session with fewer snapshots is not used as a "previous day"
+const PREV_TOP = 2;            // biggest strikes drawn per previous day
 const API = '/api/gex/levels/';
 const REFRESH_MS = 5 * 60 * 1000;
 const TIER_WAIT_MS = 8000;
@@ -59,6 +76,7 @@ const PRICING = '/#pricing';
 const BARS_API = '/api/chart/bars/';
 const ANCHOR_GAP_S = 120;     // the 1-minute bar used must have closed within 2 min before the options time
 const ANCHOR_MAX_PCT = 0.03;  // a shift above 3% of price is treated as bad data and ignored
+const RANK_COL = { pos: '#03c988', neg: '#ee4276', mag: '#f4f6fa' };   // mint / magenta from the GEX ramps, magnet = bright
 export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#8b7cf6',
   iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6' };
 
@@ -92,7 +110,7 @@ export const LEVEL_DEFS = [
   { id: 'rth_lo', on: 'showRth', col: 'rthColor', label: 'RTH LOW', f: 'rth_low', src: 'ses', dash: 'dotted', w: 1 }
 ];
 
-const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style';
+const G1 = 'GEX levels', G2 = 'Market levels', G3 = 'More session levels', G4 = 'Style', G5 = 'Ranked + previous days';
 const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', defval, group, inline });
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 const SCHEMA = [
@@ -104,6 +122,9 @@ const SCHEMA = [
   tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
   tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
   tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
+  tog('showRanked', 'Top 10 ranked strikes (rank, role, size)', false, G5),
+  tog('showPrev', 'Previous days\u2019 big levels', true, G5),
+  { key: 'prevDays', title: 'Previous days (0-5)', type: 'int', defval: 2, min: 0, max: 5, step: 1, group: G5 },
   tog('showVah', 'pVAH', true, G2, 'vah'), col('vahColor', GEX_COLORS.va, G2, 'vah'),
   tog('showPoc', 'pPOC', true, G2, 'poc'), col('pocColor', GEX_COLORS.va, G2, 'poc'),
   tog('showVal', 'pVAL', true, G2, 'val'), col('valColor', GEX_COLORS.va, G2, 'val'),
@@ -153,7 +174,15 @@ export function fmtLevel(v) {
 // API's own conversion (futures[fut].levels); ladder strikes use its ratio + basis; session
 // levels come from data.session[fut] (already in futures prices).
 const DEF_ON = Object.fromEntries(SCHEMA.filter((x) => x.type === 'bool').map((x) => [x.key, x.defval]));
-export function buildLevels(data, src, opts, shift) {
+// Pure: strike -> chart price for one source (index/ETF: as is; futures: ratio x strike + basis + shift).
+export function convOf(data, src, shift) {
+  if (!src || !src.fut) return (v) => v;
+  const f = data && data.futures && data.futures[src.fut];
+  if (!f || f.error) return () => null;
+  const ratio = num(f.ratio, null), basis = num(f.basis, 0), sh = isNum(shift) ? shift : 0;
+  return (v) => (ratio == null ? null : v * ratio + basis + sh);
+}
+export function buildLevels(data, src, opts, shift, extra) {
   opts = opts || {};
   const sh = src.fut && isNum(shift) ? shift : 0;
   const on = (k) => (typeof opts[k] === 'boolean' ? opts[k] : DEF_ON[k]);
@@ -182,7 +211,22 @@ export function buildLevels(data, src, opts, shift) {
     const v = d.src === 'ses' ? S[d.f] : L[d.f];
     if (!isNum(v)) continue;
     const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : '';
-    out.lines.push({ id: d.id, label: d.label, price: r(v), note, col: d.col, dash: d.dash, w: d.w });
+    out.lines.push({ id: d.id, label: d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label, price: r(v), note, col: d.col, dash: d.dash, w: d.w });
+  }
+  // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
+  const rawSpot = isNum(data.spot) ? data.spot : (isNum(extra && extra.spot) ? extra.spot : null);
+  if (on('showRanked') && rawSpot != null) {
+    const ranked = rankStrikes(ladderFromApi(data), rawSpot, 10);
+    ranked.forEach((x) => {
+      const p = conv(x.strike);
+      if (isNum(p)) out.lines.push({ id: 'rk' + x.rank, label: '#' + x.rank + ' ' + x.role, price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : (x.role === 'Magnet' ? RANK_COL.mag : RANK_COL.pos), dash: 'dotted', w: x.role === 'Magnet' ? 2 : 1, rank: x.rank, share: x.share, alpha: 0.35 + 0.55 * x.share, ranked: true });
+    });
+  }
+  if (on('showPrev') && extra && Array.isArray(extra.prev)) {
+    extra.prev.forEach((d, di) => d.top.forEach((x, i) => {
+      const p = conv(x.strike);
+      if (isNum(p)) out.lines.push({ id: 'pv' + di + '_' + i, label: dayTag(d.day, x.g), price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : RANK_COL.pos, dash: 'dotted', w: 1, alpha: 0.5, faint: true });
+    }));
   }
   if (on('showEm') && isNum(L.iv68_lo) && isNum(L.iv68_hi)) out.band = { lo: r(L.iv68_lo), hi: r(L.iv68_hi) };
   if (on('showStrikes') && Array.isArray(data.ladder)) {
@@ -339,7 +383,7 @@ function barCloseAt(bars, tSec, gapS) {
 export function snapData(snap, src, ratio, close) {
   const em = Array.isArray(snap.em) && isNum(snap.em[0]) && isNum(snap.em[1]) ? snap.em : null;
   const expected = em ? { '68%': [em[0] - em[1], em[0] + em[1]], '80%': [em[0] - 1.2816 * em[1], em[0] + 1.2816 * em[1]] } : {};
-  const d = { call_wall: snap.cw, put_wall: snap.pw, zero_gamma: snap.zg, expected, ladder: [], market: { state: 'replay' } };
+  const d = { call_wall: snap.cw, put_wall: snap.pw, zero_gamma: snap.zg, expected, ladder: ladderFromSnap(snap).map((x) => ({ strike: x.k, gex: x.g })), spot: snap.s, market: { state: 'replay' } };
   if (src.fut) {
     if (!isNum(close) || !isNum(snap.s) || snap.s <= 0) return null;
     const k = isNum(ratio) && ratio > 0 ? ratio : close / snap.s;
@@ -373,6 +417,96 @@ function etStamp(sec) {
   try { return new Date(sec * 1000).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET'; } catch (e) { return ''; }
 }
 
+// ---- previous days (GEX history) -----------------------------------------------------------------
+// Per api + expiry: the recorded sessions list (refreshed every 10 min) and each past day's top strikes
+// (a finished day never changes, so it is computed once). All from the history the heatmap already
+// uses; nothing new is recorded and no GEX vendor is called.
+const PREV_REFRESH_MS = 10 * 60 * 1000;
+const sessCache = new Map();    // api:hdte -> { at, list|null, p }
+const dayCache = new Map();     // api:hdte:day -> { top|null, p }
+export function etDayOf(sec) { const c = window.StrykerGexHeat; return c ? c.etDay(sec) : new Date(sec * 1000).toISOString().slice(0, 10); }
+// Sync read: { days: [{ day, top }], pending } for the last `count` sessions before `nowSec`'s ET day.
+// Kicks the loads it needs; onLoad() fires when something landed.
+export function prevState(api, dte, nowSec, count, onLoad) {
+  const core = window.StrykerGexHeat;
+  const n = Math.max(0, Math.min(5, Math.floor(count || 0)));
+  if (!core || !n || dte > 1) return { days: [], pending: false };
+  const hd = dte === 1 ? 1 : 0, sk = api + ':' + hd;
+  let se = sessCache.get(sk);
+  if (!se || (!se.p && Date.now() - se.at > PREV_REFRESH_MS)) {
+    const e = { at: Date.now(), list: se ? se.list : null, p: null };
+    e.p = core.sessions(api, hd).then((l) => { e.list = Array.isArray(l) ? l : []; }, () => { e.list = e.list || []; })
+      .then(() => { e.p = null; e.at = Date.now(); onLoad(); });
+    sessCache.set(sk, e); se = e;
+  }
+  if (!se.list) return { days: [], pending: true };
+  const usable = se.list.filter((x) => x && x.n >= MIN_SNAPS);
+  const wanted = previousDays(usable, nowSec, n, etDayOf);
+  const days = []; let pending = false;
+  for (const day of wanted) {
+    const dk = sk + ':' + day;
+    let de = dayCache.get(dk);
+    if (!de) {
+      if (dayCache.size > 40) dayCache.clear();
+      de = { top: null, p: null };
+      const w = core.sessionWindow(day);
+      de.p = core.history(api, hd, w.x0, w.x1).then((rows) => { de.top = dayTop((rows || []).filter((r) => r.day === day), PREV_TOP); }, () => { de.top = []; })
+        .then(() => { de.p = null; onLoad(); });
+      dayCache.set(dk, de);
+    }
+    if (de.top) { if (de.top.length) days.push({ day, top: de.top }); } else pending = true;
+  }
+  return { days, pending };
+}
+
+// ---- flash line (a ladder click on Charts) ------------------------------------------------------
+// A short pulsing horizontal line at a chart price, drawn by its own small layer (registered before
+// boot with the GEX natives, so it works whether or not the GEX Levels indicator is on).
+export function flashLayer() {
+  let canvas = null;
+  return {
+    mount(cv) { canvas = cv; },
+    render(a) {
+      if (!canvas) return;
+      const g = canvas.getContext('2d'); if (!g) return;
+      const dpr = a.coords.dpr || 1;
+      g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height);
+      const d = a.data;
+      if (!d || !isNum(d.price) || !(d.alpha > 0)) return;
+      const W = a.coords.width, top = a.bounds.top, bot = top + a.bounds.height;
+      const y = Math.round(a.coords.priceToY(d.price, a.scale, a.bounds)) + 0.5;
+      if (!(y >= top && y <= bot)) return;
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.save(); g.beginPath(); g.rect(0, top, W, a.bounds.height); g.clip();
+      g.globalAlpha = d.alpha; g.strokeStyle = d.color || '#4fe3ac'; g.lineWidth = 2; g.setLineDash([]);
+      g.shadowColor = d.color || '#4fe3ac'; g.shadowBlur = 8;
+      g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+      g.shadowBlur = 0;
+      g.font = '600 11px -apple-system, BlinkMacSystemFont, \"Trebuchet MS\", Roboto, Ubuntu, sans-serif'; g.textBaseline = 'middle';
+      const t = d.text || '', w = Math.ceil(g.measureText(t).width) + 10;
+      g.fillStyle = d.color || '#4fe3ac'; g.fillRect(Math.max(2, W - w - 2), y - 8, w, 16);
+      g.fillStyle = '#0b0b0b'; g.fillText(t, Math.max(2, W - w - 2) + 5, y + 0.5);
+      g.restore();
+    },
+    destroy() { canvas = null; }
+  };
+}
+const FLASH_STEPS = [1, 0.2, 1, 0.2, 1, 0.7, 0.45, 0.2, 0];
+let flashSeq = 0;
+// Flash a horizontal line at `price` (chart price units) on the active chart cell. Returns true when it ran.
+export function flashLevel(ws, price, text, color) {
+  if (!isNum(price)) return false;
+  let R = null;
+  try { const cell = ws.cell(ws.active.id); R = cell.chart.renderer.renderer; } catch (e) { return false; }
+  if (!R || !R.setNativeData) return false;
+  const my = ++flashSeq;
+  FLASH_STEPS.forEach((alpha, i) => setTimeout(() => {
+    if (my !== flashSeq) return;
+    try { R.setNativeData(FLASH, alpha > 0 ? { price, alpha, text: text || '', color: color || '#4fe3ac' } : null); } catch (e) {}
+  }, i * 260));
+  return true;
+}
+
 // ---- plan tier ----------------------------------------------------------------------------
 let tierP = null;
 export function gexTier() {
@@ -392,6 +526,17 @@ function resolveSrc(ctx) {
   let provider = '';
   try { const r = ctx.data.resolve(ctx.symbol); if (r) provider = r.provider; } catch (e) {}
   return gexSource(ctx.symbol, provider);
+}
+// One built level -> one painted line. Ranked / previous-day lines keep their own colour, width and
+// dotted style (the Style group's line style / width apply to the named GEX and market levels only).
+function mapLine(l, i, color, sty, wd) {
+  if (l.rgb) {
+    const text = l.label;   // ranked + previous-day tags stay short: the exact price is on the axis tag
+    return { id: l.id, price: l.price, color: l.faint ? hexA(l.rgb, l.alpha) : l.rgb, name: l.label, text, dash: l.dash, w: l.w, alpha: l.ranked ? l.alpha : 1, rank: l.rank || 0, share: l.share || 0, faint: !!l.faint };
+  }
+  return { id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
+    dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
+    w: wd >= 1 ? Math.min(4, wd) : l.w };
 }
 class GexNative {
   constructor() { this.inputs = {}; this.ctx = null; this.tier = null; this.sig = ''; this.status = ''; }
@@ -449,15 +594,13 @@ class GexNative {
         const opts = Object.assign({}, i);
         if (this.tier && this.tier.free) opts.showStrikes = false;
         const shift = src.fut ? gexAnchor(src.fut, data) : null;
-        const lv = buildLevels(data, src, opts, shift);
+        const lv = buildLevels(data, src, opts, shift, { prev: this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts) });
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
           const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
           payload = {
-            lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
-              dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
-              w: wd >= 1 ? Math.min(4, wd) : l.w })),
+            lines: lv.lines.map((l) => mapLine(l, i, color, sty, wd)),
             band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
             labels: i.labels !== false,
             priceTags: i.priceTags !== false,
@@ -472,6 +615,15 @@ class GexNative {
     if (sig === this.sig) return;
     this.sig = sig;
     try { this.ctx.pushData(payload); } catch (e) {}
+  }
+  // Previous days for this source at time nowSec (replay: the snapshot time). Free members get SPX/ES only
+  // (src.pro already handled: a Pro-only source never gets here for a Free member).
+  prevFor(src, dte, nowSec, opts) {
+    const on = typeof opts.showPrev === 'boolean' ? opts.showPrev : true;
+    const n = isNum(opts.prevDays) ? opts.prevDays : 2;
+    if (!on || n <= 0) return [];
+    const st = prevState(src.api, dte, nowSec, n, () => this.refresh());
+    return st.days;
   }
   // Bar replay: the history snapshot as of the replay clock (see "bar replay" above).
   replayPayload(src) {
@@ -492,14 +644,12 @@ class GexNative {
     const i = this.inputs;
     const opts = Object.assign({}, i);
     if (this.tier && this.tier.free) opts.showStrikes = false;
-    const lv = buildLevels(data, src, opts, null);
+    const lv = buildLevels(data, src, opts, null, { prev: this.prevFor(src, dte, snap.t, opts), spot: snap.s });
     if (lv.err) return { note: lv.err };
     const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
     const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
     return {
-      lines: lv.lines.map((l) => ({ id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
-        dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
-        w: wd >= 1 ? Math.min(4, wd) : l.w })),
+      lines: lv.lines.map((l) => mapLine(l, i, color, sty, wd)),
       band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
       labels: i.labels !== false, priceTags: i.priceTags !== false, showStatus: i.showStatus !== false, shift: 0,
       snapT: snap.t,
@@ -609,11 +759,14 @@ function gexLayer() {
         if (!(y >= top && y <= bot)) continue;
         drawn.push({ id: l.id, price: l.price, y, yPrice: a.coords.yToPrice ? a.coords.yToPrice(y - 0.5, a.scale, a.bounds) : null, pxPrice: a.coords.yToPrice ? Math.abs(a.coords.yToPrice(top, a.scale, a.bounds) - a.coords.yToPrice(top + 1, a.scale, a.bounds)) : null });
         g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
+        g.globalAlpha = l.alpha > 0 && l.alpha < 1 ? l.alpha : 1;
         g.setLineDash(l.dash === 'dashed' ? [6, 4] : l.dash === 'dotted' ? [2, 3] : []);
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+        g.globalAlpha = 1;
         if (d.labels) tags.push({ y, l });
       }
       g.setLineDash([]);
+      const byId = new Map(d.lines.map((l) => [l.id, l]));
       // Right-edge tags. Levels within MERGE_PX of each other share ONE tag ("pPOC · ZERO GAMMA
       // 7881"), so labels never draw on top of each other; the rest are nudged apart (stacked).
       const groups = mergeTags(tags);
@@ -629,8 +782,11 @@ function gexLayer() {
         t.box = { x, y: t.yc - TAG_H / 2, w, h: TAG_H };
         g.fillStyle = t.color;
         g.fillRect(x, t.yc - TAG_H / 2, w, TAG_H);
-        g.fillStyle = '#0b0b0b';
+        g.fillStyle = t.ids.some((id) => byId.get(id) && byId.get(id).faint) ? '#e8edf2' : '#0b0b0b';
         g.fillText(t.text, x + 5, t.yc + 0.5);
+        // ranked strike: a small size bar along the bottom of its tag (width = share of the biggest)
+        const rl = t.ids.length === 1 ? byId.get(t.ids[0]) : null;
+        if (rl && rl.rank) { g.fillStyle = 'rgba(11,11,11,.6)'; g.fillRect(x + 1, t.yc + TAG_H / 2 - 3, Math.max(3, Math.round((w - 2) * rl.share)), 2); }
       }
       lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
@@ -664,6 +820,7 @@ export function installGexLevels(Core) {
   if (installed) return;
   installed = true;
   Core.registerRendererLayer({ id: TYPE, placement: 'above-data', create: gexLayer });
+  Core.registerRendererLayer({ id: FLASH, placement: 'above-data', create: flashLayer });
   Core.registerNativeIndicator({
     type: TYPE, title: 'TradeZoro GEX Levels', shortTitle: 'GEX Levels', paneHint: 'price', overlay: true,
     inputsSchema: () => SCHEMA, defaultInputs: () => Object.fromEntries(SCHEMA.map((x) => [x.key, x.defval])),

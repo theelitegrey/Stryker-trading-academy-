@@ -16,7 +16,7 @@
 // Edge-cached 30 s, rate-limited per IP (20/min for /book-history and /status; /status is also
 // memoised 30 s in the DO). Public market data only: no user data.
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
-import { validateGexChain, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
+import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
@@ -563,6 +563,30 @@ async function route(req, env, ctx) {
       const v = await validateGexChain(sym, part, buf, Date.now());
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at, { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/gex-fast-ingest') {
+      // Fast GEX feeder (gex_fast.py, InsightSentry + Cboe OI): per-strike gamma x OI, ~every 2 s. Same secret, gzip JSON <= 256 KB.
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > GEX_MAX_BODY) return new Response('too large', { status: 413 });
+      const buf = await req.arrayBuffer();
+      const v = await validateGexFast(buf, Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return stub(env).fetch('https://do/gex-ingest?sym=FAST&part=fast&ts=' + v.built, { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/gex-fast') {
+      // Read by the site's /api/gex/ladder Function (server to server). Edge-cached 1 s.
+      if (req.method !== 'GET') return new Response('GET only', { status: 405 });
+      if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      const ckey = new Request('https://book-recorder.cache/gexfast/' + Math.floor(Date.now() / 1000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/gex-chain?sym=FAST&part=fast');
+        if (d.status !== 200) return new Response('no data', { status: 404, headers: { 'cache-control': 'no-store' } });
+        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'cache-control': 'public, max-age=1', 'x-gex-built': d.headers.get('x-gex-fetched-at') || '0' } });
+        ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return r;
     }
     if (u.pathname === '/gex-snap') {
       // GEX history snapshots from the feeder: same shared secret, gzip JSON, <= 64 KB

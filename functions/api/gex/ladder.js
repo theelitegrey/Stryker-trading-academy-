@@ -6,6 +6,33 @@
 // Education only. Not financial advice.
 import { MARKETS, json } from './_engine.js';
 import { onRequestGet as levelsGet } from './levels/[name].js';
+import { gexAtSpot, netNear, ladderNear } from '../../../assets/gex-fast-core.js';
+
+// FAST path (InsightSentry add-on, 2026-10-16): the server feeder gex_fast.py rebuilds per-strike gamma x OI about every
+// 15 s per underlying and posts the latest spot about once a second; this turns the newest block into the ladder at the
+// newest spot with the SAME formula as the engine (assets/gex-fast-core.js, unit-tested against functions/api/gex/_engine.js).
+// Anything missing / older than FAST_MAX_AGE_S -> the normal /api/gex/levels path (Cboe, ~1 min).
+const FAST_MAX_AGE_S = 90;
+const FAST_SPOT_MAX_AGE_S = 20;
+async function fetchFast(env) {
+  const base = (env && env.GEX_CHAIN_URL) || 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort('timeout'), 1500);
+  try {
+    const res = await fetch(base.replace(/\/gex-chain$/, '/gex-fast'), { signal: ctrl.signal, headers: { 'user-agent': 'TradeZoroGEX/1.0' } });
+    if (!res.ok) return null;
+    const text = await new Response(new Blob([await res.arrayBuffer()]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    return JSON.parse(text);
+  } catch (e) { return null; } finally { clearTimeout(timer); }
+}
+function fromFast(fast, u, dte, nowSec) {
+  const e = fast && fast.u && fast.u[u], blk = e && e[String(dte)];
+  if (!blk || !(nowSec - e.built <= FAST_MAX_AGE_S)) return null;
+  const sp = fast.spots && fast.spots[u];
+  const spot = sp && sp.p > 0 && nowSec - sp.t <= FAST_SPOT_MAX_AGE_S ? sp.p : blk.s0;
+  const rows = gexAtSpot(blk, spot);
+  return { underlying: u, spot, net_gex: netNear(rows, spot), fetched_at: e.built, built: e.built, spot_t: sp ? sp.t : null, asof: null, expiry: blk.x,
+    market: { state: 'open' }, ladder: ladderNear(rows, spot).map((r) => ({ strike: r.strike, gex: r.gex })), src: 'fast' };
+}
 
 const ALLOWED = ['SPX', 'QQQ', 'SPY'];
 const TTL_S = 1;
@@ -19,7 +46,7 @@ function trim(d) {
   if (!d || d.error) return { error: (d && d.error) || 'no data' };
   const m = d.market || {};
   return {
-    underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, asof: d.asof, expiry: d.expiry,
+    underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, built: d.fetched_at, asof: d.asof, expiry: d.expiry,
     stale: d.stale ? true : undefined, market: { state: m.state, data_ts: m.data_ts, options_ts: m.options_ts },
     ladder: Array.isArray(d.ladder) ? d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })) : []
   };
@@ -47,7 +74,11 @@ export async function onRequestGet(ctx) {
     if (hit) { const etag = hit.headers.get('etag'); if (etag && notModified(request, etag)) return resp(null, etag, 304); return hit; }
   }
   const out = {};
+  const nowSec = Date.now() / 1000;
+  const fast = (safeDte === 0 || safeDte === 1) ? await fetchFast(env) : null;
   await Promise.all(want.map(async (u) => {
+    const f = fast ? fromFast(fast, u, safeDte, nowSec) : null;
+    if (f) { out[u] = f; return; }
     try {
       const r = await levelsGet({ request: new Request(`${url.origin}/api/gex/levels/${u}?dte=${safeDte}`, { method: 'GET' }), params: { name: u }, env });
       out[u] = trim(await r.json());

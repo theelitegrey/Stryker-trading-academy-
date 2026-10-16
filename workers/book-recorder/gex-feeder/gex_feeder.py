@@ -422,7 +422,9 @@ def main(force=False):
                         snaps.append(sn)
                 except Exception as e:
                     log('%s %dDTE snapshot failed: %s %s' % (u, dte, type(e).__name__, str(e)[:80]))
-    if snaps:
+    # chain parts refresh every run (1 min, the Cboe file's own cadence); history snapshots stay every 2nd minute
+    # so the recorder's heatmap/replay store grows at the same rate as before (2026-10-16).
+    if snaps and datetime.now(timezone.utc).minute % 2 == 0:
         res = post_snaps(url, key, snaps)
         bad += 0 if res.startswith('200') else 1
         log('history: %d snapshots -> %s' % (len(snaps), res))

@@ -171,7 +171,8 @@ export function createLadder(root, opts) {
     if (st.spotRow !== nr) { if (st.spotRow) st.spotRow.classList.remove('is-spot'); nr.classList.add('is-spot'); st.spotRow = nr; }
   }
   function paintFoot(datas) {
-    const times = datas.filter((d) => d && !d.error).map(dataTime).filter(isNum);
+    // the GEX snapshot's OWN build time (when we built it), never the delayed-futures stamp (CoS 2026-10-16)
+    const times = datas.filter((d) => d && !d.error).map((d) => (isNum(d.built) ? d.built : isNum(d.fetched_at) ? d.fetched_at : dataTime(d))).filter(isNum);
     foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + 'One colour scale across the three columns. Education only. Not financial advice.';
   }
   function paint() {

@@ -34,3 +34,24 @@ export async function validateGexChain(sym, part, buf, nowMs) {
   }
   return { fetched_at: d.fetched_at };
 }
+
+// Fast GEX blob (gex_fast.py): { v:1, built, spots:{U:{p,t}}, u:{ SPX:{ built, '0':blk, '1':blk }, ... } }, blk = { x, s0, T, k[], c[], p[], ci[], pi[] }.
+export async function validateGexFast(buf, nowMs) {
+  if (!buf || buf.byteLength < 20 || buf.byteLength > GEX_MAX_BODY) return { error: 'bad size' };
+  const b = new Uint8Array(buf, 0, 2);
+  if (b[0] !== 0x1f || b[1] !== 0x8b) return { error: 'not gzip' };
+  let d;
+  try { d = await gunzipJson(buf); } catch (e) { return { error: 'bad gzip/json' }; }
+  if (!d || d.v !== 1 || !d.u || typeof d.u !== 'object') return { error: 'bad header' };
+  const now = nowMs / 1000;
+  if (!Number.isFinite(d.built) || d.built > now + 60 || now - d.built > FRESH_S) return { error: 'stale or future built' };
+  for (const [u, e] of Object.entries(d.u)) {
+    if (!['SPX', 'QQQ', 'SPY'].includes(u) || !e || !Number.isFinite(e.built)) return { error: 'bad symbol ' + u };
+    for (const m of ['0', '1']) {
+      const k = e[m]; if (k === undefined) continue;
+      if (!(k.s0 > 0) || !(k.T > 0) || !Array.isArray(k.k) || k.k.length > 600) return { error: 'bad block ' + u + m };
+      for (const f of ['c', 'p', 'ci', 'pi']) if (!Array.isArray(k[f]) || k[f].length !== k.k.length) return { error: 'bad block ' + u + m };
+    }
+  }
+  return { built: Math.round(d.built) };
+}

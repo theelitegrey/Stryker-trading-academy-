@@ -1,0 +1,24 @@
+[Unit]
+Description=TradeZoro fast GEX feeder: InsightSentry chain + Cboe OI -> per-strike gamma x OI -> book recorder Worker (long-running)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/gex_fast.py
+Restart=always
+RestartSec=15
+# one WebSocket + one 4-13 MB chain parsed at a time (~100-200 MB peak for SPX)
+MemoryMax=400M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+SyslogIdentifier=gex-fast
+
+[Install]
+WantedBy=multi-user.target

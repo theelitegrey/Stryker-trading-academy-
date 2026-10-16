@@ -12,3 +12,8 @@ install -m 0644 "$here/gex-feeder.timer" /etc/systemd/system/gex-feeder.timer
 systemctl daemon-reload
 systemctl enable --now gex-feeder.timer
 systemctl list-timers gex-feeder.timer --no-pager
+# fast feeder (InsightSentry add-on, 2026-10-16): long-running service, needs insightsentry.env (chief-of-staff scripts)
+install -m 0755 "$here/gex_fast.py" "$dst/gex_fast.py"
+install -m 0644 "$here/gex-fast.service" /etc/systemd/system/gex-fast.service
+systemctl daemon-reload
+systemctl enable gex-fast.service

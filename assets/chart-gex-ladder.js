@@ -17,8 +17,8 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated X min ago" only; Education only. Not financial advice.
-import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, agoText, dataTime } from './chart-gex-levels.js?v=579';
-import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney } from './chart-gex-ladder-core.js?v=579';
+import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, agoText, dataTime } from './chart-gex-levels.js?v=580';
+import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney } from './chart-gex-ladder-core.js?v=580';
 
 export const COLS = [['SPX', 'S&P 500'], ['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF']];
 const PHONE_MAX = 700;
@@ -49,7 +49,7 @@ export function columnModel(data, vmax) {
 function colHtml(api, label, m, locked, nearSpot) {
   const head = '<div class="stkgl-ch"><div class="stkgl-sym"><b>' + api + '</b><span>' + esc(label) + '</span>' + (locked ? '<i class="stkgl-pro">Pro</i>' : '') + '</div>' +
     (m ? '<div class="stkgl-spot">' + fmtSpot(m.spot) + '</div>' +
-      '<div class="stkgl-net ' + (m.net < 0 ? 'neg' : 'pos') + '" title="Net GEX, all strikes">Net ' + fmtMoney(m.net) + '</div>' +
+      '<div class="stkgl-net ' + (m.net < 0 ? 'neg' : 'pos') + '" title="Net GEX of this 0DTE response, the same figure the GEX page shows for 0DTE">Net 0DTE ' + fmtMoney(m.net) + '</div>' +
       (m.mg ? '<div class="stkgl-mag" title="Largest |GEX| strike within 5% of spot">Magnet ' + fmtK(m.mg.strike) + ' · ' + (m.mg.pct >= 0 ? '+' : '\u2212') + Math.abs(m.mg.pct).toFixed(1) + '%</div>' : '') : '') + '</div>';
   if (locked) return head + '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/#pricing">See Pro</a></div>';
   if (!m) return head + '<div class="stkgl-empty">Loading…</div>';
@@ -65,10 +65,21 @@ function colHtml(api, label, m, locked, nearSpot) {
   return head + h + '</div>';
 }
 
+// Plan: resolves {free:false} only when a signed-in Pro/admin is confirmed. A signed-out visitor never
+// resolves (plan-limits waits for a sign-in), so the lock simply stays. Free -> {free:true}.
+let planP = null;
+function planTier() {
+  if (planP) return planP;
+  planP = new Promise((resolve) => {
+    try { if (typeof window.strykerPlanTier === 'function') window.strykerPlanTier().then((r) => resolve(r || { free: true }), () => resolve({ free: true })); } catch (e) { resolve({ free: true }); }
+  });
+  return planP;
+}
+
 // Builds the ladder view into `root`. opts: { isPhone(), onPick(api, strike, data), replayNote(): string }
 export function createLadder(root, opts) {
   opts = opts || {};
-  let tier = null, tab = 'SPX', timer = 0, active = false, centered = {}, lastSig = '', seq = 0;
+  let tier = null, tierAsked = false, tab = 'SPX', timer = 0, active = false, centered = {}, lastSig = '', seq = 0;
   root.classList.add('stkgl-body');
   root.innerHTML = '<div class="stkgl-tabs" role="tablist" aria-label="Ladder market">' + COLS.map((c) => '<button type="button" role="tab" class="stkgl-tab" data-api="' + c[0] + '">' + c[0] + '</button>').join('') + '</div>' +
     '<div class="stkgl-note" hidden></div><div class="stkgl-cols">' + COLS.map((c) => '<section class="stkgl-col" data-api="' + c[0] + '" aria-label="' + c[0] + ' GEX ladder"></section>').join('') + '</div>' +
@@ -76,12 +87,14 @@ export function createLadder(root, opts) {
   const tabsEl = root.querySelector('.stkgl-tabs'), note = root.querySelector('.stkgl-note'), foot = root.querySelector('.stkgl-foot');
   const colEl = (api) => root.querySelector('.stkgl-col[data-api="' + api + '"]');
   const phone = () => (opts.isPhone ? opts.isPhone() : window.innerWidth <= PHONE_MAX);
-  const locked = (api) => api !== 'SPX' && !!tier && !!tier.free;
+  // Default to the lock: QQQ / SPY open only once Pro is CONFIRMED (a signed-out or Free visitor never waits for it).
+  const locked = (api) => api !== 'SPX' && !(tier && !tier.free);
+  const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || gexCached(api, 0);
 
   tabsEl.addEventListener('click', (e) => { const b = e.target.closest('.stkgl-tab'); if (!b) return; tab = b.dataset.api; sync(); centerAll(); });
   root.addEventListener('click', (e) => {
     const r = e.target.closest('.stkgl-row'); if (!r || !opts.onPick) return;
-    const api = r.dataset.api; opts.onPick(api, parseFloat(r.dataset.k), gexCached(api, 0));
+    const api = r.dataset.api; opts.onPick(api, parseFloat(r.dataset.k), dataFor(api));
   });
   function sync() {
     root.classList.toggle('is-phone', phone());
@@ -99,7 +112,7 @@ export function createLadder(root, opts) {
     sync();
     const rn = opts.replayNote ? opts.replayNote() : '';
     note.hidden = !rn; note.textContent = rn || '';
-    const datas = COLS.map((c) => (locked(c[0]) ? null : gexCached(c[0], 0)));
+    const datas = COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0])));
     const vmax = sharedScale(datas.map((d) => (d && !d.error ? ladderFromApi(d) : [])));
     const models = datas.map((d) => (rn ? null : columnModel(d, vmax)));
     const times = datas.filter((d) => d && !d.error).map(dataTime).filter(isNum);
@@ -118,9 +131,10 @@ export function createLadder(root, opts) {
   async function load() {
     const my = ++seq;
     paint();
-    if (!tier) { gexTier().then((t) => { tier = t; paint(); load(); }); }
+    if (!tier && !tierAsked) { tierAsked = true; planTier().then((t) => { tier = t; lastSig = ''; paint(); load(); }); }
     if (opts.replayNote && opts.replayNote()) return;
     const want = COLS.map((c) => c[0]).filter((a) => a === 'SPX' || (tier && !tier.free));
+    if (opts.dataFor) want.splice(0, want.length, ...want.filter((a) => !opts.dataFor(a)));
     await Promise.all(want.map((a) => gexFetch(a, 0)));
     if (my === seq) paint();
   }
@@ -223,7 +237,11 @@ export function mountGexPage() {
     card.innerHTML = '<div class="gex-chart-head"><h2>GEX ladder</h2></div>';
     const body = el('div', { class: 'stkgl-wrap' }); card.appendChild(body);
     chartCard.parentNode.insertBefore(card, chartCard.nextSibling);
-    const ladder = createLadder(body, { isPhone: () => window.innerWidth <= PHONE_MAX });
+    // The page already holds the response for its selected market + expiry: use it for that market so the ladder's
+    // Net equals the page's NET GEX (one number per page). Other columns use the shared cache.
+    const pageData = (api) => { const g = window.strykerGexData; return g && g.u === api && g.dte === 0 && g.data && !g.data.error ? g.data : null; };
+    const ladder = createLadder(body, { isPhone: () => window.innerWidth <= PHONE_MAX, dataFor: pageData });
+    window.addEventListener('stryker:gex-data', () => { if (ladder.isActive) ladder.refresh(); });
     tabs.addEventListener('click', (e) => {
       const b = e.target.closest('[data-view]'); if (!b) return;
       const on = b.getAttribute('data-view') === 'ladder';

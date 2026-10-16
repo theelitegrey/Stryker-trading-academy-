@@ -203,6 +203,9 @@
   }
 
   function render(d){
+    // the Ladder tab (assets/chart-gex-ladder.js) shows the SAME response, so there is one "Net" number on the page
+    window.strykerGexData = { u: cur, dte: curDte, data: d };
+    try{ window.dispatchEvent(new CustomEvent('stryker:gex-data')); }catch(e){}
     var pos = d.regime === 'POSITIVE';
     var dteLabel = (DTES.find(function(x){return x.v===curDte;}) || {}).l || (curDte + 'DTE');
     var futs = Object.keys(d.futures || {}).filter(function(k){ return !(d.futures[k] || {}).error; });

@@ -84,6 +84,9 @@ const tagRe = /^\d{1,2}\/\d{1,2} · \$[\d.]+[MB]$/;
     await setSym(p, 'futures:ES1!', '5');
     await addGex(p, { showRanked: true }); await sleep(4500);
     let d = await gexData(p);
+    check((d.lines || []).filter((l) => /^rk\d+$/.test(l.id)).length === 5, 'default: top 5 ranked strikes shown');
+    await setInputs(p, { rankedCount: '10' }); await sleep(1200);
+    d = await gexData(p);
     const rk = (d.lines || []).filter((l) => /^rk\d+$/.test(l.id));
     check(rk.length === 10, 'ES: ten ranked strike lines (' + rk.length + ')');
     check(rk.every((l) => /^#\d+ (Support|Resistance|Magnet|Accelerant)$/.test(l.text)), 'ranked tags read "#n Role": ' + rk.slice(0, 3).map((l) => l.text).join(' | '));
@@ -113,7 +116,7 @@ const tagRe = /^\d{1,2}\/\d{1,2} · \$[\d.]+[MB]$/;
     await setInputs(p, { showPrev: true, showRanked: false }); await sleep(1000);
     d = await gexData(p);
     check(!(d.lines || []).some((l) => /^rk/.test(l.id)) && (d.lines || []).filter((l) => /^pv/.test(l.id)).length === 4, 'ranked toggle off: no ranked tags, previous days stay');
-    await setInputs(p, { showRanked: true });
+    await setInputs(p, { showRanked: true, rankedCount: '10' });
     // NQ conversion
     await setSym(p, 'futures:NQ1!', '5'); await sleep(3000);
     d = await gexData(p);
@@ -145,7 +148,7 @@ const tagRe = /^\d{1,2}\/\d{1,2} · \$[\d.]+[MB]$/;
     // ---- phone 390 Pro ----
     ({ ctx, p, errors, hits } = await open(b, { w: 390, h: 844, mobile: true }));
     await setSym(p, 'futures:ES1!', '5');
-    await addGex(p, { showRanked: true }); await sleep(4500);
+    await addGex(p, { showRanked: true, rankedCount: '10' }); await sleep(4500);
     await wide(p, 7640, 8000); await sleep(800);
     tg = await tagsOf(p);
     check(tg.length > 3 && noOverlap(tg), '390: ' + tg.length + ' tags, none overlap');
@@ -157,7 +160,7 @@ const tagRe = /^\d{1,2}\/\d{1,2} · \$[\d.]+[MB]$/;
     // ---- Free: ES yes, NQ locked ----
     ({ ctx, p, errors, hits } = await open(b, { w: 1440, h: 900, free: true }));
     await setSym(p, 'futures:ES1!', '5');
-    await addGex(p, { showRanked: true }); await sleep(4500);
+    await addGex(p, { showRanked: true, rankedCount: '10' }); await sleep(4500);
     d = await gexData(p);
     check((d.lines || []).filter((l) => /^rk/.test(l.id)).length === 10 && (d.lines || []).filter((l) => /^pv/.test(l.id)).length === 4, 'Free ES: ranked + previous days work on SPX/ES');
     hits.length = 0;

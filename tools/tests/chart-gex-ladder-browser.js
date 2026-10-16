@@ -12,7 +12,10 @@ const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8092';
 const OUT = process.argv[2] || '/tmp';
 const FIX = path.join(__dirname, 'fixtures', 'gex');
 const LV = { SPX: JSON.parse(fs.readFileSync(path.join(FIX, 'SPX-0.json'))), QQQ: JSON.parse(fs.readFileSync(path.join(FIX, 'QQQ-0.json'))) };
-LV.SPY = LV.QQQ;
+// SPY fixture: SPX / 10 with its own strikes and different values (never the QQQ data)
+LV.SPY = (() => { const x = JSON.parse(JSON.stringify(LV.SPX)); const by = new Map();
+  x.ladder.forEach((r) => { const k = Math.round(r.strike / 10); const o = by.get(k) || { strike: k, gex: 0, dex: 0, oi: 0 }; o.gex += r.gex * 0.093; o.oi += r.oi; by.set(k, o); });
+  x.ladder = [...by.values()].sort((p, q) => q.strike - p.strike); x.spot = Math.round(x.spot / 10 * 100) / 100 + 0.17; x.underlying = 'SPY'; x.net_gex = x.ladder.reduce((t, r) => t + r.gex, 0); delete x.futures; return x; })();
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -21,9 +24,10 @@ const DAY = etDay(Date.now());
 const DAYS = (() => { const out = [DAY]; let t = Date.parse(DAY + 'T12:00:00Z'); while (out.length < 4) { t -= 86400000; if (![0, 6].includes(new Date(t).getUTCDay())) out.push(new Date(t).toISOString().slice(0, 10)); } return out; })();   // newest first
 const ALL = (U, d) => DAYS.slice().reverse().flatMap((day) => session(U, d, day));
 
-async function open(b, { w, h, mobile, free }) {
+async function open(b, { w, h, mobile, free, anon }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
+  await ctx.addInitScript((anon) => { if (anon) Object.defineProperty(window, 'strykerPlanTier', { configurable: false, get: () => () => new Promise(() => {}), set() {} }); }, !!anon);
   await ctx.addInitScript((free) => {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker_bar_replay_v1'); localStorage.setItem('stryker.volume', '1'); } catch (e) {}
     if (free) Object.defineProperty(window, 'strykerPlanTier', { configurable: false, get: () => () => Promise.resolve({ free: true }), set() {} });
@@ -111,9 +115,11 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await sleep(800);
     let st = await state(p);
     check(st.cols.length === 3 && st.cols.every((c) => c.shown && c.n > 10), 'desktop: three columns render side by side (' + st.cols.map((c) => c.api + ':' + c.n).join(' ') + ')');
+    const dist = await p.evaluate(() => { const g = (api) => [...document.querySelectorAll('#stkgl .stkgl-col[data-api="' + api + '"] .stkgl-row')].map((r) => r.innerText.replace(/\s+/g, ' ')).join('|'); const sp = (api) => parseFloat(document.querySelector('#stkgl .stkgl-col[data-api="' + api + '"] .stkgl-spot').textContent.replace(/,/g, '')); return { q: g('QQQ'), y: g('SPY'), spx: sp('SPX'), qqq: sp('QQQ'), spy: sp('SPY') }; });
+    check(dist.q !== dist.y && Math.abs(dist.spy - dist.spx / 10) < 5, 'SPY column is SPY data (spot ' + dist.spy + ' ~ SPX/10 ' + (dist.spx / 10).toFixed(1) + '), not the QQQ column (' + dist.qqq + ')');
     check(st.cols.every((c) => c.max === 1), 'one biggest strike highlighted per column (' + st.cols.map((c) => c.maxK).join(', ') + ')');
     check(st.cols.every((c) => c.spotVisible), 'spot divider auto-scrolled into view in every column');
-    check(st.cols.every((c) => /Net [+\u2212]\$/.test(c.head) && /Magnet [\d,.]+ · [+\u2212][\d.]+%/.test(c.head)), 'header: symbol, spot, net GEX, magnet + % distance: ' + st.cols[0].head.replace(/\n/g, ' | '));
+    check(st.cols.every((c) => /Net( 0DTE)? [+\u2212]\$/.test(c.head) && /Magnet [\d,.]+ · [+\u2212][\d.]+%/.test(c.head)), 'header: symbol, spot, net GEX, magnet + % distance: ' + st.cols[0].head.replace(/\n/g, ' | '));
     check(st.cols.every((c) => /[+\u2212]\$[\d.]+[KMB]/.test(c.first || '') || c.n > 0), 'rows show strike + signed dollars: ' + st.cols[0].first);
     check(!/live|real-time|delayed|behind/i.test(st.foot) && /updated/.test(st.foot) && /Education only/.test(st.foot), 'wording: "' + st.foot + '"');
     // one shared colour scale: the biggest row of the biggest column fills 100%; same $ => same fill in two columns
@@ -164,6 +170,19 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     }
     if (want('b')) {
 
+    // ---- Signed-out (plan never resolves): lock card fast, stays locked, no QQQ/SPY request ----
+    {
+      let c0, p0, e0; ({ ctx: c0, p: p0, errors: e0 } = await open(b, { w: 1440, h: 900, anon: true }));
+      const hq = []; p0.on('request', (r) => { if (/api\/gex\/levels\/(QQQ|SPY)/.test(r.url())) hq.push(r.url()); });
+      await p0.evaluate(() => window.__stkGexLadder.open());
+      await p0.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-lock').length === 1, null, { timeout: 2000 }).then(() => check(true, 'signed-out: QQQ + SPY show the Pro lock card within 2 s'), () => check(false, 'signed-out: lock card within 2 s'));
+      await sleep(10000);
+      const a0 = await state(p0);
+      check(a0.cols[1].locked && a0.cols[2].locked && a0.cols[1].pro && !/Loading/.test(await p0.evaluate(() => document.getElementById('stkgl').innerText)) && a0.cols[0].n > 10, 'signed-out at 10 s: still the lock card (no "Loading…"), SPX ladder shown');
+      check(!hq.length, 'signed-out: no QQQ/SPY GEX request');
+      await shot(p0, 'ladder-signedout-1440.png');
+      await c0.close();
+    }
     // ---- Free, desktop: SPX only ----
     ({ ctx, p, errors } = await open(b, { w: 1440, h: 900, free: true }));
     const hitsQ = [];
@@ -225,6 +244,9 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
       check(shownN === (mobile ? 1 : 3) && s2.cols.filter((c) => c.shown).every((c) => c.max === 1 && c.spotVisible), 'GEX page ' + w + ': Ladder tab, ' + shownN + ' column(s), biggest marked, spot in view');
       await pg.evaluate(() => { const c = document.getElementById('gex-ladder-card'); window.scrollTo(0, c.getBoundingClientRect().top + window.scrollY - (window.innerWidth < 700 ? 60 : 80)); });
       await shot(pg, 'ladder-gexpage-' + w + '.png');
+      const nets = await pg.evaluate(() => { const hero = (document.querySelector('#gex-hero .gex-kv b') || {}).textContent; const lad = (document.querySelector('#gex-ladder-card .stkgl-col[data-api="SPX"] .stkgl-net') || {}).textContent; return { hero, lad }; });
+      const num = (t) => { const m = /([\u2212-]?)\$?([\d.]+)B/.exec(t || ''); return m ? (m[1] ? '-' : '') + m[2] : ''; };
+      check(parseFloat(num(nets.hero)) === parseFloat(num(nets.lad)) && !isNaN(parseFloat(num(nets.lad))), 'GEX page ' + w + ': one Net number: hero ' + nets.hero + ' = ladder ' + nets.lad);
       check(!errs.length, 'GEX page ' + w + ': no page errors (' + errs.slice(0, 2).join(' | ') + ')');
       await ctx2.close();
     }

@@ -63,8 +63,8 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=579';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=579';
+import { rtHeadersReady } from './rt-access.js?v=580';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=580';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -123,7 +123,8 @@ const SCHEMA = [
   tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
   tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
   tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
-  tog('showRanked', 'Top 10 ranked strikes (rank, role, size)', false, G5),
+  tog('showRanked', 'Ranked strikes (rank, role, size)', false, G5),
+  { key: 'rankedCount', title: 'Ranked strikes shown', type: 'string', defval: '5', options: ['5', '10'], group: G5 },
   tog('showPrev', 'Previous days\u2019 big levels', true, G5),
   { key: 'prevDays', title: 'Previous days (0-5)', type: 'int', defval: 2, min: 0, max: 5, step: 1, group: G5 },
   tog('showVah', 'pVAH', true, G2, 'vah'), col('vahColor', GEX_COLORS.va, G2, 'vah'),
@@ -217,7 +218,8 @@ export function buildLevels(data, src, opts, shift, extra) {
   // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
   const rawSpot = isNum(data.spot) ? data.spot : (isNum(extra && extra.spot) ? extra.spot : null);
   if (on('showRanked') && rawSpot != null) {
-    const ranked = rankStrikes(ladderFromApi(data), rawSpot, 10);
+    const rn = parseInt(str(opts.rankedCount, '5'), 10) === 10 ? 10 : 5;
+    const ranked = rankStrikes(ladderFromApi(data), rawSpot, 10).slice(0, rn);
     ranked.forEach((x) => {
       const p = conv(x.strike);
       if (isNum(p)) out.lines.push({ id: 'rk' + x.rank, label: '#' + x.rank + ' ' + x.role, price: r(p), note: '', col: null, rgb: x.g < 0 ? RANK_COL.neg : (x.role === 'Magnet' ? RANK_COL.mag : RANK_COL.pos), dash: 'dotted', w: x.role === 'Magnet' ? 2 : 1, rank: x.rank, share: x.share, alpha: 0.35 + 0.55 * x.share, ranked: true });

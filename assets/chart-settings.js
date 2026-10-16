@@ -151,6 +151,7 @@ function hookCell(cell){
   rc.setSettingsSections = (secs) => origSet([...(secs || []), ...ourSections(id)]);
   const R = inner(cell);
   keepViewOnSwitch(R, cell);
+  mountFitLatest(cell, R);
   if (R) {
     // Gradient background: re-applied after Vela paints its solid one.
     const origBg = R.applyBackground.bind(R);
@@ -231,6 +232,36 @@ function keepViewOnSwitch(R, cell){
     }
     return out;
   };
+}
+// "Fit price" + "Latest" (Owner order 2026-10-16): two small buttons at the chart's bottom right.
+// Fit price: drops the manual price-axis scale (and the indicator scales) so the axis follows the candles again.
+// Latest: scrolls to the newest bar keeping the zoom, at the same right margin a timeframe switch keeps
+// (the "Right margin" setting, then the indicators' room via STRYKER_PINE.ensureRoom, never shrinking it).
+function fitPrice(R){
+  if (!R || !R.scene) return;
+  try {
+    for (const pane of R.scene.panes.values()) pane.manualScale = null;
+    for (const sl of R.scene.indicatorScales.values()) sl.manualScale = null;
+    if (R.scheduler) R.scheduler.invalidate(4);
+  } catch (e) {}
+}
+function goLatest(cell, R){
+  if (!R || !R.coords || R.coords.barCount === 0) return;
+  try {
+    const vp = R.coords.getViewport();
+    const n = Number(S(cell.id).rightBars);
+    R.applyViewport({ barSpacing: vp.barSpacing, rightOffset: n >= 0 && n < 400 ? n : 6 });
+    window.STRYKER_PINE && window.STRYKER_PINE.ensureRoom(cell.chart);
+  } catch (e) {}
+}
+function mountFitLatest(cell, R){
+  if (!cell || !cell.host || !R || cell.host.querySelector('.stkc-fl')) return;
+  const bar = document.createElement('div');
+  bar.className = 'stkc-fl';
+  const mk = (txt, title, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title); b.addEventListener('click', (e) => { e.stopPropagation(); fn(); }); b.addEventListener('pointerdown', (e) => e.stopPropagation()); b.addEventListener('dblclick', (e) => e.stopPropagation()); return b; };
+  bar.appendChild(mk('Fit price', 'Fit the price axis to the candles', () => fitPrice(inner(cell))));
+  bar.appendChild(mk('Latest', 'Scroll to the newest bar', () => goLatest(cell, inner(cell))));
+  cell.host.appendChild(bar);
 }
 function applyCell(id){
   const cell = cellOf(id); if (!cell) return;
@@ -494,6 +525,11 @@ const CSS = `
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-thumb, .vela-dialog--settings .vela-sd-rail::-webkit-scrollbar-thumb{ background:rgba(128,128,128,.35); border-radius:6px; }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-thumb:hover{ background:rgba(128,128,128,.6); }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-track{ background:transparent; }
+.stkc-fl{ position:absolute; right:118px; bottom:36px; z-index:6; display:flex; gap:4px; opacity:.55; transition:opacity .15s; }
+.vela-cell:hover .stkc-fl, .stkc-fl:focus-within{ opacity:1; }
+.stkc-fl button{ height:22px; padding:0 8px; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(14,16,22,.78); color:#cfd6e4; font:600 11px/1 'Space Grotesk','Inter',system-ui,sans-serif; letter-spacing:.02em; cursor:pointer; }
+.stkc-fl button:hover{ border-color:rgba(79,227,172,.55); color:#4fe3ac; }
+@media (max-width:640px){ .stkc-fl{ right:76px; bottom:34px; } .stkc-fl button{ height:24px; } }
 .vela-cell[data-stk-nav="always"] div:has(> .vela-cc-btn){ display:flex !important; }
 .vela-cell[data-stk-nav="never"] div:has(> .vela-cc-btn){ display:none !important; }
 .vela-cell[data-stk-pane="always"] div:has(> .vela-axis-btn){ display:flex !important; }

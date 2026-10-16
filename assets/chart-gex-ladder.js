@@ -17,8 +17,8 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated X min ago" only; Education only. Not financial advice.
-import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, agoText, dataTime } from './chart-gex-levels.js?v=577';
-import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney } from './chart-gex-ladder-core.js?v=577';
+import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, agoText, dataTime } from './chart-gex-levels.js?v=579';
+import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney } from './chart-gex-ladder-core.js?v=579';
 
 export const COLS = [['SPX', 'S&P 500'], ['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF']];
 const PHONE_MAX = 700;

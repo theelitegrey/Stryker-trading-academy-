@@ -80,6 +80,12 @@ function windowStartDate(now, days) {
 // helper in assets/team-identity.js (`uid.indexOf('bot-') === 0`).
 const BOT_UID_PREFIX = 'bot-';
 
+// Internal demo/marketing accounts carry students/{uid}.demo === true (a hidden flag). Like bots they are not
+// customers, so they are dropped from every number. Strict `=== true`: nothing else qualifies.
+function isDemoRow(data) {
+  return !!data && data.demo === true;
+}
+
 function isBotUid(id) {
   return typeof id === 'string' && id.indexOf(BOT_UID_PREFIX) === 0;
 }
@@ -382,7 +388,7 @@ async function buildStats(db, now) {
     // are what the paid rule tests condition (b) and the free-access
     // reasons against.
     students.select('plan', 'completedChapters', 'createdAt', 'lastActiveDate',
-      'paidThroughMillis', 'subscriptionStatus', 'foundingMember', 'foundingCoupon').get(),
+      'paidThroughMillis', 'subscriptionStatus', 'foundingMember', 'foundingCoupon', 'demo').get(),
     db.collection('orders').select('studentUid', 'finalAmount', 'currency', 'amountUsd',
       'gateway', 'provider', 'status', 'couponCode', 'stripeSubscriptionId',
       'razorpayPaymentId', 'createdAt').get(),
@@ -428,7 +434,7 @@ async function buildStats(db, now) {
   // record reaches no number at all. The doc id is carried through as __uid
   // so the paid rule can find each student's payment evidence.
   const rows = rowSnap.docs
-    .filter((d) => !isBotUid(d.id))
+    .filter((d) => !isBotUid(d.id) && !isDemoRow(d.data()))
     .map((d) => Object.assign({ __uid: d.id }, d.data()));
 
   const windows = countWindows(rows, now);
@@ -504,4 +510,4 @@ exports.adminStatsRefresh = functions
   });
 
 // Exported for the unit test only.
-exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, countWindows, buildStats, classifyPayment, orderProvesPayment, collectedUsd, isFreeCoupon };
+exports._test = { summarise, planPriceMap, windowStartStr, windowStartDate, utcDateStr, isBotUid, isDemoRow, countWindows, buildStats, classifyPayment, orderProvesPayment, collectedUsd, isFreeCoupon };

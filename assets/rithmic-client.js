@@ -38,7 +38,7 @@
 //   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
 // `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=572';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=573';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];

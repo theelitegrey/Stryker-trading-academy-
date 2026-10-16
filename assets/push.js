@@ -59,6 +59,11 @@ function enablePush(){
     if (!vapidKey) return 'no-key';
 
     return navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(function (reg) {
+        // A first-time registration is still 'installing': getToken() then fails with "no active Service
+        // Worker" and the first tap on Enable does nothing (worst on iPhone). Wait until it is active.
+        return navigator.serviceWorker.ready.then(function () { return reg; });
+      })
       .then(function (registration) {
         return Notification.requestPermission().then(function (permission) {
           if (permission !== 'granted') return 'denied';
@@ -145,6 +150,7 @@ function currentPushToken(){
   return loadVapidKey().then(function (vapidKey) {
     if (!vapidKey) return null;
     return navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      .then(function (reg) { return navigator.serviceWorker.ready.then(function () { return reg; }); })
       .then(function (registration) {
         return firebase.messaging().getToken({
           vapidKey: vapidKey,
@@ -188,6 +194,8 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       firebase.messaging().onMessage(function (payload) {
         var d = payload.data || {};
+        // chart alerts: the open Charts page shows its own toast + sound from alertFires
+        if (d.type === 'chart_alert' && /charts/.test(location.pathname)) { if (typeof loadNotifications === 'function') loadNotifications(); return; }
         if (typeof showToast === 'function') {
           showToast('info', d.body || 'You have a new notification', { title: d.title || 'TradeZoro' });
         }
@@ -211,13 +219,22 @@ document.addEventListener('DOMContentLoaded', function () {
   // iOS allows web push only for sites installed to the Home Screen, and only
   // from 16.4. Detected by the absence of standalone display mode rather than
   // by user-agent string, which lies.
-  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (isIOS && !isStandalone && iosHint) iosHint.style.display = 'block';
+  var iosNeedsInstall = isIOS && !isStandalone;
+  if (iosNeedsInstall && iosHint) iosHint.style.display = 'block';
 
   function say(text){ if (stateEl) stateEl.textContent = text; }
 
   function refresh(){
+    // iPhone / iPad Safari has no push at all outside an installed Home Screen app (iOS 16.4+), so say
+    // what to do instead of 'not supported'.
+    if (iosNeedsInstall) {
+      say('Add TradeZoro to your Home Screen to get alerts.');
+      enableBtn.style.display = 'none';
+      if (disableBtn) disableBtn.style.display = 'none';
+      return;
+    }
     if (!pushSupported()) {
       say('This browser does not support push notifications.');
       enableBtn.style.display = 'none';

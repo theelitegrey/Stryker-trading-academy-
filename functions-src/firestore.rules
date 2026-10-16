@@ -356,7 +356,22 @@ service cloud.firestore {
       allow delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
     }
     match /presence/{uid}       { allow read: if signedIn(); allow write: if isSelf(uid); }
-    match /pushTokens/{uid}     { allow read, write: if isSelf(uid) || isAdmin(); }
+    // Device push tokens (assets/push.js): the DOCUMENT ID is the FCM token, the owner is the uid FIELD.
+    // (Fixed 2026-10-16: the old rule matched the id against the member's uid, which no token id ever equals,
+    // so only admins could register a device and every other member's Enable-push was denied.)
+    // create: only for yourself, 4 known keys. update: the EXISTING doc must already be yours AND stay yours
+    // (nobody can take over another member's token doc by overwriting uid). read/delete: own tokens only.
+    match /pushTokens/{token} {
+      function tokShape(d) {
+        return d.keys().hasOnly(['uid', 'token', 'userAgent', 'createdAt'])
+          && d.token is string && d.token.size() <= 4096
+          && (!('userAgent' in d) || (d.userAgent is string && d.userAgent.size() <= 300));
+      }
+      allow read, delete: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isAdmin() || (signedIn() && request.resource.data.uid == request.auth.uid && tokShape(request.resource.data));
+      allow update: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid
+                                     && request.resource.data.uid == request.auth.uid && tokShape(request.resource.data));
+    }
     match /bookmarks/{uid}      { allow read, write: if isSelf(uid); }
 
     // ---------------------------------------------------------------------

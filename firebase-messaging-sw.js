@@ -34,11 +34,12 @@ messaging.onBackgroundMessage(function (payload) {
 
   self.registration.showNotification(title, {
     body: data.body || '',
-    icon: '/assets/images/tradezoro-icon-192-494.png?v=589',
-    badge: '/assets/images/tradezoro-favicon-32-494.png?v=589',
+    icon: '/assets/images/tradezoro-icon-192-494.png?v=590',
+    badge: '/assets/images/tradezoro-favicon-32-494.png?v=590',
     // Tagging by type collapses repeats: five likes replace one another
     // instead of stacking five separate entries in the tray.
-    tag: data.type || 'stryker',
+    // Chart alerts get their own tag (two different alerts must both show); other types collapse by type.
+    tag: data.type === 'chart_alert' ? 'chart-alert-' + Date.now() : (data.type || 'stryker'),
     renotify: true,
     data: { link: data.link || '/dashboard-user.html' }
   });

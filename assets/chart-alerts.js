@@ -5,11 +5,18 @@
 //   - Price alerts on any chart symbol: Crossing / Crossing up / Crossing down / Greater than /
 //     Less than a price, a message, Once or Every time. Create from the Alerts button on our
 //     top bar, or Alt+A on a chart (prefilled with the price under the cursor, else the last price).
-//   - Alerts are checked IN THIS BROWSER while the Charts page is open (said in the UI) against
-//     the price the charts on this page already receive, for symbols that are on a chart here.
-//     Nothing runs on a server, so no notification arrives when the page is closed.
-//   - Firing: toast (auto-hide optional), a short beep at the chosen volume, and a browser
-//     notification if the member allowed them.
+//   - SERVER-SIDE PRICE ALERTS (Owner 2026-10-16: "why aren't chart alerts pushed on mobile?"):
+//     a service on our server (workers/alert-engine) checks every signed-in member's active PRICE
+//     alerts on futures and Binance/Coinbase crypto against the real-time price and, on a fire,
+//     writes a notifications doc (the bell + the phone push through onNotificationCreated) and
+//     students/{uid}/alertFires/{id}. While the engine's heartbeat (settings/alertEngine) is fresh
+//     this page does NOT fire those alerts itself (no double alert): it listens to alertFires and
+//     shows the toast + sound. If the heartbeat is stale, this page falls back to firing them here.
+//   - Everything else is checked IN THIS BROWSER while the Charts page is open: indicator alerts,
+//     forex / Hyperliquid price alerts, and alerts saved in this browser (signed out), for symbols
+//     that are on a chart here. No notification arrives for those when the page is closed.
+//   - Firing in the browser: toast (auto-hide optional), a short beep at the chosen volume, and a
+//     browser notification if the member allowed them.
 //   - Storage: signed-in members → Firestore students/{uid}/chartAlerts/{id} (owner-only rules,
 //     validated shape; the 200-per-member cap is enforced here in the client). Guests → localStorage.
 //   - Alert lines: dashed horizontal line per alert on charts of that symbol (renderer layer).
@@ -44,6 +51,60 @@ const last = new Map();                // symbol -> last price seen
 const armed = new Map();               // alert id -> false while its condition is still true (edge trigger)
 let prefs = loadPrefs();
 let backend = null;
+const engine = { on: false, at: 0, timer: null };   // server alert engine heartbeat (settings/alertEngine)
+let firesUnsub = null, firesUid = null;
+const pageStart = Date.now();
+
+// Same mapping as workers/alert-engine/alert_core.py symbol_key(): does the server have a real-time feed for
+// this chart symbol? Futures roots, Binance and Coinbase only (forex and Hyperliquid stay in the browser).
+const SRV_FUT = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
+export function serverCovers(sym){
+  const m = /^([A-Za-z_]+):(.+)$/.exec(String(sym || '').trim());
+  const pre = m ? m[1].toLowerCase() : ''; const t = (m ? m[2] : String(sym || '')).trim().toUpperCase();
+  if (pre === 'binance' || pre === 'coinbase') return /^[A-Z0-9._\-]{3,30}$/.test(t);
+  if (pre === '' || /^(futures|cme|cme_mini|cbot|cbot_mini|comex|comex_mini|nymex|nymex_mini)$/.test(pre)) return SRV_FUT.includes(t.replace(/1!$/, ''));
+  return false;
+}
+// True when the server fires this alert, so this page must not: a signed-in member's PRICE alert on a
+// covered symbol while the engine heartbeat is fresh.
+function serverOwns(a){ return engine.on && backend && backend.kind === 'cloud' && !a.src && serverCovers(a.symbol); }
+async function checkEngine(){
+  try {
+    if (!user()) { engine.on = false; return; }
+    const d = await fb().firestore().collection('settings').doc('alertEngine').get();
+    const at = d.exists && d.data().at && d.data().at.toMillis ? d.data().at.toMillis() : 0;
+    engine.at = at; engine.on = at > 0 && Date.now() - at < 180000;
+  } catch (e) { engine.on = false; }
+}
+function startEngineWatch(){
+  checkEngine();
+  if (!engine.timer) engine.timer = setInterval(() => { checkEngine(); }, 60000);
+}
+// Server fires arrive as students/{uid}/alertFires/{alertId} (written by the engine, one doc per alert,
+// overwritten on every fire of an Every-time alert): toast + sound here, and a Once alert shows stopped.
+function listenFires(){
+  const u = user(); if (!u || (firesUid === u.uid && firesUnsub)) return;
+  if (firesUnsub) { try { firesUnsub(); } catch (e) {} }
+  firesUid = u.uid;
+  const seen = new Map(); let first = true;
+  try {
+    firesUnsub = fb().firestore().collection('students').doc(u.uid).collection('alertFires').orderBy('firedAt', 'desc').limit(20).onSnapshot((snap) => {
+      for (const ch of snap.docChanges()) {
+        if (ch.type === 'removed') continue;
+        const d = ch.doc.data(); const ms = d.firedAt && d.firedAt.toMillis ? d.firedAt.toMillis() : 0;
+        if (!ms || seen.get(ch.doc.id) === ms) continue;
+        seen.set(ch.doc.id, ms);
+        if (first && ms < pageStart - 20000) continue;          // an old fire already in the list: not news
+        const a = alerts.find((x) => x.id === ch.doc.id);
+        if (a && d.stopped) { a.active = false; armed.delete(a.id); pushLines(); renderList(); }
+        showToast('Alert: ' + (d.text || d.symbol || ''), 'Price ' + d.price + ' \u00b7 ' + new Date(ms).toLocaleTimeString());
+        playAlertSound('price');
+        try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: ch.doc.id, symbol: d.symbol, price: d.price, server: true } })); } catch (e) {}
+      }
+      first = false;
+    }, (e) => console.warn('TradeZoro alerts: fires listener', e && e.code));
+  } catch (e) { console.warn('TradeZoro alerts: fires listener', e); }
+}
 
 function loadPrefs(){
   try { const p = Object.assign({}, PREF_DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); p.sounds = Object.assign({}, SOUND_DEFAULTS, p.sounds || {}); return p; }
@@ -113,6 +174,7 @@ async function reload(){
   catch (e) { console.warn('TradeZoro alerts: load', e); alerts = []; }
   try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanInd(a)))); } catch (e) {}
   pushLines(); renderList();
+  if (backend.kind === 'cloud') { startEngineWatch(); listenFires(); }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -182,6 +244,7 @@ function tick(sym, p){
   last.set(sym, p);
   for (const a of alerts) {
     if (!a.active || a.symbol !== sym || a.src) continue;
+    if (serverOwns(a)) { armed.delete(a.id); continue; }   // the server fires this one (no double alert)
     const h = hit(a, prev, p);
     if (!h) { armed.delete(a.id); continue; }
     if (armed.get(a.id) === false) continue;          // still true since the last fire: wait for a reset
@@ -305,7 +368,7 @@ function build(){
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
     <div class="stk-al-head"><h2 id="stk-al-h">Price alerts</h2><button type="button" class="stk-al-x" aria-label="Close">×</button></div>
-    <p class="stk-al-note">Alerts work while the Charts page is open, for symbols on a chart here. Education only. Not financial advice.</p>
+    <p class="stk-al-note"><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first). <b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open. Education only. Not financial advice.</p>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
       <label class="stk-al-wide">Source<select name="src"></select></label>
@@ -343,6 +406,12 @@ function build(){
         const id = await storeOf(a).add(a); alerts.push(Object.assign({ id }, a));
       }
       try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e2) {}
+      try {
+        if (!a.src && backend && backend.kind === 'cloud' && serverCovers(a.symbol) && !sessionStorage.getItem('stk_al_pushhint') && !(window.Notification && Notification.permission === 'granted')) {
+          sessionStorage.setItem('stk_al_pushhint', '1');
+          toastFn('To get this on your phone, turn on push notifications in Settings.');
+        }
+      } catch (e3) {}
       f.hidden = true; editing = null; pushLines(); renderList();
     } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
   };
@@ -393,7 +462,7 @@ function renderList(){
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
     row.querySelector('b').textContent = a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
-    row.querySelector('span').textContent = (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.active ? '' : ' · stopped') + (a.src ? ' · this browser' : '');
+    row.querySelector('span').textContent = (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.active ? '' : ' · stopped') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
     row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : 'Resume';
     row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; armed.delete(a.id); try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);

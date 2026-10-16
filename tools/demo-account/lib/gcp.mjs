@@ -119,3 +119,4 @@ export async function authCreate({ email, password, displayName }) {
   return call(`${IDT}/accounts`, 'POST', { email, password, displayName, emailVerified: true });
 }
 export async function authUpdate(localId, patch) { return call(`${IDT}/accounts:update`, 'POST', Object.assign({ localId }, patch)); }
+export async function authDelete(localId) { return call(`${IDT}/accounts:delete`, 'POST', { localId }); }

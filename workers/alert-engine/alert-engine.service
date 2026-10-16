@@ -1,0 +1,25 @@
+[Unit]
+Description=TradeZoro server-side price-alert engine: live futures/crypto prices -> member chart alerts -> notifications doc -> phone push (long-running)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+# InsightSentry key (mode 0600, never logged). Google access = the firebase-tools refresh token already on this server.
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /root/projects/alert-engine/alert_engine.py
+Restart=always
+RestartSec=10
+# ~10k alerts index ~10 MB; 3 sockets + 2 threads. Cap well under the box's headroom.
+MemoryMax=300M
+Nice=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/projects/alert-engine
+SyslogIdentifier=alert-engine
+
+[Install]
+WantedBy=multi-user.target

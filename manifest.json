@@ -1,7 +1,9 @@
 {
   "name": "TradeZoro",
   "short_name": "TradeZoro",
+  "id": "/",
   "start_url": "/dashboard-user.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#050506",
   "theme_color": "#050506",

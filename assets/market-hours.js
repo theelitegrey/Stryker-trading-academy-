@@ -364,7 +364,7 @@
       var now = rp ? root.__stkReplay.E : Date.now();
       var l = sessionLabel(now);
       w.classList.toggle('is-replay', !!rp);
-      if (rp) { l = Object.assign({}, l, { head: 'Replay \u00b7 ' + l.head, shortHead: 'Replay' }); }
+      if (rp && !(root.document && root.document.documentElement.hasAttribute('data-stk-rh'))) { l = Object.assign({}, l, { head: 'Replay \u00b7 ' + l.head, shortHead: 'Replay' }); }
       w.classList.toggle('is-open', l.state === 'session');
       w.classList.toggle('is-nosess', l.state === 'nosession');
       w.classList.toggle('is-closed', l.state === 'closed');

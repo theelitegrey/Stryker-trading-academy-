@@ -63,6 +63,32 @@ window.__stkReplay = {
   get E(){ return S.E; }, get playing(){ return S.playing; }, get speed(){ return S.speed; }, get stepTf(){ return effTf(); }, get rt(){ return S.rt; }
 };
 
+// ------------------------------------------------------------------ admin: hide replay markings
+// Owner order 2026-10-16. Setting lives in chart-settings.js (admin only). Active = replay on AND
+// admin AND the flag is set. Shown as html[data-stk-rh] (CSS in assets/style.css hides the markings).
+const RH_KEY = 'stryker_replay_hide';
+function rhFlag() { try { return localStorage.getItem(RH_KEY) === '1'; } catch (e) { return false; } }
+function rhActive() { return !!(S.on && window.__stkIsAdmin === true && rhFlag()); }
+function rhApply() {
+  const on = rhActive();
+  document.documentElement.toggleAttribute('data-stk-rh', on);
+  if (on) rhDot(); 
+  const d = document.getElementById('stkr-rhdot'); if (d) d.hidden = !on;
+  try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+}
+function rhSet(v) {
+  if (window.__stkSettings && window.__stkSettings.setReplayHide) window.__stkSettings.setReplayHide(v);
+  else { try { localStorage.setItem(RH_KEY, v ? '1' : '0'); } catch (e) {} }
+  rhApply();
+}
+function rhDot() {
+  if (document.getElementById('stkr-rhdot')) return;
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'stkr-rhdot'; b.setAttribute('aria-label', 'Show replay markings'); b.title = 'Show replay markings (Shift+H)';
+  b.addEventListener('click', (e) => { e.stopPropagation(); rhSet(false); });
+  document.body.appendChild(b);
+}
+
 // ------------------------------------------------------------------ provider wrapper
 export function wrapProvider(inner, name) {
   inners.set(name, inner);
@@ -758,7 +784,7 @@ const ICON = {
   scissor: '<path d="M12 3v18"/><path d="M8 7l4-4 4 4"/>',
   grip: '<circle cx="9" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="7" r="1.2" fill="currentColor"/><circle cx="9" cy="12" r="1.2" fill="currentColor"/><circle cx="15" cy="12" r="1.2" fill="currentColor"/><circle cx="9" cy="17" r="1.2" fill="currentColor"/><circle cx="15" cy="17" r="1.2" fill="currentColor"/>'
 };
-function toast(m, type) { try { OPT.toast ? OPT.toast(m, type) : (window.showToast && window.showToast(type || 'success', m)); } catch (e) {} }
+function toast(m, type) { if (rhActive()) return; try { OPT.toast ? OPT.toast(m, type) : (window.showToast && window.showToast(type || 'success', m)); } catch (e) {} }
 
 const ui = (() => {
   let btn, pop, badge, bar, playB, fwdB, backB, speedS, stepS, clock, spin, simL;
@@ -867,8 +893,26 @@ const ui = (() => {
     document.addEventListener('keydown', (e) => {
       if (!S.on) return;
       const t = e.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-      if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); stop(); stepForward(); }
+      if (e.shiftKey && e.key === 'ArrowRight') { e.preventDefault(); stop(); stepForward(); return; }
+      // Admin-only extras (Owner 2026-10-16): control replay while the markings are hidden.
+      if (window.__stkIsAdmin !== true || e.ctrlKey || e.metaKey || e.altKey) return;
+      const k = e.key;
+      if (e.shiftKey && (k === 'H' || k === 'h')) { e.preventDefault(); rhSet(!rhFlag()); }
+      else if (e.shiftKey && (k === 'X' || k === 'x')) { e.preventDefault(); exit(); }
+      else if (e.shiftKey && k === 'ArrowLeft') { e.preventDefault(); stop(); stepBack(); }
+      else if (e.shiftKey && (k === 'ArrowUp' || k === 'ArrowDown')) {
+        e.preventDefault();
+        const list = SPEEDS, i = Math.max(0, list.indexOf(S.speed)), j = Math.min(list.length - 1, Math.max(0, i + (k === 'ArrowUp' ? -1 : 1)));
+        const was = S.playing; if (was) stop(); S.rt = 0; S.speed = list[j]; save(); render(); if (was) play();
+      }
+      else if (!e.shiftKey && (k === ' ' || e.code === 'Space') && !(t && t.tagName === 'BUTTON')) { e.preventDefault(); toggle(); }
     });
+    window.addEventListener('stk-rh-change', rhApply);
+    window.addEventListener('stk-admin-change', rhApply);
+    // phone: two-finger long-press brings the markings back
+    let lp = 0;
+    document.addEventListener('touchstart', (e) => { clearTimeout(lp); if (e.touches.length === 2 && rhActive()) lp = setTimeout(() => rhSet(false), 600); }, { passive: true });
+    ['touchend', 'touchcancel', 'touchmove'].forEach((ev) => document.addEventListener(ev, () => clearTimeout(lp), { passive: true }));
   }
   function fillSteps() {
     const a = S.active; if (!a) return;
@@ -886,6 +930,7 @@ const ui = (() => {
   }
   function render() {
     if (btn) { btn.classList.toggle('on', S.on || S.sel); }
+    rhApply();
     if (!bar) return;
     if (badge) {
       badge.hidden = !S.on;

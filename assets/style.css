@@ -9625,3 +9625,12 @@ section.stkin-sec{ margin:10px 0 4px; padding:0; }
    .vela-workspace BEFORE the later position:relative .vela-ws-main, so with z-index:auto the chart canvas painted AND hit-tested
    over them: the pointer reached the canvas, the menu lost focus and closed. Give every layer an explicit stacking level. */
 .vela-workspace > .vela-ui-layer:not(.vela-popover):not(.vela-dialog-backdrop):not(.vela-dialog-positioner){ z-index:50; }
+
+/* Admin: hide replay markings (Owner 2026-10-16; assets/chart-bar-replay.js sets html[data-stk-rh]) */
+html[data-stk-rh] .stkr-bar, html[data-stk-rh] .stkr-badge, html[data-stk-rh] .stkr-sim, html[data-stk-rh] .stkr-sel,
+html[data-stk-rh] .stkc-dd[data-s="replay"], html[data-stk-rh] .stkpt-badge, html[data-stk-rh] .stknw-note.is-replay,
+html[data-stk-rh] .stk-gex-chip.is-note{ display:none !important; }
+html[data-stk-rh] .mclock.is-replay .mclock-pill{ box-shadow:none; }
+#stkr-rhdot{ position:fixed; right:4px; bottom:4px; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:#fff; opacity:.1; z-index:7600; cursor:pointer; }
+#stkr-rhdot:hover, #stkr-rhdot:focus-visible{ opacity:.6; }
+#stkr-rhdot[hidden]{ display:none; }

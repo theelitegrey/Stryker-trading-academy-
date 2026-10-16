@@ -314,7 +314,7 @@ function heatLayer() {
         g.restore();
       }
       // status / note / pill: a small tag at the top-left of the plot, under the legend rows
-      const text = d.pill || d.note || (d.showStatus ? d.status : '');
+      const text = d.pill || (d.note && !document.documentElement.hasAttribute('data-stk-rh') ? d.note : '') || (d.showStatus ? d.status : '');
       if (text) {
         g.font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
         g.textBaseline = 'middle';

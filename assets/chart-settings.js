@@ -42,8 +42,31 @@ const DEFAULTS = Object.freeze({
   marginTop: '10',         // s2 patch: % of the pane height (TradingView default 10 / 8)
   marginBottom: '8',
   h12: false,              // s2 patch: 12-hour clock on the time axis + crosshair
-  dow: true                // s2 patch: weekday in the crosshair date
+  dow: true,               // s2 patch: weekday in the crosshair date
+  rhide: false             // ADMIN ONLY: hide replay markings while bar replay runs (Owner 2026-10-16)
 });
+const RH_TIP = 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.';
+const RH_KEY = 'stryker_replay_hide';   // global mirror, read by chart-bar-replay.js
+function rhSync(v){
+  try { localStorage.setItem(RH_KEY, v ? '1' : '0'); } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent('stk-rh-change')); } catch (e) {}
+}
+// Same admin check as the Pine library / indicator window: admins/{uid} exists.
+function watchAdmin(){
+  const check = () => {
+    let L = null; try { L = window.StrykerPineLibrary; } catch (e) {}
+    if (!L || !L.isAdmin) return;
+    L.isAdmin().then((a) => {
+      if (!!a === (window.__stkIsAdmin === true)) return;
+      window.__stkIsAdmin = !!a;
+      try { window.dispatchEvent(new CustomEvent('stk-admin-change')); } catch (e) {}
+      if (WS) (WS.context().cells || []).forEach((c) => { const cell = cellOf(c.id); try { cell && cell.pushSettingsSections(); } catch (e) {} });
+    }).catch(() => {});
+  };
+  let tries = 0;
+  const t = setInterval(() => { check(); if (window.__stkIsAdmin === true || tries++ > 40) clearInterval(t); }, 1500);
+  check();
+}
 const MARGINS = ['0', '2', '4', '6', '8', '10', '12', '15', '20', '25', '30'];
 const VIS = ['Always visible', 'Visible on mouse over', 'Always invisible'];
 const PRECISIONS = ['Default', '1', '0.1', '0.01', '0.001', '0.0001', '0.25 (quarter tick)', '0.5'];
@@ -104,6 +127,7 @@ export function installChartSettings(Core, VelaChunk){
     serialize(ctx){ const s = store.get(ctx.cellId); return s && !isDefault(s) ? Object.assign({}, s) : undefined; },
     restore(payload, ctx){
       store.set(ctx.cellId, sanitize(payload));
+      if (payload && payload.rhide === true) { try { if (localStorage.getItem(RH_KEY) !== '1') rhSync(true); } catch (e) {} }
       if (WS) setTimeout(() => applyCell(ctx.cellId), 0);
     }
   });
@@ -239,6 +263,7 @@ function applyStk(cell){
 }
 function setVal(id, key, v){
   S(id)[key] = v;
+  if (key === 'rhide') rhSync(v);
   applyCell(id);
   try { WS.markStateDirty(); } catch (e) {}
 }
@@ -249,6 +274,11 @@ function setVal(id, key, v){
 function ourSections(id){
   const g = (k) => () => S(id)[k];
   const st = (k) => (v) => setVal(id, k, v);
+  const rhRows = window.__stkIsAdmin === true ? [
+    { kind: 'heading', label: 'Admin' },
+    { kind: 'toggle', label: 'Hide replay markings (admin)', id: 'rhide', get: g('rhide'), set: st('rhide'),
+      title: 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.' }
+  ] : [];
   const off = (label) => ({ kind: 'toggle', label, get: () => false, set: () => {}, id: 'stk-off-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
   return [
     { title: 'Symbol' + MARK, id: 'stk-symbol', placement: 'end', rows: [
@@ -284,7 +314,7 @@ function ourSections(id){
       { kind: 'select', label: 'Top margin %', id: 'margin-top', options: MARGINS, get: g('marginTop'), set: st('marginTop') },
       { kind: 'select', label: 'Bottom margin %', id: 'margin-bottom', options: MARGINS, get: g('marginBottom'), set: st('marginBottom') },
       { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') }
-    ] }
+    ].concat(rhRows) }
   ].concat(...(window.__stkExtraSections || []).map((f) => { try { return f(id) || []; } catch (e) { return []; } }));
 }
 
@@ -318,7 +348,7 @@ function restore(id, snap, opts){
     if (want && want !== cell.priceStyle) { try { cell.setPriceStyle(want); } catch (e) {} }
   }
   if (snap.status) { try { cell.applyStatusPrefs(snap.status); } catch (e) {} }
-  if (snap.ours) store.set(id, sanitize(snap.ours));
+  if (snap.ours) { const was = S(id).rhide; store.set(id, sanitize(snap.ours)); if (window.__stkIsAdmin === true && S(id).rhide !== was) rhSync(S(id).rhide); }
   if (o.tz && snap.tz) { try { WS.setTimezone(snap.tz); } catch (e) {} }
   applyCell(id);
   try { WS.markStateDirty(); } catch (e) {}
@@ -356,6 +386,11 @@ function foldTabs(dlg){
     [...src.children].forEach((ch) => { ch.classList.add('stk-sd-extra'); dst.appendChild(ch); });
   });
   dlg.querySelectorAll('.stk-sd-extra .vela-field-label').forEach((lab) => {
+    if (lab.textContent === 'Hide replay markings (admin)') {
+      const row = lab.closest('.vela-field-span') || lab.parentElement;
+      if (row) row.title = RH_TIP;
+      return;
+    }
     const why = DISABLED[lab.textContent];
     if (!why) return;
     const row = lab.closest('.vela-field-span') || lab.parentElement;
@@ -476,6 +511,7 @@ export function mountChartSettings(ws, opts){
   try { ws.on('layout:changed', () => setTimeout(hookAll, 0)); } catch (e) {}
   try { ws.on('state:changed', () => (ws.context().cells || []).forEach((c) => { const cell = cellOf(c.id); if (cell && cell.chart && !cell.chart.renderer.__stkSettings) applyCell(c.id); })); } catch (e) {}
   watchDialogs();
+  watchAdmin();
 
   // Members default to Kolkata time (once). A member's later choice is kept.
   try {
@@ -498,5 +534,5 @@ export function mountChartSettings(ws, opts){
     });
     bar.insertBefore(b, bar.firstChild);
   }
-  window.__stkSettings = { store, snapshot, restore, applyCell, DEFAULTS };
+  window.__stkSettings = { setReplayHide(v){ (ws.context().cells || []).forEach((c) => { S(c.id).rhide = !!v; applyCell(c.id); }); rhSync(!!v); try { ws.markStateDirty(); } catch (e) {} }, store, snapshot, restore, applyCell, DEFAULTS };
 }

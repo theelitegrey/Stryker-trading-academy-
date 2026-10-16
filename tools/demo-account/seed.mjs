@@ -24,7 +24,7 @@ const DRY = args.has('--dry-run');
 const CRED = process.env.DEMO_CREDENTIALS || '/root/.hermes/profiles/chief-of-staff/secure/demo-account/credentials';
 const EMAIL = process.env.DEMO_EMAIL || 'theelitegrey+richard-demo@gmail.com';
 const NAME = 'Richard Hale', USERNAME = 'richard_hale';
-const BIO = 'Futures trader in Chicago, 3 years in. NQ and ES, with the micros when I want to size down. Mostly the New York AM session, ICT concepts: liquidity sweeps, IFVG, MSS. Journaling everything and trying to stay boring.';
+const BIO = 'Chicago futures trader, 3 years in. NQ/ES and the micros. Mostly NY AM, ICT concepts: sweeps, IFVG, MSS. Journaling everything, trying to stay boring.';
 const DAY = 86400000, NOW = Date.now();
 const J = (f) => JSON.parse(fs.readFileSync(path.join(HERE, 'data', f), 'utf8'));
 const has = (f) => fs.existsSync(path.join(HERE, 'data', f));
@@ -77,7 +77,9 @@ function build(uid) {
     core, { postCount: 0, replyCount: 0, likesReceived: 0, journalCount: trades.length, hasWinningTrade: true });
   student.notifiedAchievements = earned.map((a) => a.id);
   W.push({ path: S, data: student });
-  W.push({ path: `profiles/${uid}`, data: { displayName: NAME, username: USERNAME, bio: BIO, avatarSeed: student.avatarSeed, createdAt: student.createdAt, currentStreak: 23, bestStreak: 41, plan: 'Pro', completedChaptersCount: completedChapters.length, completedLessonsCount: completedLessons.length, mentionNotifications: true } });
+  W.push({ path: `profiles/${uid}`, data: { displayName: NAME, username: USERNAME, bio: BIO, avatarSeed: student.avatarSeed, createdAt: student.createdAt, currentStreak: 23, bestStreak: 41, plan: 'Pro', completedChaptersCount: completedChapters.length, completedLessonsCount: completedLessons.length, mentionNotifications: true,
+    // every field the Achievements page syncs, so its write is not a privileged-key 'change' under the rules
+    floorPostCount: 0, floorReplyCount: 0, floorLikesReceived: 0, referralPoints: 0, tradingViewAccessGranted: false } });
   W.push({ path: `usernames/${USERNAME}`, data: { uid, username: USERNAME } });
 
   // journal: trades in exactly the shape saveTrade() writes

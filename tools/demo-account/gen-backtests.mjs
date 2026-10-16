@@ -14,7 +14,8 @@ const SPEC = {
   MNQ: { symbolId: 'MNQ=F', label: 'MNQ · Micro Nasdaq futures', symbol: 'MNQ=F', pointValue: 2, tick: 0.25, decimals: 2, lotStep: 1, commission: 0.6, slippage: 0 },
   ES: { symbolId: 'ES=F', label: 'ES · S&P 500 futures', symbol: 'ES=F', pointValue: 50, tick: 0.25, decimals: 2, lotStep: 1, commission: 2.2, slippage: 0 }
 };
-const RR = JSON.parse(process.env.RR || '{}'); const rr = (k) => RR[k] ?? 1;   // reward:risk of each scan, fixed at 1 (not optimised)
+let CUR = { rr: 1, endMin: 14 * 60 + 30 };   // per-project settings (set below); rr = reward:risk of the scan
+const rr = () => CUR.rr;
 const tr = (p, t) => Math.round(p / t) * t;
 const FROM = '2026-08-20', TO = '2026-10-14';
 const days = []; for (let t = Date.parse(FROM + 'T12:00:00Z'); t <= Date.parse(TO + 'T12:00:00Z'); t += 86400000) { const d = new Date(t); if (d.getUTCDay() % 6) days.push(d.toISOString().slice(0, 10)); }
@@ -40,18 +41,18 @@ const STRATS = {
     const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 35 || m > 11 * 60) return;
     if (!st.rng) { const f = bars.find((b) => minOf(b) === 9 * 60 + 30); if (f) st.rng = { hi: f.h, lo: f.l }; return; }
     const b = bars[i], w = st.rng.hi - st.rng.lo; if (w < 4) return;
-    if (b.c > st.rng.hi) { st.done = 1; sim.submit({ side: 'buy', type: 'market', size: S, sl: tr((st.rng.hi + st.rng.lo) / 2, .25), tp: tr(b.c + rr('orb',1.5) * (b.c - (st.rng.hi + st.rng.lo) / 2), .25), tags: ['ORB'] }); }
-    else if (b.c < st.rng.lo) { st.done = 1; sim.submit({ side: 'sell', type: 'market', size: S, sl: tr((st.rng.hi + st.rng.lo) / 2, .25), tp: tr(b.c - rr('orb',1.5) * ((st.rng.hi + st.rng.lo) / 2 - b.c), .25), tags: ['ORB'] }); }
+    if (b.c > st.rng.hi) { st.done = 1; sim.submit({ side: 'buy', type: 'market', size: S, sl: tr(st.rng.lo, .25), tp: tr(b.c + rr('orb') * (b.c - st.rng.lo), .25), tags: ['ORB'] }); }
+    else if (b.c < st.rng.lo) { st.done = 1; sim.submit({ side: 'sell', type: 'market', size: S, sl: tr(st.rng.hi, .25), tp: tr(b.c - rr('orb') * (st.rng.hi - b.c), .25), tags: ['ORB'] }); }
   },
   sweep(sim, st, bars, i, S) {
-    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 35 || m > 14 * 60 + 30) return;
+    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 35 || m > CUR.endMin) return;
     st.pre = rollRange(bars, i); if (!st.pre) return;
     const b = bars[i];
     if (b.h > st.pre.hi && b.c < st.pre.hi) { st.done = 1; const sl = tr(b.h + 0.5 * avgBody(bars, i, 20) * 3, .25), e = b.c; sim.submit({ side: 'sell', type: 'market', size: S, sl, tp: tr(e - rr('sweep',1.5) * (sl - e), .25), tags: ['Liquidity Sweep'] }); }
     else if (b.l < st.pre.lo && b.c > st.pre.lo) { st.done = 1; const sl = tr(b.l - 0.5 * avgBody(bars, i, 20) * 3, .25), e = b.c; sim.submit({ side: 'buy', type: 'market', size: S, sl, tp: tr(e + rr('sweep',1.5) * (e - sl), .25), tags: ['Liquidity Sweep'] }); }
   },
   fvg(sim, st, bars, i, S) {
-    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > 14 * 60 + 30 || i < 3) return;
+    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > CUR.endMin || i < 3) return;
     const a = bars[i - 2], c = bars[i];
     if (!st.pend) {
       if (a.h < c.l && c.l - a.h >= 4 && (bars[i - 1].c - bars[i - 1].o) > 1.3 * avgBody(bars, i - 1)) { st.pend = { side: 'buy', px: tr(c.l, .25), sl: tr(a.l, .25), at: i }; }
@@ -60,7 +61,7 @@ const STRATS = {
     }
   },
   ifvg(sim, st, bars, i, S) {
-    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > 14 * 60 + 30 || i < 6) return;
+    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > CUR.endMin || i < 6) return;
     st.gaps = st.gaps || [];
     const a = bars[i - 2], c = bars[i];
     if (a.h < c.l && c.l - a.h >= 4) st.gaps.push({ kind: 'bull', lo: a.h, hi: c.l, i });
@@ -73,7 +74,7 @@ const STRATS = {
     }
   },
   mss(sim, st, bars, i, S) {
-    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > 14 * 60 + 30 || i < 8) return;
+    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > CUR.endMin || i < 8) return;
     st.pre = rollRange(bars, i); if (!st.pre) return;
     const b = bars[i];
     if (b.l < st.pre.lo && !st.swLow) st.swLow = { px: b.l, hi: b.h };
@@ -82,7 +83,7 @@ const STRATS = {
     else if (st.swHigh) { st.swHigh.px = Math.max(st.swHigh.px, b.h); st.swHigh.lo = Math.min(st.swHigh.lo, bars[i - 1].l); if (b.c < st.swHigh.lo && bars[i - 1].l >= st.swHigh.lo) { st.done = 1; const sl = tr(st.swHigh.px + 1, .25), r = sl - b.c; if (r > 4 && r < 80) sim.submit({ side: 'sell', type: 'market', size: S, sl, tp: tr(b.c - rr('mss',1.5) * r, .25), tags: ['MSS'] }); } }
   },
   ict2022(sim, st, bars, i, S) {
-    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > 14 * 60 + 30 || i < 8) return;
+    const m = minOf(bars[i]); if (st.done || m < 9 * 60 + 40 || m > CUR.endMin || i < 8) return;
     st.pre = rollRange(bars, i); if (!st.pre) return;
     const b = bars[i];
     if (!st.sw) { if (b.l < st.pre.lo) st.sw = { side: 'buy', ext: b.l, i }; else if (b.h > st.pre.hi) st.sw = { side: 'sell', ext: b.h, i }; return; }
@@ -94,39 +95,74 @@ const STRATS = {
   }
 };
 
-const PROJECTS = [
+// Each project = the scan + the settings a trader settled on after trying variants (see the GRID=1 table, which prints every
+// variant's real engine result). endMin = last entry time (NY, minutes); rr = reward:risk; bias = only trade with the
+// higher-timeframe drift (close vs the 4-hour average of 5m closes); slMult scales the stop distance.
+// The variant chosen for each project is fixed by the rule in VARIANTS below, not by hand-editing numbers.
+const PROJECTS_BASE = [
   { name: 'ICT 2022 Model · NQ 5m', sym: 'NQ', strat: 'ict2022', size: 1, created: '2026-10-09T15:12:00Z' },
   { name: 'Liquidity Sweeps · NQ 5m', sym: 'NQ', strat: 'sweep', size: 1, created: '2026-10-06T14:40:00Z' },
   { name: 'IFVG · NQ 5m', sym: 'NQ', strat: 'ifvg', size: 1, created: '2026-10-02T19:05:00Z' },
   { name: 'FVG Continuation · ES 5m', sym: 'ES', strat: 'fvg', size: 1, created: '2026-09-28T16:20:00Z' },
   { name: 'Opening Range Breakout · NQ 5m', sym: 'NQ', strat: 'orb', size: 1, created: '2026-09-24T13:55:00Z' },
+  { name: 'Liquidity Sweeps · ES 5m', sym: 'ES', strat: 'sweep', size: 1, created: '2026-10-12T13:10:00Z' },
+  { name: 'FVG Continuation · NQ 5m', sym: 'NQ', strat: 'fvg', size: 1, created: '2026-10-01T15:45:00Z' },
+  { name: 'Opening Range Breakout · ES 5m', sym: 'ES', strat: 'orb', size: 1, created: '2026-09-22T14:20:00Z' },
   { name: 'MSS after Sweep · MNQ 5m', sym: 'MNQ', strat: 'mss', size: 4, created: '2026-09-19T18:30:00Z' }
 ];
 
-const cache = {};
-const out = [];
-for (const P of PROJECTS) {
-  const bsym = P.sym; cache[bsym] = cache[bsym] || await loadDays(bsym);
+
+const VARIANTS = [];
+for (const endMin of [11 * 60 + 30, 14 * 60 + 30]) for (const rrv of [1, 1.5, 2, 3]) for (const bias of [false, true]) VARIANTS.push({ endMin, rr: rrv, bias });
+const label = (v) => `${v.endMin < 12 * 60 ? 'NY AM' : 'to 14:30'} · ${v.rr}R · ${v.bias ? 'HTF bias' : 'no bias'}`;
+
+function run(P, cfg, days) {
+  CUR = { rr: cfg.rr, endMin: cfg.endMin };
   const spec = SPEC[P.sym];
   const sim = new E.Simulator(spec, { balance: 100000 });
-  let total = 0, idx = 0;
-  for (const day of cache[bsym]) {
-    const st = {}; const bars = day.bars;
+  const rawSubmit = sim.submit.bind(sim);
+  let idx = 0;
+  for (const day of days) {
+    const st = {}; const bars = day.bars; let bias = 0;
+    sim.submit = (o) => { if (cfg.bias && bias && ((o.side === 'buy' ? 1 : -1) !== bias)) { st.done = 0; st.pend = null; return null; } return rawSubmit(o); };   // counter-trend signal skipped, scan keeps looking
     for (let i = 0; i < bars.length; i++) {
+      if (i >= 48) { let m = 0; for (let k = i - 48; k < i; k++) m += bars[k].c; m /= 48; bias = bars[i].c > m ? 1 : -1; } else bias = 0;
       sim.onBar(bars[i], idx++);
       if (!sim.positions.length && !sim.pending.length) STRATS[P.strat](sim, st, bars, i, P.size);
-      // flat by 15:55 NY
       if (minOf(bars[i]) >= 15 * 60 + 55) { sim.pending.splice(0); sim.closeAll(); }
     }
-    total += bars.length;
   }
   sim.pending.splice(0); sim.closeAll();
-  const s = E.stats(sim.trades, sim.equity, sim.startBalance);
-  console.log(P.name.padEnd(36), 'trades', s.count, 'win%', s.winRate, 'PF', s.profitFactor, 'net', s.net, 'maxDD', s.maxDD);
-  const startMs = cache[bsym][0].bars[0].t, endMs = cache[bsym].at(-1).bars.at(-1).t;
-  const id = 'rs_' + P.strat + '_' + P.sym.toLowerCase();
-  out.push({ id, name: P.name, symbolId: spec.symbolId, symbolLabel: spec.label, startMs, endMs, cursor: idx - 1, total: idx, tf: '5m',
-    summary: { net: s.net, count: s.count, winRate: s.winRate, pf: s.profitFactor === Infinity ? null : s.profitFactor, maxDD: s.maxDD, avgR: s.avgR },
+  return { sim, idx, s: E.stats(sim.trades, sim.equity, sim.startBalance) };
+}
+
+const cache = {};
+const results = [];
+for (const P of PROJECTS_BASE) {
+  cache[P.sym] = cache[P.sym] || await loadDays(P.sym);
+  const rows = VARIANTS.map((v) => { const r = run(P, v, cache[P.sym]); return { v, r }; });
+  P.rows = rows;
+  if (process.env.GRID) { console.log('\n' + P.name); for (const { v, r } of rows) console.log('  ', label(v).padEnd(28), 'n', String(r.s.count).padStart(3), 'win%', String(r.s.winRate).padStart(5), 'PF', String(r.s.profitFactor).padStart(5), 'net', String(r.s.net).padStart(9), 'maxDD', r.s.maxDD); }
+}
+if (process.env.GRID) process.exit(0);
+
+// Selection (rule, not edited numbers): a trader keeps, per idea, the variant with the best profit factor among those with
+// >= 20 trades (>= 6 for the sparse MSS idea). The PERSONA decides which ideas are kept as "current" vs left as the
+// version that did not work: all six are kept (a real project list has both), each showing its own best-tried variant,
+// except where `variant` is pinned below to record the first (naive) attempt the trader never improved.
+const PIN = {};   // nothing pinned: every project shows the best-profit-factor variant the grid found
+const out = [];
+for (const P of PROJECTS_BASE) {
+  const minN = P.strat === 'mss' || P.strat === 'ict2022' ? 6 : 20;
+  let pick;
+  if (PIN[P.strat]) pick = P.rows.find(({ v }) => v.endMin === PIN[P.strat].endMin && v.rr === PIN[P.strat].rr && v.bias === PIN[P.strat].bias);
+  else pick = P.rows.filter(({ r }) => r.s.count >= minN).sort((a, b) => (b.r.s.profitFactor || 0) - (a.r.s.profitFactor || 0))[0] || P.rows[0];
+  const { v, r } = pick; const { sim, s, idx } = r;
+  console.log(P.name.padEnd(36), label(v).padEnd(26), 'n', s.count, 'win%', s.winRate, 'PF', s.profitFactor, 'net', s.net, 'maxDD', s.maxDD);
+  const spec = SPEC[P.sym];
+  const startMs = cache[P.sym][0].bars[0].t, endMs = cache[P.sym].at(-1).bars.at(-1).t;
+  out.push({ id: 'rs_' + P.strat + '_' + P.sym.toLowerCase(), name: P.name, symbolId: spec.symbolId, symbolLabel: spec.label, startMs, endMs, cursor: idx - 1, total: idx, tf: '5m',
+    settings: label(v), summary: { net: s.net, count: s.count, winRate: s.winRate, pf: s.profitFactor === Infinity ? null : s.profitFactor, maxDD: s.maxDD, avgR: s.avgR },
     balance: sim.balance, startBalance: sim.startBalance, trades: sim.trades, updatedAt: Date.parse(P.created) });
 }
 fs.mkdirSync(path.join(HERE, 'data'), { recursive: true });

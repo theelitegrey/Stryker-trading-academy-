@@ -216,7 +216,7 @@ function check(name, fn) {
     // projected scan, because an aggregation cannot skip bot- ids (see
     // countWindows in adminStats.js). That is ONE students read per run, down
     // from eight; the projection still keeps names/emails in the database.
-    assert.deepStrictEqual(kinds, ['select:plan,completedChapters,createdAt,lastActiveDate,paidThroughMillis,subscriptionStatus,foundingMember,foundingCoupon']);
+    assert.deepStrictEqual(kinds, ['select:plan,completedChapters,createdAt,lastActiveDate,paidThroughMillis,subscriptionStatus,foundingMember,foundingCoupon,demo']);
     assert.strictEqual(st.length, 1, 'exactly one students read per snapshot');
     assert.ok(!st.some((c) => c.kind === 'get'), 'never an unprojected students get()');
     // Fix 1 added the payment-evidence reads. They are projected too, and

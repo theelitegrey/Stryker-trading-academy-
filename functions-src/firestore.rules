@@ -387,7 +387,9 @@ service cloud.firestore {
     // credited* flags belong to the function.
     // ---------------------------------------------------------------------
     match /referrals/{id} {
-      allow read:   if isAdmin();
+      // A referrer may read the rows that name them (the Referrals page lists "people invited"
+      // with where('referrerUid','==',uid)); everyone else is still admin-only.
+      allow read:   if isAdmin() || (signedIn() && resource.data.referrerUid == request.auth.uid);
       allow create: if signedIn()
                     && request.resource.data.referredUid == request.auth.uid
                     && request.resource.data.referrerUid != request.auth.uid;

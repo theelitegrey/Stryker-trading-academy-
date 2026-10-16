@@ -1,0 +1,267 @@
+[
+ {
+  "id": "pb_ict2022mod1",
+  "name": "ICT 2022 Model",
+  "source": "model",
+  "sourceModelId": "ict-2022-model",
+  "market": "NQ",
+  "timeframe": "1m",
+  "direction": "both",
+  "sessions": [
+   "New York AM"
+  ],
+  "status": "active",
+  "colour": "#03a872",
+  "targetRR": 2.5,
+  "maxRiskPct": 1,
+  "notes": "",
+  "rules": [
+   {
+    "id": "r_ict200",
+    "text": "Establish bias and mark key levels",
+    "detail": "Set daily bias on the daily/4H chart, then mark PDH/PDL or key session levels."
+   },
+   {
+    "id": "r_ict201",
+    "text": "Wait for the liquidity sweep",
+    "detail": "Wait for a Judas-style sweep of the liquidity level opposite your bias."
+   },
+   {
+    "id": "r_ict202",
+    "text": "Confirm MSS with displacement",
+    "detail": "Wait for a Market Structure Shift on a lower timeframe (5m/3m/1m), with genuine displacement."
+   },
+   {
+    "id": "r_ict203",
+    "text": "Mark the PD Array",
+    "detail": "Mark the FVG, order block, IFVG, or breaker left behind by the displacement leg, confirming premium/discount alignment."
+   },
+   {
+    "id": "r_ict204",
+    "text": "Enter on the retrace, tight stop",
+    "detail": "Limit order at the FVG, stop just beyond the sweep wick."
+   },
+   {
+    "id": "r_ict205",
+    "text": "Target opposite liquidity, min 1:3",
+    "detail": "Target the opposite liquidity pool for a minimum 1:3 risk-to-reward."
+   }
+  ],
+  "createdAt": 1782309600000,
+  "updatedAt": 1790776800000
+ },
+ {
+  "id": "pb_silverbull1",
+  "name": "ICT Silver Bullet",
+  "source": "model",
+  "sourceModelId": "silver-bullet-model",
+  "market": "NQ",
+  "timeframe": "1m",
+  "direction": "both",
+  "sessions": [
+   "New York AM"
+  ],
+  "status": "active",
+  "colour": "#3f7fe8",
+  "targetRR": 2,
+  "maxRiskPct": 1,
+  "notes": "",
+  "rules": [
+   {
+    "id": "r_silver0",
+    "text": "Mark the reference range",
+    "detail": "At 10:00 ET (or 14:00 ET) mark the high and low of the previous 30 minutes."
+   },
+   {
+    "id": "r_silver1",
+    "text": "Wait for the sweep",
+    "detail": "Inside the window, the first side of the range that trades through sets the direction."
+   },
+   {
+    "id": "r_silver2",
+    "text": "Find the first FVG against the sweep",
+    "detail": "The first fair value gap after the sweep, in the opposite direction, at least 1 point wide."
+   },
+   {
+    "id": "r_silver3",
+    "text": "Enter at the near edge of the gap",
+    "detail": "Limit order at the edge of the FVG closest to price; cancel at the end of the window."
+   },
+   {
+    "id": "r_silver4",
+    "text": "Stop beyond the sweep",
+    "detail": "Stop 1 point beyond the sweep extreme; skip if more than 20 points."
+   },
+   {
+    "id": "r_silver5",
+    "text": "Target the other side of the range",
+    "detail": "Target the opposite side of the reference range; skip if under 10 points."
+   },
+   {
+    "id": "r_silver6",
+    "text": "Manage and stop for the day",
+    "detail": "One trade per window; close by 12:00 (AM) or 15:55 (PM); stop after two losses."
+   }
+  ],
+  "createdAt": 1782309600000,
+  "updatedAt": 1790776800000
+ },
+ {
+  "id": "pb_ifvgmodelc1",
+  "name": "Model C — IFVG Model",
+  "source": "model",
+  "sourceModelId": "ifvg-model-c",
+  "market": "NQ",
+  "timeframe": "1m",
+  "direction": "both",
+  "sessions": [
+   "New York AM"
+  ],
+  "status": "testing",
+  "colour": "#b07c0e",
+  "targetRR": 2,
+  "maxRiskPct": 1,
+  "notes": "",
+  "rules": [
+   {
+    "id": "r_ifvgm0",
+    "text": "Wait for a sweep",
+    "detail": "Wait for sweep of session or daily high/lows."
+   },
+   {
+    "id": "r_ifvgm1",
+    "text": "Confirm the sweep is quick, not stalling",
+    "detail": "The sweep should be quick, with no stalling."
+   },
+   {
+    "id": "r_ifvgm2",
+    "text": "Look for SMT to form",
+    "detail": "Look for the formation of SMT divergence."
+   },
+   {
+    "id": "r_ifvgm3",
+    "text": "Mark the IFVG (5+ points minimum)",
+    "detail": "Mark the IFVG, which should be at least 5 points in size."
+   },
+   {
+    "id": "r_ifvgm4",
+    "text": "Wait for a close outside the IFVG",
+    "detail": "Wait for a candle to close outside the IFVG before entering."
+   },
+   {
+    "id": "r_ifvgm5",
+    "text": "Target the opposite swing low",
+    "detail": "Target is the opposite swing low."
+   }
+  ],
+  "createdAt": 1782309600000,
+  "updatedAt": 1790776800000
+ },
+ {
+  "id": "pb_orbmodela1",
+  "name": "Model A — ORB Strategy",
+  "source": "model",
+  "sourceModelId": "orb-model-a",
+  "market": "NQ",
+  "timeframe": "5m",
+  "direction": "both",
+  "sessions": [
+   "New York AM"
+  ],
+  "status": "testing",
+  "colour": "#8b7dd8",
+  "targetRR": 2,
+  "maxRiskPct": 1,
+  "notes": "",
+  "rules": [
+   {
+    "id": "r_orbmo0",
+    "text": "Choose your instrument",
+    "detail": "NQ for volatility, ES for stability."
+   },
+   {
+    "id": "r_orbmo1",
+    "text": "Mark PDH and PDL before the open",
+    "detail": "Mark the recent and nearby highs and lows in price before the New York session begins."
+   },
+   {
+    "id": "r_orbmo2",
+    "text": "Mark the first 5-minute candle",
+    "detail": "The New York session starts at 09:30 EST — wait for the first 5-minute candle to form and mark its high and low."
+   },
+   {
+    "id": "r_orbmo3",
+    "text": "Enter on a sustained break",
+    "detail": "Enter as soon as the next candle breaks and sustains above (or below) the 5m Opening Range."
+   },
+   {
+    "id": "r_orbmo4",
+    "text": "Target the marked liquidity",
+    "detail": "Target is the next draw on liquidity, or the highs and lows marked before the market open."
+   },
+   {
+    "id": "r_orbmo5",
+    "text": "Keep the stop tight",
+    "detail": "Stop loss is no more than 15-20 points."
+   }
+  ],
+  "createdAt": 1782309600000,
+  "updatedAt": 1790776800000
+ },
+ {
+  "id": "pb_fvgmodelb1",
+  "name": "Model B — 15M FVG Strategy",
+  "source": "model",
+  "sourceModelId": "fvg-model-b",
+  "market": "NQ",
+  "timeframe": "1m",
+  "direction": "both",
+  "sessions": [
+   "New York AM"
+  ],
+  "status": "testing",
+  "colour": "#d1685a",
+  "targetRR": 2,
+  "maxRiskPct": 1,
+  "notes": "",
+  "rules": [
+   {
+    "id": "r_fvgmo0",
+    "text": "Identify and mark 15m FVGs",
+    "detail": "Identify and mark 15m FVGs."
+   },
+   {
+    "id": "r_fvgmo1",
+    "text": "Read the delivery context",
+    "detail": "Identify if price is in one-sided continuation or approaching a higher-timeframe key level."
+   },
+   {
+    "id": "r_fvgmo2",
+    "text": "Wait for the touch",
+    "detail": "Wait for price to touch the FVG and react."
+   },
+   {
+    "id": "r_fvgmo3",
+    "text": "Continuation: expect a quick reaction",
+    "detail": "In case of continuation, you want to see a quick reaction."
+   },
+   {
+    "id": "r_fvgmo4",
+    "text": "Reversal: expect an impulse the other way",
+    "detail": "In case of reversal, you want to see an impulse move to the opposite side."
+   },
+   {
+    "id": "r_fvgmo5",
+    "text": "Confirm with MSS/CHoCH and SMT",
+    "detail": "Enter after confirmation, using market structure shift or CHoCH and SMT with correlated pairs."
+   },
+   {
+    "id": "r_fvgmo6",
+    "text": "Target the opposite liquidity draw",
+    "detail": "Target should be the opposite draw on liquidity."
+   }
+  ],
+  "createdAt": 1782309600000,
+  "updatedAt": 1790776800000
+ }
+]

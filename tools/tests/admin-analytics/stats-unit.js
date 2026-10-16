@@ -256,6 +256,13 @@ function check(name, fn) {
   // The rule is the generated `bot-` PREFIX and nothing else. These tests
   // prove both directions: a bot record reaches NO aggregate, and a real user
   // still reaches every one.
+  await check('isDemoRow: only demo === true is excluded', () => {
+    assert.strictEqual(T.isDemoRow({ demo: true, plan: 'Pro' }), true);
+    for (const v of [false, 'true', 1, null, undefined]) assert.strictEqual(T.isDemoRow({ demo: v }), false);
+    assert.strictEqual(T.isDemoRow({}), false);
+    assert.strictEqual(T.isDemoRow(undefined), false);
+  });
+
   await check('isBotUid: prefix only, never a substring match', () => {
     assert.strictEqual(T.isBotUid('bot-8gOMwJ7KPpFCY7eK1Tm1'), true);
     assert.strictEqual(T.isBotUid('bot-'), true, 'bare prefix is a bot id');

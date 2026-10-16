@@ -191,9 +191,15 @@ function paintBg(cell){
     R.wrapper.style.background = 'linear-gradient(180deg, ' + top + ', ' + s.bg2 + ')';
   }
 }
+// Right margin in bars. The setting's default (6) means "TradingView-like": ~7% of the plot width,
+// never under 6 bars. A margin the user picked explicitly is used as is.
+function roomBars(R, n){
+  if (n !== Number(DEFAULTS.rightBars)) return n;
+  try { const c = R.coords; const vis = c.widthPx / c.pxPerBar(); return Math.min(40, Math.max(n, Math.round(vis * 0.07))); } catch (e) { return n; }
+}
 function applyRight(cell){
   const R = inner(cell); if (!R || !R.coords) return;
-  const n = Number(S(cell.id).rightBars);
+  const n = roomBars(R, Number(S(cell.id).rightBars));
   // Only when the setting itself changed (or on the first paint): a timeframe switch keeps the
   // margin the chart already had (see keepViewOnSwitch), including an indicator's wider margin.
   if (R.__stkRightApplied === n) return;
@@ -249,7 +255,7 @@ function goLatest(cell, R){
   if (!R || !R.coords || R.coords.barCount === 0) return;
   try {
     const vp = R.coords.getViewport();
-    const n = Number(S(cell.id).rightBars);
+    const n = roomBars(R, Number(S(cell.id).rightBars));
     R.applyViewport({ barSpacing: vp.barSpacing, rightOffset: n >= 0 && n < 400 ? n : 6 });
     window.STRYKER_PINE && window.STRYKER_PINE.ensureRoom(cell.chart);
   } catch (e) {}

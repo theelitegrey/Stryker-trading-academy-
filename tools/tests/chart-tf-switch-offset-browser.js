@@ -26,7 +26,7 @@ async function run(b, { w, h, mobile, tag }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', 'day'); } catch (e) {} });
-  await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance|stream\.binance|data-api\.binance|fapi\.binance)/, (r) => r.abort());
+  await ctx.route(/^https?:\/\/[^/]*(doubleclick|google-analytics|googletagmanager)\./, (r) => r.abort());
   const p = await ctx.newPage();
   const errors = [];
   p.on('pageerror', (e) => errors.push(String(e)));

@@ -183,6 +183,7 @@ async function main() {
     const cur = await G.getDoc(`students/${uid}`);
     if (cur && cur.customPhotoURL) { W[0].data.customPhotoURL = cur.customPhotoURL; delete W[0].data.avatarSeed; W[1].data.customPhotoURL = cur.customPhotoURL; delete W[1].data.avatarSeed; }
   }
+  if (args.has('--paths')) { for (const w of W) console.log(w.path.replace(uid, '{uid}').replace(/\/(journal|chartAlerts|watchlists|replay|chartLayouts|chartTemplates|chartFavorites)\/[^/]+$/, '/$1/*').replace(/^notifications\/.*/, 'notifications/* (recipientUid={uid})')); return; }
   const byTop = {}; for (const w of W) { const k = w.path.split('/').slice(w.path.startsWith('students/') ? 2 : 0, w.path.startsWith('students/') ? 3 : 1)[0]; byTop[k] = (byTop[k] || 0) + 1; }
   console.log('documents to write:', W.length, JSON.stringify(byTop));
   if (DRY) { for (const w of W.slice(0, 4)) console.log(' e.g.', w.path.replace(uid, '<uid>')); return; }

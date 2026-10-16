@@ -34,6 +34,18 @@ let ticksOff = false;
 const TICK_TFS = ['1', '5', '15', '30', '60', '120', '240'];
 const streamFails = new Map(); // root|tf -> { n: failures in a row, nextAt: no attempt before }
 const POLL_MS = 20000;
+// FROZEN CANDLES 2026-10-16 (Owner: "countdown is working but not candles"): the bridge accepts the
+// socket (101) BEFORE it reaches InsightSentry, which rejects extra connections while several are
+// open (timeframe/symbol switches stack them, bars requests open their own): open -> close 1011
+// within ~100 ms. That used to count as a hard failure (shared 5-90 s backoff, REST poll ~10 min
+// behind, so no live candle for minutes). Now an early close is TRANSIENT: up to QUICK_RETRY_MAX
+// retries 0.5-2 s apart (jittered) while the REST poll covers (every FALLBACK_POLL_MS), the shared
+// backoff only starts once those are used up, and any bar from the bridge resets every counter.
+// At most MAX_BRIDGE_SOCKETS bridge sockets are open per page.
+const QUICK_RETRY_MAX = 5, QUICK_RETRY_MIN_MS = 500, QUICK_RETRY_SPAN_MS = 1500;
+const FALLBACK_POLL_MS = 8000;
+const MAX_BRIDGE_SOCKETS = 8;
+let bridgeSockets = 0;
 const CONCURRENCY = 4;
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
@@ -342,11 +354,12 @@ export class FuturesProvider {
     let ws = null;
     let openTimer = null, retryTimer = null, healthyTimer = null;
     let retry = 0;
-    let withTicks = false;
+    let withTicks = false, noTicks = false, quick = 0;
     const fkey = root + '|' + tf;
     const fs = streamFails.get(fkey) || { n: 0, nextAt: 0 };
     streamFails.set(fkey, fs);
-    const startPoll = () => { if (!stopped && !pollStop) pollStop = this.pollSubscribe(ticker, timeframe, onBar); };
+    const startPoll = () => { if (!stopped && !pollStop) pollStop = this.pollSubscribe(ticker, timeframe, onBar, FALLBACK_POLL_MS); };
+    const jitter = () => QUICK_RETRY_MIN_MS + Math.random() * QUICK_RETRY_SPAN_MS;
     const stopPoll = () => { if (pollStop) { const p = pollStop; pollStop = null; p(); } };
     const onVis = () => { if (!stopped && !document.hidden && !ws && !retryTimer) connect(); };
     // wait: after a healthy socket closes, 1 s doubling to 30 s; after a failure, the shared backoff
@@ -363,20 +376,23 @@ export class FuturesProvider {
     };
     const healthy = () => {
       if (healthyTimer) { clearTimeout(healthyTimer); healthyTimer = null; }
-      fs.n = 0; fs.nextAt = 0; retry = 0;
+      fs.n = 0; fs.nextAt = 0; retry = 0; quick = 0;
       stopPoll();
     };
     function connect() {
       if (stopped || ws) return;
-      // still inside a failure backoff (also across re-subscriptions): poll and wait it out
+      // still inside a failure backoff (set only after QUICK_RETRY_MAX early closes): poll and wait it out
       if (Date.now() < fs.nextAt) { startPoll(); schedule(fs.nextAt - Date.now()); return; }
+      if (bridgeSockets >= MAX_BRIDGE_SOCKETS) { startPoll(); schedule(jitter()); return; }
       let sock;
       try {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-        withTicks = !ticksOff && TICK_TFS.includes(tf);
+        withTicks = !ticksOff && !noTicks && TICK_TFS.includes(tf);
         sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}`);
       } catch (e) { failed(); return; }
       ws = sock;
+      bridgeSockets++;
+      sock.addEventListener('close', () => { bridgeSockets = Math.max(0, bridgeSockets - 1); });
       let opened = false, gotBar = false;
       if (openTimer) clearTimeout(openTimer);
       // No open within 5 s: show polled bars meanwhile (the old behaviour for a missing bridge).
@@ -407,13 +423,17 @@ export class FuturesProvider {
         if (stopped) return;
         // never delivered a bar (refused, or accepted then closed 1011): a failure, backed off
         if (!gotBar) {
-          if (withTicks) { ticksOff = true; schedule(250); return; } // retry at once without the tick leg
+          if (withTicks) { noTicks = true; startPoll(); schedule(250); return; } // retry at once without the tick leg (this subscription only)
+          if (quick < QUICK_RETRY_MAX) { quick++; startPoll(); schedule(jitter()); return; }
           failed(); return;
         }
         schedule(Math.min(30000, 1000 * Math.pow(2, retry++)));  // a working stream dropped
       };
     }
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
+    // a NEW subscription (timeframe/symbol switch, tab return) always gets its quick attempts, even
+    // if an earlier one for this key ended in the shared backoff
+    fs.nextAt = 0;
     connect();
     return () => {
       stopped = true;
@@ -428,7 +448,7 @@ export class FuturesProvider {
   }
 
   // Forming-bar refresh by polling (fallback path). Pauses while the tab is hidden.
-  pollSubscribe(ticker, timeframe, onBar) {
+  pollSubscribe(ticker, timeframe, onBar, pollMs = POLL_MS) {
     let stopped = false;
     let timer = null;
     const tick = async () => {
@@ -439,14 +459,14 @@ export class FuturesProvider {
         const bars = await this.getBars(ticker, timeframe, { limit: 2, fresh: true });
         if (!stopped) for (const b of bars) onBar(b);
       } catch (e) { /* next poll retries */ }
-      if (!stopped) timer = setTimeout(tick, POLL_MS);
+      if (!stopped) timer = setTimeout(tick, pollMs);
     };
     const onVis = () => {
       if (stopped || document.hidden || timer) return;
       timer = setTimeout(tick, 0);
     };
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVis);
-    timer = setTimeout(tick, POLL_MS);
+    timer = setTimeout(tick, Math.min(pollMs, 3000));
     return () => {
       stopped = true;
       if (timer) clearTimeout(timer);

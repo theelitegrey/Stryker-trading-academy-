@@ -14,7 +14,7 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=576';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=578';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';

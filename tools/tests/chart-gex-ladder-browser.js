@@ -1,0 +1,235 @@
+// GEX Ladder panel browser test (Charts right-bar panel + GEX page tab).
+//   node tools/tests/chart-dev-server.mjs 8092
+//   flock -w 900 /tmp/stryker-chrome.lock env CHART_BASE=http://127.0.0.1:8092 node --max-old-space-size=768 tools/tests/chart-gex-ladder-browser.js [shotsDir]
+// GEX history = the SYNTHETIC sessions of gex-history-fixture.js (4 weekdays ending today, ET), /api/gex/levels =
+// saved real responses. Test input only, NOT market data.
+const fs = require('fs');
+const path = require('path');
+const { launch } = require('./lib.js');
+const stub = require('./richstub.js');
+const { session, packed } = require('./gex-history-fixture.js');
+const BASE = process.env.CHART_BASE || 'http://127.0.0.1:8092';
+const OUT = process.argv[2] || '/tmp';
+const FIX = path.join(__dirname, 'fixtures', 'gex');
+const LV = { SPX: JSON.parse(fs.readFileSync(path.join(FIX, 'SPX-0.json'))), QQQ: JSON.parse(fs.readFileSync(path.join(FIX, 'QQQ-0.json'))) };
+LV.SPY = LV.QQQ;
+let fail = 0;
+const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const etDay = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(ms));
+const DAY = etDay(Date.now());
+const DAYS = (() => { const out = [DAY]; let t = Date.parse(DAY + 'T12:00:00Z'); while (out.length < 4) { t -= 86400000; if (![0, 6].includes(new Date(t).getUTCDay())) out.push(new Date(t).toISOString().slice(0, 10)); } return out; })();   // newest first
+const ALL = (U, d) => DAYS.slice().reverse().flatMap((day) => session(U, d, day));
+
+async function open(b, { w, h, mobile, free }) {
+  const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
+  await ctx.addInitScript(stub);
+  await ctx.addInitScript((free) => {
+    try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker_bar_replay_v1'); localStorage.setItem('stryker.volume', '1'); } catch (e) {}
+    if (free) Object.defineProperty(window, 'strykerPlanTier', { configurable: false, get: () => () => Promise.resolve({ free: true }), set() {} });
+  }, !!free);
+  const hits = [];
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => r.abort());
+  await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/gex-(history|sessions)/, (r) => {
+    const u = new URL(r.request().url()); hits.push({ path: u.pathname, u: u.searchParams.get('u'), from: +u.searchParams.get('from'), to: +u.searchParams.get('to') });
+    const U = u.searchParams.get('u'), d = Number(u.searchParams.get('dte'));
+    const hdr = { 'access-control-allow-origin': '*' };
+    if (u.pathname === '/gex-sessions') {
+      const list = U === 'SPX' || U === 'QQQ' ? DAYS.map((day) => { const s = session(U, d, day); return { u: U, d, day, n: s.length, t0: s[0].t, t1: s[s.length - 1].t }; }) : [];
+      return r.fulfill({ status: 200, contentType: 'application/json', headers: hdr, body: JSON.stringify(list) });
+    }
+    const from = +u.searchParams.get('from'), to = +u.searchParams.get('to');
+    r.fulfill({ status: 200, contentType: 'application/json', headers: hdr, body: JSON.stringify(packed(U, d, ALL(U, d).filter((x) => x.t >= from && x.t <= to))) });
+  });
+  await ctx.route(/\/api\/gex\/levels\//, (r) => {
+    const name = new URL(r.request().url()).pathname.split('/').pop().toUpperCase();
+    r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LV[name] || LV.SPX) });
+  });
+  const p = await ctx.newPage();
+  const errors = [];
+  p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|net::|status of 4|status of 5|WebSocket connection|CORS policy|econ-calendar/.test(m.text())) errors.push(m.text()); });
+  p.on('pageerror', (e) => errors.push(String(e)));
+  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.__stkBarReplay, null, { timeout: 45000 });
+  await waitBars(p);
+  return { ctx, p, errors, hits };
+}
+const waitBars = (p) => p.evaluate(async () => {
+  for (let i = 0; i < 80; i++) {
+    await new Promise((r) => setTimeout(r, 300));
+    try { if (window.STRYKER_VELA.context().cells[0].chart.orchestrator.rawBars.length > 0) return true; } catch (e) {}
+  }
+  return false;
+});
+const setSym = async (p, sym, tf) => { await p.evaluate(([s, tf]) => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); c.setSymbol(s); if (tf) c.setTimeframe(tf); }, [sym, tf]); await sleep(2500); await waitBars(p); await sleep(2500); };
+const gexData = (p) => p.evaluate(() => {
+  const c = window.STRYKER_VELA.context().cells[0].chart, seen = new Set();
+  const find = (o, d) => { if (!o || typeof o !== 'object' || d > 4 || seen.has(o)) return null; seen.add(o); if (o.nativeData instanceof Map && o.nativeData.has('stk_gex')) return o.nativeData.get('stk_gex'); for (const k of Object.keys(o)) { try { const r = find(o[k], d + 1); if (r) return r; } catch (e) {} } return null; };
+  return JSON.parse(JSON.stringify(find(c, 0) || null));
+});
+const tagsOf = (p) => p.evaluate(() => { for (const c of document.querySelectorAll('canvas')) if (c.__stkGexTags) return c.__stkGexTags; return []; });
+const noOverlap = (tg) => tg.every((a, i) => tg.every((b, j) => i >= j || a.box.y + a.box.h <= b.box.y || b.box.y + b.box.h <= a.box.y));
+const setInputs = (p, o) => p.evaluate((o) => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_gex'); h.setInputs(Object.assign({}, h.inputValues(), o)); window.STRYKER_VELA.context().stateChanged(); }, o);
+const addGex = (p, inputs) => p.evaluate((inputs) => { const c = window.STRYKER_VELA.context().cells[0].chart; c.addNativeIndicator('stk_gex', { inputs: inputs || {} }); window.STRYKER_VELA.context().stateChanged(); }, inputs || {});
+// The fixture levels sit away from today's real bars: widen the price axis (manual scale) so they are in view.
+const wide = (p, lo, hi) => p.evaluate(([lo, hi]) => { const R = window.STRYKER_VELA.context().cells[0].chart.renderer.renderer; for (const pane of R.scene.panes.values()) { if (pane.kind === 'price' || pane.id === 'price' || pane.id === 'main') { pane.manualScale = { min: lo, max: hi }; } } R.scheduler.invalidate(4); }, [lo, hi]);
+async function shot(p, name) { await p.mouse.move(5, 5).catch(() => {}); await sleep(600); await p.screenshot({ path: OUT + '/' + name }); console.log('SHOT ' + OUT + '/' + name); }
+
+const state = (p) => p.evaluate(() => {
+  const root = document.querySelector('#stkgl .stkgl-body') || document.querySelector('#gex-ladder-card .stkgl-body');
+  if (!root) return null;
+  const cols = [...root.querySelectorAll('.stkgl-col')].map((c) => {
+    const l = c.querySelector('.stkgl-list'), rows = [...c.querySelectorAll('.stkgl-row')];
+    const sp = c.querySelector('[data-spot]');
+    let spotVisible = false;
+    if (l && sp) { const a = l.getBoundingClientRect(), b = sp.getBoundingClientRect(); spotVisible = b.top >= a.top - 1 && b.bottom <= a.bottom + 1; }
+    return { api: c.dataset.api, shown: c.offsetParent !== null, locked: !!c.querySelector('.stkgl-lock'), pro: !!c.querySelector('.stkgl-pro'), n: rows.length,
+      max: rows.filter((r) => r.classList.contains('is-max')).length, maxK: (rows.find((r) => r.classList.contains('is-max')) || {}).dataset ? rows.find((r) => r.classList.contains('is-max')).dataset.k : null,
+      spotVisible, head: (c.querySelector('.stkgl-ch') || {}).innerText || '', first: rows[0] && rows[0].innerText.replace(/\n/g, ' '), bg: rows.slice(0, 40).map((r) => r.style.backgroundImage.match(/\) ([\d.]+)%/)).filter(Boolean).length,
+      scroll: l ? l.scrollHeight > l.clientHeight : false };
+  });
+  return { cols, foot: (root.querySelector('.stkgl-foot') || {}).innerText, tabsVisible: root.querySelector('.stkgl-tabs').offsetParent !== null };
+});
+const flashData = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart, seen = new Set();
+  const find = (o, d) => { if (!o || typeof o !== 'object' || d > 4 || seen.has(o)) return null; seen.add(o); if (o.nativeData instanceof Map && o.nativeData.has('stk_gexflash')) return o.nativeData.get('stk_gexflash'); for (const k of Object.keys(o)) { try { const r = find(o[k], d + 1); if (r) return r; } catch (e) {} } return null; };
+  const v = find(c, 0); return v ? JSON.parse(JSON.stringify(v)) : null; });
+const PART = process.env.PART || 'all', want = (x) => PART === 'all' || PART === x;
+const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < ms) { const v = await fn(); if (v) return v; await sleep(40); } return null; };
+
+(async () => {
+  const b = await launch();
+  try {
+    let ctx, p, errors, st;
+    if (want('a')) {
+    // ---- Pro, desktop 1440: Charts panel ----
+    ({ ctx, p, errors } = await open(b, { w: 1440, h: 900 }));
+    await setSym(p, 'futures:ES1!', '5');
+    await p.waitForSelector('.stkgl-railbtn', { timeout: 20000 });
+    check(true, 'rail has the GEX Ladder button');
+    await p.click('.stkgl-railbtn');
+    await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 30, null, { timeout: 15000 });
+    await sleep(800);
+    let st = await state(p);
+    check(st.cols.length === 3 && st.cols.every((c) => c.shown && c.n > 10), 'desktop: three columns render side by side (' + st.cols.map((c) => c.api + ':' + c.n).join(' ') + ')');
+    check(st.cols.every((c) => c.max === 1), 'one biggest strike highlighted per column (' + st.cols.map((c) => c.maxK).join(', ') + ')');
+    check(st.cols.every((c) => c.spotVisible), 'spot divider auto-scrolled into view in every column');
+    check(st.cols.every((c) => /Net [+\u2212]\$/.test(c.head) && /Magnet [\d,.]+ · [+\u2212][\d.]+%/.test(c.head)), 'header: symbol, spot, net GEX, magnet + % distance: ' + st.cols[0].head.replace(/\n/g, ' | '));
+    check(st.cols.every((c) => /[+\u2212]\$[\d.]+[KMB]/.test(c.first || '') || c.n > 0), 'rows show strike + signed dollars: ' + st.cols[0].first);
+    check(!/live|real-time|delayed|behind/i.test(st.foot) && /updated/.test(st.foot) && /Education only/.test(st.foot), 'wording: "' + st.foot + '"');
+    // one shared colour scale: the biggest row of the biggest column fills 100%; same $ => same fill in two columns
+    const fills = await p.evaluate(() => { const o = {}; document.querySelectorAll('#stkgl .stkgl-row.is-max').forEach((r) => { const m = r.style.backgroundImage.match(/\) ([\d.]+)%/); o[r.dataset.api] = [+(m && m[1]), r.querySelector('.stkgl-v').textContent]; }); return o; });
+    const maxFill = Math.max(...Object.values(fills).map((x) => x[0]));
+    check(maxFill === 100, 'shared scale: the largest |GEX| of all three columns fills 100% (' + JSON.stringify(fills) + ')');
+    const t1 = await p.evaluate(() => { const l = document.querySelector('#stkgl .stkgl-list'); const t = performance.now(); for (let i = 0; i < 20; i++) { l.scrollTop = (i % 2) * 40; l.getBoundingClientRect(); } return (performance.now() - t) / 20; });
+    const rp = await p.evaluate(() => { const g = window.__stkGexLadder; const root = document.querySelector('#stkgl .stkgl-body'); const t = performance.now(); for (let i = 0; i < 10; i++) { g.close(); g.open(); } return (performance.now() - t) / 10; });
+    console.log('INFO open/paint avg ' + rp.toFixed(1) + ' ms (incl. cached fetch tick), scroll ' + t1.toFixed(2) + ' ms');
+    await sleep(600);
+    await shot(p, 'ladder-charts-1440.png');
+    // click a strike on an ES chart (SPX column) -> flash line
+    const pick = await p.evaluate(() => { const r = [...document.querySelectorAll('#stkgl .stkgl-col[data-api="SPX"] .stkgl-row')][12]; return { k: +r.dataset.k }; });
+    await p.click('#stkgl .stkgl-col[data-api="SPX"] .stkgl-row >> nth=12');
+    const fl = await poll(() => flashData(p), 1500);
+    const es = LV.SPX.futures.ES;
+    check(fl && Math.abs(fl.price - (pick.k * es.ratio + es.basis)) < 40 && /SPX/.test(fl.text), 'click SPX strike on ES: flash line at the converted ES price (' + (fl && fl.price) + ' vs ' + (pick.k * es.ratio + es.basis).toFixed(2) + ', "' + (fl && fl.text) + '")');
+    await sleep(2800);
+    const gone = await flashData(p);
+    check(!gone, 'the flash fades out on its own');
+    // wrong market: QQQ strike on an ES chart -> no line, a toast
+    await p.click('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-row >> nth=12');
+    await sleep(300);
+    check(!(await flashData(p)), 'QQQ strike on an ES chart draws nothing (toast explains)');
+    // NQ chart: QQQ strike converts with the NQ ratio
+    await setSym(p, 'futures:NQ1!', '5');
+    if (!(await p.evaluate(() => window.__stkGexLadder.isOpen))) await p.click('.stkgl-railbtn');
+    await sleep(1200);
+    const pq = await p.evaluate(() => +[...document.querySelectorAll('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-row')][10].dataset.k);
+    await p.click('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-row >> nth=10');
+    const fq = await poll(() => flashData(p), 1500);
+    const nq = LV.QQQ.futures.NQ;
+    check(fq && Math.abs(fq.price - (pq * nq.ratio + nq.basis)) < 60, 'click QQQ strike on NQ: flash at the NQ price (' + (fq && fq.price) + ' vs ~' + (pq * nq.ratio + nq.basis).toFixed(2) + ')');
+    // panels share the slot
+    await p.click('.stknw-railbtn').catch(() => {});
+    await sleep(400);
+    check(!(await p.evaluate(() => window.__stkGexLadder.isOpen)), 'opening News closes the ladder (shared slot)');
+    await p.click('.stkgl-railbtn'); await sleep(500);
+    // bar replay: no lookahead -> ladder says so
+    await p.evaluate(async (E) => { await window.__stkBarReplay.setStepTf('5'); await window.__stkBarReplay.start(E); }, (session('SPX', 0, DAYS[2])[60].t + 1) * 1000);
+    await p.waitForFunction(() => window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, { timeout: 30000 });
+    await sleep(2500);
+    const rs = await p.evaluate(() => ({ note: (document.querySelector('#stkgl .stkgl-note') || {}).innerText, rows: document.querySelectorAll('#stkgl .stkgl-row').length }));
+    check(/Bar replay/.test(rs.note || '') && rs.rows === 0, 'replay: ladder shows no current-chain strikes (' + rs.note + ')');
+    await shot(p, 'ladder-replay-1440.png');
+    check(!errors.length, 'no page errors (' + errors.slice(0, 3).join(' | ') + ')');
+    await ctx.close();
+    }
+    if (want('b')) {
+
+    // ---- Free, desktop: SPX only ----
+    ({ ctx, p, errors } = await open(b, { w: 1440, h: 900, free: true }));
+    const hitsQ = [];
+    p.on('request', (r) => { if (/api\/gex\/levels\/(QQQ|SPY)/.test(r.url())) hitsQ.push(r.url()); });
+    await setSym(p, 'futures:ES1!', '5');
+    await p.click('.stkgl-railbtn');
+    await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
+    await sleep(800);
+    st = await state(p);
+    check(st.cols[0].n > 10 && st.cols[1].locked && st.cols[2].locked && st.cols[1].pro && st.cols[2].pro, 'Free: SPX ladder, QQQ + SPY columns show the Pro lock');
+    check(!hitsQ.length, 'Free: QQQ/SPY GEX never requested (' + hitsQ.length + ')');
+    await shot(p, 'ladder-free-1440.png');
+    check(!errors.length, 'free: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
+    await ctx.close();
+
+    }
+    if (want('c')) {
+    // ---- Phone 390: sheet with tabs ----
+    ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true }));
+    await setSym(p, 'futures:ES1!', '5');
+    await p.evaluate(() => window.__stkGexLadder.open());
+    await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
+    await sleep(800);
+    st = await state(p);
+    check(st.tabsVisible && st.cols.filter((c) => c.shown).length === 1 && st.cols[0].shown, '390: tabs, one column at a time (SPX first)');
+    check(st.cols[0].spotVisible && st.cols[0].max === 1, '390: spot in view, biggest highlighted');
+    const wOk = await p.evaluate(() => { const s = document.getElementById('stkgl').getBoundingClientRect(); const rows = [...document.querySelectorAll('#stkgl .stkgl-row')].slice(0, 20); return s.width <= window.innerWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1 && rows.every((r) => r.scrollWidth <= r.clientWidth + 1); });
+    check(wOk, '390: no sideways overflow in the sheet');
+    await shot(p, 'ladder-sheet-spx-390.png');
+    await p.click('.stkgl-tab[data-api="QQQ"]'); await sleep(900);
+    st = await state(p);
+    check(st.cols[1].shown && !st.cols[0].shown && st.cols[1].spotVisible, '390: QQQ tab shows QQQ, centred on spot');
+    await shot(p, 'ladder-sheet-qqq-390.png');
+    await p.click('#stkgl .stkgl-close'); await sleep(300);
+    check(!(await p.evaluate(() => window.__stkGexLadder.isOpen)), '390: close button closes the sheet');
+    check(!errors.length, '390: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
+    await ctx.close();
+
+    }
+    if (want('d')) {
+    // ---- GEX page tab ----
+    for (const [w, h, mobile] of [[1440, 900, false], [390, 844, true]]) {
+      const ctx2 = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile });
+      await ctx2.addInitScript(stub);
+      await ctx2.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
+      await ctx2.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => r.abort());
+      await ctx2.route(/book-recorder\.theelitegrey\.workers\.dev\/gex-(history|sessions)/, (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' }));
+      await ctx2.route(/\/api\/gex\/(levels|candles)\//, (r) => { const u = new URL(r.request().url()); if (/candles/.test(u.pathname)) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"candles":[]}' }); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LV[u.pathname.split('/').pop().toUpperCase()] || LV.SPX) }); });
+      const pg = await ctx2.newPage(); const errs = [];
+      pg.on('pageerror', (e) => errs.push(String(e)));
+      await pg.goto(BASE + '/gex.html', { waitUntil: 'domcontentloaded' });
+      await pg.waitForSelector('.gex-vtab[data-view="ladder"]', { timeout: 25000 });
+      await sleep(2500);
+      await pg.click('.gex-vtab[data-view="ladder"]');
+      await pg.waitForFunction(() => document.querySelectorAll('#gex-ladder-card .stkgl-row').length > 10, null, { timeout: 15000 });
+      await sleep(900);
+      const s2 = await state(pg);
+      const shownN = s2.cols.filter((c) => c.shown).length;
+      check(shownN === (mobile ? 1 : 3) && s2.cols.filter((c) => c.shown).every((c) => c.max === 1 && c.spotVisible), 'GEX page ' + w + ': Ladder tab, ' + shownN + ' column(s), biggest marked, spot in view');
+      await pg.evaluate(() => { const c = document.getElementById('gex-ladder-card'); window.scrollTo(0, c.getBoundingClientRect().top + window.scrollY - (window.innerWidth < 700 ? 60 : 80)); });
+      await shot(pg, 'ladder-gexpage-' + w + '.png');
+      check(!errs.length, 'GEX page ' + w + ': no page errors (' + errs.slice(0, 2).join(' | ') + ')');
+      await ctx2.close();
+    }
+    }
+  } finally { await b.close(); }
+  console.log(fail ? fail + ' FAILED' : 'ALL PASS');
+  process.exit(fail ? 1 : 0);
+})();

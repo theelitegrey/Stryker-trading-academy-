@@ -508,7 +508,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
     .catch((e) => console.warn('TradeZoro: watchlist', e));
   // News panel (right icon bar, phones: a sheet): headlines for the chart's market, replay-safe (assets/chart-news.js).
-  import('./chart-news.js?v=578').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
+  import('./chart-news.js?v=577').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));
+  // GEX Ladder panel (right icon bar, phones: a sheet): SPX / QQQ / SPY strikes, click draws the level (assets/chart-gex-ladder.js).
+  import('./chart-gex-ladder.js?v=577').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=578').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search

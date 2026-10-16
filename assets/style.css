@@ -9634,3 +9634,72 @@ html[data-stk-rh] .mclock.is-replay .mclock-pill{ box-shadow:none; }
 #stkr-rhdot{ position:fixed; right:4px; bottom:4px; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:#fff; opacity:.1; z-index:7600; cursor:pointer; }
 #stkr-rhdot:hover, #stkr-rhdot:focus-visible{ opacity:.6; }
 #stkr-rhdot[hidden]{ display:none; }
+/* ===== GEX Ladder (assets/chart-gex-ladder.js; Charts right-bar panel + GEX page tab, 2026-10-16) =====
+   Three strike columns on ONE colour scale: mint = positive, magenta = negative, muted = small; the
+   biggest |GEX| per column is outlined in violet. Phones: one column at a time (tabs); Charts: a sheet.
+   The lists scroll with the shared thin scrollbar (global block). */
+.stkchart-panel.stkw-host.stkgl-open #vela-chart{ right:calc(var(--stkw-rail) + var(--stkgl-w, 460px)); }
+.stkgl{
+  position:absolute; top:0; bottom:0; right:var(--stkw-rail, 44px); width:var(--stkgl-w, 460px); z-index:29;
+  display:flex; flex-direction:column; min-width:0; background:var(--bg-0); border-left:1px solid var(--line-soft); color:var(--ink-1); font-size:13px;
+}
+.stkgl[hidden]{ display:none; }
+.stkgl-railbtn.on{ background:var(--bg-2); color:var(--ink-0); box-shadow:inset 2px 0 0 var(--gold) !important; }
+.stkgl-hd{ flex:none; display:flex; align-items:center; gap:2px; padding:6px 6px 6px 12px; border-bottom:1px solid var(--line-soft); }
+.stkgl-title{ font-size:15px; font-weight:700; color:var(--ink-0); }
+.stkgl-sp{ flex:1 1 auto; }
+.stkgl-phonebtn{ display:none; }
+.stkgl-phonebtn.on{ color:var(--ink-0); background:var(--bg-2); }
+.stkgl-wrap{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.stkgl-body{ overflow:hidden; display:flex; flex-direction:column; min-height:0; flex:1 1 auto; }
+.stkgl-tabs{ display:none; gap:4px; padding:8px 10px 4px; }
+.stkgl-body.is-phone .stkgl-tabs{ display:flex; }
+.stkgl-tab{ flex:1; height:32px; border:1px solid var(--line-soft); border-radius:8px; background:transparent; color:var(--ink-2); font:700 12px var(--font-mono, ui-monospace, monospace); cursor:pointer; }
+.stkgl-tab.on{ background:var(--gold); border-color:var(--gold); color:#04150e; }
+.stkgl-note{ margin:6px 10px 0; padding:6px 8px; border-radius:6px; font-size:12px; background:rgba(0,173,181,.12); color:var(--ink-1); }
+.stkgl-note[hidden]{ display:none; }
+.stkgl-cols{ flex:1 1 auto; min-height:0; overflow:hidden; grid-template-rows:minmax(0, 1fr); align-content:stretch; align-items:stretch; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:1px; background:var(--line-soft); margin-top:6px; }
+.stkgl-col{ padding:0; margin:0; display:none; flex-direction:column; min-height:0; min-width:0; overflow:hidden; background:var(--bg-0); }
+.stkgl-col.is-shown{ display:flex; }
+.stkgl-body.is-phone .stkgl-cols{ grid-template-columns:minmax(0, 1fr); }
+.stkgl-ch{ flex:none; padding:8px 8px 6px; border-bottom:1px solid var(--line-soft); display:flex; flex-direction:column; gap:2px; min-width:0; }
+.stkgl-sym{ display:flex; align-items:baseline; gap:6px; min-width:0; }
+.stkgl-sym b{ white-space:nowrap; color:var(--ink-0); font-size:14px; letter-spacing:.02em; }
+.stkgl-sym span{ flex:0 1 auto; color:var(--ink-3); font-size:10.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkgl-pro{ flex:none; white-space:nowrap; font-style:normal; margin-left:auto; padding:1px 6px; border-radius:999px; border:1px solid var(--gold); color:var(--gold); font:800 10px var(--font-mono, monospace); }
+.stkgl-spot{ color:var(--ink-0); font:700 15px var(--font-mono, ui-monospace, monospace); }
+.stkgl-net{ font:600 11px var(--font-mono, ui-monospace, monospace); }
+.stkgl-net.pos{ color:#4fe3ac; } .stkgl-net.neg{ color:#ff78cd; }
+.stkgl-mag{ color:var(--ink-2); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stkgl-list{ position:relative; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:2px 0 8px; }
+.stkgl-row{
+  position:relative; display:flex; align-items:center; gap:4px; width:100%; height:26px; padding:0 8px; border:0; border-radius:0;
+  background-color:transparent; background-repeat:no-repeat; color:var(--ink-1); font:600 11.5px var(--font-mono, ui-monospace, monospace); cursor:pointer; text-align:left;
+}
+.stkgl-row:hover{ box-shadow:inset 0 0 0 1px rgba(255,255,255,.22); }
+.stkgl-row:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+.stkgl-row.is-small{ color:var(--ink-3); }
+.stkgl-k{ color:var(--ink-0); min-width:0; }
+.stkgl-row.is-small .stkgl-k{ color:var(--ink-2); }
+.stkgl-v{ margin-left:auto; white-space:nowrap; }
+.stkgl-row.pos .stkgl-v{ color:#4fe3ac; } .stkgl-row.neg .stkgl-v{ color:#ff78cd; }
+.stkgl-row.is-small .stkgl-v{ color:var(--ink-3); }
+.stkgl-row.is-max{ box-shadow:inset 0 0 0 1.5px #8b7cf6; background-color:rgba(139,124,246,.14); }
+.stkgl-row.is-max em{ font-style:normal; padding:0 5px; border-radius:4px; background:#8b7cf6; color:#0b0b14; font:800 9px var(--font-mono, monospace); letter-spacing:.04em; }
+.stkgl-spotline{ position:relative; height:18px; display:flex; align-items:center; margin:2px 0; border-top:1px dashed var(--ink-2); }
+.stkgl-spotline span{ position:absolute; right:6px; top:-1px; transform:translateY(-50%); padding:0 6px; border-radius:4px; background:var(--ink-0); color:var(--bg-0); font:800 9.5px var(--font-mono, monospace); }
+.stkgl-empty{ padding:24px 10px; text-align:center; color:var(--ink-3); font-size:12.5px; }
+.stkgl-lock{ padding:24px 12px; text-align:center; color:var(--ink-2); font-size:12.5px; display:flex; flex-direction:column; gap:10px; align-items:center; }
+.stkgl-lock p{ margin:0; }
+.stkgl-foot{ flex:none; margin:0; padding:6px 10px; border-top:1px solid var(--line-soft); font-size:11px; color:var(--ink-3); }
+.gex-ladder-card .stkgl-wrap{ height:min(70vh, 640px); }
+.gex-ladder-card[hidden]{ display:none; }
+:root[data-theme="light"] .stkgl-spotline span{ background:#0f172a; color:#fff; }
+@media (max-width:700px){
+  .stkchart-panel.stkw-host.stkgl-open #vela-chart{ right:0; }
+  .stkgl-phonebtn{ display:inline-flex; padding:0 8px; flex:none; }
+  .stkgl{ position:fixed; inset:0; top:var(--stkc-top, 0px); bottom:var(--stkc-dock, 0px); width:auto; right:0; z-index:8000; border-left:0; font-size:14px; }
+  .stkgl-close{ width:40px; height:40px; }
+  .stkgl-row{ height:32px; font-size:13px; }
+  .stkgl-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
+}

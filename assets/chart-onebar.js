@@ -64,6 +64,7 @@ const STEPS = [
   ['more', () => [byId('stkc-settings-btn')]],
   ['more', () => [q('.vela-mb-maximize')]],
   ['more', () => [q('.stknw-phonebtn')]],
+  ['more', () => [q('.stkgl-phonebtn')]],
   ['more', () => [q('.stkw-phonebtn')]],
   ['more', () => [byId('stkc-alerts-btn')]],
   ['more', () => [q('.stkr-menu'), q('.stkr-badge')]],

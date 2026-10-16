@@ -9,6 +9,8 @@ const creds = () => Object.fromEntries(fs.readFileSync(CRED, 'utf8').split('\n')
 export async function launch(w, h, extra = {}) {
   const b = await chromium.launch({ executablePath: process.env.CHROME || '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox', '--disable-dev-shm-usage', '--js-flags=--max-old-space-size=768'] });
   const ctx = await b.newContext(Object.assign({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: w < 500, hasTouch: w < 500 }, extra));
+  // The notifications banner's dismissal is per account in localStorage ('stryker_push_prompt_dismissed_<uid>', assets/push-prompt.js).
+  try { const u = creds().uid; if (u) await ctx.addInitScript((k) => { try { localStorage.setItem(k, '1'); } catch (e) {} }, 'stryker_push_prompt_dismissed_' + u); } catch (e) {}
   const page = await ctx.newPage();
   const errors = [];
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text().slice(0, 200)); });

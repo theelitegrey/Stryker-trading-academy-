@@ -99,16 +99,12 @@ const STRATS = {
 // variant's real engine result). endMin = last entry time (NY, minutes); rr = reward:risk; bias = only trade with the
 // higher-timeframe drift (close vs the 4-hour average of 5m closes); slMult scales the stop distance.
 // The variant chosen for each project is fixed by the rule in VARIANTS below, not by hand-editing numbers.
-const PROJECTS_BASE = [
-  { name: 'ICT 2022 Model · NQ 5m', sym: 'NQ', strat: 'ict2022', size: 1, created: '2026-10-09T15:12:00Z' },
-  { name: 'Liquidity Sweeps · NQ 5m', sym: 'NQ', strat: 'sweep', size: 1, created: '2026-10-06T14:40:00Z' },
-  { name: 'IFVG · NQ 5m', sym: 'NQ', strat: 'ifvg', size: 1, created: '2026-10-02T19:05:00Z' },
-  { name: 'FVG Continuation · ES 5m', sym: 'ES', strat: 'fvg', size: 1, created: '2026-09-28T16:20:00Z' },
-  { name: 'Opening Range Breakout · NQ 5m', sym: 'NQ', strat: 'orb', size: 1, created: '2026-09-24T13:55:00Z' },
-  { name: 'Liquidity Sweeps · ES 5m', sym: 'ES', strat: 'sweep', size: 1, created: '2026-10-12T13:10:00Z' },
-  { name: 'FVG Continuation · NQ 5m', sym: 'NQ', strat: 'fvg', size: 1, created: '2026-10-01T15:45:00Z' },
-  { name: 'Opening Range Breakout · ES 5m', sym: 'ES', strat: 'orb', size: 1, created: '2026-09-22T14:20:00Z' },
-  { name: 'MSS after Sweep · MNQ 5m', sym: 'MNQ', strat: 'mss', size: 4, created: '2026-09-19T18:30:00Z' }
+const PROJECTS_BASE = [   // one idea after another: each gets its OWN consecutive block of trading days (nDays), in this order
+  { name: 'Opening Range Breakout · ES 5m', sym: 'ES', strat: 'orb', size: 1, nDays: 7 },
+  { name: 'FVG Continuation · NQ 5m', sym: 'NQ', strat: 'fvg', size: 1, nDays: 7 },
+  { name: 'Liquidity Sweeps · NQ 5m', sym: 'NQ', strat: 'sweep', size: 1, nDays: 7 },
+  { name: 'IFVG · NQ 5m', sym: 'NQ', strat: 'ifvg', size: 1, nDays: 8 },
+  { name: 'ICT 2022 Model · NQ 5m', sym: 'NQ', strat: 'ict2022', size: 1, nDays: 16 }
 ];
 
 
@@ -128,7 +124,10 @@ function run(P, cfg, days) {
     for (let i = 0; i < bars.length; i++) {
       if (i >= 48) { let m = 0; for (let k = i - 48; k < i; k++) m += bars[k].c; m /= 48; bias = bars[i].c > m ? 1 : -1; } else bias = 0;
       sim.onBar(bars[i], idx++);
-      if (!sim.positions.length && !sim.pending.length) STRATS[P.strat](sim, st, bars, i, P.size);
+      if (!sim.positions.length && !sim.pending.length) {
+        if (st.done && (st.n || 1) < 2) { st.n = (st.n || 1) + 1; st.done = 0; st.pend = null; st.pendingDone = 0; st.sw = null; st.swLow = null; st.swHigh = null; st.gaps = null; st.rng = st.rng; }   // a second attempt later the same morning
+        STRATS[P.strat](sim, st, bars, i, P.size);
+      }
       if (minOf(bars[i]) >= 15 * 60 + 55) { sim.pending.splice(0); sim.closeAll(); }
     }
   }
@@ -138,9 +137,13 @@ function run(P, cfg, days) {
 
 const cache = {};
 const results = [];
+let cursorDay = 0;
 for (const P of PROJECTS_BASE) {
   cache[P.sym] = cache[P.sym] || await loadDays(P.sym);
-  const rows = VARIANTS.map((v) => { const r = run(P, v, cache[P.sym]); return { v, r }; });
+  const startD = days[cursorDay], endD = days[Math.min(days.length - 1, cursorDay + P.nDays - 1)]; cursorDay += P.nDays;
+  P.win = cache[P.sym].filter((x) => x.d >= startD && x.d <= endD);
+  P.updated = Date.parse(endD + 'T22:30:00Z') + 86400000;
+  const rows = VARIANTS.map((v) => { const r = run(P, v, P.win); return { v, r }; });
   P.rows = rows;
   if (process.env.GRID) { console.log('\n' + P.name); for (const { v, r } of rows) console.log('  ', label(v).padEnd(28), 'n', String(r.s.count).padStart(3), 'win%', String(r.s.winRate).padStart(5), 'PF', String(r.s.profitFactor).padStart(5), 'net', String(r.s.net).padStart(9), 'maxDD', r.s.maxDD); }
 }
@@ -153,17 +156,17 @@ if (process.env.GRID) process.exit(0);
 const PIN = {};   // nothing pinned: every project shows the best-profit-factor variant the grid found
 const out = [];
 for (const P of PROJECTS_BASE) {
-  const minN = P.strat === 'mss' || P.strat === 'ict2022' ? 6 : 20;
+  const minN = 8;   // a trader does not trust a variant with fewer than 8 trades
   let pick;
   if (PIN[P.strat]) pick = P.rows.find(({ v }) => v.endMin === PIN[P.strat].endMin && v.rr === PIN[P.strat].rr && v.bias === PIN[P.strat].bias);
   else pick = P.rows.filter(({ r }) => r.s.count >= minN).sort((a, b) => (b.r.s.profitFactor || 0) - (a.r.s.profitFactor || 0))[0] || P.rows[0];
   const { v, r } = pick; const { sim, s, idx } = r;
   console.log(P.name.padEnd(36), label(v).padEnd(26), 'n', s.count, 'win%', s.winRate, 'PF', s.profitFactor, 'net', s.net, 'maxDD', s.maxDD);
   const spec = SPEC[P.sym];
-  const startMs = cache[P.sym][0].bars[0].t, endMs = cache[P.sym].at(-1).bars.at(-1).t;
+  const startMs = P.win[0].bars[0].t, endMs = P.win.at(-1).bars.at(-1).t;
   out.push({ id: 'rs_' + P.strat + '_' + P.sym.toLowerCase(), name: P.name, symbolId: spec.symbolId, symbolLabel: spec.label, startMs, endMs, cursor: idx - 1, total: idx, tf: '5m',
     settings: label(v), summary: { net: s.net, count: s.count, winRate: s.winRate, pf: s.profitFactor === Infinity ? null : s.profitFactor, maxDD: s.maxDD, avgR: s.avgR },
-    balance: sim.balance, startBalance: sim.startBalance, trades: sim.trades, updatedAt: Date.parse(P.created) });
+    balance: sim.balance, startBalance: sim.startBalance, trades: sim.trades, updatedAt: P.updated });
 }
 fs.mkdirSync(path.join(HERE, 'data'), { recursive: true });
 fs.writeFileSync(path.join(HERE, 'data/backtests.json'), JSON.stringify(out));

@@ -74,7 +74,7 @@
   const cls = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
   function decimals(t) {
     const e = Math.abs(Number(t.entry) || 0);
-    const s = String(t.entry) + String(t.exit);
+    const s = String(t.entry) + ' ' + String(t.exit);   // separator: '31256.25'+'31272' must not read as 7 decimals
     const m = s.match(/\.(\d+)/g); let d = 0; if (m) for (const x of m) d = Math.max(d, x.length - 1);
     return Math.min(Math.max(d, e >= 1000 ? 2 : e >= 1 ? 2 : 5), 8);
   }

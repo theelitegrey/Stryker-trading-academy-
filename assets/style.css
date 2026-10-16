@@ -9404,6 +9404,7 @@ button.appnav-dk.on{
 .pr-grid .pr-t th, .pr-grid .pr-t td{ overflow:hidden; text-overflow:ellipsis; }
 .pr-grid .pr-t th:first-child{ width:28%; }
 .pr-grid .pr-t td.pr-empty{ white-space:normal; }
+@media (max-width:720px){ .pr-grid .pr-t{ min-width:400px; } }   /* narrow screens: the table scrolls inside .pr-tw instead of clipping its numbers */
 .pr-t th{ text-align:left; font-weight:600; color:var(--ink-3); font-size:10.5px; padding:4px 6px; border-bottom:1px solid var(--line); white-space:nowrap; }
 .pr-t td{ padding:5px 6px; border-bottom:1px solid var(--line-soft); white-space:nowrap; font-family:var(--font-mono); font-size:11.5px; }
 .pr-t th:not(:first-child), .pr-t td:not(:first-child){ text-align:right; }

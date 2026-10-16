@@ -33,7 +33,9 @@
   const startBalance = (rows) => { const ids = new Set(rows.map((r) => r.s.id)); return S.sessions.filter((s) => ids.has(s.id)).reduce((a, s) => a + (s.startBalance || 0), 0); };
 
   // ---- shared blocks ----------------------------------------------------------------------
-  const kpi = (l, v, sub, c) => '<div class="bt-kpi"><span>' + l + '</span><b class="' + (c || '') + '">' + v + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>';
+  // Card values >= $1,000 drop the cents so the whole number fits the card.
+  const kpiVal = (v) => { const t = String(v); return /^[+-]?\$[\d,]{5,}\.\d\d$/.test(t) ? t.replace(/\.\d\d$/, '') : v; };
+  const kpi = (l, v, sub, c) => '<div class="bt-kpi"><span>' + l + '</span><b class="' + (c || '') + '">' + kpiVal(v) + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>';
   function winnersBlock(ov, win) {
     const rows = win ? [['Total winners', ov.wins], ['Best win', money(ov.bestWin, true), 'up'], ['Average win', money(ov.avgWin, true), 'up'], ['Average duration', A.fmtDur(ov.avgWinDur)], ['Max consecutive wins', ov.maxConsecW], ['Avg consecutive wins', ov.avgConsecW]] : [['Total losers', ov.losses], ['Worst loss', money(ov.worstLoss, true), 'down'], ['Average loss', money(ov.avgLoss, true), 'down'], ['Average duration', A.fmtDur(ov.avgLossDur)], ['Max consecutive losses', ov.maxConsecL], ['Avg consecutive losses', ov.avgConsecL]];
     return '<div class="bt-kv">' + rows.map((r) => '<div><span>' + r[0] + '</span><b class="' + (r[2] || '') + '">' + r[1] + '</b></div>').join('') + '</div>';

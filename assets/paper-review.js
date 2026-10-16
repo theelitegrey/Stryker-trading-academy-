@@ -67,6 +67,8 @@
     const s = Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     return (n < 0 ? '-' : (sign && n > 0 ? '+' : '')) + '$' + s;
   }
+  // Big amounts in cards, tables and axis labels drop the cents so the full value fits (the trade rows keep exact cents).
+  const moneyW = (n, sign) => (n != null && Number.isFinite(n) && Math.abs(n) >= 1000 ? money(Math.round(n), sign).replace(/\.00$/, '') : money(n, sign));
   const pct = (n, sign) => (n == null || !Number.isFinite(n) ? '—' : (sign && n > 0 ? '+' : '') + n.toFixed(2) + '%');
   const rr = (n) => (n == null || !Number.isFinite(n) ? '—' : (n > 0 ? '+' : '') + n.toFixed(2) + 'R');
   const cls = (n) => (n > 0 ? 'up' : n < 0 ? 'down' : '');
@@ -121,9 +123,9 @@
     g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(X(i), Y(p.eq)) : g.moveTo(X(i), Y(p.eq))));
     g.strokeStyle = col; g.lineWidth = 1.6; g.stroke();
     g.fillStyle = ink3; g.textAlign = 'left';
-    g.fillText(money(hi).replace('.00', ''), w - padR + 6, padT + 8);
-    g.fillText(money(lo).replace('.00', ''), w - padR + 6, hgt - padB);
-    g.fillStyle = col; g.fillText(money(end).replace('.00', ''), w - padR + 6, Math.min(hgt - padB - 12, Math.max(padT + 20, Y(end) + 3)));
+    g.fillText(money(Math.round(hi)).replace('.00', ''), w - padR + 6, padT + 8);
+    g.fillText(money(Math.round(lo)).replace('.00', ''), w - padR + 6, hgt - padB);
+    g.fillStyle = col; g.fillText(money(Math.round(end)).replace('.00', ''), w - padR + 6, Math.min(hgt - padB - 12, Math.max(padT + 20, Y(end) + 3)));
   }
 
   // ------------------------------------------------------------------ mini chart snapshot
@@ -301,14 +303,14 @@
       // KPIs
       const kpi = (label, val, c, sub) => h('div', { class: 'pr-kpi' }, [h('em', { text: label }), h('b', { class: c || null, text: val }), sub ? h('small', { text: sub }) : null]);
       root.appendChild(h('div', { class: 'pr-kpis' }, [
-        kpi('Net P&L', money(s.net, true), cls(s.net), pct(s.returnPct, true) + ' on start'),
+        kpi('Net P&L', moneyW(s.net, true), cls(s.net), pct(s.returnPct, true) + ' on start'),
         kpi('Win rate', s.winRate == null ? '—' : s.winRate.toFixed(1) + '%', null, s.wins + 'W · ' + s.losses + 'L' + (s.scratches ? ' · ' + s.scratches + ' BE' : '')),
         kpi('Average R', rr(s.avgR), cls(s.avgR), s.rTrades + ' with a stop'),
-        kpi('Expectancy', money(s.expectancy, true), cls(s.expectancy), 'per trade'),
+        kpi('Expectancy', moneyW(s.expectancy, true), cls(s.expectancy), 'per trade'),
         kpi('Profit factor', s.profitFactor == null ? (s.wins ? '∞' : '—') : s.profitFactor.toFixed(2), s.profitFactor == null ? null : s.profitFactor >= 1 ? 'up' : 'down'),
-        kpi('Max drawdown', money(-s.maxDD), s.maxDD ? 'down' : null, pct(s.maxDDPct) + ' from peak'),
-        kpi('Best trade', s.best ? money(s.best.pnl, true) : '—', s.best ? cls(s.best.pnl) : null, s.best ? showSym(s.best.symbol) : ''),
-        kpi('Worst trade', s.worst ? money(s.worst.pnl, true) : '—', s.worst ? cls(s.worst.pnl) : null, s.worst ? showSym(s.worst.symbol) : ''),
+        kpi('Max drawdown', moneyW(-s.maxDD), s.maxDD ? 'down' : null, pct(s.maxDDPct) + ' from peak'),
+        kpi('Best trade', s.best ? moneyW(s.best.pnl, true) : '—', s.best ? cls(s.best.pnl) : null, s.best ? showSym(s.best.symbol) : ''),
+        kpi('Worst trade', s.worst ? moneyW(s.worst.pnl, true) : '—', s.worst ? cls(s.worst.pnl) : null, s.worst ? showSym(s.worst.symbol) : ''),
         kpi('Average hold', S.fmtHold(s.avgHold), null, s.trades + ' trades')
       ]));
 
@@ -325,7 +327,7 @@
           if (!rows.length) tb.appendChild(h('tr', null, [h('td', { colspan: '6', class: 'pr-empty', text: 'No trades yet.' })]));
           rows.forEach((r) => tb.appendChild(h('tr', null, [h('td', { text: r.key === '(none)' ? 'No ' + title.toLowerCase() + ' tag' : r.key }), h('td', { text: String(r.trades) }),
             h('td', { text: r.winRate == null ? '—' : r.winRate.toFixed(0) + '%' }), h('td', { class: cls(r.avgR), text: rr(r.avgR) }),
-            h('td', { class: cls(r.expectancy), text: money(r.expectancy, true) }), h('td', { class: cls(r.net), text: money(r.net, true) })])));
+            h('td', { class: cls(r.expectancy), text: moneyW(r.expectancy, true) }), h('td', { class: cls(r.net), text: moneyW(r.net, true) })])));
           t.appendChild(tb);
           return h('div', { class: 'pr-card' }, [h('h3', { class: 'pr-h3', text: 'By ' + title.toLowerCase() }), h('div', { class: 'pr-tw' }, [t])]);
         };

@@ -623,7 +623,7 @@
       IS.fetchCal(TAB).then((j) => { CORP[TAB] = j && Array.isArray(j.items) ? j.items : null; if (TAB) paint(mount, false); });
       return;
     }
-    if (items === null) { days.innerHTML = '<div class="ec-stale"><b>This list could not be loaded.</b> Refresh in a moment.</div>'; return; }
+    if (items === null) { days.innerHTML = '<div class="ec-stale"><b>This list is temporarily unavailable.</b> Refresh in a moment.</div>'; return; }
     days.innerHTML = IS.renderCorp(TAB, items, { scope: SCOPE, range: CRANGE, mode: TZMODE }) +
       '<p class="ec-note-p">Company data from our market-data provider; dates and estimates change. Education only. Not financial advice.</p>';
   }
@@ -738,7 +738,7 @@
       strips.forEach(renderStrip);
     }).catch((err) => {
       console.error('TradeZoro: economic calendar could not be loaded', err);
-      if (page) page.innerHTML = '<div class="ec-stale"><b>The calendar could not be loaded.</b> ' +
+      if (page) page.innerHTML = '<div class="ec-stale"><b>Calendar data is temporarily unavailable.</b> ' +
         'Refresh in a moment.</div>';
       strips.forEach((m) => { m.hidden = true; m.innerHTML = ''; });
     });

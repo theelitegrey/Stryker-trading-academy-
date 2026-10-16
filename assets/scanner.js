@@ -129,7 +129,7 @@
   function loadPresets() {
     return load('presets').then(function (d) {
       st.presets = d.presets; st.cols = d.cols; st.t = d.t; st.err = '';
-    }, function () { if (!st.presets) st.err = 'The scanner could not load. Try again in a minute.'; });
+    }, function () { if (!st.presets) st.err = 'Scanner data is temporarily unavailable. Try again in a minute.'; });
   }
   function loadTable(m) {
     var e = st.tables[m];
@@ -211,7 +211,7 @@
       h += filtersHtml();
       var tb = st.tables[st.cmarket];
       if (!tb || (!tb.rows.length && !tb.err && tb.p)) { root.innerHTML = h + '<p class="scn-empty">Loading the ' + st.cmarket + ' table…</p>'; wire(); loadTable(st.cmarket).then(render); return; }
-      if (tb.err) { root.innerHTML = h + '<p class="scn-empty">This table could not load. Try again in a minute.</p>'; wire(); return; }
+      if (tb.err) { root.innerHTML = h + '<p class="scn-empty">This table is temporarily unavailable. Try again in a minute.</p>'; wire(); return; }
       var flt = buildFilter(st.filters);
       var all = tb.rows.filter(flt.test);
       shown = sortRows(all, st.sortK || 'chg', st.sortK ? st.sortD : -1).slice(0, 200);

@@ -177,7 +177,7 @@ export function mountSymbolInfo(ws) {
     railBtn.classList.toggle('on', open);
     phoneBtn.classList.toggle('on', open);
     if (!isPhone()) { try { if (open) localStorage.setItem(LS_OPEN, '1'); else localStorage.removeItem(LS_OPEN); } catch (e) {} }
-    if (open) { render(); if (!data) getInfo().then((d) => { data = d; err = ''; render(); }, () => { err = 'Symbol info could not load. Try again in a minute.'; render(); }); }
+    if (open) { render(); if (!data) getInfo().then((d) => { data = d; err = ''; render(); }, () => { err = 'Symbol info is temporarily unavailable. Try again in a minute.'; render(); }); }
     requestAnimationFrame(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} });
   }
   railBtn.addEventListener('click', () => setOpen(!open));

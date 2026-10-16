@@ -531,7 +531,7 @@
   function fail(mount, isPage) {
     if (!mount) return;
     if (isPage) {
-      mount.innerHTML = '<div class="mm-stale"><b>The market map could not be loaded.</b> ' +
+      mount.innerHTML = '<div class="mm-stale"><b>Market map data is temporarily unavailable.</b> ' +
         'Refresh in a moment, or check back before the next session.</div>';
     } else {
       mount.hidden = true;

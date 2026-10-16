@@ -207,7 +207,7 @@
   function fail(mount, isPage) {
     if (!mount) return;
     if (isPage) {
-      mount.innerHTML = '<div class="mb-stale"><b>The brief could not be loaded.</b> ' +
+      mount.innerHTML = '<div class="mb-stale"><b>Brief data is temporarily unavailable.</b> ' +
         'Refresh in a moment, or check back before the next session.</div>';
     } else {
       // On the dashboard a missing brief is not worth a broken panel. Say

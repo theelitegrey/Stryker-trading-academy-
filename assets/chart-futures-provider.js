@@ -14,6 +14,8 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=576';
+
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
 // Bridge failure backoff. functions/api/chart/stream/[sym].js accepts the socket (101) BEFORE it
@@ -264,7 +266,7 @@ export class FuturesProvider {
     let p = this.inflight.get(key);
     if (!p) {
       p = (async () => {
-        const res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: { accept: 'application/json' } });
+        const res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const body = await res.json();
         const rows = Array.isArray(body.bars) ? body.bars : [];
@@ -332,7 +334,14 @@ export class FuturesProvider {
     const root = this.keyOf(ticker);
     const tf = normTf(timeframe);
     if (root && tf && INSIGHTSENTRY_ROOTS.includes(root) && typeof WebSocket === 'function' && typeof location !== 'undefined') {
-      return this.streamSubscribe(root, ticker, timeframe, tf, onBar);
+      // Real-time is admin only (Owner 2026-10-16): the server refuses the socket for anyone else, so
+      // non-admins never open it and poll the (10 min delayed) bars instead.
+      let stopped = false, stop = null;
+      rtReady().then(() => {
+        if (stopped) return;
+        stop = isRealtimeAdmin() ? this.streamSubscribe(root, ticker, timeframe, tf, onBar) : this.pollSubscribe(ticker, timeframe, onBar);
+      });
+      return () => { stopped = true; if (stop) stop(); };
     }
     return this.pollSubscribe(ticker, timeframe, onBar);
   }
@@ -388,7 +397,7 @@ export class FuturesProvider {
       try {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         withTicks = !ticksOff && !noTicks && TICK_TFS.includes(tf);
-        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}`);
+        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}`, rtToken() ? ['tz-auth', rtToken()] : undefined);
       } catch (e) { failed(); return; }
       ws = sock;
       bridgeSockets++;

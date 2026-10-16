@@ -63,7 +63,8 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=577';
+import { rtHeadersReady } from './rt-access.js?v=576';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=578';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -271,7 +272,7 @@ export function gexAnchor(fut, data) {
   if (e && (isNum(e.shift) || e.p || Date.now() - e.at < 60000)) return e.p ? null : e.shift;
   const t = num(data.market.options_ts, 0);
   const page = Math.floor(t / (8 * 3600));   // the 1-minute page holding the options time (_bars.js TIMEFRAMES['1'])
-  const p = fetch(BARS_API + encodeURIComponent(fut + '1!') + '?tf=1&page=' + page, { headers: { accept: 'application/json' } })
+  const p = rtHeadersReady().then((hd) => fetch(BARS_API + encodeURIComponent(fut + '1!') + '?tf=1&page=' + page, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => (r.ok ? r.json() : null)).catch(() => null)
     .then((j) => {
       const rows = j && j.bars;

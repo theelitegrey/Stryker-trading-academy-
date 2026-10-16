@@ -4,7 +4,8 @@
 // `page` is an epoch-aligned window index (see _bars.js); omitted = the page holding now.
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
-import { TIMEFRAMES, INSIGHTSENTRY_CODES, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
+import { isAdminToken, bearerOf, RT_DELAY_S } from '../_rt.js';
+import { TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -35,7 +36,7 @@ function keyFor(request, sym, tf, page, kind) {
 // the re-fetch is due after 12 s), so a quiet edge is rarely cold.
 async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
   try {
-    if (!cache || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
+    if (!cache || ctx.noTail || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
     const k = `${sym}:${tf}:${page}`, tailKey = keyFor(request, sym, tf, page, 'tail');
     const hitT = await cache.match(tailKey);
     let tail = null, tailAge = 1e9;
@@ -56,7 +57,7 @@ async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
   } catch (e) { return res; }
 }
 
-export async function onRequestGet(ctx) {
+async function serve(ctx, admin) {
   const { request, params } = ctx;
   const sym = normSym(params.sym);
   if (!sym) return reply({ error: 'unknown symbol' }, 404, 3600);
@@ -70,16 +71,20 @@ export async function onRequestGet(ctx) {
   if (page > current) return reply({ s: sym, tf, page, bars: [] }, 200, 300);
 
   const cache = edge();
-  const freshKey = keyFor(request, sym, tf, page, 'fresh');
+  // Non-admins read a separate cache lane and a Yahoo-only source (no InsightSentry env at all), so a
+  // real-time row can never enter their response; Yahoo's CME feed is itself ~10 min behind.
+  const KD = admin || isForex(sym) ? '' : 'd';
+  const env = admin || isForex(sym) ? (ctx.env || {}) : {};
+  const freshKey = keyFor(request, sym, tf, page, 'fresh' + KD);
   try {
     if (cache) {
       const hit = await cache.match(freshKey);
       if (hit) return await withTail(hitOf(hit), ctx, request, cache, sym, tf, page, current, now);
     }
-    const k = `${sym}:${tf}:${page}`;
+    const k = `${sym}:${tf}:${page}${KD}`;
     let p = inflight.get(k);
     if (!p) {
-      p = fetchPage(sym, tf, page, now, fetch, ctx.env || {}).finally(() => inflight.delete(k));
+      p = fetchPage(sym, tf, page, now, fetch, env).finally(() => inflight.delete(k));
       inflight.set(k, p);
     }
     let bars = await p;
@@ -87,7 +92,7 @@ export async function onRequestGet(ctx) {
     const body = { s: sym, tf, page, bars };
     if (cache) {
       const writes = [cache.put(freshKey, reply(body, 200, ttl))];
-      if (bars.length) writes.push(cache.put(keyFor(request, sym, tf, page, 'lastgood'), reply(body, 200, 7 * 86400)));
+      if (bars.length) writes.push(cache.put(keyFor(request, sym, tf, page, 'lastgood' + KD), reply(body, 200, 7 * 86400)));
       const w = Promise.all(writes).catch(() => {});
       if (ctx.waitUntil) ctx.waitUntil(w); else await w;
     }
@@ -102,7 +107,7 @@ export async function onRequestGet(ctx) {
       }
       return reply(body, 200, page === current ? 60 : 86400);
     }
-    const last = cache ? await cache.match(keyFor(request, sym, tf, page, 'lastgood')) : null;
+    const last = cache ? await cache.match(keyFor(request, sym, tf, page, 'lastgood' + KD)) : null;
     if (last) {
       const body = await last.json();
       body.stale = true;
@@ -112,3 +117,32 @@ export async function onRequestGet(ctx) {
   }
 }
 
+
+// CME futures real-time is admin only (Owner 2026-10-16). Non-admins are served from the Yahoo-only
+// lane above (~10 min behind by nature); delayRows is the belt on top: no bar opened after now - 10 min.
+// (Forex is not CME and is untouched.) Admins get the InsightSentry tail as before.
+export function delayRows(rows, nowSec) {
+  const cut = nowSec - RT_DELAY_S;
+  return rows.filter((r) => r[0] <= cut);
+}
+
+export async function onRequestGet(ctx) {
+  const sym = normSym(ctx.params.sym);
+  if (!sym || isForex(sym)) return serve(ctx, true);
+  const admin = await isAdminToken(bearerOf(ctx.request));
+  ctx.noTail = !admin;
+  const res = await serve(ctx, admin);
+  if (res.status !== 200) return res;
+  const out = new Response(res.body, res);
+  out.headers.set('vary', 'Authorization');
+  if (admin) { out.headers.set('cache-control', 'private, max-age=10'); return out; }
+  try {
+    const body = await out.json();
+    body.bars = delayRows(body.bars || [], Math.floor(Date.now() / 1000));
+    const h = new Headers(out.headers);
+    h.delete('content-length'); h.delete('content-encoding');
+    return new Response(JSON.stringify(body), { status: 200, headers: h });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: 'unavailable' }), { status: 502, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });
+  }
+}

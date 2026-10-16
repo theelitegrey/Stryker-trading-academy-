@@ -34,6 +34,19 @@ const store = new Map();
 globalThis.caches = { default: { match: async (r) => store.get(r.url)?.clone(), put: async (r, res) => { store.set(r.url, res); } } };
 const W = (path, init) => worker.fetch(new Request('https://w.dev' + path, init), env, { waitUntil: (p) => p });
 
+// Admin token stub (Owner order 2026-10-16: real time is admin only). Throwaway RSA key; Google's JWKS
+// and the Firestore admins/{uid} read are faked. No real token anywhere.
+const kp = await crypto.subtle.generateKey({ name: 'RSASSA-PKCS1-v1_5', modulusLength: 2048, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' }, true, ['sign', 'verify']);
+const jwk = { ...(await crypto.subtle.exportKey('jwk', kp.publicKey)), kid: 'k1', alg: 'RS256', use: 'sig' };
+const b64u = (b) => Buffer.from(b).toString('base64url');
+async function mint(sub) {
+  const now = Math.floor(NOW / 1000);
+  const h = b64u(JSON.stringify({ alg: 'RS256', kid: 'k1' })), p = b64u(JSON.stringify({ iss: 'https://securetoken.google.com/strykertrades-e0cd8', aud: 'strykertrades-e0cd8', sub, iat: now - 5, exp: now + 3600 }));
+  return h + '.' + p + '.' + b64u(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', kp.privateKey, new TextEncoder().encode(h + '.' + p)));
+}
+globalThis.fetch = async (url) => String(url).includes('securetoken@system') ? new Response(JSON.stringify({ keys: [jwk] })) : String(url).endsWith('/admins/uid-admin') ? new Response('{}') : new Response('{}', { status: 403 });
+const ADMIN = { authorization: 'Bearer ' + await mint('uid-admin') }, PRO = { authorization: 'Bearer ' + await mint('uid-pro') };
+
 const out = join(mkdtempSync(join(tmpdir(), 'of-')), 'nq.bin');
 execFileSync('python3', [join(here, '../of-feeder/of_feeder.py'), '--dry-run', join(here, 'fixtures/nq-trades-20261013-12utc.json.gz'), 'NQ', out]);
 const payload = new Uint8Array(readFileSync(out));
@@ -69,11 +82,11 @@ assert.ok(writes <= 1, 'open bar wrote ' + writes + ' rows');
 console.log('PASS open bar -> memory only:', t2, '| SQLite writes:', writes);
 
 // read back today: 60 closed + 1 open, identical bytes
-r = await W('/orderflow?sym=NQ&day=2026-10-13', { headers: { origin: 'https://strykertrading.com' } });
+r = await W('/orderflow?sym=NQ&day=2026-10-13', { headers: { origin: 'https://strykertrading.com', ...ADMIN } });
 assert.equal(r.status, 200);
 assert.equal(r.headers.get('access-control-allow-origin'), 'https://strykertrading.com');
 assert.equal(r.headers.get('x-of-gzip'), '1');
-assert.match(r.headers.get('cache-control'), /max-age=15/);
+assert.match(r.headers.get('cache-control'), /no-store/);   // admin answers are never shared-cached
 const gz = Buffer.from(await r.arrayBuffer());
 const back = decodeOrderflow(new Uint8Array(gunzipSync(gz)));
 assert.equal(back.bars.length, 61);
@@ -82,7 +95,26 @@ for (let i = 0; i < 60; i++) { assert.equal(back.bars[i].t, src.bars[i].t); asse
 assert.equal(back.header.thr, src.header.thr);
 console.log('PASS /orderflow today: 61 bars (60 stored + the open one), identical to the feeder\'s, ' + gz.length + ' B gzip');
 
-r = await W('/ticks1s?sym=NQ&from=' + Date.UTC(2026, 9, 13, 12) / 1000 + '&to=' + Date.UTC(2026, 9, 13, 13) / 1000, { headers: { origin: 'https://strykertrading.com' } });
+// NON-ADMINS (signed out, and a signed-in non-admin): nothing newer than now - 10 min (13:00:20 -> last minute 12:49)
+for (const [who, hd] of [['signed out', {}], ['non-admin', PRO]]) {
+  store.clear();
+  let rr = await W('/orderflow?sym=NQ&day=2026-10-13', { headers: { origin: 'https://strykertrading.com', ...hd } });
+  assert.equal(rr.status, 200);
+  const dl = decodeOrderflow(new Uint8Array(gunzipSync(Buffer.from(await rr.arrayBuffer()))));
+  assert.ok(dl.bars.length > 0 && dl.bars.every((b) => b.t <= NOW - 600000), who + ': orderflow newest ' + (NOW - dl.bars[dl.bars.length - 1].t) / 1000 + ' s old');
+  assert.equal(dl.bars.length, 50, who);
+  rr = await W('/orderflow?sym=NQ&from=' + (NOW / 1000 - 1200) + '&to=' + NOW / 1000, { headers: hd });
+  const dl2 = decodeOrderflow(new Uint8Array(gunzipSync(Buffer.from(await rr.arrayBuffer()))));
+  assert.ok(dl2.bars.every((b) => b.t <= NOW - 600000), who + ': live tail leaks');
+  rr = await W('/ticks1s?sym=NQ&from=' + Date.UTC(2026, 9, 13, 12) / 1000 + '&to=' + NOW / 1000, { headers: hd });
+  const tj0 = await rr.json();
+  assert.ok(tj0.m.length > 0 && tj0.m.every(([min]) => min * 1000 <= NOW - 600000), who + ': ticks1s leaks');
+  rr = await W('/ticks1s?sym=NQ&from=' + (NOW / 1000 - 300) + '&to=' + NOW / 1000, { headers: hd });
+  assert.equal(rr.status, 200); { const mm = (await rr.json()).m; assert.ok(mm.every(([min]) => min * 1000 <= NOW - 600000), who + ': last 5 min must be empty'); }
+  console.log('PASS ' + who + ': /orderflow + /ticks1s end >= 10 min ago (tail and last minutes empty)');
+}
+store.clear();
+r = await W('/ticks1s?sym=NQ&from=' + Date.UTC(2026, 9, 13, 12) / 1000 + '&to=' + Date.UTC(2026, 9, 13, 13) / 1000, { headers: { origin: 'https://strykertrading.com', ...ADMIN } });
 assert.equal(r.status, 200);
 const tj = await r.json();
 assert.equal(tj.sym, 'NQ'); assert.equal(tj.prices, 'real'); assert.equal(tj.m.length, 61);

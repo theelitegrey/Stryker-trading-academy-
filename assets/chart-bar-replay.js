@@ -38,6 +38,7 @@ const RT_FRAME_MS = 66;                               // ~15 visible updates per
 // GET ?sym=NQ&from=<sec>&to=<sec> -> {tick, m:[[minuteEpochSec, [[sec,o,h,l,c,vol],...]],...]}, real prices,
 // only seconds that traded. Book-recorder Worker, fed by the order-flow tick feeder (one tick pull for
 // both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
+import { rtHeadersReady } from './rt-access.js?v=576';
 const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
 const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
 const HOUR = 3600e3;
@@ -480,7 +481,7 @@ const path = (() => {
     const k = root + '|' + h;
     if (real.has(k)) return real.get(k);
     if (h > Date.now()) return null;
-    const p = fetch(TICKS1S_URL + '?sym=' + root + '&from=' + (h / 1000) + '&to=' + ((h + HOUR) / 1000 - 1))
+    const p = rtHeadersReady().then((hd) => fetch(TICKS1S_URL + '?sym=' + root + '&from=' + (h / 1000) + '&to=' + ((h + HOUR) / 1000 - 1), { headers: hd }))
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
         const m = new Map();

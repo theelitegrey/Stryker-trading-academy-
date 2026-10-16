@@ -36,7 +36,8 @@
 // button, starred on add. TYPED INTERVALS: a digit or "," on the chart opens a small box ("5",
 // "4h", "1D", "15s", "100t") and Enter applies it; keys inside inputs are never taken.
 // No order or trade button anywhere here (Owner rule: no buying/selling on the website).
-import { liveSubscribe } from './chart-live-resume.js?v=577';
+import { liveSubscribe } from './chart-live-resume.js?v=578';
+import { rtReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=576';
 
 const LS_FAVS = 'stryker_chart_iv_favs';
 const LS_COLLAPSED = 'stryker_chart_iv_collapsed';
@@ -256,7 +257,7 @@ function futuresStreamBars(ticker, tf, range = {}) {
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return Promise.resolve([]);
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   if (!root) return Promise.resolve([]);
-  return new Promise((resolve) => {
+  return rtReady().then(() => !isRealtimeAdmin() ? [] : new Promise((resolve) => {   // real-time futures: admin only (2026-10-16)
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const url = `${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`;
     const out = [];
@@ -271,7 +272,7 @@ function futuresStreamBars(ticker, tf, range = {}) {
     };
     const timer = setTimeout(done, 5000);
     try {
-      ws = new WebSocket(url);
+      ws = new WebSocket(url, rtToken() ? ['tz-auth', rtToken()] : undefined);
       ws.onmessage = (ev) => {
         try {
           const msg = JSON.parse(ev.data);
@@ -284,16 +285,18 @@ function futuresStreamBars(ticker, tf, range = {}) {
       ws.onerror = () => { clearTimeout(timer); done(); };
       ws.onclose = () => { clearTimeout(timer); done(); };
     } catch (e) { clearTimeout(timer); done(); }
-  });
+  }));
 }
 
 function futuresStreamSubscribe(ticker, tf, onBar) {
   if (typeof WebSocket !== 'function' || typeof location === 'undefined') return () => {};
   const root = String(ticker || '').toUpperCase().replace(/^[A-Z]+:/, '').replace(/1!$/, '');
   let ws = null, stopped = false;
+  rtReady().then(() => {
+  if (stopped || !isRealtimeAdmin()) return;   // real-time futures: admin only (2026-10-16)
   try {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`);
+    ws = new WebSocket(`${proto}//${location.host}/api/chart/stream/${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}`, rtToken() ? ['tz-auth', rtToken()] : undefined);
     ws.onmessage = (ev) => {
       if (stopped) return;
       try {
@@ -302,6 +305,7 @@ function futuresStreamSubscribe(ticker, tf, onBar) {
       } catch (e) {}
     };
   } catch (e) {}
+  });
   return () => { stopped = true; try { if (ws) ws.close(); } catch (e) {} };
 }
 

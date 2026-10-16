@@ -1,5 +1,6 @@
 // GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge.
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
+import { isAdminToken, wsTokenOf } from '../_rt.js';
 import { INSIGHTSENTRY_WS, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
 const ALLOWED_ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
@@ -66,6 +67,10 @@ export async function onRequestGet(ctx) {
   if (!key) return err(503, 'realtime feed not configured');
   if (!sym || !code) return err(404, 'symbol not streamable');
   if (!tf || !spec) return err(400, 'timeframe not streamable');
+
+  // CME futures real time is ADMIN ONLY (Owner 2026-10-16). Refused before any upstream is opened.
+  // The ID token arrives as the WebSocket subprotocol ("tz-auth", "<jwt>"), not in the URL.
+  if (!(await isAdminToken(wsTokenOf(ctx.request)))) return err(403, 'real-time futures data is admin only; delayed data is served by /api/chart/bars');
 
   const pair = new WebSocketPair();
   const client = pair[0], server = pair[1];
@@ -160,10 +165,13 @@ export async function onRequestGet(ctx) {
       upBars += rows.length;
       for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
     };
+    // the admin check is made at connect; end the socket after 50 min so a revoked admin (or an
+    // expired token) re-checks. The client re-opens at once with a fresh token.
+    setTimeout(() => close(4000, 'reauth'), 50 * 60 * 1000);
     server.addEventListener('close', () => close());
     server.addEventListener('error', () => close());
   } catch (e) {
     close(1011, 'stream failed');
   }
-  return new Response(null, { status: 101, webSocket: client });
+  return new Response(null, { status: 101, webSocket: client, headers: { 'sec-websocket-protocol': 'tz-auth' } });
 }

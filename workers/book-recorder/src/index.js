@@ -22,6 +22,7 @@ import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from '.
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
+import { isAdminToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
@@ -391,7 +392,7 @@ export class BookRecorder {
 function cors(req) {
   const o = req.headers.get('origin');
   const h = { 'vary': 'Origin', 'x-content-type-options': 'nosniff' };
-  if (o && ORIGINS.has(o)) { h['access-control-allow-origin'] = o; h['access-control-allow-methods'] = 'GET, OPTIONS'; h['access-control-max-age'] = '86400'; h['access-control-expose-headers'] = 'x-book-from'; }
+  if (o && ORIGINS.has(o)) { h['access-control-allow-origin'] = o; h['access-control-allow-methods'] = 'GET, OPTIONS'; h['access-control-allow-headers'] = 'authorization'; h['access-control-max-age'] = '86400'; h['access-control-expose-headers'] = 'x-book-from'; }
   return h;
 }
 const stub = (env) => env.RECORDER.get(env.RECORDER.idFromName('main'));
@@ -485,13 +486,22 @@ async function scanRoute(u, env, ctx, h) {
 // client un-gzips with DecompressionStream (a stored gzip body with content-encoding does not
 // survive the Cache API reliably). Edge-cached: a closed range a day, the range holding now 15 s.
 // Micros ask for their mini (the site maps MNQ -> NQ). Plan gating is done by the site.
-async function orderflowRoute(u, env, ctx, h) {
+async function orderflowRoute(u, env, ctx, h, req) {
   const sym = String(u.searchParams.get('sym') || '').toUpperCase();
   if (!OF_SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404, headers: Object.assign({ 'cache-control': 'public, max-age=300' }, h) });
   const ticks = u.pathname === '/ticks1s';
-  const now = Date.now(), r = ticks ? ticksRange(u.searchParams, now) : ofRange(u.searchParams, now);
+  // CME futures real time is ADMIN ONLY (Owner 2026-10-16). Everyone else is served the range as it
+  // stood 10 min ago: the clock the range is clamped to is moved back by 10 min plus one minute (only
+  // minutes that were complete 10 min ago; the forming minute and the live tail are never included).
+  // Admin = a verified Firebase ID token (Authorization: Bearer) whose uid has an admins/{uid} doc.
+  const tok = bearerOf(req);
+  const admin = tok ? await isAdminToken(tok) : false;
+  const now = Date.now(), clock = admin ? now : now - RT_DELAY_S * 1000 - 60000;
+  let r = ticks ? ticksRange(u.searchParams, clock) : ofRange(u.searchParams, clock);
+  // a non-admin range that lies wholly inside the last 10 min is an EMPTY valid reply, not an error
+  if (!r && !admin && !(u.searchParams.get('day') && !/^\d{4}-\d{2}-\d{2}$/.test(u.searchParams.get('day')))) { const m = Math.floor(clock / 60000); r = { from: m + 1, to: m, final: false }; }
   if (!r) return new Response('bad range', { status: 400, headers: h });
-  const bucket = Math.floor(now / 15000);
+  const bucket = Math.floor(clock / 15000);
   // A closed range is cached 1 h, not a day: the backfill and the 00:20 UTC rebuild of the
   // previous day rewrite closed bars. An empty reply (no data yet) is cached 60 s only.
   const ttl = (n) => (Number(n) > 0 ? (r.final ? 3600 : 15) : 60);
@@ -512,6 +522,8 @@ async function orderflowRoute(u, env, ctx, h) {
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
   out.headers.set('access-control-expose-headers', 'x-book-from, x-of-gzip');
+  out.headers.set('vary', 'Origin, Authorization');
+  if (admin) out.headers.set('cache-control', 'private, no-store');
   return out;
 }
 
@@ -622,7 +634,7 @@ async function route(req, env, ctx) {
     if (o && !ORIGINS.has(o)) return new Response('origin not allowed', { status: 403, headers: h });
     // news + calendar reads: their own per-IP limit (search typing), edge-cached (src/news-routes.js)
     // brief / market map / econ calendar (src/terminal.js): edge-cached 60 s, no per-IP limit needed
-    if (u.pathname.startsWith('/terminal/')) return terminalRoute(u, env, ctx, h, stub);
+    if (u.pathname.startsWith('/terminal/')) return terminalRoute(u, env, ctx, h, stub, /^\/terminal\/market-(map|brief)/.test(u.pathname) && bearerOf(req) ? await isAdminToken(bearerOf(req)) : false);
     if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a
@@ -633,7 +645,7 @@ async function route(req, env, ctx) {
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
     if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
     if (u.pathname === '/scan') return scanRoute(u, env, ctx, h);
-    if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h);
+    if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h, req);
     if (u.pathname === '/status') {
       const r = await stub(env).fetch('https://do/status');
       return new Response(r.body, { headers: Object.assign({ 'content-type': 'application/json', 'cache-control': 'public, max-age=30' }, h) });

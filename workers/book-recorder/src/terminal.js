@@ -85,7 +85,26 @@ export async function terminalIngestRoute(req, env, u, authorized, stub) {
 }
 
 // GET /terminal/<name>.json and /terminal/health. Edge-cached 60 s (health 30 s) per minute bucket.
-export async function terminalRoute(u, env, ctx, h, stub) {
+// CME futures last prices are admin only (Owner 2026-10-16). The market map's commodity rows are
+// front-month futures (NYMEX/COMEX/CBOT/ICE ...1!): their price is hidden for non-admins (the
+// period returns stay: they are snapshots up to 15 min old and carry no live quote). The brief's
+// "Commodities, front-month futures: ..." sentence (prices) is dropped. Pure; input is the parsed file.
+export function redactFutures(name, d) {
+  if (!d || typeof d !== 'object') return d;
+  if (name === 'market-map' && Array.isArray(d.groups)) {
+    for (const g of d.groups) if (g && g.id === 'commodities' && Array.isArray(g.rows)) for (const r of g.rows) if (r) r.price = null;
+  }
+  if (name === 'market-brief' && Array.isArray(d.bullets)) {
+    for (const b of d.bullets) {
+      if (!b || typeof b.text !== 'string' || !b.text.includes('Commodities, front-month futures:')) continue;
+      b.text = b.text.replace(/\s*Commodities, front-month futures:[^]*$/, '').trim();
+      b.title = 'Currencies: dollar and majors';
+    }
+  }
+  return d;
+}
+
+export async function terminalRoute(u, env, ctx, h, stub, admin = false) {
   const m = /^\/terminal\/([a-z-]+)(\.json)?$/.exec(u.pathname);
   const name = m && m[1];
   const health = name === 'health';
@@ -99,7 +118,11 @@ export async function terminalRoute(u, env, ctx, h, stub) {
     res = new Response(text, { status, headers: { 'content-type': status === 404 ? 'text/plain' : 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + (health ? 30 : 60) } });
     if (status === 200) ctx.waitUntil(caches.default.put(key, res.clone()));
   }
-  const out = new Response(res.body, res);
+  let out = new Response(res.body, res);
+  if (!admin && (name === 'market-map' || name === 'market-brief') && res.status === 200) {
+    try { out = new Response(JSON.stringify(redactFutures(name, await out.json())), { status: 200, headers: out.headers }); } catch (e) {}
+  }
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  if (name === 'market-map' || name === 'market-brief') out.headers.set('vary', 'Origin, Authorization');
   return out;
 }

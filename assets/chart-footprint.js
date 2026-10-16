@@ -19,8 +19,9 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=577';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=578';
 
+import { rtHeadersReady } from './rt-access.js?v=576';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -129,7 +130,7 @@ async function fetchDay(s, day) {
   if (!e) { e = { bars: null, at: 0, loading: false, err: '' }; s.days.set(day, e); }
   e.loading = true;
   try {
-    const r = await fetch(RECORDER + '/orderflow?sym=' + s.root + '&day=' + day);
+    const r = await fetch(RECORDER + '/orderflow?sym=' + s.root + '&day=' + day, { headers: await rtHeadersReady() });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     let u8 = new Uint8Array(await r.arrayBuffer());
     if (r.headers.get('x-of-gzip') === '1') u8 = await gunzipBody(u8);
@@ -169,7 +170,7 @@ function minuteBars(root, fromMs, toMs, free) {
 let tailBusy = false;
 async function fetchTail(s) {
   const now = Date.now();
-  const r = await fetch(RECORDER + '/orderflow?sym=' + s.root + '&from=' + Math.floor(now / 1000 - 1200) + '&to=' + Math.ceil(now / 1000));
+  const r = await fetch(RECORDER + '/orderflow?sym=' + s.root + '&from=' + Math.floor(now / 1000 - 1200) + '&to=' + Math.ceil(now / 1000), { headers: await rtHeadersReady() });
   if (!r.ok) throw new Error('HTTP ' + r.status);
   let u8 = new Uint8Array(await r.arrayBuffer());
   if (r.headers.get('x-of-gzip') === '1') u8 = await gunzipBody(u8);

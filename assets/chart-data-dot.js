@@ -22,6 +22,8 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
+import { rtOnChange, isRealtimeAdmin } from './rt-access.js?v=576';
+
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
 const TICK_MS = 30000;           // re-check open/closed and lag
@@ -136,7 +138,9 @@ export function installDataDot(ws, opts = {}) {
       return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
     }
     const root = rootOf(sym);
-    if (rithLive() || insightRealtime(root)) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
+    // Real-time CME futures is admin only (Owner 2026-10-16); the server delivers everyone else 10 min late.
+    if (rithLive() || (insightRealtime(root) && isRealtimeAdmin())) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
+    if (insightRealtime(root)) return { s: 'delayed', text: 'Delayed data · 10 minutes', tag: 'Delayed 10m' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };
@@ -250,6 +254,7 @@ export function installDataDot(ws, opts = {}) {
   // Vela rebuilds statusline pieces on symbol / layout changes: re-attach on any DOM change.
   if (host) new MutationObserver(schedule).observe(host, { childList: true, subtree: true });
   ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, schedule); } catch (e) {} });
+  try { rtOnChange(schedule); } catch (e) {}
   if (rith && rith.client && rith.client.on) { try { rith.client.on((ev) => { if (ev && ev.type === 'state') schedule(); }); } catch (e) {} }
   // Market open/close and the lag re-measure: a light timer, plus straight away when the tab returns.
   setInterval(() => { if (!document.hidden) sync(); }, TICK_MS);

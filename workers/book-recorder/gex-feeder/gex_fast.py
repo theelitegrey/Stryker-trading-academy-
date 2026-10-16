@@ -4,9 +4,9 @@
 Owner/CoS order 2026-10-16 ("use InsightSentry for ~15 s GEX rebuilds"). Long-running, stdlib only.
   - SPOT: one WebSocket (wss://realtime.insightsentry.com/live, 3 quote subscriptions SPX/QQQ/SPY, no REST cost) keeps
     the latest price of each underlying (about one update per second).
-  - CHAIN: one REST pull of GET /v3/options/quotes?code=<CODE> (the whole chain, ~4-13 MB, ~3-5 s) every FAST_STEP
+  - CHAIN: REST GET /v3/options/quotes?code=<CODE>&expiration=<0DTE|1DTE>&range=12 (~0.2-0.5 MB each) every FAST_STEP
     seconds, rotating SPX -> QQQ -> SPY, so each underlying is rebuilt about every 3 x FAST_STEP = 15 s
-    (12 REST calls/min). Backs off on HTTP 429 or errors. Parsed, reduced, dropped before the next pull.
+    (2 small calls per pull: expiry 0DTE and 1DTE, range=12 like the site engine: 24 REST calls/min). Backs off on HTTP 429 or errors. Parsed, reduced, dropped before the next pull.
   - OPEN INTEREST + Cboe IV: from the compact Cboe chain the gex-feeder already posts
     (<Worker>/gex-chain?sym=X&part=near, re-read every 60 s). IS has no OI for most strikes; OI changes once a day.
   - MATH = functions/api/gex/_engine.js hybrid exactly: contracts are Cboe's rows for the first two expiries on/after
@@ -83,8 +83,13 @@ def reduce_chain(is_data, cboe_near, dte, now_epoch):
             cp = 'C' if t.startswith('C') else 'P' if t.startswith('P') else None
             if not cp:
                 continue
-            live[(cp, float(o.get('strike_price') if o.get('strike_price') is not None else o.get('strike')))] = (
-                float(o.get('implied_volatility') or 0), float(o.get('bid_price') or 0), float(o.get('ask_price') or 0))
+            key = (cp, float(o.get('strike_price') if o.get('strike_price') is not None else o.get('strike')))
+            # SPX monthly days list the same strike under two roots (SPX and SPXW) and the reply order changes call to call:
+            # take the weekly SPXW (PM-settled, the 0DTE everyone trades) every time, so the result is deterministic.
+            w = '/SPXW' in str(o.get('code', '')).replace(':', '/') or 'SPXW' in str(o.get('code', ''))
+            if key in live and live[key][3] and not w:
+                continue
+            live[key] = (float(o.get('implied_volatility') or 0), float(o.get('bid_price') or 0), float(o.get('ask_price') or 0), w)
         except (TypeError, ValueError):
             continue
     T = years_to_close(exp, now_epoch)
@@ -185,7 +190,7 @@ def main():
     spots = Spots(iskey)
     builds = {}          # U -> {'0': blk, '1': blk, 'built': epoch}
     oi = {}              # U -> (fetched_at_local, cboe near chain)
-    stats = {'ok': 0, 'fail': 0, '429': 0}
+    stats = {'ok': 0, 'fail': 0, '429': 0, 'req': 0}
     nxt, i, last_post, last_sig, pause_until, t_stat = time.time(), 0, 0, None, 0, time.time()
     order = list(CODES)
     while True:
@@ -199,17 +204,27 @@ def main():
                 if u not in oi or now - oi[u][0] > OI_REFRESH:
                     raw = urllib.request.urlopen(urllib.request.Request('%s/gex-chain?sym=%s&part=near' % (url, CBOE_SYM[u]), headers={'User-Agent': UA}), timeout=10).read()
                     oi[u] = (now, json.loads(gzip.decompress(raw)))
-                d = http_json('%s/options/quotes?code=%s' % (IS, CODES[u]), {'Authorization': 'Bearer ' + iskey, 'Accept': 'application/json'}, 25)
                 sp = spots.get().get(u)
-                if sp and now - sp['t'] < 30:
-                    d['last_price'] = sp['p']
-                en = time.time()
-                b = {'built': int(en)}
+                en = None
+                b = {}
+                today = datetime.fromtimestamp(now, timezone.utc).date()
+                exps = [e for e in sorted(oi[u][1].get('expiries') or {}) if (datetime.strptime(e, '%Y-%m-%d').date() - today).days >= 0]
                 for dte in (0, 1):
+                    if not exps:
+                        break
+                    ex = exps[min(dte, len(exps) - 1)]
+                    # the SAME call the site's engine makes (fetchInsightQuotes: one expiry, range=12), so the SPX/SPXW duplicate
+                    # contracts resolve exactly like a server rebuild does (the whole-chain reply orders them differently)
+                    d = http_json('%s/options/quotes?code=%s&expiration=%s&range=12' % (IS, CODES[u], ex), {'Authorization': 'Bearer ' + iskey, 'Accept': 'application/json'}, 25)
+                    if sp and time.time() - sp['t'] < 30:
+                        d['last_price'] = sp['p']
+                    en = time.time()
                     blk = reduce_chain(d, oi[u][1], dte, en)
                     if blk:
                         b[str(dte)] = blk
-                del d
+                    stats['req'] += 1
+                b['built'] = int(en or time.time())
+                d = None
                 if '0' in b:
                     builds[u] = b; stats['ok'] += 1
                 else:
@@ -224,7 +239,7 @@ def main():
                 stats['fail'] += 1; log('%s pull failed: %s %s' % (u, type(e).__name__, str(e)[:80]))
             else:
                 if stats['ok'] % 30 == 1:
-                    log('%s built in %.1fs; ok=%d fail=%d 429=%d' % (u, time.monotonic() - t0, stats['ok'], stats['fail'], stats['429']))
+                    log('%s built in %.1fs; ok=%d fail=%d 429=%d req=%d' % (u, time.monotonic() - t0, stats['ok'], stats['fail'], stats['429'], stats['req']))
         if builds and now - last_post >= POST_EVERY:
             sp = spots.get()
             s = json.dumps([{u: b['built'] for u, b in builds.items()}, {u: round(v['p'], 3) for u, v in sp.items()}])

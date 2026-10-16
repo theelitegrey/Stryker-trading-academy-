@@ -182,16 +182,39 @@ const offsetHandles = new WeakMap(); // handle -> requested chart right offset
 const offsetCharts = new WeakSet();  // charts whose right offset was raised by an indicator
 function requestedRightOffset(opts){
   const n = Number(opts && opts.rightOffset);
-  return Number.isFinite(n) && n > 6 ? Math.min(80, n) : null;
+  return Number.isFinite(n) && n > 6 ? Math.min(200, n) : null;
+}
+// Right room an indicator needs, in bars, read from its own inputs. HTF PO3 Lens draws its HTF
+// candle stacks from bar_index + "Distance from last bar", each stack = candles x step + gap, so
+// the room is a layout width, not a fixed number. (Bars of the chart TF: the stacks are placed in
+// bar coordinates, so the pixel width stays the same across timeframes at the same zoom.)
+function roomFromInputs(h){
+  try {
+    if (!/HTF PO3 Lens/.test(titleOf(h))) return 0;
+    const v = h.inputValues() || {};
+    const step = (+v.cdlW || 2) * 2 + (+v.cdlGap || 0) + 1;
+    let x = +v.offsetB || 15;
+    [1, 2, 3, 4, 5].forEach((i) => { if (v['on' + i] !== false && v['tf' + i]) x += (+v.nCdl || 2) * step + (+v.tfGap || 3); });
+    return Math.min(200, Math.ceil(x + 6));
+  } catch (e) { return 0; }
+}
+function wantedRightOffset(chart){
+  let ro = 6;
+  pineHandles(chart).forEach((h) => { ro = Math.max(ro, offsetHandles.get(h) || 0, roomFromInputs(h)); });
+  return ro;
 }
 function applyRightOffset(chart){
-  const hs = pineHandles(chart);
-  let ro = 6;
-  hs.forEach((h) => { const n = offsetHandles.get(h); if (n) ro = Math.max(ro, n); });
+  const ro = wantedRightOffset(chart);
   // Only touch the viewport on charts where an indicator asked for an offset: a chart that never
   // had one keeps the user's scroll position exactly as on main (clear / template / reset).
   if (ro === 6) { if (!offsetCharts.has(chart)) return; offsetCharts.delete(chart); } else offsetCharts.add(chart);
   try { if (chart.renderer && chart.renderer.supports && chart.renderer.supports('rightOffset')) chart.renderer.set('rightOffset', ro); } catch (e) {}
+}
+// After a timeframe / symbol switch: make sure the indicators' room is still there (never shrinks).
+function ensureRoom(chart){
+  const ro = wantedRightOffset(chart);
+  if (ro <= 6) return;
+  try { if (+chart.renderer.get('rightOffset') < ro - 0.01) { offsetCharts.add(chart); chart.renderer.set('rightOffset', ro); } } catch (e) {}
 }
 function trackRightOffset(chart, handle, ro){
   if (!chart || !handle || !ro) return;
@@ -367,6 +390,7 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   if (engine === 'main' && res.handle) onMain.add(res.handle);
   if (engine === 'next' && res.handle) onNext.add(res.handle);
   trackRightOffset(chart, res.handle, requestedRightOffset(opts));
+  applyRightOffset(chart);
   changed();
   return { ok: true, handle: res.handle, engine };
 }
@@ -719,6 +743,6 @@ export function mountPine(ws, barL, opts){
     }
   }
 
-  window.STRYKER_PINE = { open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
+  window.STRYKER_PINE = { ensureRoom, open: () => setOpen(true), close: () => setOpen(false), load, addToChart, addShared, addSource, runOnChart, pineHandles, titleOf, explain, renderLists, toast, libOf, RUN_LIMIT_MS };
   return { setOpen };
 }

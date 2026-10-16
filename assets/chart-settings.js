@@ -150,7 +150,7 @@ function hookCell(cell){
   const origSet = rc.setSettingsSections.bind(rc);
   rc.setSettingsSections = (secs) => origSet([...(secs || []), ...ourSections(id)]);
   const R = inner(cell);
-  keepViewOnSwitch(R);
+  keepViewOnSwitch(R, cell);
   if (R) {
     // Gradient background: re-applied after Vela paints its solid one.
     const origBg = R.applyBackground.bind(R);
@@ -207,7 +207,7 @@ function applyRight(cell){
 // dropped an indicator's wider margin and any margin the user had set. A scrolled-back view
 // (offset < 0 or far out) re-anchors at the default, as TradingView does. Empty clears in between
 // (a symbol switch) keep the remembered view until the new bars land.
-function keepViewOnSwitch(R){
+function keepViewOnSwitch(R, cell){
   if (!R || R.__stkKeepView || typeof R.setBars !== 'function') return;
   R.__stkKeepView = true;
   const orig = R.setBars.bind(R);
@@ -219,10 +219,13 @@ function keepViewOnSwitch(R){
     if (bars && bars.length > 0 && pending) {
       const p = pending; pending = null;
       try {
-        if (!(opts && opts.preserveView === true) && p.ro >= 0 && p.ro < 60) {
+        if (!(opts && opts.preserveView === true) && p.ro >= 0 && p.ro < 400) {
           const v = R.clampViewport(p.bs, p.ro);
           R.coords.setViewport(v); R.targetBarSpacing = v.barSpacing;
           if (R.scheduler) R.scheduler.invalidate(4);
+        }
+        // Indicators that draw right of the last bar (HTF PO3 Lens) re-state their room.
+        if (cell) { const room = () => { try { window.STRYKER_PINE && window.STRYKER_PINE.ensureRoom(cell.chart); } catch (e) {} }; room(); setTimeout(room, 1500); setTimeout(room, 5000);
         }
       } catch (e) {}
     }

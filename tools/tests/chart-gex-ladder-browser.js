@@ -20,10 +20,13 @@ const MUT = { bump: {}, spot: {}, hits: 0, etag304: 0 };   // test-controlled ch
 const trimmed = (name) => { const d = JSON.parse(JSON.stringify(LV[name] || LV.SPX)); const m = MUT.bump[name] || {};
   d.ladder = d.ladder.map((r) => ({ strike: r.strike, gex: r.gex + (m[r.strike] || 0) })); if (MUT.spot[name] != null) d.spot = MUT.spot[name];
   d.fetched_at = Date.now() / 1000; d.market = Object.assign({}, d.market, { data_ts: Date.now() / 1000 - 7 });
-  return { underlying: name, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, ladder: d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })), market: d.market }; };
+  const MP = { QQQ: 750, SPY: 775, SPX: 7750 };
+  return { underlying: name, spot: d.spot, net_gex: d.net_gex, max_pain: MP[name], zero_gamma: name === 'SPY' ? d.zero_gamma / 10 : d.zero_gamma, call_wall: name === 'SPY' ? d.call_wall / 10 : d.call_wall, put_wall: name === 'SPY' ? d.put_wall / 10 : d.put_wall, fetched_at: d.fetched_at, ladder: d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })), market: d.market }; };
 const ladderRoute = (r) => { const u = new URL(r.request().url()); MUT.hits++; const out = {};
   (u.searchParams.get('u') || 'SPX').split(',').forEach((n) => { out[n] = trimmed(n); });
   r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ dte: 0, u: out }) }); };
+const OPT = (u) => { const sp = (LV[u] || LV.SPX).spot; return { u, spot: sp, em: [{ k: '0DTE', lo: Math.round(sp * 0.995), hi: Math.round(sp * 1.005), em: sp * 0.005, pct: 0.5, iv: 0.21 }, { k: '1DTE', lo: Math.round(sp * 0.99), hi: Math.round(sp * 1.01), em: sp * 0.01, pct: 1, iv: 0.19 }], atm30: 0.22, pc: { oi: 1.5, vol: 0.9, oi_first: 1.4, vol_first: 0.8 } }; };
+const optRoute = (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(OPT(new URL(r.request().url()).searchParams.get('u'))) });
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -53,6 +56,7 @@ async function open(b, { w, h, mobile, free, anon }) {
     const from = +u.searchParams.get('from'), to = +u.searchParams.get('to');
     r.fulfill({ status: 200, contentType: 'application/json', headers: hdr, body: JSON.stringify(packed(U, d, ALL(U, d).filter((x) => x.t >= from && x.t <= to))) });
   });
+  await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/opt-analytics/, optRoute);
   await ctx.route(/\/api\/gex\/ladder/, ladderRoute);
   await ctx.route(/\/api\/gex\/levels\//, (r) => {
     const name = new URL(r.request().url()).pathname.split('/').pop().toUpperCase();
@@ -98,7 +102,7 @@ const state = (p) => p.evaluate(() => {
     if (l && sp) { const a = l.getBoundingClientRect(), b = sp.getBoundingClientRect(); spotVisible = b.top >= a.top - 1 && b.bottom <= a.bottom + 1; }
     return { api: c.dataset.api, shown: c.offsetParent !== null, locked: !!c.querySelector('.stkgl-lock'), pro: !!c.querySelector('.stkgl-pro'), n: rows.length,
       max: rows.filter((r) => r.classList.contains('is-max')).length, maxK: (rows.find((r) => r.classList.contains('is-max')) || {}).dataset ? rows.find((r) => r.classList.contains('is-max')).dataset.k : null,
-      spotVisible, head: (c.querySelector('.stkgl-ch') || {}).innerText || '', first: rows[0] && rows[0].innerText.replace(/\n/g, ' '), rowH: rows[0] ? rows[0].getBoundingClientRect().height : 0, vis: l ? Math.floor(l.clientHeight / (rows[0] ? rows[0].getBoundingClientRect().height : 1)) : 0, maxBg: (rows.find((r) => r.classList.contains('is-max')) || { style: {} }).style.backgroundColor, spotRows: rows.filter((r) => r.classList.contains('is-spot')).length, lineTop: sp ? sp.style.top : null, apis: null,
+      spotVisible, head: (c.querySelector('.stkgl-ch') || {}).innerText || '', first: rows[0] && rows[0].innerText.replace(/\n/g, ' '), chips: [...c.querySelectorAll('.stkgl-chip')].map((x) => ({ id: x.className.replace(/.*c-(\w+).*/, '$1'), t: x.innerText.replace(/\s+/g, ' '), tip: x.title })), regime: (c.querySelector('.stkgl-reg') || {}).innerText || '', tags: rows.map((r) => r.dataset.lv ? [r.dataset.k, r.dataset.lv] : null).filter(Boolean), rowH: rows[0] ? rows[0].getBoundingClientRect().height : 0, vis: l ? Math.floor(l.clientHeight / (rows[0] ? rows[0].getBoundingClientRect().height : 1)) : 0, maxBg: (rows.find((r) => r.classList.contains('is-max')) || { style: {} }).style.backgroundColor, spotRows: rows.filter((r) => r.classList.contains('is-spot')).length, lineTop: sp ? sp.style.top : null, apis: null,
       scroll: l ? l.scrollHeight > l.clientHeight : false };
   });
   cols.by = {}; cols.forEach((c) => { cols.by[c.api] = c; });
@@ -131,7 +135,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     check(st.cols.every((c) => c.spotVisible), 'spot divider auto-scrolled into view in every column');
     check(st.cols.every((c) => /Net( 0DTE)? [+\u2212]\$/.test(c.head) && /mag [\d,.]+ [+\u2212][\d.]+%/.test(c.head) && /[\d,]+\.\d\d/.test(c.head)), 'header: symbol, spot, "mag <strike> +x.x%", net: ' + st.cols[0].head.replace(/\n/g, ' | '));
     check(st.cols.map((c) => c.api).join() === 'QQQ,SPY,SPX', 'column order QQQ | SPY | SPX');
-    check(st.cols.every((c) => c.rowH > 0 && c.rowH <= 18 && c.vis >= 30), 'dense rows: ' + st.cols.map((c) => c.rowH + 'px/' + c.vis + ' visible').join(', ') + ' (>=30 visible at 1440x900)');
+    check(st.cols.every((c) => c.rowH > 0 && c.rowH <= 18 && c.vis >= 26), 'dense rows: ' + st.cols.map((c) => c.rowH + 'px/' + c.vis + ' visible').join(', ') + ' (>=26 visible at 1440x900 under the levels header)');
     check(st.cols.every((c) => c.max === 1 && /236, ?196, ?48/.test(c.maxBg)), 'the biggest |GEX| cell per column is yellow (' + st.cols.map((c) => c.maxBg).join(' ; ') + ')');
     check(st.cols.every((c) => c.spotRows === 1 && c.lineTop), 'spot row marked (arrow) + thin line in every column');
     const cells = await p.evaluate(() => { const col = (api, pick) => { const rs = [...document.querySelectorAll('#stkgl .stkgl-col[data-api="' + api + '"] .stkgl-row:not(.is-max)')]; const f = rs.filter((r) => pick(r)); return f.length ? f[0].style.backgroundColor : null; }; return { pos: col('SPX', (r) => !/\u2212/.test(r.innerText)), neg: col('SPX', (r) => /\u2212/.test(r.innerText)) }; });
@@ -146,6 +150,26 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     console.log('INFO open/paint avg ' + rp.toFixed(1) + ' ms (incl. cached fetch tick), scroll ' + t1.toFixed(2) + ' ms');
     await sleep(600);
     await shot(p, 'ladder-charts-1440.png');
+    // ---- KEY LEVELS: chips in the header, tags on the rows ----
+    await sleep(1500);
+    st = await state(p);
+    const need = ['mp', 'flip', 'cw', 'pw', 'mag', 'em', 'pcoi', 'pcvol', 'iv'];
+    check(st.cols.every((c) => need.every((id) => c.chips.some((x) => x.id === id))), 'every column header has the chips: ' + st.cols[0].chips.map((x) => x.t).join(' | '));
+    check(st.cols.every((c) => c.chips.every((x) => x.tip && x.tip.length > 25 && !/live|real-time|delayed|behind/i.test(x.tip))), 'every chip has a plain-English one-line tooltip (no forbidden wording)');
+    check(st.cols.every((c) => /^Negative gamma \(bigger moves\)$|^Positive gamma \(calmer\)$/.test(c.regime)), 'regime label in plain words: ' + st.cols.map((c) => c.regime).join(' ; '));
+    check(st.cols.every((c) => c.chips.find((x) => x.id === 'mp').t.includes('%')), 'Max Pain chip shows distance from spot: ' + st.cols[0].chips.find((x) => x.id === 'mp').t);
+    const mpK = { QQQ: 750, SPY: 775, SPX: 7750 };
+    const tagAt = (c, id) => (c.tags.find((t) => t[1].split(' ').includes(id)) || [])[0];
+    check(st.cols.every((c) => Math.abs(+tagAt(c, 'mp') - mpK[c.api]) <= 1), 'MP tag sits on the Max Pain strike row (' + st.cols.map((c) => c.api + ':' + tagAt(c, 'mp')).join(' ') + ')');
+    check(st.cols.every((c) => ['flip', 'cw', 'pw', 'mag', 'emlo', 'emhi'].every((id) => tagAt(c, id) !== undefined)), 'FLIP / CW / PW / MAG / EM edge tags are on rows in every column');
+    const lvPos = await p.evaluate(() => { const o = {}; ['QQQ', 'SPX'].forEach((api) => { const col = document.querySelector('#stkgl .stkgl-col[data-api="' + api + '"]'); const r = col.querySelector('.stkgl-row[data-lv~="cw"]'); const g = (id) => { const e = col.querySelector('.stkgl-row[data-lv~="' + id + '"]'); return e ? +e.dataset.k : null; }; o[api] = { cw: g('cw'), pw: g('pw'), spot: parseFloat(col.querySelector('.stkgl-spot').textContent.replace(/,/g, '')) }; }); return o; });
+    check(lvPos.QQQ.cw >= lvPos.QQQ.spot - 1 && lvPos.QQQ.pw <= lvPos.QQQ.spot + 1, 'Call Wall tag above spot, Put Wall tag below (QQQ ' + lvPos.QQQ.cw + ' / ' + lvPos.QQQ.pw + ' vs ' + lvPos.QQQ.spot + ')');
+    check(st.cols.every((c) => c.tags.some((t) => /emlo/.test(t[1])) ), 'expected-move edges drawn');
+    const faint = await p.evaluate(() => [...document.querySelectorAll('#stkgl .stkgl-t.faint')].every((e) => parseFloat(getComputedStyle(e).opacity) < 0.7));
+    check(faint, 'expected-move tags are faint');
+    const nofit = await p.evaluate(() => [...document.querySelectorAll('#stkgl .stkgl-lv')].map((e) => { const r = e.getBoundingClientRect(); const c = e.closest('.stkgl-col').getBoundingClientRect(); return r.right <= c.right + 1 && e.scrollWidth <= e.clientWidth + 1; }));
+    check(nofit.every(Boolean), 'chips wrap inside each column (no sideways overflow)');
+    await shot(p, 'ladder-levels-1440.png');
     // ---- 1 s refresh: a changed value shows up within ~1.5 s, flashes, no scroll jump; spot moves; hidden = paused ----
     {
       const rowTxt = (api, k) => p.evaluate(([api, k]) => { const r = document.querySelector('#stkgl .stkgl-row[data-api="' + api + '"][data-k="' + k + '"]'); return r ? { t: r.querySelector('.stkgl-v').textContent, flash: (/flash-(up|dn)/.exec(r.className) || [''])[0] } : null; }, [api, k]);
@@ -237,10 +261,11 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await setSym(p, 'futures:ES1!', '5');
     await p.click('.stkgl-railbtn');
     await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
-    await sleep(800);
+    await sleep(1800);
     st = await state(p);
     check(st.cols[2].n > 10 && st.cols[0].locked && st.cols[1].locked && st.cols[0].pro && st.cols[1].pro, 'Free: SPX ladder, QQQ + SPY columns show the Pro lock');
     check(!hitsQ.length, 'Free: QQQ/SPY GEX never requested (' + hitsQ.length + ')');
+    check(st.cols[2].chips.length >= 8 && st.cols[0].chips.length === 0 && st.cols[1].chips.length === 0, 'Free: SPX has all level chips (' + st.cols[2].chips.length + '); QQQ/SPY locked, no level chips');
     await shot(p, 'ladder-free-1440.png');
     check(!errors.length, 'free: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
     await ctx.close();
@@ -252,12 +277,15 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await setSym(p, 'futures:ES1!', '5');
     await p.evaluate(() => window.__stkGexLadder.open());
     await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
-    await sleep(800);
+    await sleep(1800);
     st = await state(p);
     check(st.tabsVisible && st.cols.filter((c) => c.shown).length === 1 && st.cols[2].shown, '390: tabs, one column at a time (SPX shown first)');
     check(st.cols[2].spotVisible && st.cols[2].max === 1 && st.cols[2].rowH <= 18, '390: dense rows, spot in view, biggest highlighted');
     const wOk = await p.evaluate(() => { const s = document.getElementById('stkgl').getBoundingClientRect(); const rows = [...document.querySelectorAll('#stkgl .stkgl-row')].slice(0, 20); return s.width <= window.innerWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1 && rows.every((r) => r.scrollWidth <= r.clientWidth + 1); });
     check(wOk, '390: no sideways overflow in the sheet');
+    check(st.cols[2].chips.length >= 8 && st.cols[2].tags.length >= 5, '390: chips + row tags render (' + st.cols[2].chips.length + ' chips, ' + st.cols[2].tags.length + ' tagged rows)');
+    const chipFit = await p.evaluate(() => { const l = document.querySelector('#stkgl .stkgl-col.is-shown .stkgl-lv'); const h = l.getBoundingClientRect().height, w = l.scrollWidth <= l.clientWidth + 1; return { h, w, fs: parseFloat(getComputedStyle(l.querySelector('.stkgl-chip')).fontSize) }; });
+    check(chipFit.w && chipFit.h <= 120 && chipFit.fs >= 9, '390: chips wrap (' + Math.round(chipFit.h) + ' px tall, ' + chipFit.fs + ' px text), readable');
     await shot(p, 'ladder-sheet-spx-390.png');
     await p.click('.stkgl-tab[data-api="QQQ"]'); await sleep(900);
     st = await state(p);
@@ -277,6 +305,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
       await ctx2.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
       await ctx2.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => r.abort());
       await ctx2.route(/book-recorder\.theelitegrey\.workers\.dev\/gex-(history|sessions)/, (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' }));
+      await ctx2.route(/book-recorder\.theelitegrey\.workers\.dev\/opt-analytics/, optRoute);
       await ctx2.route(/\/api\/gex\/ladder/, ladderRoute);
       await ctx2.route(/\/api\/gex\/(levels|candles)\//, (r) => { const u = new URL(r.request().url()); if (/candles/.test(u.pathname)) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"candles":[]}' }); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LV[u.pathname.split('/').pop().toUpperCase()] || LV.SPX) }); });
       const pg = await ctx2.newPage(); const errs = [];

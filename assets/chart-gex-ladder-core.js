@@ -166,3 +166,75 @@ export function spotPos(rows, spot) {
   for (let i = 0; i < n - 1; i++) if (rows[i].k >= spot && spot > rows[i + 1].k) return i + (rows[i].k - spot) / (rows[i].k - rows[i + 1].k);
   return n - 1;
 }
+
+// ---- KEY LEVELS (Owner order 2026-10-16: max pain, spot, flip, walls, expected move, put/call, IV, regime) ----
+// Max pain: the strike where the total payout to option holders at expiry is smallest.
+//   payout(S) = sum over calls of OI x max(S - K, 0) + sum over puts of OI x max(K - S, 0), tried at every listed strike.
+// contracts: [{ strike, cp: 'C'|'P', oi }] of ONE expiry. Ties go to the strike nearest `spot` (or the lower one).
+// Used by the Pages engine (functions/api/gex/_engine.js) on the Cboe open interest, and by the unit test.
+export function maxPain(contracts, spot) {
+  const rows = (contracts || []).filter((c) => c && isNum(c.strike) && isNum(c.oi) && c.oi > 0 && (c.cp === 'C' || c.cp === 'P'));
+  if (!rows.length) return null;
+  const ks = [...new Set(rows.map((c) => c.strike))].sort((a, b) => a - b);
+  let best = null, bv = Infinity;
+  for (const s of ks) {
+    let pay = 0;
+    for (const c of rows) pay += c.oi * (c.cp === 'C' ? Math.max(s - c.strike, 0) : Math.max(c.strike - s, 0));
+    const closer = best != null && isNum(spot) && pay === bv && Math.abs(s - spot) < Math.abs(best - spot);
+    if (pay < bv || closer) { bv = pay; best = s; }
+  }
+  return best;
+}
+export function regimeOf(net) {
+  if (!isNum(net)) return null;
+  return net >= 0 ? { id: 'pos', text: 'Positive gamma (calmer)', tip: 'Net GEX is positive at the current price: dealer hedging tends to dampen moves, so price is often calmer.' }
+    : { id: 'neg', text: 'Negative gamma (bigger moves)', tip: 'Net GEX is negative at the current price: dealer hedging can add to moves, so swings can be bigger.' };
+}
+const pctFrom = (v, spot) => (isNum(v) && isNum(spot) && spot > 0 ? (v - spot) / spot * 100 : null);
+export const fmtPct = (p) => (p == null ? '' : (p >= 0 ? '+' : '\u2212') + Math.abs(p).toFixed(1) + '%');
+const EM_KEY = { 0: '0DTE', 1: '1DTE', 7: 'Weekly', 30: 'Monthly' };
+// The levels of one column. data = the ladder/levels JSON (spot, call_wall, put_wall, zero_gamma, max_pain, net_gex),
+// mg = magnet {strike}, opt = /opt-analytics reply or null. Returns { chips: [...], tags: [{ id, price, short, faint }], regime, nums }.
+// chip = { id, label, value, price?, pct?, tip }.   Education only. Not financial advice.
+export function keyLevels(data, spot, mg, opt, dte) {
+  if (!data || !isNum(spot)) return null;
+  const chips = [], tags = [];
+  const add = (id, label, short, price, tip, extra) => {
+    if (!isNum(price)) return;
+    const p = pctFrom(price, spot);
+    chips.push({ id, label, price, pct: p, tip });
+    tags.push(Object.assign({ id, short, price }, extra || {}));
+  };
+  add('mp', 'Max Pain', 'MP', data.max_pain, 'Max Pain: the price where most option buyers lose; price is often pulled toward it near expiry.');
+  add('flip', 'Flip', 'FLIP', data.zero_gamma, 'Zero Gamma / Flip: the price where net GEX crosses zero. Above it dealer hedging tends to calm moves, below it can add to them.');
+  add('cw', 'Call Wall', 'CW', data.call_wall, 'Call Wall: the strike above price with the biggest call gamma. It can act like a ceiling.');
+  add('pw', 'Put Wall', 'PW', data.put_wall, 'Put Wall: the strike below price with the biggest put gamma. It can act like a floor.');
+  if (mg && isNum(mg.strike)) add('mag', 'Magnet', 'MAG', mg.strike, 'Magnet: the largest |GEX| strike near price. Price is often drawn toward it.');
+  const k = EM_KEY[dte == null ? 0 : dte];
+  const em = opt && Array.isArray(opt.em) ? opt.em.find((e) => e.k === k) : null;
+  let emRange = null;
+  if (em && isNum(em.lo) && isNum(em.hi)) {
+    emRange = { lo: em.lo, hi: em.hi, em: em.em, pct: em.pct, iv: em.iv };
+    chips.push({ id: 'em', label: 'Exp. move', value: '\u00b1' + (isNum(em.em) ? em.em.toFixed(em.em >= 100 ? 0 : 2) : '') + (isNum(em.pct) ? ' (' + em.pct.toFixed(2) + '%)' : ''), price: null, pct: null,
+      tip: 'Expected Move: the range the options market prices for this expiry (about one standard deviation, from the at-the-money straddle). Not a forecast.' });
+    tags.push({ id: 'emlo', short: 'EM\u2193', price: em.lo, faint: true }, { id: 'emhi', short: 'EM\u2191', price: em.hi, faint: true });
+  }
+  const pc = opt && opt.pc, first = dte === 0 || dte === 1;
+  const pcOi = pc ? (first && isNum(pc.oi_first) ? pc.oi_first : pc.oi) : null, pcVol = pc ? (first && isNum(pc.vol_first) ? pc.vol_first : pc.vol) : null;
+  if (isNum(pcOi)) chips.push({ id: 'pcoi', label: 'P/C OI', value: pcOi.toFixed(2), tip: 'Put/Call ratio by open interest: puts divided by calls. Above 1 means more puts are open than calls.' });
+  if (isNum(pcVol)) chips.push({ id: 'pcvol', label: 'P/C Vol', value: pcVol.toFixed(2), tip: 'Put/Call ratio by volume today: puts traded divided by calls traded.' });
+  const iv = em && isNum(em.iv) ? em.iv : (opt && isNum(opt.atm30) ? opt.atm30 : null);
+  if (isNum(iv)) chips.push({ id: 'iv', label: 'ATM IV', value: (iv * 100).toFixed(1) + '%', tip: 'At-the-money implied volatility: how big a move the options market is pricing, as a yearly percentage.' });
+  return { chips, tags, regime: regimeOf(data.net_gex), emRange };
+}
+// Index of the row whose strike is nearest to `price` (rows high to low), -1 when empty or price is more than one
+// row spacing outside the list.
+export function rowNearest(rows, price) {
+  const n = (rows || []).length;
+  if (!n || !isNum(price)) return -1;
+  const step = n > 1 ? Math.abs(rows[0].k - rows[n - 1].k) / (n - 1) : 1;
+  if (price > rows[0].k + step || price < rows[n - 1].k - step) return -1;
+  let bi = 0, bd = Infinity;
+  rows.forEach((r, i) => { const d = Math.abs(r.k - price); if (d < bd) { bd = d; bi = i; } });
+  return bi;
+}

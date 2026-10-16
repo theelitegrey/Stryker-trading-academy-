@@ -22,7 +22,7 @@
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
 import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=584';
-import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText } from './chart-gex-ladder-core.js?v=584';
+import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=584';
 
 export const COLS = [['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF'], ['SPX', 'S&P 500']];
 const LADDER_API = '/api/gex/ladder';
@@ -56,10 +56,24 @@ const netText = (m, label) => 'Net ' + label + ' ' + fmtMoney(m.net);
 function headHtml(api, label, locked) {
   return '<div class="stkgl-ch"><div class="stkgl-sym"><b>' + api + '</b><span>' + esc(label) + '</span>' + (locked ? '<i class="stkgl-pro">Pro</i>' : '') + '</div>' +
     '<div class="stkgl-spot"></div><div class="stkgl-mag" title="Magnet: the largest |GEX| strike within 5% of spot, and its distance from spot"></div>' +
-    '<div class="stkgl-net" title="Net GEX for this expiry view, the same figure the GEX page shows"></div></div>';
+    '<div class="stkgl-net" title="Net GEX for this expiry view, the same figure the GEX page shows"></div><div class="stkgl-reg"></div><div class="stkgl-lv" aria-label="Key levels"></div></div>';
 }
 function rowHtml(api, it) {
-  return '<button type="button" class="stkgl-row" role="listitem" data-k="' + it.k + '" data-api="' + api + '"><span class="stkgl-k">' + fmtK(it.k) + '</span><span class="stkgl-v"></span></button>';
+  return '<button type="button" class="stkgl-row" role="listitem" data-k="' + it.k + '" data-api="' + api + '"><span class="stkgl-k">' + fmtK(it.k) + '</span><span class="stkgl-tg"></span><span class="stkgl-v"></span></button>';
+}
+const OPT_API = 'https://book-recorder.theelitegrey.workers.dev/opt-analytics?u=';
+const optCache = {};            // api -> { j, at, p }
+function optFor(api, cb) {
+  const e = optCache[api] || (optCache[api] = { j: null, at: 0, p: null });
+  if (!e.p && Date.now() - e.at > 60000) {
+    e.at = Date.now();
+    e.p = fetch(OPT_API + api, { headers: { accept: 'application/json' } }).then((r) => (r.ok ? r.json() : null)).catch(() => null).then((j) => { if (j && !j.error) e.j = j; e.p = null; if (cb) cb(); return e.j; });
+  }
+  return e.j;
+}
+const numTxt = (v) => (isNum(v) ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '');
+function chipsHtml(lv) {
+  return lv.chips.map((c) => '<span class="stkgl-chip c-' + c.id + '" title="' + esc(c.tip) + '" tabindex="0"><i>' + esc(c.label) + '</i> ' + (c.value ? esc(c.value) : '<b>' + numTxt(c.price) + '</b>' + (c.pct != null ? ' <u>' + fmtPct(c.pct) + '</u>' : '')) + '</span>').join('');
 }
 // Sets one row's text / colour / class from an item; returns 1 up, -1 down, 0 unchanged (value change).
 function patchRow(el, it) {
@@ -128,14 +142,27 @@ export function createLadder(root, opts) {
   }
   function centerAll(force) { requestAnimationFrame(() => Object.keys(cols).forEach((a) => centerCol(a, !!force))); }
 
-  function setHeader(el, m, api) {
+  function setHeader(el, m, api, lv) {
     const s = el.querySelector('.stkgl-spot'), g = el.querySelector('.stkgl-mag'), n = el.querySelector('.stkgl-net');
     const st = m ? fmtSpot(m.spot) : '', mt = m ? magText(m.mg) : '', nt = m ? netText(m, netLabel) : '';
     if (s.textContent !== st) s.textContent = st;
     if (g.textContent !== mt) g.textContent = mt;
     if (n.textContent !== nt) { n.textContent = nt; n.classList.toggle('neg', !!m && m.net < 0); n.classList.toggle('pos', !!m && m.net >= 0); }
+    const rg = el.querySelector('.stkgl-reg'), lvEl = el.querySelector('.stkgl-lv');
+    const rt = lv && lv.regime ? lv.regime.text : '', ch = lv ? chipsHtml(lv) : '';
+    if (rg.textContent !== rt) { rg.textContent = rt; rg.title = lv && lv.regime ? lv.regime.tip : ''; rg.className = 'stkgl-reg ' + (lv && lv.regime ? lv.regime.id : ''); }
+    if (lvEl._h !== ch) { lvEl._h = ch; lvEl.innerHTML = ch; }
   }
-  function paintCol(api, label, model, lock, rn) {
+  // Row tags (MP, FLIP, CW, PW, MAG, EM edges, spot arrow lives in .is-spot): one small tag per level on its nearest strike row.
+  function applyTags(st, m, lv) {
+    const by = new Map();
+    if (lv) lv.tags.forEach((t) => { const i = rowNearest(m.rows, t.price); if (i < 0) return; const k = m.rows[i].k; (by.get(k) || by.set(k, []).get(k)).push(t); });
+    st.rows.forEach((el, k) => {
+      const ts = by.get(k) || [], h = ts.map((t) => '<em class="stkgl-t t-' + t.id + (t.faint ? ' faint' : '') + '" title="' + esc(t.short + ' ' + numTxt(t.price)) + '">' + esc(t.short) + '</em>').join('');
+      if (el._tg !== h) { el._tg = h; el.querySelector('.stkgl-tg').innerHTML = h; el.dataset.lv = ts.map((t) => t.id).join(' '); }
+    });
+  }
+  function paintCol(api, label, model, lock, rn, lv) {
     const el = colEl(api); let st = cols[api];
     if (rn || lock || !model) {
       const kind = rn ? 'note' : lock ? 'lock' : 'wait';
@@ -155,14 +182,16 @@ export function createLadder(root, opts) {
       model.items.forEach((it) => patchRow(st.rows.get(it.k), it));
       applySpot(st, model);
       if (keep.centered) centerCol(api, true); else list.scrollTop = keep.top;
-      setHeader(st.head, model, api);
+      setHeader(st.head, model, api, lv);
+      applyTags(st, model, lv);
       return;
     }
     // in-place patch: only rows whose value / colour changed are touched; no rebuild, no scroll jump
     st.model = model;
     model.items.forEach((it) => { const r = st.rows.get(it.k); const dir = patchRow(r, it); if (dir) flash(r, dir); });
     applySpot(st, model);
-    setHeader(st.head, model, api);
+    setHeader(st.head, model, api, lv);
+    applyTags(st, model, lv);
     if (st.centered) st.list.scrollTop = target(st);
   }
   function applySpot(st, m) {
@@ -183,7 +212,8 @@ export function createLadder(root, opts) {
     const vmax = sharedScale(datas.map((d) => (d && !d.error ? ladderFromApi(d).filter((r) => !isNum(d.spot) || Math.abs(r.k - d.spot) <= d.spot * WINDOW_PCT) : [])));
     const models = datas.map((d) => (rn ? null : columnModel(d, vmax)));
     netLabel = DL[dteNow()] || '0DTE';
-    COLS.forEach((c, i) => paintCol(c[0], c[1], models[i], locked(c[0]), rn));
+    const lvs = COLS.map((c, i) => (models[i] && datas[i] ? keyLevels(datas[i], models[i].spot, models[i].mg, optFor(c[0], () => { if (active) paint(); }), dteNow()) : null));
+    COLS.forEach((c, i) => paintCol(c[0], c[1], models[i], locked(c[0]), rn, lvs[i]));
     paintFoot(datas);
     if (!rn) requestAnimationFrame(() => COLS.forEach((c) => { const st = cols[c[0]]; if (st && st.kind === 'list' && st.fresh !== true) { st.fresh = true; centerCol(c[0], true); } }));
   }

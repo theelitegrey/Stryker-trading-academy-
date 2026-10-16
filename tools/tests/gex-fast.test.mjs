@@ -6,8 +6,8 @@ import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { gexAtSpot, netNear, ladderNear, goiAt, bsGamma } from '../../assets/gex-fast-core.js';
-import { ownGamma, profile, bsGamma as engGamma } from '../../functions/api/gex/_engine.js';
+import { gexAtSpot, netNear, ladderNear, goiAt, bsGamma, flipAt, wallsAt } from '../../assets/gex-fast-core.js';
+import { ownGamma, profile, gammaFlip, gammaWalls, bsGamma as engGamma } from '../../functions/api/gex/_engine.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS', m); };
@@ -26,11 +26,11 @@ for (let K = 680; K <= 745; K++) for (const cp of ['C', 'P']) {
 }
 const T = ownGamma(contracts, s0, now)[0].T;
 // what the feeder stores at build spot s0
-const blk = { s0, T, k: [], c: [], p: [], ci: [], pi: [] };
+const blk = { v: 2, s0, T, k: [], c: [], p: [], ci: [], pi: [] };
 const g0 = ownGamma(contracts, s0, now);
 for (let K = 680; K <= 745; K++) {
   const c = g0.find((x) => x.strike === K && x.cp === 'C'), p = g0.find((x) => x.strike === K && x.cp === 'P');
-  blk.k.push(K); blk.c.push(c.gamma * c.oi * 100 * 0.01); blk.p.push(p.gamma * p.oi * 100 * 0.01); blk.ci.push(c.iv); blk.pi.push(p.iv);
+  blk.k.push(K); blk.c.push(c.oi * 100 * 0.01); blk.p.push(p.oi * 100 * 0.01); blk.ci.push(c.iv); blk.pi.push(p.iv);
 }
 // at the build spot: exact
 const rows0 = gexAtSpot(blk, s0), srv0 = profile(s0, g0).gex;
@@ -45,9 +45,16 @@ for (const s1 of [712.3, 711.4, 713.9, 709.5]) {
   near(netNear(rows, s1), netSrv, 1e-9, 'net GEX at ' + s1 + ' equals the server net');
   ok(ladderNear(rows, s1).length === [...srv.keys()].filter((k) => Math.abs(k - s1) / s1 < 0.04).length, 'ladder strike count (4 % band) equals the server at ' + s1);
 }
-// spot^2 only scaling (no IV) is a degraded mode; with IV missing goiAt keeps goi
-ok(goiAt(5, 700, 712, 713, 0.001, 0) === 5, 'no IV: gamma held');
-ok(goiAt(0, 700, 712, 713, 0.001, 0.2) === 0, 'zero goi stays zero');
+// Flip + walls from the fast block equal the engine's gammaFlip / gammaWalls on the same chain (the ladder tags = the chart lines)
+for (const s1 of [712.3, 709.5]) {
+  const g1 = ownGamma(contracts, s1, now), pr = profile(s1, g1);
+  const zf = gammaFlip(s1, g1, 0.90, 1.10, 80, now), zb = flipAt(blk, s1);
+  ok((zf == null && zb == null) || Math.abs(zf - zb) < 1e-6, 'flip from the fast block equals the engine gammaFlip at ' + s1 + ' (' + zf + ' vs ' + zb + ')');
+  const [cw, pw] = gammaWalls(s1, pr.callGex, pr.putGex), w = wallsAt(blk, s1);
+  ok(cw === w.call_wall && pw === w.put_wall, 'walls from the fast block equal the engine gammaWalls at ' + s1 + ' (' + cw + '/' + pw + ')');
+}
+ok(goiAt(5, 700, 712, 713, 0.001, 0) === 0, 'no IV: 0, like the engine');
+ok(goiAt(0, 700, 712, 713, 0.001, 0.2) === 0, 'zero weight stays zero');
 
 // feeder round trip: python reduce_chain on tiny synthetic IS + Cboe inputs, then the same numbers from node
 const dir = mkdtempSync(join(tmpdir(), 'gexfast-'));
@@ -62,6 +69,10 @@ const out = JSON.parse(execFileSync('python3', [py, '--reduce', join(dir, 'is.js
 ok(out && out.k.length === 46 && out.x === '2026-10-16' && out.hy === true, 'python reduce_chain: 46 strikes, 0DTE expiry, hybrid on');
 const mine = ownGamma(cb.expiries['2026-10-16'].map(([K, cp, oi]) => ({ strike: K, cp, oi, iv: 0.2, exp, dte: 0 })), 712.0, now);
 let worstPy = 0;
-out.k.forEach((K, i) => { const c = mine.find((x) => x.strike === K && x.cp === 'C'); const e = c.gamma * c.oi * 100 * 0.01; worstPy = Math.max(worstPy, Math.abs(out.c[i] - e) / e); });
-ok(worstPy < 1e-5, 'python feeder goi equals the engine gamma x OI x 100 x 0.01 (worst rel diff ' + worstPy.toExponential(1) + ', 6 significant digits)');
+out.k.forEach((K, i) => { const c = mine.find((x) => x.strike === K && x.cp === 'C'); const e = c.oi * 100 * 0.01; worstPy = Math.max(worstPy, Math.abs(out.c[i] - e) / e); });
+ok(worstPy < 1e-5 && out.v === 2, 'python feeder stores the OI weight OI x 100 x 0.01 (block v2; worst rel diff ' + worstPy.toExponential(1) + ')');
+const gfast = gexAtSpot(out, 712.0), eng = profile(712.0, mine.map((x) => ({ ...x })));
+ok(gfast.every((r) => Math.abs(r.gex - eng.gex.get(r.strike)) <= 1e-9 * Math.max(1e6, Math.abs(eng.gex.get(r.strike)))), 'ladder rows from the python block equal the engine profile()');
+const { maxPain } = await import('../../assets/chart-gex-ladder-core.js');
+ok(out.mp === maxPain(cb.expiries['2026-10-16'].map(([K, cp, oi]) => ({ strike: K, cp, oi })), 712.0), 'python max_pain_rows equals the JS maxPain() on the same chain (' + out.mp + ')');
 console.log('gex-fast.test: ' + n + ' checks passed');

@@ -1,3 +1,4 @@
+import { maxPain } from '../../../assets/chart-gex-ladder-core.js';
 const INSIGHTSENTRY_REST = 'https://api.insightsentry.com/v3';
 const FETCH_TIMEOUT_MS = 4500;
 const quoteMemo = new Map();
@@ -880,6 +881,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   }
   const data = {
     ...lv,
+    max_pain: maxPain(contracts.map(c => ({ strike: c.strike, cp: c.cp, oi: c.oi })), spot),
     underlying: name, spot, iv30: Number(optData.iv30 || 0), contracts: contracts.length, source, sources, compare,
     fut: cfg.fut, mult: cfg.mult, expected, expected_info: expectedInfo,
     asof: optData.last_trade_time || null,

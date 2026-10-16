@@ -78,4 +78,55 @@ const day = [{ k: [100, 101, 102], g: [1, -5, 2] }, { k: [100, 101, 102], g: [-8
 eq(C.dayTop(day, 2), [{ strike: 100, g: -8e6 }, { strike: 101, g: -5e6 }], 'dayTop = per-strike peak over the session, top 2');
 eq(C.dayTop([], 2), [], 'dayTop empty');
 
+
+// ---- key levels (2026-10-16) ----
+// Max pain on a hand-made chain with a known answer. Strikes 90/100/110, OI: calls 90:0 100:10 110:30, puts 90:30 100:10 110:0.
+//   payout(90)  = calls 10*(0)+30*0 ... computed below by hand:
+//   S=90 : calls: 100->0, 110->0 = 0 ; puts: 90 ->0 (K-S=0), 100: 10*(100-90)=100 -> total 100
+//   S=100: calls: 100->0, 110->0 ; puts: 90: 30*0=0 (K<S), 100: 0 -> wait puts pay max(K-S,0): K=90 -> 0, K=100 -> 0 => total 0 + calls 90:0 => 0
+//   (call OI at 90 is 0). S=110: calls 100: 10*10=100 ; puts 0 -> 100. So the minimum is S=100 (0).
+{
+  const chain = [
+    { strike: 90, cp: 'C', oi: 0 }, { strike: 100, cp: 'C', oi: 10 }, { strike: 110, cp: 'C', oi: 30 },
+    { strike: 90, cp: 'P', oi: 30 }, { strike: 100, cp: 'P', oi: 10 }, { strike: 110, cp: 'P', oi: 0 }
+  ];
+  eq(C.maxPain(chain, 105), 100, 'max pain: hand-made chain (known answer 100)');
+  // a second chain with a non-trivial answer: calls 100:5 105:20, puts 95:20 100:5 -> compute payouts by hand
+  //   S=95 : calls 5*0+20*0=0 ; puts 20*0+5*(100-95)=25            => 25
+  //   S=100: calls 0 ; puts 20*0 + 5*0 = 0 ; wait calls pay (S-K): 100:0, 105:0 -> 0; puts (K-S): 95:0, 100:0 -> 0 => 0
+  //   S=105: calls 5*(5)=25 + 20*0 ; puts 0                         => 25
+  eq(C.maxPain([{ strike: 100, cp: 'C', oi: 5 }, { strike: 105, cp: 'C', oi: 20 }, { strike: 95, cp: 'P', oi: 20 }, { strike: 100, cp: 'P', oi: 5 }], 100), 100, 'max pain: second chain (100)');
+  // skewed OI pulls it: heavy puts at 105 and heavy calls at 95 -> payout is smallest in between? check by brute force
+  const ch2 = [{ strike: 95, cp: 'C', oi: 100 }, { strike: 100, cp: 'C', oi: 50 }, { strike: 100, cp: 'P', oi: 50 }, { strike: 105, cp: 'P', oi: 100 }];
+  const brute = (ch) => { let b = null, bv = Infinity; for (const s of [...new Set(ch.map((c) => c.strike))].sort((x, y) => x - y)) { const v = ch.reduce((t, c) => t + c.oi * (c.cp === 'C' ? Math.max(s - c.strike, 0) : Math.max(c.strike - s, 0)), 0); if (v < bv) { bv = v; b = s; } } return b; };
+  eq(C.maxPain(ch2, 100), brute(ch2), 'max pain equals a brute-force scan (' + brute(ch2) + ')');
+  eq(C.maxPain([], 100), null, 'max pain: empty chain -> null');
+  eq(C.maxPain([{ strike: 100, cp: 'C', oi: 5 }, { strike: 101, cp: 'C', oi: 0 }], 100), 100, 'max pain: zero-OI strikes ignored');
+}
+// regime wording + distance text + row placement
+{
+  eq(C.regimeOf(5e9).text, 'Positive gamma (calmer)', 'regime: positive');
+  eq(C.regimeOf(-5e9).text, 'Negative gamma (bigger moves)', 'regime: negative');
+  ok(!/live|real-time|delayed|behind/i.test(C.regimeOf(1).tip + C.regimeOf(-1).tip), 'regime tips avoid forbidden wording');
+  eq(C.fmtPct(-1.234), '\u22121.2%', 'distance text');
+  const rows3 = [{ k: 110 }, { k: 105 }, { k: 100 }, { k: 95 }];
+  eq(C.rowNearest(rows3, 104), 1, 'row for a level');
+  eq(C.rowNearest(rows3, 200), -1, 'level far outside the list has no row');
+  // zero gamma consistency with the chart's GEX Levels: the ladder tag uses data.zero_gamma, the chart uses L.zero_gamma = data.zero_gamma
+  const fx = JSON.parse(fs.readFileSync(new URL('./fixtures/gex/QQQ-0.json', import.meta.url)));
+  const lv = C.keyLevels(Object.assign({}, fx, { max_pain: 750 }), fx.spot, { strike: 755 }, null, 0);
+  const { buildLevels } = await import('../../assets/chart-gex-levels.js');
+  const bl = buildLevels(fx, { api: 'QQQ', fut: null }, {}, 0);
+  const chartZero = bl.lines.find((l) => l.id === 'zero'), chartCall = bl.lines.find((l) => l.id === 'call'), chartPut = bl.lines.find((l) => l.id === 'put');
+  const tag = (id) => lv.tags.find((t) => t.id === id);
+  eq(Math.round(tag('flip').price * 100) / 100, chartZero.price, 'Flip on the ladder = the chart\u2019s Zero Gamma line (' + chartZero.price + ')');
+  eq(tag('cw').price, chartCall.price, 'Call Wall on the ladder = the chart line');
+  eq(tag('pw').price, chartPut.price, 'Put Wall on the ladder = the chart line');
+  ok(tag('mp').price === 750 && tag('mag').price === 755, 'Max Pain + Magnet tags carry their strikes');
+  const lo = C.keyLevels(fx, fx.spot, null, { em: [{ k: '0DTE', lo: 750, hi: 762, em: 6, pct: 0.8, iv: 0.2 }], pc: { oi: 1.5, vol: 0.9, oi_first: 1.4, vol_first: 0.8 }, atm30: 0.22 }, 0);
+  ok(lo.tags.some((t) => t.id === 'emlo' && t.price === 750) && lo.tags.some((t) => t.id === 'emhi' && t.price === 762) && lo.tags.filter((t) => t.faint).length === 2, 'expected move: two faint edge tags');
+  eq(lo.chips.find((c) => c.id === 'pcoi').value, '1.40', 'P/C OI uses the first-expiry ratio for 0DTE');
+  eq(lo.chips.find((c) => c.id === 'iv').value, '20.0%', 'ATM IV chip');
+  ok(lo.chips.every((c) => c.tip && c.tip.length > 20 && !/live|real-time|delayed|behind/i.test(c.tip)), 'every chip has a plain-English tooltip, no forbidden wording');
+}
 console.log(n + ' passed');

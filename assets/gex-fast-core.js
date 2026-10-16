@@ -16,14 +16,13 @@ export function bsGamma(S, K, T, sigma, r = 0.045, q = 0.0) {
   const nd1 = Math.exp(-0.5 * d1 * d1) / SQ2PI;
   return Math.exp(-q * T) * nd1 / (S * v);
 }
-// goi at spot s1 given goi at build spot s0 (gamma re-estimated; 0 stays 0)
-export function goiAt(goi, K, s0, s1, T, iv) {
-  if (!(goi > 0)) return 0;
-  if (!(iv > 0) || s0 === s1) return goi;
-  const g0 = bsGamma(s0, K, T, iv);
-  return g0 > 0 ? goi * bsGamma(s1, K, T, iv) / g0 : goi;
+// goi (gamma x OI x 100 x 0.01) at spot s1 from the stored OI weight w = OI x 100 x 0.01 (block v2): gamma is recomputed
+// exactly with the engine's bsGamma at s1 from the strike's IV and T. No IV -> 0, like the engine.
+export function goiAt(w, K, s0, s1, T, iv) {
+  if (!(w > 0) || !(iv > 0)) return 0;
+  return w * bsGamma(s1, K, T, iv);
 }
-// One fast block { s0 (build spot), T, k:[strikes], c:[call goi], p:[put goi], ci:[call iv], pi:[put iv] } -> [{ strike, gex }]
+// One fast block { v:2, s0 (build spot), T, k:[strikes], c:[call OI x 100 x 0.01], p:[put ...], ci:[call iv], pi:[put iv] } -> [{ strike, gex }]
 // (strikes high to low) at spot s.
 export function gexAtSpot(blk, s) {
   const out = [];
@@ -37,3 +36,43 @@ export function gexAtSpot(blk, s) {
 // Net GEX the way the server reports it (strikes within 6 % of spot) and the ladder rows (within 4 %).
 export function netNear(rows, s) { let t = 0; for (const r of rows) if (Math.abs(r.strike - s) / s < 0.06) t += r.gex; return t; }
 export function ladderNear(rows, s) { return rows.filter((r) => Math.abs(r.strike - s) / s < 0.04); }
+
+// Flip / walls from a fast block at spot s: the same rules as the engine (gammaFlip: 80-step scan of 0.90-1.10 x spot,
+// linear + bisection root nearest spot; gammaWalls: biggest call goi at/above spot and biggest put goi at/below spot, within 6 %).
+function netAll(blk, s) {
+  let t = 0;
+  for (let i = 0; i < blk.k.length; i++) t += (goiAt(blk.c[i], blk.k[i], blk.s0, s, blk.T, blk.ci[i]) - goiAt(blk.p[i], blk.k[i], blk.s0, s, blk.T, blk.pi[i])) * s * s;
+  return t;
+}
+export function flipAt(blk, spot, steps = 80) {
+  const lo = spot * 0.9, hi = spot * 1.1, xs = [], ys = [];
+  for (let i = 0; i < steps; i++) { const x = lo + (hi - lo) * i / (steps - 1); xs.push(x); ys.push(netAll(blk, x)); }
+  const crosses = [];
+  for (let i = 1; i < xs.length; i++) {
+    let a = xs[i - 1], b = xs[i], fa = ys[i - 1], fb = ys[i];
+    if (fa === 0) crosses.push(a);
+    else if (fa * fb < 0) {
+      let m = a;
+      for (let j = 0; j < 28; j++) {
+        m = a + (b - a) * Math.abs(fa) / (Math.abs(fa) + Math.abs(fb));
+        const fm = netAll(blk, m);
+        if (fm === 0) break;
+        if (fa * fm < 0) { b = m; fb = fm; } else { a = m; fa = fm; }
+        if (Math.abs(b - a) < spot * 1e-6) break;
+      }
+      crosses.push(m);
+    }
+  }
+  return crosses.length ? crosses.reduce((a, b) => (Math.abs(a - spot) < Math.abs(b - spot) ? a : b)) : null;
+}
+export function wallsAt(blk, s, band = 0.06) {
+  let cw = null, cv = 0, pw = null, pv = 0;
+  for (let i = 0; i < blk.k.length; i++) {
+    const K = blk.k[i];
+    if (Math.abs(K - s) / s >= band) continue;
+    const c = goiAt(blk.c[i], K, blk.s0, s, blk.T, blk.ci[i]) * s * s, p = goiAt(blk.p[i], K, blk.s0, s, blk.T, blk.pi[i]) * s * s;
+    if (K >= s && c > cv) { cv = c; cw = K; }
+    if (K <= s && p > pv) { pv = p; pw = K; }
+  }
+  return { call_wall: cw, put_wall: pw };
+}

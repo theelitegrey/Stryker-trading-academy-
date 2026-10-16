@@ -63,6 +63,20 @@ def sig(x, n=6):
     return float('%.*g' % (n, x))
 
 
+def max_pain_rows(rows, spot):
+    """Strike with the smallest total option-holder payout (calls + puts, OI); ties -> nearest spot. Same rule as maxPain() in
+    assets/chart-gex-ladder-core.js."""
+    rs = [(r[0], r[1], r[2]) for r in rows if r[2] > 0]
+    if not rs:
+        return None
+    best, bv = None, None
+    for s in sorted({r[0] for r in rs}):
+        pay = sum(oi * (max(s - k, 0) if cp == 'C' else max(k - s, 0)) for k, cp, oi in rs)
+        if bv is None or pay < bv or (pay == bv and abs(s - spot) < abs(best - spot)):
+            best, bv = s, pay
+    return best
+
+
 def reduce_chain(is_data, cboe_near, dte, now_epoch):
     """-> block for one underlying/expiry-mode, or None. Pure (unit-tested)."""
     spot = float(is_data.get('last_price') or 0)
@@ -105,17 +119,18 @@ def reduce_chain(is_data, cboe_near, dte, now_epoch):
             iv = x[0]
         if iv > 3:
             iv /= 100
-        g = bs_gamma(spot, K, T, iv) if iv > 0 else 0.0
+        # v2 block: store the OI weight (OI x 100 x 0.01) and the IV; the reader recomputes gamma at any spot with the engine's formula
         e = by.setdefault(K, [0.0, 0.0, 0.0, 0.0])
         if cp == 'C':
-            e[0] += g * oi * 100 * 0.01; e[2] = iv
+            e[0] += oi * 100 * 0.01; e[2] = iv
         else:
-            e[1] += g * oi * 100 * 0.01; e[3] = iv
+            e[1] += oi * 100 * 0.01; e[3] = iv
+    mp = max_pain_rows(cboe_near['expiries'][exp], spot)
     ks = sorted(by)
     if len(ks) < 20:
         return None
-    return {'x': exp, 's0': sig(spot, 8), 'T': sig(T, 8), 'k': ks, 'c': [sig(by[k][0]) for k in ks], 'p': [sig(by[k][1]) for k in ks],
-            'ci': [sig(by[k][2], 4) for k in ks], 'pi': [sig(by[k][3], 4) for k in ks], 'hy': hybrid_ok}
+    return {'v': 2, 'x': exp, 's0': sig(spot, 8), 'T': sig(T, 8), 'k': ks, 'c': [sig(by[k][0]) for k in ks], 'p': [sig(by[k][1]) for k in ks],
+            'ci': [sig(by[k][2], 4) for k in ks], 'pi': [sig(by[k][3], 4) for k in ks], 'hy': hybrid_ok, 'mp': mp}
 
 
 def http_json(url, headers, timeout, gz=True):

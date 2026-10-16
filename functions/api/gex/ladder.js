@@ -6,7 +6,7 @@
 // Education only. Not financial advice.
 import { MARKETS, json } from './_engine.js';
 import { onRequestGet as levelsGet } from './levels/[name].js';
-import { gexAtSpot, netNear, ladderNear } from '../../../assets/gex-fast-core.js';
+import { gexAtSpot, netNear, ladderNear, flipAt, wallsAt } from '../../../assets/gex-fast-core.js';
 
 // FAST path (InsightSentry add-on, 2026-10-16): the server feeder gex_fast.py rebuilds per-strike gamma x OI about every
 // 15 s per underlying and posts the latest spot about once a second; this turns the newest block into the ladder at the
@@ -26,12 +26,13 @@ async function fetchFast(env) {
 }
 function fromFast(fast, u, dte, nowSec) {
   const e = fast && fast.u && fast.u[u], blk = e && e[String(dte)];
-  if (!blk || !(nowSec - e.built <= FAST_MAX_AGE_S)) return null;
+  if (!blk || blk.v !== 2 || !(nowSec - e.built <= FAST_MAX_AGE_S)) return null;
   const sp = fast.spots && fast.spots[u];
   const spot = sp && sp.p > 0 && nowSec - sp.t <= FAST_SPOT_MAX_AGE_S ? sp.p : blk.s0;
   const rows = gexAtSpot(blk, spot);
   return { underlying: u, spot, net_gex: netNear(rows, spot), fetched_at: e.built, built: e.built, spot_t: sp ? sp.t : null, asof: null, expiry: blk.x,
-    market: { state: 'open' }, ladder: ladderNear(rows, spot).map((r) => ({ strike: r.strike, gex: r.gex })), src: 'fast' };
+    market: { state: 'open' }, ladder: ladderNear(rows, spot).map((r) => ({ strike: r.strike, gex: r.gex })), src: 'fast',
+    max_pain: blk.mp == null ? null : blk.mp, zero_gamma: flipAt(blk, spot), ...wallsAt(blk, spot) };
 }
 
 const ALLOWED = ['SPX', 'QQQ', 'SPY'];
@@ -47,6 +48,7 @@ function trim(d) {
   const m = d.market || {};
   return {
     underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, built: d.fetched_at, asof: d.asof, expiry: d.expiry,
+    max_pain: d.max_pain, zero_gamma: d.zero_gamma, call_wall: d.call_wall, put_wall: d.put_wall,
     stale: d.stale ? true : undefined, market: { state: m.state, data_ts: m.data_ts, options_ts: m.options_ts },
     ladder: Array.isArray(d.ladder) ? d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })) : []
   };

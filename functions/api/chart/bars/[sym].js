@@ -31,7 +31,8 @@ function keyFor(request, sym, tf, page, kind) {
 
 // Live tail: Yahoo's newest bar is ~10 min old, InsightSentry's is current but its series takes ~6 s
 // to arrive, so it is fetched in the background (waitUntil) into a short "tail" cache entry and laid
-// over the page on this and later requests (also on cache hits). Never blocks, never throws.
+// over the page on this and later requests (also on cache hits). Never blocks, never throws. The tail entry lives an hour (a stale tail still beats Yahoo's 10-min lag;
+// the re-fetch is due after 12 s), so a quiet edge is rarely cold.
 async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
   try {
     if (!cache || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
@@ -41,10 +42,12 @@ async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
     if (hitT) { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; }
     if (tailAge > 12 && !inflight.has('tail:' + k)) {
       const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
-        if (rows && rows.length) return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 120));
+        if (rows && rows.length) { tail = tail || rows; return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 3600)); }
       }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
       inflight.set('tail:' + k, w);
       if (ctx.waitUntil) ctx.waitUntil(w);
+      // Cold edge (no tail at all): wait for it once (about 6 s), so the first view is current too.
+      if (!tail) await Promise.race([w, new Promise((r) => setTimeout(r, 9000))]);
     }
     if (!tail || !tail.length) return res;
     const body = await res.clone().json();

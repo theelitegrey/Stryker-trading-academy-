@@ -361,6 +361,7 @@ export function ttlFor(tf, page, now, sym) {
 export function mergeTail(yahooRows, tailRows) {
   if (!tailRows || !tailRows.length) return yahooRows;
   const t0 = tailRows[0][0];
-  const head = yahooRows.filter((r) => r[0] < t0);
-  return head.concat(tailRows);
+  const t1 = tailRows[tailRows.length - 1][0];
+  // A stale tail (kept for an hour, see bars/[sym].js) must not hide newer Yahoo rows after it.
+  return yahooRows.filter((r) => r[0] < t0).concat(tailRows, yahooRows.filter((r) => r[0] > t1));
 }

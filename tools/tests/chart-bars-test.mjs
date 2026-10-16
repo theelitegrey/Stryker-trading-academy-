@@ -2,7 +2,7 @@
 // Pure node, no network:  node tools/tests/chart-bars-test.mjs
 // Fakes Yahoo (globalThis.fetch) and the Cloudflare edge cache (globalThis.caches).
 import assert from 'node:assert/strict';
-import { TIMEFRAMES, pageOf, pageBounds, parseYahoo, aggregateHours, nyOffset, globexOpen, ttlFor, normSym, normTf } from '../../functions/api/chart/_bars.js';
+import { TIMEFRAMES, pageOf, pageBounds, parseYahoo, aggregateHours, nyOffset, globexOpen, ttlFor, normSym, normTf, mergeTail } from '../../functions/api/chart/_bars.js';
 import { onRequestGet } from '../../functions/api/chart/bars/[sym].js';
 
 let n = 0;
@@ -214,5 +214,13 @@ ok('every timeframe answers 200 with ascending bars');
   ok('InsightSentry/Yahoo race: no 4.5 s wait, fast InsightSentry wins, Yahoo down -> InsightSentry');
 }
 
+{
+  const y = [[60, 1, 1, 1, 1, 1], [120, 1, 1, 1, 1, 1], [180, 1, 1, 1, 1, 1], [240, 9, 9, 9, 9, 9]], t = [[120, 2, 2, 2, 2, 2], [180, 2, 2, 2, 2, 2]];
+  const m = mergeTail(y, t);
+  assert.deepEqual(m.map((r) => r[0]), [60, 120, 180, 240]);
+  assert.equal(m[1][1], 2); assert.equal(m[3][1], 9);
+  assert.equal(mergeTail(y, []), y);
+  n++; console.log('PASS mergeTail: tail replaces from its first row, newer Yahoo rows kept');
+}
 console.log(`\n${n} checks passed`);
 process.exit(0);

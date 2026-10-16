@@ -3,27 +3,32 @@
 //
 // Depends on: assets/chart-gex-levels.js (gexFetch/gexCached: the SAME shared GEX fetch + 5-minute
 // cache as the GEX Levels indicator, so the ladder adds no API calls; gexTier; convOf, gexAnchor,
-// gexSource, flashLevel, agoText, dataTime), assets/chart-gex-ladder-core.js (pure ranking/format),
+// gexSource, flashLevel, dataTime), assets/chart-gex-ladder-core.js (pure ranking/format),
 // assets/chart-watchlist.js (.stkw-rail, .stkchart-panel.stkw-host), assets/style.css (.stkgl-*).
 //
-// WHAT IT SHOWS: SPX, QQQ and SPY side by side (phones: tabs, one column at a time). Each column is a
-// strike list centred on spot: strike + net GEX in dollars, a bar behind each row sized on ONE colour
-// scale shared by all three columns (mint = positive, magenta = negative, muted = small), the single
-// biggest |GEX| strike of each column outlined in violet with a "MAX" chip, a spot divider that the list
-// scrolls to, and a header: symbol, spot, net GEX, the magnet strike + % distance.
+// WHAT IT SHOWS: QQQ, SPY and SPX side by side (phones: tabs, one column at a time). Each column is a dense
+// strike list (17 px rows): strike + net GEX in dollars on a cell coloured on ONE scale shared by all three
+// columns (dark blue = small, green = big positive, purple/magenta = big negative, bright yellow = the single
+// biggest |GEX| of the column), a spot row marked with an arrow and a thin line, and a header: symbol, spot,
+// "mag <strike> <+/-%>" and the net total.
+// UPDATES: while the ladder is open AND the tab is visible it polls /api/gex/ladder once a second (one request
+// for all three markets, 1 s edge cache + ETag). Rows are patched in place (only changed rows are touched, a
+// changed value flashes green/red), the list keeps its scroll unless it was centred on spot. Hidden tab: no
+// requests. Closed: stopped. The data itself is rebuilt on the server about once a minute (see report).
 // CHARTS: clicking a strike flashes a horizontal line at that strike's futures price (QQQ -> NQ/MNQ,
 // SPX -> ES/MES, the same ratio + basis + re-anchor as the GEX Levels lines); on an SPX/SPY/QQQ chart the
 // strike is used as is. A chart whose market does not match the column gets a short toast instead.
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
-// WORDING: "GEX updated X min ago" only; Education only. Not financial advice.
-import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, agoText, dataTime } from './chart-gex-levels.js?v=582';
-import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney } from './chart-gex-ladder-core.js?v=582';
+// WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
+import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=582';
+import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText } from './chart-gex-ladder-core.js?v=582';
 
-export const COLS = [['SPX', 'S&P 500'], ['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF']];
+export const COLS = [['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF'], ['SPX', 'S&P 500']];
+const LADDER_API = '/api/gex/ladder';
+const ROW_H = 17;
 const PHONE_MAX = 700;
-const POS = '3,201,136', NEG = '238,66,118';       // mint #03c988, magenta #ee4276 (the GEX heat ramps)
-const REFRESH_MS = 60 * 1000;
+const REFRESH_MS = 1000;           // poll every second while the ladder is open and the tab is visible
 const WINDOW_PCT = 0.06;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -38,33 +43,39 @@ export function columnModel(data, vmax) {
   const rows = ladderFromApi(data).filter((r) => spot == null || Math.abs(r.k - spot) <= spot * WINDOW_PCT);
   if (!rows.length || spot == null) return null;
   const mg = magnet(rows, spot, 0.05), big = biggestIndex(rows);
-  let spotAt = rows.findIndex((r) => r.k < spot);            // the divider goes before the first strike below spot
-  if (spotAt < 0) spotAt = rows.length;
   return {
-    rows, spot, spotAt, big, mg, net: isNum(data.net_gex) ? data.net_gex : netTotal(rows),
+    rows, spot, big, mg, spotAt: spotIndex(rows, spot), pos: spotPos(rows, spot), net: isNum(data.net_gex) ? data.net_gex : netTotal(rows),
+    sig: rows.map((r) => r.k).join(','),
     items: rows.map((r, i) => ({ k: r.k, g: r.g, s: strength(r.g, vmax), big: i === big }))
   };
 }
 
 const DL = { 0: '0DTE', 1: '1DTE', 7: '1W', 30: '1M' };
-let netLabel = '0DTE';
-function colHtml(api, label, m, locked, nearSpot) {
-  const head = '<div class="stkgl-ch"><div class="stkgl-sym"><b>' + api + '</b><span>' + esc(label) + '</span>' + (locked ? '<i class="stkgl-pro">Pro</i>' : '') + '</div>' +
-    (m ? '<div class="stkgl-spot">' + fmtSpot(m.spot) + '</div>' +
-      '<div class="stkgl-net ' + (m.net < 0 ? 'neg' : 'pos') + '" title="Net GEX for this expiry view, the same figure the GEX page shows">Net ' + netLabel + ' ' + fmtMoney(m.net) + '</div>' +
-      (m.mg ? '<div class="stkgl-mag" title="Largest |GEX| strike within 5% of spot">Magnet ' + fmtK(m.mg.strike) + ' · ' + (m.mg.pct >= 0 ? '+' : '\u2212') + Math.abs(m.mg.pct).toFixed(1) + '%</div>' : '') : '') + '</div>';
-  if (locked) return head + '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/#pricing">See Pro</a></div>';
-  if (!m) return head + '<div class="stkgl-empty">Loading…</div>';
-  let h = '<div class="stkgl-list" data-api="' + api + '" role="list">';
-  m.items.forEach((it, i) => {
-    if (i === m.spotAt) h += '<div class="stkgl-spotline" data-spot="1"><span>spot ' + fmtSpot(m.spot) + '</span></div>';
-    const col = it.g < 0 ? NEG : POS, a = Math.min(0.55, 0.06 + it.s * 0.5);
-    h += '<button type="button" class="stkgl-row' + (it.big ? ' is-max' : '') + (it.s < 0.12 ? ' is-small' : '') + (it.g < 0 ? ' neg' : ' pos') + '" role="listitem" data-k="' + it.k + '" data-api="' + api + '" ' +
-      'style="background-image:linear-gradient(90deg,rgba(' + col + ',' + a.toFixed(3) + ') ' + (it.s * 100).toFixed(1) + '%,transparent ' + (it.s * 100).toFixed(1) + '%)" ' +
-      'title="' + api + ' ' + fmtK(it.k) + ': net GEX ' + fmtMoney(it.g) + '"><span class="stkgl-k">' + fmtK(it.k) + '</span>' + (it.big ? '<em>MAX</em>' : '') + '<span class="stkgl-v">' + fmtMoney(it.g) + '</span></button>';
-  });
-  if (m.spotAt >= m.items.length) h += '<div class="stkgl-spotline" data-spot="1"><span>spot ' + fmtSpot(m.spot) + '</span></div>';
-  return head + h + '</div>';
+const magText = (mg) => (mg ? 'mag ' + fmtK(mg.strike) + ' ' + (mg.pct >= 0 ? '+' : '\u2212') + Math.abs(mg.pct).toFixed(1) + '%' : '');
+const netText = (m, label) => 'Net ' + label + ' ' + fmtMoney(m.net);
+function headHtml(api, label, locked) {
+  return '<div class="stkgl-ch"><div class="stkgl-sym"><b>' + api + '</b><span>' + esc(label) + '</span>' + (locked ? '<i class="stkgl-pro">Pro</i>' : '') + '</div>' +
+    '<div class="stkgl-spot"></div><div class="stkgl-mag" title="Magnet: the largest |GEX| strike within 5% of spot, and its distance from spot"></div>' +
+    '<div class="stkgl-net" title="Net GEX for this expiry view, the same figure the GEX page shows"></div></div>';
+}
+function rowHtml(api, it) {
+  return '<button type="button" class="stkgl-row" role="listitem" data-k="' + it.k + '" data-api="' + api + '"><span class="stkgl-k">' + fmtK(it.k) + '</span><span class="stkgl-v"></span></button>';
+}
+// Sets one row's text / colour / class from an item; returns 1 up, -1 down, 0 unchanged (value change).
+function patchRow(el, it) {
+  const v = el._v || (el._v = el.querySelector('.stkgl-v'));
+  const key = Math.round(it.g / 1e3);
+  let dir = 0;
+  if (el._g !== key) { if (el._g != null) dir = it.g > el._gv ? 1 : -1; el._g = key; el._gv = it.g; v.textContent = fmtMoney(it.g); }
+  const bg = it.big ? MAX_FILL : cellColor(it.g, it.s);
+  if (el._bg !== bg) { el._bg = bg; el.style.backgroundColor = bg; }
+  if (el._big !== it.big) { el._big = it.big; el.classList.toggle('is-max', it.big); }
+  return dir;
+}
+function flash(el, dir) {
+  const c = dir > 0 ? 'flash-up' : 'flash-dn';
+  el.classList.remove('flash-up', 'flash-dn'); void el.offsetWidth; el.classList.add(c);
+  clearTimeout(el._ft); el._ft = setTimeout(() => el.classList.remove('flash-up', 'flash-dn'), 900);
 }
 
 // Plan: resolves {free:false} only when a signed-in Pro/admin is confirmed. A signed-out visitor never
@@ -78,10 +89,13 @@ function planTier() {
   return planP;
 }
 
-// Builds the ladder view into `root`. opts: { isPhone(), onPick(api, strike, data), replayNote(): string }
+// Builds the ladder view into `root`. opts: { isPhone(), onPick(api, strike, data), replayNote(): string, dte(), dataFor(api) }
 export function createLadder(root, opts) {
   opts = opts || {};
-  let tier = null, tierAsked = false, tab = 'SPX', timer = 0, active = false, centered = {}, lastSig = '', seq = 0;
+  let tier = null, tierAsked = false, tab = 'SPX', timer = 0, active = false, seq = 0, inflight = false;
+  const live = {};                 // dte -> { SPX: data, ... } from the combined per-second endpoint
+  const cols = {};                 // api -> { kind, sig, rows: Map(k -> el), list, spotEl, model, centered }
+  let lastText = {}, netLabel = '0DTE', failed = 0;
   root.classList.add('stkgl-body');
   root.innerHTML = '<div class="stkgl-tabs" role="tablist" aria-label="Ladder market">' + COLS.map((c) => '<button type="button" role="tab" class="stkgl-tab" data-api="' + c[0] + '">' + c[0] + '</button>').join('') + '</div>' +
     '<div class="stkgl-note" hidden></div><div class="stkgl-cols">' + COLS.map((c) => '<section class="stkgl-col" data-api="' + c[0] + '" aria-label="' + c[0] + ' GEX ladder"></section>').join('') + '</div>' +
@@ -92,61 +106,128 @@ export function createLadder(root, opts) {
   // Default to the lock: QQQ / SPY open only once Pro is CONFIRMED (a signed-out or Free visitor never waits for it).
   const locked = (api) => api !== 'SPX' && !(tier && !tier.free);
   const dteNow = () => (opts.dte ? opts.dte() : 0);
-  const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || gexCached(api, dteNow());
+  const dataFor = (api) => (opts.dataFor && opts.dataFor(api)) || (live[dteNow()] && live[dteNow()][api]) || gexCached(api, dteNow());
 
-  tabsEl.addEventListener('click', (e) => { const b = e.target.closest('.stkgl-tab'); if (!b) return; tab = b.dataset.api; sync(); centerAll(); });
+  tabsEl.addEventListener('click', (e) => { const b = e.target.closest('.stkgl-tab'); if (!b) return; tab = b.dataset.api; sync(); centerAll(true); });
   root.addEventListener('click', (e) => {
     const r = e.target.closest('.stkgl-row'); if (!r || !opts.onPick) return;
-    const api = r.dataset.api; opts.onPick(api, parseFloat(r.dataset.k), dataFor(api));
+    const api = r.dataset.api, k = parseFloat(r.dataset.k);
+    // the strike -> futures conversion needs the full levels response (futures ratio + basis), not the trimmed per-second one
+    gexFetch(api, dteNow()).then((full) => opts.onPick(api, k, full && !full.error ? full : dataFor(api)));
   });
   function sync() {
     root.classList.toggle('is-phone', phone());
     tabsEl.querySelectorAll('.stkgl-tab').forEach((b) => { const on = b.dataset.api === tab; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     root.querySelectorAll('.stkgl-col').forEach((c) => c.classList.toggle('is-shown', !phone() || c.dataset.api === tab));
   }
-  function centerAll() {
-    requestAnimationFrame(() => root.querySelectorAll('.stkgl-list').forEach((l) => {
-      const s = l.querySelector('[data-spot]'); if (!s) return;
-      l.scrollTop = Math.max(0, s.offsetTop - l.clientHeight / 2 + s.offsetHeight / 2);
-      centered[l.dataset.api] = true;
-    }));
+  // Scroll target that puts the spot line in the middle of the list.
+  const target = (st) => { const l = st.list; return Math.max(0, (st.model.pos + 0.5) * ROW_H - l.clientHeight / 2 + ROW_H / 2); };
+  function centerCol(api, force) {
+    const st = cols[api]; if (!st || st.kind !== 'list' || !st.list.clientHeight) return;
+    if (force || st.centered) { st.list.scrollTop = target(st); st.centered = true; }
+  }
+  function centerAll(force) { requestAnimationFrame(() => Object.keys(cols).forEach((a) => centerCol(a, !!force))); }
+
+  function setHeader(el, m, api) {
+    const s = el.querySelector('.stkgl-spot'), g = el.querySelector('.stkgl-mag'), n = el.querySelector('.stkgl-net');
+    const st = m ? fmtSpot(m.spot) : '', mt = m ? magText(m.mg) : '', nt = m ? netText(m, netLabel) : '';
+    if (s.textContent !== st) s.textContent = st;
+    if (g.textContent !== mt) g.textContent = mt;
+    if (n.textContent !== nt) { n.textContent = nt; n.classList.toggle('neg', !!m && m.net < 0); n.classList.toggle('pos', !!m && m.net >= 0); }
+  }
+  function paintCol(api, label, model, lock, rn) {
+    const el = colEl(api); let st = cols[api];
+    if (rn || lock || !model) {
+      const kind = rn ? 'note' : lock ? 'lock' : 'wait';
+      if (st && st.kind === kind) return;
+      cols[api] = { kind };
+      el.innerHTML = headHtml(api, label, lock) + (rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : lock ? '<div class="stkgl-lock"><p>' + api + ' ladder is part of Pro.</p><a class="btn btn-primary btn-sm" href="/#pricing">See Pro</a></div>' : '<div class="stkgl-empty">Loading…</div>');
+      return;
+    }
+    if (!st || st.kind !== 'list' || st.sig !== model.sig) {
+      // (re)build: only when the strike set changes (or first paint); keep the user's scroll unless centred on spot
+      const keep = st && st.kind === 'list' ? { top: st.list.scrollTop, centered: st.centered } : { top: 0, centered: true };
+      el.innerHTML = headHtml(api, label, false) + '<div class="stkgl-list" data-api="' + api + '" role="list">' + model.items.map((it) => rowHtml(api, it)).join('') + '<div class="stkgl-spotline" data-spot="1"></div></div>';
+      const list = el.querySelector('.stkgl-list');
+      st = cols[api] = { kind: 'list', sig: model.sig, list, rows: new Map(), centered: keep.centered, head: el.querySelector('.stkgl-ch'), spotEl: list.querySelector('.stkgl-spotline'), spotRow: null, model };
+      list.querySelectorAll('.stkgl-row').forEach((r) => st.rows.set(parseFloat(r.dataset.k), r));
+      list.addEventListener('scroll', () => { st.centered = Math.abs(list.scrollTop - target(st)) <= ROW_H * 1.5; }, { passive: true });
+      model.items.forEach((it) => patchRow(st.rows.get(it.k), it));
+      applySpot(st, model);
+      if (keep.centered) centerCol(api, true); else list.scrollTop = keep.top;
+      setHeader(st.head, model, api);
+      return;
+    }
+    // in-place patch: only rows whose value / colour changed are touched; no rebuild, no scroll jump
+    st.model = model;
+    model.items.forEach((it) => { const r = st.rows.get(it.k); const dir = patchRow(r, it); if (dir) flash(r, dir); });
+    applySpot(st, model);
+    setHeader(st.head, model, api);
+    if (st.centered) st.list.scrollTop = target(st);
+  }
+  function applySpot(st, m) {
+    st.spotEl.style.top = Math.round((m.pos + 0.5) * ROW_H) + 'px';
+    const nr = st.rows.get(m.rows[m.spotAt].k);
+    if (st.spotRow !== nr) { if (st.spotRow) st.spotRow.classList.remove('is-spot'); nr.classList.add('is-spot'); st.spotRow = nr; }
+  }
+  function paintFoot(datas) {
+    const times = datas.filter((d) => d && !d.error).map(dataTime).filter(isNum);
+    foot.textContent = (times.length ? updatedText(Math.min(...times)) + ' \u00b7 ' : '') + 'One colour scale across the three columns. Education only. Not financial advice.';
   }
   function paint() {
     sync();
     const rn = opts.replayNote ? opts.replayNote() : '';
     note.hidden = !rn; note.textContent = rn || '';
     const datas = COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0])));
-    const vmax = sharedScale(datas.map((d) => (d && !d.error ? ladderFromApi(d) : [])));
+    const vmax = sharedScale(datas.map((d) => (d && !d.error ? ladderFromApi(d).filter((r) => !isNum(d.spot) || Math.abs(r.k - d.spot) <= d.spot * WINDOW_PCT) : [])));
     const models = datas.map((d) => (rn ? null : columnModel(d, vmax)));
-    const times = datas.filter((d) => d && !d.error).map(dataTime).filter(isNum);
     netLabel = DL[dteNow()] || '0DTE';
-    const sig = JSON.stringify([rn, netLabel, tier && tier.free, models.map((m) => m && [m.spot, m.net, m.items.length, m.items.map((i) => Math.round(i.g / 1e4)).join(',')])]);
-    foot.textContent = (times.length ? agoText(Math.min(...times)) + ' · ' : '') + 'One colour scale across the three columns. Education only. Not financial advice.';
-    if (sig === lastSig) return;
-    lastSig = sig;
-    COLS.forEach((c, i) => {
-      const el = colEl(c[0]), prev = el.querySelector('.stkgl-list'), top = prev ? prev.scrollTop : 0;
-      el.innerHTML = rn ? '<div class="stkgl-empty">' + esc(rn) + '</div>' : colHtml(c[0], c[1], models[i], locked(c[0]));
-      const l = el.querySelector('.stkgl-list');
-      if (l && centered[c[0]]) l.scrollTop = top;
-    });
-    if (!rn && COLS.some((c) => !centered[c[0]] && models[COLS.findIndex((x) => x[0] === c[0])])) centerAll();
+    COLS.forEach((c, i) => paintCol(c[0], c[1], models[i], locked(c[0]), rn));
+    paintFoot(datas);
+    if (!rn) requestAnimationFrame(() => COLS.forEach((c) => { const st = cols[c[0]]; if (st && st.kind === 'list' && st.fresh !== true) { st.fresh = true; centerCol(c[0], true); } }));
   }
-  async function load() {
-    const my = ++seq;
-    paint();
-    if (!tier && !tierAsked) { tierAsked = true; planTier().then((t) => { tier = t; lastSig = ''; paint(); load(); }); }
+  // One combined poll (SPX / QQQ / SPY in a single request); falls back to the shared per-market fetch if it fails.
+  async function poll() {
+    if (inflight) return;
     if (opts.replayNote && opts.replayNote()) return;
-    const want = COLS.map((c) => c[0]).filter((a) => a === 'SPX' || (tier && !tier.free));
-    if (opts.dataFor) want.splice(0, want.length, ...want.filter((a) => !opts.dataFor(a)));
-    await Promise.all(want.map((a) => gexFetch(a, dteNow())));
-    if (my === seq) paint();
+    const dte = dteNow(), my = seq;
+    let want = COLS.map((c) => c[0]).filter((a) => a === 'SPX' || (tier && !tier.free));
+    if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
+    if (!want.length) return;
+    inflight = true;
+    try {
+      const r = await fetch(LADDER_API + '?u=' + want.join(',') + '&dte=' + dte, { headers: { accept: 'application/json' }, cache: 'no-cache' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const text = await r.text();
+      if (my !== seq) return;
+      failed = 0;
+      if (lastText[dte + want.join()] === text) return;      // unchanged: nothing to repaint
+      lastText[dte + want.join()] = text;
+      const j = JSON.parse(text);
+      live[dte] = Object.assign(live[dte] || {}, Object.fromEntries(Object.entries(j.u || {}).filter(([, d]) => d && !d.error)));
+      paint();
+    } catch (e) {
+      failed++;
+      if (failed % 30 === 1) { await Promise.all(want.map((a) => gexFetch(a, dte))); if (my === seq) paint(); }
+    } finally { inflight = false; }
   }
+  function load() {
+    paint();
+    if (!tier && !tierAsked) { tierAsked = true; planTier().then((t) => { tier = t; paint(); poll(); }); }
+    return poll();
+  }
+  function tick() {
+    if (document.hidden) return;                  // hidden tab: no requests, no repaint
+    paintFoot(COLS.map((c) => (locked(c[0]) ? null : dataFor(c[0]))));
+    poll();
+  }
+  const onVis = () => { if (active && !document.hidden) { tick(); } };
   return {
-    open() { active = true; centered = {}; lastSig = ''; load(); clearInterval(timer); timer = setInterval(() => { if (!document.hidden) load(); else paint(); }, REFRESH_MS); },
-    close() { active = false; clearInterval(timer); timer = 0; },
-    refresh() { if (active) load(); },
-    relayout() { sync(); centerAll(); },
+    open() { active = true; seq++; lastText = {}; Object.keys(cols).forEach((k) => delete cols[k]); COLS.forEach((c) => { colEl(c[0]).innerHTML = ''; });
+      load(); clearInterval(timer); timer = setInterval(tick, REFRESH_MS); document.addEventListener('visibilitychange', onVis); },
+    close() { active = false; seq++; clearInterval(timer); timer = 0; document.removeEventListener('visibilitychange', onVis); },
+    refresh() { if (active) { lastText = {}; paint(); poll(); } },
+    relayout() { sync(); centerAll(false); },
     get isActive() { return active; }
   };
 }

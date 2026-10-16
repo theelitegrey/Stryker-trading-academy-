@@ -21,7 +21,7 @@ function cacheTtl(data, now = Date.now() / 1000) {
     // edge TTL + stale window together must end before 09:30 ET
     return { edge: ttl, swr: Math.max(0, Math.min(300, toOpen - ttl)) };
   }
-  if (state === 'open') return { edge: 90, swr: 120 };
+  if (state === 'open') return { edge: 30, swr: 30 };   // 2026-10-16: was 90/120; the ladder polls every second
   return { edge: 60, swr: 60 };
 }
 // Browser max-age is capped at 60 s; long caching happens only at the edge via s-maxage.

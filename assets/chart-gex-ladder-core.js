@@ -134,3 +134,35 @@ export function dayTop(rows, top) {
   }
   return [...peak.entries()].sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]) || a[0] - b[0]).slice(0, top || 2).map(([k, g]) => ({ strike: k, g }));
 }
+
+// ---- dense ladder helpers (Owner order 2026-10-16: denser rows, one colour scale, per-second refresh) ----
+// Cell colour on the ONE shared scale: small = dark muted blue, big positive = green, big negative =
+// purple/magenta. s = strength(g, vmax) in 0..1. Returns 'rgb(r,g,b)'.
+const POS_STOPS = [[30, 50, 92], [26, 104, 122], [30, 158, 96]];
+const NEG_STOPS = [[36, 48, 96], [98, 50, 148], [196, 34, 98]];
+export const MAX_FILL = 'rgb(236,196,48)';      // the single biggest |GEX| cell of a column: bright yellow
+export function cellColor(g, s) {
+  const st = g < 0 ? NEG_STOPS : POS_STOPS, t = Math.max(0, Math.min(1, s || 0)) * 2, i = t >= 2 ? 1 : Math.floor(t), f = t - i;
+  const a = st[i], b = st[i + 1] || st[i];
+  return 'rgb(' + [0, 1, 2].map((j) => Math.round(a[j] + (b[j] - a[j]) * f)).join(',') + ')';
+}
+// "updated 12s ago" / "updated 3 min ago" (never "live" / "real-time" / "delayed")
+export function updatedText(tsSec, nowMs) {
+  if (!isNum(tsSec)) return 'GEX updated time unknown';
+  const sec = Math.max(0, Math.floor((nowMs == null ? Date.now() : nowMs) / 1000 - tsSec));
+  if (sec < 90) return 'GEX updated ' + sec + 's ago';
+  const min = Math.floor(sec / 60);
+  if (min < 120) return 'GEX updated ' + min + ' min ago';
+  const h = Math.floor(min / 60);
+  return h < 48 ? 'GEX updated ' + h + ' h ago' : 'GEX updated ' + Math.floor(h / 24) + ' days ago';
+}
+// Where the spot sits in a strikes-high-to-low list, as a fractional row position: 0 = centre of row 0,
+// 1 = centre of row 1 ... (clamped to the list). -1 when empty.
+export function spotPos(rows, spot) {
+  const n = (rows || []).length;
+  if (!n || !isNum(spot)) return -1;
+  if (spot >= rows[0].k) return 0;
+  if (spot <= rows[n - 1].k) return n - 1;
+  for (let i = 0; i < n - 1; i++) if (rows[i].k >= spot && spot > rows[i + 1].k) return i + (rows[i].k - spot) / (rows[i].k - rows[i + 1].k);
+  return n - 1;
+}

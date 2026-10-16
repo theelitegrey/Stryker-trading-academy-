@@ -16,6 +16,14 @@ const LV = { SPX: JSON.parse(fs.readFileSync(path.join(FIX, 'SPX-0.json'))), QQQ
 LV.SPY = (() => { const x = JSON.parse(JSON.stringify(LV.SPX)); const by = new Map();
   x.ladder.forEach((r) => { const k = Math.round(r.strike / 10); const o = by.get(k) || { strike: k, gex: 0, dex: 0, oi: 0 }; o.gex += r.gex * 0.093; o.oi += r.oi; by.set(k, o); });
   x.ladder = [...by.values()].sort((p, q) => q.strike - p.strike); x.spot = Math.round(x.spot / 10 * 100) / 100 + 0.17; x.underlying = 'SPY'; x.net_gex = x.ladder.reduce((t, r) => t + r.gex, 0); delete x.futures; return x; })();
+const MUT = { bump: {}, spot: {}, hits: 0, etag304: 0 };   // test-controlled changes to the served fixture
+const trimmed = (name) => { const d = JSON.parse(JSON.stringify(LV[name] || LV.SPX)); const m = MUT.bump[name] || {};
+  d.ladder = d.ladder.map((r) => ({ strike: r.strike, gex: r.gex + (m[r.strike] || 0) })); if (MUT.spot[name] != null) d.spot = MUT.spot[name];
+  d.fetched_at = Date.now() / 1000; d.market = Object.assign({}, d.market, { data_ts: Date.now() / 1000 - 7 });
+  return { underlying: name, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, ladder: d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })), market: d.market }; };
+const ladderRoute = (r) => { const u = new URL(r.request().url()); MUT.hits++; const out = {};
+  (u.searchParams.get('u') || 'SPX').split(',').forEach((n) => { out[n] = trimmed(n); });
+  r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ dte: 0, u: out }) }); };
 let fail = 0;
 const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -45,6 +53,7 @@ async function open(b, { w, h, mobile, free, anon }) {
     const from = +u.searchParams.get('from'), to = +u.searchParams.get('to');
     r.fulfill({ status: 200, contentType: 'application/json', headers: hdr, body: JSON.stringify(packed(U, d, ALL(U, d).filter((x) => x.t >= from && x.t <= to))) });
   });
+  await ctx.route(/\/api\/gex\/ladder/, ladderRoute);
   await ctx.route(/\/api\/gex\/levels\//, (r) => {
     const name = new URL(r.request().url()).pathname.split('/').pop().toUpperCase();
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LV[name] || LV.SPX) });
@@ -89,9 +98,10 @@ const state = (p) => p.evaluate(() => {
     if (l && sp) { const a = l.getBoundingClientRect(), b = sp.getBoundingClientRect(); spotVisible = b.top >= a.top - 1 && b.bottom <= a.bottom + 1; }
     return { api: c.dataset.api, shown: c.offsetParent !== null, locked: !!c.querySelector('.stkgl-lock'), pro: !!c.querySelector('.stkgl-pro'), n: rows.length,
       max: rows.filter((r) => r.classList.contains('is-max')).length, maxK: (rows.find((r) => r.classList.contains('is-max')) || {}).dataset ? rows.find((r) => r.classList.contains('is-max')).dataset.k : null,
-      spotVisible, head: (c.querySelector('.stkgl-ch') || {}).innerText || '', first: rows[0] && rows[0].innerText.replace(/\n/g, ' '), bg: rows.slice(0, 40).map((r) => r.style.backgroundImage.match(/\) ([\d.]+)%/)).filter(Boolean).length,
+      spotVisible, head: (c.querySelector('.stkgl-ch') || {}).innerText || '', first: rows[0] && rows[0].innerText.replace(/\n/g, ' '), rowH: rows[0] ? rows[0].getBoundingClientRect().height : 0, vis: l ? Math.floor(l.clientHeight / (rows[0] ? rows[0].getBoundingClientRect().height : 1)) : 0, maxBg: (rows.find((r) => r.classList.contains('is-max')) || { style: {} }).style.backgroundColor, spotRows: rows.filter((r) => r.classList.contains('is-spot')).length, lineTop: sp ? sp.style.top : null, apis: null,
       scroll: l ? l.scrollHeight > l.clientHeight : false };
   });
+  cols.by = {}; cols.forEach((c) => { cols.by[c.api] = c; });
   return { cols, foot: (root.querySelector('.stkgl-foot') || {}).innerText, tabsVisible: root.querySelector('.stkgl-tabs').offsetParent !== null };
 });
 const flashData = (p) => p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart, seen = new Set();
@@ -119,18 +129,55 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     check(dist.q !== dist.y && Math.abs(dist.spy - dist.spx / 10) < 5, 'SPY column is SPY data (spot ' + dist.spy + ' ~ SPX/10 ' + (dist.spx / 10).toFixed(1) + '), not the QQQ column (' + dist.qqq + ')');
     check(st.cols.every((c) => c.max === 1), 'one biggest strike highlighted per column (' + st.cols.map((c) => c.maxK).join(', ') + ')');
     check(st.cols.every((c) => c.spotVisible), 'spot divider auto-scrolled into view in every column');
-    check(st.cols.every((c) => /Net( 0DTE)? [+\u2212]\$/.test(c.head) && /Magnet [\d,.]+ · [+\u2212][\d.]+%/.test(c.head)), 'header: symbol, spot, net GEX, magnet + % distance: ' + st.cols[0].head.replace(/\n/g, ' | '));
+    check(st.cols.every((c) => /Net( 0DTE)? [+\u2212]\$/.test(c.head) && /mag [\d,.]+ [+\u2212][\d.]+%/.test(c.head) && /[\d,]+\.\d\d/.test(c.head)), 'header: symbol, spot, "mag <strike> +x.x%", net: ' + st.cols[0].head.replace(/\n/g, ' | '));
+    check(st.cols.map((c) => c.api).join() === 'QQQ,SPY,SPX', 'column order QQQ | SPY | SPX');
+    check(st.cols.every((c) => c.rowH > 0 && c.rowH <= 18 && c.vis >= 30), 'dense rows: ' + st.cols.map((c) => c.rowH + 'px/' + c.vis + ' visible').join(', ') + ' (>=30 visible at 1440x900)');
+    check(st.cols.every((c) => c.max === 1 && /236, ?196, ?48/.test(c.maxBg)), 'the biggest |GEX| cell per column is yellow (' + st.cols.map((c) => c.maxBg).join(' ; ') + ')');
+    check(st.cols.every((c) => c.spotRows === 1 && c.lineTop), 'spot row marked (arrow) + thin line in every column');
+    const cells = await p.evaluate(() => { const col = (api, pick) => { const rs = [...document.querySelectorAll('#stkgl .stkgl-col[data-api="' + api + '"] .stkgl-row:not(.is-max)')]; const f = rs.filter((r) => pick(r)); return f.length ? f[0].style.backgroundColor : null; }; return { pos: col('SPX', (r) => !/\u2212/.test(r.innerText)), neg: col('SPX', (r) => /\u2212/.test(r.innerText)) }; });
+    check(cells.pos && cells.neg && cells.pos !== cells.neg, 'positive and negative cells use different colour ramps (' + cells.pos + ' vs ' + cells.neg + ')');
     check(st.cols.every((c) => /[+\u2212]\$[\d.]+[KMB]/.test(c.first || '') || c.n > 0), 'rows show strike + signed dollars: ' + st.cols[0].first);
     check(!/live|real-time|delayed|behind/i.test(st.foot) && /updated/.test(st.foot) && /Education only/.test(st.foot), 'wording: "' + st.foot + '"');
-    // one shared colour scale: the biggest row of the biggest column fills 100%; same $ => same fill in two columns
-    const fills = await p.evaluate(() => { const o = {}; document.querySelectorAll('#stkgl .stkgl-row.is-max').forEach((r) => { const m = r.style.backgroundImage.match(/\) ([\d.]+)%/); o[r.dataset.api] = [+(m && m[1]), r.querySelector('.stkgl-v').textContent]; }); return o; });
-    const maxFill = Math.max(...Object.values(fills).map((x) => x[0]));
-    check(maxFill === 100, 'shared scale: the largest |GEX| of all three columns fills 100% (' + JSON.stringify(fills) + ')');
+    // one shared colour scale: the same $ must give the same colour in any column
+    const sh = await p.evaluate(() => { const by = new Map(); document.querySelectorAll('#stkgl .stkgl-row:not(.is-max)').forEach((r) => { const v = r.querySelector('.stkgl-v').textContent; const c = r.style.backgroundColor; if (!by.has(v)) by.set(v, new Set()); by.get(v).add(c); }); return [...by.values()].every((s) => s.size === 1); });
+    check(sh, 'shared scale: equal $ values have equal colours across the three columns');
     const t1 = await p.evaluate(() => { const l = document.querySelector('#stkgl .stkgl-list'); const t = performance.now(); for (let i = 0; i < 20; i++) { l.scrollTop = (i % 2) * 40; l.getBoundingClientRect(); } return (performance.now() - t) / 20; });
     const rp = await p.evaluate(() => { const g = window.__stkGexLadder; const root = document.querySelector('#stkgl .stkgl-body'); const t = performance.now(); for (let i = 0; i < 10; i++) { g.close(); g.open(); } return (performance.now() - t) / 10; });
     console.log('INFO open/paint avg ' + rp.toFixed(1) + ' ms (incl. cached fetch tick), scroll ' + t1.toFixed(2) + ' ms');
     await sleep(600);
     await shot(p, 'ladder-charts-1440.png');
+    // ---- 1 s refresh: a changed value shows up within ~1.5 s, flashes, no scroll jump; spot moves; hidden = paused ----
+    {
+      const rowTxt = (api, k) => p.evaluate(([api, k]) => { const r = document.querySelector('#stkgl .stkgl-row[data-api="' + api + '"][data-k="' + k + '"]'); return r ? { t: r.querySelector('.stkgl-v').textContent, flash: (/flash-(up|dn)/.exec(r.className) || [''])[0] } : null; }, [api, k]);
+      const kq = await p.evaluate(() => { const rs = [...document.querySelectorAll('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-row')]; return +rs[Math.floor(rs.length / 2) + 3].dataset.k; });
+      const before = await rowTxt('QQQ', kq);
+      await p.evaluate(() => { document.querySelector('#stkgl .stkgl-col[data-api="SPX"] .stkgl-list').scrollTop = 0; });
+      await sleep(250);
+      const top0 = await p.evaluate(() => document.querySelector('#stkgl .stkgl-col[data-api="SPX"] .stkgl-list').scrollTop);
+      const h0 = MUT.hits;
+      MUT.bump.QQQ = { [kq]: 9.5e7 }; MUT.spot.SPX = LV.SPX.spot + 6; const t0 = Date.now();
+      const seen = await poll(async () => { const v = await rowTxt('QQQ', kq); return v && v.t !== before.t ? v : null; }, 2500);
+      const dt = Date.now() - t0;
+      check(seen && dt <= 1800, 'changed fixture value (QQQ ' + kq + ': ' + before.t + ' -> ' + (seen && seen.t) + ') appears in ' + dt + ' ms');
+      check(seen && /flash-up/.test(seen.flash || ''), 'the changed cell flashes green (' + (seen && seen.flash) + ')');
+      const sp1 = await p.evaluate(() => document.querySelector('#stkgl .stkgl-col[data-api="SPX"] .stkgl-spot').textContent);
+      check(parseFloat(sp1.replace(/,/g, '')) === Math.round((LV.SPX.spot + 6) * 100) / 100, 'SPX spot header follows the new spot (' + sp1 + ')');
+      const top1 = await p.evaluate(() => document.querySelector('#stkgl .stkgl-col[data-api="SPX"] .stkgl-list').scrollTop);
+      check(top1 === top0, 'no scroll jump while the user is scrolled away (' + top0 + ' -> ' + top1 + ')');
+      const mark = MUT.hits; await sleep(3000);
+      const rate = MUT.hits - mark;
+      check(rate >= 2 && rate <= 4, 'polls about once a second (' + rate + ' requests in 3 s)');
+      await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }); document.dispatchEvent(new Event('visibilitychange')); });
+      await sleep(300); const hh = MUT.hits; await sleep(3200);
+      check(MUT.hits === hh, 'hidden tab: no ladder requests (' + (MUT.hits - hh) + ' in 3.2 s)');
+      await p.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false }); document.dispatchEvent(new Event('visibilitychange')); });
+      await sleep(1500); check(MUT.hits > hh, 'visible again: polling resumes');
+      await p.evaluate(() => window.__stkGexLadder.close()); await sleep(300); const hc = MUT.hits; await sleep(2500);
+      check(MUT.hits === hc, 'closed: no ladder requests');
+      await p.evaluate(() => window.__stkGexLadder.open()); await sleep(1500);
+      MUT.bump = {}; MUT.spot = {};
+      await sleep(1500);
+    }
     // click a strike on an ES chart (SPX column) -> flash line
     const pick = await p.evaluate(() => { const r = [...document.querySelectorAll('#stkgl .stkgl-col[data-api="SPX"] .stkgl-row')][12]; return { k: +r.dataset.k }; });
     await p.click('#stkgl .stkgl-col[data-api="SPX"] .stkgl-row >> nth=12');
@@ -178,7 +225,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
       await p0.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-col[data-api="QQQ"] .stkgl-lock').length === 1, null, { timeout: 2000 }).then(() => check(true, 'signed-out: QQQ + SPY show the Pro lock card within 2 s'), () => check(false, 'signed-out: lock card within 2 s'));
       await sleep(10000);
       const a0 = await state(p0);
-      check(a0.cols[1].locked && a0.cols[2].locked && a0.cols[1].pro && !/Loading/.test(await p0.evaluate(() => document.getElementById('stkgl').innerText)) && a0.cols[0].n > 10, 'signed-out at 10 s: still the lock card (no "Loading…"), SPX ladder shown');
+      check(a0.cols[0].locked && a0.cols[1].locked && a0.cols[0].pro && !/Loading/.test(await p0.evaluate(() => document.getElementById('stkgl').innerText)) && a0.cols[2].n > 10, 'signed-out at 10 s: still the lock card (no "Loading…"), SPX ladder shown');
       check(!hq.length, 'signed-out: no QQQ/SPY GEX request');
       await shot(p0, 'ladder-signedout-1440.png');
       await c0.close();
@@ -192,7 +239,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
     await sleep(800);
     st = await state(p);
-    check(st.cols[0].n > 10 && st.cols[1].locked && st.cols[2].locked && st.cols[1].pro && st.cols[2].pro, 'Free: SPX ladder, QQQ + SPY columns show the Pro lock');
+    check(st.cols[2].n > 10 && st.cols[0].locked && st.cols[1].locked && st.cols[0].pro && st.cols[1].pro, 'Free: SPX ladder, QQQ + SPY columns show the Pro lock');
     check(!hitsQ.length, 'Free: QQQ/SPY GEX never requested (' + hitsQ.length + ')');
     await shot(p, 'ladder-free-1440.png');
     check(!errors.length, 'free: no page errors (' + errors.slice(0, 3).join(' | ') + ')');
@@ -207,14 +254,14 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
     await p.waitForFunction(() => document.querySelectorAll('#stkgl .stkgl-row').length > 10, null, { timeout: 15000 });
     await sleep(800);
     st = await state(p);
-    check(st.tabsVisible && st.cols.filter((c) => c.shown).length === 1 && st.cols[0].shown, '390: tabs, one column at a time (SPX first)');
-    check(st.cols[0].spotVisible && st.cols[0].max === 1, '390: spot in view, biggest highlighted');
+    check(st.tabsVisible && st.cols.filter((c) => c.shown).length === 1 && st.cols[2].shown, '390: tabs, one column at a time (SPX shown first)');
+    check(st.cols[2].spotVisible && st.cols[2].max === 1 && st.cols[2].rowH <= 18, '390: dense rows, spot in view, biggest highlighted');
     const wOk = await p.evaluate(() => { const s = document.getElementById('stkgl').getBoundingClientRect(); const rows = [...document.querySelectorAll('#stkgl .stkgl-row')].slice(0, 20); return s.width <= window.innerWidth + 1 && document.documentElement.scrollWidth <= window.innerWidth + 1 && rows.every((r) => r.scrollWidth <= r.clientWidth + 1); });
     check(wOk, '390: no sideways overflow in the sheet');
     await shot(p, 'ladder-sheet-spx-390.png');
     await p.click('.stkgl-tab[data-api="QQQ"]'); await sleep(900);
     st = await state(p);
-    check(st.cols[1].shown && !st.cols[0].shown && st.cols[1].spotVisible, '390: QQQ tab shows QQQ, centred on spot');
+    check(st.cols[0].shown && !st.cols[2].shown && st.cols[0].spotVisible, '390: QQQ tab shows QQQ, centred on spot');
     await shot(p, 'ladder-sheet-qqq-390.png');
     await p.click('#stkgl .stkgl-close'); await sleep(300);
     check(!(await p.evaluate(() => window.__stkGexLadder.isOpen)), '390: close button closes the sheet');
@@ -230,6 +277,7 @@ const poll = async (fn, ms) => { const t = Date.now(); while (Date.now() - t < m
       await ctx2.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
       await ctx2.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => r.abort());
       await ctx2.route(/book-recorder\.theelitegrey\.workers\.dev\/gex-(history|sessions)/, (r) => r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*' }, body: '[]' }));
+      await ctx2.route(/\/api\/gex\/ladder/, ladderRoute);
       await ctx2.route(/\/api\/gex\/(levels|candles)\//, (r) => { const u = new URL(r.request().url()); if (/candles/.test(u.pathname)) return r.fulfill({ status: 200, contentType: 'application/json', body: '{"candles":[]}' }); r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(LV[u.pathname.split('/').pop().toUpperCase()] || LV.SPX) }); });
       const pg = await ctx2.newPage(); const errs = [];
       pg.on('pageerror', (e) => errs.push(String(e)));

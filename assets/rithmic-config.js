@@ -35,7 +35,7 @@ export const GATEWAYS = {
 export const APP_NAME_PRODUCT = 'TradeZoro Charts';
 
 export const APPS = {
-  test: { appName: 'SampleMD.js', appVersion: '0.3.0.0' },
+  test: { appName: 'Stryker Charts', appVersion: '0.3.0.0' },
   production: { appName: 'STRK_Stryker', appVersion: null }
 };
 
@@ -125,6 +125,6 @@ export async function loadRithmicIfEnabled() {
   const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
     isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
   if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=590');
+  const ui = await import('./rithmic-ui.js?v=591');
   return ui.createRithmic(cfg);
 }

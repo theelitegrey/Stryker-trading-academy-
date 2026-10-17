@@ -4,7 +4,7 @@
 // `page` is an epoch-aligned window index (see _bars.js); omitted = the page holding now.
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
-import { isAdminToken, bearerOf, RT_DELAY_S } from '../_rt.js';
+import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
 import { TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
 
 const VERSION = 1;
@@ -129,7 +129,7 @@ export function delayRows(rows, nowSec) {
 export async function onRequestGet(ctx) {
   const sym = normSym(ctx.params.sym);
   if (!sym || isForex(sym)) return serve(ctx, true);
-  const admin = await isAdminToken(bearerOf(ctx.request));
+  const admin = await isRealtimeToken(bearerOf(ctx.request));
   ctx.noTail = !admin;
   const res = await serve(ctx, admin);
   if (res.status !== 200) return res;

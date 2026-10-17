@@ -22,7 +22,7 @@ import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from '.
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
-import { isAdminToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
+import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
@@ -495,7 +495,7 @@ async function orderflowRoute(u, env, ctx, h, req) {
   // minutes that were complete 10 min ago; the forming minute and the live tail are never included).
   // Admin = a verified Firebase ID token (Authorization: Bearer) whose uid has an admins/{uid} doc.
   const tok = bearerOf(req);
-  const admin = tok ? await isAdminToken(tok) : false;
+  const admin = tok ? await isRealtimeToken(tok) : false;
   const now = Date.now(), clock = admin ? now : now - RT_DELAY_S * 1000 - 60000;
   let r = ticks ? ticksRange(u.searchParams, clock) : ofRange(u.searchParams, clock);
   // a non-admin range that lies wholly inside the last 10 min is an EMPTY valid reply, not an error

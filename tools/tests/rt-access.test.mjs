@@ -22,6 +22,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -29,6 +30,12 @@ globalThis.fetch = async (url, init) => {
   if (url.includes('firestore.googleapis.com')) {
     fsCalls++;
     if (fsDown) return new Response('x', { status: 503 });
+    if (url.includes('/students/')) {
+      const su = decodeURIComponent(url.split('/students/')[1]);
+      if (fsDown) return new Response('x', { status: 503 });
+      if (!(su in studentDocs)) return new Response('{}', { status: 404 });
+      return new Response(JSON.stringify({ fields: studentDocs[su] }), { status: 200 });
+    }
     const uid = decodeURIComponent(url.split('/admins/')[1]);
     assert.ok(/^Bearer /.test(init.headers.authorization));
     return adminUids.has(uid) ? new Response('{}', { status: 200 }) : new Response('{}', { status: 403 });
@@ -51,7 +58,15 @@ for (const M of [A, B]) {
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-free' })), false, 'free user');
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-pro' })), false, 'pro user');
   assert.equal(await M.isAdminToken(''), false, 'signed out');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), true, 'demo account gets real-time');
+  assert.equal(await M.isAdminToken(await mint({ sub: 'uid-demo' })), false, 'demo is not admin');
+  for (const u of ['uid-demo-false', 'uid-demo-str', 'uid-pro', 'uid-none']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
+  assert.equal(await M.isRealtimeToken(''), false, 'signed out');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo', exp: 1 })), false, 'expired demo token');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' }, kp.privateKey).then((t) => t.slice(0, -4) + 'AAAA')), false, 'bad signature');
+  assert.equal(await M.isRealtimeToken(await mint()), true, 'admin still real-time');
   fsDown = true; M._resetForTests();
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), false, 'outage fails closed (demo)');
   assert.equal(await M.isAdminToken(await mint()), false, 'Firestore outage fails closed');
   fsDown = false;
 }

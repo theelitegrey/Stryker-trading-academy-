@@ -1,6 +1,6 @@
 // GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge.
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
-import { isAdminToken, wsTokenOf } from '../_rt.js';
+import { isRealtimeToken, wsTokenOf } from '../_rt.js';
 import { INSIGHTSENTRY_WS, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
 const ALLOWED_ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
@@ -70,7 +70,7 @@ export async function onRequestGet(ctx) {
 
   // CME futures real time is ADMIN ONLY (Owner 2026-10-16). Refused before any upstream is opened.
   // The ID token arrives as the WebSocket subprotocol ("tz-auth", "<jwt>"), not in the URL.
-  if (!(await isAdminToken(wsTokenOf(ctx.request)))) return err(403, 'real-time futures data is admin only; delayed data is served by /api/chart/bars');
+  if (!(await isRealtimeToken(wsTokenOf(ctx.request)))) return err(403, 'real-time futures data is admin only; delayed data is served by /api/chart/bars');
 
   const pair = new WebSocketPair();
   const client = pair[0], server = pair[1];

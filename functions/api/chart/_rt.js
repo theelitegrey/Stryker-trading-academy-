@@ -18,6 +18,7 @@ const ADMIN_TTL_MS = 60000;
 
 let jwks = null, jwksAt = 0, jwksTry = 0;
 const adminMemo = new Map();
+const demoMemo = new Map();
 
 function b64uBytes(s) {
   s = String(s).replace(/-/g, '+').replace(/_/g, '/');
@@ -83,6 +84,30 @@ export async function isAdminToken(token, opts = {}) {
   return v;
 }
 
+// Real-time entitlement = admin, OR the marketing demo account (CoS decision 2026-10-17): a token-verified
+// uid whose OWN students/{uid} document has demo === true. The doc is read over the Firestore REST API with
+// the caller's own token, so the live rules decide (a student can only read their own doc), and `demo` is a
+// server-only field (privileged in firestore.rules: clients cannot set it). Fails CLOSED. Nobody else gets in.
+export async function isDemoToken(token, opts = {}) {
+  const uid = await verifyIdToken(token, opts);
+  if (!uid) return false;
+  const hit = demoMemo.get(uid);
+  if (hit && Date.now() - hit.at < hit.ttl) return hit.v;
+  let v = false, ttl = ADMIN_TTL_MS;
+  try {
+    const url = 'https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/students/' + encodeURIComponent(uid);
+    const r = await (opts.fetchImpl || fetch)(url, { headers: { authorization: 'Bearer ' + token } });
+    if (r.status === 200) { const j = await r.json(); v = !!(j && j.fields && j.fields.demo && j.fields.demo.booleanValue === true); }
+    else if (r.status !== 404 && r.status !== 403) ttl = 10000;
+  } catch (e) { ttl = 10000; }
+  if (demoMemo.size > 500) demoMemo.clear();
+  demoMemo.set(uid, { v, at: Date.now(), ttl });
+  return v;
+}
+export async function isRealtimeToken(token, opts = {}) {
+  return (await isAdminToken(token, opts)) || (await isDemoToken(token, opts));
+}
+
 export const bearerOf = (request) => {
   const m = /^Bearer\s+(\S+)$/i.exec(request.headers.get('authorization') || '');
   return m ? m[1] : '';
@@ -93,4 +118,4 @@ export function wsTokenOf(request) {
   const i = list.indexOf('tz-auth');
   return i >= 0 && list[i + 1] ? list[i + 1] : '';
 }
-export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; adminMemo.clear(); };
+export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; adminMemo.clear(); demoMemo.clear(); };

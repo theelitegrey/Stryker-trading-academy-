@@ -38,7 +38,7 @@ const RT_FRAME_MS = 66;                               // ~15 visible updates per
 // GET ?sym=NQ&from=<sec>&to=<sec> -> {tick, m:[[minuteEpochSec, [[sec,o,h,l,c,vol],...]],...]}, real prices,
 // only seconds that traded. Book-recorder Worker, fed by the order-flow tick feeder (one tick pull for
 // both). NQ ES YM GC SI CL (+ micros mapped to the mini); about the last 6 days and growing.
-import { rtHeadersReady } from './rt-access.js?v=595';
+import { rtHeadersReady } from './rt-access.js?v=596';
 const TICKS1S_URL = 'https://book-recorder.theelitegrey.workers.dev/ticks1s';
 const TICK_ROOTS = { NQ: 'NQ', ES: 'ES', YM: 'YM', GC: 'GC', SI: 'SI', CL: 'CL', MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
 const HOUR = 3600e3;
@@ -73,7 +73,8 @@ function rhActive() { return !!(S.on && window.__stkIsAdmin === true && rhFlag()
 function rhApply() {
   const on = rhActive();
   document.documentElement.toggleAttribute('data-stk-rh', on);
-  if (on) rhDot(); 
+  if (on) rhDot();
+  rhClock(on);
   const d = document.getElementById('stkr-rhdot'); if (d) d.hidden = !on;
   try { window.dispatchEvent(new Event('resize')); } catch (e) {}
 }
@@ -81,6 +82,26 @@ function rhSet(v) {
   if (window.__stkSettings && window.__stkSettings.setReplayHide) window.__stkSettings.setReplayHide(v);
   else { try { localStorage.setItem(RH_KEY, v ? '1' : '0'); } catch (e) {} }
   rhApply();
+}
+// The chart's bottom-bar clock (Vela, .vela-bb-clock) shows the wall clock. While markings are hidden it follows the replay clock
+// instead (same zone, read from the UTC+h label beside it), so a recording shows one consistent time. Owner order 2026-10-18.
+let rhClockObs = null;
+function rhClockText() {
+  const c = document.querySelector('.vela-bb-clock'); if (!c) return null;
+  const z = c.parentElement && /UTC([+-])(\d+)(?::(\d+))?/.exec(c.parentElement.textContent || '');
+  const off = z ? (z[1] === '-' ? -1 : 1) * (+z[2] * 60 + (+z[3] || 0)) : 0;
+  const d = new Date(S.E + off * 60000), p2 = (n) => String(n).padStart(2, '0');
+  return p2(d.getUTCHours()) + ':' + p2(d.getUTCMinutes()) + ':' + p2(d.getUTCSeconds());
+}
+function rhClock(on) {
+  const c = document.querySelector('.vela-bb-clock');
+  if (rhClockObs) { rhClockObs.disconnect(); rhClockObs = null; }
+  if (!on || !c) return;
+  let busy = false;
+  const fix = () => { if (busy) return; busy = true; const t = rhClockText(); if (t && c.textContent !== t) c.textContent = t; busy = false; };
+  rhClockObs = new MutationObserver(fix);
+  rhClockObs.observe(c, { childList: true, characterData: true, subtree: true });
+  fix();
 }
 function rhDot() {
   if (document.getElementById('stkr-rhdot')) return;

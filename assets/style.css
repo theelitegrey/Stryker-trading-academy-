@@ -9632,6 +9632,7 @@ html[data-stk-rh] .stkr-bar, html[data-stk-rh] .stkr-badge, html[data-stk-rh] .s
 html[data-stk-rh] .stkc-dd[data-s="replay"], html[data-stk-rh] .stkpt-badge, html[data-stk-rh] .stknw-note.is-replay,
 html[data-stk-rh] .stk-gex-chip.is-note{ display:none !important; }
 html[data-stk-rh] .mclock.is-replay .mclock-pill{ box-shadow:none; }
+html[data-stk-rh] .stkr-btn.on{ border-color:var(--line-soft); color:inherit; }
 #stkr-rhdot{ position:fixed; right:4px; bottom:4px; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:#fff; opacity:.1; z-index:7600; cursor:pointer; }
 #stkr-rhdot:hover, #stkr-rhdot:focus-visible{ opacity:.6; }
 #stkr-rhdot[hidden]{ display:none; }

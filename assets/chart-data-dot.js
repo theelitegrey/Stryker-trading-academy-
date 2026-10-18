@@ -22,7 +22,7 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin } from './rt-access.js?v=596';
+import { rtOnChange, isRealtimeAdmin } from './rt-access.js?v=597';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute

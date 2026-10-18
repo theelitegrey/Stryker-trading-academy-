@@ -87,6 +87,8 @@ const fp = (p) => p.evaluate(() => {
       await p.evaluate(() => { const c = window.STRYKER_VELA.context().cells[0].chart; c.addNativeIndicator('stk_of_delta'); c.addNativeIndicator('stk_of_cvd'); });
       await sleep(2500);
       const ind = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.filter((x) => /Delta|CVD|Cumulative/i.test(x.title)).map((x) => ({ t: x.title, n: JSON.stringify(x).length, msg: JSON.stringify(x.tables || '').slice(0, 120) })));
+      const cv = await p.evaluate(() => { const i = window.STRYKER_VELA.context().cells[0].chart.inspect().indicators.find((x) => /Cumulative/.test(x.title)); return i && i.series; });
+      check(cv && cv.line === 1, '1440: CVD (trades) draws a line series on BTC', cv);
       check(ind.length >= 2 && ind.every((x) => !/unavailable|Needs/.test(x.msg)), '1440: Delta + CVD (trades) added on BTC, no error note', ind);
       await p.screenshot({ path: OUT + '/btc-fp-1440-delta.png' });
       check(errors.length === 0, '1440: no console errors', errors);

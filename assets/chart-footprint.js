@@ -268,7 +268,7 @@ function cryptoFlow(ctxLike, root, tf) {
     : feed.status === 'error' ? 'Binance trades temporarily unavailable. Showing what loaded.'
     : feed.status === 'reconnecting' ? 'Trade stream reconnecting…'
     : !agg.length ? 'Waiting for trades…' : '';
-  const out = { map, list: agg, tick: feed.tick || 1, thr: 0, note, free: false, loading, crypto: true };
+  const out = { map, list: agg, tick: feed.tick || 1, thr: 0, note, free: false, loading, crypto: true, partial: feed.status === 'loading' };
   viewCache.set(ctxLike.owner, { key, out });
   return out;
 }
@@ -516,11 +516,13 @@ class OfNative {
       const list = f.list || [];
       const cc = cvdCandles(list, f.crypto && I.reset === 'session' ? 'day' : I.reset, sessionOf);   // crypto has no CME session: UTC day
       const byT = new Map(); cc.forEach((c) => byT.set(c.t, c));
-      if (I.style === 'line') {
+      // crypto: always a line (Vela's candle series did not draw for a feed that backfills after the pane exists)
+      if (I.style === 'line' || f.crypto) {
         const pts = bars.map((b) => { const c = byT.get(b.time); return c ? { time: b.time, value: c.c } : { time: b.time, value: null }; });
         this.ctx.emit({ series: [{ id: 'of-cvd', title: 'CVD', paneId: '', kind: 'line', points: pts, style: { color: I.upColor, width: 2, lineStyle: 'solid' } }], tables });
       } else {
         const cb = bars.map((b) => { const c = byT.get(b.time); return c ? { time: b.time, open: c.o, high: c.h, low: c.l, close: c.c } : null; }).filter(Boolean); // null entries made Vela's modelToValuePatch throw on every render for bars without trades
+        if (!cb.length || f.partial) { this.ctx.emit({ tables }); return; }   // an empty candle series first left the pane blank for good once trades arrived (crypto)
         this.ctx.emit({ series: [{ id: 'of-cvd', title: 'CVD', paneId: '', kind: 'candle', bars: cb, style: { up: I.upColor, down: I.downColor } }], tables });
       }
       return;

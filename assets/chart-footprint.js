@@ -375,7 +375,7 @@ function footprintLayer() {
         g.restore(); lastMs = performance.now() - t0; return;
       }
       on = true;
-      if (compact) pill('Zoom in for numbers');
+      if (compact && !f.note) pill('Zoom in for numbers');
       const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';

@@ -52,6 +52,7 @@ class CryptoFeed {
     this.sym = t.replace(/\.P$/i, '').toUpperCase();
     this.rest = this.perp ? ['https://fapi.binance.com/fapi/v1'] : ['https://api.binance.com/api/v3', 'https://data-api.binance.vision/api/v3'];
     this.ws = this.perp ? ['wss://fstream.binance.com/ws/'] : ['wss://stream.binance.com:9443/ws/', 'wss://data-stream.binance.vision/ws/'];
+    this.conc = this.perp ? 2 : CONC; this.maxPages = this.perp ? 36 : MAX_PAGES;   // futures aggTrades weigh 20 on Binance (limit 2400/min): go lighter
     this.mins = new Map();          // minute ms -> { trades: [[id, price, size, side]], dirty, bar }
     this.ids = new Set();           // ids seen (dedupe across backfill / live / catch-up)
     this.status = 'loading'; this.err = '';
@@ -137,15 +138,17 @@ class CryptoFeed {
       const target = Date.now() - HIST_MS;
       this.coverFrom = Math.ceil(oldestT / 60000) * 60000;
       this.bump();
-      while (oldestT > target && oldestId > 0 && pages < MAX_PAGES && !this.stopped) {
+      while (oldestT > target && oldestId > 0 && pages < this.maxPages && !this.stopped) {
         const froms = [];
-        for (let k = 1; k <= CONC; k++) { const f = Math.max(0, oldestId - 1000 * k); if (!froms.includes(f)) froms.push(f); }
-        const res = await Promise.all(froms.map((f) => this.get('&limit=1000&fromId=' + f)));
+        for (let k = 1; k <= this.conc; k++) { const f = Math.max(0, oldestId - 1000 * k); if (!froms.includes(f)) froms.push(f); }
+        let res;
+        try { res = await Promise.all(froms.slice(0, this.conc).map((f) => this.get('&limit=1000&fromId=' + f))); }
+        catch (e) { if (this.stopped) return; break; }   // rate limited part-way (429): keep the hours already loaded, no error
         if (this.stopped) return;
         let minT = oldestT;
         res.forEach((pg, k) => { const hi = froms[k] + 1000; this.add(pg.filter((t) => t.a < hi && t.a < oldestId)); if (pg.length && pg[0].T < minT) minT = pg[0].T; });
         pages += froms.length;
-        oldestId = Math.max(0, oldestId - 1000 * CONC);
+        oldestId = Math.max(0, oldestId - 1000 * this.conc);
         oldestT = minT;
         this.coverFrom = Math.ceil(oldestT / 60000) * 60000;
         this.bump();

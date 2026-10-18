@@ -409,7 +409,8 @@ class PrevDayNative {
     this.sig = sig;
     const r = priorDayLevels(bars, mk, clamp(Math.round(num(this.inputs.rowTicks, 4)), 1, 400), clamp(num(this.inputs.valueAreaPct, 70), 10, 100) / 100);
     const color = str(this.inputs.color, PREV_COLOR);
-    if (!r || r.err) { this.ctx.emit({ priceLines: [], tables: [message('stk_pdvp-msg', (r && r.err) || 'Waiting for bars.', pageIsDay(), 'top_right')] }); return; }
+    if (!r || r.err) { if (r && r.err && document.documentElement.hasAttribute('data-stk-rh')) { this.ctx.emit({ priceLines: [], tables: [] }); return; }   // admin: hide replay markings (recording)
+      this.ctx.emit({ priceLines: [], tables: [message('stk_pdvp-msg', (r && r.err) || 'Waiting for bars.', pageIsDay(), 'top_right')] }); return; }
     const lines = [];
     if (this.inputs.showVa !== false) {
       lines.push({ id: 'stk_pdvp-vah', paneId: '', price: r.vah, color, lineStyle: 'dashed', width: 1, title: 'pVAH' });

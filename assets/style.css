@@ -9632,6 +9632,8 @@ html[data-stk-rh] .stkr-bar, html[data-stk-rh] .stkr-badge, html[data-stk-rh] .s
 html[data-stk-rh] .stkc-dd[data-s="replay"], html[data-stk-rh] .stkpt-badge, html[data-stk-rh] .stknw-note.is-replay,
 html[data-stk-rh] .stk-gex-chip.is-note{ display:none !important; }
 html[data-stk-rh] .mclock.is-replay .mclock-pill{ box-shadow:none; }
+/* Owner/CoS 2026-10-18: the recording must carry no 'Education only' / demo wording; members never have this attribute */
+html[data-stk-rh] .stkpt-tag, html[data-stk-rh] .stkpt-fine, html[data-stk-rh] .stkpt-foot, html[data-stk-rh] .stkpt-set-fine{ display:none !important; }
 html[data-stk-rh] .stkr-btn.on{ border-color:var(--line-soft); color:inherit; }
 /* the top pill's countdowns follow the replay clock (they would run 5-60x fast on a recording): keep only the session name */
 html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-replay .mclock-stail{ display:none !important; }

@@ -532,10 +532,11 @@ const CSS = `
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-thumb:hover{ background:rgba(128,128,128,.6); }
 .vela-dialog--settings .vela-sd-pane::-webkit-scrollbar-track{ background:transparent; }
 .stkc-fl{ position:absolute; right:118px; bottom:36px; z-index:6; display:flex; gap:4px; opacity:.55; transition:opacity .15s; }
+.stk-fp-stats .stkc-fl{ bottom:auto; top:8px; }   /* footprint: the bottom edge holds the delta/volume row and the last bar's cells */
 .vela-cell:hover .stkc-fl, .stkc-fl:focus-within{ opacity:1; }
 .stkc-fl button{ height:22px; padding:0 8px; border:1px solid rgba(255,255,255,.12); border-radius:6px; background:rgba(14,16,22,.78); color:#cfd6e4; font:600 11px/1 'Space Grotesk','Inter',system-ui,sans-serif; letter-spacing:.02em; cursor:pointer; }
 .stkc-fl button:hover{ border-color:rgba(79,227,172,.55); color:#4fe3ac; }
-@media (max-width:640px){ .stkc-fl{ right:76px; bottom:34px; } .stkc-fl button{ height:24px; } }
+@media (max-width:640px){ .stkc-fl{ right:76px; bottom:34px; } .stkc-fl button{ height:24px; } .stk-fp-stats .stkc-fl{ bottom:auto; top:44px; right:62px; } }
 .vela-cell[data-stk-nav="always"] div:has(> .vela-cc-btn){ display:flex !important; }
 .vela-cell[data-stk-nav="never"] div:has(> .vela-cc-btn){ display:none !important; }
 .vela-cell[data-stk-pane="always"] div:has(> .vela-axis-btn){ display:flex !important; }

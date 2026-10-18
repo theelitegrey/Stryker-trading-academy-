@@ -317,6 +317,7 @@ function footprintLayer() {
       const t0 = performance.now();
       const g = canvas && canvas.getContext('2d');
       on = false;
+      try { document.body.classList.remove('stk-fp-stats'); } catch (e) {}
       if (!g) return;
       g.setTransform(1, 0, 0, 1, 0, 0);
       g.clearRect(0, 0, canvas.width, canvas.height);
@@ -375,6 +376,7 @@ function footprintLayer() {
         g.restore(); lastMs = performance.now() - t0; return;
       }
       on = true;
+      try { document.body.classList.toggle('stk-fp-stats', true); } catch (e) {}
       if (compact && !f.note) pill('Zoom in for numbers');
       const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
@@ -703,7 +705,7 @@ if (typeof window !== 'undefined') {
   window.__stkOrderflow = {
     minuteBars: (root, from, to) => minuteBars(root, from, to, false).bars,
     loaded: (root) => { const s = stores.get(root); return s ? [...s.days.entries()].map(([d, e]) => ({ d, n: e.bars ? e.bars.length : -1, err: e.err })) : []; },
-    crypto: () => { const f = [...cryptoFeeds().values()][0]; if (!f) return null; const b = f.bars(), l = b[b.length - 1]; return { status: f.status, err: f.err, minutes: b.filter((x) => x.t >= f.coverFrom).length, lastT: l ? l.t : 0, lastVol: l ? l.vol : 0, tick: f.tick }; },
+    crypto: () => { const f = [...cryptoFeeds().values()][0]; if (!f) return null; const b = f.bars(), l = b[b.length - 1]; return { status: f.status, err: f.err, minutes: b.filter((x) => x.t >= f.coverFrom).length, lastT: l ? l.t : 0, lastVol: l ? l.vol : 0, tick: f.tick, coverFrom: f.coverFrom, vols: b.map((x) => [x.t, x.vol, x.delta, x.trades]) }; },
     aggregate, rows, poc, tier: () => testTier() || tierNow, sessionOf, get version() { return version; }
   };
 }

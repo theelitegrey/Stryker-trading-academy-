@@ -13,7 +13,7 @@
 const HIST_MS = 3 * 3600 * 1000;      // backfill target: the last 3 hours
 const KEEP_MS = 8 * 3600 * 1000;      // minutes kept in memory
 const MAX_PAGES = 100;                // x 1000 trades: hard cap on the backfill (about 14 MB at most)
-const CONC = 6;                       // parallel page requests
+const CONC = 10;                      // parallel page requests
 const IDLE_MS = 60000;                // no chart asked for this feed for a minute: close it
 const PREFIX = 'binance:';
 
@@ -52,7 +52,7 @@ class CryptoFeed {
     this.sym = t.replace(/\.P$/i, '').toUpperCase();
     this.rest = this.perp ? ['https://fapi.binance.com/fapi/v1'] : ['https://api.binance.com/api/v3', 'https://data-api.binance.vision/api/v3'];
     this.ws = this.perp ? ['wss://fstream.binance.com/ws/'] : ['wss://stream.binance.com:9443/ws/', 'wss://data-stream.binance.vision/ws/'];
-    this.conc = this.perp ? 2 : CONC; this.maxPages = this.perp ? 36 : MAX_PAGES;   // futures aggTrades weigh 20 on Binance (limit 2400/min): go lighter
+    this.conc = this.perp ? 3 : CONC; this.maxPages = this.perp ? 36 : MAX_PAGES;   // futures aggTrades weigh 20 on Binance (limit 2400/min): go lighter
     this.mins = new Map();          // minute ms -> { trades: [[id, price, size, side]], dirty, bar }
     this.ids = new Set();           // ids seen (dedupe across backfill / live / catch-up)
     this.status = 'loading'; this.err = '';

@@ -72,10 +72,18 @@ const fp = (p) => p.evaluate(() => {
       while (Date.now() - t0 < 10000) { n = await cells(p); if (n > 1500) break; await sleep(500); }
       const took = Date.now() - t0;
       check(n > 1500, '1440: BTC footprint cells drawn within 10 s (' + n + ' px samples, ' + took + ' ms)', n);
-      await sleep(800);
-      await p.screenshot({ path: OUT + '/btc-fp-1440.png' });
       for (let i = 0; i < 60; i++) { const q = await fp(p); if (q && q.status === 'live') break; await sleep(1000); }
+      await zoom(p, 120);
+      await sleep(2500);
+      await p.screenshot({ path: OUT + '/btc-fp-1440-2h.png' });
+      const cov = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.slice(-120), o = window.__stkOrderflow.crypto(), have = new Set(o.vols.map((v) => v[0])); return rb.filter((b) => have.has(b.time)).length / rb.length; });
+      check(cov >= 0.97, '1440: the last 120 one-minute candles (2 h) all have footprint data (' + Math.round(cov * 100) + '%)', cov);
+      await zoom(p, 14);
+      await sleep(1500);
+      await p.screenshot({ path: OUT + '/btc-fp-1440.png' });
       const st = await fp(p);
+      const kl = await p.evaluate(async () => { const k = await (await fetch('https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1m&limit=60')).json(); const o = window.__stkOrderflow.crypto(), m = new Map(o.vols.map((v) => [v[0], v[1]])); let worst = 0, n = 0; for (const x of k.slice(0, -2)) { const v = m.get(x[0]); if (v == null) continue; n++; worst = Math.max(worst, Math.abs(v - +x[5]) / +x[5]); } return { n, worst }; });
+      check(kl.n >= 40 && kl.worst < 0.01, '1440: footprint volume = Binance 1m kline volume on ' + kl.n + ' finished candles (worst diff ' + (kl.worst * 100).toFixed(3) + '%)', kl);
       check(st && st.minutes >= 100, '1440: backfill reaches back >= 100 minutes (' + (st && st.minutes) + ' min, ' + (st && st.status) + ')', st);
       check(st && st.status === 'live', '1440: feed status live', st);
       // live: the newest minute's volume grows
@@ -97,12 +105,17 @@ const fp = (p) => p.evaluate(() => {
     {
       const { ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true });
       await pickFootprint(p);
+      for (let i = 0; i < 60; i++) { const q = await fp(p); if (q && q.status === 'live') break; await sleep(1000); }
       await zoom(p, 7);
       let n = 0; const t0 = Date.now();
       while (Date.now() - t0 < 12000) { n = await cells(p); if (n > 600) break; await sleep(500); }
       check(n > 600, '390: BTC footprint cells drawn (' + n + ' px samples)', n);
       await sleep(800);
       await p.screenshot({ path: OUT + '/btc-fp-390.png' });
+      await zoom(p, 60); await sleep(2000);
+      await p.screenshot({ path: OUT + '/btc-fp-390-1h.png' });
+      const cov = await p.evaluate(() => { const rb = window.STRYKER_VELA.chart.orchestrator.rawBars.slice(-120), o = window.__stkOrderflow.crypto(), have = new Set(o.vols.map((v) => v[0])); return rb.filter((b) => have.has(b.time)).length / rb.length; });
+      check(cov >= 0.97, '390: the last 120 candles all have footprint data (' + Math.round(cov * 100) + '%)', cov);
       const sw = await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
       check(sw, '390: no horizontal scroll');
       check(errors.length === 0, '390: no console errors', errors);

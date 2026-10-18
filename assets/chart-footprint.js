@@ -22,6 +22,7 @@
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=591';
 
 import { rtHeadersReady } from './rt-access.js?v=591';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=591';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -59,7 +60,9 @@ function fmt(v) {
   const a = Math.abs(v);
   if (a >= 1e6) return (v / 1e6).toFixed(1) + 'M';
   if (a >= 1e4) return Math.round(v / 1e3) + 'K';
-  return String(Math.round(v));
+  if (Number.isInteger(v) || a >= 100) return String(Math.round(v));
+  // crypto volumes are fractional (BTC, ETH...): keep ~3 significant digits
+  return v === 0 ? '0' : a < 0.01 ? '<.01' : String(+v.toFixed(a >= 10 ? 1 : 2));
 }
 const sgn = (v) => (v > 0 ? '+' : v < 0 ? '-' : '') + fmt(Math.abs(v));
 // The CME session (18:00 New York -> 17:00) a time belongs to, keyed by the NY date it ends on.
@@ -85,6 +88,7 @@ function rootOf(ctx) {
   let provider = '', ticker = String(ctx.symbol || '');
   try { const r = ctx.data.resolve(ctx.symbol); if (r) { provider = r.provider; ticker = r.ticker; } } catch (e) {}
   if (!provider) { const m = /^([a-z]+):(.+)$/i.exec(ticker); if (m) { provider = m[1].toLowerCase(); ticker = m[2]; } }
+  if (provider === 'binance') return 'binance:' + ticker.toUpperCase();   // crypto: Binance aggTrades (chart-footprint-crypto.js)
   if (provider !== 'futures') return null;
   const root = ticker.toUpperCase().replace(/[0-9]*!$/, '').replace(/[FGHJKMNQUVXZ]\d{2,4}$/, '');
   return ROOTS[root] || null;
@@ -219,9 +223,10 @@ function stopRefresh() { if (users <= 0 && refreshTm) { clearInterval(refreshTm)
 const viewCache = new WeakMap();
 export function flowFor(ctxLike) {
   const root = ctxLike.root;
-  if (!root) return { note: 'Order flow from trades: NQ, ES, YM, GC, SI and CL futures (and their micros).' };
+  if (!root) return { note: 'Order flow from trades: Binance crypto, and NQ, ES, YM, GC, SI and CL futures.' };
   const tf = tfMin(ctxLike.timeframe);
   if (tf == null || tf < 1 || tf > MAX_TF_MIN) return { note: 'Order flow works on 1-minute to 4-hour charts.' };
+  if (isCrypto(root)) return cryptoFlow(ctxLike, root, tf);
   const t = testTier() || tierNow;
   const free = !t || t.free;
   if (free && root !== FREE_ROOT && !(t && t.admin)) return { note: 'Order flow on ' + root + ' is part of Pro. The free plan shows it on NQ (last 24 h).', locked: true };
@@ -239,6 +244,31 @@ export function flowFor(ctxLike) {
   for (const b of agg) map.set(b.t, b);
   const note = got.loading && !agg.length ? 'Loading order flow…' : got.err && !agg.length ? got.err : !agg.length ? (free ? 'No order flow in the last 24 h yet (free plan: NQ, last 24 h).' : 'No order flow for these bars yet. History starts ' + '6 days before 2026-10-14 and grows from there.') : '';
   const out = { map, list: agg, tick: got.s.tick || 0.25, thr: got.s.thr || 0, note, free, loading: got.loading };
+  viewCache.set(ctxLike.owner, { key, out });
+  return out;
+}
+
+// Crypto: the 1-minute bars come from Binance trades (chart-footprint-crypto.js) instead of the recorder.
+// Same aggregation and the same drawing; free and Pro see the same (the feed is public, 3 h deep).
+function cryptoFlow(ctxLike, root, tf) {
+  const cb = ctxLike.bars;
+  const feed = cryptoFeed(root, bump);
+  if (!cb.length) return { note: '' };
+  const E = replayE();
+  const key = root + '|' + tf + '|' + feed.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + cb.length;
+  const memo = viewCache.get(ctxLike.owner);
+  if (memo && memo.key === key) return memo.out;
+  const clipped = clipTo(feed.bars().filter((b) => b.t >= feed.coverFrom), E);
+  const agg = aggregate(clipped, tf * 60000).filter((b) => b.t >= feed.coverFrom);
+  const map = new Map();
+  for (const b of agg) map.set(b.t, b);
+  const loading = feed.status === 'loading' && !agg.length;
+  const note = loading ? 'Loading recent trades…'
+    : feed.status === 'error' && !agg.length ? feed.err
+    : feed.status === 'error' ? 'Binance trades temporarily unavailable. Showing what loaded.'
+    : feed.status === 'reconnecting' ? 'Trade stream reconnecting…'
+    : !agg.length ? 'Waiting for trades…' : '';
+  const out = { map, list: agg, tick: feed.tick || 1, thr: 0, note, free: false, loading, crypto: true };
   viewCache.set(ctxLike.owner, { key, out });
   return out;
 }
@@ -484,7 +514,7 @@ class OfNative {
     }
     if (t === 'stk_of_cvd') {
       const list = f.list || [];
-      const cc = cvdCandles(list, I.reset, sessionOf);
+      const cc = cvdCandles(list, f.crypto && I.reset === 'session' ? 'day' : I.reset, sessionOf);   // crypto has no CME session: UTC day
       const byT = new Map(); cc.forEach((c) => byT.set(c.t, c));
       if (I.style === 'line') {
         const pts = bars.map((b) => { const c = byT.get(b.time); return c ? { time: b.time, value: c.c } : { time: b.time, value: null }; });
@@ -671,6 +701,7 @@ if (typeof window !== 'undefined') {
   window.__stkOrderflow = {
     minuteBars: (root, from, to) => minuteBars(root, from, to, false).bars,
     loaded: (root) => { const s = stores.get(root); return s ? [...s.days.entries()].map(([d, e]) => ({ d, n: e.bars ? e.bars.length : -1, err: e.err })) : []; },
+    crypto: () => { const f = [...cryptoFeeds().values()][0]; if (!f) return null; const b = f.bars(), l = b[b.length - 1]; return { status: f.status, err: f.err, minutes: b.filter((x) => x.t >= f.coverFrom).length, lastT: l ? l.t : 0, lastVol: l ? l.vol : 0, tick: f.tick }; },
     aggregate, rows, poc, tier: () => testTier() || tierNow, sessionOf, get version() { return version; }
   };
 }

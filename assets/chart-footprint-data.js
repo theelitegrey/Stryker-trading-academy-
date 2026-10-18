@@ -69,7 +69,7 @@ export function aggregate(bars, tfMs) {
     const bt = Math.floor(b.t / tfMs) * tfMs;
     if (!cur || cur.t !== bt) {
       if (cur) out.push(cur);
-      cur = { t: bt, lo: b.lo, hi: b.hi, o: b.o, c: b.c, buy: Int32Array.from(b.buy), sell: Int32Array.from(b.sell), vol: b.vol, delta: b.delta,
+      cur = { t: bt, lo: b.lo, hi: b.hi, o: b.o, c: b.c, buy: b.buy.slice(), sell: b.sell.slice(), vol: b.vol, delta: b.delta,
         dmax: b.dmax, dmin: b.dmin, trades: b.trades, bigs: b.bigs.slice(), mins: 1 };
       run = b.delta;
       continue;
@@ -81,7 +81,7 @@ export function aggregate(bars, tfMs) {
     run += b.delta;
     const lo = Math.min(cur.lo, b.lo), hi = Math.max(cur.hi, b.hi);
     if (lo !== cur.lo || hi !== cur.hi) {
-      const nb = new Int32Array(hi - lo + 1), ns = new Int32Array(hi - lo + 1);
+      const nb = new cur.buy.constructor(hi - lo + 1), ns = new cur.sell.constructor(hi - lo + 1);   // Int32 (futures) or Float64 (crypto)
       nb.set(cur.buy, cur.lo - lo); ns.set(cur.sell, cur.lo - lo);
       cur.buy = nb; cur.sell = ns; cur.lo = lo; cur.hi = hi;
     }

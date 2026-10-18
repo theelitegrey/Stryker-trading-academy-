@@ -2312,7 +2312,7 @@ export function installOrderflow(Core) {
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
-  reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask, real trades)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
+  reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
     inputsSchema: () => FP_SCHEMA, create: () => new FlowNative('footprint') });
   reg(Core, { type: 'stk_delta', title: 'Delta per bar (real trades)', shortTitle: 'Delta', paneHint: 'new', overlay: false,
     inputsSchema: () => DC_SCHEMA, create: () => new FlowNative('delta') });
@@ -2398,6 +2398,11 @@ export function mountOrderflow(ws, opts) {
     const x = plan(this)[index];
     if (!x) return;
     if (x.pseudo) { runPseudo(this, x.pseudo); return; }
+    // ONE footprint: the picker's "Footprint" row switches the chart to the Footprint chart type
+    // (assets/chart-footprint.js), which reads the futures recorder or Binance trades by symbol.
+    if (x.r && x.r.nativeType === 'stk_footprint') {
+      try { this.setPriceStyle('stk_fp'); closePicker(); try { ws.context().stateChanged(); } catch (e) {} return; } catch (e) { console.warn('TradeZoro: footprint style', e); }
+    }
     origAdd.call(this, x.i);
   };
 

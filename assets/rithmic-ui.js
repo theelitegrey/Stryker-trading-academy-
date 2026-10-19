@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=601';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=601';
+import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=602';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=602';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -25,7 +25,7 @@ export const RITHMIC_NOTICES = [
 // Official Rithmic artwork: grey/white variants on the dark theme, black/blue on the day theme.
 const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).href;
 // Systems Rithmic told us to list before approval: shown greyed, not selectable.
-const PENDING_SYSTEMS = ['Rithmic 01', 'Rithmic 04 Colo', 'Rithmic Paper Trading'];
+const LS_GW = 'stryker_rithmic_gateway';
 
 const LS_USER = 'stryker_rithmic_user';
 const LS_SYS = 'stryker_rithmic_system';
@@ -204,11 +204,22 @@ export function createRithmic(cfg) {
 
     // ---- the sheet ----
     const err = el('p', { class: 'stkrb-err', role: 'alert', hidden: true });
-    const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
+    const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Rithmic 01 and Rithmic Paper Trading</small>' });
     const gwSel = el('select', { class: 'stkc-in', id: 'stkrb-gw', 'aria-label': 'Rithmic gateway' });
     (cfg.gateways || []).forEach((g) => gwSel.appendChild(el('option', { value: g.uri, text: g.label })));
-    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway' }), gwSel]);
-    gwSel.addEventListener('change', () => { systemsLoaded = false; cfg.gateway = gwSel.value; loadSystems(); });
+    // Default = the first gateway (Chicago); a remembered choice wins; a time-zone suggestion is only a hint.
+    const savedGw = lsGet(LS_GW);
+    if ((cfg.gateways || []).some((g) => g.uri === savedGw)) gwSel.value = savedGw;
+    const near = (cfg.gateways || []).find((g) => g.id === cfg.nearest && !g.test);
+    const hint = el('small', { class: 'stkrb-note', hidden: true });
+    const showHint = () => {
+      const cur = (cfg.gateways || []).find((g) => g.uri === gwSel.value);
+      hint.hidden = !(near && cur && cur.id !== near.id);
+      if (!hint.hidden) { hint.textContent = 'Closest to you: ' + near.label + '. '; hint.appendChild(el('a', { href: '#', text: 'Use it', onclick: (e) => { e.preventDefault(); gwSel.value = near.uri; gwSel.dispatchEvent(new Event('change')); } })); }
+    };
+    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway (server location)' }), gwSel, hint]);
+    gwSel.addEventListener('change', () => { systemsLoaded = false; showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
+    setTimeout(showHint, 0);
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
     const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
     const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
@@ -224,7 +235,7 @@ export function createRithmic(cfg) {
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
-      cfg.isTest ? el('p', { class: 'stkrb-note stkrb-test', text: 'Test server: prices may differ from the live market.' }) : null,
+      (cfg.gateways || []).some((g) => g.test) ? el('p', { class: 'stkrb-note stkrb-test', text: 'Admin: the Rithmic Test gateway has no real market prices.' }) : null,
       el('p', { class: 'stkrb-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
       el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
@@ -254,11 +265,12 @@ export function createRithmic(cfg) {
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Choose your system' }));
         const want = lsGet(LS_SYS);
-        names.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
-        if (names.length === 1) sys.value = names[0];
-        // Production systems Rithmic asked us to show: greyed until our app is approved.
-        (cfg.isTest ? PENDING_SYSTEMS : []).filter((n) => !names.includes(n)).forEach((n) =>
-          sys.appendChild(el('option', { value: '', text: n + ' (available after approval)', disabled: true, 'data-pending': '1' })));
+        const gw = (cfg.gateways || []).find((g) => g.uri === (gwSel.value || cfg.gateway));
+        // Production gateways list every prop firm; members only get the systems we offer (exact names from the gateway).
+        const shown = gw && gw.test ? names : names.filter((n) => (cfg.offeredSystems || []).includes(n));
+        if (!shown.length) showErr('This location does not offer Rithmic 01 or Rithmic Paper Trading. Try another gateway.');
+        shown.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
+        if (shown.length === 1) sys.value = shown[0];
       } catch (e) {
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Could not load systems' }));

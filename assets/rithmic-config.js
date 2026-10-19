@@ -22,28 +22,57 @@
 // The ONE place the application name lives. Rithmic registered it for us: "Stryker Charts".
 export const APP_NAME = 'Stryker Charts';
 
-// 'test'       -> only the Rithmic Test server (the default until production is approved).
-// 'production' -> every gateway below that is not a test server AND has a uri.
-export const MODE = 'test';
+// 'test'       -> only the Rithmic Test server.
+// 'production' -> the production gateways below; Rithmic Test is added for admins (allowUids) only.
+export const MODE = 'production';
 
-// One entry per gateway. `system` is a hint of the Rithmic system(s) it serves (the member
-// still picks the exact system from the list the gateway itself returns). A gateway with
-// `uri: null` is never offered and never contacted. Do NOT put anything but a wss:// URI here.
+// Systems members may pick on a production gateway. The names are matched against what the
+// gateway itself returns in RequestRithmicSystemInfo (nothing is offered that it does not list).
+// Prop-firm systems (Apex, Tradeify ...) are deliberately NOT offered yet: a product decision.
+export const OFFERED_SYSTEMS = ['Rithmic 01', 'Rithmic Paper Trading'];
+
+// One entry per gateway (public hostnames from Rithmic's conformance email, 2026-10-19; wss://<host>:443).
+// `offer: false` keeps an entry listed but never shown or contacted. Default = the first production entry.
+// `tz` = IANA zone prefixes used only to SUGGEST the nearest city; the default stays Chicago.
 export const GATEWAYS = [
-  { id: 'test', label: 'Rithmic Test', test: true, uri: 'wss://rituz00100.rithmic.com:443' },
-  // Production (URIs to be emailed by Rithmic; leave null until then):
-  { id: 'paper', label: 'Rithmic Paper Trading', test: false, uri: null },
-  { id: 'r01', label: 'Rithmic 01', test: false, uri: null }
-  // Regional/other production gateways: add { id, label, test: false, uri } lines here.
+  { id: 'chicago', label: 'Chicago (Core)', test: false, uri: 'wss://rprotocol.rithmic.com:443', tz: ['America/Chicago', 'America/Denver', 'America/Winnipeg', 'America/Mexico_City'] },
+  { id: 'nyc', label: 'New York', test: false, uri: 'wss://rprotocol-nyc.rithmic.com:443', tz: ['America/New_York', 'America/Toronto', 'America/Detroit'] },
+  { id: 'ie', label: 'Ireland', test: false, uri: 'wss://rprotocol-ie.rithmic.com:443', tz: ['Europe/Dublin', 'Europe/London', 'Europe/Lisbon'] },
+  { id: 'de', label: 'Frankfurt', test: false, uri: 'wss://rprotocol-de.rithmic.com:443', tz: ['Europe/'] },
+  { id: 'za', label: 'Cape Town', test: false, uri: 'wss://rprotocol-za.rithmic.com:443', tz: ['Africa/'] },
+  { id: 'in', label: 'Mumbai', test: false, uri: 'wss://rprotocol-in.rithmic.com:443', tz: ['Asia/Kolkata', 'Asia/Calcutta', 'Asia/Colombo', 'Asia/Dhaka', 'Asia/Kathmandu'] },
+  { id: 'sg', label: 'Singapore', test: false, uri: 'wss://rprotocol-sg.rithmic.com:443', tz: ['Asia/Singapore', 'Asia/Kuala_Lumpur', 'Asia/Jakarta', 'Asia/Bangkok', 'Asia/Manila'] },
+  { id: 'hk', label: 'Hong Kong', test: false, uri: 'wss://rprotocol-hk.rithmic.com:443', tz: ['Asia/Hong_Kong', 'Asia/Shanghai', 'Asia/Taipei'] },
+  { id: 'kr', label: 'Seoul', test: false, uri: 'wss://rprotocol-kr.rithmic.com:443', tz: ['Asia/Seoul'] },
+  { id: 'jp', label: 'Tokyo', test: false, uri: 'wss://rprotocol-jp.rithmic.com:443', tz: ['Asia/Tokyo'] },
+  { id: 'au', label: 'Sydney', test: false, uri: 'wss://rprotocol-au.rithmic.com:443', tz: ['Australia/', 'Pacific/Auckland'] },
+  { id: 'br', label: 'Sao Paulo', test: false, uri: 'wss://rprotocol-br.rithmic.com:443', tz: ['America/Sao_Paulo', 'America/Argentina/', 'America/Bogota', 'America/Santiago'] },
+  // Colo75 did not complete a WebSocket handshake from our server on 2026-10-19 (colocation network,
+  // probably not reachable from the public internet). Kept for reference, not offered.
+  { id: 'colo75', label: 'Colo75', test: false, uri: 'wss://rprotocol-colo75.rithmic.com:443', offer: false },
+  // Admin only (allowUids): never shown to members.
+  { id: 'test', label: 'Rithmic Test (admin)', test: true, uri: 'wss://rituz00100.rithmic.com:443' }
 ];
 
-// Gateways offered to members in the current MODE.
-export function activeGateways() {
-  return GATEWAYS.filter((g) => g.uri && /^wss:\/\//.test(g.uri) && (MODE === 'production' ? !g.test : g.test));
+// Gateways offered in the current MODE. `admin` = the viewer is in RITHMIC_FLAG.allowUids.
+export function activeGateways(admin) {
+  return GATEWAYS.filter((g) => g.uri && g.offer !== false && /^wss:\/\//.test(g.uri)
+    && (g.test ? (MODE === 'test' || !!admin) : MODE === 'production'));
+}
+
+// City label to suggest for this browser's time zone (a hint only; null when unknown).
+export function nearestGatewayId(tzName) {
+  try {
+    const tz = tzName || Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    // longest prefix wins ('Europe/Dublin' beats 'Europe/')
+    let best = null, len = 0;
+    for (const g of GATEWAYS) for (const p of g.tz || []) if (tz.startsWith(p) && p.length > len) { best = g.id; len = p.length; }
+    return best;
+  } catch (e) { return null; }
 }
 
 // app_version: the Test server accepted this exact value on 2026-10-05; production uses the site build.
-const TEST_APP_VERSION = '0.3.0.0';
+export const TEST_APP_VERSION = '0.3.0.0';
 
 export const RITHMIC_CONFIG = {
   // R|Protocol template version the official kit (R|Protocol API 0.90.0.0) samples send;
@@ -125,12 +154,12 @@ export async function loadRithmicIfEnabled() {
   }
   if (!rithmicEnabledFor(uid, beta)) return null;
   const dev = devOverride();
-  let gateways = activeGateways();
+  const admin = !!uid && RITHMIC_FLAG.allowUids.includes(uid);
+  let gateways = activeGateways(admin);
   if (dev) gateways = [{ id: 'dev', label: 'Local mock', test: true, uri: dev.gateway }];
   if (!gateways.length) return null; // production mode but no URI filled in yet: show nothing
-  const allTest = gateways.every((g) => g.test);
-  const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: allTest ? TEST_APP_VERSION : appVersion(),
-    gateways, gateway: gateways[0].uri, isTest: allTest };
-  const ui = await import('./rithmic-ui.js?v=601');
+  const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
+    gateways, gateway: gateways[0].uri, offeredSystems: OFFERED_SYSTEMS, nearest: nearestGatewayId() };
+  const ui = await import('./rithmic-ui.js?v=602');
   return ui.createRithmic(cfg);
 }

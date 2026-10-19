@@ -38,7 +38,7 @@
 //   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
 // `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=601';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=602';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];
@@ -134,7 +134,7 @@ class Plant {
       user: creds.user,
       password: creds.password,
       app_name: this.owner.cfg.appName,
-      app_version: String(this.owner.cfg.appVersion || '0'),
+      app_version: String(this.owner.cfg.sendVersion || this.owner.cfg.appVersion || '0'),
       system_name: creds.systemName,
       infra_type: this.infra,
       os_platform: 'browser'
@@ -345,6 +345,9 @@ export class RithmicClient {
     if (!user || !password || !systemName) throw new Error('Enter your Rithmic username, password and system');
     await this.disconnect(true);
     if (gateway) this.cfg.gateway = String(gateway);
+    // The Test server was only ever verified with its kit sample version; production sends the site build.
+    this.cfg.sendVersion = (this.cfg.gateways || []).some((g) => g.test && g.uri === this.cfg.gateway) && this.cfg.testAppVersion
+      ? this.cfg.testAppVersion : this.cfg.appVersion;
     this.#creds = { user: String(user), password: String(password), systemName: String(systemName) };
     this.systemName = this.#creds.systemName;
     this.setState('connecting');

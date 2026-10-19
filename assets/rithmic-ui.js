@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=602';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=602';
+import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=603';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=603';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -28,7 +28,8 @@ const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).hr
 const LS_GW = 'stryker_rithmic_gateway';
 
 const LS_USER = 'stryker_rithmic_user';
-const LS_SYS = 'stryker_rithmic_system';
+// The chosen system is remembered per signed-in member (not a credential, so no checkbox needed).
+const LS_SYS = (() => { try { const u = typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid; return 'stryker_rithmic_system' + (u ? '_' + u : ''); } catch (e) { return 'stryker_rithmic_system'; } })();
 
 const CSS = `
 .stkrb-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
@@ -82,6 +83,9 @@ const CSS = `
 @media (max-width:480px){ .stkrb-attr{ padding:3px 8px; gap:6px; } .stkrb-attr .stkrb-l-rith, .stkrb-attr .stkrb-l-omne{ height:16px; } }
 .stkrb-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
 .stkrb-err[hidden]{ display:none; }
+.stkrb-hint{ display:block; margin-top:4px; font-size:11px; color:var(--ink-3, #8a8f98); }
+.stkrb-hint[hidden]{ display:none; }
+.stkrb-raw{ display:block; margin-top:4px; font-size:11px; color:var(--ink-3, #8a8f98); overflow-wrap:anywhere; }
 .stkrb-on p{ font-size:12.5px; color:var(--ink-1); }
 .stkrb-on b{ color:var(--ink-0); }
 .stkrb-ids{ margin:0 0 8px; font-size:10.5px; line-height:1.5; color:var(--ink-3); overflow-wrap:anywhere; }
@@ -204,14 +208,14 @@ export function createRithmic(cfg) {
 
     // ---- the sheet ----
     const err = el('p', { class: 'stkrb-err', role: 'alert', hidden: true });
-    const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Rithmic 01 and Rithmic Paper Trading</small>' });
+    const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Rithmic 01, TradeSea, Apex, Tradeify and more</small>' });
     const gwSel = el('select', { class: 'stkc-in', id: 'stkrb-gw', 'aria-label': 'Rithmic gateway' });
     (cfg.gateways || []).forEach((g) => gwSel.appendChild(el('option', { value: g.uri, text: g.label })));
     // Default = the first gateway (Chicago); a remembered choice wins; a time-zone suggestion is only a hint.
     const savedGw = lsGet(LS_GW);
     if ((cfg.gateways || []).some((g) => g.uri === savedGw)) gwSel.value = savedGw;
     const near = (cfg.gateways || []).find((g) => g.id === cfg.nearest && !g.test);
-    const hint = el('small', { class: 'stkrb-note', hidden: true });
+    const hint = el('small', { class: 'stkrb-hint', hidden: true });
     const showHint = () => {
       const cur = (cfg.gateways || []).find((g) => g.uri === gwSel.value);
       hint.hidden = !(near && cur && cur.id !== near.id);
@@ -225,17 +229,22 @@ export function createRithmic(cfg) {
     const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
     const remember = el('input', { type: 'checkbox', id: 'stkrb-remember' });
     const go = el('button', { type: 'submit', class: 'stkc-sbtn stkrb-go', id: 'stkrb-go', text: 'Connect' });
+    const testNote = el('p', { class: 'stkrb-note stkrb-test', id: 'stkrb-test-note', hidden: true, text: 'Admin: the Rithmic Test gateway has no real market prices.' });
+    const syncTestNote = () => { const g = (cfg.gateways || []).find((x) => x.uri === (gwSel.value || cfg.gateway)); testNote.hidden = !(g && g.test); };
+    gwSel.addEventListener('change', syncTestNote);
+    setTimeout(syncTestNote, 0);
     const form = el('form', { class: 'stkrb-form', id: 'stkrb-form', novalidate: true }, [
       el('h3', { text: 'Connect broker' }),
       el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
       err,
       gwField,
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, el('small', { class: 'stkrb-hint', id: 'stkrb-sys-hint', text: 'Prop firm account? Pick your firm (e.g. TradeSea, Apex).' })]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
-      (cfg.gateways || []).some((g) => g.test) ? el('p', { class: 'stkrb-note stkrb-test', text: 'Admin: the Rithmic Test gateway has no real market prices.' }) : null,
+      testNote,
+      false ? el('p', { class: 'stkrb-note stkrb-test', text: 'Admin: the Rithmic Test gateway has no real market prices.' }) : null,
       el('p', { class: 'stkrb-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
       el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
@@ -254,6 +263,7 @@ export function createRithmic(cfg) {
     const savedUser = lsGet(LS_USER);
     if (savedUser) { user.value = savedUser; remember.checked = true; }
 
+    sys.addEventListener('change', () => { if (sys.value) lsSet(LS_SYS, sys.value); });
     let systemsLoaded = false;
     async function loadSystems() {
       if (systemsLoaded) return;
@@ -267,8 +277,11 @@ export function createRithmic(cfg) {
         const want = lsGet(LS_SYS);
         const gw = (cfg.gateways || []).find((g) => g.uri === (gwSel.value || cfg.gateway));
         // Production gateways list every prop firm; members only get the systems we offer (exact names from the gateway).
-        const shown = gw && gw.test ? names : names.filter((n) => (cfg.offeredSystems || []).includes(n));
-        if (!shown.length) showErr('This location does not offer Rithmic 01 or Rithmic Paper Trading. Try another gateway.');
+        const first = cfg.systemFirst || [];
+        const rank = (n) => { const i = first.indexOf(n); return i < 0 ? first.length : i; };
+        const shown = names.filter((n) => (gw && gw.test) || n !== 'Rithmic Test')
+          .sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, 'en', { sensitivity: 'base' }));
+        if (!shown.length) showErr('This location returned no systems. Try another gateway.');
         shown.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
         if (shown.length === 1) sys.value = shown[0];
       } catch (e) {
@@ -278,7 +291,12 @@ export function createRithmic(cfg) {
       }
     }
 
-    function showErr(m) { err.textContent = m || ''; err.hidden = !m; }
+    // m = our plain-English message; raw = Rithmic's own response text (small grey print), if any.
+    function showErr(m, raw) {
+      err.textContent = m || '';
+      if (m && raw) err.appendChild(el('small', { class: 'stkrb-raw', id: 'stkrb-raw', text: 'Rithmic said: ' + raw }));
+      err.hidden = !m;
+    }
 
     async function doConnect() {
       showErr('');
@@ -290,13 +308,14 @@ export function createRithmic(cfg) {
       go.disabled = true; go.textContent = 'Connecting...';
       pass.value = ''; // the client holds it in memory from here
       lsSet(LS_USER, remember.checked ? u : '');
-      lsSet(LS_SYS, remember.checked ? s : '');
+      lsSet(LS_SYS, s);
       try {
         await client.connect({ user: u, password: p, systemName: s, gateway: gwSel.value || cfg.gateway });
         toast('Connected to Rithmic');
         setOpen(false);
       } catch (e) {
-        showErr(friendlyLoginError(e && e.message) || ('Rithmic refused the login: ' + ((e && e.message) || 'unknown error') + '. Check the system, username and password.'));
+        const raw = String((e && (e.rpRaw || e.message)) || '').slice(0, 300);
+        showErr(friendlyLoginError(e && e.message) || ('Rithmic refused the login. Check the system, username and password.'), raw);
       } finally {
         go.disabled = false; go.textContent = 'Connect';
       }

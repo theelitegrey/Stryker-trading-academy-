@@ -38,7 +38,7 @@
 //   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
 // `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=602';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=603';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];
@@ -207,7 +207,7 @@ class Plant {
     if (tid !== p.tid) return;
     if (!p.multi) {
       clearTimeout(p.timer); this.pending.delete(id);
-      if (rpOk(m)) p.resolve(m); else p.reject(Object.assign(new Error(rpText(m)), { rpCode: m.rp_code[0] }));
+      if (rpOk(m)) p.resolve(m); else p.reject(Object.assign(new Error(rpText(m)), { rpCode: m.rp_code[0], rpRaw: (m.rp_code || []).join(' | ') }));
       return;
     }
     // Replay: data rows carry no rp_code; the last message carries rp_code (['0'] = done).

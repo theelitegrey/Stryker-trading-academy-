@@ -158,6 +158,17 @@ const fs = await import('node:fs');
 const src = ['rithmic-proto.js', 'rithmic-client.js', 'rithmic-provider.js', 'rithmic-ui.js'].map((f) => fs.readFileSync(path.join(SRC, f), 'utf8')).join('\n');
 ok(!/(RequestNewOrder|RequestModifyOrder|RequestCancelOrder|RequestBracketOrder|RequestOcoOrder|RequestSubscribeForOrderUpdates|RequestShowOrders|RequestEnterPosition)/.test(src), 'DATA ONLY: no order request in the Rithmic code');
 
+// Rithmic's own reason is carried on the login error (shown in small grey print by the sheet)
+{
+  const c2 = new RithmicClient({ gateway: 'wss://mock', appName: 'x', appVersion: '1', templateVersion: '5.55' });
+  loginReject = ['13', 'permissions: app not enabled for user'];
+  let caught = null;
+  const pr = c2.connect({ user: 'u', password: 'SECRET-PW-123', systemName: 'tradesea' }).catch((e) => { caught = e; });
+  await advance(300); await pr;
+  loginReject = null;
+  ok(caught && caught.rpRaw === '13 | permissions: app not enabled for user', 'login error carries Rithmic raw response text');
+  ok(caught && !JSON.stringify([caught.message, caught.rpRaw]).includes('SECRET-PW-123'), 'raw reason never contains the password');
+}
 // config: production gateways, Test for admins only, one app name
 const cfgm = await imp('rithmic-config.js');
 const mem = cfgm.activeGateways(false), adm = cfgm.activeGateways(true);
@@ -165,7 +176,7 @@ ok(cfgm.APP_NAME === 'Stryker Charts', 'app name is exactly "Stryker Charts"');
 ok(mem.length === 12 && mem[0].uri === 'wss://rprotocol.rithmic.com:443' && mem.every((g) => !g.test && /^wss:\/\/rprotocol(-[a-z0-9]+)?\.rithmic\.com:443$/.test(g.uri)), 'members: 12 production gateways, Chicago first, no Test, no Colo75 (' + mem.length + ')');
 ok(adm.length === 13 && adm.some((g) => g.test), 'admins additionally get Rithmic Test');
 ok(cfgm.nearestGatewayId('Asia/Kolkata') === 'in' && cfgm.nearestGatewayId('Europe/Dublin') === 'ie' && cfgm.nearestGatewayId('Europe/Paris') === 'de' && cfgm.nearestGatewayId('America/Chicago') === 'chicago' && cfgm.nearestGatewayId('Antarctica/Troll') === null, 'nearest-by-timezone hints');
-ok(cfgm.OFFERED_SYSTEMS.join('|') === 'Rithmic 01|Rithmic Paper Trading', 'offered systems');
+ok(cfgm.SYSTEM_FIRST.join('|') === 'Rithmic 01|Rithmic Paper Trading', 'system order head');
 ok(!/['"]Stryker Charts['"]|STRK_Stryker|TradeZoro Charts/.test(fs.readFileSync(path.join(SRC, 'rithmic-client.js'), 'utf8') + fs.readFileSync(path.join(SRC, 'rithmic-ui.js'), 'utf8')), 'app name not repeated in client/ui');
 
 const tally = {}; sent.filter((s) => s.tid !== T.HEARTBEAT).forEach((s) => { const k = s.plant + ' ' + s.tid + (s.request ? ' r' + s.request : ''); tally[k] = (tally[k] || 0) + 1; });

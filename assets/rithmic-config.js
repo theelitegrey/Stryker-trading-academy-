@@ -26,10 +26,10 @@ export const APP_NAME = 'Stryker Charts';
 // 'production' -> the production gateways below; Rithmic Test is added for admins (allowUids) only.
 export const MODE = 'production';
 
-// Systems members may pick on a production gateway. The names are matched against what the
-// gateway itself returns in RequestRithmicSystemInfo (nothing is offered that it does not list).
-// Prop-firm systems (Apex, Tradeify ...) are deliberately NOT offered yet: a product decision.
-export const OFFERED_SYSTEMS = ['Rithmic 01', 'Rithmic Paper Trading'];
+// Systems: every system the gateway itself returns in RequestRithmicSystemInfo is offered, with the
+// gateway's exact names (a prop-firm member must pick THEIR firm's system, e.g. tradesea, Apex).
+// Order: these two first, then the rest A-Z. 'Rithmic Test' is hidden unless that gateway is selected.
+export const SYSTEM_FIRST = ['Rithmic 01', 'Rithmic Paper Trading'];
 
 // One entry per gateway (public hostnames from Rithmic's conformance email, 2026-10-19; wss://<host>:443).
 // `offer: false` keeps an entry listed but never shown or contacted. Default = the first production entry.
@@ -159,7 +159,7 @@ export async function loadRithmicIfEnabled() {
   if (dev) gateways = [{ id: 'dev', label: 'Local mock', test: true, uri: dev.gateway }];
   if (!gateways.length) return null; // production mode but no URI filled in yet: show nothing
   const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
-    gateways, gateway: gateways[0].uri, offeredSystems: OFFERED_SYSTEMS, nearest: nearestGatewayId() };
-  const ui = await import('./rithmic-ui.js?v=602');
+    gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId() };
+  const ui = await import('./rithmic-ui.js?v=603');
   return ui.createRithmic(cfg);
 }

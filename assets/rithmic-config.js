@@ -10,38 +10,42 @@
 // THEIR data entitlement. The browser talks to Rithmic's R|Protocol gateway directly over a
 // WebSocket. TradeZoro never relays data and never sees, sends or stores the password.
 //
-// TO GO LIVE (needs Rithmic first, see reports/workers/t3-rithmic.md):
-//   1. Rithmic issues our real app_name prefix  -> set APP_NAME.
-//   2. Conformance passed on Rithmic Test        -> add allowlisted uids, test with them.
-//   3. Production approval for that app_name     -> GATEWAY = GATEWAYS.production, then
-//      add member uids to RITHMIC_FLAG.allowUids (wss://*.rithmic.com is already in connect-src).
+// TO GO LIVE (Rithmic passed conformance 2026-10-19; production URIs arrive by email):
+//   1. Paste each URI Rithmic emails us into its GATEWAYS entry below (replace `uri: null`).
+//   2. Set MODE = 'production'. That is the whole switch: the Connect sheet then offers the
+//      production gateways that have a URI (and no longer the Test server). Nothing else to edit.
+//   3. Add member uids to RITHMIC_FLAG.allowUids (or approve rithmicBeta) as before.
+//      wss://*.rithmic.com is already in connect-src (_headers).
+// DATA ONLY: this feature never places, modifies or cancels orders (no order templates exist
+// in rithmic-proto.js); it reads prices and bars.
 
-export const GATEWAYS = {
-  // Rithmic Test ("Rithmic Test" is the only system there). Answers RequestRithmicSystemInfo
-  // without a login; logging in needs Test credentials from Rithmic.
-  test: 'wss://rituz00100.rithmic.com:443',
-  // Production R|Protocol gateway (system list includes Rithmic 01, Rithmic Paper Trading,
-  // Apex, tradesea, Tradeify ...). Regional mirrors exist: rprotocol-de/-sg/-au/-br/-hk/-in/-ie/-jp.
-  production: 'wss://rprotocol.rithmic.com:443'
-};
+// The ONE place the application name lives. Rithmic registered it for us: "Stryker Charts".
+export const APP_NAME = 'Stryker Charts';
 
-// app_name / app_version per gateway.
-// - test: the official kit sample name; Rithmic Test accepted exactly this login on 2026-10-05.
-// - production: PLACEHOLDER. Rithmic assigns the real app_name (a prefix they register for us)
-//   when the product is approved; production refuses unregistered names, so it stays unreachable.
-//   Its app_version is the site build (appVersion() below).
-// The product name we asked Rithmic to register. UNUSED until Rithmic assigns the final
-// app_name for production; then it replaces the STRK_Stryker placeholder below.
-export const APP_NAME_PRODUCT = 'TradeZoro Charts';
+// 'test'       -> only the Rithmic Test server (the default until production is approved).
+// 'production' -> every gateway below that is not a test server AND has a uri.
+export const MODE = 'test';
 
-export const APPS = {
-  test: { appName: 'Stryker Charts', appVersion: '0.3.0.0' },
-  production: { appName: 'STRK_Stryker', appVersion: null }
-};
+// One entry per gateway. `system` is a hint of the Rithmic system(s) it serves (the member
+// still picks the exact system from the list the gateway itself returns). A gateway with
+// `uri: null` is never offered and never contacted. Do NOT put anything but a wss:// URI here.
+export const GATEWAYS = [
+  { id: 'test', label: 'Rithmic Test', test: true, uri: 'wss://rituz00100.rithmic.com:443' },
+  // Production (URIs to be emailed by Rithmic; leave null until then):
+  { id: 'paper', label: 'Rithmic Paper Trading', test: false, uri: null },
+  { id: 'r01', label: 'Rithmic 01', test: false, uri: null }
+  // Regional/other production gateways: add { id, label, test: false, uri } lines here.
+];
+
+// Gateways offered to members in the current MODE.
+export function activeGateways() {
+  return GATEWAYS.filter((g) => g.uri && /^wss:\/\//.test(g.uri) && (MODE === 'production' ? !g.test : g.test));
+}
+
+// app_version: the Test server accepted this exact value on 2026-10-05; production uses the site build.
+const TEST_APP_VERSION = '0.3.0.0';
 
 export const RITHMIC_CONFIG = {
-  // Owner-only trial (2026-10-06): Rithmic Test, market data plants only (ticker + history).
-  gateway: GATEWAYS.test,
   // R|Protocol template version the official kit (R|Protocol API 0.90.0.0) samples send;
   // Rithmic Test answered with 5.56 and accepted the login (2026-10-05).
   templateVersion: '5.55',
@@ -121,10 +125,12 @@ export async function loadRithmicIfEnabled() {
   }
   if (!rithmicEnabledFor(uid, beta)) return null;
   const dev = devOverride();
-  const app = RITHMIC_CONFIG.gateway === GATEWAYS.production ? APPS.production : APPS.test;
-  const cfg = { ...RITHMIC_CONFIG, appName: app.appName, appVersion: app.appVersion || appVersion(),
-    isTest: RITHMIC_CONFIG.gateway === GATEWAYS.test };
-  if (dev) cfg.gateway = dev.gateway;
-  const ui = await import('./rithmic-ui.js?v=600');
+  let gateways = activeGateways();
+  if (dev) gateways = [{ id: 'dev', label: 'Local mock', test: true, uri: dev.gateway }];
+  if (!gateways.length) return null; // production mode but no URI filled in yet: show nothing
+  const allTest = gateways.every((g) => g.test);
+  const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: allTest ? TEST_APP_VERSION : appVersion(),
+    gateways, gateway: gateways[0].uri, isTest: allTest };
+  const ui = await import('./rithmic-ui.js?v=601');
   return ui.createRithmic(cfg);
 }

@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems } from './rithmic-client.js?v=600';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=600';
+import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=601';
+import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=601';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -205,6 +205,10 @@ export function createRithmic(cfg) {
     // ---- the sheet ----
     const err = el('p', { class: 'stkrb-err', role: 'alert', hidden: true });
     const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Apex, TradeSea, Tradeify and more</small>' });
+    const gwSel = el('select', { class: 'stkc-in', id: 'stkrb-gw', 'aria-label': 'Rithmic gateway' });
+    (cfg.gateways || []).forEach((g) => gwSel.appendChild(el('option', { value: g.uri, text: g.label })));
+    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway' }), gwSel]);
+    gwSel.addEventListener('change', () => { systemsLoaded = false; cfg.gateway = gwSel.value; loadSystems(); });
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
     const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
     const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
@@ -214,6 +218,7 @@ export function createRithmic(cfg) {
       el('h3', { text: 'Connect broker' }),
       el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
       err,
+      gwField,
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
@@ -244,7 +249,7 @@ export function createRithmic(cfg) {
       sys.innerHTML = '';
       sys.appendChild(el('option', { value: '', text: 'Loading systems...' }));
       try {
-        const names = await listSystems(cfg.gateway);
+        const names = await listSystems(gwSel.value || cfg.gateway);
         systemsLoaded = true;
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Choose your system' }));
@@ -252,7 +257,7 @@ export function createRithmic(cfg) {
         names.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
         if (names.length === 1) sys.value = names[0];
         // Production systems Rithmic asked us to show: greyed until our app is approved.
-        PENDING_SYSTEMS.filter((n) => !names.includes(n)).forEach((n) =>
+        (cfg.isTest ? PENDING_SYSTEMS : []).filter((n) => !names.includes(n)).forEach((n) =>
           sys.appendChild(el('option', { value: '', text: n + ' (available after approval)', disabled: true, 'data-pending': '1' })));
       } catch (e) {
         sys.innerHTML = '';
@@ -275,11 +280,11 @@ export function createRithmic(cfg) {
       lsSet(LS_USER, remember.checked ? u : '');
       lsSet(LS_SYS, remember.checked ? s : '');
       try {
-        await client.connect({ user: u, password: p, systemName: s });
+        await client.connect({ user: u, password: p, systemName: s, gateway: gwSel.value || cfg.gateway });
         toast('Connected to Rithmic');
         setOpen(false);
       } catch (e) {
-        showErr('Rithmic refused the login: ' + ((e && e.message) || 'unknown error') + '. Check the system, username and password.');
+        showErr(friendlyLoginError(e && e.message) || ('Rithmic refused the login: ' + ((e && e.message) || 'unknown error') + '. Check the system, username and password.'));
       } finally {
         go.disabled = false; go.textContent = 'Connect';
       }

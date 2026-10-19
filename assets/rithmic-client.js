@@ -38,7 +38,7 @@
 //   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
 // `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=600';
+import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=601';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];
@@ -47,6 +47,9 @@ const UNSUB_GRACE_MS = 3000;         // keep a subscription this long after its 
 const TEMPLATE_NAMES = { 10: 'RequestLogin', 12: 'RequestLogout', 16: 'RequestRithmicSystemInfo', 18: 'RequestHeartbeat',
   100: 'RequestMarketDataUpdate', 113: 'RequestFrontMonthContract', 202: 'RequestTimeBarReplay' };
 const REQUEST_TIMEOUT = 20000;
+// Resource limits (Rithmic asked for fewer snapshot requests, 2026-10-19):
+const HISTORY_MAX_INFLIGHT = 2;      // time-bar replays on the wire at once; the rest wait in a queue
+const HISTORY_BACKOFF_STEPS = [5000, 15000, 30000, 60000, 120000]; // pause after consecutive failed replays
 
 let seq = 0;
 const nextId = () => 'stk' + (++seq).toString(36) + Date.now().toString(36).slice(-4);
@@ -55,6 +58,18 @@ function rpOk(msg) { return !msg.rp_code || !msg.rp_code.length || msg.rp_code[0
 function rpText(msg) {
   const c = msg.rp_code || [];
   return c.length > 1 ? c.slice(1).join(' ') : (c[0] ? 'code ' + c[0] : 'rejected');
+}
+
+// Plain-English login failures for members. Returns a message, or '' when the failure is not one
+// of the known permission / market-data cases (the caller then shows its generic text).
+// Rithmic's rp_code carries a numeric code and a text; we match on the text (codes vary by system).
+export const MSG_APP_NOT_ALLOWED = 'Your prop firm or broker may need to allow Stryker Charts for your account. Check that the same login works in RTraderPro.';
+export const MSG_NEEDS_MARKET_DATA = "Rithmic needs a paid market-data subscription on your account (demo trials can't connect).";
+export function friendlyLoginError(text) {
+  const t = String(text || '').toLowerCase();
+  if (/market.?data|subscription|entitle|demo|trial|r\s*\|\s*protocol.*(compat|support)/.test(t)) return MSG_NEEDS_MARKET_DATA;
+  if (/permission|not allowed|not authori[sz]ed|unauthori[sz]ed|app.?name|application|not enabled|disabled|forbidden|access denied|not permitted|not registered/.test(t)) return MSG_APP_NOT_ALLOWED;
+  return '';
 }
 
 // Open one socket, resolve when it is open (binary frames as ArrayBuffer).
@@ -192,7 +207,7 @@ class Plant {
     if (tid !== p.tid) return;
     if (!p.multi) {
       clearTimeout(p.timer); this.pending.delete(id);
-      if (rpOk(m)) p.resolve(m); else p.reject(new Error(rpText(m)));
+      if (rpOk(m)) p.resolve(m); else p.reject(Object.assign(new Error(rpText(m)), { rpCode: m.rp_code[0] }));
       return;
     }
     // Replay: data rows carry no rp_code; the last message carries rp_code (['0'] = done).
@@ -293,6 +308,11 @@ export class RithmicClient {
     this.retryTimer = null;
     this.counts = { ticker: {}, history: {} }; // requests sent this page session, per plant + template name
     this.sessionLog = [];
+    this.histQueue = [];                      // waiting replays: { run, resolve, reject }
+    this.histActive = 0;                      // replays on the wire now
+    this.histInflight = new Map();            // identical request key -> shared promise
+    this.histFails = 0; this.histBlockedUntil = 0;
+    if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', () => this._pumpHistory());
     this.skipLoads = new Set();               // timeframes whose next load is a throw-away reload flip (rithmic-ui.js)                     // ended plant sessions: { plant, uniqueUserId, loginAt, logoutAt }
   }
 
@@ -321,9 +341,10 @@ export class RithmicClient {
   setState(s, detail) { this.state = s; this.emit('state', detail); }
   get connected() { return this.state === 'connected'; }
 
-  async connect({ user, password, systemName }) {
+  async connect({ user, password, systemName, gateway }) {
     if (!user || !password || !systemName) throw new Error('Enter your Rithmic username, password and system');
     await this.disconnect(true);
+    if (gateway) this.cfg.gateway = String(gateway);
     this.#creds = { user: String(user), password: String(password), systemName: String(systemName) };
     this.systemName = this.#creds.systemName;
     this.setState('connecting');
@@ -335,7 +356,7 @@ export class RithmicClient {
       this.setState('error', { message: e && e.message ? e.message : 'Login failed' });
       throw e;
     }
-    this.retry = 0;
+    this.retry = 0; this.histFails = 0; this.histBlockedUntil = 0;
     this.setState('connected');
   }
 
@@ -487,16 +508,61 @@ export class RithmicClient {
   // ---- history plant ------------------------------------------------------------------
   // Bars between startSec and endSec (epoch seconds), newest `maxCount` when direction LAST.
   // Returns raw ResponseTimeBarReplay rows sorted by marker.
+  // Every replay goes through a queue: at most HISTORY_MAX_INFLIGHT on the wire, identical
+  // concurrent requests share one answer, nothing is sent while the tab is hidden (it waits and
+  // goes out when the tab is visible again), and consecutive failures pause new replays with a
+  // growing delay instead of hammering Rithmic.
   async timeBars(symbol, exchange, { barType = BAR_TYPE.MINUTE_BAR, period = 1, startSec, endSec, maxCount = 2000 }) {
     if (!this.history) throw new Error('Not connected to Rithmic');
-    const rows = await this.history.stream({
+    const msg = {
       template_id: T.TIME_BAR_REPLAY, symbol, exchange, bar_type: barType, bar_type_period: period,
       start_index: Math.floor(startSec), finish_index: Math.floor(endSec),
       user_max_count: Math.min(REPLAY_PAGE_MAX, Math.max(1, Math.floor(maxCount))),
       direction: DIRECTION.LAST, time_order: TIME_ORDER.FORWARDS
-    }, T.TIME_BAR_REPLAY_R);
-    rows.sort((a, b) => (a.marker || 0) - (b.marker || 0));
-    return rows;
+    };
+    const key = [symbol, exchange, barType, period, msg.start_index, msg.finish_index, msg.user_max_count].join('|');
+    const shared = this.histInflight.get(key);
+    if (shared) return shared.then((r) => r.slice());
+    const p = new Promise((resolve, reject) => {
+      this.histQueue.push({ resolve, reject, run: () => {
+        const plant = this.history;
+        if (!plant) throw new Error('Not connected to Rithmic');
+        return plant.stream(msg, T.TIME_BAR_REPLAY_R);
+      } });
+      this._pumpHistory();
+    }).then((rows) => {
+      rows.sort((a, b) => (a.marker || 0) - (b.marker || 0));
+      return rows;
+    });
+    this.histInflight.set(key, p);
+    const done = () => { if (this.histInflight.get(key) === p) this.histInflight.delete(key); };
+    p.then(done, done);
+    return p.then((r) => r.slice());
+  }
+
+  _pumpHistory() {
+    const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    if (hidden) return;
+    while (this.histActive < HISTORY_MAX_INFLIGHT && this.histQueue.length) {
+      const wait = this.histBlockedUntil - Date.now();
+      if (wait > 0) {
+        // Backing off after errors: fail fast for the callers (the provider falls back to standard data).
+        const q = this.histQueue.splice(0);
+        for (const j of q) j.reject(new Error('Rithmic history paused after errors (retry later)'));
+        return;
+      }
+      const job = this.histQueue.shift();
+      this.histActive++;
+      let pr;
+      try { pr = job.run(); } catch (e) { pr = Promise.reject(e); }
+      pr.then((rows) => { this.histFails = 0; job.resolve(rows); }, (e) => {
+        if (!/closed|Not connected|Disconnected/.test(e && e.message)) {
+          this.histBlockedUntil = Date.now() + HISTORY_BACKOFF_STEPS[Math.min(this.histFails, HISTORY_BACKOFF_STEPS.length - 1)];
+          this.histFails++;
+        }
+        job.reject(e);
+      }).finally(() => { this.histActive--; this._pumpHistory(); });
+    }
   }
 }
 

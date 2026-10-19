@@ -15,7 +15,7 @@
 // served by the normal provider: an automatic fallback. assets/rithmic-ui.js reloads the
 // chart cells when the source flips, so the visible bars always match the chip.
 
-import { BAR_TYPE } from './rithmic-client.js?v=600';
+import { BAR_TYPE } from './rithmic-client.js?v=601';
 
 // Rithmic exchange codes for our roots.
 export const EXCHANGE = {
@@ -89,6 +89,8 @@ const SERIES_IDLE_MS = 3 * 60 * 1000;
 // A scroll-back page (`to`) or the member reconnecting clears it.
 const FAIL_BACKOFF_MS = 30 * 60 * 1000;
 const MAX_SERIES_BARS = 12000;
+const PAGE_CACHE_MAX = 60;       // scroll-back pages kept per connection (older history never changes)
+const pageCaches = new WeakMap(); // client -> Map(key -> bars)
 const stores = new WeakMap(); // client -> Map(key -> series): shared by every provider instance
 // Futures trading date: CME sessions open 22:00/23:00 UTC for the next date.
 const tradingDay = (ms = Date.now()) => Math.floor((ms + 2 * 3600 * 1000) / (DAY * 1000));
@@ -116,6 +118,7 @@ export class RithmicFuturesProvider {
       // Connection left 'connected' (drop, logout, error): every series has a gap from here on.
       if (client && client.on) client.on((ev) => {
         if (ev.type !== 'state') return;
+        if (ev.state === 'idle' || ev.state === 'error') pageCaches.delete(client);
         if (ev.state === 'connected') { for (const h of st.values()) h.failedAt = 0; return; }
         for (const h of st.values()) {
           if (h.bars && h.bars.length && h.gapFrom == null) h.gapFrom = h.bars[h.bars.length - 1].time;
@@ -284,6 +287,15 @@ export class RithmicFuturesProvider {
     const want = tf === 'M' ? limit * 23 : limit;
     // Futures trade ~23h x 5d: a window ~1.6x the bar span covers weekends and holidays.
     const startS = range.from != null ? Math.floor(range.from / 1000) : endS - Math.ceil(want * secs * (type === BAR_TYPE.MINUTE_BAR ? 1.6 : 1.5)) - 4 * DAY;
+    // Scroll-back pages (`to`) are history that never changes: one request per page, then cached.
+    let pcache = null, pkey = null;
+    if (range.to != null) {
+      pcache = pageCaches.get(this.client) || new Map();
+      pageCaches.set(this.client, pcache);
+      pkey = [sym, tf, startS, endS, limit].join('|');
+      const hit = pcache.get(pkey);
+      if (hit) { pcache.delete(pkey); pcache.set(pkey, hit); return hit.map((b) => ({ ...b })); }
+    }
     const rows = await this.client.timeBars(sym, ex, { barType: type, period, startSec: startS, endSec: endS, maxCount: Math.min(10000, want + 2) });
     let bars = [];
     let last = -1;
@@ -294,6 +306,10 @@ export class RithmicFuturesProvider {
     }
     if (tf === 'M') bars = toMonths(bars);
     if (range.limit != null && bars.length > range.limit) bars = bars.slice(-range.limit);
+    if (pcache && bars.length) {
+      pcache.set(pkey, bars.map((b) => ({ ...b })));
+      if (pcache.size > PAGE_CACHE_MAX) pcache.delete(pcache.keys().next().value);
+    }
     return bars;
   }
 

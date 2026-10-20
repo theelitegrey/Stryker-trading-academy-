@@ -237,6 +237,42 @@ function insightConnect(url) {
 
 import { hubSubscribe, hubHealthy, hubNoteTimeout } from './_is-hub.js';
 
+// LIVE TAIL FROM THE RECORDER (2026-10-20, "candles frozen 1020c"): the book-recorder Worker already holds the
+// InsightSentry tick feed and keeps every minute's OHLCV (incl. the forming minute, updated every ~10 s for NQ/ES,
+// 30 s others). Its /bars-tail returns the last ~8 h of 1-minute rows; they are bucketed here to the asked timeframe.
+// No upstream socket is opened per request any more, so nothing is refused under load. The caller's ID token is
+// forwarded (the Worker re-verifies admin). null = not available -> the caller falls back to the direct socket.
+export const TAIL_SYMS = ['NQ', 'ES', 'YM', 'GC', 'SI', 'CL'];
+export const RECORDER_URL = 'https://book-recorder.theelitegrey.workers.dev';
+export function bucketTail(rows1m, tf, p1, p2) {
+  const cfg = TIMEFRAMES[tf];
+  if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 3600 || cfg.agg) return null;
+  const step = cfg.step, out = [];
+  let cur = null;
+  for (const r of rows1m) {
+    const b = Math.floor(r[0] / step) * step;
+    if (!cur || cur[0] !== b) { cur = [b, r[1], r[2], r[3], r[4], r[5]]; out.push(cur); }
+    else { if (r[2] > cur[2]) cur[2] = r[2]; if (r[3] < cur[3]) cur[3] = r[3]; cur[4] = r[4]; cur[5] += r[5]; }
+  }
+  // the window starts mid-bucket for the first bucket: drop it when it is not complete from its own open
+  if (out.length && rows1m.length && rows1m[0][0] > out[0][0]) out.shift();
+  return out.filter((r) => r[0] >= p1 && r[0] < p2);
+}
+export async function fetchRecorderTail(sym, tf, page, token, fetchImpl = fetch, timeoutMs = 4000) {
+  try {
+    if (!TAIL_SYMS.includes(sym) || !token) return null;
+    const [p1, p2] = pageBounds(tf, page);
+    const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    let res;
+    try { res = await fetchImpl(RECORDER_URL + '/bars-tail?sym=' + sym, { headers: { authorization: 'Bearer ' + token }, signal: ctrl.signal }); } finally { clearTimeout(timer); }
+    if (!res.ok) return null;
+    const j = await res.json();
+    if (!j || !Array.isArray(j.rows) || !j.rows.length) return null;
+    const out = bucketTail(j.rows, tf, p1, p2);
+    return out && out.length ? out : null;
+  } catch (e) { return null; }
+}
+
 // Rows for one page from the shared InsightSentry connection (see _is-hub.js): null = hub unavailable or no data in time.
 function insightRowsViaHub(key, code, spec, dp, dec, timeoutMs, signal) {
   return new Promise((resolve) => {
@@ -318,7 +354,10 @@ export class OutOfRange extends Error {}
 export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch, env = {}) {
   const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
   let insightRows = null;
-  const insight = fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal)
+  // Recorder-served symbols/timeframes: the live part comes from the tail overlay (bars/[sym].js withTail), so
+  // no InsightSentry socket is opened here unless Yahoo fails (the fallback below).
+  const viaRecorder = TAIL_SYMS.includes(sym) && bucketTail([], tf, 0, 0) !== null && !!(env && (env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY));
+  const insight = (viaRecorder ? Promise.reject(new OutOfRange('recorder tail')) : fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal))
     .then((rows) => { insightRows = rows; return rows; });
   insight.catch(() => {}); // not configured / not this symbol / timeout: Yahoo carries the page
   try {
@@ -327,7 +366,7 @@ export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 100
     return rows;
   } catch (yErr) {
     try {
-      const rows = await insight;
+      const rows = viaRecorder ? await fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal) : await insight;
       if (rows && rows.length) return rows;
     } catch (e) { /* fall through to the Yahoo error */ }
     throw yErr;

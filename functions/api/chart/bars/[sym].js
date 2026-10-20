@@ -6,7 +6,7 @@
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
 import { hubStats } from '../_is-hub.js';
-import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
+import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -38,6 +38,16 @@ function keyFor(request, sym, tf, page, kind) {
 async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
   try {
     if (!cache || ctx.noTail || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
+    // PRIMARY: the book-recorder Worker's minute rows (it holds the InsightSentry feed; edge-cached 3 s there).
+    // No upstream socket per request. The old per-request InsightSentry fetch below is only the fallback.
+    if (TAIL_SYMS.includes(sym) && bucketTail([], tf, 0, 0) !== null) {
+      const rt = await fetchRecorderTail(sym, tf, page, bearerOf(request));
+      if (rt) {
+        const body0 = await res.clone().json();
+        body0.bars = mergeTail(body0.bars || [], rt);
+        return reply(body0, 200, Math.min(ttlFor(tf, page, now, sym), 15), res.headers.get('x-bars-cache') || 'MISS');
+      }
+    }
     const k = `${sym}:${tf}:${page}`, tailKey = keyFor(request, sym, tf, page, 'tail');
     const hitT = await cache.match(tailKey);
     let tail = null, tailAge = 1e9;

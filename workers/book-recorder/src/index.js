@@ -23,7 +23,7 @@ import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
-import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
+import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
 const MAX_BODY = 64 * 1024;      // one ingest = one sample per symbol, ~0.4 KB each
@@ -370,6 +370,11 @@ export class BookRecorder {
       const j = ticksJson(sym, this.ofRecs(sym, Number(u.searchParams.get('from')), Number(u.searchParams.get('to')), true));
       return Response.json(j, { headers: { 'x-of-n': String(j.m.length) } });
     }
+    if (u.pathname === '/bars-tail-read') {
+      const sym = u.searchParams.get('sym');
+      const nowMin = Math.floor(Date.now() / 60000);
+      return Response.json(barsTailJson(sym, this.ofRecs(sym, Math.floor((nowMin - 480) / 10) * 10, nowMin, false)));
+    }
     if (u.pathname === '/of-read') {
       const buf = this.ofRead(u.searchParams.get('sym'), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
       const gz = await new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
@@ -660,6 +665,26 @@ async function route(req, env, ctx) {
     // brief / market map / econ calendar (src/terminal.js): edge-cached 60 s, no per-IP limit needed
     if (u.pathname.startsWith('/terminal/')) return terminalRoute(u, env, ctx, h, stub, /^\/terminal\/market-(map|brief)/.test(u.pathname) && bearerOf(req) ? await isAdminToken(bearerOf(req)) : false);
     if (u.pathname === '/news' || u.pathname === '/cal') return (u.pathname === '/news' ? newsRoute : calRoute)(req, u, env, ctx, h, stub);
+    // GET /bars-tail?sym=NQ: the newest ~8 h of 1-minute OHLCV rows (incl. the forming minute), for the site's
+    // /api/chart/bars Function (server to server; it forwards the caller's ID token). ADMIN ONLY: the token is
+    // verified here too (real time is admin only, Owner 2026-10-16). Edge-cached 3 s per symbol, so any number of
+    // chart requests cost one Durable Object read per symbol per 3 s.
+    if (u.pathname === '/bars-tail') {
+      if (req.method !== 'GET') return new Response('GET only', { status: 405 });
+      if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      const sym = String(u.searchParams.get('sym') || '').toUpperCase();
+      if (!OF_SYMBOLS.includes(sym)) return new Response('symbol not recorded', { status: 404, headers: { 'cache-control': 'no-store' } });
+      if (!(await isRealtimeToken(bearerOf(req)))) return new Response('forbidden', { status: 403, headers: { 'cache-control': 'no-store' } });
+      const ckey = new Request('https://book-recorder.cache/bars-tail/' + sym + '/' + Math.floor(Date.now() / 3000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/bars-tail-read?sym=' + sym);
+        if (d.status !== 200) return new Response('no data', { status: 502, headers: { 'cache-control': 'no-store' } });
+        r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=3' } });
+        ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return new Response(r.body, { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'private, no-store' } });
+    }
     const ip = req.headers.get('cf-connecting-ip') || 'anon';
     // /orderflow has its own limiter (60/min: a footprint chart loads one request per UTC day plus a
     // 30 s live poll), so it never starves the heatmap / GEX history readers

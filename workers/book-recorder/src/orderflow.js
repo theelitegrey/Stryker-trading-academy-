@@ -212,3 +212,18 @@ export function ticksJson(sym, recs) {
   }
   return { v: 1, sym, tick, prices: 'real', m };
 }
+
+// Last N minutes as plain 1-minute OHLCV rows for the site's /api/chart/bars live tail (2026-10-20, "candles
+// frozen 1020c": replaces a per-request InsightSentry socket). Rows: [epoch s, o, h, l, c, volume], real prices,
+// built from the footprint records (high = top price row, low = bottom row, volume = all buys + sells).
+export function barsTailJson(sym, recs) {
+  const tick = OF_TICK[sym], rows = [];
+  for (const rec of recs) {
+    const r = decodeRecord(rec);
+    if (!r) continue;
+    let v = 0;
+    for (let k = 0; k < r.n; k++) v += r.buy[k] + r.sell[k];
+    rows.push([r.t * 60, roundTo(r.o, tick), roundTo(r.lo + r.n - 1, tick), roundTo(r.lo, tick), roundTo(r.c, tick), v]);
+  }
+  return { v: 1, sym, tick, at: Math.floor(Date.now() / 1000), rows };
+}

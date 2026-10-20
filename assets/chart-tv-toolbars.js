@@ -23,7 +23,7 @@
 // Depends on: vela-chart.js (ws = VelaWorkspace: ws.root, ws.cells(), ws.cell(id).chart,
 // ws.active), chart-onebar.js (bar), chart-watchlist.js (.stkw-rail), style.css (.stkt-* block).
 
-import { UI_ICONS } from './chart-tool-icons.js?v=607';
+import { UI_ICONS } from './chart-tool-icons.js?v=608';
 
 const LS_LOCK = 'stkc_tv_lockall';
 const LS_HIDE = 'stkc_tv_hideall';

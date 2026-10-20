@@ -62,6 +62,16 @@ async function onUser(user) {
 // Keep the token fresh ourselves: Firebase refreshes on a timer that a sleeping laptop / throttled
 // background tab can miss, which left an EXPIRED token in every request (the server then treats the
 // caller as signed out = delayed feed). Checked every 30 s and the moment the tab is visible again.
+// Awaitable: resolves with a token that has > minLeft seconds left, refreshing from Firebase if needed
+// (a tab hidden for a while wakes up with an expired ID token; every request made with it is treated as
+// signed out = 10-min delayed feed, and the stream is refused). Never rejects; falls back to the old token.
+let freshP = null;
+export function rtSecsLeft() { return st.exp ? st.exp - Date.now() / 1000 : 1e9; }
+export function rtEnsureFresh(minLeft = 120) {
+  if (!curUser || rtSecsLeft() > minLeft) return Promise.resolve(st.token);
+  if (!freshP) freshP = curUser.getIdToken(true).then((t) => { if (t) { st.token = t; st.exp = expOf(t); emit(); } return st.token; }).catch(() => st.token).finally(() => { freshP = null; });
+  return freshP;
+}
 function keepFresh() {
   if (!curUser || !st.exp) return;
   if (st.exp - Date.now() / 1000 < 300) {
@@ -81,7 +91,7 @@ function start() {
         clearTimeout(giveUp);
         firebase.auth().onIdTokenChanged((u) => { onUser(u); });
         setInterval(keepFresh, 30000);
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) { keepFresh(); if (curUser && !st.admin) recheck(true); } });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) { rtEnsureFresh(600); if (curUser && !st.admin) recheck(true); } });
         return;
       }
     } catch (e) {}
@@ -108,7 +118,10 @@ export const rtOnChange = (f) => { subs.add(f); return () => subs.delete(f); };
 // Waits (up to ms) for the first auth answer, then returns the headers for a data request.
 export async function rtHeadersReady(ms = 4000) {
   if (!st.ready) await Promise.race([readyP, new Promise((r) => setTimeout(r, ms))]);
+  if (st.token && rtSecsLeft() < 120) await Promise.race([rtEnsureFresh(120), new Promise((r) => setTimeout(r, 4000))]);
   return rtHeaders();
 }
 // tests only (node): pretend the auth answer is in
 export function _rtSetForTests(admin, token = 'test-token') { st.ready = true; st.admin = admin; st.token = token; if (readyRes) readyRes(); emit(); }
+// tests only (node): a fake signed-in user whose getIdToken(true) hands out a fresh token; exp = secs left on the current one
+export function _rtSetUserForTests(secsLeft, fresh = 'fresh-token') { curUser = { getIdToken: async () => { st.exp = 0; return fresh; } }; st.exp = Date.now() / 1000 + secsLeft; const o = curUser.getIdToken; curUser.getIdToken = async () => fresh; }

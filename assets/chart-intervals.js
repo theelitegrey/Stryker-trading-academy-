@@ -437,7 +437,7 @@ export function wrapProvider(inner, name, pollMs) {
   // or the feed goes quiet (Owner bug 2026-10-12: candles froze after switching tabs).
   const subscribe = (ticker, timeframe, onBar, opts) => liveSubscribe(
     (cb) => openSub(ticker, timeframe, cb, opts),
-    (range) => getBars(ticker, timeframe, range),
+    (range) => getBars(ticker, timeframe, Object.assign({ fresh: true }, range)),   // fresh: never the memoised page, this is a gap fill
     timeframe, onBar);
   const openSub = (ticker, timeframe, onBar, opts) => {
     const sp = parseIv(timeframe);

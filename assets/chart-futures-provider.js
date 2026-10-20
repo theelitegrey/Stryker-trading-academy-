@@ -14,7 +14,7 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=604';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=604';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -489,6 +489,8 @@ export class FuturesProvider {
     };
     function connect() {
       if (stopped || ws) return;
+      // expired / nearly expired ID token (tab was hidden): get a new one FIRST, or the bridge refuses the socket
+      if (rtToken() && rtSecsLeft() < 120) { if (!retryTimer) retryTimer = setTimeout(() => { retryTimer = null; }, 0); rtEnsureFresh(120).then(() => { if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; } connect(); }); return; }
       // still inside a failure backoff (set only after QUICK_RETRY_MAX early closes): poll and wait it out
       if (Date.now() < fs.nextAt) { startPoll(); schedule(fs.nextAt - Date.now()); return; }
       if (bridgeSockets >= MAX_BRIDGE_SOCKETS) { startPoll(); schedule(jitter()); return; }

@@ -27,7 +27,7 @@ globalThis.WebSocket = class {
 };
 const { FuturesProvider } = await import('../../assets/chart-futures-provider.js');
 const rtV = /rt-access\.js\?v=(\d+)/.exec(fs.readFileSync(new URL('../../assets/chart-futures-provider.js', import.meta.url), 'utf8'))[1];
-const { _rtSetForTests } = await import('../../assets/rt-access.js?v=' + rtV);
+const { _rtSetForTests, _rtSetUserForTests } = await import('../../assets/rt-access.js?v=' + rtV);
 _rtSetForTests(true);
 const p = new FuturesProvider();
 p.pollSubscribe = () => () => {};
@@ -71,6 +71,26 @@ await sleep(400);
 assert.ok(socks.length >= 2 && first.readyState === 3, 'old socket closed, new one opened'); ok('tab visible again: fresh socket within ' + (Date.now() - t0) + ' ms');
 assert.ok(tails >= 1); ok('tab visible again: REST tail re-read at once');
 u3();
+
+// 3b) hidden 5 min: socket dropped meanwhile, ID token EXPIRED while away, tab shown -> new token, new socket
+//     (opened with the FRESH token) and the REST tail, all in < 10 s
+socks = []; tails = 0; mode = 'live';
+const protos = [];
+const OrigWS = globalThis.WebSocket;
+globalThis.WebSocket = class extends OrigWS { constructor(u, pr) { super(u, pr); protos.push(pr); } };
+const u5 = p.subscribe('MNQ1!', '5', () => {});
+await sleep(300);
+document.hidden = true; fire('visibilitychange');
+socks[0]._close(1006);                       // server/OS dropped it while hidden
+_rtSetForTests(true, 'stale-token'); _rtSetUserForTests(-30);   // token expired 30 s ago
+await sleep(500);
+const nBefore = socks.length;
+document.hidden = false; t0 = Date.now(); fire('visibilitychange');
+while (socks.length === nBefore && Date.now() - t0 < 10000) await sleep(50);
+assert.ok(socks.length > nBefore && Date.now() - t0 < 10000, 'reconnected after hidden+expired token'); ok('hidden -> shown with an expired token: new socket in ' + (Date.now() - t0) + ' ms (< 10 s)');
+assert.deepEqual(protos[protos.length - 1], ['tz-auth', 'fresh-token']); ok('the new socket carries the REFRESHED token, not the stale one');
+assert.ok(tails >= 1); ok('REST tail read after return');
+u5(); _rtSetForTests(true);
 
 // 4) market closed: no churn
 socks = []; mode = 'silent'; globalThis.__TZ_CME_OPEN = false;

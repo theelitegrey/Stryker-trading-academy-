@@ -18,7 +18,7 @@
 // null = hub cannot take it (too many legs): the caller uses its own direct socket as before.
 // hubHealthy() goes false for 2 min after a consumer waited for data and got none (callers then go direct).
 
-const MAX_LEGS = 14, LEG_IDLE_MS = 120000, MAP_CAP = 1200;
+const MAX_LEGS = 32, WARM = [['minute', 1], ['minute', 5], ['minute', 15], ['minute', 30], ['hour', 1]], PIN_MS = 30 * 60000, LEG_IDLE_MS = 120000, MAP_CAP = 1200;
 const UNIT = { m: 'minute', min: 'minute', minute: 'minute', h: 'hour', hour: 'hour', s: 'second', sec: 'second', second: 'second', t: 'tick', tick: 'tick', d: 'day', day: 'day' };
 
 const H = { ws: null, state: 'idle', key: '', url: '', legs: new Map(), dirty: false, pendingAt: 0, sendTimer: null, retryN: 0, retryTimer: null, pruneTimer: null, watchTimer: null, lastMsgAt: 0, staleN: 0, badUntil: 0, gen: 0, stats: { connects: 0, msgs: 0, rejected: 0, evicted: 0 } };
@@ -102,7 +102,7 @@ function activeSpecs() {
 function trySend() {
   if (H.sendTimer) return;
   if (!H.dirty || H.state !== 'open' || !H.ws) return;
-  if (H.pendingAt && Date.now() - H.pendingAt < 6000) { H.sendTimer = setTimeout(() => { H.sendTimer = null; trySend(); }, 1000); return; }
+  if (H.pendingAt && Date.now() - H.pendingAt < 3000) { H.sendTimer = setTimeout(() => { H.sendTimer = null; trySend(); }, 1000); return; }
   H.sendTimer = setTimeout(() => {
     H.sendTimer = null;
     if (!H.dirty || H.state !== 'open' || !H.ws) return;
@@ -188,6 +188,14 @@ export function hubSubscribe({ key, url, leg, replay = 200, onMessage, onEvent }
     L = { spec: Object.assign({ tz24: true }, leg), clients: new Set(), rows: new Map(), meta: null, idleSince: Date.now(), lastAt: 0, noCache: leg.bar_type === 'tick' };
     H.legs.set(id, L);
     H.dirty = true;
+    // WARM LEGS: every replacement message re-sends the full set and costs a round trip (and counts toward
+    // InsightSentry's 120 messages / 3 h), so when a symbol shows up its common timeframes are subscribed in the
+    // SAME message and kept 30 min. A burst of bars requests for other timeframes then needs no new message.
+    if (leg.bar_type === 'minute' || leg.bar_type === 'hour') for (const [bt, bi] of WARM) {
+      const wid = legId({ code: leg.code, bar_type: bt, bar_interval: bi });
+      if (H.legs.has(wid) || H.legs.size >= MAX_LEGS) continue;
+      H.legs.set(wid, { spec: { code: leg.code, bar_type: bt, bar_interval: bi, dp: 1000, tz24: true }, clients: new Set(), rows: new Map(), meta: null, idleSince: Date.now() + PIN_MS - LEG_IDLE_MS, lastAt: 0, noCache: false });
+    }
   }
   const c = { onMessage, onEvent, replay, primed: false, errors: 0 };
   L.clients.add(c);

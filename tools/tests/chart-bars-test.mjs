@@ -2,6 +2,7 @@
 // Pure node, no network:  node tools/tests/chart-bars-test.mjs
 // Fakes Yahoo (globalThis.fetch) and the Cloudflare edge cache (globalThis.caches).
 import assert from 'node:assert/strict';
+globalThis.__IS_HUB_OFF = true;   // these tests cover the direct-socket path; the hub has tools/tests/is-hub.test.mjs
 import { TIMEFRAMES, pageOf, pageBounds, parseYahoo, aggregateHours, nyOffset, globexOpen, ttlFor, normSym, normTf, mergeTail } from '../../functions/api/chart/_bars.js';
 import { onRequestGet } from '../../functions/api/chart/bars/[sym].js';
 

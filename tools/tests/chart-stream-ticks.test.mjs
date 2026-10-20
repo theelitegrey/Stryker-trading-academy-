@@ -5,6 +5,7 @@
 // forming bar (close/high/low/volume), at most ~10 'bar' messages/s to the browser, a lagging series
 // update does not move close back, a trade past the bar end starts the next bar, ticks=0 = one leg.
 import assert from 'node:assert/strict';
+globalThis.__IS_HUB_OFF = true;   // these tests cover the direct-socket path; the hub has tools/tests/is-hub.test.mjs
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

@@ -23,7 +23,7 @@ const UNIT = { m: 'minute', min: 'minute', minute: 'minute', h: 'hour', hour: 'h
 
 const H = { ws: null, state: 'idle', key: '', url: '', legs: new Map(), dirty: false, pendingAt: 0, sendTimer: null, retryN: 0, retryTimer: null, pruneTimer: null, watchTimer: null, lastMsgAt: 0, staleN: 0, badUntil: 0, gen: 0, stats: { connects: 0, msgs: 0, rejected: 0, evicted: 0 } };
 
-export const hubHealthy = () => Date.now() >= H.badUntil;
+export const hubHealthy = () => Date.now() >= H.badUntil && globalThis.__IS_HUB_OFF !== true;   // __IS_HUB_OFF: tests of the direct-socket path only
 export const hubNoteTimeout = () => { H.badUntil = Date.now() + 120000; };
 export const hubStats = () => ({ state: H.state, legs: [...H.legs.keys()], clients: [...H.legs.values()].reduce((n, l) => n + l.clients.size, 0), ...H.stats, healthy: hubHealthy() });
 export function _hubResetForTests() {

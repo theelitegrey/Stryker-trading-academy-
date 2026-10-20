@@ -23,9 +23,11 @@ const fakeFetch = async (u, init) => { seen = { u, auth: init.headers.authorizat
 const now = T0 + 700, page = pageOf('5', now);
 const got = await fetchRecorderTail('NQ', '5', page, 'tok', fakeFetch);
 assert.ok(got && got.length >= 1); assert.match(seen.u, /\/bars-tail\?sym=NQ$/); assert.equal(seen.auth, 'Bearer tok'); ok('fetch sends the caller token to /bars-tail?sym=NQ');
-assert.equal(await fetchRecorderTail('MNQ', '5', page, 'tok', fakeFetch), null); assert.equal(await fetchRecorderTail('NQ', '5', page, '', fakeFetch), null); ok('micros and token-less callers get null (never the live tail)');
+assert.equal(await fetchRecorderTail('RTY', '5', page, 'tok', fakeFetch), null); assert.equal(await fetchRecorderTail('NQ', '5', page, '', fakeFetch), null); ok('non-recorded symbols and token-less callers get null (never the live tail)');
 assert.equal(await fetchRecorderTail('NQ', '5', page, 'tok', async () => new Response('x', { status: 403 })), null);
 assert.equal(await fetchRecorderTail('NQ', '5', page, 'tok', async () => { throw new Error('down'); }), null); ok('403 / network error => null (falls back)');
+const mg = await fetchRecorderTail('MNQ', '5', page, 'tok', fakeFetch);
+assert.match(seen.u, /sym=NQ$/); assert.ok(mg.length >= 1 && mg.every((r) => r[5] === 0)); ok('MNQ reads the NQ tail, volume 0 (micro volume not recorded)');
 // Worker side: a real feeder record -> OHLCV
 import { execFileSync } from 'node:child_process';
 import { readFileSync, mkdtempSync } from 'node:fs'; import { tmpdir } from 'node:os'; import { join, dirname } from 'node:path'; import { fileURLToPath } from 'node:url';

@@ -242,7 +242,11 @@ import { hubSubscribe, hubHealthy, hubNoteTimeout } from './_is-hub.js';
 // 30 s others). Its /bars-tail returns the last ~8 h of 1-minute rows; they are bucketed here to the asked timeframe.
 // No upstream socket is opened per request any more, so nothing is refused under load. The caller's ID token is
 // forwarded (the Worker re-verifies admin). null = not available -> the caller falls back to the direct socket.
-export const TAIL_SYMS = ['NQ', 'ES', 'YM', 'GC', 'SI', 'CL'];
+// Micros ride on their mini's tail (same index / same commodity price, within a tick or two of the micro's own
+// quotes; checked 2026-10-20). The micro's own volume is not recorded, so micro tail rows carry volume 0 (what
+// Yahoo already gives the forming bar) rather than the mini's volume.
+export const TAIL_MINI = { MNQ: 'NQ', MES: 'ES', MYM: 'YM', MGC: 'GC', SIL: 'SI', MCL: 'CL' };
+export const TAIL_SYMS = ['NQ', 'ES', 'YM', 'GC', 'SI', 'CL', ...Object.keys(TAIL_MINI)];
 export const RECORDER_URL = 'https://book-recorder.theelitegrey.workers.dev';
 export function bucketTail(rows1m, tf, p1, p2) {
   const cfg = TIMEFRAMES[tf];
@@ -264,11 +268,12 @@ export async function fetchRecorderTail(sym, tf, page, token, fetchImpl = fetch,
     const [p1, p2] = pageBounds(tf, page);
     const ctrl = new AbortController(), timer = setTimeout(() => ctrl.abort(), timeoutMs);
     let res;
-    try { res = await fetchImpl(RECORDER_URL + '/bars-tail?sym=' + sym, { headers: { authorization: 'Bearer ' + token }, signal: ctrl.signal }); } finally { clearTimeout(timer); }
+    try { res = await fetchImpl(RECORDER_URL + '/bars-tail?sym=' + (TAIL_MINI[sym] || sym), { headers: { authorization: 'Bearer ' + token }, signal: ctrl.signal }); } finally { clearTimeout(timer); }
     if (!res.ok) return null;
     const j = await res.json();
     if (!j || !Array.isArray(j.rows) || !j.rows.length) return null;
-    const out = bucketTail(j.rows, tf, p1, p2);
+    const micro = !!TAIL_MINI[sym];
+    const out = bucketTail(micro ? j.rows.map((r) => [r[0], r[1], r[2], r[3], r[4], 0]) : j.rows, tf, p1, p2);
     return out && out.length ? out : null;
   } catch (e) { return null; }
 }

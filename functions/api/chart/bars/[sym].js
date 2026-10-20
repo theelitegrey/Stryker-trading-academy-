@@ -5,6 +5,7 @@
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
+import { hubStats } from '../_is-hub.js';
 import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
 
 const VERSION = 1;
@@ -147,6 +148,7 @@ export async function onRequestGet(ctx) {
   // x-tz-auth tells a signed-in browser its token was refused (expired / bad) so it can refresh and retry.
   const hadToken = !!bearerOf(ctx.request);
   out.headers.set('x-tz-rt', admin ? '1' : '0');
+  if (admin) out.headers.set('x-tz-hub', JSON.stringify(hubStats()).slice(0, 400));
   if (hadToken && !admin) out.headers.set('x-tz-auth', 'not-admin-or-rejected');
   if (admin) {
     out.headers.set('cache-control', 'private, max-age=10');

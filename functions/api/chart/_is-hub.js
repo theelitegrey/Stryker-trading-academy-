@@ -25,7 +25,7 @@ const H = { ws: null, state: 'idle', key: '', url: '', legs: new Map(), dirty: f
 
 export const hubHealthy = () => Date.now() >= H.badUntil && globalThis.__IS_HUB_OFF !== true;   // __IS_HUB_OFF: tests of the direct-socket path only
 export const hubNoteTimeout = () => { H.badUntil = Date.now() + 120000; };
-export const hubStats = () => ({ state: H.state, legs: [...H.legs.keys()], clients: [...H.legs.values()].reduce((n, l) => n + l.clients.size, 0), ...H.stats, healthy: hubHealthy() });
+export const hubStats = () => ({ state: H.state, legs: H.legs.size, clients: [...H.legs.values()].reduce((n, l) => n + l.clients.size, 0), ...H.stats, healthy: hubHealthy() });
 export function _hubResetForTests() {
   try { if (H.ws) H.ws.close(); } catch (e) {}
   for (const t of ['sendTimer', 'retryTimer', 'pruneTimer', 'watchTimer']) { if (H[t]) clearTimeout(H[t]); H[t] = null; }
@@ -71,7 +71,7 @@ function onUpstream(ev) {
     return;
   }
   const leg = matchLeg(msg);
-  if (!leg) return;
+  if (!leg) { H.stats.unmatched = (H.stats.unmatched || 0) + 1; H.stats.sample = JSON.stringify({ code: msg.code, bar_type: msg.bar_type, ev: msg.event, n: rows.length }).slice(0, 160); return; }
   leg.lastAt = Date.now();
   const clean = [];
   for (const x of rows) {

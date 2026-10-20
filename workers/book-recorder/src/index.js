@@ -373,7 +373,7 @@ export class BookRecorder {
     if (u.pathname === '/bars-tail-read') {
       const sym = u.searchParams.get('sym');
       const nowMin = Math.floor(Date.now() / 60000);
-      return Response.json(barsTailJson(sym, this.ofRecs(sym, Math.floor((nowMin - 480) / 10) * 10, nowMin, false)));
+      try { return Response.json(barsTailJson(sym, this.ofRecs(sym, Math.floor((nowMin - 480) / 10) * 10, nowMin, false))); } catch (e) { return new Response('tail error ' + String(e && e.message || e), { status: 500 }); }
     }
     if (u.pathname === '/of-read') {
       const buf = this.ofRead(u.searchParams.get('sym'), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
@@ -587,7 +587,7 @@ async function route(req, env, ctx) {
       let r = await caches.default.match(ckey);
       if (!r) {
         const d = await stub(env).fetch('https://do/gex-chain?sym=FAST&part=fast');
-        if (d.status !== 200) return new Response('no data', { status: 404, headers: { 'cache-control': 'no-store' } });
+        if (d.status !== 200) return new Response('no data ' + d.status + ' ' + (await d.text()).slice(0, 160), { status: 404, headers: { 'cache-control': 'no-store' } });
         r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/octet-stream', 'cache-control': 'public, max-age=1', 'x-gex-built': d.headers.get('x-gex-fetched-at') || '0' } });
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
@@ -679,7 +679,7 @@ async function route(req, env, ctx) {
       let r = await caches.default.match(ckey);
       if (!r) {
         const d = await stub(env).fetch('https://do/bars-tail-read?sym=' + sym);
-        if (d.status !== 200) return new Response('no data', { status: 502, headers: { 'cache-control': 'no-store' } });
+        if (d.status !== 200) return new Response('no data ' + d.status + ' ' + (await d.text()).slice(0, 160), { status: 502, headers: { 'cache-control': 'no-store' } });
         r = new Response(await d.arrayBuffer(), { headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=3' } });
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }

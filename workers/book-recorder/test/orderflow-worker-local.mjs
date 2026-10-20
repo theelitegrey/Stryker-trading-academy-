@@ -119,6 +119,13 @@ assert.equal(r.status, 200);
 const tj = await r.json();
 assert.equal(tj.sym, 'NQ'); assert.equal(tj.prices, 'real'); assert.equal(tj.m.length, 61);
 console.log('PASS /ticks1s 12:00-13:00 -> ' + tj.m.length + ' minutes, first second', JSON.stringify(tj.m[0][1][0]));
+// /bars-tail (site's bars live tail): admin only, no browser origin, OHLCV minute rows from the stored records
+r = await W('/bars-tail?sym=NQ', { headers: PRO }); assert.equal(r.status, 403);
+r = await W('/bars-tail?sym=NQ', { headers: { origin: 'https://x.dev', ...ADMIN } }); assert.equal(r.status, 403);
+r = await W('/bars-tail?sym=NQ'); assert.equal(r.status, 403);
+r = await W('/bars-tail?sym=NQ', { headers: ADMIN }); assert.equal(r.status, 200, 'bars-tail status ' + r.status);
+{ const bt = await r.json(); assert.ok(bt.rows.length > 0, 'bars-tail rows ' + JSON.stringify(bt).slice(0, 200)); assert.ok(bt.rows.every((x) => x.length === 6 && x[2] >= x[3])); }
+console.log('PASS /bars-tail: admin only, server use only, OHLCV rows');
 
 // a fresh DO (restart) loads the memory window from SQLite; the open bar is gone until the next POST
 doObj = new BookRecorder(ctx, env);

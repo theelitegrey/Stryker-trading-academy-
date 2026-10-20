@@ -235,6 +235,23 @@ function insightConnect(url) {
   throw new Error('WebSocket unavailable');
 }
 
+import { hubSubscribe, hubHealthy, hubNoteTimeout } from './_is-hub.js';
+
+// Rows for one page from the shared InsightSentry connection (see _is-hub.js): null = hub unavailable or no data in time.
+function insightRowsViaHub(key, code, spec, dp, dec, timeoutMs, signal) {
+  return new Promise((resolve) => {
+    if (!hubHealthy()) return resolve(null);
+    let done = false, sub = null;
+    const rows = [];
+    const fin = (v, timedOut) => { if (done) return; done = true; clearTimeout(timer); if (timedOut) hubNoteTimeout(); try { sub && sub.close(); } catch (e) {} resolve(v); };
+    const timer = setTimeout(() => fin(null, true), Math.min(timeoutMs, 10000));
+    if (signal) { if (signal.aborted) return fin(null); signal.addEventListener('abort', () => fin(null), { once: true }); }
+    sub = hubSubscribe({ key, url: INSIGHTSENTRY_WS, leg: { code, bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp: 1000 }, replay: 1000,
+      onMessage: (msg) => { const got = insightRowsFromMessage(msg, dec); if (got.length) { rows.push(...got); fin(rows); } } });
+    if (!sub) fin(null);
+  });
+}
+
 export async function fetchInsightPage(sym, tf, page, now, env, signal, timeoutMs = FETCH_TIMEOUT_MS) {
   const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
   const code = INSIGHTSENTRY_CODES[sym];
@@ -247,10 +264,12 @@ export async function fetchInsightPage(sym, tf, page, now, env, signal, timeoutM
   if (page < current - 1 || page > current) throw new OutOfRange('InsightSentry historical page skipped');
   const [p1, p2] = pageBounds(tf, page);
   const dp = Math.min(1000, Math.max(100, Math.ceil((Math.min(now + 60, p2) - p1) / (spec.bar_interval * (spec.bar_type === 'hour' ? H : 60))) + 20));
-  const ws = insightConnect(INSIGHTSENTRY_WS);
   const rows = [];
   const dec = decimalsOf(SYMBOLS[sym][4]);
-  await new Promise((resolve, reject) => {
+  const viaHub = await insightRowsViaHub(key, code, spec, dp, dec, timeoutMs, signal);
+  const ws = viaHub ? null : insightConnect(INSIGHTSENTRY_WS);
+  if (viaHub) rows.push(...viaHub);
+  else await new Promise((resolve, reject) => {
     const done = (err) => { clearTimeout(timer); try { ws.close(); } catch (e) {} err ? reject(err) : resolve(); };
     const timer = setTimeout(() => done(new Error('InsightSentry timeout')), timeoutMs);
     if (signal) {

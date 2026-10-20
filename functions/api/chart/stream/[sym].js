@@ -1,6 +1,7 @@
 // GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge.
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
 import { isRealtimeToken, wsTokenOf } from '../_rt.js';
+import { hubSubscribe, hubHealthy, hubNoteTimeout } from '../_is-hub.js';
 import { INSIGHTSENTRY_WS, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
 const ALLOWED_ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
@@ -154,10 +155,32 @@ export async function onRequestGet(ctx) {
     clearInterval(statsTimer); clearInterval(hbTimer);
     if (flushTimer) clearTimeout(flushTimer);
     try { upstream && upstream.close(); } catch (e) {}
+    try { hubSubs.forEach((x) => x.close()); } catch (e) {}
+    if (hubTimer) clearTimeout(hubTimer);
     try { server.close(code, reason); } catch (e) {}
   };
 
-  try {
+  // One handler for a parsed upstream message, whether it came from the shared hub or a direct socket.
+  const onUp = (msg) => {
+    lastUpAt = Date.now(); gotAny = true;
+    if (msg && msg.event === 'hub_rejected') return close(1011, 'upstream rejected');
+    if (msg && msg.event === 'hub_down') return;
+    upMsgs++;
+    if (msg && msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
+    if (tickMode && /T$/i.test(String(msg && msg.bar_type || ''))) {
+      const rowsT = Array.isArray(msg.series) ? msg.series : [];
+      for (const x of rowsT) onTick(Number(x.time), r(Number(x.close)), Number(x.volume));
+      return;
+    }
+    let rows = barsFrom(msg, dec);
+    if (spec.agg && spec.agg > 1 && rows.length > 1) rows = aggregateHours(rows, spec.agg, 18);
+    upBars += rows.length;
+    for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
+  };
+  let gotAny = false, hubSubs = [], hubTimer = null;
+  // DIRECT socket: the old per-client upstream. Only used if the shared hub cannot take this stream or
+  // delivered nothing for 10 s (so a hub problem can never leave a chart without data).
+  const startDirect = () => {
     upstream = new WebSocket(INSIGHTSENTRY_WS);
     upstream.onopen = () => {
       const subs = [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }];
@@ -172,18 +195,33 @@ export async function onRequestGet(ctx) {
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const text = JSON.stringify(msg).toLowerCase();
       if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return close(1011, 'upstream rejected');
-      upMsgs++; lastUpAt = Date.now();
-      if (msg && msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
-      if (tickMode && /T$/i.test(String(msg && msg.bar_type || ''))) {
-        const rowsT = Array.isArray(msg.series) ? msg.series : [];
-        for (const x of rowsT) onTick(Number(x.time), r(Number(x.close)), Number(x.volume));
-        return;
-      }
-      let rows = barsFrom(msg, dec);
-      if (spec.agg && spec.agg > 1 && rows.length > 1) rows = aggregateHours(rows, spec.agg, 18);
-      upBars += rows.length;
-      for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
+      onUp(msg);
     };
+  };
+  const startHub = () => {
+    if (!hubHealthy() || policy !== 'adaptive') return false;
+    const legs = [{ code, bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp: 1000 }];
+    if (tickMode) legs.push({ code, bar_type: 'tick', bar_interval: 1, dp: 1 });
+    const subs = [];
+    for (let i = 0; i < legs.length; i++) {
+      const h = hubSubscribe({ key, url: INSIGHTSENTRY_WS, leg: legs[i], replay: 200, onMessage: onUp, onEvent: i === 0 ? onUp : null });
+      if (!h) { subs.forEach((x) => x.close()); return false; }
+      subs.push(h);
+    }
+    hubSubs = subs;
+    send({ event: 'connected', s: sym, tf, hub: true });
+    hubTimer = setTimeout(() => {
+      hubTimer = null;
+      if (closed || gotAny) return;
+      hubNoteTimeout();
+      hubSubs.forEach((x) => x.close()); hubSubs = [];
+      try { startDirect(); } catch (e) { close(1011, 'stream failed'); }
+    }, 10000);
+    return true;
+  };
+
+  try {
+    if (!startHub()) startDirect();
     // the admin check is made at connect; end the socket after 50 min so a revoked admin (or an
     // expired token) re-checks. The client re-opens at once with a fresh token.
     setTimeout(() => close(4000, 'reauth'), 50 * 60 * 1000);

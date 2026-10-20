@@ -75,10 +75,18 @@ export async function isAdminToken(token, opts = {}) {
   let v = false, ttl = ADMIN_TTL_MS;
   try {
     const url = 'https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/admins/' + encodeURIComponent(uid);
-    const r = await (opts.fetchImpl || fetch)(url, { headers: { authorization: 'Bearer ' + token } });
-    if (r.status === 200) v = true;
-    else if (r.status !== 404 && r.status !== 403) ttl = 10000; // outage: fail closed, retry soon
-  } catch (e) { ttl = 10000; }
+    // Frozen-candles fix 2026-10-20: a "no" must never stick. One retry on any non-definitive answer, and a
+    // negative answer is remembered only 5 s (a positive 60 s), so a Firestore blip cannot hold an admin on
+    // the delayed feed for a minute. 404 = no admins/{uid} doc = a definite "not admin".
+    let r = null;
+    for (let i = 0; i < 2; i++) {
+      try { r = await (opts.fetchImpl || fetch)(url, { headers: { authorization: 'Bearer ' + token } }); } catch (e) { r = null; }
+      if (r && (r.status === 200 || r.status === 404)) break;
+    }
+    if (r && r.status === 200) v = true;
+    else if (r && r.status === 404) ttl = 5000;
+    else ttl = 3000; // outage / 403 / 5xx: fail closed, ask again very soon
+  } catch (e) { ttl = 3000; }
   if (adminMemo.size > 500) adminMemo.clear();
   adminMemo.set(uid, { v, at: Date.now(), ttl });
   return v;

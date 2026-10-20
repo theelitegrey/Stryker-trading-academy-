@@ -14,7 +14,7 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin } from './rt-access.js?v=603';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=603';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -49,6 +49,41 @@ const FALLBACK_POLL_MS = 8000;
 const MAX_BRIDGE_SOCKETS = 8;
 let bridgeSockets = 0;
 const CONCURRENCY = 4;
+// STALL WATCHDOG 2026-10-20 (Owner: "chart not moving, happens a lot": countdown and clock live, last
+// candle ~2 bars behind). A bridge socket can stay OPEN yet deliver nothing (InsightSentry drops
+// upstream without telling the bridge, a half-open network path, a throttled background tab), so no
+// close event ever fires and the 16 Oct fix never runs. The chart-live-resume watchdog only looked
+// after 60 s and then DOUBLED its wait up to 10 min. Now, while the CME session is open, a socket
+// with no bar for STALL_*_MS (10 s NQ/ES, scaled per symbol) or no message at all (server heartbeat
+// every 5 s) for DEAD_MS is force-closed, re-opened at once, and the REST tail is fetched right away.
+// The tab becoming visible always re-opens and re-syncs. Every stall is counted: window.tzStallStats().
+const HEARTBEAT_DEAD_MS = 13000;
+const STALL_MS_BY_ROOT = { NQ: 10000, MNQ: 10000, ES: 10000, MES: 10000, RTY: 20000, YM: 20000, MYM: 20000, GC: 20000, MGC: 20000, CL: 20000, MCL: 20000, SI: 30000, SIL: 30000 };
+const STALL_MAX_MS = 60000, TAIL_BARS = 12;
+const stallLog = { count: 0, byReason: {}, events: [] };
+export function recordStall(info) {
+  stallLog.count++;
+  stallLog.byReason[info.reason] = (stallLog.byReason[info.reason] || 0) + 1;
+  stallLog.events.push({ at: new Date().toISOString(), ...info });
+  if (stallLog.events.length > 50) stallLog.events.shift();
+  try { console.warn('[tz-stall]', JSON.stringify(info)); } catch (e) {}
+  try { if (typeof window !== 'undefined') { window.tzStallStats = () => JSON.parse(JSON.stringify(stallLog)); } } catch (e) {}
+}
+// CME Globex session: closed Fri 17:00 ET -> Sun 18:00 ET and daily 17:00-18:00 ET. Holidays are not
+// known here; the stall wait doubles (to 60 s) so a holiday only costs one quiet reconnect a minute.
+export function cmeOpenNow(ms = Date.now()) {
+  if (typeof globalThis !== 'undefined' && typeof globalThis.__TZ_CME_OPEN === 'boolean') return globalThis.__TZ_CME_OPEN;   // tests only
+  try {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date(ms));
+    const wd = f.find((x) => x.type === 'weekday').value, h = Number(f.find((x) => x.type === 'hour').value);
+    if (wd === 'Sat') return false;
+    if (wd === 'Fri' && h >= 17) return false;
+    if (wd === 'Sun' && h < 18) return false;
+    return h !== 17;
+  } catch (e) { return true; }
+}
+if (typeof window !== 'undefined') window.tzStallStats = () => JSON.parse(JSON.stringify(stallLog));
+
 export const INSIGHTSENTRY_ROOTS = ['NQ', 'MNQ', 'ES', 'MES', 'RTY', 'YM', 'MYM', 'GC', 'MGC', 'SI', 'SIL', 'CL', 'MCL'];
 const H = 3600, D = 86400;
 
@@ -266,10 +301,24 @@ export class FuturesProvider {
     let p = this.inflight.get(key);
     if (!p) {
       p = (async () => {
-        const res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()) });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const body = await res.json();
+        let res, body;
+        // body.rt === 'lag': a verified admin got rows ~10 min old because the live tail failed on the server
+        // (not cached there). Ask again (up to 2 more times, 2.5 s apart) before settling for the lagging rows.
+        for (let attempt = 0; attempt < 3; attempt++) {
+          res = await fetch(`${this.base}${encodeURIComponent(root)}?tf=${tf}&page=${page}`, { headers: Object.assign({ accept: 'application/json' }, await rtHeadersReady()) });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          body = await res.json();
+          if (body.rt !== 'lag' || page !== this.pageOf(tf, Math.floor(Date.now() / 1000))) break;
+          await new Promise((r) => setTimeout(r, 2500));
+        }
         const rows = Array.isArray(body.bars) ? body.bars : [];
+        // The server says which lane answered (body.rt: true real-time / false cut 10 min / 'lag' admin but the
+        // live tail was missing). A signed-in caller that gets false or 'lag' for the CURRENT page is not
+        // cached (the next read asks again) and the auth state is re-checked with a fresh token.
+        if (page === this.pageOf(tf, Math.floor(Date.now() / 1000)) && body.rt !== undefined && rtToken()) {
+          rtNoteBars(body.rt);
+          if (body.rt !== true) { setTimeout(() => { try { rtRecheck(true); } catch (e) {} }, 0); return rows; }
+        }
         cachePut(key, rows);
         return rows;
       })().finally(() => this.inflight.delete(key));
@@ -336,12 +385,22 @@ export class FuturesProvider {
     if (root && tf && INSIGHTSENTRY_ROOTS.includes(root) && typeof WebSocket === 'function' && typeof location !== 'undefined') {
       // Real-time is admin only (Owner 2026-10-16): the server refuses the socket for anyone else, so
       // non-admins never open it and poll the (10 min delayed) bars instead.
-      let stopped = false, stop = null;
-      rtReady().then(() => {
+      // 2026-10-20: the choice used to be made ONCE. If the admin answer arrived late (or failed) the chart
+      // polled the 10-minute-delayed feed until reload. Now the mode follows the auth state: when the server
+      // confirms admin the poll is swapped for the stream, and if admin is lost the stream is swapped back.
+      let stopped = false, stop = null, mode = '';
+      const pick = () => {
         if (stopped) return;
-        stop = isRealtimeAdmin() ? this.streamSubscribe(root, ticker, timeframe, tf, onBar) : this.pollSubscribe(ticker, timeframe, onBar);
-      });
-      return () => { stopped = true; if (stop) stop(); };
+        const want = isRealtimeAdmin() ? 'stream' : 'poll';
+        if (want === mode) return;
+        if (stop) { try { stop(); } catch (e) {} }
+        mode = want;
+        stop = want === 'stream' ? this.streamSubscribe(root, ticker, timeframe, tf, onBar) : this.pollSubscribe(ticker, timeframe, onBar);
+        if (want === 'stream') { try { this.getBars(ticker, timeframe, { limit: TAIL_BARS, fresh: true }).then((bs) => { if (!stopped) bs.forEach((b) => onBar(b)); }).catch(() => {}); } catch (e) {} }
+      };
+      const off = rtOnChange(pick);
+      rtReady().then(pick);
+      return () => { stopped = true; try { off(); } catch (e) {} if (stop) stop(); };
     }
     return this.pollSubscribe(ticker, timeframe, onBar);
   }
@@ -370,7 +429,46 @@ export class FuturesProvider {
     const startPoll = () => { if (!stopped && !pollStop) pollStop = this.pollSubscribe(ticker, timeframe, onBar, FALLBACK_POLL_MS); };
     const jitter = () => QUICK_RETRY_MIN_MS + Math.random() * QUICK_RETRY_SPAN_MS;
     const stopPoll = () => { if (pollStop) { const p = pollStop; pollStop = null; p(); } };
-    const onVis = () => { if (!stopped && !document.hidden && !ws && !retryTimer) connect(); };
+    let lastMsgAt = Date.now(), lastBarAt = Date.now(), hbSeen = false, stallN = 0, watchTm = null, lastTail = 0;
+    const stallMs = () => Math.min(STALL_MAX_MS, (STALL_MS_BY_ROOT[root] || 20000) * Math.pow(2, Math.min(stallN, 3)));
+    // REST tail: fills the missing bars and the forming candle (ascending, newest last).
+    const tailSync = async () => {
+      if (stopped || Date.now() - lastTail < 1500) return;
+      lastTail = Date.now();
+      try {
+        const bars = await this.getBars(ticker, timeframe, { limit: TAIL_BARS, fresh: true });
+        if (!stopped) bars.slice().sort((a, b) => a.time - b.time).forEach((b) => onBar(b));
+      } catch (e) { /* the next stall or poll retries */ }
+    };
+    // Force-close the current socket (open or not) and start a new one right now, with the tail.
+    const reopen = (reason, extra) => {
+      if (stopped) return;
+      recordStall({ reason, root, tf, ...extra });
+      if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      const s = ws; ws = null;
+      if (s) { try { s.close(); } catch (e) {} bridgeSockets = Math.max(0, bridgeSockets - 1); s.__counted = true; }
+      startPoll();
+      fs.nextAt = 0; quick = 0;
+      connect();
+      tailSync();
+    };
+    const watch = () => {
+      watchTm = null;
+      if (stopped) return;
+      const hid = typeof document !== 'undefined' && document.hidden;
+      if (!hid && ws && ws.readyState === 1 && cmeOpenNow()) {
+        const now = Date.now();
+        if (hbSeen && now - lastMsgAt > HEARTBEAT_DEAD_MS) { stallN++; reopen('no-heartbeat', { quietMs: now - lastMsgAt }); }
+        else if (now - lastBarAt > stallMs()) { stallN++; reopen('no-bars', { quietMs: now - lastBarAt, limitMs: stallMs(), hb: hbSeen }); }
+      }
+      watchTm = setTimeout(watch, 2000);
+    };
+    // Back on the tab: whatever the socket looks like, re-open it and re-read the tail.
+    const onVis = () => {
+      if (stopped || document.hidden) return;
+      lastBarAt = lastMsgAt = Date.now();
+      if (ws) reopen('visible', {}); else { tailSync(); if (!retryTimer) connect(); }
+    };
     // wait: after a healthy socket closes, 1 s doubling to 30 s; after a failure, the shared backoff
     const schedule = (wait) => {
       if (stopped || retryTimer) return;
@@ -379,6 +477,7 @@ export class FuturesProvider {
     };
     const failed = () => {
       fs.n++;
+      try { rtRecheck(fs.n % 2 === 0); } catch (e) {}   // a refused socket may mean a stale token or a failed admin read: ask again (fresh token every 2nd time)
       fs.nextAt = Date.now() + Math.min(STREAM_FAIL_MAX_MS, STREAM_FAIL_BASE_MS * Math.pow(2, fs.n - 1));
       startPoll();
       schedule(fs.nextAt - Date.now());
@@ -401,7 +500,7 @@ export class FuturesProvider {
       } catch (e) { failed(); return; }
       ws = sock;
       bridgeSockets++;
-      sock.addEventListener('close', () => { bridgeSockets = Math.max(0, bridgeSockets - 1); });
+      sock.addEventListener('close', () => { if (!sock.__counted) bridgeSockets = Math.max(0, bridgeSockets - 1); });
       let opened = false, gotBar = false;
       if (openTimer) clearTimeout(openTimer);
       // No open within 5 s: show polled bars meanwhile (the old behaviour for a missing bridge).
@@ -409,7 +508,7 @@ export class FuturesProvider {
       // 'open' only means the bridge accepted; it has not reached the upstream yet.
       sock.onopen = () => {
         if (ws !== sock) return;
-        opened = everOpened = true;
+        opened = everOpened = true; lastMsgAt = lastBarAt = Date.now();
         if (openTimer) { clearTimeout(openTimer); openTimer = null; }
         if (healthyTimer) clearTimeout(healthyTimer);
         healthyTimer = setTimeout(() => { healthyTimer = null; if (ws === sock && !gotBar) { gotBar = true; healthy(); } }, STREAM_HEALTHY_MS);
@@ -418,7 +517,10 @@ export class FuturesProvider {
         if (stopped || ws !== sock) return;
         try {
           const msg = JSON.parse(ev.data);
+          lastMsgAt = Date.now();
+          if (msg && msg.event === 'ping') { hbSeen = true; return; }
           if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) {
+            lastBarAt = Date.now(); stallN = 0; rtNoteStreamBar();
             if (!gotBar) { gotBar = true; healthy(); }
             onBar(toBar(msg.bar, tickOfKey(root)));
           }
@@ -444,8 +546,10 @@ export class FuturesProvider {
     // if an earlier one for this key ended in the shared backoff
     fs.nextAt = 0;
     connect();
+    watchTm = setTimeout(watch, 2000);
     return () => {
       stopped = true;
+      if (watchTm) clearTimeout(watchTm);
       if (openTimer) clearTimeout(openTimer);
       if (retryTimer) clearTimeout(retryTimer);
       if (healthyTimer) clearTimeout(healthyTimer);

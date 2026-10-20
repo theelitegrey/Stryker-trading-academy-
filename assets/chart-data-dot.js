@@ -22,7 +22,7 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin } from './rt-access.js?v=603';
+import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=603';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -139,8 +139,8 @@ export function installDataDot(ws, opts = {}) {
     }
     const root = rootOf(sym);
     // Real-time CME futures is admin only (Owner 2026-10-16); the server delivers everyone else 10 min late.
-    if (rithLive() || (insightRealtime(root) && isRealtimeAdmin())) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
-    if (insightRealtime(root)) return { s: 'delayed', text: 'Delayed data · 10 minutes', tag: 'Delayed 10m' };
+    if (rithLive() || (insightRealtime(root) && rtConfirmed())) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
+    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'Delayed data · 10 minutes', tag: 'Delayed 10m' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };

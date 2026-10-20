@@ -5,7 +5,7 @@
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
-import { TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
+import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -135,12 +135,36 @@ export async function onRequestGet(ctx) {
   if (res.status !== 200) return res;
   const out = new Response(res.body, res);
   out.headers.set('vary', 'Authorization');
-  if (admin) { out.headers.set('cache-control', 'private, max-age=10'); return out; }
+  // x-tz-rt / body.rt: the server's own word on THIS answer (1 = real-time lane for a verified admin,
+  // 0 = cut 10 min). The Charts badge reads it, so "Real-time" is only shown when it is true.
+  // x-tz-auth tells a signed-in browser its token was refused (expired / bad) so it can refresh and retry.
+  const hadToken = !!bearerOf(ctx.request);
+  out.headers.set('x-tz-rt', admin ? '1' : '0');
+  if (hadToken && !admin) out.headers.set('x-tz-auth', 'not-admin-or-rejected');
+  if (admin) {
+    out.headers.set('cache-control', 'private, max-age=10');
+    try {
+      const body = await out.json();
+      // honest even for an admin: the InsightSentry tail can fail (upstream refusing extra sockets), leaving only
+      // Yahoo rows ~10 min old. Then rt is 'lag', the answer is not kept, and the browser re-asks at once.
+      const nowS = Math.floor(Date.now() / 1000), u = new URL(ctx.request.url);
+      const rows = body.bars || [], last = rows.length ? rows[rows.length - 1][0] : 0;
+      const tfq = normTf(u.searchParams.get('tf') || '15'), stepS = (TIMEFRAMES[tfq] || {}).step || 0;
+      const isCur = !u.searchParams.has('page') || Number(u.searchParams.get('page')) === pageOf(tfq, nowS);
+      const checkable = isCur && stepS > 0 && stepS <= 900 && globexOpen(nowS) && globexOpen(nowS - 300);
+      body.rt = (!checkable || !last || nowS - last <= stepS * 2 + 90) ? true : 'lag';
+      if (body.rt === 'lag') out.headers.set('cache-control', 'no-store');
+      out.headers.set('x-tz-rt', body.rt === true ? '1' : 'lag');
+      const h = new Headers(out.headers); h.delete('content-length'); h.delete('content-encoding'); return new Response(JSON.stringify(body), { status: 200, headers: h });
+    } catch (e) { return out; }
+  }
   try {
     const body = await out.json();
+    body.rt = false;
     body.bars = delayRows(body.bars || [], Math.floor(Date.now() / 1000));
     const h = new Headers(out.headers);
     h.delete('content-length'); h.delete('content-encoding');
+    h.set('cache-control', hadToken ? 'private, no-store' : 'public, max-age=15, s-maxage=15');   // a signed-in caller's cut answer is never shared or kept
     return new Response(JSON.stringify(body), { status: 200, headers: h });
   } catch (e) {
     return new Response(JSON.stringify({ error: 'unavailable' }), { status: 502, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } });

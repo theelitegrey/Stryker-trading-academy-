@@ -21,7 +21,9 @@ globalThis.WebSocket = class {
   close() { this._close(1005); }
 };
 const { FuturesProvider } = await import('../../assets/chart-futures-provider.js');
-const { _rtSetForTests } = await import('../../assets/rt-access.js?v=578');
+import fs from 'node:fs';
+const rtV = /rt-access\.js\?v=(\d+)/.exec(fs.readFileSync(new URL('../../assets/chart-futures-provider.js', import.meta.url), 'utf8'))[1];   // same module instance as the provider
+const { _rtSetForTests } = await import('../../assets/rt-access.js?v=' + rtV);
 _rtSetForTests(true);   // the stream is admin only (2026-10-16)
 const p = new FuturesProvider();
 let polls = 0; p.pollSubscribe = () => { polls++; return () => {}; };

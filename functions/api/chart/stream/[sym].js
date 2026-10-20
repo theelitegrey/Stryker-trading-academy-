@@ -52,6 +52,15 @@ function barsFrom(msg, dec) {
   }
   return out;
 }
+// CME Globex session (closed Fri 17:00 ET -> Sun 18:00 ET, daily 17:00-18:00 ET).
+function cmeOpenNow(ms = Date.now()) {
+  try {
+    const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hourCycle: 'h23' }).formatToParts(new Date(ms));
+    const wd = f.find((x) => x.type === 'weekday').value, h = Number(f.find((x) => x.type === 'hour').value);
+    if (wd === 'Sat' || (wd === 'Fri' && h >= 17) || (wd === 'Sun' && h < 18)) return false;
+    return h !== 17;
+  } catch (e) { return true; }
+}
 function err(code, msg) { return new Response(JSON.stringify({ error: msg }), { status: code, headers: { 'content-type': 'application/json; charset=utf-8' } }); }
 
 export async function onRequestGet(ctx) {
@@ -87,6 +96,16 @@ export async function onRequestGet(ctx) {
   const policy = url.searchParams.get('sc') === 'disconnect' ? 'disconnect' : 'adaptive';
   let upMsgs = 0, upBars = 0;
   const statsTimer = setInterval(() => { send({ event: 'stats', up: upMsgs, bars: upBars, policy }); upMsgs = 0; upBars = 0; }, 10000);
+  // HEARTBEAT (2026-10-20, frozen candles): {event:'ping', up} every 5 s so the browser can tell a quiet
+  // market from a dead socket; up = ms since the last upstream message. If the upstream says nothing
+  // for 30 s while the CME session is open it has gone silent without closing: end the socket so the
+  // browser re-opens (and re-reads the tail) instead of sitting on a dead feed.
+  let lastUpAt = Date.now();
+  const hbTimer = setInterval(() => {
+    const up = Date.now() - lastUpAt;
+    send({ event: 'ping', t: Date.now(), up });
+    if (up > 30000 && cmeOpenNow()) close(1011, 'upstream silent');
+  }, 5000);
   const dec = decOf(SYMBOLS[sym][4]);
   // TICK MODE (ticks=1): a second leg subscribes InsightSentry's per-trade feed (bar_type 'tick') and
   // folds every trade into the forming bar of the requested timeframe, so the chart's last candle,
@@ -132,7 +151,7 @@ export async function onRequestGet(ctx) {
   const close = (code = 1000, reason = 'closed') => {
     if (closed) return;
     closed = true;
-    clearInterval(statsTimer);
+    clearInterval(statsTimer); clearInterval(hbTimer);
     if (flushTimer) clearTimeout(flushTimer);
     try { upstream && upstream.close(); } catch (e) {}
     try { server.close(code, reason); } catch (e) {}
@@ -153,7 +172,7 @@ export async function onRequestGet(ctx) {
       try { msg = JSON.parse(ev.data); } catch (e) { return; }
       const text = JSON.stringify(msg).toLowerCase();
       if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return close(1011, 'upstream rejected');
-      upMsgs++;
+      upMsgs++; lastUpAt = Date.now();
       if (msg && msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
       if (tickMode && /T$/i.test(String(msg && msg.bar_type || ''))) {
         const rowsT = Array.isArray(msg.series) ? msg.series : [];

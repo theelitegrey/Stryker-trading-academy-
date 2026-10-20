@@ -41,6 +41,13 @@ async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
     const hitT = await cache.match(tailKey);
     let tail = null, tailAge = 1e9;
     if (hitT) { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; }
+    // A request that arrives while ANOTHER request's tail fetch is running used to skip it and answer with
+    // Yahoo-only rows ~10 min old (seen under load). With no tail at all it now waits for that same fetch.
+    if (!tail && inflight.has('tail:' + k)) {
+      await Promise.race([inflight.get('tail:' + k), new Promise((r) => setTimeout(r, 9000))]);
+      const again = await cache.match(tailKey);
+      if (again) { const j = await again.json(); tail = j.bars; tailAge = now - j.at; }
+    }
     if (tailAge > 12 && !inflight.has('tail:' + k)) {
       const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
         if (rows && rows.length) { tail = tail || rows; return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 3600)); }

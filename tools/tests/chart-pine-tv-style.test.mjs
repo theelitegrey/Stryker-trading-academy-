@@ -18,6 +18,9 @@ const skip = M.cullOverlaps([r(100), r(108), r(116), r(300)]);
 check(skip.has(0) && skip.has(1) && !skip.has(2) && !skip.has(3), 'cull: stacked labels skipped, newest + separate one kept ' + JSON.stringify([...skip]));
 check(M.cullOverlaps([r(0), r(100), r(200)]).size === 0, 'cull: labels that do not touch are all kept');
 check(M.isTextOnly({ text: 'a', style: 'label_center', noFill: true }) && !M.isTextOnly({ text: 'a', style: 'label_down' }) && !M.isTextOnly({ text: 'a', style: 'circle', noFill: true }) && M.isTextOnly({ text: 'a', style: 'none' }), 'text-only detection');
+// shape culling: a same-size shape 3 px off a newer one is dropped; a far one and a bigger older one stay
+const sk = M.cullShapes([{ x: 100, y: 100, d: 14 }, { x: 160, y: 100, d: 14 }, { x: 103, y: 100, d: 14 }, { x: 100, y: 100, d: 32 }, { x: 98, y: 101, d: 10 }]);
+check(sk.size === 2 && sk.has(0) && sk.has(2), 'shape cull: shapes under a newer same-size or bigger one dropped, far + newer smaller kept ' + JSON.stringify([...sk]));
 // box text placement
 const p1 = M.boxTextPlace('left', 'top', 10, 20, 200, 100, 15);
 const p2 = M.boxTextPlace('right', 'bottom', 10, 20, 200, 100, 15);

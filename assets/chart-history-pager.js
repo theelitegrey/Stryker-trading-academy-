@@ -26,6 +26,20 @@ const CHUNK_MAX = 5000;
 const MAX_BARS = 30000;          // memory ceiling per chart
 const EXHAUSTED_MS = 120000;     // nothing older: do not ask that source again for 2 min
 const SETTLE_MS = 600;           // let a fresh load paint first
+// Pine scripts need history behind the view, like TradingView loads it: session levels (Asia /
+// London / NY highs and lows), PDH/PDL and other "previous period" drawings only appear once a
+// script has seen those periods. A 1m chart opened with 500 bars (about 8 hours) cut the
+// Liquidity Master sessions to the last few hours (Owner 2026-10-22: "the sessions are not being
+// plotted properly"). With a Pine script on the chart we load at least PINE_SPAN_S of bars
+// (capped at PINE_MAX_BARS), once per load, before anyone scrolls.
+const PINE_SPAN_S = 3 * 86400;
+const PINE_MAX_BARS = 5000;
+const TF_S = { '1': 60, '3': 180, '5': 300, '15': 900, '30': 1800, '45': 2700, '60': 3600, '120': 7200, '180': 10800, '240': 14400 };
+export function pineDepthBars(tf){
+  const s = TF_S[String(tf)];
+  return s ? Math.min(PINE_MAX_BARS, Math.ceil(PINE_SPAN_S / s)) : 0;
+}
+const hasPine = (chart) => { try { return chart.indicators().some((h) => typeof h.source === 'string' && !h.nativeType); } catch (e) { return false; } };
 
 const orchOf = (cell) => { try { return cell.chart.orchestrator; } catch (e) { return null; } };
 const replayOn = () => { try { return !!(window.__stkReplay && window.__stkReplay.on); } catch (e) { return false; } };
@@ -51,13 +65,20 @@ function attach(cell) {
 
   function check() {
     st.raf = 0;
-    const r = st.last; if (!r || st.busy || replayOn()) return;
+    const r = st.last; if (st.busy || replayOn()) return;
     const m = o.config && o.config.market;
     const bars = o.rawBars;
     if (!m || (m.data && m.data.length) || !bars || bars.length < 2 || bars.length >= MAX_BARS) return;
     if (o.switchingMarket || o.historyState !== 'complete' || !o.historyCompleted) return;
     if (typeof o.feed.loadRange !== 'function') return;
     if (Date.now() - st.loadedAt < SETTLE_MS) { schedule(SETTLE_MS); return; }
+    const need = hasPine(chart) ? pineDepthBars(m.timeframe) : 0;
+    if (need > bars.length) {
+      const k0 = keyOf() + '|' + bars[0].time;
+      const ex0 = st.exhausted.get(k0);
+      if (!(ex0 && Date.now() - ex0 < EXHAUSTED_MS)) { load(need - bars.length, k0); return; }
+    }
+    if (!r) return;
     const left = lowerBound(bars, r.from);
     const right = Math.max(left + 1, lowerBound(bars, r.to));
     const vis = right - left;
@@ -93,6 +114,7 @@ function attach(cell) {
     stats.loaded += Math.max(0, got);
     stats.last = { key: k, before, after: o.rawBars.length, oldest: o.rawBars[0] && o.rawBars[0].time, at: Date.now() };
     if (!(o.rawBars[0] && o.rawBars[0].time < oldest)) { st.exhausted.set(k, Date.now()); stats.genesis++; return; }
+    stats.pine = hasPine(chart) ? (stats.pine || 0) + 1 : stats.pine;
     // Still close to the edge (fast drag, far zoom-out): keep going.
     schedule(0);
   }
@@ -102,6 +124,7 @@ function attach(cell) {
     st.raf = ms ? setTimeout(() => { st.raf = 0; check(); }, ms) : requestAnimationFrame(check);
   }
 
+  st.kick = () => schedule(SETTLE_MS);   // chart-pine.js: a Pine script was added
   try {
     chart.on('viewport:changed', (r) => { st.last = r; if (!st.busy) schedule(0); });
     chart.on('load:end', () => { st.loadedAt = Date.now(); schedule(SETTLE_MS + 50); });

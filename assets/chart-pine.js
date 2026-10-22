@@ -358,7 +358,13 @@ function holdVelaErrors(list){
 
 async function runOnChart(chart, source, inputs, shared, opts){
   pageBusy(true);
-  try { return await runOnChartInner(chart, source, inputs, shared, opts); }
+  try {
+    const r = await runOnChartInner(chart, source, inputs, shared, opts);
+    // Load history behind the view for the script's sessions / previous-day levels, like TV
+    // (assets/chart-history-pager.js, pineDepthBars). Saved layouts get it from load:end.
+    if (r && r.ok) { try { chart.__stkPager && chart.__stkPager.kick(); } catch (e) {} }
+    return r;
+  }
   finally { pageBusy(false); }
 }
 async function runOnChartInner(chart, source, inputs, shared, opts){

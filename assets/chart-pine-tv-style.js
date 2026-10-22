@@ -58,11 +58,27 @@ export function cullOverlaps(items){
   const kept = [], skip = new Set();
   for (let i = items.length - 1; i >= 0; i--) {
     const r = items[i] && items[i].rect; if (!r) continue;
-    if (kept.some((k) => overlaps(k, r))) { skip.add(i); continue; }
+    if (kept.some((k) => overlaps(k, r, TEXT_GAP))) { skip.add(i); continue; }
     kept.push(r);
   }
   return skip;
 }
+// Point shapes (plotshape circles etc.) that would sit almost on top of a newer, same-size or
+// bigger shape add nothing but a blob (Volume Bubbles in a busy minute). items: [{ x, y, d }] in
+// paint order, newest last; returns the indexes to skip. A shape is skipped when its centre is
+// within COVER of the kept shape's radius and it is not bigger.
+export const COVER = 0.6;
+export function cullShapes(items){
+  const kept = [], skip = new Set();
+  for (let i = items.length - 1; i >= 0; i--) {
+    const a = items[i]; if (!a) continue;
+    const hit = kept.some((k) => a.d <= k.d && Math.hypot(a.x - k.x, a.y - k.y) < COVER * k.d / 2 + 0.5);
+    if (hit) { skip.add(i); continue; }
+    kept.push(a);
+  }
+  return skip;
+}
+export const TEXT_GAP = 3;   // px kept free between two painted text labels
 // Box text block origin inside a box (TV: text_halign / text_valign, small padding).
 export function boxTextPlace(hAlign, vAlign, left, top, w, h, blockH){
   const x = hAlign === 'left' ? left + BOX_PAD : hAlign === 'right' ? left + w - BOX_PAD : left + w / 2;
@@ -78,12 +94,12 @@ function patchScene(proto){
   proto.drawLabels = function (ctx, W, H, xOf, yOf) {
     if (typeof this.drawBubble !== 'function' || typeof this.drawLabelShape !== 'function' || typeof this.drawLabelText !== 'function') return origLabels.apply(this, arguments);
     const theme = (this.deps && this.deps.theme) || {};
-    const pos = [], cull = [];
+    const pos = [], cull = [], pts = [];
     const labels = this.set.labels || [];
     for (let i = 0; i < labels.length; i++) {
       const lb = labels[i];
       const px = xOf(this.logicalOf(lb.xloc, lb.x));
-      if (px < -50 || px > W + 50) { pos.push(null); cull.push(null); continue; }
+      if (px < -50 || px > W + 50) { pos.push(null); cull.push(null); pts.push(null); continue; }
       let py;
       if (lb.yloc === 'price') py = yOf(lb.y);
       else if (lb.yloc === 'top') py = 14;
@@ -95,8 +111,9 @@ function patchScene(proto){
         const off = isPointShape(lb.style) ? shapePx(lb.size) / 2 + 4 : 14;
         py = base == null ? null : base + (lb.yloc === 'abovebar' ? -off : off);
       }
-      if (py == null) { pos.push(null); cull.push(null); continue; }
+      if (py == null) { pos.push(null); cull.push(null); pts.push(null); continue; }
       pos.push([px, py]);
+      pts.push(isPointShape(lb.style) && !lb.noFill ? { x: px, y: py, d: shapePx(lb.size) } : null);
       if (isTextOnly(lb)) {
         const f = textPx(lb.size), lines = lb.text.split('\n');
         const font = this.labelFont(lb, f);
@@ -105,6 +122,7 @@ function patchScene(proto){
       } else cull.push(null);
     }
     const skip = cullOverlaps(cull);
+    const skipShape = cullShapes(pts);
     this.tipRegions = this.tipRegions || [];
     for (let i = 0; i < labels.length; i++) {
       const p = pos[i]; if (!p) continue;
@@ -114,7 +132,7 @@ function patchScene(proto){
       if (isPointShape(lb.style)) {
         const d = shapePx(lb.size);
         // drawLabelShape's radius is max(4, 0.6 x its size argument): pass d / 1.2 for radius d / 2.
-        if (!lb.noFill) this.drawLabelShape(ctx, lb.style, px, py, d / 1.2, color);
+        if (!lb.noFill && !skipShape.has(i)) this.drawLabelShape(ctx, lb.style, px, py, d / 1.2, color);
         if (lb.text) {
           const n = lb.text.split('\n').length, half = f * 1.25 * n / 2;
           const dy = d / 2 + 2 + half;

@@ -14522,7 +14522,9 @@ function labelLayout(d, proj) {
       // TradeZoro patch (dsp): text inside the box at its alignment (TradingView), default middle/center.
       if (pts.length < 2) return null;
       const pad = 6;
-      const l = Math.min(pts[0][0], pts[1][0]), r = Math.max(pts[0][0], pts[1][0]);
+      let l = Math.min(pts[0][0], pts[1][0]), r = Math.max(pts[0][0], pts[1][0]);
+      if (d.style?.extendLeft) l = 0;
+      if (d.style?.extendRight && proj.width) r = Math.max(r, proj.width);
       const t = Math.min(pts[0][1], pts[1][1]), bt = Math.max(pts[0][1], pts[1][1]);
       const v = text.stkV || "middle", hz = text.stkH || "center";
       const top = v === "top" ? t + pad : v === "bottom" ? bt - pad - lh * lines : (t + bt) / 2 - lh * lines / 2;
@@ -15367,7 +15369,8 @@ var dashIcon = (s) => `<svg viewBox="0 0 18 14" width="18" height="14" fill="non
 // TradeZoro patch (dsp): TradingView's drawing settings window (tabs, text styling, template).
 var STK_DSP_CSS = `
 .vela-dialog.vela-dsp { width: 380px; }
-.vela-dsp .vela-dialog-title { font-size: 18px; font-weight: 600; }
+.vela-dsp .vela-dialog-title { font-size: 18px; font-weight: 600; flex: 0 1 auto; }
+.vela-dsp .stk-dsp-pen { margin-right: auto; }
 .stk-dsp-pen { all: unset; cursor: pointer; display: flex; padding: 4px; border-radius: 4px; color: var(--vela-fg-muted); flex: none; }
 .stk-dsp-pen:hover { color: var(--vela-fg-bright); background: var(--vela-hover); }
 .stk-dsp-name { font: inherit; font-size: 16px; font-weight: 600; width: 200px; background: transparent; color: var(--vela-fg-bright); border: 1px solid var(--vela-border-strong); border-radius: 4px; padding: 2px 6px; }
@@ -15769,9 +15772,15 @@ var DrawingSettingsPanel = class {
     ext.el.style.flex = "1";
     b.watch(ext.sync);
     rows.push(row(this.t(TEXT9.extend), ext.el));
+    const stkW = () => {
+      const w = stkSelect([1, 2, 3, 4].map((n) => ({ value: n, label: `${n}px` })), () => st().lineWidth ?? 1, (v) => b.edit({ "style.lineWidth": Number(v) }), this.t(TEXT9.lineWidth));
+      w.el.style.width = "68px";
+      b.watch(w.sync);
+      return w.el;
+    };
     rows.push(row("Border",
       this.swatch(b, "Border color", () => st().lineColor || DEFAULT_DRAWING_COLOR, "style.lineColor"),
-      this.seg(b, this.t(TEXT9.lineWidth), [1, 2, 3, 4].map((w) => ({ value: w, html: widthIcon(w), title: `${w}px` })), () => st().lineWidth, (v) => b.edit({ "style.lineWidth": v })),
+      stkW(),
       this.seg(b, this.t(TEXT9.lineStyle), LINE_STYLE_OPTIONS.map((o) => ({ value: o.value, html: dashIcon(o.value), title: this.t(o.label) })), () => st().lineStyle ?? "solid", (v) => b.edit({ "style.lineStyle": v }))));
     const mid = stkCheck("Middle line", () => st().midLine, (on) => b.edit({ "style.midLine": on }));
     b.watch(mid.sync);

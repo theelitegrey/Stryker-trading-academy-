@@ -66,9 +66,11 @@
 // goes in a NEW folder (-s3) and
 // the charts.html import map ("@luxalgo/vela/plugin") must move with it, or
 // the Pine engine gets a second copy of Vela's registries.
-// VELA 0.9.0 TRIAL (CoS order 2026-10-22): admins can switch to the upgraded engine in
+// VELA 0.9.0 (CoS order 2026-10-22; DEFAULT FOR EVERYONE since build 625, Owner "push test
+// version live"; rollback: ?vela=0.6 per browser, or VELA090_DEFAULT in charts.html for all).
+// Was an admin trial: the upgraded engine in
 // assets/vendor/vela-0.9.0-s4/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
-// TradingView-feel fixes). Members stay on 0.6.17-s3. The inline script in charts.html picks the
+// TradingView-feel fixes). The inline script in charts.html picks the
 // folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
 // 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
 const VELA090 = window.__stkVela090 === true;
@@ -80,28 +82,6 @@ const TV_LOOK_VER = '1';
 const PERSIST_KEY = VELA090 ? 'vela-workspace-090' : 'vela-workspace';
 window.__stkPersistKey = PERSIST_KEY;
 if (VELA090) {
-  // Admin-only trial: a member who set the flag (?vela=0.9) goes back to 0.6.17 once the
-  // admin check (admins/{uid}, same as the Pine library) answers no.
-  let tries = 0;
-  const guard = setInterval(() => {
-    tries++;
-    let L = null, u = null;
-    try { L = window.StrykerPineLibrary; u = window.firebase && firebase.auth().currentUser; } catch (e) {}
-    if (L && L.isAdmin && u) {
-      clearInterval(guard);
-      L.isAdmin().then((a) => {
-        if (a) return;
-        // Not an admin: drop the flag, remember the refusal for this tab (so ?vela=0.9 in the URL
-        // can't switch it back on and loop), strip the query, reload once onto 0.6.17.
-        try { localStorage.removeItem('stryker_vela090'); sessionStorage.setItem('stryker_vela090_no', '1'); } catch (e) {}
-        try { const url = new URL(location.href); url.searchParams.delete('vela'); history.replaceState(null, '', url.pathname + url.search + url.hash); } catch (e) {}
-        location.reload();
-      }).catch(() => {});
-    } else if (tries > 45) {
-      clearInterval(guard);
-      try { localStorage.removeItem('stryker_vela090'); } catch (e) {}
-    }
-  }, 2000);
   // First run on 0.9.0: start from the member's 0.6.17 session (0.9.0 reads old saves).
   try { if (!localStorage.getItem(PERSIST_KEY) && localStorage.getItem('vela-workspace')) localStorage.setItem(PERSIST_KEY, localStorage.getItem('vela-workspace')); } catch (e) {}
 }

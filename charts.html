@@ -83,19 +83,23 @@
      names below. "@luxalgo/vela/plugin" MUST resolve to the exact same URL vela-chart.js
      loads (one module instance = one set of Vela registries). pinets is AGPL-3.0 and is
      loaded unmodified, only when the Pine editor or a Pine indicator is used. -->
-<!-- VELA 0.9.0 TRIAL (2026-10-22): admins may switch the engine to vendor/vela-0.9.0-s4 (Chart
-     settings > Admin, or ?vela=0.9 / ?vela=0.6). The choice must be made here, before any module
-     loads, because the import map has to point at the same folder vela-chart.js imports. A
-     member who sets the flag is switched back once the admin check says no (vela-chart.js). -->
+<!-- VELA 0.9.0 FOR EVERYONE (Owner "push test version live", 2026-10-22): the 0.9.0 engine
+     (vendor/vela-0.9.0-s4) is the default for every visitor. Rollback switches:
+       - one user:  open /charts?vela=0.6 (kept in localStorage 'stryker_vela06'); ?vela=0.9 undoes it.
+       - everyone:  set VELA090_DEFAULT = false below (and bump the build); ?vela=0.9 then still
+                    opts one browser in ('stryker_vela090').
+     The choice must be made here, before any module loads, because the import map has to point
+     at the same folder vela-chart.js imports. -->
 <script>
 (function(){
-  var on = false;
+  var VELA090_DEFAULT = true;
+  var on = VELA090_DEFAULT;
   try {
     var q = new URLSearchParams(location.search).get('vela');
-    var no = sessionStorage.getItem('stryker_vela090_no') === '1';
-    if ((q === '0.9' || q === '090') && !no) localStorage.setItem('stryker_vela090', '1');
-    else if (q === '0.6' || q === 'off') localStorage.removeItem('stryker_vela090');
-    on = !no && localStorage.getItem('stryker_vela090') === '1';
+    if (q === '0.9' || q === '090') { localStorage.removeItem('stryker_vela06'); localStorage.setItem('stryker_vela090', '1'); }
+    else if (q === '0.6' || q === 'off') { localStorage.setItem('stryker_vela06', '1'); localStorage.removeItem('stryker_vela090'); }
+    on = localStorage.getItem('stryker_vela06') === '1' ? false : (VELA090_DEFAULT || localStorage.getItem('stryker_vela090') === '1');
+    sessionStorage.removeItem('stryker_vela090_no');
   } catch (e) {}
   window.__stkVela090 = on;
   var V = on ? '/assets/vendor/vela-0.9.0-s4/' : '/assets/vendor/vela-0.6.17-s3/';

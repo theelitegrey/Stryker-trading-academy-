@@ -330,10 +330,10 @@ function ourSections(id){
     { kind: 'heading', label: 'Admin' },
     { kind: 'toggle', label: 'Hide replay markings (admin)', id: 'rhide', get: g('rhide'), set: st('rhide'),
       title: 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.' },
-    { kind: 'toggle', label: 'New chart engine 0.9 (admin trial)', id: 'vela090',
+    { kind: 'toggle', label: 'Chart engine 0.9 (off = old 0.6 engine, this browser)', id: 'vela090',
       get: () => window.__stkVela090 === true,
-      set: (v) => { try { if (v) localStorage.setItem('stryker_vela090', '1'); else localStorage.removeItem('stryker_vela090'); } catch (e) {} setTimeout(() => location.reload(), 150); },
-      title: 'Admins only. Reloads Charts on the upgraded engine (TradingView-like zoom, scroll, axis drag, drag-to-draw, magnet). Members stay on the current engine. Turn off to go back.' }
+      set: (v) => { try { if (v) { localStorage.removeItem('stryker_vela06'); localStorage.setItem('stryker_vela090', '1'); } else { localStorage.setItem('stryker_vela06', '1'); localStorage.removeItem('stryker_vela090'); } } catch (e) {} setTimeout(() => location.reload(), 150); },
+      title: '0.9 is the engine for everyone. Turn off to reload this browser on the old 0.6 engine (same as opening /charts?vela=0.6). Turn on to go back to 0.9.' }
   ] : [];
   const off = (label) => ({ kind: 'toggle', label, get: () => false, set: () => {}, id: 'stk-off-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
   return [

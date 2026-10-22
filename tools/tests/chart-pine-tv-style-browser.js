@@ -27,9 +27,9 @@ const IGNORE = /WebSocket connection to|ERR_FAILED|ERR_CONNECTION|WebGL|GroupMar
     if (process.env.TRACE) await ctx.addInitScript(() => {
       window.__trace = [];
       const pm = Worker.prototype.postMessage;
-      Worker.prototype.postMessage = function (m, ...r) { try { if (m && m.kind && m.kind !== 'fetchSeriesResult') window.__trace.push('> ' + m.kind + (m.reason ? ':' + m.reason : '') + (m.bars ? ' bars=' + m.bars.length : '') + (m.req && m.req.bars ? ' bars=' + m.req.bars.length + ' hs=' + m.req.historyState : '')); } catch (e) {} return pm.call(this, m, ...r); };
+      Worker.prototype.postMessage = function (m, ...r) { try { if (m && m.kind && m.kind !== 'fetchSeriesResult') window.__trace.push(((performance.now()/1000)|0) + 's > ' + m.kind + (m.reason ? ':' + m.reason : '') + (m.bars ? ' bars=' + m.bars.length : '') + (m.req && m.req.bars ? ' bars=' + m.req.bars.length + ' hs=' + m.req.historyState + ' market=' + JSON.stringify(m.req.market) + ' inputs=' + JSON.stringify(m.req.inputs).slice(0, 300) : '')); if (m && m.kind === 'execute') window.__execReq = m.req; } catch (e) {} return pm.call(this, m, ...r); };
       const ael = Worker.prototype.addEventListener;
-      Worker.prototype.addEventListener = function (t, f, ...r) { if (t === 'message' && !this.__tap) { this.__tap = 1; ael.call(this, 'message', (e) => { const m = e.data || {}; if (m.kind === 'model' || m.kind === 'done' || m.kind === 'error') window.__trace.push('< ' + m.kind + (m.model ? ' labels=' + (m.model.labels || []).length + ' lines=' + (m.model.lines || []).length : '') + (m.message ? ' ' + m.message : '')); }); } return ael.call(this, t, f, ...r); };
+      Worker.prototype.addEventListener = function (t, f, ...r) { if (t === 'message' && !this.__tap) { this.__tap = 1; ael.call(this, 'message', (e) => { const m = e.data || {}; if (m.kind === 'model' || m.kind === 'done' || m.kind === 'error') window.__trace.push(((performance.now()/1000)|0) + 's < ' + m.kind + (m.model ? ' labels=' + (m.model.labels || []).length + ' lines=' + (m.model.lines || []).length : '') + (m.message ? ' ' + m.message : '')); }); } return ael.call(this, t, f, ...r); };
     });
     await ctx.addInitScript(() => { try { localStorage.setItem('stryker_community_disclaimer_ack_v1', JSON.stringify({ _anon: 1, u1: 1 })); } catch (e) {} });
     await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
@@ -74,6 +74,7 @@ const IGNORE = /WebSocket connection to|ERR_FAILED|ERR_CONNECTION|WebGL|GroupMar
         }));
         if (process.env.ZOOM) await p.evaluate((z) => { try { const c = window.STRYKER_VELA.context().cells[0].chart; const b = c.orchestrator.rawBars; c.setVisibleRange({ from: b[Math.max(0, b.length - +z)].time, to: b[b.length - 1].time + 60000 * 20 }); } catch (e) { console.log('zoom', e); } }, process.env.ZOOM);
         if (process.env.TRACE) console.log((await p.evaluate(() => window.__trace.splice(0))).join('\n'));
+        if (process.env.DUMP) fs.writeFileSync(process.env.DUMP, JSON.stringify(await p.evaluate(() => window.__execReq)));
         await p.waitForTimeout(800);
         const file = `${OUT}/${id}-NQ-${tf}-${W}.png`;
         await p.screenshot({ path: file });

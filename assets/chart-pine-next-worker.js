@@ -187,6 +187,28 @@ function tick(s){
   if (!wait) go(); else s.tickTimer = setTimeout(go, wait);
 }
 
+// History grew under a live (streaming) script: 'complete' restarts the stream on the whole
+// bar set. Since the scroll-back pager (613) and the Pine depth load (620) one load can
+// report 'complete' more than once, and every restart threw away a run that was still
+// computing (Liquidity Master on 4k 1m bars needs ~10 s), so the script kept showing its
+// first 500-bar result and the session / previous-day levels never appeared. Now the
+// 'complete' signals are coalesced (LIVE_COMPLETE_MS) and the stream restarts once, only when
+// the bar set really changed (first bar time / count).
+const LIVE_COMPLETE_MS = 400;
+const barsKey = (b) => b && b.length ? b.length + '|' + b[0].time : '0';
+function liveBars(s, reason){
+  if (reason !== 'complete') { s.handle.notifyBars(reason); return; }
+  clearTimeout(s.completeTimer);
+  s.completeTimer = setTimeout(() => {
+    s.completeTimer = null;
+    if (s.stopped) return;
+    const k = barsKey(s.bars);
+    if (k === s.liveKey) return;          // same bars the stream already runs on
+    s.liveKey = k;
+    s.handle.notifyBars('complete');
+  }, LIVE_COMPLETE_MS);
+}
+
 self.addEventListener('message', async (ev) => {
   const msg = ev.data || {};
   switch (msg.kind) {
@@ -211,7 +233,7 @@ self.addEventListener('message', async (ev) => {
       const deferred = req.historyState === 'backfill';
       s.deferred = deferred;
       if (!s.live && !deferred) { s.busy = true; runStarted(s); }
-      if (s.live && !deferred) { s.restarting = Date.now(); runStarted(s); }
+      if (s.live && !deferred) { s.restarting = Date.now(); runStarted(s); s.liveKey = barsKey(s.bars); }
       s.handle = eng.execute(req, {
         // Static runs started before the latest settings change carry the old inputs: drop
         // their model, the queued re-run with the new inputs follows straight after.
@@ -247,7 +269,7 @@ self.addEventListener('message', async (ev) => {
       const s = sessions.get(msg.sessionId); if (!s || !s.handle) return;
       if (Array.isArray(msg.bars)) s.bars = msg.bars;
       if (msg.reason === 'backfill') return;
-      if (s.live) { s.handle.notifyBars(msg.reason); return; }
+      if (s.live) { liveBars(s, msg.reason); return; }
       const reason = msg.reason;
       if (reason === 'complete') s.deferred = false;
       if (!reason) { tick(s); return; }

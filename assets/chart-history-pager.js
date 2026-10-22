@@ -30,9 +30,11 @@ const SETTLE_MS = 600;           // let a fresh load paint first
 // London / NY highs and lows), PDH/PDL and other "previous period" drawings only appear once a
 // script has seen those periods. A 1m chart opened with 500 bars (about 8 hours) cut the
 // Liquidity Master sessions to the last few hours (Owner 2026-10-22: "the sessions are not being
-// plotted properly"). With a Pine script on the chart we load at least PINE_SPAN_S of bars
-// (capped at PINE_MAX_BARS), once per load, before anyone scrolls.
-const PINE_SPAN_S = 3 * 86400;
+// plotted properly"). With a Pine script on the chart we load at least PINE_SPAN_S worth of
+// bars (counted in bars, so weekends don't eat it; capped at PINE_MAX_BARS), once per load.
+// Two trading days covers the previous day's sessions and PDH/PDL; more only slows the
+// first full run (Liquidity Master: ~5 ms per 1m bar in the worker, every bar is script work).
+const PINE_SPAN_S = 2 * 86400;
 const PINE_MAX_BARS = 5000;
 const TF_S = { '1': 60, '3': 180, '5': 300, '15': 900, '30': 1800, '45': 2700, '60': 3600, '120': 7200, '180': 10800, '240': 14400 };
 export function pineDepthBars(tf){

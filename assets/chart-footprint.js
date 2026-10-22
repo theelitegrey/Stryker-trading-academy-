@@ -23,6 +23,7 @@ import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, 
 
 import { rtHeadersReady } from './rt-access.js?v=623';
 import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=623';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=623';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';
@@ -691,13 +692,19 @@ export function installFootprint(Core, flowMod) {
     Core.registerNativeIndicator({ type, title: d.title, shortTitle: d.short, paneHint: d.pane, overlay: d.overlay,
       reactsToViewport: type === 'stk_of_vp', inputsSchema: () => d.schema, defaultInputs: () => defaults(d.schema), create: () => new OfNative(type) });
   }
+  // The Delta suite (assets/chart-delta-suite.js): same data, same timers, same plan rules.
+  installDeltaSuite(Core, {
+    flowFor, rootOf, sessionOf, version: () => version,
+    subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
+    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
+  });
   linkFlow(flowMod);
 }
 // the picker group + the "stryker" badge + settings persistence (assets/chart-orderflow.js); that module
 // loads lazily, so this is called again once it is here.
 function linkFlow(flowMod) {
   if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
-  for (const type of OF_TYPES) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
+  for (const type of OF_TYPES.concat(DS_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

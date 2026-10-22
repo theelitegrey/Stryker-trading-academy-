@@ -7572,7 +7572,7 @@ function wheelPanRightOffset(rightOffset, deltaX, barSpacing) {
   return rightOffset + deltaX / barSpacing;
 }
 function wheelPanDelta(deltaX, deltaY, shift2) {
-  if (isHorizontalWheel(deltaX, deltaY)) return deltaX * 0.8;
+  if (isHorizontalWheel(deltaX, deltaY)) return shift2 ? -deltaX * 0.8 : deltaX * 0.8;
   if (shift2) return -deltaY * 0.8;
   return null;
 }

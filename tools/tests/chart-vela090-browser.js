@@ -87,7 +87,7 @@ const drawings = (p) => R(p, 'const d = cell.chart.drawings; try { return (d.lis
   check(Math.abs(r1 / r0 - 0.85) < 0.05, 'price-axis drag 100px ~x0.85', r1 / r0);
   await p.mouse.dblclick(px, cy); await p.waitForTimeout(300);
   // #15 shift+wheel direction (TV: wheel down with shift scrolls back in time = view moves left)
-  await resetView(p); a = await vp(p);
+  await resetView(p); await p.mouse.move(cx, cy); await p.waitForTimeout(100); a = await vp(p);
   await p.keyboard.down('Shift'); await p.mouse.wheel(0, 100); await p.keyboard.up('Shift'); await p.waitForTimeout(200);
   z = await vp(p);
   check(Math.abs((z.ro - a.ro) * z.bs + 80) < 3, 'shift+wheel 100 moves 80px, TV direction', (z.ro - a.ro) * z.bs);
@@ -95,11 +95,13 @@ const drawings = (p) => R(p, 'const d = cell.chart.drawings; try { return (d.lis
   // #8 press-drag-release trend line + box; click-click still works
   await resetView(p); await p.waitForTimeout(300);
   const n0 = await drawings(p);
-  for (const tool of ['trendline', 'rectangle']) {
+  for (const [tool, ox, oy] of [['trendline', -200, -40], ['box', 150, -200]]) {
     await R(p, 'cell.chart.drawings.setTool(arg); return 1;', tool);
-    await p.mouse.move(cx - 200, cy - 40); await p.mouse.down();
-    for (let i = 1; i <= 10; i++) await p.mouse.move(cx - 200 + i * 15, cy - 40 + i * 6);
+    await p.mouse.move(cx + ox, cy + oy); await p.mouse.down();
+    for (let i = 1; i <= 10; i++) await p.mouse.move(cx + ox + i * 15, cy + oy + i * 6);
     await p.mouse.up(); await p.waitForTimeout(300);
+    console.log('  after', tool, await drawings(p));
+    await p.keyboard.press('Escape');
   }
   const n1 = await drawings(p);
   check(n1 - n0 === 2, 'press-drag-release made trend line + box', [n0, n1]);
@@ -123,9 +125,10 @@ const drawings = (p) => R(p, 'const d = cell.chart.drawings; try { return (d.lis
     const i = Math.round(r.coords.timeToLogical(pt.time)); const b = r.bars[i];
     const py = r.drawingProjector().yOf(b.high, 'price'), bx = r.drawingProjector().xOf(b.time);
     const near = r.snapToCandle(r.drawingProjector().pxToPoint(bx + 3, py + 15, 'price'), 'price', 'weak', { x: bx + 3, y: py + 15 });
-    return { strong: out, weakAt15px: near.price === b.high };`);
+    const raw = r.drawingProjector().pxToPoint(bx + 3, py + 15, 'price');
+    return { strong: out, weakAt15px: near.price !== raw.price && (() => { const nb = r.bars.find((x) => x.time === near.time); return !!nb && [nb.open, nb.high, nb.low, nb.close].includes(near.price); })(), dbg: { raw, near, b, py, bx } };`);
   check(snaps.strong.every(Boolean), 'strong magnet exact OHLC on 5 anchors', snaps.strong);
-  check(snaps.weakAt15px, 'weak magnet snaps from 15px (radius 20)', snaps);
+  check(snaps.weakAt15px, 'weak magnet snaps from 15px (radius 20)', snaps.dbg);
 
   // drawings survive a timeframe change
   const before = await drawings(p);

@@ -169,7 +169,7 @@ edit(C, 'var PRICE_SCALE_K = 4e-3;', '// TradeZoro patch (s1): ln(1/0.85)/100, T
 edit(C, '''function wheelPanDelta(deltaX, deltaY, shift2) {
   if (isHorizontalWheel(deltaX, deltaY)) return deltaX;
   if (shift2) return deltaY;''', '''function wheelPanDelta(deltaX, deltaY, shift2) {
-  if (isHorizontalWheel(deltaX, deltaY)) return deltaX * 0.8;
+  if (isHorizontalWheel(deltaX, deltaY)) return shift2 ? -deltaX * 0.8 : deltaX * 0.8;
   if (shift2) return -deltaY * 0.8;''')
 # #3 zoom steps instantly (no 70 ms ease, which took ~700 ms to settle).
 edit(C, 'var ZOOM_EASE_DEFAULT_MS = 70;', '// TradeZoro patch (s1): instant zoom like TradingView (was a 70 ms ease).\nvar ZOOM_EASE_DEFAULT_MS = 0;')

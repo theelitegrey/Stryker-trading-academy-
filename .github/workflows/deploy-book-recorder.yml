@@ -149,5 +149,5 @@ jobs:
             [ "$ih" = 200 ] && break; sleep 20
           done
           echo "is-health: HTTP $ih $(jq -c '{state, window3h, limit3h, configured}' /tmp/ish.json 2>/dev/null)"; test "$ih" = 200
-          il=$(curl -s -o /dev/null -w '%{http_code}' -H 'Upgrade: websocket' -H 'Connection: Upgrade' "$URL/is-live?legs=CME_MINI:NQ1!|minute|1")
+          il=$(curl -s -o /dev/null -w '%{http_code}' --http1.1 --max-time 10 -H 'Upgrade: websocket' -H 'Connection: Upgrade' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "$URL/is-live?legs=CME_MINI:NQ1!|minute|1")
           echo "is-live without token: HTTP $il"; test "$il" = 403

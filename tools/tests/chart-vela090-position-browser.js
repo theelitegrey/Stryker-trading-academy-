@@ -50,7 +50,9 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
     if (vp.width < 600) await p.touchscreen.tap(X(at.x + 30), Y((info.h[0][1] + info.h[2][1]) / 2));
     else await p.mouse.click(X(at.x + 60), Y((info.h[0][1] + info.h[2][1]) / 2));
     await p.waitForTimeout(400);
-    const selected = await R('return [...(r.userDrawings.targets?.selected || [])];');
+    const selected = await R('return [...(r.userDrawings.selectedIds || [])];');
+    const lab = await R(`const u = r.userDrawings; const d = u.drawings.find((x) => x.type === "position"); const pr = u.painter; const c = document.createElement("canvas").getContext("2d"); const calls = []; const ft = c.fillText.bind(c); c.fillText = (t, ...a) => { calls.push(t); return ft(t, ...a); }; pr.targets = { selected: new Set([d.id]) }; try { pr.paintPosition(c, d, r.drawingProjector(), u.deps.theme()); } catch (e) { return "ERR " + e.message + " " + (e.stack || "").split("\\n")[1]; } finally { pr.targets = {}; } return calls;`);
+    check(Array.isArray(lab) && lab.some((t) => /^Target: /.test(t)) && lab.some((t) => /Risk\/Reward Ratio/.test(t)) && lab.some((t) => /^Stop: /.test(t)), vp.tag + ' TradingView labels painted when selected', lab);
     check(selected.includes(info.id), vp.tag + ' click inside selects the position', selected);
     const top = Math.min(...info.h.map((q) => q[1])) - 60, bot = Math.max(...info.h.map((q) => q[1])) + 60;
     const left = Math.max(0, info.h[0][0] - 120);
@@ -80,8 +82,8 @@ const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FA
       await p.waitForTimeout(500);
       const tabs = await p.evaluate(() => [...document.querySelectorAll('.stk-dsp-tabs [role=tab]')].map((t) => t.textContent.trim()));
       check(tabs.join(',') === 'Inputs,Style,Coordinates,Visibility', 'settings tabs Inputs / Style / Coordinates / Visibility', tabs);
-      const unitOpts = await p.evaluate(() => { const out = new Set(); for (const s of document.querySelectorAll('.vela-dsp-grid select, .vela-dsp-grid [role=listbox], .vela-dsp-grid option')) out.add(s.textContent.trim()); return [...out].join('|'); });
-      check(/Ticks/.test(unitOpts) || /Ticks/.test(await p.evaluate(() => document.body.innerText)), 'stop / target can be typed in ticks', unitOpts.slice(0, 120));
+      const tk = await R('const d = r.userDrawings.drawings.find((x) => x.type === "position"); const pts = d.levelDisplayValue("target", "points"); const ticks = d.levelDisplayValue("target", "ticks"); const back = d.levelPriceFromDisplay("target", "ticks", ticks); return { pts, ticks, back, tgt: d.targetPrice };');
+      check(Number.isInteger(tk.ticks) && Math.abs(tk.back - tk.tgt) < 0.3, 'stop / target can be typed in ticks (round trip)', tk);
       await p.screenshot({ path: `${OUT}/position-1440-inputs.png` });
       await p.evaluate(() => { const t = [...document.querySelectorAll('.stk-dsp-tabs [role=tab]')].find((x) => x.textContent.trim() === 'Style'); t && t.click(); });
       await p.waitForTimeout(300);

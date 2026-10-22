@@ -252,14 +252,15 @@ edit(C, '''  paintPosition(ctx, d, proj, theme) {
     const risk = Math.abs(p.entry - p.stop);
     const reward = Math.abs(p.target - p.entry);
     let qty = risk > 1e-12 ? d.dollarLoss() / (risk * pv) : 0;
-    if (sp && sp.qtyStep > 0) qty = Math.floor(qty / sp.qtyStep + 1e-9) * sp.qtyStep;
+    // whole contracts when the risk buys at least one; below that keep the fraction (TradingView)
+    if (sp && sp.qtyStep > 0 && qty >= sp.qtyStep) qty = Math.floor(qty / sp.qtyStep + 1e-9) * sp.qtyStep;
     const dec = sp ? Math.min(8, sp.decimals) : Math.abs(p.entry) >= 100 ? 2 : Math.abs(p.entry) >= 1 ? 4 : 6;
-    const num = (n, k) => n.toLocaleString("en-US", { minimumFractionDigits: k, maximumFractionDigits: k });
+    const num = (n, k) => { const r = Number(n.toFixed(k)); return (r === 0 ? 0 : r).toLocaleString("en-US", { minimumFractionDigits: k, maximumFractionDigits: k }); };
     const pts = (n) => num(n, dec);
     const pct = (n) => p.entry ? num(n / Math.abs(p.entry) * 100, 2) : "0.00";
     const tk = (n) => tick ? " " + num(Math.round(n / tick), 0) : "";
     const amt = (n) => num(n * qty * pv, 2);
-    const qtyTxt = sp && sp.qtyStep >= 1 ? num(qty, 0) : num(qty, qty >= 100 ? 2 : 4);
+    const qtyTxt = sp && sp.qtyStep >= 1 && qty >= 1 ? num(qty, 0) : num(qty, qty >= 100 ? 2 : qty >= 1 ? 2 : 4);
     const compact = d.style?.stkCompact === true;
     const pnl = run ? (run.price - p.entry) * dir * qty * pv : 0;
     const status = run && run.status !== "open" ? "Closed" : "Open";
@@ -372,6 +373,19 @@ edit(C, '''  /** Text tab: colour, size (px), B, I; the words; alignment (Tradin
     return block(null, ...rows);
   }
   /** Text tab: colour, size (px), B, I; the words; alignment (TradingView). */''')
+
+# labels of a position drawn behind the candles (interleaved slice, painted with no targets):
+# paint them on the top layer while it is selected / hovered, so they always show (TradingView).
+edit(C, '''    this.painter.paintHighlights(ctx, shown.filter((d) => !onTop(d)), proj, handleIdsFor(targets));''', '''    // TradeZoro patch (position): labels of a selected/hovered position under the candles.
+    for (const d of shown) {
+      if (onTop(d) || !(d instanceof PositionTool) || !d.showText) continue;
+      if (!(targets.selected?.has(d.id) || targets.hovered === d.id)) continue;
+      const L = d.layout(proj);
+      if (!L || !(L.x2 - L.x1 > 0)) continue;
+      const run = d.anchors[2] ? stkPositionRun(d, proj) : null;
+      this.painter.paintClipped(ctx, d, proj, () => this.painter.stkPositionLabels(ctx, d, L, run, d.profitColor || "#089981", d.lossColor || "#f23645", this.deps.theme()));
+    }
+    this.painter.paintHighlights(ctx, shown.filter((d) => !onTop(d)), proj, handleIdsFor(targets));''')
 
 for f, txt in BUF.items():
     open(os.path.join(D, f), 'w', encoding='utf-8').write(txt)

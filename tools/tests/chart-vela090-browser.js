@@ -128,7 +128,7 @@ const drawings = (p) => R(p, 'const d = cell.chart.drawings; try { return (d.lis
     const raw = r.drawingProjector().pxToPoint(bx + 3, py + 15, 'price');
     return { strong: out, weakAt15px: near.price !== raw.price && (() => { const nb = r.bars.find((x) => x.time === near.time); return !!nb && [nb.open, nb.high, nb.low, nb.close].includes(near.price); })(), dbg: { raw, near, b, py, bx } };`);
   check(snaps.strong.every(Boolean), 'strong magnet exact OHLC on 5 anchors', snaps.strong);
-  check(snaps.weakAt15px, 'weak magnet snaps from 15px (radius 20)', snaps.dbg);
+  check(snaps.weakAt15px, 'weak magnet snaps from 15px (radius 28, nearest OHLC in px)', snaps.dbg);
 
   // drawings survive a timeframe change
   const before = await drawings(p);

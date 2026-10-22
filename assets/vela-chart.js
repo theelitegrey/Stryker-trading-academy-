@@ -503,6 +503,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-data-dot.js?v=625')
     .then((m) => m.installDataDot(ws, { rith, FuturesProvider, FxProvider }))
     .catch((e) => console.warn('TradeZoro: data dot', e));
+  // Stronger weak magnet on 0.9.0 (nearest OHLC in pixels across nearby candles, 28 px): assets/chart-magnet.js.
+  if (VELA090) import('./chart-magnet.js?v=625')
+    .then((m) => m.installMagnet(ws))
+    .catch((e) => console.warn('TradeZoro: magnet', e));
   // Price-axis countdown to bar close: current wall-clock bar, hidden while CME is closed,
   // timers paused on hidden tabs: assets/chart-countdown.js.
   import('./chart-countdown.js?v=625')

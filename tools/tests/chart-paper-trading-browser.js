@@ -81,6 +81,10 @@ const TF_MIN = { '1': 1, '5': 5, '15': 15, '30': 30, '60': 60, '120': 120, '240'
 const PAGE_SECS = { '1': 8 * H, '5': 2 * D, '15': 5 * D, '30': 10 * D, '60': 20 * D, '120': 40 * D, '240': 60 * D, D: 730 * D };
 const timers = [];
 async function mockRoutes(ctx) {
+  // Real-time futures are admin only since 2026-10-16 (assets/rt-access.js): a non-admin polls the
+  // 10-min-delayed REST tail every 20 s, so the scripted ticks below never arrived. The paper engine is
+  // the same on both feeds; the test rides the live stream as a realtime admin (faked server answer).
+  await ctx.route(/\/api\/chart\/rt(\?|$)/, (r) => r.fulfill({ json: { admin: true }, headers: { 'cache-control': 'no-store' } }));
   await ctx.route(/\/api\/chart\/bars\//, (route) => {
     const u = new URL(route.request().url());
     const tf = u.searchParams.get('tf') || '1';
@@ -140,6 +144,8 @@ async function mockRoutes(ctx) {
 const RECORDER = () => {
   try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {}
   const fb = window.firebase; if (!fb) return;
+  // realtime-admin lane for assets/rt-access.js (see mockRoutes): it listens on onIdTokenChanged of an initialised app
+  try { fb.apps = [{}]; const A = fb.auth(); if (!A.onIdTokenChanged) A.onIdTokenChanged = (cb) => { setTimeout(() => cb(A.currentUser), 20); return () => {}; }; } catch (e) {}
   const orig = fb.firestore;
   const CLOUD = '__test_cloud_paper', JW = '__test_journal_writes';
   const wrapD = (d, p) => {
@@ -234,7 +240,7 @@ async function waitFor(p, fn, arg, ms) {
   return false;
 }
 const BROKER_RE = /rithmic|tradovate|ninjatrader|tradestation|interactivebrokers|ibkr|alpaca|oanda|tastytrade|tradier|projectx|topstepx|\/order(s)?\b|\/trade(s)?\/(place|submit)|\/api\/(paper|broker|order)/i;
-const ALLOWED = (u) => /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
+const ALLOWED = (u) => /^http:\/\/127\.0\.0\.1:\d+\/(assets\/|api\/chart\/(bars|stream)\/|api\/chart\/rt$|[\w-]+(\.html)?(\?|$)|manifest\.json|favicon)/.test(u)
   || /^https:\/\/(api\.binance\.com|data-api\.binance\.vision|api\.binance\.us)\/api\/v3\/(klines|exchangeInfo|ping|depth|trades|aggTrades|ticker)/.test(u)
   || /^wss:\/\/[^/]*binance[^/]*\//.test(u)
   || /^https:\/\/www\.gstatic\.com\/firebasejs\//.test(u) || /^https:\/\/api\.dicebear\.com\//.test(u)

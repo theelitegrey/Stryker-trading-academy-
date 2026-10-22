@@ -16,7 +16,7 @@ async function open(b, { w, h, mobile, keepStorage, ctx: reuse }) {
   if (!reuse) {
     await ctx.addInitScript(stub);
     await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
-    await ctx.route(/^https?:\/\/(?!localhost|cdn\.jsdelivr\.net)/, (r) => r.abort());
+    await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   }
   const p = await ctx.newPage();
   const errors = [];
@@ -62,12 +62,18 @@ const fitCheck = async (p, tag) => {
   check(g.edh >= 120 && g.docH <= g.vh + 1, tag + ': editor fills, no page scroll');
   return g;
 };
+// The phone toolbar folds the Pine button into ⋯ More (assets/chart-onebar.js): open More first when it is hidden there.
+async function clickPine(p) {
+  const inMore = await p.evaluate(() => { const b = document.getElementById('stkc-pine-btn'); const pop = document.getElementById('stkc-more-pop'); return !!(b && pop && pop.contains(b)); });
+  if (inMore) { await p.click('#stkc-more-btn'); await p.waitForTimeout(250); }
+  await p.click('#stkc-pine-btn');
+}
 (async () => {
   const b = await launch();
   try {
     // ---------- desktop 1440 ----------
     let { ctx, p, errors } = await open(b, { w: 1440, h: 900 });
-    await p.click('#stkc-pine-btn');
+    await clickPine(p);
     await p.waitForTimeout(500);
     const ui = await p.evaluate(() => ({ open: !document.getElementById('stkc-pine').hidden, ex: [...document.querySelectorAll('.stkc-pine-lib .stkc-tname')].map((x) => x.textContent) }));
     const g1440 = await fitCheck(p, '1440');
@@ -159,7 +165,7 @@ const fitCheck = async (p, tag) => {
 
     // ---------- phone 390 ----------
     ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true }));
-    await p.click('#stkc-pine-btn');
+    await clickPine(p);
     await p.waitForTimeout(600);
     const sheet = await p.evaluate(() => { const r = document.getElementById('stkc-pine').getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, sw: document.documentElement.scrollWidth }; });
     check(sheet.l === 0 && sheet.r === 390 && sheet.sw <= 391, 'phone: full-width sheet ' + JSON.stringify(sheet));
@@ -172,7 +178,7 @@ const fitCheck = async (p, tag) => {
     check(!errors.length, 'phone console errors: ' + (errors.slice(0, 3).join(' | ') || 'none'));
     await ctx.close();
     ({ ctx, p, errors } = await open(b, { w: 360, h: 740, mobile: true }));
-    await p.click('#stkc-pine-btn');
+    await clickPine(p);
     await p.waitForTimeout(600);
     await fitCheck(p, '360x740');
     await p.screenshot({ path: `${OUT}/pine-360-editor.png` });

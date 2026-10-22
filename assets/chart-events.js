@@ -243,7 +243,9 @@ export function mountChartEvents(ws){
   WS = ws;
   if (!document.getElementById('stk-ev-css')) { const st = document.createElement('style'); st.id = 'stk-ev-css'; st.textContent = CSS; document.head.appendChild(st); }
   // live copy from the recorder Worker first (refreshed every 15 min by the server feeder), then the committed file
-  fetch('https://book-recorder.theelitegrey.workers.dev/terminal/econ-calendar.json').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  // (local dev origins skip the Worker: its CORS allows only our domains, and the miss logged a console error)
+  const localDev = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+  (localDev ? Promise.reject(new Error('local dev')) : fetch('https://book-recorder.theelitegrey.workers.dev/terminal/econ-calendar.json')).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .catch(() => fetch(CAL_URL, { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null)).then((j) => {
     const list = j && Array.isArray(j.events) ? j.events : [];
     events = list.map((e) => ({ t: Date.parse(e.at), cur: e.cur, impact: e.impact, title: String(e.event || '') })).filter((e) => Number.isFinite(e.t) && e.title);

@@ -23,6 +23,7 @@ import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
+import { ISHub, isHubFetch } from './is-hub.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
@@ -105,6 +106,8 @@ export class BookRecorder {
     // bar is held in memory (ofLive) so the live tail writes no rows.
     this.sql.exec(`CREATE TABLE IF NOT EXISTS ofbar (sym TEXT NOT NULL, t INTEGER NOT NULL, b BLOB NOT NULL, s BLOB, PRIMARY KEY (sym, t)) WITHOUT ROWID`);
     this.ofLive = new Map(); this.ofMeta = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
+    // the site's ONE InsightSentry realtime socket (src/is-hub.js); idle (no socket) until an admin chart attaches
+    this.isHub = new ISHub(ctx.storage, env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '');
   }
   // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
   // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols
@@ -380,6 +383,7 @@ export class BookRecorder {
       const gz = await new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
       return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length), 'x-of-n': String(this.ofLastN || 0) } });
     }
+    if (u.pathname === '/is-live' || u.pathname === '/is-stats') return isHubFetch(this.isHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -653,6 +657,26 @@ async function route(req, env, ctx) {
         ctx.waitUntil(caches.default.put(ckey, r.clone()));
       }
       return r;
+    }
+    // ONE InsightSentry realtime socket for the site (src/is-hub.js, 2026-10-22 P0 "chart froze": IS throttled us at
+    // 141 requests / window, limit 120). GET /is-live = WebSocket from the site's /api/chart/stream Function (server to
+    // server, the admin's ID token forwarded and re-verified here). GET /is-health = the request counter (public, no
+    // secrets: counts and states only), edge-cached 10 s.
+    if (u.pathname === '/is-live') {
+      if (req.headers.get('origin')) return new Response('server use only', { status: 403 });
+      if (req.headers.get('upgrade') !== 'websocket') return new Response('websocket required', { status: 426 });
+      if (!(await isRealtimeToken(bearerOf(req)))) return new Response('forbidden', { status: 403 });
+      return stub(env).fetch(new Request('https://do/is-live' + u.search, req));
+    }
+    if (u.pathname === '/is-health') {
+      const ckey = new Request('https://book-recorder.cache/is-health/' + Math.floor(Date.now() / 10000));
+      let r = await caches.default.match(ckey);
+      if (!r) {
+        const d = await stub(env).fetch('https://do/is-stats');
+        r = new Response(await d.arrayBuffer(), { status: d.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=10' } });
+        if (d.status === 200) ctx.waitUntil(caches.default.put(ckey, r.clone()));
+      }
+      return new Response(r.body, { status: r.status, headers: Object.assign({ 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' }, cors(req)) });
     }
     const h = cors(req);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: h });

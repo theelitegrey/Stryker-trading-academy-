@@ -26,6 +26,7 @@ Stdlib only (wsmini.py is the socket client shared with of-feeder).
 import json
 import os
 import queue
+import random
 import socket
 import sys
 import threading
@@ -97,7 +98,7 @@ def is_codes():
 
 
 def is_reader(roots, key):
-    backoff = 2
+    backoff = 5   # 5 s doubling to 2 min with jitter (InsightSentry reconnect budget, 2026-10-22)
     while True:
         codes = is_codes()
         code2root = {codes[r]: r for r in roots}
@@ -132,14 +133,14 @@ def is_reader(roots, key):
                 except (KeyError, TypeError, ValueError):
                     pass
                 if time.time() - opened > 60:
-                    backoff = 2
+                    backoff = 5
         except Exception as e:
             log('IS socket closed: %s %s; retry in %ds' % (type(e).__name__, str(e)[:80], backoff))
         finally:
             if ws:
                 ws.close()
-        time.sleep(backoff)
-        backoff = min(backoff * 2, 60)
+        time.sleep(backoff * (0.75 + random.random() * 0.5))
+        backoff = min(backoff * 2, 120)
 
 
 # ---------------------------------------------------------------------------------- crypto

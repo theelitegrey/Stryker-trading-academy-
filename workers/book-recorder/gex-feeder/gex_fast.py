@@ -155,13 +155,14 @@ class Spots:
 
     def run(self):
         import wsmini
-        back = 2
+        import random
+        back = 5   # 5 s doubling to 2 min with jitter, reset after 60 s up (InsightSentry reconnect budget, 2026-10-22)
         while True:
+            opened = time.time()
             try:
                 ws = wsmini.WS(WS_URL, timeout=30)
                 ws.send(json.dumps({'api_key': self.key, 'subscriptions': [{'code': c, 'type': 'quote'} for c in CODES.values()]}))
                 ws.s.settimeout(25)
-                back = 2
                 inv = {v: k for k, v in CODES.items()}
                 while True:
                     try:
@@ -180,7 +181,9 @@ class Spots:
                             self.last[u] = {'p': float(p), 't': time.time()}
             except Exception as e:
                 log('IS ws down: %s %s' % (type(e).__name__, str(e)[:60]))
-            time.sleep(back); back = min(60, back * 2)
+            if time.time() - opened > 60:
+                back = 5
+            time.sleep(back * (0.75 + random.random() * 0.5)); back = min(120, back * 2)
 
 
 def post(url, key, blob):

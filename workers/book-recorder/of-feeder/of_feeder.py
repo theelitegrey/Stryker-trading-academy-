@@ -31,6 +31,7 @@ BOOK_INGEST_SECRET, INSIGHTSENTRY_WEBSOCKET_API_KEY. Stdlib only (wsmini.py is t
 import gzip
 import json
 import os
+import random
 import re
 import socket
 import sys
@@ -329,7 +330,9 @@ def live():
     started = time.time()
 
     def reader(group):
-        backoff = 2
+        # reconnect backoff: 5 s doubling to 2 min, +-25 % jitter, reset only after 60 s up (InsightSentry counts every
+        # reconnect toward its 120 / 3 h window; 2026-10-22 throttle)
+        backoff = 5
         while True:
             fresh = set(group)
             ws = None
@@ -377,13 +380,13 @@ def live():
                                 dirty[s].add(mm)
                         last_t[s] = lt
                     if time.time() - opened > 60:
-                        backoff = 2
+                        backoff = 5
             except Exception as e:
                 log('socket closed: %s %s; retry in %ds' % (type(e).__name__, str(e)[:120], backoff))
             finally:
                 if ws:
                     ws.close()
-            time.sleep(backoff)
+            time.sleep(backoff * (0.75 + random.random() * 0.5))
             backoff = min(backoff * 2, 120)
 
     def closed(m, now):

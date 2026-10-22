@@ -299,8 +299,20 @@ function applyStk(cell){
   const s = S(cell.id);
   const t = Number(s.marginTop) / 100, b = Number(s.marginBottom) / 100, rest = Math.max(0.2, 1 - t - b);
   R.scene.stk = { prevClose: !!s.prevClose, h12: !!s.h12, noDow: !s.dow, marginTop: t / rest, marginBottom: b / rest };
+  // Vela 0.9.0 (admin trial): margins are native there (scene.style.margins, % of the pane, the
+  // same unit as our rows), and the old marginTop/Bottom hook no longer exists.
+  const vm = R.scene.style && R.scene.style.margins;
+  if (vm && typeof vm === 'object') { vm.top = Number(s.marginTop); vm.bottom = Number(s.marginBottom); }
   try { R.scheduler && R.scheduler.invalidate(4); } catch (e) {}
 }
+// Test hook (tools/tests/chart-vela090-browser.js): do our margin rows reach the renderer?
+window.__stkMarginsProbe = () => {
+  try {
+    const id = WS.active.id; const R = inner(cellOf(id)); const s = S(id);
+    const m = R.scene.style && R.scene.style.margins;
+    return { ok: !m || (m.top === Number(s.marginTop) && m.bottom === Number(s.marginBottom)), m: m ? { ...m } : null, want: [s.marginTop, s.marginBottom] };
+  } catch (e) { return { ok: false, err: String(e) }; }
+};
 function setVal(id, key, v){
   S(id)[key] = v;
   if (key === 'rhide') rhSync(v);

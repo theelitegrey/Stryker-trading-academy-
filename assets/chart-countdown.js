@@ -182,6 +182,8 @@ export function installCountdown(ws) {
       if (!R) return;
       if (document.hidden) {
         if (R.countdownTimer != null) { clearInterval(R.countdownTimer); R.countdownTimer = null; }
+        // Vela 0.9.0 ticks from a shared second clock instead of its own interval.
+        if (R.countdownUnsub != null) { try { R.countdownUnsub(); } catch (e) {} R.countdownUnsub = null; }
       } else {
         try { R.syncCountdownTimer(); R.scheduler && R.scheduler.invalidate(2); } catch (e) {}
       }

@@ -89,7 +89,14 @@ if (VELA090) {
     try { L = window.StrykerPineLibrary; u = window.firebase && firebase.auth().currentUser; } catch (e) {}
     if (L && L.isAdmin && u) {
       clearInterval(guard);
-      L.isAdmin().then((a) => { if (!a) { try { localStorage.removeItem('stryker_vela090'); } catch (e) {} location.reload(); } }).catch(() => {});
+      L.isAdmin().then((a) => {
+        if (a) return;
+        // Not an admin: drop the flag, remember the refusal for this tab (so ?vela=0.9 in the URL
+        // can't switch it back on and loop), strip the query, reload once onto 0.6.17.
+        try { localStorage.removeItem('stryker_vela090'); sessionStorage.setItem('stryker_vela090_no', '1'); } catch (e) {}
+        try { const url = new URL(location.href); url.searchParams.delete('vela'); history.replaceState(null, '', url.pathname + url.search + url.hash); } catch (e) {}
+        location.reload();
+      }).catch(() => {});
     } else if (tries > 45) {
       clearInterval(guard);
       try { localStorage.removeItem('stryker_vela090'); } catch (e) {}

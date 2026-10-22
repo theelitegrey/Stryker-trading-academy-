@@ -19,7 +19,13 @@
 //     browser notification if the member allowed them.
 //   - Storage: signed-in members → Firestore students/{uid}/chartAlerts/{id} (owner-only rules,
 //     validated shape; the 200-per-member cap is enforced here in the client). Guests → localStorage.
-//   - Alert lines: dashed horizontal line per alert on charts of that symbol (renderer layer).
+//   - Alert lines: dashed horizontal line per ACTIVE alert on charts of that symbol (renderer layer).
+//     TRIGGERED ALERTS LEAVE THE CHART (Owner order 2026-10-22, like TradingView): an alert that can't
+//     fire again (Only once after its fire, expired, stopped; fired here or by the server engine,
+//     which sets active=false) is not drawn on any chart, now or after a reload. It stays in the
+//     Alerts list as "Triggered" (or "Paused" when the member paused it); Restart draws it again.
+//     Repeating alerts stay active, so they stay drawn. Paused ids are remembered per browser
+//     (PAUSED_KEY) only to word the list; the Firestore alert shape is unchanged.
 //   - Alerts tab in the Settings window: Alert lines on/off + colour, Only active alerts,
 //     Alert volume, Automatically hide toasts (kept per browser).
 //   - INDICATOR ALERTS (2026-10-06, the chart "+" menu, assets/chart-plus.js): the condition
@@ -38,6 +44,11 @@ const CONDS = [
 ];
 const CONDL = Object.fromEntries(CONDS);
 const IND_KEY = 'stryker_chart_alerts_ind';
+const PAUSED_KEY = 'stryker_chart_alerts_paused';
+const pausedIds = () => { try { const v = JSON.parse(localStorage.getItem(PAUSED_KEY) || '[]'); return new Set(Array.isArray(v) ? v : []); } catch (e) { return new Set(); } };
+function markPaused(id, on){ try { const s = pausedIds(); if (on) s.add(id); else s.delete(id); localStorage.setItem(PAUSED_KEY, JSON.stringify([...s].slice(-400))); } catch (e) {} }
+// Only alerts that can still fire are drawn on the chart.
+export function drawsOnChart(a){ return !!(a && a.active === true); }
 const SOUND_EVENTS = [['price', 'Price alert'], ['tp', 'Take profit hit'], ['sl', 'Stop loss hit'], ['long', 'Long opened'], ['short', 'Short opened'], ['closed', 'Position closed'], ['indicator', 'Indicator signal (other)']];
 const SOUND_OPTIONS = ['off', 'tz1', 'tz2', 'tz3', 'tz4', 'tz5', 'tz6', 'chime', 'bell', 'ping', 'cash', 'alarm', 'custom'];
 const SOUND_LABELS = { off: 'Off', tz1: 'TradeZoro 1', tz2: 'TradeZoro 2', tz3: 'TradeZoro 3', tz4: 'TradeZoro 4', tz5: 'TradeZoro 5', tz6: 'TradeZoro 6', chime: 'Chime', bell: 'Bell', ping: 'Ping', cash: 'Cash register', alarm: 'Alarm', custom: 'Custom' };
@@ -89,14 +100,18 @@ function listenFires(){
   const seen = new Map(); let first = true;
   try {
     firesUnsub = fb().firestore().collection('students').doc(u.uid).collection('alertFires').orderBy('firedAt', 'desc').limit(20).onSnapshot((snap) => {
+      if (!snap || typeof snap.docChanges !== 'function') return;
       for (const ch of snap.docChanges()) {
         if (ch.type === 'removed') continue;
         const d = ch.doc.data(); const ms = d.firedAt && d.firedAt.toMillis ? d.firedAt.toMillis() : 0;
         if (!ms || seen.get(ch.doc.id) === ms) continue;
         seen.set(ch.doc.id, ms);
-        if (first && ms < pageStart - 20000) continue;          // an old fire already in the list: not news
         const a = alerts.find((x) => x.id === ch.doc.id);
-        if (a && d.stopped) { a.active = false; armed.delete(a.id); pushLines(); renderList(); }
+        // A stopped fire removes the line straight away (even an old one, if this page still holds
+        // the alert as active, e.g. the fire landed while the list was loading).
+        const recent = !(first && ms < pageStart - 20000);
+        if (a && d.stopped && a.active && (recent || !a.updatedMs || ms >= a.updatedMs)) { a.active = false; armed.delete(a.id); markPaused(a.id, false); pushLines(); renderList(); }
+        if (!recent) continue;                                   // an old fire already in the list: not news
         showToast('Alert: ' + (d.text || d.symbol || ''), 'Price ' + d.price + ' \u00b7 ' + new Date(ms).toLocaleTimeString());
         playAlertSound('price');
         try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: ch.doc.id, symbol: d.symbol, price: d.price, server: true } })); } catch (e) {}
@@ -151,7 +166,7 @@ function makeBackend(){
     const ts = () => fb().firestore.FieldValue.serverTimestamp();
     return {
       kind: 'cloud',
-      async list(){ const s = await col().get(); return s.docs.map((d) => Object.assign({ id: d.id }, d.data())); },
+      async list(){ const s = await col().get(); return s.docs.map((d) => { const x = d.data(); return Object.assign({ id: d.id, updatedMs: x.updatedAt && x.updatedAt.toMillis ? x.updatedAt.toMillis() : 0 }, x); }); },
       async add(a){ const ref = col().doc(); await ref.set(Object.assign(clean(a), { createdAt: ts(), updatedAt: ts() })); return ref.id; },
       async update(id, a){ await col().doc(id).update(Object.assign(clean(a), { updatedAt: ts() })); },
       async remove(id){ await col().doc(id).delete(); }
@@ -170,11 +185,32 @@ function makeBackend(){
 }
 async function reload(){
   backend = makeBackend();
-  try { alerts = (await backend.list()).filter((a) => a && Number.isFinite(Number(a.price))).map((a) => Object.assign({ id: a.id }, clean(a))); }
+  try { alerts = (await backend.list()).filter((a) => a && Number.isFinite(Number(a.price))).map((a) => Object.assign({ id: a.id, updatedMs: a.updatedMs || 0 }, clean(a))); }
   catch (e) { console.warn('TradeZoro alerts: load', e); alerts = []; }
   try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanInd(a)))); } catch (e) {}
   pushLines(); renderList();
-  if (backend.kind === 'cloud') { startEngineWatch(); listenFires(); }
+  if (backend.kind === 'cloud') { startEngineWatch(); listenFires(); watchCloud(); }
+}
+// Every open Charts tab follows its alerts' active flag in Firestore, so an Only-once alert that
+// fired in another tab (or was stopped by the server engine) leaves this tab's chart straight away.
+let cloudUnsub = null, cloudUid = null;
+function watchCloud(){
+  const u = user(); if (!u || (cloudUid === u.uid && cloudUnsub)) return;
+  if (cloudUnsub) { try { cloudUnsub(); } catch (e) {} }
+  cloudUid = u.uid;
+  try {
+    cloudUnsub = fb().firestore().collection('students').doc(u.uid).collection('chartAlerts').onSnapshot((snap) => {
+      let changed = false;
+      if (!snap || typeof snap.docChanges !== 'function') return;
+      for (const ch of snap.docChanges()) {
+        if (ch.type !== 'modified') continue;
+        const a = alerts.find((x) => x.id === ch.doc.id && !x.src); const d = ch.doc.data();
+        if (!a || typeof d.active !== 'boolean' || a.active === d.active) continue;
+        a.active = d.active; armed.delete(a.id); if (!d.active) markPaused(a.id, false); changed = true;
+      }
+      if (changed) { pushLines(); renderList(); }
+    }, (e) => console.warn('TradeZoro alerts: sync', e && e.code));
+  } catch (e) { console.warn('TradeZoro alerts: sync', e); }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -264,7 +300,7 @@ function fire(a, p){
   playAlertSound(a.src ? 'indicator' : 'price');
   try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
   if (a.freq === 'once') {
-    a.active = false;
+    a.active = false; markPaused(a.id, false);
     const st = storeOf(a); st && st.update(a.id, a).catch((e) => console.warn('TradeZoro alerts: update', e));
     pushLines(); renderList();
   }
@@ -303,11 +339,15 @@ function showToast(title, sub){
 // alert lines (renderer layer; data per cell via setNativeData)
 // ---------------------------------------------------------------------------------------
 const lineSig = new WeakMap();   // renderer -> last pushed lines signature
+// The alert lines a chart of this symbol draws (also the test hook __stkAlerts.linesFor).
+function chartLines(sym){
+  return prefs.lines ? alerts.filter((a) => a.symbol === sym && (!a.src || a.src.vs !== 'close') && drawsOnChart(a)).map((a) => ({ price: a.price, active: a.active })) : [];
+}
 function pushLines(){
   if (!WS) return;
   for (const c of WS.context().cells || []) {
     const cell = cellOf(c.id); const R = inner(cell); if (!R || !R.setNativeData) continue;
-    const lines = prefs.lines ? alerts.filter((a) => a.symbol === cell.symbol && (!a.src || a.src.vs !== 'close') && (a.active || !prefs.onlyActive)).map((a) => ({ price: a.price, active: a.active })) : [];
+    const lines = chartLines(cell.symbol);
     // only push when something changed: every setNativeData repaints the whole chart
     const sig = JSON.stringify(lines) + prefs.lineColor;
     if (lineSig.get(R) === sig) continue;
@@ -462,9 +502,10 @@ function renderList(){
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
     row.querySelector('b').textContent = a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
-    row.querySelector('span').textContent = (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.active ? '' : ' · stopped') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
-    row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : 'Resume';
-    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; armed.delete(a.id); try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
+    const paused = !a.active && pausedIds().has(a.id);
+    row.querySelector('span').textContent = (a.active ? '' : paused ? 'Paused · ' : 'Triggered · ') + (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
+    row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : paused ? 'Resume' : 'Restart';
+    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; markPaused(a.id, !a.active); armed.delete(a.id); try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);
     row.querySelector('[data-k=del]').onclick = async () => { try { await storeOf(a).remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
     list.appendChild(row);
@@ -583,7 +624,6 @@ function alertsSection(){
       { kind: 'heading', label: 'Alerts work while the Charts page is open' },
       { kind: 'toggle', label: 'Alert lines', id: 'al-lines', get: g('lines'), set: s('lines') },
       { kind: 'color', label: 'Alert line color', id: 'al-color', get: g('lineColor'), set: s('lineColor') },
-      { kind: 'toggle', label: 'Only active alerts', id: 'al-only', get: g('onlyActive'), set: s('onlyActive') },
       { kind: 'select', label: 'Alert volume', id: 'al-vol', options: ['0', '20', '40', '60', '80', '100'], get: () => String(prefs.volume), set: (v) => { prefs.volume = Number(v); savePrefs(); beep(); } },
       { kind: 'toggle', label: 'Automatically hide toasts', id: 'al-hide', get: g('autoHide'), set: s('autoHide') }
     ] },
@@ -706,7 +746,9 @@ export function mountChartAlerts(ws, opts){
   });
   try { ws.on('state:changed', () => setTimeout(pushLines, 0)); } catch (e) {}
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
+  // Another tab fired / restarted a browser-stored alert: follow it here (lines + list).
+  window.addEventListener('storage', (e) => { if (e.key === IND_KEY || e.key === 'stryker_chart_alerts_guest') reload(); });
   setInterval(poll, 1000);
   setInterval(pushLines, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines };
+  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, linesFor: (sym) => chartLines(sym).map((l) => l.price) };
 }

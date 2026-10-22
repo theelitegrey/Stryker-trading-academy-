@@ -124,6 +124,7 @@ async function newPage(b, opts) {
   await ctx.addInitScript(INIT);
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|api\.binance\.com|data-api\.binance\.vision|api\.binance\.us)/, (r) => r.abort());
   await mockRoutes(ctx);
+  if (process.env.STK_VELA === '0.6') await ctx.addInitScript(() => { try { localStorage.setItem('stryker_vela06', '1'); } catch (e) {} });   // compare on the old engine
   const p = await ctx.newPage();
   offset = T0 - Date.now();
   await p.clock.install({ time: new Date(T0) });
@@ -354,7 +355,7 @@ async function pineCheck(p, label) {
     await p.waitForFunction(() => window.__stkBarReplay && window.__stkBarReplay.state.on && !window.__stkBarReplay.state.busy, null, { timeout: 60000 }).catch(() => {});
     await sleep(2500);
     const post = await RS(p); sh = await shown(p);
-    check(post.on && post.E === preReload.E && post.stepTf === preReload.stepTf && sh.maxT < post.E, 'reload resumes the replay at the same time (' + new Date(post.E).toISOString() + ', step ' + post.stepTf + ')');
+    check(post.on && post.E === preReload.E && post.stepTf === preReload.stepTf && sh.maxT < post.E, 'reload resumes the replay at the same time (' + new Date(post.E).toISOString() + ', step ' + post.stepTf + ')' + JSON.stringify({ pre: [new Date(preReload.E).toISOString(), preReload.stepTf, preReload.playing], post: [post.on, post.stepTf, post.playing], maxT: new Date(sh.maxT || 0).toISOString() }));
     check(await p.evaluate(() => window.__stkPaper.replay && (window.__stkPaper.account.state.trades || []).length >= 1), 'Replay account history survives the reload');
 
     // ---- exit restores live ----

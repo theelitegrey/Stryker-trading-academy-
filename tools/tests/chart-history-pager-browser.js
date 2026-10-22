@@ -16,6 +16,7 @@ const DAY = 864e5;
 async function open(b, { w, h, mobile }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
+  if (process.env.STK_VELA === '0.6') await ctx.addInitScript(() => { try { localStorage.setItem('stryker_vela06', '1'); } catch (e) {} });   // compare on the old engine
   await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
   await ctx.route(/^https?:\/\/[^/]*(gstatic|googleapis|firebase|google|doubleclick)\./, (r) => r.abort());
   const p = await ctx.newPage();

@@ -4955,10 +4955,10 @@ var _PositionTool = class _PositionTool extends Drawing {
     let endPx;
     if (t && ty != null && Math.abs(ty - ey) >= _PositionTool.MIN_DRAG_PX) {
       targetPx = ty;
-      endPx = ex + Math.max(Math.abs(proj.xOf(t.time) - ex), _PositionTool.MIN_WIDTH_PX);
+      endPx = ex + Math.max(Math.abs(proj.xOf(t.time) - ex), _PositionTool.MIN_WIDTH_PX, this.stkBarsPx(proj, e, ex, ey));
     } else {
       targetPx = ey - _PositionTool.DEFAULT_RISK_PX * _PositionTool.DEFAULT_RR;
-      endPx = ex + _PositionTool.DEFAULT_WIDTH_PX;
+      endPx = ex + this.stkBarsPx(proj, e, ex, ey);
     }
     const stopPx = ey - (targetPx - ey) / _PositionTool.DEFAULT_RR;
     const endTime = proj.pxToPoint(endPx, ey, this.paneId).time;
@@ -5069,7 +5069,22 @@ var _PositionTool = class _PositionTool extends Drawing {
     if (!p) return 0;
     const price = level === "stop" ? p.stop : p.target;
     if (mode === "price") return roundFloat(price);
+    if (mode === "ticks") {
+      const sp = _PositionTool.stkSpec();
+      return sp && sp.tick > 0 ? Math.round(Math.abs(price - p.entry) / sp.tick) : roundFloat(Math.abs(price - p.entry));
+    }
     return roundFloat(Math.abs(price - p.entry));
+  }
+  /** TradeZoro patch (position): pixels for the default width (STK_DEFAULT_BARS bars). */
+  stkBarsPx(proj, e, ex, ey) {
+    let px = _PositionTool.DEFAULT_WIDTH_PX;
+    try {
+      const probe = proj.pxToPoint(ex + 200, ey, this.paneId).time;
+      const n = proj.barsBetween(e.time, probe);
+      if (Number.isFinite(n) && n > 0) px = 200 / n * _PositionTool.STK_DEFAULT_BARS;
+    } catch (err) {
+    }
+    return Math.max(_PositionTool.MIN_WIDTH_PX, Math.min(px, (proj.width || 1e4) * 0.6));
   }
   /** The absolute price a typed value in the given unit resolves to. Points measure the
    *  distance from the entry; the level keeps its current side (target defaults to the profit
@@ -5077,6 +5092,10 @@ var _PositionTool = class _PositionTool extends Drawing {
   levelPriceFromDisplay(level, mode, value) {
     const p = this.prices();
     if (!p || mode === "price") return value;
+    if (mode === "ticks") {
+      const sp = _PositionTool.stkSpec();
+      if (sp && sp.tick > 0) value = Math.abs(value) * sp.tick;
+    }
     const current = level === "stop" ? p.stop : p.target;
     let side = Math.sign(current - p.entry);
     if (side === 0) side = (level === "target" ? 1 : -1) * (this.direction === "long" ? 1 : -1);
@@ -5108,7 +5127,34 @@ var _PositionTool = class _PositionTool extends Drawing {
       if (y == null) return [];
       pts.push([proj.xOf(a.time), y]);
     }
-    return pts;
+    if (!this.anchors[2]) return pts;
+    // TradeZoro patch (position): TradingView handles. 0 = entry, 1 = stop, 2 = target (left
+    // edge, round), 3 = the right edge at the entry (square, sets the width).
+    const xs = pts.map((p) => p[0]);
+    const x1 = Math.min(...xs);
+    const x2 = Math.max(...xs);
+    return [[x1, pts[0][1]], [x1, pts[1][1]], [x1, pts[2][1]], [x2, pts[0][1], "sq"]];
+  }
+  stkDragHandle(i, pt, orig) {
+    const e = this.anchors[0], s = this.anchors[1], t = this.anchors[2];
+    if (!t || !orig || orig.length < 3) {
+      const a = this.anchors[i];
+      if (a) { a.time = pt.time; a.price = pt.price; }
+      return;
+    }
+    [e, s, t].forEach((a, k) => { a.time = orig[k].time; a.price = orig[k].price; });
+    if (i === 0) {
+      e.price = pt.price;
+      if (pt.time < s.time) e.time = pt.time;
+    } else if (i === 1) s.price = pt.price;
+    else if (i === 2) t.price = pt.price;
+    else if (i === 3) {
+      if (pt.time > e.time) { s.time = pt.time; t.time = pt.time; }
+    }
+    if (i <= 2) this.constrainHandleDrag(i);
+  }
+  stkHandleCursor(i) {
+    return i === 0 ? "move" : i === 3 ? "ew-resize" : "ns-resize";
   }
   hitHandle(px, py, proj, tol) {
     return handleAt(px, py, this.handlePoints(proj), tol + 3);
@@ -5178,6 +5224,9 @@ var _PositionTool = class _PositionTool extends Drawing {
     if (typeof props.showStopLabel === "boolean") this.showStopLabel = props.showStopLabel;
     if (typeof props.profitColor === "string") this.profitColor = props.profitColor;
     if (typeof props.lossColor === "string") this.lossColor = props.lossColor;
+    // TradeZoro patch (position): the old default greens/reds become TradingView's teal/red.
+    if (/^#(0ecb81|26a69a|22c55e|089981)$/i.test(this.profitColor || "")) this.profitColor = _PositionTool.DEFAULT_PROFIT_COLOR;
+    if (/^#(f6465d|ef5350|ef4444|f23645)$/i.test(this.lossColor || "")) this.lossColor = _PositionTool.DEFAULT_LOSS_COLOR;
   }
 };
 /** Default reward:risk used to derive the stop from the placed (or default) target. */
@@ -5189,8 +5238,26 @@ _PositionTool.DEFAULT_WIDTH_PX = 150;
 _PositionTool.MIN_WIDTH_PX = 48;
 _PositionTool.DEFAULT_RISK_PERCENT = 1;
 _PositionTool.DEFAULT_ACCOUNT_BALANCE = 1e4;
-_PositionTool.DEFAULT_PROFIT_COLOR = VALID;
-_PositionTool.DEFAULT_LOSS_COLOR = INVALID;
+// TradeZoro patch (position): TradingView colours, ~25 bars wide by default.
+_PositionTool.DEFAULT_PROFIT_COLOR = "#089981";
+_PositionTool.DEFAULT_LOSS_COLOR = "#f23645";
+_PositionTool.STK_DEFAULT_BARS = 25;
+/** The paper-trading instrument spec (tick, point value, qty step) for the active chart's symbol,
+ *  or null when unknown (then ticks are hidden and amounts use 1 per point). */
+_PositionTool.stkSpec = () => {
+  try {
+    const ws = globalThis.STRYKER_VELA;
+    const PE = globalThis.PaperEngine;
+    if (!ws || !PE || typeof PE.specOf !== "function") return null;
+    const cell = ws.cell(ws.active.id);
+    const sym = cell && (cell.symbol || cell.chart && cell.chart.symbol);
+    if (!sym) return null;
+    const sp = PE.specOf(String(sym));
+    return sp && sp.ok ? sp : null;
+  } catch (e) {
+    return null;
+  }
+};
 var PositionTool = _PositionTool;
 function formatMoney(n) {
   if (!Number.isFinite(n)) return "0";
@@ -6380,7 +6447,8 @@ registerDrawingType({
   group: "measure",
   label: msg("drawing.position.label", "Long/Short Position"),
   icon: POSITION_ICON,
-  defaultStyle: { lineColor: DEFAULT_DRAWING_COLOR, lineWidth: 1, lineStyle: "solid" },
+  // TradeZoro patch (position): TradingView's grey entry line.
+  defaultStyle: { lineColor: "#787b86", lineWidth: 1, lineStyle: "solid" },
   create: (init) => new PositionTool(init)
 });
 var MAGNIFIER_ICON = svg24(

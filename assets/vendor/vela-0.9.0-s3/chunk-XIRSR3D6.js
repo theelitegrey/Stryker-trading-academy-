@@ -13554,42 +13554,106 @@ var DrawingPainter = class {
   /** Paint a position tool: a reward zone (entry↔target) + risk zone (entry↔stop) in the
    *  tool's own zone colors, the three level lines, and the direction / R:R / % / loss+size
    *  labels (styled by `text`, hidden wholesale by showText). */
+  // TradeZoro patch (position): TradingView's position tool. Solid zones without borders, the
+  // used part darker, a dashed path from the entry to the exit (or the last close), a grey entry
+  // line, and the three TradingView labels on hover / selection.
   paintPosition(ctx, d, proj, theme) {
     const L = d.layout(proj);
     if (!L) return;
     const { x1, x2, ey, sy, ty } = L;
     const w = x2 - x1;
-    const zone = (yA, yB, color) => {
+    if (!(w > 0)) return;
+    const pc = d.profitColor || "#089981";
+    const lc = d.lossColor || "#f23645";
+    const fill = (yA, yB, xa, xb, color, a) => {
       ctx.save();
-      ctx.globalAlpha = 0.13 * ctx.globalAlpha;
+      ctx.globalAlpha = a * ctx.globalAlpha;
       ctx.fillStyle = color;
-      ctx.fillRect(x1, Math.min(yA, yB), w, Math.abs(yB - yA));
+      ctx.fillRect(xa, Math.min(yA, yB), xb - xa, Math.abs(yB - yA));
       ctx.restore();
     };
-    zone(ey, ty, d.profitColor);
-    zone(ey, sy, d.lossColor);
-    const line = (y, color) => this.stroke(ctx, { ...d.style, lineColor: color }, () => {
-      ctx.moveTo(x1, y);
-      ctx.lineTo(x2, y);
-    });
-    line(ty, d.profitColor);
-    line(sy, d.lossColor);
-    line(ey, d.style.lineColor);
-    if (!d.showText) return;
-    const fs = namedFontSize(d.text?.size ?? "normal");
-    ctx.fillStyle = d.text?.color ?? theme.textColor;
+    fill(ey, ty, x1, x2, pc, 0.2);
+    fill(ey, sy, x1, x2, lc, 0.2);
+    const run = d.anchors[2] ? stkPositionRun(d, proj) : null;
+    if (run) {
+      const xe = Math.min(Math.max(proj.xOf(run.time), x1), x2);
+      const ye = proj.yOf(run.price, d.paneId);
+      if (ye != null && xe > x1) {
+        fill(ey, ye, x1, xe, (run.price - run.entry) * run.dir >= 0 ? pc : lc, 0.3);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#9598a1";
+        ctx.moveTo(x1, ey);
+        ctx.lineTo(xe, ye);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+    ctx.save();
+    ctx.beginPath();
+    ctx.setLineDash([]);
+    ctx.lineWidth = d.style.lineWidth || 1;
+    ctx.strokeStyle = d.style.lineColor || "#787b86";
+    const yy = Math.round(ey) + 0.5;
+    ctx.moveTo(x1, yy);
+    ctx.lineTo(x2, yy);
+    ctx.stroke();
+    ctx.restore();
+    const t = this.targets || {};
+    const shown = t.selected?.has(d.id) || t.hovered === d.id;
+    if (d.showText && shown) this.stkPositionLabels(ctx, d, L, run, pc, lc, theme);
+  }
+  stkPositionLabels(ctx, d, L, run, pc, lc, theme) {
+    const { x1, x2, ey, sy, ty } = L;
+    const p = d.prices();
+    if (!p) return;
+    const sp = PositionTool.stkSpec ? PositionTool.stkSpec() : null;
+    const tick = sp && sp.tick > 0 ? sp.tick : 0;
+    const pv = sp && sp.pointValue > 0 ? sp.pointValue : 1;
+    const dir = p.target >= p.entry ? 1 : -1;
+    const risk = Math.abs(p.entry - p.stop);
+    const reward = Math.abs(p.target - p.entry);
+    let qty = risk > 1e-12 ? d.dollarLoss() / (risk * pv) : 0;
+    if (sp && sp.qtyStep > 0) qty = Math.floor(qty / sp.qtyStep + 1e-9) * sp.qtyStep;
+    const dec = sp ? Math.min(8, sp.decimals) : Math.abs(p.entry) >= 100 ? 2 : Math.abs(p.entry) >= 1 ? 4 : 6;
+    const num = (n, k) => n.toLocaleString("en-US", { minimumFractionDigits: k, maximumFractionDigits: k });
+    const pts = (n) => num(n, dec);
+    const pct = (n) => p.entry ? num(n / Math.abs(p.entry) * 100, 2) : "0.00";
+    const tk = (n) => tick ? " " + num(Math.round(n / tick), 0) : "";
+    const amt = (n) => num(n * qty * pv, 2);
+    const qtyTxt = sp && sp.qtyStep >= 1 ? num(qty, 0) : num(qty, qty >= 100 ? 2 : 4);
+    const compact = d.style?.stkCompact === true;
+    const pnl = run ? (run.price - p.entry) * dir * qty * pv : 0;
+    const status = run && run.status !== "open" ? "Closed" : "Open";
+    const tgt = compact ? [`${pts(reward)} (${pct(reward)}%)`] : [`Target: ${pts(reward)} (${pct(reward)}%)${tk(reward)}, Amount: ${amt(reward)}`];
+    const stp = compact ? [`${pts(risk)} (${pct(risk)}%)`] : [`Stop: ${pts(risk)} (${pct(risk)}%)${tk(risk)}, Amount: ${amt(risk)}`];
+    const mid = compact ? [`${num(d.rr(), 2)}`] : [`${status} P&L: ${num(pnl, 2)}, Qty: ${qtyTxt}`, `Risk/Reward Ratio: ${num(d.rr(), 2)}`];
+    const fs = 12;
+    const lh = 16;
+    ctx.save();
+    ctx.font = `${fs}px ${theme.fontFamily}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `${fs}px ${theme.fontFamily}`;
-    const cx = x1 + w / 2;
-    const topY = Math.min(ey, sy, ty) - 9;
-    if (d.showHeader) ctx.fillText(d.headerLabel(this.i18n), cx, d.showLossSize ? topY - Math.round(fs * 1.15) : topY);
-    ctx.font = `${Math.max(10, fs - 1)}px ${theme.fontFamily}`;
-    if (d.showLossSize) ctx.fillText(d.lossSizeLabel(this.i18n), cx, topY);
-    if (d.showTargetLabel) ctx.fillText(d.targetLabel(this.i18n), cx, (ey + ty) / 2);
-    if (d.showStopLabel) ctx.fillText(d.stopLabel(this.i18n), cx, (ey + sy) / 2);
-    ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
+    const cx = x1 + (x2 - x1) / 2;
+    const pill = (lines, y, where, bg) => {
+      const tw = Math.max(...lines.map((s) => ctx.measureText(s).width));
+      const bw = Math.round(tw + 16);
+      const bh = lines.length * lh + 8;
+      const top = where === "above" ? y - 4 - bh : where === "below" ? y + 4 : y - bh / 2;
+      ctx.beginPath();
+      roundRect(ctx, Math.round(cx - bw / 2), Math.round(top), bw, bh, 4);
+      ctx.fillStyle = bg;
+      ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      lines.forEach((s, k) => ctx.fillText(s, cx, top + 4 + lh * k + lh / 2));
+    };
+    const away = (y) => y <= ey ? "above" : "below";
+    if (d.showTargetLabel !== false) pill(tgt, ty, away(ty), pc);
+    if (d.showStopLabel !== false) pill(stp, sy, away(sy), lc);
+    pill(mid, ey, "center", pnl < 0 ? lc : pnl > 0 ? pc : "#787b86");
+    ctx.restore();
   }
   /** Paint a linear-regression channel: the two shaded bands (mid→upper, mid→lower), the three
    *  lines (upper/mid/lower, each with its own color + dash), and the R² readout at the start. */
@@ -15070,7 +15134,9 @@ var TEXT8 = {
 };
 var LEVEL_UNITS = [
   { value: "price", label: msg("drawing.position.unit.price", "Price") },
-  { value: "points", label: msg("drawing.position.unit.points", "Points") }
+  { value: "points", label: msg("drawing.position.unit.points", "Points") },
+  // TradeZoro patch (position): ticks, from the instrument's tick size.
+  { value: "ticks", label: "Ticks" }
 ];
 var FRVP_ANCHOR = [
   { value: "right", label: msg("drawing.fixedrangevp.anchor.right", "Right") },
@@ -15716,11 +15782,14 @@ var DrawingSettingsPanel = class {
       if (sb) style.push(sb);
     }
     if (d.editableLevels()) style.push(this.levelsBlock(b));
-    if (d instanceof PositionTool) style.push(this.richBlock(this.t(TEXT9.position), (grid) => buildPositionSection(grid, d, b.actions, this.theme, (m, v) => this.t(m, v))));
+    // TradeZoro patch (position): TradingView's Inputs tab; the Style tab is our own.
+    const stkInputs = d instanceof PositionTool ? [this.richBlock(null, (grid) => buildPositionSection(grid, d, b.actions, this.theme, (m, v) => this.t(m, v)))] : null;
+    if (d instanceof PositionTool) style.length = 0, style.push(this.stkPositionStyle(b));
     if (d instanceof FixedRangeVolumeProfile) style.push(this.richBlock(this.t(TEXT9.profile), (grid) => buildProfileSection(grid, d, b.actions, this.theme, (m, v) => this.t(m, v))));
-    const own = this.optionsBlock(b, fields, d);
+    const own = d instanceof PositionTool ? null : this.optionsBlock(b, fields, d);
     if (own) style.push(own);
     const tabs = [];
+    if (stkInputs) tabs.push(["inputs", "Inputs", stkInputs]);
     if (style.length) tabs.push(["style", "Style", style]);
     if (has("text.value")) tabs.push(["text", "Text", [this.stkTextPane(b, has)]]);
     else if (fields.some((f) => f.path.startsWith("text.")) && !style.length) tabs.push(["text", "Text", [block(null, row(this.t(TEXT9.text), ...this.textStyling(b, has)))]]);
@@ -15820,6 +15889,31 @@ var DrawingSettingsPanel = class {
     const bgSw = this.swatch(b, "Background color", () => st().fillColor || st().stkFill || withAlpha(st().lineColor || DEFAULT_DRAWING_COLOR, 0.2), "style.fillColor");
     bgRow.append(bg.el, bgSw);
     rows.push(bgRow);
+    return block(null, ...rows);
+  }
+  /** TradeZoro patch (position): Style tab: zone colours, the entry line, labels, compact stats. */
+  stkPositionStyle(b) {
+    const live = () => b.live();
+    const st = () => live().style;
+    const rows = [];
+    rows.push(row("Profit zone", this.swatch(b, "Profit zone colour", () => live().profitColor || "#089981", "profitColor")));
+    rows.push(row("Stop zone", this.swatch(b, "Stop zone colour", () => live().lossColor || "#f23645", "lossColor")));
+    const lw = stkSelect([1, 2, 3, 4].map((n) => ({ value: n, label: `${n}px` })), () => st().lineWidth ?? 1, (v) => b.edit({ "style.lineWidth": Number(v) }), this.t(TEXT9.lineWidth));
+    lw.el.style.width = "68px";
+    b.watch(lw.sync);
+    rows.push(row("Line", this.swatch(b, "Line colour", () => st().lineColor || "#787b86", "style.lineColor"), lw.el));
+    const chk = (label, get, set) => {
+      const c = stkCheck(label, get, set);
+      b.watch(c.sync);
+      const r = document.createElement("div");
+      r.className = "vela-dsp-row";
+      r.append(c.el);
+      rows.push(r);
+    };
+    chk("Show labels", () => live().showText !== false, (on) => b.edit({ showText: on }));
+    chk("Show target label", () => live().showTargetLabel !== false, (on) => b.edit({ showTargetLabel: on }));
+    chk("Show stop label", () => live().showStopLabel !== false, (on) => b.edit({ showStopLabel: on }));
+    chk("Compact stats mode", () => st().stkCompact === true, (on) => b.edit({ "style.stkCompact": on }));
     return block(null, ...rows);
   }
   /** Text tab: colour, size (px), B, I; the words; alignment (TradingView). */
@@ -19304,6 +19398,29 @@ function mergeSlices(indicator, user) {
   return out;
 }
 
+// TradeZoro patch (position): walk the bars from the entry to the box's right edge. Returns the
+// bar where the stop or the target was first touched (the stop wins inside one bar, like
+// TradingView's conservative fill), else the last bar so far with its close; null with no bars.
+function stkPositionRun(d, proj) {
+  if (!proj.barsInRange) return null;
+  const p = d.prices();
+  const e = d.anchors[0];
+  if (!p || !e) return null;
+  const end = Math.max(d.anchors[1].time, d.anchors[2].time);
+  const bars = proj.barsInRange(e.time, end);
+  if (!bars || !bars.length) return null;
+  const dir = p.target >= p.entry ? 1 : -1;
+  let last = null;
+  for (const b of bars) {
+    if (b.time < e.time) continue;
+    last = b;
+    const stopHit = dir > 0 ? b.low <= p.stop : b.high >= p.stop;
+    const tgtHit = dir > 0 ? b.high >= p.target : b.low <= p.target;
+    if (stopHit) return { time: b.time, price: p.stop, status: "stop", entry: p.entry, dir };
+    if (tgtHit) return { time: b.time, price: p.target, status: "target", entry: p.entry, dir };
+  }
+  return last ? { time: last.time, price: last.close, status: "open", entry: p.entry, dir } : null;
+}
 // src/renderers/native/drawings/Projector.ts
 function createProjector(coords, paneOf, paneIdAtY, barsInRange, seriesInRange) {
   return {

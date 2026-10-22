@@ -2,7 +2,7 @@
 """Drawing settings window in the TradingView layout, on Vela 0.9.0-s1 (admin trial).
 
 Run AFTER tools/vela-090-patch.py, on the same folder:
-  python3 tools/vela-090-dsp-patch.py assets/vendor/vela-0.9.0-s1
+  python3 tools/vela-090-dsp-patch.py assets/vendor/vela-0.9.0-s2
 Every edit asserts its anchor text occurs exactly once.
 
 Owner target (2026-10-22): TradingView's Rectangle settings window for every drawing tool.

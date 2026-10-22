@@ -53,6 +53,7 @@ async function open(b, { w, h, mobile, v09 }) {
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ s: 'NQ', tf: String(tf), page, bars: await candles(tf) }) });
   });
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/stream/, (r) => r.abort());
+  ctx.on('request', (rq) => { if (/SPY/i.test(rq.url()) && process.env.DS_DEBUG) console.log('REQ ' + rq.url().slice(0, 160)); });
   await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/orderflow/, (r) => {
     const u = new URL(r.request().url());
     const body = u.searchParams.get('sym') === 'NQ' && BODY[u.searchParams.get('day')];
@@ -128,18 +129,24 @@ const T0 = Date.UTC(2026, 9, 21, 13, 30), T1 = Date.UTC(2026, 9, 21, 16, 0);
           const rows = await p.evaluate(() => window.STRYKER_VELA.active.libraryRows().filter((r) => r.category === 'Order Flow').map((r) => r.name));
           check(rows[0] === 'Delta' && /^Delta: pane/.test(rows[1]), eng + ': Order Flow group starts with Delta, Delta: pane', rows);
         }
-        await frameOn(p, T0, T1);
-        await sleep(1500);
-        const base = await ink(p);
         for (const [id, type, style, zoom] of STY) {
           await clearInd(p); await sleep(400);
           // V3 / V5 need room per candle: 40 / 16 minutes in view (12 / 8 on the phone)
           if (zoom) await frameOn(p, Date.UTC(2026, 9, 21, 14, 20), Date.UTC(2026, 9, 21, 14, 20) + (zoom === 1 ? (w < 500 ? 12 : 40) : (w < 500 ? 6 : 16)) * 60000);
           else await frameOn(p, T0, T1);
+          await sleep(900);
+          const base = await ink(p);
           await add(p, type, style);
           await sleep(2200);
-          const n = await ink(p);
-          check(n > base * 1.01 + 50, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');
+          if (type === 'stk_dpane') {
+            // own pane: count the pane's series points that carry real order-flow values
+            const st = await p.evaluate(() => { const r = window.STRYKER_VELA.chart.renderer.renderer; const ms = [...r.scene.indicators.values()].filter((m) => m.native && m.native.type === 'stk_dpane');
+              return ms.map((m) => ({ pane: m.paneId, series: m.series.map((x) => x.kind + ':' + ((x.points || x.bars || []).filter((q) => q && (q.value != null || q.close != null)).length)) })); });
+            check(st.length === 1 && st[0].pane !== 'price' && /^(histogram|candle):[1-9]/.test(st[0].series[0]), eng + ' ' + w + ' ' + id + ': own pane with real values', st);
+          } else {
+            const n = await ink(p);
+            check(n > base * 1.01 + 50, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');
+          }
           await p.screenshot({ path: path.join(OUT, 'ds-' + eng + '-' + w + '-' + id + '.png') });
         }
         if (!ONLY.length || ONLY.includes('combo')) {

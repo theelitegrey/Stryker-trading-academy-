@@ -40,6 +40,7 @@ const DS_SCHEMA = [
   { key: 'mult', title: 'Big / strong delta at (x average |delta|)', type: 'float', defval: 2.5, min: 1, max: 20, step: 0.1, when: when('V3', 'V6') },
   { key: 'keyRows', title: 'Key prices per candle', type: 'int', defval: 5, min: 3, max: 5, step: 1, when: when('V5') },
   { key: 'lastMin', title: 'Last N minutes', type: 'int', defval: 5, min: 1, max: 120, step: 1, when: when('V7') },
+  { key: 'boxPos', title: 'Box position', type: 'string', defval: 'top right', options: ['top right', 'bottom right', 'top left'], when: when('V7') },
   { key: 'numbers', title: 'Show numbers', type: 'bool', defval: true },
   { key: 'buyColor', title: 'Buyers', type: 'color', defval: UP },
   { key: 'sellColor', title: 'Sellers', type: 'color', defval: SELL }
@@ -102,9 +103,9 @@ class SuiteNative extends Base {
 }
 
 // Row size (ticks) for profiles: the input, else the smallest step whose row is >= 4 px tall.
-function rowSize(I, tickPx) {
+function rowSize(I, tickPx, minPx = 12) {
   if (I.rowTicks > 0) return I.rowTicks;
-  for (const s of ROW_STEPS) if (tickPx * s >= 4) return s;
+  for (const s of ROW_STEPS) if (tickPx * s >= minPx) return s;
   return 400;
 }
 function fontPx(h, phone) { return clamp(Math.floor(h * 0.8), 9, phone ? 10 : 11); }
@@ -182,7 +183,7 @@ function drawH5(g, a, f, I, inst, phone) {
   const t0 = a.bars[i0].time, t1 = a.bars[i1].time;
   const blockMin = I.block === '1h' ? 60 : 30;
   const tickPx = Math.abs(co.priceToY(f.tick, a.scale, a.bounds) - co.priceToY(0, a.scale, a.bounds));
-  const m = rowSize(I, tickPx);
+  const m = rowSize(I, tickPx, 8);
   const vis = f.list.filter((b) => b.t >= t0 - blockMin * 60000 && b.t <= t1);
   const blocks = timeBlocks(vis, blockMin);
   const top = a.bounds.top;
@@ -255,7 +256,9 @@ function drawV7(g, a, f, I, inst, phone, slot) {
   const W = phone ? 150 : 196, rowH = phone ? 16 : 19, pad = 8;
   const rows = [['Session \u0394', st.delta], ['Last ' + clamp(num(I.lastMin, 5), 1, 120) + 'm \u0394', st.last], ['\u0394 at high', st.dHigh], ['\u0394 at low', st.dLow]];
   const Ht = pad * 2 + rowH * rows.length + 20;
-  const x = co.width - W - 10, y = a.bounds.top + 34 + slot * (Ht + 8);
+  const left = I.boxPos === 'top left', low = I.boxPos === 'bottom right';
+  const x = left ? 10 : co.width - W - 10;
+  const y = low ? a.bounds.top + a.bounds.height - 44 - Ht - slot * (Ht + 8) : a.bounds.top + (left ? 64 : 34) + slot * (Ht + 8);
   g.fillStyle = day ? 'rgba(255,255,255,0.94)' : 'rgba(11,11,13,0.9)';
   g.strokeStyle = day ? 'rgba(15,23,42,0.15)' : 'rgba(255,255,255,0.12)'; g.lineWidth = 1;
   g.beginPath(); if (g.roundRect) g.roundRect(x, y, W, Ht, 6); else g.rect(x, y, W, Ht); g.fill(); g.stroke();

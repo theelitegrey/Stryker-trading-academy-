@@ -101,3 +101,4 @@ user agent, `richstub.js` as the init script, and the iOS install sheet
 suppressed by pre-setting `localStorage['stryker_install_prompt_shown_u1'] =
 '1'` (the key is `'stryker_install_prompt_shown_' + uid`). Output is
 1170x2532.
+| `chart-history-pager-browser.js` | Charts endless scroll-back (`assets/chart-history-pager.js`, Owner 2026-10-22): NQ1! 15m mouse-drag back 25 days past the first 500 bars, pages prepend with the visible range unchanged (no view jump), bars ascending, bounded requests, none while idle; 5m + 1h grow; 390 phone swipe. `CHART_BASE=... node chart-history-pager-browser.js <shots>` with `chart-dev-server.mjs`; under the Chrome lock; ~3 min |

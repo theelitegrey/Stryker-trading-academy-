@@ -691,6 +691,7 @@ var Box = class extends Drawing {
   constructor() {
     super(...arguments);
     this.type = "box";
+    if (!this.text) this.text = { ...defaultText(), size: "12" };
   }
   anchorSchema() {
     return { min: 2, max: 2, slots: [{ role: "c1", free: "both" }, { role: "c2", free: "both" }] };
@@ -768,7 +769,7 @@ var PinnedLabel = class extends Drawing {
     if (!a) return null;
     const y = proj.yOf(a.price, this.paneId);
     if (y == null) return null;
-    const fs = SIZE_PX[this.text?.size ?? "normal"] ?? 14;
+    const fs = SIZE_PX[this.text?.size ?? "normal"] ?? (Number(this.text?.size) || 14);
     const lines = this.labelText().split("\n");
     const cols = Math.max(1, ...lines.map((l) => l.length));
     return { x: proj.xOf(a.time), y, w: Math.max(12, cols * fs * 0.6) + 8, h: lines.length * fs * 1.4 + 4 };

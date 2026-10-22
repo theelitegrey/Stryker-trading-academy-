@@ -19,7 +19,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     # GitHub environment that only allows the main branch (deployment branch policy "main"), so a
     # probe branch with a copy of this job can no longer deploy the production Worker.
     environment: book-recorder-production
@@ -142,10 +142,11 @@ jobs:
           echo "terminal/market-map.json: HTTP $tm (404 = no feeder data yet)"; test "$tm" = 200 -o "$tm" = 404
           t1=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/ticks1s?sym=NQ")
           echo "ticks1s: HTTP $t1"; test "$t1" = 200
-          # the IS hub: health counter answers, the live socket refuses a caller without an admin token
-          for i in 1 2 3 4 5 6; do
+          # the IS hub: health counter answers, the live socket refuses a caller without an admin token.
+          # The Durable Object picks up a new version lazily (measured ~5 min on 2026-10-22): wait up to 8 min.
+          for i in $(seq 1 24); do
             ih=$(curl -s -o /tmp/ish.json -w '%{http_code}' "$URL/is-health")
-            [ "$ih" = 200 ] && break; sleep 10
+            [ "$ih" = 200 ] && break; sleep 20
           done
           echo "is-health: HTTP $ih $(jq -c '{state, window3h, limit3h, configured}' /tmp/ish.json 2>/dev/null)"; test "$ih" = 200
           il=$(curl -s -o /dev/null -w '%{http_code}' -H 'Upgrade: websocket' -H 'Connection: Upgrade' "$URL/is-live?legs=CME_MINI:NQ1!|minute|1")

@@ -2,7 +2,6 @@
 // Pure node, no network:  node tools/tests/chart-bars-test.mjs
 // Fakes Yahoo (globalThis.fetch) and the Cloudflare edge cache (globalThis.caches).
 import assert from 'node:assert/strict';
-globalThis.__IS_HUB_OFF = true;   // these tests cover the direct-socket path; the hub has tools/tests/is-hub.test.mjs
 import { TIMEFRAMES, pageOf, pageBounds, parseYahoo, aggregateHours, nyOffset, globexOpen, ttlFor, normSym, normTf, mergeTail } from '../../functions/api/chart/_bars.js';
 import { onRequestGet } from '../../functions/api/chart/bars/[sym].js';
 
@@ -187,9 +186,8 @@ ok('every timeframe answers 200 with ascending bars');
   ok('cache TTLs');
 }
 
-// SPEED (2026-10-14): InsightSentry and Yahoo race. A silent InsightSentry socket (its history
-// arrives ~5.6 s after open in production) must not hold the page: Yahoo's rows come back at once
-// and the socket is closed. A fast InsightSentry answer still wins. Yahoo down -> InsightSentry.
+// 2026-10-22 (InsightSentry throttled us at 141 requests / window): a bars page is Yahoo only and NEVER opens an
+// InsightSentry socket, with or without the key, for any symbol, Yahoo up or down.
 {
   const { fetchPage } = await import('../../functions/api/chart/_bars.js');
   const now = Math.floor(Date.now() / 1000);
@@ -197,22 +195,17 @@ ok('every timeframe answers 200 with ascending bars');
   const env = { INSIGHTSENTRY_WEBSOCKET_API_KEY: 'test' };
   const yq = async () => ({ ok: true, status: 200, json: async () => ({ chart: { result: [{ timestamp: [now - 600, now - 300], indicators: { quote: [{ open: [1, 2], high: [1, 2], low: [1, 2], close: [1, 2], volume: [1, 1] }] } }] } }) });
   const saved = globalThis.WebSocket;
-  let opened = 0, closed = 0;
-  globalThis.WebSocket = class { constructor() { opened++; setTimeout(() => this.onopen && this.onopen(), 20); } send() {} close() { closed++; } };
-  let t = Date.now();
-  const rows = await fetchPage('RTY', '5', page, now, yq, env);
-  assert.equal(rows.length, 2);
-  assert.ok(Date.now() - t < 500, 'silent InsightSentry must not delay Yahoo (' + (Date.now() - t) + ' ms)');
-  assert.equal(opened, 1); assert.equal(closed, 1);
-  globalThis.WebSocket = class { constructor() { setTimeout(() => { this.onopen && this.onopen(); this.onmessage({ data: JSON.stringify({ data: [{ time: now - 300, open: 9, high: 9, low: 9, close: 9, volume: 5 }] }) }); }, 5); } send() {} close() {} };
-  const slowY = async () => { await new Promise((r) => setTimeout(r, 80)); return yq(); };
-  const fast = await fetchPage('RTY', '5', page, now, slowY, env);
-  assert.equal(fast.length, 1); assert.equal(fast[0][1], 9);
+  let opened = 0;
+  globalThis.WebSocket = class { constructor() { opened++; } send() {} close() {} };
+  const t = Date.now();
+  for (const sym of ['RTY', 'NQ', 'MNQ', 'GC']) assert.equal((await fetchPage(sym, '5', page, now, yq, env)).length, 2);
+  assert.equal((await fetchPage('RTY', '240', pageOf('240', now), now, yq, env)).length >= 1, true);
+  assert.ok(Date.now() - t < 500);
   const down = async () => ({ ok: false, status: 500 });
-  const fb = await fetchPage('RTY', '5', page, now, down, env);
-  assert.equal(fb[0][1], 9);
+  await assert.rejects(fetchPage('RTY', '5', page, now, down, env));
+  assert.equal(opened, 0);
   globalThis.WebSocket = saved;
-  ok('InsightSentry/Yahoo race: no 4.5 s wait, fast InsightSentry wins, Yahoo down -> InsightSentry');
+  ok('bars pages: Yahoo only, 0 InsightSentry sockets (RTY/NQ/MNQ/GC, 4h, Yahoo down -> error, no IS fallback)');
 }
 
 {

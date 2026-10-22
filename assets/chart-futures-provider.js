@@ -14,7 +14,7 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
-import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=617';
+import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=618';
 
 const API = '/api/chart/bars/';
 const STREAM_API = '/api/chart/stream/';
@@ -57,6 +57,8 @@ const CONCURRENCY = 4;
 // with no bar for STALL_*_MS (10 s NQ/ES, scaled per symbol) or no message at all (server heartbeat
 // every 5 s) for DEAD_MS is force-closed, re-opened at once, and the REST tail is fetched right away.
 // The tab becoming visible always re-opens and re-syncs. Every stall is counted: window.tzStallStats().
+// Since 2026-10-22 a reopen only re-attaches to OUR Worker: the bridge rides the site's ONE InsightSentry socket
+// (workers/book-recorder/src/is-hub.js), so the watchdog can no longer cost InsightSentry a connect or a message.
 const HEARTBEAT_DEAD_MS = 13000;
 const STALL_MS_BY_ROOT = { NQ: 10000, MNQ: 10000, ES: 10000, MES: 10000, RTY: 20000, YM: 20000, MYM: 20000, GC: 20000, MGC: 20000, CL: 20000, MCL: 20000, SI: 30000, SIL: 30000 };
 const STALL_MAX_MS = 60000, TAIL_BARS = 12;
@@ -521,8 +523,12 @@ export class FuturesProvider {
           const msg = JSON.parse(ev.data);
           lastMsgAt = Date.now();
           if (msg && msg.event === 'ping') { hbSeen = true; return; }
+          // the site's one InsightSentry socket has no room for this leg / is holding back to stay inside
+          // InsightSentry's request budget (2026-10-22): poll the REST tail meanwhile and do not count it as a stall
+          if (msg && (msg.event === 'hub_full' || msg.event === 'hub_paused')) { startPoll(); lastBarAt = Date.now(); stallN = Math.min(stallN + 1, 3); return; }
           if (msg && msg.event === 'bar' && Array.isArray(msg.bar)) {
             lastBarAt = Date.now(); stallN = 0; rtNoteStreamBar();
+            if (pollStop && gotBar) stopPoll();
             if (!gotBar) { gotBar = true; healthy(); }
             onBar(toBar(msg.bar, tickOfKey(root)));
           }

@@ -1,8 +1,7 @@
-// GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge.
+// GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge (via the ONE shared hub socket).
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
 import { isRealtimeToken, wsTokenOf } from '../_rt.js';
-import { hubSubscribe, hubHealthy, hubNoteTimeout } from '../_is-hub.js';
-import { INSIGHTSENTRY_WS, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
+import { RECORDER_URL, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
 const ALLOWED_ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
 const H = 3600;
@@ -98,14 +97,13 @@ export async function onRequestGet(ctx) {
   let upMsgs = 0, upBars = 0;
   const statsTimer = setInterval(() => { send({ event: 'stats', up: upMsgs, bars: upBars, policy }); upMsgs = 0; upBars = 0; }, 10000);
   // HEARTBEAT (2026-10-20, frozen candles): {event:'ping', up} every 5 s so the browser can tell a quiet
-  // market from a dead socket; up = ms since the last upstream message. If the upstream says nothing
-  // for 30 s while the CME session is open it has gone silent without closing: end the socket so the
-  // browser re-opens (and re-reads the tail) instead of sitting on a dead feed.
+  // market from a dead socket; up = ms since the hub last heard InsightSentry. Since 2026-10-22 a quiet or slow
+  // InsightSentry does NOT end this socket (that reconnect storm is what got us throttled): the hub has its own
+  // backoff. Only a dead link to the hub (no hub ping for 20 s) ends it.
   let lastUpAt = Date.now();
   const hbTimer = setInterval(() => {
-    const up = Date.now() - lastUpAt;
-    send({ event: 'ping', t: Date.now(), up });
-    if (up > 30000 && cmeOpenNow()) close(1011, 'upstream silent');
+    send({ event: 'ping', t: Date.now(), up: hubUp >= 0 ? hubUp : Date.now() - lastUpAt });
+    if (Date.now() - linkAt > 20000) close(1011, 'hub link silent');
   }, 5000);
   const dec = decOf(SYMBOLS[sym][4]);
   // TICK MODE (ticks=1): a second leg subscribes InsightSentry's per-trade feed (bar_type 'tick') and
@@ -154,20 +152,22 @@ export async function onRequestGet(ctx) {
     closed = true;
     clearInterval(statsTimer); clearInterval(hbTimer);
     if (flushTimer) clearTimeout(flushTimer);
-    try { upstream && upstream.close(); } catch (e) {}
-    try { hubSubs.forEach((x) => x.close()); } catch (e) {}
-    if (hubTimer) clearTimeout(hubTimer);
+    try { upstream && upstream.close(1000, 'bye'); } catch (e) {}
     try { server.close(code, reason); } catch (e) {}
   };
 
-  // One handler for a parsed upstream message, whether it came from the shared hub or a direct socket.
+  // One handler for a parsed hub message (raw InsightSentry series messages for our legs + hub events).
   const onUp = (msg) => {
-    lastUpAt = Date.now(); gotAny = true;
-    if (msg && msg.event === 'hub_rejected') return close(1011, 'upstream rejected');
-    if (msg && msg.event === 'hub_down') return;
+    if (!msg) return;
+    if (msg.event === 'ping') { hubUp = Number(msg.up); return; }
+    if (msg.event === 'hub_attached') return;
+    if (msg.event === 'hub_rejected') return close(1011, 'upstream rejected');
+    if (msg.event === 'hub_full' || msg.event === 'hub_paused') { send({ event: msg.event }); return; }
+    if (msg.event === 'hub_down') return;
+    lastUpAt = Date.now();
     upMsgs++;
-    if (msg && msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
-    if (tickMode && /T$/i.test(String(msg && msg.bar_type || ''))) {
+    if (msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
+    if (tickMode && /T$/i.test(String(msg.bar_type || ''))) {
       const rowsT = Array.isArray(msg.series) ? msg.series : [];
       for (const x of rowsT) onTick(Number(x.time), r(Number(x.close)), Number(x.volume));
       return;
@@ -177,51 +177,33 @@ export async function onRequestGet(ctx) {
     upBars += rows.length;
     for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
   };
-  let gotAny = false, hubSubs = [], hubTimer = null;
-  // DIRECT socket: the old per-client upstream. Only used if the shared hub cannot take this stream or
-  // delivered nothing for 10 s (so a hub problem can never leave a chart without data).
-  const startDirect = () => {
-    upstream = new WebSocket(INSIGHTSENTRY_WS);
-    upstream.onopen = () => {
-      const subs = [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }];
-      if (tickMode) subs.push({ code, type: 'series', bar_type: 'tick', bar_interval: 1, dp: 1, '24h': true });
-      upstream.send(JSON.stringify({ api_key: key, slow_consumer_policy: policy, subscriptions: subs }));
-      send({ event: 'connected', s: sym, tf });
-    };
-    upstream.onerror = () => close(1011, 'upstream error');
-    upstream.onclose = () => close(1000, 'upstream closed');
-    upstream.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      const text = JSON.stringify(msg).toLowerCase();
-      if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return close(1011, 'upstream rejected');
-      onUp(msg);
-    };
-  };
-  const startHub = () => {
-    if (!hubHealthy() || policy !== 'adaptive') return false;
-    const legs = [{ code, bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp: 1000 }];
-    if (tickMode) legs.push({ code, bar_type: 'tick', bar_interval: 1, dp: 1 });
-    const subs = [];
-    for (let i = 0; i < legs.length; i++) {
-      const h = hubSubscribe({ key, url: INSIGHTSENTRY_WS, leg: legs[i], replay: 200, onMessage: onUp, onEvent: i === 0 ? onUp : null });
-      if (!h) { subs.forEach((x) => x.close()); return false; }
-      subs.push(h);
-    }
-    hubSubs = subs;
+  // ONE UPSTREAM FOR THE WHOLE SITE (2026-10-22 P0, InsightSentry throttled us at 141 requests / window, limit 120):
+  // this bridge NEVER opens an InsightSentry socket. It attaches to the book-recorder Worker's IS hub (a single
+  // Durable Object holding the one realtime socket, workers/book-recorder/src/is-hub.js). A browser reconnect or
+  // stall-watchdog reopen therefore only re-attaches to that hub; it costs InsightSentry nothing.
+  let hubUp = -1, linkAt = Date.now();
+  const legs = [code + '|' + spec.bar_type + '|' + spec.bar_interval];
+  if (tickMode) legs.push(code + '|tick|1');
+  const startHub = async () => {
+    const res = await fetch(RECORDER_URL + '/is-live?legs=' + encodeURIComponent(legs.join(';')), { headers: { upgrade: 'websocket', authorization: 'Bearer ' + wsTokenOf(ctx.request) } });
+    const ws = res.webSocket;
+    if (!ws) { send({ event: 'hub_error', status: res.status }); return close(1011, 'hub refused ' + res.status); }
+    ws.accept();
+    upstream = ws;
+    if (closed) { try { ws.close(1000, 'bye'); } catch (e) {} return; }
     send({ event: 'connected', s: sym, tf, hub: true });
-    hubTimer = setTimeout(() => {
-      hubTimer = null;
-      if (closed || gotAny) return;
-      hubNoteTimeout();
-      hubSubs.forEach((x) => x.close()); hubSubs = [];
-      try { startDirect(); } catch (e) { close(1011, 'stream failed'); }
-    }, 10000);
-    return true;
+    ws.addEventListener('message', (ev) => {
+      linkAt = Date.now();
+      let msg;
+      try { msg = JSON.parse(typeof ev.data === 'string' ? ev.data : new TextDecoder().decode(ev.data)); } catch (e) { return; }
+      onUp(msg);
+    });
+    ws.addEventListener('close', () => close(1011, 'hub closed'));
+    ws.addEventListener('error', () => close(1011, 'hub error'));
   };
 
   try {
-    if (!startHub()) startDirect();
+    startHub().catch(() => close(1011, 'hub failed'));
     // the admin check is made at connect; end the socket after 50 min so a revoked admin (or an
     // expired token) re-checks. The client re-opens at once with a fresh token.
     setTimeout(() => close(4000, 'reauth'), 50 * 60 * 1000);

@@ -5,8 +5,7 @@
 // Protections copied from /api/gex/candles: edge cache, last-good fallback, in-flight de-dupe,
 // upstream timeout. An out-of-range page (older than Yahoo keeps, or in the future) is [] not an error.
 import { isRealtimeToken, bearerOf, RT_DELAY_S } from '../_rt.js';
-import { hubStats } from '../_is-hub.js';
-import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, fetchInsightPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
+import { globexOpen, TIMEFRAMES, INSIGHTSENTRY_CODES, isForex, normSym, normTf, pageOf, fetchPage, mergeTail, ttlFor, OutOfRange, fetchRecorderTail, TAIL_SYMS, bucketTail } from '../_bars.js';
 
 const VERSION = 1;
 const inflight = new Map();
@@ -38,8 +37,8 @@ function keyFor(request, sym, tf, page, kind) {
 async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
   try {
     if (!cache || ctx.noTail || page < current - 1 || !INSIGHTSENTRY_CODES[sym] || !TIMEFRAMES[tf].page || ttlFor(tf, page, now, sym) > 60) return res;
-    // PRIMARY: the book-recorder Worker's minute rows (it holds the InsightSentry feed; edge-cached 3 s there).
-    // No upstream socket per request. The old per-request InsightSentry fetch below is only the fallback.
+    // The book-recorder Worker's minute rows (built from its server feeder's InsightSentry trades, kept in its SQL
+    // store, edge-cached 3 s there). No InsightSentry socket per request, ever.
     if (TAIL_SYMS.includes(sym) && bucketTail([], tf, 0, 0) !== null) {
       const rt = await fetchRecorderTail(sym, tf, page, bearerOf(request));
       if (rt) {
@@ -48,30 +47,9 @@ async function withTail(res, ctx, request, cache, sym, tf, page, current, now) {
         return reply(body0, 200, Math.min(ttlFor(tf, page, now, sym), 15), res.headers.get('x-bars-cache') || 'MISS');
       }
     }
-    const k = `${sym}:${tf}:${page}`, tailKey = keyFor(request, sym, tf, page, 'tail');
-    const hitT = await cache.match(tailKey);
-    let tail = null, tailAge = 1e9;
-    if (hitT) { const j = await hitT.json(); tail = j.bars; tailAge = now - j.at; }
-    // A request that arrives while ANOTHER request's tail fetch is running used to skip it and answer with
-    // Yahoo-only rows ~10 min old (seen under load). With no tail at all it now waits for that same fetch.
-    if (!tail && inflight.has('tail:' + k)) {
-      await Promise.race([inflight.get('tail:' + k), new Promise((r) => setTimeout(r, 9000))]);
-      const again = await cache.match(tailKey);
-      if (again) { const j = await again.json(); tail = j.bars; tailAge = now - j.at; }
-    }
-    if (tailAge > 12 && !inflight.has('tail:' + k)) {
-      const w = fetchInsightPage(sym, tf, page, now, ctx.env || {}, null, 15000).then((rows) => {
-        if (rows && rows.length) { tail = tail || rows; return cache.put(tailKey, reply({ at: Math.floor(Date.now() / 1000), bars: rows }, 200, 3600)); }
-      }).catch(() => {}).finally(() => inflight.delete('tail:' + k));
-      inflight.set('tail:' + k, w);
-      if (ctx.waitUntil) ctx.waitUntil(w);
-      // Cold edge (no tail at all): wait for it once (about 6 s), so the first view is current too.
-      if (!tail) await Promise.race([w, new Promise((r) => setTimeout(r, 9000))]);
-    }
-    if (!tail || !tail.length) return res;
-    const body = await res.clone().json();
-    body.bars = mergeTail(body.bars || [], tail);
-    return reply(body, 200, Math.min(ttlFor(tf, page, now, sym), 15), res.headers.get('x-bars-cache') || 'MISS');
+    // No fallback to a per-request InsightSentry socket any more (2026-10-22: those sockets got us throttled by
+    // InsightSentry). No recorder tail = the Yahoo page as is; the chart's live candle comes from the stream bridge.
+    return res;
   } catch (e) { return res; }
 }
 
@@ -158,7 +136,6 @@ export async function onRequestGet(ctx) {
   // x-tz-auth tells a signed-in browser its token was refused (expired / bad) so it can refresh and retry.
   const hadToken = !!bearerOf(ctx.request);
   out.headers.set('x-tz-rt', admin ? '1' : '0');
-  if (admin) out.headers.set('x-tz-hub', JSON.stringify(hubStats()).slice(0, 400));
   if (hadToken && !admin) out.headers.set('x-tz-auth', 'not-admin-or-rejected');
   if (admin) {
     out.headers.set('cache-control', 'private, max-age=10');

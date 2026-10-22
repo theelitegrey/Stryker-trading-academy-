@@ -1,9 +1,9 @@
 // Chart bars for the Charts page futures provider (assets/chart-futures-provider.js).
 // Used by functions/api/chart/bars/[sym].js. Pure module, no Pages context.
 //
-// Source: InsightSentry WebSocket for current futures pages when INSIGHTSENTRY_WEBSOCKET_API_KEY
-// is configured server-side; Yahoo Finance remains the fallback/backfill source and still serves
-// spot forex (=X). The key never goes to the browser. Forex rows (market 'forex') are served to
+// Source: Yahoo Finance pages (edge-cached) + the book-recorder Worker's live 1-minute tail for admins.
+// Since 2026-10-22 (InsightSentry throttled us at 141 requests / window, limit 120) NO bars request ever opens an
+// InsightSentry socket: the only realtime socket is the recorder's IS hub (stream bridge). Spot forex (=X) unchanged. The key never goes to the browser. Forex rows (market 'forex') are served to
 // assets/chart-futures-provider.js FxProvider; they trade Sun 17:00 to Fri 17:00 New York with no
 // daily break, and their 2h/4h bars are anchored to 17:00 New York instead of the 18:00 Globex open.
 // Bars are served in FIXED, epoch-aligned PAGES per timeframe, so every request
@@ -15,7 +15,6 @@
 // Intl/Date formatting per row (the New York offset is computed arithmetically).
 
 export const FETCH_TIMEOUT_MS = 4500;
-export const INSIGHTSENTRY_WS = 'wss://realtime.insightsentry.com/live';
 export const INSIGHTSENTRY_CODES = {
   NQ: 'CME_MINI:NQ1!',
   MNQ: 'CME_MINI:MNQ1!',
@@ -203,40 +202,6 @@ export function yahooUrl(sym, tf, page, now) {
   return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yh)}?period1=${p1}&period2=${p2}&interval=${cfg.iv}`;
 }
 
-function insightSpec(tf) {
-  const cfg = TIMEFRAMES[tf];
-  if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 3600) return null;
-  if (cfg.agg) return { bar_type: 'hour', bar_interval: 1, agg: cfg.agg };
-  if (cfg.step < 3600) return { bar_type: 'minute', bar_interval: Math.max(1, cfg.step / 60), agg: 1 };
-  return { bar_type: 'hour', bar_interval: 1, agg: 1 };
-}
-
-function parseInsightRow(x, dec) {
-  const t = Number(x?.time ?? x?.t ?? x?.timestamp ?? x?.bar_time ?? x?.start);
-  const sec = t > 1e12 ? Math.floor(t / 1000) : t;
-  const o = Number(x?.open ?? x?.o), h = Number(x?.high ?? x?.h), l = Number(x?.low ?? x?.l), c = Number(x?.close ?? x?.c);
-  if (!Number.isFinite(sec) || !Number.isFinite(o) || !Number.isFinite(h) || !Number.isFinite(l) || !Number.isFinite(c)) return null;
-  const r = rounder(dec);
-  return [Math.floor(sec), r(o), r(h), r(l), r(c), Math.round(Number(x?.volume ?? x?.v ?? 0) || 0)];
-}
-
-function insightRowsFromMessage(msg, dec) {
-  const pools = [msg?.data, msg?.bars, msg?.series, msg?.bar, msg];
-  const out = [];
-  for (const p of pools) {
-    if (Array.isArray(p)) for (const x of p) { const r = parseInsightRow(x, dec); if (r) out.push(r); }
-    else { const r = parseInsightRow(p, dec); if (r) out.push(r); }
-  }
-  return out;
-}
-
-function insightConnect(url) {
-  if (typeof WebSocket === 'function') return new WebSocket(url);
-  throw new Error('WebSocket unavailable');
-}
-
-import { hubSubscribe, hubHealthy, hubNoteTimeout } from './_is-hub.js';
-
 // LIVE TAIL FROM THE RECORDER (2026-10-20, "candles frozen 1020c"): the book-recorder Worker already holds the
 // InsightSentry tick feed and keeps every minute's OHLCV (incl. the forming minute, updated every ~10 s for NQ/ES,
 // 30 s others). Its /bars-tail returns the last ~8 h of 1-minute rows; they are bucketed here to the asked timeframe.
@@ -278,106 +243,18 @@ export async function fetchRecorderTail(sym, tf, page, token, fetchImpl = fetch,
   } catch (e) { return null; }
 }
 
-// Rows for one page from the shared InsightSentry connection (see _is-hub.js): null = hub unavailable or no data in time.
-function insightRowsViaHub(key, code, spec, dp, dec, timeoutMs, signal) {
-  return new Promise((resolve) => {
-    if (!hubHealthy()) return resolve(null);
-    let done = false, sub = null;
-    const rows = [];
-    const fin = (v, timedOut) => { if (done) return; done = true; clearTimeout(timer); if (timedOut) hubNoteTimeout(); try { sub && sub.close(); } catch (e) {} resolve(v); };
-    const timer = setTimeout(() => fin(null, true), Math.min(timeoutMs, 10000));
-    if (signal) { if (signal.aborted) return fin(null); signal.addEventListener('abort', () => fin(null), { once: true }); }
-    sub = hubSubscribe({ key, url: INSIGHTSENTRY_WS, leg: { code, bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp: 1000 }, replay: 1000,
-      onMessage: (msg) => { const got = insightRowsFromMessage(msg, dec); if (got.length) { rows.push(...got); fin(rows); } } });
-    if (!sub) fin(null);
-  });
-}
-
-export async function fetchInsightPage(sym, tf, page, now, env, signal, timeoutMs = FETCH_TIMEOUT_MS) {
-  const key = env?.INSIGHTSENTRY_WEBSOCKET_API_KEY || globalThis.INSIGHTSENTRY_WEBSOCKET_API_KEY;
-  const code = INSIGHTSENTRY_CODES[sym];
-  const spec = insightSpec(tf);
-  if (!key || !code || !spec || isForex(sym)) throw new OutOfRange('InsightSentry not configured for symbol/timeframe');
-  const cfg = TIMEFRAMES[tf];
-  if (!cfg.page) throw new OutOfRange('InsightSentry page unsupported');
-  const current = pageOf(tf, now);
-  // Use InsightSentry only for the current/recent page. Older history/backfill stays on Yahoo.
-  if (page < current - 1 || page > current) throw new OutOfRange('InsightSentry historical page skipped');
-  const [p1, p2] = pageBounds(tf, page);
-  const dp = Math.min(1000, Math.max(100, Math.ceil((Math.min(now + 60, p2) - p1) / (spec.bar_interval * (spec.bar_type === 'hour' ? H : 60))) + 20));
-  const rows = [];
-  const dec = decimalsOf(SYMBOLS[sym][4]);
-  const viaHub = await insightRowsViaHub(key, code, spec, dp, dec, timeoutMs, signal);
-  const ws = viaHub ? null : insightConnect(INSIGHTSENTRY_WS);
-  if (viaHub) rows.push(...viaHub);
-  else await new Promise((resolve, reject) => {
-    const done = (err) => { clearTimeout(timer); try { ws.close(); } catch (e) {} err ? reject(err) : resolve(); };
-    const timer = setTimeout(() => done(new Error('InsightSentry timeout')), timeoutMs);
-    if (signal) {
-      if (signal.aborted) return done(new Error('InsightSentry cancelled'));
-      signal.addEventListener('abort', () => done(new Error('InsightSentry cancelled')), { once: true });
-    }
-    ws.onopen = () => ws.send(JSON.stringify({
-      api_key: key,
-      slow_consumer_policy: 'adaptive',
-      subscriptions: [{ code, type: 'series', bar_type: spec.bar_type, bar_interval: spec.bar_interval, dp, '24h': true }]
-    }));
-    ws.onerror = () => done(new Error('InsightSentry websocket error'));
-    ws.onmessage = (ev) => {
-      let msg;
-      try { msg = JSON.parse(ev.data); } catch (e) { return; }
-      const text = JSON.stringify(msg).toLowerCase();
-      if (/invalid|unauthori[sz]ed|expired|subscription_expired|websocket_access_required/.test(text)) return done(new Error('InsightSentry rejected request'));
-      const got = insightRowsFromMessage(msg, dec);
-      if (got.length) {
-        rows.push(...got);
-        return done();
-      }
-      if (msg?.event === 'subscription_status' && /active|subscribed|ok/.test(String(msg?.status || '').toLowerCase())) return;
-    };
-  });
-  rows.sort((a, b) => a[0] - b[0]);
-  const uniq = [];
-  for (const r of rows) if (r[0] >= p1 && r[0] < p2 && (!uniq.length || uniq[uniq.length - 1][0] !== r[0])) uniq.push(r);
-  const finalRows = spec.agg && spec.agg > 1 ? aggregateHours(uniq, spec.agg, 18) : uniq;
-  return finalRows.filter((r) => r[0] >= p1 && r[0] < p2);
-}
+// fetchInsightPage: REMOVED 2026-10-22. It opened one InsightSentry socket + one subscription message per bars
+// request (each counts toward InsightSentry's 120 / 3 h; under load it was the bulk of the 141 that got us throttled).
+// Kept as a stub that always says "not available" so a stray caller can never reach InsightSentry.
+export async function fetchInsightPage() { throw new OutOfRange('InsightSentry is never called per request'); }
 
 export class OutOfRange extends Error {}
 
 // One upstream page. Throws OutOfRange for a page Yahoo cannot serve (empty is a valid answer),
-// any other error for an upstream failure (caller falls back to last-good).
-//
-// SPEED (Owner order 2026-10-14, "switching symbols takes 3-5 s"): InsightSentry and Yahoo are
-// asked AT THE SAME TIME. Build 534 and earlier waited for InsightSentry first, and its series
-// history arrives ~5.6 s after the socket opens, so every current-page request sat out the full
-// 4.5 s FETCH_TIMEOUT_MS and then served Yahoo anyway (measured 4.7 s TTFB on every NQ/ES/GC/YM/SI
-// current page, 0.1-0.3 s on symbols without an InsightSentry code). The preference is unchanged:
-// InsightSentry rows win when they are ready by the time Yahoo answers; otherwise Yahoo's page is
-// served right away and the InsightSentry socket is closed. InsightSentry is waited for only when
-// Yahoo fails. The chart's live tail still comes from the /api/chart/stream bridge.
+// any other error for an upstream failure (caller falls back to last-good). Yahoo only: history pages (incl. the
+// scroll-back pager) never touch InsightSentry; the admin live tail is laid over by bars/[sym].js (withTail).
 export async function fetchPage(sym, tf, page, now = Math.floor(Date.now() / 1000), fetchImpl = fetch, env = {}) {
-  const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-  let insightRows = null;
-  // Recorder-served symbols/timeframes: the live part comes from the tail overlay (bars/[sym].js withTail), so
-  // no InsightSentry socket is opened here unless Yahoo fails (the fallback below).
-  const viaRecorder = TAIL_SYMS.includes(sym) && bucketTail([], tf, 0, 0) !== null && !!(env && (env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY));
-  const insight = (viaRecorder ? Promise.reject(new OutOfRange('recorder tail')) : fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal))
-    .then((rows) => { insightRows = rows; return rows; });
-  insight.catch(() => {}); // not configured / not this symbol / timeout: Yahoo carries the page
-  try {
-    const rows = await fetchYahooPage(sym, tf, page, now, fetchImpl);
-    if (insightRows && insightRows.length) return insightRows;
-    return rows;
-  } catch (yErr) {
-    try {
-      const rows = viaRecorder ? await fetchInsightPage(sym, tf, page, now, env, ctrl && ctrl.signal) : await insight;
-      if (rows && rows.length) return rows;
-    } catch (e) { /* fall through to the Yahoo error */ }
-    throw yErr;
-  } finally {
-    if (ctrl) { try { ctrl.abort(); } catch (e) {} }
-  }
+  return fetchYahooPage(sym, tf, page, now, fetchImpl);
 }
 
 async function fetchYahooPage(sym, tf, page, now, fetchImpl) {

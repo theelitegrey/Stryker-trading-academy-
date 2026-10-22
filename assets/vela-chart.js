@@ -66,12 +66,38 @@
 // goes in a NEW folder (-s3) and
 // the charts.html import map ("@luxalgo/vela/plugin") must move with it, or
 // the Pine engine gets a second copy of Vela's registries.
-const VELA_BASE = './vendor/vela-0.6.17-s3/';
+// VELA 0.9.0 TRIAL (CoS order 2026-10-22): admins can switch to the upgraded engine in
+// assets/vendor/vela-0.9.0-s1/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
+// TradingView-feel fixes). Members stay on 0.6.17-s3. The inline script in charts.html picks the
+// folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
+// 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
+const VELA090 = window.__stkVela090 === true;
+const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s1/' : './vendor/vela-0.6.17-s3/';
 // One-time migration for members whose saved workspace still carries the old
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';
 const TV_LOOK_VER = '1';
-const PERSIST_KEY = 'vela-workspace';
+const PERSIST_KEY = VELA090 ? 'vela-workspace-090' : 'vela-workspace';
+window.__stkPersistKey = PERSIST_KEY;
+if (VELA090) {
+  // Admin-only trial: a member who set the flag (?vela=0.9) goes back to 0.6.17 once the
+  // admin check (admins/{uid}, same as the Pine library) answers no.
+  let tries = 0;
+  const guard = setInterval(() => {
+    tries++;
+    let L = null, u = null;
+    try { L = window.StrykerPineLibrary; u = window.firebase && firebase.auth().currentUser; } catch (e) {}
+    if (L && L.isAdmin && u) {
+      clearInterval(guard);
+      L.isAdmin().then((a) => { if (!a) { try { localStorage.removeItem('stryker_vela090'); } catch (e) {} location.reload(); } }).catch(() => {});
+    } else if (tries > 45) {
+      clearInterval(guard);
+      try { localStorage.removeItem('stryker_vela090'); } catch (e) {}
+    }
+  }, 2000);
+  // First run on 0.9.0: start from the member's 0.6.17 session (0.9.0 reads old saves).
+  try { if (!localStorage.getItem(PERSIST_KEY) && localStorage.getItem('vela-workspace')) localStorage.setItem(PERSIST_KEY, localStorage.getItem('vela-workspace')); } catch (e) {}
+}
 const PHONE_MAX = 700;
 
 function velaFail(){
@@ -223,7 +249,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       import('./chart-pine.js?v=613'),
       Promise.resolve(null),
       import('./chart-settings.js?v=613'),
-      import(VELA_BASE + 'chunk-YCD72KGK.js'),
+      VELA090 ? Promise.all([import(VELA_BASE + 'index.js'), import(VELA_BASE + 'chunk-YRCL3WMD.js')]).then(([a, b]) => ({ sharedBarStore: a.sharedBarStore, TIMEZONES: b.TIMEZONES })) : import(VELA_BASE + 'chunk-YCD72KGK.js'),
       import('./chart-grid.js?v=613'),
       import('./chart-alerts.js?v=613'),
       import('./chart-events.js?v=613'),
@@ -237,7 +263,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       Promise.resolve(null),
       Promise.resolve(null),
       import('./chart-tool-icons.js?v=613'),
-      import(VELA_BASE + 'chunk-IFJJPXSV.js')
+      import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js'))
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -399,7 +425,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new FxProvider(), 'fx'), 'fx')
       },
-      persist: true
+      persist: PERSIST_KEY
     });
   } catch (err) {
     console.error('TradeZoro: Vela failed to start', err);

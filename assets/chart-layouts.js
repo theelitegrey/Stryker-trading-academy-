@@ -408,7 +408,7 @@ export function mountLayouts(ws, o){
     endViewing();
     stash = null;
     if (back) openById(back.id);
-    else { try { const raw = localStorage.getItem('vela-workspace'); if (raw) apply(JSON.parse(raw)); } catch (e) {} paintBtn(); }
+    else { try { const raw = localStorage.getItem(window.__stkPersistKey || 'vela-workspace'); if (raw) apply(JSON.parse(raw)); } catch (e) {} paintBtn(); }
   }
   let bannerEl = null;
   function banner(on){

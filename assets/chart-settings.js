@@ -317,7 +317,11 @@ function ourSections(id){
   const rhRows = window.__stkIsAdmin === true ? [
     { kind: 'heading', label: 'Admin' },
     { kind: 'toggle', label: 'Hide replay markings (admin)', id: 'rhide', get: g('rhide'), set: st('rhide'),
-      title: 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.' }
+      title: 'Clean chart for recording: while replay runs, hides the Replay badge, control bar, data-dot tag, (simulated path), replay toasts, the Replay account tag and the GEX replay note. Keys while replay is on: Shift+H show/hide markings, Space play/pause, Shift+Right step forward, Shift+Left step back, Shift+Up/Down speed, Shift+X exit replay. Phone: two-finger long-press, or tap the faint dot in the bottom-right corner.' },
+    { kind: 'toggle', label: 'New chart engine 0.9 (admin trial)', id: 'vela090',
+      get: () => window.__stkVela090 === true,
+      set: (v) => { try { if (v) localStorage.setItem('stryker_vela090', '1'); else localStorage.removeItem('stryker_vela090'); } catch (e) {} setTimeout(() => location.reload(), 150); },
+      title: 'Admins only. Reloads Charts on the upgraded engine (TradingView-like zoom, scroll, axis drag, drag-to-draw, magnet). Members stay on the current engine. Turn off to go back.' }
   ] : [];
   const off = (label) => ({ kind: 'toggle', label, get: () => false, set: () => {}, id: 'stk-off-' + label.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
   return [

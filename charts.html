@@ -83,16 +83,32 @@
      names below. "@luxalgo/vela/plugin" MUST resolve to the exact same URL vela-chart.js
      loads (one module instance = one set of Vela registries). pinets is AGPL-3.0 and is
      loaded unmodified, only when the Pine editor or a Pine indicator is used. -->
-<script type="importmap">
-{"imports":{
-  "@zag-js/vanilla":"/assets/vendor/zag-1.42.0/vanilla.js",
-  "@zag-js/menu":"/assets/vendor/zag-1.42.0/menu.js",
-  "@zag-js/dialog":"/assets/vendor/zag-1.42.0/dialog.js",
-  "@zag-js/tooltip":"/assets/vendor/zag-1.42.0/tooltip.js",
-  "@luxalgo/vela":"/assets/vendor/vela-0.6.17-s3/index.js",
-  "@luxalgo/vela/plugin":"/assets/vendor/vela-0.6.17-s3/plugin.js",
-  "pinets":"https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js"
-}}
+<!-- VELA 0.9.0 TRIAL (2026-10-22): admins may switch the engine to vendor/vela-0.9.0-s1 (Chart
+     settings > Admin, or ?vela=0.9 / ?vela=0.6). The choice must be made here, before any module
+     loads, because the import map has to point at the same folder vela-chart.js imports. A
+     member who sets the flag is switched back once the admin check says no (vela-chart.js). -->
+<script>
+(function(){
+  var on = false;
+  try {
+    var q = new URLSearchParams(location.search).get('vela');
+    if (q === '0.9' || q === '090') localStorage.setItem('stryker_vela090', '1');
+    else if (q === '0.6' || q === 'off') localStorage.removeItem('stryker_vela090');
+    on = localStorage.getItem('stryker_vela090') === '1';
+  } catch (e) {}
+  window.__stkVela090 = on;
+  var V = on ? '/assets/vendor/vela-0.9.0-s1/' : '/assets/vendor/vela-0.6.17-s3/';
+  var map = {imports:{
+    '@zag-js/vanilla':'/assets/vendor/zag-1.42.0/vanilla.js',
+    '@zag-js/menu':'/assets/vendor/zag-1.42.0/menu.js',
+    '@zag-js/dialog':'/assets/vendor/zag-1.42.0/dialog.js',
+    '@zag-js/tooltip':'/assets/vendor/zag-1.42.0/tooltip.js',
+    '@luxalgo/vela': V + 'index.js',
+    '@luxalgo/vela/plugin': V + 'plugin.js',
+    'pinets':'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js'
+  }};
+  document.write('<script type="importmap">' + JSON.stringify(map) + '<\/script>');
+})();
 </script>
 <!-- Start the Charts modules downloading while the classic scripts run (vela-chart.js imports exactly these); the ?v= must match the import() URLs. -->
 <link rel="modulepreload" href="/assets/chart-futures-provider.js?v=613">

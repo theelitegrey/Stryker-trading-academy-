@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Apply the TradeZoro patches to a pristine @luxalgo/vela 0.9.0 dist copy.
 
-Usage: python3 tools/vela-090-patch.py assets/vendor/vela-0.9.0-s3
+Usage: python3 tools/vela-090-patch.py assets/vendor/vela-0.9.0-s4
 Run it ONCE on the unmodified npm files (npm pack @luxalgo/vela@0.9.0, dist/*.js and
 dist/providers/*.js). Every edit asserts its anchor text occurs exactly once, so a
 different upstream build fails loudly instead of half-patching. See CHANGES.md there.

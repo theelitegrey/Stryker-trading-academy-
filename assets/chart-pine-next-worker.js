@@ -31,7 +31,7 @@
 const PINETS = 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js';
 const VELA_PINETS = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
 // The page passes &vela=090 while the admin 0.9.0 trial is on (same folder as its import map).
-const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s3/plugin.js' : '/assets/vendor/vela-0.6.17-s3/plugin.js', self.location.href).href;
+const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s4/plugin.js' : '/assets/vendor/vela-0.6.17-s3/plugin.js', self.location.href).href;
 
 const post = (m) => self.postMessage(m);
 let engine = null;
@@ -42,7 +42,7 @@ let fetchId = 0;
 let rewrite = (src) => src;
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
-  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=622')]);
+  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=623')]);
   try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('TradeZoro: pine-next patches', e); }
   const res = await fetch(VELA_PINETS);
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');

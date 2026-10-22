@@ -230,7 +230,10 @@ edit(C, '    ui.titleEl.after(styleBtn.el);', '''    // TradeZoro patch (dsp): p
       inp.value = ui.titleEl.textContent;
       inp.maxLength = 60;
       inp.addEventListener("pointerdown", (e) => e.stopPropagation());
+      let finished = false;
       const done = (save) => {
+        if (finished) return;
+        finished = true;
         if (save) {
           const v = inp.value.trim();
           stkSetDrawingName(first.id, v && v !== (meta?.label ?? "") ? v : "");

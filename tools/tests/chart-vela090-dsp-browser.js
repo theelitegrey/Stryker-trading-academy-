@@ -152,18 +152,22 @@ const tab = async (p, key) => { await p.click(`${dlg} .stk-dsp-tabs > button[dat
   } else check(false, 'reopen for rename');
 
   // trend line + horizontal line + fib: window opens with the right tabs
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  if (await p.$(dlg)) { await p.click(dlg + ' .vela-dialog-footer button:has-text("OK")').catch(() => {}); await p.waitForTimeout(200); }
   for (const [tool, want] of [['trendline', ['Style', 'Text', 'Coordinates', 'Visibility']], ['hline', ['Style', 'Text', 'Coordinates', 'Visibility']], ['fibretracement', null]]) {
     await R(p, 'cell.chart.drawings.setTool(arg); return 1;', tool);
     const y0 = box.y + box.h * 0.75;
     await p.mouse.click(box.x + box.w * 0.15, y0); await p.waitForTimeout(150);
     if (tool !== 'hline') { await p.mouse.click(box.x + box.w * 0.3, y0 - 60); await p.waitForTimeout(250); }
-    const id = await R(p, 'const a = r.userDrawings.drawings; return a[a.length - 1].id;');
-    await R(p, 'r.userDrawings.openSettings(arg); return 1;', id).catch((e) => console.log('openSettings', String(e)));
+    const info = await R(p, 'const a = r.userDrawings.drawings; return { types: a.map((d) => d.type), id: (a.filter((d) => d.type === arg).pop() || {}).id, dlg: !!document.querySelector(".vela-dsp"), tool: r.userDrawings.activeTool };', tool);
+    console.log('  ', tool, JSON.stringify(info));
+    const id = info.id;
+    await R(p, 'r.userDrawings.openSettings(arg); r.userDrawings.popup.openPanel(); return 1;', id).catch((e) => console.log('openSettings', String(e)));
     await p.waitForTimeout(500);
     const t = await tabs(p).catch(() => []);
     if (want) check(JSON.stringify(t) === JSON.stringify(want), tool + ' window tabs', t);
     else check(t.includes('Style') && t.includes('Coordinates') && t.includes('Visibility'), tool + ' window has Style/Coordinates/Visibility', t);
-    if (tool === 'hline') {
+    if (tool === 'hline' && t.length) {
       await tab(p, 'text');
       const n = await p.$$eval(dlg + ' .stk-dsp-pane[data-pane=text] select', (x) => x.length);
       check(n === 3, 'hline Text tab has size + alignment', n);
@@ -174,29 +178,31 @@ const tab = async (p, key) => { await p.click(`${dlg} .stk-dsp-tabs > button[dat
 
   // floating toolbar gear opens it too
   const trend = await R(p, 'const a = r.userDrawings.drawings.filter((d) => d.type === "trendline"); return a[a.length - 1].id;');
-  await R(p, 'r.userDrawings.select ? r.userDrawings.select([arg]) : cell.chart.drawings.select([arg]); return 1;', trend).catch(() => {});
+  await R(p, 'r.userDrawings.openSettings(arg); return 1;', trend);
   await p.waitForTimeout(400);
-  const gear = await p.evaluate(() => {
-    const btns = [...document.querySelectorAll('button')].filter((x) => x.offsetParent && /setting/i.test((x.getAttribute('aria-label') || '') + ' ' + (x.title || '')) && x.closest('[class*=toolbar], [class*=dtb], [class*=floating]'));
-    const g = btns[0]; if (!g) return null; const r = g.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, cls: g.closest('[class]').className };
-  });
-  if (gear) { await p.mouse.click(gear.x, gear.y); await p.waitForTimeout(500); }
-  check(!!gear && !!(await p.$(dlg)), 'floating toolbar gear opens the window', gear);
+  const gear = await R(p, `
+    const pop = r.userDrawings.popup; const host = pop.bar || pop.el || document;
+    const btns = [...(host.querySelectorAll ? host.querySelectorAll('button') : [])].filter((x) => x.offsetParent);
+    const g = btns.find((x) => /setting/i.test((x.getAttribute('aria-label') || '') + ' ' + (x.title || '') + ' ' + (x.dataset.tip || '')));
+    if (!g) return { n: btns.length, labels: btns.map((x) => x.getAttribute('aria-label') || x.title || x.dataset.tip || '').slice(0, 20) };
+    const q = g.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 };`);
+  if (gear && gear.x) { await p.mouse.click(gear.x, gear.y); await p.waitForTimeout(500); }
+  check(!!(gear && gear.x) && !!(await p.$(dlg)), 'floating toolbar gear opens the window', gear);
+  await p.screenshot({ path: OUT + '/dsp-1440-trendline.png' });
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   check(errors.length === 0, 'no page errors 1440', errors.slice(0, 4));
   await ctx.close();
 
   // phone
   ({ ctx, p, errors } = await open(b, { w: 390, h: 844, mobile: true }));
-  await R(p, `const a = r.userDrawings.store; return 1;`);
-  const id = await R(p, `
-    const v = r.coords; const L = v.barCount - 20; const bar = r.bars[L]; const bar2 = r.bars[L + 8];
-    cell.chart.drawings.add ? 0 : 0;
-    const t1 = bar.time, t2 = bar2.time;
-    const doc = { type: 'box', anchors: [{ time: t1, price: bar.high }, { time: t2, price: bar2.low }] };
-    const res = cell.chart.drawings.add ? cell.chart.drawings.add(doc) : null;
-    const all = r.userDrawings.drawings; return all.length ? all[all.length - 1].id : res;`).catch((e) => String(e));
-  await R(p, 'r.userDrawings.openSettings(arg); return 1;', id).catch((e) => console.log('phone open', String(e)));
+  // phone: draw a box with touch-free mouse events (the tool is armed in code), then open it
+  await R(p, 'r.applyViewport({ barSpacing: 8, rightOffset: 5 }); cell.chart.drawings.setTool("box"); return 1;');
+  const pb = await plotBox(p);
+  await p.mouse.click(pb.x + pb.w * 0.3, pb.y + pb.h * 0.35); await p.waitForTimeout(150);
+  await p.mouse.click(pb.x + pb.w * 0.6, pb.y + pb.h * 0.5); await p.waitForTimeout(300);
+  const id = await R(p, 'const a = r.userDrawings.drawings; return { n: a.length, id: a.length ? a[a.length - 1].id : null };');
+  console.log('   phone box', JSON.stringify(id));
+  await R(p, 'r.userDrawings.openSettings(arg); r.userDrawings.popup.openPanel(); return 1;', id.id).catch((e) => console.log('phone open', String(e)));
   await p.waitForTimeout(600);
   const fits = await p.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, w: innerWidth, t: r.top, b: r.bottom, h: innerHeight }; }, dlg);
   check(!!fits && fits.l >= 0 && fits.r <= fits.w && fits.b <= fits.h, 'phone: window fits the screen', fits);

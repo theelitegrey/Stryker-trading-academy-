@@ -74,7 +74,16 @@ function loadNext(){
   if (!NextMod) NextMod = import('./chart-pine-next.js?v=614').catch((e) => { NextMod = null; throw e; });
   return NextMod;
 }
+// TradingView-style painting of Pine drawings (assets/chart-pine-tv-style.js); once per chart.
+let TvStyle = null;
+async function tvStyle(chart){
+  try {
+    if (!TvStyle) TvStyle = import('./chart-pine-tv-style.js?v=613');
+    (await TvStyle).installTvStyle(chart);
+  } catch (e) { TvStyle = null; }
+}
 async function ensureNext(chart){
+  tvStyle(chart);
   const m = await loadNext();
   if (!nextEngines.has(chart)) {
     const e = new m.PineNextEngine({ props: 'strategy', onAlert: (alert, session) => handlePineAlert(chart, alert, session) });
@@ -111,6 +120,7 @@ function loadPine(){
 }
 
 async function ensureEngine(chart){
+  tvStyle(chart);
   const m = await loadPine();
   if (!engines.has(chart)) {
     const eng = new m.PineWorkerEngine({ props: 'strategy' });

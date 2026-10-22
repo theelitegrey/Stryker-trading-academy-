@@ -717,12 +717,38 @@ var Box = class extends Drawing {
     ];
     return edges.some((e) => distToSegment(px, py, e[0], e[1], e[2], e[3]) <= tol);
   }
+  // TradeZoro patch (handles): 8 handles like TradingView. 0/1 = the two anchors, 2/3 = the
+  // other corners, 4/5 = midpoints of the a/b price edges, 6/7 = midpoints of the a/b time edges.
   handlePoints(proj) {
     const r = this.rect(proj);
-    return r ? [[r.x1, r.y1], [r.x2, r.y2]] : [];
+    if (!r) return [];
+    const mx = (r.x1 + r.x2) / 2, my = (r.y1 + r.y2) / 2;
+    return [[r.x1, r.y1], [r.x2, r.y2], [r.x1, r.y2], [r.x2, r.y1], [mx, r.y1, "sq"], [mx, r.y2, "sq"], [r.x1, my, "sq"], [r.x2, my, "sq"]];
   }
   hitHandle(px, py, proj, tol) {
     return handleAt(px, py, this.handlePoints(proj), tol + 3);
+  }
+  /** Drag handle i to `pt`, from the anchors as they were at the press (`orig`). */
+  stkDragHandle(i, pt, orig) {
+    const a = this.anchors[0], b = this.anchors[1];
+    if (!a || !b || !orig || orig.length < 2) return;
+    a.time = orig[0].time; a.price = orig[0].price; b.time = orig[1].time; b.price = orig[1].price;
+    if (i === 0) { a.time = pt.time; a.price = pt.price; }
+    else if (i === 1) { b.time = pt.time; b.price = pt.price; }
+    else if (i === 2) { a.time = pt.time; b.price = pt.price; }
+    else if (i === 3) { b.time = pt.time; a.price = pt.price; }
+    else if (i === 4) a.price = pt.price;
+    else if (i === 5) b.price = pt.price;
+    else if (i === 6) a.time = pt.time;
+    else if (i === 7) b.time = pt.time;
+  }
+  /** The cursor over handle i (TradingView resize cursors). */
+  stkHandleCursor(i, proj) {
+    const h = this.handlePoints(proj);
+    if (i >= 4) return i <= 5 ? "ns-resize" : "ew-resize";
+    const opp = h[[1, 0, 3, 2][i]];
+    if (!h[i] || !opp) return "move";
+    return (h[i][0] - opp[0]) * (h[i][1] - opp[1]) > 0 ? "nwse-resize" : "nesw-resize";
   }
   bounds(proj) {
     const r = this.rect(proj);
@@ -5820,7 +5846,8 @@ registerDrawingType({
   group: "shapes",
   label: msg("drawing.box.label", "Rectangle"),
   icon: BOX_ICON,
-  defaultStyle: { lineColor: DEFAULT_DRAWING_COLOR, lineWidth: 1, lineStyle: "solid", fillColor: `${DEFAULT_DRAWING_COLOR}26` },
+  // TradeZoro patch (handles): TradingView's blue rectangle.
+  defaultStyle: { lineColor: "#2962ff", lineWidth: 1, lineStyle: "solid", fillColor: "#2962ff33" },
   create: (init) => new Box(init)
 });
 registerDrawingType({

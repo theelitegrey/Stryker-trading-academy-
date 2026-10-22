@@ -41,8 +41,8 @@ const drawings = (p) => R(p, 'const d = cell.chart.drawings; try { return (d.lis
 (async () => {
   const b = await launch();
   let { ctx, p, errors } = await open(b, { w: 1440, h: 900 });
-  const meta = await p.evaluate(() => ({ flag: window.__stkVela090, map: document.querySelector('script[type=importmap]').textContent.includes('0.9.0-s2') }));
-  check(meta.flag && meta.map, 'flag on, import map points at 0.9.0-s2', meta);
+  const meta = await p.evaluate(() => ({ flag: window.__stkVela090, map: document.querySelector('script[type=importmap]').textContent.includes('0.9.0-s3') }));
+  check(meta.flag && meta.map, 'flag on, import map points at 0.9.0-s3', meta);
   const box = await plotBox(p);
   const cx = box.x + box.w * 0.5, cy = box.y + box.h * 0.45;
   await p.screenshot({ path: OUT + '/vela090-1440-start.png' });

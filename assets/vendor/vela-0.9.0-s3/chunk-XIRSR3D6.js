@@ -12806,7 +12806,9 @@ var TEXT7 = {
   noSource: msg("drawing.magnifier.noSource", "No data source"),
   infoLine: msg("drawing.infoline.measure", "{change} ({percent}%)  {count, plural, one {{bars} bar} other {{bars} bars}}")
 };
-var HANDLE_RADIUS = 4.5;
+// TradeZoro patch (handles): TradingView handles, ~10 px, white fill, blue 1.5 px ring.
+var HANDLE_RADIUS = 5;
+var STK_HANDLE_BLUE = "#2962ff";
 var HANDLE_BORDER = DEFAULT_DRAWING_COLOR;
 var HANDLE_FILL = withAlpha(NEUTRAL, 0.55);
 var GHOST_ALPHA = 0.7;
@@ -14410,12 +14412,13 @@ var DrawingPainter = class {
   paintHandles(ctx, points) {
     ctx.setLineDash([]);
     ctx.lineWidth = 1.5;
-    for (const [x, y] of points) {
+    for (const [x, y, shape] of points) {
       ctx.beginPath();
-      ctx.arc(x, y, HANDLE_RADIUS, 0, Math.PI * 2);
-      ctx.fillStyle = HANDLE_FILL;
+      if (shape === "sq") roundRect(ctx, x - 4.5, y - 4.5, 9, 9, 2.5);
+      else ctx.arc(x, y, HANDLE_RADIUS, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
       ctx.fill();
-      ctx.strokeStyle = HANDLE_BORDER;
+      ctx.strokeStyle = STK_HANDLE_BLUE;
       ctx.stroke();
     }
   }
@@ -14647,7 +14650,20 @@ var DrawingInteraction = class {
   /** A cursor hint for hovering (pointer over a drawing/handle), or null off any drawing. */
   cursorAt(x, y) {
     if (this.deps.activeTool() != null) return null;
-    return this.hitAt(x, y) ? "pointer" : null;
+    // TradeZoro patch (handles): resize cursors on handles, move cursor on a drawing body.
+    if (this.state.kind === "pressed" && this.state.moved) {
+      const dd = this.byId(this.state.id);
+      if (dd && this.state.handle >= 0 && typeof dd.stkHandleCursor === "function") return dd.stkHandleCursor(this.state.handle, this.deps.projector());
+      return this.state.handle >= 0 ? "grabbing" : "move";
+    }
+    const hit = this.hitAt(x, y);
+    if (!hit) return null;
+    if (hit.locked) return "pointer";
+    const proj = this.deps.projector();
+    const shown = this.handleDrawings().includes(hit);
+    const i = shown ? hit.hitHandle(x, y, proj, HIT_TOLERANCE) : -1;
+    if (i >= 0) return typeof hit.stkHandleCursor === "function" ? hit.stkHandleCursor(i, proj) : "grab";
+    return "move";
   }
   isPlacing() {
     return this.state.kind === "placing";
@@ -14799,6 +14815,9 @@ var DrawingInteraction = class {
     this.state.moved = true;
     if (this.state.handle < 0) {
       this.dragBody(d, x, y);
+    } else if (typeof d.stkDragHandle === "function") {
+      // TradeZoro patch (handles): handles that are not anchors (box corners/edges).
+      d.stkDragHandle(this.state.handle, this.resolve(x, y, d.paneId, mode), this.state.orig);
     } else {
       const a = d.anchors[this.state.handle];
       if (a) {

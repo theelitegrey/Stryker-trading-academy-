@@ -67,12 +67,12 @@
 // the charts.html import map ("@luxalgo/vela/plugin") must move with it, or
 // the Pine engine gets a second copy of Vela's registries.
 // VELA 0.9.0 TRIAL (CoS order 2026-10-22): admins can switch to the upgraded engine in
-// assets/vendor/vela-0.9.0-s2/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
+// assets/vendor/vela-0.9.0-s3/ (tools/vela-090-patch.py: our s1-s3 patches re-applied plus the
 // TradingView-feel fixes). Members stay on 0.6.17-s3. The inline script in charts.html picks the
 // folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
 // 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
 const VELA090 = window.__stkVela090 === true;
-const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s2/' : './vendor/vela-0.6.17-s3/';
+const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s3/' : './vendor/vela-0.6.17-s3/';
 // One-time migration for members whose saved workspace still carries the old
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';

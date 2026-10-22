@@ -14,7 +14,7 @@ export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';
 const UP = '#03c988', UP2 = '#4fe3ac', SELL = '#9b7bff', CYAN = '#00adb5';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
-const NO_DATA = 'Delta needs order-flow data. Available on futures and crypto.';
+const NO_DATA = 'Delta needs order-flow data. Available on futures (NQ, ES, YM, GC, SI, CL and their micros) and crypto.';
 const ROW_STEPS = [1, 2, 4, 5, 8, 10, 16, 20, 25, 40, 50, 80, 100, 200, 400];
 
 export const OVERLAY_STYLES = STYLES.filter((x) => !SUITE_PANE.includes(x));   // H1-H6, V3-V8 (V1, V2 are on "Delta: pane")

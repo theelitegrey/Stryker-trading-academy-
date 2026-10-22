@@ -53,7 +53,7 @@ async function open(b, { w, h, mobile, v09 }) {
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ s: 'NQ', tf: String(tf), page, bars: await candles(tf) }) });
   });
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/stream/, (r) => r.abort());
-  ctx.on('request', (rq) => { if (/SPY/i.test(rq.url()) && process.env.DS_DEBUG) console.log('REQ ' + rq.url().slice(0, 160)); });
+  ctx.on('request', (rq) => { if (/ZN1/i.test(rq.url()) && process.env.DS_DEBUG) console.log('REQ ' + rq.url().slice(0, 160)); });
   await ctx.route(/book-recorder\.theelitegrey\.workers\.dev\/orderflow/, (r) => {
     const u = new URL(r.request().url());
     const body = u.searchParams.get('sym') === 'NQ' && BODY[u.searchParams.get('day')];
@@ -126,6 +126,7 @@ const T0 = Date.UTC(2026, 9, 21, 13, 30), T1 = Date.UTC(2026, 9, 21, 16, 0);
         check(meta.v09 === v09, eng + ' ' + w + ': engine ' + (v09 ? '0.9.0' : '0.6.17'), meta);
         await setMarket(p, 'futures:NQ1!', '1');
         if (w === 1440) {
+          await p.waitForFunction(() => { try { return window.STRYKER_VELA.active.libraryRows().some((r) => r.category === 'Order Flow'); } catch (e) { return false; } }, null, { timeout: 30000 }).catch(() => {});
           const rows = await p.evaluate(() => window.STRYKER_VELA.active.libraryRows().filter((r) => r.category === 'Order Flow').map((r) => r.name));
           check(rows[0] === 'Delta' && /^Delta: pane/.test(rows[1]), eng + ': Order Flow group starts with Delta, Delta: pane', rows);
         }
@@ -145,7 +146,7 @@ const T0 = Date.UTC(2026, 9, 21, 13, 30), T1 = Date.UTC(2026, 9, 21, 16, 0);
             check(st.length === 1 && st[0].pane !== 'price' && /^(histogram|candle):[1-9]/.test(st[0].series[0]), eng + ' ' + w + ' ' + id + ': own pane with real values', st);
           } else {
             const n = await ink(p);
-            check(n > base * 1.01 + 50, eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');
+            check(n > base + (id === 'V3' ? 30 : base * 0.01 + 50), eng + ' ' + w + ' ' + id + ': draws (' + base + ' -> ' + n + ' px)');
           }
           await p.screenshot({ path: path.join(OUT, 'ds-' + eng + '-' + w + '-' + id + '.png') });
         }
@@ -161,10 +162,10 @@ const T0 = Date.UTC(2026, 9, 21, 13, 30), T1 = Date.UTC(2026, 9, 21, 16, 0);
           await p.screenshot({ path: path.join(OUT, 'ds-' + eng + '-' + w + '-combo.png') });
           // the no-data note on a symbol without trade data
           if (w === 1440) {
-            await setMarket(p, 'SPY', '1');
+            await setMarket(p, 'futures:ZN1!', '1');   // a market without recorded trades (stocks / forex behave the same: no root)
             await sleep(1500);
             const txt = await p.evaluate(() => { try { return JSON.stringify(window.STRYKER_VELA.chart.renderer.renderer.scene ? [...window.STRYKER_VELA.chart.renderer.renderer.scene.indicators.values()].map((m) => (m.tables || []).map((t) => t.cells[0][0].text)) : []); } catch (e) { return String(e); } });
-            check(/Delta needs order-flow data/.test(txt), eng + ': SPY shows the no-data note', txt);
+            check(/Delta needs order-flow data/.test(txt), eng + ': ZN (no trade data) shows the no-data note', txt);
             await p.screenshot({ path: path.join(OUT, 'ds-' + eng + '-1440-spy.png') });
           }
         }

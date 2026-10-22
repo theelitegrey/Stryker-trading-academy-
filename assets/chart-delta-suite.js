@@ -467,7 +467,7 @@ function drawV4(g, a, f, I, inst, phone) {
 // V5: footprint-lite: per candle sell x buy at the 3-5 key prices, POC box, stacked-imbalance bar
 function drawV5(g, a, f, I, inst, phone) {
   const co = a.coords, ppb = co.pxPerBar(), vb = visibleBars(a, f);
-  if (ppb < (phone ? 40 : 48)) { g.font = '600 10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = dim2(); g.fillText('Footprint-lite: zoom in to see the cells', 8, a.bounds.top + a.bounds.height - 10); return; }
+  if (ppb < (phone ? 32 : 48)) { g.font = '600 10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = dim2(); g.fillText('Footprint-lite: zoom in to see the cells', 8, a.bounds.top + a.bounds.height - 10); return; }
   const tickPx = rowGeom(a, f, 1).tickPx;
   let m = I.rowTicks > 0 ? I.rowTicks : 400; if (!(I.rowTicks > 0)) for (const s of ROW_STEPS) if (tickPx * s >= 12) { m = s; break; }
   const fs = clamp(Math.floor(Math.min(ppb / 7, tickPx * m * 0.8)), 8, phone ? 9 : 11);

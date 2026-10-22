@@ -86,7 +86,7 @@ async function ensureNext(chart){
   tvStyle(chart);
   const m = await loadNext();
   if (!nextEngines.has(chart)) {
-    const e = new m.PineNextEngine({ props: 'strategy', onAlert: (alert, session) => handlePineAlert(chart, alert, session) });
+    const e = wrapAlerts(new m.PineNextEngine({ props: 'strategy' }));
     chart.registerEngine(LANG_NEXT, e);
     nextEngines.set(chart, e);
   }
@@ -94,16 +94,29 @@ async function ensureNext(chart){
 }
 
 
-function handlePineAlert(chart, alert, session){
-  const msg = typeof alert === 'string' ? alert : (alert && (alert.message || alert.title || alert.text)) || 'Indicator signal';
-  let bars = [];
-  try { bars = session && session.barsOf ? session.barsOf() : []; } catch (e) {}
-  const last = bars && bars.length ? bars[bars.length - 1] : null;
-  const barTime = last && (last.time || last.openTime || last.t);
-  const live = !(session && session.req && session.req.historyState === 'backfill');
-  try {
-    if (window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert) window.StrykerChartSounds.indicatorAlert(msg, { live, barClosed: true, barTime, scriptId: alert && alert.id, freq: alert && alert.freq });
-  } catch (e) {}
+// INDICATOR ALERTS ARE SILENT BY DEFAULT (Owner 2026-10-22: "why getting alerts for indicators, add alert
+// setting to indicators like tradingview"). Every engine we hand to Vela is wrapped so a script's
+// alertcondition()/alert() calls never reach Vela's own toast/bell, and never toast on their own. Each
+// call is passed to assets/chart-alerts.js (window.__stkIndAlerts.event), which fires ONLY the alerts
+// the member created for that indicator condition in the Create alert dialog (TradingView behaviour).
+// The first model of a session marks it "primed": calls made while history loads are ignored.
+function routeAlert(req, alert, sess, kind){
+  try { const R = window.__stkIndAlerts; if (R && R.event) R.event({ req, alert, sess, kind }); } catch (e) {}
+}
+function wrapAlerts(eng){
+  if (!eng || eng.__stkAlertWrap || typeof eng.execute !== 'function') return eng;
+  const run = eng.execute.bind(eng);
+  eng.execute = (req, h) => {
+    h = h || {};
+    const sess = { primed: false, seen: new Set() };
+    const hh = Object.assign({}, h, {
+      onAlert: (a) => routeAlert(req, a, sess, 'alert'),
+      onModel: (m) => { const r = h.onModel ? h.onModel(m) : undefined; routeAlert(req, null, sess, 'model'); return r; }
+    });
+    return run(req, hh);
+  };
+  eng.__stkAlertWrap = true;
+  return eng;
 }
 
 function loadPine(){
@@ -111,8 +124,8 @@ function loadPine(){
     enginePromise = import(PINE_PKG).then((m) => {
       if (!m || !m.PineWorkerEngine) throw new Error('Pine engine did not load');
       // Cells created from now on (layout widened) get an engine automatically.
-      try { Core.registerDefaultEngine(LANG, () => new m.PineWorkerEngine({ props: 'strategy' })); } catch (e) {}
-      try { Core.registerDefaultEngine(LANG_MAIN, () => new m.PineEngine({ props: 'strategy' })); } catch (e) {}
+      try { Core.registerDefaultEngine(LANG, () => wrapAlerts(new m.PineWorkerEngine({ props: 'strategy' }))); } catch (e) {}
+      try { Core.registerDefaultEngine(LANG_MAIN, () => wrapAlerts(new m.PineEngine({ props: 'strategy' }))); } catch (e) {}
       return m;
     }).catch((e) => { enginePromise = null; throw e; });
   }
@@ -123,12 +136,12 @@ async function ensureEngine(chart){
   tvStyle(chart);
   const m = await loadPine();
   if (!engines.has(chart)) {
-    const eng = new m.PineWorkerEngine({ props: 'strategy' });
+    const eng = wrapAlerts(new m.PineWorkerEngine({ props: 'strategy' }));
     chart.registerEngine(LANG, eng);
     engines.set(chart, eng);
   }
   if (!mainEngines.has(chart)) {
-    const e2 = new m.PineEngine({ props: 'strategy' });
+    const e2 = wrapAlerts(new m.PineEngine({ props: 'strategy' }));
     chart.registerEngine(LANG_MAIN, e2);
     mainEngines.set(chart, e2);
   }

@@ -33,6 +33,16 @@
 //     a value or crossing the candle close. Uses the plot values the chart already computed;
 //     checked only while a chart of that symbol carries that indicator. These are kept in this
 //     browser (localStorage) for everyone: the Firestore alert shape is price-only.
+//   - INDICATOR CONDITION ALERTS (Owner 2026-10-22: "why getting alerts for indicators, add alert
+//     setting to indicators like tradingview"): a script's alertcondition()/alert() calls are SILENT
+//     by default (assets/chart-pine.js wraps every Pine engine and hands each call to
+//     window.__stkIndAlerts.event). They fire only for alerts the member created here: Condition =
+//     "<indicator> → <alertcondition title>" or "Any alert() function call", Trigger = Only once /
+//     Once per bar / Once per bar close, optional expiration, message (prefilled from the script),
+//     popup and sound on/off. Also opened from the bell on each indicator's legend row and from
+//     "Add alert…" in the indicator's settings window. Kept in this browser (localStorage, like the
+//     plot alerts above; the Firestore alert shape is price-only) and checked only while Charts is
+//     open: no phone push for them.
 // Education only. Not financial advice. Alerts are a convenience, not a trading signal.
 
 const LAYER = 'stk_alerts';
@@ -149,13 +159,31 @@ function cleanInd(a){
   if (c.src.vs === 'close') c.price = 0;
   return c;
 }
+// Indicator alertcondition()/alert() alerts (src.kind === 'cond'): same local store as the plot alerts.
+const CFREQ = [['once', 'Only once'], ['bar', 'Once per bar'], ['close', 'Once per bar close']];
+const CFREQL = Object.fromEntries(CFREQ);
+function cleanCond(a){
+  const s = a.src || {};
+  const exp = Number(a.expires);
+  return {
+    symbol: String(a.symbol || '').slice(0, 40), cond: 'crossing', price: 0,
+    message: String(a.message || '').slice(0, 300),
+    freq: CFREQL[a.freq] ? a.freq : 'bar',
+    active: a.active !== false,
+    expires: Number.isFinite(exp) && exp > 0 ? exp : 0,
+    popup: a.popup !== false, sound: a.sound !== false, fired: !!a.fired,
+    src: { kind: 'cond', title: String(s.title || '').slice(0, 80), cond: s.any ? '' : String(s.cond || '').slice(0, 80), any: !!s.any }
+  };
+}
+const isCond = (a) => !!(a && a.src && a.src.kind === 'cond');
+const cleanLocal = (a) => isCond(a) ? cleanCond(a) : cleanInd(a);
 const indAll = () => { try { const v = JSON.parse(localStorage.getItem(IND_KEY) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 const indPut = (v) => localStorage.setItem(IND_KEY, JSON.stringify(v));
 const indStore = {
   kind: 'local',
   async list(){ return indAll(); },
-  async add(a){ const id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); indPut(indAll().concat([Object.assign(cleanInd(a), { id })])); return id; },
-  async update(id, a){ indPut(indAll().map((x) => x.id === id ? Object.assign(cleanInd(a), { id }) : x)); },
+  async add(a){ const id = 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); indPut(indAll().concat([Object.assign(cleanLocal(a), { id })])); return id; },
+  async update(id, a){ indPut(indAll().map((x) => x.id === id ? Object.assign(cleanLocal(a), { id }) : x)); },
   async remove(id){ indPut(indAll().filter((x) => x.id !== id)); }
 };
 const storeOf = (a) => (a && a.src) ? indStore : backend;
@@ -187,7 +215,7 @@ async function reload(){
   backend = makeBackend();
   try { alerts = (await backend.list()).filter((a) => a && Number.isFinite(Number(a.price))).map((a) => Object.assign({ id: a.id, updatedMs: a.updatedMs || 0 }, clean(a))); }
   catch (e) { console.warn('TradeZoro alerts: load', e); alerts = []; }
-  try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanInd(a)))); } catch (e) {}
+  try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanLocal(a)))); } catch (e) {}
   pushLines(); renderList();
   if (backend.kind === 'cloud') { startEngineWatch(); listenFires(); watchCloud(); }
 }
@@ -261,6 +289,7 @@ function tickInd(a){
   fire(a, +v.toFixed(6));
 }
 function describe(a){
+  if (isCond(a)) return a.symbol + ' ' + a.src.title + ' \u2192 ' + (a.src.any ? 'Any alert() function call' : a.src.cond);
   if (a.src) return a.symbol + ' ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond].toLowerCase() + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price));
   return a.symbol + ' ' + CONDL[a.cond].toLowerCase() + ' ' + a.price;
 }
@@ -292,7 +321,8 @@ function poll(){
   if (window.__stkReplay && window.__stkReplay.on) return;   // bar replay: alerts watch live prices only
   const syms = new Set(alerts.filter((a) => a.active && !a.src).map((a) => a.symbol));
   for (const s of syms) { const p = priceOf(s); if (p != null) tick(s, p); }
-  for (const a of alerts) if (a.active && a.src) tickInd(a);
+  for (const a of alerts) if (a.active && a.src && !isCond(a)) tickInd(a);
+  for (const a of alerts) if (a.active && isCond(a) && a.expires && Date.now() > a.expires) stopCond(a);
 }
 function fire(a, p){
   const text = a.message || describe(a);
@@ -306,6 +336,127 @@ function fire(a, p){
   }
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
 }
+
+// ---------------------------------------------------------------------------------------
+// indicator alertcondition()/alert() alerts
+// ---------------------------------------------------------------------------------------
+// Parse a Pine source for its alertcondition(cond, title, message) calls (literal strings, positional
+// or named) and whether it calls alert(). Comments and strings are respected by a tiny scanner.
+const condCache = new Map();
+function splitArgs(src, start){
+  const out = []; let depth = 0, cur = '', i = start, q = null;
+  for (; i < src.length; i++) {
+    const ch = src[i];
+    if (q) { cur += ch; if (ch === '\\') { cur += src[++i] || ''; continue; } if (ch === q) q = null; continue; }
+    if (ch === '"' || ch === "'") { q = ch; cur += ch; continue; }
+    if (ch === '/' && src[i + 1] === '/') { while (i < src.length && src[i] !== '\n') i++; continue; }
+    if (ch === '(' || ch === '[') depth++;
+    if (ch === ')' || ch === ']') { if (depth === 0) { out.push(cur.trim()); return out; } depth--; }
+    if (ch === ',' && depth === 0) { out.push(cur.trim()); cur = ''; continue; }
+    cur += ch;
+  }
+  return out;
+}
+const lit = (x) => { const m = /^\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)')\s*$/.exec(x || ''); return m ? (m[1] != null ? m[1] : m[2]).replace(/\\(.)/g, '$1') : null; };
+export function alertConditionsOf(source){
+  source = String(source || '');
+  if (condCache.has(source)) return condCache.get(source);
+  const clean = source.replace(/\/\/[^\n]*/g, (m) => ' '.repeat(m.length));
+  const conds = []; const re = /\balertcondition\s*\(/g; let m;
+  while ((m = re.exec(clean))) {
+    const args = splitArgs(clean, m.index + m[0].length);
+    const named = {}; const pos = [];
+    for (const a of args) { const n = /^(condition|title|message)\s*=\s*([\s\S]*)$/.exec(a); if (n) named[n[1]] = n[2]; else pos.push(a); }
+    const title = lit(named.title != null ? named.title : pos[1]) || ('Condition ' + (conds.length + 1));
+    const message = lit(named.message != null ? named.message : pos[2]) || '';
+    if (!conds.some((c) => c.title === title)) conds.push({ title, message });
+  }
+  const hasAlertCall = /(^|[^\w.])alert\s*\(/m.test(clean);
+  const r = { conds, hasAlertCall };
+  condCache.set(source, r);
+  return r;
+}
+// Every Pine indicator on a chart cell, with its alert conditions: [{ id, title, conds, hasAlertCall }].
+function chartOf(cell){ try { return cell.chart; } catch (e) { return null; } }
+export function chartIndicatorConds(cell){
+  const out = []; const ch = chartOf(cell);
+  try {
+    for (const rec of ch.orchestrator.registry.all()) {
+      if (rec.native || !rec.source) continue;
+      const title = (rec.prepared && rec.prepared.meta && rec.prepared.meta.title) || (rec.options && rec.options.title) || rec.title;
+      if (!title) continue;
+      const c = alertConditionsOf(rec.source);
+      out.push({ id: rec.id, title: String(title), conds: c.conds, hasAlertCall: c.hasAlertCall });
+    }
+  } catch (e) {}
+  return out;
+}
+const symKey = (s) => String(s || '').split(':').pop().trim().toUpperCase();
+const firedBars = new Set();          // alert id + bar time already fired (Once per bar / per bar close)
+const pendClose = new Map();          // alert id -> { t, msg, sym } waiting for its bar to close
+window.__stkIndAlertFires = 0;
+// Same rule as price alerts (web-temp-4, Owner 2026-10-22): an alert that can't fire again shows as
+// "Triggered" (Only once after its fire) or "Expired" in the list; one the member paused shows "Paused".
+function stopCond(a){
+  a.active = false; a.fired = true; pendClose.delete(a.id);
+  indStore.update(a.id, a).catch(() => {});
+  renderList();
+}
+function fillMsg(text, req){
+  let close = '';
+  try { const b = req.getBars ? req.getBars() : req.bars; close = b && b.length ? String(b[b.length - 1].close) : ''; } catch (e) {}
+  const sym = (req && req.market && req.market.symbol) || '';
+  return String(text || '').replace(/\{\{\s*ticker\s*\}\}/gi, symKey(sym)).replace(/\{\{\s*close\s*\}\}/gi, close).replace(/\{\{\s*interval\s*\}\}/gi, (req && req.market && req.market.timeframe) || '');
+}
+function fireCond(a, msg){
+  if (a.expires && Date.now() > a.expires) { stopCond(a); return; }
+  const text = a.message || msg || describe(a);
+  window.__stkIndAlertFires++;
+  if (a.popup) {
+    showToast('Alert: ' + a.src.title + (a.src.any ? '' : ' \u2192 ' + a.src.cond), text + ' \u00b7 ' + a.symbol + ' \u00b7 ' + new Date().toLocaleTimeString());
+    try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro indicator alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
+  }
+  if (a.sound) { let ev = 'indicator'; try { ev = window.StrykerChartSounds.classify(text); } catch (e) {} playAlertSound(ev); }
+  if (a.freq === 'once') stopCond(a);
+  try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, indicator: a.src.title, condition: a.src.any ? 'alert()' : a.src.cond, message: text } })); } catch (e) {}
+}
+function lastBarTime(req){ try { const b = req.getBars ? req.getBars() : req.bars; return b && b.length ? b[b.length - 1].time : null; } catch (e) { return null; } }
+// Called by assets/chart-pine.js for every engine callback: kind 'model' (a run landed) or 'alert'.
+function indEvent(ev){
+  const req = ev.req || {}; const sess = ev.sess || {};
+  const sym = symKey(req.market && req.market.symbol);
+  if (ev.kind === 'model') {
+    if (!sess.primed) { sess.primed = true; sess.primedAt = Date.now(); }
+    // Once per bar close: a newer bar exists for that symbol, so the bar the condition fired on has closed.
+    const lt = lastBarTime(req);
+    if (lt != null) for (const [id, p] of pendClose) {
+      if (p.sym !== sym || !(lt > p.t)) continue;
+      pendClose.delete(id);
+      const a = alerts.find((x) => x.id === id); if (!a || !a.active) continue;
+      const k = id + ':' + p.t; if (firedBars.has(k)) continue; firedBars.add(k);
+      fireCond(a, p.msg);
+    }
+    return;
+  }
+  if (!sess.primed) return;                                   // history load: never alert
+  if (Date.now() - sess.primedAt < 1500) return;              // the first run's last-bar calls land with it: not news
+  if (window.__stkReplay && window.__stkReplay.on) return;    // bar replay: alerts watch live bars only
+  const al = ev.alert || {}; const title = req.prepared && req.prepared.meta && req.prepared.meta.title;
+  if (!title) return;
+  const fromCond = /^alertcondition/.test(String(al.id || ''));
+  const t = Number(al.time) || lastBarTime(req) || 0;
+  for (const a of alerts) {
+    if (!a.active || !isCond(a) || a.src.title !== title || symKey(a.symbol) !== sym) continue;
+    if (a.src.any ? fromCond : (!fromCond || al.title !== a.src.cond)) continue;
+    if (a.expires && Date.now() > a.expires) { stopCond(a); continue; }
+    const msg = fillMsg(a.message || al.message, req);
+    if (a.freq === 'close') { pendClose.set(a.id, { t, msg, sym }); continue; }
+    if (a.freq === 'bar') { const k = a.id + ':' + t; if (firedBars.has(k)) continue; firedBars.add(k); }
+    fireCond(a, msg);
+  }
+}
+window.__stkIndAlerts = { event: indEvent, conditionsOf: alertConditionsOf };
+
 let actx = null;
 function beep(){ playAlertSound('price', { noRateLimit: true }); }
 function playAlertSound(event, opts){
@@ -341,7 +492,7 @@ function showToast(title, sub){
 const lineSig = new WeakMap();   // renderer -> last pushed lines signature
 // The alert lines a chart of this symbol draws (also the test hook __stkAlerts.linesFor).
 function chartLines(sym){
-  return prefs.lines ? alerts.filter((a) => a.symbol === sym && (!a.src || a.src.vs !== 'close') && drawsOnChart(a)).map((a) => ({ price: a.price, active: a.active })) : [];
+  return prefs.lines ? alerts.filter((a) => a.symbol === sym && (!a.src || (a.src.vs !== 'close' && !isCond(a))) && drawsOnChart(a)).map((a) => ({ price: a.price, active: a.active })) : [];
 }
 function pushLines(){
   if (!WS) return;
@@ -407,16 +558,18 @@ function build(){
   panel = document.createElement('div'); panel.id = 'stk-al'; panel.hidden = true;
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
-    <div class="stk-al-head"><h2 id="stk-al-h">Price alerts</h2><button type="button" class="stk-al-x" aria-label="Close">×</button></div>
-    <p class="stk-al-note"><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first). <b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open. Education only. Not financial advice.</p>
+    <div class="stk-al-head"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-x" aria-label="Close">×</button></div>
+    <p class="stk-al-note"><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first). <b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals. Education only. Not financial advice.</p>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
-      <label class="stk-al-wide">Source<select name="src"></select></label>
-      <label>Condition<select name="cond">${CONDS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
+      <label class="stk-al-wide">Condition<select name="src"></select></label>
+      <label class="stk-al-cw">When<select name="cond">${CONDS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>
       <label class="stk-al-vsw" hidden>Against<select name="vs"><option value="value">Value</option><option value="close">Candle close</option></select></label>
       <label class="stk-al-pw">Price<input name="price" type="number" step="any"></label>
-      <label class="stk-al-wide">Message<input name="message" maxlength="140" placeholder="Optional"></label>
-      <label>Trigger<select name="freq"><option value="once">Only once</option><option value="every">Every time</option></select></label>
+      <label class="stk-al-wide">Message<input name="message" maxlength="300" placeholder="Optional"></label>
+      <label>Trigger<select name="freq"></select></label>
+      <label class="stk-al-xw" hidden>Expiration<select name="expires"><option value="0">Open-ended</option><option value="3600000">In 1 hour</option><option value="86400000">In 1 day</option><option value="604800000">In 1 week</option><option value="2592000000">In 30 days</option></select></label>
+      <div class="stk-al-wide stk-al-nw" hidden><span>Notify</span><label class="stk-al-chk"><input type="checkbox" name="popup" checked> Popup</label><label class="stk-al-chk"><input type="checkbox" name="sound" checked> Sound</label><em>Phone push: price alerts only</em></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
     <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds">Sounds</button><span class="stk-al-count"></span></div>
@@ -432,8 +585,14 @@ function build(){
     e.preventDefault();
     const f = e.target; const base = { symbol: f.symbol.value.trim(), cond: f.cond.value, price: parseFloat(f.price.value), message: f.message.value.trim(), freq: f.freq.value, active: true };
     const so = f.src.value ? srcOpts[Number(f.src.value)] : null;
-    if (so) { base.src = { title: so.title, plot: so.plot, plotTitle: so.plotTitle, vs: f.vs.value }; if (base.src.vs === 'close') base.price = 0; }
-    const a = so ? cleanInd(base) : clean(base);
+    let a;
+    if (so && so.kind === 'cond') {
+      const ex = f.expires.value === 'keep' ? Number(f.expires.dataset.keep) : Number(f.expires.value);
+      a = cleanCond(Object.assign(base, { price: 0, popup: f.popup.checked, sound: f.sound.checked, expires: ex > 1e12 ? ex : ex > 0 ? Date.now() + ex : 0, src: { kind: 'cond', title: so.title, cond: so.cond, any: so.any } }));
+    } else {
+      if (so) { base.src = { title: so.title, plot: so.plot, plotTitle: so.plotTitle, vs: f.vs.value }; if (base.src.vs === 'close') base.price = 0; }
+      a = so ? cleanInd(base) : clean(base);
+    }
     if (!a.symbol || !Number.isFinite(a.price)) { toastFn('Enter a symbol and a price.'); return; }
     try {
       if (!backend) await reload();   // never mounted / auth not resolved yet: build the store first
@@ -459,39 +618,97 @@ function build(){
   const f = panel.querySelector('.stk-al-form');
   f.src.onchange = () => syncSrc(f);
   f.vs.onchange = () => syncSrc(f);
+  f.message.oninput = () => { f.dataset.prefill = ''; };
 }
-// Source list: "Price" + every plot of every indicator on the active chart (+ the alert's own
-// source when editing one whose indicator isn't on this chart).
+// Condition list (TradingView-style): "Price", then per indicator on the active chart its
+// alertcondition() titles ("Volume Bubbles → Big Cluster") and "Any alert() function call" when the
+// script calls alert(), then its plots (crossing a value / the candle close). When editing an alert
+// whose indicator isn't on this chart, its own entry is added so nothing is lost.
 let srcOpts = [];
 function fillSrc(f, a){
-  const R = inner(activeCell());
+  const cell = activeCell(); const R = inner(cell);
   srcOpts = [];
-  for (const ind of (R ? chartPlots(R) : [])) for (const pl of ind.plots) srcOpts.push({ title: ind.title, plot: pl.index, plotTitle: ind.plots.length > 1 ? pl.title : '' });
-  if (a && a.src && !srcOpts.some((o) => o.title === a.src.title && o.plot === a.src.plot)) srcOpts.push({ title: a.src.title, plot: a.src.plot, plotTitle: a.src.plotTitle || '' });
+  const groups = [];
+  const conds = cell ? chartIndicatorConds(cell) : [];
+  const seenT = new Set();
+  for (const ind of conds) {
+    if (seenT.has(ind.title)) continue; seenT.add(ind.title);
+    const g = { label: ind.title, items: [] };
+    for (const c of ind.conds) g.items.push({ kind: 'cond', title: ind.title, cond: c.title, message: c.message, any: false });
+    if (ind.hasAlertCall) g.items.push({ kind: 'cond', title: ind.title, cond: '', message: '', any: true });
+    groups.push(g);
+  }
+  for (const ind of (R ? chartPlots(R) : [])) {
+    let g = groups.find((x) => x.label === ind.title); if (!g) { g = { label: ind.title, items: [] }; groups.push(g); }
+    for (const pl of ind.plots) g.items.push({ kind: 'plot', title: ind.title, plot: pl.index, plotTitle: ind.plots.length > 1 ? pl.title : '' });
+  }
+  const same = (o) => a && a.src && (isCond(a) ? (o.kind === 'cond' && o.title === a.src.title && o.any === !!a.src.any && (a.src.any || o.cond === a.src.cond)) : (o.kind === 'plot' && o.title === a.src.title && o.plot === a.src.plot));
+  if (a && a.src && a.src.title && !a.src.pick && !groups.some((g) => g.items.some(same))) {
+    groups.push({ label: a.src.title + ' (not on this chart)', items: [isCond(a) ? { kind: 'cond', title: a.src.title, cond: a.src.cond, any: !!a.src.any, message: '' } : { kind: 'plot', title: a.src.title, plot: a.src.plot, plotTitle: a.src.plotTitle || '' }] });
+  }
   f.src.textContent = '';
   const o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Price'; f.src.appendChild(o0);
-  srcOpts.forEach((o, i) => { const op = document.createElement('option'); op.value = String(i); op.textContent = o.title + (o.plotTitle ? ' · ' + o.plotTitle : ''); f.src.appendChild(op); });
-  const idx = a && a.src ? srcOpts.findIndex((o) => o.title === a.src.title && o.plot === a.src.plot) : -1;
+  for (const g of groups) {
+    const og = document.createElement('optgroup'); og.label = g.label;
+    for (const o of g.items) {
+      const op = document.createElement('option'); op.value = String(srcOpts.length); srcOpts.push(o);
+      op.textContent = o.kind === 'cond' ? (o.title + ' \u2192 ' + (o.any ? 'Any alert() function call' : o.cond)) : (o.title + (o.plotTitle ? ' \u00b7 ' + o.plotTitle : '') + ' (value)');
+      og.appendChild(op);
+    }
+    f.src.appendChild(og);
+  }
+  let idx = a && a.src ? srcOpts.findIndex(same) : -1;
+  if (idx < 0 && a && a.src && a.src.kind === 'cond' && a.src.pick) idx = srcOpts.findIndex((o) => o.kind === 'cond' && o.title === a.src.title);
+  if (idx < 0 && a && a.src && a.src.pick) idx = srcOpts.findIndex((o) => o.title === a.src.title);
   f.src.value = idx >= 0 ? String(idx) : '';
   f.vs.value = a && a.src && a.src.vs === 'close' ? 'close' : 'value';
-  syncSrc(f);
+  f.dataset.prefill = '';
+  syncSrc(f, a);
 }
-function syncSrc(f){
-  const ind = !!f.src.value;
+function setFreqs(f, cond, val){
+  const list = cond ? CFREQ : [['once', 'Only once'], ['every', 'Every time']];
+  if (f.freq.dataset.mode !== (cond ? 'c' : 'p')) {
+    f.freq.textContent = '';
+    for (const [v, l] of list) { const o = document.createElement('option'); o.value = v; o.textContent = l; f.freq.appendChild(o); }
+    f.freq.dataset.mode = cond ? 'c' : 'p';
+    f.freq.value = val && list.some((x) => x[0] === val) ? val : (cond ? 'bar' : 'once');
+    return;
+  }
+  if (val && list.some((x) => x[0] === val)) f.freq.value = val;
+}
+function syncSrc(f, a){
+  const so = f.src.value ? srcOpts[Number(f.src.value)] : null;
+  const cond = !!(so && so.kind === 'cond');
+  const ind = !!so && !cond;
   f.querySelector('.stk-al-vsw').hidden = !ind;
-  const needPrice = !ind || f.vs.value !== 'close';
+  f.querySelector('.stk-al-cw').hidden = cond;
+  f.querySelector('.stk-al-xw').hidden = !cond;
+  f.querySelector('.stk-al-nw').hidden = !cond;
+  const needPrice = !cond && (!ind || f.vs.value !== 'close');
   f.querySelector('.stk-al-pw').hidden = !needPrice;
   f.price.required = needPrice;
+  setFreqs(f, cond, a ? a.freq : null);
+  // Message prefilled from the script's alertcondition() message, unless the member typed their own.
+  if (cond) {
+    const cur = f.message.value;
+    if (!cur || cur === f.dataset.prefill) { f.message.value = so.message || ''; f.dataset.prefill = so.message || ''; }
+  } else if (f.message.value && f.message.value === f.dataset.prefill) { f.message.value = ''; f.dataset.prefill = ''; }
 }
 function openForm(a){
   const f = panel.querySelector('.stk-al-form'); f.hidden = false;
   f.symbol.value = a.symbol || ''; f.cond.value = a.cond || 'crossing'; f.price.value = fmt(Number(a.price));
-  f.message.value = a.message || ''; f.freq.value = a.freq || 'once';
+  f.message.value = a.message || '';
+  const cond = isCond(a) || (a.src && a.src.kind === 'cond');
+  f.popup.checked = !(cond && a.popup === false); f.sound.checked = !(cond && a.sound === false);
+  const keep = f.expires.querySelector('option[value=keep]'); if (keep) keep.remove();
+  if (a.expires) { const o = document.createElement('option'); o.value = 'keep'; o.textContent = 'Until ' + new Date(a.expires).toLocaleString(); f.expires.appendChild(o); f.expires.dataset.keep = String(a.expires); f.expires.value = 'keep'; }
+  else f.expires.value = '0';
+  f.freq.dataset.mode = '';
   fillSrc(f, a);
   if (a.src && a.src.vs === 'close') f.price.value = '';
   editing = a.id || null;
   f.querySelector('.stk-al-save').textContent = editing ? 'Save' : 'Create';
-  f.price.focus();
+  try { (f.price.required ? f.price : f.src).focus(); } catch (e) {}
 }
 function renderList(){
   if (!panel) return;
@@ -501,13 +718,14 @@ function renderList(){
   for (const a of alerts) {
     const row = document.createElement('div'); row.className = 'stk-al-row' + (a.active ? '' : ' off');
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
-    row.querySelector('b').textContent = a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
-    const paused = !a.active && pausedIds().has(a.id);
-    row.querySelector('span').textContent = (a.active ? '' : paused ? 'Paused · ' : 'Triggered · ') + (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
+    row.querySelector('b').textContent = isCond(a) ? (a.symbol + ' \u00b7 ' + a.src.title + ' \u2192 ' + (a.src.any ? 'Any alert() function call' : a.src.cond)) : a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
+    const paused = !a.active && (isCond(a) ? !a.fired && !(a.expires && Date.now() > a.expires) : pausedIds().has(a.id));
+    if (isCond(a)) row.querySelector('span').textContent = (a.message ? a.message + ' \u00b7 ' : '') + CFREQL[a.freq] + (a.expires ? ' \u00b7 until ' + new Date(a.expires).toLocaleString() : '') + (a.popup ? '' : ' \u00b7 no popup') + (a.sound ? '' : ' \u00b7 no sound') + (a.active ? '' : (a.expires && Date.now() > a.expires ? ' \u00b7 Expired' : a.fired ? ' \u00b7 Triggered' : ' \u00b7 Paused')) + ' \u00b7 needs Charts open';
+    else row.querySelector('span').textContent = (a.active ? '' : paused ? 'Paused · ' : 'Triggered · ') + (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
     row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : paused ? 'Resume' : 'Restart';
-    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; markPaused(a.id, !a.active); armed.delete(a.id); try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
+    row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; markPaused(a.id, !a.active); armed.delete(a.id); pendClose.delete(a.id); if (isCond(a)) a.fired = false; if (a.active && isCond(a) && a.expires && Date.now() > a.expires) a.expires = 0; try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);
-    row.querySelector('[data-k=del]').onclick = async () => { try { await storeOf(a).remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
+    row.querySelector('[data-k=del]').onclick = async () => { pendClose.delete(a.id); try { await storeOf(a).remove(a.id); alerts = alerts.filter((x) => x !== a); } catch (e) { toastFn('Could not delete the alert.'); } pushLines(); renderList(); };
     list.appendChild(row);
   }
 }
@@ -649,6 +867,16 @@ const CSS = `
 .stk-al-form[hidden],.stk-al-form label[hidden]{ display:none; }
 .stk-al-form label{ display:flex; flex-direction:column; gap:4px; font-size:12px; opacity:.9; }
 .stk-al-form .stk-al-wide{ grid-column:1/-1; }
+.stk-al-form optgroup{ color:#131316; font-style:normal; font-weight:700; }
+.stk-al-nw{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 16px; font-size:12px; }
+.stk-al-nw[hidden]{ display:none; }
+.stk-al-nw > span{ opacity:.9; }
+.stk-al-nw em{ font-style:normal; opacity:.6; font-size:11.5px; }
+.stk-al-form .stk-al-chk{ flex-direction:row; align-items:center; gap:7px; font-size:13px; cursor:pointer; opacity:1; }
+.stk-al-chk input{ appearance:none; -webkit-appearance:none; width:18px; height:18px; margin:0; padding:0 !important; border-radius:6px !important; border:1px solid rgba(3,201,136,.45) !important; background:transparent !important; display:inline-grid; place-content:center; cursor:pointer; }
+.stk-al-chk input:checked{ background:#03c988 !important; border-color:#03c988 !important; }
+.stk-al-chk input:checked::after{ content:''; width:9px; height:5px; border:2px solid #07110d; border-top:0; border-right:0; transform:translateY(-1px) rotate(-45deg); }
+.stk-al-chk input:focus-visible{ outline:2px solid rgba(3,201,136,.6); outline-offset:2px; }
 .stk-al-form input,.stk-al-form select{ background:#131316; color:#eeeeee; border:1px solid rgba(238,238,238,.14); border-radius:10px; padding:8px 10px; font:inherit; }
 :root[data-theme="light"] .stk-al-form input,:root[data-theme="light"] .stk-al-form select{ background:#fff; color:#131316; border-color:rgba(19,19,22,.16); }
 .stk-al-form select option,.stk-snd-row select option{ color:#131316; }
@@ -723,6 +951,49 @@ export async function addAlert(a){
   return id;
 }
 
+// "Add alert…" on each Pine indicator: a bell on its legend row (Vela's legend-actions hook, same look
+// as the eye / cog) and a button in its settings window footer. Both open the Create alert form with
+// that indicator's first alert condition preselected (its first plot when it has no alertcondition).
+const nativeOf = (chart) => { const r = chart && chart.renderer; if (r && r.inputsUI) return r; if (r && r.renderer && r.renderer.inputsUI) return r.renderer; return null; };
+function recOf(cell, id){ try { return cell.chart.orchestrator.registry.get(id); } catch (e) { return null; } }
+export function addAlertFor(cell, id){
+  const rec = recOf(cell, id); if (!rec) return false;
+  try { if (WS && WS.active && WS.active.id !== cell.id && WS.setActiveCell) WS.setActiveCell(cell.id); } catch (e) {}
+  const title = (rec.prepared && rec.prepared.meta && rec.prepared.meta.title) || rec.title;
+  openAlerts({ symbol: cell.symbol, src: { kind: 'cond', title, pick: true } });
+  return true;
+}
+function wireIndicatorEntries(){
+  if (!WS) return;
+  let cells = []; try { cells = WS.context().cells || []; } catch (e) {}
+  for (const c of cells) {
+    const cell = cellOf(c.id); const n = nativeOf(cell && cell.chart);
+    if (!n || n.__stkAlertLegend) continue;
+    try {
+      n.setLegendActions((id) => { const r = recOf(cell, id); return r && !r.native && r.source ? [{ id: 'stk-add-alert', icon: 'bell', tooltip: 'Add alert\u2026', run: () => addAlertFor(cell, id) }] : []; });
+      n.__stkAlertLegend = true;
+    } catch (e) { console.warn('TradeZoro alerts: legend action', e); }
+  }
+}
+function wireSettingsAlert(){
+  if (wireSettingsAlert.done) return; wireSettingsAlert.done = true;
+  const scan = () => {
+    for (const dlg of document.querySelectorAll('.vela-ind-dialog')) {
+      if (dlg.querySelector('.stk-al-dlgbtn')) continue;
+      const foot = dlg.querySelector('.vela-dialog-footer'); if (!foot) continue;
+      let cells = []; try { cells = WS.context().cells || []; } catch (e) {}
+      let hit = null;
+      for (const c of cells) { const cell = cellOf(c.id); const n = nativeOf(cell && cell.chart); const oid = n && n.inputsUI && n.inputsUI.inputsDialog && n.inputsUI.inputsDialog.openId; if (oid != null) { const r = recOf(cell, oid); if (r && !r.native && r.source) { hit = { cell, id: oid, n }; break; } } }
+      if (!hit) continue;
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'vela-dialog-btn stk-al-dlgbtn'; b.textContent = 'Add alert\u2026';
+      b.onclick = () => { try { hit.n.inputsUI.inputsDialog.close(); } catch (e) {} addAlertFor(hit.cell, hit.id); };
+      const reset = foot.firstElementChild;
+      if (reset && reset.nextSibling) foot.insertBefore(b, reset.nextSibling); else foot.appendChild(b);
+    }
+  };
+  new MutationObserver(scan).observe(document.body, { childList: true, subtree: true });
+}
+
 export function installChartAlerts(Core){
   try { Core.registerRendererLayer({ id: LAYER, placement: 'above-data', create: linesLayer }); } catch (e) { console.warn('TradeZoro alerts: layer', e); }
   window.__stkExtraSections = (window.__stkExtraSections || []).concat([alertsSection]);
@@ -744,11 +1015,13 @@ export function mountChartAlerts(ws, opts){
     const t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     e.preventDefault(); const c = activeCell(); openAlerts({ symbol: c ? c.symbol : '', price: crossPrice() });
   });
-  try { ws.on('state:changed', () => setTimeout(pushLines, 0)); } catch (e) {}
+  try { ws.on('state:changed', () => setTimeout(() => { pushLines(); wireIndicatorEntries(); }, 0)); } catch (e) {}
+  try { ws.on('layout:changed', () => setTimeout(wireIndicatorEntries, 0)); } catch (e) {}
+  wireIndicatorEntries(); wireSettingsAlert();
   try { fb().auth().onAuthStateChanged(() => reload()); } catch (e) { reload(); }
   // Another tab fired / restarted a browser-stored alert: follow it here (lines + list).
   window.addEventListener('storage', (e) => { if (e.key === IND_KEY || e.key === 'stryker_chart_alerts_guest') reload(); });
   setInterval(poll, 1000);
-  setInterval(pushLines, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, linesFor: (sym) => chartLines(sym).map((l) => l.price) };
+  setInterval(() => { pushLines(); wireIndicatorEntries(); }, 5000);   // new cells / symbol switches pick up their lines
+  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, addAlertFor, conditionsOf: alertConditionsOf, chartIndicatorConds, linesFor: (sym) => chartLines(sym).map((l) => l.price) };
 }

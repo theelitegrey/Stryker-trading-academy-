@@ -126,8 +126,9 @@ async function dragBack(p, st, steps, px, touch) {
     await set(p, 'NQ1!', tf);
     const a = await state(p);
     await dragBack(p, a, 8, 600, false);
-    await p.waitForTimeout(2500);
-    const z = await state(p);
+    // cold history pages (6 Yahoo pages for 60m) can take longer than a fixed 2.5 s: wait for growth, up to 15 s
+    let z = await state(p);
+    for (let w = 0; w < 30 && !(z.n > a.n && !z.busy); w++) { await p.waitForTimeout(500); z = await state(p); }
     check(z.n > a.n && z.mono, `NQ ${tf}: history grows on scroll-back`, [a.n, z.n, new Date(z.oldest).toISOString()]);
   }
   check(!errors.filter((e) => !/docChanges/.test(e)).length, 'no page errors (desktop; the stub-only docChanges error is ignored)', errors);

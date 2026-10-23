@@ -34,6 +34,14 @@ const VELA_PINETS = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/di
 const PLUGIN = new URL(/[?&]vela=090\b/.test(self.location.search) ? '/assets/vendor/vela-0.9.0-s4/plugin.js' : '/assets/vendor/vela-0.6.17-s3/plugin.js', self.location.href).href;
 
 const post = (m) => self.postMessage(m);
+// BUSY signal: tells the page when a script is computing here ({kind:'busy', on}), so the page
+// can pause decorative CSS animations meanwhile (chart-pine-next.js). On a 2-core machine an
+// infinite paint animation (header plan badge) made the page commit a frame 60x a second, every
+// commit re-uploaded the chart canvases, and that starved this worker: Liquidity Master on 1m
+// NQ took ~40 s on the chart page vs ~5 s alone.
+const computing = new Set();
+function busyOn(s){ const was = computing.size; computing.add(s.id); if (!was) post({ kind: 'busy', on: true }); }
+function busyOff(s){ if (!computing.delete(s.id)) return; if (!computing.size) post({ kind: 'busy', on: false }); }
 let engine = null;
 const sessions = new Map();
 const fetchWaits = new Map();
@@ -126,7 +134,7 @@ function queueSettings(s, inputs, props){
 // debugState): full (re)computes started vs finished per session. A gap that keeps growing
 // means runs are stacking up.
 const runs = { started: 0, finished: 0 };
-function runStarted(s){ runs.started++; s.started = (s.started || 0) + 1; }
+function runStarted(s){ busyOn(s); runs.started++; s.started = (s.started || 0) + 1; }
 function runFinished(s){ runs.finished++; s.finished = (s.finished || 0) + 1; }
 
 // LIVE sessions (the normal case on a streaming chart). update() restarts the script's
@@ -158,12 +166,14 @@ function applyLive(s){
   s.handle.update(inputs, props);
 }
 function restartLanded(s){
+  busyOff(s);
   if (!s.restarting) return;
   s.restarting = 0;
   runFinished(s);
   if (s.liveInputs || s.liveProps) applyLive(s);
 }
 function landed(s){
+  busyOff(s);
   if (s.busy) runFinished(s);
   s.busy = false;
   const wasSettings = s.settingsRun; s.settingsRun = false;
@@ -205,6 +215,7 @@ function liveBars(s, reason){
     const k = barsKey(s.bars);
     if (k === s.liveKey) return;          // same bars the stream already runs on
     s.liveKey = k;
+    busyOn(s);
     s.handle.notifyBars('complete');
   }, LIVE_COMPLETE_MS);
 }
@@ -286,7 +297,7 @@ self.addEventListener('message', async (ev) => {
     }
     case 'stop': {
       const s = sessions.get(msg.sessionId);
-      if (s) { s.stopped = true; clearTimeout(s.tickTimer); clearTimeout(s.liveTimer); try { if (s.handle) s.handle.stop(); } catch (e) {} }
+      if (s) { busyOff(s); s.stopped = true; clearTimeout(s.tickTimer); clearTimeout(s.liveTimer); try { if (s.handle) s.handle.stop(); } catch (e) {} }
       sessions.delete(msg.sessionId);
       return;
     }

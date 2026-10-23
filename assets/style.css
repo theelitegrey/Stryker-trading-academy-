@@ -5838,6 +5838,16 @@ a.floor-tag:hover{ text-decoration:underline; }
   }
 }
 
+/* While a chart script computes (html.stk-pine-busy, set by assets/chart-pine-next.js) the
+   endless shine pauses: it repainted the page every frame and slowed the script 3x on small
+   machines. It resumes where it stopped once the result is drawn. */
+html.stk-pine-busy .role-tag, html.stk-pine-busy .brand-plan,
+html.stk-pine-busy .role-tag::before, html.stk-pine-busy .brand-plan::before,
+html.stk-pine-busy .role-tag::after, html.stk-pine-busy .brand-plan::after{ animation-play-state:paused !important; }
+/* The chart legend's "computing" dot (Vela, inline animation vela-ind-pulse) pulses for the
+   whole run and forced a full-page frame 60x a second; while busy it stays lit instead. */
+html.stk-pine-busy .vela-cell [style*="vela-ind-pulse"]{ animation:none !important; opacity:.75; }
+
 @media (prefers-reduced-motion: reduce){
   .role-tag, .brand-plan{ animation:none !important;
     /* The bevel normally rides in the animation's shadow — restate it so

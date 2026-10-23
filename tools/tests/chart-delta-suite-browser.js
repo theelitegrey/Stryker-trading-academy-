@@ -64,7 +64,7 @@ async function open(b, { w, h, mobile, v09 }) {
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream|firebase|firestore|CORS/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   p.on('pageerror', (e) => { if (!/docChanges/.test(String(e))) errors.push(String(e).slice(0, 200)); });
-  await p.goto(BASE + '/charts.html' + (v09 ? '?vela=0.9' : ''), { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html?vela=' + (v09 ? '0.9' : '0.6'), { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkOrderflow, null, { timeout: 60000 });
   await sleep(2500);
   return { ctx, p, errors };

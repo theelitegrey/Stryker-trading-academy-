@@ -42,6 +42,21 @@ function tfToMs(tf){
   return n * (u === 'S' ? 1e3 : u === 'D' ? 864e5 : u === 'W' ? 6048e5 : u === 'M' ? 2592e6 : 6e4);
 }
 
+// While a Pine script computes in the worker, html gets .stk-pine-busy and style.css pauses the
+// endless decorative animations (plan badge / role tags). Those made the page paint every frame,
+// which on small machines (2 cores) took the CPU from the worker: Liquidity Master on a 1m chart
+// went from ~40 s to under 15 s with them paused. Safety: the class never stays on > 90 s.
+const busyEngines = new Set();
+let busyGuard = 0;
+function setBusy(eng, on){
+  if (on) busyEngines.add(eng); else busyEngines.delete(eng);
+  if (typeof document === 'undefined') return;
+  const any = busyEngines.size > 0;
+  document.documentElement.classList.toggle('stk-pine-busy', any);
+  clearTimeout(busyGuard);
+  if (any) busyGuard = setTimeout(() => { busyEngines.clear(); document.documentElement.classList.remove('stk-pine-busy'); }, 90000);
+}
+
 export class PineNextEngine {
   constructor(opts = {}){
     this.language = 'pine-next';
@@ -68,6 +83,7 @@ export class PineNextEngine {
   }
   post(m){ this.w().postMessage(m); }
   retire(){
+    setBusy(this, false);
     const w = this.worker; if (!w) return;
     this.worker = null;
     this.ctxWaits.forEach((r) => r(null)); this.ctxWaits.clear();
@@ -115,7 +131,7 @@ export class PineNextEngine {
       }
     };
   }
-  terminate(){ try { if (this.worker) this.worker.terminate(); } catch (e) {} this.worker = null; }
+  terminate(){ setBusy(this, false); try { if (this.worker) this.worker.terminate(); } catch (e) {} this.worker = null; }
   onMessage(m){
     switch (m.kind) {
       case 'prepared': {
@@ -133,6 +149,7 @@ export class PineNextEngine {
       case 'alert': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onAlert) s.handlers.onAlert(m.alert); try { if (this.opts.onAlert) this.opts.onAlert(m.alert, s); } catch (e) {} return; }
       case 'warning': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onWarning) s.handlers.onWarning(m.warning); return; }
       case 'error': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onError) s.handlers.onError(new Error(m.message)); return; }
+      case 'busy': setBusy(this, !!m.on); return;
       case 'done': { const s = this.sessions.get(m.sessionId); if (s && s.handlers.onDone) s.handlers.onDone(); return; }
       case 'contextResult': { const w = this.ctxWaits.get(m.reqId); this.ctxWaits.delete(m.reqId); if (w) w(m.snapshot); return; }
       case 'fetchSeries': this.serveFetch(m); return;

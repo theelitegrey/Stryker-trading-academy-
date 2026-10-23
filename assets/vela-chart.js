@@ -73,6 +73,46 @@
 // TradingView-feel fixes). The inline script in charts.html picks the
 // folder BEFORE any module loads (the import map must match) and sets window.__stkVela090; the
 // 0.9.0 engine keeps its own saved workspace (vela-workspace-090) so switching back is safe.
+
+// See "EMPTY LAYER CANVASES OFF" in the boot code.
+const DRAW_OPS = ['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData'];
+function quietLayer(def){
+  if (!def || typeof def.create !== 'function' || def.__stkQuiet) return def;
+  const create = def.create;
+  return Object.assign({}, def, { __stkQuiet: true, create: (...a) => {
+    const inst = create(...a);
+    if (!inst || typeof inst.mount !== 'function' || typeof inst.render !== 'function') return inst;
+    let cv = null, drew = false, cleared = false;
+    const mount = inst.mount;
+    inst.mount = function (canvas) {
+      const r = mount.apply(this, arguments);
+      try {
+        const ctx = canvas && canvas.getContext && canvas.getContext('2d');
+        if (ctx) {
+          cv = canvas;
+          // Own-property wrappers that call whatever the prototype holds at call time (so other
+          // code that wraps CanvasRenderingContext2D.prototype keeps seeing these calls).
+          const proto = Object.getPrototypeOf(ctx);
+          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; return proto[k].apply(this, arguments); };
+          ctx.clearRect = function () { cleared = true; return proto.clearRect.apply(this, arguments); };
+        }
+      } catch (e) { cv = null; }
+      return r;
+    };
+    const render = inst.render;
+    inst.render = function () {
+      if (!cv) return render.apply(this, arguments);
+      drew = false; cleared = false;
+      try { return render.apply(this, arguments); }
+      finally {
+        if (drew) { if (cv.style.visibility) cv.style.visibility = ''; }
+        else if (cleared && cv.style.visibility !== 'hidden') cv.style.visibility = 'hidden';
+      }
+    };
+    return inst;
+  } });
+}
+
 const VELA090 = window.__stkVela090 === true;
 const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s4/' : './vendor/vela-0.6.17-s3/';
 // One-time migration for members whose saved workspace still carries the old
@@ -272,7 +312,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const FxProvider = mods[4].FxProvider;
   const COMMODITY_ROOTS = mods[4].COMMODITY_ROOTS || [];
   let Flow, Gex, GexHeat;
-  const Core = mods[5];
+  // EMPTY LAYER CANVASES OFF (speed, 2026-10-23): Vela gives every registered renderer layer
+  // (order flow, GEX, events, paper, alerts, ... 20+ of them) its own full-size canvas, and the
+  // browser composites ALL of them on every frame even when a layer draws nothing. On a 2-core
+  // machine that compositing took the CPU from the Pine worker (Liquidity Master on 1m: ~40 s on
+  // the chart page vs ~5 s alone). Each layer's canvas is now hidden (visibility) after a render
+  // that cleared it and drew nothing, and shown again by the first render that draws. A render
+  // that neither clears nor draws (a layer keeping its last picture) leaves it as it was.
+  const Core = Object.assign({}, mods[5], { registerRendererLayer: (def) => mods[5].registerRendererLayer(quietLayer(def)) });
   const Pine = mods[6];
   const Settings = mods[8];
   const Grid = mods[10];

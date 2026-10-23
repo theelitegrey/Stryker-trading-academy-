@@ -21,6 +21,8 @@
 
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=626';
 
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=626';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=626';
 import { rtHeadersReady } from './rt-access.js?v=626';
 import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=626';
 import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=626';
@@ -244,7 +246,7 @@ export function flowFor(ctxLike) {
   const map = new Map();
   for (const b of agg) map.set(b.t, b);
   const note = got.loading && !agg.length ? 'Loading order flow…' : got.err && !agg.length ? got.err : !agg.length ? (free ? 'No order flow in the last 24 h yet (free plan: NQ, last 24 h).' : 'No order flow for these bars yet. History starts ' + '6 days before 2026-10-14 and grows from there.') : '';
-  const out = { map, list: agg, tick: got.s.tick || 0.25, thr: got.s.thr || 0, note, free, loading: got.loading };
+  const out = { map, list: agg, mins: clipped, tick: got.s.tick || 0.25, thr: got.s.thr || 0, note, free, loading: got.loading };
   viewCache.set(ctxLike.owner, { key, out });
   return out;
 }
@@ -256,7 +258,7 @@ function cryptoFlow(ctxLike, root, tf) {
   const feed = cryptoFeed(root, bump);
   if (!cb.length) return { note: '' };
   const E = replayE();
-  const key = root + '|' + tf + '|' + feed.v + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + cb.length;
+  const key = root + '|' + tf + '|' + feed.v + '|' + feed.bigThr + '|' + (E == null ? '' : Math.floor(E / 60000)) + '|' + cb[0].time + '|' + cb.length;
   const memo = viewCache.get(ctxLike.owner);
   if (memo && memo.key === key) return memo.out;
   const clipped = clipTo(feed.bars().filter((b) => b.t >= feed.coverFrom), E);
@@ -269,7 +271,7 @@ function cryptoFlow(ctxLike, root, tf) {
     : feed.status === 'error' ? 'Binance trades temporarily unavailable. Showing what loaded.'
     : feed.status === 'reconnecting' ? 'Trade stream reconnecting…'
     : !agg.length ? 'Waiting for trades…' : '';
-  const out = { map, list: agg, tick: feed.tick || 1, thr: 0, note, free: false, loading, crypto: true, partial: feed.status === 'loading' };
+  const out = { map, list: agg, mins: clipped, tick: feed.tick || 1, thr: feed.bigThr || 0, note, free: false, loading, crypto: true, partial: feed.status === 'loading' };
   viewCache.set(ctxLike.owner, { key, out });
   return out;
 }
@@ -470,14 +472,20 @@ const IND = {
     { key: 'style', title: 'Show as', type: 'string', defval: 'candles', options: ['candles', 'line'] },
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day', 'none'], tooltip: 'session = the CME day (18:00 New York).' },
     { key: 'upColor', title: 'Up', type: 'color', defval: UP }, { key: 'downColor', title: 'Down', type: 'color', defval: DN }] },
-  stk_of_big: { title: 'Big Trades (trades)', short: 'Big Trades', pane: 'price', overlay: true, schema: [
-    { key: 'minSize', title: 'Min size (contracts, 0 = auto)', type: 'int', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'Auto = the 99.5th percentile of the previous session\'s orders for this symbol.' },
-    { key: 'labels', title: 'Size labels', type: 'bool', defval: true }] },
-  stk_of_vp: { title: 'Volume Profile (trades)', short: 'VP (trades)', pane: 'price', overlay: true, schema: [
-    { key: 'range', title: 'Range', type: 'string', defval: 'session', options: ['session', 'visible'] },
+  stk_of_big: { title: 'Big Trades (bubbles)', short: 'Big Trades', pane: 'price', overlay: true, schema: [
+    { key: 'mult', title: 'Threshold (x the auto size)', type: 'float', defval: 1, min: 0.5, max: 20, step: 0.5, tooltip: 'Auto size = the 99.5th percentile of single orders for this symbol (futures: the previous session; crypto: the loaded trades). 2 = only orders twice that size.' },
+    { key: 'minSize', title: 'Min size (contracts / coins, 0 = off)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'A floor on top of the threshold: smaller prints are never drawn.' },
+    { key: 'cluster', title: 'Merge split fills (same side, 1 tick, 1 s)', type: 'bool', defval: true },
+    { key: 'labels', title: 'Size labels', type: 'bool', defval: true },
+    { key: 'buyColor', title: 'Buyers (hit the ask)', type: 'color', defval: UP },
+    { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: DN }] },
+  stk_of_vp: { title: 'Volume Profile (trades: session / swing + naked POC)', short: 'VP (trades)', pane: 'price', overlay: true, schema: [
+    { key: 'range', title: 'Range', type: 'string', defval: 'session', options: ['session', 'swing', 'visible'], tooltip: 'session = the CME day (18:00 New York). swing = from one swing high / low to the next.' },
+    { key: 'swingLen', title: 'Swing strength (bars each side)', type: 'int', defval: 10, min: 2, max: 100, step: 1, when: { key: 'range', anyOf: ['swing'] } },
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
-    { key: 'widthPct', title: 'Width %', type: 'int', defval: 30, min: 5, max: 100, step: 1 }] },
+    { key: 'widthPct', title: 'Width %', type: 'int', defval: 30, min: 5, max: 100, step: 1 },
+    { key: 'naked', title: 'Naked POC lines (until revisited)', type: 'bool', defval: true, when: { key: 'range', anyOf: ['session', 'swing'] } }] },
   stk_of_vwap: { title: 'VWAP (trades, ±1/2 SD)', short: 'VWAP (trades)', pane: 'price', overlay: true, schema: [
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day'] },
     { key: 'bands', title: 'SD bands', type: 'string', defval: '1 and 2', options: ['none', '1', '1 and 2'] },
@@ -497,13 +505,14 @@ class OfNative {
   start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(IND[this.type].schema), inputs); users++; startRefresh(); listeners.add(this.onAny); this.render(); }
   later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() { this.later(); }
-  onViewport() { if (this.type === 'stk_of_vp') this.render(); }
+  onViewport() { if (this.type === 'stk_of_vp' || this.type === 'stk_of_big') this.render(); }
   setInputs(i) { this.inputs = Object.assign(defaults(IND[this.type].schema), i); this.render(); }
   suspend() { listeners.delete(this.onAny); }
   resume() { listeners.add(this.onAny); this.render(); }
-  stop() { listeners.delete(this.onAny); clearTimeout(this.tm); users--; stopRefresh(); }
+  // the layer canvas outlives the indicator on some engines: push an empty frame so it clears
+  stop() { listeners.delete(this.onAny); clearTimeout(this.tm); users--; stopRefresh(); this.off = true; try { if (this.ctx) this.ctx.pushData({ owner: this, off: true }); } catch (e) {} }
   render() {
-    if (!this.ctx) return;
+    if (!this.ctx || this.off) return;
     const bars = this.ctx.bars();
     const f = flowFor({ root: rootOf(this.ctx), timeframe: this.ctx.timeframe, bars, owner: this });
     const tables = f.note ? [msgTable(this.type + '-msg', f.note, f.locked)] : [];
@@ -553,7 +562,7 @@ function frame(canvas, a) {
   if (!g) return null;
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, canvas.width, canvas.height);
-  if (!a.data || !a.bars.length) return null;
+  if (!a.data || a.data.off || !a.bars.length) return null;
   const dpr = a.coords.dpr || 1;
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   return g;
@@ -565,36 +574,38 @@ function idxOf(bars, t) {   // last chart bar with time <= t
 }
 
 function bigLayer() {
-  let canvas = null;
+  let canvas = null, memo = null;
   return {
     mount(c) { canvas = c; },
     render(a) {
       const g = frame(canvas, a);
       if (!g) return;
-      const d = a.data, co = a.coords;
+      const d = a.data, co = a.coords, I = d.inputs;
       const f = flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.owner });
-      if (!f.list || !f.list.length) return;
-      const thr = d.inputs.minSize > 0 ? d.inputs.minSize : (f.thr || 1);
+      if (!f.mins || !f.mins.length) return;
+      const thr = bigThreshold(f.thr, num(I.mult, 1), num(I.minSize, 0));
+      const last = f.mins[f.mins.length - 1];
+      const key = f.mins.length + '|' + f.mins[0].t + '|' + last.t + '|' + last.bigs.length + '|' + (I.cluster !== false);
+      if (!memo || memo.key !== key) memo = { key, prints: bigPrints(f.mins, { cluster: I.cluster !== false }) };
       const vr = co.visibleLogicalRange();
-      const t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 1;
-      const top = a.bounds.top, bot = top + a.bounds.height;
+      const t0 = a.bars[Math.max(0, Math.floor(vr.from))].time, t1 = a.bars[Math.min(a.bars.length - 1, Math.ceil(vr.to))].time + 86400000;
+      const top = a.bounds.top, bot = top + a.bounds.height, phone = co.width < 520;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      const E = replayE();
-      for (const b of f.list) {
-        if (b.t + 86400000 < t0 || b.t > t1) continue;
-        for (const [ms, pi, size, side] of b.bigs) {
-          if (size < thr || (E != null && ms > E)) continue;
-          const i = idxOf(a.bars, ms);
-          if (i < 0) continue;
-          const x = co.logicalToX(i), y = co.priceToY(pi * f.tick, a.scale, a.bounds);
-          if (y < top - 30 || y > bot + 30) continue;
-          const r = clamp(4 * Math.sqrt(size / thr), 4, 26);
-          g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
-          g.fillStyle = alpha(side ? UP : DN, 0.32); g.fill();
-          g.lineWidth = 1.2; g.strokeStyle = side ? UP2 : '#ff6b7a'; g.stroke();
-          if (d.inputs.labels && r >= 10) { g.font = '600 ' + clamp(Math.floor(r * 0.75), 9, 13) + 'px ' + MONO; g.fillStyle = light() ? '#0f172a' : '#f5f5f5'; g.fillText(fmt(size), x, y); }
-        }
+      const E = replayE(), buyC = I.buyColor || UP, sellC = I.sellColor || DN;
+      const rMax = phone ? 18 : 26;
+      for (const p of memo.prints) {
+        if (p.size < thr || p.ms < t0 || p.ms > t1 || (E != null && p.ms > E)) continue;
+        const i = idxOf(a.bars, p.ms);
+        if (i < 0) continue;
+        const x = co.logicalToX(i), y = co.priceToY(p.pi * f.tick, a.scale, a.bounds);
+        if (y < top - 30 || y > bot + 30) continue;
+        const r = clamp(4 * Math.sqrt(p.size / thr), 4, rMax);
+        const col = p.side ? buyC : sellC;
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+        g.fillStyle = alpha(col, 0.34); g.fill();
+        g.lineWidth = 1.2; g.strokeStyle = alpha(col, 0.95); g.stroke();
+        if (I.labels && r >= 10) { g.font = '600 ' + clamp(Math.floor(r * 0.75), 9, 13) + 'px ' + MONO; g.fillStyle = light() ? '#0f172a' : '#f5f5f5'; g.fillText(fmt(p.size), x, y); }
       }
       g.restore();
     },
@@ -602,8 +613,25 @@ function bigLayer() {
   };
 }
 
+// Segments of the order-flow bars (chart timeframe) for the profile: per CME session, or per swing
+// (pivot to pivot, the last one still developing). Cached per data version + settings.
+function vpSegments(f, I) {
+  const L = f.list;
+  if (I.range === 'swing') {
+    const len = clamp(Math.round(num(I.swingLen, 10)), 2, 100);
+    return swingSegments(L.map((b) => b.hi), L.map((b) => b.lo), len).map((s) => ({ i0: s.i0, i1: s.i1, open: !!s.open }));
+  }
+  const out = [];
+  let cur = null;
+  L.forEach((b, i) => {
+    const k = f.crypto ? Math.floor(b.t / 86400000) : sessionOf(b.t);
+    if (!cur || cur.k !== k) { if (cur) out.push(cur); cur = { k, i0: i, i1: i }; } else cur.i1 = i;
+  });
+  if (cur) { cur.open = true; out.push(cur); }
+  return out;
+}
 function vpLayer() {
-  let canvas = null;
+  let canvas = null, memo = null;
   return {
     mount(c) { canvas = c; },
     render(a) {
@@ -612,26 +640,38 @@ function vpLayer() {
       const d = a.data, co = a.coords, I = d.inputs;
       const f = flowFor({ root: d.root, timeframe: d.timeframe, bars: a.bars, owner: d.owner });
       if (!f.list || !f.list.length) return;
-      const tick = f.tick, vr = co.visibleLogicalRange();
+      const tick = f.tick, vr = co.visibleLogicalRange(), ppb = co.pxPerBar();
       const i0 = Math.max(0, Math.floor(vr.from)), i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to));
       const tickPx = Math.abs(co.priceToY(a.scale.min + tick, a.scale, a.bounds) - co.priceToY(a.scale.min, a.scale, a.bounds));
       let m = I.rowTicks || 1;
       if (!I.rowTicks) for (const s of ROW_STEPS) { m = s; if (tickPx * s >= 3) break; }
+      const top = a.bounds.top;
+      const xOf = (t, end) => { const i = idxOf(a.bars, t); return i < 0 ? null : co.logicalToX(i) + (end ? ppb / 2 : -ppb / 2); };
       const groups = [];
+      let naked = [];
       if (I.range === 'visible') {
         const t0 = a.bars[i0].time, t1 = a.bars[i1].time;
         groups.push({ bars: f.list.filter((b) => b.t >= t0 && b.t <= t1), x0: co.logicalToX(i0), x1: co.width - 60, right: true });
       } else {
-        let cur = null;
-        for (let i = i0; i <= i1; i++) {
-          const fb = f.map.get(a.bars[i].time);
-          const k = sessionOf(a.bars[i].time);
-          if (!cur || cur.k !== k) { cur = { k, bars: [], x0: co.logicalToX(i) - co.pxPerBar() / 2, x1: 0 }; groups.push(cur); }
-          cur.x1 = co.logicalToX(i) + co.pxPerBar() / 2;
-          if (fb) cur.bars.push(fb);
+        // naked POCs use a fixed row (the input, else 4 ticks) so they do not move with the zoom
+        const L = f.list, last = L[L.length - 1], mN = I.rowTicks || 4;
+        const key = I.range + '|' + I.swingLen + '|' + mN + '|' + L.length + '|' + L[0].t + '|' + last.t + '|' + last.vol;
+        if (!memo || memo.key !== key) {
+          const segs = vpSegments(f, I);
+          const done = segs.filter((s) => !s.open).map((s) => { const p = profile(L.slice(s.i0, s.i1 + 1), mN, 70); return { i1: s.i1, t: L[s.i1].t, poc: p ? p.poc : null }; }).filter((s) => s.poc != null);
+          const hit = pocRevisits(done, L, mN);
+          memo = { key, segs, naked: done.map((s, k) => ({ t: s.t, price: (s.poc + 0.5) * mN * tick, hit: hit[k] < 0 ? null : L[hit[k]].t })) };
         }
+        const tA = a.bars[i0].time, tB = a.bars[i1].time;
+        for (const s of memo.segs) {
+          const L0 = f.list[s.i0].t, L1 = f.list[s.i1].t;
+          if (L1 < tA || L0 > tB) continue;
+          const x0 = xOf(L0, false), x1 = xOf(L1, true);
+          if (x0 == null || x1 == null) continue;
+          groups.push({ bars: f.list.slice(s.i0, s.i1 + 1), x0, x1 });
+        }
+        if (I.naked !== false) naked = memo.naked;
       }
-      const top = a.bounds.top;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       for (const gr of groups) {
         const p = profile(gr.bars, m, I.va);
@@ -656,6 +696,23 @@ function vpLayer() {
         line(p.vah, alpha(CYAN, 0.8), 1, [4, 3]);
         line(p.val, alpha(CYAN, 0.8), 1, [4, 3]);
         g.setLineDash([]);
+      }
+      // naked POCs: from the end of their segment to the bar that traded back through them (or the
+      // right edge while still naked, with a tag)
+      const phone = co.width < 520;
+      g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'right';
+      for (const n of naked) {
+        if (n.hit != null) continue;
+        const xa = xOf(n.t, true);
+        if (xa == null || xa > co.width) continue;
+        const y = co.priceToY(n.price, a.scale, a.bounds);
+        if (y < top || y > top + a.bounds.height) continue;
+        g.setLineDash([2, 3]); g.strokeStyle = alpha('#f5b301', 0.85); g.lineWidth = 1.2;
+        g.beginPath(); g.moveTo(Math.max(0, xa), y); g.lineTo(co.width, y); g.stroke(); g.setLineDash([]);
+        const txt = 'nPOC';
+        const w = g.measureText(txt).width + 6;
+        g.fillStyle = light() ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.85)'; g.fillRect(co.width - w - 4, y - 7, w, 14);
+        g.fillStyle = '#f5b301'; g.fillText(txt, co.width - 7, y);
       }
       g.restore();
     },
@@ -690,10 +747,16 @@ export function installFootprint(Core, flowMod) {
   for (const type of OF_TYPES) {
     const d = IND[type];
     Core.registerNativeIndicator({ type, title: d.title, shortTitle: d.short, paneHint: d.pane, overlay: d.overlay,
-      reactsToViewport: type === 'stk_of_vp', inputsSchema: () => d.schema, defaultInputs: () => defaults(d.schema), create: () => new OfNative(type) });
+      reactsToViewport: type === 'stk_of_vp' || type === 'stk_of_big', inputsSchema: () => d.schema, defaultInputs: () => defaults(d.schema), create: () => new OfNative(type) });
   }
   // The Delta suite (assets/chart-delta-suite.js): same data, same timers, same plan rules.
   installDeltaSuite(Core, {
+    flowFor, rootOf, sessionOf, version: () => version,
+    subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
+    use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
+  });
+  // Order flow pro tools (assets/chart-of-pro.js): Absorption, Imbalance zones, TPO, Effort vs Result.
+  installOfPro(Core, {
     flowFor, rootOf, sessionOf, version: () => version,
     subscribe: (fn) => listeners.add(fn), unsubscribe: (fn) => listeners.delete(fn),
     use: () => { users++; startRefresh(); }, unuse: () => { users--; stopRefresh(); }
@@ -704,7 +767,7 @@ export function installFootprint(Core, flowMod) {
 // loads lazily, so this is called again once it is here.
 function linkFlow(flowMod) {
   if (!flowMod || !Array.isArray(flowMod.OUR_TYPES)) return;
-  for (const type of OF_TYPES.concat(DS_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
+  for (const type of OF_TYPES.concat(DS_TYPES, PRO_TYPES)) if (!flowMod.OUR_TYPES.includes(type)) flowMod.OUR_TYPES.push(type);
 }
 export const FP_DISCLAIMER = DISCLAIMER;
 // Read-only handle for the browser suite (tools/tests/chart-footprint-browser.js) and debugging.

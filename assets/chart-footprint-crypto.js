@@ -56,7 +56,7 @@ class CryptoFeed {
     this.mins = new Map();          // minute ms -> { trades: [[id, price, size, side]], dirty, bar }
     this.ids = new Set();           // ids seen (dedupe across backfill / live / catch-up)
     this.status = 'loading'; this.err = '';
-    this.tick = 0; this.coverFrom = Infinity; this.v = 0;
+    this.tick = 0; this.coverFrom = Infinity; this.v = 0; this.bigThr = 0;
     this.lastId = -1; this.stopped = false; this.ws_ = null; this.retry = 0; this.tm = 0; this.bumpTm = 0;
     this.buf = []; this.backfilled = false; this.sorted = null; this.sortedV = -1;
   }
@@ -80,7 +80,7 @@ class CryptoFeed {
       const mt = Math.floor(t.T / 60000) * 60000;
       let m = this.mins.get(mt);
       if (!m) { m = { trades: [], dirty: true, bar: null }; this.mins.set(mt, m); }
-      m.trades.push([id, price, size, t.m ? 0 : 1]); m.dirty = true;
+      m.trades.push([id, price, size, t.m ? 0 : 1, t.T]); m.dirty = true;
     }
   }
   trim() {
@@ -158,7 +158,7 @@ class CryptoFeed {
       this.add(this.buf); this.buf.length = 0;
       this.backfilled = true;
       this.status = 'live'; this.err = '';
-      this.trim(); this.bump();
+      this.trim(); this.setBigThr(); this.bump();
     } catch (e) {
       // keep whatever arrived, keep the stream going, and try the backfill again soon
       this.add(this.buf); this.buf.length = 0;
@@ -169,6 +169,17 @@ class CryptoFeed {
       this.tm = setTimeout(() => { if (!this.stopped) { this.backfilled = false; this.ids.size || (this.coverFrom = Infinity); this.backfill(); } }, 15000);
     }
   }
+  // Big Trades threshold: the 99.5th percentile of the loaded aggregate trades (one aggTrade = one
+  // taker order at one price), like the recorder's per-symbol threshold for futures. Set once the
+  // backfill is in; every minute is rebuilt so its big prints use it.
+  setBigThr() {
+    const sizes = [];
+    this.mins.forEach((m) => { for (const x of m.trades) sizes.push(x[2]); });
+    if (sizes.length < 200) return;
+    sizes.sort((a, b) => a - b);
+    this.bigThr = sizes[Math.min(sizes.length - 1, Math.floor(sizes.length * 0.995))];
+    this.mins.forEach((m) => { m.dirty = true; });
+  }
   // 1-minute bars in decodeOrderflow() shape, oldest first; rebuilt only for minutes that changed.
   bars() {
     if (this.sortedV === this.v && this.sorted) return this.sorted;
@@ -176,7 +187,7 @@ class CryptoFeed {
     const keys = [...this.mins.keys()].sort((a, b) => a - b);
     for (const k of keys) {
       const m = this.mins.get(k);
-      if (m.dirty || !m.bar) { m.bar = buildBar(k, m.trades, tick); m.dirty = false; }
+      if (m.dirty || !m.bar) { m.bar = buildBar(k, m.trades, tick, this.bigThr); m.dirty = false; }
       out.push(m.bar);
     }
     this.sorted = out; this.sortedV = this.v;
@@ -184,17 +195,19 @@ class CryptoFeed {
   }
 }
 
-function buildBar(t, trades, tick) {
+function buildBar(t, trades, tick, bigThr) {
   trades.sort((a, b) => a[0] - b[0]);
   let lo = Infinity, hi = -Infinity;
   const idx = trades.map((x) => { const i = Math.floor(x[1] / tick + 1e-9); if (i < lo) lo = i; if (i > hi) hi = i; return i; });
   const n = hi - lo + 1, buy = new Float64Array(n), sell = new Float64Array(n);
   let run = 0, dmax = 0, dmin = 0, vol = 0;
+  const bigs = [];
   for (let j = 0; j < trades.length; j++) {
     const x = trades[j], k = idx[j] - lo;
+    if (bigThr > 0 && x[2] >= bigThr) bigs.push([x[4] || t, idx[j], x[2], x[3]]);
     if (x[3]) { buy[k] += x[2]; run += x[2]; } else { sell[k] += x[2]; run -= x[2]; }
     vol += x[2];
     if (run > dmax) dmax = run; if (run < dmin) dmin = run;
   }
-  return { t, lo, hi, o: idx[0], c: idx[idx.length - 1], buy, sell, vol, delta: run, dmax, dmin, trades: trades.length, bigs: [], mins: 1 };
+  return { t, lo, hi, o: idx[0], c: idx[idx.length - 1], buy, sell, vol, delta: run, dmax, dmin, trades: trades.length, bigs, mins: 1 };
 }

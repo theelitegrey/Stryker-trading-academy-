@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ])
       .then(() => {
         document.getElementById('logo-preview').src = 'assets/images/tradezoro-wordmark-1014-192.png';
-        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=627';
+        document.getElementById('favicon-preview').src = 'assets/images/tradezoro-favicon-32-494.png?v=628';
         document.getElementById('logo-current-label').textContent = 'Current: bundled default';
         document.getElementById('favicon-current-label').textContent = 'Current: bundled default';
         showAppearanceMsg('appearance-success', 'Reset to bundled defaults.');

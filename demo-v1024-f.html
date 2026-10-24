@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="645">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO HOMEPAGE variation F "Tabbed showcase" (Owner order 2026-10-24,
+     homepage variations 1024). Unlisted: noindex, not in nav, sitemap or tools/og/pages.json,
+     no canonical. Styles: assets/demo-v1024-f.css. Plans + motion: assets/demo-v1024-f.js. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="TradeZoro: order flow charts, GEX levels, paper trading, replay, a journal and 64 chapters. Chapters 1–10 free.">
+<title>TradeZoro · Demo F: tabbed showcase</title>
+<meta name="theme-color" content="#000000">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=645">
+<link rel="stylesheet" href="assets/nav-features.css?v=645">
+<link rel="stylesheet" href="assets/demo-v1024-f.css?v=645">
+<script src="assets/sanitize.js?v=645"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=645" defer></script>
+<script src="assets/version-check.js?v=645" defer></script>
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=645">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=645">
+</head>
+<body class="tf-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+      
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#concepts">ICT / SMT</a>
+      <a href="/#platform">Platform</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="courses">Courses</a>
+      <a href="dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1" class="tf">
+
+<!-- ============ 1. HERO: headline + device frame ============ -->
+<section class="tf-hero" aria-labelledby="tf-h1">
+  <div class="tf-wrap tf-hero-in">
+    <div class="tf-hero-copy">
+      <p class="tf-eyebrow">Charts · Order flow · GEX · Practice · Lessons</p>
+      <h1 id="tf-h1">Everything you need to read the market. <span>In one place.</span></h1>
+      <p class="tf-lede">Order flow charts, GEX levels, practice tools and 64 chapters, in your browser and on your phone.</p>
+      <div class="tf-actions">
+        <a href="signup" class="btn btn-primary tf-btn">Start free</a>
+        <a href="#tf-show" class="tf-link">See the features</a>
+      </div>
+      <p class="tf-trust"><b id="hero-enrolled-count">82</b> traders enrolled · Chapters 1–10 free · No card required</p>
+    </div>
+    <div class="tf-devices">
+      <div class="tf-laptop">
+        <div class="tf-screen"><img src="assets/images/demo-v1024-f/hero-laptop.webp?v=645" width="1400" height="712" alt="A TradeZoro chart of NQ futures with Big Trades bubbles marking large orders" fetchpriority="high"></div>
+        <div class="tf-base" aria-hidden="true"></div>
+      </div>
+      <div class="tf-phone">
+        <div class="tf-phone-screen"><img src="assets/images/demo-v1024-f/hero-phone.webp?v=645" width="520" height="862" alt="TradeZoro footprint chart on a phone, with buy and sell volume at each price" fetchpriority="high"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. TABBED SHOWCASE ============ -->
+<section class="tf-sec tf-show" id="tf-show" aria-labelledby="tf-show-h">
+  <div class="tf-wrap">
+    <p class="tf-eyebrow">The features</p>
+    <h2 id="tf-show-h">Six groups. Every tool.</h2>
+    <p class="tf-sub">Tap a group to see it working.</p>
+    <div class="tf-tabs" role="tablist" aria-label="Feature groups"><button class="tf-pill" role="tab" id="tf-t-of" aria-controls="tf-p-of" aria-selected="true" tabindex="0">Order flow</button><button class="tf-pill" role="tab" id="tf-t-gex" aria-controls="tf-p-gex" aria-selected="false" tabindex="-1">GEX</button><button class="tf-pill" role="tab" id="tf-t-ch" aria-controls="tf-p-ch" aria-selected="false" tabindex="-1">Charts</button><button class="tf-pill" role="tab" id="tf-t-pr" aria-controls="tf-p-pr" aria-selected="false" tabindex="-1">Practice</button><button class="tf-pill" role="tab" id="tf-t-le" aria-controls="tf-p-le" aria-selected="false" tabindex="-1">Learn</button><button class="tf-pill" role="tab" id="tf-t-to" aria-controls="tf-p-to" aria-selected="false" tabindex="-1">Tools</button></div>
+    <div class="tf-stage" id="tf-stage">
+      <div class="tf-panel on" role="tabpanel" id="tf-p-of" aria-labelledby="tf-t-of">
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/orderflow.webp?v=645" width="1080" height="564" alt="TradeZoro footprint chart on NQ: each candle split into prices with buy and sell volume, with delta and CVD panes below" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>Order flow</h3>
+          <p>See who is buying and selling inside every bar.</p>
+          <ul class="tf-ticks"><li>Footprint candles with readable numbers</li><li>14 delta styles</li><li>CVD + divergence</li><li>Big Trades</li><li>Absorption</li><li>Imbalance Zones</li><li>Stop Runs / Sweeps</li><li>Volume Profile (session and swing) + naked POC</li><li>Market Profile (TPO)</li><li>Effort vs Result</li><li>BTC / ETH liquidity heatmap</li></ul>
+        </div>
+      </div>
+      <div class="tf-panel" role="tabpanel" id="tf-p-gex" aria-labelledby="tf-t-gex" hidden>
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/gex.webp?v=645" width="744" height="509" alt="TradeZoro chart of NQ futures with GEX levels drawn on it: call wall, zero gamma and put wall" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>GEX</h3>
+          <p>Options levels drawn straight onto your futures chart.</p>
+          <ul class="tf-ticks"><li>Call wall, put wall and zero gamma on the chart</li><li>GEX Ladder with every strike</li><li>Options volume by strike</li><li>SPX GEX free for everyone</li></ul>
+        </div>
+      </div>
+      <div class="tf-panel" role="tabpanel" id="tf-p-ch" aria-labelledby="tf-t-ch" hidden>
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/charts.webp?v=645" width="900" height="581" alt="TradeZoro long position tool on a chart, showing target, stop and risk to reward" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>Charts</h3>
+          <p>A chart that feels familiar from the first click.</p>
+          <ul class="tf-ticks"><li>Drawing settings for every tool</li><li>Box handles to resize and move</li><li>Long / short position tool</li><li>Full indicator style settings</li><li>Liquidity Master and other indicators</li></ul>
+        </div>
+      </div>
+      <div class="tf-panel" role="tabpanel" id="tf-p-pr" aria-labelledby="tf-t-pr" hidden>
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/practice.webp?v=645" width="1000" height="598" alt="TradeZoro bar replay on BTC with a paper position, order buttons and balance" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>Practice</h3>
+          <p>Practise without risking money.</p>
+          <ul class="tf-ticks"><li>Paper trading</li><li>Bar replay</li><li>Backtesting</li><li>Trade journal with AI coach</li></ul>
+        </div>
+      </div>
+      <div class="tf-panel" role="tabpanel" id="tf-p-le" aria-labelledby="tf-t-le" hidden>
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/learn.webp?v=645" width="1400" height="805" alt="TradeZoro learning path with chapter progress and the next chapter to resume" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>Learn</h3>
+          <p>A step-by-step path, chapter by chapter.</p>
+          <ul class="tf-ticks"><li>64 chapters</li><li>Chapters 1–10 free</li><li>Track your progress and streak</li></ul>
+        </div>
+      </div>
+      <div class="tf-panel" role="tabpanel" id="tf-p-to" aria-labelledby="tf-t-to" hidden>
+        <div class="tf-shot"><img src="assets/images/demo-v1024-f/tools.webp?v=645" width="699" height="480" alt="TradeZoro price alerts list with phone push alerts on NQ futures" loading="lazy"></div>
+        <div class="tf-copy">
+          <h3>Tools</h3>
+          <p>Everything else you check during the day.</p>
+          <ul class="tf-ticks"><li>Indicator + price alerts with phone push</li><li>News and the morning brief</li><li>Scanner</li><li>Leaderboard</li><li>Community</li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="tf-dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+</section>
+
+<!-- ============ 3. HOW IT WORKS ============ -->
+<section class="tf-sec tf-how" aria-labelledby="tf-how-h">
+  <div class="tf-wrap">
+    <p class="tf-eyebrow">How it works</p>
+    <h2 id="tf-how-h">Three steps.</h2>
+    <ol class="tf-steps">
+      <li><span class="tf-n">1</span><h3>Sign up free</h3><p>No card required. Chapters 1–10 and SPX GEX open straight away.</p></li>
+      <li><span class="tf-n">2</span><h3>Open the chart</h3><p>Switch on footprint, delta, CVD, GEX levels or a volume profile.</p></li>
+      <li><span class="tf-n">3</span><h3>Practise and review</h3><p>Paper trade, replay or backtest, then log it in your journal.</p></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ 4. FREE vs PRO (from Firestore plans) ============ -->
+<section class="tf-sec tf-plans" id="pricing" aria-labelledby="tf-plans-h">
+  <div class="tf-wrap tf-wrap-n">
+    <p class="tf-eyebrow">Free vs Pro</p>
+    <h2 id="tf-plans-h">Start free. Go Pro when you want more.</h2>
+    <div class="tf-plan-grid">
+      <!-- Static fallback mirrors the plans records; assets/demo-v1024-f.js replaces
+           names, prices and feature lines from Firestore 'plans'. -->
+      <div class="tf-plan" data-plan="free">
+        <h3 data-name>Free</h3>
+        <div class="tf-price"><span data-price>$0</span><small>/ month</small></div>
+        <ul data-feats>
+          <li>Chapters 1–10 free with a free account. No card required.</li>
+          <li>GEX: SPX, same-day (0DTE) view</li>
+          <li>Order flow on NQ (last 24 hours) and crypto</li>
+          <li>Global Monitor, economic calendar and pre-market brief</li>
+          <li>Trade journal: up to 20 trades a month, entered by hand</li>
+          <li>Backtesting: 3 replay sessions a week</li>
+          <li>Community: read everything</li>
+          <li>Progress dashboard, achievements and streak</li>
+        </ul>
+        <a href="signup" class="btn btn-ghost btn-block">Start free</a>
+      </div>
+      <div class="tf-plan tf-plan-pro" data-plan="pro">
+        <h3 data-name>Pro</h3>
+        <div class="tf-price"><span data-price>…</span><small data-per>/ month</small></div>
+        <div class="tf-yearly" data-yearly></div>
+        <ul data-feats>
+          <li>All 64 chapters, including the Volume Profile and Prop Firm tracks</li>
+          <li>Full GEX: every symbol and expiry view, futures conversion, strike table</li>
+          <li>Unlimited trade journal with import, broker sync, analytics and AI coach</li>
+          <li>Unlimited backtesting and replay</li>
+          <li>Charts with full order flow on every market, GEX on the chart, paper trading and alerts</li>
+          <li>Smart Money Desk, trading models and private indicators</li>
+          <li>Full community: post and send direct messages</li>
+        </ul>
+        <a href="checkout?plan=Sj1bjdpwvYJUVErjNMAb" class="btn btn-primary btn-block" data-cta>Join Pro</a>
+      </div>
+    </div>
+    <div class="tf-cur" data-curnote></div>
+  </div>
+</section>
+
+<!-- ============ 5. FAQ ============ -->
+<section class="tf-sec tf-faq" aria-labelledby="tf-faq-h">
+  <div class="tf-wrap tf-wrap-n">
+    <p class="tf-eyebrow">FAQ</p>
+    <h2 id="tf-faq-h">Questions.</h2>
+    <div class="tf-qs">
+      <details><summary>Do I need to install anything?</summary><p>No. TradeZoro runs in your browser on desktop and phone, with one account on both.</p></details>
+      <details><summary>What do I get for free?</summary><p>Chapters 1–10, SPX GEX, order flow on NQ (last 24 hours) and crypto, a journal for up to 20 trades a month and 3 replay sessions a week. No card required.</p></details>
+      <details><summary>Can I place real trades here?</summary><p>No. Trading on TradeZoro is practice only: paper trading, bar replay and backtesting.</p></details>
+      <details><summary>Which markets have order flow?</summary><p>NQ, ES, YM, GC, SI, CL and crypto. Futures traders can also connect their own data.</p></details>
+      <details><summary>I'm new. Is this too advanced?</summary><p>The chapters start from the basics, and chapters 1–10 are free. Practise with paper trading and replay first.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. CTA ============ -->
+<section class="tf-final" aria-labelledby="tf-final-h">
+  <div class="tf-wrap">
+    <h2 id="tf-final-h">Open the chart. Start learning.</h2>
+    <p>Free plan. No card required.</p>
+    <a href="signup" class="btn btn-primary tf-btn">Start free</a>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+          
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">Trade journal</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=645"></script>
+<script src="assets/progress.js?v=645"></script>
+<script src="assets/activity-log.js?v=645"></script>
+<script src="assets/banned-check.js?v=645"></script>
+<script src="assets/email-verify.js?v=645"></script>
+<script src="assets/profiles-sync.js?v=645"></script>
+<script src="assets/maintenance-check.js?v=645"></script>
+<script src="assets/branding.js?v=645"></script>
+<script src="assets/plan-price.js?v=645"></script>
+<script src="assets/launch-sale.js?v=645"></script>
+<script src="assets/main.js?v=645"></script>
+<script src="assets/theme.js?v=645"></script>
+<script src="assets/nav-features.js?v=645" defer></script>
+<script src="assets/demo-v1024-f.js?v=645" defer></script>
+</body>
+</html>

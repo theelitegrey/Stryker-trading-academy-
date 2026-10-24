@@ -1,0 +1,171 @@
+/* TradeZoro demo homepage, variation H "App style / swipe cards"
+   (Owner order 2026-10-24, homepage variations 1024, round 2). Unlisted page
+   demo-v1024-h.html only. Uses the site tokens from assets/style.css; no new
+   palette. Feature groups are horizontal snap rails on a phone and rows of
+   cards with arrow buttons on desktop. Motion: transforms/opacity only, in
+   view only, none under prefers-reduced-motion. Scrollbars: the rails hide
+   their bar (scrollbar-width:none) and rely on snap, edge peek and arrows. */
+
+.ah{ --ah-r:22px; --ah-gap:14px; color:var(--ink-1); overflow-x:clip; }
+.ah-wrap{ max-width:1200px; margin:0 auto; padding:0 20px; }
+.ah-wrap-n{ max-width:960px; }
+.ah b{ color:var(--ink-0); }
+.ah h1,.ah h2,.ah h3,.ah h4{ font-family:var(--font-display); color:var(--ink-0); }
+
+/* ---------- hero ---------- */
+.ah-hero{ position:relative; padding:34px 0 48px; background:#000; overflow:hidden; }
+.ah-hero::before{ content:""; position:absolute; left:50%; top:46%; width:640px; height:640px; transform:translate(-50%,-10%);
+  background:radial-gradient(closest-side, rgba(3,201,136,.16), rgba(0,51,124,.10) 55%, transparent); pointer-events:none; }
+.ah-hero-grid{ position:relative; display:grid; grid-template-columns:minmax(0,1fr); gap:34px; text-align:center; }
+.ah-hero-copy{ min-width:0; }
+.ah-pill{ display:inline-flex; align-items:center; gap:8px; margin:0 0 18px; padding:7px 14px; border-radius:999px;
+  background:var(--bg-2); border:1px solid var(--line); font-size:13px; font-weight:600; color:var(--ink-1); }
+.ah-pill-dot{ width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 4px rgba(3,201,136,.16); }
+.ah-hero h1{ margin:0 auto; font-weight:900; font-size:clamp(36px, 10vw, 68px); line-height:1.03; letter-spacing:-.03em; max-width:14ch; }
+.ah-hero h1 span{ color:var(--gold); }
+.ah-lede{ margin:18px auto 0; font-size:17px; line-height:1.55; max-width:44ch; color:var(--ink-1); }
+.ah-cta-row{ display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:26px; }
+.ah-btn{ min-height:54px; padding:15px 36px; border-radius:999px; font-size:17px; font-weight:800; }
+.ah-cta-note{ font-size:13px; color:var(--ink-2); }
+.ah-facts{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; max-width:420px; margin:26px auto 0; padding:0; list-style:none; }
+.ah-facts li{ display:flex; flex-direction:column; gap:2px; padding:12px 6px; border-radius:16px; background:var(--bg-2); border:1px solid var(--line-soft); }
+.ah-facts b{ font:800 20px/1.1 var(--font-display); color:var(--gold); }
+.ah-facts span{ font-size:12px; color:var(--ink-2); line-height:1.3; }
+
+.ah-phone-wrap{ position:relative; justify-self:center; width:min(78vw, 300px); }
+.ah-phone{ position:relative; border-radius:42px; padding:12px; background:#0d0d10; border:1px solid #2c2c32;
+  box-shadow:0 0 0 6px #050506, 0 0 0 7px #26262c, 0 40px 80px -30px rgba(3,201,136,.35); }
+.ah-phone-notch{ position:absolute; top:18px; left:50%; width:84px; height:22px; margin-left:-42px; border-radius:20px; background:#000; z-index:2; }
+.ah-phone-bar{ display:flex; align-items:center; gap:10px; padding:38px 14px 10px; border-radius:30px 30px 0 0; background:#050506;
+  font:600 12px/1 'JetBrains Mono',monospace; color:var(--ink-2); }
+.ah-phone-bar b{ color:var(--ink-0); }
+.ah-phone-bar span:last-child{ margin-left:auto; color:var(--gold); }
+.ah-phone img{ width:100%; height:auto; border-radius:0 0 30px 30px; }
+.ah-float{ position:absolute; display:flex; align-items:center; gap:8px; padding:9px 13px; border-radius:14px; background:rgba(19,19,22,.92);
+  border:1px solid var(--line); font:700 12px/1 'JetBrains Mono',monospace; color:var(--ink-0); box-shadow:0 12px 30px -12px #000; }
+.ah-float-a{ left:-14px; top:28%; }
+.ah-float-b{ right:-14px; bottom:18%; color:var(--bull); }
+.ah-dotg{ width:8px; height:8px; border-radius:50%; background:var(--gold); }
+
+/* ---------- section heads + chips ---------- */
+.ah-sec{ padding:64px 0; }
+.ah-features{ padding:56px 0 24px; background:var(--bg-1); }
+.ah-sec-head h2{ margin:0; font-weight:900; font-size:clamp(28px, 7.4vw, 44px); line-height:1.08; letter-spacing:-.02em; }
+.ah-sec-head p{ margin:10px 0 0; font-size:16px; color:var(--ink-2); max-width:52ch; }
+.ah-center{ text-align:center; }
+.ah-center p{ margin-left:auto; margin-right:auto; }
+.ah-chips{ display:flex; gap:8px; margin:20px -20px 0; padding:0 20px 4px; overflow-x:auto; scrollbar-width:none; }
+.ah-chips::-webkit-scrollbar{ display:none; }
+.ah-chips a{ flex:none; display:inline-flex; align-items:center; min-height:40px; padding:0 16px; border-radius:999px;
+  background:var(--bg-2); border:1px solid var(--line); font-size:14px; font-weight:700; color:var(--ink-0); white-space:nowrap; }
+.ah-chips a:hover,.ah-chips a:focus-visible{ border-color:var(--gold); color:var(--gold); }
+
+/* ---------- rails ---------- */
+.ah-rails{ display:grid; gap:44px; margin-top:34px; }
+.ah-rail{ min-width:0; scroll-margin-top:90px; }
+.ah-rail-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:14px; }
+.ah-rail-head > div:first-child{ min-width:0; }
+.ah-rail-head h3{ display:flex; align-items:center; gap:10px; margin:0; font-size:23px; font-weight:900; letter-spacing:-.01em; }
+.ah-count{ display:inline-grid; place-items:center; min-width:28px; height:24px; padding:0 8px; border-radius:999px;
+  background:rgba(3,201,136,.14); color:var(--gold); font:700 12px/1 'JetBrains Mono',monospace; }
+.ah-rail-head p{ margin:6px 0 0; font-size:14.5px; color:var(--ink-2); }
+.ah-arrows{ display:none; gap:8px; flex:none; }
+.ah-arrow{ display:grid; place-items:center; width:44px; height:44px; border-radius:50%; border:1px solid var(--line);
+  background:var(--bg-2); color:var(--ink-0); font-size:18px; transition:background .2s, border-color .2s, opacity .2s; }
+.ah-arrow:hover:not(:disabled){ border-color:var(--gold); color:var(--gold); }
+.ah-arrow:disabled{ opacity:.35; cursor:default; }
+
+.ah-track{ display:flex; gap:var(--ah-gap); margin:0 -20px; padding:4px 20px 10px; list-style:none;
+  overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; scroll-padding:0 20px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.ah-track::-webkit-scrollbar{ display:none; }
+.ah-track:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; border-radius:var(--ah-r); }
+.ah-card{ flex:0 0 82%; max-width:340px; scroll-snap-align:start; display:flex; flex-direction:column; min-width:0;
+  border-radius:var(--ah-r); background:var(--bg-2); border:1px solid var(--line-soft); overflow:hidden;
+  transition:transform .25s ease, border-color .25s ease; }
+.ah-card:hover{ transform:translateY(-3px); border-color:rgba(3,201,136,.4); }
+.ah-shot{ aspect-ratio:4/3; background:#0b0b0d; overflow:hidden; border-bottom:1px solid var(--line-soft); }
+.ah-shot img{ width:100%; height:100%; object-fit:cover; object-position:center; }
+.ah-card-body{ padding:14px 16px 18px; }
+.ah-card h4{ margin:0; font-size:17px; font-weight:800; line-height:1.25; }
+.ah-card p{ margin:5px 0 0; font-size:14px; line-height:1.45; color:var(--ink-2); }
+.ah-card-text{ justify-content:flex-end; background:linear-gradient(160deg, rgba(3,201,136,.14), var(--bg-2) 60%); }
+.ah-icon{ display:grid; place-items:center; width:64px; height:64px; margin:22px 16px auto; border-radius:20px;
+  background:rgba(3,201,136,.14); color:var(--gold); }
+
+/* ---------- plans: Everything included ---------- */
+.ah-plans{ background:#000; }
+.ah-plan-grid{ display:grid; grid-template-columns:minmax(0,1fr); gap:14px; margin-top:30px; }
+.ah-plan{ display:flex; flex-direction:column; min-width:0; padding:22px 20px; border-radius:var(--ah-r); background:var(--bg-2); border:1px solid var(--line); }
+.ah-plan-pro{ border-color:rgba(3,201,136,.55); box-shadow:0 30px 70px -40px rgba(3,201,136,.45); }
+.ah-plan-top{ display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 14px; }
+.ah-plan h3{ margin:0; font-size:22px; font-weight:900; }
+.ah-price{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; }
+.ah-price [data-price]{ font:900 32px/1.1 var(--font-display); color:var(--ink-0); letter-spacing:-.02em; }
+.ah-price s{ font-size:16px; color:var(--ink-3); font-weight:600; }
+.ah-price small{ color:var(--ink-2); font-size:14px; }
+.ah-yearly{ margin-top:4px; font-size:13px; color:var(--ink-2); }
+.ah-yearly a{ color:var(--gold); }
+.ah-plan ul{ display:grid; gap:10px; flex:1; margin:18px 0 22px; padding:0; list-style:none; }
+.ah-plan li{ position:relative; padding-left:30px; font-size:15px; line-height:1.45; color:var(--ink-1); }
+.ah-plan li::before{ content:""; position:absolute; left:0; top:1px; width:20px; height:20px; border-radius:50%;
+  background:rgba(3,201,136,.16) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M5.5 10.5l3 3 6-7' fill='none' stroke='%2303c988' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/20px no-repeat; }
+.ah-btn-plan{ min-height:50px; border-radius:999px; font-weight:800; }
+.ah-cur{ margin-top:14px; font-size:13px; color:var(--ink-2); text-align:center; }
+.ah-cur a{ color:var(--gold); }
+
+/* ---------- FAQ ---------- */
+.ah-faq{ background:var(--bg-1); }
+.ah-qs{ display:grid; gap:10px; margin-top:26px; }
+.ah-qs details{ border-radius:18px; background:var(--bg-2); border:1px solid var(--line-soft); }
+.ah-qs summary{ list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:14px;
+  min-height:56px; padding:14px 18px; font-weight:700; font-size:16px; color:var(--ink-0); }
+.ah-qs summary::-webkit-details-marker{ display:none; }
+.ah-qs summary::after{ content:"+"; flex:none; display:grid; place-items:center; width:28px; height:28px; border-radius:50%;
+  background:var(--bg-3); color:var(--gold); font-weight:800; transition:transform .2s; }
+.ah-qs details[open] summary::after{ transform:rotate(45deg); }
+.ah-qs p{ margin:0; padding:0 18px 18px; font-size:15px; line-height:1.55; color:var(--ink-1); }
+
+/* ---------- final CTA ---------- */
+.ah-final{ padding:20px 0 72px; background:var(--bg-1); }
+.ah-final-card{ display:flex; flex-direction:column; align-items:center; text-align:center; padding:40px 22px; border-radius:30px;
+  background:radial-gradient(120% 90% at 50% 0%, rgba(3,201,136,.18), transparent 60%), var(--bg-2); border:1px solid rgba(3,201,136,.3); }
+.ah-final-logo{ width:72px; height:72px; border-radius:20px; }
+.ah-final-card h2{ margin:18px 0 0; font-size:clamp(30px, 8vw, 48px); font-weight:900; letter-spacing:-.02em; line-height:1.05; }
+.ah-final-card p{ margin:10px 0 24px; color:var(--ink-2); font-size:16px; }
+
+/* ---------- motion (in view only) ---------- */
+@media (prefers-reduced-motion: no-preference){
+  .ah-hero.ah-play .ah-phone{ animation:ah-float 6s ease-in-out infinite; }
+  .ah-hero.ah-play .ah-float-a{ animation:ah-float 5s ease-in-out infinite .6s; }
+  .ah-hero.ah-play .ah-float-b{ animation:ah-float 5.5s ease-in-out infinite 1.2s; }
+  .ah-track{ scroll-behavior:smooth; }
+}
+@keyframes ah-float{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+@media (prefers-reduced-motion: reduce){
+  .ah-card,.ah-arrow,.ah-qs summary::after{ transition:none; }
+  .ah-card:hover{ transform:none; }
+}
+
+/* ---------- tablet / desktop ---------- */
+@media (min-width:640px){
+  .ah-card{ flex-basis:300px; }
+  .ah-plan-grid{ grid-template-columns:1fr 1fr; }
+}
+@media (min-width:960px){
+  .ah-hero{ padding:64px 0 80px; }
+  .ah-hero::before{ left:74%; top:50%; transform:translate(-50%,-50%); }
+  .ah-hero-grid{ grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr); align-items:center; gap:56px; text-align:left; }
+  .ah-hero h1,.ah-lede{ margin-left:0; }
+  .ah-cta-row{ flex-direction:row; gap:18px; }
+  .ah-facts{ margin-left:0; }
+  .ah-phone-wrap{ width:330px; }
+  .ah-features{ padding-top:88px; }
+  .ah-chips{ margin:24px 0 0; padding:0; flex-wrap:wrap; overflow:visible; }
+  .ah-arrows{ display:flex; }
+  .ah-track{ margin:0; padding:4px 0 10px; scroll-padding:0; }
+  .ah-card{ flex:0 0 calc((100% - 3 * var(--ah-gap)) / 4); max-width:none; }
+  .ah-rails{ gap:60px; margin-top:48px; }
+  .ah-sec{ padding:96px 0; }
+  .ah-plan{ padding:28px; }
+}

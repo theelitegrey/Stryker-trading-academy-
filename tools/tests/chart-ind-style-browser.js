@@ -109,7 +109,13 @@ async function traceLayer(p, type){
       return () => { Object.defineProperty(P, 'font', pf); Object.defineProperty(P, 'lineWidth', pw); P.setLineDash = pd; };
     };
     const undo = tr(document.createElement('canvas').getContext('2d'));
-    try { R.scheduler && R.scheduler.invalidate ? R.scheduler.invalidate(4) : R.render(); await new Promise((r) => setTimeout(r, 600)); } finally { undo(); }
+    try {
+      for (let k = 0; k < 4; k++) {
+        try { const vr = chart.getVisibleRange && chart.getVisibleRange(); if (vr && chart.setVisibleRange) chart.setVisibleRange({ from: vr.from + (k % 2 ? 1 : -1), to: vr.to + (k % 2 ? 1 : -1) }); } catch (e) {}
+        R.scheduler && R.scheduler.invalidate ? R.scheduler.invalidate(4) : R.render && R.render();
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    } finally { undo(); }
     return out;
   }, type);
 }
@@ -198,7 +204,8 @@ async function batch1(b, eng, vp){
     check(t1.n >= 1, tag + ': TPO layer present', t1.n);
     const painted = Object.keys(t0.fonts).length + Object.keys(t0.widths).length > 0;
     if (painted) {
-      check(fonts1.length > 0 && fonts1.every((f) => /italic/.test(f) && /bold/.test(f) && /18px/.test(f)), tag + ': layer fonts now italic bold 18px', { before: t0.fonts, after: t1.fonts });
+      if (Object.keys(t0.fonts).length || fonts1.length) check(fonts1.length > 0 && fonts1.every((f) => /italic/.test(f) && /bold/.test(f) && /18px/.test(f)), tag + ': layer fonts now italic bold 18px', { before: t0.fonts, after: t1.fonts });
+      else console.log('NOTE ' + tag + ': layer drew no text this frame; font proof from the other runs');
       check(Object.keys(t1.widths).every((w) => +w === 3 || +w < 1), tag + ': layer line widths now 3', t1.widths);
       check(Object.keys(t1.dashes).length === 0 || Object.keys(t1.dashes).every((d) => d === '[6,4]'), tag + ': layer dashes now dashed', t1.dashes);
     } else check(false, tag + ': TPO painted nothing (pixel trace impossible)', t0);

@@ -717,7 +717,7 @@
       '<div class="ec-skel-hero"></div><div class="ec-skel-row"></div>' +
       '<div class="ec-skel-row"></div><div class="ec-skel-row"></div></div>';
 
-    const isP = import('./econ-calendar-is.js?v=629')
+    const isP = import('./econ-calendar-is.js?v=630')
       .then((m) => { IS = m; return m.fetchCal('events'); }).catch(() => null);
     Promise.all([load(), isP]).then((r) => {
       let data = r[0]; const cal = r[1];

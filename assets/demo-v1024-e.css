@@ -1,0 +1,149 @@
+/* TradeZoro demo homepage, variation E "Clean grid" (Owner order 2026-10-24,
+   homepage variations 1024 round 2). Unlisted page demo-v1024-e.html only.
+   Uses the site tokens from assets/style.css; no new palette. Motion:
+   transforms/opacity only, in-view only, none under prefers-reduced-motion. */
+
+.ge{ color:var(--ink-1); background:#000; }
+.ge-wrap{ max-width:1120px; margin:0 auto; padding:0 20px; }
+.ge-wrap-n{ max-width:860px; }
+.ge-center{ text-align:center; }
+
+/* ---------- hero ---------- */
+.ge-hero{ position:relative; padding:64px 0 40px; overflow:hidden; }
+.ge-hero::before{ content:""; position:absolute; left:50%; top:-180px; width:900px; max-width:140%; height:520px;
+  transform:translateX(-50%); background:radial-gradient(closest-side, rgba(0,51,124,.22), transparent); pointer-events:none; }
+.ge-hero h1{ position:relative; margin:0 auto; font-family:var(--font-display); font-weight:800; color:var(--ink-0);
+  font-size:clamp(36px, 10vw, 68px); line-height:1.04; letter-spacing:-.03em; max-width:14ch; }
+.ge-lede{ position:relative; margin:18px auto 0; max-width:40ch; font-size:17px; line-height:1.55; color:var(--ink-2); }
+.ge-actions{ position:relative; margin-top:28px; }
+.ge-btn{ min-height:52px; padding:14px 34px; font-size:17px; font-weight:800; }
+.ge-note{ position:relative; margin:16px 0 0; font:500 12.5px/1.5 var(--font-mono); color:var(--ink-3); }
+.ge-note b{ color:var(--gold); }
+.ge-hero-shot{ position:relative; margin-top:44px; }
+.ge-hero-shot img{ display:block; width:100%; height:auto; border-radius:16px; border:1px solid var(--line);
+  box-shadow:0 0 0 1px rgba(3,201,136,.06), 0 40px 90px -40px rgba(3,201,136,.28); }
+
+/* ---------- section scaffolding ---------- */
+.ge-sec{ padding:72px 0; border-top:1px solid var(--line-soft); }
+.ge-head{ text-align:center; margin-bottom:40px; }
+.ge-eyebrow{ margin:0 0 10px; font:600 12px/1.2 var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--gold); }
+.ge-head h2{ margin:0; font-family:var(--font-display); font-weight:800; color:var(--ink-0);
+  font-size:clamp(28px, 7vw, 44px); line-height:1.1; letter-spacing:-.02em; }
+.ge-sub{ margin:12px 0 0; color:var(--ink-2); font-size:15px; }
+.ge-chip-demo{ display:inline-block; padding:2px 8px; border-radius:999px; font:600 11px/1.4 var(--font-mono);
+  color:var(--gold); border:1px solid rgba(3,201,136,.4); }
+
+/* ---------- feature grid ---------- */
+.ge-group + .ge-group{ margin-top:40px; }
+.ge-gh{ display:flex; align-items:center; gap:10px; margin:0 0 14px; font-size:15px; font-weight:700; color:var(--ink-0); letter-spacing:0; }
+.ge-gh span{ font:600 11px/1 var(--font-mono); color:var(--ink-3); }
+.ge-gh::after{ content:""; flex:1; height:1px; background:var(--line-soft); }
+.ge-grid{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px; }
+.ge-grid > li{ min-width:0; display:flex; }
+.ge-card{ position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:6px; width:100%; min-width:0;
+  padding:16px 14px 16px; margin:0; text-align:left; font:inherit; color:inherit;
+  background:var(--bg-1); border:1px solid var(--line-soft); border-radius:14px;
+  transition:transform .2s ease, border-color .2s ease, background-color .2s ease; }
+.ge-card b{ display:block; color:var(--ink-0); font-size:14.5px; line-height:1.25; font-weight:700; }
+.ge-card span{ display:block; color:var(--ink-2); font-size:13px; line-height:1.4; }
+.ge-i{ width:24px; height:24px; margin-bottom:6px; fill:none; stroke:var(--gold); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+.ge-has{ cursor:pointer; }
+.ge-has em{ margin-top:auto; padding-top:6px; font:600 11px/1.4 var(--font-mono); font-style:normal; color:var(--gold); }
+.ge-has em::after{ content:" →"; }
+.ge-has:hover, .ge-has:focus-visible{ border-color:rgba(3,201,136,.45); background:var(--bg-2); transform:translateY(-2px); }
+.ge-has:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.ge-free::before{ content:"Free"; position:absolute; top:12px; right:12px; padding:2px 7px; border-radius:999px;
+  font:700 10px/1.4 var(--font-mono); text-transform:uppercase; letter-spacing:.06em; color:#000; background:var(--gold); }
+
+/* desktop hover preview: a small floating real screenshot */
+.ge-pop{ position:fixed; z-index:60; width:380px; pointer-events:none; opacity:0; transform:translateY(6px);
+  transition:opacity .15s ease, transform .15s ease; border-radius:12px; overflow:hidden;
+  border:1px solid var(--line); background:var(--bg-1); box-shadow:0 30px 60px -20px rgba(0,0,0,.8); }
+.ge-pop.on{ opacity:1; transform:none; }
+.ge-pop img{ display:block; width:100%; height:auto; }
+
+/* tap preview dialog */
+.ge-dlg{ width:min(960px, calc(100vw - 24px)); max-width:none; max-height:calc(100vh - 32px); padding:0; border:1px solid var(--line);
+  border-radius:16px; background:var(--bg-1); color:var(--ink-1); overflow:auto; }
+.ge-dlg::backdrop{ background:rgba(0,0,0,.78); }
+.ge-dlg-in{ padding:14px; }
+.ge-dlg-top{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; color:var(--ink-0); }
+.ge-x{ width:44px; height:44px; border-radius:10px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0); font-size:16px; cursor:pointer; }
+.ge-dlg img{ display:block; width:100%; height:auto; border-radius:10px; }
+.ge-dlg-cta{ margin-top:14px; width:100%; min-height:48px; }
+.ge-dlg[open]{ animation:ge-in .2s ease; }
+@keyframes ge-in{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
+
+/* ---------- plans ---------- */
+.ge-plan-grid{ display:grid; grid-template-columns:1fr; gap:14px; }
+.ge-plan{ min-width:0; display:flex; flex-direction:column; padding:24px 20px; border-radius:16px; background:var(--bg-1); border:1px solid var(--line-soft); }
+.ge-plan-pro{ border-color:rgba(3,201,136,.45); box-shadow:0 30px 70px -40px rgba(3,201,136,.35); }
+.ge-plan h3{ margin:0; font-size:18px; color:var(--ink-0); }
+.ge-price{ margin:10px 0 4px; color:var(--ink-0); }
+.ge-price [data-price]{ font-family:var(--font-display); font-size:38px; font-weight:800; letter-spacing:-.02em; }
+.ge-price s{ font-size:18px; color:var(--ink-3); font-weight:500; }
+.ge-price small{ margin-left:4px; color:var(--ink-2); font-size:14px; }
+.ge-yearly{ font-size:13px; color:var(--ink-2); }
+.ge-yearly a{ color:var(--gold); }
+.ge-plan ul{ list-style:none; margin:16px 0 22px; padding:0; display:grid; gap:10px; flex:1; }
+.ge-plan li{ position:relative; padding-left:24px; font-size:14px; line-height:1.45; color:var(--ink-1); }
+.ge-plan li::before{ content:""; position:absolute; left:2px; top:5px; width:10px; height:6px; border-left:2px solid var(--gold);
+  border-bottom:2px solid var(--gold); transform:rotate(-45deg); }
+.ge-plan .btn{ min-height:48px; }
+.ge-cur{ margin-top:14px; text-align:center; font-size:12.5px; color:var(--ink-3); }
+
+/* ---------- FAQ ---------- */
+.ge-faq{ display:grid; gap:10px; }
+.ge-faq details{ border:1px solid var(--line-soft); border-radius:14px; background:var(--bg-1); }
+.ge-faq summary{ list-style:none; cursor:pointer; min-height:52px; display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 18px; color:var(--ink-0); font-weight:700; font-size:15.5px; }
+.ge-faq summary::-webkit-details-marker{ display:none; }
+.ge-faq summary::after{ content:"+"; flex:none; font:500 20px/1 var(--font-mono); color:var(--gold); transition:transform .2s ease; }
+.ge-faq details[open] summary::after{ transform:rotate(45deg); }
+.ge-faq p{ margin:0; padding:0 18px 16px; color:var(--ink-2); font-size:14.5px; line-height:1.55; }
+
+/* ---------- final ---------- */
+.ge-final{ padding:84px 0 96px; border-top:1px solid var(--line-soft);
+  background:radial-gradient(60% 80% at 50% 100%, rgba(3,201,136,.10), transparent 70%), #000; }
+.ge-final h2{ margin:0; font-family:var(--font-display); font-weight:800; color:var(--ink-0); font-size:clamp(28px, 7vw, 46px); letter-spacing:-.02em; }
+.ge-final p{ margin:12px 0 26px; color:var(--ink-2); }
+
+/* ---------- reveal (in view only) ---------- */
+.ge-js .ge-grid > li{ opacity:0; transform:translateY(10px); transition:opacity .45s ease, transform .45s ease; }
+.ge-js .ge-group.in .ge-grid > li{ opacity:1; transform:none; }
+.ge-js .ge-group.in .ge-grid > li:nth-child(2){ transition-delay:.04s; }
+.ge-js .ge-group.in .ge-grid > li:nth-child(3){ transition-delay:.08s; }
+.ge-js .ge-group.in .ge-grid > li:nth-child(4){ transition-delay:.12s; }
+.ge-js .ge-group.in .ge-grid > li:nth-child(n+5){ transition-delay:.16s; }
+
+/* ---------- wider screens ---------- */
+@media (min-width:700px){
+  .ge-hero{ padding:96px 0 56px; }
+  .ge-lede{ font-size:19px; }
+  .ge-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+  .ge-card{ padding:20px 18px; }
+  .ge-plan-grid{ grid-template-columns:1fr 1fr; }
+  .ge-sec{ padding:96px 0; }
+  .ge-dlg-in{ padding:18px; }
+}
+@media (min-width:1024px){
+  .ge-grid{ grid-template-columns:repeat(4, minmax(0,1fr)); }
+  .ge-group{ display:grid; grid-template-columns:180px 1fr; gap:24px; align-items:start; }
+  .ge-group + .ge-group{ margin-top:28px; padding-top:28px; border-top:1px solid var(--line-soft); }
+  .ge-gh{ flex-direction:column; align-items:flex-start; gap:6px; margin:0; position:sticky; top:96px; }
+  .ge-gh::after{ display:none; }
+}
+@media (max-width:380px){
+  .ge-card{ padding:14px 12px; }
+  .ge-card b{ font-size:14px; }
+}
+
+/* light theme: keep it readable on the day palette */
+:root[data-theme="light"] .ge, :root[data-theme="light"] .ge-final{ background:var(--bg-0); }
+
+@media (prefers-reduced-motion:reduce){
+  .ge-js .ge-grid > li{ opacity:1; transform:none; transition:none; }
+  .ge-card, .ge-pop, .ge-faq summary::after{ transition:none; }
+  .ge-has:hover{ transform:none; }
+  .ge-dlg[open]{ animation:none; }
+}

@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="645">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO HOMEPAGE variation E "Clean grid" (Owner order 2026-10-24, homepage variations
+     1024 round 2). Unlisted: noindex, not in nav, sitemap or tools/og/pages.json, no canonical.
+     Styles: assets/demo-v1024-e.css. Plans, previews + motion: assets/demo-v1024-e.js. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="Order flow, GEX, a full chart, practice tools and 64 chapters in your browser. Chapters 1–10 free.">
+<title>TradeZoro · Demo E: clean grid</title>
+<meta name="theme-color" content="#000000">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=645">
+<link rel="stylesheet" href="assets/nav-features.css?v=645">
+<link rel="stylesheet" href="assets/demo-v1024-e.css?v=645">
+<script src="assets/sanitize.js?v=645"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=645" defer></script>
+<script src="assets/version-check.js?v=645" defer></script>
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=645">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=645">
+</head>
+<body class="ge-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+      
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#concepts">ICT / SMT</a>
+      <a href="/#platform">Platform</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="courses">Courses</a>
+      <a href="dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1" class="ge">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="gi-bars" viewBox="0 0 24 24"><path d="M6 4v16M12 7v10M18 3v18"/><path d="M4 8h4v8H4zM10 10h4v4h-4zM16 6h4v10h-4z"/></symbol>
+    <symbol id="gi-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M12 4v16"/></symbol>
+    <symbol id="gi-wave" viewBox="0 0 24 24"><path d="M3 15c3 0 3-6 6-6s3 8 6 8 3-10 6-10"/></symbol>
+    <symbol id="gi-dot" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><circle cx="16" cy="8" r="3"/><circle cx="18" cy="17" r="2"/></symbol>
+    <symbol id="gi-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/></symbol>
+    <symbol id="gi-zone" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M3 4h18M3 20h18"/></symbol>
+    <symbol id="gi-sweep" viewBox="0 0 24 24"><path d="M3 8h18"/><path d="M5 18l5-6 3 3 3-11 3 7"/></symbol>
+    <symbol id="gi-profile" viewBox="0 0 24 24"><path d="M4 4v16M4 6h6M4 9h10M4 12h14M4 15h9M4 18h5"/></symbol>
+    <symbol id="gi-letters" viewBox="0 0 24 24"><path d="M5 5h4M5 9h8M5 13h12M5 17h6M5 21h3"/></symbol>
+    <symbol id="gi-scale" viewBox="0 0 24 24"><path d="M12 4v16M6 20h12M4 9l4-4 4 4M12 9l4-4 4 4M4 9a4 3 0 008 0M12 9a4 3 0 008 0"/></symbol>
+    <symbol id="gi-heat" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M6 8h5M13 8h5M6 12h9M6 16h3M12 16h6"/></symbol>
+    <symbol id="gi-levels" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/><path d="M5 20l4-6 4 2 6-12"/></symbol>
+    <symbol id="gi-ladder" viewBox="0 0 24 24"><path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/></symbol>
+    <symbol id="gi-strike" viewBox="0 0 24 24"><path d="M12 3v18M12 6h-7M12 10h-4M12 14h-6M12 6h5M12 10h8M12 14h3M12 18h6"/></symbol>
+    <symbol id="gi-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M3 9h18M12 9v11M12 9c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"/></symbol>
+    <symbol id="gi-candle" viewBox="0 0 24 24"><path d="M7 3v4M7 15v6M17 3v6M17 17v4"/><rect x="5" y="7" width="4" height="8"/><rect x="15" y="9" width="4" height="8"/></symbol>
+    <symbol id="gi-pen" viewBox="0 0 24 24"><path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/></symbol>
+    <symbol id="gi-pos" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="1"/><rect x="4" y="13" width="16" height="7" rx="1"/></symbol>
+    <symbol id="gi-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+    <symbol id="gi-spark" viewBox="0 0 24 24"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></symbol>
+    <symbol id="gi-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 21h4"/></symbol>
+    <symbol id="gi-paper" viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9"/><path d="M15 6h5v5"/></symbol>
+    <symbol id="gi-replay" viewBox="0 0 24 24"><path d="M4 12a8 8 0 108-8H8"/><path d="M8 1v6h6"/><path d="M10 9l5 3-5 3z"/></symbol>
+    <symbol id="gi-test" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
+    <symbol id="gi-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5M8 7h7M8 11h7"/></symbol>
+    <symbol id="gi-cap" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c3 2 9 2 12 0v-5"/></symbol>
+    <symbol id="gi-news" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></symbol>
+    <symbol id="gi-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+    <symbol id="gi-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H4c0 3 2 5 4 5M16 6h4c0 3-2 5-4 5M12 13v4M8 20h8"/></symbol>
+    <symbol id="gi-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  </defs>
+</svg>
+
+<!-- ============ 1. HERO ============ -->
+<section class="ge-hero" aria-labelledby="ge-h1">
+  <div class="ge-wrap ge-center">
+    <h1 id="ge-h1">See what moves the price.</h1>
+    <p class="ge-lede">Order flow, GEX, a full chart, practice tools and 64 chapters. All in your browser.</p>
+    <div class="ge-actions">
+      <a href="signup" class="btn btn-primary ge-btn">Start free</a>
+    </div>
+    <p class="ge-note"><b id="hero-enrolled-count">82</b> traders enrolled · Chapters 1–10 free · No card required</p>
+  </div>
+  <div class="ge-wrap ge-hero-shot">
+    <picture>
+      <source media="(max-width:640px)" srcset="assets/images/demo-v1024-e/hero-phone.webp?v=645" width="520" height="700">
+      <img src="assets/images/demo-v1024-e/hero.webp?v=645" width="1440" height="723" alt="TradeZoro footprint chart on NQ: buy and sell volume at each price inside every candle, with delta and CVD panes below" fetchpriority="high">
+    </picture>
+  </div>
+</section>
+
+<!-- ============ 2. EVERYTHING IN ONE PLACE ============ -->
+<section class="ge-sec" id="ge-all" aria-labelledby="ge-all-h">
+  <div class="ge-wrap">
+    <div class="ge-head">
+      <p class="ge-eyebrow">Everything in one place</p>
+      <h2 id="ge-all-h">Every tool, one account.</h2>
+      <p class="ge-sub">Tap a card marked <span class="ge-chip-demo">View</span> to see it on a real chart.</p>
+    </div>
+
+    <div class="ge-group">
+      <h3 class="ge-gh"><span>01</span>Order flow</h3>
+      <ul class="ge-grid">
+        <li><button type="button" class="ge-card ge-has" data-shot="footprint" data-w="1080" data-h="564" data-alt="Footprint candles on NQ with buy and sell volume at every price"><svg class="ge-i"><use href="#gi-grid"/></svg><b>Footprint candles</b><span>Buys and sells at every price.</span><em>View</em></button></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-bars"/></svg><b>14 delta styles</b><span>Pick how buy minus sell is drawn.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="cvd" data-w="1200" data-h="616" data-alt="NQ chart with a CVD pane and divergence lines drawn between price and CVD"><svg class="ge-i"><use href="#gi-wave"/></svg><b>CVD + divergence</b><span>Running delta, with splits marked.</span><em>View</em></button></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="bigtrades" data-w="1200" data-h="616" data-alt="NQ chart with Big Trades bubbles on the candles where large orders traded"><svg class="ge-i"><use href="#gi-dot"/></svg><b>Big Trades</b><span>Large orders shown as bubbles.</span><em>View</em></button></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-shield"/></svg><b>Absorption</b><span>Heavy volume where price held.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-zone"/></svg><b>Imbalance zones</b><span>Stacked one-sided prices.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-sweep"/></svg><b>Stop runs and sweeps</b><span>Quick pokes through highs and lows.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="vp" data-w="1200" data-h="616" data-alt="NQ chart with a session volume profile and its point of control"><svg class="ge-i"><use href="#gi-profile"/></svg><b>Volume Profile + naked POC</b><span>Session or swing, untested POCs kept.</span><em>View</em></button></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-letters"/></svg><b>Market Profile (TPO)</b><span>Time at each price, letter by letter.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-scale"/></svg><b>Effort vs Result</b><span>Volume against how far price moved.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="heatmap" data-w="1200" data-h="581" data-alt="BTC liquidity heatmap showing resting orders as bright bands behind price"><svg class="ge-i"><use href="#gi-heat"/></svg><b>Liquidity heatmap</b><span>Resting orders on BTC and ETH.</span><em>View</em></button></li>
+      </ul>
+    </div>
+
+    <div class="ge-group">
+      <h3 class="ge-gh"><span>02</span>GEX &amp; options</h3>
+      <ul class="ge-grid">
+        <li><button type="button" class="ge-card ge-has" data-shot="gex-levels" data-w="1200" data-h="509" data-alt="NQ chart with call wall, zero gamma and put wall lines, each labelled with its price"><svg class="ge-i"><use href="#gi-levels"/></svg><b>GEX levels on your chart</b><span>Call wall, put wall, zero gamma.</span><em>View</em></button></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="gex-ladder" data-w="459" data-h="640" data-alt="GEX Ladder for QQQ, SPY and SPX with gamma by strike and the walls tagged"><svg class="ge-i"><use href="#gi-ladder"/></svg><b>GEX Ladder</b><span>Gamma at every strike, walls tagged.</span><em>View</em></button></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="options-volume" data-w="1200" data-h="593" data-alt="Options volume by strike: call and put volume bars for each strike"><svg class="ge-i"><use href="#gi-strike"/></svg><b>Options volume by strike</b><span>Calls and puts traded per strike.</span><em>View</em></button></li>
+        <li><div class="ge-card ge-free"><svg class="ge-i"><use href="#gi-gift"/></svg><b>SPX GEX is free</b><span>On the free plan, no card.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="ge-group">
+      <h3 class="ge-gh"><span>03</span>Charts</h3>
+      <ul class="ge-grid">
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-candle"/></svg><b>A chart that feels familiar</b><span>Fast, clean, works on your phone.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-pen"/></svg><b>Drawing tools</b><span>Full settings and box handles.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="position" data-w="1200" data-h="581" data-alt="Long position tool drawn on a chart with target and stop zones"><svg class="ge-i"><use href="#gi-pos"/></svg><b>Long / short position tool</b><span>Plan entry, stop and target.</span><em>View</em></button></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-sliders"/></svg><b>Indicator style settings</b><span>Colours, lines and inputs.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-spark"/></svg><b>Liquidity Master + more</b><span>Our own indicators, ready to add.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="alerts" data-w="619" data-h="396" data-alt="Price alerts list with three NQ alerts set to send a phone push"><svg class="ge-i"><use href="#gi-bell"/></svg><b>Alerts with phone push</b><span>Price and indicator alerts.</span><em>View</em></button></li>
+      </ul>
+    </div>
+
+    <div class="ge-group">
+      <h3 class="ge-gh"><span>04</span>Practice</h3>
+      <ul class="ge-grid">
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-paper"/></svg><b>Paper trading</b><span>Practise with no money at risk.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="replay" data-w="1000" data-h="598" data-alt="Bar replay on a BTC chart with play controls and a paper position"><svg class="ge-i"><use href="#gi-replay"/></svg><b>Bar replay</b><span>Play past sessions bar by bar.</span><em>View</em></button></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-test"/></svg><b>Backtesting</b><span>Test an idea on past data.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-book"/></svg><b>Journal with AI coach</b><span>Log trades, get feedback.</span></div></li>
+      </ul>
+    </div>
+
+    <div class="ge-group">
+      <h3 class="ge-gh"><span>05</span>Learn &amp; tools</h3>
+      <ul class="ge-grid">
+        <li><div class="ge-card ge-free"><svg class="ge-i"><use href="#gi-cap"/></svg><b>64 chapters</b><span>Step by step. Chapters 1–10 free.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-news"/></svg><b>News + morning brief</b><span>What matters before the open.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-search"/></svg><b>Scanner</b><span>Find markets that are moving.</span></div></li>
+        <li><div class="ge-card"><svg class="ge-i"><use href="#gi-trophy"/></svg><b>Paper leaderboard</b><span>Paper trading standings.</span></div></li>
+        <li><button type="button" class="ge-card ge-has" data-shot="community" data-w="740" data-h="328" data-alt="Community feed with a trader's posted plan for the session"><svg class="ge-i"><use href="#gi-chat"/></svg><b>Community</b><span>Share plans and ask questions.</span><em>View</em></button></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. FREE vs PRO (from Firestore plans) ============ -->
+<section class="ge-sec ge-plans" id="pricing" aria-labelledby="ge-plans-h">
+  <div class="ge-wrap ge-wrap-n">
+    <div class="ge-head">
+      <p class="ge-eyebrow">Free vs Pro</p>
+      <h2 id="ge-plans-h">Start free. Upgrade any time.</h2>
+    </div>
+    <div class="ge-plan-grid">
+      <!-- Static fallback mirrors the plans records; assets/demo-v1024-e.js replaces
+           the names, feature lines and prices from Firestore 'plans'. -->
+      <div class="ge-plan" data-plan="free">
+        <h3 data-name>Free</h3>
+        <div class="ge-price"><span data-price>$0</span><small>/ month</small></div>
+        <ul data-feats>
+          <li>Chapters 1–10 free with a free account. No card required.</li>
+          <li>GEX: SPX, same-day (0DTE) view</li>
+          <li>Order flow on NQ (last 24 hours) and crypto</li>
+          <li>Global Monitor, economic calendar and pre-market brief</li>
+          <li>Trade journal: up to 20 trades a month, entered by hand</li>
+          <li>Backtesting: 3 replay sessions a week</li>
+          <li>Community: read everything</li>
+          <li>Progress dashboard, achievements and streak</li>
+        </ul>
+        <a href="signup" class="btn btn-primary btn-block">Start free</a>
+      </div>
+      <div class="ge-plan ge-plan-pro" data-plan="pro">
+        <h3 data-name>Pro</h3>
+        <div class="ge-price"><span data-price>…</span><small data-per>/ month</small></div>
+        <div class="ge-yearly" data-yearly></div>
+        <ul data-feats>
+          <li>All 64 chapters, including the Volume Profile and Prop Firm tracks</li>
+          <li>Full GEX: every symbol and expiry view, futures conversion, strike table</li>
+          <li>Unlimited trade journal with import, broker sync, analytics and AI coach</li>
+          <li>Unlimited backtesting and replay</li>
+          <li>Charts with full order flow on every market, GEX on the chart, paper trading and alerts</li>
+          <li>Smart Money Desk, trading models and private indicators</li>
+          <li>Full community: post and send direct messages</li>
+        </ul>
+        <a href="checkout?plan=Sj1bjdpwvYJUVErjNMAb" class="btn btn-ghost btn-block" data-cta>Join Pro</a>
+      </div>
+    </div>
+    <div class="ge-cur" data-curnote></div>
+  </div>
+</section>
+
+<!-- ============ 4. FAQ ============ -->
+<section class="ge-sec" aria-labelledby="ge-faq-h">
+  <div class="ge-wrap ge-wrap-n">
+    <div class="ge-head">
+      <p class="ge-eyebrow">Questions</p>
+      <h2 id="ge-faq-h">Quick answers.</h2>
+    </div>
+    <div class="ge-faq">
+      <details><summary>Do I need to install anything?</summary><p>No. TradeZoro runs in your browser on desktop and phone, with one account on both.</p></details>
+      <details><summary>What do I get for free?</summary><p>Chapters 1–10, SPX GEX, order flow on NQ (last 24 hours) and crypto, a journal for up to 20 trades a month and 3 replay sessions a week. No card required.</p></details>
+      <details><summary>Can I place real trades here?</summary><p>No. Trading on TradeZoro is practice only: paper trading, bar replay and backtesting.</p></details>
+      <details><summary>Which markets have order flow?</summary><p>NQ, ES, YM, GC, SI, CL and crypto. Futures traders can also connect their own data.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. FINAL CTA ============ -->
+<section class="ge-final" aria-labelledby="ge-final-h">
+  <div class="ge-wrap ge-center">
+    <h2 id="ge-final-h">Everything is one tap away.</h2>
+    <p>Make a free account and open the chart.</p>
+    <a href="signup" class="btn btn-primary ge-btn">Start free</a>
+  </div>
+</section>
+
+</main>
+
+<dialog class="ge-dlg" id="ge-dlg" aria-labelledby="ge-dlg-t">
+  <div class="ge-dlg-in">
+    <div class="ge-dlg-top"><b id="ge-dlg-t"></b><button type="button" class="ge-x" data-close aria-label="Close preview">✕</button></div>
+    <img id="ge-dlg-img" alt="" width="1200" height="616">
+    <a href="signup" class="btn btn-primary ge-dlg-cta">Start free</a>
+  </div>
+</dialog>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+          
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">Trade journal</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=645"></script>
+<script src="assets/progress.js?v=645"></script>
+<script src="assets/activity-log.js?v=645"></script>
+<script src="assets/banned-check.js?v=645"></script>
+<script src="assets/email-verify.js?v=645"></script>
+<script src="assets/profiles-sync.js?v=645"></script>
+<script src="assets/maintenance-check.js?v=645"></script>
+<script src="assets/branding.js?v=645"></script>
+<script src="assets/plan-price.js?v=645"></script>
+<script src="assets/launch-sale.js?v=645"></script>
+<script src="assets/main.js?v=645"></script>
+<script src="assets/theme.js?v=645"></script>
+<script src="assets/nav-features.js?v=645" defer></script>
+<script src="assets/demo-v1024-e.js?v=645" defer></script>
+</body>
+</html>

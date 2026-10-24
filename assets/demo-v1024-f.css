@@ -59,6 +59,7 @@
 @keyframes tf-in{ from{ opacity:0; transform:translateY(10px); } to{ opacity:1; transform:none; } }
 .tf-shot{ min-width:0; border-radius:16px; overflow:hidden; border:1px solid var(--line); background:#000;
   box-shadow:0 0 0 1px rgba(19,0,90,.35), 0 30px 70px -40px rgba(0,51,124,.6); }
+.tf-shot picture{ display:block; }
 .tf-shot img{ display:block; width:100%; height:auto; }
 .tf-copy{ min-width:0; }
 .tf-copy h3{ margin:0; font-family:var(--font-display); font-size:24px; font-weight:800; color:var(--ink-0); }

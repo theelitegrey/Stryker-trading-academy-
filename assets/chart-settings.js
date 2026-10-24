@@ -325,19 +325,28 @@ function setVal(id, key, v){
 // not per cell, so it is not in ext['stryker.settings'].
 const favApi = () => { try { return window.STRYKER_FAVBAR || null; } catch (e) { return null; } };
 const favVis = () => { const f = favApi(); return f ? f.visible !== false : true; };
-function setFavVis(v){ const f = favApi(); if (f && f.visible !== !!v) f.setVisible(!!v); }
+let favSetting = false;   // true while our own switch is changing the toolbar
+function setFavVis(v){
+  const f = favApi(); if (!f || f.visible === !!v) return;
+  favSetting = true;
+  try { f.setVisible(!!v); } finally { favSetting = false; }
+}
 // The right-click menu / star button can change it while the dialog is open: repaint our switch.
-window.addEventListener('stk-favbar-visible', (e) => {
-  const on = !!(e.detail && e.detail.visible);
+// Bug fixed 2026-10-24 (build 634): Vela's Switch calls onChange BEFORE it repaints, so a synchronous
+// repaint here saw the old aria-checked and clicked the switch straight back (net: nothing happened).
+// Now: ignore our own changes, and repaint a tick later, from the toolbar's current state.
+function syncFavSwitch(){
+  const on = favVis();
   document.querySelectorAll('.vela-dialog--settings .stk-sd-extra .vela-field-label').forEach((lab) => {
     if (lab.textContent !== 'Favorites toolbar') return;
     const row = lab.closest('.vela-field-span') || lab.parentElement;
     const sw = row && row.querySelector('.vela-switch[role="switch"]');
-    // Vela's Switch keeps its own state: a click flips it (and its aria-checked); the onChange it
-    // fires is then a no-op in setFavVis because the toolbar already has that value.
-    if (sw && (sw.getAttribute('aria-checked') === 'true') !== on) sw.click();
+    // Vela's Switch keeps its own state, with no outside setter on host rows: a click flips it
+    // (state + aria-checked together); the onChange it fires is a no-op, the value already matches.
+    if (sw && (sw.getAttribute('aria-checked') === 'true') !== on) { favSetting = true; try { sw.click(); } finally { favSetting = false; } }
   });
-});
+}
+window.addEventListener('stk-favbar-visible', () => { if (!favSetting) setTimeout(syncFavSwitch, 0); });
 
 // ---------------------------------------------------------------------------------------
 // our rows (Vela host-settings rows), folded into Vela's tabs when the dialog opens

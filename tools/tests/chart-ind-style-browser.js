@@ -45,7 +45,7 @@ const F = {
   pill: "const [g, row, v] = a; const grp = [...document.querySelectorAll('.vela-ind-dialog .stk-is-g')].find((x) => x.querySelector('.stk-is-gn').textContent.trim().startsWith(g)); if (!grp) return null; const r = [...grp.querySelectorAll('.stk-is-r')].find((x) => x.firstChild.textContent === row); if (!r) return null; return [...r.querySelectorAll('button')].find((b) => b.dataset.v === v || b.textContent.trim() === v || b.title === v) || null;",
   rowBtn: "const [g, row] = a; const grp = [...document.querySelectorAll('.vela-ind-dialog .stk-is-g')].find((x) => x.querySelector('.stk-is-gn').textContent.trim().startsWith(g)); if (!grp) return null; const r = [...grp.querySelectorAll('.stk-is-r')].find((x) => x.firstChild.textContent === row); return r ? r.querySelector('button, select') : null;",
   topBtn: "return [...document.querySelectorAll('.vela-ind-dialog .stk-is-top button')].find((b) => b.textContent.trim() === a);",
-  footer: "return [...document.querySelectorAll('.vela-ind-dialog button')].find((b) => b.textContent.trim() === a);",
+  footer: "return [...document.querySelectorAll('.vela-ind-dialog button')].find((b) => b.textContent.trim().toLowerCase() === a.toLowerCase());",
   pal: "return [...document.querySelectorAll('.stk-is-pop .stk-is-pal button')].find((b) => b.title === a);",
 };
 async function selectOpt(p, g, row, value){
@@ -102,9 +102,10 @@ async function traceLayer(p, type){
       const pf = Object.getOwnPropertyDescriptor(P, 'font'), pw = Object.getOwnPropertyDescriptor(P, 'lineWidth');
       const pd = P.setLineDash;
       const ofs = pf.set, ows = pw.set;
-      Object.defineProperty(P, 'font', { configurable: true, get: pf.get, set(v){ ofs.call(this, v); const a = pf.get.call(this); out.fonts[a] = (out.fonts[a] || 0) + 1; } });
-      Object.defineProperty(P, 'lineWidth', { configurable: true, get: pw.get, set(v){ ows.call(this, v); const a = pw.get.call(this); out.widths[a] = (out.widths[a] || 0) + 1; } });
-      P.setLineDash = function (s){ pd.call(this, s); const k = JSON.stringify(this.getLineDash()); out.dashes[k] = (out.dashes[k] || 0) + 1; };
+      const mine = (c) => ls.some((l) => l.canvas === c.canvas);
+      Object.defineProperty(P, 'font', { configurable: true, get: pf.get, set(v){ ofs.call(this, v); if (!mine(this)) return; const a = pf.get.call(this); out.fonts[a] = (out.fonts[a] || 0) + 1; } });
+      Object.defineProperty(P, 'lineWidth', { configurable: true, get: pw.get, set(v){ ows.call(this, v); if (!mine(this)) return; const a = pw.get.call(this); out.widths[a] = (out.widths[a] || 0) + 1; } });
+      P.setLineDash = function (s){ pd.call(this, s); if (!mine(this)) return; const k = JSON.stringify(this.getLineDash()); out.dashes[k] = (out.dashes[k] || 0) + 1; };
       return () => { Object.defineProperty(P, 'font', pf); Object.defineProperty(P, 'lineWidth', pw); P.setLineDash = pd; };
     };
     const undo = tr(document.createElement('canvas').getContext('2d'));
@@ -140,7 +141,7 @@ async function batch1(b, eng, vp){
     check(!!plot0, tag + ': RSI drawn', m0.series.map((s) => s.title + ':' + s.kind));
     await openSettings(p, rsi);
     await realClick(p, F.tab, 'Style', 'Style tab');
-    const groups = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog .stk-is-gn')].map((x) => x.textContent));
+    const groups = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog [data-stk-is=style] .stk-is-gn')].map((x) => x.textContent));
     check(groups.length >= 1 && groups.some((g) => /rsi/i.test(g)), tag + ': Style tab lists the RSI plot group(s)', groups);
     const gname = groups.find((g) => /rsi/i.test(g));
     if (vp === 390) await realClick(p, F.group, gname, 'open group');
@@ -172,19 +173,17 @@ async function batch1(b, eng, vp){
     await realClick(p, F.footer, 'Ok', 'Ok');
     check(!(await dialogOpen(p)), tag + ': Ok closes the dialog');
 
-    // B. our order flow tool (Absorption: canvas layer) — layer font / width / dash
-    const abs = await p.evaluate((c) => { const ch = eval(c); const h = ch.addNativeIndicator('stk_of_abs', { inputs: {} }); return h && h.id; }, chartJs);
+    // B. our order flow tool (Session Volume Profile: canvas layer that always paints) — layer font / width / dash
+    const abs = await p.evaluate((c) => { const ch = eval(c); const h = ch.addNativeIndicator('stk_of_tpo', { inputs: {} }); return h && h.id; }, chartJs);
     await sleep(3500);
-    const t0 = await traceLayer(p, 'stk_of_abs');
+    const t0 = await traceLayer(p, 'stk_of_tpo');
     await openSettings(p, abs);
     await realClick(p, F.tab, 'Style', 'Style tab');
-    const g2 = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog .stk-is-gn')].map((x) => x.textContent));
+    const g2 = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog [data-stk-is=style] .stk-is-gn')].map((x) => x.textContent));
     check(g2.some((g) => /^Chart drawing/.test(g)), tag + ': order flow tool has a "Chart drawing" group', g2);
     if (!(await p.evaluate(() => { const g = [...document.querySelectorAll('.vela-ind-dialog .stk-is-g')].find((x) => /^Chart drawing/.test(x.textContent)); return g && g.classList.contains('open'); }))) await realClick(p, F.group, 'Chart drawing', 'open drawing group');
     await selectOpt(p, 'Chart drawing', 'Text size', '18');
     await realClick(p, F.rowBtn, ['Chart drawing', 'Text style'], 'Bold');
-    await realClick(p, F.pill, ['Chart drawing', 'Text style', '<i>I</i>'], 'Italic').catch(() => {});
-    await p.evaluate(() => {}); 
     const italicBtn = "const grp = [...document.querySelectorAll('.vela-ind-dialog .stk-is-g')].find((x) => /^Chart drawing/.test(x.textContent)); const r = [...grp.querySelectorAll('.stk-is-r')].find((x) => x.firstChild.textContent === 'Text style'); return r.querySelectorAll('button')[1];";
     const st0 = await styleOf(p, abs);
     if (!(st0.layer && st0.layer.italic)) await realClick(p, italicBtn, null, 'Italic');
@@ -192,22 +191,23 @@ async function batch1(b, eng, vp){
     await realClick(p, F.pill, ['Chart drawing', 'Line style', 'dashed'], 'layer dashed');
     const st = await styleOf(p, abs);
     check(st.layer && st.layer.fontPx === 18 && st.layer.bold === true && st.layer.italic === true && st.layer.width === 3 && st.layer.lineStyle === 'dashed', tag + ': order-flow layer style saved', st.layer);
-    await shot(p, 'is-' + eng + '-' + vp + '-style-abs');
+    await shot(p, 'is-' + eng + '-' + vp + '-style-tpo');
     await realClick(p, F.footer, 'Ok', 'Ok');
-    const t1 = await traceLayer(p, 'stk_of_abs');
+    const t1 = await traceLayer(p, 'stk_of_tpo');
     const fonts1 = Object.keys(t1.fonts);
-    check(t1.n >= 1, tag + ': absorption layer present', t1.n);
+    check(t1.n >= 1, tag + ': TPO layer present', t1.n);
     const painted = Object.keys(t0.fonts).length + Object.keys(t0.widths).length > 0;
     if (painted) {
       check(fonts1.length > 0 && fonts1.every((f) => /italic/.test(f) && /bold/.test(f) && /18px/.test(f)), tag + ': layer fonts now italic bold 18px', { before: t0.fonts, after: t1.fonts });
       check(Object.keys(t1.widths).every((w) => +w === 3 || +w < 1), tag + ': layer line widths now 3', t1.widths);
       check(Object.keys(t1.dashes).length === 0 || Object.keys(t1.dashes).every((d) => d === '[6,4]'), tag + ': layer dashes now dashed', t1.dashes);
-    } else console.log('NOTE ' + tag + ': absorption painted nothing on this data, pixel trace skipped', t0);
+    } else check(false, tag + ': TPO painted nothing (pixel trace impossible)', t0);
+    await shot(p, 'is-' + eng + '-' + vp + '-chart-tpo-styled');
 
     // C. reload keeps both
     await reload(p);
     const ids = await p.evaluate((c) => { const ch = eval(c); return ch.indicators().map((h) => ({ id: h.id, t: h.nativeType || '' })); }, chartJs);
-    const rsi2 = (ids.find((x) => x.t === 'rsi') || {}).id, abs2 = (ids.find((x) => x.t === 'stk_of_abs') || {}).id;
+    const rsi2 = (ids.find((x) => x.t === 'rsi') || {}).id, abs2 = (ids.find((x) => x.t === 'stk_of_tpo') || {}).id;
     await sleep(2500);
     const mr = rsi2 && await drawn(p, rsi2);
     const pr = mr && mr.series.find((s) => s.title === plot0.title);
@@ -319,7 +319,7 @@ async function batch3(b, eng, vp){
     // defaults: save width 6 as default for RSI, add a second RSI -> gets it
     await openSettings(p, rsi);
     await realClick(p, F.tab, 'Style', 'Style tab');
-    const g = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog .stk-is-gn')].map((x) => x.textContent).find((x) => /rsi/i.test(x)));
+    const g = await p.evaluate(() => [...document.querySelectorAll('.vela-ind-dialog [data-stk-is=style] .stk-is-gn')].map((x) => x.textContent).find((x) => /rsi/i.test(x)));
     if (vp === 390) await realClick(p, F.group, g, 'open group');
     await realClick(p, F.pill, [g, 'Line width', '6'], 'width 6');
     await realClick(p, F.topBtn, 'Save as default', 'Save as default');

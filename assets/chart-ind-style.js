@@ -80,7 +80,7 @@ const FALLBACK = { label: 'Labels', line: 'Lines', box: 'Boxes', table: 'Tables'
 const ARR = { label: 'labels', line: 'lines', box: 'boxes', table: 'tables', polyline: 'polylines', linefill: 'linefills', fill: 'fills', background: 'backgrounds', hline: 'priceLines' };
 // Group key + display name for one element.
 export function groupOf(kind, el){
-  if (kind === 'series') return { key: 's:' + (el.title || el.id), name: el.displayTitle || el.title || 'Plot' };
+  if (kind === 'series') { const d = el.displayTitle; return { key: 's:' + (el.title || el.id), name: (typeof d === 'string' && d) || (d && d.defaultMessage) || el.title || 'Plot' }; }
   if (kind === 'hline' && el.title) return { key: 'h:' + el.title, name: el.title };
   const slug = slugOf(el.id);
   if (slug && kind !== 'table') return { key: kind[0] + ':' + slug, name: nice(slug) + (kind === 'label' ? '' : ' (' + FALLBACK[kind].toLowerCase() + ')') };
@@ -95,7 +95,8 @@ export function catalog(model){
     if (!e) { e = { key: g.key, name: g.name, kind, count: 0, sample: el }; seen.set(g.key, e); out.push(e); }
     e.count++;
   };
-  (model.series || []).forEach((s) => { if (s.kind !== 'candle' && s.kind !== 'bar' && s.kind !== 'markers') add('series', s); });
+  const shown = (s) => (s.display ? ['pane', 'legend', 'priceScale', 'dataWindow'].some((k) => s.display[k] !== false) : s.visible !== false);
+  (model.series || []).forEach((s) => { if (s.kind !== 'candle' && s.kind !== 'bar' && s.kind !== 'markers' && shown(s)) add('series', s); });
   Object.keys(ARR).forEach((k) => (model[ARR[k]] || []).forEach((el) => add(k, el)));
   return out;
 }
@@ -278,13 +279,12 @@ function patchCtx(g){
   ctxState.set(g, st);
   const P = Object.getPrototypeOf(g);
   const d = (k) => { let p = P; while (p && !Object.getOwnPropertyDescriptor(p, k)) p = Object.getPrototypeOf(p); return p && Object.getOwnPropertyDescriptor(p, k); };
-  const fd = d('font'), wd = d('lineWidth'), ad = d('globalAlpha');
-  const origDash = g.setLineDash;
+  // descriptors are looked up per call so later prototype wraps (tests, other modules) still see the writes
   try {
-    Object.defineProperty(g, 'font', { configurable: true, get(){ return fd.get.call(this); }, set(v){ fd.set.call(this, st.o ? rewriteFont(v, st.o) : v); } });
-    Object.defineProperty(g, 'lineWidth', { configurable: true, get(){ return wd.get.call(this); }, set(v){ wd.set.call(this, st.o && st.o.width != null && v >= 1 ? +st.o.width : v); } });
-    Object.defineProperty(g, 'globalAlpha', { configurable: true, get(){ return ad.get.call(this); }, set(v){ ad.set.call(this, st.o && st.o.opacity != null ? v * Math.max(0, Math.min(100, +st.o.opacity)) / 100 : v); } });
-    g.setLineDash = function (seg){ return origDash.call(this, st.o && st.o.lineStyle ? DASHES[st.o.lineStyle] || seg : seg); };
+    Object.defineProperty(g, 'font', { configurable: true, get(){ return d('font').get.call(this); }, set(v){ d('font').set.call(this, st.o ? rewriteFont(v, st.o) : v); } });
+    Object.defineProperty(g, 'lineWidth', { configurable: true, get(){ return d('lineWidth').get.call(this); }, set(v){ d('lineWidth').set.call(this, st.o && st.o.width != null && v >= 1 ? +st.o.width : v); } });
+    Object.defineProperty(g, 'globalAlpha', { configurable: true, get(){ return d('globalAlpha').get.call(this); }, set(v){ d('globalAlpha').set.call(this, st.o && st.o.opacity != null ? v * Math.max(0, Math.min(100, +st.o.opacity)) / 100 : v); } });
+    g.setLineDash = function (seg){ return P.setLineDash.call(this, st.o && st.o.lineStyle ? DASHES[st.o.lineStyle] || seg : seg); };
   } catch (e) { return st; }
   return st;
 }
@@ -529,7 +529,7 @@ const CSS = `
 .stk-is-note{color:var(--vela-fg-muted,#8b93a7);font-size:11.5px;margin:4px 0 8px;line-height:1.4}
 .stk-is-tfr{display:flex;align-items:center;gap:8px;min-height:36px;flex-wrap:wrap}
 .stk-is-tfr input[type=number]{width:56px;height:28px;border-radius:8px;border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));background:transparent;color:inherit;font:inherit;padding:0 6px}
-.stk-is-tfr .stk-is-gn{min-width:80px;flex:0 0 auto}
+.stk-is-tfr .stk-is-tfn{min-width:80px;flex:0 0 auto;font-weight:600}
 html.stk-day .stk-is-sel{background-color:#fff}
 @media (max-width:700px){ .stk-is{padding:8px 10px 12px} .stk-is-r > span:first-child{min-width:80px} .stk-is-p{height:32px;min-width:34px} .stk-is-sel{height:34px;max-width:150px} .stk-is-gh{min-height:44px} }
 `;
@@ -589,7 +589,7 @@ function buildPanel(orch, rec, kind){
     TIMEFRAME_BANDS.forEach(([b, name]) => {
       const r = tf.bands[b] || [1, lim[b]];
       const line = h('div', 'stk-is-tfr');
-      const n = h('span', 'stk-is-gn'); n.textContent = name;
+      const n = h('span', 'stk-is-tfn'); n.textContent = name;
       const on = toggle(r.off ? 'Hidden' : 'Shown', !r.off, (v) => { tf.bands[b] = v ? [+lo.value || 1, +hi.value || lim[b]] : { off: true }; on.textContent = v ? 'Shown' : 'Hidden'; save(); });
       const lo = h('input'); lo.type = 'number'; lo.min = '1'; lo.max = String(lim[b]); lo.value = r.off ? 1 : r[0]; lo.setAttribute('aria-label', name + ' from');
       const hi = h('input'); hi.type = 'number'; hi.min = '1'; hi.max = String(lim[b]); hi.value = r.off ? lim[b] : Math.min(r[1], lim[b]); hi.setAttribute('aria-label', name + ' to');

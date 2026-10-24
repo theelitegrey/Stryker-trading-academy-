@@ -320,6 +320,25 @@ function setVal(id, key, v){
   try { WS.markStateDirty(); } catch (e) {}
 }
 
+// Favorites toolbar show / hide (Owner 2026-10-24): one state, owned by assets/chart-fav-toolbar.js
+// (window.STRYKER_FAVBAR: synced to students/{uid}/chartPrefs/favToolbar or localStorage). Page-wide,
+// not per cell, so it is not in ext['stryker.settings'].
+const favApi = () => { try { return window.STRYKER_FAVBAR || null; } catch (e) { return null; } };
+const favVis = () => { const f = favApi(); return f ? f.visible !== false : true; };
+function setFavVis(v){ const f = favApi(); if (f && f.visible !== !!v) f.setVisible(!!v); }
+// The right-click menu / star button can change it while the dialog is open: repaint our switch.
+window.addEventListener('stk-favbar-visible', (e) => {
+  const on = !!(e.detail && e.detail.visible);
+  document.querySelectorAll('.vela-dialog--settings .stk-sd-extra .vela-field-label').forEach((lab) => {
+    if (lab.textContent !== 'Favorites toolbar') return;
+    const row = lab.closest('.vela-field-span') || lab.parentElement;
+    const sw = row && row.querySelector('.vela-switch[role="switch"]');
+    // Vela's Switch keeps its own state: a click flips it (and its aria-checked); the onChange it
+    // fires is then a no-op in setFavVis because the toolbar already has that value.
+    if (sw && (sw.getAttribute('aria-checked') === 'true') !== on) sw.click();
+  });
+});
+
 // ---------------------------------------------------------------------------------------
 // our rows (Vela host-settings rows), folded into Vela's tabs when the dialog opens
 // ---------------------------------------------------------------------------------------
@@ -369,7 +388,10 @@ function ourSections(id){
       { kind: 'heading', label: 'Margins' }, 
       { kind: 'select', label: 'Top margin %', id: 'margin-top', options: MARGINS, get: g('marginTop'), set: st('marginTop') },
       { kind: 'select', label: 'Bottom margin %', id: 'margin-bottom', options: MARGINS, get: g('marginBottom'), set: st('marginBottom') },
-      { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') }
+      { kind: 'select', label: 'Right margin (bars)', id: 'right-bars', options: RIGHT_BARS, get: g('rightBars'), set: st('rightBars') },
+      { kind: 'heading', label: 'Toolbars' },
+      { kind: 'toggle', label: 'Favorites toolbar', id: 'fav-toolbar', get: favVis, set: setFavVis,
+        title: 'Show or hide the floating favorites toolbar (the drawing tools you starred). Same as right-click on it, or the star at the bottom of the left toolbar.' }
     ].concat(rhRows) }
   ].concat(...(window.__stkExtraSections || []).map((f) => { try { return f(id) || []; } catch (e) { return []; } }));
 }
@@ -392,7 +414,7 @@ function snapshot(id){
   try { cfg = cell.chart.renderer.getConfig(); } catch (e) {}
   try { status = cell.statusPrefs(); } catch (e) {}
   let tz = 'Etc/UTC'; try { tz = WS.getState().timezone || tz; } catch (e) {}
-  return { cfg: clone(cfg), status: clone(status), ours: Object.assign({}, S(id)), style: cell.priceStyle, tz, wm: cell.watermarkOn };
+  return { cfg: clone(cfg), status: clone(status), ours: Object.assign({}, S(id)), style: cell.priceStyle, tz, wm: cell.watermarkOn, favVis: favVis() };
 }
 function restore(id, snap, opts){
   const cell = cellOf(id); if (!cell || !snap) return;
@@ -406,6 +428,7 @@ function restore(id, snap, opts){
   if (snap.status) { try { cell.applyStatusPrefs(snap.status); } catch (e) {} }
   if (snap.ours) { const was = S(id).rhide; store.set(id, sanitize(snap.ours)); if (window.__stkIsAdmin === true && S(id).rhide !== was) rhSync(S(id).rhide); }
   if (o.tz && snap.tz) { try { WS.setTimezone(snap.tz); } catch (e) {} }
+  if (o.fav && typeof snap.favVis === 'boolean') setFavVis(snap.favVis);   // Cancel only (page-wide)
   applyCell(id);
   try { WS.markStateDirty(); } catch (e) {}
 }
@@ -487,7 +510,7 @@ function footer(dlg){
     (WS.context().cells || []).forEach((c) => { if (c.id !== dlgCell) { restore(c.id, s); n++; } });
     toastFn(n ? 'Applied to all ' + (n + 1) + ' charts' : 'Only one chart in this layout');
   });
-  const cancel = mk('Cancel', '', () => { const id = dlgCell, snap = dlgSnap; dlgSnap = null; restore(id, snap, { tz: true }); close(); });
+  const cancel = mk('Cancel', '', () => { const id = dlgCell, snap = dlgSnap; dlgSnap = null; restore(id, snap, { tz: true, fav: true }); close(); });
   const ok = mk('Ok', 'stk-sd-ok', () => { dlgSnap = null; close(); });
   wrap.append(tplWrap, allBtn, cancel, ok);
   foot.appendChild(wrap);

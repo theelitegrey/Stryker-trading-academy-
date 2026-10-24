@@ -15,7 +15,10 @@
 //     it is clamped inside it. Position is stored as fractions of the grid, so it survives
 //     resizing. Default: top-centre, just under the first cell's legend.
 //   - Hidden when nothing is starred. Right-click (or long-press) → "Hide favorites
-//     toolbar"; a star button added at the bottom of the left drawing toolbar shows / hides it.
+//     toolbar"; a star button added at the bottom of the left drawing toolbar shows / hides it;
+//     Chart settings → Canvas → Toolbars → "Favorites toolbar" does the same (Owner 2026-10-24).
+//     All three drive setVisible() below; every visibility change fires a window event
+//     'stk-favbar-visible' { detail: { visible } } so open UIs can repaint.
 // Drawing tools only. "Long/Short Position" is a risk-reward MEASUREMENT drawing; there is
 // no order or trade button anywhere here (Owner rule: no buying/selling on the website).
 //
@@ -254,6 +257,7 @@ export function mountFavToolbar(ws, Core, opts){
       });
     }
     bar.hidden = !show;
+    announce();
     readActive(); paintActive();
     paintToggle();
     if (show) place();
@@ -413,6 +417,12 @@ export function mountFavToolbar(ws, Core, opts){
     try { if (vertical) localStorage.setItem(LS_ORIENT, 'v'); else localStorage.removeItem(LS_ORIENT); } catch (e) {}
     render();
   }
+  let lastVis = null;
+  function announce(){
+    if (lastVis === st.visible) return;
+    lastVis = st.visible;
+    try { window.dispatchEvent(new CustomEvent('stk-favbar-visible', { detail: { visible: st.visible } })); } catch (e) {}
+  }
   function setVisible(on){
     st.visible = !!on; save(); render();
     if (on && !st.tools.length) toast('Star a drawing tool (☆ in the left toolbar menus) to add it to the favorites toolbar.', 'info');
@@ -475,7 +485,7 @@ export function mountFavToolbar(ws, Core, opts){
   setInterval(() => { if (st.x == null || st.y == null) place(); }, 2500);   // default spot follows the ticket / legend rows as they appear
 
   render();
-  const api = { state: st, render, place, setVisible, setVertical, removeFav, get vertical(){ return vertical; }, el: bar };
+  const api = { state: st, render, place, setVisible, setVertical, removeFav, get vertical(){ return vertical; }, get visible(){ return st.visible; }, el: bar };
   window.STRYKER_FAVBAR = api;
   return api;
 }

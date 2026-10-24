@@ -113,6 +113,61 @@ function quietLayer(def){
   } });
 }
 
+// LATE LAYERS (fix 2026-10-24): Vela's renderer builds one canvas per registered renderer layer
+// ONCE, in mount(). chart-orderflow.js (Session Volume Profile, Volume Bubble, Volume Heatmap,
+// Liquidity Trend Heatmap, Crypto DOM, Footprint via Flow) is lazy: on a browser whose saved state
+// has no volume tool it registers its layers after the first chart exists, so those tools showed a
+// legend row and drew nothing until a reload. The renderer prototype's mountIndicator now creates
+// the missing layer entry on demand (same shape, canvas and stacking slot mount() would have given
+// it) when an indicator whose type names a registered layer arrives, and removeIndicator drops it
+// again when the last indicator of that type leaves. Layers a renderer already has are untouched,
+// so nothing changes for any tool registered before boot (GEX, footprint, delta suite, ...).
+const LAYER_DEFS = new Map();
+function lateLayers(R){
+  const proto = R && Object.getPrototypeOf(R);
+  if (!proto || proto.__stkLateLayers || typeof proto.mountIndicator !== 'function' || typeof proto.removeIndicator !== 'function') return;
+  proto.__stkLateLayers = true;
+  const v09 = typeof proto.ensureInstanceLayer === 'function';
+  const mountIndicator = proto.mountIndicator, removeIndicator = proto.removeIndicator;
+  proto.mountIndicator = function (model) {
+    try {
+      const t = model && model.native && model.native.type;
+      const def = t && LAYER_DEFS.get(t);
+      if (def && this.plot && Array.isArray(this.extLayers) && !this.extLayers.some((l) => l.def && l.def.id === t && l.owner == null)) {
+        const canvas = typeof this.createPlotCanvas === 'function' ? this.createPlotCanvas() : document.createElement('canvas');
+        if (typeof this.createPlotCanvas !== 'function') Object.assign(canvas.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', pointerEvents: 'none' });
+        const ref = this.chromeCanvas;
+        if (ref) { canvas.width = ref.width; canvas.height = ref.height; if (ref.style.width) canvas.style.width = ref.style.width; if (ref.style.height) canvas.style.height = ref.style.height; }
+        const entry = v09 ? { def, instance: def.create(), canvas, channel: def.id, owner: null } : { def, instance: def.create(), canvas };
+        entry.__stkLate = true;
+        this.extLayers.push(entry);
+        this.plot.insertBefore(canvas, def.placement === 'below-data' ? this.dataCanvas : this.chromeCanvas);
+        entry.instance.mount(canvas);
+        this.layerOrderSig = '';
+      }
+    } catch (e) { console.warn('TradeZoro: late layer mount', e); }
+    return mountIndicator.apply(this, arguments);
+  };
+  proto.removeIndicator = function (handle) {
+    const r = removeIndicator.apply(this, arguments);
+    try {
+      if (Array.isArray(this.extLayers) && this.extLayers.some((l) => l.__stkLate)) {
+        const used = new Set();
+        for (const m of this.scene.indicators.values()) if (m && m.native && m.native.type) used.add(m.native.type);
+        for (let i = this.extLayers.length - 1; i >= 0; i--) {
+          const l = this.extLayers[i];
+          if (!l.__stkLate || used.has(l.def.id) || this.extLayers.some((x) => x !== l && x.def === l.def && x.owner != null)) continue;
+          this.extLayers.splice(i, 1);
+          try { l.instance.destroy && l.instance.destroy(); } catch (e) {}
+          l.canvas.remove();
+          this.layerOrderSig = '';
+        }
+      }
+    } catch (e) { console.warn('TradeZoro: late layer drop', e); }
+    return r;
+  };
+}
+
 const VELA090 = window.__stkVela090 === true;
 const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s4/' : './vendor/vela-0.6.17-s3/';
 // One-time migration for members whose saved workspace still carries the old
@@ -320,7 +375,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // the chart page vs ~5 s alone). Each layer's canvas is now hidden (visibility) after a render
   // that cleared it and drew nothing, and shown again by the first render that draws. A render
   // that neither clears nor draws (a layer keeping its last picture) leaves it as it was.
-  const Core = Object.assign({}, mods[5], { registerRendererLayer: (def) => mods[5].registerRendererLayer(quietLayer(def)) });
+  // Every layer def that goes through Core is also kept here, so a renderer built before the def was
+  // registered can still mount it when an indicator of that type is added (see lateLayers below).
+  const Core = Object.assign({}, mods[5], { registerRendererLayer: (def) => { const q = quietLayer(def); if (q && q.id) LAYER_DEFS.set(q.id, q); return mods[5].registerRendererLayer(q); } });
   const Pine = mods[6];
   const Settings = mods[8];
   const Grid = mods[10];
@@ -470,6 +527,10 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     velaFail();
     return;
   }
+
+  // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
+  // cells added later are covered too).
+  try { for (const c of ws.context().cells) { const r = c.chart.renderer; lateLayers(r && r.extLayers ? r : r && r.renderer); } } catch (e) { console.warn('TradeZoro: late layers', e); }
 
   try { ToolIcons.addShortToToolbar(ws, Core); } catch (e) { console.warn('TradeZoro: short position tool', e); }
 
@@ -621,7 +682,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       tick();
     });
     firstPaint().then(() => new Promise((r) => (window.requestIdleCallback ? requestIdleCallback(r, { timeout: 2500 }) : setTimeout(r, 300))))
-      .then(loadHeavy).then((h) => { mods[7] = h[0]; mods[14] = h[1]; mods[19] = h[2]; mods[20] = h[3]; mods[21] = h[4]; installHeavy(); mountHeavy(); refreshStyleMenu(); window.__stkHeavyReady = true; try { window.dispatchEvent(new Event('stk:heavy-ready')); } catch (e) {} })
+      .then(loadHeavy).then((h) => { mods[7] = h[0]; mods[14] = h[1]; mods[19] = h[2]; mods[20] = h[3]; mods[21] = h[4]; installHeavy(); mountHeavy(); refreshStyleMenu();
+        // Each cell caches the native-indicator catalog the Indicators window lists; it was built before the
+        // late volume tools registered, so on a fresh browser they were missing until a symbol change.
+        try { (ws.cells ? ws.cells() : []).forEach((c) => { try { if (c && typeof c.refreshNativeCatalog === 'function') c.refreshNativeCatalog(); } catch (e) {} }); } catch (e) {}
+        window.__stkHeavyReady = true; try { window.dispatchEvent(new Event('stk:heavy-ready')); } catch (e) {} })
       .catch((e) => console.warn('TradeZoro: order flow / GEX modules', e));
   } else window.__stkHeavyReady = true;
   // ONE toolbar (Owner order 2026-10-14): Vela's chart topbar joins #stkc-bar on a desktop-mode

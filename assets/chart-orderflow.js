@@ -1186,6 +1186,12 @@ function fpConfig(i) {
     imb: clamp(num(i.imbalance, 300), 110, 2000) / 100, minBarPx: clamp(num(i.minBarPx, 44), 20, 200),
     up: str(i.upColor, '#089981'), dn: str(i.downColor, '#f23645') };
 }
+// Price text for the Liquidity Trend Heatmap POC label (it called an undefined fmtPrice, so the label threw).
+function fmtPrice(v) {
+  if (!Number.isFinite(v)) return '';
+  const a = Math.abs(v), d = a >= 1000 ? 2 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6;
+  return String(Number(v.toFixed(d)));
+}
 function fmtVol(v) {
   if (v >= 1e6) return (v / 1e6).toFixed(1) + 'M';
   if (v >= 1e4) return (v / 1e3).toFixed(0) + 'K';
@@ -1379,6 +1385,25 @@ function domConfig(inputs) {
 }
 // "Heatmap only" intensity ramp (the reference prototype's): dark -> teal -> mint -> amber -> white.
 const DOM_RAMP = [[11, 11, 13], [0, 60, 70], [0, 173, 181], [3, 201, 136], [245, 197, 66], [255, 255, 255]];
+// Liquidity Trend Heatmap colour ramp (purple -> teal -> yellow). Restored 2026-10-24: build 503 removed it
+// while the heatmap still calls it, so the layer threw on every frame and drew nothing.
+function liquidityColor(t, maxAlpha) {
+  t = clamp(t, 0, 1);
+  const stops = [
+    [0.00, [72, 0, 86]],
+    [0.28, [48, 74, 141]],
+    [0.52, [32, 145, 140]],
+    [0.76, [70, 205, 85]],
+    [1.00, [245, 230, 20]]
+  ];
+  let a = stops[0], b = stops[stops.length - 1];
+  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { a = stops[i - 1]; b = stops[i]; break; }
+  const f = (t - a[0]) / Math.max(1e-9, b[0] - a[0]);
+  const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * f);
+  const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * f);
+  const bl = Math.round(a[1][2] + (b[1][2] - a[1][2]) * f);
+  return 'rgba(' + r + ',' + g + ',' + bl + ',' + (0.05 + maxAlpha * (0.18 + 0.82 * Math.sqrt(t))).toFixed(3) + ')';
+}
 function domRamp(v) {
   v = clamp(v, 0, 1);
   const x = v * (DOM_RAMP.length - 1), i = Math.min(DOM_RAMP.length - 2, Math.floor(x)), f = x - i;

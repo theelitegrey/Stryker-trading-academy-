@@ -290,7 +290,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
       Promise.resolve(null),
       Promise.resolve(null),
       import('./chart-tool-icons.js?v=637'),
-      import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js'))
+      import(VELA_BASE + (VELA090 ? 'chunk-YRCL3WMD.js' : 'chunk-IFJJPXSV.js')),
+      import('./chart-ind-style.js?v=637')
     ]);
   } catch (err) {
     console.error('TradeZoro: Vela modules failed to load', err);
@@ -347,6 +348,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Pine Script (assets/chart-pine.js): its persistence handler must be registered
   // before the workspace restores a saved session. The engine itself loads lazily.
   try { Pine.installPine(Core, () => ws); } catch (e) { console.warn('TradeZoro: Pine install', e); }
+  // Indicator Settings → Style / Visibility tabs (assets/chart-ind-style.js): its persistence handler too.
+  const IndStyle = mods[24];
+  try { IndStyle.installIndStyle(Core); } catch (e) { console.warn('TradeZoro: indicator style install', e); }
   // Install of the lazy-heavy modules (see HEAVY_URLS): before boot when the saved state needs them, else after the first paint.
   const installHeavy = () => {
     Flow = mods[7]; Gex = mods[14]; GexHeat = mods[19];
@@ -591,6 +595,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   import('./chart-gex-ladder.js?v=637').then((m) => m.mountGexLadder(ws, { toast })).catch((e) => console.warn('TradeZoro: gex ladder', e));
   // Symbol info panel (right icon bar, phones: a sheet): contract specs, roll calendar, session (assets/chart-symbol-info.js).
   import('./chart-symbol-info.js?v=637').then((m) => m.mountSymbolInfo(ws)).catch((e) => console.warn('TradeZoro: symbol info', e));
+  try { IndStyle.mountIndStyle(ws); } catch (e) { console.warn('TradeZoro: indicator style', e); }
   // Indicator Settings → Inputs: every input.symbol opens the same symbol search
   // (assets/chart-symbol-input.js).
   Promise.all([import('./chart-symbol-input.js?v=637'), import(VELA_BASE + 'widget.js')])

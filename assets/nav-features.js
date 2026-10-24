@@ -22,6 +22,7 @@
     { id: 'backtesting', name: 'Backtesting', url: '/features/backtesting', icon: '⏯️' },
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
     { id: 'charts', name: 'Charts', url: '/features/charts', icon: '📉' },
+    { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },
     { id: 'live-sessions', name: 'Live Sessions', url: '/features/live-sessions', icon: '🔴' }
   ];
 

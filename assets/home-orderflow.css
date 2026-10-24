@@ -1,0 +1,53 @@
+/* TradeZoro: homepage "Order flow tools" section (#orderflow), site refresh 2026-10-24.
+ *
+ * Owner ask 2026-10-24: "We have added so much stuff. Shouldn't we update our website".
+ * The section leads the homepage tools story: six order-flow tools with real cropped chart
+ * screenshots (assets/images/orderflow/), then three wide tiles for GEX on the chart, the
+ * chart tools and the practice tools. Site tokens only (style.css); no motion beyond the
+ * shared .reveal and a hover lift (transform only, removed under reduced motion).
+ * Phone: the six cards become a swipe rail with the next card peeking; it scrolls with the
+ * shared SCROLLBARS style in style.css (no per-component scrollbar rules).
+ */
+.hof-grid{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; }
+.hof-card{ position:relative; display:flex; flex-direction:column; min-width:0; border-radius:18px; overflow:hidden;
+  background:linear-gradient(180deg, var(--bg-2), var(--bg-1)); border:1px solid var(--line);
+  transition:transform .35s cubic-bezier(.2,.7,.2,1), border-color .3s; color:inherit; text-decoration:none; }
+:root[data-theme="light"] .hof-card{ background:var(--bg-2); box-shadow:var(--shadow-card); }
+.hof-card:hover{ transform:translateY(-4px); border-color:var(--gold-dim); }
+.hof-card:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+.hof-shot{ position:relative; aspect-ratio:16/9; overflow:hidden; background:#0b0c0e; border-bottom:1px solid var(--line); }
+.hof-shot img{ display:block; width:100%; height:100%; object-fit:cover; object-position:var(--pos, 50% 50%); }
+.hof-body{ padding:14px 16px 16px; }
+.hof-k{ font:600 10.5px/1.3 var(--font-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--gold); }
+.hof-body h3{ margin:6px 0 6px; font:800 17px/1.25 var(--font-display); color:var(--ink-0); letter-spacing:-.01em; }
+.hof-body p{ margin:0; font-size:14px; line-height:1.5; color:var(--ink-2); }
+
+/* the lead card: footprint, two columns wide on desktop */
+.hof-lead{ grid-column:span 2; grid-row:span 2; }
+.hof-lead .hof-shot{ aspect-ratio:auto; flex:1 1 auto; min-height:260px; }
+.hof-lead .hof-body h3{ font-size:clamp(20px, 2vw, 26px); }
+
+.hof-more{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:14px; margin-top:14px; }
+.hof-more .hof-shot{ aspect-ratio:2/1; }
+
+.hof-cta{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:26px; }
+.hof-note{ flex-basis:100%; margin:4px 0 0; font-size:13px; color:var(--ink-3); }
+
+@media (max-width:900px){
+  .hof-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .hof-lead{ grid-column:span 2; grid-row:auto; }
+  .hof-lead .hof-shot{ aspect-ratio:16/10; min-height:0; }
+  .hof-more{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+}
+@media (max-width:600px){
+  /* swipe rails: one card and a peek of the next */
+  .hof-grid, .hof-more{ display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory; overscroll-behavior-x:contain;
+    margin:0 -20px; padding:0 20px 10px; scroll-padding-left:20px; }
+  .hof-card{ flex:0 0 82%; scroll-snap-align:start; }
+  .hof-lead{ flex-basis:88%; }
+  .hof-lead .hof-shot{ aspect-ratio:4/3; }
+  .hof-lead .hof-shot img{ transform:scale(1.8); transform-origin:8% 62%; }
+  .hof-more .hof-shot{ aspect-ratio:16/10; }
+  .hof-body p{ font-size:13.5px; }
+}
+@media (prefers-reduced-motion:reduce){ .hof-card, .hof-card:hover{ transition:none; transform:none; } }

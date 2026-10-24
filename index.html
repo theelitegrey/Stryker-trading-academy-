@@ -22,7 +22,7 @@
 <meta name="theme-color" content="#050506">
 <title>TradeZoro — Learn ICT & Smart Money Trading</title>
 <link rel="canonical" href="https://tradezoro.com/">
-<meta name="description" content="ICT and SMT divergence, chapter by chapter: 64 chapters with Volume Profile and Prop Firm tracks, live sessions, a trade journal and a trading community.">
+<meta name="description" content="Footprint and order flow tools, GEX levels and a full charting desk, plus 64 chapters of ICT and SMT, paper trading, bar replay and a trade journal.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <!-- Speed: open the Firebase connections while the CSS loads (the SDK
@@ -84,6 +84,7 @@
 <link rel="stylesheet" href="assets/home-platform-bento.css?v=634">
 <link rel="stylesheet" href="assets/home-curriculum-bento.css?v=634">
 <link rel="stylesheet" href="assets/home-hero-b.css?v=634">
+<link rel="stylesheet" href="assets/home-orderflow.css?v=634">
 <script src="assets/toast.js?v=634" defer></script>
 <script src="assets/version-check.js?v=634" defer></script>
 <script src="assets/acquisition.js?v=634" defer></script>
@@ -170,11 +171,11 @@
   <div class="hero-glow-indigo" data-parallax="0.08"></div>
   <div class="container hero-inner">
     <div class="hero-copy">
-      <span class="eyebrow">ICT · Smart Money · Volume Profile · GEX</span>
+      <span class="eyebrow">Order flow · GEX · Charts · ICT</span>
       <h1>Trade the way<br>institutions actually <em>move price</em>.</h1>
-      <p>64 chapters of ICT, SMT and Volume Profile, taught the way a trading desk trains analysts. Plus GEX and practice tools.</p>
+      <p>Footprint and order flow, GEX levels and a full charting desk, next to 64 chapters of ICT, SMT and Volume Profile. Practise it all with paper trading and bar replay.</p>
       <div class="hero-actions">
-        <a href="signup" class="btn btn-primary">Start free chapter</a>
+        <a href="signup" class="btn btn-primary">Start free</a>
         <a href="courses" class="btn btn-ghost">View curriculum</a>
       </div>
       <div class="hero-stats">
@@ -299,6 +300,30 @@
 <div class="mtape" aria-hidden="true">
   <div class="mtape-track" id="mtape-track"></div>
 </div>
+
+<!-- ============ ORDER FLOW TOOLS (site refresh 2026-10-24; styles assets/home-orderflow.css) ============ -->
+<section class="container" id="orderflow">
+  <div class="section-head reveal">
+    <span class="eyebrow">Order flow tools</span>
+    <h2>See who is buying and selling, at every price.</h2>
+    <p>Order flow built from real trades on NQ, ES, YM, GC, SI, CL and crypto, drawn on the same chart you mark up. Real screenshots from the chart.</p>
+  </div>
+  <div class="hof-grid reveal">
+    <a class="hof-card hof-lead" href="/features/orderflow#sx-f-footprint"><div class="hof-shot" style="--pos:20% 50%"><img src="/assets/images/orderflow/footprint.webp?v=634" width="735" height="460" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Chart style</span><h3>Footprint</h3><p>Every candle split into prices, with the volume bought and sold at each one and the busiest price boxed.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-delta-profile"><div class="hof-shot" style="--pos:85% 40%"><img src="/assets/images/orderflow/delta-profile.webp?v=634" width="1200" height="853" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">14 styles</span><h3>Delta</h3><p>Buyers or sellers, row by row: a delta profile on the price axis, delta bars, boxes and more.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-cvd"><div class="hof-shot" style="--pos:60% 50%"><img src="/assets/images/orderflow/cvd.webp?v=634" width="1200" height="582" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Divergence</span><h3>CVD</h3><p>Cumulative delta in its own pane, with a line drawn when price and CVD disagree.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-bigtrades"><div class="hof-shot" style="--pos:60% 40%"><img src="/assets/images/orderflow/bigtrades.webp?v=634" width="1200" height="582" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Bubbles</span><h3>Big Trades</h3><p>A bubble wherever one large order traded, sized by the order.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-absorption"><div class="hof-shot" style="--pos:45% 60%"><img src="/assets/images/orderflow/absorption.webp?v=634" width="1200" height="582" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Levels</span><h3>Absorption</h3><p>Prices where heavy selling or buying hit and price did not move.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-imbalance"><div class="hof-shot" style="--pos:70% 30%"><img src="/assets/images/orderflow/imbalance.webp?v=634" width="1200" height="853" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Zones</span><h3>Imbalance zones</h3><p>Stacked buy or sell imbalances that stay on the chart until price fills them.</p></div></a>
+  </div>
+  <div class="hof-more reveal">
+    <a class="hof-card" href="/features/orderflow#sx-f-volume-profile"><div class="hof-shot" style="--pos:35% 50%"><img src="/assets/images/orderflow/volume-profile.webp?v=634" width="1200" height="582" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Profiles</span><h3>Volume profile + naked POC</h3><p>Session or swing profiles, value area, and old POCs price has not been back to.</p></div></a>
+    <a class="hof-card" href="/features/gex"><div class="hof-shot" style="--pos:70% 40%"><img src="/assets/images/orderflow/gex-levels.webp?v=634" width="1200" height="581" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">GEX on the chart</span><h3>Call wall, put wall, zero gamma</h3><p>GEX levels, a GEX heatmap and the GEX ladder drawn on the futures chart. SPX GEX is free.</p></div></a>
+    <a class="hof-card" href="/features/charts"><div class="hof-shot" style="--pos:40% 40%"><img src="/assets/images/orderflow/position.webp?v=634" width="1200" height="581" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Chart tools</span><h3>A charting desk that feels familiar</h3><p>Drawing settings, box handles, a long/short position tool, magnet snap and scroll-back through history.</p></div></a>
+    <a class="hof-card" href="/features/orderflow#sx-f-liquidity"><div class="hof-shot" style="--pos:50% 40%"><img src="/assets/images/orderflow/liquidity.webp?v=634" width="1200" height="581" loading="lazy" decoding="async" alt=""></div><div class="hof-body"><span class="hof-k">Crypto</span><h3>BTC and ETH liquidity heatmap</h3><p>Resting orders behind the candles, with pulled or filled big orders and iceberg hints.</p></div></a>
+  </div>
+  <div class="hof-cta reveal"><a href="signup" class="btn btn-primary">Start free</a><a href="/features/orderflow" class="btn btn-ghost">See all order flow tools</a><p class="hof-note">Also on the chart: paper trading, bar replay, alerts with phone push, news and a market scanner.</p></div>
+</section>
 
 <!-- ============ PAYOUT PROOF MARQUEE ============ -->
 <section class="proof-section">

@@ -7,3 +7,21 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # The Features bento preview went live as /features on 2026-10-06 (build 446).
 /features-bento /features 301
 /features-bento.html /features 301
+
+# Old root feature pages (stale copy) moved to /features/<name> on 2026-10-24; dropped from the sitemap.
+/features-curriculum /features/curriculum 301
+/features-curriculum.html /features/curriculum 301
+/features-smart-money /features/smart-money-desk 301
+/features-smart-money.html /features/smart-money-desk 301
+/features-models /features/models 301
+/features-models.html /features/models 301
+/features-indicators /features/indicators 301
+/features-indicators.html /features/indicators 301
+/features-charts /features/charts 301
+/features-charts.html /features/charts 301
+/features-monitor /features/global-monitor 301
+/features-monitor.html /features/global-monitor 301
+/features-live /features/live-sessions 301
+/features-live.html /features/live-sessions 301
+/features-community /features/community 301
+/features-community.html /features/community 301

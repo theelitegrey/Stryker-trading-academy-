@@ -37,6 +37,9 @@ const MAX_TF_MIN = 240;
 export const FP_TYPE = 'stk_fp';
 export const OF_GROUP = 'Order Flow';
 const UP = '#03c988', UP2 = '#4fe3ac', DN = '#f23645', CYAN = '#00adb5';
+// Order-flow drawing palette (Owner 2026-10-24: drawn like the desktop order-flow platforms): buyers
+// green, sellers PURPLE, yellow POC box, magenta profile POC, orange value area.
+const SELL = '#9d4dff', SELL2 = '#c9a2ff', POCY = '#f5d90a', MAG = '#e040fb', VA_OR = '#c8602a', VA_OUT = '#b8a84a', VA_LN = '#8fd8dc';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const DISCLAIMER = 'Order flow from exchange trades. Education only. Not financial advice.';
 
@@ -372,7 +375,7 @@ function footprintLayer() {
           const x = co.logicalToX(i), w = Math.max(1, Math.floor(bw * 0.7));
           const yO = co.priceToY(bar.open, a.scale, a.bounds), yC = co.priceToY(bar.close, a.scale, a.bounds);
           const r = fb.delta / fb.vol;
-          g.fillStyle = alpha(fb.delta >= 0 ? UP : DN, 0.35 + 0.65 * Math.min(1, Math.abs(r) * 2.5));
+          g.fillStyle = alpha(fb.delta >= 0 ? UP : SELL, 0.35 + 0.65 * Math.min(1, Math.abs(r) * 2.5));
           g.fillRect(Math.round(x - w / 2), Math.min(yO, yC), w, Math.max(1, Math.abs(yC - yO)));
         }
         pill('Zoom in to see footprint');
@@ -402,33 +405,41 @@ function footprintLayer() {
           if (y > bot || y + h < top) continue;
           const v = r.buy + r.sell, dl = r.buy - r.sell;
           if (cfg.mode === 'bidask') {
-            // left half = sells (hit the bid), right half = buys (lifted the ask); shade by size
-            g.fillStyle = alpha(DN, 0.06 + 0.5 * (r.sell / max) + (imb.sell[k] ? 0.25 : 0));
+            // plain numbers on the chart background (left = sells hit the bid, right = buys lifted the
+            // ask); only a faint tint behind the side that dominated the row. Phone zoom (no numbers):
+            // the tint is the cell, so it stays stronger.
+            const sd = r.sell > r.buy, bd = r.buy > r.sell;
+            const base = compact ? 0.12 : 0.03, span = compact ? 0.55 : 0.16;
+            g.fillStyle = alpha(SELL, base + span * (r.sell / max) * (sd || compact ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
             g.fillRect(xl, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
-            g.fillStyle = alpha(UP, 0.06 + 0.5 * (r.buy / max) + (imb.buy[k] ? 0.25 : 0));
+            g.fillStyle = alpha(UP, base + span * (r.buy / max) * (bd || compact ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
             g.fillRect(x + 0.5, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
           } else {
-            g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : DN, 0.08 + 0.55 * Math.abs(dl) / max) : alpha(CYAN, 0.08 + 0.5 * v / max);
+            g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);
             g.fillRect(xl, y + 0.5, w, Math.max(1, h - 1));
           }
-          if (cfg.poc && k === pk) { g.strokeStyle = day ? '#0f172a' : '#f5f5f5'; g.lineWidth = 1.2; g.strokeRect(xl + 0.5, y + 0.5, w - 1, Math.max(1, h - 1)); }
+          if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.3; g.strokeRect(xl + 0.5, y + 0.5, w - 1, Math.max(1, h - 1)); }
           if (!showText) continue;
           const yc = y + h / 2;
           if (cfg.mode === 'bidask') {
-            g.textAlign = 'right'; g.font = imb.sell[k] ? bold : font; g.fillStyle = imb.sell[k] ? (day ? '#b91c1c' : '#ff6b7a') : ink;
+            // the side that dominated the row is coloured (sellers purple, buyers green), the other grey;
+            // an imbalance is bold and bright
+            const sC = imb.sell[k] ? (day ? '#6d28d9' : SELL2) : r.sell > r.buy ? (day ? '#7c3aed' : '#b48cf0') : (day ? ink : dim);
+            const bC = imb.buy[k] ? (day ? '#047857' : UP2) : r.buy > r.sell ? (day ? '#059669' : '#3fcf98') : (day ? ink : dim);
+            g.textAlign = 'right'; g.font = imb.sell[k] ? bold : font; g.fillStyle = sC;
             g.fillText(fmt(r.sell), x - 3, yc);
-            g.textAlign = 'left'; g.font = imb.buy[k] ? bold : font; g.fillStyle = imb.buy[k] ? (day ? '#047857' : UP2) : ink;
+            g.textAlign = 'left'; g.font = imb.buy[k] ? bold : font; g.fillStyle = bC;
             g.fillText(fmt(r.buy), x + 3, yc);
           } else {
             g.textAlign = 'center'; g.font = font;
-            g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? (day ? '#047857' : UP2) : (day ? '#b91c1c' : '#ff6b7a')) : ink;
+            g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? (day ? '#047857' : UP2) : (day ? '#6d28d9' : SELL2)) : ink;
             g.fillText(cfg.mode === 'delta' ? sgn(dl) : fmt(v), x, yc);
           }
         }
         // stacked imbalances: a bar on the buy (right) or sell (left) edge spanning the run
         for (const sx of st) {
           const yA = co.priceToY((rs[sx.k1].p + m) * tick, a.scale, a.bounds), yZ = co.priceToY(rs[sx.k0].p * tick, a.scale, a.bounds);
-          g.fillStyle = sx.side ? UP : DN;
+          g.fillStyle = sx.side ? UP : SELL;
           g.fillRect(sx.side ? xl + w + 1 : xl - 4, Math.min(yA, yZ), 3, Math.abs(yZ - yA));
         }
         // unfinished auction: both sides traded at the extreme row -> amber tick past the edge
@@ -443,7 +454,7 @@ function footprintLayer() {
           g.fillStyle = day ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.88)';
           g.fillRect(xl - 1, y0, w + 2, statsH);
           g.textAlign = 'center'; g.font = bold;
-          g.fillStyle = fb.delta >= 0 ? (day ? '#047857' : UP2) : (day ? '#b91c1c' : '#ff6b7a');
+          g.fillStyle = fb.delta >= 0 ? (day ? '#047857' : UP2) : (day ? '#6d28d9' : SELL2);
           g.fillText(sgn(fb.delta), x, y0 + 8);
           g.font = font; g.fillStyle = dim;
           g.fillText(fmt(fb.vol), x, y0 + 22);
@@ -476,15 +487,20 @@ const IND = {
     { key: 'mult', title: 'Threshold (x the auto size)', type: 'float', defval: 1, min: 0.5, max: 20, step: 0.5, tooltip: 'Auto size = the 99.5th percentile of single orders for this symbol (futures: the previous session; crypto: the loaded trades). 2 = only orders twice that size.' },
     { key: 'minSize', title: 'Min size (contracts / coins, 0 = off)', type: 'float', defval: 0, min: 0, max: 100000, step: 1, tooltip: 'A floor on top of the threshold: smaller prints are never drawn.' },
     { key: 'cluster', title: 'Merge split fills (same side, 1 tick, 1 s)', type: 'bool', defval: true },
-    { key: 'labels', title: 'Size labels', type: 'bool', defval: true },
+    { key: 'labels', title: 'Size labels', type: 'bool', defval: false },
     { key: 'buyColor', title: 'Buyers (hit the ask)', type: 'color', defval: UP },
-    { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: DN }] },
+    { key: 'sellColor', title: 'Sellers (hit the bid)', type: 'color', defval: SELL }] },
   stk_of_vp: { title: 'Volume Profile (trades: session / swing + naked POC)', short: 'VP (trades)', pane: 'price', overlay: true, schema: [
     { key: 'range', title: 'Range', type: 'string', defval: 'session', options: ['session', 'swing', 'visible'], tooltip: 'session = the CME day (18:00 New York). swing = from one swing high / low to the next.' },
     { key: 'swingLen', title: 'Swing strength (bars each side)', type: 'int', defval: 10, min: 2, max: 100, step: 1, when: { key: 'range', anyOf: ['swing'] } },
     { key: 'rowTicks', title: 'Row size (ticks, 0 = auto)', type: 'int', defval: 0, min: 0, max: 400, step: 1 },
     { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
     { key: 'widthPct', title: 'Width %', type: 'int', defval: 30, min: 5, max: 100, step: 1 },
+    { key: 'colorMode', title: 'Colour', type: 'string', defval: 'value area', options: ['value area', 'buy / sell'], tooltip: 'value area = one colour per row, orange inside the value area and khaki outside. buy / sell = each row split into sellers and buyers.' },
+    { key: 'vaColor', title: 'Value area', type: 'color', defval: VA_OR, when: { key: 'colorMode', anyOf: ['value area'] } },
+    { key: 'outColor', title: 'Outside value area', type: 'color', defval: VA_OUT, when: { key: 'colorMode', anyOf: ['value area'] } },
+    { key: 'pocColor', title: 'POC', type: 'color', defval: MAG },
+    { key: 'vaLineColor', title: 'VAH / VAL lines', type: 'color', defval: VA_LN },
     { key: 'naked', title: 'Naked POC lines (until revisited)', type: 'bool', defval: true, when: { key: 'range', anyOf: ['session', 'swing'] } }] },
   stk_of_vwap: { title: 'VWAP (trades, ±1/2 SD)', short: 'VWAP (trades)', pane: 'price', overlay: true, schema: [
     { key: 'reset', title: 'Reset', type: 'string', defval: 'session', options: ['session', 'day'] },
@@ -592,19 +608,23 @@ function bigLayer() {
       const top = a.bounds.top, bot = top + a.bounds.height, phone = co.width < 520;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       g.textAlign = 'center'; g.textBaseline = 'middle';
-      const E = replayE(), buyC = I.buyColor || UP, sellC = I.sellColor || DN;
-      const rMax = phone ? 18 : 26;
+      const E = replayE(), buyC = I.buyColor || UP, sellC = I.sellColor || SELL;
+      const rMax = phone ? 18 : 28;
       for (const p of memo.prints) {
         if (p.size < thr || p.ms < t0 || p.ms > t1 || (E != null && p.ms > E)) continue;
         const i = idxOf(a.bars, p.ms);
         if (i < 0) continue;
         const x = co.logicalToX(i), y = co.priceToY(p.pi * f.tick, a.scale, a.bounds);
         if (y < top - 30 || y > bot + 30) continue;
-        const r = clamp(4 * Math.sqrt(p.size / thr), 4, rMax);
+        // size steps like the desktop platforms: small prints stay small and faint, the big ones grow
+        // and get more solid (fill 18% -> 55%), one thin ring in the same colour
+        const q = Math.sqrt(p.size / thr);
+        const r = clamp(3 + 4.5 * (q - 1) + 3 * Math.min(1, q - 1), 3, rMax);
+        const k = clamp((q - 1) / 2.5, 0, 1);
         const col = p.side ? buyC : sellC;
         g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
-        g.fillStyle = alpha(col, 0.34); g.fill();
-        g.lineWidth = 1.2; g.strokeStyle = alpha(col, 0.95); g.stroke();
+        g.fillStyle = alpha(col, 0.18 + 0.37 * k); g.fill();
+        g.lineWidth = 1; g.strokeStyle = alpha(col, 0.7 + 0.3 * k); g.stroke();
         if (I.labels && r >= 10) { g.font = '600 ' + clamp(Math.floor(r * 0.75), 9, 13) + 'px ' + MONO; g.fillStyle = light() ? '#0f172a' : '#f5f5f5'; g.fillText(fmt(p.size), x, y); }
       }
       g.restore();
@@ -668,10 +688,12 @@ function vpLayer() {
           if (L1 < tA || L0 > tB) continue;
           const x0 = xOf(L0, false), x1 = xOf(L1, true);
           if (x0 == null || x1 == null) continue;
-          groups.push({ bars: f.list.slice(s.i0, s.i1 + 1), x0, x1 });
+          groups.push({ bars: f.list.slice(s.i0, s.i1 + 1), x0, x1, open: !!s.open });
         }
         if (I.naked !== false) naked = memo.naked;
       }
+      const split = I.colorMode === 'buy / sell';
+      const vaC = I.vaColor || VA_OR, outC = I.outColor || VA_OUT, pocC = I.pocColor || MAG, vaL = I.vaLineColor || VA_LN;
       g.save(); g.beginPath(); g.rect(0, top, co.width, a.bounds.height); g.clip();
       for (const gr of groups) {
         const p = profile(gr.bars, m, I.va);
@@ -688,13 +710,22 @@ function vpLayer() {
           const inVa = r >= p.val && r <= p.vah;
           const ws = span * p.sell[k] / max, wb = span * p.buy[k] / max;
           const xs = gr.right ? gr.x1 - ws - wb : gr.x0;
-          g.fillStyle = alpha(DN, inVa ? 0.55 : 0.28); g.fillRect(xs, y, ws, h);
-          g.fillStyle = alpha(UP, inVa ? 0.55 : 0.28); g.fillRect(xs + ws, y, wb, h);
+          if (split) {
+            g.fillStyle = alpha(SELL, inVa ? 0.55 : 0.28); g.fillRect(xs, y, ws, h);
+            g.fillStyle = alpha(UP, inVa ? 0.55 : 0.28); g.fillRect(xs + ws, y, wb, h);
+          } else {
+            // one colour per row: orange in the value area, khaki outside, a lighter tip on the edge
+            const c = inVa ? vaC : outC;
+            g.fillStyle = alpha(c, r === p.poc ? 0.95 : 0.78); g.fillRect(xs, y, ws + wb, h);
+            if (ws + wb > 3) { g.fillStyle = alpha(c, 1); g.fillRect(gr.right ? xs : xs + ws + wb - 1, y, 1, h); }
+          }
         }
-        const line = (r, color, w, dash) => { const y = co.priceToY((r + 0.5) * m * tick, a.scale, a.bounds); g.setLineDash(dash); g.strokeStyle = color; g.lineWidth = w; g.beginPath(); g.moveTo(gr.x0, y); g.lineTo(gr.x1, y); g.stroke(); };
-        line(p.poc, '#f5b301', 1.5, []);
-        line(p.vah, alpha(CYAN, 0.8), 1, [4, 3]);
-        line(p.val, alpha(CYAN, 0.8), 1, [4, 3]);
+        // POC + VAH/VAL: the developing (last) profile's lines run to the right edge
+        const xEnd = gr.open ? co.width : gr.x1;
+        const line = (r, color, w, dash) => { const y = co.priceToY((r + 0.5) * m * tick, a.scale, a.bounds); g.setLineDash(dash); g.strokeStyle = color; g.lineWidth = w; g.beginPath(); g.moveTo(gr.x0, y); g.lineTo(xEnd, y); g.stroke(); };
+        line(p.poc, alpha(pocC, 0.95), 1.5, []);
+        line(p.vah, alpha(vaL, 0.75), 1, [4, 3]);
+        line(p.val, alpha(vaL, 0.75), 1, [4, 3]);
         g.setLineDash([]);
       }
       // naked POCs: from the end of their segment to the bar that traded back through them (or the
@@ -707,12 +738,12 @@ function vpLayer() {
         if (xa == null || xa > co.width) continue;
         const y = co.priceToY(n.price, a.scale, a.bounds);
         if (y < top || y > top + a.bounds.height) continue;
-        g.setLineDash([2, 3]); g.strokeStyle = alpha('#f5b301', 0.85); g.lineWidth = 1.2;
+        g.setLineDash([2, 3]); g.strokeStyle = alpha(pocC, 0.85); g.lineWidth = 1.2;
         g.beginPath(); g.moveTo(Math.max(0, xa), y); g.lineTo(co.width, y); g.stroke(); g.setLineDash([]);
         const txt = 'nPOC';
         const w = g.measureText(txt).width + 6;
         g.fillStyle = light() ? 'rgba(255,255,255,0.9)' : 'rgba(11,11,13,0.85)'; g.fillRect(co.width - w - 4, y - 7, w, 14);
-        g.fillStyle = '#f5b301'; g.fillText(txt, co.width - 7, y);
+        g.fillStyle = pocC; g.fillText(txt, co.width - 7, y);
       }
       g.restore();
     },

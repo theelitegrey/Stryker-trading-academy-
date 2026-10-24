@@ -8,7 +8,7 @@
 // is estimated from candles. Bars: { t, lo, hi, o, c (tick idx), buy[], sell[] (index 0 = lo), vol,
 // delta, dmax, dmin, trades }.
 
-import { profile, rows, poc, imbalances, stacked, cvdCandles } from './chart-footprint-data.js?v=638';
+import { profile, rows, poc, imbalances, stacked, cvdCandles } from './chart-footprint-data.js?v=639';
 
 // The 14 styles, in picker order. Value = the label shown in the Style dropdown.
 export const STYLES = [

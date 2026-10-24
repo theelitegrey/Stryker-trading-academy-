@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="641">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO HOMEPAGE variation D "Problem -> Solution / Compare" (Owner order 2026-10-24,
+     homepage variations 1024). Unlisted: noindex, not in nav, sitemap or tools/og/pages.json,
+     no canonical. Styles: assets/demo-v1024-d.css. Plans + motion: assets/demo-v1024-d.js. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="TradeZoro puts order flow, GEX, a full chart, paper trading, replay, a journal and 64 chapters in one browser tab. Chapters 1–10 free.">
+<title>TradeZoro · Demo D: one tab</title>
+<meta name="theme-color" content="#000000">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=641">
+<link rel="stylesheet" href="assets/nav-features.css?v=641">
+<link rel="stylesheet" href="assets/demo-v1024-d.css?v=641">
+<script src="assets/sanitize.js?v=641"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="assets/toast.js?v=641" defer></script>
+<script src="assets/version-check.js?v=641" defer></script>
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=641">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=641">
+</head>
+<body class="pd-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+      
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#concepts">ICT / SMT</a>
+      <a href="/#platform">Platform</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="courses">Courses</a>
+      <a href="dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1" class="pd">
+
+<!-- ============ 1. HERO: the problem, then the fix ============ -->
+<section class="pd-hero" aria-labelledby="pd-h1">
+  <div class="pd-wrap">
+    <p class="pd-kicker"><span class="pd-dot" aria-hidden="true"></span>The problem with most trading setups</p>
+    <h1 id="pd-h1">Five tabs. Three apps.<br><span class="pd-strike">And you still can't see who is buying.</span></h1>
+    <p class="pd-lede">Your chart is in one place, options levels in another, notes in a third, and practice somewhere else. TradeZoro puts order flow, GEX, a full chart, practice tools and 64 chapters in <b>one browser tab</b>.</p>
+    <div class="pd-actions">
+      <a href="signup" class="btn btn-primary pd-btn-xl">Start free</a>
+      <a href="#pd-how" class="pd-textlink">See how it works <span aria-hidden="true">↓</span></a>
+    </div>
+    <ul class="pd-trust" aria-label="At a glance">
+      <li><b id="hero-enrolled-count">82</b> traders enrolled</li>
+      <li>Chapters 1–10 free</li>
+      <li>No card required</li>
+    </ul>
+  </div>
+
+  <div class="pd-wrap pd-split" aria-label="Before and after">
+    <figure class="pd-side pd-before reveal">
+      <figcaption><span class="pd-tag pd-tag-bad">Before</span> Tabs everywhere</figcaption>
+      <div class="pd-mess" aria-hidden="true">
+        <svg viewBox="0 0 520 340" class="pd-mess-svg" focusable="false">
+          <defs>
+            <pattern id="pdgrid" width="14" height="14" patternUnits="userSpaceOnUse"><path d="M14 0H0V14" fill="none" stroke="#1e1e22" stroke-width="1"/></pattern>
+          </defs>
+          <rect width="520" height="340" fill="#0b0b0d"/>
+          <rect width="520" height="340" fill="url(#pdgrid)"/>
+          <!-- window 1: a plain candle chart -->
+          <g class="pd-w pd-w1">
+            <rect x="18" y="26" width="250" height="170" rx="8" fill="#131316" stroke="#2c2c32"/>
+            <rect x="18" y="26" width="250" height="20" rx="8" fill="#1e1e22"/>
+            <circle cx="32" cy="36" r="3.5" fill="#e5484d"/><circle cx="44" cy="36" r="3.5" fill="#5c6472"/><circle cx="56" cy="36" r="3.5" fill="#5c6472"/>
+            <text x="70" y="40" class="pd-svgt">chart · tab 1</text>
+            <g stroke-width="5">
+              <path d="M44 150v-30M64 140v-36M84 128v-40M104 136v-24M124 118v-38M144 126v-30M164 110v-40M184 120v-26M204 100v-36M224 108v-30M244 92v-34" stroke="#5c6472"/>
+            </g>
+            <text x="34" y="182" class="pd-svgt pd-svgq">who traded here? ¯\_(ツ)_/¯</text>
+          </g>
+          <!-- window 2: an options spreadsheet -->
+          <g class="pd-w pd-w2">
+            <rect x="230" y="12" width="270" height="140" rx="8" fill="#131316" stroke="#2c2c32"/>
+            <rect x="230" y="12" width="270" height="20" rx="8" fill="#1e1e22"/>
+            <text x="244" y="26" class="pd-svgt">levels.xlsx · tab 2</text>
+            <g fill="#1e1e22">
+              <rect x="244" y="42" width="70" height="12"/><rect x="320" y="42" width="70" height="12"/><rect x="396" y="42" width="90" height="12"/>
+              <rect x="244" y="60" width="70" height="12"/><rect x="320" y="60" width="70" height="12"/><rect x="396" y="60" width="90" height="12"/>
+              <rect x="244" y="78" width="70" height="12"/><rect x="320" y="78" width="70" height="12"/><rect x="396" y="78" width="90" height="12"/>
+              <rect x="244" y="96" width="70" height="12"/><rect x="320" y="96" width="70" height="12"/><rect x="396" y="96" width="90" height="12"/>
+              <rect x="244" y="114" width="70" height="12"/><rect x="320" y="114" width="70" height="12"/><rect x="396" y="114" width="90" height="12"/>
+            </g>
+            <text x="248" y="144" class="pd-svgt pd-svgq">copy… paste… which strike?</text>
+          </g>
+          <!-- window 3: notes -->
+          <g class="pd-w pd-w3">
+            <rect x="300" y="168" width="200" height="140" rx="8" fill="#131316" stroke="#2c2c32"/>
+            <rect x="300" y="168" width="200" height="20" rx="8" fill="#1e1e22"/>
+            <text x="314" y="182" class="pd-svgt">journal_v3_final.txt</text>
+            <g stroke="#2c2c32" stroke-width="6" stroke-linecap="round">
+              <path d="M318 206h140M318 222h110M318 238h150M318 254h80M318 270h124"/>
+            </g>
+            <text x="318" y="296" class="pd-svgt pd-svgq">why did I take that trade?</text>
+          </g>
+          <!-- window 4: chat -->
+          <g class="pd-w pd-w4">
+            <rect x="40" y="206" width="220" height="116" rx="8" fill="#131316" stroke="#2c2c32"/>
+            <rect x="40" y="206" width="220" height="20" rx="8" fill="#1e1e22"/>
+            <text x="54" y="220" class="pd-svgt">group chat · 99+</text>
+            <rect x="54" y="236" width="130" height="18" rx="9" fill="#1e1e22"/>
+            <rect x="96" y="260" width="150" height="18" rx="9" fill="#1e1e22"/>
+            <rect x="54" y="284" width="110" height="18" rx="9" fill="#1e1e22"/>
+          </g>
+          <!-- popup -->
+          <g class="pd-w pd-w5">
+            <rect x="170" y="120" width="170" height="54" rx="8" fill="#1e1e22" stroke="#e5484d" stroke-opacity=".6"/>
+            <text x="184" y="142" class="pd-svgt pd-svgbad">Session expired</text>
+            <text x="184" y="160" class="pd-svgt">please log in again</text>
+          </g>
+        </svg>
+      </div>
+      <ul class="pd-cons">
+        <li>Candles only: no idea who traded</li>
+        <li>Levels copied by hand</li>
+        <li>A new login for every tool</li>
+      </ul>
+    </figure>
+
+    <div class="pd-arrow" aria-hidden="true"><span>→</span></div>
+
+    <figure class="pd-side pd-after reveal">
+      <figcaption><span class="pd-tag pd-tag-good">After</span> One tab</figcaption>
+      <div class="pd-browser">
+        <div class="pd-browser-bar" aria-hidden="true"><i></i><i></i><i></i><span>tradezoro.com/charts</span></div>
+        <img src="assets/images/demo-v1024/hero-vp.webp?v=641" width="1600" height="817" alt="A TradeZoro chart of NQ futures with a session volume profile and its point of control drawn over the candles" fetchpriority="high">
+      </div>
+      <ul class="pd-pros">
+        <li>Order flow on the chart you mark up</li>
+        <li>GEX levels drawn for you</li>
+        <li>One login, phone and desktop</li>
+      </ul>
+    </figure>
+  </div>
+</section>
+
+<!-- ============ 2. PAIN → FIX rows ============ -->
+<section class="pd-sec pd-pains" aria-labelledby="pd-pain-h">
+  <div class="pd-wrap">
+    <p class="pd-eyebrow">Sound familiar?</p>
+    <h2 id="pd-pain-h">Three problems. One fix each.</h2>
+    <ol class="pd-pf">
+      <li class="reveal">
+        <div class="pd-pf-p"><span class="pd-n">01</span><h3>"I see the candle but not who moved it."</h3></div>
+        <div class="pd-pf-f"><span class="pd-fix">Fix</span><p>Footprint, 14 delta styles, CVD with divergence, Big Trades and Absorption show the buying and selling inside each bar.</p></div>
+      </li>
+      <li class="reveal">
+        <div class="pd-pf-p"><span class="pd-n">02</span><h3>"My options levels live in a different app."</h3></div>
+        <div class="pd-pf-f"><span class="pd-fix">Fix</span><p>Call wall, put wall and zero gamma sit right on the futures chart, with a GEX Ladder and options volume by strike. SPX GEX is free.</p></div>
+      </li>
+      <li class="reveal">
+        <div class="pd-pf-p"><span class="pd-n">03</span><h3>"I learn with real money on the line."</h3></div>
+        <div class="pd-pf-f"><span class="pd-fix">Fix</span><p>Practise with paper trading, bar replay and backtesting, then review each trade in a journal with an AI coach.</p></div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============ 3. EVERYTHING IN ONE TAB: checklist sections ============ -->
+<section class="pd-sec pd-one" id="pd-one" aria-labelledby="pd-one-h">
+  <div class="pd-wrap">
+    <p class="pd-eyebrow">Everything in one tab</p>
+    <h2 id="pd-one-h">Tick, tick, tick.</h2>
+    <p class="pd-sub">What you get when you open TradeZoro. No downloads.</p>
+
+    <div class="pd-block reveal">
+      <div class="pd-block-copy">
+        <h3><span class="pd-chk" aria-hidden="true"></span>Order flow</h3>
+        <ul class="pd-list">
+          <li>Footprint candles</li>
+          <li>14 delta styles</li>
+          <li>CVD + divergence</li>
+          <li>Big Trades bubbles</li>
+          <li>Absorption levels</li>
+          <li>Imbalance zones</li>
+          <li>Stop runs / sweeps</li>
+          <li>Effort vs Result</li>
+          <li>Volume Profile + naked POC</li>
+          <li>Market Profile (TPO)</li>
+          <li>BTC / ETH liquidity heatmap</li>
+        </ul>
+      </div>
+      <div class="pd-shot"><img src="assets/images/demo-v1024/footprint.webp?v=641" width="1080" height="564" alt="TradeZoro footprint chart on NQ: each candle split into prices with buy and sell volume, plus delta and CVD panes" loading="lazy"></div>
+    </div>
+
+    <div class="pd-block pd-block-flip reveal">
+      <div class="pd-block-copy">
+        <h3><span class="pd-chk" aria-hidden="true"></span>GEX</h3>
+        <ul class="pd-list">
+          <li>Call wall, put wall, zero gamma</li>
+          <li>GEX Ladder</li>
+          <li>Options volume by strike</li>
+          <li>Levels drawn on the futures chart</li>
+          <li>SPX GEX free</li>
+        </ul>
+      </div>
+      <div class="pd-shot"><img src="assets/images/demo-v1024/gex.webp?v=641" width="1332" height="386" alt="TradeZoro GEX chart: SPX levels such as zero gamma and call wall converted onto an ES chart" loading="lazy"></div>
+    </div>
+
+    <div class="pd-grid3">
+      <div class="pd-card reveal">
+        <h3><span class="pd-chk" aria-hidden="true"></span>Chart tools</h3>
+        <ul class="pd-list pd-list-1">
+          <li>Drawing settings and box handles</li>
+          <li>Long / short position tool</li>
+          <li>Full indicator style settings</li>
+          <li>Liquidity Master and more indicators</li>
+          <li>Indicator + price alerts with phone push</li>
+        </ul>
+      </div>
+      <div class="pd-card reveal">
+        <h3><span class="pd-chk" aria-hidden="true"></span>Practice</h3>
+        <ul class="pd-list pd-list-1">
+          <li>Paper trading</li>
+          <li>Bar replay</li>
+          <li>Backtesting</li>
+          <li>Trade journal with AI coach</li>
+        </ul>
+      </div>
+      <div class="pd-card reveal">
+        <h3><span class="pd-chk" aria-hidden="true"></span>Learn &amp; keep up</h3>
+        <ul class="pd-list pd-list-1">
+          <li>64 chapters, 1–10 free</li>
+          <li>News and the morning brief</li>
+          <li>Market scanner</li>
+          <li>Leaderboard</li>
+          <li>Community</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. COMPARE TABLE (no names, no prices) ============ -->
+<section class="pd-sec pd-cmp" aria-labelledby="pd-cmp-h">
+  <div class="pd-wrap pd-wrap-n">
+    <p class="pd-eyebrow">Side by side</p>
+    <h2 id="pd-cmp-h">Separate tools vs one tab.</h2>
+    <div class="pd-table reveal" role="table" aria-label="Separate tools compared with TradeZoro">
+      <div class="pd-tr pd-th" role="row">
+        <span role="columnheader">What you need</span>
+        <span role="columnheader">Separate tools</span>
+        <span role="columnheader" class="pd-us">TradeZoro</span>
+      </div>
+      <div class="pd-tr" role="row"><span role="rowheader">Footprint, delta, CVD</span><span role="cell" class="pd-x">Another app</span><span role="cell" class="pd-y">On your chart</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">GEX levels</span><span role="cell" class="pd-x">Copied by hand</span><span role="cell" class="pd-y">Drawn for you</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">Volume + Market Profile</span><span role="cell" class="pd-x">Another add-on</span><span role="cell" class="pd-y">Built in</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">Paper, replay, backtest</span><span role="cell" class="pd-x">Another platform</span><span role="cell" class="pd-y">Same chart</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">Trade journal</span><span role="cell" class="pd-x">A spreadsheet</span><span role="cell" class="pd-y">With AI coach</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">Alerts to your phone</span><span role="cell" class="pd-x">Another app</span><span role="cell" class="pd-y">Push alerts</span></div>
+      <div class="pd-tr" role="row"><span role="rowheader">A course to learn it</span><span role="cell" class="pd-x">Somewhere else</span><span role="cell" class="pd-y">64 chapters</span></div>
+      <div class="pd-tr pd-tr-last" role="row"><span role="rowheader">Logins</span><span role="cell" class="pd-x">One per tool</span><span role="cell" class="pd-y">One</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. HOW IT WORKS ============ -->
+<section class="pd-sec pd-how" id="pd-how" aria-labelledby="pd-how-h">
+  <div class="pd-wrap">
+    <p class="pd-eyebrow">How it works</p>
+    <h2 id="pd-how-h">Three steps to start.</h2>
+    <ol class="pd-steps">
+      <li class="reveal"><span class="pd-step-n">1</span><h3>Sign up free</h3><p>Make an account. No card required. Chapters 1–10 and SPX GEX open straight away.</p></li>
+      <li class="reveal"><span class="pd-step-n">2</span><h3>Add order flow</h3><p>Open the chart and switch on footprint, delta, CVD or a volume profile from Indicators.</p></li>
+      <li class="reveal"><span class="pd-step-n">3</span><h3>Practise</h3><p>Paper trade, replay past sessions bar by bar, or backtest an idea. Then log it in the journal.</p></li>
+    </ol>
+    <div class="pd-shotrow reveal">
+      <figure><img src="assets/images/demo-v1024/bigtrades.webp?v=641" width="1200" height="612" alt="TradeZoro chart with Big Trades bubbles marking large orders on NQ" loading="lazy"><figcaption>Big Trades</figcaption></figure>
+      <figure><img src="assets/images/demo-v1024/absorption.webp?v=641" width="1200" height="612" alt="TradeZoro chart with an Absorption level drawn where heavy volume hit and price held" loading="lazy"><figcaption>Absorption</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. FREE vs PRO (from Firestore plans) ============ -->
+<section class="pd-sec pd-plans" id="pricing" aria-labelledby="pd-plans-h">
+  <div class="pd-wrap pd-wrap-n">
+    <p class="pd-eyebrow">Free vs Pro</p>
+    <h2 id="pd-plans-h">Start free. Upgrade when you want more.</h2>
+    <div class="pd-plan-grid" id="pd-plan-grid">
+      <!-- Static fallback mirrors the plans records; assets/demo-v1024-d.js replaces
+           the feature lists and prices from Firestore 'plans'. -->
+      <div class="pd-plan" data-plan="free">
+        <h3 data-name>Free</h3>
+        <div class="pd-price"><span data-price>$0</span><small>/ month</small></div>
+        <ul data-feats>
+          <li>Chapters 1–10 free with a free account. No card required.</li>
+          <li>GEX: SPX, same-day (0DTE) view</li>
+          <li>Order flow on NQ (last 24 hours) and crypto</li>
+          <li>Global Monitor, economic calendar and pre-market brief</li>
+          <li>Trade journal: up to 20 trades a month, entered by hand</li>
+          <li>Backtesting: 3 replay sessions a week</li>
+          <li>Community: read everything</li>
+          <li>Progress dashboard, achievements and streak</li>
+        </ul>
+        <a href="signup" class="btn btn-primary btn-block">Start free</a>
+      </div>
+      <div class="pd-plan pd-plan-pro" data-plan="pro">
+        <h3 data-name>Pro</h3>
+        <div class="pd-price"><span data-price>…</span><small data-per>/ month</small></div>
+        <div class="pd-yearly" data-yearly></div>
+        <ul data-feats>
+          <li>All 64 chapters, including the Volume Profile and Prop Firm tracks</li>
+          <li>Full GEX: every symbol and expiry view, futures conversion, strike table</li>
+          <li>Unlimited trade journal with import, broker sync, analytics and AI coach</li>
+          <li>Unlimited backtesting and replay</li>
+          <li>Charts with full order flow on every market, GEX on the chart, paper trading and alerts</li>
+          <li>Smart Money Desk, trading models and private indicators</li>
+          <li>Full community: post and send direct messages</li>
+        </ul>
+        <a href="checkout?plan=Sj1bjdpwvYJUVErjNMAb" class="btn btn-ghost btn-block" data-cta>Join Pro</a>
+      </div>
+    </div>
+    <div class="pd-cur" data-curnote></div>
+  </div>
+</section>
+
+<!-- ============ 7. FAQ: objections ============ -->
+<section class="pd-sec pd-faq" aria-labelledby="pd-faq-h">
+  <div class="pd-wrap pd-wrap-n">
+    <p class="pd-eyebrow">Fair questions</p>
+    <h2 id="pd-faq-h">"But what about…"</h2>
+    <div class="pd-qs">
+      <details><summary>Do I have to install anything?</summary><p>No. TradeZoro runs in your browser, on desktop and on your phone, with the same account on both.</p></details>
+      <details><summary>Is it really free to start?</summary><p>Yes. The Free plan needs no card. You get chapters 1–10, SPX GEX, order flow on NQ (last 24 hours) and crypto, a journal for up to 20 trades a month and 3 replay sessions a week.</p></details>
+      <details><summary>I'm new. Is order flow too advanced for me?</summary><p>The 64 chapters walk you through it step by step, and chapters 1–10 are free. You can practise everything with paper trading and bar replay before you risk anything.</p></details>
+      <details><summary>Can I place real trades from TradeZoro?</summary><p>No. Trading here is practice only: paper trading, bar replay and backtesting. TradeZoro is for learning and practice.</p></details>
+      <details><summary>Which markets have order flow?</summary><p>NQ, ES, YM, GC, SI, CL and crypto. Futures traders can also connect their own data.</p></details>
+      <details><summary>Will this make me a profitable trader?</summary><p>No tool can promise that. TradeZoro gives you the charts, the lessons and a safe place to practise. The work is yours.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. FINAL CTA ============ -->
+<section class="pd-final" aria-labelledby="pd-final-h">
+  <div class="pd-wrap">
+    <h2 id="pd-final-h">Close the other tabs.</h2>
+    <p>Order flow, GEX, charts, practice and lessons. One place.</p>
+    <a href="signup" class="btn btn-primary pd-btn-xl">Start free</a>
+  </div>
+</section>
+
+</main>
+
+<div class="pd-sticky" id="pd-sticky" aria-hidden="true">
+  <span>Free plan · No card required</span>
+  <a href="signup" class="btn btn-primary" tabindex="-1">Start free</a>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+          
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">Trade journal</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=641"></script>
+<script src="assets/progress.js?v=641"></script>
+<script src="assets/activity-log.js?v=641"></script>
+<script src="assets/banned-check.js?v=641"></script>
+<script src="assets/email-verify.js?v=641"></script>
+<script src="assets/profiles-sync.js?v=641"></script>
+<script src="assets/maintenance-check.js?v=641"></script>
+<script src="assets/branding.js?v=641"></script>
+<script src="assets/plan-price.js?v=641"></script>
+<script src="assets/launch-sale.js?v=641"></script>
+<script src="assets/main.js?v=641"></script>
+<script src="assets/theme.js?v=641"></script>
+<script src="assets/nav-features.js?v=641" defer></script>
+<script src="assets/demo-v1024-d.js?v=641" defer></script>
+</body>
+</html>

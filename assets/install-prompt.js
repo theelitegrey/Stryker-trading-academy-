@@ -103,7 +103,7 @@
       '<div class="install-sheet-backdrop" data-install-close></div>' +
       '<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install TradeZoro">' +
         '<span class="install-grab" aria-hidden="true"></span>' +
-        '<img class="install-icon" src="assets/images/tradezoro-icon-192-494.png?v=642" alt="" width="64" height="64">' +
+        '<img class="install-icon" src="assets/images/tradezoro-icon-192-494.png?v=643" alt="" width="64" height="64">' +
         '<h3>Put TradeZoro on your home screen</h3>' +
         '<p>The full academy as an app — opens straight to your dashboard, full screen, with your notifications. No app store needed.</p>' +
         '<div id="install-sheet-mid">' + steps + '</div>' +

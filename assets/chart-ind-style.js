@@ -531,6 +531,7 @@ const CSS = `
 .stk-is-tfr input[type=number]{width:56px;height:28px;border-radius:8px;border:1px solid var(--vela-border-strong,rgba(128,128,128,.35));background:transparent;color:inherit;font:inherit;padding:0 6px}
 .stk-is-tfr .stk-is-tfn{min-width:80px;flex:0 0 auto;font-weight:600}
 html.stk-day .stk-is-sel{background-color:#fff}
+.vela-ind-dialog .vela-dialog-footer button{white-space:nowrap}
 @media (max-width:700px){ .stk-is{padding:8px 10px 12px} .stk-is-r > span:first-child{min-width:80px} .stk-is-p{height:32px;min-width:34px} .stk-is-sel{height:34px;max-width:150px} .stk-is-gh{min-height:44px} }
 `;
 const PALETTE = ['#ffffff', '#d1d4dc', '#9598a1', '#787b86', '#5d606b', '#434651', '#2a2e39', '#000000', '#f23645', '#ff9800', '#ffeb3b', '#4caf50', '#089981', '#00bcd4', '#2962ff', '#673ab7', '#9c27b0', '#e91e63', '#f7525f', '#ffb74d', '#fff176', '#81c784', '#03c988', '#4dd0e1', '#5b9cf6', '#9575cd'];

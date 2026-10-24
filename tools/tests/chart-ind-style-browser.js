@@ -291,9 +291,10 @@ async function batch2(b, eng, vp){
     await shot(p, 'is-' + eng + '-' + vp + '-chart-pine-edited');
     await reload(p);
     let id2 = null;
-    for (let i = 0; i < 80 && !id2; i++) { await sleep(500); id2 = await p.evaluate((c) => { const ch = eval(c); const h = window.STRYKER_PINE.pineHandles(ch)[0]; if (!h) return null; const rec = ch.orchestrator.registry.get(h.id); return rec && rec.model && rec.__stkRaw ? h.id : null; }, chartJs); }
-    await sleep(1500);
+    for (let i = 0; i < 80 && !id2; i++) { await sleep(500); id2 = await p.evaluate((c) => { const ch = eval(c); const h = window.STRYKER_PINE.pineHandles(ch)[0]; if (!h) return null; const rec = ch.orchestrator.registry.get(h.id); return rec && rec.model && rec.__stkRaw && (rec.model.labels || []).length && (rec.model.boxes || []).length ? h.id : null; }, chartJs); }
+    await sleep(4000);
     const d2 = id2 && await drawn(p, id2);
+    if (d2) console.log('reload model', (d2.labels || []).length, 'labels', (d2.boxes || []).length, 'boxes', JSON.stringify(await styleOf(p, id2)).slice(0, 160));
     if (hasLabels) check(d2 && d2.labels.some((l) => l.__stkPx === 20 && l.italic), tag + ': reload keeps Pine label style');
     if (hasBoxes) check(d2 && d2.boxes.every((x) => x.borderWidth === 3), tag + ': reload keeps Pine box style');
     check(!p.errors.length, tag + ': no page errors', p.errors);

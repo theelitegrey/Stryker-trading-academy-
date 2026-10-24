@@ -23,6 +23,9 @@ import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, a
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
 export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE, SWP_TYPE];
 const UP = '#03c988', DN = '#f23645', AMBER = '#f5b301', CYAN = '#00adb5', VIOLET = '#9b7bff';
+// drawing palette shared with Big Trades / footprint / VP (chart-footprint.js): buyers green, sellers
+// purple, TPO grey value area + teal outside, magenta POC, light-cyan value-area lines
+const SELL = '#9d4dff', TPO_IN = '#9aa3ad', TPO_OUT = '#3f8f9a', MAG = '#e040fb', VA_LN = '#8fd8dc';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NO_DATA = 'Needs order-flow data: futures (NQ, ES, YM, GC, SI, CL and their micros) and crypto.';
 
@@ -74,7 +77,7 @@ const ABS_SCHEMA = [
   { key: 'broken', title: 'Show broken levels (faded; off = hide them)', type: 'bool', defval: true },
   { key: 'labels', title: 'Labels', type: 'bool', defval: true },
   { key: 'supColor', title: 'Sellers absorbed (support)', type: 'color', defval: UP },
-  { key: 'resColor', title: 'Buyers absorbed (resistance)', type: 'color', defval: DN }
+  { key: 'resColor', title: 'Buyers absorbed (resistance)', type: 'color', defval: SELL }
 ];
 const IMB_SCHEMA = [
   { key: 'ratio', title: 'Imbalance ratio %', type: 'int', defval: 300, min: 110, max: 2000, step: 10, tooltip: 'Diagonal: buys at a price vs sells one row lower (and sells vs buys one row higher).' },
@@ -82,7 +85,7 @@ const IMB_SCHEMA = [
   { key: 'rowTicks', title: 'Row size (ticks)', type: 'int', defval: 1, min: 1, max: 100, step: 1 },
   { key: 'filled', title: 'Filled zones', type: 'string', defval: 'faded', options: ['faded', 'hidden'] },
   { key: 'buyColor', title: 'Buy imbalance zone', type: 'color', defval: UP },
-  { key: 'sellColor', title: 'Sell imbalance zone', type: 'color', defval: DN }
+  { key: 'sellColor', title: 'Sell imbalance zone', type: 'color', defval: SELL }
 ];
 const TPO_SCHEMA = [
   { key: 'session', title: 'Session', type: 'string', defval: 'auto', options: ['auto', 'rth', 'full'], tooltip: 'auto = RTH 09:30-16:00 New York for futures, the UTC day for crypto. full = the CME day (18:00 New York).' },
@@ -92,8 +95,10 @@ const TPO_SCHEMA = [
   { key: 'va', title: 'Value area %', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
   { key: 'ib', title: 'Initial balance (periods)', type: 'int', defval: 2, min: 1, max: 8, step: 1 },
   { key: 'widthPct', title: 'Width % of the session', type: 'int', defval: 70, min: 10, max: 100, step: 1 },
-  { key: 'color', title: 'Letters', type: 'color', defval: CYAN },
-  { key: 'pocColor', title: 'POC', type: 'color', defval: AMBER }
+  { key: 'color', title: 'Value area', type: 'color', defval: TPO_IN },
+  { key: 'outColor', title: 'Outside value area', type: 'color', defval: TPO_OUT },
+  { key: 'pocColor', title: 'POC', type: 'color', defval: MAG },
+  { key: 'vaLineColor', title: 'VAH / VAL lines', type: 'color', defval: VA_LN }
 ];
 const EVR_SCHEMA = [
   { key: 'lookback', title: 'Average over (bars)', type: 'int', defval: 20, min: 5, max: 200, step: 1 },
@@ -240,16 +245,18 @@ function absLayer() {
           if (i < 0) continue;
           const x = co.logicalToX(i), y = Y(a, e.price);
           if (y < top - 10 || y > bot + 10) continue;
-          const col = e.side ? (I.resColor || DN) : (I.supColor || UP);
+          const col = e.side ? (I.resColor || SELL) : (I.supColor || UP);
           const held = e.brokeT == null;
           const xe = held ? co.width : co.logicalToX(idxOf(a.bars, e.brokeT)) + ppb / 2;
           // level line
-          g.setLineDash(held ? [] : [3, 3]); g.lineWidth = held ? 1.3 : 1; g.strokeStyle = rgba(col, held ? 0.85 : 0.5);
+          g.setLineDash(held ? [] : [3, 3]); g.lineWidth = 1; g.strokeStyle = rgba(col, held ? 0.7 : 0.35);
           g.beginPath(); g.moveTo(x, y); g.lineTo(Math.max(x, xe), y); g.stroke(); g.setLineDash([]);
-          // marker: a small square turned 45 degrees at the absorbed price
-          const r = phone ? 5 : 6;
-          g.fillStyle = rgba(col, held ? 1 : 0.7); g.strokeStyle = light() ? '#ffffff' : '#0b0b0d'; g.lineWidth = 1;
-          g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath(); g.fill(); g.stroke();
+          // marker: a hollow ring at the absorbed price (thick outline, faint fill), like the desktop
+          // platforms' absorption circles
+          const r = phone ? 7 : 9;
+          g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+          g.fillStyle = rgba(col, held ? 0.12 : 0.05); g.fill();
+          g.lineWidth = 2; g.strokeStyle = rgba(col, held ? 0.95 : 0.5); g.stroke();
           if (held && I.labels !== false) tag(g, co.width - 2, y, 'ABS ' + fmtK(e.vol), col, phone);
         }
       } finally { g.restore(); }
@@ -297,12 +304,14 @@ function imbLayer() {
             const y0 = Y(a, z.hi), y1 = Y(a, z.lo);
             const hh = Math.abs(y1 - y0), h = Math.max(3, hh), yT = Math.min(y0, y1) - (h - hh) / 2;
             if (yT > bot || yT + h < top || x1 < 0) continue;
-            const col = z.side ? (I.buyColor || UP) : (I.sellColor || DN);
-            g.fillStyle = rgba(col, open ? 0.22 : 0.07); g.fillRect(x0, yT, Math.max(2, x1 - x0), h);
+            const col = z.side ? (I.buyColor || UP) : (I.sellColor || SELL);
+            // a flat slab in the zone colour (solid on the first bar, then faint), no outline box
+            g.fillStyle = rgba(col, open ? 0.16 : 0.05); g.fillRect(x0, yT, Math.max(2, x1 - x0), h);
             if (open) {
-              g.strokeStyle = rgba(col, 0.8); g.lineWidth = 1;
-              g.beginPath(); g.moveTo(x0, yT + 0.5); g.lineTo(x1, yT + 0.5); g.moveTo(x0, yT + h - 0.5); g.lineTo(x1, yT + h - 0.5); g.stroke();
-              g.fillStyle = rgba(col, 0.9); g.fillRect(x0, yT, 2, h);
+              g.fillStyle = rgba(col, 0.85); g.fillRect(x0, yT, Math.max(2, Math.min(ppb, x1 - x0)), h);
+              g.strokeStyle = rgba(col, 0.75); g.lineWidth = 1;
+              const ye = z.side ? yT + h - 0.5 : yT + 0.5;   // buy zone: its low edge; sell zone: its high edge
+              g.beginPath(); g.moveTo(x0, ye); g.lineTo(x1, ye); g.stroke();
             }
           }
         }
@@ -314,7 +323,7 @@ function imbLayer() {
           const y = Y(a, (z.lo + z.hi) / 2);
           if (y < top + 6 || y > bot - 6 || used.some((u) => Math.abs(u - y) < 15)) continue;
           used.push(y);
-          tag(g, co.width - 2, y, (z.side ? 'Buy imb ' : 'Sell imb ') + fmtK(z.vol), z.side ? (I.buyColor || UP) : (I.sellColor || DN), phone);
+          tag(g, co.width - 2, y, (z.side ? 'Buy imb ' : 'Sell imb ') + fmtK(z.vol), z.side ? (I.buyColor || UP) : (I.sellColor || SELL), phone);
         }
       } finally { g.restore(); }
     },
@@ -393,12 +402,13 @@ function tpoLayer() {
           const rowPx = Math.abs(Y(a, row) - Y(a, 0));
           const cellW = Math.min(phone ? 9 : 11, span / Math.max(1, maxC));
           const letters = letters0 && rowPx >= minRowPx && cellW >= (phone ? 6 : 7);
-          const col = I.color || CYAN, pocC = I.pocColor || AMBER;
+          const col = I.color || TPO_IN, outC = I.outColor || TPO_OUT, pocC = I.pocColor || MAG, vaL = I.vaLineColor || VA_LN;
+          const last = s.i1 >= a.bars.length - 1;   // the developing session: lines run to the right edge
           const fs = clamp(Math.floor(Math.min(rowPx * 0.85, cellW * 1.2)), 7, phone ? 9 : 11);
           if (letters) { g.font = '600 ' + fs + 'px ' + MONO; g.textAlign = 'center'; g.textBaseline = 'middle'; }
           // IB bar at the left edge
           const yIbT = Y(a, p.ibHi), yIbB = Y(a, p.ibLo);
-          g.fillStyle = rgba(col, 0.9); g.fillRect(x0 - 3, Math.min(yIbT, yIbB), 2, Math.max(2, Math.abs(yIbB - yIbT)));
+          g.fillStyle = rgba('#2f6bff', 0.95); g.fillRect(x0 - 4, Math.min(yIbT, yIbB), 3, Math.max(2, Math.abs(yIbB - yIbT)));
           for (let k = 0; k < p.n; k++) {
             const cnt = p.counts[k];
             if (!cnt) continue;
@@ -406,23 +416,33 @@ function tpoLayer() {
             const y = Math.min(yT, yB), h = Math.abs(yB - yT);
             if (y > bot || y + h < top) continue;
             const inVa = k >= p.val && k <= p.vah, isPoc = k === p.poc, single = p.singles.includes(k);
-            const c = isPoc ? pocC : col;
+            const c = isPoc ? pocC : inVa ? col : outC;
             if (letters) {
+              // a block per period with its letter on it
               p.cols[k].forEach((per, j) => {
-                g.fillStyle = rgba(c, isPoc ? 1 : inVa ? 0.95 : 0.5);
+                g.fillStyle = rgba(c, isPoc ? 0.95 : inVa ? 0.55 : 0.6);
+                g.fillRect(x0 + cellW * j + 0.5, y + 0.5, Math.max(1, cellW - 1), Math.max(1, h - 1));
+                g.fillStyle = isPoc ? '#ffffff' : light() ? '#0f172a' : '#e8ecf1';
                 g.fillText(tpoLetter(per), x0 + cellW * (j + 0.5), y + h / 2);
               });
             } else {
-              g.fillStyle = rgba(c, isPoc ? 0.9 : inVa ? 0.5 : 0.22);
+              g.fillStyle = rgba(c, isPoc ? 0.95 : inVa ? 0.6 : 0.6);
               g.fillRect(x0, y + (h > 3 ? 0.5 : 0), cellW * cnt, Math.max(1, h - (h > 3 ? 1 : 0)));
             }
             if (single) { g.fillStyle = rgba(VIOLET, 0.8); g.fillRect(x0 - 7, y, 3, Math.max(1, h)); }
           }
           // POC / VAH / VAL across the session
-          const line = (k, c, w, dash) => { const y = Y(a, (p.r0 + k + 0.5) * row); g.setLineDash(dash); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke(); g.setLineDash([]); };
-          line(p.poc, rgba(pocC, 0.85), 1.2, []);
-          line(p.vah, rgba(col, 0.6), 1, [4, 3]);
-          line(p.val, rgba(col, 0.6), 1, [4, 3]);
+          const xEnd = last ? co.width : x1;
+          const line = (k, c, w, dash) => { const y = Y(a, (p.r0 + k + 0.5) * row); g.setLineDash(dash); g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(x0, y); g.lineTo(xEnd, y); g.stroke(); g.setLineDash([]); return y; };
+          const yP = line(p.poc, rgba(pocC, 0.9), 1.5, []);
+          const yH = line(p.vah, rgba(vaL, 0.7), 1, [4, 3]);
+          const yL = line(p.val, rgba(vaL, 0.7), 1, [4, 3]);
+          // pill labels on the developing session, just right of its profile
+          if (last && !phone) {
+            const px = Math.min(co.width - 64, x0 + span + 10);
+            const pill = (y, txt, bg, fg) => { if (y < top + 8 || y > bot - 8) return; g.font = '600 10px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'middle'; const w = g.measureText(txt).width + 12; g.fillStyle = bg; g.beginPath(); if (g.roundRect) g.roundRect(px, y - 7, w, 14, 7); else g.rect(px, y - 7, w, 14); g.fill(); g.fillStyle = fg; g.fillText(txt, px + 6, y + 0.5); };
+            pill(yH, 'VAH', rgba(vaL, 0.85), '#0b0b0d'); pill(yP, 'TPOC', rgba(pocC, 0.95), '#ffffff'); pill(yL, 'VAL', rgba(vaL, 0.85), '#0b0b0d');
+          }
           if (x1 - x0 > 90) {
             g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillStyle = dim();
             const yb = Math.min(bot - 2, Y(a, p.r0 * row) + 14);

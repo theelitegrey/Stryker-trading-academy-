@@ -40,6 +40,8 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const HIST_RE = /^book history from \d\d:\d\d$/;
 const MEM_MB = Number(process.env.MEM_MB || 25), REBIN_MS = Number(process.env.REBIN_MS || 250);
+// Build 630: 'Deep heatmap' is first and the default (tools/tests/chart-liquidity-browser.js covers it); this test
+// keeps checking the older views, starting from Combined.
 const VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 
 async function open(b, { w, h, mobile, recorder }) {
@@ -74,7 +76,7 @@ const waitBars = (p) => p.evaluate(async () => {
   return false;
 });
 const setSym = (p, sym, tf) => p.evaluate(([s, tf]) => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); c.setSymbol(s); if (tf) c.setTimeframe(tf); }, [sym, tf]);
-const addDom = (p, inputs) => p.evaluate((i) => { const c = window.STRYKER_VELA.context().cells[0].chart; c.addNativeIndicator('stk_crypto_dom', i ? { inputs: i } : undefined); window.STRYKER_VELA.context().stateChanged(); }, inputs || null);
+const addDom = (p, inputs) => p.evaluate((i) => { const c = window.STRYKER_VELA.context().cells[0].chart; i = Object.assign({ style: 'Combined (heatmap + depth + walls)' }, i || {}); c.addNativeIndicator('stk_crypto_dom', { inputs: i }); window.STRYKER_VELA.context().stateChanged(); }, inputs || null);
 const setDom = (p, inputs) => p.evaluate((i) => { const h = window.STRYKER_VELA.context().cells[0].chart.indicators().find((x) => x.nativeType === 'stk_crypto_dom'); h.setInputs(i); }, inputs);
 const dbg = (p) => p.evaluate(() => window.__stkFlow.domDebug && window.__stkFlow.domDebug());
 // Number of status-note tables the indicator shows (Vela's inspect() reports a count).
@@ -306,7 +308,7 @@ async function recorderPhase(b) {
     // default = Combined
     let s = await dbg(d.p);
     console.log('combined', JSON.stringify(Object.assign({}, s, { walls: (s && s.walls || []).slice(0, 12) })));
-    check(s && s.view === 'combined', 'default style is Combined');
+    check(s && s.view === 'combined', 'Combined style (added with style Combined; the default is Deep since build 630)');
     check(s && s.samples >= Math.min(120, WAIT_MS / 1000 * 0.8), 'book history built: ' + (s && s.samples) + ' samples (1 per second)');
     check(s && s.columns > 20 && s.cells > 50, 'heatmap drawn over time: ' + (s && s.columns) + ' columns, ' + (s && s.cells) + ' cells');
     check(s && s.depthBars > 10, 'depth bars drawn: ' + (s && s.depthBars));

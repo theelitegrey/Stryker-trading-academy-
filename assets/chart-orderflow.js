@@ -30,6 +30,9 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=629';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=629';
+
 const GROUP = 'Volume & Order flow';
 const NY_TZ = 'America/New_York';
 const RTH_OPEN = 9 * 60 + 30;
@@ -1283,6 +1286,15 @@ function footprintLayer() {
 //     size; mint = bids, red = asks), depth bars of the CURRENT book on the right edge, and the
 //     biggest persistent levels ("walls") as thick lines with their size in base-asset units.
 //   Heatmap only: one-colour intensity ramp (Bookmap-like). Depth bars only. Walls only.
+//   Deep heatmap (default since batch 2, 2026-10-24, Owner "features like deepcharts"): the dark single
+//     scale (teal -> cyan -> yellow -> orange -> red, assets/chart-liquidity-data.js DEEP_RAMP), bid depth
+//     green / ask depth purple, big resting levels with their size, and on a big level that VANISHED a
+//     "pulled" or "filled" tag: filled = trades printed into it at that price (Binance aggTrades, the
+//     crypto footprint feed) for >= 30% of its last size before it went; pulled = it went with less than
+//     that traded there. No tag when the trades do not reach back that far. Plus an "ICE" hint where one
+//     price kept trading several times its visible size while that size stayed small and kept refilling
+//     (only on the minutes this page recorded at 1 sample a second; the recorder's 1-a-minute samples
+//     cannot see a refill). Hints describe what printed; they predict nothing.
 // The 1 bucket either side of the mid is skipped (best bid / ask churn). Thin levels below the
 // chosen percentile of all sizes in view are hidden. Indicator only: it describes resting
 // orders, it predicts nothing and offers nothing to trade.
@@ -1305,7 +1317,7 @@ const BOOK_AUTO_ROW = 0.0005;              // auto row = the nice step at or bel
 const BOOK_FINE_ROW = 0.00003, BOOK_FINE_RANGE = 0.005;
 const bookFeeds = new Map();
 const BOOK_NEEDS_BINANCE = 'Crypto DOM needs a Binance crypto symbol.';
-const DOM_VIEWS = ['Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
+const DOM_VIEWS = ['Deep heatmap (heat + depth + sizes + pulled / filled)', 'Combined (heatmap + depth + walls)', 'Heatmap only', 'Depth bars only', 'Walls only'];
 const DOM_SCHEMA = [
   { key: 'style', title: 'Style', type: 'string', defval: DOM_VIEWS[0], options: DOM_VIEWS },
   { key: 'showHeat', title: 'Show heatmap (Combined)', type: 'bool', defval: true },
@@ -1314,6 +1326,9 @@ const DOM_SCHEMA = [
   { key: 'wallTopPct', title: 'Wall threshold (top % of sizes)', type: 'float', defval: 2.5, min: 0.5, max: 20, step: 0.5 },
   { key: 'wallMinSec', title: 'Wall min lifetime (seconds)', type: 'int', defval: 12, min: 0, max: 600, step: 1 },
   { key: 'showWallSizes', title: 'Show wall sizes', type: 'bool', defval: true },
+  { key: 'showVanish', title: 'Pulled / filled tags on vanished big levels (Deep)', type: 'bool', defval: true },
+  { key: 'showIce', title: 'Iceberg hint (Deep; minutes this page recorded at 1 s)', type: 'bool', defval: true },
+  { key: 'askDepthColor', title: 'Ask depth colour (Deep)', type: 'color', defval: '#8b5cf6' },
   { key: 'hidePct', title: 'Hide thin levels below (percentile)', type: 'int', defval: 60, min: 0, max: 95, step: 5 },
   { key: 'bucketUsd', title: 'Price bucket size (0 = auto)', type: 'float', defval: 0, min: 0, max: 100000, step: 0.5 },
   { key: 'bookRangePct', title: 'Book range %', type: 'float', defval: 2, min: 0.5, max: 5, step: 0.5 },
@@ -1334,15 +1349,19 @@ const DOM_SCHEMA = [
 // 6 h 'historyMins' of earlier saved charts is ignored so they pick up the recorder history.
 function domConfig(inputs) {
   const i = inputs || {};
-  const vi = i.style === 'right ladder' ? 2 : DOM_VIEWS.indexOf(i.style);
-  const view = ['combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
-  const combined = view === 'combined';
+  const vi = i.style === 'right ladder' ? 3 : i.style === 'liquidity heatmap' ? 1 : DOM_VIEWS.indexOf(i.style);
+  const view = ['deep', 'combined', 'heat', 'depth', 'walls'][vi < 0 ? 0 : vi];
+  const combined = view === 'combined' || view === 'deep';
   return {
     view,
     heat: view === 'heat' || (combined && i.showHeat !== false),
     depth: view === 'depth' || (combined && i.showDepth !== false),
     walls: view === 'walls' || (combined && i.showWalls !== false),
-    twoTone: view !== 'heat',
+    twoTone: view === 'combined' || view === 'depth' || view === 'walls',
+    deep: view === 'deep',
+    vanish: view === 'deep' && i.showVanish !== false,
+    ice: view === 'deep' && i.showIce !== false,
+    askDepth: str(i.askDepthColor, '#8b5cf6'),
     wallTop: clamp(num(i.wallTopPct, 2.5), 0.5, 20) / 100,
     wallMinMs: clamp(Math.round(num(i.wallMinSec, 12)), 0, 600) * 1000,
     wallSizes: i.showWallSizes !== false,
@@ -1903,6 +1922,16 @@ export function domDebug() { return domLast; }
 // with a small random walk, so the real indicator draws a full-cap history. Returns the feed's
 // sample count and bytes. (binLast / binStep are accepted for older callers and ignored: rows
 // are bucketed at store time, nothing is cached per frame.)
+// Test hook (tools/tests/chart-liquidity-browser.js): replace the page's recorded book with recorded samples
+// ({ ts, mid, bb, ba, step, i0, v, fs, fi0, fv } with plain arrays), as if this page had recorded them.
+export function domDebugLoad(samples) {
+  let n = 0;
+  bookFeeds.forEach((f) => {
+    f.history = samples.map((s) => Object.assign({}, s, { v: Float32Array.from(s.v), fv: s.fv ? Float32Array.from(s.fv) : undefined }));
+    f.bump(); n++;
+  });
+  return n;
+}
 export function domDebugFill() {
   const out = [];
   bookFeeds.forEach((f) => {
@@ -2073,8 +2102,9 @@ function cryptoDomLayer() {
           const n = Math.pow(Math.max(0, (Math.abs(v) - qLo) / (cap - qLo)), 0.75);
           if (n < 0.04) return null;
           if (cfg.twoTone) { const al = Math.round(cfg.opacity * Math.min(1, n * 1.3) * 20) / 20; return al > 0 ? 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',' + al + ')' : null; }
-          const nq = Math.round(n * 24) / 24; const c = domRamp(nq);
-          return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * Math.min(1, 0.25 + nq)).toFixed(2) + ')';
+          // Deep: a steeper curve keeps ordinary size teal and saves yellow / red for the biggest resting orders
+          const nq = Math.round((cfg.deep ? Math.pow(n, 1.7) : n) * 24) / 24; const c = deepColor(nq);
+          return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (cfg.opacity * Math.min(1, 0.35 + nq)).toFixed(2) + ')';
         };
         for (let c = 0; c < cols.length; c++) {
           const col = cols[c], arr = colBins[c], seen = new Set();
@@ -2094,14 +2124,14 @@ function cryptoDomLayer() {
         open.forEach((r, i) => flush(i, r));
         g.restore();
         if (hHi >= hLo) { stat.heatLo = hLo * step; stat.heatHi = (hHi + 1) * step; }
-        if (cfg.view === 'heat' && cfg.showScale) {
+        if ((cfg.view === 'heat' || cfg.deep) && cfg.showScale && !(cfg.deep && cfg.depth)) {
           // top-right corner (the chart legend owns the top-left), on a small backing box
           g.font = '10px ' + font; g.textAlign = 'left';
           const sw = 8, sh = Math.min(72, a.bounds.height - 40), bw = sw + 10 + g.measureText('More').width;
           const bx = W - bw - 8, sx = bx + 4, sy = top + 10;
           g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)'; g.fillRect(bx, sy - 4, bw + 4, sh + 8);
           const grd = g.createLinearGradient(0, sy + sh, 0, sy);
-          DOM_RAMP.forEach((c, k) => grd.addColorStop(k / (DOM_RAMP.length - 1), 'rgb(' + c.join(',') + ')'));
+          DEEP_RAMP.forEach((c, k) => grd.addColorStop(k / (DEEP_RAMP.length - 1), 'rgb(' + c.join(',') + ')'));
           g.fillStyle = grd; g.fillRect(sx, sy, sw, sh);
           g.fillStyle = light ? 'rgba(30,41,59,.9)' : 'rgba(226,232,240,.9)';
           g.fillText('More', sx + sw + 4, sy + 8); g.fillText('Less', sx + sw + 4, sy + sh);
@@ -2119,35 +2149,94 @@ function cryptoDomLayer() {
             if (Math.abs(v) < thr) continue;
             const side = v > 0 ? 1 : -1, key = arr[k] * 2 + (side > 0 ? 1 : 0);
             let w = seen.get(key);
-            if (!w) { w = { i: arr[k], side, t0: col.ts0, t1: col.ts1, x0: col.x0, x1: col.x1, max: 0 }; seen.set(key, w); }
-            w.t1 = col.ts1; w.x1 = col.x1; w.max = Math.max(w.max, Math.abs(v));
+            if (!w) { w = { i: arr[k], side, t0: col.ts0, t1: col.ts1, x0: col.x0, x1: col.x1, max: 0, lastC: c, last: 0 }; seen.set(key, w); }
+            w.t1 = col.ts1; w.x1 = col.x1; w.max = Math.max(w.max, Math.abs(v)); w.lastC = c; w.last = Math.abs(v);
           }
         }
         const list = [...seen.values()].filter(w => w.t1 - w.t0 >= cfg.wallMinMs).sort((x, y) => y.max - x.max).slice(0, 12);
+        // Deep: did a big level vanish (pulled) or trade away (filled)? Only levels gone before the newest
+        // column, checked against the crypto footprint trades at that price (null = trades do not reach back).
+        if (cfg.vanish && list.length) {
+          const tf = cryptoFeed('binance:' + f.ticker.toUpperCase());
+          const mins = tf.bars(), tick = tf.tick || 0;
+          const curMap = new Map(curRows);
+          for (const w of list) {
+            if (w.lastC >= cols.length - 1) continue;
+            const nowV = curMap.get(w.i) || 0;
+            if ((w.side > 0 ? nowV : -nowV) >= 0.25 * w.last) continue;   // it is back: not gone
+            const nxt = cols[w.lastC + 1];
+            const nv = (() => { const arr = colBins[w.lastC + 1]; for (let k = 0; k < arr.length; k += 2) if (arr[k] === w.i) return arr[k + 1]; return 0; })();
+            if ((w.side > 0 ? nv : -nv) >= 0.25 * w.last) continue;
+            w.goneAt = nxt.ts0;
+            const traded = tick > 0 && mins.length ? tradedAt(mins, tick, w.i * step, (w.i + 1) * step, cols[w.lastC].ts0, nxt.ts1 + 1000, w.side, tf.coverFrom) : null;
+            w.traded = traded; w.kind = vanishKind(w.last, traded);
+          }
+        }
         const mxv = list.length ? list[0].max : 1;
         const used = [];
         const fs = 11, maxLabels = W < 500 ? 6 : 12; // phones: fewer labels, biggest first
         g.font = 'bold ' + fs + 'px ' + font;
         g.textAlign = 'left'; g.textBaseline = 'middle';
+        stat.vanished = [];
         for (const w of list) {
           const y = Math.round(yOf((w.i + 0.5) * step)) + 0.5;
           if (y < top || y > bot) continue;
-          const rgb = w.side > 0 ? bidRgb : askRgb;
+          const rgb = w.side > 0 ? bidRgb : (cfg.deep ? rgbOf(cfg.askDepth).join(',') : askRgb);
           g.strokeStyle = 'rgba(' + rgb + ',' + (cfg.heat ? 0.95 : 0.85) + ')';
-          g.lineWidth = 1.5 + 4 * (w.max / mxv);
-          g.beginPath(); g.moveTo(Math.max(0, w.x0), y); g.lineTo(Math.min(right, w.x1), y); g.stroke();
+          g.lineWidth = cfg.deep ? 1 + 2 * (w.max / mxv) : 1.5 + 4 * (w.max / mxv);
+          const xe = Math.min(right, w.x1);
+          g.beginPath(); g.moveTo(Math.max(0, w.x0), y); g.lineTo(xe, y); g.stroke();
           const lab = fmtSize(w.max) + ' ' + f.base;
-          const rec = { label: lab, side: w.side > 0 ? 'bid' : 'ask', price: (w.i + 0.5) * step, drawn: false };
+          const rec = { label: lab, side: w.side > 0 ? 'bid' : 'ask', price: (w.i + 0.5) * step, drawn: false, kind: w.kind || null };
           stat.walls.push(rec);
-          if (!cfg.wallSizes || used.length >= maxLabels || y < top + 10 || y > bot - 8 || used.some(u => Math.abs(u - y) < 15)) continue;
-          used.push(y);
-          const tw = g.measureText(lab).width, tx = right - tw - 8;
-          if (tx < 4) continue;
+          if (w.kind) stat.vanished.push({ price: rec.price, kind: w.kind, last: w.last, traded: w.traded, side: rec.side });
+          if (!cfg.wallSizes || used.length >= maxLabels || y < top + 10 || y > bot - 8) continue;
+          const gone = cfg.deep && w.goneAt != null;
+          const tag = gone && w.kind ? (w.kind === 'filled' ? ' FILLED' : ' PULLED') : '';
+          const txt = lab + tag;
+          const tw = g.measureText(txt).width;
+          // a gone level is labelled where it ended, a live one at the right edge
+          let tx = gone ? xe + 6 : right - tw - 8;
+          if (gone && tx + tw > right - 4) tx = xe - tw - 8;
+          if (tx < 4 || used.some(u => Math.abs(u.y - y) < 15 && tx < u.x1 + 4 && tx + tw > u.x0 - 4)) continue;
+          used.push({ y, x0: tx, x1: tx + tw });
           g.fillStyle = light ? 'rgba(255,255,255,.88)' : 'rgba(5,5,6,.85)';
           g.fillRect(tx - 3, y - 8, tw + 6, 16);
           g.fillStyle = 'rgb(' + rgb + ')';
           g.fillText(lab, tx, y + 0.5);
+          if (tag) {
+            g.fillStyle = w.kind === 'filled' ? '#f5b301' : (light ? '#64748b' : '#a3a9b6');
+            g.fillText(tag, tx + g.measureText(lab).width, y + 0.5);
+            // a small end cap: a filled square = traded away, a hollow one = pulled
+            g.strokeStyle = g.fillStyle; g.lineWidth = 1.2;
+            if (w.kind === 'filled') g.fillRect(xe - 3, y - 3, 6, 6); else g.strokeRect(xe - 3, y - 3, 6, 6);
+          }
           rec.drawn = true;
+        }
+        g.textBaseline = 'alphabetic';
+      }
+
+      // ---- iceberg hint (Deep): only on minutes this page recorded at 1 sample a second ----
+      stat.ice = [];
+      if (cfg.ice && cols.length) {
+        const tf = cryptoFeed('binance:' + f.ticker.toUpperCase());
+        const mins = tf.bars().filter((b) => b.t >= tf.coverFrom), tick = tf.tick || 0;
+        const iStep = fst > 0 ? Math.max(fst, tick) : sst;
+        const loc = f.history.filter((x) => x.ts >= visFrom);
+        const ik = loc.length + ':' + (loc.length ? loc[loc.length - 1].ts : 0) + ':' + tf.v + ':' + iStep;
+        if (f.iceKey !== ik) { f.iceKey = ik; f.iceEv = tick > 0 && loc.length ? icebergEvents(loc, mins, { step: iStep, tick }) : []; }
+        const used = [];
+        g.font = 'bold 9px ' + font; g.textAlign = 'center'; g.textBaseline = 'middle';
+        for (const e of f.iceEv || []) {
+          const x = co.timeToX(e.t + 30000), y = yOf(e.price + iStep / 2);
+          if (!Number.isFinite(x) || x < 0 || x > right || y < top + 8 || y > bot - 8) continue;
+          stat.ice.push({ t: e.t, price: e.price, side: e.side, traded: e.traded, visible: e.visible });
+          if (used.some((u) => Math.abs(u.x - x) < 26 && Math.abs(u.y - y) < 12)) continue;
+          used.push({ x, y });
+          const tw = g.measureText('ICE').width + 6;
+          g.fillStyle = light ? 'rgba(255,255,255,.92)' : 'rgba(5,5,6,.88)'; g.fillRect(x - tw / 2, y - 6, tw, 12);
+          g.strokeStyle = '#38bdf8'; g.lineWidth = 1; g.strokeRect(x - tw / 2 + 0.5, y - 5.5, tw - 1, 11);
+          g.fillStyle = '#38bdf8'; g.fillText('ICE', x, y + 0.5);
         }
         g.textBaseline = 'alphabetic';
       }
@@ -2162,7 +2251,7 @@ function cryptoDomLayer() {
           const [y, h] = rowY(i);
           if (y > bot || y + h < top) continue;
           const w = Math.max(1, Math.sqrt(Math.abs(v) / mx) * wmax);
-          g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : askRgb) + ',0.75)';
+          g.fillStyle = 'rgba(' + (v > 0 ? bidRgb : (cfg.deep ? rgbOf(cfg.askDepth).join(',') : askRgb)) + ',0.75)';
           g.fillRect(x0, y + (h > 3 ? 0.5 : 0), w, Math.max(1, h - (h > 3 ? 1 : 0)));
           stat.depthBars++;
           if (i < dLo) dLo = i; if (i > dHi) dHi = i;

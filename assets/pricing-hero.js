@@ -102,6 +102,8 @@
       ['Manual entry', true, true],
       ['Import and broker sync', false, true],
       ['Analytics and AI coach', false, true]]],
+    ['Order flow', [
+      ['Footprint, delta, CVD, big trades, absorption, volume profile', 'NQ (last 24 h) and crypto', 'Every supported futures market, full history']]],
     ['Backtesting', [
       ['Replay sessions', '3 / week', 'Unlimited']]],
     ['Market desk', [

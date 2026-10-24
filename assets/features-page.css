@@ -185,6 +185,8 @@ html.fp-anim .is-playing .fg-arrow svg{ animation:fg-nudge 1.6s ease-in-out infi
   .fg-arrow svg{ transform:rotate(-90deg); }
   html.fp-anim .is-playing .fg-arrow svg{ animation:fg-nudge-x 1.6s ease-in-out infinite; }
 }
+/* plain 3-card row (no arrows), e.g. features/indicators #on-our-charts */
+@media (min-width:760px){ .fg-flow.fg-cards3{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
 @keyframes fg-nudge-x{ 0%,100%{ transform:rotate(-90deg) translateY(-2px); } 50%{ transform:rotate(-90deg) translateY(3px); } }
 
 /* ---- section 4: timeline ---------------------------------------------- */

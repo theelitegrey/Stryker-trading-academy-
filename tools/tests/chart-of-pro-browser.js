@@ -101,7 +101,9 @@ const CASES = [
   ['vp-swing', 'stk_of_vp', { range: 'swing', swingLen: 10 }, '5', D21(4, 0), D21(17, 0)],
   ['tpo', 'stk_of_tpo', {}, '5', Date.UTC(2026, 9, 20, 13, 0), D21(17, 0)],
   ['tpo-zoom', 'stk_of_tpo', {}, '5', D21(13, 25), D21(17, 0)],
-  ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)]
+  ['evr', 'stk_of_evr', {}, '5', D21(4, 0), D21(17, 0)],
+  ['sweep', 'stk_of_sweep', {}, '1', D21(12, 30), D21(16, 30)],
+  ['sweep5', 'stk_of_sweep', {}, '5', D21(4, 0), D21(17, 0)]
 ].filter((c) => !ONLY.length || ONLY.includes(c[0]));
 
 (async () => {
@@ -116,8 +118,8 @@ const CASES = [
         if (w === 1440) {
           await p.waitForFunction(() => { try { return window.STRYKER_VELA.active.libraryRows().some((r) => r.category === 'Order Flow'); } catch (e) { return false; } }, null, { timeout: 30000 }).catch(() => {});
           const rows = await p.evaluate(() => window.STRYKER_VELA.active.libraryRows().filter((r) => r.category === 'Order Flow').map((r) => r.name));
-          const want = ['Big Trades', 'Absorption', 'Imbalance Zones', 'Volume Profile (trades', 'Market Profile (TPO)', 'Effort vs Result'];
-          check(want.every((x) => rows.some((r) => r.startsWith(x))), eng + ': the six tools are in the Order Flow group', rows);
+          const want = ['Big Trades', 'Absorption', 'Imbalance Zones', 'Volume Profile (trades', 'Market Profile (TPO)', 'Effort vs Result', 'Stop Runs / Sweeps'];
+          check(want.every((x) => rows.some((r) => r.startsWith(x))), eng + ': the seven tools are in the Order Flow group', rows);
         }
         let tfNow = '';
         for (const [id, type, inputs, tf, a, z] of CASES) {
@@ -142,6 +144,16 @@ const CASES = [
             check(n2 < n, eng + ' ' + w + ' abs: "hide broken levels" setting removes them (' + n + ' -> ' + n2 + ' px)');
             await p.screenshot({ path: path.join(OUT, 'ofp-' + eng + '-' + w + '-abs-hidden.png') });
             await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_abs'); h.setInputs(Object.assign({}, h.inputValues(), { broken: true })); });
+            await sleep(1500);
+          } else if (type === 'stk_of_sweep') {
+            const n = await ink(p);
+            const cnt = await p.evaluate(() => { const r = window.STRYKER_VELA.chart.renderer.renderer; const m = [...r.scene.indicators.values()].find((x) => x.native && x.native.type === 'stk_of_sweep'); return m && m.native.instance ? m.native.instance.lastSweeps : null; }).catch(() => null);
+            check(n > base + 10, eng + ' ' + w + ' ' + id + ': draws sweep markers (' + base + ' -> ' + n + ' px, events ' + cnt + ')');
+            await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_sweep'); h.setInputs(Object.assign({}, h.inputValues(), { volMult: 10 })); });
+            await sleep(1500);
+            const n2 = await ink(p);
+            check(n2 < n, eng + ' ' + w + ' ' + id + ': a 10x volume spike setting leaves fewer marks (' + n + ' -> ' + n2 + ' px)');
+            await p.evaluate(() => { const h = window.STRYKER_VELA.chart.indicators().find((x) => x.nativeType === 'stk_of_sweep'); h.setInputs(Object.assign({}, h.inputValues(), { volMult: 1.5 })); });
             await sleep(1500);
           } else {
             const n = await ink(p);

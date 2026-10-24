@@ -226,6 +226,49 @@ export function effortResult(items, { lookback = 20, minEffort = 1.5, ratio = 2 
   return out;
 }
 
+// ---------------------------------------------------------------- Stop-run / sweep
+// A bar that pokes beyond a recent swing high (low) on a volume spike and CLOSES back inside: the
+// stops resting above the high (below the low) were run, and price did not hold out there.
+// bars = [{ high, low, close, vol }] (vol = real traded volume where order flow exists, else the
+// feed's). Swing = a high (low) that no bar within `len` bars on either side exceeds (ties go to the
+// earlier bar); it becomes usable only once confirmed, i.e. from bar p + len + 1, and stays usable for
+// `maxAge` bars. Bar i SWEEPS a usable swing high H when high[i] > H, close[i] < H and vol[i] >=
+// volMult x the average volume of the previous `lookback` bars (needs >= 5 of them). Every usable swing
+// high that bar i trades above is consumed (swept, or broken by a close beyond, or a poke without the
+// volume): a level is only run once. The event keeps the HIGHEST swept level (the furthest run).
+// Mirror for lows. Returns [{ i, side: 1 = highs swept (buy stops above) | 0 = lows swept, level, p
+// (pivot bar), extreme (the wick), volX, n (levels swept) }] in bar order.
+export function sweepEvents(bars, { len = 5, lookback = 20, volMult = 1.5, maxAge = 300 } = {}) {
+  const n = bars.length, out = [];
+  if (n < 2 * len + 2) return out;
+  const isHi = (p) => { for (let j = p - len; j <= p + len; j++) { if (j === p || j < 0 || j >= n) continue; if (bars[j].high > bars[p].high || (bars[j].high === bars[p].high && j < p)) return false; } return true; };
+  const isLo = (p) => { for (let j = p - len; j <= p + len; j++) { if (j === p || j < 0 || j >= n) continue; if (bars[j].low < bars[p].low || (bars[j].low === bars[p].low && j < p)) return false; } return true; };
+  let his = [], los = [], sv = 0;
+  for (let i = 0; i < n; i++) {
+    const p = i - len - 1;   // confirmed by bar i - 1
+    if (p >= len) { if (isHi(p)) his.push({ p, price: bars[p].high }); if (isLo(p)) los.push({ p, price: bars[p].low }); }
+    his = his.filter((h) => i - h.p <= maxAge); los = los.filter((l) => i - l.p <= maxAge);
+    const m = Math.min(i, lookback);
+    if (i > lookback) sv -= bars[i - lookback - 1].vol || 0;
+    const avg = m ? sv / m : 0, b = bars[i], v = b.vol || 0;
+    const spike = m >= Math.min(5, lookback) && avg > 0 && v >= volMult * avg;
+    const took = his.filter((h) => b.high > h.price), keepH = his.filter((h) => b.high <= h.price);
+    if (took.length) {
+      const back = took.filter((h) => b.close < h.price);
+      if (spike && back.length) { const top = back.reduce((x, y) => (y.price > x.price ? y : x)); out.push({ i, side: 1, level: top.price, p: top.p, extreme: b.high, volX: v / avg, n: back.length }); }
+      his = keepH;
+    }
+    const tookL = los.filter((l) => b.low < l.price), keepL = los.filter((l) => b.low >= l.price);
+    if (tookL.length) {
+      const back = tookL.filter((l) => b.close > l.price);
+      if (spike && back.length) { const bot = back.reduce((x, y) => (y.price < x.price ? y : x)); out.push({ i, side: 0, level: bot.price, p: bot.p, extreme: b.low, volX: v / avg, n: back.length }); }
+      los = keepL;
+    }
+    sv += v;
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- New York sessions
 const nyF = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
 const nyC = new Map();

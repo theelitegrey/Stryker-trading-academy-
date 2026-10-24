@@ -9,15 +9,19 @@
 //     or blocks per 30 minutes, initial balance, POC, value area, single prints.
 //   - Effort vs Result (stk_of_evr): its own pane. Effort = volume vs its average, result = range vs
 //     its average; flags high-effort / low-result bars (and the reverse).
+//   - Stop Runs / Sweeps (stk_of_sweep, batch 2, 2026-10-24): a bar that pokes beyond a recent swing
+//     high / low on a volume spike and closes back inside. A small triangle at the wick, a dotted line
+//     from the swing to the sweep, and a short label. Real traded volume where order flow exists,
+//     the chart's own volume elsewhere (so it works on every symbol with volume).
 // Big Trades and the swing / session Volume Profile + naked POC live in assets/chart-footprint.js.
 // Data: the SAME real order flow as the footprint (the book-recorder Worker for NQ ES YM GC SI CL and
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey } from './chart-of-pro-data.js?v=628';
+import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=628';
 
-export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr';
-export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE];
+export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
+export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE, SWP_TYPE];
 const UP = '#03c988', DN = '#f23645', AMBER = '#f5b301', CYAN = '#00adb5', VIOLET = '#9b7bff';
 const MONO = '"JetBrains Mono", ui-monospace, monospace';
 const NO_DATA = 'Needs order-flow data: futures (NQ, ES, YM, GC, SI, CL and their micros) and crypto.';
@@ -101,7 +105,17 @@ const EVR_SCHEMA = [
   { key: 'flagColor', title: 'High effort, low result', type: 'color', defval: AMBER },
   { key: 'revColor', title: 'Low effort, high result', type: 'color', defval: VIOLET }
 ];
-const SCHEMA = { [ABS_TYPE]: ABS_SCHEMA, [IMB_TYPE]: IMB_SCHEMA, [TPO_TYPE]: TPO_SCHEMA, [EVR_TYPE]: EVR_SCHEMA };
+const SWP_SCHEMA = [
+  { key: 'len', title: 'Swing strength (bars each side)', type: 'int', defval: 5, min: 2, max: 50, step: 1, tooltip: 'A swing high / low is the extreme of this many bars on both sides.' },
+  { key: 'volMult', title: 'Volume spike at least (x average)', type: 'float', defval: 1.5, min: 1, max: 10, step: 0.1 },
+  { key: 'lookback', title: 'Average volume over (bars)', type: 'int', defval: 20, min: 5, max: 200, step: 1 },
+  { key: 'maxAge', title: 'Swings older than (bars) are ignored', type: 'int', defval: 300, min: 20, max: 2000, step: 10 },
+  { key: 'lines', title: 'Line from the swing to the sweep', type: 'bool', defval: true },
+  { key: 'labels', title: 'Labels', type: 'bool', defval: true },
+  { key: 'hiColor', title: 'Swing high swept', type: 'color', defval: DN },
+  { key: 'loColor', title: 'Swing low swept', type: 'color', defval: UP }
+];
+const SCHEMA = { [ABS_TYPE]: ABS_SCHEMA, [IMB_TYPE]: IMB_SCHEMA, [TPO_TYPE]: TPO_SCHEMA, [EVR_TYPE]: EVR_SCHEMA, [SWP_TYPE]: SWP_SCHEMA };
 
 // ---------------------------------------------------------------- natives
 let H = null;   // hooks from chart-footprint.js
@@ -110,7 +124,7 @@ class ProNative {
   start(ctx, inputs) { this.ctx = ctx; this.inputs = Object.assign(defaults(this.schema), inputs); this.on = true; H.use(); H.subscribe(this.onAny); this.render(); }
   later() { if (!this.tm) this.tm = setTimeout(() => { this.tm = 0; this.render(); }, 250); }
   onBars() { this.later(); }
-  onViewport() { if (this.type === TPO_TYPE) this.push(); }
+  onViewport() { if (this.type === TPO_TYPE || this.type === SWP_TYPE) this.push(); }
   setInputs(i) { this.inputs = Object.assign(defaults(this.schema), i); this.memo.clear(); this.render(); }
   suspend() { this.on = false; H.unsubscribe(this.onAny); this.push(); }
   resume() { this.on = true; H.subscribe(this.onAny); this.render(); }
@@ -120,6 +134,7 @@ class ProNative {
     if (!this.ctx) return;
     const bars = this.ctx.bars();
     if (this.type === TPO_TYPE) { this.renderTpo(bars); return; }
+    if (this.type === SWP_TYPE) { this.renderSweep(bars); return; }
     const f = this.flow(bars);
     const tables = !H.rootOf(this.ctx) ? [note(this.type + '-msg', NO_DATA)] : f.note ? [note(this.type + '-msg', f.note, f.locked)] : [];
     this.ctx.setStatus(f.loading ? 'loading' : 'idle');
@@ -131,6 +146,14 @@ class ProNative {
   renderTpo(bars) {
     const tf = tfMin(this.ctx.timeframe);
     const tables = tf == null || tf > num(this.inputs.period, 30) ? [note('stk_of_tpo-msg', 'Market Profile needs a chart timeframe of ' + num(this.inputs.period, 30) + ' minutes or less.')] : [];
+    this.ctx.setStatus('idle');
+    this.ctx.emit({ tables });
+    this.push();
+  }
+  // Stop runs: works on any symbol with volume (order-flow volume preferred, see sweepBars).
+  renderSweep(bars) {
+    if (H.rootOf(this.ctx)) this.flow(bars);   // starts the order-flow load where it exists
+    const tables = bars.length && !bars.some((b) => b.volume > 0) && !H.rootOf(this.ctx) ? [note('stk_of_sweep-msg', 'Stop Runs / Sweeps needs bars with volume.')] : [];
     this.ctx.setStatus('idle');
     this.ctx.emit({ tables });
     this.push();
@@ -412,6 +435,71 @@ function tpoLayer() {
   };
 }
 
+// Stop runs / sweeps on the chart's own bars. Volume per bar = the real traded volume from order flow
+// when this chart has it for that bar, else the feed's volume.
+export function sweepBars(bars, map) {
+  return bars.map((b) => { const x = map && map.get(b.time); return { high: b.high, low: b.low, close: b.close, vol: x ? x.vol : (b.volume || 0) }; });
+}
+function sweepLayer() {
+  let canvas = null;
+  return {
+    mount(c) { canvas = c; },
+    render(a) {
+      const g = frame(canvas, a);
+      if (!g) return;
+      try {
+        const inst = a.data.owner, I = inst.inputs, co = a.coords, phone = co.width < 520;
+        const f = H.rootOf(inst.ctx) ? inst.flow(a.bars) : {};
+        const map = f.map || null;
+        const last = a.bars[a.bars.length - 1];
+        const key = a.bars.length + '|' + a.bars[0].time + '|' + last.time + '|' + last.high + '|' + last.low + '|' + last.close + '|' + (map ? map.size + ':' + H.version() : 0) + '|' + I.len + '|' + I.volMult + '|' + I.lookback + '|' + I.maxAge;
+        let st = inst.memo.get('swp');
+        if (!st || st.key !== key) {
+          const sb = sweepBars(a.bars, map);
+          // the newest bar is still forming: it is not judged until it closes
+          const ev = sweepEvents(sb.slice(0, -1), { len: clamp(Math.round(num(I.len, 5)), 2, 50), lookback: clamp(Math.round(num(I.lookback, 20)), 5, 200), volMult: num(I.volMult, 1.5), maxAge: clamp(Math.round(num(I.maxAge, 300)), 20, 2000) });
+          st = { key, ev, flow: !!(map && map.size) };
+          inst.memo.set('swp', st);
+          inst.lastSweeps = ev.length;
+        }
+        const vr = co.visibleLogicalRange();
+        const i0 = Math.floor(vr.from) - 1, i1 = Math.ceil(vr.to) + 1;
+        const top = a.bounds.top, bot = top + a.bounds.height;
+        const vis = st.ev.filter((e) => e.i >= i0 && e.i <= i1);
+        const r = phone ? 4.5 : 5.5, used = [];
+        const maxLab = phone ? 6 : 14;
+        let labs = 0;
+        for (let k = vis.length - 1; k >= 0; k--) {   // newest first: labels go to the latest
+          const e = vis[k], col = e.side ? (I.hiColor || DN) : (I.loColor || UP);
+          const x = co.logicalToX(e.i), yL = Y(a, e.level), yX = Y(a, e.extreme);
+          if (I.lines !== false) {
+            const xp = co.logicalToX(e.p);
+            g.setLineDash([2, 3]); g.strokeStyle = rgba(col, 0.75); g.lineWidth = 1;
+            g.beginPath(); g.moveTo(xp, yL); g.lineTo(x, yL); g.stroke(); g.setLineDash([]);
+          }
+          // a triangle beyond the wick, pointing back inside (down above a swept high, up below a swept low)
+          const off = r + 3, ty = e.side ? yX - off : yX + off;
+          if (ty < top - 10 || ty > bot + 10) continue;
+          g.fillStyle = col; g.strokeStyle = light() ? '#ffffff' : '#0b0b0d'; g.lineWidth = 1;
+          g.beginPath();
+          if (e.side) { g.moveTo(x - r, ty - r); g.lineTo(x + r, ty - r); g.lineTo(x, ty + r * 0.6); }
+          else { g.moveTo(x - r, ty + r); g.lineTo(x + r, ty + r); g.lineTo(x, ty - r * 0.6); }
+          g.closePath(); g.fill(); g.stroke();
+          if (I.labels === false || labs >= maxLab) continue;
+          const txt = (phone ? (e.side ? 'Sweep H' : 'Sweep L') : (e.side ? 'Swept high ' : 'Swept low ') + e.volX.toFixed(1) + 'x');
+          g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'center';
+          const w = g.measureText(txt).width + 8, ly = e.side ? ty - r - 10 : ty + r + 10;
+          if (ly < top + 7 || ly > bot - 7 || used.some((u) => Math.abs(u.y - ly) < 15 && Math.abs(u.x - x) < (u.w + w) / 2 + 2)) continue;
+          used.push({ x, y: ly, w }); labs++;
+          g.fillStyle = plateC(); g.fillRect(x - w / 2, ly - 7, w, 14);
+          g.fillStyle = col; g.fillText(txt, x, ly);
+        }
+      } finally { g.restore(); }
+    },
+    destroy() { canvas = null; }
+  };
+}
+
 // ---------------------------------------------------------------- install (from installFootprint)
 let installed = false;
 export function installOfPro(Core, hooks) {
@@ -421,12 +509,14 @@ export function installOfPro(Core, hooks) {
   Core.registerRendererLayer({ id: ABS_TYPE, placement: 'above-data', create: absLayer });
   Core.registerRendererLayer({ id: IMB_TYPE, placement: 'below-data', create: imbLayer });
   Core.registerRendererLayer({ id: TPO_TYPE, placement: 'below-data', create: tpoLayer });
+  Core.registerRendererLayer({ id: SWP_TYPE, placement: 'above-data', create: sweepLayer });
   const reg = (type, title, short, pane, overlay, extra) => Core.registerNativeIndicator(Object.assign({ type, title, shortTitle: short, paneHint: pane, overlay,
     inputsSchema: () => SCHEMA[type], defaultInputs: () => defaults(SCHEMA[type]), create: () => new ProNative(type) }, extra || {}));
   reg(ABS_TYPE, 'Absorption (levels until broken)', 'Absorption', 'price', true);
   reg(IMB_TYPE, 'Imbalance Zones (stacked, until filled)', 'Imbalance Zones', 'price', true);
   reg(TPO_TYPE, 'Market Profile (TPO)', 'TPO', 'price', true, { reactsToViewport: true });
   reg(EVR_TYPE, 'Effort vs Result', 'Effort vs Result', 'new', false);
+  reg(SWP_TYPE, 'Stop Runs / Sweeps (swing high / low + volume spike)', 'Sweeps', 'price', true, { reactsToViewport: true });
 }
 // Read-only handle for the browser suite.
 if (typeof window !== 'undefined') window.__stkOfPro = { PRO_TYPES };

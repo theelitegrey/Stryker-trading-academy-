@@ -142,4 +142,38 @@ for (const tf of [1, 5]) {
   ok(f1.length > 0 && f1.length < bars.length * 0.1 && f1.every((x) => x.e >= 1.5 && x.e >= 2 * x.r), tf + 'm: ' + f1.length + ' high-effort / low-result bars flagged (rule re-checked)');
   ok(er.filter((x) => x.flag === 2).every((x) => x.r >= 1.5 && x.r >= 2 * x.e), tf + 'm: low-effort / high-result flags obey the rule');
 }
+
+// ---- 7. Stop runs / sweeps (batch 2)
+const vb = (bars) => bars.map((b) => ({ high: b.hi * 0.25, low: b.lo * 0.25, close: b.c * 0.25, vol: b.vol }));
+for (const [name, M] of [['20 Oct', MA], ['21 Oct', MB]]) for (const tf of [1, 5]) {
+  const B = vb(D.aggregate(M, tf * 60000)), L = 5, LB = 20;
+  const ev = P.sweepEvents(B, { len: L, lookback: LB, volMult: 1.5 });
+  ok(ev.length >= 1 && ev.length <= B.length * 0.05, name + ' ' + tf + 'm sweeps: ' + ev.length + ' on ' + B.length + ' bars (rare)');
+  for (const e of ev) {
+    const b = B[e.i], pv = B[e.p];
+    // the swing is the extreme of its +-5 window, confirmed before the sweep bar
+    assert.ok(e.p + L < e.i, 'swing confirmed before the sweep');
+    for (let j = Math.max(0, e.p - L); j <= Math.min(B.length - 1, e.p + L); j++) if (j !== e.p) assert.ok(e.side ? B[j].high <= pv.high : B[j].low >= pv.low, 'pivot is the window extreme');
+    assert.equal(e.level, e.side ? pv.high : pv.low);
+    // poke beyond, close back inside
+    assert.ok(e.side ? b.high > e.level && b.close < e.level : b.low < e.level && b.close > e.level, 'poke + close back inside');
+    // volume spike vs the previous 20 bars
+    const w = B.slice(Math.max(0, e.i - LB), e.i), av = sum(w.map((x) => x.vol)) / w.length;
+    assert.ok(b.vol >= 1.5 * av - 1e-9 && Math.abs(e.volX - b.vol / av) < 1e-9, 'volume spike');
+    // nothing traded beyond the level between the swing's confirmation and the sweep (first run only)
+    for (let j = e.p + L + 1; j < e.i; j++) assert.ok(e.side ? B[j].high <= e.level : B[j].low >= e.level, 'first time beyond the level');
+  }
+  ok(true, name + ' ' + tf + 'm sweeps: each re-checked against the bars (swing window, poke + close back inside, ' + LB + '-bar volume spike, first run)');
+}
+// synthetic: a planted sweep is found; the same poke without the volume, or a close outside, is not
+const base = Array.from({ length: 30 }, (_, i) => ({ high: 100 + (i === 10 ? 5 : 0), low: 95 - (i === 20 ? 5 : 0), close: 98, vol: 10 }));
+const planted2 = base.concat([{ high: 106, low: 97, close: 99, vol: 40 }]);
+const sw = P.sweepEvents(planted2);
+ok(sw.length === 1 && sw[0].side === 1 && sw[0].level === 105 && sw[0].p === 10 && sw[0].extreme === 106, 'sweep: planted poke above the 105 swing high on 4x volume, closed back inside', sw);
+ok(P.sweepEvents(base.concat([{ high: 106, low: 97, close: 99, vol: 12 }])).length === 0, 'sweep: the same poke on normal volume is not one');
+ok(P.sweepEvents(base.concat([{ high: 106, low: 97, close: 105.5, vol: 40 }])).length === 0, 'sweep: a close beyond the high is a break, not a sweep');
+const low2 = P.sweepEvents(base.concat([{ high: 99, low: 88, close: 96, vol: 40 }]));
+ok(low2.length === 1 && low2[0].side === 0 && low2[0].level === 90, 'sweep: planted run below the 90 swing low', low2);
+const twice = P.sweepEvents(planted2.concat([{ high: 100, low: 97, close: 98, vol: 10 }, { high: 106.5, low: 97, close: 99, vol: 50 }]));
+ok(twice.length === 1, 'sweep: a level is only run once', twice);
 console.log('\n' + n + ' checks passed');

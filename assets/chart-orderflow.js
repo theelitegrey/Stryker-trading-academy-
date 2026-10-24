@@ -2280,7 +2280,7 @@ const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap
   'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
 // Order flow from exchange trades (assets/chart-footprint.js): their own group, above this one.
 const OF_GROUP = 'Order Flow';
-const OF_GROUP_TYPES = ['stk_dsuite', 'stk_dpane', 'stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_tpo', 'stk_of_evr', 'stk_of_vwap'];   // pro tools: assets/chart-of-pro.js   // Delta suite first (assets/chart-delta-suite.js)
+const OF_GROUP_TYPES = ['stk_dsuite', 'stk_dpane', 'stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_of_vwap'];   // pro tools: assets/chart-of-pro.js   // Delta suite first (assets/chart-delta-suite.js)
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
   { id: 'frvp', name: 'Fixed Range Volume Profile (drag a range)' }

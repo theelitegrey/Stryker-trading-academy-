@@ -406,13 +406,14 @@ function footprintLayer() {
           const v = r.buy + r.sell, dl = r.buy - r.sell;
           if (cfg.mode === 'bidask') {
             // plain numbers on the chart background (left = sells hit the bid, right = buys lifted the
-            // ask); only a faint tint behind the side that dominated the row. Phone zoom (no numbers):
+            // ask); only a faint tint behind the side that dominated the row. Zoomed out (no numbers):
             // the tint is the cell, so it stays stronger.
             const sd = r.sell > r.buy, bd = r.buy > r.sell;
-            const base = compact ? 0.12 : 0.03, span = compact ? 0.55 : 0.16;
-            g.fillStyle = alpha(SELL, base + span * (r.sell / max) * (sd || compact ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
+            const bare = !showText;   // no numbers at this zoom: the tint is the cell
+            const base = bare ? 0.2 : 0.03, span = bare ? 0.7 : 0.16;
+            g.fillStyle = alpha(SELL, base + span * (r.sell / max) * (sd || bare ? 1 : 0.3) + (imb.sell[k] ? 0.12 : 0));
             g.fillRect(xl, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
-            g.fillStyle = alpha(UP, base + span * (r.buy / max) * (bd || compact ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
+            g.fillStyle = alpha(UP, base + span * (r.buy / max) * (bd || bare ? 1 : 0.3) + (imb.buy[k] ? 0.12 : 0));
             g.fillRect(x + 0.5, y + 0.5, w / 2 - 0.5, Math.max(1, h - 1));
           } else {
             g.fillStyle = cfg.mode === 'delta' ? alpha(dl >= 0 ? UP : SELL, 0.06 + 0.45 * Math.abs(dl) / max) : alpha(CYAN, 0.06 + 0.4 * v / max);

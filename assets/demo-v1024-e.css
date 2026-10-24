@@ -56,7 +56,7 @@
   font:700 10px/1.4 var(--font-mono); text-transform:uppercase; letter-spacing:.06em; color:#000; background:var(--gold); }
 
 /* desktop hover preview: a small floating real screenshot */
-.ge-pop{ position:fixed; z-index:60; width:380px; pointer-events:none; opacity:0; transform:translateY(6px);
+.ge-pop{ position:fixed; z-index:60; width:560px; pointer-events:none; opacity:0; transform:translateY(6px);
   transition:opacity .15s ease, transform .15s ease; border-radius:12px; overflow:hidden;
   border:1px solid var(--line); background:var(--bg-1); box-shadow:0 30px 60px -20px rgba(0,0,0,.8); }
 .ge-pop.on{ opacity:1; transform:none; }

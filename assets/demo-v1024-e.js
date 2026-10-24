@@ -62,7 +62,15 @@
   }
 
   // ---- 2. previews ----
-  function src(card) { return IMG + card.getAttribute('data-shot') + '.webp' + V; }
+  // Phone: cards with data-m="w,h" use a tighter crop (<shot>-m.webp) so the
+  // labels stay readable at 390 px.
+  // The hover preview (forceM) uses the tight crop too, so it stays readable small.
+  function useM(card, forceM) { return card.hasAttribute('data-m') && (forceM || window.innerWidth < 640); }
+  function src(card, forceM) { return IMG + card.getAttribute('data-shot') + (useM(card, forceM) ? '-m' : '') + '.webp' + V; }
+  function dims(card, forceM) {
+    if (useM(card, forceM)) { var m = card.getAttribute('data-m').split(','); return [+m[0], +m[1]]; }
+    return [+card.getAttribute('data-w') || 1200, +card.getAttribute('data-h') || 616];
+  }
   function wirePreviews() {
     var dlg = $('#ge-dlg'), img = $('#ge-dlg-img'), title = $('#ge-dlg-t');
     var cards = document.querySelectorAll('.ge-has');
@@ -73,9 +81,10 @@
       c.addEventListener('click', function () {
         if (!canDialog) { window.open(src(c), '_blank', 'noopener'); return; }
         hidePop();
+        img.removeAttribute('src');
         img.src = src(c);
-        img.width = +c.getAttribute('data-w') || 1200;
-        img.height = +c.getAttribute('data-h') || 616;
+        var d = dims(c);
+        img.width = d[0]; img.height = d[1];
         img.alt = c.getAttribute('data-alt') || '';
         title.textContent = (c.querySelector('b') || {}).textContent || '';
         dlg.showModal();
@@ -96,16 +105,20 @@
     document.body.appendChild(pop);
     var pimg = pop.firstChild;
     function place(c) {
-      var r = c.getBoundingClientRect(), w = 380;
+      var d = dims(c, true), r = c.getBoundingClientRect();
+      var top = 76, gap = 12, vh = window.innerHeight;
+      var above = r.top - gap - top, below = vh - r.bottom - gap - 12;
+      var room = Math.max(above, below);
+      var w = Math.min(d[0] < d[1] ? 400 : 560, window.innerWidth - 24, room * d[0] / d[1]);
+      var h = w * d[1] / d[0];
+      pop.style.width = w + 'px';
       var x = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), window.innerWidth - w - 12);
-      var h = w * ((+c.getAttribute('data-h') || 616) / (+c.getAttribute('data-w') || 1200));
-      var y = r.top - h - 12;
-      if (y < 70) y = r.bottom + 12;
+      var y = above >= below ? r.top - gap - h : r.bottom + gap;
       pop.style.left = x + 'px'; pop.style.top = y + 'px';
     }
     window.addEventListener('scroll', hidePop, { passive: true });
     cards.forEach(function (c) {
-      c.addEventListener('mouseenter', function () { pimg.src = src(c); place(c); pop.classList.add('on'); });
+      c.addEventListener('mouseenter', function () { pimg.src = src(c, true); place(c); pop.classList.add('on'); });
       c.addEventListener('mouseleave', hidePop);
     });
   }

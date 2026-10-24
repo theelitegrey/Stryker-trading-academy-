@@ -16,7 +16,7 @@ let fail = 0;
 const check = (ok, msg, x) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL ') + msg + (x === undefined ? '' : ' ' + JSON.stringify(x).slice(0, 300))); };
 const shot = async (p, n) => { const f = OUT + '/' + n + '.png'; await p.screenshot({ path: f }); console.log('shot', f); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const want = (n) => BATCH === 'all' || BATCH === String(n);
+const want = (n) => BATCH === 'all' || BATCH === String(n) || (n === 'lm' && BATCH === 'lm');
 
 // Real mouse click at the centre of the first element matching a predicate (run in page).
 async function realClick(p, finder, arg, label){
@@ -339,11 +339,61 @@ async function batch3(b, eng, vp){
   } finally { await ctx.close(); }
 }
 
+async function lmShot(b, eng, vp, stubbed){
+  const ctx = await b.newContext({ viewport: { width: vp, height: vp === 390 ? 844 : 900 }, deviceScaleFactor: 1 });
+  await ctx.addInitScript(stub);
+  await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} Date.now = ((n) => () => n)(Date.parse('2026-10-24T17:00:00Z')); });
+  await ctx.route(/^https?:\/\/[^/]*(gstatic|googleapis|firebase|google|doubleclick)\./, (r) => r.abort());
+  if (stubbed) await ctx.route(/chart-ind-style\.js/, (r) => r.fulfill({ contentType: 'text/javascript', body: 'export function installIndStyle(){}\nexport function mountIndStyle(){ window.STRYKER_IND_STYLE = { stub: true }; }' }));
+  const p = await ctx.newPage();
+  p.errors = []; p.on('pageerror', (e) => p.errors.push(String(e)));
+  await p.goto(BASE + '/charts.html' + (eng === '0.6' ? '?vela=0.6' : ''), { waitUntil: 'domcontentloaded' });
+  await ready(p);
+  const src = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'pine', 'liquidity-master-tradezoro.pine'), 'utf8');
+  await p.evaluate(async (src) => window.STRYKER_PINE.addSource('Liquidity Master', src, { engine: 'next', builtin: true }), src);
+  let n = 0, last = -1, stable = 0;
+  for (let i = 0; i < 160; i++) { await sleep(500); n = await p.evaluate((c) => { const ch = eval(c); const h = window.STRYKER_PINE.pineHandles(ch)[0]; const rec = h && ch.orchestrator.registry.get(h.id); const m = rec && rec.model; return m ? (m.boxes || []).length + (m.labels || []).length + (m.lines || []).length : 0; }, chartJs); if (n && n === last) { if (++stable >= 6) break; } else stable = 0; last = n; }
+  await sleep(4000);
+  // fixed frame: last 120 bars; hide the live clock / cursor
+  await p.evaluate((c) => { const ch = eval(c); document.querySelectorAll('.stk-mstat, .stkc-clock, [class*=countdown]').forEach((e) => (e.style.visibility = 'hidden')); }, chartJs);
+  await p.mouse.move(1, 1);
+  await sleep(2500);
+  const el = await p.$('#vela-chart');
+  const buf = await el.screenshot();
+  const f = OUT + '/is-' + eng + '-' + vp + '-lm-' + (stubbed ? 'before' : 'after') + '.png';
+  fs.writeFileSync(f, buf); console.log('shot', f, 'objects', n);
+  const errs = p.errors;
+  await ctx.close();
+  return { buf, n, errs };
+}
+async function lmIdentity(b, eng, vp){
+  const tag = eng + ' ' + vp + ' LM identity';
+  const a = await lmShot(b, eng, vp, true);
+  const c = await lmShot(b, eng, vp, false);
+  check(a.n > 0 && a.n === c.n, tag + ': same object count with and without the style module', [a.n, c.n]);
+  // pixel diff in the page (decode both PNGs)
+  const pg = await (await b.newContext()).newPage();
+  const diff = await pg.evaluate(async ([x, y]) => {
+    const load = (b64) => new Promise((r) => { const i = new Image(); i.onload = () => r(i); i.src = 'data:image/png;base64,' + b64; });
+    const [i1, i2] = await Promise.all([load(x), load(y)]);
+    if (i1.width !== i2.width || i1.height !== i2.height) return { size: [i1.width, i1.height, i2.width, i2.height] };
+    const cv = (i) => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; const g = c.getContext('2d'); g.drawImage(i, 0, 0); return g.getImageData(0, 0, i.width, i.height).data; };
+    const d1 = cv(i1), d2 = cv(i2);
+    let n = 0, minY = 1e9, maxY = -1;
+    for (let k = 0; k < d1.length; k += 4) if (Math.abs(d1[k] - d2[k]) + Math.abs(d1[k + 1] - d2[k + 1]) + Math.abs(d1[k + 2] - d2[k + 2]) > 24) { n++; const y = Math.floor(k / 4 / i1.width); if (y < minY) minY = y; if (y > maxY) maxY = y; }
+    return { n, total: d1.length / 4, minY, maxY };
+  }, [a.buf.toString('base64'), c.buf.toString('base64')]);
+  await pg.context().close();
+  check(diff.n !== undefined && diff.n / diff.total < 0.0005, tag + ': pixel-identical chart (differing px)', diff);
+  check(!a.errs.length && !c.errs.length, tag + ': no page errors', a.errs.concat(c.errs));
+}
+
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=768'] });
   try {
     for (const eng of ENGINES) for (const vp of VPS) {
       if (want(1)) await batch1(b, eng, vp).catch((e) => check(false, eng + ' ' + vp + ' batch1 crashed', String(e && e.stack || e)));
+      if (want('lm') || want(2)) await lmIdentity(b, eng, vp).catch((e) => check(false, eng + ' ' + vp + ' LM identity crashed', String(e && e.stack || e)));
       if (want(2)) await batch2(b, eng, vp).catch((e) => check(false, eng + ' ' + vp + ' batch2 crashed', String(e && e.stack || e)));
       if (want(3)) await batch3(b, eng, vp).catch((e) => check(false, eng + ' ' + vp + ' batch3 crashed', String(e && e.stack || e)));
     }

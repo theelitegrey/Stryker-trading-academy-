@@ -21,6 +21,7 @@
 
 import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=631';
 
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=631';
 import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=631';
 import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=631';
 import { rtHeadersReady } from './rt-access.js?v=631';
@@ -172,8 +173,22 @@ function minuteBars(root, fromMs, toMs, free) {
     if (e.err) err = e.err;
     for (const b of e.bars) if (b.t >= fromMs - 60000 && b.t <= toMs) out.push(b);
   }
-  return { bars: free ? out.filter((b) => b.t >= now - FREE_LOOKBACK_MS) : out, s, loading, err };
+  // LIVE ORDER FLOW (admins, flag; assets/chart-live-of.js): minutes built in the browser from the stream's
+  // prints replace the recorder's copy when they hold more prints (the forming + just-closed minutes).
+  const lf = liveOfOn() && liveFlow(root);
+  let bars = out;
+  if (lf) { if (s.thr) setLiveThr(root, s.thr); bars = overlayLive(out, lf.list(), fromMs, toMs); }
+  return { bars: free ? bars.filter((b) => b.t >= now - FREE_LOOKBACK_MS) : bars, s, loading, err };
 }
+// a live print batch: new version for that root's views, one bump
+onLiveFlow(() => { if (!liveOfOn()) return; for (const s of stores.values()) if (liveFlow(s.root)) s.v++; bump(); });
+// Sunday check (CME open): live minutes vs the recorder's, per closed minute. In the console: tzLiveOfStats('NQ')
+if (typeof window !== 'undefined') window.tzLiveOfStats = (root = 'NQ') => {
+  const s = stores.get(root), recs = [];
+  if (s) s.days.forEach((e) => { if (e.bars) for (const b of e.bars) recs.push(b); });
+  const lf = liveFlow(root);
+  return Object.assign(compareMinutes(root, recs), { prints: lf ? lf.prints : 0, lastPrintAgoMs: lf && lf.lastT ? Date.now() - lf.lastT * 1000 : null, deliveries: liveDeliveries() });
+};
 // Live tail: the newest ~hour (the Worker rounds `from` down to the hour) is small, so it is polled
 // every few seconds and merged into the day stores. The forming bar's cells grow as trades print and a
 // just-closed bar gets its final cells within seconds.

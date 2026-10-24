@@ -14,6 +14,7 @@
 // edge cache). PAGE_SECS / DEPTH_SECS below mirror TIMEFRAMES in functions/api/chart/_bars.js:
 // keep the two in step.
 
+import { liveOfOn, liveOfRoot, pushLiveTrades, liveGap, noteLiveDelivery } from './chart-live-of.js?v=631';
 import { rtReady, rtHeadersReady, rtToken, isRealtimeAdmin, rtOnChange, rtSecsLeft, rtEnsureFresh, rtNoteBars, rtNoteStreamBar, rtRecheck } from './rt-access.js?v=631';
 
 const API = '/api/chart/bars/';
@@ -424,7 +425,7 @@ export class FuturesProvider {
     let ws = null;
     let openTimer = null, retryTimer = null, healthyTimer = null;
     let retry = 0;
-    let withTicks = false, noTicks = false, quick = 0;
+    let withTicks = false, noTicks = false, quick = 0, withOf = false;
     const fkey = root + '|' + tf;
     const fs = streamFails.get(fkey) || { n: 0, nextAt: 0 };
     streamFails.set(fkey, fs);
@@ -500,7 +501,10 @@ export class FuturesProvider {
       try {
         const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
         withTicks = !ticksOff && !noTicks && TICK_TFS.includes(tf);
-        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}`, rtToken() ? ['tz-auth', rtToken()] : undefined);
+        // live order flow (assets/chart-live-of.js, flag off by default): the bridge adds the prints with their side
+        withOf = withTicks && liveOfOn() && liveOfRoot(root);
+        sock = new WebSocket(`${proto}//${location.host}${STREAM_API}${encodeURIComponent(root)}?tf=${encodeURIComponent(tf)}${withTicks ? '&ticks=1' : ''}${withOf ? '&of=1' : ''}`, rtToken() ? ['tz-auth', rtToken()] : undefined);
+        if (withOf) liveGap(root);
       } catch (e) { failed(); return; }
       ws = sock;
       bridgeSockets++;
@@ -523,6 +527,8 @@ export class FuturesProvider {
           const msg = JSON.parse(ev.data);
           lastMsgAt = Date.now();
           if (msg && msg.event === 'ping') { hbSeen = true; return; }
+          if (msg && msg.event === 'trades') { if (withOf) pushLiveTrades(root, msg.tr); return; }
+          if (msg && msg.event === 'delivery') { noteLiveDelivery(root, msg); return; }
           // the site's one InsightSentry socket has no room for this leg / is holding back to stay inside
           // InsightSentry's request budget (2026-10-22): poll the REST tail meanwhile and do not count it as a stall
           if (msg && (msg.event === 'hub_full' || msg.event === 'hub_paused')) { startPoll(); lastBarAt = Date.now(); stallN = Math.min(stallN + 1, 3); return; }

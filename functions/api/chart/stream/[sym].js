@@ -95,7 +95,7 @@ export async function onRequestGet(ctx) {
   // sc=disconnect (tests only) subscribes WITHOUT adaptive delivery, for an A/B of the two modes.
   const policy = url.searchParams.get('sc') === 'disconnect' ? 'disconnect' : 'adaptive';
   let upMsgs = 0, upBars = 0;
-  const statsTimer = setInterval(() => { send({ event: 'stats', up: upMsgs, bars: upBars, policy }); upMsgs = 0; upBars = 0; }, 10000);
+  const statsTimer = setInterval(() => { send({ event: 'stats', up: upMsgs, bars: upBars, policy, of: ofMode ? ofSent : undefined }); upMsgs = 0; upBars = 0; ofSent = 0; }, 10000);
   // HEARTBEAT (2026-10-20, frozen candles): {event:'ping', up} every 5 s so the browser can tell a quiet
   // market from a dead socket; up = ms since the hub last heard InsightSentry. Since 2026-10-22 a quiet or slow
   // InsightSentry does NOT end this socket (that reconnect storm is what got us throttled): the hub has its own
@@ -113,6 +113,30 @@ export async function onRequestGet(ctx) {
   // 'bar' message per 100 ms (<= 10/s to the browser). Seconds/tick timeframes do not use it.
   const tickMode = url.searchParams.get('ticks') === '1' && !!(TIMEFRAMES[tf] && TIMEFRAMES[tf].step);
   const step = tickMode ? TIMEFRAMES[tf].step : 0;
+  // LIVE ORDER FLOW (of=1, CoS GO 2026-10-24 "deep data speed" a1): the same tick leg's prints, WITH their
+  // buy/sell tag, are passed on as {event:'trades', s, tr:[[t, price, vol, side 1/0/-1], ...]} at most every
+  // OF_FLUSH_MS, so the admin chart builds the forming minute's footprint / delta / CVD / big trades itself
+  // (assets/chart-live-of.js) instead of waiting 10-30 s for the recorder. No extra InsightSentry leg or
+  // message: it reuses the tick leg. Admin only (this whole socket is). NQ and ES only. A burst is capped at
+  // OF_MAX_ROWS per message; the rest goes in the next one.
+  const OF_FLUSH_MS = 250, OF_MAX_ROWS = 2000;
+  const ofMode = tickMode && url.searchParams.get('of') === '1' && (sym === 'NQ' || sym === 'ES');
+  let ofBuf = [], ofTimer = null, ofSent = 0;
+  const ofFlush = () => {
+    ofTimer = null;
+    if (!ofBuf.length) return;
+    const out = ofBuf.length > OF_MAX_ROWS ? ofBuf.splice(0, OF_MAX_ROWS) : ofBuf.splice(0);
+    ofSent += out.length;
+    send({ event: 'trades', s: sym, tr: out });
+    if (ofBuf.length) ofTimer = setTimeout(ofFlush, 20);
+  };
+  const ofAdd = (x) => {
+    const t = Number(x.time), c = r(Number(x.close)), v = Number(x.volume);
+    if (!(t > 0) || !Number.isFinite(c) || !(v > 0)) return;
+    ofBuf.push([Math.round(t * 1e6) / 1e6, c, v, x.type === 'buy' ? 1 : x.type === 'sell' ? 0 : -1]);
+    if (ofBuf.length > 20000) ofBuf.splice(0, ofBuf.length - 20000);   // a stalled browser socket: keep the newest
+    if (!ofTimer) ofTimer = setTimeout(ofFlush, OF_FLUSH_MS);
+  };
   const r = rounder(dec);
   let forming = null;      // [t, o, h, l, c, v] of the newest bar
   let lastTickAt = 0;      // ms; while trades flow, a lagging series update cannot move close back
@@ -152,6 +176,7 @@ export async function onRequestGet(ctx) {
     closed = true;
     clearInterval(statsTimer); clearInterval(hbTimer);
     if (flushTimer) clearTimeout(flushTimer);
+    if (ofTimer) clearTimeout(ofTimer);
     try { upstream && upstream.close(1000, 'bye'); } catch (e) {}
     try { server.close(code, reason); } catch (e) {}
   };
@@ -169,7 +194,7 @@ export async function onRequestGet(ctx) {
     if (msg.event === 'delivery_status') { send({ event: 'delivery', mode: msg.mode, hz: msg.max_rate_hz, dropped: msg.dropped_updates }); return; }
     if (tickMode && /T$/i.test(String(msg.bar_type || ''))) {
       const rowsT = Array.isArray(msg.series) ? msg.series : [];
-      for (const x of rowsT) onTick(Number(x.time), r(Number(x.close)), Number(x.volume));
+      for (const x of rowsT) { onTick(Number(x.time), r(Number(x.close)), Number(x.volume)); if (ofMode && x) ofAdd(x); }
       return;
     }
     let rows = barsFrom(msg, dec);

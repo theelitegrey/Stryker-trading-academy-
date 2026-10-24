@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="641">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<!-- DEMO HOMEPAGE 1024 variation A "TERMINAL" (Owner order 2026-10-24: different homepage
+     variations). Unlisted: noindex, not in nav, sitemap or the OG list, no canonical. -->
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#050506">
+<title>TradeZoro · Terminal (demo)</title>
+<meta name="description" content="Demo homepage: TradeZoro as a trading terminal. Order flow, GEX, charts, practice and 64 chapters.">
+<link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="stylesheet" href="assets/style.css?v=641">
+<link rel="stylesheet" href="assets/nav-features.css?v=641">
+<link rel="stylesheet" href="assets/demo-v1024-a.css?v=641">
+<script src="assets/sanitize.js?v=641"></script>
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<script src="assets/toast.js?v=641" defer></script>
+<script src="assets/version-check.js?v=641" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="assets/images/tradezoro-favicon-32-494.png?v=641">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/images/tradezoro-favicon-32-494.png?v=641">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/images/tradezoro-apple-touch-icon-494.png?v=641">
+</head>
+<body class="tm-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#concepts">ICT / SMT</a>
+      <a href="/#platform">Platform</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="courses">Courses</a>
+      <a href="dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+
+<!-- TICKER TAPE: tool names + the real SPX GEX levels (filled by JS from /api/gex/levels/SPX) -->
+<div class="tm-tape" aria-label="What is on the TradeZoro terminal">
+  <div class="tm-tape-track" id="tm-tape">
+    <span><b>NQ1!</b> footprint</span><span><b>ES1!</b> CVD + divergence</span><span><b>SPX</b> GEX <i class="tm-up">free</i></span><span><b>BTC</b> liquidity heatmap</span><span><b>ETH</b> liquidity heatmap</span><span><b>GC1!</b> big trades</span><span><b>CL1!</b> absorption</span><span><b>QQQ</b> GEX ladder</span><span><b>NQ1!</b> stop runs</span><span><b>ES1!</b> market profile TPO</span>
+  </div>
+</div>
+
+<main id="main" tabindex="-1">
+
+<!-- ================= HERO: the workstation ================= -->
+<section class="tm-ws" aria-label="TradeZoro terminal">
+  <div class="tm-path" aria-hidden="true"><span>TZ</span>/<span>workstation</span>/<span class="tm-mint">home</span><i class="tm-caret"></i></div>
+
+  <div class="tm-grid">
+
+    <!-- 00 README: headline -->
+    <article class="tm-p tm-readme">
+      <div class="tm-ph"><span class="tm-id">00</span>README<span class="tm-ph-r">TradeZoro</span></div>
+      <div class="tm-pb">
+        <h1>Order flow, GEX and charts.<br><em>One terminal.</em></h1>
+        <p>Footprint and full order flow, GEX levels and a full chart, next to 64 chapters of ICT, SMT and Volume Profile. Practise it all with paper trading, bar replay and backtesting.</p>
+        <div class="tm-cta">
+          <a href="signup" class="btn btn-primary">Start free</a>
+          <a href="#panels" class="btn btn-ghost">See the panels</a>
+        </div>
+      </div>
+    </article>
+
+    <!-- 01 SESSION CLOCK -->
+    <article class="tm-p tm-clock">
+      <div class="tm-ph"><span class="tm-id">01</span>SESSION CLOCK<span class="tm-ph-r"><i class="tm-dot" id="tm-clock-dot"></i></span></div>
+      <div class="tm-pb">
+        <div class="tm-big" id="tm-clock-big">--:--:--</div>
+        <div class="tm-small" id="tm-clock-head">&nbsp;</div>
+        <div class="tm-sess" id="tm-sess"><span data-s="Asia">ASIA</span><span data-s="London">LDN</span><span data-s="New York">NY</span></div>
+        <div class="tm-small tm-dim" id="tm-clock-tail">&nbsp;</div>
+      </div>
+    </article>
+
+    <!-- 02 STATUS -->
+    <article class="tm-p tm-status">
+      <div class="tm-ph"><span class="tm-id">02</span>STATUS</div>
+      <dl class="tm-pb tm-kv">
+        <div><dt>Traders enrolled</dt><dd id="hero-enrolled-count">82</dd></div>
+        <div><dt>Chapters</dt><dd>64</dd></div>
+        <div><dt>Free chapters</dt><dd>1–10</dd></div>
+        <div><dt>Free GEX</dt><dd>SPX</dd></div>
+        <div><dt>Card to start</dt><dd>None</dd></div>
+      </dl>
+    </article>
+
+    <!-- 03 CHART: real footprint screenshot -->
+    <article class="tm-p tm-chart">
+      <div class="tm-ph"><span class="tm-id">03</span>CHART · NQ1! · 1m<span class="tm-ph-r tm-subtabs" role="tablist" aria-label="Chart view">
+        <button type="button" role="tab" aria-selected="true" data-v="0">Footprint</button><button type="button" role="tab" aria-selected="false" data-v="1">Volume profile</button><button type="button" role="tab" aria-selected="false" data-v="2">Absorption</button></span></div>
+      <div class="tm-pb tm-shotbox">
+        <img class="is-on" src="assets/images/demo-v1024-a/footprint.webp?v=641" alt="TradeZoro chart: NQ footprint with bid and ask volume in every price row and delta under each bar" width="739" height="460" decoding="async">
+        <img src="assets/images/demo-v1024-a/vp-npoc.webp?v=641" alt="TradeZoro chart: NQ with a volume profile and naked POC lines" width="1100" height="582" loading="lazy" decoding="async">
+        <img src="assets/images/demo-v1024-a/absorption.webp?v=641" alt="TradeZoro chart: NQ one-minute chart with the Absorption tool" width="1100" height="582" loading="lazy" decoding="async">
+      </div>
+      <div class="tm-pf"><span>Footprint · delta per bar · imbalances</span><span class="tm-dim">Screenshot from the app</span></div>
+    </article>
+
+    <!-- 04 GEX LADDER: real SPX gamma by strike -->
+    <article class="tm-p tm-gex">
+      <div class="tm-ph"><span class="tm-id">04</span>GEX LADDER · SPX<span class="tm-ph-r tm-badge">Free</span></div>
+      <div class="tm-pb">
+        <div class="tm-lv" id="tm-lv">
+          <div><span>Call wall</span><b id="tm-cw">—</b></div>
+          <div><span>Zero gamma</span><b id="tm-zg">—</b></div>
+          <div><span>Put wall</span><b id="tm-pw">—</b></div>
+        </div>
+        <div class="tm-ladder" id="tm-ladder" aria-label="SPX gamma exposure by strike">
+          <img class="tm-ladder-fallback" src="assets/images/demo-v1024-a/gex-ladder.webp?v=641" alt="TradeZoro GEX Ladder screenshot" width="459" height="640" loading="lazy" decoding="async">
+        </div>
+      </div>
+      <div class="tm-pf"><span id="tm-gex-meta">SPX · 0DTE</span><a href="gex" class="tm-link">Open GEX →</a></div>
+    </article>
+
+    <!-- 05 ALERTS FEED (example) -->
+    <article class="tm-p tm-alerts">
+      <div class="tm-ph"><span class="tm-id">05</span>ALERTS<span class="tm-ph-r tm-dim">Example</span></div>
+      <ol class="tm-pb tm-feed" id="tm-feed" aria-label="Example alerts">
+        <li><b class="tm-tag">PRICE</b><span>NQ1! crossed your level</span></li>
+        <li><b class="tm-tag tm-tag-i">INDICATOR</b><span>CVD divergence on ES1!</span></li>
+        <li><b class="tm-tag tm-tag-p">PUSH</b><span>Sent to your phone</span></li>
+        <li><b class="tm-tag">PRICE</b><span>GC1! touched the put wall line</span></li>
+      </ol>
+      <div class="tm-pf"><span>Indicator + price alerts, phone push</span></div>
+    </article>
+
+    <!-- 06 KEYS -->
+    <article class="tm-p tm-keys">
+      <div class="tm-ph"><span class="tm-id">06</span>FUNCTIONS</div>
+      <ul class="tm-pb tm-keylist">
+        <li><a href="#panels" data-go="0"><kbd>F1</kbd>Order flow</a></li>
+        <li><a href="#panels" data-go="1"><kbd>F2</kbd>GEX</a></li>
+        <li><a href="#panels" data-go="2"><kbd>F3</kbd>Chart</a></li>
+        <li><a href="#panels" data-go="3"><kbd>F4</kbd>Practice</a></li>
+        <li><a href="#panels" data-go="4"><kbd>F5</kbd>Learn</a></li>
+        <li><a href="#plans"><kbd>F6</kbd>Free vs Pro</a></li>
+      </ul>
+    </article>
+
+  </div>
+</section>
+
+<!-- ================= PANELS (tabbed) ================= -->
+<section class="tm-sec" id="panels" aria-label="What is inside">
+  <div class="tm-sec-h"><span class="tm-id">&gt;</span><h2>Panels</h2><span class="tm-dim tm-hint">Use 1–5 or the arrow keys</span></div>
+  <div class="tm-tabs" role="tablist" aria-label="Panels">
+    <button type="button" role="tab" id="tm-t0" aria-controls="tm-x0" aria-selected="true"><kbd>F1</kbd>Order flow</button>
+    <button type="button" role="tab" id="tm-t1" aria-controls="tm-x1" aria-selected="false" tabindex="-1"><kbd>F2</kbd>GEX</button>
+    <button type="button" role="tab" id="tm-t2" aria-controls="tm-x2" aria-selected="false" tabindex="-1"><kbd>F3</kbd>Chart</button>
+    <button type="button" role="tab" id="tm-t3" aria-controls="tm-x3" aria-selected="false" tabindex="-1"><kbd>F4</kbd>Practice</button>
+    <button type="button" role="tab" id="tm-t4" aria-controls="tm-x4" aria-selected="false" tabindex="-1"><kbd>F5</kbd>Learn</button>
+  </div>
+
+  <div class="tm-xs">
+    <div class="tm-x is-on" role="tabpanel" id="tm-x0" aria-labelledby="tm-t0">
+      <div class="tm-x-copy">
+        <h3>See every order behind the candle.</h3>
+        <p>Footprint charts with full order flow on the same chart you draw on.</p>
+        <ul class="tm-spec">
+          <li><span>Footprint</span><b>bid × ask by price</b></li>
+          <li><span>Delta</span><b>14 styles</b></li>
+          <li><span>CVD</span><b>+ divergence</b></li>
+          <li><span>Big Trades</span><b>on</b></li>
+          <li><span>Absorption</span><b>on</b></li>
+          <li><span>Imbalance Zones</span><b>on</b></li>
+          <li><span>Stop Runs / Sweeps</span><b>on</b></li>
+          <li><span>Volume Profile</span><b>session · swing · naked POC</b></li>
+          <li><span>Market Profile</span><b>TPO</b></li>
+          <li><span>Effort vs Result</span><b>on</b></li>
+          <li><span>Liquidity heatmap</span><b>BTC · ETH</b></li>
+        </ul>
+        <a href="/features/orderflow" class="tm-link">All order flow tools →</a>
+      </div>
+      <figure class="tm-x-shot"><img src="assets/images/demo-v1024-a/vp-npoc.webp?v=641" alt="TradeZoro chart with volume profile and naked POC lines on NQ" width="1100" height="582" loading="lazy" decoding="async"></figure>
+    </div>
+
+    <div class="tm-x" role="tabpanel" id="tm-x1" aria-labelledby="tm-t1" hidden>
+      <div class="tm-x-copy">
+        <h3>Where the dealers' walls sit.</h3>
+        <p>Gamma exposure by strike, drawn on your chart and in a ladder. SPX GEX is free.</p>
+        <ul class="tm-spec">
+          <li><span>GEX levels</span><b>call wall · put wall · zero gamma</b></li>
+          <li><span>GEX Ladder</span><b>gamma by strike</b></li>
+          <li><span>Options volume</span><b>by strike</b></li>
+          <li><span>GEX on the chart</span><b>Pro</b></li>
+          <li><span>SPX GEX</span><b class="tm-mint">free</b></li>
+          <li><span>Every symbol and expiry</span><b>Pro</b></li>
+        </ul>
+        <a href="gex" class="tm-link">Open GEX →</a>
+      </div>
+      <figure class="tm-x-shot"><img src="assets/images/demo-v1024-a/chart-gex.webp?v=641" alt="TradeZoro chart with GEX levels drawn as lines on NQ" width="891" height="500" loading="lazy" decoding="async"></figure>
+    </div>
+
+    <div class="tm-x" role="tabpanel" id="tm-x2" aria-labelledby="tm-t2" hidden>
+      <div class="tm-x-copy">
+        <h3>A full chart in the browser.</h3>
+        <p>Draw, measure and set alerts the way you already know, on phone and desktop.</p>
+        <ul class="tm-spec">
+          <li><span>Drawing tools</span><b>full settings · box handles</b></li>
+          <li><span>Position tool</span><b>long / short</b></li>
+          <li><span>Indicators</span><b>full style settings</b></li>
+          <li><span>Alerts</span><b>indicator + price · phone push</b></li>
+          <li><span>Scanner</span><b>on</b></li>
+          <li><span>News</span><b>morning brief</b></li>
+          <li><span>Your own data</span><b>connect Rithmic</b></li>
+        </ul>
+        <a href="charts" class="tm-link">Open Charts →</a>
+      </div>
+      <figure class="tm-x-shot"><img src="assets/images/demo-v1024-a/absorption.webp?v=641" alt="TradeZoro chart page with the toolbar, drawing tools and an NQ one-minute chart" width="1100" height="582" loading="lazy" decoding="async"></figure>
+    </div>
+
+    <div class="tm-x" role="tabpanel" id="tm-x3" aria-labelledby="tm-t3" hidden>
+      <div class="tm-x-copy">
+        <h3>Practise without real money.</h3>
+        <p>Paper trade, rewind the tape and test an idea, then write it down.</p>
+        <ul class="tm-spec">
+          <li><span>Paper trading</span><b>on the chart</b></li>
+          <li><span>Bar replay</span><b>one bar at a time</b></li>
+          <li><span>Backtesting</span><b>on</b></li>
+          <li><span>Trade journal</span><b>+ AI coach</b></li>
+          <li><span>Leaderboard</span><b>on</b></li>
+        </ul>
+        <a href="replay" class="tm-link">Open Replay →</a>
+      </div>
+      <figure class="tm-x-shot"><img src="assets/images/demo-v1024-a/replay.webp?v=641" alt="TradeZoro Replay page" width="1000" height="419" loading="lazy" decoding="async"></figure>
+    </div>
+
+    <div class="tm-x" role="tabpanel" id="tm-x4" aria-labelledby="tm-t4" hidden>
+      <div class="tm-x-copy">
+        <h3>Learn the method, chapter by chapter.</h3>
+        <p>64 chapters of ICT, SMT and Volume Profile. The first 10 are free.</p>
+        <ul class="tm-spec">
+          <li><span>Chapters</span><b>64</b></li>
+          <li><span>Free chapters</span><b class="tm-mint">1–10</b></li>
+          <li><span>Indicators</span><b>Liquidity Master and more</b></li>
+          <li><span>Community</span><b>on</b></li>
+        </ul>
+        <a href="courses" class="tm-link">Browse chapters →</a>
+      </div>
+      <figure class="tm-x-shot"><img src="assets/images/demo-v1024-a/courses.webp?v=641" alt="TradeZoro curriculum page" width="1000" height="419" loading="lazy" decoding="async"></figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FREE vs PRO spec table ================= -->
+<section class="tm-sec" id="plans" aria-label="Free and Pro plans">
+  <div class="tm-sec-h"><span class="tm-id">&gt;</span><h2>Free vs Pro</h2></div>
+  <div class="tm-tablewrap">
+    <table class="tm-table">
+      <thead>
+        <tr><th scope="col">Spec</th><th scope="col"><span id="tm-free-name">Free</span><small id="tm-free-price">$0 <span class="per">/ month</span></small></th><th scope="col" class="tm-pro"><span id="tm-pro-name">Pro</span><small id="tm-pro-price">&nbsp;</small></th></tr>
+      </thead>
+      <tbody id="tm-rows"></tbody>
+      <tfoot>
+        <tr><td></td><td><a href="signup" class="btn btn-ghost btn-sm">Start free</a></td><td class="tm-pro"><a href="checkout?plan=Sj1bjdpwvYJUVErjNMAb" id="tm-pro-cta" class="btn btn-primary btn-sm">Join Pro</a></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</section>
+
+<!-- ================= PROMPT CTA ================= -->
+<section class="tm-sec tm-end" aria-label="Start free">
+  <p class="tm-prompt"><span class="tm-mint">tz&gt;</span> start free<i class="tm-caret"></i></p>
+  <p class="tm-dim">Chapters 1–10 free with a free account. No card required.</p>
+  <a href="signup" class="btn btn-primary">Start free</a>
+</section>
+
+</main>
+
+<!-- Phone command bar -->
+<div class="tm-cmd" id="tm-cmd" aria-label="Quick start">
+  <span class="tm-cmd-l"><span class="tm-mint">tz&gt;</span> <span id="tm-cmd-s">ready</span></span>
+  <a href="signup" class="btn btn-primary btn-sm">Start free</a>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" src="assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="features">All features</a>
+        <a href="courses">Full curriculum</a>
+        <a href="/#concepts">ICT / SMT glossary</a>
+        <a href="learn">Learn: free articles</a>
+        <a href="indicators">Trading indicators</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Platform</h5>
+        <a href="login">Log in</a>
+        <a href="signup">Create account</a>
+        <a href="dashboard-user">Student dashboard</a>
+        <a href="trade-journal">Trade journal</a>
+        <a href="global-monitor">Global monitor</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="about">About TradeZoro</a>
+        <a href="support">Support</a>
+        <a href="contact">Contact us</a>
+        <a href="mailto:support@strykertrading.com">support@strykertrading.com</a>
+        <a href="terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Made for traders who read the tape.</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="privacy">Privacy Policy</a>
+      <a href="cookies">Cookie Policy</a>
+      <a href="gdpr">GDPR</a>
+      <a href="refund-policy">Refund Policy</a>
+      <a href="terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="assets/auth.js?v=641"></script>
+<script src="assets/progress.js?v=641"></script>
+<script src="assets/plan-price.js?v=641"></script>
+<script src="assets/branding.js?v=641"></script>
+<script src="assets/nav-features.js?v=641" defer></script>
+<script src="assets/main.js?v=641"></script>
+<script src="assets/theme.js?v=641"></script>
+<script src="assets/market-hours.js?v=641"></script>
+<script src="assets/demo-v1024-a.js?v=641" defer></script>
+</body>
+</html>

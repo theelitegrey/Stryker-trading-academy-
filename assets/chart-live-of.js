@@ -70,7 +70,7 @@ class LiveBar {
 export class LiveFlow {
   constructor(root, thr, keepMin = KEEP_MIN) {
     this.keepMin = keepMin; this.root = root; this.tick = TICK[root] || 0.25; this.thr = thr || DEF_THR[root] || 20;
-    this.bars = new Map(); this.lastT = 0; this.g = null; this.v = 0; this.since = 0; this.prints = 0; this.dupes = 0; this.at = 0;
+    this.bars = new Map(); this.lastT = 0; this.g = null; this.v = 0; this.since = 0; this.partial = new Set(); this.gap = true; this.prints = 0; this.dupes = 0; this.at = 0;
   }
   flushGroup() {
     const g = this.g; this.g = null;
@@ -85,6 +85,12 @@ export class LiveFlow {
     for (const x of rows || []) {
       const t = Number(x[0]), price = Number(x[1]), v = Math.round(Number(x[2]));
       if (!(t > 0) || !Number.isFinite(price) || !(v > 0)) continue;
+      // first print of a (re)connected socket: if it overlaps what we hold (the bridge replays recent prints),
+      // nothing was lost; if it starts AFTER our newest print, the minutes on both sides of the hole are partial
+      if (this.gap) {
+        this.gap = false;
+        if (!(t <= this.lastT)) { if (this.lastT) this.partial.add(Math.floor(this.lastT / 60)); this.partial.add(Math.floor(t / 60)); }
+      }
       if (t <= this.lastT) { this.dupes++; continue; }
       this.lastT = t;
       if (!this.since) this.since = t;
@@ -104,11 +110,14 @@ export class LiveFlow {
       this.prints += n; this.v++; this.at = Date.now();
       const cut = Math.floor(this.lastT / 60) - this.keepMin;
       for (const m of this.bars.keys()) if (m < cut) this.bars.delete(m);
+      for (const m of this.partial) if (m < cut) this.partial.delete(m);
     }
     return n;
   }
-  // The live minutes as decodeOrderflow bars, ascending. The minute holding `since` was seen only in part.
-  list() { return [...this.bars.keys()].sort((a, b) => a - b).map((m) => Object.assign(this.bars.get(m).view(), { partial: m === Math.floor(this.since / 60) })); }
+  // The live minutes as decodeOrderflow bars, ascending. partial = a minute a socket gap cut into (seen only in part).
+  list() { return [...this.bars.keys()].sort((a, b) => a - b).map((m) => Object.assign(this.bars.get(m).view(), { partial: this.partial.has(m) })); }
+  // a new socket opens: decided at its first print (see add())
+  markGap() { this.flushGroup(); this.gap = true; }
 }
 
 // ---- page-wide store (one per root) + listeners (chart-footprint.js bumps its version on change)
@@ -128,7 +137,7 @@ export function pushLiveTrades(root, rows, thr) {
 }
 export function setLiveThr(root, thr) { const f = flows.get(root); if (f && thr > 0) f.thr = thr; }
 // A new socket (reconnect) leaves a hole: the minute it starts in is partial again.
-export function liveGap(root) { const f = flows.get(String(root || '').toUpperCase()); if (f) { f.flushGroup(); f.since = 0; } }
+export function liveGap(root) { const f = flows.get(String(root || '').toUpperCase()); if (f) f.markGap(); }
 
 // Overlay: recorder minutes + live minutes -> one list (ascending). Per minute the copy with MORE prints wins.
 export function overlayLive(recBars, live, fromMs, toMs) {
@@ -151,17 +160,17 @@ export function compareMinutes(root, recBars) {
   const f = flows.get(root);
   if (!f) return { root, on: liveOfOn(), live: 0 };
   const rec = new Map(recBars.map((b) => [b.t, b]));
-  const nowMin = Math.floor(Date.now() / 60000), sinceMin = Math.floor(f.since / 60);
+  const nowMin = Math.floor(Date.now() / 60000);
   const rows = [];
   for (const b of f.list()) {
     const m = b.t / 60000;
-    if (m <= sinceMin || m >= nowMin - 1) continue;          // partial first minute, forming / just-closed
+    if (b.partial || m >= nowMin - 1) continue;          // gap-cut minutes, forming / just-closed
     const r = rec.get(b.t);
     if (!r) continue;
     rows.push({ t: new Date(b.t).toISOString().slice(11, 16), live: b.trades, rec: r.trades, liveVol: b.vol, recVol: r.vol, liveDelta: b.delta, recDelta: r.delta });
   }
   const sum = (k) => rows.reduce((a, x) => a + x[k], 0);
-  return { root, on: liveOfOn(), minutes: rows.length, livePrints: sum('live'), recPrints: sum('rec'), coverPct: rows.length ? Math.round(1000 * sum('live') / Math.max(1, sum('rec'))) / 10 : null,
+  return { root, on: liveOfOn(), partialMinutes: f.partial.size, minutes: rows.length, livePrints: sum('live'), recPrints: sum('rec'), coverPct: rows.length ? Math.round(1000 * sum('live') / Math.max(1, sum('rec'))) / 10 : null,
     exact: rows.filter((x) => x.live === x.rec && x.liveVol === x.recVol && x.liveDelta === x.recDelta).length, dupes: f.dupes, rows: rows.slice(-30) };
 }
 

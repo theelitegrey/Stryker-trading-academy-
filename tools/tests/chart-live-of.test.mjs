@@ -126,6 +126,18 @@ fs.rmSync(tmp, { recursive: true, force: true });
   g.add(RAW.map((x) => [x.time, x.close, x.volume, x.type === 'buy' ? 1 : 0]));
   assert.ok(g.list().length <= 31);
   ok('only the newest ~30 minutes are kept in memory (default)');
+  // a socket gap: the minute it cut into and the minute after the reconnect are partial, the rest not
+  const h = new L.LiveFlow('NQ', 19, 120);
+  const rr = RAW.map((x) => [x.time, x.close, x.volume, x.type === 'buy' ? 1 : 0]);
+  const cutA = rr.findIndex((r) => r[0] >= RAW[0].time + 10 * 60 + 30), cutB = rr.findIndex((r) => r[0] >= RAW[0].time + 12 * 60 + 15);
+  h.add(rr.slice(0, cutA)); h.markGap(); h.add(rr.slice(cutB));
+  const pm = h.list().filter((b) => b.partial).map((b) => (b.t / 1000 - Math.floor(RAW[0].time / 60) * 60) / 60);
+  assert.deepEqual(pm, [0, 10, 12]);
+  ok('socket gap: the first minute, the minute the gap cut and the minute after the reconnect are marked partial ' + JSON.stringify(pm));
+  const q = new L.LiveFlow('NQ', 19, 120);
+  q.add(rr.slice(0, cutA)); q.markGap(); q.add(rr.slice(cutA - 500));   // the new socket replays 500 prints we hold
+  assert.deepEqual(q.list().filter((b) => b.partial).length, 1);
+  ok('reconnect whose replay overlaps what we hold: no hole, nothing marked partial except the first minute');
 }
 {
   // browser joins mid-hour: the first minute is partial and never replaces the recorder's

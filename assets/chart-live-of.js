@@ -16,12 +16,13 @@
 // so a minute the browser only saw part of (it connected mid-minute, a socket gap, upstream conflation)
 // falls back to the recorder's copy as soon as that is more complete.
 //
-// FLAG (ships dark): LIVE_OF_DEFAULT = false. Per-browser override for tests: localStorage
+// FLAG: LIVE_OF_DEFAULT = true since the live check 2026-10-25 (1,400/1,400 prints matched the recorder). Kill
+// switch: set it back to false + bump. Per-browser override: localStorage
 // 'stk_live_of' = '1' (on) / '0' (off). Real time stays admin only: the server sends trades only on the
 // admin stream. Roots: NQ and ES only (the recorder's fast symbols, same front contract as the stream).
 // Education only. Not financial advice.
 
-export const LIVE_OF_DEFAULT = false;
+export const LIVE_OF_DEFAULT = true;
 export const LIVE_OF_ROOTS = ['NQ', 'ES'];
 const TICK = { NQ: 0.25, ES: 0.25 };
 const KEEP_MIN = 30;           // live minutes kept (the recorder has them final long before)

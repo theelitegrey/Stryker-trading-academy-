@@ -10,7 +10,7 @@
 //    decoded with assets/chart-footprint-data.js decodeOrderflow). Then: duplicates (a reconnect replay) are
 //    ignored, a minute seen only in part never replaces the recorder's, the more complete copy wins, and the
 //    5-minute re-aggregation of the overlay equals the recorder's.
-// 3. Flag: off by default; localStorage 'stk_live_of' = '1' turns it on.
+// 3. Flag: ON by default since the 2026-10-25 live check; localStorage 'stk_live_of' = '0' turns it off.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import zlib from 'node:zlib';
@@ -162,9 +162,9 @@ fs.rmSync(tmp, { recursive: true, force: true });
   ok(`5-minute re-aggregation of the overlay equals the recorder's (${a5.length} bars)`);
 }
 {
-  assert.equal(L.LIVE_OF_DEFAULT, false);
-  assert.equal(L.liveOfOn(), false);
-  ok('flag is OFF by default (ships dark)');
+  assert.equal(L.LIVE_OF_DEFAULT, true);
+  assert.equal(L.liveOfOn(), true);
+  ok('flag is ON by default (admins only: only the admin stream carries trades)');
   localStorage.setItem('stk_live_of', '1');
   assert.equal(L.liveOfOn(), true);
   assert.equal(L.pushLiveTrades('NQ', [[Date.now() / 1000, 30000, 2, 1]]), 1);

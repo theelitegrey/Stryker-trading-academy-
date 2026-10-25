@@ -80,6 +80,22 @@ function insightRangeForDte(dteMax) {
 // but is ~15 minutes behind. The hybrid takes the chain + OI from Cboe and the LIVE spot and
 // per-contract IV (and bid/ask for the straddle) from InsightSentry, then computes gamma itself.
 // Returns { spot, ts, byKey: Map('C|745' -> { iv, bid, ask }) } for ONE expiry (YYYY-MM-DD).
+// InsightSentry MONTHLY REST quota (2026-10-25): every IS request made by a Pages Function is added to the recorder's
+// counter (book-recorder POST /is-note, src/is-usage.js). Auth = HMAC-SHA256(IS key, 'is-note|' + minute): the key this
+// Function already holds, so no new secret; the key itself is never sent. Best effort, 1.5 s cap, never throws.
+async function noteIs(env, n) {
+  const key = env && (env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY);
+  if (!key || !(n > 0) || typeof crypto === 'undefined' || !crypto.subtle) return;
+  try {
+    const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const sig = [...new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode('is-note|' + Math.floor(Date.now() / 60000))))].map((b) => b.toString(16).padStart(2, '0')).join('');
+    const base = ((env && env.GEX_CHAIN_URL) || GEX_CHAIN_URL).replace(/\/gex-chain$/, '');
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort('timeout'), 1500);
+    try { await fetch(base + '/is-note', { method: 'POST', signal: ctrl.signal, headers: { 'content-type': 'application/json', 'x-is-sig': sig }, body: JSON.stringify({ src: 'pages', n }) }); }
+    finally { clearTimeout(t); }
+  } catch (_) {}
+}
+
 async function fetchInsightQuotes(name, expIso, env = {}) {
   const apiKey = env.INSIGHTSENTRY_WEBSOCKET_API_KEY || env.INSIGHTSENTRY_API_KEY;
   const code = INSIGHTSENTRY_OPTIONS[name];
@@ -828,7 +844,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   // blew the Function's CPU limit, error 1102, build 528). Missing or stale -> InsightSentry.
   const nowSec = opts.now || Date.now() / 1000;
   let source = 'cboe';
-  let optData, parsed, compactNote = null;
+  let optData, parsed, compactNote = null, isCalls = 0;
   try {
     const d = opts.compact !== undefined ? (typeof opts.compact === 'function' ? await opts.compact(name, dteMax) : opts.compact) : await fetchCompact(name, dteMax, env);
     if (!d) throw new Error('compact chain missing');
@@ -838,6 +854,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
     optData = { current_price: d.spot, iv30: d.iv30, last_trade_time: d.chain_time, chain_fetched_at: d.fetched_at };
   } catch (e) {
     compactNote = String(e && e.message || e).slice(0, 120);
+    isCalls += 2;   // quotes + contracts
     optData = await fetchInsightOptions(name, dteMax, env);
     source = 'insightsentry_options';
     parsed = parseOptions(optData, dteMax, nowSec);
@@ -849,6 +866,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   let cboeOnly = null;
   if (source === 'cboe' && expiries.length === 1 && opts.hybrid !== false) {
     try {
+      if (!opts.insightQuotes) isCalls += 1;
       const live = await (opts.insightQuotes ? opts.insightQuotes(name, expiries[0]) : fetchInsightQuotes(name, expiries[0], env));
       const m = mergeHybrid(contracts, live);
       if (!live.byKey.size) sources.hybrid_skip_reason = `InsightSentry returned no rows for ${expiries[0]} (${live.rows || 0} rows in reply)`;
@@ -871,6 +889,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   } else if (source === 'cboe') {
     sources.hybrid_skip_reason = opts.hybrid === false ? 'disabled' : `chain has ${expiries.length} expiries (hybrid runs for 0DTE/1DTE only)`;
   }
+  if (isCalls) await noteIs(env, isCalls);
   contracts = ownGamma(contracts, spot, nowSec);
   const p = profile(spot, contracts);
   const lv = levels(spot, p.gex, contracts, p, nowSec);

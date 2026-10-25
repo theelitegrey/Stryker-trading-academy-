@@ -19,7 +19,7 @@ export const QUOTA = 120000;
 export const PERIOD_DAY = 9;                    // the billing period starts on the 9th (Oct 9 - Nov 8)
 export const ALERT_PCT = 0.9;
 // Planned spend after the 2026-10-25 cuts, used for the projection until real full days have been counted.
-export const PLAN_RATE = { wk: 2600, we: 150 };
+export const PLAN_RATE = { wk: 2300, we: 350 };   // feeders ~2,150 + Pages GEX margin; weekend ~320
 export const SOURCES = ['gexfast', 'opt', 'scan', 'news', 'newscal', 'brief', 'info', 'of', 'pages', 'other'];
 const KEEP_DAYS = 45;
 const DAY = 86400000;

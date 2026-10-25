@@ -138,6 +138,30 @@ def all_codes():
     return list(dict.fromkeys(out))
 
 
+
+
+# ---- InsightSentry monthly REST quota (2026-10-25): every request made here is counted and posted once to the recorder's
+# /is-note (src/is-usage.js), so /is-health can show the month's use and site_health can warn before the quota runs out.
+IS_CALLS = [0]
+
+
+def note_is(src):
+    n, IS_CALLS[0] = IS_CALLS[0], 0
+    url, sec = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/'), os.environ.get('BOOK_INGEST_SECRET', '')
+    if not n or not url or not sec:
+        return
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': src, 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': sec, 'User-Agent': 'tradezoro-is-note/1'})
+        urllib.request.urlopen(req, timeout=10).close()
+    except Exception:
+        IS_CALLS[0] += n      # keep it for the next flush (long-running feeders)
+
+
+import atexit  # noqa: E402
+atexit.register(note_is, 'brief')
+
+
 # ------------------------------------------------------------------ IO
 def env_need():
     key = os.environ.get('INSIGHTSENTRY_WEBSOCKET_API_KEY') or os.environ.get('INSIGHTSENTRY_API_KEY') or ''
@@ -161,6 +185,7 @@ def is_get(path, key, params=None):
     url = IS + path + ('?' + urllib.parse.urlencode(params, safe=':,!') if params else '')
     for attempt in range(3):
         try:
+            IS_CALLS[0] += 1
             return http_json(url, {'Authorization': 'Bearer ' + key})
         except urllib.error.HTTPError as e:
             if (e.code == 429 or e.code >= 500) and attempt < 2:
@@ -1008,7 +1033,8 @@ def plan(now_dt, state, args):
     if now_dt.weekday() < 5 and after and state.get('fullDay') != today:
         return 'full'
     m = now_dt.hour * 60 + now_dt.minute
-    if now_dt.weekday() < 5 and 13 * 60 + 30 <= m <= 20 * 60 + 30:
+    # map numbers: every 30 min in the US session (was every 15 min: InsightSentry monthly REST quota, 2026-10-25)
+    if now_dt.weekday() < 5 and 13 * 60 + 30 <= m <= 20 * 60 + 30 and m % 30 < 15:
         return 'map'
     return 'cal'
 

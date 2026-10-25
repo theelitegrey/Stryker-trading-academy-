@@ -1,6 +1,6 @@
 // InsightSentry monthly REST counter (src/is-usage.js). node workers/book-recorder/test/is-usage.test.mjs
 import assert from 'node:assert/strict';
-import { periodOf, addNote, setBase, summary, emptyUse, noteSig, sigOk, QUOTA } from '../src/is-usage.js';
+import { periodOf, addNote, setBase, summary, emptyUse, noteSig, sigOk, QUOTA, PLAN_RATE } from '../src/is-usage.js';
 
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const T = (s) => Date.parse(s);
@@ -24,8 +24,8 @@ assert.equal(s.todayBy.other, 3);
 assert.equal(s.rateBasis.wk, 'plan');
 ok('baseline + counted after it; unknown source -> other; negative ignored');
 
-// projection with the plan rate: Oct 25 (Sun) .. Nov 8: 10 weekdays x 2600 + 5 weekend days x 150 (today counts its rest)
-const exp = 75449 + (150 - 18) + 10 * 2600 + 4 * 150;
+// projection with the plan rate: Oct 25 (Sun) .. Nov 8: 10 weekdays + 4 more weekend days (today counts its rest)
+const exp = 75449 + (PLAN_RATE.we - 18) + 10 * PLAN_RATE.wk + 4 * PLAN_RATE.we;
 assert.equal(s.projected, exp);
 assert.equal(s.alert, exp > QUOTA * 0.9);
 assert.equal(s.runsOutOn, null);

@@ -74,12 +74,35 @@ def log(msg):
     print(msg, flush=True)
 
 
+# ---- InsightSentry monthly REST quota (2026-10-25): every request made here is counted and posted once to the recorder's
+# /is-note (src/is-usage.js), so /is-health can show the month's use and site_health can warn before the quota runs out.
+IS_CALLS = [0]
+
+
+def note_is(src):
+    n, IS_CALLS[0] = IS_CALLS[0], 0
+    url, sec = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/'), os.environ.get('BOOK_INGEST_SECRET', '')
+    if not n or not url or not sec:
+        return
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': src, 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': sec, 'User-Agent': 'tradezoro-is-note/1'})
+        urllib.request.urlopen(req, timeout=10).close()
+    except Exception:
+        IS_CALLS[0] += n      # keep it for the next flush (long-running feeders)
+
+
+import atexit  # noqa: E402
+atexit.register(note_is, 'opt')
+
+
 def in_window(now):
     t = now.astimezone(ET)
     if t.weekday() >= 5:
         return False
     m = t.hour * 60 + t.minute
-    return 9 * 60 + 30 <= m <= 16 * 60 + 15 or 16 * 60 + 30 <= m <= 16 * 60 + 34
+    # every 10 min (the timer ticks every 5): was every 5 min, ~595 IS calls a weekday; InsightSentry monthly REST quota 2026-10-25
+    return (9 * 60 + 30 <= m <= 16 * 60 + 15 and m % 10 < 5) or 16 * 60 + 30 <= m <= 16 * 60 + 34
 
 
 def fnum(x):
@@ -403,6 +426,7 @@ def analyse(chains, u, spot, now_epoch, fut=None):
 # ---------------------------------------------------------------- I/O
 def is_get(path, key, params=None):
     url = IS + path + ('?' + urllib.parse.urlencode(params, safe=':,!') if params else '')
+    IS_CALLS[0] += 1
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + key, 'User-Agent': UA, 'Accept': 'application/json',
                                                'Accept-Encoding': 'gzip'})
     with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as r:

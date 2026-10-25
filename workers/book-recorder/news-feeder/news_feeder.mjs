@@ -32,7 +32,21 @@ const N = await import('./news.mjs').catch(() => import('../src/news.js'));
 const { compactNews, compactEvent, NEWS_KEEP_S } = N;
 
 const API = 'https://api.insightsentry.com/v3';
-const NEWS_LIMIT = 200, NEWS_PAGES = 5, CAL_EVERY_S = 15 * 60;
+const NEWS_LIMIT = 200, NEWS_PAGES = 5;
+// InsightSentry MONTHLY REST quota (2026-10-25, CoS "is monthly quota 1026"): news every 2 min + 8 calendar calls every
+// 15 min, 24/7, was ~1,440 calls a day. Now: news every NEWS_EVERY_S (5 min on weekdays, 30 min from Fri 17:00 ET to
+// Sun 17:00 ET) and the calendar every CAL_EVERY_S (60 min; 15 min on weekdays 07:00-11:00 ET when most actuals print).
+// The timer still ticks every 2 min; this script decides. Every IS call is posted to the recorder's /is-note.
+const NEWS_EVERY_S = 5 * 60, NEWS_EVERY_WE_S = 30 * 60, CAL_EVERY_S = 60 * 60, CAL_EVERY_HOT_S = 15 * 60;
+let isCalls = 0;
+export function etParts(ms) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date(ms)).map((x) => [x.type, x.value]));
+  return { dow: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(p.weekday), min: Number(p.hour) * 60 + Number(p.minute) };
+}
+// weekend = Fri 17:00 ET .. Sun 17:00 ET (futures closed)
+export function isWeekendEt(ms) { const { dow, min } = etParts(ms); return dow === 6 || (dow === 5 && min >= 17 * 60) || (dow === 0 && min < 17 * 60); }
+export function newsEvery(ms) { return isWeekendEt(ms) ? NEWS_EVERY_WE_S : NEWS_EVERY_S; }
+export function calEvery(ms) { const { dow, min } = etParts(ms); return dow >= 1 && dow <= 5 && min >= 7 * 60 && min < 11 * 60 ? CAL_EVERY_HOT_S : CAL_EVERY_S; }
 const STATE = process.env.NEWS_FEEDER_STATE || '/var/lib/news-feeder/state.json';
 const KEY = process.env.INSIGHTSENTRY_WEBSOCKET_API_KEY || process.env.INSIGHTSENTRY_API_KEY || '';
 const REC = String(process.env.BOOK_RECORDER_URL || '').replace(/\/+$/, '');
@@ -51,6 +65,7 @@ export const BACKFILL = [
 ];
 
 async function is(pathq) {
+  isCalls++;
   const r = await fetch(API + pathq, { headers: { Authorization: 'Bearer ' + KEY, 'accept-encoding': 'gzip' }, signal: AbortSignal.timeout(30000) });
   if (r.status === 429) throw Object.assign(new Error('InsightSentry 429 (rate limited) on ' + pathq.split('?')[0]), { rl: true });
   if (!r.ok) throw new Error('InsightSentry HTTP ' + r.status + ' on ' + pathq.split('?')[0]);
@@ -187,12 +202,13 @@ async function main() {
     if (state.first || args.has('--backfill')) {
       try { await runBackfill(); delete state.first; } catch (e) { failed = true; console.error('backfill: ' + e.message); }
     }
-    await runNews(state);
+    if (args.has('--news') || !state.newsAt || nowSec - state.newsAt >= newsEvery(Date.now()) - 30) { await runNews(state); state.newsAt = nowSec; }
   } catch (e) { failed = true; console.error('news: ' + e.message); }
-  if (args.has('--cal') || !state.calAt || nowSec - state.calAt >= CAL_EVERY_S - 30) {
+  if (args.has('--cal') || !state.calAt || nowSec - state.calAt >= calEvery(Date.now()) - 30) {
     try { await runCal(); state.calAt = nowSec; } catch (e) { failed = true; console.error('calendar: ' + e.message); }
   }
   writeState(state);
+  if (isCalls) { try { await post('/is-note', { src: 'news', n: isCalls }); } catch (e) { console.error('is-note: ' + e.message); } }
   log('rss ' + Math.round(process.memoryUsage().rss / 1e6) + ' MB');
   if (failed) process.exitCode = 1;
 }

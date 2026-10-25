@@ -98,6 +98,30 @@ MAX_POST = 120 * 1024       # raw bytes per POST (the Worker refuses > 256 KB)
 POST_BARS = 300             # bars per POST: keeps the Worker's validation inside the free CPU budget
 
 
+
+
+# ---- InsightSentry monthly REST quota (2026-10-25): every request made here is counted and posted once to the recorder's
+# /is-note (src/is-usage.js), so /is-health can show the month's use and site_health can warn before the quota runs out.
+IS_CALLS = [0]
+
+
+def note_is(src):
+    n, IS_CALLS[0] = IS_CALLS[0], 0
+    url, sec = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/'), os.environ.get('BOOK_INGEST_SECRET', '')
+    if not n or not url or not sec:
+        return
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': src, 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': sec, 'User-Agent': 'tradezoro-is-note/1'})
+        urllib.request.urlopen(req, timeout=10).close()
+    except Exception:
+        IS_CALLS[0] += n      # keep it for the next flush (long-running feeders)
+
+
+import atexit  # noqa: E402
+atexit.register(note_is, 'of')
+
+
 def log(msg):
     print(msg, flush=True)
 
@@ -180,6 +204,7 @@ def file_chunks(path):
 
 def http_chunks(code, day, key, meta, window=None):
     url = API + urllib.parse.quote(code, safe=':!') + '/trades?date=' + day + ('&window=' + window if window else '')
+    IS_CALLS[0] += 1
     req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + key, 'Accept-Encoding': 'gzip', 'User-Agent': UA})
     with urllib.request.urlopen(req, timeout=120) as r:
         meta['status'] = r.status
@@ -437,6 +462,7 @@ def live():
             with lock:
                 upto = {s: ws_from.get(s, int(now // 60)) for s in SYMS}
             fill_today(upto, url, key, is_key, st)
+            note_is('of')
         # after 00:20 UTC rebuild the UTC day that just ended from the full REST record
         utc = datetime.now(timezone.utc)
         y = (utc.date() - timedelta(days=1)).isoformat()
@@ -448,6 +474,7 @@ def live():
                     aggs[s].thr = st.get('thr', {}).get(s, aggs[s].thr)
             before = dict(st.get('codes') or {})
             pick_contracts(is_key, st)
+            note_is('of')
             save_state({k: v for k, v in st.items() if not k.startswith('_')})
             if st.get('codes') != before:
                 # contract roll: exit; systemd (Restart=always) restarts us on the new contract

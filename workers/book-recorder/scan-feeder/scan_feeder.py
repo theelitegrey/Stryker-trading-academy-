@@ -38,6 +38,28 @@ POST_TIMEOUT = 30
 TOP_N = 50
 MIN_CAP = 300e6            # stocks: $300M+ market cap (drops illiquid micro caps)
 MIN_PRICE = 1.0
+
+
+# ---- InsightSentry monthly REST quota (2026-10-25): every request made here is counted and posted once to the recorder's
+# /is-note (src/is-usage.js), so /is-health can show the month's use and site_health can warn before the quota runs out.
+IS_CALLS = [0]
+
+
+def note_is(src):
+    n, IS_CALLS[0] = IS_CALLS[0], 0
+    url, sec = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/'), os.environ.get('BOOK_INGEST_SECRET', '')
+    if not n or not url or not sec:
+        return
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': src, 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': sec, 'User-Agent': 'tradezoro-is-note/1'})
+        urllib.request.urlopen(req, timeout=10).close()
+    except Exception:
+        IS_CALLS[0] += n      # keep it for the next flush (long-running feeders)
+
+
+import atexit  # noqa: E402
+atexit.register(note_is, 'scan')
 MIN_DOLLAR_VOL = 1e6       # a mover must have traded at least $1M today
 MIN_ETF_AVGVOL = 100000
 MAX_BODY = 512 * 1024     # per part (gzip)
@@ -59,12 +81,14 @@ def log(msg):
 
 
 def in_window(now):
-    """Weekdays 04:00-20:15 ET (pre-market to after-hours); crypto alone is not worth 24/7 calls."""
+    """Weekdays 09:00-16:30 ET. Was 04:00-20:15 every 3 min (~1,300 IS calls a weekday); since 2026-10-25 (InsightSentry
+    monthly REST quota) the timer runs every 10 min inside the cash session plus the open/close edges (~160 a weekday).
+    The page shows \"Updated X min ago\" from the data's own time."""
     t = datetime.fromtimestamp(now, ET)
     if t.weekday() >= 5:
         return False
     m = t.hour * 60 + t.minute
-    return 4 * 60 <= m <= 20 * 60 + 15
+    return 9 * 60 <= m <= 16 * 60 + 30
 
 
 def screener_body(fields, **filters):
@@ -81,6 +105,7 @@ def screener_body(fields, **filters):
 
 
 def is_post(kind, body, key):
+    IS_CALLS[0] += 1
     req = urllib.request.Request(IS + kind, data=json.dumps(body).encode(), method='POST',
                                  headers={'Authorization': 'Bearer ' + key, 'content-type': 'application/json',
                                           'user-agent': UA, 'accept-encoding': 'gzip'})

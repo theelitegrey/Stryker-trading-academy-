@@ -26,11 +26,36 @@ FUND = {  # key -> fundamentals id
 }
 
 
+
+
+# ---- InsightSentry monthly REST quota (2026-10-25): every request made here is counted and posted once to the recorder's
+# /is-note (src/is-usage.js), so /is-health can show the month's use and site_health can warn before the quota runs out.
+IS_CALLS = [0]
+
+
+def note_is(src):
+    n, IS_CALLS[0] = IS_CALLS[0], 0
+    url, sec = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/'), os.environ.get('BOOK_INGEST_SECRET', '')
+    if not n or not url or not sec:
+        return
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': src, 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': sec, 'User-Agent': 'tradezoro-is-note/1'})
+        urllib.request.urlopen(req, timeout=10).close()
+    except Exception:
+        IS_CALLS[0] += n      # keep it for the next flush (long-running feeders)
+
+
+import atexit  # noqa: E402
+atexit.register(note_is, 'info')
+
+
 def log(m):
     print(time.strftime('%H:%M:%S ') + m, flush=True)
 
 
 def get(path, key):
+    IS_CALLS[0] += 1
     req = urllib.request.Request(IS + urllib.parse.quote(path, safe='/:!'), headers={'Authorization': 'Bearer ' + key})
     with urllib.request.urlopen(req, timeout=45) as r:
         return json.loads(r.read())

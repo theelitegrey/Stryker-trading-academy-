@@ -53,6 +53,8 @@ jobs:
         run: |
           node workers/book-recorder/test/orderflow.test.mjs
           node workers/book-recorder/test/is-hub.test.mjs
+          node workers/book-recorder/test/is-usage.test.mjs
+          python3 workers/book-recorder/test/gex_fast_test.py
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -149,5 +151,8 @@ jobs:
             [ "$ih" = 200 ] && break; sleep 20
           done
           echo "is-health: HTTP $ih $(jq -c '{state, window3h, limit3h, configured}' /tmp/ish.json 2>/dev/null)"; test "$ih" = 200
+          # monthly REST counter: refuses an unsigned note
+          in401=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' --data '{"src":"news","n":1}' "$URL/is-note")
+          echo "is-note without key: HTTP $in401"; test "$in401" = 401
           il=$(curl -s -o /dev/null -w '%{http_code}' --http1.1 --max-time 10 -H 'Upgrade: websocket' -H 'Connection: Upgrade' -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' "$URL/is-live?legs=CME_MINI:NQ1!|minute|1")
           echo "is-live without token: HTTP $il"; test "$il" = 403

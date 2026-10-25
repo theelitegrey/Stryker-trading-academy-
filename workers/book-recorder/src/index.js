@@ -24,6 +24,7 @@ import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
 import { ISHub, isHubFetch } from './is-hub.js';
+import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
 const KEEP_MS = 24 * 60 * 60 * 1000;
@@ -383,7 +384,23 @@ export class BookRecorder {
       const gz = await new Response(new Blob([buf]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer();
       return new Response(gz, { headers: { 'content-type': 'application/octet-stream', 'x-of-raw': String(buf.length), 'x-of-n': String(this.ofLastN || 0) } });
     }
-    if (u.pathname === '/is-live' || u.pathname === '/is-stats') return isHubFetch(this.isHub, this.env, u, req);
+    if (u.pathname === '/is-note') {
+      // monthly REST counter (src/is-usage.js): {src, n} adds requests; {base: {at, used}} sets the dashboard baseline
+      const b = await req.json();
+      let use = (await this.ctx.storage.get('isUse')) || emptyUse();
+      if (b.base) use = setBase(use, Number(b.base.at), Number(b.base.used));
+      if (b.n) use = addNote(use, String(b.src || 'other'), Number(b.n), Date.now());
+      await this.ctx.storage.put('isUse', use);
+      return new Response('noted');
+    }
+    if (u.pathname === '/is-stats') {
+      // the 3 h WebSocket window (is-hub) + the monthly REST quota block
+      const r = await isHubFetch(this.isHub, this.env, u, req);
+      const j = await r.json();
+      j.month = summary(await this.ctx.storage.get('isUse'), Date.now());
+      return Response.json(j);
+    }
+    if (u.pathname === '/is-live') return isHubFetch(this.isHub, this.env, u, req);
     if (u.pathname === '/status') return Response.json(this.status());
     if (u.pathname.startsWith('/t/')) return terminalDo(this, u, req);   // terminal files (src/terminal.js)
     if (u.pathname.startsWith('/n/')) return newsDo(this, u, req);   // news + calendar (src/news-routes.js)
@@ -572,6 +589,23 @@ async function route(req, env, ctx) {
       const v = await validateGexChain(sym, part, buf, Date.now());
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-ingest?sym=' + sym + '&part=' + part + '&ts=' + v.fetched_at, { method: 'POST', body: buf });
+    }
+    if (u.pathname === '/is-note') {
+      // InsightSentry monthly REST counter (src/is-usage.js). Server feeders: the ingest secret, any source, n <= 100000,
+      // and the dashboard baseline. Pages Functions: x-is-sig = HMAC of the minute keyed with the IS key they hold;
+      // source 'pages' only, n <= 10 per note. The body is tiny JSON.
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (Number(req.headers.get('content-length') || 0) > 512) return new Response('too large', { status: 413 });
+      const full = await authorized(req, env);
+      const pages = !full && (await sigOk(env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '', req.headers.get('x-is-sig') || ''));
+      if (!full && !pages) return new Response('unauthorized', { status: 401 });
+      let b;
+      try { b = JSON.parse((await req.text()).slice(0, 512)); } catch (e) { return new Response('bad json', { status: 400 }); }
+      const n = Math.floor(Number(b && b.n) || 0);
+      const body = { src: pages ? 'pages' : String(b.src || 'other').slice(0, 16), n: pages ? Math.min(10, n) : n };
+      if (full && b.base && Number(b.base.at) > 0 && Number(b.base.used) >= 0) body.base = { at: Number(b.base.at), used: Number(b.base.used) };
+      if (!(body.n > 0) && !body.base) return new Response('nothing to note', { status: 400 });
+      return stub(env).fetch('https://do/is-note', { method: 'POST', body: JSON.stringify(body) });
     }
     if (u.pathname === '/gex-fast-ingest') {
       // Fast GEX feeder (gex_fast.py, InsightSentry + Cboe OI): per-strike gamma x OI, ~every 2 s. Same secret, gzip JSON <= 256 KB.

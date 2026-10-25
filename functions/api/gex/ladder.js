@@ -12,7 +12,11 @@ import { gexAtSpot, netNear, ladderNear, flipAt, wallsAt } from '../../../assets
 // 15 s per underlying and posts the latest spot about once a second; this turns the newest block into the ladder at the
 // newest spot with the SAME formula as the engine (assets/gex-fast-core.js, unit-tested against functions/api/gex/_engine.js).
 // Anything missing / older than FAST_MAX_AGE_S -> the normal /api/gex/levels path (Cboe, ~1 min).
-const FAST_MAX_AGE_S = 90;
+// Max age of a fast block, by expiry. Since 2026-10-25 (InsightSentry MONTHLY REST quota, CoS "is monthly quota 1026")
+// gex_fast.py re-pulls each underlying's 0DTE chain every 120 s and its 1DTE chain every 600 s (was both every 15 s,
+// ~9,700 REST calls a weekday). The ladder still moves every second: gamma is recomputed at the live spot below.
+// Each block carries its own build time `b` (older feeders: the entry's `built`); the status shows that real age.
+const FAST_MAX_AGE_S = { 0: 200, 1: 720 };
 const FAST_SPOT_MAX_AGE_S = 20;
 async function fetchFast(env) {
   const base = (env && env.GEX_CHAIN_URL) || 'https://book-recorder.theelitegrey.workers.dev/gex-chain';
@@ -26,11 +30,12 @@ async function fetchFast(env) {
 }
 function fromFast(fast, u, dte, nowSec) {
   const e = fast && fast.u && fast.u[u], blk = e && e[String(dte)];
-  if (!blk || blk.v !== 2 || !(nowSec - e.built <= FAST_MAX_AGE_S)) return null;
+  const bt = blk && blk.b > 0 ? blk.b : e && e.built;
+  if (!blk || blk.v !== 2 || !(nowSec - bt <= (FAST_MAX_AGE_S[dte] || 200))) return null;
   const sp = fast.spots && fast.spots[u];
   const spot = sp && sp.p > 0 && nowSec - sp.t <= FAST_SPOT_MAX_AGE_S ? sp.p : blk.s0;
   const rows = gexAtSpot(blk, spot);
-  return { underlying: u, spot, net_gex: netNear(rows, spot), fetched_at: e.built, built: e.built, spot_t: sp ? sp.t : null, asof: null, expiry: blk.x,
+  return { underlying: u, spot, net_gex: netNear(rows, spot), fetched_at: bt, built: bt, spot_t: sp ? sp.t : null, asof: null, expiry: blk.x,
     market: { state: 'open' }, ladder: ladderNear(rows, spot).map((r) => ({ strike: r.strike, gex: r.gex })), src: 'fast',
     max_pain: blk.mp == null ? null : blk.mp, zero_gamma: flipAt(blk, spot), ...wallsAt(blk, spot) };
 }

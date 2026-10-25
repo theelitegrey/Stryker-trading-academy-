@@ -4,9 +4,14 @@
 Owner/CoS order 2026-10-16 ("use InsightSentry for ~15 s GEX rebuilds"). Long-running, stdlib only.
   - SPOT: one WebSocket (wss://realtime.insightsentry.com/live, 3 quote subscriptions SPX/QQQ/SPY, no REST cost) keeps
     the latest price of each underlying (about one update per second).
-  - CHAIN: REST GET /v3/options/quotes?code=<CODE>&expiration=<0DTE|1DTE>&range=12 (~0.2-0.5 MB each) every FAST_STEP
-    seconds, rotating SPX -> QQQ -> SPY, so each underlying is rebuilt about every 3 x FAST_STEP = 15 s
-    (2 small calls per pull: expiry 0DTE and 1DTE, range=12 like the site engine: 24 REST calls/min). Backs off on HTTP 429 or errors. Parsed, reduced, dropped before the next pull.
+  - CHAIN: REST GET /v3/options/quotes?code=<CODE>&expiration=<0DTE|1DTE>&range=12 (~0.2-0.5 MB each), rotating
+    SPX -> QQQ -> SPY. MONTHLY QUOTA (2026-10-25, CoS "is monthly quota 1026"): the Growth plan allows 120,000 REST
+    calls a month and this feeder alone spent ~9,700 a weekday (0DTE + 1DTE every 15 s per underlying). Now each
+    underlying's 0DTE chain is pulled every STEP_0 s (120) and its 1DTE chain every STEP_1 s (600), 09:28-16:02 ET
+    (0DTE expires 16:00): ~710 calls a weekday. Only the per-strike IV comes from this pull; the ladder still
+    recomputes gamma at the live WebSocket spot every second (assets/gex-fast-core.js), so the walls keep moving with
+    price. Each block carries its own build time 'b' so the site labels its real age. Calls are counted to the
+    recorder's /is-note (monthly counter shown in /is-health). Backs off on HTTP 429 or errors.
   - OPEN INTEREST + Cboe IV: from the compact Cboe chain the gex-feeder already posts
     (<Worker>/gex-chain?sym=X&part=near, re-read every 60 s). IS has no OI for most strikes; OI changes once a day.
   - MATH = functions/api/gex/_engine.js hybrid exactly: contracts are Cboe's rows for the first two expiries on/after
@@ -40,7 +45,9 @@ UA = 'tradezoro-gex-fast/1'
 ET = ZoneInfo('America/New_York')
 CODES = {'SPX': 'CBOE:SPX', 'QQQ': 'NASDAQ:QQQ', 'SPY': 'AMEX:SPY'}
 CBOE_SYM = {'SPX': 'SPX', 'QQQ': 'QQQ', 'SPY': 'SPY'}
-STEP = float(os.environ.get('FAST_STEP', '5'))      # seconds between chain pulls (3 underlyings -> 3 x STEP each)
+STEP_0 = float(os.environ.get('FAST_STEP_0', '120'))   # seconds between 0DTE pulls of ONE underlying
+STEP_1 = float(os.environ.get('FAST_STEP_1', '600'))   # seconds between 1DTE pulls of ONE underlying
+NOTE_EVERY = 300                                       # post the call count to /is-note every 5 min
 BAND = 0.07                                         # keep strikes within 7 % of spot (the ladder shows 4 %, net uses 6 %)
 OI_REFRESH = 60
 POST_EVERY = 2
@@ -56,7 +63,7 @@ def in_window(now):
     if t.weekday() >= 5:
         return False
     m = t.hour * 60 + t.minute
-    return 9 * 60 + 25 <= m <= 16 * 60 + 20
+    return 9 * 60 + 28 <= m <= 16 * 60 + 2
 
 
 def sig(x, n=6):
@@ -199,6 +206,22 @@ def post(url, key, blob):
         return 0, len(body)
 
 
+def note_is(url, key, n):
+    """Add n InsightSentry REST calls to the recorder's monthly counter (src/is-usage.js). Best effort."""
+    try:
+        req = urllib.request.Request(url + '/is-note', data=json.dumps({'src': 'gexfast', 'n': n}).encode(), method='POST',
+                                     headers={'content-type': 'application/json', 'x-ingest-key': key, 'User-Agent': UA})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return r.status == 200
+    except Exception:
+        return False
+
+
+def due(last, u, dte, now):
+    """Is underlying u's dte chain due for a pull? (pure)"""
+    return now - last.get((u, dte), 0) >= (STEP_0 if dte == 0 else STEP_1) - 1
+
+
 def main():
     url = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/')
     key = os.environ.get('BOOK_INGEST_SECRET', '')
@@ -211,12 +234,23 @@ def main():
     stats = {'ok': 0, 'fail': 0, '429': 0, 'req': 0}
     nxt, i, last_post, last_sig, pause_until, t_stat = time.time(), 0, 0, None, 0, time.time()
     order = list(CODES)
+    pulled = {}          # (U, dte) -> epoch of the last pull
+    unnoted, noted_at = 0, time.time()
     while True:
         now = time.time()
+        if unnoted and (now - noted_at >= NOTE_EVERY or not in_window(datetime.now(timezone.utc))):
+            if note_is(url, key, unnoted):
+                unnoted = 0
+            noted_at = now
         if not in_window(datetime.now(timezone.utc)):
             time.sleep(20); continue
-        if now >= nxt and now >= pause_until:
-            u = order[i % 3]; i += 1; nxt = now + STEP
+        # one underlying per tick (every 2 s at most): the next one with a due 0DTE or 1DTE chain
+        u = order[i % 3]
+        want = [dte for dte in (0, 1) if due(pulled, u, dte, now)]
+        if not want:
+            i += 1
+        if want and now >= nxt and now >= pause_until:
+            i += 1; nxt = now + 2
             t0 = time.monotonic()
             try:
                 if u not in oi or now - oi[u][0] > OI_REFRESH:
@@ -224,24 +258,32 @@ def main():
                     oi[u] = (now, json.loads(gzip.decompress(raw)))
                 sp = spots.get().get(u)
                 en = None
-                b = {}
+                b = dict(builds.get(u) or {})
+                b.pop('built', None)
                 today = datetime.fromtimestamp(now, timezone.utc).date()
                 exps = [e for e in sorted(oi[u][1].get('expiries') or {}) if (datetime.strptime(e, '%Y-%m-%d').date() - today).days >= 0]
-                for dte in (0, 1):
+                for dte in want:
                     if not exps:
                         break
                     ex = exps[min(dte, len(exps) - 1)]
                     # the SAME call the site's engine makes (fetchInsightQuotes: one expiry, range=12), so the SPX/SPXW duplicate
                     # contracts resolve exactly like a server rebuild does (the whole-chain reply orders them differently)
+                    pulled[(u, dte)] = time.time()
+                    unnoted += 1          # a sent request counts against the quota whatever the reply
                     d = http_json('%s/options/quotes?code=%s&expiration=%s&range=12' % (IS, CODES[u], ex), {'Authorization': 'Bearer ' + iskey, 'Accept': 'application/json'}, 25)
                     if sp and time.time() - sp['t'] < 30:
                         d['last_price'] = sp['p']
                     en = time.time()
                     blk = reduce_chain(d, oi[u][1], dte, en)
                     if blk:
+                        blk['b'] = int(en)
                         b[str(dte)] = blk
                     stats['req'] += 1
-                b['built'] = int(en or time.time())
+                # drop a block from an earlier day (yesterday's 1DTE is not today's 0DTE)
+                for m in ('0', '1'):
+                    if m in b and (not exps or b[m].get('x') != exps[min(int(m), len(exps) - 1)]):
+                        del b[m]
+                b['built'] = max([int(en or time.time())] + [b[m].get('b', 0) for m in ('0', '1') if m in b])
                 d = None
                 if '0' in b:
                     builds[u] = b; stats['ok'] += 1
@@ -256,7 +298,7 @@ def main():
             except Exception as e:
                 stats['fail'] += 1; log('%s pull failed: %s %s' % (u, type(e).__name__, str(e)[:80]))
             else:
-                if stats['ok'] % 30 == 1:
+                if stats['ok'] % 10 == 1:
                     log('%s built in %.1fs; ok=%d fail=%d 429=%d req=%d' % (u, time.monotonic() - t0, stats['ok'], stats['fail'], stats['429'], stats['req']))
         if builds and now - last_post >= POST_EVERY:
             sp = spots.get()

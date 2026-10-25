@@ -14,7 +14,7 @@
 //   localStorage.setItem('stk_auth_domain', '1')   (removeItem to undo)
 // The choice only affects the Google popup: email/password sign-in and
 // existing sessions are keyed on apiKey + app name, not on authDomain.
-const USE_SITE_AUTH_DOMAIN = false;
+const USE_SITE_AUTH_DOMAIN = true;
 const SITE_AUTH_HOSTS = ['tradezoro.com'];
 const DEFAULT_AUTH_DOMAIN = 'strykertrades-e0cd8.firebaseapp.com';
 function pickAuthDomain(hostname, flag, override) {

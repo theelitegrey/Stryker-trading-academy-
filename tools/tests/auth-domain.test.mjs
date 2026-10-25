@@ -24,7 +24,7 @@ let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('ok', name); };
 
 const c = load({ getItem: () => null });
-t('flag ships OFF', () => assert.equal(c.__f, false));
+t('flag ON (Owner added redirect URI 10-25)', () => assert.equal(c.__f, true));
 t('tradezoro, flag off, no override -> default', () => assert.equal(c.__p('tradezoro.com', false, null), DEF));
 t('tradezoro, override 1 -> tradezoro.com', () => assert.equal(c.__p('tradezoro.com', false, '1'), 'tradezoro.com'));
 t('tradezoro, override 0 -> default', () => assert.equal(c.__p('tradezoro.com', false, '0'), DEF));

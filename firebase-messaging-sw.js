@@ -17,6 +17,9 @@ importScripts('https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-com
 // separate global scope with no access to the page's variables, and none of
 // these values are secret — they identify the project, they don't authorise
 // anything. The security boundary is the Firestore rules.
+// authDomain stays on firebaseapp.com here on purpose: messaging never uses
+// it (only the Google sign-in popup does, in assets/auth.js), and a worker has
+// no localStorage for the stk_auth_domain test override.
 firebase.initializeApp({
   apiKey: "AIzaSyC8nqRVQ7wpuplYygZObKgNx2ojj5ZwbSQ",
   authDomain: "strykertrades-e0cd8.firebaseapp.com",

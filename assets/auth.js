@@ -2,9 +2,32 @@
 // Loaded on: login.html, signup.html, dashboard-user.html, dashboard-admin.html
 // Requires firebase-app-compat.js + firebase-auth-compat.js to be loaded first.
 
+// ---- Google sign-in host ("custom authDomain") ----
+// The Google popup says "continue to <authDomain>". On tradezoro.com we can
+// use our own host, because functions/_auth-proxy.js serves /__/auth/* and
+// /__/firebase/* from it by proxying to firebaseapp.com. Every other host
+// (localhost, previews, the old domain) keeps the firebaseapp.com default.
+//
+// OFF until https://tradezoro.com/__/auth/handler is an authorised redirect
+// URI on the Google OAuth client (Google Cloud console). Before that, Google
+// rejects the sign-in. To test early on tradezoro.com, run in the console:
+//   localStorage.setItem('stk_auth_domain', '1')   (removeItem to undo)
+// The choice only affects the Google popup: email/password sign-in and
+// existing sessions are keyed on apiKey + app name, not on authDomain.
+const USE_SITE_AUTH_DOMAIN = false;
+const SITE_AUTH_HOSTS = ['tradezoro.com'];
+const DEFAULT_AUTH_DOMAIN = 'strykertrades-e0cd8.firebaseapp.com';
+function pickAuthDomain(hostname, flag, override) {
+  if (SITE_AUTH_HOSTS.indexOf(hostname) === -1) return DEFAULT_AUTH_DOMAIN;
+  return (flag || override === '1') ? hostname : DEFAULT_AUTH_DOMAIN;
+}
+function readAuthDomainOverride() {
+  try { return window.localStorage.getItem('stk_auth_domain'); } catch (err) { return null; }
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyC8nqRVQ7wpuplYygZObKgNx2ojj5ZwbSQ",
-  authDomain: "strykertrades-e0cd8.firebaseapp.com",
+  authDomain: pickAuthDomain(window.location.hostname, USE_SITE_AUTH_DOMAIN, readAuthDomainOverride()),
   projectId: "strykertrades-e0cd8",
   storageBucket: "strykertrades-e0cd8.firebasestorage.app",
   messagingSenderId: "950576868151",

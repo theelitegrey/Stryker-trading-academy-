@@ -423,7 +423,7 @@ function handleStripeReturn(uid){
     if (done) return;
     unsub();
     okEl.innerHTML = '<b>Your payment went through, and your access is still being set up.</b> Refresh this page in a minute. ' +
-      'If your plan isn\'t active within 10 minutes, email <a href="mailto:support@strykertrading.com" style="color:inherit; text-decoration:underline;">support@strykertrading.com</a>' +
+      'If your plan isn\'t active within 10 minutes, email <a href="mailto:support@tradezoro.com" style="color:inherit; text-decoration:underline;">support@tradezoro.com</a>' +
       (ref ? ' with reference <code>' + ref + '</code>' : '') + '.';
   }, 45000);
 }
@@ -492,7 +492,7 @@ function launchRazorpay(btn, errEl){
         }).then(() => {
           finishPaidCheckout();
         }).catch((err) => {
-          errEl.textContent = 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
+          errEl.textContent = 'Payment received but verification failed — contact support@tradezoro.com with payment id ' +
             resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
           errEl.style.display = 'block';
           reset();
@@ -565,7 +565,7 @@ function launchRazorpaySubscription(btn, errEl){
         }).catch((err) => {
           errEl.textContent = o.trial
             ? ((err && err.message) || 'The free trial could not be started.') + ' Nothing has been charged.'
-            : 'Payment received but verification failed — contact support@strykertrading.com with payment id ' +
+            : 'Payment received but verification failed — contact support@tradezoro.com with payment id ' +
               resp.razorpay_payment_id + '. (' + (err.message || err) + ')';
           errEl.style.display = 'block';
           reset();

@@ -97,7 +97,7 @@
         return cred.user.updateProfile({ displayName: name }).then(function () { return cred.user; });
       })
       .then(function (user) {
-        user.sendEmailVerification().catch(function (err) { console.warn('TradeZoro: verification email failed', err); });
+        sendVerifyEmailWithReturn(user, window.location.pathname).catch(function (err) { console.warn('TradeZoro: verification email failed', err); });
         return finish(user, name, true);
       })
       .catch(function (err) {

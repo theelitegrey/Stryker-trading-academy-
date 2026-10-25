@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('settings-reset-password').addEventListener('click', () => {
     if (!currentUser || !currentUser.email) return;
-    auth.sendPasswordResetEmail(currentUser.email)
+    sendResetEmailWithReturn(currentUser.email)
       .then(() => showAdminSettingsMsg('settings-success', 'Password reset email sent — check your inbox.'))
       .catch((err) => showAdminSettingsMsg('settings-error', err.message || 'Could not send reset email.'));
   });

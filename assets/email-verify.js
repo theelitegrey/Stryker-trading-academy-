@@ -87,7 +87,7 @@
       var btn = this;
       btn.disabled = true;
       btn.textContent = 'Sending…';
-      user.sendEmailVerification()
+      sendVerifyEmailWithReturn(user, window.location.pathname)
         .then(function () {
           text.textContent = 'Confirmation link sent to ' + (user.email || 'your address') + '. Check spam if it does not arrive.';
           btn.textContent = 'Sent';
@@ -177,7 +177,7 @@
       var btn = this;
       btn.disabled = true;
       btn.textContent = 'Sending…';
-      user.sendEmailVerification()
+      sendVerifyEmailWithReturn(user, window.location.pathname)
         .then(function () {
           say('Sent again to <b>' + (user.email || 'your address') + '</b>. It can take a minute — check spam too.');
           btn.textContent = 'Sent';

@@ -707,6 +707,9 @@ footer{ border-top:1px solid var(--line-soft); padding:56px 0 32px; background:v
 .auth-box{ width:100%; max-width:400px; }
 .auth-box h1{ font-size:26px; margin:6px 0 8px; }
 .auth-box > p{ color:var(--ink-2); font-size:14.5px; margin-bottom:28px; }
+/* "Password updated" note on login after a reset link (auth.js, ?reset=1). */
+.auth-note{ margin:0 0 18px; padding:10px 12px; border-radius:8px; font-size:13.5px; line-height:1.45;
+  color:var(--ink-0); background:rgba(3,201,136,0.10); border:1px solid rgba(3,201,136,0.40); }
 
 .social-row{ display:flex; gap:10px; margin-bottom:22px; }
 .social-btn{

@@ -25,6 +25,39 @@ function readAuthDomainOverride() {
   try { return window.localStorage.getItem('stk_auth_domain'); } catch (err) { return null; }
 }
 
+// ---- Where Firebase's emailed action links send people afterwards ----
+// Password-reset and verify-email links still open Firebase's own page on
+// firebaseapp.com (the project's email template action URL cannot be changed).
+// That page shows a "Continue" button that goes to actionCodeSettings.url, so
+// on tradezoro.com we hand it a URL back on our own site. On any other host
+// (localhost, previews, the old domain) this returns null and the calls below
+// send exactly what they always did. tradezoro.com is an authorised domain,
+// which Firebase requires for a continue URL.
+// kind: 'reset' -> /login?reset=1 (login.html shows a "password updated" note)
+//       'verify' -> the given same-site path, else /dashboard-user
+const EMAIL_RETURN_HOSTS = ['tradezoro.com'];
+function pickEmailActionSettings(hostname, kind, path) {
+  if (EMAIL_RETURN_HOSTS.indexOf(hostname) === -1) return null;
+  const origin = 'https://' + hostname;
+  if (kind === 'reset') return { url: origin + '/login?reset=1' };
+  let p = typeof path === 'string' ? path : '';
+  // Same-site paths only: "/settings" yes; "//evil.example", "https://…" no.
+  const ok = p.charAt(0) === '/' && p.charAt(1) !== '/' && p.indexOf('\\') === -1 &&
+    !/^\/(login|signup)(\.html)?$/.test(p);
+  if (!ok) p = '/dashboard-user';
+  return { url: origin + p };
+}
+// Thin wrappers so every send goes through the same choice. Without settings
+// they call the SDK with the original single argument, unchanged.
+function sendResetEmailWithReturn(email) {
+  const s = pickEmailActionSettings(window.location.hostname, 'reset');
+  return s ? auth.sendPasswordResetEmail(email, s) : auth.sendPasswordResetEmail(email);
+}
+function sendVerifyEmailWithReturn(user, path) {
+  const s = pickEmailActionSettings(window.location.hostname, 'verify', path);
+  return s ? user.sendEmailVerification(s) : user.sendEmailVerification();
+}
+
 const firebaseConfig = {
   apiKey: "AIzaSyC8nqRVQ7wpuplYygZObKgNx2ojj5ZwbSQ",
   authDomain: pickAuthDomain(window.location.hostname, USE_SITE_AUTH_DOMAIN, readAuthDomainOverride()),
@@ -200,6 +233,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1200);
   }
 
+  // ---- Back from Firebase's reset-password page (?reset=1) ----
+  // sendResetEmailWithReturn() sets /login?reset=1 as the continue URL, so a
+  // visitor who just chose a new password lands here. Say so, then drop the
+  // flag from the address so a refresh or bookmark doesn't repeat the note.
+  const loginBox = document.getElementById('login-form') && document.querySelector('.auth-box');
+  if (loginBox && /(?:^|[?&])reset=1(?:&|$)/.test(window.location.search)) {
+    const note = document.createElement('div');
+    note.className = 'auth-note';
+    note.id = 'login-reset-note';
+    note.setAttribute('role', 'status');
+    note.textContent = 'Password updated. Log in with your new password.';
+    const errBox = document.getElementById('login-error');
+    loginBox.insertBefore(note, errBox || loginBox.firstChild);
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete('reset');
+      history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+    } catch (err) { /* old browser: the flag just stays in the URL */ }
+  }
+
   // ---- Email/password login ----
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
@@ -266,7 +319,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // gate offers a resend button, which is far better than leaving
           // them with a half-created account and an error.
           if (cred && cred.user && !cred.user.emailVerified) {
-            return cred.user.sendEmailVerification()
+            return sendVerifyEmailWithReturn(cred.user, '/dashboard-user')
               .catch((err) => console.warn('TradeZoro: verification email failed to send', err));
           }
         })
@@ -343,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const prefill = prefillEl ? prefillEl.value.trim() : '';
       const email = prompt('Enter your account email to receive a reset link:', prefill);
       if (!email) return;
-      auth.sendPasswordResetEmail(email.trim())
+      sendResetEmailWithReturn(email.trim())
         .then(() => showToast('success', 'Password reset email sent — check your inbox.'))
         .catch((err) => showToast('error', friendlyAuthError(err)));
     });

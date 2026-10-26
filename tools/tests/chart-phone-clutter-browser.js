@@ -213,6 +213,12 @@ const metrics = (p) => p.evaluate(() => {
         console.log('INFO ' + key + ' Fit price / Latest reachable by a real tap: ' + flOk);
         if (process.env.PC_REPLAY !== '0') {
           // Replay by real taps: the Replay button, then a bar in the middle of the plot.
+          // on a phone the Replay button can sit in ⋯ More (one top bar): open it first, by a real tap
+          const rbVis = await p.evaluate(() => { const b = document.querySelector('.stkr-btn'); return !!(b && b.getClientRects().length && b.getBoundingClientRect().width && !b.closest('[hidden]')); });
+          if (!rbVis) {
+            const mb = await p.$('#stkc-more-btn'); const mbb = mb && await mb.boundingBox();
+            if (mbb) { if (mobile) await p.touchscreen.tap(mbb.x + mbb.width / 2, mbb.y + mbb.height / 2); else await p.mouse.click(mbb.x + mbb.width / 2, mbb.y + mbb.height / 2); await sleep(500); }
+          }
           const rb = await p.$('.stkr-btn');
           const bb = rb && await rb.boundingBox();
           if (bb) { if (mobile) await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); else await p.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2); }

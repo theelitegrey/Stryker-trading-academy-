@@ -9762,6 +9762,13 @@ html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-r
    html.stk-cps is set on the phone Charts page only: one top bar (the chart toolbar, with the menu
    button, bell and a compact market clock), no footnote strip, the bottom nav behind a handle. ---- */
 html.stk-cps body.charts-page .mobile-topnav{ display:none; }
+/* a 12 px strip under the chart for the bottom-nav handle (never over the time axis or the replay bar) */
+html.stk-cps body.charts-page .dash-main{ padding-bottom:12px; box-sizing:border-box; }
+html.stk-cps.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:58px; }
+html.stk-cps.stk-replay .stkr-bar{ bottom:14px; }
+html.stk-chart-fs.stk-cps body.charts-page .dash-main{ padding-bottom:0; }
+html.stk-chart-fs.stk-cps.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; }
+html.stk-chart-fs.stk-cps.stk-replay .stkr-bar{ bottom:3px; }
 html.stk-cps body.charts-page .stkchart-credit{ display:none; }
 html.stk-cps .stkcps-menu{ flex:none; width:32px; height:34px; color:var(--ink-1); }
 html.stk-cps #stkc-bar .notif-bell-wrap{ flex:none; order:40; }
@@ -9786,9 +9793,9 @@ html.stk-cps.stk-cps-nav body.charts-page #appnav-dock{ transform:none; box-shad
 html.stk-cps body.charts-page .stkcps-handle{
   all:unset; box-sizing:border-box; display:flex; align-items:flex-end; justify-content:center;
   position:fixed; left:50%; bottom:0; transform:translateX(-50%); z-index:9061;
-  width:96px; height:22px; padding-bottom:calc(5px + env(safe-area-inset-bottom)); cursor:pointer; touch-action:manipulation;
+  width:96px; height:16px; padding-bottom:calc(4px + env(safe-area-inset-bottom)); cursor:pointer; touch-action:manipulation;
 }
-html.stk-cps body.charts-page .stkcps-handle span{ display:block; width:44px; height:5px; border-radius:3px; background:var(--ink-3); opacity:.75; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
+html.stk-cps body.charts-page .stkcps-handle span{ display:block; width:44px; height:4px; border-radius:3px; background:var(--ink-3); opacity:.75; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
 html.stk-cps.stk-cps-nav body.charts-page .stkcps-handle{ display:none; }
 html.stk-cps body.charts-page .stkcps-handle:focus-visible span{ outline:2px solid var(--gold); outline-offset:3px; }
 @media (prefers-reduced-motion: reduce){ html.stk-cps body.charts-page #appnav-dock{ transition:none; } }

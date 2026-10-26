@@ -4,9 +4,9 @@
 //
 // Owner order 2026-10-06 ("Build all"): TradingView's grid picker. Shapes for 1, 2
 // (side / stacked), 3 (columns, rows, one big + two), 4 (2x2, 4 columns, 4 rows, 1 + 3),
-// 5, 6 and 8 charts. Caps: 8 on desktop (performance), 4 on tablets AND phones (phones
-// still show one chart at a time through the switcher in vela-chart.js). 10/12/14/16 are
-// shown greyed with "Up to 8 charts on our site for smooth performance".
+// 5, 6 and 8 charts. Caps: 8 on desktop (performance), 4 on tablets AND phones (a phone
+// gets its own 1-4 picker and shows every chart at once: phoneMode() below). 10/12/14/16 are
+// shown greyed on desktop with "Up to 8 charts on our site for smooth performance".
 //
 // SYNC IN LAYOUT: separate switches for Symbol, Interval, Crosshair, Time (Vela's
 // 'symbol' / 'timeframe' / 'crosshair' / 'viewport' links) and Date range (ours): a

@@ -28,7 +28,7 @@
 //   The first sign-in with no cloud doc copies this browser's favourites up.
 // No Vela / LuxAlgo wording in view (Owner order 2026-10-05).
 
-import { toolIcon, UI_ICONS } from './chart-tool-icons.js?v=668';
+import { toolIcon, UI_ICONS } from './chart-tool-icons.js?v=669';
 
 const LS = 'stryker_chart_favbar';
 const LS_ORIENT = 'stryker_chart_favbar_orient';   // 'v' = vertical (this browser only: the cloud doc's shape is fixed by the rules)

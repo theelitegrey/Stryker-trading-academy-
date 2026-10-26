@@ -208,7 +208,12 @@ const metrics = (p) => p.evaluate(() => {
         console.log('SHOT ' + path.join(OUT, TAG + '-' + key + '-live.png'));
         console.log('METRICS ' + key + ' live ' + JSON.stringify(live));
         all[key + '-live'] = live;
-        if (mobile) check(live.domHits && !live.domHits.length && live.tagHits && !live.tagHits.length, key + ': live, nothing covers indicator text/tables/title', [live.domHits, live.tagHits]);
+        if (mobile) {
+          // GEX tags and the GEX chip are kept as before 659 (Owner order 2026-10-26): reported, not failed
+          const hard = (live.domHits || ['none']).filter((h) => !/^chip /.test(h));
+          check(live.domHits && !hard.length, key + ': live, data dot / pencil / drawing bar clear of indicator text, tables, title', hard);
+          console.log('INFO ' + key + ' live: GEX chip/tag overlaps (pre-659 placement, kept) ' + JSON.stringify([(live.domHits || []).filter((h) => /^chip /.test(h)), live.tagHits]).slice(0, 300));
+        }
         // Fit price / Latest by real tap / click
         const flB = await p.$$('#vela-chart .vela-cell .stkc-fl button');
         let flOk = flB.length === 2;
@@ -252,7 +257,12 @@ const metrics = (p) => p.evaluate(() => {
           console.log('METRICS ' + key + ' replay ' + JSON.stringify(rp));
           all[key + '-replay'] = rp;
           check(rp.replayOn, key + ': replay entered by real taps');
-          if (mobile) check(rp.domHits && !rp.domHits.length && rp.tagHits && !rp.tagHits.length, key + ': replay, nothing covers indicator text/tables/title', [rp.domHits, rp.tagHits]);
+          if (mobile) {
+          // GEX tags and the GEX chip are kept as before 659 (Owner order 2026-10-26): reported, not failed
+          const hard = (rp.domHits || ['none']).filter((h) => !/^chip /.test(h));
+          check(rp.domHits && !hard.length, key + ': replay, data dot / pencil / drawing bar clear of indicator text, tables, title', hard);
+          console.log('INFO ' + key + ' replay: GEX chip/tag overlaps (pre-659 placement, kept) ' + JSON.stringify([(rp.domHits || []).filter((h) => /^chip /.test(h)), rp.tagHits]).slice(0, 300));
+        }
           // the drawing toolbar is still reachable in replay (opener button or the bar itself)
           // exit by a real tap on Real-time
           const lb = await p.$('#stkr-bar .stkr-live');

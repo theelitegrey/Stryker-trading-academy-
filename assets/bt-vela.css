@@ -1,0 +1,11 @@
+/* Backtest on OUR chart (replay.html?chart=tz): fit the Charts-page chart into the backtest workspace.
+   Loaded by assets/bt-vela-chart.js only when the new chart is on. */
+html.bt-tz .rp-chart.bt-vela{ display:flex; flex-direction:column; min-height:0; overflow:hidden; }
+html.bt-tz .bt-vela > .stkc-bar{ flex:none; }
+html.bt-tz .bt-vela > .stkchart-panel{ flex:1 1 auto; height:auto; min-height:0; margin:0; border:0; border-radius:0; position:relative; }
+html.bt-tz .bt-vela #vela-chart{ position:absolute; inset:0; }
+/* the old chart's own controls are replaced by the Charts toolbar: timeframes, indicators, drawing rail */
+html.bt-tz #rp-tfs, html.bt-tz #rp-ind-btn, html.bt-tz #rp-tools, html.bt-tz .rpw-group{ display:none !important; }
+html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 320px; grid-template-areas:"top top" "chart drawer" "float drawer" "bottom bottom"; }
+@media (max-width:1100px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 280px; } }
+@media (max-width:900px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "chart" "float" "bottom" "drawer"; } html.bt-tz .rpw-chart{ height:62vh; min-height:420px; } }

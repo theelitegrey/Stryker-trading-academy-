@@ -55,6 +55,8 @@
 
     async _boot() {
       const el = this.el;
+      document.documentElement.classList.add('bt-tz');
+      if (!document.getElementById('bt-vela-css')) { const l = document.createElement('link'); l.id = 'bt-vela-css'; l.rel = 'stylesheet'; l.href = '/assets/bt-vela.css' + V; document.head.appendChild(l); }
       el.classList.add('rp-chartwrap', 'bt-vela');
       el.innerHTML = '<div class="stkc-bar" id="stkc-bar" role="toolbar" aria-label="Chart toolbar"><div class="stkc-bar-l" id="stkc-bar-l"></div><div class="stkc-bar-r"></div></div>' +
         '<div class="panel stkchart-panel"><div id="vela-chart"></div><div id="stkchart-fallback" class="stkchart-fallback" hidden><p><b>The chart engine did not load.</b></p><p>Check your connection and reload. Switch back with <a href="?chart=lw">?chart=lw</a>.</p></div></div>';
@@ -134,7 +136,7 @@
     snap(p) { const t = this.opts.tick; return t ? Math.round(p / t) * t : p; }
     fmt(p) { return Number(p).toFixed(this.opts.decimals); }
     screenshot() { try { return this.ws.screenshot(); } catch (e) { return null; } }
-    destroy() { this.dead = true; try { this.ws && this.ws.destroy(); } catch (e) {} this.ws = null; this.el.innerHTML = ''; root.__stkBt = null; }
+    destroy() { this.dead = true; document.documentElement.classList.remove('bt-tz'); try { this.ws && this.ws.destroy(); } catch (e) {} this.ws = null; this.el.innerHTML = ''; root.__stkBt = null; }
   }
 
   root.BtVelaChart = BtVelaChart;

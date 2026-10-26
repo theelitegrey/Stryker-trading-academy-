@@ -269,12 +269,10 @@ function absLayer() {
           // level line
           g.setLineDash(held ? [] : [3, 3]); g.lineWidth = 1; g.strokeStyle = rgba(col, held ? 0.7 : 0.35);
           g.beginPath(); g.moveTo(x, y); g.lineTo(Math.max(x, xe), y); g.stroke(); g.setLineDash([]);
-          // marker: a hollow ring at the absorbed price (thick outline, faint fill), like the desktop
-          // platforms' absorption circles
-          const r = phone ? 7 : 9;
-          g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
-          g.fillStyle = rgba(col, held ? 0.12 : 0.05); g.fill();
-          g.lineWidth = 2; g.strokeStyle = rgba(col, held ? 0.95 : 0.5); g.stroke();
+          // marker: a small square turned 45 degrees at the absorbed price
+          const r = phone ? 5 : 6;
+          g.fillStyle = rgba(col, held ? 1 : 0.7); g.strokeStyle = light() ? '#ffffff' : '#0b0b0d'; g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath(); g.fill(); g.stroke();
           if (held && I.labels !== false) { tag(g, co.width - 2, y, 'ABS ' + fmtK(e.vol), col, phone, avoid && avoid.concat(tagsOut), tagsOut); }
         }
         canvas.__stkAbsTags = tagsOut;   // test hook (phone only)

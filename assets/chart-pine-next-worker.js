@@ -50,7 +50,7 @@ let fetchId = 0;
 let rewrite = (src) => src;
 const ready = (async () => {
   // O(n) ta.pivothigh/pivotlow (assets/chart-pine-next-patches.js) on pinets' Context.
-  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=680')]);
+  const [pinets, patches] = await Promise.all([import(PINETS), import('./chart-pine-next-patches.js?v=681')]);
   try { patches.install(pinets.Context, pinets, self); rewrite = patches.rewriteSource; } catch (e) { console.warn('TradeZoro: pine-next patches', e); }
   const res = await fetch(VELA_PINETS);
   if (!res.ok) throw new Error('Pine engine download failed (' + res.status + ')');

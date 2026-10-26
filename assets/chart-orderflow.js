@@ -30,8 +30,8 @@
 // All volume numbers are whatever the feed reports (Yahoo futures volume, exchange volume
 // for crypto). Nothing here predicts anything. Education only. Not financial advice.
 
-import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=680';
-import { cryptoFeed } from './chart-footprint-crypto.js?v=680';
+import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=681';
+import { cryptoFeed } from './chart-footprint-crypto.js?v=681';
 
 const GROUP = 'Volume & Order flow';
 const NY_TZ = 'America/New_York';

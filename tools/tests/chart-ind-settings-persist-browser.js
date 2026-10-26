@@ -147,6 +147,11 @@ async function typeNum(p, fid, v){
 
 // Add from the Indicators window by real taps (search + row), like a member.
 async function addByPicker(p, name, search, rowKey){
+  for (let k = 0; k < 3; k++) { if (await addByPickerOnce(p, name, search, rowKey, k)) return; console.log('INFO picker add of ' + name + ' retried'); await sleep(3000); }
+  check(false, 'added from the Indicators window: ' + name);
+}
+async function addByPickerOnce(p, name, search, rowKey, attempt){
+  const soft = attempt < 2;   // the first tries do not count a missing target as a failure
   const before = await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.indicators().length);
   // a window left open by the previous add (desktop keeps it open) is closed first
   if (await p.evaluate(() => !!document.querySelector('.stkiw-ov'))) { await tap(p, F.pickClose, null, 'close picker'); await sleep(500); }
@@ -155,8 +160,13 @@ async function addByPicker(p, name, search, rowKey){
   for (let i = 0; i < 20 && !(await vis()); i++) await sleep(250);
   if (!(await vis())) { console.log('INFO Indicators button did not open the window; opening it directly', await p.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /^indicators$/i.test(b.getAttribute('aria-label') || b.title || '')).map((b) => b.className + ' vis=' + !!b.offsetParent).join(' | '))); await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open()); for (let i = 0; i < 20 && !(await vis()); i++) await sleep(250); }
   await sleep(600);
+  const has = (f, a) => p.evaluate(([src, a]) => { const el = new Function('a', src)(a); return !!(el && el.getBoundingClientRect().width); }, [f, a]);
+  if (soft && !(await has(F.pickSearch, null))) return false;
   if (await tap(p, F.pickSearch, null, 'picker search')) { await p.keyboard.type(search, { delay: 30 }); await sleep(900); }
-  await tap(p, F.pickRow, rowKey ? 'key:' + rowKey : name, 'picker row ' + name);
+  const rk = rowKey ? 'key:' + rowKey : name;
+  for (let i = 0; i < 20 && !(await has(F.pickRow, rk)); i++) await sleep(300);
+  if (soft && !(await has(F.pickRow, rk))) { await p.keyboard.press('Escape').catch(() => {}); return false; }
+  await tap(p, F.pickRow, rk, 'picker row ' + name);
   await sleep(900);
   if (await p.evaluate(() => !!document.querySelector('.stkcd-ok'))) await tap(p, F.ack, null, 'community notice: I understand');
   for (let i = 0; i < 120; i++) {
@@ -166,6 +176,7 @@ async function addByPicker(p, name, search, rowKey){
   }
   if (await p.evaluate(() => !!document.querySelector('.stkiw-x') && !!document.querySelector('.stkiw-x').offsetParent)) await tap(p, F.pickClose, null, 'close picker');
   await sleep(500);
+  return (await p.evaluate(() => window.STRYKER_VELA.context().cells[0].chart.indicators().length)) > before;
 }
 
 // Everything we assert on, read from the page.
@@ -215,7 +226,7 @@ async function verify(p, phase, opts){
   check(!bad.length, phase + ': every changed input still holds (handle + drawn model)', bad.length ? bad.slice(0, 6) : undefined);
   const mb = rendererMB();
   const heap = await p.evaluate(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : -1)).catch(() => -1);
-  console.log('MEM [' + TAG + '] ' + phase + ': Chrome PSS ' + mb + ' MB, page heap ' + heap + ' MB');
+  console.log('MEM [' + TAG + '] ' + phase + ': Chrome PSS ' + mb + ' MB, page heap ' + heap + ' MB (' + rendererMB.parts + ')');
   if (mb > MEM_MAX) throw new Error('Chrome over ' + MEM_MAX + ' MB at ' + phase + ' (' + mb + ' MB): stopping before the server runs out of memory');
   if (STYLE_WANT && s[LM]) {
     const st = await p.evaluate((id) => window.STRYKER_IND_STYLE.styleOf(id), s[LM].id);
@@ -238,8 +249,9 @@ function rendererMB(){
     }
     const mine = []; const q = [process.pid];
     while (q.length) { const x = q.pop(); (kids.get(x) || []).forEach((k) => { mine.push(k); q.push(k); }); }
-    let kb = 0;
-    for (const pid of mine) { try { const m = /^Pss:\s+(\d+)/m.exec(fs.readFileSync('/proc/' + pid + '/smaps_rollup', 'utf8')); if (m) kb += +m[1]; } catch (e) {} }
+    let kb = 0; const parts = [];
+    for (const pid of mine) { try { const m = /^Pss:\s+(\d+)/m.exec(fs.readFileSync('/proc/' + pid + '/smaps_rollup', 'utf8')); if (m) { kb += +m[1]; const c = fs.readFileSync('/proc/' + pid + '/cmdline', 'utf8'); const t = (/--type=([\w-]+)/.exec(c) || [, /chrom|headless/i.test(c) ? 'browser' : 'other'])[1]; parts.push(t + ':' + Math.round(+m[1] / 1024)); } } catch (e) {} }
+    rendererMB.parts = parts.join(' ');
     return Math.round(kb / 1024);
   } catch (e) { return -1; }
 }

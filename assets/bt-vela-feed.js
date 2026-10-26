@@ -20,7 +20,6 @@ const toVela = (b) => ({ time: b.t, open: b.o, high: b.h, low: b.l, close: b.c, 
 // ctx: { series, getCursor(), spec } (spec = replay.js RP.spec: symbol, tick, decimals, pointValue, label)
 export function createBtFeed(ctx) {
   const subs = new Set();   // { tf, onBar }
-  let lastSent = new Map(); // tf -> last bar time + ohlc signature pushed
 
   // Bars visible at the cursor for a Vela timeframe: [complete..., forming]
   function visible(tf) {
@@ -42,16 +41,20 @@ export function createBtFeed(ctx) {
     return bars;
   }
 
-  // Called by replay.js after every cursor change: pushes the forming / new bar of each subscribed tf.
+  // Called after every cursor change: pushes every candle that is new or still forming since the last push
+  // (a +10 step can cross several candles), oldest first.
   function push() {
-    const cur = ctx.getCursor();
     for (const s of subs) {
-      const re = reTf(s.tf); if (!re) continue;
-      let v; try { v = ctx.series.view(re, cur); } catch (e) { continue; }
-      const b = toVela(v.last);
-      try { s.onBar(b); } catch (e) { /* chart gone */ }
+      const bars = visible(s.tf); if (!bars.length) continue;
+      let i = bars.length - 1;
+      const from = s.sentT != null ? s.sentT : bars[bars.length - 1].time;
+      while (i > 0 && bars[i - 1].time >= from) i--;
+      for (; i < bars.length; i++) { try { s.onBar(bars[i]); } catch (e) { /* chart gone */ } }
+      s.sentT = bars[bars.length - 1].time;
     }
   }
+  // Forget what was sent (after a reload of the chart).
+  function resetSent() { for (const s of subs) s.sentT = null; }
 
   const provider = {
     info() {
@@ -62,7 +65,7 @@ export function createBtFeed(ctx) {
     async getCalendar() { return []; },
     resolveSymbolIcon() { return undefined; },
     getBars,
-    subscribe(ticker, tf, onBar) { const s = { tf, onBar }; subs.add(s); return () => subs.delete(s); }
+    subscribe(ticker, tf, onBar) { const s = { tf, onBar, sentT: null }; subs.add(s); return () => subs.delete(s); }
   };
   function decimalsOf(t) { const s = String(t); const i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; }
   function symbolRow() {
@@ -77,5 +80,5 @@ export function createBtFeed(ctx) {
       timezone: 'America/New_York', session: '24x7', session_extended: '24x7'
     });
   }
-  return { provider, push, visible, subs };
+  return { provider, push, resetSent, visible, subs };
 }

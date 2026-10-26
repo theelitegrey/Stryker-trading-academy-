@@ -23,6 +23,8 @@
   // SRI (P3-4 audit): computed from the exact pinned file above via
   // `curl -sL "$LWC_URL" | openssl dgst -sha384 -binary | base64`.
   const LWC_INTEGRITY = 'sha384-KkYqTZlM13Zya6fVUF3IGCBOQ1ehFeJVVgxaVvD/0MebineF9EI8Jkd3NnWNChqN';
+  // New chart (our Vela engine, assets/bt-vela-chart.js) when replay.html?chart=tz; else Lightweight Charts
+  const TZ = window.__stkBtChart === 'tz' && !!window.BtVelaChart;
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n, sign) => { const v = Number(n) || 0; return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
@@ -86,7 +88,7 @@
   async function openSession(session, spec, fresh) {
     const btn = $('rp-start-btn'); btn.disabled = true; const prog = $('rp-progress'); prog.textContent = 'Loading chart engine…';
     try {
-      await loadLwc(); prog.textContent = 'Loading candles…';
+      if (TZ) await window.BtVelaChart.load(); else await loadLwc(); prog.textContent = 'Loading candles…';
       const data = await D.load({ spec, startMs: session.loadFrom, endMs: session.endMs, csvName: session.csvName, onProgress: (p, n) => { prog.textContent = 'Loading candles… ' + Math.round(p * 100) + '%' + (n ? ' (' + n.toLocaleString() + ' bars)' : ''); } });
       const st = session.settings || (session.settings = { commission: spec.commission, slippage: 0, checklistOn: false, nudgesOn: true, checklist: COACH.CHECKLIST });
       RP.spec = Object.assign({}, spec, { commission: st.commission != null ? st.commission : spec.commission, slippage: st.slippage || 0, symbol: session.csvName ? session.csvName.replace(/\.csv$/i, '') : spec.id.replace(/=F|=X/, '').replace(/USDT$/, '/USDT') });
@@ -113,13 +115,14 @@
     if (RP.chart) RP.chart.destroy(); if (RP.htf) RP.htf.destroy();
     const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     const opts = { tz: RP.tz, decimals: RP.spec.decimals, tick: RP.spec.tick, symbol: RP.spec.symbol, theme, sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } };
-    RP.chart = new window.ReplayChart($('rp-chart-main'), opts);
+    if (TZ) { RP.chart = new window.BtVelaChart($('rp-chart-main'), opts, { series: RP.series, getCursor: () => RP.cursor, spec: RP.spec, tf: () => RP.tf }); RP.chart.onReady = () => { refresh(true); RP.chart.scrollToEnd(); }; RP.chart.onTimeframe = (tf) => { if (tf !== RP.tf) setTf(tf); }; }
+    else RP.chart = new window.ReplayChart($('rp-chart-main'), opts);
     RP.chart.onLineDrag = onLineDrag; RP.chart.onDrawingsChange = (d) => { RP.session.drawings = d; }; RP.chart.onSelect = (i) => { $('rp-tool-del').disabled = i == null; };
     RP.chart.onIndicatorAction = (iid, act) => { if (act === 'remove') RP.chart.removeIndicator(iid); else if (act === 'toggle') RP.chart.toggleIndicator(iid); else if (act === 'settings') openIndicatorSettings(iid); saveIndicators(); renderObjects(); };
     RP.chart.onLineAction = (line, act) => { try { const before = RP.sim.trades.length; if (act === 'close' && line.pos) RP.sim.close(line.pos.id); else if (act === 'cancel' && line.order) RP.sim.cancel(line.order.id); refresh(); if (RP.sim.trades.length > before) { const nt = RP.sim.trades.slice(before); soundClosedTrades(nt); onTradesClosed(nt); } saveSession(); } catch (err) { toast(err.message, 'error'); } };
     RP.chart.onContextMenu = openContextMenu;
     const _odc = RP.chart.onDrawingsChange; RP.chart.onDrawingsChange = (d) => { _odc(d); renderObjects(); };
-    RP.htf = new window.ReplayChart($('rp-chart-htf'), Object.assign({}, opts, { symbol: RP.spec.symbol + ' HTF' })); RP.htf.onLineDrag = onLineDrag;
+    if (!TZ) { RP.htf = new window.ReplayChart($('rp-chart-htf'), Object.assign({}, opts, { symbol: RP.spec.symbol + ' HTF' })); RP.htf.onLineDrag = onLineDrag; } else RP.htf = null;
     buildStrip();
     const tfs = RP.series.availableTimeframes();
     $('rp-tfs').innerHTML = tfs.map((tf) => '<button type="button" class="rp-tf' + (tf === RP.tf ? ' is-on' : '') + '" data-tf="' + tf + '">' + tf + '</button>').join('');

@@ -22,7 +22,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
-const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' } }, 'uid-live': { plan: { stringValue: 'Pro' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -30,6 +30,10 @@ globalThis.fetch = async (url, init) => {
   if (url.includes('firestore.googleapis.com')) {
     fsCalls++;
     if (fsDown) return new Response('x', { status: 503 });
+    if (url.includes('/documents/plans')) return new Response(JSON.stringify({ documents: [
+      { name: 'x/plans/Sj1', fields: { name: { stringValue: 'Pro' }, rank: { integerValue: '1' } } },
+      { name: 'x/plans/proYearly', fields: { name: { stringValue: 'Pro' }, rank: { stringValue: '1' } } },
+      { name: 'x/plans/St', fields: { name: { stringValue: 'Starter' }, rank: { integerValue: '0' } } }] }), { status: 200 });
     if (url.includes('/students/')) {
       const su = decodeURIComponent(url.split('/students/')[1]);
       if (fsDown) return new Response('x', { status: 503 });
@@ -60,7 +64,11 @@ for (const M of [A, B]) {
   assert.equal(await M.isAdminToken(''), false, 'signed out');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), true, 'demo account gets real-time');
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-demo' })), false, 'demo is not admin');
-  for (const u of ['uid-demo-false', 'uid-demo-str', 'uid-pro', 'uid-none']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
+  for (const u of ['uid-demo-false', 'uid-demo-str', 'uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
+  for (const u of ['uid-pro', 'uid-pro-nopt', 'uid-pro-grace']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'active Pro gets real-time: ' + u);
+  assert.equal(await M.isAdminToken(await mint({ sub: 'uid-pro' })), false, 'Pro is not admin');
+  assert.deepEqual(M.isActiveProDoc({ plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: '1000' } }, new Set(['pro']), 1000 + 3 * 86400e3 + 1), false, 'past grace');
+  assert.equal(M.isActiveProDoc({ plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } }, new Set(['pro']), 9e12), true, 'founding never lapses');
   assert.equal(await M.isRealtimeToken(''), false, 'signed out');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo', exp: 1 })), false, 'expired demo token');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' }, kp.privateKey).then((t) => t.slice(0, -4) + 'AAAA')), false, 'bad signature');
@@ -96,7 +104,7 @@ const env = { INSIGHTSENTRY_WEBSOCKET_API_KEY: 'x'.repeat(8) };
 const wsReq = (hd) => new Request('https://tradezoro.com/api/chart/stream/NQ?tf=1', { headers: { upgrade: 'websocket', origin: 'https://tradezoro.com', ...hd } });
 A._resetForTests();
 assert.equal((await streamGet({ request: wsReq({}), params: { sym: 'NQ' }, env })).status, 403, 'signed-out stream');
-assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-pro' }) }), params: { sym: 'NQ' }, env })).status, 403, 'non-admin stream');
+assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-starter' }) }), params: { sym: 'NQ' }, env })).status, 403, 'non-admin stream');
 assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, junk' }), params: { sym: 'NQ' }, env })).status, 403, 'junk token');
 assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-live-false' }) }), params: { sym: 'NQ' }, env })).status, 403, 'liveFeed false stream');
 
@@ -105,7 +113,9 @@ const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/
 assert.deepEqual(await rtRes(''), { admin: false });
 assert.deepEqual(await rtRes(await mint()), { admin: true });
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, '/rt says no for a normal member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: true }, '/rt says yes for an active Pro member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
 
 // /api/chart/bars end to end (Yahoo stubbed): liveFeed member = real-time lane, member / signed out = cut 10 min
 {
@@ -120,7 +130,7 @@ assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, 
     A._resetForTests();
     const live = await bars(await mint({ sub: 'uid-live' }));
     assert.notEqual(live.rt, '0', 'liveFeed member: real-time lane'); assert.notEqual(live.body.rt, false);
-    for (const [who, tok] of [['normal member', await mint({ sub: 'uid-pro' })], ['signed out', '']]) {
+    for (const [who, tok] of [['normal member', await mint({ sub: 'uid-starter' })], ['signed out', '']]) {
       const d = await bars(tok);
       assert.equal(d.rt, '0', who + ': x-tz-rt 0'); assert.equal(d.body.rt, false, who + ': rt false');
       const last = d.body.bars.length ? d.body.bars[d.body.bars.length - 1][0] : 0;

@@ -110,12 +110,12 @@ async function run(b, v09, w, h, doItems) {
     'Templates': () => !document.getElementById('stkc-tpl-pop').hidden,
     'Pine Script editor': () => { const e = document.getElementById('stkc-pine'); return !!(e && !e.hidden && e.getClientRects().length); },
     'Full screen': () => document.documentElement.classList.contains('stk-chart-fs'),
-    'Chart settings': () => [...document.querySelectorAll('[role=dialog], .stkcs, [class*="stkcs-"]')].some((e) => e.getClientRects().length && /setting/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 80))),
+    'Chart settings': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Apply to all$/.test(e.textContent.trim()) && e.getClientRects().length),
     'News': () => /stknw-open/.test(document.querySelector('.stkchart-panel').className) || !!document.querySelector('.stknw-panel:not([hidden]), .stknw:not([hidden])'),
     'Watchlist': () => /stkw-open/.test(document.querySelector('.stkchart-panel').className),
     'Alerts': () => [...document.querySelectorAll('[role=dialog]')].some((e) => e.getClientRects().length && /alert/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 60))),
     'Replay': () => [...document.querySelectorAll('.stkr-menu .stkc-pop')].some((e) => !e.hidden),
-    'More chart options': () => [...document.querySelectorAll('[class*="vela-"][role=menu], .vela-sheet, .vela-md, [class*="vela-menu"], [class*="vela-sheet"]')].some((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden')
+    'Object tree & chart menu': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Object tree$/.test(e.textContent.trim()) && e.getClientRects().length && !e.closest('#stkc-more-pop'))
   };
   if (doItems) {
     for (const l of M.rows.map((r) => r.l)) {

@@ -116,7 +116,7 @@ const ROWS = [
   [(n) => n.id === 'stkc-settings-btn' && n, 'chart', 4, () => 'Chart settings', 'gear'],
   [(n) => n.id === 'stkc-fs-btn' && n, 'chart', 5, () => (document.documentElement.classList.contains('stk-chart-fs') ? 'Exit full screen' : 'Full screen'), 'fs'],
   [(n) => n.classList.contains('vela-mb-maximize') && n, 'chart', 6, () => 'Maximize chart', 'max'],
-  [(n) => n.classList.contains('vela-mb-more') && n, 'chart', 7, () => 'More chart options', 'dots'],
+  [(n) => n.classList.contains('vela-mb-more') && n, 'chart', 7, () => 'Object tree & chart menu', 'dots'],
   // TOOLS
   [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],
   [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
@@ -202,6 +202,13 @@ export function mountOneBar(ws){
   const subOpen = () => !!morePop.querySelector('.stkc-pop:not([hidden]), #stkc-credits:not([hidden])');
   new MutationObserver(() => { morePop.classList.toggle('stkc-ob-sub', !merged && !morePop.hidden && subOpen()); })
     .observe(morePop, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  // phone list: a row that does its job in place (opens a sheet / panel / editor, toggles full
+  // screen) closes the list, even when its button stops the click; a row that opens a menu inside
+  // the list (Templates, Layout, Charts in layout, Replay, Credits) keeps it, as the sub-menu
+  morePop.addEventListener('click', (e) => {
+    if (merged || !e.target.closest || !e.target.closest('[data-ob-trig]')) return;
+    setTimeout(() => { if (!morePop.hidden && !subOpen()) setMore(false); }, 0);
+  }, true);
   const more = document.createElement('div');
   more.className = 'stkc-menu stkc-ob-more';
   more.hidden = true;

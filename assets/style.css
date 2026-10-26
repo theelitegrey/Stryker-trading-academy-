@@ -10204,7 +10204,7 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 .tz-affix{ position:relative; display:block; min-width:0; }
 .tz-affix > .tz-pre, .tz-affix > .tz-suf{ position:absolute; top:0; bottom:0; display:flex; align-items:center; pointer-events:none; color:var(--ink-2); font-size:14px; font-weight:500; }
 .tz-affix > .tz-pre{ left:14px; } .tz-affix > .tz-suf{ right:14px; font-size:13px; }
-.tz-affix > .tz-pre ~ .tz-input{ padding-left:28px; }
+.tz-affix > .tz-pre ~ .tz-input{ padding-left:30px !important; }
 .tz-affix > .tz-suf ~ .tz-input, .tz-affix > .tz-input:has(~ .tz-suf){ padding-right:56px; }
 /* stepper: − [input] + */
 .tz-stepper{ display:flex; align-items:stretch; height:var(--tz-h); border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); overflow:hidden; }
@@ -10282,3 +10282,58 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 .rp-setup .tz-disclosure{ margin:0 0 20px; }
 .rp-setup .tz-disclosure-body .tz-checkrow{ font-weight:500; }
 @media (min-width:901px){ .rp-setup .tz-grid{ grid-template-columns:minmax(0,1.35fr) repeat(3, minmax(0,1fr)); } }
+
+/* ---- Form system BASELINE for every bare control on the site (Owner 2026-10-26 sweep).
+   Zero specificity (:where), so every existing component rule still wins; this only fills
+   in what a component left to the browser, which is what showed white/grey boxes, grey
+   native selects, light date pickers and bright checkboxes on the dark theme. Selects get
+   the chevron as background-image; a component that sets the background shorthand keeps
+   its own look (the probe tools/tests/form-probe.js flags any select left without an arrow). */
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=submit],[type=button],[type=reset],[type=image],[type=hidden]), select, textarea){
+  background-color:var(--tz-surface); color:var(--tz-ink); border:1px solid var(--tz-line); border-radius:var(--tz-r);
+  font-family:var(--font-body); color-scheme:dark; outline:none;
+}
+:root[data-theme="light"] :where(input, select, textarea){ color-scheme:light; }
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file],[type=submit],[type=button],[type=reset],[type=image],[type=hidden]), textarea){ padding:9px 12px; }
+:where(input, textarea)::placeholder{ color:var(--tz-ph); opacity:1; }
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=color],[type=file]), select, textarea):focus{ border-color:var(--tz-focus); box-shadow:var(--tz-ring); }
+:where(select:not([multiple]):not([size])){
+  -webkit-appearance:none; appearance:none; padding:9px 34px 9px 12px; cursor:pointer;
+  background-image:var(--tz-chev); background-repeat:no-repeat; background-position:right 12px center;
+}
+:where(select) :where(option, optgroup){ background-color:var(--tz-surface); color:var(--tz-ink); }
+:where(input[type=number])::-webkit-inner-spin-button{ opacity:.35; }
+:where(input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week])::-webkit-calendar-picker-indicator{ cursor:pointer; opacity:.75; }
+:where(input[type=checkbox], input[type=radio]){
+  -webkit-appearance:none; appearance:none; flex:0 0 auto; width:18px; height:18px; margin:0; vertical-align:middle; cursor:pointer;
+  border:1.5px solid var(--ink-3); border-radius:5px; background:var(--tz-surface) center/12px no-repeat; transition:background-color .15s, border-color .15s;
+}
+:where(input[type=radio]){ border-radius:50%; }
+:where(input[type=checkbox]):checked{ background-color:var(--gold); border-color:var(--gold); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.4 2.4 4.6-5' fill='none' stroke='%23062a1d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+:where(input[type=radio]):checked{ border-color:var(--gold); background-image:radial-gradient(circle, var(--gold) 0 4px, transparent 4.5px); }
+:where(input[type=checkbox], input[type=radio]):focus-visible{ outline:none; box-shadow:var(--tz-ring); }
+:where(input[type=checkbox], input[type=radio]):disabled{ opacity:.5; cursor:not-allowed; }
+:where(input[type=file]){ color:var(--ink-2); font:13px var(--font-body); max-width:100%; }
+:where(input[type=file])::file-selector-button{ height:34px; margin-right:12px; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--bg-3); color:var(--ink-0); font:600 13px var(--font-body); cursor:pointer; }
+:where(input[type=file])::file-selector-button:hover{ border-color:var(--gold-dim); }
+/* plain <button>s that never got a class render as grey browser pills on the dark theme */
+:where(button:not([class])){ -webkit-appearance:none; appearance:none; background:var(--bg-3); color:var(--ink-0); border:1px solid var(--line); border-radius:8px; padding:7px 14px; font:600 13px var(--font-body); cursor:pointer; }
+/* Selects whose component rule set the `background` shorthand lost the arrow (the browser one is
+   gone once appearance is none). Higher specificity than a class rule, lower than an id rule; the
+   Charts page keeps its own compact pills. */
+:root body:not(.charts-page) select:not([multiple]):not([size]){
+  -webkit-appearance:none; appearance:none;
+  background-image:var(--tz-chev); background-repeat:no-repeat; background-position:right 12px center; background-size:12px 8px;
+  padding-right:34px !important; color-scheme:dark; text-overflow:ellipsis; max-width:100%;
+}
+:root[data-theme="light"] body:not(.charts-page) select:not([multiple]):not([size]){ color-scheme:light; }
+/* SEO admin tabs used .journal-tab, which only exists on the Journal page: they rendered as grey
+   browser buttons. Same pill tabs as the rest of the admin. */
+#seo-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+#seo-tabs .journal-tab{ -webkit-appearance:none; appearance:none; padding:9px 18px; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--ink-2); font:600 13.5px var(--font-body); cursor:pointer; transition:all .15s ease; }
+#seo-tabs .journal-tab:hover, #seo-tabs .journal-tab.active{ background:rgba(3,201,136,.1); border-color:var(--gold-dim); color:var(--gold-bright); }
+:root[data-theme="light"] #seo-tabs .journal-tab:hover, :root[data-theme="light"] #seo-tabs .journal-tab.active{ color:var(--gold); }
+/* .field input{width:100%; padding:12px 14px} also hit checkboxes and radios, drawing them as wide boxes */
+.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; border-radius:5px; }
+.field input[type=radio]{ border-radius:50%; }
+.field .tz-affix > .tz-input{ height:var(--tz-h); }

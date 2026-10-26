@@ -209,9 +209,33 @@ function patchRects(proto){
   proto.paintEntry = function (ctx, e) {
     const ds = this.drawScene, acc = this.__stkRectAcc;
     const on = !!(ds && acc && e && e.pane && e.pane.kind === 'price');
-    if (on) { ds.__stkRectSink = acc; ds.__stkRectTop = e.pane.bounds.top; }
+    let armed = false;
+    if (on) {
+      ds.__stkRectSink = acc; ds.__stkRectTop = e.pane.bounds.top;
+      // Pine TABLES (Liquidity Master's "DRAW ON LIQUIDITY" panels): Vela paints them right after it
+      // reads labelTipRegions(); record their fillRect / fillText boxes (pane-local css px) from there.
+      if (e.tables && e.tables.length && ctx && typeof ds.labelTipRegions === 'function') {
+        const top = e.pane.bounds.top, ltr = ds.labelTipRegions, fr = ctx.fillRect, ft = ctx.fillText;
+        ds.labelTipRegions = function () { armed = true; return ltr.apply(this, arguments); };
+        ctx.fillRect = function (x, y, w, h) { if (armed && w > 0 && h > 0) acc.push({ left: x, top: y + top, right: x + w, bottom: y + h + top, text: 'table' }); return fr.apply(this, arguments); };
+        ctx.fillText = function (t, x, y) {
+          if (armed) {
+            try {
+              const w = this.measureText(t).width, px = parseFloat((/(\d+(?:\.\d+)?)px/.exec(this.font) || [0, 11])[1]);
+              const l = this.textAlign === 'right' || this.textAlign === 'end' ? x - w : this.textAlign === 'center' ? x - w / 2 : x;
+              acc.push({ left: l, top: y - px / 2 + top, right: l + w, bottom: y + px / 2 + top, text: String(t) });
+            } catch (err) {}
+          }
+          return ft.apply(this, arguments);
+        };
+      }
+    }
     try { return paint.apply(this, arguments); }
-    finally { if (ds) { ds.__stkRectSink = null; ds.__stkRectTop = 0; } }
+    finally {
+      if (ds) { ds.__stkRectSink = null; ds.__stkRectTop = 0; if (Object.prototype.hasOwnProperty.call(ds, 'labelTipRegions')) delete ds.labelTipRegions; }
+      if (ctx && Object.prototype.hasOwnProperty.call(ctx, 'fillRect')) delete ctx.fillRect;
+      if (ctx && Object.prototype.hasOwnProperty.call(ctx, 'fillText')) delete ctx.fillText;
+    }
   };
   proto.prepare = function () {
     this.__stkRectAcc = [];

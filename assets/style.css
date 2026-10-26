@@ -9273,6 +9273,10 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
   .stkc-dd[data-s="replay"] .stkc-dd-t{ display:none; }
+  /* Fit price / Latest sit one row above the GEX status chip (both bottom of the plot): the chip's
+     text ran under them, so a tap there could miss. */
+  .stkc-fl{ bottom:62px; }
+  .stk-fp-stats .stkc-fl{ bottom:auto; }
 }
 
 

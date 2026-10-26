@@ -152,7 +152,11 @@ const metrics = (p) => p.evaluate(() => {
   // what a tap on the middle of Fit price / Latest / the chip would actually hit
   const hit = (r, sel) => { if (!r) return null; const e = document.elementFromPoint(r.x + r.w / 2, r.y + r.h / 2); return !!(e && e.closest(sel)); };
   const flBtns = cell ? [...cell.querySelectorAll('.stkc-fl button')].map((b) => hit(R0(b), '.stkc-fl')) : [];
+  // the chip is pointer-events:none: switch them on for the probe, so elementFromPoint sees it
+  const chipEl = cell && cell.querySelector('.stk-gex-chip');
+  if (chipEl) chipEl.style.pointerEvents = 'auto';
   const chipVisible = hit(chip, '.stk-gex-chip');
+  if (chipEl) chipEl.style.pointerEvents = '';
   // GEX tags vs the Pine text drawn on the price pane (test hooks; null on builds without them)
   let gexTags = null, pineRects = null, absTags = null;
   for (const c of cell.querySelectorAll('canvas')) { if (c.__stkGexTags) gexTags = c.__stkGexTags.map((t) => ({ text: t.text, box: t.box })); if (c.__stkAbsTags) absTags = c.__stkAbsTags; }

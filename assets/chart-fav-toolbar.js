@@ -247,8 +247,8 @@ export function mountFavToolbar(ws, Core, opts){
     return { left: (a.w - reserveR() - bw) / 2, top: Math.min(top, Math.max(0, a.h - 46)) };
   }
   // Phone: keep the bottom strip free for the time axis, the Fit price / Latest row (chart-settings.js
-  // .stkc-fl, bottom 34 px + 24 px) and the GEX status chip (bottom-left, chart-gex-levels.js).
-  const PHONE_BOTTOM = 66;
+  // .stkc-fl, bottom 62 px + 24 px on a phone) and the GEX status chip (bottom-left, chart-gex-levels.js).
+  const PHONE_BOTTOM = 92;
   const reserveB = () => (isPhone() ? PHONE_BOTTOM : 0);
   function limits(a){
     const bw = bar.offsetWidth, bh = bar.offsetHeight;

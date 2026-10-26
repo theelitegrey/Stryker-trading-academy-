@@ -813,13 +813,19 @@ function gexLayer() {
           }
           // 2. slide left along the row past the Pine text, 3. else one row up / down, 4. else stay
           if (hits(b)) {
-            const sx = slideLeft(b, pine.concat(placed.map((q) => ({ left: q.x, right: q.x + q.w, top: q.y, bottom: q.y + q.h }))), W * 0.3);
+            const others = pine.concat(placed.map((q) => ({ left: q.x, right: q.x + q.w, top: q.y, bottom: q.y + q.h })));
+            const sx = slideLeft(b, others, W * 0.3);
             if (sx != null) x = sx;
             else {
-              for (const dy of [-(TAG_H + 2), TAG_H + 2, -2 * (TAG_H + 2), 2 * (TAG_H + 2)]) {
-                const nb = { x, y: b.y + dy, w, h: TAG_H };
-                if (nb.y >= top && nb.y + TAG_H <= bot && !hits(nb)) { t.yc += dy; break; }
+              // a wide block (an indicator table): the nearest free row, up to 4 rows away
+              let moved = false;
+              for (let k = 1; k <= 4 && !moved; k++) {
+                for (const dy of [-k * (TAG_H + 2), k * (TAG_H + 2)]) {
+                  const nb = { x, y: b.y + dy, w, h: TAG_H };
+                  if (nb.y >= top && nb.y + TAG_H <= bot && !hits(nb)) { t.yc += dy; moved = true; break; }
+                }
               }
+              if (!moved) { const fx = slideLeft(b, others, 2); if (fx != null) x = fx; }
             }
           }
         }

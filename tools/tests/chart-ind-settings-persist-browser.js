@@ -135,7 +135,14 @@ async function openSettings(p, id, label){
   const cogShown = () => p.evaluate(([src, a]) => { const el = new Function('a', src)(a); return !!(el && el.getBoundingClientRect().width); }, [F.cog, id]);
   // the phone shows a row's buttons once the row is tapped (selected); desktop on hover
   for (let k = 0; k < 4 && !(await cogShown()); k++) {
-    if (PHONE) await tap(p, F.row, id, label + ' legend row' + (k ? ' (tap ' + (k + 1) + ')' : ''));
+    if (PHONE && k < 2) await tap(p, F.row, id, label + ' legend row' + (k ? ' (tap ' + (k + 1) + ')' : ''));
+    else if (PHONE) {
+      // a touch tap right after another dialog closed is sometimes not turned into a click on the
+      // row; a real pointer click on the row title (still CDP input, not el.click()) selects it
+      const bx = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const t = el.querySelector('span') || el; const r = t.getBoundingClientRect(); return { x: r.left + Math.min(20, r.width / 2), y: r.top + r.height / 2, sel: (() => { const ch = window.STRYKER_VELA.context().cells[0].chart; const n = ch.renderer.inputsUI ? ch.renderer : ch.renderer.renderer; return n.inputsUI.selectedId; })() }; }, [F.row, id]);
+      console.log('INFO ' + label + ': row still not selected (selected: ' + bx.sel + '), pointer click on its title');
+      await p.mouse.click(bx.x, bx.y);
+    }
     else { const bx = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [F.row, id]); await p.mouse.move(bx.x, bx.y); }
     await sleep(600);
   }

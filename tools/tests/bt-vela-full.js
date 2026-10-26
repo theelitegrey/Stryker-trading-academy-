@@ -40,7 +40,7 @@ const DIR = process.env.SHOTDIR || '/root/projects/stryker-notes/reports/workers
     if (phone) {
       const cdp = await ctx.newCDPSession(p);
       const tp = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
-      await tp('touchStart', stop.x, stop.y); for (let i = 1; i <= 8; i++) { await tp('touchMove', stop.x, stop.y + dy * i / 8); await p.waitForTimeout(30); } await tp('touchEnd'); 
+      await tp('touchStart', stop.x, stop.y); for (let i = 1; i <= 8; i++) { await tp('touchMove', stop.x, stop.y + dy * i / 8); await p.waitForTimeout(30); } await tp('touchEnd');
     } else { await p.mouse.move(stop.x, stop.y); await p.mouse.down(); for (let i = 1; i <= 8; i++) { await p.mouse.move(stop.x, stop.y + dy * i / 8); await p.waitForTimeout(30); } await p.mouse.up(); }
     await p.waitForTimeout(800);
     const after = await p.evaluate(() => ({ sl: window.__RP.sim.positions[0].sl, tp: window.__RP.sim.positions[0].tp }));

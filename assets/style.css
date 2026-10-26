@@ -10000,3 +10000,155 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
 .rp-tabpane{ overflow-x:auto; max-width:100%; }
 .rp-tabs{ flex-wrap:wrap; row-gap:6px; }
 @media (max-width:400px){ #rp-float .rp-stepbtn{ padding:0 8px; } #rp-float select{ font-size:11.5px; } }
+
+/* ==========================================================================
+   Backtesting "new look" (UI 2): assets/bt-ui2.js, html.bt-ui2 (?ui=2, remembered; ?ui=1 = classic).
+   Owner 2026-10-26 "backtest ui": calm Apple / Google feel on our brand. Near-black surfaces, one
+   radius scale (10 / 14 / 20 / pill), 44 px tap targets on a phone, the site font stack.
+   Everything here is scoped to html.bt-ui2, so the classic look is untouched.
+   ========================================================================== */
+html.bt-ui2{ --b2-0:#050506; --b2-1:#0b0b0d; --b2-2:#131316; --b2-3:#1c1c21; --b2-line:rgba(255,255,255,.07); --b2-line2:rgba(255,255,255,.12);
+  --b2-r1:10px; --b2-r2:14px; --b2-r3:20px; --b2-ink:#f2f3f5; --b2-ink2:#a6a9b2; --b2-ink3:#6f727c; --b2-mint:#03c988; --b2-teal:#00adb5; }
+html.bt-ui2[data-theme="light"]{ --b2-0:#f6f7f9; --b2-1:#ffffff; --b2-2:#ffffff; --b2-3:#eef0f3; --b2-line:rgba(10,20,40,.08); --b2-line2:rgba(10,20,40,.14); --b2-ink:#111317; --b2-ink2:#4a4f5a; --b2-ink3:#7c818c; --b2-mint:#07996a; }
+html.bt-ui2 body.bt-app{ background:var(--b2-0); }
+html.bt-ui2 .bta-content{ max-width:1500px; }
+/* first-run steps */
+.bt2-hint{ display:flex; align-items:center; gap:12px; margin:0 0 14px; padding:12px 14px; border-radius:var(--b2-r2); background:var(--b2-2); border:1px solid var(--b2-line); }
+.bt2-hint ol{ display:flex; gap:8px 18px; flex-wrap:wrap; margin:0; padding:0; list-style:none; flex:1; min-width:0; }
+.bt2-hint li{ display:flex; align-items:center; gap:8px; font:600 13.5px var(--font-body); color:var(--b2-ink); white-space:nowrap; }
+.bt2-hint li b{ display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:rgba(3,201,136,.14); color:var(--b2-mint); font:700 12px var(--font-body); }
+.bt2-hint-x{ flex:none; min-height:40px; padding:0 16px; border-radius:999px; border:0; background:var(--b2-mint); color:#03130d; font:700 13px var(--font-body); cursor:pointer; }
+/* chips (links / quiet buttons) */
+.bt2-chip{ display:inline-flex; align-items:center; min-height:36px; padding:0 14px; border-radius:999px; border:1px solid var(--b2-line2); background:var(--b2-3); color:var(--b2-ink); font:600 13px var(--font-body); text-decoration:none; cursor:pointer; }
+.bt2-chip:hover{ border-color:var(--b2-mint); }
+.bt2-chip-quiet{ background:transparent; color:var(--b2-ink2); }
+
+/* ---- workspace ---- */
+html.bt-ui2 #rp-work .rpw{ background:var(--b2-1); border:1px solid var(--b2-line); border-radius:var(--b2-r3); box-shadow:none; overflow:hidden; }
+html.bt-ui2 .rpw-top{ gap:10px; padding:10px 12px; border-bottom:1px solid var(--b2-line); flex-wrap:nowrap; min-width:0; }
+html.bt-ui2 .rpw-top .rpw-spacer{ display:none; }
+html.bt-ui2 .rp-tfs{ background:var(--b2-3); border:0; padding:3px; overflow-x:auto; scrollbar-width:none; flex:0 1 auto; min-width:0; }
+html.bt-ui2 .rp-tfs::-webkit-scrollbar{ display:none; }
+html.bt-ui2 .rp-tfs button{ min-height:30px; border-radius:999px; }
+.bt2-topact{ display:flex; align-items:center; gap:6px; margin-left:auto; flex:none; position:relative; }
+.bt2-ib{ display:inline-grid; place-items:center; width:40px; height:40px; border-radius:50%; border:0; background:transparent; color:var(--b2-ink2); cursor:pointer; flex:none; }
+.bt2-ib:hover, .bt2-ib.is-on{ background:var(--b2-3); color:var(--b2-ink); }
+.bt2-ib:focus-visible, .bt2-hint-x:focus-visible, .bt2-chip:focus-visible, .bt2-risk:focus-visible, .bt2-step:focus-visible{ outline:2px solid var(--b2-teal); outline-offset:2px; }
+.bt2-menu, .bt2-drawbtn, .bt2-clock:empty{ display:none; }
+html.bt-ui2 #rp-ind-btn{ min-height:36px; border-radius:999px; background:var(--b2-3); border:0; color:var(--b2-ink); padding:0 14px; }
+.bt2-clock{ display:inline-flex; align-items:center; gap:2px; }
+/* the chart area */
+html.bt-ui2 .rpw-rail{ background:var(--b2-1); border-right:1px solid var(--b2-line); }
+html.bt-ui2 .rpw-rail button{ border-radius:var(--b2-r1); }
+html.bt-ui2 #rp-float.rp-float{ background:var(--b2-1); border-top:1px solid var(--b2-line); gap:8px; padding:10px 12px; }
+html.bt-ui2 #rp-float .rp-playbtn{ width:44px; height:44px; }
+html.bt-ui2 #rp-float .rp-stepbtn, html.bt-ui2 #rp-float select{ height:40px; border-radius:999px; background:var(--b2-3); border:0; color:var(--b2-ink); }
+html.bt-ui2 .rpw-drawer{ background:var(--b2-1); border-left:1px solid var(--b2-line); }
+html.bt-ui2 .rpw-bottom{ background:var(--b2-1); border-top:1px solid var(--b2-line); padding:14px 16px; gap:14px 22px; }
+/* Buy / Sell */
+html.bt-ui2 #rp-tradebar-strip .rp-sbtn{ min-height:56px; border-radius:var(--b2-r2); border:0; }
+html.bt-ui2 #rp-tradebar-strip .rp-sbtn small{ font:700 11px var(--font-body); letter-spacing:.08em; }
+html.bt-ui2 #rp-tradebar-strip .rp-sqty{ gap:4px; }
+html.bt-ui2 #rp-tradebar-strip .rp-sqty > span{ font:600 11px var(--font-body); color:var(--b2-ink3); text-transform:uppercase; letter-spacing:.06em; }
+.bt2-stepper{ display:inline-flex; align-items:center; background:var(--b2-3); border-radius:999px; padding:2px; }
+.bt2-stepper input{ width:48px !important; height:36px !important; border:0 !important; background:transparent !important; text-align:center; font:700 15px var(--font-body) !important; color:var(--b2-ink) !important; padding:0 !important; box-shadow:none !important; }
+.bt2-step{ display:grid; place-items:center; width:36px; height:36px; border-radius:50%; border:0; background:transparent; color:var(--b2-ink); cursor:pointer; }
+.bt2-step:hover{ background:var(--b2-2); }
+.bt2-risk{ grid-area:brk; justify-self:center; display:inline-flex; align-items:center; gap:8px; min-height:40px; padding:0 16px; border-radius:999px; border:1px solid var(--b2-line2); background:transparent; color:var(--b2-ink); font:600 13px var(--font-body); cursor:pointer; }
+.bt2-risk svg{ color:var(--b2-ink3); }
+.bt2-risk.is-off span{ color:var(--b2-ink3); }
+html.bt-ui2 #rp-tradebar-strip{ grid-template-areas:"sell qty buy" "brk brk brk" "edit edit edit"; }
+html.bt-ui2 #rp-tradebar-strip .rp-sbrk{ grid-area:edit; display:none; padding:10px 12px; border-radius:var(--b2-r2); background:var(--b2-2); border:1px solid var(--b2-line); }
+html.bt-ui2 #rp-tradebar-strip .rp-sbrk.bt2-open{ display:flex; }
+/* account: one quiet summary */
+html.bt-ui2 .rpw-acct span{ font:600 11px var(--font-body); color:var(--b2-ink3); text-transform:uppercase; letter-spacing:.06em; }
+html.bt-ui2 .rpw-acct b{ font-size:15px; }
+html.bt-ui2 #rp-sheet-toggle{ min-height:40px; border-radius:999px; background:var(--b2-3); border:0; color:var(--b2-ink); padding:0 16px; }
+html.bt-ui2 .rpw-sheet{ background:var(--b2-1); border:1px solid var(--b2-line); border-radius:var(--b2-r3); box-shadow:none; }
+html.bt-ui2 .rp-tabs button[data-tab]{ min-height:36px; border-radius:999px; }
+html.bt-ui2 .rp-fine{ color:var(--b2-ink3); }
+html.bt-ui2 .bta-head{ margin-bottom:12px; }
+
+/* sheets: a popover under its button on desktop */
+.bt2-sheet{ position:absolute; top:calc(100% + 8px); right:0; z-index:80; width:min(360px, calc(100vw - 24px)); max-height:min(70vh, 560px); overflow-y:auto; background:var(--b2-2); border:1px solid var(--b2-line2); border-radius:var(--b2-r3); box-shadow:0 20px 50px rgba(0,0,0,.55); padding:6px 16px 16px; }
+.bt2-sheet[hidden]{ display:none; }
+.bt2-grab{ display:none; }
+.bt2-sheet-head{ display:flex; align-items:center; justify-content:space-between; min-height:44px; }
+.bt2-sheet-head b{ font:700 15px var(--font-body); color:var(--b2-ink); }
+.bt2-x, .bt2-panex{ display:grid; place-items:center; width:36px; height:36px; border-radius:50%; border:0; background:var(--b2-3); color:var(--b2-ink2); cursor:pointer; }
+.bt2-panex{ display:none; }
+.bt2-row{ display:flex; flex-direction:column; gap:8px; padding:12px 0; border-top:1px solid var(--b2-line); }
+.bt2-row-l{ font:600 11.5px var(--font-body); color:var(--b2-ink3); text-transform:uppercase; letter-spacing:.06em; }
+.bt2-row-v{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.bt2-row-v .rpw-chk, .bt2-row-v select, .bt2-row-v .rpw-btn{ min-height:40px; }
+.bt2-row-v select{ min-width:140px; }
+.bt2-row-v .rpw-group{ display:inline-flex; gap:8px; }
+.bt2-row-v #rp-snap-btn{ width:auto; padding:0 14px; gap:8px; border-radius:999px; }
+.bt2-lbl{ font:600 13px var(--font-body); }
+.bt2-links{ display:flex; flex-wrap:wrap; gap:8px; }
+.bt2-src{ margin:4px 0 0; padding-top:12px; border-top:1px solid var(--b2-line); font-size:12px; line-height:1.5; color:var(--b2-ink3); }
+.bt2-drawsheet{ display:none; }
+.bt2-scrim{ position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.5); backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px); }
+.bt2-scrim[hidden]{ display:none; }
+.bt2-handle{ display:none; }
+/* dialogs (new session, indicators, confirmations) stay above the sheets */
+html.bt-ui2 .rp-modal{ z-index:9300; }
+
+/* full screen: only the workspace */
+html.bt2-fs body.bt-app .mobile-topnav, html.bt2-fs .bta-rail, html.bt2-fs #rp-head, html.bt2-fs .bt2-hint, html.bt2-fs #appnav-dock, html.bt2-fs .rp-fine, html.bt2-fs .sidebar{ display:none !important; }
+html.bt2-fs body.bt-app .dash-main{ padding:0 !important; }
+html.bt2-fs .bta-content{ max-width:none; padding:0 !important; margin:0 !important; }
+html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dvh; }
+
+/* ---- phone ---- */
+@media (max-width:900px){
+  html.bt-ui2.bt2-work body.bt-app .mobile-topnav{ display:none; }
+  html.bt-ui2.bt2-work #rp-head{ display:none; }
+  html.bt-ui2.bt2-work body.bt-app .bta-content{ padding:8px 8px 28px; }
+  html.bt-ui2.bt2-work .bta-rail, html.bt-ui2.bt2-work #appnav-dock{ transform:translateY(110%); transition:transform .2s ease; }
+  html.bt-ui2.bt2-work.bt2-nav .bta-rail, html.bt-ui2.bt2-work.bt2-nav #appnav-dock{ transform:none; box-shadow:0 -10px 30px rgba(0,0,0,.45); }
+  html.bt-ui2.bt2-work body.bt-app .dash-main{ padding-bottom:0 !important; }
+  html.bt-ui2.bt2-work .bt2-handle{ all:unset; box-sizing:border-box; display:flex; align-items:flex-end; justify-content:center; position:fixed; left:50%; bottom:0; transform:translateX(-50%); z-index:9061; width:96px; height:18px; padding-bottom:calc(5px + env(safe-area-inset-bottom)); cursor:pointer; }
+  html.bt-ui2.bt2-work .bt2-handle span{ display:block; width:44px; height:4px; border-radius:3px; background:var(--b2-ink3); opacity:.8; }
+  html.bt-ui2.bt2-work.bt2-nav .bt2-handle{ display:none; }
+  html.bt-ui2 #rp-work .rpw{ border-radius:var(--b2-r2); grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "chart" "float" "bottom"; }
+  html.bt-ui2 .rpw-rail{ display:none; }
+  html.bt-ui2 .bt2-sheet .rpw-rail{ display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; border:0; background:transparent; padding:0; width:auto; height:auto; }
+  html.bt-ui2 .bt2-sheet .rpw-rail button{ width:auto; height:48px; }
+  html.bt-ui2 .bt2-sheet .rpw-rail .rpw-rail-sep{ display:none; }
+  html.bt-ui2 .rpw-top{ padding:6px 4px 6px 2px; gap:2px; }
+  .bt2-menu, .bt2-drawbtn{ display:inline-grid; }
+  html.bt-ui2 .rpw-sym{ display:none; }
+  html.bt-ui2 #rp-ind-btn{ width:40px; padding:0; justify-content:center; background:transparent; }
+  html.bt-ui2 #rp-ind-btn span{ display:none; }
+  html.bt-ui2 .rpw-top .bt2-ib{ width:38px; height:40px; }
+  html.bt-ui2 .bt2-topact{ gap:0; position:static; }
+  html.bt-ui2 .bt2-clock .mclock-pill{ height:32px; padding:0 6px; background:transparent; border-color:transparent; }
+  html.bt-ui2 .bt2-clock .mclock-state, html.bt-ui2 .bt2-clock .mclock-short{ display:none; }
+  html.bt-ui2 .bt2-clock .mclock-pop, html.bt-ui2 .bt2-clock .notif-panel{ position:fixed; top:56px; left:8px; right:8px; width:auto; z-index:9100; }
+  html.bt-ui2 .bt2-clock .notif-bell-wrap .icon-btn{ width:36px; height:36px; border:0; background:transparent; }
+  html.bt-ui2 .rpw-chart{ height:58vh; height:58dvh; min-height:340px; }
+  html.bt-ui2 #rp-float.rp-float{ padding:8px; gap:6px; justify-content:space-between; }
+  html.bt-ui2 #rp-float .rp-cursor{ display:none; }
+  html.bt-ui2 #rp-float #rp-jumpny{ display:none; }
+  html.bt-ui2 .rpw-bottom{ padding:12px; }
+  html.bt-ui2 .rpw-acct{ grid-template-columns:1fr 1fr; gap:10px 12px; padding:12px 14px; border-radius:var(--b2-r2); background:var(--b2-2); }
+  html.bt-ui2 .rpw-acct b{ font-size:15px; }
+  .bt2-actrow{ display:flex; gap:8px; align-items:stretch; }
+  .bt2-actrow .rpw-drawerbtns{ flex:1; min-width:0; background:var(--b2-3); border:0; padding:3px; }
+  .bt2-actrow .rpw-drawerbtns button{ height:40px; flex:1; justify-content:center; padding:0 6px; }
+  .bt2-actrow #rp-sheet-toggle{ align-self:auto; height:auto; min-height:46px; flex:none; }
+  /* sheets become bottom sheets */
+  .bt2-sheet, html.bt-ui2.bt2-pane-open .rpw-drawer:not(.is-closed), html.bt-ui2.bt2-pane-open .rpw-sheet.is-open{
+    position:fixed !important; top:auto !important; left:0 !important; right:0 !important; bottom:0 !important; width:auto !important; margin:0 !important; z-index:9050;
+    max-height:78vh; max-height:78dvh; overflow-y:auto; border-radius:var(--b2-r3) var(--b2-r3) 0 0 !important; border:1px solid var(--b2-line2); border-bottom:0;
+    background:var(--b2-2) !important; box-shadow:0 -18px 50px rgba(0,0,0,.55); padding:4px 16px calc(18px + env(safe-area-inset-bottom)) !important; }
+  .bt2-drawsheet{ display:block; }
+  .bt2-drawsheet[hidden]{ display:none; }
+  .bt2-grab{ display:block; width:40px; height:4px; border-radius:3px; background:var(--b2-line2); margin:8px auto 2px; }
+  html.bt-ui2.bt2-pane-open .bt2-panex{ display:grid; position:sticky; top:4px; margin-left:auto; z-index:2; }
+  html.bt-ui2 .rpw-drawer.is-closed{ display:none; }
+  html.bt-ui2.bt2-pane-open body{ overflow:hidden; }
+}
+@media (max-width:380px){ html.bt-ui2 .rpw-top .bt2-ib{ width:34px; } html.bt-ui2 #rp-float .rp-stepbtn{ padding:0 9px; } }
+@media (prefers-reduced-motion: reduce){ html.bt-ui2 .bta-rail, html.bt-ui2 #appnav-dock{ transition:none; } }

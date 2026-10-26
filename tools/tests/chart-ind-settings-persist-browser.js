@@ -15,8 +15,10 @@
 //   timeframe change · symbol change · full screen on / off · bottom nav handle open / close (phone) ·
 //   Style / Visibility tabs opened and closed (Ok and Cancel) · GEX layer redraw (its own setting
 //   changed, history reload) · page reload (the saved workspace document).
-// Indicators: Liquidity Master [TradeZoro] (6 inputs + one Style change), Trend Average (Zeiierman)
-// (one input), GEX Levels (one input). Fixture bars only (chart-fixture-server.mjs), GEX from the saved
+// Indicators: Liquidity Master [TradeZoro] (7 inputs + one Style change), EMA 9/21 cross (2 inputs),
+// GEX Levels (2 inputs). A second heavy script next to Liquidity Master made one Chrome renderer reach
+// 1.4 GB on the 4 GB test box (the Pine workers, not a leak: same on main), so the second Pine script is
+// the light EMA example; Chrome memory is logged per phase and the run stops above MEM_MAX_MB. Fixture bars only (chart-fixture-server.mjs), GEX from the saved
 // fixtures; no market-data vendor is called.
 //
 //   node tools/tests/chart-fixture-server.mjs 8093 <bars fixture.json> &
@@ -39,7 +41,7 @@ const GEX = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'gex', '
 let fails = 0;
 const check = (ok, msg, x) => { if (!ok) fails++; console.log((ok ? 'PASS ' : 'FAIL ') + '[' + TAG + '] ' + msg + (x === undefined ? '' : ' ' + JSON.stringify(x).slice(0, 400))); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const LM = 'Liquidity Master [TradeZoro]', TA = 'Trend Average (Zeiierman)', GX = 'GEX Levels';
+const LM = 'Liquidity Master [TradeZoro]', TA = 'EMA 9/21 cross', GX = 'GEX Levels';
 // LM: Watermark, Relative equal highs / lows, REQH / REQL label, draw-on-liquidity tables, New York
 // session, opening prices, previous week. All default true.
 const LM_KEYS = ['showMark', 'reqOn', 'reqLbl', 'dolOn', 'seNY', 'opOn', 'peW'];
@@ -278,7 +280,7 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
 
     // ---- add the three indicators with real taps ----
     await addByPicker(p, LM, 'Liquidity Master');
-    await addByPicker(p, TA, 'Trend Average');
+    await addByPicker(p, TA, 'EMA 9/21');
     await addByPicker(p, GX, 'GEX', 'b:stk_gex');
     let s = await snap(p);
     for (let i = 0; i < 60 && !(s[LM] && s[LM].model && s[TA] && s[TA].model); i++) { await sleep(1000); s = await snap(p); }
@@ -312,11 +314,11 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
     await closeOk(p);
     WANT[LM] = Object.fromEntries(LM_KEYS.map((k) => [k, false]));
 
-    await openSettings(p, taId, 'Trend Average');
-    await tap(p, F.field, taId + '-showEntryInput', 'TA Show Entry');
-    await typeNum(p, taId + '-lenInput', 33);
+    await openSettings(p, taId, 'EMA 9/21 cross');
+    await typeNum(p, taId + '-fastLen', 7);
+    await typeNum(p, taId + '-slowLen', 33);
     await closeOk(p);
-    WANT[TA] = { showEntryInput: false, lenInput: 33 };
+    WANT[TA] = { fastLen: 7, slowLen: 33 };
 
     await openSettings(p, gxId, 'GEX Levels');
     await tap(p, F.field, gxId + '-labels', 'GEX level text labels');

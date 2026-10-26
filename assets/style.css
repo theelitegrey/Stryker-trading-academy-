@@ -6384,8 +6384,9 @@ body.charts-page .stkchart-credit{
   display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:0; padding:4px 0;
   width:min(260px, calc(100vw - 16px)); max-width:none; max-height:var(--ob-maxh, calc(100dvh - 120px));
   overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
-  font:500 14px/1.2 inherit; font-family:inherit;
+  font-size:14px; font-weight:500; line-height:1.2; font-family:inherit;
 }
+#stkc-more-pop.stkc-ob-list[hidden]{ display:none !important; }
 .stkc-ob-list > .stkc-ob-gh{
   flex:none; padding:8px 14px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);
   border-top:1px solid var(--line-soft, var(--line)); margin-top:4px;
@@ -6398,10 +6399,15 @@ body.charts-page .stkchart-credit{
 #stkc-more-pop.stkc-ob-list [data-ob-trig][data-ob-trig]{
   all:unset; box-sizing:border-box; display:flex !important; align-items:center; gap:12px; width:100% !important; max-width:none !important;
   height:44px; min-height:44px; padding:0 14px; border-radius:0; color:var(--ink-1); cursor:pointer; white-space:nowrap;
-  font:500 14px/1.2 inherit; font-family:inherit; -webkit-tap-highlight-color:transparent;
+  font-size:14px; font-weight:500; line-height:1.2; font-family:inherit; -webkit-tap-highlight-color:transparent;
 }
 .stkc-ob-list [data-ob-trig][hidden]{ display:none !important; }
-.stkc-ob-list [data-ob-trig] > *{ display:none !important; }
+#stkc-more-pop.stkc-ob-list [data-ob-trig] > *, #stkc-more-pop.stkc-ob-list [data-ob-trig] .stkc-btn-l{ display:none !important; }
+/* a menu opened from the list (Templates, Charts in layout, Layout, Replay, Credits) shows alone:
+   the list steps back so its sheet is not hidden under it */
+#stkc-more-pop.stkc-ob-list.stkc-ob-sub{ background:transparent; border-color:transparent; box-shadow:none; overflow:visible; }
+#stkc-more-pop.stkc-ob-list.stkc-ob-sub > *{ visibility:hidden; }
+#stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]), #stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]) *{ visibility:visible; }
 #stkc-more-pop.stkc-ob-list [data-ob-trig]:hover, #stkc-more-pop.stkc-ob-list [data-ob-trig]:active{ background:var(--bg-3, rgba(255,255,255,.06)); color:var(--ink-0); }
 .stkc-ob-list [data-ob-trig]::before{
   content:""; flex:none; width:20px; height:20px; padding:0 2px; background:currentColor; background-clip:content-box;

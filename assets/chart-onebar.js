@@ -198,6 +198,10 @@ export function mountOneBar(ws){
     heads[g] = h;
     morePop.appendChild(h);
   });
+  // phone list: while a menu opened from it is showing, the list itself steps back (style.css .stkc-ob-sub)
+  const subOpen = () => !!morePop.querySelector('.stkc-pop:not([hidden]), #stkc-credits:not([hidden])');
+  new MutationObserver(() => { morePop.classList.toggle('stkc-ob-sub', !merged && !morePop.hidden && subOpen()); })
+    .observe(morePop, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
   const more = document.createElement('div');
   more.className = 'stkc-menu stkc-ob-more';
   more.hidden = true;
@@ -206,9 +210,12 @@ export function mountOneBar(ws){
     // phone list: room from just under the toolbar to the bottom of the screen; taller lists scroll
     if (open && !merged) {
       const b = bar.getBoundingClientRect().bottom;
+      // just under the toolbar (never over it), whatever the ⋯ button's height
+      morePop.style.top = Math.ceil(b - more.getBoundingClientRect().top + 4) + 'px';
       morePop.style.setProperty('--ob-maxh', Math.max(160, Math.floor(window.innerHeight - b - 14)) + 'px');
       morePop.scrollTop = 0;
-    }
+    } else if (merged) morePop.style.removeProperty('top');
+    if (!open) morePop.classList.remove('stkc-ob-sub');
     morePop.hidden = !open; moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); setMore(morePop.hidden); });

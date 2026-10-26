@@ -10355,3 +10355,9 @@ html .vela-sp-tab[data-active]{ background:rgba(3,201,136,.14); color:var(--gold
 :root[data-theme="light"] .vela-sp-tab[data-active]{ background:rgba(7,153,106,.1); color:var(--gold); }
 @media (max-width:560px){ .page-access-select{ font-size:13px; } }   /* access-admin: long tier names, full text shows when opened */
 html .vela-sp-tabs{ -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right:24px; }
+/* Date / time pickers: same height as text fields (Chrome adds padding inside the date-time editor, which
+   made a time box 3 px taller than the date box beside it), and a clearly visible picker icon. */
+:where(input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week])::-webkit-datetime-edit,
+:where(input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week])::-webkit-datetime-edit-fields-wrapper{ padding:0; }
+:where(input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week])::-webkit-calendar-picker-indicator{ opacity:.85; padding:3px; margin:0 -3px 0 4px; border-radius:6px; }
+:where(input[type=date], input[type=time], input[type=datetime-local], input[type=month], input[type=week])::-webkit-calendar-picker-indicator:hover{ opacity:1; background-color:rgba(3,201,136,.14); }

@@ -575,19 +575,42 @@ function lateLists(provider){
   let hadSession = false;
   try { hadSession = !!localStorage.getItem(PERSIST_KEY); } catch (e) {}
 
-  // The page shell starts as .gate-pending (visibility:hidden) until the
-  // login gate resolves. Boot the chart only after that clears (or after a
-  // few seconds regardless), then two frames later, so Vela measures the
-  // page's final layout instead of a mid-boot one.
-  await new Promise((resolve) => {
-    const shell = document.querySelector('.dash-shell');
-    if (!shell || !shell.classList.contains('gate-pending')) { resolve(); return; }
-    const done = () => { obs.disconnect(); clearTimeout(cap); resolve(); };
+  // PHONE SPEED B (2026-10-26): the chart is BUILT while the login / plan gate is still checking.
+  // Before, the boot waited for the gate to clear (the plan read from Firestore: live phone 1.4-2.2 s
+  // after the modules were ready). Now it waits only until Firebase knows WHO is signed in (needed by
+  // the Rithmic flag below), then builds the engine, canvases and layers under the still-hidden shell.
+  // Nothing about data access changes:
+  //   - every bars request waits for rt-access (assets/rt-access.js rtHeadersReady: signed-in user,
+  //     token and the server's admin answer), exactly as before; the server picks the lane from the
+  //     token (real-time CME admin-only, everyone else cut 10 min), so a request made without a token
+  //     is always the delayed lane;
+  //   - the shell (.dash-shell.gate-pending, visibility:hidden) stays hidden until the gate clears, so
+  //     nothing is SHOWN before the check has passed; a denied visitor still gets the paywall / sign-in.
+  // When the gate clears the frame is re-measured and a resize is sent so Vela re-fits to the final
+  // layout (the reason the old code waited).
+  const gateShell = document.querySelector('.dash-shell');
+  const gatePending = () => !!(gateShell && gateShell.classList.contains('gate-pending'));
+  if (gatePending()) {
     const obs = new MutationObserver(() => {
-      if (!shell.classList.contains('gate-pending')) done();
+      if (gatePending()) return;
+      obs.disconnect();
+      pm('stk:gate-cleared');
+      measureFrame();
+      requestAnimationFrame(() => window.dispatchEvent(new Event('resize')));
     });
-    obs.observe(shell, { attributes: true, attributeFilter: ['class'] });
+    obs.observe(gateShell, { attributes: true, attributeFilter: ['class'] });
+  }
+  await new Promise((resolve) => {
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; clearTimeout(cap); resolve(); } };
     const cap = setTimeout(done, 6000);
+    if (!gatePending()) { done(); return; }
+    try {
+      // eslint-disable-next-line no-undef
+      const a = typeof auth !== 'undefined' && auth ? auth : null;
+      if (!a || typeof a.onAuthStateChanged !== 'function') { done(); return; }
+      const off = a.onAuthStateChanged(() => { try { off && off(); } catch (e) {} done(); });
+    } catch (e) { done(); }
   });
   pm('stk:gate-ok');
   measureFrame();

@@ -45,7 +45,13 @@ http.createServer(async (req, res) => {
     const page = Number(url.searchParams.get('page')) || 0;
     const bars = await candles(Math.min(tf, 240));
     await new Promise((r) => setTimeout(r, 120));   // edge + upstream think time
-    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify({ s: 'NQ', tf: tfs, page, bars })); return;
+    const rt = /^Bearer admin\./.test(req.headers.authorization || '');   // the lane, as the real endpoint decides it
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-tz-rt': rt ? '1' : '0' }); res.end(JSON.stringify(Object.assign({ s: 'NQ', tf: tfs, page, bars }, /^Bearer (admin|member)\./.test(req.headers.authorization || '') ? { rt } : {}))); return;   // rt only for the access test's tokens (speed runs unchanged)
+  }
+  // /api/chart/rt: like functions/api/chart/rt.js, admin only for an admin token (tests use 'admin.*' / 'member.*')
+  if (url.pathname === '/api/chart/rt') {
+    const admin = /^Bearer admin\./.test(req.headers.authorization || '');
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify({ admin })); return;
   }
   if (url.pathname.startsWith('/api/')) { res.writeHead(404, { 'content-type': 'application/json' }); res.end('{}'); return; }
   let p = path.join(ROOT, decodeURIComponent(url.pathname));

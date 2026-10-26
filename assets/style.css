@@ -6406,8 +6406,8 @@ body.charts-page .stkchart-credit{
 /* a menu opened from the list (Templates, Charts in layout, Layout, Replay, Credits) shows alone:
    the list steps back so its sheet is not hidden under it */
 #stkc-more-pop.stkc-ob-list.stkc-ob-sub{ background:transparent; border-color:transparent; box-shadow:none; overflow:visible; }
-#stkc-more-pop.stkc-ob-list.stkc-ob-sub > *{ visibility:hidden; }
-#stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]), #stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]) *{ visibility:visible; }
+#stkc-more-pop.stkc-ob-list.stkc-ob-sub > *, #stkc-more-pop.stkc-ob-list.stkc-ob-sub [data-ob-trig][data-ob-trig]{ visibility:hidden !important; }
+#stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]), #stkc-more-pop.stkc-ob-list.stkc-ob-sub .stkc-pop:not([hidden]) *{ visibility:visible !important; }
 #stkc-more-pop.stkc-ob-list [data-ob-trig]:hover, #stkc-more-pop.stkc-ob-list [data-ob-trig]:active{ background:var(--bg-3, rgba(255,255,255,.06)); color:var(--ink-0); }
 .stkc-ob-list [data-ob-trig]::before{
   content:""; flex:none; width:20px; height:20px; padding:0 2px; background:currentColor; background-clip:content-box;

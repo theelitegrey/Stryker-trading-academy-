@@ -147,7 +147,8 @@ async function run(b, v09, w, h, doItems) {
       await sleep(900);
       const fn = EXPECT[l] || EXPECT[l.replace(/^Layout:.*/, 'Layout')];
       const res = fn ? await p.evaluate(fn) : await p.evaluate(() => !document.getElementById('stkl-pop').hidden);
-      const listGone = await p.evaluate(() => { const m = document.getElementById('stkc-more-pop'); return m.hidden || m.classList.contains('stkc-ob-sub'); });
+      // the list is gone, or (a sub-menu) its rows are invisible behind the sheet
+      const listGone = await p.evaluate(() => { const m = document.getElementById('stkc-more-pop'); if (m.hidden) return true; return m.classList.contains('stkc-ob-sub') && [...m.querySelectorAll('[data-ob-trig]')].every((r) => getComputedStyle(r).visibility === 'hidden' || !!r.closest('.stkc-pop')); });
       await p.screenshot({ path: path.join(OUT, key + '-item-' + l.replace(/[^a-z0-9]+/gi, '_') + '.png') });
       check(ok && res && listGone, key + ': ⋯ "' + l + '" opens what it says', { ok, res, listGone });
       if (/^Maximize/.test(l)) await p.evaluate(() => { window.STRYKER_VELA.maximizeCell(null); window.STRYKER_CHART_UI.setLayout('1'); });

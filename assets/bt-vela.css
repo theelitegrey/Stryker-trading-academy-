@@ -92,3 +92,8 @@ html.bt-tz #stkc-bar .stkl-menu, html.bt-tz #stkc-bar #stkc-tpl-btn, html.bt-tz 
   html.bt-tz #stkc-bar .mclock-state, html.bt-tz #stkc-bar .mclock-short, html.bt-tz #stkc-bar .mclock-tiny{ display:none !important; }   /* dot only, like Charts */
   html.bt-tz #stkc-bar .mclock-pill{ width:24px !important; padding:0 !important; }
 }
+
+/* old-session notice (once per session, 6 s): small bar at the top of the plot, below the legend */
+.bt-oldnote{ position:fixed; z-index:9300; left:8px; right:8px; top:calc(var(--stkc-top, 0px) + 74px); display:flex; align-items:center; gap:10px; padding:8px 10px 8px 12px; border-radius:12px; background:var(--bg-2,#131316); border:1px solid var(--line,#2a2d34); color:var(--ink-1,#e6e8ec); font:500 12.5px/1.35 var(--font-body,inherit); box-shadow:0 8px 24px rgba(0,0,0,.45); max-width:520px; }
+.bt-oldnote span{ flex:1; min-width:0; } .bt-oldnote a{ flex:none; color:var(--gold,#03c988); font-weight:600; text-decoration:none; white-space:nowrap; }
+.bt-oldnote button{ all:unset; cursor:pointer; flex:none; width:28px; height:28px; display:grid; place-items:center; color:var(--ink-3,#8b93a0); }

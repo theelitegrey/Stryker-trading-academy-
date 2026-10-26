@@ -184,7 +184,28 @@
         const an = [{ time: d.p1.t, price: d.p1.price }]; if (d.p2) an.push({ time: d.p2.t, price: d.p2.price });
         try { c.chart.drawings.add(ty, { paneId: 'price', anchors: an }) || skipped.push(d.type); } catch (e) { skipped.push(d.type); }
       }
-      if (skipped.length && this.onNotice) this.onNotice('Some old items have no match on the new chart (' + [...new Set(skipped)].join(', ') + '). They are kept in this session: ?chart=lw shows them.');
+      if (skipped.length) this._migrateNotice([...new Set(skipped)]);
+    }
+
+    // plain-words notice for old-session items with no match: once per session, top of the plot, 6 s
+    _migrateNotice(ids) {
+      const N = { killzones: 'Killzones', sesshl: 'Session highs and lows', pdhl: 'Previous day and week highs and lows', orb: 'Opening range', fvg: 'Fair value gaps', ob: 'Order blocks', swings: 'Swing points', liq: 'Liquidity levels', supertrend: 'Supertrend', wma: 'Weighted MA', stoch: 'Stochastic', volma: 'Volume MA', text: 'Text notes', arrow: 'Arrows' };
+      const names = ids.map((x) => N[x] || String(x).replace(/^./, (c) => c.toUpperCase()));
+      const list = names.length > 2 ? names.slice(0, 2).join(', ') + ' and more' : names.join(' and ');
+      const key = 'bt_tz_notice_' + (this.ctx.sessionId || 'x');
+      try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1'); } catch (e) {}
+      const show = () => {
+        const host = document.getElementById('rp-chart-main'); if (!host) return;
+        const old = document.getElementById('bt-oldnote'); if (old) old.remove();
+        const el = document.createElement('div'); el.id = 'bt-oldnote'; el.className = 'bt-oldnote'; el.setAttribute('role', 'status');
+        el.innerHTML = '<span></span><a href="#">Open old chart</a><button type="button" aria-label="Dismiss">\u2715</button>';
+        el.querySelector('span').textContent = list + " from this session aren't" + ' on the new chart yet. Your session is safe.';
+        const u = new URL(location.href); u.searchParams.set('chart', 'lw');
+        el.querySelector('a').href = u.toString();
+        el.querySelector('button').addEventListener('click', () => el.remove());
+        document.body.appendChild(el); setTimeout(() => el.remove(), 6000);
+      };
+      setTimeout(show, 1200);
     }
 
     // ---- higher-timeframe chart = a second Vela cell --------------------------------------------------------------

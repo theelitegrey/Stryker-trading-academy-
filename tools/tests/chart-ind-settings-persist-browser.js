@@ -215,8 +215,8 @@ async function verify(p, phase, opts){
   check(!bad.length, phase + ': every changed input still holds (handle + drawn model)', bad.length ? bad.slice(0, 6) : undefined);
   const mb = rendererMB();
   const heap = await p.evaluate(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : -1)).catch(() => -1);
-  console.log('MEM [' + TAG + '] ' + phase + ': renderer RSS ' + mb + ' MB, page heap ' + heap + ' MB');
-  if (mb > MEM_MAX) throw new Error('renderer over ' + MEM_MAX + ' MB at ' + phase + ' (' + mb + ' MB): stopping before the server runs out of memory');
+  console.log('MEM [' + TAG + '] ' + phase + ': Chrome PSS ' + mb + ' MB, page heap ' + heap + ' MB');
+  if (mb > MEM_MAX) throw new Error('Chrome over ' + MEM_MAX + ' MB at ' + phase + ' (' + mb + ' MB): stopping before the server runs out of memory');
   if (STYLE_WANT && s[LM]) {
     const st = await p.evaluate((id) => window.STRYKER_IND_STYLE.styleOf(id), s[LM].id);
     const ok = JSON.stringify(st || {}).includes(STYLE_WANT);
@@ -228,15 +228,18 @@ async function verify(p, phase, opts){
 // Memory per phase: resident size of the Chrome renderer processes (all page + worker heaps live
 // there), so a growing phase shows up in the log. Linux only; silent elsewhere.
 function rendererMB(){
+  // PSS (shared pages split between processes) of every process below this node process: our own
+  // Chrome only, never another job's browser on the same box.
   try {
-    let kb = 0;
+    const kids = new Map();
     for (const d of fs.readdirSync('/proc')) {
       if (!/^\d+$/.test(d)) continue;
-      let cmd = ''; try { cmd = fs.readFileSync('/proc/' + d + '/cmdline', 'utf8'); } catch (e) { continue; }
-      if (!/--type=renderer/.test(cmd) || !/headless|chrom/i.test(cmd)) continue;
-      const m = /VmRSS:\s+(\d+)/.exec(fs.readFileSync('/proc/' + d + '/status', 'utf8'));
-      if (m) kb += +m[1];
+      try { const st = fs.readFileSync('/proc/' + d + '/stat', 'utf8'); const pp = +st.slice(st.lastIndexOf(')') + 2).split(' ')[1]; if (!kids.has(pp)) kids.set(pp, []); kids.get(pp).push(+d); } catch (e) {}
     }
+    const mine = []; const q = [process.pid];
+    while (q.length) { const x = q.pop(); (kids.get(x) || []).forEach((k) => { mine.push(k); q.push(k); }); }
+    let kb = 0;
+    for (const pid of mine) { try { const m = /^Pss:\s+(\d+)/m.exec(fs.readFileSync('/proc/' + pid + '/smaps_rollup', 'utf8')); if (m) kb += +m[1]; } catch (e) {} }
     return Math.round(kb / 1024);
   } catch (e) { return -1; }
 }

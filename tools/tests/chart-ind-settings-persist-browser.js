@@ -121,7 +121,8 @@ const F = {
   pickRow: "const r = a.startsWith('key:') ? document.querySelector('.stkiw-row[data-key=\"' + a.slice(4) + '\"]') : [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-name') || r).textContent.trim().startsWith(a)); return r ? r.querySelector('.stkiw-name') : null;",
   pickClose: "return document.querySelector('.stkiw-x');",
   ack: "return document.querySelector('.stkcd-ok');",
-  fs: "return document.getElementById('stkc-fs-btn');",
+  fs: "const b = document.getElementById('stkc-fs-btn'); if (b && b.getBoundingClientRect().width && !b.closest('#stkc-more-pop')) return b; const pop = document.getElementById('stkc-more-pop'); if (!pop || pop.hidden) return null; return [...pop.querySelectorAll('button')].find((x) => /full screen/i.test((x.getAttribute('aria-label') || '') + ' ' + x.textContent + ' ' + (x.title || ''))) || null;",
+  more: "return document.getElementById('stkc-more-btn');",
   handle: "return document.getElementById('stkcps-handle');",
 };
 
@@ -133,6 +134,10 @@ async function openSettings(p, id, label){
   await legendShown(p);
   if (PHONE) await tap(p, F.row, id, label + ' legend row');   // the phone shows the row's buttons on tap
   else { const b = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [F.row, id]); await p.mouse.move(b.x, b.y); await sleep(300); }
+  if (!(await p.evaluate(([src, a]) => { const el = new Function('a', src)(a); return !!(el && el.getBoundingClientRect().width); }, [F.cog, id]))) {
+    console.log('INFO cog not visible for ' + label + ': ' + JSON.stringify(await p.evaluate((id) => { const ch = window.STRYKER_VELA.context().cells[0].chart; const n = ch.renderer.inputsUI ? ch.renderer : ch.renderer.renderer; const o = []; n.inputsUI.rows.forEach((r, k) => { const rc = r.el.getBoundingClientRect(); o.push([k, Math.round(rc.y), Math.round(rc.width), [...r.el.querySelectorAll('button')].map((b) => (b.getAttribute('aria-label') || '').slice(0, 8) + ':' + Math.round(b.getBoundingClientRect().width)).join(',')]); }); return { want: id, rows: o, fold: (document.querySelector('.vela-ind-fold') || {}).ariaLabel }; }, id)));
+    if (PHONE) { await tap(p, F.row, id, label + ' legend row (again)'); await sleep(400); }
+  }
   await tap(p, F.cog, id, label + ' cog');
   for (let i = 0; i < 20 && !(await dialogOpen(p)); i++) await sleep(250);
   check(await dialogOpen(p), label + ': settings dialog opened by a real ' + (PHONE ? 'tap' : 'click'));
@@ -363,11 +368,16 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
 
     await reloadPage(p, 'R2 page reload after timeframe / symbol'); await ids();
     // ---- 4. full screen on / off ----
-    if (await tap(p, F.fs, null, 'full screen on')) {
+    const fsTap = async (label) => {
+      const direct = await p.evaluate(() => { const b = document.getElementById('stkc-fs-btn'); return !!(b && b.getBoundingClientRect().width && !b.closest('#stkc-more-pop')); });
+      if (!direct) await tap(p, F.more, null, '⋯ menu (' + label + ')');
+      return tap(p, F.fs, null, label);
+    };
+    if (await fsTap('full screen on')) {
       await sleep(1500);
       check(await p.evaluate(() => document.documentElement.classList.contains('stk-chart-fs')), '4 full screen is on');
       await verify(p, '4a full screen on', { shot: 'fullscreen' });
-      await tap(p, F.fs, null, 'full screen off');
+      await fsTap('full screen off');
       await sleep(1500);
       await verify(p, '4b full screen off');
     }

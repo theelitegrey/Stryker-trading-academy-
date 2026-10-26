@@ -9273,10 +9273,11 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
   .stkc-dd .stkc-dd-t{ display:none; }   /* every data state: dot only on a phone (tap it for the text) */
-  /* GEX status chip (bottom-left): may wrap to 2 lines; chart-gex-levels.js caps its width so it
-     ends before the Fit price / Latest buttons, which keep their place and stay tappable. */
-  .stk-gex-chip{ white-space:normal; border-radius:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  .stk-gex-chip[hidden]{ display:none; }
+  [data-layout="mobile"] .vela-statusline.stkc-has-dd .vela-sl-identity > .stkc-dd:first-child{ margin:0 6px 0 0; }
+  /* GEX status chip (bottom-left): one short line on a phone ("GEX Oct 21, 12:24 PM ET"), tap for
+     the full text; chart-gex-levels.js keeps it before Fit price / Latest and off indicator tables. */
+  .stk-gex-chip.is-phone{ pointer-events:auto; cursor:pointer; touch-action:manipulation; }
+  .stk-gex-chip.is-phone.is-open{ white-space:normal; border-radius:10px; }
 }
 
 

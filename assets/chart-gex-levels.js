@@ -905,37 +905,79 @@ function gexLayer() {
     canvas.parentElement.appendChild(chip);
     return chip;
   }
+  // Phone one-liner (Owner 2026-10-26): "GEX as of Oct 21, 12:24 PM ET · NQ (from QQQ) 0DTE · bar
+  // replay" -> "GEX Oct 21, 12:24 PM ET"; "GEX updated 14 days ago · ..." -> "GEX 14 days ago".
+  // A tap shows the full text.
+  function shortStatus(t) {
+    const first = String(t || '').split(' \u00b7 ')[0];
+    return first.replace(/^GEX (as of|updated) /, 'GEX ');
+  }
+  let expanded = false;
   function paintChip(d, rightPx, bottomPx) {
     const c = ensureChip();
     if (!c) return;
+    const plotEl = c.parentElement;
+    const phone = !!(plotEl && plotEl.clientWidth < 600);
     // Phone: the chip ends before the Fit price / Latest buttons (same bottom row, chart-settings.js)
     let maxW = '';
-    if (c.parentElement && c.parentElement.clientWidth < 600) {
-      const host = c.closest('.vela-cell') || c.parentElement.parentElement || c.parentElement;
+    if (phone) {
+      const host = c.closest('.vela-cell') || plotEl.parentElement || plotEl;
       const fl = host && host.querySelector('.stkc-fl');
-      const pr = c.parentElement.getBoundingClientRect();
+      const pr = plotEl.getBoundingClientRect();
       if (fl && fl.getClientRects().length) maxW = Math.max(110, Math.floor(fl.getBoundingClientRect().left - pr.left - 8 - 6)) + 'px';
+      if (expanded) maxW = 'calc(100% - 16px)';
     }
     if (c.style.maxWidth !== maxW) c.style.maxWidth = maxW;
-    const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, rightPx, bottomPx]) : '';
-    if (k === last) return;
-    last = k;
-    if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
-    c.hidden = false;
-    // Bottom-LEFT of the plot (GEX audit 2026-10-13): at the bottom-right it covered the lowest
-    // right-edge level label. rightPx is kept in the signature for callers/tests.
-    c.style.right = 'auto';
-    c.style.left = '8px';
-    c.style.bottom = bottomPx + 'px';
-    c.textContent = '';
-    if (d.pill) {
-      const a = document.createElement('a');
-      a.className = 'stk-gex-pill'; a.href = d.href || PRICING; a.textContent = d.pill;
-      c.appendChild(a);
-    } else {
-      c.classList.toggle('is-note', !!d.note);
-      c.appendChild(document.createTextNode(d.note || (d.showStatus === false ? '' : d.status)));
+    c.classList.toggle('is-phone', phone);
+    c.classList.toggle('is-open', phone && expanded);
+    const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, rightPx, phone, expanded]) : '';
+    if (k !== last) {
+      last = k;
+      if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
+      c.hidden = false;
+      // Bottom-LEFT of the plot (GEX audit 2026-10-13): at the bottom-right it covered the lowest
+      // right-edge level label. rightPx is kept in the signature for callers/tests.
+      c.style.right = 'auto';
+      c.style.left = '8px';
+      c.textContent = '';
+      if (d.pill) {
+        const a = document.createElement('a');
+        a.className = 'stk-gex-pill'; a.href = d.href || PRICING; a.textContent = d.pill;
+        c.appendChild(a);
+      } else {
+        c.classList.toggle('is-note', !!d.note);
+        const full = d.note || (d.showStatus === false ? '' : d.status);
+        const txt = phone && !expanded && !d.note ? shortStatus(full) : full;
+        c.appendChild(document.createTextNode(txt));
+        c.title = full;
+        if (phone && !c.__stkTap) {
+          c.__stkTap = true;
+          const stop = (e) => e.stopPropagation();
+          c.addEventListener('pointerdown', stop);
+          c.addEventListener('touchstart', stop, { passive: true });
+          c.addEventListener('click', (e) => { e.stopPropagation(); expanded = !expanded; last = ''; if (typeof plotEl.__stkInv === 'function') plotEl.__stkInv(); });
+        }
+        c.setAttribute('role', phone ? 'button' : '');
+        if (phone) { c.setAttribute('aria-expanded', expanded ? 'true' : 'false'); c.setAttribute('aria-label', full); }
+      }
     }
+    if (c.hidden) return;
+    // Phone: never over an indicator's table or text (Liquidity Master's bottom tables and title,
+    // plot.__stkPineRects from chart-pine-tv-style.js) or a GEX tag: step up above what it meets.
+    let bp = bottomPx;
+    if (phone && plotEl) {
+      const avoid = [].concat(plotEl.__stkPineRects || [], plotEl.__stkGexBoxes || []);
+      const H = plotEl.clientHeight, w = c.offsetWidth, h = c.offsetHeight;
+      for (let i = 0; i < 8; i++) {
+        const top = H - bp - h, bot = H - bp;
+        const hit = avoid.filter((q) => q && 8 < q.right + 2 && q.left - 2 < 8 + w && top < q.bottom + 2 && q.top - 2 < bot);
+        if (!hit.length) break;
+        bp = H - Math.min(...hit.map((q) => q.top)) + 4;
+        if (bp > H * 0.6) { bp = bottomPx; break; }   // nowhere free in the lower part: stay put
+      }
+    }
+    if (c.style.bottom !== bp + 'px') c.style.bottom = bp + 'px';
+    c.__stkBottom = bp;
   }
   return {
     mount(cv) { canvas = cv; },

@@ -180,13 +180,24 @@ function snapshot(h){
   if (offsetHandles.has(h)) o.rightOffset = offsetHandles.get(h);
   return o;
 }
+// SAVED SETTINGS MUST COME BACK IN FULL (Owner 2026-10-26: "in Liquidity Master, watermark and equal
+// high are showing up again even when de-selected"). This used to keep only the FIRST 100 inputs of a
+// saved script. Liquidity Master has 190 (Watermark is #188, Relative equal highs / lows #164, the
+// draw-on-liquidity tables #140), so every reload, saved layout or template brought those back at their
+// defaults while the first 100 (sessions, FVGs) stuck. Other built-ins with more than 100 inputs:
+// Manipulation Model (148), Forever Pro (139), iFVG Ultimate+ (123), Unicorn Model (115).
+// The same filter also dropped built-ins whose source is over 64 KB (CISD Model+, Forever Pro, Unicorn
+// Model, Trinity ATR Levels) from a reload altogether, although they are added with the 128 KB
+// built-in limit. Limits now: MAX_INPUTS keys, BUILTIN_SRC_MAX source characters.
+const MAX_INPUTS = 400;
+const INPUT_STR_MAX = 4096;
 function cleanEntry(x){
-  if (!x || typeof x !== 'object' || typeof x.source !== 'string' || !x.source.trim() || x.source.length > SRC_MAX) return null;
+  if (!x || typeof x !== 'object' || typeof x.source !== 'string' || !x.source.trim() || x.source.length > BUILTIN_SRC_MAX) return null;
   const inputs = {};
   if (x.inputs && typeof x.inputs === 'object') {
-    Object.keys(x.inputs).slice(0, 100).forEach((k) => {
+    Object.keys(x.inputs).slice(0, MAX_INPUTS).forEach((k) => {
       const v = x.inputs[k];
-      if (['string', 'number', 'boolean'].includes(typeof v)) inputs[k] = v;
+      if (typeof v === 'boolean' || (typeof v === 'number' && Number.isFinite(v)) || (typeof v === 'string' && v.length <= INPUT_STR_MAX)) inputs[k] = v;
     });
   }
   const o = { name: typeof x.name === 'string' ? x.name.slice(0, 80) : 'Pine script', source: x.source, inputs };

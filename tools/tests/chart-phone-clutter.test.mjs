@@ -1,17 +1,10 @@
 // Phone chart clutter (2026-10-26): pure helpers + the Pine text-rect sink, in Node.
 //   node tools/tests/chart-phone-clutter.test.mjs
-import { slideLeft, layoutTags, mergeTags } from '../../assets/chart-gex-levels.js';
+import { layoutTags, mergeTags } from '../../assets/chart-gex-levels.js';
 import { _patchScene, _patchRects } from '../../assets/chart-pine-tv-style.js';
 let fail = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fail++; };
 
-// slideLeft
-const b = { x: 300, y: 100, w: 60, h: 16 };
-ok(slideLeft(b, [], 50) === 300, 'nothing in the way: stays');
-ok(slideLeft(b, [{ left: 320, right: 380, top: 104, bottom: 116 }], 50) === 320 - 3 - 60, 'slides left past one rect');
-ok(slideLeft(b, [{ left: 320, right: 380, top: 104, bottom: 116 }, { left: 240, right: 262, top: 98, bottom: 110 }], 50) === 240 - 3 - 60, 'slides past a chain of rects');
-ok(slideLeft(b, [{ left: 320, right: 380, top: 130, bottom: 140 }], 50) === 300, 'a rect on another row is ignored');
-ok(slideLeft(b, [{ left: 60, right: 380, top: 104, bottom: 116 }], 50) === null, 'no room before minX: null');
 // layoutTags still stacks
 const g = layoutTags(mergeTags([{ y: 100, l: { id: 'a', text: 'A', price: 1 } }, { y: 104 + 10, l: { id: 'b', text: 'B', price: 2 } }]), 0, 500);
 ok(g[1].yc - g[0].yc >= 17, 'layoutTags keeps 17 px between stacked tags');

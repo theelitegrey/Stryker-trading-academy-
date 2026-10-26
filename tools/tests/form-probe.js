@@ -73,7 +73,7 @@ const PROBE = () => {
   return out;
 };
 
-module.exports = { PROBE };
+module.exports = { PROBE, ADMIN_INIT };
 if (require.main === module) (async () => {
   const OUT = process.env.OUT || '/tmp'; const TAG = process.env.TAG || 'run'; fs.mkdirSync(OUT, { recursive: true });
   const pages = (process.env.PAGES ? process.env.PAGES.split(',') : DEFAULT_PAGES);

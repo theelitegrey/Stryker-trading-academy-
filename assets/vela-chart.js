@@ -83,8 +83,17 @@ function quietLayer(def){
   return Object.assign({}, def, { __stkQuiet: true, create: (...a) => {
     const inst = create(...a);
     if (!inst || typeof inst.mount !== 'function' || typeof inst.render !== 'function') return inst;
-    // ink: the canvas may hold pixels (something drew since the last full clear). A canvas starts
-    // blank, and so is one whose size was reset (that wipes it).
+    // PHONE SPEED (2026-10-26). Vela gives every registered layer a full-size canvas (25 of them,
+    // ~1024 x 2071 px each at a phone's 2.6x pixel ratio) and every layer render starts with
+    // clearRect + setTransform, drawn on or not. The first of those calls makes the browser allocate
+    // the canvas's pixel memory: ~8 MB per layer and 1.8 s of main thread before the first candle on a
+    // throttled phone (tools/tests/chart-phone-speed-canvas.js). Now, until a layer has drawn
+    // something, its state calls (transform, save/restore, path, clip, dash) are only RECORDED and
+    // its clears are skipped (a blank canvas cleared stays blank); the first real draw replays the
+    // recorded calls in order and draws, so what reaches the canvas is exactly what it was before.
+    // After that the canvas works directly, as before (ink = it has been drawn on since it was last
+    // blank; only a resize, which wipes pixels and state, makes it blank again: a full clearRect
+    // is not trusted for that because a clip may limit it). A resize also drops the record.
     let cv = null, drew = false, cleared = false, ink = false, inkW = 0, inkH = 0;
     const mount = inst.mount;
     inst.mount = function (canvas) {
@@ -96,23 +105,75 @@ function quietLayer(def){
           // Own-property wrappers that call whatever the prototype holds at call time (so other
           // code that wraps CanvasRenderingContext2D.prototype keeps seeing these calls).
           const proto = Object.getPrototypeOf(ctx);
-          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; if (!ink) { ink = true; inkW = canvas.width; inkH = canvas.height; } return proto[k].apply(this, arguments); };
-          // PHONE SPEED (2026-10-26): every layer clears its full-size canvas at the start of every
-          // render, drawn on or not. At a phone's 2.6x pixel ratio that is ~1000 x 1800 px per layer,
-          // 20+ layers, each frame, and the first clear also makes the browser allocate the canvas
-          // memory. Clearing a canvas that is already blank changes nothing on screen, so it is
-          // skipped; a canvas that holds a drawing is cleared exactly as before.
+          // q: recorded state calls; depth: saves recorded and not yet restored; pinned: a recorded call
+          // that can not be dropped (a clip / restore reaching outside the record); pathOpen: path
+          // calls recorded since the last beginPath.
+          let q = [], qW = canvas.width, qH = canvas.height, depth = 0, pinned = false, pathOpen = false, live = false;
+          const PATH = /^(closePath|moveTo|lineTo|rect|roundRect|arc|arcTo|ellipse|bezierCurveTo|quadraticCurveTo)$/;
+          // Style properties (fillStyle, font, ...) set while a recorded save() is open must also be
+          // recorded, or the replayed restore() would not undo them: shadow = their pending values
+          // (what the getters answer), stack = the shadow at each recorded save().
+          let shadow = new Map(), stack = [];
+          const reset = () => { q = []; depth = 0; pinned = false; pathOpen = false; qW = canvas.width; qH = canvas.height; shadow = new Map(); stack = []; };
+          const sized = () => { if (canvas.width !== qW || canvas.height !== qH) reset(); };   // a resize wipes all canvas state
+          const flush = () => {
+            if (live) return;
+            sized();
+            live = true;
+            const list = q; q = []; shadow = new Map(); stack = [];
+            for (const [k, args] of list) {
+              try { if (k === '=') PDESC[args[0]].set.call(ctx, args[1]); else proto[k].apply(ctx, args); } catch (e) {}
+            }
+          };
+          const PROPS = ['fillStyle', 'strokeStyle', 'lineWidth', 'lineCap', 'lineJoin', 'miterLimit', 'lineDashOffset', 'font', 'textAlign', 'textBaseline', 'direction', 'letterSpacing', 'wordSpacing', 'fontKerning', 'fontStretch', 'fontVariantCaps', 'textRendering', 'globalAlpha', 'globalCompositeOperation', 'imageSmoothingEnabled', 'imageSmoothingQuality', 'shadowBlur', 'shadowColor', 'shadowOffsetX', 'shadowOffsetY', 'filter'];
+          const PDESC = {};
+          for (const pr of PROPS) {
+            let d = null; for (let o = proto; o && !d; o = Object.getPrototypeOf(o)) d = Object.getOwnPropertyDescriptor(o, pr);
+            if (!d || !d.set || !d.get) continue;
+            PDESC[pr] = d;
+            Object.defineProperty(ctx, pr, {
+              configurable: true,
+              get() { return !live && shadow.has(pr) ? shadow.get(pr) : d.get.call(this); },
+              set(v) {
+                if (live || depth === 0) { d.set.call(this, v); return; }
+                shadow.set(pr, v); q.push(['=', [pr, v]]);
+              }
+            });
+          }
+          const DEFER = ['setTransform', 'resetTransform', 'transform', 'translate', 'scale', 'rotate', 'save', 'restore', 'beginPath', 'closePath', 'moveTo', 'lineTo', 'rect', 'roundRect', 'arc', 'arcTo', 'ellipse', 'bezierCurveTo', 'quadraticCurveTo', 'clip', 'setLineDash'];
+          for (const k of DEFER) {
+            if (typeof proto[k] !== 'function') continue;
+            ctx[k] = function () {
+              if (live) return proto[k].apply(this, arguments);
+              sized();
+              if (k === 'save') { depth++; stack.push(new Map(shadow)); }
+              else if (k === 'restore') { if (depth > 0) { depth--; shadow = stack.pop() || new Map(); } else pinned = true; }
+              else if (k === 'clip' && depth === 0) pinned = true;
+              else if (k === 'beginPath') pathOpen = false;
+              else if (PATH.test(k)) pathOpen = true;
+              // An absolute transform with nothing saved, no clip and no open path in the record makes
+              // every recorded call before it irrelevant, except the line dash: keep the last one.
+              if ((k === 'setTransform' || k === 'resetTransform') && depth === 0 && !pinned && !pathOpen) {
+                let dash = null; for (const e of q) if (e[0] === 'setLineDash') dash = e;
+                q = dash ? [dash] : [];
+              }
+              q.push([k, Array.prototype.slice.call(arguments)]);
+              if (q.length > 4000) flush();   // never grow without bound: stop deferring
+              return undefined;
+            };
+          }
+          // calls whose answer depends on the recorded state: replay first
+          for (const k of ['getTransform', 'isPointInPath', 'isPointInStroke', 'getImageData', 'getLineDash']) {
+            if (typeof proto[k] === 'function') ctx[k] = function () { flush(); return proto[k].apply(this, arguments); };
+          }
+          // measureText reads the font: replay first only when a recorded save() holds a pending font
+          if (typeof proto.measureText === 'function') ctx.measureText = function () { if (!live && shadow.size) flush(); return proto.measureText.apply(this, arguments); };
+          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; if (!live) flush(); if (!ink) { ink = true; inkW = canvas.width; inkH = canvas.height; } return proto[k].apply(this, arguments); };
           ctx.clearRect = function (x, y, w, h) {
             cleared = true;
             if (ink && (canvas.width !== inkW || canvas.height !== inkH)) ink = false;   // resized = wiped
             if (!ink) return undefined;
             const res = proto.clearRect.apply(this, arguments);
-            try {
-              if (x <= 0 && y <= 0) {
-                const m = this.getTransform();
-                if (m.b === 0 && m.c === 0 && m.a >= 1 && m.d >= 1 && m.e <= 0 && m.f <= 0 && x * m.a + m.e <= 0 && y * m.d + m.f <= 0 && (x + w) * m.a + m.e >= canvas.width && (y + h) * m.d + m.f >= canvas.height) ink = false;
-              }
-            } catch (e) {}
             return res;
           };
         }

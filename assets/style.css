@@ -9273,10 +9273,6 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
   .stkc-dd .stkc-dd-t{ display:none; }   /* every data state: dot only on a phone (tap it for the text) */
-  /* GEX status chip (bottom-left): may wrap to 2 lines; chart-gex-levels.js caps its width so it
-     ends before the Fit price / Latest buttons, which keep their place and stay tappable. */
-  .stk-gex-chip{ white-space:normal; border-radius:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
-  .stk-gex-chip[hidden]{ display:none; }
 }
 
 

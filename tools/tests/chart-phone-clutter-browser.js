@@ -168,22 +168,11 @@ const metrics = (p) => p.evaluate(() => {
     for (const t of gexTags) for (const q of pineRects) if (t.box && ov(t.box, q)) tagHits.push(t.text + ' x ' + q.text);
     for (const t of (absTags || [])) for (const q of pineRects.concat((gexTags || []).map((g) => g.box && { left: g.box.x, right: g.box.x + g.box.w, top: g.box.y, bottom: g.box.y + g.box.h, text: g.text }).filter(Boolean))) if (ov(t, q)) tagHits.push(t.text + ' x ' + q.text);
   }
-  // DOM overlays (GEX chip, the legend's data dot, the folded drawing button, the legend line) vs
-  // EVERYTHING the indicators painted on the price pane: text, table cells and the pane title.
-  let domHits = null;
-  try {
-    const pe = R.plot, pr = pe.getBoundingClientRect();
-    const rects = (pe.__stkPineRects || []).filter((q) => q.text !== 'table' || (q.right - q.left) * (q.bottom - q.top) > 0)
-      .map((q) => ({ x: q.left + pr.left, y: q.top + pr.top, r: q.right + pr.left, b: q.bottom + pr.top, text: q.text }));
-    const els = { chip, dd, fab: favToggle, fav };   // Fit price / Latest are fixed buttons: labels scroll under them
-    domHits = [];
-    for (const [n, r] of Object.entries(els)) if (r) for (const q of rects) if (r.x < q.r - 1 && q.x + 1 < r.r && r.y < q.b - 1 && q.y + 1 < r.b) domHits.push(n + ' x ' + String(q.text).slice(0, 30));
-  } catch (e) { domHits = ['error ' + e]; }
   // table rect of the DOL ABOVE table: top-right of the price pane, read from Vela's last layout is not exposed;
   // use the data dot vs the right 45% of the plot as the "collides with the top-right table" proxy
   return { vw: innerWidth, vh: innerHeight, plot, plotPct: +(plot.h / innerHeight * 100).toFixed(1), fl, fav, favToggle, rbar, chip, chipVisible, flBtns, dd, sl, topBar, stkcBar, mclock, credit, dock,
     favOverFl: inter(fav, fl), favOverPlotBottom: !!(fav && fav.b > plot.b - 40), rbarOverFav: inter(rbar, fav), rbarOverChip: inter(rbar, chip), favOverChip: inter(fav, chip),
-    replayOn: !!(window.__stkReplay && window.__stkReplay.on), domHits, gexTags, pineRects: pineRects && pineRects.length, absTags, tagHits };
+    replayOn: !!(window.__stkReplay && window.__stkReplay.on), gexTags, pineRects: pineRects && pineRects.length, absTags, tagHits };
 });
 
 (async () => {
@@ -208,7 +197,6 @@ const metrics = (p) => p.evaluate(() => {
         console.log('SHOT ' + path.join(OUT, TAG + '-' + key + '-live.png'));
         console.log('METRICS ' + key + ' live ' + JSON.stringify(live));
         all[key + '-live'] = live;
-        if (mobile) check(live.domHits && !live.domHits.length && live.tagHits && !live.tagHits.length, key + ': live, nothing covers indicator text/tables/title', [live.domHits, live.tagHits]);
         // Fit price / Latest by real tap / click
         const flB = await p.$$('#vela-chart .vela-cell .stkc-fl button');
         let flOk = flB.length === 2;
@@ -246,7 +234,6 @@ const metrics = (p) => p.evaluate(() => {
           console.log('METRICS ' + key + ' replay ' + JSON.stringify(rp));
           all[key + '-replay'] = rp;
           check(rp.replayOn, key + ': replay entered by real taps');
-          if (mobile) check(rp.domHits && !rp.domHits.length && rp.tagHits && !rp.tagHits.length, key + ': replay, nothing covers indicator text/tables/title', [rp.domHits, rp.tagHits]);
           // the drawing toolbar is still reachable in replay (opener button or the bar itself)
           // exit by a real tap on Real-time
           const lb = await p.$('#stkr-bar .stkr-live');

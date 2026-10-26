@@ -9273,11 +9273,10 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
   .stkc-dd .stkc-dd-t{ display:none; }   /* every data state: dot only on a phone (tap it for the text) */
-  [data-layout="mobile"] .vela-statusline.stkc-has-dd .vela-sl-identity > .stkc-dd:first-child{ margin:0 6px 0 0; }
-  /* GEX status chip (bottom-left): one short line on a phone ("GEX Oct 21, 12:24 PM ET"), tap for
-     the full text; chart-gex-levels.js keeps it before Fit price / Latest and off indicator tables. */
-  .stk-gex-chip.is-phone{ pointer-events:auto; cursor:pointer; touch-action:manipulation; }
-  .stk-gex-chip.is-phone.is-open{ white-space:normal; border-radius:10px; }
+  /* GEX status chip (bottom-left): may wrap to 2 lines; chart-gex-levels.js caps its width so it
+     ends before the Fit price / Latest buttons, which keep their place and stay tappable. */
+  .stk-gex-chip{ white-space:normal; border-radius:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .stk-gex-chip[hidden]{ display:none; }
 }
 
 
@@ -9758,50 +9757,3 @@ html[data-stk-rh] .mclock.is-replay .mclock-tail, html[data-stk-rh] .mclock.is-r
   .stkgl-row{ font-size:11.5px; }
   .stkgl-foot{ padding-bottom:calc(6px + env(safe-area-inset-bottom)); }
 }
-
-/* ---- Charts: more room for the chart on a PHONE (assets/chart-phone-space.js, Owner 2026-10-26).
-   html.stk-cps is set on the phone Charts page only: one top bar (the chart toolbar, with the menu
-   button, bell and a compact market clock), no footnote strip, the bottom nav behind a handle. ---- */
-html.stk-cps body.charts-page .mobile-topnav{ display:none; }
-html.stk-cps body.charts-page .stkchart-credit{ display:none; }
-html.stk-cps .stkcps-menu{ flex:none; width:32px; height:34px; color:var(--ink-1); }
-html.stk-cps #stkc-bar .notif-bell-wrap{ flex:none; order:40; }
-html.stk-cps #stkc-bar .notif-bell-wrap .icon-btn{ width:32px; height:32px; border:0; background:transparent; }
-html.stk-cps #stkc-bar .notif-panel{ position:fixed; top:46px; left:8px; right:8px; width:auto; }
-/* market clock: dot + "Asia 4m" in the toolbar; the popover keeps the full text */
-html.stk-cps #stkc-bar .mclock{ position:relative; order:0; flex:none; margin:0 2px; }
-html.stk-cps #stkc-bar .mclock-pill{ width:auto; height:28px; gap:5px; padding:0 7px; border-radius:8px; font-size:11px; background:transparent; border-color:transparent; }
-html.stk-cps #stkc-bar .mclock-state, html.stk-cps #stkc-bar .mclock-short{ display:none; }
-html.stk-cps #stkc-bar .mclock-tiny{ display:inline; color:var(--ink-2); font-weight:600; }
-html.stk-cps #stkc-bar .mclock.mclock-dotonly .mclock-tiny{ display:none; }
-html.stk-cps #stkc-bar .mclock-pill{ padding:0 5px; }
-html.stk-cps #stkc-bar .mclock-pop{ position:fixed; top:46px; left:8px; right:8px; width:auto; }
-.mclock-tiny{ display:none; }
-/* the source line, now shown in Symbol info and Credits */
-.stkin-src, .stkc-pop-src{ margin:8px 0 0; font-size:11.5px; line-height:1.5; color:var(--ink-3); }
-.stkc-pop-src{ margin:0 0 8px; }
-/* bottom nav: hidden below the screen edge until the handle (or a swipe up) brings it back */
-.stkcps-handle{ display:none; }
-html.stk-cps body.charts-page #appnav-dock{ transform:translateY(105%); transition:transform .2s ease; z-index:9060; }
-html.stk-cps.stk-cps-nav body.charts-page #appnav-dock{ transform:none; box-shadow:0 -10px 30px rgba(0,0,0,.45); }
-html.stk-cps body.charts-page .stkcps-handle{
-  all:unset; box-sizing:border-box; display:flex; align-items:flex-end; justify-content:center;
-  position:fixed; left:50%; bottom:0; transform:translateX(-50%); z-index:9061;
-  width:96px; height:22px; padding-bottom:calc(5px + env(safe-area-inset-bottom)); cursor:pointer; touch-action:manipulation;
-}
-html.stk-cps body.charts-page .stkcps-handle span{ display:block; width:44px; height:5px; border-radius:3px; background:var(--ink-3); opacity:.75; box-shadow:0 0 0 1px rgba(0,0,0,.35); }
-html.stk-cps.stk-cps-nav body.charts-page .stkcps-handle{ display:none; }
-html.stk-cps body.charts-page .stkcps-handle:focus-visible span{ outline:2px solid var(--gold); outline-offset:3px; }
-@media (prefers-reduced-motion: reduce){ html.stk-cps body.charts-page #appnav-dock{ transition:none; } }
-
-/* ---- Charts FULL SCREEN (assets/chart-tv-toolbars.js, #stkc-fs-btn; phone and desktop): only the
-   chart and its toolbar. ---- */
-html.stk-chart-fs body.charts-page .mobile-topnav,
-html.stk-chart-fs body.charts-page .sidebar,
-html.stk-chart-fs body.charts-page .sidebar-backdrop,
-html.stk-chart-fs body.charts-page .stkchart-credit,
-html.stk-chart-fs body.charts-page #appnav-dock,
-html.stk-chart-fs body.charts-page .stkcps-handle,
-html.stk-chart-fs body.charts-page .appnav-pills{ display:none !important; }
-html.stk-chart-fs body.charts-page .dash-shell{ grid-template-columns:minmax(0,1fr); }
-html.stk-chart-fs body.charts-page{ padding:0 !important; }

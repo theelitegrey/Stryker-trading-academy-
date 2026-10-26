@@ -160,6 +160,6 @@ export async function loadRithmicIfEnabled() {
   if (!gateways.length) return null; // production mode but no URI filled in yet: show nothing
   const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
     gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId() };
-  const ui = await import('./rithmic-ui.js?v=662');
+  const ui = await import('./rithmic-ui.js?v=661');
   return ui.createRithmic(cfg);
 }

@@ -22,7 +22,7 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=662';
+import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=661';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -204,11 +204,7 @@ export function installDataDot(ws, opts = {}) {
       // After the venue/interval ("NQ1! · CME · 15m  ● Delayed 10m"), clear of the symbol logo.
       // Vela's own session badge (.vela-sl-market, a sun icon = "Market Open") is hidden by CSS
       // while our dot is there, so the two can never disagree; ours takes its slot.
-      // Phone (Owner 2026-10-26): first in the symbol line, LEFT of the symbol logo, so the dot (red
-      // in replay) stays clear of an indicator's top-right table; tap it for the full text.
-      const phoneRow = cell.closest('[data-layout="mobile"]') && meta.parentNode;
-      if (phoneRow) { if (phoneRow.firstChild !== dot) phoneRow.insertBefore(dot, phoneRow.firstChild); }
-      else if (dot.previousElementSibling !== meta) meta.after(dot);
+      if (dot.previousElementSibling !== meta) meta.after(dot);
       if (!sl.classList.contains('stkc-has-dd')) sl.classList.add('stkc-has-dd');
       if (dot.dataset.s !== st.s) dot.dataset.s = st.s;
       const t = dot.querySelector('.stkc-dd-t');

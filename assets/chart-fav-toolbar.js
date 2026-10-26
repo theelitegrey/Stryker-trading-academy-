@@ -28,7 +28,7 @@
 //   The first sign-in with no cloud doc copies this browser's favourites up.
 // No Vela / LuxAlgo wording in view (Owner order 2026-10-05).
 
-import { toolIcon, UI_ICONS } from './chart-tool-icons.js?v=662';
+import { toolIcon, UI_ICONS } from './chart-tool-icons.js?v=661';
 
 const LS = 'stryker_chart_favbar';
 const LS_ORIENT = 'stryker_chart_favbar_orient';   // 'v' = vertical (this browser only: the cloud doc's shape is fixed by the rules)
@@ -255,33 +255,11 @@ export function mountFavToolbar(ws, Core, opts){
     return { maxL: Math.max(0, (room >= bw ? room : a.w) - bw), maxT: Math.max(0, a.h - bh - reserveB()) };
   }
   // Folded button: left edge of the plot, just above the bottom strip.
-  // ... and clear of what the indicators painted there (Liquidity Master's pane title and bottom
-  // tables: plot.__stkPineRects, chart-pine-tv-style.js) and of the GEX status chip: it steps up.
   function placeFab(){
     const a = area();
-    const p = panel.getBoundingClientRect();
-    const x = a.left + 8, S = 38;
-    let y = a.top + Math.max(0, a.h - PHONE_BOTTOM - S - 6);
-    try {
-      const R = ws.active.chart.renderer.renderer;
-      const pe = R.plot, pr = pe.getBoundingClientRect();
-      const ox = pr.left - p.left, oy = pr.top - p.top;
-      const avoid = (pe.__stkPineRects || []).map((q) => ({ l: q.left + ox, t: q.top + oy, r: q.right + ox, b: q.bottom + oy }));
-      const chip = pe.querySelector('.stk-gex-chip:not([hidden])');
-      if (chip) { const c = chip.getBoundingClientRect(); avoid.push({ l: c.left - p.left, t: c.top - p.top, r: c.right - p.left, b: c.bottom - p.top }); }
-      for (let i = 0; i < 10; i++) {
-        const hit = avoid.filter((q) => x < q.r + 3 && q.l - 3 < x + S && y < q.b + 3 && q.t - 3 < y + S);
-        if (!hit.length) break;
-        const ny = Math.min(...hit.map((q) => q.t)) - S - 4;
-        if (ny < a.top + a.h * 0.35) break;   // no free spot in the lower part: keep the last one
-        y = ny;
-      }
-    } catch (e) {}
-    fab.style.left = Math.round(x) + 'px';
-    fab.style.top = Math.round(y) + 'px';
+    fab.style.left = Math.round(a.left + 8) + 'px';
+    fab.style.top = Math.round(a.top + Math.max(0, a.h - PHONE_BOTTOM - 38 - 6)) + 'px';
   }
-  // the indicator text moves with the chart: re-check the folded button's spot once a second
-  setInterval(() => { if (!fab.hidden && !document.hidden) placeFab(); }, 1000);
   function place(){
     if (!fab.hidden) placeFab();
     if (bar.hidden) return;

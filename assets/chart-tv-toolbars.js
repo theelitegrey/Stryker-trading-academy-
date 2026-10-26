@@ -15,7 +15,7 @@
 //     or hid by hand stays that way). One undo step per chart.
 //   RIGHT icon bar (the watchlist rail, assets/chart-watchlist.js): Vela's alert log, object tree
 //     and data window move there from the top row (same buttons, same listeners).
-//   TOP: a full-screen button (#stkc-fs-btn) next to settings (page full screen + the browser's).
+//   TOP: a fullscreen button (#stkc-fs-btn) next to settings.
 // Phone: no left column (Vela hides it); the pencil in the top row opens Vela's drawings sheet
 // (groups as tabs + search). See chart-onebar.js.
 //
@@ -23,7 +23,7 @@
 // Depends on: vela-chart.js (ws = VelaWorkspace: ws.root, ws.cells(), ws.cell(id).chart,
 // ws.active), chart-onebar.js (bar), chart-watchlist.js (.stkw-rail), style.css (.stkt-* block).
 
-import { UI_ICONS } from './chart-tool-icons.js?v=662';
+import { UI_ICONS } from './chart-tool-icons.js?v=661';
 
 const LS_LOCK = 'stkc_tv_lockall';
 const LS_HIDE = 'stkc_tv_hideall';
@@ -350,79 +350,26 @@ export function mountTvToolbars(ws, opts){
   });
 
   // ------------------------------------------------------------------ top: fullscreen
-  // FULL SCREEN (Owner 2026-10-26, phone and desktop): hides everything except the chart and its
-  // toolbar (site header, side menu, market strip, footnote, bottom nav: html.stk-chart-fs in
-  // style.css) and, where the browser allows it, asks for real full screen too (Android Chrome,
-  // desktop; iPhone Safari has none, the page mode alone still applies). Esc, the phone's back
-  // gesture or the button exit. The choice is remembered (localStorage stk_chart_fs).
   const barR = document.querySelector('#stkc-bar .stkc-bar-r');
-  const LS_FS = 'stk_chart_fs';
-  const html = document.documentElement;
+  const stage = document.querySelector('main.dash-main') || document.documentElement;
   let fsBtn = null;
-  if (barR && !document.getElementById('stkc-fs-btn')) {
+  if (barR && document.fullscreenEnabled && stage.requestFullscreen && !document.getElementById('stkc-fs-btn')) {
     fsBtn = document.createElement('button');
     fsBtn.type = 'button';
     fsBtn.className = 'stkc-ib stkt-fs';
     fsBtn.id = 'stkc-fs-btn';
-    let native = false;   // did WE ask the browser for full screen
-    const isOn = () => html.classList.contains('stk-chart-fs');
     const paintFs = () => {
-      const on = isOn();
+      const on = !!document.fullscreenElement;
       fsBtn.innerHTML = svg(on ? IC.fullOff : IC.full, 16);
-      fsBtn.title = on ? 'Exit full screen' : 'Full screen';
+      fsBtn.title = on ? 'Exit fullscreen' : 'Fullscreen';
       fsBtn.setAttribute('aria-label', fsBtn.title);
       fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     };
-    const askNative = () => {
-      try {
-        if (!document.fullscreenElement && document.fullscreenEnabled && html.requestFullscreen) {
-          html.requestFullscreen({ navigationUI: 'hide' }).then(() => { native = true; }).catch(() => {});
-        }
-      } catch (e) {}
-    };
-    const setFs = (on, opts) => {
-      opts = opts || {};
-      on = !!on;
-      if (on !== isOn()) {
-        html.classList.toggle('stk-chart-fs', on);
-        try { if (on) localStorage.setItem(LS_FS, '1'); else localStorage.removeItem(LS_FS); } catch (e) {}
-        // a history entry, so the phone's back gesture leaves full screen instead of the page
-        if (on && !opts.fromHistory) { try { history.pushState(Object.assign({}, history.state, { stkFs: 1 }), ''); } catch (e) {} }
-        if (!on && !opts.fromHistory && history.state && history.state.stkFs) { try { history.back(); } catch (e) {} }
-        window.dispatchEvent(new Event('resize'));   // vela-chart.js re-measures the header / dock
-      }
-      if (on && opts.native) askNative();
-      if (!on && document.fullscreenElement) { try { document.exitFullscreen(); } catch (e) {} }
-      if (!on) native = false;
-      paintFs();
-    };
     paintFs();
-    fsBtn.addEventListener('click', () => setFs(!isOn(), { native: true }));
-    document.addEventListener('fullscreenchange', () => {
-      // Esc / the system back left the browser's full screen: leave ours too
-      if (!document.fullscreenElement && native && isOn()) setFs(false);
-      paintFs();
+    fsBtn.addEventListener('click', () => {
+      try { if (document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(() => toast('Fullscreen is not available here.', 'info')); } catch (e) {}
     });
-    window.addEventListener('popstate', (e) => { if (isOn() && !(e.state && e.state.stkFs)) setFs(false, { fromHistory: true }); });
-    // capture phase: the chart canvas handles Esc itself (cancels a drawing) and may stop it
-    window.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !isOn()) return;
-      const t = e.target;
-      if (t && t.closest && t.closest('input, textarea, select, [contenteditable="true"]')) return;
-      // an open menu / dialog takes Esc first
-      if (document.querySelector('.stkc-pop:not([hidden]), .stkc-ob-pop:not([hidden]), .mclock-pop:not([hidden]), [role="dialog"]:not([hidden]) input:focus')) return;
-      setFs(false);
-    }, true);
-    // remembered: back in full screen on load (page mode now; the browser's full screen needs a
-    // tap, so it is asked on the first one)
-    let remembered = false;
-    try { remembered = localStorage.getItem(LS_FS) === '1'; } catch (e) {}
-    if (remembered) {
-      setFs(true);
-      const once = () => { document.removeEventListener('pointerup', once, true); if (isOn()) askNative(); };
-      document.addEventListener('pointerup', once, true);
-    }
-    window.__stkChartFs = { set: (on) => setFs(on, { native: true }), get on(){ return isOn(); } };
+    document.addEventListener('fullscreenchange', paintFs);
     const cog = document.getElementById('stkc-settings-btn');
     // on a phone the settings button can sit outside barR (in the more sheet): then append
     barR.insertBefore(fsBtn, cog && cog.parentNode === barR ? cog.nextSibling : null);

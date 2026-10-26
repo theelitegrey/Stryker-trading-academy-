@@ -95,9 +95,14 @@ async function tap(p, finder, arg, label){
     if (!el) return null;
     const r0 = el.getBoundingClientRect();
     if (r0.top < 0 || r0.bottom > innerHeight) el.scrollIntoView({ block: 'center', inline: 'nearest' });
-    const r = el.getBoundingClientRect();
-    const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    const t = document.elementFromPoint(x, y);
+    let r = el.getBoundingClientRect();
+    let x = r.left + r.width / 2, y = r.top + r.height / 2;
+    let t = document.elementFromPoint(x, y);
+    if (!(t && (t === el || el.contains(t)))) {
+      // clipped by a scrolling dialog body (desktop dialog is shorter than its content)
+      el.scrollIntoView({ block: 'center', inline: 'nearest' });
+      r = el.getBoundingClientRect(); x = r.left + r.width / 2; y = r.top + r.height / 2; t = document.elementFromPoint(x, y);
+    }
     return { x, y, w: r.width, hit: !!t && (t === el || el.contains(t)), top: t ? (t.id || String(t.className).slice(0, 40) || t.tagName) : null };
   }, [finder, arg]);
   if (!box || !box.w) { check(false, 'tap target found: ' + label); return false; }
@@ -116,7 +121,7 @@ const F = {
   tab: "return [...document.querySelectorAll('.vela-ind-dialog .vela-ind-tab')].find((t) => t.textContent.trim() === a);",
   stGroup: "return [...document.querySelectorAll('.vela-ind-dialog [data-stk-is=style] .stk-is-gh')].find((h) => h.querySelector('.stk-is-gn').textContent.trim().startsWith(a));",
   stPill: "const [g, row, v] = a; const grp = [...document.querySelectorAll('.vela-ind-dialog .stk-is-g')].find((x) => x.querySelector('.stk-is-gn').textContent.trim().startsWith(g)); if (!grp) return null; const r = [...grp.querySelectorAll('.stk-is-r')].find((x) => x.firstChild.textContent === row); if (!r) return null; return [...r.querySelectorAll('button')].find((b) => b.dataset.v === v || b.textContent.trim() === v || b.title === v) || null;",
-  pickerBtn: "return [...document.querySelectorAll('button')].find((b) => b.offsetParent && /^indicators$/i.test(b.getAttribute('aria-label') || b.title || '') );",
+  pickerBtn: "return [...document.querySelectorAll('button, .vela-mb-indicators, .vela-widget-indicators')].find((b) => b.getBoundingClientRect().width && (/^indicators/i.test(b.getAttribute('aria-label') || b.title || '') || b.matches('.vela-mb-indicators, .vela-widget-indicators')));",
   pickSearch: "return document.querySelector('.stkiw-search');",
   pickRow: "const r = a.startsWith('key:') ? document.querySelector('.stkiw-row[data-key=\"' + a.slice(4) + '\"]') : [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-name') || r).textContent.trim().startsWith(a)); return r ? r.querySelector('.stkiw-name') : null;",
   pickClose: "return document.querySelector('.stkiw-x');",

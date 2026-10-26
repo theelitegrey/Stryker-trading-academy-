@@ -46,6 +46,16 @@ const et = (t) => new Date(t * 1000).toLocaleString('en-US', { timeZone: 'Americ
 async function open(b, w, h, mobile) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: mobile ? 2 : 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
+  // spy: vertical strokes (same x, > 12 px tall) painted on the GEX layer's canvas (the one with __stkGexTags)
+  await ctx.addInitScript(() => {
+    const P = CanvasRenderingContext2D.prototype, mt = P.moveTo, lt = P.lineTo;
+    window.__gexVert = 0;
+    P.moveTo = function (x, y) { this.__mx = x; this.__my = y; return mt.call(this, x, y); };
+    P.lineTo = function (x, y) {
+      if (this.canvas && this.canvas.__stkGexTags && Math.abs(x - this.__mx) < 0.5 && Math.abs(y - this.__my) > 12) window.__gexVert++;
+      this.__mx = x; this.__my = y; return lt.call(this, x, y);
+    };
+  });
   await ctx.addInitScript((eng) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker_bar_replay_v1'); if (eng === '0.6') localStorage.setItem('stryker_vela06', '1'); else localStorage.removeItem('stryker_vela06'); localStorage.setItem('stryker_gex_heat_k', JSON.stringify({ NQ: 41.08, MNQ: 41.08 })); } catch (e) {} }, ENG);
   const hits = { hist: 0, levels: 0, vendor: 0 };
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|cdn\.jsdelivr\.net|book-recorder\.)/, (r) => { if (/insightsentry/i.test(r.request().url())) hits.vendor++; r.abort(); });
@@ -110,6 +120,9 @@ async function startReplay(p, ms) {
       if (TAG === 'after') {
         check(cw && Array.isArray(cw.steps) && cw.steps.length >= 2, w + ' live: CALL WALL has ' + (cw && cw.steps ? cw.steps.length : 0) + ' step segments');
         check(pt && pt.steps > 0, w + ' live: step segments painted (' + (pt && pt.steps) + ', engine timeToX ok)');
+        await p.evaluate(() => { window.__gexVert = 0; }); await sleep(1500);
+        const vert = await p.evaluate(() => window.__gexVert);
+        check(vert === 0, w + ' live: no vertical connectors on the GEX layer (' + vert + ')');
         const last = cw && cw.steps && cw.steps[cw.steps.length - 1];
         check(last && last.b == null && Math.abs(last.p - cw.price) < 0.02, w + ' live: last segment runs to the right edge at the label price ' + (cw && cw.price));
         check(/updated/.test(d.status) && !/live|real-time|delayed/i.test(d.status), w + ' live: status "' + d.status + '"');
@@ -144,6 +157,8 @@ async function startReplay(p, ms) {
         const r3 = d && d.lines && d.lines.find((l) => l.id === 'call');
         check(r3 && r3.steps && r3.steps.length >= 2, w + ' replay Sun 18:46: Friday 0DTE steps + the next-expiry step (' + (r3 && r3.steps && r3.steps.length) + ')');
       }
+      console.log('SEGS ' + JSON.stringify(await p.evaluate(() => { for (const c of document.querySelectorAll('canvas')) if (c.__stkGexSegs) return { W: c.width / devicePixelRatio, s: c.__stkGexSegs }; return null; })));
+      if (TAG === 'after') { await p.evaluate(() => { window.__gexVert = 0; }); await sleep(1500); const v2 = await p.evaluate(() => window.__gexVert); check(v2 === 0, w + ' replay Sun 18:46: no vertical connectors (' + v2 + ')'); }
       await shot(p, 'gexwall-replay-sun1846-' + tag + '.png');
       await p.evaluate(() => window.__stkBarReplay.stop && window.__stkBarReplay.stop()).catch(() => {});
       check(!errors.length, w + ': no page errors (' + errors.slice(0, 2).join(' | ') + ')');

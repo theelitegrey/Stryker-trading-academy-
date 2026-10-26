@@ -829,23 +829,32 @@ function hexA(hex, a) {
   const n = parseInt(m[1], 16);
   return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
 }
-// One step line: each segment [a, b) at its own price (b null = to the right edge), joined by a
-// vertical step where the next segment starts at the same time. Clipped by the caller.
+// One wall over time: each segment [a, b) at its own price (b null = to the right edge), drawn as a
+// HORIZONTAL piece only. No vertical connector between segments (CoS/Owner 2026-10-26: tall joins
+// looked like boxes on a phone); a 2 px gap where the wall changes. Older segments are fainter than
+// the current (last) one, which carries the label. Clipped by the caller.
+const STEP_GAP_PX = 2, OLD_ALPHA = 0.45;
 let stepsDrawn = 0;   // test hook: step segments painted in the last frame (canvas.__stkGexSteps)
+let stepJoins = 0;    // test hook: vertical connectors painted (must stay 0)
+let segLog = [];      // test hook: every segment's pixel span (canvas.__stkGexSegs)
 function drawSteps(g, steps, co, Y, W) {
-  g.beginPath();
-  let px = null, py = null;
-  for (const s of steps) {
-    const x0 = Math.max(-2, co.timeToX(s.a * 1000)), x1 = s.b == null ? W : Math.min(W + 2, co.timeToX(s.b * 1000));
+  const base = g.globalAlpha;
+  steps.forEach((s, i) => {
+    const last = i === steps.length - 1;
+    let x0 = Math.max(-2, co.timeToX(s.a * 1000));
+    let x1 = s.b == null ? W : Math.min(W + 2, co.timeToX(s.b * 1000));
     const y = Math.round(Y(s.p)) + 0.5;
-    if (!isFinite(x0) || !isFinite(x1) || !isFinite(y)) { px = null; continue; }
-    if (x1 < 0 || x0 > W || x1 <= x0) { px = x1; py = y; continue; }
-    if (px != null && Math.abs(px - x0) < 1.5) { g.moveTo(px, py); g.lineTo(x0, y); } else g.moveTo(x0, y);
-    g.lineTo(x1, y);
+    segLog.push({ p: s.p, x0: Math.round(x0), x1: Math.round(x1), y, last });
+    if (!isFinite(x0) || !isFinite(x1) || !isFinite(y)) return;
+    if (x1 < 0 || x0 > W) return;
+    if (i > 0) x0 += STEP_GAP_PX / 2;
+    if (!last) x1 -= STEP_GAP_PX / 2;
+    if (x1 <= x0) return;
+    g.globalAlpha = last ? base : base * OLD_ALPHA;
+    g.beginPath(); g.moveTo(x0, y); g.lineTo(x1, y); g.stroke();
     stepsDrawn++;
-    px = x1; py = y;
-  }
-  g.stroke();
+  });
+  g.globalAlpha = base;
 }
 const TAG_H = 16, MERGE_PX = 6;
 // Pure: tags [{y, l}] sorted by y -> groups whose lines sit within MERGE_PX share one label.
@@ -957,7 +966,7 @@ function gexLayer() {
       const font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       g.font = font; g.textBaseline = 'middle';
       const tags = [], drawn = [];
-      stepsDrawn = 0;
+      stepsDrawn = 0; stepJoins = 0; segLog = [];
       for (const l of d.lines) {
         const y = Math.round(Y(l.price)) + 0.5;
         if (!(y >= top && y <= bot)) continue;
@@ -1044,6 +1053,8 @@ function gexLayer() {
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
       canvas.__stkGexLines = drawn;     // test hook: each painted line's price, pixel row and the price at that row
       canvas.__stkGexSteps = stepsDrawn;
+      canvas.__stkGexJoins = stepJoins;
+      canvas.__stkGexSegs = segLog;
       if (plotEl) {
         // the Absorption tag (chart-of-pro.js) yields to these boxes; ask for one more frame when they move
         const boxes = groups.map((t) => ({ left: t.box.x, right: t.box.x + t.box.w, top: t.box.y, bottom: t.box.y + t.box.h, text: t.text }));

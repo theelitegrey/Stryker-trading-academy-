@@ -50,11 +50,22 @@
 // (replayPayload below), never from the API's current levels. Before the history begins:
 // "No GEX history for this time".
 //
+// WALLS OVER TIME (Owner report 2026-10-26, assets/chart-gex-walls-core.js): Call Wall, Put Wall and
+// Zero Gamma are drawn as STEP lines from the recorded GEX history (0DTE / 1DTE), each segment where
+// the level was at that time, instead of one flat line at today's value; the last segment runs to the
+// right edge with the label. Walls are HELD on their strike while price is testing them (holdWalls),
+// so the label no longer jumps to the next strike as price arrives. When a wall moves, the old one
+// stays as a faded dotted "prev CW" / "prev PW" line for the rest of that session. Bar replay draws
+// only the history up to the replay clock. Off-hours (cash closed, futures open) the futures
+// conversion is anchored to the chart futures during the chain's last minutes, so the converted
+// walls no longer drift with the overnight / Sunday futures move. No extra GEX vendor request: the
+// history comes from our recorder (the same /gex-history the heatmap, replay and previous days use).
+//
 // BASIS RE-ANCHOR (GEX audit, 2026-10-13): the API converts index/ETF levels to futures with
 // basis = its own futures quote - ratio x spot, but that futures quote is about 10 minutes older
 // than the options chain (futures_age_min 10), so every converted level was off by however far
 // the futures moved in those 10 minutes (measured 1-30 NQ points, 0.5-5 ES points during RTH).
-// While the market is open, the futures-converted levels are shifted by
+// While the market is open (and, since 2026-10-26, while it is shut: anchorTime), the futures-converted levels are shifted by
 //   shift = chart futures price at the options time (close of the last 1-minute bar completed by
 //           then, from /api/chart/bars, the same source the futures chart draws) - the API's
 //           futures price
@@ -65,6 +76,7 @@
 
 import { rtHeadersReady } from './rt-access.js?v=659';
 import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=659';
+import { holdWalls, basisSeries, stepsFor, previousWall, lastSessionBasis } from './chart-gex-walls-core.js?v=659';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';
@@ -77,6 +89,7 @@ const PRICING = '/#pricing';
 const BARS_API = '/api/chart/bars/';
 const ANCHOR_GAP_S = 120;     // the 1-minute bar used must have closed within 2 min before the options time
 const ANCHOR_MAX_PCT = 0.03;  // a shift above 3% of price is treated as bad data and ignored
+const ANCHOR_MAX_PCT_CLOSED = 0.08;  // market shut: the futures can run further from the close (weekend gap)
 const RANK_COL = { pos: '#03c988', neg: '#ee4276', mag: '#f4f6fa' };   // mint / magenta from the GEX ramps, magnet = bright
 export const GEX_COLORS = { call: '#ef4444', zero: '#f59e0b', put: '#22c55e', strike: '#94a3b8', em: '#8b7cf6',
   iv: '#8b7cf6', va: '#38bdf8', on: '#64748b', rth: '#8b7cf6' };
@@ -121,6 +134,8 @@ const SCHEMA = [
   tog('showZero', 'Zero gamma (flip)', true, G1, 'zero'), col('zeroColor', GEX_COLORS.zero, G1, 'zero'),
   tog('showPut', 'Put wall', true, G1, 'put'), col('putColor', GEX_COLORS.put, G1, 'put'),
   tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
+  tog('wallSteps', 'Walls over time (step lines)', true, G1),
+  tog('prevWall', 'Faded previous wall (prev CW / PW)', true, G1),
   tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
   tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
   tog('showRanked', 'Ranked strikes (rank, role, size)', false, G5),
@@ -248,12 +263,25 @@ export function buildLevels(data, src, opts, shift, extra) {
 // Pure: the futures shift for one API response. rows = 1-minute bars [[t, o, h, l, c, v], ...]
 // (t = bar open, epoch s) from /api/chart/bars/<FUT>1!?tf=1. Returns the number of points to add
 // to every futures-converted level, or null to keep the API's own conversion.
+// Off-hours (wall fix 2026-10-26): cash shut, futures trading. The API still converts the last chain
+// with basis = CURRENT futures quote - ratio x the frozen spot, so every converted level slid one
+// for one with the overnight / Sunday futures move (Owner report: on Sun 25 Oct the MNQ call wall ran
+// up to ~29,549 while price rallied into 29,345, then fell back to ~29,360). Outside cash hours the
+// anchor time is the chain's own time (market.chain_ts): the futures price when that chain printed.
+export function anchorTime(data) {
+  const m = data && data.market;
+  if (!m) return null;
+  if (m.state === 'open') return num(m.options_ts, null);
+  if (m.state === 'cash_closed' || m.state === 'closed') return num(m.chain_ts, null);
+  return null;
+}
 export function anchorShift(data, fut, rows) {
   const f = data && data.futures && data.futures[fut];
   const m = data && data.market;
-  if (!f || f.error || !f.levels || !m || m.state !== 'open') return null;
+  if (!f || f.error || !f.levels || !m) return null;
   const apiFut = isNum(f.futures_price) ? f.futures_price : f.levels.spot;
-  const t = num(m.options_ts, null);
+  const t = anchorTime(data);
+  const maxPct = m.state === 'open' ? ANCHOR_MAX_PCT : ANCHOR_MAX_PCT_CLOSED;
   if (!isNum(apiFut) || !t || !Array.isArray(rows) || !rows.length) return null;
   // The last 1-minute bar that had CLOSED by the options time (bar open + 60 s <= t): its close is
   // fixed, so every chart and every refresh gets the same shift for the same API response.
@@ -261,18 +289,18 @@ export function anchorShift(data, fut, rows) {
   for (const r of rows) { if (Array.isArray(r) && r[0] + 60 <= t) bar = r; else if (Array.isArray(r) && r[0] + 60 > t) break; }
   if (!bar || t - (bar[0] + 60) > ANCHOR_GAP_S || !isNum(bar[4])) return null;
   const shift = Math.round((bar[4] - apiFut) * 100) / 100;
-  return Math.abs(shift) <= apiFut * ANCHOR_MAX_PCT ? shift : null;
+  return Math.abs(shift) <= apiFut * maxPct ? shift : null;
 }
 // Shared per futures root + options time: { shift (number|null), at, p }.
 const anchors = new Map();
-function anchorKey(fut, data) { const f = (data.futures || {})[fut] || {}; return fut + ':' + num(data.market && data.market.options_ts, 0) + ':' + num(f.futures_price, 0); }
+function anchorKey(fut, data) { const f = (data.futures || {})[fut] || {}; return fut + ':' + num(anchorTime(data), 0) + ':' + num(f.futures_price, 0); }
 export function gexAnchorState() { return [...anchors.entries()].map(([k, e]) => ({ k, shift: e.shift, at: e.at, pending: !!e.p, why: e.why || '' })); }
 export function gexAnchor(fut, data) {
-  if (!fut || !data || !data.market || data.market.state !== 'open') return null;
+  if (!fut || !data || !isNum(anchorTime(data))) return null;
   const k = anchorKey(fut, data);
   const e = anchors.get(k);
   if (e && (isNum(e.shift) || e.p || Date.now() - e.at < 60000)) return e.p ? null : e.shift;
-  const t = num(data.market.options_ts, 0);
+  const t = anchorTime(data);
   const page = Math.floor(t / (8 * 3600));   // the 1-minute page holding the options time (_bars.js TIMEFRAMES['1'])
   const p = rtHeadersReady().then((hd) => fetch(BARS_API + encodeURIComponent(fut + '1!') + '?tf=1&page=' + page, { headers: Object.assign({ accept: 'application/json' }, hd) }))
     .then((r) => (r.ok ? r.json() : null)).catch(() => null)
@@ -420,6 +448,93 @@ function etStamp(sec) {
   try { return new Date(sec * 1000).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ET'; } catch (e) { return ''; }
 }
 
+// ---- walls over time (GEX history, assets/chart-gex-walls-core.js) ---------------------------------
+// Rows for the step lines: the recorder's snapshots for the last WALL_DAYS UTC days, one request per
+// UTC day (a finished day is fetched once and edge-cached a day; today's is re-asked at most every
+// 5 min, like the levels). These are our own recorder's snapshots (the same /gex-history as the heatmap): no GEX
+// vendor request is added.
+const WALL_DAYS = 4, DAY_S = 86400, WALL_REFRESH_MS = 5 * 60 * 1000;
+const WALL_STEP_IDS = { call: 'cw', put: 'pw', zero: 'zg' };
+const PREV_LABEL = { cw: 'prev CW', pw: 'prev PW' };
+const wallHist = new Map();   // api:hd:dayStart -> { rows, p, at, final }
+export function wallRows(api, hd, untilSec, onLoad) {
+  const core = window.StrykerGexHeat;
+  if (!core) return { rows: [], pending: false };
+  const nowSec = Date.now() / 1000;
+  const last = Math.floor(untilSec / DAY_S) * DAY_S;
+  let rows = [], pending = false;
+  if (wallHist.size > 24) wallHist.clear();
+  for (let d = last - (WALL_DAYS - 1) * DAY_S; d <= last; d += DAY_S) {
+    const k = api + ':' + hd + ':' + d;
+    let e = wallHist.get(k);
+    const final = d + DAY_S < nowSec - 3600;
+    if (!e || (!e.final && !e.p && Date.now() - e.at > WALL_REFRESH_MS)) {
+      const ne = { rows: e ? e.rows : null, p: null, at: Date.now(), final };
+      const to = final ? d + DAY_S : Math.min(d + DAY_S, Math.ceil(nowSec / 120) * 120);
+      ne.p = core.history(api, hd, d, to).then((r) => { ne.rows = r || []; }, () => { ne.rows = ne.rows || []; })
+        .then(() => { ne.p = null; ne.at = Date.now(); onLoad(); });
+      wallHist.set(k, ne); e = ne;
+    }
+    if (e.rows) rows = rows.concat(e.rows.filter((r) => r.t >= d && r.t < d + DAY_S && r.t <= untilSec && isNum(r.s) && r.s > 0));
+    else pending = true;
+  }
+  return { rows, pending };
+}
+// Pure: hold the walls over `rows` (+ the live API point), work out each snapshot's futures basis
+// from the chart's own bars, and return what applySteps() needs. closeAt(t) -> chart close or null;
+// k = futures ratio (null on an index/ETF chart).
+export function wallModel(rows, live, k, closeAt) {
+  if (!rows.length) return null;
+  const pts = holdWalls(rows, live);
+  const basis = isNum(k) ? basisSeries(rows, closeAt, k) : null;
+  if (basis && live) basis.push(null);
+  const hist = live ? pts.slice(0, -1) : pts;
+  return { pts, basis, k: isNum(k) ? k : null, histBasis: basis ? lastSessionBasis(hist, basis) : null };
+}
+// Pure: turn the CALL WALL / PUT WALL / ZERO GAMMA lines of a buildLevels() result into step lines.
+// conv(strike) -> chart price for the segment that runs to the right edge (the label); every older
+// segment uses its own snapshots' basis. Adds the faded "prev CW / prev PW" lines when wanted.
+export function applySteps(lv, M, src, conv, opts) {
+  if (!lv || lv.err || !M || !M.pts.length) return lv;
+  const lastPt = M.pts[M.pts.length - 1];
+  const r2 = (v) => (isNum(v) ? Math.round(v * 100) / 100 : null);
+  for (const l of lv.lines) {
+    const f = WALL_STEP_IDS[l.id];
+    if (!f) continue;
+    const held = lastPt[f];
+    const steps = stepsFor(M.pts, f, M.basis, M.k, isNum(held) ? conv(held) : null);
+    if (!steps.length) continue;
+    const tail = steps[steps.length - 1];
+    if (tail.b == null && isNum(tail.p)) {
+      l.price = tail.p;
+      if (src.fut && isNum(held)) l.note = ' (' + src.api + ' ' + fmtLevel(r2(held)) + ')';
+    }
+    l.steps = steps;
+  }
+  const on = opts && typeof opts.prevWall === 'boolean' ? opts.prevWall : true;
+  if (on) {
+    ['cw', 'pw'].forEach((f) => {
+      const pw = previousWall(M.pts, f);
+      const p = pw ? r2(conv(pw.strike)) : null;
+      const cur = lv.lines.find((l) => WALL_STEP_IDS[l.id] === f);
+      if (!isNum(p) || !cur) return;
+      lv.lines.push({ id: 'prev_' + f, label: PREV_LABEL[f], price: p, note: '', col: null, rgb: f === 'cw' ? GEX_COLORS.call : GEX_COLORS.put,
+        dash: 'dotted', w: 1, alpha: 0.5, faint: true, steps: [{ a: pw.until, b: null, p }] });
+    });
+  }
+  return lv;
+}
+// Pure: the API response as one more observation after the history (the newest raw walls), or null.
+// Open market: at the options time. Shut: just after the chain's own time (the chain does not change
+// until the next session; its expiry is usually the next session's, so it starts a new step).
+export function livePoint(data, dayOf) {
+  if (!data || data.error || !isNum(data.spot)) return null;
+  const m = data.market || {};
+  const t = m.state === 'open' ? num(m.options_ts, null) || num(data.fetched_at, null) : (isNum(m.chain_ts) ? m.chain_ts + 1 : null);
+  if (!isNum(t)) return null;
+  return { t: Math.floor(t), day: dayOf(t), x: data.expiry || '', s: data.spot, cw: data.call_wall, pw: data.put_wall, zg: data.zero_gamma };
+}
+
 // ---- previous days (GEX history) -----------------------------------------------------------------
 // Per api + expiry: the recorded sessions list (refreshed every 10 min) and each past day's top strikes
 // (a finished day never changes, so it is computed once). All from the history the heatmap already
@@ -535,11 +650,15 @@ function resolveSrc(ctx) {
 function mapLine(l, i, color, sty, wd) {
   if (l.rgb) {
     const text = l.label;   // ranked + previous-day tags stay short: the exact price is on the axis tag
-    return { id: l.id, price: l.price, color: l.faint ? hexA(l.rgb, l.alpha) : l.rgb, name: l.label, text, dash: l.dash, w: l.w, alpha: l.ranked ? l.alpha : 1, rank: l.rank || 0, share: l.share || 0, faint: !!l.faint };
+    const o = { id: l.id, price: l.price, color: l.faint ? hexA(l.rgb, l.alpha) : l.rgb, name: l.label, text, dash: l.dash, w: l.w, alpha: l.ranked ? l.alpha : 1, rank: l.rank || 0, share: l.share || 0, faint: !!l.faint };
+    if (l.steps) o.steps = l.steps;
+    return o;
   }
-  return { id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
+  const o = { id: l.id, price: l.price, color: color(l.col), name: l.label, text: formatLabel(l, i.labelMode),
     dash: (l.id.startsWith('strike') || !['solid', 'dashed', 'dotted'].includes(sty)) ? l.dash : sty,
     w: wd >= 1 ? Math.min(4, wd) : l.w };
+  if (l.steps) o.steps = l.steps;
+  return o;
 }
 class GexNative {
   constructor() { this.inputs = {}; this.ctx = null; this.tier = null; this.sig = ''; this.status = ''; }
@@ -596,8 +715,14 @@ class GexNative {
       else {
         const opts = Object.assign({}, i);
         if (this.tier && this.tier.free) opts.showStrikes = false;
-        const shift = src.fut ? gexAnchor(src.fut, data) : null;
-        const lv = buildLevels(data, src, opts, shift, { prev: this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts) });
+        let shift = src.fut ? gexAnchor(src.fut, data) : null;
+        const M = this.wallsLive(src, dte, data, opts);
+        // Market shut (futures still trading): convert with the basis of the chain's own last minutes
+        // (chart bars), not the API's current futures quote, so the walls do not drift overnight.
+        const fb = src.fut && data.futures && data.futures[src.fut];
+        if (M && src.fut && data.market && data.market.state !== 'open' && isNum(M.histBasis) && fb && isNum(fb.basis)) shift = Math.round((M.histBasis - fb.basis) * 100) / 100;
+        let lv = buildLevels(data, src, opts, shift, { prev: this.prevFor(src, dte, Math.floor(Date.now() / 1000), opts) });
+        if (M && !lv.err) lv = applySteps(lv, M, src, convOf(data, src, shift), opts);
         if (lv.err) payload = { note: lv.err };
         else {
           const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
@@ -618,6 +743,20 @@ class GexNative {
     if (sig === this.sig) return;
     this.sig = sig;
     try { this.ctx.pushData(payload); } catch (e) {}
+  }
+  // Walls over time for the live chart: recorded history (0DTE / 1DTE) + the API's current walls.
+  wallsLive(src, dte, data, opts) {
+    if (opts.wallSteps === false || dte > 1) return null;
+    const st = wallRows(src.api, dte === 1 ? 1 : 0, Math.floor(Date.now() / 1000), () => this.refresh());
+    if (!st.rows.length) return null;
+    let live = livePoint(data, etDayOf);
+    if (live && live.t <= st.rows[st.rows.length - 1].t) live = null;
+    let bars = [];
+    try { bars = this.ctx.bars() || []; } catch (err) {}
+    const t = String(this.ctx.timeframe || ''), tfS = /^\d+$/.test(t) ? +t * 60 : /^\d*[HD]$/i.test(t) ? (parseInt(t, 10) || 1) * (/H/i.test(t) ? 3600 : 86400) : 60;
+    const f = src.fut && data.futures ? data.futures[src.fut] : null;
+    if (src.fut && (!f || !isNum(f.ratio))) return null;
+    return wallModel(st.rows, live, f ? f.ratio : null, src.fut ? (ts) => barCloseAt(bars, ts, Math.max(180, tfS + 120)) : null);
   }
   // Previous days for this source at time nowSec (replay: the snapshot time). Free members get SPX/ES only
   // (src.pro already handled: a Pro-only source never gets here for a Free member).
@@ -647,8 +786,15 @@ class GexNative {
     const i = this.inputs;
     const opts = Object.assign({}, i);
     if (this.tier && this.tier.free) opts.showStrikes = false;
-    const lv = buildLevels(data, src, opts, null, { prev: this.prevFor(src, dte, snap.t, opts), spot: snap.s });
+    let lv = buildLevels(data, src, opts, null, { prev: this.prevFor(src, dte, snap.t, opts), spot: snap.s });
     if (lv.err) return { note: lv.err };
+    if (opts.wallSteps !== false) {
+      // walls over time up to the replay clock only (no lookahead), from the rows already loaded
+      const rows = e.rows.filter((r) => r.t <= E && isNum(r.s) && r.s > 0);
+      const f = data.futures && src.fut ? data.futures[src.fut] : null;
+      const M = wallModel(rows, null, f ? f.ratio : null, src.fut ? (t) => barCloseAt(bars, t, Math.max(180, tfS + 120)) : null);
+      if (M) lv = applySteps(lv, M, src, convOf(data, src, 0), opts);
+    }
     const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
     const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
     return {
@@ -667,6 +813,22 @@ function hexA(hex, a) {
   if (!m) return hex;
   const n = parseInt(m[1], 16);
   return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
+}
+// One step line: each segment [a, b) at its own price (b null = to the right edge), joined by a
+// vertical step where the next segment starts at the same time. Clipped by the caller.
+function drawSteps(g, steps, co, Y, W) {
+  g.beginPath();
+  let px = null, py = null;
+  for (const s of steps) {
+    const x0 = Math.max(-2, co.timeToX(s.a * 1000)), x1 = s.b == null ? W : Math.min(W + 2, co.timeToX(s.b * 1000));
+    const y = Math.round(Y(s.p)) + 0.5;
+    if (!isFinite(x0) || !isFinite(x1) || !isFinite(y)) { px = null; continue; }
+    if (x1 < 0 || x0 > W || x1 <= x0) { px = x1; py = y; continue; }
+    if (px != null && Math.abs(px - x0) < 1.5) { g.moveTo(px, py); g.lineTo(x0, y); } else g.moveTo(x0, y);
+    g.lineTo(x1, y);
+    px = x1; py = y;
+  }
+  g.stroke();
 }
 const TAG_H = 16, MERGE_PX = 6;
 // Pure: tags [{y, l}] sorted by y -> groups whose lines sit within MERGE_PX share one label.
@@ -785,9 +947,21 @@ function gexLayer() {
         g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
         g.globalAlpha = l.alpha > 0 && l.alpha < 1 ? l.alpha : 1;
         g.setLineDash(l.dash === 'dashed' ? [6, 4] : l.dash === 'dotted' ? [2, 3] : []);
-        g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+        if (l.steps && a.coords.timeToX) drawSteps(g, l.steps, a.coords, Y, W);
+        else { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
         g.globalAlpha = 1;
         if (d.labels) tags.push({ y, l });
+      }
+      // a step line whose current price is off screen still draws its older segments
+      for (const l of d.lines) {
+        if (!l.steps || !a.coords.timeToX) continue;
+        const y = Math.round(Y(l.price)) + 0.5;
+        if (y >= top && y <= bot) continue;
+        g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
+        g.globalAlpha = l.alpha > 0 && l.alpha < 1 ? l.alpha : 1;
+        g.setLineDash(l.dash === 'dashed' ? [6, 4] : l.dash === 'dotted' ? [2, 3] : []);
+        drawSteps(g, l.steps, a.coords, Y, W);
+        g.globalAlpha = 1;
       }
       g.setLineDash([]);
       const byId = new Map(d.lines.map((l) => [l.id, l]));

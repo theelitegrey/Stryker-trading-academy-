@@ -403,7 +403,7 @@ function footprintLayer() {
       const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';
-      const ladW = Math.max(0, bw * 0.92 / 2 - 7);   // room right of the candle inside this bar's slot
+      const ladW = Math.max(0, bw * (compact ? 0.88 : 0.92) - 12);   // room right of the candle inside this bar's slot
       let gmax = 1;
       if (cfg.mode === 'ladder' && cfg.scale !== 'bar') {
         for (let i = i0; i <= i1; i++) {
@@ -421,7 +421,7 @@ function footprintLayer() {
         for (const r of rs) { const v = r.buy + r.sell; if (v > max) max = v; }
         const imb = imbalances(rs, cfg.imb);
         const st = stacked(imb, cfg.stack);
-        const lad = cfg.mode === 'ladder';
+        const lad = cfg.mode === 'ladder', cx = x;   // the base candle's own wick sits on x, so ours lines up with it
         const showText = lad ? rowPx >= 11 && ladW >= fs * 1.3 : rowPx >= 11 && bw >= 44;
         let dmax = lad ? gmax : 1;
         if (lad && cfg.scale === 'bar') { dmax = 1; for (const r of rs) { const q = Math.abs(r.buy - r.sell); if (q > dmax) dmax = q; } }
@@ -431,8 +431,8 @@ function footprintLayer() {
           const yH = co.priceToY(bar.high, a.scale, a.bounds), yL = co.priceToY(bar.low, a.scale, a.bounds);
           const yO = co.priceToY(bar.open, a.scale, a.bounds), yC = co.priceToY(bar.close, a.scale, a.bounds);
           const cw = bw >= 30 ? 5 : 3;
-          g.fillStyle = cc; g.fillRect(Math.round(x), Math.min(yH, yL), 1, Math.max(1, Math.abs(yL - yH)));
-          g.fillRect(Math.round(x - cw / 2 + 0.5), Math.min(yO, yC), cw, Math.max(1.5, Math.abs(yC - yO)));
+          g.fillStyle = cc; g.fillRect(Math.round(cx), Math.min(yH, yL), 1, Math.max(1, Math.abs(yL - yH)));
+          g.fillRect(Math.round(cx - cw / 2 + 0.5), Math.min(yO, yC), cw, Math.max(1.5, Math.abs(yC - yO)));
         }
         for (let k = 0; k < rs.length; k++) {
           const r = rs[k];
@@ -441,18 +441,18 @@ function footprintLayer() {
           if (y > bot || y + h < top) continue;
           const v = r.buy + r.sell, dl = r.buy - r.sell;
           if (lad) {
-            if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.2; g.strokeRect(x + 5.5, y + 0.5, ladW, Math.max(1, h - 1)); }
+            if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.2; g.strokeRect(cx + 5.5, y + 0.5, ladW, Math.max(1, h - 1)); }
             if (h < 3) continue;
             const q = Math.abs(dl);
             if (q >= 0.25 * dmax && q > 0) {
               g.fillStyle = alpha(dl >= 0 ? UP : DN, day ? 0.5 : 0.55);
-              g.fillRect(x + 6, y + 0.5, Math.max(2, Math.min(ladW, ladW * q / dmax)), Math.max(1, h - 1));
+              g.fillRect(cx + 6, y + 0.5, Math.max(2, Math.min(ladW, ladW * q / dmax)), Math.max(1, h - 1));
             }
             if (!showText) continue;
             const txt = (dl < 0 ? '-' : '') + fmt(q);
             if (txt.length * fs * 0.62 > ladW - 2) continue;
             g.textAlign = 'left'; g.font = font; g.fillStyle = day ? '#111827' : '#e6e8ee';
-            g.fillText(txt, x + 8, y + h / 2);
+            g.fillText(txt, cx + 8, y + h / 2);
             continue;
           }
           if (cfg.mode === 'bidask') {
@@ -492,7 +492,7 @@ function footprintLayer() {
         for (const sx of st) {
           const yA = co.priceToY((rs[sx.k1].p + m) * tick, a.scale, a.bounds), yZ = co.priceToY(rs[sx.k0].p * tick, a.scale, a.bounds);
           g.fillStyle = sx.side ? UP : (cfg.mode === 'ladder' ? DN : SELL);
-          if (cfg.mode === 'ladder') { g.fillRect(x + 3, Math.min(yA, yZ), 2, Math.abs(yZ - yA)); continue; }
+          if (cfg.mode === 'ladder') { g.fillRect(cx + 3, Math.min(yA, yZ), 2, Math.abs(yZ - yA)); continue; }
           g.fillRect(sx.side ? xl + w + 1 : xl - 4, Math.min(yA, yZ), 3, Math.abs(yZ - yA));
         }
         // unfinished auction: both sides traded at the extreme row -> amber tick past the edge

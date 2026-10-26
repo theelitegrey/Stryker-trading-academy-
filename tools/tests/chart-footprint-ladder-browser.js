@@ -38,7 +38,7 @@ async function candles(tf) {
   return agg.map((b) => [b.t / 1000, b.o * 0.25, b.hi * 0.25, b.lo * 0.25, b.c * 0.25, b.vol]);
 }
 
-async function open(b, { w, h, mobile }) {
+async function open(b, { w, h, mobile, q }) {
   const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: !!mobile, hasTouch: !!mobile });
   await ctx.addInitScript(stub);
   await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.removeItem('stryker.vela.session'); } catch (e) {} window.__stkFpStats = []; });
@@ -60,7 +60,7 @@ async function open(b, { w, h, mobile }) {
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream/.test(m.text())) errors.push(m.text()); });
   p.on('pageerror', (e) => errors.push(String(e)));
-  await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
+  await p.goto(BASE + '/charts.html' + (q || ''), { waitUntil: 'domcontentloaded' });
   await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_VELA.chart && window.__stkOrderflow, null, { timeout: 60000 });
   await sleep(2500);
   return { ctx, p, errors };
@@ -109,7 +109,7 @@ async function fpCellsDrawn(p) {
       for (const theme of ['dark', 'light']) {
         for (const vela of ['0.9', '0.6']) {
           if (theme === 'light' && vela === '0.6') continue;
-          const { ctx, p, errors } = await open(b, vp);
+          const { ctx, p, errors } = await open(b, { ...vp, q: vela === '0.6' ? '?vela=0.6' : '' });
           await p.evaluate((t) => { document.documentElement.setAttribute('data-theme', t); window.dispatchEvent(new Event('stryker:theme')); }, theme);
           await p.evaluate(() => { window.__stkOfTestTier = { free: false, plan: 'Pro' }; });
           await setMarket(p, 'futures:NQ1!', '1');

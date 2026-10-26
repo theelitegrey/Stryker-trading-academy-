@@ -66,6 +66,7 @@
       root.__stkVela090 = velaEngine();
       root.__stkBt = {
         feed: this.feed, tf: velaTf(feedCtx.tf ? feedCtx.tf() : '5m'),
+        install: async (Core) => { const m = await import('/assets/chart-bt-orders.js' + V); this.orders = m.installBtOrders(Core, { fmt: (p) => this.fmt(p), tick: () => this.opts.tick, onDrag: (l, p) => this.onLineDrag && this.onLineDrag(l, p), onAction: (l, a) => this.onLineAction && this.onLineAction(l, a) }); },
         onReady: (ws, api) => this._ready(ws, api)
       };
       try { await import('/assets/vela-chart.js' + V); } catch (e) { console.error('Backtest chart failed', e); const fb = el.querySelector('#stkchart-fallback'); if (fb) fb.hidden = false; }
@@ -78,6 +79,7 @@
       try { ws.setTimezone(this.opts.tz); } catch (e) {}
       try { ws.on('state:changed', () => this._tfWatch()); } catch (e) {}
       this._last = { tf: this._cellTf(), cursor: this.ctx.getCursor() };
+      this._pushOrders();
       if (this.onReady) this.onReady(this);
     }
 
@@ -116,8 +118,9 @@
     }
 
     // ---- API parity with ReplayChart (filled in by the next steps) -------------------------------------------
-    setLines(lines) { this.lines = lines || []; }
-    setMarkers(m) { this.markers = m || []; }
+    setLines(lines) { this.lines = lines || []; this._pushOrders(); }
+    setMarkers(m) { this.markers = m || []; this._pushOrders(); }
+    _pushOrders() { if (!this.ready || !this.orders) return; let cells = []; try { cells = this.ws.cells(); } catch (e) {} this.orders.set(cells, this.lines, this.markers); }
     setDrawings(d) { this.drawings = d || []; }
     getDrawings() { return this.drawings; }
     getIndicators() { return this.indicators.map((i) => ({ iid: i.iid, id: i.id, params: i.params, visible: i.visible })); }

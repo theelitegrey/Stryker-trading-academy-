@@ -570,7 +570,9 @@ function lateLists(provider){
     if (miss.length) console.warn('TradeZoro: drawing tools without an icon', miss);
   } catch (e) { console.warn('TradeZoro: tool icons', e); }
   // Paper trading (assets/chart-paper.js): its on-chart line layer + right-click items register before boot.
-  try { Paper.installPaper(Core); } catch (e) { console.warn('TradeZoro: paper install', e); }
+  if (!BT) try { Paper.installPaper(Core); } catch (e) { console.warn('TradeZoro: paper install', e); }
+  // backtest: the order-lines / trade-markers layer (assets/chart-bt-orders.js), installed before the workspace is built
+  if (BT && BT.install) { try { await BT.install(Core); } catch (e) { console.warn('TradeZoro: backtest layer', e); } }
 
   pm('stk:installs-done');
   let day = false;

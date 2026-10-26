@@ -295,17 +295,22 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpMode: 'bidask', fpScale: 'range', fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
+const FP_DEF = { fpMode: 'bidask', fpScale: 'range', fpLadShow: 'volume', fpLadPoc: false, fpLadUnf: false, fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
 const fpSettings = new Map();      // chart engine -> settings
 function fpConfig(v) {
   v = v || {};
   return {
     mode: ['bidask', 'delta', 'volume', 'ladder'].includes(v.fpMode) ? v.fpMode : 'bidask',
     scale: v.fpScale === 'bar' ? 'bar' : 'range',
+    // build 689 saved fpMode 'ladder' with no fpLadShow: that chart showed delta, keep it so
+    ladShow: v.fpLadShow === 'delta' || v.fpLadShow === 'volume' ? v.fpLadShow : (v.fpMode === 'ladder' ? 'delta' : 'volume'),
     imb: clamp(num(v.fpImb, 300), 110, 2000) / 100,
     stack: clamp(Math.round(num(v.fpStack, 3)), 2, 10),
     rows: clamp(Math.round(num(v.fpRows, 0)), 0, 400),
-    stats: v.fpStats !== false, poc: v.fpPoc !== false, unf: v.fpUnfinished !== false
+    stats: v.fpStats !== false,
+    // Ladder has its own POC / unfinished-auction toggles, off by default; other modes keep theirs (on)
+    poc: v.fpMode === 'ladder' ? v.fpLadPoc === true : v.fpPoc !== false,
+    unf: v.fpMode === 'ladder' ? v.fpLadUnf === true : v.fpUnfinished !== false
   };
 }
 class FootprintEngine {
@@ -404,11 +409,12 @@ function footprintLayer() {
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';
       const ladW = Math.max(0, bw * (compact ? 0.88 : 0.92) - 12);   // room right of the candle inside this bar's slot
+      const lv = (r) => (cfg.ladShow === 'delta' ? Math.abs(r.buy - r.sell) : r.buy + r.sell);
       let gmax = 1;
       if (cfg.mode === 'ladder' && cfg.scale !== 'bar') {
         for (let i = i0; i <= i1; i++) {
           const fb = f.map.get(a.bars[i].time); if (!fb) continue;
-          for (const r of rowsOf(fb, m).rs) { const q = Math.abs(r.buy - r.sell); if (q > gmax) gmax = q; }
+          for (const r of rowsOf(fb, m).rs) { const q = lv(r); if (q > gmax) gmax = q; }
         }
       }
       for (let i = i0; i <= i1; i++) {
@@ -424,7 +430,7 @@ function footprintLayer() {
         const lad = cfg.mode === 'ladder', cx = x;   // the base candle's own wick sits on x, so ours lines up with it
         const showText = lad ? rowPx >= 11 && ladW >= fs * 1.3 : rowPx >= 11 && bw >= 44;
         let dmax = lad ? gmax : 1;
-        if (lad && cfg.scale === 'bar') { dmax = 1; for (const r of rs) { const q = Math.abs(r.buy - r.sell); if (q > dmax) dmax = q; } }
+        if (lad && cfg.scale === 'bar') { dmax = 1; for (const r of rs) { const q = lv(r); if (q > dmax) dmax = q; } }
         if (lad) {
           // thin candle on the left (real OHLC), ladder of per-level deltas on its right
           const up = bar.close >= bar.open, cc = up ? UP : DN;
@@ -443,15 +449,21 @@ function footprintLayer() {
           if (lad) {
             if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.2; g.strokeRect(cx + 5.5, y + 0.5, ladW, Math.max(1, h - 1)); }
             if (h < 3) continue;
-            const q = Math.abs(dl);
+            const q = lv(r), vol = cfg.ladShow !== 'delta';
             if (q >= 0.25 * dmax && q > 0) {
-              g.fillStyle = alpha(dl >= 0 ? UP : DN, day ? 0.5 : 0.55);
-              g.fillRect(cx + 6, y + 0.5, Math.max(2, Math.min(ladW, ladW * q / dmax)), Math.max(1, h - 1));
+              const c = vol ? (dl > 0 ? UP : dl < 0 ? DN : '#8a90a0') : (dl >= 0 ? UP : DN);
+              const bw2 = Math.max(2, Math.min(ladW, ladW * q / dmax));
+              g.fillStyle = alpha(c, 0.78);
+              g.fillRect(cx + 6, y + 0.5, bw2, Math.max(1, h - 1));
+              g.fillStyle = day ? alpha(c, 1) : alpha(vol ? (dl > 0 ? UP2 : dl < 0 ? '#ff7a85' : '#c4c8d2') : (dl >= 0 ? UP2 : '#ff7a85'), 1);
+              g.fillRect(cx + 6, y + 0.5, 1, Math.max(1, h - 1));
             }
             if (!showText) continue;
-            const txt = (dl < 0 ? '-' : '') + fmt(q);
+            const txt = vol ? fmt(q) : (dl < 0 ? '-' : '') + fmt(q);
             if (txt.length * fs * 0.62 > ladW - 2) continue;
-            g.textAlign = 'left'; g.font = font; g.fillStyle = day ? '#111827' : '#e6e8ee';
+            g.textAlign = 'left'; g.font = font;
+            if (!day) { g.fillStyle = 'rgba(0,0,0,0.55)'; g.fillText(txt, cx + 9, y + h / 2 + 1); }
+            g.fillStyle = day ? '#0b1220' : '#ffffff';
             g.fillText(txt, cx + 8, y + h / 2);
             continue;
           }
@@ -816,14 +828,17 @@ export function installFootprint(Core, flowMod) {
     settings: {
       title: 'Footprint',
       rows: [
-        { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Delta ladder (candle + delta bars)']] },
-        { kind: 'select', key: 'fpScale', label: 'Delta ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']] },
+        { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Ladder (candle + level bars)']] },
+        { kind: 'select', key: 'fpScale', label: 'Ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']] },
+        { kind: 'select', key: 'fpLadShow', label: 'Ladder shows', defval: FP_DEF.fpLadShow, options: [['volume', 'Volume'], ['delta', 'Delta']] },
         { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10 },
         { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1 },
         { kind: 'number', key: 'fpRows', label: 'Row size in ticks (0 = auto by zoom)', defval: FP_DEF.fpRows, min: 0, max: 400, step: 1 },
         { kind: 'toggle', key: 'fpStats', label: 'Delta + volume under each bar', defval: true },
         { kind: 'toggle', key: 'fpPoc', label: 'Highlight the POC', defval: true },
-        { kind: 'toggle', key: 'fpUnfinished', label: 'Unfinished-auction marks', defval: true }
+        { kind: 'toggle', key: 'fpUnfinished', label: 'Unfinished-auction marks', defval: true },
+        { kind: 'toggle', key: 'fpLadPoc', label: 'Ladder: highlight the POC', defval: false },
+        { kind: 'toggle', key: 'fpLadUnf', label: 'Ladder: unfinished-auction marks', defval: false }
       ]
     }
   });

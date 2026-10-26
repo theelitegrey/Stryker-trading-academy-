@@ -122,17 +122,17 @@ async function fpCellsDrawn(p) {
           await eng(p, { fpMode: 'bidask' }); await sleep(300);
           const pb = await perf(p);
           await p.screenshot({ path: OUT + '/bidask-' + tag + '.png' });
-          await eng(p, { fpMode: 'ladder' }); await sleep(500);
+          await eng(p, { fpMode: 'ladder', fpLadShow: 'volume' }); await sleep(500);
           const pl = await perf(p);
           check(pl.n > 3 && pl.med <= Math.max(8, pb.med * 1.3), tag + ': ladder frame ms median ' + pl.med + ' max ' + pl.max + ' vs bidask median ' + pb.med + ' max ' + pb.max, { pl, pb });
           await frameOn(p, T - N * 60000, T + N * 60000);
           await p.screenshot({ path: OUT + '/ladder-' + tag + '.png' });
           if (vela === '0.9' && theme === 'dark') {
-            await eng(p, { fpMode: 'ladder', fpScale: 'bar' }); await sleep(400);
+            await eng(p, { fpMode: 'ladder', fpScale: 'bar', fpLadShow: 'delta' }); await sleep(400);
             await p.screenshot({ path: OUT + '/ladder-' + tag + '-perbar.png' });
             await frameOn(p, T - 40 * 60000, T + 40 * 60000); await sleep(500);
             await p.screenshot({ path: OUT + '/ladder-' + tag + '-zoomout.png' });
-            await eng(p, { fpMode: 'ladder', fpScale: 'range' });
+            await eng(p, { fpMode: 'ladder', fpScale: 'range', fpLadShow: 'volume', fpLadPoc: true, fpLadUnf: true }); await sleep(400); await p.screenshot({ path: OUT + '/ladder-' + tag + '-poc-on.png' }); await eng(p, { fpMode: 'ladder', fpLadShow: 'volume' });
             if (vp.w === 1440) {
               await setMarket(p, 'futures:NQ1!', '5'); await sleep(1500);
               await frameOn(p, T - 40 * 60000, T + 40 * 60000); await sleep(800);

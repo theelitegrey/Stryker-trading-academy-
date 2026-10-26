@@ -204,7 +204,11 @@ export function installDataDot(ws, opts = {}) {
       // After the venue/interval ("NQ1! · CME · 15m  ● Delayed 10m"), clear of the symbol logo.
       // Vela's own session badge (.vela-sl-market, a sun icon = "Market Open") is hidden by CSS
       // while our dot is there, so the two can never disagree; ours takes its slot.
-      if (dot.previousElementSibling !== meta) meta.after(dot);
+      // Phone (Owner 2026-10-26): first in the symbol line, LEFT of the symbol logo, so the dot (red
+      // in replay) stays clear of an indicator's top-right table; tap it for the full text.
+      const phoneRow = cell.closest('[data-layout="mobile"]') && meta.parentNode;
+      if (phoneRow) { if (phoneRow.firstChild !== dot) phoneRow.insertBefore(dot, phoneRow.firstChild); }
+      else if (dot.previousElementSibling !== meta) meta.after(dot);
       if (!sl.classList.contains('stkc-has-dd')) sl.classList.add('stkc-has-dd');
       if (dot.dataset.s !== st.s) dot.dataset.s = st.s;
       const t = dot.querySelector('.stkc-dd-t');

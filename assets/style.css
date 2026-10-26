@@ -9273,6 +9273,7 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
   .stkc-dd .stkc-dd-t{ display:none; }   /* every data state: dot only on a phone (tap it for the text) */
+  [data-layout="mobile"] .vela-statusline.stkc-has-dd .vela-sl-identity > .stkc-dd:first-child{ margin:0 6px 0 0; }
 }
 
 

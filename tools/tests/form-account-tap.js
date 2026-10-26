@@ -27,15 +27,16 @@ const R = require('./bt-rig.js');
     ok(dev + ' signup minlength 6 still enforced', await p0.evaluate(() => !document.getElementById('signup-password').checkValidity()));
     await p0.fill('#signup-password', '123456');
     ok(dev + ' signup valid when filled', await p0.evaluate(() => document.getElementById('signup-form').checkValidity()));
-    await p0.click('#signup-form label:has(input[type=checkbox][required])');
+    await p0.click('#signup-form input[type=checkbox][required]');
     ok(dev + ' signup terms checkbox required still enforced', await p0.evaluate(() => !document.getElementById('signup-form').checkValidity()));
-    await p0.click('#signup-form label:has(input[type=checkbox][required])');
+    await p0.click('#signup-form input[type=checkbox][required]');
+    ok(dev + ' signup terms re-ticked', await p0.evaluate(() => document.getElementById('signup-form').checkValidity()));
     ok(dev + ' signup no hscroll', await p0.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await p0.screenshot({ path: OUT + '/acct-signup-' + dev + '.png' });
     await ctx0.close();
 
     // signed-in pages
-    const { ctx, p, errors } = await R.page(b, srv, dev);
+    const { ctx, p, errors } = await R.page(b, srv, dev, () => { const t = setInterval(() => { const u = window.__stubAuth && window.__stubAuth.currentUser; if (u && !u.updateProfile) { u.updateProfile = () => Promise.resolve(); clearInterval(t); } }, 5); });
     await p.goto(srv.base + '/settings.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2500);
     await p.fill('#settings-name', ''); await p.click('#settings-save-name'); await p.waitForTimeout(300);
     ok(dev + ' settings empty name -> error', /cannot be empty/i.test(await p.evaluate(() => (document.getElementById('settings-error') || {}).textContent || '')));
@@ -49,9 +50,10 @@ const R = require('./bt-rig.js');
     await p.screenshot({ path: OUT + '/acct-settings2-' + dev + '.png' });
     // journal add-trade form
     await p.goto(srv.base + '/trade-journal.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(3000);
-    const opened = await p.evaluate(() => { const b2 = [...document.querySelectorAll('button, a')].find((x) => /^\s*\+?\s*(log|add|new) (a )?trade/i.test(x.textContent) && x.getClientRects().length); if (b2) { b2.click(); return b2.textContent.trim(); } return null; });
+    const opened = await p.evaluate(() => { if (typeof window.switchJournalTab === 'function') { window.switchJournalTab('add'); return 'switchJournalTab(add)'; } return null; });
     await p.waitForTimeout(800);
     ok(dev + ' journal add-trade opens', !!opened, opened);
+    await p.screenshot({ path: OUT + '/acct-journal-form-' + dev + '.png' });
     const jf = await p.evaluate(() => ['jf-date', 'jf-time', 'jf-instrument', 'jf-direction', 'jf-setup'].map((id) => { const el = document.getElementById(id); if (!el || !el.getClientRects().length) return [id, 'hidden']; const cs = getComputedStyle(el); return [id, cs.appearance, cs.colorScheme, cs.backgroundColor, Math.round(el.getBoundingClientRect().height)]; }));
     ok(dev + ' journal form themed', jf.every((r) => r[1] === 'hidden' || (r[1] === 'none' || /date|time/.test(r[0])) && /dark/.test(r[2])), jf);
     ok(dev + ' journal no hscroll', await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

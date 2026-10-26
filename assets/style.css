@@ -10333,3 +10333,6 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 #seo-tabs .journal-tab{ -webkit-appearance:none; appearance:none; padding:9px 18px; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--ink-2); font:600 13.5px var(--font-body); cursor:pointer; transition:all .15s ease; }
 #seo-tabs .journal-tab:hover, #seo-tabs .journal-tab.active{ background:rgba(3,201,136,.1); border-color:var(--gold-dim); color:var(--gold-bright); }
 :root[data-theme="light"] #seo-tabs .journal-tab:hover, :root[data-theme="light"] #seo-tabs .journal-tab.active{ color:var(--gold); }
+/* .field input{width:100%; padding:12px 14px} also hit checkboxes and radios, drawing them as wide boxes */
+.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; }
+.field .tz-affix > .tz-input{ height:var(--tz-h); }

@@ -9,12 +9,14 @@
 // issuer, audience, expiry, then (2) reads admins/{uid} over the Firestore REST API USING THE
 // USER'S OWN TOKEN, so the live security rules decide (200 = exists = admin). No secret is
 // needed and a client "isAdmin" flag is never trusted. Everything fails CLOSED (not admin).
-// Result per uid is memoised 60 s in the isolate.
+// Result per uid is memoised 60 s in the isolate (admins); the students/{uid} answer (demo / liveFeed) 30 s,
+// so an admin switching someone's live feed OFF takes effect within about a minute.
 export const RT_DELAY_S = 600;          // non-admins see nothing newer than now - 10 min
 export const RT_PROJECT = 'strykertrades-e0cd8';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const ISSUER = 'https://securetoken.google.com/' + RT_PROJECT;
 const ADMIN_TTL_MS = 60000;
+const STUDENT_TTL_MS = 30000;   // demo / liveFeed: switching a user off bites within ~1 min (memo + stream re-check)
 
 let jwks = null, jwksAt = 0, jwksTry = 0;
 const adminMemo = new Map();
@@ -92,20 +94,25 @@ export async function isAdminToken(token, opts = {}) {
   return v;
 }
 
-// Real-time entitlement = admin, OR the marketing demo account (CoS decision 2026-10-17): a token-verified
-// uid whose OWN students/{uid} document has demo === true. The doc is read over the Firestore REST API with
-// the caller's own token, so the live rules decide (a student can only read their own doc), and `demo` is a
-// server-only field (privileged in firestore.rules: clients cannot set it). Fails CLOSED. Nobody else gets in.
+// Real-time entitlement = admin, OR the marketing demo account (CoS decision 2026-10-17), OR a member the
+// Owner switched on from the admin page (liveFeed, Owner 2026-10-26 "I can select which users get live feed"):
+// a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true. The doc is read
+// over the Firestore REST API with the caller's own token, so the live rules decide (a student can only read
+// their own doc), and `demo` / `liveFeed` are server-only fields (privileged in firestore.rules: only an admin
+// writes them). Fails CLOSED. Nobody else gets in.
 export async function isDemoToken(token, opts = {}) {
   const uid = await verifyIdToken(token, opts);
   if (!uid) return false;
   const hit = demoMemo.get(uid);
   if (hit && Date.now() - hit.at < hit.ttl) return hit.v;
-  let v = false, ttl = ADMIN_TTL_MS;
+  let v = false, ttl = STUDENT_TTL_MS;
   try {
     const url = 'https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/students/' + encodeURIComponent(uid);
     const r = await (opts.fetchImpl || fetch)(url, { headers: { authorization: 'Bearer ' + token } });
-    if (r.status === 200) { const j = await r.json(); v = !!(j && j.fields && j.fields.demo && j.fields.demo.booleanValue === true); }
+    if (r.status === 200) {
+      const f = ((await r.json()) || {}).fields || {};
+      v = !!((f.demo && f.demo.booleanValue === true) || (f.liveFeed && f.liveFeed.booleanValue === true));
+    }
     else if (r.status !== 404 && r.status !== 403) ttl = 10000;
   } catch (e) { ttl = 10000; }
   if (demoMemo.size > 500) demoMemo.clear();

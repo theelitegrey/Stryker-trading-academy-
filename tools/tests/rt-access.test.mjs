@@ -22,7 +22,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
-const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' } } };
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' } }, 'uid-live': { plan: { stringValue: 'Pro' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -65,8 +65,25 @@ for (const M of [A, B]) {
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo', exp: 1 })), false, 'expired demo token');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' }, kp.privateKey).then((t) => t.slice(0, -4) + 'AAAA')), false, 'bad signature');
   assert.equal(await M.isRealtimeToken(await mint()), true, 'admin still real-time');
+  // per-user live feed (students/{uid}.liveFeed === true, admin-set, 2026-10-26)
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-live' })), true, 'liveFeed member gets real-time');
+  assert.equal(await M.isAdminToken(await mint({ sub: 'uid-live' })), false, 'liveFeed member is not admin');
+  for (const u of ['uid-live-str', 'uid-live-false']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-live', exp: 1 })), false, 'expired liveFeed token');
+  // switched OFF: still on inside the memo, cut once the 30 s memo runs out (well inside 1 min)
+  {
+    const realNow = Date.now, t0 = realNow(), tok = await mint({ sub: 'uid-live' });
+    try {
+      studentDocs['uid-live'].liveFeed = { booleanValue: false };
+      Date.now = () => t0 + 20000; assert.equal(await M.isRealtimeToken(tok), true, 'inside the memo');
+      Date.now = () => t0 + 31000; assert.equal(await M.isRealtimeToken(tok), false, 'switched off: cut after the 30 s memo');
+      studentDocs['uid-live'].liveFeed = { booleanValue: true };
+      Date.now = () => t0 + 62000; assert.equal(await M.isRealtimeToken(tok), true, 'switched back on');
+    } finally { Date.now = realNow; studentDocs['uid-live'].liveFeed = { booleanValue: true }; }
+  }
   fsDown = true; M._resetForTests();
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), false, 'outage fails closed (demo)');
+  assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-live' })), false, 'outage fails closed (liveFeed)');
   assert.equal(await M.isAdminToken(await mint()), false, 'Firestore outage fails closed');
   fsDown = false;
 }
@@ -81,11 +98,36 @@ A._resetForTests();
 assert.equal((await streamGet({ request: wsReq({}), params: { sym: 'NQ' }, env })).status, 403, 'signed-out stream');
 assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-pro' }) }), params: { sym: 'NQ' }, env })).status, 403, 'non-admin stream');
 assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, junk' }), params: { sym: 'NQ' }, env })).status, 403, 'junk token');
+assert.equal((await streamGet({ request: wsReq({ 'sec-websocket-protocol': 'tz-auth, ' + await mint({ sub: 'uid-live-false' }) }), params: { sym: 'NQ' }, env })).status, 403, 'liveFeed false stream');
 
 // /api/chart/rt
 const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/chart/rt', { headers: tok ? { authorization: 'Bearer ' + tok } : {} }) })).json();
 assert.deepEqual(await rtRes(''), { admin: false });
 assert.deepEqual(await rtRes(await mint()), { admin: true });
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, '/rt says no for a normal member');
+
+// /api/chart/bars end to end (Yahoo stubbed): liveFeed member = real-time lane, member / signed out = cut 10 min
+{
+  const realFetch = globalThis.fetch, nowS = Math.floor(Date.now() / 1000);
+  const ts = []; for (let t = Math.floor((nowS - 3600) / 60) * 60; t <= nowS; t += 60) ts.push(t);
+  const q = ts.map(() => 1);
+  globalThis.fetch = async (url, init) => String(url).includes('finance.yahoo.com')
+    ? new Response(JSON.stringify({ chart: { result: [{ meta: {}, timestamp: ts, indicators: { quote: [{ open: q, high: q, low: q, close: q, volume: q }] } }], error: null } }), { status: 200 })
+    : realFetch(url, init);
+  try {
+    const bars = async (tok) => { const r = await barsGet({ request: new Request('https://x/api/chart/bars/NQ?tf=1', { headers: tok ? { authorization: 'Bearer ' + tok } : {} }), params: { sym: 'NQ' }, env: {}, waitUntil() {} }); return { rt: r.headers.get('x-tz-rt'), body: await r.json() }; };
+    A._resetForTests();
+    const live = await bars(await mint({ sub: 'uid-live' }));
+    assert.notEqual(live.rt, '0', 'liveFeed member: real-time lane'); assert.notEqual(live.body.rt, false);
+    for (const [who, tok] of [['normal member', await mint({ sub: 'uid-pro' })], ['signed out', '']]) {
+      const d = await bars(tok);
+      assert.equal(d.rt, '0', who + ': x-tz-rt 0'); assert.equal(d.body.rt, false, who + ': rt false');
+      const last = d.body.bars.length ? d.body.bars[d.body.bars.length - 1][0] : 0;
+      assert.ok(d.body.bars.length && last <= Math.floor(Date.now() / 1000) - 600, who + ': nothing newer than now - 10 min');
+    }
+  } finally { globalThis.fetch = realFetch; }
+}
 
 // bars: nothing newer than now - 10 min
 const now = 1_800_000_000;

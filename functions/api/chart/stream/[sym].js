@@ -1,6 +1,6 @@
 // GET /api/chart/stream/:sym?tf=1 — server-side InsightSentry WebSocket bridge (via the ONE shared hub socket).
 // The browser never sees INSIGHTSENTRY_WEBSOCKET_API_KEY. Only allow-listed futures roots stream.
-import { isRealtimeToken, wsTokenOf } from '../_rt.js';
+import { isRealtimeToken, isAdminToken, wsTokenOf } from '../_rt.js';
 import { RECORDER_URL, INSIGHTSENTRY_CODES, TIMEFRAMES, SYMBOLS, normSym, normTf, aggregateHours } from '../_bars.js';
 
 const ALLOWED_ORIGINS = new Set(['https://tradezoro.com', 'https://www.tradezoro.com', 'https://strykertrading.com', 'https://www.strykertrading.com', 'http://localhost:8000']);
@@ -79,7 +79,16 @@ export async function onRequestGet(ctx) {
 
   // CME futures real time is ADMIN ONLY (Owner 2026-10-16). Refused before any upstream is opened.
   // The ID token arrives as the WebSocket subprotocol ("tz-auth", "<jwt>"), not in the URL.
-  if (!(await isRealtimeToken(wsTokenOf(ctx.request)))) return err(403, 'real-time futures data is admin only; delayed data is served by /api/chart/bars');
+  const rtTok = wsTokenOf(ctx.request);
+  if (!(await isRealtimeToken(rtTok))) return err(403, 'real-time futures data is admin only; delayed data is served by /api/chart/bars');
+  // Per-user live feed (Owner 2026-10-26): a member the admin switched ON (students/{uid}.liveFeed) can be switched
+  // OFF again, so a NON-admin socket re-checks its entitlement every 60 s (memoised 30 s in _rt.js) and is closed
+  // when it ends; once its ID token expires it is closed too, so the browser reconnects with a fresh token and is
+  // re-verified. Admin sockets are untouched (no re-check, no close). Closing touches only the hub link, never
+  // InsightSentry (the one upstream socket lives in the book-recorder's Durable Object).
+  const rtIsAdmin = await isAdminToken(rtTok);
+  let rtExp = 0;
+  try { rtExp = JSON.parse(atob(rtTok.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp || 0; } catch (e) {}
 
   const pair = new WebSocketPair();
   const client = pair[0], server = pair[1];
@@ -105,6 +114,11 @@ export async function onRequestGet(ctx) {
     send({ event: 'ping', t: Date.now(), up: hubUp >= 0 ? hubUp : Date.now() - lastUpAt });
     if (Date.now() - linkAt > 20000) close(1011, 'hub link silent');
   }, 5000);
+  const rtTimer = rtIsAdmin ? null : setInterval(async () => {
+    if (closed) return;
+    if (!(rtExp > Date.now() / 1000 + 5)) return close(4001, 'token expired');
+    try { if (!(await isRealtimeToken(rtTok))) close(4003, 'real-time access ended'); } catch (e) {}
+  }, 60000);
   const dec = decOf(SYMBOLS[sym][4]);
   // TICK MODE (ticks=1): a second leg subscribes InsightSentry's per-trade feed (bar_type 'tick') and
   // folds every trade into the forming bar of the requested timeframe, so the chart's last candle,
@@ -174,7 +188,7 @@ export async function onRequestGet(ctx) {
   const close = (code = 1000, reason = 'closed') => {
     if (closed) return;
     closed = true;
-    clearInterval(statsTimer); clearInterval(hbTimer);
+    clearInterval(statsTimer); clearInterval(hbTimer); if (rtTimer) clearInterval(rtTimer);
     if (flushTimer) clearTimeout(flushTimer);
     if (ofTimer) clearTimeout(ofTimer);
     try { upstream && upstream.close(1000, 'bye'); } catch (e) {}

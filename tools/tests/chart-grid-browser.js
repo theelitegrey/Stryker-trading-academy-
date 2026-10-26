@@ -167,12 +167,19 @@ async function small(b, w, h, mobile, tablet) {
   await p.click('#stkc-layout-btn');
   await p.waitForTimeout(300);
   const st = await p.evaluate(() => ({ dis: [...document.querySelectorAll('.stkg-ic[aria-disabled="true"]')].map((e) => e.dataset.layout), note: document.querySelector('.stkg-note').textContent, pop: (() => { const r = document.getElementById('stkc-layout-pop').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.right)]; })(), sw: document.documentElement.scrollWidth }));
-  check(st.dis.join(',') === '5a,5l,6,6r,8,8r' && st.pop[0] >= 0 && st.pop[1] <= w && st.sw <= w + 1, `${tag}: 5+ disabled (${st.dis.join(',')}), note "${st.note}", pop ${st.pop}`);
+  // phone (2026-10-26): only 1-4 are offered (phone picker); tablets keep the full picker with 5+ disabled
+  if (mobile) {
+    const ph = await p.evaluate(() => ({ grid: !document.querySelector('.stkg-grid').hidden, n: [...document.querySelectorAll('.stkg-phone:not([hidden]) .stkg-pc')].map((b) => b.dataset.n).join(',') }));
+    check(!ph.grid && ph.n === '1,2,3,4' && st.pop[0] >= 0 && st.pop[1] <= w && st.sw <= w + 1, `${tag}: phone picker 1-4 only (${ph.n}), note "${st.note}", pop ${st.pop}`);
+  } else check(st.dis.join(',') === '5a,5l,6,6r,8,8r' && st.pop[0] >= 0 && st.pop[1] <= w && st.sw <= w + 1, `${tag}: 5+ disabled (${st.dis.join(',')}), note "${st.note}", pop ${st.pop}`);
   await p.screenshot({ path: `${OUT}/${tag}-picker.png` });
   await p.keyboard.press('Escape');
   await p.waitForTimeout(300);
   const sw = await p.evaluate(() => ({ chips: document.querySelectorAll('.stkc-cell').length, max: window.STRYKER_VELA.maximizedCell, n: window.STRYKER_VELA.cells().length }));
-  if (mobile) check(sw.chips === 4 && sw.max, `${tag}: one chart at a time, ${sw.chips} switcher chips, maximized ${sw.max}`);
+  if (mobile) {
+    const vis = await p.evaluate(() => window.STRYKER_VELA.cells().filter((c) => getComputedStyle(c.host).visibility !== 'hidden' && c.host.getBoundingClientRect().height > 100).length);
+    check(vis === 4 && !sw.max, `${tag}: all 4 charts on screen (phone multi-chart, 2026-10-26), maximized ${sw.max}`);
+  }
   else check(sw.n === 4 && !sw.max, `${tag}: 1+3 grid shown (${sw.n} cells)`);
   await p.screenshot({ path: `${OUT}/${tag}-4l.png` });
   // An 8-chart layout loaded from a saved doc on this device: drops to 4, remembers 8

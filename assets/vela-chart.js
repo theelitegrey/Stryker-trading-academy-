@@ -197,7 +197,8 @@ function measureFrame(){
   const dock = document.getElementById('appnav-dock');
   const top = head && head.getClientRects().length ? Math.max(0, Math.round(head.getBoundingClientRect().bottom)) : 0;
   let dockH = 0;
-  if (dock && getComputedStyle(dock).display !== 'none' && getComputedStyle(dock).position === 'fixed') {
+  // phone Charts page (chart-phone-space.js): the dock sits below the screen behind a handle
+  if (dock && !root.classList.contains('stk-cps') && getComputedStyle(dock).display !== 'none' && getComputedStyle(dock).position === 'fixed') {
     dockH = Math.round(dock.getBoundingClientRect().height);
   }
   root.style.setProperty('--stkc-top', top + 'px');
@@ -697,7 +698,11 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // (assets/chart-onebar.js). Buttons added later (layout menu, watchlist) are picked up live.
   import('./chart-onebar.js?v=663')
     .then((m) => m.mountOneBar(ws))
-    .catch((e) => console.warn('TradeZoro: one toolbar', e));
+    .catch((e) => console.warn('TradeZoro: one toolbar', e))
+    // phone: one top bar, footnote in ⓘ, bottom nav behind a handle (assets/chart-phone-space.js)
+    .then(() => import('./chart-phone-space.js?v=663'))
+    .then((m) => m.mountPhoneSpace())
+    .catch((e) => console.warn('TradeZoro: phone space', e));
   // TradingView-style left drawing column, right icon bar, fullscreen (assets/chart-tv-toolbars.js).
   import('./chart-tv-toolbars.js?v=663')
     .then((m) => m.mountTvToolbars(ws, { toast }))

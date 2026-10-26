@@ -74,3 +74,8 @@ html.bt-tz #rp-float, html.bt-tz #rp-float select, html.bt-tz #rp-float button, 
   html.bt-tzp.stk-chart-fs body.bt-app .dash-main{ height:100dvh; }
 }
 html.bt-tz #stkc-bar .stkw-phonebtn, html.bt-tz #stkc-bar .stknw-phonebtn, html.bt-tz #stkc-bar .stkgl-phonebtn{ display:none !important; }   /* live watchlist / news / GEX ladder: they would swap the symbol of a fixed session */
+@media (max-width:700px){
+  html.bt-tzp .bt-psheet, html.bt-tzp .bt-psheet *{ font-family:var(--font-body, inherit) !important; }
+  .bt-psheet .rpw-group{ display:inline-flex; align-items:center; gap:6px; } .bt-psheet .rpw-group .rpw-chk{ border-radius:999px !important; border-right:1px solid var(--line) !important; } .bt-psheet .rpw-group .rpw-sel{ border-radius:999px !important; min-width:64px; }
+  html.bt-tzp #rp-tradebar-strip.rp-strip{ grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); } html.bt-tzp #rp-tradebar-strip .rp-sqty{ margin:0; }
+}

@@ -115,7 +115,7 @@ const ROWS = [
   [(n) => n.querySelector && n.querySelector(':scope > #stkc-tpl-btn'), 'chart', 3, () => 'Templates', 'tpl'],
   [(n) => n.id === 'stkc-settings-btn' && n, 'chart', 4, () => 'Chart settings', 'gear'],
   [(n) => n.id === 'stkc-fs-btn' && n, 'chart', 5, () => (document.documentElement.classList.contains('stk-chart-fs') ? 'Exit full screen' : 'Full screen'), 'fs'],
-  [(n) => n.classList.contains('vela-mb-maximize') && n, 'chart', 6, () => 'Maximize chart', 'max'],
+  [(n) => n.classList.contains('vela-mb-maximize') && n, 'chart', 6, () => 'Maximize / restore chart', 'max'],
   [(n) => n.classList.contains('vela-mb-more') && n, 'chart', 7, () => 'Object tree & chart menu', 'dots'],
   // TOOLS
   [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],

@@ -130,6 +130,7 @@ async function run(b, v09, w, h, doItems) {
     'News': () => /stknw-open/.test(document.querySelector('.stkchart-panel').className) || !!document.querySelector('.stknw-panel:not([hidden]), .stknw:not([hidden])'),
     'Watchlist': () => /stkw-open/.test(document.querySelector('.stkchart-panel').className),
     'Alerts': () => [...document.querySelectorAll('[role=dialog]')].some((e) => e.getClientRects().length && /alert/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 60))),
+    'Maximize / restore chart': () => !!window.STRYKER_VELA.maximizedCell,
     'Replay': () => [...document.querySelectorAll('.stkr-menu .stkc-pop')].some((e) => !e.hidden),
     'Object tree & chart menu': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Object tree$/.test(e.textContent.trim()) && e.getClientRects().length && !e.closest('#stkc-more-pop'))
   };
@@ -140,6 +141,8 @@ async function run(b, v09, w, h, doItems) {
       ({ p, errors } = await openPage(ctx, BASE, v09));
       await p.waitForSelector('#stkl-btn', { state: 'attached', timeout: 20000 }).catch(() => {});
       await sleep(500);
+      // maximize needs a 2-chart layout to show what it does
+      if (/^Maximize/.test(l)) { await p.evaluate(() => window.STRYKER_CHART_UI.setLayout('2v')); await settle(p); }
       const ok = await tapRow(p, l);
       await sleep(900);
       const fn = EXPECT[l] || EXPECT[l.replace(/^Layout:.*/, 'Layout')];
@@ -147,6 +150,7 @@ async function run(b, v09, w, h, doItems) {
       const listGone = await p.evaluate(() => { const m = document.getElementById('stkc-more-pop'); return m.hidden || m.classList.contains('stkc-ob-sub'); });
       await p.screenshot({ path: path.join(OUT, key + '-item-' + l.replace(/[^a-z0-9]+/gi, '_') + '.png') });
       check(ok && res && listGone, key + ': ⋯ "' + l + '" opens what it says', { ok, res, listGone });
+      if (/^Maximize/.test(l)) await p.evaluate(() => { window.STRYKER_VELA.maximizeCell(null); window.STRYKER_CHART_UI.setLayout('1'); });
       if (/full screen/i.test(l)) await p.evaluate(() => { try { localStorage.removeItem('stk_chart_fs'); } catch (e) {} });
     }
   }

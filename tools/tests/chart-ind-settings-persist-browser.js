@@ -398,7 +398,10 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
       if (await tap(p, F.handle, null, 'bottom nav handle open')) {
         await sleep(800);
         await verify(p, '5a bottom nav shown');
-        await tap(p, F.handle, null, 'bottom nav handle close');
+        check(await p.evaluate(() => document.documentElement.classList.contains('stk-cps-nav')), '5 bottom nav shown by the handle');
+        // shown: the dock covers the handle; a tap on the chart hides it again (chart-phone-space.js)
+        await p.touchscreen.tap(195, 420); await sleep(600);
+        check(await p.evaluate(() => !document.documentElement.classList.contains('stk-cps-nav')), '5 bottom nav hidden by a tap on the chart');
         await sleep(800);
         await verify(p, '5b bottom nav hidden');
       }

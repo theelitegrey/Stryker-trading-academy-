@@ -295,12 +295,13 @@ function cryptoFlow(ctxLike, root, tf) {
 }
 
 // ---------------------------------------------------------------- footprint chart type
-const FP_DEF = { fpMode: 'bidask', fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
+const FP_DEF = { fpMode: 'bidask', fpScale: 'range', fpImb: 300, fpStack: 3, fpRows: 0, fpStats: true, fpPoc: true, fpUnfinished: true };
 const fpSettings = new Map();      // chart engine -> settings
 function fpConfig(v) {
   v = v || {};
   return {
-    mode: ['bidask', 'delta', 'volume'].includes(v.fpMode) ? v.fpMode : 'bidask',
+    mode: ['bidask', 'delta', 'volume', 'ladder'].includes(v.fpMode) ? v.fpMode : 'bidask',
+    scale: v.fpScale === 'bar' ? 'bar' : 'range',
     imb: clamp(num(v.fpImb, 300), 110, 2000) / 100,
     stack: clamp(Math.round(num(v.fpStack, 3)), 2, 10),
     rows: clamp(Math.round(num(v.fpRows, 0)), 0, 400),
@@ -402,6 +403,14 @@ function footprintLayer() {
       const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
       const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';
+      const ladW = Math.max(0, bw * 0.92 / 2 - 7);   // room right of the candle inside this bar's slot
+      let gmax = 1;
+      if (cfg.mode === 'ladder' && cfg.scale !== 'bar') {
+        for (let i = i0; i <= i1; i++) {
+          const fb = f.map.get(a.bars[i].time); if (!fb) continue;
+          for (const r of rowsOf(fb, m).rs) { const q = Math.abs(r.buy - r.sell); if (q > gmax) gmax = q; }
+        }
+      }
       for (let i = i0; i <= i1; i++) {
         const bar = a.bars[i], fb = f.map.get(bar.time);
         if (!fb) continue;
@@ -412,13 +421,40 @@ function footprintLayer() {
         for (const r of rs) { const v = r.buy + r.sell; if (v > max) max = v; }
         const imb = imbalances(rs, cfg.imb);
         const st = stacked(imb, cfg.stack);
-        const showText = rowPx >= 11 && bw >= 44;
+        const lad = cfg.mode === 'ladder';
+        const showText = lad ? rowPx >= 11 && ladW >= fs * 1.3 : rowPx >= 11 && bw >= 44;
+        let dmax = lad ? gmax : 1;
+        if (lad && cfg.scale === 'bar') { dmax = 1; for (const r of rs) { const q = Math.abs(r.buy - r.sell); if (q > dmax) dmax = q; } }
+        if (lad) {
+          // thin candle on the left (real OHLC), ladder of per-level deltas on its right
+          const up = bar.close >= bar.open, cc = up ? UP : DN;
+          const yH = co.priceToY(bar.high, a.scale, a.bounds), yL = co.priceToY(bar.low, a.scale, a.bounds);
+          const yO = co.priceToY(bar.open, a.scale, a.bounds), yC = co.priceToY(bar.close, a.scale, a.bounds);
+          const cw = bw >= 30 ? 5 : 3;
+          g.fillStyle = cc; g.fillRect(Math.round(x), Math.min(yH, yL), 1, Math.max(1, Math.abs(yL - yH)));
+          g.fillRect(Math.round(x - cw / 2 + 0.5), Math.min(yO, yC), cw, Math.max(1.5, Math.abs(yC - yO)));
+        }
         for (let k = 0; k < rs.length; k++) {
           const r = rs[k];
           const yT = co.priceToY((r.p + m) * tick, a.scale, a.bounds), yB = co.priceToY(r.p * tick, a.scale, a.bounds);
           const y = Math.min(yT, yB), h = Math.abs(yB - yT);
           if (y > bot || y + h < top) continue;
           const v = r.buy + r.sell, dl = r.buy - r.sell;
+          if (lad) {
+            if (cfg.poc && k === pk) { g.strokeStyle = day ? '#a16207' : POCY; g.lineWidth = 1.2; g.strokeRect(x + 5.5, y + 0.5, ladW, Math.max(1, h - 1)); }
+            if (h < 3) continue;
+            const q = Math.abs(dl);
+            if (q >= 0.25 * dmax && q > 0) {
+              g.fillStyle = alpha(dl >= 0 ? UP : DN, day ? 0.5 : 0.55);
+              g.fillRect(x + 6, y + 0.5, Math.max(2, Math.min(ladW, ladW * q / dmax)), Math.max(1, h - 1));
+            }
+            if (!showText) continue;
+            const txt = (dl < 0 ? '-' : '') + fmt(q);
+            if (txt.length * fs * 0.62 > ladW - 2) continue;
+            g.textAlign = 'left'; g.font = font; g.fillStyle = day ? '#111827' : '#e6e8ee';
+            g.fillText(txt, x + 8, y + h / 2);
+            continue;
+          }
           if (cfg.mode === 'bidask') {
             // plain numbers on the chart background (left = sells hit the bid, right = buys lifted the
             // ask); only a faint tint behind the side that dominated the row. Zoomed out (no numbers):
@@ -455,7 +491,8 @@ function footprintLayer() {
         // stacked imbalances: a bar on the buy (right) or sell (left) edge spanning the run
         for (const sx of st) {
           const yA = co.priceToY((rs[sx.k1].p + m) * tick, a.scale, a.bounds), yZ = co.priceToY(rs[sx.k0].p * tick, a.scale, a.bounds);
-          g.fillStyle = sx.side ? UP : SELL;
+          g.fillStyle = sx.side ? UP : (cfg.mode === 'ladder' ? DN : SELL);
+          if (cfg.mode === 'ladder') { g.fillRect(x + 3, Math.min(yA, yZ), 2, Math.abs(yZ - yA)); continue; }
           g.fillRect(sx.side ? xl + w + 1 : xl - 4, Math.min(yA, yZ), 3, Math.abs(yZ - yA));
         }
         // unfinished auction: both sides traded at the extreme row -> amber tick past the edge
@@ -484,7 +521,7 @@ function footprintLayer() {
       lastMs = performance.now() - t0;
       if (window.__stkFpStats) window.__stkFpStats.push(lastMs);
     },
-    modulateBase(a) { return on && a && a.priceStyle === FP_TYPE ? { candleBodyScale: 0.1, candleBodyAlpha: 0.7 } : null; },
+    modulateBase(a) { return on && a && a.priceStyle === FP_TYPE ? (a.data && a.data.cfg && a.data.cfg.mode === 'ladder' ? { candleBodyScale: 0.1, candleBodyAlpha: 0 } : { candleBodyScale: 0.1, candleBodyAlpha: 0.7 }) : null; },
     destroy() { canvas = null; }
   };
 }
@@ -779,7 +816,8 @@ export function installFootprint(Core, flowMod) {
     settings: {
       title: 'Footprint',
       rows: [
-        { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume']] },
+        { kind: 'select', key: 'fpMode', label: 'Cells show', defval: FP_DEF.fpMode, options: [['bidask', 'Bid x Ask (sell x buy)'], ['delta', 'Delta'], ['volume', 'Volume'], ['ladder', 'Delta ladder (candle + delta bars)']] },
+        { kind: 'select', key: 'fpScale', label: 'Delta ladder bar scale', defval: FP_DEF.fpScale, options: [['range', 'Visible range'], ['bar', 'Per bar']] },
         { kind: 'number', key: 'fpImb', label: 'Imbalance ratio %', defval: FP_DEF.fpImb, min: 110, max: 2000, step: 10 },
         { kind: 'number', key: 'fpStack', label: 'Stacked imbalance rows', defval: FP_DEF.fpStack, min: 2, max: 10, step: 1 },
         { kind: 'number', key: 'fpRows', label: 'Row size in ticks (0 = auto by zoom)', defval: FP_DEF.fpRows, min: 0, max: 400, step: 1 },

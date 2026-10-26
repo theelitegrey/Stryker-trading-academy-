@@ -26,7 +26,8 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const money = (n, sign) => { const v = Number(n) || 0; return (v < 0 ? '-' : (sign && v > 0 ? '+' : '')) + '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
-  const toast = (m, kind) => { if (typeof showToast === 'function') showToast(m, kind); else console.log(kind || 'info', m); };
+  // toast.js is showToast(type, message): the arguments were swapped, so every toast read just "success"
+  const toast = (m, kind) => { if (typeof showToast === 'function') showToast(kind || 'info', m); else console.log(kind || 'info', m); };
   const pref = (k, d) => { try { const v = localStorage.getItem('stryker_replay_' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } };
   const setPref = (k, v) => { try { localStorage.setItem('stryker_replay_' + k, JSON.stringify(v)); } catch (e) { /* private mode */ } };
 

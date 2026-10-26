@@ -39,12 +39,18 @@
 # Caching strategy matches the site's ?v= versioning scheme:
 # - Assets are safe to cache for a year: every change bumps the ?v= query in
 #   the HTML, and a changed query string is a different cache entry.
+#   "immutable" (2026-10-26, phone speed) also stops the browser revalidating
+#   them on a reload; the vendor folders carry their version in the folder name.
+# - Cloudflare Pages JOINS the values of every matching rule, so the four
+#   /assets/ files below that must not be cached first detach the /assets/*
+#   value ("! Cache-Control"), then set their own. Before this, live sent
+#   "public, max-age=31536000, no-store" for version.json.
 # - HTML must revalidate every time, or students sit on stale markup — the
 #   exact problem the stryker-build/version-check system was built to patch
 #   on GitHub Pages, solved properly here.
 
 /assets/*
-  Cache-Control: public, max-age=31536000
+  Cache-Control: public, max-age=31536000, immutable
   X-Content-Type-Options: nosniff
 
 # version.json is the one /assets/ file that must NEVER be cached — it is the
@@ -52,22 +58,26 @@
 # fetch already cache-busts with ?t=, but this keeps the bare URL honest too.
 # Listed after /assets/* so its Cache-Control wins.
 /assets/version.json
+  ! Cache-Control
   Cache-Control: no-store
 
 # The pre-market brief is rewritten every session. A cached copy would show
 # yesterday's plan as today's, which is the one failure this feature exists to
 # avoid, so it revalidates on every request.
 /assets/market-brief.json
+  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
 
 # Same for the cross-asset map, for the same reason: it is dated content
 # living under a path that is otherwise cached for a year.
 /assets/market-map.json
+  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
 
 # And the economic calendar, which goes wrong the fastest of the three: a
 # cached copy would show a release time that has already passed.
 /assets/econ-calendar.json
+  ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
 
 /*.html

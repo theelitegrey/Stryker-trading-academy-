@@ -73,3 +73,4 @@ html.bt-tz #rp-float, html.bt-tz #rp-float select, html.bt-tz #rp-float button, 
   /* full screen: the chart bar + the chart + the dock only */
   html.bt-tzp.stk-chart-fs body.bt-app .dash-main{ height:100dvh; }
 }
+html.bt-tz #stkc-bar .stkw-phonebtn, html.bt-tz #stkc-bar .stknw-phonebtn, html.bt-tz #stkc-bar .stkgl-phonebtn{ display:none !important; }   /* live watchlist / news / GEX ladder: they would swap the symbol of a fixed session */

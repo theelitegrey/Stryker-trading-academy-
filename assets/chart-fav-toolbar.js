@@ -186,8 +186,7 @@ export function mountFavToolbar(ws, Core, opts){
   panel.appendChild(bar);
   // PHONE COLLAPSE (Owner 2026-10-26, "phone chart clutter"): on a phone the bar can fold into one
   // small round button at the left edge of the plot, so it never covers the candles, the Fit price /
-  // Latest buttons or the time axis. It starts folded while bar replay is on (the replay controls
-  // take the bottom of the screen then). Tap the button = open the bar; the × at its end = fold it.
+  // Latest buttons or the time axis. It starts folded (live and replay). Tap the button = open the bar; the × at its end = fold it.
   const xBtn = document.createElement('button');
   xBtn.type = 'button'; xBtn.className = 'stk-fb-x'; xBtn.title = 'Fold the favorites toolbar'; xBtn.setAttribute('aria-label', 'Fold the favorites toolbar');
   xBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -202,7 +201,7 @@ export function mountFavToolbar(ws, Core, opts){
   let foldPref = null;          // null = follow the default (folded in replay on a phone); true / false = the member's tap
   let foldMode = '';            // the default context the member's tap belongs to ('replay' / 'live')
   const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
-  const foldDefault = () => replayOn();
+  const foldDefault = () => true;   // phone: folded by default (live and replay); the tap is remembered per mode
   function folded(){
     if (!isPhone()) return false;
     const mode = replayOn() ? 'replay' : 'live';
@@ -247,8 +246,8 @@ export function mountFavToolbar(ws, Core, opts){
     return { left: (a.w - reserveR() - bw) / 2, top: Math.min(top, Math.max(0, a.h - 46)) };
   }
   // Phone: keep the bottom strip free for the time axis, the Fit price / Latest row (chart-settings.js
-  // .stkc-fl, bottom 62 px + 24 px on a phone) and the GEX status chip (bottom-left, chart-gex-levels.js).
-  const PHONE_BOTTOM = 92;
+  // .stkc-fl, bottom 36 px + 24 px) and the GEX status chip (bottom-left, chart-gex-levels.js).
+  const PHONE_BOTTOM = 66;
   const reserveB = () => (isPhone() ? PHONE_BOTTOM : 0);
   function limits(a){
     const bw = bar.offsetWidth, bh = bar.offsetHeight;

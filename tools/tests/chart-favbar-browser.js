@@ -199,6 +199,10 @@ const shot = async (p, n) => { await p.screenshot({ path: OUT + '/' + n + '.png'
       const ctx = await newCtx(b, { w: 390, h: 844, mobile: true, theme });
       await ctx.addInitScript(() => { try { if (!localStorage.getItem('stryker_chart_favbar')) localStorage.setItem('stryker_chart_favbar', JSON.stringify({ tools: ['fibretracement', 'box', 'position', 'trendline'], x: null, y: null, visible: true })); } catch (e) {} });
       const p = await open(b, ctx);
+      // phone: the bar starts folded into its round button (2026-10-26); a real tap opens it
+      const f0 = await p.evaluate(() => { const f = document.querySelector('.stk-fb-fab'); const bar = document.querySelector('.stk-fb'); return { fab: !!f && !f.hidden, bar: !!bar && !bar.hidden }; });
+      check(f0.fab && !f0.bar, theme + ' 390: folded by default (round button shown, bar hidden)', f0);
+      await p.tap('.stk-fb-fab'); await p.waitForTimeout(250);
       const i = await barInfo(p);
       const axis = await p.evaluate(() => { const c = document.querySelector('#vela-chart .vela-cell'); const g = document.querySelector('#vela-chart .vela-ws-grid').getBoundingClientRect(); const cv = [...c.querySelectorAll('canvas')].map((x) => x.getBoundingClientRect()).sort((a, b) => b.width - a.width)[0]; return Math.round(g.right - 60 - g.left); });
       check(!i.hidden && i.types.length === 4 && i.inside, theme + ' 390: bar shows from localStorage, inside', i.r);

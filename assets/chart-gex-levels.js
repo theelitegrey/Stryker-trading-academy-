@@ -720,6 +720,15 @@ function gexLayer() {
   function paintChip(d, rightPx, bottomPx) {
     const c = ensureChip();
     if (!c) return;
+    // Phone: the chip ends before the Fit price / Latest buttons (same bottom row, chart-settings.js)
+    let maxW = '';
+    if (c.parentElement && c.parentElement.clientWidth < 600) {
+      const host = c.closest('.vela-cell') || c.parentElement.parentElement || c.parentElement;
+      const fl = host && host.querySelector('.stkc-fl');
+      const pr = c.parentElement.getBoundingClientRect();
+      if (fl && fl.getClientRects().length) maxW = Math.max(110, Math.floor(fl.getBoundingClientRect().left - pr.left - 8 - 6)) + 'px';
+    }
+    if (c.style.maxWidth !== maxW) c.style.maxWidth = maxW;
     const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, rightPx, bottomPx]) : '';
     if (k === last) return;
     last = k;

@@ -9268,15 +9268,15 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   .stkr-badge{ height:20px; padding:0 6px; font-size:10px; gap:4px; }
   /* Phone chart clutter (Owner 2026-10-26): the replay controls dock UNDER the plot (the page
      reserves their row) instead of floating over the bottom of the candles, the time axis and the
-     Fit price / Latest buttons. The legend's red replay tag keeps only its dot on a phone (the
-     toolbar already reads REPLAY), so it no longer runs into an indicator's top-right table. */
+     Fit price / Latest buttons. The legend's data tag (red "Replay", "Delayed 10m" ...) keeps only
+     its dot on a phone, so it no longer runs into an indicator's top-right table. */
   html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
   html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
-  .stkc-dd[data-s="replay"] .stkc-dd-t{ display:none; }
-  /* Fit price / Latest sit one row above the GEX status chip (both bottom of the plot): the chip's
-     text ran under them, so a tap there could miss. */
-  .stkc-fl{ bottom:62px; }
-  .stk-fp-stats .stkc-fl{ bottom:auto; }
+  .stkc-dd .stkc-dd-t{ display:none; }   /* every data state: dot only on a phone (tap it for the text) */
+  /* GEX status chip (bottom-left): may wrap to 2 lines; chart-gex-levels.js caps its width so it
+     ends before the Fit price / Latest buttons, which keep their place and stay tappable. */
+  .stk-gex-chip{ white-space:normal; border-radius:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .stk-gex-chip[hidden]{ display:none; }
 }
 
 

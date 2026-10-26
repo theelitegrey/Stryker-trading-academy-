@@ -55,6 +55,7 @@
 })();
 </script>
 <script src="assets/toast.js?v=675" defer></script>
+<script src="assets/tz-form.js?v=675" defer></script>
 <script src="assets/version-check.js?v=675" defer></script>
 <script src="assets/acquisition.js?v=675" defer></script>
 <script src="assets/focus-mode.js?v=675" defer></script>
@@ -372,24 +373,24 @@
       <ul class="rp-ctx" id="rp-ctx" hidden></ul>
     </div>
 
-    <!-- New session dialog -->
-    <div class="rp-modal" id="rp-setup-modal" hidden><div class="rp-modal-card rp-modal-wide">
+    <!-- New session dialog (shared .tz-* form system; bottom sheet on a phone) -->
+    <div class="rp-modal tz-modal-sheet" id="rp-setup-modal" hidden><div class="rp-modal-card rp-modal-wide tz-sheet" role="dialog" aria-modal="true" aria-labelledby="rp-setup-title">
       <section id="rp-setup" class="rp-setup">
-        <div class="rp-setup-head"><h2>New session</h2><span>Data is pulled once and cached in this browser; progress saves automatically.</span><button type="button" class="rp-modal-x" data-close aria-label="Close">✕</button></div>
-        <div class="rp-setup-grid">
-          <label>Market<select id="rp-symbol"></select></label>
-          <label id="rp-csv-wrap" hidden>CSV file<select id="rp-csv-list"></select><input type="file" id="rp-csv-file" accept=".csv,.txt,.tsv"></label>
-          <label>Replay starts on<input type="date" id="rp-start"></label>
-          <label>Data window<select id="rp-days"><option value="7">1 week</option><option value="14" selected>2 weeks</option><option value="30">1 month</option><option value="60">2 months</option><option value="90">3 months</option><option value="180">6 months</option><option value="365">1 year</option></select></label>
-          <label>Starting balance ($)<input type="number" id="rp-balance" value="100000" min="100" step="100"></label>
-          <label>Session name<input type="text" id="rp-name" placeholder="NQ · NY open practice" maxlength="60"></label>
-          <label>Chart timezone<select id="rp-tz"><option value="America/New_York" selected>New York (ET)</option><option value="Europe/London">London</option><option value="UTC">UTC</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Singapore">Singapore</option></select></label>
-          <label>Commission ($) <small id="rp-commission-unit"></small><input type="number" id="rp-commission" value="0" min="0" step="0.05"></label>
-          <label>Slippage (ticks)<input type="number" id="rp-slippage" value="0" min="0" step="1"></label>
+        <div class="rp-setup-head tz-sheet-head"><h2 id="rp-setup-title">New session</h2><p>Data loads once and is saved in this browser. Progress saves automatically.</p><button type="button" class="rp-modal-x tz-x" data-close aria-label="Close">✕</button></div>
+        <div class="rp-setup-grid tz-grid">
+          <label class="tz-field"><span class="tz-label">Market</span><select class="tz-select" id="rp-symbol"></select></label>
+          <label class="tz-field rp-csv-field" id="rp-csv-wrap" hidden><span class="tz-label">CSV file</span><select class="tz-select" id="rp-csv-list"></select><input class="tz-file" type="file" id="rp-csv-file" accept=".csv,.txt,.tsv"></label>
+          <label class="tz-field"><span class="tz-label">Replay starts on</span><input class="tz-date" type="date" id="rp-start"></label>
+          <label class="tz-field"><span class="tz-label">Data window</span><select class="tz-select" id="rp-days"><option value="7">1 week</option><option value="14" selected>2 weeks</option><option value="30">1 month</option><option value="60">2 months</option><option value="90">3 months</option><option value="180">6 months</option><option value="365">1 year</option></select></label>
+          <label class="tz-field"><span class="tz-label">Chart timezone</span><select class="tz-select" id="rp-tz"><option value="America/New_York" selected>New York (ET)</option><option value="Europe/London">London</option><option value="UTC">UTC</option><option value="Asia/Kolkata">India (IST)</option><option value="Asia/Singapore">Singapore</option></select></label>
+          <label class="tz-field"><span class="tz-label">Session name</span><input class="tz-input" type="text" id="rp-name" placeholder="NQ · NY open practice" maxlength="60"></label>
+          <label class="tz-field"><span class="tz-label">Starting balance</span><span class="tz-affix"><span class="tz-pre">$</span><input class="tz-input" type="text" id="rp-balance" value="100,000" inputmode="decimal" autocomplete="off" data-tz-thousands data-min="100"></span></label>
+          <label class="tz-field"><span class="tz-label">Commission</span><span class="tz-affix"><span class="tz-pre">$</span><input class="tz-input" type="number" id="rp-commission" value="0" min="0" step="0.05" inputmode="decimal"></span><small class="tz-help" id="rp-commission-unit"></small></label>
+          <label class="tz-field"><span class="tz-label">Slippage</span><span class="tz-affix"><input class="tz-input" type="number" id="rp-slippage" value="0" min="0" step="1" inputmode="numeric"><span class="tz-suf">ticks</span></span></label>
         </div>
-        <p class="rp-note" id="rp-datanote"></p>
-        <details class="rp-adv"><summary>Coach settings</summary><div class="rp-adv-grid"><label>Playbook <small>rules become the pre-trade checklist, and results feed the Playbook tab</small><select id="rp-playbook"><option value="">No playbook</option></select></label><label class="rp-check"><input type="checkbox" id="rp-opt-nudges" checked> Live nudges while trading</label><label class="rp-check"><input type="checkbox" id="rp-opt-checklist"> Pre-trade checklist before every order</label><label>Checklist items (one per line)<textarea id="rp-checklist-items" rows="5"></textarea></label></div></details>
-        <div class="rp-setup-actions"><button type="button" class="btn btn-primary" id="rp-start-btn">Start replay</button><span class="rp-progress" id="rp-progress"></span></div>
+        <p class="rp-note tz-note" id="rp-datanote"></p>
+        <details class="rp-adv tz-disclosure"><summary>Coach settings</summary><div class="rp-adv-grid tz-disclosure-body"><label class="tz-field"><span class="tz-label">Playbook</span><select class="tz-select" id="rp-playbook"><option value="">No playbook</option></select><small class="tz-help">Rules become the pre-trade checklist, and results feed the Playbook tab.</small></label><label class="rp-check tz-checkrow"><input class="tz-switch" type="checkbox" id="rp-opt-nudges" checked> Live nudges while trading</label><label class="rp-check tz-checkrow"><input class="tz-switch" type="checkbox" id="rp-opt-checklist"> Pre-trade checklist before every order</label><label class="tz-field"><span class="tz-label">Checklist items (one per line)</span><textarea class="tz-textarea" id="rp-checklist-items" rows="5"></textarea></label></div></details>
+        <div class="rp-setup-actions tz-actions"><span class="rp-progress tz-actions-info" id="rp-progress"></span><button type="button" class="btn btn-secondary" id="rp-setup-cancel">Cancel</button><button type="button" class="btn btn-primary" id="rp-start-btn">Start replay</button></div>
       </section>
     </div></div>
     <div class="rp-modal" id="rp-modal" hidden><div class="rp-modal-card"></div></div>

@@ -47,7 +47,7 @@
     if (spec.src === 'binance') note.textContent = 'Binance public data · ' + D.binanceInterval(days) + ' candles for ' + days + ' days. Full history available.';
     else if (spec.src === 'yahoo') { const iv = D.yahooInterval(startMs - 2 * 86400000); note.textContent = 'Yahoo Finance · finest resolution for that start date is ' + iv + (iv === '1m' ? ' (last 30 days only)' : iv === '5m' ? ' (last 60 days only)' : iv === '1h' ? ' (last 2 years)' : ' (daily)') + '. For 1-minute history further back, import a CSV export.'; }
     else note.textContent = 'Your own candles, parsed in this browser. TradingView, MT4 and MT5 exports work (time, open, high, low, close, volume).';
-    $('rp-commission').value = spec.commission; $('rp-commission-unit').textContent = 'per ' + (spec.unit || 'unit') + ' per side';
+    $('rp-commission').value = spec.commission; $('rp-commission-unit').textContent = 'per ' + String(spec.unit || 'unit').replace(/s$/, '') + ', per side';
   }
   async function refreshCsvList() { const list = await D.store.listCsv(); const sel = $('rp-csv-list'); sel.innerHTML = list.length ? list.map((c) => '<option value="' + esc(c.name) + '">' + esc(c.name) + ' · ' + c.bars.toLocaleString() + ' bars · ' + esc(c.baseTf) + '</option>').join('') : '<option value="">No files yet — choose one below</option>'; }
   async function onCsvFile(e) {
@@ -68,7 +68,7 @@
     const spec = D.findSymbol($('rp-symbol').value); if (!spec) return;
     if (typeof window.strykerReplayLimitOk === 'function' && !(await window.strykerReplayLimitOk(D))) return;
     const startMs = Date.parse($('rp-start').value + 'T00:00:00Z'); if (!isFinite(startMs)) { toast('Pick a start date', 'error'); return; }
-    const days = Number($('rp-days').value) || 14; const balance = Number($('rp-balance').value) || 100000; const csvName = spec.src === 'csv' ? $('rp-csv-list').value : null;
+    const days = Number($('rp-days').value) || 14; const balance = Number(String($('rp-balance').value).replace(/[,\s$]/g, '')) || 100000; const csvName = spec.src === 'csv' ? $('rp-csv-list').value : null;
     if (spec.src === 'csv' && !csvName) { toast('Choose a CSV file first', 'error'); return; }
     setPref('symbol', spec.id); setPref('checklistItems', $('rp-checklist-items').value); setPref('checklistOn', $('rp-opt-checklist').checked); setPref('nudgesOn', $('rp-opt-nudges').checked);
     const pbSel = $('rp-playbook'); const pb = pbSel ? findPlaybook(pbSel.value) : null; setPref('playbookId', pb ? pb.id : '');
@@ -519,7 +519,7 @@
     });
     window.addEventListener('beforeunload', () => { if (RP.session) saveSession(); });
     new MutationObserver(() => { const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; if (RP.chart) RP.chart.setOptions({ theme }); if (RP.htf) RP.htf.setOptions({ theme }); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    $('rp-new-btn').addEventListener('click', openSetup); $('rp-hero-btn').addEventListener('click', openSetup); $('rp-setup-modal').querySelector('[data-close]').addEventListener('click', closeSetup); $('rp-setup-modal').addEventListener('click', (e) => { if (e.target === $('rp-setup-modal')) closeSetup(); });
+    $('rp-new-btn').addEventListener('click', openSetup); $('rp-hero-btn').addEventListener('click', openSetup); $('rp-setup-modal').querySelector('[data-close]').addEventListener('click', closeSetup); $('rp-setup-cancel').addEventListener('click', closeSetup); $('rp-setup-modal').addEventListener('click', (e) => { if (e.target === $('rp-setup-modal')) closeSetup(); });
     document.querySelectorAll('#rp-drawerbtns [data-d]').forEach((b) => b.addEventListener('click', () => setDrawer(b.classList.contains('is-on') ? null : b.dataset.d)));
     $('rp-objtree').addEventListener('click', onObjectsClick);
     $('rp-sheet-toggle').addEventListener('click', () => { const open = $('rp-sheet').classList.toggle('is-open'); $('rp-sheet-toggle').classList.toggle('is-on', open); if (open) { renderEquity(); $('rp-sheet').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } });

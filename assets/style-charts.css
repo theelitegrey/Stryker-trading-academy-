@@ -3094,3 +3094,14 @@ html.stk-chart-fs body.charts-page .stkcps-handle,
 html.stk-chart-fs body.charts-page .appnav-pills{ display:none !important; }
 html.stk-chart-fs body.charts-page .dash-shell{ grid-template-columns:minmax(0,1fr); }
 html.stk-chart-fs body.charts-page{ padding:0 !important; }
+:root{
+  --tz-h:44px; --tz-r:10px; --tz-surface:#131316; --tz-line:var(--line); --tz-ink:#fff;
+  --tz-ph:var(--ink-3); --tz-ring:0 0 0 3px rgba(3,201,136,.22); --tz-focus:var(--gold);
+  --tz-sheet:#0e0e11;
+  --tz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238b93a0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"]{
+  --tz-surface:#ffffff; --tz-ink:var(--ink-0); --tz-ring:0 0 0 3px rgba(7,153,106,.2); --tz-sheet:var(--bg-1);
+  --tz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2357626f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root:has(.tz-modal-sheet:not([hidden])) body{ overflow:hidden; }

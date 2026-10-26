@@ -6952,21 +6952,8 @@ section.bt-view, section#rp-home, section#rp-work{ padding:0; }
 .rp-sess-stats{ text-align:right; font-family:var(--font-mono); font-size:13px; } .rp-sess-actions{ display:flex; gap:8px; align-items:center; }
 .rp-empty{ font-size:12px; color:var(--ink-3); margin:8px 0; }
 .rp-fine{ font-size:11px; color:var(--ink-3); line-height:1.6; margin:14px 0 0; } .rp-fine a{ color:var(--ink-2); }
-/* setup dialog */
-.rp-setup-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:16px; }
-.rp-setup-head h2{ font-size:18px; margin:0; color:var(--ink-0); letter-spacing:-.01em; } .rp-setup-head span{ font-size:12px; color:var(--ink-3); flex:1; }
+/* setup dialog: moved to the shared .tz-* form system (end of file) */
 .rp-modal-x{ border:0; background:var(--bg-3); color:var(--ink-2); width:30px; height:30px; border-radius:50%; cursor:pointer; }
-.rp-setup-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:12px 16px; }
-.rp-setup-grid label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--ink-2); font-weight:500; letter-spacing:.02em; }
-.rp-setup-grid label small{ color:var(--ink-3); font-weight:400; } .rp-setup-grid label[hidden]{ display:none; }
-.rp-setup-grid input, .rp-setup-grid select{ width:100%; padding:9px 12px; font-size:13px; border-radius:10px; }
-.rp-setup-grid input[type=file]{ font-size:12px; padding:6px 0; border:0; background:transparent; color:var(--ink-2); }
-.rp-note{ font-size:12px; color:var(--ink-2); margin:12px 0 0; line-height:1.6; }
-.rp-adv{ margin-top:14px; border:1px solid var(--line-soft); border-radius:var(--bt-r-sm); padding:10px 14px; }
-.rp-adv summary{ cursor:pointer; font-size:12.5px; font-weight:600; color:var(--ink-1); }
-.rp-adv-grid{ display:grid; gap:10px; margin-top:12px; } .rp-adv-grid label{ font-size:12.5px; color:var(--ink-2); display:flex; flex-direction:column; gap:6px; } .rp-adv-grid textarea{ width:100%; font:12.5px var(--font-body); padding:8px 10px; border-radius:10px; }
-.rp-check{ flex-direction:row !important; align-items:center; gap:8px !important; }
-.rp-setup-actions{ display:flex; align-items:center; gap:14px; margin-top:18px; }
 .rp-progress{ font-family:var(--font-mono); font-size:12px; color:var(--gold); }
 
 /* ---- replay: workspace ---- */
@@ -10154,3 +10141,144 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 }
 @media (max-width:380px){ html.bt-ui2 .rpw-top .bt2-ib{ width:34px; } html.bt-ui2 #rp-float .rp-stepbtn{ padding:0 9px; } }
 @media (prefers-reduced-motion: reduce){ html.bt-ui2 .bta-rail, html.bt-ui2 #appnav-dock{ transition:none; } }
+
+/* ==========================================================================
+   SHARED FORM SYSTEM (.tz-*) — Owner 2026-10-26 "form controls sweep".
+   One look for every form control on the site: themed surface, 1 px line,
+   mint focus ring, one 44 px height, one radius, the site font. No white or
+   grey browser boxes on the dark theme. Day theme flips through the tokens.
+     .tz-field   label wrapper (column): .tz-label text, control, .tz-help under it
+     .tz-input / .tz-select / .tz-date / .tz-textarea / .tz-file
+     .tz-affix   wrapper giving an input a "$" prefix (.tz-pre) or "ticks" suffix (.tz-suf)
+     .tz-check (checkbox) · .tz-switch (checkbox drawn as a toggle) · .tz-radio
+     .tz-seg     segmented buttons · .tz-stepper  − [input] + group
+     .tz-disclosure  <details> as a styled expandable row with a chevron
+     .tz-note    small muted info line with an (i) icon
+     .tz-actions dialog footer: secondary + primary, right-aligned (full width on phone)
+     .tz-sheet   dialog card that becomes a bottom sheet on a phone
+   Behaviour (thousands separators, steppers, keyboard-safe sheets) lives in
+   assets/tz-form.js. Never changes ids, names or validation attributes.
+   ========================================================================== */
+:root{
+  --tz-h:44px; --tz-r:10px; --tz-surface:#131316; --tz-line:var(--line); --tz-ink:#fff;
+  --tz-ph:var(--ink-3); --tz-ring:0 0 0 3px rgba(3,201,136,.22); --tz-focus:var(--gold);
+  --tz-sheet:#0e0e11;
+  --tz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%238b93a0' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-theme="light"]{
+  --tz-surface:#ffffff; --tz-ink:var(--ink-0); --tz-ring:0 0 0 3px rgba(7,153,106,.2); --tz-sheet:var(--bg-1);
+  --tz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2357626f' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.tz-field{ display:flex; flex-direction:column; gap:6px; min-width:0; margin:0; font-size:12.5px; font-weight:600; color:var(--ink-2); letter-spacing:.01em; }
+.tz-field[hidden]{ display:none !important; }
+.tz-label{ display:block; font-size:12.5px; font-weight:600; color:var(--ink-2); line-height:1.3; }
+.tz-help{ display:block; font-size:11.5px; font-weight:400; color:var(--ink-3); line-height:1.4; letter-spacing:0; }
+.tz-help:empty{ display:none; }
+.tz-input, .tz-select, .tz-date, .tz-textarea, .tz-file{
+  -webkit-appearance:none; appearance:none; box-sizing:border-box; width:100%; min-width:0; margin:0;
+  height:var(--tz-h); padding:0 14px; border:1px solid var(--tz-line); border-radius:var(--tz-r);
+  background-color:var(--tz-surface); color:var(--tz-ink); font-family:var(--font-body); font-size:14px; font-weight:500;
+  line-height:normal; letter-spacing:0; color-scheme:dark; outline:none; box-shadow:none;
+  transition:border-color .15s ease, box-shadow .15s ease;
+}
+:root[data-theme="light"] .tz-input, :root[data-theme="light"] .tz-select, :root[data-theme="light"] .tz-date,
+:root[data-theme="light"] .tz-textarea, :root[data-theme="light"] .tz-file{ color-scheme:light; }
+.tz-input::placeholder, .tz-textarea::placeholder{ color:var(--tz-ph); opacity:1; }
+.tz-input:hover, .tz-select:hover, .tz-date:hover, .tz-textarea:hover{ border-color:var(--ink-3); }
+.tz-input:focus, .tz-select:focus, .tz-date:focus, .tz-textarea:focus, .tz-file:focus-within{ border-color:var(--tz-focus); box-shadow:var(--tz-ring); }
+.tz-input:disabled, .tz-select:disabled, .tz-date:disabled, .tz-textarea:disabled{ opacity:.55; cursor:not-allowed; }
+.tz-input[type=number]{ -moz-appearance:textfield; }
+.tz-input[type=number]::-webkit-inner-spin-button, .tz-input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+.tz-select{ padding-right:38px; cursor:pointer; background-image:var(--tz-chev); background-repeat:no-repeat; background-position:right 14px center; text-overflow:ellipsis; }
+.tz-select option, .tz-select optgroup{ background:var(--tz-surface); color:var(--tz-ink); }
+.tz-date{ cursor:text; }
+.tz-date::-webkit-calendar-picker-indicator{ cursor:pointer; opacity:.8; filter:invert(.85); padding:4px; margin-right:-4px; border-radius:6px; }
+:root[data-theme="light"] .tz-date::-webkit-calendar-picker-indicator{ filter:none; }
+.tz-date::-webkit-calendar-picker-indicator:hover{ opacity:1; background:rgba(255,255,255,.06); }
+.tz-date::-webkit-datetime-edit{ padding:0; }
+.tz-textarea{ height:auto; min-height:96px; padding:11px 14px; line-height:1.5; resize:vertical; }
+.tz-file{ display:flex; align-items:center; padding:0 6px; font-size:13px; color:var(--ink-2); cursor:pointer; }
+.tz-file::file-selector-button{ height:32px; margin:0 12px 0 0; padding:0 14px; border:1px solid var(--line); border-radius:8px; background:var(--bg-3); color:var(--ink-0); font:600 13px var(--font-body); cursor:pointer; }
+.tz-file::file-selector-button:hover{ border-color:var(--gold-dim); }
+/* prefix / suffix inside the field */
+.tz-affix{ position:relative; display:block; min-width:0; }
+.tz-affix > .tz-pre, .tz-affix > .tz-suf{ position:absolute; top:0; bottom:0; display:flex; align-items:center; pointer-events:none; color:var(--ink-2); font-size:14px; font-weight:500; }
+.tz-affix > .tz-pre{ left:14px; } .tz-affix > .tz-suf{ right:14px; font-size:13px; }
+.tz-affix > .tz-pre ~ .tz-input{ padding-left:28px; }
+.tz-affix > .tz-suf ~ .tz-input, .tz-affix > .tz-input:has(~ .tz-suf){ padding-right:56px; }
+/* stepper: − [input] + */
+.tz-stepper{ display:flex; align-items:stretch; height:var(--tz-h); border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); overflow:hidden; }
+.tz-stepper:focus-within{ border-color:var(--tz-focus); box-shadow:var(--tz-ring); }
+.tz-stepper .tz-input{ border:0; border-radius:0; height:100%; text-align:center; box-shadow:none !important; flex:1; }
+.tz-stepper > button{ -webkit-appearance:none; appearance:none; flex:0 0 40px; border:0; background:transparent; color:var(--ink-1); font:600 18px var(--font-body); cursor:pointer; }
+.tz-stepper > button:hover{ background:var(--bg-3); color:var(--ink-0); }
+/* checkbox / radio / switch */
+.tz-check, .tz-radio{ -webkit-appearance:none; appearance:none; flex:0 0 auto; width:18px; height:18px; margin:0; border:1.5px solid var(--ink-3); border-radius:5px; background:var(--tz-surface) center/12px no-repeat; cursor:pointer; vertical-align:middle; transition:background-color .15s, border-color .15s; }
+.tz-radio{ border-radius:50%; }
+.tz-check:checked{ background-color:var(--gold); border-color:var(--gold); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.4 2.4 4.6-5' fill='none' stroke='%23062a1d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.tz-radio:checked{ border-color:var(--gold); background-image:radial-gradient(circle, var(--gold) 0 4px, transparent 4.5px); }
+.tz-switch{ -webkit-appearance:none; appearance:none; flex:0 0 auto; position:relative; width:38px; height:22px; margin:0; border-radius:999px; border:1px solid var(--line); background:var(--bg-3); cursor:pointer; transition:background-color .18s, border-color .18s; vertical-align:middle; }
+.tz-switch::before{ content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--ink-2); transition:transform .18s, background-color .18s; }
+.tz-switch:checked{ background:rgba(3,201,136,.25); border-color:var(--gold-dim); }
+.tz-switch:checked::before{ transform:translateX(16px); background:var(--gold); }
+.tz-check:focus-visible, .tz-radio:focus-visible, .tz-switch:focus-visible{ outline:none; box-shadow:var(--tz-ring); }
+.tz-checkrow{ display:flex; align-items:center; gap:12px; min-height:var(--tz-h); padding:0 14px; border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); color:var(--ink-1); font-size:13.5px; font-weight:500; cursor:pointer; }
+.tz-checkrow > .tz-switch{ margin-left:auto; order:2; }
+/* segmented */
+.tz-seg{ display:inline-flex; gap:2px; padding:3px; height:var(--tz-h); border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); }
+.tz-seg > button, .tz-seg > label{ -webkit-appearance:none; appearance:none; flex:1; display:flex; align-items:center; justify-content:center; padding:0 14px; border:0; border-radius:7px; background:transparent; color:var(--ink-2); font:600 13px var(--font-body); cursor:pointer; }
+.tz-seg > .is-on, .tz-seg > button[aria-pressed="true"], .tz-seg > label:has(input:checked){ background:var(--bg-3); color:var(--ink-0); }
+.tz-seg input{ position:absolute; opacity:0; pointer-events:none; }
+/* disclosure row */
+.tz-disclosure{ border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); overflow:hidden; }
+.tz-disclosure > summary{ list-style:none; display:flex; align-items:center; gap:10px; min-height:var(--tz-h); padding:0 14px; cursor:pointer; color:var(--ink-0); font-size:13.5px; font-weight:600; user-select:none; }
+.tz-disclosure > summary::-webkit-details-marker{ display:none; }
+.tz-disclosure > summary::marker{ content:""; }
+.tz-disclosure > summary::after{ content:""; margin-left:auto; width:12px; height:8px; background:var(--tz-chev) center/12px 8px no-repeat; transition:transform .18s ease; }
+.tz-disclosure[open] > summary::after{ transform:rotate(180deg); }
+.tz-disclosure > summary:hover{ background:var(--bg-3); }
+.tz-disclosure > summary:focus-visible{ outline:none; box-shadow:inset var(--tz-ring); }
+.tz-disclosure > summary .tz-help{ font-weight:400; }
+.tz-disclosure-body{ padding:4px 14px 14px; display:grid; gap:12px; }
+/* info note */
+.tz-note{ display:flex; align-items:flex-start; gap:8px; margin:0; font-size:12px; line-height:1.5; color:var(--ink-3); }
+.tz-note::before{ content:""; flex:0 0 14px; height:14px; margin-top:2px; background:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M8 7.2v4' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.9' r='1' fill='black'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6.6' fill='none' stroke='black' stroke-width='1.5'/%3E%3Cpath d='M8 7.2v4' stroke='black' stroke-width='1.6' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.9' r='1' fill='black'/%3E%3C/svg%3E") center/contain no-repeat; }
+.tz-note:empty{ display:none; }
+/* grid that keeps every control in a row on one line */
+.tz-grid{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px 14px; align-items:start; }
+@media (max-width:900px){ .tz-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+@media (max-width:560px){ .tz-grid{ grid-template-columns:minmax(0,1fr); } }
+/* dialog footer */
+.tz-actions{ display:flex; align-items:center; justify-content:flex-end; gap:10px; }
+.tz-actions .tz-actions-info{ margin-right:auto; min-width:0; }
+.tz-actions .btn{ height:var(--tz-h); padding:0 22px; }
+/* dialog card + phone bottom sheet */
+.tz-sheet{ background:var(--tz-sheet); }
+.tz-sheet-head{ display:grid; grid-template-columns:1fr auto; gap:4px 16px; align-items:start; margin:0 0 20px; }
+.tz-sheet-head h2, .tz-sheet-head h3{ margin:0; font-size:19px; line-height:1.25; color:var(--ink-0); letter-spacing:-.01em; }
+.tz-sheet-head p{ grid-column:1; margin:0; font-size:13px; line-height:1.45; color:var(--ink-2); }
+.tz-sheet-head .tz-x{ grid-column:2; grid-row:1 / span 2; }
+.tz-x{ -webkit-appearance:none; appearance:none; display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--ink-2); font-size:14px; cursor:pointer; }
+.tz-x:hover{ color:var(--ink-0); border-color:var(--ink-3); background:var(--bg-3); }
+.tz-x:focus-visible{ outline:none; box-shadow:var(--tz-ring); }
+@media (max-width:640px){
+  .tz-input, .tz-select, .tz-date, .tz-textarea{ font-size:16px; }   /* 16 px stops iOS zooming into the field */
+  .tz-modal-sheet{ align-items:flex-end !important; padding:0 !important; }
+  .tz-modal-sheet > .tz-sheet{ width:100% !important; max-width:none !important; border-radius:20px 20px 0 0 !important; border-bottom:0 !important;
+    max-height:calc(var(--tz-vvh, 100dvh) - 24px) !important; padding:10px 18px 0 !important; overscroll-behavior:contain; scroll-padding-bottom:96px; }
+  .tz-modal-sheet > .tz-sheet::before{ content:""; display:block; width:40px; height:4px; border-radius:2px; background:var(--line); margin:0 auto 12px; }
+  .tz-modal-sheet .tz-actions{ position:sticky; bottom:0; z-index:2; flex-direction:column-reverse; align-items:stretch; gap:8px; margin:16px -18px 0; padding:12px 18px calc(12px + env(safe-area-inset-bottom)); background:var(--tz-sheet); border-top:1px solid var(--line-soft); }
+  .tz-modal-sheet .tz-actions .btn{ width:100%; }
+  .tz-modal-sheet .tz-actions .tz-actions-info{ margin:0; text-align:center; }
+  .tz-modal-sheet .tz-actions .tz-actions-info:empty{ display:none; }
+}
+:root:has(.tz-modal-sheet:not([hidden])) body{ overflow:hidden; }
+
+/* ---- New session dialog (replay.html) on the shared form system ---- */
+#rp-setup{ padding:0; }                       /* the global section{padding:96px 0} made the empty bands */
+.rp-modal-card.tz-sheet{ padding:24px 26px 22px; }
+.rp-setup .tz-grid{ margin:0 0 16px; }
+.rp-setup .tz-note{ margin:0 0 14px; }
+.rp-setup .tz-disclosure{ margin:0 0 20px; }
+.rp-setup .tz-disclosure-body .tz-checkrow{ font-weight:500; }
+@media (min-width:901px){ .rp-setup .tz-grid{ grid-template-columns:minmax(0,1.35fr) repeat(3, minmax(0,1fr)); } }

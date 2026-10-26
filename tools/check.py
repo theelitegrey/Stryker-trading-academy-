@@ -454,8 +454,19 @@ def check_nav_features_menu():
                 fail(f'assets/images/navfx/{fid}-{w}.webp missing (Features menu thumb)')
 
 
+def check_charts_css_subset():
+    """assets/style-charts.css (Charts page) is generated from assets/style.css by
+    tools/build-charts-css.py; it must be rebuilt whenever style.css or a Charts script changes."""
+    import subprocess
+    r = subprocess.run([sys.executable, os.path.join(ROOT, 'tools', 'build-charts-css.py'), '--check'],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        fail('assets/style-charts.css is out of date: run python3 tools/build-charts-css.py ' + (r.stdout + r.stderr).strip()[:200])
+
+
 def main():
     check_nav_features_menu()
+    check_charts_css_subset()
     check_merge_markers()
     check_unversioned_assets()
     version = check_version_consistency()

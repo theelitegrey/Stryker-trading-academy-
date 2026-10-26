@@ -20,7 +20,8 @@ async function run(b, { w, h, mobile, tag }) {
   await p.waitForTimeout(6000);
   const go = async (sym, tf) => { await p.evaluate(([s, t]) => { const a = window.STRYKER_VELA.active; if (s) a.setSymbol(s); a.setTimeframe(t); }, [sym, tf]); await p.waitForTimeout(7000); };
   await go('futures:ES1!', '5');
-  const ok = (m, what) => check(m.bars >= 5.9 && m.gap / m.w >= 0.045, `${tag} ${what}: room ${m.gap}px = ${m.bars} bars = ${(100 * m.gap / m.w).toFixed(1)}% of plot`);
+  // phone (plot < 520 px, Owner 2026-10-26 right gap): a fixed 4 bars; desktop: >= 6 bars and ~5-7% of the plot
+  const ok = (m, what) => check(mobile ? (m.bars >= 3.9 && m.bars <= 4.1) : (m.bars >= 5.9 && m.gap / m.w >= 0.045), `${tag} ${what}: room ${m.gap}px = ${m.bars} bars = ${(100 * m.gap / m.w).toFixed(1)}% of plot`);
   ok(await measure(p), 'ES1! 5m default');
   for (const tf of ['15', '60', '1']) { await go(null, tf); ok(await measure(p), 'after switch to ' + tf); }
   await p.evaluate(() => { const R = window.STRYKER_VELA.chart.renderer.renderer; const v = R.coords.getViewport(); R.applyViewport({ barSpacing: v.barSpacing, rightOffset: -40 }); });

@@ -10337,3 +10337,13 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 .field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; border-radius:5px; }
 .field input[type=radio]{ border-radius:50%; }
 .field .tz-affix > .tz-input{ height:var(--tz-h); }
+
+/* ---- Charts: Vela's checkbox-style switches (Chart settings, indicator settings). The library fills a
+   ticked box with its brightest ink (a white square on the dark theme). Same mint tick box as the
+   shared form system. CSS only; the library's markup and behaviour are untouched. ---- */
+html .vela-switch{ border-radius:5px; border-color:var(--ink-3); background:var(--tz-surface); }
+html .vela-switch:hover{ border-color:var(--ink-2); }
+html .vela-switch[data-checked], html .vela-switch[data-size='sm'][data-checked], html .vela-switch[data-tone='selected'][data-checked]{
+  background:var(--gold); border-color:var(--gold); color:#062a1d;
+}
+html .vela-switch:focus-visible{ outline:none; box-shadow:var(--tz-ring); }

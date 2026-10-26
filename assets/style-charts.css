@@ -3141,3 +3141,9 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
 :root[data-theme="light"] body:not(.charts-page) select:not([multiple]):not([size]){ color-scheme:light; }
 .field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; border-radius:5px; }
 .field input[type=radio]{ border-radius:50%; }
+html .vela-switch{ border-radius:5px; border-color:var(--ink-3); background:var(--tz-surface); }
+html .vela-switch:hover{ border-color:var(--ink-2); }
+html .vela-switch[data-checked], html .vela-switch[data-size='sm'][data-checked], html .vela-switch[data-tone='selected'][data-checked]{
+  background:var(--gold); border-color:var(--gold); color:#062a1d;
+}
+html .vela-switch:focus-visible{ outline:none; box-shadow:var(--tz-ring); }

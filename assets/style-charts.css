@@ -3139,4 +3139,5 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
   padding-right:34px !important; color-scheme:dark; text-overflow:ellipsis; max-width:100%;
 }
 :root[data-theme="light"] body:not(.charts-page) select:not([multiple]):not([size]){ color-scheme:light; }
-.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; }
+.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; border-radius:5px; }
+.field input[type=radio]{ border-radius:50%; }

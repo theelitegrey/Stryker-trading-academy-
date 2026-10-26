@@ -10204,7 +10204,7 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 .tz-affix{ position:relative; display:block; min-width:0; }
 .tz-affix > .tz-pre, .tz-affix > .tz-suf{ position:absolute; top:0; bottom:0; display:flex; align-items:center; pointer-events:none; color:var(--ink-2); font-size:14px; font-weight:500; }
 .tz-affix > .tz-pre{ left:14px; } .tz-affix > .tz-suf{ right:14px; font-size:13px; }
-.tz-affix > .tz-pre ~ .tz-input{ padding-left:28px; }
+.tz-affix > .tz-pre ~ .tz-input{ padding-left:30px !important; }
 .tz-affix > .tz-suf ~ .tz-input, .tz-affix > .tz-input:has(~ .tz-suf){ padding-right:56px; }
 /* stepper: − [input] + */
 .tz-stepper{ display:flex; align-items:stretch; height:var(--tz-h); border:1px solid var(--tz-line); border-radius:var(--tz-r); background:var(--tz-surface); overflow:hidden; }
@@ -10334,5 +10334,6 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 #seo-tabs .journal-tab:hover, #seo-tabs .journal-tab.active{ background:rgba(3,201,136,.1); border-color:var(--gold-dim); color:var(--gold-bright); }
 :root[data-theme="light"] #seo-tabs .journal-tab:hover, :root[data-theme="light"] #seo-tabs .journal-tab.active{ color:var(--gold); }
 /* .field input{width:100%; padding:12px 14px} also hit checkboxes and radios, drawing them as wide boxes */
-.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; }
+.field input[type=checkbox], .field input[type=radio]{ width:18px !important; height:18px; padding:0; flex:0 0 18px; border-radius:5px; }
+.field input[type=radio]{ border-radius:50%; }
 .field .tz-affix > .tz-input{ height:var(--tz-h); }

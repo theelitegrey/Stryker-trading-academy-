@@ -67,7 +67,7 @@ function renderStudentsTable(students){
       '<div class="student-row-body"><div class="student-row-inner">' +
       '<div class="record-stats">' +
         '<div class="record-stat"><span class="rs-label">Plan</span>' +
-          '<select class="student-plan-select" data-uid="' + s.uid + '" style="font-family:var(--font-mono); font-size:12.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--ink-0);">' +
+          '<select class="student-plan-select" data-uid="' + s.uid + '" style="font-family:var(--font-mono); font-size:12.5px; padding:5px 8px; border-radius:6px; border:1px solid var(--line); background-color:var(--bg-2); color:var(--ink-0);">' +
             planOptionsForStudent(s.plan) +
           '</select>' +
         '</div>' +

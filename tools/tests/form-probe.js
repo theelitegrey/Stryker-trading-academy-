@@ -55,6 +55,7 @@ const PROBE = () => {
       if (/date|time|month|week/.test(t) && dark && cs.colorScheme.indexOf('dark') < 0) reasons.push('light picker (color-scheme ' + cs.colorScheme + ')');
     }
     if (reasons.length) out.native.push({ el: sel(el), t, visible: v, reasons });
+    if (v && t === 'select' && el.selectedOptions && el.selectedOptions[0]) { const cv = window.__pcv || (window.__pcv = document.createElement("canvas")); const g = cv.getContext('2d'); g.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily; const tw = g.measureText(el.selectedOptions[0].text).width; const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight); if (tw > room + 2) out.clip.push({ el: sel(el), text: el.selectedOptions[0].text.slice(0, 30), tw: Math.round(tw), room: Math.round(room) }); }
     if (v && ['text', 'email', 'password', 'number', 'search', 'tel', 'url', 'select'].includes(t) && el.scrollWidth > el.clientWidth + 2 && t !== 'select' && !el.value && el.placeholder) out.clip.push({ el: sel(el), sw: el.scrollWidth, cw: el.clientWidth });
   });
   // rows: group visible text-like controls by their nearest grid/flex-row container

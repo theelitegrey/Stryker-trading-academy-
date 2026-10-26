@@ -10324,7 +10324,7 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 :root body:not(.charts-page) select:not([multiple]):not([size]){
   -webkit-appearance:none; appearance:none;
   background-image:var(--tz-chev); background-repeat:no-repeat; background-position:right 12px center; background-size:12px 8px;
-  padding-right:34px; color-scheme:dark;
+  padding-right:34px !important; color-scheme:dark; text-overflow:ellipsis; max-width:100%;
 }
 :root[data-theme="light"] body:not(.charts-page) select:not([multiple]):not([size]){ color-scheme:light; }
 /* SEO admin tabs used .journal-tab, which only exists on the Journal page: they rendered as grey

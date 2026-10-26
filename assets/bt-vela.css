@@ -84,3 +84,11 @@ html.bt-tz #stkc-bar .stkw-phonebtn, html.bt-tz #stkc-bar .stknw-phonebtn, html.
 html.bt-tz #stkc-bar .stkc-menu:has(> #stkc-layout-btn), html.bt-tz #stkc-layout-btn{ display:none !important; }
 /* toasts: at the top of the plot on a phone (never over Sell / qty / Buy); 2.5 s (assets/bt-vela-chart.js) */
 @media (max-width:700px){ html.bt-tz .toast-host{ top:calc(var(--stkc-top, 0px) + 52px) !important; bottom:auto !important; } }
+/* phone top bar = the Charts bar: menu, symbol + timeframe right next to it, then the tools. The layout-name menu
+   ("Unsaved") is not part of the phone bar on Charts and made a gap before the symbol. */
+html.bt-tz #stkc-bar .stkl-menu, html.bt-tz #stkc-bar #stkc-tpl-btn, html.bt-tz #stkc-bar .stkc-menu:has(> #stkc-tpl-btn){ display:none !important; }
+@media (max-width:700px){
+  html.bt-tz #stkc-bar > .stkc-bar-l > #stkc-pine-btn, html.bt-tz #stkc-bar > .stkc-bar-r > #stkc-pine-btn{ display:none !important; }
+  html.bt-tz #stkc-bar .mclock-state, html.bt-tz #stkc-bar .mclock-short, html.bt-tz #stkc-bar .mclock-tiny{ display:none !important; }   /* dot only, like Charts */
+  html.bt-tz #stkc-bar .mclock-pill{ width:24px !important; padding:0 !important; }
+}

@@ -74,9 +74,9 @@
 // conversion is used as before. Session levels (pVAH, ONH ...) are futures prices already and
 // are never shifted.
 
-import { rtHeadersReady } from './rt-access.js?v=672';
-import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=672';
-import { holdWalls, basisSeries, stepsFor, previousWall, lastSessionBasis } from './chart-gex-walls-core.js?v=672';
+import { rtHeadersReady } from './rt-access.js?v=673';
+import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=673';
+import { holdWalls, basisSeries, stepsFor, previousWall, lastSessionBasis } from './chart-gex-walls-core.js?v=673';
 
 const TYPE = 'stk_gex';
 const FLASH = 'stk_gexflash';

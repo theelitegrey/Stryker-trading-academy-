@@ -209,7 +209,8 @@ const shot = async (p, name) => { const f = path.join(OUT, TAG + '-' + name + '.
             for (const [nm, m] of [['load', m0], ['Latest', m2], ['reload', m3]]) check(m.gapBars >= 2.5 && m.gapBars <= 6.05 && m.gapPct <= 9, key + ' ' + nm + ': small right gap (3-6 bars, <= 9% of plot)', m);
             check(m0.axisW <= 60, key + ': price scale column narrowed', m0.axisW);
           } else {
-            for (const [nm, m] of [['load', m0], ['Latest', m2], ['reload', m3]]) check(m.gapBars >= 2.5 && m.gapPct <= 9, key + ' ' + nm + ': right gap', m);
+            // desktop keeps main's rule (>= 6 bars, ~7% of the plot): recorded, and never under 6 bars
+            for (const [nm, m] of [['load', m0], ['Latest', m2], ['reload', m3]]) check(m.gapBars >= 5.9 && m.axisW === 64, key + ' ' + nm + ': desktop right gap unchanged (>= 6 bars, 64 px scale)', m);
           }
         }
         check(!errors.length, key + ': no console errors', errors.slice(0, 3));

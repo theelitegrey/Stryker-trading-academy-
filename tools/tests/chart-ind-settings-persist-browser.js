@@ -179,10 +179,10 @@ function snap(p){
       const m = rec && (rec.__stkRaw || rec.model);
       let iv = {}; try { iv = h.inputValues() || {}; } catch (e) {}
       const cells = [];
-      ((m && m.tables) || []).forEach((tb) => (tb.cells || []).forEach((c) => { if (c && c.text) cells.push(String(c.text)); }));
+      ((m && m.tables) || []).forEach((tb) => (tb.cells || []).flat(2).forEach((c) => { if (c && c.text) cells.push(String(c.text)); }));
       const labels = ((m && m.labels) || []).map((l) => String(l.text || ''));
-      out[t] = { id: h.id, inputs: iv, model: m ? (m.inputValues || null) : null, tables: ((m && m.tables) || []).length,
-        watermark: cells.some((c) => c === 'Liquidity Master [TradeZoro]'), dolTables: cells.some((c) => /draw on liquidity|^DOL|above|below/i.test(c)),
+      out[t] = { id: h.id, inputs: iv, model: m && !(rec && rec.native) ? (m.inputValues || null) : null, tables: ((m && m.tables) || []).length,
+        watermark: cells.some((c) => c === 'Liquidity Master [TradeZoro]'), dolTables: cells.some((c) => /DRAW ON LIQUIDITY/i.test(c)),
         req: labels.filter((x) => /REQ[HL]/.test(x)).length, nLabels: labels.length };
     });
     return out;
@@ -208,6 +208,7 @@ async function verify(p, phase, opts){
     const lm = s[LM];
     if (lm && WANT[LM] && WANT[LM].showMark === false && lm.watermark) bad.push('LM watermark drawn');
     if (lm && WANT[LM] && WANT[LM].reqOn === false && lm.req) bad.push('LM REQH/REQL drawn (' + lm.req + ')');
+    if (lm && WANT[LM] && WANT[LM].dolOn === false && lm.dolTables) bad.push('LM draw-on-liquidity tables drawn');
     if (!bad.length) break;
     await sleep(500);
   }
@@ -240,6 +241,15 @@ function rendererMB(){
   } catch (e) { return -1; }
 }
 const MEM_MAX = Number(process.env.MEM_MAX_MB || 1100);
+async function reloadPage(p, phase){
+  try { await p.evaluate(() => window.STRYKER_VELA.context().stateChanged()); } catch (e) {}
+  await sleep(3000);
+  await p.reload({ waitUntil: 'domcontentloaded' });
+  await ready(p);
+  for (let i = 0; i < 60; i++) { const x = await snap(p); if (x[LM] && x[LM].model && x[TA] && x[TA].model && x[GX]) break; await sleep(1000); }
+  await sleep(3000);
+  return verify(p, phase, { shot: phase.split(' ')[0] });
+}
 const quiet = async (p, ms) => { await sleep(ms || 1500); };
 
 (async () => {
@@ -263,7 +273,8 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
     console.log('INFO before: LM req labels ' + s[LM].req + ', tables ' + s[LM].tables);
 
     // ---- change the settings with real taps ----
-    const lmId = s[LM].id, taId = s[TA].id, gxId = s[GX].id;
+    let lmId = s[LM].id, taId = s[TA].id, gxId = s[GX].id;
+    const ids = async () => { const x = await snap(p); lmId = x[LM].id; taId = x[TA].id; gxId = x[GX].id; };
     await openSettings(p, lmId, 'Liquidity Master');
     for (const k of LM_KEYS) {
       const fid = lmId + '-' + k;
@@ -321,6 +332,7 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
     await sleep(4000);
     await verify(p, '2b after replay exit');
 
+    await reloadPage(p, 'R1 page reload after replay'); await ids();
     // ---- 3. timeframe, symbol ----
     await p.evaluate(() => window.STRYKER_VELA.cell(window.STRYKER_VELA.context().cells[0].id).setTimeframe('15'));
     await sleep(5000);
@@ -332,6 +344,7 @@ const quiet = async (p, ms) => { await sleep(ms || 1500); };
     await sleep(5000);
     await verify(p, '3c back to MNQ1! 5m');
 
+    await reloadPage(p, 'R2 page reload after timeframe / symbol'); await ids();
     // ---- 4. full screen on / off ----
     if (await tap(p, F.fs, null, 'full screen on')) {
       await sleep(1500);

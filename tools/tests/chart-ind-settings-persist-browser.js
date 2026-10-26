@@ -132,11 +132,12 @@ async function legendShown(p){
 }
 async function openSettings(p, id, label){
   await legendShown(p);
-  if (PHONE) await tap(p, F.row, id, label + ' legend row');   // the phone shows the row's buttons on tap
-  else { const b = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [F.row, id]); await p.mouse.move(b.x, b.y); await sleep(300); }
-  if (!(await p.evaluate(([src, a]) => { const el = new Function('a', src)(a); return !!(el && el.getBoundingClientRect().width); }, [F.cog, id]))) {
-    console.log('INFO cog not visible for ' + label + ': ' + JSON.stringify(await p.evaluate((id) => { const ch = window.STRYKER_VELA.context().cells[0].chart; const n = ch.renderer.inputsUI ? ch.renderer : ch.renderer.renderer; const o = []; n.inputsUI.rows.forEach((r, k) => { const rc = r.el.getBoundingClientRect(); o.push([k, Math.round(rc.y), Math.round(rc.width), [...r.el.querySelectorAll('button')].map((b) => (b.getAttribute('aria-label') || '').slice(0, 8) + ':' + Math.round(b.getBoundingClientRect().width)).join(',')]); }); return { want: id, rows: o, fold: (document.querySelector('.vela-ind-fold') || {}).ariaLabel }; }, id)));
-    if (PHONE) { await tap(p, F.row, id, label + ' legend row (again)'); await sleep(400); }
+  const cogShown = () => p.evaluate(([src, a]) => { const el = new Function('a', src)(a); return !!(el && el.getBoundingClientRect().width); }, [F.cog, id]);
+  // the phone shows a row's buttons once the row is tapped (selected); desktop on hover
+  for (let k = 0; k < 4 && !(await cogShown()); k++) {
+    if (PHONE) await tap(p, F.row, id, label + ' legend row' + (k ? ' (tap ' + (k + 1) + ')' : ''));
+    else { const bx = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [F.row, id]); await p.mouse.move(bx.x, bx.y); }
+    await sleep(600);
   }
   await tap(p, F.cog, id, label + ' cog');
   for (let i = 0; i < 20 && !(await dialogOpen(p)); i++) await sleep(250);

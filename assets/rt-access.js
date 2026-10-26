@@ -6,7 +6,7 @@
 // /orderflow + /ticks1s all check a verified Firebase ID token); this module only (1) carries the ID
 // token to those endpoints and (2) tells the UI which mode it is in, so it never opens a stream that
 // would be refused and shows the right data dot. A client "admin" answer is never trusted by a server.
-// "admin" here means "the server grants real-time": since 2026-10-26 that is admins, the demo account AND members
+// "admin" here means "the server grants real-time": since 2026-10-26 that is admins, the demo account, every member on an ACTIVE Pro plan (Owner: "real time automatically for all pro members") AND members
 // the admin switched on (students/{uid}.liveFeed, assets/admin-live-feed.js). /api/chart/rt answers yes for all three,
 // so a liveFeed member gets the stream lane and the same "Real-time data" badge as an admin with no other client change.
 // Switched off: the server closes their stream (4003) and cuts their bars; failed() / rtNoteBars re-ask and drop to poll.

@@ -52,6 +52,7 @@ function renderStudentsTable(students){
     const isStaffUser = (typeof CURRENT_STAFF_UIDS !== 'undefined') && CURRENT_STAFF_UIDS.has(s.uid);
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small', admin: true }) : '';
     const liveOn = s.liveFeed === true;
+    const liveWhyList = liveWhy(s, isAdminUser);
     const card = document.createElement('div');
     // Collapsed by default. Every student's full detail was previously
     // expanded at once, so a list of twenty filled several screens and the
@@ -61,7 +62,7 @@ function renderStudentsTable(students){
     card.className = 'record-card student-row';
     card.innerHTML =
       '<button type="button" class="student-row-head" aria-expanded="false">' +
-        '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + stkEsc(name) + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + (liveOn ? ' <span class="status-tag live-feed-tag">Live data</span>' : '') + '</span><span class="cell-sub">' + stkEsc(s.email || '—') + '</span></div></div>' +
+        '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + stkEsc(name) + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + (liveWhyList.length ? ' <span class="status-tag live-feed-tag" title="Why: ' + liveWhyList.join(', ') + '">Live data · ' + liveWhyList[0] + '</span>' : '') + '</span><span class="cell-sub">' + stkEsc(s.email || '—') + '</span></div></div>' +
         '<svg class="student-row-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
       '</button>' +
       '<div class="student-row-body"><div class="student-row-inner">' +
@@ -80,7 +81,7 @@ function renderStudentsTable(students){
         '<label class="live-feed-switch"><input type="checkbox" role="switch" data-live-feed="' + s.uid + '"' + (liveOn ? ' checked' : '') + '>' +
           '<span class="live-feed-track" aria-hidden="true"></span><span class="live-feed-label">Live chart data</span></label>' +
         '<span class="live-feed-saved" aria-live="polite"></span>' +
-        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveOn ? 'Real-time CME futures on Charts.' : 'Off: futures on Charts are 10 min delayed.'))) + '</span>' +
+        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveWhyList.indexOf('Pro') !== -1 ? 'Live because of the active Pro plan' + (liveOn ? ' (and the switch).' : '; the switch is not needed.') : (liveOn ? 'Real-time CME futures on Charts (switch).' : 'Off: futures on Charts are 10 min delayed.')))) + '</span>' +
       '</div>' +
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
@@ -112,8 +113,9 @@ function renderStudentsTable(students){
           setTimeout(() => { if (saved.textContent === '✓ Saved') saved.textContent = ''; }, 2500);
           if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Real-time CME futures on Charts (takes effect on their next chart load, about 1 min to switch off).' : 'Off: futures on Charts are 10 min delayed (within about 1 min).';
           const tag = card.querySelector('.live-feed-tag');
-          if (want && !tag) { const t = document.createElement('span'); t.className = 'status-tag live-feed-tag'; t.textContent = 'Live data'; const nm = card.querySelector('.cell-name'); nm.appendChild(document.createTextNode(' ')); nm.appendChild(t); }
-          if (!want && tag) tag.remove();
+          const wl = liveWhy(s, isAdminUser);
+          if (tag) { if (wl.length) { tag.textContent = 'Live data · ' + wl[0]; tag.title = 'Why: ' + wl.join(', '); } else tag.remove(); }
+          else if (wl.length) { const t = document.createElement('span'); t.className = 'status-tag live-feed-tag'; t.textContent = 'Live data · ' + wl[0]; t.title = 'Why: ' + wl.join(', '); const nm = card.querySelector('.cell-name'); nm.appendChild(document.createTextNode(' ')); nm.appendChild(t); }
           if (typeof window.__strykerLiveCount === 'function') window.__strykerLiveCount();
         })
         .catch((err) => {
@@ -493,12 +495,25 @@ document.addEventListener('DOMContentLoaded', () => {
     return roles;
   }
 
+  // Why a member gets real-time chart data (mirrors functions/api/chart/_rt.js; the SERVER decides, this only labels).
+  // Pro = a paid plan (rank >= 1) that is not expired/cancelled and not past paidThroughMillis + 3 days grace.
+  function liveWhy(s, isAdminUser){
+    const why = [];
+    if (isAdminUser) why.push('Admin');
+    if (s.demo === true) why.push('Demo');
+    if (s.liveFeed === true) why.push('Switch');
+    const st = s.subscriptionStatus, pt = Number(s.paidThroughMillis) || 0;
+    const paid = typeof rankOf === 'function' && s.plan && rankOf(s.plan) >= 1;
+    if (paid && st !== 'expired' && st !== 'cancelled' && st !== 'canceled' && (s.foundingMember === true || !pt || Date.now() <= pt + 3 * 86400000)) why.push('Pro');
+    return why;
+  }
+
   function applyFilters(){
     const q = (document.getElementById('students-search').value || '').trim().toLowerCase();
     let list = ALL_STUDENTS;
 
     if (CURRENT_ROLE_FILTER === 'live') {
-      list = list.filter(s => s.liveFeed === true);
+      list = list.filter(s => liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)).length > 0);
     } else if (CURRENT_ROLE_FILTER !== 'all') {
       list = list.filter(s => roleOf(s).indexOf(CURRENT_ROLE_FILTER) !== -1);
     }
@@ -518,12 +533,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     liveCount();
   }
-  // "Live data: N users" = members switched on by an admin (students/{uid}.liveFeed === true)
+  // "Live data: N users" = everyone who gets real-time: admin, demo, the admin switch, or an active Pro plan
   function liveCount(){
     const el = document.getElementById('users-live-count');
     if (!el) return;
-    const n = ALL_STUDENTS.filter(s => s.liveFeed === true).length;
-    el.textContent = 'Live data: ' + n + ' user' + (n === 1 ? '' : 's');
+    let n = 0, pro = 0, sw = 0;
+    ALL_STUDENTS.forEach(s => { const w = liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)); if (w.length) n++; if (w.indexOf('Pro') !== -1) pro++; if (w.indexOf('Switch') !== -1) sw++; });
+    el.textContent = 'Live data: ' + n + ' user' + (n === 1 ? '' : 's') + ' (Pro ' + pro + ', switch ' + sw + ')';
   }
   window.__strykerLiveCount = liveCount;
 

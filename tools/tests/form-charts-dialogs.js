@@ -11,7 +11,9 @@ const HOOKS = [['indicators', '.vela-widget-indicators'], ['symbol', '.vela-widg
   ['layouts', '#stkl-btn'], ['replay', '#stkr-btn'], ['alerts', '#stkc-alerts-btn'], ['settings', '#stkc-settings-btn'], ['credits', '#stkc-credits-btn']];
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600', '--disable-dev-shm-usage'] }); const res = {};
-  for (const [w, h, mobile, theme] of [[1440, 900, false, 'night'], [1440, 900, false, 'day'], [390, 844, true, 'night'], [390, 844, true, 'day']]) {
+  const ALL = [[1440, 900, false, 'night'], [1440, 900, false, 'day'], [390, 844, true, 'night'], [390, 844, true, 'day']];
+  const ONLY = process.env.HOOKS ? process.env.HOOKS.split(',') : null;
+  for (const [w, h, mobile, theme] of ALL.filter((c) => !process.env.SIZES || process.env.SIZES.split(',').includes(c[0] + c[3]))) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: mobile, hasTouch: mobile, userAgent: mobile ? 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36' : undefined });
     await ctx.addInitScript(stub);
     await ctx.addInitScript((t) => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); localStorage.setItem('stryker_theme', t); } catch (e) {} }, theme);
@@ -21,7 +23,7 @@ const HOOKS = [['indicators', '.vela-widget-indicators'], ['symbol', '.vela-widg
     await p.goto(BASE + '/charts.html', { waitUntil: 'domcontentloaded' });
     await p.waitForFunction(() => window.__stkHeavyReady && window.STRYKER_VELA && window.STRYKER_CHART_UI, null, { timeout: 40000 }).catch(() => {});
     await p.waitForTimeout(3500);
-    for (const [name, sel] of HOOKS) {
+    for (const [name, sel] of HOOKS.filter((x) => !ONLY || ONLY.includes(x[0]))) {
       const key = name + ' ' + w + ' ' + theme;
       try {
         await p.keyboard.press('Escape'); await p.waitForTimeout(150);

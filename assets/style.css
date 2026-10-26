@@ -10354,3 +10354,4 @@ html .vela-sp-tab{ flex:none; white-space:nowrap; padding:6px 12px; border-radiu
 html .vela-sp-tab[data-active]{ background:rgba(3,201,136,.14); color:var(--gold-bright); box-shadow:inset 0 0 0 1px var(--gold-dim); }
 :root[data-theme="light"] .vela-sp-tab[data-active]{ background:rgba(7,153,106,.1); color:var(--gold); }
 @media (max-width:560px){ .page-access-select{ font-size:13px; } }   /* access-admin: long tier names, full text shows when opened */
+html .vela-sp-tabs{ -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 28px), transparent); padding-right:24px; }

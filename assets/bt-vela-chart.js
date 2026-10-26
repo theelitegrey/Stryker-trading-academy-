@@ -68,7 +68,7 @@
       root.__stkVela090 = velaEngine();
       root.__stkBt = {
         feed: this.feed, tf: velaTf(feedCtx.tf ? feedCtx.tf() : '5m'),
-        install: async (Core) => { const m = await import('/assets/chart-bt-orders.js' + V); this.orders = m.installBtOrders(Core, { fmt: (p) => this.fmt(p), tick: () => this.opts.tick, onDrag: (l, p) => this.onLineDrag && this.onLineDrag(l, p), onAction: (l, a) => this.onLineAction && this.onLineAction(l, a) }); },
+        install: async (Core) => { const m = await import('/assets/chart-bt-orders.js' + V); this.orders = m.installBtOrders(Core, { bands: () => this._bands(), fmt: (p) => this.fmt(p), tick: () => this.opts.tick, onDrag: (l, p) => this.onLineDrag && this.onLineDrag(l, p), onAction: (l, a) => this.onLineAction && this.onLineAction(l, a) }); },
         onReady: (ws, api) => this._ready(ws, api)
       };
       try { await import('/assets/vela-chart.js' + V); } catch (e) { console.error('Backtest chart failed', e); const fb = el.querySelector('#stkchart-fallback'); if (fb) fb.hidden = false; }
@@ -104,6 +104,7 @@
     // ---- data: replay.js calls this after every cursor / timeframe change ---------------------------------
     setView(view) {
       if (!this.ready) return;
+      this.view = view;
       const cursor = this.ctx.getCursor(), tf = this.velaTf(view.tf);
       const cell = this._cell(); if (!cell) return;
       const prev = this._last;
@@ -200,9 +201,26 @@
       this.feed.resetSent(); setTimeout(() => { this._pushOrders(); this.resize(); }, 150);
     }
 
+    _bands() {
+      const RT = root.ReplayTime, s = this.ctx.series, out = [];
+      if (!RT || !s || !s.base || (this.view && this.view.tfMs > 3600000)) return out;
+      const SES = { ny: { tz: 'America/New_York', from: 570, to: 960, color: 'rgba(3,201,136,0.06)' }, ldn: { tz: 'Europe/London', from: 480, to: 990, color: 'rgba(0,173,181,0.06)' } };
+      const key = Object.keys(SES).filter((k) => this.opts.sessions && this.opts.sessions[k]).join();
+      if (this._bandKey !== key || !this._bandAll) {
+        this._bandKey = key; this._bandAll = [];
+        for (const k of key ? key.split(',') : []) {
+          const d = SES[k]; let st = null, last = null;
+          for (const b of s.base) { const q = RT.parts(d.tz, b.t); const inS = !q.weekend && q.min >= d.from && q.min < d.to; if (inS && st == null) st = b.t; if (!inS && st != null) { this._bandAll.push({ t0: st, t1: last, color: d.color }); st = null; } last = b.t; }
+          if (st != null) this._bandAll.push({ t0: st, t1: last, color: d.color });
+        }
+      }
+      const cur = s.base[this.ctx.getCursor()]; const ct = cur ? cur.t : 0;
+      for (const b of this._bandAll) { if (b.t0 > ct) break; out.push(b.t1 > ct ? { t0: b.t0, t1: ct, color: b.color } : b); }
+      return out;
+    }
     scrollToEnd() { const c = this._main; try { c && c.chart.scrollToRealTime && c.chart.scrollToRealTime(); } catch (e) {} }
     zoom() {}
-    setOptions(o) { o = o || {}; if (o.sessions) this.opts.sessions = Object.assign({}, this.opts.sessions, o.sessions); if (o.tz) this.opts.tz = o.tz; if (this.ready && o.tz) { try { this.ws.setTimezone(o.tz); } catch (e) {} } this._pushOrders(); }
+    setOptions(o) { o = o || {}; if (o.sessions) { this.opts.sessions = Object.assign({}, this.opts.sessions, o.sessions); this._bandAll = null; } if (o.tz) this.opts.tz = o.tz; if (this.ready && o.tz) { try { this.ws.setTimezone(o.tz); } catch (e) {} } this._pushOrders(); }
     resize() { try { root.dispatchEvent(new Event('resize')); } catch (e) {} }
     snap(p) { const t = this.opts.tick; return t ? Math.round(p / t) * t : p; }
     fmt(p) { return Number(p).toFixed(this.opts.decimals); }

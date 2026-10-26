@@ -10,14 +10,14 @@
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=683">
 <script>
-/* Backtest on OUR chart (Vela engine, same as /charts): replay.html?chart=tz (kept in localStorage 'stryker_bt_chart'; ?chart=lw switches back).
+/* Backtest on OUR chart (Vela engine, same as /charts): replay.html - Vela chart is the DEFAULT since Stage 2; ?chart=lw is the old-chart fallback until ~2026-11-02 (kept in localStorage 'stryker_bt_chart'; ?chart=lw switches back).
    The import map must exist before any module loads, so it is written here, only when the new chart is on. */
 (function(){
   try {
     var q = new URLSearchParams(location.search).get('chart');
     if (q === 'tz' || q === 'lw') localStorage.setItem('stryker_bt_chart', q);
-    window.__stkBtChart = localStorage.getItem('stryker_bt_chart') === 'tz' ? 'tz' : 'lw';
-  } catch (e) { window.__stkBtChart = 'lw'; }
+    window.__stkBtChart = (q === 'lw' || (q !== 'tz' && localStorage.getItem('stryker_bt_chart') === 'lw')) ? 'lw' : 'tz';
+  } catch (e) { window.__stkBtChart = new URLSearchParams(location.search).get('chart') === 'lw' ? 'lw' : 'tz'; }
   if (window.__stkBtChart !== 'tz') return;
   var on = true;
   try {

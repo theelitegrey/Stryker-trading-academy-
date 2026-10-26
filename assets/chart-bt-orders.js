@@ -42,6 +42,9 @@ export function installBtOrders(Core, hooks) {
         const ys = {};
         const drag = state.drag;
         g.save();
+        if (hooks.bands) {   // NY / London session shading (up to the replay cursor only)
+          for (const bd of hooks.bands()) { const x0 = Math.max(0, co.timeToX(bd.t0)), x1 = Math.min(W, co.timeToX(bd.t1)); if (!(x1 > x0)) continue; g.fillStyle = bd.color; g.fillRect(x0, top, x1 - x0, bot - top); }
+        }
         for (const l0 of d.lines) {
           const l = drag && drag.id === l0.id ? Object.assign({}, l0, { price: drag.price }) : l0;
           const y = Math.round(co.priceToY(l.price, a.scale, a.bounds)) + 0.5; ys[l.id] = y;

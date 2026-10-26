@@ -83,6 +83,7 @@
       this._last = { tf: this._cellTf(), cursor: this.ctx.getCursor() };
       this.hadState = (() => { try { return !!localStorage.getItem('vela-workspace-bt-090-' + this.ctx.sessionId) || !!localStorage.getItem('vela-workspace-bt-' + this.ctx.sessionId); } catch (e) { return false; } })();
       root.__stkBtBooted = true;
+      this._wireLabels();
       try { const m = this._main; if (m) m.chart.history && m.chart.history.onChange && m.chart.history.onChange(() => this._objectsChanged()); } catch (e) {}
       this._migrate();
       if (this.ctx.session && this.ctx.session.htfOn) this.setHtf(true, this.ctx.htfTf ? this.ctx.htfTf() : '1h'); else if (this.ws.layout.cells.length > 1) this.setHtf(false);
@@ -217,6 +218,46 @@
       const cur = s.base[this.ctx.getCursor()]; const ct = cur ? cur.t : 0;
       for (const b of this._bandAll) { if (b.t0 > ct) break; out.push(b.t1 > ct ? { t0: b.t0, t1: ct, color: b.color } : b); }
       return out;
+    }
+    // ---- real market + day instead of "SESSION · BT" (legend, watermark, symbol button) ---------------------------
+    _name() {
+      const sp = this.ctx.spec || {}; const root = String(sp.label || sp.symbol || 'Session').split(' \u00b7 ')[0].trim();
+      let day = ''; try { const s = this.ctx.series; const t0 = (this.ctx.session && this.ctx.session.startMs) || (s && s.base && s.base[0] && s.base[0].t); if (t0) day = new Date(t0).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }); } catch (e) {}
+      return { root, day };
+    }
+    _relabel() {
+      const { root, day } = this._name(); const host = document.getElementById('vela-chart'); const bar = document.getElementById('stkc-bar');
+      const fix = (el, fn) => { if (!el) return; const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const v = fn(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; } };
+      const sub = (s) => s.replace(/SESSION/g, root).replace(/\bBT\b/g, day || 'Backtest');
+      const wm = (s) => s.replace(/SESSION/g, root).replace(/(\d+[mhDW])\s*$/, (m) => m + (day ? ' \u00b7 ' + day : ''));
+      if (host) { host.querySelectorAll('.vela-sl-symbol, .vela-sl-meta, .vela-widget-symbol').forEach((e) => fix(e, sub)); host.querySelectorAll('.vela-watermark').forEach((e) => fix(e, (s) => (/\u00b7 [A-Z][a-z]{2} \d/.test(s) ? s.replace(/SESSION/g, root) : wm(s)))); }
+      if (bar) bar.querySelectorAll('.vela-mb-symbol').forEach((e) => fix(e, sub));
+    }
+    _symbolInfo() {
+      const sp = this.ctx.spec || {}, { root, day } = this._name(); let a = '', z = '';
+      try { const s = this.ctx.series; const b = s && s.base; if (b && b.length) { const f = (t) => new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'America/New_York' }); a = f(b[0].t); z = f(b[b.length - 1].t); } } catch (e) {}
+      const src = sp.src === 'yahoo' ? 'Yahoo Finance, 1-minute bars' : (sp.src || 'session data');
+      return { title: root + ' \u00b7 ' + (sp.label || '').split(' \u00b7 ').slice(1).join(' \u00b7 '), rows: [['Market', sp.label || root], ['Session day', day], ['Data window', a && z ? a + ' \u2192 ' + z : '-'], ['Data source', src], ['Mode', 'Backtest (simulated, no real orders)']] };
+    }
+    _showInfo() {
+      const i = this._symbolInfo(); let el = document.getElementById('bt-syminfo'); if (el) el.remove();
+      el = document.createElement('div'); el.id = 'bt-syminfo'; el.className = 'bt-syminfo'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Session info');
+      el.innerHTML = '<div class="bt-syminfo-card"><div class="bt-syminfo-h"><b></b><button type="button" aria-label="Close">\u2715</button></div><dl></dl><p>The market is fixed by this session. Start a new session to change it.</p></div>';
+      el.querySelector('b').textContent = i.title;
+      el.querySelector('dl').innerHTML = i.rows.map((r) => '<dt>' + r[0] + '</dt><dd></dd>').join('');
+      el.querySelectorAll('dd').forEach((d, k) => { d.textContent = i.rows[k][1]; });
+      const close = () => el.remove(); el.addEventListener('click', (e) => { if (e.target === el) close(); }); el.querySelector('button').addEventListener('click', close);
+      document.body.appendChild(el);
+    }
+    _wireLabels() {
+      const host = document.getElementById('vela-chart'); if (!host) return;
+      let t = null; const run = () => { t = null; this._relabel(); };
+      this._mo = new MutationObserver(() => { if (!t) t = setTimeout(run, 30); });
+      this._mo.observe(document.getElementById('rp-chart-main') || host, { subtree: true, childList: true, characterData: true });
+      this._relabel();
+      // tapping the symbol shows the session info (the market is fixed): capture before Vela opens Symbol Search
+      document.addEventListener('click', (e) => { const t = e.target.closest && e.target.closest('.vela-mb-symbol, .vela-widget-symbol, .vela-sl-symbol'); if (!t || !document.getElementById('rp-chart-main').contains(t) && !document.getElementById('stkc-bar').contains(t)) return; e.preventDefault(); e.stopImmediatePropagation(); this._showInfo(); }, true);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { const x = document.getElementById('bt-syminfo'); if (x) x.remove(); } });
     }
     scrollToEnd() { const c = this._main; try { c && c.chart.scrollToRealTime && c.chart.scrollToRealTime(); } catch (e) {} }
     zoom() {}

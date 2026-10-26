@@ -70,6 +70,8 @@ export function createBtFeed(ctx) {
   function decimalsOf(t) { const s = String(t); const i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; }
   function symbolRow() {
     const sp = ctx.spec || {};
+    /* real name + day are shown by bt-vela-chart.js (_relabel) */ const root = String(sp.label || sp.symbol || 'Backtest').split(' · ')[0].trim() || 'Backtest';
+    let day = ''; try { const s = ctx.session || {}; const t0 = s.startMs || (ctx.series && ctx.series.base && ctx.series.base[0] && ctx.series.base[0].t); if (t0) day = new Date(t0).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' }); } catch (e) {}
     return { ticker: 'SESSION', description: sp.label || sp.symbol || 'Backtest', type: 'futures', prefix: 'BT', market: 'futures', exchange: 'BT', mintick: sp.tick || 0.01, pointvalue: sp.pointValue || 1 };
   }
   function symbolInfo() {

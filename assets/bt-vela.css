@@ -9,3 +9,12 @@ html.bt-tz #rp-tfs, html.bt-tz #rp-ind-btn, html.bt-tz #rp-tools, html.bt-tz .rp
 html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 320px; grid-template-areas:"top top" "chart drawer" "float drawer" "bottom bottom"; }
 @media (max-width:1100px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 280px; } }
 @media (max-width:900px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "chart" "float" "bottom" "drawer"; } html.bt-tz .rpw-chart{ height:62vh; min-height:420px; } }
+/* symbol tap = session info (the market is fixed by the session) */
+.bt-syminfo{ position:fixed; inset:0; z-index:9500; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:16px; }
+.bt-syminfo-card{ width:min(420px,100%); background:var(--bg-2,#131316); color:var(--ink-1,#e6e8ec); border:1px solid var(--line,#2a2d34); border-radius:14px; padding:14px 16px 16px; font-family:var(--font-body,inherit); }
+.bt-syminfo-h{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; } .bt-syminfo-h b{ font-size:15px; color:var(--ink-0,#fff); }
+.bt-syminfo-h button{ all:unset; cursor:pointer; width:32px; height:32px; display:grid; place-items:center; border-radius:8px; color:var(--ink-2,#9aa3b0); }
+.bt-syminfo dl{ display:grid; grid-template-columns:auto 1fr; gap:6px 14px; margin:0; font-size:13px; } .bt-syminfo dt{ color:var(--ink-3,#8b93a0); } .bt-syminfo dd{ margin:0; color:var(--ink-0,#fff); }
+.bt-syminfo p{ margin:12px 0 0; font-size:11.5px; color:var(--ink-3,#8b93a0); }
+/* "4 bars/s" and "Day >" in the site font */
+html.bt-tz #rp-float, html.bt-tz #rp-float select, html.bt-tz #rp-float button, html.bt-tz .rp-sbtn, html.bt-tz .rp-sbtn b, html.bt-tz .rpw-acct b{ font-family:var(--font-body, inherit) !important; font-variant-numeric:tabular-nums; }

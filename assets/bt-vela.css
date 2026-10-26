@@ -79,3 +79,8 @@ html.bt-tz #stkc-bar .stkw-phonebtn, html.bt-tz #stkc-bar .stknw-phonebtn, html.
   .bt-psheet .rpw-group{ display:inline-flex; align-items:center; gap:6px; } .bt-psheet .rpw-group .rpw-chk{ border-radius:999px !important; border-right:1px solid var(--line) !important; } .bt-psheet .rpw-group .rpw-sel{ border-radius:999px !important; min-width:64px; }
   html.bt-tzp #rp-tradebar-strip.rp-strip{ grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); } html.bt-tzp #rp-tradebar-strip .rp-sqty{ margin:0; }
 }
+
+/* top bar: no layout/grid button (the HTF switch owns the second chart) - on a phone it drew a white box over the timeframe chip */
+html.bt-tz #stkc-bar .stkc-menu:has(> #stkc-layout-btn), html.bt-tz #stkc-layout-btn{ display:none !important; }
+/* toasts: at the top of the plot on a phone (never over Sell / qty / Buy); 2.5 s (assets/bt-vela-chart.js) */
+@media (max-width:700px){ html.bt-tz .toast-host{ top:calc(var(--stkc-top, 0px) + 52px) !important; bottom:auto !important; } }

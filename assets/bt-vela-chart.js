@@ -84,7 +84,7 @@
       this._last = { tf: this._cellTf(), cursor: this.ctx.getCursor() };
       this.hadState = (() => { try { return !!localStorage.getItem('vela-workspace-bt-090-' + this.ctx.sessionId) || !!localStorage.getItem('vela-workspace-bt-' + this.ctx.sessionId); } catch (e) { return false; } })();
       root.__stkBtBooted = true;
-      this._wireLabels();
+      this._wireLabels(); this._wireToasts();
       try { const m = this._main; if (m) m.chart.history && m.chart.history.onChange && m.chart.history.onChange(() => this._objectsChanged()); } catch (e) {}
       this._migrate();
       if (this.ctx.session && this.ctx.session.htfOn) this.setHtf(true, this.ctx.htfTf ? this.ctx.htfTf() : '1h'); else if (this.ws.layout.cells.length > 1) this.setHtf(false);
@@ -233,6 +233,9 @@
       const wm = (s) => s.replace(/SESSION/g, root).replace(/(\d+[mhDW])\s*$/, (m) => m + (day ? ' \u00b7 ' + day : ''));
       if (host) { host.querySelectorAll('.vela-sl-symbol, .vela-sl-meta, .vela-widget-symbol').forEach((e) => fix(e, sub)); host.querySelectorAll('.vela-watermark').forEach((e) => fix(e, (s) => (/\u00b7 [A-Z][a-z]{2} \d/.test(s) ? s.replace(/SESSION/g, root) : wm(s)))); }
       if (bar) bar.querySelectorAll('.vela-mb-symbol').forEach((e) => fix(e, sub));
+      // legend avatar: initials of the market ("NQ"), not of SESSION ("SE")
+      const ini = root.replace(/[^A-Za-z0-9]/g, '').slice(0, 2).toUpperCase();
+      document.querySelectorAll('#rp-chart-main span, #rp-chart-main div').forEach((e) => { if (!e.children.length && e.textContent === 'SE' && /icon|avatar|badge/i.test(e.className.toString())) e.textContent = ini; });
     }
     _symbolInfo() {
       const sp = this.ctx.spec || {}, { root, day } = this._name(); let a = '', z = '';
@@ -249,6 +252,11 @@
       el.querySelectorAll('dd').forEach((d, k) => { d.textContent = i.rows[k][1]; });
       const close = () => el.remove(); el.addEventListener('click', (e) => { if (e.target === el) close(); }); el.querySelector('button').addEventListener('click', close);
       document.body.appendChild(el);
+    }
+    _wireToasts() {
+      const hostEl = () => document.getElementById('stryker-toast-host'); if (this._toastMo) return;
+      const watch = () => { const h = hostEl(); if (!h) return false; this._toastMo = new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.classList && n.classList.contains('toast')) setTimeout(() => { const x = n.querySelector('.toast-close'); if (x) x.click(); }, 2500); }))); this._toastMo.observe(h, { childList: true }); return true; };
+      if (!watch()) { const iv = setInterval(() => { if (watch()) clearInterval(iv); }, 500); setTimeout(() => clearInterval(iv), 15000); }
     }
     _wireLabels() {
       const host = document.getElementById('vela-chart'); if (!host) return;

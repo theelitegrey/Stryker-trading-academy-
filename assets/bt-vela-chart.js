@@ -56,6 +56,7 @@
     async _boot() {
       const el = this.el;
       document.documentElement.classList.add('bt-tz');
+      if (!document.getElementById('bt-phone-js')) { const s = document.createElement('script'); s.id = 'bt-phone-js'; s.src = '/assets/bt-phone.js' + V; document.head.appendChild(s); }
       if (!document.getElementById('bt-vela-css')) { const l = document.createElement('link'); l.id = 'bt-vela-css'; l.rel = 'stylesheet'; l.href = '/assets/bt-vela.css' + V; document.head.appendChild(l); }
       el.classList.add('rp-chartwrap', 'bt-vela');
       el.innerHTML = '<div class="stkc-bar" id="stkc-bar" role="toolbar" aria-label="Chart toolbar"><div class="stkc-bar-l" id="stkc-bar-l"></div><div class="stkc-bar-r"></div></div>' +

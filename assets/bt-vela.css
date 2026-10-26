@@ -5,7 +5,7 @@ html.bt-tz .bt-vela > .stkc-bar{ flex:none; }
 html.bt-tz .bt-vela > .stkchart-panel{ flex:1 1 auto; height:auto; min-height:0; margin:0; border:0; border-radius:0; position:relative; }
 html.bt-tz .bt-vela #vela-chart{ position:absolute; inset:0; }
 /* the old chart's own controls are replaced by the Charts toolbar: timeframes, indicators, drawing rail */
-html.bt-tz #rp-tfs, html.bt-tz #rp-ind-btn, html.bt-tz #rp-tools, html.bt-tz .rpw-group{ display:none !important; }
+html.bt-tz #rp-tfs, html.bt-tz #rp-ind-btn, html.bt-tz #rp-tools{ display:none !important; }
 html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 320px; grid-template-areas:"top top" "chart drawer" "float drawer" "bottom bottom"; }
 @media (max-width:1100px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 280px; } }
 @media (max-width:900px){ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr); grid-template-areas:"top" "chart" "float" "bottom" "drawer"; } html.bt-tz .rpw-chart{ height:62vh; min-height:420px; } }
@@ -18,3 +18,58 @@ html.bt-tz .rpw{ grid-template-columns:minmax(0,1fr) 320px; grid-template-areas:
 .bt-syminfo p{ margin:12px 0 0; font-size:11.5px; color:var(--ink-3,#8b93a0); }
 /* "4 bars/s" and "Day >" in the site font */
 html.bt-tz #rp-float, html.bt-tz #rp-float select, html.bt-tz #rp-float button, html.bt-tz .rp-sbtn, html.bt-tz .rp-sbtn b, html.bt-tz .rpw-acct b{ font-family:var(--font-body, inherit) !important; font-variant-numeric:tabular-nums; }
+
+/* ===== PHONE (<= 700 px): full screen like the Charts page. JS: assets/bt-phone.js (html.bt-tzp + body.charts-page) ===== */
+@media (max-width:700px){
+  html.bt-tzp body.bt-app .bta-rail, html.bt-tzp .bt2-handle, html.bt-tzp #rp-head, html.bt-tzp .bt2-hint, html.bt-tzp .rp-fine, html.bt-tzp #rp-nudge{ display:none !important; }
+  html.bt-tzp body.bt-app .dash-main, html.bt-tzp body.bt-app .bta-content{ padding:0 !important; max-width:none; margin:0; }
+  html.bt-tzp body.bt-app .bta-content{ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  html.bt-tzp #rp-app:not([style*="none"]){ flex:1 1 auto; min-height:0; display:flex !important; flex-direction:column; }
+  html.bt-tzp #rp-work:not([hidden]){ flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+  html.bt-tzp #rp-work .rpw{ display:flex !important; flex-direction:column; flex:1 1 auto; min-height:0; height:auto !important; border:0 !important; border-radius:0 !important; background:var(--bg-0); overflow:visible; }
+  /* the page bar is gone: its leftovers (menu, draw, settings, clock, full screen) live in the chart bar / the sheet */
+  html.bt-tzp .rpw-top{ display:contents; }
+  html.bt-tzp .rpw-top > *:not(.bt2-topact){ display:none !important; }
+  html.bt-tzp .bt2-topact{ display:contents; }
+  html.bt-tzp .bt2-topact > *:not(.bt2-sheet){ display:none !important; }
+  html.bt-tzp #rp-work .rpw-chart{ flex:1 1 0; min-height:0 !important; height:auto !important; }
+  html.bt-tzp .rp-charts{ height:100%; }
+  html.bt-tzp #rp-chart-main.bt-vela{ height:100%; }
+  html.bt-tzp .rpw-rail{ display:none !important; }
+  /* the dock: row 1 = replay controls, row 2 = Sell qty Buy, row 3 = summary */
+  html.bt-tzp #rp-float.rp-float{ flex:none; display:flex; gap:6px; padding:6px 8px 4px; justify-content:space-between; border-top:1px solid var(--line-soft); }
+  html.bt-tzp #rp-float .rp-stepbtn{ height:34px; padding:0 10px; }
+  html.bt-tzp #rp-float .rp-playbtn{ width:38px; height:38px; }
+  html.bt-tzp #rp-float select{ height:34px; padding-left:10px; max-width:112px; }
+  html.bt-tzp .rpw-bottom{ flex:none; display:flex; flex-direction:column; align-items:stretch; gap:4px; padding:2px 8px calc(16px + env(safe-area-inset-bottom)); border-top:0; background:var(--bg-0); }
+  html.bt-tzp .rpw-bottom > .rpw-spacer{ display:none; }
+  html.bt-tzp #rp-tradebar-strip.rp-strip{ width:100%; grid-template-areas:"sell qty buy"; gap:6px; }
+  html.bt-tzp #rp-tradebar-strip .rp-sbtn{ min-height:44px; }
+  html.bt-tzp #rp-tradebar-strip .bt2-risk{ display:none; }
+  html.bt-tzp #rp-tradebar-strip .rp-sqty > span{ display:none; }
+  html.bt-tzp #rp-tradebar-strip .rp-sqty, html.bt-tzp #rp-tradebar-strip .bt2-stepper{ display:flex !important; flex-direction:row; align-items:center; gap:4px; }
+  html.bt-tzp #rp-tradebar-strip .rp-sqty input{ width:46px; }
+  html.bt-tzp #stkc-bar .vela-mb-drawings, html.bt-tzp #stkc-bar .bt2-drawbtn{ display:none !important; }   /* ONE drawing button: the floating one (like Charts) */
+  .bt-psum{ all:unset; box-sizing:border-box; display:none; align-items:center; justify-content:space-between; gap:8px; height:30px; padding:0 12px; border-radius:999px; background:var(--bg-2); border:1px solid var(--line-soft); color:var(--ink-1); font:600 12px var(--font-body, inherit); cursor:pointer; touch-action:manipulation; }
+  html.bt-tzp .bt-psum{ display:flex; }
+  .bt-psum i{ font-style:normal; color:var(--ink-3); }
+  /* pull-up sheet */
+  .bt-psheet{ position:fixed; left:0; right:0; bottom:0; z-index:9040; max-height:72dvh; display:flex; flex-direction:column; background:var(--bg-2,#131316); border:1px solid var(--line,#2a2d34); border-bottom:0; border-radius:16px 16px 0 0; box-shadow:0 -18px 50px rgba(0,0,0,.55); }
+  .bt-psheet[hidden]{ display:none; }
+  .bt-psheet-grab{ width:40px; height:4px; border-radius:3px; background:var(--line,#2a2d34); margin:8px auto 2px; }
+  .bt-psheet-h{ display:flex; align-items:center; justify-content:space-between; padding:2px 16px 6px; } .bt-psheet-h b{ font-size:14px; color:var(--ink-0,#fff); }
+  .bt-psheet-x{ all:unset; cursor:pointer; width:36px; height:36px; display:grid; place-items:center; color:var(--ink-2,#9aa3b0); }
+  .bt-psheet-b{ overflow-y:auto; padding:0 16px calc(18px + env(safe-area-inset-bottom)); }
+  .bt-psheet-b section{ padding:8px 0; border-top:1px solid var(--line-soft,#1f2228); } .bt-psheet-b section:empty{ display:none; }
+  .bt-psheet-b h4{ margin:0 0 8px; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3,#8b93a0); }
+  .bt-psheet .rp-sbrk{ justify-content:flex-start; } .bt-psheet .rpw-acct{ grid-template-columns:1fr 1fr; } .bt-psheet .rpw-drawerbtns{ width:100%; } .bt-psheet .rpw-drawerbtns button{ flex:1; justify-content:center; }
+  .bt-psheet #rp-opts{ display:flex !important; flex-wrap:wrap; gap:8px; } .bt-psheet .rpw-group{ display:inline-flex; }
+  .bt-psheet .rp-cursor{ margin:8px 0 0; display:block; }
+  html.bt-psheet-open .stkcps-handle{ display:none !important; }
+  /* the Charts phone rules need these to fill the screen (the Charts page sets them on .dash-main) */
+  html.bt-tzp body.charts-page .dash-main{ height:calc(100dvh - var(--stkc-top, 0px) - var(--stkc-dock, 0px)); display:flex; flex-direction:column; overflow:hidden; }
+  html.bt-tzp body.charts-page, html.bt-tzp:has(body.charts-page){ overflow:hidden; }
+  html.bt-tzp body.bt-app .dash-shell{ display:block; min-height:0; }
+  /* full screen: the chart bar + the chart + the dock only */
+  html.bt-tzp.stk-chart-fs body.bt-app .dash-main{ height:100dvh; }
+}

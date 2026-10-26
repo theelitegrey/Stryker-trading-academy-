@@ -157,6 +157,7 @@ export function mountFavToolbar(ws, Core, opts){
 
   // Guests (and the first paint for members): this browser's copy, else Vela's own saved favourites.
   if (!adopt(readLocal())) st.tools = valid(veloFavs());
+  if (!st.tools.length && window.__stkBt) st.tools = valid(['trendline', 'hline', 'box', 'fibretracement', 'ray']);   // backtest: the floating button is the one drawing entry
   if (st.tools.length) pushToVela(st.tools);
 
   async function onAuth(u){

@@ -19,14 +19,14 @@
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
-import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=671';
+import { decodeOrderflow, gunzipBody, aggregate, clipTo, rows, poc, imbalances, stacked, unfinished, cvdCandles, profile, vwapSeries } from './chart-footprint-data.js?v=672';
 
-import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=671';
-import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=671';
-import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=671';
-import { rtHeadersReady } from './rt-access.js?v=671';
-import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=671';
-import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=671';
+import { liveOfOn, liveFlow, onLiveFlow, overlayLive, setLiveThr, compareMinutes, liveDeliveries } from './chart-live-of.js?v=672';
+import { bigPrints, bigThreshold, swingSegments, pocRevisits } from './chart-of-pro-data.js?v=672';
+import { installOfPro, PRO_TYPES } from './chart-of-pro.js?v=672';
+import { rtHeadersReady } from './rt-access.js?v=672';
+import { isCrypto, cryptoFeed, cryptoFeeds } from './chart-footprint-crypto.js?v=672';
+import { installDeltaSuite, DS_TYPES } from './chart-delta-suite.js?v=672';
 const RECORDER = 'https://book-recorder.theelitegrey.workers.dev';
 const ROOTS = { NQ: 'NQ', MNQ: 'NQ', ES: 'ES', MES: 'ES', YM: 'YM', MYM: 'YM', GC: 'GC', MGC: 'GC', SI: 'SI', SIL: 'SI', CL: 'CL', MCL: 'CL' };
 const FREE_ROOT = 'NQ';

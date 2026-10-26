@@ -451,9 +451,9 @@ function footprintLayer() {
             const n = cfg.mode === 'bidask' ? Math.max(fmt(r.sell).length, fmt(r.buy).length) : cfg.mode === 'delta' ? sgn(r.buy - r.sell).length : fmt(r.buy + r.sell).length;
             if (n > ch) ch = n;
           }
-          const avail = (cfg.mode === 'bidask' ? w / 2 - 4 : w - 3);
-          const f1 = Math.min(clamp(Math.floor(rowPx - 2), 8, 13), Math.floor(avail / (0.6 * ch)));
-          showText = rowPx >= 10 && f1 >= 8;
+          const avail = (cfg.mode === 'bidask' ? w / 2 - 2 : w - 2);
+          const f1 = Math.min(clamp(Math.floor(rowPx - 2), 7, 13), Math.floor(avail / (0.6 * ch)));
+          showText = rowPx >= 9 && f1 >= 7;
           if (showText) { fs = Math.min(f1, 13); font = fs + 'px ' + MONO; bold = '600 ' + fs + 'px ' + MONO; }
         }
         if (showText) anyText = true;
@@ -519,9 +519,9 @@ function footprintLayer() {
             const sC = imb.sell[k] ? (day ? '#6d28d9' : SELL2) : r.sell > r.buy ? (day ? '#7c3aed' : '#b48cf0') : (day ? ink : dim);
             const bC = imb.buy[k] ? (day ? '#047857' : UP2) : r.buy > r.sell ? (day ? '#059669' : '#3fcf98') : (day ? ink : dim);
             g.textAlign = 'right'; g.font = imb.sell[k] ? bold : font; g.fillStyle = sC;
-            g.fillText(fmt(r.sell), x - 3, yc);
+            g.fillText(fmt(r.sell), x - 2, yc);
             g.textAlign = 'left'; g.font = imb.buy[k] ? bold : font; g.fillStyle = bC;
-            g.fillText(fmt(r.buy), x + 3, yc);
+            g.fillText(fmt(r.buy), x + 2, yc);
           } else {
             g.textAlign = 'center'; g.font = font;
             g.fillStyle = cfg.mode === 'delta' ? (dl >= 0 ? (day ? '#047857' : UP2) : (day ? '#6d28d9' : SELL2)) : ink;

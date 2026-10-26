@@ -169,6 +169,8 @@ function hookCell(cell){
     wm.update = (sym, tf) => { origUp(sym, tf); wmText(cell); };
   }
   try { cell.chart.on('load:end', () => setTimeout(() => applyRight(cell), 0)); } catch (e) {}
+  // phone price-scale width follows the labels (symbol switch, a price crossing 9999 -> 10000, rotation)
+  if (!cell.__stkAxisTimer) cell.__stkAxisTimer = setInterval(() => { if (!document.hidden) syncPhone(cell); }, 2000);
   // Vela's own "Symbol watermark" on/off is replaced by our Hidden / Symbol / Symbol + interval row.
   try { rc.setSettingsVisibility({ hidden: ['watermark'] }); } catch (e) {}
   try { cell.pushSettingsSections(); } catch (e) {}
@@ -193,12 +195,79 @@ function paintBg(cell){
 }
 // Right margin in bars. The setting's default (6) means "TradingView-like": ~7% of the plot width,
 // never under 6 bars. A margin the user picked explicitly is used as is.
+// PHONE (Owner 2026-10-26: "The price has too much gap on right, reduce it so that chart area is
+// more bigger"): on a plot under PHONE_PLOT_PX the default is a fixed PHONE_ROOM bars right of the
+// newest bar (the last-price tag sits in the price scale, not in the plot), on load, after a
+// timeframe switch, after "Latest" and after a reload. Indicators that need more room (HTF PO3 Lens,
+// TZ Fractal) still raise it via STRYKER_PINE.ensureRoom.
+const PHONE_PLOT_PX = 520, PHONE_ROOM = 4;
+const isPhonePlot = (R) => { try { return (R.coords.width + (R.rightAxisW || 0)) < PHONE_PLOT_PX; } catch (e) { return false; } };
 function roomBars(R, n){
   if (n !== Number(DEFAULTS.rightBars)) return n;
+  if (isPhonePlot(R)) return PHONE_ROOM;
   try { const c = R.coords; const vis = c.widthPx / c.pxPerBar(); return Math.min(40, Math.max(n, Math.round(vis * 0.07))); } catch (e) { return n; }
+}
+// Vela 0.9's own right margin (scene.style.margins.right, 10 bars: its first fit, its scroll-to-latest
+// button) follows the same phone default; back to Vela's value on a wider plot.
+function syncVelaMargin(R, cell){
+  try {
+    const m = R.scene && R.scene.style && R.scene.style.margins;
+    if (!m || typeof m.right !== 'number') return;
+    if (R.__stkMarginR0 === undefined) R.__stkMarginR0 = m.right;
+    const def = Number(S(cell.id).rightBars) === Number(DEFAULTS.rightBars);
+    m.right = def && isPhonePlot(R) ? PHONE_ROOM : R.__stkMarginR0;
+  } catch (e) {}
+}
+// PHONE price scale: Vela's scale column is a fixed 64 px (AXIS_MASTER_W) whatever the labels. On a
+// phone it is cut to the widest text it must hold (the price labels at the scale's top / bottom / the
+// last price, and the last-price + countdown tag) plus Vela's own paddings: labels start 6 px in, the
+// tag is 1 px in with 4 px each side. Ticks and decimals are untouched (same mintick, same text).
+// Only with no merged own-scale columns (their x is computed from the fixed 64). Desktop: unchanged.
+const AXIS_MAX = 64, AXIS_MIN = 40;
+let measureCtx = null;
+function phoneAxisW(R){
+  if (!isPhonePlot(R)) return 0;
+  try {
+    if (typeof R.maxOwnScaleColumns === 'function' && R.maxOwnScaleColumns() > 0) return 0;
+    const sc = R.scene; const bars = sc && sc.bars; if (!bars || !bars.length) return 0;
+    let pane = null; for (const p of sc.panes.values()) if (p.kind === 'price') { pane = p; break; }
+    const mt = Number(sc.priceMintick) || 0.01;
+    const dec = Math.min(10, Math.max(0, (String(mt).split('.')[1] || '').replace(/0+$/, '').length || (mt < 1 ? Math.ceil(-Math.log10(mt)) : 0)));
+    const vals = [bars[bars.length - 1].close];
+    if (pane && pane.scale) vals.push(pane.scale.min, pane.scale.max);
+    let hi = 0; for (const v of vals) if (Number.isFinite(v)) hi = Math.max(hi, Math.abs(v));
+    const txt = (vals.some((v) => v < 0) ? '-' : '') + hi.toFixed(dec);
+    if (!measureCtx) measureCtx = document.createElement('canvas').getContext('2d');
+    const fam = (R.theme && R.theme.fontFamily) || '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    const fs = (sc.style && sc.style.fontSize) || 11;
+    measureCtx.font = '600 ' + fs + 'px ' + fam;   // major ticks are semibold: measure the wider face
+    const tw = Math.max(measureCtx.measureText(txt).width, measureCtx.measureText('00:00:00').width);
+    const w = Math.ceil(Math.max(tw + 6 + 3, tw + 1 + 8 + 1));
+    return w >= AXIS_MAX ? 0 : Math.max(AXIS_MIN, w);
+  } catch (e) { return 0; }
+}
+function hookAxisWidth(R){
+  if (!R || R.__stkAxisHook || typeof R.refreshAxisWidth !== 'function') return;
+  R.__stkAxisHook = true;
+  const orig = R.refreshAxisWidth.bind(R);
+  R.refreshAxisWidth = () => {
+    const want = phoneAxisW(R);
+    if (!want) return orig();
+    if (Math.abs(want - R.rightAxisW) < 2) return false;
+    R.rightAxisW = want;
+    try { R.publishGutters && R.publishGutters(); if (R.coords.width > 0) R.syncSize(); } catch (e) {}
+    return true;
+  };
+}
+function syncPhone(cell){
+  const R = inner(cell); if (!R || !R.coords) return;
+  hookAxisWidth(R);
+  try { R.refreshAxisWidth(); } catch (e) {}
+  syncVelaMargin(R, cell);
 }
 function applyRight(cell){
   const R = inner(cell); if (!R || !R.coords) return;
+  syncPhone(cell);
   const n = roomBars(R, Number(S(cell.id).rightBars));
   // Only when the setting itself changed (or on the first paint): a timeframe switch keeps the
   // margin the chart already had (see keepViewOnSwitch), including an indicator's wider margin.
@@ -254,6 +323,7 @@ function fitPrice(R){
 function goLatest(cell, R){
   if (!R || !R.coords || R.coords.barCount === 0) return;
   try {
+    syncPhone(cell);
     const vp = R.coords.getViewport();
     const n = roomBars(R, Number(S(cell.id).rightBars));
     R.applyViewport({ barSpacing: vp.barSpacing, rightOffset: n >= 0 && n < 400 ? n : 6 });

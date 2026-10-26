@@ -76,12 +76,14 @@ async function closeAll(p) {
   for (let i = 0; i < 3; i++) { await p.keyboard.press('Escape'); await sleep(200); }
 }
 
-async function run(b, v09, w, h, phoneShots) {
+async function run(b, v09, w, h, doItems) {
   const eng = v09 ? 'v09' : 'v06';
   const key = eng + '-' + w + 'x' + h;
   const ctx = await newCtx(b, { w, h, mobile: true });
   let { p, errors } = await openPage(ctx, BASE, v09);
   await settle(p);
+  await p.waitForSelector('#stkl-btn', { state: 'attached', timeout: 20000 }).catch(() => {});
+  await sleep(600);
   const portrait = h > w;
   // ---- ⋯ list ----
   await openMenu(p);
@@ -102,26 +104,35 @@ async function run(b, v09, w, h, phoneShots) {
   const onBar = await p.evaluate(() => { const b = document.getElementById('stkl-btn'); return b ? { inMore: !!b.closest('#stkc-more-pop'), shown: !!b.getClientRects().length, name: (b.querySelector('.stkl-name') || {}).textContent } : null; });
   console.log('INFO ' + key + ': layout menu ' + JSON.stringify({ row: layoutRow && layoutRow.l, onBar }));
   await closeAll(p);
-  // ---- every ⋯ item opens what it says ----
-  const labels = M.rows.map((r) => r.l).filter((l) => !/^Charts in layout/.test(l));
-  for (const l of labels) {
-    await closeAll(p);
-    const before = await sig(p);
-    const ok = await tapRow(p, l);
-    await sleep(700);
-    const after = await sig(p);
-    const changed = JSON.stringify(before) !== JSON.stringify(after);
-    const what = after.open.filter((x) => !before.open.includes(x));
-    check(ok && changed, key + ': ⋯ "' + l + '" opens/does something', { opened: what, html: after.html !== before.html ? after.html : undefined, replay: after.replay });
-    if (/full screen/i.test(l)) {
-      // tap again to exit
-      await tapRow(p, (await p.evaluate(() => (document.querySelector('#stkc-more-pop [data-ob-label*="ull screen"]') || {}).getAttribute ? document.querySelector('#stkc-more-pop [data-ob-label*="ull screen"]').getAttribute('data-ob-label') : 'Exit full screen')));
+  // ---- every ⋯ item opens what it says (fresh page per item, first size per engine) ----
+  const EXPECT = {
+    'Data source & credits': () => !document.getElementById('stkc-credits').hidden,
+    'Templates': () => !document.getElementById('stkc-tpl-pop').hidden,
+    'Pine Script editor': () => { const e = document.getElementById('stkc-pine'); return !!(e && !e.hidden && e.getClientRects().length); },
+    'Full screen': () => document.documentElement.classList.contains('stk-chart-fs'),
+    'Chart settings': () => [...document.querySelectorAll('[role=dialog], .stkcs, [class*="stkcs-"]')].some((e) => e.getClientRects().length && /setting/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 80))),
+    'News': () => /stknw-open/.test(document.querySelector('.stkchart-panel').className) || !!document.querySelector('.stknw-panel:not([hidden]), .stknw:not([hidden])'),
+    'Watchlist': () => /stkw-open/.test(document.querySelector('.stkchart-panel').className),
+    'Alerts': () => [...document.querySelectorAll('[role=dialog]')].some((e) => e.getClientRects().length && /alert/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 60))),
+    'Replay': () => [...document.querySelectorAll('.stkr-menu .stkc-pop')].some((e) => !e.hidden),
+    'More chart options': () => [...document.querySelectorAll('[class*="vela-"][role=menu], .vela-sheet, .vela-md, [class*="vela-menu"], [class*="vela-sheet"]')].some((e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden')
+  };
+  if (doItems) {
+    for (const l of M.rows.map((r) => r.l)) {
+      if (/^Charts in layout/.test(l)) continue;
+      await p.close();
+      ({ p, errors } = await openPage(ctx, BASE, v09));
+      await p.waitForSelector('#stkl-btn', { state: 'attached', timeout: 20000 }).catch(() => {});
       await sleep(500);
+      const ok = await tapRow(p, l);
+      await sleep(900);
+      const fn = EXPECT[l] || EXPECT[l.replace(/^Layout:.*/, 'Layout')];
+      const res = fn ? await p.evaluate(fn) : await p.evaluate(() => !document.getElementById('stkl-pop').hidden);
+      const listGone = await p.evaluate(() => { const m = document.getElementById('stkc-more-pop'); return m.hidden || m.classList.contains('stkc-ob-sub'); });
+      await p.screenshot({ path: path.join(OUT, key + '-item-' + l.replace(/[^a-z0-9]+/gi, '_') + '.png') });
+      check(ok && res && listGone, key + ': ⋯ "' + l + '" opens what it says', { ok, res, listGone });
+      if (/full screen/i.test(l)) await p.evaluate(() => { try { localStorage.removeItem('stk_chart_fs'); } catch (e) {} });
     }
-    if (after.replay || after.sel) { await p.evaluate(() => { try { window.__stkBarReplay.stop(); } catch (e) {} try { window.__stkBarReplay.selectMode && window.__stkBarReplay.selectMode(false); } catch (e) {} }); }
-    await closeAll(p);
-    await tapXY(p, Math.round(w / 2), Math.round(h * 0.55));
-    await closeAll(p);
   }
   // fresh page for the layout part (the item taps above may leave panels behind)
   await p.close();
@@ -158,11 +169,13 @@ async function run(b, v09, w, h, phoneShots) {
   const sym1 = P.cells[0].sym;
   await tapSel(p, '#stkc-bar .vela-mb-symbol');
   await sleep(700);
-  const inpInfo = await p.evaluate(() => [...document.querySelectorAll('input')].filter((i) => i.getClientRects().length && getComputedStyle(i).visibility !== 'hidden').map((i) => i.className + '|' + i.placeholder));
-  const inp = await p.locator('input:visible').first();
-  const has = inpInfo.length > 0;
-  console.log('INFO symbol inputs ' + JSON.stringify(inpInfo));
-  if (has) { await inp.fill('GC1!'); await sleep(1200); await p.keyboard.press('Enter'); }
+  await p.waitForFunction(() => { const i = document.querySelector('.vela-sp-input'); return i && i.getClientRects().length; }, null, { timeout: 8000 }).catch(() => {});
+  const has = await p.evaluate(() => { const i = document.querySelector('.vela-sp-input'); return !!(i && i.getClientRects().length); });
+  if (has) {
+    await p.fill('.vela-sp-input', 'GC1!'); await sleep(1500);
+    const row = await p.$('.vela-sp-row[data-ticker="futures:GC1!"], .vela-sp-row[data-ticker*="GC1!"]');
+    if (row) { const bb = await row.boundingBox(); await tapXY(p, bb.x + bb.width / 2, bb.y + bb.height / 2); } else await p.keyboard.press('Enter');
+  }
   await sleep(2500);
   await settle(p);
   P = await panes(p);
@@ -233,9 +246,11 @@ async function strip(b, v09) {
     const engs = process.env.PL_ENG === '09' ? [true] : process.env.PL_ENG === '06' ? [false] : [true, false];
     const sizes = (process.env.PL_SIZES || '390x844,412x915').split(',').map((s) => s.split('x').map(Number));
     for (const v09 of engs) {
+      let first = true;
       for (const [w, h] of sizes) {
-        await run(b, v09, w, h);
-        if (!process.env.PL_NOLAND) await run(b, v09, h, w);
+        await run(b, v09, w, h, first && !process.env.PL_NOITEMS);
+        first = false;
+        if (!process.env.PL_NOLAND) await run(b, v09, h, w, false);
       }
       if (!process.env.PL_NOSTRIP) await strip(b, v09);
     }

@@ -61,6 +61,8 @@ async function page(b, srv, dev, extraInit) {
   await ctx.addInitScript(stub);
   await ctx.addInitScript(() => {
     try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {}
+    // html{scroll-behavior:smooth} makes Playwright's scroll-into-view race the animation; tests click instantly
+    document.addEventListener('DOMContentLoaded', () => { const st = document.createElement('style'); st.textContent = 'html{scroll-behavior:auto !important}'; document.head.appendChild(st); });
   });
   if (extraInit) await ctx.addInitScript(extraInit);
   await ctx.route(/^https:\/\/cdn\.jsdelivr\.net\/npm\/lightweight-charts@5\.2\.1\//, (r) => r.fulfill({ status: 200, contentType: 'text/javascript', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(LWC_LOCAL) }));

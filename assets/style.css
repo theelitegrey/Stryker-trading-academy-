@@ -9995,4 +9995,8 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
   #rp-float .rp-stepbtn{ padding:0 10px; }
   #rp-float select{ padding-left:10px; padding-right:24px !important; background-position:right 8px center; }
 }
+/* analytics sheet: wide tables scroll inside their pane instead of widening the page (phones zoomed out) */
+.rpw-sheet{ min-width:0; max-width:100%; }
+.rp-tabpane{ overflow-x:auto; max-width:100%; }
+.rp-tabs{ flex-wrap:wrap; row-gap:6px; }
 @media (max-width:400px){ #rp-float .rp-stepbtn{ padding:0 8px; } #rp-float select{ font-size:11.5px; } }

@@ -19,10 +19,11 @@ try {
   for (const line of fs.readFileSync(path.join(ROOT, '_headers'), 'utf8').split('\n')) {
     if (!line.trim() || line.trim().startsWith('#')) continue;
     if (!/^\s/.test(line)) { cur = { re: new RegExp('^' + line.trim().replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'), h: {} }; RULES.push(cur); }
+    else if (cur && line.trim().startsWith('!')) cur.h[line.trim().slice(1).trim().toLowerCase()] = null; // "! Name" detaches
     else if (cur) { const i = line.indexOf(':'); cur.h[line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim(); }
   }
 } catch (e) {}
-const headersFor = (p) => { const h = {}; for (const r of RULES) if (r.re.test(p)) Object.assign(h, r.h); delete h['content-security-policy-report-only']; return h; };
+const headersFor = (p) => { const h = {}; for (const r of RULES) if (r.re.test(p)) Object.assign(h, r.h); delete h['content-security-policy-report-only']; for (const k in h) if (h[k] == null) delete h[k]; return h; };
 const brCache = new Map();
 const FIX = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'orderflow');
 const NOW = Date.UTC(2026, 9, 21, 17, 0);

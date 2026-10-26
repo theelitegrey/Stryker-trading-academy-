@@ -10,6 +10,7 @@
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=664">
 <script src="assets/sanitize.js?v=664"></script>
+<script src="assets/start-page.js?v=664"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -209,6 +210,15 @@
         <input type="email" id="settings-email" disabled style="opacity:0.6;">
       </div>
       <button class="btn btn-primary btn-sm" id="settings-save-name">Save changes</button>
+    </div>
+
+    <div class="panel" id="start-page-panel">
+      <div class="panel-head"><h2>Start page</h2></div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="start-page-select">Open this page when I sign in <span class="sp-saved" id="start-page-saved" role="status" aria-live="polite" hidden></span></label>
+        <select id="start-page-select" disabled><option value="dashboard">Dashboard (default)</option></select>
+        <p style="font-size:12px; color:var(--ink-3); margin:7px 0 0; line-height:1.5;">The page you see after you sign in or open the app.</p>
+      </div>
     </div>
 
     <div class="panel">

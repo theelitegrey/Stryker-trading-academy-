@@ -10,6 +10,7 @@
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=664">
 <script src="assets/sanitize.js?v=664"></script>
+<script src="assets/start-page.js?v=664"></script>
 <script>
 // TradeZoro — device detection for forced views
 //
@@ -269,6 +270,15 @@
           <p style="font-size:13.5px; color:var(--ink-2); line-height:1.6; margin-bottom:14px;">A ninety-second walk through what each part of the site is for. Worth a second run if you joined a while ago — the backtesting module and the Playbook were added since.</p>
           <button class="btn btn-ghost btn-sm" id="settings-tour-btn">Take the tour</button>
           <p id="settings-tour-note" style="font-size:12px; color:var(--ink-3); margin-top:10px;" hidden>The tour runs on your dashboard. Opening it now…</p>
+        </div>
+
+        <div class="panel" id="start-page-panel">
+          <div class="panel-head"><h2>Start page</h2></div>
+          <div class="field" style="margin-bottom:0;">
+            <label for="start-page-select">Open this page when I sign in <span class="sp-saved" id="start-page-saved" role="status" aria-live="polite" hidden></span></label>
+            <select id="start-page-select" disabled><option value="dashboard">Dashboard (default)</option></select>
+            <p style="font-size:12px; color:var(--ink-3); margin:7px 0 0; line-height:1.5;">The page you see after you sign in or open the app.</p>
+          </div>
         </div>
 
         <div class="panel">

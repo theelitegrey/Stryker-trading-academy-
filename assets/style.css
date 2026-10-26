@@ -9808,3 +9808,8 @@ html.stk-chart-fs body.charts-page .stkcps-handle,
 html.stk-chart-fs body.charts-page .appnav-pills{ display:none !important; }
 html.stk-chart-fs body.charts-page .dash-shell{ grid-template-columns:minmax(0,1fr); }
 html.stk-chart-fs body.charts-page{ padding:0 !important; }
+
+/* Settings: "Start page" saved tick (assets/start-page.js) */
+.sp-saved{ display:inline-block; margin-left:8px; font-family:var(--font-mono); font-size:11.5px; font-weight:600; color:var(--bull); }
+.sp-saved.bad{ color:var(--bear); }
+.sp-saved[hidden]{ display:none; }

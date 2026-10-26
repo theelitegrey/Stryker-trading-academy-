@@ -201,6 +201,17 @@ function routeAfterAuth(){
       window.location.href = returnTo;
       return;
     }
+    // The member's own "Start page" choice (Settings, assets/start-page.js).
+    // pathForUser only ever returns one of its fixed internal paths, or null
+    // for the dashboard, and never waits longer than 1.5 s.
+    const sp = window.StrykerStartPage;
+    const user = (typeof auth !== 'undefined' && auth) ? auth.currentUser : null;
+    if (sp && typeof sp.pathForUser === 'function' && user) {
+      sp.pathForUser(user.uid)
+        .then((path) => { window.location.href = path || 'dashboard-user.html'; })
+        .catch(() => { window.location.href = 'dashboard-user.html'; });
+      return;
+    }
     window.location.href = 'dashboard-user.html';
   }, 400);
 }

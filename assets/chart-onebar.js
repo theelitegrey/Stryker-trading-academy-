@@ -77,6 +77,66 @@ const STEPS = [
 const DIVIDERS = [2, 4, 6, 9, 12, 21, 23, 27, 31];
 const CLASSES = STEPS.filter((s) => s[0] === 'cls').map((s) => s[1]);
 
+// PHONE ⋯ LIST (Owner 2026-10-26: "Fix this chart extra menu in mobile. Add appropriate text and
+// align properly"). On the phone row (not merged) ⋯ More is a clean list: every row = a 20 px icon
+// in a fixed 24 px column + a text label, one left edge, 44 px rows, grouped Chart / Tools / Panels
+// under thin dividers; it fits the screen and scrolls when taller. The moved node keeps its own
+// button (listeners, popover, ids); only its look changes, through data-ob-* attributes + CSS
+// (style.css, .stkc-ob-list) that are removed again when it goes back to the bar. Desktop's ⋯ More
+// (merged bar) is not touched.
+// [match(node) -> trigger, group, order, label(trigger), icon]
+const IC = {
+  layout: '<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17"/>',
+  grid: '<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 3.5v17M3.5 12h17"/>',
+  tpl: '<path d="M6 4h12v16l-6-4-6 4z"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  fs: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  fsOff: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
+  max: '<path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7"/>',
+  dots: '<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>',
+  replay: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M10 9l5 3-5 3z"/>',
+  alarm: '<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M4 4.5 6.5 2.5M20 4.5 17.5 2.5"/>',
+  pine: '<path d="M12 2.5 6.5 9h3L5 15h4.5L5.5 20h13L14.5 15H19l-4.5-6h3z"/><path d="M12 20v2"/>',
+  link: '<path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/>',
+  undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  redo: '<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',
+  shot: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  trade: '<path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/>',
+  news: '<path d="M4 5h13v14H6a2 2 0 0 1-2-2z"/><path d="M17 9h3v8a2 2 0 0 1-2 2"/><path d="M7.5 9h6M7.5 12.5h6M7.5 16h4"/>',
+  list: '<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>',
+  ladder: '<path d="M7 3v18M17 3v18M7 7h10M7 12h10M7 17h10"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'
+};
+const trig = (n) => (n.classList.contains('stkc-menu') ? n.querySelector(':scope > button') : n);
+const ROWS = [
+  // CHART
+  [(n) => n.classList.contains('stkl-menu') && trig(n), 'chart', 1, (t) => 'Layout: ' + ((t.querySelector('.stkl-name') || t).textContent.replace(/^Viewing:\s*/, '').trim() || 'Unsaved'), 'layout'],
+  [(n) => n.querySelector && n.querySelector(':scope > #stkc-layout-btn'), 'chart', 2, (t) => { const m = /(\d+)/.exec((t.querySelector('.stkc-btn-l') || t).textContent || ''); return 'Charts in layout (' + (m ? m[1] : 1) + ')'; }, 'grid'],
+  [(n) => n.querySelector && n.querySelector(':scope > #stkc-tpl-btn'), 'chart', 3, () => 'Templates', 'tpl'],
+  [(n) => n.id === 'stkc-settings-btn' && n, 'chart', 4, () => 'Chart settings', 'gear'],
+  [(n) => n.id === 'stkc-fs-btn' && n, 'chart', 5, () => (document.documentElement.classList.contains('stk-chart-fs') ? 'Exit full screen' : 'Full screen'), 'fs'],
+  [(n) => n.classList.contains('vela-mb-maximize') && n, 'chart', 6, () => 'Maximize chart', 'max'],
+  [(n) => n.classList.contains('vela-mb-more') && n, 'chart', 7, () => 'More chart options', 'dots'],
+  // TOOLS
+  [(n) => n.classList.contains('stkr-menu') && trig(n), 'tools', 11, () => 'Replay', 'replay'],
+  [(n) => n.id === 'stkc-alerts-btn' && n, 'tools', 12, () => 'Alerts', 'alarm'],
+  [(n) => n.id === 'stkc-pine-btn' && n, 'tools', 13, () => 'Pine Script editor', 'pine'],
+  // Rithmic: a DATA-ONLY connection (rithmic-config.js: never places, changes or cancels orders)
+  [(n) => n.querySelector && n.querySelector(':scope > #stkrb-btn'), 'tools', 14, () => 'Connect data (Rithmic)', 'link'],
+  [(n) => n.id === 'stkc-paper-btn' && n, 'tools', 15, () => 'Paper trading', 'trade'],
+  [(n) => n.classList.contains('vela-widget-undo') && n, 'tools', 16, () => 'Undo', 'undo'],
+  [(n) => n.classList.contains('vela-widget-redo') && n, 'tools', 17, () => 'Redo', 'redo'],
+  [(n) => n.classList.contains('vela-widget-screenshot') && n, 'tools', 18, () => 'Screenshot', 'shot'],
+  // PANELS
+  [(n) => n.classList.contains('stknw-phonebtn') && n, 'panels', 21, () => 'News', 'news'],
+  [(n) => n.classList.contains('stkw-phonebtn') && n, 'panels', 22, () => 'Watchlist', 'list'],
+  [(n) => n.classList.contains('stkgl-phonebtn') && n, 'panels', 23, () => 'GEX Ladder', 'ladder'],
+  [(n) => n.id === 'stkc-credits-btn' && n, 'panels', 24, () => 'Data source & credits', 'info']
+];
+const GROUP_ORDER = { chart: 0, tools: 10, panels: 20 };
+const GROUP_LABEL = { chart: 'Chart', tools: 'Tools', panels: 'Panels' };
+const icUrl = (k) => 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + IC[k] + '</svg>') + '")';
+
 export function mountOneBar(ws){
   const bar = byId('stkc-bar');
   const barL = byId('stkc-bar-l');
@@ -126,11 +186,31 @@ export function mountOneBar(ws){
   morePop.setAttribute('role', 'group');
   morePop.setAttribute('aria-label', 'More toolbar items');
   morePop.hidden = true;
+  // group headings for the phone list (hidden in the desktop ⋯ More)
+  const heads = {};
+  Object.keys(GROUP_LABEL).forEach((g) => {
+    const h = document.createElement('div');
+    h.className = 'stkc-ob-gh';
+    h.setAttribute('role', 'presentation');
+    h.textContent = GROUP_LABEL[g];
+    h.style.order = String(GROUP_ORDER[g]);
+    h.hidden = true;
+    heads[g] = h;
+    morePop.appendChild(h);
+  });
   const more = document.createElement('div');
   more.className = 'stkc-menu stkc-ob-more';
   more.hidden = true;
   more.append(moreBtn, morePop);
-  const setMore = (open) => { morePop.hidden = !open; moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+  const setMore = (open) => {
+    // phone list: room from just under the toolbar to the bottom of the screen; taller lists scroll
+    if (open && !merged) {
+      const b = bar.getBoundingClientRect().bottom;
+      morePop.style.setProperty('--ob-maxh', Math.max(160, Math.floor(window.innerHeight - b - 14)) + 'px');
+      morePop.scrollTop = 0;
+    }
+    morePop.hidden = !open; moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
   moreBtn.addEventListener('click', (e) => { e.stopPropagation(); setMore(morePop.hidden); });
   // Items that open their own popover (Templates, Credits, grid, layout menu) stop the click's
   // propagation, so More stays open around them; any other click (an action, or outside) closes it.
@@ -173,7 +253,39 @@ export function mountOneBar(ws){
       if (m.ph.parentNode) m.ph.parentNode.replaceChild(m.node, m.ph);
       m.node.removeAttribute('data-ob-more');
       m.node.removeAttribute('data-ob-vela');
+      unlist(m.node);
     }
+    Object.values(heads).forEach((h) => { h.hidden = true; });
+    morePop.classList.remove('stkc-ob-list');
+  }
+  function unlist(n){
+    n.removeAttribute('data-ob-row');
+    n.style.removeProperty('order');
+    const t = n.__obTrig;
+    if (t) { t.removeAttribute('data-ob-trig'); t.removeAttribute('data-ob-label'); t.style.removeProperty('--ob-ic'); n.__obTrig = null; }
+  }
+  // phone list: label + icon + group on every moved item
+  function listify(){
+    if (merged) return;
+    morePop.classList.add('stkc-ob-list');
+    const used = {};
+    moved.forEach(({ node }) => {
+      for (const [match, g, ord, label, ic] of ROWS) {
+        const t = match(node);
+        if (!t) continue;
+        node.setAttribute('data-ob-row', g);
+        node.style.order = String(ord);
+        t.setAttribute('data-ob-trig', '1');
+        t.setAttribute('data-ob-label', label(t));
+        const icon = ic === 'fs' && document.documentElement.classList.contains('stk-chart-fs') ? 'fsOff' : ic;
+        t.style.setProperty('--ob-ic', icUrl(icon));
+        node.__obTrig = t;
+        used[g] = true;
+        return;
+      }
+    });
+    moved.forEach(({ node }) => { if (!node.hasAttribute('data-ob-row') && !node.matches('#stkc-credits')) node.style.order = '30'; });
+    Object.keys(heads).forEach((g) => { heads[g].hidden = !used[g]; });
   }
   function moveToMore(nodes){
     let any = false;
@@ -261,6 +373,7 @@ export function mountOneBar(ws){
         if (kind === 'cls') { bar.classList.add(arg); document.dispatchEvent(new CustomEvent('stkc:onebar-fit')); }
         else if (moveToMore(arg())) more.hidden = false;
       }
+      listify();
       if (more.hidden) setMore(false); else if (wasOpen) setMore(true);
       tidyDividers();
     } finally {

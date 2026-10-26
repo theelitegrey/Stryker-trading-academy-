@@ -89,8 +89,8 @@ function grid(cols, rows){
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) out.push([c / cols, r / rows, 1 / cols, 1 / rows]);
   return out;
 }
-function iconSvg(id, n){
-  const tiles = n ? gridFor(n) : tilesOf(id);
+function iconSvg(id, n, tilesIn){
+  const tiles = tilesIn || (n ? gridFor(n) : tilesOf(id));
   const W = 26, H = 20, g = 1.5;
   const rects = tiles.map(([x, y, w, h]) => {
     const rx = 1 + x * W + g / 2, ry = 1 + y * H + g / 2;
@@ -114,13 +114,39 @@ export function labelOf(id){
   return countOf(id) + ' charts';
 }
 
-// Device cap: desktop 8; tablets and phones 4.
+// Device cap: desktop 8; tablets and phones 4. (Phones: every chart of a 2-4 chart layout
+// is on screen at once, see phoneMode() below; 5-16 are not offered on a phone at all.)
+// 10/12/14/16 are shown greyed with "Up to 8 charts on our site for smooth performance".
 export function maxCells(){
   const dev = document.documentElement.getAttribute('data-device');
   if (dev === 'mobile' || dev === 'tablet') return 4;
   if (window.innerWidth <= 1024) return 4;
   return 8;
 }
+// PHONE (Owner bug 2026-10-26: "Chart layouts not working properly on Mobile phone. Not showing
+// up"): a phone shows every chart of a 2-4 chart layout at once, in a phone shape that does not
+// depend on the desktop shape (vela-chart.js applyPhoneLayout + style.css #vela-chart[data-stkpl]):
+// portrait = panes stacked top to bottom, landscape = 2 side by side / 2 x 2. The saved layout id
+// is never changed by this, so the same layout still opens in its own shape on a desktop.
+// A phone is a phone-class device (data-device="mobile", either orientation) or any window <= 700 px.
+export function phoneMode(){
+  const dev = document.documentElement.getAttribute('data-device');
+  if (dev !== 'mobile' && window.innerWidth > 700) return null;
+  return window.innerHeight >= window.innerWidth ? 'portrait' : 'landscape';
+}
+// The tiles a phone draws for n charts (icon in the phone picker).
+function phoneTiles(n, mode){
+  if (n <= 1) return grid(1, 1);
+  if (mode === 'landscape') {
+    if (n === 2) return grid(2, 1);
+    if (n === 3) return [[0, 0, 0.5, 0.5], [0.5, 0, 0.5, 0.5], [0, 0.5, 1, 0.5]];
+    return grid(2, 2);
+  }
+  return grid(1, n);
+}
+// The layout a phone picks for n charts (what a desktop then shows): 2 stacked, 3 rows, 2 x 2.
+const PHONE_IDS = { 1: '1', 2: '2v', 3: '3r', 4: '4' };
+
 // Widest allowed fallback for an over-cap layout.
 function fallbackFor(id){ const cap = maxCells(); return cap >= 8 ? id : (countOf(id) > cap ? '4' : id); }
 
@@ -210,9 +236,18 @@ export function mountGrid(ws, opts){
       html: '<b>' + n + '</b>' + iconSvg(null, n) }));
   });
   gridBox.appendChild(greyRow);
+  // Phone picker: only what a phone can show (1 to 4 charts), drawn in the phone's own shape.
+  const phoneBox = el('div', { class: 'stkg-phone', role: 'group', 'aria-label': 'Charts in the layout', hidden: '' });
+  const phoneItems = {};
+  [1, 2, 3, 4].forEach((n) => {
+    const b = el('button', { type: 'button', class: 'stkg-pc', 'data-n': String(n), 'aria-pressed': 'false', 'aria-label': n === 1 ? '1 chart' : n + ' charts',
+      onclick: () => { pickCount(n); setOpen(false); } });
+    phoneItems[n] = b; phoneBox.appendChild(b);
+  });
   const capNote = el('p', { class: 'stkg-note', hidden: '' });
   pop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Charts in layout' }));
   pop.appendChild(gridBox);
+  pop.appendChild(phoneBox);
   pop.appendChild(capNote);
 
   const syncHead = el('p', { class: 'stkc-pop-h', text: 'Sync in layout' });
@@ -238,12 +273,20 @@ export function mountGrid(ws, opts){
     if (opts.onStructural) opts.onStructural();
     refresh();
   }
+  // Phone: n charts. A layout that already has n charts keeps its own (desktop) shape.
+  function pickCount(n){
+    let id = '1';
+    try { id = ws.layout.id; } catch (e) {}
+    if (countOf(id) === n && !capFromId) { try { ws.maximizeCell(null); } catch (e) {} if (opts.onStructural) opts.onStructural(); refresh(); return; }
+    setLayout(PHONE_IDS[n]);
+  }
 
   function refresh(){
     let id = '1';
     try { id = ws.layout.id; } catch (e) {}
     const cap = maxCells();
     const shown = capFromId || id;
+    const pm = phoneMode();
     btn.innerHTML = iconSvg(shown) + '<span class="stkc-btn-l">' + (countOf(shown) > 1 ? countOf(shown) + ' charts' : '1 chart') + '</span>';
     btn.setAttribute('aria-label', 'Chart grid: ' + labelOf(shown));
     Object.keys(items).forEach((k) => {
@@ -253,10 +296,22 @@ export function mountGrid(ws, opts){
       b.setAttribute('aria-disabled', over ? 'true' : 'false');
       b.title = over ? 'Up to ' + cap + ' charts on this device' : labelOf(k);
     });
-    capNote.hidden = !(cap < 8 || capFromId);
-    capNote.textContent = capFromId
-      ? 'This layout has ' + countOf(capFromId) + ' charts; this device shows up to ' + cap + '.'
-      : 'Up to ' + cap + ' charts on this device' + (window.innerWidth <= 700 ? ', one at a time on a phone.' : '.');
+    gridBox.hidden = !!pm;
+    phoneBox.hidden = !pm;
+    if (pm) {
+      const cur = countOf(id);
+      Object.keys(phoneItems).forEach((k) => {
+        const n = +k, b = phoneItems[k];
+        b.innerHTML = iconSvg(null, null, phoneTiles(n, pm)) + '<span>' + (n === 1 ? '1 chart' : n + ' charts') + '</span>';
+        b.setAttribute('aria-pressed', n === cur ? 'true' : 'false');
+      });
+    }
+    capNote.hidden = !(pm || cap < 8 || capFromId);
+    capNote.textContent = pm
+      ? 'On a phone you can use up to 4 charts. ' + (opts.isStrip && opts.isStrip() ? 'Swipe the tabs or tap them to switch charts.' : 'Tap a chart to work on it; the toolbar changes that chart.') + (capFromId ? ' This layout has ' + countOf(capFromId) + ' charts; open it on a computer to see them all.' : '')
+      : capFromId
+        ? 'This layout has ' + countOf(capFromId) + ' charts; this device shows up to ' + cap + '.'
+        : 'Up to ' + cap + ' charts on this device.';
     let st = {};
     try { st = ws.sync.state() || {}; } catch (e) {}
     const multi = countOf(id) > 1;

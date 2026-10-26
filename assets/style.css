@@ -6377,6 +6377,73 @@ body.charts-page .stkchart-credit{
 .stkc-ob-pop > #stkc-credits{ position:absolute; right:0; top:calc(100% + 6px); }
 .stkc-ob-pop > #stkc-credits[hidden]{ display:none; }
 :root[data-theme="light"] .stkc-ob-pop{ box-shadow:0 18px 40px -16px rgba(0,0,0,.25); }
+/* ⋯ More on the PHONE row = a clean list (chart-onebar.js listify, Owner 2026-10-26): every row a
+   20 px icon in a fixed 24 px column + a text label, one left edge, 44 px rows, Chart / Tools / Panels
+   under thin dividers. Fits the screen below the toolbar and scrolls when taller. */
+.stkc-ob-pop.stkc-ob-list{
+  display:flex; flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:0; padding:4px 0;
+  width:min(260px, calc(100vw - 16px)); max-width:none; max-height:var(--ob-maxh, calc(100dvh - 120px));
+  overflow-x:hidden; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+  font:500 14px/1.2 inherit; font-family:inherit;
+}
+.stkc-ob-list > .stkc-ob-gh{
+  flex:none; padding:8px 14px 4px; font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3);
+  border-top:1px solid var(--line-soft, var(--line)); margin-top:4px;
+}
+.stkc-ob-list > .stkc-ob-gh[hidden]{ display:none; }
+.stkc-ob-list > .stkc-ob-gh:first-child, .stkc-ob-list > .stkc-ob-gh[style*="order: 0"]{ border-top:0; margin-top:0; }
+.stkc-ob-list > [data-ob-more]{ flex:none; }
+.stkc-ob-list > [data-ob-row]{ flex:none; display:block; width:100%; min-width:0; }
+.stkc-ob-list > [data-ob-row] > .stkc-pop{ text-align:left; }
+.stkc-ob-list [data-ob-trig]{
+  all:unset; box-sizing:border-box; display:flex !important; align-items:center; gap:12px; width:100% !important; max-width:none !important;
+  height:44px; min-height:44px; padding:0 14px; border-radius:0; color:var(--ink-1); cursor:pointer; white-space:nowrap;
+  font:500 14px/1.2 inherit; font-family:inherit; -webkit-tap-highlight-color:transparent;
+}
+.stkc-ob-list [data-ob-trig][hidden]{ display:none !important; }
+.stkc-ob-list [data-ob-trig] > *{ display:none !important; }
+.stkc-ob-list [data-ob-trig]::before{
+  content:""; flex:none; width:20px; height:20px; padding:0 2px; background:currentColor; background-clip:content-box;
+  -webkit-mask:var(--ob-ic) center / 20px 20px no-repeat content-box; mask:var(--ob-ic) center / 20px 20px no-repeat content-box;
+}
+.stkc-ob-list [data-ob-trig]::after{ content:attr(data-ob-label); flex:1 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.stkc-ob-list [data-ob-trig]:hover, .stkc-ob-list [data-ob-trig]:active, .stkc-ob-list [data-ob-trig][aria-expanded="true"]{ background:var(--bg-3, rgba(255,255,255,.06)); color:var(--ink-0); }
+.stkc-ob-list [data-ob-trig]:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }
+.stkc-ob-list [data-ob-trig][aria-pressed="true"], .stkc-ob-list .stkr-menu [data-ob-trig].on{ color:var(--gold); }
+/* the menus opened from the list are sheets under the toolbar (never clipped by the scrolling list) */
+.stkc-ob-list .stkc-pop, .stkc-ob-list > #stkc-credits{ position:fixed; left:8px; right:8px; top:calc(var(--stkc-top, 0px) + 50px); width:auto; max-width:none;
+  max-height:calc(100dvh - var(--stkc-top, 0px) - 64px); overflow-y:auto; overscroll-behavior:contain; }
+/* ---- Phone multi-chart (vela-chart.js applyPhoneLayout, Owner bug 2026-10-26): every chart of a
+   2-4 chart layout on screen. Portrait: stacked full-width panes; landscape: 2 side by side, 2 + 1,
+   2 x 2. !important beats Vela's inline grid template/areas (the saved desktop shape is untouched). */
+#vela-chart[data-stkpl] .vela-ws-grid:not([data-maximized="1"]) > .vela-ws-splitter{ display:none !important; }
+#vela-chart[data-stkpl] .vela-ws-grid:not([data-maximized="1"]) > .vela-cell{ grid-area:auto !important; min-width:0; min-height:0; }
+#vela-chart[data-stkpl] .vela-ws-grid:not([data-maximized="1"]){ grid-template-areas:none !important; }
+#vela-chart[data-stkpl="p2"] .vela-ws-grid:not([data-maximized="1"]){ grid-template-rows:repeat(2, minmax(0,1fr)) !important; grid-template-columns:minmax(0,1fr) !important; }
+#vela-chart[data-stkpl="p3"] .vela-ws-grid:not([data-maximized="1"]){ grid-template-rows:repeat(3, minmax(0,1fr)) !important; grid-template-columns:minmax(0,1fr) !important; }
+#vela-chart[data-stkpl="p4"] .vela-ws-grid:not([data-maximized="1"]){ grid-template-rows:repeat(4, minmax(0,1fr)) !important; grid-template-columns:minmax(0,1fr) !important; }
+#vela-chart[data-stkpl="l2"] .vela-ws-grid:not([data-maximized="1"]){ grid-template-rows:minmax(0,1fr) !important; grid-template-columns:repeat(2, minmax(0,1fr)) !important; }
+#vela-chart[data-stkpl="l3"] .vela-ws-grid:not([data-maximized="1"]), #vela-chart[data-stkpl="l4"] .vela-ws-grid:not([data-maximized="1"]){ grid-template-rows:repeat(2, minmax(0,1fr)) !important; grid-template-columns:repeat(2, minmax(0,1fr)) !important; }
+#vela-chart[data-stkpl="l3"] .vela-ws-grid:not([data-maximized="1"]) > .vela-cell[style*="order: 2"]{ grid-column:1 / -1 !important; }
+/* strip (panes would be too small): one chart at a time (Vela's maximize), tabs + dots above the chart */
+.stkc-cells{ flex:none; display:flex; flex-direction:column; gap:3px; padding:4px 8px 3px; border-bottom:1px solid var(--line-soft); background:var(--bg-0); }
+.stkc-cells-tabs{ display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; }
+.stkc-cells-tabs::-webkit-scrollbar{ display:none; }
+.stkc-cells .stkc-cell{ height:30px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; }
+.stkc-cells .stkc-cell b{ font-weight:700; color:var(--ink-3); }
+.stkc-cells .stkc-cell.on b{ color:inherit; }
+.stkc-cells-dots{ display:flex; justify-content:center; gap:5px; }
+.stkc-cells-dots i{ width:5px; height:5px; border-radius:50%; background:var(--ink-3); opacity:.45; }
+.stkc-cells-dots i.on{ background:var(--gold); opacity:1; }
+/* phone picker in the "Charts in layout" menu: 1-4 only, big tap targets */
+.stkg-phone{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; padding:0 2px; }
+.stkg-phone[hidden], .stkg-grid[hidden]{ display:none; }
+.stkg-pc{ display:flex; align-items:center; gap:10px; height:48px; padding:0 12px; border:1px solid var(--line); border-radius:8px;
+  background:transparent; color:var(--ink-1); font:600 13px/1 inherit; font-family:inherit; cursor:pointer; }
+.stkg-pc svg rect{ fill:currentColor; opacity:.55; }
+.stkg-pc[aria-pressed="true"]{ border-color:var(--gold); color:var(--gold); background:rgba(3,201,136,.08); }
+.stkg-pc[aria-pressed="true"] svg rect{ opacity:.9; }
+.stkg-pc:focus-visible{ outline:2px solid var(--teal); outline-offset:1px; }
 /* ---- Charts: grid picker + Sync in layout (assets/chart-grid.js, 2026-10-06) ---- */
 .stkg-pop{ width:300px; }
 .stkg-btn svg{ flex:none; }

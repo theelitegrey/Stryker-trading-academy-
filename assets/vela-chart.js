@@ -596,12 +596,13 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   const isPhone = () => window.innerWidth <= PHONE_MAX;
 
   // Grid picker + Sync in layout (assets/chart-grid.js)
-  const grid = Grid.mountGrid(ws, { bindPopover, onStructural: () => afterStructural() });
+  let plMode = null;   // phone layout mode (applyPhoneLayout below): null | 'p2'..'p4' | 'l2'..'l4' | 'strip'
+  const grid = Grid.mountGrid(ws, { bindPopover, onStructural: () => afterStructural(), isStrip: () => plMode === 'strip' });
   const layWrap = grid.el;
   const SYNCS = [['crosshair'], ['viewport'], ['symbol'], ['timeframe']];
 
-  // Phone cell switcher
-  const cellSw = el('div', { class: 'stkc-cells', role: 'tablist', 'aria-label': 'Charts in this layout' });
+  // Phone chart tabs (only when the panes would be too small to stack: see applyPhoneLayout)
+  const cellSw = el('div', { class: 'stkc-cells', role: 'tablist', 'aria-label': 'Charts in this layout', hidden: '' });
 
   // Templates menu
   const tplBtn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkc-tpl-btn', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Templates',
@@ -613,7 +614,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   barL.appendChild(layWrap);
   barL.appendChild(tplWrap);
   try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('TradeZoro: Pine editor', e); }
-  barL.appendChild(cellSw);
+  // the tab strip is its own slim row between the toolbar and the chart (never in the crowded phone toolbar)
+  { const panel = document.querySelector('.stkchart-panel'); if (panel && panel.parentNode) panel.parentNode.insertBefore(cellSw, panel); else barL.appendChild(cellSw); }
   if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('TradeZoro: Rithmic UI', e); } }
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
   import('./chart-data-dot.js?v=665')
@@ -726,33 +728,97 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     try { return Iv.ivShort(tf); } catch (e) { return tf; }
   }
 
-  // Phone: one chart at a time — maximize the active cell; chips switch it.
+  // PHONE MULTI-CHART (Owner bug 2026-10-26: "Chart layouts not working properly on Mobile phone.
+  // Not showing up"). Before: a phone maximized ONE chart over the grid, so picking 2-4 charts looked
+  // like nothing happened. Now every chart of the layout is on screen, in a phone shape set by
+  // #vela-chart[data-stkpl] (style.css), whatever the desktop shape of the saved layout is:
+  //   portrait  p2 / p3 / p4: panes stacked top to bottom, full width (each keeps its price axis);
+  //   landscape l2: side by side, l3: two on top + one wide, l4: 2 x 2.
+  //   strip: when stacked panes would be shorter than PANE_MIN px (a short phone, 4 charts) ONE chart
+  //   shows at a time with a tab row ("1 NQ 15m", "2 ES 15m" ...) + dots; swipe the row or tap a tab.
+  // Each pane is its own Vela cell (own symbol, timeframe, indicators, drawings); tapping a pane makes
+  // it the active one, and the toolbar (symbol, interval, Indicators, drawings) edits that pane.
+  // Desktop and tablets: data-stkpl is never set and nothing here runs a layout change.
+  const PANE_MIN = 150;
   let swKey = '';
-  function renderCellSwitcher(){
+  let plKey = '';
+  function phoneLayoutMode(cells){
+    const pm = Grid.phoneMode();
+    const n = Math.min(cells.length, 4);
+    if (!pm || n < 2) return null;
+    if (pm === 'landscape') return 'l' + n;
+    const host = document.getElementById('vela-chart');
+    const h = host ? host.getBoundingClientRect().height : window.innerHeight;
+    // the tab row (when shown) is not part of the grid's height
+    const tabs = cellSw.hidden ? 0 : cellSw.getBoundingClientRect().height;
+    return (h + tabs) / n < PANE_MIN ? 'strip' : 'p' + n;
+  }
+  function applyPhoneLayout(){
     const cells = liveCells();
-    const show = isPhone() && cells.length > 1;
-    cellSw.hidden = !show;
-    if (!show) {
-      swKey = '';
-      cellSw.innerHTML = '';
-      try { if (ws.maximizedCell && !isPhone()) ws.maximizeCell(null); } catch (e) {}
-      return;
-    }
+    const mode = phoneLayoutMode(cells);
+    const host = document.getElementById('vela-chart');
+    const was = plMode;
+    plMode = mode;
+    if (host) { if (mode) host.dataset.stkpl = mode; else delete host.dataset.stkpl; }
     let active = null; try { active = ws.active.id; } catch (e) {}
-    if (!cells.some((c) => c.id === active)) active = cells[0].id;
+    if (cells.length && !cells.some((c) => c.id === active)) active = cells[0].id;
+    // pane order in the phone grid = the workspace's cell order (Vela may have swapped slots)
+    try { ws.cells().forEach((c, i) => { if (c && c.host) c.host.style.order = mode && mode !== 'strip' ? String(i) : ''; }); } catch (e) {}
+    const key = (mode || '-') + '|' + cells.length;
+    const changed = key !== plKey;
+    plKey = key;
+    if (mode === 'strip') {
+      try { if (ws.maximizedCell !== active) ws.maximizeCell(active); } catch (e) {}
+    } else if (changed && (was === 'strip' || mode)) {
+      // entering a phone grid (or leaving the strip): show every pane once; a pane the member
+      // maximizes afterwards (Vela's maximize) is left alone
+      try { if (ws.maximizedCell) ws.maximizeCell(null); } catch (e) {}
+    }
+    renderCellTabs(cells, active, mode === 'strip');
+    if (changed) { try { grid.refresh(); } catch (e) {} }
+  }
+  function renderCellTabs(cells, active, show){
+    const wasHidden = cellSw.hidden;
+    cellSw.hidden = !show;
+    if (!show) { swKey = ''; cellSw.innerHTML = ''; if (!wasHidden) window.dispatchEvent(new Event('resize')); return; }
     const key = active + '|' + cells.map((c) => c.id + c.symbol + c.timeframe).join(',');
     if (key !== swKey) {
       swKey = key;
       cellSw.innerHTML = '';
+      const tabs = el('div', { class: 'stkc-cells-tabs' });
+      const dots = el('div', { class: 'stkc-cells-dots', 'aria-hidden': 'true' });
       cells.forEach((c, i) => {
         const lab = (String(c.symbol || '').replace(/^[a-z]+:/i, '').replace(/1!$/, '') + ' ' + tfLabel(c.timeframe)).trim();
-        cellSw.appendChild(el('button', { type: 'button', role: 'tab', class: 'stkc-cell' + (c.id === active ? ' on' : ''),
-          'aria-selected': c.id === active ? 'true' : 'false', title: 'Chart ' + (i + 1), text: lab || String(i + 1),
-          onclick: () => { try { ws.setActiveCell(c.id); ws.maximizeCell(c.id); } catch (e) {} renderCellSwitcher(); } }));
+        const on = c.id === active;
+        tabs.appendChild(el('button', { type: 'button', role: 'tab', class: 'stkc-cell' + (on ? ' on' : ''),
+          'aria-selected': on ? 'true' : 'false', 'aria-label': 'Chart ' + (i + 1) + ': ' + lab, 'data-cell': c.id,
+          html: '<b>' + (i + 1) + '</b> <span></span>',
+          onclick: () => showCell(c.id) }));
+        tabs.lastChild.querySelector('span').textContent = lab;
+        dots.appendChild(el('i', { class: on ? 'on' : '' }));
       });
+      cellSw.append(tabs, dots);
     }
-    try { if (ws.maximizedCell !== active) ws.maximizeCell(active); } catch (e) {}
+    if (wasHidden) window.dispatchEvent(new Event('resize'));
   }
+  function showCell(id){
+    try { ws.setActiveCell(id); if (plMode === 'strip') ws.maximizeCell(id); } catch (e) {}
+    applyPhoneLayout();
+  }
+  // swipe the tab row left / right = next / previous chart
+  let swX = null, swY = null;
+  cellSw.addEventListener('touchstart', (e) => { if (e.touches.length === 1) { swX = e.touches[0].clientX; swY = e.touches[0].clientY; } }, { passive: true });
+  cellSw.addEventListener('touchend', (e) => {
+    if (swX == null || !e.changedTouches.length) return;
+    const dx = e.changedTouches[0].clientX - swX, dy = e.changedTouches[0].clientY - swY;
+    swX = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    const cells = liveCells();
+    let i = 0; try { i = cells.findIndex((c) => c.id === ws.active.id); } catch (e) {}
+    const next = cells[(i + (dx < 0 ? 1 : -1) + cells.length) % cells.length];
+    if (next) showCell(next.id);
+  }, { passive: true });
+  function renderCellSwitcher(){ applyPhoneLayout(); }   // old name (refreshLayoutUi)
 
   function afterStructural(){
     grid.enforceCap();
@@ -761,10 +827,14 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   }
 
   try { ws.on('layout:changed', () => setTimeout(refreshLayoutUi, 0)); } catch (e) {}
-  try { ws.on('cell:active', () => { if (isPhone()) setTimeout(renderCellSwitcher, 0); }); } catch (e) {}
-  try { ws.on('state:changed', () => { if (isPhone()) renderCellSwitcher(); }); } catch (e) {}
-  let lastPhone = isPhone();
-  window.addEventListener('resize', () => { if (isPhone() !== lastPhone) { lastPhone = isPhone(); swKey = ''; renderCellSwitcher(); } }, { passive: true });
+  try { ws.on('cell:active', () => setTimeout(applyPhoneLayout, 0)); } catch (e) {}
+  try { ws.on('state:changed', () => { if (plMode) applyPhoneLayout(); }); } catch (e) {}
+  let plRaf = 0;
+  const plQueue = () => { if (plRaf) return; plRaf = requestAnimationFrame(() => { plRaf = 0; applyPhoneLayout(); }); };
+  window.addEventListener('resize', plQueue, { passive: true });
+  window.addEventListener('orientationchange', () => setTimeout(plQueue, 250), { passive: true });
+  // full screen on / off changes the plot height (strip vs stacked)
+  new MutationObserver(plQueue).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   // A grid wider than this device allows (8 on desktop, 4 on tablets/phones) drops to 4.
   if (cellCount() > Grid.maxCells()) afterStructural();
   refreshLayoutUi();

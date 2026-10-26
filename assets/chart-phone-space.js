@@ -13,7 +13,7 @@
 //   5. the favourites drawing bar starts folded (assets/chart-fav-toolbar.js).
 // Full screen (both phone and desktop) is assets/chart-tv-toolbars.js (html.stk-chart-fs).
 // Everything moved goes back to its exact place when the window grows past the phone width.
-// Desktop is untouched.
+// Desktop is untouched. A phone in landscape (data-device="mobile") counts as a phone.
 // Depends on: charts.html (.mobile-topnav, #dash-menu-toggle, .notif-bell-wrap, #stkc-bar,
 // .stkchart-credit, #appnav-dock), market-hours.js (#mclock, StrykerMarketHours), style.css
 // (html.stk-cps block), vela-chart.js (re-measures header / dock on resize).
@@ -22,7 +22,10 @@ const PHONE_MAX = 700;
 const HIDE_MS = 4000;
 const html = document.documentElement;
 const byId = (id) => document.getElementById(id);
-const isPhone = () => window.innerWidth <= PHONE_MAX;
+// a phone held sideways (844 x 390) is wider than PHONE_MAX but has even less height: the
+// phone-class device (device-mode.js data-device="mobile") gets the same one top bar (2026-10-26,
+// phone multi-chart layouts: a 2 x 2 grid in landscape needs every pixel of height)
+const isPhone = () => window.innerWidth <= PHONE_MAX || html.getAttribute('data-device') === 'mobile';
 
 export function mountPhoneSpace() {
   if (window.__stkCps) return window.__stkCps;

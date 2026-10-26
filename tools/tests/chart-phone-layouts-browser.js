@@ -60,6 +60,15 @@ const painted = (p) => p.evaluate(() => window.STRYKER_VELA.cells().filter((c) =
   return cvs.length > 0 && c.chart.orchestrator.rawBars.length > 0;
 }));
 async function pickCount(p, n) {
+  // the grid button sits on the bar when there is room (landscape), else in ⋯
+  const onBar = await p.evaluate(() => { const b = document.getElementById('stkc-layout-btn'); return !!(b && !b.closest('#stkc-more-pop') && b.getClientRects().length); });
+  if (onBar) {
+    const okRow = await tapSel(p, '#stkc-layout-btn');
+    const pick = await p.evaluate(() => { const pop = document.getElementById('stkc-layout-pop'); return { open: !pop.hidden, grid: !document.querySelector('.stkg-grid').hidden, phone: [...document.querySelectorAll('.stkg-phone:not([hidden]) .stkg-pc')].map((b) => b.textContent.trim()), note: document.querySelector('.stkg-note').textContent, off: [...pop.querySelectorAll('.stkg-off')].filter((e) => e.getClientRects().length).length }; });
+    const okPick = await tapSel(p, '.stkg-pc[data-n="' + n + '"]');
+    await settle(p);
+    return { okRow, okPick, pick, onBar };
+  }
   await openMenu(p);
   const okRow = await tapRow(p, (await p.evaluate(() => (document.querySelector('#stkc-more-pop [data-ob-label^="Charts in layout"]') || {}).getAttribute ? document.querySelector('#stkc-more-pop [data-ob-label^="Charts in layout"]').getAttribute('data-ob-label') : '')));
   const pick = await p.evaluate(() => { const pop = document.getElementById('stkc-layout-pop'); return { open: !pop.hidden, grid: !document.querySelector('.stkg-grid').hidden, phone: [...document.querySelectorAll('.stkg-phone:not([hidden]) .stkg-pc')].map((b) => b.textContent.trim()), note: document.querySelector('.stkg-note').textContent, off: [...pop.querySelectorAll('.stkg-off')].filter((e) => e.getClientRects().length).length }; });
@@ -86,9 +95,15 @@ async function run(b, v09, w, h, doItems) {
   await sleep(600);
   const portrait = h > w;
   // ---- ⋯ list ----
-  await openMenu(p);
-  const M = await menuRows(p);
+  const hasMore = await p.evaluate(() => { const m = document.getElementById('stkc-more-btn'); return !!(m && m.getClientRects().length); });
+  const M = hasMore ? (await openMenu(p), await menuRows(p)) : null;
+  if (!hasMore) {
+    // everything fits on the bar (landscape): the bar items carry their own labels/tooltips
+    const bar = await p.evaluate(() => { const b = document.getElementById('stkc-bar'); return { over: b.scrollWidth > b.clientWidth + 1, h: Math.round(b.getBoundingClientRect().height) }; });
+    check(!bar.over, key + ': no ⋯ needed, the toolbar fits in one row', bar);
+  }
   await p.screenshot({ path: path.join(OUT, key + '-menu.png') });
+  if (M) {
   console.log('MENU ' + key + ' ' + JSON.stringify(M.rows.map((r) => r.l)));
   check(M.rows.length >= 6 && M.rows.every((r) => r.l && r.l.length > 2), key + ': every ⋯ row has a text label', M.rows.map((r) => r.l));
   check(new Set(M.rows.map((r) => r.x)).size === 1, key + ': one left edge', [...new Set(M.rows.map((r) => r.x))]);
@@ -103,6 +118,7 @@ async function run(b, v09, w, h, doItems) {
   const layoutRow = M.rows.find((r) => /^Layout:/.test(r.l));
   const onBar = await p.evaluate(() => { const b = document.getElementById('stkl-btn'); return b ? { inMore: !!b.closest('#stkc-more-pop'), shown: !!b.getClientRects().length, name: (b.querySelector('.stkl-name') || {}).textContent } : null; });
   console.log('INFO ' + key + ': layout menu ' + JSON.stringify({ row: layoutRow && layoutRow.l, onBar }));
+  }
   await closeAll(p);
   // ---- every ⋯ item opens what it says (fresh page per item, first size per engine) ----
   const EXPECT = {
@@ -117,7 +133,7 @@ async function run(b, v09, w, h, doItems) {
     'Replay': () => [...document.querySelectorAll('.stkr-menu .stkc-pop')].some((e) => !e.hidden),
     'Object tree & chart menu': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Object tree$/.test(e.textContent.trim()) && e.getClientRects().length && !e.closest('#stkc-more-pop'))
   };
-  if (doItems) {
+  if (doItems && M) {
     for (const l of M.rows.map((r) => r.l)) {
       if (/^Charts in layout/.test(l)) continue;
       await p.close();
@@ -153,6 +169,7 @@ async function run(b, v09, w, h, doItems) {
     check(vis.length === n, key + ': all ' + n + ' panes on screen', P.cells);
     check(P.cells.every((c) => c.bars > 0), key + ': every pane has candles', P.cells.map((c) => c.bars));
     check((await painted(p)).every(Boolean), key + ': every pane drew its canvas');
+    if (!portrait) check(P.plotH >= 0.7 * h, key + ': landscape plot >= 70% of the screen height', P.plotH + '/' + h);
     if (n === 2 && portrait) check(vis.every((c) => c.h >= 0.45 * P.plotH), key + ': 2 stacked, each >= 45% of the plot height', vis.map((c) => c.h + '/' + P.plotH));
     const noOverlap = vis.every((a, i) => vis.every((c, j) => i === j || a.x + a.w <= c.x + 1 || c.x + c.w <= a.x + 1 || a.y + a.h <= c.y + 1 || c.y + c.h <= a.y + 1));
     check(noOverlap, key + ': panes do not overlap');

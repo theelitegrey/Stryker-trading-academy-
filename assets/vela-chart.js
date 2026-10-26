@@ -717,7 +717,7 @@ function lateLists(provider){
   // timeframe changes). Futures and forex only, a handful of small edge-cached GETs, sequential.
   try {
     const prefetchBars = mods[4].prefetchBars;
-    if (typeof prefetchBars === 'function') {
+    if (typeof prefetchBars === 'function' && !BT) {   // backtests never prefetch live symbols
       const activeTf = () => { try { return String(ws.chart.market.timeframe || '15'); } catch (e) { return '15'; } };
       let hoverT = null;
       document.addEventListener('pointerover', (e) => {

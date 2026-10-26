@@ -1039,7 +1039,7 @@ class TradeFeed {
     this.key = key; this.tfMs = tfMs; this.fixedStep = step || 0; this.bars = new Map(); this.order = [];
     this.coverFrom = Infinity; this.status = 'loading'; this.err = ''; this.version = 0;
     this.listeners = new Set(); this.refs = 0; this.step = 0; this.closeTm = 0;
-    if (window.__stkReplay && window.__stkReplay.on) { this.status = 'replay'; this.err = 'Order flow needs live trades: not available in bar replay.'; this.stop = () => {}; return; }   // bar replay
+    if (window.__stkReplay && window.__stkReplay.on) { this.status = 'replay'; this.err = window.__stkBt ? 'No order-flow data for this day.' : 'Order flow needs live trades: not available in bar replay.'; this.stop = () => {}; return; }   // bar replay
     this.stop = tradeSources.get(provider)(ticker, (ts, backfill) => this.add(ts, backfill), (st, err) => { this.status = st; this.err = err || ''; this.bump(); });
   }
   stepFor(price) {

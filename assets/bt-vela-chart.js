@@ -47,7 +47,7 @@
     constructor(container, opts, ctx) {
       this.el = container; this.opts = Object.assign({ tz: 'America/New_York', decimals: 2, tick: 0.01, symbol: '', theme: 'dark' }, opts || {});
       this.ctx = ctx; this.ws = null; this.ready = false; this.dead = false;
-      this.lines = []; this.markers = []; this.drawings = []; this.indicators = []; this.selected = null; this.tool = 'none';
+      this.lines = []; this.markers = []; this.selected = null; this.tool = 'none';
       this.onTimeframe = null; this.onReady = null;
       this._last = { tf: null, cursor: null };
       this._boot();
@@ -81,17 +81,23 @@
       try { ws.setTimezone(this.opts.tz); } catch (e) {}
       try { ws.on('state:changed', () => this._tfWatch()); } catch (e) {}
       this._last = { tf: this._cellTf(), cursor: this.ctx.getCursor() };
+      this.hadState = (() => { try { return !!localStorage.getItem('vela-workspace-bt-090-' + this.ctx.sessionId) || !!localStorage.getItem('vela-workspace-bt-' + this.ctx.sessionId); } catch (e) { return false; } })();
+      root.__stkBtBooted = true;
+      try { const m = this._main; if (m) m.chart.history && m.chart.history.onChange && m.chart.history.onChange(() => this._objectsChanged()); } catch (e) {}
+      this._migrate();
+      if (this.ctx.session && this.ctx.session.htfOn) this.setHtf(true, this.ctx.htfTf ? this.ctx.htfTf() : '1h'); else if (this.ws.layout.cells.length > 1) this.setHtf(false);
       this._pushOrders();
       if (this.onReady) this.onReady(this);
     }
 
-    _cell() { try { return this.ws.active || this.ws.cells()[0]; } catch (e) { return null; } }
+    _cell() { return this._main; }
     _cellTf() { const c = this._cell(); return c ? String(c.timeframe) : null; }
     _tfWatch() {
-      const tf = this._cellTf(); if (!tf || tf === this._last.tf) return;
-      this._last.tf = tf;
-      const re = this.feedReTf(tf);
-      if (re && this.onTimeframe) this.onTimeframe(re);
+      this._objectsChanged();
+      const m = this._main, h = this._htfCell;
+      const tf = m ? String(m.timeframe) : null;
+      if (tf && tf !== this._last.tf) { this._last.tf = tf; const re = this.feedReTf(tf); if (re && this.onTimeframe) this.onTimeframe(re); }
+      if (h) { const ht = String(h.timeframe); if (ht !== this._lastHtf) { this._lastHtf = ht; const re = this.feedReTf(ht); if (re && this.onHtfTf) this.onHtfTf(re); } }
     }
     feedReTf(v) { return ({ '1': '1m', '3': '3m', '5': '5m', '15': '15m', '30': '30m', '60': '1h', '120': '2h', '240': '4h', 'D': '1D', 'W': '1W' })[String(v)] || null; }
 
@@ -112,26 +118,91 @@
     }
     // jump (Day / NY / resume / step back): rebuild the cell from the provider
     async reload() {
-      const cell = this._cell(); if (!cell) return;
       try { this.api.mods[9].sharedBarStore && this.api.mods[9].sharedBarStore.clear(); } catch (e) {}
-      try { await cell.chart.setMarket({ data: [] }); } catch (e) { console.warn('bt reload', e); }
-      try { delete cell.chart.orchestrator.config.market.data; } catch (e) {}
+      for (const cell of (this.ws ? this.ws.cells() : [])) {
+        try { await cell.chart.setMarket({ data: [] }); } catch (e) { console.warn('bt reload', e); }
+        try { delete cell.chart.orchestrator.config.market.data; } catch (e) {}
+      }
       this.feed.resetSent();
     }
 
-    // ---- API parity with ReplayChart (filled in by the next steps) -------------------------------------------
+    // ---- API parity with ReplayChart ----------------------------------------------------------------------
     setLines(lines) { this.lines = lines || []; this._pushOrders(); }
     setMarkers(m) { this.markers = m || []; this._pushOrders(); }
-    _pushOrders() { if (!this.ready || !this.orders) return; let cells = []; try { cells = this.ws.cells(); } catch (e) {} this.orders.set(cells, this.lines, this.markers); }
-    setDrawings(d) { this.drawings = d || []; }
-    getDrawings() { return this.drawings; }
-    getIndicators() { return this.indicators.map((i) => ({ iid: i.iid, id: i.id, params: i.params, visible: i.visible })); }
-    addIndicator() {} removeIndicator() {} toggleIndicator() {} setIndicatorParams() {}
-    setTool(t) { this.tool = t || 'none'; }
-    deleteSelected() { return false; } clearDrawings() {} removeDrawing() {} toggleDrawing() {} selectDrawing() {} _changed() {}
-    scrollToEnd() { const c = this._cell(); try { c && c.chart.scrollToRealTime && c.chart.scrollToRealTime(); } catch (e) {} }
+    _pushOrders() { if (!this.ready || !this.orders) return; let cells = []; try { cells = this.ws.cells(); } catch (e) {} this.orders.set(cells, this.lines, this.markers, this.opts.sessions); }
+    get _main() { try { return this.ws.cells()[0]; } catch (e) { return null; } }
+    get _htfCell() { try { return this.ws.cells()[1] || null; } catch (e) { return null; } }
+
+    // ---- indicators: the Charts indicator window adds them; the object tree reads them from Vela ----------
+    _handles(cell) {
+      const out = []; if (!cell) return out;
+      try { for (const h of cell.nativeHandles()) out.push({ h, kind: 'native', name: h.title || h.nativeType || 'Indicator' }); } catch (e) {}
+      try { for (const h of (root.STRYKER_PINE ? root.STRYKER_PINE.pineHandles(cell.chart) : [])) out.push({ h, kind: 'pine', name: h.title || h.name || 'Script' }); } catch (e) {}
+      return out;
+    }
+    get indicators() {
+      return this._handles(this._main).map((x, i) => ({ iid: 'v' + i, def: { name: x.name, inputs: [] }, visible: x.h.visible !== false, params: {}, _h: x.h }));
+    }
+    get drawings() {
+      const c = this._main; if (!c) return [];
+      try { return c.chart.drawings.all().map((d) => ({ type: d.type, hidden: d.visible === false || d.hidden === true, p1: d.anchors[0] ? { t: d.anchors[0].time, price: d.anchors[0].price } : { t: 0, price: 0 }, p2: d.anchors[1] ? { t: d.anchors[1].time, price: d.anchors[1].price } : null, _id: d.id, _d: d })); } catch (e) { return []; }
+    }
+    getIndicators() { return this.indicators.map((i) => ({ iid: i.iid, id: i.def.name, params: {}, visible: i.visible })); }
+    getDrawings() { return this.drawings.map((d) => ({ type: d.type, p1: d.p1, p2: d.p2 })); }
+    addIndicator() {}
+    setIndicatorParams() {}
+    removeIndicator(iid) { const x = this.indicators.find((i) => i.iid === iid); if (x) { try { x._h.remove(); } catch (e) {} this._objectsChanged(); } }
+    toggleIndicator(iid) { const x = this.indicators.find((i) => i.iid === iid); if (x) { try { x._h.setVisible(!x.visible); } catch (e) {} this._objectsChanged(); } }
+    openIndicatorSettings() { if (this.onNotice) this.onNotice('Open the gear next to the indicator name on the chart for its settings and Style tabs.'); }
+    setDrawings(d) { this.legacyDrawings = d || []; }
+    removeDrawing(i) { const d = this.drawings[i]; if (d) { try { this._main.chart.drawings.remove(d._id); } catch (e) {} this._objectsChanged(); } }
+    toggleDrawing(i) { const d = this.drawings[i]; if (d) { try { this._main.chart.drawings.show(d._id, d.hidden); } catch (e) {} this._objectsChanged(); } }
+    selectDrawing(i) { const d = this.drawings[i]; this.selected = i; if (d) { try { this._main.chart.drawings.select(d._id); } catch (e) {} } }
+    deleteSelected() { if (this.selected == null) return false; this.removeDrawing(this.selected); this.selected = null; return true; }
+    clearDrawings() { const c = this._main; if (!c) return; try { for (const d of c.chart.drawings.all()) c.chart.drawings.remove(d.id); } catch (e) {} this._objectsChanged(); }
+    _changed() { this._objectsChanged(); }
+    setTool(t) { this.tool = t || 'none'; const m = { trend: 'trendline', ray: 'ray', hline: 'hline', rect: 'box', fib: 'fibretracement' }[t]; const c = this._main; try { c && c.chart.drawings.setTool(m || null); } catch (e) {} }
+    _objectsChanged() { clearTimeout(this._objT); this._objT = setTimeout(() => { if (this.onObjectsChanged) this.onObjectsChanged(); }, 120); }
+
+    // ---- old session -> new chart (nothing is deleted: the old fields stay in the session) ---------------------
+    _migrate() {
+      const s = this.ctx.session, lg = this.ctx.legacy || {}; if (!s || s.tzMigrated || this.hadState) return;
+      s.tzMigrated = true; const c = this._main; if (!c) return;
+      const NAT = { sma: 'sma', ema: 'ema', rsi: 'rsi', macd: 'macd', atr: 'atr', vwap: 'vwap', bb: 'bollinger-bands' };
+      let skipped = [];
+      for (const ind of (lg.indicators || [])) {
+        const type = NAT[ind.id];
+        if (!type) { skipped.push(ind.id); continue; }
+        try { const h = c.chart.addNativeIndicator(type); const len = ind.params && (ind.params.len || ind.params.length); if (h && len) { try { h.setInputs({ length: len }); } catch (e) {} } } catch (e) { skipped.push(ind.id); }
+      }
+      const TY = { trend: 'trendline', ray: 'ray', hline: 'hline', rect: 'box', fib: 'fibretracement' };
+      for (const d of (lg.drawings || [])) {
+        const ty = TY[d.type]; if (!ty || !d.p1) { skipped.push(d.type); continue; }
+        const an = [{ time: d.p1.t, price: d.p1.price }]; if (d.p2) an.push({ time: d.p2.t, price: d.p2.price });
+        try { c.chart.drawings.add(ty, { paneId: 'price', anchors: an }) || skipped.push(d.type); } catch (e) { skipped.push(d.type); }
+      }
+      if (skipped.length && this.onNotice) this.onNotice('Some old items have no match on the new chart (' + [...new Set(skipped)].join(', ') + '). They are kept in this session: ?chart=lw shows them.');
+    }
+
+    // ---- higher-timeframe chart = a second Vela cell --------------------------------------------------------------
+    setHtf(on, reTf) {
+      if (!this.ready) return; const s = this.ctx.session; if (s) s.htfOn = !!on;
+      const two = this.ws.layout.cells.length > 1;
+      try {
+        if (on && !two) this.ws.setLayout('2h');
+        else if (!on && two) this.ws.setLayout('1');
+      } catch (e) { console.warn('bt htf layout', e); }
+      const h = this._htfCell;
+      if (on && h) {
+        const tf = this.velaTf(reTf || '1h');
+        try { if (h.symbol !== 'bt:SESSION') h.setSymbol('bt:SESSION'); if (String(h.timeframe) !== tf) h.setTimeframe(tf); } catch (e) {}
+      }
+      this.feed.resetSent(); setTimeout(() => { this._pushOrders(); this.resize(); }, 150);
+    }
+
+    scrollToEnd() { const c = this._main; try { c && c.chart.scrollToRealTime && c.chart.scrollToRealTime(); } catch (e) {} }
     zoom() {}
-    setOptions(o) { Object.assign(this.opts, o || {}); if (this.ready && o && o.tz) { try { this.ws.setTimezone(o.tz); } catch (e) {} } }
+    setOptions(o) { o = o || {}; if (o.sessions) this.opts.sessions = Object.assign({}, this.opts.sessions, o.sessions); if (o.tz) this.opts.tz = o.tz; if (this.ready && o.tz) { try { this.ws.setTimezone(o.tz); } catch (e) {} } this._pushOrders(); }
     resize() { try { root.dispatchEvent(new Event('resize')); } catch (e) {} }
     snap(p) { const t = this.opts.tick; return t ? Math.round(p / t) * t : p; }
     fmt(p) { return Number(p).toFixed(this.opts.decimals); }

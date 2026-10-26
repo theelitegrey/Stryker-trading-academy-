@@ -86,6 +86,7 @@
   }
   async function resumeSession(id) { const s = await D.store.getSession(id); if (!s) { toast('That session is gone', 'error'); return; } const spec = D.findSymbol(s.symbolId); if (!spec) { toast('Unknown market in that session', 'error'); return; } await openSession(s, spec, false); }
   async function openSession(session, spec, fresh) {
+    if (TZ && window.__stkBtBooted) { try { await D.store.putSession(session); } catch (e) {} location.href = 'replay.html?session=' + encodeURIComponent(session.id); return; }   // the Vela engine boots once per page
     const btn = $('rp-start-btn'); btn.disabled = true; const prog = $('rp-progress'); prog.textContent = 'Loading chart engine…';
     try {
       if (TZ) await window.BtVelaChart.load(); else await loadLwc(); prog.textContent = 'Loading candles…';
@@ -108,14 +109,14 @@
     } catch (err) { console.error(err); toast(err.message || String(err), 'error'); }
     btn.disabled = false; prog.textContent = '';
   }
-  function leaveWorkspace() { pause(); saveSession(); if (RP.chart) { RP.chart.destroy(); RP.chart = null; } if (RP.htf) { RP.htf.destroy(); RP.htf = null; } $('rp-work').hidden = true; $('rp-home').hidden = false; $('rp-h1').textContent = 'Replay'; $('rp-h1-sub').textContent = 'Bar-by-bar replay with the future hidden.'; history.replaceState(null, '', 'replay.html'); renderSessionList(); }
+  function leaveWorkspace() { pause(); saveSession(); if (TZ) { location.href = 'replay.html'; return; } if (RP.chart) { RP.chart.destroy(); RP.chart = null; } if (RP.htf) { RP.htf.destroy(); RP.htf = null; } $('rp-work').hidden = true; $('rp-home').hidden = false; $('rp-h1').textContent = 'Replay'; $('rp-h1-sub').textContent = 'Bar-by-bar replay with the future hidden.'; history.replaceState(null, '', 'replay.html'); renderSessionList(); }
 
   // ---- workspace ---------------------------------------------------------------------------
   function buildWorkspace() {
     if (RP.chart) RP.chart.destroy(); if (RP.htf) RP.htf.destroy();
     const theme = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
     const opts = { tz: RP.tz, decimals: RP.spec.decimals, tick: RP.spec.tick, symbol: RP.spec.symbol, theme, sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } };
-    if (TZ) { RP.chart = new window.BtVelaChart($('rp-chart-main'), opts, { series: RP.series, getCursor: () => RP.cursor, spec: RP.spec, tf: () => RP.tf }); RP.chart.onReady = () => { refresh(true); RP.chart.scrollToEnd(); }; RP.chart.onTimeframe = (tf) => { if (tf !== RP.tf) setTf(tf); }; }
+    if (TZ) { RP.chart = new window.BtVelaChart($('rp-chart-main'), opts, { series: RP.series, getCursor: () => RP.cursor, spec: RP.spec, tf: () => RP.tf, sessionId: RP.session.id, legacy: { indicators: RP.session.indicators || [], drawings: RP.session.drawings || [] }, session: RP.session }); RP.chart.onReady = () => { refresh(true); RP.chart.scrollToEnd(); renderObjects(); }; RP.chart.onObjectsChanged = () => { renderObjects(); }; RP.chart.onNotice = (m) => toast(m, 'info'); RP.chart.onHtfTf = (tf) => { if (tf !== RP.htfTf) { RP.htfTf = tf; saveSession(); } }; RP.chart.onTimeframe = (tf) => { if (tf !== RP.tf) setTf(tf); }; }
     else RP.chart = new window.ReplayChart($('rp-chart-main'), opts);
     RP.chart.onLineDrag = onLineDrag; RP.chart.onDrawingsChange = (d) => { RP.session.drawings = d; }; RP.chart.onSelect = (i) => { $('rp-tool-del').disabled = i == null; };
     RP.chart.onIndicatorAction = (iid, act) => { if (act === 'remove') RP.chart.removeIndicator(iid); else if (act === 'toggle') RP.chart.toggleIndicator(iid); else if (act === 'settings') openIndicatorSettings(iid); saveIndicators(); renderObjects(); };
@@ -495,9 +496,9 @@
     $('rp-session-list').addEventListener('click', async (e) => { const card = e.target.closest('.rp-sess'); if (!card) return; if (e.target.closest('[data-resume]')) resumeSession(card.dataset.id); else if (e.target.closest('[data-del]') && confirm('Delete this saved session and its snapshots?')) { await D.store.deleteSession(card.dataset.id); D.store.deleteSnaps(card.dataset.id); renderSessionList(); } });
     $('rp-back').addEventListener('click', leaveWorkspace); $('rp-play').addEventListener('click', () => RP.playing ? pause() : play()); $('rp-step').addEventListener('click', () => { pause(); advance(1); }); $('rp-step10').addEventListener('click', () => { pause(); advance(10); }); $('rp-jumpny').addEventListener('click', jumpNextNyOpen); $('rp-jumpday').addEventListener('click', jumpNextDay); $('rp-speed').addEventListener('change', (e) => setSpeed(Number(e.target.value)));
     $('rp-tfs').addEventListener('click', (e) => { const b = e.target.closest('[data-tf]'); if (b) setTf(b.dataset.tf); });
-    $('rp-htf-tf').addEventListener('change', (e) => { RP.htfTf = e.target.value; refresh(); RP.htf.scrollToEnd(); saveSession(); });
-    $('rp-split').addEventListener('change', (e) => { $('rp-chart-htf').hidden = !e.target.checked; $('rp-charts').classList.toggle('is-split', e.target.checked); setTimeout(() => { RP.chart.resize(); if (RP.htf) { RP.htf.resize(); refresh(); RP.htf.scrollToEnd(); } }, 30); });
-    ['rp-sess-ny', 'rp-sess-ldn'].forEach((id) => $(id).addEventListener('change', () => { const o = { sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } }; RP.chart.setOptions(o); RP.htf.setOptions(o); }));
+    $('rp-htf-tf').addEventListener('change', (e) => { RP.htfTf = e.target.value; if (TZ) { RP.chart.setHtf($('rp-split').checked, RP.htfTf); saveSession(); return; } refresh(); RP.htf.scrollToEnd(); saveSession(); });
+    $('rp-split').addEventListener('change', (e) => { if (TZ) { RP.chart.setHtf(e.target.checked, RP.htfTf); return; } $('rp-chart-htf').hidden = !e.target.checked; $('rp-charts').classList.toggle('is-split', e.target.checked); setTimeout(() => { RP.chart.resize(); if (RP.htf) { RP.htf.resize(); refresh(); RP.htf.scrollToEnd(); } }, 30); });
+    ['rp-sess-ny', 'rp-sess-ldn'].forEach((id) => $(id).addEventListener('change', () => { const o = { sessions: { ny: $('rp-sess-ny').checked, ldn: $('rp-sess-ldn').checked } }; RP.chart.setOptions(o); if (RP.htf) RP.htf.setOptions(o); }));
     $('rp-tools').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; if (b.dataset.tool) setTool(b.dataset.tool === RP.chart.tool && b.dataset.tool !== 'none' ? 'none' : b.dataset.tool); else if (b.id === 'rp-tool-del') { RP.chart.deleteSelected(); saveSession(); } else if (b.id === 'rp-tool-clear' && confirm('Remove all drawings?')) { RP.chart.clearDrawings(); saveSession(); } });
     $('rp-ind-btn').addEventListener('click', openIndicatorPicker); $('rp-snap-btn').addEventListener('click', () => { try { const url = RP.chart.screenshot(1280); const a = document.createElement('a'); a.href = url; a.download = (RP.session.name || 'replay').replace(/[^\w.-]+/g, '_') + '-' + Date.now() + '.jpg'; a.click(); } catch (e) { toast('Snapshot failed', 'error'); } });
     document.querySelectorAll('#rp-sidebtns [data-side]').forEach((b) => b.addEventListener('click', () => { RP.side = b.dataset.side; document.querySelectorAll('#rp-sidebtns [data-side]').forEach((x) => x.classList.toggle('is-on', x === b)); updateTicketMath(); }));
@@ -510,7 +511,7 @@
     $('rp-trades').addEventListener('click', (e) => { const b = e.target.closest('[data-edit]'); const row = e.target.closest('[data-trade]'); if (b && row) openTradeEditor(Number(row.dataset.trade), false); });
     $('rp-export').addEventListener('click', exportCsv); $('rp-journal').addEventListener('click', sendToJournal);
     document.querySelectorAll('.rp-tabs button[data-tab]').forEach((b) => b.addEventListener('click', () => { document.querySelectorAll('.rp-tabs button[data-tab]').forEach((x) => x.classList.toggle('is-on', x === b)); document.querySelectorAll('.rp-tabpane').forEach((p) => { p.hidden = p.id !== 'rp-tab-' + b.dataset.tab; }); if (b.dataset.tab === 'equity') renderEquity(); if (b.dataset.tab === 'log') renderLog(); if (b.dataset.tab === 'coach') renderCoach(); }));
-    $('rp-tz-live').addEventListener('change', (e) => { RP.tz = e.target.value; RP.chart.setOptions({ tz: RP.tz }); RP.htf.setOptions({ tz: RP.tz }); renderCursor(); RP.tradesRendered = -1; renderTrades(); saveSession(); });
+    $('rp-tz-live').addEventListener('change', (e) => { RP.tz = e.target.value; RP.chart.setOptions({ tz: RP.tz }); if (RP.htf) RP.htf.setOptions({ tz: RP.tz }); renderCursor(); RP.tradesRendered = -1; renderTrades(); saveSession(); });
     $('rp-nudge-close').addEventListener('click', () => { $('rp-nudge').hidden = true; });
     $('rp-modal').addEventListener('click', (e) => { if (e.target === $('rp-modal')) closeModal(); });
     document.addEventListener('keydown', (e) => {

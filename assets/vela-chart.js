@@ -262,7 +262,7 @@ const VELA_BASE = VELA090 ? './vendor/vela-0.9.0-s4/' : './vendor/vela-0.6.17-s3
 // Vela theme defaults (see migrateTvLook below).
 const TV_LOOK_KEY = 'stryker_chart_tv_look';
 const TV_LOOK_VER = '1';
-const PERSIST_KEY = BT ? (VELA090 ? 'vela-workspace-bt-090' : 'vela-workspace-bt') : (VELA090 ? 'vela-workspace-090' : 'vela-workspace');
+const PERSIST_KEY = BT ? ((VELA090 ? 'vela-workspace-bt-090-' : 'vela-workspace-bt-') + (BT.sessionId || 'x')) : (VELA090 ? 'vela-workspace-090' : 'vela-workspace');
 window.__stkPersistKey = PERSIST_KEY;
 if (VELA090 && !BT) {
   // First run on 0.9.0: start from the member's 0.6.17 session (0.9.0 reads old saves).

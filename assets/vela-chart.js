@@ -633,14 +633,14 @@ function lateLists(provider){
       timeframe: BT ? BT.tf : '15',
       // Seeds for the extra cells when a member widens the grid.
       cells: {
-        A: { symbol: 'futures:NQ1!', timeframe: '15' },
-        B: { symbol: 'futures:ES1!', timeframe: '15' },
-        C: { symbol: 'futures:GC1!', timeframe: '15' },
-        D: { symbol: 'futures:CL1!', timeframe: '15' },
-        E: { symbol: 'futures:YM1!', timeframe: '15' },
-        F: { symbol: 'futures:RTY1!', timeframe: '15' },
-        G: { symbol: 'futures:SI1!', timeframe: '15' },
-        H: { symbol: 'binance:BTCUSDT', timeframe: '15' }
+        A: { symbol: BT ? 'bt:SESSION' : 'futures:NQ1!', timeframe: '15' },
+        B: { symbol: BT ? 'bt:SESSION' : 'futures:ES1!', timeframe: '15' },
+        C: { symbol: BT ? 'bt:SESSION' : 'futures:GC1!', timeframe: '15' },
+        D: { symbol: BT ? 'bt:SESSION' : 'futures:CL1!', timeframe: '15' },
+        E: { symbol: BT ? 'bt:SESSION' : 'futures:YM1!', timeframe: '15' },
+        F: { symbol: BT ? 'bt:SESSION' : 'futures:RTY1!', timeframe: '15' },
+        G: { symbol: BT ? 'bt:SESSION' : 'futures:SI1!', timeframe: '15' },
+        H: { symbol: BT ? 'bt:SESSION' : 'binance:BTCUSDT', timeframe: '15' }
       },
       maxWebglCells: 4,
       // Vela's own layout dropdown offers grids up to 4x4; ours (assets/chart-grid.js)

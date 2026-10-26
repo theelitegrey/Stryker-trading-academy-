@@ -74,6 +74,7 @@
     _ready(ws, api) {
       if (this.dead) return;
       this.ws = ws; this.api = api; this.ready = true;
+      try { const c = this._cell(); if (c && c.symbol !== 'bt:SESSION') c.setSymbol('bt:SESSION'); } catch (e) {}
       try { ws.setTimezone(this.opts.tz); } catch (e) {}
       try { ws.on('state:changed', () => this._tfWatch()); } catch (e) {}
       this._last = { tf: this._cellTf(), cursor: this.ctx.getCursor() };

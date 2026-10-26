@@ -47,16 +47,15 @@ const PROBE = () => {
     const cs = getComputedStyle(el); const t = el.tagName === 'SELECT' ? 'select' : (el.type || 'text');
     const v = vis(el); const reasons = [];
     const ap = cs.appearance || cs.webkitAppearance;
-    if (['select', 'date', 'datetime-local', 'time', 'month', 'week', 'checkbox', 'radio', 'file'].includes(t) && ap !== 'none') {
-      // a visually-hidden native input behind a custom control (opacity 0 / 1px) is fine
-      const r = el.getBoundingClientRect(); const hiddenTrick = Number(cs.opacity) < 0.05 || (v && r.width <= 2 && r.height <= 2) || cs.position === 'absolute' && Number(cs.opacity) < 0.05;
-      if (!hiddenTrick && !(t === 'checkbox' || t === 'radio') ) reasons.push('appearance:' + ap);
-      if (!hiddenTrick && (t === 'checkbox' || t === 'radio')) reasons.push('native ' + t);
+    const r0 = el.getBoundingClientRect(); const hiddenTrick = Number(cs.opacity) < 0.05 || (v && r0.width <= 2 && r0.height <= 2);
+    if (!hiddenTrick) {
+      if (t === 'select' && !el.multiple && !(el.size > 1)) { if (ap !== 'none') reasons.push('native select'); else if (cs.backgroundImage === 'none') reasons.push('select without arrow'); }
+      if ((t === 'checkbox' || t === 'radio') && ap !== 'none') reasons.push('native ' + t);
+      if (t === 'file') { const fb = getComputedStyle(el, '::file-selector-button'); const L = lum(fb.backgroundColor); if (dark && (L === null || L > 0.5)) reasons.push('native file button'); }
+      if (/date|time|month|week/.test(t) && dark && cs.colorScheme.indexOf('dark') < 0) reasons.push('light picker (color-scheme ' + cs.colorScheme + ')');
     }
-    if (dark && !['checkbox', 'radio', 'file'].includes(t)) { const L = lum(cs.backgroundColor); if (L !== null && L > 0.6) reasons.push('light bg ' + cs.backgroundColor); }
-    if (dark && t === 'file') reasons.push('native file');
     if (reasons.length) out.native.push({ el: sel(el), t, visible: v, reasons });
-    if (v && ['text', 'email', 'password', 'number', 'search', 'tel', 'url', 'select'].includes(t) && el.scrollWidth > el.clientWidth + 2 && t !== 'select') out.clip.push({ el: sel(el), sw: el.scrollWidth, cw: el.clientWidth });
+    if (v && ['text', 'email', 'password', 'number', 'search', 'tel', 'url', 'select'].includes(t) && el.scrollWidth > el.clientWidth + 2 && t !== 'select' && !el.value && el.placeholder) out.clip.push({ el: sel(el), sw: el.scrollWidth, cw: el.clientWidth });
   });
   // rows: group visible text-like controls by their nearest grid/flex-row container
   const vctrls = ctrls.filter((el) => vis(el) && !['checkbox', 'radio', 'file'].includes(el.type) && el.tagName !== 'TEXTAREA');
@@ -68,12 +67,13 @@ const PROBE = () => {
     rows.forEach((rw) => { if (rw.items.length < 2) return; const tops = rw.items.map((i) => i.r.top), hs = rw.items.map((i) => i.r.height); if (Math.max(...tops) - Math.min(...tops) > 3 || Math.max(...hs) - Math.min(...hs) > 3) out.rowmis.push({ group: sel(p), items: rw.items.map((i) => sel(i.el) + ' t' + Math.round(i.r.top) + ' h' + Math.round(i.r.height)) }); });
   });
   document.querySelectorAll('details > summary').forEach((s) => { const cs = getComputedStyle(s); if (cs.display === 'list-item' && cs.listStyleType !== 'none') { const m = getComputedStyle(s, '::marker'); if (m && m.content !== '""' && m.content !== 'none' && !/content:\s*""/.test(m.content)) out.details.push({ el: sel(s.parentElement), text: s.textContent.trim().slice(0, 40), visible: vis(s) }); } });
-  if (dark) document.querySelectorAll('button, a[role=button]').forEach((b) => { if (!vis(b)) return; const cs = getComputedStyle(b); const L = lum(cs.backgroundColor); if (L !== null && L > 0.6 && !b.classList.contains('btn') && !b.closest('canvas')) out.whitebtn.push({ el: sel(b), text: b.textContent.trim().slice(0, 30), bg: cs.backgroundColor }); });
+  if (dark) document.querySelectorAll('button, a[role=button]').forEach((b) => { if (!vis(b)) return; const cs = getComputedStyle(b); const m = /rgba?\(([\d.]+), ([\d.]+), ([\d.]+)/.exec(cs.backgroundColor); const sat = m ? Math.max(m[1], m[2], m[3]) - Math.min(m[1], m[2], m[3]) : 99; const L = lum(cs.backgroundColor); if (L !== null && L > 0.6 && sat < 30 && !b.classList.contains('btn') && !b.closest('canvas')) out.whitebtn.push({ el: sel(b), text: b.textContent.trim().slice(0, 30), bg: cs.backgroundColor }); });
   out.hscroll = document.documentElement.scrollWidth > innerWidth + 1 ? document.documentElement.scrollWidth : 0;
   return out;
 };
 
-(async () => {
+module.exports = { PROBE };
+if (require.main === module) (async () => {
   const OUT = process.env.OUT || '/tmp'; const TAG = process.env.TAG || 'run'; fs.mkdirSync(OUT, { recursive: true });
   const pages = (process.env.PAGES ? process.env.PAGES.split(',') : DEFAULT_PAGES);
   const srv = await R.serve(process.env.ROOT_DIR); const b = await R.launch(); const res = {};

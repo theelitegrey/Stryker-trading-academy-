@@ -10318,3 +10318,18 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
 :where(input[type=file])::file-selector-button:hover{ border-color:var(--gold-dim); }
 /* plain <button>s that never got a class render as grey browser pills on the dark theme */
 :where(button:not([class])){ -webkit-appearance:none; appearance:none; background:var(--bg-3); color:var(--ink-0); border:1px solid var(--line); border-radius:8px; padding:7px 14px; font:600 13px var(--font-body); cursor:pointer; }
+/* Selects whose component rule set the `background` shorthand lost the arrow (the browser one is
+   gone once appearance is none). Higher specificity than a class rule, lower than an id rule; the
+   Charts page keeps its own compact pills. */
+:root body:not(.charts-page) select:not([multiple]):not([size]){
+  -webkit-appearance:none; appearance:none;
+  background-image:var(--tz-chev); background-repeat:no-repeat; background-position:right 12px center; background-size:12px 8px;
+  padding-right:34px; color-scheme:dark;
+}
+:root[data-theme="light"] body:not(.charts-page) select:not([multiple]):not([size]){ color-scheme:light; }
+/* SEO admin tabs used .journal-tab, which only exists on the Journal page: they rendered as grey
+   browser buttons. Same pill tabs as the rest of the admin. */
+#seo-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+#seo-tabs .journal-tab{ -webkit-appearance:none; appearance:none; padding:9px 18px; border-radius:20px; border:1px solid var(--line); background:transparent; color:var(--ink-2); font:600 13.5px var(--font-body); cursor:pointer; transition:all .15s ease; }
+#seo-tabs .journal-tab:hover, #seo-tabs .journal-tab.active{ background:rgba(3,201,136,.1); border-color:var(--gold-dim); color:var(--gold-bright); }
+:root[data-theme="light"] #seo-tabs .journal-tab:hover, :root[data-theme="light"] #seo-tabs .journal-tab.active{ color:var(--gold); }

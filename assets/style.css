@@ -10085,6 +10085,7 @@ html.bt-ui2 .bta-head{ margin-bottom:12px; }
 .bt2-row-v .rpw-group{ display:inline-flex; gap:8px; }
 .bt2-row-v #rp-snap-btn{ width:auto; padding:0 14px; gap:8px; border-radius:999px; }
 .bt2-lbl{ font:600 13px var(--font-body); }
+.bt2-links #rp-back{ gap:6px; }
 .bt2-links{ display:flex; flex-wrap:wrap; gap:8px; }
 .bt2-src{ margin:4px 0 0; padding-top:12px; border-top:1px solid var(--b2-line); font-size:12px; line-height:1.5; color:var(--b2-ink3); }
 .bt2-drawsheet{ display:none; }
@@ -10149,6 +10150,7 @@ html.bt2-fs #rp-work .rpw{ border-radius:0; border:0; height:100vh; height:100dv
   html.bt-ui2.bt2-pane-open .bt2-panex{ display:grid; position:sticky; top:4px; margin-left:auto; z-index:2; }
   html.bt-ui2 .rpw-drawer.is-closed{ display:none; }
   html.bt-ui2.bt2-pane-open body{ overflow:hidden; }
+  html.bt-ui2 .rp-fine{ display:none; }   /* keyboard shortcuts: no keyboard on a phone */
 }
 @media (max-width:380px){ html.bt-ui2 .rpw-top .bt2-ib{ width:34px; } html.bt-ui2 #rp-float .rp-stepbtn{ padding:0 9px; } }
 @media (prefers-reduced-motion: reduce){ html.bt-ui2 .bta-rail, html.bt-ui2 #appnav-dock{ transition:none; } }

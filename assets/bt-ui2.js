@@ -167,6 +167,9 @@
     links.querySelector('#bt2-new').addEventListener('click', () => { set.close(); const b = $('rp-new-btn'); if (b) b.click(); });
     links.querySelector('#bt2-classic').addEventListener('click', (e) => { e.preventDefault(); try { localStorage.removeItem(KEY); } catch (x) {} const u = new URL(location.href); u.searchParams.set('ui', '1'); location.href = u.toString(); });
     const src = document.createElement('p'); src.className = 'bt2-src';
+    // the classic drawer-row ✕ (close session) gets a plain label and lives with the other session links
+    const back = $('rp-back');
+    if (back) { back.classList.add('bt2-chip', 'bt2-chip-quiet'); if (!back.querySelector('.bt2-lbl')) { const t = document.createElement('span'); t.className = 'bt2-lbl'; t.textContent = 'Close session'; back.appendChild(t); } links.appendChild(back); }
     set.body.append(row('Session', links), src);
     function syncSrc() { const r = $('rp-res'), s = $('rp-h1-sub'); src.textContent = 'Data: ' + ((r && r.textContent) || (s && s.textContent) || '—'); }
     opts.hidden = true;

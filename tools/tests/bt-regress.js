@@ -12,7 +12,8 @@ const check = (ok, msg) => { if (!ok) fail++; console.log((ok ? 'PASS ' : 'FAIL 
 async function tap(p, sel, taps) {
   // reveal through the UI if hidden (ui=2 sheets / menus); counts the taps that took
   let vis = await p.locator(sel).first().isVisible().catch(() => false);
-  if (!vis) {
+  // ui=2: an open sheet may cover the page; reveal() closes it (a scrim tap) or opens the one holding sel
+  if (!vis || await p.evaluate(() => !!window.__btUi)) {
     const n = await p.evaluate((sel) => (window.__btUi && window.__btUi.reveal) ? window.__btUi.reveal(sel) : 0, sel);
     if (taps) taps.n += n || 0;
     await p.waitForTimeout(250);
@@ -23,7 +24,7 @@ async function tap(p, sel, taps) {
 }
 async function choose(p, sel, value) {
   let vis = await p.locator(sel).first().isVisible().catch(() => false);
-  if (!vis) { await p.evaluate((sel) => window.__btUi && window.__btUi.reveal && window.__btUi.reveal(sel), sel); await p.waitForTimeout(250); }
+  if (!vis || await p.evaluate(() => !!window.__btUi)) { await p.evaluate((sel) => window.__btUi && window.__btUi.reveal && window.__btUi.reveal(sel), sel); await p.waitForTimeout(250); }
   await p.selectOption(sel, value); await p.waitForTimeout(150);
 }
 const ovf = async (p, tag, what) => { const s = await st(p); if (s.sw > s.vw) console.log('OVERFLOW after ' + what + ' ' + s.sw + ' ' + s.wide); };

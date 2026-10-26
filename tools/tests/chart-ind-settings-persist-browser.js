@@ -212,6 +212,10 @@ async function verify(p, phase, opts){
     await sleep(500);
   }
   check(!bad.length, phase + ': every changed input still holds (handle + drawn model)', bad.length ? bad.slice(0, 6) : undefined);
+  const mb = rendererMB();
+  const heap = await p.evaluate(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : -1)).catch(() => -1);
+  console.log('MEM [' + TAG + '] ' + phase + ': renderer RSS ' + mb + ' MB, page heap ' + heap + ' MB');
+  if (mb > MEM_MAX) throw new Error('renderer over ' + MEM_MAX + ' MB at ' + phase + ' (' + mb + ' MB): stopping before the server runs out of memory');
   if (STYLE_WANT && s[LM]) {
     const st = await p.evaluate((id) => window.STRYKER_IND_STYLE.styleOf(id), s[LM].id);
     const ok = JSON.stringify(st || {}).includes(STYLE_WANT);
@@ -220,6 +224,22 @@ async function verify(p, phase, opts){
   if (opts.shot) { await p.mouse.move(2, 2).catch(() => {}); await sleep(500); const f = path.join(OUT, 'persist-' + ENG + '-' + VP + '-' + opts.shot + '.png'); await p.screenshot({ path: f }); console.log('SHOT ' + f); }
   return s;
 }
+// Memory per phase: resident size of the Chrome renderer processes (all page + worker heaps live
+// there), so a growing phase shows up in the log. Linux only; silent elsewhere.
+function rendererMB(){
+  try {
+    let kb = 0;
+    for (const d of fs.readdirSync('/proc')) {
+      if (!/^\d+$/.test(d)) continue;
+      let cmd = ''; try { cmd = fs.readFileSync('/proc/' + d + '/cmdline', 'utf8'); } catch (e) { continue; }
+      if (!/--type=renderer/.test(cmd) || !/headless|chrom/i.test(cmd)) continue;
+      const m = /VmRSS:\s+(\d+)/.exec(fs.readFileSync('/proc/' + d + '/status', 'utf8'));
+      if (m) kb += +m[1];
+    }
+    return Math.round(kb / 1024);
+  } catch (e) { return -1; }
+}
+const MEM_MAX = Number(process.env.MEM_MAX_MB || 1100);
 const quiet = async (p, ms) => { await sleep(ms || 1500); };
 
 (async () => {

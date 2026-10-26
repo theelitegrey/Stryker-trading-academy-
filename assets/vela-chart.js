@@ -83,7 +83,9 @@ function quietLayer(def){
   return Object.assign({}, def, { __stkQuiet: true, create: (...a) => {
     const inst = create(...a);
     if (!inst || typeof inst.mount !== 'function' || typeof inst.render !== 'function') return inst;
-    let cv = null, drew = false, cleared = false;
+    // ink: the canvas may hold pixels (something drew since the last full clear). A canvas starts
+    // blank, and so is one whose size was reset (that wipes it).
+    let cv = null, drew = false, cleared = false, ink = false, inkW = 0, inkH = 0;
     const mount = inst.mount;
     inst.mount = function (canvas) {
       const r = mount.apply(this, arguments);
@@ -94,8 +96,25 @@ function quietLayer(def){
           // Own-property wrappers that call whatever the prototype holds at call time (so other
           // code that wraps CanvasRenderingContext2D.prototype keeps seeing these calls).
           const proto = Object.getPrototypeOf(ctx);
-          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; return proto[k].apply(this, arguments); };
-          ctx.clearRect = function () { cleared = true; return proto.clearRect.apply(this, arguments); };
+          for (const k of DRAW_OPS) if (typeof proto[k] === 'function') ctx[k] = function () { drew = true; if (!ink) { ink = true; inkW = canvas.width; inkH = canvas.height; } return proto[k].apply(this, arguments); };
+          // PHONE SPEED (2026-10-26): every layer clears its full-size canvas at the start of every
+          // render, drawn on or not. At a phone's 2.6x pixel ratio that is ~1000 x 1800 px per layer,
+          // 20+ layers, each frame, and the first clear also makes the browser allocate the canvas
+          // memory. Clearing a canvas that is already blank changes nothing on screen, so it is
+          // skipped; a canvas that holds a drawing is cleared exactly as before.
+          ctx.clearRect = function (x, y, w, h) {
+            cleared = true;
+            if (ink && (canvas.width !== inkW || canvas.height !== inkH)) ink = false;   // resized = wiped
+            if (!ink) return undefined;
+            const res = proto.clearRect.apply(this, arguments);
+            try {
+              if (x <= 0 && y <= 0) {
+                const m = this.getTransform();
+                if (m.b === 0 && m.c === 0 && m.a >= 1 && m.d >= 1 && m.e <= 0 && m.f <= 0 && x * m.a + m.e <= 0 && y * m.d + m.f <= 0 && (x + w) * m.a + m.e >= canvas.width && (y + h) * m.d + m.f >= canvas.height) ink = false;
+              }
+            } catch (e) {}
+            return res;
+          };
         }
       } catch (e) { cv = null; }
       return r;
@@ -324,6 +343,8 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     }
   } catch (e) { heavyNeeded = true; }
 
+  const pm = (n) => { try { performance.mark(n); } catch (e) {} };
+  pm('stk:boot-start');
   let mods;
   try {
     mods = await Promise.all([
@@ -362,6 +383,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // eslint-disable-next-line
   const loadHeavy = () => Promise.all(HEAVY_URLS.map((u) => import(u)));
   if (heavyNeeded) { try { const h = await loadHeavy(); mods[7] = h[0]; mods[14] = h[1]; mods[19] = h[2]; mods[20] = h[3]; mods[21] = h[4]; } catch (err) { console.error('TradeZoro: Vela modules failed to load', err); velaFail(); return; } }
+  pm('stk:mods-loaded');
   const W = mods[0];
   const VelaWorkspace = W.VelaWorkspace;
   // Binance candles follow every trade (aggTrade), not just the ~1 s kline push: assets/chart-tick-boost.js.
@@ -464,6 +486,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   // Paper trading (assets/chart-paper.js): its on-chart line layer + right-click items register before boot.
   try { Paper.installPaper(Core); } catch (e) { console.warn('TradeZoro: paper install', e); }
 
+  pm('stk:installs-done');
   let day = false;
   try { day = localStorage.getItem('stryker_theme') === 'day'; } catch (e) {}
   migrateTvLook();
@@ -484,6 +507,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     obs.observe(shell, { attributes: true, attributeFilter: ['class'] });
     const cap = setTimeout(done, 6000);
   });
+  pm('stk:gate-ok');
   measureFrame();
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -533,6 +557,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     return;
   }
 
+  pm('stk:workspace-built');
   // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
   try { for (const c of ws.context().cells) { const r = c.chart.renderer; lateLayers(r && r.extLayers ? r : r && r.renderer); } } catch (e) { console.warn('TradeZoro: late layers', e); }
@@ -592,6 +617,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     }
   } catch (e) { console.warn('TradeZoro: bars prefetch', e); }
 
+  pm('stk:mount-start');
   // ---------------- toolbar ----------------
   const barL = document.getElementById('stkc-bar-l');
   const isPhone = () => window.innerWidth <= PHONE_MAX;
@@ -716,6 +742,7 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
     .then((m) => m.mountIndicatorWindow(ws, { toast, tfLabel }))
     .catch((e) => console.warn('TradeZoro: indicator window', e));
 
+  pm('stk:mounts-sync-done'); requestAnimationFrame(() => pm('stk:raf-after-mounts'));
   function refreshLayoutUi(){
     grid.refresh();
     renderCellSwitcher();

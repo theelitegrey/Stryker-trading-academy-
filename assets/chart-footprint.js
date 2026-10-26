@@ -315,7 +315,7 @@ function fpConfig(v) {
 }
 class FootprintEngine {
   constructor() { this.cfg = fpConfig(FP_DEF); this.on = false; this.onAny = () => this.push(); }
-  start(ctx) { this.ctx = ctx; this.on = true; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
+  start(ctx) { this.ctx = ctx; this.on = true; this.fitted = false; users++; startRefresh(); listeners.add(this.onAny); this.push(); }
   onSettings(v) { this.cfg = fpConfig(v); this.push(); }
   onViewport() { this.push(); }
   suspend() { if (!this.on) return; this.on = false; users--; stopRefresh(); listeners.delete(this.onAny); }
@@ -371,7 +371,21 @@ function footprintLayer() {
       }
       if (!f.map || !f.map.size) { g.restore(); return; }
       const tick = f.tick;
-      const bw = co.pxPerBar();
+      let bw = co.pxPerBar();
+      // First paint of this footprint: open the chart with bars wide enough for the numbers (phone ~64 px,
+      // desktop ~84 px per bar). Once per engine start; later zoom is the member's own.
+      if (d.eng && !d.eng.fitted && a.bars.length > 5) {
+        d.eng.fitted = true;
+        const want = co.width < 520 ? 64 : 84;
+        if (bw < want) {
+          try {
+            const vp = co.getViewport();
+            const ws = window.STRYKER_VELA, rr = ws && ws.chart && ws.chart.renderer;
+            const ctl = rr && (rr.applyViewport ? rr : rr.renderer);
+            if (ctl && ctl.applyViewport) { ctl.applyViewport({ barSpacing: vp.barSpacing * want / bw, rightOffset: Math.max(vp.rightOffset, 4) }); bw = want; }
+          } catch (e) {}
+        }
+      }
       const vr = co.visibleLogicalRange();
       const i0 = Math.max(0, Math.floor(vr.from) - 1), i1 = Math.min(a.bars.length - 1, Math.ceil(vr.to) + 1);
       const tickPx = Math.abs(co.priceToY(a.scale.min + tick, a.scale, a.bounds) - co.priceToY(a.scale.min, a.scale, a.bounds));
@@ -404,9 +418,9 @@ function footprintLayer() {
       }
       on = true;
       try { document.body.classList.toggle('stk-fp-stats', true); } catch (e) {}
-      if (compact && !f.note) pill('Zoom in for numbers');
-      const fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
-      const font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
+      let anyText = false;
+      let fs = clamp(Math.floor(Math.min(rowPx - 2, bw / 6.5)), 8, 13);
+      let font = fs + 'px ' + MONO, bold = '600 ' + fs + 'px ' + MONO;
       g.textBaseline = 'middle';
       const ladW = Math.max(0, bw * (compact ? 0.88 : 0.92) - 12);   // room right of the candle inside this bar's slot
       const lv = (r) => (cfg.ladShow === 'delta' ? Math.abs(r.buy - r.sell) : r.buy + r.sell);
@@ -428,7 +442,21 @@ function footprintLayer() {
         const imb = imbalances(rs, cfg.imb);
         const st = stacked(imb, cfg.stack);
         const lad = cfg.mode === 'ladder', cx = x;   // the base candle's own wick sits on x, so ours lines up with it
-        const showText = lad ? rowPx >= 11 && ladW >= fs * 1.3 : rowPx >= 11 && bw >= 44;
+        // numbers show whenever they fit: the font shrinks (down to 8 px) to the widest number in this bar
+        let showText;
+        if (lad) showText = rowPx >= 10 && ladW >= 8 * 1.3;
+        else {
+          let ch = 1;
+          for (const r of rs) {
+            const n = cfg.mode === 'bidask' ? Math.max(fmt(r.sell).length, fmt(r.buy).length) : cfg.mode === 'delta' ? sgn(r.buy - r.sell).length : fmt(r.buy + r.sell).length;
+            if (n > ch) ch = n;
+          }
+          const avail = (cfg.mode === 'bidask' ? w / 2 - 4 : w - 3);
+          const f1 = Math.min(clamp(Math.floor(rowPx - 2), 8, 13), Math.floor(avail / (0.6 * ch)));
+          showText = rowPx >= 10 && f1 >= 8;
+          if (showText) { fs = Math.min(f1, 13); font = fs + 'px ' + MONO; bold = '600 ' + fs + 'px ' + MONO; }
+        }
+        if (showText) anyText = true;
         let dmax = lad ? gmax : 1;
         if (lad && cfg.scale === 'bar') { dmax = 1; for (const r of rs) { const q = lv(r); if (q > dmax) dmax = q; } }
         if (lad) {
@@ -529,6 +557,7 @@ function footprintLayer() {
         g.font = '10px ' + MONO; g.textAlign = 'left'; g.fillStyle = dim;
         g.fillText('Δ', 4, bot - statsH + 8); g.fillText('Vol', 4, bot - statsH + 22);
       }
+      if (!anyText && !f.note) pill('Zoom in to see the numbers');
       g.restore();
       lastMs = performance.now() - t0;
       if (window.__stkFpStats) window.__stkFpStats.push(lastMs);

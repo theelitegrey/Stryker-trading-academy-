@@ -695,6 +695,18 @@ export function layoutTags(groups, top, bot) {
   for (let i = groups.length - 1; i >= 0; i--) { const t = groups[i]; t.yc = Math.min(t.yc, next - TAG_H - 1, bot - TAG_H / 2); next = t.yc; }
   return groups;
 }
+// Pure: slide a label box b ({x, y, w, h}) LEFT along its row past every rect it meets
+// (avoid: [{left, top, right, bottom}]). Returns the new x, or null when it would pass minX.
+export function slideLeft(b, avoid, minX, gap = 3) {
+  let x = b.x;
+  for (let k = 0; k < 6; k++) {
+    const hit = (avoid || []).filter((q) => q && x < q.right + gap && q.left - gap < x + b.w && b.y < q.bottom && q.top < b.y + b.h);
+    if (!hit.length) return x;
+    x = Math.min(...hit.map((q) => q.left)) - gap - b.w;
+    if (x < minX) return null;
+  }
+  return null;
+}
 function gexLayer() {
   let canvas = null, chip = null, last = '', lastTags = [];
   function ensureChip() {
@@ -774,15 +786,45 @@ function gexLayer() {
       // 7881"), so labels never draw on top of each other; the rest are nudged apart (stacked).
       const groups = mergeTags(tags);
       layoutTags(groups, top, bot);
+      // Phone collision handling (Owner 2026-10-26): the tags also step aside for the Pine text the
+      // indicators painted (Liquidity Master's "15m FVG" etc., plot.__stkPineRects from
+      // chart-pine-tv-style.js). Desktop keeps the old right-edge placement untouched.
+      const phone = W < 520;
+      const plotEl = canvas.parentElement;
+      const pine = phone && plotEl && Array.isArray(plotEl.__stkPineRects) ? plotEl.__stkPineRects : [];
+      const placed = [];
+      const hits = (b) => pine.some((q) => b.x < q.right + 2 && q.left - 2 < b.x + b.w && b.y < q.bottom && q.top < b.y + b.h)
+        || placed.some((q) => b.x < q.x + q.w + 2 && q.x - 2 < b.x + b.w && b.y < q.y + q.h + 1 && q.y - 1 < b.y + b.h);
       for (const t of groups) {
         // narrow plots (phone): a merged tag must not stretch across the chart over the ticket and the
         // other lines. Too wide -> prices are dropped (the axis tag keeps the exact price), then cut.
         if (W < 520 && g.measureText(t.text).width + 10 > W * 0.5 && t.ids.length > 1) t.text = t.text.replace(/\s[\d.,]+( \/ [\d.,]+)*$/, '');
         const maxTw = W < 520 ? W * 0.5 : W - 8;
         while (t.text.length > 4 && g.measureText(t.text).width + 10 > maxTw) t.text = t.text.slice(0, -2).replace(/\s+$/, '') + '…';
-        const w = Math.ceil(g.measureText(t.text).width) + 10;
-        const x = Math.max(2, W - w - 2);
+        let w = Math.ceil(g.measureText(t.text).width) + 10;
+        let x = Math.max(2, W - w - 2);
+        if (phone) {
+          const faint = t.ids.every((id) => byId.get(id) && byId.get(id).faint);
+          let b = { x, y: t.yc - TAG_H / 2, w, h: TAG_H };
+          // 1. previous-day tags drop the date when they collide ("10/22 · $620M" -> "$620M")
+          if (hits(b) && faint) {
+            const short = t.text.split(' · ').filter((s) => /\$/.test(s)).join(' ');
+            if (short && short !== t.text) { t.text = short; w = Math.ceil(g.measureText(t.text).width) + 10; x = Math.max(2, W - w - 2); b = { x, y: b.y, w, h: TAG_H }; }
+          }
+          // 2. slide left along the row past the Pine text, 3. else one row up / down, 4. else stay
+          if (hits(b)) {
+            const sx = slideLeft(b, pine.concat(placed.map((q) => ({ left: q.x, right: q.x + q.w, top: q.y, bottom: q.y + q.h }))), W * 0.3);
+            if (sx != null) x = sx;
+            else {
+              for (const dy of [-(TAG_H + 2), TAG_H + 2, -2 * (TAG_H + 2), 2 * (TAG_H + 2)]) {
+                const nb = { x, y: b.y + dy, w, h: TAG_H };
+                if (nb.y >= top && nb.y + TAG_H <= bot && !hits(nb)) { t.yc += dy; break; }
+              }
+            }
+          }
+        }
         t.box = { x, y: t.yc - TAG_H / 2, w, h: TAG_H };
+        placed.push(t.box);
         g.fillStyle = t.color;
         g.fillRect(x, t.yc - TAG_H / 2, w, TAG_H);
         g.fillStyle = t.ids.some((id) => byId.get(id) && byId.get(id).faint) ? '#e8edf2' : '#0b0b0b';
@@ -794,6 +836,13 @@ function gexLayer() {
       lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
       canvas.__stkGexLines = drawn;     // test hook: each painted line's price, pixel row and the price at that row
+      if (plotEl) {
+        // the Absorption tag (chart-of-pro.js) yields to these boxes; ask for one more frame when they move
+        const boxes = groups.map((t) => ({ left: t.box.x, right: t.box.x + t.box.w, top: t.box.y, bottom: t.box.y + t.box.h, text: t.text }));
+        const sig = boxes.map((q) => Math.round(q.left) + ',' + Math.round(q.top)).join(';');
+        plotEl.__stkGexBoxes = boxes;
+        if (sig !== plotEl.__stkGexSig) { plotEl.__stkGexSig = sig; if (phone && typeof plotEl.__stkInv === 'function') requestAnimationFrame(plotEl.__stkInv); }
+      }
       g.restore();
       // Price tags on the right price axis (outside the plot clip), at the exact line price.
       const axW = fullW - W;

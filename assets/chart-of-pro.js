@@ -207,11 +207,25 @@ function frame(canvas, a) {
   return g;
 }
 const Y = (a, p) => a.coords.priceToY(p, a.scale, a.bounds);
-function tag(g, x, y, txt, col, phone) {
+function tag(g, x, y, txt, col, phone, avoid, out) {
   g.font = '600 ' + (phone ? 9 : 10) + 'px ' + MONO; g.textBaseline = 'middle'; g.textAlign = 'right';
   const w = g.measureText(txt).width + 8;
+  // Phone (Owner 2026-10-26): step aside for the GEX tags and the indicators' Pine text at the right
+  // edge (they come from chart-gex-levels.js / chart-pine-tv-style.js via the plot element): slide
+  // left along the row past whatever it meets, else move one row up or down. Desktop: unchanged.
+  if (phone && avoid && avoid.length) {
+    const hit = (xr, yy) => avoid.some((q) => xr - w < q.right + 2 && q.left - 2 < xr && yy - 7 < q.bottom && q.top < yy + 7);
+    let xr = x, k = 0;
+    while (hit(xr, y) && k++ < 6) { const h = avoid.filter((q) => xr - w < q.right + 2 && q.left - 2 < xr && y - 7 < q.bottom && q.top < y + 7); xr = Math.min(...h.map((q) => q.left)) - 3; }
+    if (hit(xr, y) || xr - w < x * 0.35) {
+      xr = x;
+      for (const dy of [-16, 16, -32, 32]) if (!hit(x, y + dy)) { y += dy; break; }
+    }
+    x = xr;
+  }
   g.fillStyle = plateC(); g.fillRect(x - w, y - 7, w, 14);
   g.fillStyle = col; g.fillText(txt, x - 4, y);
+  if (out) out.push({ left: x - w, top: y - 7, right: x, bottom: y + 7, text: txt });
 }
 
 // Absorption: events on the 1-minute bars (same on every chart timeframe), mapped to chart bars.
@@ -239,6 +253,10 @@ function absLayer() {
         const vr = co.visibleLogicalRange(), ppb = co.pxPerBar();
         const tA = a.bars[clamp(Math.floor(vr.from), 0, a.bars.length - 1)].time;
         const top = a.bounds.top, bot = top + a.bounds.height;
+        // phone: the right-edge tags avoid the GEX tags + Pine text (rects hung on the plot element)
+        const pl = phone ? canvas.parentElement : null;
+        const avoid = pl ? [].concat(pl.__stkGexBoxes || [], pl.__stkPineRects || []) : null;
+        const tagsOut = phone ? [] : null;
         for (const e of st.ev) {
           if (e.brokeT != null && (e.brokeT < tA || I.broken === false)) continue;
           const i = idxOf(a.bars, e.t);
@@ -257,8 +275,9 @@ function absLayer() {
           g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
           g.fillStyle = rgba(col, held ? 0.12 : 0.05); g.fill();
           g.lineWidth = 2; g.strokeStyle = rgba(col, held ? 0.95 : 0.5); g.stroke();
-          if (held && I.labels !== false) tag(g, co.width - 2, y, 'ABS ' + fmtK(e.vol), col, phone);
+          if (held && I.labels !== false) { tag(g, co.width - 2, y, 'ABS ' + fmtK(e.vol), col, phone, avoid && avoid.concat(tagsOut), tagsOut); }
         }
+        canvas.__stkAbsTags = tagsOut;   // test hook (phone only)
       } finally { g.restore(); }
     },
     destroy() { canvas = null; }

@@ -124,6 +124,9 @@ function patchScene(proto){
     const skip = cullOverlaps(cull);
     const skipShape = cullShapes(pts);
     this.tipRegions = this.tipRegions || [];
+    // Painted text rects for the chart-layer labels (GEX tags, ABS tag) to steer clear of.
+    const sink = this.__stkRectSink, dy = this.__stkRectTop || 0;
+    const note = sink ? (r, text) => { if (r) sink.push({ left: r.left, top: r.top + dy, right: r.right, bottom: r.bottom + dy, text: String(text || '').slice(0, 24) }); } : null;
     for (let i = 0; i < labels.length; i++) {
       const p = pos[i]; if (!p) continue;
       const lb = labels[i], [px, py] = p;
@@ -148,9 +151,11 @@ function patchScene(proto){
       if (lb.style === 'none' || lb.style === 'text_outline') {
         this.drawLabelText(ctx, lb, px, py, f, lb.style === 'text_outline');
         if (lb.tooltip && cull[i]) this.tipRegions.push(Object.assign({ text: lb.tooltip }, cull[i].rect));
+        if (note && cull[i]) note(cull[i].rect, lb.text);
       } else {
         const r = this.drawBubble(ctx, lb, px, py, f, color);
         if (lb.tooltip && r) this.tipRegions.push({ left: r.x, top: r.y, right: r.x + r.w, bottom: r.y + r.h, text: lb.tooltip });
+        if (note && r && lb.text) note({ left: r.x, top: r.y, right: r.x + r.w, bottom: r.y + r.h }, lb.text);
       }
     }
   };
@@ -191,15 +196,56 @@ function patchSlices(proto){
     return orig.call(this, ctx, Object.assign({}, e, { set: empty, tables: low, pane }), coords, dataW, theme);
   };
 }
+// Collect the Pine text rects painted on the PRICE pane each frame and hang them on the plot
+// element (plot.__stkPineRects, plot css px, same space as the renderer-layer canvases), so the
+// chart-layer labels (GEX Levels tags, Absorption tag) can step aside instead of covering them.
+// The layers paint before this prepare() in the same frame, so they read the previous frame's
+// rects; when the rects change, one more frame is asked for (the layers then settle; moving a
+// GEX/ABS tag never changes the Pine rects, so this cannot loop).
+function patchRects(proto){
+  if (!proto || proto.__stkRects || typeof proto.paintEntry !== 'function' || typeof proto.prepare !== 'function') return;
+  proto.__stkRects = true;
+  const paint = proto.paintEntry, prep = proto.prepare;
+  proto.paintEntry = function (ctx, e) {
+    const ds = this.drawScene, acc = this.__stkRectAcc;
+    const on = !!(ds && acc && e && e.pane && e.pane.kind === 'price');
+    if (on) { ds.__stkRectSink = acc; ds.__stkRectTop = e.pane.bounds.top; }
+    try { return paint.apply(this, arguments); }
+    finally { if (ds) { ds.__stkRectSink = null; ds.__stkRectTop = 0; } }
+  };
+  proto.prepare = function () {
+    this.__stkRectAcc = [];
+    try { return prep.apply(this, arguments); }
+    finally {
+      const plot = this.__stkPlot, acc = this.__stkRectAcc;
+      this.__stkRectAcc = null;
+      if (plot && acc) {
+        const sig = acc.map((r) => Math.round(r.left) + ',' + Math.round(r.top) + ',' + Math.round(r.right)).join(';');
+        plot.__stkPineRects = acc;
+        if (sig !== plot.__stkPineSig) {
+          const had = plot.__stkPineSig != null;
+          plot.__stkPineSig = sig;
+          const R = this.__stkR;
+          if (had && R && R.scheduler && typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { try { R.scheduler.invalidate(4); } catch (err) {} });
+        }
+      }
+    }
+  };
+}
 export function installTvStyle(chart){
   try {
     const R = chart && chart.renderer && chart.renderer.renderer;
     const sl = R && R.indicatorSlices;
     if (!sl) return false;
     patchSlices(Object.getPrototypeOf(sl));
+    patchRects(Object.getPrototypeOf(sl));
+    sl.__stkPlot = R.plot || null; sl.__stkR = R;
     return sl.drawScene ? patchScene(Object.getPrototypeOf(sl.drawScene)) || !!Object.getPrototypeOf(sl.drawScene).__stkTv : false;
   } catch (e) { return false; }
 }
+// Test hook: the Pine text rects painted on a chart's price pane last frame.
+if (typeof window !== 'undefined') window.__stkPineTextRects = (chart) => { try { return chart.renderer.renderer.plot.__stkPineRects || []; } catch (e) { return []; } };
 // For Node tests: patch a bare prototype.
 export const _patchScene = patchScene;
 export const _patchSlices = patchSlices;
+export const _patchRects = patchRects;

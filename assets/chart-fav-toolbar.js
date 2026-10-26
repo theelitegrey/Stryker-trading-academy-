@@ -76,7 +76,14 @@ const CSS = `
 :root[data-theme="light"] .stk-fb-menu button{color:#131722}
 :root[data-theme="light"] .stk-fb-menu button:hover{background:#f0f3fa}
 :root[data-theme="light"] .stk-fb-menu hr{border-top-color:#e0e3eb}
-@media (max-width:${PHONE_MAX}px){.stk-fb-b{width:40px;height:40px}.stk-fb-h{height:40px;width:16px}.stk-fb.vert .stk-fb-h{width:40px;height:16px}}
+.stk-fb-x{all:unset;box-sizing:border-box;display:none;width:28px;height:40px;align-items:center;justify-content:center;color:#9598a1;cursor:pointer;flex:none;border-radius:4px}
+.stk-fb-x:hover{color:#fff;background:rgba(255,255,255,.08)}
+.stk-fb-fab{all:unset;box-sizing:border-box;position:absolute;z-index:21;width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#1e222d;border:1px solid #363a45;color:#d1d4dc;box-shadow:0 2px 10px rgba(0,0,0,.45);cursor:pointer;touch-action:manipulation}
+.stk-fb-fab[hidden]{display:none}
+.stk-fb-fab svg{width:22px;height:22px;display:block}
+.stk-fb-fab:focus-visible{outline:2px solid #03c988;outline-offset:2px}
+:root[data-theme="light"] .stk-fb-fab{background:#fff;border-color:#e0e3eb;color:#131722;box-shadow:0 2px 10px rgba(0,0,0,.14)}
+@media (max-width:${PHONE_MAX}px){.stk-fb-x{display:flex}.stk-fb-b{width:40px;height:40px}.stk-fb-h{height:40px;width:16px}.stk-fb.vert .stk-fb-h{width:40px;height:16px}}
 `;
 
 const GRIP = '<svg width="6" height="14" viewBox="0 0 6 14" aria-hidden="true" fill="currentColor"><circle cx="1.5" cy="2" r="1.2"/><circle cx="4.5" cy="2" r="1.2"/><circle cx="1.5" cy="7" r="1.2"/><circle cx="4.5" cy="7" r="1.2"/><circle cx="1.5" cy="12" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/></svg>';
@@ -177,6 +184,32 @@ export function mountFavToolbar(ws, Core, opts){
   handle.innerHTML = GRIP;
   bar.appendChild(handle);
   panel.appendChild(bar);
+  // PHONE COLLAPSE (Owner 2026-10-26, "phone chart clutter"): on a phone the bar can fold into one
+  // small round button at the left edge of the plot, so it never covers the candles, the Fit price /
+  // Latest buttons or the time axis. It starts folded while bar replay is on (the replay controls
+  // take the bottom of the screen then). Tap the button = open the bar; the × at its end = fold it.
+  const xBtn = document.createElement('button');
+  xBtn.type = 'button'; xBtn.className = 'stk-fb-x'; xBtn.title = 'Fold the favorites toolbar'; xBtn.setAttribute('aria-label', 'Fold the favorites toolbar');
+  xBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+  xBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  xBtn.addEventListener('click', (e) => { e.stopPropagation(); setFolded(true); });
+  const fab = document.createElement('button');
+  fab.type = 'button'; fab.className = 'stk-fb-fab'; fab.hidden = true;
+  fab.title = 'Favorite drawing tools'; fab.setAttribute('aria-label', 'Open favorite drawing tools'); fab.setAttribute('aria-expanded', 'false');
+  fab.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20z"/><path d="M14 7l3 3"/></svg>';
+  fab.addEventListener('click', (e) => { e.stopPropagation(); setFolded(false); });
+  panel.appendChild(fab);
+  let foldPref = null;          // null = follow the default (folded in replay on a phone); true / false = the member's tap
+  let foldMode = '';            // the default context the member's tap belongs to ('replay' / 'live')
+  const replayOn = () => !!(window.__stkReplay && window.__stkReplay.on);
+  const foldDefault = () => replayOn();
+  function folded(){
+    if (!isPhone()) return false;
+    const mode = replayOn() ? 'replay' : 'live';
+    if (foldMode !== mode) { foldMode = mode; foldPref = null; }   // entering / leaving replay re-applies the default
+    return foldPref == null ? foldDefault() : foldPref;
+  }
+  function setFolded(on){ foldPref = !!on; render(); if (!on) { try { bar.querySelector('.stk-fb-b') && bar.querySelector('.stk-fb-b').focus({ preventScroll: true }); } catch (e) {} } else { try { fab.focus({ preventScroll: true }); } catch (e) {} } }
   const tip = document.createElement('div');
   tip.className = 'stk-fb-tip'; tip.hidden = true;
   panel.appendChild(tip);
@@ -213,12 +246,23 @@ export function mountFavToolbar(ws, Core, opts){
     } catch (e) {}
     return { left: (a.w - reserveR() - bw) / 2, top: Math.min(top, Math.max(0, a.h - 46)) };
   }
+  // Phone: keep the bottom strip free for the time axis, the Fit price / Latest row (chart-settings.js
+  // .stkc-fl, bottom 34 px + 24 px) and the GEX status chip (bottom-left, chart-gex-levels.js).
+  const PHONE_BOTTOM = 66;
+  const reserveB = () => (isPhone() ? PHONE_BOTTOM : 0);
   function limits(a){
     const bw = bar.offsetWidth, bh = bar.offsetHeight;
     const room = a.w - reserveR();
-    return { maxL: Math.max(0, (room >= bw ? room : a.w) - bw), maxT: Math.max(0, a.h - bh) };
+    return { maxL: Math.max(0, (room >= bw ? room : a.w) - bw), maxT: Math.max(0, a.h - bh - reserveB()) };
+  }
+  // Folded button: left edge of the plot, just above the bottom strip.
+  function placeFab(){
+    const a = area();
+    fab.style.left = Math.round(a.left + 8) + 'px';
+    fab.style.top = Math.round(a.top + Math.max(0, a.h - PHONE_BOTTOM - 38 - 6)) + 'px';
   }
   function place(){
+    if (!fab.hidden) placeFab();
     if (bar.hidden) return;
     const a = area();
     // one row: scrolls sideways instead of running off the chart (or onto the phone's price axis)
@@ -256,11 +300,16 @@ export function mountFavToolbar(ws, Core, opts){
         bar.appendChild(b);
       });
     }
-    bar.hidden = !show;
+    if (bar.lastChild !== xBtn) bar.appendChild(xBtn);
+    const fold = show && folded();
+    bar.hidden = !show || fold;
+    fab.hidden = !fold;
+    fab.setAttribute('aria-expanded', fold ? 'false' : 'true');
+    if (fold) placeFab();
     announce();
     readActive(); paintActive();
     paintToggle();
-    if (show) place();
+    if (show && !fold) place();
   }
 
   // ---------------- tooltip: name + shortcut ----------------
@@ -481,11 +530,14 @@ export function mountFavToolbar(ws, Core, opts){
   try { ws.on('layout:changed', () => setTimeout(() => { wire(); place(); }, 50)); } catch (e) {}
 
   try { new ResizeObserver(() => place()).observe(grid()); } catch (e) { window.addEventListener('resize', place, { passive: true }); }
-  window.addEventListener('resize', () => place(), { passive: true });
+  let lastFold = null;
+  const refold = () => { const f = folded(); if (f !== lastFold) { lastFold = f; render(); } };
+  window.addEventListener('resize', () => { refold(); place(); }, { passive: true });
+  try { new MutationObserver(refold).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); } catch (e) {}
   setInterval(() => { if (st.x == null || st.y == null) place(); }, 2500);   // default spot follows the ticket / legend rows as they appear
 
   render();
-  const api = { state: st, render, place, setVisible, setVertical, removeFav, get vertical(){ return vertical; }, get visible(){ return st.visible; }, el: bar };
+  const api = { state: st, render, place, setVisible, setVertical, removeFav, setFolded, get folded(){ return folded(); }, fab, get vertical(){ return vertical; }, get visible(){ return st.visible; }, el: bar };
   window.STRYKER_FAVBAR = api;
   return api;
 }

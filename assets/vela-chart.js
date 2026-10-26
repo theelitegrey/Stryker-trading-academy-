@@ -130,6 +130,9 @@ function lateLayers(R){
   const v09 = typeof proto.ensureInstanceLayer === 'function';
   const mountIndicator = proto.mountIndicator, removeIndicator = proto.removeIndicator;
   proto.mountIndicator = function (model) {
+    // Repaint hook for chart-layer labels that settle over two frames (right-edge collision
+    // handling in chart-gex-levels.js / chart-of-pro.js): plot.__stkInv() asks for one more frame.
+    try { if (this.plot && !this.plot.__stkInv && this.scheduler) { const R = this; this.plot.__stkInv = () => { try { R.scheduler.invalidate(4); } catch (e) {} }; } } catch (e) {}
     try {
       const t = model && model.native && model.native.type;
       const def = t && LAYER_DEFS.get(t);

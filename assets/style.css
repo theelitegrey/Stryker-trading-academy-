@@ -9266,6 +9266,13 @@ html[data-theme="light"] .stkr-sel-shade{ background:rgba(240,243,250,.7); }
   .stkr-btn .stkc-btn-l{ display:none; }
   .stkr-btn{ padding:0 7px; }
   .stkr-badge{ height:20px; padding:0 6px; font-size:10px; gap:4px; }
+  /* Phone chart clutter (Owner 2026-10-26): the replay controls dock UNDER the plot (the page
+     reserves their row) instead of floating over the bottom of the candles, the time axis and the
+     Fit price / Latest buttons. The legend's red replay tag keeps only its dot on a phone (the
+     toolbar already reads REPLAY), so it no longer runs into an indicator's top-right table. */
+  html.stk-replay:not([data-stk-rh]) body.charts-page .dash-main{ padding-bottom:46px; box-sizing:border-box; }
+  html.stk-replay .stkr-bar{ bottom:calc(var(--stkc-dock, 0px) + 3px); }
+  .stkc-dd[data-s="replay"] .stkc-dd-t{ display:none; }
 }
 
 

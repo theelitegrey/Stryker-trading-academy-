@@ -100,19 +100,20 @@ async function fpCellsDrawn(p) {
   const eng = (p, v) => p.evaluate((v) => window.STRYKER_VELA.chart.orchestrator.typeEngines.get('stk_fp').onSettings(v), v);
   try {
     for (const vp of [{ w: 390, h: 844, tag: '390', mobile: true }, { w: 412, h: 915, tag: '412', mobile: true }, { w: 1440, h: 900, tag: '1440' }]) {
-      for (const vela of ['0.9', '0.6']) {
-        if (vela === '0.6' && vp.w === 412) continue;
+      for (const vela of (process.env.FRAME ? ['0.9'] : ['0.9', '0.6'])) {
+        if (vela === '0.6' && vp.w === 412) continue; if (process.env.FRAME && vp.w !== 390) continue;
         const { ctx, p, errors } = await open(b, { ...vp, q: vela === '0.6' ? '?vela=0.6' : '' });
         await p.evaluate(() => { window.__stkOfTestTier = { free: false, plan: 'Pro' }; });
         await setMarket(p, 'futures:NQ1!', '1');
         await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('stk_fp'));
         await p.waitForFunction(() => window.__stkOrderflow.loaded('NQ').some((d) => d.n > 0), null, { timeout: 15000 }).catch(() => {});
         await sleep(2500);
+        if (process.env.FRAME) { await frameOn(p, T - 4 * 60000, T + 4 * 60000); await sleep(800); }
         for (const mode of ['bidask', 'delta', 'volume', 'ladder']) {
           await eng(p, { fpMode: mode }); await sleep(500);
           const bw = await p.evaluate(() => window.STRYKER_VELA.chart.renderer.renderer.coords.pxPerBar());
           console.log(vp.tag, vela, mode, 'px/bar', Math.round(bw));
-          if (mode === 'bidask' || mode === 'ladder') await p.screenshot({ path: OUT + '/phone-' + TAG + '-' + vp.tag + '-v' + vela + '-' + mode + '.png' });
+          if (mode === 'bidask' || mode === 'ladder') await p.screenshot({ path: OUT + '/phone' + (process.env.FRAME ? '-owner-zoom' : '') + '-' + TAG + '-' + vp.tag + '-v' + vela + '-' + mode + '.png' });
         }
         console.log(vp.tag, vela, 'errors', errors.length, errors.slice(0, 2));
         await ctx.close();

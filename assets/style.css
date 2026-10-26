@@ -6395,13 +6395,14 @@ body.charts-page .stkchart-credit{
 .stkc-ob-list > [data-ob-more]{ flex:none; }
 .stkc-ob-list > [data-ob-row]{ flex:none; display:block; width:100%; min-width:0; }
 .stkc-ob-list > [data-ob-row] > .stkc-pop{ text-align:left; }
-.stkc-ob-list [data-ob-trig]{
+#stkc-more-pop.stkc-ob-list [data-ob-trig][data-ob-trig]{
   all:unset; box-sizing:border-box; display:flex !important; align-items:center; gap:12px; width:100% !important; max-width:none !important;
   height:44px; min-height:44px; padding:0 14px; border-radius:0; color:var(--ink-1); cursor:pointer; white-space:nowrap;
   font:500 14px/1.2 inherit; font-family:inherit; -webkit-tap-highlight-color:transparent;
 }
 .stkc-ob-list [data-ob-trig][hidden]{ display:none !important; }
 .stkc-ob-list [data-ob-trig] > *{ display:none !important; }
+#stkc-more-pop.stkc-ob-list [data-ob-trig]:hover, #stkc-more-pop.stkc-ob-list [data-ob-trig]:active{ background:var(--bg-3, rgba(255,255,255,.06)); color:var(--ink-0); }
 .stkc-ob-list [data-ob-trig]::before{
   content:""; flex:none; width:20px; height:20px; padding:0 2px; background:currentColor; background-clip:content-box;
   -webkit-mask:var(--ob-ic) center / 20px 20px no-repeat content-box; mask:var(--ob-ic) center / 20px 20px no-repeat content-box;

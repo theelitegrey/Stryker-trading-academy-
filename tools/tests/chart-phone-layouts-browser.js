@@ -128,6 +128,7 @@ async function run(b, v09, w, h, doItems) {
     'Full screen': () => document.documentElement.classList.contains('stk-chart-fs'),
     'Chart settings': () => [...document.querySelectorAll('body *')].some((e) => e.children.length === 0 && /^Apply to all$/.test(e.textContent.trim()) && e.getClientRects().length),
     'News': () => /stknw-open/.test(document.querySelector('.stkchart-panel').className) || !!document.querySelector('.stknw-panel:not([hidden]), .stknw:not([hidden])'),
+    'GEX Ladder': () => { const e = document.getElementById('stkgl'); return !!(e && !e.hidden && e.getClientRects().length); },
     'Watchlist': () => /stkw-open/.test(document.querySelector('.stkchart-panel').className),
     'Alerts': () => [...document.querySelectorAll('[role=dialog]')].some((e) => e.getClientRects().length && /alert/i.test(e.getAttribute('aria-label') || e.textContent.slice(0, 60))),
     'Maximize / restore chart': () => !!window.STRYKER_VELA.maximizedCell,

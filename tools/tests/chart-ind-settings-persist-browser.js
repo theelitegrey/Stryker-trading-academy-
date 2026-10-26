@@ -148,7 +148,13 @@ async function openSettings(p, id, label){
       console.log('INFO ' + label + ': row still not selected (selected: ' + bx.sel + '), pointer click on its title');
       await p.mouse.click(bx.x, bx.y);
     }
-    else { const bx = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [F.row, id]); await p.mouse.move(bx.x, bx.y); }
+    else {
+      // desktop: Vela shows a row's buttons on mouseenter of the row TITLE (titleWrap), so hover the
+      // title text at the row's left, coming in from outside the row
+      const bx = await p.evaluate(([s, a]) => { const el = new Function('a', s)(a); const t = [...el.querySelectorAll('div, span')].find((x) => /ellipsis/.test(x.style.cssText) && x.getBoundingClientRect().width) || el; const r = t.getBoundingClientRect(); return { x: r.left + Math.min(24, r.width / 2), y: r.top + r.height / 2 }; }, [F.row, id]);
+      await p.mouse.move(bx.x + 300, bx.y + 300); await sleep(150);
+      await p.mouse.move(bx.x, bx.y, { steps: 6 });
+    }
     await sleep(600);
   }
   await tap(p, F.cog, id, label + ' cog');
@@ -291,7 +297,7 @@ async function reloadPage(p, phase){
 const quiet = async (p, ms) => { await sleep(ms || 1500); };
 
 (async () => {
-  const b = await launch({ args: ['--js-flags=--max-old-space-size=900'] });
+  const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
   let ctx, p, errors, hits;
   try {
     ({ ctx, p, errors, hits } = await open(b));

@@ -158,12 +158,15 @@ async function run(b, v09, w, h, phoneShots) {
   const sym1 = P.cells[0].sym;
   await tapSel(p, '#stkc-bar .vela-mb-symbol');
   await sleep(700);
-  const inp = await p.$('.vela-sp input, input.vela-sp-input, .vela-symbol-picker input, [class*="sp-search"] input, input[type="search"]');
-  if (inp) { await inp.fill('GC1!'); await sleep(900); await p.keyboard.press('Enter'); }
+  const inpInfo = await p.evaluate(() => [...document.querySelectorAll('input')].filter((i) => i.getClientRects().length && getComputedStyle(i).visibility !== 'hidden').map((i) => i.className + '|' + i.placeholder));
+  const inp = await p.locator('input:visible').first();
+  const has = inpInfo.length > 0;
+  console.log('INFO symbol inputs ' + JSON.stringify(inpInfo));
+  if (has) { await inp.fill('GC1!'); await sleep(1200); await p.keyboard.press('Enter'); }
   await sleep(2500);
   await settle(p);
   P = await panes(p);
-  check(!!inp && /GC1!/.test(P.cells[1].sym) && P.cells[0].sym === sym1, key + ': symbol change edits pane 2 only', P.cells.map((c) => c.sym));
+  check(has && /GC1!/.test(P.cells[1].sym) && P.cells[0].sym === sym1, key + ': symbol change edits pane 2 only', P.cells.map((c) => c.sym));
   await p.screenshot({ path: path.join(OUT, key + '-pane2-gc.png') });
   // ---- reload: remembered ----
   await sleep(1500);

@@ -241,9 +241,12 @@ export function mountGrid(ws, opts){
   const phoneItems = {};
   [1, 2, 3, 4].forEach((n) => {
     const b = el('button', { type: 'button', class: 'stkg-pc', 'data-n': String(n), 'aria-pressed': 'false', 'aria-label': n === 1 ? '1 chart' : n + ' charts',
-      onclick: () => { pickCount(n); setOpen(false); } });
+      onclick: () => { pickCount(n); setOpen(false); closeMore(); } });
     phoneItems[n] = b; phoneBox.appendChild(b);
   });
+  // the phone ⋯ list (chart-onebar.js) closes on a document click; after a pick it must close too,
+  // or it stays over the new panes
+  const closeMore = () => { if (pop.closest('#stkc-more-pop')) document.dispatchEvent(new MouseEvent('click')); };
   const capNote = el('p', { class: 'stkg-note', hidden: '' });
   pop.appendChild(el('p', { class: 'stkc-pop-h', text: 'Charts in layout' }));
   pop.appendChild(gridBox);

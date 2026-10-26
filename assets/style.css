@@ -9887,3 +9887,30 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
 .sp-saved{ display:inline-block; margin-left:8px; font-family:var(--font-mono); font-size:11.5px; font-weight:600; color:var(--bull); }
 .sp-saved.bad{ color:var(--bear); }
 .sp-saved[hidden]{ display:none; }
+
+/* Admin: per-member "Live chart data" switch (students-admin.html, dashboard-admin.html; assets/admin-live-feed.js) */
+.live-feed-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 14px; }
+.live-feed-switch{ display:inline-flex; align-items:center; gap:10px; cursor:pointer; min-height:44px; user-select:none; }
+.live-feed-switch input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+.live-feed-track{ position:relative; width:44px; height:26px; flex-shrink:0; border-radius:999px; background:var(--bg-3); border:1px solid var(--line); transition:background .15s ease, border-color .15s ease; }
+.live-feed-track::after{ content:''; position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:var(--ink-2); transition:transform .15s ease, background .15s ease; }
+.live-feed-switch input:checked + .live-feed-track{ background:rgba(3,201,136,0.22); border-color:var(--gold); }
+.live-feed-switch input:checked + .live-feed-track::after{ transform:translateX(18px); background:var(--gold); }
+.live-feed-switch input:focus-visible + .live-feed-track{ outline:2px solid var(--teal); outline-offset:2px; }
+.live-feed-switch input:disabled + .live-feed-track{ opacity:.55; }
+.live-feed-label{ font-size:13.5px; font-weight:600; color:var(--ink-0); }
+.live-feed-note{ font-size:12.5px; color:var(--ink-3); flex-basis:100%; }
+.live-feed-saved{ font-size:12.5px; font-weight:600; color:var(--ink-3); min-width:0; }
+.live-feed-saved.is-ok{ color:var(--bull, var(--gold)); }
+.live-feed-saved.is-err{ color:var(--bear); }
+.status-tag.live-feed-tag{ margin-left:6px; background:rgba(3,201,136,0.12); border-color:rgba(3,201,136,0.4); color:var(--gold); }
+.users-role-btn.users-live-btn.is-active{ border-color:rgba(3,201,136,0.5); background:rgba(3,201,136,0.12); }
+.live-feed-intro{ font-size:13px; color:var(--ink-2); margin:0 0 12px; line-height:1.5; }
+.live-feed-item{ display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--line); min-width:0; }
+.live-feed-item:first-child{ border-top:0; }
+.live-feed-who{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.live-feed-who .cell-name, .live-feed-who .cell-sub{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.live-feed-item .live-feed-label{ display:none; }
+.live-feed-empty{ font-size:13px; color:var(--ink-3); padding:8px 0; margin:0; }
+.live-feed-search{ margin-top:12px; max-width:none; width:100%; }
+#live-feed-results{ margin-top:6px; }

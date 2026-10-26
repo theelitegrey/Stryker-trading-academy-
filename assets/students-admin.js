@@ -1,8 +1,12 @@
 // TradeZoro — Admin: Students (students-admin.html)
-// Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js
+// Depends on: assets/auth.js, assets/progress.js (for `db`), assets/admin-guard.js, assets/admin-live-feed.js
 // Read-only. Access is gated by guardAdminPage() plus Firestore security
 // rules, which restrict reads across all student docs to accounts with a
 // matching document in the `admins` collection.
+// Live chart data (Owner 2026-10-26): each member's detail panel has a "Live chart data" switch that writes
+// students/{uid}.liveFeed (+ liveFeedBy, liveFeedAt). The chart server (functions/api/chart/_rt.js) gives
+// real-time CME futures to admins, the demo account and liveFeed === true members; firestore.rules lets only an
+// admin write those three keys. Filter "Live data on" + the "Live data: N users" count live in the filter row.
 
 let ALL_STUDENTS = [];
 
@@ -47,6 +51,7 @@ function renderStudentsTable(students){
     const isModeratorUser = CURRENT_MODERATOR_UIDS.has(s.uid);
     const isStaffUser = (typeof CURRENT_STAFF_UIDS !== 'undefined') && CURRENT_STAFF_UIDS.has(s.uid);
     const roleTag = (typeof roleTagHtml === 'function') ? roleTagHtml(s.plan, { size: 'small', admin: true }) : '';
+    const liveOn = s.liveFeed === true;
     const card = document.createElement('div');
     // Collapsed by default. Every student's full detail was previously
     // expanded at once, so a list of twenty filled several screens and the
@@ -56,7 +61,7 @@ function renderStudentsTable(students){
     card.className = 'record-card student-row';
     card.innerHTML =
       '<button type="button" class="student-row-head" aria-expanded="false">' +
-        '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + stkEsc(name) + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + '</span><span class="cell-sub">' + stkEsc(s.email || '—') + '</span></div></div>' +
+        '<div class="cell-user">' + (typeof avatarImgHtml === 'function' ? avatarImgHtml(s.uid, name, s, 36) : '<div class="cell-avatar"></div>') + '<div><span class="cell-name">' + stkEsc(name) + (isAdminUser ? ' <span class="status-tag active" style="margin-left:6px;">Admin</span>' : '') + (isModeratorUser ? ' <span class="status-tag" style="margin-left:6px; background:rgba(0,173,181,0.12); border-color:var(--teal-dim); color:var(--teal);">Moderator</span>' : '') + roleTag + (liveOn ? ' <span class="status-tag live-feed-tag">Live data</span>' : '') + '</span><span class="cell-sub">' + stkEsc(s.email || '—') + '</span></div></div>' +
         '<svg class="student-row-chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
       '</button>' +
       '<div class="student-row-body"><div class="student-row-inner">' +
@@ -71,6 +76,12 @@ function renderStudentsTable(students){
         '<div class="record-stat"><span class="rs-label">Streak</span><span class="rs-val">' + (s.currentStreak || 0) + ' day' + ((s.currentStreak || 0) === 1 ? '' : 's') + '</span></div>' +
         '<div class="record-stat"><span class="rs-label">Member since</span><span class="rs-val">' + memberSince + '</span></div>' +
       '</div>' +
+      '<div class="live-feed-row">' +
+        '<label class="live-feed-switch"><input type="checkbox" role="switch" data-live-feed="' + s.uid + '"' + (liveOn ? ' checked' : '') + '>' +
+          '<span class="live-feed-track" aria-hidden="true"></span><span class="live-feed-label">Live chart data</span></label>' +
+        '<span class="live-feed-saved" aria-live="polite"></span>' +
+        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveOn ? 'Real-time CME futures on Charts.' : 'Off: futures on Charts are 10 min delayed.'))) + '</span>' +
+      '</div>' +
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
         '<button class="btn btn-sm btn-ghost" data-toggle-moderator="' + s.uid + '">' + (isModeratorUser ? 'Revoke moderator' : 'Grant moderator') + '</button>' +
@@ -83,6 +94,33 @@ function renderStudentsTable(students){
     head.addEventListener('click', () => {
       const open = card.classList.toggle('open');
       head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+
+    card.querySelector('[data-live-feed]').addEventListener('change', (e) => {
+      const box = e.currentTarget;
+      const want = box.checked;
+      const saved = card.querySelector('.live-feed-saved');
+      const note = card.querySelector('.live-feed-note');
+      if (want && !confirm('Give ' + name + ' live chart data?')) { box.checked = false; return; }
+      box.disabled = true;
+      saved.className = 'live-feed-saved'; saved.textContent = 'Saving…';
+      strykerSetLiveFeed(s.uid, want, name)
+        .then(() => {
+          s.liveFeed = want;
+          box.disabled = false;
+          saved.className = 'live-feed-saved is-ok'; saved.textContent = '✓ Saved';
+          setTimeout(() => { if (saved.textContent === '✓ Saved') saved.textContent = ''; }, 2500);
+          if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Real-time CME futures on Charts (takes effect on their next chart load, about 1 min to switch off).' : 'Off: futures on Charts are 10 min delayed (within about 1 min).';
+          const tag = card.querySelector('.live-feed-tag');
+          if (want && !tag) { const t = document.createElement('span'); t.className = 'status-tag live-feed-tag'; t.textContent = 'Live data'; const nm = card.querySelector('.cell-name'); nm.appendChild(document.createTextNode(' ')); nm.appendChild(t); }
+          if (!want && tag) tag.remove();
+          if (typeof window.__strykerLiveCount === 'function') window.__strykerLiveCount();
+        })
+        .catch((err) => {
+          box.checked = !want; box.disabled = false;
+          saved.className = 'live-feed-saved is-err'; saved.textContent = 'Not saved';
+          showToast('error', 'Could not change live chart data: ' + (err.message || err));
+        });
     });
 
     card.querySelector('.student-plan-select').addEventListener('change', (e) => {
@@ -459,7 +497,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = (document.getElementById('students-search').value || '').trim().toLowerCase();
     let list = ALL_STUDENTS;
 
-    if (CURRENT_ROLE_FILTER !== 'all') {
+    if (CURRENT_ROLE_FILTER === 'live') {
+      list = list.filter(s => s.liveFeed === true);
+    } else if (CURRENT_ROLE_FILTER !== 'all') {
       list = list.filter(s => roleOf(s).indexOf(CURRENT_ROLE_FILTER) !== -1);
     }
     if (q) {
@@ -476,7 +516,16 @@ document.addEventListener('DOMContentLoaded', () => {
         ? list.length + ' users'
         : list.length + ' of ' + ALL_STUDENTS.length;
     }
+    liveCount();
   }
+  // "Live data: N users" = members switched on by an admin (students/{uid}.liveFeed === true)
+  function liveCount(){
+    const el = document.getElementById('users-live-count');
+    if (!el) return;
+    const n = ALL_STUDENTS.filter(s => s.liveFeed === true).length;
+    el.textContent = 'Live data: ' + n + ' user' + (n === 1 ? '' : 's');
+  }
+  window.__strykerLiveCount = liveCount;
 
   document.getElementById('students-search').addEventListener('input', applyFilters);
 
@@ -490,6 +539,8 @@ document.addEventListener('DOMContentLoaded', () => {
       CURRENT_ROLE_FILTER = btn.getAttribute('data-role');
       applyFilters();
     });
+    // dashboard "Manage" link: students-admin.html#live opens on the Live data filter
+    if (location.hash === '#live') { const b = filterBar.querySelector('[data-role="live"]'); if (b) b.click(); }
   }
 
   // Exposed so loadStudents() can refresh counts once the role lists resolve;

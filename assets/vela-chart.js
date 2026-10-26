@@ -363,6 +363,27 @@ function migrateTvLook(){
 // toast.js signature is showToast(type, message).
 const toast = (m, type) => { try { if (window.showToast) window.showToast(type || 'success', m); } catch (e) {} };
 
+// CRYPTO SYMBOL LISTS LATER (phone speed, 2026-10-26): Vela asks every provider for its full symbol
+// list the moment it is registered. For Binance (spot + futures exchangeInfo, ~19 MB of JSON),
+// Hyperliquid and Coinbase that is a big download and parse on the way to the first candle, and only
+// symbol search uses the lists (a saved symbol carries its venue prefix, so it resolves without them).
+// Their listSymbols() now waits until the first candles are on screen and the page is idle, or the
+// member first touches / types anything, whichever comes first, and then runs exactly as before.
+let listsGoRes = null;
+const listsGo = new Promise((r) => { listsGoRes = r; });
+const listsNow = () => { if (listsGoRes) { const r = listsGoRes; listsGoRes = null; r(); } };
+['pointerdown', 'keydown', 'focusin'].forEach((t) => window.addEventListener(t, listsNow, { capture: true, once: true, passive: true }));
+setTimeout(listsNow, 20000);   // never wait forever
+function lateLists(provider){
+  try {
+    if (provider && typeof provider.listSymbols === 'function') {
+      const ls = provider.listSymbols.bind(provider);
+      provider.listSymbols = () => listsGo.then(ls);
+    }
+  } catch (e) {}
+  return provider;
+}
+
 (async () => {
   const host = document.getElementById('vela-chart');
   if (!host) return;
@@ -604,9 +625,9 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
         // Iv.wrapFactory (assets/chart-intervals.js) builds the intervals a source does not
         // serve natively (futures 2m/3m/10m/45m/3h, 3M/6M/12M everywhere) from a smaller one.
         futures: Replay.wrapFactory(Iv.wrapFactory(rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(), 'futures'), 'futures'),
-        binance: Replay.wrapFactory(Iv.wrapFactory(() => new BinanceProvider(), 'binance'), 'binance'),
-        coinbase: Replay.wrapFactory(Iv.wrapFactory(() => new CoinbaseProvider(), 'coinbase'), 'coinbase'),
-        hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => new HyperliquidProvider(), 'hyperliquid'), 'hyperliquid'),
+        binance: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BinanceProvider()), 'binance'), 'binance'),
+        coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
+        hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
         // Spot forex pairs (same /api/chart/bars endpoint, Yahoo "=X" series, delayed).
         fx: Replay.wrapFactory(Iv.wrapFactory(() => new FxProvider(), 'fx'), 'fx')
       },
@@ -619,6 +640,20 @@ const toast = (m, type) => { try { if (window.showToast) window.showToast(type |
   }
 
   pm('stk:workspace-built');
+  // First candles on screen: mark it, then release the crypto symbol lists (lateLists) at idle.
+  {
+    const t0 = Date.now();
+    const look = () => {
+      let ok = false;
+      try { ok = ws.cells().some((c) => c.chart.orchestrator.rawBars.length > 0); } catch (e) {}
+      if (ok) {
+        requestAnimationFrame(() => { pm('stk:first-candles'); window.__stkFirstCandles = true; try { window.dispatchEvent(new Event('stk:first-candles')); } catch (e) {} });
+        (window.requestIdleCallback ? requestIdleCallback(listsNow, { timeout: 4000 }) : setTimeout(listsNow, 1500));
+      } else if (Date.now() - t0 < 15000) setTimeout(look, 50);
+      else listsNow();
+    };
+    look();
+  }
   // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
   try { for (const c of ws.context().cells) { const r = c.chart.renderer; lateLayers(r && r.extLayers ? r : r && r.renderer); } } catch (e) { console.warn('TradeZoro: late layers', e); }

@@ -775,8 +775,19 @@ class GexNative {
     const e = replayRows(src.api, dte, E, () => this.refresh());
     if (e.err && !e.rows) return { note: 'GEX history could not load' };
     if (!e.rows) return { note: 'Loading GEX history…' };
-    const snap = snapAt(e.rows, E, REPLAY_MAX_AGE_S);
+    let snap = snapAt(e.rows, E, REPLAY_MAX_AGE_S);
     if (!snap) return { note: 'No GEX history for this time' };
+    // 0DTE after that session's close (evening, overnight, weekend): that expiry is gone. The live
+    // chart then shows the NEXT expiry's chain (the API's 0DTE after the close), so replay does the
+    // same: the last 1DTE snapshot of that session, as a new step after the 0DTE ones.
+    let nextExp = null;
+    const core = window.StrykerGexHeat;
+    if (dte === 0 && core && E > core.sessionWindow(snap.day).x1) {
+      const e1 = replayRows(src.api, 1, E, () => this.refresh());
+      if (!e1.rows && !e1.err) return { note: 'Loading GEX history…' };
+      const s1 = e1.rows ? snapAt(e1.rows, E, REPLAY_MAX_AGE_S) : null;
+      if (s1 && s1.day === snap.day) { snap = s1; nextExp = Object.assign({}, s1, { t: Math.max(s1.t, e.rows[e.rows.length - 1].t) + 1 }); }
+    }
     let bars = [];
     try { bars = this.ctx.bars() || []; } catch (err) {}
     const tfS = (() => { const t = String(this.ctx.timeframe || ''); return /^\d+$/.test(t) ? +t * 60 : /^\d*[HD]$/i.test(t) ? (parseInt(t, 10) || 1) * (/H/i.test(t) ? 3600 : 86400) : 60; })();
@@ -792,8 +803,12 @@ class GexNative {
       // walls over time up to the replay clock only (no lookahead), from the rows already loaded
       const rows = e.rows.filter((r) => r.t <= E && isNum(r.s) && r.s > 0);
       const f = data.futures && src.fut ? data.futures[src.fut] : null;
-      const M = wallModel(rows, null, f ? f.ratio : null, src.fut ? (t) => barCloseAt(bars, t, Math.max(180, tfS + 120)) : null);
-      if (M) lv = applySteps(lv, M, src, convOf(data, src, 0), opts);
+      const M = wallModel(rows, nextExp, f ? f.ratio : null, src.fut ? (t) => barCloseAt(bars, t, Math.max(180, tfS + 120)) : null);
+      // the label segment: median basis of the session's last snapshots (one snapshot's spot can be
+      // off, e.g. the 15:59:59 closing print), the same basis the live chart uses off-hours
+      const k = f ? f.ratio : null;
+      const conv = src.fut && M && isNum(M.histBasis) && isNum(k) ? (v) => v * k + M.histBasis : convOf(data, src, 0);
+      if (M) lv = applySteps(lv, M, src, conv, opts);
     }
     const sty = str(i.lineStyle, 'as GEX page'), wd = Math.round(num(i.width, 0));
     const color = (k) => { const s = SCHEMA.find((x) => x.key === k); return str(i[k], s ? s.defval : GEX_COLORS.strike); };
@@ -802,7 +817,7 @@ class GexNative {
       band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
       labels: i.labels !== false, priceTags: i.priceTags !== false, showStatus: i.showStatus !== false, shift: 0,
       snapT: snap.t,
-      status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + ' · bar replay'
+      status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + (nextExp ? ' (next expiry ' + snap.x + ')' : '') + ' · bar replay'
     };
   }
 }
@@ -816,6 +831,7 @@ function hexA(hex, a) {
 }
 // One step line: each segment [a, b) at its own price (b null = to the right edge), joined by a
 // vertical step where the next segment starts at the same time. Clipped by the caller.
+let stepsDrawn = 0;   // test hook: step segments painted in the last frame (canvas.__stkGexSteps)
 function drawSteps(g, steps, co, Y, W) {
   g.beginPath();
   let px = null, py = null;
@@ -826,6 +842,7 @@ function drawSteps(g, steps, co, Y, W) {
     if (x1 < 0 || x0 > W || x1 <= x0) { px = x1; py = y; continue; }
     if (px != null && Math.abs(px - x0) < 1.5) { g.moveTo(px, py); g.lineTo(x0, y); } else g.moveTo(x0, y);
     g.lineTo(x1, y);
+    stepsDrawn++;
     px = x1; py = y;
   }
   g.stroke();
@@ -940,6 +957,7 @@ function gexLayer() {
       const font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       g.font = font; g.textBaseline = 'middle';
       const tags = [], drawn = [];
+      stepsDrawn = 0;
       for (const l of d.lines) {
         const y = Math.round(Y(l.price)) + 0.5;
         if (!(y >= top && y <= bot)) continue;
@@ -1025,6 +1043,7 @@ function gexLayer() {
       lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
       canvas.__stkGexLines = drawn;     // test hook: each painted line's price, pixel row and the price at that row
+      canvas.__stkGexSteps = stepsDrawn;
       if (plotEl) {
         // the Absorption tag (chart-of-pro.js) yields to these boxes; ask for one more frame when they move
         const boxes = groups.map((t) => ({ left: t.box.x, right: t.box.x + t.box.w, top: t.box.y, bottom: t.box.y + t.box.h, text: t.text }));

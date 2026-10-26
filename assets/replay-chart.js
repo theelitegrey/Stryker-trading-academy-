@@ -44,7 +44,7 @@
       this.chart = LW.createChart(this.chartEl, this._chartOptions(T));
       this.candles = this.chart.addSeries(LW.CandlestickSeries, { upColor: T.up, downColor: T.down, borderVisible: false, wickUpColor: T.up, wickDownColor: T.down, priceFormat: { type: 'price', precision: this.opts.decimals, minMove: this.opts.tick || Math.pow(10, -this.opts.decimals) }, priceLineVisible: true, lastValueVisible: true });
       this.volume = this.chart.addSeries(LW.HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
-      this.chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+      this.chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.9, bottom: 0 } });   // a thin band under the candles
       this.markersApi = LW.createSeriesMarkers(this.candles, []);
       this.view = null; this.n = 0; this.times = []; this.data = []; this.lastTf = null;
       this.lines = []; this.priceLines = new Map(); this.markers = [];
@@ -61,7 +61,7 @@
       return { layout: { background: { type: 'solid', color: T.bg }, textColor: T.text, fontFamily: "'JetBrains Mono', 'Archivo', monospace", fontSize: 11, panes: { separatorColor: T.border, separatorHoverColor: 'rgba(3,201,136,0.3)', enableResize: true }, attributionLogo: true },
         grid: { vertLines: { color: T.grid }, horzLines: { color: T.grid } },
         crosshair: { mode: 0, vertLine: { color: T.cross, labelBackgroundColor: T.tag, style: 3 }, horzLine: { color: T.cross, labelBackgroundColor: T.tag, style: 3 } },
-        rightPriceScale: { borderColor: T.border, scaleMargins: { top: 0.08, bottom: 0.2 } },
+        rightPriceScale: { borderColor: T.border, scaleMargins: { top: 0.08, bottom: 0.12 } },
         timeScale: { borderColor: T.border, timeVisible: true, secondsVisible: false, rightOffset: 8, barSpacing: 8, minBarSpacing: 0.5, shiftVisibleRangeOnNewBar: true, rightBarStaysOnScroll: true },
         localization: { locale: 'en-US', timeFormatter: (t) => this._fmtTime(t, true), priceFormatter: (p) => this.fmt(p) },
         handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false }, handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
@@ -184,7 +184,7 @@
     }
 
     // ---- overlay rendering --------------------------------------------------------------
-    request() { if (!this._raf) this._raf = requestAnimationFrame(() => { this._raf = 0; this.render(); }); }
+    request() { if (!this._raf) this._raf = requestAnimationFrame(() => { this._raf = 0; this.render(); requestAnimationFrame(() => this._trimAxis()); }); }
     render() {
       const ctx = this.ov.getContext('2d'); const d = root.devicePixelRatio || 1; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, this.ov.width, this.ov.height);
       if (!this.n) return; const R = this.paneRect(); ctx.save(); ctx.beginPath(); ctx.rect(R.x, R.y, R.w, R.h); ctx.clip();
@@ -193,17 +193,32 @@
       if (this.tool !== 'none' && this.pendingPts.length && this.mouse) this._drawOne(ctx, R, { type: this.tool, p1: this.pendingPts[0], p2: { t: this.tOfIndex(this.iOf(this.mouse.x)), price: this.pOf(this.mouse.y) } }, false);
       ctx.restore();
     }
+    // Lightweight Charts draws a time label centred on its bar even when half of it falls off the
+    // left edge (":00" instead of "18:00"). After it paints, blank any label run that touches the
+    // left edge of the time axis, so the axis never starts with a cut label.
+    _trimAxis() {
+      try {
+        const rows = this.chartEl.querySelectorAll('tr'); const td = rows.length > 1 ? rows[rows.length - 1].children[1] : null; const cv = td && td.querySelector('canvas'); if (!cv || !cv.width) return;
+        const c = cv.getContext('2d', { willReadFrequently: true }); const w = Math.min(cv.width, Math.round(80 * (root.devicePixelRatio || 1))), h = cv.height; const img = c.getImageData(0, 0, w, h).data;
+        const bg = this.T.bg; const br = parseInt(bg.slice(1, 3), 16), bgG = parseInt(bg.slice(3, 5), 16), bb = parseInt(bg.slice(5, 7), 16);
+        const ink = (x) => { for (let y = Math.round(h * 0.25); y < h; y++) { const k = (y * w + x) * 4; if (Math.abs(img[k] - br) + Math.abs(img[k + 1] - bgG) + Math.abs(img[k + 2] - bb) > 90) return true; } return false; };
+        const dpr = root.devicePixelRatio || 1; let edgeInk = false; for (let x = 0; x < Math.max(2, Math.round(2 * dpr)); x++) if (ink(x)) { edgeInk = true; break; }
+        if (!edgeInk) return;
+        let x = 0, gap = 0; const need = Math.round(4 * dpr); while (x < w && gap < need) { gap = ink(x) ? 0 : gap + 1; x++; }
+        c.fillStyle = bg; c.fillRect(0, Math.round(h * 0.2), Math.max(0, x - gap + 1), h);
+      } catch (e) { /* canvas unavailable: keep the stock axis */ }
+    }
     _drawSessions(ctx, R, from, to) {
       if (this.view.tfMs > 3600000) return;
       for (const key of Object.keys(SESSIONS)) { if (!this.opts.sessions[key]) continue; const s = SESSIONS[key]; ctx.fillStyle = s.color; let start = null; for (let i = from; i <= Math.min(to, this.n); i++) { const b = this.bar(i); const inS = b ? (function () { const q = RT.parts(s.tz, b.t); return !q.weekend && q.min >= s.from && q.min < s.to; })() : false; if (inS && start == null) start = i; if ((!inS || i === Math.min(to, this.n)) && start != null) { const x0 = this.xOf(start - 0.5), x1 = this.xOf(i - 0.5); if (!isNaN(x0) && !isNaN(x1)) ctx.fillRect(x0, R.y, x1 - x0, R.h); start = null; } } }
     }
     _drawShapes(ctx, R, from, to) {
-      ctx.font = '10px JetBrains Mono, monospace'; ctx.lineWidth = 1;
+      ctx.font = '10px JetBrains Mono, monospace'; ctx.lineWidth = 1; this._bgLabels = [];
       for (const s of this.shapes) {
         if (s.type === 'marker') { if (s.i < from || s.i > to) continue; const x = this.xOf(s.i), y = this.yOf(s.price); if (isNaN(x) || isNaN(y)) continue; ctx.fillStyle = s.color; ctx.beginPath(); if (s.kind === 'up') { ctx.moveTo(x, y + 4); ctx.lineTo(x - 4, y + 11); ctx.lineTo(x + 4, y + 11); } else if (s.kind === 'down') { ctx.moveTo(x, y - 4); ctx.lineTo(x - 4, y - 11); ctx.lineTo(x + 4, y - 11); } else ctx.arc(x, y, 3, 0, 6.283); ctx.closePath(); ctx.fill(); if (s.text) { ctx.fillStyle = s.color; ctx.textAlign = 'center'; ctx.fillText(s.text, x, s.kind === 'up' ? y + 22 : y - 14); ctx.textAlign = 'left'; } continue; }
         const i1 = s.i1 == null ? this.n - 1 + 6 : s.i1; if (i1 < from || s.i0 > to) continue;
         const x0 = this.xOf(s.i0 - 0.5), x1 = this.xOf(i1 + 0.5); if (isNaN(x0) || isNaN(x1)) continue;
-        if (s.type === 'bg') { ctx.fillStyle = s.color; ctx.fillRect(x0, R.y, x1 - x0, R.h); if (s.text && x0 >= R.x) { ctx.fillStyle = this.T.text; ctx.globalAlpha = 0.7; ctx.fillText(s.text, x0 + 4, R.y + R.h - 6); ctx.globalAlpha = 1; } continue; }
+        if (s.type === 'bg') { ctx.fillStyle = s.color; ctx.fillRect(x0, R.y, x1 - x0, R.h); if (s.text && x0 >= R.x) { /* session name just above the thin volume band, never on top of another label */ const tw = ctx.measureText(s.text).width, ly = R.y + R.h * 0.9 - 6; if (!this._bgLabels.some((q) => Math.abs(q - x0) < tw + 10)) { this._bgLabels.push(x0); ctx.fillStyle = this.T.text; ctx.globalAlpha = 0.75; ctx.textAlign = 'left'; ctx.fillText(s.text, x0 + 4, ly); ctx.globalAlpha = 1; } } continue; }
         if (s.type === 'level') { const y = Math.round(this.yOf(s.price)) + 0.5; if (isNaN(y)) continue; ctx.strokeStyle = s.color; ctx.setLineDash(s.dashed ? [4, 4] : []); ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke(); ctx.setLineDash([]); if (s.text) { ctx.fillStyle = s.color; ctx.fillText(s.text, Math.min(x1, R.w - 40) - ctx.measureText(s.text).width, y - 3); } continue; }
         if (s.type === 'box') { const yt = this.yOf(s.top), yb = this.yOf(s.bottom); if (isNaN(yt) || isNaN(yb)) continue; ctx.fillStyle = s.fill || 'rgba(255,255,255,0.05)'; ctx.fillRect(x0, yt, x1 - x0, yb - yt); ctx.strokeStyle = s.color; ctx.setLineDash(s.dashed ? [4, 4] : []); ctx.strokeRect(Math.round(x0) + 0.5, Math.round(yt) + 0.5, Math.round(x1 - x0), Math.round(yb - yt)); ctx.setLineDash([]); if (s.text && yb - yt > 9 && x0 >= R.x) { ctx.fillStyle = s.color; ctx.fillText(s.text, x0 + 3, yt + 10); } }
       }

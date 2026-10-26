@@ -281,13 +281,15 @@
           <div class="rpw-top">
             <div class="rpw-sym"><b id="rp-title"></b><span id="rp-res"></span></div>
             <div class="rp-tfs" id="rp-tfs"></div>
+            <div class="rpw-opts" id="rp-opts">
             <button type="button" class="rpw-btn" id="rp-ind-btn" title="Indicators"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg><span>Indicators</span></button>
-            <label class="rpw-chk" title="Second chart on a higher timeframe"><input type="checkbox" id="rp-split"> HTF <select id="rp-htf-tf"></select></label>
-            <label class="rpw-chk" title="Shade New York regular hours"><input type="checkbox" id="rp-sess-ny" checked> NY</label>
-            <label class="rpw-chk" title="Shade London hours"><input type="checkbox" id="rp-sess-ldn"> LDN</label>
-            <select id="rp-tz-live" class="rpw-sel" title="Chart timezone"><option value="America/New_York">ET</option><option value="Europe/London">London</option><option value="UTC">UTC</option><option value="Asia/Kolkata">IST</option><option value="Asia/Singapore">SGT</option></select>
+            <span class="rpw-group"><label class="rpw-chk" title="Second chart on a higher timeframe"><input type="checkbox" id="rp-split"><span>HTF</span></label><select id="rp-htf-tf" class="rpw-sel" title="Higher timeframe" aria-label="Higher timeframe"></select></span>
+            <label class="rpw-chk" title="Shade New York regular hours"><input type="checkbox" id="rp-sess-ny" checked><span>NY</span></label>
+            <label class="rpw-chk" title="Shade London hours"><input type="checkbox" id="rp-sess-ldn"><span>LDN</span></label>
+            <select id="rp-tz-live" class="rpw-sel" title="Chart timezone" aria-label="Chart timezone"><option value="America/New_York">ET</option><option value="Europe/London">London</option><option value="UTC">UTC</option><option value="Asia/Kolkata">IST</option><option value="Asia/Singapore">SGT</option></select>
+            <button type="button" class="rpw-btn rpw-ibtn" id="rp-snap-btn" title="Download chart snapshot" aria-label="Download chart snapshot"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+            </div>
             <span class="rpw-spacer"></span>
-            <button type="button" class="rpw-btn" id="rp-snap-btn" title="Download chart snapshot"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
             <div class="rpw-drawerbtns" id="rp-drawerbtns"><button type="button" data-d="objects" title="Object tree"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h10M4 18h6"/></svg><span>Objects</span></button><button type="button" data-d="orders" class="is-on" title="Positions and orders"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg><span>Orders</span></button><button type="button" data-d="ticket" title="Order ticket"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h6M7 14h10"/></svg><span>Ticket</span></button><button type="button" id="rp-back" title="Close session"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
           </div>
 
@@ -306,7 +308,10 @@
 
           <div class="rpw-chart">
             <div class="rp-charts" id="rp-charts"><div class="rp-chart" id="rp-chart-main"></div><div class="rp-chart rp-chart-htf" id="rp-chart-htf" hidden></div></div>
-            <div class="rp-float" id="rp-float">
+            <div class="rp-nudge" id="rp-nudge" hidden><span id="rp-nudge-text"></span><button type="button" id="rp-nudge-close" aria-label="Dismiss">✕</button></div>
+          </div>
+
+          <div class="rp-float" id="rp-float">
               <button type="button" class="rp-playbtn" id="rp-play" title="Play / pause (Space)"></button>
               <button type="button" class="rp-stepbtn" id="rp-step" title="Next bar (→)">+1</button>
               <button type="button" class="rp-stepbtn" id="rp-step10" title="Next 10 bars (Shift+→)">+10</button>
@@ -315,13 +320,10 @@
               <button type="button" class="rp-stepbtn" id="rp-jumpny" title="Skip to the next 9:30 ET open">NY ›</button>
               <div class="rp-cursor"><span id="rp-cursor"></span><div class="rp-cursortrack"><i id="rp-cursorbar"></i></div></div>
             </div>
-            <div class="rp-nudge" id="rp-nudge" hidden><span id="rp-nudge-text"></span><button type="button" id="rp-nudge-close" aria-label="Dismiss">✕</button></div>
-          </div>
 
           <aside class="rpw-drawer" id="rp-drawer">
             <div class="rpw-pane" id="rp-pane-objects" hidden><h3>Object tree</h3><div id="rp-objtree"></div></div>
             <div class="rpw-pane" id="rp-pane-orders">
-              <div class="rp-account"><div><span>Balance</span><b id="rp-acc-balance" class="rp-acc-val"></b></div><div><span>Equity</span><b id="rp-acc-equity" class="rp-acc-val"></b></div><div><span>Open P&amp;L</span><b id="rp-acc-open" class="rp-acc-val"></b></div><div><span>Net P&amp;L</span><b id="rp-acc-net" class="rp-acc-val"></b></div></div>
               <div class="rp-poshead"><h3>Positions <span id="rp-poscount"></span></h3><button type="button" class="btn btn-secondary btn-sm" id="rp-closeall">Close all</button></div>
               <div id="rp-positions"></div>
             </div>
@@ -347,7 +349,7 @@
           <div class="rpw-bottom">
             <div id="rp-tradebar-strip" class="rp-strip"></div>
             <span class="rpw-spacer"></span>
-            <div class="rpw-acct"><div><span>Account balance</span><b id="rp-bb-balance"></b></div><div><span>Realized P&amp;L</span><b id="rp-bb-real"></b></div><div><span>Unrealized P&amp;L</span><b id="rp-bb-unreal"></b></div></div>
+            <div class="rpw-acct" id="rp-acct"><div><span>Balance</span><b id="rp-bb-balance"></b></div><div><span>Equity</span><b id="rp-acc-equity"></b></div><div><span>Open P&amp;L</span><b id="rp-bb-unreal"></b></div><div><span>Net P&amp;L</span><b id="rp-acc-net"></b></div></div>
             <button type="button" class="rpw-btn" id="rp-sheet-toggle"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Analytics</span></button>
           </div>
         </div>

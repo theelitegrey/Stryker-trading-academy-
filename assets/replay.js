@@ -99,7 +99,7 @@
       buildWorkspace(); RP.chart.setDrawings(session.drawings || []);
       for (const ind of (session.indicators || [])) RP.chart.addIndicator(ind.id, ind.params, ind.iid);
       renderObjects();
-      closeSetup(); $('rp-home').hidden = true; $('rp-work').hidden = false; $('rp-title').textContent = RP.spec.symbol + ' · ' + session.name; $('rp-res').textContent = data.note + (data.cached ? ' · cached' : '');
+      closeSetup(); $('rp-home').hidden = true; $('rp-work').hidden = false; $('rp-title').textContent = sessionTitle(); $('rp-res').textContent = data.note + (data.cached ? ' · cached' : '');
       RP.tradesRendered = -1; refresh(true); RP.chart.scrollToEnd(); if (RP.htf) RP.htf.scrollToEnd(); renderTrades(); renderStats(); saveSession();
       history.replaceState(null, '', 'replay.html?session=' + encodeURIComponent(session.id));
     } catch (err) { console.error(err); toast(err.message || String(err), 'error'); }
@@ -127,15 +127,27 @@
     $('rp-chart-htf').hidden = !$('rp-split').checked; $('rp-charts').classList.toggle('is-split', $('rp-split').checked);
     $('rp-speed').innerHTML = SPEEDS.map((s, i) => '<option value="' + i + '"' + (i === RP.speedIdx ? ' selected' : '') + '>' + s + ' bar' + (s > 1 ? 's' : '') + '/s</option>').join('');
     $('rp-unit').textContent = RP.spec.unit || 'units'; $('rp-size').value = RP.spec.lotStep >= 1 ? 1 : RP.spec.lotStep * 10; $('rp-size').step = RP.spec.lotStep;
-    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true; renderObjects(); $('rp-h1').textContent = RP.session.name;
+    renderTagChips(); setTool('none'); $('rp-nudge').hidden = true; renderObjects(); $('rp-h1').textContent = sessionTitle();
     // Say out loud when a session is being graded against a playbook, so the
     // pre-trade checklist is understood as evidence rather than a nag.
     const pbName = (RP.session.settings || {}).playbookName;
-    $('rp-h1-sub').textContent = RP.spec.label + ' · ' + (RP.session.dataNote || '') +
+    $('rp-h1-sub').textContent = marketName() + ' · ' + (RP.session.dataNote || '') +
       (pbName ? ' · playbook: ' + pbName : '');
   }
+  // The session name already starts with the symbol by default ("NQ · 2026-10-16"); say the
+  // symbol once, and the market's long name once (without repeating the ticker).
+  function sessionTitle() { const n = RP.session.name || ''; const sym = RP.spec.symbol || ''; return !sym || n.toUpperCase().indexOf(sym.toUpperCase()) === 0 ? n : sym + ' · ' + n; }
+  function marketName() { const parts = String(RP.spec.label || '').split(' · '); return parts.length > 1 ? parts.slice(1).join(' · ') : parts[0]; }
   function buildStrip() {
-    const el = $('rp-tradebar-strip'); el.innerHTML = '<button type="button" class="rp-sbtn is-sell" id="rp-strip-sell"><small>SELL</small><b>—</b></button><div class="rp-smid"><input type="number" id="rp-strip-size" step="' + RP.spec.lotStep + '" min="0" value="' + ($('rp-size').value || 1) + '" title="Size"><label title="Attach stop (ticks) and target (R) automatically"><input type="checkbox" id="rp-strip-attach" checked> SL <input type="number" id="rp-strip-sl" value="' + pref('stripSl', 40) + '" min="1" title="Stop in ticks"> t · TP <input type="number" id="rp-strip-tp" value="' + pref('stripTp', 2) + '" min="0.1" step="0.1" title="Target as R multiple"> R</label></div><button type="button" class="rp-sbtn is-buy" id="rp-strip-buy"><small>BUY</small><b>—</b></button>';
+    const el = $('rp-tradebar-strip'); const unit = esc(RP.spec.unit || 'units');
+    el.innerHTML = '<button type="button" class="rp-sbtn is-sell" id="rp-strip-sell"><small>SELL</small><b>—</b></button>' +
+      '<div class="rp-smid">' +
+        '<label class="rp-sfield rp-sqty"><span>Qty <small>' + unit + '</small></span><input type="number" inputmode="decimal" id="rp-strip-size" step="' + RP.spec.lotStep + '" min="0" value="' + ($('rp-size').value || 1) + '" aria-label="Order size"></label>' +
+        '<div class="rp-sbrk"><label class="rp-switch" title="Attach a stop and a target to Buy / Sell"><input type="checkbox" id="rp-strip-attach" checked><i aria-hidden="true"></i><span>Stop + target</span></label>' +
+        '<label class="rp-sfield"><span>Stop</span><input type="number" inputmode="numeric" id="rp-strip-sl" value="' + pref('stripSl', 40) + '" min="1" aria-label="Stop distance in ticks"><em>ticks</em></label>' +
+        '<label class="rp-sfield"><span>Target</span><input type="number" inputmode="decimal" id="rp-strip-tp" value="' + pref('stripTp', 2) + '" min="0.1" step="0.1" aria-label="Target as a multiple of risk (R)"><em>R</em></label></div>' +
+      '</div>' +
+      '<button type="button" class="rp-sbtn is-buy" id="rp-strip-buy"><small>BUY</small><b>—</b></button>';
     $('rp-strip-sell').addEventListener('click', () => stripOrder('sell')); $('rp-strip-buy').addEventListener('click', () => stripOrder('buy'));
     $('rp-strip-size').addEventListener('change', (e) => { $('rp-size').value = e.target.value; updateTicketMath(); });
     $('rp-strip-sl').addEventListener('change', (e) => setPref('stripSl', Number(e.target.value))); $('rp-strip-tp').addEventListener('change', (e) => setPref('stripTp', Number(e.target.value)));
@@ -269,7 +281,14 @@
   function renderTagChips() { $('rp-tags').innerHTML = COACH.TAGS.map((t) => '<button type="button" class="rp-chip' + (RP.nextTags.includes(t) ? ' is-on' : '') + '" data-tag="' + esc(t) + '">' + esc(t) + '</button>').join(''); }
 
   // ---- positions / trades panels ---------------------------------------------------------------------
-  function renderAccount() { const s = RP.sim; const eq = s.equityValue(); const open = eq - s.balance; const net = s.balance - s.startBalance; $('rp-bb-balance').textContent = money(s.balance); const br = $('rp-bb-real'); br.textContent = money(net, true); br.className = net > 0 ? 'up' : net < 0 ? 'down' : ''; const bu = $('rp-bb-unreal'); bu.textContent = money(open, true); bu.className = open > 0 ? 'up' : open < 0 ? 'down' : ''; $('rp-acc-balance').textContent = money(s.balance); $('rp-acc-equity').textContent = money(eq); const o = $('rp-acc-open'); o.textContent = money(open, true); o.className = 'rp-acc-val ' + (open > 0 ? 'up' : open < 0 ? 'down' : ''); const n = $('rp-acc-net'); n.textContent = money(net, true) + ' (' + (100 * net / s.startBalance).toFixed(2) + '%)'; n.className = 'rp-acc-val ' + (net > 0 ? 'up' : net < 0 ? 'down' : ''); }
+  function renderAccount() {
+    const s = RP.sim; const eq = s.equityValue(); const open = eq - s.balance; const net = s.balance - s.startBalance; const tone = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+    const set = (id, txt, cls) => { const el = $(id); if (!el) return; el.textContent = txt; if (cls != null) el.className = cls; };
+    // One summary (bug 7): balance, equity, open (unrealized) P&L, net (realized) P&L with %.
+    set('rp-bb-balance', money(s.balance)); set('rp-acc-equity', money(eq));
+    set('rp-bb-unreal', money(open, true), tone(open)); set('rp-acc-net', money(net, true) + ' (' + (100 * net / s.startBalance).toFixed(2) + '%)', tone(net));
+    set('rp-bb-real', money(net, true), tone(net));
+  }
   function renderPositions() {
     const s = RP.sim; const fmt = (p) => RP.chart.fmt(p); const el = $('rp-positions'); $('rp-poscount').textContent = s.positions.length + (s.pending.length ? ' + ' + s.pending.length + ' pending' : '');
     if (!s.positions.length && !s.pending.length) { el.innerHTML = '<p class="rp-empty">Flat. Use the Buy / Sell strip on the chart or the ticket to open a position.</p>'; return; }

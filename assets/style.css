@@ -9914,3 +9914,85 @@ html.stk-chart-fs body.charts-page{ padding:0 !important; }
 .live-feed-empty{ font-size:13px; color:var(--ink-3); padding:8px 0; margin:0; }
 .live-feed-search{ margin-top:12px; max-width:none; width:100%; }
 #live-feed-results{ margin-top:6px; }
+
+/* ---- Backtest replay workspace: bug fixes (Owner 2026-10-26 "backtest ui", deploy 1).
+   Replay bar under the plot (not over the legend), one account summary, labelled Stop / Target,
+   themed controls instead of the browser's white ones, no sideways overflow on a phone. ---- */
+.btn-secondary{ background:var(--bg-3); color:var(--ink-0); border:1px solid var(--line); box-shadow:none; }
+.btn-secondary:hover{ border-color:var(--ink-3); background:var(--bg-2); }
+.btn-secondary:disabled{ opacity:.5; cursor:default; }
+/* the card no longer repeats the page title + source line (they are in the page header) */
+#rp-work .rpw-sym{ display:none; }
+/* themed form controls inside the workspace */
+.rpw select, .rpw input[type=number], .rpw input[type=text]{ -webkit-appearance:none; appearance:none; background-color:var(--bg-0); color:var(--ink-0); border:1px solid var(--line); border-radius:10px; color-scheme:dark; font-family:var(--font-mono); outline:none; }
+:root[data-theme="light"] .rpw select, :root[data-theme="light"] .rpw input[type=number], :root[data-theme="light"] .rpw input[type=text]{ color-scheme:light; }
+.rpw select{ padding-right:26px !important; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238b93a0' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; cursor:pointer; }
+.rpw select:focus, .rpw input[type=number]:focus, .rpw input[type=text]:focus{ border-color:var(--gold-dim); box-shadow:0 0 0 3px rgba(3,201,136,.14); }
+.rpw input[type=number]{ -moz-appearance:textfield; }
+.rpw input[type=number]::-webkit-inner-spin-button, .rpw input[type=number]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+/* top bar options: one aligned row of 36 px controls; checkboxes become toggle chips */
+.rpw-opts{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
+.rpw-top .rpw-btn, .rpw-top .rpw-sel, .rpw-top .rpw-chk{ height:36px; }
+.rpw-sel{ padding:0 10px; font-size:12px; border-radius:999px !important; }
+.rpw-group{ display:inline-flex; align-items:center; gap:0; }
+.rpw-group .rpw-chk{ border-radius:999px 0 0 999px; border-right:0; }
+.rpw-group .rpw-sel{ border-radius:0 999px 999px 0 !important; }
+.rpw-chk{ position:relative; display:inline-flex; align-items:center; gap:6px; padding:0 12px; border:1px solid var(--line); border-radius:999px; background:var(--bg-0); color:var(--ink-2); font:600 12px var(--font-body); cursor:pointer; user-select:none; }
+.rpw-chk input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+.rpw-chk::before{ content:''; width:8px; height:8px; border-radius:50%; background:var(--ink-3); transition:background .15s; }
+.rpw-chk:has(input:checked){ color:var(--gold); border-color:var(--gold-dim); background:rgba(3,201,136,.10); }
+.rpw-chk:has(input:checked)::before{ background:var(--gold); box-shadow:0 0 0 3px rgba(3,201,136,.18); }
+.rpw-chk:has(input:focus-visible){ outline:2px solid var(--teal); outline-offset:2px; }
+.rpw-ibtn{ width:36px; padding:0; justify-content:center; }
+.rpw-drawerbtns{ align-items:center; }
+.rpw-drawerbtns button{ height:32px; }
+/* replay bar: its own row under the plot, one line (bug 4) */
+.rpw{ grid-template-rows:auto minmax(0,1fr) auto auto; grid-template-areas:"top top top" "rail chart drawer" "rail float drawer" "bottom bottom bottom"; }
+#rp-float.rp-float{ grid-area:float; position:static; transform:none; left:auto; top:auto; z-index:auto; display:flex; align-items:center; gap:8px; flex-wrap:nowrap; padding:8px 12px; border-radius:0; border:0; border-top:1px solid var(--line-soft); background:var(--bg-2); box-shadow:none; backdrop-filter:none; min-width:0; white-space:nowrap; }
+#rp-float .rp-stepbtn{ height:36px; padding:0 12px; white-space:nowrap; flex:none; }
+#rp-float .rp-playbtn{ width:40px; height:40px; flex:none; }
+#rp-float select{ height:36px; padding-left:12px; font-size:12px; border-radius:999px; flex:none; }
+#rp-float .rp-cursor{ margin-left:auto; }
+/* chart: time-axis labels never start cut off at the left edge; licence logo moved into the empty
+   right gap of the plot so it covers no session label; volume a thin band (bugs 8, 10) */
+.rp-lwc a#tv-attr-logo{ left:auto; right:8px; bottom:8px; opacity:.75; }
+/* Buy / Sell strip: Sell · Qty · Buy, then a labelled Stop / Target row (bugs 5, 6) */
+.rpw-bottom{ gap:12px 18px; }
+#rp-tradebar-strip.rp-strip{ display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr); grid-template-areas:"sell qty buy" "brk brk brk"; gap:8px; align-items:stretch; width:min(100%, 520px); }
+#rp-tradebar-strip .rp-smid{ display:contents; }
+#rp-tradebar-strip .is-sell{ grid-area:sell; } #rp-tradebar-strip .is-buy{ grid-area:buy; }
+#rp-tradebar-strip .rp-sbtn{ min-width:0; min-height:48px; border-radius:12px; justify-content:center; }
+#rp-tradebar-strip .rp-sqty{ grid-area:qty; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+#rp-tradebar-strip .rp-sqty input{ width:76px; height:34px; text-align:center; font-size:14px; padding:0 6px; }
+.rp-sfield{ display:inline-flex; align-items:center; gap:6px; font:600 12px var(--font-body); color:var(--ink-2); white-space:nowrap; }
+.rp-sfield span small{ font-weight:500; color:var(--ink-3); }
+.rp-sfield em{ font-style:normal; font-weight:500; color:var(--ink-3); }
+.rp-sbrk{ grid-area:brk; display:flex; align-items:center; gap:8px 14px; flex-wrap:wrap; justify-content:center; }
+.rp-sbrk .rp-sfield input{ width:58px; height:34px; text-align:center; font-size:13px; padding:0 4px; }
+.rp-sbrk:has(#rp-strip-attach:not(:checked)) .rp-sfield{ opacity:.45; }
+/* switch (shared look with the admin live-feed switch) */
+.rp-switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; font:600 12px var(--font-body); color:var(--ink-1); min-height:36px; user-select:none; }
+.rp-switch input{ position:absolute; opacity:0; width:1px; height:1px; pointer-events:none; }
+.rp-switch i{ position:relative; width:38px; height:22px; border-radius:999px; background:var(--bg-3); border:1px solid var(--line); flex:none; transition:background .15s, border-color .15s; }
+.rp-switch i::after{ content:''; position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:var(--ink-2); transition:transform .15s, background .15s; }
+.rp-switch input:checked + i{ background:rgba(3,201,136,.22); border-color:var(--gold); }
+.rp-switch input:checked + i::after{ transform:translateX(16px); background:var(--gold); }
+.rp-switch input:focus-visible + i{ outline:2px solid var(--teal); outline-offset:2px; }
+/* one account summary (bug 7) */
+.rpw-acct{ display:grid; grid-template-columns:repeat(4, auto); gap:6px 20px; }
+.rpw-acct b{ white-space:nowrap; }
+.rp-poshead .btn-sm{ padding:7px 14px; border-radius:999px; }
+@media (max-width:900px){
+  .rpw{ grid-template-rows:auto auto auto auto auto; grid-template-areas:"top top" "rail chart" "float float" "bottom bottom" "drawer drawer"; }
+  .rpw-bottom{ flex-direction:column; align-items:stretch; }
+  .rpw-bottom > .rpw-spacer{ display:none; }
+  #rp-tradebar-strip.rp-strip{ width:100%; }
+  .rpw-acct{ grid-template-columns:1fr 1fr; gap:10px 16px; }
+  #rp-sheet-toggle{ align-self:flex-start; height:40px; }
+  .rpw-drawerbtns{ width:100%; justify-content:space-between; }
+  .rpw-drawerbtns button{ flex:1; justify-content:center; height:34px; }
+  #rp-float.rp-float{ gap:6px; padding:8px; justify-content:space-between; }
+  #rp-float .rp-stepbtn{ padding:0 10px; }
+  #rp-float select{ padding-left:10px; padding-right:24px !important; background-position:right 8px center; }
+}
+@media (max-width:400px){ #rp-float .rp-stepbtn{ padding:0 8px; } #rp-float select{ font-size:11.5px; } }

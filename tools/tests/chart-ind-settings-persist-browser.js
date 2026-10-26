@@ -239,7 +239,10 @@ async function verify(p, phase, opts){
     await sleep(500);
   }
   check(!bad.length, phase + ': every changed input still holds (handle + drawn model)', bad.length ? bad.slice(0, 6) : undefined);
-  const mb = rendererMB();
+  // A burst of live setting changes restarts the script in its worker each time (same on main):
+  // memory spikes, then drops once the restarts finish. Give it 40 s to settle before stopping.
+  let mb = rendererMB();
+  for (let i = 0; i < 40 && mb > MEM_MAX; i++) { await sleep(1000); mb = rendererMB(); }
   const heap = await p.evaluate(() => (performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : -1)).catch(() => -1);
   console.log('MEM [' + TAG + '] ' + phase + ': Chrome PSS ' + mb + ' MB, page heap ' + heap + ' MB (' + rendererMB.parts + ')');
   if (mb > MEM_MAX) throw new Error('Chrome over ' + MEM_MAX + ' MB at ' + phase + ' (' + mb + ' MB): stopping before the server runs out of memory');

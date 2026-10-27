@@ -87,7 +87,9 @@ ok(mt.length === 1 && mt[0].text === 'PUT WALL · 0DTE 29736.44', 'merged tag te
   const now = 1793120000000, t = 1793120000 - 75;
   const a = m.statusShort(t, d, src, {}, now), b = m.statusShort(t, d, src, { show0dte: true }, now);
   const c = m.statusShort(t - 3 * 3600, Object.assign({ stale: true }, d), { api: 'SPX' }, {}, now), e = m.statusShort(t, {}, src, { show0dte: true }, now);
-  const ok = a === 'GEX 1m ago · QQQ · 1-30d' && b === 'GEX 1m ago · QQQ · 1-30d · 0DTE' && c === 'GEX 3h ago · SPX · 1-30d · saved' && e === 'GEX 1m ago · QQQ · 0DTE' && ![a, b, c, e].some((x) => /live|real-time|delayed/i.test(x)) && b.length <= 32;
+  const fm = m.statusShortForms(t, d, src, { show0dte: true }, now);
+  console.log('     forms: ' + fm.join(' | '));
+  const ok = fm.length === 4 && fm[3] === '1m · QQQ 1-30d · 0DTE' && a === 'GEX 1m ago · QQQ · 1-30d' && b === 'GEX 1m ago · QQQ · 1-30d · 0DTE' && c === 'GEX 3h ago · SPX · 1-30d · saved' && e === 'GEX 1m ago · QQQ · 0DTE' && ![a, b, c, e].some((x) => /live|real-time|delayed/i.test(x)) && b.length <= 32;
   console.log((ok ? 'PASS' : 'FAIL') + ' phone chip: ' + [a, b, c, e].join(' | '));
   if (!ok) process.exitCode = 1;
 }

@@ -624,7 +624,7 @@ class GexNative {
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
-            statusShort: statusShort(dataTime(data), data, src, opts),
+            statusShort: statusShortForms(dataTime(data), data, src, opts),
             status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
@@ -673,7 +673,7 @@ class GexNative {
       labels: i.labels !== false, priceTags: i.priceTags !== false, showStatus: i.showStatus !== false, shift: 0,
       snapT: snap.t,
       status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + ' · bar replay',
-      statusShort: 'GEX ' + etStamp(snap.t) + ' · ' + src.api + ' · replay'
+      statusShort: ['GEX ' + etStamp(snap.t) + ' · ' + src.api + ' · replay', etStamp(snap.t) + ' · replay']
     };
   }
 }
@@ -702,11 +702,22 @@ export function shortAgo(tsSec, nowMs) {
   return h < 48 ? 'GEX ' + h + 'h ago' : 'GEX ' + Math.floor(h / 24) + 'd ago';
 }
 export function statusShort(tsSec, data, src, opts, nowMs) {
+  return statusShortForms(tsSec, data, src, opts, nowMs)[0];
+}
+// Pure: the phone forms, longest first; the chip uses the first one that fits before the Fit price row.
+// "GEX 1m ago · QQQ · 1-30d · 0DTE" -> "GEX 1m ago · QQQ 1-30d · 0DTE" -> "GEX 1m · QQQ 1-30d · 0DTE" -> "1m · QQQ 1-30d · 0DTE"
+export function statusShortForms(tsSec, data, src, opts, nowMs) {
   const o = opts || {};
-  const parts = [shortAgo(tsSec, nowMs), src.api, data && data.wall_method === 'structure_1_30d' ? '1-30d' : '0DTE'];
-  if (o.show0dte === true && data && data.walls_0dte && (isNum(data.walls_0dte.call) || isNum(data.walls_0dte.put)) && parts[2] !== '0DTE') parts.push('0DTE');
-  if (data && data.stale) parts.push('saved');
-  return parts.join(' · ');
+  const ago = shortAgo(tsSec, nowMs);
+  const set = data && data.wall_method === 'structure_1_30d' ? '1-30d' : '0DTE';
+  const tail = (o.show0dte === true && set !== '0DTE' && data && data.walls_0dte && (isNum(data.walls_0dte.call) || isNum(data.walls_0dte.put)) ? ' · 0DTE' : '') + (data && data.stale ? ' · saved' : '');
+  const noAgo = ago.replace(/ ago$/, '');
+  return [
+    ago + ' · ' + src.api + ' · ' + set + tail,
+    ago + ' · ' + src.api + ' ' + set + tail,
+    noAgo + ' · ' + src.api + ' ' + set + tail,
+    noAgo.replace(/^GEX /, '') + ' · ' + src.api + ' ' + set + tail
+  ].filter((x, i, a) => a.indexOf(x) === i);
 }
 
 // ---- gamma profile layer (below the candles) ---------------------------------------------------
@@ -843,14 +854,21 @@ function gexLayer() {
     const c = ensureChip();
     if (!c) return;
     const narrow = plotW > 0 && plotW < 520;
-    const text = d ? (d.note || (d.showStatus === false ? '' : (narrow && d.statusShort ? d.statusShort : d.status))) : '';
+    const forms = d && !d.note && d.showStatus !== false && narrow && Array.isArray(d.statusShort) && d.statusShort.length ? d.statusShort : null;
+    const text = d ? (d.note || (d.showStatus === false ? '' : (forms ? forms[0] : d.status))) : '';
     const k = d ? JSON.stringify([d.note, d.pill, text, rightPx, bottomPx, plotW]) : '';
     if (k === last) return;
     last = k;
     if (d && narrow && !d.pill) {
       // retry once after the Fit price / Latest row mounts (it can arrive after the first paint)
-      const fit = () => { if (last === k && c.isConnected) { const fl = fitRowLeft(c); c.style.maxWidth = fl > 60 ? Math.floor(fl - 8 - 6) + 'px' : ''; } };
-      fit(); setTimeout(fit, 600);
+      // end before the Fit price row; if the text is still cut, step down to a shorter form
+      const fit = () => {
+        if (last !== k || !c.isConnected) return;
+        const fl = fitRowLeft(c); c.style.maxWidth = fl > 60 ? Math.floor(fl - 8 - 6) + 'px' : '';
+        if (!forms) return;
+        for (let i = 0; i < forms.length; i++) { c.textContent = forms[i]; if (c.scrollWidth <= c.clientWidth + 1) break; }
+      };
+      setTimeout(fit, 0); setTimeout(fit, 600);
     } else c.style.maxWidth = '';
     if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
     c.hidden = false;

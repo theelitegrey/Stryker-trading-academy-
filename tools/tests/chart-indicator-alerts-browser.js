@@ -192,9 +192,13 @@ const pushBar = (p, opt) => p.evaluate(async (o) => {
   await p.evaluate(() => { const a = window.__stkAlerts.alerts.find((x) => x.src && x.src.kind === 'cond'); a.freq = 'once'; window.__toasts.length = 0; });
   r = await pushBar(p, { vol: 3500000, up: true });
   r = await pushBar(p, { vol: 3600000, up: false });
-  const trig = await p.evaluate(() => { window.__stkAlerts.open(); const row = [...document.querySelectorAll('.stk-al-row')].find((x) => /Big Cluster/.test(x.textContent)); const t2 = row.textContent; row.querySelector('[data-k=pause]').click(); document.querySelector('#stk-al .stk-al-x').click(); return t2; });
-  check(r.toasts.filter((t) => /Big Cluster/.test(t)).length === 1 && /Triggered/.test(trig), 'Only once: one toast, then shown as Triggered', { toasts: r.toasts, trig });
+  const trig = await p.evaluate(() => { window.__stkAlerts.open(); const has = [...document.querySelectorAll('.stk-al-row')].some((x) => /Big Cluster/.test(x.textContent)); const inStore = JSON.parse(localStorage.getItem('stryker_chart_alerts_ind') || '[]').some((x) => x.src && x.src.title && /Bubbles|Cluster/i.test(JSON.stringify(x))); document.querySelector('#stk-al .stk-al-x').click(); return { has, inStore }; });
+  check(r.toasts.filter((t) => /Big Cluster/.test(t)).length === 1 && !trig.has && !trig.inStore, 'Only once: one toast, then the alert is deleted (list + store)', { toasts: r.toasts, trig });
   await p.waitForTimeout(300);
+  // Re-create it (Once per bar) for the Pause / Delete checks below.
+  await p.evaluate(() => { window.__stkAlerts.open({ symbol: 'futures:NQ1!', src: { kind: 'cond', title: 'Volume Bubbles [QuantAlgo]', pick: true } }); const f = document.querySelector('.stk-al-form'); f.freq.value = 'bar'; f.requestSubmit(); });
+  await p.waitForTimeout(500);
+  await p.evaluate(() => { document.querySelector('#stk-al .stk-al-x').click(); });
 
   // Pause -> silent; Delete -> silent
   await p.evaluate(() => { window.__stkAlerts.open(); const row = [...document.querySelectorAll('.stk-al-row')].find((x) => /Big Cluster/.test(x.textContent)); row.querySelector('[data-k=pause]').click(); window.__toasts.length = 0; });

@@ -26,6 +26,10 @@
 //     Alerts list as "Triggered" (or "Paused" when the member paused it); Restart draws it again.
 //     Repeating alerts stay active, so they stay drawn. Paused ids are remembered per browser
 //     (PAUSED_KEY) only to word the list; the Firestore alert shape is unchanged.
+//   - OWNER ORDER 2026-10-27 (alerts list cleanup): an "Only once" alert that fired is DELETED right after the
+//     toast / sound / push (browser store and Firestore), not kept as "Triggered". Triggered once-only alerts
+//     left over from before are removed on the next load (cleanupFired). "Delete all" in the panel's top row
+//     (confirm sheet) removes every alert. The long how-it-works paragraph lives in an (i) popover by the title.
 //   - Alerts tab in the Settings window: Alert lines on/off + colour, Only active alerts,
 //     Alert volume, Automatically hide toasts (kept per browser).
 //   - INDICATOR ALERTS (2026-10-06, the chart "+" menu, assets/chart-plus.js): the condition
@@ -125,6 +129,7 @@ function listenFires(){
         showToast('Alert: ' + (d.text || d.symbol || ''), 'Price ' + d.price + ' \u00b7 ' + new Date(ms).toLocaleTimeString());
         playAlertSound('price');
         try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: ch.doc.id, symbol: d.symbol, price: d.price, server: true } })); } catch (e) {}
+        if (a && d.stopped) removeFired(a);                      // Only once: the alert is gone after it fired
       }
       first = false;
     }, (e) => console.warn('TradeZoro alerts: fires listener', e && e.code));
@@ -218,6 +223,7 @@ async function reload(){
   try { alerts = alerts.concat(indAll().filter((a) => a && a.src && a.src.title).map((a) => Object.assign({ id: a.id }, cleanLocal(a)))); } catch (e) {}
   pushLines(); renderList();
   if (backend.kind === 'cloud') { startEngineWatch(); listenFires(); watchCloud(); }
+  cleanupFired().catch(() => {});
 }
 // Every open Charts tab follows its alerts' active flag in Firestore, so an Only-once alert that
 // fired in another tab (or was stopped by the server engine) leaves this tab's chart straight away.
@@ -231,6 +237,11 @@ function watchCloud(){
       let changed = false;
       if (!snap || typeof snap.docChanges !== 'function') return;
       for (const ch of snap.docChanges()) {
+        if (ch.type === 'removed') {            // deleted in another tab (fired Only-once, Delete, Delete all)
+          const i = alerts.findIndex((x) => x.id === ch.doc.id && !x.src);
+          if (i >= 0) { alerts.splice(i, 1); armed.delete(ch.doc.id); changed = true; }
+          continue;
+        }
         if (ch.type !== 'modified') continue;
         const a = alerts.find((x) => x.id === ch.doc.id && !x.src); const d = ch.doc.data();
         if (!a || typeof d.active !== 'boolean' || a.active === d.active) continue;
@@ -329,12 +340,40 @@ function fire(a, p){
   showToast('Alert: ' + text, (a.src ? 'Value ' : 'Price ') + p + ' · ' + new Date().toLocaleTimeString());
   playAlertSound(a.src ? 'indicator' : 'price');
   try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro chart alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
-  if (a.freq === 'once') {
-    a.active = false; markPaused(a.id, false);
-    const st = storeOf(a); st && st.update(a.id, a).catch((e) => console.warn('TradeZoro alerts: update', e));
-    pushLines(); renderList();
-  }
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, price: p } })); } catch (e) {}
+  if (a.freq === 'once') removeFired(a);
+}
+// An Only-once alert that fired is deleted (list + store), after its toast / sound / push went out.
+function removeFired(a){
+  a.active = false; armed.delete(a.id); lastInd.delete(a.id); pendClose.delete(a.id); markPaused(a.id, false);
+  alerts = alerts.filter((x) => x !== a && x.id !== a.id);
+  const st = storeOf(a); if (st) Promise.resolve(st.remove(a.id)).catch((e) => console.warn('TradeZoro alerts: remove fired', e));
+  pushLines(); renderList();
+}
+// Is this alert a leftover "Triggered" Only-once alert (fired earlier, still in the store)?
+function isFiredOnce(a){
+  if (!a || a.active || a.freq !== 'once') return false;
+  if (isCond(a)) return !!a.fired;
+  return !pausedIds().has(a.id);
+}
+// One-time cleanup on load: remove them everywhere. Idempotent, so it simply finds nothing afterwards.
+async function cleanupFired(){
+  const dead = alerts.filter(isFiredOnce); if (!dead.length) return 0;
+  alerts = alerts.filter((x) => !dead.includes(x));
+  pushLines(); renderList();
+  for (const a of dead) { markPaused(a.id, false); try { await storeOf(a).remove(a.id); } catch (e) { console.warn('TradeZoro alerts: cleanup', e); } }
+  return dead.length;
+}
+// Delete every alert (browser + account stores).
+async function deleteAll(){
+  const all = alerts.slice(); alerts = [];
+  armed.clear(); lastInd.clear(); pendClose.clear();
+  pushLines(); renderList();
+  let failed = 0;
+  for (let i = 0; i < all.length; i += 10) {
+    await Promise.all(all.slice(i, i + 10).map(async (a) => { try { markPaused(a.id, false); await storeOf(a).remove(a.id); } catch (e) { failed++; alerts.push(a); } }));
+  }
+  if (failed) { toastFn('Could not delete ' + failed + ' alert' + (failed > 1 ? 's' : '') + '. Try again.'); pushLines(); renderList(); }
 }
 
 // ---------------------------------------------------------------------------------------
@@ -417,8 +456,8 @@ function fireCond(a, msg){
     try { if (window.Notification && Notification.permission === 'granted') new Notification('TradeZoro indicator alert', { body: text, tag: 'stk-alert-' + a.id }); } catch (e) {}
   }
   if (a.sound) { let ev = 'indicator'; try { ev = window.StrykerChartSounds.classify(text); } catch (e) {} playAlertSound(ev); }
-  if (a.freq === 'once') stopCond(a);
   try { window.dispatchEvent(new CustomEvent('stryker:chart-alert', { detail: { id: a.id, symbol: a.symbol, indicator: a.src.title, condition: a.src.any ? 'alert()' : a.src.cond, message: text } })); } catch (e) {}
+  if (a.freq === 'once') removeFired(a);
 }
 function lastBarTime(req){ try { const b = req.getBars ? req.getBars() : req.bars; return b && b.length ? b[b.length - 1].time : null; } catch (e) { return null; } }
 // Called by assets/chart-pine.js for every engine callback: kind 'model' (a run landed) or 'alert'.
@@ -558,8 +597,8 @@ function build(){
   panel = document.createElement('div'); panel.id = 'stk-al'; panel.hidden = true;
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
-    <div class="stk-al-head"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-x" aria-label="Close">×</button></div>
-    <p class="stk-al-note"><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first). <b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals. Education only. Not financial advice.</p>
+    <div class="stk-al-head"><div class="stk-al-ttl"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-info" aria-label="How alerts work" aria-expanded="false" aria-controls="stk-al-pop">i</button></div><button type="button" class="stk-al-x" aria-label="Close">×</button>
+      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
       <label class="stk-al-wide">Condition<select name="src"></select></label>
@@ -572,7 +611,8 @@ function build(){
       <div class="stk-al-wide stk-al-nw" hidden><span>Notify</span><label class="stk-al-chk"><input type="checkbox" name="popup" checked> Popup</label><label class="stk-al-chk"><input type="checkbox" name="sound" checked> Sound</label><em>Phone push: price alerts only</em></div>
       <div class="stk-al-fbtn"><button type="button" class="stk-al-cancel">Cancel</button><button type="submit" class="stk-al-save">Create</button></div>
     </form>
-    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds">Sounds</button><span class="stk-al-count"></span></div>
+    <div class="stk-al-tools"><button type="button" class="stk-al-new">+ New alert</button><button type="button" class="stk-al-sounds">Sounds</button><button type="button" class="stk-al-delall" hidden>Delete all</button><span class="stk-al-count"></span></div>
+    <div class="stk-al-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="stk-al-ctl"><div class="stk-al-csheet"><p id="stk-al-ctl"></p><div class="stk-al-cbtn"><button type="button" class="stk-al-ccancel">Cancel</button><button type="button" class="stk-al-cok">Delete all</button></div></div></div>
     <div class="stk-al-list"></div>
   </div>`;
   document.body.appendChild(panel);
@@ -580,6 +620,23 @@ function build(){
   panel.querySelector('.stk-al-x').onclick = closePanel;
   panel.querySelector('.stk-al-new').onclick = () => { const c = activeCell(); openForm({ symbol: c ? c.symbol : '', price: crossPrice() }); };
   panel.querySelector('.stk-al-sounds').onclick = () => openSoundPanel();
+  const conf = panel.querySelector('.stk-al-confirm');
+  panel.querySelector('.stk-al-delall').onclick = () => { if (!alerts.length) return; panel.querySelector('#stk-al-ctl').textContent = 'Delete all ' + alerts.length + ' alert' + (alerts.length === 1 ? '' : 's') + '? This can\u2019t be undone.'; conf.hidden = false; panel.querySelector('.stk-al-ccancel').focus(); };
+  panel.querySelector('.stk-al-ccancel').onclick = () => { conf.hidden = true; };
+  conf.addEventListener('click', (e) => { if (e.target === conf) conf.hidden = true; });
+  panel.querySelector('.stk-al-cok').onclick = async () => { conf.hidden = true; await deleteAll(); };
+  // (i) popover: hover or click on desktop, tap on touch; tap outside / x / Esc closes.
+  const info = panel.querySelector('.stk-al-info'), pop = panel.querySelector('.stk-al-pop');
+  const setPop = (on) => { pop.hidden = !on; info.setAttribute('aria-expanded', on ? 'true' : 'false'); };
+  let hoverT = 0;
+  let hoverAt = 0;
+  info.onclick = (e) => { e.stopPropagation(); if (Date.now() - hoverAt < 700) { setPop(true); return; } setPop(pop.hidden); };   // a click right after the hover-open keeps it open
+  info.addEventListener('mouseenter', (e) => { if (window.matchMedia('(hover:hover)').matches) { clearTimeout(hoverT); hoverAt = Date.now(); setPop(true); } });
+  const leave = () => { if (window.matchMedia('(hover:hover)').matches) { clearTimeout(hoverT); hoverT = setTimeout(() => setPop(false), 220); } };
+  info.addEventListener('mouseleave', leave); pop.addEventListener('mouseleave', leave);
+  pop.addEventListener('mouseenter', () => clearTimeout(hoverT));
+  panel.querySelector('.stk-al-popx').onclick = () => setPop(false);
+  panel.addEventListener('click', (e) => { if (!pop.hidden && !pop.contains(e.target) && e.target !== info) setPop(false); });
   panel.querySelector('.stk-al-cancel').onclick = () => { panel.querySelector('.stk-al-form').hidden = true; editing = null; };
   panel.querySelector('.stk-al-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -614,7 +671,7 @@ function build(){
       f.hidden = true; editing = null; pushLines(); renderList();
     } catch (err) { console.warn(err); toastFn('Could not save the alert. Check your connection and try again.'); }
   };
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && panel && !panel.hidden) closePanel(); });
+  document.addEventListener('keydown', (e) => { if (e.key !== 'Escape' || !panel || panel.hidden) return; const cf = panel.querySelector('.stk-al-confirm'), pp = panel.querySelector('.stk-al-pop'); if (cf && !cf.hidden) { cf.hidden = true; return; } if (pp && !pp.hidden) { pp.hidden = true; panel.querySelector('.stk-al-info').setAttribute('aria-expanded', 'false'); return; } closePanel(); });
   const f = panel.querySelector('.stk-al-form');
   f.src.onchange = () => syncSrc(f);
   f.vs.onchange = () => syncSrc(f);
@@ -713,6 +770,7 @@ function openForm(a){
 function renderList(){
   if (!panel) return;
   const list = panel.querySelector('.stk-al-list'); list.textContent = '';
+  panel.querySelector('.stk-al-delall').hidden = !alerts.length;
   panel.querySelector('.stk-al-count').textContent = alerts.length + ' / ' + MAX_ALERTS + (backend && backend.kind === 'local' ? ' · saved in this browser (sign in to keep them in your account)' : '');
   if (!alerts.length) { const p = document.createElement('p'); p.className = 'stk-al-empty'; p.textContent = 'No alerts yet.'; list.appendChild(p); return; }
   for (const a of alerts) {
@@ -860,6 +918,30 @@ const CSS = `
 :root[data-theme="light"] .stk-al-box,:root[data-theme="light"] .stk-snd-box{ background:#ffffff; color:#131316; border-color:rgba(3,201,136,.32); }
 .stk-al-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .stk-al-head h2{ margin:0; font-size:18px; letter-spacing:-.01em; }
+.stk-al-head{ position:relative; }
+.stk-al-ttl{ display:flex; align-items:center; gap:8px; min-width:0; }
+.stk-al-box .stk-al-info{ width:24px; height:24px; min-width:24px; padding:0; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font:italic 700 13px/1 Georgia,serif; background:transparent; border-color:rgba(238,238,238,.4); color:rgba(238,238,238,.85); }
+:root[data-theme="light"] .stk-al-box .stk-al-info{ border-color:rgba(19,19,22,.4); color:rgba(19,19,22,.8); }
+.stk-al-box .stk-al-info[aria-expanded="true"]{ background:#03c988; border-color:#03c988; color:#07110d; }
+.stk-al-pop{ position:absolute; z-index:5; top:calc(100% + 8px); left:0; width:min(380px,100%); box-sizing:border-box; padding:12px 34px 12px 14px; background:#131316; color:#eeeeee; border:1px solid rgba(3,201,136,.4); border-radius:12px; box-shadow:0 14px 40px rgba(0,0,0,.55); font:14px/1.45 Archivo,system-ui,sans-serif; }
+:root[data-theme="light"] .stk-al-pop{ background:#fff; color:#131316; box-shadow:0 14px 40px rgba(0,0,0,.22); }
+.stk-al-pop[hidden]{ display:none; }
+.stk-al-pop ul{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:8px; }
+.stk-al-pop p{ margin:8px 0 0; font-size:12.5px; opacity:.7; }
+.stk-al-box .stk-al-popx{ position:absolute; top:4px; right:4px; width:30px; height:30px; padding:0; border:0; background:none; font-size:20px; line-height:1; border-radius:50%; }
+.stk-al-box .stk-al-delall{ background:transparent; border-color:rgba(255,92,92,.6); color:#ff6b6b; font-weight:600; }
+.stk-al-box .stk-al-delall:hover{ background:rgba(255,92,92,.14); border-color:#ff6b6b; }
+:root[data-theme="light"] .stk-al-box .stk-al-delall{ color:#c62828; border-color:rgba(198,40,40,.55); }
+.stk-al-box{ position:relative; }
+.stk-al-confirm{ position:absolute; inset:0; z-index:8; display:flex; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.6); border-radius:inherit; }
+.stk-al-confirm[hidden]{ display:none; }
+.stk-al-csheet{ width:min(340px,100%); background:#131316; color:#eeeeee; border:1px solid rgba(238,238,238,.14); border-radius:14px; padding:18px; box-shadow:0 18px 50px rgba(0,0,0,.6); }
+:root[data-theme="light"] .stk-al-csheet{ background:#fff; color:#131316; }
+.stk-al-csheet p{ margin:0 0 14px; font-size:15px; font-weight:600; }
+.stk-al-cbtn{ display:flex; justify-content:flex-end; gap:8px; }
+.stk-al-box .stk-al-cbtn button{ min-height:44px; padding:8px 18px; }
+.stk-al-box .stk-al-cok{ background:#e5484d; border-color:#e5484d; color:#fff; font-weight:700; }
+.stk-al-box .stk-al-cok:hover{ background:#f05a5f; }
 .stk-al-x{ background:none; border:0; color:inherit; font-size:22px; cursor:pointer; }
 .stk-al-note{ margin:6px 0 12px; font-size:12.5px; color:rgba(238,238,238,.68); }
 :root[data-theme="light"] .stk-al-note{ color:rgba(19,19,22,.68); }
@@ -927,6 +1009,16 @@ const CSS = `
 .stk-al-row.off{ opacity:.55; }
 .stk-al-txt{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .stk-al-txt span{ font-size:12px; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:600px){
+  .stk-al-txt{ flex:1 1 100%; }
+  .stk-al-txt span{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; font-size:13px; }
+  .stk-al-row{ gap:8px; padding:10px 0; }
+  .stk-al-row button{ min-height:44px; min-width:44px; }
+  .stk-al-tools button{ min-height:44px; }
+  .stk-al-pop{ width:100%; }
+  .stk-al-box .stk-al-info{ width:32px; height:32px; }
+  .stk-al-box .stk-al-popx{ width:44px; height:44px; top:0; right:0; }
+}
 .stk-al-empty{ opacity:.6; font-size:13px; }
 #stk-al-toasts{ position:fixed; right:16px; bottom:16px; z-index:9100; display:flex; flex-direction:column; gap:8px; max-width:min(360px,calc(100vw - 32px)); }
 .stk-al-toast{ position:relative; background:#0b0b0d; color:#eeeeee; border:1px solid #03c988; border-radius:12px; padding:10px 34px 10px 12px; box-shadow:0 10px 30px rgba(0,0,0,.45); display:flex; flex-direction:column; font:13px/1.35 Archivo,system-ui,sans-serif; }
@@ -1023,5 +1115,5 @@ export function mountChartAlerts(ws, opts){
   window.addEventListener('storage', (e) => { if (e.key === IND_KEY || e.key === 'stryker_chart_alerts_guest') reload(); });
   setInterval(poll, 1000);
   setInterval(() => { pushLines(); wireIndicatorEntries(); }, 5000);   // new cells / symbol switches pick up their lines
-  window.__stkAlerts = { tick, poll, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, addAlertFor, conditionsOf: alertConditionsOf, chartIndicatorConds, linesFor: (sym) => chartLines(sym).map((l) => l.price) };
+  window.__stkAlerts = { tick, poll, cleanupFired, deleteAll, removeFired, open: openAlerts, openSounds: openSoundPanel, add: addAlert, sound: playAlertSound, indicatorAlert: (message, meta) => window.StrykerChartSounds && window.StrykerChartSounds.indicatorAlert(message, meta), simEvent: (kind, detail) => window.StrykerChartSounds && window.StrykerChartSounds.simEvent(kind, detail), get alerts(){ return alerts; }, get prefs(){ return prefs; }, reload, pushLines, addAlertFor, conditionsOf: alertConditionsOf, chartIndicatorConds, linesFor: (sym) => chartLines(sym).map((l) => l.price) };
 }

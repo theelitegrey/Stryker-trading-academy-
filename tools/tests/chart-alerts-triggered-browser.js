@@ -97,7 +97,7 @@ const last = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const b =
   const S = await sym(p); const px = await last(p);
   console.log('symbol', S, 'last', px, 'engine', await p.evaluate(() => window.__STK_VELA_VERSION || window.__stkVela090));
   // Keep every alert line inside the visible price range: just above / below the last close.
-  const up = +(px * 1.0004).toFixed(2), dn = +(px * 0.9996).toFixed(2), mid = +(px * 1.0002).toFixed(2);
+  const up = +(px * 1.0004).toFixed(2), dn = +(px * 0.9996).toFixed(2), mid = +(px * 1.0007).toFixed(2);
   // A huge level for the "never fires on its own" alerts would sit off-screen; use 'greater' at up
   // (the real feed may cross it, which is fine: we drive the fire ourselves with tick()).
   const ids = await p.evaluate(async ([S, up, dn, mid]) => {
@@ -122,8 +122,9 @@ const last = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const b =
   check(L && L.includes(dn), 'tab 1: repeating (Every time) alert that fired stays drawn', L);
   const pushed = await p.evaluate(() => window.__lines);
   check(pushed && !pushed.includes(up) && pushed.includes(dn), 'tab 1: the renderer layer got the new line set', pushed);
-  const st = await p.evaluate((id) => { const a = window.__stkAlerts.alerts.find((x) => x.id === id); return a && a.active; }, ids.once);
-  check(st === false, 'fired Only-once alert is inactive (kept in the list)', st);
+  // Owner 2026-10-27: a fired Only-once alert is DELETED (list + store), the repeating one stays.
+  const gone = await p.evaluate(([uid, id, ev]) => ({ inList: window.__stkAlerts.alerts.some((x) => x.id === id), inStore: !!(window.__fakeFs.all()['students/' + uid + '/chartAlerts'] || {})[id], everyKept: window.__stkAlerts.alerts.some((x) => x.id === ev) }), ['u1', ids.once, ids.every]);
+  check(!gone.inList && !gone.inStore && gone.everyKept, 'fired Only-once alert is deleted from the list and the store; Every-time stays', gone);
   await p.waitForTimeout(1200);
   const L2 = await lines(t2.p);
   check(L2 && !L2.includes(up) && L2.includes(dn), 'tab 2: line removed without a reload', L2);
@@ -141,7 +142,16 @@ const last = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const b =
   check(L && !L.includes(mid) && L3 && !L3.includes(mid), 'server-fired Only-once alert leaves both tabs', { L, L3 });
   await p.screenshot({ path: OUT + '/alerts-1440-after-fire.png' });
 
-  // Reload: still gone, list shows Triggered with a Restart button.
+  const srvGone = await p.evaluate(([uid, id]) => ({ inList: window.__stkAlerts.alerts.some((x) => x.id === id), inStore: !!(window.__fakeFs.all()['students/' + uid + '/chartAlerts'] || {})[id] }), ['u1', ids.srv]);
+  check(!srvGone.inList && !srvGone.inStore, 'server-fired Only-once alert is deleted from the list and the store', srvGone);
+  // Legacy leftovers: two old Triggered Only-once alerts + one Paused one sit in the store; the next load cleans the first two.
+  await p.evaluate(([uid, S, px]) => {
+    const F = window.__fakeFs; const s = F.all(); const k = 'students/' + uid + '/chartAlerts'; const now = Date.now();
+    const mk = (price, msg, active) => ({ symbol: S, cond: 'crossing_up', price, message: msg, freq: 'once', active, createdAt: { __ms: now }, updatedAt: { __ms: now } });
+    s[k].old1 = mk(px * 1.0003, 'old triggered 1', false); s[k].old2 = mk(px * 1.0005, 'old triggered 2', false); s[k].paused1 = mk(px * 0.9995, 'paused keep', false);
+    F.put(s); localStorage.setItem('stryker_chart_alerts_paused', JSON.stringify(['paused1']));
+  }, ['u1', S, px]);
+  // Reload: leftovers cleaned, repeating + paused stay.
   await t2.p.close();
   await p.close();
   ({ p, errors } = await open(ctx, 1440, 900));
@@ -150,18 +160,34 @@ const last = (p) => p.evaluate(() => { const ws = window.STRYKER_VELA; const b =
   await p.evaluate(() => window.__stkAlerts.open());
   await p.waitForTimeout(300);
   const rows = await p.evaluate(() => [...document.querySelectorAll('.stk-al-row')].map((r) => ({ t: r.querySelector('span').textContent, b: r.querySelector('[data-k=pause]').textContent })));
-  check(rows.filter((r) => /Triggered/.test(r.t) && r.b === 'Restart').length === 2, 'list shows both as Triggered with Restart', rows);
+  check(!rows.some((r) => /Triggered/.test(r.t) || r.b === 'Restart'), 'no Triggered / Restart rows left after the one-time cleanup', rows);
+  const left = await p.evaluate(() => Object.values(window.__fakeFs.all()['students/u1/chartAlerts'] || {}).map((d) => d.message).sort());
+  check(left.length === 2 && left.includes('every test') && left.includes('paused keep'), 'store keeps only the Every-time and the Paused alerts', left);
+  check(/^2 \/ 200/.test(await p.evaluate(() => document.querySelector('.stk-al-count').textContent)), 'counter shows 2 / 200');
   await p.screenshot({ path: OUT + '/alerts-1440-list.png' });
-  // Restart the first one: drawn again.
-  await p.evaluate(() => { const r = [...document.querySelectorAll('.stk-al-row')].find((x) => /once test/.test(x.textContent)); r.querySelector('[data-k=pause]').click(); });
-  await p.waitForTimeout(400);
-  L = await lines(p);
-  check(L && L.includes(up), 'Restart draws it again', L);
-  // Pause keeps the row worded "Paused" (not Triggered).
-  await p.evaluate(() => { const r = [...document.querySelectorAll('.stk-al-row')].find((x) => /once test/.test(x.textContent)); r.querySelector('[data-k=pause]').click(); });
-  await p.waitForTimeout(300);
-  const pr = await p.evaluate(() => { const r = [...document.querySelectorAll('.stk-al-row')].find((x) => /once test/.test(x.textContent)); return { t: r.querySelector('span').textContent, b: r.querySelector('[data-k=pause]').textContent }; });
+  // The paused one reads Paused / Resume.
+  const pr = await p.evaluate(() => { const r = [...document.querySelectorAll('.stk-al-row')].find((x) => /paused keep/.test(x.textContent)); return { t: r.querySelector('span').textContent, b: r.querySelector('[data-k=pause]').textContent }; });
   check(/Paused/.test(pr.t) && pr.b === 'Resume', 'a paused alert reads Paused / Resume', pr);
+  // Info popover + Delete all with confirm.
+  await p.click('.stk-al-info'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => !document.querySelector('.stk-al-pop').hidden && /Price alerts/.test(document.querySelector('.stk-al-pop').textContent)), 'info popover opens on click');
+  await p.click('.stk-al-popx'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => document.querySelector('.stk-al-pop').hidden), 'info popover closes with x');
+  await p.hover('.stk-al-info'); await p.waitForTimeout(150);
+  check(await p.evaluate(() => !document.querySelector('.stk-al-pop').hidden), 'info popover opens on hover');
+  await p.mouse.move(100, 100, { steps: 6 }); await p.waitForTimeout(600);
+  check(await p.evaluate(() => document.querySelector('.stk-al-pop').hidden), 'info popover closes when the pointer leaves');
+  check(await p.evaluate(() => !document.querySelector('.stk-al-delall').hidden), 'Delete all visible with alerts');
+  await p.click('.stk-al-delall'); await p.waitForTimeout(150);
+  const ct = await p.evaluate(() => document.querySelector('#stk-al-ctl').textContent);
+  check(/Delete all 2 alerts\?/.test(ct), 'confirm sheet text', ct);
+  await p.screenshot({ path: OUT + '/alerts-1440-confirm.png' });
+  await p.click('.stk-al-ccancel'); await p.waitForTimeout(100);
+  check(await p.evaluate(() => window.__stkAlerts.alerts.length) === 2, 'Cancel keeps the alerts');
+  await p.click('.stk-al-delall'); await p.click('.stk-al-cok'); await p.waitForTimeout(500);
+  const none = await p.evaluate(() => ({ n: window.__stkAlerts.alerts.length, store: Object.keys(window.__fakeFs.all()['students/u1/chartAlerts'] || {}).length, hid: document.querySelector('.stk-al-delall').hidden }));
+  check(none.n === 0 && none.store === 0 && none.hid, 'Delete all removes list + store and hides the button', none);
+  await p.evaluate(() => window.__stkAlerts.add({ symbol: 'NQ1!', cond: 'crossing', price: 100, freq: 'every', message: 'phone row with a rather long message text' }));
   await p.evaluate(() => window.__stkAlerts.open && document.querySelector('.stk-al-x').click());
 
   // Phone width: list readable.

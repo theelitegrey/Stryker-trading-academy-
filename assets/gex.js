@@ -236,8 +236,8 @@
       ['zero','ZERO GAMMA',d.zero_gamma,'zero_gamma'],
       ['spot','◆ SPOT',d.spot,'spot'],
       ['put','PUT WALL',d.put_wall,'put_wall'],
-      ['call w0','0DTE CALL WALL',d.walls_0dte && d.walls_0dte.call,'wall0_call'],
-      ['put w0','0DTE PUT WALL',d.walls_0dte && d.walls_0dte.put,'wall0_put']
+      ['call w0','0DTE CALL',d.walls_0dte && d.walls_0dte.call,'wall0_call'],
+      ['put w0','0DTE PUT',d.walls_0dte && d.walls_0dte.put,'wall0_put']
     ].filter(function(r){ return r[2] != null; }).sort(function(a,b){ return b[2] - a[2]; }).map(function(r){
       var idx = r[2], fpx = F && F.levels ? F.levels[r[3]] : null, fs = F && F.levels ? F.levels.spot : null;
       var dpts = fpx != null && fs != null ? fpx - fs : null;

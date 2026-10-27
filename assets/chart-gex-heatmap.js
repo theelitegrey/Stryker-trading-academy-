@@ -37,8 +37,8 @@
 // "No GEX history for this time".
 //
 // Wording: "updated X min ago" only. Education only. Not financial advice.
-import './gex-heat-core.js?v=693';
-import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=693';
+import './gex-heat-core.js?v=694';
+import { gexSource, gexTier, gexFetch } from './chart-gex-levels.js?v=694';
 
 const TYPE = 'stk_gexheat';
 const PRICING = '/#pricing';

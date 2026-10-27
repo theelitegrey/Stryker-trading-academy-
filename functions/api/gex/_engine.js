@@ -177,6 +177,16 @@ function compactFresh(d, nowSec) {
   const age = nowSec - d.fetched_at;
   return age >= -120 && age <= (cashScheduleOpen(nowSec) ? COMPACT_MAX_AGE_OPEN : COMPACT_MAX_AGE_CLOSED);
 }
+// One 'term' chain read per name per 40 s per Worker instance (the 0DTE / 1DTE / 7 / 30 requests share it).
+const termMemo = new Map();
+function termChain(name, env) {
+  const m = termMemo.get(name);
+  if (m && Date.now() - m.at < 40000) return m.p;
+  const p = fetchCompact(name, 30, env);
+  termMemo.set(name, { at: Date.now(), p });
+  p.catch(() => { if (termMemo.get(name) && termMemo.get(name).p === p) termMemo.delete(name); });
+  return p;
+}
 // Compact chain -> { spot, contracts } with the same selection rules as parseOptions().
 function compactToContracts(d, dteMax, nowSec) {
   const spot = Number(d.spot);
@@ -497,6 +507,50 @@ function levels(spot, gex, contracts, side, nowSec = Date.now() / 1000) {
   const wallSource = cSrc === pSrc ? cSrc : `call:${cSrc},put:${pSrc}`;
   const total = pool.reduce((s, k) => s + (gex.get(k) || 0), 0);
   return { call_wall: callWall, put_wall: putWall, zero_gamma: zeroGamma, net_gex: total, regime: total > 0 ? 'POSITIVE' : 'NEGATIVE', wall_source: wallSource };
+}
+
+// ---- Structure walls (Owner order 2026-10-27, "redo gex walls") ----------------------------------
+// Research (reports/workers/t3-gex-walls-research.md): Barchart, MenthorQ, SpotGamma and gexbot build the
+// MAIN call wall / put wall from the whole chain (several expiries), not from today's expiry alone, and
+// show the 0DTE walls as a separate, labelled set. Today's expiry has by far the biggest gamma at the
+// money, so a 0DTE-only (or all-expiries-including-0DTE) wall just sits on the at-the-money strike.
+// So now:
+//   main call wall / put wall = gammaWalls() over expiries 1..30 days (today's expiry left out), from the
+//                               'term' Cboe chain we already download (open interest, our own Black-Scholes gamma);
+//   zero gamma + net GEX      = every expiry up to 30 days INCLUDING today's (what dealers hold right now);
+//   0DTE walls (separate)     = the same gammaWalls() on today's expiry only;
+//   profile                   = net GEX per strike of the main wall set, +-5% of spot ($M per 1%), for the chart histogram.
+const WALL_MAX_DAYS = 30;
+const structMemo = new Map();
+function structureLevels(spot, termContracts, nowSec, memoKey) {
+  const all = (termContracts || []).filter(c => c.dte >= 0 && c.dte <= WALL_MAX_DAYS);
+  const main = all.filter(c => c.dte >= 1);
+  if (main.length < 20) return null;
+  const mk = memoKey ? `${memoKey}|${spot}|${Math.floor(nowSec / 300)}` : null;
+  if (mk && structMemo.has(mk)) return structMemo.get(mk);
+  const p = profile(spot, main);
+  const [callWall, putWall] = gammaWalls(spot, p.callGex, p.putGex);
+  const pa = profile(spot, all);
+  const near = [...pa.gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.06);
+  const net = near.reduce((a, k) => a + (pa.gex.get(k) || 0), 0);
+  const zero = gammaFlip(spot, all, 0.90, 1.10, 80, nowSec);
+  const ks = [...p.gex.keys()].filter(k => Math.abs(k - spot) / spot <= 0.05).sort((a, b) => a - b);
+  const exps = [...new Set(main.map(c => isoDate(c.exp)))].sort();
+  const out = {
+    callWall, putWall, zero, net,
+    expiries: [exps[0], exps[exps.length - 1]], contracts: main.length,
+    profile: { k: ks, g: ks.map(k => round(p.gex.get(k) / 1e6, 1)) }
+  };
+  if (mk) { if (structMemo.size > 30) structMemo.clear(); structMemo.set(mk, out); }
+  return out;
+}
+// Today's-expiry walls (the old method), kept as a separate optional pair.
+function zeroDteWalls(spot, contracts) {
+  if (!contracts || !contracts.length) return null;
+  const p = profile(spot, contracts);
+  const [c, w] = gammaWalls(spot, p.callGex, p.putGex);
+  if (c == null && w == null) return null;
+  return { call: c, put: w, expiry: isoDate(contracts[0].exp), dte: contracts[0].dte };
 }
 
 // Session expected range (GEXLAB public method, Owner-approved 2026-10-13) for 0DTE / 1DTE:
@@ -844,13 +898,14 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   // blew the Function's CPU limit, error 1102, build 528). Missing or stale -> InsightSentry.
   const nowSec = opts.now || Date.now() / 1000;
   let source = 'cboe';
-  let optData, parsed, compactNote = null, isCalls = 0;
+  let optData, parsed, compactNote = null, isCalls = 0, termData = null;
   try {
     const d = opts.compact !== undefined ? (typeof opts.compact === 'function' ? await opts.compact(name, dteMax) : opts.compact) : await fetchCompact(name, dteMax, env);
     if (!d) throw new Error('compact chain missing');
     if (!compactFresh(d, nowSec)) throw new Error('compact chain stale (' + Math.round((nowSec - d.fetched_at) / 60) + ' min)');
     parsed = compactToContracts(d, dteMax, nowSec);
     if (parsed.contracts.length < 20) throw new Error('compact chain thin');
+    if (d.part === 'term') termData = d;
     optData = { current_price: d.spot, iv30: d.iv30, last_trade_time: d.chain_time, chain_fetched_at: d.fetched_at };
   } catch (e) {
     compactNote = String(e && e.message || e).slice(0, 120);
@@ -892,7 +947,28 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   if (isCalls) await noteIs(env, isCalls);
   contracts = ownGamma(contracts, spot, nowSec);
   const p = profile(spot, contracts);
-  const lv = levels(spot, p.gex, contracts, p, nowSec);
+  let lv = levels(spot, p.gex, contracts, p, nowSec);
+  // Structure walls (see structureLevels). Needs the Cboe 'term' chain (the one the feeder already stores
+  // every 2 min; no vendor call). Any failure keeps the selected-expiry walls and says so in wall_method.
+  let wallMethod = 'selected_expiry', wallNote = null, st = null, termContracts = null, zdte = null;
+  if (source === 'cboe') {
+    try {
+      let td = termData;
+      if (!td) {
+        td = opts.compactTerm !== undefined ? (typeof opts.compactTerm === 'function' ? await opts.compactTerm(name) : opts.compactTerm) : await termChain(name, env);
+        if (!td || !compactFresh(td, nowSec)) throw new Error('term chain missing or stale');
+      }
+      termContracts = ownGamma(compactToContracts(td, 30, nowSec).contracts, spot, nowSec);
+      st = structureLevels(spot, termContracts, nowSec, `${name}|${td.fetched_at}`);
+      if (!st) throw new Error('term chain thin');
+    } catch (e) { wallNote = String(e && e.message || e).slice(0, 100); st = null; }
+  }
+  if (dteMax === 0) zdte = zeroDteWalls(spot, contracts.filter(c => c.dte === Math.min(...contracts.map(x => x.dte))));
+  else if (termContracts) zdte = zeroDteWalls(spot, termContracts.filter(c => c.dte === 0));
+  if (st && st.callWall != null && st.putWall != null) {
+    lv = { ...lv, call_wall: st.callWall, put_wall: st.putWall, zero_gamma: st.zero, net_gex: st.net, regime: st.net > 0 ? 'POSITIVE' : 'NEGATIVE', wall_source: 'gamma', net_gex_expiry: lv.net_gex };
+    wallMethod = 'structure_1_30d';
+  }
   // Side-by-side for the audit: the same chain priced with Cboe's spot + IV only.
   let compare = null;
   if (cboeOnly) {
@@ -920,6 +996,10 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
   }
   const data = {
     ...lv,
+    wall_method: wallMethod, wall_note: wallNote,
+    wall_basis: wallMethod === 'structure_1_30d' ? { days: [1, WALL_MAX_DAYS], expiries: st.expiries, contracts: st.contracts } : { days: null, expiries: [expiries[0], expiries[expiries.length - 1]], contracts: contracts.length },
+    walls_0dte: zdte,
+    profile: wallMethod === 'structure_1_30d' ? st.profile : null,
     max_pain: maxPain(contracts.map(c => ({ strike: c.strike, cp: c.cp, oi: c.oi })), spot),
     underlying: name, spot, iv30: Number(optData.iv30 || 0), contracts: contracts.length, source, sources, compare,
     fut: cfg.fut, mult: cfg.mult, expected, expected_info: expectedInfo,
@@ -928,7 +1008,7 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
     expiry_dte: contracts.length && expiries.length === 1 ? contracts[0].dte : null,
     ladder: [...p.gex.keys()].filter(k => Math.abs(k - spot) / spot < 0.04).sort((a, b) => b - a).map(k => ({ strike: k, gex: p.gex.get(k), dex: p.dex.get(k) || 0, oi: p.oi.get(k) || 0 }))
   };
-  const raw = { call_wall: data.call_wall, zero_gamma: data.zero_gamma, spot: data.spot, put_wall: data.put_wall, iv68_lo: data.expected['68%'][0], iv68_hi: data.expected['68%'][1], iv80_lo: data.expected['80%'][0], iv80_hi: data.expected['80%'][1] };
+  const raw = { call_wall: data.call_wall, zero_gamma: data.zero_gamma, wall0_call: zdte ? zdte.call : null, wall0_put: zdte ? zdte.put : null, spot: data.spot, put_wall: data.put_wall, iv68_lo: data.expected['68%'][0], iv68_hi: data.expected['68%'][1], iv80_lo: data.expected['80%'][0], iv80_hi: data.expected['80%'][1] };
   data.futures = await convertLevels(name, spot, raw);
   data.session = {};
   for (const fut of Object.keys(data.futures)) {
@@ -946,5 +1026,6 @@ async function buildLevels(name, dteMax = 1, env = {}, opts = {}) {
 }
 
 export { dedupeRoots, fetchInsightQuotes, insightQuoteMap, mergeHybrid, ownGamma, saneIv, bsGamma, compactToContracts, compactFresh, fetchCompact };
+export { structureLevels, zeroDteWalls, WALL_MAX_DAYS };
 export { atmIv, walls, gammaWalls, activityWalls, levels, ivRange, profile, gammaFlip, parseOptions, straddleRange, bands, snapshotAllowed, yearsToClose, netGexAt };
 export { buildLevels, yahooCandles, json, MARKETS, FUTURES, MAPPING, marketStatus, etEpoch, futuresScheduleOpen, cashScheduleOpen, secsToCashOpen };

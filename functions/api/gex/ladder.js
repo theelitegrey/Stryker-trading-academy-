@@ -53,7 +53,7 @@ function trim(d) {
   const m = d.market || {};
   return {
     underlying: d.underlying, spot: d.spot, net_gex: d.net_gex, fetched_at: d.fetched_at, built: d.fetched_at, asof: d.asof, expiry: d.expiry,
-    max_pain: d.max_pain, zero_gamma: d.zero_gamma, call_wall: d.call_wall, put_wall: d.put_wall,
+    max_pain: d.max_pain, zero_gamma: d.zero_gamma, call_wall: d.call_wall, put_wall: d.put_wall, wall_method: d.wall_method,
     stale: d.stale ? true : undefined, market: { state: m.state, data_ts: m.data_ts, options_ts: m.options_ts },
     ladder: Array.isArray(d.ladder) ? d.ladder.map((r) => ({ strike: r.strike, gex: r.gex })) : []
   };
@@ -85,7 +85,16 @@ export async function onRequestGet(ctx) {
   const fast = (safeDte === 0 || safeDte === 1) ? await fetchFast(env) : null;
   await Promise.all(want.map(async (u) => {
     const f = fast ? fromFast(fast, u, safeDte, nowSec) : null;
-    if (f) { out[u] = f; return; }
+    if (f) {
+      // Walls and zero gamma are the structure walls of /api/gex/levels (1-30 day chain, steady all day), the
+      // same numbers the chart and the GEX page show. The fast block only moves the per-strike bars with spot.
+      try {
+        const r = await levelsGet({ request: new Request(`${url.origin}/api/gex/levels/${u}?dte=${safeDte}`, { method: 'GET' }), params: { name: u }, env });
+        const lv = await r.json();
+        if (lv && lv.wall_method === 'structure_1_30d') { f.call_wall = lv.call_wall; f.put_wall = lv.put_wall; f.zero_gamma = lv.zero_gamma; f.wall_method = lv.wall_method; }
+      } catch (_) {}
+      out[u] = f; return;
+    }
     try {
       const r = await levelsGet({ request: new Request(`${url.origin}/api/gex/levels/${u}?dte=${safeDte}`, { method: 'GET' }), params: { name: u }, env });
       out[u] = trim(await r.json());

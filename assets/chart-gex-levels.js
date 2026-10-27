@@ -94,6 +94,8 @@ export const LEVEL_DEFS = [
   { id: 'call', on: 'showCall', col: 'callColor', label: 'CALL WALL', f: 'call_wall', src: 'lv', dash: 'solid', w: 2 },
   { id: 'zero', on: 'showZero', col: 'zeroColor', label: 'ZERO GAMMA', f: 'zero_gamma', src: 'lv', dash: 'dashed', w: 2 },
   { id: 'put', on: 'showPut', col: 'putColor', label: 'PUT WALL', f: 'put_wall', src: 'lv', dash: 'solid', w: 2 },
+  { id: 'w0c', on: 'show0dte', col: 'callColor', label: '0DTE CALL WALL', f: 'wall0_call', src: 'lv', dash: 'dashed', w: 1 },
+  { id: 'w0p', on: 'show0dte', col: 'putColor', label: '0DTE PUT WALL', f: 'wall0_put', src: 'lv', dash: 'dashed', w: 1 },
   { id: 'ivhi', on: 'showIv', col: 'ivColor', label: 'IV +68%', f: 'iv68_hi', src: 'lv', dash: 'dashed', w: 1 },
   { id: 'ivlo', on: 'showIv', col: 'ivColor', label: 'IV -68%', f: 'iv68_lo', src: 'lv', dash: 'dashed', w: 1 },
   { id: 'iv80hi', on: 'showIv80', col: 'ivColor', label: 'IV +80%', f: 'iv80_hi', src: 'lv', dash: 'dotted', w: 1 },
@@ -116,10 +118,12 @@ const tog = (key, title, defval, group, inline) => ({ key, title, type: 'bool', 
 const col = (key, defval, group, inline) => ({ key, title: '', type: 'color', defval, group, inline });
 const SCHEMA = [
   { key: 'dte', title: 'Expiry (Pro: all)', type: 'string', defval: '0', options: ['0', '1', '7', '30'],
-    tooltip: '0 = same day (0DTE), 1 = next day, 7 = one week, 30 = one month. The Free plan covers 0DTE.' },
+    tooltip: 'Sets the expiry for the IV range and the 0DTE walls. The main call / put wall and zero gamma always use all expiries from 1 to 30 days. The Free plan covers 0DTE.' },
   tog('showCall', 'Call wall', true, G1, 'call'), col('callColor', GEX_COLORS.call, G1, 'call'),
   tog('showZero', 'Zero gamma (flip)', true, G1, 'zero'), col('zeroColor', GEX_COLORS.zero, G1, 'zero'),
   tog('showPut', 'Put wall', true, G1, 'put'), col('putColor', GEX_COLORS.put, G1, 'put'),
+  tog('show0dte', '0DTE call / put wall (today\u2019s expiry only)', false, G1),
+  tog('showProfile', 'Gamma profile (bars by strike)', false, G1),
   tog('showIv', 'IV ±68%', true, G1, 'iv'), col('ivColor', GEX_COLORS.iv, G1, 'iv'),
   tog('showStrikes', 'Next 3 big strikes (Pro)', false, G1, 'strk'), col('strikeColor', GEX_COLORS.strike, G1, 'strk'),
   tog('showEm', 'Shade 68% band', false, G1, 'em'), col('emColor', GEX_COLORS.em, G1, 'em'),
@@ -200,7 +204,8 @@ export function buildLevels(data, src, opts, shift, extra) {
     if (ses && !ses.error) S = ses;
   } else {
     const e = data.expected || {}, e68 = e['68%'] || [], e80 = e['80%'] || [];
-    L = { call_wall: data.call_wall, put_wall: data.put_wall, zero_gamma: data.zero_gamma,
+    const w0 = data.walls_0dte || {};
+    L = { call_wall: data.call_wall, put_wall: data.put_wall, zero_gamma: data.zero_gamma, wall0_call: w0.call, wall0_put: w0.put,
       iv68_lo: e68[0], iv68_hi: e68[1], iv80_lo: e80[0], iv80_hi: e80[1] };
   }
   // API values are shown as published (2 dp), the same numbers the GEX page prints.
@@ -212,7 +217,7 @@ export function buildLevels(data, src, opts, shift, extra) {
     if (d.src === 'ses') { if (!S) { out.noSession = true; continue; } }
     const v = d.src === 'ses' ? S[d.f] : L[d.f];
     if (!isNum(v)) continue;
-    const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : '';
+    const note = (d.id === 'call' || d.id === 'zero' || d.id === 'put') ? srcNote(data[d.f]) : (d.id === 'w0c' || d.id === 'w0p') ? srcNote((data.walls_0dte || {})[d.id === 'w0c' ? 'call' : 'put']) : '';
     out.lines.push({ id: d.id, label: d.id === 'zero' && on('showRanked') ? 'ZERO GAMMA \u00b7 Flip' : d.label, price: r(v), note, col: d.col, dash: d.dash, w: d.w });
   }
   // Top 10 ranked strikes (ladder already in the response) and previous days' big levels (history).
@@ -240,6 +245,15 @@ export function buildLevels(data, src, opts, shift, extra) {
         const p = conv(x.strike);
         if (isNum(p)) out.lines.push({ id: 'strike' + i, label: 'GEX strike', price: r(p), note: src.fut ? ' (' + src.api + ' ' + fmtLevel(x.strike) + ')' : '', col: 'strikeColor', dash: 'dotted', w: 1 });
       });
+  }
+  // Gamma profile: net GEX per strike (the wall set's own profile, $M per 1%), mapped to chart prices.
+  if (on('showProfile') && data.profile && Array.isArray(data.profile.k) && data.profile.k.length > 2) {
+    const pr = [];
+    data.profile.k.forEach((k, i) => {
+      const p = conv(k), g = data.profile.g[i];
+      if (isNum(p) && isNum(g)) pr.push({ price: r(p), g, wall: k === data.call_wall ? 'c' : (k === data.put_wall ? 'p' : '') });
+    });
+    if (pr.length > 2) out.profile = pr;
   }
   out.shift = sh;
   return out;
@@ -605,6 +619,7 @@ class GexNative {
           payload = {
             lines: lv.lines.map((l) => mapLine(l, i, color, sty, wd)),
             band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
+            profile: lv.profile || null,
             labels: i.labels !== false,
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
@@ -754,6 +769,24 @@ function gexLayer() {
         g.strokeStyle = hexA(d.band.color, 0.55); g.lineWidth = 1; g.setLineDash([2, 3]);
         [y1, y2].forEach((y) => { const yy = Math.round(y) + 0.5; g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke(); });
       }
+      if (d.profile && d.profile.length > 2) {
+        // Gamma profile: one bar per strike growing LEFT from the right edge of the plot, green = positive
+        // net GEX, red = negative. Walls get a solid bar; the rest are faint. Width scales to the biggest bar.
+        const pr = d.profile, maxG = Math.max.apply(null, pr.map((x) => Math.abs(x.g))) || 1;
+        const maxW = Math.max(36, Math.min(W < 520 ? W * 0.2 : W * 0.16, 170));
+        const ys = pr.map((x) => Y(x.price));
+        for (let j = 0; j < pr.length; j++) {
+          const gap = Math.min(j ? Math.abs(ys[j - 1] - ys[j]) : 99, j < pr.length - 1 ? Math.abs(ys[j + 1] - ys[j]) : 99);
+          const hh = Math.max(1, Math.min(14, gap * 0.8)), x = pr[j];
+          const bw = Math.max(1, Math.abs(x.g) / maxG * maxW);
+          g.globalAlpha = x.wall ? 0.95 : 0.4;
+          g.fillStyle = x.g >= 0 ? '#22c55e' : '#ef4444';
+          g.fillRect(W - bw, ys[j] - hh / 2, bw, hh);
+          if (x.wall) { g.globalAlpha = 1; g.strokeStyle = '#f4f6fa'; g.lineWidth = 1; g.strokeRect(W - bw + 0.5, ys[j] - hh / 2 + 0.5, bw - 1, Math.max(1, hh - 1)); }
+        }
+        g.globalAlpha = 1;
+        canvas.__stkGexProfile = { n: pr.length, maxW };
+      } else if (canvas) canvas.__stkGexProfile = null;
       const font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       g.font = font; g.textBaseline = 'middle';
       const tags = [], drawn = [];

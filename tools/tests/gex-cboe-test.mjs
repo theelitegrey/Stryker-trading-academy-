@@ -120,13 +120,13 @@ const mem = new Map();
 const store = { get: async (k) => mem.get(k), put: async (k, v) => { mem.set(k, structuredClone(v)); } };
 const t = etEpoch(FIX.QQQ.data.last_trade_time) + 60;
 fixNow = t;
-const a = await buildLevels('QQQ', 0, {}, { emStore: store, now: t, compact: compactFor, insightQuotes: noIS });
+const a = await buildLevels('QQQ', 0, {}, { emStore: store, now: t, compactTerm: null, compact: compactFor, insightQuotes: noIS });
 ok(a.source === 'cboe' && a.wall_source === 'gamma' && a.sources.chain === 'cboe', 'buildLevels: compact Cboe chain, gamma walls');
 ok(a.expected_info.method === 'atm_straddle' && a.expected_info.held === true && a.expected_info.phase === 'session' && mem.size === 1, 'in session: snapshot stored (' + [...mem.keys()][0] + ')');
 const s1 = a.expected_info.sigma;
 ok(Math.abs(a.expected['68%'][1] - a.expected['68%'][0] - 2 * s1) < 1e-3 && Math.abs(a.expected["80%"][1] - a.expected_info.center - 1.2816 * s1) < 1e-2, '68% = ±1 sigma, 80% = ±1.2816 sigma around the snapshot price');
 fixSpot = 5; fixNow = t + 3600;   // later the same day: price and option quotes move
-const b = await buildLevels('QQQ', 0, {}, { emStore: store, now: t + 3600, compact: compactFor, insightQuotes: noIS });
+const b = await buildLevels('QQQ', 0, {}, { emStore: store, now: t + 3600, compactTerm: null, compact: compactFor, insightQuotes: noIS });
 ok(b.spot === a.spot + 5 && JSON.stringify(b.expected) === JSON.stringify(a.expected) && b.expected_info.held, 'one hour later, new spot ' + b.spot + ': bands held at the snapshot (' + a.expected['68%'].map((x) => x.toFixed(2)).join(' - ') + ')');
 mem.clear(); fixSpot = null; fixNow = etEpoch('2026-10-13T09:00:00');
 const pre = await buildLevels('QQQ', 0, {}, { emStore: store, now: fixNow, compact: (n) => Object.assign(compactFor(n), { chain_time: '2026-10-12T16:14:00' }), insightQuotes: noIS });
@@ -136,7 +136,7 @@ ok(snapshotAllowed(etEpoch('2026-10-13T09:31:00'), etEpoch('2026-10-13T09:46:00'
 // Fallbacks: compact chain stale / missing -> InsightSentry path (no key here, so its error surfaces
 // and the API serves its last good copy); with InsightSentry available the source says so.
 fixNow = t - 45 * 60;
-await assert.rejects(() => buildLevels('QQQ', 0, {}, { now: t, compact: compactFor }), /InsightSentry options not configured/);
+await assert.rejects(() => buildLevels('QQQ', 0, {}, { now: t, compactTerm: null, compact: compactFor }), /InsightSentry options not configured/);
 ok(true, 'compact chain 45 min old in session: falls back to the InsightSentry path');
 await assert.rejects(() => buildLevels('QQQ', 0, {}, { now: t, compact: async () => null }), /InsightSentry options not configured/);
 ok(true, 'compact chain missing: falls back to the InsightSentry path');
@@ -169,18 +169,18 @@ console.log(n + ' checks, ALL PASS');
   ok(expUsed > 50 && mg.used === expUsed && mg.contracts.filter((c) => c.ivSrc === 'cboe').length === base.length - expUsed && mg.contracts.find((c) => c.cp + '|' + c.strike === first).ivSrc === 'cboe', 'merge: an insane InsightSentry IV keeps Cboe IV for that contract (' + mg.used + '/' + base.length + ' live)');
   for (const name of ['QQQ', 'SPX']) {
     const move = name === 'QQQ' ? 3 : 20;
-    const h = await buildLevels(name, 0, {}, { now: tq, compact: compactFor, insightQuotes: async (n, e) => insightQuoteMap(isPayload(name, move), e) });
+    const h = await buildLevels(name, 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async (n, e) => insightQuoteMap(isPayload(name, move), e) });
     const spot0 = FIX[name].data.current_price;
     ok(h.source === 'cboe' && h.sources.chain === 'cboe' && h.sources.iv === 'insightsentry' && h.sources.spot === 'insightsentry' && h.sources.gamma === 'black_scholes', name + ' hybrid sources ' + JSON.stringify(h.sources));
     ok(h.spot === spot0 + move && h.compare.cboe_only.spot === spot0, name + ' hybrid uses the live spot ' + h.spot + ' (Cboe ' + spot0 + ')');
     ok(h.wall_source === 'gamma' && Math.abs(h.zero_gamma / h.spot - 1) < 0.005, name + ' hybrid: gamma walls ' + h.call_wall + '/' + h.put_wall + ', ZG ' + h.zero_gamma.toFixed(2) + ' within 0.5% of live spot; Cboe-only ' + JSON.stringify(h.compare.cboe_only));
   }
   // vendor gamma is ignored: same levels when the InsightSentry gamma field is garbage (999 above)
-  const h2 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async (n, e) => insightQuoteMap(isPayload('QQQ', 0), e) });
-  const c2 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, hybrid: false });
+  const h2 = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async (n, e) => insightQuoteMap(isPayload('QQQ', 0), e) });
+  const c2 = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, hybrid: false });
   ok(h2.zero_gamma.toFixed(6) === c2.zero_gamma.toFixed(6) && h2.call_wall === c2.call_wall, 'same spot + same IV: hybrid = Cboe-only exactly (vendor gamma 999 ignored)');
   // InsightSentry down -> pure Cboe
-  const d = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => { throw new Error('down'); } });
+  const d = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async () => { throw new Error('down'); } });
   ok(d.sources.iv === 'cboe' && d.sources.spot === 'cboe' && d.compare === null && d.spot === FIX.QQQ.data.current_price, 'InsightSentry down: pure Cboe');
   ok(/InsightSentry options not configured/.test(d.sources.hybrid_skip_reason || '') || d.sources.hybrid_skip_reason === 'down', 'skip reason visible: ' + d.sources.hybrid_skip_reason);
   // build 531: the live request format (YYYY-MM-DD expiration + range), the key only in a header,
@@ -196,15 +196,15 @@ console.log(n + ' checks, ALL PASS');
   const dashed = isPayload('QQQ', 0); dashed.data.forEach((r) => { r.expiration = '2026-10-13'; r.strike_price = String(r.strike_price); });
   ok(insightQuoteMap(dashed, '2026-10-13').byKey.size === lq.byKey.size, 'reply with "2026-10-13" expirations and string strikes parsed the same');
   const liveTs = etEpoch(FIX.QQQ.data.last_trade_time) + 840;
-  const h3 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async (n2, e) => insightQuoteMap(isPayload('QQQ', 1), e) });
+  const h3 = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async (n2, e) => insightQuoteMap(isPayload('QQQ', 1), e) });
   ok(h3.sources.hybrid_skip_reason === null && h3.market.options_ts === liveTs && h3.market.chain_ts === etEpoch(FIX.QQQ.data.last_trade_time), 'hybrid on: options_ts = live input time (' + new Date(liveTs * 1000).toISOString() + '), chain_ts kept separately');
-  const e1 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => ({ spot: 742, ts: null, byKey: new Map(), rows: 0 }) });
+  const e1 = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async () => ({ spot: 742, ts: null, byKey: new Map(), rows: 0 }) });
   ok(/no rows for 2026-10-13/.test(e1.sources.hybrid_skip_reason) && e1.sources.spot === 'cboe', 'skip reason: ' + e1.sources.hybrid_skip_reason);
   const bad = insightQuoteMap(isPayload('QQQ', 0), '2026-10-13'); for (const v of bad.byKey.values()) v.iv = 0;
-  const e2 = await buildLevels('QQQ', 0, {}, { now: tq, compact: compactFor, insightQuotes: async () => bad });
+  const e2 = await buildLevels('QQQ', 0, {}, { now: tq, compactTerm: null, compact: compactFor, insightQuotes: async () => bad });
   ok(/no sane InsightSentry IV/.test(e2.sources.hybrid_skip_reason), 'skip reason: ' + e2.sources.hybrid_skip_reason);
   globalThis.fetch = async () => new Response('nope', { status: 403 });
-  const e3 = await buildLevels('QQQ', 0, { INSIGHTSENTRY_WEBSOCKET_API_KEY: KEY }, { now: tq, compact: compactFor });
+  const e3 = await buildLevels('QQQ', 0, { INSIGHTSENTRY_WEBSOCKET_API_KEY: KEY }, { now: tq, compactTerm: null, compact: compactFor });
   ok(/^fetch 403 https:\/\/api\.insightsentry\.com\/v3\/options\/quotes$/.test(e3.sources.hybrid_skip_reason) && !JSON.stringify(e3).includes(KEY), 'skip reason on HTTP error, no query/key leaked: ' + e3.sources.hybrid_skip_reason);
   console.log(n + ' checks incl. hybrid, ALL PASS');
 }

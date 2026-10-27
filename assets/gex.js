@@ -235,7 +235,9 @@
       ['call','CALL WALL',d.call_wall,'call_wall'],
       ['zero','ZERO GAMMA',d.zero_gamma,'zero_gamma'],
       ['spot','◆ SPOT',d.spot,'spot'],
-      ['put','PUT WALL',d.put_wall,'put_wall']
+      ['put','PUT WALL',d.put_wall,'put_wall'],
+      ['call w0','0DTE CALL WALL',d.walls_0dte && d.walls_0dte.call,'wall0_call'],
+      ['put w0','0DTE PUT WALL',d.walls_0dte && d.walls_0dte.put,'wall0_put']
     ].filter(function(r){ return r[2] != null; }).sort(function(a,b){ return b[2] - a[2]; }).map(function(r){
       var idx = r[2], fpx = F && F.levels ? F.levels[r[3]] : null, fs = F && F.levels ? F.levels.spot : null;
       var dpts = fpx != null && fs != null ? fpx - fs : null;
@@ -245,8 +247,17 @@
     }).join('');
   }
 
+  // Plain-English note on how the walls are made (the method is in d.wall_method / d.wall_basis).
+  function wallNote(d){
+    var m = d.wall_method === 'structure_1_30d', ex = d.wall_basis && d.wall_basis.expiries;
+    var txt = m
+      ? 'Call wall = the strike above price with the biggest call gamma. Put wall = the strike below price with the biggest put gamma. Both use every expiry from tomorrow to about 30 days' + (ex && ex[0] ? ' (' + esc(ex[0]) + ' to ' + esc(ex[1]) + ')' : '') + ', so they stay steady through the day. Zero gamma uses those expiries plus today\'s. The 0DTE walls use only today\'s expiry and sit close to price late in the session.'
+      : 'Call wall = the strike above price with the biggest call gamma. Put wall = the strike below price with the biggest put gamma, for the expiry selected above. The longer-dated chain was not available, so the walls may sit close to price.';
+    return '<p class="gex-empty gex-wallnote" style="margin-top:10px">'+txt+'</p>';
+  }
+
   function renderLevels(d, F){
-    $('gex-levels').innerHTML = levelRows(d, F);
+    $('gex-levels').innerHTML = levelRows(d, F) + wallNote(d);
     var e = d.expected || {}, r68 = e['68%'] || [], r80 = e['80%'] || [];
     var FL = F && F.levels;
     var EI = d.expected_info || {};

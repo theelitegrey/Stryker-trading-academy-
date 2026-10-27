@@ -207,8 +207,8 @@ export function keyLevels(data, spot, mg, opt, dte) {
   };
   add('mp', 'Max Pain', 'MP', data.max_pain, 'Max Pain: the price where most option buyers lose; price is often pulled toward it near expiry.');
   add('flip', 'Flip', 'FLIP', data.zero_gamma, 'Zero Gamma / Flip: the price where net GEX crosses zero. Above it dealer hedging tends to calm moves, below it can add to them.');
-  add('cw', 'Call Wall', 'CW', data.call_wall, 'Call Wall: the strike above price with the biggest call gamma. It can act like a ceiling.');
-  add('pw', 'Put Wall', 'PW', data.put_wall, 'Put Wall: the strike below price with the biggest put gamma. It can act like a floor.');
+  add('cw', 'Call Wall', 'CW', data.call_wall, 'Call Wall: the strike above price with the biggest call gamma, from all expiries up to about 30 days (not only today). It can act like a ceiling.');
+  add('pw', 'Put Wall', 'PW', data.put_wall, 'Put Wall: the strike below price with the biggest put gamma, from all expiries up to about 30 days (not only today). It can act like a floor.');
   if (mg && isNum(mg.strike)) add('mag', 'Magnet', 'MAG', mg.strike, 'Magnet: the largest |GEX| strike near price. Price is often drawn toward it.');
   const k = EM_KEY[dte == null ? 0 : dte];
   const em = opt && Array.isArray(opt.em) ? opt.em.find((e) => e.k === k) : null;

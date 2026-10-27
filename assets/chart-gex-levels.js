@@ -694,7 +694,9 @@ export function mergeTags(tags) {
   });
   return out.map((g) => {
     const it = g.items, l0 = it[0].l;
-    const names = [...new Set(it.map((x) => x.l.name || x.l.text))];
+    let names = [...new Set(it.map((x) => x.l.name || x.l.text))];
+    // A wall and its 0DTE twin at the same price: one tag, "PUT WALL · 0DTE".
+    names = names.filter((nm) => !(/^0DTE /.test(nm) && names.includes(nm.slice(5)))).map((nm) => (names.includes('0DTE ' + nm) ? nm + ' · 0DTE' : nm));
     const prices = [...new Set(it.map((x) => fmtLevel(x.l.price)))];
     const text = it.length === 1 ? l0.text : names.join(' · ') + ' ' + prices.join(' / ');
     const y = it.reduce((s2, x) => s2 + x.y, 0) / it.length;

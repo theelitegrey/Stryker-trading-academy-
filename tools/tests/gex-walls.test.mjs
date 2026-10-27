@@ -48,3 +48,8 @@ ok(st.callWall === c1 && st.putWall === w1, 'structureLevels = gammaWalls over e
 ok(structureLevels(spot, cs.filter((c) => c.dte === 0), now, null) === null, 'only 0DTE rows -> null (falls back)');
 ok(zeroDteWalls(spot, []) === null, 'zeroDteWalls on nothing -> null');
 console.log(n + ' checks, ALL PASS');
+
+// merged tag: a wall and its 0DTE twin at one price -> one short tag
+const { mergeTags } = await import('../../assets/chart-gex-levels.js');
+const mt = mergeTags([{ y: 100, l: { id: 'put', name: 'PUT WALL', price: 29736.44, text: 'PUT WALL 29736.44', color: '#22c55e' } }, { y: 100, l: { id: 'w0p', name: '0DTE PUT WALL', price: 29736.44, text: '0DTE PUT WALL 29736.44', color: '#22c55e' } }]);
+ok(mt.length === 1 && mt[0].text === 'PUT WALL · 0DTE 29736.44', 'merged tag text: ' + mt[0].text);

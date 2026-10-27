@@ -624,7 +624,7 @@ class GexNative {
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
-            status: agoText(dataTime(data)) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : dte + 'DTE') + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
+            status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
       }
@@ -676,6 +676,76 @@ class GexNative {
   }
 }
 
+// Pure: what the status chip says is drawn, short. "MNQ from QQQ · walls 1-30d" (+ " · 0DTE on" when the
+// 0DTE pair is shown, + " · IV 7DTE" when the IV range uses another expiry). Main walls come from the
+// 1-30 day structure (wall_method structure_1_30d); an API without it falls back to the picked expiry.
+export function statusWhat(data, src, dte, opts) {
+  const o = opts || {};
+  const lab = src.fut ? src.fut + ' from ' + src.api : src.label;
+  const exp = dte === 0 ? '0DTE' : dte + 'DTE';
+  const parts = [lab, data && data.wall_method === 'structure_1_30d' ? 'walls 1-30d' : 'walls ' + exp];
+  if (o.show0dte === true && data && data.walls_0dte && (isNum(data.walls_0dte.call) || isNum(data.walls_0dte.put))) parts.push('0DTE on');
+  if (dte !== 0 && data && data.wall_method === 'structure_1_30d') parts.push('IV ' + exp);
+  return parts.join(' · ');
+}
+
+// ---- gamma profile layer (below the candles) ---------------------------------------------------
+// The GEX layer paints above the candles; the profile bars sit BEHIND them, so they get their own
+// 'below-data' layer. Both layers of one chart share a DOM parent: the profile layer registers itself
+// there and the GEX layer hands it the bars on every paint (no extra channel, no renderer lookup).
+const PROF = 'stk_gexprof';
+const profHosts = new WeakMap();   // layer container -> { set(profile) }
+// Pure: profile rows [{price, g, wall}] + pixel mapper -> bars [{y, h, g, wall}]. Strikes closer than
+// MIN_ROW px are merged (summed net GEX, wall flag kept) so every bar is >= 2 px tall.
+export function profileBars(pr, Y, minRow) {
+  const rows = pr.map((x) => ({ y: Y(x.price), g: x.g, wall: x.wall })).filter((x) => Number.isFinite(x.y)).sort((p, q) => p.y - q.y);
+  if (rows.length < 2) return [];
+  const gaps = rows.slice(1).map((x, i) => x.y - rows[i].y).filter((v) => v > 0).sort((p, q) => p - q);
+  const step = gaps.length ? gaps[Math.floor(gaps.length / 2)] : minRow;
+  const n = Math.max(1, Math.ceil((minRow || 3) / Math.max(step, 0.01)));
+  const out = [];
+  for (let i = 0; i < rows.length; i += n) {
+    const grp = rows.slice(i, i + n);
+    const g = grp.reduce((s2, x) => s2 + x.g, 0), y = grp.reduce((s2, x) => s2 + x.y, 0) / grp.length;
+    const wall = (grp.find((x) => x.wall) || {}).wall || '';
+    out.push({ y, h: Math.max(2, Math.min(14, step * n * 0.8)), g, wall });
+  }
+  return out;
+}
+export function profileLayer() {
+  let canvas = null, last = null, prof = null, sig = '';
+  function paint() {
+    if (!canvas || !last) return;
+    const a = last, g = canvas.getContext('2d'); if (!g) return;
+    const dpr = a.coords.dpr || 1;
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, canvas.width, canvas.height);
+    canvas.__stkGexProfile = null;
+    if (!prof) return;
+    const W = a.coords.width, top = a.bounds.top, H = a.bounds.height;
+    const bars = profileBars(prof, (p) => a.coords.priceToY(p, a.scale, a.bounds), 3).filter((b) => b.y >= top - 8 && b.y <= top + H + 8);
+    if (!bars.length) return;
+    // scale to the biggest bar in view; phone 25% of the plot width, desktop 18%
+    const maxW = (W < 520 ? 0.25 : 0.18) * W, maxG = Math.max.apply(null, bars.map((b) => Math.abs(b.g))) || 1;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.save(); g.beginPath(); g.rect(0, top, W, H); g.clip();
+    for (const b of bars) {
+      const bw = Math.max(1, Math.abs(b.g) / maxG * maxW), x = W - bw;
+      g.globalAlpha = 0.65;
+      g.fillStyle = b.g >= 0 ? '#22c55e' : '#ef4444';
+      g.fillRect(x, b.y - b.h / 2, bw, b.h);
+      if (b.wall) { g.globalAlpha = 1; g.strokeStyle = b.wall === 'c' ? '#ef4444' : '#22c55e'; g.lineWidth = 1.5; g.strokeRect(x + 0.75, b.y - b.h / 2 - 0.75, bw - 1.5, b.h + 1.5); }
+    }
+    g.restore(); g.globalAlpha = 1;
+    canvas.__stkGexProfile = { n: bars.length, rows: prof.length, maxW: Math.round(maxW), minH: Math.min.apply(null, bars.map((b) => b.h)), W };
+  }
+  const host = { set(p) { const k = p ? JSON.stringify(p) : ''; if (k === sig) return; sig = k; prof = p; paint(); } };
+  return {
+    mount(cv) { canvas = cv; },
+    render(a) { if (!canvas) return; last = a; if (canvas.parentElement) profHosts.set(canvas.parentElement, host); paint(); },
+    destroy() { canvas = null; last = null; }
+  };
+}
+
 // ---- renderer layer: lines + right-edge price tags + status chip ---------------------------
 function hexA(hex, a) {
   const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || ''));
@@ -683,7 +753,24 @@ function hexA(hex, a) {
   const n = parseInt(m[1], 16);
   return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + a + ')';
 }
-const TAG_H = 16, MERGE_PX = 6;
+const TAG_H = 16, MERGE_PX = 6, EDGE_H = 14, EDGE_LIFT = 30;
+// Levels that get an off-screen arrow tag: the GEX key levels + the market levels (not strikes, IV, previous days).
+const EDGE_IDS = new Set(['call', 'put', 'zero', 'w0c', 'w0p', 'vah', 'poc', 'val', 'onh', 'onl']);
+// Pure: off-screen levels on one edge -> tags "▲ CALL WALL 30147.56"; levels at one price share a tag
+// ("▼ PUT WALL · 0DTE 29736.44"). The 3 nearest per edge, returned outermost first (k = 0 sits at the
+// plot edge, the nearest level stacks innermost, like the prices).
+export function edgeTags(lines, up) {
+  const by = new Map();
+  [...lines].sort((p, q) => (up ? p.price - q.price : q.price - p.price)).forEach((l) => {
+    const k = fmtLevel(l.price), e = by.get(k);
+    if (e) e.items.push(l); else by.set(k, { items: [l] });
+  });
+  return [...by.entries()].slice(0, 3).reverse().map(([k, e]) => {
+    let names = [...new Set(e.items.map((l) => l.name || l.label || l.text))];
+    names = names.filter((nm) => !(/^0DTE /.test(nm) && names.includes(nm.slice(5)))).map((nm) => (names.includes('0DTE ' + nm) ? nm + ' · 0DTE' : nm));
+    return { text: (up ? '\u25B2 ' : '\u25BC ') + names.join(' · ') + ' ' + k, color: e.items[0].color, ids: e.items.map((l) => l.id) };
+  });
+}
 // Pure: tags [{y, l}] sorted by y -> groups whose lines sit within MERGE_PX share one label.
 export function mergeTags(tags) {
   const out = [];
@@ -758,7 +845,7 @@ function gexLayer() {
       const W = a.coords.width;
       const fullW = canvas.width / dpr, fullH = canvas.height / dpr;
       paintChip(d, Math.max(0, fullW - W) + 8, Math.max(0, fullH - (a.bounds.top + a.bounds.height)) + 8);
-      if (!d || !d.lines) return;
+      if (!d || !d.lines) { const ph = profHosts.get(canvas.parentElement); if (ph) ph.set(null); return; }
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const top = a.bounds.top, bot = top + a.bounds.height;
       const Y = (p) => a.coords.priceToY(p, a.scale, a.bounds);
@@ -771,30 +858,20 @@ function gexLayer() {
         g.strokeStyle = hexA(d.band.color, 0.55); g.lineWidth = 1; g.setLineDash([2, 3]);
         [y1, y2].forEach((y) => { const yy = Math.round(y) + 0.5; g.beginPath(); g.moveTo(0, yy); g.lineTo(W, yy); g.stroke(); });
       }
-      if (d.profile && d.profile.length > 2) {
-        // Gamma profile: one bar per strike growing LEFT from the right edge of the plot, green = positive
-        // net GEX, red = negative. Walls get a solid bar; the rest are faint. Width scales to the biggest bar.
-        const pr = d.profile, maxG = Math.max.apply(null, pr.map((x) => Math.abs(x.g))) || 1;
-        const maxW = Math.max(36, Math.min(W < 520 ? W * 0.2 : W * 0.16, 170));
-        const ys = pr.map((x) => Y(x.price));
-        for (let j = 0; j < pr.length; j++) {
-          const gap = Math.min(j ? Math.abs(ys[j - 1] - ys[j]) : 99, j < pr.length - 1 ? Math.abs(ys[j + 1] - ys[j]) : 99);
-          const hh = Math.max(1, Math.min(14, gap * 0.8)), x = pr[j];
-          const bw = Math.max(1, Math.abs(x.g) / maxG * maxW);
-          g.globalAlpha = x.wall ? 0.95 : 0.4;
-          g.fillStyle = x.g >= 0 ? '#22c55e' : '#ef4444';
-          g.fillRect(W - bw, ys[j] - hh / 2, bw, hh);
-          if (x.wall) { g.globalAlpha = 1; g.strokeStyle = '#f4f6fa'; g.lineWidth = 1; g.strokeRect(W - bw + 0.5, ys[j] - hh / 2 + 0.5, bw - 1, Math.max(1, hh - 1)); }
-        }
-        g.globalAlpha = 1;
-        canvas.__stkGexProfile = { n: pr.length, maxW };
-      } else if (canvas) canvas.__stkGexProfile = null;
+      // Gamma profile: painted by its own below-data layer (behind the candles), see profileLayer().
+      const ph = profHosts.get(canvas.parentElement);
+      if (ph) ph.set(d.profile && d.profile.length > 2 ? d.profile : null);
       const font = '600 11px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
       g.font = font; g.textBaseline = 'middle';
-      const tags = [], drawn = [];
+      const tags = [], drawn = [], edge = { up: [], dn: [] };
       for (const l of d.lines) {
         const y = Math.round(Y(l.price)) + 0.5;
-        if (!(y >= top && y <= bot)) continue;
+        if (!(y >= top && y <= bot)) {
+          // GEX key levels above / below the visible prices: a small arrow tag at that edge instead of
+          // stretching the price scale (the layer never feeds autoscale).
+          if (EDGE_IDS.has(l.id) && Number.isFinite(y)) edge[y < top ? 'up' : 'dn'].push(l);
+          continue;
+        }
         drawn.push({ id: l.id, price: l.price, y, yPrice: a.coords.yToPrice ? a.coords.yToPrice(y - 0.5, a.scale, a.bounds) : null, pxPrice: a.coords.yToPrice ? Math.abs(a.coords.yToPrice(top, a.scale, a.bounds) - a.coords.yToPrice(top + 1, a.scale, a.bounds)) : null });
         g.strokeStyle = l.color; g.lineWidth = l.w || d.width || 1;
         g.globalAlpha = l.alpha > 0 && l.alpha < 1 ? l.alpha : 1;
@@ -808,7 +885,10 @@ function gexLayer() {
       // Right-edge tags. Levels within MERGE_PX of each other share ONE tag ("pPOC · ZERO GAMMA
       // 7881"), so labels never draw on top of each other; the rest are nudged apart (stacked).
       const groups = mergeTags(tags);
-      layoutTags(groups, top, bot);
+      const eUp = edgeTags(edge.up, true), eDn = edgeTags(edge.dn, false);
+      // bottom edge tags sit above the status chip / Vela's "Fit price · Latest" buttons
+      const eBot = bot - EDGE_LIFT;
+      layoutTags(groups, top + eUp.length * (EDGE_H + 1), eDn.length ? eBot - eDn.length * (EDGE_H + 1) : bot);
       for (const t of groups) {
         // narrow plots (phone): a merged tag must not stretch across the chart over the ticket and the
         // other lines. Too wide -> prices are dropped (the axis tag keeps the exact price), then cut.
@@ -826,6 +906,21 @@ function gexLayer() {
         const rl = t.ids.length === 1 ? byId.get(t.ids[0]) : null;
         if (rl && rl.rank) { g.fillStyle = 'rgba(11,11,11,.6)'; g.fillRect(x + 1, t.yc + TAG_H / 2 - 3, Math.max(3, Math.round((w - 2) * rl.share)), 2); }
       }
+      // edge tags: top-right going down for levels above, bottom-right going up for levels below
+      const edgeOut = [];
+      g.font = '600 10px -apple-system, BlinkMacSystemFont, "Trebuchet MS", Roboto, Ubuntu, sans-serif';
+      [[eUp, true], [eDn, false]].forEach(([list, up]) => list.forEach((t, k) => {
+        let txt = t.text;
+        const maxTw = W < 520 ? W * 0.5 : Math.min(W - 8, 260);
+        while (txt.length > 6 && g.measureText(txt).width + 10 > maxTw) txt = txt.slice(0, -2).replace(/\s+$/, '') + '…';
+        const w = Math.ceil(g.measureText(txt).width) + 10, x = Math.max(2, W - w - 2);
+        const yc = up ? top + 1 + EDGE_H / 2 + k * (EDGE_H + 1) : eBot - 1 - EDGE_H / 2 - k * (EDGE_H + 1);
+        g.globalAlpha = 0.9; g.fillStyle = t.color; g.fillRect(x, yc - EDGE_H / 2, w, EDGE_H); g.globalAlpha = 1;
+        g.fillStyle = '#0b0b0b'; g.fillText(txt, x + 5, yc + 0.5);
+        edgeOut.push({ text: txt, up, ids: t.ids, box: { x, y: yc - EDGE_H / 2, w, h: EDGE_H } });
+      }));
+      g.font = font;
+      canvas.__stkGexEdge = edgeOut;   // test hook
       lastTags = groups.map((t) => ({ text: t.text, ids: t.ids, box: t.box, axis: t.axisY }));
       canvas.__stkGexTags = lastTags;   // test hook (a plain property: no DOM write)
       canvas.__stkGexLines = drawn;     // test hook: each painted line's price, pixel row and the price at that row
@@ -857,6 +952,7 @@ let installed = false;
 export function installGexLevels(Core) {
   if (installed) return;
   installed = true;
+  Core.registerRendererLayer({ id: PROF, placement: 'below-data', create: profileLayer });
   Core.registerRendererLayer({ id: TYPE, placement: 'above-data', create: gexLayer });
   Core.registerRendererLayer({ id: FLASH, placement: 'above-data', create: flashLayer });
   Core.registerNativeIndicator({

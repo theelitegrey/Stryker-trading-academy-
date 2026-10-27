@@ -53,3 +53,28 @@ console.log(n + ' checks, ALL PASS');
 const { mergeTags } = await import('../../assets/chart-gex-levels.js');
 const mt = mergeTags([{ y: 100, l: { id: 'put', name: 'PUT WALL', price: 29736.44, text: 'PUT WALL 29736.44', color: '#22c55e' } }, { y: 100, l: { id: 'w0p', name: '0DTE PUT WALL', price: 29736.44, text: '0DTE PUT WALL 29736.44', color: '#22c55e' } }]);
 ok(mt.length === 1 && mt[0].text === 'PUT WALL · 0DTE 29736.44', 'merged tag text: ' + mt[0].text);
+
+// status chip: says what is drawn (walls 1-30d), 0DTE only when shown; no live/real-time/delayed
+{
+  const m = await import('../../assets/chart-gex-levels.js');
+  const src = { api: 'QQQ', fut: 'MNQ', label: 'MNQ (from QQQ)', pro: true };
+  const d = { wall_method: 'structure_1_30d', walls_0dte: { call: 721, put: 720 } };
+  const s0 = m.statusWhat(d, src, 0, {}), s1 = m.statusWhat(d, src, 0, { show0dte: true }), s7 = m.statusWhat(d, src, 7, {});
+  const old = m.statusWhat({}, src, 0, {});
+  const ok = s0 === 'MNQ from QQQ · walls 1-30d' && s1 === 'MNQ from QQQ · walls 1-30d · 0DTE on' && s7 === 'MNQ from QQQ · walls 1-30d · IV 7DTE' && old === 'MNQ from QQQ · walls 0DTE' && ![s0, s1, s7].some((x) => /live|real-time|delayed/i.test(x));
+  console.log((ok ? 'PASS' : 'FAIL') + ' status text: ' + [s0, s1, s7, old].join(' | '));
+  if (!ok) process.exitCode = 1;
+  // off-screen edge tags: nearest first, twin walls merged, max 3
+  const e = m.edgeTags([{ id: 'call', price: 30195.42, name: 'CALL WALL', color: '#f00' }, { id: 'zero', price: 29922.51, name: 'ZERO GAMMA', color: '#fa0' }], true);
+  const e2 = m.edgeTags([{ id: 'put', price: 10, name: 'PUT WALL' }, { id: 'w0p', price: 10, name: '0DTE PUT WALL' }], false);
+  const ok2 = e.length === 2 && e[0].text === '\u25B2 CALL WALL 30195.42' && e[1].text === '\u25B2 ZERO GAMMA 29922.51' && e2.length === 1 && e2[0].text === '\u25BC PUT WALL · 0DTE 10';
+  console.log((ok2 ? 'PASS' : 'FAIL') + ' edge tags: ' + e.map((x) => x.text).concat(e2.map((x) => x.text)).join(' | '));
+  if (!ok2) process.exitCode = 1;
+  // profile bars: >= 2 px rows, thin strikes merged (sum kept), wall flag kept
+  const pr = Array.from({ length: 40 }, (_, i) => ({ price: 100 + i, g: i === 20 ? 50 : 1, wall: i === 20 ? 'c' : '' }));
+  const b1 = m.profileBars(pr, (p) => p * 1, 3), b2 = m.profileBars(pr, (p) => p * 10, 3);
+  const sum = (b) => b.reduce((s2, x) => s2 + x.g, 0);
+  const ok3 = b1.length < 40 && b1.every((x) => x.h >= 2) && sum(b1) === sum(pr) && b1.some((x) => x.wall === 'c') && b2.length === 40;
+  console.log((ok3 ? 'PASS' : 'FAIL') + ' profile rows: 1px spacing -> ' + b1.length + ' bars (min h ' + Math.min(...b1.map((x) => x.h)).toFixed(1) + '), 10px -> ' + b2.length);
+  if (!ok3) process.exitCode = 1;
+}

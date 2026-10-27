@@ -75,7 +75,7 @@ async function shot(p, name, clip) { await sleep(400); await p.screenshot({ path
     check(gi >= 0 && r[gi].vis, 'GEX Levels has a visible legend row (' + r.map((x) => x.title).join(' | ') + ')');
     check(gi >= 0 && vi >= 0 && gi === vi + 1, 'GEX Levels row sits directly under Volume');
     const note = gi >= 0 ? r[gi].note : null;
-    check(/^ES \(from SPX\) 0DTE · updated (just now|\d+ (min|h) ago|\d+ days ago)/.test(note || '') && !/live|real-time|delayed/i.test(note || ''), 'row note, symbol first: ' + note);
+    check(/^ES from SPX · updated (just now|\d+ (min|h) ago|\d+ days ago) · walls (1-30d|0DTE)/.test(note || '') && !/live|real-time|delayed/i.test(note || ''), 'row note, symbol first: ' + note);
     check((await layerData(p, 'stk_gex')) > 0, 'GEX lines pushed');
     await p.mouse.move(700, 600);
     await shot(p, 'legend-gex-1440.png', { x: 0, y: 0, width: 760, height: 260 });
@@ -111,7 +111,7 @@ async function shot(p, name, clip) { await sleep(400); await p.screenshot({ path
     await sleep(5000);
     r = await rows(p);
     const g2 = r.find((x) => x.title === 'GEX Levels');
-    check(g2 && g2.vis && /ES \(from SPX\) 0DTE · updated/.test(g2.note || ''), 'after reload: GEX row back with note: ' + (g2 && g2.note));
+    check(g2 && g2.vis && /ES from SPX · updated/.test(g2.note || ''), 'after reload: GEX row back with note: ' + (g2 && g2.note));
     // remove
     const id2 = await gexId(p);
     await ctl(p, id2, 'Remove indicator');

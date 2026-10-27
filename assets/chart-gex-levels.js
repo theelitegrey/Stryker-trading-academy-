@@ -624,6 +624,7 @@ class GexNative {
             priceTags: i.priceTags !== false,
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
+            statusShort: statusShort(dataTime(data), data, src, opts),
             status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
           };
         }
@@ -671,7 +672,8 @@ class GexNative {
       band: lv.band ? { lo: lv.band.lo, hi: lv.band.hi, color: color('emColor') } : null,
       labels: i.labels !== false, priceTags: i.priceTags !== false, showStatus: i.showStatus !== false, shift: 0,
       snapT: snap.t,
-      status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + ' · bar replay'
+      status: 'GEX as of ' + etStamp(snap.t) + ' · ' + src.label + ' ' + (dte === 0 ? '0DTE' : '1DTE') + ' · bar replay',
+      statusShort: 'GEX ' + etStamp(snap.t) + ' · ' + src.api + ' · replay'
     };
   }
 }
@@ -686,6 +688,24 @@ export function statusWhat(data, src, dte, opts) {
   const parts = [lab, data && data.wall_method === 'structure_1_30d' ? 'walls 1-30d' : 'walls ' + exp];
   if (o.show0dte === true && data && data.walls_0dte && (isNum(data.walls_0dte.call) || isNum(data.walls_0dte.put))) parts.push('0DTE on');
   if (dte !== 0 && data && data.wall_method === 'structure_1_30d') parts.push('IV ' + exp);
+  return parts.join(' · ');
+}
+
+// Pure: the phone (plot < 520 px) form of the status chip, e.g. "GEX 1m ago · QQQ · 1-30d" (+ " · 0DTE"
+// when the 0DTE pair is shown, + " · saved" for the last saved copy). Never live / real-time / delayed.
+export function shortAgo(tsSec, nowMs) {
+  if (!isNum(tsSec)) return 'GEX time unknown';
+  const min = Math.max(0, Math.floor(((nowMs || Date.now()) / 1000 - tsSec) / 60));
+  if (min < 1) return 'GEX just now';
+  if (min < 120) return 'GEX ' + min + 'm ago';
+  const h = Math.floor(min / 60);
+  return h < 48 ? 'GEX ' + h + 'h ago' : 'GEX ' + Math.floor(h / 24) + 'd ago';
+}
+export function statusShort(tsSec, data, src, opts, nowMs) {
+  const o = opts || {};
+  const parts = [shortAgo(tsSec, nowMs), src.api, data && data.wall_method === 'structure_1_30d' ? '1-30d' : '0DTE'];
+  if (o.show0dte === true && data && data.walls_0dte && (isNum(data.walls_0dte.call) || isNum(data.walls_0dte.put)) && parts[2] !== '0DTE') parts.push('0DTE');
+  if (data && data.stale) parts.push('saved');
   return parts.join(' · ');
 }
 
@@ -809,12 +829,29 @@ function gexLayer() {
     canvas.parentElement.appendChild(chip);
     return chip;
   }
-  function paintChip(d, rightPx, bottomPx) {
+  // The "Fit price / Latest" row (chart-settings.js .stkc-fl) at the plot's bottom right: the chip must end
+  // before it. Looked up only when the chip text / size changes (no per-frame DOM reads).
+  function fitRowLeft(c) {
+    let el = c.parentElement;
+    for (let i = 0; el && i < 6; i++, el = el.parentElement) {
+      const fl = el.querySelector && el.querySelector('.stkc-fl');
+      if (fl) { const r = fl.getBoundingClientRect(), pr = c.parentElement.getBoundingClientRect(); return r.width > 0 ? r.left - pr.left : null; }
+    }
+    return null;
+  }
+  function paintChip(d, rightPx, bottomPx, plotW) {
     const c = ensureChip();
     if (!c) return;
-    const k = d ? JSON.stringify([d.note, d.pill, d.showStatus === false ? '' : d.status, rightPx, bottomPx]) : '';
+    const narrow = plotW > 0 && plotW < 520;
+    const text = d ? (d.note || (d.showStatus === false ? '' : (narrow && d.statusShort ? d.statusShort : d.status))) : '';
+    const k = d ? JSON.stringify([d.note, d.pill, text, rightPx, bottomPx, plotW]) : '';
     if (k === last) return;
     last = k;
+    if (d && narrow && !d.pill) {
+      // retry once after the Fit price / Latest row mounts (it can arrive after the first paint)
+      const fit = () => { if (last === k && c.isConnected) { const fl = fitRowLeft(c); c.style.maxWidth = fl > 60 ? Math.floor(fl - 8 - 6) + 'px' : ''; } };
+      fit(); setTimeout(fit, 600);
+    } else c.style.maxWidth = '';
     if (!d || !(d.note || d.pill || (d.showStatus !== false && d.status))) { c.hidden = true; return; }
     c.hidden = false;
     // Bottom-LEFT of the plot (GEX audit 2026-10-13): at the bottom-right it covered the lowest
@@ -829,7 +866,7 @@ function gexLayer() {
       c.appendChild(a);
     } else {
       c.classList.toggle('is-note', !!d.note);
-      c.appendChild(document.createTextNode(d.note || (d.showStatus === false ? '' : d.status)));
+      c.appendChild(document.createTextNode(text));
     }
   }
   return {
@@ -844,7 +881,7 @@ function gexLayer() {
       const d = a.data;
       const W = a.coords.width;
       const fullW = canvas.width / dpr, fullH = canvas.height / dpr;
-      paintChip(d, Math.max(0, fullW - W) + 8, Math.max(0, fullH - (a.bounds.top + a.bounds.height)) + 8);
+      paintChip(d, Math.max(0, fullW - W) + 8, Math.max(0, fullH - (a.bounds.top + a.bounds.height)) + 8, W);
       if (!d || !d.lines) { const ph = profHosts.get(canvas.parentElement); if (ph) ph.set(null); return; }
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       const top = a.bounds.top, bot = top + a.bounds.height;

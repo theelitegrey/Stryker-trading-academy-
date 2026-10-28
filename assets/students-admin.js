@@ -81,7 +81,7 @@ function renderStudentsTable(students){
         '<label class="live-feed-switch"><input type="checkbox" role="switch" data-live-feed="' + s.uid + '"' + (liveOn ? ' checked' : '') + '>' +
           '<span class="live-feed-track" aria-hidden="true"></span><span class="live-feed-label">Live chart data</span></label>' +
         '<span class="live-feed-saved" aria-live="polite"></span>' +
-        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveWhyList.indexOf('Pro') !== -1 ? 'Live because of the active Pro plan' + (liveOn ? ' (and the switch).' : '; the switch is not needed.') : (liveOn ? 'Real-time CME futures on Charts (switch).' : 'Off: futures on Charts are 10 min delayed.')))) + '</span>' +
+        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveWhyList.indexOf('Pro') !== -1 ? 'Live because of the active Pro plan' + (liveOn ? ' (and the switch).' : '; the switch is not needed.') : (liveOn ? 'Real-time CME futures on ZoroCharts (switch).' : 'Off: futures on ZoroCharts are 10 min delayed.')))) + '</span>' +
       '</div>' +
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
@@ -111,7 +111,7 @@ function renderStudentsTable(students){
           box.disabled = false;
           saved.className = 'live-feed-saved is-ok'; saved.textContent = '✓ Saved';
           setTimeout(() => { if (saved.textContent === '✓ Saved') saved.textContent = ''; }, 2500);
-          if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Real-time CME futures on Charts (takes effect on their next chart load, about 1 min to switch off).' : 'Off: futures on Charts are 10 min delayed (within about 1 min).';
+          if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Real-time CME futures on ZoroCharts (takes effect on their next chart load, about 1 min to switch off).' : 'Off: futures on ZoroCharts are 10 min delayed (within about 1 min).';
           const tag = card.querySelector('.live-feed-tag');
           const wl = liveWhy(s, isAdminUser);
           if (tag) { if (wl.length) { tag.textContent = 'Live data · ' + wl[0]; tag.title = 'Why: ' + wl.join(', '); } else tag.remove(); }

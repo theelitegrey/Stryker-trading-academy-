@@ -11,7 +11,7 @@
 
   var T = '/assets/images/navfx/';
   var FEATURES = [
-    { id: 'gex', name: 'GEX', url: '/features/gex', icon: '📈', big: 1,
+    { id: 'gex', name: 'GEX+', url: '/features/gex', icon: '📈', big: 1,
       line: 'Options gamma levels on a futures chart: call wall, put wall and zero gamma, read as context.' },
     { id: 'smart-money-desk', name: 'Smart Money Desk', url: '/features/smart-money-desk', icon: '🏛️' },
     { id: 'curriculum', name: 'Curriculum', url: '/features/curriculum', icon: '📚' },
@@ -21,7 +21,7 @@
     { id: 'indicators', name: 'Private Indicators', url: '/features/indicators', icon: '📊' },
     { id: 'backtesting', name: 'Backtesting', url: '/features/backtesting', icon: '⏯️' },
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
-    { id: 'charts', name: 'Charts', url: '/features/charts', icon: '📉' },
+    { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: '📉' },
     { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },
     { id: 'live-sessions', name: 'Live Sessions', url: '/features/live-sessions', icon: '🔴' }
   ];

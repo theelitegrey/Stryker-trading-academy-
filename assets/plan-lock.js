@@ -39,12 +39,12 @@
 
   var COPY = {
     gex: {
-      title: function () { return 'Futures GEX levels are part of Pro'; },
+      title: function () { return 'Futures GEX+ levels are part of Pro'; },
       bullets: function () {
         return ['ES, NQ and GC futures levels at every expiry (Free covers SPX 0DTE)',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
-      reason: 'Pro unlocks GEX for every market and expiry, and the strike table.'
+      reason: 'Pro unlocks GEX+ for every market and expiry, and the strike table.'
     },
     scanner: {
       title: function () { return 'Custom scanner filters are part of Pro'; },
@@ -58,7 +58,7 @@
       title: function () { return 'QQQ and SPY options analytics are part of Pro'; },
       bullets: function () {
         return ['Expected move, IV rank, term structure and skew for QQQ (NQ) and SPY (Free covers SPX)',
-                'Plus futures GEX for every market and expiry'];
+                'Plus futures GEX+ for every market and expiry'];
       },
       reason: 'Pro unlocks options analytics for every market.'
     },
@@ -66,7 +66,7 @@
       title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ are part of Pro' : 'Later chapters are part of Pro'; },
       bullets: function (n) {
         return [(n ? 'Chapter ' + (n + 1) + ' to the end of the course' : 'Every chapter of the course') + ', with progress saved',
-                'Plus futures GEX for every market and an unlimited trade journal'];
+                'Plus futures GEX+ for every market and an unlimited trade journal'];
       },
       reason: 'Pro unlocks every chapter of the course.'
     }

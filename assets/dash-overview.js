@@ -70,7 +70,7 @@ function DOVP(){ return (typeof strykerPalette === 'function') ? strykerPalette(
   }
 
   // ---- module filter chips ---------------------------------------------------
-  var MOD_DEFS = [['journal', 'Journal'], ['markets', 'Markets'], ['floor', 'Community'], ['gex', 'GEX']];
+  var MOD_DEFS = [['journal', 'Journal'], ['markets', 'Markets'], ['floor', 'Community'], ['gex', 'GEX+']];
 
   function renderFilter(){
     var host = $('dov-filter');

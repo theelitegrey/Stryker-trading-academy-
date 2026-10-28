@@ -92,8 +92,8 @@
       ['Curriculum chapters', '@free-ch', 'All 64'],
       ['Volume Profile and Prop Firm tracks', false, true],
       ['Progress dashboard, achievements, streak', true, true]]],
-    ['GEX', [
-      ['GEX page symbols', 'SPX', 'Every symbol'],
+    ['GEX+', [
+      ['GEX+ symbols', 'SPX', 'Every symbol'],
       ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
       ['Futures conversion', false, true],
       ['Strike table', false, true]]],
@@ -102,8 +102,8 @@
       ['Manual entry', true, true],
       ['Import and broker sync', false, true],
       ['Analytics and AI coach', false, true]]],
-    ['Charts', [
-      ['TradeZoro Charts, every chart type, drawing and indicator', true, true],
+    ['ZoroCharts', [
+      ['ZoroCharts, every chart type, drawing and indicator', true, true],
       ['Alerts, layouts, paper trading, replay and backtesting', true, true],
       ['Market data', 'Updated every 10 minutes', 'Real-time'],
       ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
@@ -242,7 +242,7 @@
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', TradeZoro Charts with every tool and indicator, free, SPX on the GEX page, 20 journal trades a month.</p>' +
+        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', ZoroCharts with every tool and indicator, free, SPX on GEX+, 20 journal trades a month.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
       '<div class="pv-compare-wrap">' +

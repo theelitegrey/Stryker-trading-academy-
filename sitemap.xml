@@ -169,6 +169,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://tradezoro.com/features/market-stats</loc>
+    <lastmod>2026-10-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://tradezoro.com/login</loc>
     <lastmod>2026-10-28</lastmod>
     <changefreq>monthly</changefreq>

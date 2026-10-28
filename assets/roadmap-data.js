@@ -20,9 +20,8 @@
     heading: "What's next at TradeZoro",
     note: 'Built in the open. Members see new modules the day they ship.',
     items: [
-      { id: 'market-stats', title: 'Market Stats', desc: 'A market statistics desk for the instruments you trade, building now.', status: 'progress', when: 'In progress', progress: 33, sub: ['Building now'],
-        details: 'A new module for market statistics. It is being built right now and has no release date yet.',
-        milestones: [{ label: 'Scope and data sources', done: true }, { label: 'First working version for members', done: false }, { label: 'Polish after member feedback', done: false }] },
+      { id: 'market-stats', title: 'Market Stats', desc: 'How often gap fills, opening range breaks and prior-day levels played out on NQ, ES and SPX, with sample sizes.', status: 'shipped', when: 'Shipped', link: 'market-stats.html', build: 708, date: '2026-10-29',
+        details: 'Free for every member. Historical frequencies with sample sizes and 95% intervals, with the sessions behind each number one tap away on ZoroCharts.' },
       { id: 'charts-free', title: 'ZoroCharts free for everyone', desc: 'ZoroCharts opening up to every member on the Free plan.', status: 'progress', when: 'In progress', progress: 50, sub: ['Free plan access', 'Pro keeps live data'],
         details: 'ZoroCharts is already live. We are working on making it available to everyone on the Free plan, with Pro keeping real-time futures data.',
         milestones: [{ label: 'ZoroCharts live for members', done: true }, { label: 'Free plan access to ZoroCharts', done: false }] },

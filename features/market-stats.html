@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="stryker-build" content="707">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Market Stats on TradeZoro: how often NQ, ES and SPX gaps filled, opening ranges broke and prior-day levels were hit, with sample sizes and 95% intervals. Free for every member.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TradeZoro">
+<meta property="og:title" content="Market Stats — Historical Frequencies With Sample Sizes">
+<meta property="og:image" content="https://tradezoro.com/assets/images/og/share/features_market-stats.png?v=707">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:alt" content="Market Stats share card: gap fill statistics with sample sizes, with the TradeZoro logo">
+<meta property="og:description" content="How often NQ, ES and SPX gaps filled, opening ranges broke and prior-day levels were hit, with sample sizes and 95% intervals.">
+<meta property="og:url" content="https://tradezoro.com/features/market-stats">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Market Stats — Historical Frequencies With Sample Sizes">
+<meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/features_market-stats.png?v=707">
+<meta name="twitter:image:alt" content="Market Stats share card: gap fill statistics with sample sizes, with the TradeZoro logo">
+<meta name="twitter:description" content="How often NQ, ES and SPX gaps filled, opening ranges broke and prior-day levels were hit, with sample sizes and 95% intervals.">
+<meta name="theme-color" content="#050506">
+<title>Market Stats | TradeZoro</title>
+<link rel="canonical" href="https://tradezoro.com/features/market-stats">
+<link rel="preload" href="/assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/assets/style.css?v=707">
+<link rel="stylesheet" href="/assets/nav-features.css?v=707">
+<script src="/assets/sanitize.js?v=707"></script>
+<script>
+// TradeZoro — device detection for forced views
+//
+// Loaded synchronously in <head>, before first paint, so the layout never
+// flashes from one mode to another. Stamps the html root element with data-device="mobile|
+// tablet|desktop">, which assets/style.css uses to FORCE the right shell
+// for the physical device instead of trusting viewport width alone:
+//
+//   - a phone held in landscape reports >900px and used to get the squeezed
+//     desktop sidebar; it now keeps the mobile drawer shell.
+//   - a tablet in portrait reports <900px and used to get the phone drawer;
+//     it now keeps a visible sidebar.
+//
+// Detection order matters: explicit mobile UAs first, then tablet UAs
+// (including iPadOS, which reports itself as a Mac but has multi-touch),
+// then a touch-screen heuristic to catch phones running in "Desktop site"
+// mode with a spoofed UA. Touch-screen laptops fall through to desktop
+// because their PRIMARY pointer is still fine (mouse/trackpad).
+
+(function () {
+  var ua = navigator.userAgent || '';
+  var touchPoints = navigator.maxTouchPoints || 0;
+  var coarsePrimary = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+  var iPadOS = /Macintosh/.test(ua) && touchPoints > 1;
+
+  var device;
+  if (/iPhone|iPod|Windows Phone|BlackBerry|Opera Mini/i.test(ua) ||
+      (/Android/i.test(ua) && /Mobile/i.test(ua))) {
+    device = 'mobile';
+  } else if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || iPadOS ||
+      (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    device = 'tablet';
+  } else if (coarsePrimary) {
+    // Touch-first device wearing a desktop UA ("Desktop site" checkbox).
+    // The shorter screen edge separates phones from tablets well enough.
+    var shortEdge = Math.min(window.screen.width || 0, window.screen.height || 0);
+    device = shortEdge && shortEdge < 620 ? 'mobile' : 'tablet';
+  } else {
+    device = 'desktop';
+  }
+
+  document.documentElement.setAttribute('data-device', device);
+})();
+</script>
+<script src="/assets/toast.js?v=707" defer></script>
+<script src="/assets/version-check.js?v=707" defer></script>
+<script src="/assets/acquisition.js?v=707" defer></script>
+<script src="/assets/focus-mode.js?v=707" defer></script>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/x-icon" href="/assets/images/tradezoro-favicon-32-494.png?v=707">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/images/tradezoro-favicon-32-494.png?v=707">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/tradezoro-favicon-16-494.png?v=707">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/tradezoro-apple-touch-icon-494.png?v=707">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/images/tradezoro-icon-192-494.png?v=707">
+<script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
+<link rel="stylesheet" href="/assets/features-page.css?v=707">
+</head>
+<body class="fp-page">
+<a class="skip-link" href="#main">Skip to content</a>
+
+<nav class="nav" id="site-nav">
+  <div class="nav-inner">
+    <a href="/" class="brand">
+      <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-192.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-192.png" alt="TradeZoro" width="273" height="64"></picture>
+    </a>
+    <div class="nav-links">
+      <a href="/features">Features</a>
+      <a href="/#curriculum">Curriculum</a>
+      <a href="/#pricing">Pricing</a>
+      <a href="/courses">Courses</a>
+      <a href="/dashboard-user">Dashboard</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost btn-sm">Log in</a>
+      <a href="/signup" class="btn btn-primary btn-sm">Start learning</a>
+      <button class="nav-toggle" aria-label="Menu">☰</button>
+    </div>
+  </div>
+</nav>
+<main id="main" tabindex="-1">
+<header class="ft-hero fg-hero fp-hero">
+<span class="ft-hero-kicker">Market Stats · Free</span>
+<h1>How often it happened, <em>and how many times</em></h1>
+<p class="ft-hero-sub">Pick NQ, ES or SPX and see how often gaps filled, the opening range broke, the first hour was extended and yesterday's high and low were hit. Every number comes with its sample size and a 95% interval, and you can open the sessions behind it on ZoroCharts.</p>
+<p class="ft-hero-sub"><strong>Historical frequencies with sample sizes. Not predictions.</strong></p>
+<div class="ft-hero-cta"><a href="/market-stats" class="btn btn-primary">Open Market Stats</a><a href="/signup" class="btn btn-ghost">Create a free account</a></div>
+</header>
+<div class="container">
+<section class="ft-section" id="reports">
+<div class="ft-section-head ft-reveal"><h2>The reports</h2><p>Regular session, 09:30 to 16:00 New York, three years of 5-minute history.</p></div>
+<div class="fg-flow ft-reveal">
+  <div class="fg-node"><h3>Gap fill</h3><p>How often an opening gap traded back to the prior close, how fast, by gap size and by day of week.</p></div>
+  <div class="fg-node"><h3>Opening range</h3><p>Which side of the first 15 or 30 minutes broke first, and how far price followed through.</p></div>
+  <div class="fg-node"><h3>Initial balance</h3><p>Whether the first hour's high, low or both were broken later in the session, and by how much.</p></div>
+  <div class="fg-node"><h3>Prior day levels</h3><p>How often the session reached yesterday's high and low, and whether it closed beyond them.</p></div>
+  <div class="fg-node"><h3>Day of week</h3><p>Up days by weekday and the typical session range.</p></div>
+</div>
+</section>
+<section class="ft-section" id="how-it-works">
+<div class="ft-section-head ft-reveal"><h2>Built to be honest</h2><p>A small sample should look small.</p></div>
+<div class="fg-flow ft-reveal">
+  <div class="fg-node"><span class="fg-step">1</span><h3>N on every number</h3><p>Each card shows how many sessions it covers. Under 30 it carries a low-sample tag; under 10 the number is withheld.</p></div>
+  <div class="fg-node"><span class="fg-step">2</span><h3>95% interval</h3><p>A Wilson interval shows how much room the estimate has, plus a check that the first and second half of the sessions agree.</p></div>
+  <div class="fg-node"><span class="fg-step">3</span><h3>See the sessions</h3><p>Tap a number to list the matching sessions, then open one on ZoroCharts with the prior day levels, gap and range lines drawn.</p></div>
+</div>
+</section>
+<section class="ft-section" id="faq">
+<div class="ft-section-head ft-reveal"><h2>Questions</h2></div>
+<div class="fg-faq ft-reveal">
+<details><summary>Does it tell me what will happen next?</summary><div class="fg-a"><p>No. It counts what happened in past sessions. Education only. Not financial advice.</p></div></details>
+<details><summary>Which markets and how much history?</summary><div class="fg-a"><p>NQ, ES and SPX, regular session, up to three years of history. It refreshes once a day after the close.</p></div></details>
+<details><summary>Which plan includes it?</summary><div class="fg-a"><p>Market Stats is free for every account.</p></div></details>
+<details><summary>Where does the method come from?</summary><div class="fg-a"><p>Statistics engine based on LuxAlgo Edge Stats (MIT).</p></div></details>
+</div>
+<div class="ft-cta ft-reveal"><h2>Check a setup against the history</h2><p>Open Market Stats and pick a report.</p>
+<div class="ft-hero-cta"><a href="/market-stats" class="btn btn-primary">Open Market Stats</a><a href="/features/charts" class="btn btn-ghost">ZoroCharts</a></div></div>
+</section>
+</div>
+</main>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="/" class="brand" style="margin-bottom:14px;">
+          <picture><source media="(max-width:767px)" srcset="/assets/images/tradezoro-tzmark-1014-144.webp" type="image/webp" width="144" height="144"><source srcset="/assets/images/tradezoro-wordmark-1014-144.webp" type="image/webp"><img class="brand-mark" data-fp-nopad src="/assets/images/tradezoro-wordmark-1014-144.png" alt="TradeZoro" width="205" height="48"></picture>
+        </a>
+        <p style="color:var(--ink-3); font-size:13.5px; max-width:280px;">Chapter-based ICT and SMT trading education, built like a trading desk curriculum.</p>
+      </div>
+      <div>
+        <h5>Learn</h5>
+        <a href="/features">All features</a>
+        <a href="/courses">Full curriculum</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div>
+        <h5>Account</h5>
+        <a href="/login">Log in</a>
+        <a href="/signup">Create account</a>
+        <a href="/dashboard-user">Student dashboard</a>
+      </div>
+      <div>
+        <h5>Company</h5>
+        <a href="/about">About TradeZoro</a>
+        <a href="/support">Support</a>
+        <a href="/contact">Contact us</a>
+        <a href="/terms">Terms &amp; Risk Disclosure</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 TradeZoro, operating as TradeZoro. All rights reserved.</span>
+      <span>Statistics engine based on LuxAlgo Edge Stats (MIT).</span>
+    </div>
+    <div class="footer-legal-row">
+      <a href="/privacy">Privacy Policy</a>
+      <a href="/cookies">Cookie Policy</a>
+      <a href="/gdpr">GDPR</a>
+      <a href="/refund-policy">Refund Policy</a>
+      <a href="/terms#third-party-notices">Third-party notices</a>
+    </div>
+    <p class="risk-disclaimer">Trading foreign exchange, indices, and commodities carries a high level of risk and may not be suitable for all investors. TradeZoro is an educational service only and does not provide financial advice or manage client funds. Past performance shown in course materials is illustrative and not indicative of future results.</p>
+  </div>
+</footer>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="/assets/nav-features.js?v=707" defer></script>
+<script src="/assets/main.js?v=707"></script>
+<script src="/assets/auth.js?v=707"></script>
+<script src="/assets/plan-price.js?v=707"></script>
+<script src="/assets/launch-sale.js?v=707"></script>
+<script src="/assets/progress.js?v=707"></script>
+<script src="/assets/activity-log.js?v=707"></script>
+<script src="/assets/banned-check.js?v=707"></script>
+<script src="/assets/email-verify.js?v=707"></script>
+<script src="/assets/profiles-sync.js?v=707"></script>
+<script src="/assets/branding.js?v=707"></script>
+<script src="/assets/seo.js?v=707"></script>
+<script src="/assets/features.js?v=707"></script>
+<script src="/assets/features-page.js?v=707"></script>
+<script src="/assets/theme.js?v=707"></script>
+</body>
+</html>

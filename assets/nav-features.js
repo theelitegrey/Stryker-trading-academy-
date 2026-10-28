@@ -23,6 +23,7 @@
     { id: 'community', name: 'Community', url: '/features/community', icon: '🤝' },
     { id: 'charts', name: 'ZoroCharts', url: '/features/charts', icon: '📉' },
     { id: 'orderflow', name: 'Order Flow', url: '/features/orderflow', icon: '🔬' },
+    { id: 'market-stats', name: 'Market Stats', url: '/features/market-stats', icon: '📈', line: 'How often gaps, ranges and levels played out, with sample sizes.' },
     { id: 'live-sessions', name: 'Live Sessions', url: '/features/live-sessions', icon: '🔴' }
   ];
 

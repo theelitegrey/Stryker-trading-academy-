@@ -45,6 +45,7 @@ const PAGES = [
   ['/features/indicators', '0.6', 'monthly'],
   ['/features/community',  '0.6', 'monthly'],
   ['/features/orderflow',  '0.6', 'monthly'],
+  ['/features/market-stats', '0.6', 'monthly'],
   ['/login',                '0.5', 'monthly'],
   ['/contact',              '0.6', 'monthly'],
   ['/support',              '0.6', 'monthly'],

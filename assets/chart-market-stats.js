@@ -72,16 +72,22 @@ class MsNative {
     const d = readDrill();
     let payload = null;
     if (d) {
-      let shift = 0, chip = '', ready = true;
-      if (d.shiftToOpen) {
-        // SPX levels on the ES chart: the ES open of that session minus the SPX open
-        let bar = null;
-        try { const bars = this.ctx.bars(); for (let i = bars.length - 1; i >= 0; i--) { if (bars[i].time === d.open * 1000) { bar = bars[i]; break; } if (bars[i].time < d.open * 1000) break; } } catch (e) {}
-        if (bar) { shift = bar.open - d.o; chip = 'SPX levels shifted ' + (shift >= 0 ? '+' : '') + shift.toFixed(2) + ' to ES (open basis)'; }
-        else { ready = false; chip = 'Waiting for the session bars…'; }
-      }
+      // The chart's futures bars are the unadjusted front month; the stats rows use the back-adjusted continuous
+      // contract, so older sessions differ by the roll offsets. Align the levels to the chart with the open basis:
+      // the chart's bar at the 09:30 open minus the session open in the data (exact on 5m bars, about 30 min early on hourly).
+      let shift = 0, chip = '', ready = false;
+      try {
+        const bars = this.ctx.bars(); let bar = null;
+        for (let i = bars.length - 1; i >= 0; i--) { if (bars[i].time <= d.open * 1000) { bar = bars[i]; break; } }
+        if (bar && d.open * 1000 - bar.time < 3600 * 1000) {
+          ready = true; shift = bar.open - d.o;
+          const exact = bar.time === d.open * 1000;
+          if (Math.abs(shift) >= 0.005 || d.shiftToOpen) chip = (d.shiftToOpen ? 'SPX' : 'Levels') + ' shifted ' + (shift >= 0 ? '+' : '') + shift.toFixed(2) + ' to this chart (open basis' + (exact ? '' : ', approximate on hourly bars') + ')';
+        }
+      } catch (e) {}
+      if (!ready) chip = 'Waiting for the session bars…';
       payload = { lines: ready ? drillLines(d, shift) : [], open: d.open, close: d.open + 390 * 60, markT: Number.isFinite(d.t) && d.t >= 0 ? d.open + d.t * 60 : null,
-        markLabel: d.markLabel || '', gap: ready ? [d.pdc + shift, d.o + shift] : null, labels: this.inputs.labels !== false, chip: chip || (d.title ? d.title + ' · ' + d.date : d.date) };
+        markLabel: d.markLabel || '', gap: ready ? [d.pdc + shift, d.o + shift] : null, labels: this.inputs.labels !== false, chip: (d.title ? d.title + ' · ' + d.date : d.date) + (chip ? ' · ' + chip : '') };
     }
     const sig = JSON.stringify(payload);
     if (sig === this.sig) return;
@@ -199,22 +205,31 @@ export function openSessionFromLink(ws) {
     try {
       const cell = ws.active;
       cell.setSymbol(sym);
-      cell.setTimeframe(String(q.get('tf') || '5'));
       const chart = cell.chart;
       const orch = chart.orchestrator;
-      // wait for the first load of the new market
-      const t0 = Date.now();
-      while (Date.now() - t0 < 15000) { await new Promise((r) => setTimeout(r, 150)); if (!orch.switchingMarket && orch.historyCompleted && orch.rawBars.length > 50 && String(orch.config.market.symbol).indexOf(root) >= 0) break; }
-      // page older history in until the day's open is on the chart (5 minute bars: ~78 a day, 3 years back needs the pager)
-      for (let i = 0; i < 40 && orch.rawBars.length && orch.rawBars[0].time / 1000 > openEpoch - 3600 && orch.rawBars.length < 30000; i++) {
-        const before = orch.rawBars.length;
-        orch.resetHistoryTracking(); orch.historyState = 'backfill';
-        await orch.backfillHistory(orch.generation, Math.min(30000, before + 4000));
-        if (!orch.historyCompleted) { try { orch.completeHistory('aborted'); } catch (e) {} }
-        if (orch.rawBars.length <= before) break;
+      // 5-minute bars reach back about 59 days, hourly bars about 2 years: try the asked timeframe, then hourly
+      let reached = false;
+      for (const tf of [String(q.get('tf') || '5'), '60']) {
+        cell.setTimeframe(tf);
+        const t0 = Date.now();
+        await new Promise((r) => setTimeout(r, 300));
+        while (Date.now() - t0 < 15000) { await new Promise((r) => setTimeout(r, 150)); if (!orch.switchingMarket && orch.historyCompleted && orch.rawBars.length > 50 && String(orch.config.market.symbol).indexOf(root) >= 0 && String(orch.config.market.timeframe) === tf) break; }
+        // page older history in until the day's open is on the chart
+        for (let i = 0; i < 40 && orch.rawBars.length && orch.rawBars[0].time / 1000 > openEpoch - 3600 && orch.rawBars.length < 30000; i++) {
+          const before = orch.rawBars.length;
+          orch.resetHistoryTracking(); orch.historyState = 'backfill';
+          await orch.backfillHistory(orch.generation, Math.min(30000, before + 4000));
+          if (!orch.historyCompleted) { try { orch.completeHistory('aborted'); } catch (e) {} }
+          if (orch.rawBars.length <= before) break;
+        }
+        const first = orch.rawBars[0] ? orch.rawBars[0].time / 1000 : 0;
+        if (first && first <= openEpoch) { reached = true; break; }
       }
-      const first = orch.rawBars[0] ? orch.rawBars[0].time / 1000 : 0;
-      if (!first || first > openEpoch) { try { window.dispatchEvent(new CustomEvent('stk:ms-nodata', { detail: { date } })); } catch (e) {} return false; }
+      if (!reached) {
+        try { window.__msNoData = date; window.dispatchEvent(new CustomEvent('stk:ms-nodata', { detail: { date } })); } catch (e) {}
+        try { if (window.showToast) window.showToast('Chart history for ' + date + ' is not available yet. The numbers on Market Stats still count it.', 'info'); } catch (e) {}
+        return false;
+      }
       if (withLines) { try { chart.addNativeIndicator(TYPE, {}); } catch (e) { console.warn('TradeZoro: market stats overlay', e); } }
       // the session plus an hour either side
       chart.setVisibleRange({ from: (openEpoch - 40 * 60) * 1000, to: (openEpoch + 390 * 60 + 40 * 60) * 1000 });

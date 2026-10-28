@@ -8,7 +8,7 @@
 // gzip bytes as they came; GET /scan?part= serves them as-is (x-scan-gzip: 1; the page un-gzips with
 // DecompressionStream, as /orderflow does), edge-cached 60 s, so InsightSentry is never called per
 // visitor. Plan gating (custom filters = Pro) is the site's.
-export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo'];
+export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx'];
 export const SCAN_MAX_BODY = 512 * 1024;
 export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];
 const FRESH_S = 15 * 60;
@@ -23,6 +23,20 @@ async function gunzipText(buf, max) {
   const text = await ds.text();
   if (text.length > max) throw new Error('too big unpacked');
   return text;
+}
+
+// Market Stats part (ms-feeder/ms_feeder.py): one row per RTH session, { v, t, sym, tf, cols, rows }. Pure.
+export const MS_COLS = ['d', 'dow', 'o', 'h', 'l', 'c', 'pdh', 'pdl', 'pdc', 'gf', 'o15h', 'o15l', 'o15d', 'o15t', 'o15x', 'o30h', 'o30l', 'o30d', 'o30t', 'o30x',
+  'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd', 'thi', 'tlo', 'bhi', 'blo'];
+export function validateMarketStats(part, d) {
+  if (part.slice(3).toUpperCase() !== d.sym) return 'bad sym';
+  if (!Array.isArray(d.cols) || d.cols.join() !== MS_COLS.join()) return 'bad cols';
+  if (!Array.isArray(d.rows) || d.rows.length < 1 || d.rows.length > 1000) return 'bad rows';
+  for (const r of d.rows) {
+    if (!Array.isArray(r) || r.length !== MS_COLS.length || !r.every((v) => v === null || fin(v))) return 'bad row';
+    if (!(r[0] > 20000101 && r[0] < 21000101)) return 'bad date';
+  }
+  return '';
 }
 
 // Symbol info part (info-feeder): { v, t, syms: { KEY: { kind: 'fut'|'stock', code, ... } } }. Pure.
@@ -41,8 +55,9 @@ export function validateSymInfo(d) {
 export function validateScanPart(part, d, nowSec) {
   if (!SCAN_PARTS.includes(part)) return 'bad part';
   if (!d || typeof d !== 'object' || d.v !== 1) return 'bad header';
-  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' ? 3600 : FRESH_S)) return 'stale or future t';
+  if (!fin(d.t) || d.t > nowSec + 60 || nowSec - d.t > (part === 'syminfo' || part.startsWith('ms_') ? 3600 : FRESH_S)) return 'stale or future t';
   if (part === 'syminfo') return validateSymInfo(d);
+  if (part.startsWith('ms_')) return validateMarketStats(part, d);
   if (!Array.isArray(d.cols) || d.cols.join() !== SCAN_COLS.join()) return 'bad cols';
   if (part === 'presets') {
     const ks = Object.keys(d.presets || {});

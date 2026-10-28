@@ -1,0 +1,22 @@
+[Unit]
+Description=TradeZoro Market Stats feeder: InsightSentry 5-minute history -> per-session rows for NQ / ES / SPX -> book recorder Worker (one run)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# recorder URL + shared ingest secret, and the InsightSentry key (both files mode 0600; never logged)
+EnvironmentFile=/root/projects/book-feeder/feeder.env
+EnvironmentFile=/root/.hermes/profiles/chief-of-staff/scripts/insightsentry.env
+Environment=MS_CACHE_DIR=/root/projects/book-feeder/ms-cache
+ExecStart=/usr/bin/python3 /root/projects/book-feeder/ms_feeder.py
+# nightly: 6 InsightSentry calls (2 months x 3 symbols); Sunday / first run: 37 x 3 = 111 calls, ~3 min
+TimeoutStartSec=900
+MemoryMax=300M
+Nice=10
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/projects/book-feeder/ms-cache
+SyslogIdentifier=ms-feeder

@@ -3,7 +3,7 @@
 //   node workers/book-recorder/test/scan.test.mjs
 import { gzipSync, gunzipSync } from 'node:zlib';
 import assert from 'node:assert/strict';
-import { validateScan, validateScanPart, SCAN_COLS } from '../src/scan.js';
+import { validateScan, validateScanPart, SCAN_COLS, MS_COLS } from '../src/scan.js';
 
 let n = 0;
 const ok = (c, m) => { assert.ok(c, m); n++; console.log('PASS ' + m); };
@@ -17,6 +17,16 @@ export const table = (o) => {
 };
 const gz = (x) => { const b = gzipSync(JSON.stringify(x)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
 
+// Market Stats parts (ms-feeder): one row per session, 33 numeric columns
+const msRow = (d) => MS_COLS.map((c, i) => (i === 0 ? d : i === 1 ? 2 : c === 'o15x' || c === 'o30x' || c === 'ibx' ? null : 1.5));
+const ms = (o) => Object.assign({ v: 1, t: now - 30, sym: 'NQ', tf: 5, cols: MS_COLS, rows: [msRow(20261027), msRow(20261028)] }, o || {});
+ok(validateScanPart('ms_nq', ms(), now) === '', 'market stats part valid (null extensions allowed)');
+ok(validateScanPart('ms_es', ms(), now) === 'bad sym', 'market stats symbol must match the part');
+ok(validateScanPart('ms_nq', ms({ cols: ['d'] }), now) === 'bad cols', 'market stats wrong columns rejected');
+ok(validateScanPart('ms_nq', ms({ rows: [[1, 2]] }), now) === 'bad row', 'market stats short row rejected');
+ok(validateScanPart('ms_nq', ms({ rows: [msRow('x')] }), now) === 'bad row', 'market stats text cell rejected');
+ok(validateScanPart('ms_nq', ms({ t: now - 3000 }), now) === '', 'market stats stays fresh for an hour');
+ok(validateScanPart('ms_nq', ms({ t: now - 4000 }), now) === 'stale or future t', 'market stats older than an hour rejected');
 ok(validateScanPart('presets', presets(), now) === '', 'presets valid');
 ok(validateScanPart('stock', table(), now) === '', 'table valid');
 ok(validateScanPart('bonds', table(), now) === 'bad part', 'unknown part');

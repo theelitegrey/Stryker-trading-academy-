@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the Market Stats feeder once a day (22:15 UTC, after the US close in both DST states)
+
+[Timer]
+OnCalendar=*-*-* 22:15:00
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

@@ -36,7 +36,7 @@
 //
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
-import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=699';
+import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=700';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';

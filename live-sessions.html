@@ -5,10 +5,12 @@
 <meta name="stryker-build" content="697">
 <meta name="robots" content="noindex, nofollow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Sessions — TradeZoro</title>
+<title>Free live trading sessions on YouTube | TradeZoro</title>
+<meta name="description" content="Every TradeZoro live trading session will stream 100% free on YouTube. Expected from December. Education only.">
 <link rel="preload" href="assets/fonts/archivo-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin-variable.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/style.css?v=697">
+<link rel="stylesheet" href="assets/live-yt-banner.css?v=697">
 <script src="assets/sanitize.js?v=697"></script>
 <script>
 // TradeZoro — device detection for forced views
@@ -67,7 +69,7 @@
 <script>try{if(localStorage.getItem('stryker_nav_authed')==='1')document.documentElement.classList.add('nav-authed')}catch(e){}</script>
 <script>try{var _t=localStorage.getItem('stryker_theme');if(_t==='day')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 </head>
-<body data-page-access="live-sessions">
+<body>
 <a class="skip-link" href="#main">Skip to content</a>
 <nav class="appnav-dock" id="appnav-dock" aria-label="Primary">
   <a class="appnav-dk" data-nav="charts" href="charts"><span class="appnav-dkbar"></span><span class="appnav-dki"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v3M7 17v4M17 3v5M17 15v6"/><rect x="4.5" y="6" width="5" height="11" rx="1"/><rect x="14.5" y="8" width="5" height="7" rx="1"/></svg><span class="appnav-new" aria-hidden="true"></span></span><span class="appnav-dkl">Charts</span></a>
@@ -252,71 +254,20 @@
   </aside>
 
   <main class="dash-main" id="main" tabindex="-1">
-    <div class="dash-topbar">
-      <div>
-        <h1>Live sessions</h1>
-        <p>Scheduled by the academy team. This list is read-only from your account.</p>
-      </div>
+    <div class="lyt-wrap"><section class="lyt" id="live-yt-banner" aria-labelledby="lyt-h">
+  <div class="lyt-glow" aria-hidden="true"></div><div class="lyt-grid" aria-hidden="true"></div>
+  <div class="lyt-in">
+    <span class="lyt-pill"><i></i>Coming soon</span>
+    <div class="lyt-play" aria-hidden="true"><svg viewBox="0 0 68 48" aria-hidden="true"><path d="M66.5 7.7a8.5 8.5 0 0 0-6-6C55.2.2 34 .2 34 .2S12.8.2 7.5 1.7a8.5 8.5 0 0 0-6 6C0 13 0 24 0 24s0 11 1.5 16.3a8.5 8.5 0 0 0 6 6C12.8 47.8 34 47.8 34 47.8s21.2 0 26.5-1.5a8.5 8.5 0 0 0 6-6C68 35 68 24 68 24s0-11-1.5-16.3z" fill="#f00"/><path d="M27 34V14l18 10z" fill="#fff"/></svg></div>
+    <h1 id="lyt-h">Live sessions are going <em>free</em> on YouTube</h1>
+    <p class="lyt-sub">Every live trading session will stream 100% free on our YouTube channel. Expected from December.</p>
+    <div class="lyt-cta">
+      <a class="lyt-btn" href="https://youtube.com/@thetradezoro?sub_confirmation=1" target="_blank" rel="noopener">Subscribe on YouTube</a>
+      <a class="lyt-link" href="https://youtube.com/@thetradezoro" target="_blank" rel="noopener">Get notified: follow @thetradezoro</a>
     </div>
-
-    <!-- ============ LIVE PLAYER + CHAT ============ -->
-    <div id="live-hero" style="display:none;">
-      <div class="live-hero-grid">
-        <div class="panel live-player-panel">
-          <div class="panel-head" style="margin-bottom:12px;">
-            <h2 id="live-hero-title">Live session</h2>
-            <span id="live-hero-badge" class="live-badge" style="display:none;"><i></i>LIVE</span>
-          </div>
-          <div class="live-player-wrap" id="live-player-wrap">
-            <div id="live-player-host"></div>
-            <div class="live-player-shield" id="live-player-shield"></div>
-            <div class="live-player-brand" aria-hidden="true">
-              <img src="assets/images/tradezoro-logo-emblem-494.png?v=697" alt="">
-              <span>TRADEZORO</span>
-            </div>
-            <div class="live-player-titlebar" id="live-player-titlebar" aria-hidden="true">
-              <span class="lpt-live" id="lpt-live"><i></i>LIVE</span>
-              <b id="lpt-title"></b>
-            </div>
-          </div>
-          <div class="live-controls" id="live-controls">
-            <button class="lc-btn" id="lc-play" title="Play / pause">▶</button>
-            <button class="lc-btn" id="lc-back" title="Back 10s">↺ 10</button>
-            <button class="lc-btn" id="lc-fwd" title="Forward 10s">10 ↻</button>
-            <button class="lc-btn" id="lc-live" title="Jump to live edge" style="display:none;">● LIVE</button>
-            <div class="lc-progress" id="lc-progress"><i id="lc-progress-fill"></i></div>
-            <button class="lc-btn" id="lc-mute" title="Mute / unmute">🔊</button>
-            <input type="range" id="lc-vol" min="0" max="100" value="80" title="Volume">
-            <button class="lc-btn" id="lc-fs" title="Fullscreen">⛶</button>
-          </div>
-          <p class="gm-fineprint" id="live-hero-sub" style="margin:10px 0 0;"></p>
-        </div>
-        <div class="panel live-chat-panel" id="live-chat-panel" style="display:none;">
-          <div class="panel-head" style="margin-bottom:10px;"><h2>Session chat</h2>
-            <span id="live-chat-count" style="font-family:var(--font-mono); font-size:11px; color:var(--ink-3);"></span></div>
-          <div class="live-chat-msgs" id="live-chat-msgs"></div>
-          <div class="live-chat-input">
-            <input type="text" id="live-chat-text" maxlength="500" placeholder="Say something…" autocomplete="off">
-            <button class="btn btn-primary btn-sm" id="live-chat-send">Send</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel" id="live-next-panel" style="display:none;">
-      <div class="panel-head"><h2>Next session</h2></div>
-      <div class="live-next" id="live-next-body"></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Upcoming</h2></div>
-      <div id="live-upcoming-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head"><h2>Past sessions</h2></div>
-      <div id="live-past-list"><div class="loading-state" data-lottie-auto><div class="loading-lottie-wrap"></div><p class="loading-state-text">Loading…</p></div></div>
-    </div>
+    <p class="lyt-edu">Education only. Not financial advice.</p>
+  </div>
+</section></div>
   </main>
 </div>
 
@@ -351,7 +302,6 @@
 <script src="assets/branding.js?v=697"></script>
 <script src="assets/dash-nav.js?v=697"></script>
 <script src="assets/market-hours.js?v=697"></script>
-<script src="assets/live-sessions.js?v=697"></script>
 <script src="assets/theme.js?v=697"></script>
 </body>
 </html>

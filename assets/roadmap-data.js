@@ -44,7 +44,7 @@
       { build: 279, date: '2026-09-08', title: 'Replay on Lightweight Charts, indicator library, coach, trade tags and snapshots' },
       { build: 278, date: '2026-09-08', title: 'Backtest replay, first version' },
       { build: 277, date: '2026-09-08', title: 'Feature pages for every module' },
-      { build: 276, date: '2026-09-08', title: 'ZoroCharts workspace' },
+      { build: 276, date: '2026-09-08', title: 'ZoroCharts' },
       { build: 275, date: '2026-09-08', title: 'Smart Money desk visual overhaul' },
       { build: 274, date: '2026-09-08', title: 'Live session end and complete controls, HD playback, timezone-correct countdowns' },
       { build: 271, date: '2026-09-08', title: 'Quick notes on every admin page' },

@@ -101,7 +101,7 @@ const DEFAULT_CONFIG = {
 const FEATURES = [
   { page: 'features-curriculum.html', title: 'The Curriculum',
     blurb: 'A chapter-by-chapter ICT and SMT curriculum with tracked progress, quizzes, and achievements — structured the way a trading desk trains a new analyst.' },
-  { page: 'features-charts.html', title: 'Charts Workspace',
+  { page: 'features-charts.html', title: 'ZoroCharts',
     blurb: 'A full interactive charting workspace inside the academy — live crypto data, 70+ indicators, drawing tools, and layouts that save themselves.' },
   { page: 'features-models.html', title: 'Trading Models',
     blurb: 'Complete, rule-based trading models — context, entry, invalidation and management — documented step by step in the TradeZoro model library.' },

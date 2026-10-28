@@ -557,6 +557,9 @@ function lateLists(provider){
   }
   // News markers + Economic events natives (assets/chart-news-markers.js, Pro): registered before boot too.
   try { (await import('./chart-news-markers.js?v=707')).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
+  // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
+  let MSess = null;
+  try { MSess = await import('./chart-market-stats.js?v=707'); MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
@@ -687,6 +690,9 @@ function lateLists(provider){
   // LATE LAYERS (see lateLayers): patch the renderer prototype once (shared by every cell, so grid
   // cells added later are covered too).
   try { for (const c of ws.context().cells) { const r = c.chart.renderer; lateLayers(r && r.extLayers ? r : r && r.renderer); } } catch (e) { console.warn('TradeZoro: late layers', e); }
+
+  // charts?symbol=NQ&date=2026-10-28 (from /market-stats): open that session on the chart.
+  if (MSess && !BT) { try { MSess.openSessionFromLink(ws); } catch (e) { console.warn('TradeZoro: market stats link', e); } }
 
   try { ToolIcons.addShortToToolbar(ws, Core); } catch (e) { console.warn('TradeZoro: short position tool', e); }
 

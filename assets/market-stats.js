@@ -48,6 +48,145 @@
     return { from: from, dow: st.dow, bucket: st.bucket };
   }
 
+
+  // ---- Today ("what is in play") ---------------------------------------------------------------------------------------
+  // The chosen symbol's current session set against the history, one card per report. Bars come from our own
+  // /api/chart/bars (same rule as the charts: the server decides how fresh the newest bars are for this member, a Pro
+  // member's token is sent along). No extra data cost: three edge-cached 2-day pages, re-read once a minute.
+  var BARS_SYM = { NQ: 'NQ', ES: 'ES', SPX: 'ES', YM: 'YM', RTY: 'RTY', GC: 'GC', CL: 'CL' };
+  var PAGE_S = 2 * 86400;
+  var today = { sym: '', bars: null, err: '', html: '', at: 0, busy: false };
+  var rtMod = null;
+  function authHeaders() {
+    if (!rtMod) rtMod = import('./rt-access.js?v=709').catch(function () { return null; });
+    return rtMod.then(function (m) { return m && m.rtHeadersReady ? m.rtHeadersReady(3000) : {}; }).catch(function () { return {}; });
+  }
+  function fetchBars(root) {
+    return authHeaders().then(function (hd) {
+      var cur = Math.floor(Date.now() / 1000 / PAGE_S), jobs = [];
+      for (var i = 0; i < 3; i++) jobs.push(fetch('/api/chart/bars/' + root + '?tf=5&page=' + (cur - i), { headers: Object.assign({ accept: 'application/json' }, hd), cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : { bars: [] }; }).catch(function () { return { bars: [] }; }));
+      return Promise.all(jobs).then(function (res) {
+        var m = {};
+        res.forEach(function (d) { (d.bars || []).forEach(function (b) { m[b[0]] = b; }); });
+        return Object.keys(m).map(function (k) { return m[k]; }).sort(function (a, b) { return a[0] - b[0]; });
+      });
+    });
+  }
+  function dataSym() { return st.sym === 'SPX' ? 'ES' : st.sym; }
+  function refreshToday(force) {
+    var sym = dataSym();
+    if (today.busy || (!force && today.sym === sym && Date.now() - today.at < 55000)) return;
+    today.busy = true;
+    Promise.all([load(sym), fetchBars(BARS_SYM[sym] || sym)]).then(function (r) {
+      today.sym = sym; today.bars = r[1]; today.at = Date.now(); today.err = r[1].length ? '' : 'No bars came back just now.';
+    }).catch(function () { today.err = 'Could not read today\u2019s bars.'; }).then(function () {
+      today.busy = false; paintToday();
+    });
+  }
+  function f1(x) { return x == null ? '\u2014' : (Math.abs(x) >= 100 ? x.toFixed(0) : x.toFixed(2)); }
+  function clockAt(T, minsFromOpen) { return S.nyClock(S.sessionOpenEpoch(T.date) + minsFromOpen * 60); }
+  function hl(s) { return '<b>' + S.freq(s) + '</b>'; }
+  function tcard(id, title, status, tone, body, rep) {
+    return '<article class="ms-tc" data-tc="' + id + '"><header><h3>' + esc(title) + '</h3><span class="ms-pill ' + tone + '">' + esc(status) + '</span></header>' + body +
+      (rep ? '<button type="button" class="ms-tc-go" data-rep="' + rep + '">Open full report</button>' : '') + '</article>';
+  }
+  function line(label, html) { return '<p class="ms-tl"><span>' + esc(label) + '</span>' + html + '</p>'; }
+  function todayHtml() {
+    var d = st.data[dataSym()];
+    if (!d) return '';
+    var bars = today.bars || [];
+    var h = '<section class="ms-today" id="ms-today" aria-label="Today against history"><div class="ms-today-head"><h2>Today</h2>';
+    if (!bars.length) return h + '</div><p class="ms-empty">' + esc(today.err || 'Reading today\u2019s bars\u2026') + '</p></section>';
+    var lastT = bars[bars.length - 1][0], date = S.nyDate(lastT);
+    var sb = S.sessionBars(bars, date);
+    var prior = S.priorFromBars(bars, date);
+    if (!prior) { var pr = d.rows.filter(function (r) { return r.date < date; }).pop(); if (pr) prior = { date: pr.date, h: pr.h, l: pr.l, c: pr.c }; }
+    var T = S.todayState(sb, prior, date);
+    if (!T) return h + '</div><p class="ms-empty">No regular session bars yet for ' + esc(date) + '.</p></section>';
+    var isToday = date === S.nyDate(Date.now() / 1000);
+    var ageMin = Math.max(0, Math.floor((Date.now() / 1000 - T.endEpoch) / 60));
+    h += '<span class="ms-today-sub">' + (isToday ? '' : 'Last session: ') + esc(date) + ' \u00b7 ' + esc(st.sym) + (st.sym === 'SPX' ? ' (ES bars)' : '') + ' \u00b7 bars through ' + esc(S.nyClock(T.endEpoch)) + ' ET \u00b7 ' +
+      (T.complete ? 'session closed' : ageMin < 1 ? 'updated just now' : 'updated ' + ageMin + ' min ago') + '</span></div>';
+    var H = S.todayHistory(d.rows, T);
+    h += '<p class="ms-today-note">Each card sets today against the ' + H.n + ' earlier sessions on file (about 3 years). Historical frequencies with sample sizes. Not predictions.</p>';
+    h += '<div class="ms-tgrid">';
+    // gap
+    var g = T.gap, gb;
+    if (!g.has) gb = tcard('gap', 'Gap', 'No gap', 'flat', '<p class="ms-tl">Opened at the prior close (' + f1(T.prior.c) + ').</p>', 'gap');
+    else {
+      var gs = g.filled ? 'Filled' : 'Not filled yet';
+      var b = '<p class="ms-big2">' + (g.dir > 0 ? 'Gap up ' : 'Gap down ') + (g.pct > 0 ? '+' : '') + g.pct.toFixed(2) + '%</p>';
+      b += '<p class="ms-tl">' + f1(Math.abs(g.pts)) + ' pts, size ' + S.BUCKETS.filter(function (x) { return x[0] === g.bucket; })[0][1] + ' (' + S.BUCKET_TEXT[g.bucket] + '). Prior close ' + f1(T.prior.c) + '.</p>';
+      b += '<p class="ms-tl">' + (g.filled ? 'Filled at ' + esc(clockAt(T, g.fillMin)) + ' ET, ' + S.fmtMin(g.fillMin) + ' after the open.' : 'Still open ' + S.fmtMin(T.elapsed) + ' after the open.') + '</p>';
+      if (H.gap) {
+        b += line('History, this size', 'Gap filled ' + hl(H.gap.bucket));
+        b += line('Same size, ' + S.DOW[T.dow], 'Gap filled ' + hl(H.gap.bucketDow));
+        if (H.gap.later) b += line('Not filled by now', 'Of the same-size gaps still open after ' + S.fmtMin(T.elapsed) + ', filled later: ' + hl(H.gap.later));
+      }
+      gb = tcard('gap', 'Gap', gs, g.filled ? 'done' : 'open', b, 'gap');
+    }
+    h += gb;
+    // opening ranges
+    [15, 30].forEach(function (w) {
+      var r = T.or[w], HH = H.or[w], body = '', status, tone;
+      if (!r.done) { status = 'Forming'; tone = 'flat'; body = '<p class="ms-tl">The ' + w + '-minute range closes at ' + esc(clockAt(T, w)) + ' ET.</p>'; }
+      else {
+        var broke = r.dir === 1 ? 'Broke up' : r.dir === -1 ? 'Broke down' : r.dir === 2 ? 'Broke both ways' : 'Inside';
+        status = broke; tone = r.dir === 0 ? 'flat' : 'open';
+        body = '<p class="ms-tl">Range ' + f1(r.lo) + ' to ' + f1(r.hi) + ' (' + f1(r.hi - r.lo) + ' pts).</p>';
+        if (r.dir === 0) body += '<p class="ms-tl">Price has stayed inside so far; last ' + f1(T.last) + '.</p>';
+        else if (r.dir === 2) body += '<p class="ms-tl">One bar left both sides at ' + esc(clockAt(T, r.t)) + ' ET.</p>';
+        else body += '<p class="ms-tl">First break at ' + esc(clockAt(T, r.t)) + ' ET. Extension so far ' + f1(r.ext) + ' pts (' + (r.hi > r.lo ? (r.ext / (r.hi - r.lo)).toFixed(2) : '0') + 'x the range).</p>';
+        body += line('History', 'First break up ' + hl(HH.up));
+        body += line('', 'First break down ' + hl(HH.down));
+        body += line('', 'No break ' + hl(HH.none));
+        if (r.dir === 1) { body += line('After an up break', 'Reached 1x the range: ' + hl(HH.upX1)); body += line('', 'Closed above the range high: ' + hl(HH.upC)); }
+        if (r.dir === -1) { body += line('After a down break', 'Reached 1x the range: ' + hl(HH.dnX1)); body += line('', 'Closed below the range low: ' + hl(HH.dnC)); }
+      }
+      h += tcard('or' + w, 'Opening range ' + w + ' min', status, tone, body, 'or' + w);
+    });
+    // initial balance
+    var ib = T.ib, ibb = '', ibs, ibt;
+    if (!ib.done) { ibs = 'Forming'; ibt = 'flat'; ibb = '<p class="ms-tl">The first hour closes at 10:30 ET.</p>'; }
+    else {
+      ibs = ib.up && ib.dn ? 'Broke both sides' : ib.up ? 'Broke the high' : ib.dn ? 'Broke the low' : 'Inside'; ibt = ib.up || ib.dn ? 'open' : 'flat';
+      ibb = '<p class="ms-tl">IB ' + f1(ib.lo) + ' to ' + f1(ib.hi) + ' (' + f1(ib.range) + ' pts).</p>';
+      var mults = [0.5, 1, 1.5, 2];
+      function extRow(side, reached, hist) {
+        var cells = mults.map(function (m) {
+          var got = ib.range > 0 && reached >= m * ib.range;
+          return '<li class="' + (got ? 'got' : '') + '"><b>' + m + 'x</b><span>' + (got ? 'reached' : 'not yet') + '</span><i>' + (hist[m].guard === 'withheld' ? '\u2014' : S.pct(hist[m].p)) + '</i><small>N ' + hist[m].n + '</small></li>';
+        }).join('');
+        return '<p class="ms-tl"><span>' + side + ' extension so far ' + f1(reached) + ' pts (' + (ib.range > 0 ? (reached / ib.range).toFixed(2) : '0') + 'x). History of sessions that broke that side:</span></p><ul class="ms-ext">' + cells + '</ul>';
+      }
+      if (ib.up) ibb += extRow('High', ib.xu, H.ib.up);
+      if (ib.dn) ibb += extRow('Low', ib.xd, H.ib.dn);
+      if (!ib.up && !ib.dn) {
+        ibb += '<p class="ms-tl">Neither side broken since 10:30 ET; last ' + f1(T.last) + '.</p>';
+        ibb += line('History', 'High only ' + hl(H.ib.broke.up)) + line('', 'Low only ' + hl(H.ib.broke.down)) + line('', 'Both ' + hl(H.ib.broke.both)) + line('', 'Neither ' + hl(H.ib.broke.none));
+      }
+    }
+    h += tcard('ib', 'Initial balance', ibs, ibt, ibb, 'ib');
+    // prior day range
+    var pd = T.pd, pb = '';
+    pb += '<p class="ms-tl">Prior day (' + esc(T.prior.date) + '): high ' + f1(T.prior.h) + ', low ' + f1(T.prior.l) + ', close ' + f1(T.prior.c) + '.</p>';
+    pb += '<p class="ms-tl">Opened ' + (pd.loc === 'inside' ? 'inside' : pd.loc === 'above' ? 'above' : 'below') + ' the prior range, and ' + pd.vsClose + ' the prior close.</p>';
+    pb += '<p class="ms-tl">High ' + (pd.thi != null ? 'touched at ' + esc(clockAt(T, pd.thi)) + ' ET' : 'not touched yet') + '. Low ' + (pd.tlo != null ? 'touched at ' + esc(clockAt(T, pd.tlo)) + ' ET' : 'not touched yet') + '.</p>';
+    pb += line('History, opened ' + pd.loc, 'Touched the prior high ' + hl(H.pd.hi));
+    pb += line('', 'Touched the prior low ' + hl(H.pd.lo));
+    pb += line('', 'Closed above the prior high ' + hl(H.pd.closeAbove));
+    pb += line('', 'Closed below the prior low ' + hl(H.pd.closeBelow));
+    h += tcard('pd', 'Prior day range', 'Opened ' + pd.loc, pd.loc === 'inside' ? 'flat' : 'open', pb, 'prior');
+    h += '</div></section>';
+    return h;
+  }
+  function paintToday() {
+    try { today.html = todayHtml(); } catch (e) { console.warn('today', e); today.html = '<section class="ms-today"><p class="ms-empty">Today could not be drawn.</p></section>'; }
+    var el = document.getElementById('ms-today-slot');
+    if (el) el.innerHTML = today.html;
+  }
+
   // ---- render --------------------------------------------------------------------------------------------------------
   function chips(name, list, cur) {
     return '<div class="ms-chips" role="group" aria-label="' + name + '">' + list.map(function (x) {
@@ -133,7 +272,7 @@
     return 'updated ' + (hh < 48 ? hh + ' h ago' : Math.floor(hh / 24) + ' days ago');
   }
   function render() {
-    var h = controls();
+    var h = controls() + '<div id="ms-today-slot">' + (today.sym === dataSym() ? today.html : '') + '</div>';
     if (st.loading && !st.data[st.sym]) h += '<p class="ms-empty">Loading…</p>';
     else if (st.err && !st.data[st.sym]) h += '<p class="ms-empty">' + esc(st.err) + ' <button type="button" class="ms-retry" id="ms-retry">Try again</button></p>';
     else if (st.data[st.sym]) h += results();
@@ -142,6 +281,7 @@
     var a = document.getElementById('ms-ago');
     if (a && st.data[st.sym]) a.textContent = ago(st.data[st.sym].t);
     if (keep) window.scrollTo(0, keep);
+    refreshToday();
   }
 
   // ---- sessions behind a number --------------------------------------------------------------------------------------
@@ -202,7 +342,7 @@
     if (!t) return;
     if (t.id === 'ms-retry') { update(); return; }
     if (t.dataset.sym) { st.sym = t.dataset.sym; update(); return; }
-    if (t.dataset.rep) { st.rep = t.dataset.rep; update(); return; }
+    if (t.dataset.rep) { st.rep = t.dataset.rep; update(); if (t.classList.contains('ms-tc-go')) { var tab = root.querySelector('.ms-reps'); if (tab) window.scrollTo(0, Math.max(0, tab.getBoundingClientRect().top + window.scrollY - 70)); } return; }
     if (t.dataset.card != null) { st.lastBtn = t; openSheet(Number(t.dataset.card)); }
   });
   root.addEventListener('change', function (e) {
@@ -222,7 +362,8 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && st.sheet != null) closeSheet(); });
 
-  window.__stkMS = { state: st, run: function () { return cur; } };
+  setInterval(function () { if (!document.hidden) refreshToday(true); }, 60000);
+  window.__stkMS = { state: st, today: today, run: function () { return cur; } };
   load(st.sym).then(render);
   render();
 })();

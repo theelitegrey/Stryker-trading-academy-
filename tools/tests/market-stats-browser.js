@@ -53,6 +53,16 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
       check(/N = \d+/.test(s.first) && /95% interval/.test(s.first), tag + ': first card shows N and 95% interval: ' + String(s.first).replace(/\n/g, ' | ').slice(0, 140));
       check(s.disc && s.credit && !s.bad, tag + ': disclaimer line + LuxAlgo credit, no banned words');
       check(s.ox <= 0, tag + ': no sideways overflow (' + s.ox + ')');
+      // Today dashboard (step 1): bars come from /api/chart/bars on the dev server
+      await p.waitForSelector('.ms-tc', { timeout: 20000 }).catch(() => {});
+      const td = await p.evaluate(() => { const el = document.getElementById('ms-today'); return { n: document.querySelectorAll('.ms-tc').length, txt: el ? el.innerText : '', ox: document.documentElement.scrollWidth - window.innerWidth }; });
+      check(td.n >= 4, tag + ': Today shows ' + td.n + ' cards');
+      check(/of \d+ sessions \(range \d+\u2013\d+%\)/.test(td.txt) && /updated|session closed/.test(td.txt), tag + ': Today lines read "X% of N sessions (range a-b%)" with an updated stamp');
+      check(!/win rate|probability|high-probability|bias|target|\bedge\b|profit|real-?time|delayed|\blive\b|\bbuy\b|\bsell\b/i.test(td.txt), tag + ': Today has no banned words');
+      check(td.ox <= 0, tag + ': Today no sideways overflow');
+      await p.evaluate(() => document.getElementById('ms-today').scrollIntoView({ block: 'start' }));
+      await shot(p, 'ms-' + tag + '-today.png');
+      await p.evaluate(() => window.scrollTo(0, 0));
       await shot(p, 'ms-' + tag + '-gap.png');
       // report tab, symbol, filters by real clicks
       await p.click('.ms-tab[data-rep="or15"]'); await sleep(300);

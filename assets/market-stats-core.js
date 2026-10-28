@@ -239,7 +239,179 @@
     return Date.UTC(p[0], p[1] - 1, p[2], 9 - nyOffsetHours(p[0], p[1], p[2]), 30) / 1000;
   }
 
-  var api = { COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
+
+  // ---- Today: this session's conditions against the history ---------------------------------------------------------
+  // Pure functions. bars: [[t, o, h, l, c, v]] 5-minute bars (t = bar open, epoch seconds). One bar = 5 minutes.
+  function nyOffsetSecs(t) {
+    var y = new Date(t * 1000).getUTCFullYear();
+    function nth(m, n) { var first = Date.UTC(y, m, 1), dw = new Date(first).getUTCDay(); return first + (((7 - dw) % 7) + 7 * (n - 1)) * 864e5; }
+    var start = nth(2, 2) / 1000 + 7 * 3600, end = nth(10, 1) / 1000 + 6 * 3600;
+    return t >= start && t < end ? -4 * 3600 : -5 * 3600;
+  }
+  function nyDate(t) { return new Date((t + nyOffsetSecs(t)) * 1000).toISOString().slice(0, 10); }
+  function nyClock(t) { var d = new Date((t + nyOffsetSecs(t)) * 1000); return ('0' + d.getUTCHours()).slice(-2) + ':' + ('0' + d.getUTCMinutes()).slice(-2); }
+  // Bars of one New York session (09:30 to 16:00), ascending.
+  function sessionBars(bars, date) {
+    var open = sessionOpenEpoch(date), end = open + 390 * 60, out = [];
+    for (var i = 0; i < bars.length; i++) if (bars[i][0] >= open && bars[i][0] < end) out.push(bars[i]);
+    out.sort(function (a, b) { return a[0] - b[0]; });
+    return out;
+  }
+  // The latest complete-looking session before `date` in a bar list -> { date, h, l, c } or null.
+  function priorFromBars(bars, date) {
+    var days = {};
+    for (var i = 0; i < bars.length; i++) { var d = nyDate(bars[i][0]); if (d < date && days[d] !== false) (days[d] = days[d] || []).push(bars[i]); }
+    var keys = Object.keys(days).sort().reverse();
+    for (var k = 0; k < keys.length; k++) {
+      var sb = sessionBars(bars, keys[k]);
+      if (sb.length >= 70) {
+        var h = -Infinity, l = Infinity;
+        sb.forEach(function (b) { if (b[2] > h) h = b[2]; if (b[3] < l) l = b[3]; });
+        return { date: keys[k], h: h, l: l, c: sb[sb.length - 1][4] };
+      }
+    }
+    return null;
+  }
+  function firstBreak(sb, from, hi, lo) {
+    for (var i = from; i < sb.length; i++) {
+      var up = sb[i][2] > hi, dn = sb[i][3] < lo;
+      if (up && dn) return { dir: 2, i: i };
+      if (up) return { dir: 1, i: i };
+      if (dn) return { dir: -1, i: i };
+    }
+    return { dir: 0, i: -1 };
+  }
+  // sb: the session's bars so far; prior: { h, l, c }. -> the state of every Today card.
+  function todayState(sb, prior, date) {
+    if (!sb.length || !prior) return null;
+    var open = sessionOpenEpoch(date), o = sb[0][1];
+    var last = sb[sb.length - 1], end = last[0] + 300;
+    var elapsed = (end - open) / 60;
+    var mins = function (i) { return (sb[i][0] + 300 - open) / 60; };
+    var T = { date: date, dow: (new Date(date + 'T00:00:00Z').getUTCDay() + 6) % 7, open: o, last: last[4], endEpoch: end, elapsed: elapsed, bars: sb.length, prior: prior, complete: elapsed >= 390 };
+    // gap
+    var gap = { has: o !== prior.c, dir: o > prior.c ? 1 : -1, pct: (o - prior.c) / prior.c * 100, pts: o - prior.c, filled: false, fillMin: null };
+    gap.bucket = gap.has ? bucketOf(Math.abs(gap.pct)) : 'none';
+    if (gap.has) for (var i = 0; i < sb.length; i++) if ((o > prior.c && sb[i][3] <= prior.c) || (o < prior.c && sb[i][2] >= prior.c)) { gap.filled = true; gap.fillMin = mins(i); break; }
+    T.gap = gap;
+    // opening ranges
+    T.or = {};
+    [15, 30].forEach(function (w) {
+      var n = w / 5, r = { w: w, done: sb.length >= n, mins: w };
+      if (r.done) {
+        var hi = -Infinity, lo = Infinity;
+        for (var j = 0; j < n; j++) { if (sb[j][2] > hi) hi = sb[j][2]; if (sb[j][3] < lo) lo = sb[j][3]; }
+        r.hi = hi; r.lo = lo;
+        var fb = firstBreak(sb, n, hi, lo);
+        r.dir = fb.dir; r.t = fb.i >= 0 ? mins(fb.i) : null;
+        r.pos = last[4] > hi ? 1 : last[4] < lo ? -1 : 0;
+        if (fb.dir === 1 || fb.dir === -1) {
+          var ext = 0;
+          for (var q = fb.i; q < sb.length; q++) ext = Math.max(ext, fb.dir === 1 ? sb[q][2] - hi : lo - sb[q][3]);
+          r.ext = ext;
+        }
+      }
+      T.or[w] = r;
+    });
+    // initial balance (first hour); statuses count from 10:30
+    var ib = { done: sb.length >= 12 };
+    if (ib.done) {
+      var ih = -Infinity, il = Infinity;
+      for (var m = 0; m < 12; m++) { if (sb[m][2] > ih) ih = sb[m][2]; if (sb[m][3] < il) il = sb[m][3]; }
+      ib.hi = ih; ib.lo = il; ib.range = ih - il;
+      var xu = 0, xd = 0, tu = null, td = null;
+      for (var k = 12; k < sb.length; k++) {
+        if (sb[k][2] > ih) { if (tu == null) tu = mins(k); xu = Math.max(xu, sb[k][2] - ih); }
+        if (sb[k][3] < il) { if (td == null) td = mins(k); xd = Math.max(xd, il - sb[k][3]); }
+      }
+      ib.xu = xu; ib.xd = xd; ib.tu = tu; ib.td = td;
+      ib.up = tu != null; ib.dn = td != null;
+    }
+    T.ib = ib;
+    // prior day range
+    var pd = { loc: o > prior.h ? 'above' : o < prior.l ? 'below' : 'inside', vsClose: o > prior.c ? 'above' : o < prior.c ? 'below' : 'at', thi: null, tlo: null };
+    for (var z = 0; z < sb.length; z++) {
+      if (pd.thi == null && sb[z][2] >= prior.h) pd.thi = mins(z);
+      if (pd.tlo == null && sb[z][3] <= prior.l) pd.tlo = mins(z);
+    }
+    T.pd = pd;
+    return T;
+  }
+
+  // "X% of N sessions (range a to b%)" for a summary, or the too-few-sessions line.
+  function freq(s) {
+    if (s.guard === 'withheld') return 'too few sessions to estimate (N = ' + s.n + ')';
+    return pct(s.p) + ' of ' + s.n + ' sessions (range ' + (s.lo * 100).toFixed(0) + '\u2013' + pct(s.hi) + ')' + (s.guard === 'low' ? ' \u00b7 low sample' : '');
+  }
+  function itemsOf(rows, elig, hit, time) {
+    var items = [];
+    for (var i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (!elig(r)) continue;
+      var h = !!hit(r);
+      items.push({ r: r, hit: h, t: h && time ? time(r) : null });
+    }
+    return items;
+  }
+  function sum(rows, elig, hit, time) { return summarize(itemsOf(rows, elig, hit, time)); }
+
+  // History lines for each Today card. rows: all sessions of the symbol (before today). -> { gap, or, ib, pd }
+  function todayHistory(rows, T) {
+    var past = rows.filter(function (r) { return r.date < T.date; });
+    var out = { n: past.length };
+    // gap: same size bucket (and the same weekday), plus "still unfilled after N minutes"
+    var g = T.gap;
+    if (g.has) {
+      var gapped = function (r) { return r.o !== r.pdc; };
+      var inB = function (r) { return gapped(r) && r.bucket === g.bucket; };
+      var fl = function (r) { return r.gf >= 0; };
+      out.gap = {
+        bucket: sum(past, inB, fl, function (r) { return r.gf; }),
+        bucketDow: sum(past, function (r) { return inB(r) && r.dow === T.dow; }, fl, function (r) { return r.gf; }),
+        later: g.filled ? null : sum(past, function (r) { return inB(r) && (r.gf < 0 || r.gf > T.elapsed); }, fl, function (r) { return r.gf; })
+      };
+    }
+    // opening ranges
+    out.or = {};
+    [15, 30].forEach(function (w) {
+      var p = 'o' + w, rng = function (r) { return r[p + 'h'] - r[p + 'l']; };
+      var up = function (r) { return r[p + 'd'] === 1; }, dn = function (r) { return r[p + 'd'] === -1; };
+      out.or[w] = {
+        up: sum(past, function () { return true; }, up),
+        down: sum(past, function () { return true; }, dn),
+        none: sum(past, function () { return true; }, function (r) { return r[p + 'd'] === 0; }),
+        upX1: sum(past, up, function (r) { return rng(r) > 0 && r[p + 'x'] >= rng(r); }),
+        dnX1: sum(past, dn, function (r) { return rng(r) > 0 && r[p + 'x'] >= rng(r); }),
+        upC: sum(past, up, function (r) { return r.c > r[p + 'h']; }),
+        dnC: sum(past, dn, function (r) { return r.c < r[p + 'l']; })
+      };
+    });
+    // initial balance extensions: sessions that broke that side, how far did it go (multiples of the IB range)
+    out.ib = { up: {}, dn: {}, first: null };
+    [0.5, 1, 1.5, 2].forEach(function (m) {
+      out.ib.up[m] = sum(past, function (r) { return r.ibu === 1; }, function (r) { return r.ibh > r.ibl && r.ibxu >= m * (r.ibh - r.ibl); });
+      out.ib.dn[m] = sum(past, function (r) { return r.ibw === 1; }, function (r) { return r.ibh > r.ibl && r.ibxd >= m * (r.ibh - r.ibl); });
+    });
+    out.ib.broke = {
+      up: sum(past, function () { return true; }, function (r) { return r.ibu === 1 && r.ibw === 0; }),
+      down: sum(past, function () { return true; }, function (r) { return r.ibw === 1 && r.ibu === 0; }),
+      both: sum(past, function () { return true; }, function (r) { return r.ibu === 1 && r.ibw === 1; }),
+      none: sum(past, function () { return true; }, function (r) { return !r.ibu && !r.ibw; })
+    };
+    // prior day range: sessions that opened in the same place relative to the prior range
+    var loc = function (r) { return r.o > r.pdh ? 'above' : r.o < r.pdl ? 'below' : 'inside'; };
+    var same = function (r) { return loc(r) === T.pd.loc; };
+    out.pd = {
+      hi: sum(past, same, function (r) { return r.thi >= 0; }, function (r) { return r.thi; }),
+      lo: sum(past, same, function (r) { return r.tlo >= 0; }, function (r) { return r.tlo; }),
+      closeAbove: sum(past, same, function (r) { return r.c > r.pdh; }),
+      closeBelow: sum(past, same, function (r) { return r.c < r.pdl; }),
+      closeInside: sum(past, same, function (r) { return r.c <= r.pdh && r.c >= r.pdl; })
+    };
+    return out;
+  }
+
+  var api = { todayState: todayState, todayHistory: todayHistory, sessionBars: sessionBars, priorFromBars: priorFromBars, nyDate: nyDate, nyClock: nyClock, freq: freq, sum: sum, COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
     toRows: toRows, wilson: wilson, medianCI: medianCI, quantile: quantile, summarize: summarize, applyFilters: applyFilters, run: run,
     pct: pct, fmtMin: fmtMin, dateStr: dateStr, bucketOf: bucketOf, guard: guard, sessionOpenEpoch: sessionOpenEpoch };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

@@ -85,7 +85,7 @@
   // open, so students see what's gated before they click.
   const PAGE_KEY_BY_FILE = {
     'courses.html': 'curriculum', 'models.html': 'models', 'indicators.html': 'indicators',
-    'live-sessions.html': 'live-sessions', 'achievements.html': 'achievements',
+    'achievements.html': 'achievements',
     'global-monitor.html': 'global-monitor', 'trading-floor.html': 'trading-floor',
     'trade-journal.html': 'trade-journal', 'referrals.html': 'referrals'
   };

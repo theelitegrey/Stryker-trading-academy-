@@ -77,7 +77,7 @@
       ['scanner', 'Market scanner', 'Movers, gaps, 52-week highs', '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/><path d="M8 12.5l2-2.5 2 1.5 2-3"/>'],
       ['market-map', 'Market map', 'Markets at a glance', '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>'],
       ['smart-money', 'Smart money', 'Institutional flow view', '<path d="M12 3v18"/><path d="M17 7H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6"/>'],
-      ['live-sessions', 'Live sessions', 'Scheduled live sessions', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>']
+      ['live-sessions', 'Live sessions', 'Free on YouTube (from December)', '<circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>']
     ]],
     ['Account', [
       ['profile', 'Profile', 'Your public profile', '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'],

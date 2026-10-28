@@ -93,7 +93,7 @@
       id: 'live',
       target: '.sidebar a[href="live-sessions.html"]',
       title: 'Live sessions',
-      body: 'Trade the New York open alongside everyone else. Every session is recorded, so missing one costs you nothing but the chat.'
+      body: 'Live sessions: free on YouTube (from December).'
     },
     {
       id: 'floor',

@@ -10364,3 +10364,8 @@ html .vela-sp-tabs{ -webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 2
 /* One height per row: date/time pickers and selects carry different intrinsic heights than text inputs. */
 .field input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]), .field select{ box-sizing:border-box; height:var(--tz-h); padding-top:0; padding-bottom:0; }
 .log-filter-input{ height:36px; padding-top:0 !important; padding-bottom:0 !important; }
+
+/* Checked checkbox/radio paint: beats wrapper rules like `.field input{background:...}` (0,1,1) that wiped the tick. */
+input[type=checkbox]:checked{ background-color:var(--gold); border-color:var(--gold); background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.4 2.4 4.6-5' fill='none' stroke='%23062a1d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-size:12px; background-position:center; background-repeat:no-repeat; }
+input[type=radio]:checked{ background-color:var(--tz-surface); border-color:var(--gold); background-image:radial-gradient(circle, var(--gold) 0 4px, transparent 4.5px); background-position:center; background-repeat:no-repeat; }
+input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-color:var(--tz-surface); border-color:var(--ink-3); }

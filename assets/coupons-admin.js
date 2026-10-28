@@ -8,7 +8,7 @@ let EDITING_COUPON_CODE = null;
 
 // "Applies to" list: Starter and Pro only; Pro's yearly twin sits under Pro as
 // "Pro (yearly)". A retired plan (Elite) is added only when the coupon being
-// edited already points at it, labelled "Elite (retired)".
+// edited already points at it, labelled "Pro (legacy)".
 function renderCouponPlanOptions(keepId){
   const select = document.getElementById('coupon-plan');
   select.querySelectorAll('option[data-plan-option], optgroup[data-plan-option]').forEach((o) => o.remove());
@@ -37,7 +37,7 @@ function renderCouponPlanOptions(keepId){
 }
 
 function couponPlanLabel(plan){
-  if (plan.archived === true) return String(plan.name || plan.id) + ' (retired)';
+  if (plan.archived === true) return 'Pro (legacy)';
   const parent = plan.hidden === true && ALL_PLANS_FOR_COUPON.find((p) => p.yearlyPlanId === plan.id);
   if (parent) return ((typeof adminPlanLabel === 'function') ? adminPlanLabel(parent.name) : parent.name) + ' (yearly)';
   return (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name);

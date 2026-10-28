@@ -507,6 +507,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (paid && st !== 'expired' && st !== 'cancelled' && st !== 'canceled' && (s.foundingMember === true || !pt || Date.now() <= pt + 3 * 86400000)) why.push('Pro');
     return why;
   }
+  // renderStudentsTable (top level) calls this too; without the global the whole list failed to load.
+  window.liveWhy = liveWhy;
 
   function applyFilters(){
     const q = (document.getElementById('students-search').value || '').trim().toLowerCase();
@@ -514,6 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (CURRENT_ROLE_FILTER === 'live') {
       list = list.filter(s => liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)).length > 0);
+    } else if (CURRENT_ROLE_FILTER === 'plan-pro' || CURRENT_ROLE_FILTER === 'plan-free') {
+      const wantPro = CURRENT_ROLE_FILTER === 'plan-pro';
+      list = list.filter(s => (typeof rankOf === 'function' && s.plan && rankOf(s.plan) >= 1) === wantPro);
     } else if (CURRENT_ROLE_FILTER !== 'all') {
       list = list.filter(s => roleOf(s).indexOf(CURRENT_ROLE_FILTER) !== -1);
     }

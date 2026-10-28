@@ -42,32 +42,26 @@ const DATA = () => {
     await p.goto(srv.base + '/billing-admin.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2500);
     await p.waitForSelector('#plans-grid .price-card');
     const top = await p.$$eval('#plans-grid > .price-card', (e) => e.map((x) => x.querySelector('h3').textContent));
-    ok(top.length === 2 && /Starter|Free/.test(top[0]) && top[1] === 'Pro', dev + ' plans top-level cards: ' + top.join(' | '));
+    ok(top.length === 2 && top[0] === 'Free' && top[1] === 'Pro', dev + ' plans top-level cards: ' + top.join(' | '));
     ok(await p.$eval('.plan-twin', (e) => /Yearly price/.test(e.textContent) && /349/.test(e.textContent)), dev + ' yearly price inside Pro card');
-    ok(await p.$eval('details.plans-archived', (e) => !e.open && /Elite|Pro \(legacy\)/.test(e.textContent)), dev + ' archived section collapsed');
-    await p.screenshot({ path: OUT + '/plans-' + dev + '-collapsed.png', fullPage: true });
-    await p.click('details.plans-archived summary'); await p.waitForTimeout(200);
-    ok(await p.$eval('details.plans-archived', (e) => e.open && e.querySelectorAll('.price-card').length === 1), dev + ' archived opens with 1 card');
-    await p.screenshot({ path: OUT + '/plans-' + dev + '-archived-open.png', fullPage: true });
+    ok(await p.$$eval('details, .plans-archived', (e) => e.length === 0) && !(await p.content()).match(/Archived plans|Elite/), dev + ' no Archived section, no Elite on plans page');
+    await p.screenshot({ path: OUT + '/plans-' + dev + '.png', fullPage: true });
     await p.click('.edit-twin-btn'); await p.waitForTimeout(300);
     ok(await p.$eval('#plan-price', (e) => e.value === '349'), dev + ' Edit yearly opens twin editor (price 349)');
     await p.screenshot({ path: OUT + '/plans-' + dev + '-edit-yearly.png' });
-    await p.click('#cancel-plan-btn');
-    await p.click('details.plans-archived .edit-plan-btn'); await p.waitForTimeout(200);
-    ok(await p.$eval('#plan-price', (e) => e.value === '99'), dev + ' archived plan still editable');
     await p.click('#cancel-plan-btn');
     // --- coupons admin
     await p.goto(srv.base + '/coupons-admin.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2500);
     await p.waitForSelector('#coupon-list .record-card');
     const opts = await p.$$eval('#coupon-plan option', (o) => o.map((x) => x.textContent));
     console.log('   options:', JSON.stringify(opts));
-    ok(!opts.some((t) => /elite|retired|Pro Yearly/i.test(t)) && opts.length === 4, dev + ' new-coupon list has no Elite/proYearly rows: ' + opts.join(' | '));
+    ok(!opts.some((t) => /elite|retired|legacy|Pro Yearly|Starter/i.test(t)) && opts.length === 4 && opts[1] === 'Free' && opts[2] === 'Pro (monthly)', dev + ' new-coupon list has no Elite/proYearly rows: ' + opts.join(' | '));
     const rows = await p.$$eval('#coupon-list .record-card', (r) => r.map((x) => x.textContent.replace(/\s+/g, ' ')));
-    ok(rows.some((t) => /WELCOME/.test(t) && /Elite \(retired\)/.test(t)), dev + ' WELCOME row shows Elite (retired)');
+    ok(rows.some((t) => /WELCOME/.test(t) && /Pro \(legacy\)/.test(t) && !/Elite/.test(t)), dev + ' WELCOME row shows Pro (legacy)');
     ok(rows.some((t) => /YEAR20/.test(t) && /Pro \(yearly\)/.test(t)), dev + ' YEAR20 row shows Pro (yearly)');
     await p.screenshot({ path: OUT + '/coupons-' + dev + '-list.png', fullPage: true });
     await p.click('[data-edit-coupon="WELCOME"]'); await p.waitForTimeout(400);
-    ok(await p.$eval('#coupon-plan', (s) => s.value === 'elite' && /Elite \(retired\)/.test(s.selectedOptions[0].textContent)), dev + ' edit WELCOME keeps elite selected');
+    ok(await p.$eval('#coupon-plan', (s) => s.value === 'elite' && /Pro \(legacy\)/.test(s.selectedOptions[0].textContent)), dev + ' edit WELCOME keeps elite selected');
     await p.screenshot({ path: OUT + '/coupons-' + dev + '-edit-elite.png' });
     await p.click('#save-coupon-btn'); await p.waitForTimeout(400);
     const w = await p.evaluate(() => window.__writes);
@@ -77,6 +71,12 @@ const DATA = () => {
     await p.click('#cancel-coupon-btn');
     await p.click('#add-coupon-btn'); await p.waitForTimeout(300);
     await p.screenshot({ path: OUT + '/coupons-' + dev + '-new.png' });
+    // --- students admin: Free / Pro filters
+    await p.goto(srv.base + '/students-admin.html', { waitUntil: 'domcontentloaded' }); await p.waitForTimeout(2500);
+    const btns = await p.$$eval('#users-role-filter .users-role-btn', (b) => b.map((x) => x.textContent));
+    ok(btns.includes('Free') && btns.includes('Pro') && !btns.some((t) => /elite|starter/i.test(t)), dev + ' students filters: ' + btns.join(','));
+    await p.click('[data-role="plan-pro"]'); await p.waitForTimeout(300);
+    await p.screenshot({ path: OUT + '/students-' + dev + '-pro-filter.png' });
     ok(errors.length === 0, dev + ' no console errors ' + errors.slice(0, 2).join(' / '));
     await ctx.close();
   }

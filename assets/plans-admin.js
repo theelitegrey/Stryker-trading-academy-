@@ -68,19 +68,8 @@ function renderPlansGrid(){
   const twinIds = {};
   ALL_PLANS.forEach((p) => { if (p.yearlyPlanId && byId[p.yearlyPlanId] && p.archived !== true) twinIds[p.yearlyPlanId] = p.id; });
   const live = ALL_PLANS.filter((p) => p.archived !== true && !twinIds[p.id]);
-  const retired = ALL_PLANS.filter((p) => p.archived === true);
+  // Retired plans (Elite) are not shown at all: nobody is on them any more.
   live.forEach((plan) => grid.appendChild(renderPlanCard(plan, plan.yearlyPlanId && twinIds[plan.yearlyPlanId] ? byId[plan.yearlyPlanId] : null, false)));
-  if (retired.length) {
-    const det = document.createElement('details');
-    det.className = 'plans-archived';
-    det.style.cssText = 'grid-column:1 / -1; margin-top:8px;';
-    det.innerHTML = '<summary style="cursor:pointer; font-weight:700; padding:10px 0; color:var(--ink-2);">Archived plans (' + retired.length + ')</summary>' +
-      '<p style="color:var(--ink-3); font-size:12.5px; margin:0 0 12px;">Retired plans are not sold. Members who still hold them keep their access.</p>' +
-      '<div class="pricing-grid" style="margin-bottom:0;"></div>';
-    const inner = det.querySelector('.pricing-grid');
-    retired.forEach((plan) => inner.appendChild(renderPlanCard(plan, null, true)));
-    grid.appendChild(det);
-  }
 }
 
 function loadPlans(){

@@ -115,6 +115,7 @@ function planLabelFor(idOrName, admin){
   const plan = findPlan(idOrName);
   if (plan) {
     if (plan.archived === true) return admin ? 'Pro (legacy)' : 'Pro';
+    if (admin && !plan.displayName && String(plan.name || '').toLowerCase() === 'starter') return 'Free';
     return String(plan.displayName || plan.name || '');
   }
   const legacy = LEGACY_PLAN_LABELS[String(idOrName || '').trim().toLowerCase()];
@@ -140,7 +141,7 @@ function adminPlanListed(p){ return !!p && !adminPlanIsRetired(p) && !adminPlanI
 // Label for a stored plan id/name, e.g. "Elite (retired)", "Pro (yearly)".
 function adminPlanStoredLabel(p){
   if (!p) return '';
-  if (adminPlanIsRetired(p)) return String(p.name || p.id) + ' (retired)';
+  if (adminPlanIsRetired(p)) return 'Pro (legacy)';
   if (adminPlanIsTwin(p)) {
     const cache = (typeof _rolesPlansCache !== 'undefined' && _rolesPlansCache) || [];
     const parent = cache.find((q) => q.yearlyPlanId === p.id);

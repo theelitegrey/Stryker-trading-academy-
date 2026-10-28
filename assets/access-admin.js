@@ -32,7 +32,7 @@ function planOptionsHtml(plans, selectedId, noRestrictionLabel){
   let opts = '<option value="">' + (noRestrictionLabel || 'No restriction — any signed-in student') + '</option>';
   plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p) || p.id === selectedId).forEach((p) => {
     const sel = p.id === selectedId ? ' selected' : '';
-    opts += '<option value="' + stkEsc(p.id) + '"' + sel + '>' + stkEsc((typeof adminPlanListed === 'function' && !adminPlanListed(p)) ? adminPlanStoredLabel(p) : (p.name || p.id)) + ' (rank ' + (p.rank ?? 0) + ')</option>';
+    opts += '<option value="' + stkEsc(p.id) + '"' + sel + '>' + stkEsc((typeof adminPlanListed === 'function' && !adminPlanListed(p)) ? adminPlanStoredLabel(p) : ((typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name) || p.id)) + ' (rank ' + (p.rank ?? 0) + ')</option>';
   });
   return opts;
 }

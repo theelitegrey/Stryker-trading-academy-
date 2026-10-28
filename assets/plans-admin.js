@@ -41,7 +41,7 @@ function renderPlanCard(plan, twin, retired){
   if (tb && twin) tb.addEventListener('click', () => openPlanEditor(twin));
   if (retired) {
     el.classList.add('is-retired');
-    el.insertAdjacentHTML('afterbegin', '<span class="status-tag expired" style="margin-bottom:8px;">Retired</span> ');
+    el.insertAdjacentHTML('afterbegin', '<span class="status-tag expired" style="margin-bottom:8px; align-self:flex-start; width:fit-content;">Retired</span> ');
   }
   return el;
 }

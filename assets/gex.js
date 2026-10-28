@@ -292,7 +292,7 @@
       // Built once: the 60 s refresh must not rebuild it (or re-count a view).
       if($('gex-ladder').querySelector('.plan-lock')) return;
       if(window.strykerPlanLock){ $('gex-ladder').innerHTML = ''; $('gex-ladder').appendChild(window.strykerPlanLock.card('gex', 'gex-strikes')); return; }
-      $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Strike table is part of Pro</b><p>Pro shows net GEX, DEX and open interest strike by strike, for every symbol and expiry.</p><button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro unlocks the full GEX strike table for every symbol and expiry.">See Pro</button></div>';
+      $('gex-ladder').innerHTML = '<div class="plan-lock-card"><b>Strike table is part of Pro</b><p>Pro shows net GEX, DEX and open interest strike by strike, for every symbol and expiry.</p><button type="button" class="btn btn-primary btn-sm" data-open-plan-modal data-upgrade-reason="Pro unlocks the full GEX+ strike table for every symbol and expiry.">See Pro</button></div>';
       return;
     }
     var rows = d.ladder || [];

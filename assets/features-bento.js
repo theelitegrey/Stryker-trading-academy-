@@ -189,7 +189,7 @@
       if (hCall) { hCall.textContent = fmt(d.call_wall); hMeta.textContent = 'SPX call wall' + (a ? ' · ' + a : ''); }
     }).catch(function () {
       ['#fb-lv-call', '#fb-lv-zero', '#fb-lv-put'].forEach(function (id) { $(id).textContent = ''; });
-      meta.textContent = 'Illustrative levels: the GEX endpoint did not answer. Open GEX for the real ones.';
+      meta.textContent = 'Illustrative levels: the GEX endpoint did not answer. Open GEX+ for the real ones.';
     });
   })();
 

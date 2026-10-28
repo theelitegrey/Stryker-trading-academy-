@@ -86,7 +86,9 @@ export const RITHMIC_CONFIG = {
 
 // ON, but ONLY for the uids in `allowUids` (Firebase uids). Everyone else gets nothing:
 // no button, and no Rithmic file is downloaded. 2026-10-06: the Owner's account only.
-export const RITHMIC_FLAG = { enabled: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
+// Owner 2026-10-28 "remove the connect broker option for now": OFF for everyone (Owner too).
+// To bring it back: enabled: true. Nothing else changed.
+export const RITHMIC_FLAG = { enabled: false, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
 
 // app_version = the site build (the page's stryker-build meta mirrors assets/version.json).
 export function appVersion() {

@@ -66,7 +66,7 @@
       title: function (n) { return n ? 'Chapters ' + (n + 1) + '+ are part of Pro' : 'Later chapters are part of Pro'; },
       bullets: function (n) {
         return [(n ? 'Chapter ' + (n + 1) + ' to the end of the course' : 'Every chapter of the course') + ', with progress saved',
-                'Plus futures GEX+ for every market and an unlimited trade journal'];
+                'Plus futures GEX+ for every market and an unlimited JournalX'];
       },
       reason: 'Pro unlocks every chapter of the course.'
     }

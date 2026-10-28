@@ -362,7 +362,7 @@
   async function sendToJournal() {
     if (!RP.uid || typeof db === 'undefined' || !db || typeof journalComputeDerived !== 'function') { toast('The journal is not available right now', 'error'); return; }
     const todo = RP.sim.trades.filter((t) => !t.journaled); if (!todo.length) { toast('Every trade in this session is already in your journal', 'info'); return; }
-    if (!confirm('Copy ' + todo.length + ' trade' + (todo.length > 1 ? 's' : '') + ' into your Trade journal, tagged "backtest"?')) return;
+    if (!confirm('Copy ' + todo.length + ' trade' + (todo.length > 1 ? 's' : '') + ' into JournalX, tagged "backtest"?')) return;
     const fmtD = new Intl.DateTimeFormat('en-CA', { timeZone: RP.tz, year: 'numeric', month: '2-digit', day: '2-digit' }), fmtT = new Intl.DateTimeFormat('en-US', { timeZone: RP.tz, hour: '2-digit', minute: '2-digit', hour12: false });
     const pbId = (RP.session.settings || {}).playbookId || null;
     let ok = 0;

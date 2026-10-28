@@ -176,12 +176,12 @@ function jcardRender(){
     ctx.fillStyle = accent;
     ctx.fillText('◆ ' + name.toUpperCase().slice(0, 22), 84, 130);
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText('  ·  TRADE JOURNAL', 84 + ctx.measureText('◆ ' + name.toUpperCase().slice(0, 22)).width, 130);
+    ctx.fillText('  ·  JOURNALX', 84 + ctx.measureText('◆ ' + name.toUpperCase().slice(0, 22)).width, 130);
   } else {
     ctx.fillStyle = accent;
     ctx.fillText('◆', 84, 130);
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText(' TRADE JOURNAL', 84 + ctx.measureText('◆').width, 130);
+    ctx.fillText(' JOURNALX', 84 + ctx.measureText('◆').width, 130);
   }
 
   ctx.textAlign = 'right';

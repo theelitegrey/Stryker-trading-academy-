@@ -47,9 +47,9 @@
     { id: 'dashboard', label: 'Dashboard', path: '/dashboard-user.html', access: null },
     { id: 'charts',    label: 'ZoroCharts',    path: '/charts.html',         access: null },
     { id: 'gex',       label: 'GEX+',      path: '/gex.html',            access: null },
-    { id: 'journal',   label: 'Journal',   path: '/trade-journal.html',  access: 'trade-journal' },
+    { id: 'journal',   label: 'JournalX',   path: '/trade-journal.html',  access: 'trade-journal' },
     { id: 'learn',     label: 'Learn',     path: '/courses.html',        access: 'curriculum' },
-    { id: 'replay',    label: 'Replay',    path: '/replay.html',         access: null }
+    { id: 'replay',    label: 'Replay One',    path: '/replay.html',         access: null }
   ];
   var CACHE = 'tz_start_page';
   var ENTRY_FLAG = 'tz_entry_done';

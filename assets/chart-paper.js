@@ -510,7 +510,7 @@ async function sendToJournal(tradeId){
   const t = acct && acct.state.trades.find((x) => x.id === tradeId);
   if (!t) return;
   if (t.journaled) { toast('That paper trade is already in your journal.', 'info'); return; }
-  if (!uid) { toast('Sign in to send paper trades to your Trade journal.', 'info'); return; }
+  if (!uid) { toast('Sign in to send paper trades to JournalX.', 'info'); return; }
   if (journalBusy.has(tradeId)) return;
   journalBusy.add(tradeId);
   try { await sendToJournalOnce(t); } finally { journalBusy.delete(tradeId); }
@@ -541,7 +541,7 @@ async function sendToJournalOnce(t){
     const ts = firebase.firestore.FieldValue.serverTimestamp();
     await db.collection('students').doc(uid).collection('journal').doc().set(Object.assign({}, raw, derived, { createdAt: ts, updatedAt: ts }));
     syncFromLocal(); acct.markJournaled(t.id); save(); renderAll();
-    toast('Paper trade sent to your Trade journal.', 'success');
+    toast('Paper trade sent to JournalX.', 'success');
   } catch (e) { console.warn('TradeZoro paper: journal', e); toast('Could not send it to the journal. Try again from History.', 'error'); }
 }
 function offerJournal(trade){
@@ -550,7 +550,7 @@ function offerJournal(trade){
   if (!box) { box = h('div', { id: 'stkpt-offers', 'aria-live': 'polite' }); document.body.appendChild(box); }
   while (box.children.length >= 2) box.firstChild.remove();
   const el = h('div', { class: 'stkpt-offer', role: 'status' }, [
-    h('span', { text: showSym(trade.symbol) + ' ' + money(trade.pnl, true) + ' closed. Send it to your Trade journal?' }),
+    h('span', { text: showSym(trade.symbol) + ' ' + money(trade.pnl, true) + ' closed. Send it to JournalX?' }),
     h('button', { type: 'button', class: 'stkpt-b stkpt-b-pri', text: 'Send to Journal', onclick: () => { el.remove(); sendToJournal(trade.id); } }),
     h('button', { type: 'button', class: 'stkpt-x', 'aria-label': 'Dismiss', text: '×', onclick: () => el.remove() })
   ]);
@@ -1289,7 +1289,7 @@ function viewHistory(){
     td(f.format(new Date(t.exitAt))), td(showSym(t.symbol)), sideTd(t.side), td(String(t.qty)), td(fmtP(t.symbol, t.entry)), td(fmtP(t.symbol, t.exit)),
     td({ tp: 'Take profit', sl: 'Stop loss', manual: 'Closed', reverse: 'Reversed' }[t.reason] || t.reason), td(money(t.fees)),
     td(money(t.pnl, true), t.pnl > 0 ? 'up' : t.pnl < 0 ? 'down' : ''),
-    h('td', { class: 'stkpt-acts' }, [t.journaled ? h('span', { class: 'stkpt-ok', text: '✓ Journal' }) : (uid ? h('button', { type: 'button', class: 'stkpt-b', text: 'Journal', title: 'Send to your Trade journal', onclick: () => sendToJournal(t.id) }) : null)])
+    h('td', { class: 'stkpt-acts' }, [t.journaled ? h('span', { class: 'stkpt-ok', text: '✓ Journal' }) : (uid ? h('button', { type: 'button', class: 'stkpt-b', text: 'Journal', title: 'Send to JournalX', onclick: () => sendToJournal(t.id) }) : null)])
   ])), 'No closed paper trades yet.'));
   const ev = acct.state.history.filter((x) => x.kind !== 'fill').slice().reverse().slice(0, 60);
   frag.appendChild(h('h3', { class: 'stkpt-h3', text: 'Cancelled, rejected and resets' }));

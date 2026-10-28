@@ -97,14 +97,14 @@
       ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
       ['Futures conversion', false, true],
       ['Strike table', false, true]]],
-    ['Journal', [
+    ['JournalX', [
       ['New trades', '20 / month', 'Unlimited'],
       ['Manual entry', true, true],
       ['Import and broker sync', false, true],
       ['Analytics and AI coach', false, true]]],
     ['ZoroCharts', [
       ['ZoroCharts, every chart type, drawing and indicator', true, true],
-      ['Alerts, layouts, paper trading, replay and backtesting', true, true],
+      ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
       ['Market data', 'Updated every 10 minutes', 'Real-time'],
       ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
       ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
@@ -242,7 +242,7 @@
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', ZoroCharts with every tool and indicator, free, SPX on GEX+, 20 journal trades a month.</p>' +
+        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', ZoroCharts with every tool and indicator, free, SPX on GEX+, JournalX with 20 trades a month.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
       '<div class="pv-compare-wrap">' +
@@ -255,7 +255,7 @@
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your journal and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the journal cap, and real-time data, order flow tools and GEX on the charts stay with Pro.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the JournalX cap, and real-time data, order flow tools and GEX on the charts stay with Pro.') +
       '</div>';
     wireCompare(root, P);
   }

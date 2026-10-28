@@ -19,7 +19,7 @@
 (function () {
   'use strict';
   const ITEMS = [
-    ['dashboard', 'Dashboard', 'Trade journal', 'Private to your account — log every trade, and see exactly what\'s actually working.', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>'],
+    ['dashboard', 'Dashboard', 'JournalX', 'Private to your account — log every trade, and see exactly what\'s actually working.', '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/>'],
     ['add', 'Add', 'Add trade', 'Log a trade by hand; the numbers fill in as you type.', '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>'],
     ['history', 'History', 'History', 'Every trade you have logged, newest first.', '<path d="M4 6h16M4 12h16M4 18h10"/>'],
     ['calendar', 'Calendar', 'Calendar', 'Your trading days at a glance.', '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'],
@@ -39,7 +39,7 @@
     const t = document.getElementById('jr-title'), s = document.getElementById('jr-sub');
     if (t) t.textContent = it[2];
     if (s) s.textContent = it[3];
-    document.title = (it[0] === 'dashboard' ? 'Trade Journal' : it[2] + ' · Trade Journal') + ' — TradeZoro';
+    document.title = (it[0] === 'dashboard' ? 'JournalX · Trading journal' : it[2] + ' · JournalX') + ' | TradeZoro';
   }
 
   // Route every tab switch (tab strip, rail, in-page buttons like "Edit" or
@@ -75,7 +75,7 @@
     wrap();
     document.body.classList.add('bt-app', 'jr-app');
     const main = document.querySelector('.dash-main'); if (!main) return;
-    rail = document.createElement('nav'); rail.className = 'bta-rail jr-rail'; rail.setAttribute('aria-label', 'Trade journal');
+    rail = document.createElement('nav'); rail.className = 'bta-rail jr-rail'; rail.setAttribute('aria-label', 'JournalX');
     rail.innerHTML = ITEMS.map((i) => '<a class="bta-item" data-key="' + i[0] + '" href="#' + i[0] + '" title="' + i[2] + '"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + i[4] + '</svg><span>' + i[1] + '</span></a>').join('') +
       '<span class="bta-spacer"></span><a class="bta-item bta-exit" href="dashboard-user.html" title="Back to the academy"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg><span>Academy</span></a>';
     main.insertBefore(rail, main.firstChild);

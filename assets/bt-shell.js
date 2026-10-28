@@ -22,7 +22,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.body.classList.add('bt-app');
     const main = document.querySelector('.dash-main'); if (!main) return;
-    const rail = document.createElement('nav'); rail.className = 'bta-rail'; rail.setAttribute('aria-label', 'Backtesting');
+    const rail = document.createElement('nav'); rail.className = 'bta-rail'; rail.setAttribute('aria-label', 'Replay One');
     rail.innerHTML = ITEMS.map((i) => '<a class="bta-item" data-key="' + i[0] + '" href="' + i[3] + '" title="' + i[1] + '"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + i[2] + '</svg><span>' + i[1] + '</span></a>').join('') +
       '<span class="bta-spacer"></span><a class="bta-item bta-exit" href="dashboard-user.html" title="Back to the academy"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg><span>Academy</span></a>';
     main.insertBefore(rail, main.firstChild);

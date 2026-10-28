@@ -62,19 +62,19 @@
     {
       id: 'journal',
       target: '.sidebar a[href="trade-journal.html"]',
-      title: 'Trade journal',
+      title: 'JournalX',
       body: 'Log every trade and the analytics build themselves: expectancy, drawdown, results by session and by day. It also holds your Playbook and your prop firm accounts.'
     },
     {
       id: 'playbook',
       target: '.sidebar a[href="trade-journal.html"]',
-      title: 'The Playbook, inside the journal',
+      title: 'The Playbook, inside JournalX',
       body: 'The part worth finding early. Adopt a taught model, tick its rules as you log each trade, and it tells you what following the plan is worth to you per trade — and which single rule costs you most when you skip it.'
     },
     {
       id: 'backtests',
       target: '.sidebar a[href="backtests.html"]',
-      title: 'Backtesting',
+      title: 'Replay One',
       body: 'Replay past sessions bar by bar and trade them as if live. Run a session against a playbook and an evening here produces the same graded evidence a month of live trading would.'
     },
     {

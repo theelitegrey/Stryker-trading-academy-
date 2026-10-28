@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function status(msg, ok) { $('rma-status').textContent = msg; $('rma-status').style.color = ok ? 'var(--gold)' : ''; }
   guardAdminPage(() => {
-    StrykerRoadmap.load().then((d) => { data = JSON.parse(JSON.stringify(d)); data.items = data.items || []; data.changelog = data.changelog || []; render(); }).catch((err) => { errEl.textContent = 'Could not load the roadmap: ' + (err.message || err); errEl.style.display = 'block'; });
+    StrykerRoadmap.load({ raw: true }).then((d) => { data = JSON.parse(JSON.stringify(d)); data.items = data.items || []; data.changelog = data.changelog || []; render(); }).catch((err) => { errEl.textContent = 'Could not load the roadmap: ' + (err.message || err); errEl.style.display = 'block'; });
   });
   $('rma-add').addEventListener('click', () => { data = readForm(); data.items.unshift({ id: '', title: '', desc: '', status: 'planned', when: 'Planned', sub: [], milestones: [] }); render(); });
   $('rma-cl-add').addEventListener('click', () => { data = readForm(); data.changelog.unshift({ build: null, date: new Date().toISOString().slice(0, 10), title: '' }); render(); });

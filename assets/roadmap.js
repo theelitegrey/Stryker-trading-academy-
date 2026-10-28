@@ -20,7 +20,9 @@
   const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function render(mount, data) {
-    const items = (data.items || []).filter((i) => i && i.title).slice(0, 8);
+    const all = (data.items || []).filter((i) => i && i.title);
+    // strip: what is being built first, then the newest releases
+    const items = all.filter((i) => i.status === 'progress').concat(all.filter((i) => i.status === 'planned'), all.filter((i) => i.status === 'shipped').sort((a, b) => (b.date || '').localeCompare(a.date || '') || (b.build || 0) - (a.build || 0))).slice(0, 8);
     if (!items.length) { mount.hidden = true; return; }
     const collapsed = (function () { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } })();
     const cur = items.findIndex((i) => i.status === 'progress');

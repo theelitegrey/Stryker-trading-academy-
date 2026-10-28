@@ -1,0 +1,230 @@
+[
+ {
+  "build": 698,
+  "date": "2026-10-28",
+  "title": "Live sessions are free on YouTube",
+  "link": "live-sessions.html"
+ },
+ {
+  "build": 698,
+  "date": "2026-10-28",
+  "title": "Sitemap lists every public page",
+  "link": ""
+ },
+ {
+  "build": 696,
+  "date": "2026-10-28",
+  "title": "Order Flow group in the indicators window",
+  "link": "charts.html"
+ },
+ {
+  "build": 695,
+  "date": "2026-10-28",
+  "title": "Alerts clean-up: once-only alerts remove themselves, Delete all",
+  "link": "charts.html"
+ },
+ {
+  "build": 692,
+  "date": "2026-10-27",
+  "title": "GEX walls from 1 to 30 days out, with a 0DTE pair and gamma profile",
+  "link": "gex.html"
+ },
+ {
+  "build": 689,
+  "date": "2026-10-27",
+  "title": "Footprint Ladder: volume or delta at every price level",
+  "link": "charts.html"
+ },
+ {
+  "build": 688,
+  "date": "2026-10-27",
+  "title": "Live (real-time) futures data for Pro members",
+  "link": "charts.html"
+ },
+ {
+  "build": 677,
+  "date": "2026-10-26",
+  "title": "Backtesting on the TradeZoro Charts engine",
+  "link": "backtests.html"
+ },
+ {
+  "build": 662,
+  "date": "2026-10-26",
+  "title": "Full-screen chart on phone and desktop",
+  "link": "charts.html"
+ },
+ {
+  "build": 635,
+  "date": "2026-10-24",
+  "title": "Order Flow feature page and homepage refresh",
+  "link": "features/orderflow"
+ },
+ {
+  "build": 625,
+  "date": "2026-10-23",
+  "title": "Charts: drawing tools and settings upgrade (new chart engine for everyone)",
+  "link": "charts.html"
+ },
+ {
+  "build": 579,
+  "date": "2026-10-16",
+  "title": "GEX ladder for SPX, QQQ and SPY",
+  "link": "gex.html"
+ },
+ {
+  "build": 553,
+  "date": "2026-10-15",
+  "title": "Footprint chart and the Order Flow indicators on Charts (Absorption, Imbalance Zones, Market Profile TPO, Delta suite, Stop Runs, Deep liquidity heatmap)",
+  "link": "features/orderflow"
+ },
+ {
+  "build": 550,
+  "date": "2026-10-15",
+  "title": "Market scanner and Expected Move indicator",
+  "link": "scanner.html"
+ },
+ {
+  "build": 544,
+  "date": "2026-10-15",
+  "title": "News panel, news markers and economic events on Charts",
+  "link": "charts.html"
+ },
+ {
+  "build": 542,
+  "date": "2026-10-14",
+  "title": "Paper trading trade review and leaderboard",
+  "link": "leaderboard.html"
+ },
+ {
+  "build": 540,
+  "date": "2026-10-14",
+  "title": "GEX heatmap, GEX replay and options analytics",
+  "link": "gex.html"
+ },
+ {
+  "build": 537,
+  "date": "2026-10-14",
+  "title": "Charts: TradingView-style toolbars",
+  "link": "charts.html"
+ },
+ {
+  "build": 521,
+  "date": "2026-10-13",
+  "title": "Bar replay on Charts",
+  "link": "charts.html"
+ },
+ {
+  "build": 520,
+  "date": "2026-10-13",
+  "title": "Paper trading on Charts with demo money and simulated fills",
+  "link": "charts.html"
+ },
+ {
+  "build": 487,
+  "date": "2026-10-11",
+  "title": "Crypto DOM heatmap on Charts",
+  "link": "charts.html"
+ },
+ {
+  "build": 484,
+  "date": "2026-10-10",
+  "title": "Order flow tools: Volume Bubbles, Volume Heatmap, Liquidity Trend Heatmap",
+  "link": "indicators.html"
+ },
+ {
+  "build": 451,
+  "date": "2026-10-07",
+  "title": "GEX Levels indicator on Charts",
+  "link": "charts.html"
+ },
+ {
+  "build": 421,
+  "date": "2026-10-06",
+  "title": "Charts: price alerts, with sounds",
+  "link": "charts.html"
+ },
+ {
+  "build": 416,
+  "date": "2026-10-06",
+  "title": "Charts: 1 to 8 chart grid, TradingView-style indicators window and settings window",
+  "link": "charts.html"
+ },
+ {
+  "build": 401,
+  "date": "2026-10-05",
+  "title": "Charts: Pine Script editor, with scripts saved to your account",
+  "link": "charts.html"
+ },
+ {
+  "build": 400,
+  "date": "2026-10-05",
+  "title": "Charts: full-width workspace, multi-chart layouts, saved templates, watchlist, layout menu and share links",
+  "link": "charts.html"
+ },
+ {
+  "build": 399,
+  "date": "2026-10-05",
+  "title": "TradeZoro Charts: live futures and crypto candles with TradingView-style candles",
+  "link": "charts.html"
+ },
+ {
+  "build": 389,
+  "date": "2026-10-05",
+  "title": "Free and Pro plans with a live USD to INR rate",
+  "link": "courses.html"
+ },
+ {
+  "build": 364,
+  "date": "2026-10-04",
+  "title": "Feature pages for every module (GEX, Smart Money, Curriculum, Models, Journal, Indicators, Backtesting, Community, Charts)",
+  "link": "features.html"
+ },
+ {
+  "build": 349,
+  "date": "2026-10-03",
+  "title": "GEX dashboard: gamma exposure by strike for index futures and ETFs",
+  "link": "gex.html"
+ },
+ {
+  "build": 334,
+  "date": "2026-09-26",
+  "title": "Prop firm cheat sheet page and PDF",
+  "link": "prop-firm-cheat-sheet.html"
+ },
+ {
+  "build": 306,
+  "date": "2026-09-22",
+  "title": "Homepage platform desk and curriculum overview",
+  "link": ""
+ },
+ {
+  "build": 294,
+  "date": "2026-09-11",
+  "title": "Prop firm rule engine, challenge simulator and payout planner",
+  "link": "terminal.html"
+ },
+ {
+  "build": 292,
+  "date": "2026-09-10",
+  "title": "Economic calendar",
+  "link": "economic-calendar.html"
+ },
+ {
+  "build": 291,
+  "date": "2026-09-10",
+  "title": "Cross-asset market map",
+  "link": "market-map.html"
+ },
+ {
+  "build": 290,
+  "date": "2026-09-10",
+  "title": "Daily pre-market brief",
+  "link": "market-brief.html"
+ },
+ {
+  "build": 282,
+  "date": "2026-09-09",
+  "title": "Roadmap page and dashboard roadmap strip",
+  "link": "roadmap.html"
+ }
+]

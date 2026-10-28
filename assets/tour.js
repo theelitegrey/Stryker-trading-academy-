@@ -81,7 +81,7 @@
       id: 'charts',
       target: '.sidebar a[href="charts.html"]',
       title: 'Charts',
-      body: 'Live multi-provider charting with the institutional tooling built in, so you are not switching tabs to mark up a level.'
+      body: 'Multi-provider charting with every tool and indicator, free on every plan. Pro adds real-time data, order flow tools and GEX on the charts.'
     },
     {
       id: 'indicators',

@@ -253,7 +253,7 @@
         ['Volume Profile and Prop Firm tracks', false, true],
         ['Progress dashboard, achievements, streak', true, true]]],
       ['Order flow', [
-        ['Footprint, delta, CVD, big trades, absorption, volume profile', 'NQ (last 24 h) and crypto', 'Every supported futures market, full history']]],
+        ['Order flow tools on the charts: footprint, delta, CVD, big trades', false, true]]],
       ['GEX', [
         ['Symbols', 'SPX', 'Every symbol'],
         ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
@@ -265,7 +265,7 @@
         ['Import and broker sync', false, true],
         ['Analytics and AI coach', false, true]]],
       ['Backtesting', [
-        ['Replay sessions', '3 / week', 'Unlimited']]],
+        ['Replay sessions', 'No limit', 'No limit']]],
       ['Market desk', [
         ['Global Monitor, economic calendar, pre-market brief', true, true],
         ['Smart Money Desk, charts, trading models', false, true],

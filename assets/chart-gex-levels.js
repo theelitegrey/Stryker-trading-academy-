@@ -22,7 +22,7 @@
 //   NQ / MNQ futures, QQQ           -> QQQ levels (converted with futures.NQ / futures.MNQ).
 //   anything else                   -> a small note, nothing drawn.
 //
-// PLAN: the same split as the GEX page (assets/plan-limits.js applyGex): Free = SPX, 0DTE, no
+// PLAN (Owner 2026-10-29): GEX on charts is Pro for every symbol incl. SPX (assets/chart-pro-gate.js). The older split below (the GEX PAGE rule, unchanged): Free = SPX, 0DTE, no
 // strike table; Pro = every symbol and expiry. So Free members get SPX and ES/MES (SPX-derived)
 // levels at 0DTE; NQ/MNQ/QQQ/SPY show an "Unlock NQ GEX with Pro" pill (/#pricing) instead, and
 // the strikes extra stays off. Client-side only, like the GEX page (the API itself is public).
@@ -64,6 +64,7 @@
 // are never shifted.
 
 import { rtHeadersReady } from './rt-access.js?v=705';
+import * as ProGate from './chart-pro-gate.js?v=705';
 import { ladderFromApi, ladderFromSnap, rankStrikes, previousDays, dayTop, dayTag } from './chart-gex-ladder-core.js?v=705';
 
 const TYPE = 'stk_gex';
@@ -568,6 +569,7 @@ class GexNative {
     const src = resolveSrc(this.ctx);
     if (!src) return null;
     if (src.pro && (!this.tier || this.tier.free)) return null;
+    if (ProGate.isFree()) return null;   // GEX on charts is Pro (chart-pro-gate.js removes the tool for Free)
     return { api: src.api, dte: this.dte() };
   }
   dte() {

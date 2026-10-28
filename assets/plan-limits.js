@@ -3,8 +3,8 @@
 //             (loadPlansForRoles, findPlan, rankOf), assets/plan-modal.js
 //             (openPlanUpgradeModal). Optional page hooks: gex.js
 //             (strykerGexSetLimit), journal-main.js (JOURNAL_TRADES,
-//             switchJournalTab, reloadJournalData), replay.js (calls
-//             strykerReplayLimitOk before starting a session).
+//             switchJournalTab, reloadJournalData), replay.js (still calls
+//             strykerReplayLimitOk; it always answers yes now).
 //
 // The Free plan (rank 0) gets:
 //   GEX           SPX only, 0DTE view only, no strike table
@@ -12,8 +12,10 @@
 //                 month; import, broker sync, analytics and AI coach are Pro.
 //                 Existing trades are never hidden or deleted, and editing an
 //                 existing trade is always allowed.
-//   Backtesting   FREE_REPLAY_WEEKLY new replay sessions per week (Mon-Sun,
-//                 local time), counted from the sessions saved in this browser.
+//   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
+//                 chart are real-time data, order flow tools and GEX on charts
+//                 (assets/chart-pro-gate.js). Backtesting / replay sessions are
+//                 unlimited for every plan.
 //
 // ENFORCEMENT IS CLIENT-SIDE ONLY. The journal and replay data live under
 // students/{uid}/journal and /replay, which the member may write freely, and
@@ -23,7 +25,6 @@
 (function () {
   'use strict';
   var FREE_JOURNAL_MONTHLY = 20;
-  var FREE_REPLAY_WEEKLY = 3;
   var tierPromise = null;
 
   // { free: true|false } once the signed-in member's plan is known.
@@ -153,46 +154,14 @@
   }
 
   // ---- Backtesting / replay ------------------------------------------------------------
-  function weekStartMs() {
-    var d = new Date(); d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // Monday
-    return d.getTime();
-  }
-  // replay.js awaits this before starting a new session. Resolves true when
-  // the member may start one.
-  window.strykerReplayLimitOk = function (D) {
-    return tier().then(function (t) {
-      if (!t.free || !D || !D.store || typeof D.store.listSessions !== 'function') return true;
-      return D.store.listSessions().then(function (list) {
-        var since = weekStartMs();
-        var n = (list || []).filter(function (s) { return (s.createdAt || 0) >= since; }).length;
-        if (n < FREE_REPLAY_WEEKLY) return true;
-        upgrade('The Free plan includes ' + FREE_REPLAY_WEEKLY + ' backtesting sessions a week, and you have used them. You can still resume saved sessions. Pro is unlimited.');
-        return false;
-      }).catch(function () { return true; });
-    });
-  };
-  function applyReplay() {
-    var host = document.getElementById('rp-new-btn');
-    if (!host || document.getElementById('rp-free-note') || !window.ReplayData) return;
-    window.ReplayData.store.listSessions().then(function (list) {
-      var since = weekStartMs();
-      var n = (list || []).filter(function (s) { return (s.createdAt || 0) >= since; }).length;
-      var p = document.createElement('p');
-      p.id = 'rp-free-note';
-      p.className = 'plan-usage-note';
-      p.innerHTML = '<b>' + Math.min(n, FREE_REPLAY_WEEKLY) + ' of ' + FREE_REPLAY_WEEKLY + '</b> new sessions used this week on the Free plan. <a href="#" data-open-plan-modal data-upgrade-reason="Pro includes unlimited backtesting and replay.">Pro is unlimited</a>.';
-      var anchor = document.getElementById('rp-head') || host.parentNode;
-      anchor.parentNode.insertBefore(p, anchor.nextSibling);
-    }).catch(function () {});
-  }
+  // No limit on any plan (Owner 2026-10-29). replay.js still awaits this hook before starting a session.
+  window.strykerReplayLimitOk = function () { return Promise.resolve(true); };
 
   document.addEventListener('DOMContentLoaded', function () {
     tier().then(function (t) {
       if (!t.free) return;
       applyGex();
       applyJournal();
-      applyReplay();
     });
   });
 })();

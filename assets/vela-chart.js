@@ -797,6 +797,7 @@ function lateLists(provider){
     try { Flow.mountOrderflow(ws, { toast }); } catch (e) { console.warn('TradeZoro: volume tools', e); }
   };
   if (heavyNeeded) mountHeavy();
+  import('./chart-pro-gate.js?v=705').then((m) => m.mountProGate(ws, { toast })).catch((e) => console.warn('TradeZoro: pro gate', e));
   try { Pine.mountCommunityPicker(ws); } catch (e) { console.warn('TradeZoro: community picker', e); }
   try { Settings.mountChartSettings(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: settings window', e); }
   if (!BT) try { Alerts.mountChartAlerts(ws, { toast, bar: document.querySelector('#stkc-bar .stkc-bar-r') }); } catch (e) { console.warn('TradeZoro: alerts', e); }

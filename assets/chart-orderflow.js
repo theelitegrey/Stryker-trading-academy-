@@ -32,6 +32,7 @@
 
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=705';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=705';
+import * as ProGate from './chart-pro-gate.js?v=705';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -2518,6 +2519,7 @@ export function mountOrderflow(ws, opts) {
     const x = plan(this)[index];
     if (!x) return;
     if (x.pseudo) { runPseudo(this, x.pseudo); return; }
+    if (x.r && x.r.native && ProGate.locked(ProGate.kindOf(x.r.nativeType))) { ProGate.upgrade(ProGate.kindOf(x.r.nativeType)); return; }
     // ONE footprint: the picker's "Footprint" row switches the chart to the Footprint chart type
     // (assets/chart-footprint.js), which reads the futures recorder or Binance trades by symbol.
     if (x.r && x.r.nativeType === 'stk_footprint') {

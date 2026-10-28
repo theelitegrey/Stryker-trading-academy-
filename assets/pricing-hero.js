@@ -13,7 +13,7 @@
 //   - a three-question FAQ
 // Every price comes from the live plans and the live usdInr rate (the same
 // Math.round(usd x rate) checkout charges), so nothing here hard-codes money.
-// The comparison-row wording mirrors assets/plan-limits.js and the plan
+// The comparison-row wording mirrors assets/plan-limits.js and assets/chart-pro-gate.js and the plan
 // feature lists; keep them in step if the Free limits change.
 // Replaces assets/plans-public.js on the homepage (build 393). If plans fail to
 // load, the static fallback cards inside #pricing-root are left in place.
@@ -93,7 +93,7 @@
       ['Volume Profile and Prop Firm tracks', false, true],
       ['Progress dashboard, achievements, streak', true, true]]],
     ['GEX', [
-      ['Symbols', 'SPX', 'Every symbol'],
+      ['GEX page symbols', 'SPX', 'Every symbol'],
       ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
       ['Futures conversion', false, true],
       ['Strike table', false, true]]],
@@ -102,13 +102,15 @@
       ['Manual entry', true, true],
       ['Import and broker sync', false, true],
       ['Analytics and AI coach', false, true]]],
-    ['Order flow', [
-      ['Footprint, delta, CVD, big trades, absorption, volume profile', 'NQ (last 24 h) and crypto', 'Every supported futures market, full history']]],
-    ['Backtesting', [
-      ['Replay sessions', '3 / week', 'Unlimited']]],
+    ['Charts', [
+      ['TradeZoro Charts, every chart type, drawing and indicator', true, true],
+      ['Alerts, layouts, paper trading, replay and backtesting', true, true],
+      ['Market data', 'Updated every 10 minutes', 'Real-time'],
+      ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
+      ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
     ['Market desk', [
       ['Global Monitor, economic calendar, pre-market brief', true, true],
-      ['Smart Money Desk, charts, trading models', false, true],
+      ['Smart Money Desk, trading models', false, true],
       ['Private indicators', false, true]]],
     ['Community', [
       ['Read everything', true, true],
@@ -215,7 +217,7 @@
     desk: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 12l3-3 3 2 4-4"/><path d="M9 20h6M12 16v4"/>',
     community: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14.5c1.8.8 3 2.6 3 4.5"/>'
   };
-  var ICON_ORDER = ['learn', 'gex', 'journal', 'replay', 'desk', 'community'];
+  var ICON_ORDER = ['desk', 'replay', 'gex', 'journal', 'learn', 'desk'];   // Pro feature order: real-time, order flow, GEX on charts, journal, chapters, desk
   function icon(k) {
     return '<span class="pv-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[k] + '</svg></span>';
   }
@@ -240,7 +242,7 @@
         '<ul class="pv-icons">' + feats + '</ul>' +
       '</div>' +
       '<div class="pv-strip">' +
-        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', SPX GEX, 20 journal trades a month.</p>' +
+        '<p><b>Not ready? Start free:</b> ' + esc(freeChaptersText(P.free)) + ', TradeZoro Charts with every tool and indicator, free, SPX on the GEX page, 20 journal trades a month.</p>' +
         '<a href="signup" class="btn btn-ghost">' + ctaLabel(P.free, 'Start free') + '</a>' +
       '</div>' +
       '<div class="pv-compare-wrap">' +
@@ -253,7 +255,7 @@
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your journal and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your journal and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the journal cap, and real-time data, order flow tools and GEX on the charts stay with Pro.') +
       '</div>';
     wireCompare(root, P);
   }

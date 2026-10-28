@@ -37,6 +37,7 @@
 // No Vela / LuxAlgo wording anywhere in view (Owner order 2026-10-05).
 
 import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-builtins.js?v=705';
+import { kindOf as proKind, locked as proLocked, upgrade as proUpgrade, proTag, onTier as onProTier } from './chart-pro-gate.js?v=705';
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
@@ -187,8 +188,8 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_gex') { cat = GROUP_STRYKER; desc = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH/pPOC/pVAL, ONH/ONL) from the GEX page (SPX, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_gexheat') { cat = GROUP_STRYKER; desc = 'Net GEX at every strike through the session, drawn behind the candles (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
-      if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them (Pro)'; }
-      if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip (Pro)'; }
+      if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them'; }
+      if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip'; }
       out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc, hidden: !!r.hidden });
     });
     const ex = (S() && S().EXAMPLES) || [];
@@ -226,6 +227,7 @@ export function mountIndicatorWindow(ws, opts){
   async function addItem(it, rowEl){
     const a = activeCell();
     if (!a.cell) { toast('No chart to add it to.', 'error'); return; }
+    if (it.kind === 'builtin' && it.key.startsWith('b:') && proLocked(proKind(it.key.slice(2)))) { close(); proUpgrade(proKind(it.key.slice(2))); return; }
     if (rowEl) rowEl.classList.add('is-busy');
     try {
       if (it.kind === 'builtin') {
@@ -353,6 +355,7 @@ export function mountIndicatorWindow(ws, opts){
       it.locked ? h('span', { class: 'stkiw-lock', title: 'Code hidden in the editor', 'aria-label': 'code hidden', html: SVG(I_LOCK, 13) }) : null,
       it.s && it.s.picked ? h('span', { class: 'stkiw-pick', text: "Editors' pick" }) : null,
       it.beta ? h('span', { class: 'stkiw-pick', text: 'beta' }) : null,
+      (it.kind === 'builtin' && it.key.startsWith('b:') && proLocked(proKind(it.key.slice(2)))) ? proTag() : null,
       it.third ? h('span', { class: 'stkiw-pick is-third', text: 'Community \u00b7 third-party' }) : null,
       it.gone ? h('span', { class: 'stkiw-pick is-warn', text: 'No longer published' }) : null,
       h('span', { class: 'stkiw-sub', text: it.author || '' })
@@ -492,6 +495,8 @@ export function mountIndicatorWindow(ws, opts){
   picker.sync = () => { if (ov && !els.search.value.trim() && (section === 'onchart' || section === 'tech' || section === 'orderflow' || section === 'fav')) { clearTimeout(syncT); syncT = setTimeout(render, 120); } };
   try { ws.on('cell:active', () => { if (ov) render(); }); } catch (e) {}
   window.addEventListener('resize', () => { if (ov) paint(); });
+
+  onProTier(() => { if (ov) render(); });
 
   const api = { open, close, render, Favs, fmtCount, ws };
   window.StrykerIndicatorWindow = api;

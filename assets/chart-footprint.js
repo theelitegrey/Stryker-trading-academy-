@@ -15,7 +15,7 @@
 //   - Indicators, group "Order Flow": Delta (trades), Cumulative Delta (trades, candles or line,
 //     session reset), Big Trades (bubbles), Volume Profile (trades) and VWAP (trades, +-1/2 SD).
 // No lookahead: in bar replay every tool uses only the 1-minute bars complete at the replay clock.
-// Gating: free plan = NQ (and MNQ) only, the last 24 h; Pro = all six roots and the full history.
+// Gating: order flow is Pro (assets/chart-pro-gate.js); Pro and admins get all six roots and the full history.
 // Simulation / education only: nothing here places or suggests an order.
 // Education only. Not financial advice.
 
@@ -106,11 +106,11 @@ let tierP = null;
 function tier() {
   if (tierP) return tierP;
   tierP = new Promise((resolve) => {
-    const t = setTimeout(() => resolve({ free: true, unknown: true }), 6000);
+    const t = setTimeout(() => resolve({ free: false, unknown: true }), 6000);
     try {
-      if (typeof window.strykerPlanTier !== 'function') { clearTimeout(t); resolve({ free: true, unknown: true }); return; }
-      window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: true }); }, () => { clearTimeout(t); resolve({ free: true }); });
-    } catch (e) { clearTimeout(t); resolve({ free: true }); }
+      if (typeof window.strykerPlanTier !== 'function') { clearTimeout(t); resolve({ free: false, unknown: true }); return; }
+      window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: false }); }, () => { clearTimeout(t); resolve({ free: false }); });
+    } catch (e) { clearTimeout(t); resolve({ free: false }); }
   });
   return tierP;
 }
@@ -249,8 +249,8 @@ export function flowFor(ctxLike) {
   if (tf == null || tf < 1 || tf > MAX_TF_MIN) return { note: 'Order flow works on 1-minute to 4-hour charts.' };
   if (isCrypto(root)) return cryptoFlow(ctxLike, root, tf);
   const t = testTier() || tierNow;
-  const free = !t || t.free;
-  if (free && root !== FREE_ROOT && !(t && t.admin)) return { note: 'Order flow on ' + root + ' is part of Pro. The free plan shows it on NQ (last 24 h).', locked: true };
+  // Order flow is a Pro tool (Owner 2026-10-29); the picker and chart-pro-gate.js keep Free out. Whoever gets here sees everything (no root or history cap).
+  const free = false;
   const cb = ctxLike.bars;
   if (!cb.length) return { note: '' };
   const E = replayE();

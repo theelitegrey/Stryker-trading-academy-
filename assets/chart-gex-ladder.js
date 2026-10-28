@@ -21,6 +21,7 @@
 // PLAN: Free = SPX column only (QQQ / SPY show a "Pro" lock and are never fetched); Pro = all three.
 // BAR REPLAY: the ladder is the current chain, so it says so and does not draw during replay.
 // WORDING: "GEX updated Xs ago" / "X min ago" only; Education only. Not financial advice.
+import * as ProGate from './chart-pro-gate.js?v=705';
 import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=705';
 import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=705';
 
@@ -315,6 +316,7 @@ export function mountGexLadder(ws, opts) {
     try { if (window.__stkSymInfo && window.__stkSymInfo.isOpen) window.__stkSymInfo.close(); } catch (e) {}
   }
   function setOpen(v) {
+    if (v && ProGate.isFree()) { ProGate.upgrade('gex'); return; }
     open = !!v;
     if (open) closeOthers();
     panel.hidden = !open;
@@ -330,6 +332,9 @@ export function mountGexLadder(ws, opts) {
     return true;
   }
   if (!placeRail()) { const mo = new MutationObserver(() => { if (placeRail()) mo.disconnect(); }); mo.observe(host, { childList: true, subtree: true }); setTimeout(() => mo.disconnect(), 30000); }
+  // Free members: a PRO tag on the rail button + the phone button; a click opens the upgrade modal (setOpen).
+  ProGate.onTier((f) => { if (!f) return; [railBtn, phoneBtn].forEach((b) => { if (!b.querySelector('.stk-protag')) b.appendChild(ProGate.proTag()); }); });
+  if (ProGate.isFree()) [railBtn, phoneBtn].forEach((b) => b.appendChild(ProGate.proTag()));
   railBtn.addEventListener('click', () => setOpen(!open));
   phoneBtn.addEventListener('click', (e) => { e.stopPropagation(); setOpen(!open); });
   closeBtn.addEventListener('click', () => setOpen(false));

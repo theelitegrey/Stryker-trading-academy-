@@ -7,8 +7,7 @@
  * (IndexedDB) plus best-effort cloud copies under students/{uid}/replay.
  * Numbers from replay-analytics.js, charts from bt-charts.js, findings from
  * replay-coach.js. Trade edits (tags, mistakes, notes) write back into the
- * session's saved simulator snapshot. Gate: any plan (Free is capped at 3
- * new replay sessions a week in replay.js via plan-limits.js).
+ * session's saved simulator snapshot. Gate: any plan, no session cap.
  */
 (function () {
   'use strict';

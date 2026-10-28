@@ -15,8 +15,8 @@
 (function () {
   'use strict';
   const E = window.ReplayEngine, D = window.ReplayData, IND = window.ReplayIndicators, COACH = window.ReplayCoach;
-  // Free members may replay too, capped at 3 new sessions a week by
-  // assets/plan-limits.js (strykerReplayLimitOk). Pro and up: unlimited.
+  // Every plan may replay, with no session cap (Owner 2026-10-29;
+  // assets/plan-limits.js keeps a pass-through strykerReplayLimitOk).
   const RP_MIN_RANK = 0;
   const SPEEDS = [1, 2, 4, 8, 15, 30];
   const LWC_URL = 'https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js';

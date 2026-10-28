@@ -1,6 +1,6 @@
 // TradeZoro — Charts: "News markers" and "Economic events" indicators (ES module, charts.html).
 // Owner-approved 2026-10-14 (news + economic calendar job, parts A2 and B2). Pro (plan-lock):
-// Free members see an "Unlock with Pro" pill instead of the markers.
+// Free for every plan since 2026-10-29 (no lock).
 //
 // NEWS MARKERS (native 'stk_news'): a small icon along the bottom of the price pane at each bar
 // that had headlines for the chart's market (feed tags from assets/chart-news.js newsSymOf: NQ,
@@ -85,18 +85,8 @@ export function nextWarning(evs, nowMs, mins) {
 }
 
 // ---- plan tier (same rule as chart-gex-levels.js) ---------------------------------------------
-let tierP = null;
-function tier() {
-  if (tierP) return tierP;
-  tierP = new Promise((resolve) => {
-    const t = setTimeout(() => resolve({ free: true, unknown: true }), 8000);
-    try {
-      if (typeof window.strykerPlanTier !== 'function') { clearTimeout(t); resolve({ free: true, unknown: true }); return; }
-      window.strykerPlanTier().then((r) => { clearTimeout(t); resolve(r || { free: true }); }, () => { clearTimeout(t); resolve({ free: true }); });
-    } catch (e) { clearTimeout(t); resolve({ free: true }); }
-  });
-  return tierP;
-}
+// News markers and Economic events are free for every plan (Owner 2026-10-29): the tier is always "not free".
+const tier = () => Promise.resolve({ free: false });
 // Test hook: force a tier (tools/tests/chart-news-browser.js).
 export function _setTier(v) { tierP = Promise.resolve(v); }
 

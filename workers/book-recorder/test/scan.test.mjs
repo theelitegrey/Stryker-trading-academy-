@@ -17,7 +17,7 @@ export const table = (o) => {
 };
 const gz = (x) => { const b = gzipSync(JSON.stringify(x)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); };
 
-// Market Stats parts (ms-feeder): one row per session, 33 numeric columns
+// Market Stats parts (ms-feeder): one row per session, 62 numeric columns
 const msRow = (d) => MS_COLS.map((c, i) => (i === 0 ? d : i === 1 ? 2 : c === 'o15x' || c === 'o30x' || c === 'ibx' ? null : 1.5));
 const ms = (o) => Object.assign({ v: 1, t: now - 30, sym: 'NQ', tf: 5, cols: MS_COLS, rows: [msRow(20261027), msRow(20261028)] }, o || {});
 ok(validateScanPart('ms_nq', ms(), now) === '', 'market stats part valid (null extensions allowed)');

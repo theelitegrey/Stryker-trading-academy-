@@ -11,7 +11,7 @@
   var API = 'https://book-recorder.theelitegrey.workers.dev/scan?part=';
   var SYMS = [['NQ', 'ms_nq', 'NQ', 'Nasdaq-100 E-mini'], ['ES', 'ms_es', 'ES', 'S&P 500 E-mini'], ['SPX', 'ms_spx', 'ES', 'S&P 500 index']];
   var RANGES = [['3m', 'Last 3 months', 92], ['6m', 'Last 6 months', 183], ['1y', 'Last year', 365], ['3y', 'All (3 years)', 0]];
-  var st = { sym: 'NQ', rep: 'gap', range: '1y', dow: -1, bucket: 'any', data: {}, err: '', loading: false, sheet: null };
+  var st = { sym: 'NQ', rep: 'gap', range: '1y', dow: -1, bucket: 'any', session: 'ny', data: {}, err: '', loading: false, sheet: null };
   try { var sv = JSON.parse(localStorage.getItem('stryker_ms') || 'null'); if (sv) { ['sym', 'rep', 'range'].forEach(function (k) { if (sv[k]) st[k] = sv[k]; }); } } catch (e) {}
   if (!S.REPORTS[st.rep]) st.rep = 'gap';
   if (!SYMS.some(function (s) { return s[0] === st.sym; })) st.sym = 'NQ';
@@ -45,7 +45,7 @@
     var days = RANGES.filter(function (r) { return r[0] === st.range; })[0][2];
     var from = '';
     if (days && last) { var d = new Date(last + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - days); from = d.toISOString().slice(0, 10); }
-    return { from: from, dow: st.dow, bucket: st.bucket };
+    return { from: from, dow: st.dow, bucket: st.bucket, session: st.session };
   }
 
 
@@ -207,7 +207,7 @@
       '<div class="ms-row ms-reps" role="tablist" aria-label="Report">' + reps.map(function (r) {
         return '<button type="button" role="tab" class="ms-tab' + (r[0] === st.rep ? ' on' : '') + '" data-rep="' + r[0] + '" aria-selected="' + (r[0] === st.rep) + '">' + esc(r[1]) + '</button>';
       }).join('') + '</div>' +
-      '<div class="ms-row ms-sels">' + selectBox('ms-range', 'Dates', RANGES, st.range) + selectBox('ms-dow', 'Day', dows, st.dow) + selectBox('ms-bucket', 'Gap size', bks, st.bucket) + '</div>' +
+      '<div class="ms-row ms-sels">' + selectBox('ms-range', 'Dates', RANGES, st.range) + selectBox('ms-dow', 'Day', dows, st.dow) + selectBox('ms-bucket', 'Gap size', bks, st.bucket) + (S.REPORTS[st.rep].sessions ? selectBox('ms-session', 'Session', [['ny', 'New York'], ['lon', 'London'], ['asia', 'Asia']], st.session) : '') + '</div>' +
       '</div>';
   }
   function yearsText(s) {
@@ -247,18 +247,27 @@
     var h = '<div class="ms-sum"><b>' + cur.sessions + '</b> sessions' + (d.rows.length ? ' · ' + esc(d.rows[0].date) + ' to ' + esc(d.rows[d.rows.length - 1].date) + ' available' : '') + ' · <span id="ms-ago"></span></div>';
     h += '<p class="ms-blurb">' + esc(rep.blurb) + '</p>';
     if (st.sym === 'SPX') h += '<p class="ms-note">SPX is the cash index: sessions run 09:30 to 16:00 New York. On the chart its levels are drawn on ES.</p>';
+    if (rep.futuresOnly && st.sym === 'SPX') h += '<p class="ms-warn">This report needs overnight bars, which the SPX cash index does not have. Pick a futures symbol.</p>';
+    if (rep.sessions) h += '<p class="ms-note">Session: ' + esc(S.SESS_TEXT[st.session]) + '. Times are New York.</p>';
     if (cur.sessions < S.WARN_N) h += '<p class="ms-warn">Only ' + cur.sessions + ' sessions match these filters. Treat every number below as a rough guide.</p>';
-    var group = null;
+    var group = '';
     h += '<div class="ms-grid">';
     cur.cards.forEach(function (c, i) {
-      if (c.group !== group) { group = c.group; if (group) h += '</div><h3 class="ms-grp">' + esc(group) + '</h3><div class="ms-grid">'; }
+      if (c.group !== group) {
+        group = c.group;
+        if (group) {
+          var emptyGrid = h.slice(-21) === '<div class="ms-grid">';
+          if (emptyGrid) h = h.slice(0, -21); else h += '</div>';
+          h += '<h3 class="ms-grp">' + esc(group) + '</h3><div class="ms-grid">';
+        }
+      }
       h += card(c, i);
     });
     h += '</div>';
     if (cur.extra) {
-      h += '<h3 class="ms-grp">Session range, % of the open</h3><div class="ms-tw"><table class="ms-table"><thead><tr><th>Day</th><th>N</th><th>Median</th><th>95% interval</th></tr></thead><tbody>';
-      cur.extra.forEach(function (r) {
-        h += '<tr><th>' + esc(r.label) + '</th><td>' + r.n + (r.guard === 'low' ? ' <em class="ms-low">Low</em>' : '') + '</td><td>' + (r.guard === 'withheld' ? '—' : r.med.toFixed(2) + '%') + '</td><td>' + (r.guard === 'withheld' ? '—' : r.lo.toFixed(2) + '% to ' + r.hi.toFixed(2) + '%') + '</td></tr>';
+      h += '<h3 class="ms-grp">' + esc(cur.extra.title) + '</h3><div class="ms-tw"><table class="ms-table"><thead><tr><th>' + (st.rep === 'adr' ? 'Time' : 'Day') + '</th><th>N</th><th>Median</th><th>95% interval</th></tr></thead><tbody>';
+      cur.extra.rows.forEach(function (r) {
+        h += '<tr><th>' + esc(r.label) + '</th><td>' + r.n + (r.guard === 'low' ? ' <em class="ms-low">Low</em>' : '') + '</td><td>' + (r.guard === 'withheld' ? '\u2014' : r.med.toFixed(st.rep === 'adr' ? 0 : 2) + '%') + '</td><td>' + (r.guard === 'withheld' ? '\u2014' : r.lo.toFixed(st.rep === 'adr' ? 0 : 2) + '% to ' + r.hi.toFixed(st.rep === 'adr' ? 0 : 2) + '%') + '</td></tr>';
       });
       h += '</tbody></table></div>';
     }
@@ -350,6 +359,7 @@
     if (id === 'ms-range') st.range = e.target.value;
     else if (id === 'ms-dow') st.dow = Number(e.target.value);
     else if (id === 'ms-bucket') st.bucket = e.target.value;
+    else if (id === 'ms-session') st.session = e.target.value;
     else return;
     update();
   });

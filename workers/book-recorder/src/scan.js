@@ -8,7 +8,7 @@
 // gzip bytes as they came; GET /scan?part= serves them as-is (x-scan-gzip: 1; the page un-gzips with
 // DecompressionStream, as /orderflow does), edge-cached 60 s, so InsightSentry is never called per
 // visitor. Plan gating (custom filters = Pro) is the site's.
-export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx'];
+export const SCAN_PARTS = ['presets', 'stock', 'etf', 'crypto', 'syminfo', 'ms_nq', 'ms_es', 'ms_spx', 'ms_ym', 'ms_rty', 'ms_gc', 'ms_cl'];
 export const SCAN_MAX_BODY = 512 * 1024;
 export const SCAN_COLS = ['s', 'n', 'c', 'chg', 'vol', 'rvol', 'gap', 'rsi', 'hi52', 'lo52', 'cap', 'pe', 'sec', 'perfW', 'perfYtd'];
 const FRESH_S = 15 * 60;
@@ -27,7 +27,9 @@ async function gunzipText(buf, max) {
 
 // Market Stats part (ms-feeder/ms_feeder.py): one row per RTH session, { v, t, sym, tf, cols, rows }. Pure.
 export const MS_COLS = ['d', 'dow', 'o', 'h', 'l', 'c', 'pdh', 'pdl', 'pdc', 'gf', 'o15h', 'o15l', 'o15d', 'o15t', 'o15x', 'o30h', 'o30l', 'o30d', 'o30t', 'o30x',
-  'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd', 'thi', 'tlo', 'bhi', 'blo'];
+  'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd', 'thi', 'tlo', 'bhi', 'blo',
+  'pdo', 'c5c', 'c15c', 'c60c', 'mo', 'mt', 'rr1', 'rr2', 'rr3', 'rr4', 'rr5', 'rr6', 'rr7', 'rr8', 'rr9', 'rr10', 'rr11', 'rr12', 'rr13',
+  'lo', 'lc5', 'lc15', 'lc60', 'le', 'ao', 'ac5', 'ac15', 'ac60', 'ae'];
 export function validateMarketStats(part, d) {
   if (part.slice(3).toUpperCase() !== d.sym) return 'bad sym';
   if (!Array.isArray(d.cols) || d.cols.join() !== MS_COLS.join()) return 'bad cols';

@@ -23,7 +23,13 @@ SYMS = {  # report symbol -> (IS code, part)
     'NQ': ('CME_MINI:NQ1!', 'ms_nq'),
     'ES': ('CME_MINI:ES1!', 'ms_es'),
     'SPX': ('SP:SPX', 'ms_spx'),
+    # step 4 (Owner 2026-10-29): same US-equity-hours session (09:30-16:00 New York) for every symbol
+    'YM': ('CBOT_MINI:YM1!', 'ms_ym'),
+    'RTY': ('CME_MINI:RTY1!', 'ms_rty'),
+    'GC': ('COMEX:GC1!', 'ms_gc'),
+    'CL': ('NYMEX:CL1!', 'ms_cl'),
 }
+CASH = ('SPX',)                 # cash index: no overnight bars, so no midnight open / London / Asia columns
 CACHE_DIR = os.environ.get('MS_CACHE_DIR', '/root/projects/book-feeder/ms-cache')
 YEARS = 3
 STEP = 5                       # minutes per bar
@@ -33,7 +39,12 @@ HALF_LAST = 12 * 60 + 55       # an early close (13:00) ends with the 12:55 bar
 COLS = ['d', 'dow', 'o', 'h', 'l', 'c', 'pdh', 'pdl', 'pdc', 'gf',
         'o15h', 'o15l', 'o15d', 'o15t', 'o15x', 'o30h', 'o30l', 'o30d', 'o30t', 'o30x',
         'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd',
-        'thi', 'tlo', 'bhi', 'blo']
+        'thi', 'tlo', 'bhi', 'blo',
+        # v2 columns (market stats step 2/3): prior session open; first 5m/15m/1h candle closes; ICT midnight open + minutes to
+        # the first RTH touch; running session range at each 30 min; London (03:00-09:30 ET) and Asia (20:00-03:00 ET) sessions
+        'pdo', 'c5c', 'c15c', 'c60c', 'mo', 'mt',
+        'rr1', 'rr2', 'rr3', 'rr4', 'rr5', 'rr6', 'rr7', 'rr8', 'rr9', 'rr10', 'rr11', 'rr12', 'rr13',
+        'lo', 'lc5', 'lc15', 'lc60', 'le', 'ao', 'ac5', 'ac15', 'ac60', 'ae']
 
 IS_CALLS = [0]
 
@@ -132,17 +143,23 @@ def refresh(sym, code, key, now, full):
 
 
 # ---- sessions -----------------------------------------------------------------------------------------------------
-def group_sessions(bars):
-    """bars [[t,o,h,l,c]] -> {date: [(minuteOfDay, o, h, l, c)]} for RTH bar starts only, ET."""
+def group_sessions(bars, allb=None):
+    """bars [[t,o,h,l,c]] -> {date: [(minuteOfDay, o, h, l, c)]} for RTH bar starts only, ET.
+    allb (optional dict) is filled with every bar of the day (any hour), same shape."""
     days = {}
     for t, o, h, l, c in bars:
         dt = datetime.fromtimestamp(t, NY)
         mod = dt.hour * 60 + dt.minute
+        if allb is not None:
+            allb.setdefault(dt.strftime('%Y%m%d'), []).append((mod, o, h, l, c))
         if mod < RTH_START or mod >= RTH_END or dt.weekday() > 4:
             continue
         days.setdefault(dt.strftime('%Y%m%d'), []).append((mod, o, h, l, c))
     for d in days:
         days[d].sort()
+    if allb is not None:
+        for d in allb:
+            allb[d].sort()
     return days
 
 
@@ -174,12 +191,12 @@ def first_break(bars, i0, hi, lo):
     return 0, -1
 
 
-def session_row(d, bars, prior):
+def session_row(d, bars, prior, allb=None, cash=False):
     """One session -> list in COLS order. prior = (pdh, pdl, pdc) or None."""
     o, c = bars[0][1], bars[-1][4]
     h, l = max(b[2] for b in bars), min(b[3] for b in bars)
     mins = lambda i: (bars[i][0] - RTH_START) + STEP          # minutes from the open to the END of bar i
-    pdh, pdl, pdc = prior
+    pdh, pdl, pdc = prior[:3]
     dow = datetime.strptime(d, '%Y%m%d').weekday()            # 0 = Monday
     # gap fill: a bar trades back to the prior close
     gf = -1
@@ -217,12 +234,54 @@ def session_row(d, bars, prior):
         return -1
     row += [first(lambda b: b[2] >= pdh), first(lambda b: b[3] <= pdl),
             first(lambda b: b[4] > pdh), first(lambda b: b[4] < pdl)]
+    row += v2_columns(d, bars, prior, allb or {}, cash)
     assert len(row) == len(COLS), (len(row), len(COLS))
     return row
 
 
-def build_rows(bars):
-    days = group_sessions(bars)
+def v2_columns(d, bars, prior, allb, cash):
+    """pdo, first candle closes, ICT midnight open, running range every 30 min, London and Asia sessions."""
+    out = [r2(prior[3]) if len(prior) > 3 else None, r2(bars[0][4]), r2(bars[2][4]), r2(bars[11][4])]
+    # ICT midnight open: the 00:00 ET bar's open; minutes until an RTH bar first trades through it (-1 never)
+    mo, mt = None, None
+    if not cash:
+        mid = [b for b in allb.get(d, []) if b[0] == 0]
+        if mid:
+            mo = mid[0][1]
+            mt = -1
+            for i, b in enumerate(bars):
+                if b[3] <= mo <= b[2]:
+                    mt = (b[0] - RTH_START) + STEP
+                    break
+    out += [None if mo is None else r2(mo), mt]
+    # running session range after 30, 60 ... 390 minutes
+    hi, lo = -1e18, 1e18
+    for i, b in enumerate(bars):
+        hi, lo = max(hi, b[2]), min(lo, b[3])
+        if (i + 1) % 6 == 0:
+            out.append(r2(hi - lo))
+    while len(out) < 4 + 2 + 13:
+        out.append(None)
+    # London 03:00-09:30 ET (same calendar day) and Asia 20:00 (previous calendar day) - 03:00 ET
+    def sess(bs, first_mod, last_mod, need):
+        if len(bs) < need or bs[0][0] != first_mod or bs[-1][0] != last_mod:
+            return [None] * 5
+        return [r2(bs[0][1]), r2(bs[0][4]), r2(bs[2][4]), r2(bs[11][4]), r2(bs[-1][4])]
+    if cash:
+        out += [None] * 10
+    else:
+        today = allb.get(d, [])
+        lon = [b for b in today if 180 <= b[0] < RTH_START]
+        out += sess(lon, 180, RTH_START - STEP, 70)
+        pd = (datetime.strptime(d, '%Y%m%d') - timedelta(days=1)).strftime('%Y%m%d')
+        asia = [b for b in allb.get(pd, []) if b[0] >= 1200] + [b for b in today if b[0] < 180]
+        out += sess(asia, 1200, 175, 80)
+    return out
+
+
+def build_rows(bars, cash=False):
+    allb = {}
+    days = group_sessions(bars, allb)
     kinds = {d: classify(days[d]) for d in days}
     order = sorted(d for d in days if kinds[d])
     rows, prior, prior_date = [], None, None
@@ -231,8 +290,8 @@ def build_rows(bars):
         dt = datetime.strptime(d, '%Y%m%d')
         near = prior_date is not None and (dt - prior_date).days <= 4
         if kinds[d] == 'full' and prior and near:
-            rows.append(session_row(d, b, prior))
-        prior = (max(x[2] for x in b), min(x[3] for x in b), b[-1][4])
+            rows.append(session_row(d, b, prior, allb, cash))
+        prior = (max(x[2] for x in b), min(x[3] for x in b), b[-1][4], b[0][1])
         prior_date = dt
     return rows
 
@@ -267,7 +326,7 @@ def main():
             cached = len([f for f in os.listdir(CACHE_DIR) if f.startswith(sym + '-')]) if os.path.isdir(CACHE_DIR) else 0
             try:
                 bars = refresh(sym, code, key, now, full or cached < YEARS * 12)
-                rows = build_rows(bars)
+                rows = build_rows(bars, sym in CASH)
                 body, n = payload(sym, rows, time.time())
                 log('%s: %d bars, %d sessions, %d B gzip, last %s' % (sym, len(bars), n, len(body), rows[-1][0] if rows else '-'))
                 if '--out' in sys.argv:

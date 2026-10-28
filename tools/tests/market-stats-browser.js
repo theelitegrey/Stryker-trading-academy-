@@ -64,6 +64,15 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
       await shot(p, 'ms-' + tag + '-today.png');
       await p.evaluate(() => window.scrollTo(0, 0));
       await shot(p, 'ms-' + tag + '-gap.png');
+      // step 2: the new reports render with N and intervals on every number
+      for (const [rep, re] of [['oc', /First 5 min candle/i], ['io', /Inside days/], ['eg', /engulfing/i], ['pdr', /Opened inside/], ['ict', /midnight open/i], ['adr', /ADR/]]) {
+        await p.click('.ms-tab[data-rep="' + rep + '"]'); await sleep(250);
+        const r = await p.evaluate(() => ({ page: document.querySelector('.ms-page').innerText, t: document.querySelector('.ms-grid').innerText, n: document.querySelectorAll('.ms-card').length, bad: document.querySelectorAll('.ms-card:not(.off) .ms-ci-t').length, nn: document.querySelectorAll('.ms-card .ms-n').length }));
+        check(r.n >= 2 && r.nn === r.n && /N = \d+/.test(r.t) && re.test(r.page), tag + ': report ' + rep + ' renders ' + r.n + ' cards with N');
+      }
+      await p.click('.ms-tab[data-rep="oc"]'); await p.selectOption('#ms-session', 'lon'); await sleep(250);
+      check(await p.evaluate(() => /London 03:00/.test(document.querySelector('.ms-note').innerText)), tag + ': session filter London');
+      await p.selectOption('#ms-session', 'ny'); await p.click('.ms-tab[data-rep="gap"]'); await sleep(200);
       // report tab, symbol, filters by real clicks
       await p.click('.ms-tab[data-rep="or15"]'); await sleep(300);
       check(await p.evaluate(() => /First break up/.test(document.querySelector('.ms-grid').innerText)), tag + ': opening range tab renders');

@@ -14,7 +14,7 @@
 .ms-chip:hover,.ms-tab:hover{border-color:rgba(3,201,136,.4)}
 .ms-chip.on,.ms-tab.on{background:#03c988;border-color:#03c988;color:#050506}
 .ms-reps{overflow-x:auto;padding-bottom:6px;margin-right:-20px;padding-right:20px}
-.ms-sels{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.ms-sels{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
 .ms-sel{display:flex;flex-direction:column;gap:3px;min-width:0}
 .ms-sel span{font:10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3,#8a8f98)}
 .ms-sel select{background:#131316;color:var(--ink-0,#f4f5f7);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 8px;font:13px 'Archivo',sans-serif;min-width:0;width:100%;min-height:38px}

@@ -27,7 +27,9 @@
 (function (root) {
   'use strict';
   var COLS = ['d', 'dow', 'o', 'h', 'l', 'c', 'pdh', 'pdl', 'pdc', 'gf', 'o15h', 'o15l', 'o15d', 'o15t', 'o15x', 'o30h', 'o30l', 'o30d', 'o30t', 'o30x',
-    'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd', 'thi', 'tlo', 'bhi', 'blo'];
+    'ibh', 'ibl', 'ibd', 'ibt', 'ibx', 'ibu', 'ibw', 'ibxu', 'ibxd', 'thi', 'tlo', 'bhi', 'blo',
+    'pdo', 'c5c', 'c15c', 'c60c', 'mo', 'mt', 'rr1', 'rr2', 'rr3', 'rr4', 'rr5', 'rr6', 'rr7', 'rr8', 'rr9', 'rr10', 'rr11', 'rr12', 'rr13',
+    'lo', 'lc5', 'lc15', 'lc60', 'le', 'ao', 'ac5', 'ac15', 'ac60', 'ae'];
   var WARN_N = 30, REFUSE_N = 10, Z = 1.959964;
   var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
   var BUCKETS = [['xs', 'XS', 0, 0.15], ['s', 'S', 0.15, 0.3], ['m', 'M', 0.3, 0.75], ['l', 'L', 0.75, 1.5], ['xl', 'XL', 1.5, Infinity]];
@@ -45,6 +47,15 @@
       out.push(o);
     }
     out.sort(function (a, b) { return a.d - b.d; });
+    // next session (only when its prior levels are this session: no missing day between) and the average daily range of
+    // the 20 sessions before this one (needs 10).
+    for (var k = 0; k < out.length; k++) {
+      var nx = out[k + 1];
+      out[k].next = nx && nx.pdh === out[k].h && nx.pdl === out[k].l ? nx : null;
+      var sumR = 0, cnt = 0;
+      for (var q = Math.max(0, k - 20); q < k; q++) { sumR += out[q].h - out[q].l; cnt++; }
+      out[k].adr = cnt >= 10 ? sumR / cnt : null;
+    }
     return out;
   }
   function dateStr(d) { var s = String(d); return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8); }
@@ -150,17 +161,20 @@
     var dnOnly = function (r) { return r.ibw === 1 && r.ibu === 0; };
     var both = function (r) { return r.ibu === 1 && r.ibw === 1; };
     var anyUp = function (r) { return r.ibu === 1; }, anyDn = function (r) { return r.ibw === 1; };
-    return [
+    var out = [
       { id: 'ib.up', title: 'Broke the high only', sub: 'Of all sessions, after the first hour only the IB high was broken', elig: yes, hit: upOnly, time: null, main: true },
       { id: 'ib.down', title: 'Broke the low only', sub: 'Of all sessions, only the IB low was broken', elig: yes, hit: dnOnly, time: null, main: true },
       { id: 'ib.both', title: 'Broke both sides', sub: 'Of all sessions', elig: yes, hit: both, time: null },
       { id: 'ib.none', title: 'Stayed inside', sub: 'Of all sessions, neither side broken after the first hour', elig: yes, hit: function (r) { return !r.ibu && !r.ibw; }, time: null },
-      { id: 'ib.first.up', group: 'First break', title: 'First break was up', sub: 'Of sessions that broke the IB', elig: function (r) { return r.ibd === 1 || r.ibd === -1; }, hit: function (r) { return r.ibd === 1; }, time: function (r) { return r.ibt; } },
-      { id: 'ib.up.x1', group: 'Extension', title: 'Up break extended 1x the IB', sub: 'Of sessions that broke the high, price went at least 1x the IB range above it', elig: anyUp, hit: function (r) { return r.ibxu >= rng(r) && rng(r) > 0; }, time: null },
-      { id: 'ib.up.x05', group: 'Extension', title: 'Up break extended 0.5x the IB', sub: 'Of sessions that broke the high', elig: anyUp, hit: function (r) { return r.ibxu >= rng(r) / 2 && rng(r) > 0; }, time: null },
-      { id: 'ib.dn.x1', group: 'Extension', title: 'Down break extended 1x the IB', sub: 'Of sessions that broke the low, price went at least 1x the IB range below it', elig: anyDn, hit: function (r) { return r.ibxd >= rng(r) && rng(r) > 0; }, time: null },
-      { id: 'ib.dn.x05', group: 'Extension', title: 'Down break extended 0.5x the IB', sub: 'Of sessions that broke the low', elig: anyDn, hit: function (r) { return r.ibxd >= rng(r) / 2 && rng(r) > 0; }, time: null }
+      { id: 'ib.first.up', group: 'First break', title: 'First break was up', sub: 'Of sessions that broke the IB', elig: function (r) { return r.ibd === 1 || r.ibd === -1; }, hit: function (r) { return r.ibd === 1; }, time: function (r) { return r.ibt; } }
     ];
+    [0.5, 1, 1.5, 2].forEach(function (m) {
+      out.push({ id: 'ib.up.x' + m, group: 'Extension above the IB high', title: 'Extended ' + m + 'x the IB range', sub: 'Of sessions that broke the high, price went at least ' + m + 'x the IB range above it', elig: anyUp, hit: function (r) { return rng(r) > 0 && r.ibxu >= m * rng(r); }, time: null });
+    });
+    [0.5, 1, 1.5, 2].forEach(function (m) {
+      out.push({ id: 'ib.dn.x' + m, group: 'Extension below the IB low', title: 'Extended ' + m + 'x the IB range', sub: 'Of sessions that broke the low, price went at least ' + m + 'x the IB range below it', elig: anyDn, hit: function (r) { return rng(r) > 0 && r.ibxd >= m * rng(r); }, time: null });
+    });
+    return out;
   }
   function priorCards() {
     return [
@@ -182,13 +196,123 @@
     });
     return out;
   }
+
+  var nn = function (v) { return v != null; };
+  // ---- v2 reports -----------------------------------------------------------------------------------------------------
+  var SESS = { ny: ['o', 'c5c', 'c15c', 'c60c', 'c', 'New York'], lon: ['lo', 'lc5', 'lc15', 'lc60', 'le', 'London'], asia: ['ao', 'ac5', 'ac15', 'ac60', 'ae', 'Asia'] };
+  var SESS_TEXT = { ny: 'New York 09:30 to 16:00 ET', lon: 'London 03:00 to 09:30 ET', asia: 'Asia 20:00 to 03:00 ET' };
+  function ocandleCards(rows, f) {
+    var m = SESS[(f && f.session) || 'ny'] || SESS.ny, o = m[0], e = m[4], out = [];
+    [[5, m[1], '5 min'], [15, m[2], '15 min'], [60, m[3], '1 hour']].forEach(function (w) {
+      var c = w[1], nm = w[2];
+      var ok = function (r) { return nn(r[o]) && nn(r[c]) && nn(r[e]) && r[o] !== r[c]; };
+      var up = function (r) { return ok(r) && r[c] > r[o]; }, dn = function (r) { return ok(r) && r[c] < r[o]; };
+      out.push({ id: 'oc.' + w[0] + '.up', group: 'First ' + nm + ' candle', title: 'Closed up', sub: 'Of sessions, the first ' + nm + ' candle closed above its open', elig: ok, hit: up, time: null, main: true });
+      out.push({ id: 'oc.' + w[0] + '.upo', group: 'After an up ' + nm + ' candle', title: 'Session ended above its open', sub: 'Of sessions with an up first ' + nm + ' candle, the session close was above the session open', elig: up, hit: function (r) { return r[e] > r[o]; }, time: null, main: true });
+      out.push({ id: 'oc.' + w[0] + '.upc', group: 'After an up ' + nm + ' candle', title: 'Session ended above the candle close', sub: 'The session close was above the close of that first candle', elig: up, hit: function (r) { return r[e] > r[c]; }, time: null });
+      out.push({ id: 'oc.' + w[0] + '.dno', group: 'After a down ' + nm + ' candle', title: 'Session ended below its open', sub: 'Of sessions with a down first ' + nm + ' candle, the session close was below the session open', elig: dn, hit: function (r) { return r[e] < r[o]; }, time: null, main: true });
+      out.push({ id: 'oc.' + w[0] + '.dnc', group: 'After a down ' + nm + ' candle', title: 'Session ended below the candle close', sub: 'The session close was below the close of that first candle', elig: dn, hit: function (r) { return r[e] < r[c]; }, time: null });
+    });
+    return out;
+  }
+  function inOutCards() {
+    var inside = function (r) { return r.h < r.pdh && r.l > r.pdl; };
+    var outside = function (r) { return r.h > r.pdh && r.l < r.pdl; };
+    var out = [
+      { id: 'io.in', title: 'Inside days', sub: 'Of all sessions, the high and low stayed inside the prior day range', elig: yes, hit: inside, time: null, main: true },
+      { id: 'io.out', title: 'Outside days', sub: 'Of all sessions, the session took out both the prior high and the prior low', elig: yes, hit: outside, time: null, main: true }
+    ];
+    [['in', 'inside', 'Inside day', inside], ['out', 'outside', 'Outside day', outside]].forEach(function (k) {
+      var has = function (r) { return k[3](r) && r.next; };
+      var g = 'The next session after an ' + k[1] + ' day';
+      out.push({ id: 'io.' + k[0] + '.hi', group: g, title: 'Touched the ' + k[1] + ' day high', sub: 'Of sessions that followed an ' + k[1] + ' day', elig: has, hit: function (r) { return r.next.thi >= 0; }, time: function (r) { return r.next.thi; } });
+      out.push({ id: 'io.' + k[0] + '.lo', group: g, title: 'Touched the ' + k[1] + ' day low', sub: 'Of sessions that followed an ' + k[1] + ' day', elig: has, hit: function (r) { return r.next.tlo >= 0; }, time: function (r) { return r.next.tlo; } });
+      out.push({ id: 'io.' + k[0] + '.both', group: g, title: 'Touched both', sub: 'The next session reached the high and the low', elig: has, hit: function (r) { return r.next.thi >= 0 && r.next.tlo >= 0; }, time: null });
+      out.push({ id: 'io.' + k[0] + '.none', group: g, title: 'Stayed inside the ' + k[1] + ' day range', sub: 'The next session reached neither side', elig: has, hit: function (r) { return r.next.thi < 0 && r.next.tlo < 0; }, time: null });
+      out.push({ id: 'io.' + k[0] + '.cu', group: g, title: 'Closed above the ' + k[1] + ' day high', sub: 'The next session close was above that high', elig: has, hit: function (r) { return r.next.c > r.h; }, time: null });
+      out.push({ id: 'io.' + k[0] + '.cd', group: g, title: 'Closed below the ' + k[1] + ' day low', sub: 'The next session close was below that low', elig: has, hit: function (r) { return r.next.c < r.l; }, time: null });
+    });
+    return out;
+  }
+  function engulfCards() {
+    var bull = function (r) { return nn(r.pdo) && r.pdo > r.pdc && r.c > r.o && r.o <= r.pdc && r.c >= r.pdo; };
+    var bear = function (r) { return nn(r.pdo) && r.pdc > r.pdo && r.c < r.o && r.o >= r.pdc && r.c <= r.pdo; };
+    var hasN = function (f) { return function (r) { return f(r) && r.next; }; };
+    return [
+      { id: 'eg.bull', title: 'Up engulfing days', sub: 'Of all sessions, an up body that covers the prior down body (open to close)', elig: yes, hit: bull, time: null, main: true },
+      { id: 'eg.bear', title: 'Down engulfing days', sub: 'Of all sessions, a down body that covers the prior up body', elig: yes, hit: bear, time: null, main: true },
+      { id: 'eg.bull.c', group: 'Next session after an up engulfing day', title: 'Closed above that close', sub: 'The next session close was above the engulfing day close', elig: hasN(bull), hit: function (r) { return r.next.c > r.c; }, time: null },
+      { id: 'eg.bull.u', group: 'Next session after an up engulfing day', title: 'Closed up (above its own open)', sub: 'The next session close was above its open', elig: hasN(bull), hit: function (r) { return r.next.c > r.next.o; }, time: null },
+      { id: 'eg.bull.h', group: 'Next session after an up engulfing day', title: 'Took out the engulfing day high', sub: 'The next session traded above that high', elig: hasN(bull), hit: function (r) { return r.next.thi >= 0; }, time: function (r) { return r.next.thi; } },
+      { id: 'eg.bear.c', group: 'Next session after a down engulfing day', title: 'Closed below that close', sub: 'The next session close was below the engulfing day close', elig: hasN(bear), hit: function (r) { return r.next.c < r.c; }, time: null },
+      { id: 'eg.bear.u', group: 'Next session after a down engulfing day', title: 'Closed down (below its own open)', sub: 'The next session close was below its open', elig: hasN(bear), hit: function (r) { return r.next.c < r.next.o; }, time: null },
+      { id: 'eg.bear.l', group: 'Next session after a down engulfing day', title: 'Took out the engulfing day low', sub: 'The next session traded below that low', elig: hasN(bear), hit: function (r) { return r.next.tlo >= 0; }, time: function (r) { return r.next.tlo; } }
+    ];
+  }
+  function pdrCards() {
+    var where = function (r) { return r.o > r.pdh ? 'above' : r.o < r.pdl ? 'below' : 'inside'; };
+    var out = [];
+    [['inside', 'Opened inside the prior day range'], ['above', 'Opened above the prior day high'], ['below', 'Opened below the prior day low']].forEach(function (k) {
+      var w = function (r) { return where(r) === k[0]; };
+      out.push({ id: 'pdr.' + k[0], title: k[1], sub: 'Share of all sessions', elig: yes, hit: w, time: null, main: true });
+    });
+    [['inside', 'Opened inside'], ['above', 'Opened above the high'], ['below', 'Opened below the low']].forEach(function (k) {
+      var w = function (r) { return where(r) === k[0]; };
+      var g = k[1] + ': where the session closed';
+      out.push({ id: 'pdr.' + k[0] + '.up', group: g, title: 'Closed above the prior high', sub: 'Of sessions that ' + k[1].toLowerCase().replace('opened', 'opened'), elig: w, hit: function (r) { return r.c > r.pdh; }, time: function (r) { return r.bhi; } });
+      out.push({ id: 'pdr.' + k[0] + '.in', group: g, title: 'Closed inside the prior range', sub: 'Close between the prior low and the prior high', elig: w, hit: function (r) { return r.c <= r.pdh && r.c >= r.pdl; }, time: null });
+      out.push({ id: 'pdr.' + k[0] + '.dn', group: g, title: 'Closed below the prior low', sub: 'Close below the prior day low', elig: w, hit: function (r) { return r.c < r.pdl; }, time: function (r) { return r.blo; } });
+    });
+    return out;
+  }
+  function ictCards() {
+    var has = function (r) { return nn(r.mo) && r.o !== r.mo; };
+    var back = function (r) { return r.mt >= 0; };
+    var t = function (r) { return r.mt; };
+    return [
+      { id: 'ict.back', title: 'Traded back to the midnight open', sub: 'Of sessions whose 09:30 open differed from the 00:00 ET open, price traded through the midnight open during the session', elig: has, hit: back, time: t, main: true },
+      { id: 'ict.up', group: 'By where the session opened', title: 'Opened above midnight, came back to it', sub: 'Of sessions that opened above the midnight open', elig: function (r) { return nn(r.mo) && r.o > r.mo; }, hit: back, time: t },
+      { id: 'ict.dn', group: 'By where the session opened', title: 'Opened below midnight, came back to it', sub: 'Of sessions that opened below the midnight open', elig: function (r) { return nn(r.mo) && r.o < r.mo; }, hit: back, time: t },
+      { id: 'ict.in30', group: 'How fast', title: 'Back within the first 30 min', sub: 'Of sessions that opened away from the midnight open', elig: has, hit: function (r) { return r.mt >= 0 && r.mt <= 30; }, time: t },
+      { id: 'ict.in60', group: 'How fast', title: 'Back within the first hour', sub: 'Of sessions that opened away from the midnight open', elig: has, hit: function (r) { return r.mt >= 0 && r.mt <= 60; }, time: t },
+      { id: 'ict.cu', group: 'Where it closed', title: 'Opened above midnight and closed above it', sub: 'Of sessions that opened above the midnight open', elig: function (r) { return nn(r.mo) && r.o > r.mo; }, hit: function (r) { return r.c > r.mo; }, time: null },
+      { id: 'ict.cd', group: 'Where it closed', title: 'Opened below midnight and closed below it', sub: 'Of sessions that opened below the midnight open', elig: function (r) { return nn(r.mo) && r.o < r.mo; }, hit: function (r) { return r.c < r.mo; }, time: null }
+    ];
+  }
+  function adrCards() {
+    var has = function (r) { return nn(r.adr) && nn(r.rr13); };
+    var out = [];
+    [0.5, 0.75, 1, 1.25].forEach(function (m) {
+      out.push({ id: 'adr.' + m, title: 'Reached ' + Math.round(m * 100) + '% of ADR', sub: 'Of sessions, the range from the 09:30 open reached ' + Math.round(m * 100) + '% of the average range of the 20 sessions before it',
+        elig: has, hit: function (r) { return r.h - r.l >= m * r.adr; }, time: function (r) { for (var k = 1; k <= 13; k++) if (r['rr' + k] >= m * r.adr) return k * 30; return -1; }, main: m === 1 || m === 0.5 });
+    });
+    return out;
+  }
+  // % of ADR reached by each half hour of the session: median with a distribution-free interval.
+  function adrByTime(base) {
+    var out = [];
+    for (var k = 1; k <= 13; k++) {
+      var v = [];
+      base.forEach(function (r) { if (nn(r.adr) && nn(r['rr' + k]) && r.adr > 0) v.push(r['rr' + k] / r.adr * 100); });
+      var m = medianCI(sortNum(v));
+      var mm = 570 + 30 * k;
+      out.push({ label: 'By ' + ('0' + Math.floor(mm / 60)).slice(-2) + ':' + ('0' + (mm % 60)).slice(-2), n: v.length, med: m && m.med, lo: m && m.lo, hi: m && m.hi, guard: guard(v.length) });
+    }
+    return out;
+  }
   var REPORTS = {
-    gap: { title: 'Gap fill', blurb: 'How often an opening gap trades back to the prior close, and how fast.', cards: gapCards },
-    or15: { title: 'Opening range 15 min', blurb: 'First 15 minutes of the session: which side breaks first and what follows.', cards: function () { return orCards(15); } },
-    or30: { title: 'Opening range 30 min', blurb: 'First 30 minutes of the session: which side breaks first and what follows.', cards: function () { return orCards(30); } },
-    ib: { title: 'Initial balance (first hour)', blurb: 'The first hour range: which sides break afterwards and by how much.', cards: ibCards },
-    prior: { title: 'Prior day levels', blurb: 'How often the session reaches yesterday\'s high, low and close.', cards: priorCards },
-    dow: { title: 'Day of week', blurb: 'Up days by weekday and the typical session range.', cards: dowCards }
+    gap: { title: 'Gap fill', group: 'Gaps', blurb: 'How often an opening gap trades back to the prior close, and how fast.', cards: gapCards },
+    or15: { title: 'Opening range 15 min', group: 'Open', blurb: 'First 15 minutes of the session: which side breaks first and what follows.', cards: function () { return orCards(15); } },
+    or30: { title: 'Opening range 30 min', group: 'Open', blurb: 'First 30 minutes of the session: which side breaks first and what follows.', cards: function () { return orCards(30); } },
+    ib: { title: 'Initial balance (first hour)', group: 'Ranges', blurb: 'The first hour range: which sides break afterwards and by how much.', cards: ibCards },
+    prior: { title: 'Prior day levels', group: 'Ranges', blurb: 'How often the session reaches yesterday\'s high, low and close.', cards: priorCards },
+    oc: { title: 'Opening candle continuation', group: 'Open', blurb: 'The first 5 minute, 15 minute and 1 hour candle: how often the session ended on the same side of its open.', cards: ocandleCards, sessions: true },
+    pdr: { title: 'Previous day range', group: 'Ranges', blurb: 'Where the session opened against yesterday\'s range, and where it closed.', cards: pdrCards },
+    adr: { title: 'Average daily range (ADR)', group: 'Ranges', blurb: 'The average range of the 20 sessions before today, and how much of it the session used, and when.', cards: adrCards },
+    io: { title: 'Inside and outside days', group: 'Candles', blurb: 'Days that stayed inside, or took out both sides of, the day before, and what the next session did.', cards: inOutCards },
+    eg: { title: 'Engulfing days', group: 'Candles', blurb: 'Daily bodies that cover the prior body, and how the next session followed.', cards: engulfCards },
+    ict: { title: 'ICT opening retracement', group: 'ICT', blurb: 'Whether price trades back to the 00:00 New York (midnight) open after the 09:30 open. Futures only.', cards: ictCards, futuresOnly: true },
+    dow: { title: 'Day of week', group: 'Candles', blurb: 'Up days by weekday and the typical session range.', cards: dowCards }
   };
 
   // Run one report on filtered rows. -> { cards: [{ id, title, sub, group, main, s: summary, items }], extra }
@@ -205,7 +329,7 @@
       }
       return { id: c.id, title: c.title, sub: c.sub, group: c.group || '', main: !!c.main, s: summarize(items), items: items, timed: !!c.time };
     });
-    var extra = reportId === 'dow' ? rangeByDow(base) : null;
+    var extra = reportId === 'dow' ? rangeByDow(base) : reportId === 'adr' ? { title: 'Share of ADR used by each half hour (median)', unit: '% of ADR', rows: adrByTime(base) } : null;
     return { cards: cards, extra: extra, sessions: base.length };
   }
   // Session range as % of the open, by weekday: median with a distribution-free 95% interval.
@@ -217,7 +341,7 @@
       var m = medianCI(sortNum(v));
       out.push({ label: d < 0 ? 'All days' : DOW[d], n: v.length, med: m && m.med, lo: m && m.lo, hi: m && m.hi, guard: guard(v.length) });
     }
-    return out;
+    return { title: 'Session range, % of the open', unit: '% of the open', rows: out };
   }
 
   // ---- formatting ------------------------------------------------------------------------------------------------
@@ -411,7 +535,7 @@
     return out;
   }
 
-  var api = { todayState: todayState, todayHistory: todayHistory, sessionBars: sessionBars, priorFromBars: priorFromBars, nyDate: nyDate, nyClock: nyClock, freq: freq, sum: sum, COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
+  var api = { SESS_TEXT: SESS_TEXT, todayState: todayState, todayHistory: todayHistory, sessionBars: sessionBars, priorFromBars: priorFromBars, nyDate: nyDate, nyClock: nyClock, freq: freq, sum: sum, COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
     toRows: toRows, wilson: wilson, medianCI: medianCI, quantile: quantile, summarize: summarize, applyFilters: applyFilters, run: run,
     pct: pct, fmtMin: fmtMin, dateStr: dateStr, bucketOf: bucketOf, guard: guard, sessionOpenEpoch: sessionOpenEpoch };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

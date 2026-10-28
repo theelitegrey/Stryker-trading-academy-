@@ -339,7 +339,7 @@
       const rows = list.map(S.enrich).sort((a, b) => b.exitAt - a.exitAt || b.id - a.id);
       const tw = h('div', { class: 'pr-card pr-trades' }, [h('h3', { class: 'pr-h3', text: 'Closed trades' + (rows.length ? ' (newest first)' : '') })]);
       if (!rows.length) {
-        tw.appendChild(h('p', { class: 'pr-empty', text: all.length ? 'No trades match these filters.' : (ui.kind === 'replay' ? 'No closed trades in the Replay account yet. Start Bar replay on the Charts page and trade.' : 'No closed paper trades yet. Turn on paper trading in the Charts settings, place a trade, and it will appear here when it closes.') }));
+        tw.appendChild(h('p', { class: 'pr-empty', text: all.length ? 'No trades match these filters.' : (ui.kind === 'replay' ? 'No closed trades in the Replay account yet. Start Bar replay on the ZoroCharts page and trade.' : 'No closed paper trades yet. Turn on paper trading in the ZoroCharts settings, place a trade, and it will appear here when it closes.') }));
       } else {
         const listEl = h('div', { class: 'pr-list', role: 'list' });
         for (const t of rows.slice(0, 250)) listEl.appendChild(row(t));

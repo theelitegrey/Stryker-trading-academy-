@@ -12,7 +12,7 @@
 //     students/{uid}/alertFires/{id}. While the engine's heartbeat (settings/alertEngine) is fresh
 //     this page does NOT fire those alerts itself (no double alert): it listens to alertFires and
 //     shows the toast + sound. If the heartbeat is stale, this page falls back to firing them here.
-//   - Everything else is checked IN THIS BROWSER while the Charts page is open: indicator alerts,
+//   - Everything else is checked IN THIS BROWSER while the ZoroCharts page is open: indicator alerts,
 //     forex / Hyperliquid price alerts, and alerts saved in this browser (signed out), for symbols
 //     that are on a chart here. No notification arrives for those when the page is closed.
 //   - Firing in the browser: toast (auto-hide optional), a short beep at the chosen volume, and a
@@ -598,7 +598,7 @@ function build(){
   panel.innerHTML = `
   <div class="stk-al-box" role="dialog" aria-modal="true" aria-labelledby="stk-al-h">
     <div class="stk-al-head"><div class="stk-al-ttl"><h2 id="stk-al-h">Alerts</h2><button type="button" class="stk-al-info" aria-label="How alerts work" aria-expanded="false" aria-controls="stk-al-pop">i</button></div><button type="button" class="stk-al-x" aria-label="Close">×</button>
-      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when Charts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while Charts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
+      <div class="stk-al-pop" id="stk-al-pop" role="note" hidden><button type="button" class="stk-al-popx" aria-label="Close info">×</button><ul><li><b>Price alerts</b> on futures and crypto are checked on our server and sent to your phone, even when ZoroCharts is closed (turn on push in Settings; on iPhone, add TradeZoro to your Home Screen first).</li><li><b>Indicator alerts</b>, forex alerts and alerts saved in this browser only work while ZoroCharts is open (no phone push). Indicators never alert on their own: pick one under Condition to get its signals.</li></ul><p>Education only. Not financial advice.</p></div></div>
     <form class="stk-al-form" hidden>
       <label>Symbol<input name="symbol" maxlength="40" required></label>
       <label class="stk-al-wide">Condition<select name="src"></select></label>
@@ -778,8 +778,8 @@ function renderList(){
     row.innerHTML = '<div class="stk-al-txt"><b></b><span></span></div><button type="button" data-k="pause"></button><button type="button" data-k="edit">Edit</button><button type="button" data-k="del" aria-label="Delete alert">Delete</button>';
     row.querySelector('b').textContent = isCond(a) ? (a.symbol + ' \u00b7 ' + a.src.title + ' \u2192 ' + (a.src.any ? 'Any alert() function call' : a.src.cond)) : a.src ? (a.symbol + ' · ' + a.src.title + (a.src.plotTitle ? ' (' + a.src.plotTitle + ')' : '') + ' ' + CONDL[a.cond] + ' ' + (a.src.vs === 'close' ? 'candle close' : fmt(a.price))) : (a.symbol + ' · ' + CONDL[a.cond] + ' ' + fmt(a.price));
     const paused = !a.active && (isCond(a) ? !a.fired && !(a.expires && Date.now() > a.expires) : pausedIds().has(a.id));
-    if (isCond(a)) row.querySelector('span').textContent = (a.message ? a.message + ' \u00b7 ' : '') + CFREQL[a.freq] + (a.expires ? ' \u00b7 until ' + new Date(a.expires).toLocaleString() : '') + (a.popup ? '' : ' \u00b7 no popup') + (a.sound ? '' : ' \u00b7 no sound') + (a.active ? '' : (a.expires && Date.now() > a.expires ? ' \u00b7 Expired' : a.fired ? ' \u00b7 Triggered' : ' \u00b7 Paused')) + ' \u00b7 needs Charts open';
-    else row.querySelector('span').textContent = (a.active ? '' : paused ? 'Paused · ' : 'Triggered · ') + (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.src ? ' · needs Charts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs Charts open'));
+    if (isCond(a)) row.querySelector('span').textContent = (a.message ? a.message + ' \u00b7 ' : '') + CFREQL[a.freq] + (a.expires ? ' \u00b7 until ' + new Date(a.expires).toLocaleString() : '') + (a.popup ? '' : ' \u00b7 no popup') + (a.sound ? '' : ' \u00b7 no sound') + (a.active ? '' : (a.expires && Date.now() > a.expires ? ' \u00b7 Expired' : a.fired ? ' \u00b7 Triggered' : ' \u00b7 Paused')) + ' \u00b7 needs ZoroCharts open';
+    else row.querySelector('span').textContent = (a.active ? '' : paused ? 'Paused · ' : 'Triggered · ') + (a.message ? a.message + ' · ' : '') + (a.freq === 'every' ? 'Every time' : 'Only once') + (a.src ? ' · needs ZoroCharts open' : (backend && backend.kind === 'cloud' && serverCovers(a.symbol) ? ' · phone push' : ' · needs ZoroCharts open'));
     row.querySelector('[data-k=pause]').textContent = a.active ? 'Pause' : paused ? 'Resume' : 'Restart';
     row.querySelector('[data-k=pause]').onclick = async () => { a.active = !a.active; markPaused(a.id, !a.active); armed.delete(a.id); pendClose.delete(a.id); if (isCond(a)) a.fired = false; if (a.active && isCond(a) && a.expires && Date.now() > a.expires) a.expires = 0; try { await storeOf(a).update(a.id, a); } catch (e) { toastFn('Could not update the alert.'); } pushLines(); renderList(); };
     row.querySelector('[data-k=edit]').onclick = () => openForm(a);
@@ -897,7 +897,7 @@ function alertsSection(){
   const soundRows = SOUND_EVENTS.map(([event, label]) => ({ kind: 'select', label, id: 'snd-' + event, options: SOUND_LABEL_OPTIONS, get: () => SOUND_LABELS[String((prefs.sounds || {})[event] || SOUND_DEFAULTS[event])] || 'Chime', set: setSound(event) }));
   return [
     { title: 'Alerts', id: 'stk-alerts', placement: 'end', rows: [
-      { kind: 'heading', label: 'Alerts work while the Charts page is open' },
+      { kind: 'heading', label: 'Alerts work while the ZoroCharts page is open' },
       { kind: 'toggle', label: 'Alert lines', id: 'al-lines', get: g('lines'), set: s('lines') },
       { kind: 'color', label: 'Alert line color', id: 'al-color', get: g('lineColor'), set: s('lineColor') },
       { kind: 'select', label: 'Alert volume', id: 'al-vol', options: ['0', '20', '40', '60', '80', '100'], get: () => String(prefs.volume), set: (v) => { prefs.volume = Number(v); savePrefs(); beep(); } },

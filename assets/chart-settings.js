@@ -73,7 +73,7 @@ const PRECISIONS = ['Default', '1', '0.1', '0.01', '0.001', '0.0001', '0.25 (qua
 const RIGHT_BARS = ['0', '2', '4', '6', '10', '15', '20', '30', '50'];
 
 // Rows that need the stage-2 Vela patch (or a data feed we don't have). Shown, not active.
-const SOON = 'Coming in the next Charts update';
+const SOON = 'Coming in the next ZoroCharts update';
 const DISABLED = {
   'Hollow candles': SOON,
   'Adjust for contract changes': 'Not available on this data feed yet',

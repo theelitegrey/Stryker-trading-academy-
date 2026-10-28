@@ -1014,7 +1014,7 @@ export function mountWatchlist(ws, o){
   function trimTo(items, n){ const out = []; let c = 0; for (const s of items) { if (!isSec(s)) { if (c >= n) continue; c++; } out.push(s); } return out; }
 
   // "Add alert on the list…": one price-crossing alert per selected symbol, at a price the member sets
-  // (prefilled with the last price). Alerts run in this browser while the Charts page is open.
+  // (prefilled with the last price). Alerts run in this browser while the ZoroCharts page is open.
   function alertListDialog(){
     const syms = selSet.size ? symbolsOf(cur).filter((s) => selSet.has(s)) : symbolsOf(cur);
     const cond = el('select', { class: 'stkw-in', 'aria-label': 'Condition' }, [
@@ -1031,7 +1031,7 @@ export function mountWatchlist(ws, o){
     const upd = () => { const n = rows.filter((r) => r.cb.checked).length; ok.textContent = 'Create ' + n + ' alert' + (n === 1 ? '' : 's'); ok.disabled = !n; };
     rows.forEach((r) => r.cb.addEventListener('change', upd));
     const m = modal('Add alert on the list', el('div', { class: 'stkw-dbody' }, [
-      el('p', { class: 'stkw-note', text: 'One price alert per symbol' + (selSet.size ? ' (the rows you selected)' : '') + ', starting at its last price. Alerts work while the Charts page is open. Education only. Not financial advice.' }),
+      el('p', { class: 'stkw-note', text: 'One price alert per symbol' + (selSet.size ? ' (the rows you selected)' : '') + ', starting at its last price. Alerts work while the ZoroCharts page is open. Education only. Not financial advice.' }),
       el('label', { class: 'stkw-arow stkw-acond' }, [el('span', { text: 'Condition' }), cond]),
       el('div', { class: 'stkw-alist' }, rows.map((r) => r.node))
     ]), el('div', { class: 'stkw-dft' }, [ok]));

@@ -50,7 +50,7 @@
  {
   "build": 677,
   "date": "2026-10-26",
-  "title": "Backtesting on the TradeZoro Charts engine",
+  "title": "Backtesting on the ZoroCharts engine",
   "link": "backtests.html"
  },
  {
@@ -170,7 +170,7 @@
  {
   "build": 399,
   "date": "2026-10-05",
-  "title": "TradeZoro Charts: live futures and crypto candles with TradingView-style candles",
+  "title": "ZoroCharts: live futures and crypto candles with TradingView-style candles",
   "link": "charts.html"
  },
  {

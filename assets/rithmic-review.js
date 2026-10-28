@@ -62,8 +62,8 @@
       (user.providerData || []).some(function (p) { return p && p.providerId === 'password'; });
     if (t) {
       t.textContent = needsVerify
-        ? 'Request filed. We just emailed ' + (user.email || 'you') + ' a confirmation link: Charts asks you to confirm your email first. Opening Charts…'
-        : 'Request filed. Opening Charts…';
+        ? 'Request filed. We just emailed ' + (user.email || 'you') + ' a confirmation link: ZoroCharts asks you to confirm your email first. Opening ZoroCharts…'
+        : 'Request filed. Opening ZoroCharts…';
     }
     var boot = (typeof ensureStudentDoc === 'function') ? ensureStudentDoc(user).catch(function () {}) : Promise.resolve();
     return boot
@@ -152,7 +152,7 @@
     p.textContent = 'You are signed in as ' + (user.email || 'this account') + '.';
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'btn btn-primary btn-block'; b.id = 'rr-use-this';
-    b.textContent = 'Use this account and open Charts';
+    b.textContent = 'Use this account and open ZoroCharts';
     b.addEventListener('click', function () { if (busy) return; busy = true; fromForm = true; finish(user, user.displayName, false); });
     box.appendChild(p); box.appendChild(b);
     sub.parentNode.insertBefore(box, sub.nextSibling);

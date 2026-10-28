@@ -25,7 +25,7 @@
 // that segment with the replay engine's rules. Bars that arrive in a batch (after the tab was
 // hidden) are replayed in order. Fills happen only in ONE tab: the Charts tabs of this browser
 // elect a leader through localStorage; the others mirror its account through 'storage' events.
-// Orders keep working ONLY while a Charts tab is open (said in the panel). No server.
+// Orders keep working ONLY while a ZoroCharts tab is open (said in the panel). No server.
 //
 // STORAGE: signed in → students/{uid}/paperTrading/account { state: JSON string, updatedAt }
 // (owner-only, validated in firestore.rules — a NEW rules block, flagged for deploy) + a local
@@ -525,7 +525,7 @@ async function sendToJournalOnce(t){
     entryPrice: String(t.entry), exitPrice: String(t.exit), positionSize: String(t.qty), fees: String(t.fees || 0),
     stopLoss: t.sl != null ? String(t.sl) : null, takeProfit: t.tp != null ? String(t.tp) : null,
     setup: 'Paper trade', account: 'Paper', tags: ['paper'],
-    notes: 'Paper trade on TradeZoro Charts (demo money, simulated fill). Exit: ' + ({ tp: 'take profit', sl: 'stop loss', manual: 'closed', reverse: 'reversed' }[t.reason] || t.reason) + '.',
+    notes: 'Paper trade on ZoroCharts (demo money, simulated fill). Exit: ' + ({ tp: 'take profit', sl: 'stop loss', manual: 'closed', reverse: 'reversed' }[t.reason] || t.reason) + '.',
     source: 'paper', paperTradeId: t.id
   };
   // Same write as the backtest replay's "Send to journal" (assets/replay.js): one new doc in
@@ -1140,7 +1140,7 @@ function buildPanel(){
     </div>`;
   const chartPanel = main.querySelector('.stkchart-panel');
   if (chartPanel && chartPanel.nextSibling) main.insertBefore(panel, chartPanel.nextSibling); else main.appendChild(panel);
-  panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a Charts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
+  panel.querySelector('.stkpt-foot').textContent = LABEL + '. Orders work only while a ZoroCharts tab is open in this browser; nothing runs on a server. No broker, no real orders. ' + DISCLAIMER;
   bindResize(panel.querySelector('.stkpt-grip'));
   applyPanelH();
   panel.querySelector('.stkpt-toggle').onclick = togglePanel;
@@ -1408,7 +1408,7 @@ function renderSettingsPane(host){
     const on = paperOn();
     note.textContent = !a ? 'Loading your paper account…'
       : on ? 'On: one-click Buy/Sell, the order ticket, right-click paper orders, chart lines and the Paper trading panel are shown.'
-      : (np || no) ? 'Off. Your paper account is kept as it is (' + np + ' open position' + (np === 1 ? '' : 's') + ', ' + no + ' working order' + (no === 1 ? '' : 's') + '): working orders and TP/SL still fill in the background while a Charts tab is open; nothing is shown until you switch it back on.'
+      : (np || no) ? 'Off. Your paper account is kept as it is (' + np + ' open position' + (np === 1 ? '' : 's') + ', ' + no + ' working order' + (no === 1 ? '' : 's') + '): working orders and TP/SL still fill in the background while a ZoroCharts tab is open; nothing is shown until you switch it back on.'
       : 'Off: no paper-trading buttons, lines or panel on the chart.';
   };
   inp.addEventListener('change', () => { setPaperEnabled(inp.checked); inp.checked = paperOn(); setNote(); });

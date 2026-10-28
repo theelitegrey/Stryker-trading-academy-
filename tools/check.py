@@ -464,7 +464,32 @@ def check_charts_css_subset():
         fail('assets/style-charts.css is out of date: run python3 tools/build-charts-css.py ' + (r.stdout + r.stderr).strip()[:200])
 
 
+def check_roadmap_log():
+    """assets/roadmap-log.json feeds the Roadmap page and dashboard strip.
+    It must be valid JSON. If it is behind the `Roadmap:` trailers in git
+    log, warn (the deploy regenerates it anyway, so this can never block a
+    release; regenerating keeps the repo copy honest)."""
+    path = os.path.join(ROOT, 'assets', 'roadmap-log.json')
+    try:
+        data = json.load(open(path))
+        assert isinstance(data, list)
+        for e in data:
+            assert e.get('title') and e.get('date')
+    except Exception as exc:
+        fail(f'assets/roadmap-log.json missing or invalid ({exc}); run: node tools/gen-roadmap.js')
+        return
+    try:
+        r = subprocess.run(['node', 'tools/gen-roadmap.js', '--check'],
+                           capture_output=True, text=True, cwd=ROOT, timeout=60)
+        if r.returncode != 0:
+            print('WARNING - ' + r.stdout.strip() + '\n  (commit the regenerated file; '
+                  'the deploy rewrites it either way)\n')
+    except Exception:
+        pass
+
+
 def main():
+    check_roadmap_log()
     check_nav_features_menu()
     check_charts_css_subset()
     check_merge_markers()

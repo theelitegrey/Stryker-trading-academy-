@@ -132,6 +132,13 @@ jobs:
           python3 tools/check.py
           node tools/gen-learn.js --check
 
+      # Roadmap page + dashboard strip: shipped list comes from `Roadmap:` trailers
+      # in the git log (full history needed, the checkout above is shallow).
+      - name: Refresh the roadmap log from commit trailers
+        run: |
+          git fetch --unshallow --quiet origin || git fetch --quiet --depth=100000 origin
+          node tools/gen-roadmap.js
+
       - name: Refresh the sitemap (lastmod = this deploy)
         run: node tools/gen-sitemap.js
 

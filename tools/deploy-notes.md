@@ -53,3 +53,19 @@ tools/check.py fails the deploy when they disagree.
   any host, and GitHub Pages remains the fallback if DNS ever moves back.
 
 Migrated to Cloudflare Pages on 2026-08-27; push-to-deploy verified by this commit.
+
+## Roadmap trailer (every member-facing feature commit)
+
+Every member-facing feature commit carries a `Roadmap:` trailer. The Roadmap
+page and the dashboard strip update themselves from it on every deploy.
+
+    Roadmap: Footprint Ladder: volume or delta at every price level
+    Roadmap-Link: charts.html        (optional, page the "Open" link goes to)
+
+- Plain English, one line, no internal or fix noise, no money or result claims.
+- `node tools/gen-roadmap.js` rebuilds assets/roadmap-log.json from the git log
+  (first-parent) plus tools/roadmap-backfill.json (work from before the rule).
+  The deploy workflow runs it before publish; tools/check.py warns if the
+  committed copy is behind. Commit the regenerated file when you can.
+- Build number = the version.json build of the commit, or the next bump after it.
+- Planned / in-progress cards are still hand-edited in assets/roadmap-data.js DEFAULT.

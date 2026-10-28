@@ -83,6 +83,7 @@ function loadChapterIntoForm(ch){
   document.getElementById('ed-dur').value = ch.dur || '';
   document.getElementById('ed-video').value = ch.video || '';
   document.getElementById('ed-min-role').value = ch.minRole || '';
+  if (typeof adminKeepPlanOption === 'function') adminKeepPlanOption(document.getElementById('ed-min-role'), ch.minRole);
 
   const bodyEl = document.getElementById('ed-body');
   bodyEl.innerHTML = ch.bodyHtml || paragraphsToHtml(ch.paragraphs || ['']);
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     Promise.all([loadChapters(), loadPlansForRoles()]).then(([, plans]) => {
       const roleSelect = document.getElementById('ed-min-role');
-      plans.forEach((p) => {
+      plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p)).forEach((p) => {
         const opt = document.createElement('option');
         opt.value = p.id;
         opt.textContent = (typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name) + ' (rank ' + (p.rank ?? 0) + ')';

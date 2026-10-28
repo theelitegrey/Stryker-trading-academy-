@@ -130,6 +130,39 @@ function adminPlanLabel(idOrName){
   return planLabelFor(idOrName, true);
 }
 
+// Admin plan lists show only the plans that are really sold (Starter and
+// Pro). Retired (archived) plans and the hidden yearly twin are not listed
+// as plans of their own; a saved reference to one of them is still honoured
+// (see adminKeepPlanOption), so nothing already stored breaks.
+function adminPlanIsRetired(p){ return !!(p && p.archived === true); }
+function adminPlanIsTwin(p){ return !!(p && p.hidden === true && p.archived !== true); }
+function adminPlanListed(p){ return !!p && !adminPlanIsRetired(p) && !adminPlanIsTwin(p); }
+// Label for a stored plan id/name, e.g. "Elite (retired)", "Pro (yearly)".
+function adminPlanStoredLabel(p){
+  if (!p) return '';
+  if (adminPlanIsRetired(p)) return String(p.name || p.id) + ' (retired)';
+  if (adminPlanIsTwin(p)) {
+    const cache = (typeof _rolesPlansCache !== 'undefined' && _rolesPlansCache) || [];
+    const parent = cache.find((q) => q.yearlyPlanId === p.id);
+    return (parent ? adminPlanLabel(parent.name) : adminPlanLabel(p.name)) + ' (yearly)';
+  }
+  return adminPlanLabel(p.name);
+}
+// After a <select> value is set from a saved record: if that value points at
+// a plan not listed (retired / yearly twin), add it so the record shows and
+// saves unchanged.
+function adminKeepPlanOption(select, value){
+  if (!select || !value) return;
+  if (Array.from(select.options).some((o) => o.value === value)) return;
+  const p = findPlan(value);
+  if (!p) return;
+  const opt = document.createElement('option');
+  opt.value = p.id;
+  opt.textContent = adminPlanStoredLabel(p) + (p.rank != null ? ' (rank ' + p.rank + ')' : '');
+  select.appendChild(opt);
+  select.value = value;
+}
+
 // Parses a plan's `chapterAccess` field into a numeric ceiling.
 // Accepts: "all" / "" / unset -> Infinity (unlimited).
 //          a plain number like "5" or "7" -> that number (chapters 1..N).

@@ -22,6 +22,7 @@ function loadIndicatorIntoForm(ind){
   document.getElementById('ed-name').value = ind.name || '';
   document.getElementById('ed-summary').value = ind.summary || '';
   document.getElementById('ed-min-role').value = ind.minRole || '';
+  if (typeof adminKeepPlanOption === 'function') adminKeepPlanOption(document.getElementById('ed-min-role'), ind.minRole);
 
   const bodyEl = document.getElementById('ed-body');
   bodyEl.innerHTML = ind.bodyHtml || '';
@@ -124,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
   guardAdminPage(() => {
     Promise.all([loadIndicators(), loadPlansForRoles()]).then(([, plans]) => {
       const roleSelect = document.getElementById('ed-min-role');
-      plans.forEach((p) => {
+      plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p)).forEach((p) => {
         const opt = document.createElement('option');
         opt.value = p.id;
         opt.textContent = (typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name) + ' (rank ' + (p.rank ?? 0) + ')';

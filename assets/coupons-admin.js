@@ -6,21 +6,49 @@ let ALL_COUPONS = [];
 let ALL_PLANS_FOR_COUPON = [];
 let EDITING_COUPON_CODE = null;
 
+// "Applies to" list: Starter and Pro only; Pro's yearly twin sits under Pro as
+// "Pro (yearly)". A retired plan (Elite) is added only when the coupon being
+// edited already points at it, labelled "Elite (retired)".
+function renderCouponPlanOptions(keepId){
+  const select = document.getElementById('coupon-plan');
+  select.querySelectorAll('option[data-plan-option], optgroup[data-plan-option]').forEach((o) => o.remove());
+  const add = (parent, plan, text) => {
+    const opt = document.createElement('option');
+    opt.value = plan.id;
+    opt.textContent = text;
+    opt.setAttribute('data-plan-option', '1');
+    parent.appendChild(opt);
+  };
+  const lbl = (plan) => (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name);
+  ALL_PLANS_FOR_COUPON.filter((p) => p.archived !== true && p.hidden !== true).forEach((plan) => {
+    const twin = plan.yearlyPlanId && ALL_PLANS_FOR_COUPON.find((t) => t.id === plan.yearlyPlanId && t.archived !== true);
+    if (!twin) { add(select, plan, lbl(plan)); return; }
+    const g = document.createElement('optgroup');
+    g.label = lbl(plan);
+    g.setAttribute('data-plan-option', '1');
+    add(g, plan, lbl(plan) + ' (monthly)');
+    add(g, twin, lbl(plan) + ' (yearly)');
+    select.appendChild(g);
+  });
+  const kept = keepId && ALL_PLANS_FOR_COUPON.find((p) => p.id === keepId);
+  if (kept && !Array.from(select.options).some((o) => o.value === kept.id)) {
+    add(select, kept, couponPlanLabel(kept));
+  }
+}
+
+function couponPlanLabel(plan){
+  if (plan.archived === true) return String(plan.name || plan.id) + ' (retired)';
+  const parent = plan.hidden === true && ALL_PLANS_FOR_COUPON.find((p) => p.yearlyPlanId === plan.id);
+  if (parent) return ((typeof adminPlanLabel === 'function') ? adminPlanLabel(parent.name) : parent.name) + ' (yearly)';
+  return (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name);
+}
+
 function loadPlansIntoCouponSelect(){
   return db.collection('plans').get().then((snap) => {
     ALL_PLANS_FOR_COUPON = [];
     snap.forEach((doc) => ALL_PLANS_FOR_COUPON.push(Object.assign({ id: doc.id }, doc.data())));
     ALL_PLANS_FOR_COUPON.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
-    const select = document.getElementById('coupon-plan');
-    const currentOptions = select.querySelectorAll('option[data-plan-option]');
-    currentOptions.forEach((o) => o.remove());
-    ALL_PLANS_FOR_COUPON.forEach((plan) => {
-      const opt = document.createElement('option');
-      opt.value = plan.id;
-      opt.textContent = (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name);
-      opt.setAttribute('data-plan-option', '1');
-      select.appendChild(opt);
-    });
+    renderCouponPlanOptions(null);
   });
 }
 
@@ -50,7 +78,7 @@ function seedWelcomeCoupon(){
 
 function planNameById(planId){
   const plan = ALL_PLANS_FOR_COUPON.find(p => p.id === planId);
-  return plan ? (typeof adminPlanLabel === 'function' ? adminPlanLabel(plan.name) : plan.name) : (planId === 'all' ? 'Any plan' : planId);
+  return plan ? couponPlanLabel(plan) : (planId === 'all' ? 'Any plan' : planId);
 }
 
 function renderCouponRow(coupon){
@@ -108,6 +136,7 @@ function openCouponEditor(coupon){
   document.getElementById('coupon-edit-heading').textContent = coupon ? ('Edit: ' + coupon.code) : 'New coupon';
   document.getElementById('coupon-code').value = coupon ? coupon.code : '';
   document.getElementById('coupon-code').disabled = !!coupon; // code is the doc ID — fixed once created
+  renderCouponPlanOptions(coupon ? coupon.appliesToPlan : null);
   document.getElementById('coupon-plan').value = coupon ? coupon.appliesToPlan : 'all';
   document.getElementById('coupon-type').value = coupon ? coupon.type : 'free';
   document.getElementById('coupon-value').value = coupon ? (coupon.value || '') : '';

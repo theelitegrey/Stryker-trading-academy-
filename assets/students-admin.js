@@ -20,9 +20,9 @@ function initials(name){
 function planOptionsForStudent(currentPlanName){
   const plans = (typeof getCachedPlansForRoles === 'function') ? getCachedPlansForRoles() : [];
   let opts = '<option value=""' + (!currentPlanName ? ' selected' : '') + '>Self-Paced (no plan)</option>';
-  plans.forEach((p) => {
+  plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p) || p.name === currentPlanName).forEach((p) => {
     const sel = p.name === currentPlanName ? ' selected' : '';
-    opts += '<option value="' + escapeStudentText(p.name) + '"' + sel + '>' + escapeStudentText((typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name)) + '</option>';
+    opts += '<option value="' + escapeStudentText(p.name) + '"' + sel + '>' + escapeStudentText((typeof adminPlanStoredLabel === 'function' && !adminPlanListed(p) ? adminPlanStoredLabel(p) : (typeof adminPlanLabel === 'function' ? adminPlanLabel(p.name) : p.name))) + '</option>';
   });
   return opts;
 }

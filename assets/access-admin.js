@@ -5,6 +5,7 @@
 let CURRENT_PAGE_ACCESS = {};
 
 function renderRolesSummary(plans){
+  plans = plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p));
   const container = document.getElementById('roles-summary-list');
   if (!plans.length) {
     container.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No plans exist yet — <a href="billing-admin.html" style="color:var(--teal);">create your Free and Pro plans first</a>, then come back here to set page and content access.</p>';
@@ -29,9 +30,9 @@ function renderRolesSummary(plans){
 
 function planOptionsHtml(plans, selectedId, noRestrictionLabel){
   let opts = '<option value="">' + (noRestrictionLabel || 'No restriction — any signed-in student') + '</option>';
-  plans.forEach((p) => {
+  plans.filter((p) => typeof adminPlanListed !== 'function' || adminPlanListed(p) || p.id === selectedId).forEach((p) => {
     const sel = p.id === selectedId ? ' selected' : '';
-    opts += '<option value="' + stkEsc(p.id) + '"' + sel + '>' + stkEsc(p.name || p.id) + ' (rank ' + (p.rank ?? 0) + ')</option>';
+    opts += '<option value="' + stkEsc(p.id) + '"' + sel + '>' + stkEsc((typeof adminPlanListed === 'function' && !adminPlanListed(p)) ? adminPlanStoredLabel(p) : (p.name || p.id)) + ' (rank ' + (p.rank ?? 0) + ')</option>';
   });
   return opts;
 }

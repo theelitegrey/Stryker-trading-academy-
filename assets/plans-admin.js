@@ -15,7 +15,7 @@ window.STRYKER_FORCE_CURRENCY = 'USD';
 let EDITING_PLAN_ID = null;
 let ALL_PLANS = [];
 
-function renderPlanCard(plan){
+function renderPlanCard(plan, twin, retired){
   const el = document.createElement('div');
   el.className = 'price-card' + (plan.featured ? ' featured' : '') +
     ((typeof planSaleInfo === 'function' && planSaleInfo(plan).active) ? ' on-sale' : '');
@@ -31,12 +31,29 @@ function renderPlanCard(plan){
       ? planPriceHtml(plan, 'lg')
       : '<div class="price-amt">$' + (plan.price || '0') + '<span>/ ' + (plan.period || 'month') + '</span></div>') +
     '<ul>' + featuresHtml + '</ul>' +
+    (twin ? planTwinBlockHtml(twin) : '') +
     '<div style="font-size:12px; color:var(--ink-3); margin:10px 0 16px; font-family:var(--font-mono);">Chapter access: ' + (plan.chapterAccess || 'all') + '</div>' +
     '<div style="display:flex; gap:8px;">' +
       '<button type="button" class="btn btn-ghost btn-sm edit-plan-btn" style="flex:1;">Edit</button>' +
     '</div>';
   el.querySelector('.edit-plan-btn').addEventListener('click', () => openPlanEditor(plan));
+  const tb = el.querySelector('.edit-twin-btn');
+  if (tb && twin) tb.addEventListener('click', () => openPlanEditor(twin));
+  if (retired) {
+    el.classList.add('is-retired');
+    el.insertAdjacentHTML('afterbegin', '<span class="status-tag expired" style="margin-bottom:8px;">Retired</span> ');
+  }
   return el;
+}
+
+// The hidden yearly twin is edited from its parent card, not shown as a plan.
+function planTwinBlockHtml(twin){
+  const price = (typeof planPriceHtml === 'function')
+    ? planPriceHtml(twin, 'sm')
+    : '<strong>$' + stkEsc(twin.price || '0') + '</strong> / ' + stkEsc(twin.period || 'year');
+  return '<div class="plan-twin" style="border-top:1px dashed var(--line); margin-top:12px; padding-top:10px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">' +
+    '<div><div style="font-size:11px; font-family:var(--font-mono); text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-3);">Yearly price</div>' + price + '</div>' +
+    '<button type="button" class="btn btn-ghost btn-sm edit-twin-btn">Edit yearly</button></div>';
 }
 
 function renderPlansGrid(){
@@ -46,7 +63,24 @@ function renderPlansGrid(){
     grid.innerHTML = '<p style="color:var(--ink-3); font-size:13.5px;">No plans yet — click "+ Add plan" to create the first one.</p>';
     return;
   }
-  ALL_PLANS.forEach((plan) => grid.appendChild(renderPlanCard(plan)));
+  const byId = {};
+  ALL_PLANS.forEach((p) => { byId[p.id] = p; });
+  const twinIds = {};
+  ALL_PLANS.forEach((p) => { if (p.yearlyPlanId && byId[p.yearlyPlanId] && p.archived !== true) twinIds[p.yearlyPlanId] = p.id; });
+  const live = ALL_PLANS.filter((p) => p.archived !== true && !twinIds[p.id]);
+  const retired = ALL_PLANS.filter((p) => p.archived === true);
+  live.forEach((plan) => grid.appendChild(renderPlanCard(plan, plan.yearlyPlanId && twinIds[plan.yearlyPlanId] ? byId[plan.yearlyPlanId] : null, false)));
+  if (retired.length) {
+    const det = document.createElement('details');
+    det.className = 'plans-archived';
+    det.style.cssText = 'grid-column:1 / -1; margin-top:8px;';
+    det.innerHTML = '<summary style="cursor:pointer; font-weight:700; padding:10px 0; color:var(--ink-2);">Archived plans (' + retired.length + ')</summary>' +
+      '<p style="color:var(--ink-3); font-size:12.5px; margin:0 0 12px;">Retired plans are not sold. Members who still hold them keep their access.</p>' +
+      '<div class="pricing-grid" style="margin-bottom:0;"></div>';
+    const inner = det.querySelector('.pricing-grid');
+    retired.forEach((plan) => inner.appendChild(renderPlanCard(plan, null, true)));
+    grid.appendChild(det);
+  }
 }
 
 function loadPlans(){

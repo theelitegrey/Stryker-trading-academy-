@@ -163,9 +163,9 @@ async function fpCellsDrawn(p) {
 
       // indicators: picker group + each one renders
       const lib = await p.evaluate(() => window.STRYKER_VELA.active.libraryRows().filter((r) => r.category === 'Order Flow').map((r) => r.name));
-      check(lib.length === 5, '1440: Indicators picker has the "Order Flow" group with 5 tools', lib);
+      check(lib.length >= 5, '1440: Indicators picker has the "Order Flow" group with every order-flow tool (' + lib.length + ')', lib);
       const cats = await p.evaluate(() => { const o = []; window.STRYKER_VELA.active.libraryRows().forEach((r) => { if (!o.includes(r.category)) o.push(r.category); }); return o; });
-      check(cats.indexOf('Order Flow') >= 0 && cats.indexOf('Order Flow') < cats.indexOf('Volume & Order flow'), '1440: "Order Flow" group sits above "Volume & Order flow" in the picker', cats);
+      check(cats.indexOf('Order Flow') >= 0 && cats.indexOf('Order Flow') < cats.indexOf('Volume'), '1440: "Order Flow" group sits above "Volume" in the picker', cats);
       await p.evaluate(() => window.STRYKER_VELA.active.setPriceStyle('candles'));
       await frameOn(p, T - 90 * 60000, T + 30 * 60000);
       const types = ['stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_vp', 'stk_of_vwap'];

@@ -11,7 +11,7 @@
 // the topbar "Indicators" button and the "/" shortcut open this window instead.
 //   PERSONAL   Favorites (starred items from every source), My scripts, On this chart
 //   BUILT-IN   Technicals, grouped: TradeZoro (GEX Levels), Moving averages, Oscillators, Volatility,
-//              Volume & Order flow, Trend, Levels (Vela built-ins + our order-flow tools
+//              Volume, Trend, Levels (Vela built-ins + our order-flow tools
 //              + the TradeZoro Pine examples); TradeZoro (every TradeZoro script, derived from
 //              STRYKER_PICKS + PICKER_SCRIPTS section 'picks', so new ones appear by themselves)
 //   COMMUNITY  Editors' picks (default: every TradeZoro script, then admin-picked community
@@ -40,13 +40,13 @@ import { PICKER_SCRIPTS, STRYKER_PICKS, builtinSource } from './chart-pine-built
 
 const PHONE_MAX = 700;
 const FAV_LS = 'stryker_chart_favs';
-const GROUP_FLOW = 'Volume & Order flow';
-const GROUP_OF = 'Order Flow';   // order flow from exchange trades (chart-footprint.js), above Volume & Order flow
+const GROUP_FLOW = 'Volume';
+const GROUP_OF = 'Order Flow';   // the ORDER FLOW section: every order-flow tool (rows come from chart-orderflow.js)
 const GROUP_STRYKER = 'TradeZoro';
 const CATS = [GROUP_STRYKER, 'Moving averages', 'Oscillators', 'Volatility', GROUP_OF, GROUP_FLOW, 'Trend', 'Levels'];
 const SECTIONS = [
   ['PERSONAL', [['fav', 'Favorites'], ['mine', 'My scripts'], ['onchart', 'On this chart']]],
-  ['BUILT-IN', [['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
+  ['BUILT-IN', [['orderflow', 'Order Flow'], ['tech', 'Technicals'], ['stryker', 'TradeZoro']]],
   ['COMMUNITY', [['picks', "Editors' picks"], ['top', 'Top'], ['trending', 'Trending']]]
 ];
 
@@ -56,7 +56,8 @@ function catOf(name){
   if (/Bollinger|Keltner|Donchian|Average True Range|Volatility|Standard Deviation|Ulcer|Mass Index|Choppiness|Chandelier|Squeeze/i.test(n)) return 'Volatility';
   if (/SuperTrend|Parabolic|Aroon|Directional|Vortex|ZigZag|Kroll|Ichimoku/i.test(n)) return 'Trend';
   if (/Pivot|52 Week|Fractal|High\/Low|high\/low|Previous day/i.test(n)) return 'Levels';
-  if (/Volume|VWAP|Balance Volume|Accumulation|Money Flow|Ease of Movement|Force Index|Klinger|Intraday Intensity|Chaikin Oscillator|Price Volume|Order flow|Footprint|Delta|CVD/i.test(n)) return GROUP_FLOW;
+  if (/Order flow|Footprint|Delta|CVD/i.test(n)) return GROUP_OF;
+  if (/Volume|VWAP|Balance Volume|Accumulation|Money Flow|Ease of Movement|Force Index|Klinger|Intraday Intensity|Chaikin Oscillator|Price Volume/i.test(n)) return GROUP_FLOW;
   return 'Oscillators';
 }
 
@@ -188,7 +189,7 @@ export function mountIndicatorWindow(ws, opts){
       if (r.native && r.nativeType === 'stk_em') { cat = GROUP_STRYKER; desc = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly (SPX, SPY, QQQ, ES, NQ)'; }
       if (r.native && r.nativeType === 'stk_news') { cat = GROUP_STRYKER; desc = 'Headline markers on the time axis for the chart’s market; hover or tap to read them (Pro)'; }
       if (r.native && r.nativeType === 'stk_econ') { cat = GROUP_STRYKER; desc = 'High-impact releases (CPI, FOMC, NFP, GDP…) as dashed lines, with a “CPI in 12 min” warning chip (Pro)'; }
-      out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc });
+      out.push({ key, name: r.name, author, cat, kind: 'builtin', beta: !!r.beta, desc, hidden: !!r.hidden });
     });
     const ex = (S() && S().EXAMPLES) || [];
     ex.forEach((x) => out.push({ key: 'x:' + String(x.id).replace(/^example:/, ''), name: x.name, author: 'TradeZoro', cat: catOf(x.name), kind: 'example', source: x.source }));
@@ -425,6 +426,7 @@ export function mountIndicatorWindow(ws, opts){
       case 'fav': return { title: 'Favorites', items: favItems(all), empty: 'Star any indicator or script to keep it here.' };
       case 'mine': return { title: 'My scripts', items: all.filter((x) => x.kind === 'mine'), empty: S() && S().signedIn() ? 'No saved scripts yet. Write one in the Pine editor and press Save.' : 'Sign in to keep scripts on your account.' };
       case 'onchart': return { title: 'On this chart', items: onChartItems(), empty: 'Nothing on this chart yet.' };
+      case 'orderflow': return { title: 'Order Flow', note: 'every order-flow tool', items: all.filter((x) => x.cat === GROUP_OF && !x.hidden), empty: 'No order-flow tools on this chart.' };
       case 'stryker': return { title: 'TradeZoro', note: 'every TradeZoro indicator', items: strykerItems(all), empty: 'No TradeZoro indicators yet.' };
       case 'picks': {
         // Default: every TradeZoro script (same derived list as the TradeZoro tab), then
@@ -436,7 +438,7 @@ export function mountIndicatorWindow(ws, opts){
         const sc = (x) => week(x.s.boostRing) + week(x.s.addRing);
         return { title: 'Trending', note: 'last 7 days', items: comm.filter((x) => sc(x) > 0).sort((a, b) => (sc(b) - sc(a)) || (b.boosts - a.boosts)).concat(thirdItems(all)), empty: 'Nothing trending this week.' };
       }
-      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && (!x.third || x.cat)) };
+      default: return { title: 'Technicals', grouped: true, items: all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && (!x.third || x.cat) && !x.hidden && x.cat !== GROUP_OF) };
     }
   }
 
@@ -450,7 +452,7 @@ export function mountIndicatorWindow(ws, opts){
     let view;
     if (q) {
       const hit = (x) => x.name.toLowerCase().includes(q) || String(x.author || '').toLowerCase().includes(q) || (x.s && (x.s.tags || []).some((t) => t.includes(q)));
-      const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && hit(x))],
+      const parts = [['My scripts', all.filter((x) => x.kind === 'mine' && hit(x))], ['Technicals', all.filter((x) => (x.kind === 'builtin' || x.kind === 'example') && !x.third && !x.hidden && hit(x))],
         ['Community \u00b7 third-party', all.filter((x) => x.third && hit(x))],
         ['Community', all.filter((x) => x.kind === 'community' && hit(x)).sort((a, b) => b.boosts - a.boosts)]];
       els.title.textContent = 'Results for \u201c' + els.search.value.trim() + '\u201d';
@@ -487,7 +489,7 @@ export function mountIndicatorWindow(ws, opts){
   picker.close = () => { close(); };
   // Vela calls sync() when a cell's catalog lands late (new cell, symbol change).
   let syncT = 0;
-  picker.sync = () => { if (ov && !els.search.value.trim() && (section === 'onchart' || section === 'tech' || section === 'fav')) { clearTimeout(syncT); syncT = setTimeout(render, 120); } };
+  picker.sync = () => { if (ov && !els.search.value.trim() && (section === 'onchart' || section === 'tech' || section === 'orderflow' || section === 'fav')) { clearTimeout(syncT); syncT = setTimeout(render, 120); } };
   try { ws.on('cell:active', () => { if (ov) render(); }); } catch (e) {}
   window.addEventListener('resize', () => { if (ov) paint(); });
 

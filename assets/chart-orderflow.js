@@ -33,7 +33,7 @@
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=695';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=695';
 
-const GROUP = 'Volume & Order flow';
+const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
 const RTH_OPEN = 9 * 60 + 30;
 const RTH_CLOSE = 16 * 60;
@@ -2390,11 +2390,14 @@ function reg(Core, d) {
 }
 
 // Picker group order: these types (Vela natives + ours), then the two drawing-tool rows.
-const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vbubble', 'stk_vheatmap', 'stk_lth', 'stk_crypto_dom',
-  'stk_footprint', 'stk_delta', 'stk_cvd', 'stk_estcvd'];
-// Order flow from exchange trades (assets/chart-footprint.js): their own group, above this one.
+const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap', 'stk_rvol', 'stk_vheatmap'];
+// ORDER FLOW section (Owner order 2026-10-28), one list in this order. Types are unchanged, so saved
+// charts, templates and favourites keep working. stk_delta / stk_cvd (older per-bar trades tools) are the
+// same tool as stk_of_delta / stk_of_cvd, so they stay registered but are HIDDEN from the list (OF_HIDDEN).
 const OF_GROUP = 'Order Flow';
-const OF_GROUP_TYPES = ['stk_dsuite', 'stk_dpane', 'stk_of_delta', 'stk_of_cvd', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_of_vwap'];   // pro tools: assets/chart-of-pro.js   // Delta suite first (assets/chart-delta-suite.js)
+const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
+  'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom'];
+const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
   { id: 'frvp', name: 'Fixed Range Volume Profile (drag a range)' }
@@ -2487,9 +2490,11 @@ export function mountOrderflow(ws, opts) {
     const base = origRows.call(self);
     const group = [], ofg = [], rest = [];
     base.forEach((r, i) => {
+      const hid = r.native && OF_HIDDEN.indexOf(r.nativeType) >= 0;
       const oi = r.native ? OF_GROUP_TYPES.indexOf(r.nativeType) : -1;
       const gi = r.native ? GROUP_TYPES.indexOf(r.nativeType) : -1;
-      if (oi >= 0) ofg.push({ r: Object.assign({}, r, { category: OF_GROUP }), i, gi: oi });
+      if (hid) ofg.push({ r: Object.assign({}, r, { category: OF_GROUP, hidden: true }), i, gi: 999 });
+      else if (oi >= 0) ofg.push({ r: Object.assign({}, r, { category: OF_GROUP }), i, gi: oi });
       else if (gi >= 0) group.push({ r: Object.assign({}, r, { category: GROUP }), i, gi });
       else rest.push({ r, i });
     });

@@ -1,4 +1,4 @@
-// Charts "Volume & Order flow" browser test (assets/chart-orderflow.js).
+// Charts "Volume" group browser test (assets/chart-orderflow.js).
 //   node tools/tests/chart-dev-server.mjs 8031     (site + /api/chart/bars, binds 127.0.0.1)
 //   [node tools/tests/rithmic-mock.mjs 8765]       (only for STAGE=rithmic)
 //   CHART_BASE=http://127.0.0.1:8031 node tools/tests/chart-orderflow-browser.js [shotsDir]
@@ -71,9 +71,9 @@ async function openPicker(p) {
     if (want('volume')) {
       const { ctx, p, errors } = await open(b, { w: 1440, h: 900 });
       const pk = await openPicker(p);
-      check(pk.groups.filter((g) => !/^On chart/.test(g))[0] === 'Volume & Order flow', 'picker: first group is "Volume & Order flow" (' + pk.groups.slice(0, 3).join(' | ') + ')');
-      const groupRows = pk.rows.slice(0, 16).join(' | ');
-      ['Session Volume Profile', 'Visible Range Volume Profile', 'Previous Day POC / VAH / VAL', 'Anchored VWAP (±1/2/3 sd bands)', 'Relative Volume', 'Estimated CVD (from candles)', 'Fixed Range Volume Profile (drag a range)', 'Anchored VWAP: click a bar'].forEach((n) => check(groupRows.includes(n), 'picker group lists ' + n));
+      check(pk.groups.filter((g) => !/^On chart/.test(g)).includes('Volume'), 'picker: has a "Volume" group (' + pk.groups.slice(0, 3).join(' | ') + ')');
+      const groupRows = pk.rows.slice(0, 40).join(' | ');
+      ['Session Volume Profile', 'Visible Range Volume Profile', 'Previous Day POC / VAH / VAL', 'Anchored VWAP (±1/2/3 sd bands)', 'Relative Volume', 'Fixed Range Volume Profile (drag a range)', 'Anchored VWAP: click a bar'].forEach((n) => check(groupRows.includes(n), 'picker group lists ' + n));
       await shot(p, 'of-picker-1440.png');
       // add from the picker (click the SVP row)
       await p.evaluate(() => { const r = [...document.querySelectorAll('.vela-ip-row')].find((x) => x.textContent.startsWith('Session Volume Profile')); r.click(); });

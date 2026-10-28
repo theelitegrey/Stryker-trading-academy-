@@ -9,13 +9,19 @@
   var S = window.StkMS, root = document.getElementById('ms-root');
   if (!S || !root) return;
   var API = 'https://book-recorder.theelitegrey.workers.dev/scan?part=';
-  var SYMS = [['NQ', 'ms_nq', 'NQ', 'Nasdaq-100 E-mini'], ['ES', 'ms_es', 'ES', 'S&P 500 E-mini'], ['SPX', 'ms_spx', 'ES', 'S&P 500 index']];
+  var SYMS = [['NQ', 'ms_nq', 'NQ', 'Nasdaq-100 E-mini'], ['ES', 'ms_es', 'ES', 'S&P 500 E-mini'], ['SPX', 'ms_spx', 'ES', 'S&P 500 index'], ['YM', 'ms_ym', 'YM', 'Dow E-mini'], ['RTY', 'ms_rty', 'RTY', 'Russell 2000 E-mini'], ['GC', 'ms_gc', 'GC', 'Gold'], ['CL', 'ms_cl', 'CL', 'Crude oil']];
   var RANGES = [['3m', 'Last 3 months', 92], ['6m', 'Last 6 months', 183], ['1y', 'Last year', 365], ['3y', 'All (3 years)', 0]];
-  var st = { sym: 'NQ', rep: 'gap', range: '1y', dow: -1, bucket: 'any', session: 'ny', data: {}, err: '', loading: false, sheet: null };
+  var st = { sym: 'NQ', rep: 'gap', range: '1y', view: 'cards', bc: 0, picker: false, pq: '', dow: -1, bucket: 'any', session: 'ny', data: {}, err: '', loading: false, sheet: null };
   try { var sv = JSON.parse(localStorage.getItem('stryker_ms') || 'null'); if (sv) { ['sym', 'rep', 'range'].forEach(function (k) { if (sv[k]) st[k] = sv[k]; }); } } catch (e) {}
   if (!S.REPORTS[st.rep]) st.rep = 'gap';
   if (!SYMS.some(function (s) { return s[0] === st.sym; })) st.sym = 'NQ';
   function persist() { try { localStorage.setItem('stryker_ms', JSON.stringify({ sym: st.sym, rep: st.rep, range: st.range })); } catch (e) {} }
+
+  var STARTERS = ['gap', 'ib', 'oc', 'pdr'];
+  var stars = STARTERS.slice();
+  try { var ss = JSON.parse(localStorage.getItem('stryker_ms_stars') || 'null'); if (Array.isArray(ss)) stars = ss.filter(function (k) { return S.REPORTS[k]; }); } catch (e) {}
+  function saveStars() { try { localStorage.setItem('stryker_ms_stars', JSON.stringify(stars)); } catch (e) {} }
+  var GROUPS = ['Open', 'Gaps', 'Ranges', 'Candles', 'ICT'];
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function symInfo() { return SYMS.filter(function (s) { return s[0] === st.sym; })[0]; }
@@ -187,6 +193,67 @@
     if (el) el.innerHTML = today.html;
   }
 
+
+  // ---- breakdown sub-tabs (weekday, size, time, year) -------------------------------------------------------------------
+  var VIEWS = [['cards', 'Summary'], ['dow', 'By weekday'], ['size', 'By size'], ['time', 'By time'], ['year', 'By year']];
+  function viewTabs() {
+    return '<div class="ms-row ms-views" role="tablist" aria-label="Breakdown">' + VIEWS.map(function (v) {
+      return '<button type="button" role="tab" class="ms-view' + (v[0] === st.view ? ' on' : '') + '" data-view="' + v[0] + '" aria-selected="' + (v[0] === st.view) + '">' + v[1] + '</button>';
+    }).join('') + '</div>';
+  }
+  function breakdownHtml() {
+    var cards = cur.cards.filter(function (c) { return st.view !== 'time' || c.timed; });
+    if (!cards.length) return '<p class="ms-empty">This report has no timed outcome, so there is no time of day to break down.</p>';
+    if (st.bc >= cards.length || st.bc < 0) st.bc = 0;
+    var c = cards[st.bc], b = S.breakdown(c, st.view);
+    var h = '<label class="ms-sel ms-bsel"><span>Outcome</span><select id="ms-bc">' + cards.map(function (x, i) {
+      return '<option value="' + i + '"' + (i === st.bc ? ' selected' : '') + '>' + esc((x.group ? x.group + ': ' : '') + x.title) + '</option>';
+    }).join('') + '</select></label>';
+    h += '<p class="ms-note">' + esc(c.sub) + '. ' + esc(b.note || '') + '</p>';
+    h += '<div class="ms-tw"><table class="ms-table ms-bd"><thead><tr><th>' + (st.view === 'time' ? 'Window (ET)' : 'Group') + '</th><th>Happened</th><th>Sessions</th><th>Range</th>' + (b.time ? '<th>Cumulative</th>' : '') + '<th class="ms-bdbar"></th></tr></thead><tbody>';
+    b.rows.forEach(function (r) {
+      var s = r.s, off = s.guard === 'withheld';
+      h += '<tr><th>' + esc(r.label) + '</th><td>' + (off ? '\u2014' : S.pct(s.p)) + '</td><td>' + (b.time ? s.k + ' of ' + s.n : s.k + ' of ' + s.n) + (s.guard === 'low' ? ' <em class="ms-low">Low</em>' : '') + '</td><td>' + (off ? 'too few' : (s.lo * 100).toFixed(0) + '\u2013' + S.pct(s.hi)) + '</td>' + (b.time ? '<td>' + (r.cum == null ? '\u2014' : S.pct(r.cum)) + '</td>' : '') +
+        '<td class="ms-bdbar">' + (off ? '' : '<span class="ms-mini"><i style="width:' + (s.p * 100).toFixed(1) + '%"></i></span>') + '</td></tr>';
+    });
+    return h + '</tbody></table></div>';
+  }
+
+  // ---- report picker ----------------------------------------------------------------------------------------------------
+  function drawPicker() {
+    var w = document.getElementById('ms-picker');
+    if (!st.picker) { if (w) w.remove(); document.documentElement.classList.remove('ms-noscroll'); return; }
+    if (!w) { w = document.createElement('div'); w.id = 'ms-picker'; w.className = 'ms-sheet-wrap'; document.body.appendChild(w); document.documentElement.classList.add('ms-noscroll'); }
+    var q = st.pq.trim().toLowerCase();
+    var h = '<div class="ms-scrim" data-pclose="1"></div><div class="ms-sheet" role="dialog" aria-modal="true" aria-label="Choose a report">';
+    h += '<div class="ms-sh-head"><div><b>Reports</b><small>Star a report to keep it in your tab row.</small></div><button type="button" class="ms-x" data-pclose="1" aria-label="Close">\u00d7</button></div>';
+    h += '<input type="search" id="ms-pq" class="ms-search" placeholder="Search reports" value="' + esc(st.pq) + '" autocomplete="off">';
+    h += '<div class="ms-sh-list ms-plist">';
+    var any = false;
+    GROUPS.forEach(function (g) {
+      var keys = Object.keys(S.REPORTS).filter(function (k) {
+        var r = S.REPORTS[k];
+        return r.group === g && (!q || (r.title + ' ' + r.blurb + ' ' + g).toLowerCase().indexOf(q) >= 0);
+      });
+      if (!keys.length) return;
+      any = true;
+      h += '<h4 class="ms-pg">' + esc(g) + '</h4>';
+      keys.forEach(function (k) {
+        var r = S.REPORTS[k], on = stars.indexOf(k) >= 0;
+        h += '<div class="ms-pi' + (k === st.rep ? ' cur' : '') + '"><button type="button" class="ms-pi-main" data-pick="' + k + '"><b>' + esc(r.title) + '</b><small>' + esc(r.blurb) + '</small></button>' +
+          '<button type="button" class="ms-star' + (on ? ' on' : '') + '" data-star="' + k + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove ' : 'Bookmark ') + esc(r.title) + '">' + (on ? '\u2605' : '\u2606') + '</button></div>';
+      });
+    });
+    if (!any) h += '<p class="ms-empty">No report matches.</p>';
+    h += '</div></div>';
+    var hadInput = w.querySelector('#ms-pq'), keep = w.querySelector('.ms-plist') ? w.querySelector('.ms-plist').scrollTop : 0;
+    w.innerHTML = h;
+    var np = w.querySelector('.ms-plist'); if (np && keep) np.scrollTop = keep;
+    var inp = w.querySelector('#ms-pq');
+    if (inp && hadInput) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+  }
+  function closePicker() { st.picker = false; drawPicker(); var b = document.getElementById('ms-pick'); if (b) b.focus(); }
+
   // ---- render --------------------------------------------------------------------------------------------------------
   function chips(name, list, cur) {
     return '<div class="ms-chips" role="group" aria-label="' + name + '">' + list.map(function (x) {
@@ -199,14 +266,14 @@
     }).join('') + '</select></label>';
   }
   function controls() {
-    var reps = Object.keys(S.REPORTS).map(function (k) { return [k, S.REPORTS[k].title.replace(' (first hour)', '')]; });
+    var tabKeys = stars.slice(); if (tabKeys.indexOf(st.rep) < 0) tabKeys.push(st.rep);
     var dows = [[-1, 'Any day']].concat(S.DOW.map(function (d, i) { return [i, d]; }));
     var bks = [['any', 'Any gap size']].concat(S.BUCKETS.map(function (b) { return [b[0], b[1] + ': ' + S.BUCKET_TEXT[b[0]]]; }));
     return '<div class="ms-ctl">' +
       '<div class="ms-row">' + chips('sym', SYMS.map(function (s) { return [s[0], s[0]]; }), st.sym) + '</div>' +
-      '<div class="ms-row ms-reps" role="tablist" aria-label="Report">' + reps.map(function (r) {
-        return '<button type="button" role="tab" class="ms-tab' + (r[0] === st.rep ? ' on' : '') + '" data-rep="' + r[0] + '" aria-selected="' + (r[0] === st.rep) + '">' + esc(r[1]) + '</button>';
-      }).join('') + '</div>' +
+      '<div class="ms-row ms-reps" role="tablist" aria-label="Report">' + tabKeys.map(function (k) {
+        return '<button type="button" role="tab" class="ms-tab' + (k === st.rep ? ' on' : '') + '" data-rep="' + k + '" aria-selected="' + (k === st.rep) + '">' + esc(S.REPORTS[k].title.replace(' (first hour)', '')) + '</button>';
+      }).join('') + '<button type="button" class="ms-tab ms-pick" id="ms-pick" aria-haspopup="dialog">All reports (' + Object.keys(S.REPORTS).length + ') \u25BE</button></div>' +
       '<div class="ms-row ms-sels">' + selectBox('ms-range', 'Dates', RANGES, st.range) + selectBox('ms-dow', 'Day', dows, st.dow) + selectBox('ms-bucket', 'Gap size', bks, st.bucket) + (S.REPORTS[st.rep].sessions ? selectBox('ms-session', 'Session', [['ny', 'New York'], ['lon', 'London'], ['asia', 'Asia']], st.session) : '') + '</div>' +
       '</div>';
   }
@@ -250,6 +317,8 @@
     if (rep.futuresOnly && st.sym === 'SPX') h += '<p class="ms-warn">This report needs overnight bars, which the SPX cash index does not have. Pick a futures symbol.</p>';
     if (rep.sessions) h += '<p class="ms-note">Session: ' + esc(S.SESS_TEXT[st.session]) + '. Times are New York.</p>';
     if (cur.sessions < S.WARN_N) h += '<p class="ms-warn">Only ' + cur.sessions + ' sessions match these filters. Treat every number below as a rough guide.</p>';
+    h += viewTabs();
+    if (st.view !== 'cards') return h + breakdownHtml();
     var group = '';
     h += '<div class="ms-grid">';
     cur.cards.forEach(function (c, i) {
@@ -347,11 +416,13 @@
   // ---- events --------------------------------------------------------------------------------------------------------
   function update() { persist(); load(st.sym).then(render); render(); }
   root.addEventListener('click', function (e) {
-    var t = e.target.closest('[data-sym],[data-rep],[data-card],#ms-retry');
+    var t = e.target.closest('[data-sym],[data-rep],[data-card],[data-view],#ms-pick,#ms-retry');
     if (!t) return;
     if (t.id === 'ms-retry') { update(); return; }
+    if (t.id === 'ms-pick') { st.picker = true; st.pq = ''; drawPicker(); var pi = document.getElementById('ms-pq'); if (pi) pi.focus(); return; }
+    if (t.dataset.view) { st.view = t.dataset.view; st.bc = 0; update(); return; }
     if (t.dataset.sym) { st.sym = t.dataset.sym; update(); return; }
-    if (t.dataset.rep) { st.rep = t.dataset.rep; update(); if (t.classList.contains('ms-tc-go')) { var tab = root.querySelector('.ms-reps'); if (tab) window.scrollTo(0, Math.max(0, tab.getBoundingClientRect().top + window.scrollY - 70)); } return; }
+    if (t.dataset.rep) { st.rep = t.dataset.rep; st.view = 'cards'; st.bc = 0; update(); if (t.classList.contains('ms-tc-go')) { var tab = root.querySelector('.ms-reps'); if (tab) window.scrollTo(0, Math.max(0, tab.getBoundingClientRect().top + window.scrollY - 70)); } return; }
     if (t.dataset.card != null) { st.lastBtn = t; openSheet(Number(t.dataset.card)); }
   });
   root.addEventListener('change', function (e) {
@@ -359,6 +430,7 @@
     if (id === 'ms-range') st.range = e.target.value;
     else if (id === 'ms-dow') st.dow = Number(e.target.value);
     else if (id === 'ms-bucket') st.bucket = e.target.value;
+    else if (id === 'ms-bc') { st.bc = Number(e.target.value); persist(); render(); return; }
     else if (id === 'ms-session') st.session = e.target.value;
     else return;
     update();
@@ -370,7 +442,17 @@
     var f = e.target.closest('[data-sf]'); if (f) { sheetState.f = f.dataset.sf; sheetState.n = 60; drawSheet(); return; }
     if (e.target.closest('[data-more]')) { sheetState.n += 120; drawSheet(); }
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && st.sheet != null) closeSheet(); });
+  document.addEventListener('click', function (e) {
+    var w = document.getElementById('ms-picker');
+    if (!w || !w.contains(e.target)) return;
+    if (e.target.closest('[data-pclose]')) { closePicker(); return; }
+    var sb = e.target.closest('[data-star]');
+    if (sb) { var k = sb.dataset.star, i = stars.indexOf(k); if (i >= 0) stars.splice(i, 1); else stars.push(k); saveStars(); drawPicker(); render(); return; }
+    var pk = e.target.closest('[data-pick]');
+    if (pk) { st.rep = pk.dataset.pick; st.view = 'cards'; st.bc = 0; st.picker = false; drawPicker(); update(); }
+  });
+  document.addEventListener('input', function (e) { if (e.target.id === 'ms-pq') { st.pq = e.target.value; drawPicker(); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { if (st.picker) closePicker(); else if (st.sheet != null) closeSheet(); } });
 
   setInterval(function () { if (!document.hidden) refreshToday(true); }, 60000);
   window.__stkMS = { state: st, today: today, run: function () { return cur; } };

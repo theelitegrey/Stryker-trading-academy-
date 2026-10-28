@@ -66,15 +66,46 @@ async function shot(p, name) { await p.mouse.move(2, 2).catch(() => {}); await s
       await shot(p, 'ms-' + tag + '-gap.png');
       // step 2: the new reports render with N and intervals on every number
       for (const [rep, re] of [['oc', /First 5 min candle/i], ['io', /Inside days/], ['eg', /engulfing/i], ['pdr', /Opened inside/], ['ict', /midnight open/i], ['adr', /ADR/]]) {
-        await p.click('.ms-tab[data-rep="' + rep + '"]'); await sleep(250);
+        await p.click('#ms-pick'); await p.waitForSelector('#ms-picker [data-pick="' + rep + '"]'); await p.click('#ms-picker [data-pick="' + rep + '"]'); await sleep(300);
         const r = await p.evaluate(() => ({ page: document.querySelector('.ms-page').innerText, t: document.querySelector('.ms-grid').innerText, n: document.querySelectorAll('.ms-card').length, bad: document.querySelectorAll('.ms-card:not(.off) .ms-ci-t').length, nn: document.querySelectorAll('.ms-card .ms-n').length }));
         check(r.n >= 2 && r.nn === r.n && /N = \d+/.test(r.t) && re.test(r.page), tag + ': report ' + rep + ' renders ' + r.n + ' cards with N');
       }
-      await p.click('.ms-tab[data-rep="oc"]'); await p.selectOption('#ms-session', 'lon'); await sleep(250);
+      await p.click('#ms-pick'); await p.click('#ms-picker [data-pick="oc"]'); await sleep(250); await p.selectOption('#ms-session', 'lon'); await sleep(250);
       check(await p.evaluate(() => /London 03:00/.test(document.querySelector('.ms-note').innerText)), tag + ': session filter London');
       await p.selectOption('#ms-session', 'ny'); await p.click('.ms-tab[data-rep="gap"]'); await sleep(200);
+      // step 3/4/5: breakdown sub-tabs, new symbols, picker with search + star
+      await p.click('.ms-view[data-view="dow"]'); await sleep(250);
+      let bd = await p.evaluate(() => ({ rows: document.querySelectorAll('.ms-bd tbody tr').length, t: document.querySelector('.ms-bd').innerText }));
+      check(bd.rows === 5 && /Mon/.test(bd.t) && /\d+ of \d+/.test(bd.t), tag + ': by weekday -> ' + bd.rows + ' rows');
+      await p.click('.ms-view[data-view="size"]'); await sleep(250);
+      check(await p.evaluate(() => document.querySelectorAll('.ms-bd tbody tr').length) === 6, tag + ': by size rows');
+      await p.click('.ms-view[data-view="time"]'); await sleep(250);
+      bd = await p.evaluate(() => ({ rows: document.querySelectorAll('.ms-bd tbody tr').length, t: document.querySelector('.ms-bd').innerText }));
+      check(bd.rows === 13 && /cumulative/i.test(bd.t), tag + ': by time 30-minute windows (' + bd.rows + ')');
+      await p.click('.ms-view[data-view="year"]'); await sleep(250);
+      check(await p.evaluate(() => document.querySelectorAll('.ms-bd tbody tr').length) >= 2, tag + ': by year rows');
+      const badm = await p.evaluate(() => { const m = /win rate|probability|high-probability|\bbias\b|\btarget\b|\bedge\b|profit|real-?time|delayed|\blive\b|\bbuy\b|\bsell\b/i.exec(document.querySelector('.ms-page').innerText.replace(/LuxAlgo Edge Stats/g, '')); return m ? m[0] + ' @ ' + document.querySelector('.ms-page').innerText.slice(Math.max(0, m.index - 40), m.index + 40) : ''; });
+      check(!badm, tag + ': breakdown wording clean' + (badm ? ' [' + badm + ']' : ''));
+      await shot(p, 'ms-' + tag + '-year.png');
+      await p.click('.ms-view[data-view="cards"]');
+      for (const sy of ['YM', 'RTY', 'GC', 'CL']) {
+        await p.click('.ms-chip[data-sym="' + sy + '"]'); await p.waitForSelector('.ms-chip.on[data-sym="' + sy + '"]'); await sleep(900);
+        check(await p.evaluate(() => document.querySelectorAll('.ms-card').length > 5 && !document.querySelector('.ms-empty')), tag + ': symbol ' + sy + ' loads cards');
+      }
+      await p.click('.ms-chip[data-sym="NQ"]'); await sleep(600);
+      check(await p.evaluate(() => [...document.querySelectorAll('.ms-reps .ms-tab[data-rep]')].map((b) => b.dataset.rep).join()) === 'gap,ib,oc,pdr', tag + ': starters bookmarked gap,ib,oc,pdr');
+      await p.click('#ms-pick'); await p.waitForSelector('#ms-picker .ms-pi');
+      check(await p.evaluate(() => [...document.querySelectorAll('#ms-picker .ms-pg')].map((e) => e.textContent).join() === 'Open,Gaps,Ranges,Candles,ICT'), tag + ': picker groups Open,Gaps,Ranges,Candles,ICT');
+      await shot(p, 'ms-' + tag + '-picker.png');
+      await p.fill('#ms-pq', 'engulf'); await sleep(200);
+      check(await p.evaluate(() => document.querySelectorAll('#ms-picker .ms-pi').length) === 1, tag + ': search narrows to 1');
+      await p.click('#ms-picker .ms-star'); await sleep(200);
+      await p.keyboard.press('Escape'); await sleep(200);
+      check(await p.evaluate(() => !!document.querySelector('.ms-reps .ms-tab[data-rep="eg"]') && !document.getElementById('ms-picker')), tag + ': starred report joins the tab row, Esc closes picker');
+      check(await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth) <= 0, tag + ': no sideways overflow after picker');
+      await p.click('.ms-tab[data-rep="gap"]'); await sleep(200);
       // report tab, symbol, filters by real clicks
-      await p.click('.ms-tab[data-rep="or15"]'); await sleep(300);
+      await p.click('#ms-pick'); await p.click('#ms-picker [data-pick="or15"]'); await sleep(300);
       check(await p.evaluate(() => /First break up/.test(document.querySelector('.ms-grid').innerText)), tag + ': opening range tab renders');
       await p.click('.ms-chip[data-sym="ES"]'); await p.waitForSelector('.ms-chip.on[data-sym="ES"]'); await sleep(800);
       check(await p.evaluate(() => document.querySelectorAll('.ms-card').length > 5), tag + ': ES loads');

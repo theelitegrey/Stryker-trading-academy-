@@ -80,6 +80,26 @@
 :root[data-theme="light"] .ms-table th,:root[data-theme="light"] .ms-table td,:root[data-theme="light"] .ms-ct,:root[data-theme="light"] .ms-table tbody th,:root[data-theme="light"] .ms-sh-head b{color:#1a2230}
 :root[data-theme="light"] .ms-big,:root[data-theme="light"] .ms-open,:root[data-theme="light"] .ms-sh-sum b{color:#07996a}
 
+/* views, breakdown, picker */
+.ms-views{overflow-x:auto;margin:6px 0 12px;padding-bottom:4px}
+.ms-view{appearance:none;border:0;border-bottom:2px solid transparent;background:none;color:var(--ink-3,#8a8f98);padding:8px 12px;font:600 13px 'Archivo',sans-serif;cursor:pointer;white-space:nowrap;min-height:38px}
+.ms-view.on{color:#4fe3ac;border-bottom-color:#03c988}
+.ms-bsel{max-width:420px;margin-bottom:8px}
+.ms-bd th:last-child,.ms-bd td:last-child{width:90px}
+.ms-mini{display:block;height:6px;border-radius:99px;background:#1b1b20;overflow:hidden;min-width:60px}
+.ms-mini i{display:block;height:100%;background:rgba(3,201,136,.7)}
+.ms-search{width:100%;box-sizing:border-box;background:#131316;color:var(--ink-0,#f4f5f7);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 12px;font:14px 'Archivo',sans-serif;min-height:42px}
+.ms-search:focus{outline:none;border-color:#03c988}
+.ms-pg{margin:14px 12px 4px;font:700 11px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3,#8a8f98)}
+.ms-pi{display:flex;align-items:stretch;gap:4px;border-top:1px solid rgba(255,255,255,.05)}
+.ms-pi.cur{background:rgba(3,201,136,.07)}
+.ms-pi-main{appearance:none;flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--ink-1,#d5d8de);padding:10px 12px;cursor:pointer;font-family:'Archivo',sans-serif}
+.ms-pi-main b{display:block;font-size:14px;color:var(--ink-0,#f4f5f7)}
+.ms-pi-main small{display:block;font-size:12px;color:var(--ink-3,#8a8f98);margin-top:2px;line-height:1.35}
+.ms-star{appearance:none;background:none;border:0;color:var(--ink-3,#8a8f98);font-size:22px;width:48px;cursor:pointer}
+.ms-star.on{color:#f5b942}
+:root[data-theme="light"] .ms-search{background:#eef0f4;color:#1a2230}
+:root[data-theme="light"] .ms-pi-main b{color:#1a2230}
 /* Today dashboard */
 .ms-today{margin:4px 0 22px;padding:14px;border:1px solid rgba(3,201,136,.2);border-radius:16px;background:linear-gradient(180deg,#0e1312,#0b0b0d)}
 .ms-today-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:4px}

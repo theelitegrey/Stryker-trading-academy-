@@ -344,6 +344,47 @@
     return { title: 'Session range, % of the open', unit: '% of the open', rows: out };
   }
 
+
+  // ---- breakdowns (step 3) ----------------------------------------------------------------------------------------------
+  // card: one entry of run().cards. kind: 'dow' | 'size' | 'time' | 'year'. -> { rows: [{ label, s }], note }
+  // dow / size / year: the outcome's rate inside each group. time: of the sessions where the outcome happened, the share
+  // that happened in each 30-minute window after the 09:30 open (needs a timed outcome).
+  function breakdown(card, kind) {
+    var items = card.items, i, rows = [];
+    function groupBy(keyOf, labels) {
+      var m = {};
+      labels.forEach(function (l) { m[l[0]] = []; });
+      items.forEach(function (it) { var k = keyOf(it.r); if (m[k]) m[k].push(it); });
+      return labels.map(function (l) { return { label: l[1], s: summarize(m[l[0]]) }; });
+    }
+    if (kind === 'dow') return { rows: groupBy(function (r) { return r.dow; }, DOW.map(function (d, i) { return [i, d]; })) };
+    if (kind === 'size') {
+      var labs = BUCKETS.map(function (b) { return [b[0], b[1] + ' \u00b7 ' + BUCKET_TEXT[b[0]]]; });
+      labs.push(['none', 'No gap']);
+      return { rows: groupBy(function (r) { return r.bucket; }, labs), note: 'Size is the opening gap against the prior close, as a share of that close.' };
+    }
+    if (kind === 'year') {
+      var ys = {};
+      items.forEach(function (it) { ys[String(it.r.d).slice(0, 4)] = 1; });
+      return { rows: groupBy(function (r) { return String(r.d).slice(0, 4); }, Object.keys(ys).sort().map(function (y) { return [y, y]; })) };
+    }
+    // time
+    if (!card.timed) return { rows: [], note: 'This outcome is decided at the close, so it has no time of day.' };
+    var hits = items.filter(function (it) { return it.hit && it.t != null && it.t >= 0; });
+    var n = hits.length, buckets = [];
+    for (i = 0; i < 13; i++) buckets.push([]);
+    hits.forEach(function (it) { var b = Math.min(12, Math.max(0, Math.ceil(it.t / 30) - 1)); buckets[b].push(it); });
+    var cum = 0;
+    for (i = 0; i < 13; i++) {
+      var a = 570 + 30 * i, b2 = a + 30;
+      var lbl = function (m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); };
+      cum += buckets[i].length;
+      var w = wilson(buckets[i].length, n);
+      rows.push({ label: lbl(a) + '\u2013' + lbl(b2), s: { n: n, k: buckets[i].length, p: w.p, lo: w.lo, hi: w.hi, guard: guard(n) }, cum: n ? cum / n : null });
+    }
+    return { rows: rows, note: 'Of the ' + n + ' sessions where this happened, the share that happened in each 30-minute window (New York time). Cumulative on the right.', time: true };
+  }
+
   // ---- formatting ------------------------------------------------------------------------------------------------
   function pct(x, d) { return x == null ? '—' : (x * 100).toFixed(d == null ? 0 : d) + '%'; }
   function fmtMin(m) {
@@ -535,7 +576,7 @@
     return out;
   }
 
-  var api = { SESS_TEXT: SESS_TEXT, todayState: todayState, todayHistory: todayHistory, sessionBars: sessionBars, priorFromBars: priorFromBars, nyDate: nyDate, nyClock: nyClock, freq: freq, sum: sum, COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
+  var api = { breakdown: breakdown, SESS_TEXT: SESS_TEXT, todayState: todayState, todayHistory: todayHistory, sessionBars: sessionBars, priorFromBars: priorFromBars, nyDate: nyDate, nyClock: nyClock, freq: freq, sum: sum, COLS: COLS, DOW: DOW, BUCKETS: BUCKETS, BUCKET_TEXT: BUCKET_TEXT, REPORTS: REPORTS, WARN_N: WARN_N, REFUSE_N: REFUSE_N,
     toRows: toRows, wilson: wilson, medianCI: medianCI, quantile: quantile, summarize: summarize, applyFilters: applyFilters, run: run,
     pct: pct, fmtMin: fmtMin, dateStr: dateStr, bucketOf: bucketOf, guard: guard, sessionOpenEpoch: sessionOpenEpoch };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;

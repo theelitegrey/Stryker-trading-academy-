@@ -1,5 +1,5 @@
 // TradeZoro — Charts: "Market Stats session" overlay (ES module, charts.html). Opened from /market-stats:
-//   charts?symbol=NQ&date=2026-10-28&tf=5&ms=or15.up&t=20&vela=0.9
+//   charts?symbol=NQ&date=2026-10-28&tf=5&o=..&pdh=..&pdl=..&pdc=..&orw=15&orh=..&orl=..&t=20&lbl=Break&vela=0.9
 // Draws the levels of ONE past session on the chart: prior day high / low / close, the open, the gap band, the opening range
 // (15 or 30 min) and initial balance lines, and a marker at the minute the outcome happened. Nothing is fetched here: the
 // numbers come in the URL-free drill object that assets/market-stats.js stores in sessionStorage ('stk_ms_drill'), so a page
@@ -19,6 +19,26 @@ const TYPE = 'stk_msess';
 const KEY = 'stk_ms_drill';
 const SCHEMA = [{ key: 'labels', title: 'Labels', type: 'bool', defval: true }];
 const COL = { prior: '#9aa0a6', open: '#e8eaed', gap: '#f5b942', or: '#00adb5', ib: '#8b7cf6', mark: '#4fe3ac' };
+
+// New York open of a date as epoch seconds (09:30 ET, US DST rules; same maths as _bars.js nyOffset).
+export function sessionOpenEpoch(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  const nth = (mm, n) => { const dw = new Date(Date.UTC(y, mm, 1)).getUTCDay(); return 1 + ((7 - dw) % 7) + 7 * (n - 1); };
+  const ms = Date.UTC(y, m - 1, d), off = ms >= Date.UTC(y, 2, nth(2, 2)) && ms < Date.UTC(y, 10, nth(10, 1)) ? -4 : -5;
+  return Date.UTC(y, m - 1, d, 9 - off, 30) / 1000;
+}
+// Drill object from the link's numbers (the page puts them in the URL so a link works in any tab).
+// ?o=&pdh=&pdl=&pdc= (prior day and open), orw= orh= orl= (opening range), ibh= ibl=, t= (minutes after the open), lbl=, sx=1 (SPX on ES)
+export function drillFromQuery(q, date, chartSym) {
+  const n = (k) => (q.has(k) && q.get(k) !== '' ? Number(q.get(k)) : NaN);
+  const o = n('o');
+  if (!Number.isFinite(o)) return null;
+  const d = { date, open: sessionOpenEpoch(date), o, pdh: n('pdh'), pdl: n('pdl'), pdc: n('pdc'), t: Number.isFinite(n('t')) ? n('t') : -1,
+    markLabel: String(q.get('lbl') || '').slice(0, 40), title: String(q.get('title') || '').slice(0, 60), chartSym, shiftToOpen: q.get('sx') === '1' };
+  if (Number.isFinite(n('orh')) && Number.isFinite(n('orl'))) d.or = { win: n('orw') || 15, h: n('orh'), l: n('orl') };
+  if (Number.isFinite(n('ibh')) && Number.isFinite(n('ibl'))) d.ib = { h: n('ibh'), l: n('ibl') };
+  return d;
+}
 
 export function readDrill() {
   try {
@@ -166,13 +186,15 @@ export function openSessionFromLink(ws) {
     try { ws.cells().forEach((c) => c.chart.indicators().forEach((h) => { if (h.nativeType === TYPE) c.chart.removeIndicator(h); })); } catch (e) {}
     return Promise.resolve(false);
   }
-  const drill = readDrill();
-  const withLines = q.get('ms') && drill && drill.date === date;
-  const root = String(q.get('symbol') || (drill && drill.chartSym) || 'NQ').toUpperCase().replace(/1!$/, '');
+  const root = String(q.get('symbol') || 'NQ').toUpperCase().replace(/1!$/, '');
+  const drill = drillFromQuery(q, date, root);
+  if (drill) { try { sessionStorage.setItem(KEY, JSON.stringify(drill)); } catch (e) {} }
+  else { try { sessionStorage.removeItem(KEY); } catch (e) {} }
+  const withLines = !!drill;
   const sym = 'futures:' + root + '1!';
   // the other deep link (chart-watchlist.js, ?symbol=) must not fight this one
-  try { const u = new URL(location.href); ['symbol', 'date', 'tf', 'ms', 't'].forEach((k) => u.searchParams.delete(k)); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
-  const openEpoch = drill && drill.open ? drill.open : Date.parse(date + 'T14:30:00Z') / 1000;
+  try { const u = new URL(location.href); ['symbol', 'date', 'tf', 'o', 'pdh', 'pdl', 'pdc', 'orw', 'orh', 'orl', 'ibh', 'ibl', 't', 'lbl', 'title', 'sx'].forEach((k) => u.searchParams.delete(k)); history.replaceState(null, '', u.pathname + u.search + u.hash); } catch (e) {}
+  const openEpoch = sessionOpenEpoch(date);
   return (async () => {
     try {
       const cell = ws.active;

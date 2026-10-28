@@ -39,3 +39,10 @@
 [data-theme="light"] .lyt{box-shadow:0 30px 70px -30px rgba(0,120,130,.45),0 2px 0 rgba(255,255,255,.4) inset;border-color:rgba(3,201,136,.35)}
 .lyt-wrap{padding:0 16px}
 @media (max-width:480px){.lyt{border-radius:22px;min-height:calc(100svh - 190px)}.lyt-wrap{padding:0 12px}}
+/* indicators pages: shorter banner */
+.lyt-ind{min-height:0;padding:clamp(32px,6vw,64px) clamp(20px,5vw,56px)}
+.lyt-ind .lyt-play{margin:22px 0 18px;width:76px;height:76px}
+.lyt-ind .lyt-play svg{width:46px;height:33px;filter:none}
+.lyt-ind h1{font-size:clamp(30px,6vw,52px)}
+.dash-main>.lyt-wrap{padding:0;margin-bottom:8px}
+@media (max-width:480px){.lyt-ind{min-height:0}}

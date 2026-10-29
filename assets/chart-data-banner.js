@@ -5,7 +5,7 @@
 // (b) has the $5/month Live Futures Data add-on, or (c) was approved by the Owner (all three make the server / the
 // Rithmic provider real-time; this strip only reflects that). Slim strip between the toolbar and the chart, shown
 // only on a CME futures symbol while the viewer is NOT real-time. X hides it for this tab session only.
-import { rtReady, isRealtimeAdmin, rtOnChange } from './rt-access.js?v=734';
+import { rtReady, isRealtimeAdmin, rtOnChange } from './rt-access.js?v=735';
 
 const SS_HIDE = 'stryker_data_banner_hide';
 const SS_OPEN = 'stryker_open_connect';

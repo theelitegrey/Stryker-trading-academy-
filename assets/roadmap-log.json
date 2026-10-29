@@ -1,5 +1,107 @@
 [
  {
+  "build": 727,
+  "date": "2026-10-30",
+  "title": "ZoroTide: options money flow (calls vs puts)",
+  "link": ""
+ },
+ {
+  "build": 726,
+  "date": "2026-10-29",
+  "title": "One live feed per symbol (all timeframes)",
+  "link": ""
+ },
+ {
+  "build": 725,
+  "date": "2026-10-29",
+  "title": "Faster chart loading (phone)",
+  "link": ""
+ },
+ {
+  "build": 725,
+  "date": "2026-10-29",
+  "title": "Fix: live candles not updating",
+  "link": ""
+ },
+ {
+  "build": 724,
+  "date": "2026-10-29",
+  "title": "Fix: live candles not updating",
+  "link": ""
+ },
+ {
+  "build": 723,
+  "date": "2026-10-29",
+  "title": "Faster chart loading",
+  "link": ""
+ },
+ {
+  "build": 722,
+  "date": "2026-10-29",
+  "title": "Liquidity Map (Bookmap-style resting liquidity)",
+  "link": ""
+ },
+ {
+  "build": 721,
+  "date": "2026-10-29",
+  "title": "Liquidity Map (Bookmap-style resting liquidity)",
+  "link": ""
+ },
+ {
+  "build": 718,
+  "date": "2026-10-29",
+  "title": "Gold GEX heatmap, expected move and ladder",
+  "link": ""
+ },
+ {
+  "build": 718,
+  "date": "2026-10-29",
+  "title": "New indicator: Session Sweep SMT + IFVG",
+  "link": ""
+ },
+ {
+  "build": 717,
+  "date": "2026-10-29",
+  "title": "Gold GEX heatmap, expected move and ladder",
+  "link": ""
+ },
+ {
+  "build": 716,
+  "date": "2026-10-29",
+  "title": "New indicator: Session Sweep SMT + IFVG",
+  "link": ""
+ },
+ {
+  "build": 715,
+  "date": "2026-10-29",
+  "title": "GEX for gold (GC, MGC, GLD) on GEX+ and ZoroCharts",
+  "link": ""
+ },
+ {
+  "build": 714,
+  "date": "2026-10-29",
+  "title": "New indicator: Session Sweep SMT + IFVG",
+  "link": ""
+ },
+ {
+  "build": 712,
+  "date": "2026-10-29",
+  "title": "Market Stats breakdowns, four more symbols and report picker",
+  "link": ""
+ },
+ {
+  "build": 711,
+  "date": "2026-10-29",
+  "title": "Market Stats more reports",
+  "link": ""
+ },
+ {
+  "build": 710,
+  "date": "2026-10-29",
+  "title": "Market Stats Today dashboard",
+  "link": ""
+ },
+ {
   "build": 709,
   "date": "2026-10-29",
   "title": "Backtest and Journal renamed Replay One and JournalX",

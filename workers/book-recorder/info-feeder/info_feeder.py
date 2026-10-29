@@ -8,7 +8,7 @@ next earnings date, trimmed from the 300 KB fundamentals response. About 1 KB pe
 Env: INSIGHTSENTRY_WEBSOCKET_API_KEY, BOOK_RECORDER_URL, BOOK_INGEST_SECRET (never printed).
 """
 import gzip, json, os, sys, time, urllib.parse, urllib.request
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 IS = 'https://api.insightsentry.com/v3'
 FUT = {  # chart root -> IS continuous code (micros share the full-size contract's calendar)
@@ -69,8 +69,7 @@ def trim_session(s):
     """/session -> {hours:'1700-1600', desc, tz, early:[{date,end}] next 120 days, holidays: next 8}."""
     today = int(date.today().strftime('%Y%m%d'))
     det = (s.get('details') or [{}])[0]
-    horizon = int((datetime.now().replace(year=datetime.now().year + (1 if datetime.now().month > 8 else 0),
-                                          month=(datetime.now().month + 4 - 1) % 12 + 1)).strftime('%Y%m%d'))
+    horizon = int((datetime.now() + timedelta(days=120)).strftime('%Y%m%d'))   # was month+4 with replace(): crashed on the 29th-31st (Feb 29 2027)
     early = []
     for c in det.get('session_correction') or []:
         if c.get('end_hour') == det.get('session', '').split('-')[-1]:

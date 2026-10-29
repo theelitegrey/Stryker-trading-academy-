@@ -15,4 +15,7 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
+# ZoroTide keeps the last volume per contract between runs (a few hundred KB per symbol)
+StateDirectory=gex-feeder
+Environment=TIDE_STATE_DIR=/var/lib/gex-feeder
 SyslogIdentifier=gex-feeder

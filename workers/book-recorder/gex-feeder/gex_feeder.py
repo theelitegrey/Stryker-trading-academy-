@@ -40,6 +40,8 @@ import sys
 import time
 import urllib.error
 import urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import tide
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
 
@@ -57,6 +59,7 @@ MAX_PART = 200 * 1024
 SNAP_SYMBOLS = ('SPX', 'QQQ', 'SPY', 'GLD')
 FETCH_TIMEOUT = 40
 POST_TIMEOUT = 15
+TIDE_STATE_DIR = os.environ.get('TIDE_STATE_DIR') or os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tide-state')
 
 
 def log(msg):
@@ -400,12 +403,14 @@ def main(force=False):
         return 2
     bad = 0
     snaps = []
+    tide_samples = []
     for sym in syms:
         t0 = time.monotonic()
         try:
             raw = fetch(sym)
             parts = compact(raw, time.time())
             size = len(raw)
+            tide_step(sym.lstrip('_'), raw, tide_samples)
             del raw
         except Exception as e:
             log('%s fetch/parse failed: %s %s' % (sym, type(e).__name__, str(e)[:80]))
@@ -438,13 +443,53 @@ def main(force=False):
         res = post_snaps(url, key, snaps)
         bad += 0 if res.startswith('200') else 1
         log('history: %d snapshots -> %s' % (len(snaps), res))
+    # ZoroTide (Owner order 2026-10-29): one options-money-flow sample per symbol per Cboe reprint, every run
+    if tide_samples:
+        res = post_tide(url, key, tide_samples)
+        bad += 0 if res.startswith('200') else 1
+        log('tide: %d samples -> %s' % (len(tide_samples), res))
     return 1 if bad else 0
+
+
+def tide_step(u, raw, out):
+    """ZoroTide: this chain's change in per-contract volume -> one sample (see tide.py). Never fails the run."""
+    if u not in tide.TIDE_SYMBOLS:
+        return
+    try:
+        spot, ctime, rows = tide.read_chain(raw)
+        path = os.path.join(TIDE_STATE_DIR, 'tide-%s.json' % u)
+        sample, state = tide.step(tide.load_state(path), spot, ctime, rows)
+        if state is not None:
+            tide.save_state(path, state)
+        if sample:
+            sample['u'] = u
+            out.append(sample)
+    except Exception as e:
+        log('%s tide failed: %s %s' % (u, type(e).__name__, str(e)[:80]))
+
+
+def post_tide(url, key, samples):
+    body = gzip.compress(json.dumps({'v': 1, 'snaps': samples}, separators=(',', ':')).encode(), 6)
+    req = urllib.request.Request(url + '/tide-snap', data=body, method='POST',
+                                 headers={'content-type': 'application/octet-stream', 'x-ingest-key': key, 'User-Agent': UA})
+    try:
+        with urllib.request.urlopen(req, timeout=POST_TIMEOUT) as r:
+            return '%s %s (%d B)' % (r.status, r.read(120).decode('utf-8', 'replace'), len(body))
+    except urllib.error.HTTPError as e:
+        return '%s %s' % (e.code, e.read(120).decode('utf-8', 'replace'))
+    except Exception as e:
+        return 'failed ' + type(e).__name__
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 6 and sys.argv[1] == '--snapshot':
         # test mode: gex_feeder.py --snapshot <near.json> <U> <dte> <now_epoch> -> the snapshot JSON
         print(json.dumps(snapshot(json.load(open(sys.argv[2])), int(sys.argv[4]), sys.argv[3], float(sys.argv[5])), separators=(',', ':')))
+        sys.exit(0)
+    if len(sys.argv) == 3 and sys.argv[1] == '--tide':
+        # test mode: gex_feeder.py --tide <cboe.json> -> the chain's ZoroTide rows (spot, chain time, contracts with volume)
+        _s, _t, _r = tide.read_chain(open(sys.argv[2], 'rb').read())
+        print(json.dumps({'spot': _s, 'time': _t, 'n': len(_r)}))
         sys.exit(0)
     if len(sys.argv) == 4 and sys.argv[1] == '--compact':
         print(json.dumps(compact(open(sys.argv[2], 'rb').read(), float(sys.argv[3])), separators=(',', ':')))

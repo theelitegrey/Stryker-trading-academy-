@@ -55,6 +55,8 @@ jobs:
           node workers/book-recorder/test/is-hub.test.mjs
           node workers/book-recorder/test/is-usage.test.mjs
           python3 workers/book-recorder/test/gex_fast_test.py
+      - name: ZoroTide tests (volume-diff premium maths, bought/sold bands, baselines, ingest validation)
+        run: python3 workers/book-recorder/test/tide_test.py
       - name: Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -107,6 +109,13 @@ jobs:
           test "$code" = 200
           g401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-ingest?sym=QQQ&part=near")
           echo "gex-ingest without key: HTTP $g401"; test "$g401" = 401
+          for i in 1 2 3 4 5 6; do
+            td=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/tide-snap")
+            [ "$td" = 401 ] && break; sleep 10
+          done
+          echo "tide-snap without key: HTTP $td"; test "$td" = 401
+          tg=$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://strykertrading.com' "$URL/tide?u=SPX")
+          echo "tide: HTTP $tg"; test "$tg" = 200
           s401=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data-binary 'x' "$URL/gex-snap")
           echo "gex-snap without key: HTTP $s401"; test "$s401" = 401
           # a new Worker version takes a few seconds to reach every edge: retry before failing

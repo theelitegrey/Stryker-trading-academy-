@@ -17,6 +17,7 @@
 // memoised 30 s in the DO). Public market data only: no user data.
 import { decodeSamples, encodeSamples, storeRule } from './bucket.js';
 import { validateGexChain, validateGexFast, GEX_PARTS, GEX_MAX_BODY } from './gex.js';
+import { validateTide, packTide, TIDE_SYMBOLS, TIDE_KEEP_DAYS, TIDE_MAX_BODY, TIDE_MAX_DAYS } from './tide.js';
 import { validateSnaps, packHistory, HIST_SYMBOLS, KEEP_DAYS, SNAP_MAX_BODY } from './gex-history.js';
 import { validateOpt, dayRow, OPT_SYMBOLS, OPT_MAX_BODY, OPT_KEEP_DAYS } from './options.js';
 import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
@@ -93,6 +94,8 @@ export class BookRecorder {
     // GEX history (src/gex-history.js): one row per underlying + 0/1DTE + Cboe chain time, 90 days.
     // j = the snapshot's other fields as JSON (day, x, s, cw, pw, zg, n, em, k, g).
     this.sql.exec(`CREATE TABLE IF NOT EXISTS gexsnap (u TEXT NOT NULL, d INTEGER NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, d, t)) WITHOUT ROWID`);
+    // ZoroTide samples (src/tide.js): one row per symbol per Cboe chain time, 30 days
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS tide (u TEXT NOT NULL, t INTEGER NOT NULL, j TEXT NOT NULL, PRIMARY KEY (u, t)) WITHOUT ROWID`);
     // per-day summary so /gex-sessions never scans the snapshots
     storeInit(this.sql);   // news + economic calendar (src/news.js)
     terminalInit(this.sql);   // brief / market map / econ calendar files (src/terminal.js)
@@ -247,6 +250,27 @@ export class BookRecorder {
     this.meta('gexSnapLast', JSON.stringify({ ts: now, n: snaps.length, added }));
     return added;
   }
+  tideIngest(snaps) {
+    for (const s of snaps) {
+      const { u, t, ...rest } = s;
+      this.sql.exec('INSERT OR REPLACE INTO tide (u, t, j) VALUES (?, ?, ?)', u, t, JSON.stringify(rest));
+    }
+    // 30-day trim, at most once an hour (by index: PRIMARY KEY (u, t)); no cron in this Worker
+    const now = Math.floor(Date.now() / 1000);
+    if (now - Number(this.meta('tideTrim') || 0) > 3600) {
+      this.sql.exec('DELETE FROM tide WHERE t < ?', now - TIDE_KEEP_DAYS * 86400);
+      this.meta('tideTrim', now);
+    }
+    this.meta('tideLast', JSON.stringify({ ts: now, n: snaps.length }));
+    return snaps.length;
+  }
+  tideRead(u, days) {
+    // newest `days` sessions: find the cut-off day first (one indexed range scan over the recent rows)
+    const recent = this.sql.exec('SELECT t, j FROM tide WHERE u = ? AND t >= ? ORDER BY t', u, Math.floor(Date.now() / 1000) - (days + 5) * 86400).toArray()
+      .map((r) => Object.assign({ t: r.t }, JSON.parse(r.j)));
+    const keep = [...new Set(recent.map((r) => r.day))].sort().slice(-days);
+    return packTide(u, recent.filter((r) => keep.includes(r.day)));
+  }
   snapHistory(u, d, from, to) {
     const rows = this.sql.exec('SELECT t, j FROM gexsnap WHERE u = ? AND d = ? AND t >= ? AND t <= ? ORDER BY t', u, d, from, to).toArray()
       .map((r) => Object.assign({ t: r.t }, JSON.parse(r.j)));
@@ -302,6 +326,7 @@ export class BookRecorder {
       days: this.sql.exec('SELECT u, d, COUNT(*) AS days, SUM(n) AS snaps, MIN(day) AS first, MAX(day) AS lastDay FROM gexday GROUP BY u, d').toArray() };
     try { out.news = newsDo.stats(this); } catch (e) { out.news = { error: String(e) }; }
     out.orderflow = this.ofStatus();
+    out.tide = { keepDays: TIDE_KEEP_DAYS, last: JSON.parse(this.meta('tideLast') || 'null'), rows: this.sql.exec('SELECT u, COUNT(*) AS n, MIN(t) AS t0, MAX(t) AS t1 FROM tide GROUP BY u').toArray() };
     out.dbBytes = this.ctx.storage.sql.databaseSize;
     this.statusMemo = { at: Date.now(), out };
     return out;
@@ -331,6 +356,11 @@ export class BookRecorder {
       const { snaps } = await req.json();
       return new Response('stored ' + this.snapIngest(snaps) + ' new of ' + snaps.length);
     }
+    if (u.pathname === '/tide-snap') {
+      const { snaps } = await req.json();
+      return new Response('stored ' + this.tideIngest(snaps));
+    }
+    if (u.pathname === '/tide') return Response.json(this.tideRead(u.searchParams.get('u'), Number(u.searchParams.get('days'))));
     if (u.pathname === '/gex-history') {
       const p = this.snapHistory(u.searchParams.get('u'), Number(u.searchParams.get('d')), Number(u.searchParams.get('from')), Number(u.searchParams.get('to')));
       return Response.json(p);
@@ -465,6 +495,24 @@ async function gexHistoryRoute(u, env, ctx, h) {
     const dr = await stub(env).fetch(doUrl);
     res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=' + maxAge } });
     if (dr.status === 200) ctx.waitUntil(cache.put(key, res.clone()));
+  }
+  const out = new Response(res.body, res);
+  Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
+  return out;
+}
+
+// GET /tide?u=SPX[&days=1..6]  (ZoroTide, src/tide.js). Public market data, our two sites' origins (CORS), edge-cached
+// 30 s per symbol and day count. Plan gating (SPX free, SPY / QQQ Pro) is the site's, as for the GEX history.
+async function tideRoute(u, env, ctx, h) {
+  const uu = String(u.searchParams.get('u') || '').toUpperCase();
+  const days = Math.min(TIDE_MAX_DAYS, Math.max(1, Math.floor(Number(u.searchParams.get('days') || 1)) || 1));
+  if (!TIDE_SYMBOLS.includes(uu)) return new Response('bad request', { status: 400, headers: h });
+  const key = new Request('https://book-recorder.cache/tide/' + uu + '/' + days + '/' + Math.floor(Date.now() / 30000));
+  let res = await caches.default.match(key);
+  if (!res) {
+    const dr = await stub(env).fetch('https://do/tide?u=' + uu + '&days=' + days);
+    res = new Response(await dr.arrayBuffer(), { status: dr.status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'public, max-age=30' } });
+    if (dr.status === 200) ctx.waitUntil(caches.default.put(key, res.clone()));
   }
   const out = new Response(res.body, res);
   Object.entries(h).forEach(([k, v]) => out.headers.set(k, v));
@@ -640,6 +688,15 @@ async function route(req, env, ctx) {
       if (v.error) return new Response(v.error, { status: 400 });
       return stub(env).fetch('https://do/gex-snap', { method: 'POST', body: JSON.stringify({ snaps: v.snaps }) });
     }
+    if (u.pathname === '/tide-snap') {
+      // ZoroTide samples from the GEX feeder: same shared secret, gzip JSON, <= 16 KB
+      if (req.method !== 'POST') return new Response('POST only', { status: 405 });
+      if (!(await authorized(req, env))) return new Response('unauthorized', { status: 401 });
+      if (Number(req.headers.get('content-length') || 0) > TIDE_MAX_BODY) return new Response('too large', { status: 413 });
+      const v = await validateTide(await req.arrayBuffer(), Date.now());
+      if (v.error) return new Response(v.error, { status: 400 });
+      return stub(env).fetch('https://do/tide-snap', { method: 'POST', body: JSON.stringify({ snaps: v.snaps }) });
+    }
     if (u.pathname === '/opt-ingest') {
       // options analytics feeder (server -> Worker): same shared secret, gzip JSON, <= 64 KB
       if (req.method !== 'POST') return new Response('POST only', { status: 405 });
@@ -750,6 +807,7 @@ async function route(req, env, ctx) {
     if (rl) { try { const { success } = await rl.limit({ key: ip }); if (!success) return new Response('slow down', { status: 429, headers: Object.assign({ 'retry-after': '60' }, h) }); } catch (e) {} }
 
     if (u.pathname === '/gex-history' || u.pathname === '/gex-sessions') return gexHistoryRoute(u, env, ctx, h);
+    if (u.pathname === '/tide') return tideRoute(u, env, ctx, h);
     if (u.pathname === '/opt-analytics') return optRoute(u, env, ctx, h);
     if (u.pathname === '/scan') return scanRoute(u, env, ctx, h);
     if (u.pathname === '/orderflow' || u.pathname === '/ticks1s') return orderflowRoute(u, env, ctx, h, req);

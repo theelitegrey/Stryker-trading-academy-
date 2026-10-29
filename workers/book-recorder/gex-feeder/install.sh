@@ -7,6 +7,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 dst=/root/projects/book-feeder
 test -f "$dst/feeder.env" || { echo "missing $dst/feeder.env (see ../README.md)"; exit 1; }
 install -m 0755 "$here/gex_feeder.py" "$dst/gex_feeder.py"
+install -m 0644 "$here/tide.py" "$dst/tide.py"
 install -m 0644 "$here/gex-feeder.service" /etc/systemd/system/gex-feeder.service
 install -m 0644 "$here/gex-feeder.timer" /etc/systemd/system/gex-feeder.timer
 systemctl daemon-reload

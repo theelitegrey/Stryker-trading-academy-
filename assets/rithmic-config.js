@@ -88,7 +88,9 @@ export const RITHMIC_CONFIG = {
 // no button, and no Rithmic file is downloaded. 2026-10-06: the Owner's account only.
 // Owner 2026-10-29 "Add connect broker button back": ON again (was OFF 10-28).
 // Data only: no order buttons (Owner rule).
-export const RITHMIC_FLAG = { enabled: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
+// everyone: true = every signed-in member gets Connect broker (Owner 10-29 "Turn for all members").
+// The Rithmic Test server stays admin-only (allowUids).
+export const RITHMIC_FLAG = { enabled: true, everyone: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
 
 // app_version = the site build (the page's stryker-build meta mirrors assets/version.json).
 export function appVersion() {
@@ -119,6 +121,7 @@ function devOverride() {
 export function rithmicEnabledFor(uid, beta) {
   if (devOverride()) return true;
   if (!RITHMIC_FLAG.enabled) return false;
+  if (RITHMIC_FLAG.everyone && uid) return true;
   return !!uid && (RITHMIC_FLAG.allowUids.includes(uid) || beta === true);
 }
 
@@ -143,7 +146,7 @@ export async function loadRithmicIfEnabled() {
     uid = (a && a.currentUser && a.currentUser.uid) || null;
   } catch (e) {}
   let beta = false;
-  if (RITHMIC_FLAG.enabled && uid && !RITHMIC_FLAG.allowUids.includes(uid) && !devOverride()) {
+  if (RITHMIC_FLAG.enabled && !RITHMIC_FLAG.everyone && uid && !RITHMIC_FLAG.allowUids.includes(uid) && !devOverride()) {
     const st = await readOwn('students', uid);
     beta = !!(st && st.rithmicBeta === true);
     if (!beta) {

@@ -33,7 +33,7 @@
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=720';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=720';
 import * as ProGate from './chart-pro-gate.js?v=720';
-import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn } from './chart-liquidity-map.js?v=720';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn, lmNote as lmNoteFn } from './chart-liquidity-map.js?v=720';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1946,6 +1946,7 @@ let domLast = null; // last frame summary, for the browser test (window.__stkFlo
 export function domDebug() { return domLast; }
 export const lmDebug = () => lmDebugFn();
 export const lmDebugFeeds = () => lmFeedsFn();
+export const lmNote = () => lmNoteFn();
 // Test hook: fill every open book feed's history to the full 6 h cap (1 s samples for the newest
 // 30 min, 5 s before that, ending at the oldest real sample), bucketed from its current book
 // with a small random walk, so the real indicator draws a full-cap history. Returns the feed's

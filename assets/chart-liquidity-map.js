@@ -51,7 +51,7 @@ const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
 const RING_SAMPLES = 7200 + 600;          // futures book: 2 h at 1 s columns per symbol (+ slack), oldest dropped
 const TRADES_MAX = 60000;                 // trade ring per symbol
-const decimalsOf = (step) => clamp(Math.ceil(-Math.log10(Math.max(1e-9, step)) - 1e-9), 0, 6);
+const decimalsOf = (step) => { for (let d = 0; d < 6; d++) if (Math.abs(Math.round(step * Math.pow(10, d)) - step * Math.pow(10, d)) < 1e-6) return d; return 6; };
 
 export const LM_SCHEMA = [
   { key: 'hideCandles', title: 'Hide candles (show a price line)', type: 'bool', defval: true,
@@ -192,7 +192,8 @@ function acquireFut(H, ticker, tick, fn) {
 }
 
 // ---------------------------------------------------------------------------------------- the layer
-let lmLast = null;
+let lmLast = null, lmNoteLast = '';
+export function lmNote() { return lmNoteLast; }
 export function lmDebug() { return lmLast; }
 const quantile = (a, f) => a.length ? a[Math.min(a.length - 1, Math.max(0, Math.floor(a.length * f)))] : 0;
 const TIME_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 240, 360, 720, 1440].map((m) => m * 60000);
@@ -264,6 +265,19 @@ export function makeLayer(H) {
       const ladW = cfg.ladder ? labW + c1W + c2W : 0;
       const lx = W - ladW;
       const plotR = lx;                       // heat / price line / bubbles / volume end where the ladder starts
+      // first paint: leave room right of the newest bar for the ladder, so "now" is not hidden behind it (once; later zoom / scroll is the member's)
+      if (cfg.ladder && d.eng && !d.eng.fitted && a.bars.length > 5) {
+        d.eng.fitted = true;
+        try {
+          const vp = co.getViewport(), bw = co.pxPerBar(), want = Math.ceil(ladW / Math.max(1, bw)) + 2;
+          const ws = window.STRYKER_VELA, rr = ws && ws.chart && ws.chart.renderer, ctl = rr && (rr.applyViewport ? rr : rr.renderer);
+          // open on a Bookmap-like window: ~45 min of crypto, ~15 min of futures (it builds from connect), when the bars are minutes
+          const tfm = a.bars.length > 1 ? Math.max(1000, a.bars[a.bars.length - 1].time - a.bars[a.bars.length - 2].time) : 60000;
+          const mins = d.kind === 'fut' ? 15 : 45;
+          const spacing = tfm <= 300000 ? Math.max(0.5, (plotR - 10) / ((mins * 60000) / tfm + want)) : vp.barSpacing;
+          if (ctl && ctl.applyViewport) ctl.applyViewport({ barSpacing: spacing, rightOffset: Math.max(vp.rightOffset, want) });
+        } catch (e) {}
+      }
       g.save(); g.beginPath(); g.rect(0, top, W, H0); g.clip();
       // ---- background: the map covers the candles (hide on) or is a see-through overlay ----
       if (cfg.hide) { g.fillStyle = '#040a16'; g.fillRect(0, top, plotR, H0); }
@@ -469,7 +483,7 @@ export function makeLayer(H) {
           sphere(g, x, y, r, b.v > 0 ? b.b / b.v : 0.5);
           stat.bubbles++;
         }
-        stat.bubbleCandidates = vis.length; stat.vmax = vmax;
+        stat.bubbleCandidates = vis.length; stat.vmax = vmax; stat.bubSample = vis.slice(-2).map((b) => [Math.round(co.timeToX(b.t)), Math.round(yOf(b.p)), b.p, b.v]); stat.plotR = plotR; stat.scale = [a.scale.min, a.scale.max];
       }
       g.restore();
 
@@ -661,7 +675,7 @@ function drawLadder(g, a, src, o) {
 const NEED_SYMBOL = 'Liquidity Map needs a Binance crypto symbol (BTC, ETH) or a futures symbol connected through Rithmic.';
 export function makeNative(H) {
   return class LiquidityMapNative {
-    constructor() { this.inputs = {}; this.ctx = null; this.h = null; this.tr = null; this.tm = 0; this.hidden = false; this.kind = ''; }
+    constructor() { this.fitted = false; this.inputs = {}; this.ctx = null; this.h = null; this.tr = null; this.tm = 0; this.hidden = false; this.kind = ''; }
     start(ctx, inputs) { this.ctx = ctx; this.inputs = inputs; this.srcEvt = () => this.attach(); window.addEventListener('stryker:booksource', this.srcEvt); window.addEventListener('stryker:tradesource', this.srcEvt); this.attach(); }
     attach() {
       if (!this.ctx) return;
@@ -716,10 +730,11 @@ export function makeNative(H) {
     render() {
       if (!this.ctx || this.hidden) return;
       const n = this.note(), f = this.h && this.h.feed;
+      lmNoteLast = n.msg || '';
       this.ctx.setStatus(!f || n.off ? 'idle' : 'live');
       // a plain message while there is nothing to draw (no symbol / no depth); otherwise the layer draws the note itself
       this.ctx.emit({ tables: n.off && n.msg ? [H.message('stk_lm-msg', n.msg, H.pageIsDay(), 'top_right')] : [] });
-      this.ctx.pushData(f && !n.off ? { kind: this.kind, key: f.key, tkey: this.tkey, v: f.version + ':' + (this.tr ? this.tr.store.version : 0), cfg: lmConfig(this.inputs), note: n.msg } : { off: true });
+      this.ctx.pushData(f && !n.off ? { kind: this.kind, key: f.key, tkey: this.tkey, v: f.version + ':' + (this.tr ? this.tr.store.version : 0), cfg: lmConfig(this.inputs), note: n.msg, eng: this } : { off: true });
     }
   };
 }

@@ -256,6 +256,7 @@
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
         faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the JournalX cap, and real-time data, order flow tools and GEX on the charts stay with Pro.') +
+        '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
       '</div>';
     wireCompare(root, P);
   }

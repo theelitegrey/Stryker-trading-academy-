@@ -287,6 +287,32 @@ def _image_info(path):
     return 'other', 0, 0
 
 
+def check_help_center():
+    """help.html carries the FAQPage JSON-LD + no-JS fallback generated from
+    assets/help/help-data.json; it must match the data (node tools/gen-help-jsonld.js),
+    and every related id must exist."""
+    import json, subprocess
+    data = os.path.join(ROOT, 'assets', 'help', 'help-data.json')
+    if not os.path.isfile(data):
+        return
+    d = json.load(open(data, encoding='utf-8'))
+    ids = [i['id'] for c in d['categories'] for s in c['subs'] for i in s['items']]
+    if len(set(ids)) != len(ids):
+        fail('help-data.json: duplicate item ids')
+    for c in d['categories']:
+        for s in c['subs']:
+            for i in s['items']:
+                for r in i.get('related', []):
+                    if r not in ids:
+                        fail(f'help-data.json: {i["id"]} relates to missing id {r}')
+    try:
+        r = subprocess.run(['node', os.path.join(ROOT, 'tools', 'gen-help-jsonld.js'), '--check'], capture_output=True, text=True)
+        if r.returncode != 0:
+            fail('help.html is out of date vs help-data.json: run node tools/gen-help-jsonld.js')
+    except FileNotFoundError:
+        pass
+
+
 def check_share_images():
     """Every public page (no robots noindex) carries its OWN 1200x630 PNG/JPEG
     share image with the full og/twitter tag set, matching tools/og/pages.json
@@ -505,6 +531,7 @@ def main():
     check_mobile_width_guards()
     check_assets_changed_without_bump()
     check_share_images()
+    check_help_center()
     check_feature_image_frames()
 
     if FAILURES:

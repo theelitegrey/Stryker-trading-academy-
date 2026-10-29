@@ -25,3 +25,7 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 /features-live.html /features/live-sessions 301
 /features-community /features/community 301
 /features-community.html /features/community 301
+
+# Help Center (2026-10-30): /faq is the usual place people look for it.
+/faq /help 301
+/faq/ /help 301

@@ -40,6 +40,7 @@
     {"page": "signup.html", "title": "Create Account", "og_title": "Create Account — Start the Free Chapters at TradeZoro", "visual": "brand", "alt": "Create Account share card with the TradeZoro logo"},
     {"page": "login.html", "title": "Member Login", "og_title": "Member Login — TradeZoro", "visual": "brand", "alt": "Member Login share card with the TradeZoro logo"},
     {"page": "contact.html", "title": "Contact Us", "og_title": "Contact Us — TradeZoro", "visual": "brand", "alt": "Contact Us share card with the TradeZoro logo"},
+    {"page": "help.html", "title": "Help Center", "og_title": "Help Center — TradeZoro", "visual": "brand", "alt": "Help Center share card with the TradeZoro logo"},
     {"page": "support.html", "title": "Help & Support", "og_title": "Help & Support — TradeZoro", "visual": "brand", "alt": "Help and Support share card with the TradeZoro logo"},
     {"page": "terms.html", "title": "Terms & Risk", "og_title": "Terms & Risk Disclosure — TradeZoro", "visual": "brand", "alt": "Terms and Risk Disclosure share card with the TradeZoro logo"},
     {"page": "privacy.html", "title": "Privacy Policy", "og_title": "Privacy Policy — TradeZoro", "visual": "brand", "alt": "Privacy Policy share card with the TradeZoro logo"},

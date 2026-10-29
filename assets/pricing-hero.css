@@ -176,3 +176,7 @@
   .pv-compare, .pv-compare.pv-anim, .pv-chev, .pv-compare-btn{ transition:none; }
 }
 @media (max-width:700px){ .pv-thead{ top:72px; } }
+
+.pv-faq-all{ align-self:center; margin-top:6px; font-weight:600; font-size:14px; color:var(--gold-bright); text-decoration:none; padding:8px 4px; }
+.pv-faq-all:hover{ text-decoration:underline; }
+:root[data-theme="light"] .pv-faq-all{ color:var(--gold); }

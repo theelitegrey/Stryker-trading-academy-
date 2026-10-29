@@ -995,7 +995,7 @@
       {
        "id": "renewal-status",
        "q": "Where can I see when my plan renews or ends?",
-       "a": "<p>Settings → Plan & membership shows your plan and a line such as \"Auto-renews on <date>\" or \"Active until <date>\". Every payment is listed in Settings, and card payments get a Stripe receipt by email.</p><p><img src=\"/assets/help/shots/settings-plan.webp\" alt=\"Plan & membership in Settings\"></p>",
+       "a": "<p>Settings → Plan & membership shows your plan and a line such as \"Auto-renews on &lt;date&gt;\" or \"Active until &lt;date&gt;\". Every payment is listed in Settings, and card payments get a Stripe receipt by email.</p><p><img src=\"/assets/help/shots/settings-plan.webp\" alt=\"Plan & membership in Settings\"></p>",
        "path": "More → Settings → Plan & membership",
        "tags": [
         "renewal date",
@@ -1099,7 +1099,7 @@
       {
        "id": "cancel-no-button",
        "q": "I cannot find the cancel button.",
-       "a": "<p>The buttons only show when they apply. Check Settings → Plan & membership.</p><ul><li>Paid by card (Stripe): the button is Manage billing (card, invoices, cancel).</li><li>Rupee AutoPay: Cancel auto-renewal shows only while auto-renewal is on.</li><li>If auto-renewal is already off, the line says \"Active until <date> (auto-renewal off)\" and there is nothing more to cancel.</li></ul><p>Still stuck? Contact support with your account email.</p>",
+       "a": "<p>The buttons only show when they apply. Check Settings → Plan & membership.</p><ul><li>Paid by card (Stripe): the button is Manage billing (card, invoices, cancel).</li><li>Rupee AutoPay: Cancel auto-renewal shows only while auto-renewal is on.</li><li>If auto-renewal is already off, the line says \"Active until &lt;date&gt; (auto-renewal off)\" and there is nothing more to cancel.</li></ul><p>Still stuck? Contact support with your account email.</p>",
        "tags": [
         "cancel button missing",
         "cannot cancel",
@@ -3729,7 +3729,7 @@
        "a": "<p>Wait a minute and check Spam or Promotions. Then tap Resend the email on the confirmation screen (there is a 30 second wait between sends). Confirm the address is spelled correctly. If it still does not arrive contact support.</p>",
        "steps": [
         "Check Spam, Junk and Promotions.",
-        "Tap Resend the email (\"Sent again to <email>. It can take a minute - check spam too.\").",
+        "Tap Resend the email (\"Sent again to &lt;email&gt;. It can take a minute - check spam too.\").",
         "Open the link, then tap I've confirmed it.",
         "Still nothing? Contact support."
        ],
@@ -3761,7 +3761,7 @@
       {
        "id": "still-unconfirmed",
        "q": "It says my email still looks unconfirmed.",
-       "a": "<p>The message is \"That email still looks unconfirmed. Open the link we sent to <email>, then try again.\" Open the link in the email first, then tap I've confirmed it.</p>",
+       "a": "<p>The message is \"That email still looks unconfirmed. Open the link we sent to &lt;email&gt;, then try again.\" Open the link in the email first, then tap I've confirmed it.</p>",
        "tags": [
         "unconfirmed",
         "email not confirmed"
@@ -3780,7 +3780,7 @@
       {
        "id": "payment-failed",
        "q": "My payment failed or my card was declined.",
-       "a": "<p>Card declines come from your bank or card network, not from TradeZoro. Try another card, check the billing details and 3-D Secure prompt, or try again. You will see \"Payment failed: <reason>\" with the reason from the payment provider.</p>",
+       "a": "<p>Card declines come from your bank or card network, not from TradeZoro. Try another card, check the billing details and 3-D Secure prompt, or try again. You will see \"Payment failed: &lt;reason&gt;\" with the reason from the payment provider.</p>",
        "steps": [
         "Check the card number, expiry and billing address.",
         "Approve any bank verification (OTP / 3-D Secure).",

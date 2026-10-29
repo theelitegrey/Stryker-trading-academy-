@@ -139,6 +139,9 @@ jobs:
           git fetch --unshallow --quiet origin || git fetch --quiet --depth=100000 origin
           node tools/gen-roadmap.js
 
+      - name: Refresh the Help Center JSON-LD + no-JS fallback from the data
+        run: node tools/gen-help-jsonld.js
+
       - name: Refresh the sitemap (lastmod = this deploy)
         run: node tools/gen-sitemap.js
 

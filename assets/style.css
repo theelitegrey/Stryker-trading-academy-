@@ -10375,3 +10375,12 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
 .stkw-railbtn .stk-protag, .stkgl-phonebtn .stk-protag{ position:absolute; top:-3px; right:-4px; margin:0; padding:0 4px; font-size:8px; background:var(--bg-1,#0b0b0d); }
 .stkw-railbtn, .stkgl-phonebtn{ position:relative; }
 :root[data-theme="light"] .stk-protag{ color:#058a5e; border-color:rgba(5,138,94,.5); background:rgba(5,138,94,.08); }
+
+/* Support page: entry to the Help Center above the page text. */
+.support-help-link{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:760px; margin:0 auto 28px; padding:16px 20px;
+  border-radius:16px; text-decoration:none; background:linear-gradient(180deg,var(--bg-2),var(--bg-1)); border:1px solid rgba(3,201,136,.35); color:var(--ink-0);
+}
+.support-help-link b{ display:block; font-size:16px; } .support-help-link i{ display:block; font-style:normal; font-size:13.5px; color:var(--ink-2); margin-top:2px; }
+.support-help-link:hover{ border-color:var(--gold-bright); } .support-help-link > span:last-child{ color:var(--gold-bright); font-size:20px; }
+:root[data-theme="light"] .support-help-link > span:last-child{ color:var(--gold); }

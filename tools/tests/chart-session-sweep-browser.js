@@ -19,6 +19,28 @@ const IGNORE = /ERR_FAILED|WebGL|GroupMarker|GPU stall|favicon|firebase|Failed t
   try {
     const ctx = await b.newContext({ viewport: { width: W, height: H }, isMobile: W < 500, hasTouch: W < 500 });
     await ctx.addInitScript(stub);
+    // perf tap: time from each notifyBars post to the next 'model' message of that session
+    await ctx.addInitScript(() => {
+      const op = Worker.prototype.postMessage, ael = Worker.prototype.addEventListener;
+      window.__perf = { pend: new Map(), ms: [], pump: new Map(), on: false };
+      Worker.prototype.postMessage = function (m) { try {
+        if (m && m.kind === 'execute') window.__perf.pump.set(m.sessionId, { w: this, bars: m.req.bars });
+        if (m && m.kind === 'notifyBars' && m.bars) { const e = window.__perf.pump.get(m.sessionId); if (e) e.bars = m.bars; }
+        if (m && m.kind === 'notifyBars') window.__perf.pend.set(m.sessionId, performance.now());
+      } catch (e) {} return op.apply(this, arguments); };
+      Worker.prototype.addEventListener = function (type, fn, o) {
+        if (type === 'message' && !this.__tap) { this.__tap = 1; ael.call(this, 'message', (e) => { const m = e.data || {}; if (m.kind === 'debugState') window.__dbg = m;
+ if (m.kind === 'model') (window.__perf.log = window.__perf.log || []).push(Math.round(performance.now()) + ':' + m.sessionId);
+ if (m.kind === 'model' && window.__perf.pend.has(m.sessionId)) { window.__perf.ms.push(Math.round(performance.now() - window.__perf.pend.get(m.sessionId))); window.__perf.pend.delete(m.sessionId); } }); }
+        return ael.call(this, type, fn, o);
+      };
+      window.__perfN = 0; window.__perfDbg = () => { window.__dbg = null; window.__perf.pump.forEach((e) => op.call(e.w, { kind: 'debugState' })); }; window.PUSH = false;
+      window.__perfPump = () => { window.__perfN++; window.__perf.pump.forEach((e, sessionId) => { try {
+        const b = e.bars.slice(), L = b[b.length - 1];
+        if (window.PUSH && window.__perfN % 3 === 0) { const t = L.time + 300000; b.push({ time: t, open: L.close, high: L.close + 1, low: L.close - 1, close: L.close + 0.5, volume: 10 }); }
+        else b[b.length - 1] = Object.assign({}, L, { close: L.close + 0.25, high: Math.max(L.high, L.close + 0.25) });
+        e.bars = b; window.__perf.pend.set(sessionId, performance.now()); op.call(e.w, { kind: 'notifyBars', sessionId, bars: b }); } catch (x) {} }); };
+    });
     await ctx.addInitScript(() => { try { localStorage.setItem('stryker_install_prompt_shown_u1', '1'); localStorage.setItem('stryker_push_prompt_shown_u1', '1'); } catch (e) {} });
     await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
     const p = await ctx.newPage();
@@ -42,6 +64,15 @@ const IGNORE = /ERR_FAILED|WebGL|GroupMarker|GPU stall|favicon|firebase|Failed t
     await p.waitForTimeout(300);
     const row = await p.evaluate((n) => { const r = [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-nm') || {}).textContent === n); return r ? { key: r.dataset.key, sub: (r.querySelector('.stkiw-sub') || {}).textContent } : null; }, NAME);
     check(!!row && row.key === 'x:session-sweep-smt-ifvg' && row.sub === 'TradeZoro', 'listed in Editors picks ' + JSON.stringify(row));
+    if (process.env.BASELINE) {
+      await p.evaluate(async () => { await window.STRYKER_PINE.addSource('Base', '//@version=6\nindicator("Base", overlay=true)\nplot(close)', { engine: 'next', builtin: true }); });
+      await p.waitForTimeout(3000);
+      await p.evaluate(() => window.__perfDbg()); await p.waitForTimeout(500);
+      await p.evaluate(() => { window.__perf.ms.length = 0; });
+      for (let i = 0; i < 5; i++) { await p.evaluate(() => window.__perfPump()); await p.waitForTimeout(2500); }
+      console.log('INFO BASELINE plot(close) ms', JSON.stringify(await p.evaluate(() => window.__perf.ms.slice())));
+      process.exit(0);
+    }
     const t0 = Date.now();
     await p.evaluate((n) => [...document.querySelectorAll('.stkiw-row')].find((r) => (r.querySelector('.stkiw-nm') || {}).textContent === n).querySelector('.stkiw-name').click(), NAME);
     await p.evaluate(() => { try { window.STRYKER_VELA.indicatorPicker.close(); } catch (e) {} });
@@ -76,11 +107,27 @@ const IGNORE = /ERR_FAILED|WebGL|GroupMarker|GPU stall|favicon|firebase|Failed t
     await p.screenshot({ path: path.join(OUT, `sweep-${W}.png`) });
 
 
+
+    // per-update time: pump 8 live-style bar notifications (no reason), 2.5 s apart, read the notify->model times
+    if (process.env.PERF) {
+      await p.evaluate(() => window.__perfDbg()); await p.waitForTimeout(500); console.log('INFO sessions', JSON.stringify(await p.evaluate(() => window.__dbg && window.__dbg.sessions)));
+      await p.evaluate(() => { window.__perf.ms.length = 0; });
+      for (let i = 0; i < 8; i++) { await p.evaluate(() => window.__perfPump()); await p.waitForTimeout(2500); }
+      const ms = await p.evaluate(() => window.__perf.ms.slice());
+      const sorted = ms.slice().sort((a, b) => a - b);
+      console.log('INFO PERF notify->model ms (bars ' + bars + '):', JSON.stringify(ms), 'median', sorted[Math.floor(sorted.length / 2)], 'max', sorted[sorted.length - 1]);
+      console.log('INFO model msgs', JSON.stringify(await p.evaluate(() => window.__perf.log.slice(-12))));
+      check(ms.length > 0, 'perf: got ' + ms.length + ' timed updates');
+      console.log('INFO the engine re-runs a streaming script at most about every 2 s (BASELINE=1 shows a bare plot(close) takes as long): compare, do not gate');
+    }
     // optional zoomed shots: RANGES="name:fromISO:toISO,..." (UTC), e.g. ex1:2026-10-28T08:30:00Z:2026-10-28T11:30:00Z
     for (const r of (process.env.RANGES || '').split(',').filter(Boolean)) {
       const [nm, f, t] = [r.split(':')[0], r.slice(r.indexOf(':') + 1, r.indexOf(':') + 21), r.slice(r.indexOf(':') + 22)];
       await p.evaluate(([f, t]) => window.STRYKER_VELA.context().cells[0].chart.setVisibleRange({ from: Date.parse(f), to: Date.parse(t) }), [f, t]);
-      await p.waitForTimeout(1200);
+      await p.waitForTimeout(1500);
+      await p.evaluate(([f, t]) => window.STRYKER_VELA.context().cells[0].chart.setVisibleRange({ from: Date.parse(f), to: Date.parse(t) }), [f, t]);
+      await p.waitForTimeout(1500);
+      console.log('INFO range', nm, JSON.stringify(await p.evaluate(() => { const r = window.STRYKER_VELA.context().cells[0].chart.getVisibleRange(); return [new Date(r.from).toISOString(), new Date(r.to).toISOString()]; })));
       await p.screenshot({ path: path.join(OUT, `${nm}-${W}.png`) });
     }
     // settings: open the dialog, click the Table switch, OK; the table must arrive; then remove

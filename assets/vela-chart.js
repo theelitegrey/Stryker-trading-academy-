@@ -408,13 +408,8 @@ function lateLists(provider){
       };
       walk(JSON.parse(localStorage.getItem(PERSIST_KEY) || 'null'), 0);
     } catch (e) {}
-<<<<<<< Updated upstream
-    if (!want.length) want.push(['futures:NQ1!', '15']);
-    import('./chart-futures-provider.js?v=732')
-=======
     if (!want.length) want.push(['binance:BTCUSDT', '15']);   // default chart = BTC (crypto, live for everyone), Owner 2026-10-30
-    import('./chart-futures-provider.js?v=730')
->>>>>>> Stashed changes
+    import('./chart-futures-provider.js?v=732')
       .then((m) => { if (m.prefetchBars) want.slice(0, 4).forEach(([s, tf]) => m.prefetchBars(s, tf)); })
       .catch(() => {});
   } catch (e) {}
@@ -818,7 +813,7 @@ function lateLists(provider){
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
   // Delayed-data strip under the toolbar (CME futures, viewer not real-time): assets/chart-data-banner.js.
-  import('./chart-data-banner.js?v=730')
+  import('./chart-data-banner.js?v=732')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))
     .catch((e) => console.warn('TradeZoro: data banner', e));
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.

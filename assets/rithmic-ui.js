@@ -165,6 +165,7 @@ const CSS = `
 .stkrb-full .stkrb-fullx{ display:block; margin:0 0 10px auto; height:36px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
 @media (min-width:361px){ .stkrb-two{ grid-template-columns:1fr 1fr; gap:10px; } }
 .stkrb-chipgo{ position:fixed; z-index:60; display:inline-flex; align-items:center; gap:2px; height:28px; border-radius:999px; background:rgba(3,201,136,.14); border:1px solid rgba(3,201,136,.5); color:var(--gold); font:600 12px/1 inherit; font-family:inherit; box-shadow:0 4px 14px -6px rgba(0,0,0,.6); backdrop-filter:blur(6px); }
+.stkrb-chipgo{ display:none !important; }   /* Owner 2026-10-30: the delayed-data strip (chart-data-banner.js) replaces this chip */
 .stkrb-chipgo[hidden]{ display:none; }
 .stkrb-chipgo button{ display:inline-flex; align-items:center; gap:6px; height:100%; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; padding:0 4px 0 10px; border-radius:999px 0 0 999px; white-space:nowrap; }
 .stkrb-chipgo button.x{ padding:0 9px 0 4px; font-size:15px; line-height:1; border-radius:0 999px 999px 0; opacity:.8; }

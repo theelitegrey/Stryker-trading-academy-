@@ -60,16 +60,42 @@ function rpText(msg) {
   return c.length > 1 ? c.slice(1).join(' ') : (c[0] ? 'code ' + c[0] : 'rejected');
 }
 
-// Plain-English login failures for members. Returns a message, or '' when the failure is not one
-// of the known permission / market-data cases (the caller then shows its generic text).
-// Rithmic's rp_code carries a numeric code and a text; we match on the text (codes vary by system).
-export const MSG_APP_NOT_ALLOWED = 'Your prop firm or broker may need to allow Stryker Charts for your account. Check that the same login works in RTraderPro.';
-export const MSG_NEEDS_MARKET_DATA = "Rithmic needs a paid market-data subscription on your account (demo trials can't connect).";
-export function friendlyLoginError(text) {
-  const t = String(text || '').toLowerCase();
-  if (/market.?data|subscription|entitle|demo|trial|r\s*\|\s*protocol.*(compat|support)/.test(t)) return MSG_NEEDS_MARKET_DATA;
-  if (/permission|not allowed|not authori[sz]ed|unauthori[sz]ed|app.?name|application|not enabled|disabled|forbidden|access denied|not permitted|not registered/.test(t)) return MSG_APP_NOT_ALLOWED;
-  return '';
+// Plain-English login failures for members. Rithmic's rp_code is [numeric code, text...]; codes
+// vary by system, so we match on the code AND the text. Every message names the member's system.
+// explainLoginError returns { kind, message, raw }; the UI shows message inline and "raw" in small print.
+export const FORCED_LOGOUT_MSG = "This login was opened in another app, so Rithmic closed this session. Connect again when you're not trading.";
+const sysName = (s) => (s && String(s).trim()) || 'your prop firm or broker';
+export const MSG_APP_NOT_ALLOWED = (system, appName) => {
+  const S = sysName(system);
+  return 'Rithmic refused the login (permission denied). Check: you used the Rithmic login from ' + S + ' (not the website login), the password is right, the system is ' + S +
+    ', and the account is active. A new login must first accept the market data agreements in R | Trader Pro. If the same login works in R | Trader Pro, ask ' + S +
+    ' support to allow the app "' + (appName || 'this app') + '" for your login.';
+};
+export const MSG_NEEDS_MARKET_DATA = (system) =>
+  'This Rithmic login has no CME market data. Ask ' + sysName(system) + ' to turn on market data for it. A brand-new login must first accept the market data agreements in R | Trader Pro. Demo trials usually cannot connect.';
+export const MSG_BAD_CREDENTIALS = (system) =>
+  'Rithmic did not accept that username or password. Check both, and that the system is ' + sysName(system) + '. Use the Rithmic login, not the website login.';
+export const MSG_UNREACHABLE = (gateway) =>
+  "Couldn't reach Rithmic's " + ((gateway && String(gateway).trim()) || 'selected') + ' server. Check your internet or pick another Gateway.';
+export const MSG_UNKNOWN = (raw) =>
+  (raw ? 'Rithmic said: "' + raw + '". ' : 'Rithmic refused the login. ') + 'Contact your prop firm with this message.';
+export function explainLoginError({ codes, text, system, gateway, appName } = {}) {
+  const arr = Array.isArray(codes) ? codes.map(String) : (codes != null && codes !== '' ? String(codes).split(/\s*\|\s*/) : []);
+  const code = arr[0] || '';
+  const raw = (arr.length > 1 ? arr.slice(1).join(' ') : '') || String(text || '');
+  const t = (raw + ' ' + String(text || '')).toLowerCase();
+  const out = (kind, message) => ({ kind, message, raw: String(raw || (code ? 'code ' + code : '')).slice(0, 300) });
+  if (code === '77' || /forced.?logout|logged in (elsewhere|from another)|another (session|login|location)|already logged|max(imum)?\.? (number of )?sessions|too many sessions|session limit|ended the session|closed this session|duplicate login/.test(t)) return out('forced', FORCED_LOGOUT_MSG);
+  if (/could not reach|did not answer|timed out|timeout|closed the connection|unreachable|network|failed to fetch|socket|econn|offline/.test(t)) return out('network', MSG_UNREACHABLE(gateway));
+  if (/market.?data|subscription|entitle|agreement|demo|trial|no data access|r\s*\|\s*protocol.*(compat|support)/.test(t)) return out('marketdata', MSG_NEEDS_MARKET_DATA(system));
+  if (/permission|not allowed|not authori[sz]ed|unauthori[sz]ed|app.?name|application|not enabled|disabled|forbidden|access denied|not permitted|not registered/.test(t) || (code === '13' && !/password|credential|invalid user|user (id )?not found/.test(t))) return out('permission', MSG_APP_NOT_ALLOWED(system, appName));
+  if (/invalid|incorrect|wrong|bad (user|pass|login)|credential|authentication|auth fail|login fail|unknown user|user.{0,12}not found|password/.test(t)) return out('credentials', MSG_BAD_CREDENTIALS(system));
+  return out('unknown', MSG_UNKNOWN(raw));
+}
+// Older helper kept for callers that only want a known case; '' = not recognised.
+export function friendlyLoginError(text, ctx) {
+  const r = explainLoginError({ ...(ctx || {}), text });
+  return r.kind === 'unknown' ? '' : r.message;
 }
 
 // Open one socket, resolve when it is open (binary frames as ArrayBuffer).
@@ -401,7 +427,7 @@ export class RithmicClient {
 
   _onForcedLogout() {
     this.#creds = null;
-    this.#closePlants(false).then(() => this.setState('error', { message: 'Rithmic ended the session (logged in elsewhere?)' }));
+    this.#closePlants(false).then(() => this.setState('error', { message: FORCED_LOGOUT_MSG }));
   }
 
   _onPlantDropped() {

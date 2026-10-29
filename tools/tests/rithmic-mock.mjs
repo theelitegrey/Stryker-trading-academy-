@@ -83,6 +83,10 @@ function onMessage(c, m) {
       setTimeout(() => c.send({ template_id: T.SYSTEM_INFO_R, user_msg: um, rp_code: ['0'], system_name: SYSTEMS, has_aggregated_quotes: SYSTEMS.map(() => false) }), Number(process.env.RITHMIC_MOCK_DELAY || 0));
       break;
     case T.LOGIN: {
+      // Error modes: log in with the fake user name err-<mode> to get that Rithmic answer.
+      const ERR = { 'err-perm': ['13', 'permission denied'], 'err-pass': ['11', 'invalid user id or password'], 'err-md': ['13', 'no market data subscription for this user'],
+        'err-forced': ['77', 'forced logout'], 'err-elsewhere': ['5', 'user already logged in elsewhere'], 'err-odd': ['99', 'something unexpected happened'] };
+      if (ERR[m.user]) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ERR[m.user] }); break; }
       const ok = m.user === 'demo' && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;
       if (!ok) { stats.badLogins++; c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['13', 'permission denied'] }); break; }
       stats.logins++;

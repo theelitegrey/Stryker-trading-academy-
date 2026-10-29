@@ -77,7 +77,7 @@ const vis = { visibilityState: 'visible', hidden: false, _l: [], addEventListene
 globalThis.document = vis;
 const setVisible = (v) => { vis.visibilityState = v ? 'visible' : 'hidden'; vis.hidden = !v; vis._l.forEach((f) => f()); };
 
-const { RithmicClient, friendlyLoginError, MSG_APP_NOT_ALLOWED, MSG_NEEDS_MARKET_DATA } = await imp('rithmic-client.js');
+const { RithmicClient, friendlyLoginError } = await imp('rithmic-client.js');
 const { RithmicFuturesProvider } = await imp('rithmic-provider.js');
 let n = 0, bad = 0; const ok = (c, m) => { if (process.env.BASELINE) { if (!c) bad++; console.log(c ? 'PASS' : 'FAIL', m); n++; return; } assert.ok(c, m); n++; console.log('PASS', m); };
 const count = (f) => sent.filter(f).length;
@@ -145,13 +145,24 @@ histFail = false; await advance(6000);
 await tryPage(90);
 ok(replays('err') === 2, 'after the pause it is allowed again');
 
-// login errors in plain English
-ok(friendlyLoginError('permission denied for this app') === MSG_APP_NOT_ALLOWED, 'permission style error -> prop firm / RTraderPro message');
-ok(friendlyLoginError('application not allowed for user') === MSG_APP_NOT_ALLOWED, 'app-not-allowed -> same message');
-ok(friendlyLoginError('no market data subscription') === MSG_NEEDS_MARKET_DATA, 'market-data style error -> paid subscription message');
-ok(friendlyLoginError('invalid password') === '', 'other errors keep the generic text');
-ok(MSG_APP_NOT_ALLOWED === 'Your prop firm or broker may need to allow Stryker Charts for your account. Check that the same login works in RTraderPro.', 'exact wording (app not allowed)');
-ok(MSG_NEEDS_MARKET_DATA === "Rithmic needs a paid market-data subscription on your account (demo trials can't connect).", 'exact wording (market data)');
+// login errors in plain English (mapped by rp code AND text; message names the member's system)
+const { explainLoginError, FORCED_LOGOUT_MSG } = await imp('rithmic-client.js');
+const X = (codes, extra) => explainLoginError({ codes, system: 'Bulenox', gateway: 'Chicago', appName: 'Stryker Charts', ...(extra || {}) });
+ok(X(['13', 'permission denied']).kind === 'permission' && X(['13', 'permission denied']).message.includes('Bulenox') && X(['13', 'permission denied']).message.includes('"Stryker Charts"'), 'rp 13 permission -> names system + app');
+ok(X(['13']).kind === 'permission', 'rp 13 with no text -> permission');
+ok(X(['2', 'application not allowed for user']).kind === 'permission', 'app-not-allowed text, other code -> permission');
+ok(X(['13', 'invalid user id or password']).kind === 'credentials' && X(['11', 'invalid password']).message.includes('not the website login'), 'wrong password -> credentials message');
+ok(X(['7', 'no market data subscription']).kind === 'marketdata' && X(['7', 'no market data subscription']).message.includes('Bulenox'), 'market data');
+ok(X(['77', 'forced logout']).message === FORCED_LOGOUT_MSG && X(['77']).kind === 'forced', 'rp 77 -> forced logout');
+ok(X(['5', 'user already logged in elsewhere']).kind === 'forced', 'logged in elsewhere text');
+ok(X(['5', 'maximum number of sessions exceeded']).kind === 'forced', 'max sessions text');
+ok(X([], { text: 'Could not reach Rithmic' }).message.includes("Rithmic's Chicago server"), 'network -> gateway name');
+ok(X([], { text: 'Rithmic did not answer in time' }).kind === 'network', 'timeout -> network');
+const unk = X(['99', 'something odd']);
+ok(unk.kind === 'unknown' && unk.message.includes('something odd') && unk.message.includes('Contact your prop firm'), 'unknown shows Rithmic text + contact firm');
+ok(explainLoginError({ codes: '13 | permission denied', system: 'Apex' }).message.includes('Apex'), 'rpRaw string form works');
+ok(explainLoginError({ codes: ['13', 'permission denied'], system: 'Apex', appName: 'X App' }).message.includes('"X App"'), 'app name flows from config');
+ok(friendlyLoginError('invalid password') !== '' , 'friendlyLoginError recognises credentials');
 
 // data only: no order templates anywhere in the client / proto
 const fs = await import('node:fs');

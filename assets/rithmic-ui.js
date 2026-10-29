@@ -10,7 +10,7 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=729';
+import { RithmicClient, listSystems, explainLoginError } from './rithmic-client.js?v=729';
 import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=729';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
@@ -28,6 +28,8 @@ const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).hr
 const LS_GW = 'stryker_rithmic_gateway';
 
 const LS_USER = 'stryker_rithmic_user';
+const LS_GUIDE = 'stryker_rithmic_guide_closed';   // '1' after a successful connect (or when the member closes the box)
+const HELP_URL = '/help#rithmic-connect';
 // The chosen system is remembered per signed-in member (not a credential, so no checkbox needed).
 const LS_SYS = (() => { try { const u = typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid; return 'stryker_rithmic_system' + (u ? '_' + u : ''); } catch (e) { return 'stryker_rithmic_system'; } })();
 
@@ -81,7 +83,26 @@ const CSS = `
 .stkrb-sheet-legal .stkrb-logos{ margin:0 0 6px; }
 .stkrb-sheet-legal .stkrb-legal{ font-size:10.5px; color:var(--ink-3); }
 @media (max-width:480px){ .stkrb-attr{ padding:3px 8px; gap:6px; } .stkrb-attr .stkrb-l-rith, .stkrb-attr .stkrb-l-omne{ height:16px; } }
-.stkrb-err{ color:var(--amber, #e8b04a); font-size:12px; margin:0 0 8px !important; }
+.stkrb-err{ color:#ff6b6b; font-size:12.5px; line-height:1.5; margin:0 0 10px !important; padding:10px 12px; border:1px solid rgba(255,107,107,.4); border-radius:8px; background:rgba(255,107,107,.07); overflow-wrap:anywhere; }
+.stkrb-err .stkrb-copy{ display:inline-block; margin-top:8px; height:30px; padding:0 12px; border:1px solid rgba(255,107,107,.5); border-radius:6px; background:transparent; color:inherit; font:600 12px/1 inherit; font-family:inherit; cursor:pointer; }
+.stkrb-guide{ margin:0 0 12px; border:1px solid rgba(3,201,136,.3); border-radius:10px; background:rgba(3,201,136,.05); }
+.stkrb-guide > summary{ list-style:none; cursor:pointer; padding:11px 12px; font-size:13.5px; font-weight:700; color:var(--ink-0); display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:20px; }
+.stkrb-guide > summary::-webkit-details-marker{ display:none; }
+.stkrb-guide > summary::after{ content:''; width:7px; height:7px; border-right:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(45deg); transition:transform .15s; margin-right:3px; }
+.stkrb-guide[open] > summary::after{ transform:rotate(-135deg); }
+.stkrb-checks{ list-style:none; margin:0; padding:0 12px 10px; }
+.stkrb-checks li{ position:relative; margin:0 0 9px; padding:0 0 0 22px; font-size:12.5px; line-height:1.5; color:var(--ink-1); }
+.stkrb-checks li::before{ content:''; position:absolute; left:2px; top:5px; width:9px; height:5px; border-left:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(-45deg); }
+.stkrb-checks li b{ color:var(--ink-0); }
+.stkrb-checks li.warn{ margin-right:0; padding:8px 10px 8px 30px; border:1px solid rgba(232,176,74,.4); border-radius:8px; background:rgba(232,176,74,.07); color:var(--ink-1); }
+.stkrb-checks li.warn::before{ content:'!'; left:10px; top:8px; width:auto; height:auto; border:0; transform:none; font-weight:800; color:var(--amber, #e8b04a); }
+.stkrb-checks a, .stkrb-helplink a{ color:var(--gold); }
+.stkrb-help{ display:block; margin-top:4px; font-size:11.5px; line-height:1.45; color:var(--ink-3, #8a8f98); }
+.stkrb-passwrap{ position:relative; display:block; }
+.stkrb-passwrap .stkc-in{ padding-right:56px; }
+.stkrb-eye{ position:absolute; right:4px; top:50%; transform:translateY(-50%); height:30px; min-width:48px; padding:0 8px; border:0; border-radius:6px; background:transparent; color:var(--ink-2); font:600 12px/1 inherit; font-family:inherit; cursor:pointer; }
+.stkrb-eye:hover{ color:var(--ink-0); }
+.stkrb-helplink{ margin:12px 0 0 !important; font-size:13px; font-weight:600; }
 .stkrb-err[hidden]{ display:none; }
 .stkrb-hint{ display:block; margin-top:4px; font-size:11px; color:var(--ink-3, #8a8f98); }
 .stkrb-hint[hidden]{ display:none; }
@@ -236,7 +257,20 @@ export function createRithmic(cfg) {
     else document.body.appendChild(attr);
 
     // ---- the sheet ----
-    const err = el('p', { class: 'stkrb-err', role: 'alert', hidden: true });
+    const li = (kids, cls) => el('li', cls ? { class: cls } : null, kids);
+    const t = (x) => document.createTextNode(x);
+    const guide = el('details', { class: 'stkrb-guide', id: 'stkrb-guide' }, [
+      el('summary', { text: 'Before you connect' }),
+      el('ul', { class: 'stkrb-checks' }, [
+        li([el('b', { text: 'Use your Rithmic login. ' }), t('It is the one your prop firm or broker gave you (often letters and numbers), not your login for their website.')]),
+        li([el('b', { text: 'The account must be active with CME market data. ' }), t('A brand-new login must first accept the market data agreements once in '), el('a', { href: 'https://rithmic.com/rtraderpro-web', target: '_blank', rel: 'noopener', text: 'R | Trader Pro' }), t('.')]),
+        li([el('b', { text: 'Heads up: ' }), t('Rithmic allows a limited number of sessions per login. Connecting here can log out another app using the same login, like your trading platform. Avoid connecting while you are in a trade.')], 'warn'),
+        li([el('b', { text: 'Data only. ' }), t('TradeZoro cannot place, change or close trades. Your password goes from your browser straight to Rithmic. We never see or store it.')])
+      ])
+    ]);
+    guide.open = lsGet(LS_GUIDE) !== '1';
+    guide.addEventListener('toggle', () => { if (!guide.open) lsSet(LS_GUIDE, '1'); else { try { localStorage.removeItem(LS_GUIDE); } catch (e) {} } });
+    const err = el('p', { class: 'stkrb-err', id: 'stkrb-err', role: 'alert', hidden: true });
     const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Rithmic 01, TradeSea, Apex, Tradeify and more</small>' });
     const gwSel = el('select', { class: 'stkc-in', id: 'stkrb-gw', 'aria-label': 'Rithmic gateway' });
     (cfg.gateways || []).forEach((g) => gwSel.appendChild(el('option', { value: g.uri, text: g.label })));
@@ -250,15 +284,17 @@ export function createRithmic(cfg) {
       hint.hidden = !(near && cur && cur.id !== near.id);
       if (!hint.hidden) { hint.textContent = 'Closest to you: ' + near.label + '. '; hint.appendChild(el('a', { href: '#', text: 'Use it', onclick: (e) => { e.preventDefault(); gwSel.value = near.uri; gwSel.dispatchEvent(new Event('change')); } })); }
     };
-    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway (server location)' }), gwSel, hint]);
+    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway (server location)' }), gwSel, el('small', { class: 'stkrb-help', text: 'Pick the closest location. Chicago works for most people.' }), hint]);
     gwSel.addEventListener('change', () => { systemsLoaded = false; showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
     setTimeout(showHint, 0);
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
     const touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
     // Phones: our own tappable list instead of the native picker (Android closes that one on any layout change).
     const sysBtn = el('button', { type: 'button', class: 'stkc-in stkrb-sysbtn', id: 'stkrb-sysbtn', 'aria-haspopup': 'listbox', text: 'Loading systems...' });
-    const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
-    const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
+    const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', required: true });
+    const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', required: true });
+    const eye = el('button', { type: 'button', class: 'stkrb-eye', 'aria-label': 'Show password', 'aria-pressed': 'false', text: 'Show' });
+    eye.addEventListener('click', () => { const show = pass.type === 'password'; pass.type = show ? 'text' : 'password'; eye.textContent = show ? 'Hide' : 'Show'; eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); eye.setAttribute('aria-pressed', show ? 'true' : 'false'); });
     const remember = el('input', { type: 'checkbox', id: 'stkrb-remember' });
     const go = el('button', { type: 'submit', class: 'stkc-sbtn stkrb-go', id: 'stkrb-go', text: 'Connect' });
     const testNote = el('p', { class: 'stkrb-note stkrb-test', id: 'stkrb-test-note', hidden: true, text: 'Admin: the Rithmic Test gateway has no real market prices.' });
@@ -268,16 +304,18 @@ export function createRithmic(cfg) {
     const form = el('form', { class: 'stkrb-form', id: 'stkrb-form', novalidate: true }, [
       el('h3', { text: 'Connect broker' }),
       el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
+      guide,
       err,
       gwField,
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, sysBtn, el('small', { class: 'stkrb-hint', id: 'stkrb-sys-hint', text: 'Prop firm account? Pick your firm (e.g. TradeSea, Apex).' })]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, sysBtn, el('small', { class: 'stkrb-help', id: 'stkrb-sys-hint', text: "Your prop firm or broker. Not sure? It's the system name you pick when you log in to R | Trader Pro." })]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic password' }), el('span', { class: 'stkrb-passwrap' }, [pass, eye])]),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
       go,
       testNote,
       false ? el('p', { class: 'stkrb-note stkrb-test', text: 'Admin: the Rithmic Test gateway has no real market prices.' }) : null,
-      el('p', { class: 'stkrb-note', text: 'Your login goes straight from your browser to Rithmic. TradeZoro never sees or stores your password. Live prices come from your own Rithmic data subscription.' }),
+      el('p', { class: 'stkrb-note', text: 'Your password goes straight from your browser to Rithmic. TradeZoro never sees or stores it. Live prices come from your own Rithmic data subscription.' }),
+      el('p', { class: 'stkrb-helplink' }, [el('a', { href: HELP_URL, target: '_blank', rel: 'noopener', text: 'Help with connecting \u2192' })]),
       el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
     const onInfo = el('p', {});
@@ -354,14 +392,28 @@ export function createRithmic(cfg) {
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Could not load systems' }));
         sysNames = [];
-        showErr('Could not reach Rithmic to list systems. Check your connection and try again.');
+        { const g0 = (cfg.gateways || []).find((g) => g.uri === (gwSel.value || cfg.gateway)); showErr(explainLoginError({ text: 'could not reach', gateway: g0 && g0.label }).message); }
       }
     }
 
     // m = our plain-English message; raw = Rithmic's own response text (small grey print), if any.
     function showErr(m, raw) {
       err.textContent = m || '';
-      if (m && raw) err.appendChild(el('small', { class: 'stkrb-raw', id: 'stkrb-raw', text: 'Rithmic said: ' + raw }));
+      if (m && raw && !m.includes(raw)) err.appendChild(el('small', { class: 'stkrb-raw', id: 'stkrb-raw', text: 'Rithmic said: ' + raw }));
+      if (m && raw !== undefined) {   // a login failure (not a form-validation hint): offer a copy for support
+        const cp = el('button', { type: 'button', class: 'stkrb-copy', id: 'stkrb-copy', text: 'Copy error' });
+        cp.addEventListener('click', async () => {
+          const gw = (cfg.gateways || []).find((g) => g.uri === gwSel.value);
+          const txt = 'Stryker Charts connect error\nSystem: ' + (sys.value || '-') + '\nGateway: ' + (gw ? gw.label : '-') + '\nMessage: ' + m + (raw ? '\nRithmic said: ' + raw : '') + '\nTime: ' + new Date().toISOString();
+          let done = false;
+          try { await navigator.clipboard.writeText(txt); done = true; } catch (e) {}
+          if (!done) { try { const ta = el('textarea', { style: 'position:fixed;opacity:0;left:-999px' }); ta.value = txt; document.body.appendChild(ta); ta.select(); done = document.execCommand('copy'); ta.remove(); } catch (e) {} }
+          cp.textContent = done ? 'Copied' : 'Copy failed';
+          setTimeout(() => { cp.textContent = 'Copy error'; }, 2000);
+        });
+        err.appendChild(el('br'));
+        err.appendChild(cp);
+      }
       err.hidden = !m;
     }
 
@@ -378,11 +430,13 @@ export function createRithmic(cfg) {
       lsSet(LS_SYS, s);
       try {
         await client.connect({ user: u, password: p, systemName: s, gateway: gwSel.value || cfg.gateway });
+        lsSet(LS_GUIDE, '1'); guide.open = false;
         toast('Connected to Rithmic');
         setOpen(false);
       } catch (e) {
-        const raw = String((e && (e.rpRaw || e.message)) || '').slice(0, 300);
-        showErr(friendlyLoginError(e && e.message) || ('Rithmic refused the login. Check the system, username and password.'), raw);
+        const gw = (cfg.gateways || []).find((g) => g.uri === (gwSel.value || cfg.gateway));
+        const r = explainLoginError({ codes: e && e.rpRaw, text: e && e.message, system: s, gateway: gw && gw.label, appName: cfg.appName });
+        showErr(r.message, r.raw || '');
       } finally {
         go.disabled = false; go.textContent = 'Connect';
       }
@@ -453,7 +507,7 @@ export function createRithmic(cfg) {
       if (ev.type !== 'state') return;
       render();
       const live = ev.state === 'connected';
-      if (ev.state === 'error' && ev.message && /ended the session/.test(ev.message)) toast(ev.message, 'error');
+      if (ev.state === 'error' && ev.message && /closed this session/.test(ev.message)) toast(ev.message, 'error');
       // Source flipped (connected -> fallback or back): reload the futures charts.
       if (live !== prevLive && (ev.state === 'connected' || ev.state === 'reconnecting' || ev.state === 'idle' || ev.state === 'error')) {
         prevLive = live;

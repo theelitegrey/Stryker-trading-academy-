@@ -3308,12 +3308,13 @@
       {
        "id": "rithmic-connect",
        "q": "How do I connect Rithmic?",
-       "a": "<p>Open the Connect broker sheet, choose your gateway and system, enter your Rithmic username and password, and tap Connect.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
+       "a": "<p>Open the Connect broker sheet. Read the \"Before you connect\" box, choose your gateway and system, enter your Rithmic username and password, and tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
        "steps": [
         "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
-        "Choose the Gateway (server location). Chicago is the default.",
-        "Choose the System. For a prop firm account pick your firm, for example TradeSea or Apex.",
-        "Enter your Rithmic username and password.",
+        "Read the \"Before you connect\" box. It closes by itself after your first successful connect.",
+        "Choose the Gateway (server location). Pick the closest one. Chicago works for most people.",
+        "Choose the System. It is your prop firm or broker, the same system name you pick in R | Trader Pro.",
+        "Enter your Rithmic username and Rithmic password. Use the eye (Show/Hide) to check what you typed.",
         "Optionally tick Remember username (it saves username and system, not the password).",
         "Tap Connect. You see \"Connected to Rithmic\"."
        ],
@@ -3346,14 +3347,19 @@
       {
        "id": "rithmic-errors",
        "q": "Rithmic will not connect. What do the messages mean?",
-       "a": "<ul><li>\"Choose your Rithmic system (your prop firm or broker).\": pick a System.</li><li>\"Enter your Rithmic username and password.\"</li><li>\"This location returned no systems. Try another gateway.\"</li><li>\"Could not reach Rithmic to list systems. Check your connection and try again.\"</li><li>\"Rithmic refused the login. Check the system, username and password.\"</li><li>\"Your prop firm or broker may need to allow Stryker Charts for your account. Check that the same login works in RTraderPro.\"</li><li>\"Rithmic needs a paid market-data subscription on your account (demo trials can't connect).\"</li></ul>",
+       "a": "<p>The sheet shows the fix under the fields, with your system's name in it. You can tap Copy error to send it to support.</p><ul><li><b>Permission denied:</b> use the Rithmic login from your prop firm (for example Bulenox), not the website login. Check the password, the system and that the account is active. A new login must first accept the market data agreements in R | Trader Pro. If the same login works in R | Trader Pro, ask your firm's support to allow the app \"Stryker Charts\" for your login.</li><li><b>Wrong username or password:</b> check both. Use the Rithmic login, not the website login.</li><li><b>No CME market data:</b> ask your firm to turn on market data for the login, and accept the market data agreements in R | Trader Pro.</li><li><b>Login opened in another app:</b> Rithmic allows limited sessions per login, so it closed this one. Connect again when you are not trading.</li><li><b>Couldn't reach Rithmic's server:</b> check your internet or pick another Gateway.</li><li><b>Anything else:</b> the sheet shows Rithmic's own text. Contact your prop firm with that message.</li><li>\"Choose your Rithmic system (your prop firm or broker).\": pick a System.</li><li>\"This location returned no systems. Try another gateway.\"</li></ul>",
        "tags": [
         "rithmic error",
         "refused",
         "no systems",
         "login failed",
         "subscription",
-        "rtrader pro"
+        "rtrader pro",
+        "permission denied",
+        "bulenox",
+        "session",
+        "logged in elsewhere",
+        "market data"
        ],
        "related": [
         "rithmic-connect",

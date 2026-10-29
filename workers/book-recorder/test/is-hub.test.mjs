@@ -3,7 +3,7 @@
 // message; a client reconnect storm (the stall watchdog) adds NO upstream request; a known leg is served from cache;
 // subscribe dedupe; backoff 5 s .. 2 min with jitter (scaled); throttle keeps the socket; own hard budget.
 import assert from 'node:assert/strict';
-import { ISHub, parseLegs, IS_LIMIT } from '../src/is-hub.js';
+import { ISHub, parseLegs, IS_LIMIT, hubOpts } from '../src/is-hub.js';
 
 let n = 0; const ok = (m) => { n++; console.log('PASS', m); };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -167,6 +167,27 @@ ok('parseLegs validates and caps at 2 legs');
   assert.equal(hub.attach([{ code: 'CME_MINI:ES1!', bar_type: 'tick', bar_interval: 1 }], client()), null, 'a tick leg never evicts');
   ok('full socket: a series leg preempts a busy tick leg; a tick leg never evicts');
   hub.shutdown();
+}
+
+{
+  // ONE FEED PER SYMBOL: 5 symbols x (1m + tick) on a 5-leg socket -> all 5 symbols keep a 1m leg, ticks yield/skip
+  socks = [];
+  const hub = new ISHub(store(), 'k', Object.assign({ WebSocket: FakeWS }, fast, hubOpts({ IS_MAX_LEGS: '5' })));
+  await hub.loadLog();
+  const cs = ['NQ', 'ES', 'MNQ', 'MES', 'GC'].map((r) => 'CME_MINI:' + r + '1!');
+  for (const c of cs) {
+    const h = hub.attach([{ code: c, bar_type: 'minute', bar_interval: 1 }, { code: c, bar_type: 'tick', bar_interval: 1 }], client());
+    assert.ok(h, 'attach ' + c);
+  }
+  const ids = [...hub.legs.keys()];
+  assert.equal(ids.filter((i) => i.endsWith('|minute|1')).length, 5, 'every symbol has its 1m leg: ' + ids);
+  assert.ok(hub.legs.size <= 5);
+  assert.equal(hub.stats().maxLegs, 5);
+  ok('5 symbols x (1m + tick) on 5 legs: all 5 symbols keep a 1-minute leg');
+  hub.shutdown();
+  assert.equal(hubOpts({ IS_MAX_LEGS: '12', IS_MAX_SOCKETS: '2' }).MAX_LEGS, 12);
+  assert.equal(hubOpts({}).MAX_LEGS, 5); assert.equal(hubOpts({ IS_MAX_LEGS: 'x' }).MAX_LEGS, 5);
+  ok('MAX_LEGS comes from config (IS_MAX_LEGS), default 5');
 }
 
 {

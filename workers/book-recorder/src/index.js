@@ -23,7 +23,7 @@ import { validateScan, SCAN_PARTS, SCAN_MAX_BODY } from './scan.js';
 import { newsRoute, newsIngestRoute, calRoute, calIngestRoute, newsDo, storeInit } from './news-routes.js';
 import { terminalInit, terminalDo, terminalIngestRoute, terminalRoute } from './terminal.js';
 import { isAdminToken, isRealtimeToken, bearerOf, RT_DELAY_S } from './rt-auth.js';
-import { ISHub, isHubFetch } from './is-hub.js';
+import { ISHub, isHubFetch, hubOpts } from './is-hub.js';
 import { addNote, setBase, summary, sigOk, emptyUse } from './is-usage.js';
 import { validateOfIngest, buildPayload, ofRange, ticksRange, ticksJson, barsTailJson, joinPath, OF_SYMBOLS, OF_TICK, OF_KEEP_DAYS, OF_MAX_BODY } from './orderflow.js';
 
@@ -108,7 +108,7 @@ export class BookRecorder {
     this.sql.exec(`CREATE TABLE IF NOT EXISTS ofbar (sym TEXT NOT NULL, t INTEGER NOT NULL, b BLOB NOT NULL, s BLOB, PRIMARY KEY (sym, t)) WITHOUT ROWID`);
     this.ofLive = new Map(); this.ofMeta = new Map(); this.ofAt = new Map(); this.ofFirst = new Map();
     // the site's ONE InsightSentry realtime socket (src/is-hub.js); idle (no socket) until an admin chart attaches
-    this.isHub = new ISHub(ctx.storage, env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '');
+    this.isHub = new ISHub(ctx.storage, env.INSIGHTSENTRY_WEBSOCKET_API_KEY || '', hubOpts(env));
   }
   // QUOTA (2026-10-15 outage): the Durable Object is evicted ~10 s after its last request and the
   // feeder posts every 30 s, so every post used to start a fresh DO and reload 26 h x 6 symbols

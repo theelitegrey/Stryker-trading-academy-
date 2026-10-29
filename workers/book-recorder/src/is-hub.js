@@ -30,12 +30,18 @@
 //   {event:'hub_full'}. A new client first gets the leg's cached rows (no upstream message needed).
 
 export const IS_WS = 'wss://realtime.insightsentry.com/live';
+// Config (wrangler vars IS_MAX_LEGS / IS_MAX_SOCKETS -> hubOpts): the plan's symbol units. Today 5 on one socket. On the
+// IS Scale plan (12 symbols, 2 connections) change IS_MAX_LEGS only; the hub keeps ONE socket carrying all legs.
+export function hubOpts(env) {
+  const n = (v, d, lo, hi) => { const x = Math.floor(Number(v)); return Number.isFinite(x) && x >= lo && x <= hi ? x : d; };
+  return { MAX_LEGS: n(env && env.IS_MAX_LEGS, 5, 1, 50), MAX_SOCKETS: n(env && env.IS_MAX_SOCKETS, 1, 1, 4) };
+}
 export const IS_LIMIT = 120;                 // per 3 h window (InsightSentry docs + the 2026-10-22 email)
 const WINDOW_MS = 3 * 3600e3;
 const DEF = {
   MAX_LEGS: 5, LEG_IDLE_MS: 180000, SEND_GAP_MS: 10000, BRAKE_AT: 60, BRAKE_GAP_MS: 60000, HARD_AT: 100,
   BACK_MIN_MS: 5000, BACK_MAX_MS: 120000, STABLE_MS: 60000, PING_MS: 5000, PENDING_MS: 8000,
-  STALE_MS: 180000, STALE_MAX_MS: 1800000, ROW_CAP: 1200, REPLAY: 300
+  STALE_MS: 180000, STALE_MAX_MS: 1800000, ROW_CAP: 1200, REPLAY: 600
 };
 const UNIT = { m: 'minute', min: 'minute', minute: 'minute', h: 'hour', hour: 'hour', s: 'second', sec: 'second', second: 'second', t: 'tick', tick: 'tick', d: 'day', day: 'day' };
 const DP = { minute: 1000, hour: 500, second: 300, tick: 1 };
@@ -104,7 +110,7 @@ export class ISHub {
       perMin, legs: [...this.legs.values()].map((l) => ({ id: legId(l.spec), clients: l.clients.size, rows: l.rows.size })),
       clients: this.clients.size, lastMsgAgoMs: this.lastMsgAt ? now - this.lastMsgAt : null,
       retryN: this.retryN, nextRetryInMs: this.timers.retry ? Math.max(0, this.nextAt - now) : 0,
-      lastError: this.lastError, ...this.stats0
+      maxLegs: this.o.MAX_LEGS, maxSockets: this.o.MAX_SOCKETS || 1, lastError: this.lastError, ...this.stats0
     };
   }
 
@@ -113,20 +119,24 @@ export class ISHub {
   attach(specs, client) {
     this.stats0.attaches++;
     const ids = [];
-    for (const s of specs) {
+    // ONE FEED PER SYMBOL (2026-10-29): the site asks for ONE 1-minute series leg per symbol (the stream function builds
+    // every other timeframe from it) plus an optional tick leg. A tick leg that finds no room is skipped, not fatal.
+    const ordered = specs.slice().sort((a, b) => (a.bar_type === 'tick') - (b.bar_type === 'tick'));
+    for (const s of ordered) {
       const id = legId(s);
       if (!this.legs.has(id)) {
         if (this.legs.size >= this.o.MAX_LEGS) {
           let victim = null;
-          for (const [i, l] of this.legs) if (!l.clients.size && (!victim || l.idleSince < this.legs.get(victim).idleSince)) victim = i;
+          for (const [i, l] of this.legs) if (!l.clients.size && !ids.includes(i) && (!victim || l.idleSince < this.legs.get(victim).idleSince)) victim = i;
           // 2026-10-29 P0 (Owner: "candles not moving only timer"): five busy legs (NQ tick + NQ 1m/5m/30m + MNQ 5m) left
           // no room for MNQ 1m, so the Owner's chart got hub_full for hours. A SERIES leg may now take the slot of a busy
           // TICK leg (the per-trade extra; its clients keep their series bars and just lose the tick fold). A tick leg
           // never evicts anything. Among tick legs the one with the fewest viewers goes.
           if (!victim && s.bar_type !== 'tick') {
-            for (const [i, l] of this.legs) if (l.spec.bar_type === 'tick' && (!victim || l.clients.size < this.legs.get(victim).clients.size)) victim = i;
+            for (const [i, l] of this.legs) if (l.spec.bar_type === 'tick' && !ids.includes(i) && (!victim || l.clients.size < this.legs.get(victim).clients.size)) victim = i;
             if (victim) this.stats0.preempted = (this.stats0.preempted || 0) + 1;
           }
+          if (!victim && s.bar_type === 'tick' && ids.length) { this.stats0.tickSkipped = (this.stats0.tickSkipped || 0) + 1; continue; }
           if (!victim) { this.stats0.refused++; for (const i of ids) this.release(i, null); return null; }
           this.legs.delete(victim);   // still in the upstream set until the next message; harmless
         }

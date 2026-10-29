@@ -28,10 +28,12 @@ function specFor(tf) {
   sm = /^(\d+)T$/.exec(String(tf || '').toUpperCase());
   if (sm) return { bar_type: 'tick', bar_interval: Number(sm[1]), agg: 1 };
   const cfg = TIMEFRAMES[tf];
-  if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 3600) return null;
-  if (cfg.agg) return { bar_type: 'hour', bar_interval: 1, agg: cfg.agg };
-  if (cfg.step < 3600) return { bar_type: 'minute', bar_interval: Math.max(1, cfg.step / 60), agg: 1 };
-  return { bar_type: 'hour', bar_interval: 1, agg: 1 };
+  if (!cfg || !cfg.step || cfg.step < 60 || cfg.step > 14400) return null;
+  // ONE FEED PER SYMBOL (2026-10-29): every minute/hour timeframe is built from the symbol's single 1-minute series
+  // leg (InsightSentry counts each symbol+timeframe leg as its own plan unit, probed 2026-10-29), so five symbols
+  // can be live on ANY timeframe. fold = the 1m rows are folded into the timeframe's epoch bucket (same buckets as
+  // /api/chart/bars: floor(t/step)*step, and aggregateHours(.., 18 ET anchor) for 2h/4h).
+  return { bar_type: 'minute', bar_interval: 1, agg: cfg.agg || 1, fold: cfg.step > 60, step: cfg.step };
 }
 function parseBar(x, dec) {
   const t = Number(x?.time ?? x?.t ?? x?.timestamp ?? x?.bar_time ?? x?.start);
@@ -155,7 +157,25 @@ export async function onRequestGet(ctx) {
   let forming = null;      // [t, o, h, l, c, v] of the newest bar
   let lastTickAt = 0;      // ms; while trades flow, a lagging series update cannot move close back
   let flushTimer = null;
-  const bucketOf = (t) => (spec.agg && spec.agg > 1 ? aggregateHours([[t, 0, 0, 0, 0, 0]], spec.agg, 18)[0][0] : Math.floor(t / step) * step);
+  // 1-minute rows seen on the symbol's one series leg, kept to rebuild the forming bucket of a longer timeframe
+  const minRows = new Map();
+  let minFirst = Infinity;
+  const foldRows = (rows) => {
+    for (const x of rows) { minRows.set(x[0], x); if (x[0] < minFirst) minFirst = x[0]; }
+    if (minRows.size > 700) { const ks = [...minRows.keys()].sort((a, b) => a - b); for (let i = 0; i < ks.length - 600; i++) minRows.delete(ks[i]); minFirst = Math.max(minFirst, ks[ks.length - 600]); }
+    const touched = [...new Set(rows.map((x) => bucketOf(x[0])))].sort((a, b) => a - b);
+    const out = [];
+    for (const b of touched) {
+      if (minFirst > b) continue;   // the 1-minute history we hold starts inside this bucket: would be a partial bar
+      const mine = [...minRows.values()].filter((x) => bucketOf(x[0]) === b).sort((a, b2) => a[0] - b2[0]);
+      if (!mine.length) continue;
+      let hi = -Infinity, lo = Infinity, vol = 0;
+      for (const x of mine) { if (x[2] > hi) hi = x[2]; if (x[3] < lo) lo = x[3]; vol += x[5]; }
+      out.push([b, mine[0][1], hi, lo, mine[mine.length - 1][4], vol]);
+    }
+    return out;
+  };
+  const bucketOf = (t) => (spec.agg && spec.agg > 1 ? aggregateHours([[t, 0, 0, 0, 0, 0]], spec.agg, 18)[0][0] : Math.floor(t / (spec.step || step)) * (spec.step || step));
   const flush = () => { flushTimer = null; if (forming) send({ event: 'bar', s: sym, tf, bar: forming.slice() }); };
   const onTick = (t, price, vol) => {
     if (!Number.isFinite(t) || !Number.isFinite(price)) return;
@@ -212,7 +232,8 @@ export async function onRequestGet(ctx) {
       return;
     }
     let rows = barsFrom(msg, dec);
-    if (spec.agg && spec.agg > 1 && rows.length > 1) rows = aggregateHours(rows, spec.agg, 18);
+    if (spec.fold) rows = foldRows(rows);
+    else if (spec.agg && spec.agg > 1 && rows.length > 1) rows = aggregateHours(rows, spec.agg, 18);
     upBars += rows.length;
     for (const row of rows) send({ event: 'bar', s: sym, tf, bar: onSeriesRow(row) });
   };

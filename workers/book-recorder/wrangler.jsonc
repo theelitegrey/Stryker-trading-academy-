@@ -13,6 +13,6 @@
     { "name": "RLN", "namespace_id": "52402", "simple": { "limit": 60, "period": 60 } },
     { "name": "RL_OF", "namespace_id": "52403", "simple": { "limit": 60, "period": 60 } }
   ],
-  "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT" },
+  "vars": { "SYMBOLS": "BTCUSDT,ETHUSDT", "IS_MAX_LEGS": "5", "IS_MAX_SOCKETS": "1" },
   "observability": { "enabled": true }
 }

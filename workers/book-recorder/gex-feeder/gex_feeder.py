@@ -25,7 +25,7 @@ to 16:20 ET, plus one run between 16:30 and 16:33 ET (after the close). Use --fo
 other time. Stdlib only.
 
 Config (env, /root/projects/book-feeder/feeder.env, mode 0600): BOOK_RECORDER_URL,
-BOOK_INGEST_SECRET (never logged), GEX_SYMBOLS (default QQQ,_SPX,SPY).
+BOOK_INGEST_SECRET (never logged), GEX_SYMBOLS (default QQQ,_SPX,SPY,GLD).
 Each run also POSTs one history snapshot per underlying (SPX, QQQ, SPY) and expiry mode
 (0DTE, 1DTE) to <Worker>/gex-snap (see snapshot() below and the README, "GEX history").
 Test mode: gex_feeder.py --compact <cboe.json> <now_epoch>  -> prints the compact JSON (near+term).
@@ -54,7 +54,7 @@ NEAR_BAND = 0.12
 TERM_DAYS = 31
 TERM_BAND = 0.10
 MAX_PART = 200 * 1024
-SNAP_SYMBOLS = ('SPX', 'QQQ', 'SPY')
+SNAP_SYMBOLS = ('SPX', 'QQQ', 'SPY', 'GLD')
 FETCH_TIMEOUT = 40
 POST_TIMEOUT = 15
 
@@ -394,7 +394,7 @@ def main(force=False):
         return 0
     url = os.environ.get('BOOK_RECORDER_URL', '').rstrip('/')
     key = os.environ.get('BOOK_INGEST_SECRET', '')
-    syms = [s.strip().upper() for s in os.environ.get('GEX_SYMBOLS', 'QQQ,_SPX,SPY').split(',') if s.strip()]
+    syms = [s.strip().upper() for s in os.environ.get('GEX_SYMBOLS', 'QQQ,_SPX,SPY,GLD').split(',') if s.strip()]
     if not url or len(key) < 32:
         log('config missing: BOOK_RECORDER_URL / BOOK_INGEST_SECRET')
         return 2

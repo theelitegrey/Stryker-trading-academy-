@@ -227,9 +227,6 @@ export function createLadder(root, opts) {
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
-    // Gold (GLD) is not on the per-second ladder endpoint: it comes from the normal levels API (cached ~5 min).
-    const gold = want.includes('GLD'); if (gold) want = want.filter((x) => x !== 'GLD');
-    if (gold) { try { const g = await gexFetch('GLD', dte); if (g && !g.error) { live[dte] = Object.assign(live[dte] || {}, { GLD: g }); paint(); } } catch (e) {} if (!want.length) { inflight = false; return; } }
     try {
       const r = await fetch(LADDER_API + '?u=' + want.join(',') + '&dte=' + dte, { headers: { accept: 'application/json' }, cache: 'no-cache' });
       if (!r.ok) throw new Error('HTTP ' + r.status);

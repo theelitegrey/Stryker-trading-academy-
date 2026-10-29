@@ -209,7 +209,7 @@ class HeatNative {
     const src = resolveSrc(this.ctx);
     let payload;
     const core = H();
-    if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ (gold: building history)' };
+    if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ and gold (GC)' };
     else if (!core) payload = { note: 'GEX heatmap could not load' };
     else if (!this.tier) payload = { note: 'Loading GEX heatmap…' };
     else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX heatmap with Pro', href: PRICING };
@@ -219,7 +219,7 @@ class HeatNative {
       const rows = e ? upTo(e.rows, rp) : [];
       const label = (src.fut ? src.fut + ' (from ' + src.api + ')' : src.api) + ' ' + (dte ? '1DTE' : '0DTE');
       if (!e || (!e.to && e.p)) payload = { note: 'Loading GEX heatmap…' };
-      else if (!rows.length) payload = { note: rp != null ? 'No GEX history for this time' : (src.api === 'GLD' ? 'Gold GEX heatmap: building history · ' : 'No GEX history recorded yet · ') + label };
+      else if (!rows.length) payload = { note: rp != null ? 'No GEX history for this time' : (src.api === 'GLD' ? 'Gold GEX heatmap: building history, first columns appear within minutes of the next session · ' : 'No GEX history recorded yet · ') + label };
       else {
         let bars = [];
         try { bars = this.ctx.bars() || []; } catch (err) {}

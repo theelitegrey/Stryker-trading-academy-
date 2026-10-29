@@ -40,7 +40,7 @@ function fromFast(fast, u, dte, nowSec) {
     max_pain: blk.mp == null ? null : blk.mp, zero_gamma: flipAt(blk, spot), ...wallsAt(blk, spot) };
 }
 
-const ALLOWED = ['SPX', 'QQQ', 'SPY'];
+const ALLOWED = ['SPX', 'QQQ', 'SPY', 'GLD'];
 const TTL_S = 1;
 
 function fnv(str) {                      // small stable hash for the ETag (not security)

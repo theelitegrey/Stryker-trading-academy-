@@ -15,7 +15,7 @@
 //
 // /gex-history reply (packHistory): column arrays over one shared strike axis, so a full session of
 // SPX (~200 snapshots x ~150 strikes) is ~60 KB of JSON before gzip.
-export const HIST_SYMBOLS = ['SPX', 'QQQ', 'SPY'];
+export const HIST_SYMBOLS = ['SPX', 'QQQ', 'SPY', 'GLD'];   // GLD added 2026-10-29 (Cboe chain, same feeder run; no InsightSentry)
 export const KEEP_DAYS = 90;
 export const SNAP_MAX_BODY = 64 * 1024;
 const MAX_STRIKES = 400;

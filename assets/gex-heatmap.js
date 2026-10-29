@@ -104,12 +104,6 @@
       return;
     }
     $('gex-heat-title').textContent = s.u + ' · ' + (s.dte ? '1DTE' : '0DTE') + ' · GEX HEATMAP';
-    if (s.u === 'GLD') {
-      st.u = s.u; st.dte = s.dte; st.rows = []; st.heat = null; st.days = []; paint();
-      setStatus('');
-      setEmpty('Gold GEX heatmap: building history. The recorder has not saved GLD sessions yet. The Chart view, strike table and Ladder already show gold.');
-      return;
-    }
     if (s.dte !== 0 && s.dte !== 1) {
       st.u = s.u; st.dte = s.dte; st.rows = []; st.heat = null; paint();
       setStatus('');

@@ -7,7 +7,7 @@ After=network-online.target
 Type=oneshot
 EnvironmentFile=/root/projects/book-feeder/feeder.env
 ExecStart=/usr/bin/python3 /root/projects/book-feeder/gex_feeder.py
-# every 1 min (Cboe file changes once a minute); 3 symbols x (fetch <= 40 s + 2 POSTs <= 15 s) worst case, normally ~3-5 s total
+# every 1 min (Cboe file changes once a minute); 4 symbols x (fetch <= 40 s + 2 POSTs <= 15 s) worst case, normally ~3-5 s total
 TimeoutStartSec=110
 MemoryMax=160M
 Nice=10

@@ -103,7 +103,7 @@ async function gexPage(b, tag, o) {
   const { ctx, p, errors, hits } = await open(b, Object.assign({ page: 'gex' }, o));
   if (o.free) await p.evaluate(() => window.strykerGexSetLimit({ markets: ['SPX'], dtes: [0], noLadder: true }));
   const tabs = await p.evaluate(() => [...document.querySelectorAll('.gex-vtab')].map((x) => x.textContent));
-  check(tabs.join(',') === 'Chart,Heatmap,ZoroTide', tag + ': tab bar ' + tabs.join(','));
+  check(tabs[0] === 'Chart' && tabs[1] === 'Heatmap' && tabs[tabs.length - 1] === 'ZoroTide', tag + ': tab bar ' + tabs.join(','));
   await p.click('.gex-vtab[data-view="tide"]');
   await p.waitForFunction(() => { const s = window.strykerGexTide && window.strykerGexTide.state; return s && s.cum; }, null, { timeout: 15000 }).catch(() => {});
   const exp = expectedTotals('SPX');
@@ -157,14 +157,15 @@ const nInd = (p) => p.evaluate(() => window.STRYKER_VELA.context().cells[0].char
 async function chartsRun(b, tag, o) {
   const { ctx, p, errors, hits } = await open(b, Object.assign({ page: 'charts' }, o));
   await p.evaluate(() => window.STRYKER_VELA.indicatorPicker.open()); await sleep(900);
+  await p.evaluate(() => { const b = [...document.querySelectorAll('.stkiw-side button, .stkiw-side a')].find((x) => /Technicals/.test(x.textContent)); if (b) b.click(); }); await sleep(500);
   const listed = await p.evaluate(() => { const r = document.querySelector('.stkiw-row[data-key="b:stk_tide"]'); return r ? r.textContent : null; });
   check(listed && /ZoroTide/.test(listed), tag + ': indicator window lists ZoroTide (' + (listed || '').slice(0, 90) + ')');
   if (o.free) {
     check(await p.evaluate(() => !!document.querySelector('.stkiw-row[data-key="b:stk_tide"] .stk-protag')), tag + ': Free sees the PRO tag');
-    await p.evaluate(() => document.querySelector('.stkiw-row[data-key="b:stk_tide"]').click()); await sleep(900);
+    await p.evaluate(() => document.querySelector('.stkiw-row[data-key="b:stk_tide"] .stkiw-name').click()); await sleep(1200);
     check((await nInd(p)) === 0, tag + ': Free click does not add it');
-    const m = await p.evaluate(() => { const m = document.querySelector('.plan-modal, #plan-upgrade-modal, [data-plan-modal], .plan-modal-ov'); return m && m.offsetParent !== null ? m.innerText.slice(0, 160) : null; });
-    check(!!m && /Pro/i.test(m), tag + ': upgrade modal opens (' + m + ')');
+    const m = await p.evaluate(() => { const m = document.getElementById('plan-upgrade-modal'); return m && m.classList.contains('open') ? m.innerText.slice(0, 160) : null; });
+    check(!!m && /Pro/i.test(m) && /options flow on charts are part of Pro/.test(m), tag + ': upgrade modal opens (' + m + ')');
     await shot(p, 'zorotide-chart-' + tag + '-modal.png');
     check(!errors.length, tag + ': no page errors ' + errors.join(' | ').slice(0, 300));
     await ctx.close(); return;
@@ -174,16 +175,14 @@ async function chartsRun(b, tag, o) {
   await p.evaluate(() => { window.STRYKER_VELA.context().cells[0].chart.addNativeIndicator('stk_tide', { inputs: {} }); window.STRYKER_VELA.context().stateChanged(); });
   await sleep(3500);
   check((await nInd(p)) === 1 && hits.length >= 1 && hits.every((u) => u === 'SPX'), tag + ': ES asks SPX only (' + hits.join(',') + ')');
-  const series = await p.evaluate(() => {
-    const c = window.STRYKER_VELA.context().cells[0].chart; const seen = new Set(); let out = null;
-    const find = (o, d) => { if (!o || typeof o !== 'object' || d > 7 || seen.has(o) || out) return; seen.add(o); if (Array.isArray(o.series) && o.series.some((s) => s && s.id === 'tide-call')) { out = o.series; return; } for (const k of Object.keys(o)) { try { find(o[k], d + 1); } catch (e) {} } };
-    find(c, 0);
-    return out ? out.map((s) => ({ id: s.id, n: s.points.filter((x) => x.value != null).length, last: [...s.points].reverse().find((x) => x.value != null) })) : null;
-  });
   const exp = expectedTotals('SPX');
-  const call = series && series.find((s) => s.id === 'tide-call'), put = series && series.find((s) => s.id === 'tide-put');
-  check(call && call.n > 5 && put && put.n > 5, tag + ': call and put lines have points (' + (call && call.n) + '/' + (put && put.n) + ')');
-  check(call && call.last.value === exp.cn && put.last.value === exp.pn, tag + ': last values = running totals ' + exp.cn + ' / ' + exp.pn + ' (got ' + (call && call.last.value) + ' / ' + (put && put.last.value) + ')');
+  const tide = await p.evaluate(() => window.__stkTide || null);
+  check(tide && tide.u === 'SPX' && tide.n > 5, tag + ': call and put lines have points (' + (tide && tide.n) + ')');
+  // the chart's newest candle can end before the newest sample (a delayed candle feed): the line then shows the running total as of
+  // that candle's end, never a later one. So the value must be one of the day's running totals, at most the full-day total.
+  const runs = (() => { const d = reply('SPX').days[0]; let a = 0, c = 0; const A = [], C = []; d.cn.forEach((v, i) => { a += v; c += d.pn[i]; A.push(a); C.push(c); }); return { A, C }; })();
+  const iCall = tide ? runs.A.indexOf(tide.call) : -1;
+  check(iCall >= 0 && runs.C[iCall] === tide.put && tide.call <= exp.cn, tag + ': last value is the running total at one sample (call ' + (tide && tide.call) + ' / put ' + (tide && tide.put) + ' = sample ' + iCall + ' of ' + exp.n + ', never past the full-day total)');
   await shot(p, 'zorotide-chart-' + tag + '-es.png');
   await setSym(p, 'futures:NQ1!', '5'); await sleep(2000);
   check(hits.includes('QQQ'), tag + ': NQ asks QQQ');

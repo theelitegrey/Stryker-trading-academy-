@@ -70,4 +70,10 @@ raw = json.dumps({'data': {'symbol': '^SPX', 'current_price': 7000.5, 'last_trad
     {'option': 'SPXW261029P06990000', 'bid': 0.5, 'ask': 0.6, 'volume': 7.0, 'last_trade_price': 0}]}}).encode()
 spot, ct, rows = tide.read_chain(raw)
 ok(spot == 7000.5 and ct == '2026-10-29T10:00:00' and len(rows) == 2 and rows['SPXW261029C07000000'] == ('C', 12, 1.8, 1.0, 2.0), 'Cboe chain parser keeps only contracts with volume')
+raw2 = json.dumps({'data': {'current_price': 7000, 'last_trade_time': '2026-10-29T10:00:00', 'options': [
+    {'option': 'SPXW261030C07000000', 'bid': 1.0, 'ask': 2.0, 'volume': 5.0, 'last_trade_price': 1.8},
+    {'option': 'SPXW261129C07000000', 'bid': 1.0, 'ask': 2.0, 'volume': 5.0, 'last_trade_price': 1.8},
+    {'option': 'SPX261218C07000000', 'bid': 1.0, 'ask': 2.0, 'volume': 5.0, 'last_trade_price': 1.8},
+    {'option': 'SPX270319P11600000', 'bid': 1.0, 'ask': 2.0, 'volume': 5.0, 'last_trade_price': 1.8}]}}).encode()
+ok(sorted(tide.read_chain(raw2)[2]) == ['SPXW261030C07000000', 'SPXW261129C07000000'], 'only expiries up to 31 days out are counted (31 days in, Dec and 2027 out)')
 print('ALL PASS', n)

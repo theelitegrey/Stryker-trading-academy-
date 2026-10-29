@@ -11,6 +11,7 @@ METHOD (also written in the help text on the GEX+ page and in the chart indicato
     side        = last >= ask - 25% of the spread  -> bought
                   last <= bid + 25% of the spread  -> sold
                   in between (or no usable quote)  -> split half and half
+  Only expiries up to 31 days out count (far months and LEAPS are left out).
   Calls: bought is bullish money, sold is the opposite. Puts: the same count, shown on its own line.
   Net call premium = calls bought - calls sold. Net put premium = puts bought - puts sold.
   The site plots the running (cumulative) sums since 9:30 ET.
@@ -39,6 +40,7 @@ TIDE_SYMBOLS = ('SPX', 'SPY', 'QQQ')
 LATE_START_S = 150          # a first sample of the day later than this after 9:30 ET is a baseline only
 SIDE_BAND = 0.25
 CLOSE_MIN = 16 * 60 + 20    # no samples after 16:20 ET
+MAX_DAYS = 31               # only expiries up to 31 days out (the mood of the near options; LEAPS and far months are left out, as on the GEX term part)
 
 
 def num(x):
@@ -70,6 +72,8 @@ def read_chain(raw):
     if not spot > 0:
         raise ValueError('no spot')
     rows = {}
+    ct = et_epoch(data.get('last_trade_time'))
+    today = datetime.fromtimestamp(ct, ET).date() if ct else None
     for m in OBJ.finditer(raw, i, j):
         o = json.loads(m.group(0))
         vol = int(num(o.get('volume')))
@@ -78,6 +82,10 @@ def read_chain(raw):
         mm = OCC.match(o.get('option') or '')
         if not mm:
             continue
+        if today is not None:
+            days = (datetime(2000 + int(mm.group(2)), int(mm.group(3)), int(mm.group(4))).date() - today).days
+            if days < 0 or days > MAX_DAYS:
+                continue
         rows[o['option']] = (mm.group(5), vol, num(o.get('last_trade_price')), num(o.get('bid')), num(o.get('ask')))
     return spot, data.get('last_trade_time'), rows
 

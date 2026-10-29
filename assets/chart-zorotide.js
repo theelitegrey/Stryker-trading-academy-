@@ -143,12 +143,18 @@ class TideNative {
   suspend() {}
   resume() { this.sig = ''; this.load(); }
   stop() { subs.delete(this); if (!subs.size) stopTimer(); try { this.ctx.emit({ series: [], tables: [] }); } catch (e) {} }
+  // A pane whose first frame has no series can stay blank for good (same trap as the footprint panes): a note is always
+  // sent together with the two (empty) series, so they exist from the first frame.
   note(text) {
     const k = 'n|' + text;
     if (k === this.sig) return;
     this.sig = k;
     this.ctx.setStatus('idle');
-    this.ctx.emit({ tables: [msgTable('tide-msg', text)] });
+    const nul = (this.ctx.bars() || []).map((b) => ({ time: b.time, value: null }));
+    const I = this.inputs;
+    this.ctx.emit({ series: [
+      { id: 'tide-put', title: 'Net put premium', paneId: '', kind: 'line', points: nul, style: { color: I.putColor, width: 2, lineStyle: 'solid' } },
+      { id: 'tide-call', title: 'Net call premium', paneId: '', kind: 'line', points: nul, style: { color: I.callColor, width: 2, lineStyle: 'solid' } }], tables: [msgTable('tide-msg', text)] });
   }
   render() {
     if (!this.ctx) return;
@@ -175,6 +181,7 @@ class TideNative {
     this.sig = sig;
     ctx.setStatus('idle');
     const w = Math.min(4, Math.max(1, Number(I.lineWidth) || 2));
+    try { window.__stkTide = { u: src.u, n: callPts.filter((x) => x.value != null).length, call: (callPts.filter((x) => x.value != null).pop() || {}).value, put: (putPts.filter((x) => x.value != null).pop() || {}).value }; } catch (e) {}   // read by tools/tests/zorotide-browser.js
     ctx.emit({
       series: [
         { id: 'tide-put', title: 'Net put premium', paneId: '', kind: 'line', points: putPts, style: { color: I.putColor, width: w, lineStyle: 'solid' } },

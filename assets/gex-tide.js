@@ -281,11 +281,13 @@
   function wire(wrap) {
     var cv = $('gex-tide-canvas');
     var lx = function (e) { return e.clientX - cv.getBoundingClientRect().left; };
-    wrap.addEventListener('mousemove', function (e) { tipAt(lx(e)); });
-    wrap.addEventListener('mouseleave', clearTip);
+    // the mouse events a phone makes after a tap would clear the tip again: ignore them for a moment after any touch
+    var lastTouch = 0, fromTouch = function () { return Date.now() - lastTouch < 900; };
+    wrap.addEventListener('mousemove', function (e) { if (!fromTouch()) tipAt(lx(e)); });
+    wrap.addEventListener('mouseleave', function () { if (!fromTouch()) clearTip(); });
     // touch: a tap or a horizontal scrub shows the values; vertical movement keeps scrolling the page
     var start = null;
-    wrap.addEventListener('touchstart', function (e) { var t = e.touches[0]; start = { x: t.clientX, y: t.clientY, mode: null }; }, { passive: true });
+    wrap.addEventListener('touchstart', function (e) { lastTouch = Date.now(); var t = e.touches[0]; start = { x: t.clientX, y: t.clientY, mode: null }; }, { passive: true });
     wrap.addEventListener('touchmove', function (e) {
       if (!start) return;
       var t = e.touches[0], dx = t.clientX - start.x, dy = t.clientY - start.y;
@@ -293,6 +295,7 @@
       if (start.mode === 'scrub') { if (e.cancelable) e.preventDefault(); tipAt(lx(t)); }
     }, { passive: false });
     wrap.addEventListener('touchend', function (e) {
+      lastTouch = Date.now();
       if (start && !start.mode && e.changedTouches.length) tipAt(lx(e.changedTouches[0]));
       start = null;
     }, { passive: true });

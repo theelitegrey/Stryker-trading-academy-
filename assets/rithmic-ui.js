@@ -33,6 +33,22 @@ const HELP_URL = '/help#rithmic-connect';
 const LS_SYS = (() => { try { const u = typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid; return 'stryker_rithmic_system' + (u ? '_' + u : ''); } catch (e) { return 'stryker_rithmic_system'; } })();
 
 const CSS = `
+/* ---- Connect sheet design tokens (--rz-*): native iOS / Material 3 bottom-sheet form. Reuse on other sheets. ---- */
+:root{
+  --rz-font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Google Sans", "Helvetica Neue", Arial, sans-serif;
+  --rz-pad:20px; --rz-head-h:56px; --rz-tap:44px;
+  --rz-field-h:52px; --rz-field-r:12px; --rz-field-px:14px; --rz-btn-r:14px;
+  --rz-sheet-bg:var(--bg-1, #0b0b0d); --rz-field-bg:var(--bg-2, #131316); --rz-line:var(--line, #2c2c32);
+  --rz-ink:var(--ink-0, #eee); --rz-ink-1:var(--ink-1, #c9cdd3); --rz-ink-2:var(--ink-2, #8b93a0);
+  --rz-mint:var(--gold, #03c988); --rz-amber:var(--amber, #f5c542); --rz-red:#ff6b6b; --rz-on-mint:#050506;
+  --rz-ring:0 0 0 2px var(--gold, #03c988);
+  --rz-t-title:600 20px/26px var(--rz-font); --rz-t-step:500 13px/18px var(--rz-font); --rz-t-label:500 13px/18px var(--rz-font);
+  --rz-t-value:400 17px/22px var(--rz-font); --rz-t-hint:400 13px/18px var(--rz-font); --rz-t-warn:500 13px/18px var(--rz-font);
+  --rz-t-btn:600 17px/22px var(--rz-font); --rz-t-body:400 15px/20px var(--rz-font); --rz-t-legal:400 12px/18px var(--rz-font);
+  --rz-chev:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%238b93a0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.stkrb-pop, .stkrb-card, .stkrb-syslist{ font-family:var(--rz-font); -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+.stkrb-pop button, .stkrb-pop input, .stkrb-pop select, .stkrb-card button, .stkrb-syslist button, .stkrb-syslist input{ font-family:var(--rz-font); }
 .stkrb-chip{ display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:999px;
   border:1px solid rgba(3,201,136,.45); color:var(--gold); font-family:inherit; font-weight:600; font-size:11.5px; line-height:1; white-space:nowrap; flex:none; }
 @media (max-width:480px){ .stkrb-chip{ padding:0 7px; font-size:11px; gap:5px; } }
@@ -40,7 +56,6 @@ const CSS = `
 .stkrb-chip i{ width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(3,201,136,.18); }
 .stkrb-chip.warn{ color:var(--amber, #e8b04a); border-color:rgba(232,176,74,.45); }
 .stkrb-chip.warn i{ box-shadow:0 0 0 3px rgba(232,176,74,.18); }
-.stkrb-pop{ width:340px; padding:12px; }
 .stkrb-pop h3{ margin:0 0 10px; font-size:14px; color:var(--ink-0); }
 .stkrb-brokers{ display:flex; gap:6px; margin:0 0 10px; }
 .stkrb-broker{ flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; padding:8px 10px; border:1px solid var(--line);
@@ -48,16 +63,6 @@ const CSS = `
 .stkrb-broker[aria-checked="true"]{ border-color:var(--gold); color:var(--ink-0); }
 .stkrb-broker:disabled{ opacity:.45; cursor:not-allowed; }
 .stkrb-broker small{ font-weight:500; font-size:10.5px; color:var(--ink-3); }
-.stkrb-f{ display:block; margin:0 0 9px; }
-.stkrb-f > span{ display:block; margin:0 0 4px; font-size:11px; font-weight:600; color:var(--ink-2); }
-.stkrb-f .stkc-in{ width:100%; height:34px; box-sizing:border-box; }
-.stkrb-f select.stkc-in{ padding-right:6px; }
-.stkrb-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:2px 0 10px; }
-.stkrb-row .stkc-check{ padding:0; font-size:12px; color:var(--ink-2); }
-.stkrb-go{ width:100%; height:36px; }
-.stkrb-note{ margin:10px 0 0 !important; padding-top:10px; border-top:1px solid var(--line-soft, var(--line));
-  font-size:11.5px; line-height:1.5; color:var(--ink-2); }
-.stkrb-note.stkrb-test{ border-top:0; padding-top:0; color:var(--amber, #e8b04a); }
 .stkrb-logos{ display:inline-flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .stkrb-logos img{ display:block; width:auto; }
 .stkrb-logos .stkrb-l-rith{ height:18px; }
@@ -78,96 +83,130 @@ const CSS = `
 .stkrb-legal{ margin:0; padding:0; list-style:none; font-size:11px; line-height:1.5; color:var(--ink-2); }
 .stkrb-legal li{ margin:0 0 4px; }
 .stkrb-legal li:last-child{ margin:0; }
-.stkrb-sheet-legal{ margin:10px 0 0; padding-top:10px; border-top:1px solid var(--line-soft, var(--line)); }
-.stkrb-sheet-legal .stkrb-logos{ margin:0 0 6px; }
-.stkrb-sheet-legal .stkrb-legal{ font-size:10.5px; color:var(--ink-3); }
 @media (max-width:480px){ .stkrb-attr{ padding:3px 8px; gap:6px; } .stkrb-attr .stkrb-l-rith, .stkrb-attr .stkrb-l-omne{ height:16px; } }
-.stkrb-err{ color:#ff6b6b; font-size:12.5px; line-height:1.5; margin:0 0 10px !important; padding:10px 12px; border:1px solid rgba(255,107,107,.4); border-radius:8px; background:rgba(255,107,107,.07); overflow-wrap:anywhere; }
-.stkrb-err .stkrb-copy{ display:inline-block; margin-top:8px; height:30px; padding:0 12px; border:1px solid rgba(255,107,107,.5); border-radius:6px; background:transparent; color:inherit; font:600 12px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-lead{ margin:0 0 12px !important; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
-.stkrb-prog{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 6px; padding:0; list-style:none; }
-.stkrb-prog li{ position:relative; display:flex; align-items:center; gap:6px; min-width:0; padding-top:9px; font-size:11.5px; font-weight:600; color:var(--ink-3, #8a8f98); }
-.stkrb-prog li::before{ content:''; position:absolute; left:0; right:0; top:0; height:3px; border-radius:2px; background:var(--line); transition:background .2s; }
-.stkrb-prog li b{ flex:none; display:inline-grid; place-items:center; width:18px; height:18px; border-radius:6px; border:1px solid var(--line); font-size:10.5px; font-weight:700; line-height:1; }
+.stkrb-err{ color:var(--rz-red); font:var(--rz-t-hint); font-size:14px; line-height:20px; margin:0 0 20px !important; padding:12px 14px; border:1px solid rgba(255,107,107,.4); border-radius:var(--rz-field-r); background:rgba(255,107,107,.08); overflow-wrap:anywhere; }
+.stkrb-err .stkrb-copy{ display:inline-flex; align-items:center; margin-top:12px; height:var(--rz-tap); padding:0 16px; border:1px solid rgba(255,107,107,.5); border-radius:10px; background:transparent; color:inherit; font:600 15px/20px var(--rz-font); cursor:pointer; }
+.stkrb-lead{ margin:0 0 20px !important; font:var(--rz-t-body); font-size:15px; line-height:22px; color:var(--rz-ink-2); }
+.stkrb-form > h3{ margin:0; display:flex; align-items:center; min-height:var(--rz-head-h); font:var(--rz-t-title); letter-spacing:-.2px; color:var(--rz-ink); }
+.stkrb-on > h3{ margin:0 0 8px; font:var(--rz-t-title); color:var(--rz-ink); }
+.stkrb-prog{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:0 0 8px; padding:0; list-style:none; }
+.stkrb-prog li{ position:relative; display:flex; align-items:center; gap:8px; min-width:0; padding-top:14px; font:var(--rz-t-step); color:var(--rz-ink-2); }
+.stkrb-prog li::before{ content:''; position:absolute; left:0; right:0; top:0; height:4px; border-radius:999px; background:var(--rz-line); transition:background .2s; }
+.stkrb-prog li b{ flex:none; display:inline-grid; place-items:center; width:18px; height:18px; border-radius:50%; border:1.5px solid var(--rz-line); font:600 11px/1 var(--rz-font); font-feature-settings:"tnum"; }
 .stkrb-prog li span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.stkrb-prog li.on{ color:var(--ink-0); }
-.stkrb-prog li.on::before{ background:var(--gold); }
-.stkrb-prog li.on b{ border-color:var(--gold); color:var(--gold); }
-.stkrb-prog li.done{ color:var(--ink-1); }
-.stkrb-prog li.done::before{ background:rgba(3,201,136,.45); }
-.stkrb-prog li.done b{ background:var(--gold); border-color:var(--gold); color:#04120c; font-size:0; }
-.stkrb-prog li.done b::after{ content:''; width:8px; height:4px; border-left:2px solid #04120c; border-bottom:2px solid #04120c; transform:rotate(-45deg) translate(1px,-1px); }
-.stkrb-where{ user-select:none; -webkit-tap-highlight-color:transparent; display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px; padding:0; border:0; background:transparent; color:var(--gold); font:600 12.5px/1.2 inherit; font-family:inherit; cursor:pointer; min-height:28px; }
-.stkrb-where i{ display:inline-grid; place-items:center; width:17px; height:17px; border-radius:50%; border:1.5px solid currentColor; font-style:normal; font-size:11px; font-weight:800; }
+.stkrb-prog li.on{ color:var(--rz-ink); }
+.stkrb-prog li.on::before{ background:var(--rz-mint); }
+.stkrb-prog li.on b{ border-color:var(--rz-mint); color:var(--rz-mint); }
+.stkrb-prog li.done{ color:var(--rz-ink-1); }
+.stkrb-prog li.done::before{ background:var(--rz-mint); opacity:.55; }
+.stkrb-prog li.done b{ background:var(--rz-mint); border-color:var(--rz-mint); font-size:0; }
+.stkrb-prog li.done b::after{ content:''; width:8px; height:4px; border-left:2px solid var(--rz-on-mint); border-bottom:2px solid var(--rz-on-mint); transform:rotate(-45deg) translate(1px,-1px); }
+.stkrb-where{ user-select:none; -webkit-tap-highlight-color:transparent; display:inline-flex; align-items:center; gap:8px; margin:0 0 8px; padding:0; border:0; background:transparent; color:var(--rz-mint); font:600 15px/20px var(--rz-font); cursor:pointer; min-height:var(--rz-tap); }
+.stkrb-where i{ display:inline-grid; place-items:center; width:20px; height:20px; border-radius:50%; border:1.5px solid currentColor; font-style:normal; font-size:12px; font-weight:700; }
 .stkrb-where:hover span{ text-decoration:underline; }
-.stkrb-f > span .stkrb-n{ display:inline-block; margin-right:5px; color:var(--gold); font-weight:700; }
-.stkrb-two{ display:grid; grid-template-columns:1fr; gap:0; }
-.stkrb-session{ display:flex; gap:7px; align-items:flex-start; margin:2px 0 10px; font-size:11.5px; line-height:1.45; color:var(--amber, #e8b04a); }
-.stkrb-session svg{ flex:none; margin-top:1px; }
-.stkrb-lock{ display:flex; gap:7px; align-items:flex-start; margin:9px 0 0; font-size:11.5px; line-height:1.45; color:var(--ink-2); }
-.stkrb-lock svg{ flex:none; margin-top:1px; color:var(--gold); }
-.stkrb-back{ position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,.55); }
+.stkrb-two{ display:grid; grid-template-columns:1fr; gap:20px; margin:0; }
+.stkrb-two > .stkrb-f{ margin:0; }
+.stkrb-pop .stkrb-session{ display:flex; gap:8px; align-items:flex-start; margin:12px 0 12px !important; font:var(--rz-t-warn); color:var(--rz-amber); }
+.stkrb-session svg, .stkrb-lock svg{ flex:none; width:16px; height:16px; margin-top:1px; }
+.stkrb-pop .stkrb-lock{ display:flex; gap:8px; align-items:flex-start; margin:12px 0 0 !important; font:var(--rz-t-hint); color:var(--rz-ink-2); }
+.stkrb-lock svg{ color:var(--rz-mint); }
+.stkrb-back{ position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,.55); animation:rz-fade .2s ease-out; }
 .stkrb-back[hidden], .stkrb-card[hidden]{ display:none; }
-.stkrb-card{ position:fixed; left:0; right:0; bottom:0; z-index:100011; margin:0 auto; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-sizing:border-box;
-  padding:8px 18px 22px; background:var(--bg-2, #141a22); border:1px solid var(--line); border-bottom:0; border-radius:18px 18px 0 0; box-shadow:0 -18px 40px -12px rgba(0,0,0,.6);
-  overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-card{ position:fixed; left:0; right:0; bottom:0; z-index:100011; margin:0 auto; width:100%; max-width:480px; max-height:86vh; overflow-y:auto; box-sizing:border-box;
+  padding:8px var(--rz-pad) calc(24px + env(safe-area-inset-bottom, 0px)); background:var(--rz-sheet-bg); color:var(--rz-ink); border:1px solid var(--rz-line); border-bottom:0; border-radius:20px 20px 0 0; box-shadow:0 -18px 40px -12px rgba(0,0,0,.6);
+  overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; animation:rz-up .24s ease-out; }
 .stkrb-card::-webkit-scrollbar{ width:6px; }
 .stkrb-card::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
 .stkrb-card::-webkit-scrollbar-thumb:hover{ background:rgba(150,160,175,.6); }
-.stkrb-grab{ width:38px; height:4px; border-radius:2px; background:var(--line); margin:4px auto 12px; }
-.stkrb-card h4{ margin:0 0 10px; font-size:15px; color:var(--ink-0); display:flex; justify-content:space-between; align-items:center; gap:8px; }
-.stkrb-card .stkrb-cx{ height:32px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--ink-0); font:600 12.5px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-checks{ list-style:none; counter-reset:c; margin:0; padding:0; }
-.stkrb-checks li{ counter-increment:c; position:relative; margin:0 0 11px; padding:0 0 0 30px; font-size:12.5px; line-height:1.5; color:var(--ink-1); }
-.stkrb-checks li::before{ content:counter(c); position:absolute; left:0; top:1px; width:20px; height:20px; border-radius:7px; background:rgba(3,201,136,.14); color:var(--gold); font-size:11px; font-weight:700; display:grid; place-items:center; }
-.stkrb-checks li b{ display:block; color:var(--ink-0); font-size:13px; }
-.stkrb-checks a, .stkrb-helplink a{ color:var(--gold); }
-.stkrb-help{ display:block; margin-top:4px; font-size:11.5px; line-height:1.45; color:var(--ink-3, #8a8f98); }
-.stkrb-passwrap{ position:relative; display:block; }
-.stkrb-passwrap .stkc-in{ padding-right:56px; }
-.stkrb-eye{ position:absolute; right:4px; top:50%; transform:translateY(-50%); height:30px; min-width:48px; padding:0 8px; border:0; border-radius:6px; background:transparent; color:var(--ink-2); font:600 12px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-eye:hover{ color:var(--ink-0); }
-.stkrb-helplink{ margin:12px 0 0 !important; font-size:13px; font-weight:600; }
-.stkrb-err[hidden]{ display:none; }
-.stkrb-hint{ display:block; margin-top:4px; font-size:11px; color:var(--ink-3, #8a8f98); }
-.stkrb-hint[hidden]{ display:none; }
-.stkrb-raw{ display:block; margin-top:4px; font-size:11px; color:var(--ink-3, #8a8f98); overflow-wrap:anywhere; }
-.stkrb-on p{ font-size:12.5px; color:var(--ink-1); }
-.stkrb-on b{ color:var(--ink-0); }
-.stkrb-ids{ margin:0 0 8px; font-size:10.5px; line-height:1.5; color:var(--ink-3); overflow-wrap:anywhere; }
-.stkrb-ids span{ display:block; }
-.stkrb-ids code{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:10.5px; color:var(--ink-2); user-select:all; }
-.stkrb-off{ width:100%; height:34px; margin-top:4px; border:1px solid var(--line); border-radius:6px; background:transparent;
-  color:var(--ink-0); font:600 12.5px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-off:hover{ border-color:var(--red, #e5484d); color:var(--red, #e5484d); }
-.stkrb-f select.stkrb-nat{ display:none; }
-.stkrb-sysbtn{ text-align:left; cursor:pointer; color:var(--ink-0); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkrb-grab{ width:36px; height:4px; border-radius:999px; background:var(--rz-line); margin:4px auto 0; }
+.stkrb-card h4{ margin:0; min-height:var(--rz-head-h); font:var(--rz-t-title); color:var(--rz-ink); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.stkrb-xbtn{ flex:none; display:inline-grid; place-items:center; width:var(--rz-tap); height:var(--rz-tap); padding:0; border:0; border-radius:50%; background:rgba(150,160,175,.16); color:var(--rz-ink-1); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.stkrb-xbtn:hover{ background:rgba(150,160,175,.26); color:var(--rz-ink); }
+.stkrb-xbtn:focus-visible, .stkrb-eye:focus-visible, .stkrb-where:focus-visible, .stkrb-go:focus-visible{ outline:none; box-shadow:var(--rz-ring); }
+.stkrb-checks{ list-style:none; counter-reset:c; margin:0 0 4px; padding:0; }
+.stkrb-checks li{ counter-increment:c; position:relative; margin:0 0 16px; padding:0 0 0 36px; font:400 14px/20px var(--rz-font); color:var(--rz-ink-2); }
+.stkrb-checks li::before{ content:counter(c); position:absolute; left:0; top:0; width:24px; height:24px; border-radius:50%; background:rgba(3,201,136,.16); color:var(--rz-mint); font:600 13px/1 var(--rz-font); display:grid; place-items:center; }
+.stkrb-checks li b{ display:block; margin:0 0 2px; color:var(--rz-ink); font:600 15px/20px var(--rz-font); }
+.stkrb-checks a, .stkrb-helplink a{ color:var(--rz-mint); }
+.stkrb-card .stkrb-note{ margin:0 !important; padding-top:16px; font:var(--rz-t-hint); }
+/* fields */
+.stkrb-f{ display:block; margin:0 0 20px; }
+.stkrb-f > span:first-child{ display:block; margin:0 0 8px; font:var(--rz-t-label); color:var(--rz-ink-2); }
+.stkrb-pop .stkrb-f .stkc-in{ display:block; width:100%; height:var(--rz-field-h); box-sizing:border-box; padding:0 var(--rz-field-px); border:1px solid var(--rz-line); border-radius:var(--rz-field-r);
+  background:var(--rz-field-bg); color:var(--rz-ink); font:var(--rz-t-value); -webkit-appearance:none; appearance:none; transition:box-shadow .12s, border-color .12s; }
+.stkrb-pop .stkrb-f .stkc-in:focus{ outline:none; border-color:var(--rz-mint); box-shadow:var(--rz-ring); }
+.stkrb-pop .stkrb-f select.stkc-in, .stkrb-pop .stkrb-f .stkrb-sysbtn{ padding-right:44px; background-image:var(--rz-chev); background-repeat:no-repeat; background-position:right 12px center; background-size:20px; }
+.stkrb-sysbtn{ text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .stkrb-sysbtn[hidden]{ display:none; }
 .stkrb-sysbtn:disabled{ opacity:.6; }
-.stkrb-syslist{ position:fixed; inset:0; z-index:100000; background:var(--bg-1, #0b0f14); display:flex; flex-direction:column; padding:12px; gap:10px; box-sizing:border-box; }
+.stkrb-pop .stkrb-f select.stkrb-nat{ display:none; }
+.stkrb-pop .stkrb-f .stkrb-sysbtn[hidden]{ display:none; }
+.stkrb-help, .stkrb-hint, .stkrb-raw{ display:block; margin-top:6px; font:var(--rz-t-hint); color:var(--rz-ink-2); }
+.stkrb-hint{ margin-top:4px; }
+.stkrb-hint[hidden]{ display:none; }
+.stkrb-hint a{ display:inline-block; padding:8px 6px; margin:-8px -2px; color:var(--rz-mint); font-weight:600; }
+.stkrb-help.stkrb-login-hint{ margin:6px 0 20px; }
+.stkrb-raw{ margin-top:8px; overflow-wrap:anywhere; }
+.stkrb-err[hidden]{ display:none; }
+.stkrb-passwrap{ position:relative; display:block; }
+.stkrb-pop .stkrb-passwrap .stkc-in{ padding-right:52px; }
+.stkrb-eye{ position:absolute; right:4px; top:50%; transform:translateY(-50%); display:grid; place-items:center; width:var(--rz-tap); height:var(--rz-tap); padding:0; border:0; border-radius:50%; background:transparent; color:var(--rz-ink-2); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.stkrb-eye:hover{ color:var(--rz-ink); }
+.stkrb-row{ display:block; margin:0; }
+.stkrb-pop .stkrb-row .stkc-check{ display:flex; align-items:center; gap:12px; min-height:var(--rz-tap); padding:0; font:var(--rz-t-body); color:var(--rz-ink-1); cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.stkrb-pop .stkrb-row .stkc-check input{ flex:none; -webkit-appearance:none; appearance:none; width:22px; height:22px; margin:0; border:1.5px solid var(--rz-ink-2); border-radius:6px; background:transparent; display:grid; place-items:center; cursor:pointer; transition:background .12s, border-color .12s; }
+.stkrb-pop .stkrb-row .stkc-check input:checked{ background:var(--rz-mint); border-color:var(--rz-mint); }
+.stkrb-pop .stkrb-row .stkc-check input:checked::after{ content:''; width:10px; height:5px; border-left:2.2px solid var(--rz-on-mint); border-bottom:2.2px solid var(--rz-on-mint); transform:rotate(-45deg) translate(1px,-1px); }
+.stkrb-pop .stkrb-row .stkc-check input:focus-visible{ outline:none; box-shadow:var(--rz-ring); }
+/* primary button */
+.stkrb-pop .stkrb-go{ display:block; width:100%; height:52px; padding:0 16px; border:0; border-radius:var(--rz-btn-r); background:var(--rz-mint); color:var(--rz-on-mint); font:var(--rz-t-btn); letter-spacing:-.1px; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:filter .12s, transform .08s; }
+.stkrb-pop .stkrb-go:active:not(:disabled){ transform:scale(.99); filter:brightness(.94); }
+.stkrb-pop .stkrb-go:disabled{ opacity:1; background:rgba(150,160,175,.18); color:var(--rz-ink-2); cursor:default; }
+.stkrb-pop .stkrb-helplink{ margin:20px 0 0 !important; font:600 15px/20px var(--rz-font); }
+.stkrb-helplink a{ display:inline-flex; align-items:center; min-height:var(--rz-tap); margin:-12px 0; }
+.stkrb-on p{ font:var(--rz-t-body); color:var(--rz-ink-1); }
+.stkrb-on b{ color:var(--rz-ink); }
+.stkrb-ids{ margin:0 0 12px; font:var(--rz-t-hint); color:var(--rz-ink-2); overflow-wrap:anywhere; }
+.stkrb-ids span{ display:block; }
+.stkrb-ids code{ font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:var(--rz-ink-1); user-select:all; }
+.stkrb-off{ width:100%; height:var(--rz-field-h); margin-top:4px; border:1px solid var(--rz-line); border-radius:var(--rz-btn-r); background:transparent; color:var(--rz-ink); font:var(--rz-t-btn); cursor:pointer; }
+.stkrb-off:hover{ border-color:var(--red, #e5484d); color:var(--red, #e5484d); }
+/* system picker (phones) */
+.stkrb-syslist{ position:fixed; inset:0; z-index:100000; background:var(--rz-sheet-bg); display:flex; flex-direction:column; padding:8px var(--rz-pad) env(safe-area-inset-bottom, 0px); gap:12px; box-sizing:border-box; }
 .stkrb-syslist[hidden]{ display:none; }
-.stkrb-syshead{ display:flex; align-items:center; justify-content:space-between; color:var(--ink-0); font-size:15px; }
-.stkrb-sysx{ height:36px; padding:0 12px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
-.stkrb-syslist > input{ width:100%; flex:none; height:44px; font-size:16px; box-sizing:border-box; }
+.stkrb-syshead{ display:flex; align-items:center; justify-content:space-between; min-height:var(--rz-head-h); color:var(--rz-ink); font:var(--rz-t-title); }
+.stkrb-sysx{ height:var(--rz-tap); padding:0 4px; border:0; background:transparent; color:var(--rz-mint); font:600 17px/22px var(--rz-font); cursor:pointer; }
+.stkrb-syslist > input{ width:100%; flex:none; height:var(--rz-field-h); box-sizing:border-box; padding:0 var(--rz-field-px); border:1px solid var(--rz-line); border-radius:var(--rz-field-r); background:var(--rz-field-bg); color:var(--rz-ink); font:var(--rz-t-value); }
+.stkrb-syslist > input:focus{ outline:none; border-color:var(--rz-mint); box-shadow:var(--rz-ring); }
 .stkrb-sysrows{ flex:1; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
 .stkrb-sysrows::-webkit-scrollbar{ width:6px; }
 .stkrb-sysrows::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
-.stkrb-sysrow{ display:block; width:100%; min-height:52px; text-align:left; padding:0 14px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--ink-0); font:600 16px/1.2 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-sysrow.on{ color:var(--gold); }
-/* Phones: the sheet is a fixed full-screen layer on <body>, away from the toolbar popover and chart relayout. */
-.stkc-pop.stkrb-pop.stkrb-full{ position:fixed; inset:0; top:0; left:0; right:0; bottom:0; width:auto; max-width:none; min-width:0; max-height:none; height:100%; z-index:99990;
-  border:0; border-radius:0; padding:14px 14px 28px; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain; background:var(--bg-1, #0b0f14);
-  scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-sysrow{ display:block; width:100%; min-height:56px; text-align:left; padding:0 4px; border:0; border-bottom:1px solid var(--rz-line); background:transparent; color:var(--rz-ink); font:var(--rz-t-value); cursor:pointer; }
+.stkrb-sysrow.on{ color:var(--rz-mint); font-weight:600; }
+/* the sheet: popover on desktop, bottom sheet on phones */
+.stkc-pop.stkrb-pop{ width:440px; max-width:calc(100vw - 16px); padding:0 var(--rz-pad) var(--rz-pad); box-sizing:border-box; background:var(--rz-sheet-bg); color:var(--rz-ink); border-radius:16px; }
+.stkrb-grab-s, .stkrb-fullx{ display:none; }
+.stkc-pop.stkrb-pop.stkrb-full{ position:fixed; inset:calc(env(safe-area-inset-top, 0px) + 16px) 0 0 0; width:auto; max-width:none; min-width:0; max-height:none; height:auto; z-index:99990;
+  border:1px solid var(--rz-line); border-bottom:0; border-radius:20px 20px 0 0; padding:0 var(--rz-pad) calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y:auto; overscroll-behavior:contain;
+  box-shadow:0 0 0 100vmax rgba(0,0,0,.55); scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-pop:not([hidden]).stkrb-full{ animation:rz-up .24s ease-out; }
 .stkrb-full::-webkit-scrollbar{ width:6px; }
 .stkrb-full::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
-.stkrb-fullx{ display:none; }
-.stkrb-full .stkrb-fullx{ display:block; margin:0 0 10px auto; height:36px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
-@media (min-width:361px){ .stkrb-two{ grid-template-columns:1fr 1fr; gap:10px; } }
-@media (max-width:700px){
-  .stkrb-pop{ width:auto; }
-  .stkrb-f .stkc-in{ height:40px; font-size:16px; }
-  .stkrb-go, .stkrb-off{ height:42px; }
-}
+.stkrb-full .stkrb-grab-s{ display:block; position:absolute; top:8px; left:50%; width:36px; height:4px; margin-left:-18px; border-radius:999px; background:var(--rz-line); }
+.stkrb-full .stkrb-fullx{ display:grid; position:absolute; top:6px; right:12px; z-index:3; }
+.stkrb-full .stkrb-form > h3{ padding:6px 52px 0 0; box-sizing:border-box; }
+.stkrb-sheet-legal{ margin:24px 0 0; padding-top:16px; border-top:1px solid var(--rz-line); }
+.stkrb-sheet-legal .stkrb-logos{ margin:0 0 12px; gap:16px; align-items:center; }
+.stkrb-sheet-legal .stkrb-legal{ font:var(--rz-t-legal); color:var(--rz-ink-2); }
+.stkrb-sheet-legal .stkrb-legal li{ margin:0 0 8px; }
+.stkrb-sheet-legal .stkrb-legal li:last-child{ margin:0; }
+.stkrb-pop .stkrb-note{ margin:12px 0 0 !important; font:var(--rz-t-hint); color:var(--rz-ink-2); }
+.stkrb-note.stkrb-test{ border-top:0; padding-top:0; color:var(--rz-amber); }
+@media (min-width:481px){ .stkrb-two{ grid-template-columns:1fr 1fr; gap:12px; } }
+@media (min-width:361px) and (max-width:480px){ .stkrb-two{ grid-template-columns:1fr; } }
+@keyframes rz-up{ from{ transform:translateY(100%); } to{ transform:none; } }
+@keyframes rz-fade{ from{ opacity:0; } to{ opacity:1; } }
+@media (prefers-reduced-motion:reduce){ .stkrb-pop:not([hidden]).stkrb-full, .stkrb-card{ animation:rz-fade .2s linear; } }
 `;
 
 function el(tag, attrs, kids) {
@@ -181,6 +220,9 @@ function el(tag, attrs, kids) {
   (kids || []).forEach((c) => c && n.appendChild(c));
   return n;
 }
+const EYE_ON = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.5A17 17 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 4.2-.9M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+const X_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
 const lsGet = (k) => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
 const lsSet = (k, v) => { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} };
 const toast = (m, type) => { try { if (window.showToast) window.showToast(type || 'success', m); } catch (e) {} };
@@ -264,7 +306,8 @@ export function createRithmic(cfg) {
     const wrap = el('div', { class: 'stkc-menu' }, phone ? [btn] : [btn, pop]);
     if (phone) {
       pop.classList.add('stkrb-full');
-      pop.appendChild(el('button', { type: 'button', class: 'stkrb-fullx', 'aria-label': 'Close', text: 'Close', onclick: () => setOpen(false) }));
+      pop.appendChild(el('div', { class: 'stkrb-grab-s', 'aria-hidden': 'true' }));
+      pop.appendChild(el('button', { type: 'button', class: 'stkrb-xbtn stkrb-fullx', 'aria-label': 'Close', html: X_ICON, onclick: () => setOpen(false) }));
       document.body.appendChild(pop);
     }
     barR.insertBefore(wrap, barR.firstChild);
@@ -289,10 +332,10 @@ export function createRithmic(cfg) {
     const ICON_LOCK = '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>';
     const ICON_WARN = '<path d="M12 4 2.8 19h18.4z"/><path d="M12 10v4M12 17h.01"/>';
     // The full checklist lives in a bottom card (opened by "Where's my Rithmic login?").
-    const appName = cfg.appName || 'Stryker Charts';
+    const appName = cfg.appName;
     const card = el('div', { class: 'stkrb-card', id: 'stkrb-card', role: 'dialog', 'aria-label': 'Where is my Rithmic login', hidden: true }, [
       el('div', { class: 'stkrb-grab' }),
-      el('h4', null, [el('span', { text: 'Before you connect' }), el('button', { type: 'button', class: 'stkrb-cx', id: 'stkrb-card-x', text: 'Done' })]),
+      el('h4', null, [el('span', { text: 'Before you connect' }), el('button', { type: 'button', class: 'stkrb-xbtn', id: 'stkrb-card-x', 'aria-label': 'Close', html: X_ICON })]),
       el('ol', { class: 'stkrb-checks', id: 'stkrb-checks' }, [
         li([el('b', { text: 'A Rithmic login, not a website login' }), t('Your prop firm sends a separate Rithmic username and password. The one for their dashboard or website will not work here.')]),
         li([el('b', { text: 'The same system name as R | Trader Pro' }), t('Pick the system you choose when you sign in to R | Trader Pro.')]),
@@ -330,7 +373,7 @@ export function createRithmic(cfg) {
       hint.hidden = !(near && cur && cur.id !== near.id);
       if (!hint.hidden) { hint.textContent = 'Closest to you: ' + near.label + '. '; hint.appendChild(el('a', { href: '#', text: 'Use it', onclick: (e) => { e.preventDefault(); gwSel.value = near.uri; gwSel.dispatchEvent(new Event('change')); } })); }
     };
-    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', null, [el('em', { class: 'stkrb-n', text: '1', style: 'font-style:normal' }), t('Server location')]), gwSel, el('small', { class: 'stkrb-help', text: 'The nearest city is fastest. Chicago suits most people.' }), hint]);
+    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', null, [t('Server location')]), gwSel, el('small', { class: 'stkrb-help', text: 'The nearest city is fastest. Chicago suits most people.' }), hint]);
     gwSel.addEventListener('change', () => { systemsLoaded = false; syncProg(); showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
     setTimeout(showHint, 0);
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
@@ -339,8 +382,8 @@ export function createRithmic(cfg) {
     const sysBtn = el('button', { type: 'button', class: 'stkc-in stkrb-sysbtn', id: 'stkrb-sysbtn', 'aria-haspopup': 'listbox', text: 'Loading systems...' });
     const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', required: true });
     const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', required: true });
-    const eye = el('button', { type: 'button', class: 'stkrb-eye', 'aria-label': 'Show password', 'aria-pressed': 'false', text: 'Show' });
-    eye.addEventListener('click', () => { const show = pass.type === 'password'; pass.type = show ? 'text' : 'password'; eye.textContent = show ? 'Hide' : 'Show'; eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); eye.setAttribute('aria-pressed', show ? 'true' : 'false'); });
+    const eye = el('button', { type: 'button', class: 'stkrb-eye', 'aria-label': 'Show password', 'aria-pressed': 'false', html: EYE_ON });
+    eye.addEventListener('click', () => { const show = pass.type === 'password'; pass.type = show ? 'text' : 'password'; eye.innerHTML = show ? EYE_OFF : EYE_ON; eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); eye.setAttribute('aria-pressed', show ? 'true' : 'false'); });
     const remember = el('input', { type: 'checkbox', id: 'stkrb-remember' });
     const go = el('button', { type: 'submit', class: 'stkc-sbtn stkrb-go', id: 'stkrb-go', text: 'Connect' });
     const testNote = el('p', { class: 'stkrb-note stkrb-test', id: 'stkrb-test-note', hidden: true, text: 'Admin: the Rithmic Test gateway has no real market prices.' });
@@ -354,12 +397,12 @@ export function createRithmic(cfg) {
       whereBtn,
       err,
       gwField,
-      el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '2', style: 'font-style:normal' }), t('Prop firm')]), sys, sysBtn, el('small', { class: 'stkrb-help', id: 'stkrb-sys-hint', text: 'Pick the same name R | Trader Pro shows at sign-in.' })]),
+      el('label', { class: 'stkrb-f' }, [el('span', null, [t('Prop firm')]), sys, sysBtn, el('small', { class: 'stkrb-help', id: 'stkrb-sys-hint', text: 'Pick the same name R | Trader Pro shows at sign-in.' })]),
       el('div', { class: 'stkrb-two' }, [
-        el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '3', style: 'font-style:normal' }), t('Rithmic username')]), user]),
-        el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '3', style: 'font-style:normal' }), t('Rithmic password')]), el('span', { class: 'stkrb-passwrap' }, [pass, eye])])
+        el('label', { class: 'stkrb-f' }, [el('span', null, [t('Rithmic username')]), user]),
+        el('label', { class: 'stkrb-f' }, [el('span', null, [t('Rithmic password')]), el('span', { class: 'stkrb-passwrap' }, [pass, eye])])
       ]),
-      el('small', { class: 'stkrb-help', id: 'stkrb-login-hint', style: 'margin:-3px 0 8px', text: 'From your firm\u2019s Rithmic email, not the website login.' }),
+      el('small', { class: 'stkrb-help stkrb-login-hint', id: 'stkrb-login-hint', text: 'From your firm\u2019s Rithmic email, not the website login.' }),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Save username on this device' })])]),
       el('p', { class: 'stkrb-session', id: 'stkrb-session' }, [svg(ICON_WARN, 14), el('span', { text: 'One session per login: connecting can sign out your trading app. Don\u2019t connect mid-trade.' })]),
       go,
@@ -369,10 +412,12 @@ export function createRithmic(cfg) {
       el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
     let systemsLoaded = false;
+    let busy = false;
     const syncProg = () => {
       const s1 = systemsLoaded, s2 = !!sys.value, s3 = !!(user.value.trim() && pass.value);
       const done = [s1, s1 && s2, s1 && s2 && s3];
       const cur = done.findIndex((d) => !d);
+      go.disabled = busy || !(s2 && s3);
       progItems.forEach((n, i) => { n.className = done[i] ? 'done' : (i === cur ? 'on' : ''); if (done[i]) n.setAttribute('aria-label', ['Server', 'Prop firm', 'Login'][i] + ' done'); else n.removeAttribute('aria-label'); n.title = ''; });
     };
     [user, pass].forEach((x) => x.addEventListener('input', syncProg));
@@ -483,7 +528,7 @@ export function createRithmic(cfg) {
       const s = sys.value;
       if (!s) { showErr('Choose your Rithmic system (your prop firm or broker).'); return; }
       if (!u || !p) { showErr('Enter your Rithmic username and password.'); return; }
-      go.disabled = true; go.textContent = 'Connecting...';
+      busy = true; go.disabled = true; go.textContent = 'Connecting...';
       pass.value = ''; // the client holds it in memory from here
       lsSet(LS_USER, remember.checked ? u : '');
       lsSet(LS_SYS, s);
@@ -496,7 +541,7 @@ export function createRithmic(cfg) {
         const r = explainLoginError({ codes: e && e.rpRaw, text: e && e.message, system: s, gateway: gw && gw.label, appName: cfg.appName });
         showErr(r.message, r.raw || '');
       } finally {
-        go.disabled = false; go.textContent = 'Connect';
+        busy = false; go.textContent = 'Connect'; syncProg();
       }
     }
     off.addEventListener('click', async () => { await client.disconnect(); toast('Disconnected from Rithmic'); setOpen(false); });

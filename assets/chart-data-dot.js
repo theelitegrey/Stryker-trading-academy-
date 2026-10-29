@@ -178,6 +178,10 @@ export function installDataDot(ws, opts = {}) {
     ['pointerdown', 'mousedown', 'touchstart'].forEach((ev) => d.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
     d.addEventListener('click', (e) => {
       e.stopPropagation();
+      // Delayed CME futures (Owner 2026-10-30): the dot opens the same "Get live futures data" sheet as the
+      // pill at the bottom of the chart (assets/chart-data-banner.js), not just the tooltip.
+      const B = window.STRYKER_DATA_BANNER;
+      if (d.dataset.s === 'delayed' && B && B.canOffer && B.canOffer(d.dataset.sym)) { hideTip(); B.open(); return; }
       if (tipFor === d && d.dataset.pinned) { delete d.dataset.pinned; hideTip(); return; }
       d.dataset.pinned = '1';
       showTip(d);
@@ -212,6 +216,8 @@ export function installDataDot(ws, opts = {}) {
       else if (dot.previousElementSibling !== meta) meta.after(dot);
       if (!sl.classList.contains('stkc-has-dd')) sl.classList.add('stkc-has-dd');
       if (dot.dataset.s !== st.s) dot.dataset.s = st.s;
+      const sym = String(bySym[cell.getAttribute('data-cell-id')] || '');
+      if (dot.dataset.sym !== sym) dot.dataset.sym = sym;
       const t = dot.querySelector('.stkc-dd-t');
       if (t && t.textContent !== st.tag) t.textContent = st.tag;
       if (dot.dataset.tip !== st.text) {

@@ -812,7 +812,7 @@ function lateLists(provider){
   };
   if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
   else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
-  // Delayed-data strip under the toolbar (CME futures, viewer not real-time): assets/chart-data-banner.js.
+  // Delayed-data pill at the bottom of the chart + its sheet (CME futures, viewer not real-time): assets/chart-data-banner.js.
   import('./chart-data-banner.js?v=735')
     .then((m) => m.installDataBanner(ws, { rith: rithRef, getRith: () => rith }))
     .catch((e) => console.warn('TradeZoro: data banner', e));

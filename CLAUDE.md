@@ -9,3 +9,6 @@ at session start and follow it for the whole session.
 Normal prose still applies where the skill says so: code, comments, commit
 messages, docs, PR text, security warnings, irreversible-action confirmations.
 The user can switch with `/caveman lite|ultra|off` or "normal mode".
+
+## Design: MANDATORY
+Every page/feature/component follows docs/DESIGN-STANDARD.md (Apple HIG + Material 3, TradeZoro tokens). Before AND after screenshots + a DESIGN CHECK section in the report; no ship without it.

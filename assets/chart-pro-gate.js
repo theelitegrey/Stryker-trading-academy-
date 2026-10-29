@@ -3,7 +3,7 @@
 // Optional: the Vela workspace (window.STRYKER_VELA) for the sweep below.
 //
 // Owner order 2026-10-29: the chart is free for every plan, with no limits. Only THREE things are Pro:
-//   1. real-time data (the server decides; Free keeps the 10-minute delay, nothing to do here),
+//   1. (real-time futures data is decided by the server: Rithmic, the $5 add-on, early Pro members or approval; nothing to do here),
 //   2. order flow tools: everything in the Order Flow group, the Footprint chart type, the DOM panels,
 //   3. GEX on charts: GEX levels / gamma profile, GEX heatmap, GEX ladder, Expected Move (same options chain).
 // Free members see those listed with a small "PRO" tag; a click opens the upgrade modal.

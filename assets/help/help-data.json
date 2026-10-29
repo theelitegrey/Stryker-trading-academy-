@@ -3308,7 +3308,7 @@
       {
        "id": "rithmic-connect",
        "q": "How do I connect Rithmic?",
-       "a": "<p>Open the \"Connect your prop firm\" sheet (or tap the green \"Live futures: connect\" pill on a futures chart). Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
+       "a": "<p>Open the \"Connect your prop firm\" sheet (tap Connect data source on the chart strip, or Connect broker in the toolbar). Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
        "steps": [
         "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
         "Not sure what login to use? Tap \"Where\u2019s my Rithmic login?\" for the checklist.",

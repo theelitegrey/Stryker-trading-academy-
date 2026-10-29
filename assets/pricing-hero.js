@@ -217,7 +217,7 @@
     desk: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M7 12l3-3 3 2 4-4"/><path d="M9 20h6M12 16v4"/>',
     community: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14.5c1.8.8 3 2.6 3 4.5"/>'
   };
-  var ICON_ORDER = ['desk', 'replay', 'gex', 'journal', 'learn', 'desk'];   // Pro feature order: real-time, order flow, GEX on charts, journal, chapters, desk
+  var ICON_ORDER = ['replay', 'gex', 'journal', 'learn', 'desk', 'community'];   // Pro feature order: order flow, GEX on charts, journal, chapters, desk, community (no real-time line since 2026-10-30)
   function icon(k) {
     return '<span class="pv-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ICONS[k] + '</svg></span>';
   }

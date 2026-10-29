@@ -28,7 +28,6 @@ const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).hr
 const LS_GW = 'stryker_rithmic_gateway';
 
 const LS_USER = 'stryker_rithmic_user';
-const LS_HIDE = 'stryker_rithmic_chip_hide_until';   // epoch ms: the chart shortcut stays hidden until then (7 days after the member dismisses it)
 const HELP_URL = '/help#rithmic-connect';
 // The chosen system is remembered per signed-in member (not a credential, so no checkbox needed).
 const LS_SYS = (() => { try { const u = typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid; return 'stryker_rithmic_system' + (u ? '_' + u : ''); } catch (e) { return 'stryker_rithmic_system'; } })();
@@ -164,12 +163,6 @@ const CSS = `
 .stkrb-fullx{ display:none; }
 .stkrb-full .stkrb-fullx{ display:block; margin:0 0 10px auto; height:36px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
 @media (min-width:361px){ .stkrb-two{ grid-template-columns:1fr 1fr; gap:10px; } }
-.stkrb-chipgo{ position:fixed; z-index:60; display:inline-flex; align-items:center; gap:2px; height:28px; border-radius:999px; background:rgba(3,201,136,.14); border:1px solid rgba(3,201,136,.5); color:var(--gold); font:600 12px/1 inherit; font-family:inherit; box-shadow:0 4px 14px -6px rgba(0,0,0,.6); backdrop-filter:blur(6px); }
-.stkrb-chipgo{ display:none !important; }   /* Owner 2026-10-30: the delayed-data strip (chart-data-banner.js) replaces this chip */
-.stkrb-chipgo[hidden]{ display:none; }
-.stkrb-chipgo button{ display:inline-flex; align-items:center; gap:6px; height:100%; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; padding:0 4px 0 10px; border-radius:999px 0 0 999px; white-space:nowrap; }
-.stkrb-chipgo button.x{ padding:0 9px 0 4px; font-size:15px; line-height:1; border-radius:0 999px 999px 0; opacity:.8; }
-.stkrb-chipgo button:hover{ color:var(--ink-0); }
 @media (max-width:700px){
   .stkrb-pop{ width:auto; }
   .stkrb-f .stkc-in{ height:40px; font-size:16px; }
@@ -295,7 +288,6 @@ export function createRithmic(cfg) {
     const svg = (d, w) => el('span', { html: '<svg width="' + (w || 14) + '" height="' + (w || 14) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>' }).firstChild;
     const ICON_LOCK = '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>';
     const ICON_WARN = '<path d="M12 4 2.8 19h18.4z"/><path d="M12 10v4M12 17h.01"/>';
-    const ICON_PLUG = '<path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/>';
     // The full checklist lives in a bottom card (opened by "Where's my Rithmic login?").
     const appName = cfg.appName || 'Stryker Charts';
     const card = el('div', { class: 'stkrb-card', id: 'stkrb-card', role: 'dialog', 'aria-label': 'Where is my Rithmic login', hidden: true }, [
@@ -512,7 +504,6 @@ export function createRithmic(cfg) {
     // popover open/close (same behaviour as the other toolbar menus)
     function setOpen(open) {
       pop.hidden = !open;
-      setTimeout(() => { try { syncChip(); } catch (e) {} }, 0);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) { render(); if (!client.connected) { loadSystems(); if (!touch) setTimeout(() => (user.value ? pass : user).focus(), 30); }
       else if (!sysList.hidden) sysList.hidden = true; }
@@ -595,47 +586,7 @@ export function createRithmic(cfg) {
     });
     window.addEventListener('pagehide', () => { client.disconnect(true); });
 
-    // ---- chart shortcut: a small mint pill on the chart for signed-in members who are not connected, on futures ----
-    // Hidden while connected, on non-futures symbols, for signed-out visitors, and for 7 days after the member taps the x.
-    const go7 = el('button', { type: 'button', id: 'stkrb-chipgo-b', 'aria-label': 'Live futures: connect your prop firm login' }, [svg(ICON_PLUG, 14), el('span', { text: 'Live futures: connect' })]);
-    const nogo = el('button', { type: 'button', class: 'x', id: 'stkrb-chipgo-x', 'aria-label': 'Hide for 7 days', title: 'Hide for 7 days', text: '\u00d7' });
-    const chipGo = el('div', { class: 'stkrb-chipgo', id: 'stkrb-chipgo', hidden: true }, [go7, nogo]);
-    document.body.appendChild(chipGo);
-    const isFut = (sym) => /^futures:/i.test(sym || '') || /^[A-Z0-9]+1!$/i.test(sym || '');
-    const signedIn = () => { try { return !!(typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid); } catch (e) { return false; } };
-    const hiddenUntil = () => { const v = Number(lsGet(LS_HIDE)); return Number.isFinite(v) ? v : 0; };
-    function placeChip() {
-      const host = document.getElementById('vela-chart');
-      if (!host) return false;
-      const r = host.getBoundingClientRect();
-      if (r.width < 200 || r.height < 120) return false;
-      // top-right of the plot, left of the price axis; never over the toolbar
-      // phones: under the symbol line (the line itself is full width), right side is free; desktop: top-right corner
-      chipGo.style.top = Math.round(r.top + (r.width < 700 ? 40 : 6)) + 'px';
-      chipGo.style.right = Math.max(8, Math.round(window.innerWidth - r.right + 64)) + 'px';
-      return true;
-    }
-    function syncChip() {
-      let sym = '';
-      try { sym = (ws && ws.active && ws.active.symbol) || ''; } catch (e) {}
-      const on = client.state === 'connected' || client.state === 'reconnecting';
-      const show = signedIn() && !on && isFut(sym) && Date.now() >= hiddenUntil() && pop.hidden;
-      chipGo.hidden = !(show && placeChip());
-    }
-    go7.addEventListener('click', (e) => {
-      e.stopPropagation();
-      document.querySelectorAll('.stkc-pop').forEach((p) => { if (p !== pop && !p.hidden) p.hidden = true; });
-      setOpen(true);
-    });
-    nogo.addEventListener('click', (e) => { e.stopPropagation(); lsSet(LS_HIDE, String(Date.now() + 7 * 864e5)); chipGo.hidden = true; });
-    ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, () => setTimeout(syncChip, 0)); } catch (e) {} });
-    client.on(() => syncChip());
-    window.addEventListener('resize', syncChip);
-    const hostEl = document.getElementById('vela-chart');
-    if (hostEl && window.ResizeObserver) new ResizeObserver(syncChip).observe(hostEl);
-    setInterval(syncChip, 2000);   // cheap safety net: sign-in finishing, symbol swaps, the 7 days running out
     render();
-    syncChip();
   }
 
   return { client, providerFactory, mount, api };

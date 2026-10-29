@@ -13,7 +13,7 @@
 //                 Existing trades are never hidden or deleted, and editing an
 //                 existing trade is always allowed.
 //   Charts        NO limits for Free (Owner 2026-10-29); the only Pro parts of the
-//                 chart are real-time data, order flow tools and GEX on charts
+//                 chart are order flow tools and GEX on charts (real-time futures is the separate $5 add-on, not Pro)
 //                 (assets/chart-pro-gate.js). Backtesting / replay sessions are
 //                 unlimited for every plan.
 //

@@ -179,3 +179,31 @@
 .gex-ladder-card{padding:16px;}
 
 .gex-level.w0{opacity:.72}.gex-wallnote{line-height:1.5}
+
+/* ---- ZoroTide tab (assets/gex-tide.js) ---- */
+.gex-tide-card{min-width:0;}
+.gex-tide-card[hidden]{display:none!important;}
+.gex-tide-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.gex-tide-head h2{font-size:13px;font-family:var(--font-mono);letter-spacing:.06em;margin:0 0 2px;}
+.gex-tide-sub{margin:0;color:var(--ink-2);font:600 12px/1.3 var(--font-mono);}
+.gex-tide-totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:6px 0 10px;}
+.gex-tide-stat{border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;background:rgba(8,10,12,.6);min-width:0;}
+.gex-tide-stat em{display:block;font-style:normal;color:var(--ink-3);font:700 10px/1.2 var(--font-mono);letter-spacing:.08em;text-transform:uppercase;}
+.gex-tide-stat b{display:block;margin-top:6px;font:800 26px/1.1 var(--font-mono);color:var(--ink-0);white-space:nowrap;}
+.gex-tide-stat small{display:block;margin-top:4px;color:var(--ink-3);font:600 11px/1.2 var(--font-mono);}
+.gex-tide-stat.call b{color:#22c55e;}.gex-tide-stat.put b{color:#ef4444;}
+.gex-tide-wrap{position:relative;height:clamp(340px,52vh,560px);border-radius:14px;overflow:hidden;background:#07090b;border:1px solid rgba(255,255,255,.06);touch-action:pan-y;cursor:crosshair;user-select:none;-webkit-user-select:none;}
+.gex-tide-wrap canvas{display:block;width:100%;height:100%;}
+.gex-tide-tip{min-width:170px;}
+.gex-tide-help{margin-top:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 14px;color:var(--ink-2);font-size:12.5px;line-height:1.55;}
+.gex-tide-help summary{cursor:pointer;color:var(--ink-1,#d7dbe2);font:700 12px/1.3 var(--font-mono);}
+.gex-tide-help p{margin:8px 0 0;}
+@media(max-width:700px){
+  .gex-tide-card{margin:0 -10px 0!important;border-radius:0;border-left:0;border-right:0;padding:12px 10px;}
+  .gex-tide-totals{grid-template-columns:1fr 1fr;gap:8px;}
+  .gex-tide-stat:last-child{grid-column:1 / -1;}
+  .gex-tide-stat b{font-size:24px;}
+  .gex-tide-wrap{height:56vh;min-height:340px;max-height:520px;}
+  .gex-tide-head .gex-heat-day{width:100%;}
+  .gex-tide-head .gex-heat-day select{flex:1;min-width:0;}
+}

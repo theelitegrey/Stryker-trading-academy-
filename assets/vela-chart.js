@@ -544,6 +544,7 @@ function lateLists(provider){
   // round trip on a phone); they are independent, so they are requested together and installed in the old order.
   const newsP = import('./chart-news-markers.js?v=726');
   const msP = import('./chart-market-stats.js?v=726');
+  const tideP = import('./chart-zorotide.js?v=726');
   let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
@@ -563,6 +564,8 @@ function lateLists(provider){
   }
   // News markers + Economic events natives (assets/chart-news-markers.js, Pro): registered before boot too.
   try { (await newsP).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
+  // ZoroTide (assets/chart-zorotide.js, Pro): options money flow in a lower pane, registered before boot so a saved chart restores it.
+  try { (await tideP).installZoroTide(LCore); } catch (e) { console.warn('TradeZoro: ZoroTide install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
   try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.

@@ -94,6 +94,28 @@ const CSS = `
 .stkrb-off{ width:100%; height:34px; margin-top:4px; border:1px solid var(--line); border-radius:6px; background:transparent;
   color:var(--ink-0); font:600 12.5px/1 inherit; font-family:inherit; cursor:pointer; }
 .stkrb-off:hover{ border-color:var(--red, #e5484d); color:var(--red, #e5484d); }
+.stkrb-f select.stkrb-nat{ display:none; }
+.stkrb-sysbtn{ text-align:left; cursor:pointer; color:var(--ink-0); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkrb-sysbtn[hidden]{ display:none; }
+.stkrb-sysbtn:disabled{ opacity:.6; }
+.stkrb-syslist{ position:fixed; inset:0; z-index:100000; background:var(--bg-1, #0b0f14); display:flex; flex-direction:column; padding:12px; gap:10px; box-sizing:border-box; }
+.stkrb-syslist[hidden]{ display:none; }
+.stkrb-syshead{ display:flex; align-items:center; justify-content:space-between; color:var(--ink-0); font-size:15px; }
+.stkrb-sysx{ height:36px; padding:0 12px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
+.stkrb-syslist > input{ width:100%; flex:none; height:44px; font-size:16px; box-sizing:border-box; }
+.stkrb-sysrows{ flex:1; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-sysrows::-webkit-scrollbar{ width:6px; }
+.stkrb-sysrows::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
+.stkrb-sysrow{ display:block; width:100%; min-height:52px; text-align:left; padding:0 14px; border:0; border-bottom:1px solid var(--line); background:transparent; color:var(--ink-0); font:600 16px/1.2 inherit; font-family:inherit; cursor:pointer; }
+.stkrb-sysrow.on{ color:var(--gold); }
+/* Phones: the sheet is a fixed full-screen layer on <body>, away from the toolbar popover and chart relayout. */
+.stkc-pop.stkrb-pop.stkrb-full{ position:fixed; inset:0; top:0; left:0; right:0; bottom:0; width:auto; max-width:none; min-width:0; max-height:none; height:100%; z-index:99990;
+  border:0; border-radius:0; padding:14px 14px 28px; box-sizing:border-box; overflow-y:auto; overscroll-behavior:contain; background:var(--bg-1, #0b0f14);
+  scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-full::-webkit-scrollbar{ width:6px; }
+.stkrb-full::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
+.stkrb-fullx{ display:none; }
+.stkrb-full .stkrb-fullx{ display:block; margin:0 0 10px auto; height:36px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
 @media (max-width:700px){
   .stkrb-pop{ width:auto; }
   .stkrb-f .stkc-in{ height:40px; font-size:16px; }
@@ -191,7 +213,13 @@ export function createRithmic(cfg) {
     const btn = el('button', { type: 'button', class: 'stkc-btn', id: 'stkrb-btn', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Connect broker',
       html: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/></svg><span class="stkc-btn-l">Connect broker</span>' });
     const pop = el('div', { class: 'stkc-pop stkrb-pop', id: 'stkrb-pop', role: 'dialog', 'aria-label': 'Connect broker', hidden: true });
-    const wrap = el('div', { class: 'stkc-menu' }, [btn, pop]);
+    const phone = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+    const wrap = el('div', { class: 'stkc-menu' }, phone ? [btn] : [btn, pop]);
+    if (phone) {
+      pop.classList.add('stkrb-full');
+      pop.appendChild(el('button', { type: 'button', class: 'stkrb-fullx', 'aria-label': 'Close', text: 'Close', onclick: () => setOpen(false) }));
+      document.body.appendChild(pop);
+    }
     barR.insertBefore(wrap, barR.firstChild);
     barR.insertBefore(chip, wrap);
 
@@ -226,6 +254,9 @@ export function createRithmic(cfg) {
     gwSel.addEventListener('change', () => { systemsLoaded = false; showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
     setTimeout(showHint, 0);
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
+    const touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+    // Phones: our own tappable list instead of the native picker (Android closes that one on any layout change).
+    const sysBtn = el('button', { type: 'button', class: 'stkc-in stkrb-sysbtn', id: 'stkrb-sysbtn', 'aria-haspopup': 'listbox', text: 'Loading systems...' });
     const user = el('input', { class: 'stkc-in', id: 'stkrb-user', type: 'text', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', required: true });
     const pass = el('input', { class: 'stkc-in', id: 'stkrb-pass', type: 'password', autocomplete: 'current-password', required: true });
     const remember = el('input', { type: 'checkbox', id: 'stkrb-remember' });
@@ -239,7 +270,7 @@ export function createRithmic(cfg) {
       el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
       err,
       gwField,
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, el('small', { class: 'stkrb-hint', id: 'stkrb-sys-hint', text: 'Prop firm account? Pick your firm (e.g. TradeSea, Apex).' })]),
+      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, sysBtn, el('small', { class: 'stkrb-hint', id: 'stkrb-sys-hint', text: 'Prop firm account? Pick your firm (e.g. TradeSea, Apex).' })]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
       el('label', { class: 'stkrb-f' }, [el('span', { text: 'Password' }), pass]),
       el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
@@ -264,15 +295,48 @@ export function createRithmic(cfg) {
     const savedUser = lsGet(LS_USER);
     if (savedUser) { user.value = savedUser; remember.checked = true; }
 
-    sys.addEventListener('change', () => { if (sys.value) lsSet(LS_SYS, sys.value); });
+    if (touch) { sys.classList.add('stkrb-nat'); } else { sysBtn.hidden = true; }
+    sys.addEventListener('change', () => { syncBtn(); if (sys.value) lsSet(LS_SYS, sys.value); });
     let systemsLoaded = false;
-    async function loadSystems() {
-      if (systemsLoaded) return;
+    const sysList = el('div', { class: 'stkrb-syslist', id: 'stkrb-syslist', role: 'listbox', hidden: true });
+    const sysSearch = el('input', { class: 'stkc-in', type: 'search', placeholder: 'Search your firm', 'aria-label': 'Search systems', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
+    const sysRows = el('div', { class: 'stkrb-sysrows' });
+    const sysClose = el('button', { type: 'button', class: 'stkrb-sysx', text: 'Cancel' });
+    sysList.appendChild(el('div', { class: 'stkrb-syshead' }, [el('strong', { text: 'Choose your system' }), sysClose]));
+    sysList.appendChild(sysSearch);
+    sysList.appendChild(sysRows);
+    sysList.addEventListener('click', (e) => e.stopPropagation());
+    document.body.appendChild(sysList);
+    let sysNames = [];
+    const syncBtn = () => { sysBtn.textContent = sys.selectedOptions[0] ? sys.selectedOptions[0].text : 'Choose your system'; sysBtn.disabled = sys.disabled; };
+    const drawRows = () => {
+      const q = sysSearch.value.trim().toLowerCase();
+      sysRows.innerHTML = '';
+      sysNames.filter((n) => !q || n.toLowerCase().includes(q)).forEach((n) => {
+        sysRows.appendChild(el('button', { type: 'button', class: 'stkrb-sysrow' + (n === sys.value ? ' on' : ''), role: 'option', text: n, onclick: () => {
+          sys.value = n; lsSet(LS_SYS, n); syncBtn(); sysList.hidden = true; } }));
+      });
+      if (!sysRows.children.length) sysRows.appendChild(el('p', { class: 'stkrb-note', text: 'No match.' }));
+    };
+    sysBtn.addEventListener('click', () => { if (sys.disabled) return; sysSearch.value = ''; drawRows(); sysList.hidden = false; });
+    sysClose.addEventListener('click', () => { sysList.hidden = true; });
+    sysSearch.addEventListener('input', drawRows);
+    let sysLoading = null;
+    function loadSystems() {
+      if (systemsLoaded) return Promise.resolve();
+      if (sysLoading) return sysLoading;
+      sysLoading = loadSystems2().finally(() => { sysLoading = null; syncBtn(); });
+      return sysLoading;
+    }
+    async function loadSystems2() {
+      sys.disabled = true;
       sys.innerHTML = '';
       sys.appendChild(el('option', { value: '', text: 'Loading systems...' }));
+      syncBtn();
       try {
         const names = await listSystems(gwSel.value || cfg.gateway);
         systemsLoaded = true;
+        sys.disabled = false;
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Choose your system' }));
         const want = lsGet(LS_SYS);
@@ -285,9 +349,11 @@ export function createRithmic(cfg) {
         if (!shown.length) showErr('This location returned no systems. Try another gateway.');
         shown.forEach((n) => sys.appendChild(el('option', { value: n, text: n, selected: n === want })));
         if (shown.length === 1) sys.value = shown[0];
+        sysNames = shown;
       } catch (e) {
         sys.innerHTML = '';
         sys.appendChild(el('option', { value: '', text: 'Could not load systems' }));
+        sysNames = [];
         showErr('Could not reach Rithmic to list systems. Check your connection and try again.');
       }
     }
@@ -327,7 +393,8 @@ export function createRithmic(cfg) {
     function setOpen(open) {
       pop.hidden = !open;
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (open) { render(); if (!client.connected) { loadSystems(); setTimeout(() => (user.value ? pass : user).focus(), 30); } }
+      if (open) { render(); if (!client.connected) { loadSystems(); if (!touch) setTimeout(() => (user.value ? pass : user).focus(), 30); }
+      else if (!sysList.hidden) sysList.hidden = true; }
     }
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -336,7 +403,7 @@ export function createRithmic(cfg) {
       setOpen(open);
     });
     pop.addEventListener('click', (e) => e.stopPropagation());
-    document.addEventListener('click', () => { if (!pop.hidden) setOpen(false); });
+    document.addEventListener('click', (e) => { if (!pop.hidden && !(phone && pop.contains(document.activeElement)) && !(e.target && e.target.closest && e.target.closest('.stkrb-syslist'))) setOpen(false); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) setOpen(false); });
 
     function render() {

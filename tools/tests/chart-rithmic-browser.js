@@ -94,7 +94,7 @@ async function waitFor(p, fn, arg, ms = 15000) { try { await p.waitForFunction(f
     check(normal && !isMock(normal), 'flag on, not connected: chart uses the normal data (close ' + (normal && normal.close) + ')');
     check(await p.evaluate(() => !!document.getElementById('stkrb-btn') && document.getElementById('stkrb-chip').hidden), 'flag on: Connect broker button shown, chip hidden while disconnected');
     await p.click('#stkrb-btn');
-    check(await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 3), 'sheet lists the systems from RequestRithmicSystemInfo');
+    check(await waitFor(p, () => document.querySelectorAll('#stkrb-sys option[value]:not([value=""])').length === 4), 'sheet lists the systems from RequestRithmicSystemInfo');
     const sheet = await p.evaluate(() => ({
       systems: [...document.querySelectorAll('#stkrb-sys option')].map((o) => o.textContent),
       tradovate: [...document.querySelectorAll('.stkrb-broker')].map((x) => x.textContent + (x.disabled ? ' [disabled]' : '')),

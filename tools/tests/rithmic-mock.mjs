@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 import { T, encode, decode } from '../../assets/rithmic-proto.js';
 
 const PORT = Number(process.argv[2] || process.env.RITHMIC_MOCK_PORT || 8765);
-const SYSTEMS = ['Rithmic Test', 'Rithmic Paper Trading', 'TradeSea'];
+const SYSTEMS = ['Rithmic Test', 'Rithmic Paper Trading', 'TradeSea', 'Apex'];
 const FRONT = { NQ: 'NQZ6', MNQ: 'MNQZ6', ES: 'ESZ6', MES: 'MESZ6', GC: 'GCZ6', CL: 'CLX6' };
 // Deliberately unlike any real price, so a test can tell mock bars from the normal data.
 const BASE = { NQZ6: 11111, MNQZ6: 11111, ESZ6: 3333, MESZ6: 3333, GCZ6: 999, CLX6: 33 };
@@ -79,7 +79,8 @@ function onMessage(c, m) {
   const um = m.user_msg;
   switch (m.template_id) {
     case T.SYSTEM_INFO:
-      c.send({ template_id: T.SYSTEM_INFO_R, user_msg: um, rp_code: ['0'], system_name: SYSTEMS, has_aggregated_quotes: SYSTEMS.map(() => false) });
+      // RITHMIC_MOCK_DELAY=ms makes the systems list slow (picker tests).
+      setTimeout(() => c.send({ template_id: T.SYSTEM_INFO_R, user_msg: um, rp_code: ['0'], system_name: SYSTEMS, has_aggregated_quotes: SYSTEMS.map(() => false) }), Number(process.env.RITHMIC_MOCK_DELAY || 0));
       break;
     case T.LOGIN: {
       const ok = m.user === 'demo' && m.password === 'demo-pass' && SYSTEMS.includes(m.system_name) && !!m.app_name;

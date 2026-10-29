@@ -72,6 +72,7 @@ export const PICKER_SCRIPTS = [
   // Owner 2026-10-12 "add this indicator": the Owner's own script; only the 4 brand lines changed
   // ([Stryker] -> [TradeZoro], header credit), logic byte-identical to the Owner's file.
   { id: 'liquidity-master-tradezoro', name: 'Liquidity Master [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/liquidity-master-tradezoro.pine?v=713', desc: 'Session, previous day / week / month, swing and candle liquidity per timeframe, HTF FVGs, REQH / REQL and draw-on-liquidity tables' },
+  { id: 'session-sweep-smt-ifvg', name: 'Session Sweep SMT + IFVG [TradeZoro]', author: 'TradeZoro', section: 'picks', source: 'pine/session-sweep-smt-ifvg.pine?v=713', desc: 'Session and previous day highs / lows, the sweep of each, SMT against the correlated symbol, and the IFVG that follows. Marks only.' },
 ];
 
 // Indicators-window keys of TradeZoro-made indicators defined elsewhere (Editors' picks order).

@@ -1,0 +1,474 @@
+//@version=6
+// ═════════════════════════════════════════════════════════════════════════════
+//   SESSION SWEEP SMT + IFVG [TradeZoro]
+//   © TradeZoro  ·  tradezoro.com
+//   Pine Script v6  ·  indicator only: it marks the chart, nothing else.
+//
+//   One model, marked step by step:
+//     1. Session highs / lows (Asia, London, NY AM, optional NY PM) and the
+//        previous day high / low are drawn from where they printed, and run
+//        to the right until swept.
+//     2. Sweep: a candle trades through a level by at least one tick. The line
+//        stops on that candle and a small "✕ ... swept" mark sits on the wick.
+//     3. SMT at the sweep: the correlated symbol did NOT take its own level
+//        for the same session (low for a low sweep, high for a high sweep).
+//        A dashed line joins the two swing points on this chart.
+//     4. IFVG: after a sweep with SMT, the first fair value gap against the
+//        move that price then closes through, within N bars, is boxed as the
+//        IFVG and extended until it is mitigated.
+//     5. When all three happen, one compact tag sits on the IFVG candle.
+//        Partial sequences only show their own parts.
+//   Everything is drawn on closed candles. Education only. Not financial advice.
+// ═════════════════════════════════════════════════════════════════════════════
+
+indicator("Session Sweep SMT + IFVG [TradeZoro]", "Sweep SMT IFVG [TradeZoro]", overlay = true, max_lines_count = 500, max_boxes_count = 200, max_labels_count = 500)
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  INPUTS
+// ─────────────────────────────────────────────────────────────────────────────
+const string G_SES = "TradeZoro · Sessions (New York time)"
+const string G_PD  = "TradeZoro · Previous day"
+const string G_SMT = "TradeZoro · SMT"
+const string G_IFV = "TradeZoro · IFVG"
+const string G_SHW = "TradeZoro · Show / hide"
+const string G_STY = "TradeZoro · Style"
+
+seTz   = input.string("America/New_York", "Timezone", options = ["America/New_York", "America/Chicago", "Europe/London", "UTC"], tooltip = "Session times follow this timezone, daylight saving included.", group = G_SES)
+asiaOn = input.bool(true,  "Asia", inline = "a", group = G_SES)
+asiaT  = input.session("2000-0000", "", inline = "a", group = G_SES)
+ldnOn  = input.bool(true,  "London", inline = "l", group = G_SES)
+ldnT   = input.session("0200-0500", "", inline = "l", group = G_SES)
+nyaOn  = input.bool(true,  "NY AM", inline = "n", group = G_SES)
+nyaT   = input.session("0930-1100", "", inline = "n", group = G_SES)
+nypOn  = input.bool(false, "NY PM", inline = "p", group = G_SES)
+nypT   = input.session("1330-1600", "", inline = "p", group = G_SES)
+histDays = input.int(5, "Show history (days)", minval = 1, maxval = 30, tooltip = "Levels, sweeps and boxes older than this are not drawn and are deleted as the chart rolls on.", group = G_SES)
+
+pdOn    = input.bool(true, "Previous day high / low (PDH / PDL)", group = G_PD)
+dayHour = input.int(18, "Trading day starts at (hour)", minval = 0, maxval = 23, tooltip = "Futures day rolls at 18:00 New York time. Set 0 for the calendar day.", group = G_PD)
+
+smtAuto = input.bool(true, "Auto-pair the correlated symbol", tooltip = "NQ with ES, MNQ with MES, ES with NQ, YM with ES, RTY with ES, SPX with NDX, GC with SI. Turn off to use the symbol below.", group = G_SMT)
+smtSym  = input.symbol("CME_MINI:ES1!", "Correlated symbol", group = G_SMT)
+
+maxBars  = input.int(20, "Max bars from sweep to IFVG", minval = 3, maxval = 200, group = G_IFV)
+minFvg   = input.int(2, "Min FVG size (ticks)", minval = 0, maxval = 200, group = G_IFV)
+fvgBack  = input.int(10, "FVG may start N bars before the sweep", minval = 0, maxval = 50, group = G_IFV)
+needSmt  = input.bool(true, "IFVG only after a sweep with SMT", tooltip = "Off: an IFVG also marks after a sweep without SMT, tagged Sweep · IFVG.", group = G_IFV)
+
+showLv   = input.bool(true, "Session / previous day levels", group = G_SHW)
+showLb   = input.bool(true, "Level labels", group = G_SHW)
+showSw   = input.bool(true, "Sweep marks", group = G_SHW)
+showSmt  = input.bool(true, "SMT line and label", group = G_SHW)
+showIf   = input.bool(true, "IFVG boxes", group = G_SHW)
+showTag  = input.bool(true, "Sequence tag", group = G_SHW)
+showTbl  = input.bool(false, "Table (today's sessions)", group = G_SHW)
+
+cBull    = input.color(#03C988, "Bullish", inline = "c", group = G_STY)
+cBear    = input.color(#EF5350, "Bearish", inline = "c", group = G_STY)
+cLvH     = input.color(color.new(#9AA3B2, 0), "Levels: highs", inline = "d", group = G_STY)
+cLvL     = input.color(color.new(#9AA3B2, 0), "lows", inline = "d", group = G_STY)
+lnStyle  = input.string("Dotted", "Level line", options = ["Solid", "Dashed", "Dotted"], inline = "e", group = G_STY)
+lnWidth  = input.int(1, "", minval = 1, maxval = 3, inline = "e", group = G_STY)
+lbSize   = input.string("Small", "Label size", options = ["Tiny", "Small", "Normal"], group = G_STY)
+sweptFade = input.bool(true, "Keep swept lines, dimmed", group = G_STY)
+
+f_style(s) => s == "Solid" ? line.style_solid : s == "Dashed" ? line.style_dashed : line.style_dotted
+f_size(s)  => s == "Tiny" ? size.tiny : s == "Small" ? size.small : size.normal
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CORRELATED SYMBOL (same approach as SMT Divergence Pro: request.security on
+//  the chart timeframe, only the high and low)
+// ─────────────────────────────────────────────────────────────────────────────
+root = str.upper(syminfo.root)
+autoSym = str.contains(root, "MNQ") ? "CME_MINI:MES1!" : str.contains(root, "MES") ? "CME_MINI:MNQ1!" : str.contains(root, "NQ") ? "CME_MINI:ES1!" : str.contains(root, "ES") ? "CME_MINI:NQ1!" : str.contains(root, "YM") ? "CME_MINI:ES1!" : str.contains(root, "RTY") ? "CME_MINI:ES1!" : str.contains(root, "SPX") ? "NASDAQ:NDX" : str.contains(root, "NDX") ? "SP:SPX" : str.contains(root, "GC") ? "COMEX:SI1!" : str.contains(root, "SI") ? "COMEX:GC1!" : ""
+xSym  = smtAuto ? autoSym : smtSym
+xOK   = xSym != "" and xSym != syminfo.tickerid
+xName = str.replace_all(str.replace_all(array.get(str.split(xSym, ":"), array.size(str.split(xSym, ":")) - 1), "1!", ""), "CME_MINI", "")
+[xH, xL] = request.security(xSym == "" ? syminfo.tickerid : xSym, timeframe.period, [high, low])
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  TYPES
+// ─────────────────────────────────────────────────────────────────────────────
+type Trk
+    string name
+    bool   active = false
+    int    key    = na
+    float  hi     = na
+    float  lo     = na
+    int    hiB    = na
+    int    loB    = na
+    float  xhi    = na
+    float  xlo    = na
+
+type Lvl
+    string name
+    int    sess      // index into the session list, 4 = previous day
+    bool   isHigh
+    float  px
+    float  xpx
+    int    bar
+    int    t
+    int    key
+    bool   xBroke = false
+    bool   swept  = false
+    bool   smt    = false
+    line   ln     = na
+    label  lb     = na
+    color  col
+
+type Evt
+    int   t
+    line  smtLn = na
+    label smtLb = na
+    label swLb  = na
+    label tagLb = na
+    box   bx    = na
+    bool  boxLive = false
+    int   boxDir  = 0
+    float boxTop  = na
+    float boxBot  = na
+
+type Gap
+    int   dir
+    float top
+    float bot
+    int   bar
+    bool  inv = false
+
+type Seq
+    int    dir          // 1 = low swept (bullish), -1 = high swept (bearish)
+    int    bar
+    int    t
+    bool   smt
+    string names
+    string smtName
+    Evt    ev
+
+var array<Trk> trks  = array.new<Trk>()
+var array<Lvl> lvls  = array.new<Lvl>()
+var array<Evt> evts  = array.new<Evt>()
+var array<Gap> gaps  = array.new<Gap>()
+var array<Seq> seqs  = array.new<Seq>()
+var int lastKey = na
+var table tbl = table.new(position.top_right, 3, 7, bgcolor = color.new(#0B1220, 15), border_width = 1, border_color = color.new(#9AA3B2, 70))
+
+if barstate.isfirst
+    array.push(trks, Trk.new("Asia"))
+    array.push(trks, Trk.new("LDN"))
+    array.push(trks, Trk.new("NY AM"))
+    array.push(trks, Trk.new("NY PM"))
+    array.push(trks, Trk.new("PD"))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+tickSz  = syminfo.mintick
+dayMs   = 86400000
+winOpen = last_bar_time - histDays * dayMs
+f_key(t) => year(t + (24 - dayHour) * 3600000, seTz) * 10000 + month(t + (24 - dayHour) * 3600000, seTz) * 100 + dayofmonth(t + (24 - dayHour) * 3600000, seTz)
+
+f_inSess(i) =>
+    switch i
+        0 => asiaOn and not na(time(timeframe.period, asiaT, seTz))
+        1 => ldnOn and not na(time(timeframe.period, ldnT, seTz))
+        2 => nyaOn and not na(time(timeframe.period, nyaT, seTz))
+        3 => nypOn and not na(time(timeframe.period, nypT, seTz))
+        => false
+
+f_killLvl(Lvl v) =>
+    if not na(v.ln)
+        line.delete(v.ln)
+    if not na(v.lb)
+        label.delete(v.lb)
+
+f_killEvt(Evt e) =>
+    if not na(e.smtLn)
+        line.delete(e.smtLn)
+    if not na(e.smtLb)
+        label.delete(e.smtLb)
+    if not na(e.swLb)
+        label.delete(e.swLb)
+    if not na(e.tagLb)
+        label.delete(e.tagLb)
+    if not na(e.bx)
+        box.delete(e.bx)
+
+// a finished session (or day) becomes two levels
+f_emit(Trk t, int idx) =>
+    if t.active and not na(t.hi) and time >= winOpen - dayMs
+        for k = 0 to 1
+            bool isH = k == 0
+            Lvl v = Lvl.new()
+            v.name := t.name + (idx == 4 ? (isH ? "H" : "L") : (isH ? " H" : " L"))
+            v.name := idx == 4 ? (isH ? "PDH" : "PDL") : v.name
+            v.sess := idx
+            v.isHigh := isH
+            v.px := isH ? t.hi : t.lo
+            v.xpx := isH ? t.xhi : t.xlo
+            v.bar := isH ? t.hiB : t.loB
+            v.t := time
+            v.key := t.key
+            v.col := isH ? cLvH : cLvL
+            if showLv and v.px == v.px
+                v.ln := line.new(v.bar, v.px, bar_index, v.px, xloc = xloc.bar_index, extend = extend.right, color = v.col, style = f_style(lnStyle), width = lnWidth)
+                if showLb
+                    v.lb := label.new(bar_index + 1, v.px, v.name, xloc = xloc.bar_index, style = label.style_label_left, color = color.new(color.black, 100), textcolor = v.col, size = f_size(lbSize))
+            array.push(lvls, v)
+    t.active := false
+    t.hi := na
+    t.lo := na
+
+f_feed(Trk t, int idx, bool inS, int key) =>
+    // 1. end of a session / day
+    bool ended = idx == 4 ? (t.active and key != t.key) : (t.active and not inS)
+    if ended
+        f_emit(t, idx)
+    // 2. start / extend
+    bool live = idx == 4 ? pdOn : inS
+    if live
+        if not t.active
+            t.active := true
+            t.key := key
+            t.hi := high
+            t.lo := low
+            t.hiB := bar_index
+            t.loB := bar_index
+            t.xhi := na(xH) ? na : xH
+            t.xlo := na(xL) ? na : xL
+        else
+            if high > t.hi
+                t.hi := high
+                t.hiB := bar_index
+            if low < t.lo
+                t.lo := low
+                t.loB := bar_index
+            if not na(xH) and (na(t.xhi) or xH > t.xhi)
+                t.xhi := xH
+            if not na(xL) and (na(t.xlo) or xL < t.xlo)
+                t.xlo := xL
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  MAIN — closed candles only (drawings never repaint)
+// ─────────────────────────────────────────────────────────────────────────────
+curKey = f_key(time)
+inWin  = time >= winOpen
+bool evSweep = false
+bool evSmt   = false
+bool evFull  = false
+
+if barstate.isconfirmed
+    // sessions and previous day
+    for i = 0 to 3
+        f_feed(array.get(trks, i), i, f_inSess(i), curKey)
+    f_feed(array.get(trks, 4), 4, true, curKey)
+
+    // --- 1/2/3. sweeps of the open levels --------------------------------------------
+    string namesLo = ""
+    string namesHi = ""
+    string smtLo = ""
+    string smtHi = ""
+    int    smtLoBar = na
+    int    smtHiBar = na
+    float  smtLoPx = na
+    float  smtHiPx = na
+    int    nLo = 0
+    int    nHi = 0
+    if array.size(lvls) > 0
+        for i = 0 to array.size(lvls) - 1
+            Lvl v = array.get(lvls, i)
+            if not v.swept
+                if xOK and not na(v.xpx)
+                    if v.isHigh and not na(xH) and xH > v.xpx
+                        v.xBroke := true
+                    if not v.isHigh and not na(xL) and xL < v.xpx
+                        v.xBroke := true
+                bool hit = v.isHigh ? high - v.px >= tickSz : v.px - low >= tickSz
+                if hit and bar_index > v.bar
+                    v.swept := true
+                    bool isSmt = xOK and not na(v.xpx) and not v.xBroke
+                    v.smt := isSmt
+                    if not na(v.ln)
+                        line.set_extend(v.ln, extend.none)
+                        line.set_x2(v.ln, bar_index)
+                        if sweptFade
+                            line.set_color(v.ln, color.new(v.col, 65))
+                        else
+                            line.delete(v.ln)
+                            v.ln := na
+                    if not na(v.lb)
+                        label.delete(v.lb)
+                        v.lb := na
+                    if v.isHigh
+                        namesHi += (nHi > 0 ? " + " : "") + v.name
+                        nHi += 1
+                        if isSmt and smtHi == ""
+                            smtHi := v.name
+                            smtHiBar := v.bar
+                            smtHiPx := v.px
+                    else
+                        namesLo += (nLo > 0 ? " + " : "") + v.name
+                        nLo += 1
+                        if isSmt and smtLo == ""
+                            smtLo := v.name
+                            smtLoBar := v.bar
+                            smtLoPx := v.px
+    for d = 0 to 1
+        bool isHigh = d == 0
+        string nm = isHigh ? namesHi : namesLo
+        if nm != "" and inWin
+            evSweep := true
+            bool sm = isHigh ? smtHi != "" : smtLo != ""
+            int dir = isHigh ? -1 : 1
+            color col = dir == 1 ? cBull : cBear
+            Evt ev = Evt.new(time)
+            if showSw
+                ev.swLb := label.new(bar_index, isHigh ? high : low, "✕ " + nm + " swept", xloc = xloc.bar_index, style = isHigh ? label.style_label_down : label.style_label_up, color = color.new(color.black, 100), textcolor = color.new(col, 0), size = f_size(lbSize))
+            if sm
+                evSmt := true
+                int sb = isHigh ? smtHiBar : smtLoBar
+                float sp = isHigh ? smtHiPx : smtLoPx
+                if showSmt
+                    ev.smtLn := line.new(sb, sp, bar_index, isHigh ? high : low, xloc = xloc.bar_index, color = col, style = line.style_dashed, width = 1)
+                    ev.smtLb := label.new(bar_index, isHigh ? high : low, "SMT · " + xName, xloc = xloc.bar_index, style = isHigh ? label.style_label_lower_left : label.style_label_upper_left, color = color.new(color.black, 100), textcolor = color.new(col, 0), size = f_size(lbSize))
+            array.push(evts, ev)
+            if sm or not needSmt
+                Seq s = Seq.new()
+                s.dir := dir
+                s.bar := bar_index
+                s.t := time
+                s.smt := sm
+                s.names := nm
+                s.ev := ev
+                array.push(seqs, s)
+                while array.size(seqs) > 8
+                    array.shift(seqs)
+
+    // --- 4/5. fair value gaps and the inversion --------------------------------------
+    // inversion checks use the gaps as they stood BEFORE this candle
+    if array.size(seqs) > 0
+        for i = array.size(seqs) - 1 to 0
+            Seq s = array.get(seqs, i)
+            if bar_index - s.bar > maxBars
+                array.remove(seqs, i)
+            else if bar_index > s.bar
+                Gap pick = na
+                if array.size(gaps) > 0
+                    for j = array.size(gaps) - 1 to 0
+                        Gap g = array.get(gaps, j)
+                        // bullish: a bearish gap is closed up through; bearish: a bullish gap is closed down through
+                        if na(pick) and not g.inv and g.dir == -s.dir and g.bar < bar_index and g.bar >= s.bar - fvgBack
+                            bool closed = s.dir == 1 ? close > g.top : close < g.bot
+                            if closed
+                                pick := g
+                if not na(pick)
+                    bool bull = s.dir == 1
+                    color col = bull ? cBull : cBear
+                    Evt ev = s.ev
+                    if showIf
+                        ev.bx := box.new(pick.bar - 2, pick.top, bar_index, pick.bot, xloc = xloc.bar_index, border_color = color.new(col, 40), border_width = 1, bgcolor = color.new(col, 85), text = "IFVG", text_color = color.new(col, 0), text_size = size.small, text_halign = text.align_right)
+                    ev.boxLive := true
+                    ev.boxDir := s.dir
+                    ev.boxTop := pick.top
+                    ev.boxBot := pick.bot
+                    if showTag
+                        ev.tagLb := label.new(bar_index, bull ? low : high, s.smt ? "Sweep · SMT · IFVG" : "Sweep · IFVG", xloc = xloc.bar_index, style = bull ? label.style_label_up : label.style_label_down, color = col, textcolor = color.white, size = f_size(lbSize))
+                    if s.smt
+                        evFull := true
+                    array.remove(seqs, i)
+
+    // gap library: mark gaps that price has already closed through, then add the new one
+    if array.size(gaps) > 0
+        for j = 0 to array.size(gaps) - 1
+            Gap g = array.get(gaps, j)
+            if not g.inv and g.bar < bar_index and (g.dir == -1 ? close > g.top : close < g.bot)
+                g.inv := true
+    if bar_index > 2
+        bool gUp = low > high[2] and close[1] > open[1]
+        bool gDn = high < low[2] and close[1] < open[1]
+        if gUp or gDn
+            float gt = gUp ? low : low[2]
+            float gb = gUp ? high[2] : high
+            if gt - gb >= math.max(minFvg, 1) * tickSz
+                Gap g = Gap.new(gUp ? 1 : -1, gt, gb, bar_index)
+                array.push(gaps, g)
+                if array.size(gaps) > 60
+                    array.shift(gaps)
+
+    // extend live IFVG boxes until mitigated
+    if array.size(evts) > 0
+        for i = 0 to array.size(evts) - 1
+            Evt e = array.get(evts, i)
+            if e.boxLive
+                bool gone = e.boxDir == 1 ? close < e.boxBot : close > e.boxTop
+                if not na(e.bx)
+                    box.set_right(e.bx, bar_index)
+                if gone
+                    e.boxLive := false
+                    if not na(e.bx)
+                        box.set_bgcolor(e.bx, color.new(e.boxDir == 1 ? cBull : cBear, 94))
+
+    // roll-over housekeeping once per trading day: drop what is older than the window
+    if na(lastKey) or curKey != lastKey
+        lastKey := curKey
+        if array.size(lvls) > 0
+            for i = array.size(lvls) - 1 to 0
+                Lvl v = array.get(lvls, i)
+                if v.t < winOpen - dayMs
+                    f_killLvl(v)
+                    array.remove(lvls, i)
+        if array.size(evts) > 0
+            for i = array.size(evts) - 1 to 0
+                Evt e = array.get(evts, i)
+                if e.t < winOpen
+                    f_killEvt(e)
+                    array.remove(evts, i)
+    while array.size(lvls) > 80
+        f_killLvl(array.shift(lvls))
+    while array.size(evts) > 120
+        f_killEvt(array.shift(evts))
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  RIGHT EDGE — keep the labels of open levels at the last bar; optional table
+// ─────────────────────────────────────────────────────────────────────────────
+if barstate.islast
+    if array.size(lvls) > 0
+        for i = 0 to array.size(lvls) - 1
+            Lvl v = array.get(lvls, i)
+            if not v.swept and not na(v.lb)
+                label.set_x(v.lb, bar_index + 1)
+    table.clear(tbl, 0, 0, 2, 6)
+    if showTbl
+        table.cell(tbl, 0, 0, "Today", text_color = color.new(#9AA3B2, 0), text_size = size.small, text_halign = text.align_left)
+        table.cell(tbl, 1, 0, "Swept", text_color = color.new(#9AA3B2, 0), text_size = size.small)
+        table.cell(tbl, 2, 0, "SMT", text_color = color.new(#9AA3B2, 0), text_size = size.small)
+        string[] nms = array.from("Asia", "LDN", "NY AM", "NY PM", "PD")
+        bool[] ons = array.from(asiaOn, ldnOn, nyaOn, nypOn, pdOn)
+        int row = 1
+        for s = 0 to 4
+            if array.get(ons, s)
+                string sw = ""
+                string sm = ""
+                for k = 0 to 1
+                    bool isH = k == 0
+                    string tag = isH ? "H " : "L "
+                    string st = "-"
+                    string ss = "-"
+                    if array.size(lvls) > 0
+                        for i = array.size(lvls) - 1 to 0
+                            Lvl v = array.get(lvls, i)
+                            if v.sess == s and v.isHigh == isH and (s == 4 ? v.key != curKey : v.key == curKey) and st == "-"
+                                st := v.swept ? "yes" : "no"
+                                ss := v.swept ? (v.smt ? "yes" : "no") : "-"
+                    sw += tag + st + (isH ? "  " : "")
+                    sm += tag + ss + (isH ? "  " : "")
+                table.cell(tbl, 0, row, array.get(nms, s), text_color = color.white, text_size = size.small, text_halign = text.align_left)
+                table.cell(tbl, 1, row, sw, text_color = color.white, text_size = size.small)
+                table.cell(tbl, 2, row, sm, text_color = color.white, text_size = size.small)
+                row += 1
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  ALERTS
+// ─────────────────────────────────────────────────────────────────────────────
+alertcondition(evSweep, "Sweep SMT IFVG — level swept", "A session or previous day high / low was swept")
+alertcondition(evSmt, "Sweep SMT IFVG — sweep with SMT", "A sweep printed with SMT against the correlated symbol")
+alertcondition(evFull, "Sweep SMT IFVG — full sequence", "Sweep, SMT and IFVG all marked")

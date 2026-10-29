@@ -46,7 +46,7 @@ const POLL_MS = 20000;
 // backoff only starts once those are used up, and any bar from the bridge resets every counter.
 // At most MAX_BRIDGE_SOCKETS bridge sockets are open per page.
 const QUICK_RETRY_MAX = 5, QUICK_RETRY_MIN_MS = 500, QUICK_RETRY_SPAN_MS = 1500;
-const FALLBACK_POLL_MS = 8000;
+const FALLBACK_POLL_MS = 4000;   // 2026-10-29: was 8 s; the hub can be full of other legs for hours (MNQ 1m got hub_full), the poll is then the only mover
 const MAX_BRIDGE_SOCKETS = 8;
 let bridgeSockets = 0;
 const CONCURRENCY = 4;
@@ -294,7 +294,7 @@ export class FuturesProvider {
     // memory up to swrMs old while a refresh runs (stale-while-revalidate, see SHARED_PAGES).
     if (hit) {
       const age = Date.now() - hit.at;
-      if (page !== current || age < 10000) { cachePut(key, hit.rows); return hit.rows; }
+      if (page !== current || age < (swrMs ? 10000 : 3000)) { cachePut(key, hit.rows); return hit.rows; }
       if (swrMs && age < swrMs) { this.loadPage(key, root, tf, page).catch(() => {}); return hit.rows; }
     }
     return this.loadPage(key, root, tf, page);

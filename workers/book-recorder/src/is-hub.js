@@ -119,6 +119,14 @@ export class ISHub {
         if (this.legs.size >= this.o.MAX_LEGS) {
           let victim = null;
           for (const [i, l] of this.legs) if (!l.clients.size && (!victim || l.idleSince < this.legs.get(victim).idleSince)) victim = i;
+          // 2026-10-29 P0 (Owner: "candles not moving only timer"): five busy legs (NQ tick + NQ 1m/5m/30m + MNQ 5m) left
+          // no room for MNQ 1m, so the Owner's chart got hub_full for hours. A SERIES leg may now take the slot of a busy
+          // TICK leg (the per-trade extra; its clients keep their series bars and just lose the tick fold). A tick leg
+          // never evicts anything. Among tick legs the one with the fewest viewers goes.
+          if (!victim && s.bar_type !== 'tick') {
+            for (const [i, l] of this.legs) if (l.spec.bar_type === 'tick' && (!victim || l.clients.size < this.legs.get(victim).clients.size)) victim = i;
+            if (victim) this.stats0.preempted = (this.stats0.preempted || 0) + 1;
+          }
           if (!victim) { this.stats0.refused++; for (const i of ids) this.release(i, null); return null; }
           this.legs.delete(victim);   // still in the upstream set until the next message; harmless
         }

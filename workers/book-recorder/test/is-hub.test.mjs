@@ -154,6 +154,22 @@ ok('parseLegs validates and caps at 2 legs');
 }
 
 {
+  // 2026-10-29 P0: a series leg takes the slot of a busy TICK leg when the socket is full of active legs
+  socks = [];
+  const hub = new ISHub(store(), 'k', Object.assign({ WebSocket: FakeWS }, fast));
+  await hub.loadLog();
+  hub.attach([{ code: 'CME_MINI:NQ1!', bar_type: 'tick', bar_interval: 1 }], client());
+  for (const iv of [1, 5, 15, 30]) hub.attach([{ code: 'CME_MINI:NQ1!', bar_type: 'minute', bar_interval: iv }], client());
+  assert.equal(hub.legs.size, 5);
+  const h = hub.attach([{ code: 'CME_MINI:MNQ1!', bar_type: 'minute', bar_interval: 1 }], client());
+  assert.ok(h, 'series leg preempts the tick leg');
+  assert.ok(!hub.legs.has('CME_MINI:NQ1!|tick|1') && hub.legs.has('CME_MINI:MNQ1!|minute|1'));
+  assert.equal(hub.attach([{ code: 'CME_MINI:ES1!', bar_type: 'tick', bar_interval: 1 }], client()), null, 'a tick leg never evicts');
+  ok('full socket: a series leg preempts a busy tick leg; a tick leg never evicts');
+  hub.shutdown();
+}
+
+{
   // last viewer gone -> upstream closed after the idle window (no socket held for nobody)
   socks = [];
   const hub = new ISHub(store(), 'k', Object.assign({ WebSocket: FakeWS }, fast));

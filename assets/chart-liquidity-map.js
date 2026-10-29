@@ -303,7 +303,7 @@ export function makeLayer(H) {
           const hs = histOf();
           const c0 = Math.floor((now - histMs) / B);
           ensureTex(cols, rows);
-          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.62, capKey: '' };
+          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.75, capKey: '' };
           for (let k = 0; k < hs.length; k++) {
             const s = hs[k];
             const tEnd = k + 1 < hs.length ? Math.min(hs[k + 1].ts, s.ts + (s.span || 10000)) : s.ts + (s.span || 1000);
@@ -341,10 +341,10 @@ export function makeLayer(H) {
             for (let c = cA + ((r * 7) % stepR); c <= cB; c += stepR) { const v = grid[o + c]; if (v > 0) vals.push(v); }
           }
           vals.sort((x, y) => x - y);
-          newCap = vals.length ? Math.max(quantile(vals, 0.99), 1e-9) : 1;
+          newCap = vals.length ? Math.max(quantile(vals, 0.985), 1e-9) : 1;
           stat.visValues = vals.length;
         }
-        const expo = 0.62 / cfg.contrast, lo2 = cfg.minSize;
+        const expo = 0.75 / cfg.contrast, lo2 = cfg.minSize;
         const capMoved = !T.capKey || Math.abs(newCap / T.cap - 1) > 0.08;
         const inKey = expo + '|' + lo2;
         if (T.full || capMoved || T.capKey !== inKey) {
@@ -475,7 +475,7 @@ export function makeLayer(H) {
 
       // ---- volume bars along the bottom, split green / red ----
       if (cfg.volume) {
-        const vh = Math.min(phone ? 40 : 64, H0 * 0.14), base = bot - (cfg.grid ? 15 : 3);
+        const vh = Math.min(phone ? 48 : 84, H0 * 0.16), base = bot - (cfg.grid ? 15 : 3);
         let vmax2 = 0; const draw = [];
         const bw = Math.max(1, Math.abs(co.timeToX(bars[Math.min(nb - 1, lo + 1)].time) - co.timeToX(bars[lo].time)) || 3);
         for (let i = lo; i < nb; i++) {

@@ -18,7 +18,7 @@
 // their micros; Binance trades for crypto) with the same plan + delay rules and refresh timers (hooks
 // from installFootprint()); no feed of its own. TPO needs only the chart's candles (time at price).
 // Depends on: assets/chart-of-pro-data.js (maths). Education only. Not financial advice.
-import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=717';
+import { absorptionEvents, levelBreaks, imbalanceZones, tpoProfile, tpoLetter, autoRow, effortResult, rthKey, sweepEvents } from './chart-of-pro-data.js?v=718';
 
 export const ABS_TYPE = 'stk_of_abs', IMB_TYPE = 'stk_of_imb', TPO_TYPE = 'stk_of_tpo', EVR_TYPE = 'stk_of_evr', SWP_TYPE = 'stk_of_sweep';
 export const PRO_TYPES = [ABS_TYPE, IMB_TYPE, TPO_TYPE, EVR_TYPE, SWP_TYPE];

@@ -64,7 +64,7 @@
   var today = { sym: '', bars: null, err: '', html: '', at: 0, busy: false };
   var rtMod = null;
   function authHeaders() {
-    if (!rtMod) rtMod = import('./rt-access.js?v=717').catch(function () { return null; });
+    if (!rtMod) rtMod = import('./rt-access.js?v=718').catch(function () { return null; });
     return rtMod.then(function (m) { return m && m.rtHeadersReady ? m.rtHeadersReady(3000) : {}; }).catch(function () { return {}; });
   }
   function fetchBars(root) {

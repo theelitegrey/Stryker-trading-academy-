@@ -182,7 +182,6 @@
       var big = btn.classList.contains('big'); var tmp = document.createElement('div'); tmp.innerHTML = voteBtn(s, big); btn.replaceWith(tmp.firstChild);
     });
     var vc = $('sg-d-votes'); if (vc) vc.textContent = votersText(s);
-    if (!revert && on) { var nb = document.querySelector('[data-vote="' + s.id + '"]'); if (nb) { nb.classList.add('pop'); setTimeout(function () { nb.classList.remove('pop'); }, 400); } }
   }
   function loadMyVotes(ids) {
     if (!me) return Promise.resolve();
@@ -193,6 +192,8 @@
   var votersText = function (s) { var n = s.votes || 0; return n + (n === 1 ? ' member wants this' : ' members want this'); };
 
   // ---------- new suggestion sheet ----------
+  // Overlays live on <body> so no ancestor stacking context (main, sticky nav) can sit above them.
+  ['sg-scrim', 'sg-sheet', 'sg-zoom'].forEach(function (id) { var el = $(id); if (el && el.parentNode !== document.body) document.body.appendChild(el); });
   var sheet = $('sg-sheet'), scrim = $('sg-scrim'), lastFocus = null, pickedFile = null;
   function openSheet(html) {
     lastFocus = document.activeElement; sheet.innerHTML = html; sheet.hidden = false; scrim.hidden = false;
@@ -439,7 +440,7 @@
       '<label class="sg-field"><span>Roadmap item</span><select id="sg-a-roadmap"><option value="">Not linked</option></select></label>' +
       '<label class="sg-field sg-span2"><span>Official reply (shown pinned, notifies the author and voters)</span><textarea id="sg-a-reply" rows="3" maxlength="1000">' + esc(s.officialReply && s.officialReply.text || '') + '</textarea></label>' +
       '<label class="sg-check sg-span2"><input type="checkbox" id="sg-a-notify" checked> Notify the author and voters about a status change or new reply</label>' +
-      '</div><div class="sg-form-actions"><button type="button" class="sg-btn sg-btn-primary" id="sg-a-save">Save</button></div>' +
+      '</div><div class="sg-form-actions"><button type="button" class="sg-btn sg-btn-soft" id="sg-a-save">Save changes</button></div>' +
       '<div class="sg-admin-row"><label class="sg-field"><span>Merge into (keeps the older one)</span><select id="sg-a-merge"><option value="">Choose a suggestion</option>' +
       all.filter(function (x) { return x.id !== s.id && !x.mergedInto; }).sort(function (a, b) { return a.title.localeCompare(b.title); }).map(function (x) { return '<option value="' + esc(x.id) + '">' + esc(x.title.slice(0, 70)) + ' (' + (x.votes || 0) + ')</option>'; }).join('') + '</select></label>' +
       '<button type="button" class="sg-btn sg-btn-soft" id="sg-a-mergebtn">Merge</button></div>' +

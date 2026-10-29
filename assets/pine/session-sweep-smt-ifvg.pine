@@ -214,6 +214,13 @@ f_emit(Trk t, int idx) =>
                 if showLb
                     v.lb := label.new(bar_index + 1, v.px, v.name, xloc = xloc.bar_index, style = label.style_label_left, color = color.new(color.black, 100), textcolor = v.col, size = f_size(lbSize))
             array.push(lvls, v)
+    if idx == 4 and array.size(lvls) > 0
+        // only the latest previous day stays: older PDH / PDL that were never swept are dropped
+        for i = array.size(lvls) - 1 to 0
+            Lvl o = array.get(lvls, i)
+            if o.sess == 4 and not o.swept and o.key != t.key
+                f_killLvl(o)
+                array.remove(lvls, i)
     t.active := false
     t.hi := na
     t.lo := na

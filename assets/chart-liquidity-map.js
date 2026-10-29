@@ -260,7 +260,7 @@ export function makeLayer(H) {
       const span = Math.max(1e-12, a.scale.max - a.scale.min);
       const stat = { kind: d.kind, width: W, phone, cells: 0, bubbles: 0, ladderRows: 0, hide: cfg.hide };
       // ---- ladder width: price labels + two columns (on the right, over the price scale's left side) ----
-      const labW = phone ? 40 : 56, c1W = phone ? 38 : 56, c2W = phone ? 38 : 56;
+      const labW = phone ? 34 : 54, c1W = phone ? 32 : 54, c2W = phone ? 32 : 54;
       const ladW = cfg.ladder ? labW + c1W + c2W : 0;
       const lx = W - ladW;
       const plotR = lx;                       // heat / price line / bubbles / volume end where the ladder starts
@@ -303,7 +303,7 @@ export function makeLayer(H) {
           const hs = histOf();
           const c0 = Math.floor((now - histMs) / B);
           ensureTex(cols, rows);
-          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.5, capKey: '' };
+          T = { c0, B, cols, rows, iHi, iLo, S: step, sig: sigStatic, lastTs: 0, lo: 0, cap: 1, expo: 0.62, capKey: '' };
           for (let k = 0; k < hs.length; k++) {
             const s = hs[k];
             const tEnd = k + 1 < hs.length ? Math.min(hs[k + 1].ts, s.ts + (s.span || 10000)) : s.ts + (s.span || 1000);
@@ -341,10 +341,10 @@ export function makeLayer(H) {
             for (let c = cA + ((r * 7) % stepR); c <= cB; c += stepR) { const v = grid[o + c]; if (v > 0) vals.push(v); }
           }
           vals.sort((x, y) => x - y);
-          newCap = vals.length ? Math.max(quantile(vals, 0.985), 1e-9) : 1;
+          newCap = vals.length ? Math.max(quantile(vals, 0.99), 1e-9) : 1;
           stat.visValues = vals.length;
         }
-        const expo = 0.5 / cfg.contrast, lo2 = cfg.minSize;
+        const expo = 0.62 / cfg.contrast, lo2 = cfg.minSize;
         const capMoved = !T.capKey || Math.abs(newCap / T.cap - 1) > 0.08;
         const inKey = expo + '|' + lo2;
         if (T.full || capMoved || T.capKey !== inKey) {
@@ -443,9 +443,10 @@ export function makeLayer(H) {
       }
       g.save(); g.beginPath(); g.rect(0, top, plotR, H0 - 0); g.clip();
       if (pts.length > 1) {
-        g.strokeStyle = lineCol; g.lineWidth = 1.2; g.lineJoin = 'round'; g.beginPath();
+        g.lineJoin = 'round'; g.beginPath();
         pts.forEach((p, i) => { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); });
-        g.stroke();
+        g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 3.2; g.stroke();
+        g.strokeStyle = lineCol; g.lineWidth = 1.4; g.stroke();
       }
       stat.linePoints = pts.length;
 
@@ -505,7 +506,7 @@ export function makeLayer(H) {
       // ---- legend (top left) + notes ----
       let ny = top + 6;
       if (cfg.legend && T) {
-        const lw = phone ? 96 : 150, lh = 8, x = 8;
+        const lw = phone ? 84 : 150, lh = 8, x = Math.max(8, plotR - lw - 10);
         const gr = g.createLinearGradient(x, 0, x + lw, 0);
         for (const s of RAMP) gr.addColorStop(s[0], 'rgb(' + s[1] + ',' + s[2] + ',' + s[3] + ')');
         g.fillStyle = 'rgba(4,10,22,.78)'; g.fillRect(x - 4, ny - 3, lw + 8, 30);
@@ -518,9 +519,9 @@ export function makeLayer(H) {
       const note = d.note;
       if (note) {
         g.font = '10px ' + font; g.textAlign = 'left'; g.textBaseline = 'alphabetic';
-        const tw = g.measureText(note).width;
-        g.fillStyle = 'rgba(4,10,22,.78)'; g.fillRect(4, ny - 3, tw + 10, 16);
-        g.fillStyle = 'rgba(210,222,240,.95)'; g.fillText(note, 9, ny + 9);
+        const tw = g.measureText(note).width, nx = Math.max(4, plotR - tw - 14);
+        g.fillStyle = 'rgba(4,10,22,.78)'; g.fillRect(nx, ny - 3, tw + 10, 16);
+        g.fillStyle = 'rgba(210,222,240,.95)'; g.fillText(note, nx + 5, ny + 9);
         stat.note = note;
       }
       g.restore();

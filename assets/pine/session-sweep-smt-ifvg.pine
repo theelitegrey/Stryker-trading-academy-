@@ -333,14 +333,15 @@ if barstate.isconfirmed
             color col = dir == 1 ? cBull : cBear
             Evt ev = Evt.new(time)
             if showSw
-                ev.swLb := label.new(bar_index, isHigh ? high : low, "✕ " + nm + " swept", xloc = xloc.bar_index, style = isHigh ? label.style_label_down : label.style_label_up, color = color.new(color.black, 100), textcolor = color.new(col, 0), size = f_size(lbSize))
+                ev.swLb := label.new(bar_index, isHigh ? high : low, "✕ " + nm + " swept", xloc = xloc.bar_index, style = isHigh ? label.style_label_down : label.style_label_up, color = color.new(col, 15), textcolor = color.white, size = f_size(lbSize))
             if sm
                 evSmt := true
                 int sb = isHigh ? smtHiBar : smtLoBar
                 float sp = isHigh ? smtHiPx : smtLoPx
                 if showSmt
                     ev.smtLn := line.new(math.max(sb, bar_index - 60), sp, bar_index, isHigh ? high : low, xloc = xloc.bar_index, color = col, style = line.style_dashed, width = 1)
-                    ev.smtLb := label.new(bar_index, isHigh ? high : low, "SMT · " + xName, xloc = xloc.bar_index, style = isHigh ? label.style_label_lower_left : label.style_label_upper_left, color = color.new(color.black, 100), textcolor = color.new(col, 0), size = f_size(lbSize))
+                    // chip in the middle of the dashed line: clear of the sweep chip on the wick
+                    ev.smtLb := label.new(math.round((math.max(sb, bar_index - 60) + bar_index) / 2), (sp + (isHigh ? high : low)) / 2, "SMT · " + xName, xloc = xloc.bar_index, style = label.style_label_center, color = color.new(col, 15), textcolor = color.white, size = f_size(lbSize))
             array.push(evts, ev)
             if sm or not needSmt
                 Seq s = Seq.new()

@@ -540,26 +540,31 @@ function lateLists(provider){
   // Expected Move (options ATM straddle range; assets/chart-expected-move.js), same plug-in path as GEX.
   try { mods[20].installExpectedMove(LCore); } catch (e) { console.warn('TradeZoro: expected move install', e); }
   };
+  // SPEED (2026-10-29): the four import groups below used to be awaited one after the other (each its own
+  // round trip on a phone); they are independent, so they are requested together and installed in the old order.
+  const newsP = import('./chart-news-markers.js?v=722');
+  const msP = import('./chart-market-stats.js?v=722');
+  let MSess = null;
   if (heavyNeeded) installHeavy();
   else {
     // The renderer builds its layer canvases once, at construction: a layer registered after the first
     // chart exists never mounts. Footprint is small, so it always registers before boot (rest stays lazy).
-    try { const FpM = await import('./chart-footprint.js?v=722'); FpM.installFootprint(Core, null); mods[21] = FpM; } catch (e) { console.warn('TradeZoro: footprint install', e); }
     // Same rule for the GEX Levels, GEX Heatmap and Expected Move layers (50 + 20 + 15 KB): they were only
-    // registered after the first paint, so on a browser that had never used them the layer canvas was never
-    // built and the indicator drew nothing (GEX lines + ranked tags missing, found 2026-10-18). Their
-    // install functions are guarded, so installHeavy() below is a no-op for them.
+    // registered after the first paint, so the indicator drew nothing on a browser that had never used it
+    // (found 2026-10-18). Their install functions are guarded, so installHeavy() later is a no-op for them.
+    const fpP = import('./chart-footprint.js?v=722');
+    const gexP = Promise.all(['gex-levels', 'gex-heatmap', 'expected-move'].map((n) => import('./chart-' + n + '.js?v=722')));
+    try { const FpM = await fpP; FpM.installFootprint(Core, null); mods[21] = FpM; } catch (e) { console.warn('TradeZoro: footprint install', e); }
     try {
-      const pre = await Promise.all(['gex-levels', 'gex-heatmap', 'expected-move'].map((n) => import('./chart-' + n + '.js?v=722')));
+      const pre = await gexP;
       mods[14] = pre[0]; mods[19] = pre[1]; mods[20] = pre[2];
       pre[0].installGexLevels(LCore); pre[1].installGexHeatmap(LCore); pre[2].installExpectedMove(LCore);
     } catch (e) { console.warn('TradeZoro: GEX layers pre-install', e); }
   }
   // News markers + Economic events natives (assets/chart-news-markers.js, Pro): registered before boot too.
-  try { (await import('./chart-news-markers.js?v=722')).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
+  try { (await newsP).installNewsMarkers(LCore); } catch (e) { console.warn('TradeZoro: news markers install', e); }
   // Market Stats session overlay + the ?date= deep link (assets/chart-market-stats.js): registered before boot like the other natives.
-  let MSess = null;
-  try { MSess = await import('./chart-market-stats.js?v=722'); MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
+  try { MSess = await msP; MSess.installMarketStats(LCore); } catch (e) { console.warn('TradeZoro: market stats install', e); }
   // Settings window (assets/chart-settings.js): its per-cell state handler registers before boot too.
   try { Alerts.installChartAlerts(Core); } catch (e) { console.warn('TradeZoro: alerts install', e); }
   try { Events.installChartEvents(Core); } catch (e) { console.warn('TradeZoro: events install', e); }
@@ -625,11 +630,26 @@ function lateLists(provider){
   measureFrame();
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  // Charts phase 4 (Rithmic, assets/rithmic-config.js): behind a flag that is OFF for every
-  // member today. When off, rith stays null, nothing else loads and the chart is unchanged.
-  let rith = null;
-  try { rith = await (await import('./rithmic-config.js?v=722')).loadRithmicIfEnabled(); }
-  catch (e) { console.warn('TradeZoro: Rithmic module', e); rith = null; }
+  // Charts phase 4 (Rithmic, assets/rithmic-config.js): Connect broker is on for every signed-in member.
+  // SPEED (Owner 2026-10-29, "candles are loading slow"): the Rithmic modules (config, ui, client, provider,
+  // proto = a 5-file import chain) used to be awaited HERE, before the workspace was built, so the first
+  // candles waited on them (+0.35 s desktop, +0.9 s on a throttled phone). Now the chart starts on the plain
+  // futures provider and `rith` is a light stand-in; the real module loads at idle AFTER the first candles
+  // (loadRithLater below), swaps itself in behind the same provider object and mounts the Connect broker
+  // button. Nothing connects to Rithmic until the member taps Connect.
+  let rith = null;       // the real module once loaded
+  const rithEv = new Set();
+  const rithRef = { client: { get state() { return rith ? rith.client.state : 'idle'; }, on(fn) { rithEv.add(fn); return () => rithEv.delete(fn); } } };
+  const swapFut = { to: null };
+  const futFactory = () => {
+    const base = new FuturesProvider();
+    // Delegates every call to the Rithmic-wrapped provider once it exists (same methods, same `this`).
+    return new Proxy(base, {
+      get(t, k) { const o = swapFut.to || t; const v = o[k]; return typeof v === 'function' ? v.bind(o) : v; },
+      set(t, k, v) { (swapFut.to || t)[k] = v; return true; },
+      has(t, k) { return k in (swapFut.to || t); }
+    });
+  };
 
   try {
     ws = window.STRYKER_VELA = new VelaWorkspace('#vela-chart', {
@@ -656,7 +676,7 @@ function lateLists(provider){
       providers: BT ? { bt: () => BT.feed.provider } : {
         // Iv.wrapFactory (assets/chart-intervals.js) builds the intervals a source does not
         // serve natively (futures 2m/3m/10m/45m/3h, 3M/6M/12M everywhere) from a smaller one.
-        futures: Replay.wrapFactory(Iv.wrapFactory(rith ? rith.providerFactory(FuturesProvider) : () => new FuturesProvider(), 'futures'), 'futures'),
+        futures: Replay.wrapFactory(Iv.wrapFactory(futFactory, 'futures'), 'futures'),
         binance: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new BinanceProvider()), 'binance'), 'binance'),
         coinbase: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new CoinbaseProvider()), 'coinbase'), 'coinbase'),
         hyperliquid: Replay.wrapFactory(Iv.wrapFactory(() => lateLists(new HyperliquidProvider()), 'hyperliquid'), 'hyperliquid'),
@@ -775,10 +795,23 @@ function lateLists(provider){
   try { Pine.mountPine(ws, barL, { toast, tfLabel }); } catch (e) { console.warn('TradeZoro: Pine editor', e); }
   // the tab strip is its own slim row between the toolbar and the chart (never in the crowded phone toolbar)
   { const panel = document.querySelector('.stkchart-panel'); if (panel && panel.parentNode) panel.parentNode.insertBefore(cellSw, panel); else barL.appendChild(cellSw); }
-  if (rith) { try { rith.mount(ws, Core); } catch (e) { console.warn('TradeZoro: Rithmic UI', e); } }
+  // Real Rithmic module: after the first candles are on screen (see the look() loop above), at idle.
+  const loadRithLater = async () => {
+    try {
+      const r = await (await import('./rithmic-config.js?v=722')).loadRithmicIfEnabled();
+      if (!r) return;
+      rith = r;
+      swapFut.to = r.providerFactory(FuturesProvider)();
+      r.client.on((ev) => { rithEv.forEach((f) => { try { f(ev); } catch (e) {} }); });
+      r.mount(ws, Core);
+      rithEv.forEach((f) => { try { f({ type: 'state', state: r.client.state }); } catch (e) {} });
+    } catch (e) { console.warn('TradeZoro: Rithmic module', e); }
+  };
+  if (window.__stkFirstCandles) setTimeout(loadRithLater, 0);
+  else window.addEventListener('stk:first-candles', () => (window.requestIdleCallback ? requestIdleCallback(loadRithLater, { timeout: 2500 }) : setTimeout(loadRithLater, 800)), { once: true });
   // Data-status dot by each symbol (green real-time / amber delayed / grey closed): assets/chart-data-dot.js.
   import('./chart-data-dot.js?v=722')
-    .then((m) => m.installDataDot(ws, { rith, FuturesProvider, FxProvider }))
+    .then((m) => m.installDataDot(ws, { rith: rithRef, FuturesProvider, FxProvider }))
     .catch((e) => console.warn('TradeZoro: data dot', e));
   // Stronger weak magnet on 0.9.0 (nearest OHLC in pixels across nearby candles, 28 px): assets/chart-magnet.js.
   if (VELA090) import('./chart-magnet.js?v=722')
@@ -814,7 +847,7 @@ function lateLists(provider){
   // Right-side Watchlist panel + icon rail (phones: a full-screen sheet): assets/chart-watchlist.js.
   // SymbolPicker comes from Vela's widget build (same chunk the workspace already loaded).
   Promise.all([import('./chart-watchlist.js?v=722'), import(VELA_BASE + 'widget.js')])
-    .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith }))
+    .then(([m, Wd]) => m.mountWatchlist(ws, { toast, Core, SymbolPicker: Wd.SymbolPicker, rith: rithRef }))
     .catch((e) => console.warn('TradeZoro: watchlist', e));
   // News panel (right icon bar, phones: a sheet): headlines for the chart's market, replay-safe (assets/chart-news.js).
   import('./chart-news.js?v=722').then((m) => m.mountNews(ws, { toast })).catch((e) => console.warn('TradeZoro: news', e));

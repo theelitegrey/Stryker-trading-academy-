@@ -49,6 +49,7 @@ const PAGES = [
   ['/login',                '0.5', 'monthly'],
   ['/contact',              '0.6', 'monthly'],
   ['/help',                 '0.7', 'weekly'],
+  ['/suggestions',          '0.6', 'daily'],
   ['/support',              '0.6', 'monthly'],
   ['/terms',                '0.3', 'yearly'],
   ['/privacy',              '0.3', 'yearly'],

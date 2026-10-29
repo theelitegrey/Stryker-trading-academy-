@@ -46,6 +46,7 @@
     {"page": "privacy.html", "title": "Privacy Policy", "og_title": "Privacy Policy — TradeZoro", "visual": "brand", "alt": "Privacy Policy share card with the TradeZoro logo"},
     {"page": "cookies.html", "title": "Cookie Policy", "og_title": "Cookie Policy — TradeZoro", "visual": "brand", "alt": "Cookie Policy share card with the TradeZoro logo"},
     {"page": "gdpr.html", "title": "GDPR Rights", "og_title": "GDPR Rights — TradeZoro", "visual": "brand", "alt": "GDPR Rights share card with the TradeZoro logo"},
-    {"page": "refund-policy.html", "title": "Refund Policy", "og_title": "Refund Policy — TradeZoro", "visual": "brand", "alt": "Refund Policy share card with the TradeZoro logo"}
+    {"page": "refund-policy.html", "title": "Refund Policy", "og_title": "Refund Policy — TradeZoro", "visual": "brand", "alt": "Refund Policy share card with the TradeZoro logo"},
+    {"page": "suggestions.html", "title": "Suggestions", "og_title": "Suggestions \u2014 TradeZoro", "visual": "brand", "alt": "Suggestions share card with the TradeZoro logo"}
   ]
 }

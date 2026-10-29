@@ -1145,6 +1145,207 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // Suggestions board (suggestions.html, assets/suggestions.js), 2026-10-30.
+    // Public read (the list is indexed), members write. Counters are tamper-proof:
+    //  - votes moves by exactly +1/-1 in the same batch that creates/deletes the caller's own
+    //    votes/{uid} marker (exists/existsAfter); voteRing is an 8-slot day ring for "Trending".
+    //  - commentsCount moves by +1/-1 only with a matching comment create/delete, proven through the
+    //    caller's suggestMeta/{uid} doc which names the comment (cSid/cCid, dSid/dCid) and is itself
+    //    only writable when that comment really appears/disappears in the same batch.
+    //  - suggestMeta also carries the rate limits: 5 new suggestions per UTC day, 1 comment per 20 s.
+    // status, officialReply, history, hidden, mergedInto, roadmapId, shippedBuild: admins only.
+    // suggestBans/{uid}: admin-written; a banned member cannot post suggestions or comments.
+    // ---------------------------------------------------------------------
+    function sgPath(sid)        { return /databases/$(database)/documents/suggestions/$(sid); }
+    function sgVotePath(sid, u) { return /databases/$(database)/documents/suggestions/$(sid)/votes/$(u); }
+    function sgComPath(sid, c)  { return /databases/$(database)/documents/suggestions/$(sid)/comments/$(c); }
+    function sgMetaPath(u)      { return /databases/$(database)/documents/suggestMeta/$(u); }
+    function sgBanned()         { return exists(/databases/$(database)/documents/suggestBans/$(request.auth.uid)); }
+    function sgToday()          { return int(request.time.toMillis() / 86400000); }
+    function sgCats()           { return ['charts', 'indicators', 'gex', 'replay', 'journal', 'stats', 'courses', 'creator', 'mobile', 'other']; }
+    function sgStatuses()       { return ['new', 'review', 'planned', 'progress', 'shipped', 'declined']; }
+    function sgAuthorOk(n) {
+      return n is string && n.size() > 0 && n.size() <= 60
+        && (n == 'Member'
+            || (exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+                && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('displayName', '') == n));
+    }
+    function sgImgOk(u) {
+      return u is string && (u == '' || (u.size() <= 600
+        && u.matches('^https://firebasestorage[.]googleapis[.]com/v0/b/strykertrades-e0cd8[.]firebasestorage[.]app/o/suggestions%2F' + request.auth.uid + '%2F[^ ]+$')));
+    }
+
+    match /suggestions/{sid} {
+      function sgKeys()   { return ['title', 'body', 'category', 'imageUrl', 'authorUid', 'authorName', 'status', 'votes', 'voteRing',
+                                    'commentsCount', 'createdAt', 'updatedAt', 'hidden']; }
+      function sgAdminKeys() { return ['officialReply', 'history', 'mergedInto', 'roadmapId', 'shippedBuild', 'statusAt']; }
+      function onlyKeys(k) { return request.resource.data.diff(resource.data).affectedKeys().hasOnly(k); }
+      function mine()      { return sgVotePath(sid, request.auth.uid); }
+      function ringInc() {
+        let k = 's' + string(sgToday() % 8);
+        let nw = request.resource.data.get('voteRing', {});
+        let od = resource.data.get('voteRing', {});
+        let o = od.get(k, {'d': -1, 'n': 0});
+        return nw.diff(od).affectedKeys().hasOnly([k])
+          && nw.get(k, {}).keys().hasOnly(['d', 'n'])
+          && nw.get(k, {}).get('d', -2) == sgToday()
+          && nw.get(k, {}).get('n', -2) == (o.get('d', -1) == sgToday() ? o.get('n', 0) + 1 : 1);
+      }
+      // Taking a vote back: the ring stays, or the slot of the vote's own day drops by one.
+      function ringDec(day) {
+        let k = 's' + string(day % 8);
+        let nw = request.resource.data.get('voteRing', {});
+        let od = resource.data.get('voteRing', {});
+        return !('voteRing' in request.resource.data.diff(resource.data).affectedKeys())
+          || (nw.diff(od).affectedKeys().hasOnly([k])
+              && nw.get(k, {}).keys().hasOnly(['d', 'n'])
+              && nw.get(k, {}).get('d', -2) == day && od.get(k, {}).get('d', -3) == day
+              && nw.get(k, {}).get('n', -2) == od.get(k, {}).get('n', 0) - 1
+              && nw.get(k, {}).get('n', -2) >= 0);
+      }
+      function contentOk(d) {
+        return d.title is string && d.title.size() >= 4 && d.title.size() <= 80
+          && d.body is string && d.body.size() <= 1000
+          && d.category in sgCats()
+          && d.authorUid is string;
+      }
+
+      allow get:  if resource.data.hidden == false || isAdmin()
+                  || (signedIn() && resource.data.authorUid == request.auth.uid);
+      allow list: if resource.data.hidden == false || isAdmin();
+
+      // Member: new suggestion, auto-voted (votes 1 + own marker + today's ring slot), meta day counter +1.
+      allow create: if signedIn() && !sgBanned()
+        && request.resource.data.keys().hasOnly(sgKeys()) && request.resource.data.keys().hasAll(sgKeys())
+        && contentOk(request.resource.data)
+        && request.resource.data.authorUid == request.auth.uid
+        && sgAuthorOk(request.resource.data.authorName)
+        && sgImgOk(request.resource.data.imageUrl)
+        && request.resource.data.status == 'new'
+        && request.resource.data.votes == 1
+        && request.resource.data.voteRing.keys().hasOnly(['s' + string(sgToday() % 8)])
+        && request.resource.data.voteRing['s' + string(sgToday() % 8)] == {'d': sgToday(), 'n': 1}
+        && request.resource.data.commentsCount == 0
+        && request.resource.data.hidden == false
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && existsAfter(mine())
+        && getAfter(sgMetaPath(request.auth.uid)).data.get('sSid', '') == sid
+        && getAfter(sgMetaPath(request.auth.uid)).data.get('sAt', null) == request.time;
+
+      allow update: if
+          // any member: one vote each, +1 with the marker created in the same batch
+          (signedIn() && resource.data.hidden == false && onlyKeys(['votes', 'voteRing'])
+            && request.resource.data.votes == resource.data.votes + 1 && ringInc()
+            && !exists(mine()) && existsAfter(mine()))
+          // ... and take it back (marker deleted in the same batch)
+          || (signedIn() && onlyKeys(['votes', 'voteRing'])
+            && request.resource.data.votes == resource.data.votes - 1
+            && exists(mine()) && !existsAfter(mine())
+            && ringDec(get(mine()).data.day))
+          // any member: comment count +1 / -1, proven through the caller's meta doc
+          || (signedIn() && onlyKeys(['commentsCount'])
+            && request.resource.data.commentsCount == resource.data.commentsCount + 1
+            && getAfter(sgMetaPath(request.auth.uid)).data.get('cSid', '') == sid
+            && getAfter(sgMetaPath(request.auth.uid)).data.get('cAt', null) == request.time)
+          || (signedIn() && onlyKeys(['commentsCount'])
+            && request.resource.data.commentsCount == resource.data.commentsCount - 1
+            && getAfter(sgMetaPath(request.auth.uid)).data.get('dSid', '') == sid
+            && getAfter(sgMetaPath(request.auth.uid)).data.get('dAt', null) == request.time)
+          // admin: anything inside the known shape (status, official reply, merge, hide, roadmap link, counters on merge)
+          || (isAdmin() && request.resource.data.keys().hasOnly(sgKeys().concat(sgAdminKeys()))
+            && contentOk(request.resource.data)
+            && request.resource.data.status in sgStatuses()
+            && request.resource.data.hidden is bool
+            && request.resource.data.votes is int && request.resource.data.votes >= 0
+            && request.resource.data.commentsCount is int && request.resource.data.commentsCount >= 0
+            && request.resource.data.authorUid == resource.data.authorUid
+            && request.resource.data.createdAt == resource.data.createdAt);
+      allow delete: if isAdmin();
+
+      // votes/{uid}: existence = vote. Never listed publicly (no names list); count lives on the parent.
+      match /votes/{uid} {
+        allow get: if isSelf(uid) || isAdmin();
+        allow list: if isAdmin();
+        allow create: if isSelf(uid)
+          && request.resource.data.keys().hasOnly(['uid', 'at', 'day'])
+          && request.resource.data.uid == uid
+          && request.resource.data.at == request.time && request.resource.data.day == sgToday()
+          && (exists(sgPath(sid))
+                ? getAfter(sgPath(sid)).data.votes == get(sgPath(sid)).data.votes + 1
+                : getAfter(sgPath(sid)).data.authorUid == uid && getAfter(sgPath(sid)).data.votes == 1);
+        allow delete: if isSelf(uid)
+          && getAfter(sgPath(sid)).data.votes == get(sgPath(sid)).data.votes - 1;
+        // admin: merge duplicates moves the markers to the kept suggestion
+        allow create, delete: if isAdmin();
+      }
+
+      // comments: public read while the suggestion is visible; members post; author edits/deletes within 15 min.
+      match /comments/{cid} {
+        function cKeys() { return ['authorUid', 'authorName', 'text', 'createdAt', 'updatedAt']; }
+        allow read: if isAdmin() || get(sgPath(sid)).data.hidden == false;
+        allow create: if signedIn() && !sgBanned()
+          && request.resource.data.keys().hasOnly(cKeys()) && request.resource.data.keys().hasAll(cKeys())
+          && request.resource.data.authorUid == request.auth.uid
+          && sgAuthorOk(request.resource.data.authorName)
+          && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+          && get(sgPath(sid)).data.hidden == false
+          && getAfter(sgPath(sid)).data.commentsCount == get(sgPath(sid)).data.commentsCount + 1
+          && getAfter(sgMetaPath(request.auth.uid)).data.get('cCid', '') == cid
+          && getAfter(sgMetaPath(request.auth.uid)).data.get('cAt', null) == request.time;
+        allow update: if signedIn() && resource.data.authorUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'updatedAt'])
+          && request.resource.data.text is string && request.resource.data.text.size() >= 1 && request.resource.data.text.size() <= 1000
+          && request.resource.data.updatedAt == request.time
+          && request.time < resource.data.createdAt + duration.value(15, 'm');
+        allow delete: if isAdmin()
+          || (signedIn() && resource.data.authorUid == request.auth.uid
+              && request.time < resource.data.createdAt + duration.value(15, 'm')
+              && getAfter(sgPath(sid)).data.commentsCount == get(sgPath(sid)).data.commentsCount - 1);
+      }
+    }
+
+    // Per-member counters for the board (rate limits + proof for comment counts). Written only by the member, in the
+    // same batch as the write it proves. sDay/sN: suggestions posted on UTC day sDay (max 5).
+    match /suggestMeta/{uid} {
+      function mo() { return request.method == 'create' ? {} : resource.data; }
+      function mn() { return request.resource.data; }
+      function mKeys() { return ['sDay', 'sN', 'sSid', 'sAt', 'cSid', 'cCid', 'cAt', 'dSid', 'dCid', 'dAt']; }
+      function mChanged() { return request.method == 'create' ? mn().keys().toSet() : mn().diff(resource.data).affectedKeys(); }
+      function postOk() {
+        return mChanged().hasOnly(['sDay', 'sN', 'sSid', 'sAt'])
+          && mn().get('sDay', null) == sgToday()
+          && mn().get('sN', null) == (mo().get('sDay', -1) == sgToday() ? mo().get('sN', 0) + 1 : 1)
+          && mn().get('sN', null) <= 5
+          && mn().get('sAt', null) == request.time
+          && mn().get('sSid', null) is string
+          && !exists(sgPath(mn().get('sSid', null))) && existsAfter(sgPath(mn().get('sSid', null)));
+      }
+      function commentOk() {
+        return mChanged().hasOnly(['cSid', 'cCid', 'cAt'])
+          && mn().get('cAt', null) == request.time
+          && (mo().get('cAt', null) == null || request.time > mo().get('cAt', null) + duration.value(20, 's'))
+          && mn().get('cSid', null) is string && mn().get('cCid', null) is string
+          && !exists(sgComPath(mn().get('cSid', null), mn().get('cCid', null))) && existsAfter(sgComPath(mn().get('cSid', null), mn().get('cCid', null)))
+          && getAfter(sgComPath(mn().get('cSid', null), mn().get('cCid', null))).data.authorUid == uid;
+      }
+      function deleteOk() {
+        return mChanged().hasOnly(['dSid', 'dCid', 'dAt'])
+          && mn().get('dAt', null) == request.time
+          && mn().get('dSid', null) is string && mn().get('dCid', null) is string
+          && exists(sgComPath(mn().get('dSid', null), mn().get('dCid', null))) && !existsAfter(sgComPath(mn().get('dSid', null), mn().get('dCid', null)))
+          && get(sgComPath(mn().get('dSid', null), mn().get('dCid', null))).data.authorUid == uid;
+      }
+      allow get: if isSelf(uid) || isAdmin();
+      allow create, update: if isSelf(uid) && mn().keys().hasOnly(mKeys()) && (postOk() || commentOk() || deleteOk());
+    }
+
+    match /suggestBans/{uid} {
+      allow get: if isSelf(uid) || isAdmin();
+      allow list, write: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

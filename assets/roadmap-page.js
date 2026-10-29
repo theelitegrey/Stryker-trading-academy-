@@ -36,7 +36,24 @@
     if ('IntersectionObserver' in window) { const io = new IntersectionObserver((entries) => { entries.forEach((e, i) => { if (e.isIntersecting) { setTimeout(() => e.target.classList.add('is-in'), Math.min(i, 6) * 70); io.unobserve(e.target); } }); }, { threshold: 0.1 }); els.forEach((el) => io.observe(el)); }
     else els.forEach((el) => el.classList.add('is-in'));
     setTimeout(() => els.forEach((el) => el.classList.add('is-in')), 1800);   // safety net: never leave items invisible
+    markSuggested();
     if (location.hash) { const target = document.querySelector(location.hash.replace(/[^#\w-]/g, '')); if (target) setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200); }
+  }
+  // Roadmap items linked from the Suggestions board (suggestions/{id}.roadmapId, set by admins) get a
+  // "Suggested by members · N votes" line that opens the suggestion (or the board when several link here).
+  function markSuggested() {
+    if (typeof db === 'undefined' || !db) return;
+    db.collection('suggestions').where('hidden', '==', false).limit(1000).get().then((snap) => {
+      const by = {};
+      snap.forEach((d) => { const x = d.data(); if (x.roadmapId && !x.mergedInto) { (by[x.roadmapId] = by[x.roadmapId] || { votes: 0, ids: [] }).votes += Number(x.votes) || 0; by[x.roadmapId].ids.push(d.id); } });
+      Object.keys(by).forEach((rid) => {
+        const card = document.getElementById('rm-' + rid); if (!card) return;
+        const foot = card.querySelector('.rmp-foot'); if (!foot || foot.querySelector('.rmp-voted')) return;
+        const a = document.createElement('a'); a.className = 'rmp-voted'; a.href = 'suggestions' + (by[rid].ids.length === 1 ? '#' + by[rid].ids[0] : '');
+        a.textContent = 'Suggested by members · ' + by[rid].votes + (by[rid].votes === 1 ? ' vote' : ' votes');
+        foot.insertBefore(a, foot.firstChild);
+      });
+    }).catch(() => {});
   }
   document.addEventListener('DOMContentLoaded', () => {
     if (!$('rmp-summary')) return;

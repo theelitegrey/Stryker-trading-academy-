@@ -677,7 +677,7 @@
       {
        "id": "more-sheet",
        "q": "What is inside the More menu?",
-       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money, Live sessions.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
+       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money, Live sessions.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Suggestions, Help Center, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
        "path": "Dock → More",
        "tags": [
         "more",
@@ -3311,7 +3311,7 @@
        "a": "<p>Open the \"Connect your prop firm\" sheet (tap Connect data source on the chart strip, or Connect broker in the toolbar). Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
        "steps": [
         "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
-        "Not sure what login to use? Tap \"Where\u2019s my Rithmic login?\" for the checklist.",
+        "Not sure what login to use? Tap \"Where’s my Rithmic login?\" for the checklist.",
         "Step 1, Server location: pick the closest one. Chicago suits most people.",
         "Step 2, Prop firm: pick the same system name R | Trader Pro shows at sign-in.",
         "Step 3, Login: enter your Rithmic username and password. Use Show/Hide to check what you typed.",
@@ -3494,13 +3494,72 @@
         "feature request"
        ],
        "related": [
-        "contact-support"
+        "contact-support",
+        "suggest-feature"
        ],
        "links": [
         {
          "label": "Roadmap",
          "href": "/roadmap"
         }
+       ]
+      },
+      {
+       "id": "suggest-feature",
+       "q": "How do I suggest a feature?",
+       "a": "<p>Open More → Suggestions and tap <b>Suggest a feature</b>. Give it a short title, pick a category and add details if you like. You can attach one screenshot (an image up to 5 MB).</p><p>While you type the title, similar suggestions show up. If one matches your idea, tap <b>Vote for this instead</b> so the votes stay in one place.</p><p>Free and Pro members can both post. Each member can post up to 5 suggestions a day.</p>",
+       "path": "More → Suggestions",
+       "tags": [
+        "suggest",
+        "feature request",
+        "idea",
+        "request a feature",
+        "feedback",
+        "wishlist"
+       ],
+       "related": [
+        "suggestion-voting",
+        "suggestion-statuses",
+        "roadmap"
+       ],
+       "links": [
+        {
+         "label": "Suggestions",
+         "href": "/suggestions"
+        }
+       ]
+      },
+      {
+       "id": "suggestion-voting",
+       "q": "How does voting work on Suggestions?",
+       "a": "<p>Tap the arrow on a suggestion to vote. Tap it again to take your vote back. Each member has one vote per suggestion, and your own suggestion gets your vote automatically.</p><p>Top sorts by total votes, Trending by votes in the last 7 days, New by date. The board shows how many members voted, never who.</p><p>Comments are open to every signed-in member: one comment every 20 seconds, and you can edit or delete your own for 15 minutes.</p>",
+       "path": "More → Suggestions",
+       "tags": [
+        "vote",
+        "upvote",
+        "voting",
+        "comments",
+        "trending"
+       ],
+       "related": [
+        "suggest-feature",
+        "suggestion-statuses"
+       ]
+      },
+      {
+       "id": "suggestion-statuses",
+       "q": "What do the suggestion statuses mean?",
+       "a": "<ul><li><b>New</b>: waiting for the team to read it.</li><li><b>Under review</b>: the team is looking into it.</li><li><b>Planned</b>: on the list to build. Plans can change.</li><li><b>In progress</b>: being built now.</li><li><b>Shipped</b>: live on the site, with the build number when we have it.</li><li><b>Not planned</b>: not something we plan to build.</li></ul><p>When the status changes or the team replies, the author and everyone who voted get a notification. A planned status is not a promise of a delivery date.</p>",
+       "tags": [
+        "status",
+        "planned",
+        "shipped",
+        "under review",
+        "not planned"
+       ],
+       "related": [
+        "suggest-feature",
+        "roadmap"
        ]
       }
      ]
@@ -4041,7 +4100,7 @@
       {
        "id": "report-bug",
        "q": "How do I report a bug or suggest a feature?",
-       "a": "<p>Use the contact form or email support@tradezoro.com. Say the page, what you tapped, what you expected, your device and browser.</p><p><img src=\"/assets/help/shots/contact-page.webp\" alt=\"The Contact page\"></p>",
+       "a": "<p><b>Feature ideas:</b> post them on the Suggestions board (More → Suggestions), or vote for an idea someone already posted. The team marks what is planned and what shipped.</p><p><b>Bugs:</b> use the contact form or email support@tradezoro.com. Say the page, what you tapped, what you expected, your device and browser.</p><p><img src=\"/assets/help/shots/contact-page.webp\" alt=\"The Contact page\"></p>",
        "tags": [
         "bug",
         "feature request",
@@ -4050,9 +4109,14 @@
        ],
        "related": [
         "contact-support",
-        "roadmap"
+        "roadmap",
+        "suggest-feature"
        ],
        "links": [
+        {
+         "label": "Suggestions",
+         "href": "/suggestions"
+        },
         {
          "label": "Contact us",
          "href": "/contact"

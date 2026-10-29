@@ -7085,6 +7085,9 @@ section.bt-view, section#rp-home, section#rp-work{ padding:0; }
 .rmp-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
 .rmp-head p{ color:var(--ink-2); font-size:13.5px; margin:4px 0 0; max-width:640px; }
 .rmp-meta{ font:11.5px var(--font-mono); color:var(--ink-3); }
+.rmp-head-r{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.rmp-voted{ display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--gold-bright); text-decoration:none; }
+.rmp-voted:hover{ text-decoration:underline; }
 .rmp-summary{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-bottom:26px; }
 .rmp-sum{ background:var(--bg-2); border:1px solid var(--line-soft); border-radius:14px; padding:14px 16px; display:flex; align-items:center; gap:14px; }
 .rmp-sum i{ width:10px; height:10px; border-radius:50%; flex:0 0 auto; } .rmp-sum b{ font:600 20px var(--font-mono); color:var(--ink-0); } .rmp-sum span{ font-size:12px; color:var(--ink-2); }

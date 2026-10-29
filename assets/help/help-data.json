@@ -1,0 +1,4258 @@
+{
+ "version": 1,
+ "updated": "2026-10-29",
+ "categories": [
+  {
+   "id": "getting-started",
+   "title": "Getting started",
+   "icon": "rocket",
+   "desc": "What TradeZoro is and how to begin.",
+   "subs": [
+    {
+     "id": "about",
+     "title": "About TradeZoro",
+     "items": [
+      {
+       "id": "what-is-tradezoro",
+       "q": "What is TradeZoro?",
+       "a": "<p>TradeZoro is a trading education site with a built-in set of tools: a written curriculum, charts, GEX+ options levels, a trade journal and a replay tool for practice.</p><p>It is an educational service. It does not manage money or give personal financial advice.</p>",
+       "tags": [
+        "about",
+        "what is",
+        "overview",
+        "academy",
+        "tradezoro",
+        "stryker"
+       ],
+       "related": [
+        "modules-overview",
+        "is-it-free",
+        "not-advice"
+       ],
+       "links": [
+        {
+         "label": "Features",
+         "href": "/features"
+        }
+       ]
+      },
+      {
+       "id": "modules-overview",
+       "q": "What tools are on the site?",
+       "a": "<p>The main tools are ZoroCharts (charts), GEX+ (options gamma levels), JournalX (trade journal), Replay One (backtesting and replay), Market Stats, the Market scanner, Global Monitor, the Economic calendar and a 64-chapter curriculum.</p><ul><li><strong>ZoroCharts</strong>: charts, indicators, drawings, alerts, paper trading.</li><li><strong>GEX+</strong>: call wall, put wall, zero gamma.</li><li><strong>JournalX</strong>: log and review your trades.</li><li><strong>Replay One</strong>: practice on past data, one bar at a time.</li></ul>",
+       "tags": [
+        "tools",
+        "modules",
+        "features",
+        "list",
+        "what can i do"
+       ],
+       "related": [
+        "what-is-tradezoro",
+        "zorocharts-what",
+        "gex-what-is",
+        "journalx-what",
+        "replay-what"
+       ],
+       "links": [
+        {
+         "label": "All features",
+         "href": "/features"
+        }
+       ]
+      },
+      {
+       "id": "is-it-free",
+       "q": "Is TradeZoro free?",
+       "a": "<p>Yes, there is a Free plan. Pro is a paid plan with more tools.</p><p>Free gives you chapters 1 to 10, ZoroCharts with every chart tool and indicator (except order flow and GEX tools), Replay One, GEX+ for SPX same-day, and JournalX with up to 20 new trades a month. No card is needed to sign up.</p>",
+       "plans": "all",
+       "tags": [
+        "free",
+        "cost",
+        "price",
+        "starter",
+        "no card"
+       ],
+       "related": [
+        "free-vs-pro",
+        "pro-price"
+       ],
+       "links": [
+        {
+         "label": "See pricing",
+         "href": "/#pricing"
+        }
+       ]
+      },
+      {
+       "id": "not-advice",
+       "q": "Does TradeZoro give financial advice or trade signals?",
+       "a": "<p>No. TradeZoro is an educational service only. Indicators and levels mark ideas on a chart. They are not trade signals.</p><p>Our Terms say the site does \"not provide personalized financial, investment, or trading advice\" and does not manage funds.</p>",
+       "tags": [
+        "advice",
+        "signals",
+        "financial advice",
+        "disclaimer",
+        "risk"
+       ],
+       "related": [
+        "place-orders",
+        "legal-pages"
+       ],
+       "links": [
+        {
+         "label": "Terms & Risk Disclosure",
+         "href": "/terms"
+        }
+       ]
+      },
+      {
+       "id": "place-orders",
+       "q": "Can I place real trades on TradeZoro?",
+       "a": "<p>No. There is no real order placement anywhere on the site.</p><p>Paper trading and Replay One use simulated orders with demo money. The Connect broker feature only brings in market data. JournalX broker sync only reads your trades.</p>",
+       "tags": [
+        "orders",
+        "buy sell",
+        "broker",
+        "execute",
+        "real money",
+        "live trading"
+       ],
+       "related": [
+        "paper-trading-what",
+        "rithmic-what",
+        "replay-what"
+       ]
+      },
+      {
+       "id": "who-can-join",
+       "q": "Who can create an account?",
+       "a": "<p>You must be at least 18 years old. TradeZoro does not offer accounts to anyone under 18.</p>",
+       "tags": [
+        "age",
+        "18",
+        "minimum age",
+        "eligibility",
+        "children"
+       ],
+       "related": [
+        "create-account"
+       ],
+       "links": [
+        {
+         "label": "Terms",
+         "href": "/terms"
+        }
+       ]
+      },
+      {
+       "id": "where-to-start",
+       "q": "I am new. Where should I start?",
+       "a": "<p>Start with the curriculum, then try the tools one by one.</p>",
+       "steps": [
+        "Create a free account.",
+        "Open Learn and read chapter 1.",
+        "Open ZoroCharts and look at a chart of NQ or BTC.",
+        "Try Replay One to practise on past data.",
+        "Log a trade in JournalX."
+       ],
+       "path": "Learn (dock) → Curriculum",
+       "tags": [
+        "beginner",
+        "start",
+        "first steps",
+        "new",
+        "tour"
+       ],
+       "related": [
+        "create-account",
+        "guided-tour",
+        "onboarding-card"
+       ],
+       "links": [
+        {
+         "label": "Open the curriculum",
+         "href": "/courses"
+        }
+       ],
+       "level": "beginner"
+      }
+     ]
+    },
+    {
+     "id": "first-run",
+     "title": "Your first visit",
+     "items": [
+      {
+       "id": "onboarding-card",
+       "q": "What is the setup wizard on my dashboard?",
+       "a": "<p>New members see a short setup wizard and a progress card on the dashboard. They help you set your account size and currency, say what you trade, make a first playbook and open a first chapter.</p><p>The card disappears when you have done the four steps.</p>",
+       "path": "Home (More → Home)",
+       "tags": [
+        "onboarding",
+        "wizard",
+        "setup",
+        "getting set up",
+        "first playbook"
+       ],
+       "related": [
+        "guided-tour",
+        "journalx-settings"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "guided-tour",
+       "q": "How do I take the guided tour again?",
+       "a": "<p>You can run the 13-step tour any time from Settings.</p><p><img src=\"/assets/help/shots/settings-top.webp\" alt=\"The top of Settings\"></p>",
+       "steps": [
+        "Open Settings.",
+        "Find the Guided tour card.",
+        "Tap Take the tour. It opens on your dashboard."
+       ],
+       "path": "More → Settings → Guided tour",
+       "tags": [
+        "tour",
+        "walkthrough",
+        "help",
+        "intro"
+       ],
+       "related": [
+        "where-to-start"
+       ],
+       "links": [
+        {
+         "label": "Open Settings",
+         "href": "/settings"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "install-app",
+       "q": "Can I install TradeZoro on my phone like an app?",
+       "a": "<p>Yes. Settings has an Install the app card that puts TradeZoro on your home screen.</p>",
+       "steps": [
+        "Open Settings.",
+        "Find Install the app.",
+        "Tap Install on this device."
+       ],
+       "path": "More → Settings → Install the app",
+       "tags": [
+        "pwa",
+        "install",
+        "home screen",
+        "app",
+        "add to home screen"
+       ],
+       "related": [
+        "push-enable",
+        "push-iphone"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "start-page",
+       "q": "Can I change the page I land on after signing in?",
+       "a": "<p>Settings has a Start page card, but the only option today is Dashboard.</p>",
+       "path": "More → Settings → Start page",
+       "tags": [
+        "start page",
+        "landing page",
+        "default page"
+       ],
+       "related": [
+        "guided-tour"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "account",
+   "title": "Account, login and profile",
+   "icon": "user",
+   "desc": "Sign up, sign in, passwords and your profile.",
+   "subs": [
+    {
+     "id": "signup",
+     "title": "Creating an account",
+     "items": [
+      {
+       "id": "create-account",
+       "q": "How do I create an account?",
+       "a": "<p>Go to the sign-up page, fill in the form or use Google. It is free and needs no card.</p>",
+       "steps": [
+        "Open the Sign up page.",
+        "Enter your full name, email and a password (at least 6 characters).",
+        "Add an invite code if you have one (optional).",
+        "Tick I agree to the Terms & Risk Disclosure.",
+        "Tap Create account.",
+        "Open the confirmation email and click its link."
+       ],
+       "path": "Home → Start learning → Create account",
+       "tags": [
+        "sign up",
+        "register",
+        "join",
+        "new account",
+        "signup"
+       ],
+       "related": [
+        "google-signin",
+        "verify-email",
+        "password-rules"
+       ],
+       "links": [
+        {
+         "label": "Create account",
+         "href": "/signup"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "google-signin",
+       "q": "Can I sign up or log in with Google?",
+       "a": "<p>Yes. Tap Continue with Google on the sign-up or login page.</p><p>Google accounts skip the email confirmation step. If you have not uploaded your own photo, your Google photo is used as your avatar.</p>",
+       "tags": [
+        "google",
+        "gmail",
+        "sso",
+        "continue with google"
+       ],
+       "related": [
+        "google-popup-blocked",
+        "create-account"
+       ],
+       "links": [
+        {
+         "label": "Log in",
+         "href": "/login"
+        }
+       ]
+      },
+      {
+       "id": "password-rules",
+       "q": "What are the password rules?",
+       "a": "<p>The password must be at least 6 characters. If it is shorter you will see: \"Password should be at least 6 characters.\"</p><p>Use a strong, unique password.</p>",
+       "tags": [
+        "password",
+        "weak password",
+        "minimum length",
+        "6 characters"
+       ],
+       "related": [
+        "create-account",
+        "reset-password"
+       ]
+      },
+      {
+       "id": "invite-code",
+       "q": "What is the invite code on the sign-up form?",
+       "a": "<p>It is optional. If a member invited you, enter their code so they get credit. A link that ends in ?ref=CODE fills it in for you.</p>",
+       "tags": [
+        "invite",
+        "referral code",
+        "ref",
+        "friend"
+       ],
+       "related": [
+        "referrals-what"
+       ]
+      },
+      {
+       "id": "verify-email",
+       "q": "Why do I need to confirm my email?",
+       "a": "<p>Accounts made with an email and password must confirm the address before the dashboard opens. We send a one-time link to your inbox.</p><p>The screen says: \"We sent a confirmation link ... Open it to activate your account. Check spam if it hasn't arrived within a minute.\"</p>",
+       "steps": [
+        "Open the email from TradeZoro and click the link.",
+        "Return to the site and tap I've confirmed it."
+       ],
+       "tags": [
+        "verification",
+        "confirm email",
+        "activate",
+        "verify",
+        "email link"
+       ],
+       "related": [
+        "no-verification-email",
+        "google-signin"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "login",
+     "title": "Signing in and out",
+     "items": [
+      {
+       "id": "login-how",
+       "q": "How do I log in?",
+       "a": "<p>Use your email and password, or tap Continue with Google. Tick Keep me logged in if you want to stay signed in on this device.</p>",
+       "steps": [
+        "Open the Log in page.",
+        "Enter email and password.",
+        "Tap Log in."
+       ],
+       "tags": [
+        "login",
+        "sign in",
+        "log in",
+        "keep me logged in"
+       ],
+       "related": [
+        "login-problems",
+        "reset-password"
+       ],
+       "links": [
+        {
+         "label": "Log in",
+         "href": "/login"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "sign-out",
+       "q": "How do I sign out?",
+       "a": "<p>Open the avatar menu and choose Sign out.</p>",
+       "steps": [
+        "Tap your avatar (top right).",
+        "Tap Sign out."
+       ],
+       "path": "Avatar → Sign out",
+       "tags": [
+        "logout",
+        "sign out",
+        "log out"
+       ],
+       "related": [
+        "push-after-signout"
+       ]
+      },
+      {
+       "id": "reset-password",
+       "q": "I forgot my password. How do I reset it?",
+       "a": "<p>Use Forgot password? on the login page. We email you a reset link.</p>",
+       "steps": [
+        "Open the Log in page.",
+        "Tap Forgot password?",
+        "Enter your account email in the box.",
+        "Open the email and set a new password.",
+        "You return to the login page and see \"Password updated. Log in with your new password.\""
+       ],
+       "tags": [
+        "forgot password",
+        "reset",
+        "lost password",
+        "change password"
+       ],
+       "related": [
+        "change-password",
+        "no-reset-email"
+       ],
+       "links": [
+        {
+         "label": "Log in",
+         "href": "/login"
+        }
+       ]
+      },
+      {
+       "id": "change-password",
+       "q": "How do I change my password while signed in?",
+       "a": "<p>Settings sends a reset link to your email, and you set the new password from that link.</p>",
+       "steps": [
+        "Open Settings.",
+        "Go to Security.",
+        "Tap Send password reset email.",
+        "Open the email and choose a new password."
+       ],
+       "path": "More → Settings → Security",
+       "tags": [
+        "change password",
+        "security",
+        "new password"
+       ],
+       "related": [
+        "reset-password"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "google-no-password",
+       "q": "I signed up with Google. Do I have a password?",
+       "a": "<p>Not unless you set one. You can use Continue with Google each time, or send yourself a reset link from Settings → Security to create a password.</p>",
+       "tags": [
+        "google",
+        "no password",
+        "set password"
+       ],
+       "related": [
+        "change-password",
+        "google-signin"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "keep-logged-in",
+       "q": "What does Keep me logged in do?",
+       "a": "<p>It keeps you signed in on this browser between visits. Leave it off on a shared computer.</p>",
+       "tags": [
+        "remember me",
+        "stay signed in",
+        "session"
+       ],
+       "related": [
+        "login-how",
+        "storage-blocked"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "profile",
+     "title": "Profile and preferences",
+     "items": [
+      {
+       "id": "edit-profile",
+       "q": "How do I change my name, username or bio?",
+       "a": "<p>Edit them in Settings → Profile and tap Save changes.</p><p>The username (your @handle) is 3 to 20 characters: letters, numbers, underscore and dot. If it is taken you see \"@name is already taken.\"</p>",
+       "steps": [
+        "Open Settings.",
+        "Go to Profile.",
+        "Change Display name, Username or Bio.",
+        "Tap Save changes. You should see Saved."
+       ],
+       "path": "More → Settings → Profile",
+       "tags": [
+        "username",
+        "display name",
+        "bio",
+        "handle",
+        "profile"
+       ],
+       "related": [
+        "avatar",
+        "public-profile"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "avatar",
+       "q": "How do I change my profile picture?",
+       "a": "<p>Upload a photo or generate a random avatar from Settings.</p>",
+       "steps": [
+        "Open Settings.",
+        "Go to Profile picture.",
+        "Tap Upload photo, or Use a random avatar."
+       ],
+       "path": "More → Settings → Profile picture",
+       "tags": [
+        "photo",
+        "avatar",
+        "picture",
+        "image"
+       ],
+       "related": [
+        "edit-profile"
+       ]
+      },
+      {
+       "id": "public-profile",
+       "q": "What can other members see about me?",
+       "a": "<p>Your display name, avatar and bio, and your posts on the Trading Floor. Your trade journal is private to you.</p>",
+       "path": "More → Profile",
+       "tags": [
+        "privacy",
+        "profile",
+        "visible",
+        "public"
+       ],
+       "related": [
+        "online-status",
+        "privacy-journal"
+       ],
+       "links": [
+        {
+         "label": "Profile",
+         "href": "/profile"
+        }
+       ]
+      },
+      {
+       "id": "online-status",
+       "q": "Can I hide when I am online?",
+       "a": "<p>Yes. Settings → Online status: Show me online shows a green ring on your avatar. Stay hidden shows nothing and stores nothing about your activity.</p>",
+       "path": "More → Settings → Online status",
+       "tags": [
+        "online",
+        "hidden",
+        "presence",
+        "green ring"
+       ],
+       "related": [
+        "public-profile"
+       ]
+      },
+      {
+       "id": "theme",
+       "q": "How do I switch between Night and Day theme?",
+       "a": "<p>Use the Appearance card in Settings. Night is the default dark look. Day is a full light theme. It is saved on the device and to your account.</p>",
+       "path": "More → Settings → Appearance",
+       "tags": [
+        "dark mode",
+        "light mode",
+        "theme",
+        "day",
+        "night"
+       ],
+       "related": [
+        "edit-profile"
+       ]
+      },
+      {
+       "id": "mention-notify",
+       "q": "How do I turn off @mention notifications?",
+       "a": "<p>In Settings → Profile, untick Notify me when someone @mentions me on the Trading Floor, then Save changes.</p>",
+       "path": "More → Settings → Profile",
+       "tags": [
+        "mentions",
+        "notifications",
+        "trading floor"
+       ],
+       "related": [
+        "trading-floor-what"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "navigation",
+   "title": "Finding your way around",
+   "icon": "grid",
+   "desc": "Menus, the dock and where each tool lives.",
+   "subs": [
+    {
+     "id": "menus",
+     "title": "Menus",
+     "items": [
+      {
+       "id": "phone-dock",
+       "q": "What is the bar at the bottom of my phone?",
+       "a": "<p>It is the dock. It has five buttons: ZoroCharts, GEX+, JournalX, Learn and More.</p>",
+       "tags": [
+        "dock",
+        "bottom bar",
+        "phone",
+        "mobile menu",
+        "navigation"
+       ],
+       "related": [
+        "more-sheet",
+        "desktop-nav"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "more-sheet",
+       "q": "What is inside the More menu?",
+       "a": "<p>More opens a sheet with every other page, in three groups.</p><ul><li><strong>Main</strong>: Home, Trading Floor, Global Monitor, Messages.</li><li><strong>Tools</strong>: Replay One, Trade review, Paper leaderboard, Models, Indicators, Market brief, Economic calendar, Market scanner, Market stats, Market map, Smart money, Live sessions.</li><li><strong>Account</strong>: Profile, Settings, Achievements, Referrals, Giveaways, Roadmap, Support.</li></ul><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
+       "path": "Dock → More",
+       "tags": [
+        "more",
+        "menu",
+        "all pages",
+        "sheet",
+        "where is"
+       ],
+       "related": [
+        "phone-dock",
+        "desktop-nav"
+       ]
+      },
+      {
+       "id": "desktop-nav",
+       "q": "How is the menu laid out on a computer?",
+       "a": "<p>On a computer the top bar has pills for ZoroCharts, GEX+, JournalX, Learn and More. The menu button on the left opens a side menu with the rest of the pages, grouped as Learn, ZoroCharts tools, Community, JournalX, Invite & earn, Giveaways and Account.</p><p><img src=\"/assets/help/shots/dashboard-desktop.webp\" alt=\"The desktop dashboard\"></p>",
+       "tags": [
+        "desktop",
+        "sidebar",
+        "side menu",
+        "top bar"
+       ],
+       "related": [
+        "more-sheet"
+       ]
+      },
+      {
+       "id": "find-tool",
+       "q": "Where do I find a specific tool?",
+       "a": "<ul><li>Charts, indicators, alerts, paper trading: ZoroCharts (dock).</li><li>Gamma levels: GEX+ (dock).</li><li>Trade journal: JournalX (dock).</li><li>Courses: Learn (dock).</li><li>Backtesting: More → Replay One.</li><li>Scanner, calendar, Market stats: More → Tools.</li><li>Settings and billing: More → Settings.</li></ul>",
+       "tags": [
+        "where",
+        "find",
+        "location",
+        "path"
+       ],
+       "related": [
+        "more-sheet"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "bell",
+       "q": "What does the bell icon do?",
+       "a": "<p>The bell shows your unread notifications. A number badge appears when you have some. Tapping it opens your dashboard.</p>",
+       "tags": [
+        "bell",
+        "notifications",
+        "badge"
+       ],
+       "related": [
+        "push-enable"
+       ]
+      },
+      {
+       "id": "dashboard-what",
+       "q": "What is on my dashboard?",
+       "a": "<p>The dashboard (More → Home) shows your learning path, an Up next / Resume button, study streak, lessons done, tiles for the trade tools, a Market today section (briefing, calendar, map) and links to the community.</p><p><img src=\"/assets/help/shots/home-dashboard.webp\" alt=\"The dashboard on a phone\"></p>",
+       "path": "More → Home",
+       "tags": [
+        "home",
+        "dashboard",
+        "streak",
+        "progress"
+       ],
+       "related": [
+        "streak"
+       ],
+       "links": [
+        {
+         "label": "Open Home",
+         "href": "/dashboard-user"
+        }
+       ]
+      },
+      {
+       "id": "not-signed-in-nav",
+       "q": "Why do I see a different menu when I am signed out?",
+       "a": "<p>The app menu (dock and pills) only shows when you are signed in. Signed-out visitors see the marketing menu: Features, Curriculum, Pricing, Courses, Log in and Start learning.</p>",
+       "tags": [
+        "signed out",
+        "menu missing",
+        "no dock"
+       ],
+       "related": [
+        "login-problems"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "plans-billing",
+   "title": "Plans, pricing and payments",
+   "icon": "card",
+   "desc": "Free vs Pro, paying, cancelling, coupons and refunds.",
+   "subs": [
+    {
+     "id": "plans",
+     "title": "Free and Pro",
+     "items": [
+      {
+       "id": "free-vs-pro",
+       "q": "What is the difference between Free and Pro?",
+       "a": "<p>Charts are free for everyone. Pro adds real-time data, order flow tools, GEX on charts, and more.</p><ul><li><strong>Free</strong>: chapters 1-10, ZoroCharts (data updated every 10 minutes), Replay One, GEX+ SPX same-day, JournalX up to 20 new trades a month, read-only community, scanner presets.</li><li><strong>Pro</strong>: real-time chart data, order flow tools, GEX on charts and GEX+ for every symbol and expiry, unlimited JournalX with import, broker sync, analytics and AI coach, all 64 chapters, Smart Money Desk, trading models, private indicators, posting and messages, custom scanner filters.</li></ul>",
+       "plans": "all",
+       "tags": [
+        "pro",
+        "free",
+        "compare",
+        "plans",
+        "upgrade",
+        "what do i get"
+       ],
+       "related": [
+        "pro-price",
+        "what-is-locked",
+        "upgrade-how"
+       ],
+       "links": [
+        {
+         "label": "Compare plans",
+         "href": "/#pricing"
+        }
+       ]
+      },
+      {
+       "id": "pro-price",
+       "q": "How much is Pro?",
+       "a": "<p>The homepage shows Pro at $19 / month. There is also a yearly option shown on the pricing section, with the monthly equivalent and the saving. Prices are read live from the plan, so the pricing section always has the current figure.</p>",
+       "plans": "pro",
+       "tags": [
+        "price",
+        "cost",
+        "how much",
+        "$19",
+        "monthly",
+        "yearly",
+        "annual"
+       ],
+       "related": [
+        "inr-price",
+        "free-vs-pro"
+       ],
+       "links": [
+        {
+         "label": "Pricing",
+         "href": "/#pricing"
+        }
+       ]
+      },
+      {
+       "id": "inr-price",
+       "q": "Why does the rupee price change?",
+       "a": "<p>Pro is priced in US dollars. The rupee price is the dollar price at that day's exchange rate. Once you subscribe, your amount stays fixed.</p>",
+       "tags": [
+        "inr",
+        "rupee",
+        "india",
+        "exchange rate",
+        "currency",
+        "upi"
+       ],
+       "related": [
+        "razorpay-stripe"
+       ]
+      },
+      {
+       "id": "what-is-locked",
+       "q": "What do the PRO tags mean?",
+       "a": "<p>A small PRO tag marks a tool that is part of the Pro plan. Tapping it opens the upgrade window. It is not an error.</p>",
+       "plans": "free",
+       "tags": [
+        "pro tag",
+        "locked",
+        "padlock",
+        "upgrade window",
+        "indicator shows pro"
+       ],
+       "related": [
+        "free-vs-pro",
+        "indicator-pro-tag"
+       ]
+      },
+      {
+       "id": "upgrade-how",
+       "q": "How do I upgrade to Pro?",
+       "a": "<p>Tap any Join Pro or See Pro button, or use the pricing section, and follow the checkout.</p><p><img src=\"/assets/help/shots/pricing-desktop.webp\" alt=\"The pricing section\"></p>",
+       "steps": [
+        "Open the pricing section on the home page, or tap a PRO tag.",
+        "Tap Join Pro.",
+        "Fill in your billing details.",
+        "Add a coupon if you have one and tap Apply.",
+        "Pay by card (Stripe) or, from India, in rupees (Razorpay)."
+       ],
+       "path": "Home → Pricing → Join Pro",
+       "tags": [
+        "upgrade",
+        "subscribe",
+        "join pro",
+        "buy",
+        "checkout"
+       ],
+       "related": [
+        "razorpay-stripe",
+        "coupon-how",
+        "payment-failed"
+       ],
+       "links": [
+        {
+         "label": "Pricing",
+         "href": "/#pricing"
+        }
+       ]
+      },
+      {
+       "id": "free-trial",
+       "q": "Is there a free trial?",
+       "a": "<p>A 7-day free trial is available only when it is switched on for the site. When it applies, the button reads Start 7-day free trial and the small print under it shows the date of the first charge. Nothing is charged during the trial and you can cancel before it ends.</p><p>If you do not see that button, no trial is offered right now.</p>",
+       "tags": [
+        "trial",
+        "free trial",
+        "7 day",
+        "try pro"
+       ],
+       "related": [
+        "cancel-subscription",
+        "upgrade-how"
+       ]
+      },
+      {
+       "id": "downgrade-data",
+       "q": "What happens to my data if I go back to Free?",
+       "a": "<p>Your JournalX trades and progress stay saved. Nothing is deleted. You just see the Free limits again.</p>",
+       "tags": [
+        "downgrade",
+        "cancel",
+        "data kept",
+        "lose data"
+       ],
+       "related": [
+        "cancel-subscription",
+        "journalx-limit"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "paying",
+     "title": "Paying",
+     "items": [
+      {
+       "id": "razorpay-stripe",
+       "q": "How can I pay?",
+       "a": "<p>Payments in Indian rupees are processed by Razorpay (UPI AutoPay or card). All other payments are processed by Stripe, including card and wallets such as Apple Pay and Google Pay where your device supports them.</p><p>We never see or store your full card details.</p>",
+       "tags": [
+        "payment methods",
+        "stripe",
+        "razorpay",
+        "upi",
+        "card",
+        "apple pay",
+        "google pay",
+        "paypal"
+       ],
+       "related": [
+        "inr-price",
+        "billing-details"
+       ],
+       "links": [
+        {
+         "label": "Privacy Policy",
+         "href": "/privacy"
+        }
+       ]
+      },
+      {
+       "id": "billing-details",
+       "q": "Why does checkout ask for my address?",
+       "a": "<p>The checkout page asks for full name, address, city, state / region, postal code and country (phone is optional). If one is missing you see: \"Fill in your name, address, city, postal code and country to continue.\"</p>",
+       "tags": [
+        "billing",
+        "address",
+        "checkout",
+        "details"
+       ],
+       "related": [
+        "upgrade-how"
+       ]
+      },
+      {
+       "id": "autorenew",
+       "q": "Does my plan renew automatically?",
+       "a": "<p>Yes. Paid plans renew each billing period at the price shown at checkout until you cancel. On the rupee checkout there is an Auto-renew each billing cycle box; untick it to pay for one cycle only.</p>",
+       "tags": [
+        "renew",
+        "auto renew",
+        "recurring",
+        "subscription",
+        "autopay"
+       ],
+       "related": [
+        "cancel-subscription",
+        "renewal-status"
+       ],
+       "links": [
+        {
+         "label": "Terms",
+         "href": "/terms"
+        }
+       ]
+      },
+      {
+       "id": "renewal-status",
+       "q": "Where can I see when my plan renews or ends?",
+       "a": "<p>Settings → Plan & membership shows your plan and a line such as \"Auto-renews on <date>\" or \"Active until <date>\". Every payment is listed in Settings, and card payments get a Stripe receipt by email.</p><p><img src=\"/assets/help/shots/settings-plan.webp\" alt=\"Plan & membership in Settings\"></p>",
+       "path": "More → Settings → Plan & membership",
+       "tags": [
+        "renewal date",
+        "invoice",
+        "receipt",
+        "billing history",
+        "plan status"
+       ],
+       "related": [
+        "autorenew"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "coupon-how",
+       "q": "How do I use a coupon?",
+       "a": "<p>Enter the code in the Coupon code box on checkout and tap Apply. The order summary shows the discount. Coupons apply to the first payment only unless stated otherwise.</p>",
+       "steps": [
+        "Go to checkout for the plan.",
+        "Type the code in Coupon code.",
+        "Tap Apply. You see \"Coupon applied: CODE\".",
+        "Complete the order."
+       ],
+       "tags": [
+        "coupon",
+        "discount",
+        "promo code",
+        "voucher"
+       ],
+       "related": [
+        "coupon-problem"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cancel-refund",
+     "title": "Cancelling and refunds",
+     "items": [
+      {
+       "id": "cancel-subscription",
+       "q": "How do I cancel my subscription?",
+       "a": "<p>Cancel online at any time from Settings. You keep access until the end of the period you have already paid for and are not charged again.</p><p>Which button you see depends on how you paid:</p><ul><li><strong>Card (Stripe)</strong>: Manage billing (card, invoices, cancel) opens Stripe's billing page.</li><li><strong>India (Razorpay AutoPay)</strong>: Cancel auto-renewal. Confirm the dialog and you see \"Auto-renewal is off ...\".</li><li><strong>On a free trial</strong>: Cancel free trial.</li></ul>",
+       "steps": [
+        "Open Settings.",
+        "Scroll to Plan & membership.",
+        "Tap Manage billing (card, invoices, cancel) or Cancel auto-renewal.",
+        "Confirm."
+       ],
+       "path": "More → Settings → Plan & membership",
+       "tags": [
+        "cancel",
+        "unsubscribe",
+        "stop",
+        "end subscription",
+        "stop charges"
+       ],
+       "related": [
+        "refund",
+        "downgrade-data",
+        "cancel-no-button"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "refund",
+       "q": "Can I get a refund?",
+       "a": "<p>Our Refund Policy says: \"All sales are final. TradeZoro does not offer refunds on any purchase.\" Cancelling stops future charges, but the period you already paid for is not refunded.</p><p>TradeZoro may, at its sole discretion, make an exception case by case. This is not a guarantee. To ask, use the contact form or email support@tradezoro.com.</p>",
+       "tags": [
+        "refund",
+        "money back",
+        "charged by mistake",
+        "chargeback",
+        "return"
+       ],
+       "related": [
+        "cancel-subscription",
+        "contact-support"
+       ],
+       "links": [
+        {
+         "label": "Refund Policy",
+         "href": "/refund-policy"
+        },
+        {
+         "label": "Contact us",
+         "href": "/contact"
+        }
+       ]
+      },
+      {
+       "id": "cancel-no-button",
+       "q": "I cannot find the cancel button.",
+       "a": "<p>The buttons only show when they apply. Check Settings → Plan & membership.</p><ul><li>Paid by card (Stripe): the button is Manage billing (card, invoices, cancel).</li><li>Rupee AutoPay: Cancel auto-renewal shows only while auto-renewal is on.</li><li>If auto-renewal is already off, the line says \"Active until <date> (auto-renewal off)\" and there is nothing more to cancel.</li></ul><p>Still stuck? Contact support with your account email.</p>",
+       "tags": [
+        "cancel button missing",
+        "cannot cancel",
+        "where is cancel"
+       ],
+       "related": [
+        "cancel-subscription",
+        "contact-support"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "learning",
+   "title": "Learning: courses and articles",
+   "icon": "book",
+   "desc": "The curriculum, progress and free guides.",
+   "subs": [
+    {
+     "id": "curriculum",
+     "title": "The curriculum",
+     "items": [
+      {
+       "id": "curriculum-what",
+       "q": "What is in the curriculum?",
+       "a": "<p>The curriculum has 64 chapters: 42 core chapters plus the Volume Profile and Prop Firm specialist tracks. They are written lessons with chart diagrams and a checklist for each lesson.</p><p>Filters: All chapters, Foundation, Intermediate, Advanced, Specialist tracks.</p><p><img src=\"/assets/help/shots/curriculum.webp\" alt=\"The curriculum page\"></p>",
+       "path": "Learn (dock) → Curriculum",
+       "tags": [
+        "courses",
+        "chapters",
+        "curriculum",
+        "lessons",
+        "ict",
+        "smt",
+        "learn"
+       ],
+       "related": [
+        "free-chapters",
+        "mark-complete"
+       ],
+       "links": [
+        {
+         "label": "Curriculum",
+         "href": "/courses"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "free-chapters",
+       "q": "Which chapters are free?",
+       "a": "<p>Chapters 1 to 10 are free with a free account. Pro unlocks all 64. A later chapter shows a lock card, for example \"Chapters 11+ are part of Pro\".</p>",
+       "plans": "all",
+       "tags": [
+        "free chapters",
+        "locked chapter",
+        "chapter 11",
+        "pro chapters"
+       ],
+       "related": [
+        "curriculum-what",
+        "free-vs-pro"
+       ]
+      },
+      {
+       "id": "mark-complete",
+       "q": "How do I mark a lesson or chapter complete?",
+       "a": "<p>Tick the lesson checkbox inside a chapter. Mark all lessons complete ticks every lesson at once. Your progress is saved to your account.</p>",
+       "path": "Learn → open a chapter → Lessons in this chapter",
+       "tags": [
+        "progress",
+        "complete",
+        "checklist",
+        "tick lesson"
+       ],
+       "related": [
+        "streak",
+        "reset-progress"
+       ]
+      },
+      {
+       "id": "streak",
+       "q": "How does the study streak work?",
+       "a": "<p>The dashboard shows a study streak in days. It advances once per calendar day when you use the site.</p>",
+       "tags": [
+        "streak",
+        "days",
+        "daily"
+       ],
+       "related": [
+        "achievements-what",
+        "dashboard-what"
+       ]
+      },
+      {
+       "id": "achievements-what",
+       "q": "What are achievements?",
+       "a": "<p>Achievements are badges for milestones, such as First chapter complete or Foundations complete. See them at More → Achievements.</p><p><img src=\"/assets/help/shots/achievements.webp\" alt=\"The Achievements page\"></p>",
+       "path": "More → Achievements",
+       "tags": [
+        "badges",
+        "achievements",
+        "certificate"
+       ],
+       "related": [
+        "streak"
+       ],
+       "links": [
+        {
+         "label": "Achievements",
+         "href": "/achievements"
+        }
+       ]
+      },
+      {
+       "id": "certificates",
+       "q": "Do I get a certificate or take quizzes?",
+       "a": "<p>There are no certificates and no graded course quizzes. Progress is tracked with lesson checklists and achievement badges. A couple of free articles have a small interactive question.</p>",
+       "tags": [
+        "certificate",
+        "quiz",
+        "exam",
+        "test",
+        "diploma"
+       ],
+       "related": [
+        "achievements-what"
+       ]
+      },
+      {
+       "id": "reset-progress",
+       "q": "How do I reset my learning progress?",
+       "a": "<p>Settings → Danger zone → Reset my learning progress. It clears chapter and lesson completion only. Your account is not deleted. It cannot be undone.</p><p><img src=\"/assets/help/shots/settings-danger.webp\" alt=\"Danger zone in Settings\"></p>",
+       "path": "More → Settings → Danger zone",
+       "tags": [
+        "reset",
+        "start over",
+        "clear progress"
+       ],
+       "related": [
+        "delete-account"
+       ]
+      },
+      {
+       "id": "chapter-signin",
+       "q": "A chapter says \"Sign in to keep reading\".",
+       "a": "<p>Chapters need a free account so your progress can be saved. Log in or create a free account.</p>",
+       "tags": [
+        "sign in to read",
+        "chapter locked",
+        "guest"
+       ],
+       "related": [
+        "create-account",
+        "login-how"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "articles",
+     "title": "Free guides and downloads",
+     "items": [
+      {
+       "id": "learn-articles",
+       "q": "Are there free articles?",
+       "a": "<p>Yes. The Learn section has free guides: fair value gaps, order blocks, liquidity sweeps, BOS vs CHoCH, SMT divergence, order flow, volume profile, how prop firms work and prop firm challenge rules.</p>",
+       "tags": [
+        "articles",
+        "guides",
+        "free",
+        "blog",
+        "fvg",
+        "order block"
+       ],
+       "related": [
+        "curriculum-what"
+       ],
+       "links": [
+        {
+         "label": "Free guides",
+         "href": "/learn"
+        }
+       ]
+      },
+      {
+       "id": "cheat-sheets",
+       "q": "Where are the free cheat sheets?",
+       "a": "<p>There are two free cheat sheets: an FVG & Order Block sheet and a Prop Firm cheat sheet. Create a free account to download. If a page says the PDF is being finished, it is not available yet.</p>",
+       "tags": [
+        "cheat sheet",
+        "pdf",
+        "download"
+       ],
+       "related": [
+        "learn-articles"
+       ],
+       "links": [
+        {
+         "label": "FVG & Order Block",
+         "href": "/cheat-sheet"
+        },
+        {
+         "label": "Prop Firm",
+         "href": "/prop-firm-cheat-sheet"
+        }
+       ]
+      },
+      {
+       "id": "models-page",
+       "q": "What are the Trading models?",
+       "a": "<p>Trading models are named setups, each with full criteria and a written walkthrough. They follow a five-step process: prep, apply the rules, confirm, size from your stop, journal. The page is part of Pro.</p>",
+       "path": "More → Models",
+       "plans": "pro",
+       "tags": [
+        "models",
+        "setups",
+        "playbook"
+       ],
+       "related": [
+        "playbook-what"
+       ],
+       "links": [
+        {
+         "label": "Models",
+         "href": "/models"
+        }
+       ]
+      },
+      {
+       "id": "live-sessions",
+       "q": "When are live sessions?",
+       "a": "<p>Live sessions are going free on YouTube. The page says they are expected from December. Follow @tradezoro on YouTube.</p>",
+       "path": "More → Live sessions",
+       "tags": [
+        "live",
+        "youtube",
+        "webinar",
+        "stream"
+       ],
+       "related": [
+        "social"
+       ],
+       "links": [
+        {
+         "label": "Live sessions",
+         "href": "/live-sessions"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "charts",
+   "title": "ZoroCharts",
+   "icon": "chart",
+   "desc": "Charts, indicators, drawing, layouts and alerts.",
+   "subs": [
+    {
+     "id": "charts-basics",
+     "title": "Basics",
+     "items": [
+      {
+       "id": "zorocharts-what",
+       "q": "What is ZoroCharts?",
+       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds real-time data, order flow tools and GEX on charts.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
+       "path": "ZoroCharts (dock)",
+       "tags": [
+        "charts",
+        "charting",
+        "tradingview",
+        "zorocharts",
+        "chart"
+       ],
+       "related": [
+        "chart-markets",
+        "free-vs-pro"
+       ],
+       "links": [
+        {
+         "label": "Open ZoroCharts",
+         "href": "/charts"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "chart-markets",
+       "q": "Which markets can I chart?",
+       "a": "<p>Futures (NQ, ES, YM, RTY, GC, SI, CL and micros such as MNQ, MES), spot forex, and crypto from public Binance, Coinbase and Hyperliquid feeds. There is no stock price feed. Futures show as continuous front-month, for example NQ1!.</p>",
+       "tags": [
+        "markets",
+        "symbols",
+        "nq",
+        "es",
+        "gold",
+        "crypto",
+        "forex",
+        "stocks",
+        "btc"
+       ],
+       "related": [
+        "change-symbol",
+        "data-dot"
+       ]
+      },
+      {
+       "id": "change-symbol",
+       "q": "How do I change the symbol?",
+       "a": "<p>Tap the symbol name (top left) and search. On a computer you can also just start typing while the chart is focused.</p>",
+       "steps": [
+        "Tap the symbol at the top of the chart.",
+        "Type a name, for example NQ or BTC.",
+        "Pick it from the list."
+       ],
+       "path": "ZoroCharts → symbol button",
+       "tags": [
+        "symbol",
+        "search",
+        "ticker",
+        "switch market"
+       ],
+       "related": [
+        "chart-markets"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "change-interval",
+       "q": "How do I change the timeframe?",
+       "a": "<p>Use the interval chips (1m, 5m, 15m, 1h, 4h, D) or the caret beside them for the full menu: ticks, seconds, minutes, hours, days. Tap the star on a row to add it to the top row. You can create up to 20 custom intervals.</p>",
+       "path": "ZoroCharts → interval chips / caret (phone: the interval button)",
+       "tags": [
+        "timeframe",
+        "interval",
+        "1 minute",
+        "custom interval",
+        "seconds"
+       ],
+       "related": [
+        "change-symbol"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "chart-style",
+       "q": "How do I change the chart type?",
+       "a": "<p>Open the chart style button next to the intervals. Options: Candles, Bars, Line, Area, Baseline, Heikin Ashi, and Footprint (Pro).</p>",
+       "path": "ZoroCharts → Chart style",
+       "tags": [
+        "candles",
+        "line",
+        "heikin ashi",
+        "chart type",
+        "bars",
+        "footprint"
+       ],
+       "related": [
+        "footprint-what"
+       ]
+      },
+      {
+       "id": "data-dot",
+       "q": "What is the coloured dot next to the symbol?",
+       "a": "<p>It shows the data status: green with Real-time, amber with Delayed 10m, grey with Closed. Free futures and forex data is updated about 10 minutes behind. Crypto from the public feeds is real-time. Tap or hover the dot for the full line.</p>",
+       "tags": [
+        "dot",
+        "green",
+        "amber",
+        "delayed",
+        "real-time",
+        "data status"
+       ],
+       "related": [
+        "free-data-delay",
+        "pro-realtime"
+       ]
+      },
+      {
+       "id": "fullscreen-screenshot",
+       "q": "How do I take a screenshot or go full screen?",
+       "a": "<p>On a computer use the screenshot button in the top bar and the full screen button. On a phone open the ... More menu.</p>",
+       "tags": [
+        "screenshot",
+        "full screen",
+        "export image"
+       ],
+       "related": [
+        "layouts-save"
+       ]
+      },
+      {
+       "id": "chart-settings",
+       "q": "What is in the chart settings?",
+       "a": "<p>The gear opens chart settings with tabs: Symbol, Status line, Scales and lines, Canvas, Advanced, Alerts, Sounds, Events and Paper trading. On a phone the tabs sit under a ☰ list.</p>",
+       "path": "ZoroCharts → gear (phone: More → Chart settings)",
+       "tags": [
+        "settings",
+        "gear",
+        "scales",
+        "canvas",
+        "colors"
+       ],
+       "related": [
+        "alerts-sounds",
+        "paper-enable"
+       ]
+      },
+      {
+       "id": "chart-more-phone",
+       "q": "Where did the toolbar buttons go on my phone?",
+       "a": "<p>On a phone, buttons that do not fit are in the ... More menu at the top: Layout, Templates, Chart settings, Full screen, Replay, Alerts, Pine Script editor, Connect data (Rithmic), News, Watchlist, GEX Ladder and Data source & credits.</p><p><img src=\"/assets/help/shots/charts-more-phone.webp\" alt=\"The ... More menu on the phone chart\"></p>",
+       "path": "ZoroCharts → ... More",
+       "tags": [
+        "phone",
+        "mobile",
+        "more",
+        "toolbar",
+        "missing button"
+       ],
+       "related": [
+        "phone-dock"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "drawing",
+     "title": "Drawing tools",
+     "items": [
+      {
+       "id": "draw-how",
+       "q": "How do I draw on the chart?",
+       "a": "<p>Use the left toolbar: Lines, Fibonacci, Patterns, Measurements, Shapes, Text and Icons. Tap a group, pick a tool, then tap on the chart. On a phone, tap Drawings at the bottom.</p>",
+       "tags": [
+        "draw",
+        "trendline",
+        "fibonacci",
+        "fib",
+        "horizontal line",
+        "drawing"
+       ],
+       "related": [
+        "magnet",
+        "favorites-bar"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "magnet",
+       "q": "What does the magnet do?",
+       "a": "<p>Magnet snap pulls a drawing point to the nearest candle high, low, open or close. Weak and strong modes are in the magnet menu. Stay in drawing mode keeps the tool armed for repeated drawings.</p>",
+       "tags": [
+        "magnet",
+        "snap",
+        "stay in drawing mode"
+       ],
+       "related": [
+        "draw-how"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "favorites-bar",
+       "q": "What is the favourites drawing bar?",
+       "a": "<p>Star a drawing tool in its flyout and it appears in a floating bar you can drag anywhere on the chart. Hide it with the toolbar button.</p>",
+       "tags": [
+        "favorites",
+        "favourites",
+        "drawing toolbar",
+        "star"
+       ],
+       "related": [
+        "draw-how"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "lock-hide-drawings",
+       "q": "How do I lock, hide or delete all drawings?",
+       "a": "<p>The left toolbar has Lock all drawings, Hide all drawings, an Eraser and Remove drawings (menu). The Object tree lists every drawing and indicator.</p>",
+       "tags": [
+        "delete drawings",
+        "lock",
+        "hide",
+        "eraser",
+        "clear"
+       ],
+       "related": [
+        "draw-how"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "layouts",
+     "title": "Layouts, templates and watchlists",
+     "items": [
+      {
+       "id": "layouts-save",
+       "q": "How do I save my chart layout?",
+       "a": "<p>Open the layout menu (top bar; phone: More → Layout) and choose Save layout. Autosave is on by default and saves about 2 seconds after any change. You can keep up to 50 layouts, rename, copy, share by link and download chart data as CSV.</p>",
+       "path": "ZoroCharts → Layout menu",
+       "tags": [
+        "layout",
+        "save chart",
+        "autosave",
+        "share chart",
+        "csv"
+       ],
+       "related": [
+        "templates",
+        "layout-share"
+       ]
+      },
+      {
+       "id": "layout-share",
+       "q": "Can I share my layout with someone?",
+       "a": "<p>Yes. In the layout menu choose Share layout and copy the link. The other person must be signed in to open it. Turning sharing off makes the link stop working.</p>",
+       "tags": [
+        "share",
+        "link",
+        "layout link"
+       ],
+       "related": [
+        "layouts-save"
+       ]
+      },
+      {
+       "id": "templates",
+       "q": "What are templates?",
+       "a": "<p>A template is a saved chart set-up you can apply to any chart. You can save up to 20, mark one as default, and there are starter templates built in.</p>",
+       "path": "ZoroCharts → Templates",
+       "tags": [
+        "template",
+        "default chart",
+        "starter template"
+       ],
+       "related": [
+        "layouts-save"
+       ]
+      },
+      {
+       "id": "chart-grid",
+       "q": "Can I show several charts at once?",
+       "a": "<p>Yes. The chart grid button picks a layout of up to 8 charts on a computer and up to 4 on tablets and phones. You can sync symbol, interval, crosshair, time and date range between them.</p>",
+       "path": "ZoroCharts → Chart grid (\"1 chart\")",
+       "tags": [
+        "multi chart",
+        "grid",
+        "split",
+        "sync",
+        "2 charts"
+       ],
+       "related": [
+        "layouts-save"
+       ]
+      },
+      {
+       "id": "watchlist",
+       "q": "How do I use the watchlist?",
+       "a": "<p>Open Watchlist from the right icon bar (phone: ... More → Watchlist). You can make up to 20 lists of up to 200 symbols, rename, share and upload lists. The panel shows last price and change, with the same data dot as the chart.</p>",
+       "tags": [
+        "watchlist",
+        "list",
+        "symbols",
+        "favorites"
+       ],
+       "related": [
+        "change-symbol"
+       ]
+      },
+      {
+       "id": "watchlist-errors",
+       "q": "The watchlist says \"A list holds up to 200 symbols\" or \"You have 20 lists\".",
+       "a": "<p>These are the limits. The messages are \"A list holds up to 200 symbols.\" and \"You have 20 lists. Delete one to make another.\" Delete a list or symbols to make room.</p>",
+       "tags": [
+        "limit",
+        "watchlist full",
+        "error"
+       ],
+       "related": [
+        "watchlist"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "layout-limit",
+       "q": "It says \"You have 50 layouts\".",
+       "a": "<p>You can keep up to 50 saved layouts. The message is \"You have 50 layouts. Delete one to save another.\" Delete old ones from Open layout.</p>",
+       "tags": [
+        "limit",
+        "layouts",
+        "error"
+       ],
+       "related": [
+        "layouts-save"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "news-info",
+     "title": "News, events and info",
+     "items": [
+      {
+       "id": "chart-news",
+       "q": "How do I see news for my symbol?",
+       "a": "<p>Open News from the right icon bar (phone: ... More → News). It lists headlines for the chart's market with a search box. Tapping a headline opens the article at its source.</p>",
+       "tags": [
+        "news",
+        "headlines",
+        "wire"
+       ],
+       "related": [
+        "economic-events"
+       ]
+      },
+      {
+       "id": "economic-events",
+       "q": "How do I show economic events on the chart?",
+       "a": "<p>Add the TradeZoro Economic events or News markers indicator from the Indicators window (TradeZoro tab), or turn on events in Chart settings → Events. High-impact releases get a dashed line and label.</p>",
+       "tags": [
+        "economic events",
+        "cpi",
+        "fomc",
+        "nfp",
+        "calendar",
+        "news markers"
+       ],
+       "related": [
+        "calendar-what"
+       ]
+      },
+      {
+       "id": "symbol-info",
+       "q": "Where is contract info such as tick size?",
+       "a": "<p>Open Symbol info from the right icon bar. It is for futures symbols only.</p>",
+       "tags": [
+        "symbol info",
+        "tick size",
+        "contract",
+        "point value"
+       ],
+       "related": [
+        "chart-markets"
+       ]
+      },
+      {
+       "id": "pine-script",
+       "q": "Can I use Pine Script?",
+       "a": "<p>Yes. Open the Pine Script editor (code icon in the top bar; phone: ... More). You can save up to 50 scripts under My scripts and run up to 8 Pine indicators per chart. The Pine engine is loaded only when you open the editor.</p>",
+       "tags": [
+        "pine",
+        "pine script",
+        "custom indicator",
+        "tradingview script",
+        "code"
+       ],
+       "related": [
+        "indicators-add"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "community-scripts",
+       "q": "What is the Community indicator disclaimer?",
+       "a": "<p>Community scripts are written by third parties. The first time you add one you must tap I understand. A short notice is shown in the Community list.</p>",
+       "tags": [
+        "community indicators",
+        "disclaimer",
+        "third party"
+       ],
+       "related": [
+        "indicators-add"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "indicators",
+   "title": "Indicators and tools",
+   "icon": "layers",
+   "desc": "Adding indicators and what each group does.",
+   "subs": [
+    {
+     "id": "ind-use",
+     "title": "Using indicators",
+     "items": [
+      {
+       "id": "indicators-add",
+       "q": "How do I add an indicator?",
+       "a": "<p>Open the Indicators window, find the one you want and tap it. It is added to the chart straight away.</p><p><img src=\"/assets/help/shots/indicators-window-phone.webp\" alt=\"The Indicators window\"></p>",
+       "steps": [
+        "Open ZoroCharts.",
+        "Tap Indicators (top bar; on a phone it is in the bottom bar). The shortcut / also opens it on a computer.",
+        "Search by name, or pick a tab: Technicals, TradeZoro, Order Flow, Editors' picks.",
+        "Tap the indicator."
+       ],
+       "path": "ZoroCharts → Indicators",
+       "tags": [
+        "add indicator",
+        "rsi",
+        "ema",
+        "moving average",
+        "macd",
+        "insert"
+       ],
+       "related": [
+        "indicators-tabs",
+        "indicator-settings",
+        "indicator-pro-tag"
+       ],
+       "links": [
+        {
+         "label": "Open ZoroCharts",
+         "href": "/charts"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "indicators-tabs",
+       "q": "What are the tabs in the Indicators window?",
+       "a": "<p>Favorites, My scripts, On this chart, Order Flow, Technicals, TradeZoro, Editors' picks, Top and Trending. Technicals is grouped into TradeZoro, Moving averages, Oscillators, Volatility, Volume, Trend and Levels.</p>",
+       "tags": [
+        "indicator tabs",
+        "technicals",
+        "editors picks",
+        "favorites"
+       ],
+       "related": [
+        "indicators-add"
+       ]
+      },
+      {
+       "id": "indicator-settings",
+       "q": "How do I change an indicator's colours or inputs?",
+       "a": "<p>Open the indicator's settings from its legend row on the chart (gear icon or double-tap). The Inputs tab changes values, the Style tab changes colours, line type, size and text. The Object tree and \"On this chart\" tab list what is on your chart.</p>",
+       "tags": [
+        "settings",
+        "inputs",
+        "style",
+        "colour",
+        "color",
+        "length"
+       ],
+       "related": [
+        "indicators-add",
+        "remove-indicator"
+       ]
+      },
+      {
+       "id": "remove-indicator",
+       "q": "How do I remove an indicator?",
+       "a": "<p>Open its legend row on the chart and choose Remove, or open the Indicators window → On this chart. You can also use the Object tree.</p>",
+       "tags": [
+        "remove",
+        "delete indicator",
+        "hide"
+       ],
+       "related": [
+        "indicators-add"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "indicator-favorite",
+       "q": "How do I favourite an indicator?",
+       "a": "<p>Tap the star on its row in the Indicators window. Starred items appear under the Favorites tab.</p>",
+       "tags": [
+        "favourite",
+        "star",
+        "favorites"
+       ],
+       "related": [
+        "indicators-tabs"
+       ]
+      },
+      {
+       "id": "indicator-pro-tag",
+       "q": "Why does an indicator show PRO?",
+       "a": "<p>Order flow tools and GEX-based tools are Pro: Footprint, Delta, CVD, big trades, absorption, imbalance zones, volume profile (trades), VWAP (trades), Market Profile, effort vs result, stop runs, GEX Levels, GEX Heatmap, Expected Move and ZoroTide. Every other indicator is free.</p><p>If you tap one on Free, the upgrade window says \"Order flow tools are part of Pro.\" or \"GEX and options flow on charts are part of Pro.\"</p>",
+       "plans": "free",
+       "tags": [
+        "pro",
+        "locked",
+        "indicator",
+        "upgrade",
+        "why pro"
+       ],
+       "related": [
+        "what-is-locked",
+        "removed-from-chart"
+       ]
+      },
+      {
+       "id": "removed-from-chart",
+       "q": "A tool was removed from my chart: \"are part of Pro. Removed from this chart.\"",
+       "a": "<p>On Free, if a saved layout, template or script loads a Pro tool, it is taken off the chart and you see \"Order flow tools are part of Pro. Removed from this chart.\" (or the GEX version). Your other tools stay. Upgrading lets you add them again.</p>",
+       "plans": "free",
+       "tags": [
+        "removed",
+        "disappeared",
+        "layout",
+        "pro tool"
+       ],
+       "related": [
+        "indicator-pro-tag"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "ind-tradezoro",
+     "title": "TradeZoro indicators",
+     "items": [
+      {
+       "id": "tz-indicators",
+       "q": "What TradeZoro indicators are there?",
+       "a": "<p>In the Indicators window → TradeZoro tab: GEX Levels, GEX Heatmap, Expected Move, ZoroTide (Pro), Economic events, News markers, EMA 9/21 cross, Session VWAP, Previous day high/low, SMT Divergence Pro, IFVG Pro+, HTF PO3 Lens, FVG Relay, TZ Fractal Model, Liquidity Master, Session Sweep SMT + IFVG and the Market Stats session overlay.</p>",
+       "tags": [
+        "smt",
+        "ifvg",
+        "session sweep",
+        "liquidity master",
+        "fractal",
+        "po3",
+        "fvg relay",
+        "tradezoro indicators"
+       ],
+       "related": [
+        "indicators-add",
+        "indicators-page"
+       ],
+       "links": [
+        {
+         "label": "Indicators page",
+         "href": "/indicators"
+        }
+       ]
+      },
+      {
+       "id": "indicators-page",
+       "q": "What is the Indicators page?",
+       "a": "<p>More → Indicators lists our indicators with setup and usage notes. It also has a TradingView access form: if your plan includes private TradingView indicators, enter your exact TradingView username. This is approved by hand, so it may take a little time.</p><p><img src=\"/assets/help/shots/indicators-page.webp\" alt=\"The Indicators page\"></p>",
+       "path": "More → Indicators",
+       "tags": [
+        "tradingview username",
+        "private indicators",
+        "access"
+       ],
+       "related": [
+        "tz-indicators"
+       ],
+       "links": [
+        {
+         "label": "Indicators",
+         "href": "/indicators"
+        }
+       ]
+      },
+      {
+       "id": "signals-note",
+       "q": "Are the indicators buy or sell signals?",
+       "a": "<p>No. Indicators mark concepts on the chart. They are not trade signals.</p>",
+       "tags": [
+        "signals",
+        "buy sell",
+        "accuracy"
+       ],
+       "related": [
+        "not-advice"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "alerts",
+     "title": "Alerts and sounds",
+     "items": [
+      {
+       "id": "alerts-create",
+       "q": "How do I set a price alert?",
+       "a": "<p>Open Alerts and create one for a price, or press Alt+A on a computer to prefill the price under the cursor. You can also use the + button on the price axis.</p>",
+       "steps": [
+        "Tap Alerts (bell in the top bar; phone: ... More → Alerts).",
+        "Choose the symbol and condition: Crossing, Crossing up, Crossing down, Greater than or Less than.",
+        "Enter the price and an optional message (up to 300 characters).",
+        "Choose Only once or Every time.",
+        "Save."
+       ],
+       "path": "ZoroCharts → Alerts",
+       "tags": [
+        "alert",
+        "price alert",
+        "notify",
+        "alt+a",
+        "crossing"
+       ],
+       "related": [
+        "alerts-closed",
+        "alerts-limit",
+        "push-enable"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "alerts-closed",
+       "q": "Will an alert reach me if the page is closed?",
+       "a": "<p>Price alerts on futures and Binance/Coinbase crypto are checked on our server, so they arrive as a bell notification and a phone push even when ZoroCharts is closed (turn push on first).</p><p>Indicator alerts, forex and Hyperliquid alerts, and alerts saved while signed out are only checked in your open browser.</p>",
+       "tags": [
+        "alert closed",
+        "background",
+        "push",
+        "server side"
+       ],
+       "related": [
+        "alerts-create",
+        "push-enable",
+        "push-not-arriving"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "alerts-limit",
+       "q": "How many alerts can I have?",
+       "a": "<p>Up to 200 alerts. An Only once alert is deleted after it fires. Delete all is in the top row of the Alerts panel.</p>",
+       "tags": [
+        "limit",
+        "200",
+        "delete alerts"
+       ],
+       "related": [
+        "alerts-create"
+       ]
+      },
+      {
+       "id": "alerts-sounds",
+       "q": "How do I change alert sounds?",
+       "a": "<p>Chart settings → Sounds. Pick built-in sounds, one of six TradeZoro sounds, or your own file (up to 1 MB and 10 seconds). Sounds are stored in your browser and never uploaded. Volume is under Chart settings → Alerts.</p>",
+       "path": "ZoroCharts → Chart settings → Sounds",
+       "tags": [
+        "sound",
+        "volume",
+        "beep",
+        "custom sound"
+       ],
+       "related": [
+        "alerts-create",
+        "chart-settings"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "orderflow",
+   "title": "Order flow and GEX on charts (Pro)",
+   "icon": "wave",
+   "desc": "Footprint, delta, liquidity and options levels on the chart.",
+   "subs": [
+    {
+     "id": "of",
+     "title": "Order flow tools",
+     "items": [
+      {
+       "id": "orderflow-what",
+       "q": "What are the order flow tools?",
+       "a": "<p>Order flow tools show who traded at each price: Footprint, Delta, CVD, Big Trades, Absorption, Imbalance zones, Volume profile, Market Profile, Effort vs result, Stop runs and a Liquidity heatmap. They are in the Order Flow group of the Indicators window. They are part of Pro and work on futures (NQ, ES, YM, GC, SI, CL and micros) and crypto.</p>",
+       "path": "ZoroCharts → Indicators → Order Flow",
+       "plans": "pro",
+       "tags": [
+        "order flow",
+        "orderflow",
+        "delta",
+        "cvd",
+        "absorption",
+        "imbalance",
+        "market profile",
+        "tpo",
+        "volume profile"
+       ],
+       "related": [
+        "footprint-what",
+        "indicator-pro-tag"
+       ],
+       "links": [
+        {
+         "label": "Order flow features",
+         "href": "/features/orderflow"
+        }
+       ]
+      },
+      {
+       "id": "footprint-what",
+       "q": "How do I turn on the footprint chart?",
+       "a": "<p>Choose Footprint from the chart style menu. Each row shows sellers x buyers at that price. A yellow box marks the busiest price. Zoom out and it turns back into candles coloured by delta.</p>",
+       "steps": [
+        "Open ZoroCharts on a futures or crypto symbol.",
+        "Open Chart style.",
+        "Choose Footprint."
+       ],
+       "path": "ZoroCharts → Chart style → Footprint",
+       "plans": "pro",
+       "tags": [
+        "footprint",
+        "bid ask",
+        "numbers on candles"
+       ],
+       "related": [
+        "orderflow-what",
+        "dom-ladder"
+       ]
+      },
+      {
+       "id": "dom-ladder",
+       "q": "Is there a DOM or ladder?",
+       "a": "<p>Pro includes DOM panels and a Crypto DOM. The GEX Ladder is a separate strike ladder (right icon bar, or GEX+ → Ladder).</p>",
+       "plans": "pro",
+       "tags": [
+        "dom",
+        "depth of market",
+        "ladder",
+        "order book"
+       ],
+       "related": [
+        "liquidity-map",
+        "gex-ladder"
+       ]
+      },
+      {
+       "id": "liquidity-map",
+       "q": "What is the Liquidity Map?",
+       "a": "<p>A Pro indicator in the Order Flow group that draws resting orders as a heatmap with trade bubbles. On crypto it uses Binance public depth. Futures order-book depth is not available to members yet.</p>",
+       "plans": "pro",
+       "tags": [
+        "liquidity map",
+        "heatmap",
+        "bookmap",
+        "resting orders",
+        "order book"
+       ],
+       "related": [
+        "orderflow-what",
+        "no-order-book"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "gex",
+   "title": "GEX+ and options levels",
+   "icon": "gauge",
+   "desc": "Gamma exposure levels, ZoroTide and how to read them.",
+   "subs": [
+    {
+     "id": "gex-basics",
+     "title": "GEX+ basics",
+     "items": [
+      {
+       "id": "gex-what-is",
+       "q": "What is GEX+?",
+       "a": "<p>GEX+ turns the options chain into a few price levels: a call wall, a put wall and a zero-gamma line. It draws them on futures charts so you can read the day's context. Levels are context, not trade signals.</p>",
+       "path": "GEX+ (dock)",
+       "tags": [
+        "gex",
+        "gamma",
+        "gamma exposure",
+        "call wall",
+        "put wall",
+        "zero gamma",
+        "options",
+        "gex+"
+       ],
+       "related": [
+        "gex-levels-meaning",
+        "gex-free",
+        "gex-tabs"
+       ],
+       "links": [
+        {
+         "label": "Open GEX+",
+         "href": "/gex"
+        },
+        {
+         "label": "About GEX",
+         "href": "/features/gex"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "gex-levels-meaning",
+       "q": "What do call wall, put wall and zero gamma mean?",
+       "a": "<ul><li><strong>Call wall</strong>: the strike above price with the most call gamma. Often watched as an upper edge of the day's range.</li><li><strong>Put wall</strong>: the strike below price with the most put gamma. Often watched as a lower edge.</li><li><strong>Zero gamma</strong>: the price where net gamma flips from positive to negative. It marks the regime change.</li></ul><p>They are reference levels, not predictions.</p>",
+       "tags": [
+        "call wall",
+        "put wall",
+        "zero gamma",
+        "gamma flip",
+        "regime"
+       ],
+       "related": [
+        "gex-what-is",
+        "gex-regime"
+       ]
+      },
+      {
+       "id": "gex-regime",
+       "q": "What is the regime or net GEX?",
+       "a": "<p>Net GEX is the total gamma across strikes. Positive suggests dealers are long gamma, negative that they are short gamma. The page shows the figure and a regime label for context only.</p>",
+       "tags": [
+        "net gex",
+        "regime",
+        "positive gamma",
+        "negative gamma"
+       ],
+       "related": [
+        "gex-levels-meaning"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "gex-free",
+       "q": "What does Free include on GEX+?",
+       "a": "<p>Free shows SPX and the 0DTE (same-day) expiry. Other symbols and expiries show a lock. The page says: \"Free plan: SPX, 0DTE view. Pro unlocks every symbol and expiry.\"</p>",
+       "plans": "free",
+       "tags": [
+        "free gex",
+        "spx",
+        "0dte",
+        "locked"
+       ],
+       "related": [
+        "gex-pro",
+        "gex-symbols"
+       ]
+      },
+      {
+       "id": "gex-pro",
+       "q": "What does Pro add on GEX+?",
+       "a": "<p>Every symbol (SPX, SPY, QQQ, Gold) and every expiry (0DTE, 1DTE, 1W, 1M), the strike profile table (NET GEX, DEX, OI), the Heatmap and Ladder views, ZoroTide for SPY and QQQ, and GEX tools on charts.</p>",
+       "plans": "pro",
+       "tags": [
+        "pro",
+        "gex pro",
+        "all symbols",
+        "strike table"
+       ],
+       "related": [
+        "gex-free"
+       ]
+      },
+      {
+       "id": "gex-symbols",
+       "q": "Which symbols does GEX+ cover?",
+       "a": "<p>SPX (maps to ES and MES), SPY (ES, MES), QQQ (NQ, MNQ) and Gold (GLD options mapped to GC and MGC). Choose the symbol and expiry buttons at the top.</p>",
+       "tags": [
+        "symbols",
+        "spx",
+        "spy",
+        "qqq",
+        "gold",
+        "nq",
+        "es",
+        "gld"
+       ],
+       "related": [
+        "gex-missing-symbol"
+       ]
+      },
+      {
+       "id": "gex-tabs",
+       "q": "What are the tabs on GEX+?",
+       "a": "<p>Chart, Heatmap, Ladder and ZoroTide. Chart draws the levels on a futures chart. Heatmap shows gamma by strike over time. Ladder lists strikes. ZoroTide shows options money flow.</p>",
+       "path": "GEX+ → tabs",
+       "tags": [
+        "tabs",
+        "heatmap",
+        "ladder",
+        "zorotide",
+        "chart"
+       ],
+       "related": [
+        "gex-heatmap",
+        "gex-ladder",
+        "zorotide-what"
+       ],
+       "links": [
+        {
+         "label": "Open GEX+",
+         "href": "/gex"
+        }
+       ]
+      },
+      {
+       "id": "gex-heatmap",
+       "q": "What is the GEX heatmap?",
+       "a": "<p>A grid of gamma by strike over the day. Use it on GEX+ → Heatmap or add GEX Heatmap on a chart (Pro).</p>",
+       "plans": "pro",
+       "tags": [
+        "heatmap",
+        "gex heatmap"
+       ],
+       "related": [
+        "gex-tabs"
+       ]
+      },
+      {
+       "id": "gex-ladder",
+       "q": "What is the GEX Ladder?",
+       "a": "<p>A list of strikes with their gamma. On a chart open GEX Ladder from the right icon bar (phone: ... More → GEX Ladder). On GEX+ use the Ladder tab.</p>",
+       "plans": "pro",
+       "tags": [
+        "ladder",
+        "strike",
+        "gex ladder"
+       ],
+       "related": [
+        "gex-tabs"
+       ]
+      },
+      {
+       "id": "gex-futures",
+       "q": "Are the levels shown as futures prices?",
+       "a": "<p>Yes. SPX/SPY levels are converted to ES and MES, and QQQ to NQ and MNQ, so they line up with a futures chart. The page labels each, for example \"QQQ → NQ\".</p>",
+       "tags": [
+        "conversion",
+        "spx to es",
+        "qqq to nq",
+        "futures levels",
+        "basis"
+       ],
+       "related": [
+        "gex-symbols"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "gex-update",
+       "q": "How often is GEX updated?",
+       "a": "<p>The page shows a status such as \"Market session active - Options chain updated N min ago.\" It refreshes through the session. Outside hours you see Market closed or Waiting for the next update.</p>",
+       "tags": [
+        "updated",
+        "refresh",
+        "stale",
+        "how often"
+       ],
+       "related": [
+        "gex-missing-symbol"
+       ]
+      },
+      {
+       "id": "gex-overnight",
+       "q": "What are VAH, POC, VAL and ON high / low?",
+       "a": "<p>Prior-session Value Area High, Point of Control and Value Area Low, and the overnight high and low, drawn as extra levels. The Market levels toggle on the page turns them on or off.</p>",
+       "tags": [
+        "vah",
+        "poc",
+        "val",
+        "overnight",
+        "market levels",
+        "iv range"
+       ],
+       "related": [
+        "gex-tabs"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "zorotide",
+     "title": "ZoroTide",
+     "items": [
+      {
+       "id": "zorotide-what",
+       "q": "What is ZoroTide?",
+       "a": "<p>ZoroTide shows options money flow: net call premium against net put premium since the 9:30 ET open. It is estimated from options volume and quotes. It is on the GEX+ ZoroTide tab and as a chart indicator.</p>",
+       "plans": "pro",
+       "tags": [
+        "zorotide",
+        "money flow",
+        "premium",
+        "calls puts"
+       ],
+       "related": [
+        "gex-tabs",
+        "gex-free"
+       ],
+       "links": [
+        {
+         "label": "GEX+",
+         "href": "/gex"
+        }
+       ]
+      },
+      {
+       "id": "zorotide-free",
+       "q": "Is ZoroTide free?",
+       "a": "<p>On the GEX+ page, SPX is free; SPY and QQQ need Pro (\"Pro unlocks ZoroTide for SPY and QQQ. The Free plan covers SPX.\"). The chart indicator is Pro.</p>",
+       "tags": [
+        "zorotide free",
+        "spx"
+       ],
+       "related": [
+        "zorotide-what"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "replay",
+   "title": "Replay One and backtesting",
+   "icon": "replay",
+   "desc": "Practise on past data bar by bar.",
+   "subs": [
+    {
+     "id": "replay-basics",
+     "title": "Replay One",
+     "items": [
+      {
+       "id": "replay-what",
+       "q": "What is Replay One?",
+       "a": "<p>Replay One is our backtesting and practice tool. Pick a market and a past date, the chart stops there, and you step forward bar by bar placing simulated orders. Every session feeds a dashboard and a rule-based coach. It is free on every plan.</p><p><img src=\"/assets/help/shots/replay-one-home.webp\" alt=\"The Replay One dashboard\"></p>",
+       "path": "More → Replay One",
+       "tags": [
+        "backtest",
+        "backtesting",
+        "replay",
+        "practice",
+        "bar replay",
+        "simulator",
+        "past data"
+       ],
+       "related": [
+        "replay-start",
+        "replay-vs-chart-replay"
+       ],
+       "links": [
+        {
+         "label": "Replay One",
+         "href": "/backtests"
+        },
+        {
+         "label": "About Replay One",
+         "href": "/features/backtesting"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "replay-start",
+       "q": "How do I start a replay session?",
+       "a": "<p>Open Replay One, tap New session, fill in the market and date, and tap Start replay.</p>",
+       "steps": [
+        "Open More → Replay One.",
+        "Tap New session.",
+        "Choose the Market (futures, forex, crypto or your own CSV file).",
+        "Set Replay starts on (a past date) and the Data window (1 week up to 1 year).",
+        "Pick the Chart timezone, session name, starting balance, commission and slippage.",
+        "Tap Start replay."
+       ],
+       "path": "More → Replay One → New session",
+       "tags": [
+        "start replay",
+        "new session",
+        "backtest start",
+        "date",
+        "csv"
+       ],
+       "related": [
+        "replay-controls",
+        "replay-orders",
+        "replay-no-data"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "replay-controls",
+       "q": "How do I step through bars?",
+       "a": "<p>Use play/pause (Space), next bar (Right arrow), +10 bars (Shift+Right), and the speed control (1, 2, 4, 8, 15 or 30 bars per second). Day> jumps to the next day and NY> to the next New York open.</p>",
+       "tags": [
+        "play",
+        "pause",
+        "step",
+        "speed",
+        "next bar",
+        "keyboard"
+       ],
+       "related": [
+        "replay-start"
+       ]
+      },
+      {
+       "id": "replay-orders",
+       "q": "How do I place a practice trade?",
+       "a": "<p>Use the order ticket (Buy or Sell), the chart, or the keyboard. Choose Market, Limit or Stop, set size or risk %, and attach a stop-loss and take-profit. If you forget the stop you will see \"Enter a stop-loss first\".</p>",
+       "tags": [
+        "order",
+        "buy",
+        "sell",
+        "stop loss",
+        "take profit",
+        "risk percent"
+       ],
+       "related": [
+        "replay-fills"
+       ]
+      },
+      {
+       "id": "replay-fills",
+       "q": "How are practice orders filled?",
+       "a": "<p>Conservatively: market orders fill at the last close plus slippage, gaps fill at the open, and when one bar touches both stop and target the stop is assumed to hit first.</p>",
+       "tags": [
+        "fills",
+        "slippage",
+        "commission",
+        "realistic"
+       ],
+       "related": [
+        "replay-orders"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "replay-dashboard",
+       "q": "What is on the Replay One dashboard?",
+       "a": "<p>Recent sessions, P&L, trades, performance, drawdown, a Monte Carlo simulation (200, 500 or 1000 runs), a P&L calendar, coach findings and breakdowns by hour, weekday, setup, market and exit type.</p>",
+       "path": "More → Replay One",
+       "tags": [
+        "dashboard",
+        "statistics",
+        "monte carlo",
+        "drawdown",
+        "coach"
+       ],
+       "related": [
+        "replay-what"
+       ]
+      },
+      {
+       "id": "replay-to-journal",
+       "q": "Can I send replay trades to JournalX?",
+       "a": "<p>Yes. Use Send to JournalX in the session. If every trade is already there you see \"Every trade in this session is already in your journal\". Otherwise \"N of M trades copied to the journal\". Free journals still follow the 20-trades-a-month limit.</p>",
+       "tags": [
+        "send to journal",
+        "export",
+        "journalx"
+       ],
+       "related": [
+        "journalx-limit"
+       ]
+      },
+      {
+       "id": "replay-no-data",
+       "q": "Replay says there is no data that far back.",
+       "a": "<p>The message is \"No ... data that far back for this symbol. Try a later date or a higher timeframe\". One-minute futures data goes back about a month. Pick a later start date or a higher timeframe, or load your own CSV.</p>",
+       "tags": [
+        "no data",
+        "too far back",
+        "error",
+        "1m"
+       ],
+       "related": [
+        "replay-start"
+       ]
+      },
+      {
+       "id": "replay-saved",
+       "q": "Where are my replay sessions saved?",
+       "a": "<p>In this browser, with a best-effort copy to your account. Clearing site data on this browser can remove local copies.</p>",
+       "tags": [
+        "saved",
+        "lost sessions",
+        "storage",
+        "indexeddb"
+       ],
+       "related": [
+        "clear-cache"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "replay-vs-chart-replay",
+       "q": "What is the difference between Replay One and Replay on ZoroCharts?",
+       "a": "<p>The Replay button on ZoroCharts replays the chart you already have open: Select bar or Select date, then Start, Random bar, First available bar. Play, step and Real-time exit. It uses a separate replay account. Replay One is the full workspace with sessions, a dashboard and a coach.</p>",
+       "path": "ZoroCharts → Replay",
+       "tags": [
+        "replay button",
+        "bar replay",
+        "select bar"
+       ],
+       "related": [
+        "replay-what"
+       ]
+      },
+      {
+       "id": "chart-replay-errors",
+       "q": "Chart Replay says \"works on minute, hour, day, week and month charts\".",
+       "a": "<p>Bar replay needs a normal timeframe. The message is \"Bar replay works on minute, hour, day, week and month charts. Switch off seconds / tick bars first.\" Change the interval and try again. \"Pick a date in the past.\" means the chosen date is in the future.</p>",
+       "tags": [
+        "replay error",
+        "seconds",
+        "tick"
+       ],
+       "related": [
+        "replay-vs-chart-replay"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "paper",
+   "title": "Paper trading",
+   "icon": "stats",
+   "desc": "Practise with simulated money on the chart.",
+   "subs": [
+    {
+     "id": "paper-basics",
+     "title": "Paper trading",
+     "items": [
+      {
+       "id": "paper-trading-what",
+       "q": "What is paper trading on ZoroCharts?",
+       "a": "<p>Paper trading lets you place simulated orders on the live chart with demo money. It is simulated only, no broker is involved, and it is off until you enable it.</p>",
+       "tags": [
+        "paper trading",
+        "demo",
+        "simulated",
+        "practice account"
+       ],
+       "related": [
+        "paper-enable",
+        "place-orders"
+       ]
+      },
+      {
+       "id": "paper-enable",
+       "q": "How do I turn on paper trading?",
+       "a": "<p>Chart settings → Paper trading → Enable paper trading. A Trade button and one-click SELL / BUY then appear on the chart.</p>",
+       "steps": [
+        "Open ZoroCharts.",
+        "Open Chart settings (gear; phone: ... More).",
+        "Go to the Paper trading tab.",
+        "Tick Enable paper trading."
+       ],
+       "path": "ZoroCharts → Chart settings → Paper trading",
+       "tags": [
+        "enable",
+        "turn on",
+        "paper"
+       ],
+       "related": [
+        "paper-orders",
+        "paper-balance"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "paper-orders",
+       "q": "How do I place and manage a paper order?",
+       "a": "<p>Tap Trade or the Paper order ticket, choose the side and size, and add stop and target. The panel at the bottom has Positions, Orders, History, Account and Review tabs.</p>",
+       "tags": [
+        "paper order",
+        "positions",
+        "history",
+        "account",
+        "review"
+       ],
+       "related": [
+        "paper-enable",
+        "paper-review"
+       ]
+      },
+      {
+       "id": "paper-balance",
+       "q": "How do I change my starting paper balance?",
+       "a": "<p>Open the Account tab of the paper panel and reset with a new balance. The default is $100,000 and it must be between $1,000 and $100,000,000 (\"Pick a starting balance between $1,000 and $100,000,000\").</p>",
+       "tags": [
+        "balance",
+        "reset",
+        "demo money",
+        "100000"
+       ],
+       "related": [
+        "paper-enable"
+       ]
+      },
+      {
+       "id": "paper-closed",
+       "q": "Do paper orders work when ZoroCharts is closed?",
+       "a": "<p>No. Stops and targets are only evaluated while a ZoroCharts tab is open.</p>",
+       "tags": [
+        "closed",
+        "stop not triggered",
+        "background"
+       ],
+       "related": [
+        "paper-orders"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "paper-review",
+       "q": "What is Trade review and the Paper leaderboard?",
+       "a": "<p>More → Trade review analyses your paper trades. More → Paper leaderboard ranks members on paper results. Both are for practice only and make no claim about real trading.</p>",
+       "path": "More → Trade review / Paper leaderboard",
+       "tags": [
+        "review",
+        "leaderboard",
+        "ranking"
+       ],
+       "related": [
+        "paper-orders"
+       ],
+       "links": [
+        {
+         "label": "Trade review",
+         "href": "/paper-review"
+        },
+        {
+         "label": "Leaderboard",
+         "href": "/leaderboard"
+        }
+       ]
+      },
+      {
+       "id": "paper-journal",
+       "q": "Can I send a paper trade to JournalX?",
+       "a": "<p>Yes, use the Send to JournalX button in the paper panel.</p>",
+       "tags": [
+        "journalx",
+        "send"
+       ],
+       "related": [
+        "journalx-add-trade"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "journalx",
+   "title": "JournalX trade journal",
+   "icon": "journal",
+   "desc": "Log, import, review and sync your trades.",
+   "subs": [
+    {
+     "id": "jx-basics",
+     "title": "Basics",
+     "items": [
+      {
+       "id": "journalx-what",
+       "q": "What is JournalX?",
+       "a": "<p>JournalX is the trade journal. Log a trade, name the setup and record the outcome, then review it on a dashboard, calendar and analytics. Everything is computed from your own entries and it is private to you.</p><p><img src=\"/assets/help/shots/journalx-dashboard.webp\" alt=\"The JournalX dashboard\"></p>",
+       "path": "JournalX (dock)",
+       "tags": [
+        "journal",
+        "trade journal",
+        "journalx",
+        "log trades",
+        "diary"
+       ],
+       "related": [
+        "journalx-add-trade",
+        "journalx-tabs",
+        "privacy-journal"
+       ],
+       "links": [
+        {
+         "label": "Open JournalX",
+         "href": "/trade-journal"
+        },
+        {
+         "label": "About JournalX",
+         "href": "/features/journal"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "journalx-tabs",
+       "q": "What are the tabs in JournalX?",
+       "a": "<p>Dashboard, Add trade, History, Calendar, Analytics, Playbook, AI Coach, Prop firms and Settings. The Range selector (All time, Today, This week, This month, This quarter, This year) scopes the dashboard.</p>",
+       "tags": [
+        "tabs",
+        "dashboard",
+        "calendar",
+        "analytics",
+        "playbook"
+       ],
+       "related": [
+        "journalx-what"
+       ]
+      },
+      {
+       "id": "journalx-add-trade",
+       "q": "How do I add a trade?",
+       "a": "<p>Open the Add trade tab, fill in the fields and tap Save trade. You will see \"Trade saved.\"</p><p><img src=\"/assets/help/shots/journalx-add-trade.webp\" alt=\"The Add trade tab\"></p>",
+       "steps": [
+        "Open JournalX.",
+        "Tap Add trade.",
+        "Fill in Instrument, Direction, Date, Time, Entry, Exit, Position size and Fees.",
+        "Optionally add Stop loss, Take profit, Session, Setup, Playbook rules, Tags, Notes and a screenshot.",
+        "Tap Save trade."
+       ],
+       "path": "JournalX → Add trade",
+       "tags": [
+        "add trade",
+        "log trade",
+        "new trade",
+        "entry"
+       ],
+       "related": [
+        "journalx-edit",
+        "journalx-limit"
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "journalx-edit",
+       "q": "How do I edit or delete a trade?",
+       "a": "<p>Open History, tap the trade, and edit it (Save trade turns into Update; you see \"Trade updated.\") or delete it. Editing is always allowed, including on Free.</p>",
+       "path": "JournalX → History",
+       "tags": [
+        "edit trade",
+        "delete trade",
+        "fix"
+       ],
+       "related": [
+        "journalx-add-trade"
+       ]
+      },
+      {
+       "id": "journalx-limit",
+       "q": "What is the Free limit in JournalX?",
+       "a": "<p>Free can log 20 new trades per calendar month. The Add trade tab shows \"N of 20 trades logged this month on the Free plan.\" At the limit: \"You have logged 20 trades this month, the Free plan limit. Your trades stay saved. Pro is unlimited.\" Existing trades are never hidden.</p><p><img src=\"/assets/help/shots/journalx-dashboard-free.webp\" alt=\"JournalX on the Free plan\"></p>",
+       "plans": "free",
+       "tags": [
+        "limit",
+        "20 trades",
+        "monthly",
+        "free",
+        "cannot add trade"
+       ],
+       "related": [
+        "journalx-add-trade",
+        "upgrade-how"
+       ]
+      },
+      {
+       "id": "journalx-score",
+       "q": "What is the TradeZoro Score?",
+       "a": "<p>A single number on the dashboard that summarises how your journal reads, drawn as a radar. It appears after you have 3 closed trades.</p>",
+       "tags": [
+        "score",
+        "radar",
+        "tradezoro score"
+       ],
+       "related": [
+        "journalx-tabs"
+       ]
+      },
+      {
+       "id": "journalx-settings",
+       "q": "What can I set in JournalX Settings?",
+       "a": "<p>Account balance (used for Risk %), default risk %, currency (USD, EUR, GBP, JPY), your instruments, setups, sessions and tags, and demo data (a 4-month sample you can load and clear).</p>",
+       "path": "JournalX → Settings",
+       "tags": [
+        "balance",
+        "risk",
+        "currency",
+        "setups",
+        "demo data"
+       ],
+       "related": [
+        "journalx-what"
+       ]
+      },
+      {
+       "id": "playbook-what",
+       "q": "What is the Playbook?",
+       "a": "<p>One entry per strategy with its rules. You can adopt a taught model, then tick the rules you met on each trade, so you can later see whether rule-followers do better than improvisers.</p>",
+       "path": "JournalX → Playbook",
+       "tags": [
+        "playbook",
+        "rules",
+        "strategy",
+        "checklist"
+       ],
+       "related": [
+        "models-page"
+       ]
+      },
+      {
+       "id": "journalx-calendar",
+       "q": "What does the calendar show?",
+       "a": "<p>Daily P&L on a calendar. Tap a day to see its trades.</p>",
+       "path": "JournalX → Calendar",
+       "tags": [
+        "calendar",
+        "daily pnl"
+       ],
+       "related": [
+        "journalx-tabs"
+       ]
+      },
+      {
+       "id": "pnl-card",
+       "q": "Can I download a P&L card?",
+       "a": "<p>Yes. The P&L card button on the dashboard creates an image you can save and share.</p>",
+       "tags": [
+        "pnl card",
+        "image",
+        "share"
+       ],
+       "related": [
+        "journalx-what"
+       ]
+      },
+      {
+       "id": "privacy-journal",
+       "q": "Who can see my journal?",
+       "a": "<p>Only you. The journal is private and is not shown to other members.</p>",
+       "tags": [
+        "privacy",
+        "private",
+        "journal visibility"
+       ],
+       "related": [
+        "public-profile"
+       ],
+       "links": [
+        {
+         "label": "Privacy Policy",
+         "href": "/privacy"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "jx-pro",
+     "title": "Import, export, coach and analytics (Pro)",
+     "items": [
+      {
+       "id": "journal-import",
+       "q": "How do I import trades from a CSV file?",
+       "a": "<p>Open History → Import & export, choose the file type (trades, payouts, expenses or combined), pick the file and check the column mapping. Duplicates are skipped. Import and export are part of Pro.</p><p><img src=\"/assets/help/shots/journalx-history.webp\" alt=\"History tab with Import & export\"></p>",
+       "steps": [
+        "Open JournalX → History.",
+        "Open Import & export.",
+        "Choose a file type and a file (sample files are offered).",
+        "Check the column mapping.",
+        "Confirm the import."
+       ],
+       "path": "JournalX → History → Import & export",
+       "plans": "pro",
+       "tags": [
+        "import",
+        "csv",
+        "upload",
+        "broker export",
+        "tradovate",
+        "ninjatrader"
+       ],
+       "related": [
+        "journal-import-errors",
+        "journal-export"
+       ],
+       "links": [
+        {
+         "label": "Open JournalX",
+         "href": "/trade-journal"
+        }
+       ]
+      },
+      {
+       "id": "journal-import-errors",
+       "q": "My import failed. What do the messages mean?",
+       "a": "<ul><li>\"That file has no data rows.\": the file is empty or only headers.</li><li>\"Could not find the essentials - check the mapping below.\": map the Date, Instrument and P&L columns.</li><li>\"Could not read that file.\": save it as plain CSV.</li><li>\"No importable rows - check the column mapping.\"</li><li>\"All N rows already exist in your journal.\": nothing new.</li><li>\"Need Firm, Date and Amount columns - check the file headers.\" for payouts and expenses.</li><li>\"A combined file needs a Type column (trade / payout / expense).\"</li></ul>",
+       "plans": "pro",
+       "tags": [
+        "import error",
+        "csv error",
+        "mapping",
+        "duplicates"
+       ],
+       "related": [
+        "journal-import"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "journal-export",
+       "q": "How do I export my journal?",
+       "a": "<p>Use Export CSV in History → Import & export (Pro). If you see \"Nothing to export yet.\" the journal is empty.</p>",
+       "plans": "pro",
+       "tags": [
+        "export",
+        "download",
+        "csv",
+        "backup"
+       ],
+       "related": [
+        "journal-import",
+        "data-export"
+       ]
+      },
+      {
+       "id": "journal-analytics",
+       "q": "What is in Analytics?",
+       "a": "<p>Deeper statistics from your trades. Analytics is part of Pro; on Free the tab shows \"Analytics are part of Pro\" with a See Pro button.</p>",
+       "path": "JournalX → Analytics",
+       "plans": "pro",
+       "tags": [
+        "analytics",
+        "statistics",
+        "edge"
+       ],
+       "related": [
+        "free-vs-pro"
+       ]
+      },
+      {
+       "id": "journal-ai-coach",
+       "q": "What is the AI Coach?",
+       "a": "<p>A rule-based coach that reads your journal and points out patterns such as overtrading or revenge trades. It runs on your own device from your own entries and is not a chatbot. It is part of Pro.</p>",
+       "path": "JournalX → AI Coach",
+       "plans": "pro",
+       "tags": [
+        "coach",
+        "ai",
+        "patterns",
+        "revenge trading"
+       ],
+       "related": [
+        "journal-analytics"
+       ]
+      },
+      {
+       "id": "broker-sync",
+       "q": "How does JournalX broker sync work?",
+       "a": "<p>Broker sync imports your trades automatically every few hours using read-only API keys, so it can never place trades. Keys are encrypted on the server and never shown again. It is part of Pro.</p>",
+       "steps": [
+        "Open JournalX → History.",
+        "Open Broker sync.",
+        "Choose a broker.",
+        "Fill in every credential field with read-only keys.",
+        "Tap Connect broker. You see \"Connected - N trades imported.\"",
+        "Tap Sync now whenever you want."
+       ],
+       "path": "JournalX → History → Broker sync",
+       "plans": "pro",
+       "tags": [
+        "broker sync",
+        "auto import",
+        "api key",
+        "sync trades"
+       ],
+       "related": [
+        "broker-sync-errors",
+        "rithmic-what"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "broker-sync-errors",
+       "q": "Broker sync shows an error.",
+       "a": "<ul><li>\"Choose a broker first.\"</li><li>\"Fill in every credential field.\"</li><li>\"The broker rejected the connection.\": re-check the key and that it is read-only.</li><li>\"Sync failed.\": try Sync now later.</li><li>\"Broker sync isn't switched on for this site yet.\": the feature is not active for the site; use CSV import instead.</li></ul>",
+       "plans": "pro",
+       "tags": [
+        "sync failed",
+        "rejected",
+        "api key"
+       ],
+       "related": [
+        "broker-sync",
+        "journal-import"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "jx-prop",
+     "title": "Prop firm tools",
+     "items": [
+      {
+       "id": "prop-firm-tab",
+       "q": "How do I track prop firm accounts and payouts?",
+       "a": "<p>Open the Prop firms tab. Add a firm, then log payouts and expenses. The page totals Total spent on firms, Total payouts received, Net result and Firms tracked, with a cash-flow chart. A firm needs a name (\"Give the firm a name.\") and amounts must be above zero.</p><p><img src=\"/assets/help/shots/journalx-prop-firms.webp\" alt=\"The Prop firms tab\"></p>",
+       "path": "JournalX → Prop firms",
+       "tags": [
+        "prop firm",
+        "apex",
+        "topstep",
+        "payout",
+        "expense",
+        "funded",
+        "challenge",
+        "evaluation"
+       ],
+       "related": [
+        "prop-risk-panel",
+        "learn-articles"
+       ]
+      },
+      {
+       "id": "prop-risk-panel",
+       "q": "What is the prop firm risk panel?",
+       "a": "<p>It tracks your own firm's rules, such as daily loss and drawdown. Rule presets only set the layout. You type every number from your own firm's dashboard, and nothing is calculated until you confirm them. TradeZoro does not ship any firm's real limits.</p>",
+       "tags": [
+        "drawdown",
+        "daily loss",
+        "rules",
+        "trailing"
+       ],
+       "related": [
+        "prop-firm-tab"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "market-tools",
+   "title": "Market tools",
+   "icon": "stats",
+   "desc": "Market Stats, scanner, calendar, Global Monitor and more.",
+   "subs": [
+    {
+     "id": "mt",
+     "title": "Market tools",
+     "items": [
+      {
+       "id": "market-stats-what",
+       "q": "What is Market Stats?",
+       "a": "<p>Market Stats reports historical frequencies with sample sizes, for example gap fill and opening range, on NQ, ES, SPX, YM, RTY, GC and CL. It uses the regular session (09:30-16:00 New York), 3 years of data, and ranges of 3 months, 6 months, 1 year or all. They are historical frequencies, not predictions. It is free.</p>",
+       "path": "More → Market stats",
+       "tags": [
+        "market stats",
+        "gap fill",
+        "opening range",
+        "statistics",
+        "probabilities"
+       ],
+       "related": [
+        "not-advice"
+       ],
+       "links": [
+        {
+         "label": "Market stats",
+         "href": "/market-stats"
+        }
+       ]
+      },
+      {
+       "id": "scanner-what",
+       "q": "What does the Market scanner do?",
+       "a": "<p>It filters US stocks, ETFs and crypto using presets and refreshes every 3 minutes. Presets are free. Custom filters (field, operator, value) are part of Pro. A crypto row opens ZoroCharts; a stock or ETF row opens an info sheet.</p>",
+       "path": "More → Market scanner",
+       "tags": [
+        "scanner",
+        "screener",
+        "movers",
+        "filters"
+       ],
+       "related": [
+        "free-vs-pro"
+       ],
+       "links": [
+        {
+         "label": "Scanner",
+         "href": "/scanner"
+        }
+       ]
+      },
+      {
+       "id": "calendar-what",
+       "q": "Where is the economic calendar?",
+       "a": "<p>More → Economic calendar lists upcoming releases and is free. Pre-market brief gives a daily summary and Market map shows a heat map. All three refresh daily.</p><p><img src=\"/assets/help/shots/economic-calendar.webp\" alt=\"The Economic calendar\"></p>",
+       "path": "More → Economic calendar / Market brief / Market map",
+       "tags": [
+        "calendar",
+        "cpi",
+        "fomc",
+        "brief",
+        "market map",
+        "news"
+       ],
+       "related": [
+        "economic-events"
+       ],
+       "links": [
+        {
+         "label": "Calendar",
+         "href": "/economic-calendar"
+        },
+        {
+         "label": "Pre-market brief",
+         "href": "/market-brief"
+        }
+       ]
+      },
+      {
+       "id": "global-monitor-what",
+       "q": "What is the Global Monitor?",
+       "a": "<p>A live world-events board with tabs Markets, Map, Wire, Risk, AI Brief and Streams: newswire, quotes, market calendar and more. It is free.</p><p><img src=\"/assets/help/shots/global-monitor.webp\" alt=\"Global Monitor\"></p>",
+       "path": "More → Global Monitor",
+       "tags": [
+        "global monitor",
+        "world",
+        "wire",
+        "terminal"
+       ],
+       "related": [
+        "calendar-what"
+       ],
+       "links": [
+        {
+         "label": "Global Monitor",
+         "href": "/global-monitor"
+        }
+       ]
+      },
+      {
+       "id": "smart-money",
+       "q": "What is the Smart Money desk?",
+       "a": "<p>A Pro desk that shows Congress and insider filings. It says \"This is a Pro desk tool\" with an Upgrade to unlock button on Free.</p>",
+       "path": "More → Smart money",
+       "plans": "pro",
+       "tags": [
+        "smart money",
+        "congress",
+        "insider",
+        "filings"
+       ],
+       "related": [
+        "free-vs-pro"
+       ],
+       "links": [
+        {
+         "label": "Smart money",
+         "href": "/smart-money"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "rithmic",
+   "title": "Connect broker (Rithmic data)",
+   "icon": "plug",
+   "desc": "Use your own Rithmic data on ZoroCharts.",
+   "subs": [
+    {
+     "id": "rith",
+     "title": "Rithmic",
+     "items": [
+      {
+       "id": "rithmic-what",
+       "q": "What does Connect broker do?",
+       "a": "<p>It lets you use your own Rithmic market data, for example through a prop firm account, on futures charts. It is data only. You cannot place orders. Your login goes straight from your browser to Rithmic; TradeZoro never sees or stores your password.</p>",
+       "tags": [
+        "rithmic",
+        "connect broker",
+        "prop firm data",
+        "apex",
+        "topstep",
+        "tradesea",
+        "real-time futures"
+       ],
+       "related": [
+        "rithmic-connect",
+        "rithmic-errors",
+        "place-orders"
+       ]
+      },
+      {
+       "id": "rithmic-connect",
+       "q": "How do I connect Rithmic?",
+       "a": "<p>Open the Connect broker sheet, choose your gateway and system, enter your Rithmic username and password, and tap Connect.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
+       "steps": [
+        "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
+        "Choose the Gateway (server location). Chicago is the default.",
+        "Choose the System. For a prop firm account pick your firm, for example TradeSea or Apex.",
+        "Enter your Rithmic username and password.",
+        "Optionally tick Remember username (it saves username and system, not the password).",
+        "Tap Connect. You see \"Connected to Rithmic\"."
+       ],
+       "path": "ZoroCharts → Connect broker",
+       "tags": [
+        "connect",
+        "rithmic login",
+        "gateway",
+        "system",
+        "chicago"
+       ],
+       "related": [
+        "rithmic-errors",
+        "rithmic-disconnect"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "rithmic-disconnect",
+       "q": "How do I disconnect?",
+       "a": "<p>Open the same sheet and tap Disconnect. Futures charts go back to the standard data (\"Disconnected from Rithmic\").</p>",
+       "tags": [
+        "disconnect",
+        "log out of rithmic"
+       ],
+       "related": [
+        "rithmic-connect"
+       ]
+      },
+      {
+       "id": "rithmic-errors",
+       "q": "Rithmic will not connect. What do the messages mean?",
+       "a": "<ul><li>\"Choose your Rithmic system (your prop firm or broker).\": pick a System.</li><li>\"Enter your Rithmic username and password.\"</li><li>\"This location returned no systems. Try another gateway.\"</li><li>\"Could not reach Rithmic to list systems. Check your connection and try again.\"</li><li>\"Rithmic refused the login. Check the system, username and password.\"</li><li>\"Your prop firm or broker may need to allow Stryker Charts for your account. Check that the same login works in RTraderPro.\"</li><li>\"Rithmic needs a paid market-data subscription on your account (demo trials can't connect).\"</li></ul>",
+       "tags": [
+        "rithmic error",
+        "refused",
+        "no systems",
+        "login failed",
+        "subscription",
+        "rtrader pro"
+       ],
+       "related": [
+        "rithmic-connect",
+        "rithmic-no-systems"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "rithmic-no-systems",
+       "q": "The System list is empty.",
+       "a": "<p>The gateway you chose returned no systems. Change the Gateway to another location and try again. Check your connection too.</p>",
+       "tags": [
+        "no systems",
+        "empty",
+        "gateway"
+       ],
+       "related": [
+        "rithmic-errors"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "no-order-book",
+       "q": "Why is there no order book / depth for futures?",
+       "a": "<p>Futures order-book depth is not available to members yet. Crypto depth (Liquidity Map) uses Binance public data. Connect broker supplies price and trades only.</p>",
+       "tags": [
+        "order book",
+        "depth",
+        "dom",
+        "bookmap",
+        "no depth"
+       ],
+       "related": [
+        "liquidity-map",
+        "rithmic-what"
+       ],
+       "level": "advanced"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "community",
+   "title": "Community and extras",
+   "icon": "user",
+   "desc": "Trading Floor, messages, referrals and more.",
+   "subs": [
+    {
+     "id": "comm",
+     "title": "Community",
+     "items": [
+      {
+       "id": "trading-floor-what",
+       "q": "What is the Trading Floor?",
+       "a": "<p>A member feed with Posts and Prop firm feed tabs, sorted by New, Top or Trending, with filters for Setups, Questions and From X. Free members can read. Posting, reacting and replying need Pro (\"You're viewing the Trading Floor in read-only mode\").</p><p><img src=\"/assets/help/shots/trading-floor.webp\" alt=\"The Trading Floor\"></p>",
+       "path": "More → Trading Floor",
+       "tags": [
+        "trading floor",
+        "community",
+        "posts",
+        "chat",
+        "read only"
+       ],
+       "related": [
+        "messages-what"
+       ],
+       "links": [
+        {
+         "label": "Trading Floor",
+         "href": "/trading-floor"
+        }
+       ]
+      },
+      {
+       "id": "messages-what",
+       "q": "How do direct messages work?",
+       "a": "<p>More → Messages lets members send direct messages. Messaging is part of Pro.</p>",
+       "path": "More → Messages",
+       "plans": "pro",
+       "tags": [
+        "dm",
+        "messages",
+        "inbox"
+       ],
+       "related": [
+        "trading-floor-what"
+       ]
+      },
+      {
+       "id": "referrals-what",
+       "q": "How does Invite & earn work?",
+       "a": "<p>More → Referrals gives you an invite link and code. Referral points count towards recognition on the leaderboard only. They have no cash or credit value, per our Terms.</p>",
+       "path": "More → Referrals",
+       "tags": [
+        "referral",
+        "invite",
+        "points",
+        "earn"
+       ],
+       "related": [
+        "invite-code"
+       ],
+       "links": [
+        {
+         "label": "Referrals",
+         "href": "/referrals"
+        }
+       ]
+      },
+      {
+       "id": "giveaways",
+       "q": "Are there giveaways?",
+       "a": "<p>The Giveaways page currently says they are coming soon.</p>",
+       "path": "More → Giveaways",
+       "tags": [
+        "giveaway",
+        "contest"
+       ],
+       "related": [
+        "referrals-what"
+       ]
+      },
+      {
+       "id": "roadmap",
+       "q": "What is on the roadmap?",
+       "a": "<p>More → Roadmap lists Now building, Planned, Shipped and a Build log. It states that nothing is a promise of a delivery date.</p><p><img src=\"/assets/help/shots/roadmap.webp\" alt=\"The Roadmap page\"></p>",
+       "path": "More → Roadmap",
+       "tags": [
+        "roadmap",
+        "upcoming",
+        "feature request"
+       ],
+       "related": [
+        "contact-support"
+       ],
+       "links": [
+        {
+         "label": "Roadmap",
+         "href": "/roadmap"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "troubleshooting",
+   "title": "Troubleshooting",
+   "icon": "wrench",
+   "desc": "Fixes for the most common problems.",
+   "subs": [
+    {
+     "id": "ts-chart",
+     "title": "Charts and data",
+     "items": [
+      {
+       "id": "chart-not-loading",
+       "q": "The chart will not load.",
+       "a": "<p>If you see \"The chart engine didn't load. Check your connection and refresh the page. If it keeps failing, an ad-blocker may be blocking the cdn.jsdelivr.net script.\", follow these steps.</p>",
+       "steps": [
+        "Check your internet connection and refresh.",
+        "Turn off ad-blockers or privacy extensions for this site, or allow cdn.jsdelivr.net.",
+        "Update your browser (Chrome, Safari, Edge or Firefox, recent version).",
+        "Clear the site cache (see the clear cache answer).",
+        "Still failing? Contact support with your device and browser."
+       ],
+       "tags": [
+        "chart not loading",
+        "blank chart",
+        "engine didn't load",
+        "adblock",
+        "ad blocker",
+        "jsdelivr",
+        "old browser",
+        "white screen"
+       ],
+       "related": [
+        "clear-cache",
+        "contact-support",
+        "adblock"
+       ]
+      },
+      {
+       "id": "candles-not-moving",
+       "q": "Candles are not moving.",
+       "a": "<p>First look at the data dot by the symbol. Amber Delayed 10m means Free futures and forex data updates about every 10 minutes. Grey Closed means the market is shut.</p>",
+       "steps": [
+        "Check the dot by the symbol.",
+        "On Free futures, wait for the next update or upgrade for real-time data.",
+        "Check your connection and refresh the page.",
+        "Try crypto (e.g. BTC) to see a live feed."
+       ],
+       "tags": [
+        "frozen",
+        "not updating",
+        "stuck",
+        "live",
+        "no new candles"
+       ],
+       "related": [
+        "free-data-delay",
+        "data-dot",
+        "market-closed"
+       ]
+      },
+      {
+       "id": "free-data-delay",
+       "q": "Why is my data 10 minutes behind?",
+       "a": "<p>On the Free plan, futures and forex chart data is updated about every 10 minutes (shown as Delayed 10m). Pro gets real-time data. Crypto from public feeds is real-time on every plan.</p>",
+       "plans": "free",
+       "tags": [
+        "delay",
+        "delayed",
+        "10 minutes",
+        "behind",
+        "real time",
+        "lag"
+       ],
+       "related": [
+        "pro-realtime",
+        "data-dot"
+       ]
+      },
+      {
+       "id": "pro-realtime",
+       "q": "I am Pro but data still shows delayed.",
+       "a": "<p>Real-time is granted to active Pro accounts. Refresh the page and check Settings → Plan & membership shows your plan as active. If your payment is due the line says \"Payment due - access pauses in a few days\". If it still shows delayed, contact support with your account email.</p>",
+       "plans": "pro",
+       "tags": [
+        "pro delayed",
+        "still delayed",
+        "real-time not working"
+       ],
+       "related": [
+        "renewal-status",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "market-closed",
+       "q": "The chart shows Closed.",
+       "a": "<p>The market is outside its trading hours (for example the weekend). Crypto trades all the time. GEX shows Market closed or Waiting for the next update outside hours.</p>",
+       "tags": [
+        "closed",
+        "weekend",
+        "no data",
+        "holiday"
+       ],
+       "related": [
+        "candles-not-moving"
+       ]
+      },
+      {
+       "id": "gex-missing-symbol",
+       "q": "GEX is missing for a symbol.",
+       "a": "<p>GEX+ covers SPX, SPY, QQQ and Gold only. On Free you only see SPX 0DTE and other choices show a lock. Outside hours you may see \"No data available\", \"Session data unavailable\" or Waiting for the next update.</p>",
+       "tags": [
+        "gex missing",
+        "no gex",
+        "no levels",
+        "gex locked",
+        "no data"
+       ],
+       "related": [
+        "gex-free",
+        "gex-symbols"
+       ]
+      },
+      {
+       "id": "no-news-data",
+       "q": "A panel is empty (news, calendar, scanner).",
+       "a": "<p>Refresh first. These panels load from our data service and can be empty if your connection dropped or an ad-blocker blocked the request. Try another browser or contact support.</p>",
+       "tags": [
+        "empty panel",
+        "no news",
+        "blank"
+       ],
+       "related": [
+        "adblock",
+        "clear-cache"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "adblock",
+       "q": "Do ad blockers or privacy extensions break the site?",
+       "a": "<p>They can. Some block the chart library (cdn.jsdelivr.net), payment pages or sign-in popups. Allow this site and refresh. Private windows can also block the storage the site needs to keep you signed in.</p>",
+       "tags": [
+        "ad blocker",
+        "ublock",
+        "brave shields",
+        "privacy",
+        "extension"
+       ],
+       "related": [
+        "chart-not-loading",
+        "storage-blocked"
+       ]
+      },
+      {
+       "id": "old-browser",
+       "q": "Which browsers are supported?",
+       "a": "<p>A current version of Chrome, Edge, Firefox or Safari. Update if charts or buttons do not respond.</p>",
+       "tags": [
+        "browser",
+        "safari",
+        "chrome",
+        "firefox",
+        "old",
+        "update"
+       ],
+       "related": [
+        "chart-not-loading"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ts-account",
+     "title": "Account and sign-in",
+     "items": [
+      {
+       "id": "login-problems",
+       "q": "I cannot log in.",
+       "a": "<p>Match the message to the fix.</p><ul><li>\"No account found with that email.\": check spelling or sign up.</li><li>\"Incorrect password. Try again or reset it below.\"</li><li>\"Incorrect email or password.\"</li><li>\"Too many attempts. Please wait a moment and try again.\"</li><li>\"This account has been disabled.\": contact support.</li><li>\"An account already exists with that email - try logging in instead.\"</li></ul>",
+       "tags": [
+        "login problem",
+        "cannot log in",
+        "wrong password",
+        "locked out",
+        "too many attempts"
+       ],
+       "related": [
+        "reset-password",
+        "storage-blocked",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "storage-blocked",
+       "q": "I log in but the next page asks me to log in again.",
+       "a": "<p>Your browser is blocking the storage the site needs. The site warns \"Your browser is blocking the storage this site needs to keep you signed in\". Use a normal (not private) window, allow cookies and site data for this site, or turn off tracking shields.</p>",
+       "tags": [
+        "login loop",
+        "keeps logging out",
+        "incognito",
+        "private window",
+        "cookies"
+       ],
+       "related": [
+        "login-problems",
+        "adblock"
+       ]
+      },
+      {
+       "id": "google-popup-blocked",
+       "q": "Google sign-in does nothing.",
+       "a": "<p>The message \"Your browser blocked the Google sign-in popup\" means popups are blocked. Allow popups for this site or log in with email and password, which does not need one. \"Google sign-in was closed before finishing.\" means the window was closed early.</p>",
+       "tags": [
+        "google popup",
+        "popup blocked",
+        "google login"
+       ],
+       "related": [
+        "google-signin"
+       ]
+      },
+      {
+       "id": "no-verification-email",
+       "q": "I did not get the verification email.",
+       "a": "<p>Wait a minute and check Spam or Promotions. Then tap Resend the email on the confirmation screen (there is a 30 second wait between sends). Confirm the address is spelled correctly. If it still does not arrive contact support.</p>",
+       "steps": [
+        "Check Spam, Junk and Promotions.",
+        "Tap Resend the email (\"Sent again to <email>. It can take a minute - check spam too.\").",
+        "Open the link, then tap I've confirmed it.",
+        "Still nothing? Contact support."
+       ],
+       "tags": [
+        "verification email",
+        "confirm email not received",
+        "no email",
+        "resend"
+       ],
+       "related": [
+        "verify-email",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "no-reset-email",
+       "q": "I did not get the password reset email.",
+       "a": "<p>Check Spam and wait a few minutes. Make sure you used the same email you signed up with. If you signed up with Google, use Continue with Google instead. Try Forgot password? again.</p>",
+       "tags": [
+        "reset email",
+        "password email not received"
+       ],
+       "related": [
+        "reset-password",
+        "google-no-password",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "still-unconfirmed",
+       "q": "It says my email still looks unconfirmed.",
+       "a": "<p>The message is \"That email still looks unconfirmed. Open the link we sent to <email>, then try again.\" Open the link in the email first, then tap I've confirmed it.</p>",
+       "tags": [
+        "unconfirmed",
+        "email not confirmed"
+       ],
+       "related": [
+        "verify-email"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "ts-pay",
+     "title": "Payments",
+     "items": [
+      {
+       "id": "payment-failed",
+       "q": "My payment failed or my card was declined.",
+       "a": "<p>Card declines come from your bank or card network, not from TradeZoro. Try another card, check the billing details and 3-D Secure prompt, or try again. You will see \"Payment failed: <reason>\" with the reason from the payment provider.</p>",
+       "steps": [
+        "Check the card number, expiry and billing address.",
+        "Approve any bank verification (OTP / 3-D Secure).",
+        "Try another card or UPI (from India).",
+        "Refresh and try again; the page says \"The payment window could not load - check your connection and refresh\" if it did not open.",
+        "If you were charged but have no Pro: \"Payment received but verification failed - contact support@tradezoro.com\" with the payment id shown."
+       ],
+       "tags": [
+        "payment failed",
+        "card declined",
+        "declined",
+        "payment error",
+        "stripe",
+        "razorpay",
+        "upi failed",
+        "charged"
+       ],
+       "related": [
+        "razorpay-stripe",
+        "charged-no-pro",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "charged-no-pro",
+       "q": "I was charged but I still do not have Pro.",
+       "a": "<p>Refresh and check Settings → Plan & membership. If it still shows Free, email support@tradezoro.com with your account email and the payment id or Stripe receipt. We can then fix the plan.</p>",
+       "tags": [
+        "charged",
+        "paid but free",
+        "no access",
+        "plan not updated"
+       ],
+       "related": [
+        "payment-failed",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "coupon-problem",
+       "q": "My coupon will not apply.",
+       "a": "<p>The message tells you why.</p><ul><li>\"That coupon code doesn't exist.\": check the spelling.</li><li>\"That coupon is no longer active.\"</li><li>\"That coupon has expired.\"</li><li>\"That coupon has reached its redemption limit.\"</li><li>\"That coupon doesn't apply to this plan.\"</li><li>\"You've already used this coupon on this account.\"</li><li>\"Enter a coupon code first.\" or \"Plan is still loading - try again in a moment.\"</li></ul><p>A successful code shows \"Coupon applied: CODE\".</p>",
+       "tags": [
+        "coupon not working",
+        "promo code invalid",
+        "discount",
+        "expired code"
+       ],
+       "related": [
+        "coupon-how",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "checkout-errors",
+       "q": "Checkout shows an error such as \"Payments are not available right now\".",
+       "a": "<p>Refresh and try again in a few minutes. Other messages: \"No plan selected. Go back to the pricing page and choose a plan.\", \"Checkout is unavailable right now. Please refresh and try again.\", \"Billing is unavailable right now. Please try again.\". If it persists, contact support.</p>",
+       "tags": [
+        "checkout error",
+        "not available",
+        "no plan selected"
+       ],
+       "related": [
+        "payment-failed",
+        "contact-support"
+       ],
+       "level": "advanced"
+      },
+      {
+       "id": "checkout-cancelled",
+       "q": "Checkout says it was cancelled. Was I charged?",
+       "a": "<p>The page says \"Checkout was cancelled, so you haven't been charged. You can try again below.\"</p>",
+       "tags": [
+        "cancelled checkout",
+        "not charged"
+       ],
+       "related": [
+        "payment-failed"
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ts-notify",
+     "title": "Notifications",
+     "items": [
+      {
+       "id": "push-enable",
+       "q": "How do I turn on push notifications?",
+       "a": "<p>Open Settings → Push notifications → Enable on this device and allow the browser prompt. You see \"Push notifications are on for this device.\" Do this on each device.</p><p><img src=\"/assets/help/shots/settings-push.webp\" alt=\"Push notifications card in Settings\"></p>",
+       "path": "More → Settings → Push notifications",
+       "tags": [
+        "push",
+        "notifications",
+        "enable",
+        "alerts on phone"
+       ],
+       "related": [
+        "push-not-arriving",
+        "push-iphone",
+        "alerts-closed"
+       ],
+       "links": [
+        {
+         "label": "Settings",
+         "href": "/settings"
+        }
+       ]
+      },
+      {
+       "id": "push-iphone",
+       "q": "Push on iPhone says to add to Home Screen.",
+       "a": "<p>On iPhone, push works only for sites added to the Home Screen (iOS 16.4 or newer). The message is \"Add TradeZoro to your Home Screen to get alerts.\"</p>",
+       "steps": [
+        "Open the site in Safari.",
+        "Tap Share.",
+        "Tap Add to Home Screen.",
+        "Open TradeZoro from the new icon.",
+        "Turn on push in Settings."
+       ],
+       "tags": [
+        "iphone",
+        "ios",
+        "safari",
+        "home screen",
+        "pwa push"
+       ],
+       "related": [
+        "push-enable",
+        "install-app"
+       ]
+      },
+      {
+       "id": "push-not-arriving",
+       "q": "Push notifications are not arriving.",
+       "a": "<p>Check each of these.</p>",
+       "steps": [
+        "Settings → Push notifications should say \"On for this device.\"",
+        "If it says \"Blocked in your browser settings\", allow notifications for this site in the browser, then reload.",
+        "Make sure the alert is a server-side type (futures or Binance/Coinbase crypto price alert).",
+        "Check phone Do Not Disturb and battery saver.",
+        "Turn push off and on again. \"The browser did not return a push token. Try reloading.\" means reload and retry."
+       ],
+       "tags": [
+        "no push",
+        "notifications not working",
+        "blocked",
+        "alert not received"
+       ],
+       "related": [
+        "push-enable",
+        "alerts-closed",
+        "push-after-signout"
+       ]
+      },
+      {
+       "id": "push-after-signout",
+       "q": "Will I get alerts after I sign out?",
+       "a": "<p>Only if Keep sending to this device after I sign out is ticked in Settings → Push notifications. Otherwise the device is unregistered when you sign out.</p>",
+       "tags": [
+        "sign out",
+        "push",
+        "keep sending"
+       ],
+       "related": [
+        "push-enable"
+       ],
+       "level": "advanced"
+      }
+     ]
+    },
+    {
+     "id": "ts-general",
+     "title": "General fixes",
+     "items": [
+      {
+       "id": "clear-cache",
+       "q": "How do I clear the cache or site data?",
+       "a": "<p>Clearing the site's data fixes most loading problems. You may need to sign in again. Replay sessions saved only in this browser may be removed, so export anything you need first.</p>",
+       "steps": [
+        "Desktop Chrome/Edge: click the padlock beside the address → Site settings → Clear data. Then reload with Ctrl+Shift+R (Cmd+Shift+R on Mac).",
+        "Desktop Firefox: padlock → Clear cookies and site data.",
+        "iPhone Safari: Settings → Safari → Advanced → Website Data → find tradezoro → delete.",
+        "Android Chrome: tap the padlock → Permissions / Site settings → Clear data.",
+        "Reload and sign in."
+       ],
+       "tags": [
+        "clear cache",
+        "hard refresh",
+        "cookies",
+        "site data",
+        "reset browser",
+        "ctrl shift r"
+       ],
+       "related": [
+        "chart-not-loading",
+        "replay-saved"
+       ]
+      },
+      {
+       "id": "page-blank",
+       "q": "A page is blank or buttons do nothing.",
+       "a": "<p>Hard refresh the page, try a private window to rule out extensions, and update your browser. If the problem remains, tell support the page, your device and browser.</p>",
+       "tags": [
+        "blank",
+        "not responding",
+        "stuck",
+        "white page"
+       ],
+       "related": [
+        "clear-cache",
+        "adblock",
+        "contact-support"
+       ]
+      },
+      {
+       "id": "lost-layout",
+       "q": "My saved layout, watchlist or drawings disappeared.",
+       "a": "<p>Check you are signed in with the same account. Layouts, watchlists and templates are saved to your account; clearing site data signs you out. After the Free-plan lock, only Pro tools are removed from a loaded layout.</p>",
+       "tags": [
+        "lost",
+        "missing",
+        "gone",
+        "layout missing"
+       ],
+       "related": [
+        "layouts-save",
+        "removed-from-chart"
+       ]
+      },
+      {
+       "id": "report-bug",
+       "q": "How do I report a bug or suggest a feature?",
+       "a": "<p>Use the contact form or email support@tradezoro.com. Say the page, what you tapped, what you expected, your device and browser.</p><p><img src=\"/assets/help/shots/contact-page.webp\" alt=\"The Contact page\"></p>",
+       "tags": [
+        "bug",
+        "feature request",
+        "feedback",
+        "report"
+       ],
+       "related": [
+        "contact-support",
+        "roadmap"
+       ],
+       "links": [
+        {
+         "label": "Contact us",
+         "href": "/contact"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "legal-privacy",
+   "title": "Privacy, data and legal",
+   "icon": "shield",
+   "desc": "Your data, deleting your account and our policies.",
+   "subs": [
+    {
+     "id": "data",
+     "title": "Your data",
+     "items": [
+      {
+       "id": "delete-account",
+       "q": "How do I delete my account?",
+       "a": "<p>There is no delete button in the app today. Send a deletion request through the contact form or email support@tradezoro.com from your account email. Our privacy page says you can request deletion of your account and associated data at any time, and our GDPR page says we aim to respond within 30 days.</p>",
+       "steps": [
+        "Open the Contact page.",
+        "Write that you want your account deleted and give your account email.",
+        "Send the message, or email support@tradezoro.com from that address.",
+        "Cancel any paid plan first in Settings → Plan & membership so you are not charged again."
+       ],
+       "tags": [
+        "delete account",
+        "close account",
+        "remove my data",
+        "gdpr",
+        "erase"
+       ],
+       "related": [
+        "data-export",
+        "cancel-subscription",
+        "reset-progress"
+       ],
+       "links": [
+        {
+         "label": "Contact us",
+         "href": "/contact"
+        },
+        {
+         "label": "GDPR",
+         "href": "/gdpr"
+        },
+        {
+         "label": "Privacy Policy",
+         "href": "/privacy"
+        }
+       ]
+      },
+      {
+       "id": "data-export",
+       "q": "How do I get a copy of my data?",
+       "a": "<p>There is no one-click export of everything. JournalX has Export CSV (Pro) for your trades. For a full copy of your data, send a request through the contact form or support@tradezoro.com, as described on our GDPR page.</p>",
+       "tags": [
+        "export data",
+        "download my data",
+        "gdpr",
+        "copy of data"
+       ],
+       "related": [
+        "journal-export",
+        "delete-account"
+       ],
+       "links": [
+        {
+         "label": "GDPR",
+         "href": "/gdpr"
+        }
+       ]
+      },
+      {
+       "id": "data-collected",
+       "q": "What data do you collect and who sees it?",
+       "a": "<p>See the Privacy Policy for the full list. It says we do not sell your personal data. Services we use include Google Firebase, Stripe and Razorpay for payments and TradingView embeds. Your journal is private. Community posts are visible to other signed-in members.</p>",
+       "tags": [
+        "privacy",
+        "data",
+        "tracking",
+        "sell data"
+       ],
+       "related": [
+        "privacy-journal"
+       ],
+       "links": [
+        {
+         "label": "Privacy Policy",
+         "href": "/privacy"
+        }
+       ]
+      },
+      {
+       "id": "cookies-what",
+       "q": "Do you use cookies?",
+       "a": "<p>We use the storage needed to keep you signed in and remember settings. See the Cookie Policy for details.</p>",
+       "tags": [
+        "cookies",
+        "tracking",
+        "analytics"
+       ],
+       "related": [
+        "data-collected"
+       ],
+       "links": [
+        {
+         "label": "Cookie Policy",
+         "href": "/cookies"
+        }
+       ]
+      },
+      {
+       "id": "legal-pages",
+       "q": "Where are the Terms and policies?",
+       "a": "<p>Terms & Risk Disclosure, Privacy Policy, Refund Policy, Cookie Policy and GDPR are linked in the site footer.</p>",
+       "tags": [
+        "terms",
+        "policy",
+        "legal",
+        "risk disclosure"
+       ],
+       "related": [
+        "not-advice",
+        "refund"
+       ],
+       "links": [
+        {
+         "label": "Terms",
+         "href": "/terms"
+        },
+        {
+         "label": "Privacy",
+         "href": "/privacy"
+        },
+        {
+         "label": "Refund Policy",
+         "href": "/refund-policy"
+        },
+        {
+         "label": "Cookies",
+         "href": "/cookies"
+        },
+        {
+         "label": "GDPR",
+         "href": "/gdpr"
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "support",
+   "title": "Contact and support",
+   "icon": "life-buoy",
+   "desc": "How to reach us.",
+   "subs": [
+    {
+     "id": "contact",
+     "title": "Contacting us",
+     "items": [
+      {
+       "id": "contact-support",
+       "q": "How do I contact support?",
+       "a": "<p>Use the contact form on the Contact page or email support@tradezoro.com. Include your account email, the page you were on, your device and browser, and what you saw. For billing questions include the payment id or Stripe receipt.</p><p><img src=\"/assets/help/shots/support-page.webp\" alt=\"The Support page\"></p>",
+       "path": "More → Support, or the Contact page",
+       "tags": [
+        "contact",
+        "support",
+        "help",
+        "email",
+        "ticket",
+        "talk to someone"
+       ],
+       "related": [
+        "report-bug",
+        "refund"
+       ],
+       "links": [
+        {
+         "label": "Contact us",
+         "href": "/contact"
+        },
+        {
+         "label": "Support",
+         "href": "/support"
+        }
+       ],
+       "level": "beginner"
+      },
+      {
+       "id": "social",
+       "q": "Where are you on social media?",
+       "a": "<p>X and Instagram: @thetradezoro. YouTube: @tradezoro.</p>",
+       "tags": [
+        "twitter",
+        "instagram",
+        "youtube",
+        "social"
+       ],
+       "related": [
+        "live-sessions"
+       ]
+      },
+      {
+       "id": "curriculum-help",
+       "q": "I have a question about a lesson.",
+       "a": "<p>Ask in the Trading Floor. Account or billing issues go to support.</p>",
+       "tags": [
+        "lesson question",
+        "ask"
+       ],
+       "related": [
+        "trading-floor-what",
+        "contact-support"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

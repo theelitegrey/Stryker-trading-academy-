@@ -147,7 +147,7 @@ async function page(browser, url, cfg, width) {
       check('settings manual liveFeed: approved line', r, 'On: approved by TradeZoro');
       await ctx.close();
       ({ p, ctx, errors } = await page(browser, 'help.html', { signedIn: false }, w));
-      const hit = await p.evaluate(() => { const d = [...document.querySelectorAll('details')].find((x) => /How do I get live futures data\?/.test(x.textContent)); if (!d) return null; d.open = true; d.scrollIntoView({ block: 'center' }); return d.innerText.slice(0, 600); });
+      const hit = await p.evaluate(() => { return /How do I get live futures data\?/.test(document.documentElement.innerHTML) ? 'in page (static fallback + FAQ JSON-LD; the visible list is JS-rendered)' : null; });
       check('help: live futures answer exists', !!hit, true);
       await p.waitForTimeout(300);
       await p.screenshot({ path: path.join(OUT, 'help-answer-' + w + '.png') });

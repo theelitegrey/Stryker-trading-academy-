@@ -814,6 +814,337 @@ service cloud.firestore {
     }
 
     // ---------------------------------------------------------------------
+    // CREATOR HUB: communities (2026-10-30, Roadmap: Creator Hub)
+    //
+    // Design: there is NO service account behind the Pages Functions
+    // (functions/api/creator/*). They verify the caller's ID token and then write
+    // with THAT token, so these rules are the real boundary and the only way
+    // anything changes. Trusted counters (memberCount, invite uses, creator quota)
+    // move only in the same batch as the write that justifies them (getAfter /
+    // existsAfter). A member can never grant himself a paid plan: the three ways
+    // to create your own member doc are (1) join an OPEN FREE plan, (2) redeem a
+    // valid invite (uses+1 in the same batch), (3) claim an email grant that the
+    // owner made for your verified email (grant deleted in the same batch).
+    // Doc id of communities/{cid} IS the slug; slugs/{slug} makes it unique.
+    // ---------------------------------------------------------------------
+    function cmPath(cid)      { return /databases/$(database)/documents/communities/$(cid); }
+    function cmMemPath(cid, u){ return /databases/$(database)/documents/communities/$(cid)/members/$(u); }
+    function cmOwner(cid)     { return signedIn() && get(cmPath(cid)).data.ownerUid == request.auth.uid; }
+    function cmAdminRole(cid) {
+      return signedIn() && exists(cmMemPath(cid, request.auth.uid))
+        && get(cmMemPath(cid, request.auth.uid)).data.role == 'admin'
+        && get(cmMemPath(cid, request.auth.uid)).data.status == 'active';
+    }
+    // Owner or a community admin: manages plans, members, invites, grants, bans.
+    function cmStaff(cid)     { return cmOwner(cid) || cmAdminRole(cid); }
+    function cmModRole(cid) {
+      return signedIn() && exists(cmMemPath(cid, request.auth.uid))
+        && get(cmMemPath(cid, request.auth.uid)).data.role in ['mod', 'admin', 'owner'];
+    }
+    function cmReserved(s) {
+      return s in ['admin', 'api', 'app', 'c', 'communities', 'community', 'creator', 'creators', 'creator-rules',
+        'help', 'login', 'signup', 'support', 'settings', 'terms', 'privacy', 'tradezoro', 'zoro', 'zorocharts', 'stryker',
+        'official', 'staff', 'team', 'null', 'undefined', 'new', 'www', 'mod', 'moderator', 'billing', 'checkout',
+        'charts', 'gex', 'courses', 'learn', 'pricing', 'about', 'contact', 'features', 'dashboard', 'profile'];
+    }
+    function cmSlugOk(s) { return s is string && s.matches('^[a-z0-9][a-z0-9-]{2,29}$') && !s.matches('.*--.*') && !s.matches('.*-$') && !cmReserved(s); }
+    function cmUrlOk(u)  { return u is string && (u == '' || u.matches('^https://[^ ]{4,480}$')); }
+    function cmVideoOk(u) {
+      return u is string && (u == '' || u.matches('^https://(www\\.|m\\.)?(youtube\\.com|youtube-nocookie\\.com|youtu\\.be|vimeo\\.com|player\\.vimeo\\.com|loom\\.com|www\\.loom\\.com)/[^ ]{1,400}$'));
+    }
+    function cmTagsOk(t) {
+      let ok = ['futures', 'forex', 'crypto', 'options', 'ict', 'order-flow', 'price-action', 'other'];
+      return t is list && t.size() <= 3
+        && (t.size() < 1 || t[0] in ok) && (t.size() < 2 || t[1] in ok) && (t.size() < 3 || t[2] in ok);
+    }
+    function cmFeaturesOk(f) {
+      return f is map && f.keys().hasOnly(['feed', 'courses', 'indicators', 'events', 'leaderboard', 'discord'])
+        && f.get('feed', false) is bool && f.get('courses', false) is bool && f.get('indicators', false) is bool
+        && f.get('events', false) is bool && f.get('leaderboard', false) is bool && f.get('discord', false) is bool;
+    }
+    // Fields the owner may edit. Everything else (ownerUid, slug, status, founding, memberCount, createdAt...) is fixed.
+    function cmEditable() { return ['name', 'ownerName', 'tagline', 'about', 'logoUrl', 'coverUrl', 'introVideo', 'accent', 'visibility', 'features', 'tags', 'updatedAt']; }
+    function cmContentOk(d) {
+      return d.name is string && d.name.size() >= 3 && d.name.size() <= 50
+        && d.ownerName is string && d.ownerName.size() >= 1 && d.ownerName.size() <= 60
+        && d.tagline is string && d.tagline.size() <= 100
+        && d.about is string && d.about.size() <= 4000
+        && cmUrlOk(d.logoUrl) && cmUrlOk(d.coverUrl) && cmVideoOk(d.introVideo)
+        && d.accent is string && d.accent.matches('^#[0-9a-fA-F]{6}$')
+        && d.visibility in ['public', 'unlisted', 'private']
+        && cmFeaturesOk(d.features) && cmTagsOk(d.tags);
+    }
+
+    match /creatorMeta/{uid} {
+      // Quota counter: 3 communities per account. Moves only with a community create (the
+      // community rule checks getAfter(meta).count == old + 1 and <= 3).
+      allow read: if isSelf(uid) || isAdmin();
+      allow create: if isSelf(uid) && request.resource.data.keys().hasOnly(['count', 'cid', 'updatedAt'])
+                    && request.resource.data.count == 1 && request.resource.data.updatedAt == request.time
+                    && existsAfter(cmPath(request.resource.data.cid)) && !exists(cmPath(request.resource.data.cid));
+      allow update: if isSelf(uid) && request.resource.data.keys().hasOnly(['count', 'cid', 'updatedAt'])
+                    && request.resource.data.count == resource.data.count + 1 && request.resource.data.count <= 3
+                    && request.resource.data.updatedAt == request.time
+                    && existsAfter(cmPath(request.resource.data.cid)) && !exists(cmPath(request.resource.data.cid));
+      allow delete: if isAdmin();
+    }
+
+    match /slugs/{slug} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn() && cmSlugOk(slug)
+                    && request.resource.data.keys().hasOnly(['ownerUid', 'createdAt'])
+                    && request.resource.data.ownerUid == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && existsAfter(cmPath(slug)) && !exists(cmPath(slug));
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    match /communities/{cid} {
+      function cmData() { return resource.data; }
+      function newCm() { return request.resource.data; }
+      function cmNewKeys() {
+        return ['ownerUid', 'slug', 'name', 'ownerName', 'tagline', 'about', 'logoUrl', 'coverUrl', 'introVideo', 'accent', 'visibility',
+                'features', 'tags', 'status', 'createdAt', 'updatedAt', 'memberCount', 'founding', 'rulesAcceptedAt', 'rulesVersion'];
+      }
+      function myMeta() { return /databases/$(database)/documents/creatorMeta/$(request.auth.uid); }
+      function metaAfterOk() {
+        return existsAfter(myMeta())
+          && getAfter(myMeta()).data.count == (exists(myMeta()) ? get(myMeta()).data.count + 1 : 1)
+          && getAfter(myMeta()).data.count <= 3
+          && getAfter(myMeta()).data.cid == cid;
+      }
+      // Public + unlisted: anyone with the link. Private: any SIGNED-IN person with the link (so an invite holder can see
+      // the name and redeem); the page shows non-members only the name, logo and "invite-only". Private communities are
+      // never listed. Real content (feed, courses, indicators) is gated by membership in its own rules (later phases).
+      allow get:  if resource.data.visibility in ['public', 'unlisted'] || signedIn();
+      // Lists: the public directory, the owner's own communities, staff.
+      allow list: if resource.data.visibility == 'public' || isAdmin()
+                  || (signedIn() && resource.data.ownerUid == request.auth.uid);
+
+      allow create: if signedIn() && cmSlugOk(cid)
+                    && newCm().keys().hasOnly(cmNewKeys()) && newCm().keys().hasAll(cmNewKeys())
+                    && newCm().ownerUid == request.auth.uid && newCm().slug == cid
+                    && cmContentOk(newCm())
+                    && newCm().status == 'active' && newCm().founding == true && newCm().memberCount == 1
+                    && newCm().createdAt == request.time && newCm().updatedAt == request.time
+                    && newCm().rulesAcceptedAt == request.time && newCm().rulesVersion is string && newCm().rulesVersion.size() <= 20
+                    && existsAfter(/databases/$(database)/documents/slugs/$(cid))
+                    && existsAfter(cmMemPath(cid, request.auth.uid))
+                    && metaAfterOk();
+
+      allow update: if
+        // 1) owner edits content
+        (signedIn() && cmData().ownerUid == request.auth.uid
+          && newCm().diff(cmData()).affectedKeys().hasOnly(cmEditable()) && cmContentOk(newCm())
+          && newCm().updatedAt == request.time)
+        // 1b) owner/admin removes a member: memberCount -1 with the member doc deleted in the same batch
+        || (signedIn() && newCm().diff(cmData()).affectedKeys().hasOnly(['memberCount'])
+            && newCm().memberCount == cmData().memberCount - 1 && cmData().memberCount > 1
+            && cmStaff(cid))
+        // 2) a member joins (+1) or leaves (-1); the change is justified by his own member doc in the same batch
+        || (signedIn() && newCm().diff(cmData()).affectedKeys().hasOnly(['memberCount'])
+            && ((newCm().memberCount == cmData().memberCount + 1
+                  && !exists(cmMemPath(cid, request.auth.uid)) && existsAfter(cmMemPath(cid, request.auth.uid)))
+                || (newCm().memberCount == cmData().memberCount - 1 && cmData().ownerUid != request.auth.uid
+                  && exists(cmMemPath(cid, request.auth.uid)) && !existsAfter(cmMemPath(cid, request.auth.uid)))))
+        // 3) TradeZoro staff: suspend / unsuspend
+        || (isAdmin() && newCm().diff(cmData()).affectedKeys().hasOnly(['status', 'suspendedReason', 'suspendedAt', 'updatedAt'])
+            && newCm().status in ['active', 'suspended']);
+      allow delete: if isAdmin();
+
+      // ---- members ----
+      match /members/{u} {
+        function mNew() { return request.resource.data; }
+        function cmDoc() { return get(cmPath(cid)).data; }
+        function planOf(pid) { return get(/databases/$(database)/documents/communities/$(cid)/plans/$(pid)).data; }
+            function notBanned() { return !exists(/databases/$(database)/documents/communities/$(cid)/bans/$(request.auth.token.get('email', 'none@none').lower())); }
+        function joinBase() {
+          return u == request.auth.uid && !exists(cmMemPath(cid, u))
+            && mNew().keys().hasOnly(['uid', 'planId', 'role', 'source', 'status', 'joinedAt', 'expiresAt', 'lastActiveAt', 'inviteCode', 'displayName'])
+            && (!('displayName' in mNew()) || (mNew().displayName is string && mNew().displayName.size() <= 60))
+            && mNew().keys().hasAll(['uid', 'planId', 'role', 'source', 'status', 'joinedAt', 'expiresAt', 'lastActiveAt'])
+            && mNew().uid == u && mNew().role == 'member' && mNew().status == 'active'
+            && mNew().joinedAt == request.time && mNew().lastActiveAt == request.time
+            && mNew().planId is string
+            && cmDoc().status == 'active' && notBanned()
+            && getAfter(cmPath(cid)).data.memberCount == cmDoc().memberCount + 1;
+        }
+        function inviteOf(code) { return get(/databases/$(database)/documents/communities/$(cid)/invites/$(code)).data; }
+        function inviteAfter(code) { return getAfter(/databases/$(database)/documents/communities/$(cid)/invites/$(code)).data; }
+        function grantPath() { return /databases/$(database)/documents/communities/$(cid)/grants/$(request.auth.token.get('email', 'none@none').lower()); }
+
+        allow get: if isSelf(u) || cmStaff(cid) || isAdmin() || cmModRole(cid);
+        allow list: if cmStaff(cid) || isAdmin() || cmModRole(cid);
+
+        allow create: if
+          // owner row, in the community-create batch
+          (u == request.auth.uid && mNew().role == 'owner' && mNew().source == 'owner' && mNew().status == 'active'
+            && mNew().keys().hasOnly(['uid', 'planId', 'role', 'source', 'status', 'joinedAt', 'expiresAt', 'lastActiveAt', 'displayName'])
+            && (!('displayName' in mNew()) || (mNew().displayName is string && mNew().displayName.size() <= 60))
+            && mNew().uid == u && mNew().planId == null && mNew().expiresAt == null
+            && mNew().joinedAt == request.time && mNew().lastActiveAt == request.time
+            && existsAfter(cmPath(cid)) && !exists(cmPath(cid)) && getAfter(cmPath(cid)).data.ownerUid == u)
+          // (1) join an open free plan
+          || (joinBase() && mNew().source == 'free' && mNew().expiresAt == null
+              && cmDoc().visibility in ['public', 'unlisted']
+              && planOf(mNew().planId).status == 'live' && planOf(mNew().planId).price.interval == 'free'
+              && planOf(mNew().planId).get('joinMode', 'open') == 'open')
+          // (3) claim an email grant made for my verified email (grant deleted in the same batch)
+          || (joinBase() && mNew().source == 'import' && request.auth.token.email_verified == true
+              && exists(grantPath()) && !existsAfter(grantPath())
+              && get(grantPath()).data.planId == mNew().planId
+              && mNew().expiresAt == get(grantPath()).data.expiresAt);
+
+        // (2) redeem an invite. The code is carried in the member doc (`inviteCode`, kept for audit) and the
+        // invite's own uses +1 must be in the same batch. maxUses 0 = unlimited; grantDays 0/absent = no expiry.
+        allow create: if joinBase() && mNew().source == 'invite'
+                      && mNew().keys().hasAll(['inviteCode']) && mNew().inviteCode is string
+                      && inviteOf(mNew().inviteCode).status == 'active'
+                      && inviteOf(mNew().inviteCode).planId == mNew().planId
+                      && (inviteOf(mNew().inviteCode).maxUses == 0 || inviteOf(mNew().inviteCode).uses < inviteOf(mNew().inviteCode).maxUses)
+                      && (inviteOf(mNew().inviteCode).expiresAt == null || inviteOf(mNew().inviteCode).expiresAt > request.time)
+                      && inviteAfter(mNew().inviteCode).uses == inviteOf(mNew().inviteCode).uses + 1
+                      && (inviteOf(mNew().inviteCode).get('grantDays', 0) == 0
+                          ? mNew().expiresAt == null
+                          : (mNew().expiresAt >= request.time + duration.value(inviteOf(mNew().inviteCode).grantDays * 1440 - 10, 'm')
+                             && mNew().expiresAt <= request.time + duration.value(inviteOf(mNew().inviteCode).grantDays * 1440 + 10, 'm')));
+
+        allow update: if
+          // the member touches only lastActiveAt
+          (isSelf(u) && mNew().diff(resource.data).affectedKeys().hasOnly(['lastActiveAt']) && mNew().lastActiveAt == request.time)
+          // staff manage plan / status / expiry / role (only the owner makes admins; nobody edits the owner row)
+          || (cmStaff(cid) && resource.data.role != 'owner' && u != get(cmPath(cid)).data.ownerUid
+              && mNew().diff(resource.data).affectedKeys().hasOnly(['planId', 'status', 'expiresAt', 'role'])
+              && mNew().role in ['member', 'mod', 'admin']
+              && (mNew().role == resource.data.role || cmOwner(cid))
+              && mNew().status in ['active', 'expired', 'banned']
+              && (mNew().expiresAt == null || mNew().expiresAt is timestamp)
+              && mNew().planId is string)
+          || isAdmin();
+
+        // leave (not the owner), or staff removes someone; always with memberCount -1 in the same batch
+        allow delete: if (isSelf(u) && resource.data.role != 'owner' && resource.data.status != 'banned'
+                          && getAfter(cmPath(cid)).data.memberCount == get(cmPath(cid)).data.memberCount - 1)
+                      || (cmStaff(cid) && resource.data.role != 'owner'
+                          && getAfter(cmPath(cid)).data.memberCount == get(cmPath(cid)).data.memberCount - 1)
+                      || isAdmin();
+      }
+
+      // ---- plans ----
+      match /plans/{pid} {
+        function pNew() { return request.resource.data; }
+        function bulletsOk(b) {
+          return b is list && b.size() <= 8 && (b.size() < 1 || (b[0] is string && b[0].size() <= 120))
+            && (b.size() < 2 || (b[1] is string && b[1].size() <= 120)) && (b.size() < 3 || (b[2] is string && b[2].size() <= 120))
+            && (b.size() < 4 || (b[3] is string && b[3].size() <= 120)) && (b.size() < 5 || (b[4] is string && b[4].size() <= 120))
+            && (b.size() < 6 || (b[5] is string && b[5].size() <= 120)) && (b.size() < 7 || (b[6] is string && b[6].size() <= 120))
+            && (b.size() < 8 || (b[7] is string && b[7].size() <= 120));
+        }
+        function planOk(d) {
+          return d.keys().hasOnly(['name', 'desc', 'bullets', 'price', 'trialDays', 'popular', 'status', 'joinMode', 'discordRoleId', 'order', 'updatedAt'])
+            && d.keys().hasAll(['name', 'desc', 'bullets', 'price', 'trialDays', 'popular', 'status', 'joinMode', 'order', 'updatedAt'])
+            && d.name is string && d.name.size() >= 1 && d.name.size() <= 40
+            && d.desc is string && d.desc.size() <= 300
+            && bulletsOk(d.bullets)
+            && d.price is map && d.price.keys().hasOnly(['amount', 'currency', 'interval'])
+            && d.price.interval in ['free', 'week', 'month', 'year', 'lifetime']
+            && d.price.currency in ['USD', 'INR']
+            && d.price.amount is number && d.price.amount >= 0 && d.price.amount <= 100000
+            && (d.price.interval == 'free' ? d.price.amount == 0 : d.price.amount > 0)
+            && d.trialDays is int && d.trialDays >= 0 && d.trialDays <= 90
+            && d.popular is bool
+            && d.status in ['draft', 'live']
+            && d.joinMode in ['open', 'invite']
+            && d.order is int && d.order >= 0 && d.order <= 50
+            && d.updatedAt == request.time;
+        }
+        allow get, list: if resource.data.status == 'live' || cmStaff(cid) || isAdmin();
+        allow create, update: if cmStaff(cid) && pid.matches('^p[1-8]$') && planOk(pNew());
+        allow delete: if cmStaff(cid) || isAdmin();
+      }
+
+      // ---- invites: the code is the secret, so get is open to signed-in users and list is staff-only ----
+      match /invites/{code} {
+        function iNew() { return request.resource.data; }
+        allow get: if signedIn();
+        allow list: if cmStaff(cid) || isAdmin();
+        allow create: if cmStaff(cid) && code.matches('^[A-Za-z0-9]{10,24}$')
+                      && iNew().keys().hasOnly(['planId', 'uses', 'maxUses', 'expiresAt', 'grantDays', 'label', 'status', 'createdBy', 'createdAt'])
+                      && iNew().keys().hasAll(['planId', 'uses', 'maxUses', 'expiresAt', 'status', 'createdBy', 'createdAt'])
+                      && iNew().planId is string && iNew().uses == 0
+                      && iNew().maxUses is int && iNew().maxUses >= 0 && iNew().maxUses <= 100000
+                      && (iNew().expiresAt == null || iNew().expiresAt is timestamp)
+                      && (!('grantDays' in iNew()) || (iNew().grantDays is int && iNew().grantDays >= 0 && iNew().grantDays <= 3650))
+                      && (!('label' in iNew()) || (iNew().label is string && iNew().label.size() <= 60))
+                      && iNew().status == 'active' && iNew().createdBy == request.auth.uid && iNew().createdAt == request.time
+                      && exists(/databases/$(database)/documents/communities/$(cid)/plans/$(iNew().planId));
+        // revoke / re-activate (staff), or a redemption (+1 use) in the same batch as the redeemer's member doc
+        allow update: if (cmStaff(cid) && iNew().diff(resource.data).affectedKeys().hasOnly(['status', 'maxUses', 'expiresAt', 'label']))
+                      || (signedIn() && iNew().diff(resource.data).affectedKeys().hasOnly(['uses'])
+                          && iNew().uses == resource.data.uses + 1
+                          && !exists(cmMemPath(cid, request.auth.uid)) && existsAfter(cmMemPath(cid, request.auth.uid)));
+        allow delete: if cmStaff(cid) || isAdmin();
+      }
+
+      // ---- email grants (owner adds people by email; matched when that email signs in) ----
+      match /grants/{em} {
+        function gNew() { return request.resource.data; }
+        allow get: if cmStaff(cid) || isAdmin()
+                   || (signedIn() && request.auth.token.email_verified == true && em == request.auth.token.get('email', 'none@none').lower());
+        allow list: if cmStaff(cid) || isAdmin();
+        allow create, update: if cmStaff(cid) && em.matches('^[^/ ]{3,200}$') && em == em.lower()
+                      && gNew().keys().hasOnly(['email', 'planId', 'expiresAt', 'createdBy', 'createdAt'])
+                      && gNew().email == em && gNew().planId is string
+                      && (gNew().expiresAt == null || gNew().expiresAt is timestamp)
+                      && gNew().createdBy == request.auth.uid
+                      && exists(/databases/$(database)/documents/communities/$(cid)/plans/$(gNew().planId));
+        // owner deletes; or the claimer, in the batch that creates his member doc
+        allow delete: if cmStaff(cid) || isAdmin()
+                      || (signedIn() && request.auth.token.email_verified == true && em == request.auth.token.get('email', 'none@none').lower()
+                          && existsAfter(cmMemPath(cid, request.auth.uid)));
+      }
+
+      // ---- bans by email ----
+      match /bans/{em} {
+        allow read: if cmStaff(cid) || isAdmin();
+        allow create, update: if cmStaff(cid) && em == em.lower() && em.matches('^[^/ ]{3,200}$')
+                      && request.resource.data.keys().hasOnly(['email', 'createdBy', 'createdAt', 'reason'])
+                      && request.resource.data.email == em && request.resource.data.createdBy == request.auth.uid;
+        allow delete: if cmStaff(cid) || isAdmin();
+      }
+    }
+
+    // Reports on communities (later phases: posts, indicators, courses). One report per person per target.
+    // "My communities": collection-group query on members where uid == me (needs the members.uid
+    // collection-group index; see tools/creator/README in the report).
+    match /{path=**}/members/{u} {
+      allow list: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    // Pending email grants for MY verified email, across communities (collection-group query used by /api/creator/sync).
+    match /{path=**}/grants/{em} {
+      allow list: if signedIn() && request.auth.token.email_verified == true
+                  && resource.data.email == request.auth.token.get('email', 'none@none').lower();
+    }
+
+    match /creatorReports/{rid} {
+      allow create: if signedIn() && request.resource.data.keys().hasOnly(['targetType', 'cid', 'targetId', 'reporterUid', 'reason', 'note', 'status', 'createdAt'])
+                    && request.resource.data.keys().hasAll(['targetType', 'cid', 'reporterUid', 'reason', 'status', 'createdAt'])
+                    && request.resource.data.targetType in ['community', 'post', 'indicator', 'course']
+                    && request.resource.data.cid is string && request.resource.data.cid.size() <= 40
+                    && request.resource.data.reporterUid == request.auth.uid
+                    && request.resource.data.reason in ['scam', 'results', 'copied', 'abuse', 'illegal', 'other']
+                    && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 500))
+                    && request.resource.data.status == 'open' && request.resource.data.createdAt == request.time
+                    && rid == request.resource.data.targetType + '_' + request.resource.data.cid + '_' + request.auth.uid
+                    && exists(cmPath(request.resource.data.cid));
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------------------------------------------------------------------
     // Anything not named above is denied. New collections must be added here
     // deliberately rather than inheriting an open rule.
     // ---------------------------------------------------------------------

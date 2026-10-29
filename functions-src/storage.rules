@@ -1,0 +1,43 @@
+// TradeZoro — Firebase Storage rules (Creator Hub). Reference copy; published to the firebase.storage release.
+// The bucket was switched on 2026-10-30 for Creator Hub (before that the project had no bucket and every path was denied).
+//
+// communities/{cid}/branding/{logo|cover}   community logo and cover: images only, 5 MB max, owner or community admin writes.
+//                                           Public read (the community page shows them to signed-out visitors).
+// communities/{cid}/files/{rest=**}         reserved for later phases (PDF / images for courses and posts): 25 MB per file,
+//                                           owner or community admin writes, members of the community read.
+//                                           The 1 GB per-community cap cannot be summed inside rules; the Phase C upload
+//                                           code keeps a running total in communities/{cid}/stats/storage and refuses past it.
+// Everything else stays denied.
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function cm(cid)       { return firestore.get(/databases/(default)/documents/communities/$(cid)).data; }
+    function myMem(cid)    { return firestore.get(/databases/(default)/documents/communities/$(cid)/members/$(request.auth.uid)).data; }
+    function isMember(cid) { return request.auth != null && firestore.exists(/databases/(default)/documents/communities/$(cid)/members/$(request.auth.uid)); }
+    function isOwner(cid)  { return request.auth != null && cm(cid).ownerUid == request.auth.uid; }
+    function isCmAdmin(cid) { return isMember(cid) && myMem(cid).role == 'admin' && myMem(cid).status == 'active'; }
+    function staff(cid) { return isOwner(cid) || isCmAdmin(cid); }
+    function active(cid) { return cm(cid).status == 'active'; }
+    function isSiteAdmin() { return request.auth != null && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid)); }
+
+    match /communities/{cid}/branding/{name} {
+      allow read: if true;
+      allow write: if staff(cid) && active(cid)
+                   && name in ['logo', 'cover']
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/(png|jpeg|webp)');
+      allow delete: if staff(cid) || isSiteAdmin();
+    }
+
+    match /communities/{cid}/files/{rest=**} {
+      allow read: if request.auth != null && active(cid)
+                  && (staff(cid) || isMember(cid));
+      allow write: if staff(cid) && active(cid) && request.resource.size < 25 * 1024 * 1024;
+      allow delete: if staff(cid);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

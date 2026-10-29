@@ -369,3 +369,24 @@ export function rithmicTradeSource(client) {
     return () => { stopped = true; if (unsub) unsub(); };
   };
 }
+
+// Order-book source for the Liquidity Map (assets/chart-orderflow.js, window.__stkBookSources.futures): the member's own
+// depth of the front-month contract, kept in THIS browser only (nothing is stored or relayed). onEv gets the client's
+// { kind: 'book' | 'nobook' } events; onStatus('waiting' | 'error', text). Data only.
+export function rithmicBookSource(client) {
+  return (ticker, onEv, onStatus) => {
+    const root = rootOf(ticker);
+    if (!root) { onStatus('error', 'This symbol has no Rithmic contract.'); return () => {}; }
+    let stopped = false, unsub = null;
+    onStatus('waiting');
+    (async () => {
+      try {
+        const sym = await client.frontMonth(root, EXCHANGE[root]);
+        if (stopped) return;
+        unsub = client.subscribeBook(sym, EXCHANGE[root], onEv);
+        if (stopped && unsub) unsub();
+      } catch (e) { onStatus('error', 'Could not subscribe to the Rithmic order book.'); }
+    })();
+    return () => { stopped = true; if (unsub) unsub(); };
+  };
+}

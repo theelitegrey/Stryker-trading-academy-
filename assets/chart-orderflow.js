@@ -33,6 +33,7 @@
 import { deepColor, DEEP_RAMP, tradedAt, vanishKind, icebergEvents } from './chart-liquidity-data.js?v=720';
 import { cryptoFeed } from './chart-footprint-crypto.js?v=720';
 import * as ProGate from './chart-pro-gate.js?v=720';
+import { installLiquidityMap, lmDebug as lmDebugFn, lmDebugFeeds as lmFeedsFn } from './chart-liquidity-map.js?v=720';
 
 const GROUP = 'Volume';   // Owner order 2026-10-28: order-flow tools moved to the Order Flow section; this is volume only
 const NY_TZ = 'America/New_York';
@@ -1943,6 +1944,8 @@ let domStep = 0, domRebinMs = null, domRebinCols = 0;
 const quant = (sorted, f) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(sorted.length * f)))] : 0;
 let domLast = null; // last frame summary, for the browser test (window.__stkFlow.domDebug())
 export function domDebug() { return domLast; }
+export const lmDebug = () => lmDebugFn();
+export const lmDebugFeeds = () => lmFeedsFn();
 // Test hook: fill every open book feed's history to the full 6 h cap (1 s samples for the newest
 // 30 min, 5 s before that, ending at the oldest real sample), bucketed from its current book
 // with a small random walk, so the real indicator draws a full-cap history. Returns the feed's
@@ -2397,7 +2400,7 @@ const GROUP_TYPES = ['volume', 'vpvr', 'stk_svp', 'stk_pdvp', 'stk_avwap', 'vwap
 // same tool as stk_of_delta / stk_of_cvd, so they stay registered but are HIDDEN from the list (OF_HIDDEN).
 const OF_GROUP = 'Order Flow';
 const OF_GROUP_TYPES = ['stk_footprint', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb', 'stk_of_vp', 'stk_of_vwap',
-  'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom'];
+  'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap'];
 const OF_HIDDEN = ['stk_delta', 'stk_cvd'];
 const PSEUDO = [
   { id: 'avwap-click', name: 'Anchored VWAP: click a bar to anchor' },
@@ -2430,6 +2433,9 @@ export function installOrderflow(Core) {
   Core.registerRendererLayer({ id: 'stk_crypto_dom', placement: 'below-data', create: cryptoDomLayer });
   reg(Core, { type: 'stk_crypto_dom', title: 'Crypto DOM Heatmap (Binance)', shortTitle: 'Crypto DOM', paneHint: 'price', overlay: true,
     inputsSchema: () => DOM_SCHEMA, create: () => new CryptoDomNative() });
+  // Liquidity Map (Owner order 2026-10-29): Bookmap-style resting liquidity. Its own file; the helpers it needs are handed in.
+  installLiquidityMap(Core, { beginFrame, bookFeeds, sampleRows, bookMid, bucketBook, chartTz, hhmm, openTradeSource, marketOf, bookKey, acquireBookFeed,
+    message, pageIsDay, rithmicDepthOn: () => !!(window.STRYKER_RITHMIC && window.STRYKER_RITHMIC.depthEnabled) }, reg);
   Core.registerRendererLayer({ id: 'stk_footprint', placement: 'above-data', create: footprintLayer });
   reg(Core, { type: 'stk_footprint', title: 'Footprint (bid x ask)', shortTitle: 'Footprint', paneHint: 'price', overlay: true,
     inputsSchema: () => FP_SCHEMA, create: () => new FlowNative('footprint') });

@@ -38,7 +38,7 @@
 //   - reconnect after a drop: backoff 1 s .. 60 s, at most RECONNECT_MAX attempts in a row.
 // `counts` tallies every request sent per plant (shown to the member and used by the tests).
 
-import { T, INFRA, UPDATE_BITS, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=720';
+import { T, INFRA, UPDATE_BITS, BOOK_UPDATE, MD_REQUEST, BAR_TYPE, DIRECTION, TIME_ORDER, encode, decode } from './rithmic-proto.js?v=720';
 
 const REPLAY_PAGE_MAX = 10000;       // bars per RequestTimeBarReplay answer (Rithmic caps a page)
 const RECONNECT_STEPS = [1000, 2000, 5000, 10000, 20000, 30000, 60000];
@@ -191,6 +191,7 @@ class Plant {
     const tid = m.template_id;
     if (tid === T.HEARTBEAT_R) return;
     if (tid === T.LAST_TRADE || tid === T.BBO) { this.owner._onMarket(m); return; }
+    if (tid === T.ORDER_BOOK) { this.owner._onBook(m); return; }
     if (tid === T.FORCED_LOGOUT) { this.owner._onForcedLogout(); return; }
     // Rithmic echoes user_msg, which carries our request id. Fallback: the oldest pending
     // request waiting for this template (in case a gateway does not echo it).
@@ -302,6 +303,7 @@ export class RithmicClient {
     this.history = null;
     this.listeners = new Set();
     this.marketSubs = new Map(); // `${symbol}|${exchange}` -> Set<fn>
+    this.bookSubs = new Map();   // order book (depth) subscriptions, same key -> { set, state } (Liquidity Map)
     this.frontCache = new Map(); // `${root}|${exchange}` -> Promise<symbol> (once per root per session)
     this.unsubTimers = new Map(); // key -> pending delayed unsubscribe
     this.retry = 0;
@@ -373,6 +375,10 @@ export class RithmicClient {
     for (const key of this.marketSubs.keys()) {
       const [symbol, exchange] = key.split('|');
       this.#mdRequest(symbol, exchange, MD_REQUEST.SUBSCRIBE).catch(() => {});
+    }
+    for (const [key, b] of this.bookSubs) {
+      const [symbol, exchange] = key.split('|');
+      this.#bookRequest(symbol, exchange, MD_REQUEST.SUBSCRIBE, b).catch(() => {});
     }
   }
 
@@ -488,6 +494,57 @@ export class RithmicClient {
         if (this.connected) this.#mdRequest(symbol, exchange, MD_REQUEST.UNSUBSCRIBE).catch(() => {});
       }, UNSUB_GRACE_MS));
     };
+  }
+
+  // ---- order book (market depth) -- Liquidity Map only ----------------------------------------
+  // Data only, read only. One RequestMarketDataUpdate with the ORDER_BOOK bit (4) per contract and one
+  // unsubscribe when the last Liquidity Map leaves. The book is the member's own entitlement: when their
+  // login has no depth, Rithmic rejects the request (or sends NO_BOOK) and fn gets { kind: 'nobook' }.
+  // fn receives { kind: 'book', bids: [[price, size]...], asks: [...], time, full } -- `full` = this message
+  // replaces the whole book (snapshot / clear), else the rows are changes (size 0 = level gone).
+  #bookRequest(symbol, exchange, request, b) {
+    if (!this.ticker) return Promise.reject(new Error('Not connected to Rithmic'));
+    return this.ticker.request({ template_id: T.MD_UPDATE, symbol, exchange, request, update_bits: UPDATE_BITS.ORDER_BOOK }, T.MD_UPDATE_R)
+      .catch((e) => { if (request === MD_REQUEST.SUBSCRIBE && b) { b.denied = true; for (const fn of [...b.set]) { try { fn({ kind: 'nobook', message: e && e.message }); } catch (x) {} } } throw e; });
+  }
+  subscribeBook(symbol, exchange, fn) {
+    const key = symbol + '|' + exchange;
+    let b = this.bookSubs.get(key);
+    if (b && b.timer) { clearTimeout(b.timer); b.timer = 0; }
+    if (!b) {
+      b = { set: new Set(), denied: false, timer: 0 };
+      this.bookSubs.set(key, b);
+      if (this.connected) this.#bookRequest(symbol, exchange, MD_REQUEST.SUBSCRIBE, b).catch((e) => this.emit('warn', { message: e.message }));
+    } else if (b.denied) { try { fn({ kind: 'nobook' }); } catch (e) {} }
+    b.set.add(fn);
+    let done = false;
+    return () => {
+      if (done) return;
+      done = true;
+      b.set.delete(fn);
+      if (b.set.size || b.timer) return;
+      b.timer = setTimeout(() => {
+        b.timer = 0;
+        if (b.set.size || this.bookSubs.get(key) !== b) return;
+        this.bookSubs.delete(key);
+        if (this.connected && !b.denied) this.#bookRequest(symbol, exchange, MD_REQUEST.UNSUBSCRIBE, null).catch(() => {});
+      }, UNSUB_GRACE_MS);
+    };
+  }
+  _onBook(m) {
+    const b = this.bookSubs.get(m.symbol + '|' + m.exchange);
+    if (!b || !b.set.size) return;
+    const secs = m.ssboe, time = secs ? secs * 1000 + Math.floor((m.usecs || 0) / 1000) : Date.now();
+    const U = BOOK_UPDATE;
+    let ev;
+    if (m.update_type === U.NO_BOOK) { b.denied = true; ev = { kind: 'nobook' }; }
+    else {
+      const rows = (pr, sz) => { const out = []; for (let i = 0; i < (pr || []).length; i++) out.push([pr[i], Number((sz || [])[i] || 0)]); return out; };
+      ev = { kind: 'book', time, bids: rows(m.bid_price, m.bid_size), asks: rows(m.ask_price, m.ask_size),
+        full: m.update_type === U.CLEAR || m.update_type === U.SNAPSHOT, clear: m.update_type === U.CLEAR,
+        begin: m.update_type === U.BEGIN || m.update_type === U.SNAPSHOT || m.update_type === U.CLEAR, end: m.update_type === U.END || m.update_type === U.SOLO };
+    }
+    for (const fn of [...b.set]) { try { fn(ev); } catch (e) {} }
   }
 
   _onMarket(m) {

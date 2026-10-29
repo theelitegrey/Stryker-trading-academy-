@@ -15,7 +15,7 @@
 // Education only. Not financial advice.
 
 export const OF_TYPES = ['stk_footprint', 'stk_fp', 'stk_of_delta', 'stk_of_cvd', 'stk_dsuite', 'stk_dpane', 'stk_of_big', 'stk_of_abs', 'stk_of_imb',
-  'stk_of_vp', 'stk_of_vwap', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_delta', 'stk_cvd'];
+  'stk_of_vp', 'stk_of_vwap', 'stk_of_tpo', 'stk_of_evr', 'stk_of_sweep', 'stk_estcvd', 'stk_vbubble', 'stk_lth', 'stk_crypto_dom', 'stk_liqmap', 'stk_delta', 'stk_cvd'];
 export const GEX_TYPES = ['stk_gex', 'stk_gexheat', 'stk_em'];
 export const REASON = { of: 'Order flow tools are part of Pro.', gex: 'GEX on charts is part of Pro.' };
 

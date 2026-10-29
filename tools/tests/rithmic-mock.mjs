@@ -62,6 +62,19 @@ function makeConn(sock) {
   return conn;
 }
 
+// Synthetic depth: 20 levels a side around the synthetic price; walls at fixed offsets that come and go.
+function sendBook(c, symbol, exchange, full) {
+  const now = Date.now(), p = px(symbol, now / 1000), tick = symbol.startsWith('GC') ? 0.1 : 0.25;
+  const mid = Math.round(p / tick) * tick, s = Math.floor(now / 1000);
+  const bp = [], bs = [], ap = [], as = [];
+  const wall = (k, side) => { const ph = Math.floor(now / 20000) + k * 7 + side; return (ph % 5 < 3) ? 120 + (ph % 7) * 40 : 0; };
+  for (let k = 1; k <= 24; k++) {
+    bp.push(mid - k * tick); bs.push(full || k < 4 ? 5 + ((now / 250 + k * 3) % 11 | 0) + wall(k, 1) : 0 + 5 + wall(k, 1));
+    ap.push(mid + k * tick); as.push(full || k < 4 ? 5 + ((now / 250 + k * 5) % 13 | 0) + wall(k, 2) : 0 + 5 + wall(k, 2));
+  }
+  c.send({ template_id: T.ORDER_BOOK, symbol, exchange, presence_bits: 3, update_type: full ? 3 : 7, bid_price: bp, bid_size: bs, ask_price: ap, ask_size: as, ssboe: s, usecs: (now % 1000) * 1000 });
+}
+
 function onMessage(c, m) {
   const um = m.user_msg;
   switch (m.template_id) {
@@ -74,7 +87,7 @@ function onMessage(c, m) {
       stats.logins++;
       stats.loginsByInfra[m.infra_type] = (stats.loginsByInfra[m.infra_type] || 0) + 1;
       stats.lastApp = { app_name: m.app_name, app_version: m.app_version, template_version: m.template_version, system_name: m.system_name };
-      c.plant = m.infra_type;
+      c.plant = m.infra_type; c.system = m.system_name;
       c.send({ template_id: T.LOGIN_R, user_msg: um, rp_code: ['0'], template_version: '3.9', fcm_id: 'MOCK', ib_id: 'MOCK', unique_user_id: 'mock-user', heartbeat_interval: 5 });
       break;
     }
@@ -90,6 +103,15 @@ function onMessage(c, m) {
     }
     case T.MD_UPDATE: {
       const key = m.symbol + '|' + m.exchange;
+      if (m.update_bits === 4) {   // order book only (Liquidity Map). System 'TradeSea' = a login with no depth entitlement.
+        if (c.system === 'TradeSea') { c.send({ template_id: T.MD_UPDATE_R, user_msg: um, rp_code: ['13', 'permission denied: no level 2 entitlement'] }); break; }
+        c.books = c.books || new Set();
+        if (m.request === 1) { c.books.add(key); stats.bookSubs = (stats.bookSubs || 0) + 1; } else c.books.delete(key);
+        c.send({ template_id: T.MD_UPDATE_R, user_msg: um, rp_code: ['0'] });
+        if (m.request === 1) sendBook(c, m.symbol, m.exchange, true);
+        if (!c.bookTimer) c.bookTimer = setInterval(() => { for (const k of c.books) { const [s0, e0] = k.split('|'); sendBook(c, s0, e0, false); } }, 250);
+        break;
+      }
       if (m.request === 1) { c.subs.add(key); stats.subscribes++; } else c.subs.delete(key);
       c.send({ template_id: T.MD_UPDATE_R, user_msg: um, rp_code: ['0'] });
       if (!c.timer) c.timer = setInterval(() => {

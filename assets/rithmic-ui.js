@@ -11,7 +11,7 @@
 // "Remember username" stores the username + system name in localStorage; never the password.
 
 import { RithmicClient, listSystems, friendlyLoginError } from './rithmic-client.js?v=720';
-import { RithmicFuturesProvider, rithmicTradeSource } from './rithmic-provider.js?v=720';
+import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=720';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -141,6 +141,7 @@ export function createRithmic(cfg) {
     get appName() { return cfg.appName; },
     get appVersion() { return cfg.appVersion; },
     get lastSource() { return lastSource; },
+    get depthEnabled() { return !!cfg.depthEnabled; },
     // Requests sent to Rithmic this page session, per plant (no ids, no credentials).
     get counts() { return JSON.parse(JSON.stringify(client.counts)); },
     // This member's own plant sessions (unique_user_id + login/logout epoch ms), current and ended.
@@ -396,6 +397,10 @@ export function createRithmic(cfg) {
         const reg = window.__stkTradeSources || (window.__stkTradeSources = {});
         reg.futures = live ? rithmicTradeSource(client) : null;
         window.dispatchEvent(new CustomEvent('stryker:tradesource', { detail: { provider: 'futures', fn: reg.futures } }));
+        // Order book for the Liquidity Map (futures): only where cfg.depthEnabled (admins now; everyone = RITHMIC_FLAG.depthForAll).
+        window.__stkBookSources = window.__stkBookSources || {};
+        window.__stkBookSources.futures = live && cfg.depthEnabled ? rithmicBookSource(client) : null;
+        window.dispatchEvent(new CustomEvent('stryker:booksource', { detail: { provider: 'futures' } }));
       }
     });
     window.addEventListener('pagehide', () => { client.disconnect(true); });

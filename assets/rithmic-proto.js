@@ -19,12 +19,14 @@ export const T = {
   REJECT: 75, FORCED_LOGOUT: 77,
   MD_UPDATE: 100, MD_UPDATE_R: 101,
   FRONT_MONTH: 113, FRONT_MONTH_R: 114,
-  LAST_TRADE: 150, BBO: 151,
+  LAST_TRADE: 150, BBO: 151, ORDER_BOOK: 156,
   TIME_BAR_REPLAY: 202, TIME_BAR_REPLAY_R: 203
 };
 
 export const INFRA = { TICKER_PLANT: 1, ORDER_PLANT: 2, HISTORY_PLANT: 3, PNL_PLANT: 4, REPOSITORY_PLANT: 5 };
-export const UPDATE_BITS = { LAST_TRADE: 1, BBO: 2 };
+export const UPDATE_BITS = { LAST_TRADE: 1, BBO: 2, ORDER_BOOK: 4 };
+// OrderBook.update_type: 1 clear, 2 no book, 3 snapshot image, 4 begin, 5 middle, 6 end, 7 solo
+export const BOOK_UPDATE = { CLEAR: 1, NO_BOOK: 2, SNAPSHOT: 3, BEGIN: 4, MIDDLE: 5, END: 6, SOLO: 7 };
 export const MD_REQUEST = { SUBSCRIBE: 1, UNSUBSCRIBE: 2 };
 export const BAR_TYPE = { SECOND_BAR: 1, MINUTE_BAR: 2, DAILY_BAR: 3, WEEKLY_BAR: 4 };
 export const DIRECTION = { FIRST: 1, LAST: 2 };
@@ -61,6 +63,11 @@ export const SCHEMA = {
   [T.BBO]: { template_id: [154467, 'i32'], ...SYMEX, presence_bits: [149138, 'u32'], clear_bits: [154571, 'u32'],
     is_snapshot: [110121, 'bool'], bid_price: [100022, 'dbl'], bid_size: [100030, 'i32'], ask_price: [100025, 'dbl'],
     ask_size: [100031, 'i32'], ssboe: [150100, 'i32'], usecs: [150101, 'i32'] },
+  // Order book (market depth, template 156): parallel price / size arrays per side; the deprecated int32 size
+  // fields are not used, only the 64-bit ones. Packed or unpacked repeated numbers both decode (see decode()).
+  [T.ORDER_BOOK]: { template_id: [154467, 'i32'], ...SYMEX, presence_bits: [149138, 'u32'], update_type: [157608, 'i32'],
+    bid_price: [154282, 'dbl*'], bid_size: [159004, 'u64*'], ask_price: [154284, 'dbl*'], ask_size: [159006, 'u64*'],
+    ssboe: [150100, 'i32'], usecs: [150101, 'i32'] },
   [T.TIME_BAR_REPLAY]: { ...COMMON, ...SYMEX, bar_type: [119200, 'i32'], bar_type_period: [119112, 'i32'],
     start_index: [153002, 'i32'], finish_index: [153003, 'i32'], user_max_count: [154020, 'i32'],
     direction: [149253, 'i32'], time_order: [149307, 'i32'], resume_bars: [153642, 'bool'] },
@@ -167,6 +174,12 @@ export function decode(input) {
     const [name, kindRaw] = m;
     const rep = kindRaw.endsWith('*');
     const kind = rep ? kindRaw.slice(0, -1) : kindRaw;
+    if (rep && wire === 2 && (kind === 'dbl' || kind === 'u64' || kind === 'u32' || kind === 'i32')) {   // packed repeated numbers
+      const arr = msg[name] = msg[name] || [];
+      if (kind === 'dbl') { const dv = new DataView(v.buffer, v.byteOffset, v.length); for (let o = 0; o + 8 <= v.length; o += 8) arr.push(dv.getFloat64(o, true)); }
+      else { const st2 = { i: 0 }; while (st2.i < v.length) { const n = readVarint(v, st2); arr.push(kind === 'i32' ? toInt32(n) : (typeof n === 'bigint' ? Number(n) : n)); } }
+      continue;
+    }
     let x;
     if (kind === 'str') x = wire === 2 ? dec.decode(v) : '';
     else if (kind === 'dbl') x = wire === 1 ? new DataView(v.buffer, v.byteOffset, 8).getFloat64(0, true) : 0;

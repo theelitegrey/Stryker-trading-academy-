@@ -90,7 +90,10 @@ export const RITHMIC_CONFIG = {
 // Data only: no order buttons (Owner rule).
 // everyone: true = every signed-in member gets Connect broker (Owner 10-29 "Turn for all members").
 // The Rithmic Test server stays admin-only (allowUids).
-export const RITHMIC_FLAG = { enabled: true, everyone: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'] };
+export const RITHMIC_FLAG = { enabled: true, everyone: true, allowUids: ['0hC8vmnsh0O2CkyWiyw9X1kn1XL2'],
+  // Liquidity Map on futures reads the member's own order book (market depth). OFF for members until Rithmic
+  // confirms order-book display is fine under our conformance; the admin uids above always have it.
+  depthForAll: false };
 
 // app_version = the site build (the page's stryker-build meta mirrors assets/version.json).
 export function appVersion() {
@@ -163,7 +166,8 @@ export async function loadRithmicIfEnabled() {
   let gateways = activeGateways(admin);
   if (dev) gateways = [{ id: 'dev', label: 'Local mock', test: true, uri: dev.gateway }];
   if (!gateways.length) return null; // production mode but no URI filled in yet: show nothing
-  const cfg = { ...RITHMIC_CONFIG, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
+  const depthEnabled = !!dev || admin || RITHMIC_FLAG.depthForAll === true;
+  const cfg = { ...RITHMIC_CONFIG, depthEnabled, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
     gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId() };
   const ui = await import('./rithmic-ui.js?v=720');
   return ui.createRithmic(cfg);

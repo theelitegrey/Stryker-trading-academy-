@@ -25,7 +25,7 @@ import * as ProGate from './chart-pro-gate.js?v=714';
 import { gexFetch, gexCached, gexTier, gexSource, gexAnchor, convOf, flashLevel, dataTime } from './chart-gex-levels.js?v=714';
 import { ladderFromApi, sharedScale, strength, biggestIndex, magnet, netTotal, fmtMoney, spotIndex, spotPos, cellColor, MAX_FILL, updatedText, keyLevels, rowNearest, fmtPct } from './chart-gex-ladder-core.js?v=714';
 
-export const COLS = [['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF'], ['SPX', 'S&P 500']];
+export const COLS = [['QQQ', 'Nasdaq 100'], ['SPY', 'S&P 500 ETF'], ['GLD', 'Gold'], ['SPX', 'S&P 500']];
 const LADDER_API = '/api/gex/ladder';
 const ROW_H = 17;
 const PHONE_MAX = 700;
@@ -227,6 +227,9 @@ export function createLadder(root, opts) {
     if (opts.dataFor) want = want.filter((a) => !opts.dataFor(a));
     if (!want.length) return;
     inflight = true;
+    // Gold (GLD) is not on the per-second ladder endpoint: it comes from the normal levels API (cached ~5 min).
+    const gold = want.includes('GLD'); if (gold) want = want.filter((x) => x !== 'GLD');
+    if (gold) { try { const g = await gexFetch('GLD', dte); if (g && !g.error) { live[dte] = Object.assign(live[dte] || {}, { GLD: g }); paint(); } } catch (e) {} if (!want.length) { inflight = false; return; } }
     try {
       const r = await fetch(LADDER_API + '?u=' + want.join(',') + '&dte=' + dte, { headers: { accept: 'application/json' }, cache: 'no-cache' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -298,7 +301,7 @@ export function mountGexLadder(ws, opts) {
       try { const r = ws.cell(ws.active.id).data.resolve(activeSym()); if (r) provider = r.provider; } catch (e) {}
       const src = gexSource(activeSym(), provider);
       if (!src || src.api !== api || !data) {
-        const want = api === 'QQQ' ? 'NQ, MNQ or QQQ' : api === 'SPX' ? 'ES, MES or SPX' : 'SPY';
+        const want = api === 'QQQ' ? 'NQ, MNQ or QQQ' : api === 'SPX' ? 'ES, MES or SPX' : api === 'GLD' ? 'GC, MGC or GLD' : 'SPY';
         if (opts.toast) opts.toast('Open a ' + want + ' chart to draw this ' + api + ' strike.');
         return;
       }

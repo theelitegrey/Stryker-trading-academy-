@@ -20,6 +20,7 @@
 //                                      own futures block (futures.ES / futures.MES .levels;
 //                                      ladder strikes use the same ratio + basis).
 //   NQ / MNQ futures, QQQ           -> QQQ levels (converted with futures.NQ / futures.MNQ).
+//   GC / MGC futures, GLD           -> GLD levels (converted with futures.GC / futures.MGC; ratio ~10.9).
 //   anything else                   -> a small note, nothing drawn.
 //
 // PLAN (Owner 2026-10-29): GEX on charts is Pro for every symbol incl. SPX (assets/chart-pro-gate.js). The older split below (the GEX PAGE rule, unchanged): Free = SPX, 0DTE, no
@@ -164,10 +165,12 @@ export function gexSource(symbol, provider) {
   const root = ticker.toUpperCase().replace(/[0-9]?!$/, '').replace(/^\^/, '');
   if (root === 'ES' || root === 'MES') return { api: 'SPX', fut: root, label: root + ' (from SPX)', pro: false };
   if (root === 'NQ' || root === 'MNQ') return { api: 'QQQ', fut: root, label: root + ' (from QQQ)', pro: true };
+  if (root === 'GC' || root === 'MGC') return { api: 'GLD', fut: root, label: root + ' (from GLD)', pro: true };   // gold: GLD options -> GC / MGC (Owner 2026-10-29)
   if (prov === 'futures') return null;
   if (root === 'SPX' || root === 'SPXW') return { api: 'SPX', fut: null, label: 'SPX', pro: false };
   if (root === 'SPY') return { api: 'SPY', fut: null, label: 'SPY', pro: true };
   if (root === 'QQQ') return { api: 'QQQ', fut: null, label: 'QQQ', pro: true };
+  if (root === 'GLD') return { api: 'GLD', fut: null, label: 'GLD', pro: true };
   return null;
 }
 
@@ -601,9 +604,9 @@ class GexNative {
     const src = resolveSrc(this.ctx);
     const i = this.inputs;
     let payload;
-    if (!src) payload = { note: 'GEX levels available for SPX, ES, NQ' };
+    if (!src) payload = { note: 'GEX levels available for SPX, SPY, QQQ, GLD, ES, NQ and gold (GC)' };
     else if (!this.tier) payload = { note: 'Loading GEX levels…' };
-    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api) + ' GEX with Pro', href: PRICING };
+    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX with Pro', href: PRICING };
     else if (window.__stkReplay && window.__stkReplay.on) payload = this.replayPayload(src);
     else {
       const dte = this.dte();
@@ -627,7 +630,7 @@ class GexNative {
             showStatus: i.showStatus !== false,
             shift: lv.shift || 0,
             statusShort: statusShortForms(dataTime(data), data, src, opts),
-            status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ charts' : '')
+            status: agoText(dataTime(data)) + ' · ' + statusWhat(data, src, dte, opts) + (data.stale ? ' · last saved copy' : '') + (lv.noSession && !src.fut ? ' · market levels on ES/NQ/GC charts' : '')
           };
         }
       }
@@ -1052,4 +1055,4 @@ export function installGexLevels(Core) {
   });
 }
 export const GEX_TYPE = TYPE;
-export const GEX_DESC = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH, pPOC, pVAL, ONH, ONL) from the GEX page, on SPX, ES and NQ charts.';
+export const GEX_DESC = 'Call wall, put wall, zero gamma, IV ±68% and market levels (pVAH, pPOC, pVAL, ONH, ONL) from the GEX page, on SPX, ES, NQ and gold (GC) charts.';

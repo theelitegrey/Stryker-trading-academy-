@@ -40,10 +40,12 @@ export function emSource(symbol, provider) {
   const root = ticker.toUpperCase().replace(/[0-9]?!$/, '').replace(/^\^/, '');
   if (root === 'ES' || root === 'MES') return { u: 'SPX', fut: 'ES', label: root + ' (from SPX)', pro: false };
   if (root === 'NQ' || root === 'MNQ') return { u: 'QQQ', fut: 'NQ', label: root + ' (from QQQ)', pro: true };
+  if (root === 'GC' || root === 'MGC') return { u: 'GLD', fut: 'GC', label: root + ' (from GLD)', pro: true, noData: true };
   if (prov === 'futures') return null;
   if (root === 'SPX' || root === 'SPXW') return { u: 'SPX', fut: null, label: 'SPX', pro: false };
   if (root === 'SPY') return { u: 'SPY', fut: null, label: 'SPY', pro: true };
   if (root === 'QQQ') return { u: 'QQQ', fut: null, label: 'QQQ', pro: true };
+  if (root === 'GLD') return { u: 'GLD', fut: null, label: 'GLD', pro: true, noData: true };
   return null;
 }
 
@@ -152,7 +154,7 @@ class EmNative {
   want() {
     if (!this.ctx || !this.tier || replayOn()) return null;
     const src = resolveSrc(this.ctx);
-    if (!src || (src.pro && this.tier.free)) return null;
+    if (!src || src.noData || (src.pro && this.tier.free)) return null;
     return src.u;
   }
   load() {
@@ -171,9 +173,10 @@ class EmNative {
     const src = resolveSrc(this.ctx), i = this.inputs;
     let payload;
     if (replayOn()) payload = { note: 'Expected move is hidden during bar replay' };
-    else if (!src) payload = { note: 'Expected move available for SPX, SPY, QQQ, ES, NQ' };
+    else if (!src) payload = { note: 'Expected move available for SPX, SPY, QQQ, ES, NQ (gold: building history)' };
     else if (!this.tier) payload = { note: 'Loading expected move…' };
-    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.u === 'QQQ' ? 'NQ / QQQ' : src.u) + ' expected move with Pro', href: PRICING };
+    else if (src.pro && this.tier.free) payload = { pill: 'Unlock ' + (src.u === 'QQQ' ? 'NQ / QQQ' : src.u === 'GLD' ? 'gold' : src.u) + ' expected move with Pro', href: PRICING };
+    else if (src.noData) payload = { note: 'Gold expected move: building history. GEX levels show the IV bands.' };
     else {
       const e = cache.get(src.u), data = e && e.data;
       if (!data) payload = { note: 'Loading expected move…' };
@@ -307,4 +310,4 @@ export function installExpectedMove(Core) {
   });
 }
 export const EM_TYPE = TYPE;
-export const EM_DESC = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly, on SPX, SPY, QQQ, ES and NQ charts.';
+export const EM_DESC = 'Options-implied expected move (ATM straddle) for 0DTE, 1DTE, weekly and monthly, on SPX, SPY, QQQ, ES and NQ charts (gold: building history).';

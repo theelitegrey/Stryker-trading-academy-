@@ -186,7 +186,7 @@ class HeatNative {
     this.build();
     if (!src || !this.tier || this.locked(src) || document.visibilityState === 'hidden' || !H()) return;
     const dte = this.dte(), rp = replayNowS();
-    if (src.fut && src.api === 'QQQ' && !rp) gexFetch('QQQ', 0).then((d) => { const k = futRatio(src, d); if (k) { this.ratio = k; saveK(src.fut, k); this.build(); } }).catch(() => {});
+    if (src.fut && src.api !== 'SPX' && !rp) gexFetch(src.api, 0).then((d) => { const k = futRatio(src, d); if (k) { this.ratio = k; saveK(src.fut, k); this.build(); } }).catch(() => {});
     ensure(src.api, dte, this.days(), rp).then(() => this.build());
   }
   poll() { this.load(); }
@@ -209,17 +209,17 @@ class HeatNative {
     const src = resolveSrc(this.ctx);
     let payload;
     const core = H();
-    if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ' };
+    if (!src) payload = { note: 'GEX heatmap available for SPX, SPY, QQQ, ES, NQ (gold: building history)' };
     else if (!core) payload = { note: 'GEX heatmap could not load' };
     else if (!this.tier) payload = { note: 'Loading GEX heatmap…' };
-    else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api) + ' GEX heatmap with Pro', href: PRICING };
+    else if (this.locked(src)) payload = { pill: 'Unlock ' + (src.api === 'QQQ' ? 'NQ' : src.api === 'GLD' ? 'gold' : src.api) + ' GEX heatmap with Pro', href: PRICING };
     else {
       const dte = this.dte(), e = store.get(hkey(src.api, dte));
       const rp = replayNowS();
       const rows = e ? upTo(e.rows, rp) : [];
       const label = (src.fut ? src.fut + ' (from ' + src.api + ')' : src.api) + ' ' + (dte ? '1DTE' : '0DTE');
       if (!e || (!e.to && e.p)) payload = { note: 'Loading GEX heatmap…' };
-      else if (!rows.length) payload = { note: rp != null ? 'No GEX history for this time' : 'No GEX history recorded yet · ' + label };
+      else if (!rows.length) payload = { note: rp != null ? 'No GEX history for this time' : (src.api === 'GLD' ? 'Gold GEX heatmap: building history · ' : 'No GEX history recorded yet · ') + label };
       else {
         let bars = [];
         try { bars = this.ctx.bars() || []; } catch (err) {}

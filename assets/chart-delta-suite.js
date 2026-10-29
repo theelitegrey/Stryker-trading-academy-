@@ -8,7 +8,7 @@
 // with the same plan + delay rules and the same refresh timers (no polling of its own). Nothing is
 // estimated from candles: a symbol without trade data shows a note instead.
 // Depends on: assets/chart-delta-suite-data.js (maths), hooks handed over by installFootprint().
-import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=736';
+import { STYLES, PANE_STYLES as SUITE_PANE, keyRows, absorption, styleId, deltaProfile, timeBlocks, divergences, bigDeltas, sessionStats, meanAbsDelta, cvdCandles, fmtK, fmtSigned } from './chart-delta-suite-data.js?v=737';
 
 export const DS_TYPE = 'stk_dsuite';
 export const DP_TYPE = 'stk_dpane';

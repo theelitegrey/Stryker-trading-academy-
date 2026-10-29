@@ -29,3 +29,6 @@ https://www.tradezoro.com/* https://tradezoro.com/:splat 301!
 # Help Center (2026-10-30): /faq is the usual place people look for it.
 /faq /help 301
 /faq/ /help 301
+
+# Creator Hub (2026-10-30): /c/<slug> is one page (c.html) that reads the slug from the URL.
+/c/* /c 200

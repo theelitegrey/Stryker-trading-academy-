@@ -4280,6 +4280,124 @@
      ]
     }
    ]
+  },
+  {
+   "id": "creators-communities",
+   "title": "Creators & communities",
+   "icon": "rocket",
+   "desc": "Start a community, plans, invites and the rules.",
+   "subs": [
+    {
+     "id": "creator-hub",
+     "title": "Creator Hub",
+     "items": [
+      {
+       "id": "what-is-creator-hub",
+       "q": "What is the Creator Hub?",
+       "a": "<p>The Creator Hub lets anyone start a community on TradeZoro: a page with a cover, logo, about section and intro video, plans for members, invite links and member import.</p><p>Communities are run by independent creators, not by TradeZoro. TradeZoro does not verify creators or what they say.</p>",
+       "tags": [
+        "creator",
+        "community",
+        "hub",
+        "start"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Hub",
+         "href": "/creators"
+        }
+       ]
+      },
+      {
+       "id": "start-community",
+       "q": "How do I start a community?",
+       "a": "<p>Sign in, open the Creator Hub and choose <b>Start your community</b>. It takes three short steps: a name and web address, the look of your page, and your first plan. You must agree to the Creator Rules.</p><p>Each account can have up to 3 communities for now.</p>",
+       "tags": [
+        "creator",
+        "start",
+        "create",
+        "community",
+        "slug"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Start your community",
+         "href": "/creator-new"
+        },
+        {
+         "label": "Creator Rules",
+         "href": "/creator-rules"
+        }
+       ]
+      },
+      {
+       "id": "creator-paid-plans",
+       "q": "Can I charge for my community?",
+       "a": "<p>You can create priced plans now, but they are saved as drafts or shown as <b>Paid checkout opens soon</b>. Members cannot buy them yet.</p><p>Until paid checkout opens you can run free communities, share invite links and codes, and add members by email.</p>",
+       "tags": [
+        "creator",
+        "paid",
+        "price",
+        "checkout",
+        "plans"
+       ],
+       "related": [],
+       "links": []
+      },
+      {
+       "id": "founding-creators",
+       "q": "What is Founding Creators?",
+       "a": "<p>Founding Creators: 0% TradeZoro fee during launch. Payment-processor fees will apply once paid checkout opens.</p>",
+       "tags": [
+        "creator",
+        "fee",
+        "founding",
+        "launch"
+       ],
+       "related": [],
+       "links": []
+      },
+      {
+       "id": "join-community",
+       "q": "How do I join a community?",
+       "a": "<p>Browse the communities directory and press <b>Join free</b> on a free plan, or open an invite link a creator sent you. Private communities are only joinable with an invite. Paid plans show <b>Paid checkout opens soon</b>.</p>",
+       "tags": [
+        "join",
+        "community",
+        "invite",
+        "directory"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Communities",
+         "href": "/communities"
+        }
+       ]
+      },
+      {
+       "id": "report-community",
+       "q": "How do I report a community?",
+       "a": "<p>Open the community page and press <b>Report this community</b>. Pick a reason and add details if you like. TradeZoro staff can suspend a community that breaks the Creator Rules.</p>",
+       "tags": [
+        "report",
+        "moderation",
+        "abuse",
+        "creator rules"
+       ],
+       "related": [],
+       "links": [
+        {
+         "label": "Creator Rules",
+         "href": "/creator-rules"
+        }
+       ]
+      }
+     ]
+    }
+   ]
   }
  ]
 }

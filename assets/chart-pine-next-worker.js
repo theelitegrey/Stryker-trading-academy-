@@ -134,7 +134,7 @@ function queueSettings(s, inputs, props){
 // debugState): full (re)computes started vs finished per session. A gap that keeps growing
 // means runs are stacking up.
 const runs = { started: 0, finished: 0 };
-function runStarted(s){ busyOn(s); runs.started++; s.started = (s.started || 0) + 1; }
+function runStarted(s){ busyOn(s); runs.started++; s.started = (s.started || 0) + 1; if (!s.announced) { s.announced = true; post({ kind: 'started', sessionId: s.id }); } }
 function runFinished(s){ runs.finished++; s.finished = (s.finished || 0) + 1; }
 
 // LIVE sessions (the normal case on a streaming chart). update() restarts the script's
@@ -189,8 +189,10 @@ function landed(s){
 // Live ticks on a static (full re-run) session: a heavy script re-running on every tick would
 // keep this worker busy and starve the other scripts sharing it. Re-run at most once per
 // max(2 s, 3x the last run time) after the previous run ended; ticks in between coalesce.
+let holdTicks = false;   // main -> worker {kind:'hold',on}: a NEW script is drawing for the first time elsewhere
 function tick(s){
   if (s.tickTimer || s.stopped) return;
+  if (holdTicks) { s.tickHeld = true; return; }
   const gap = Math.max(2000, 3 * (s.runMs || 0));
   const wait = s.doneAt ? Math.max(0, s.doneAt + gap - Date.now()) : 0;
   const go = () => { s.tickTimer = null; kick(s, () => s.handle.notifyBars()); };
@@ -285,6 +287,11 @@ self.addEventListener('message', async (ev) => {
       if (reason === 'complete') s.deferred = false;
       if (!reason) { tick(s); return; }
       kick(s, () => s.handle.notifyBars(reason));
+      return;
+    }
+    case 'hold': {
+      holdTicks = !!msg.on;
+      if (!holdTicks) sessions.forEach((x) => { if (x.tickHeld && !x.stopped) { x.tickHeld = false; tick(x); } });
       return;
     }
     case 'getContext': {

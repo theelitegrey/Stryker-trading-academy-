@@ -46,7 +46,7 @@
 // the persist:true session AND in saved templates, and restores them on load.
 
 const PINE_PKG = 'https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js';
-const RUN_LIMIT_MS = 20000;
+const RUN_LIMIT_MS = 20000;   // old worker / in-process engines only; the lanes engine uses FIRST_RUN_LIMIT_MS (40 s of its own compute)
 const MAX_PER_CELL = 8;
 const SRC_MAX = 65536;
 const BUILTIN_SRC_MAX = 131072;
@@ -264,18 +264,34 @@ function trackRightOffset(chart, handle, ro){
   applyRightOffset(chart);
 }
 
-// Restart a cell's worker (after a run went over the time limit) and re-add the others.
-async function resetCell(chart, keep){
-  const old = engines.get(chart);
-  pineHandles(chart).forEach((h) => { try { h.remove(); } catch (e) {} }); applyRightOffset(chart);
-  try { if (old && old.terminate) old.terminate(); } catch (e) {}
-  engines.delete(chart);
-  const nx = nextEngines.get(chart);
-  if (nx) { try { nx.terminate(); } catch (e) {} }   // its worker respawns on the next run
-  await ensureEngine(chart);
-  keep.forEach((k) => { try { addOn(chart, k); } catch (e) {} });
+// A run went over its limit. Stop ONLY the script that is stuck; every other indicator keeps its worker
+// and its drawing (job "indicator engine speed 1030": the old version removed every Pine script, killed
+// every worker and re-added them all, which re-ran the whole chart and often timed out the next one too).
+// kind 'old': the vela-pinets worker (one per chart, community scripts): restart it and re-add only the
+// handles that ran on it. kind 'next': the stuck script's own lane was already killed by watch().kill();
+// scripts that shared that lane (only past the lane cap) are re-added, nothing else is touched.
+async function stopStuck(chart, before, kind, lostIds){
+  const now = pineHandles(chart);
+  const fresh = now.filter((h) => !before.includes(h));
+  fresh.forEach((h) => { try { h.remove(); } catch (e) {} });
+  let redo = [];
+  if (kind === 'old') {
+    redo = now.filter((h) => before.includes(h) && !onNext.has(h) && !onMain.has(h));
+    const old = engines.get(chart);
+    redo = redo.map((h) => ({ h, snap: snapshot(h) }));
+    redo.forEach((x) => { try { x.h.remove(); } catch (e) {} });
+    try { if (old && old.terminate) old.terminate(); } catch (e) {}
+    engines.delete(chart);
+    await ensureEngine(chart);
+  } else if (lostIds && lostIds.length) {
+    redo = now.filter((h) => lostIds.includes(h.id)).map((h) => ({ h, snap: snapshot(h) }));
+    redo.forEach((x) => { try { x.h.remove(); } catch (e) {} });
+  }
+  redo.forEach((x) => { try { addOn(chart, x.snap); } catch (e) {} });
+  applyRightOffset(chart);
   changed();
 }
+const HEAVY_MSG = 'This indicator is too heavy for this chart right now. Try fewer bars (a higher timeframe) or remove other heavy indicators.';
 
 // Real Pine built-in namespaces and functions (TradingView reference). A name on this
 // list that the runtime doesn't know is a GAP in our engine, not a typo by the member.
@@ -381,12 +397,21 @@ async function runOnChart(chart, source, inputs, shared, opts){
 async function runOnChartInner(chart, source, inputs, shared, opts){
   await ensureEngine(chart);
   if (pineHandles(chart).length >= MAX_PER_CELL) return { ok: false, msg: 'This chart already has ' + MAX_PER_CELL + ' Pine scripts. Remove one first.' };
-  const keep = pineHandles(chart).map(snapshot);
+  const before = pineHandles(chart);
   let timer;
-  const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true }), RUN_LIMIT_MS); });
+  // Old worker / in-process engines: wall-clock limit. The next engine (lanes) measures the script's OWN
+  // compute: its clock starts when its worker reports 'started', so waiting never counts.
+  const timeout = new Promise((r) => { timer = setTimeout(() => r({ timedOut: true, kind: 'old' }), RUN_LIMIT_MS); });
+  let nextWatch = null, lost = [];
   const runNext = async () => {
-    try { await ensureNext(chart); } catch (e) { console.warn('TradeZoro: Pine next engine', e); return null; }
-    return Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), timeout]);
+    let eng;
+    try { eng = await ensureNext(chart); } catch (e) { console.warn('TradeZoro: Pine next engine', e); return null; }
+    let stuck;
+    const stuckP = new Promise((r) => { stuck = r; });
+    nextWatch = eng.watch(source, (info) => { try { lost = nextWatch.kill(); } catch (e) {} stuck({ timedOut: true, kind: 'next', info }); });
+    const r = await Promise.race([chart.runIndicator(source, { language: LANG_NEXT, inputs: inputs || {} }), stuckP]);
+    if (nextWatch) nextWatch.cancel();
+    return r;
   };
   let res = null, engine = 'worker';
   if (opts && opts.engine === 'next' && !shared) { res = await runNext(); engine = 'next'; }
@@ -419,8 +444,8 @@ async function runOnChartInner(chart, source, inputs, shared, opts){
   if (engine === 'worker' || !res || !res.ok) flushHeld(); // a real failure keeps vela's line
   clearTimeout(timer);
   if (res && res.timedOut) {
-    await resetCell(chart, keep);
-    return { ok: false, msg: 'Script stopped: took too long (over ' + (RUN_LIMIT_MS / 1000) + ' seconds).' };
+    await stopStuck(chart, before, res.kind === 'next' ? 'next' : 'old', lost);
+    return { ok: false, retry: true, msg: HEAVY_MSG };
   }
   if (!res || !res.ok) {
     hideVelaErrorToast();
@@ -633,7 +658,10 @@ export function mountPine(ws, barL, opts){
     try {
       const r = await runOnChart(a.cell.chart, src);
       if (r.ok) { toast('Added ' + titleOf(r.handle) + ' to the chart'); if (isPhone()) setOpen(false); }
-      else showErr(r.msg, r.line);
+      else {
+        showErr(r.msg, r.line);
+        if (r.retry) { const rb = el('button', { type: 'button', class: 'stkc-retry', text: 'Retry', style: 'margin-left:8px', onclick: () => { showErr(''); addToChart(); } }); errBox.appendChild(rb); }
+      }
     } catch (e) {
       console.warn('TradeZoro: Pine run', e);
       showErr("The Pine engine didn't load. Check your connection; an ad-blocker may be blocking cdn.jsdelivr.net.");

@@ -22,7 +22,7 @@
 // chart-alerts.js is NOT imported here: a second import URL (e.g. a stale ?v=) makes a second,
 // never-mounted module instance whose Create button has no backend (build 427 bug). The one
 // mounted instance is handed in by vela-chart.js: mountChartPlus(ws, { openAlerts, chartPlots }).
-import { TOOL_ICONS } from './chart-tool-icons.js?v=720';
+import { TOOL_ICONS } from './chart-tool-icons.js?v=721';
 let openAlerts = (p) => { const A = window.__stkAlerts; if (A && A.open) A.open(p); };
 let chartPlots = () => [];
 

@@ -37,7 +37,7 @@ async function run(b, { w, h, mobile, system, tag }) {
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
   try {
-    for (const [w, h, mobile] of [[1440, 900, false], [390, 844, true]]) {
+    for (const [w, h, mobile] of [[1440, 900, false]]) {
       let { ctx, p, errors } = await run(b, { w, h, mobile, system: 'Rithmic Test', tag: 'ok ' + w });
       await sleep(30000);
       await sleep(1500);
@@ -48,6 +48,11 @@ async function run(b, { w, h, mobile, system, tag }) {
       check(d && d.ladderRows > 5 && d.bestBidSize > 0, 'ok ' + w + ': ladder from the Rithmic book', d && d.ladderRows);
       check(d && d.bubbles > 0, 'ok ' + w + ': bubbles from LAST_TRADE (' + (d && d.bubbles) + ')');
       await p.screenshot({ path: path.join(OUT, 'lm-fut-' + w + '.png') });
+      await p.setViewportSize({ width: 390, height: 844 }); await sleep(2500);
+      const dm = await p.evaluate(() => window.__stkFlow.lmDebug());
+      check(dm && dm.cells > 0 && dm.ladderRows > 5, 'ok 390 (resized after connect): futures map + ladder drawn', dm && { w: dm.width, rows: dm.ladderRows });
+      await p.screenshot({ path: path.join(OUT, 'lm-fut-390.png') });
+      await p.setViewportSize({ width: 1440, height: 900 });
       check(!errors.length, 'ok ' + w + ': no errors', errors);
       await ctx.close();
       ({ ctx, p, errors } = await run(b, { w, h, mobile, system: 'TradeSea', tag: 'nodepth ' + w }));

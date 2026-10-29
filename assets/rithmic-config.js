@@ -169,6 +169,6 @@ export async function loadRithmicIfEnabled() {
   const depthEnabled = !!dev || admin || RITHMIC_FLAG.depthForAll === true;
   const cfg = { ...RITHMIC_CONFIG, depthEnabled, appName: APP_NAME, appVersion: appVersion(), testAppVersion: TEST_APP_VERSION,
     gateways, gateway: gateways[0].uri, systemFirst: SYSTEM_FIRST, nearest: nearestGatewayId() };
-  const ui = await import('./rithmic-ui.js?v=720');
+  const ui = await import('./rithmic-ui.js?v=721');
   return ui.createRithmic(cfg);
 }

@@ -1,8 +1,5 @@
-// Liquidity heatmap "Deep" view in the browser (assets/chart-orderflow.js stk_crypto_dom + chart-liquidity-data.js), both
-// chart engines (?vela=0.9 default, ?vela=0.6), 1440 + 390. Everything Binance is answered from a REAL recording
-// (fixtures/liquidity/btcusdt-*.json.gz: the public BTCUSDT book at 1 sample a second + its aggTrades), the clock is
-// pinned to the end of the recording, and the page's own book history is replaced with the recorded samples
-// (__stkFlow.domDebugLoad), as if the page had been open for the whole recording. No network.
+// Shared helpers for the Liquidity Map browser tests (liqmap-browser.js, liqmap-ui-browser.js): opens the chart on a REAL
+// recorded BTCUSDT book (fixtures/liquidity), clock pinned to the end of the recording, no network. Both chart engines.
 //   node tools/tests/chart-dev-server.mjs 8073
 //   flock /tmp/stryker-chrome.lock systemd-run --scope -q -p MemoryMax=1200M env CHART_BASE=http://127.0.0.1:8073 \
 //     node --max-old-space-size=768 tools/tests/chart-liquidity-browser.js [shotsDir]

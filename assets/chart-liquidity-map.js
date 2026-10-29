@@ -46,6 +46,23 @@ function lutFor(expo) {
   return l;
 }
 
+// Percentile-based colour table: values below the 60th percentile stay near-black, the blue range covers the 60th-95th,
+// and yellow / orange / red / white are kept for the top ~5 % (white only for the top 0.5 %). Index = sqrt(v / vTop) * LUT_N.
+const Q_LEVELS = [0.70, 0.86, 0.94, 0.975, 0.99, 0.998, 0.9995];
+const Q_TARGET = [0.03, 0.20, 0.40, 0.62, 0.80, 0.93, 1];
+function lutFromQ(qs, contrast) {
+  const l = new Uint32Array(LUT_N + 1), vTop = qs[qs.length - 1], pw = 1 / Math.max(0.2, contrast);
+  for (let i = 0; i <= LUT_N; i++) {
+    const v = vTop * (i / LUT_N) * (i / LUT_N);
+    let n;
+    if (v <= qs[0]) n = 0;
+    else { let k = 1; while (k < qs.length - 1 && v > qs[k]) k++; n = Q_TARGET[k - 1] + (Q_TARGET[k] - Q_TARGET[k - 1]) * Math.min(1, (v - qs[k - 1]) / Math.max(1e-12, qs[k] - qs[k - 1])); }
+    n = Math.pow(Math.min(1, n), pw);
+    const c = lmColor(n), a = Math.round(255 * Math.min(1, n / 0.04));
+    l[i] = ((a << 24) | (c[2] << 16) | (c[1] << 8) | c[0]) >>> 0;
+  }
+  return l;
+}
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const num = (v, d) => (typeof v === 'number' && Number.isFinite(v) ? v : d);
 const MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -201,7 +218,7 @@ const TIME_STEPS = [1, 2, 5, 10, 15, 30, 60, 120, 240, 360, 720, 1440].map((m) =
 export function makeLayer(H) {
   let canvas = null;
   // heat texture state
-  let tex = null, tctx = null, img = null, px32 = null, grid = null;
+  let tex = null, tctx = null, img = null, px32 = null, grid = null, sm = null;
   let T = null;     // { c0, B, cols, rows, iHi, S, sig, lastTs, lo, cap, expo }
   const ag = { key: '', ver: -1, at: 0, bubbles: [], bars: new Map(), tb: 0 };
   let capAt = 0, capTs = 0;
@@ -210,8 +227,8 @@ export function makeLayer(H) {
     if (!tex) tex = document.createElement('canvas');
     if (tex.width !== cols || tex.height !== rows) {
       tex.width = cols; tex.height = rows; tctx = tex.getContext('2d');
-      img = tctx.createImageData(cols, rows); px32 = new Uint32Array(img.data.buffer); grid = new Float32Array(cols * rows);
-    } else { grid.fill(0); px32.fill(0); }
+      img = tctx.createImageData(cols, rows); px32 = new Uint32Array(img.data.buffer); grid = new Float32Array(cols * rows); sm = new Float32Array(cols * rows);
+    } else { grid.fill(0); sm.fill(0); px32.fill(0); }
   }
   // paint one sample's rows into columns [ca, cb] of the grid
   function paint(s, ca, cb, T, f, tmp) {
@@ -228,15 +245,30 @@ export function makeLayer(H) {
       for (let c = ca; c <= cb; c++) grid[r * T.cols + c] += v;
     }
   }
+  // smooth along time, per price row: a forward and a backward moving average (held a few columns), averaged, so a wall that
+  // rests reads as one continuous band and one-column specks fade. Gaps stay dark (zeros pull the average down).
+  const SM_A = 0.10, SM_PAD = 40;
+  function smooth(T, ca, cb) {
+    const n = T.cols; ca = Math.max(0, ca - SM_PAD); cb = Math.min(n - 1, cb);
+    const rev = new Float32Array(cb - ca + 1);
+    for (let r = 0; r < T.rows; r++) {
+      const o = r * n;
+      let e = 0;
+      for (let c = cb; c >= ca; c--) { e += SM_A * (grid[o + c] - e); rev[c - ca] = e; }
+      e = 0;
+      for (let c = ca; c <= cb; c++) { e += SM_A * (grid[o + c] - e); sm[o + c] = 0.5 * (e + rev[c - ca]) * 1.0; }
+    }
+    return ca;
+  }
   function colour(T, ca, cb) {
-    const lut = lutFor(T.expo), span = Math.max(1e-12, T.cap - T.lo), n = T.cols;
+    const lut = T.lut, n = T.cols, inv = 1 / Math.max(1e-12, T.vTop);
     ca = Math.max(0, ca); cb = Math.min(n - 1, cb);
     for (let r = 0; r < T.rows; r++) {
       const o = r * n;
       for (let c = ca; c <= cb; c++) {
-        const v = grid[o + c];
+        const v = sm[o + c];
         if (v <= T.lo) { px32[o + c] = 0; continue; }
-        const x = (v - T.lo) / span;
+        const x = Math.sqrt(v * inv);
         px32[o + c] = lut[x >= 1 ? LUT_N : (x * LUT_N) | 0];
       }
     }
@@ -245,7 +277,7 @@ export function makeLayer(H) {
 
   return {
     mount(c) { canvas = c; },
-    destroy() { canvas = null; tex = null; grid = null; px32 = null; img = null; },
+    destroy() { canvas = null; tex = null; grid = null; sm = null; px32 = null; img = null; },
     render(a) {
       const co = a.coords, g = H.beginFrame(canvas, co);
       if (!g || !a.data || a.data.off || !a.bars.length) return;
@@ -338,6 +370,7 @@ export function makeLayer(H) {
           }
           if (c2 >= 0) { T.lastTs = loc[loc.length - 1].ts; T.dirty = [Math.min(c1, T.dirty ? T.dirty[0] : c1), Math.max(c2, T.dirty ? T.dirty[1] : c2)]; }
         }
+        { const sr = T.full ? [0, T.cols - 1] : T.dirty; if (sr) { const lo0 = smooth(T, sr[0], sr[1]); T.dirty = [Math.min(lo0, T.dirty ? T.dirty[0] : lo0), Math.max(sr[1], T.dirty ? T.dirty[1] : sr[1])]; } }
         // ---- clip size from the VISIBLE part (percentile), recoloured only when it moved > 8% (or the inputs changed) ----
         const xL = Math.max(0, Math.floor(co.timeToX(T.c0 * B)));
         const cA = clamp(Math.floor(invTime(co, 0) / B) - T.c0, 0, T.cols - 1);
@@ -345,24 +378,25 @@ export function makeLayer(H) {
         const rTop = clamp(T.iHi - Math.ceil(a.scale.max / T.S), 0, T.rows - 1), rBot = clamp(T.iHi - Math.floor(a.scale.min / T.S), 0, T.rows - 1);
         const nowMs = performance.now();
         const need = T.full || !T.capKey || nowMs - capAt > 400;
-        let newCap = T.cap;
+        let newCap = T.cap, newQ = T.qs;
         if (need && cB >= cA && rBot >= rTop) {
           capAt = nowMs;
           const vals = [];
           const stepR = Math.max(1, Math.floor(((rBot - rTop + 1) * (cB - cA + 1)) / 24000));
           for (let r = rTop; r <= rBot; r += 1) {
             const o = r * T.cols;
-            for (let c = cA + ((r * 7) % stepR); c <= cB; c += stepR) { const v = grid[o + c]; if (v > 0) vals.push(v); }
+            for (let c = cA + ((r * 7) % stepR); c <= cB; c += stepR) { const v = sm[o + c]; if (v > 0) vals.push(v); }
           }
           vals.sort((x, y) => x - y);
-          newCap = vals.length ? Math.max(quantile(vals, 0.985), 1e-9) : 1;
+          newCap = vals.length ? Math.max(quantile(vals, 0.999), 1e-9) : 1;
+          if (vals.length) { newQ = Q_LEVELS.map((f) => quantile(vals, f)); for (let k = 1; k < newQ.length; k++) if (newQ[k] <= newQ[k - 1]) newQ[k] = newQ[k - 1] * 1.001 + 1e-9; }
           stat.visValues = vals.length;
         }
-        const expo = 0.75 / cfg.contrast, lo2 = cfg.minSize;
+        const expo = cfg.contrast, lo2 = cfg.minSize;
         const capMoved = !T.capKey || Math.abs(newCap / T.cap - 1) > 0.08;
         const inKey = expo + '|' + lo2;
         if (T.full || capMoved || T.capKey !== inKey) {
-          T.cap = newCap; T.expo = expo; T.lo = Math.min(lo2, T.cap * 0.999); T.capKey = inKey;
+          T.cap = newCap; T.expo = expo; T.qs = newQ || Q_LEVELS.map((f, k) => newCap * (0.1 + k * 0.15)); T.vTop = T.qs[T.qs.length - 1]; T.lut = lutFromQ(T.qs, expo); T.lo = Math.max(lo2, T.qs[0]); T.capKey = inKey;
           colour(T, 0, T.cols - 1); putCols(0, T.cols - 1); T.full = false; T.dirty = null; stat.recoloured = true;
         } else if (T.dirty) { colour(T, T.dirty[0], T.dirty[1]); putCols(T.dirty[0], T.dirty[1]); T.dirty = null; }
         // ---- draw: texture columns -> x from the chart's own time axis, rows -> y ----
@@ -474,7 +508,7 @@ export function makeLayer(H) {
         let pool = vis;
         if (cfg.minBubble > 0) pool = vis.filter((b) => b.v >= cfg.minBubble);
         if (pool.length > maxN) { const sorted = pool.map((b) => b.v).sort((x, y) => y - x); const cut = sorted[maxN - 1]; pool = pool.filter((b) => b.v >= cut); }
-        const rMax = (phone ? 13 : 20) * cfg.bubbleScale, rMin = 3 * Math.min(1.4, cfg.bubbleScale);
+        const rMax = (phone ? 9 : 14) * cfg.bubbleScale, rMin = 3 * Math.min(1.4, cfg.bubbleScale);
         // radius ~ sqrt(volume) against the biggest in view, so the sizes read like the volume
         for (const b of pool) {
           const x = co.timeToX(b.t), y = yOf(b.p);

@@ -29,6 +29,7 @@ const stub = stubSrc.replace("plan: 'Elite', role: 'elite',\n          emailVeri
     const cdp = await ctx.newCDPSession(p);
     await cdp.send('Network.enable');
     if (thr) { await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 165, downloadThroughput: 9e6 / 8, uploadThroughput: 1.5e6 / 8 }); await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 }); }
+    if (process.argv.includes('--prof')) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 1000 }); await cdp.send('Profiler.start'); }
     await p.goto(BASE + '/charts.html?tf=' + tf + (vela ? '&vela=' + vela : ''), { waitUntil: 'commit' });
     await p.waitForFunction(() => window.__fc > 0, null, { timeout: 90000, polling: 50 }).catch(() => {});
     const info = await p.evaluate(() => {
@@ -40,6 +41,7 @@ const stub = stubSrc.replace("plan: 'Elite', role: 'elite',\n          emailVeri
         lt: window.__lt.filter((x) => x[0] < fc).length, ltMs: window.__lt.filter((x) => x[0] < fc).reduce((a, x) => a + x[1], 0),
         heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null };
     });
+    if (process.argv.includes('--prof')) { const { profile } = await cdp.send('Profiler.stop'); const dt = profile.timeDeltas; const self = {}; const byId = {}; profile.nodes.forEach((n) => { byId[n.id] = n; }); profile.samples.forEach((id, i) => { const n = byId[id]; const k = (n.callFrame.url.split('/').pop().split('?')[0] || '(native)') + ':' + n.callFrame.functionName + ':' + n.callFrame.lineNumber; self[k] = (self[k] || 0) + dt[i] / 1000; }); const tot = {}; Object.entries(self).forEach(([k, v]) => { const f = k.split(':')[0]; tot[f] = (tot[f] || 0) + v; }); console.log('BYFILE ' + JSON.stringify(Object.entries(tot).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([k, v]) => k + ' ' + Math.round(v)))); console.log('TOPFN ' + JSON.stringify(Object.entries(self).sort((a, b) => b[1] - a[1]).slice(0, 14).map(([k, v]) => k + ' ' + Math.round(v)))); }
     res.push(info);
     await ctx.close();
   }

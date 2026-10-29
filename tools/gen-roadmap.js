@@ -97,7 +97,10 @@ function build() {
   const seen = new Set();
   const uniq = all.filter((e) => { const k = e.build + '|' + e.title; if (seen.has(k)) return false; seen.add(k); return true; });
   uniq.sort((a, b) => b.date.localeCompare(a.date) || b.build - a.build || a.title.localeCompare(b.title));
-  return uniq;
+  // Same title shipped across several builds (a feature plus its follow-up
+  // pushes): keep only the newest, so the Shipped list has no repeats.
+  const titles = new Set();
+  return uniq.filter((e) => { const k = e.title.toLowerCase(); if (titles.has(k)) return false; titles.add(k); return true; });
 }
 
 const key = (e) => e.date + '|' + e.title + '|' + e.link;

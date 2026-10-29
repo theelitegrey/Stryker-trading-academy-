@@ -1,5 +1,23 @@
 [
  {
+  "build": 738,
+  "date": "2026-10-30",
+  "title": "Connect broker: native iOS/Android style sheet",
+  "link": ""
+ },
+ {
+  "build": 738,
+  "date": "2026-10-30",
+  "title": "Planned items from member suggestions",
+  "link": ""
+ },
+ {
+  "build": 738,
+  "date": "2026-10-30",
+  "title": "Suggestions board v2: duplicates, notifications, roadmap link",
+  "link": ""
+ },
+ {
   "build": 736,
   "date": "2026-10-30",
   "title": "Quieter delayed-data pill on charts",
@@ -25,18 +43,6 @@
  },
  {
   "build": 733,
-  "date": "2026-10-30",
-  "title": "Creator Hub: communities, plans, invites, directory (Founding Creators 0% fee)",
-  "link": ""
- },
- {
-  "build": 733,
-  "date": "2026-10-30",
-  "title": "Live futures data: Rithmic, $5 add-on or approval",
-  "link": ""
- },
- {
-  "build": 732,
   "date": "2026-10-30",
   "title": "Live futures data: Rithmic, $5 add-on or approval",
   "link": ""
@@ -90,12 +96,6 @@
   "link": ""
  },
  {
-  "build": 724,
-  "date": "2026-10-29",
-  "title": "Fix: live candles not updating",
-  "link": ""
- },
- {
   "build": 723,
   "date": "2026-10-29",
   "title": "Faster chart loading",
@@ -108,12 +108,6 @@
   "link": ""
  },
  {
-  "build": 721,
-  "date": "2026-10-29",
-  "title": "Liquidity Map (Bookmap-style resting liquidity)",
-  "link": ""
- },
- {
   "build": 718,
   "date": "2026-10-29",
   "title": "Gold GEX heatmap, expected move and ladder",
@@ -121,18 +115,6 @@
  },
  {
   "build": 718,
-  "date": "2026-10-29",
-  "title": "New indicator: Session Sweep SMT + IFVG",
-  "link": ""
- },
- {
-  "build": 717,
-  "date": "2026-10-29",
-  "title": "Gold GEX heatmap, expected move and ladder",
-  "link": ""
- },
- {
-  "build": 716,
   "date": "2026-10-29",
   "title": "New indicator: Session Sweep SMT + IFVG",
   "link": ""
@@ -141,12 +123,6 @@
   "build": 715,
   "date": "2026-10-29",
   "title": "GEX for gold (GC, MGC, GLD) on GEX+ and ZoroCharts",
-  "link": ""
- },
- {
-  "build": 714,
-  "date": "2026-10-29",
-  "title": "New indicator: Session Sweep SMT + IFVG",
   "link": ""
  },
  {

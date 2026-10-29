@@ -129,7 +129,13 @@ async function run(b, { w, h, plan, vela }) {
 
   // 4. Free keeps a PRO tool out even when it arrives some other way (sweep)
   if (free) {
-    await p.evaluate(() => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); window.__sweepTry = (() => { try { c.chart.addIndicator && c.chart.addIndicator({ nativeType: 'stk_of_cvd' }); } catch (e) {} })(); });
+    // the real road for a native (a saved layout / template restore): addNativeIndicator. (addIndicator with a {nativeType} object
+    // is the Pine road and made Vela toast "[A] t.match is not a function" on the phone shot: a test artefact, not a member path.)
+    const n0s = await nIndicators(p);
+    await p.evaluate(() => { const ws = window.STRYKER_VELA; const c = ws.cell(ws.context().cells[0].id); try { c.chart.addNativeIndicator('stk_of_cvd', { inputs: {} }); } catch (e) {} });
+    await sleep(2500);
+    check((await nIndicators(p)) === n0s, tag + ': sweep removed a Pro tool that arrived by the restore road');
+    check(!(await p.evaluate(() => /is not a function|\[A\]/.test(document.body.innerText))), tag + ': no error toast on screen');
   }
 
   // 5. drawing: pick a tool and drag on the chart

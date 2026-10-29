@@ -2,7 +2,8 @@
 // Depends on: Cloudflare Pages Functions under /api/gex/* and a canvas element.
 (function(){
   var MKTS = ['SPX', 'SPY', 'QQQ', 'GLD'];
-  var MARKET_LABELS = { SPX:'SPX · ES/MES', SPY:'SPY · ES/MES', QQQ:'QQQ · NQ/MNQ', GLD:'GLD · GC/MGC' };
+  var MARKET_LABELS = { SPX:'SPX · ES/MES', SPY:'SPY · ES/MES', QQQ:'QQQ · NQ/MNQ', GLD:'Gold · GLD/GC/MGC' };
+  var TAB_NAME = { GLD:'Gold' };
   var DTES = [{v:0,l:'0DTE'}, {v:1,l:'1DTE'}, {v:7,l:'1W'}, {v:30,l:'1M'}];
   var IVS = ['1m', '5m', '15m', '1h'];
   var cur = 'SPX', curDte = 1, curIv = '5m', curFut = null, DATA = null, CANDLES = [];
@@ -142,7 +143,7 @@
   }
 
   function wireTabs(){
-    $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+m+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
+    $('gex-tabs').innerHTML = MKTS.map(function(m){ return '<button class="gex-tab'+cls(m === cur)+'" data-m="'+m+'"><span>'+(TAB_NAME[m] || m)+'</span><small>'+esc((MARKET_LABELS[m] || m).split(' · ')[1] || '')+'</small></button>'; }).join('');
     $('gex-dtes').innerHTML = DTES.map(function(d){ return '<button class="gex-dte'+cls(d.v === curDte)+'" data-d="'+d.v+'">'+d.l+'</button>'; }).join('');
     $('gex-ivs').innerHTML = IVS.map(function(i){ return '<button class="gex-iv'+cls(i === curIv)+'" data-i="'+i+'">'+i+'</button>'; }).join('');
     $('gex-tabs').addEventListener('click', function(e){ var btn=e.target.closest('[data-m]'); var m=btn && btn.dataset.m; if(!m || m===cur) return; if(LIMIT && LIMIT.markets.indexOf(m) < 0){ gexLock('gex-market', 'Pro unlocks GEX for every symbol and expiry. The Free plan covers SPX, 0DTE.'); return; } cur=m; curFut=null; resetChartData('Loading '+mlabel(m)+'…'); paintButtons(); loadLevels(); });
@@ -158,6 +159,8 @@
   }
 
   function paintButtons(){
+    // Gold has no options analytics / options-volume data yet: hide those two cards cleanly while Gold is selected.
+    ['gex-options', 'gex-flow'].forEach(function(id){ var c = document.getElementById(id); if(c) c.hidden = (cur === 'GLD'); });
     document.querySelectorAll('.gex-tab').forEach(function(b){ b.classList.toggle('is-on', b.dataset.m === cur); b.classList.toggle('is-locked', !!LIMIT && LIMIT.markets.indexOf(b.dataset.m) < 0); });
     document.querySelectorAll('.gex-dte').forEach(function(b){ b.classList.toggle('is-on', Number(b.dataset.d) === curDte); b.classList.toggle('is-locked', !!LIMIT && LIMIT.dtes.indexOf(Number(b.dataset.d)) < 0); });
     document.querySelectorAll('.gex-iv').forEach(function(b){ b.classList.toggle('is-on', b.dataset.i === curIv); });

@@ -93,7 +93,7 @@
       ['Volume Profile and Prop Firm tracks', false, true],
       ['Progress dashboard, achievements, streak', true, true]]],
     ['GEX+', [
-      ['GEX+ symbols', 'SPX', 'Every symbol'],
+      ['GEX+ symbols', 'SPX', 'Every symbol: SPX, SPY, QQQ, ES, NQ, gold (GC)'],
       ['Expiry views', 'Same-day (0DTE)', 'Every expiry'],
       ['Futures conversion', false, true],
       ['Strike table', false, true]]],

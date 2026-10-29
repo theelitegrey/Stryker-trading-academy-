@@ -82,7 +82,7 @@
       var p = document.createElement('p');
       p.id = 'gex-free-note';
       p.className = 'plan-usage-note';
-      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="#" data-open-plan-modal data-upgrade-reason="Pro unlocks GEX+ for every symbol and expiry, the futures conversion and the strike table.">Pro unlocks every symbol and expiry</a>.';
+      p.innerHTML = 'Free plan: SPX, 0DTE view. <a href="#" data-open-plan-modal data-upgrade-reason="Pro unlocks GEX+ for every symbol (SPX, SPY, QQQ, ES, NQ and gold GC) and expiry, the futures conversion and the strike table.">Pro unlocks every symbol and expiry</a>.';
       note.parentNode.insertBefore(p, note.nextSibling);
     }
   }

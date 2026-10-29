@@ -41,7 +41,7 @@
     gex: {
       title: function () { return 'Futures GEX+ levels are part of Pro'; },
       bullets: function () {
-        return ['ES, NQ and GC futures levels at every expiry (Free covers SPX 0DTE)',
+        return ['ES, NQ and gold (GC) futures levels at every expiry (Free covers SPX 0DTE)',
                 'The strike table: net GEX, DEX and open interest by strike'];
       },
       reason: 'Pro unlocks GEX+ for every market and expiry, and the strike table.'
@@ -58,7 +58,7 @@
       title: function () { return 'QQQ and SPY options analytics are part of Pro'; },
       bullets: function () {
         return ['Expected move, IV rank, term structure and skew for QQQ (NQ) and SPY (Free covers SPX)',
-                'Plus futures GEX+ for every market and expiry'];
+                'Plus futures GEX+ for every market and expiry, gold (GC) included'];
       },
       reason: 'Pro unlocks options analytics for every market.'
     },

@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="stryker-build" content="714">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Education only.">
+<meta name="description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart: ES, NQ and gold (GC). Education only.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TradeZoro">
 <meta property="og:title" content="GEX+ · Gamma exposure (GEX) levels: call wall, put wall and zero gamma">
-<meta property="og:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Education only.">
+<meta property="og:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart: ES, NQ and gold (GC). Education only.">
 <meta property="og:url" content="https://tradezoro.com/features/gex">
 <meta property="og:image" content="https://tradezoro.com/assets/images/og/share/features_gex.png?v=714">
 <meta property="og:image:width" content="1200">
@@ -17,7 +17,7 @@
 <meta property="og:image:alt" content="GEX+ share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="GEX+ · Gamma exposure (GEX) levels: call wall, put wall and zero gamma">
-<meta name="twitter:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart. Education only.">
+<meta name="twitter:description" content="GEX shows where options positioning may pull or push price: call wall, put wall and zero gamma, drawn on a futures chart: ES, NQ and gold (GC). Education only.">
 <meta name="twitter:image" content="https://tradezoro.com/assets/images/og/share/features_gex.png?v=714">
 <meta name="twitter:image:alt" content="GEX+ share card: call wall and put wall levels drawn on a futures chart, with the TradeZoro logo">
 <meta name="theme-color" content="#050506">
@@ -191,7 +191,7 @@
 <div class="fg-faq ft-reveal">
 <details><summary>Does GEX predict where price will go?</summary><div class="fg-a"><p>No. It describes how options positioning <em>could</em> influence hedging flows, under a stated assumption. Levels are context for reading a session, not a forecast and not a trade signal.</p></div></details>
 <details><summary>Why does it assume dealers are long calls and short puts?</summary><div class="fg-a"><p>Open interest data does not say who holds each contract. Treating calls as dealer-long and puts as dealer-short is a common modelling convention. It will be wrong on some days, so treat every level as an estimate.</p></div></details>
-<details><summary>Which markets does it cover?</summary><div class="fg-a"><p>SPX, SPY, QQQ and GLD. They convert to ES/MES, NQ/MNQ and GC/MGC futures levels (SPY maps to ES/MES).</p></div></details>
+<details><summary>Which markets does it cover?</summary><div class="fg-a"><p>SPX, SPY, QQQ and gold (GLD). They convert to ES/MES, NQ/MNQ and GC/MGC futures levels (SPY maps to ES/MES). On ZoroCharts the GEX tools work on SPX, SPY, QQQ, GLD, ES, NQ and gold (GC, MGC); gold&rsquo;s heatmap is still building history.</p></div></details>
 <details><summary>What do 0DTE, 1DTE, 1W and 1M mean?</summary><div class="fg-a"><p>They filter which expiries feed the numbers: the nearest listed expiry (0DTE), the one after it (1DTE), everything within a week (1W) or within a month (1M). Each setting recalculates the walls, the flip and the ladder.</p></div></details>
 <details><summary>What is the IV expected range?</summary><div class="fg-a"><p>A one-day range derived from 30-day implied volatility: one standard deviation for the 68% band and a wider band for 80%. It estimates how much the market is pricing in, under a normal-distribution assumption. It is not where price will finish, and price can and does move outside it.</p></div></details>
 <details><summary>Can I use it on my phone?</summary><div class="fg-a"><p>Yes. The chart supports drag to pan and pinch to zoom, with +, − and Reset buttons as well.</p></div></details>

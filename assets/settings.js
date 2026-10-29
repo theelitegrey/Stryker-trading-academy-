@@ -325,7 +325,7 @@ function renderLiveData(student){
     } else if (!ld.autopay) { buy.style.display = ''; buy.textContent = 'Renew live futures data: $5/month'; }
   } else if (s.liveFeed === true && s.liveFeedGrandfathered === true) {
     // Early Pro members keep live futures while Pro stays active (mirrors isActiveProDoc in functions/api/chart/_rt.js).
-    const proOn = !!s.plan && (typeof rankOf === 'function' ? rankOf(s.plan) >= 1 : true) && ['expired', 'cancelled', 'canceled'].indexOf(s.subscriptionStatus) === -1 &&
+    const proOn = !!s.plan && (typeof rankOf === 'function' ? rankOf(s.plan) >= 1 : !/^(free|starter|)$/i.test(String(s.plan))) && ['expired', 'cancelled', 'canceled'].indexOf(s.subscriptionStatus) === -1 &&
       (s.foundingMember === true || !(Number(s.paidThroughMillis) > 0 && Date.now() > Number(s.paidThroughMillis) + GRACE));
     if (proOn) { st.textContent = 'Live futures data: included for you as an early Pro member'; st.style.color = 'var(--bull)'; }
     else { st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)'; buy.style.display = ''; buy.textContent = 'Get live futures data: $5/month'; }

@@ -28,7 +28,7 @@ const ART = (n) => new URL('./images/rithmic/' + n + '.png', import.meta.url).hr
 const LS_GW = 'stryker_rithmic_gateway';
 
 const LS_USER = 'stryker_rithmic_user';
-const LS_GUIDE = 'stryker_rithmic_guide_closed';   // '1' after a successful connect (or when the member closes the box)
+const LS_HIDE = 'stryker_rithmic_chip_hide_until';   // epoch ms: the chart shortcut stays hidden until then (7 days after the member dismisses it)
 const HELP_URL = '/help#rithmic-connect';
 // The chosen system is remembered per signed-in member (not a credential, so no checkbox needed).
 const LS_SYS = (() => { try { const u = typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid; return 'stryker_rithmic_system' + (u ? '_' + u : ''); } catch (e) { return 'stryker_rithmic_system'; } })();
@@ -85,17 +85,43 @@ const CSS = `
 @media (max-width:480px){ .stkrb-attr{ padding:3px 8px; gap:6px; } .stkrb-attr .stkrb-l-rith, .stkrb-attr .stkrb-l-omne{ height:16px; } }
 .stkrb-err{ color:#ff6b6b; font-size:12.5px; line-height:1.5; margin:0 0 10px !important; padding:10px 12px; border:1px solid rgba(255,107,107,.4); border-radius:8px; background:rgba(255,107,107,.07); overflow-wrap:anywhere; }
 .stkrb-err .stkrb-copy{ display:inline-block; margin-top:8px; height:30px; padding:0 12px; border:1px solid rgba(255,107,107,.5); border-radius:6px; background:transparent; color:inherit; font:600 12px/1 inherit; font-family:inherit; cursor:pointer; }
-.stkrb-guide{ margin:0 0 12px; border:1px solid rgba(3,201,136,.3); border-radius:10px; background:rgba(3,201,136,.05); }
-.stkrb-guide > summary{ list-style:none; cursor:pointer; padding:11px 12px; font-size:13.5px; font-weight:700; color:var(--ink-0); display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:20px; }
-.stkrb-guide > summary::-webkit-details-marker{ display:none; }
-.stkrb-guide > summary::after{ content:''; width:7px; height:7px; border-right:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(45deg); transition:transform .15s; margin-right:3px; }
-.stkrb-guide[open] > summary::after{ transform:rotate(-135deg); }
-.stkrb-checks{ list-style:none; margin:0; padding:0 12px 10px; }
-.stkrb-checks li{ position:relative; margin:0 0 9px; padding:0 0 0 22px; font-size:12.5px; line-height:1.5; color:var(--ink-1); }
-.stkrb-checks li::before{ content:''; position:absolute; left:2px; top:5px; width:9px; height:5px; border-left:2px solid var(--gold); border-bottom:2px solid var(--gold); transform:rotate(-45deg); }
-.stkrb-checks li b{ color:var(--ink-0); }
-.stkrb-checks li.warn{ margin-right:0; padding:8px 10px 8px 30px; border:1px solid rgba(232,176,74,.4); border-radius:8px; background:rgba(232,176,74,.07); color:var(--ink-1); }
-.stkrb-checks li.warn::before{ content:'!'; left:10px; top:8px; width:auto; height:auto; border:0; transform:none; font-weight:800; color:var(--amber, #e8b04a); }
+.stkrb-lead{ margin:0 0 12px !important; font-size:12.5px; line-height:1.5; color:var(--ink-2); }
+.stkrb-prog{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:0 0 6px; padding:0; list-style:none; }
+.stkrb-prog li{ position:relative; display:flex; align-items:center; gap:6px; min-width:0; padding-top:9px; font-size:11.5px; font-weight:600; color:var(--ink-3, #8a8f98); }
+.stkrb-prog li::before{ content:''; position:absolute; left:0; right:0; top:0; height:3px; border-radius:2px; background:var(--line); transition:background .2s; }
+.stkrb-prog li b{ flex:none; display:inline-grid; place-items:center; width:18px; height:18px; border-radius:6px; border:1px solid var(--line); font-size:10.5px; font-weight:700; line-height:1; }
+.stkrb-prog li span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.stkrb-prog li.on{ color:var(--ink-0); }
+.stkrb-prog li.on::before{ background:var(--gold); }
+.stkrb-prog li.on b{ border-color:var(--gold); color:var(--gold); }
+.stkrb-prog li.done{ color:var(--ink-1); }
+.stkrb-prog li.done::before{ background:rgba(3,201,136,.45); }
+.stkrb-prog li.done b{ background:var(--gold); border-color:var(--gold); color:#04120c; font-size:0; }
+.stkrb-prog li.done b::after{ content:''; width:8px; height:4px; border-left:2px solid #04120c; border-bottom:2px solid #04120c; transform:rotate(-45deg) translate(1px,-1px); }
+.stkrb-where{ user-select:none; -webkit-tap-highlight-color:transparent; display:inline-flex; align-items:center; gap:6px; margin:6px 0 12px; padding:0; border:0; background:transparent; color:var(--gold); font:600 12.5px/1.2 inherit; font-family:inherit; cursor:pointer; min-height:28px; }
+.stkrb-where i{ display:inline-grid; place-items:center; width:17px; height:17px; border-radius:50%; border:1.5px solid currentColor; font-style:normal; font-size:11px; font-weight:800; }
+.stkrb-where:hover span{ text-decoration:underline; }
+.stkrb-f > span .stkrb-n{ display:inline-block; margin-right:5px; color:var(--gold); font-weight:700; }
+.stkrb-two{ display:grid; grid-template-columns:1fr; gap:0; }
+.stkrb-session{ display:flex; gap:7px; align-items:flex-start; margin:2px 0 10px; font-size:11.5px; line-height:1.45; color:var(--amber, #e8b04a); }
+.stkrb-session svg{ flex:none; margin-top:1px; }
+.stkrb-lock{ display:flex; gap:7px; align-items:flex-start; margin:9px 0 0; font-size:11.5px; line-height:1.45; color:var(--ink-2); }
+.stkrb-lock svg{ flex:none; margin-top:1px; color:var(--gold); }
+.stkrb-back{ position:fixed; inset:0; z-index:100010; background:rgba(0,0,0,.55); }
+.stkrb-back[hidden], .stkrb-card[hidden]{ display:none; }
+.stkrb-card{ position:fixed; left:0; right:0; bottom:0; z-index:100011; margin:0 auto; width:100%; max-width:480px; max-height:82vh; overflow-y:auto; box-sizing:border-box;
+  padding:8px 18px 22px; background:var(--bg-2, #141a22); border:1px solid var(--line); border-bottom:0; border-radius:18px 18px 0 0; box-shadow:0 -18px 40px -12px rgba(0,0,0,.6);
+  overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(150,160,175,.35) transparent; }
+.stkrb-card::-webkit-scrollbar{ width:6px; }
+.stkrb-card::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
+.stkrb-card::-webkit-scrollbar-thumb:hover{ background:rgba(150,160,175,.6); }
+.stkrb-grab{ width:38px; height:4px; border-radius:2px; background:var(--line); margin:4px auto 12px; }
+.stkrb-card h4{ margin:0 0 10px; font-size:15px; color:var(--ink-0); display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.stkrb-card .stkrb-cx{ height:32px; padding:0 12px; border:1px solid var(--line); border-radius:8px; background:transparent; color:var(--ink-0); font:600 12.5px/1 inherit; font-family:inherit; cursor:pointer; }
+.stkrb-checks{ list-style:none; counter-reset:c; margin:0; padding:0; }
+.stkrb-checks li{ counter-increment:c; position:relative; margin:0 0 11px; padding:0 0 0 30px; font-size:12.5px; line-height:1.5; color:var(--ink-1); }
+.stkrb-checks li::before{ content:counter(c); position:absolute; left:0; top:1px; width:20px; height:20px; border-radius:7px; background:rgba(3,201,136,.14); color:var(--gold); font-size:11px; font-weight:700; display:grid; place-items:center; }
+.stkrb-checks li b{ display:block; color:var(--ink-0); font-size:13px; }
 .stkrb-checks a, .stkrb-helplink a{ color:var(--gold); }
 .stkrb-help{ display:block; margin-top:4px; font-size:11.5px; line-height:1.45; color:var(--ink-3, #8a8f98); }
 .stkrb-passwrap{ position:relative; display:block; }
@@ -137,6 +163,12 @@ const CSS = `
 .stkrb-full::-webkit-scrollbar-thumb{ background:rgba(150,160,175,.35); border-radius:3px; }
 .stkrb-fullx{ display:none; }
 .stkrb-full .stkrb-fullx{ display:block; margin:0 0 10px auto; height:36px; padding:0 14px; border:1px solid var(--line); border-radius:6px; background:transparent; color:var(--ink-0); font:inherit; cursor:pointer; }
+@media (min-width:361px){ .stkrb-two{ grid-template-columns:1fr 1fr; gap:10px; } }
+.stkrb-chipgo{ position:fixed; z-index:60; display:inline-flex; align-items:center; gap:2px; height:28px; border-radius:999px; background:rgba(3,201,136,.14); border:1px solid rgba(3,201,136,.5); color:var(--gold); font:600 12px/1 inherit; font-family:inherit; box-shadow:0 4px 14px -6px rgba(0,0,0,.6); backdrop-filter:blur(6px); }
+.stkrb-chipgo[hidden]{ display:none; }
+.stkrb-chipgo button{ display:inline-flex; align-items:center; gap:6px; height:100%; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; padding:0 4px 0 10px; border-radius:999px 0 0 999px; white-space:nowrap; }
+.stkrb-chipgo button.x{ padding:0 9px 0 4px; font-size:15px; line-height:1; border-radius:0 999px 999px 0; opacity:.8; }
+.stkrb-chipgo button:hover{ color:var(--ink-0); }
 @media (max-width:700px){
   .stkrb-pop{ width:auto; }
   .stkrb-f .stkc-in{ height:40px; font-size:16px; }
@@ -259,17 +291,38 @@ export function createRithmic(cfg) {
     // ---- the sheet ----
     const li = (kids, cls) => el('li', cls ? { class: cls } : null, kids);
     const t = (x) => document.createTextNode(x);
-    const guide = el('details', { class: 'stkrb-guide', id: 'stkrb-guide' }, [
-      el('summary', { text: 'Before you connect' }),
-      el('ul', { class: 'stkrb-checks' }, [
-        li([el('b', { text: 'Use your Rithmic login. ' }), t('It is the one your prop firm or broker gave you (often letters and numbers), not your login for their website.')]),
-        li([el('b', { text: 'The account must be active with CME market data. ' }), t('A brand-new login must first accept the market data agreements once in '), el('a', { href: 'https://rithmic.com/rtraderpro-web', target: '_blank', rel: 'noopener', text: 'R | Trader Pro' }), t('.')]),
-        li([el('b', { text: 'Heads up: ' }), t('Rithmic allows a limited number of sessions per login. Connecting here can log out another app using the same login, like your trading platform. Avoid connecting while you are in a trade.')], 'warn'),
-        li([el('b', { text: 'Data only. ' }), t('TradeZoro cannot place, change or close trades. Your password goes from your browser straight to Rithmic. We never see or store it.')])
-      ])
+    const svg = (d, w) => el('span', { html: '<svg width="' + (w || 14) + '" height="' + (w || 14) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>' }).firstChild;
+    const ICON_LOCK = '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>';
+    const ICON_WARN = '<path d="M12 4 2.8 19h18.4z"/><path d="M12 10v4M12 17h.01"/>';
+    const ICON_PLUG = '<path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M8 12h8"/>';
+    // The full checklist lives in a bottom card (opened by "Where's my Rithmic login?").
+    const appName = cfg.appName || 'Stryker Charts';
+    const card = el('div', { class: 'stkrb-card', id: 'stkrb-card', role: 'dialog', 'aria-label': 'Where is my Rithmic login', hidden: true }, [
+      el('div', { class: 'stkrb-grab' }),
+      el('h4', null, [el('span', { text: 'Before you connect' }), el('button', { type: 'button', class: 'stkrb-cx', id: 'stkrb-card-x', text: 'Done' })]),
+      el('ol', { class: 'stkrb-checks', id: 'stkrb-checks' }, [
+        li([el('b', { text: 'A Rithmic login, not a website login' }), t('Your prop firm sends a separate Rithmic username and password. The one for their dashboard or website will not work here.')]),
+        li([el('b', { text: 'The same system name as R | Trader Pro' }), t('Pick the system you choose when you sign in to R | Trader Pro.')]),
+        li([el('b', { text: 'Active account with CME market data' }), t('The login must be active and have CME data switched on.')]),
+        li([el('b', { text: 'New login? Accept the data agreements once' }), t('Sign in on '), el('a', { href: 'https://rithmic.com/rtraderpro-web', target: '_blank', rel: 'noopener', text: 'R | Trader Pro on the web' }), t(' and accept them. Until then Rithmic refuses market data.')]),
+        li([el('b', { text: 'Demo and trial logins cannot connect' }), t('Use a funded, evaluation or live login that has market data.')]),
+        li([el('b', { text: 'Some firms must allow \u201c' + appName + '\u201d first' }), t('If you see \u201cpermission denied\u201d, ask your firm\u2019s support to allow the app name ' + appName + ' for your login.')])
+      ]),
+      el('p', { class: 'stkrb-note', text: 'Data only. TradeZoro cannot place, change or close trades.' })
     ]);
-    guide.open = lsGet(LS_GUIDE) !== '1';
-    guide.addEventListener('toggle', () => { if (!guide.open) lsSet(LS_GUIDE, '1'); else { try { localStorage.removeItem(LS_GUIDE); } catch (e) {} } });
+    const back = el('div', { class: 'stkrb-back', id: 'stkrb-back', hidden: true });
+    const setCard = (open) => { card.hidden = !open; back.hidden = !open; whereBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); if (open) card.scrollTop = 0; };
+    back.addEventListener('click', (e) => { e.stopPropagation(); setCard(false); });
+    card.addEventListener('click', (e) => e.stopPropagation());
+    card.querySelector('#stkrb-card-x').addEventListener('click', () => { setCard(false); whereBtn.focus(); });
+    document.body.appendChild(back);
+    document.body.appendChild(card);
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !card.hidden) { e.stopPropagation(); setCard(false); } }, true);
+    const whereBtn = el('button', { type: 'button', class: 'stkrb-where', id: 'stkrb-where', 'aria-haspopup': 'dialog', 'aria-expanded': 'false' }, [el('i', { text: '?', 'aria-hidden': 'true' }), el('span', { text: 'Where\u2019s my Rithmic login?' })]);
+    whereBtn.addEventListener('click', () => setCard(true));
+    // 3-step progress header: the current step lights up as the fields fill in.
+    const progItems = ['Server', 'Prop firm', 'Login'].map((n, i) => el('li', null, [el('b', { text: String(i + 1) }), el('span', { text: n })]));
+    const prog = el('ol', { class: 'stkrb-prog', id: 'stkrb-prog', 'aria-label': 'Connect steps' }, progItems);
     const err = el('p', { class: 'stkrb-err', id: 'stkrb-err', role: 'alert', hidden: true });
     const brokerR = el('button', { type: 'button', class: 'stkrb-broker', role: 'radio', 'aria-checked': 'true', html: 'Rithmic<small>Rithmic 01, TradeSea, Apex, Tradeify and more</small>' });
     const gwSel = el('select', { class: 'stkc-in', id: 'stkrb-gw', 'aria-label': 'Rithmic gateway' });
@@ -284,8 +337,8 @@ export function createRithmic(cfg) {
       hint.hidden = !(near && cur && cur.id !== near.id);
       if (!hint.hidden) { hint.textContent = 'Closest to you: ' + near.label + '. '; hint.appendChild(el('a', { href: '#', text: 'Use it', onclick: (e) => { e.preventDefault(); gwSel.value = near.uri; gwSel.dispatchEvent(new Event('change')); } })); }
     };
-    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', { text: 'Gateway (server location)' }), gwSel, el('small', { class: 'stkrb-help', text: 'Pick the closest location. Chicago works for most people.' }), hint]);
-    gwSel.addEventListener('change', () => { systemsLoaded = false; showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
+    const gwField = el('label', { class: 'stkrb-f', hidden: (cfg.gateways || []).length < 2 }, [el('span', null, [el('em', { class: 'stkrb-n', text: '1', style: 'font-style:normal' }), t('Server location')]), gwSel, el('small', { class: 'stkrb-help', text: 'The nearest city is fastest. Chicago suits most people.' }), hint]);
+    gwSel.addEventListener('change', () => { systemsLoaded = false; syncProg(); showErr(''); cfg.gateway = gwSel.value; lsSet(LS_GW, gwSel.value); showHint(); loadSystems(); });
     setTimeout(showHint, 0);
     const sys = el('select', { class: 'stkc-in', id: 'stkrb-sys', required: true, 'aria-label': 'Rithmic system' });
     const touch = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
@@ -302,22 +355,35 @@ export function createRithmic(cfg) {
     gwSel.addEventListener('change', syncTestNote);
     setTimeout(syncTestNote, 0);
     const form = el('form', { class: 'stkrb-form', id: 'stkrb-form', novalidate: true }, [
-      el('h3', { text: 'Connect broker' }),
-      el('div', { class: 'stkrb-brokers', role: 'radiogroup', 'aria-label': 'Broker' }, [brokerR]),
-      guide,
+      el('h3', { text: 'Connect your prop firm' }),
+      el('p', { class: 'stkrb-lead', text: 'CME futures on the chart using your prop firm\u2019s Rithmic login. Data only.' }),
+      prog,
+      whereBtn,
       err,
       gwField,
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'System' }), sys, sysBtn, el('small', { class: 'stkrb-help', id: 'stkrb-sys-hint', text: "Your prop firm or broker. Not sure? It's the system name you pick when you log in to R | Trader Pro." })]),
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic username' }), user]),
-      el('label', { class: 'stkrb-f' }, [el('span', { text: 'Rithmic password' }), el('span', { class: 'stkrb-passwrap' }, [pass, eye])]),
-      el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Remember username' })])]),
+      el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '2', style: 'font-style:normal' }), t('Prop firm')]), sys, sysBtn, el('small', { class: 'stkrb-help', id: 'stkrb-sys-hint', text: 'Pick the same name R | Trader Pro shows at sign-in.' })]),
+      el('div', { class: 'stkrb-two' }, [
+        el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '3', style: 'font-style:normal' }), t('Rithmic username')]), user]),
+        el('label', { class: 'stkrb-f' }, [el('span', null, [el('em', { class: 'stkrb-n', text: '3', style: 'font-style:normal' }), t('Rithmic password')]), el('span', { class: 'stkrb-passwrap' }, [pass, eye])])
+      ]),
+      el('small', { class: 'stkrb-help', id: 'stkrb-login-hint', style: 'margin:-3px 0 8px', text: 'From your firm\u2019s Rithmic email, not the website login.' }),
+      el('div', { class: 'stkrb-row' }, [el('label', { class: 'stkc-check' }, [remember, el('span', { text: 'Save username on this device' })])]),
+      el('p', { class: 'stkrb-session', id: 'stkrb-session' }, [svg(ICON_WARN, 14), el('span', { text: 'One session per login: connecting can sign out your trading app. Don\u2019t connect mid-trade.' })]),
       go,
+      el('p', { class: 'stkrb-lock', id: 'stkrb-lock' }, [svg(ICON_LOCK, 14), el('span', { text: 'Your login stays private: it goes from this device straight to Rithmic. We never see or store your password.' })]),
       testNote,
-      false ? el('p', { class: 'stkrb-note stkrb-test', text: 'Admin: the Rithmic Test gateway has no real market prices.' }) : null,
-      el('p', { class: 'stkrb-note', text: 'Your password goes straight from your browser to Rithmic. TradeZoro never sees or stores it. Live prices come from your own Rithmic data subscription.' }),
       el('p', { class: 'stkrb-helplink' }, [el('a', { href: HELP_URL, target: '_blank', rel: 'noopener', text: 'Help with connecting \u2192' })]),
       el('div', { class: 'stkrb-sheet-legal', id: 'stkrb-sheet-legal' }, [logos(), noticeList()])
     ]);
+    let systemsLoaded = false;
+    const syncProg = () => {
+      const s1 = systemsLoaded, s2 = !!sys.value, s3 = !!(user.value.trim() && pass.value);
+      const done = [s1, s1 && s2, s1 && s2 && s3];
+      const cur = done.findIndex((d) => !d);
+      progItems.forEach((n, i) => { n.className = done[i] ? 'done' : (i === cur ? 'on' : ''); if (done[i]) n.setAttribute('aria-label', ['Server', 'Prop firm', 'Login'][i] + ' done'); else n.removeAttribute('aria-label'); n.title = ''; });
+    };
+    [user, pass].forEach((x) => x.addEventListener('input', syncProg));
+    sys.addEventListener('change', syncProg);
     const onInfo = el('p', {});
     // Rithmic's unique_user_id per plant (from the login response), for the member's own reference
     // (Rithmic support asks for it). In memory only; never sent anywhere.
@@ -332,10 +398,10 @@ export function createRithmic(cfg) {
 
     const savedUser = lsGet(LS_USER);
     if (savedUser) { user.value = savedUser; remember.checked = true; }
+    syncProg();
 
     if (touch) { sys.classList.add('stkrb-nat'); } else { sysBtn.hidden = true; }
     sys.addEventListener('change', () => { syncBtn(); if (sys.value) lsSet(LS_SYS, sys.value); });
-    let systemsLoaded = false;
     const sysList = el('div', { class: 'stkrb-syslist', id: 'stkrb-syslist', role: 'listbox', hidden: true });
     const sysSearch = el('input', { class: 'stkc-in', type: 'search', placeholder: 'Search your firm', 'aria-label': 'Search systems', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
     const sysRows = el('div', { class: 'stkrb-sysrows' });
@@ -352,7 +418,7 @@ export function createRithmic(cfg) {
       sysRows.innerHTML = '';
       sysNames.filter((n) => !q || n.toLowerCase().includes(q)).forEach((n) => {
         sysRows.appendChild(el('button', { type: 'button', class: 'stkrb-sysrow' + (n === sys.value ? ' on' : ''), role: 'option', text: n, onclick: () => {
-          sys.value = n; lsSet(LS_SYS, n); syncBtn(); sysList.hidden = true; } }));
+          sys.value = n; lsSet(LS_SYS, n); syncBtn(); syncProg(); sysList.hidden = true; } }));
       });
       if (!sysRows.children.length) sysRows.appendChild(el('p', { class: 'stkrb-note', text: 'No match.' }));
     };
@@ -363,7 +429,7 @@ export function createRithmic(cfg) {
     function loadSystems() {
       if (systemsLoaded) return Promise.resolve();
       if (sysLoading) return sysLoading;
-      sysLoading = loadSystems2().finally(() => { sysLoading = null; syncBtn(); });
+      sysLoading = loadSystems2().finally(() => { sysLoading = null; syncBtn(); syncProg(); });
       return sysLoading;
     }
     async function loadSystems2() {
@@ -430,7 +496,6 @@ export function createRithmic(cfg) {
       lsSet(LS_SYS, s);
       try {
         await client.connect({ user: u, password: p, systemName: s, gateway: gwSel.value || cfg.gateway });
-        lsSet(LS_GUIDE, '1'); guide.open = false;
         toast('Connected to Rithmic');
         setOpen(false);
       } catch (e) {
@@ -446,6 +511,7 @@ export function createRithmic(cfg) {
     // popover open/close (same behaviour as the other toolbar menus)
     function setOpen(open) {
       pop.hidden = !open;
+      setTimeout(() => { try { syncChip(); } catch (e) {} }, 0);
       btn.setAttribute('aria-expanded', open ? 'true' : 'false');
       if (open) { render(); if (!client.connected) { loadSystems(); if (!touch) setTimeout(() => (user.value ? pass : user).focus(), 30); }
       else if (!sysList.hidden) sysList.hidden = true; }
@@ -525,7 +591,48 @@ export function createRithmic(cfg) {
       }
     });
     window.addEventListener('pagehide', () => { client.disconnect(true); });
+
+    // ---- chart shortcut: a small mint pill on the chart for signed-in members who are not connected, on futures ----
+    // Hidden while connected, on non-futures symbols, for signed-out visitors, and for 7 days after the member taps the x.
+    const go7 = el('button', { type: 'button', id: 'stkrb-chipgo-b', 'aria-label': 'Live futures: connect your prop firm login' }, [svg(ICON_PLUG, 14), el('span', { text: 'Live futures: connect' })]);
+    const nogo = el('button', { type: 'button', class: 'x', id: 'stkrb-chipgo-x', 'aria-label': 'Hide for 7 days', title: 'Hide for 7 days', text: '\u00d7' });
+    const chipGo = el('div', { class: 'stkrb-chipgo', id: 'stkrb-chipgo', hidden: true }, [go7, nogo]);
+    document.body.appendChild(chipGo);
+    const isFut = (sym) => /^futures:/i.test(sym || '') || /^[A-Z0-9]+1!$/i.test(sym || '');
+    const signedIn = () => { try { return !!(typeof auth !== 'undefined' && auth && auth.currentUser && auth.currentUser.uid); } catch (e) { return false; } };
+    const hiddenUntil = () => { const v = Number(lsGet(LS_HIDE)); return Number.isFinite(v) ? v : 0; };
+    function placeChip() {
+      const host = document.getElementById('vela-chart');
+      if (!host) return false;
+      const r = host.getBoundingClientRect();
+      if (r.width < 200 || r.height < 120) return false;
+      // top-right of the plot, left of the price axis; never over the toolbar
+      // phones: under the symbol line (the line itself is full width), right side is free; desktop: top-right corner
+      chipGo.style.top = Math.round(r.top + (r.width < 700 ? 40 : 6)) + 'px';
+      chipGo.style.right = Math.max(8, Math.round(window.innerWidth - r.right + 64)) + 'px';
+      return true;
+    }
+    function syncChip() {
+      let sym = '';
+      try { sym = (ws && ws.active && ws.active.symbol) || ''; } catch (e) {}
+      const on = client.state === 'connected' || client.state === 'reconnecting';
+      const show = signedIn() && !on && isFut(sym) && Date.now() >= hiddenUntil() && pop.hidden;
+      chipGo.hidden = !(show && placeChip());
+    }
+    go7.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.stkc-pop').forEach((p) => { if (p !== pop && !p.hidden) p.hidden = true; });
+      setOpen(true);
+    });
+    nogo.addEventListener('click', (e) => { e.stopPropagation(); lsSet(LS_HIDE, String(Date.now() + 7 * 864e5)); chipGo.hidden = true; });
+    ['state:changed', 'layout:changed', 'cell:active'].forEach((ev) => { try { ws.on(ev, () => setTimeout(syncChip, 0)); } catch (e) {} });
+    client.on(() => syncChip());
+    window.addEventListener('resize', syncChip);
+    const hostEl = document.getElementById('vela-chart');
+    if (hostEl && window.ResizeObserver) new ResizeObserver(syncChip).observe(hostEl);
+    setInterval(syncChip, 2000);   // cheap safety net: sign-in finishing, symbol swaps, the 7 days running out
     render();
+    syncChip();
   }
 
   return { client, providerFactory, mount, api };

@@ -3308,14 +3308,14 @@
       {
        "id": "rithmic-connect",
        "q": "How do I connect Rithmic?",
-       "a": "<p>Open the Connect broker sheet. Read the \"Before you connect\" box, choose your gateway and system, enter your Rithmic username and password, and tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
+       "a": "<p>Open the \"Connect your prop firm\" sheet (or tap the green \"Live futures: connect\" pill on a futures chart). Follow the three steps: server, prop firm, login. Then tap Connect.</p><p>Use the Rithmic login from your prop firm or broker, not your login for their website.</p><p><img src=\"/assets/help/shots/connect-broker-desktop.webp\" alt=\"The Connect broker sheet on desktop\"></p>",
        "steps": [
         "Open ZoroCharts (desktop: Connect broker in the top bar; phone: ... More → Connect data (Rithmic)).",
-        "Read the \"Before you connect\" box. It closes by itself after your first successful connect.",
-        "Choose the Gateway (server location). Pick the closest one. Chicago works for most people.",
-        "Choose the System. It is your prop firm or broker, the same system name you pick in R | Trader Pro.",
-        "Enter your Rithmic username and Rithmic password. Use the eye (Show/Hide) to check what you typed.",
-        "Optionally tick Remember username (it saves username and system, not the password).",
+        "Not sure what login to use? Tap \"Where\u2019s my Rithmic login?\" for the checklist.",
+        "Step 1, Server location: pick the closest one. Chicago suits most people.",
+        "Step 2, Prop firm: pick the same system name R | Trader Pro shows at sign-in.",
+        "Step 3, Login: enter your Rithmic username and password. Use Show/Hide to check what you typed.",
+        "Optionally tick Save username on this device (username and system only, never the password).",
         "Tap Connect. You see \"Connected to Rithmic\"."
        ],
        "path": "ZoroCharts → Connect broker",

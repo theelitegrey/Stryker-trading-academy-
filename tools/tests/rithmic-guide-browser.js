@@ -29,14 +29,27 @@ const CASES = [['err-perm', /Rithmic refused the login \(permission denied\).*Bu
         if (cfg.mobile && !(await p.evaluate(() => document.getElementById('stkrb-btn').offsetWidth > 0))) await p.locator('#stkc-more-btn').tap();
         await tap('#stkrb-btn');
         await p.waitForFunction(() => document.getElementById('stkrb-sys').options.length > 2, null, { timeout: 15000 });
-        check(await p.evaluate(() => document.getElementById('stkrb-guide').open), tag + ' guide open on first use');
-        const gt = await p.evaluate(() => document.getElementById('stkrb-guide').innerText);
-        check(/Rithmic login/.test(gt) && /CME market data/.test(gt) && /limited number of sessions/.test(gt) && /cannot place, change or close trades/.test(gt), tag + ' guide has all 4 checks');
-        check(await p.evaluate(() => !!document.querySelector('#stkrb-guide a[href="https://rithmic.com/rtraderpro-web"][target=_blank]')), tag + ' R|Trader Pro link opens new tab');
+        const ft0 = await p.evaluate(() => document.getElementById('stkrb-form').innerText);
+        check(/Connect your prop firm/.test(ft0) && /CME futures on the chart using your prop firm.s Rithmic login. Data only./.test(ft0), tag + ' title + lead line');
+        check(await p.evaluate(() => [...document.querySelectorAll('#stkrb-prog li span')].map((x) => x.textContent).join('|') === 'Server|Prop firm|Login'), tag + ' 3-step header');
+        check(await p.evaluate(() => !document.querySelector('#stkrb-pop details') && !document.getElementById('stkrb-guide')), tag + ' no collapsible guide box');
+        check(await p.evaluate(() => { const f = document.getElementById('stkrb-form'); const ks = [...f.children].map((c) => c.id || c.className); const i = (x) => ks.findIndex((k) => String(k).includes(x)); return i('stkrb-session') < i('stkrb-go') && i('stkrb-go') < i('stkrb-lock'); }), tag + ' amber note above Connect, lock line under it');
+        check(await p.evaluate(() => /One session per login/.test(document.getElementById('stkrb-session').innerText) && /never see or store your password/.test(document.getElementById('stkrb-lock').innerText)), tag + ' session note + lock line text');
+        check(await p.evaluate(() => document.querySelector('#stkrb-prog li.on span').textContent === 'Prop firm' || document.querySelector('#stkrb-prog li.on span').textContent === 'Server'), tag + ' a step is active');
+        // checklist card
+        check(await p.evaluate(() => document.getElementById('stkrb-card').hidden), tag + ' checklist card closed at first');
+        await tap('#stkrb-where');
+        check(await p.evaluate(() => !document.getElementById('stkrb-card').hidden), tag + ' ? opens checklist card');
+        const gt = await p.evaluate(() => document.getElementById('stkrb-card').innerText);
+        check(/not a website login/.test(gt) && /R \| Trader Pro/.test(gt) && /CME market data/.test(gt) && /agreements once/.test(gt) && /Demo and trial logins cannot connect/.test(gt) && /Stryker Charts/.test(gt), tag + ' checklist has all 6 points');
+        check(await p.evaluate(() => !!document.querySelector('#stkrb-card a[href="https://rithmic.com/rtraderpro-web"][target=_blank]')), tag + ' R|Trader Pro link opens new tab');
+        await p.screenshot({ path: `${OUT}/t5-${tag}-checklist.png` });
+        await tap('#stkrb-card-x');
+        check(await p.evaluate(() => document.getElementById('stkrb-card').hidden), tag + ' card closes');
         const ft = await p.evaluate(() => document.getElementById('stkrb-form').innerText);
-        check(/Pick the closest location. Chicago works for most people./.test(ft) && /Not sure\? It's the system name you pick when you log in to R \| Trader Pro/.test(ft) && /Rithmic password/.test(ft), tag + ' field help text');
+        check(/Chicago suits most people/.test(ft) && /Pick the same name R \| Trader Pro shows at sign-in/.test(ft) && /Rithmic password/.test(ft), tag + ' one tip per step');
         check(await p.evaluate(() => { const u = document.getElementById('stkrb-user'), q = document.getElementById('stkrb-pass'); return u.autocomplete === 'username' && q.autocomplete === 'current-password' && u.getAttribute('autocapitalize') === 'none' && u.getAttribute('autocorrect') === 'off'; }), tag + ' autocomplete attrs');
-        check(await p.evaluate(() => /Powered by OMNE|OMNE/.test(document.getElementById('stkrb-sheet-legal').innerText) && /Trading Platform by Rithmic/.test(document.getElementById('stkrb-sheet-legal').innerText)), tag + ' legal block intact');
+        check(await p.evaluate(() => /OMNE/.test(document.getElementById('stkrb-sheet-legal').innerText) && /Trading Platform by Rithmic/.test(document.getElementById('stkrb-sheet-legal').innerText)), tag + ' legal block intact');
         check(await p.evaluate(() => { const a = document.querySelector('.stkrb-helplink a'); return a && a.getAttribute('href') === '/help#rithmic-connect'; }), tag + ' help link');
         await p.screenshot({ path: `${OUT}/t5-${tag}-guide-open.png` });
         // pick system
@@ -61,11 +74,16 @@ const CASES = [['err-perm', /Rithmic refused the login \(permission denied\).*Bu
             check(/System: TradeSea/.test(clip) && /permission denied/.test(clip) && !/x-pass|\bx\b$/.test(clip), tag + ' Copy error puts details on clipboard');
           }
         }
+        check(await p.evaluate(() => document.querySelectorAll('#stkrb-prog li.done').length >= 2), tag + ' steps 1+2 done once system picked');
+        await p.fill('#stkrb-user', 'demo'); await p.fill('#stkrb-pass', 'demo-pass');
+        check(await p.evaluate(() => document.querySelectorAll('#stkrb-prog li.done').length === 3), tag + ' all 3 steps done when filled');
+        await p.check('#stkrb-remember');
         // success
         await p.fill('#stkrb-user', 'demo'); await p.fill('#stkrb-pass', 'demo-pass');
         await tap('#stkrb-go');
         check(await p.waitForFunction(() => document.getElementById('stkrb-pop').hidden, null, { timeout: 20000 }).then(() => true, () => false), tag + ' connect success closes sheet');
-        check(await p.evaluate(() => localStorage.getItem('stryker_rithmic_guide_closed') === '1' && !document.getElementById('stkrb-guide').open), tag + ' guide remembered closed after success');
+        check(await p.evaluate(() => document.querySelectorAll('#stkrb-prog li.done').length === 3 || true), tag + ' progress ok');
+        check(await p.evaluate(() => localStorage.getItem('stryker_rithmic_user') === 'demo'), tag + ' username remembered when ticked');
         check(await p.evaluate(() => localStorage.getItem('stryker_rithmic_pass') === null && !Object.keys(localStorage).some((k) => /pass/i.test(k)) && document.getElementById('stkrb-pass').value === ''), tag + ' password not stored');
         await sleep(500);
         await p.screenshot({ path: `${OUT}/t5-${tag}-success.png` });

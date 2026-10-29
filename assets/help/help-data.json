@@ -784,7 +784,7 @@
       {
        "id": "free-vs-pro",
        "q": "What is the difference between Free and Pro?",
-       "a": "<p>Charts are free for everyone. Pro adds real-time data, order flow tools, GEX on charts, and more.</p><ul><li><strong>Free</strong>: chapters 1-10, ZoroCharts (data updated every 10 minutes), Replay One, GEX+ SPX same-day, JournalX up to 20 new trades a month, read-only community, scanner presets.</li><li><strong>Pro</strong>: real-time chart data, order flow tools, GEX on charts and GEX+ for every symbol and expiry, unlimited JournalX with import, broker sync, analytics and AI coach, all 64 chapters, Smart Money Desk, trading models, private indicators, posting and messages, custom scanner filters.</li></ul>",
+       "a": "<p>Charts are free for everyone. Pro adds order flow tools, GEX on charts, and more. Futures data is 10 minutes delayed on Free and Pro unless you connect Rithmic, add live futures data for $5/month, or we approve you.</p><ul><li><strong>Free</strong>: chapters 1-10, ZoroCharts (CME futures 10 minutes delayed, crypto live), Replay One, GEX+ SPX same-day, JournalX up to 20 new trades a month, read-only community, scanner presets.</li><li><strong>Pro</strong>: order flow tools, GEX on charts and GEX+ for every symbol and expiry, unlimited JournalX with import, broker sync, analytics and AI coach, all 64 chapters, Smart Money Desk, trading models, private indicators, posting and messages, custom scanner filters.</li></ul>",
        "plans": "all",
        "tags": [
         "pro",
@@ -1370,7 +1370,7 @@
       {
        "id": "zorocharts-what",
        "q": "What is ZoroCharts?",
-       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds real-time data, order flow tools and GEX on charts.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
+       "a": "<p>ZoroCharts is the charting workspace inside TradeZoro. It is free on every plan. It has candles and other chart types, drawing tools, 70+ indicators, alerts, layouts, bar replay and paper trading.</p><p>Pro adds order flow tools and GEX on charts. CME futures are 10 minutes delayed (CME rule) unless you connect Rithmic, add live futures data ($5/month) or are approved by us. Crypto is live for everyone.</p><p><img src=\"/assets/help/shots/charts-phone.webp\" alt=\"ZoroCharts on a phone\"></p>",
        "path": "ZoroCharts (dock)",
        "tags": [
         "charts",
@@ -1469,7 +1469,7 @@
       {
        "id": "data-dot",
        "q": "What is the coloured dot next to the symbol?",
-       "a": "<p>It shows the data status: green with Real-time, amber with Delayed 10m, grey with Closed. Free futures and forex data is updated about 10 minutes behind. Crypto from the public feeds is real-time. Tap or hover the dot for the full line.</p>",
+       "a": "<p>It shows the data status: green with Live, amber with 10 min delayed · CME, grey with Closed. CME futures are 10 minutes behind (CME rule) unless you connect Rithmic (Live (Rithmic)), have the $5/month live futures data add-on, or were approved by us. Forex is also delayed. Crypto from the public feeds is live. Tap or hover the dot for the full line.</p>",
        "tags": [
         "dot",
         "green",
@@ -3547,10 +3547,10 @@
       {
        "id": "candles-not-moving",
        "q": "Candles are not moving.",
-       "a": "<p>First look at the data dot by the symbol. Amber Delayed 10m means Free futures and forex data updates about every 10 minutes. Grey Closed means the market is shut.</p>",
+       "a": "<p>First look at the data dot by the symbol. Amber 10 min delayed · CME means futures data is 10 minutes behind (CME rule). Grey Closed means the market is shut.</p>",
        "steps": [
         "Check the dot by the symbol.",
-        "On Free futures, wait for the next update or upgrade for real-time data.",
+        "On CME futures, get live data: connect Rithmic, add live futures data ($5/month), or ask us for approval.",
         "Check your connection and refresh the page.",
         "Try crypto (e.g. BTC) to see a live feed."
        ],
@@ -3570,8 +3570,8 @@
       {
        "id": "free-data-delay",
        "q": "Why is my data 10 minutes behind?",
-       "a": "<p>On the Free plan, futures and forex chart data is updated about every 10 minutes (shown as Delayed 10m). Pro gets real-time data. Crypto from public feeds is real-time on every plan.</p>",
-       "plans": "free",
+       "a": "<p>CME rules put futures data 10 minutes behind for everyone unless it is licensed for you. This applies to Free and Pro alike. See \"How do I get live futures data?\" for the three ways to get it. Crypto from public feeds is live on every plan.</p>",
+       "plans": "all",
        "tags": [
         "delay",
         "delayed",
@@ -3586,9 +3586,30 @@
        ]
       },
       {
+       "id": "live-futures-data",
+       "q": "How do I get live futures data?",
+       "a": "<p>CME futures on ZoroCharts are 10 minutes delayed by CME rule. There are three ways to get them live:</p><ol><li><strong>Connect your Rithmic login</strong>: tap Connect data source on the chart strip (or Connect broker in the toolbar). Your own data comes straight from Rithmic to your browser. Data only, no orders.</li><li><strong>Live futures data, $5/month</strong>: tap Live data $5/mo on the strip or open Settings → Live futures data. Cancel any time in Settings. Works on Free and Pro.</li><li><strong>Ask us for approval</strong>: we can switch live futures data on for your account by hand. Email support.</li></ol><p>Crypto (BTC, ETH and others) is live for everyone with no setup.</p>",
+       "plans": "all",
+       "tags": [
+        "live futures data",
+        "real time",
+        "real-time futures",
+        "delayed",
+        "10 minutes",
+        "cme rule",
+        "$5",
+        "connect data source"
+       ],
+       "related": [
+        "free-data-delay",
+        "rithmic-what",
+        "data-dot"
+       ]
+      },
+      {
        "id": "pro-realtime",
        "q": "I am Pro but data still shows delayed.",
-       "a": "<p>Real-time is granted to active Pro accounts. Refresh the page and check Settings → Plan & membership shows your plan as active. If your payment is due the line says \"Payment due - access pauses in a few days\". If it still shows delayed, contact support with your account email.</p>",
+       "a": "<p>Pro does not include real-time CME futures by itself. To get live futures data, connect your Rithmic login (Connect broker), add live futures data for $5/month, or ask us for approval. If you already did and it still shows delayed, refresh the page and check Settings → Live futures data. If it still shows delayed, contact support with your account email.</p>",
        "plans": "pro",
        "tags": [
         "pro delayed",

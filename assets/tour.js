@@ -81,7 +81,7 @@
       id: 'charts',
       target: '.sidebar a[href="charts.html"]',
       title: 'ZoroCharts',
-      body: 'Multi-provider charting with every tool and indicator, free on every plan. Pro adds real-time data, order flow tools and GEX on the charts.'
+      body: 'Multi-provider charting with every tool and indicator, free on every plan. Pro adds order flow tools and GEX on the charts. CME futures are 10 minutes delayed unless you connect Rithmic or add live futures data.'
     },
     {
       id: 'indicators',

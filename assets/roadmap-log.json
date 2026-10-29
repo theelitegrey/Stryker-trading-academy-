@@ -1,5 +1,23 @@
 [
  {
+  "build": 730,
+  "date": "2026-10-30",
+  "title": "Connect broker: clearer login help and errors",
+  "link": ""
+ },
+ {
+  "build": 729,
+  "date": "2026-10-30",
+  "title": "Help Center",
+  "link": ""
+ },
+ {
+  "build": 728,
+  "date": "2026-10-30",
+  "title": "Fix: Connect broker system picker on phones",
+  "link": ""
+ },
+ {
   "build": 727,
   "date": "2026-10-30",
   "title": "ZoroTide: options money flow (calls vs puts)",

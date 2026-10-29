@@ -10,8 +10,8 @@
 // is read from the input once, handed to the in-memory client, and the input is cleared.
 // "Remember username" stores the username + system name in localStorage; never the password.
 
-import { RithmicClient, listSystems, explainLoginError } from './rithmic-client.js?v=731';
-import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=731';
+import { RithmicClient, listSystems, explainLoginError } from './rithmic-client.js?v=732';
+import { RithmicFuturesProvider, rithmicTradeSource, rithmicBookSource } from './rithmic-provider.js?v=732';
 
 // Rithmic conformance part 2 (attribution). Notices verbatim from Rithmic's instructions; we use
 // R | Protocol API only (not R | API+), so its line is left out. Shown ONLY while connected
@@ -523,6 +523,8 @@ export function createRithmic(cfg) {
       setOpen(open);
     });
     pop.addEventListener('click', (e) => e.stopPropagation());
+    // The one entry point other modules use (the delayed-data banner, assets/chart-data-banner.js): opens the Connect broker sheet.
+    api.open = () => { document.querySelectorAll('.stkc-pop').forEach((p) => { if (p !== pop && !p.hidden) p.hidden = true; }); setOpen(true) };
     document.addEventListener('click', (e) => { if (!pop.hidden && !(phone && pop.contains(document.activeElement)) && !(e.target && e.target.closest && e.target.closest('.stkrb-syslist'))) setOpen(false); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) setOpen(false); });
 

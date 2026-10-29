@@ -22,7 +22,7 @@ async function mint(over = {}, key = kp.privateKey) {
   const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(h + '.' + p));
   return h + '.' + p + '.' + b64u(sig);
 }
-const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
+const studentDocs = { 'uid-demo': { demo: { booleanValue: true } }, 'uid-demo-false': { demo: { booleanValue: false } }, 'uid-demo-str': { demo: { stringValue: 'true' } }, 'uid-pro': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'active' }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } }, 'uid-pro-nopt': { plan: { stringValue: 'Pro' } }, 'uid-pro-grace': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'grace' }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } }, 'uid-pro-lapsed': { plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } }, 'uid-pro-expired': { plan: { stringValue: 'Pro' }, subscriptionStatus: { stringValue: 'expired' } }, 'uid-ld': { plan: { stringValue: 'Starter' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) }, source: { stringValue: 'stripe' } } } } }, 'uid-ld-grace': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 86400e3) } } } } }, 'uid-ld-pro': { plan: { stringValue: 'Pro' }, liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-lapsed': { liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: String(Date.now() - 5 * 86400e3) } } } } }, 'uid-ld-off': { liveData: { mapValue: { fields: { active: { booleanValue: false }, paidThroughMillis: { integerValue: String(Date.now() + 86400e3) } } } } }, 'uid-ld-str': { liveData: { stringValue: 'true' } }, 'uid-ld-manual': { liveData: { mapValue: { fields: { active: { booleanValue: true }, source: { stringValue: 'manual' } } } } }, 'uid-starter': { plan: { stringValue: 'Starter' } }, 'uid-live': { plan: { stringValue: 'Starter' }, liveFeed: { booleanValue: true } }, 'uid-live-str': { liveFeed: { stringValue: 'true' } }, 'uid-live-false': { liveFeed: { booleanValue: false } } };
 let adminUids = new Set(['uid-admin']), fsDown = false, fsCalls = 0;
 globalThis.fetch = async (url, init) => {
   url = String(url);
@@ -64,11 +64,13 @@ for (const M of [A, B]) {
   assert.equal(await M.isAdminToken(''), false, 'signed out');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' })), true, 'demo account gets real-time');
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-demo' })), false, 'demo is not admin');
-  for (const u of ['uid-demo-false', 'uid-demo-str', 'uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
-  for (const u of ['uid-pro', 'uid-pro-nopt', 'uid-pro-grace']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'active Pro gets real-time: ' + u);
+  for (const u of ['uid-demo-false', 'uid-demo-str', 'uid-starter', 'uid-pro-lapsed', 'uid-pro-expired', 'uid-none', 'uid-ld-lapsed', 'uid-ld-off', 'uid-ld-str']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'no real-time for ' + u);
+  // Owner 2026-10-30: Pro alone no longer includes real-time futures
+  for (const u of ['uid-pro', 'uid-pro-nopt', 'uid-pro-grace']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), false, 'Pro without add-on is delayed: ' + u);
+  for (const u of ['uid-ld', 'uid-ld-grace', 'uid-ld-pro', 'uid-ld-manual']) assert.equal(await M.isRealtimeToken(await mint({ sub: u })), true, 'active add-on gets real-time: ' + u);
+  assert.equal(M.isActiveLiveDataDoc({ liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } }, 1000 + 3 * 86400e3 + 1), false, 'past grace');
+  assert.equal(M.isActiveLiveDataDoc({ liveData: { mapValue: { fields: { active: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } } } } }, 1000 + 3 * 86400e3 - 1), true, 'inside grace');
   assert.equal(await M.isAdminToken(await mint({ sub: 'uid-pro' })), false, 'Pro is not admin');
-  assert.deepEqual(M.isActiveProDoc({ plan: { stringValue: 'Pro' }, paidThroughMillis: { integerValue: '1000' } }, new Set(['pro']), 1000 + 3 * 86400e3 + 1), false, 'past grace');
-  assert.equal(M.isActiveProDoc({ plan: { stringValue: 'Pro' }, foundingMember: { booleanValue: true }, paidThroughMillis: { integerValue: '1000' } }, new Set(['pro']), 9e12), true, 'founding never lapses');
   assert.equal(await M.isRealtimeToken(''), false, 'signed out');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo', exp: 1 })), false, 'expired demo token');
   assert.equal(await M.isRealtimeToken(await mint({ sub: 'uid-demo' }, kp.privateKey).then((t) => t.slice(0, -4) + 'AAAA')), false, 'bad signature');
@@ -113,7 +115,8 @@ const rtRes = async (tok) => (await rtGet({ request: new Request('https://x/api/
 assert.deepEqual(await rtRes(''), { admin: false });
 assert.deepEqual(await rtRes(await mint()), { admin: true });
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-live' })), { admin: true }, '/rt says yes for a liveFeed member');
-assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: true }, '/rt says yes for an active Pro member');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro' })), { admin: false }, '/rt says no for Pro without the add-on');
+assert.deepEqual(await rtRes(await mint({ sub: 'uid-ld' })), { admin: true }, '/rt says yes for an active add-on member');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-pro-expired' })), { admin: false }, '/rt says no for an expired Pro');
 assert.deepEqual(await rtRes(await mint({ sub: 'uid-starter' })), { admin: false }, '/rt says no for a normal member');
 

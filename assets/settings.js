@@ -137,6 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       }
+      // Live futures data (Owner 2026-10-30): the $5/month add-on, an admin approval (liveFeed) or neither.
+      try { renderLiveData(student); } catch (e) { console.warn('TradeZoro: live data panel', e); }
       renderAvatarPreview(student);
       document.getElementById('settings-bio').value = (student && student.bio) || '';
       const unEl = document.getElementById('settings-username');
@@ -269,3 +271,62 @@ document.addEventListener('DOMContentLoaded', () => {
       .catch((err) => showSettingsMsg('settings-error', err.message || 'Could not reset progress.'));
   });
 });
+
+
+// ---- Live futures data panel (settings.html #settings-livedata-panel) -----------------------------------------------
+// students/{uid}.liveData = { active, paidThroughMillis, source, autopay, stripeSubscriptionId | razorpaySubscriptionId }
+// (written only by the payment functions) and students/{uid}.liveFeed (an admin's approval). The chart SERVER decides
+// real-time from the same fields (functions/api/chart/_rt.js); this panel only shows them and offers cancel / buy.
+function renderLiveData(student){
+  try { db.collection('plans').doc('LiveData').get().then((d) => { if (!d.exists) { const b = document.getElementById('settings-ld-buy'); if (b) { b.style.display = 'none'; const n = document.getElementById('settings-ld-soon'); if (n) n.style.display = ''; } } }).catch(() => {}); } catch (e) {}
+  const panel = document.getElementById('settings-livedata-panel');
+  if (!panel) return;
+  const st = document.getElementById('settings-ld-status'), row = document.getElementById('settings-ld-row'),
+    rowL = document.getElementById('settings-ld-row-l'), dateEl = document.getElementById('settings-ld-date'),
+    buy = document.getElementById('settings-ld-buy'), cancel = document.getElementById('settings-ld-cancel'),
+    manage = document.getElementById('settings-ld-manage');
+  const s = student || {}, ld = s.liveData || {};
+  const pt = ld.paidThroughMillis || 0, GRACE = 3 * 86400000;
+  const paid = ld.active === true && (!pt || Date.now() <= pt + GRACE);
+  const label = (ms) => new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  buy.style.display = 'none'; cancel.style.display = 'none'; manage.style.display = 'none'; row.style.display = 'none';
+  if (paid && ld.source !== 'manual') {
+    st.textContent = 'On: real-time CME futures'; st.style.color = 'var(--bull)';
+    if (pt) {
+      row.style.display = '';
+      if (ld.autopay) { rowL.textContent = 'Renews'; dateEl.textContent = label(pt) + ' · $5/month'; }
+      else { rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)'; }
+    }
+    if (ld.autopay && ld.stripeSubscriptionId) {
+      manage.style.display = ''; manage.textContent = 'Cancel, update card or invoices';
+      manage.onclick = () => {
+        manage.disabled = true; manage.textContent = 'Opening billing…';
+        let fns = null; try { fns = firebase.app().functions(); } catch (e) {}
+        const fail = (m) => { showToast('error', m); manage.disabled = false; manage.textContent = 'Cancel, update card or invoices'; };
+        if (!fns) { fail('Billing is unavailable right now. Please try again.'); return; }
+        fns.httpsCallable('stripePortal')({}).then((res) => {
+          const url = res && res.data && res.data.url;
+          if (!url || url.indexOf('https://billing.stripe.com/') !== 0) throw new Error('Could not open billing.');
+          window.location.assign(url);
+        }).catch((err) => fail('Could not open billing: ' + ((err && err.message) || err)));
+      };
+    } else if (ld.autopay && ld.razorpaySubscriptionId) {
+      cancel.style.display = '';
+      cancel.onclick = () => {
+        if (!confirm('Cancel live futures data?\n\nReal-time stays on until ' + label(pt) + ', then your futures charts go back to 10 minutes behind.')) return;
+        cancel.disabled = true; cancel.textContent = 'Cancelling…';
+        let fns = null; try { fns = firebase.app().functions(); } catch (e) {}
+        if (!fns) { cancel.disabled = false; cancel.textContent = 'Cancel live futures data'; return; }
+        fns.httpsCallable('razorpaySubsCancel')({ addon: true }).then(() => {
+          showToast('success', 'Cancelled. Real-time runs until ' + label(pt) + '.');
+          cancel.style.display = 'none'; rowL.textContent = 'Ends'; dateEl.textContent = label(pt) + ' (auto-renewal off)';
+        }).catch((err) => { showToast('error', 'Could not cancel: ' + ((err && err.message) || err)); cancel.disabled = false; cancel.textContent = 'Cancel live futures data'; });
+      };
+    } else if (!ld.autopay) { buy.style.display = ''; buy.textContent = 'Renew live futures data: $5/month'; }
+  } else if (s.liveFeed === true || (paid && ld.source === 'manual')) {
+    st.textContent = 'On: approved by TradeZoro'; st.style.color = 'var(--bull)';
+  } else {
+    st.textContent = 'Off: futures are 10 minutes behind'; st.style.color = 'var(--ink-1)';
+    buy.style.display = ''; buy.textContent = 'Get live futures data: $5/month';
+  }
+}

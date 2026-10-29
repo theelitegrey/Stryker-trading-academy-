@@ -125,7 +125,8 @@ exports.subscriptionSweep = functions
   .onRun(async () => {
     const plansSnap = await db.collection('plans').get();
     const plans = [];
-    plansSnap.forEach((doc) => plans.push(Object.assign({ id: doc.id }, doc.data())));
+    // The Live Futures Data add-on (addon:true) is not a tier: it is never the entry plan and its holders are not on it.
+    plansSnap.forEach((doc) => { if (doc.data().addon !== true) plans.push(Object.assign({ id: doc.id }, doc.data())); });
     if (!plans.length) { console.log('subscriptionSweep: no plans'); return null; }
 
     // The entry tier is where lapsed accounts land — the lowest rank, same

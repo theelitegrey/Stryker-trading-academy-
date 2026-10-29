@@ -81,7 +81,7 @@ function renderStudentsTable(students){
         '<label class="live-feed-switch"><input type="checkbox" role="switch" data-live-feed="' + s.uid + '"' + (liveOn ? ' checked' : '') + '>' +
           '<span class="live-feed-track" aria-hidden="true"></span><span class="live-feed-label">Live chart data</span></label>' +
         '<span class="live-feed-saved" aria-live="polite"></span>' +
-        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveWhyList.indexOf('Pro') !== -1 ? 'Live because of the active Pro plan' + (liveOn ? ' (and the switch).' : '; the switch is not needed.') : (liveOn ? 'Real-time CME futures on ZoroCharts (switch).' : 'Off: futures on ZoroCharts are 10 min delayed.')))) + '</span>' +
+        '<span class="live-feed-note">' + (isAdminUser ? 'Admins always get live data.' : (s.demo === true ? 'Demo account: always live.' : (liveNote(s, liveOn, liveWhyList)))) + '</span>' +
       '</div>' +
       '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
         '<button class="btn btn-sm ' + (isAdminUser ? 'btn-ghost' : 'btn-primary') + '" data-toggle-admin="' + s.uid + '">' + (isAdminUser ? 'Revoke admin' : 'Grant admin') + '</button>' +
@@ -102,7 +102,7 @@ function renderStudentsTable(students){
       const want = box.checked;
       const saved = card.querySelector('.live-feed-saved');
       const note = card.querySelector('.live-feed-note');
-      if (want && !confirm('Give ' + name + ' live chart data?')) { box.checked = false; return; }
+      if (want && !confirm('Give ' + name + ' live futures data (real-time CME on ZoroCharts)?')) { box.checked = false; return; }
       box.disabled = true;
       saved.className = 'live-feed-saved'; saved.textContent = 'Saving…';
       strykerSetLiveFeed(s.uid, want, name)
@@ -111,7 +111,7 @@ function renderStudentsTable(students){
           box.disabled = false;
           saved.className = 'live-feed-saved is-ok'; saved.textContent = '✓ Saved';
           setTimeout(() => { if (saved.textContent === '✓ Saved') saved.textContent = ''; }, 2500);
-          if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Real-time CME futures on ZoroCharts (takes effect on their next chart load, about 1 min to switch off).' : 'Off: futures on ZoroCharts are 10 min delayed (within about 1 min).';
+          if (note && !isAdminUser && s.demo !== true) note.textContent = want ? 'Approved by you just now. Real-time CME futures on ZoroCharts (about 1 min to switch off).' : 'Off: futures on ZoroCharts are 10 min delayed (within about 1 min).';
           const tag = card.querySelector('.live-feed-tag');
           const wl = liveWhy(s, isAdminUser);
           if (tag) { if (wl.length) { tag.textContent = 'Live data · ' + wl[0]; tag.title = 'Why: ' + wl.join(', '); } else tag.remove(); }
@@ -495,16 +495,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return roles;
   }
 
+  // The line under the switch: who approved it and when, or why they are live anyway.
+  function liveNote(s, liveOn, why){
+    const by = s.liveFeedBy && ALL_STUDENTS ? ALL_STUDENTS.find(x => x.uid === s.liveFeedBy) : null;
+    let at = '';
+    try { const t = s.liveFeedAt; const d = t && t.toDate ? t.toDate() : (t && t.seconds ? new Date(t.seconds * 1000) : null); if (d) at = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
+    const who = liveOn ? 'Approved' + (by ? ' by ' + (by.displayName || by.name || (by.email || '').split('@')[0]) : (s.liveFeedBy ? ' by an admin' : '')) + (at ? ' on ' + at : '') + '. ' : '';
+    if (why.indexOf('Add-on') !== -1) return who + 'Also has the paid $5/month Live Futures Data add-on.';
+    if (liveOn) return who + 'Real-time CME futures on ZoroCharts.';
+    return 'Off: futures on ZoroCharts are 10 min delayed (unless they connect Rithmic or buy the add-on).';
+  }
+
   // Why a member gets real-time chart data (mirrors functions/api/chart/_rt.js; the SERVER decides, this only labels).
-  // Pro = a paid plan (rank >= 1) that is not expired/cancelled and not past paidThroughMillis + 3 days grace.
+  // Add-on = students/{uid}.liveData.active with paidThroughMillis + 3 days grace.
   function liveWhy(s, isAdminUser){
     const why = [];
     if (isAdminUser) why.push('Admin');
     if (s.demo === true) why.push('Demo');
     if (s.liveFeed === true) why.push('Switch');
-    const st = s.subscriptionStatus, pt = Number(s.paidThroughMillis) || 0;
-    const paid = typeof rankOf === 'function' && s.plan && rankOf(s.plan) >= 1;
-    if (paid && st !== 'expired' && st !== 'cancelled' && st !== 'canceled' && (s.foundingMember === true || !pt || Date.now() <= pt + 3 * 86400000)) why.push('Pro');
+    // Owner 2026-10-30: Pro no longer includes real-time futures. The $5/month add-on does (liveData, 3 days grace).
+    const ld = s.liveData || {}, lpt = Number(ld.paidThroughMillis) || 0;
+    if (ld.active === true && (!lpt || Date.now() <= lpt + 3 * 86400000)) why.push('Add-on');
     return why;
   }
   // renderStudentsTable (top level) calls this too; without the global the whole list failed to load.
@@ -538,13 +549,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     liveCount();
   }
-  // "Live data: N users" = everyone who gets real-time: admin, demo, the admin switch, or an active Pro plan
+  // "Live data: N users" = everyone who gets real-time: admin, demo, the admin switch, or an active Live Futures Data add-on
   function liveCount(){
     const el = document.getElementById('users-live-count');
     if (!el) return;
     let n = 0, pro = 0, sw = 0;
-    ALL_STUDENTS.forEach(s => { const w = liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)); if (w.length) n++; if (w.indexOf('Pro') !== -1) pro++; if (w.indexOf('Switch') !== -1) sw++; });
-    el.textContent = 'Live data: ' + n + ' user' + (n === 1 ? '' : 's') + ' (Pro ' + pro + ', switch ' + sw + ')';
+    ALL_STUDENTS.forEach(s => { const w = liveWhy(s, CURRENT_ADMIN_UIDS.has(s.uid)); if (w.length) n++; if (w.indexOf('Add-on') !== -1) pro++; if (w.indexOf('Switch') !== -1) sw++; });
+    el.textContent = 'Live data: ' + n + ' user' + (n === 1 ? '' : 's') + ' (add-on ' + pro + ', approved ' + sw + ')';
   }
   window.__strykerLiveCount = liveCount;
 

@@ -22,8 +22,8 @@
     items: [
       { id: 'market-stats', title: 'Market Stats', desc: 'How often gap fills, opening range breaks and prior-day levels played out on NQ, ES and SPX, with sample sizes.', status: 'shipped', when: 'Shipped', link: 'market-stats.html', build: 708, date: '2026-10-29',
         details: 'Free for every member. Historical frequencies with sample sizes and 95% intervals, with the sessions behind each number one tap away on ZoroCharts.' },
-      { id: 'charts-free', title: 'ZoroCharts free for everyone', desc: 'ZoroCharts opening up to every member on the Free plan.', status: 'progress', when: 'In progress', progress: 50, sub: ['Free plan access', 'Pro keeps live data'],
-        details: 'ZoroCharts is already live. We are working on making it available to everyone on the Free plan, with Pro keeping real-time futures data.',
+      { id: 'charts-free', title: 'ZoroCharts free for everyone', desc: 'ZoroCharts opening up to every member on the Free plan.', status: 'progress', when: 'In progress', progress: 50, sub: ['Free plan access', 'Live futures: Rithmic or $5 add-on'],
+        details: 'ZoroCharts is already live. We are working on making it available to everyone on the Free plan, with real-time CME futures through Rithmic, a $5/month add-on, or Owner approval.',
         milestones: [{ label: 'ZoroCharts live for members', done: true }, { label: 'Free plan access to ZoroCharts', done: false }] },
       { id: 'backtesting-full', title: 'Replay One: full backtesting', desc: 'Strategy testing, deeper analytics and Pine Script integration on top of the replay.', status: 'progress', when: 'In progress', progress: 50, sub: ['Strategy testing', 'Pine Script integration', 'Portfolio-level stats'],
         details: 'Turning the replay into a complete testing desk. Backtesting now runs on the same chart engine as ZoroCharts. Still to come: rule-based strategies you can run across a whole dataset, your own Pine Script inside the replay, and stats across markets and sessions.',

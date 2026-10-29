@@ -22,7 +22,7 @@
 // and shared-layout links all get the dot in every cell. The word "delayed" is allowed
 // here (Owner asked for it); the GEX wording ban is GEX-only.
 
-import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=731';
+import { rtOnChange, isRealtimeAdmin, rtConfirmed } from './rt-access.js?v=732';
 
 const H = 3600;
 const LAG_TTL_MS = 60000;        // re-measure each futures root at most once a minute
@@ -138,9 +138,10 @@ export function installDataDot(ws, opts = {}) {
       return { s: 'closed', text: 'Market closed' + (n ? ' · opens ' + istLabel(n) + ' IST' : ''), tag: 'Closed' };
     }
     const root = rootOf(sym);
-    // Real-time CME futures is admin only (Owner 2026-10-16); the server delivers everyone else 10 min late.
-    if (rithLive() || (insightRealtime(root) && rtConfirmed())) return { s: 'rt', text: 'Real-time data', tag: 'Real-time' };
-    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'Delayed data · 10 minutes', tag: 'Delayed 10m' };
+    // Real-time CME futures: admins, a connected Rithmic login, the $5 add-on or an Owner approval (2026-10-30); the server delivers everyone else 10 min late.
+    if (rithLive()) return { s: 'rt', text: 'Live data from your Rithmic connection', tag: 'Live (Rithmic)' };
+    if (insightRealtime(root) && rtConfirmed()) return { s: 'rt', text: 'Live data', tag: 'Live' };
+    if (insightRealtime(root)) return { s: 'delayed', text: isRealtimeAdmin() ? 'Delayed data · the server has not confirmed real-time on this chart yet (retrying)' : 'CME futures are 10 minutes delayed (CME rule). Connect your Rithmic login, add live futures data for $5/month, or ask us for approval.', tag: '10 min delayed · CME' };
     measure(root);
     const m = lag.get(root);
     return { s: 'delayed', text: 'Delayed data' + (m && m.min ? ' · about ' + m.min + ' min' : ''), tag: 'Delayed' + (m && m.min ? ' ' + m.min + 'm' : '') };

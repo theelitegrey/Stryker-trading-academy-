@@ -94,6 +94,7 @@ exports.redeemFreeCheckout = functions
     const planDoc = await db.collection('plans').doc(planId).get();
     if (!planDoc.exists) throw new functions.https.HttpsError('not-found', 'That plan could not be found.');
     const plan = planDoc.data();
+    if (plan.addon === true) throw new functions.https.HttpsError('failed-precondition', 'Live Futures Data is a monthly subscription; it cannot be bought as a one-time payment or a plan change.');
 
     // Price and discount are computed here, from stored data, using the same
     // helpers the paid path uses.

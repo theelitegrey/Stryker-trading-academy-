@@ -53,6 +53,10 @@
  * daily sweep lapses the account after trial end + grace.
  * Webhook events to enable: subscription.authenticated (new) plus the four above.
  *
+ * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $5/month, plans/LiveData with addon:true): same functions, but the grant goes to
+ * students/{uid}.liveData = { active, paidThroughMillis, source:'razorpay', autopay, razorpaySubscriptionId } and never touches
+ * plan / paidThroughMillis. No trial. razorpaySubsCancel({ addon:true }) cancels it at cycle end.
+ *
  * Firestore (all functions-only, covered by default-deny): razorpayPlans
  * (site-plan+amount → Razorpay plan id cache), razorpaySubs (subscription
  * records), razorpaySubCharges (webhook idempotency markers).
@@ -66,6 +70,15 @@ const T = () => require('./trial').__trialInternals;
 
 if (!admin.apps.length) admin.initializeApp();
 const db = admin.firestore();
+
+// Live Futures Data add-on grant: liveData.paidThroughMillis only moves forward. Never touches plan.
+async function grantLiveData(uid, throughMillis, extra){
+  const ref = db.collection('students').doc(uid);
+  const snap = await ref.get();
+  const cur = snap.exists && snap.data().liveData ? snap.data().liveData : {};
+  await ref.set({ liveData: Object.assign({ active: true, paidThroughMillis: Math.max(cur.paidThroughMillis || 0, throughMillis || 0),
+    source: 'razorpay', startedAt: cur.startedAt || Date.now() }, extra || {}) }, { merge: true });
+}
 
 function rzpAuthHeader(){
   const id = process.env.RAZORPAY_KEY_ID;
@@ -187,13 +200,24 @@ exports.razorpaySubscribe = functions
     if (kind === 'none') {
       throw new functions.https.HttpsError('failed-precondition', 'That plan does not renew — buy it once instead.');
     }
+    const addon = plan.addon === true;
+    if (addon && (wantTrial || kind !== 'month')) {
+      throw new functions.https.HttpsError('failed-precondition', 'The Live Futures Data add-on is a plain monthly subscription (no trial).');
+    }
+    if (addon) {
+      const cur = await db.collection('students').doc(uid).get();
+      const ld = cur.exists ? (cur.data().liveData || {}) : {};
+      if (ld.razorpaySubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
+        throw new functions.https.HttpsError('already-exists', 'You already have Live Futures Data. Manage it from Settings > Billing.');
+      }
+    }
 
     let priceUsd = effectivePlanPrice(plan);
     const rate = await usdInrRate();
     // Launch sale: fixed rupee price when set; founding lock when lower.
     const L = require('./launchSale').__launchInternals;
     let inr = L.inrEffective(plan);
-    const lock = await L.foundingLock(uid, planId);
+    const lock = addon ? null : await L.foundingLock(uid, planId);
     if (lock && lock.usd != null && lock.usd < priceUsd) priceUsd = lock.usd;
     if (lock && lock.inr != null && inr != null && lock.inr < inr) inr = lock.inr;
     const amountMinor = inr != null ? inr * 100
@@ -220,7 +244,7 @@ exports.razorpaySubscribe = functions
       // A mandate needs a fixed horizon: ten years of months / of years.
       total_count: kind === 'year' ? 10 : 120,
       customer_notify: 1,
-      notes: { uid, planId, trial: trialEndMillis ? '1' : '' }
+      notes: { uid, planId, trial: trialEndMillis ? '1' : '', addon: addon ? '1' : '' }
     }, trialEndMillis ? {
       // First debit on day 8; until then only the refundable authentication.
       start_at: Math.floor(trialEndMillis / 1000),
@@ -235,7 +259,7 @@ exports.razorpaySubscribe = functions
       amountMinor, currency: 'INR',
       baseUsd: priceUsd, baseInr: amountMinor / 100,
       razorpayPlanId,
-      trial: !!trialEndMillis, trialEndMillis,
+      trial: !!trialEndMillis, trialEndMillis, addon,
       status: 'created',
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -391,6 +415,10 @@ exports.razorpaySubsVerify = functions
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    if (record.addon) {
+      await grantLiveData(uid, subs.extendPeriod(Date.now(), record.period), { autopay: true, razorpaySubscriptionId: subscriptionId });
+      return { ok: true, planName: record.planName, addon: true };
+    }
     const studentDoc = await db.collection('students').doc(uid).get().catch(() => null);
     const banked = studentDoc && studentDoc.exists ? (studentDoc.data().paidThroughMillis || 0) : 0;
     await db.collection('students').doc(uid).set({
@@ -496,6 +524,24 @@ exports.razorpayWebhook = functions
         // callable already granted that period, and extending from the
         // banked date makes a double-arrival harmless (max() below only
         // moves the clock forward from what it already is).
+        if (record.addon) {
+          const sref = db.collection('students').doc(record.uid);
+          const sd = await sref.get();
+          const ld = sd.exists ? (sd.data().liveData || {}) : {};
+          const covered = record.status === 'active' && payEntity.id === record.firstPaymentId;
+          if (!covered) {
+            await grantLiveData(record.uid, subs.extendPeriod(Math.max(Date.now(), ld.paidThroughMillis || 0), record.period), { autopay: true, razorpaySubscriptionId: subEntity.id });
+            await db.collection('orders').add({
+              studentUid: record.uid, studentEmail: null, studentName: 'Auto-renewal',
+              planId: record.planId, planName: record.planName, kind: 'addon', couponCode: null,
+              finalAmount: (payEntity.amount || record.amountMinor) / 100, currency: 'INR',
+              gateway: 'razorpay-subscription', razorpaySubscriptionId: subEntity.id,
+              razorpayPaymentId: payEntity.id, status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          res.status(200).send('ok');
+          return;
+        }
         const studentRef = db.collection('students').doc(record.uid);
         const studentDoc = await studentRef.get();
         const banked = studentDoc.exists ? (studentDoc.data().paidThroughMillis || 0) : 0;
@@ -532,6 +578,11 @@ exports.razorpayWebhook = functions
         // Auto-debit stopped: mark it, tell the student, and let the daily
         // sweep lapse the account when paidThroughMillis + grace runs out.
         await subDoc.ref.set({ status: subEntity.status || event.split('.')[1] }, { merge: true });
+        if (record.addon) {
+          await db.collection('students').doc(record.uid).set({ liveData: { autopay: false } }, { merge: true });
+          res.status(200).send('ok');
+          return;
+        }
         await db.collection('students').doc(record.uid).set({ subscriptionAutopay: false }, { merge: true });
         await db.collection('notifications').add({
           recipientUid: record.uid, type: 'autopay_stopped',
@@ -549,14 +600,15 @@ exports.razorpayWebhook = functions
     }
   });
 
-exports.__rzpSubsInternals = { startRazorpayTrial, rzpFingerprints };
+exports.__rzpSubsInternals = { startRazorpayTrial, rzpFingerprints, grantLiveData };
 
 exports.razorpaySubsCancel = functions
   .runWith({ maxInstances: 10, timeoutSeconds: 60, memory: '256MB' })
   .https.onCall(async (data, context) => {
     const uid = requireAuth(context);
     const studentDoc = await db.collection('students').doc(uid).get();
-    const subId = studentDoc.exists ? studentDoc.data().razorpaySubscriptionId : null;
+    const wantAddon = !!(data && data.addon === true);
+    const subId = studentDoc.exists ? (wantAddon ? (studentDoc.data().liveData || {}).razorpaySubscriptionId : studentDoc.data().razorpaySubscriptionId) : null;
     if (!subId) throw new functions.https.HttpsError('not-found', 'No auto-renewing subscription on this account.');
 
     const subDoc = await db.collection('razorpaySubs').doc(subId).get();
@@ -566,6 +618,12 @@ exports.razorpaySubsCancel = functions
 
     // A trial that hasn't reached its first debit has no cycle to finish:
     // cancel now, nothing is ever charged, access stays to the trial end.
+    if (wantAddon) {
+      await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: 1 });
+      await subDoc.ref.set({ status: 'cancel-at-cycle-end' }, { merge: true });
+      await db.collection('students').doc(uid).set({ liveData: { autopay: false } }, { merge: true });
+      return { ok: true };
+    }
     const inTrial = subDoc.data().trial && subDoc.data().status === 'authenticated';
     await rzp('subscriptions/' + subId + '/cancel', { cancel_at_cycle_end: inTrial ? 0 : 1 });
     await subDoc.ref.set({ status: inTrial ? 'cancelled' : 'cancel-at-cycle-end' }, { merge: true });

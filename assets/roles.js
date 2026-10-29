@@ -31,7 +31,8 @@ function loadPlansForRoles(forceRefresh){
   _rolesLoadPromise = db.collection('plans').get()
     .then((snap) => {
       const list = [];
-      snap.forEach((doc) => list.push(Object.assign({ id: doc.id }, doc.data())));
+      // The Live Futures Data add-on (plans/LiveData, addon:true) is not a tier: it never ranks, never becomes the default plan.
+      snap.forEach((doc) => { if (doc.data().addon !== true) list.push(Object.assign({ id: doc.id }, doc.data())); });
       list.sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
       _rolesPlansCache = list;
       return list;

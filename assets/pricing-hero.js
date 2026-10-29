@@ -105,7 +105,7 @@
     ['ZoroCharts', [
       ['ZoroCharts, every chart type, drawing and indicator', true, true],
       ['Alerts, layouts and paper trading; Replay One for backtesting and replay', true, true],
-      ['Market data', 'Updated every 10 minutes', 'Real-time'],
+      ['Futures data', '10 min delayed (CME rule)', '10 min delayed (CME rule)'],
       ['Order flow tools: Footprint, delta, CVD, big trades, absorption, volume profile', false, true],
       ['GEX on the charts: levels, heatmap, ladder, expected move', false, true]]],
     ['Market desk', [
@@ -255,7 +255,7 @@
       '<div class="pv-faq">' +
         faq('Can I cancel anytime?', 'Yes. Cancel from Billing in Settings. You keep ' + proName + ' until the end of the period you have already paid for, and you are not charged again.') +
         faq('Why can the rupee price change?', proName + ' is priced in US dollars. The rupee price is the dollar price at that day\'s exchange rate. Once you subscribe, your amount stays fixed.') +
-        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the JournalX cap, and real-time data, order flow tools and GEX on the charts stay with Pro.') +
+        faq('What happens to my data on ' + freeName + '?', 'Your JournalX and progress stay saved. Nothing is deleted. You just see the ' + freeName + ' limits: the JournalX cap, and order flow tools and GEX on the charts stay with Pro.') +
         '<a class="pv-faq-all" href="help?cat=plans-billing">See all questions \u2192</a>' +
       '</div>';
     wireCompare(root, P);

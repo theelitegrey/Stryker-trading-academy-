@@ -57,6 +57,11 @@
  *          access, which cannot be sold as a recurring subscription, so they are
  *          refused on this path with a clear message.
  *
+ * LIVE FUTURES DATA ADD-ON (Owner 2026-10-30, $5/month): plans/LiveData has addon:true. Same checkout, same webhook, but a
+ *          purchase never touches plan / paidThroughMillis. It writes students/{uid}.liveData = { active, paidThroughMillis,
+ *          source:'stripe', autopay, stripeSubscriptionId }, which the chart server reads (functions/api/chart/_rt.js). No trial,
+ *          no coupon, no founding lock. A member can hold Pro and the add-on at once (two subscriptions, one Stripe customer).
+ *
  * ENV (functions .env, never in the repo):
  *   STRIPE_SECRET_KEY       sk_test_… / rk_live_… (restricted key: see DEPLOY.md)
  *   STRIPE_WEBHOOK_SECRET   whsec_… of the endpoint pointing at stripeWebhook
@@ -301,16 +306,26 @@ exports.stripeCreateCheckout = functions
     if (kind === 'none') {
       throw new functions.https.HttpsError('failed-precondition', 'That plan does not renew, so it cannot be a subscription.');
     }
+    const addon = plan.addon === true;
+    if (addon && (wantTrial || couponCode || kind !== 'month')) {
+      throw new functions.https.HttpsError('failed-precondition', 'The Live Futures Data add-on is a plain monthly subscription (no trial or coupon).');
+    }
 
-    // One live Stripe subscription per member: a second checkout would bill twice.
+    // One live Stripe subscription per member (and one per add-on): a second checkout would bill twice.
     const stu = await db.collection('students').doc(uid).get();
     const s = stu.exists ? stu.data() : {};
-    if (s.stripeSubscriptionId && s.subscriptionAutopay && (s.paidThroughMillis || 0) > Date.now()) {
+    if (addon) {
+      const ld = s.liveData || {};
+      if (ld.stripeSubscriptionId && ld.autopay && (ld.paidThroughMillis || 0) > Date.now()) {
+        throw new functions.https.HttpsError('already-exists',
+          'You already have Live Futures Data. Manage it from Settings > Billing.');
+      }
+    } else if (s.stripeSubscriptionId && s.subscriptionAutopay && (s.paidThroughMillis || 0) > Date.now()) {
       throw new functions.https.HttpsError('already-exists',
         'You already have an active subscription. Manage it from Settings > Manage billing.');
     }
 
-    const baseUsd = await baseUsdFor(uid, plan, planId);
+    const baseUsd = addon ? R().effectivePlanPrice(plan) : await baseUsdFor(uid, plan, planId);
     const baseCents = Math.round(baseUsd * 100);
     if (baseCents < 50) {   // Stripe's USD minimum; anything below is the free path
       throw new functions.https.HttpsError('failed-precondition', 'This plan is free, so no payment is needed.');
@@ -354,7 +369,7 @@ exports.stripeCreateCheckout = functions
     const priceId = await ensurePrice(plan, planId, baseCents, kind);
     const customerId = await ensureCustomer(uid, context.auth.token);
     const back = siteOrigin() + '/checkout.html?plan=' + encodeURIComponent(planId);
-    const meta = { uid, sitePlanId: planId, lockUsd: String(baseUsd), coupon: couponCode || '', trial: trial ? '1' : '' };
+    const meta = { uid, sitePlanId: planId, lockUsd: String(baseUsd), coupon: couponCode || '', trial: trial ? '1' : '', addon: addon ? '1' : '' };
     const subData = { metadata: meta };
     if (trial) {
       subData.trial_period_days = T().TRIAL_DAYS;
@@ -385,7 +400,7 @@ exports.stripeCreateCheckout = functions
 
     await db.collection('stripeSessions').doc(session.id).set({
       uid, planId, planName: plan.name || planId, period: plan.period,
-      couponCode, baseUsd, baseCents, firstCents, priceId, customerId, trial,
+      couponCode, baseUsd, baseCents, firstCents, priceId, customerId, trial, addon,
       status: 'created', createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
@@ -424,7 +439,7 @@ async function subRecord(subId, metaFallback) {
     const planSnap = await db.collection('plans').doc(metaFallback.sitePlanId).get();
     const plan = planSnap.exists ? planSnap.data() : {};
     return { ref: snap.ref, uid: metaFallback.uid, planId: metaFallback.sitePlanId,
-      planName: plan.name || metaFallback.sitePlanId, period: plan.period || null, pending: true };
+      planName: plan.name || metaFallback.sitePlanId, period: plan.period || null, pending: true, addon: plan.addon === true };
   }
   return null;
 }
@@ -443,6 +458,17 @@ async function grantThrough(uid, planName, planId, periodEndSec, extra) {
   await ref.set(patch, { merge: true });
   await db.collection('profiles').doc(uid).set({ plan: planName }, { merge: true }).catch(() => {});
   return patch.paidThroughMillis;
+}
+
+// Live Futures Data add-on: move students/{uid}.liveData.paidThroughMillis forward (never backwards). Never touches plan.
+async function grantLiveData(uid, periodEndSec, extra) {
+  const ref = db.collection('students').doc(uid);
+  const snap = await ref.get();
+  const cur = snap.exists && snap.data().liveData ? snap.data().liveData : {};
+  const through = Math.max(cur.paidThroughMillis || 0, periodEndSec * 1000);
+  await ref.set({ liveData: Object.assign({ active: true, paidThroughMillis: through, source: 'stripe',
+    startedAt: cur.startedAt || Date.now() }, extra || {}) }, { merge: true });
+  return through;
 }
 
 async function onCheckoutCompleted(session) {
@@ -471,6 +497,7 @@ async function onCheckoutCompleted(session) {
   const sub = await stripe('GET', 'subscriptions/' + session.subscription);
   const amountPaid = Number(session.amount_total != null ? session.amount_total : rec.firstCents);
   if (sub.status === 'trialing' || rec.trial) return onTrialStarted(session, rec, sub);
+  if (rec.addon) return onAddonStarted(session, rec, sub, amountPaid);
 
   await db.collection('stripeSubs').doc(sub.id).set({
     uid: rec.uid, planId: rec.planId, planName: rec.planName, period: rec.period,
@@ -520,6 +547,33 @@ async function onCheckoutCompleted(session) {
   await L().recordFoundingPrice(rec.uid, rec.planId, rec.baseUsd != null ? rec.baseUsd : null, null)
     .catch((e) => console.error('founding price not recorded', rec.uid, e.message));
   return 'granted ' + rec.planName + ' to ' + rec.uid;
+}
+
+async function onAddonStarted(session, rec, sub, amountPaid) {
+  await db.collection('stripeSubs').doc(sub.id).set({
+    uid: rec.uid, planId: rec.planId, planName: rec.planName, period: rec.period, addon: true,
+    customerId: rec.customerId, priceId: rec.priceId, renewCents: rec.baseCents, baseUsd: rec.baseUsd,
+    sessionId: session.id, status: sub.status, cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+    currentPeriodEnd: subPeriodEnd(sub), latestInvoice: sub.latest_invoice || null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  }, { merge: true });
+  await db.collection('orders').add({
+    studentUid: rec.uid,
+    studentEmail: (session.customer_details && session.customer_details.email) || null,
+    studentName: (session.customer_details && session.customer_details.name) || 'Trader',
+    planId: rec.planId, planName: rec.planName, kind: 'addon', couponCode: null,
+    finalAmount: amountPaid / 100, currency: 'USD', amountUsd: amountPaid / 100,
+    gateway: 'stripe', provider: 'stripe', stripeSessionId: session.id, stripeSubscriptionId: sub.id,
+    stripeInvoiceId: sub.latest_invoice || null, status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
+  });
+  if (sub.latest_invoice) {
+    await db.collection('stripeInvoices').doc(String(sub.latest_invoice)).create({
+      uid: rec.uid, subscriptionId: sub.id, kind: 'first', createdAt: admin.firestore.FieldValue.serverTimestamp()
+    }).catch(() => {});
+  }
+  await grantLiveData(rec.uid, subPeriodEnd(sub), { autopay: !sub.cancel_at_period_end, stripeSubscriptionId: sub.id, stripeCustomerId: rec.customerId });
+  await notify(rec.uid, 'livedata_on', 'Live Futures Data is on. Your CME futures charts are real-time now.', 'charts.html');
+  return 'live data add-on granted to ' + rec.uid;
 }
 
 // Card fingerprint of the subscription's payment method (for the one-trial-per-
@@ -618,6 +672,8 @@ async function onInvoicePaid(inv) {
   // granted (after the abuse checks) by checkout.session.completed.
   if (Number(inv.amount_paid) === 0 && (rec.trial || invSubMeta(inv).trial === '1')) return 'trial invoice: nothing to grant';
 
+  if (rec.addon) return onAddonInvoicePaid(inv, subId, rec);
+
   // Latest service period on the invoice (the subscription line; prorations end earlier).
   const ends = ((inv.lines && inv.lines.data) || []).map((l) => l.period && l.period.end).filter(Boolean);
   const periodEnd = ends.length ? Math.max.apply(null, ends) : null;
@@ -668,11 +724,45 @@ async function onInvoicePaid(inv) {
   return (fresh ? '' : 'repeat ') + 'paid through ' + new Date(through).toISOString();
 }
 
+async function onAddonInvoicePaid(inv, subId, rec) {
+  const ends = ((inv.lines && inv.lines.data) || []).map((l) => l.period && l.period.end).filter(Boolean);
+  const periodEnd = ends.length ? Math.max.apply(null, ends) : null;
+  if (!periodEnd) return 'no period';
+  const isFirst = inv.billing_reason === 'subscription_create';
+  if (!isFirst && rec.renewCents && Number(inv.amount_paid) < Number(rec.renewCents)) return 'amount mismatch';
+  let fresh = true;
+  try {
+    await db.collection('stripeInvoices').doc(inv.id).create({ uid: rec.uid, subscriptionId: subId, kind: isFirst ? 'first' : 'renewal',
+      amountPaid: inv.amount_paid, addon: true, createdAt: admin.firestore.FieldValue.serverTimestamp() });
+  } catch (e) {
+    if (e && (e.code === 6 || /already exists/i.test(e.message || ''))) fresh = false; else throw e;
+  }
+  const through = await grantLiveData(rec.uid, periodEnd, { autopay: true, stripeSubscriptionId: subId });
+  if (rec.ref && !rec.pending) await rec.ref.set({ currentPeriodEnd: periodEnd, lastPaidInvoice: inv.id, status: 'active', lastPaymentFailedAt: null }, { merge: true });
+  if (fresh && !isFirst) {
+    await db.collection('orders').add({
+      studentUid: rec.uid, studentEmail: inv.customer_email || null, studentName: 'Auto-renewal',
+      planId: rec.planId, planName: rec.planName, kind: 'addon', couponCode: null,
+      finalAmount: inv.amount_paid / 100, currency: 'USD', amountUsd: inv.amount_paid / 100,
+      gateway: 'stripe', provider: 'stripe', stripeSubscriptionId: subId, stripeInvoiceId: inv.id,
+      status: 'completed', createdAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+  }
+  return (fresh ? '' : 'repeat ') + 'live data paid through ' + new Date(through).toISOString();
+}
+
 async function onInvoiceFailed(inv) {
   const subId = invSubId(inv);
   if (!subId) return 'ignored: no subscription';
   const rec = await subRecord(subId, invSubMeta(inv));
   if (!rec) return 'unknown subscription';
+  if (rec.addon) {
+    if (rec.ref && !rec.pending) await rec.ref.set({ lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(), lastFailedInvoice: inv.id }, { merge: true });
+    const mk = db.collection('stripeInvoices').doc(inv.id + '_failed_' + (inv.attempt_count || 1));
+    try { await mk.create({ uid: rec.uid, createdAt: admin.firestore.FieldValue.serverTimestamp() }); } catch (e) { return 'failure already recorded'; }
+    if ((inv.attempt_count || 1) === 1) await notify(rec.uid, 'payment_failed', 'We couldn\'t charge your card for Live Futures Data. We\'ll retry automatically. Update your card in Settings > Billing to keep real-time futures.', 'settings.html');
+    return 'addon failure recorded';
+  }
   if (rec.ref && !rec.pending) {
     await rec.ref.set({ lastPaymentFailedAt: admin.firestore.FieldValue.serverTimestamp(),
       lastFailedInvoice: inv.id, attemptCount: inv.attempt_count || null }, { merge: true });
@@ -703,6 +793,18 @@ async function onSubscriptionChanged(sub, deleted) {
   const snap = await stu.get();
   if (!snap.exists) return 'no student doc (account deleted?)';   // never create a stub doc
   const cur = snap.data();
+  if (rec.addon) {
+    const ld = cur.liveData || {};
+    if (ld.stripeSubscriptionId && ld.stripeSubscriptionId !== sub.id) return 'stale subscription';
+    if (ld.autopay !== autopay) {
+      await stu.set({ liveData: { autopay } }, { merge: true });
+      if (!autopay) {
+        const until = ld.paidThroughMillis ? new Date(ld.paidThroughMillis).toISOString().slice(0, 10) : 'your paid date';
+        await notify(rec.uid, 'autopay_stopped', 'Auto-renewal for Live Futures Data is off. Real-time futures run until ' + until + '.', 'settings.html');
+      }
+    }
+    return 'addon autopay ' + autopay + ' (' + (deleted ? 'deleted' : sub.status) + ')';
+  }
   // Only touch the member's autopay flag if this is still their subscription.
   if (cur.stripeSubscriptionId && cur.stripeSubscriptionId !== sub.id) return 'stale subscription';
   if (cur.subscriptionAutopay !== autopay) {
@@ -812,4 +914,4 @@ exports.stripeStatus = functions
   });
 
 // Not a function (the loader ignores it): for the offline tests.
-exports.__stripeInternals = { formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION };
+exports.__stripeInternals = { formEncode, verifySignature, handleEvent, baseUsdFor, STRIPE_VERSION, grantLiveData };

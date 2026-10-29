@@ -160,6 +160,7 @@ function renderPlanSummary(plan){
       ? planPriceHtml(plan, 'sm')
       : '<div style="font-family:var(--font-mono); font-size:24px; color:var(--ink-0); margin-bottom:16px;">$' + plan.price + '<span style="font-size:13px; color:var(--ink-3);"> / ' + plan.period + '</span></div>') +
     '<div id="checkout-yearly-line"></div>' +
+    (plan.addon === true ? '<p style="margin:0 0 12px; font-size:12.5px; color:var(--ink-2); line-height:1.5;">An add-on for any account, Free or Pro. Billed monthly, cancel any time in Settings &gt; Billing.</p>' : '') +
     '<ul style="margin:0; padding:0; list-style:none;">' + featuresHtml + '</ul>';
   renderCheckoutYearlyLine(plan);
 }
@@ -226,6 +227,15 @@ function updateOrderSummary(){
   if (payInr) payInr.style.display = (checkoutUsesStripe() && price > 0) ? '' : 'none';
   checkoutGatewayChrome(checkoutUsesStripe());
 
+  // The add-on exists only as a subscription: card (Stripe) or UPI AutoPay / card mandate (INR). If neither route is open, say so.
+  if (checkoutIsAddon() && !checkoutUsesStripe() && !autopayRowOkForAddon()) {
+    document.getElementById('checkout-discount').textContent = '—';
+    document.getElementById('checkout-total').textContent = checkoutFmt(price);
+    completeBtn.disabled = true;
+    completeBtn.textContent = 'Coming soon: card payments open shortly';
+    return;
+  }
+
   if (price <= 0) {
     // Genuinely free plan — no coupon needed, nothing to discount.
     document.getElementById('checkout-discount').textContent = checkoutFmt(0);
@@ -244,6 +254,7 @@ function updateOrderSummary(){
     typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) !== 'none' &&
     !APPLIED_COUPON && price > 0;
   if (autopayRow) autopayRow.style.display = autopayOk ? 'flex' : 'none';
+  if (checkoutIsAddon() && autopayBox) { autopayBox.checked = true; autopayBox.disabled = true; }   // the add-on only exists as a subscription
   const autopayOn = autopayOk && autopayBox && autopayBox.checked;
   const cycle = (typeof stkPeriodKind === 'function' && stkPeriodKind(CHECKOUT_PLAN.period) === 'year') ? 'year' : 'month';
 
@@ -301,7 +312,13 @@ function updateOrderSummary(){
   completeBtn.textContent = total > 0 ? 'Pay ' + checkoutFmt(total) + ' securely' : 'Complete order';
 }
 
+// The Live Futures Data add-on (plans/LiveData, addon:true, Owner 2026-10-30, $5/month): plain monthly subscription, no trial, no coupon.
+function checkoutIsAddon(){ return !!(CHECKOUT_PLAN && CHECKOUT_PLAN.addon === true); }
+
+function autopayRowOkForAddon(){ return typeof strykerCurrency === 'function' && strykerCurrency() === 'INR'; }
+
 function checkoutTrialApplies(autopayOn){
+  if (checkoutIsAddon()) return false;
   if (!TRIAL_ELIGIBLE || !CHECKOUT_PLAN || APPLIED_COUPON) return false;
   if (typeof strykerTrialSmallPrint !== 'function') return false;
   if (checkoutUsesStripe()) return true;
@@ -340,8 +357,8 @@ function checkoutRenewalText(price, total, cycle){
     : 'You pay ' + checkoutFmt(price) + ' today and every ' + per + ' after that';
   return '<b style="color:var(--ink-0);">Auto-renews until you cancel.</b> ' + first +
     ', charged to the card you use at checkout, until you cancel. Cancel any time in ' +
-    '<a href="settings.html" style="color:var(--teal); text-decoration:underline;">Settings</a> &gt; Manage billing, and ' +
-    'you keep access until the end of the period you paid for. See the ' +
+    '<a href="settings.html" style="color:var(--teal); text-decoration:underline;">Settings</a> &gt; ' + (checkoutIsAddon() ? 'Billing' : 'Manage billing') + ', and ' +
+    'you keep ' + (checkoutIsAddon() ? 'real-time data' : 'access') + ' until the end of the period you paid for. See the ' +
     '<a href="refund-policy.html" style="color:var(--teal); text-decoration:underline;">refund policy</a>.';
 }
 
@@ -406,6 +423,15 @@ function handleStripeReturn(uid){
   let unsub = () => {};
   unsub = db.collection('students').doc(uid).onSnapshot((doc) => {
     const s = doc.exists ? doc.data() : {};
+    // Live Futures Data add-on: its own entitlement (liveData), the plan is untouched.
+    const ld = s.liveData || {};
+    if (!done && ld.active === true && ld.source === 'stripe' && (ld.paidThroughMillis || 0) > started - 60000 && (ld.paidThroughMillis || 0) > Date.now()) {
+      done = true; setTimeout(() => unsub(), 0);
+      okEl.innerHTML = '<b>Live Futures Data is on.</b> Your CME futures charts are real-time. Taking you to ZoroCharts…';
+      clean();
+      setTimeout(() => { window.location.href = 'charts.html'; }, 2200);
+      return;
+    }
     if (done || s.billingProvider !== 'stripe' || !s.stripeSubscriptionId || !((s.paidThroughMillis || 0) > Date.now())) return;
     if (!((s.paidThroughMillis || 0) > started - 60000)) return;
     done = true; setTimeout(() => unsub(), 0);
@@ -475,7 +501,7 @@ function launchRazorpay(btn, errEl){
       currency: o.currency,
       name: 'TradeZoro',
       description: o.planName,
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=731',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=732',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -546,7 +572,7 @@ function launchRazorpaySubscription(btn, errEl){
       subscription_id: o.subscriptionId,
       name: 'TradeZoro',
       description: o.trial ? o.planName + ' · ' + STRYKER_TRIAL_DAYS + '-day free trial, then auto-renews' : o.planName + ' · auto-renews',
-      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=731',
+      image: 'https://tradezoro.com/assets/images/tradezoro-icon-192-494.png?v=732',
       prefill: {
         email: (user && user.email) || '',
         name: (CHECKOUT_BILLING && CHECKOUT_BILLING.fullName) || (user && user.displayName) || '',
@@ -561,6 +587,11 @@ function launchRazorpaySubscription(btn, errEl){
           paymentId: resp.razorpay_payment_id,
           signature: resp.razorpay_signature
         }).then((v) => {
+          if (v && v.data && v.data.addon) {
+            showToast('success', 'Live Futures Data is on. Your CME futures charts are real-time.', { title: 'Payment confirmed', duration: 2600 });
+            setTimeout(() => { window.location.href = 'charts.html'; }, 1800);
+            return;
+          }
           finishPaidCheckout(!!(v && v.data && v.data.trial));
         }).catch((err) => {
           errEl.textContent = o.trial
@@ -682,6 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       CHECKOUT_PLAN = plan;
+      if (plan.addon === true) {   // no coupon / referral on the add-on; the heading says what it is
+        document.querySelectorAll('#checkout-coupon-input').forEach((i) => { const pn = i.closest('.panel'); if (pn) pn.style.display = 'none'; });
+      }
       renderPlanSummary(CHECKOUT_PLAN);
       updateOrderSummary();
       // Ask the server whether this member gets a free trial; the page shows

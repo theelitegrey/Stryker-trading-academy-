@@ -19,7 +19,10 @@
     var q = [db.collection('communities').doc(slug).collection('plans').where('status', '==', 'live').get().then(function (s) { plans = s.docs.map(function (x) { var o = x.data(); o.id = x.id; return o; }).sort(function (a, b) { return a.order - b.order; }); }).catch(function () { plans = []; })];
     if (me) q.push(db.collection('communities').doc(slug).collection('members').doc(me.uid).get().then(function (m) { mem = m.exists ? m.data() : null; }).catch(function () { mem = null; }));
     return Promise.all(q).then(draw);
-  }).catch(function () { msg('Could not load this community. Check your connection and try again.'); });
+  }).catch(function (e) {
+    if (e && e.code === 'permission-denied') return msg(me ? 'Community not found. <a href="/communities" style="color:var(--gold-bright)">Browse communities</a>' : 'Community not found, or it is private. <a href="/login" style="color:var(--gold-bright)">Sign in</a> if you have an invite.');
+    msg('Could not load this community. Check your connection and try again.');
+  });
 
   function isOwner() { return me && cm.ownerUid === me.uid; }
   function enabled() { return FEATS.filter(function (f) { return cm.features && cm.features[f[0]]; }); }

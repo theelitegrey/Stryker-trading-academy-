@@ -502,17 +502,29 @@ document.addEventListener('DOMContentLoaded', () => {
     try { const t = s.liveFeedAt; const d = t && t.toDate ? t.toDate() : (t && t.seconds ? new Date(t.seconds * 1000) : null); if (d) at = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) {}
     const who = liveOn ? 'Approved' + (by ? ' by ' + (by.displayName || by.name || (by.email || '').split('@')[0]) : (s.liveFeedBy ? ' by an admin' : '')) + (at ? ' on ' + at : '') + '. ' : '';
     if (why.indexOf('Add-on') !== -1) return who + 'Also has the paid $5/month Live Futures Data add-on.';
+    if (s.liveFeed === true && s.liveFeedGrandfathered === true) return 'Live futures: On (kept from Pro)' + (why.indexOf('Kept from Pro') === -1 ? ' \u2014 paused: Pro is no longer active, so futures are 10 min delayed.' : '. Stays on while their Pro is active; switch off to remove.');
     if (liveOn) return who + 'Real-time CME futures on ZoroCharts.';
     return 'Off: futures on ZoroCharts are 10 min delayed (unless they connect Rithmic or buy the add-on).';
   }
 
+  // Mirrors isActiveProDoc in _rt.js: paid plan, not expired/cancelled, inside paidThrough + 3 days (founding = always).
+  function proStillActive(s){
+    if (!s.plan || !(typeof rankOf === 'function' && rankOf(s.plan) >= 1)) return false;
+    if (s.subscriptionStatus === 'expired' || s.subscriptionStatus === 'cancelled' || s.subscriptionStatus === 'canceled') return false;
+    if (s.foundingMember === true) return true;
+    const pt = Number(s.paidThroughMillis) || 0;
+    return !(pt > 0 && Date.now() > pt + 3 * 86400000);
+  }
   // Why a member gets real-time chart data (mirrors functions/api/chart/_rt.js; the SERVER decides, this only labels).
   // Add-on = students/{uid}.liveData.active with paidThroughMillis + 3 days grace.
   function liveWhy(s, isAdminUser){
     const why = [];
     if (isAdminUser) why.push('Admin');
     if (s.demo === true) why.push('Demo');
-    if (s.liveFeed === true) why.push('Switch');
+    if (s.liveFeed === true && s.liveFeedGrandfathered === true) {
+      // Early Pro member kept live (Owner 2026-10-30): server keeps real-time only while Pro stays active.
+      if (proStillActive(s)) why.push('Kept from Pro');
+    } else if (s.liveFeed === true) why.push('Switch');
     // Owner 2026-10-30: Pro no longer includes real-time futures. The $5/month add-on does (liveData, 3 days grace).
     const ld = s.liveData || {}, lpt = Number(ld.paidThroughMillis) || 0;
     if (ld.active === true && (!lpt || Date.now() <= lpt + 3 * 86400000)) why.push('Add-on');

@@ -18,6 +18,7 @@
     const me = auth.currentUser;
     return db.collection('students').doc(uid).set({
       liveFeed: !!on,
+      liveFeedGrandfathered: false,   // an admin's own switch is unconditional (clears the early-Pro "kept" flag)
       liveFeedBy: me ? me.uid : null,
       liveFeedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).then(() => {

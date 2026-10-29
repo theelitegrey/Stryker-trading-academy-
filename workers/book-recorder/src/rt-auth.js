@@ -19,9 +19,11 @@ const ADMIN_TTL_MS = 60000;
 const GRACE_MS = 3 * 24 * 3600 * 1000;   // same grace as functions-src/subscriptions.js: access continues 3 days past paidThroughMillis
 const STUDENT_TTL_MS = 30000;   // demo / liveFeed: switching a user off bites within ~1 min (memo + stream re-check)
 
+const PLANS_TTL_MS = 300000;   // plans collection (public read) memo: which plan names are paid (rank >= 1)
 let jwks = null, jwksAt = 0, jwksTry = 0;
 const adminMemo = new Map();
 const demoMemo = new Map();
+let plansMemo = null;   // { at, paid:Set(lowercased plan names/ids with rank >= 1) }
 
 // Live Futures Data add-on (Owner order 2026-10-30, $5/month): students/{uid}.liveData = { active, paidThroughMillis,
 // source: 'stripe'|'razorpay'|'manual' }, written only by Cloud Functions / an admin. Active = active === true and, when there is a
@@ -30,6 +32,40 @@ export function isActiveLiveDataDoc(f, nowMs = Date.now()) {
   const m = f && f.liveData && f.liveData.mapValue && f.liveData.mapValue.fields;
   if (!m || !m.active || m.active.booleanValue !== true) return false;
   const pt = m.paidThroughMillis ? Number(m.paidThroughMillis.integerValue ?? m.paidThroughMillis.doubleValue ?? m.paidThroughMillis.stringValue) : 0;
+  if (pt > 0 && nowMs > pt + GRACE_MS) return false;
+  return true;
+}
+
+// Pro (used ONLY to keep grandfathered members live while their Pro stays active, Owner 2026-10-30) = the same rule the paywall uses (assets/plan-limits.js: rankOf(students.plan) >= 1, ranks from the public plans
+// collection). Read server-side from the student's own doc. Active = status not expired/cancelled and, when the member
+// has a paidThroughMillis, now <= paidThrough + 3 days grace (the daily sweep downgrades plan itself; this closes the gap).
+async function paidPlanNames(fetchImpl) {
+  if (plansMemo && Date.now() - plansMemo.at < PLANS_TTL_MS) return plansMemo.paid;
+  let paid = null;
+  try {
+    const r = await fetchImpl('https://firestore.googleapis.com/v1/projects/' + RT_PROJECT + '/databases/(default)/documents/plans?pageSize=100');
+    if (r.ok) {
+      paid = new Set();
+      for (const d of (await r.json()).documents || []) {
+        const f = d.fields || {}, rk = f.rank ? Number(f.rank.integerValue ?? f.rank.doubleValue ?? f.rank.stringValue) : 0;
+        if (rk >= 1) {
+          paid.add(d.name.split('/').pop().toLowerCase());
+          if (f.name && f.name.stringValue) paid.add(f.name.stringValue.toLowerCase());
+        }
+      }
+    }
+  } catch (e) { paid = null; }
+  if (!paid || !paid.size) { if (plansMemo) { plansMemo.at = Date.now() - PLANS_TTL_MS + 15000; return plansMemo.paid; } return new Set(['pro', 'elite']); }
+  plansMemo = { at: Date.now(), paid };
+  return paid;
+}
+export function isActiveProDoc(f, paid, nowMs = Date.now()) {
+  const plan = f.plan && f.plan.stringValue ? f.plan.stringValue.toLowerCase() : '';
+  if (!plan || !paid.has(plan)) return false;
+  const st = f.subscriptionStatus && f.subscriptionStatus.stringValue;
+  if (st === 'expired' || st === 'cancelled' || st === 'canceled') return false;
+  if (f.foundingMember && f.foundingMember.booleanValue === true) return true;
+  const pt = f.paidThroughMillis ? Number(f.paidThroughMillis.integerValue ?? f.paidThroughMillis.doubleValue ?? f.paidThroughMillis.stringValue) : 0;
   if (pt > 0 && nowMs > pt + GRACE_MS) return false;
   return true;
 }
@@ -108,7 +144,7 @@ export async function isAdminToken(token, opts = {}) {
 
 // Real-time entitlement = admin, OR the marketing demo account (CoS decision 2026-10-17), OR a member the
 // Owner switched on from the admin page (liveFeed, Owner 2026-10-26 "I can select which users get live feed"):
-// a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true, OR an active Live Futures Data add-on (students/{uid}.liveData, $5/month, Owner 2026-10-30). Pro alone no longer includes real-time (Owner 2026-10-30). The doc is read
+// a token-verified uid whose OWN students/{uid} document has demo === true or liveFeed === true, OR an active Live Futures Data add-on (students/{uid}.liveData, $5/month, Owner 2026-10-30). Pro alone no longer includes real-time, EXCEPT the 46 grandfathered early Pro members (liveFeed + liveFeedGrandfathered, CoS-set): live only while isActiveProDoc stays true (Owner 2026-10-30). The doc is read
 // over the Firestore REST API with the caller's own token, so the live rules decide (a student can only read
 // their own doc), and `demo` / `liveFeed` are server-only fields (privileged in firestore.rules: only an admin
 // writes them). Fails CLOSED. Nobody else gets in.
@@ -123,8 +159,12 @@ export async function isDemoToken(token, opts = {}) {
     const r = await (opts.fetchImpl || fetch)(url, { headers: { authorization: 'Bearer ' + token } });
     if (r.status === 200) {
       const f = ((await r.json()) || {}).fields || {};
-      v = !!((f.demo && f.demo.booleanValue === true) || (f.liveFeed && f.liveFeed.booleanValue === true));
-      if (!v) v = isActiveLiveDataDoc(f, opts.nowMs || Date.now());
+      const nowMs = opts.nowMs || Date.now();
+      const lf = !!(f.liveFeed && f.liveFeed.booleanValue === true), gf = !!(f.liveFeedGrandfathered && f.liveFeedGrandfathered.booleanValue === true);
+      // live = demo || (liveFeed && !grandfathered: manual, unconditional) || (grandfathered && Pro still active) || add-on
+      v = !!(f.demo && f.demo.booleanValue === true) || (lf && !gf);
+      if (!v && lf && gf) v = isActiveProDoc(f, await paidPlanNames(opts.fetchImpl || fetch), nowMs);
+      if (!v) v = isActiveLiveDataDoc(f, nowMs);
     }
     else if (r.status !== 404 && r.status !== 403) ttl = 10000;
   } catch (e) { ttl = 10000; }
@@ -146,4 +186,4 @@ export function wsTokenOf(request) {
   const i = list.indexOf('tz-auth');
   return i >= 0 && list[i + 1] ? list[i + 1] : '';
 }
-export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; adminMemo.clear(); demoMemo.clear(); };
+export const _resetForTests = () => { jwks = null; jwksAt = 0; jwksTry = 0; plansMemo = null; adminMemo.clear(); demoMemo.clear(); };

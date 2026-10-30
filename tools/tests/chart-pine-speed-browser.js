@@ -74,31 +74,39 @@ async function open(b) {
 }
 // add a built-in/community script by id through the same path the Indicators window uses
 const ADD = `async (id) => {
-  const S = (x) => { window.__ps.step = x; }; S('import');
-  const M = await import('/assets/chart-pine-builtins.js'); S('imported');
+  const chart = window.STRYKER_VELA.chart, P = window.STRYKER_PINE; const t0 = performance.now(); const ev = [];
+  const S = (x) => { window.__ps.step = x; ev.push(x + '@' + Math.round(performance.now() - t0)); };
+  if (!chart.__psWrap) { chart.__psWrap = 1; const orig = chart.addIndicator.bind(chart); chart.addIndicator = (src, opt) => { S('addIndicator ' + opt.language); const h = orig(src, opt); try { h.on('ready', () => S('ready')); h.on('error', (e) => S('error ' + String(e && e.error && e.error.message || e).slice(0, 100))); } catch (e) {} return h; }; }
+  const M = await import('/assets/chart-pine-builtins.js');
   const b = M.PICKER_SCRIPTS.find((x) => x.id === id); if (!b) return { ok: false, msg: 'unknown ' + id };
-  const src = await M.builtinSource(id); S('src ' + src.length);
-  const P = window.STRYKER_PINE, chart = window.STRYKER_VELA.chart;
-  const n0 = P.pineHandles(chart).length, t0 = performance.now();
-  S('adding'); const r = await P.addSource(b.name, src, { engine: 'next', builtin: true }); S('added ' + r.ok);
-  const t1 = performance.now();
-  // first draw = a model with content on the new handle
+  const src = await M.builtinSource(id);
+  const n0 = P.pineHandles(chart).length;
+  let r = null; S('call addSource');
+  P.addSource(b.name, src, { engine: 'next', builtin: true }).then((x) => { r = x; S('added ' + x.ok); }, (e) => { r = { ok: false, msg: 'EXC ' + e }; });
+  for (let i = 0; i < 1500 && !r; i++) await new Promise((q) => setTimeout(q, 100));
+  if (!r) return { id, ok: false, msg: 'addSource never returned', ev };
   let drawn = null;
   if (r.ok) {
-    for (let i = 0; i < 400; i++) {
+    for (let i = 0; i < 1200; i++) {
       const hs = P.pineHandles(chart), h = hs[hs.length - 1];
       const rec = h && [...chart.orchestrator.registry.all()].find((q) => q.model && q.model.id === h.id);
       const m = rec && rec.model;
-      if (m && ((m.lines||[]).length + (m.labels||[]).length + (m.boxes||[]).length + (m.plots||[]).length + (m.tables||[]).length + (m.polylines||[]).length)) { drawn = Math.round(performance.now() - t0); break; }
-      await new Promise((q) => setTimeout(q, 50));
+      if (m && ((m.lines||[]).length + (m.labels||[]).length + (m.boxes||[]).length + (m.series||[]).length + (m.tables||[]).length + (m.polylines||[]).length)) { drawn = Math.round(performance.now() - t0); break; }
+      await new Promise((q) => setTimeout(q, 100));
     }
   }
-  return { id, ok: r.ok, msg: r.msg || '', addMs: Math.round(t1 - t0), drawMs: drawn, n: P.pineHandles(chart).length - n0 };
+  return { id, ok: r.ok, msg: r.msg || '', drawMs: drawn, ev, n: P.pineHandles(chart).length - n0 };
 }`;
 const STATE = `() => { const P = window.STRYKER_PINE, chart = window.STRYKER_VELA.chart;
   const hs = P.pineHandles(chart); const recs = [...chart.orchestrator.registry.all()];
   return { handles: hs.length, drawing: hs.map((h) => { const r = recs.find((q) => q.model && q.model.id === h.id); const m = r && r.model; return [P.titleOf(h), m ? (m.lines||[]).length + (m.labels||[]).length + (m.boxes||[]).length + (m.plots||[]).length + (m.tables||[]).length : -1]; }),
     workers: window.__ps.workers, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, bars: chart.orchestrator.rawBars.length }; }`;
+async function addId(p, id, limitMs) {
+  await p.evaluate(`window.__addRes = null; (${ADD})(${JSON.stringify(id)}).then((r) => { window.__addRes = r; }, (e) => { window.__addRes = { ok: false, msg: 'EXC ' + e }; }); 0`);
+  const t0 = Date.now();
+  while (Date.now() - t0 < limitMs) { await sleep(500); const r = await p.evaluate(() => window.__addRes); if (r) return r; }
+  return { ok: false, msg: 'HARNESS TIMEOUT ' + limitMs + 'ms', step: await p.evaluate(() => window.__ps.step) };
+}
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
   const results = [];
@@ -107,10 +115,10 @@ const STATE = `() => { const P = window.STRYKER_PINE, chart = window.STRYKER_VEL
       const n = cs === 'alone' ? 0 : Number(cs);
       console.log('open', cs); const { ctx, p, errors } = await open(b); console.log('opened');
       const row = { case: cs, tf: TF, vela: V09 ? '0.9' : '0.6', w: W, others: [] };
-      for (const id of OTHERS.slice(0, n)) { const o = await p.evaluate(eval(ADD), id); console.log('other', JSON.stringify(o)); row.others.push(o); }
-      await sleep(2500);
+      for (const id of OTHERS.slice(0, n)) { const o = await addId(p, id, 150000); console.log('other', JSON.stringify(o)); row.others.push(o); }
+      if (n) await sleep(2500);
       const idle0 = await p.evaluate(() => window.__ps.msgs.length);
-      const tIdle = Date.now(); await sleep(8000);   // idle re-run traffic with n others, before the target
+      const tIdle = Date.now(); if (n) await sleep(8000); else await sleep(50);   // idle re-run traffic with n others, before the target
       const idleMsgs = await p.evaluate((i) => window.__ps.msgs.slice(i), idle0);
       row.idleModelsPer10s = Math.round(idleMsgs.filter((m) => m[2] === 'model').length * 10 / ((Date.now() - tIdle) / 1000));
       row.idleRunsPer10s = Math.round(idleMsgs.filter((m) => /^>(notifyBars|execute|update)/.test(m[2])).length * 10 / ((Date.now() - tIdle) / 1000));
@@ -127,7 +135,7 @@ const STATE = `() => { const P = window.STRYKER_PINE, chart = window.STRYKER_VEL
         const P = window.STRYKER_PINE; window.__p3 = P.addSource('t', src, { engine: 'next', builtin: true }).then((r) => { T('result ' + JSON.stringify(r).slice(0, 200)); });
         await new Promise((q) => setTimeout(q, 25000)); o.workers = window.__ps.workers; o.lastMsgs = window.__ps.msgs.slice(-8); return o; }); console.log('PROBE3', JSON.stringify(pr)); }
       console.log('adding target'); const tw = setInterval(async () => { try { const st = await Promise.race([p.evaluate(() => ({ t: Math.round(performance.now()), long: window.__ps.long.slice(-3), msgs: window.__ps.msgs.slice(-6), workers: window.__ps.workers, step: window.__ps.step, hand: window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.chart).length, hs: window.STRYKER_VELA.chart.orchestrator.historyState })), sleep(4000).then(() => 'PAGE UNRESPONSIVE')]); console.log('  ..', JSON.stringify(st).slice(0, 500)); } catch (e) { console.log('  .. err', String(e).slice(0, 100)); } }, 10000);
-      const t = await Promise.race([p.evaluate(eval(ADD), TARGET), sleep(60000).then(() => ({ ok: false, msg: 'HARNESS TIMEOUT 60s' }))]); clearInterval(tw); console.log('target', JSON.stringify(t));
+      const t = await addId(p, TARGET, 150000); clearInterval(tw);
       row.target = t;
       await sleep(3000);
       const after = await p.evaluate((m0) => ({ long: window.__ps.long.slice(m0.l), msgs: window.__ps.msgs.slice(m0.i) }), m0);

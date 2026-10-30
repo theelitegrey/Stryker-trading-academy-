@@ -107,6 +107,7 @@ select.rjs-in{ padding-right:44px; background-image:url("data:image/svg+xml,%3Cs
 .rjs-spin{ display:inline-block; width:16px; height:16px; margin-right:8px; vertical-align:-3px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; animation:rjs-spin .8s linear infinite; }
 @media (min-width:641px){
   .rjs-back{ align-items:center; }
+  .rjs.rjs-wide{ max-width:920px; }
   .rjs{ border-radius:16px; border-bottom:1px solid var(--rz-line); max-height:88vh; padding-bottom:24px; animation:rjs-fade .2s cubic-bezier(.2,0,0,1); }
   .rjs-grab{ display:none; }
 }
@@ -246,7 +247,7 @@ export function openRithmicJournalImport({ uid, savedLogin } = {}) {
         '<button type="button" class="rjs-row" role="radio" aria-checked="' + (a.id === S.account.id) + '" data-acct="' + esc(a.id) + '"><i></i><span><b>' + esc(a.name) + '</b><small>' + esc(a.id) + ' · ' + esc(a.currency) + '</small></span></button>').join('') + '</div>' +
       '<p class="rjs-sub">Days</p>' +
       '<div class="rjs-seg" role="radiogroup" aria-label="Days" id="rjs-seg">' +
-        [['today', 'Today'], ['last5', 'Last 5 sessions'], ['custom', 'Pick days']].map(([k, l]) => '<button type="button" role="radio" aria-checked="' + (S.mode === k) + '" data-mode="' + k + '">' + l + '</button>').join('') + '</div>' +
+        [['today', 'Today'], ['last5', 'Last 5'], ['custom', 'Pick days']].map(([k, l]) => '<button type="button" role="radio" aria-checked="' + (S.mode === k) + '" data-mode="' + k + '">' + l + '</button>').join('') + '</div>' +
       (S.mode === 'custom' ? (dates.length ? '<div class="rjs-rows" id="rjs-days">' + dates.map((d) => '<button type="button" class="rjs-row" role="checkbox" aria-checked="' + S.picked.has(d) + '" data-day="' + d + '"><i></i><span><b>' + fmtDate(d) + '</b></span></button>').join('') + '</div>' : '<p class="rjs-hint">Rithmic reported no past days with order history for this login.</p>') :
         '<p class="rjs-hint" style="margin:-4px 0 16px">' + (S.mode === 'today' ? 'Today\u2019s orders and fills (trade date ' + fmtDate(S.today) + ').' : (last5.length ? 'Sessions: ' + last5.map(fmtDate).join(', ') + '.' : 'Rithmic reported no past days with order history for this login.')) + '</p>') +
       '<button type="button" class="rjs-go" id="rjs-load">Load trades</button>' +
@@ -382,6 +383,7 @@ export function openRithmicJournalImport({ uid, savedLogin } = {}) {
   }
 
   function draw(err) {
+    sheet.classList.toggle('rjs-wide', S.step === 'preview');
     if (S.step === 'login') drawLogin(err);
     else if (S.step === 'pick') drawPick(err);
     else if (S.step === 'preview') drawPreview();

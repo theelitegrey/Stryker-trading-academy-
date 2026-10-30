@@ -71,7 +71,9 @@ async function run(b, w, h, mobile, shots) {
   const tag = w + '';
   const { ctx, p } = await open(b, { w, h, mobile });
   await p.goto(BASE + '/trade-journal.html?rjournal=1', { waitUntil: 'domcontentloaded' });
-  await p.waitForSelector('#ji-open-rithmic', { timeout: 15000 });
+  await p.waitForSelector('#ji-open-rithmic', { timeout: 15000, state: 'attached' });
+  await p.evaluate(() => switchJournalTab('history'));          // the import buttons live on the History tab
+  await p.waitForSelector('#ji-open-rithmic', { timeout: 15000, state: 'visible' });
   check(true, tag + ': admin sees "Import from Rithmic" next to CSV import');
   await p.evaluate(() => document.getElementById('ji-open-rithmic').scrollIntoView({ block: 'center' }));
   if (shots) await p.screenshot({ path: OUT + '/after-' + tag + '-0-button.png' });
@@ -118,12 +120,13 @@ async function run(b, w, h, mobile, shots) {
   const net = await p.evaluate(() => (document.querySelector('.rjs-sum div:nth-child(2) b') || {}).textContent);
   check(/1,174|1174/.test(net), tag + ': net P&L = $1,174 (40+250+800+40+20+24) got ' + net);
   const vis = await p.evaluate(() => ({ table: !!document.querySelector('.rjs-table').offsetParent, cards: !!document.querySelector('.rjs-card').offsetParent }));
+  if (!mobile) check(await p.evaluate(() => { const w = document.querySelector('.rjs-tablewrap'); return w.scrollWidth <= w.clientWidth + 1; }), tag + ': desktop table fits, no horizontal scroll');
   check(mobile ? (!vis.table && vis.cards) : (vis.table && !vis.cards), tag + ': ' + (mobile ? 'cards on phone' : 'table on desktop'));
   if (shots) await p.screenshot({ path: OUT + '/after-' + tag + '-6-preview.png' });
   if (shots) await p.screenshot({ path: OUT + '/after-' + tag + '-6-preview-full.png', fullPage: false });
   await p.click('#rjs-import');
   await p.waitForSelector('.rjs-done', { timeout: 15000 });
-  const stored = await p.evaluate(() => Object.values(window.__rjStore));
+  const stored = await p.evaluate(() => Object.entries(window.__rjStore).filter(([k]) => k[0] !== '_').map(([, v]) => v));
   check(stored.length === 6, tag + ': 6 trades written, got ' + stored.length);
   check(stored.every((t) => t.source === 'rithmic' && t.tags[0] === 'Rithmic \u00b7 APEX-1001' && t.rithmicIds.length >= 2), tag + ': tagged "Rithmic · APEX-1001" with source ids');
   check(Math.round(stored.reduce((a, t) => a + t.pnl, 0)) === 1174, tag + ': stored P&L sums to 1174');
@@ -142,7 +145,7 @@ async function run(b, w, h, mobile, shots) {
   check(/Nothing new to import/.test(st.text) && /6 already in your journal/.test(st.text), tag + ': re-import: "6 already in your journal", nothing new');
   check(await p.$eval('#rjs-import', (e) => e.disabled), tag + ': re-import button disabled');
   if (shots) await p.screenshot({ path: OUT + '/after-' + tag + '-8-dupes.png' });
-  check(Object.keys(await p.evaluate(() => window.__rjStore)).length === 6, tag + ': still 6 trades stored');
+  check((await p.evaluate(() => Object.keys(window.__rjStore).filter((k) => k[0] !== '_').length)) === 6, tag + ': still 6 trades stored');
   // two accounts: account 2
   await p.click('#rjs-back2');
   await p.waitForSelector('#rjs-sys option[value]:not([value=""])', { timeout: 15000, state: 'attached' });
@@ -166,7 +169,7 @@ async function run(b, w, h, mobile, shots) {
     // non-admin never sees it
     const { ctx, p } = await open(b, { w: 1440, h: 900, admin: false });
     await p.goto(BASE + '/trade-journal.html?rjournal=1', { waitUntil: 'domcontentloaded' });
-    await sleep(2500);
+    await sleep(3000);
     check(!(await p.$('#ji-open-rithmic')), 'non-admin: no Import from Rithmic button even with ?rjournal=1');
     await ctx.close();
     const st = await (await fetch(MOCK_HTTP + '/__stats')).json();

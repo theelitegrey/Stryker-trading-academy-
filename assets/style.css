@@ -10409,3 +10409,14 @@ input[type=checkbox]:not(:checked), input[type=radio]:not(:checked){ background-
 #settings-connections-panel .rs-time{ display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px; font-size:13px; color:var(--ink-2); }
 #settings-connections-panel .rs-time input{ height:44px; padding:0 12px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2); color:var(--ink-0); font-size:16px; }
 #settings-connections-panel .rs-note{ margin:8px 0 0; font-size:12px; line-height:16px; color:var(--ink-2); }
+
+/* Creator Hub section of the app menu (Owner 2026-10-30): the sub-label that
+   names the community being managed. Same mono caps as .side-label, one step quieter. */
+.side-sublabel{
+  font-family:var(--font-mono); font-size:10.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--ink-3);
+  padding:12px 12px 6px; margin-top:4px; border-top:1px solid var(--line);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#cn-section .side-link{ min-height:40px; }
+#cn-section .side-link.active{ font-weight:600; }
+#cn-section .side-link:focus-visible{ outline:2px solid var(--teal); outline-offset:-2px; }

@@ -64,9 +64,7 @@
       ['dashboard-user', 'Home', 'Your dashboard and progress', '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', ['index']],
       ['trading-floor', 'Trading Floor', 'Community posts and chat', '<path d="M9 9V5a2.5 2.5 0 0 1 2.5-2.5h8A2.5 2.5 0 0 1 22 5v3.5a2.5 2.5 0 0 1-2.5 2.5H15"/><path d="M4.5 9h8a2.5 2.5 0 0 1 2.5 2.5v4a2.5 2.5 0 0 1-2.5 2.5h-3l-3.5 3v-3H4.5A2.5 2.5 0 0 1 2 15.5v-4A2.5 2.5 0 0 1 4.5 9z"/>'],
       ['global-monitor', 'Global Monitor', 'World events and market news', '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/>'],
-      ['messages', 'Messages', 'Direct messages', '<path d="M4 5h16v11H8l-4 4z"/>'],
-      ['communities', 'Communities', 'Find and join creator communities', '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 20a6.5 6.5 0 0 0-2-4.6"/>', ['c']],
-      ['creators', 'Creator Hub', 'Start or run your own community', '<path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.5 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/>', ['creator', 'creator-new', 'creator-admin']]
+      ['messages', 'Messages', 'Direct messages', '<path d="M4 5h16v11H8l-4 4z"/>']
     ]],
     ['Tools', [
       ['backtests', 'Replay One', 'Test a model on past data', '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/>', ['replay']],
@@ -95,7 +93,9 @@
     ]]
   ];
 
+  var CREATOR_FILES = ['communities', 'c', 'creator', 'creator-new', 'creator-admin', 'creators'];
   function moreKey(f){
+    if (CREATOR_FILES.indexOf(f) !== -1) return 'creator-hub';
     for (var g = 0; g < MORE.length; g++) {
       var list = MORE[g][1];
       for (var i = 0; i < list.length; i++) {
@@ -106,6 +106,138 @@
   }
 
   var sheet = null, scrim = null, lastFocus = null;
+
+  // ---- Creator Hub section (Owner order 2026-10-30) ------------------------
+  // One model feeds both menus: the sidebar section (#cn-section, static markup
+  // in each page so it paints with the page; this code re-renders it) and the
+  // "More" sheet groups. Only things that exist are listed. Ownership comes from
+  // communities.ownerUid == uid (the same query the dashboard uses), cached in
+  // sessionStorage for a few minutes; admins from /admins/{uid}. Presentation only:
+  // the pages and the rules are the real gates.
+  var CN_KEY = 'cn_owned', CN_TTL = 10 * 60 * 1000;
+  var cnState = { uid: null, owned: [], admin: false };
+  function esc(t){ return String(t == null ? '' : t).replace(/[&<>"']/g, function(c){ return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var CI = {
+    explore: '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
+    mine: '<path d="M6 3h12v18l-6-4-6 4z"/>',
+    dash: '<rect x="3" y="3" width="8" height="10" rx="1.5"/><rect x="13" y="3" width="8" height="6" rx="1.5"/><rect x="13" y="11" width="8" height="10" rx="1.5"/><rect x="3" y="15" width="8" height="6" rx="1.5"/>',
+    mod: '<path d="M12 3l8 3.5v5.5c0 4.5-3.2 8.2-8 9.5-4.8-1.3-8-5-8-9.5V6.5z"/>',
+    start: '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+    how: '<circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h6a3 3 0 0 0 0-6h-4a3 3 0 0 1 0-6h6"/>',
+    members: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 20a6.5 6.5 0 0 0-2-4.6"/>',
+    courses: '<path d="M12 6.5C10.5 5 8 4 4 4v14c4 0 6.5 1 8 2.5 1.5-1.5 4-2.5 8-2.5V4c-4 0-6.5 1-8 2.5zM12 6.5v14"/>',
+    indicators: '<path d="M3 17l5-6 4 4 8-9"/><path d="M15 6h5v5"/>',
+    feed: '<path d="M4 11v2a1 1 0 0 0 1 1h2l5 4V6L7 10H5a1 1 0 0 0-1 1z"/><path d="M16 9a4 4 0 0 1 0 6"/>',
+    plans: '<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6.5 15h3"/>',
+    discord: '<path d="M7 7h10a4 4 0 0 1 4 4v4a3 3 0 0 1-5.2 2l-1.3-1.5h-3l-1.3 1.5A3 3 0 0 1 3 15v-4a4 4 0 0 1 4-4z"/><path d="M9 11v2M8 12h2M15.5 12h.01M17 13.5h.01"/>',
+    settings: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'
+  };
+
+  function cnLoadCache(){
+    try {
+      var o = JSON.parse(sessionStorage.getItem(CN_KEY) || 'null');
+      if (o && o.t && Date.now() - o.t < CN_TTL) { cnState = { uid: o.uid, owned: o.owned || [], admin: !!o.admin }; return true; }
+    } catch(e) {}
+    return false;
+  }
+  function cnSave(){ try { sessionStorage.setItem(CN_KEY, JSON.stringify({ t: Date.now(), uid: cnState.uid, owned: cnState.owned, admin: cnState.admin })); } catch(e) {} }
+
+  // Which creator item is "current" for this URL. Returns a key or null.
+  function cnCurrent(){
+    var p = location.pathname.toLowerCase(), f = pageFile(), qs = new URLSearchParams(location.search);
+    var one = cnState.owned.length === 1 ? cnState.owned[0].id : null;
+    if (f === 'communities') return (qs.get('view') === 'mine' || location.hash === '#mine') ? 'mine' : 'explore';
+    if (f === 'c' || /^\/c\//.test(p)) {
+      var slug = (p.match(/^\/c\/([a-z0-9-]+)/) || [])[1] || qs.get('c');
+      var t = qs.get('tab');
+      if (one && slug === one && (t === 'feed' || t === 'events')) return 'feed';
+      return 'explore';
+    }
+    if (f === 'creator') {
+      var tb = qs.get('tab') || 'dash';
+      if (cnState.owned.length === 1 && ['members', 'courses', 'indicators', 'plans', 'discord', 'settings'].indexOf(tb) !== -1) return tb;
+      return 'dash';
+    }
+    if (f === 'creator-new') return 'start';
+    if (f === 'creator-admin') return 'mod';
+    if (f === 'creators') return 'how';
+    return null;
+  }
+
+  // Items for the menus. [key, label, short description, icon, href, aria-label]
+  function cnModel(){
+    var st = cnState, one = st.owned.length === 1 ? st.owned[0] : null;
+    var main = [
+      ['explore', 'Explore communities', 'Find and join creator communities', '/communities'],
+      ['mine', 'My communities', 'Communities you have joined', '/communities?view=mine']
+    ];
+    if (st.owned.length) main.push(['dash', 'Creator dashboard', st.owned.length > 1 ? 'Pick which community to manage' : 'Run your community', '/creator']);
+    if (st.admin) main.push(['mod', 'Creator moderation', 'Staff: review communities', '/creator-admin']);
+    if (!st.owned.length) main.push(['start', 'Start a community', 'Set up your own, free to start', '/creator-new']);
+    main.push(['how', 'How it works', 'What creators can do here', '/features/creators']);
+    var manage = null;
+    if (one) {
+      var base = '/creator?c=' + encodeURIComponent(one.id) + '&tab=';
+      manage = { label: 'Manage ' + one.name, items: [
+        ['members', 'Members', 'Roster, roles and bans', base + 'members'],
+        ['courses', 'Courses', 'Build and publish courses', base + 'courses'],
+        ['indicators', 'Indicators', 'Your protected indicators', base + 'indicators'],
+        ['feed', 'Feed & events', 'Posts and live events', '/c/' + encodeURIComponent(one.id) + '?tab=feed'],
+        ['plans', 'Plans', 'Pricing and access', base + 'plans'],
+        ['discord', 'Discord', 'Roles for your server', base + 'discord'],
+        ['settings', 'Settings', 'Name, look and features', base + 'settings']
+      ] };
+    }
+    return { main: main, manage: manage, many: st.owned.length > 1 };
+  }
+  function cnAria(it, m){
+    return m && m.manage && m.manage.items.indexOf(it) !== -1 ? it[1] + ', manage ' + m.manage.label.slice(7) : '';
+  }
+
+  // Sheet groups in the MORE tuple shape: [key, label, desc, icon, extra, href, on, aria]
+  function creatorGroups(){
+    var m = cnModel(), cur = cnCurrent();
+    var conv = function(it){ return ['cn-' + it[0], it[1], it[2], CI[it[0]], [], it[3], it[0] === cur, cnAria(it, m)]; };
+    var g = [['Creator Hub', m.main.map(conv)]];
+    if (m.manage) g.push([m.manage.label, m.manage.items.map(conv)]);
+    return g;
+  }
+
+  // Sidebar section: same markup as the static HTML in each page.
+  function cnLink(it, cur, m){
+    var on = it[0] === cur, al = cnAria(it, m);
+    return '<a href="' + it[3] + '" class="side-link' + (on ? ' active' : '') + '" data-cn="' + it[0] + '"' + (on ? ' aria-current="page"' : '') + (al ? ' aria-label="' + esc(al) + '"' : '') + '>' +
+      '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + CI[it[0]] + '</svg>' + esc(it[1]) + '</a>';
+  }
+  function renderSidebar(){
+    var sec = document.getElementById('cn-section');
+    if (!sec) return;
+    var m = cnModel(), cur = cnCurrent();
+    var h = '<div class="side-label" id="cn-label">Creator Hub</div>' + m.main.map(function(it){ return cnLink(it, cur, m); }).join('');
+    if (m.manage) h += '<div class="side-sublabel" title="' + esc(m.manage.label) + '">' + esc(m.manage.label) + '</div>' + m.manage.items.map(function(it){ return cnLink(it, cur, m); }).join('');
+    if (sec.innerHTML !== h) sec.innerHTML = h;
+  }
+  function refreshCreator(){
+    renderSidebar();
+    if (sheet && !isOpen()) { sheet.remove(); scrim.remove(); sheet = null; scrim = null; }
+  }
+
+  function loadCreatorState(user, tries){
+    if (!user) { cnState = { uid: null, owned: [], admin: false }; try { sessionStorage.removeItem(CN_KEY); } catch(e) {} refreshCreator(); return; }
+    if (cnState.uid === user.uid && cnLoadCache()) { refreshCreator(); return; }
+    // db (assets/progress.js) is defined a little after auth on some pages: wait for it
+    if (typeof db === 'undefined' || !db) { if ((tries || 0) < 60) setTimeout(function(){ loadCreatorState(user, (tries || 0) + 1); }, 150); return; }
+    var st = { uid: user.uid, owned: [], admin: false };
+    var q1 = db.collection('communities').where('ownerUid', '==', user.uid).get().then(function(s){
+      st.owned = s.docs.map(function(d){ return { id: d.id, name: String((d.data() || {}).name || d.id).slice(0, 40) }; });
+    }).catch(function(){});
+    var q2 = db.collection('admins').doc(user.uid).get().then(function(d){ st.admin = !!d.exists; }).catch(function(){});
+    Promise.all([q1, q2]).then(function(){ cnState = st; cnSave(); refreshCreator(); });
+  }
+  // Pages call this after they change their own tab/URL (history.replaceState)
+  window.addEventListener('cn:route', function(){ renderSidebar(); if (sheet && !isOpen()) refreshCreator(); });
+  window.addEventListener('popstate', renderSidebar);
+  cnLoadCache();
   function buildSheet(){
     if (sheet) return sheet;
     var cur = moreKey(pageFile());
@@ -123,11 +255,14 @@
       '<div class="appnav-sh-head"><span>More</span><button type="button" class="appnav-sh-x" aria-label="Close">' +
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>' +
       '<div class="appnav-sh-body">';
-    MORE.forEach(function(g){
-      h += '<div class="appnav-sh-group">' + g[0] + '</div><ul class="appnav-sh-list">';
+    var groups = MORE.slice();
+    var cg = creatorGroups();
+    groups.splice.apply(groups, [1, 0].concat(cg));
+    groups.forEach(function(g){
+      h += '<div class="appnav-sh-group">' + esc(g[0]) + '</div><ul class="appnav-sh-list">';
       g[1].forEach(function(it){
-        var on = it[0] === cur;
-        h += '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + it[0] + '"' + (on ? ' aria-current="page"' : '') + ' data-more="' + it[0] + '">' +
+        var on = it[6] !== undefined ? it[6] : it[0] === cur;
+        h += '<li><a class="appnav-sh-item' + (on ? ' on' : '') + '" href="' + (it[5] || it[0]) + '"' + (on ? ' aria-current="page"' : '') + (it[7] ? ' aria-label="' + esc(it[7]) + '"' : '') + ' data-more="' + it[0] + '">' +
           '<span class="appnav-sh-ic"><svg ' + SV + '>' + it[3] + '</svg></span>' +
           '<span class="appnav-sh-tx"><span class="appnav-sh-l">' + it[1] + '</span><span class="appnav-sh-d">' + it[2] + '</span></span></a></li>';
       });
@@ -188,7 +323,7 @@
     var btn = document.getElementById('appnav-more');
     if (btn) { btn.setAttribute('aria-expanded', 'true'); btn.classList.add('open'); }
     var first = sheet.querySelector('.appnav-sh-item.on') || sheet.querySelector('.appnav-sh-item');
-    setTimeout(function(){ if (first) first.focus({ preventScroll: true }); }, 30);
+    setTimeout(function(){ if (first) { first.focus({ preventScroll: true }); try { first.scrollIntoView({ block: 'center' }); } catch(e) {} } }, 30);
   }
 
   function closeSheet(){
@@ -276,11 +411,13 @@
       if (!user) {
         setAuthedClass(false);
         try { localStorage.removeItem(STORE); } catch(e) {}
+        loadCreatorState(null);
         if (badge) badge.style.display = 'none';
         return;
       }
       setAuthedClass(true);
       try { localStorage.setItem(STORE, '1'); } catch(e) {}
+      loadCreatorState(user);
       // pills may have just become visible — the capsule can only measure now
       paint();
       requestAnimationFrame(moveCapsule);
@@ -312,6 +449,7 @@
     if (storedAuthed()) setAuthedClass(true);
     paint();
     wire();
+    renderSidebar();
     wireAuth();
   });
 

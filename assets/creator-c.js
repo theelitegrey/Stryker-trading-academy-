@@ -7,6 +7,7 @@
   var qs = new URLSearchParams(location.search);
   if (qs.get('tab') === 'indicators') tab = 'indicators';
   if (qs.get('tab') === 'courses') tab = 'courses';
+  if (qs.get('tab') === 'feed' || qs.get('tab') === 'events') tab = qs.get('tab');   // app menu deep links (owner: Feed & events)
   var wantInd = (qs.get('ind') || '').replace(/[^A-Za-z0-9]/g, ''), indCode = (qs.get('icode') || '').replace(/[^A-Za-z0-9]/g, '');
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard']];
 
@@ -69,10 +70,11 @@
     if (member) enabled().forEach(function (f) { if (f[0] !== 'indicators' && f[0] !== 'courses') tabs.push(f); });
     if (tab === 'courses' && !tabs.some(function (t) { return t[0] === 'courses'; })) tab = 'about';
     if (tab === 'indicators' && !tabs.some(function (t) { return t[0] === 'indicators'; })) tab = 'about';
+    if ((tab === 'feed' || tab === 'events') && !tabs.some(function (t) { return t[0] === tab; })) tab = 'about';
     h += '<div class="cx-tabs" style="margin-top:16px" role="tablist">' + tabs.map(function (t) { return '<button type="button" role="tab" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="cx-two"><div id="cm-main"></div><aside id="cm-side"></aside></div>';
     root.innerHTML = h;
-    root.querySelector('.cx-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; tab = b.dataset.t; draw(); });
+    root.querySelector('.cx-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; tab = b.dataset.t; try { var q2 = new URLSearchParams(location.search); if (tab === 'about') q2.delete('tab'); else q2.set('tab', tab); history.replaceState(null, '', location.pathname + (q2.toString() ? '?' + q2.toString() : '')); window.dispatchEvent(new Event('cn:route')); } catch (x) {} draw(); });
     main(member); side(member);
   }
 

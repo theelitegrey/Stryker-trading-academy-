@@ -10,8 +10,10 @@
     $('cd-tags').querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); render();
   });
   $('cd-q').addEventListener('input', render); $('cd-sort').addEventListener('change', render);
+  if (new URLSearchParams(location.search).get('view') === 'mine') view = 'mine';
   $('cd-tabs').addEventListener('click', function (e) {
     var b = e.target.closest('button'); if (!b) return; view = b.dataset.t;
+    try { history.replaceState(null, '', location.pathname + (view === 'mine' ? '?view=mine' : '')); window.dispatchEvent(new Event('cn:route')); } catch (x) {}
     $('cd-tabs').querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x === b); }); render();
   });
 
@@ -31,8 +33,9 @@
     .catch(function () { $('cd-empty').hidden = false; $('cd-empty').textContent = 'Could not load communities. Check your connection and try again.'; });
 
   CH.user().then(function (u) {
-    me = u; if (!u) return;
+    me = u; if (!u) { if (view === 'mine') { view = 'all'; render(); } return; }
     $('cd-tabs').hidden = false;
+    $('cd-tabs').querySelectorAll('button').forEach(function (x) { x.classList.toggle('on', x.dataset.t === view); });
     db.collectionGroup('members').where('uid', '==', u.uid).get().then(function (s) {
       var ids = s.docs.filter(function (d) { return CH.isActive(d.data()); }).map(function (d) { return d.ref.parent.parent.id; });
       return Promise.all(ids.map(function (id) { return db.collection('communities').doc(id).get(); }));

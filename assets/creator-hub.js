@@ -4,7 +4,7 @@
 // bulk email import goes through CH.importEmails (API first, rules-checked batches as fallback).
 (function () {
   var root = document.getElementById('hb-root');
-  var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = (['discord', 'courses'].indexOf(new URLSearchParams(location.search).get('tab')) >= 0 ? new URLSearchParams(location.search).get('tab') : 'dash');
+  var me, list = [], cid, cm, plans = [], members = [], invites = [], grants = [], bans = [], tab = (['dash', 'settings', 'plans', 'members', 'invites', 'indicators', 'courses', 'discord', 'mods'].indexOf(new URLSearchParams(location.search).get('tab')) >= 0 ? new URLSearchParams(location.search).get('tab') : 'dash');
   var payOpen = false, payAcct = null;   // payOpen: this viewer may use creator payments now (CP.open); payAcct: my payout status
   var TABS = [['dash', 'Dashboard'], ['settings', 'Settings'], ['plans', 'Plans'], ['members', 'Members'], ['invites', 'Invites'], ['indicators', 'Indicators'], ['courses', 'Courses'], ['discord', 'Discord'], ['mods', 'Moderators']];
   var FEATS = [['feed', 'Feed'], ['courses', 'Courses'], ['indicators', 'Indicators'], ['events', 'Events'], ['leaderboard', 'Leaderboard'], ['discord', 'Discord roles']];
@@ -46,6 +46,15 @@
     });
   }
 
+  // Keep ?c= and ?tab= in step with what is on screen, so the app menu (and a reload or a shared link) lands on the same tab.
+  function syncUrl() {
+    try {
+      var q = new URLSearchParams(location.search); q.set('c', cid); if (tab === 'dash') q.delete('tab'); else q.set('tab', tab); q.delete('new');
+      history.replaceState(null, '', location.pathname + '?' + q.toString());
+      window.dispatchEvent(new Event('cn:route'));
+    } catch (e) {}
+  }
+
   function draw() {
     var h = '<div class="cx-spread"><div><p class="cx-eyebrow">Creator Hub</p><h1 style="margin:0">' + E(cm.name) + '</h1></div><div class="cx-row">' +
       (list.length > 1 ? '<select class="cx-in-s" id="hb-sw" aria-label="Switch community">' + list.map(function (c) { return '<option value="' + E(c.id) + '"' + (c.id === cid ? ' selected' : '') + '>' + E(c.name) + '</option>'; }).join('') + '</select>' : '') +
@@ -55,8 +64,8 @@
     if (cm.status === 'suspended') h += note('<b class="cx-bad">This community is suspended by TradeZoro staff.</b> It is hidden from members until reviewed.');
     h += '<div class="cx-tabs" style="margin-top:14px" id="hb-tabs">' + TABS.map(function (t) { return '<button type="button" data-t="' + t[0] + '" class="' + (tab === t[0] ? 'on' : '') + '">' + t[1] + '</button>'; }).join('') + '</div><div id="hb-body"></div>';
     root.innerHTML = h;
-    $('hb-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { tab = b.dataset.t; draw(); } });
-    var sw = $('hb-sw'); if (sw) sw.onchange = function () { cid = sw.value; load(); };
+    $('hb-tabs').addEventListener('click', function (e) { var b = e.target.closest('button'); if (b) { tab = b.dataset.t; syncUrl(); draw(); } });
+    var sw = $('hb-sw'); if (sw) sw.onchange = function () { cid = sw.value; syncUrl(); load(); };
     ({ dash: dash, settings: settings, plans: plansView, members: membersView, invites: invitesView, mods: modsView, indicators: indView, courses: coView, discord: discView })[tab]($('hb-body'));
   }
 

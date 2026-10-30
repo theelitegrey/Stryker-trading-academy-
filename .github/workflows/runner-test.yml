@@ -26,6 +26,8 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+      - name: Browser audit runtime
+        run: npm install --no-save --no-package-lock playwright-core@1.56.1
       - name: Tools the workflows rely on
         run: |
           lsb_release -ds; node -v; npx --version

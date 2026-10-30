@@ -515,8 +515,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('nav.nav .nav-cta').forEach(function (cta) {
       // Links went to clean URLs in build 327 ("login", not "login.html");
       // match both so this swap can't silently stop matching again.
-      var login = cta.querySelector('a[href="login"], a[href="login.html"]');
-      var start = cta.querySelector('a[href="signup"], a[href="signup.html"]');
+      var login = cta.querySelector('a[href="login"], a[href="login.html"], a[href="/login"], a[href="/login.html"]');
+      var start = cta.querySelector('a[href="signup"], a[href="signup.html"], a[href="/signup"], a[href="/signup.html"]');
       if (!login && !start) return;
       // Signed-out visitors get the day/night button (theme.js builds it);
       // signed-in ones switch theme from the account menu instead, so it is
@@ -530,7 +530,7 @@ document.addEventListener('DOMContentLoaded', () => {
       var dash = cta.querySelector('a[data-nav-dashboard]');
       if (!dash) {
         dash = document.createElement('a');
-        dash.href = 'dashboard-user';
+        dash.href = '/dashboard-user';
         dash.className = 'btn btn-primary btn-sm';
         dash.setAttribute('data-nav-dashboard', '');
         dash.textContent = 'Dashboard';

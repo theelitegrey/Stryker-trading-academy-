@@ -35,11 +35,14 @@ async function call(fetchFn, key, url, version, acct, method, body) {
   return { status: r.status, json: j };
 }
 
-// A permission error is 401/403 or a "does not have the required permissions" 400-class. Anything else (200, 404 for a fake id) = allowed.
+// Denied = the key lacks a permission. Stripe also answers 403 "does not have access to account ... (or that account does not exist)"
+// for a made-up account id: that means "no such account", so the key is allowed. Real denial says "required permissions".
 function denied(res) {
-  if (res.status === 401 || res.status === 403) return true;
-  const m = String((res.json && res.json.error && res.json.error.message) || '');
-  return /permission|not allowed|required permissions|does not have access/i.test(m);
+  const e = (res.json && res.json.error) || {};
+  const m = String(e.message || '');
+  if (/does not have access to account|account does not exist/i.test(m) && !/required permissions/i.test(m)) return false;
+  if (/required permissions|not allowed|permission/i.test(m) || /permission/i.test(String(e.type || '') + ' ' + String(e.code || ''))) return true;
+  return res.status === 401 || res.status === 403;
 }
 
 async function probe(key, fetchFn) {

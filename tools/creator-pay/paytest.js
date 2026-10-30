@@ -431,6 +431,9 @@ const QA2 = 'stryker-qa-creator@example.com';
     const pr = await LC.probe('rk_live_offline_mock', probeFetch);
     ok(!pr.ok && pr.results.filter((x) => !x.pass).map((x) => x.id).join() === 'disputes', 'probe: exactly the denied permission fails', pr.results.filter((x) => !x.pass));
     ok(!JSON.stringify(pr).includes('rk_live'), 'probe output carries no key');
+    ok(LC.denied({ status: 403, json: { error: { message: "The provided key 'rk_live_x' does not have access to account 'acct_0000000000000000' (or that account does not exist). Application access may have been revoked." } } }) === false, 'denied: 403 no-such-account = allowed');
+    ok(LC.denied({ status: 403, json: { error: { message: 'The provided key does not have the required permissions for this endpoint.' } } }) === true, 'denied: 403 required permissions = denied');
+    ok(LC.denied({ status: 401, json: {} }) === true, 'denied: bare 401 = denied');
 
     // (b) key passes but webhook secret missing -> still refused
     PROBE = 'allow'; LC.resetCache();

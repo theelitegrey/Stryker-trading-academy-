@@ -1,6 +1,12 @@
 [
  {
-  "build": 745,
+  "build": 747,
+  "date": "2026-10-30",
+  "title": "Faster indicators on charts",
+  "link": ""
+ },
+ {
+  "build": 746,
   "date": "2026-10-30",
   "title": "Creator Hub: feed, events, leaderboard",
   "link": ""

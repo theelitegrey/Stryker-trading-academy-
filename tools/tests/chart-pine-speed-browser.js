@@ -19,7 +19,7 @@ const OTHERS = (process.env.PS_OTHERS || 'liquidity-master-tradezoro,session-swe
 const FIX = path.join(__dirname, 'fixtures/orderflow');
 const NOW = Date.UTC(2026, 9, 21, 20, 0);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let CAND = null;
+let CAND = null; const NET = { n: 0, urls: [] };
 async function candles(tf) {
   if (!CAND) {
     const D = await import(path.resolve(__dirname, '../../assets/chart-footprint-data.js'));
@@ -51,6 +51,7 @@ async function open(b) {
   }, [NOW]);
   await ctx.route(/^https?:\/\/(?!localhost|127\.0\.0\.1|cdn\.jsdelivr\.net)/, (r) => r.abort());
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/bars\//, async (r) => {
+    NET.n++; NET.urls.push(r.request().url().replace(/^.*\/api\/chart\/bars\//, '').slice(0, 60));
     const u = new URL(r.request().url());
     const tf = Number(u.searchParams.get('tf')) || 1, page = Number(u.searchParams.get('page')) || 0;
     r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ s: 'NQ', tf: String(tf), page, bars: await candles(tf) }) });
@@ -58,6 +59,7 @@ async function open(b) {
   await ctx.route(/127\.0\.0\.1:\d+\/api\/chart\/stream/, (r) => r.abort());
   await ctx.route(/book-recorder\.theelitegrey\.workers\.dev/, (r) => r.fulfill({ status: 404, headers: { 'access-control-allow-origin': '*' }, body: '' }));
   const p = await ctx.newPage();
+  if (process.env.PS_CPU) { const cd = await ctx.newCDPSession(p); await cd.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.PS_CPU) }); }
   const errors = [];
   p.on('console', (m) => { if (m.type() === 'error' && !/ERR_FAILED|Failed to load resource|\/api\/chart\/stream|firebase|firestore|CORS|WebSocket/i.test(m.text())) errors.push(m.text().slice(0, 200)); });
   p.on('pageerror', (e) => { if (!/docChanges/.test(String(e))) errors.push(String(e).slice(0, 200)); });
@@ -102,10 +104,29 @@ const STATE = `() => { const P = window.STRYKER_PINE, chart = window.STRYKER_VEL
   return { handles: hs.length, drawing: hs.map((h) => { const r = recs.find((q) => q.model && q.model.id === h.id); const m = r && r.model; return [P.titleOf(h), m ? (m.lines||[]).length + (m.labels||[]).length + (m.boxes||[]).length + (m.plots||[]).length + (m.tables||[]).length : -1]; }),
     workers: window.__ps.workers, heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null, bars: chart.orchestrator.rawBars.length }; }`;
 async function addId(p, id, limitMs) {
-  await p.evaluate(`window.__addRes = null; (${ADD})(${JSON.stringify(id)}).then((r) => { window.__addRes = r; }, (e) => { window.__addRes = { ok: false, msg: 'EXC ' + e }; }); 0`);
-  const t0 = Date.now();
-  while (Date.now() - t0 < limitMs) { await sleep(500); const r = await p.evaluate(() => window.__addRes); if (r) return r; }
-  return { ok: false, msg: 'HARNESS TIMEOUT ' + limitMs + 'ms', step: await p.evaluate(() => window.__ps.step) };
+  // probe3 flow, all in-page: wrap addIndicator once, call addSource, poll for the first drawn model
+  return await p.evaluate(async ([id, limitMs]) => {
+    const chart = window.STRYKER_VELA.chart, P = window.STRYKER_PINE; const t0 = performance.now(); const ev = [];
+    const T = (x) => ev.push(x + '@' + Math.round(performance.now() - t0));
+    if (!chart.__psWrap) { chart.__psWrap = 1; const orig = chart.addIndicator.bind(chart); chart.addIndicator = (src, opt) => { const h = orig(src, opt); try { h.on('ready', () => (window.__psReady = (window.__psReady || []).concat([Math.round(performance.now())]))); h.on('error', (e) => window.__psErr && window.__psErr(String(e && e.error && e.error.message || e).slice(0, 100))); } catch (e) {} return h; }; }
+    let lastErr = ''; window.__psErr = (m) => { lastErr = m; T('error ' + m); };
+    const M = await import('/assets/chart-pine-builtins.js');
+    const src = await M.builtinSource(id); const n0 = P.pineHandles(chart).length;
+    window.__psReady = []; const tStart = performance.now(); let r = null;
+    P.addSource(M.PICKER_SCRIPTS.find((x) => x.id === id).name, src, { engine: 'next', builtin: true }).then((x) => { r = x; T('added ' + x.ok); }, (e) => { r = { ok: false, msg: 'EXC ' + e }; });
+    let readyMs = null, drawMs = null;
+    for (let i = 0; i < limitMs / 100; i++) {
+      await new Promise((q) => setTimeout(q, 100));
+      if (readyMs == null && window.__psReady.length) readyMs = Math.round(window.__psReady[0] - tStart);
+      const hs = P.pineHandles(chart);
+      if (hs.length > n0) {
+        const h = hs[hs.length - 1]; const rec = [...chart.orchestrator.registry.all()].find((q) => q.model && q.model.id === h.id); const m = rec && rec.model;
+        if (m && ((m.lines || []).length + (m.labels || []).length + (m.boxes || []).length + (m.series || []).length + (m.plots || []).length + (m.tables || []).length + (m.polylines || []).length)) { drawMs = Math.round(performance.now() - tStart); break; }
+      }
+      if (r && !r.ok) break;
+    }
+    return { id, ok: !!(r && r.ok), msg: (r && r.msg) || lastErr || (r ? '' : 'no result'), readyMs, drawMs, ev, n: P.pineHandles(chart).length - n0 };
+  }, [id, limitMs]);
 }
 (async () => {
   const b = await launch({ args: ['--js-flags=--max-old-space-size=600'] });
@@ -114,7 +135,7 @@ async function addId(p, id, limitMs) {
     for (const cs of CASES) {
       const n = cs === 'alone' ? 0 : Number(cs);
       console.log('open', cs); const { ctx, p, errors } = await open(b); console.log('opened');
-      const row = { case: cs, tf: TF, vela: V09 ? '0.9' : '0.6', w: W, others: [] };
+      const row = { case: cs, cpu: process.env.PS_CPU || 1, tf: TF, vela: V09 ? '0.9' : '0.6', w: W, others: [] };
       for (const id of OTHERS.slice(0, n)) { const o = await addId(p, id, 150000); console.log('other', JSON.stringify(o)); row.others.push(o); }
       if (n) await sleep(2500);
       const idle0 = await p.evaluate(() => window.__ps.msgs.length);
@@ -122,6 +143,7 @@ async function addId(p, id, limitMs) {
       const idleMsgs = await p.evaluate((i) => window.__ps.msgs.slice(i), idle0);
       row.idleModelsPer10s = Math.round(idleMsgs.filter((m) => m[2] === 'model').length * 10 / ((Date.now() - tIdle) / 1000));
       row.idleRunsPer10s = Math.round(idleMsgs.filter((m) => /^>(notifyBars|execute|update)/.test(m[2])).length * 10 / ((Date.now() - tIdle) / 1000));
+      NET.n = 0; NET.urls = []; const netBefore = NET.n;
       const m0 = await p.evaluate(() => ({ i: window.__ps.msgs.length, l: window.__ps.long.length, t: Math.round(performance.now()) }));
       if (process.env.PS_PROBE) { const pr = await p.evaluate(async () => { const o = {}; for (const u of ['https://cdn.jsdelivr.net/npm/@luxalgo/vela-pinets@0.2.11/dist/index.js', 'https://cdn.jsdelivr.net/npm/pinets@0.11.0/dist/pinets.min.browser.es.js']) { const t = performance.now(); try { const r = await Promise.race([fetch(u), new Promise((_, j) => setTimeout(() => j(new Error('15s timeout')), 15000))]); o[u.slice(30, 60)] = r.status + ' ' + Math.round(performance.now() - t) + 'ms'; } catch (e) { o[u.slice(30, 60)] = String(e).slice(0, 80); } } o.next = await Promise.race([import('/assets/chart-pine-next.js?v=731').then(() => 'ok', (e) => String(e).slice(0, 80)), new Promise((r) => setTimeout(() => r('timeout'), 10000))]); return o; }); console.log('PROBE', JSON.stringify(pr)); }
       if (process.env.PS_PROBE2) { const pr = await p.evaluate(async () => { const o = {}; const chart = window.STRYKER_VELA.chart; const ai = chart.addIndicator.bind(chart); chart.addIndicator = (...a) => { o.addInd = 'called'; return ai(...a); };
@@ -136,7 +158,7 @@ async function addId(p, id, limitMs) {
         await new Promise((q) => setTimeout(q, 25000)); o.workers = window.__ps.workers; o.lastMsgs = window.__ps.msgs.slice(-8); return o; }); console.log('PROBE3', JSON.stringify(pr)); }
       console.log('adding target'); const tw = setInterval(async () => { try { const st = await Promise.race([p.evaluate(() => ({ t: Math.round(performance.now()), long: window.__ps.long.slice(-3), msgs: window.__ps.msgs.slice(-6), workers: window.__ps.workers, step: window.__ps.step, hand: window.STRYKER_PINE.pineHandles(window.STRYKER_VELA.chart).length, hs: window.STRYKER_VELA.chart.orchestrator.historyState })), sleep(4000).then(() => 'PAGE UNRESPONSIVE')]); console.log('  ..', JSON.stringify(st).slice(0, 500)); } catch (e) { console.log('  .. err', String(e).slice(0, 100)); } }, 10000);
       const t = await addId(p, TARGET, 150000); clearInterval(tw);
-      row.target = t;
+      row.target = t; row.netFetches = NET.n; row.netUrls = NET.urls.slice(0, 40);
       await sleep(3000);
       const after = await p.evaluate((m0) => ({ long: window.__ps.long.slice(m0.l), msgs: window.__ps.msgs.slice(m0.i) }), m0);
       row.longTasksDuringAdd = after.long.filter((x) => x[0] >= m0.t).map((x) => x[1]);

@@ -21,6 +21,17 @@
   const students = [];
   for (const u of uids) { const s = await g.getDoc('students/' + u); if (s && s.demo === true) students.push('students/' + u); }
   console.log('community docs:', paths.length, '| demo members:', uids.length, '| demo student docs:', students.length, '| slug doc: slugs/' + slug);
+  // breakdown by collection, with demo-flag and author checks (printed in both modes)
+  const OWNER = cm.ownerUid, by = {}, foreign = [];
+  for (const p of paths) {
+    const k = p.split('/').filter((_, i) => i % 2 === 1 || i === 0).length && p.replace(/^communities\/[^/]+\/?/, '').replace(/\/[^/]+(?=\/|$)/g, (m, off, str) => m).split('/').filter((_, i) => i % 2 === 0).join('/') || 'community';
+    by[k] = by[k] || { docs: 0, demo: 0 }; by[k].docs++;
+    const d = await g.getDoc(p);
+    if (d && d.demo === true) by[k].demo++;
+    for (const f of ['authorUid', 'uid', 'createdBy']) if (d && d[f] && d[f] !== OWNER && !/^demo_/.test(d[f])) foreign.push(p + ' (' + f + ')');
+  }
+  console.log('per collection (docs / flagged demo):'); for (const k of Object.keys(by).sort()) console.log('  ' + k.padEnd(34) + by[k].docs + ' / ' + by[k].demo);
+  console.log('docs authored by anyone who is not a demo member or the owner:', foreign.length); foreign.forEach((x) => console.log('  FOREIGN ' + x));
   if (!APPLY) { console.log('DRY RUN. Nothing deleted. Add --apply.'); return; }
   await g.deleteDocs([...paths.reverse(), ...students, 'slugs/' + slug]);
   for (const u of uids) { try { await g.authDelete(u); } catch (e) { /* no auth account for sample members */ } }
